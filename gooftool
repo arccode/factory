@@ -1,0 +1,335 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2010 The Chromium OS Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+"""
+gooftool: Google Factory Tool, providing all Google Required Test
+          functionality.
+"""
+
+import glob
+import optparse
+import os
+import sys
+import tempfile
+
+########################################################################
+# cros/gft modules
+
+import flashrom_util
+import gft_common
+import gft_fwhash
+import gft_hwcomp
+import gft_wpfw
+import gpio
+
+from gft_common import WarningMsg, VerboseMsg, DebugMsg, ErrorMsg, ErrorDie
+
+#######################################################################r
+# global variables and cached objects
+
+g_options = None
+g_args = None
+
+# cache for instance of HardwareComponents to speed up
+g_hwcomp = None
+
+########################################################################
+# factory utilities
+
+
+def InitializeHardwareComponents():
+  """ Initializes (and try to reuse the instance) a hardware components
+      detection object.
+      Returns the initialized (or cached) HardwareComponents object.
+  """
+
+  global g_hwcomp
+  if g_hwcomp:
+    return g_hwcomp
+  g_hwcomp = gft_hwcomp.HardwareComponents(verbose=g_options.verbose)
+  g_hwcomp.initialize()
+  return g_hwcomp
+
+
+def FindComponentsDatabases(db_path_pattern):
+  """ Finds files by pattern for component list databases. """
+  files = glob.glob(db_path_pattern)
+  return files
+
+
+def VerifySwitch(name, value):
+  """ Verifies if hardware switches are in correct states. """
+  my_gpio = gpio.Gpio()
+  my_gpio.setup()
+  try:
+    DebugMsg('reading GPIO %s (expected %s)' % (name, value))
+    if value != my_gpio.read(name):
+      VerboseMsg('VerifySwitch: %s is not in proper state.' % name)
+      return False
+  except:
+    ErrorDie('VerifySwitch: cannot read: ' + name)
+  return True
+
+
+def EnableWriteProtect(target):
+  """ Enables and verifies firmware write protection. """
+  return gft_wpfw.EnableWriteProtect(target, g_options.debug)
+
+
+def WriteGBB(db_file):
+  """ Writes a prepared GBB data to system main firwmare. """
+  flashrom = flashrom_util.flashrom_util(verbose=g_options.debug)
+  flashrom.select_target('bios')
+  image_file = gft_common.GetTemporaryFileName('wgbb')
+  if not flashrom.read_whole_to_file(image_file):
+    ErrorDie('WriteGBB: failed to read current firmware.')
+  if not gft_fwhash.UpdateGBB(image_file, db_file, in_place=True):
+    ErrorDie('WriteGBB: failed to update GBB.')
+
+  # Latest flashrom supports minimal writing, so we don't need to care about
+  # managing partial writing sections here. Simply provide the whole image.
+  with open(image_file) as image:
+    image_data = image.read()
+    if not flashrom.write_whole(image_data):
+      ErrorDie('WriteGBB: failed to flash firmware to system.')
+  os.remove(image_file)
+  return True
+
+
+########################################################################
+# standard procedure
+# (function names are used for self-reflection to command line parameters)
+
+def probe():
+  """ Probes current system HWID by matching to components database files. """
+  if not g_options.db_path:
+    ErrorDie('probe: need --db_path.')
+  db_list = FindComponentsDatabases(g_options.db_path)
+  hwcomp = InitializeHardwareComponents()
+  matched_hwids = 0
+  matched = {}
+
+  # Don't care about GBB elements when probing
+  ignored_cids = ['hash_ro_firmware', 'part_id_hwqual', 'version_rw_firmware']
+  for db in db_list:
+    (matched, failure) = hwcomp.match_current_system(db,
+          ignored_cids=ignored_cids)
+    if not failure:
+      print 'Probed: %s' % db
+      matched_hwids = matched_hwids + 1
+    else:
+      WarningMsg('Unmatched for %s:%s' % (db, hwcomp.pformat(failure)))
+
+  # TODO(hungte) we may need to decide a best match during the search
+  WarningMsg('Current System:%s' % hwcomp.pformat(matched))
+  return (True if matched_hwids > 0 else False)
+
+
+def write_gbb():
+  """ Writes system GBB data by assigned components database. """
+  if not g_options.write_gbb:
+    ErrorDie('write_gbb: need a valid component list file.')
+  return WriteGBB(g_options.write_gbb)
+
+
+def verify_hwid():
+  """ Verifies if HWID is matched to the qualified component list. """
+  if not g_options.db_path:
+    ErrorDie('verify_hwid: need --db_path.')
+  db_list = FindComponentsDatabases(g_options.db_path)
+  hwcomp = InitializeHardwareComponents()
+  matched_hwids = 0
+  matched = {}
+  for db in db_list:
+    (matched, failure) = hwcomp.match_current_system(db)
+    if not failure:
+      print 'Verified: %s' % db
+      matched_hwids = matched_hwids + 1
+    else:
+      DebugMsg('Unmatched for %s:%s\n' % (db, hwcomp.pformat(failure)))
+  DebugMsg('Current System:%s\n' % hwcomp.pformat(matched))
+  if matched_hwids != 1:
+    ErrorDie('verify_hwid: failed to match single HWID.')
+  return True
+
+
+def verify_switch_wp():
+  """ Verifies if hardware write protection switch is enabled. """
+  if VerifySwitch('write_protect', 1):
+    return True
+  ErrorDie('verify_switch_wp: failed')
+
+
+def verify_switch_dev():
+  """ Verifies if developer switch is disabled. """
+  if VerifySwitch('developer_switch', 0):
+    return True
+  ErrorDie('verify_switch_dev: failed')
+
+
+def create_log():
+  """ Creates the log for uploading. """
+  ErrorMsg('create_log: not implemented yet.')
+  return False
+
+
+def upload_log():
+  """ Uploads a log for tracking the factory process. """
+  log_file = g_options.log_path
+  if not g_options.upload_method:
+    ErrorDie('upload_log: need proper --upload_method.')
+  upload_args = g_options.upload_method.split(':', 1)
+  method = upload_args[0]
+  param = None
+  if len(upload_args) > 1:
+    param = upload_args[1]
+  if method == 'none':
+    WarningMsg('upload_log: skipped uploading')
+  elif method == 'ftp':
+    ErrorDie('upload_log: unsupported yet: %s' % method)
+  elif method == 'custom':
+    cmd = '%s %s' % (param, log_file)
+    DebugMsg('upload_log: custom: %s' % cmd)
+    if os.system(cmd) != 0:
+      ErrorDie('upload_log: failed: %s' % cmd)
+  else:
+    ErrorDie('upload_log: unknown method: %s' % method)
+  return True
+
+
+def wpfw():
+  """ Enables and verifies firmware write protection. """
+  if EnableWriteProtect('bios') and EnableWriteProtect('ec'):
+    return True
+  ErrorDie('wpfw: failed to enable firmware write protection.')
+
+
+def prepare_wipe():
+  """ Prepares system to reboot for transitioning to release state. """
+  wipe_script = os.path.join(os.path.split(sys.argv[0])[0],
+                             'gft_prepare_wipe.sh')
+  if not os.path.exists(wipe_script):
+    ErrorDie('prepare_wipe: cannot find script to prepare for wiping.')
+  return_code = os.system('FACTORY_WIPE_TAGS=fast %s' % wipe_script)
+  if return_code != 0:
+    erorr_die('prepare_wipe: failed(%s) in calling preparation script'
+              % return_code)
+  return True
+
+
+def verify():
+  """ Verifies if whole factory process is ready for finalization. """
+  if verify_switch_dev() and verify_switch_wp() and verify_hwid():
+    return True
+  ErrorDie('verify: failed.')
+
+
+def finalize():
+  """ Finalize all factory tests and transit system into release state. """
+  if verify() and wpfw() and upload_log() and prepare_wipe():
+    return True
+  ErrorDie('finalization: failed.')
+
+
+########################################################################
+# console command line options
+
+
+def ConsoleParser():
+  """ command line option parser """
+  parser = optparse.OptionParser()
+  parser.add_option('--debug', action='store_true',
+                    help='provide debug messages')
+  parser.add_option('--verbose', action='store_true', default=True,
+                    help='provide verbose messages')
+  parser.add_option('--config', metavar='PATH',
+                    help='path to the config file (TBD)')
+  parser.add_option('--db_path', metavar='PATH',
+                    help='path to the HWID component list databases')
+  parser.add_option('--probe', action='store_true',
+                    help='generates list of probed component list '
+                         'and matched HWID')
+  parser.add_option('--write_gbb', metavar='comp_db',
+                    help='updates system GBB from a component database')
+  parser.add_option('--verify_hwid', action='store_true',
+                    help='verifies if the HWID matches current system')
+  parser.add_option('--verify_switch_wp', action='store_true',
+                    help='checks if write protection switch is enabled')
+  parser.add_option('--verify_switch_dev', action='store_true',
+                    help='checks if developer switch is disabled')
+  parser.add_option('--create_log', action='store_true',
+                    help='create the log for: vpd, hwid, date, ...')
+  parser.add_option('--upload_log', action='store_true',
+                    help='upload the data generated by --create_log')
+  parser.add_option('--upload_method', metavar='METHOD:PARAM',
+                    help='assign the upload method from '
+                         '"none", "ftp", "shepherd", and "custom"')
+  parser.add_option('--log_path', metavar='PATH_TO_LOG',
+                    help='override the path for log file')
+  parser.add_option('--wpfw', action='store_true',
+                    help='enable and verify firmware write protection')
+  parser.add_option('--prepare_wipe', action='store_true',
+                    help='prepare for wiping factory tests and '
+                        'transit to release mode in next reboot')
+  parser.add_option('--verify', action='store_true',
+                    help='runs: --verify_switch-wp, --verify_switch_dev, '
+                         '--verify_hwid')
+  parser.add_option('--finalize', action='store_true',
+                    help='runs: --verify, --wpfw, --upload_log, --prepare_wipe')
+  return parser
+
+
+########################################################################
+# main entry
+
+
+def ConsoleMain():
+  """ main entry """
+  global g_options, g_args
+  parser = ConsoleParser()
+  (g_options, g_args) = parser.parse_args()
+  if g_args:
+    parser.error('Un-expected parameter(s): %s\n' % ' '.join(g_args))
+
+  if g_options.debug:
+    g_options.verbose = True
+  gft_common.SetDebugLevel(g_options.debug)
+  gft_common.SetVerboseLevel(g_options.verbose)
+  DebugMsg('options: ' + repr(g_options) + '\nargs: ' + repr(g_args))
+
+    # execute commands by order.
+
+  executed_commands = 0
+  valid_commands = [
+    'probe',
+    'write_gbb',
+    'verify_hwid',
+    'verify_switch_wp',
+    'verify_switch_dev',
+    'create_log',
+    'upload_log',
+    'wpfw',
+    'prepare_wipe',
+    'verify',
+    'finalize',
+    ]
+  return_value = 0
+  for command in valid_commands:
+    if not getattr(g_options, command):
+      continue
+    DebugMsg('COMMAND: ' + command)
+    if not globals()[command]():
+      return_value = 1
+    executed_commands = executed_commands + 1
+
+  if executed_commands == 0:
+    parser.print_help()
+  return return_value
+
+
+if __name__ == '__main__':
+  return_code = ConsoleMain()
+  sys.exit(return_code)
