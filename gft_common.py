@@ -22,11 +22,24 @@ import time
 
 
 _debug = False
-_verbose = True
+_verbose = False
+_log_path = None
+
+DEFAULT_CONSOLE_LOG_PATH = '/var/log/factory.log'
 
 
 ########################################################################
 # Common Utilities
+
+
+class GFTError(Exception):
+  """ Exception for unrecoverable errors for GFT related functions. """
+
+  def __init__(self, value):
+    self.value = value
+
+  def __str__(self):
+    return repr(self.value)
 
 
 def SetDebugLevel(level):
@@ -35,21 +48,40 @@ def SetDebugLevel(level):
   _debug = level
 
 
-def SetVerboseLevel(level):
-  """ Sets the verbosity level. """
-  global _verbose
+def SetVerboseLevel(level, log_path=None):
+  """ Sets the verbosity level and log output path. """
+  global _verbose, _log_path
   _verbose = level
+  if log_path:
+    DebugMsg("Set log path to: " + log_path)
+    _log_path = log_path
+
+
+def Log(msg):
+  """ Writes a message to pre-configured log file. """
+  if not _log_path:
+    return
+  try:
+    with open(_log_path, "at") as log_handle:
+      lines = ["(GFT) %s %s\n" % (time.strftime("%Y%m%d %H:%M:%S"), entry)
+               for entry in msg.splitlines()]
+      log_handle.writelines(lines)
+  except:
+    sys.stderr.write("FAILED TO WRITE TO LOG FILE %s.\n" % _log_path)
 
 
 def WarningMsg(msg):
   """ Prints warning messages (to stderr) as-is. """
   sys.stderr.write("%s\n" % msg)
+  Log(msg)
 
 
 def VerboseMsg(msg):
   """ Prints verbose message, if SetVerboseLevel was called with True. """
   if _verbose:
     WarningMsg(msg)
+  else:
+    Log(msg)
 
 
 def DebugMsg(msg):
@@ -65,15 +97,32 @@ def ErrorMsg(msg):
     WarningMsg("ERROR: %s" % entry)
 
 
-def ErrorDie(msg, return_code=1):
-  """ Prints an error message and exit program. """
-  ErrorMsg(msg)
-  sys.exit(return_code)
+def ErrorDie(msg):
+  """ Raises a GFTError exception. """
+  raise GFTError(msg)
 
 
-def GetTemporaryFileName(prefix='gft'):
+def GFTConsole(f):
+  """Decorator for all Google Factory Test Tools console programs.
+
+  log path will be redirectd to DEFAULT_CONSOLE_LOG_PATH by default,
+  and all GFTError will be catched, logged, and exit as failure.
+  """
+  def main_wrapper(*args, **kw):
+    # override the default log path
+    global _log_path
+    _log_path = DEFAULT_CONSOLE_LOG_PATH
+    try:
+      return f(*args, **kw)
+    except GFTError, e:
+      ErrorMsg(e.value)
+      sys.exit(1)
+  return main_wrapper
+
+
+def GetTemporaryFileName(prefix='gft', suffix=''):
   """ Gets a unique file name for temporary usage. """
-  (fd, filename) = tempfile.mkstemp(prefix=prefix)
+  (fd, filename) = tempfile.mkstemp(prefix=prefix, suffix=suffix)
   os.close(fd)
   return filename
 
@@ -113,8 +162,8 @@ def SystemOutput(command,
   if proc.wait() and (not ignore_status):
     temp_stderr.seek(0)
     err = temp_stderr.read()
-    raise Exception('Failed executing command: %s\n'
-                    'Output and Error Messages: %s\n%s\n' % (command, out, err))
+    GFTError('Failed executing command: %s\n'
+             'Output and Error Messages: %s\n%s\n' % (command, out, err))
   if out[-1:] == '\n':
     out = out[:-1]
   return out
@@ -130,6 +179,12 @@ def ReadFile(filename):
   """ Reads whole file. """
   with open(filename) as opened_file:
     return opened_file.read().strip()
+
+
+def ReadBinaryFile(filename):
+  """ Reads whole binary file. """
+  with open(filename, "rb") as opened_file:
+    return opened_file.read()
 
 
 def WriteFile(filename, data):

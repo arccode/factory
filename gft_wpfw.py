@@ -47,9 +47,8 @@ def EnableWriteProtect(target, verbose=False):
     'fmap_conversion': {'EC_RO': 'ro', 'EC_RW': 'rw'},
     })
 
-  # always restore system flashrom selection to this one
-  system_default_selection = 'bios'
-
+  # TODO(hungte) BIOS on ARM is using different layout,
+  # so we must also trust fmap for BIOS in the future.
   matched = [eeprom for eeprom in eeprom_sets
              if eeprom['target'] == target]
   if not matched:
@@ -68,15 +67,15 @@ def EnableWriteProtect(target, verbose=False):
   layout = None
   if conf['trust_fmap']:
     DebugMsg(' - Trying to use FMAP layout for %s' % name)
-    image = self.flashrom.read_whole()
+    image = flashrom.read_whole()
     assert eeprom_size == len(image)
     layout = flashrom_util.decode_fmap_layout(conf['fmap_conversion'], image)
     if 'ro' not in layout:
       layout = None
     else:
       VerboseMsg(' - Using layout by FMAP in %s' % name)
-  if not layout:
 
+  if not layout:
     # do not trust current image when detecting layout.
     layout = flashrom.detect_layout(conf['layout'], eeprom_size, None)
     VerboseMsg(' - Using hard-coded layout for %s' % name)
@@ -92,8 +91,8 @@ def EnableWriteProtect(target, verbose=False):
   # correct, because sometimes the factory test is executed several
   # times without resetting WP status.
   if not flashrom.verify_write_protect(layout, 'ro'):
-    #if not (flashrom.enable_write_protect(layout, 'ro')
-    #        and flashrom.verify_write_protect(layout, 'ro')):
+    if not (flashrom.enable_write_protect(layout, 'ro')
+            and flashrom.verify_write_protect(layout, 'ro')):
       ErrorDie('wpfw: cannot enable write protection for ' + name)
   VerboseMsg(' - Check Write Protection for ' + name)
   flashrom.disable_write_protect()
@@ -102,7 +101,11 @@ def EnableWriteProtect(target, verbose=False):
   return True
 
 
-if __name__ == '__main__':
+#############################################################################
+# Console main entry
+@gft_common.GFTConsole
+def _main():
+  """ Main entry for console mode """
   if len(sys.argv) != 2:
     print 'Usage: %s target_code(bios/ec)\n' % sys.argv[0]
     sys.exit(1)
@@ -110,3 +113,7 @@ if __name__ == '__main__':
   gft_common.SetDebugLevel(True)
   gft_common.SetVerboseLevel(True)
   EnableWriteProtect(sys.argv[1], verbose=True)
+
+
+if __name__ == '__main__':
+  _main()

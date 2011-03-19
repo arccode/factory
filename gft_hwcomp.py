@@ -4,23 +4,18 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import glob
 import logging
 import os
 import pprint
 import re
-import subprocess
 import sys
-import tempfile
-import time
 
 import flashrom_util
-import fmap
 import gft_common
 import gft_fwhash
 import vblock
 
-from gft_common import DebugMsg, WarningMsg, ErrorMsg
+from gft_common import DebugMsg, WarningMsg, ErrorMsg, ErrorDie
 
 
 class HardwareComponents(object):
@@ -80,17 +75,31 @@ class HardwareComponents(object):
   _to_be_tested_cids_groups = []
   _not_present = 'Not Present'
 
-  def __init__(self, verbose=False, exception_type=Exception):
+  def __init__(self, verbose=False):
     self._initialized = False
     self._verbose = verbose
-    self._exception_type = exception_type
     self._pp = pprint.PrettyPrinter()
 
     # cache for firmware images
+    self._flashrom = None
     self._bios_image_file = None
     self._ec_image_file = None
     self._bios_flash_id = None
     self._ec_flash_id = None
+
+    # variables for matching
+    self._enumerable_system = None
+    self._pci_system = None
+    self._usb_system = None
+
+  def __del__(self):
+    try:
+      if self._bios_image_file:
+        os.remove(self._bios_image_file)
+      if self._ec_image_file:
+        os.remove(self._ec_image_file)
+    except:
+      pass
 
   def get_all_enumerable_components(self):
     results = {}
@@ -167,10 +176,9 @@ class HardwareComponents(object):
     to confirm we have proper updated version of EC firmware.
     """
 
-    if not self._load_ec_firmware():
-      raise self._exception_type('get_hash_ec_firmware: cannot read firmware')
-    return gft_fwhash.GetECHash(file_source=self._ec_image_file,
-                                  exception_type=self._exception_type)
+    if not self.load_ec_firmware():
+      ErrorDie('get_hash_ec_firmware: cannot read firmware')
+    return gft_fwhash.GetECHash(file_source=self._ec_image_file)
 
   def get_hash_ro_firmware(self):
     """
@@ -178,10 +186,10 @@ class HardwareComponents(object):
     to confirm we have proper keys / boot code / recovery image installed.
     """
 
-    if not self._load_main_firmware():
-      raise self._exception_type('get_hash_ro_firmware: cannot read firmware')
-    return gft_fwhash.GetBIOSReadOnlyHash(file_source=self._bios_image_file,
-          exception_type=self._exception_type)
+    image_file = self.load_main_firmware()
+    if not image_file:
+      ErrorDie('get_hash_ro_firmware: cannot read firmware')
+    return gft_fwhash.GetBIOSReadOnlyHash(file_source=image_file)
 
   def get_part_id_audio_codec(self):
     cmd = 'grep -R Codec: /proc/asound/* | head -n 1 | sed s/.\*Codec://'
@@ -238,12 +246,12 @@ class HardwareComponents(object):
       return self._not_present
 
   def get_part_id_flash_chip(self):
-    if not self._load_main_firmware():
+    if not self.load_main_firmware():
       return ''
     return self._bios_flash_id
 
   def get_part_id_ec_flash_chip(self):
-    if not self._load_ec_firmware():
+    if not self.load_ec_firmware():
       return ''
     return self._ec_flash_id
 
@@ -338,16 +346,17 @@ class HardwareComponents(object):
 
     versions = [None, None]
     section_names = ['VBOOTA', 'VBOOTB']
-    if not self._load_main_firmware():
-      raise self._exception_type('Cannot read system main firmware.')
+    image_file = self.load_main_firmware()
+    if not image_file:
+      ErrorDie('Cannot read system main firmware.')
     flashrom = self._flashrom
-    base_img = open(self._bios_image_file).read()
+    base_img = open(image_file).read()
     flashrom_size = len(base_img)
 
     # we can trust base image for layout, since it's only RW.
     layout = flashrom.detect_chromeos_bios_layout(flashrom_size, base_img)
     if not layout:
-      raise self._exception_type('Cannot detect ChromeOS flashrom layout')
+      ErrorDie('Cannot detect ChromeOS flashrom layout')
     for (index, name) in enumerate(section_names):
       data = flashrom.get_section(base_img, layout, name)
       block = vblock.unpack_verification_block(data)
@@ -360,24 +369,27 @@ class HardwareComponents(object):
     return '%d' % versions[0]
 
   def _read_gbb_component(self, name):
-    if not self._load_main_firmware():
-      raise self._exception_type('cannot load main firmware')
+    image_file = self.load_main_firmware()
+    if not image_file:
+      ErrorDie('cannot load main firmware')
     filename = gft_common.GetTemporaryFileName('gbb%s' % name)
     if os.system('gbb_utility -g --%s=%s %s >/dev/null 2>&1' %
-                 (name, filename, self._bios_image_file)) != 0:
-      raise self._exception_type('cannot get %s from GBB' % name)
-    value = gft_common.ReadFile(filename)
+                 (name, filename, image_file)) != 0:
+      ErrorDie('cannot get %s from GBB' % name)
+    value = gft_common.ReadBinaryFile(filename)
     os.remove(filename)
     return value
 
   def probe_key_recovery(self, part_id):
     current_key = self._read_gbb_component('recoverykey')
-    target_key = gft_common.ReadFile(os.path.join(self._file_base, part_id))
+    file_path = os.path.join(self._file_base, part_id)
+    target_key = gft_common.ReadBinaryFile(file_path)
     return current_key.startswith(target_key)
 
   def probe_key_root(self, part_id):
     current_key = self._read_gbb_component('rootkey')
-    target_key = gft_common.ReadFile( os.path.join(self._file_base, part_id))
+    file_path = os.path.join(self._file_base, part_id)
+    target_key = gft_common.ReadBinaryFile(file_path)
     return current_key.startswith(target_key)
 
   def probe_part_id_cardreader(self, part_id):
@@ -416,9 +428,11 @@ class HardwareComponents(object):
 
     try:
       return getattr(self, property_name)()
-    except self._exception_type, e:
+    except gft_common.GFTError, e:
       logging.error('Test error in getting property %s', property_name,
                     exc_info=1)
+      gft_common.Log("Error in probing property %s: %s" %
+                     (property_name, e.value))
       return ''
     except:
       logging.error('Exception getting property %s', property_name,
@@ -435,7 +449,7 @@ class HardwareComponents(object):
           group.remove(cid)
           break
       else:
-        raise self._exception_type('The ignored cid %s is not defined' % cid)
+        ErrorDie('The ignored cid %s is not defined' % cid)
       self._not_test_cids.append(cid)
 
   def read_approved_from_file(self, filename):
@@ -443,7 +457,7 @@ class HardwareComponents(object):
     for group in self._to_be_tested_cids_groups + [self._not_test_cids]:
       for cid in group:
         if cid not in approved:
-          raise self._exception_type('%s missing from database' % cid)
+          ErrorDie('%s missing from database' % cid)
     return approved
 
   def _load_firmware(self, target_name, target_option):
@@ -466,30 +480,37 @@ class HardwareComponents(object):
     part_id = ', '.join(parts)
     return (part_id, filename)
 
-  def _load_main_firmware(self):
+  def load_main_firmware(self):
+    """ Loads and cache main (BIOS) firmware image.
+
+    Returns:
+        A file name of cached image.
+    """
     if self._bios_flash_id:
-      return True
+      return self._bios_image_file
     (self._bios_flash_id, self._bios_image_file) = self._load_firmware(
         'BIOS', '-p internal:bus=spi')
-    return self._bios_flash_id
+    return self._bios_image_file
 
-  def _load_ec_firmware(self):
+  def load_ec_firmware(self):
+    """ Loads and cache EC firmware image.
+
+    Returns:
+        A file name of cached image.
+    """
     if self._ec_flash_id:
-      return True
+      return self._ec_image_file
     (self._ec_flash_id, self._ec_image_file) = self._load_firmware(
         'EC', '-p internal:bus=lpc')
-
     # restore flashrom target bus
     os.system('flashrom -p internal:bus=spi >/dev/null 2>&1')
-    return self._ec_flash_id
+    return self._ec_image_file
 
   def initialize(self, force=False):
     if self._initialized and not force:
       return
+    # probe current system components
     self._flashrom = flashrom_util.flashrom_util()
-
-        # probe current system components
-
     self._enumerable_system = self.get_all_enumerable_components()
     self._pci_system = self.get_all_pci_components()
     self._usb_system = self.get_all_usb_components()
@@ -528,18 +549,24 @@ class HardwareComponents(object):
     return (self._system, self._failures)
 
 
-if __name__ == '__main__':
-  if len(sys.argv) < 2:
-    print 'Usage: %s components_db_files...\n' % sys.argv[0]
+#############################################################################
+# Console main entry
+@gft_common.GFTConsole
+def _main(self_path, args):
+  if not args:
+    print 'Usage: %s components_db_files...\n' % self_path
     sys.exit(1)
   components = HardwareComponents(verbose=True)
   print 'Starting to probe system...'
   components.initialize()
   print 'Starting to match system...'
 
-  for arg in sys.argv[1:]:
+  for arg in args:
     (matched, failures) = components.match_current_system(arg)
     print 'Probed (%s):' % arg
     print components.pformat(matched)
     print 'Failures (%s):' % arg
     print components.pformat(failures)
+
+if __name__ == '__main__':
+  _main(sys.argv[0], sys.argv[1:])

@@ -7,17 +7,15 @@
 import hashlib
 import optparse
 import os
-import sys
-import tempfile
 
 import flashrom_util
 import fmap
 import gft_common
 
-from gft_common import WarningMsg, VerboseMsg, DebugMsg, ErrorMsg
+from gft_common import WarningMsg, VerboseMsg, DebugMsg, ErrorMsg, ErrorDie
 
 
-def GetBIOSReadOnlyHash(file_source=None, exception_type=Exception):
+def GetBIOSReadOnlyHash(file_source=None):
   """
   Returns a hash of main firmware (BIOS) read only parts,
   to confirm we have proper keys / boot code / recovery image installed.
@@ -36,7 +34,7 @@ def GetBIOSReadOnlyHash(file_source=None, exception_type=Exception):
   image = flashrom.get_current_image()
   fmap_obj = fmap.fmap_decode(image)
   if not fmap_obj:
-    raise exception_type('No FMAP structure in flashrom.')
+    ErrorDie('GetBIOSReadOnlyHash: No FMAP structure in flashrom.')
 
   # TODO(hungte) we can check that FMAP must reside in RO section, and the
   # BSTUB must be aligned to bottom of firmware.
@@ -51,15 +49,15 @@ def GetBIOSReadOnlyHash(file_source=None, exception_type=Exception):
   for section in hash_ro_list:
     src = flashrom.read_section(section)
     if not src:
-      raise exception_type('Cannot get section [%s] from flashrom' % section)
+      ErrorDie('GetBIOSReadOnlyHash: Cannot get section [%s]' % section)
     hash_src = hash_src + src
   if not hash_src:
-    raise exception_type('Invalid hash source from flashrom.')
+    ErrorDie('GetBIOSReadOnlyHash: Invalid hash source from flashrom.')
 
   return hashlib.sha256(hash_src).hexdigest()
 
 
-def GetECHash(file_source=None, exception_type=Exception):
+def GetECHash(file_source=None):
   """
   Returns a hash of Embedded Controller firmware parts,
   to confirm we have proper updated version of EC firmware.
@@ -73,7 +71,7 @@ def GetECHash(file_source=None, exception_type=Exception):
   # to bypass the 'skip verification' sections
   image = flashrom.get_current_image()
   if not image:
-    raise exception_type('Cannot read EC firmware')
+    ErrorDie('GetECHash: Cannot read EC firmware')
   hash_src = flashrom.get_verification_image(image)
   return hashlib.sha256(hash_src).hexdigest()
 
@@ -93,10 +91,10 @@ def UpdateGBB(old_bios, db_file, in_place=False):
   try:
     components = gft_common.LoadComponentsDatabaseFile(db_file)
   except:
-    raise Exception('Invalid components list file: %s' % db_file)
+    ErrorDie('UpdateGBB: Invalid components list file: %s' % db_file)
   for key in ['part_id_hwqual', 'data_bitmap_fv', 'key_root', 'key_recovery']:
     if len(components[key]) != 1 or components[key][0] == '*':
-      raise Exception("Components list should have a valid value for %s" % key)
+      ErrorDie('Components list should have a valid value for %s' % key)
   cmd = 'gbb_utility --set'
   cmd += ' --hwid="%s"' % components['part_id_hwqual'][0]
   cmd += ' --bmpfv="%s"' % os.path.join(base, components['data_bitmap_fv'][0])
@@ -113,7 +111,10 @@ def UpdateGBB(old_bios, db_file, in_place=False):
   return new_bios
 
 
-def main():
+#############################################################################
+# Console main entry
+@gft_common.GFTConsole
+def _main():
   usage = 'Usage: %prog --target=BIOS|EC --image=IMAGE [--gbb=COMPONENTS]'
   parser = optparse.OptionParser(usage=usage)
   parser.add_option('--target', dest='target', metavar='BIOS|EC',
@@ -153,4 +154,4 @@ def main():
 
 
 if __name__ == "__main__":
-  main()
+  _main()

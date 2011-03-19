@@ -13,7 +13,6 @@ import glob
 import optparse
 import os
 import sys
-import tempfile
 
 ########################################################################
 # cros/gft modules
@@ -22,6 +21,7 @@ import flashrom_util
 import gft_common
 import gft_fwhash
 import gft_hwcomp
+import gft_report
 import gft_wpfw
 import gpio
 
@@ -72,6 +72,32 @@ def VerifySwitch(name, value):
   except:
     ErrorDie('VerifySwitch: cannot read: ' + name)
   return True
+
+
+def MatchComponentsDatabases(db_path):
+  """Tries to match current system to known qualified component lists.
+
+  Args:
+    db_path: path (or pattern) to the component list database files.
+
+  Returns:
+    A list of matched component lists in dict form: { db_file: matched_list }.
+  """
+  if not db_path:
+    ErrorDie('VerifyComponents: need --db_path.')
+  db_list = FindComponentsDatabases(db_path)
+  hwcomp = InitializeHardwareComponents()
+  if not hwcomp:
+    ErrorDie('VerifyComponents: failed to detect system configuration.')
+  matched_list = {}
+  for db in db_list:
+    (matched, failure) = hwcomp.match_current_system(db)
+    if failure:
+      DebugMsg('Unmatched for %s:%s\n' % (db, hwcomp.pformat(failure)))
+    else:
+      matched_list[db] = matched
+      DebugMsg('Matched: %s' % db)
+  return matched_list
 
 
 def EnableWriteProtect(target):
@@ -137,22 +163,18 @@ def write_gbb():
 
 def verify_hwid():
   """ Verifies if HWID is matched to the qualified component list. """
-  if not g_options.db_path:
-    ErrorDie('verify_hwid: need --db_path.')
-  db_list = FindComponentsDatabases(g_options.db_path)
   hwcomp = InitializeHardwareComponents()
-  matched_hwids = 0
-  matched = {}
-  for db in db_list:
-    (matched, failure) = hwcomp.match_current_system(db)
-    if not failure:
-      print 'Verified: %s' % db
-      matched_hwids = matched_hwids + 1
-    else:
-      DebugMsg('Unmatched for %s:%s\n' % (db, hwcomp.pformat(failure)))
-  DebugMsg('Current System:%s\n' % hwcomp.pformat(matched))
-  if matched_hwids != 1:
-    ErrorDie('verify_hwid: failed to match single HWID.')
+  matched_list = MatchComponentsDatabases(g_options.db_path)
+  matched = len(matched_list)
+  if matched > 0:
+    DebugMsg('Current System:%s\n' % hwcomp.pformat(matched_list.values()[0]))
+  if matched != 1:
+    ErrorDie('verify_hwid: failed to match exact one HWID (found %d).' %
+             matched)
+  matched_filename = matched_list.keys()[0]
+  matched_data = matched_list[matched_filename]
+  matched_hwid = matched_data['part_id_hwqual'][0]
+  print 'Verified: %s (%s)' % (matched_filename, matched_hwid)
   return True
 
 
@@ -170,38 +192,82 @@ def verify_switch_dev():
   ErrorDie('verify_switch_dev: failed')
 
 
-def create_log():
-  """ Creates the log for uploading. """
-  ErrorMsg('create_log: not implemented yet.')
-  return False
+def create_report():
+  """ Creates the report for uploading. """
+  # decide log format
+  suffix = '.log'
+  if g_options.report_format == 'gz':
+    text_armed = False
+    suffix = suffix + '.gz'
+  elif g_options.report_format == 'base64':
+    text_armed = True
+  else:
+    ErrorDie('create_report: invalid format: %s' % g_options.report_format)
+
+  # TODO(hungte) if matching is still too slow, we can try to reused previous
+  # cached results.
+  matched = MatchComponentsDatabases(g_options.db_path)
+
+  if not len(matched) == 1:
+    ErrorDie('create_report: HWID is not singularly matched to database.')
+  vpd_source = InitializeHardwareComponents().load_main_firmware()
+  report = gft_report.CreateReport(sys.argv,
+                                   matched.values()[0],
+                                   verbose_log_path=g_options.log_path,
+                                   vpd_source=vpd_source,
+                                   verbose=g_options.debug)
+
+  # Printing this to log may double the log files...
+  if g_options.verbose:
+    sys.stdout.flush()
+    sys.stderr.write("Report Detail:\n%s\n" % gft_report.FormatReport(report))
+
+  data = gft_report.EncodeReport(report, text_armed=text_armed)
+  if not g_options.report_path:
+    # create one in temporary folder
+    g_options.report_path = gft_common.GetTemporaryFileName(prefix='gftrpt_',
+                                                            suffix=suffix)
+
+  gft_common.WriteFile(g_options.report_path, data)
+  report_saved_message = 'Report saved in: %s' % g_options.report_path
+  # To help scripting, the message must be printed to console and logged.
+  print report_saved_message
+  gft_common.Log(report_saved_message)
+  return True
 
 
-def upload_log():
-  """ Uploads a log for tracking the factory process. """
-  log_file = g_options.log_path
+def upload_report():
+  """ Uploads a report for tracking the factory process. """
+  report_path = g_options.report_path
+  if not (report_path and os.path.exists(report_path)):
+    ErrorDie('upload_report: need an existing report file '
+             '(--report_path or --create_report)')
   if not g_options.upload_method:
-    ErrorDie('upload_log: need proper --upload_method.')
+    ErrorDie('upload_report: need proper --upload_method.')
   upload_args = g_options.upload_method.split(':', 1)
   method = upload_args[0]
   param = None
   if len(upload_args) > 1:
     param = upload_args[1]
   if method == 'none':
-    WarningMsg('upload_log: skipped uploading')
+    WarningMsg('upload_report: skipped uploading')
   elif method == 'ftp':
-    ErrorDie('upload_log: unsupported yet: %s' % method)
+    ErrorDie('upload_report: unsupported yet: %s' % method)
   elif method == 'custom':
-    cmd = '%s %s' % (param, log_file)
-    DebugMsg('upload_log: custom: %s' % cmd)
+    cmd = '%s %s' % (param, report_path)
+    DebugMsg('upload_report: custom: %s' % cmd)
     if os.system(cmd) != 0:
-      ErrorDie('upload_log: failed: %s' % cmd)
+      ErrorDie('upload_report: failed: %s' % cmd)
   else:
-    ErrorDie('upload_log: unknown method: %s' % method)
+    ErrorDie('upload_report: unknown method: %s' % method)
   return True
 
 
 def wpfw():
   """ Enables and verifies firmware write protection. """
+  if g_options.debug_dryrun_wpfw:
+    ErrorMsg('wpfw is by-passed. This device CANNOT be qualified.')
+    return True
   if EnableWriteProtect('bios') and EnableWriteProtect('ec'):
     return True
   ErrorDie('wpfw: failed to enable firmware write protection.')
@@ -209,13 +275,16 @@ def wpfw():
 
 def prepare_wipe():
   """ Prepares system to reboot for transitioning to release state. """
+  if g_options.debug_dryrun_prepare_wipe:
+    ErrorMsg('prepare_wipe is by-passed. This device CANNOT be qualified.')
+    return True
   wipe_script = os.path.join(os.path.split(sys.argv[0])[0],
                              'gft_prepare_wipe.sh')
   if not os.path.exists(wipe_script):
     ErrorDie('prepare_wipe: cannot find script to prepare for wiping.')
   return_code = os.system('FACTORY_WIPE_TAGS=fast %s' % wipe_script)
   if return_code != 0:
-    erorr_die('prepare_wipe: failed(%s) in calling preparation script'
+    ErrorDie('prepare_wipe: failed(%s) in calling preparation script'
               % return_code)
   return True
 
@@ -229,7 +298,11 @@ def verify():
 
 def finalize():
   """ Finalize all factory tests and transit system into release state. """
-  if verify() and wpfw() and upload_log() and prepare_wipe():
+  if (verify() and
+      wpfw() and
+      create_report() and
+      upload_report() and
+      prepare_wipe()):
     return True
   ErrorDie('finalization: failed.')
 
@@ -241,14 +314,29 @@ def finalize():
 def ConsoleParser():
   """ command line option parser """
   parser = optparse.OptionParser()
+
+  # Message control
   parser.add_option('--debug', action='store_true',
                     help='provide debug messages')
-  parser.add_option('--verbose', action='store_true', default=True,
+  parser.add_option('--verbose', action='store_true', default=False,
                     help='provide verbose messages')
+  parser.add_option('--log_path', metavar='PATH',
+                    default=gft_common.DEFAULT_CONSOLE_LOG_PATH,
+                    help='use the given path for verbose logs.')
+
+  # Debugging
+  parser.add_option('--debug_dryrun_wpfw', action='store_true',
+                    help='run --wpfw in dry-run mode (debugging only)')
+  parser.add_option('--debug_dryrun_prepare_wipe', action='store_true',
+                    help='run --prepare_wipe in dry-run mode (debugging only)')
+
+  # Configuration
   parser.add_option('--config', metavar='PATH',
                     help='path to the config file (TBD)')
   parser.add_option('--db_path', metavar='PATH',
                     help='path to the HWID component list databases')
+
+  # HWID, GBB, and hardware components validation
   parser.add_option('--probe', action='store_true',
                     help='generates list of probed component list '
                          'and matched HWID')
@@ -256,19 +344,29 @@ def ConsoleParser():
                     help='updates system GBB from a component database')
   parser.add_option('--verify_hwid', action='store_true',
                     help='verifies if the HWID matches current system')
+
+  # Hardware Switches
   parser.add_option('--verify_switch_wp', action='store_true',
                     help='checks if write protection switch is enabled')
   parser.add_option('--verify_switch_dev', action='store_true',
                     help='checks if developer switch is disabled')
-  parser.add_option('--create_log', action='store_true',
-                    help='create the log for: vpd, hwid, date, ...')
-  parser.add_option('--upload_log', action='store_true',
-                    help='upload the data generated by --create_log')
+
+  # Report Creation
+  parser.add_option('--create_report', action='store_true',
+                    help='create the report for: vpd, hwid, date, ...')
+  parser.add_option('--report_path', metavar='PATH',
+                    help='override the path for report file')
+  parser.add_option('--report_format', metavar='FORMAT', default='gz',
+                    help='format of the generated report (see gft_report.py)')
+
+  # Report Uploading
+  parser.add_option('--upload_report', action='store_true',
+                    help='upload the data generated by --create_report')
   parser.add_option('--upload_method', metavar='METHOD:PARAM',
                     help='assign the upload method from '
-                         '"none", "ftp", "shepherd", and "custom"')
-  parser.add_option('--log_path', metavar='PATH_TO_LOG',
-                    help='override the path for log file')
+                         '"none", "ftp", and "custom"')
+
+  # Write Protection Wiping, and Finalization
   parser.add_option('--wpfw', action='store_true',
                     help='enable and verify firmware write protection')
   parser.add_option('--prepare_wipe', action='store_true',
@@ -278,7 +376,8 @@ def ConsoleParser():
                     help='runs: --verify_switch-wp, --verify_switch_dev, '
                          '--verify_hwid')
   parser.add_option('--finalize', action='store_true',
-                    help='runs: --verify, --wpfw, --upload_log, --prepare_wipe')
+                    help='runs: --verify, --wpfw, '
+                         '--create_report, --upload_report, --prepare_wipe')
   return parser
 
 
@@ -286,7 +385,8 @@ def ConsoleParser():
 # main entry
 
 
-def ConsoleMain():
+@gft_common.GFTConsole
+def _main():
   """ main entry """
   global g_options, g_args
   parser = ConsoleParser()
@@ -297,7 +397,7 @@ def ConsoleMain():
   if g_options.debug:
     g_options.verbose = True
   gft_common.SetDebugLevel(g_options.debug)
-  gft_common.SetVerboseLevel(g_options.verbose)
+  gft_common.SetVerboseLevel(g_options.verbose, g_options.log_path)
   DebugMsg('options: ' + repr(g_options) + '\nargs: ' + repr(g_args))
 
     # execute commands by order.
@@ -309,8 +409,8 @@ def ConsoleMain():
     'verify_hwid',
     'verify_switch_wp',
     'verify_switch_dev',
-    'create_log',
-    'upload_log',
+    'create_report',
+    'upload_report',
     'wpfw',
     'prepare_wipe',
     'verify',
@@ -331,5 +431,4 @@ def ConsoleMain():
 
 
 if __name__ == '__main__':
-  return_code = ConsoleMain()
-  sys.exit(return_code)
+  sys.exit(_main())
