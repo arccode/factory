@@ -82,7 +82,7 @@ class HardwareComponents(object):
     self._pp = pprint.PrettyPrinter()
 
     # cache for firmware images
-    self._flashrom = None
+    self._flashrom = flashrom_util.flashrom_util(verbose=verbose)
     self._bios_image_file = None
     self._ec_image_file = None
     self._bios_flash_id = None
@@ -529,7 +529,6 @@ class HardwareComponents(object):
     if self._initialized and not force:
       return
     # probe current system components
-    self._flashrom = flashrom_util.flashrom_util()
     self._enumerable_system = self.get_all_enumerable_components()
     self._pci_system = self.get_all_pci_components()
     self._usb_system = self.get_all_usb_components()

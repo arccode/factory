@@ -162,7 +162,7 @@ def SystemOutput(command,
   if proc.wait() and (not ignore_status):
     temp_stderr.seek(0)
     err = temp_stderr.read()
-    GFTError('Failed executing command: %s\n'
+    ErrorDie('Failed executing command: %s\n'
              'Output and Error Messages: %s\n%s\n' % (command, out, err))
   if out[-1:] == '\n':
     out = out[:-1]
