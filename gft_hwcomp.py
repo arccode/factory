@@ -40,6 +40,7 @@ class HardwareComponents(object):
     'part_id_audio_codec',
     'part_id_cpu',
     'part_id_display_panel',
+    'part_id_dram',
     'part_id_embedded_controller',
     'part_id_ethernet',
     'part_id_flash_chip',
@@ -242,6 +243,21 @@ class HardwareComponents(object):
       vendor_id = gft_common.ReadOneLine(vendor_file).replace('0x', '')
       part_id = gft_common.ReadOneLine(part_file).replace('0x', '')
       return '%s:%s' % (vendor_id, part_id)
+    else:
+      return self._not_present
+
+  def get_part_id_dram(self):
+    grep_cmd = 'lsmod | grep -q i2c_dev'
+    i2c_loaded = (os.system(grep_cmd) == 0)
+    if not i2c_loaded:
+      os.system('modprobe i2c_dev >/dev/null 2>&1')
+    cmd = ('mosys -l memory spd print geometry | '
+           'grep size_mb | cut -f2 -d"|"')
+    part_id = gft_common.SystemOutput(cmd).strip()
+    if not i2c_loaded:
+      os.system('modprobe -r i2c_dev >/dev/null 2>&1')
+    if part_id != '':
+      return part_id
     else:
       return self._not_present
 
@@ -457,7 +473,10 @@ class HardwareComponents(object):
     for group in self._to_be_tested_cids_groups + [self._not_test_cids]:
       for cid in group:
         if cid not in approved:
-          ErrorDie('%s missing from database' % cid)
+          # If we don't have any listing for this type
+          # of part in HWID, it's not required.
+          WarningMsg('Bypassing unlisted cid %s' % cid)
+          approved[cid] = '*'
     return approved
 
   def _load_firmware(self, target_name, target_option):
