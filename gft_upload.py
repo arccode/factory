@@ -87,7 +87,7 @@ def FtpUpload(source_path, ftp_url, retry=0, timeout=10):
     try:
       ftp.connect(host=host, port=port, timeout=timeout)
       break
-    except Exception as e:
+    except Exception, e:
       if not retry:
         ErrorDie('Cannot connect to: %s:%s [timeout=%s]' %
                  (host, port, timeout))

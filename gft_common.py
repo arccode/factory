@@ -53,7 +53,7 @@ def SetVerboseLevel(level, log_path=None):
   global _verbose, _log_path
   _verbose = level
   if log_path:
-    DebugMsg("Set log path to: " + log_path)
+    DebugMsg("Set log path to: " + log_path, log=False)
     _log_path = log_path
 
 
@@ -84,11 +84,13 @@ def VerboseMsg(msg):
     Log(msg)
 
 
-def DebugMsg(msg):
+def DebugMsg(msg, log=True):
   """ Prints message when debug is enabled. """
-  if _debug:
-    for entry in msg.splitlines():
+  for entry in msg.splitlines():
+    if _debug:
       WarningMsg("(DEBUG) %s" % entry)
+    elif log:
+      Log("(DEBUG) %s" % entry)
 
 
 def ErrorMsg(msg):
@@ -130,7 +132,8 @@ def GetTemporaryFileName(prefix='gft', suffix=''):
 def SystemOutput(command,
                  ignore_status=False,
                  show_progress=False,
-                 progress_messsage=None):
+                 progress_messsage=None,
+                 return_exit_code=False):
   """ Retrieves the output of a shell command.
   Returns the output string.
 
@@ -138,8 +141,13 @@ def SystemOutput(command,
     ignore_status: False to raise exectopion when execution result is not zero
     show_progress: Shows progress by messages and dots
     progress_messsage: Messages printed before starting.
+    return_exit_code: True if we want the exit code value, or the console output
+
+  Returns:
+    If return_exit_code is True, return value is an integer of exit code.
+    Otherwise, return value is a string of stdout by command.
   """
-  DebugMsg("SystemOutput: %s" % command)
+  DebugMsg("SystemOutput: %s" % command, log=False)
   temp_stderr = tempfile.TemporaryFile()
   temp_stdout = tempfile.TemporaryFile()
   proc = subprocess.Popen(command,
@@ -157,13 +165,26 @@ def SystemOutput(command,
       sys.stderr.write('\n')
   else:
     proc.communicate()
+
   temp_stdout.seek(0)
   out = temp_stdout.read()
-  if proc.wait() and (not ignore_status):
+  temp_stdout.close()
+
+  exit_code = proc.wait()
+  if exit_code:
+    # prepare to log the error message.
     temp_stderr.seek(0)
     err = temp_stderr.read()
-    ErrorDie('Failed executing command: %s\n'
-             'Output and Error Messages: %s\n%s\n' % (command, out, err))
+    temp_stderr.close()
+    message = ('Failed executing command: %s\n'
+               'Output and Error Messages: %s\n%s' % (command, out, err))
+    if ignore_status:
+      DebugMsg(message)
+    else:
+      ErrorDie(message)
+
+  if return_exit_code:
+    return exit_code
   if out[-1:] == '\n':
     out = out[:-1]
   return out

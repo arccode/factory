@@ -28,7 +28,7 @@ def GetBIOSReadOnlyHash(file_source=None):
   hash_src = ''
   hash_ro_list = ['RO_SECTION']
 
-  flashrom = flashrom_util.FlashromUtility()
+  flashrom = flashrom_util.FlashromUtility(exception_type=gft_common.GFTError)
   flashrom.initialize(flashrom.TARGET_BIOS, target_file=file_source)
 
   image = flashrom.get_current_image()
@@ -66,7 +66,7 @@ def GetECHash(file_source=None):
       file_source: None to read BIOS from system flash rom, or any string
       value as the file name of firmware image to read.
   """
-  flashrom = flashrom_util.FlashromUtility()
+  flashrom = flashrom_util.FlashromUtility(exception_type=gft_common.GFTError)
   flashrom.initialize(flashrom.TARGET_EC, target_file=file_source)
   # to bypass the 'skip verification' sections
   image = flashrom.get_current_image()
@@ -107,6 +107,7 @@ def UpdateGBB(old_bios, db_file, in_place=False):
     new_bios = gft_common.GetTemporaryFileName()
     cmd += ' %s' % new_bios
   cmd += ' >/dev/null'
+  VerboseMsg("WriteGBB: invoke command: " + cmd)
   gft_common.SystemOutput(cmd)
   return new_bios
 

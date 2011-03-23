@@ -20,14 +20,16 @@ import gft_common
 from gft_common import DebugMsg, VerboseMsg, ErrorDie
 
 
-def EnableWriteProtect(target, verbose=False):
+def EnableWriteProtect(target):
   """ Enables and verifies firmware write protection status.
   ARGS
       target: the flashrom_util target code, 'bios' or 'ec'.
       verbose: verbosity for flashrom_util.
   """
 
-  flashrom = flashrom_util.flashrom_util(verbose=verbose)
+  flashrom = flashrom_util.flashrom_util(verbose_msg=VerboseMsg,
+                                         exception_type=gft_common.GFTError,
+                                         system_output=gft_common.SystemOutput)
 
   # The EEPROM should be programmed as:
   #     (BIOS)  LSB [ RW | RO ] MSB
@@ -112,7 +114,7 @@ def _main():
 
   gft_common.SetDebugLevel(True)
   gft_common.SetVerboseLevel(True)
-  EnableWriteProtect(sys.argv[1], verbose=True)
+  EnableWriteProtect(sys.argv[1])
 
 
 if __name__ == '__main__':

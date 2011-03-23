@@ -271,7 +271,7 @@ def main():
     else:
       ErrorDie('gft_report: invalid report format: %s' % options.report_format)
     print FormatReport(DecodeReport(data, text_armed))
-    sys.exit(0)
+    return
 
   # Encode
   if not options.db_path:

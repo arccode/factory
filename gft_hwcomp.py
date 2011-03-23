@@ -4,7 +4,6 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import logging
 import os
 import pprint
 import re
@@ -15,7 +14,7 @@ import gft_common
 import gft_fwhash
 import vblock
 
-from gft_common import DebugMsg, WarningMsg, ErrorMsg, ErrorDie
+from gft_common import DebugMsg, VerboseMsg, WarningMsg, ErrorMsg, ErrorDie
 
 
 class HardwareComponents(object):
@@ -27,11 +26,11 @@ class HardwareComponents(object):
   version = 2
 
   # We divide all component IDs (cids) into 5 categories:
-  #  - enumable: able to get the results by running specific commands;
+  #  - enumerable: able to get the results by running specific commands;
   #  - PCI: PCI devices;
   #  - USB: USB devices;
   #  - probable: returns existed or not by given some pre-defined choices;
-  #  - not test: only data, don't test them.
+  #  - pure data: data for some special purpose, can't be tested;
 
   _enumerable_cids = [
     'data_display_geometry',
@@ -69,11 +68,14 @@ class HardwareComponents(object):
     'part_id_cardreader',
     'part_id_chrontel',
     ]
-  _not_test_cids = [
+  _pure_data_cids = [
     'data_bitmap_fv',
     'data_recovery_url',
     ]
-  _to_be_tested_cids_groups = []
+
+  # _not_test_cids and _to_be_tested_cids will be re-created for each match.
+  _not_test_cids = []
+  _to_be_tested_cids = []
   _not_present = 'Not Present'
 
   def __init__(self, verbose=False):
@@ -82,7 +84,10 @@ class HardwareComponents(object):
     self._pp = pprint.PrettyPrinter()
 
     # cache for firmware images
-    self._flashrom = flashrom_util.flashrom_util(verbose=verbose)
+    self._flashrom = flashrom_util.flashrom_util(
+        verbose_msg=VerboseMsg,
+        exception_type=gft_common.GFTError,
+        system_output=gft_common.SystemOutput)
     self._bios_image_file = None
     self._ec_image_file = None
     self._bios_flash_id = None
@@ -92,6 +97,9 @@ class HardwareComponents(object):
     self._enumerable_system = None
     self._pci_system = None
     self._usb_system = None
+    self._file_base = None
+    self._system = None
+    self._failures = None
 
   def __del__(self):
     try:
@@ -445,14 +453,10 @@ class HardwareComponents(object):
     try:
       return getattr(self, property_name)()
     except gft_common.GFTError, e:
-      logging.error('Test error in getting property %s', property_name,
-                    exc_info=1)
-      gft_common.Log("Error in probing property %s: %s" %
-                     (property_name, e.value))
+      ErrorMsg("Error in probing property %s: %s" % (property_name, e.value))
       return ''
     except:
-      logging.error('Exception getting property %s', property_name,
-                    exc_info=1)
+      ErrorMsg('Exception in getting property %s' % property_name)
       return ''
 
   def pformat(self, obj):
@@ -460,23 +464,21 @@ class HardwareComponents(object):
 
   def update_ignored_cids(self, ignored_cids):
     for cid in ignored_cids:
-      for group in self._to_be_tested_cids_groups:
-        if cid in group:
-          group.remove(cid)
-          break
+      if cid in self._to_be_tested_cids:
+        self._to_be_tested_cids.remove(cid)
+        DebugMsg('Ignoring cid: %s' % cid)
       else:
         ErrorDie('The ignored cid %s is not defined' % cid)
       self._not_test_cids.append(cid)
 
   def read_approved_from_file(self, filename):
     approved = gft_common.LoadComponentsDatabaseFile(filename)
-    for group in self._to_be_tested_cids_groups + [self._not_test_cids]:
-      for cid in group:
-        if cid not in approved:
-          # If we don't have any listing for this type
-          # of part in HWID, it's not required.
-          WarningMsg('Bypassing unlisted cid %s' % cid)
-          approved[cid] = '*'
+    for cid in self._to_be_tested_cids + self._not_test_cids:
+      if cid not in approved:
+        # If we don't have any listing for this type
+        # of part in HWID, it's not required.
+        WarningMsg('gft_hwcomp: Bypassing unlisted cid %s' % cid)
+        approved[cid] = '*'
     return approved
 
   def _load_firmware(self, target_name, target_option):
@@ -529,6 +531,7 @@ class HardwareComponents(object):
     if self._initialized and not force:
       return
     # probe current system components
+    DebugMsg('Starting to probe system components...')
     self._enumerable_system = self.get_all_enumerable_components()
     self._pci_system = self.get_all_pci_components()
     self._usb_system = self.get_all_usb_components()
@@ -539,13 +542,13 @@ class HardwareComponents(object):
         Returns: (current, failures)
     """
 
-    assert self._initialized, 'Not initialized.'
-    self._to_be_tested_cids_groups = [
-        self._enumerable_cids[:],
-        self._pci_cids[:],
-        self._usb_cids[:],
-        self._probable_cids[:]
-    ]
+    # assert self._initialized, 'Not initialized.'
+    self._to_be_tested_cids = (self._enumerable_cids +
+                               self._pci_cids +
+                               self._usb_cids +
+                               self._probable_cids)
+    self._not_test_cids = self._pure_data_cids[:]
+
     self.update_ignored_cids(ignored_cids)
     self._failures = {}
     self._system = {}
@@ -554,15 +557,26 @@ class HardwareComponents(object):
 
     approved = self.read_approved_from_file(filename)
     for cid in self._enumerable_cids:
-      self.check_enumerable_component(cid,
-            self._enumerable_system[cid], approved[cid])
+      if cid not in self._to_be_tested_cids:
+        VerboseMsg('gft_hwcomp: match: ignored: %s' % cid)
+      else:
+        self.check_enumerable_component(
+            cid, self._enumerable_system[cid], approved[cid])
     for cid in self._pci_cids:
-      self.check_pci_usb_component(cid, self._pci_system, approved[cid])
-
+      if cid not in self._to_be_tested_cids:
+        VerboseMsg('gft_hwcomp: match: ignored: %s' % cid)
+      else:
+        self.check_pci_usb_component(cid, self._pci_system, approved[cid])
     for cid in self._usb_cids:
-      self.check_pci_usb_component(cid, self._usb_system, approved[cid])
+      if cid not in self._to_be_tested_cids:
+        VerboseMsg('gft_hwcomp: match: ignored: %s' % cid)
+      else:
+        self.check_pci_usb_component(cid, self._usb_system, approved[cid])
     for cid in self._probable_cids:
-      self.check_probable_component(cid, approved[cid])
+      if cid not in self._to_be_tested_cids:
+        VerboseMsg('gft_hwcomp: match: ignored: %s' % cid)
+      else:
+        self.check_probable_component(cid, approved[cid])
 
     return (self._system, self._failures)
 

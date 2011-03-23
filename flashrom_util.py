@@ -43,7 +43,7 @@ import fmap
 DEFAULT_FLASHROM_TOOL_PATH = '/usr/sbin/flashrom'
 
 # The default target names for BIOS and Embedded Controller (EC)
-DEFAULT_TARGET_NAME_BIOS= 'bios'
+DEFAULT_TARGET_NAME_BIOS = 'bios'
 DEFAULT_TARGET_NAME_EC = 'ec'
 
 # The default description of ChromeOS firmware layout
@@ -165,19 +165,19 @@ def compile_layout(desc, size):
                 continue
             # format name=v or name ?
             if section.find('=') >= 0:
-                k, v = section.split('=')
-                if v == '*':
-                    v = 0            # spare section
+                k, value = section.split('=')
+                if value == '*':
+                    value = 0            # spare section
                 else:
-                    v = int(v, 0)
-                    if v == 0:
-                        raise TestError('Using size as 0 is prohibited now.')
+                    value = int(value, 0)
+                    if value == 0:
+                        raise ValueError('Using size as 0 is prohibited now.')
             else:
-                k, v = (section, 0)  # spare, should appear for only one.
-            if v == 0:
+                k, value = (section, 0)  # spare, should appear for only one.
+            if value == 0:
                 spares = spares + 1
             names.append(k)
-            sizes.append(v)
+            sizes.append(value)
 
         if spares != 1:
             # each partition should have exactly one spare field
@@ -246,6 +246,16 @@ def csv_to_list(csv, delimiter=','):
     return csv
 
 
+def _dummy(*_, **__):
+    """ Dummy function. """
+    pass
+
+def _default_system_output(command, ignore_status, return_exit_code):
+    """ Stub for default system_output function. """
+    if return_exit_code:
+        return utils.system(command, ignore_status=ignore_status)
+    return utils.system_output(command, ignore_status=ignore_status)
+
 # ---------------------------------------------------------------------------
 # flashrom utility wrapper
 class flashrom_util(object):
@@ -293,15 +303,17 @@ class flashrom_util(object):
     See help(detect_layout) for easier way to generate layout maps.
 
     Attributes:
-        tool_path:  file path to the tool 'flashrom'
+        tool_path: file path to the tool 'flashrom'
         cmd_prefix: prefix of every shell cmd, ex: "PATH=.:$PATH;export PATH;"
         cmd_current: combined by tool_path, cmd_prefix and selected target
-        tmp_root:   a folder name for mkstemp (for temp of layout and images)
-        verbose:    print debug and helpful messages
+        tmp_root: a folder name for mkstemp (for temp of layout and images)
         keep_temp_files: boolean flag to control cleaning of temporary files
         target_map: map of what commands should be invoked to switch targets.
                     if you don't need any commands, use empty dict {}.
                     if you want default detection, use None (default param).
+        exception_type: the type of exception to raise for errors.
+        verbose_msg: a function to be called with debugging/helpful messages.
+        system_output: a function to receive shell command output.
     """
 
     TARGET_BIOS = DEFAULT_TARGET_NAME_BIOS
@@ -311,17 +323,22 @@ class flashrom_util(object):
                  tool_path=DEFAULT_FLASHROM_TOOL_PATH,
                  cmd_prefix='',
                  tmp_root=None,
-                 verbose=False,
                  keep_temp_files=False,
-                 target_map=None):
+                 target_map=None,
+                 exception_type=Exception,
+                 verbose_msg=_dummy,
+                 system_output=_default_system_output,
+                 ):
         """ constructor of flashrom_util. help(flashrom_util) for more info """
+        self.exception_type = exception_type
         self.tool_path = tool_path
         self.cmd_prefix = cmd_prefix
         self.tmp_root = tmp_root
-        self.verbose = verbose
         self.keep_temp_files = keep_temp_files
         self.target_map = target_map
         self.is_debug = False
+        self.verbose_msg = verbose_msg
+        self.system_output = system_output
         # detect bbs map if target_map is None.
         # NOTE when target_map == {}, that means "do not execute commands",
         # different to default value.
@@ -331,10 +348,15 @@ class flashrom_util(object):
         # command for current target
         self.cmd_current = '%s"%s"' % (self.cmd_prefix, self.tool_path)
 
+    def _error_die(self, message):
+        ''' (internal) raises a critical exception on un-recoverable errors. '''
+        raise self.exception_type('%s: %s' % (self.__class__.__name__,
+                                              str(message)))
+
     def _get_temp_filename(self, prefix):
         ''' (internal) Returns name of a temporary file in self.tmp_root '''
-        (fd, name) = tempfile.mkstemp(prefix=prefix, dir=self.tmp_root)
-        os.close(fd)
+        (handle, name) = tempfile.mkstemp(prefix=prefix, dir=self.tmp_root)
+        os.close(handle)
         return name
 
     def _remove_temp_file(self, filename):
@@ -351,10 +373,16 @@ class flashrom_util(object):
         '''
         layout_text = ['0x%08lX:0x%08lX %s' % (v[0], v[1], k)
             for k, v in layout_map.items()]
-        layout_text.sort()  # XXX unstable if range exceeds 2^32
+        layout_text.sort()  # unstable if range exceeds 2^32
         tmpfn = self._get_temp_filename('lay')
         open(tmpfn, 'wb').write('\n'.join(layout_text) + '\n')
         return tmpfn
+
+    def system(self, cmd):
+        ''' (internal) Returns if cmd is successfully executed. '''
+        return self.system_output(cmd,
+                                  ignore_status=True,
+                                  return_exit_code=True) == 0
 
     def get_section(self, base_image, layout_map, section_name):
         '''
@@ -364,7 +392,7 @@ class flashrom_util(object):
         assert section_name in layout_map, "Invalid section: " + section_name
         pos = layout_map[section_name]
         if pos[0] >= pos[1] or pos[1] >= len(base_image):
-            raise TestError('INTERNAL ERROR: invalid layout map: %s.' %
+            self._error_die('INTERNAL ERROR: invalid layout map: %s.' %
                             section_name)
         return base_image[pos[0] : pos[1] + 1]
 
@@ -377,22 +405,22 @@ class flashrom_util(object):
         assert section_name in layout_map, "Invalid section: " + section_name
         pos = layout_map[section_name]
         if pos[0] >= pos[1] or pos[1] >= len(base_image):
-            raise TestError('INTERNAL ERROR: invalid layout map.')
+            self._error_die('INTERNAL ERROR: invalid layout map.')
         if len(data) != pos[1] - pos[0] + 1:
-            raise TestError('INTERNAL ERROR: unmatched data size.')
+            self._error_die('INTERNAL ERROR: unmatched data size.')
         return base_image[0 : pos[0]] + data + base_image[pos[1] + 1 :]
 
     def get_size(self):
         """ Gets size of current flash ROM """
         cmd = '%s --get-size | grep "^[0-9]"' % (self.cmd_current)
-        if self.verbose:
-            print 'flashrom_util.get_size(): ', cmd
-        output = utils.system_output(cmd, ignore_status=True)
+        self.verbose_msg('flashrom_util.get_size(): ' + cmd)
+        output = self.system_output(cmd, ignore_status=True)
         last_line = output.strip()
         try:
             size = long(last_line)
         except ValueError:
-            raise TestError('INTERNAL ERROR: unable to get the flash size.')
+            self._error_die('INTERNAL ERROR: unable to get the flash size.')
+        self.verbose_msg('flashrom_util.get_size(): got %d' % size)
         return size
 
     def detect_target_map(self):
@@ -404,7 +432,7 @@ class flashrom_util(object):
         for regex, target_map in DEFAULT_ARCH_TARGET_MAP.items():
             if re.match(regex, arch):
                 return target_map
-        raise TestError('INTERNAL ERROR: unknown architecture, need target_map')
+        self._error_die('INTERNAL ERROR: unknown architecture, need target_map')
 
     def detect_layout(self, layout_desciption, size, image):
         """
@@ -470,9 +498,8 @@ class flashrom_util(object):
         Returns True on success, otherwise False.
         '''
         cmd = '%s -r "%s"' % (self.cmd_current, output_file)
-        if self.verbose:
-            print 'flashrom_util.read_whole_to_file(): ', cmd
-        return utils.system(cmd, ignore_status=True) == 0
+        self.verbose_msg('flashrom_util.read_whole_to_file(): ' + cmd)
+        return self.system(cmd)
 
     def read_whole(self):
         '''
@@ -518,12 +545,8 @@ class flashrom_util(object):
                                    cmd_list,
                                    tmpfn)
 
-        if self.verbose:
-            print 'flashrom._write_flashrom(): ', cmd
-        result = False
-
-        if utils.system(cmd, ignore_status=True) == 0:  # failure for non-zero
-            result = True
+        self.verbose_msg('flashrom._write_flashrom(): ' + cmd)
+        result = self.system(cmd)
 
         # clean temporary resources
         self._remove_temp_file(tmpfn)
@@ -554,7 +577,7 @@ class flashrom_util(object):
         WARNING: YOU CANNOT CHANGE FLASHROM CONTENT AFTER THIS CALL.
         '''
         if section not in layout_map:
-            raise TestError('INTERNAL ERROR: unknown section.')
+            self._error_die('INTERNAL ERROR: unknown section.')
         # syntax: flashrom --wp-range offset size
         #         flashrom --wp-enable
         # NOTE: wp-* won't return error value even if they failed to change
@@ -567,10 +590,8 @@ class flashrom_util(object):
                        self.cmd_current,
                        self.cmd_current, addr[0], addr[1] - addr[0] + 1,
                        self.cmd_current))
-        if self.verbose:
-            print 'flashrom.enable_write_protect(): ', cmd
-        # failure for non-zero
-        return utils.system(cmd, ignore_status=True) == 0
+        self.verbose_msg('flashrom.enable_write_protect(): ' + cmd)
+        return self.system(cmd)
 
     def disable_write_protect(self):
         '''
@@ -580,23 +601,20 @@ class flashrom_util(object):
         #         flashrom --wp-disable
         cmd = '%s --wp-disable && %s --wp-range 0 0' % (
                 self.cmd_current, self.cmd_current)
-        if self.verbose:
-            print 'flashrom.disable_write_protect(): ', cmd
-        # failure for non-zero
-        return utils.system(cmd, ignore_status=True) == 0
+        self.verbose_msg('flashrom.disable_write_protect(): ' + cmd)
+        return self.system(cmd)
 
     def verify_write_protect(self, layout_map, section):
         '''
         Verifies if write protection is configured correctly.
         '''
         if section not in layout_map:
-            raise TestError('INTERNAL ERROR: unknown section.')
+            self._error_die('INTERNAL ERROR: unknown section.')
         # syntax: flashrom --wp-status
         addr = layout_map[section]
         cmd = '%s --wp-status | grep "^WP: "' % (self.cmd_current)
-        if self.verbose:
-            print 'flashrom.verify_write_protect(): ', cmd
-        results = utils.system_output(cmd, ignore_status=True).split('\n')
+        self.verbose_msg('flashrom.verify_write_protect(): ' + cmd)
+        results = self.system_output(cmd, ignore_status=True).splitlines()
         # output: WP: status: 0x80
         #         WP: status.srp0: 1
         #         WP: write protect is %s. (disabled/enabled)
@@ -613,9 +631,8 @@ class flashrom_util(object):
                 elif result == 'disabled':
                     wp_enabled = False
                 else:
-                    if self.verbose:
-                        print 'flashrom.verify_write_protect: unknown status:',
-                        print result
+                    self.verbose_msg('flashrom.verify_write_protect: '
+                                     'unknown status: ' + result)
                 continue
             if result.startswith('WP: write protect range: '):
                 value_start = re.findall('start=[0-9xXa-fA-F]+', result)
@@ -624,14 +641,12 @@ class flashrom_util(object):
                     wp_range_start = int(value_start[0].rpartition('=')[-1], 0)
                     wp_range_len = int(value_len[0].rpartition('=')[-1], 0)
                 continue
-        if self.verbose:
-            print 'wp_enabled:', wp_enabled
-            print 'wp_range_start:', wp_range_start
-            print 'wp_range_len:', wp_range_len
+        self.verbose_msg(' wp_enabled: %s' % wp_enabled)
+        self.verbose_msg(' wp_range_start: %s' % wp_range_start)
+        self.verbose_msg(' wp_range_len: %s' % wp_range_len)
         if (wp_enabled == None) or ((wp_range_start < 0) or (wp_range_len < 0)):
-            if self.verbose:
-                print 'flashrom.verify_write_protect(): invalid output:'
-                print '\n'.join(results)
+            self.verbose_msg('flashrom.verify_write_protect(): invalid output: '
+                             + '\n'.join(results))
             return False
 
         # expected: enabled, and correct range
@@ -639,15 +654,14 @@ class flashrom_util(object):
         addr_start = addr[0]
         addr_len = addr[1] - addr[0] + 1
         if (wp_range_start != addr_start) or (wp_range_len != addr_len):
-            if self.verbose:
-                print ('flashrom.verify_write_protect(): unmatched range: '
-                       'current (%08lx, %08lx), expected (%08lx,%08lx)' %
-                       (wp_range_start, wp_range_len, addr_start, addr_len))
+            self.verbose_msg(
+                'flashrom.verify_write_protect(): unmatched range: '
+                'current (%08lx, %08lx), expected (%08lx,%08lx)' %
+                (wp_range_start, wp_range_len, addr_start, addr_len))
             return False
         if not wp_enabled:
-            if self.verbose:
-                print ('flashrom.verify_write_protect(): '
-                       'write protect is not enabled.')
+            self.verbose_msg('flashrom.verify_write_protect(): '
+                             'write protect is not enabled.')
             return False
 
         # everything is correct.
@@ -661,9 +675,8 @@ class flashrom_util(object):
         assert target in self.target_map, "Unknown target: " + target
         if not self.target_map[target]:
             return True
-        if self.verbose:
-            print 'flashrom.select_target("%s"): %s' % (target,
-                                                        self.target_map[target])
+        self.verbose_msg('flashrom.select_target("%s"): %s' %
+                         (target, self.target_map[target]))
         # command for current target
         self.cmd_current = '%s"%s" %s ' % (self.cmd_prefix,
                                            self.tool_path,
@@ -719,13 +732,19 @@ class FlashromUtility(object):
                         doing compare / verification
         change_history: a list of every change we should apply when committing.
                         each item is (changed_list, image_data).
-        is_verbose:     controls the output of verbose messages.
+
+        verbose_msg:    function to report verbose messages.
     """
 
     TARGET_BIOS = DEFAULT_TARGET_NAME_BIOS
     TARGET_EC = DEFAULT_TARGET_NAME_EC
 
-    def __init__(self, flashrom_util_instance=None, is_verbose=False):
+    def __init__(self,
+                 flashrom_util_instance=None,
+                 exception_type=Exception,
+                 verbose_msg=_dummy,
+                 system_output=_default_system_output,
+                 ):
         """
         Initializes internal variables and states.
 
@@ -733,19 +752,26 @@ class FlashromUtility(object):
             flashrom_util_instance: An instance of existing flashrom_util.  If
                                     not provided, FlashromUtility will create
                                     one with all default values.
-            is_verbose:             Flag to control outputting verbose messages.
         """
+        self.exception_type = exception_type
         self.flashrom = flashrom_util_instance
         if not self.flashrom:
-            self.flashrom = flashrom_util(verbose=is_verbose)
+            self.flashrom = flashrom_util(verbose_msg=verbose_msg,
+                                          exception_type=exception_type,
+                                          system_output=system_output)
         self.current_image = None
         self.target_file = None
         self.layout = None
         self.whole_flash_layout = None
         self.skip_verify = None
         self.change_history = []
-        self.is_verbose = is_verbose
+        self.verbose_msg = verbose_msg
         self.is_debug = False
+
+    def _error_die(self, message):
+        ''' (internal) raises a critical exception on un-recoverable errors. '''
+        raise self.exception_type('%s: %s' % (self.__class__.__name__,
+                                              str(message)))
 
     def initialize(self, target, layout_image=None, layout_desc=None,
                    use_fmap_layout=True, skip_verify=None, target_file=None):
@@ -766,16 +792,15 @@ class FlashromUtility(object):
         """
         flashrom = self.flashrom
         if not target_file and not flashrom.select_target(target):
-            raise TestError("Cannot Select Target. Abort.")
+            self._error_die("Cannot Select Target. Abort.")
         else:
             self.target_file = target_file
 
-        if self.is_verbose:
-            print " - reading current content"
+        self.verbose_msg(" - reading current content")
         self.current_image = self._perform_read_flash()
 
         if not self.current_image:
-            raise TestError("Cannot read flashrom image. Abort.")
+            self._error_die("Cannot read flashrom image. Abort.")
         flashrom_size = len(self.current_image)
 
         if not use_fmap_layout:
@@ -883,7 +908,7 @@ class FlashromUtility(object):
             assert name in layout, "(make_verify) Unknown section name: " + name
             if self.is_debug:
                 print " ** skipping range: %s +%d [%d]" % (name, offset, size)
-            # XXX we use the layout's internal structure here...
+            # we use the layout's internal structure here...
             offset = layout[name][0] + offset
             from_image = from_image[:offset] + (pad_value * size) + \
                          from_image[(offset + size):]
@@ -935,21 +960,20 @@ class FlashromUtility(object):
     def _perform_write_flash(self, changed_list, layout, new_image):
         """ (INTERNAL) Performs a real write to flashrom. """
         flashrom = self.flashrom
-        if self.is_verbose:
-            print " - writing firmware sections:", ','.join(changed_list)
+        self.verbose_msg(" - writing firmware sections: %s" %
+                         ','.join(changed_list))
 
         if self.target_file:
             # TODO(hungte) implementt real partial write here?
             open(self.target_file, 'wb').write(new_image)
         elif not flashrom.write_partial(new_image, layout, changed_list):
-            raise TestError("Cannot re-write firmware. Abort.")
+            self._error_die("Cannot re-write firmware. Abort.")
 
-        if self.is_verbose:
-            print " - verifying firmware data"
+        self.verbose_msg(" - verifying firmware data")
         verify_image = self._perform_read_flash()
         self.current_image = verify_image
         if not self.verify_whole_image(verify_image, new_image):
-            raise TestError("Tool return success but actual data is incorrect.")
+            self._error_die("Tool return success but actual data is incorrect.")
 
     def commit(self):
         """ Commits all change data into real flashrom """
@@ -978,51 +1002,45 @@ class FlashromUtility(object):
 # autotest components here.
 
 
-class mock_TestError(object):
-    """ a mock for error.TestError """
-    def __init__(self, msg):
-        sys.stderr.write(msg + "\n")
-        sys.exit(1)
-
-
 class mock_utils(object):
     """ a mock for autotest_li.client.bin.utils """
     def get_arch(self):
+        """ gets system architecture. """
         arch = os.popen('uname -m').read().rstrip()
         arch = re.sub(r"i\d86", r"i386", arch, 1)
         return arch
 
     def run_command(self, cmd, ignore_status=False):
+        """ executes a command and return its output and return code. """
         p = subprocess.Popen(cmd, shell=True,
                              stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
-        p.wait()
+        (out_msg, err_msg) = p.communicate()
         if p.returncode:
             err_msg = p.stderr.read()
-            sys.stderr.write("%s\n%s\n" % (p.stdout.read(), err_msg))
+            sys.stderr.write("%s\n%s\n" % (out_msg, err_msg))
             if not ignore_status:
-                raise TestError("failed to execute: %s\nError messages: %s" % (
-                    cmd, err_msg))
-        return (p.returncode, p.stdout.read())
+                raise Exception (
+                    "failed to execute: %s\nError messages: %s" %
+                    (cmd, err_msg))
+        return (p.returncode, out_msg)
 
     def system(self, cmd, ignore_status=False):
-        (returncode, output) = self.run_command(cmd, ignore_status)
+        (returncode, _) = self.run_command(cmd, ignore_status)
         return returncode
 
     def system_output(self, cmd, ignore_status=False):
-        (returncode, output) = self.run_command(cmd, ignore_status)
+        (_, output) = self.run_command(cmd, ignore_status)
         return output
 
 
 # import autotest or mock utilities
 try:
     # print 'using autotest'
-    from autotest_lib.client.bin import test, utils
-    from autotest_lib.client.common_lib.error import TestError
+    from autotest_lib.client.bin import utils
 except ImportError:
     # print 'using mocks'
     utils = mock_utils()
-    TestError = mock_TestError
 
 
 # main stub
