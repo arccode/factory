@@ -94,7 +94,8 @@ def UpdateGBB(old_bios, db_file, in_place=False):
     ErrorDie('UpdateGBB: Invalid components list file: %s' % db_file)
   for key in ['part_id_hwqual', 'data_bitmap_fv', 'key_root', 'key_recovery']:
     if len(components[key]) != 1 or components[key][0] == '*':
-      ErrorDie('Components list should have a valid value for %s' % key)
+      ErrorDie('Components list should have a valid value for %s: %s' %
+               (key, db_file))
   cmd = 'gbb_utility --set'
   cmd += ' --hwid="%s"' % components['part_id_hwqual'][0]
   cmd += ' --bmpfv="%s"' % os.path.join(base, components['data_bitmap_fv'][0])

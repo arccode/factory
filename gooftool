@@ -9,6 +9,7 @@ gooftool: Google Factory Tool, providing all Google Required Test
           functionality.
 """
 
+import copy
 import glob
 import optparse
 import os
@@ -273,7 +274,9 @@ def create_report():
   # Printing this to log may double the log files...
   if g_options.verbose:
     sys.stdout.flush()
-    sys.stderr.write("Report Detail:\n%s\n" % gft_report.FormatReport(report))
+    reduced = copy.deepcopy(report)
+    reduced['verbose_log'] = ['...(not listed, please check report)...']
+    sys.stderr.write("Report Detail:\n%s\n" % gft_report.FormatReport(reduced))
 
   data = gft_report.EncodeReport(report, text_armed=text_armed)
   if not g_options.report_path:
