@@ -207,8 +207,8 @@ def CreateReport(create_params,
   # Firmware write protection status
   wp_status_message = (
       'main: %s\nec: %s' %
-      (gft_common.SystemOutput('flashrom -p internal:bus=spi --wp-status'),
-       gft_common.SystemOutput('flashrom -p internal:bus=lpc --wp-status')))
+      (gft_common.SystemOutput('flashrom -p internal:bus=lpc --wp-status'),
+       gft_common.SystemOutput('flashrom -p internal:bus=spi --wp-status')))
   report['wp_status'] = wp_status_message.splitlines()
 
   # TODO(hungte) we may also add these data in future:

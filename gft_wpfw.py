@@ -100,6 +100,11 @@ def EnableWriteProtect(target):
   flashrom.disable_write_protect()
   if not flashrom.verify_write_protect(layout, 'ro'):
     ErrorDie('wpfw: not write-protected (modifiable status): ' + name)
+
+  # Always restore the target to BIOS(spi). Some platforms may fail to reboot if
+  # target is EC(lpc).
+  if target != flashrom.TARGET_BIOS:
+    flashrom.select_target(flashrom.TARGET_BIOS)
   return True
 
 

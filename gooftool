@@ -312,7 +312,7 @@ def wpfw():
   if g_options.debug_dryrun_wpfw:
     ErrorMsg('wpfw is by-passed. This device CANNOT be qualified.')
     return True
-  if EnableWriteProtect('bios') and EnableWriteProtect('ec'):
+  if EnableWriteProtect('ec') and EnableWriteProtect('bios'):
     return True
   ErrorDie('wpfw: failed to enable firmware write protection.')
 
@@ -424,7 +424,7 @@ def ConsoleParser():
                     help='prepare for wiping factory tests and '
                         'transit to release mode in next reboot')
   parser.add_option('--verify', action='store_true',
-                    help='runs: --verify_switch-wp, --verify_switch_dev, '
+                    help='runs: --verify_switch_wp, --verify_switch_dev, '
                          '--verify_hwid, --verify_keys')
   parser.add_option('--finalize', action='store_true',
                     help='runs: --verify, --wpfw, '
