@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright (c) 2010 The Chromium OS Authors. All rights reserved.
+# Copyright (c) 2011 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -60,28 +60,17 @@ DEFAULT_CHROMEOS_FIRMWARE_LAYOUT_DESCRIPTIONS = {
           """,
 }
 
-# The default conversion table for fmap_decode.
-# NOTE: "FVMAIN" is not typo, although it seems like lack of 'A' as postfix.
+# The default conversion table for fmap_decode for legacy firmware (ex, CR48)
 DEFAULT_CHROMEOS_FMAP_CONVERSION = {
-    "Boot Stub": "FV_BSTUB",
-    "GBB Area": "FV_GBB",
-    "Recovery Firmware": "FVDEV",
+    "Boot Stub": "BOOT_STUB",
+    "GBB Area": "GBB",
+    "Recovery Firmware": "RECOVERY",
     "RO VPD": "RO_VPD",
-    "Firmware A Key": "VBOOTA",
-    "Firmware A Data": "FVMAIN",
-    "Firmware B Key": "VBOOTB",
-    "Firmware B Data": "FVMAINB",
+    "Firmware A Key": "VBLOCK_A",
+    "Firmware A Data": "FW_MAIN_A",
+    "Firmware B Key": "VBLOCK_B",
+    "Firmware B Data": "FW_MAIN_B",
     "RW VPD": "RW_VPD",
-    "Log Volume": "FV_LOG",
-    # New layout in Chrome OS Main Processor Firmware Specification,
-    # used by all newer (>2011) platforms except Mario.
-    "BOOT_STUB": "FV_BSTUB",
-    "GBB": "FV_GBB",
-    "RECOVERY": "FVDEV",
-    "VBLOCK_A": "VBOOTA",
-    "VBLOCK_B": "VBOOTB",
-    "FW_MAIN_A": "FVMAIN",
-    "FW_MAIN_B": "FVMAINB",
 }
 
 # Default "skip" sections when verifying section data.
@@ -706,8 +695,8 @@ class FlashromUtility(object):
         flashrom.initialize(flashrom.TARGET_BIOS)
 
         # quick access to section data
-        data = flashrom.read_section('FVMAIN')
-        flashrom.write_section('FVMAIN', data)
+        data = flashrom.read_section('FW_MAIN_A')
+        flashrom.write_section('FW_MAIN_A', data)
 
         # compare section data
         if flashrom.verify_sections('A,B', 'C,D', image1, image2):

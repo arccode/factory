@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright (c) 2010 The Chromium OS Authors. All rights reserved.
+# Copyright (c) 2011 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -44,7 +44,7 @@ def GetBIOSReadOnlyHash(file_source=None):
   # be hashed. Legacy firmware uses a list of BSTUB, GBB, and DEV.
   if hash_ro_list[0] not in flashrom.layout:
     WarningMsg("Warning: firmware_hash: working on legacy firmware")
-    hash_ro_list = ['FV_BSTUB', 'FV_GBB', 'FVDEV']
+    hash_ro_list = ['BOOT_STUB', 'GBB', 'RECOVERY']
 
   for section in hash_ro_list:
     src = flashrom.read_section(section)

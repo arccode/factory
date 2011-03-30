@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright (c) 2010 The Chromium OS Authors. All rights reserved.
+# Copyright (c) 2011 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -32,7 +32,7 @@ FIRMWARE_PREAMBLE_HEADER_VERSION_MINOR = 0
 def unpack_VbKeyBlockHeader(blob, offset=0):
     """
     Unpacks a VbKeyBlockHeader from a blob, starting from offset.
-    The blob is supposed to be a VBOOTA or VBOOTB in firmware image.
+    The blob is supposed to be a VBLOCK_A or VBLOCK_A in firmware image.
 
     Blob structure:
     typedef struct VbKeyBlockHeader {

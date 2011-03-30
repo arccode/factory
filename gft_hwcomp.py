@@ -1,6 +1,6 @@
 #!/usr/bin/python
 #
-# Copyright (c) 2010 The Chromium OS Authors. All rights reserved.
+# Copyright (c) 2011 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -362,14 +362,14 @@ class HardwareComponents(object):
 
   def get_version_rw_firmware(self):
     """
-    Returns the version of Read-Write (writable) firmware from VBOOT section.
+    Returns the version of Read-Write (writable) firmware from VBLOCK sections.
 
     If A/B has different version, that means this system needs a reboot +
     firmwar update so return value is a "error report" in the form "A=x, B=y".
     """
 
     versions = [None, None]
-    section_names = ['VBOOTA', 'VBOOTB']
+    section_names = ['VBLOCK_A', 'VBLOCK_B']
     image_file = self.load_main_firmware()
     if not image_file:
       ErrorDie('Cannot read system main firmware.')
