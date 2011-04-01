@@ -20,11 +20,11 @@ import gft_common
 from gft_common import DebugMsg, VerboseMsg, ErrorDie
 
 
-def EnableWriteProtect(target):
+def EnableWriteProtect(target, image=None):
   """ Enables and verifies firmware write protection status.
   ARGS
       target: the flashrom_util target code, 'bios' or 'ec'.
-      verbose: verbosity for flashrom_util.
+      image: a reference image for layout detection.
   """
 
   flashrom = flashrom_util.flashrom_util(verbose_msg=VerboseMsg,
@@ -32,25 +32,29 @@ def EnableWriteProtect(target):
                                          system_output=gft_common.SystemOutput)
 
   # The EEPROM should be programmed as:
+  #   x86:
   #     (BIOS)  LSB [ RW | RO ] MSB
   #     (EC)    LSB [ RO | RW ] MSB
+  #   arm:
+  #     (BIOS)  LSB [ RO | RW ] MSB
   # Each part of RW/RO section occupies half of the EEPROM.
+  # To simplify the arch detection, we trust the FMAP.
+
+  layout_rw_ro = 'rw|ro'
+  layout_ro_rw = 'ro|rw'
 
   eeprom_sets = ({  # BIOS
     'name': 'BIOS',
-    'layout': 'rw|ro',
+    'layout': layout_rw_ro,
     'target': 'bios',
-    'trust_fmap': False,
+    'fmap_conversion': {'RO_SECTION': 'ro'},
     }, {  # Embedded Controller
     'name': 'EC',
-    'layout': 'ro|rw',
+    'layout': layout_ro_rw,
     'target': 'ec',
-    'trust_fmap': True,
-    'fmap_conversion': {'EC_RO': 'ro', 'EC_RW': 'rw'},
+    'fmap_conversion': {'EC_RO': 'ro'},
     })
 
-  # TODO(hungte) BIOS on ARM is using different layout,
-  # so we must also trust fmap for BIOS in the future.
   matched = [eeprom for eeprom in eeprom_sets
              if eeprom['target'] == target]
   if not matched:
@@ -67,26 +71,46 @@ def EnableWriteProtect(target):
   if not eeprom_size:
     ErrorDie('wpfw: cannot get size for ' + name)
   layout = None
-  if conf['trust_fmap']:
-    DebugMsg(' - Trying to use FMAP layout for %s' % name)
+  layout_desc = conf['layout']
+  DebugMsg(' - Trying to use FMAP layout for %s' % name)
+  if not image:
     image = flashrom.read_whole()
-    assert eeprom_size == len(image)
-    layout = flashrom_util.decode_fmap_layout(conf['fmap_conversion'], image)
-    if 'ro' not in layout:
-      layout = None
-    else:
-      VerboseMsg(' - Using layout by FMAP in %s' % name)
+  assert eeprom_size == len(image)
+  fmap_layout = flashrom_util.decode_fmap_layout(conf['fmap_conversion'], image)
 
-  if not layout:
-    # do not trust current image when detecting layout.
-    layout = flashrom.detect_layout(conf['layout'], eeprom_size, None)
-    VerboseMsg(' - Using hard-coded layout for %s' % name)
+  if 'ro' in fmap_layout:
+    # Verify if the layout is in valid size.  Most chips support only setting
+    # write protection on half of the total size, so we always devide the
+    # flashrom into 2 slots.
+    slot_size = int(eeprom_size / 2)
+    # fmap_layout is a (offset, offset) structure, not (offset, size)
+    (ro_begin_offset, ro_end_offset) = fmap_layout['ro']
+    ro_begin_slot = int(ro_begin_offset / slot_size)
+    ro_end_slot = int(ro_end_offset / slot_size)
+    error_reason = None
+    if ro_begin_slot != ro_end_slot:
+      error_reason = 'section accross valid slot range'
+    # flashrom layout does not really support a section of '1 byte in size'.
+    # Both 0/1 sized sections are invalid.
+    if ro_begin_offset >= ro_end_offset:
+      error_reason = 'invalid section size'
+    if error_reason:
+      ErrorDie('Invalid RO section in layout: %s (%s,%s)' %
+               (error_reason, ro_begin_offset, ro_end_offset))
+    assert ro_begin_slot == 0 or ro_begin_slot == 1
+
+    # decide ro, rw according to the offset of 'ro'.
+    if ro_begin_slot == 0:
+      layout_desc = layout_ro_rw
+    else:
+      layout_desc = layout_rw_ro
+    VerboseMsg(' - Using layout by FMAP in %s: %s' % (name, layout_desc))
+  else:
+    VerboseMsg(' - Using hard-coded layout for %s: %s' % name, layout_desc)
+
+  layout = flashrom.detect_layout(layout_desc, eeprom_size, None)
   if not layout:
     ErrorDie('wpfw: cannot detect %s layout' % name)
-
-  # verify if the layout is half of firmware.
-  if layout['ro'][1] - layout['ro'][0] + 1 != eeprom_size / 2:
-    ErrorDie('Invalid RO section in flash rom layout.')
 
   VerboseMsg(' - Enable Write Protection for ' + name)
   # only configure (enable) write protection if current status is not

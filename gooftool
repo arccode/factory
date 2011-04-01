@@ -106,9 +106,9 @@ def MatchComponentsDatabases(db_path):
   return matched_list
 
 
-def EnableWriteProtect(target):
+def EnableWriteProtect(target, image):
   """ Enables and verifies firmware write protection. """
-  return gft_wpfw.EnableWriteProtect(target)
+  return gft_wpfw.EnableWriteProtect(target, image)
 
 
 def WriteGBB(db_file):
@@ -312,9 +312,23 @@ def wpfw():
   if g_options.debug_dryrun_wpfw:
     ErrorMsg('wpfw is by-passed. This device CANNOT be qualified.')
     return True
-  if EnableWriteProtect('ec') and EnableWriteProtect('bios'):
-    return True
-  ErrorDie('wpfw: failed to enable firmware write protection.')
+  hwcomp = InitializeHardwareComponents(do_probe=False)
+  read_binary = gft_common.ReadBinaryFile
+  target_set = [('ec', hwcomp.load_ec_firmware),
+                ('bios', hwcomp.load_main_firmware)]
+  # TODO(hungte) chrome-os-partner:3023 We need a cleaner way for EC detection,
+  # for examing using crossystem. Currently we only know there is no EC on arm.
+  with os.popen("uname -m") as uname_process:
+    arch = uname_process.read().strip()
+  if arch.startswith('arm'):
+    VerboseMsg('wpfw: ARM platform detected, ignore EC.')
+    assert target_set[0][0] == 'ec'
+    target_set = target_set[1:]
+  assert len(target_set) > 0
+  for target_name, loader_api in target_set:
+    if not EnableWriteProtect(target_name, read_binary(loader_api())):
+      ErrorDie('wpfw: failed to enable firmware write protection.')
+  return True
 
 
 @GFTLogCommand
