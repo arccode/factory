@@ -341,7 +341,17 @@ def prepare_wipe():
                              'gft_prepare_wipe.sh')
   if not os.path.exists(wipe_script):
     ErrorDie('prepare_wipe: cannot find script to prepare for wiping.')
-  return_code = os.system('FACTORY_WIPE_TAGS=fast %s' % wipe_script)
+  wipe_method_map = {
+      'fast': 'fast',
+      'secure': '',
+  }
+  method = g_options.wipe_method
+  if method not in wipe_method_map:
+    ErrorDie('prepare_wipe: unknown wipe method: %s' % method)
+  tag = wipe_method_map[method]
+  command = 'FACTORY_WIPE_TAGS=%s %s' % (tag, wipe_script)
+  DebugMsg('prepare_wipe: execute command: %s' % command)
+  return_code = os.system(command)
   if return_code != 0:
     ErrorDie('prepare_wipe: failed(%s) in calling preparation script'
               % return_code)
@@ -437,6 +447,8 @@ def ConsoleParser():
   parser.add_option('--prepare_wipe', action='store_true',
                     help='prepare for wiping factory tests and '
                         'transit to release mode in next reboot')
+  parser.add_option('--wipe_method', metavar='METHOD', default='secure',
+                    help='assign the wipe method (secure/fast).')
   parser.add_option('--verify', action='store_true',
                     help='runs: --verify_switch_wp, --verify_switch_dev, '
                          '--verify_hwid, --verify_keys')
