@@ -53,6 +53,7 @@ class HardwareComponents(object):
     'part_id_3g',
     'part_id_audio_codec',
     'part_id_bluetooth',
+    'part_id_chrontel',
     'part_id_chipset',
     'part_id_cpu',
     'part_id_display_panel',
@@ -62,6 +63,7 @@ class HardwareComponents(object):
     'part_id_ethernet',
     'part_id_flash_chip',
     'part_id_hwqual',
+    'part_id_keyboard',
     'part_id_storage',
     'part_id_tpm',
     'part_id_usb_hosts',
@@ -69,6 +71,7 @@ class HardwareComponents(object):
     'part_id_webcam',
     'part_id_wireless',
     'vendor_id_touchpad',
+    'version_3g_firmware',
     'version_rw_firmware',
     # Deprcated fields:
     # 'part_id_gps',
@@ -79,7 +82,6 @@ class HardwareComponents(object):
     'key_recovery',
     'key_root',
     'part_id_cardreader',
-    'part_id_chrontel',
     ]
   _pure_data_cids = [
     'data_bitmap_fv',
@@ -336,6 +338,23 @@ class HardwareComponents(object):
   def get_part_id_bluetooth(self):
     return self.get_sysfs_device_id('/sys/class/bluetooth/hci0/device')
 
+  def get_part_id_chrontel(self):
+    """ Gets chrontel HDMI devices by dedicated probing """
+    def probe_ch7036():
+      self.load_module('i2c_dev')
+      probe_cmd = 'ch7036_monitor -p >/dev/null 2>&1'
+      return 'ch7036' if os.system(probe_cmd) == 0 else ''
+
+    method_list = [probe_ch7036]
+    part_id = ''
+    for method in method_list:
+      part_id = method()
+      DebugMsg('get_part_id_chrontel: %s: %s' %
+               (method.__name__, part_id or '<failed>'))
+      if part_id:
+        break
+    return part_id
+
   def get_part_id_chipset(self):
     # Host bridge is always the first PCI device.
     return self.get_sysfs_device_id('/sys/bus/pci/devices/0000:00:00.0')
@@ -402,6 +421,14 @@ class HardwareComponents(object):
            'cat vendor model | tr "\n" " " | sed "s/ \\+/ /g"')
     part_id = gft_common.SystemOutput(cmd).strip()
     return part_id
+
+  def get_part_id_keyboard(self):
+    # VPD value "keyboard_layout"="xkb:gb:extd:eng" should be listed.
+    image_file = self.load_main_firmware()
+    part_id = gft_common.SystemOutput(
+        'vpd -i RO_VPD -l -f "%s" | grep keyboard_layout | cut -f4 -d\\"' %
+        image_file).strip()
+    return part_id or self._not_present
 
   def get_part_id_tpm(self):
     """ Returns Manufacturer_info : Chip_Version """
@@ -474,9 +501,41 @@ class HardwareComponents(object):
     part_id = ''
     for method in method_list:
       part_id = getattr(self, 'get_vendor_id_touchpad_%s' % method)()
+      DebugMsg('get_vendor_id_touchpad: %s: %s' %
+               (method, part_id or '<failed>'))
       if part_id:
         break
     return part_id
+
+  def get_version_3g_firmware(self):
+    version = 'Unknown'
+    # TODO(hungte) use mm.py directly to prevent the need of shell scripting
+    modem_status = gft_common.SystemOutput('modem status',
+                                           ignore_status=True).splitlines()
+    if not modem_status:
+      return self._not_present
+
+    # status format:
+    # Manufacturer: $VENDOR
+    # Modem: $MODEM
+    # Version: $VERSION_MAY_BE_MULTILINE
+    def ParseInfo(name):
+      data = [line for line in modem_status if line.find('%s: ' % name) >= 0]
+      assert len(data) < 2
+      return data[0].split(': ', 1)[1].strip()
+
+    version = ParseInfo('Version')
+    vendor = ParseInfo('Manufacturer')
+    modem = ParseInfo('Modem')
+
+    if vendor == 'Samsung' and modem == 'GT-Y3300X':
+      # The real version is in "Version:" +2 lines
+      version = ''
+      for i, line in enumerate(modem_status):
+        if 'Version: ' in line:
+          version = modem_status[i + 2].strip()
+          break
+    return version or 'Unknown'
 
   def get_version_rw_firmware(self):
     """
@@ -539,18 +598,6 @@ class HardwareComponents(object):
                      (vendor_id, product_id))
     cmd = 'grep -qs "%s" /var/log/messages*' % found_pattern
     return os.system(cmd) == 0
-
-  def probe_part_id_chrontel(self, part_id):
-    if part_id == self._not_present:
-      return True
-
-    if part_id == 'ch7036':
-      self.load_module('i2c_dev')
-      probe_cmd = 'ch7036_monitor -p >/dev/null 2>&1'
-      present = os.system(probe_cmd) == 0
-      return present
-
-    return False
 
   # --------------------------------------------------------------------
   # Matching
