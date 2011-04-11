@@ -17,13 +17,28 @@ import vblock
 from gft_common import DebugMsg, VerboseMsg, WarningMsg, ErrorMsg, ErrorDie
 
 
+def Memorize(f):
+  """ Decorator for functions that need memorization."""
+  memorize_data = {}
+  def memorize_call(*args):
+    index = repr(args)
+    if index in memorize_data:
+      value = memorize_data[index]
+      # DebugMsg('Memorize: using cached value for: %s %s' % (repr(f), index))
+      return value
+    value = f(*args)
+    memorize_data[index] = value
+    return value
+  return memorize_call
+
+
 class HardwareComponents(object):
   """ Hardware Components Scanner """
 
   # Function names in this class are used for reflection, so please don't change
   # the function names even if they are not comliant to coding style guide.
 
-  version = 2
+  version = 3
 
   # We divide all component IDs (cids) into 5 categories:
   #  - enumerable: able to get the results by running specific commands;
@@ -76,7 +91,10 @@ class HardwareComponents(object):
   # _not_test_cids and _to_be_tested_cids will be re-created for each match.
   _not_test_cids = []
   _to_be_tested_cids = []
+
+  # TODO(hungte) unify the 'not available' style messages
   _not_present = 'Not Present'
+  _no_match = 'No match'
 
   def __init__(self, verbose=False):
     self._initialized = False
@@ -88,10 +106,7 @@ class HardwareComponents(object):
         verbose_msg=VerboseMsg,
         exception_type=gft_common.GFTError,
         system_output=gft_common.SystemOutput)
-    self._bios_image_file = None
-    self._ec_image_file = None
-    self._bios_flash_id = None
-    self._ec_flash_id = None
+    self._temp_files = []
 
     # variables for matching
     self._enumerable_system = None
@@ -102,13 +117,12 @@ class HardwareComponents(object):
     self._failures = None
 
   def __del__(self):
-    try:
-      if self._bios_image_file:
-        os.remove(self._bios_image_file)
-      if self._ec_image_file:
-        os.remove(self._ec_image_file)
-    except:
-      pass
+    for temp_file in self._temp_files:
+      try:
+        # DebugMsg('gft_hwcomp: delete temp file %s' % temp_file)
+        os.remove(temp_file)
+      except:
+        pass
 
   def get_all_enumerable_components(self):
     results = {}
@@ -132,6 +146,15 @@ class HardwareComponents(object):
     return gft_common.SystemOutput(cmd, progress_messsage='Probing USB: ',
                                    show_progress=self._verbose).splitlines()
 
+  @Memorize
+  def load_module(self, name):
+    grep_cmd = ('lsmod 2>/dev/null | grep -q %s' % name)
+    loaded = (os.system(grep_cmd) == 0)
+    if not loaded:
+      if os.system('modprobe %s >/dev/null 2>&1' % name) != 0:
+        ErrorMsg("Cannot load module: %s" % name)
+    return loaded
+
   def check_enumerable_component(self, cid, exact_values, approved_values):
     if '*' in approved_values:
       return
@@ -153,26 +176,32 @@ class HardwareComponents(object):
         self._system[cid] = [value]
         return
 
-    self._failures[cid] = ['No match']
+    self._failures[cid] = [self._no_match]
 
-  def check_probable_component(self, cid, approved_values):
+  @Memorize
+  def verify_probable_component(self, cid, approved_values):
     if '*' in approved_values:
-      self._system[cid] = ['*']
-      return
+      return (True, ['*'])
 
     for value in approved_values:
       present = getattr(self, 'probe_' + cid)(value)
       if present:
-        self._system[cid] = [value]
-        return
+        return (True, [value])
+    return (False, [self._no_match])
 
-    self._failures[cid] = ['No match']
+  def check_probable_component(self, cid, approved_values):
+    (probed, value) = self.verify_probable_component(cid, approved_values)
+    if probed:
+      self._system[cid] = value
+    else:
+      self._failures[cid] = value
 
   def get_data_display_geometry(self):
     # Get edid from driver.
     # TODO(nsanders): this is driver specific.
     # TODO(waihong): read-edid is also x86 only.
     # format:   Mode "1280x800" -> 1280x800
+    # TODO(hungte) merge this with get_part_id_display_panel
 
     cmd = ('cat "$(find /sys/devices/ -name edid | grep LVDS)" | '
            'parse-edid 2>/dev/null | grep "Mode " | cut -d\\" -f2')
@@ -185,9 +214,10 @@ class HardwareComponents(object):
     to confirm we have proper updated version of EC firmware.
     """
 
-    if not self.load_ec_firmware():
+    image_file = self.load_ec_firmware()
+    if not image_file:
       ErrorDie('get_hash_ec_firmware: cannot read firmware')
-    return gft_fwhash.GetECHash(file_source=self._ec_image_file)
+    return gft_fwhash.GetECHash(file_source=image_file)
 
   def get_hash_ro_firmware(self):
     """
@@ -255,29 +285,23 @@ class HardwareComponents(object):
       return self._not_present
 
   def get_part_id_dram(self):
-    grep_cmd = 'lsmod | grep -q i2c_dev'
-    i2c_loaded = (os.system(grep_cmd) == 0)
-    if not i2c_loaded:
-      os.system('modprobe i2c_dev >/dev/null 2>&1')
+    # TODO(hungte) if we only want DRAM size, maybe no need to use mosys
+    self.load_module('i2c_dev')
     cmd = ('mosys -l memory spd print geometry | '
            'grep size_mb | cut -f2 -d"|"')
     part_id = gft_common.SystemOutput(cmd).strip()
-    if not i2c_loaded:
-      os.system('modprobe -r i2c_dev >/dev/null 2>&1')
     if part_id != '':
       return part_id
     else:
       return self._not_present
 
   def get_part_id_flash_chip(self):
-    if not self.load_main_firmware():
-      return ''
-    return self._bios_flash_id
+    (chip_id, _) = self._load_firmware('main')
+    return chip_id
 
   def get_part_id_ec_flash_chip(self):
-    if not self.load_ec_firmware():
-      return ''
-    return self._ec_flash_id
+    (chip_id, _) = self._load_firmware('ec')
+    return chip_id
 
   def get_part_id_hwqual(self):
     part_id = gft_common.SystemOutput('crossystem hwid').strip()
@@ -392,16 +416,17 @@ class HardwareComponents(object):
       return 'A=%d, B=%d' % (versions[0], versions[1])
     return '%d' % versions[0]
 
+  @Memorize
   def _read_gbb_component(self, name):
     image_file = self.load_main_firmware()
     if not image_file:
       ErrorDie('cannot load main firmware')
     filename = gft_common.GetTemporaryFileName('gbb%s' % name)
+    self._temp_files.append(filename)
     if os.system('gbb_utility -g --%s=%s %s >/dev/null 2>&1' %
                  (name, filename, image_file)) != 0:
       ErrorDie('cannot get %s from GBB' % name)
     value = gft_common.ReadBinaryFile(filename)
-    os.remove(filename)
     return value
 
   def probe_key_recovery(self, part_id):
@@ -422,6 +447,9 @@ class HardwareComponents(object):
     # But note that it does not guarantee the cardreader presented during
     # the time of the test.
 
+    # TODO(hungte) Grep entire /var/log/message may be slow. Currently we cache
+    # this result by verify_probable_component, but we should find some better
+    # and reliable way to detect this.
     [vendor_id, product_id] = part_id.split(':')
     found_pattern = ('New USB device found, idVendor=%s, idProduct=%s' %
                      (vendor_id, product_id))
@@ -433,16 +461,9 @@ class HardwareComponents(object):
       return True
 
     if part_id == 'ch7036':
-      grep_cmd = 'grep i2c_dev /proc/modules'
-      i2c_loaded = os.system(grep_cmd) == 0
-      if not i2c_loaded:
-        os.system('modprobe i2c_dev')
-
-      probe_cmd = 'ch7036_monitor -p'
+      self.load_module('i2c_dev')
+      probe_cmd = 'ch7036_monitor -p >/dev/null 2>&1'
       present = os.system(probe_cmd) == 0
-
-      if not i2c_loaded:
-        os.system('modprobe -r i2c_dev')
       return present
 
     return False
@@ -481,24 +502,35 @@ class HardwareComponents(object):
         approved[cid] = '*'
     return approved
 
-  def _load_firmware(self, target_name, target_option):
+  @Memorize
+  def _load_firmware(self, target_name):
     filename = gft_common.GetTemporaryFileName('fw_cache')
+    self._temp_files.append(filename)
+
+    option_map = {
+        'main': '-p internal:bus=spi',
+        'ec': '-p internal:bus=lpc',
+    }
+    assert target_name in option_map
 
     # example output:
     #  Found chip "Winbond W25x16" (2048 KB, FWH) at physical address 0xfe
     # TODO(hungte) maybe we don't need the -V in future -- if that can make
     # the command faster.
-    command = 'flashrom -V %s -r %s' % (target_option, filename)
+    command = 'flashrom -V %s -r %s' % (option_map[target_name], filename)
     parts = []
     lines = gft_common.SystemOutput(
         command,
-        progress_messsage='Reading %s: ' % target_name,
+        progress_messsage='Reading %s firmware: ' % target_name,
         show_progress=self._verbose).splitlines()
     for line in lines:
       match = re.search(r'Found chip "(.*)" .* at physical address ', line)
       if match:
         parts.append(match.group(1))
     part_id = ', '.join(parts)
+    # restore flashrom target bus
+    if target_name != 'main':
+      os.system('flashrom %s >/dev/null 2>&1' % option_map['main'])
     return (part_id, filename)
 
   def load_main_firmware(self):
@@ -507,11 +539,8 @@ class HardwareComponents(object):
     Returns:
         A file name of cached image.
     """
-    if self._bios_flash_id:
-      return self._bios_image_file
-    (self._bios_flash_id, self._bios_image_file) = self._load_firmware(
-        'BIOS', '-p internal:bus=spi')
-    return self._bios_image_file
+    (_, image_file) = self._load_firmware('main')
+    return image_file
 
   def load_ec_firmware(self):
     """ Loads and cache EC firmware image.
@@ -519,13 +548,8 @@ class HardwareComponents(object):
     Returns:
         A file name of cached image.
     """
-    if self._ec_flash_id:
-      return self._ec_image_file
-    (self._ec_flash_id, self._ec_image_file) = self._load_firmware(
-        'EC', '-p internal:bus=lpc')
-    # restore flashrom target bus
-    os.system('flashrom -p internal:bus=spi >/dev/null 2>&1')
-    return self._ec_image_file
+    (_, image_file) = self._load_firmware('ec')
+    return image_file
 
   def initialize(self, force=False):
     if self._initialized and not force:
