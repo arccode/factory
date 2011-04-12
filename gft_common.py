@@ -218,10 +218,67 @@ def WriteFile(filename, data):
 # Components Databases
 
 
+def ExpandComponentsDatabaseMacro(data, database_file):
+  """ Processes and expands macros in a component database. """
+  allow_macro_fields = (
+      'data_bitmap_fv'
+  )
+  macros = {
+      '<BMP_V1>': '%(path_from_base)s/bmp_%(flat_hwid)s.bmp'
+  }
+  # all variables used in macros must be prepared
+  variables = {}
+  variables['flat_hwid'] = data['part_id_hwqual'][0].replace(' ', '_')
+  # TODO(hungte) Currently the path from base is very tricky. In the future we
+  # should make it relative to database file.
+  virtual_base_folder = GetComponentsDatabaseBase(database_file)
+  current_base_folder = os.path.split(os.path.abspath(database_file))[0]
+  variables['path_from_base'] = os.path.relpath(current_base_folder,
+                                                virtual_base_folder)
+  for key, value in data.items():
+    if key not in allow_macro_fields:
+      continue
+    assert len(value) == 1
+    value = value[0]
+    if value not in macros:
+      continue
+    template = macros[value]
+    new_value = template % variables
+    data[key] = [new_value]
+    DebugMsg('ExpandComponentsDatabaseMacro: [%s] %s->%s' %
+             (key, value, new_value))
+  return data
+
+
 def LoadComponentsDatabaseFile(filename):
   """ Loads a components database file. """
-  with open(filename) as database:
-    return eval(database.read())
+  original_filename = filename
+  (base_dir, base_name) = os.path.split(filename)
+  file_list = [base_name]
+  str_inherit = 'inherit'
+  result = {}
+  while True:
+    with open(filename) as database:
+      updates = eval(database.read())
+      for key, value in updates.items():
+        if key in result:
+          continue
+        result[key] = value
+      if str_inherit not in result:
+        break
+      new_file = result.pop(str_inherit)
+      if new_file in file_list:
+        ErrorDie('LoadComponentsDatabaseFile: found recursive reference: '
+                 '%s' % '->'.join(file_list))
+      file_list.append(new_file)
+      if os.path.split(new_file)[0]:
+        ErrorDie('LoadComponentsDatabaseFile: inherit cannot contain folder: '
+                 '%s' % '->'.join(file_list))
+      filename = os.path.join(base_dir, new_file)
+  if len(file_list) > 1:
+    DebugMsg('LoadComponentsDatabaseFile: ' + '->'.join(file_list))
+  ExpandComponentsDatabaseMacro(result, original_filename)
+  return result
 
 
 def GetComponentsDatabaseBase(database_file):
