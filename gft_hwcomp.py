@@ -9,6 +9,7 @@ import os
 import pprint
 import re
 import sys
+import threading
 
 import flashrom_util
 import gft_common
@@ -19,18 +20,7 @@ from gft_common import DebugMsg, VerboseMsg, WarningMsg, ErrorMsg, ErrorDie
 
 
 def Memorize(f):
-  """ Decorator for functions that need memorization."""
-  memorize_data = {}
-  def memorize_call(*args):
-    index = repr(args)
-    if index in memorize_data:
-      value = memorize_data[index]
-      # DebugMsg('Memorize: using cached value for: %s %s' % (repr(f), index))
-      return value
-    value = f(*args)
-    memorize_data[index] = value
-    return value
-  return memorize_call
+  return gft_common.ThreadSafe(gft_common.Memorize(f))
 
 
 class HardwareComponents(object):
@@ -39,7 +29,7 @@ class HardwareComponents(object):
   # Function names in this class are used for reflection, so please don't change
   # the function names even if they are not comliant to coding style guide.
 
-  version = 5
+  version = 6
 
   # We divide all component IDs (cids) into 5 categories:
   #  - enumerable: able to get the results by running specific commands;
@@ -86,6 +76,13 @@ class HardwareComponents(object):
   _pure_data_cids = [
     'data_bitmap_fv',
     'data_recovery_url',
+    ]
+
+  # list of cids that should not be fetched asynchronously.
+  _non_async_cids = [
+    # Reading EC will become very slow and cause inaccurate results if we try to
+    # probe components that also fires EC command at the same time.
+    'part_id_ec_flash_chip',
     ]
 
   # _not_test_cids and _to_be_tested_cids will be re-created for each match.
@@ -667,9 +664,12 @@ class HardwareComponents(object):
         approved[cid] = '*'
     return approved
 
-  def get_all_enumerable_components(self):
+  def get_all_enumerable_components(self, async):
     results = {}
-    for cid in self._enumerable_cids:
+    thread_pools = []
+
+    def fetch_enumerable_component(cid):
+      """ Fetch an enumerable component and update the results """
       if self._verbose:
         sys.stdout.flush()
         sys.stderr.write('<Fetching property %s>\n' % cid)
@@ -677,6 +677,27 @@ class HardwareComponents(object):
       if not isinstance(components, list):
         components = [components]
       results[cid] = components
+
+    class FetchThread(threading.Thread):
+      """ Thread object for parallel enumerating """
+      def __init__(self, cid):
+        threading.Thread.__init__(self)
+        self.cid = cid
+
+      def run(self):
+        fetch_enumerable_component(self.cid)
+
+    for cid in self._enumerable_cids:
+      if async and cid not in self._non_async_cids:
+        thread_pools.append(FetchThread(cid))
+      else:
+        fetch_enumerable_component(cid)
+
+    # Complete the threads
+    for thread in thread_pools:
+      thread.start()
+    for thread in thread_pools:
+      thread.join()
     return results
 
   def check_enumerable_component(self, cid, exact_values, approved_values):
@@ -693,6 +714,7 @@ class HardwareComponents(object):
     if set(legacy_approved) == set(approved_values):
       DebugMsg('Start legacy search for cid: ' + cid)
       # safe for legacy match
+      # TODO(hungte) prefetch this list in async batch process.
       legacy_list = self._get_legacy_device_list()
       matched = list(set(legacy_list).intersection(set(approved_values)))
       if matched:
@@ -723,12 +745,12 @@ class HardwareComponents(object):
   def pformat(self, obj):
     return '\n' + self._pp.pformat(obj) + '\n'
 
-  def initialize(self, force=False):
+  def initialize(self, force=False, async=False):
     if self._initialized and not force:
       return
     # probe current system components
     DebugMsg('Starting to detect system components...')
-    self._enumerable_system = self.get_all_enumerable_components()
+    self._enumerable_system = self.get_all_enumerable_components(async)
     self._initialized = True
 
   def match_current_system(self, filename, ignored_cids=[]):
@@ -767,15 +789,33 @@ class HardwareComponents(object):
 # Console main entry
 @gft_common.GFTConsole
 def _main(self_path, args):
-  if not args:
-    print 'Usage: %s components_db_files...\n' % self_path
-    sys.exit(1)
-  components = HardwareComponents(verbose=True)
-  print 'Starting to probe system...'
-  components.initialize()
-  print 'Starting to match system...'
+  do_async = True
 
+  # preprocess args
+  compdb_list = []
   for arg in args:
+    if arg == '--sync':
+      do_async = False
+    elif arg == '--async':
+      do_async = True
+    elif not os.path.exists(arg):
+      print 'ERROR: unknown parameter: ' + arg
+      print 'Usage: %s [--sync|--async] [components_db_files...]\n' % self_path
+      sys.exit(1)
+    else:
+      compdb_list.append(arg)
+
+  components = HardwareComponents(verbose=True)
+  print 'Starting to detect%s...' % (' asynchrounously' if do_async else '')
+  components.initialize(async=do_async)
+
+  if not compdb_list:
+    print 'Enumerable properties:'
+    print components.pformat(components._enumerable_system)
+    sys.exit(0)
+
+  print 'Starting to match system...'
+  for arg in compdb_list:
     (matched, failures) = components.match_current_system(arg)
     print 'Probed (%s):' % arg
     print components.pformat(matched)

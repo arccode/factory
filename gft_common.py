@@ -14,6 +14,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 
 
@@ -213,6 +214,32 @@ def WriteFile(filename, data):
   with open(filename, "w") as opened_file:
     opened_file.write(data)
 
+
+def ThreadSafe(f):
+  """ Decorator for functions that need synchronoization. """
+  lock = threading.Lock()
+  def threadsafe_call(*args):
+    try:
+      lock.acquire()
+      return f(*args)
+    finally:
+      lock.release()
+  return threadsafe_call
+
+
+def Memorize(f):
+  """ Decorator for functions that need memorization. """
+  memorize_data = {}
+  def memorize_call(*args):
+    index = repr(args)
+    if index in memorize_data:
+      value = memorize_data[index]
+      # DebugMsg('Memorize: using cached value for: %s %s' % (repr(f), index))
+      return value
+    value = f(*args)
+    memorize_data[index] = value
+    return value
+  return memorize_call
 
 ########################################################################
 # Components Databases
