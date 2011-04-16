@@ -5,6 +5,7 @@
 # found in the LICENSE file.
 
 import glob
+import imp
 import os
 import pprint
 import re
@@ -17,10 +18,6 @@ import gft_fwhash
 import vblock
 
 from gft_common import DebugMsg, VerboseMsg, WarningMsg, ErrorMsg, ErrorDie
-
-
-def Memorize(f):
-  return gft_common.ThreadSafe(gft_common.Memorize(f))
 
 
 class HardwareComponents(object):
@@ -93,6 +90,13 @@ class HardwareComponents(object):
   _not_present = ''
   _no_match = 'No match'
 
+  # Type id for connection management (compatible to flimflam)
+  _type_3g = 'cellular'
+  _type_ethernet = 'ethernet'
+  _type_wireless = 'wifi'
+
+  _flimflam_dir = '/usr/local/lib/flimflam/test'
+
   def __init__(self, verbose=False):
     self._initialized = False
     self._verbose = verbose
@@ -121,6 +125,10 @@ class HardwareComponents(object):
 
   # --------------------------------------------------------------------
   # System Probing Utilities
+
+  def Memorize(f):
+    """ Decorator for thread-safe memorization """
+    return gft_common.ThreadSafe(gft_common.Memorize(f))
 
   @Memorize
   def load_module(self, name):
@@ -166,21 +174,75 @@ class HardwareComponents(object):
     return device_list
 
   @Memorize
+  def import_flimflam_module(self):
+    """ Tries to load flimflam module from current system """
+    if not os.path.exists(self._flimflam_dir):
+      DebugMsg('no flimflam installed in %s' % self._flimflam_dir)
+      return None
+    try:
+      return imp.load_module('flimflam',
+                             *imp.find_module('flimflam', [self._flimflam_dir]))
+    except ImportError:
+      ErrorMsg('Failed to import flimflam.')
+    except:
+      ErrorMsg('Failed to load flimflam.')
+    return None
+
+  @Memorize
+  def load_flimflam(self):
+    """Gets information provided by flimflam (connection manager)
+
+    Returns
+    (None, None) if failed to load module, otherwise
+    (connection_path, connection_info) where
+     connection_path is a dict in {type: device_path},
+     connection_info is a dict of {type: {attribute: value}}.
+    """
+    flimflam = self.import_flimflam_module()
+    if not flimflam:
+      return (None, None)
+    path = {}
+    info = {}
+    info_attribute_names = {
+        self._type_3g: ['Carrier', 'FirmwareRevision', 'HardwareRevision',
+                        'ModelID', 'Manufacturer'],
+    }
+    devices = flimflam.FlimFlam().GetObjectList('Device')
+    unpack = flimflam.convert_dbus_value
+    # TODO(hungte) support multiple devices existence in future
+    for device in devices:
+      # populate the 'path' collection
+      prop = device.GetProperties()
+      prop_type = unpack(prop['Type'])
+      prop_path = unpack(prop['Interface'])
+      if prop_type in path:
+        WarningMsg('Multiple network devices with same type (%s) were found.'
+                   'Target path changed from %s to %s.' %
+                   (prop_type, path[prop_type], prop_path))
+      path[prop_type] = '/sys/class/net/%s/device' % prop_path
+      if prop_type not in info_attribute_names:
+        continue
+      # populate the 'info' collection
+      info[prop_type] = dict((
+          (key, unpack(prop['Cellular.%s' % key]))
+          for key in info_attribute_names[prop_type]
+          if ('Cellular.%s' % key) in prop))
+    return (path, info)
+
+  @Memorize
   def _get_all_connection_info(self):
     """ Probes available connectivity and device information """
     connection_info = {
-        'wireless': '/sys/class/net/wlan0/device',
-        'ethernet': '/sys/class/net/eth0/device',
-        '3g': '/sys/class/tty/ttyUSB0/device',
+        self._type_wireless: '/sys/class/net/wlan0/device',
+        self._type_ethernet: '/sys/class/net/eth0/device',
+        # 3g(cellular) may also be /sys/class/net/usb0
+        self._type_3g: '/sys/class/tty/ttyUSB0/device',
     }
-    flimflam_scripts_base = '/usr/local/lib/flimflam/test'
-    if os.path.exists(flimflam_scripts_base):
-      # TODO(hungte) use flimflam to update the device list.
-      # Currently flimflam seem to be not very stable, so let's ignore it.
-      list_modems = os.path.join(flimflam_scripts_base, 'mm-list-modems')
-      part_id = gft_common.SystemOutput(list_modems, ignore_status=True).strip()
-      if part_id:
-        DebugMsg('mm-list-modems reported: %s' % part_id)
+    (path, _) = self.load_flimflam()
+    if path is not None:
+      # trust flimflam instead.
+      for k in connection_info:
+        connection_info[k] = (path[k] if k in path else '')
     return connection_info
 
   def _get_sysfs_device_info(self, path, primary, optional=[]):
@@ -245,6 +307,8 @@ class HardwareComponents(object):
     Returns
       An identifier string, or self._not_present if not available.
     """
+    if not path:
+      return self._not_present
     path = os.path.realpath(path)
     if not os.path.isdir(path):
       return self._not_present
@@ -356,7 +420,7 @@ class HardwareComponents(object):
     return gft_fwhash.GetBIOSReadOnlyHash(file_source=image_file)
 
   def get_part_id_3g(self):
-    device_path = self._get_all_connection_info()['3g']
+    device_path = self._get_all_connection_info()[self._type_3g]
     return self.get_sysfs_device_id(device_path) or self._not_present
 
   def get_part_id_audio_codec(self):
@@ -436,7 +500,7 @@ class HardwareComponents(object):
     return part_id
 
   def get_part_id_ethernet(self):
-    device_path = self._get_all_connection_info()['ethernet']
+    device_path = self._get_all_connection_info()[self._type_ethernet]
     return self.get_sysfs_device_id(device_path) or self._not_present
 
   def get_part_id_flash_chip(self):
@@ -492,7 +556,7 @@ class HardwareComponents(object):
     return self.get_sysfs_device_id('/sys/class/video4linux/video0/device')
 
   def get_part_id_wireless(self):
-    device_path = self._get_all_connection_info()['wireless']
+    device_path = self._get_all_connection_info()[self._type_wireless]
     return self.get_sysfs_device_id(device_path) or self._not_present
 
   def get_vendor_id_touchpad_synaptics(self):
@@ -539,34 +603,22 @@ class HardwareComponents(object):
     return part_id
 
   def get_version_3g_firmware(self):
-    version = 'Unknown'
-    # TODO(hungte) use mm.py directly to prevent the need of shell scripting
-    modem_status = gft_common.SystemOutput('modem status',
-                                           ignore_status=True).splitlines()
-    if not modem_status:
-      return self._not_present
-
-    # status format:
-    # Manufacturer: $VENDOR
-    # Modem: $MODEM
-    # Version: $VERSION_MAY_BE_MULTILINE
-    def ParseInfo(name):
-      data = [line for line in modem_status if line.find('%s: ' % name) >= 0]
-      assert len(data) < 2
-      return data[0].split(': ', 1)[1].strip()
-
-    version = ParseInfo('Version')
-    vendor = ParseInfo('Manufacturer')
-    modem = ParseInfo('Modem')
-
-    if vendor == 'Samsung' and modem == 'GT-Y3300X':
-      # The real version is in "Version:" +2 lines
-      version = ''
-      for i, line in enumerate(modem_status):
-        if 'Version: ' in line:
-          version = modem_status[i + 2].strip()
-          break
-    return version or 'Unknown'
+    (_, attributes) = self.load_flimflam()
+    if attributes and (self._type_3g in attributes):
+      # A list of possible version info combination, since the supported fields
+      # may differ for partners.
+      version_formats = [
+          ['Carrier', 'FirmwareRevision'],
+          ['FirmwareRevision'],
+          ['HardwareRevision']]
+      info = attributes[self._type_3g]
+      for version_format in version_formats:
+        if not set(version_format).issubset(set(info)):
+          continue
+        # compact all fields into single line with limited space
+        version_string = ' '.join([info[key] for key in version_format])
+        return re.sub('\s+', ' ', version_string)
+    return self._not_present
 
   def get_version_rw_firmware(self):
     """
