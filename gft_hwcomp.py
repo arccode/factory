@@ -89,6 +89,7 @@ class HardwareComponents(object):
   # TODO(hungte) unify the 'not available' style messages
   _not_present = ''
   _no_match = 'No match'
+  _failure_list = [_not_present, _no_match, '']
 
   # Type id for connection management (compatible to flimflam)
   _type_3g = 'cellular'
@@ -756,6 +757,17 @@ class HardwareComponents(object):
       thread.join()
     return results
 
+  def format_failure(self, exact_values, approved_values):
+    message_not_present = 'Not Present'
+    actual = [(message_not_present
+               if value in self._failure_list else value)
+              for value in exact_values]
+    expected = [(message_not_present
+                 if value in self._failure_list else value)
+                for value in approved_values]
+    return ['Actual: %s' % ', '.join(set(actual)),
+            'Expected: %s' % ' | '.join(set(expected))]
+
   def check_enumerable_component(self, cid, exact_values, approved_values):
     if '*' in approved_values:
       return
@@ -766,19 +778,20 @@ class HardwareComponents(object):
       return
 
     # there's some error, let's try to match them in legacy list
-    legacy_approved = filter(self.is_legacy_device_record, approved_values)
-    if set(legacy_approved) == set(approved_values):
+    match_goal = [value for value in approved_values
+                  if value not in self._failure_list]
+    legacy_approved = filter(self.is_legacy_device_record, match_goal)
+    if match_goal and (set(legacy_approved) == set(match_goal)):
       DebugMsg('Start legacy search for cid: ' + cid)
-      # safe for legacy match
       # TODO(hungte) prefetch this list in async batch process.
       legacy_list = self._get_legacy_device_list()
-      matched = list(set(legacy_list).intersection(set(approved_values)))
+      matched = list(set(legacy_list).intersection(set(match_goal)))
       if matched:
         DebugMsg('Changed detected list: %s->%s' % (self._system[cid], matched))
         self._system[cid] = matched
         return
     # update with remaining error.
-    self._failures[cid] = unmatched
+    self._failures[cid] = self.format_failure(exact_values, approved_values)
 
   @Memorize
   def verify_probable_component(self, cid, approved_values):
@@ -796,7 +809,7 @@ class HardwareComponents(object):
     if probed:
       self._system[cid] = value
     else:
-      self._failures[cid] = value
+      self._failures[cid] = self.format_failure(value, approved_values)
 
   def pformat(self, obj):
     return '\n' + self._pp.pformat(obj) + '\n'
