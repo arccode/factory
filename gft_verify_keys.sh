@@ -9,11 +9,16 @@
 # booting.
 #
 
+alert() {
+  echo "$*" 1>&2
+}
+
 if [ "$#" != "2" ]; then
-  echo "ERROR: Usage: $0 kernel_device main_firmware" 1>&2
+  alert "ERROR: Usage: $0 kernel_device main_firmware"
   exit 1
 fi
 
+DEVKEYS="/usr/share/vboot/devkeys"
 TMPDIR="$(mktemp -d)"
 KERN_DEV="$(readlink -f "$1")"
 FIRMWARE_IMAGE="$(readlink -f "$2")"
@@ -26,8 +31,8 @@ invoke() {
   shift
   eval "$@" >_stdout 2>_stderr || result=$?
   if [ "$result" != 0 ]; then
-    echo "ERROR: Failed to $message" 1>&2
-    echo "Command detail: $@" 1>&2
+    alert "ERROR: Failed to $message"
+    alert "Command detail: $@"
     cat _stdout _stderr 1>&2
     RETURN=1
   fi
@@ -55,9 +60,22 @@ verify_keys() {
   invoke "dump kernel" dd if="$1" bs=1M count=64 of=hd_kern.blob
   invoke "extract firmware" dump_fmap -x "$2"
   invoke "get keys from firmware" \
-    gbb_utility -g --rootkey rootkey.vbpubk "$GBB"
+    gbb_utility -g --rootkey rootkey.vbpubk \
+                   --recoverykey recoverykey.vbpubk "$GBB"
   invoke "unpack rootkey" \
     vbutil_key --unpack rootkey.vbpubk
+  invoke "unpack recovery key" \
+    vbutil_key --unpack recoverykey.vbpubk
+
+  # check if rootkey is developer key. 130 is the magic number for DEV key
+  local key
+  local rootkey_hash="$(od "rootkey.vbpubk" |
+                        head -130 |
+                        md5sum |
+                        sed 's/ .*$//' 2>/dev/null || true)"
+  if [ "$rootkey_hash" = "a13642246ef93daaf75bd791446fec9b" ]; then
+    alert "ERROR: YOU ARE TRYING TO FINALIZE WITH DEV ROOTKEY."
+  fi
 
   # Verify firmware A/B with root key
   invoke "verify VBLOCK_A with FW_MAIN_A" \
@@ -83,6 +101,23 @@ verify_keys() {
         vbutil_kernel --verify $kern --signpubkey $key
     done
   done
+
+  if [ "$RETURN" != "0" ]; then
+    # Error encountered. Let's try if we can provide more information.
+    key="recoverykey.vbpubk"
+    vbutil_kernel --verify "$kern" --signpubkey "$key" >/dev/null 2>&1 &&
+      alert "ERROR: YOU ARE USING A RECOVERY KEY SIGNED IMAGE." ||
+      true
+    for key in recovery_key.vbpubk kernel_subkey.vbpubk; do
+      if [ -f "$DEVKEYS/$key" ]; then
+        vbutil_kernel --verify "$kern" \
+                      --signpubkey "$DEVKEYS/$key" >/dev/null 2>&1 &&
+          alert "ERROR: YOU ARE FINALIZING WITH DEV-SIGNED IMAGE ($key)." ||
+          true
+      fi
+    done
+  fi
+
   return $RETURN
 }
 
