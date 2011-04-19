@@ -239,11 +239,13 @@ def _dummy(*_, **__):
     """ Dummy function. """
     pass
 
-def _default_system_output(command, ignore_status, return_exit_code):
+def _default_system_output(command, ignore_status):
     """ Stub for default system_output function. """
-    if return_exit_code:
-        return utils.system(command, ignore_status=ignore_status)
     return utils.system_output(command, ignore_status=ignore_status)
+
+def _default_system(command, ignore_status):
+    """ Stub for default system function. """
+    return utils.system(command, ignore_status=ignore_status)
 
 # ---------------------------------------------------------------------------
 # flashrom utility wrapper
@@ -303,6 +305,7 @@ class flashrom_util(object):
         exception_type: the type of exception to raise for errors.
         verbose_msg: a function to be called with debugging/helpful messages.
         system_output: a function to receive shell command output.
+        system: a function to execute shell command and return results
     """
 
     TARGET_BIOS = DEFAULT_TARGET_NAME_BIOS
@@ -317,6 +320,7 @@ class flashrom_util(object):
                  exception_type=Exception,
                  verbose_msg=_dummy,
                  system_output=_default_system_output,
+                 system=_default_system,
                  ):
         """ constructor of flashrom_util. help(flashrom_util) for more info """
         self.exception_type = exception_type
@@ -328,6 +332,7 @@ class flashrom_util(object):
         self.is_debug = False
         self.verbose_msg = verbose_msg
         self.system_output = system_output
+        self.system_exit_code = system
         # detect bbs map if target_map is None.
         # NOTE when target_map == {}, that means "do not execute commands",
         # different to default value.
@@ -368,10 +373,8 @@ class flashrom_util(object):
         return tmpfn
 
     def system(self, cmd):
-        ''' (internal) Returns if cmd is successfully executed. '''
-        return self.system_output(cmd,
-                                  ignore_status=True,
-                                  return_exit_code=True) == 0
+          ''' (internal) Returns if cmd is successfully executed. '''
+          return self.system_exit_code(cmd, ignore_status=True) == 0
 
     def get_section(self, base_image, layout_map, section_name):
         '''

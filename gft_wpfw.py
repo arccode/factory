@@ -29,7 +29,8 @@ def EnableWriteProtect(target, image=None):
 
   flashrom = flashrom_util.flashrom_util(verbose_msg=VerboseMsg,
                                          exception_type=gft_common.GFTError,
-                                         system_output=gft_common.SystemOutput)
+                                         system_output=gft_common.SystemOutput,
+                                         system=gft_common.System)
 
   # The EEPROM should be programmed as:
   #   x86:

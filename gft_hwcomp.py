@@ -106,7 +106,8 @@ class HardwareComponents(object):
     self._flashrom = flashrom_util.flashrom_util(
         verbose_msg=VerboseMsg,
         exception_type=gft_common.GFTError,
-        system_output=gft_common.SystemOutput)
+        system_output=gft_common.SystemOutput,
+        system=gft_common.System)
     self._temp_files = []
 
     # variables for matching
@@ -565,11 +566,14 @@ class HardwareComponents(object):
     model_string_str = 'Model String'
     firmware_id_str = 'Firmware ID'
     if os.path.exists(detect_program):
-      data = gft_common.SystemOutput(
+      (exit_code, data, _) = gft_common.ShellExecution(
           detect_program,
+          ignore_status=True,
           progress_messsage='Synaptics Touchpad: ',
-          show_progress=self._verbose,
-          ignore_status=True)
+          show_progress=self._verbose)
+      if exit_code != 0:
+        return part_id
+
       properties = dict(map(str.strip, line.split('=', 1))
                         for line in data.splitlines() if '=' in line)
       model = properties.get(model_string_str, 'UnknownModel')

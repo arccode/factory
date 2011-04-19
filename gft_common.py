@@ -130,25 +130,21 @@ def GetTemporaryFileName(prefix='gft', suffix=''):
   return filename
 
 
-def SystemOutput(command,
-                 ignore_status=False,
-                 show_progress=False,
-                 progress_messsage=None,
-                 return_exit_code=False):
-  """ Retrieves the output of a shell command.
-  Returns the output string.
+def ShellExecution(command,
+                   ignore_status=False,
+                   show_progress=False,
+                   progress_messsage=None):
+  """ Executes a shell command, and return the results.
 
   Args:
     ignore_status: False to raise exectopion when execution result is not zero
     show_progress: Shows progress by messages and dots
     progress_messsage: Messages printed before starting.
-    return_exit_code: True if we want the exit code value, or the console output
 
   Returns:
-    If return_exit_code is True, return value is an integer of exit code.
-    Otherwise, return value is a string of stdout by command.
+    (exit_code, stdout_messages, stderr_messages)
   """
-  DebugMsg("SystemOutput: %s" % command, log=False)
+  DebugMsg("ShellExecution: %s" % command, log=False)
   temp_stderr = tempfile.TemporaryFile()
   temp_stdout = tempfile.TemporaryFile()
   proc = subprocess.Popen(command,
@@ -167,28 +163,43 @@ def SystemOutput(command,
   else:
     proc.communicate()
 
+  # collect output
   temp_stdout.seek(0)
   out = temp_stdout.read()
   temp_stdout.close()
 
+  temp_stderr.seek(0)
+  err = temp_stderr.read()
+  temp_stderr.close()
+
   exit_code = proc.wait()
   if exit_code:
     # prepare to log the error message.
-    temp_stderr.seek(0)
-    err = temp_stderr.read()
-    temp_stderr.close()
     message = ('Failed executing command: %s\n'
                'Output and Error Messages: %s\n%s' % (command, out, err))
     if ignore_status:
       DebugMsg(message)
     else:
       ErrorDie(message)
+  return (exit_code, out, err)
 
-  if return_exit_code:
-    return exit_code
-  if out[-1:] == '\n':
-    out = out[:-1]
-  return out
+
+def SystemOutput(command,
+                 ignore_status=False,
+                 show_progress=False,
+                 progress_messsage=None):
+  """ Returns the stdout results from a shell command execution. """
+  return ShellExecution(command, ignore_status, show_progress,
+                        progress_messsage)[1].rstrip('\n')
+
+
+def System(command,
+           ignore_status=False,
+           show_progress=False,
+           progress_messsage=None):
+  """ Returns the exit code from a shell command execution. """
+  return ShellExecution(command, ignore_status, show_progress,
+                        progress_messsage)[0]
 
 
 def ReadOneLine(filename):
