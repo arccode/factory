@@ -32,7 +32,7 @@ echo "Running postinst on $OTHER_ROOT_DEV"
 MOUNTPOINT=$(mktemp -d)
 mkdir -p "$MOUNTPOINT"
 mount -o ro  "$OTHER_ROOT_DEV" "$MOUNTPOINT"
-"$MOUNTPOINT"/postinst --noupdate_firmware "$OTHER_ROOT_DEV"
+IS_INSTALL=1 "$MOUNTPOINT"/postinst --noupdate_firmware "$OTHER_ROOT_DEV"
 POSTINST_RETURN_CODE=$?
 umount "$MOUNTPOINT"
 rmdir "$MOUNTPOINT"
