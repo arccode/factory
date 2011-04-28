@@ -319,6 +319,30 @@ class HardwareComponents(object):
             self._get_usb_device_info(path))
     return info or self._not_present
 
+  @Memorize
+  def get_ssd_name(self):
+    """Gets a proper SSD device name by platform (arch) detection.
+    Returns
+      A device name for SSD, base on "crossystem arch" result.
+    """
+    arch = gft_common.SystemOutput('crossystem arch', ignore_status=True)
+
+    if not arch:
+      # probing with legacy approach
+      machine = gft_common.SystemOutput('uname -m')
+      if re.match('^i.86', machine) or re.match('x86_64'):
+        arch = 'x86'
+      elif re.match('armv..'):
+        arch = 'arm'
+
+    if arch == 'x86':
+      return 'sda'
+    elif arch == 'arm':
+      return 'mmcblk0'
+    else:
+      assert False, ('get_ssd_name: unknown arch: %s' % arch)
+      return 'sda'
+
   # --------------------------------------------------------------------
   # Firmware Processing Utilities
 
@@ -514,8 +538,9 @@ class HardwareComponents(object):
     return (part_id if part_id else self._not_present)
 
   def get_part_id_storage(self):
-    cmd = ('cd $(find /sys/devices -name sda)/../..; '
-           'cat vendor model | tr "\n" " " | sed "s/ \\+/ /g"')
+    cmd = ('cd $(find /sys/devices -name %s)/../..; '
+           'cat vendor model | tr "\n" " " | sed "s/ \\+/ /g"' %
+           self.get_ssd_name())
     part_id = gft_common.SystemOutput(cmd).strip()
     return part_id
 

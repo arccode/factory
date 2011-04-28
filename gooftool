@@ -219,7 +219,7 @@ def verify_keys():
     ErrorDie('verify_keys: cannot find script to verify.')
   # TODO(hungte) replace the hard-coded SSD device name by some detection rules
   # like "rootdev -s | sed 's/2$/4/", to support ARM platforms.
-  kernel_device = '/dev/sda4'
+  kernel_device = '/dev/%s4' % (hwcomp.get_ssd_name())
   script_command = '%s %s %s' % (script, kernel_device,
                                  hwcomp.load_main_firmware())
   try:
