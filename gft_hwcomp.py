@@ -591,26 +591,47 @@ class HardwareComponents(object):
     detect_program = '/opt/Synaptics/bin/syndetect'
     model_string_str = 'Model String'
     firmware_id_str = 'Firmware ID'
-    if os.path.exists(detect_program):
-      (exit_code, data, _) = gft_common.ShellExecution(
-          detect_program,
-          ignore_status=True,
-          progress_messsage='Synaptics Touchpad: ',
-          show_progress=self._verbose)
-      if exit_code != 0:
-        return part_id
 
-      properties = dict(map(str.strip, line.split('=', 1))
-                        for line in data.splitlines() if '=' in line)
-      model = properties.get(model_string_str, 'UnknownModel')
-      firmware_id = properties.get(firmware_id_str, 'UnknownFWID')
+    if not os.path.exists(detect_program):
+      return part_id
 
-      # The pattern " on xxx Port" may vary by the detection approach,
-      # so we need to strip it.
-      model = re.sub(' on [^ ]* [Pp]ort$', '', model)
+    command_list = [detect_program]
 
-      # Format: Model #FirmwareId
-      part_id = '%s #%s' % (model, firmware_id)
+    # Determine if X is capturing touchpad
+    locked = os.system('lsof /dev/serio_raw0 2>/dev/null | grep -q "^X"')
+    if (locked == 0) and (not os.getenv('DISPLAY')):
+      ErrorMsg('Warning: You are trying to detect touchpad with X in foreground'
+               ' but not configuring DISPLAY properly for this test.\n'
+               'Test may fail with incorrect detection results.')
+      # Make a trial with default configuration (see cros/cros_ui.py and
+      # suite_Factory/startx.sh)
+      command_list.insert(0, 'DISPLAY=":0"')
+      xauthority_locations = ('/var/run/factory_ui.auth',
+                              '/home/chronos/.Xauthority')
+      valid_xauth = [xauth for xauth in xauthority_locations
+                     if os.path.exists(xauth)]
+      if valid_xauth:
+        command_list.insert(0, 'XAUTHORITY="%s"' % valid_xauth[0])
+
+    (exit_code, data, _) = gft_common.ShellExecution(
+        ' '.join(command_list),
+        ignore_status=True,
+        progress_messsage='Synaptics Touchpad: ',
+        show_progress=self._verbose)
+    if exit_code != 0:
+      return part_id
+
+    properties = dict(map(str.strip, line.split('=', 1))
+                      for line in data.splitlines() if '=' in line)
+    model = properties.get(model_string_str, 'UnknownModel')
+    firmware_id = properties.get(firmware_id_str, 'UnknownFWID')
+
+    # The pattern " on xxx Port" may vary by the detection approach,
+    # so we need to strip it.
+    model = re.sub(' on [^ ]* [Pp]ort$', '', model)
+
+    # Format: Model #FirmwareId
+    part_id = '%s #%s' % (model, firmware_id)
     return part_id
 
   def get_vendor_id_touchpad_generic(self):
@@ -621,6 +642,7 @@ class HardwareComponents(object):
         show_progress=self._verbose).strip('"')
     return part_id
 
+  @Memorize
   def get_vendor_id_touchpad(self):
     method_list = ['synaptics', 'generic']
     part_id = ''
