@@ -96,6 +96,10 @@ DEFAULT_ARCH_TARGET_MAP = {
         "bios": '-p internal:bus=spi',
         "ec":   '-p internal:bus=lpc',
     },
+    '^armv7': {
+        "bios": '',
+        "ec": '',  # There's no programmable EC on ARM ChromeOS devices.
+    }
 }
 
 

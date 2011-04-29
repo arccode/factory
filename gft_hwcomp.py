@@ -24,7 +24,7 @@ class HardwareComponents(object):
   """ Hardware Components Scanner """
 
   # Function names in this class are used for reflection, so please don't change
-  # the function names even if they are not comliant to coding style guide.
+  # the function names even if they are not compliant to coding style guide.
 
   version = 6
 
@@ -60,7 +60,7 @@ class HardwareComponents(object):
     'vendor_id_touchpad',
     'version_3g_firmware',
     'version_rw_firmware',
-    # Deprcated fields:
+    # Deprecated fields:
     # 'part_id_gps',
     # - GPS is currently not supported by OS and no way to probe it.
     #   We should enable it only when OS supports it.
@@ -132,6 +132,15 @@ class HardwareComponents(object):
     """ Decorator for thread-safe memorization """
     return gft_common.ThreadSafe(gft_common.Memorize(f))
 
+  def EcProperty(f):
+    """ Decorator for properties that requires programmable EC """
+    def wrapper(*args, **kargs):
+      self = args[0]
+      if not self.has_ec():
+        return self._not_present
+      return f(*args, **kargs)
+    return wrapper
+
   @Memorize
   def load_module(self, name):
     grep_cmd = ('lsmod 2>/dev/null | grep -q %s' % name)
@@ -159,7 +168,7 @@ class HardwareComponents(object):
         device_list += ['%s:%s' % (entry[:4], entry[4:])
                         for entry in pci_list]
     else:
-      DebugMsg('Failed to read %s. Execute lspci.' % pci_device_list)
+      DebugMsg('Failed to read %s. Execute lspci.' % pci_device_file)
       pci_list = [entry.split()[2:4]
                   for entry in
                   gft_common.SystemOutput('lspci -n -mm').splitlines()]
@@ -319,29 +328,68 @@ class HardwareComponents(object):
             self._get_usb_device_info(path))
     return info or self._not_present
 
+  def get_sysfs_node_id(self, path):
+    """Gets a sysfs node identifier (for devices that may exist on SOC or bus)
+    Args
+      path: a path to sysfs node (ex, /sys/class/video4linux/video0) which
+            contains a 'device' or 'name' property.
+
+    Returns
+      An identifier string, or self._not_present if not available.
+    """
+    if not path:
+      return self._not_present
+    device_id = self.get_sysfs_device_id(os.path.join(path, 'device'))
+    if device_id:
+      return device_id
+    name_path = os.path.join(path, 'name')
+    if os.path.exists(name_path):
+      return gft_common.ReadOneLine(name_path)
+    return self._not_present
+
+  def compact_id(self, id_info):
+    """Returns a identifier with white space characters compressed
+    Args
+      id_info: a string or list/tuple of identifiers
+
+    Returns
+      A string with all identifiers described by id_info with minimal space
+    """
+    if type(id_info) == list or type(id_info) == tuple:
+      id_info = ' '.join(id_info)
+    return re.sub('\s+', ' ', id_info).strip()
+
+  @Memorize
+  def get_arch(self):
+    """ Gets current system architecture. """
+    return gft_common.GetSystemArch()
+
   @Memorize
   def get_ssd_name(self):
     """Gets a proper SSD device name by platform (arch) detection.
     Returns
-      A device name for SSD, base on "crossystem arch" result.
+      A device name for SSD, base on self.get_arch() result.
     """
-    arch = gft_common.SystemOutput('crossystem arch', ignore_status=True)
-
-    if not arch:
-      # probing with legacy approach
-      machine = gft_common.SystemOutput('uname -m')
-      if re.match('^i.86', machine) or re.match('x86_64'):
-        arch = 'x86'
-      elif re.match('armv..'):
-        arch = 'arm'
-
-    if arch == 'x86':
+    arch = self.get_arch()
+    if arch in ('x86', 'amd64'):
       return 'sda'
-    elif arch == 'arm':
+    elif arch in ('arm'):
       return 'mmcblk0'
     else:
       assert False, ('get_ssd_name: unknown arch: %s' % arch)
       return 'sda'
+
+  @Memorize
+  def has_ec(self):
+    """ Returns if current system has programmable EC chips. """
+    arch = self.get_arch()
+    if arch in ('x86', 'amd64'):
+      return True
+    elif arch in ('arm'):
+      return False
+    else:
+      assert False, 'unknown platform for EC information.'
+    return False
 
   # --------------------------------------------------------------------
   # Firmware Processing Utilities
@@ -380,16 +428,17 @@ class HardwareComponents(object):
   def load_main_firmware(self):
     """ Loads and cache main (BIOS) firmware image.
 
-    Returns:
+    Returns
         A file name of cached image.
     """
     (_, image_file) = self._load_firmware('main')
     return image_file
 
+  @EcProperty
   def load_ec_firmware(self):
     """ Loads and cache EC firmware image.
 
-    Returns:
+    Returns
         A file name of cached image.
     """
     (_, image_file) = self._load_firmware('ec')
@@ -423,6 +472,7 @@ class HardwareComponents(object):
     output = gft_common.SystemOutput(cmd).splitlines()
     return (output if output else [''])
 
+  @EcProperty
   def get_hash_ec_firmware(self):
     """
     Returns a hash of Embedded Controller firmware parts,
@@ -481,9 +531,37 @@ class HardwareComponents(object):
     return self.get_sysfs_device_id('/sys/bus/pci/devices/0000:00:00.0')
 
   def get_part_id_cpu(self):
-    cmd = 'grep -m 1 "model name" /proc/cpuinfo | sed s/.\*://'
-    part_id = gft_common.SystemOutput(cmd).strip()
-    return part_id
+    part_id = 'Unknown'
+    cpu_info_map = {
+        # arch: (command, core_delta)
+        # The core_delta computation is caused by different report format.
+        # For platforms like x86, it provides names for each core.
+        #  Sample output for dual-core:
+        #   model name : Intel(R) Atom(TM) CPU XXXX
+        #   model name : Intel(R) Atom(TM) CPU XXXX
+        'amd64': (r'sed -nr "s/^model name\t*: (.*)/\1/p" /proc/cpuinfo', 0),
+        'x86': (r'sed -nr "s/^model name\s*: (.*)/\1/p" /proc/cpuinfo', 0),
+        # For platforms like arm, it gives the name only in 'Processor'
+        #  and then a numeric ID for each cores 'processor', so delta is 1.
+        #  Sample output for dual-core:
+        #   Processor : ARMXXXX
+        #   processor : 0
+        #   processor : 1
+        'arm': (r'sed -nr "s/^[Pp]rocessor\s*: (.*)/\1/p" /proc/cpuinfo', 1),
+    }
+    arch = self.get_arch()
+    if arch not in cpu_info_map:
+      return part_id
+    info = gft_common.SystemOutput(cpu_info_map[arch][0]).splitlines()
+    if not info:
+      return part_id
+    cores = len(info) - cpu_info_map[arch][1]
+    info = info[0:1]
+    # TODO(hungte) For backward compatbility, core number reporting on x86 is
+    # disabled. We need to fix HWID component lists in future.
+    if cores > 1 and arch != 'x86':
+      info.append('*%d' % cores)
+    return self.compact_id(info)
 
   def get_part_id_display_panel(self):
     # format:   ModelName "SEC:4231" -> SEC:4231
@@ -504,10 +582,12 @@ class HardwareComponents(object):
     else:
       return self._not_present
 
+  @EcProperty
   def get_part_id_ec_flash_chip(self):
     (chip_id, _) = self._load_firmware('ec')
     return chip_id
 
+  @EcProperty
   def get_part_id_embedded_controller(self):
     # example output:
     #  Found Nuvoton WPCE775x (id=0x05, rev=0x02) at 0x2e
@@ -538,10 +618,22 @@ class HardwareComponents(object):
     return (part_id if part_id else self._not_present)
 
   def get_part_id_storage(self):
-    cmd = ('cd $(find /sys/devices -name %s)/../..; '
-           'cat vendor model | tr "\n" " " | sed "s/ \\+/ /g"' %
-           self.get_ssd_name())
-    part_id = gft_common.SystemOutput(cmd).strip()
+    part_id = ''
+    path = gft_common.SystemOutput('find /sys/devices -name "%s"' %
+                                   self.get_ssd_name())
+    path = os.path.join(path.strip(), 'device')
+    if not os.path.exists(path):
+      return part_id
+    info_list = (
+        ['vendor', 'model'],  # ATA
+        ['type', 'name', 'fwrev', 'hwrev', 'oemid', 'manfid'],  # EMMC
+    )
+    for info in info_list:
+      data = [gft_common.ReadOneLine(os.path.join(path, data_file))
+              for data_file in info
+              if os.path.exists(os.path.join(path, data_file))]
+      if data:
+        return self.compact_id(data)
     return part_id
 
   def get_part_id_keyboard(self):
@@ -568,19 +660,28 @@ class HardwareComponents(object):
     return part_id
 
   def get_part_id_usb_hosts(self):
+    arch = self.get_arch()
+    if arch in ('x86', 'amd64'):
+      # on x86, USB hosts are PCI devices, located in parent of root USB.
+      relpath = '..'
+    else:
+      # on ARM and others, use the root device itself.
+      relpath = '.'
+
     usb_bus_list = glob.glob('/sys/bus/usb/devices/usb*')
-    usb_host_list = [os.path.join(os.path.realpath(path), '..')
+    usb_host_list = [os.path.join(os.path.realpath(path), relpath)
                      for path in usb_bus_list]
-    usb_host_info = [self.get_sysfs_device_id(device)
+    # usually there are several USB hosts, so only list the primary information.
+    usb_host_info = [re.sub(' .*', '', self.get_sysfs_device_id(device))
                      for device in usb_host_list]
     usb_host_info.sort(reverse=True)
     return ' '.join(usb_host_info)
 
   def get_part_id_vga(self):
-    return self.get_sysfs_device_id('/sys/class/graphics/fb0/device')
+    return self.get_sysfs_node_id('/sys/class/graphics/fb0')
 
   def get_part_id_webcam(self):
-    return self.get_sysfs_device_id('/sys/class/video4linux/video0/device')
+    return self.get_sysfs_node_id('/sys/class/video4linux/video0')
 
   def get_part_id_wireless(self):
     device_path = self._get_all_connection_info()[self._type_wireless]
@@ -635,12 +736,13 @@ class HardwareComponents(object):
     return part_id
 
   def get_vendor_id_touchpad_generic(self):
-    cmd_grep = 'grep -i Touchpad /proc/bus/input/devices | sed s/.\*=//'
-    part_id = gft_common.SystemOutput(
-        cmd_grep,
-        progress_messsage='Finding Touchpad: ',
-        show_progress=self._verbose).strip('"')
-    return part_id
+    # TODO(hungte) add more information from id/*
+    # format: N: Name="XXX_trackpad"
+    cmd_grep = 'grep -iE "^N.*(touch *pad|track *pad)" /proc/bus/input/devices'
+    info = gft_common.SystemOutput(cmd_grep, ignore_status=True).splitlines()
+    info = [re.sub('^[^"]*"(.*)"$', r'\1', device)
+            for device in info]
+    return ', '.join(info) or self._not_present
 
   @Memorize
   def get_vendor_id_touchpad(self):
@@ -668,8 +770,7 @@ class HardwareComponents(object):
         if not set(version_format).issubset(set(info)):
           continue
         # compact all fields into single line with limited space
-        version_string = ' '.join([info[key] for key in version_format])
-        return re.sub('\s+', ' ', version_string)
+        return self.compact_id([info[key] for key in version_format])
     return self._not_present
 
   def get_version_rw_firmware(self):

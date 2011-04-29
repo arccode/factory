@@ -11,6 +11,7 @@ A detailed description of gft_common.
 """
 
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -224,6 +225,29 @@ def WriteFile(filename, data):
   """ Writes one file and exit. """
   with open(filename, "w") as opened_file:
     opened_file.write(data)
+
+
+def GetSystemArch():
+  """Gets current system architecture, in portage-style return value.
+  Returns:
+    Currently supported list: 'arm', 'x86', 'amd64'
+  """
+  (exit_code, arch, _) = ShellExecution('crossystem arch', ignore_status=True)
+  arch = arch.strip()
+  authorized_archs = ('amd64', 'arm', 'x86')
+  if exit_code != 0:
+    # probing with legacy command.
+    machine = SystemOutput('uname -m')
+    if re.match('^i.86', machine):
+      arch = 'x86'
+    elif re.match('^x86_64', machine):
+      arch = 'amd64'
+    elif re.match('^armv', machine):
+      arch = 'arm'
+    else:
+      arch = 'unknown'
+  assert arch in authorized_archs, "Unknown architecture: %s" % arch
+  return arch
 
 
 def ThreadSafe(f):

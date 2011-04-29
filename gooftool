@@ -314,16 +314,12 @@ def wpfw():
     return True
   hwcomp = InitializeHardwareComponents(do_probe=False)
   read_binary = gft_common.ReadBinaryFile
-  target_set = [('ec', hwcomp.load_ec_firmware),
-                ('bios', hwcomp.load_main_firmware)]
-  # TODO(hungte) chrome-os-partner:3023 We need a cleaner way for EC detection,
-  # for examing using crossystem. Currently we only know there is no EC on arm.
-  with os.popen("uname -m") as uname_process:
-    arch = uname_process.read().strip()
-  if arch.startswith('arm'):
-    VerboseMsg('wpfw: ARM platform detected, ignore EC.')
+  target_set = [('bios', hwcomp.load_main_firmware)]
+  if hwcomp.has_ec():
+    target_set.insert(0, ('ec', hwcomp.load_ec_firmware))
     assert target_set[0][0] == 'ec'
-    target_set = target_set[1:]
+  else:
+    VerboseMsg('wpfw: current platform does not have EC. Ignored.')
   assert len(target_set) > 0
   for target_name, loader_api in target_set:
     if not EnableWriteProtect(target_name, read_binary(loader_api())):
