@@ -193,11 +193,11 @@ def CreateReport(create_params,
   vpd_cmd = '-f %s' % vpd_source if vpd_source else ''
   report['ro_vpd'] = ParseVPDOutput(
       gft_common.SystemOutput("vpd -i RO_VPD -l %s" % vpd_cmd,
-                              progress_messsage="Reading RO VPD",
+                              progress_message="Reading RO VPD",
                               show_progress=verbose).strip())
   report['rw_vpd'] = ParseVPDOutput(
       gft_common.SystemOutput("vpd -i RW_VPD -l %s" % vpd_cmd,
-                              progress_messsage="Reading RW VPD",
+                              progress_message="Reading RW VPD",
                               show_progress=verbose).strip())
 
   # Probed hardware components

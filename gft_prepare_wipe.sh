@@ -12,23 +12,26 @@
 
 SCRIPT_DIR="$(dirname $0)"
 
-ROOT_DEV=$(rootdev -s)
-OTHER_ROOT_DEV=$(echo $ROOT_DEV | tr '35' '53')
+ROOT_DEV="$(rootdev -s)"
+OTHER_ROOT_DEV="$(echo $ROOT_DEV | tr '35' '53')"
+DEV="$(echo $ROOT_DEV | sed -rn 's/(sd[a-z]|mmcblk[0-9]+)p?[0-9]+$/\1/p')"
 
-if [ "${ROOT_DEV}" = "${OTHER_ROOT_DEV}" ]
-then
+if [ "${ROOT_DEV}" = "${OTHER_ROOT_DEV}" ]; then
   echo "Not a normal rootfs partition (3 or 5): ${ROOT_DEV}"
   exit 1
 fi
+if [ "$DEV" = "" ]; then
+  echo "Unknown type rootfs device: $ROOT_DEV"
+  exit 1
+fi
 
-DEV=${ROOT_DEV%[0-9]}
 # Note: this works only for single digit partition numbers.
 ROOT_PART=$(echo "${ROOT_DEV}" | sed -e 's/^.*\([0-9]\)$/\1/')
 OTHER_ROOT_PART=$(echo "${OTHER_ROOT_DEV}" | sed -e 's/^.*\([0-9]\)$/\1/')
 
 # Successfully being able to mount the other partition
 # and run postinst guarantees that there is a real partition there.
-echo "Running postinst on $OTHER_ROOT_DEV"
+echo "Running postinst on $OTHER_ROOT_DEV ($DEV)"
 MOUNTPOINT=$(mktemp -d)
 mkdir -p "$MOUNTPOINT"
 mount -o ro  "$OTHER_ROOT_DEV" "$MOUNTPOINT"

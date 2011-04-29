@@ -116,6 +116,9 @@ verify_keys() {
           true
       fi
     done
+    alert "ERROR: Verification failed."
+  else
+    alert "SUCCESS: Verification complete."
   fi
 
   return $RETURN
@@ -124,6 +127,7 @@ verify_keys() {
 # verify_keys is run inside a sub-shell, so we need to check its return value
 # instead of reading the global variable RETURN.
 ( cd "$TMPDIR"
+  alert "Checking firmware and kernel partition keys for $KERN_DEV..."
   verify_keys "$KERN_DEV" "$FIRMWARE_IMAGE" ) || RETURN=1
 /bin/rm -rf "$TMPDIR"
 exit $RETURN

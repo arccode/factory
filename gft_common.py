@@ -134,13 +134,13 @@ def GetTemporaryFileName(prefix='gft', suffix=''):
 def ShellExecution(command,
                    ignore_status=False,
                    show_progress=False,
-                   progress_messsage=None):
+                   progress_message=None):
   """ Executes a shell command, and return the results.
 
   Args:
     ignore_status: False to raise exectopion when execution result is not zero
     show_progress: Shows progress by messages and dots
-    progress_messsage: Messages printed before starting.
+    progress_message: Messages printed before starting.
 
   Returns:
     (exit_code, stdout_messages, stderr_messages)
@@ -154,12 +154,12 @@ def ShellExecution(command,
                           shell=True)
   if show_progress:
     sys.stdout.flush()
-    if progress_messsage:
-      sys.stderr.write(progress_messsage)
+    if progress_message:
+      sys.stderr.write(progress_message)
     while proc.poll() is None:
       sys.stderr.write('.')
       time.sleep(1)
-    if progress_messsage:
+    if progress_message:
       sys.stderr.write('\n')
   else:
     proc.communicate()
@@ -188,19 +188,19 @@ def ShellExecution(command,
 def SystemOutput(command,
                  ignore_status=False,
                  show_progress=False,
-                 progress_messsage=None):
+                 progress_message=None):
   """ Returns the stdout results from a shell command execution. """
   return ShellExecution(command, ignore_status, show_progress,
-                        progress_messsage)[1].rstrip('\n')
+                        progress_message)[1].rstrip('\n')
 
 
 def System(command,
            ignore_status=False,
            show_progress=False,
-           progress_messsage=None):
+           progress_message=None):
   """ Returns the exit code from a shell command execution. """
   return ShellExecution(command, ignore_status, show_progress,
-                        progress_messsage)[0]
+                        progress_message)[0]
 
 
 def ReadOneLine(filename):

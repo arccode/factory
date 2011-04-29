@@ -133,6 +133,16 @@ def WriteGBB(db_file):
   return True
 
 
+def VerboseSystemCommand(command, prompt=None):
+  """ Invokes command and put stdout/stderr messages into verbose log. """
+  VerboseMsg(" # Executing command: %s" % command)
+  (_, stdout, stderr) = gft_common.ShellExecution(
+      command, show_progress=g_options.verbose, progress_message=prompt)
+  message = stdout.strip() + stderr.strip()
+  if message:
+    VerboseMsg(message)
+
+
 def GFTLogCommand(f):
   """Decorator for commands to log the results."""
   def wrapper(*args, **kw):
@@ -220,10 +230,10 @@ def verify_keys():
   # TODO(hungte) replace the hard-coded SSD device name by some detection rules
   # like "rootdev -s | sed 's/2$/4/", to support ARM platforms.
   kernel_device = '/dev/%s4' % (hwcomp.get_ssd_name())
-  script_command = '%s %s %s' % (script, kernel_device,
-                                 hwcomp.load_main_firmware())
+  command = '%s %s %s' % (script, kernel_device,
+                          hwcomp.load_main_firmware())
   try:
-    gft_common.SystemOutput(script_command)
+    VerboseSystemCommand(command, prompt='verify_keys: ')
   except gft_common.GFTError, e:
     ErrorDie('verify_keys: FAILED.\n%s' % e.value)
   return True
@@ -346,11 +356,10 @@ def prepare_wipe():
     ErrorDie('prepare_wipe: unknown wipe method: %s' % method)
   tag = wipe_method_map[method]
   command = 'FACTORY_WIPE_TAGS=%s %s' % (tag, wipe_script)
-  DebugMsg('prepare_wipe: execute command: %s' % command)
-  return_code = os.system(command)
-  if return_code != 0:
-    ErrorDie('prepare_wipe: failed(%s) in calling preparation script'
-              % return_code)
+  try:
+    VerboseSystemCommand(command, prompt='prepare_wipe: ')
+  except gft_common.GFTError, e:
+    ErrorDie('prepare_wipe: FAILED.\n%s' % e.value)
   return True
 
 

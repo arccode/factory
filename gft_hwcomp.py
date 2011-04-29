@@ -413,7 +413,7 @@ class HardwareComponents(object):
     parts = []
     lines = gft_common.SystemOutput(
         command,
-        progress_messsage='Reading %s firmware: ' % target_name,
+        progress_message='Reading %s firmware: ' % target_name,
         show_progress=self._verbose).splitlines()
     for line in lines:
       match = re.search(r'Found chip "(.*)" .* at physical address ', line)
@@ -502,7 +502,7 @@ class HardwareComponents(object):
   def get_part_id_audio_codec(self):
     cmd = 'grep -R Codec: /proc/asound/* | head -n 1 | sed s/.\*Codec://'
     part_id = gft_common.SystemOutput(
-        cmd, progress_messsage='Searching Audio Codecs: ',
+        cmd, progress_message='Searching Audio Codecs: ',
         show_progress=self._verbose).strip()
     return part_id
 
@@ -595,7 +595,7 @@ class HardwareComponents(object):
     parts = []
     res = gft_common.SystemOutput(
         'superiotool',
-        progress_messsage='Probing Embedded Controller: ',
+        progress_message='Probing Embedded Controller: ',
         show_progress=self._verbose,
         ignore_status=True).splitlines()
     for line in res:
@@ -717,7 +717,7 @@ class HardwareComponents(object):
     (exit_code, data, _) = gft_common.ShellExecution(
         ' '.join(command_list),
         ignore_status=True,
-        progress_messsage='Synaptics Touchpad: ',
+        progress_message='Synaptics Touchpad: ',
         show_progress=self._verbose)
     if exit_code != 0:
       return part_id
