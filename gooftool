@@ -227,8 +227,6 @@ def verify_keys():
   script = os.path.join(os.path.split(sys.argv[0])[0], 'gft_verify_keys.sh')
   if not os.path.exists(script):
     ErrorDie('verify_keys: cannot find script to verify.')
-  # TODO(hungte) replace the hard-coded SSD device name by some detection rules
-  # like "rootdev -s | sed 's/2$/4/", to support ARM platforms.
   kernel_device = '/dev/%s4' % (hwcomp.get_ssd_name())
   command = '%s %s %s' % (script, kernel_device,
                           hwcomp.load_main_firmware())
@@ -236,6 +234,23 @@ def verify_keys():
     VerboseSystemCommand(command, prompt='verify_keys: ')
   except gft_common.GFTError, e:
     ErrorDie('verify_keys: FAILED.\n%s' % e.value)
+  return True
+
+
+@GFTLogCommand
+def verify_rootfs():
+  """ (Cacheable) Verifies if the rootfs on SSD is valid (by hash check). """
+  hwcomp = InitializeHardwareComponents(do_probe=False)
+  script = os.path.join(os.path.split(sys.argv[0])[0], 'gft_verify_rootfs.sh')
+  if not os.path.exists(script):
+    ErrorDie('verify_rootfs: cannot find script to verify.')
+  kernel_device = '/dev/%s4' % (hwcomp.get_ssd_name())
+  rootfs_device = '/dev/%s5' % (hwcomp.get_ssd_name())
+  command = '%s %s %s' % (script, kernel_device, rootfs_device)
+  try:
+    VerboseSystemCommand(command, prompt='verify_rootfs: ')
+  except gft_common.GFTError, e:
+    ErrorDie('verify_rootfs: FAILED.\n%s' % e.value)
   return True
 
 
@@ -425,6 +440,8 @@ def ConsoleParser():
                     help='verifies if the HWID matches current system')
   parser.add_option('--verify_keys', action='store_true',
                     help='verifies if the firmware and SSD keys match')
+  parser.add_option('--verify_rootfs', action='store_true',
+                    help='verifies if the rootfs is valid (by checking hash)')
 
   # Hardware Switches
   parser.add_option('--verify_switch_wp', action='store_true',
@@ -490,6 +507,7 @@ def _main():
     'write_gbb',
     'verify_hwid',
     'verify_keys',
+    'verify_rootfs',
     'verify_switch_wp',
     'verify_switch_dev',
     'create_report',
