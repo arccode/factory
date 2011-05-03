@@ -365,19 +365,25 @@ class HardwareComponents(object):
     return gft_common.GetSystemArch()
 
   @Memorize
-  def get_ssd_name(self):
+  def get_ssd_name(self, partition_number=None):
     """Gets a proper SSD device name by platform (arch) detection.
+    Args
+      partition_number: numeric index for partition. None for whole disk.
+
     Returns
       A device name for SSD, base on self.get_arch() result.
     """
     arch = self.get_arch()
+    partno = '' if partition_number is None else ('%d' % partition_number)
     if arch in ('x86', 'amd64'):
-      return 'sda'
+      return 'sda' + partno
     elif arch in ('arm'):
-      return 'mmcblk0'
+      if partno:
+        partno = 'p' + partno
+      return 'mmcblk0' + partno
     else:
       assert False, ('get_ssd_name: unknown arch: %s' % arch)
-      return 'sda'
+      return 'sda' + partno
 
   @Memorize
   def has_ec(self):

@@ -227,7 +227,7 @@ def verify_keys():
   script = os.path.join(os.path.split(sys.argv[0])[0], 'gft_verify_keys.sh')
   if not os.path.exists(script):
     ErrorDie('verify_keys: cannot find script to verify.')
-  kernel_device = '/dev/%s4' % (hwcomp.get_ssd_name())
+  kernel_device = '/dev/%s' % (hwcomp.get_ssd_name(4))
   command = '%s %s %s' % (script, kernel_device,
                           hwcomp.load_main_firmware())
   try:
@@ -244,8 +244,8 @@ def verify_rootfs():
   script = os.path.join(os.path.split(sys.argv[0])[0], 'gft_verify_rootfs.sh')
   if not os.path.exists(script):
     ErrorDie('verify_rootfs: cannot find script to verify.')
-  kernel_device = '/dev/%s4' % (hwcomp.get_ssd_name())
-  rootfs_device = '/dev/%s5' % (hwcomp.get_ssd_name())
+  kernel_device = '/dev/%s' % (hwcomp.get_ssd_name(4))
+  rootfs_device = '/dev/%s' % (hwcomp.get_ssd_name(5))
   command = '%s %s %s' % (script, kernel_device, rootfs_device)
   try:
     VerboseSystemCommand(command, prompt='verify_rootfs: ')
