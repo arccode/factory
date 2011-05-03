@@ -38,6 +38,10 @@ g_args = None
 # cache for instance of HardwareComponents to speed up
 g_hwcomp = None
 
+# partition number of factory and release rootfs. -1 for kernel.
+FACTORY_PARTNO = 3
+RELEASE_PARTNO = 5
+
 ########################################################################
 # factory utilities
 
@@ -138,7 +142,7 @@ def VerboseSystemCommand(command, prompt=None):
   VerboseMsg(" # Executing command: %s" % command)
   (_, stdout, stderr) = gft_common.ShellExecution(
       command, show_progress=g_options.verbose, progress_message=prompt)
-  message = stdout.strip() + stderr.strip()
+  message = '\n'.join((stdout.strip(), stderr.strip())).strip()
   if message:
     VerboseMsg(message)
 
@@ -227,9 +231,8 @@ def verify_keys():
   script = os.path.join(os.path.split(sys.argv[0])[0], 'gft_verify_keys.sh')
   if not os.path.exists(script):
     ErrorDie('verify_keys: cannot find script to verify.')
-  kernel_device = '/dev/%s' % (hwcomp.get_ssd_name(4))
-  command = '%s %s %s' % (script, kernel_device,
-                          hwcomp.load_main_firmware())
+  kernel_device = '/dev/%s' % (hwcomp.get_ssd_name(RELEASE_PARTNO - 1))
+  command = '%s %s %s' % (script, kernel_device, hwcomp.load_main_firmware())
   try:
     VerboseSystemCommand(command, prompt='verify_keys: ')
   except gft_common.GFTError, e:
@@ -244,9 +247,8 @@ def verify_rootfs():
   script = os.path.join(os.path.split(sys.argv[0])[0], 'gft_verify_rootfs.sh')
   if not os.path.exists(script):
     ErrorDie('verify_rootfs: cannot find script to verify.')
-  kernel_device = '/dev/%s' % (hwcomp.get_ssd_name(4))
-  rootfs_device = '/dev/%s' % (hwcomp.get_ssd_name(5))
-  command = '%s %s %s' % (script, kernel_device, rootfs_device)
+  rootfs_device = '/dev/%s' % (hwcomp.get_ssd_name(RELEASE_PARTNO))
+  command = '%s %s' % (script, rootfs_device)
   try:
     VerboseSystemCommand(command, prompt='verify_rootfs: ')
   except gft_common.GFTError, e:
@@ -367,10 +369,12 @@ def prepare_wipe():
       'secure': '',
   }
   method = g_options.wipe_method
+  hwcomp = InitializeHardwareComponents(do_probe=False)
   if method not in wipe_method_map:
     ErrorDie('prepare_wipe: unknown wipe method: %s' % method)
   tag = wipe_method_map[method]
-  command = 'FACTORY_WIPE_TAGS=%s %s' % (tag, wipe_script)
+  rootfs_device = '/dev/%s' % (hwcomp.get_ssd_name(RELEASE_PARTNO))
+  command = 'FACTORY_WIPE_TAGS=%s %s %s' % (tag, wipe_script, rootfs_device)
   try:
     VerboseSystemCommand(command, prompt='prepare_wipe: ')
   except gft_common.GFTError, e:
@@ -384,6 +388,7 @@ def verify():
   if (verify_switch_dev() and
       verify_switch_wp() and
       verify_hwid() and
+      verify_rootfs() and
       verify_keys()):
     return True
   ErrorDie('verify: failed.')

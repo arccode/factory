@@ -1,81 +1,113 @@
 #!/bin/sh
-# Copyright (c) 2010 The Chromium OS Authors. All rights reserved.
+# Copyright (c) 2011 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-# This script performs following tasks to prepare a wipe:
-# - switch from kernel slot A / sda3 to B / sda5
-# - install splash image for factory wipe
-# - set and enable factory wipe tag.
+# This script performs following tasks to prepare a wiping process at reboot:
+# - install "wiping" splash image and tag file
+# - enable release partition and disable factory release partition
+# - (legacy firmware) perform "postinst" to configure legacy boot loaders
+# - rollback if anything goes wrong
 # To assign additional wiping tags, use FACTORY_WIPE_TAGS envinronment variable.
-# Ex: FACTORY_WIPE_TAGS="fast" gft_prepare_wipe.sh
+# Ex: FACTORY_WIPE_TAGS="fast" gft_prepare_wipe.sh /dev/sda5
 
+. "$(dirname "$0")/common.sh" || exit 1
+set -e
+
+# Kernel activation parameters
+ENABLED_KERNEL_PRIORITY="3"
+
+# Variables for cleaning up
+NEED_ROLLBACK=""
+
+# Location for splash and tag files
 SCRIPT_DIR="$(dirname $0)"
-
-ROOT_DEV="$(rootdev -s)"
-OTHER_ROOT_DEV="$(echo $ROOT_DEV | tr '35' '53')"
-DEV="$(echo $ROOT_DEV | sed -rn 's/(sd[a-z]|mmcblk[0-9]+)p?[0-9]+$/\1/p')"
-
-if [ "${ROOT_DEV}" = "${OTHER_ROOT_DEV}" ]; then
-  echo "Not a normal rootfs partition (3 or 5): ${ROOT_DEV}"
-  exit 1
-fi
-if [ "$DEV" = "" ]; then
-  echo "Unknown type rootfs device: $ROOT_DEV"
-  exit 1
-fi
-
-# Note: this works only for single digit partition numbers.
-ROOT_PART=$(echo "${ROOT_DEV}" | sed -e 's/^.*\([0-9]\)$/\1/')
-OTHER_ROOT_PART=$(echo "${OTHER_ROOT_DEV}" | sed -e 's/^.*\([0-9]\)$/\1/')
-
-# Successfully being able to mount the other partition
-# and run postinst guarantees that there is a real partition there.
-echo "Running postinst on $OTHER_ROOT_DEV ($DEV)"
-MOUNTPOINT=$(mktemp -d)
-mkdir -p "$MOUNTPOINT"
-mount -o ro  "$OTHER_ROOT_DEV" "$MOUNTPOINT"
-IS_INSTALL=1 "$MOUNTPOINT"/postinst --noupdate_firmware "$OTHER_ROOT_DEV"
-POSTINST_RETURN_CODE=$?
-umount "$MOUNTPOINT"
-rmdir "$MOUNTPOINT"
-
-# Destroy this root partition if we've successfully switched.
-if [ "${POSTINST_RETURN_CODE}" = "0" ]; then
-  cgpt add -i "$((${ROOT_PART} - 1))" -P 0 -S 0 -T 0 "${DEV}"
-  if [ "$?" != "0" ]; then
-    echo "Failed to run cgpt"
-    exit 1
-  fi
-  cgpt add -i "$((${OTHER_ROOT_PART} - 1))" -P 3 -S 1 -T 0 "${DEV}"
-  if [ "$?" != "0" ]; then
-    echo "Failed to run cgpt"
-    exit 1
-  fi
-else
-  echo "Failed to run post-installation ($POSTINST_RETURN_CODE)"
-  exit $POSTINST_RETURN_CODE
-fi
-
-# Tagging stateful partition
 STATEFUL_PARTITION="/mnt/stateful_partition"
 WIPE_TAG_FILE="$STATEFUL_PARTITION/factory_install_reset"
 SPLASH_FILE="$STATEFUL_PARTITION/wipe_splash.png"
 SPLASH_SOURCE="$SCRIPT_DIR/wipe_splash.png"
-
-cp -f "$SPLASH_SOURCE" "$SPLASH_FILE" || {
-  echo "Failed to copy splash file: $SPLASH_SOURCE"
-  exit 1
-}
-
 TAGS="factory"
-if [ -n "$FACTORY_WIPE_TAGS" ]; then
-  TAGS="$TAGS $FACTORY_WIPE_TAGS"
-fi
 
-echo "$TAGS" >"$WIPE_TAG_FILE" || {
-  echo "Failed to create tag file: $WIPE_TAG_FILE"
-  exit 1
+# usage: enable_kernel partition_no
+enable_kernel() {
+  alert "Enabling kernel on $CGPT_DEVICE #$1 ..."
+  cgpt add -i "$1" -P "$ENABLED_KERNEL_PRIORITY" -S 1 -T 0 "$CGPT_DEVICE"
 }
 
-exit 0
+# usage: disable_kernel partition_no
+disable_kernel() {
+  alert "Disabling kernel on $CGPT_DEVICE #$1 ..."
+  cgpt add -i "$1" -P 0 -S 0 -T 0 "$CGPT_DEVICE"
+}
+
+rollback_changes() {
+  # don't stop, even if we encounter any issues
+  local failure_msg="WARNING: Failed to rollback some changes..."
+  alert "WARNING: Rolling back changes."
+  rm -f "$WIPE_TAG_FILE" 2>/dev/null || alert "$failure_msg"
+  if [ -n "$CGPT_CONFIG" ]; then
+    cgpt_restore_status "$CGPT_DEVICE" "$CGPT_CONFIG" || alert "$failure_msg"
+  fi
+}
+
+cleanup() {
+  if [ -n "$NEED_ROLLBACK" ]; then
+    rollback_changes
+  fi
+}
+
+install_splash() {
+  if [ ! -f "$SPLASH_SOURCE" ]; then
+    die "Missing splash file for wiping: $SPLASH_SOURCE"
+  fi
+  cp -f "$SPLASH_SOURCE" "$SPLASH_FILE" ||
+    die "Failed to install splash file: $SPLASH_SOURCE => $SPLASH_FILE"
+  alert "Splash file $SPLASH_FILE installed."
+}
+
+install_wipe_tag() {
+  # FACTORY_WIPE_TAGS is an environment variable.
+  if [ -n "$FACTORY_WIPE_TAGS" ]; then
+    TAGS="$TAGS $FACTORY_WIPE_TAGS"
+  fi
+  echo "$TAGS" >"$WIPE_TAG_FILE" ||
+    die "Failed to create tag file: $WIPE_TAG_FILE"
+  alert "Tag file $WIPE_TAG_FILE created: [$TAGS]."
+}
+
+main() {
+  if [ "$#" != "1" ]; then
+    alert "Usage: [FACTORY_WIPE_TAGS=fast] $0 release_rootfs"
+    exit 1
+  fi
+
+  local release_rootfs="$1"
+  local factory_rootfs="$(echo "$release_rootfs" | tr '35' '53')"
+  [ "$release_rootfs" != "$factory_rootfs" ] ||
+    die "Unknown type of device: $release_rootfs"
+  cgpt_init "$(device_remove_partno "$release_rootfs")" ||
+    die "Failed to initialize device: $release_rootfs"
+
+  local release_partno="$(echo "$release_rootfs" | sed -r 's/.*([0-9])$/\1/')"
+  local factory_partno="$(echo "$factory_rootfs" | sed -r 's/.*([0-9])$/\1/')"
+  [ -n "$release_partno" -a -n "$factory_partno" ] ||
+    die "Failed to identify release/factory partition numbers: $release_rootfs"
+
+  NEED_ROLLBACK="YES"
+  install_splash
+  install_wipe_tag
+  if chromeos_is_legacy_firmware; then
+    # When booting with legacy firmware, we need to update the legacy boot
+    # loaders to activate new kernel; on a real ChromeOS firmware, only CGPT
+    # header is used, and postinst is already performed in gft_verify_rootfs.
+    alert "Running on legacy system, invoke postinst."
+    chromeos_invoke_postinst "$release_rootfs"
+  fi
+  disable_kernel "$(( factory_partno - 1 ))"
+  enable_kernel "$(( release_partno - 1 ))"
+  NEED_ROLLBACK=""
+  alert "Complete."
+}
+
+trap cleanup EXIT
+main "$@"

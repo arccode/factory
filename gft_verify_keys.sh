@@ -9,9 +9,7 @@
 # booting.
 #
 
-alert() {
-  echo "$*" 1>&2
-}
+. "$(dirname "$0")/common.sh" || exit 1
 
 if [ "$#" != "2" ]; then
   alert "ERROR: Usage: $0 kernel_device main_firmware"
