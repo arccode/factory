@@ -13,6 +13,7 @@ import copy
 import glob
 import optparse
 import os
+import re
 import sys
 
 ########################################################################
@@ -37,6 +38,9 @@ g_args = None
 
 # cache for instance of HardwareComponents to speed up
 g_hwcomp = None
+
+# list of commands
+g_commands = []
 
 # partition number of factory and release rootfs. -1 for kernel.
 FACTORY_PARTNO = 3
@@ -147,8 +151,8 @@ def VerboseSystemCommand(command, prompt=None):
     VerboseMsg(message)
 
 
-def GFTLogCommand(f):
-  """Decorator for commands to log the results."""
+def GFTCommand(f):
+  """ Decorator for gooftool base commands. """
   def wrapper(*args, **kw):
     try:
       DebugMsg('@Starting to execute command: %s.' % f.__name__)
@@ -164,16 +168,49 @@ def GFTLogCommand(f):
     except:
       DebugMsg('@Executed command: %s. Result: FAILED.' % f.__name__)
       raise
+  wrapper.__name__ = f.__name__
+  wrapper.__doc__ = re.sub(r'\s+', ' ', f.__doc__).strip()
+  g_commands.append(wrapper)
   return wrapper
 
+
+def GFTCommandDependency(command_list):
+  """Decorator to define the depenedncy of a gooftool command.
+
+  Args
+    command_list: a list or tuple of command functions to be executed in order.
+
+  Raises
+    GFTError if any of the commands in dependency return False.
+  """
+  def meta_wrapper(f):
+
+    def wrapper(*args, **kargs):
+      for command in command_list:
+        if not command():
+          ErrorDie('%s: failed in sub-command: %s.' %
+                   (f.__name__, command.__name__))
+      return f(*args, **kargs)
+
+    wrapper.__name__ = f.__name__
+    wrapper.__doc__ = ('Runs: %s. %s' %
+                       (', '.join(['--%s' % command.__name__
+                                   for command in command_list]),
+                        f.__doc__))
+    return wrapper
+  return meta_wrapper
 
 ########################################################################
 # standard procedure
 # (function names are used for self-reflection to command line parameters)
 
-@GFTLogCommand
+# HWID, GBB, and hardware components validation
+
+@GFTCommand
 def probe():
-  """ Probes current system HWID by matching to components database files. """
+  """ Probes hardware components on current system and find match to given
+      component database files for HWID.
+  """
   if not g_options.db_path:
     ErrorDie('probe: need --db_path.')
   db_list = FindComponentsDatabases(g_options.db_path)
@@ -198,7 +235,7 @@ def probe():
   return (True if matched_hwids > 0 else False)
 
 
-@GFTLogCommand
+@GFTCommand
 def write_gbb():
   """ Writes system GBB data by assigned components database. """
   if not g_options.write_gbb:
@@ -206,9 +243,9 @@ def write_gbb():
   return WriteGBB(g_options.write_gbb)
 
 
-@GFTLogCommand
+@GFTCommand
 def verify_hwid():
-  """ Verifies if HWID is matched to the qualified component list. """
+  """ Verifies if system HWID matches the qualified component list. """
   hwcomp = InitializeHardwareComponents()
   matched_list = MatchComponentsDatabases(g_options.db_path)
   matched = len(matched_list)
@@ -224,7 +261,7 @@ def verify_hwid():
   return True
 
 
-@GFTLogCommand
+@GFTCommand
 def verify_keys():
   """ Verifies if the keys in firmware and SSD are matched. """
   hwcomp = InitializeHardwareComponents(do_probe=False)
@@ -240,9 +277,11 @@ def verify_keys():
   return True
 
 
-@GFTLogCommand
+# Hardware Switches
+
+@GFTCommand
 def verify_rootfs():
-  """ (Cacheable) Verifies if the rootfs on SSD is valid (by hash check). """
+  """ Verifies if the rootfs on SSD is valid (by checking hash). """
   hwcomp = InitializeHardwareComponents(do_probe=False)
   script = os.path.join(os.path.split(sys.argv[0])[0], 'gft_verify_rootfs.sh')
   if not os.path.exists(script):
@@ -256,7 +295,7 @@ def verify_rootfs():
   return True
 
 
-@GFTLogCommand
+@GFTCommand
 def verify_switch_wp():
   """ Verifies if hardware write protection switch is enabled. """
   if VerifySwitch('write_protect', 1):
@@ -264,7 +303,7 @@ def verify_switch_wp():
   ErrorDie('verify_switch_wp: failed')
 
 
-@GFTLogCommand
+@GFTCommand
 def verify_switch_dev():
   """ Verifies if developer switch is disabled. """
   if VerifySwitch('developer_switch', 0):
@@ -272,9 +311,11 @@ def verify_switch_dev():
   ErrorDie('verify_switch_dev: failed')
 
 
-@GFTLogCommand
+# Report Creation
+
+@GFTCommand
 def create_report():
-  """ Creates the report for uploading. """
+  """ Creates the report (with vpd, hwid, date, ...) for uploading. """
   # decide log format
   suffix = '.log'
   if g_options.report_format == 'gz':
@@ -319,9 +360,9 @@ def create_report():
   return True
 
 
-@GFTLogCommand
+@GFTCommand
 def upload_report():
-  """ Uploads a report for tracking the factory process. """
+  """ Uploads a report (by --create_report) for tracking factory process. """
   report_path = g_options.report_path
   if not (report_path and os.path.exists(report_path)):
     ErrorDie('upload_report: need an existing report file '
@@ -333,9 +374,9 @@ def upload_report():
   return True
 
 
-@GFTLogCommand
+@GFTCommand
 def wpfw():
-  """ Enables and verifies firmware write protection. """
+  """ Enables and verifies firmware write protection status. """
   if g_options.debug_dryrun_wpfw:
     ErrorMsg('wpfw is by-passed. This device CANNOT be qualified.')
     return True
@@ -354,9 +395,9 @@ def wpfw():
   return True
 
 
-@GFTLogCommand
+@GFTCommand
 def prepare_wipe():
-  """ Prepares system to reboot for transitioning to release state. """
+  """ Prepares the system for transitioning to release state in next reboot. """
   if g_options.debug_dryrun_prepare_wipe:
     ErrorMsg('prepare_wipe is by-passed. This device CANNOT be qualified.')
     return True
@@ -382,33 +423,32 @@ def prepare_wipe():
   return True
 
 
-@GFTLogCommand
+@GFTCommand
+@GFTCommandDependency((verify_switch_dev,
+                       verify_switch_wp,
+                       verify_hwid,
+                       verify_keys,
+                       verify_rootfs))
 def verify():
   """ Verifies if whole factory process is ready for finalization. """
-  if (verify_switch_dev() and
-      verify_switch_wp() and
-      verify_hwid() and
-      verify_rootfs() and
-      verify_keys()):
-    return True
-  ErrorDie('verify: failed.')
+  # See the depenency list for the real commands to be executed.
+  return True
 
 
-@GFTLogCommand
+@GFTCommand
+@GFTCommandDependency((verify,
+                       wpfw,
+                       create_report,
+                       upload_report,
+                       prepare_wipe))
 def finalize():
-  """ Finalize all factory tests and transit system into release state. """
-  if (verify() and
-      wpfw() and
-      create_report() and
-      upload_report() and
-      prepare_wipe()):
-    return True
-  ErrorDie('finalization: failed.')
+  """ Finalizes all factory tests and transit system into release state. """
+  # See the depenency list for the real commands to be executed.
+  return True
 
 
 ########################################################################
 # console command line options
-
 
 def ConsoleParser():
   """ command line option parser """
@@ -422,66 +462,40 @@ def ConsoleParser():
   parser.add_option('--log_path', metavar='PATH',
                     default=gft_common.DEFAULT_CONSOLE_LOG_PATH,
                     help='use the given path for verbose logs.')
-
   # Debugging
   parser.add_option('--debug_dryrun_wpfw', action='store_true',
-                    help='run --wpfw in dry-run mode (debugging only)')
+                    help='make --wpfw in dry-run mode (debugging only)')
   parser.add_option('--debug_dryrun_prepare_wipe', action='store_true',
-                    help='run --prepare_wipe in dry-run mode (debugging only)')
-
+                    help='make --prepare_wipe in dry-run mode (debugging only)')
   # Configuration
   parser.add_option('--config', metavar='PATH',
                     help='path to the config file (TBD)')
   parser.add_option('--db_path', metavar='PATH',
                     help='path to the HWID component list databases')
-
-  # HWID, GBB, and hardware components validation
-  parser.add_option('--probe', action='store_true',
-                    help='generates list of probed component list '
-                         'and matched HWID')
-  parser.add_option('--write_gbb', metavar='comp_db',
-                    help='updates system GBB from a component database')
-  parser.add_option('--verify_hwid', action='store_true',
-                    help='verifies if the HWID matches current system')
-  parser.add_option('--verify_keys', action='store_true',
-                    help='verifies if the firmware and SSD keys match')
-  parser.add_option('--verify_rootfs', action='store_true',
-                    help='verifies if the rootfs is valid (by checking hash)')
-
-  # Hardware Switches
-  parser.add_option('--verify_switch_wp', action='store_true',
-                    help='checks if write protection switch is enabled')
-  parser.add_option('--verify_switch_dev', action='store_true',
-                    help='checks if developer switch is disabled')
-
-  # Report Creation
-  parser.add_option('--create_report', action='store_true',
-                    help='create the report for: vpd, hwid, date, ...')
+  # Reports
   parser.add_option('--report_path', metavar='PATH',
                     help='override the path for report file')
   parser.add_option('--report_format', metavar='FORMAT', default='gz',
                     help='format of the generated report (see gft_report.py)')
-
-  # Report Uploading
-  parser.add_option('--upload_report', action='store_true',
-                    help='upload the data generated by --create_report')
   parser.add_option('--upload_method', metavar='METHOD:PARAM',
                     help='assign the upload method (see gft_upload).')
-
-  # Write Protection Wiping, and Finalization
-  parser.add_option('--wpfw', action='store_true',
-                    help='enable and verify firmware write protection')
-  parser.add_option('--prepare_wipe', action='store_true',
-                    help='prepare for wiping factory tests and '
-                        'transit to release mode in next reboot')
+  # Wiping
   parser.add_option('--wipe_method', metavar='METHOD', default='secure',
                     help='assign the wipe method (secure/fast).')
-  parser.add_option('--verify', action='store_true',
-                    help='runs: --verify_switch_wp, --verify_switch_dev, '
-                         '--verify_hwid, --verify_keys')
-  parser.add_option('--finalize', action='store_true',
-                    help='runs: --verify, --wpfw, '
-                         '--create_report, --upload_report, --prepare_wipe')
+
+  # Commands
+  commands_with_param = {
+      write_gbb: 'comp_db',
+  }
+  for command in g_commands:
+    if command in commands_with_param:
+      parser.add_option('--%s' % command.__name__,
+                        metavar=commands_with_param[command],
+                        help=command.__doc__)
+    else:
+      parser.add_option('--%s' % command.__name__,
+                        action='store_true',
+                        help=command.__doc__)
   return parser
 
 
@@ -504,30 +518,15 @@ def _main():
   gft_common.SetVerboseLevel(g_options.verbose, g_options.log_path)
   DebugMsg('options: ' + repr(g_options) + '\nargs: ' + repr(g_args), log=False)
 
-    # execute commands by order.
-
+  # execute commands by order.
   executed_commands = 0
-  valid_commands = [
-    'probe',
-    'write_gbb',
-    'verify_hwid',
-    'verify_keys',
-    'verify_rootfs',
-    'verify_switch_wp',
-    'verify_switch_dev',
-    'create_report',
-    'upload_report',
-    'wpfw',
-    'prepare_wipe',
-    'verify',
-    'finalize',
-    ]
   return_value = 0
-  for command in valid_commands:
-    if not getattr(g_options, command):
+  for command in g_commands:
+    command_name = command.__name__
+    if not getattr(g_options, command_name):
       continue
-    DebugMsg('COMMAND: ' + command, log=False)
-    if not globals()[command]():
+    DebugMsg('COMMAND: ' + command_name, log=False)
+    if not command():
       return_value = 1
     executed_commands = executed_commands + 1
 
