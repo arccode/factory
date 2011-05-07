@@ -32,6 +32,7 @@ TAGS="factory"
 enable_kernel() {
   alert "Enabling kernel on $CGPT_DEVICE #$1 ..."
   cgpt add -i "$1" -P "$ENABLED_KERNEL_PRIORITY" -S 1 -T 0 "$CGPT_DEVICE"
+  cgpt prioritize -i "$1" -P "$ENABLED_KERNEL_PRIORITY" "$CGPT_DEVICE"
 }
 
 # usage: disable_kernel partition_no
