@@ -469,14 +469,26 @@ class HardwareComponents(object):
   def get_data_display_geometry(self):
     # Get edid from driver.
     # TODO(nsanders): this is driver specific.
-    # TODO(waihong): read-edid is also x86 only.
-    # format:   Mode "1280x800" -> 1280x800
     # TODO(hungte) merge this with get_part_id_display_panel
 
+    # Try edid
     cmd = ('cat "$(find /sys/devices/ -name edid | grep LVDS)" | '
            'parse-edid 2>/dev/null | grep "Mode " | cut -d\\" -f2')
+    # format:   Mode "1280x800" -> 1280x800
     output = gft_common.SystemOutput(cmd).splitlines()
-    return (output if output else [''])
+    if output:
+      return output
+
+    # Try frame buffer
+    fb_modes_file = '/sys/class/graphics/fb0/modes'
+    if os.path.exists(fb_modes_file):
+      # format: U:1366x768p-0
+      fb_mode = gft_common.ReadOneLine(fb_modes_file)
+      geometry = re.search(r'\d+x\d+', fb_mode)
+      if geometry:
+        return geometry.group(0)
+
+    return self._not_present
 
   @EcProperty
   def get_hash_ec_firmware(self):
@@ -570,12 +582,20 @@ class HardwareComponents(object):
     return self.compact_id(info)
 
   def get_part_id_display_panel(self):
+    # Try edid
     # format:   ModelName "SEC:4231" -> SEC:4231
-
     cmd = ('cat "$(find /sys/devices/ -name edid | grep LVDS)" | '
            'parse-edid 2>/dev/null | grep ModelName | cut -d\\" -f2')
     output = gft_common.SystemOutput(cmd).strip()
-    return (output if output else self._not_present)
+    if output:
+      return output
+
+    # Try frame buffer
+    fb_filename = '/sys/class/graphics/fb0/name'
+    if os.path.exists(fb_filename):
+      return gft_common.ReadOneLine(fb_filename)
+
+    return self._not_present
 
   def get_part_id_dram(self):
     # TODO(hungte) if we only want DRAM size, maybe no need to use mosys
