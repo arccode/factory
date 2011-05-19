@@ -25,6 +25,7 @@ import gft_fwhash
 import gft_hwcomp
 import gft_report
 import gft_upload
+import gft_vpd
 import gft_wpfw
 import gpio
 
@@ -277,6 +278,17 @@ def verify_keys():
   return True
 
 
+@GFTCommand
+def verify_vpd():
+  """ Verifies if the VPD contains valid required data. """
+  hwcomp = InitializeHardwareComponents(do_probe=False)
+  try:
+    gft_vpd.ValidateVpdData(hwcomp.load_main_firmware(), g_options.verbose)
+  except gft_common.GFTError, e:
+    ErrorDie('verify_vpd: FAILED.\n%s' % e.value)
+  return True
+
+
 # Hardware Switches
 
 @GFTCommand
@@ -427,6 +439,7 @@ def prepare_wipe():
 @GFTCommandDependency((verify_switch_dev,
                        verify_switch_wp,
                        verify_hwid,
+                       verify_vpd,
                        verify_keys,
                        verify_rootfs))
 def verify():
