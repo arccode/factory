@@ -283,7 +283,9 @@ def verify_vpd():
   """ Verifies if the VPD contains valid required data. """
   hwcomp = InitializeHardwareComponents(do_probe=False)
   try:
-    gft_vpd.ValidateVpdData(hwcomp.load_main_firmware(), g_options.verbose)
+    image_file = hwcomp.load_main_firmware()
+    gft_vpd.ValidateVpdData(image_file, g_options.verbose)
+    gft_vpd.SetFirmwareBitmapLocale(image_file)
   except gft_common.GFTError, e:
     ErrorDie('verify_vpd: FAILED.\n%s' % e.value)
   return True

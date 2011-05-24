@@ -325,6 +325,39 @@ def ValidateVpdData(vpd_source=None, verbose=False):
   return True
 
 
+def SetFirmwareBitmapLocale(image_file):
+  ro_vpd = ParseRoVpdData(image_file, False)
+  if KEY_INITIAL_LOCALE not in ro_vpd:
+    ErrorDie('SetFirmwareBitmapLocale: missing initial_locale in VPD data.')
+  locale = ro_vpd[KEY_INITIAL_LOCALE]
+  bitmap_locales = []
+  bmpblk_file = None
+  try:
+    bmpblk_file = gft_common.GetTemporaryFileName()
+    gft_common.System("gbb_utility -g --bmpfv=%s %s" %
+                      (bmpblk_file, image_file))
+    with open(bmpblk_file, "rb") as bmp_handle:
+      bmpblk_data = bmpblk.unpack_bmpblock(bmp_handle.read())
+      bitmap_locales = bmpblk_data.get('locales', bitmap_locales)
+  finally:
+    if bmpblk_file:
+      os.remove(bmpblk_file)
+  locale_lang = locale if locale in bitmap_locales else locale.split('-')[0]
+  if locale_lang not in bitmap_locales:
+    WarningMsg('SetFirmwareBitmapLocale: Warning: locale (%s) '
+               'not in bitmap (%s), resetting index to zero.' %
+               (locale, bitmap_locales))
+    # Reset locale index if the specified locale is not found.
+    gft_common.System('crossystem loc_idx=0')
+    return False
+  else:
+    locale_index = bitmap_locales.index(locale_lang)
+    VerboseMsg('SetFirmwareBitmapLocale: initial locale set to %d (%s).' %
+               (locale_index, bitmap_locales[locale_index]))
+    gft_common.System('crossystem loc_idx=%d' % locale_index)
+    return True
+
+
 #############################################################################
 # Console main entry
 @gft_common.GFTConsole
@@ -338,6 +371,12 @@ def main():
     vpd_source = sys.argv[1]
     verbose = False
   ValidateVpdData(vpd_source, verbose)
+  if not vpd_source:
+    # only import gft_hwcomp for debugging
+    import gft_hwcomp
+    hwcomp = gft_hwcomp.HardwareComponents(verbose=True)
+    vpd_source = hwcomp.load_main_firmware()
+  SetFirmwareBitmapLocale(vpd_source)
   print "VPD verified OK."
 
 if __name__ == "__main__":
