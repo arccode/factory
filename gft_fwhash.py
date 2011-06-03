@@ -92,24 +92,29 @@ def UpdateGBB(old_bios, db_file, in_place=False):
     components = gft_common.LoadComponentsDatabaseFile(db_file)
   except:
     ErrorDie('UpdateGBB: Invalid components list file: %s' % db_file)
+
+  # The are 4 fields in component list related to gbb:
+  # - part_id_hwqual (HWID, mandatory)
+  # - data_bitmap_fv (optional because we have universal bitmap now)
+  # - key_root (can't be updated because that cause incompatible key)
+  # - key_recovery (can't be updated because that cause incompatible key)
+  gbb_data = {}
   for key in ['part_id_hwqual', 'data_bitmap_fv', 'key_root', 'key_recovery']:
     if len(components[key]) != 1 or components[key][0] == '*':
       ErrorDie('Components list should have a valid value for %s: %s' %
                (key, db_file))
+    gbb_data[key] = components[key][0]
   cmd = 'gbb_utility --set'
-  cmd += ' --hwid="%s"' % components['part_id_hwqual'][0]
-  cmd += ' --bmpfv="%s"' % os.path.join(base, components['data_bitmap_fv'][0])
-  cmd += ' --rootkey="%s"' % os.path.join(base, components['key_root'][0])
-  cmd += ' --recoverykey="%s"' % os.path.join(base,
-                                              components['key_recovery'][0])
+  cmd += ' --hwid="%s"' % gbb_data['part_id_hwqual']
+  if gbb_data['data_bitmap_fv'] != '':
+    cmd += ' --bmpfv="%s"' % os.path.join(base, gbb_data['data_bitmap_fv'])
   cmd += ' %s' % old_bios
   new_bios = old_bios
   if not in_place:
     new_bios = gft_common.GetTemporaryFileName()
     cmd += ' %s' % new_bios
-  cmd += ' >/dev/null'
   VerboseMsg("WriteGBB: invoke command: " + cmd)
-  gft_common.SystemOutput(cmd)
+  gft_common.System(cmd)
   return new_bios
 
 

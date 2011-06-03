@@ -124,6 +124,9 @@ def WriteGBB(db_file):
   """ Writes a prepared GBB data to system main firwmare. """
   flashrom = flashrom_util.flashrom_util(verbose_msg=VerboseMsg,
                                          exception_type=gft_common.GFTError)
+  # TODO(hungte) Check if current keys in GBB match component list, to prevent
+  # installing wrong GBB data to systems designed for incompatile keys.
+  # TODO(hungte) use new flashrom partial read/write syntax to speed up
   flashrom.select_target('bios')
   image_file = gft_common.GetTemporaryFileName('wgbb')
   if not flashrom.read_whole_to_file(image_file):
