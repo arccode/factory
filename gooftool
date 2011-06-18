@@ -223,7 +223,10 @@ def probe():
   matched = {}
 
   # Don't care about GBB elements when probing
-  ignored_cids = ['hash_ro_firmware', 'part_id_hwqual', 'version_rw_firmware']
+  ignored_cids = ['hash_ro_main_firmware',
+                  'hash_gbb',
+                  'part_id_hwqual',
+                  'version_rw_firmware']
   for db in db_list:
     VerboseMsg('probe: Matching current system by %s' % db)
     (matched, failure) = hwcomp.match_current_system(db,

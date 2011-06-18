@@ -993,6 +993,46 @@ class FlashromUtility(object):
 
 
 # ---------------------------------------------------------------------------
+# Simple access to a FMAP based firmware images
+class FirmwareImage(object):
+  """Provides access to firmware image via FMAP sections."""
+  def __init__(self, image_source):
+    self._image = image_source;
+    self._fmap = fmap.fmap_decode(self._image)
+    self._areas = dict(
+        (entry['name'], [entry['offset'], entry['size']])
+        for entry in self._fmap['areas'])
+
+  def has_section(self, section_name):
+    """Returns if specified section is available in image."""
+    return section_name in self._areas
+
+  def get_section(self, section_name):
+    """Returns the content of specified section."""
+    if not self.has_section(section_name):
+      raise Exception('get_section: invalid section "%s".' % section_name)
+    area = self._areas[section_name]
+    return self._image[area[0]:(area[0] + area[1])]
+
+  def put_section(self, section_name, value):
+    """Updates content of specified section in image."""
+    if not self.has_section(section_name):
+      raise Exception("Section does not exist: %s" % section_name)
+    area = self._areas[section_name]
+    if len(value) != area[1]:
+      raise ValueError("Value size (%d) does not fit into section (%s, %d)" %
+                       (len(value), section_name, area[1]))
+    self._image = (self._image[0:area[0]] +
+                   value +
+                   self._image[(area[0] + area[1]):])
+    return True
+
+  def get_fmap_blob(self):
+    """Returns the re-encoded fmap blob from firmware image."""
+    return fmap.fmap_encode(self._fmap)
+
+
+# ---------------------------------------------------------------------------
 # The flashrom_util supports both running inside and outside 'autotest'
 # framework, so we need to provide some mocks and dynamically load
 # autotest components here.

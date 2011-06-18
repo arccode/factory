@@ -35,8 +35,11 @@ class HardwareComponents(object):
 
   _enumerable_cids = [
     'data_display_geometry',
-    'hash_ec_firmware',
-    'hash_ro_firmware',
+    'hash_key_recovery',
+    'hash_key_root',
+    'hash_gbb',
+    'hash_ro_ec_firmware',
+    'hash_ro_main_firmware',
     'part_id_3g',
     'part_id_audio_codec',
     'part_id_bluetooth',
@@ -66,8 +69,6 @@ class HardwareComponents(object):
     #   We should enable it only when OS supports it.
     ]
   _probable_cids = [
-    'key_recovery',
-    'key_root',
     'part_id_cardreader',
     ]
   _pure_data_cids = [
@@ -490,28 +491,40 @@ class HardwareComponents(object):
 
     return self._not_present
 
+  def get_hash_gbb(self, part_id):
+    image_file = self.load_main_firmware()
+    return gft_fwhash.GetMainFirmwareGbbHash(file_source=image_file)
+
+  def get_hash_key_recovery(self, part_id):
+    current_key = self._read_gbb_component('recoverykey')
+    return gft_fwhash.GetKeyHash(current_key)
+
+  def get_hash_key_root(self):
+    current_key = self._read_gbb_component('rootkey')
+    return gft_fwhash.GetKeyHash(current_key)
+
   @EcProperty
-  def get_hash_ec_firmware(self):
+  def get_hash_ro_ec_firmware(self):
     """
-    Returns a hash of Embedded Controller firmware parts,
+    Returns a hash of Embedded Controller firmware read only parts,
     to confirm we have proper updated version of EC firmware.
     """
 
     image_file = self.load_ec_firmware()
     if not image_file:
-      ErrorDie('get_hash_ec_firmware: cannot read firmware')
-    return gft_fwhash.GetECHash(file_source=image_file)
+      ErrorDie('get_hash_ro_ec_firmware: cannot read firmware')
+    return gft_fwhash.GetEcFirmwareReadOnlyHash(file_source=image_file)
 
-  def get_hash_ro_firmware(self):
+  def get_hash_ro_main_firmware(self):
     """
-    Returns a hash of Read Only (BIOS) firmware parts,
+    Returns a hash of main firmware (BIOS) read only parts,
     to confirm we have proper keys / boot code / recovery image installed.
     """
 
     image_file = self.load_main_firmware()
     if not image_file:
-      ErrorDie('get_hash_ro_firmware: cannot read firmware')
-    return gft_fwhash.GetBIOSReadOnlyHash(file_source=image_file)
+      ErrorDie('get_hash_ro_main_firmware: cannot read firmware')
+    return gft_fwhash.GetMainFirmwareReadOnlyHash(file_source=image_file)
 
   def get_part_id_3g(self):
     device_path = self._get_all_connection_info()[self._type_3g]
@@ -641,6 +654,7 @@ class HardwareComponents(object):
 
   def get_part_id_hwqual(self):
     part_id = gft_common.SystemOutput('crossystem hwid').strip()
+    # TODO(hungte) compare this with HWID in GBB.
     return (part_id if part_id else self._not_present)
 
   def get_part_id_storage(self):
@@ -833,18 +847,6 @@ class HardwareComponents(object):
 
   # --------------------------------------------------------------------
   # Probable Properties
-
-  def probe_key_recovery(self, part_id):
-    current_key = self._read_gbb_component('recoverykey')
-    file_path = os.path.join(self._file_base, part_id)
-    target_key = gft_common.ReadBinaryFile(file_path)
-    return current_key.startswith(target_key)
-
-  def probe_key_root(self, part_id):
-    current_key = self._read_gbb_component('rootkey')
-    file_path = os.path.join(self._file_base, part_id)
-    target_key = gft_common.ReadBinaryFile(file_path)
-    return current_key.startswith(target_key)
 
   def probe_part_id_cardreader(self, part_id):
     # A cardreader is always power off until a card inserted. So checking

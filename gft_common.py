@@ -226,6 +226,11 @@ def WriteFile(filename, data):
   with open(filename, "w") as opened_file:
     opened_file.write(data)
 
+def WriteBinaryFile(filename, data):
+  """ Writes one binary file and exit. """
+  with open(filename, "wb") as opened_file:
+    opened_file.write(data)
+
 
 def GetSystemArch():
   """Gets current system architecture, in portage-style return value.
