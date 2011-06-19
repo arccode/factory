@@ -68,10 +68,31 @@ def InitializeHardwareComponents(do_probe=True):
   return g_hwcomp
 
 
-def FindComponentsDatabases(db_path_pattern):
-  """ Finds files by pattern for component list databases. """
-  files = glob.glob(db_path_pattern)
-  return files
+@gft_common.Memorize
+def FindComponentsDatabases():
+  """ Finds component database files. If --db_path is assigned, use the
+      specified path; otherwise look for default folders in system. """
+  db_path = g_options.db_path
+  if db_path:
+    files = glob.glob(db_path)
+    if not files:
+      ErrorDie('No components database found in %s.' % db_path)
+    return files
+
+  # find in default path
+  default_db_paths = [
+      '/usr/local/share/chromeos-hwid',
+      '/usr/share/chromeos-hwid',
+  ]
+  for db_path in default_db_paths:
+    files = glob.glob(os.path.join(db_path, 'components*'))
+    if files:
+      VerboseMsg('Loading components database from %s' % db_path)
+      return files
+
+  # found nothing
+  ErrorDie('No components database found. You must assign --db_path.')
+  return None
 
 
 def VerifySwitch(name, value):
@@ -88,18 +109,15 @@ def VerifySwitch(name, value):
   return True
 
 
-def MatchComponentsDatabases(db_path):
+def MatchComponentsDatabases(db_list):
   """Tries to match current system to known qualified component lists.
 
   Args:
-    db_path: path (or pattern) to the component list database files.
+    db_list: list of component list database files.
 
   Returns:
     A list of matched component lists in dict form: { db_file: matched_list }.
   """
-  if not db_path:
-    ErrorDie('VerifyComponents: need --db_path.')
-  db_list = FindComponentsDatabases(db_path)
   hwcomp = InitializeHardwareComponents()
   if not hwcomp:
     ErrorDie('VerifyComponents: failed to detect system configuration.')
@@ -215,9 +233,7 @@ def probe():
   """ Probes hardware components on current system and find match to given
       component database files for HWID.
   """
-  if not g_options.db_path:
-    ErrorDie('probe: need --db_path.')
-  db_list = FindComponentsDatabases(g_options.db_path)
+  db_list = FindComponentsDatabases()
   hwcomp = InitializeHardwareComponents(do_probe=True)
   matched_hwids = 0
   matched = {}
@@ -254,7 +270,7 @@ def write_gbb():
 def verify_hwid():
   """ Verifies if system HWID matches the qualified component list. """
   hwcomp = InitializeHardwareComponents()
-  matched_list = MatchComponentsDatabases(g_options.db_path)
+  matched_list = MatchComponentsDatabases(FindComponentsDatabases())
   matched = len(matched_list)
   if matched > 0:
     DebugMsg('Current System:%s\n' % hwcomp.pformat(matched_list.values()[0]))
@@ -348,7 +364,7 @@ def create_report():
 
   # TODO(hungte) if matching is still too slow, we can try to reused previous
   # cached results.
-  matched = MatchComponentsDatabases(g_options.db_path)
+  matched = MatchComponentsDatabases(FindComponentsDatabases())
 
   if not len(matched) == 1:
     ErrorDie('create_report: HWID is not singularly matched to database.')
