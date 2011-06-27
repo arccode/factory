@@ -491,11 +491,11 @@ class HardwareComponents(object):
 
     return self._not_present
 
-  def get_hash_gbb(self, part_id):
+  def get_hash_gbb(self):
     image_file = self.load_main_firmware()
     return gft_fwhash.GetMainFirmwareGbbHash(file_source=image_file)
 
-  def get_hash_key_recovery(self, part_id):
+  def get_hash_key_recovery(self):
     current_key = self._read_gbb_component('recoverykey')
     return gft_fwhash.GetKeyHash(current_key)
 
