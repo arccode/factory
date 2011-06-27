@@ -317,6 +317,23 @@ def ExpandComponentsDatabaseMacro(data, database_file):
   return data
 
 
+def ExpandComponentsDatabaseHash(data, database_file):
+  """ Processes and expands virtual hash in a component database. """
+  hashdb_file = os.path.join(os.path.dirname(database_file), 'hash.db')
+  if not os.path.exists(hashdb_file):
+    return data
+  hashdb = eval(ReadFile(hashdb_file))
+  for (key, values) in data.items():
+    if not key.startswith('hash'):
+      continue
+    new_values = [hashdb.get(value, value) for value in values]
+    if new_values != values:
+      data[key] = new_values
+      DebugMsg('ExpandComponentsDatabaseHash: %s: %s -> %s' %
+               (key, values, new_values))
+  return data
+
+
 def LoadComponentsDatabaseFile(filename):
   """ Loads a components database file. """
   original_filename = filename
@@ -344,6 +361,7 @@ def LoadComponentsDatabaseFile(filename):
       filename = os.path.join(base_dir, new_file)
   if len(file_list) > 1:
     DebugMsg('LoadComponentsDatabaseFile: ' + '->'.join(file_list))
+  ExpandComponentsDatabaseHash(result, original_filename)
   ExpandComponentsDatabaseMacro(result, original_filename)
   return result
 
