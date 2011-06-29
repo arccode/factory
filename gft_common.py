@@ -368,8 +368,8 @@ def LoadComponentsDatabaseFile(filename):
 
 def GetComponentsDatabaseBase(database_file):
   """ Gets the base folder of a components database file.  """
-  # Currently the database file is assuming properties sit in its parent folder.
-  base = os.path.join(os.path.split(os.path.abspath(database_file))[0], '..')
+  # Currently the database file is assuming properties sit in same folder.
+  base = os.path.dirname(os.path.abspath(database_file))
   return os.path.abspath(base)
 
 
