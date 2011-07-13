@@ -114,11 +114,12 @@ def unpack_verification_block(blob, offset=0):
 
 def test_report_vblock_info(blob, offset=0):
     """ Reports the information of a vblock blob. """
-    kb_header = unpack_VbKeyBlockHeader(msg, offset)
+    kb_header = unpack_VbKeyBlockHeader(blob, offset)
     print "-- VbKeyBlockHeader --"
     for name, value in kb_header.items():
         print name, ':', value
-    preamble = unpack_VbFirmwarePreambleHeader(msg, kb_header['key_block_size'])
+    preamble = unpack_VbFirmwarePreambleHeader(blob,
+                                               kb_header['key_block_size'])
     print "-- VbFirmwarePreambleHeader --"
     for name, value in preamble.items():
         print name, ':', value
@@ -129,4 +130,4 @@ def test_report_vblock_info(blob, offset=0):
 if __name__ == "__main__":
     # when running in command line, try to report blob in the parameters
     for filename in sys.argv[1:]:
-        test_report_blob_info(open(filename, "rb").read())
+        test_report_vblock_info(open(filename, "rb").read())
