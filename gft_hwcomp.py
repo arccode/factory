@@ -299,7 +299,7 @@ class HardwareComponents(object):
       if os.path.exists(os.path.join(path, 'idProduct')):
         break
       path = os.path.split(path)[0]
-    optional_fields = ['manufacturer', 'product']
+    optional_fields = ['manufacturer', 'product', 'bcdDevice']
     (info, optional) = self._get_sysfs_device_info(
         path, ['idVendor', 'idProduct'], optional_fields)
     if not info:
@@ -659,11 +659,14 @@ class HardwareComponents(object):
 
   def get_part_id_storage(self):
     part_id = ''
-    path = gft_common.SystemOutput('find /sys/devices -name "%s"' %
-                                   self.get_ssd_name())
-    path = os.path.join(path.strip(), 'device')
+    node = '/sys/class/block/%s' % self.get_ssd_name()
+    path = os.path.join(node, 'device')
     if not os.path.exists(path):
       return part_id
+    size = ''
+    size_path = os.path.join(node, 'size')
+    if os.path.exists(size_path):
+      size = '#' + gft_common.ReadOneLine(size_path)
     info_list = (
         ['vendor', 'model'],  # ATA
         ['type', 'name', 'fwrev', 'hwrev', 'oemid', 'manfid'],  # EMMC
@@ -673,7 +676,7 @@ class HardwareComponents(object):
               for data_file in info
               if os.path.exists(os.path.join(path, data_file))]
       if data:
-        return self.compact_id(data)
+        return self.compact_id(data + [size])
     return part_id
 
   def get_part_id_keyboard(self):
