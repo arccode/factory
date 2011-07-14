@@ -116,21 +116,31 @@ def MatchComponentsDatabases(db_list):
     db_list: list of component list database files.
 
   Returns:
-    A list of matched component lists in dict form: { db_file: matched_list }.
+    Tuple of (matched, unmatched, unrelated)
+    matched: Matched component lists in dict form: { db_file: matched }.
+    unmatched: Lists matched part_id_hwqual but failed in other components.
+    unrelated: Those part_id_hwqual does not match.
   """
   hwcomp = InitializeHardwareComponents()
   if not hwcomp:
     ErrorDie('VerifyComponents: failed to detect system configuration.')
-  matched_list = {}
+  matched = {}
+  unmatched = {}
+  unrelated = {}
   for db in db_list:
     VerboseMsg('MatchComponentsDatabases: Matching current system by %s' % db)
-    (matched, failure) = hwcomp.match_current_system(db)
+    (match, failure) = hwcomp.match_current_system(db)
     if failure:
-      DebugMsg('Unmatched for %s:%s\n' % (db, hwcomp.pformat(failure)))
+      if 'part_id_hwqual' in failure:
+        unrelated[db] = failure
+        DebugMsg('Unrelated for %s:%s\n' % (db, hwcomp.pformat(failure)))
+      else:
+        unmatched[db] = failure
+        DebugMsg('Unmatched for %s:%s\n' % (db, hwcomp.pformat(failure)))
     else:
-      matched_list[db] = matched
+      matched[db] = match
       VerboseMsg('Matched: %s' % db)
-  return matched_list
+  return (matched, unmatched, unrelated)
 
 
 def EnableWriteProtect(target, image):
@@ -270,15 +280,20 @@ def write_gbb():
 def verify_hwid():
   """ Verifies if system HWID matches the qualified component list. """
   hwcomp = InitializeHardwareComponents()
-  matched_list = MatchComponentsDatabases(FindComponentsDatabases())
-  matched = len(matched_list)
-  if matched > 0:
-    DebugMsg('Current System:%s\n' % hwcomp.pformat(matched_list.values()[0]))
-  if matched != 1:
-    ErrorDie('verify_hwid: failed to match exact one HWID (found %d).' %
-             matched)
-  matched_filename = matched_list.keys()[0]
-  matched_data = matched_list[matched_filename]
+  (matched, unmatched, unrelated) = (
+      MatchComponentsDatabases(FindComponentsDatabases()))
+  error_msg = ''
+  if unmatched:
+    error_msg += '\nUnmatched items:\n'
+    error_msg += '\n'.join(['%s:%s' % (name, hwcomp.pformat(value))
+                           for name, value in unmatched.items()])
+  if matched:
+    DebugMsg('Current System:%s\n' % hwcomp.pformat(matched.values()[0]))
+  if len(matched) != 1:
+    ErrorDie('verify_hwid: failed to match exact one HWID (found %d).%s' %
+             (len(matched), error_msg))
+  matched_filename = matched.keys()[0]
+  matched_data = matched[matched_filename]
   matched_hwid = matched_data['part_id_hwqual'][0]
   print 'Verified: %s (%s)' % (matched_filename, matched_hwid)
   return True
@@ -364,7 +379,8 @@ def create_report():
 
   # TODO(hungte) if matching is still too slow, we can try to reused previous
   # cached results.
-  matched = MatchComponentsDatabases(FindComponentsDatabases())
+  (matched, unmatched, unrelated) = (
+      MatchComponentsDatabases(FindComponentsDatabases()))
 
   if not len(matched) == 1:
     ErrorDie('create_report: HWID is not singularly matched to database.')
