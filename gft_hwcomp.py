@@ -4,6 +4,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import fcntl
 import glob
 import imp
 import os
@@ -11,7 +12,10 @@ import pprint
 import re
 import sys
 import threading
+import time
+import types
 
+import edid
 import flashrom_util
 import gft_common
 import gft_fwhash
@@ -60,6 +64,8 @@ class HardwareComponents(object):
     'part_id_vga',
     'part_id_webcam',
     'part_id_wireless',
+    # TODO(hungte) separate this into part_id_touchpad and
+    # version_touchpad_firmware
     'vendor_id_touchpad',
     'version_3g_firmware',
     'version_rw_firmware',
@@ -256,6 +262,58 @@ class HardwareComponents(object):
       for k in connection_info:
         connection_info[k] = (path[k] if k in path else '')
     return connection_info
+
+  @Memorize
+  def i2cdump(self, bus, address, size):
+    """ Reads binary dump from i2c bus. """
+    # TODO(hungte) Use /usr/sbin/i2cdump if possible
+    self.load_module('i2c_dev')
+    if type(bus) is types.IntType:
+      bus = '/dev/i2c-%d' % bus
+    fd = -1
+    I2C_SLAVE = 0x0703
+    blob = None
+    try:
+      fd = os.open(bus, os.O_RDWR)
+      if fcntl.ioctl(fd, I2C_SLAVE, address) != 0:
+        return blob
+      time.sleep(0.05)  # Wait i2c to get ready
+      if os.write(fd, chr(0)) == 1:
+        blob = os.read(fd, size)
+    except:
+      pass
+    finally:
+      if fd >= 0:
+        os.close(fd)
+    return blob
+
+  @Memorize
+  def load_lvds_edid(self):
+    """ Probes LVDS data by using EDID method. """
+    lvds_files = glob.glob('/sys/class/drm/*LVDS*/edid')
+    if lvds_files:
+      try:
+        return edid.parse_edid_file(lvds_files[0])
+      except ValueError, e:
+        ErrorMsg('EDID Parsing Error: %s' % e)
+
+    # Try i2c
+    self.load_module('i2c_dev')
+    i2c_files = glob.glob('/dev/i2c-?')
+    i2c_files.sort()
+    # LVDS are usually on address 0x50.
+    I2C_LVDS_ADDERSS = 0x50
+    for i2c_file in i2c_files:
+      edid_blob = self.i2cdump(i2c_file, I2C_LVDS_ADDERSS,
+                               edid.EDID_MINIMAL_SIZE)
+      if edid_blob:
+        try:
+          return edid.parse_edid(edid_blob)
+        except ValueError, e:
+          WarningMsg('EDID Parsing Error: %s' % e)
+
+    # TODO(hungte) we can also try xrandr
+    return None
 
   def _get_sysfs_device_info(self, path, primary, optional=[]):
     """Gets the device information of a sysfs node.
@@ -470,15 +528,11 @@ class HardwareComponents(object):
   def get_data_display_geometry(self):
     # Get edid from driver.
     # TODO(nsanders): this is driver specific.
-    # TODO(hungte) merge this with get_part_id_display_panel
-
-    # Try edid
-    cmd = ('cat "$(find /sys/devices/ -name edid | grep LVDS)" | '
-           'parse-edid 2>/dev/null | grep "Mode " | cut -d\\" -f2')
-    # format:   Mode "1280x800" -> 1280x800
-    output = gft_common.SystemOutput(cmd).splitlines()
-    if output:
-      return output
+    # Try EDID
+    lvds_edid = self.load_lvds_edid()
+    if lvds_edid:
+      return '%dx%d' % (lvds_edid[edid.EDID_WIDTH],
+                        lvds_edid[edid.EDID_HEIGHT])
 
     # Try frame buffer
     fb_modes_file = '/sys/class/graphics/fb0/modes'
@@ -535,6 +589,12 @@ class HardwareComponents(object):
     part_id = gft_common.SystemOutput(
         cmd, progress_message='Searching Audio Codecs: ',
         show_progress=self._verbose).strip()
+    # If no codec installed, try PCM.
+    if not part_id:
+      # format: 00-00: WMXXXX PCM wmxxxx-hifi-0: ...
+      pcm_data = gft_common.ReadOneLine('/proc/asound/pcm').split(' ')
+      if len(pcm_data) > 2:
+        part_id = pcm_data[1]
     return part_id
 
   def get_part_id_bluetooth(self):
@@ -548,7 +608,7 @@ class HardwareComponents(object):
       return 'ch7036' if os.system(probe_cmd) == 0 else ''
 
     method_list = [probe_ch7036]
-    part_id = ''
+    part_id = self._not_present
     for method in method_list:
       part_id = method()
       DebugMsg('get_part_id_chrontel: %s: %s' %
@@ -595,13 +655,11 @@ class HardwareComponents(object):
     return self.compact_id(info)
 
   def get_part_id_display_panel(self):
-    # Try edid
-    # format:   ModelName "SEC:4231" -> SEC:4231
-    cmd = ('cat "$(find /sys/devices/ -name edid | grep LVDS)" | '
-           'parse-edid 2>/dev/null | grep ModelName | cut -d\\" -f2')
-    output = gft_common.SystemOutput(cmd).strip()
-    if output:
-      return output
+    # Try EDID
+    lvds_edid = self.load_lvds_edid()
+    if lvds_edid:
+      return '%s:%04x' % (lvds_edid[edid.EDID_MANUFACTURER_ID],
+                          lvds_edid[edid.EDID_PRODUCT_ID])
 
     # Try frame buffer
     fb_filename = '/sys/class/graphics/fb0/name'
@@ -658,7 +716,7 @@ class HardwareComponents(object):
     return (part_id if part_id else self._not_present)
 
   def get_part_id_storage(self):
-    part_id = ''
+    part_id = self._not_present
     node = '/sys/class/block/%s' % self.get_ssd_name()
     path = os.path.join(node, 'device')
     if not os.path.exists(path):
@@ -690,13 +748,13 @@ class HardwareComponents(object):
   def get_part_id_tpm(self):
     """ Returns Manufacturer_info : Chip_Version """
     cmd = 'tpm_version'
+    part_id = self._not_present
     tpm_output = gft_common.SystemOutput(cmd)
     tpm_lines = tpm_output.splitlines()
     tpm_dict = {}
     for tpm_line in tpm_lines:
       [key, colon, value] = tpm_line.partition(':')
       tpm_dict[key.strip()] = value.strip()
-    part_id = ''
     (key1, key2) = ('Manufacturer Info', 'Chip Version')
     if key1 in tpm_dict and key2 in tpm_dict:
       part_id = tpm_dict[key1] + ':' + tpm_dict[key2]
@@ -724,14 +782,20 @@ class HardwareComponents(object):
     return self.get_sysfs_node_id('/sys/class/graphics/fb0')
 
   def get_part_id_webcam(self):
-    return self.get_sysfs_node_id('/sys/class/video4linux/video0')
+    webcam_node = '/sys/class/video4linux/video0'
+    part_id = self.get_sysfs_node_id(webcam_node)
+    # For soc-camera, "control/name" is helpful.
+    control_name = os.path.join(webcam_node, 'device/control/name')
+    if os.path.exists(control_name):
+      part_id = self.compact_id([part_id, gft_common.ReadOneLine(control_name)])
+    return part_id
 
   def get_part_id_wireless(self):
     device_path = self._get_all_connection_info()[self._type_wireless]
     return self.get_sysfs_device_id(device_path) or self._not_present
 
   def get_vendor_id_touchpad_synaptics(self):
-    part_id = ''
+    part_id = self._not_present
     detect_program = '/opt/Synaptics/bin/syndetect'
     model_string_str = 'Model String'
     firmware_id_str = 'Firmware ID'
@@ -778,6 +842,17 @@ class HardwareComponents(object):
     part_id = '%s #%s' % (model, firmware_id)
     return part_id
 
+  def get_vendor_id_touchpad_cypress(self):
+    part_id = self._not_present
+    node = '/sys/class/input/mouse0/device/device'
+    required_files = ['product_id', 'hardware_version']
+    data = [gft_common.ReadOneLine(os.path.join(node, field))
+            for field in required_files
+            if os.path.exists(os.path.join(node, field))]
+    if data and len(data) == len(required_files):
+      part_id = self.compact_id(data)
+    return part_id
+
   def get_vendor_id_touchpad_generic(self):
     # TODO(hungte) add more information from id/*
     # format: N: Name="XXX_trackpad"
@@ -789,8 +864,8 @@ class HardwareComponents(object):
 
   @Memorize
   def get_vendor_id_touchpad(self):
-    method_list = ['synaptics', 'generic']
-    part_id = ''
+    method_list = ['cypress', 'synaptics', 'generic']
+    part_id = self._not_present
     for method in method_list:
       part_id = getattr(self, 'get_vendor_id_touchpad_%s' % method)()
       DebugMsg('get_vendor_id_touchpad: %s: %s' %
@@ -824,6 +899,7 @@ class HardwareComponents(object):
     firmwar update so return value is a "error report" in the form "A=x, B=y".
     """
 
+    # TODO(hungte) Support new VBLOCK, or use vbutil_firmware
     versions = [None, None]
     section_names = ['VBLOCK_A', 'VBLOCK_B']
     image_file = self.load_main_firmware()
