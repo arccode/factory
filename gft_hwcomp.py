@@ -59,16 +59,18 @@ class HardwareComponents(object):
     'part_id_hwqual',
     'part_id_keyboard',
     'part_id_storage',
+    'part_id_touchpad',
     'part_id_tpm',
     'part_id_usb_hosts',
     'part_id_vga',
     'part_id_webcam',
     'part_id_wireless',
-    # TODO(hungte) separate this into part_id_touchpad and
+    # TODO(hungte) deprecate vendor_id_touchpad by part_id_touchpad and
     # version_touchpad_firmware
     'vendor_id_touchpad',
     'version_3g_firmware',
     'version_rw_firmware',
+    'version_touchpad_firmware',
     # Deprecated fields:
     # 'part_id_gps',
     # - GPS is currently not supported by OS and no way to probe it.
@@ -102,6 +104,10 @@ class HardwareComponents(object):
   _type_3g = 'cellular'
   _type_ethernet = 'ethernet'
   _type_wireless = 'wifi'
+
+  # Type id for touchpad information
+  _type_id = 'id'
+  _type_firmware = 'firmware'
 
   _flimflam_dir = '/usr/local/lib/flimflam/test'
 
@@ -523,6 +529,99 @@ class HardwareComponents(object):
     return value
 
   # --------------------------------------------------------------------
+  # Product-Specific Probing
+
+  @Memorize
+  def probe_touchpad(self):
+    """ Probes touchpad information.
+
+    Returns:
+      A dict of { _type_id: 'TOUCHPAD_HWINFO',
+                  _type_firmware: 'TOUCHPAD_FWINFO' }
+    """
+
+    def synaptics():
+      detect_program = '/opt/Synaptics/bin/syndetect'
+      model_string_str = 'Model String'
+      firmware_id_str = 'Firmware ID'
+
+      if not os.path.exists(detect_program):
+        return None
+      command_list = [detect_program]
+      # Determine if X is capturing touchpad
+      locked = os.system('lsof /dev/serio_raw0 2>/dev/null | grep -q "^X"')
+
+      if (locked == 0) and (not os.getenv('DISPLAY')):
+        ErrorMsg('Warning: You are trying to detect touchpad with X in '
+                 'foreground but not configuring DISPLAY properly.\n'
+                 'Test may fail with incorrect detection results.')
+        # Make a trial with default configuration (see cros/cros_ui.py and
+        # suite_Factory/startx.sh)
+        command_list.insert(0, 'DISPLAY=":0"')
+        xauthority_locations = ('/var/run/factory_ui.auth',
+                                '/home/chronos/.Xauthority')
+        valid_xauth = [xauth for xauth in xauthority_locations
+                       if os.path.exists(xauth)]
+        if valid_xauth:
+          command_list.insert(0, 'XAUTHORITY="%s"' % valid_xauth[0])
+
+      (exit_code, data, _) = gft_common.ShellExecution(
+          ' '.join(command_list),
+          ignore_status=True,
+          progress_message='Synaptics Touchpad: ',
+          show_progress=self._verbose)
+      if exit_code != 0:
+        return None
+      properties = dict(map(str.strip, line.split('=', 1))
+                        for line in data.splitlines() if '=' in line)
+      model = properties.get(model_string_str, 'Unknown Synaptics')
+      # The pattern " on xxx Port" may vary by the detection approach,
+      # so we need to strip it.
+      model = re.sub(' on [^ ]* [Pp]ort$', '', model)
+      firmware_id = properties.get(firmware_id_str, self._not_present)
+      return (model, firmware_id)
+
+    def cypress():
+      nodes = glob.glob('/sys/class/input/mouse[0-9]*/device/device')
+      for node in nodes:
+        id_files = ['product_id', 'hardware_version', 'protocol_version']
+        if not all([os.path.exists(os.path.join(node, field))
+                    for field in id_files]):
+          continue
+        firmware_files = ['firmware_version']
+        model = self.compact_id(
+            [gft_common.ReadOneLine(os.path.join(node, field))
+             for field in id_files])
+        firmware_id = self.compact_id(
+            [gft_common.ReadOneLine(os.path.join(node, field))
+             for field in firmware_files
+             if os.path.exists(os.path.join(node, field))])
+        return (model, firmware_id)
+      return None
+
+    def generic():
+      # TODO(hungte) add more information from id/*
+      # format: N: Name="XXX_trackpad"
+      input_file = '/proc/bus/input/devices'
+      cmd_grep = 'grep -iE "^N.*(touch *pad|track *pad)" %s' % input_file
+      info = gft_common.SystemOutput(cmd_grep, ignore_status=True).splitlines()
+      info = [re.sub('^[^"]*"(.*)"$', r'\1', device)
+              for device in info]
+      return (', '.join(info) or self._not_present, self._not_present)
+
+    method_list = [cypress, synaptics, generic]
+    data = { self._type_id: self._not_present,
+             self._type_firmware: self._not_present }
+    for method in method_list:
+      result = method()
+      DebugMsg('probe_touchpad: %s: %s' % (method,result or '<failed>'))
+      if result:
+        data[self._type_id] = result[0]
+        data[self._type_firmware] = result[1]
+        return data
+    return data
+
+  # --------------------------------------------------------------------
   # Enumerable Properties
 
   def get_data_display_geometry(self):
@@ -745,6 +844,10 @@ class HardwareComponents(object):
         image_file).strip()
     return part_id or self._not_present
 
+  def get_part_id_touchpad(self):
+    data = self.probe_touchpad()
+    return data[self._type_id]
+
   def get_part_id_tpm(self):
     """ Returns Manufacturer_info : Chip_Version """
     cmd = 'tpm_version'
@@ -794,85 +897,11 @@ class HardwareComponents(object):
     device_path = self._get_all_connection_info()[self._type_wireless]
     return self.get_sysfs_device_id(device_path) or self._not_present
 
-  def get_vendor_id_touchpad_synaptics(self):
-    part_id = self._not_present
-    detect_program = '/opt/Synaptics/bin/syndetect'
-    model_string_str = 'Model String'
-    firmware_id_str = 'Firmware ID'
-
-    if not os.path.exists(detect_program):
-      return part_id
-
-    command_list = [detect_program]
-
-    # Determine if X is capturing touchpad
-    locked = os.system('lsof /dev/serio_raw0 2>/dev/null | grep -q "^X"')
-    if (locked == 0) and (not os.getenv('DISPLAY')):
-      ErrorMsg('Warning: You are trying to detect touchpad with X in foreground'
-               ' but not configuring DISPLAY properly for this test.\n'
-               'Test may fail with incorrect detection results.')
-      # Make a trial with default configuration (see cros/cros_ui.py and
-      # suite_Factory/startx.sh)
-      command_list.insert(0, 'DISPLAY=":0"')
-      xauthority_locations = ('/var/run/factory_ui.auth',
-                              '/home/chronos/.Xauthority')
-      valid_xauth = [xauth for xauth in xauthority_locations
-                     if os.path.exists(xauth)]
-      if valid_xauth:
-        command_list.insert(0, 'XAUTHORITY="%s"' % valid_xauth[0])
-
-    (exit_code, data, _) = gft_common.ShellExecution(
-        ' '.join(command_list),
-        ignore_status=True,
-        progress_message='Synaptics Touchpad: ',
-        show_progress=self._verbose)
-    if exit_code != 0:
-      return part_id
-
-    properties = dict(map(str.strip, line.split('=', 1))
-                      for line in data.splitlines() if '=' in line)
-    model = properties.get(model_string_str, 'UnknownModel')
-    firmware_id = properties.get(firmware_id_str, 'UnknownFWID')
-
-    # The pattern " on xxx Port" may vary by the detection approach,
-    # so we need to strip it.
-    model = re.sub(' on [^ ]* [Pp]ort$', '', model)
-
-    # Format: Model #FirmwareId
-    part_id = '%s #%s' % (model, firmware_id)
-    return part_id
-
-  def get_vendor_id_touchpad_cypress(self):
-    part_id = self._not_present
-    node = '/sys/class/input/mouse0/device/device'
-    required_files = ['product_id', 'hardware_version']
-    data = [gft_common.ReadOneLine(os.path.join(node, field))
-            for field in required_files
-            if os.path.exists(os.path.join(node, field))]
-    if data and len(data) == len(required_files):
-      part_id = self.compact_id(data)
-    return part_id
-
-  def get_vendor_id_touchpad_generic(self):
-    # TODO(hungte) add more information from id/*
-    # format: N: Name="XXX_trackpad"
-    cmd_grep = 'grep -iE "^N.*(touch *pad|track *pad)" /proc/bus/input/devices'
-    info = gft_common.SystemOutput(cmd_grep, ignore_status=True).splitlines()
-    info = [re.sub('^[^"]*"(.*)"$', r'\1', device)
-            for device in info]
-    return ', '.join(info) or self._not_present
-
-  @Memorize
   def get_vendor_id_touchpad(self):
-    method_list = ['cypress', 'synaptics', 'generic']
-    part_id = self._not_present
-    for method in method_list:
-      part_id = getattr(self, 'get_vendor_id_touchpad_%s' % method)()
-      DebugMsg('get_vendor_id_touchpad: %s: %s' %
-               (method, part_id or '<failed>'))
-      if part_id:
-        break
-    return part_id
+    data = self.probe_touchpad()
+    if not data[self._type_firmware]:
+      return data[self._type_id]
+    return '%s #%s' % (data[self._type_id], data[self._type_firmware])
 
   def get_version_3g_firmware(self):
     (_, attributes) = self.load_flimflam()
@@ -923,6 +952,10 @@ class HardwareComponents(object):
     if versions[0] != versions[1]:
       return 'A=%d, B=%d' % (versions[0], versions[1])
     return '%d' % versions[0]
+
+  def get_version_touchpad_firmware(self):
+    data = self.probe_touchpad()
+    return data[self._type_firmware]
 
   # --------------------------------------------------------------------
   # Probable Properties
