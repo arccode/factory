@@ -4,6 +4,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import array
 import fcntl
 import glob
 import imp
@@ -44,9 +45,12 @@ class HardwareComponents(object):
     'hash_gbb',
     'hash_ro_ec_firmware',
     'hash_ro_main_firmware',
+    # TODO(hungte) deprecate '3g' by 'cellular'
     'part_id_3g',
     'part_id_audio_codec',
     'part_id_bluetooth',
+    'part_id_camera',
+    # TODO(hungte) deprecate 'chrontel' by 'hdmi'
     'part_id_chrontel',
     'part_id_chipset',
     'part_id_cpu',
@@ -63,6 +67,7 @@ class HardwareComponents(object):
     'part_id_tpm',
     'part_id_usb_hosts',
     'part_id_vga',
+    # TODO(hungte) deprecate webcam by camera
     'part_id_webcam',
     'part_id_wireless',
     # TODO(hungte) deprecate vendor_id_touchpad by part_id_touchpad and
@@ -699,6 +704,40 @@ class HardwareComponents(object):
   def get_part_id_bluetooth(self):
     return self.get_sysfs_device_id('/sys/class/bluetooth/hci0/device')
 
+  def get_part_id_camera(self):
+    info = []
+    camera_node = '/sys/class/video4linux/video0'
+    info.append(self.get_sysfs_node_id(camera_node))
+    # For soc-camera, "control/name" is a helpful driver name.
+    control_name = os.path.join(camera_node, 'device/control/name')
+    if os.path.exists(control_name):
+      info.append(gft_common.ReadOneLine(control_name))
+    # Try video4linux2 (v4l2) interface
+    camera_dev = '/dev/video0'
+    if os.path.exists(camera_dev):
+      fd = -1
+      try:
+        fd = os.open(camera_dev, os.O_RDWR)
+        # See /usr/include/linux/videodev2.h for definition
+        VIDIOC_DBG_G_CHIP_IDENT = 0xc02c5651
+        V4L2_DBG_CHIP_IDENT_SIZE = 11
+        V4L2_INDEX_REVISION = V4L2_DBG_CHIP_IDENT_SIZE - 1
+        V4L2_INDEX_IDENT = V4L2_INDEX_REVISION - 1
+        V4L2_VALID_IDENT = 3  # V4L2_IDENT_UNKNOWN + 1
+        v4l2_dbg_chip_ident = array.array('i', [0] * V4L2_DBG_CHIP_IDENT_SIZE)
+        fcntl.ioctl(fd, VIDIOC_DBG_G_CHIP_IDENT, v4l2_dbg_chip_ident, 1)
+        # 'ident' values are defined in include/media/v4l2-chip-ident.h
+        v4l2_ident = v4l2_dbg_chip_ident[V4L2_INDEX_IDENT]
+        if v4l2_ident >= V4L2_VALID_IDENT:
+          info.append('V4L2:%04x %04x' %
+                      (v4l2_ident, v4l2_dbg_chip_ident[V4L2_INDEX_REVISION]))
+      except:
+        pass
+      finally:
+        if fd >= 0:
+          os.close(fd)
+    return self.compact_id(info)
+
   def get_part_id_chrontel(self):
     """ Gets chrontel HDMI devices by dedicated probing """
     def probe_ch7036():
@@ -891,13 +930,7 @@ class HardwareComponents(object):
     return self.get_sysfs_node_id('/sys/class/graphics/fb0')
 
   def get_part_id_webcam(self):
-    webcam_node = '/sys/class/video4linux/video0'
-    part_id = self.get_sysfs_node_id(webcam_node)
-    # For soc-camera, "control/name" is helpful.
-    control_name = os.path.join(webcam_node, 'device/control/name')
-    if os.path.exists(control_name):
-      part_id = self.compact_id([part_id, gft_common.ReadOneLine(control_name)])
-    return part_id
+    return self.get_part_id_camera()
 
   def get_part_id_wireless(self):
     device_path = self._get_all_connection_info()[self._type_wireless]
