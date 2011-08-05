@@ -31,7 +31,7 @@ class HardwareComponents(object):
   # Function names in this class are used for reflection, so please don't change
   # the function names even if they are not compliant to coding style guide.
 
-  version = 6
+  version = 7
 
   # We divide all component IDs (cids) into 5 categories:
   #  - enumerable: able to get the results by running specific commands;
@@ -45,15 +45,13 @@ class HardwareComponents(object):
     'hash_gbb',
     'hash_ro_ec_firmware',
     'hash_ro_main_firmware',
-    # TODO(hungte) deprecate '3g' by 'cellular'
-    'part_id_3g',
     'part_id_audio_codec',
     'part_id_bluetooth',
     'part_id_camera',
-    # TODO(hungte) deprecate 'chrontel' by 'hdmi'
-    'part_id_chrontel',
+    'part_id_cellular',
     'part_id_chipset',
     'part_id_cpu',
+    'part_id_display_converter',
     'part_id_display_panel',
     'part_id_dram',
     'part_id_ec_flash_chip',
@@ -67,13 +65,8 @@ class HardwareComponents(object):
     'part_id_tpm',
     'part_id_usb_hosts',
     'part_id_vga',
-    # TODO(hungte) deprecate webcam by camera
-    'part_id_webcam',
     'part_id_wireless',
-    # TODO(hungte) deprecate vendor_id_touchpad by part_id_touchpad and
-    # version_touchpad_firmware
-    'vendor_id_touchpad',
-    'version_3g_firmware',
+    'version_cellular_firmware',
     'version_rw_firmware',
     'version_touchpad_firmware',
     # Deprecated fields:
@@ -106,7 +99,7 @@ class HardwareComponents(object):
   _failure_list = [_not_present, _no_match, '']
 
   # Type id for connection management (compatible to flimflam)
-  _type_3g = 'cellular'
+  _type_cellular = 'cellular'
   _type_ethernet = 'ethernet'
   _type_wireless = 'wifi'
 
@@ -233,8 +226,8 @@ class HardwareComponents(object):
     path = {}
     info = {}
     info_attribute_names = {
-        self._type_3g: ['Carrier', 'FirmwareRevision', 'HardwareRevision',
-                        'ModelID', 'Manufacturer'],
+        self._type_cellular: ['Carrier', 'FirmwareRevision', 'HardwareRevision',
+                              'ModelID', 'Manufacturer'],
     }
     devices = flimflam.FlimFlam().GetObjectList('Device')
     unpack = flimflam.convert_dbus_value
@@ -264,8 +257,8 @@ class HardwareComponents(object):
     connection_info = {
         self._type_wireless: '/sys/class/net/wlan0/device',
         self._type_ethernet: '/sys/class/net/eth0/device',
-        # 3g(cellular) may also be /sys/class/net/usb0
-        self._type_3g: '/sys/class/tty/ttyUSB0/device',
+        # cellular may also be /sys/class/net/usb0
+        self._type_cellular: '/sys/class/tty/ttyUSB0/device',
     }
     (path, _) = self.load_flimflam()
     if path is not None:
@@ -684,8 +677,8 @@ class HardwareComponents(object):
       ErrorDie('get_hash_ro_main_firmware: cannot read firmware')
     return gft_fwhash.GetMainFirmwareReadOnlyHash(file_source=image_file)
 
-  def get_part_id_3g(self):
-    device_path = self._get_all_connection_info()[self._type_3g]
+  def get_part_id_cellular(self):
+    device_path = self._get_all_connection_info()[self._type_cellular]
     return self.get_sysfs_device_id(device_path) or self._not_present
 
   def get_part_id_audio_codec(self):
@@ -738,8 +731,8 @@ class HardwareComponents(object):
           os.close(fd)
     return self.compact_id(info)
 
-  def get_part_id_chrontel(self):
-    """ Gets chrontel HDMI devices by dedicated probing """
+  def get_part_id_display_converter(self):
+    """ Gets display converter by dedicated probing """
     def probe_ch7036():
       self.load_module('i2c_dev')
       probe_cmd = 'ch7036_monitor -p >/dev/null 2>&1'
@@ -749,7 +742,7 @@ class HardwareComponents(object):
     part_id = self._not_present
     for method in method_list:
       part_id = method()
-      DebugMsg('get_part_id_chrontel: %s: %s' %
+      DebugMsg('get_part_id_display_converter: %s: %s' %
                (method.__name__, part_id or '<failed>'))
       if part_id:
         break
@@ -798,7 +791,6 @@ class HardwareComponents(object):
     if lvds_edid:
       return '%s:%04x' % (lvds_edid[edid.EDID_MANUFACTURER_ID],
                           lvds_edid[edid.EDID_PRODUCT_ID])
-
     # Try frame buffer
     fb_filename = '/sys/class/graphics/fb0/name'
     if os.path.exists(fb_filename):
@@ -929,29 +921,20 @@ class HardwareComponents(object):
   def get_part_id_vga(self):
     return self.get_sysfs_node_id('/sys/class/graphics/fb0')
 
-  def get_part_id_webcam(self):
-    return self.get_part_id_camera()
-
   def get_part_id_wireless(self):
     device_path = self._get_all_connection_info()[self._type_wireless]
     return self.get_sysfs_device_id(device_path) or self._not_present
 
-  def get_vendor_id_touchpad(self):
-    data = self.probe_touchpad()
-    if not data[self._type_firmware]:
-      return data[self._type_id]
-    return '%s #%s' % (data[self._type_id], data[self._type_firmware])
-
-  def get_version_3g_firmware(self):
+  def get_version_cellular_firmware(self):
     (_, attributes) = self.load_flimflam()
-    if attributes and (self._type_3g in attributes):
+    if attributes and (self._type_cellular in attributes):
       # A list of possible version info combination, since the supported fields
       # may differ for partners.
       version_formats = [
           ['Carrier', 'FirmwareRevision'],
           ['FirmwareRevision'],
           ['HardwareRevision']]
-      info = attributes[self._type_3g]
+      info = attributes[self._type_cellular]
       for version_format in version_formats:
         if not set(version_format).issubset(set(info)):
           continue
