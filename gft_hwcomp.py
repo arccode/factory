@@ -768,15 +768,21 @@ class HardwareComponents(object):
     return self._not_present
 
   def get_part_id_dram(self):
-    # TODO(hungte) if we only want DRAM size, maybe no need to use mosys
-    self.load_module('i2c_dev')
-    cmd = ('mosys -l memory spd print geometry | '
-           'grep size_mb | cut -f2 -d"|"')
-    part_id = gft_common.SystemOutput(cmd).strip()
-    if part_id != '':
-      return part_id
-    else:
-      return self._not_present
+    arch = self.get_arch()
+    if arch in ('x86', 'amd64'):
+      # TODO(hungte) if we only want DRAM size, maybe no need to use mosys
+      self.load_module('i2c_dev')
+      cmd = ('mosys -l memory spd print geometry | '
+             'grep size_mb | cut -f2 -d"|"')
+      part_id = gft_common.SystemOutput(cmd).strip()
+    elif arch in ('arm'):
+      # Even kernel cannot probe the memory. We can only trust the memory
+      # information passed to kernel.
+      param = gft_common.ReadOneLine('/proc/cmdline')
+      # Format: *mem=384M@0M (type=size@address)
+      part_id = '%d' % sum(
+          [int(size) for size in re.findall(r'\s\w*mem=(\d+)M@\d+M', param)])
+    return part_id if part_id else self._not_present
 
   @EcProperty
   def get_part_id_ec_flash_chip(self):
