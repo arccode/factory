@@ -749,8 +749,17 @@ class HardwareComponents(object):
     return part_id
 
   def get_part_id_chipset(self):
-    # Host bridge is always the first PCI device.
-    return self.get_sysfs_device_id('/sys/bus/pci/devices/0000:00:00.0')
+    # On x86, host bridge is always the first PCI device.
+    # For SOC-based system, trust the first compatible list in device-tree
+    # (fdt).
+    part_id = self.get_sysfs_device_id('/sys/bus/pci/devices/0000:00:00.0')
+    fdt_compatible_file = '/proc/device-tree/compatible'
+    if (not part_id) and os.path.exists(fdt_compatible_file):
+      compatible_list = gft_common.ReadOneLine(fdt_compatible_file)
+      # format: manufacturer,model [NUL] compat-manufacturer,model [NUL] ...
+      info = compatible_list.strip(chr(0)).split(chr(0))
+      part_id = self.compact_id(info)
+    return part_id
 
   def get_part_id_cpu(self):
     part_id = 'Unknown'
