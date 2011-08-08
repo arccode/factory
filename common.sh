@@ -116,7 +116,11 @@ chromeos_invoke_postinst() {
   local mount_point="$(mktemp -d)"
   local failure=0
 
-  mount -o ro "$rootdev" "$mount_point" || {
+  # Some compatible and experimental fs (e.g., ext4) may be buggy and still try
+  # to write the file system even if we mount it with "ro" (ex, when seeing
+  # journaling error in ext3, or s_kbytes_written in ext4). It is safer to
+  # always mount the partition with legacy ext2. (ref: chrome-os-partner:3940)
+  mount -t ext2 -o ro "$rootdev" "$mount_point" || {
     alert "Failed to mount partition $rootdev."
     rmdir "$mount_point" || true
     return 1
