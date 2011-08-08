@@ -213,6 +213,10 @@ def CreateReport(create_params,
   wp_status_message = 'main: %s\nec: %s' % (bios_wp_status, ec_wp_status)
   report['wp_status'] = wp_status_message.splitlines()
 
+  # Cellular status
+  modem_status = gft_common.SystemOutput('modem status', ignore_status=True)
+  report['modem_status'] = modem_status.splitlines()
+
   # TODO(hungte) we may also add these data in future:
   #   rootfs hash, dump_kernel_config, lsb-release from release image,
   #   gooftool version, result of dev_vboot_debug,

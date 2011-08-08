@@ -949,6 +949,12 @@ class HardwareComponents(object):
           continue
         # compact all fields into single line with limited space
         return self.compact_id([info[key] for key in version_format])
+      # If nothing available, try 'modem status'.
+      modem_status = gft_common.SystemOutput(
+          'modem status | grep firmware_revision', ignore_status=True).strip()
+      info = re.findall('^\s*firmware_revision:\s*(.*)', modem_status)
+      if info and info[0]:
+        return info[0]
     return self._not_present
 
   def get_version_rw_firmware(self):
