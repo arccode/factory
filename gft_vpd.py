@@ -17,10 +17,11 @@ import sys
 
 from gft_common import ErrorMsg, WarningMsg, VerboseMsg, DebugMsg, ErrorDie
 
-# VPD Keys
+# Required VPD Keys. See http://go/vpdspec
 KEY_KEYBOARD_LAYOUT = 'keyboard_layout'
 KEY_INITIAL_LOCALE = 'initial_locale'
 KEY_INITIAL_TIMEZONE = 'initial_timezone'
+KEY_SERIAL_NUMBER = 'serial_number'
 
 # keyboard_layout: http://git.chromium.org/gitweb/?p=chromiumos/platform/assets.git;a=blob;f=input_methods/whitelist.txt;hb=HEAD
 CHROMEOS_KEYBOARD_LAYOUT = [
@@ -315,12 +316,13 @@ def ValidateVpdData(vpd_source=None, verbose=False):
       KEY_KEYBOARD_LAYOUT: CHROMEOS_KEYBOARD_LAYOUT,
       KEY_INITIAL_LOCALE: CHROMEOS_INITIAL_LOCALE,
       KEY_INITIAL_TIMEZONE: CHROMEOS_INITIAL_TIMEZONE,
+      KEY_SERIAL_NUMBER: None,
   }
   ro_vpd = ParseRoVpdData(vpd_source, verbose)
   for field, valid_list in mandatory_fields.items():
     if field not in ro_vpd:
       ErrorDie('Missing required VPD value: %s' % field)
-    if ro_vpd[field] not in valid_list:
+    if valid_list is not None and ro_vpd[field] not in valid_list:
       ErrorDie('Invalid value in VPD [%s]: %s' % (field, ro_vpd[field]))
   return True
 
