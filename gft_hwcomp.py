@@ -40,6 +40,7 @@ class HardwareComponents(object):
 
   _enumerable_cids = [
     'data_display_geometry',
+    'data_release_board',
     'hash_key_recovery',
     'hash_key_root',
     'hash_gbb',
@@ -641,6 +642,18 @@ class HardwareComponents(object):
         return geometry.group(0)
 
     return self._not_present
+
+  def get_data_release_board(self):
+    """ The 'release board' name information from release rootfs. """
+    script = os.path.join(os.path.split(sys.argv[0])[0],
+                          'gft_release_board.sh')
+    if not os.path.exists(script):
+      VerboseMsg('cannot find %s' % script)
+      return self._not_present
+    RELEASE_PARTNO=5
+    command = [script, '/dev/%s' % self.get_ssd_name(RELEASE_PARTNO)]
+    return gft_common.SystemOutput(' '.join(command),
+                                   ignore_status=True).strip()
 
   def get_hash_gbb(self):
     image_file = self.load_main_firmware()
