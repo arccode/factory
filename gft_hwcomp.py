@@ -170,22 +170,7 @@ class HardwareComponents(object):
 
   @Memorize
   def _get_legacy_device_list(self):
-    # pci: cat /proc/bus/pci/devices | cut -f 2 # 0.004s < lspci=0.012s
     device_list = []
-    pci_device_file = '/proc/bus/pci/devices'
-    if os.path.exists(pci_device_file):
-      with open(pci_device_file) as handle:
-        pci_list = [data.split('\t', 2)[1]
-                    for data in handle.readlines()]
-        device_list += ['%s:%s' % (entry[:4], entry[4:])
-                        for entry in pci_list]
-    else:
-      DebugMsg('Failed to read %s. Execute lspci.' % pci_device_file)
-      pci_list = [entry.split()[2:4]
-                  for entry in
-                  gft_common.SystemOutput('lspci -n -mm').splitlines()]
-      device_list += ['%s:%s' % (vendor.strip('"'), product.strip('"'))
-                      for (vendor, product) in pci_list]
     # usb: realpath(/sys/bus/usb/devices/*:*)/../id* # 0.05s < lspci=0.078s
     usb_devs = glob.glob('/sys/bus/usb/devices/*:*')
     for dev in usb_devs:
@@ -193,6 +178,21 @@ class HardwareComponents(object):
       device_list += ['%s:%s' %
                       (gft_common.ReadOneLine(os.path.join(path, 'idVendor')),
                        gft_common.ReadOneLine(os.path.join(path, 'idProduct')))]
+    # pci: cat /proc/bus/pci/devices | cut -f 2 # 0.004s < lspci=0.012s
+    pci_device_file = '/proc/bus/pci/devices'
+    if os.path.exists(pci_device_file):
+      with open(pci_device_file) as handle:
+        pci_list = [data.split('\t', 2)[1]
+                    for data in handle.readlines()]
+        device_list += ['%s:%s' % (entry[:4], entry[4:])
+                        for entry in pci_list]
+    elif self.get_arch() not in ['arm']:
+      DebugMsg('Failed to read %s. Execute lspci.' % pci_device_file)
+      pci_list = [entry.split()[2:4]
+                  for entry in
+                  gft_common.SystemOutput('lspci -n -mm').splitlines()]
+      device_list += ['%s:%s' % (vendor.strip('"'), product.strip('"'))
+                      for (vendor, product) in pci_list]
     DebugMsg('Legacy device list: ' + ', '.join(device_list))
     return device_list
 
