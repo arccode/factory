@@ -31,9 +31,9 @@ class HardwareComponents(object):
   # Function names in this class are used for reflection, so please don't change
   # the function names even if they are not compliant to coding style guide.
 
-  version = 7
+  version = 8
 
-  # We divide all component IDs (cids) into 5 categories:
+  # We divide all component IDs (cids) into 3 categories:
   #  - enumerable: able to get the results by running specific commands;
   #  - probable: returns existed or not by given some pre-defined choices;
   #  - pure data: data for some special purpose, can't be tested;
@@ -93,6 +93,10 @@ class HardwareComponents(object):
   # _not_test_cids and _to_be_tested_cids will be re-created for each match.
   _not_test_cids = []
   _to_be_tested_cids = []
+
+  # name of the entry in component list to describe which components are
+  # volatile (or update-able) fields and checked only in factory production.
+  _cid_config_factory_initial = 'config_factory_initial'
 
   # TODO(hungte) unify the 'not available' style messages
   _not_present = ''
@@ -1160,7 +1164,32 @@ class HardwareComponents(object):
     self._enumerable_system = self.get_all_enumerable_components(async)
     self._initialized = True
 
-  def match_current_system(self, filename, ignored_cids=[]):
+  def load_config_property(self, dataset, config_name):
+    """ Loads (and verifies) a config-type property from dataset.
+
+        "Config-type" properties are lists of other existing keys in dataset.
+        Ex: { 'a': ['b'], 'config_xyz': ['a'] }
+          'config_xyz' is a valid "config property" because 'a' is a key.
+          'a' is not because 'b' is not a key.
+
+        Args:
+          dataset: a dict with properties
+          config_name: the key name of config-type property.
+
+        Returns:
+          dataset[config_name] if config_name refers to a config.
+          [] if config_name is not in dataset.
+          Raises ValueError if config_names refers to incorrect list.
+    """
+    if config_name not in dataset:
+      return []
+    valid_list = [name for name in dataset[config_name] if name in dataset]
+    if valid_list != dataset[config_name]:
+      raise ValueError('Invalid config: %s' % valid_list)
+    return valid_list
+
+  def match_current_system(self, filename, ignored_cids=[],
+                           ignore_factory_initial=False):
     """ Matches a given component list to current system.
         Returns: (current, failures)
     """
@@ -1175,17 +1204,32 @@ class HardwareComponents(object):
     self._system = {}
     self._system.update(self._enumerable_system)
     self._file_base = gft_common.GetComponentsDatabaseBase(filename)
-
     approved = self.read_approved_from_file(filename)
+
+    # Loads the 'factory_initial' config. Any component id listed will be
+    # ignored in matching process, if ignore_factory_initial_ is true.
+    ignore_factory_initial_list = []
+    if ignore_factory_initial:
+      try:
+        ignore_factory_initial_list = self.load_config_property(
+            approved, self._cid_config_factory_initial)
+      except ValueError:
+        ErrorDie('Invalid %s in %s' %
+                 (self._cid_config_factory_initial, filename))
+
     for cid in self._enumerable_cids:
       if cid not in self._to_be_tested_cids:
         VerboseMsg('gft_hwcomp: match: ignored: %s' % cid)
+      elif cid in ignore_factory_initial_list:
+        VerboseMsg('gft_hwcomp: match: ignore factory initial: %s' % cid)
       else:
         self.check_enumerable_component(
             cid, self._enumerable_system[cid], approved[cid])
     for cid in self._probable_cids:
       if cid not in self._to_be_tested_cids:
         VerboseMsg('gft_hwcomp: match: ignored: %s' % cid)
+      elif cid in ignore_factory_initial_list:
+        VerboseMsg('gft_hwcomp: match: ignore factory initial: %s' % cid)
       else:
         self.check_probable_component(cid, approved[cid])
 

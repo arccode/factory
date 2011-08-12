@@ -47,6 +47,9 @@ g_commands = []
 FACTORY_PARTNO = 3
 RELEASE_PARTNO = 5
 
+# gooftool version
+VERSION = 2
+
 ########################################################################
 # factory utilities
 
@@ -129,7 +132,8 @@ def MatchComponentsDatabases(db_list):
   unrelated = {}
   for db in db_list:
     VerboseMsg('MatchComponentsDatabases: Matching current system by %s' % db)
-    (match, failure) = hwcomp.match_current_system(db)
+    (match, failure) = hwcomp.match_current_system(
+        db, ignore_factory_initial=g_options.ignore_factory_initial)
     if failure:
       if 'part_id_hwqual' in failure:
         unrelated[db] = failure
@@ -256,7 +260,7 @@ def probe():
   for db in db_list:
     VerboseMsg('probe: Matching current system by %s' % db)
     (matched, failure) = hwcomp.match_current_system(db,
-          ignored_cids=ignored_cids)
+          ignored_cids=ignored_cids, ignore_factory_initial=True)
     if not failure:
       print 'Probed: %s' % db
       matched_hwids = matched_hwids + 1
@@ -264,7 +268,8 @@ def probe():
       WarningMsg('Unmatched for %s:%s' % (db, hwcomp.pformat(failure)))
 
   # TODO(hungte) we may need to decide a best match during the search
-  WarningMsg('Current System:%s' % hwcomp.pformat(matched))
+  WarningMsg('Current System (v%d):%s' %
+             (hwcomp.version, hwcomp.pformat(matched)))
   return (True if matched_hwids > 0 else False)
 
 
@@ -508,9 +513,9 @@ def ConsoleParser():
   parser = optparse.OptionParser()
 
   # Message control
-  parser.add_option('--debug', action='store_true',
+  parser.add_option('-d', '--debug', action='store_true',
                     help='provide debug messages')
-  parser.add_option('--verbose', action='store_true', default=False,
+  parser.add_option('-v', '--verbose', action='store_true', default=False,
                     help='provide verbose messages')
   parser.add_option('--log_path', metavar='PATH',
                     default=gft_common.DEFAULT_CONSOLE_LOG_PATH,
@@ -520,6 +525,8 @@ def ConsoleParser():
                     help='make --wpfw in dry-run mode (debugging only)')
   parser.add_option('--debug_dryrun_prepare_wipe', action='store_true',
                     help='make --prepare_wipe in dry-run mode (debugging only)')
+  parser.add_option('--ignore_factory_initial', action='store_true',
+                    help='ignore components in config_factory_initial.')
   # Configuration
   parser.add_option('--config', metavar='PATH',
                     help='path to the config file (TBD)')
