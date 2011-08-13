@@ -750,12 +750,25 @@ class HardwareComponents(object):
 
   def get_part_id_display_converter(self):
     """ Gets display converter by dedicated probing """
-    def probe_ch7036():
-      self.load_module('i2c_dev')
-      probe_cmd = 'ch7036_monitor -p >/dev/null 2>&1'
+    def probe_chrontel():
+      # Device detection code from /etc/init/chrontel.conf
+      self.load_module('i2c-dev')
+      self.load_module('i2c-i801')
+      dev_chrontel = '/dev/i2c-chrontel'
+      if not os.path.exists(dev_chrontel):
+        adapters = glob.glob('/sys/class/i2c-adapter/*/name')
+        for adapter_file in adapters:
+          adapter_name = gft_common.ReadOneLine(adapter_file).strip()
+          if adapter_name.startswith('SMBus I801 adapter'):
+            dev_chrontel = '/dev/%s' % (
+                os.path.basename(os.path.dirname(adapter_file)))
+            break
+      probe_cmd = ('ch7036_monitor %s -p >/dev/null 2>&1' %
+                   (('-d ' + dev_chrontel)
+                    if os.path.exists(dev_chrontel) else ''))
       return 'ch7036' if os.system(probe_cmd) == 0 else ''
 
-    method_list = [probe_ch7036]
+    method_list = [probe_chrontel]
     part_id = self._not_present
     for method in method_list:
       part_id = method()
