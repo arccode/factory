@@ -236,8 +236,8 @@ def UpdateGBB(old_image, db_file, in_place=False):
   base = gft_common.GetComponentsDatabaseBase(db_file)
   try:
     components = gft_common.LoadComponentsDatabaseFile(db_file)
-  except:
-    ErrorDie('UpdateGBB: Invalid components list file: %s' % db_file)
+  except Exception, e:
+    ErrorDie('UpdateGBB: Invalid components list file: %s (%s)' % (db_file, e))
 
   # The are 2 fields in component list related to gbb:
   # - part_id_hwqual (HWID, mandatory)
@@ -311,7 +311,7 @@ def _main():
         modified_image or image, algorithm=algorithm)
   elif target == 'gbb':
     print "GBB Hash: %s" % GetMainFirmwareGbbHash(
-        image, algorithm=algorithm)
+        modified_image or image, algorithm=algorithm)
   elif target == 'gbbkeys':
     print "Recovery Key: %s" % GetKeyHash(
         GetGbbKey(image, "recoverykey"), algorithm=algorithm)
