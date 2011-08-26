@@ -453,6 +453,19 @@ def wpfw():
 
 
 @GFTCommand
+def clear_gbb_flags():
+  """ Clears GBB Header Flags for shipping devices. """
+  script = os.path.join(os.path.split(sys.argv[0])[0],
+                        'gft_clear_gbb_flags.sh')
+  command = '%s' % script
+  try:
+    VerboseSystemCommand(command, prompt='clear_gbb_flags: ')
+  except gft_common.GFTError, e:
+    ErrorDie('clear_gbb_flags: FAILED.\n%s' % e.value)
+  return True
+
+
+@GFTCommand
 def prepare_wipe():
   """ Prepares the system for transitioning to release state in next reboot. """
   if g_options.debug_dryrun_prepare_wipe:
@@ -494,7 +507,8 @@ def verify():
 
 
 @GFTCommand
-@GFTCommandDependency((verify,
+@GFTCommandDependency((clear_gbb_flags,
+                       verify,
                        wpfw,
                        create_report,
                        upload_report,

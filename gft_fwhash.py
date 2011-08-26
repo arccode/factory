@@ -223,7 +223,7 @@ def GetKeyHash(key_blob, algorithm=None):
   return algorithm(key_blob)
 
 
-def UpdateGBB(old_image, db_file, in_place=False):
+def UpdateGBB(old_image, db_file, in_place=False, clear_flags=False):
   """
   Updates main firmware image GBB data by given components database file.
 
@@ -256,6 +256,8 @@ def UpdateGBB(old_image, db_file, in_place=False):
   cmd = 'gbb_utility --set --hwid="%s"' % hwid
   if bmpfv:
     cmd += ' --bmpfv="%s"' % os.path.join(base, bmpfv)
+  if clear_flags:
+    cmd += ' --flags=0'
   cmd += ' "%s"' % old_image
   new_image = old_image
   if not in_place:
@@ -303,7 +305,8 @@ def _main():
       parser.error("Please set --target='main' or 'gbb' to update GBB")
     if image == '':
       parser.error("Please specify --image to a file to update GBB")
-    modified_image = UpdateGBB(image, options.gbb, in_place=False)
+    modified_image = UpdateGBB(image, options.gbb, in_place=False,
+                               clear_flags=True)
 
   algorithm = options.algorithm
   if target == 'main':
