@@ -333,7 +333,21 @@ def verify_vpd():
   return True
 
 
-# Hardware Switches
+@GFTCommand
+def verify_system_time():
+  """Verifies if system time is later than release filesystem creation time."""
+  hwcomp = InitializeHardwareComponents(do_probe=False)
+  script = os.path.join(os.path.split(sys.argv[0])[0],
+                        'gft_verify_system_time.sh')
+  if not os.path.exists(script):
+    ErrorDie('verify_system_time: cannot find script to verify.')
+  rootfs_device = '/dev/%s' % (hwcomp.get_ssd_name(RELEASE_PARTNO))
+  command = '%s %s' % (script, rootfs_device)
+  try:
+    VerboseSystemCommand(command, prompt='verify_system_time: ')
+  except gft_common.GFTError, e:
+    ErrorDie('verify_system_time: FAILED.\n%s' % e.value)
+  return True
 
 @GFTCommand
 def verify_rootfs():
@@ -350,6 +364,8 @@ def verify_rootfs():
     ErrorDie('verify_rootfs: FAILED.\n%s' % e.value)
   return True
 
+
+# Hardware Switches
 
 @GFTCommand
 def verify_switch_wp():
@@ -498,6 +514,7 @@ def prepare_wipe():
                        verify_switch_wp,
                        verify_hwid,
                        verify_vpd,
+                       verify_system_time,
                        verify_keys,
                        verify_rootfs))
 def verify():
