@@ -106,6 +106,7 @@ main() {
   fi
   disable_kernel "$(( factory_partno - 1 ))"
   enable_kernel "$(( release_partno - 1 ))"
+  sync; sync; sync
   NEED_ROLLBACK=""
   alert "Complete."
 }
