@@ -106,7 +106,9 @@ main() {
   fi
   disable_kernel "$(( factory_partno - 1 ))"
   enable_kernel "$(( release_partno - 1 ))"
-  sync; sync; sync
+  alert "Syncing disks..."
+  sync
+  sleep 3  # For sync to take place.
   NEED_ROLLBACK=""
   alert "Complete."
 }

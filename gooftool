@@ -533,7 +533,6 @@ def verify():
 def finalize():
   """ Finalizes all factory tests and transit system into release state. """
   # See the depenency list for the real commands to be executed.
-  os.system("sync; sync; sync")
   return True
 
 
