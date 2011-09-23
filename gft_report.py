@@ -26,6 +26,10 @@ import gft_common
 from gft_common import ErrorMsg, VerboseMsg, DebugMsg, ErrorDie
 
 
+# Update this if any field names (or formats) have been changed.
+REPORT_VERSION = 1
+
+
 def ParseKeyValueData(pattern, data):
   """Converts a given key-value style into [(key, value)] format.
 
@@ -102,17 +106,19 @@ def ValidateReport(native_report):
   Returns:
     None if validation passed, otherwise a string of reason for failure.
   '''
-  mandatory_string_keys = ['hwid',
+  mandatory_string_keys = ['version',
                            'create_params',
                            'device_timestamp',
+                           'hwid',
                            ]
   mandatory_dict_keys = ['crossystem',
                          'probed_components',
                          'ro_vpd',
                          'rw_vpd',
                          ]
-  mandatory_list_keys = ['wp_status',
+  mandatory_list_keys = ['modem_status',
                          'verbose_log',
+                         'wp_status',
                          ]
   if not isinstance(native_report, dict):
     return 'native_report must be a dict'
@@ -181,8 +187,11 @@ def CreateReport(create_params,
   """
   report = {}
 
-  # System Hardware ID
+  # General information
+  report['version'] = '%s' % REPORT_VERSION
   report['create_params'] = ' '.join(create_params)
+
+  # System Hardware ID
   report['hwid'] = gft_common.SystemOutput("crossystem hwid").strip()
 
   # crossystem reports many system configuration data
