@@ -31,7 +31,7 @@ class HardwareComponents(object):
   # Function names in this class are used for reflection, so please don't change
   # the function names even if they are not compliant to coding style guide.
 
-  version = 8
+  version = 9
 
   # We divide all component IDs (cids) into 3 categories:
   #  - enumerable: able to get the results by running specific commands;
@@ -47,6 +47,7 @@ class HardwareComponents(object):
     'hash_ro_ec_firmware',
     'hash_ro_main_firmware',
     'part_id_audio_codec',
+    'part_id_battery',
     'part_id_bluetooth',
     'part_id_camera',
     'part_id_cellular',
@@ -710,6 +711,26 @@ class HardwareComponents(object):
       if len(pcm_data) > 2:
         part_id = pcm_data[1]
     return part_id
+
+  def get_part_id_battery(self):
+    id_values = []
+    for type_file in glob.glob('/sys/class/power_supply/*/type'):
+      try:
+        type = gft_common.ReadOneLine(type_file).strip()
+      except IOError:
+        continue
+      if type != 'Battery':
+        continue
+      battery_path = os.path.dirname(type_file)
+      id_files = ['manufacturer', 'model_name', 'technology',
+                  'charge_full_design']
+      for id_file in id_files:
+        id_path = os.path.join(battery_path, id_file)
+        try:
+          id_values.append(gft_common.ReadOneLine(id_path))
+        except IOError:
+          continue
+    return ' '.join(id_values)
 
   def get_part_id_bluetooth(self):
     return self.get_sysfs_device_id('/sys/class/bluetooth/hci0/device')
