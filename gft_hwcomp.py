@@ -865,7 +865,7 @@ class HardwareComponents(object):
       self.load_module('i2c_dev')
       cmd = ('mosys -l memory spd print geometry | '
              'grep size_mb | cut -f2 -d"|"')
-      part_id = gft_common.SystemOutput(cmd).strip()
+      part_id = self.compact_id(gft_common.SystemOutput(cmd).strip())
     elif arch in ('arm'):
       # Even kernel cannot probe the memory. We can only trust the memory
       # information passed to kernel.
