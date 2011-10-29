@@ -56,6 +56,7 @@ class HardwareComponents(object):
     'part_id_display_converter',
     'part_id_display_panel',
     'part_id_dram',
+    'part_id_dimm',
     'part_id_ec_flash_chip',
     'part_id_embedded_controller',
     'part_id_ethernet',
@@ -865,7 +866,8 @@ class HardwareComponents(object):
       self.load_module('i2c_dev')
       cmd = ('mosys -l memory spd print geometry | '
              'grep size_mb | cut -f2 -d"|"')
-      part_id = self.compact_id(gft_common.SystemOutput(cmd).strip())
+      param = gft_common.SystemOutput(cmd)
+      part_id = '%d' % sum([int(size) for size in param.splitlines()])
     elif arch in ('arm'):
       # Even kernel cannot probe the memory. We can only trust the memory
       # information passed to kernel.
@@ -873,6 +875,23 @@ class HardwareComponents(object):
       # Format: *mem=384M@0M (type=size@address)
       part_id = '%d' % sum(
           [int(size) for size in re.findall(r'\s\w*mem=(\d+)M@\d+M', param)])
+    return part_id if part_id else self._not_present
+
+  def get_part_id_dimm(self):
+    self.load_module('i2c_dev')
+    timings = dict(
+      re.findall('dimm="([^"]*)".*speeds="([^"]*)"',
+                 gft_common.SystemOutput("mosys -k memory spd print timings",
+                 ignore_status=True)))
+    size_mbs = dict(
+      re.findall('dimm="([^"]*)".*size_mb="([^"]*)"',
+                 gft_common.SystemOutput("mosys -k memory spd print geometry",
+                 ignore_status=True)))
+    dimm_indexes = timings.keys()
+    dimm_indexes.sort()
+    dimms = ['%s|%s|%s' % (i, size_mbs[i], timings[i].replace(' ', ''))
+             for i in dimm_indexes]
+    part_id = self.compact_id(dimms)
     return part_id if part_id else self._not_present
 
   @EcProperty
