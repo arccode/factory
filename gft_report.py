@@ -16,18 +16,22 @@ DecodeReport() to covert from an encoded string.
 
 import base64
 import gzip
-import pprint
 import os
+import pprint
 import re
 import StringIO
 import sys
+import time
 
 import gft_common
 from gft_common import ErrorMsg, VerboseMsg, DebugMsg, ErrorDie
 
 
 # Update this if any field names (or formats) have been changed.
-REPORT_VERSION = 1
+REPORT_VERSION = 2
+
+# Keys in decoding results
+KEY_INFO_DECODERS = 'decoders'
 
 
 def ParseKeyValueData(pattern, data):
@@ -78,18 +82,43 @@ def EncodeReport(native_report, text_armed=True):
   return data
 
 
-def DecodeReport(ascii_form, text_armed=True):
-  """ Decodes a report in ASCII form into native python dict. """
-  data = ascii_form
-  if text_armed:
-    data = base64.decodestring(data)
-  buf = StringIO.StringIO()
-  buf.write(data)
-  buf.seek(0)  # prepare for read
-  zbuf = gzip.GzipFile(fileobj=buf, mode='rb')
-  report_text = zbuf.read()
-  zbuf.close()
-  return eval(report_text)
+def DecodeReport(blob, info={}):
+  """Decodes a report in blob (or ASCII) form into native python dict.
+
+  Args:
+    blob: A data containing encoded report.
+    info: Dictionary object to receive information collected during decode.
+  """
+  # The report may be encoded in gzipped/base64 formats.
+
+  def Base64Decoder(data):
+    info[KEY_INFO_DECODERS] += ['b64']
+    return base64.decodestring(data)
+  def GunzipDecoder(data):
+    info[KEY_INFO_DECODERS] += ['gz']
+    buf = StringIO.StringIO()
+    buf.write(data)
+    buf.seek(0)  # prepare for read
+    zbuf = gzip.GzipFile(fileobj=buf, mode='rb')
+    return zbuf.read()
+  def ReportDecoder(data):
+    info[KEY_INFO_DECODERS] += ['rpt']
+    return eval(data)
+
+  decoders = [
+    lambda(x): ReportDecoder(GunzipDecoder(Base64Decoder(x))),
+    lambda(x): ReportDecoder(GunzipDecoder(x)),
+    lambda(x): ReportDecoder(x),
+  ]
+
+  for decoder in decoders:
+    try:
+      info[KEY_INFO_DECODERS] = []
+      decoded = decoder(blob)
+      return decoded
+    except:
+      pass
+  raise ValueError, "Invalid report."
 
 
 def FormatReport(native_report):
@@ -109,6 +138,7 @@ def ValidateReport(native_report):
   mandatory_string_keys = ['version',
                            'create_params',
                            'device_timestamp',
+                           'platform_name',
                            'hwid',
                            ]
   mandatory_dict_keys = ['crossystem',
@@ -182,7 +212,7 @@ def CreateReport(create_params,
   Returns:
     A dict mapping keys to details. Example:
     {'hwid': 'ABC',
-     'device_timestamp': 'Thu Mar 17 07:39:04 UTC 2011',
+     'device_timestamp': '20111031-175023',  # UTC
      ...}
   """
   report = {}
@@ -193,6 +223,8 @@ def CreateReport(create_params,
 
   # System Hardware ID
   report['hwid'] = gft_common.SystemOutput("crossystem hwid").strip()
+  report['platform_name'] = gft_common.SystemOutput(
+      "mosys platform name").strip()
 
   # crossystem reports many system configuration data
   report['crossystem'] = ParseCrossystemOutput(
@@ -239,8 +271,34 @@ def CreateReport(create_params,
   report['verbose_log'] = verbose_log
 
   # Finally, attach a timestamp. This must be the last entry.
-  report['device_timestamp'] = gft_common.SystemOutput("date --utc").strip()
+  report['device_timestamp'] = time.strftime("%Y%m%d-%H%M%S", time.gmtime())
   return report
+
+
+def GetReportName(report_blob):
+  """Returns the proper report file name according to report content.
+
+  Args:
+    report_path: Path to report file.
+  Returns:
+    File name according to provided report.
+  """
+  def quote_atom(atom, delimiter=''):
+    return re.sub(r'[^a-zA-Z0-9]+', delimiter, atom).strip(delimiter)
+
+  info = {}
+  report = DecodeReport(report_blob, info)
+  error = ValidateReport(report)
+  if error:
+    ErrorDie("Failed decoding report: %s" % error)
+  platform = report['platform_name'].lower()
+  serial = report['ro_vpd'].get('serial_number', 'unknown')
+  date = report['device_timestamp']
+  ext = info[KEY_INFO_DECODERS]
+  ext.reverse()
+
+  return '%s_%s_%s.%s' % (quote_atom(platform), quote_atom(serial),
+                          quote_atom(date, '-'), '.'.join(ext))
 
 
 #############################################################################
@@ -285,7 +343,8 @@ def main():
       text_armed = True
     else:
       ErrorDie('gft_report: invalid report format: %s' % options.report_format)
-    print FormatReport(DecodeReport(data, text_armed))
+    print FormatReport(DecodeReport(data))
+    print "Report name: %s" % GetReportName(data)
     return
 
   # Encode
@@ -337,6 +396,7 @@ def main():
       report_handle.write(data)
   else:
     print data
+  print "Report name: %s" % GetReportName(data)
 
 
 if __name__ == "__main__":
