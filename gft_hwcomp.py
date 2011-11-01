@@ -1054,6 +1054,10 @@ class HardwareComponents(object):
     # But note that it does not guarantee the cardreader presented during
     # the time of the test.
 
+    # Can't verify if the part_id is "not present" - always consider as True.
+    if part_id == _not_present:
+      return True
+
     # TODO(hungte) Grep entire /var/log/message may be slow. Currently we cache
     # this result by verify_probable_component, but we should find some better
     # and reliable way to detect this.
