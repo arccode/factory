@@ -1074,7 +1074,7 @@ class HardwareComponents(object):
     # the time of the test.
 
     # Can't verify if the part_id is "not present" - always consider as True.
-    if part_id == _not_present:
+    if part_id == self._not_present:
       return True
 
     # TODO(hungte) Grep entire /var/log/message may be slow. Currently we cache
