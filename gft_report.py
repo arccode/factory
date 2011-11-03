@@ -140,6 +140,7 @@ def ValidateReport(native_report):
                            'device_timestamp',
                            'platform_name',
                            'hwid',
+                           'tag',
                            ]
   mandatory_dict_keys = ['crossystem',
                          'probed_components',
@@ -199,6 +200,7 @@ def CreateReport(create_params,
                  probed_components,
                  verbose_log_path=gft_common.DEFAULT_CONSOLE_LOG_PATH,
                  vpd_source=None,
+                 tag='',
                  verbose=False):
   """Creates a detail report for current device.
 
@@ -220,6 +222,7 @@ def CreateReport(create_params,
   # General information
   report['version'] = '%s' % REPORT_VERSION
   report['create_params'] = ' '.join(create_params)
+  report['tag'] = tag
 
   # System Hardware ID
   report['hwid'] = gft_common.SystemOutput("crossystem hwid").strip()

@@ -397,6 +397,8 @@ def create_report():
   else:
     ErrorDie('create_report: invalid format: %s' % g_options.report_format)
 
+  tag = g_options.report_tag if g_options.report_tag else ''
+
   # TODO(hungte) if matching is still too slow, we can try to reused previous
   # cached results.
   (matched, unmatched, unrelated) = (
@@ -409,6 +411,7 @@ def create_report():
                                    matched.values()[0],
                                    verbose_log_path=g_options.log_path,
                                    vpd_source=vpd_source,
+                                   tag=tag,
                                    verbose=g_options.debug)
 
   data = gft_report.EncodeReport(report, text_armed=text_armed)
@@ -566,6 +569,9 @@ def ConsoleParser():
                     help='override the path for report file')
   parser.add_option('--report_format', metavar='FORMAT', default='gz',
                     help='format of the generated report (see gft_report.py)')
+  parser.add_option('--report_tag', metavar='TAG', default='',
+                    help='tag to be included in report (see gft_report.py), '
+                         'current possible values may include rma, mp, pvt.')
   parser.add_option('--upload_method', metavar='METHOD:PARAM',
                     help='assign the upload method (see gft_upload).')
   # Wiping
