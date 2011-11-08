@@ -229,6 +229,10 @@ def Upload(path, method, **kargs):
     return FtpUpload(path, 'ftp:' + param, **kargs)
   elif method == 'ftps':
     return CurlUrlUpload(path, '--ftp-ssl-reqd ftp:%s' % param, **kargs)
+  elif method == 'curl' and param.startswith('ftp://'):
+    return CurlUrlUpload(path, param, **kargs)
+  elif method == 'curl' and param.startswith('ftps://'):
+    return CurlUrlUpload(path, '--ftp-ssl-reqd ' + param, **kargs)
   elif method == 'cpfe':
     return CpfeUpload(path, param, **kargs)
   else:
@@ -251,10 +255,15 @@ def main():
         Do nothing.
 
     ftp://userid:passwd@host:port/path
-        Upload to a FTP site.
+        Upload to a FTP site using python ftplib (for backward compatible and
+        better connection status checking).
 
     ftps://userid:passwd@host:port/path [curl_options]
         Upload by FTP-SSL protocol using curl.
+
+    curl:ftp[s]://userid:passwd@host:port/path [curl_options]
+        Upload by FTP(s) protocol using curl, allowing customized curl
+        parameters like --ftp-create-dirs.
 
     cpfe:cpfe_url [curl_options]
         Upload to Google ChromeOS Partner Front End.
