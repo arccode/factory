@@ -154,7 +154,7 @@ class HardwareComponents(object):
     """ Decorator for properties that requires programmable EC """
     def wrapper(*args, **kargs):
       self = args[0]
-      if not self.has_ec():
+      if not self.has_ec_flash():
         return self._not_present
       return f(*args, **kargs)
     return wrapper
@@ -456,16 +456,10 @@ class HardwareComponents(object):
       return 'sda' + partno
 
   @Memorize
-  def has_ec(self):
+  def has_ec_flash(self):
     """ Returns if current system has programmable EC chips. """
-    arch = self.get_arch()
-    if arch in ('x86', 'amd64'):
-      return True
-    elif arch in ('arm'):
-      return False
-    else:
-      assert False, 'unknown platform for EC information.'
-    return False
+    return os.system("flashrom -p internal:bus=lpc --get-size "
+                     ">/dev/null 2>&1") == 0
 
   # --------------------------------------------------------------------
   # Firmware Processing Utilities
