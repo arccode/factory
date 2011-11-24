@@ -250,7 +250,10 @@ def CreateReport(create_params,
 
   # Firmware write protection status
   ec_wp_status = gft_common.SystemOutput(
-      'flashrom -p internal:bus=lpc --wp-status')
+      'flashrom -p internal:bus=lpc --get-size 2>/dev/null && '
+      'flashrom -p internal:bus=lpc --wp-status || '
+      'echo "EC is not available."',
+      ignore_status=True)
   bios_wp_status = gft_common.SystemOutput(
       'flashrom -p internal:bus=spi --wp-status')
 

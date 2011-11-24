@@ -457,7 +457,7 @@ def wpfw():
   hwcomp = InitializeHardwareComponents(do_probe=False)
   read_binary = gft_common.ReadBinaryFile
   target_set = [('bios', hwcomp.load_main_firmware)]
-  if hwcomp.has_ec():
+  if hwcomp.has_ec_flash():
     target_set.insert(0, ('ec', hwcomp.load_ec_firmware))
     assert target_set[0][0] == 'ec'
   else:
