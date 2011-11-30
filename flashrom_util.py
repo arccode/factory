@@ -1,15 +1,10 @@
-#!/usr/bin/env python
-# Copyright (c) 2011 The Chromium OS Authors. All rights reserved.
+# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
-
-# THIS FILE IS COPIED FROM AUTOTEST LIBRARY AND FOLLOWING PEP8 CODING STYLE RULE
-# FOR BACKWARD COMPATIBLE, WE'RE NOT CHANGING ITS INDENTATION AND FUNCTION NAMES
 
 """
 This module provides convenience routines to access Flash ROM (EEPROM).
  - flashrom_util is a low level wrapper of flashrom(8) program.
- - FlashromUtility is a high level object which provides more advanced
    features like journaling-alike (log-based) changing.
 
 Original tool syntax:
@@ -23,10 +18,11 @@ The layout_fn is in format of
     be accessed by the name image_name.
 
 Currently the tool supports multiple partial write but not partial read.
-
-For more information, see help(flashrom_util.flashrom_util) and
-help(flashrom_util.FlashromUtility).
 """
+
+# TODO(hungte): Use Chromium Python style.  Update external references
+# to changed function names, and deprecate/remove unused functions.
+
 
 import os
 import re
@@ -687,310 +683,6 @@ class flashrom_util(object):
 
 
 # ---------------------------------------------------------------------------
-# Advanced flashrom utiliity
-class FlashromUtility(object):
-    """
-    A high level (easier to use and more advanced) utility class to access
-    flashrom. FlashromUtility supports general read and journaling-alike (log
-    based) style write functionality.
-
-    To use it, first initialize, read/update section data, and finally commit.
-    Example:
-        flashrom = FlashromUtility()
-        flashrom.initialize(flashrom.TARGET_BIOS)
-
-        # quick access to section data
-        data = flashrom.read_section('FW_MAIN_A')
-        flashrom.write_section('FW_MAIN_A', data)
-
-        # compare section data
-        if flashrom.verify_sections('A,B', 'C,D', image1, image2):
-            print "same contents!"
-
-        # copy between sections
-        flashrom.image_copy(list_A, list_B, image);  # copy A in image to B
-
-        # check if really need to perform writing to flashrom
-        if flashrom.need_commit():
-            print "need to rewrite the flash..."
-
-        # perform real write operation
-        flashrom.commit()
-
-    Attributes
-        flashrom:       instance of flashrom_util
-        current_image:  cached image data of current flashrom
-        layout:         the Chrome OS firmware layout for flashrom to use
-        whole_flash_layout: a special layout to contain whole flashrom space
-        skip_verify:    a description of what data must be skipped when
-                        doing compare / verification
-        change_history: a list of every change we should apply when committing.
-                        each item is (changed_list, image_data).
-
-        verbose_msg:    function to report verbose messages.
-    """
-
-    TARGET_BIOS = DEFAULT_TARGET_NAME_BIOS
-    TARGET_EC = DEFAULT_TARGET_NAME_EC
-
-    def __init__(self,
-                 flashrom_util_instance=None,
-                 exception_type=Exception,
-                 verbose_msg=_dummy,
-                 system_output=_default_system_output,
-                 ):
-        """
-        Initializes internal variables and states.
-
-        Arguments:
-            flashrom_util_instance: An instance of existing flashrom_util.  If
-                                    not provided, FlashromUtility will create
-                                    one with all default values.
-        """
-        self.exception_type = exception_type
-        self.flashrom = flashrom_util_instance
-        if not self.flashrom:
-            self.flashrom = flashrom_util(verbose_msg=verbose_msg,
-                                          exception_type=exception_type,
-                                          system_output=system_output)
-        self.current_image = None
-        self.target_file = None
-        self.layout = None
-        self.whole_flash_layout = None
-        self.skip_verify = None
-        self.change_history = []
-        self.verbose_msg = verbose_msg
-        self.is_debug = False
-
-    def _error_die(self, message):
-        ''' (internal) raises a critical exception on un-recoverable errors. '''
-        raise self.exception_type('%s: %s' % (self.__class__.__name__,
-                                              str(message)))
-
-    def initialize(self, target, layout_image=None, layout_desc=None,
-                   use_fmap_layout=True, skip_verify=None, target_file=None):
-        """
-        Starts flashrom initialization with given target.
-
-        Args:
-            target: Name of the target you are dealing with (check TARGET_*)
-            layout_desc: (optional) Description of pre-defined layout
-            layout_image: (optional) A image blob containing FMAP for building
-                layout. None if you want to use current system flash content
-            use_fmap_layout: Use True (default) if you trust the FMAP in
-                layout_image.
-            skip_verify: (optional) Description of what data must be skipped
-                when doing comparison / verification.
-            target_file: (optional) An firmware image file for processing
-                instead of system flashrom.
-        """
-        flashrom = self.flashrom
-        if not target_file and not flashrom.select_target(target):
-            self._error_die("Cannot Select Target. Abort.")
-        else:
-            self.target_file = target_file
-
-        self.verbose_msg(" - reading current content")
-        self.current_image = self._perform_read_flash()
-
-        if not self.current_image:
-            self._error_die("Cannot read flashrom image. Abort.")
-        flashrom_size = len(self.current_image)
-
-        if not use_fmap_layout:
-            layout_image = None
-        elif not layout_image:
-            layout_image = self.current_image
-
-        if layout_desc:
-            layout = flashrom.detect_layout(
-                    layout_desc, flashrom_size, layout_image)
-        else:
-            layout = flashrom.detect_chromeos_layout(
-                    target, flashrom_size, layout_image)
-        self.layout = layout
-        self.whole_flash_layout = flashrom.detect_layout('all', flashrom_size,
-                                                         None)
-        if not skip_verify:
-            skip_verify = DEFAULT_CHROMEOS_FIRMWARE_SKIP_VERIFY_LIST[target]
-        self.skip_verify = skip_verify
-        self.change_history = []  # reset list
-
-    def get_current_image(self):
-        """ Returns current flashrom image (physically, not changed) """
-        return self.current_image
-
-    def get_latest_changed_image(self):
-        """ Returns the latest changed result image (not written yet) """
-        if not self.change_history:
-            return self.get_current_image()
-        # the [1] refers to the latter element of (changed_list, image_data)
-        return self.change_history[-1][1]
-
-    def need_commit(self):
-        """ Returns if we have uncommitted changes """
-        if self.change_history:
-            return True
-        return False
-
-    def image_copy(self, from_list, to_list, from_image=None):
-        """
-        Copies sections (in from_list) of data from from_image to the sections
-        (in to_list) in latest changed image.
-
-        If from_image is not assigned, use latest changed image as source.
-
-        from_list and to_list can be real list or comma-separated-value.
-        """
-        # simplify arguments and local variables
-        if not from_image:
-            from_image = self.get_latest_changed_image()
-        to_image = self.get_latest_changed_image()
-        from_list = csv_to_list(from_list)
-        to_list = csv_to_list(to_list)
-        changed_list = []
-        changed_image = to_image
-        flashrom = self.flashrom
-        layout = self.layout
-
-        for f, t in zip(from_list, to_list):
-            if self.verify_sections(f, t, from_image, to_image):
-                continue
-            from_data = flashrom.get_section(from_image, layout, f)
-            to_data = flashrom.get_section(to_image, layout, t)
-            assert len(from_data) == len(to_data)
-            changed_image = flashrom.put_section(changed_image, layout, t,
-                                                from_data)
-            assert changed_image != to_image
-            changed_list.append(t)
-
-        # add to history if anything has been changed.
-        if changed_list:
-            self.change_history.append((changed_list, changed_image))
-            assert changed_image != to_image
-
-    def read_section(self, section, from_image=None):
-        """ Returns data of the section in image.
-
-        If from_image is omitted, read from get_latest_changed_image();
-        otherwise read directly from from_image.
-        """
-        if not from_image:
-            from_image = self.get_latest_changed_image()
-        return self.flashrom.get_section(from_image, self.layout, section)
-
-    def write_section(self, section, data):
-        """ Change the section data of latest changed image. """
-        new_image = self.get_latest_changed_image()
-        new_image = self.flashrom.put_section(new_image, self.layout, section, \
-                                              data)
-        return self.image_copy(section, section, new_image)
-
-    def get_verification_image(self, from_image, pad_value=chr(0)):
-        """
-        Returns an image derived from from_image with "skip verification"
-        regions padded by pad_value.
-        """
-        layout = self.layout
-
-        # decode skip_verify with layout, and then modify images
-        for verify_tuple in csv_to_list(self.skip_verify):
-            (name, offset, size) = verify_tuple.split(':')
-            name = name.strip()
-            offset = int(offset.strip(), 0)
-            size = int(size.strip(), 0)
-            assert name in layout, "(make_verify) Unknown section name: " + name
-            if self.is_debug:
-                print " ** skipping range: %s +%d [%d]" % (name, offset, size)
-            # we use the layout's internal structure here...
-            offset = layout[name][0] + offset
-            from_image = from_image[:offset] + (pad_value * size) + \
-                         from_image[(offset + size):]
-        return from_image
-
-    def verify_sections(self, from_list, to_list, from_image, to_image):
-        """
-        Compares if sections in from_list and to_list are the same, skipping
-        by self.skip_verify description.
-
-        If from_list and to_list are both empty list ([]), compare whole image
-        """
-        # simplify arguments and local variables
-        from_list = csv_to_list(from_list)
-        to_list = csv_to_list(to_list)
-        flashrom = self.flashrom
-        layout = self.layout
-
-        # prepare verification image
-        if self.skip_verify:
-            from_image = self.get_verification_image(from_image)
-            to_image = self.get_verification_image(to_image)
-
-        # compare sections in image
-        if not (from_list or to_list):
-            return from_image == to_image
-        for (f, t) in zip(from_list, to_list):
-            data_f = flashrom.get_section(from_image, layout, f)
-            data_t = flashrom.get_section(to_image, layout, t)
-            if data_f != data_t:
-                return False
-        return True
-
-    def verify_whole_image(self, image1, image2):
-        """ Compares if image1 and image2 are the same, except the
-        skip_verify region.
-        """
-        return self.verify_sections([], [], image1, image2)
-
-    def _perform_read_flash(self):
-        """ (INTERNAL) Performs a real read to flashrom. """
-        flashrom = self.flashrom
-
-        if self.target_file:
-            return open(self.target_file, 'rb').read()
-        else:
-            return flashrom.read_whole()
-
-    def _perform_write_flash(self, changed_list, layout, new_image):
-        """ (INTERNAL) Performs a real write to flashrom. """
-        flashrom = self.flashrom
-        self.verbose_msg(" - writing firmware sections: %s" %
-                         ','.join(changed_list))
-
-        if self.target_file:
-            # TODO(hungte) implementt real partial write here?
-            open(self.target_file, 'wb').write(new_image)
-        elif not flashrom.write_partial(new_image, layout, changed_list):
-            self._error_die("Cannot re-write firmware. Abort.")
-
-        self.verbose_msg(" - verifying firmware data")
-        verify_image = self._perform_read_flash()
-        self.current_image = verify_image
-        if not self.verify_whole_image(verify_image, new_image):
-            self._error_die("Tool return success but actual data is incorrect.")
-
-    def commit(self):
-        """ Commits all change data into real flashrom """
-        # TODO(hungte) if _perform_write_flash failed, we should try to revert
-        # system back to initial status.
-        # revert_image =self.get_current_image()
-        for change_list, change_image in self.change_history:
-            self._perform_write_flash(change_list, self.layout, change_image)
-        # all committed, clear log history
-        self.change_history = []
-
-    def commit_whole_flashrom_image(self, image):
-        """ Updates (and commits directly) whole new flashrom image """
-        whole_layout = self.whole_flash_layout
-        assert len(whole_layout) == 1
-        self._perform_write_flash(whole_layout.keys(), whole_layout, image)
-
-    def revert(self):
-        """ Revert all changed data which were not committed yet. """
-        self.change_history = []
-
-
-# ---------------------------------------------------------------------------
 # Simple access to a FMAP based firmware images
 class FirmwareImage(object):
   """Provides access to firmware image via FMAP sections."""
@@ -1077,7 +769,49 @@ except ImportError:
     utils = mock_utils()
 
 
-# main stub
-if __name__ == "__main__":
-    # TODO(hungte) provide unit tests or command line usage
-    pass
+# ---------------------------------------------------------------------------
+# TODO(tammo): Unify these functions with the ones above.
+
+
+import logging
+from tempfile import NamedTemporaryFile
+from common import CompactStr, Obj, RunShellCmd
+
+
+# Global dict of firmware details {bus_name: (chip_id, file handle)}.
+_g_firmware_details = {}
+
+
+def LoadFirmware(bus_name):
+  """Return Obj containing chip_id and path to a file containing firmware data.
+
+  Run flashrom twice.  First probe for the chip_id.  Then, if a chip
+  is found, dump the contents of flash into a file.
+
+  Args:
+    bus_name: Which bus to scan.  For example 'spi' or 'lpc'.
+  """
+  if bus_name in _g_firmware_details:
+    chip_id, fw_file = _g_firmware_details[bus_name]
+    return Obj(chip_id=chip_id, path=fw_file.name)
+  fw_file = NamedTemporaryFile(prefix='fw_%s_' % bus_name, delete=True)
+  cmd_data = RunShellCmd('flashrom -p internal:bus=%s --flash-name' %  bus_name)
+  match_list = re.findall('vendor="([^"]*)".*name="([^"]*)"', cmd_data.stdout)
+  chip_id = ' ; '.join('%s %s' % (v, n) for v, n in match_list)
+  chip_id = chip_id if chip_id else None
+  if chip_id is not None:
+    if not RunShellCmd('flashrom -p internal:bus=%s -r %s' %
+                       (bus_name, fw_file.name)).success:
+      raise Error, 'Failed to read %r firmware.' % bus_name
+  _g_firmware_details[bus_name] = (chip_id, fw_file)
+  return Obj(chip_id=chip_id, path=fw_file.name)
+
+
+def LoadEcFirmware():
+  """Return flashrom data for the internal lpc bus containing the EC."""
+  return LoadFirmware('lpc')
+
+
+def LoadMainFirmware():
+  """Return flashrom data for the internal spi bus containing the main fw."""
+  return LoadFirmware('spi')

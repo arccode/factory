@@ -1,6 +1,6 @@
 #!/usr/bin/python
 #
-# Copyright (c) 2010 The Chromium OS Authors. All rights reserved.
+# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -8,6 +8,10 @@
 gooftool: Google Factory Tool, providing all Google Required Test
           functionality.
 """
+
+
+# TODO(tammo): Refactor to match Chromium style.
+
 
 import copy
 import glob
@@ -23,14 +27,17 @@ import tempfile
 import flashrom_util
 import gft_common
 import gft_fwhash
-import gft_hwcomp
 import gft_report
 import gft_upload
 import gft_vpd
 import gft_wpfw
 import gpio
+import hwid_tool
+import probe
 
+from common import Obj
 from gft_common import WarningMsg, VerboseMsg, DebugMsg, ErrorMsg, ErrorDie
+
 
 #######################################################################r
 # global variables and cached objects
@@ -38,65 +45,47 @@ from gft_common import WarningMsg, VerboseMsg, DebugMsg, ErrorMsg, ErrorDie
 g_options = None
 g_args = None
 
-# cache for instance of HardwareComponents to speed up
-g_hwcomp = None
-
 # list of commands
 g_commands = []
 
-# partition number of factory and release rootfs. -1 for kernel.
-FACTORY_PARTNO = 3
-RELEASE_PARTNO = 5
-
 # gooftool version
 VERSION = 2
+
+# cached objects
+g_cached_device_data = None
+
 
 ########################################################################
 # factory utilities
 
 
-def InitializeHardwareComponents(do_probe=True):
-  """ Initializes (and try to reuse the instance) a hardware components
-      detection object.
-      Returns the initialized (or cached) HardwareComponents object.
-  """
+def GetPrimaryDevicePath(partition=None):
+  def isfixed(dev):
+    sysfs_path = '/sys/block/%s/removable' % dev
+    return (os.path.exists(sysfs_path) and
+            open(sysfs_path).read().strip() == '0')
+  alpha_re = re.compile(r'^/dev/([a-zA-Z]+)[0-9]+$')
+  alnum_re = re.compile(r'^/dev/([a-zA-Z]+[0-9]+)p[0-9]+$')
+  dev_set = set(
+      dev
+      for path in gft_common.SystemOutput('cgpt find -t rootfs').split()
+      for dev in alpha_re.findall(path) + alnum_re.findall(path)
+      if isfixed(dev))
+  if len(dev_set) != 1:
+    ErrorDie('zero or multiple primary devs: %s' % dev_set)
+  dev_path = '/dev/' + dev_set.pop()
+  if partition is None:
+    return dev_path
+  fmt_str = '%sp%d' if alnum_re.match(dev_path) else '%s%d'
+  return fmt_str % (dev_path, partition)
 
-  global g_hwcomp
-  if g_hwcomp:
-    if do_probe:
-      g_hwcomp.initialize()
-    return g_hwcomp
-  g_hwcomp = gft_hwcomp.HardwareComponents(verbose=g_options.verbose)
-  if do_probe:
-    g_hwcomp.initialize()
-  return g_hwcomp
+
+def GetReleaseRootPartitionPath():
+  return GetPrimaryDevicePath(5)
 
 
-@gft_common.Memorize
-def FindComponentsDatabases():
-  """ Finds component database files. If --db_path is assigned, use the
-      specified path; otherwise look for default folders in system. """
-  db_path = g_options.db_path
-  if db_path:
-    files = glob.glob(db_path)
-    if not files:
-      ErrorDie('No components database found in %s.' % db_path)
-    return files
-
-  # find in default path
-  default_db_paths = [
-      '/usr/local/share/chromeos-hwid',
-      '/usr/share/chromeos-hwid',
-  ]
-  for db_path in default_db_paths:
-    files = glob.glob(os.path.join(db_path, 'components*'))
-    if files:
-      VerboseMsg('Loading components database from %s' % db_path)
-      return files
-
-  # found nothing
-  ErrorDie('No components database found. You must assign --db_path.')
-  return None
+def GetReleaseKernelPartitionPath():
+  return GetPrimaryDevicePath(4)
 
 
 def VerifySwitch(name, value):
@@ -113,69 +102,9 @@ def VerifySwitch(name, value):
   return True
 
 
-def MatchComponentsDatabases(db_list):
-  """Tries to match current system to known qualified component lists.
-
-  Args:
-    db_list: list of component list database files.
-
-  Returns:
-    Tuple of (matched, unmatched, unrelated)
-    matched: Matched component lists in dict form: { db_file: matched }.
-    unmatched: Lists matched part_id_hwqual but failed in other components.
-    unrelated: Those part_id_hwqual does not match.
-  """
-  hwcomp = InitializeHardwareComponents()
-  if not hwcomp:
-    ErrorDie('VerifyComponents: failed to detect system configuration.')
-  matched = {}
-  unmatched = {}
-  unrelated = {}
-  for db in db_list:
-    VerboseMsg('MatchComponentsDatabases: Matching current system by %s' % db)
-    (match, failure) = hwcomp.match_current_system(
-        db, ignore_factory_initial=g_options.ignore_factory_initial)
-    if failure:
-      if 'part_id_hwqual' in failure:
-        unrelated[db] = failure
-        DebugMsg('Unrelated for %s:%s\n' % (db, hwcomp.pformat(failure)))
-      else:
-        unmatched[db] = failure
-        DebugMsg('Unmatched for %s:%s\n' % (db, hwcomp.pformat(failure)))
-    else:
-      matched[db] = match
-      VerboseMsg('Matched: %s' % db)
-  return (matched, unmatched, unrelated)
-
-
 def EnableWriteProtect(target, image):
   """ Enables and verifies firmware write protection. """
   return gft_wpfw.EnableWriteProtect(target, image)
-
-
-def WriteGBB(db_file):
-  """ Writes a prepared GBB data to system main firwmare. """
-  flashrom = flashrom_util.flashrom_util(verbose_msg=VerboseMsg,
-                                         exception_type=gft_common.GFTError)
-  # TODO(hungte) Check if current keys in GBB match component list, to prevent
-  # installing wrong GBB data to systems designed for incompatile keys.
-  # TODO(hungte) use new flashrom partial read/write syntax to speed up
-  flashrom.select_target('bios')
-  image_file = gft_common.GetTemporaryFileName('wgbb')
-  if not flashrom.read_whole_to_file(image_file):
-    ErrorDie('WriteGBB: failed to read current firmware.')
-  DebugMsg('WriteGBB: updating with %s' % db_file)
-  if not gft_fwhash.UpdateGBB(image_file, db_file, in_place=True):
-    ErrorDie('WriteGBB: failed to update GBB.')
-
-  # Latest flashrom supports minimal writing, so we don't need to care about
-  # managing partial writing sections here. Simply provide the whole image.
-  with open(image_file) as image:
-    image_data = image.read()
-    if not flashrom.write_whole(image_data):
-      ErrorDie('WriteGBB: failed to flash firmware to system.')
-  os.remove(image_file)
-  return True
 
 
 def VerboseSystemCommand(command, prompt=None):
@@ -237,83 +166,118 @@ def GFTCommandDependency(command_list):
     return wrapper
   return meta_wrapper
 
+
 ########################################################################
 # standard procedure
 # (function names are used for self-reflection to command line parameters)
 
 # HWID, GBB, and hardware components validation
 
-@GFTCommand
-def probe():
-  """ Probes hardware components on current system and find match to given
-      component database files for HWID.
-  """
-  db_list = FindComponentsDatabases()
-  hwcomp = InitializeHardwareComponents(do_probe=True)
-  matched_hwids = 0
-  matched = {}
-
-  # Don't care about GBB elements when probing
-  ignored_cids = ['hash_ro_main_firmware',
-                  'hash_gbb',
-                  'part_id_hwqual',
-                  'version_rw_firmware']
-  for db in db_list:
-    VerboseMsg('probe: Matching current system by %s' % db)
-    (matched, failure) = hwcomp.match_current_system(db,
-          ignored_cids=ignored_cids, ignore_factory_initial=True)
-    if not failure:
-      print 'Probed: %s' % db
-      matched_hwids = matched_hwids + 1
-    else:
-      WarningMsg('Unmatched for %s:%s' % (db, hwcomp.pformat(failure)))
-
-  # TODO(hungte) we may need to decide a best match during the search
-  WarningMsg('Current System (v%d):%s' %
-             (hwcomp.version, hwcomp.pformat(matched)))
-  return (True if matched_hwids > 0 else False)
-
 
 @GFTCommand
-def write_gbb():
-  """ Writes system GBB data by assigned components database. """
-  if not g_options.write_gbb:
-    ErrorDie('write_gbb: need a valid component list file.')
-  return WriteGBB(g_options.write_gbb)
+def write_hwid():
+  """Write specified HWID value into the system GBB."""
+  if not g_options.hwid:
+    ErrorDie('write_hwid: No HWID specified (must specify using --hwid arg).')
+  hwid = g_options.hwid
+  DebugMsg('write_hwid: using hwid string %r' % hwid)
+  flashrom = flashrom_util.flashrom_util(verbose_msg=VerboseMsg,
+                                         exception_type=gft_common.GFTError)
+  # TODO(hungte) Refactor to use the new flashrom partial read/write syntax.
+  flashrom.select_target('bios')
+  image_file = gft_common.GetTemporaryFileName('wgbb')
+  if not flashrom.read_whole_to_file(image_file):
+    ErrorDie('write_hwid: failed to read current firmware.')
+  DebugMsg('write_hwid: updating with %s' % image_file)
+  cmd = ('gbb_utility --set --hwid="%s" %s %s' % (hwid, image_file, image_file))
+  VerboseMsg("write_hwid: invoke command: " + cmd)
+  gft_common.System(cmd)
+  # Latest flashrom supports minimal writing, so we don't need to care about
+  # managing partial writing sections here. Simply provide the whole image.
+  with open(image_file) as image:
+    image_data = image.read()
+    if not flashrom.write_whole(image_data):
+      ErrorDie('write_hwid: failed to flash firmware to system.')
+  os.remove(image_file)
+  return True
 
 
 @GFTCommand
 def verify_hwid():
-  """ Verifies if system HWID matches the qualified component list. """
-  hwcomp = InitializeHardwareComponents()
-  (matched, unmatched, unrelated) = (
-      MatchComponentsDatabases(FindComponentsDatabases()))
-  error_msg = ''
-  if unmatched:
-    error_msg += '\nUnmatched items:\n'
-    error_msg += '\n'.join(['%s:%s' % (name, hwcomp.pformat(value))
-                           for name, value in unmatched.items()])
-  if matched:
-    DebugMsg('Current System:%s\n' % hwcomp.pformat(matched.values()[0]))
-  if len(matched) != 1:
-    ErrorDie('verify_hwid: failed to match exact one HWID (found %d).%s' %
-             (len(matched), error_msg))
-  matched_filename = matched.keys()[0]
-  matched_data = matched[matched_filename]
-  matched_hwid = matched_data['part_id_hwqual'][0]
-  print 'Verified: %s (%s)' % (matched_filename, matched_hwid)
+  """Verify system HWID properties match probed device properties.
+
+  First probe components, volatile and initial_config parameters for
+  the DUT.  Then use the available device data to produce a list of
+  candidate HWIDs.  Then verify the HWID from the DUT is present in
+  that list.  Finally, verify that the DUT initial config values match
+  those specified for its HWID.
+  """
+  main_fw_file = flashrom_util.LoadMainFirmware().path
+  gbb_result = gft_common.SystemOutput('gbb_utility -g --hwid %s' %
+                                       main_fw_file)
+  hwid = re.findall(r'hardware_id:(.*)', gbb_result)[0].strip()
+  DebugMsg('system HWID: %r\n' % hwid)
+  try:
+    data = hwid_tool.ReadDatastore(g_options.db_path)
+    hwid_properties = hwid_tool.LookupHwidProperties(data, hwid)
+    DebugMsg('expected system properties: %s' % hwid_properties.__dict__)
+    probe_results = probe.Probe(data.comp_db.component_registry)
+    DebugMsg('found system properties: %s' % probe_results.__dict__)
+    cooked_components = hwid_tool.CookComponentProbeResults(
+        data.comp_db, probe_results)
+    DebugMsg('cooked components: %s' % cooked_components.__dict__)
+    device = data.device_db[hwid_properties.board]
+    cooked_device_details = hwid_tool.CookDeviceProbeResults(
+        device, probe_results)
+    DebugMsg('cooked device details: %s' % cooked_device_details.__dict__)
+    global g_cached_device_data
+    g_cached_device_data = Obj(
+        hwid_properties=hwid_properties,
+        probe_results=probe_results,
+        cooked_components=cooked_components,
+        cooked_device_details=cooked_device_details)
+  except hwid_tool.Error, e:
+    ErrorDie('verify_hwid: FAILED.\n%s' % e)
+  match_errors = []
+  for comp_class, comp_value in hwid_properties.component_map.items():
+    if comp_value == 'ANY':
+      continue
+    found_value = cooked_components.known.get(comp_class, None)
+    if found_value != comp_value:
+      if found_value is None:
+        alt_value = cooked_components.unknown.get(comp_class, None)
+        found_value = 'UNKNOWN %r' % alt_value
+      match_errors.append('  %s component mismatch, expected %s, found %s' %
+                          (comp_class, comp_value, found_value))
+  if match_errors:
+    ErrorDie('verify_hwid: FAILED.\n%s' % '\n'.join(match_errors))
+  if hwid_properties.volatile not in cooked_device_details.volatile_set:
+    msg = ('  HWID specified volatile %s, but found match only for %s' %
+           (hwid_properties.volatile,
+            ', '.join(cooked_device_details.volatile_set)))
+    ErrorDie('verify_hwid: FAILED.\n%s' % msg)
+  if (hwid_properties.initial_config not in
+      cooked_device_details.initial_config_set):
+    msg = ('  HWID specified initial_config %s, but found match only for %s' %
+           (hwid_properties.initial_config,
+            ', '.join(cooked_device_details.initial_config_set)))
+    ErrorDie('verify_hwid: FAILED.\n%s' % msg)
+  # TODO(tammo): Verify HWID status is supported (or deprecated for RMA).
+  # TODO(tammo): Verify release string.
+  # TODO(tammo): Verify VPD here, using hwid_properties.vpd_ro_field_list.
+  print 'Verified: %s' % hwid
   return True
 
 
 @GFTCommand
 def verify_keys():
   """ Verifies if the keys in firmware and SSD are matched. """
-  hwcomp = InitializeHardwareComponents(do_probe=False)
   script = os.path.join(os.path.split(sys.argv[0])[0], 'gft_verify_keys.sh')
   if not os.path.exists(script):
     ErrorDie('verify_keys: cannot find script to verify.')
-  kernel_device = '/dev/%s' % (hwcomp.get_ssd_name(RELEASE_PARTNO - 1))
-  command = '%s %s %s' % (script, kernel_device, hwcomp.load_main_firmware())
+  kernel_device = '/dev/%s' % GetReleaseKernelPartitionPath()
+  main_fw_path = flashrom_util.LoadMainFirmware().path
+  command = '%s %s %s' % (script, kernel_device, main_fw_path)
   try:
     VerboseSystemCommand(command, prompt='verify_keys: ')
   except gft_common.GFTError, e:
@@ -324,9 +288,10 @@ def verify_keys():
 @GFTCommand
 def verify_vpd():
   """ Verifies if the VPD contains valid required data. """
-  hwcomp = InitializeHardwareComponents(do_probe=False)
   try:
-    image_file = hwcomp.load_main_firmware()
+    # TODO(tammo): Verify that all of the VPD fields specified for the
+    # board (using hwid properties) have values.
+    image_file = flashrom_util.LoadMainFirmware().path
     gft_vpd.ValidateVpdData(image_file, g_options.verbose)
     gft_vpd.SetFirmwareBitmapLocale(image_file)
   except gft_common.GFTError, e:
@@ -337,12 +302,11 @@ def verify_vpd():
 @GFTCommand
 def verify_system_time():
   """Verifies if system time is later than release filesystem creation time."""
-  hwcomp = InitializeHardwareComponents(do_probe=False)
   script = os.path.join(os.path.split(sys.argv[0])[0],
                         'gft_verify_system_time.sh')
   if not os.path.exists(script):
     ErrorDie('verify_system_time: cannot find script to verify.')
-  rootfs_device = '/dev/%s' % (hwcomp.get_ssd_name(RELEASE_PARTNO))
+  rootfs_device = '/dev/%s' % GetReleaseRootPartitionPath()
   command = '%s %s' % (script, rootfs_device)
   try:
     VerboseSystemCommand(command, prompt='verify_system_time: ')
@@ -350,14 +314,14 @@ def verify_system_time():
     ErrorDie('verify_system_time: FAILED.\n%s' % e.value)
   return True
 
+
 @GFTCommand
 def verify_rootfs():
   """ Verifies if the rootfs on SSD is valid (by checking hash). """
-  hwcomp = InitializeHardwareComponents(do_probe=False)
   script = os.path.join(os.path.split(sys.argv[0])[0], 'gft_verify_rootfs.sh')
   if not os.path.exists(script):
     ErrorDie('verify_rootfs: cannot find script to verify.')
-  rootfs_device = '/dev/%s' % (hwcomp.get_ssd_name(RELEASE_PARTNO))
+  rootfs_device = '/dev/%s' % GetReleaseRootPartitionPath()
   command = '%s %s' % (script, rootfs_device)
   try:
     VerboseSystemCommand(command, prompt='verify_rootfs: ')
@@ -399,16 +363,15 @@ def create_report():
 
   tag = g_options.report_tag if g_options.report_tag else ''
 
-  # TODO(hungte) if matching is still too slow, we can try to reused previous
-  # cached results.
-  (matched, unmatched, unrelated) = (
-      MatchComponentsDatabases(FindComponentsDatabases()))
+  if g_cached_device_data is None:
+    # TODO(tammo): Refactor verify_hwid to extract the probing and
+    # cooking from the actual validation, so that we can generate
+    # reports for machines where the hwid validation fails.
+    ErrorDie('create_report: must run verify_hwid first')
 
-  if not len(matched) == 1:
-    ErrorDie('create_report: HWID is not singularly matched to database.')
-  vpd_source = InitializeHardwareComponents(do_probe=False).load_main_firmware()
+  vpd_source = flashrom_util.LoadMainFirmware().path
   report = gft_report.CreateReport(sys.argv,
-                                   matched.values()[0],
+                                   system_details=g_cached_device_data,
                                    verbose_log_path=g_options.log_path,
                                    vpd_source=vpd_source,
                                    tag=tag,
@@ -454,11 +417,12 @@ def wpfw():
   if g_options.debug_dryrun_wpfw:
     ErrorMsg('wpfw is by-passed. This device CANNOT be qualified.')
     return True
-  hwcomp = InitializeHardwareComponents(do_probe=False)
   read_binary = gft_common.ReadBinaryFile
-  target_set = [('bios', hwcomp.load_main_firmware)]
-  if hwcomp.has_ec_flash():
-    target_set.insert(0, ('ec', hwcomp.load_ec_firmware))
+  ec_fw = flashrom_util.LoadEcFirmware()
+  main_fw = flashrom_util.LoadMainFirmware()
+  target_set = [('bios', main_fw.path)]
+  if ec_fw.chip_id is not None:
+    target_set.insert(0, ('ec', ec_fw.path))
     assert target_set[0][0] == 'ec'
   else:
     VerboseMsg('wpfw: current platform does not have EC. Ignored.')
@@ -497,11 +461,10 @@ def prepare_wipe():
       'secure': '',
   }
   method = g_options.wipe_method
-  hwcomp = InitializeHardwareComponents(do_probe=False)
   if method not in wipe_method_map:
     ErrorDie('prepare_wipe: unknown wipe method: %s' % method)
   tag = wipe_method_map[method]
-  rootfs_device = '/dev/%s' % (hwcomp.get_ssd_name(RELEASE_PARTNO))
+  rootfs_device = '/dev/%s' % GetReleaseRootPartitionPath()
   command = 'FACTORY_WIPE_TAGS=%s %s %s' % (tag, wipe_script, rootfs_device)
   try:
     VerboseSystemCommand(command, prompt='prepare_wipe: ')
@@ -562,8 +525,12 @@ def ConsoleParser():
   # Configuration
   parser.add_option('--config', metavar='PATH',
                     help='path to the config file (TBD)')
+  # TODO(tammo): Consider removing db_path option once the hwid_tool
+  # has meaningful default path searching.
   parser.add_option('--db_path', metavar='PATH',
-                    help='path to the HWID component list databases')
+                    help='path to the HWID component database')
+  # TODO(tammo): Add proper support for per-command required positional args.
+  parser.add_option('--hwid', metavar='HWID', help='HWID string')
   # Reports
   parser.add_option('--report_path', metavar='PATH',
                     help='override the path for report file')
@@ -578,19 +545,10 @@ def ConsoleParser():
   parser.add_option('--wipe_method', metavar='METHOD', default='secure',
                     help='assign the wipe method (secure/fast).')
 
-  # Commands
-  commands_with_param = {
-      write_gbb: 'comp_db',
-  }
   for command in g_commands:
-    if command in commands_with_param:
-      parser.add_option('--%s' % command.__name__,
-                        metavar=commands_with_param[command],
-                        help=command.__doc__)
-    else:
-      parser.add_option('--%s' % command.__name__,
-                        action='store_true',
-                        help=command.__doc__)
+    parser.add_option('--%s' % command.__name__,
+                      action='store_true',
+                      help=command.__doc__)
   return parser
 
 

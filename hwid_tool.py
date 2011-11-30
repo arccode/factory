@@ -1,19 +1,22 @@
 #!/usr/bin/env python
-# Copyright (c) 2011 The Chromium OS Authors. All rights reserved.
+# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
 from argparse import ArgumentParser
 
 import difflib
+import logging
 import os
 import random
 import re
 import sys
+import time
 import zlib
 
 from hwid_database import MakeDatastoreSubclass
 from bom_names import BOM_NAME_SET
+from probe import Probe
 
 
 COMPONENT_DB_FILENAME = 'component_db'
@@ -66,6 +69,31 @@ MakeDatastoreSubclass('Device', {
     })
 
 
+# TODO(tammo): Fix initial config to have canonical names for each
+# 'probe result', stored as a map in device.
+
+# TODO(tammo): Enforce that volatile canonical names (the keys in the
+# hash_map) are all lower case, to allow for the special 'ANY' tag.
+
+# TODO(tammo): For those routines that take 'data' as the first arg,
+# consider making them methods of a DeviceDb class and then have the
+# constructor for that class read the data from disk.
+
+# TODO(tammo): Consider getting rid of the HWID 'build_name' component,
+# since it does not actually provide any value...  The details it is
+# trying to capture should be subsumed by volatile and initial_config.
+# Furthermore, we have no way to specify build in key areas, like
+# status.
+
+# TODO(tammo): Should release move into volatile?
+
+# TODO(tammo): Refactor code to lift out the command line tool parts
+# from the core functionality of the module.  Goal is that the key
+# operations should be accessible with a meaningful programmatic API,
+# and the command line tool parts should just be one of the clients of
+# that API.
+
+
 class Error(Exception):
   """Generic fatal error."""
   pass
@@ -77,12 +105,42 @@ class Obj(object):
     self.__dict__.update(field_dict)
 
 
-def HwidStr(board, build, bom, volind, variant):
-  """Generate HWID string.  See http://goto/hwid_spec for details."""
+def HwidChecksum(text):
+  return ('%04u' % (zlib.crc32(text) & 0xffffffffL))[-4:]
+
+
+def FmtHwid(board, build, bom, volatile, variant):
+  """Generate HWID string.  See the hwid spec for details."""
   lhs = board if build.startswith('MP') else board + ' ' + build
-  text = '%s %s %s-%s' % (lhs, bom, variant, volind)
-  checksum = ('%04u' % (zlib.crc32(text) & 0xffffffffL))[-4:]
-  return str(text + ' ' + checksum)
+  text = '%s %s %s-%s' % (lhs, bom, variant, volatile)
+  assert text.isupper(), 'HWID cannot have lower case text parts.'
+  return str(text + ' ' + HwidChecksum(text))
+
+
+def ParseHwid(hwid):
+  """Parse HWID string details.  See the hwid spec for details."""
+  parts = hwid.split()
+  if len(parts) not in [4, 5]:
+    raise Error, 'illegal hwid string %r, wrong number of parts' % hwid
+  checksum = parts.pop()
+  if checksum != HwidChecksum(' '.join(parts)):
+    raise Error, 'bad checksum for hwid %r' % hwid
+  varvol = parts.pop().split('-')
+  if len(varvol) != 2:
+    raise Error, 'bad variant-volatile part for hwid %r' % hwid
+  variant, volatile = varvol
+  bom = parts.pop()
+  build = parts.pop if len(parts) > 1 else None
+  board = parts.pop()
+  if not all(x.isalpha() for x in [board, bom, variant, volatile]):
+    raise Error, 'bad (non-alpha) part for hwid %r' % hwid
+  if build is not None and not build.isalnum():
+    raise Error, 'bad build part for hwid %r' % hwid
+  return Obj(board=board,
+             build_name=build,
+             bom=bom,
+             variant=variant,
+             volatile=volatile)
 
 
 def ComponentConfigStr(component_map):
@@ -171,31 +229,41 @@ def GetAvailableBomNames(data, board, count):
   return available_names[:count]
 
 
-def LookupHwidStatus(device, board, bom, volind, variant):
+# TODO(tammo): Generate re-usable derived data like status maps when
+# data is initially loaded.  This also acts as sanity checking.
+def CalcHwidStatusMap(device):
+  """TODO(tammo): XXX more here XXX."""
+  status_map = {}
+  for status in LIFE_CYCLE_STAGES:
+    for prefix in getattr(device, 'hwid_list_' + status, []):
+      parts = reversed(prefix.split('-'))
+      bom_status_map = status_map.setdefault(next(parts), {})
+      volatile = next(parts, None)
+      variant = next(parts, None)
+  # TODO(tammo): Finish this, then get rid of LookupHwidStatus.
+
+
+def LookupHwidStatus(device, bom, volatile, variant):
   """Match hwid details against prefix-based status data.
 
   Returns:
     A status string, or None if no status was found.
   """
-  target_pattern = (bom + '-' + volind + '-' + variant)
+  target_pattern = (bom + '-' + volatile + '-' + variant)
   def ContainsHwid(prefix_list):
     for prefix in prefix_list:
       if target_pattern.startswith(prefix):
         return True
   for status in LIFE_CYCLE_STAGES:
-    attr = 'hwid_list_' + status
-    if hasattr(device, attr) and ContainsHwid(getattr(device, attr)):
+    if ContainsHwid(getattr(device, 'hwid_list_' + status, [])):
       return status
   return None
 
 
 def CalcComponentDbClassMap(comp_db):
   """Return dict of (comp: comp_class) mappings."""
-  comp_class_map = {}
-  for comp_class, probe_result_map in comp_db.component_registry.items():
-    for comp in probe_result_map:
-      comp_class_map[comp] = comp_class
-  return comp_class_map
+  return dict((comp, comp_class) for comp in comp_map
+              for comp_class, comp_map in comp_db.component_registry.items())
 
 
 def CalcReverseComponentMap(hwid_map):
@@ -315,7 +383,9 @@ def TraverseCompMapHierarchy(rev_comp_map, branch_cb, leaf_cb, cb_arg):
   SubTraverse(rev_comp_map, cb_arg, 0)
 
 
-def FilterExternalHwidAttrs(device, target_bom_set, masks):
+def FilterExternalHwidAttrs(device, target_bom_set,
+                            masks=Obj(initial_config_set=set(),
+                                      release_set=set())):
   """Return those attributes shared by the target boms but not masked out.
 
   Calculate the sets of release and initial_config values that are
@@ -323,6 +393,7 @@ def FilterExternalHwidAttrs(device, target_bom_set, masks):
   sets to contain only values not already present in their respective
   mask.
   """
+  # TODO(tammo): Instead pre-compute reverse maps, and return unions.
   return Obj(
       release_set=set(
           release for release, bom_list in device.release_map.items()
@@ -353,11 +424,11 @@ def PrintHwidHierarchy(board, device, hwid_map):
     for bom in bom_set:
       hwid = hwid_map[bom]
       misc_common = FilterExternalHwidAttrs(device, set([bom]), masks)
-      variants = dict((HwidStr(board, hwid.build_name, bom, volind, variant),
+      variants = dict((FmtHwid(board, hwid.build_name, bom, volind, variant),
                        ','.join(device.variant_map[variant]))
                       for variant in hwid.variant_list
                       for volind in device.volatile_map
-                      if LookupHwidStatus(device, board, bom, volind, variant))
+                      if LookupHwidStatus(device, bom, volind, variant))
       if misc_common.initial_config_set or misc_common.release_set:
         IndentedStructuredPrint((depth + 1) * 2, bom,
                                 initial_config=misc_common.initial_config_set,
@@ -365,10 +436,11 @@ def PrintHwidHierarchy(board, device, hwid_map):
         IndentedStructuredPrint((depth + 2) * 2, None, variants)
       else:
         IndentedStructuredPrint(depth * 2, None, variants)
-  TraverseCompMapHierarchy(
-      CalcReverseComponentMap(hwid_map),
-      ShowCommon, ShowHwids,
-      Obj(initial_config_set=set(), release_set=set()))
+  # TODO(tammo): Fix the cb arg usage to allow omission here.
+  TraverseCompMapHierarchy(CalcReverseComponentMap(hwid_map),
+                           ShowCommon, ShowHwids,
+                           Obj(initial_config_set=set(),
+                               release_set=set()))
 
 
 def ProcessComponentCrossproduct(data, board, comp_list):
@@ -420,6 +492,76 @@ def ProcessComponentCrossproduct(data, board, comp_list):
   new_comp_map_list = DoCrossproduct(comp_map.items(), common_comp_map.items())
   return [comp_map for comp_map in new_comp_map_list
           if ComponentConfigStr(comp_map) not in existing_comp_map_str_set]
+
+
+def CookComponentProbeResults(comp_db, probe_results):
+  """TODO(tammo): Add more here XXX."""
+  match = Obj(known={}, unknown={})
+  comp_reference_map = dict(
+      (probe_value, comp)
+      for comp_map in comp_db.component_registry.values()
+      for comp, probe_value in comp_map.items())
+  for probe_class, probe_value in probe_results.components.items():
+    if probe_value is None:
+      continue
+    if probe_value in comp_reference_map:
+      match.known[probe_class] = comp_reference_map[probe_value]
+    else:
+      match.unknown[probe_class] = probe_value
+  return match
+
+
+def CookDeviceProbeResults(device, probe_results):
+  """TODO(tammo): Add more here XXX."""
+  match = Obj(volatile_set=set(), initial_config_set=set())
+  # TODO(tammo): Precompute this reverse map.
+  hash_reference_map = dict((v, c) for c, v in device.hash_map.items())
+  vol_map = dict((c, hash_reference_map[v])
+                 for c, v in probe_results.volatiles.items()
+                 if v in hash_reference_map)
+  for volatile, vol_reference_map in device.volatile_map.items():
+    if all(vol_reference_map[c] == v for c, v in vol_map.items()
+           if vol_reference_map[c] != 'ANY'):
+      match.volatile_set.add(volatile)
+  for initial_config, ic_map in device.initial_config_map.items():
+    if all(probe_results.initial_configs.get(ic_class, None) != ic_value
+           for ic_class, ic_value in ic_map.items()):
+      match.initial_config_set.add(initial_config)
+  return match
+
+
+def LookupHwidProperties(data, hwid):
+  """TODO(tammo): Add more here XXX."""
+  props = ParseHwid(hwid)
+  if props.board not in data.device_db:
+    raise Error, 'hwid %r board %s could not be found' % (hwid, props.board)
+  device = data.device_db[props.board]
+  if props.bom not in device.hwid_map:
+    raise Error, 'hwid %r bom %s could not be found' % (hwid, props.bom)
+  hwid_details = device.hwid_map[props.bom]
+  # TODO(tammo): Either fix or remove 'build' behavior.
+  delattr(props, 'build_name')
+  #if props.build != hwid_details.build:
+  #  raise Error, ('hwid %r build does not match database (%s != %s)' %
+  #                (hwid, props.build, hwid_details.build))
+  if props.variant not in hwid_details.variant_list:
+    raise Error, ('hwid %r variant %s does not match database' %
+                  (hwid, props.variant))
+  if props.volatile not in device.volatile_map:
+    raise Error, ('hwid %r volatile %s does not match database' %
+                  (hwid, props.volatile))
+  props.status = LookupHwidStatus(device, props.bom,
+                                  props.volatile, props.variant)
+  # TODO(tammo): Refactor if FilterExternalHwidAttrs is pre-computed.
+  misc_attrs = FilterExternalHwidAttrs(device, set([props.bom]))
+  if len(misc_attrs.release_set) != 1:
+    raise Error, 'hwid %r matches zero or multiple release values'
+  props.release = next(iter(misc_attrs.release_set))
+  props.initial_config = next(iter(misc_attrs.initial_config_set), None)
+  props.vpd_ro_field_list = device.vpd_ro_field_list
+  props.bitmap_file_path = device.bitmap_file_path
+  props.component_map = hwid_details.component_map
+  return props
 
 
 # List of sub-commands that can be specified as command line
@@ -520,11 +662,11 @@ def ListHwidsCommand(config, data):
     for bom, hwid in device.hwid_map.items():
       for volind in device.volatile_map:
         for variant in hwid.variant_list:
-          status = LookupHwidStatus(device, board, bom, volind, variant)
+          status = LookupHwidStatus(device, bom, volind, variant)
           if (config.status != '' and
               (status is None or config.status != status)):
             continue
-          result = HwidStr(board, hwid.build_name, bom, volind, variant)
+          result = FmtHwid(board, hwid.build_name, bom, volind, variant)
           if config.verbose:
             result = '%s: %s' % (status, result)
           result_list.append(result)
@@ -586,6 +728,41 @@ def ValidateDataCommand(config, data):
     Diff(device_name, device.Encode())
 
 
+@Command('probe_device',
+         CmdArg('-b', '--board'),
+         CmdArg('-c', '--classes', nargs='*'))
+def ProbeDeviceProperties(config, data):
+  # TODO(tammo): Implement classes arg behavior.
+  probe_results = Probe(data.comp_db.component_registry)
+  IndentedStructuredPrint(0, 'component probe results:',
+                          probe_results.components)
+  missing_classes = (set(data.comp_db.component_registry) -
+  set(probe_results.components))
+  if missing_classes:
+    logging.warning('missing results for comp classes: %s' %
+                    ', '.join(missing_classes))
+  cooked_components = CookComponentProbeResults(data.comp_db, probe_results)
+  if cooked_components.known:
+    IndentedStructuredPrint(0, 'known components:', cooked_components.known)
+  if cooked_components.unknown:
+    IndentedStructuredPrint(0, 'unknown components:', cooked_components.unknown)
+  if config.board:
+    if config.board not in data.device_db:
+      logging.critical('unknown board %r (known boards: %s' %
+                       (config.board, ', '.join(sorted(data.device_db))))
+      return
+    device = data.device_db[config.board]
+    cooked_device_details = CookDeviceProbeResults(device, probe_results)
+    IndentedStructuredPrint(0, 'volatile probe results:',
+                            probe_results.volatiles)
+    IndentedStructuredPrint(0, 'matching volatile tags:',
+                            cooked_device_details.volatile_set)
+    IndentedStructuredPrint(0, 'initial_config probe results:',
+                            probe_results.initial_configs)
+    IndentedStructuredPrint(0, 'matching initial_config tags:',
+                            cooked_device_details.initial_config_set)
+
+
 class HackedArgumentParser(ArgumentParser):
   """Replace the usage and help strings to better format command names.
 
@@ -601,7 +778,7 @@ class HackedArgumentParser(ArgumentParser):
   """
 
   def format_sub_cmd_menu(self):
-    """Return str with aligned list of cmd_name-colon-first-doc-line strs."""
+    """Return str with aligned list of 'cmd-name : first-doc-line' strs."""
     max_cmd_len = max(len(c) for c in G_commands)
     def format_item(cmd_name):
       doc = G_commands[cmd_name][1]
@@ -625,6 +802,8 @@ def ParseCmdline():
   parser = HackedArgumentParser(
       description='Visualize and/or modify HWID and related component data.')
   parser.add_argument('-p', '--data_path', metavar='PATH', default='.')
+  parser.add_argument('-v', '--verbosity', choices='01234', default='2')
+  parser.add_argument('-l', '--log_file')
   subparsers = parser.add_subparsers(dest='command_name')
   for cmd_name, (fun, doc, arg_list) in G_commands.items():
     subparser = subparsers.add_parser(cmd_name, description=doc)
@@ -634,14 +813,31 @@ def ParseCmdline():
   return parser.parse_args()
 
 
+def SetupLogging(config):
+  """Configure logging level, format, and target file/stream."""
+  logging.basicConfig(
+      format='%(levelname)-8s %(asctime)-8s %(message)s',
+      datefmt='%H:%M:%S',
+      level={4: logging.DEBUG, 3: logging.INFO, 2: logging.WARNING,
+             1: logging.ERROR, 0: logging.CRITICAL}[int(config.verbosity)],
+      **({'filename': config.log_file} if config.log_file else {}))
+  logging.Formatter.converter = time.gmtime
+  logging.info(time.strftime('%Y.%m.%d %Z', time.gmtime()))
+
+
 def Main():
   """Run sub-command specified by the command line args."""
   config = ParseCmdline()
+  SetupLogging(config)
   data = ReadDatastore(config.data_path)
   try:
     config.command(config, data)
-  except Error, error:
-    sys.exit('ERROR: %s' % error)
+  except Error, e:
+    logging.exception(e)
+    sys.exit('ERROR: %s' % e)
+  except Exception, e:
+    logging.exception(e)
+    sys.exit('UNCAUGHT RUNTIME EXCEPTION %s' % e)
 
 
 if __name__ == '__main__':

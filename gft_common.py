@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright (c) 2010 The Chromium OS Authors. All rights reserved.
+# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -232,29 +232,6 @@ def WriteBinaryFile(filename, data):
     opened_file.write(data)
 
 
-def GetSystemArch():
-  """Gets current system architecture, in portage-style return value.
-  Returns:
-    Currently supported list: 'arm', 'x86', 'amd64'
-  """
-  (exit_code, arch, _) = ShellExecution('crossystem arch', ignore_status=True)
-  arch = arch.strip()
-  authorized_archs = ('amd64', 'arm', 'x86')
-  if exit_code != 0:
-    # probing with legacy command.
-    machine = SystemOutput('uname -m')
-    if re.match('^i.86', machine):
-      arch = 'x86'
-    elif re.match('^x86_64', machine):
-      arch = 'amd64'
-    elif re.match('^armv', machine):
-      arch = 'arm'
-    else:
-      arch = 'unknown'
-  assert arch in authorized_archs, "Unknown architecture: %s" % arch
-  return arch
-
-
 def ThreadSafe(f):
   """ Decorator for functions that need synchronoization. """
   lock = threading.Lock()
@@ -280,97 +257,6 @@ def Memorize(f):
     memorize_data[index] = value
     return value
   return memorize_call
-
-########################################################################
-# Components Databases
-
-
-def ExpandComponentsDatabaseMacro(data, database_file):
-  """ Processes and expands macros in a component database. """
-  allow_macro_fields = (
-      'data_bitmap_fv'
-  )
-  macros = {
-      '<BMP_V1>': '%(path_from_base)s/bmp_%(flat_hwid)s.bmp'
-  }
-  # all variables used in macros must be prepared
-  variables = {}
-  variables['flat_hwid'] = data['part_id_hwqual'][0].replace(' ', '_')
-  # TODO(hungte) Currently the path from base is very tricky. In the future we
-  # should make it relative to database file.
-  virtual_base_folder = GetComponentsDatabaseBase(database_file)
-  current_base_folder = os.path.split(os.path.abspath(database_file))[0]
-  variables['path_from_base'] = os.path.relpath(current_base_folder,
-                                                virtual_base_folder)
-  for key, value in data.items():
-    if key not in allow_macro_fields:
-      continue
-    assert len(value) == 1
-    value = value[0]
-    if value not in macros:
-      continue
-    template = macros[value]
-    new_value = template % variables
-    data[key] = [new_value]
-    DebugMsg('ExpandComponentsDatabaseMacro: [%s] %s->%s' %
-             (key, value, new_value))
-  return data
-
-
-def ExpandComponentsDatabaseHash(data, database_file):
-  """ Processes and expands virtual hash in a component database. """
-  hashdb_file = os.path.join(os.path.dirname(database_file), 'hash.db')
-  if not os.path.exists(hashdb_file):
-    return data
-  hashdb = eval(ReadFile(hashdb_file))
-  for (key, values) in data.items():
-    if not key.startswith('hash'):
-      continue
-    new_values = [hashdb.get(value, value) for value in values]
-    if new_values != values:
-      data[key] = new_values
-      DebugMsg('ExpandComponentsDatabaseHash: %s: %s -> %s' %
-               (key, values, new_values))
-  return data
-
-
-def LoadComponentsDatabaseFile(filename):
-  """ Loads a components database file. """
-  original_filename = filename
-  (base_dir, base_name) = os.path.split(filename)
-  file_list = [base_name]
-  str_inherit = 'inherit'
-  result = {}
-  while True:
-    with open(filename) as database:
-      updates = eval(database.read())
-      for key, value in updates.items():
-        if key in result:
-          continue
-        result[key] = value
-      if str_inherit not in result:
-        break
-      new_file = result.pop(str_inherit)
-      if new_file in file_list:
-        ErrorDie('LoadComponentsDatabaseFile: found recursive reference: '
-                 '%s' % '->'.join(file_list))
-      file_list.append(new_file)
-      if os.path.split(new_file)[0]:
-        ErrorDie('LoadComponentsDatabaseFile: inherit cannot contain folder: '
-                 '%s' % '->'.join(file_list))
-      filename = os.path.join(base_dir, new_file)
-  if len(file_list) > 1:
-    DebugMsg('LoadComponentsDatabaseFile: ' + '->'.join(file_list))
-  ExpandComponentsDatabaseHash(result, original_filename)
-  ExpandComponentsDatabaseMacro(result, original_filename)
-  return result
-
-
-def GetComponentsDatabaseBase(database_file):
-  """ Gets the base folder of a components database file.  """
-  # Currently the database file is assuming properties sit in same folder.
-  base = os.path.dirname(os.path.abspath(database_file))
-  return os.path.abspath(base)
 
 
 if __name__ == '__main__':

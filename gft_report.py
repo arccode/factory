@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright (c) 2010 The Chromium OS Authors. All rights reserved.
+# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -23,12 +23,23 @@ import StringIO
 import sys
 import time
 
+import flashrom_util
 import gft_common
 from gft_common import ErrorMsg, VerboseMsg, DebugMsg, ErrorDie
 
 
+# TODO(tammo): It would be nice to be less python-centric, and maybe
+# to be more flexible.  Consider using YAML for the primary structured
+# portion of the data.  Also consider collecting log data
+# incrementally on disk.  The routines here could be called by other
+# modules to add log data (either structured or non-structured), and
+# then the final log creation just serializes the collection.
+# Consider using MIME for this serialization (and MIME types could be
+# indicated when data is registered to be included).
+
+
 # Update this if any field names (or formats) have been changed.
-REPORT_VERSION = 2
+REPORT_VERSION = 3
 
 # Keys in decoding results
 KEY_INFO_DECODERS = 'decoders'
@@ -143,7 +154,10 @@ def ValidateReport(native_report):
                            'tag',
                            ]
   mandatory_dict_keys = ['crossystem',
-                         'probed_components',
+                         'hwid_properties',
+                         'probe_results',
+                         'cooked_device_details',
+                         'cooked_components',
                          'ro_vpd',
                          'rw_vpd',
                          ]
@@ -179,12 +193,14 @@ def ValidateReport(native_report):
     value = native_report[key]
     if not isinstance(value, dict):
       return 'property %s in report should be a dict.' % key
-    # each elements in value should be simple string
-    for subkey in value:
-      if not isinstance(value[subkey], str):
-        return ('property %s.%s in report should be a simple string.' %
-                (key, subkey))
-
+    # TODO(tammo): Either fix the check below (which currently forces
+    # each dict value to be simple string, and thus is not compatible
+    # with the deeper nesting used by the hwid_properties and cooked_*
+    # fields) or switch to a YAML/etc report format w/o checks.
+    # for subkey in value:
+    #   if not isinstance(value[subkey], str):
+    #     return ('property %s.%s in report should be a simple string.' %
+    #            (key, subkey))
   for key in mandatory_list_keys:
     value = native_report[key]
     if not isinstance(value, list):
@@ -197,7 +213,7 @@ def ValidateReport(native_report):
 
 
 def CreateReport(create_params,
-                 probed_components,
+                 system_details,
                  verbose_log_path=gft_common.DEFAULT_CONSOLE_LOG_PATH,
                  vpd_source=None,
                  tag='',
@@ -218,6 +234,13 @@ def CreateReport(create_params,
      ...}
   """
   report = {}
+
+  # TODO(tammo): Consider adding /var/log/messages* and /etc/lsb-release.
+
+  # TODO(hungte) we may also add in future:
+  #   rootfs hash, dump_kernel_config, lsb-release from release image,
+  #   gooftool version, result of dev_vboot_debug,
+  #   /var/log/factory.log and any other customized data
 
   # General information
   report['version'] = '%s' % REPORT_VERSION
@@ -244,9 +267,12 @@ def CreateReport(create_params,
                               progress_message="Reading RW VPD",
                               show_progress=verbose).strip())
 
-  # Probed hardware components
-  report['probed_components'] = dict(
-      [(key, ', '.join(value)) for key, value in probed_components.items()])
+  # HWID-related Device Data
+  report['hwid_properties'] = system_details.hwid_properties.__dict__
+  report['probe_results'] = system_details.probe_results.__dict__
+  report['cooked_components'] = system_details.cooked_components.__dict__
+  report['cooked_device_details'] = (
+      system_details.cooked_device_details.__dict__)
 
   # Firmware write protection status
   ec_wp_status = gft_common.SystemOutput(
@@ -263,11 +289,6 @@ def CreateReport(create_params,
   # Cellular status
   modem_status = gft_common.SystemOutput('modem status', ignore_status=True)
   report['modem_status'] = modem_status.splitlines()
-
-  # TODO(hungte) we may also add these data in future:
-  #   rootfs hash, dump_kernel_config, lsb-release from release image,
-  #   gooftool version, result of dev_vboot_debug,
-  #   /var/log/factory.log and any other customized data
 
   # Verbose log. Should be prepared before the last step.
   if verbose_log_path and os.path.exists(verbose_log_path):
@@ -312,8 +333,7 @@ def GetReportName(report_blob):
 @gft_common.GFTConsole
 def main():
   """ Main entry as a utility. """
-  # only load the hardware detection and optparse if we're in console.
-  import gft_hwcomp
+  # Only load optparse when running as a stand-alone command.
   import glob
   import optparse
 
@@ -362,8 +382,6 @@ def main():
   if not db_files:
     parser.error('No valid files in --db_path (%s)' % options.db_path)
 
-  hwcomp = gft_hwcomp.HardwareComponents(verbose=True)
-  hwcomp.initialize()
   best_match = None
   for db_file in db_files:
     VerboseMsg("gft_report: Matching for %s..." % db_file)
@@ -377,10 +395,11 @@ def main():
              hwcomp.pformat(best_match))
 
   # create the native report
+  main_fw_file = flashrom_util.LoadMainFirmware().path
   native_report = CreateReport(sys.argv,
                                best_match,
                                verbose_log_path=options.log_path,
-                               vpd_source=hwcomp.load_main_firmware(),
+                               vpd_source=main_fw_file,
                                verbose=True)
   invalid_message = ValidateReport(native_report)
   assert not invalid_message, "Invalid report: %s" % invalid_message

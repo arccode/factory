@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright (c) 2011 The Chromium OS Authors. All rights reserved.
+# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 #
@@ -10,6 +10,7 @@
 
 
 import bmpblk
+import flashrom_util
 import gft_common
 import gft_report
 import os
@@ -23,7 +24,7 @@ KEY_INITIAL_LOCALE = 'initial_locale'
 KEY_INITIAL_TIMEZONE = 'initial_timezone'
 KEY_SERIAL_NUMBER = 'serial_number'
 
-# keyboard_layout: http://git.chromium.org/gitweb/?p=chromiumos/platform/assets.git;a=blob;f=input_methods/whitelist.txt;hb=HEAD
+# keyboard_layout: http://gerrit.chromium.org/gerrit/gitweb?p=chromium/src.git;a=blob;f=chrome/browser/chromeos/input_method/ibus_input_methods.txt
 CHROMEOS_KEYBOARD_LAYOUT = [
   'xkb:nl::nld',
   'xkb:be::nld',
@@ -76,7 +77,7 @@ CHROMEOS_KEYBOARD_LAYOUT = [
   'xkb:ua::ukr',
 ]
 
-# initial_locale: http://google.com/codesearch/p?#OAMlx_jo-ck/src/ui/base/l10n/l10n_util.cc&q=kAcceptLanguageList
+# initial_locale: http://git.chromium.org/gitweb/?p=chromium.git;a=blob;f=ui/base/l10n/l10n_util.cc
 CHROMEOS_INITIAL_LOCALE = [
   "af",
   "am",
@@ -213,7 +214,7 @@ CHROMEOS_INITIAL_LOCALE = [
   "zu",
 ]
 
-# initial_timezone: http://google.com/codesearch/p?#OAMlx_jo-ck/src/chrome/browser/ui/webui/options/chromeos/system_settings_provider.cc&q=kTimeZones
+# initial_timezone: http://git.chromium.org/gitweb/?p=chromium.git;a=blob;f=chrome/browser/chromeos/dom_ui/system_settings_provider.cc
 CHROMEOS_INITIAL_TIMEZONE = [
   "Pacific/Majuro",
   "Pacific/Midway",
@@ -360,6 +361,21 @@ def SetFirmwareBitmapLocale(image_file):
     return True
 
 
+# TODO(tammo): In the factory, we should be validating that any
+# keyboard value specified as part of the HWID data matches keyboard
+# data in the VPD.  Determine if this function is useful or necessary
+# for that, and if not, delete.
+def ProbeKeyboard(data):
+  # VPD value "keyboard_layout"="xkb:gb:extd:eng" should be listed.
+  # TODO(tammo): Try using ParseRoVpdData or "vpd -i -g
+  # keyboard_layout -f %s" instead of running grep + cut -- the latter
+  # is slower, undeterministic, and harder to maintain.
+  cmd = ('vpd -i RO_VPD -l -f "%s" | grep keyboard_layout | cut -f4 -d\\"' %
+         data.main_fw.image_path)
+  part_id = RunShellCmd(cmd).stdout.strip()
+  return part_id if part_id else None
+
+
 #############################################################################
 # Console main entry
 @gft_common.GFTConsole
@@ -374,10 +390,7 @@ def main():
     verbose = False
   ValidateVpdData(vpd_source, verbose)
   if not vpd_source:
-    # only import gft_hwcomp for debugging
-    import gft_hwcomp
-    hwcomp = gft_hwcomp.HardwareComponents(verbose=True)
-    vpd_source = hwcomp.load_main_firmware()
+    vpd_source = flashrom_util.LoadMainFirmware().path
   SetFirmwareBitmapLocale(vpd_source)
   print "VPD verified OK."
 
