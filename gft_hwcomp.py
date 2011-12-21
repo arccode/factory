@@ -474,23 +474,21 @@ class HardwareComponents(object):
         'ec': '-p internal:bus=lpc',
     }
     assert target_name in option_map
+    option = option_map[target_name]
 
-    # example output:
-    #  Found chip "Winbond W25x16" (2048 KB, FWH) at physical address 0xfe
-    # TODO(hungte) maybe we don't need the -V in future -- if that can make
-    # the command faster.
-    command = 'flashrom -V %s -r %s' % (option_map[target_name], filename)
-    parts = []
-    lines = gft_common.SystemOutput(
-        command,
-        progress_message='Reading %s firmware: ' % target_name,
-        show_progress=self._verbose).splitlines()
-    for line in lines:
-      match = re.search(r'Found chip "(.*)" .* at physical address ', line)
-      if match:
-        parts.append(match.group(1))
-    part_id = ', '.join(parts)
-    # restore flashrom target bus
+    # Example output for --flash-name:
+    #  vendor="Winbond" name="W25X10"
+    command = 'flashrom %s --flash-name' % option
+    raw_chip_info = gft_common.SystemOutput(command)
+    info = dict(re.findall('*([^= ]*)="([^"]*)"', raw_chip_info))
+    part_id = '%s %s' % (info.get('vendor', 'Unknown Vendor'),
+                         info.get('name', 'Unknown Chipset'))
+    # Read content (-r file)
+    command = 'flashrom %s -r %s' % (option, filename)
+    prompt = 'Reading %s firmware: ' % target_name
+    gft_common.SystemOutput(command, prompt,
+                            show_progress=self._verbose).splitlines()
+    # Restore flashrom target bus
     if target_name != 'main':
       os.system('flashrom %s >/dev/null 2>&1' % option_map['main'])
     return (part_id, filename)
