@@ -244,7 +244,7 @@ def UpdateGBB(old_image, db_file, in_place=False, clear_flags=False):
   # - data_bitmap_fv (optional because we have universal bitmap now)
   # TODO(hungte) check if the keys match "hash_key_*" in components
   hwid = components.get('part_id_hwqual', [])
-  bmpfv = components.get('data_bitmap_fv', [])
+  bmpfv = components.get('data_bitmap_fv', [''])
   if len(hwid) != 1:
     ErrorDie('HWID (part_id_hwqual) must be one valid value.')
   if len(bmpfv) != 1:
