@@ -480,7 +480,7 @@ class HardwareComponents(object):
     #  vendor="Winbond" name="W25X10"
     command = 'flashrom %s --flash-name' % option
     raw_chip_info = gft_common.SystemOutput(command)
-    info = dict(re.findall('*([^= ]*)="([^"]*)"', raw_chip_info))
+    info = dict(re.findall(r'\s*([^= ]*)="([^"]*)"', raw_chip_info))
     part_id = '%s %s' % (info.get('vendor', 'Unknown Vendor'),
                          info.get('name', 'Unknown Chipset'))
     # Read content (-r file)
