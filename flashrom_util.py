@@ -536,10 +536,8 @@ class flashrom_util(object):
         tmpfn = self._get_temp_filename('wr_')
         open(tmpfn, 'wb').write(base_image)
 
-        cmd = '%s %s%s -w "%s"' % (self.cmd_current,
-                                   cmd_layout,
-                                   cmd_list,
-                                   tmpfn)
+        cmd = '%s %s%s --fast-verify -w "%s"' % (
+            self.cmd_current, cmd_layout, cmd_list, tmpfn)
 
         self.verbose_msg('flashrom._write_flashrom(): ' + cmd)
         result = self.system(cmd)

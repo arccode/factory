@@ -63,7 +63,7 @@ clear_gbb_flags() {
     # Try to update GBB flags
     alert "Clearing system GBB header flag..."
     invoke "Set Flags" "gbb_utility -s --flags=0 '$FIRMWARE_IMAGE' '$TMPFILE'"
-    invoke "Write GBB" "flashrom -w '$TMPFILE' -i GBB"
+    invoke "Write GBB" "flashrom -w '$TMPFILE' -i GBB --fast-verify"
     rm -f "$TMPFILE"
     invoke "Read GBB" "flashrom -r '$TMPFILE' -i GBB"
     alert "Re-try verification..."
