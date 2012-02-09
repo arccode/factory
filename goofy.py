@@ -28,7 +28,7 @@ from autotest_lib.client.cros.factory.event import EventServer
 
 SCRIPT_PATH = os.path.realpath(__file__)
 CROS_FACTORY_LIB_PATH = os.path.dirname(SCRIPT_PATH)
-FACTORY_UI_PATH = os.path.join(CROS_FACTORY_LIB_PATH, 'factory_ui')
+FACTORY_UI_PATH = os.path.join(CROS_FACTORY_LIB_PATH, 'ui')
 CLIENT_PATH = os.path.realpath(os.path.join(CROS_FACTORY_LIB_PATH, '..', '..'))
 DEFAULT_TEST_LIST_PATH = os.path.join(
         CLIENT_PATH , 'site_tests', 'suite_Factory', 'test_list')
@@ -292,7 +292,7 @@ class Goofy(object):
         event_server: The EventServer socket server.
         event_server_thread: A thread running event_server.
         event_client: A client to the event server.
-        ui_process: The factory_ui process object.
+        ui_process: The factory ui process object.
         run_queue: A queue of callbacks to invoke from the main thread.
         invocations: A map from FactoryTest objects to the corresponding
             TestInvocations objects representing active tests.

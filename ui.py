@@ -1,3 +1,4 @@
+#!/usr/bin/python -u
 # -*- coding: utf-8 -*-
 #
 # Copyright (c) 2010 The Chromium OS Authors. All rights reserved.
@@ -11,14 +12,40 @@
 # This includes support for drawing the test widget in a window at the
 # proper location, grabbing control of the mouse, and making the mouse
 # cursor disappear.
+#
+# This UI is intended to be used by the factory autotest suite to
+# provide factory operators feedback on test status and control over
+# execution order.
+#
+# In short, the UI is composed of a 'console' panel on the bottom of
+# the screen which displays the autotest log, and there is also a
+# 'test list' panel on the right hand side of the screen.  The
+# majority of the screen is dedicated to tests, which are executed in
+# seperate processes, but instructed to display their own UIs in this
+# dedicated area whenever possible.  Tests in the test list are
+# executed in order by default, but can be activated on demand via
+# associated keyboard shortcuts.  As tests are run, their status is
+# color-indicated to the operator -- greyed out means untested, yellow
+# means active, green passed and red failed.
 
-import gobject, gtk, pango
+import logging
+import os
+import re
+import subprocess
+import sys
 from itertools import izip, product
 
+# GTK and X modules
+import gobject
+import gtk
+import pango
+
+# Factory and autotest modules
 import factory_common
 from autotest_lib.client.cros import factory
 from autotest_lib.client.cros.factory import TestState
 from autotest_lib.client.cros.factory.event import Event, EventClient
+
 
 # For compatibility with tests before TestState existed
 ACTIVE = TestState.ACTIVE
@@ -26,14 +53,13 @@ PASSED = TestState.PASSED
 FAILED = TestState.FAILED
 UNTESTED = TestState.UNTESTED
 
+# Color definition
 BLACK = gtk.gdk.Color()
 RED =   gtk.gdk.Color(0xFFFF, 0, 0)
 GREEN = gtk.gdk.Color(0, 0xFFFF, 0)
 BLUE =  gtk.gdk.Color(0, 0, 0xFFFF)
 WHITE = gtk.gdk.Color(0xFFFF, 0xFFFF, 0xFFFF)
-
 LIGHT_GREEN = gtk.gdk.color_parse('light green')
-
 SEP_COLOR = gtk.gdk.color_parse('grey50')
 
 RGBA_GREEN_OVERLAY = (0, 0.5, 0, 0.6)
@@ -52,6 +78,28 @@ FAIL_TIMEOUT = 30
 USER_PASS_FAIL_SELECT_STR = (
     'hit TAB to fail and ENTER to pass\n' +
     '錯誤請按 TAB，成功請按 ENTER')
+
+_LABEL_EN_SIZE = (170, 35)
+_LABEL_ZH_SIZE = (70, 35)
+_LABEL_EN_FONT = pango.FontDescription('courier new extra-condensed 16')
+_LABEL_ZH_FONT = pango.FontDescription('normal 12')
+_LABEL_T_SIZE = (40, 35)
+_LABEL_T_FONT = pango.FontDescription('arial ultra-condensed 10')
+_LABEL_UNTESTED_FG = gtk.gdk.color_parse('grey40')
+_LABEL_TROUGH_COLOR = gtk.gdk.color_parse('grey20')
+_LABEL_STATUS_SIZE = (140, 30)
+_LABEL_STATUS_FONT = pango.FontDescription(
+    'courier new bold extra-condensed 16')
+_OTHER_LABEL_FONT = pango.FontDescription('courier new condensed 20')
+
+_ST_LABEL_EN_SIZE = (250, 35)
+_ST_LABEL_ZH_SIZE = (150, 35)
+
+_NO_ACTIVE_TEST_DELAY_MS = 500
+
+
+# ---------------------------------------------------------------------------
+# Client Library
 
 
 def make_label(message, font=LABEL_FONT, fg=LIGHT_GREEN,
@@ -199,8 +247,7 @@ def run_test_widget(dummy_job, test_widget,
             show_window()
 
     event_client = EventClient(
-        callback=handle_event,
-        event_loop=EventClient.EVENT_LOOP_GOBJECT_IO)
+            callback=handle_event, event_loop=EventClient.EVENT_LOOP_GOBJECT_IO)
 
     align = gtk.Alignment(xalign=0.5, yalign=0.5)
     align.add(test_widget)
@@ -230,3 +277,312 @@ def run_test_widget(dummy_job, test_widget,
         cleanup_callback()
 
     del event_client
+
+
+# ---------------------------------------------------------------------------
+# Server Implementation
+
+
+class Console(object):
+    '''Display a progress log.  Implemented by launching an borderless
+    xterm at a strategic location, and running tail against the log.'''
+
+    def __init__(self, allocation):
+        xterm_coords = '145x13+%d+%d' % (allocation.x, allocation.y)
+        logging.info('xterm_coords = %s', xterm_coords)
+        xterm_opts = ('-bg black -fg lightgray -bw 0 -g %s' % xterm_coords)
+        xterm_cmd = (('urxvt %s -e bash -c ' % xterm_opts).split() +
+                     ['tail -f "%s"' % factory.CONSOLE_LOG_PATH])
+        logging.info('xterm_cmd = %s', xterm_cmd)
+        self._proc = subprocess.Popen(xterm_cmd)
+
+    def __del__(self):
+        logging.info('console_proc __del__')
+        self._proc.kill()
+
+
+class TestLabelBox(gtk.EventBox):  # pylint: disable=R0904
+
+    def __init__(self, test, show_shortcut=False):
+        gtk.EventBox.__init__(self)
+        self.modify_bg(gtk.STATE_NORMAL, LABEL_COLORS[TestState.UNTESTED])
+
+        label_en = make_label(test.label_en, size=_LABEL_EN_SIZE,
+                              font=_LABEL_EN_FONT, alignment=(0.5, 0.5),
+                              fg=_LABEL_UNTESTED_FG)
+        label_zh = make_label(test.label_zh, size=_LABEL_ZH_SIZE,
+                              font=_LABEL_ZH_FONT, alignment=(0.5, 0.5),
+                              fg=_LABEL_UNTESTED_FG)
+        label_t = make_label('C-' + test.kbd_shortcut.upper(),
+                             size=_LABEL_T_SIZE, font=_LABEL_T_FONT,
+                             alignment=(0.5, 0.5), fg=BLACK)
+
+        # build a better label_en with shortcuts
+        index_hotkey = test.label_en.upper().find(test.kbd_shortcut.upper())
+        if show_shortcut and index_hotkey >= 0:
+            attrs = label_en.get_attributes() or pango.AttrList()
+            attrs.insert(pango.AttrUnderline(
+                    pango.UNDERLINE_LOW, index_hotkey, index_hotkey + 1))
+            attrs.insert(pango.AttrWeight(
+                    pango.WEIGHT_BOLD, index_hotkey, index_hotkey + 1))
+            label_en.set_attributes(attrs)
+
+        hbox = gtk.HBox()
+        hbox.pack_start(label_en, False, False)
+        hbox.pack_start(label_zh, False, False)
+        hbox.pack_start(label_t, False, False)
+        self.add(hbox)
+        self.label_list = [label_en, label_zh]
+
+    def update(self, state):
+        label_fg = (_LABEL_UNTESTED_FG if state.status == TestState.UNTESTED
+                    else BLACK)
+        for label in self.label_list:
+            label.modify_fg(gtk.STATE_NORMAL, label_fg)
+        self.modify_bg(gtk.STATE_NORMAL, LABEL_COLORS[state.status])
+        self.queue_draw()
+
+
+class UiState(object):
+
+    def __init__(self, test_widget_box):
+        self._test_widget_box = test_widget_box
+        self._label_box_map = {}
+        self._transition_count = 0
+
+        self._active_test_label_map = None
+
+    def _remove_state_widget(self):
+        """Remove any existing state widgets."""
+        for child in self._test_widget_box.get_children():
+            self._test_widget_box.remove(child)
+        self._active_test_label_map = None
+
+    def update_test_label(self, test, state):
+        label_box = self._label_box_map.get(test)
+        if label_box:
+            label_box.update(state)
+
+    def update_test_state(self, test_list, state_map):
+        active_tests = [
+            t for t in test_list.walk()
+            if t.is_leaf() and state_map[t].status == TestState.ACTIVE]
+        has_active_ui = any(t.has_ui for t in active_tests)
+
+        if not active_tests:
+            # Display the "no active tests" widget if there are still no
+            # active tests after _NO_ACTIVE_TEST_DELAY_MS.
+            def run(transition_count):
+                if transition_count != self._transition_count:
+                    # Something has happened
+                    return False
+
+                self._transition_count += 1
+                self._remove_state_widget()
+
+                self._test_widget_box.set(0.5, 0.5, 0.0, 0.0)
+                self._test_widget_box.set_padding(0, 0, 0, 0)
+                label_box = gtk.EventBox()
+                label_box.modify_bg(gtk.STATE_NORMAL, BLACK)
+                label = make_label('no active test', font=_OTHER_LABEL_FONT,
+                                   alignment=(0.5, 0.5))
+                label_box.add(label)
+                self._test_widget_box.add(label_box)
+                self._test_widget_box.show_all()
+
+            gobject.timeout_add(_NO_ACTIVE_TEST_DELAY_MS, run,
+                                self._transition_count)
+            return
+
+        self._transition_count += 1
+
+        if has_active_ui:
+            # Remove the widget (if any) since there is an active test
+            # with a UI.
+            self._remove_state_widget()
+            return
+
+        if (self._active_test_label_map is not None and
+            all(t in self._active_test_label_map for t in active_tests)):
+            # All active tests are already present in the summary, so just
+            # update their states.
+            for test, label in self._active_test_label_map.iteritems():
+                label.modify_fg(
+                    gtk.STATE_NORMAL,
+                    LABEL_COLORS[state_map[test].status])
+            return
+
+        self._remove_state_widget()
+        # No active UI; draw summary of current test states
+        self._test_widget_box.set(0.5, 0.0, 0.0, 0.0)
+        self._test_widget_box.set_padding(40, 0, 0, 0)
+        vbox, self._active_test_label_map = make_summary_box(
+            [t for t in test_list.subtests
+             if state_map[t].status == TestState.ACTIVE],
+            state_map)
+        self._test_widget_box.add(vbox)
+        self._test_widget_box.show_all()
+
+    def set_label_box(self, test, label_box):
+        self._label_box_map[test] = label_box
+
+
+def main(test_list_path):
+    '''Starts the main UI.
+
+    This is launched by the autotest/cros/factory/client.
+    When operators press keyboard shortcuts, the shortcut
+    value is sent as an event to the control program.'''
+
+    test_list = None
+    ui_state = None
+    event_client = None
+
+    # Delay loading Xlib because Xlib is currently not available in image build
+    # process host-depends list, and it's only required by the main UI, not all
+    # the tests using UI library (in other words, it'll be slower and break the
+    # build system if Xlib is globally imported).
+    try:
+        from Xlib import X
+        from Xlib.display import Display
+        disp = Display()
+    except:
+        logging.error('Failed loading X modules')
+        raise
+
+    def handle_key_release_event(_, event):
+        logging.info('base ui key event (%s)', event.keyval)
+        return True
+
+    def handle_event(event):
+        if event.type == Event.Type.STATE_CHANGE:
+            test = test_list.lookup_path(event.path)
+            state_map = test_list.get_state_map()
+            ui_state.update_test_label(test, state_map[test])
+            ui_state.update_test_state(test_list, state_map)
+
+    def grab_shortcut_keys(kbd_shortcuts):
+        root = disp.screen().root
+        keycode_map = {}
+
+        def handle_xevent(  # pylint: disable=W0102
+                          dummy_src, dummy_cond, xhandle=root.display,
+                          keycode_map=keycode_map):
+            for dummy_i in range(0, xhandle.pending_events()):
+                xevent = xhandle.next_event()
+                if xevent.type == X.KeyPress:
+                    keycode = xevent.detail
+                    event_client.post_event(Event('kbd_shortcut',
+                                                  key=keycode_map[keycode]))
+            return True
+
+        # We want to receive KeyPress events
+        root.change_attributes(event_mask = X.KeyPressMask)
+
+        for mod, shortcut in ([(X.ControlMask, k) for k in kbd_shortcuts] +
+                              [(X.Mod1Mask, 'Tab')]):  # Mod1 = Alt
+            keysym = gtk.gdk.keyval_from_name(shortcut)
+            keycode = disp.keysym_to_keycode(keysym)
+            keycode_map[keycode] = shortcut
+            root.grab_key(keycode, mod, 1,
+                          X.GrabModeAsync, X.GrabModeAsync)
+
+        # This flushes the XGrabKey calls to the server.
+        for dummy_x in range(0, root.display.pending_events()):
+            root.display.next_event()
+        gobject.io_add_watch(root.display, gobject.IO_IN, handle_xevent)
+
+
+    test_list = factory.read_test_list(test_list_path)
+
+    window = gtk.Window(gtk.WINDOW_TOPLEVEL)
+    window.connect('destroy', lambda _: gtk.main_quit())
+    window.modify_bg(gtk.STATE_NORMAL, BLACK)
+
+    event_client = EventClient(
+        callback=handle_event,
+        event_loop=EventClient.EVENT_LOOP_GOBJECT_IO)
+
+    screen = window.get_screen()
+    if (screen is None):
+        logging.info('ERROR: communication with the X server is not working, ' +
+                    'could not find a working screen.  UI exiting.')
+        sys.exit(1)
+
+    screen_size_str = os.environ.get('CROS_SCREEN_SIZE')
+    if screen_size_str:
+        match = re.match(r'^(\d+)x(\d+)$', screen_size_str)
+        assert match, 'CROS_SCREEN_SIZE should be {width}x{height}'
+        screen_size = (int(match.group(1)), int(match.group(2)))
+    else:
+        screen_size = (screen.get_width(), screen.get_height())
+    window.set_size_request(*screen_size)
+
+    label_trough = gtk.VBox()
+    label_trough.set_spacing(0)
+
+    rhs_box = gtk.EventBox()
+    rhs_box.modify_bg(gtk.STATE_NORMAL, _LABEL_TROUGH_COLOR)
+    rhs_box.add(label_trough)
+
+    console_box = gtk.EventBox()
+    console_box.set_size_request(-1, 180)
+    console_box.modify_bg(gtk.STATE_NORMAL, BLACK)
+
+    test_widget_box = gtk.Alignment()
+    test_widget_box.set_size_request(-1, -1)
+
+    lhs_box = gtk.VBox()
+    lhs_box.pack_end(console_box, False, False)
+    lhs_box.pack_start(test_widget_box)
+    lhs_box.pack_start(make_hsep(3), False, False)
+
+    base_box = gtk.HBox()
+    base_box.pack_end(rhs_box, False, False)
+    base_box.pack_end(make_vsep(3), False, False)
+    base_box.pack_start(lhs_box)
+
+    window.connect('key-release-event', handle_key_release_event)
+    window.add_events(gtk.gdk.KEY_RELEASE_MASK)
+
+    ui_state = UiState(test_widget_box)
+
+    for test in test_list.subtests:
+        label_box = TestLabelBox(test, True)
+        ui_state.set_label_box(test, label_box)
+        label_trough.pack_start(label_box, False, False)
+        label_trough.pack_start(make_hsep(), False, False)
+
+    window.add(base_box)
+    window.show_all()
+
+    state_map = test_list.get_state_map()
+    for test, state in test_list.get_state_map().iteritems():
+        ui_state.update_test_label(test, state)
+    ui_state.update_test_state(test_list, state_map)
+
+    grab_shortcut_keys(test_list.kbd_shortcut_map.keys())
+
+    hide_cursor(window.window)
+
+    test_widget_allocation = test_widget_box.get_allocation()
+    test_widget_size = (test_widget_allocation.width,
+                        test_widget_allocation.height)
+    factory.set_shared_data('test_widget_size', test_widget_size)
+
+    dummy_console = Console(console_box.get_allocation())
+
+    event_client.post_event(Event(Event.Type.UI_READY))
+
+    logging.info('cros/factory/ui setup done, starting gtk.main()...')
+    gtk.main()
+    logging.info('cros/factory/ui gtk.main() finished, exiting.')
+
+
+if __name__ == '__main__':
+    if len(sys.argv) != 2:
+        print 'usage: %s <test list path>' % sys.argv[0]
+        sys.exit(1)
+
+    factory.init_logging("cros/factory/ui", verbose=True)
+    main(sys.argv[1])
