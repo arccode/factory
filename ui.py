@@ -72,6 +72,7 @@ LABEL_COLORS = {
     TestState.UNTESTED: gtk.gdk.color_parse('dark slate grey')}
 
 LABEL_FONT = pango.FontDescription('courier new condensed 16')
+LABEL_LARGE_FONT = pango.FontDescription('courier new condensed 24')
 
 FAIL_TIMEOUT = 30
 
@@ -161,6 +162,76 @@ def trim(text, length):
     if len(text) > length:
         text = text[:length-3] + '...'
     return text
+
+
+def make_input_window(prompt=None,
+                      init_value=None,
+                      msg_invalid=None,
+                      font=None,
+                      on_validate=None,
+                      on_keypress=None,
+                      on_complete=None):
+    """
+    Creates a widget to prompt user for a valid string.
+
+    @param prompt: A string to be displayed. None for default message.
+    @param init_value: Initial value to be set.
+    @param msg_invalid: Status string to display when input is invalid. None for
+        default message.
+    @param font: Font specification (string or pango.FontDescription) for label
+        and entry. None for default large font.
+    @param on_validate: A callback function to validate if the input from user
+        is valid. None for allowing any non-empty input.
+    @param on_keypress: A callback function when each keystroke is hit.
+    @param on_complete: A callback function when a valid string is passed.
+        None to stop (gtk.main_quit).
+    @return: A widget with prompt, input entry, and status label.
+    """
+    DEFAULT_MSG_INVALID = "Invalid input / 輸入不正確"
+    DEFAULT_PROMPT = "Enter Data / 輸入資料:"
+
+    def enter_callback(entry):
+        text = entry.get_text()
+        if (on_validate and (not on_validate(text))) or (not text.strip()):
+            gtk.gdk.beep()
+            status_label.set_text(msg_invalid)
+        else:
+            on_complete(text) if on_complete else gtk.main_quit()
+        return True
+
+    def key_press_callback(entry, key):
+        status_label.set_text('')
+        if on_keypress:
+            return on_keypress(entry, key)
+        return False
+
+    # Populate default parameters
+    if msg_invalid is None:
+        msg_invalid = DEFAULT_MSG_INVALID
+
+    if prompt is None:
+        prompt = DEFAULT_PROMPT
+
+    if font is None:
+        font = LABEL_LARGE_FONT
+    elif not isinstance(font, pango.FontDescription):
+        font = pango.FontDescription(font)
+
+    widget = gtk.VBox()
+    label = make_label(prompt, font=font)
+    status_label = make_label('', font=font)
+    entry = gtk.Entry()
+    entry.modify_font(font)
+    entry.connect("activate", enter_callback)
+    entry.connect("key_press_event", key_press_callback)
+    if init_value:
+        entry.set_text(init_value)
+    widget.modify_bg(gtk.STATE_NORMAL, BLACK)
+    status_label.modify_fg(gtk.STATE_NORMAL, RED)
+    widget.add(label)
+    widget.pack_start(entry)
+    widget.pack_start(status_label)
+    return widget
 
 
 def make_summary_box(tests, state_map, rows=15):
