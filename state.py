@@ -134,6 +134,20 @@ class FactoryState(object):
         '''
         return self._data_shelf[key]
 
+    @_synchronized
+    def has_shared_data(self, key):
+        '''
+        Returns if a shared data item exists.
+        '''
+        return key in self._data_shelf
+
+    @_synchronized
+    def del_shared_data(self, key):
+        '''
+        Deletes a shared data item.
+        '''
+        del self._data_shelf[key]
+
 
 def get_instance(address=DEFAULT_FACTORY_STATE_ADDRESS,
                  port=DEFAULT_FACTORY_STATE_PORT):

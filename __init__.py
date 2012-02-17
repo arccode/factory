@@ -37,6 +37,32 @@ def get_current_test_path():
     return os.environ.get("CROS_FACTORY_TEST_PATH")
 
 
+def get_lsb_data():
+    """Reads all key-value pairs from system lsb-* configuration files."""
+    # lsb-* file format:
+    # [#]KEY="VALUE DATA"
+    lsb_files = ('/etc/lsb-release',
+                 '/usr/local/etc/lsb-release',
+                 '/usr/local/etc/lsb-factory')
+    def unquote(entry):
+        for c in ('"', "'"):
+            if entry.startswith(c) and entry.endswith(c):
+                return entry[1:-1]
+        return entry
+    data = dict()
+    for lsb_file in lsb_files:
+        if not os.path.exists(lsb_file):
+            continue
+        with open(lsb_file, "rt") as lsb_handle:
+            for line in lsb_handle.readlines():
+                line = line.strip()
+                if ('=' not in line) or line.startswith('#'):
+                    continue
+                (key, value) = line.split('=', 1)
+                data[unquote(key)] = unquote(value)
+    return data
+
+
 def _init_console_log():
     handler = logging.FileHandler(CONSOLE_LOG_PATH, "a", delay=True)
     log_format = '[%(levelname)s] %(message)s'
@@ -94,12 +120,22 @@ def get_state_instance():
     return _state_instance
 
 
-def get_shared_data(key):
+def get_shared_data(key, default=None):
+    if not get_state_instance().has_shared_data(key):
+        return default
     return get_state_instance().get_shared_data(key)
 
 
 def set_shared_data(key, value):
     return get_state_instance().set_shared_data(key, value)
+
+
+def has_shared_data(key):
+    return get_state_instance().has_shared_data(key)
+
+
+def del_shared_data(key):
+    return get_state_instance().del_shared_data(key)
 
 
 def read_test_list(path, state_instance=None):
