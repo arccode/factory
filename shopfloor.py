@@ -3,9 +3,17 @@
 # found in the LICENSE file.
 
 
-"""Wrapper for Factory Shopfloor.
+"""Wrapper for Factory Shop Floor.
 
-See the detail protocols in factory-utils/factory_setup/shopfloor_server.
+This module provides a simple interface for all factory tests to access ChromeOS
+factory shop floor system.
+
+The test program can use set_enabled() and is_enabled() to set/query the status
+of shop floor system usage, set_server_url() to configure shop floor server
+location, then set_serial_number() to bind device, get_*() to retrieve data.
+
+For the protocol details, check:
+ src/platform/factory-utils/factory_setup/shopfloor_server.
 """
 
 import urlparse
@@ -31,30 +39,33 @@ API_GET_VPD = 'GetVPD'
 # Default port number from shopfloor_server.py.
 _DEFAULT_SERVER_PORT = 8082
 
-# Cached default instance
-_default_instance = None
-
 # ----------------------------------------------------------------------------
 # Utility Functions
 
 
 def is_enabled():
-    """Returns if current factory system is configured to use shop floor."""
+    """Checks if current factory is configured to use shop floor system.
+
+    Return True if shop floor is enabled, otherwise False.
+    """
     return factory.get_shared_data(KEY_ENABLED, False)
 
 
 def set_enabled(enabled):
-    """Sets the flag to enable/disable using shop floor in current system."""
+    """Enable/disable using shop floor in current factory flow."""
     factory.set_shared_data(KEY_ENABLED, enabled)
 
 
 def set_server_url(url):
-    """Sets default shop floor server URL."""
+    """Sets default shop floor server URL for further calls."""
     factory.set_shared_data(KEY_SERVER_URL, url)
 
 
 def detect_default_server_url():
-    """Detects default shop floor server URL from current system."""
+    """Tries to find a default shop floor server URL.
+
+       Searches from lsb-* files and deriving from mini-omaha server location.
+    """
     lsb_values = factory.get_lsb_data()
     # FACTORY_OMAHA_URL is written by factory_install/factory_install.sh
     omaha_url = lsb_values.get('FACTORY_OMAHA_URL', None)
@@ -68,7 +79,7 @@ def detect_default_server_url():
 def get_instance(url=None):
     """Gets an instance (for client side) to access the shop floor server.
 
-    @param url: URL of the server to be connected. None to use the value in
+    @param url: URL of the shop floor server. If None, use the value in
             factory shared data.
     @return An object with all public functions from shopfloor.ShopFloorBase.
     """
@@ -78,15 +89,14 @@ def get_instance(url=None):
 
 
 def check_server_status(instance=None):
-    """
-    Checks if the given instance is successfully connected.
+    """Checks if the given instance is successfully connected.
 
     @param instance: Instance object created get_instance, or None to create a
             new instance.
     @return True for success, otherwise raise exception.
     """
     try:
-        if not instance:
+        if instance is not None:
             instance = get_instance()
         instance.Ping()
     except:
@@ -101,6 +111,8 @@ def check_server_status(instance=None):
 
 def set_serial_number(serial_number):
     """Sets a serial number as pinned in factory shared data."""
+    # TODO(hungte) Move serial number somewhere else (disk, memory) to prevent
+    # dependency on factory modules.
     factory.set_shared_data(KEY_SERIAL_NUMBER, serial_number)
 
 
@@ -128,6 +140,7 @@ def get_data(key_name, api_name, force):
 
 def expire_cached_data():
     """Discards any data cached by get_data."""
+    # TODO(hungte) Drop the caching system if no partners really needs it.
     for key in ALL_REMOTE_DATA_KEYS:
         if not factory.has_shared_data(key):
             continue

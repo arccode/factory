@@ -39,6 +39,7 @@ def get_current_test_path():
 
 def get_lsb_data():
     """Reads all key-value pairs from system lsb-* configuration files."""
+    # TODO(hungte) Re-implement using regex.
     # lsb-* file format:
     # [#]KEY="VALUE DATA"
     lsb_files = ('/etc/lsb-release',
