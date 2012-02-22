@@ -15,6 +15,7 @@ import sys
 import time
 import urllib
 import urlparse
+import xmlrpclib
 
 import gft_common
 from gft_common import DebugMsg, ErrorDie, ErrorMsg, VerboseMsg, WarningMsg
@@ -65,6 +66,37 @@ def CustomUpload(source_path, custom_command):
   if os.system(cmd) != 0:
     ErrorDie('CustomUpload: failed: %s' % cmd)
   VerboseMsg('CustomUpload: successfully invoked command: %s.' % cmd)
+  return True
+
+
+def ShopFloorUpload(source_path, remote_spec,
+                    retry_interval=DEFAULT_RETRY_INTERVAL):
+  if '#' not in remote_spec:
+    ErrorDie('ShopFloorUpload: need a valid parameter in URL#SN format.')
+  (server_url, _, serial_number) = remote_spec.partition('#')
+  DebugMsg("ShopFloorUpload: [%s].UploadReport(%s, %s)" %
+           (server_url, serial_number, source_path))
+  instance = xmlrpclib.ServerProxy(server_url, allow_none=True, verbose=False)
+  remote_name = os.path.basename(source_path)
+  with open(source_path, 'rb') as source_handle:
+    blob = xmlrpclib.Binary(source_handle.read())
+
+  def ShopFloorCallback(result):
+    abort = False
+    message = None
+    try:
+      instance.UploadReport(serial_number, blob, remote_name)
+      return True
+    except xmlrpclib.Fault, err:
+      result['message'] = 'Remote server fault #%d: %s' % (err.faultCode,
+                                                           err.faultString)
+      result['abort'] = True
+    except:
+      result['message'] = sys.exc_info()[1]
+      result['abort'] = False
+
+  RetryCommand(ShopFloorCallback, 'ShopFloorUpload', interval=retry_interval)
+  VerboseMsg('ShopFloorUpload: successfully uploaded to: %s' % remote_spec)
   return True
 
 
@@ -225,6 +257,8 @@ def Upload(path, method, **kargs):
     return NoneUpload(path, **kargs)
   elif method == 'custom':
     return CustomUpload(path, param, **kargs)
+  elif method == 'shopfloor':
+    return ShopFloorUpload(path, param, **kargs)
   elif method == 'ftp':
     return FtpUpload(path, 'ftp:' + param, **kargs)
   elif method == 'ftps':
@@ -267,6 +301,10 @@ def main():
 
     cpfe:cpfe_url [curl_options]
         Upload to Google ChromeOS Partner Front End.
+
+    shopfloor:shopfloor_url#serial_number
+        Upload to ChromeOS factory shop floor XMLRPC interface (more info in
+        src/platform/factory-utils/factory_setup/shopfloor*)
 
     custom:shell_command
         Invoke a shell command to upload the file.
