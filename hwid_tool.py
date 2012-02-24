@@ -49,7 +49,6 @@ MakeDatastoreSubclass('CompDb', {
 MakeDatastoreSubclass('Hwid', {
     'component_map': (dict, str),
     'variant_list': (list, str),
-    'build_name': str,
     })
 
 MakeDatastoreSubclass('Device', {
@@ -79,12 +78,6 @@ MakeDatastoreSubclass('Device', {
 # consider making them methods of a DeviceDb class and then have the
 # constructor for that class read the data from disk.
 
-# TODO(tammo): Consider getting rid of the HWID 'build_name' component,
-# since it does not actually provide any value...  The details it is
-# trying to capture should be subsumed by volatile and initial_config.
-# Furthermore, we have no way to specify build in key areas, like
-# status.
-
 # TODO(tammo): Should release move into volatile?
 
 # TODO(tammo): Refactor code to lift out the command line tool parts
@@ -109,10 +102,9 @@ def HwidChecksum(text):
   return ('%04u' % (zlib.crc32(text) & 0xffffffffL))[-4:]
 
 
-def FmtHwid(board, build, bom, volatile, variant):
+def FmtHwid(board, bom, volatile, variant):
   """Generate HWID string.  See the hwid spec for details."""
-  lhs = board if build.startswith('MP') else board + ' ' + build
-  text = '%s %s %s-%s' % (lhs, bom, variant, volatile)
+  text = '%s %s %s-%s' % (board, bom, variant, volatile)
   assert text.isupper(), 'HWID cannot have lower case text parts.'
   return str(text + ' ' + HwidChecksum(text))
 
@@ -120,8 +112,9 @@ def FmtHwid(board, build, bom, volatile, variant):
 def ParseHwid(hwid):
   """Parse HWID string details.  See the hwid spec for details."""
   parts = hwid.split()
-  if len(parts) not in [4, 5]:
-    raise Error, 'illegal hwid string %r, wrong number of parts' % hwid
+  if len(parts) != 4:
+    raise Error, ('illegal hwid %r, does not match ' % hwid +
+                  '"BOARD BOM VARIANT-VOLATILE CHECKSUM" format')
   checksum = parts.pop()
   if checksum != HwidChecksum(' '.join(parts)):
     raise Error, 'bad checksum for hwid %r' % hwid
@@ -129,18 +122,10 @@ def ParseHwid(hwid):
   if len(varvol) != 2:
     raise Error, 'bad variant-volatile part for hwid %r' % hwid
   variant, volatile = varvol
-  bom = parts.pop()
-  build = parts.pop if len(parts) > 1 else None
-  board = parts.pop()
+  board, bom = parts
   if not all(x.isalpha() for x in [board, bom, variant, volatile]):
     raise Error, 'bad (non-alpha) part for hwid %r' % hwid
-  if build is not None and not build.isalnum():
-    raise Error, 'bad build part for hwid %r' % hwid
-  return Obj(board=board,
-             build_name=build,
-             bom=bom,
-             variant=variant,
-             volatile=volatile)
+  return Obj(board=board, bom=bom, variant=variant, volatile=volatile)
 
 
 def ComponentConfigStr(component_map):
@@ -424,7 +409,7 @@ def PrintHwidHierarchy(board, device, hwid_map):
     for bom in bom_set:
       hwid = hwid_map[bom]
       misc_common = FilterExternalHwidAttrs(device, set([bom]), masks)
-      variants = dict((FmtHwid(board, hwid.build_name, bom, volind, variant),
+      variants = dict((FmtHwid(board, bom, volind, variant),
                        ','.join(device.variant_map[variant]))
                       for variant in hwid.variant_list
                       for volind in device.volatile_map
@@ -539,11 +524,6 @@ def LookupHwidProperties(data, hwid):
   if props.bom not in device.hwid_map:
     raise Error, 'hwid %r bom %s could not be found' % (hwid, props.bom)
   hwid_details = device.hwid_map[props.bom]
-  # TODO(tammo): Either fix or remove 'build' behavior.
-  delattr(props, 'build_name')
-  #if props.build != hwid_details.build:
-  #  raise Error, ('hwid %r build does not match database (%s != %s)' %
-  #                (hwid, props.build, hwid_details.build))
   if props.variant not in hwid_details.variant_list:
     raise Error, ('hwid %r variant %s does not match database' %
                   (hwid, props.variant))
@@ -590,7 +570,6 @@ def CmdArg(*tags, **kvargs):
 
 @Command('create_hwids',
          CmdArg('-b', '--board', required=True),
-         CmdArg('--build_name', default='MP'),
          CmdArg('-c', '--comps', nargs='*', required=True),
          CmdArg('-x', '--make_it_so', action='store_true'),
          CmdArg('-v', '--variants', nargs='*'))
@@ -613,8 +592,7 @@ def CreateHwidsCommand(config, data):
   bom_name_list = GetAvailableBomNames(data, config.board, len(comp_map_list))
   variant_list = config.variants if config.variants else []
   hwid_map = dict((bom_name, Hwid(component_map=comp_map,
-                                  variant_list=variant_list,
-                                  build_name=config.build_name))
+                                  variant_list=variant_list))
                   for bom_name, comp_map in zip(bom_name_list, comp_map_list))
   device = data.device_db[config.board]
   device.hwid_list_proposed = bom_name_list
@@ -666,7 +644,7 @@ def ListHwidsCommand(config, data):
           if (config.status != '' and
               (status is None or config.status != status)):
             continue
-          result = FmtHwid(board, hwid.build_name, bom, volind, variant)
+          result = FmtHwid(board, bom, volind, variant)
           if config.verbose:
             result = '%s: %s' % (status, result)
           result_list.append(result)
