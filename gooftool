@@ -24,7 +24,7 @@ import tempfile
 ########################################################################
 # cros/gft modules
 
-import flashrom_util
+import crosfw
 import gft_common
 import gft_fwhash
 import gft_report
@@ -181,24 +181,11 @@ def write_hwid():
     ErrorDie('write_hwid: No HWID specified (must specify using --hwid arg).')
   hwid = g_options.hwid
   DebugMsg('write_hwid: using hwid string %r' % hwid)
-  flashrom = flashrom_util.flashrom_util(verbose_msg=VerboseMsg,
-                                         exception_type=gft_common.GFTError)
-  # TODO(hungte) Refactor to use the new flashrom partial read/write syntax.
-  flashrom.select_target('bios')
-  image_file = gft_common.GetTemporaryFileName('wgbb')
-  if not flashrom.read_whole_to_file(image_file):
-    ErrorDie('write_hwid: failed to read current firmware.')
-  DebugMsg('write_hwid: updating with %s' % image_file)
-  cmd = ('gbb_utility --set --hwid="%s" %s %s' % (hwid, image_file, image_file))
-  VerboseMsg("write_hwid: invoke command: " + cmd)
+  main_fw_file = crosfw.LoadMainFirmware().path
+  cmd = ('gbb_utility --set --hwid="%s" "%s"' % (hwid, main_fw_file))
   gft_common.System(cmd)
-  # Latest flashrom supports minimal writing, so we don't need to care about
-  # managing partial writing sections here. Simply provide the whole image.
-  with open(image_file) as image:
-    image_data = image.read()
-    if not flashrom.write_whole(image_data):
-      ErrorDie('write_hwid: failed to flash firmware to system.')
-  os.remove(image_file)
+  flashrom = crosfw.Flashrom(crosfw.TARGET_MAIN)
+  flashrom.Write(filename=main_fw_file, sections=['GBB'])
   return True
 
 
@@ -212,7 +199,7 @@ def verify_hwid():
   that list.  Finally, verify that the DUT initial config values match
   those specified for its HWID.
   """
-  main_fw_file = flashrom_util.LoadMainFirmware().path
+  main_fw_file = crosfw.LoadMainFirmware().path
   gbb_result = gft_common.SystemOutput('gbb_utility -g --hwid %s' %
                                        main_fw_file)
   hwid = re.findall(r'hardware_id:(.*)', gbb_result)[0].strip()
@@ -276,7 +263,7 @@ def verify_keys():
   if not os.path.exists(script):
     ErrorDie('verify_keys: cannot find script to verify.')
   kernel_device = '/dev/%s' % GetReleaseKernelPartitionPath()
-  main_fw_path = flashrom_util.LoadMainFirmware().path
+  main_fw_path = crosfw.LoadMainFirmware().path
   command = '%s %s %s' % (script, kernel_device, main_fw_path)
   try:
     VerboseSystemCommand(command, prompt='verify_keys: ')
@@ -291,7 +278,7 @@ def verify_vpd():
   try:
     # TODO(tammo): Verify that all of the VPD fields specified for the
     # board (using hwid properties) have values.
-    image_file = flashrom_util.LoadMainFirmware().path
+    image_file = crosfw.LoadMainFirmware().path
     gft_vpd.ValidateVpdData(image_file, g_options.verbose)
     gft_vpd.SetFirmwareBitmapLocale(image_file)
   except gft_common.GFTError, e:
@@ -369,7 +356,7 @@ def create_report():
     # reports for machines where the hwid validation fails.
     ErrorDie('create_report: must run verify_hwid first')
 
-  vpd_source = flashrom_util.LoadMainFirmware().path
+  vpd_source = crosfw.LoadMainFirmware().path
   report = gft_report.CreateReport(sys.argv,
                                    system_details=g_cached_device_data,
                                    verbose_log_path=g_options.log_path,
@@ -418,8 +405,8 @@ def wpfw():
     ErrorMsg('wpfw is by-passed. This device CANNOT be qualified.')
     return True
   read_binary = gft_common.ReadBinaryFile
-  ec_fw = flashrom_util.LoadEcFirmware()
-  main_fw = flashrom_util.LoadMainFirmware()
+  ec_fw = crosfw.LoadEcFirmware()
+  main_fw = crosfw.LoadMainFirmware()
   target_set = [('bios', main_fw.path)]
   if ec_fw.chip_id is not None:
     target_set.insert(0, ('ec', ec_fw.path))

@@ -10,7 +10,7 @@
 
 
 import bmpblk
-import flashrom_util
+import crosfw
 import gft_common
 import gft_report
 import os
@@ -390,7 +390,7 @@ def main():
     verbose = False
   ValidateVpdData(vpd_source, verbose)
   if not vpd_source:
-    vpd_source = flashrom_util.LoadMainFirmware().path
+    vpd_source = crosfw.LoadMainFirmware().path
   SetFirmwareBitmapLocale(vpd_source)
   print "VPD verified OK."
 

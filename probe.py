@@ -27,7 +27,7 @@ from inspect import getargspec
 from tempfile import NamedTemporaryFile
 
 import edid
-import flashrom_util
+import crosfw
 import vblock
 
 sys.path.append('/usr/local/lib/flimflam/test')
@@ -217,12 +217,12 @@ def _ProvidesSharedData(data_name):
 
 @_ProvidesSharedData('ec_fw')
 def _LoadEcFirmware():
-  return flashrom_util.LoadEcFirmware()
+  return crosfw.LoadEcFirmware()
 
 
 @_ProvidesSharedData('main_fw')
 def _LoadMainFirmware():
-  return flashrom_util.LoadMainFirmware()
+  return crosfw.LoadMainFirmware()
 
 
 @_ProvidesSharedData('touchpad')
@@ -621,7 +621,7 @@ def _GetMainFirmwareReadOnlyHash(main_fw):
   Algorithm: sha256(fmap, RO_SECTION[-GBB]).
   """
   raw_image = open(main_fw.path, 'rb').read()
-  image = flashrom_util.FirmwareImage(raw_image)
+  image = crosfw.FirmwareImage(raw_image)
   hash_src = image.get_fmap_blob()
   gbb = image.get_section('GBB')
   zero_gbb = chr(0) * len(gbb)
@@ -639,7 +639,7 @@ def _GetMainFirmwareGbbHash(main_fw):
   Algorithm: sha256(GBB[-HWID]).
   """
   raw_image = open(main_fw.path, 'rb').read()
-  image = flashrom_util.FirmwareImage(raw_image)
+  image = crosfw.FirmwareImage(raw_image)
   # Clobber HWID in a copy of the GBB, to get a HWID-independent hash.
   with NamedTemporaryFile('wb', delete=True) as f:
     f.write(image.get_section('GBB'))
@@ -659,7 +659,7 @@ def _GetEcFirmwareReadOnlyHash(ec_fw):
   if ec_fw.chip_id is None:
     return None
   raw_image = open(ec_fw.path, 'rb').read()
-  image = flashrom_util.FirmwareImage(raw_image)
+  image = crosfw.FirmwareImage(raw_image)
   hash_src = image.get_fmap_blob()
   hash_src += image.get_section('EC_RO')
   return hashlib.sha256(hash_src).hexdigest()
@@ -668,18 +668,22 @@ def _GetEcFirmwareReadOnlyHash(ec_fw):
 def _CalculateMainFwKeyHash(main_fw_file, key_name):
   """Returns hash of the specified key from the main firmware.
 
-  Extracts specified GBB key element from the main firmware, using the
-  gbb_utility command and a temporary file.
+  Extracts specified GBB key element from the main firmware, using vbutil_key
+  command.
 
-  Algorithm: sha256(key%%[00|FF])).
+  Algorithm: vbutil_key | grep "Key sha1sum".
   """
   with NamedTemporaryFile(prefix='gbb_%s_' % key_name, delete=True) as f:
     if not RunShellCmd('gbb_utility -g --%s=%s %s' %
                        (key_name, f.name, main_fw_file)).success:
       raise Error('cannot get %s from GBB' % key_name)
-    hash_src = f.read()
-  # Keys may be padded with 0x00 or 0xFF.
-  return hashlib.sha256(hash_src.strip('\x00\xff')).hexdigest()
+
+    key_info = RunShellCmd('vbutil_key --unpack %s' % f.name).stdout
+    sha1sum = re.findall(r'Key sha1sum:[\s]+([\w]+)', key_info)
+    if len(sha1sum) != 1:
+      logging.error("Failed calling vbutil_key for firmware key hash.")
+      return None
+    return sha1sum[0]
 
 
 @_HashProbe('key_recovery')
@@ -730,7 +734,7 @@ def _ProbeCellularFirmwareVersion(flimflam):
       return CompactStr([dev_attrs[key] for key in version_format])
     # If nothing available, try 'modem status'.
     cmd = 'modem status | grep firmware_revision'
-    modem_status = RunShellCmd(cmd).stdout.stip()
+    modem_status = RunShellCmd(cmd).stdout.strip()
     info = re.findall('^\s*firmware_revision:\s*(.*)', modem_status)
     if info and info[0]:
       return info[0]
@@ -750,7 +754,7 @@ def _ProbeRwFirmwareVersion(main_fw):
   """
   versions = [None, None]
   with open(main_fw.path, 'rb') as f:
-    image = flashrom_util.FirmwareImage(f.read())
+    image = crosfw.FirmwareImage(f.read())
   for (index, name) in enumerate(['VBLOCK_A', 'VBLOCK_B']):
     data = image.get_section(name)
     block = vblock.unpack_verification_block(data)

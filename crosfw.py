@@ -1,0 +1,241 @@
+# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+"""ChromeOS Firmware Utilities
+
+This modules provides easy access to ChromeOS firmware.
+
+To access the contents of a firmware image, use FimwareImage().
+To access the flash chipset containing firmware, use Flashrom().
+To get the content of (cacheable) firmware, use LoadMainFirmware() or
+  LoadEcFirmware().
+"""
+
+import collections
+import logging
+import re
+import tempfile
+
+import common
+import fmap
+
+
+# Global dict to cache firmware details: {target_name: (chip_id, file handle)}.
+_g_firmware_details = {}
+
+# Names to select target bus.
+TARGET_MAIN = 'main'
+TARGET_EC = 'ec'
+
+# Types of named tuples
+WpStatus = collections.namedtuple('WpStatus', 'enabled offset size')
+FirmwareContent = collections.namedtuple('FirwmareContent', 'chip_id path')
+
+
+class Flashrom(object):
+  """Wrapper for calling system command flashrom(8)."""
+
+  # flashrom(8) command line parameters
+  _VALID_TARGETS = (TARGET_MAIN, TARGET_EC)
+  _TARGET_MAP = {TARGET_MAIN: "-p internal:bus=spi",
+                 TARGET_EC: "-p internal:bus=lpc"}
+  _WRITE_FLAGS = "--fast-verify"
+  _READ_FLAGS = ""
+
+  def __init__(self, target=None):
+    self._target = target or TARGET_MAIN
+
+  def _InvokeCommand(self, param, ignore_status=False):
+    command = ' '.join(['flashrom', self._TARGET_MAP[self._target], param])
+    logging.debug('Flashrom._InvokeCommand: %s', command)
+    result = common.RunShellCmd(command)
+    if not (ignore_status or result.success):
+      raise IOError, "Failed in command: %s\n%s" % (command, result.stderr)
+    return result
+
+  def GetTarget(self):
+    """Gets current target (bus) to access."""
+    return self._target
+
+  def SetTarget(self, target):
+    """Sets current target (bus) to access."""
+    assert target in self.VALID_TARGETS, "Unknown target: %s" % target
+    self._target = target
+
+  def GetSize(self):
+    return int(self._InvokeCommand("--get-size").stdout.splitlines()[-1], 0)
+
+  def GetName(self):
+    """Returns a key-value dict for chipset info, or None for any failure."""
+    results = self._InvokeCommand("--flash-name", ignore_status=True).stdout
+    match_list = re.findall(r'\b(\w+)="([^"]*)"', results)
+    return dict(match_list) if match_list else None
+
+  def Read(self, filename=None, sections=None):
+    """Reads whole image from selected flash chipset.
+
+    Args:
+      filename: File name to receive image. None to use temporary file.
+      sections: List of sections to read. None to read whole image.
+
+    Returns:
+      Image data read from flash chipset.
+    """
+    if filename is None:
+      with tempfile.NamedTemporaryFile(prefix='fw_%s_' % self._target) as f:
+        return self.Read(f.name)
+    sections_param = [name % '-i %s' for name in sections or []]
+    self._InvokeCommand("-r '%s' %s %s" % (filename, ' '.join(sections_param),
+                                           self._READ_FLAGS))
+    with open(filename, 'rb') as file_handle:
+      return file_handle.read()
+
+  def Write(self, data=None, filename=None, sections=None):
+    """Writes image into selected flash chipset.
+
+    Args:
+      data: Image data to write. None to write given file.
+      filename: File name of image to write if data is None.
+      sections: List of sections to write. None to write whole image.
+    """
+    assert (((data is not None) and (filename is None)) or
+            ((data is None) and (filename is not None))), \
+                "Either data or filename should be None."
+    if data is not None:
+      with tempfile.NamedTemporaryFile(prefix='fw_%s_' % self._target) as f:
+        f.write(data)
+        f.flush()
+        return self.Write(None, f.name)
+    sections_param = [('-i %s' % name) for name in (sections or [])]
+    self._InvokeCommand("-w '%s' %s %s" % (filename, ' '.join(sections_param),
+                                           self._WRITE_FLAGS))
+
+  def GetWriteProtectionStatus(self):
+    """Gets write protection status from selected flash chipset.
+
+    Returns: A named tuple with (enabled, offset, size).
+    """
+    # flashrom(8) output: WP: status: 0x80
+    #                     WP: status.srp0: 1
+    #                     WP: write protect is %s. (disabled/enabled)
+    #                     WP: write protect range: start=0x%8x, len=0x%08x
+    results = self._InvokeCommand("--wp-status").stdout
+    status = re.findall(r'WP: write protect is (\w+)\.', results)
+    if len(status) != 1:
+      raise IOError, "Failed getting write protection status"
+    status = status[0]
+    if status not in ('enabled', 'disabled'):
+      raise ValueError, "Unknown write protection status: %s" % status
+
+    wp_range = re.findall(r'WP: write protect range: start=(\w+), len=(\w+)',
+                          results)
+    if len(wp_range) != 1:
+      raise IOError, "Failed getting write protection range"
+    wp_range = wp_range[0]
+    return WpStatus(True if status == 'enabled' else False,
+                    int(wp_range[0], 0),
+                    int(wp_range[1], 0))
+
+  def EnableWriteProtection(self, offset, size):
+    """Enables write protection by specified range."""
+    self._InvokeCommand('--wp-range 0x%06X 0x%06X --wp-enable' % (offset, size))
+    # Try to verify write protection by attempting to disable it.
+    self._InvokeCommand('--wp-disable --wp-range 0 0', ignore_status=True)
+    # Verify the results
+    result = self.GetWriteProtectionStatus()
+    if ((not result.enabled) or (result.offset != offset) or
+        (result.size != size)):
+      raise IOError, "Failed to enabled write protection."
+
+  def DisableWriteProtection(self):
+    """Tries to Disable whole write protection range and status."""
+    self._InvokeCommand('--wp-disable --wp-range 0 0')
+    result = self.GetWriteProtectionStatus()
+    if (result.enabled or (result.offset != 0) or (result.size != 0)):
+      raise IOError, "Failed to disable write protection."
+
+
+class FirmwareImage(object):
+  """Provides access to firmware image via FMAP sections."""
+  def __init__(self, image_source):
+    self._image = image_source;
+    self._fmap = fmap.fmap_decode(self._image)
+    self._areas = dict(
+        (entry['name'], [entry['offset'], entry['size']])
+        for entry in self._fmap['areas'])
+
+  def get_size(self):
+    """Returns the size of associate firmware image."""
+    return len(self._image)
+
+  def has_section(self, name):
+    """Returns if specified section is available in image."""
+    return name in self._areas
+
+  def get_section_area(self, name):
+    """Returns the area (offset, size) information of given section."""
+    if not self.has_section(name):
+      raise ValueError('get_section_area: invalid section: %s' % name)
+    return self._areas[name]
+
+  def get_section(self, name):
+    """Returns the content of specified section."""
+    area = self.get_section_area(name)
+    return self._image[area[0]:(area[0] + area[1])]
+
+  def get_section_offset(self, name):
+    area = self.get_section_area(name)
+    return self._image[area[0]:(area[0] + area[1])]
+
+  def put_section(self, name, value):
+    """Updates content of specified section in image."""
+    area = self.get_section_area(name)
+    if len(value) != area[1]:
+      raise ValueError("Value size (%d) does not fit into section (%s, %d)" %
+                       (len(value), name, area[1]))
+    self._image = (self._image[0:area[0]] +
+                   value +
+                   self._image[(area[0] + area[1]):])
+    return True
+
+  def get_fmap_blob(self):
+    """Returns the re-encoded fmap blob from firmware image."""
+    return fmap.fmap_encode(self._fmap)
+
+
+def LoadFirmware(target):
+  """Returns the chipset ID and path to a file containing firmware data.
+
+  Runs flashrom twice.  First probe for the chip_id.  Then, if a chip
+  is found, dump the contents of flash into a file.
+
+  Args:
+    target: Which target to access.  For example TARGET_MAIN or TARGET_EC.
+
+  Returns:
+    FirmwareContent with chipset ID and file path.  If given target does not
+    exist, both ID and path are None.
+  """
+  if target in _g_firmware_details:
+    chip_id, fw_file = _g_firmware_details[target]
+    return FirmwareContent(chip_id, fw_file.name)
+
+  flashrom = Flashrom(target)
+  info = flashrom.GetName()
+  chip_id = ' '.join([info['vendor'], info['name']]) if info else None
+  if chip_id is not None:
+    fw_file = tempfile.NamedTemporaryFile(prefix='fw_%s_' % target)
+    flashrom.Read(filename=fw_file.name)
+  _g_firmware_details[target] = (chip_id, fw_file)
+  return FirmwareContent(chip_id, fw_file.name if fw_file else None)
+
+
+def LoadEcFirmware():
+  """Returns flashrom data from Embedded Controller chipset."""
+  return LoadFirmware(TARGET_EC)
+
+
+def LoadMainFirmware():
+  """Returns flashrom data from main firmware (also known as BIOS)."""
+  return LoadFirmware(TARGET_MAIN)

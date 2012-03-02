@@ -23,7 +23,7 @@ import StringIO
 import sys
 import time
 
-import flashrom_util
+import crosfw
 import gft_common
 from gft_common import ErrorMsg, VerboseMsg, DebugMsg, ErrorDie
 
@@ -275,6 +275,7 @@ def CreateReport(create_params,
       system_details.cooked_device_details.__dict__)
 
   # Firmware write protection status
+  # TODO(hungte) Replace by crosfw.Flashrom.
   ec_wp_status = gft_common.SystemOutput(
       'flashrom -p internal:bus=lpc --get-size 2>/dev/null && '
       'flashrom -p internal:bus=lpc --wp-status || '
@@ -395,7 +396,7 @@ def main():
              hwcomp.pformat(best_match))
 
   # create the native report
-  main_fw_file = flashrom_util.LoadMainFirmware().path
+  main_fw_file = crosfw.LoadMainFirmware().path
   native_report = CreateReport(sys.argv,
                                best_match,
                                verbose_log_path=options.log_path,
