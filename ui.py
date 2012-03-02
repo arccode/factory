@@ -197,6 +197,8 @@ def make_input_window(prompt=None,
     @param on_complete: A callback function when a valid string is passed.
         None to stop (gtk.main_quit).
     @return: A widget with prompt, input entry, and status label.
+             In addition, a method called get_entry() is added to the widget to
+             provide controls on the entry.
     """
     DEFAULT_MSG_INVALID = "Invalid input / 輸入不正確"
     DEFAULT_PROMPT = "Enter Data / 輸入資料:"
@@ -242,6 +244,10 @@ def make_input_window(prompt=None,
     widget.add(label)
     widget.pack_start(entry)
     widget.pack_start(status_label)
+
+    # Method for getting the entry.
+    widget.get_entry = lambda : entry
+
     return widget
 
 
