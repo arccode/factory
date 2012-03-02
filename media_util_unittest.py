@@ -20,7 +20,10 @@ from autotest_lib.client.cros.factory.media_util import MountedMedia
 _UDEV_ACTION_INSERT = 'add'
 _UDEV_ACTION_REMOVE = 'remove'
 
+_WRITING_TEST_FILENAME = 'media_util_unittest.test'
 _WRITING_TEST_STR = 'Unittest writing test...'
+_VIRTUAL_PATITION_NUMBER = 3
+
 
 class TestMountedMedia(unittest.TestCase):
     def setUp(self):
@@ -50,11 +53,63 @@ class TestMountedMedia(unittest.TestCase):
         self.assertRaises(Exception, with_wrapper)
 
     def testNormalMount(self):
-        """Tests the normal flow of mounting an external media device."""
+        """Tests mounting partition."""
         with MountedMedia(self._free_loop_device) as path:
-            with open(os.path.join(path,"Media_unittest.txt"), 'w') as f:
+            with open(os.path.join(path, _WRITING_TEST_FILENAME), 'w') as f:
                 f.write(_WRITING_TEST_STR)
-            with open(os.path.join(path,"Media_unittest.txt"), 'r') as f:
+            with open(os.path.join(path, _WRITING_TEST_FILENAME), 'r') as f:
+                self.assertEqual(_WRITING_TEST_STR, f.readline())
+
+    def testPartitionMountSDA(self):
+        """Tests mounting partition.
+
+           This tests mounting partition with devices enumerated
+           in alphabets (ex, sda).
+        """
+        virtual_partition = tempfile(unique_id='virtual_partition',
+                                     suffix='sdc%d' %
+                                     _VIRTUAL_PATITION_NUMBER)
+        exit_code, ret = commands.getstatusoutput(
+            'ln -s -f %s %s' %
+            (self._free_loop_device, virtual_partition.name))
+        self.assertEqual(0, exit_code)
+
+        with MountedMedia(virtual_partition.name[:-1],
+                          _VIRTUAL_PATITION_NUMBER) as path:
+            with open(os.path.join(path, _WRITING_TEST_FILENAME), 'w') as f:
+                f.write(_WRITING_TEST_STR)
+            with open(os.path.join(path, _WRITING_TEST_FILENAME), 'r') as f:
+                self.assertEqual(_WRITING_TEST_STR, f.readline())
+        virtual_partition.clean()
+
+    def testPartitionMountMMCBLK0(self):
+        """Tests mounting partition.
+
+           This tests mounting partition with devices enumerated
+           in alphabets (ex, mmcblk0).
+        """
+        virtual_partition = tempfile(unique_id='virtual_partition',
+                                     suffix='mmcblk0p%d' %
+                                     _VIRTUAL_PATITION_NUMBER)
+        exit_code, ret = commands.getstatusoutput(
+            'ln -s -f %s %s' %
+            (self._free_loop_device, virtual_partition.name))
+        self.assertEqual(0, exit_code)
+
+        with MountedMedia(virtual_partition.name[:-2],
+                          _VIRTUAL_PATITION_NUMBER) as path:
+            with open(os.path.join(path, _WRITING_TEST_FILENAME), 'w') as f:
+                f.write(_WRITING_TEST_STR)
+            with open(os.path.join(path, _WRITING_TEST_FILENAME), 'r') as f:
+                self.assertEqual(_WRITING_TEST_STR, f.readline())
+        virtual_partition.clean()
+
+    def testPartitionMountFloppy(self):
+        """Tests mounting a device without partition table."""
+        with MountedMedia(self._free_loop_device, 1) as path:
+            with open(os.path.join(path, _WRITING_TEST_FILENAME), 'w') as f:
+                f.write(_WRITING_TEST_STR)
+            with open(os.path.join(path, _WRITING_TEST_FILENAME), 'r') as f:
                 self.assertEqual(_WRITING_TEST_STR, f.readline())
 
 
@@ -121,6 +176,7 @@ class TestMediaMonitor(unittest.TestCase):
         monitor.stop()
         self.assertEqual(True, self._media_inserted)
         self.assertEqual(True, self._media_removed)
+
 
 if __name__ == '__main__':
     unittest.main()

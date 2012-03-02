@@ -54,7 +54,8 @@ class MediaMonitor():
         logging.info("Monitoring media actitivity")
 
     def stop(self):
-        # TODO(itspeter) : Add stop functionality as soon as pyudev.Monitor support it.
+        # TODO(itspeter) : Add stop functionality as soon as
+        #                  pyudev.Monitor support it.
         self._monitoring = False
 
 
@@ -62,13 +63,45 @@ class MountedMedia():
     """A context manager to automatically mount and unmount specified device.
 
     Usage example:
-        with MountedMedia('/dev/sda') as media_path:
+        To mount the third partition of /dev/sda.
+
+        with MountedMedia('/dev/sda', 3) as media_path:
             print("Mounted at %s." % media_path)
     """
 
-    def __init__(self, dev_path):
+    def __init__(self, dev_path, partition=None):
+        """Constructs a context manager to automatically mount/umount.
+
+        Args:
+            dev_path: The absolute path to the device.
+            partition: A optional number indicated which partition of the device
+                       should be mounted. If None is given, the dev_path will be
+                       the mounted partition.
+        Returns:
+            A MountedMedia instance with initialized proper path.
+
+        Example:
+            with MountedMedia('/dev/sdb', 1) as path:
+                with open(os.path.join(path, 'test'), 'w') as f:
+                    f.write('test')
+        """
         self._mounted = False
-        self._dev_path = dev_path
+        if partition is None:
+            self._dev_path = dev_path
+            return
+
+        if dev_path[-1].isdigit():
+            # Devices enumerated in numbers (ex, mmcblk0).
+            self._dev_path = '%sp%d' % (dev_path, partition)
+        else:
+            # Devices enumerated in alphabets (ex, sda)
+            self._dev_path = '%s%d' % (dev_path, partition)
+
+        # For devices not using partition table (floppy mode),
+        # allow using whole device as first partition.
+        if (not os.path.exists(self._dev_path)) and (partition == 1):
+            logging.info('Using device without partition table - %s', dev_path)
+            self._dev_path = dev_path
 
     def __enter__(self):
         self._mount_media()
