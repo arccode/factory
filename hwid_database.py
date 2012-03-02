@@ -8,6 +8,11 @@ import os
 import yaml
 
 
+class InvalidDataError(ValueError):
+  """Error in (en/de)coding or validating data."""
+  pass
+
+
 class _DatastoreClass(object):
 
   def __init__(self, **field_dict):
@@ -19,64 +24,104 @@ class _DatastoreClass(object):
     return yaml_representer.represent_data(self.__dict__)
 
   def Encode(self):
-    """Return the YAML string for this object and check its schema."""
-    self.ValidateSchema(self.__dict__)
-    return yaml.dump(self, default_flow_style=False)
+    """Return the YAML string for this object and check its schema.
+
+    After generating the output data, run decode on that to validate.
+    """
+    yaml_data = yaml.dump(self, default_flow_style=False)
+    self.Decode(yaml_data)
+    return yaml_data
 
   @classmethod
   def Decode(c, data):
     """Given YAML string, creates corresponding object and check its schema."""
+    def NestedDecode(elt_type, elt_data):
+      """Apply appropriate constructors to nested object data."""
+      if isinstance(elt_type, tuple):
+        collection_type, field_type = elt_type
+        if collection_type is dict:
+          return dict((field_key, NestedDecode(field_type, field))
+                      for field_key, field in elt_data.items())
+        if collection_type is list:
+          return [NestedDecode(field_type, field) for field in elt_data]
+      elif issubclass(elt_type, _DatastoreClass):
+        return elt_type(**elt_data)
+      return elt_data
     try:
-      field_dict = c.ValidateSchema(yaml.safe_load(data), decode=True)
+      field_dict = yaml.safe_load(data)
     except yaml.YAMLError, e:
-      logging.error("YAML deserialization error: %s" % e)
-      return None
-    return c(**field_dict)
+      raise InvalidDataError("YAML deserialization error: %s" % e)
+    c.ValidateSchema(field_dict)
+    cooked_field_dict = dict(
+        (elt_key, NestedDecode(elt_type, field_dict[elt_key]))
+        for elt_key, elt_type in c._schema.items())
+    return c(**cooked_field_dict)
 
   @classmethod
-  def ValidateSchema(c, field_dict, decode=False):
+  def ValidateSchema(c, field_dict):
     """Ensures the layout of field_dict matches the class schema specification.
+
+    This should be run before data is coerced into objects.  When the
+    schema indicates an object class type, the corresponding schema
+    for that class is applied to the corresponding subset of field
+    data.  Long story short, field_dict should not contain any
+    objects.
 
     Args:
       field_dict: Data which must have layout and type matching schema.
-      decode: When set, if the schema contains references to other
-        DatastoreClass subclasses, apply the appropriate constructor
-        and schema validation.
-    Returns:
-      Schema-compliant field_dict ; or throws an assertion error is
-      the schema is not met.
     """
-    #TODO(tammo): Provide meaningful error output.
-    #TODO(tammo): Separate validation from the returns-a-field_dict decode bits.
-    assert(not (set(c._schema) ^ set(field_dict)))
-    def validate_complex(t, field):
-      assert(len(t) == 2)
-      (ft, sft) = t
-      assert(ft in [dict, list])
-      assert(ft == type(field))
-      if ft is dict:
-        if not field:
-          return {}
-        for k in field:
-          assert(isinstance(k, str) or isinstance(k, int))
-          return dict((k, validate_field(sft, sf)) for k, sf in field.items())
-      if ft is list:
-        return sorted(map(lambda sf: validate_field(sft, sf), field))
-    def validate_field(t, field):
-      if isinstance(t, tuple):
-        return validate_complex(t, field)
-      elif issubclass(t, _DatastoreClass):
-        if decode:
-          return t(**t.ValidateSchema(field, decode))
-        else:
-          assert(isinstance(field, t))
-          t.ValidateSchema(field.__dict__)
-          return field
+    def ValidateCollection(top_level_tag, collection_type_data,
+                           collection_data):
+      if len(collection_type_data) != 2:
+        raise InvalidDataError(
+            '%r schema contains bad type definiton for element %r, ' %
+            (c.__name__, top_level_tag) +
+            'expected (collection type, field type) tuple, '
+            'found %s' % repr(collection_type_data))
+      collection_type, field_type = collection_type_data
+      if collection_type not in [dict, list]:
+        raise InvalidDataError(
+            '%r schema element %r has illegal collection type %r ' %
+            (c.__name__, top_level_tag, collection_type.__name__) +
+            '(only "dict" and "list" are supported)')
+      if not isinstance(collection_data, collection_type):
+        raise InvalidDataError(
+            '%r schema validation failed for element %r, ' %
+            (c.__name__, top_level_tag) +
+            'expected type %r, found %r' %
+            (collection_type.__name__, type(collection_data).__name__))
+      if collection_type is dict:
+        for field_key, field_data in collection_data.items():
+          if not (isinstance(field_key, str) or isinstance(field_key, int)):
+            raise InvalidDataError(
+                '%r schema validation failed for element %r, ' %
+                (c.__name__, top_level_tag) +
+                'dict key must be "str" or "int", found %r' %
+                (type(field_key).__name__))
+          ValidateField(top_level_tag, field_type, field_data)
+      elif collection_type is list:
+        for field_data in collection_data:
+          ValidateField(top_level_tag, field_type, field_data)
+    def ValidateField(top_level_tag, field_type, field_data):
+      if isinstance(field_type, tuple):
+        ValidateCollection(top_level_tag, field_type, field_data)
+      elif issubclass(field_type, _DatastoreClass):
+        field_type.ValidateSchema(field_data)
       else:
-        assert(isinstance(field, t))
-        return field
-    return dict((k, validate_field(t, field_dict[k]))
-                for k, t in c._schema.items())
+        if not isinstance(field_data, field_type):
+          raise InvalidDataError(
+              '%r schema validation failed for element %r, ' %
+              (c.__name__, top_level_tag) +
+              'expected type %r, found %r' %
+              (field_type.__name__, type(field_data).__name__))
+    if (set(c._schema) ^ set(field_dict)):
+      raise InvalidDataError(
+          '%r schema and data dict keys do not match, ' % c.__name__ +
+          'data is missing keys: %r, ' %
+          sorted(set(c._schema) - set(field_dict)) +
+          'data has extra keys: %r' % sorted(set(field_dict) - set(c._schema)))
+    for top_level_tag, field_type in c._schema.items():
+      ValidateField(top_level_tag, field_type, field_dict[top_level_tag])
 
 
 def MakeDatastoreSubclass(subclass_name, subclass_schema):

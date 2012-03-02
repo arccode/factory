@@ -16,8 +16,8 @@ import zlib
 
 from common import Error, Obj
 from bom_names import BOM_NAME_SET
-from hwid_database import MakeDatastoreSubclass
-from probe import Probe
+from hwid_database import InvalidDataError, MakeDatastoreSubclass
+#from probe import Probe
 
 
 COMPONENT_DB_FILENAME = 'component_db'
@@ -40,10 +40,10 @@ LIFE_CYCLE_STAGES = [
 
 
 MakeDatastoreSubclass('CompDb', {
-    'component_list_qualified': (list, str),
-    'component_list_supported': (list, str),
     'component_list_deprecated': (list, str),
     'component_list_eol': (list, str),
+    'component_list_qualified': (list, str),
+    'component_list_supported': (list, str),
     'component_registry': (dict, (dict, str)),
     })
 
@@ -53,19 +53,19 @@ MakeDatastoreSubclass('Hwid', {
     })
 
 MakeDatastoreSubclass('Device', {
-    'hwid_list_qualified': (list, str),
-    'hwid_list_supported': (list, str),
+    'bitmap_file_path': str,
+    'hash_map': (dict, str),
     'hwid_list_deprecated': (list, str),
     'hwid_list_eol': (list, str),
-    'variant_map': (dict, (list, str)),
-    'volatile_map': (dict, (dict, str)),
+    'hwid_list_qualified': (list, str),
+    'hwid_list_supported': (list, str),
+    'hwid_map': (dict, Hwid),
     'initial_config_map': (dict, (dict, str)),
     'initial_config_use_map': (dict, (list, str)),
     'release_map': (dict, (list, str)),
-    'hwid_map': (dict, Hwid),
-    'hash_map': (dict, str),
+    'variant_map': (dict, (list, str)),
+    'volatile_map': (dict, (dict, str)),
     'vpd_ro_field_list': (list, str),
-    'bitmap_file_path': str,
     })
 
 
@@ -191,7 +191,10 @@ def ReadDatastore(path):
     if not (entry.isalpha() and entry.isupper() and os.path.isfile(entry_path)):
       continue
     with open(entry_path, 'r') as f:
-      data.device_db[entry] = Device.Decode(f.read())
+      try:
+        data.device_db[entry] = Device.Decode(f.read())
+      except InvalidDataError, e:
+        logging.error('%r decode failed: %s' % (entry_path, e))
   return data
 
 
