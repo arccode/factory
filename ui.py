@@ -103,6 +103,17 @@ _NO_ACTIVE_TEST_DELAY_MS = 500
 # Client Library
 
 
+# TODO(hungte) Replace gtk_lock by gtk.gdk.lock when it's availble (need pygtk
+# 2.2x, and we're now pinned by 2.1x)
+class _GtkLock(object):
+    __enter__ = gtk.gdk.threads_enter
+    def __exit__(*ignored):
+        gtk.gdk.threads_leave()
+
+
+gtk_lock = _GtkLock()
+
+
 def make_label(message, font=LABEL_FONT, fg=LIGHT_GREEN,
                size=None, alignment=None):
     l = gtk.Label(message)
