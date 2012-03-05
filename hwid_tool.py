@@ -14,8 +14,9 @@ import sys
 import time
 import zlib
 
-from hwid_database import MakeDatastoreSubclass
+from common import Error, Obj
 from bom_names import BOM_NAME_SET
+from hwid_database import MakeDatastoreSubclass
 from probe import Probe
 
 
@@ -87,17 +88,6 @@ MakeDatastoreSubclass('Device', {
 # that API.
 
 
-class Error(Exception):
-  """Generic fatal error."""
-  pass
-
-
-class Obj(object):
-  """Generic wrapper allowing dot-notation dict access."""
-  def __init__(self, **field_dict):
-    self.__dict__.update(field_dict)
-
-
 def HwidChecksum(text):
   return ('%04u' % (zlib.crc32(text) & 0xffffffffL))[-4:]
 
@@ -164,22 +154,23 @@ def IndentedStructuredPrint(depth, title, *content, **tagged_content):
   if title:
     print ' ' * depth + title
     depth += 2
-  lhs_width_list = [len(tag) + len(k) for tag, elt in tagged_content.items()
+  lhs_width_list = [len(tag) + len(k) + len(tag)
+                    for tag, elt in tagged_content.items()
                     for k in elt if isinstance(elt, dict)]
   lhs_width_list += [len(k) for elt in content
                      for k in elt if isinstance(elt, dict)]
   max_key_width = max(lhs_width_list) if lhs_width_list else 0
-  def PrintElt(elt, tag_str):
+  def PrintElt(elt, tag):
     if isinstance(elt, dict):
       for k, v in sorted((k, v) for k, v in elt.items()):
         print '%s%s%s%s: %s' % (
           depth * ' ',
-          tag_str,
-          (max_key_width - len(tag_str) - len(k)) * ' ',
+          tag,
+          (max_key_width - len(tag) - len(k)) * ' ',
           k,
           'NONE' if v is None else ("''" if v == '' else v))
     if elt and (isinstance(elt, list) or isinstance(elt, set)):
-      print (depth * ' ' + tag_str + ', '.join(str(s) for s in sorted(elt)))
+      print (depth * ' ' + tag + ', '.join(str(s) for s in sorted(elt)))
   for elt in content:
     PrintElt(elt, '')
   for tag, elt in sorted(tagged_content.items()):
