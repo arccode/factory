@@ -17,7 +17,7 @@ import zlib
 from common import Error, Obj
 from bom_names import BOM_NAME_SET
 from hwid_database import InvalidDataError, MakeDatastoreSubclass
-from probe import Probe
+from hwid_database import YamlWrite, YamlRead
 
 
 # The expected location of HWID data within a factory image.
@@ -181,6 +181,9 @@ def IndentedStructuredPrint(depth, title, *content, **tagged_content):
   print ''
 
 
+# TODO(tammo): Move the below read and write into the hwid_database module.
+
+
 def ReadDatastore(path):
   """Read the component_db and all device data files."""
   data = Obj(comp_db={}, device_db={})
@@ -199,6 +202,29 @@ def ReadDatastore(path):
       except InvalidDataError, e:
         logging.error('%r decode failed: %s' % (entry_path, e))
   return data
+
+
+def WriteDatastore(path, data):
+  """Write the component_db and all device data files."""
+  def WriteOnDiff(filename, raw_internal_data):
+    full_path = os.path.join(path, filename)
+    internal_data = (DATA_FILE_WARNING_MESSAGE_HEADER.split('\n') +
+                     raw_internal_data.strip('\n').split('\n'))
+    if os.path.exists(full_path):
+      with open(full_path, 'r') as f:
+        file_data = map(lambda s: s.strip('\n'), f.readlines())
+      diff = [line for line in difflib.unified_diff(file_data, internal_data)]
+      if not diff:
+        return
+      logging.info('updating %s with changes:\n%s' %
+                   (filename, '\n'.join(diff)))
+    else:
+      logging.info('creating new data file %s' % filename)
+    with open(full_path, 'w') as f:
+      f.write('%s\n' % '\n'.join(internal_data))
+  WriteOnDiff(COMPONENT_DB_FILENAME, data.comp_db.Encode())
+  for device_name, device in data.device_db.items():
+    WriteOnDiff(device_name, device.Encode())
 
 
 def GetAvailableBomNames(data, board, count):
@@ -242,10 +268,17 @@ def LookupHwidStatus(device, bom, volatile, variant):
   return None
 
 
-def CalcComponentDbClassMap(comp_db):
-  """Return dict of (comp: comp_class) mappings."""
-  return dict((comp, comp_class) for comp in comp_map
+def CalcCompDbClassMap(comp_db):
+  """Return dict of (comp_name: comp_class) mappings."""
+  return dict((comp_name, comp_class) for comp_name in comp_map
               for comp_class, comp_map in comp_db.component_registry.items())
+
+
+def CalcCompDbProbeValMap(comp_db):
+  """Return dict of (probe_value: comp_name) mappings."""
+  return dict((probe_value, comp_name)
+              for comp_map in comp_db.component_registry.values()
+              for comp_name, probe_value in comp_map.items())
 
 
 def CalcReverseComponentMap(hwid_map):
@@ -440,7 +473,7 @@ def ProcessComponentCrossproduct(data, board, comp_list):
   """
   def ClassifyInputComponents(comp_list):
     """Return dict of (comp_class: comp list), associating comps to classes."""
-    comp_db_class_map = CalcComponentDbClassMap(data.comp_db)
+    comp_db_class_map = CalcCompDbClassMap(data.comp_db)
     comp_class_subset = set(comp_db_class_map[comp] for comp in comp_list)
     return dict((comp_class, [comp for comp in comp_list
                               if comp_db_class_map[comp] == comp_class])
@@ -479,10 +512,7 @@ def ProcessComponentCrossproduct(data, board, comp_list):
 def CookComponentProbeResults(comp_db, probe_results):
   """TODO(tammo): Add more here XXX."""
   match = Obj(known={}, unknown={})
-  comp_reference_map = dict(
-      (probe_value, comp)
-      for comp_map in comp_db.component_registry.values()
-      for comp, probe_value in comp_map.items())
+  comp_reference_map = CalcCompDbProbeValMap(comp_db)
   for probe_class, probe_value in probe_results.components.items():
     if probe_value is None:
       continue
@@ -678,37 +708,20 @@ def ComponentBreakdownCommand(config, data):
       IndentedStructuredPrint(0, comp_class + ':', comp_map)
 
 
-@Command('validate_data',
-         CmdArg('-w', '--write_processed_output', action='store_true'))
-def ValidateDataCommand(config, data):
-  """Canonically format all file data, report any differences with originals.
-
-  Differences are reported as unified diffs.
-  """
-  def Diff(filename, raw_internal_data):
-    full_path = os.path.join(config.data_path, filename)
-    internal_data = (DATA_FILE_WARNING_MESSAGE_HEADER.split('\n') +
-                     raw_internal_data.strip('\n').split('\n'))
-    with open(full_path, 'r') as f:
-      file_data = map(lambda s: s.strip('\n'), f.readlines())
-    for l in difflib.unified_diff(file_data, internal_data):
-      print l
-    if config.write_processed_output:
-      with open(full_path + '_presanity', 'w') as of:
-          of.write('%s\n' % '\n'.join(file_data))
-      with open(full_path, 'w') as of:
-          of.write('%s\n' % '\n'.join(internal_data))
-  Diff(COMPONENT_DB_FILENAME, data.comp_db.Encode())
-  for device_name, device in data.device_db.items():
-    Diff(device_name, device.Encode())
-
-
 @Command('probe_device',
          CmdArg('-b', '--board'),
-         CmdArg('-c', '--classes', nargs='*'))
+         CmdArg('-c', '--classes', nargs='*'),
+         CmdArg('-r', '--raw', action='store_true'))
 def ProbeDeviceProperties(config, data):
   # TODO(tammo): Implement classes arg behavior.
+  # TODO(tammo): Move this command into gooftool to avoid having to
+  # load the probe module here. The probe module depends on other
+  # modules that are not available except on DUT machines.
+  from probe import Probe
   probe_results = Probe(data.comp_db.component_registry)
+  if config.raw:
+    print YamlWrite(probe_results.__dict__)
+    return
   IndentedStructuredPrint(0, 'component probe results:',
                           probe_results.components)
   missing_classes = (set(data.comp_db.component_registry) -
@@ -736,6 +749,63 @@ def ProbeDeviceProperties(config, data):
                             probe_results.initial_configs)
     IndentedStructuredPrint(0, 'matching initial_config tags:',
                             cooked_device_details.initial_config_set)
+
+
+@Command('assimilate_probe_data',
+         CmdArg('-b', '--board'))
+def AssimilateProbeData(config, data):
+  """Read new data from stdin then merge into existing data.
+
+  TODO(tammo): Add more here.
+  """
+  probe_results = Obj(**YamlRead(sys.stdin.read()))
+  components = getattr(probe_results, 'components', {})
+  registry = data.comp_db.component_registry
+  if not set(components) <= set(registry):
+    logging.critical('data contains component classes that are not preset in '
+                     'the component_db, specifically %r' %
+                     sorted(set(components) - set(registry)))
+  reverse_registry = CalcCompDbProbeValMap(data.comp_db)
+  for comp_class, probe_value in components.items():
+    if probe_value is None or probe_value in reverse_registry:
+      continue
+    comp_map = registry[comp_class]
+    comp_map['%s_%d' % (comp_class, len(comp_map))] = probe_value
+  if not config.board:
+    if (hasattr(probe_results, 'volatile') or
+        hasattr(probe_results, 'initial_config')):
+      logging.warning('volatile and/or initial_config data is only '
+                      'assimilated when a board is specified')
+    return
+  device = data.device_db[config.board]
+
+
+@Command('board_create',
+         CmdArg('board_name'))
+def CreateBoard(config, data):
+  """Create an fresh empty board with specified name."""
+  if not config.board_name.isalpha():
+    print 'ERROR: Board names must be alpha-only.'
+    return
+  board_name = config.board_name.upper()
+  if board_name in data.device_db:
+    print 'ERROR: Board %s already exists.' % board_name
+    return
+  device = Device(
+      bitmap_file_path='',
+      hash_map={},
+      hwid_list_deprecated=[],
+      hwid_list_eol=[],
+      hwid_list_qualified=[],
+      hwid_list_supported=[],
+      hwid_map={},
+      initial_config_map={},
+      initial_config_use_map={},
+      release_map={},
+      variant_map={},
+      volatile_map={},
+      vpd_ro_field_list=[])
+  data.device_db[board_name] = device
 
 
 class HackedArgumentParser(ArgumentParser):
@@ -814,6 +884,7 @@ def Main():
   except Exception, e:
     logging.exception(e)
     sys.exit('UNCAUGHT RUNTIME EXCEPTION %s' % e)
+  WriteDatastore(config.data_path, data)
 
 
 if __name__ == '__main__':

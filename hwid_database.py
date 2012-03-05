@@ -8,6 +8,16 @@ import os
 import yaml
 
 
+def YamlWrite(structured_data):
+  """Wrap yaml.dump to make calling convention consistent."""
+  return yaml.dump(structured_data, default_flow_style=False)
+
+
+def YamlRead(serialized_data):
+  """Wrap yaml.load to make calling convention consistent."""
+  return yaml.safe_load(serialized_data)
+
+
 class InvalidDataError(ValueError):
   """Error in (en/de)coding or validating data."""
   pass
@@ -28,7 +38,7 @@ class _DatastoreClass(object):
 
     After generating the output data, run decode on that to validate.
     """
-    yaml_data = yaml.dump(self, default_flow_style=False)
+    yaml_data = YamlWrite(self)
     self.Decode(yaml_data)
     return yaml_data
 
@@ -48,7 +58,7 @@ class _DatastoreClass(object):
         return elt_type(**elt_data)
       return elt_data
     try:
-      field_dict = yaml.safe_load(data)
+      field_dict = YamlRead(data)
     except yaml.YAMLError, e:
       raise InvalidDataError("YAML deserialization error: %s" % e)
     c.ValidateSchema(field_dict)
