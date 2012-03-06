@@ -20,6 +20,9 @@ from hwid_database import InvalidDataError, MakeDatastoreSubclass
 #from probe import Probe
 
 
+# The expected location of HWID data within a factory image.
+DEFAULT_HWID_DATA_PATH= '/usr/local/factory/hwid'
+
 COMPONENT_DB_FILENAME = 'component_db'
 
 
@@ -773,7 +776,8 @@ def ParseCmdline():
   """Return object containing all argparse-processed command line data."""
   parser = HackedArgumentParser(
       description='Visualize and/or modify HWID and related component data.')
-  parser.add_argument('-p', '--data_path', metavar='PATH', default='.')
+  parser.add_argument('-p', '--data_path', metavar='PATH',
+                      default=DEFAULT_HWID_DATA_PATH)
   parser.add_argument('-v', '--verbosity', choices='01234', default='2')
   parser.add_argument('-l', '--log_file')
   subparsers = parser.add_subparsers(dest='command_name')
