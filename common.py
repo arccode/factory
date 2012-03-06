@@ -18,8 +18,12 @@ class Error(Exception):
 
 class Obj(object):
   """Generic wrapper allowing dot-notation dict access."""
+
   def __init__(self, **field_dict):
     self.__dict__.update(field_dict)
+
+  def __repr__(self):
+    return repr(self.__dict__)
 
 
 # TODO(tammo): Combine this with gft_common.ShellExecution.

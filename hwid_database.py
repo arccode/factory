@@ -43,6 +43,12 @@ class _DatastoreClass(object):
     return yaml_data
 
   @classmethod
+  def New(c):
+    return c(**dict((elt_key, '' if not isinstance(elt_type, tuple)
+                     else ({} if elt_type[0] is dict else []))
+                    for elt_key, elt_type in c._schema.items()))
+
+  @classmethod
   def Decode(c, data):
     """Given YAML string, creates corresponding object and check its schema."""
     def NestedDecode(elt_type, elt_data):

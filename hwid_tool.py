@@ -791,21 +791,68 @@ def CreateBoard(config, data):
   if board_name in data.device_db:
     print 'ERROR: Board %s already exists.' % board_name
     return
-  device = Device(
-      bitmap_file_path='',
-      hash_map={},
-      hwid_list_deprecated=[],
-      hwid_list_eol=[],
-      hwid_list_qualified=[],
-      hwid_list_supported=[],
-      hwid_map={},
-      initial_config_map={},
-      initial_config_use_map={},
-      release_map={},
-      variant_map={},
-      volatile_map={},
-      vpd_ro_field_list=[])
-  data.device_db[board_name] = device
+  data.device_db[board_name] = Device.New()
+  print data.device_db[board_name].__dict__
+
+
+@Command('filter_database',
+         CmdArg('-b', '--board', required=True),
+         CmdArg('-d', '--dest_dir', required=True),
+         CmdArg('-s', '--by_status', nargs='*', default=['supported']))
+def FilterDatabase(config, data):
+  """Generate trimmed down board data file and corresponding component_db.
+
+  Generate a board data file containing only those boms matching the
+  specified status, and only that portion of the related board data
+  that is used by those boms.  Also produce a component_db which
+  contains entries only for those components used by the selected
+  boms.
+  """
+  # TODO(tammo): Validate inputs -- board name, status, etc.
+  device = data.device_db[config.board]
+  target_hwid_map = {}
+  target_volatile_set = set()
+  target_variant_set = set()
+  for bom, hwid in device.hwid_map.items():
+    for variant in hwid.variant_list:
+      for volatile in device.volatile_map:
+        status = LookupHwidStatus(device, bom, volatile, variant)
+        if status in config.by_status:
+          variant_map = target_hwid_map.setdefault(bom, {})
+          volatile_list = variant_map.setdefault(variant, [])
+          volatile_list.append(volatile)
+          target_volatile_set.add(volatile)
+          target_variant_set.add(variant)
+  filtered_comp_db = CompDb.New()
+  filtered_device = Device.New()
+  for bom in target_hwid_map:
+    hwid = device.hwid_map[bom]
+    filtered_hwid = Hwid.New()
+    filtered_hwid.component_map = hwid.component_map
+    filtered_hwid.variant_list = list(set(hwid.variant_list) &
+                                      target_variant_set)
+    filtered_device.hwid_map[bom] = filtered_hwid
+    for comp_class, comp_name in hwid.component_map.items():
+      filtered_comp_db.component_registry[comp_class] = \
+          data.comp_db.component_registry[comp_class]
+  for volatile_index in target_volatile_set:
+    volatile_details = device.volatile_map[volatile_index]
+    filtered_device.volatile_map[volatile_index] = volatile_details
+    for volatile_class, volatile_name in volatile_details.items():
+      volatile_value = device.hash_map[volatile_name]
+      filtered_device.hash_map[volatile_name] = volatile_value
+  for variant_index in target_variant_set:
+    variant_details = device.variant_map[variant_index]
+    filtered_device.variant_map[variant_index] = variant_details
+  filtered_device.bitmap_file_path = device.bitmap_file_path
+  filtered_device.vpd_ro_field_list = device.vpd_ro_field_list
+  WriteDatastore(config.dest_dir,
+                 Obj(comp_db=filtered_comp_db,
+                     device_db={config.board: filtered_device}))
+  # TODO(tammo): Also filter initial_config once the schema for that
+  # has been refactored to be cleaner.
+  # TODO(tammo): Also filter status for both boms and components once
+  # the schema for that has been refactored to be cleaner.
 
 
 class HackedArgumentParser(ArgumentParser):
