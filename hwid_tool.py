@@ -17,7 +17,7 @@ import zlib
 from common import Error, Obj
 from bom_names import BOM_NAME_SET
 from hwid_database import InvalidDataError, MakeDatastoreSubclass
-#from probe import Probe
+from probe import Probe
 
 
 # The expected location of HWID data within a factory image.
