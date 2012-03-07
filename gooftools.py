@@ -20,7 +20,7 @@ from autotest_lib.client.common_lib import error
 from autotest_lib.client.cros import factory
 
 
-GOOFTOOL_HOME = '/usr/local/gooftool'
+GOOFTOOL_HOME = '/usr/local/factory/bin'
 
 
 def run(command, ignore_status=False):
