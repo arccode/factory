@@ -27,23 +27,38 @@ LED_CAP = 4
 # order bit than LED_CAP will do).
 LED_RESET = 8
 
+# Number of VTs on which to set the keyboard LEDs.
+MAX_VTS = 8
+
+# Set of FDs of all TTYs on which to set LEDs.  Lazily initialized by SetLeds.
+_tty_fds = None
+_tty_fds_lock = threading.Lock()
 
 def SetLeds(state):
     '''
-    Sets the current LEDs on /dev/console to the given state.
+    Sets the current LEDs on VTs [0,MAX_VTS) to the given state.  Errors
+    are ignored.
+
+    (We set the LED on all VTs because /dev/console may not work reliably under
+    the combination of X and autotest.)
 
     Args:
         pattern: A bitwise OR of zero or more of LED_SCR, LED_NUM, and LED_CAP.
     '''
-    fd = os.open("/dev/console", os.O_RDWR)
-    try:
-        fcntl.ioctl(fd, KDSETLED, state)
-    except:
-        logging.exception('Unable to set LED state')
-        raise
-    finally:
+    global _tty_fds
+    with _tty_fds_lock:
+        if _tty_fds is None:
+            _tty_fds = []
+            for tty in xrange(MAX_VTS):
+                dev = '/dev/tty%d' % tty
+                try:
+                    _tty_fds.append(os.open(dev, os.O_RDWR))
+                except:
+                    logging.exception('Unable to open %s' % dev)
+
+    for fd in _tty_fds:
         try:
-            os.close(fd)
+            fcntl.ioctl(fd, KDSETLED, state)
         except:
             pass
 
@@ -98,7 +113,6 @@ class Blinker(object):
         if self.thread:
             self.thread.join()
             self.thread = None
-        SetLeds(LED_RESET)
 
     def __enter__(self):
         self.Start()
@@ -112,6 +126,7 @@ class Blinker(object):
                 SetLeds(state)
                 self.done.wait(duration)
                 if self.done.is_set():
+                    SetLeds(LED_RESET)
                     return
 
 
