@@ -18,6 +18,8 @@ _STDOUT="$(mktemp --tmpdir)"
 TMPFILE="$(mktemp --tmpdir)"
 FIRMWARE_IMAGE="$([ -z "$1" ] || readlink -f "$1")"
 RETRIES=2
+FLASHROM_READ_PARAM="flashrom -p internal:bus=spi"
+FLASHROM_WRITE_PARAM="flashrom -p internal:bus=spi --fast-verify"
 
 cleanup() {
   rm -f "$_STDERR" "$_STDOUT" "$TMPFILE"
@@ -44,7 +46,7 @@ clear_gbb_flags() {
   local flags_info flags
   if [ -z "$FIRMWARE_IMAGE" ]; then
     FIRMWARE_IMAGE="$TMPFILE"
-    invoke "Read GBB" "flashrom -i GBB -r '$FIRMWARE_IMAGE'"
+    invoke "Read GBB" "$FLASHROM_READ_PARAM -i GBB -r '$FIRMWARE_IMAGE'"
   fi
 
   flags_info="$(invoke "Flags" "gbb_utility -g --flags '$FIRMWARE_IMAGE'")" ||
@@ -63,9 +65,9 @@ clear_gbb_flags() {
     # Try to update GBB flags
     alert "Clearing system GBB header flag..."
     invoke "Set Flags" "gbb_utility -s --flags=0 '$FIRMWARE_IMAGE' '$TMPFILE'"
-    invoke "Write GBB" "flashrom -w '$TMPFILE' -i GBB --fast-verify"
+    invoke "Write GBB" "$FLASHROM_WRITE_PARAM -i GBB -w '$TMPFILE'"
     rm -f "$TMPFILE"
-    invoke "Read GBB" "flashrom -r '$TMPFILE' -i GBB"
+    invoke "Read GBB" "$FLASHROM_READ_PARAM -i GBB -r '$TMPFILE'"
     alert "Re-try verification..."
     FIRMWARE_IMAGE="$TMPFILE"
   fi
