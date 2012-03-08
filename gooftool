@@ -26,7 +26,6 @@ import tempfile
 
 import crosfw
 import gft_common
-import gft_fwhash
 import gft_report
 import gft_upload
 import gft_vpd
@@ -262,7 +261,7 @@ def verify_keys():
   script = os.path.join(os.path.split(sys.argv[0])[0], 'gft_verify_keys.sh')
   if not os.path.exists(script):
     ErrorDie('verify_keys: cannot find script to verify.')
-  kernel_device = '/dev/%s' % GetReleaseKernelPartitionPath()
+  kernel_device = GetReleaseKernelPartitionPath()
   main_fw_path = crosfw.LoadMainFirmware().path
   command = '%s %s %s' % (script, kernel_device, main_fw_path)
   try:
@@ -293,7 +292,7 @@ def verify_system_time():
                         'gft_verify_system_time.sh')
   if not os.path.exists(script):
     ErrorDie('verify_system_time: cannot find script to verify.')
-  rootfs_device = '/dev/%s' % GetReleaseRootPartitionPath()
+  rootfs_device = GetReleaseRootPartitionPath()
   command = '%s %s' % (script, rootfs_device)
   try:
     VerboseSystemCommand(command, prompt='verify_system_time: ')
@@ -308,7 +307,7 @@ def verify_rootfs():
   script = os.path.join(os.path.split(sys.argv[0])[0], 'gft_verify_rootfs.sh')
   if not os.path.exists(script):
     ErrorDie('verify_rootfs: cannot find script to verify.')
-  rootfs_device = '/dev/%s' % GetReleaseRootPartitionPath()
+  rootfs_device = GetReleaseRootPartitionPath()
   command = '%s %s' % (script, rootfs_device)
   try:
     VerboseSystemCommand(command, prompt='verify_rootfs: ')
@@ -451,7 +450,7 @@ def prepare_wipe():
   if method not in wipe_method_map:
     ErrorDie('prepare_wipe: unknown wipe method: %s' % method)
   tag = wipe_method_map[method]
-  rootfs_device = '/dev/%s' % GetReleaseRootPartitionPath()
+  rootfs_device = GetReleaseRootPartitionPath()
   command = 'FACTORY_WIPE_TAGS=%s %s %s' % (tag, wipe_script, rootfs_device)
   try:
     VerboseSystemCommand(command, prompt='prepare_wipe: ')
@@ -515,6 +514,7 @@ def ConsoleParser():
   # TODO(tammo): Consider removing db_path option once the hwid_tool
   # has meaningful default path searching.
   parser.add_option('--db_path', metavar='PATH',
+                    default=hwid_tool.DEFAULT_HWID_DATA_PATH,
                     help='path to the HWID component database')
   # TODO(tammo): Add proper support for per-command required positional args.
   parser.add_option('--hwid', metavar='HWID', help='HWID string')
