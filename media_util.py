@@ -110,7 +110,6 @@ class MountedMedia():
     def __exit__(self, type, value, traceback):
         if self._mounted:
             self._umount_media()
-        return True
 
     def _mount_media(self):
         """Mount a partition of media at temporary directory.
