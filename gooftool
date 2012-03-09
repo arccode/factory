@@ -469,7 +469,7 @@ def prepare_wipe():
                        verify_rootfs))
 def verify():
   """ Verifies if whole factory process is ready for finalization. """
-  # See the depenency list for the real commands to be executed.
+  # See the dependency list for the real commands to be executed.
   return True
 
 
@@ -482,7 +482,28 @@ def verify():
                        prepare_wipe))
 def finalize():
   """ Finalizes all factory tests and transit system into release state. """
-  # See the depenency list for the real commands to be executed.
+  # See the dependency list for the real commands to be executed.
+  return True
+
+
+@GFTCommand
+@GFTCommandDependency((clear_gbb_flags,
+                       verify_hwid,
+                       verify_vpd,
+                       verify_system_time,
+                       verify_keys,
+                       verify_rootfs,
+                       create_report,
+                       upload_report,
+                       prepare_wipe))
+def developer_finalize():
+  """ Finalizes tests and leave the system in developer-friendly mode.
+
+  This is similar to 'finalize' command but not enforcing commands that would
+  prevent developers to restart factory process, for example write protection
+  (wpfw) and non-developer mode (verify_switch_dev).
+  """
+  # See the dependency list for the real commands to be executed.
   return True
 
 
