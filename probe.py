@@ -73,10 +73,10 @@ def _LoadKernelModule(name):
 
 
 def _ReadSysfsFields(base_path, field_list, optional_field_list=[]):
-  """Return dict of {field_name: field_value} corresponding to SYSFS contents.
+  """Return dict of {field_name: field_value} corresponding to sysfs contents.
 
   Args:
-    base_path: SYSFS directory which each field should be a file within.
+    base_path: sysfs directory which each field should be a file within.
     field_list: Required fields ; function returns None if fields are missing.
     optional_field_list: Fields that are included if the corresponding
       files exist.
@@ -108,7 +108,7 @@ def _ReadSysfsUsbFields(path):
   """Returns string containing at least the USB 'idVendor:idProduct' tuple.
 
   Args:
-    path: Path used to search for USB SYSFS data.  First all symlinks
+    path: Path used to search for USB sysfs data.  First all symlinks
       are resolved, to the the 'real' path.  Then path terms are
       iteratively removed from the right hand side until the remaining
       path looks to contain the relevent data fields.
@@ -136,14 +136,14 @@ def _ReadSysfsUsbFields(path):
 
 
 def _ReadSysfsDeviceId(path):
-  """Returns SYSFS PCI or USB device identification string."""
+  """Returns sysfs PCI or USB device identification string."""
   return (_ReadSysfsPciFields(path) or
           _ReadSysfsUsbFields(path) or
           None)
 
 
 def _ReadSysfsNodeId(path):
-  """Returns SYSFS node identification string.
+  """Returns sysfs node identification string.
 
   A more generic wrapper around _ReadSysfsDeviceId which supports
   cases where only a 'name' file exists.  Basically it tries to read
@@ -326,7 +326,7 @@ def _ProbeAudioCodec():
 
 @_ComponentProbe('battery')
 def _ProbeBattery():
-  """Compose data from SYSFS."""
+  """Compose data from sysfs."""
   node_path_list = glob('/sys/class/power_supply/*')
   type_data_list = [_ReadSysfsFields(node_path, ['type'])[0]
                     for node_path in node_path_list]
@@ -535,20 +535,23 @@ def _ProbeMainFlashChip(main_fw):
 
 @_ComponentProbe('storage')
 def _ProbeStorage():
-  """Compile SFSFS data for all block storage devices."""
+  """Compile sysfs data for all non-removable block storage devices."""
+  def IsFixed(node):
+    path = os.path.join(node, 'removable')
+    return (os.path.exists(path) and open(path).read().strip() == '0')
   def ProcessNode(node_path):
-    size_path = os.path.join(os.path.dirname(node_path), 'size')
+    dev_path = os.path.join(node_path, 'device')
+    size_path = os.path.join(os.path.dirname(dev_path), 'size')
     size = ('#' + open(size_path).read().strip()
             if os.path.exists(size_path) else '')
     ata_fields = ['vendor', 'model']
     emmc_fields = ['type', 'name', 'fwrev', 'hwrev', 'oemid', 'manfid']
-    data = (_ReadSysfsFields(node_path, ata_fields) or
-            _ReadSysfsFields(node_path, emmc_fields) or
+    data = (_ReadSysfsFields(dev_path, ata_fields) or
+            _ReadSysfsFields(dev_path, emmc_fields) or
             None)
     return CompactStr(data + [size]) if data is not None else None
-  node_path_list = [node_path for node_path in glob('/sys/class/block/*/device')
-                    if os.path.exists(node_path)]
-  ident_list = [ident for ident in map(ProcessNode, node_path_list)
+  fixed_devices = [node for node in glob('/sys/class/block/*') if IsFixed(node)]
+  ident_list = [ident for ident in map(ProcessNode, fixed_devices)
                 if ident is not None]
   return ' ; '.join(ident_list) if ident_list else None
 
@@ -574,7 +577,7 @@ def _ProbeTpm():
 
 @_ComponentProbe('usb_hosts')
 def _ProbeUsbHosts(arch):
-  """Compile USB data from SYSFS."""
+  """Compile USB data from sysfs."""
   # On x86, USB hosts are PCI devices, located in parent of root USB.
   # On ARM and others, use the root device itself.
   relpath = '.' if arch == 'arm' else '..'
@@ -825,9 +828,9 @@ def Probe(component_registry, probe_volatile=True, probe_initial_config=True):
   def RunProbe(fun):
     try:
       return RunFunWithSharedData(fun)
-    except Error, e:
-      logging.exception(e)
-      logging.error('Probe failed, returning None.')
+    except Exception:
+      logging.exception('Probe FAILED (%s), see traceback, returning None.' %
+                        fun.__name__)
       return None
   component_result_map = {}
   hash_result_map = {}

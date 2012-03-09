@@ -242,7 +242,8 @@ def verify_hwid():
            (hwid_properties.volatile,
             ', '.join(cooked_device_details.volatile_set)))
     ErrorDie('verify_hwid: FAILED.\n%s' % msg)
-  if (hwid_properties.initial_config not in
+  if (hwid_properties.initial_config is not None and
+      hwid_properties.initial_config not in
       cooked_device_details.initial_config_set):
     msg = ('  HWID specified initial_config %s, but found match only for %s' %
            (hwid_properties.initial_config,

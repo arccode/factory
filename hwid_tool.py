@@ -561,9 +561,13 @@ def LookupHwidProperties(data, hwid):
                                   props.volatile, props.variant)
   # TODO(tammo): Refactor if FilterExternalHwidAttrs is pre-computed.
   misc_attrs = FilterExternalHwidAttrs(device, set([props.bom]))
-  if len(misc_attrs.release_set) != 1:
-    raise Error, 'hwid %r matches zero or multiple release values'
-  props.release = next(iter(misc_attrs.release_set))
+  # TODO(tammo): Move this release check into the data validation.
+  # Hwid lookup should not fail on account of data that has passed
+  # validation.
+  # if len(misc_attrs.release_set) != 1:
+  #   raise Error, ('expected one release for hwid %r, found %s' % (
+  #       hwid, repr(sorted(misc_attrs.release_set)))
+  props.release = next(iter(misc_attrs.release_set), None)
   props.initial_config = next(iter(misc_attrs.initial_config_set), None)
   props.vpd_ro_field_list = device.vpd_ro_field_list
   props.bitmap_file_path = device.bitmap_file_path
