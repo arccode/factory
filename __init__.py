@@ -15,7 +15,10 @@ To log to the factory console, use:
 '''
 
 
-import logging, os, sys
+import logging
+import os
+import string
+import sys
 
 def get_log_root():
     '''Returns the root for logging and state.
@@ -306,7 +309,7 @@ class FactoryTest(object):
         self.label_en = label_en
         self.label_zh = label_zw or label_zh
         self.autotest_name = autotest_name
-        self.kbd_shortcut = kbd_shortcut
+        self.kbd_shortcut = kbd_shortcut.lower() if kbd_shortcut else None
         self.dargs = dargs or {}
         self.unique_name = unique_name
         self.backgroundable = backgroundable
@@ -323,7 +326,7 @@ class FactoryTest(object):
                 'Tests require either an id or autotest name: %r' % self)
             assert '.' not in self.id, (
                 'id cannot contain a period: %r' % self)
-            # Note that we check ID uniqueness in _assign_paths.
+            # Note that we check ID uniqueness in _init.
 
         if has_ui is not None:
             self.has_ui = has_ui
@@ -347,7 +350,7 @@ class FactoryTest(object):
 
         return '%s(%s)' % (self.__class__.__name__, ', '.join(attrs))
 
-    def _assign_paths(self, prefix, path_map, kbd_shortcut_map):
+    def _init(self, prefix, path_map, kbd_shortcut_map):
         '''
         Recursively assigns paths to this node and its children.
 
@@ -369,9 +372,36 @@ class FactoryTest(object):
 
         for subtest in self.subtests:
             subtest.parent = self
-            subtest._assign_paths(  # pylint: disable=W0212
+            subtest._init(  # pylint: disable=W0212
                 (self.path + '.' if len(self.path) else ''),
                 path_map, kbd_shortcut_map)
+
+    def _auto_assign_shortcut(self):
+        '''
+        Automatically assigns a shortcut to this test.
+
+        If the shortcut for this test is not yet defined, attempts to find
+        and assign an unused shortcut key, first trying all characters in
+        label_en, and then resorting to all other alphanumeric characters.
+        In addition, updates root.kbd_shortcut_map.
+
+        @return True if the shortcut was already assigned, or was assigned
+                by this function.
+        '''
+        if self.kbd_shortcut:
+            return True
+
+        # Try to determine shortcut from label_en first, then alphanumeric.
+        for char in (
+            self.label_en.lower() + string.lowercase + string.digits):
+            if not char.isalnum() or char in self.root.kbd_shortcut_map:
+                continue
+            self.kbd_shortcut = char
+            self.root.kbd_shortcut_map[char] = self
+            logging.info('Assigned shortcut %s to %s' % (char, self.path))
+            return True
+        # No shortcut available.
+        return False
 
     def depth(self):
         '''
@@ -464,7 +494,12 @@ class FactoryTestList(FactoryTest):
         self.kbd_shortcut_map = {}
         self.root = self
         self.state_change_callback = None
-        self._assign_paths('', self.path_map, self.kbd_shortcut_map)
+        self._init('', self.path_map, self.kbd_shortcut_map)
+        # Try to automatically assign shortcut to first-level tests.
+        for subtest in self.subtests:
+            shortcut_assigned = subtest._auto_assign_shortcut()
+            assert shortcut_assigned, (
+                'Unable to assign a shortcut to %s' % subtest.path)
 
     def get_all_tests(self):
         '''
