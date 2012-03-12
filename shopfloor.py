@@ -102,6 +102,11 @@ def set_server_url(url):
     _set_session(SESSION_SERVER_URL, url)
 
 
+def get_server_url():
+    """Gets last configured shop floor server URL."""
+    return _get_session(SESSION_SERVER_URL)
+
+
 def detect_default_server_url():
     """Tries to find a default shop floor server URL.
 
