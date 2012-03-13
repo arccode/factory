@@ -280,6 +280,7 @@ class FactoryTest(object):
                  subtests=None,
                  id=None,                  # pylint: disable=W0622
                  has_ui=None,
+                 never_fails=None,
                  _root=None,
                  # TODO(jsalz): Kill off deprecated fields
                  # (chrome-os-partner:7407)
@@ -303,6 +304,8 @@ class FactoryTest(object):
             OperatorTest and InformationScreen.)  If has_ui is not True,
             then when the test is running, the statuses of the test and its
             siblings will be shown in the test UI area instead.
+        @param never_fails: True if the test never fails, but only returns to an
+            untested state.
         @param _root: True only if this is the root node (for internal use
             only).
         '''
@@ -330,6 +333,8 @@ class FactoryTest(object):
 
         if has_ui is not None:
             self.has_ui = has_ui
+        if never_fails is not None:
+            self.never_fails = never_fails
 
         # Auto-assign label text.
         if not self.label_en:
