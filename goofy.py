@@ -451,10 +451,8 @@ class Goofy(object):
         '''
         Handles an event from the event server.
         '''
-        if event.type == 'kbd_shortcut':
-            if event.key == 'Tab':
-                self.show_next_active_test()
-            test = self.test_list.kbd_shortcut_map.get(event.key)
+        if event.type == Event.Type.SWITCH_TEST:
+            test = self.test_list.lookup_path(event.key)
             if test:
                 invoc = self.invocations.get(test)
                 if invoc and test.backgroundable:
@@ -462,13 +460,15 @@ class Goofy(object):
                     # has a UI.
                     logging.info('Setting visible test to %s', test.path)
                     self.event_client.post_event(
-                        Event(Event.Type.SET_VISIBLE_TEST,
-                              path=test.path))
-
+                        Event(Event.Type.SET_VISIBLE_TEST, path=test.path))
                 self.abort_active_tests()
                 for t in test.walk():
                     t.update_state(status=TestState.UNTESTED)
                 self.run_tests(test)
+            else:
+              logging.error('unknown test %r' % event.key)
+        elif event.type == Event.Type.SHOW_NEXT_ACTIVE_TEST:
+          self.show_next_active_test()
 
     def run_next_test(self):
         '''

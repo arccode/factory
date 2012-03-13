@@ -29,9 +29,11 @@ class Event(object):
                       state=TestState(...))
     '''
     Type = type('Event.Type', (), {
-            'STATE_CHANGE': 'goofy:state_change',
-            'UI_READY':     'goofy:ui_ready',
-            'KBD_SHORTCUT': 'goofy:kbd_shortcut'
+            'STATE_CHANGE':          'goofy:state_change',
+            'UI_READY':              'goofy:ui_ready',
+            'SWITCH_TEST':           'goofy:switch_test',
+            'SHOW_NEXT_ACTIVE_TEST': 'goofy:show_next_active_test',
+            'SET_VISIBLE_TEST':      'goofy:set_visible_test',
             })
 
     def __init__(self, type, **kw):  # pylint: disable=W0622

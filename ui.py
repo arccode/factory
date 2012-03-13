@@ -31,6 +31,7 @@
 import logging
 import os
 import re
+import string
 import subprocess
 import sys
 from itertools import izip, product
@@ -39,6 +40,15 @@ from itertools import izip, product
 import gobject
 import gtk
 import pango
+
+# Guard loading Xlib because it is currently not available in the
+# image build process host-depends list.  Failure to load in
+# production should always manifest during regular use.
+try:
+    from Xlib import X
+    from Xlib.display import Display
+except:
+    pass
 
 # Factory and autotest modules
 import factory_common
@@ -101,6 +111,7 @@ _ST_LABEL_EN_SIZE = (250, 35)
 _ST_LABEL_ZH_SIZE = (150, 35)
 
 _NO_ACTIVE_TEST_DELAY_MS = 500
+
 
 # ---------------------------------------------------------------------------
 # Client Library
@@ -289,8 +300,7 @@ def make_input_window(prompt=None,
                       on_validate=None,
                       on_keypress=None,
                       on_complete=None):
-    """
-    Creates a widget to prompt user for a valid string.
+    """Creates a widget to prompt user for a valid string.
 
     @param prompt: A string to be displayed. None for default message.
     @param init_value: Initial value to be set.
@@ -362,8 +372,7 @@ def make_input_window(prompt=None,
 
 
 def make_summary_box(tests, state_map, rows=15):
-    '''
-    Creates a widget display status of a set of test.
+    '''Creates a widget display status of a set of test.
 
     @param tests: A list of FactoryTest nodes whose status (and children's
         status) should be displayed.
@@ -501,71 +510,245 @@ class Console(object):
 
 class TestLabelBox(gtk.EventBox):  # pylint: disable=R0904
 
-    def __init__(self, test, show_shortcut=False):
+    def __init__(self, test):
         gtk.EventBox.__init__(self)
         self.modify_bg(gtk.STATE_NORMAL, LABEL_COLORS[TestState.UNTESTED])
-
-        label_en = make_label(test.label_en, size=_LABEL_EN_SIZE,
-                              font=_LABEL_EN_FONT, alignment=(0.5, 0.5),
-                              fg=_LABEL_UNTESTED_FG)
-        label_zh = make_label(test.label_zh, size=_LABEL_ZH_SIZE,
-                              font=_LABEL_ZH_FONT, alignment=(0.5, 0.5),
-                              fg=_LABEL_UNTESTED_FG)
-        label_t = make_label('C-' + test.kbd_shortcut.upper(),
-                             size=_LABEL_T_SIZE, font=_LABEL_T_FONT,
-                             alignment=(0.5, 0.5), fg=BLACK)
-
-        # build a better label_en with shortcuts
-        index_hotkey = test.label_en.upper().find(test.kbd_shortcut.upper())
-        if show_shortcut and index_hotkey >= 0:
-            attrs = label_en.get_attributes() or pango.AttrList()
-            attrs.insert(pango.AttrUnderline(
-                    pango.UNDERLINE_LOW, index_hotkey, index_hotkey + 1))
-            attrs.insert(pango.AttrWeight(
-                    pango.WEIGHT_BOLD, index_hotkey, index_hotkey + 1))
-            label_en.set_attributes(attrs)
-
+        depth = len(test.get_ancestor_groups())
+        label_en_text = ' ' + ('..' * depth) + test.label_en
+        self._label_en = make_label(
+            label_en_text, size=_LABEL_EN_SIZE,
+            font=_LABEL_EN_FONT, alignment=(0, 0.5),
+            fg=_LABEL_UNTESTED_FG)
+        self._label_zh = make_label(
+            test.label_zh, size=_LABEL_ZH_SIZE,
+            font=_LABEL_ZH_FONT, alignment=(0.5, 0.5),
+            fg=_LABEL_UNTESTED_FG)
+        self._label_t = make_label(
+            '', size=_LABEL_T_SIZE, font=_LABEL_T_FONT,
+            alignment=(0.5, 0.5), fg=BLACK)
         hbox = gtk.HBox()
-        hbox.pack_start(label_en, False, False)
-        hbox.pack_start(label_zh, False, False)
-        hbox.pack_start(label_t, False, False)
-        self.add(hbox)
-        self.label_list = [label_en, label_zh]
+        hbox.pack_start(self._label_en, False, False)
+        hbox.pack_start(self._label_zh, False, False)
+        hbox.pack_start(self._label_t, False, False)
+        vbox = gtk.VBox()
+        vbox.pack_start(hbox, False, False)
+        vbox.pack_start(make_hsep(), False, False)
+        self.add(vbox)
+        self._status = None
 
-    def update(self, state):
-        label_fg = (_LABEL_UNTESTED_FG if state.status == TestState.UNTESTED
-                    else BLACK)
-        for label in self.label_list:
-            label.modify_fg(gtk.STATE_NORMAL, label_fg)
-        self.modify_bg(gtk.STATE_NORMAL, LABEL_COLORS[state.status])
+    def set_shortcut(self, shortcut):
+        if shortcut is None:
+            return
+        self._label_t.set_text('C-%s' % shortcut)
+        attrs = self._label_en.get_attributes() or pango.AttrList()
+        attrs.filter(lambda attr: attr.type == pango.ATTR_UNDERLINE)
+        index_hotkey = self._label_en.get_text().upper().find(shortcut.upper())
+        if index_hotkey != -1:
+            attrs.insert(pango.AttrUnderline(
+                pango.UNDERLINE_LOW, index_hotkey, index_hotkey + 1))
+            attrs.insert(pango.AttrWeight(
+                pango.WEIGHT_BOLD, index_hotkey, index_hotkey + 1))
+        self._label_en.set_attributes(attrs)
         self.queue_draw()
+
+    def update(self, status):
+        if self._status == status:
+            return
+        self._status = status
+        label_fg = (_LABEL_UNTESTED_FG if status == TestState.UNTESTED
+                    else BLACK)
+        for label in [self._label_en, self._label_zh, self._label_t]:
+            label.modify_fg(gtk.STATE_NORMAL, label_fg)
+        self.modify_bg(gtk.STATE_NORMAL, LABEL_COLORS[status])
+        self.queue_draw()
+
+
+class TestDirectory(gtk.VBox):
+    '''Widget containing a list of tests, colored by test status.
+
+    This is the widget corresponding to the RHS test panel.
+
+    Attributes:
+      _label_map: Dict of test path to TestLabelBox objects.  Should
+          contain an entry for each test that has been visible at some
+          time.
+      _visible_status: List of (test, status) pairs reflecting the
+          last refresh of the set of visible tests.  This is used to
+          rememeber what tests were active, to allow implementation of
+          visual refresh only when new active tests appear.
+      _shortcut_map: Dict of keyboard shortcut key to test path.
+          Tracks the current set of keyboard shortcut mappings for the
+          visible set of tests.  This will change when the visible
+          test set changes.
+    '''
+
+    def __init__(self):
+        gtk.VBox.__init__(self)
+        self.set_spacing(0)
+        self._label_map = {}
+        self._visible_status = []
+        self._shortcut_map = {}
+
+    def _get_test_label(self, test):
+        if test.path in self._label_map:
+            return self._label_map[test.path]
+        label_box = TestLabelBox(test)
+        self._label_map[test.path] = label_box
+        return label_box
+
+    def _remove_shortcut(self, path):
+        reverse_map = dict((v, k) for k, v in self._shortcut_map.items())
+        if path not in reverse_map:
+            logging.error('Removal of non-present shortcut for %s' % path)
+            return
+        shortcut = reverse_map[path]
+        del self._shortcut_map[shortcut]
+
+    def _add_shortcut(self, test):
+        shortcut = test.kbd_shortcut
+        if shortcut in self._shortcut_map:
+            logging.error('Shortcut %s already in use by %s; cannot apply to %s'
+                          % (shortcut, self._shortcut_map[shortcut], test.path))
+            shortcut = None
+        if shortcut is None:
+            # Find a suitable shortcut.  For groups, use numbers.  For
+            # regular tests, use alpha (letters).
+            if isinstance(test, factory.TestGroup):
+              gen = (x for x in string.digits if x not in self._shortcut_map)
+            else:
+              gen = (x for x in test.label_en.lower() + string.lowercase
+                     if x.isalnum() and x not in self._shortcut_map)
+            shortcut = next(gen, None)
+        if shortcut is None:
+            logging.error('Unable to find shortcut for %s' % test.path)
+            return
+        self._shortcut_map[shortcut] = test.path
+        return shortcut
+
+    def handle_xevent(self, dummy_src, dummy_cond,
+                      xhandle, keycode_map, event_client):
+        for dummy_i in range(0, xhandle.pending_events()):
+            xevent = xhandle.next_event()
+            if xevent.type != X.KeyPress:
+                continue
+            keycode = xevent.detail
+            if keycode not in keycode_map:
+                logging.warning('Ignoring unknown keycode %r' % keycode)
+                continue
+            shortcut = keycode_map[keycode]
+            if shortcut not in self._shortcut_map:
+                logging.warning('Ignoring unbound shortcut %r' % shortcut)
+                continue
+            test_path = self._shortcut_map[shortcut]
+            event_client.post_event(Event(Event.Type.SWITCH_TEST,
+                                          key=test_path))
+        return True
+
+    def update(self, new_test_status):
+        '''Refresh the RHS test list to show current status and active groups.
+
+        Refresh the set of visible tests only when new active tests
+        arise.  This avoids visual volatility when switching between
+        tests (intervals where no test is active).  Also refresh at
+        initial startup.
+
+        Args:
+          new_test_status: A list of (test, status) tuples.  The tests
+              order should match how they should be displayed in the
+              directory (rhs panel).
+        '''
+        old_active = set(t for t, s in self._visible_status
+                         if s == TestState.ACTIVE)
+        new_active = set(t for t, s in new_test_status
+                         if s == TestState.ACTIVE)
+        new_visible = set(t for t, s in new_test_status)
+        old_visible = set(t for t, s in self._visible_status)
+
+        if old_active and not new_active - old_active:
+            # No new active tests, so do not change the displayed test
+            # set, only update the displayed status for currently
+            # visible tests.  Not updating _visible_status allows us
+            # to remember the last set of active tests.
+            for test, _ in self._visible_status:
+                status = test.get_state().status
+                self._label_map[test.path].update(status)
+            return
+
+        self._visible_status = new_test_status
+
+        new_test_map = dict((t.path, t) for t, s in new_test_status)
+
+        for test in old_visible - new_visible:
+            label_box = self._label_map[test.path]
+            logging.debug('removing %s test label' % test.path)
+            self.remove(label_box)
+            self._remove_shortcut(test.path)
+
+        new_tests = new_visible - old_visible
+
+        for position, (test, status) in enumerate(new_test_status):
+            label_box = self._get_test_label(test)
+            if test in new_tests:
+                shortcut = self._add_shortcut(test)
+                label_box = self._get_test_label(test)
+                label_box.set_shortcut(shortcut)
+                logging.debug('adding %s test label (sortcut %r, pos %d)' %
+                              (test.path, shortcut, position))
+                self.pack_start(label_box, False, False)
+            self.reorder_child(label_box, position)
+            label_box.update(status)
+
+        self.show_all()
+
 
 
 class UiState(object):
 
-    def __init__(self, test_widget_box):
+    def __init__(self, test_widget_box, test_directory_widget, test_list):
         self._test_widget_box = test_widget_box
-        self._label_box_map = {}
+        self._test_directory_widget = test_directory_widget
+        self._test_list = test_list
         self._transition_count = 0
-
         self._active_test_label_map = None
+        self.update_test_state()
 
-    def _remove_state_widget(self):
-        """Remove any existing state widgets."""
-        for child in self._test_widget_box.get_children():
-            self._test_widget_box.remove(child)
-        self._active_test_label_map = None
+    def update_test_state(self):
+        state_map = self._test_list.get_state_map()
+        active_tests = set(
+            t for t in self._test_list.walk()
+            if t.is_leaf() and state_map[t].status == TestState.ACTIVE)
+        active_groups = set(g for t in active_tests
+                            for g in t.get_ancestor_groups())
 
-    def update_test_label(self, test, state):
-        label_box = self._label_box_map.get(test)
-        if label_box:
-            label_box.update(state)
+        def filter_visible_test_state(tests):
+            '''List currently visible tests and their status.
 
-    def update_test_state(self, test_list, state_map):
-        active_tests = [
-            t for t in test_list.walk()
-            if t.is_leaf() and state_map[t].status == TestState.ACTIVE]
-        has_active_ui = any(t.has_ui for t in active_tests)
+            Visible means currently displayed in the RHS panel.
+            Visiblity is implied by being a top level test or having
+            membership in a group with at least one active test.
+
+            Returns:
+              A list of (test, status) tuples for all visible tests,
+              in the order they should be displayed.
+            '''
+            results = []
+            for test in tests:
+                if isinstance(test, factory.TestGroup):
+                    results.append((test, TestState.UNTESTED))
+                    if test not in active_groups:
+                        continue
+                    results += filter_visible_test_state(test.subtests)
+                else:
+                    results.append((test, state_map[test].status))
+            return results
+
+        visible_test_state = filter_visible_test_state(self._test_list.subtests)
+        self._test_directory_widget.update(visible_test_state)
+
+        def remove_state_widget():
+            for child in self._test_widget_box.get_children():
+                self._test_widget_box.remove(child)
+            self._active_test_label_map = None
 
         if not active_tests:
             # Display the "no active tests" widget if there are still no
@@ -576,7 +759,7 @@ class UiState(object):
                     return False
 
                 self._transition_count += 1
-                self._remove_state_widget()
+                remove_state_widget()
 
                 self._test_widget_box.set(0.5, 0.5, 0.0, 0.0)
                 self._test_widget_box.set_padding(0, 0, 0, 0)
@@ -594,10 +777,10 @@ class UiState(object):
 
         self._transition_count += 1
 
-        if has_active_ui:
+        if any(t.has_ui for t in active_tests):
             # Remove the widget (if any) since there is an active test
             # with a UI.
-            self._remove_state_widget()
+            remove_state_widget()
             return
 
         if (self._active_test_label_map is not None and
@@ -610,19 +793,35 @@ class UiState(object):
                     LABEL_COLORS[state_map[test].status])
             return
 
-        self._remove_state_widget()
+        remove_state_widget()
         # No active UI; draw summary of current test states
         self._test_widget_box.set(0.5, 0.0, 0.0, 0.0)
         self._test_widget_box.set_padding(40, 0, 0, 0)
         vbox, self._active_test_label_map = make_summary_box(
-            [t for t in test_list.subtests
+            [t for t in self._test_list.subtests
              if state_map[t].status == TestState.ACTIVE],
             state_map)
         self._test_widget_box.add(vbox)
         self._test_widget_box.show_all()
 
-    def set_label_box(self, test, label_box):
-        self._label_box_map[test] = label_box
+
+def grab_shortcut_keys(disp, event_handler, event_client):
+    # We want to receive KeyPress events
+    root = disp.screen().root
+    root.change_attributes(event_mask = X.KeyPressMask)
+    shortcut_set = set(string.lowercase + string.digits)
+    keycode_map = {}
+    for mod, shortcut in ([(X.ControlMask, k) for k in shortcut_set] +
+                          [(X.Mod1Mask, 'Tab')]):  # Mod1 = Alt
+        keysym = gtk.gdk.keyval_from_name(shortcut)
+        keycode = disp.keysym_to_keycode(keysym)
+        keycode_map[keycode] = shortcut
+        root.grab_key(keycode, mod, 1, X.GrabModeAsync, X.GrabModeAsync)
+    # This flushes the XGrabKey calls to the server.
+    for dummy_x in range(0, root.display.pending_events()):
+        root.display.next_event()
+    gobject.io_add_watch(root.display, gobject.IO_IN, event_handler,
+                         root.display, keycode_map, event_client)
 
 
 def main(test_list_path):
@@ -636,69 +835,21 @@ def main(test_list_path):
     ui_state = None
     event_client = None
 
-    # Delay loading Xlib because Xlib is currently not available in image build
-    # process host-depends list, and it's only required by the main UI, not all
-    # the tests using UI library (in other words, it'll be slower and break the
-    # build system if Xlib is globally imported).
-    try:
-        from Xlib import X
-        from Xlib.display import Display
-        disp = Display()
-    except:
-        logging.error('Failed loading X modules')
-        raise
-
     def handle_key_release_event(_, event):
         logging.info('base ui key event (%s)', event.keyval)
         return True
 
     def handle_event(event):
         if event.type == Event.Type.STATE_CHANGE:
-            test = test_list.lookup_path(event.path)
-            state_map = test_list.get_state_map()
-            ui_state.update_test_label(test, state_map[test])
-            ui_state.update_test_state(test_list, state_map)
-
-    def grab_shortcut_keys(kbd_shortcuts):
-        root = disp.screen().root
-        keycode_map = {}
-
-        def handle_xevent(  # pylint: disable=W0102
-                          dummy_src, dummy_cond, xhandle=root.display,
-                          keycode_map=keycode_map):
-            for dummy_i in range(0, xhandle.pending_events()):
-                xevent = xhandle.next_event()
-                if xevent.type == X.KeyPress:
-                    keycode = xevent.detail
-                    if keycode in keycode_map:
-                        event_client.post_event(Event('kbd_shortcut',
-                                                      key=keycode_map[keycode]))
-                    else:
-                        logging.warning('Unbound keycode %s' % keycode)
-            return True
-
-        # We want to receive KeyPress events
-        root.change_attributes(event_mask = X.KeyPressMask)
-
-        for mod, shortcut in ([(X.ControlMask, k) for k in kbd_shortcuts] +
-                              [(X.Mod1Mask, 'Tab')]):  # Mod1 = Alt
-            keysym = gtk.gdk.keyval_from_name(shortcut)
-            keycode = disp.keysym_to_keycode(keysym)
-            keycode_map[keycode] = shortcut
-            root.grab_key(keycode, mod, 1,
-                          X.GrabModeAsync, X.GrabModeAsync)
-
-        # This flushes the XGrabKey calls to the server.
-        for dummy_x in range(0, root.display.pending_events()):
-            root.display.next_event()
-        gobject.io_add_watch(root.display, gobject.IO_IN, handle_xevent)
-
+            ui_state.update_test_state()
 
     test_list = factory.read_test_list(test_list_path)
 
     window = gtk.Window(gtk.WINDOW_TOPLEVEL)
     window.connect('destroy', lambda _: gtk.main_quit())
     window.modify_bg(gtk.STATE_NORMAL, BLACK)
+
+    disp = Display()
 
     event_client = EventClient(
         callback=handle_event,
@@ -719,12 +870,11 @@ def main(test_list_path):
         screen_size = (screen.get_width(), screen.get_height())
     window.set_size_request(*screen_size)
 
-    label_trough = gtk.VBox()
-    label_trough.set_spacing(0)
+    test_directory = TestDirectory()
 
     rhs_box = gtk.EventBox()
     rhs_box.modify_bg(gtk.STATE_NORMAL, _LABEL_TROUGH_COLOR)
-    rhs_box.add(label_trough)
+    rhs_box.add(test_directory)
 
     console_box = gtk.EventBox()
     console_box.set_size_request(-1, 180)
@@ -746,23 +896,12 @@ def main(test_list_path):
     window.connect('key-release-event', handle_key_release_event)
     window.add_events(gtk.gdk.KEY_RELEASE_MASK)
 
-    ui_state = UiState(test_widget_box)
-
-    for test in test_list.subtests:
-        label_box = TestLabelBox(test, True)
-        ui_state.set_label_box(test, label_box)
-        label_trough.pack_start(label_box, False, False)
-        label_trough.pack_start(make_hsep(), False, False)
+    ui_state = UiState(test_widget_box, test_directory, test_list)
 
     window.add(base_box)
     window.show_all()
 
-    state_map = test_list.get_state_map()
-    for test, state in test_list.get_state_map().iteritems():
-        ui_state.update_test_label(test, state)
-    ui_state.update_test_state(test_list, state_map)
-
-    grab_shortcut_keys(test_list.kbd_shortcut_map.keys())
+    grab_shortcut_keys(disp, test_directory.handle_xevent, event_client)
 
     hide_cursor(window.window)
 
