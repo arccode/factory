@@ -560,8 +560,11 @@ def main(test_list_path):
                 xevent = xhandle.next_event()
                 if xevent.type == X.KeyPress:
                     keycode = xevent.detail
-                    event_client.post_event(Event('kbd_shortcut',
-                                                  key=keycode_map[keycode]))
+                    if keycode in keycode_map:
+                        event_client.post_event(Event('kbd_shortcut',
+                                                      key=keycode_map[keycode]))
+                    else:
+                        logging.warning('Unbound keycode %s' % keycode)
             return True
 
         # We want to receive KeyPress events
