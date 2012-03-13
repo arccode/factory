@@ -131,6 +131,8 @@ def get_instance(url=None):
     """
     if not url:
         url = _get_session(SESSION_SERVER_URL)
+    if not url:
+        raise Exception("Shop floor server URL is NOT configured.")
     return xmlrpclib.ServerProxy(url, allow_none=True, verbose=False)
 
 

@@ -98,7 +98,6 @@ _ST_LABEL_ZH_SIZE = (150, 35)
 
 _NO_ACTIVE_TEST_DELAY_MS = 500
 
-
 # ---------------------------------------------------------------------------
 # Client Library
 
@@ -175,6 +174,11 @@ def trim(text, length):
     return text
 
 
+class InputError(ValueError):
+    """Execption for input window callbacks to change status text message."""
+    pass
+
+
 def make_input_window(prompt=None,
                       init_value=None,
                       msg_invalid=None,
@@ -192,7 +196,9 @@ def make_input_window(prompt=None,
     @param font: Font specification (string or pango.FontDescription) for label
         and entry. None for default large font.
     @param on_validate: A callback function to validate if the input from user
-        is valid. None for allowing any non-empty input.
+        is valid. None for allowing any non-empty input. Any ValueError or
+        ui.InputError raised during execution in on_validate will be displayed
+        in bottom status.
     @param on_keypress: A callback function when each keystroke is hit.
     @param on_complete: A callback function when a valid string is passed.
         None to stop (gtk.main_quit).
@@ -205,11 +211,13 @@ def make_input_window(prompt=None,
 
     def enter_callback(entry):
         text = entry.get_text()
-        if (on_validate and (not on_validate(text))) or (not text.strip()):
-            gtk.gdk.beep()
-            status_label.set_text(msg_invalid)
-        else:
+        try:
+            if (on_validate and (not on_validate(text))) or (not text.strip()):
+                raise ValueError(msg_invalid)
             on_complete(text) if on_complete else gtk.main_quit()
+        except ValueError as e:
+            gtk.gdk.beep()
+            status_label.set_text('ERROR: %s' % e.message)
         return True
 
     def key_press_callback(entry, key):
@@ -247,7 +255,6 @@ def make_input_window(prompt=None,
 
     # Method for getting the entry.
     widget.get_entry = lambda : entry
-
     return widget
 
 
