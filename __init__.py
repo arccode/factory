@@ -331,6 +331,14 @@ class FactoryTest(object):
         if has_ui is not None:
             self.has_ui = has_ui
 
+        # Auto-assign label text.
+        if not self.label_en:
+            if self.id and (self.id != self.autotest_name):
+                self.label_en = self.id
+            elif self.autotest_name:
+                # autotest_name is type_NameInCamelCase.
+                self.label_en = self.autotest_name.partition('_')[2]
+
         assert not (autotest_name and self.subtests), (
             'Test %s may not have both an autotest and subtests' % self.id)
 
