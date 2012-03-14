@@ -80,6 +80,7 @@ USER_PASS_FAIL_SELECT_STR = (
     'hit TAB to fail and ENTER to pass\n' +
     '錯誤請按 TAB，成功請按 ENTER')
 
+_LABEL_STATUS_ROW_SIZE = (300, 30)
 _LABEL_EN_SIZE = (170, 35)
 _LABEL_ZH_SIZE = (70, 35)
 _LABEL_EN_FONT = pango.FontDescription('courier new extra-condensed 16')
@@ -123,6 +124,51 @@ def make_label(message, font=LABEL_FONT, fg=LIGHT_GREEN,
     if alignment:
         l.set_alignment(*alignment)
     return l
+
+
+def make_status_row(init_prompt,
+                    init_status,
+                    label_size=_LABEL_STATUS_ROW_SIZE):
+    """Returns a widget that live updates prompt and status in a row.
+
+    Args:
+        init_prompt: The prompt label text.
+        init_status: The status label text.
+        label_size: The desired size of the prompt label and the status label.
+
+    Returns:
+        1) A dict whose content is linked by the widget.
+        2) A widget to render dict content in "prompt:   status" format.
+    """
+    display_dict = {}
+    display_dict['prompt'] = init_prompt
+    display_dict['status'] = init_status
+
+    def prompt_label_expose(widget, event):
+        prompt = display_dict['prompt']
+        widget.set_text(prompt)
+
+    def status_label_expose(widget, event):
+        status = display_dict['status']
+        widget.set_text(status)
+        widget.modify_fg(gtk.STATE_NORMAL, LABEL_COLORS[status])
+
+    prompt_label = make_label(
+            init_prompt, size=label_size,
+            alignment=(0, 0.5))
+    delimiter_label = make_label(':', alignment=(0, 0.5))
+    status_label = make_label(
+            init_status, size=label_size,
+            alignment=(0, 0.5), fg=LABEL_COLORS[init_status])
+
+    widget = gtk.HBox()
+    widget.pack_end(status_label, False, False)
+    widget.pack_end(delimiter_label, False, False)
+    widget.pack_end(prompt_label, False, False)
+
+    status_label.connect('expose_event', status_label_expose)
+    prompt_label.connect('expose_event', prompt_label_expose)
+    return display_dict, widget
 
 
 def make_hsep(width=1):
