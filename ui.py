@@ -139,9 +139,13 @@ def make_vsep(width=1):
     return frame
 
 
-def make_countdown_widget():
-    title = make_label('time remaining / 剩餘時間: ', alignment=(1, 0.5))
-    countdown = make_label('%d' % FAIL_TIMEOUT, alignment=(0, 0.5))
+def make_countdown_widget(prompt=None, value=None, fg=LIGHT_GREEN):
+    if prompt is None:
+        prompt = 'time remaining / 剩餘時間: '
+    if value is None:
+        value = '%s' % FAIL_TIMEOUT
+    title = make_label(prompt, fg=fg, alignment=(1, 0.5))
+    countdown = make_label(value, fg=fg, alignment=(0, 0.5))
     hbox = gtk.HBox()
     hbox.pack_start(title)
     hbox.pack_start(countdown)
