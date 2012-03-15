@@ -90,16 +90,29 @@ def kill_process_tree(process, caption):
     @param process: The process to kill (opened with the subprocess module).
     @param caption: A caption describing the process.
     '''
+    # os.kill does not kill child processes. os.killpg kills all processes
+    # sharing same group (and is usually used for killing process tree). But in
+    # our case, to preserve PGID for autotest and upstart service, we need to
+    # iterate through each level until leaf of the tree.
+
+    def get_all_pids(root):
+        ps_output = subprocess.Popen(['ps','--no-headers','-eo','pid,ppid'],
+                                     stdout=subprocess.PIPE)
+        children = {}
+        for line in ps_output.stdout:
+            match = re.findall('\d+', line)
+            children.setdefault(int(match[1]), []).append(int(match[0]))
+        pids = []
+        def add_children(pid):
+            pids.append(pid)
+            map(add_children, children.get(pid, []))
+        add_children(root)
+        # Kill children first then parents.
+        return reversed(pids)
+
+    pids = get_all_pids([process.pid])
+
     for sig in [signal.SIGTERM, signal.SIGKILL]:
-        pids = [process.pid]
-        try:
-            process = subprocess.Popen(["pgrep", "-P", str(process.pid)],
-                                       stdout=subprocess.PIPE)
-            stdout, stderr = process.communicate()
-            if len(stdout):
-                pids.extend(int(x) for x in stdout.strip().split("\n"))
-        except subprocess.CalledProcessError:
-            pass  # No child processes
         logging.info('Stopping %s (pid=%s)...', caption, sorted(pids))
 
         for i in range(25):  # Try 25 times (200 ms between tries)
