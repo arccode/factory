@@ -79,6 +79,9 @@ FAIL_TIMEOUT = 30
 USER_PASS_FAIL_SELECT_STR = (
     'hit TAB to fail and ENTER to pass\n' +
     '錯誤請按 TAB，成功請按 ENTER')
+# Resolution where original UI is designed for.
+_UI_SCREEN_WIDTH = 1280
+_UI_SCREEN_HEIGHT = 800
 
 _LABEL_STATUS_ROW_SIZE = (300, 30)
 _LABEL_EN_SIZE = (170, 35)
@@ -116,11 +119,24 @@ gtk_lock = _GtkLock()
 
 def make_label(message, font=LABEL_FONT, fg=LIGHT_GREEN,
                size=None, alignment=None):
+    """Returns a label widget.
+
+    A wrapper for gtk.Label. The unit of size is pixels under resolution
+    _UI_SCREEN_WIDTH*_UI_SCREEN_HEIGHT.
+
+    @param message: A string to be displayed.
+    @param font: Font descriptor for the label.
+    @param fg: Foreground color.
+    @param size: Minimum size for this label.
+    @param alignment: Alignment setting.
+    @return: A label widget.
+    """
     l = gtk.Label(message)
     l.modify_font(font)
     l.modify_fg(gtk.STATE_NORMAL, fg)
     if size:
-        l.set_size_request(*size)
+        # Convert size according to the current resolution.
+        l.set_size_request(*convert_pixels(size))
     if alignment:
         l.set_alignment(*alignment)
     return l
@@ -171,16 +187,53 @@ def make_status_row(init_prompt,
     return display_dict, widget
 
 
-def make_hsep(width=1):
+def convert_pixels(size):
+    """Converts a pair in pixel that is suitable for current resolution.
+
+    GTK takes pixels as its unit in many function calls. To maintain the
+    consistency of the UI in different resolution, a conversion is required.
+    Take current resolution and (_UI_SCREEN_WIDTH, _UI_SCREEN_HEIGHT) as
+    the original resolution, this function returns a pair of width and height
+    that is converted for current resolution.
+
+    Because pixels in negative usually indicates unspecified, no conversion
+    will be done for negative pixels.
+
+    In addition, the aspect ratio is not maintained in this function.
+
+    Usage Example:
+        width,_ = convert_pixels((20,-1))
+
+    @param size: A pair of pixels that designed under original resolution.
+    @return: A pair of pixels of (width, height) format.
+             Pixels returned are always integer.
+    """
+    return (int(float(size[0]) / _UI_SCREEN_WIDTH * gtk.gdk.screen_width()
+           if (size[0] > 0) else size[0]),
+           int(float(size[1]) / _UI_SCREEN_HEIGHT * gtk.gdk.screen_height()
+           if (size[1] > 0) else size[1]))
+
+
+def make_hsep(height=1):
+    """Returns a widget acts as a horizontal separation line.
+
+    The unit is pixels under resolution _UI_SCREEN_WIDTH*_UI_SCREEN_HEIGHT.
+    """
     frame = gtk.EventBox()
-    frame.set_size_request(-1, width)
+    # Convert height according to the current resolution.
+    frame.set_size_request(*convert_pixels((-1, height)))
     frame.modify_bg(gtk.STATE_NORMAL, SEP_COLOR)
     return frame
 
 
 def make_vsep(width=1):
+    """Returns a widget acts as a vertical separation line.
+
+    The unit is pixels under resolution _UI_SCREEN_WIDTH*_UI_SCREEN_HEIGHT.
+    """
     frame = gtk.EventBox()
-    frame.set_size_request(width, -1)
+    # Convert width according to the current resolution.
+    frame.set_size_request(*convert_pixels((width, -1)))
     frame.modify_bg(gtk.STATE_NORMAL, SEP_COLOR)
     return frame
 
