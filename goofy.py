@@ -105,13 +105,13 @@ def kill_process_tree(process, caption):
         for i in range(25):  # Try 25 times (200 ms between tries)
             for pid in pids:
                 try:
+                    logging.info("Sending signal %s to %d" % (sig, pid))
                     os.kill(pid, sig)
                 except OSError:
                     pass
-                pids[:] = [pid for pid in pids
-                           if is_process_alive(pid)]
-                if not pids:
-                    return
+            pids = filter(is_process_alive, pids)
+            if not pids:
+                return
             time.sleep(0.2)  # Sleep 200 ms and try again
 
     logging.warn('Failed to stop %s process. Ignoring.', caption)
