@@ -24,7 +24,7 @@ start_factory() {
 
   # This script should be located in .../autotest/cros/factory.
   cd "$SCRIPT_BASE/../.."
-  eval "$("$SCRIPT_BASE/startx.sh")"
+  eval "$("$SCRIPT_BASE/startx.sh" 2>/var/log/startx.err)"
   "$SCRIPT_BASE/goofy" >>"$FACTORY_LOG_FILE" 2>&1
 }
 
