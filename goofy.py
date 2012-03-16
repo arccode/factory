@@ -10,7 +10,7 @@
 The main factory flow that runs the factory test and finalizes a device.
 '''
 
-import logging, os, pickle, pipes, signal, subprocess, sys, tempfile
+import logging, os, pickle, pipes, re, signal, subprocess, sys, tempfile
 import threading, time, traceback
 from collections import deque
 from optparse import OptionParser
@@ -107,18 +107,20 @@ def kill_process_tree(process, caption):
             pids.append(pid)
             map(add_children, children.get(pid, []))
         add_children(root)
-        # Kill children first then parents.
-        return reversed(pids)
+        # Reverse the list to first kill children then parents.
+        # Note reversed(pids) will return an iterator instead of real list, so
+        # we must explicitly call pids.reverse() here.
+        pids.reverse()
+        return pids
 
-    pids = get_all_pids([process.pid])
-
+    pids = get_all_pids(process.pid)
     for sig in [signal.SIGTERM, signal.SIGKILL]:
         logging.info('Stopping %s (pid=%s)...', caption, sorted(pids))
 
         for i in range(25):  # Try 25 times (200 ms between tries)
             for pid in pids:
                 try:
-                    logging.info("Sending signal %s to %d" % (sig, pid))
+                    logging.info("Sending signal %s to %d", sig, pid)
                     os.kill(pid, sig)
                 except OSError:
                     pass
