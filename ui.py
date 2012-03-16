@@ -495,11 +495,28 @@ class Console(object):
     xterm at a strategic location, and running tail against the log.'''
 
     def __init__(self, allocation):
-        xterm_coords = '145x13+%d+%d' % (allocation.x, allocation.y)
+        # Specify how many lines and characters per line are displayed.
+        XTERM_DISPLAY_LINES = 13
+        XTERM_DISPLAY_CHARS = 120
+        # Extra space reserved for pixels between lines.
+        XTERM_RESERVED_LINES = 3
+
+        xterm_coords = '%dx%d+%d+%d' % (XTERM_DISPLAY_CHARS,
+                                        XTERM_DISPLAY_LINES,
+                                        allocation.x,
+                                        allocation.y)
+        xterm_reserved_height = gtk.gdk.screen_height() - allocation.y
+        font_size = int(float(xterm_reserved_height) / (XTERM_DISPLAY_LINES +
+                                                        XTERM_RESERVED_LINES))
+        logging.info('xterm_reserved_height = %d' % xterm_reserved_height)
+        logging.info('font_size = %d' % font_size)
         logging.info('xterm_coords = %s', xterm_coords)
         xterm_opts = ('-bg black -fg lightgray -bw 0 -g %s' % xterm_coords)
-        xterm_cmd = (('urxvt %s -e bash -c ' % xterm_opts).split() +
-                     ['tail -f "%s"' % factory.CONSOLE_LOG_PATH])
+        xterm_cmd = (
+            ['urxvt'] + xterm_opts.split() +
+            ['-fn', 'xft:DejaVu Sans Mono:pixelsize=%s' % font_size] +
+            ['-e', 'bash'] +
+            ['-c', 'tail -f "%s"' % factory.CONSOLE_LOG_PATH])
         logging.info('xterm_cmd = %s', xterm_cmd)
         self._proc = subprocess.Popen(xterm_cmd)
 
@@ -877,7 +894,7 @@ def main(test_list_path):
     rhs_box.add(test_directory)
 
     console_box = gtk.EventBox()
-    console_box.set_size_request(-1, 180)
+    console_box.set_size_request(*convert_pixels((-1, 180)))
     console_box.modify_bg(gtk.STATE_NORMAL, BLACK)
 
     test_widget_box = gtk.Alignment()
