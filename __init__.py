@@ -194,7 +194,7 @@ class TestState(object):
         FAILED, or UNTESTED).
     @property count: The number of times the test has been run.
     @property error_msg: The last error message that caused a test failure.
-    @property reboot_count: The next of times the test has caused a reboot.
+    @property shutdown_count: The next of times the test has caused a shutdown.
     @property visible: Whether the test is the currently visible test.
     '''
     ACTIVE = 'ACTIVE'
@@ -203,40 +203,40 @@ class TestState(object):
     UNTESTED = 'UNTESTED'
 
     def __init__(self, status=UNTESTED, count=0, visible=False, error_msg=None,
-                 reboot_count=0):
+                 shutdown_count=0):
         self.status = status
         self.count = count
         self.visible = visible
         self.error_msg = error_msg
-        self.reboot_count = reboot_count
+        self.shutdown_count = shutdown_count
 
     def __repr__(self):
         return std_repr(self)
 
     def update(self, status=None, increment_count=0, error_msg=None,
-               reboot_count=None, increment_reboot_count=0, visible=None):
+               shutdown_count=None, increment_shutdown_count=0, visible=None):
         '''
         Updates the state of a test.
 
         @param status: The new status of the test.
         @param increment_count: An amount by which to increment count.
         @param error_msg: If non-None, the new error message for the test.
-        @param reboot_count: If non-None, the new reboot count.
-        @param increment_reboot_count: An amount by which to increment
-            reboot_count.
+        @param shutdown_count: If non-None, the new shutdown count.
+        @param increment_shutdown_count: An amount by which to increment
+            shutdown_count.
         @param visible: If non-None, whether the test should become visible.
         '''
         if status:
             self.status = status
         if error_msg is not None:
             self.error_msg = error_msg
-        if reboot_count is not None:
-            self.reboot_count = reboot_count
+        if shutdown_count is not None:
+            self.shutdown_count = shutdown_count
         if visible is not None:
             self.visible = visible
 
         self.count += increment_count
-        self.reboot_count += increment_reboot_count
+        self.shutdown_count += increment_shutdown_count
 
     @classmethod
     def from_dict_or_object(cls, obj):
@@ -566,14 +566,43 @@ class InformationScreen(OperatorTest):
 AutomatedSequence = FactoryTest
 AutomatedSubTest = FactoryAutotestTest
 
-class RebootStep(AutomatedSubTest):
-    def __init__(self, iterations=1, **kw):
-        kw.setdefault('id', 'reboot')
-        super(RebootStep, self).__init__(**kw)
-        assert not self.autotest_name, 'Reboot steps may not have an autotest'
-        assert not self.subtests, 'Reboot steps may not have subtests'
-        assert not self.backgroundable, 'Reboot steps may not be backgroundable'
+
+class ShutdownStep(AutomatedSubTest):
+    '''A shutdown (halt or reboot) step.
+
+    Properties:
+        iterations: The number of times to reboot.
+        operation: The command to run to perform the shutdown
+            (REBOOT or HALT).
+    '''
+    REBOOT = 'reboot'
+    HALT = 'halt'
+
+    def __init__(self, operation, iterations=1, **kw):
+        kw.setdefault('id', operation)
+        super(ShutdownStep, self).__init__(**kw)
+        assert not self.autotest_name, (
+            'Reboot/halt steps may not have an autotest')
+        assert not self.subtests, 'Reboot/halt steps may not have subtests'
+        assert not self.backgroundable, (
+            'Reboot/halt steps may not be backgroundable')
         assert iterations > 0
         self.iterations = iterations
+
+        assert operation in [self.REBOOT, self.HALT]
+        self.operation = operation
+
+
+class HaltStep(ShutdownStep):
+    '''Halts the machine.'''
+    def __init__(self, **kw):
+        super(HaltStep, self).__init__(operation=ShutdownStep.HALT, **kw)
+
+
+class RebootStep(ShutdownStep):
+    '''Reboots the machine.'''
+    def __init__(self, **kw):
+        super(RebootStep, self).__init__(operation=ShutdownStep.REBOOT, **kw)
+
 
 AutomatedRebootSubTest = RebootStep

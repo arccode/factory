@@ -385,26 +385,26 @@ class Goofy(object):
             self.visible_test.update_state(visible=False)
         self.visible_test = test
 
-    def handle_reboot_complete(self, test, state):
+    def handle_shutdown_complete(self, test, state):
         '''
-        Handles the case where a reboot was detected during a reboot step.
+        Handles the case where a shutdown was detected during a shutdown step.
 
-        @param test: The RebootStep.
+        @param test: The ShutdownStep.
         @param state: The test state.
         '''
-        state = test.update_state(increment_reboot_count=1)
-        logging.info('Detected reboot (%d of %d)',
-                     state.reboot_count, test.iterations)
-        if state.reboot_count == test.iterations:
+        state = test.update_state(increment_shutdown_count=1)
+        logging.info('Detected shutdown (%d of %d)',
+                     state.shutdown_count, test.iterations)
+        if state.shutdown_count == test.iterations:
             # Good!
             test.update_state(status=TestState.PASSED, error_msg='')
-        elif state.reboot_count > test.iterations:
-            # Rebooted too many times
+        elif state.shutdown_count > test.iterations:
+            # Shutdowned too many times
             test.update_state(status=TestState.FAILED,
-                              error_msg='Too many reboots')
+                              error_msg='Too many shutdowns')
         else:
-            # Need to reboot again
-            self.reboot()
+            # Need to shutdown again
+            self.shutdown()
 
     def init_states(self):
         '''
@@ -421,12 +421,12 @@ class Goofy(object):
             if isinstance(test, factory.InformationScreen):
                 test.update_state(status=TestState.UNTESTED, error_msg='')
             elif state.status == TestState.ACTIVE:
-                if isinstance(test, factory.RebootStep):
-                    # Rebooted while the test was active - that's good.
-                    self.handle_reboot_complete(test, state)
+                if isinstance(test, factory.ShutdownStep):
+                    # Shutdown while the test was active - that's good.
+                    self.handle_shutdown_complete(test, state)
                 else:
                     test.update_state(status=TestState.FAILED,
-                                      error_msg='Unknown (reboot?)')
+                                      error_msg='Unknown (shutdown?)')
 
     def show_next_active_test(self):
         '''
@@ -494,14 +494,15 @@ class Goofy(object):
 
             self.tests_to_run.popleft()
 
-            if isinstance(test, factory.RebootStep):
+            if isinstance(test, factory.ShutdownStep):
                 test.update_state(status=TestState.ACTIVE, increment_count=1,
-                                  error_msg='', reboot_count=0)
+                                  error_msg='', shutdown_count=0)
                 # Save pending test list in the state server
                 self.state_instance.set_shared_data(
-                    'tests_after_reboot',
+                    'tests_after_shutdown',
                     [t.path for t in self.tests_to_run])
-                self.reboot()
+
+                self.shutdown(test.operation)
 
             invoc = TestInvocation(self, test, on_completion=self.run_next_test)
             self.invocations[test] = invoc
@@ -557,15 +558,22 @@ class Goofy(object):
             del self.invocations[test]
         self.reap_completed_tests()
 
-    def reboot(self):
+    def shutdown(self, operation):
         '''
-        Reboots the machine (from a RebootTest).
+        Shuts the machine (from a ShutdownStep).
+
+        Args:
+            operation: 'reboot' or 'halt'.
         '''
-        logging.info('Rebooting')
+        assert operation in ['reboot', 'halt']
+        logging.info('Shutting down: %s', operation)
         subprocess.check_call('sync')
-        subprocess.check_call('reboot')
+        subprocess.check_call(operation)
         time.sleep(30)
-        assert False, 'Never reached (should reboot)'
+        assert False, 'Never reached (should %s)' % operation
+
+    def reboot(self):
+        self.shutdown('reboot')
 
     def main(self):
         parser = OptionParser()
