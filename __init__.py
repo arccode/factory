@@ -181,7 +181,7 @@ def init_logging(prefix=None, verbose=False):
         "Logging has already been initialized")
 
     logging.basicConfig(
-        format=prefix + ': [%(levelname)s] %(asctime)s %(message)s',
+        format=prefix + ': [%(levelname)s] %(asctime)s.%(msecs)03d %(message)s',
         level=logging.DEBUG if verbose else logging.INFO,
         datefmt='%Y-%m-%d %H:%M:%S')
 
@@ -412,8 +412,7 @@ class FactoryTest(object):
       '''
       Returns list of ancestors that are groups, ordered by seniority.
       '''
-      return [node for node in self.get_ancestors()
-              if isinstance(node, TestGroup)]
+      return [node for node in self.get_ancestors() if node.is_group()]
 
     def get_state(self):
         '''
@@ -478,6 +477,23 @@ class FactoryTest(object):
             # Walking depth first - yield self last.
             yield self
 
+    def is_group(self):
+        '''
+        Returns true if this node is a test group.
+        '''
+        return isinstance(self, TestGroup)
+
+    def is_top_level_test(self):
+        '''
+        Returns true if this node is a top-level test.
+
+        A 'top-level test' is a test directly underneath the root or a
+        TestGroup, e.g., a node under which all tests must be run
+        together to be meaningful.
+        '''
+        return ((not self.is_group()) and
+                self.parent and
+                (self.parent == self.root or self.parent.is_group()))
 
 class FactoryTestList(FactoryTest):
     '''
@@ -511,6 +527,13 @@ class FactoryTestList(FactoryTest):
             (self.lookup_path(k), TestState.from_dict_or_object(v))
             for k, v in self.state_instance.get_test_states().iteritems())
 
+    def get_top_level_tests(self):
+        '''
+        Returns a list of top-level tests.
+        '''
+        return [node for node in self.walk()
+                if node.is_top_level_test()]
+
     def lookup_path(self, path):
         '''
         Looks up a test from its path.
@@ -532,10 +555,11 @@ class FactoryTestList(FactoryTest):
 
 
 class TestGroup(FactoryTest):
-  '''
-  A collection of related tests, shown together in RHS panel if one is active.
-  '''
-  pass
+    '''
+    A collection of related tests, shown together in RHS panel if one is active.
+    '''
+    pass
+
 
 class FactoryAutotestTest(FactoryTest):
     pass

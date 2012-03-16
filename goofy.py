@@ -10,8 +10,19 @@
 The main factory flow that runs the factory test and finalizes a device.
 '''
 
-import logging, os, pickle, pipes, re, signal, subprocess, sys, tempfile
-import threading, time, traceback
+import inspect
+import logging
+import os
+import pickle
+import pipes
+import re
+import signal
+import subprocess
+import sys
+import tempfile
+import threading
+import time
+import traceback
 from collections import deque
 from optparse import OptionParser
 from Queue import Queue
@@ -317,6 +328,9 @@ class Goofy(object):
         args: Command-line args.
         test_list_path: The path to the test list.
         test_list: The test list.
+        event_handlers: Map of Event.Type to the method used to handle that
+            event.  If the method has an 'event' argument, the event is passed
+            to the handler.
     '''
     def __init__(self):
         self.state_instance = None
@@ -335,6 +349,14 @@ class Goofy(object):
         self.args = None
         self.test_list_path = None
         self.test_list = None
+
+        self.event_handlers = {
+            Event.Type.SWITCH_TEST: self.handle_switch_test,
+            Event.Type.SHOW_NEXT_ACTIVE_TEST: self.show_next_active_test,
+            Event.Type.RESTART_TESTS: self.restart_tests,
+            Event.Type.AUTO_RUN: self.auto_run,
+            Event.Type.RE_RUN_FAILED: self.re_run_failed,
+        }
 
     def __del__(self):
         if self.ui_process:
@@ -453,24 +475,14 @@ class Goofy(object):
         '''
         Handles an event from the event server.
         '''
-        if event.type == Event.Type.SWITCH_TEST:
-            test = self.test_list.lookup_path(event.key)
-            if test:
-                invoc = self.invocations.get(test)
-                if invoc and test.backgroundable:
-                    # Already running: just bring to the front if it
-                    # has a UI.
-                    logging.info('Setting visible test to %s', test.path)
-                    self.event_client.post_event(
-                        Event(Event.Type.SET_VISIBLE_TEST, path=test.path))
-                self.abort_active_tests()
-                for t in test.walk():
-                    t.update_state(status=TestState.UNTESTED)
-                self.run_tests(test)
+        handler = self.event_handlers.get(event.type)
+        if handler:
+            if 'event' in inspect.getargspec(handler).args:
+                handler(event=event)
             else:
-              logging.error('unknown test %r' % event.key)
-        elif event.type == Event.Type.SHOW_NEXT_ACTIVE_TEST:
-          self.show_next_active_test()
+                handler()
+        else:
+            logging.debug('Unbound event type %s' % event.type)
 
     def run_next_test(self):
         '''
@@ -512,21 +524,36 @@ class Goofy(object):
                 self.set_visible_test(test)
             invoc.start()
 
-    def run_tests(self, root, untested_only=False):
+    def run_tests(self, subtrees, untested_only=False):
         '''
-        Runs tests under root.
+        Runs tests under subtree.
 
         The tests are run in order unless one fails (then stops).
         Backgroundable tests are run simultaneously; when a foreground test is
         encountered, we wait for all active tests to finish before continuing.
+
+        @param subtrees: Node or nodes containing tests to run (may either be
+            a single test or a list).  Duplicates will be ignored.
         '''
+        if type(subtrees) != list:
+            subtrees = [subtrees]
+
+        # Nodes we've seen so far, to avoid duplicates.
+        seen = set()
+
         self.tests_to_run = deque()
-        for x in root.walk():
-            if not x.is_leaf():
-                continue
-            if untested_only and x.get_state().status != TestState.UNTESTED:
-                continue
-            self.tests_to_run.append(x)
+        for subtree in subtrees:
+            for test in subtree.walk():
+                if test in seen:
+                    continue
+                seen.add(test)
+
+                if not test.is_leaf():
+                    continue
+                if (untested_only and
+                    test.get_state().status != TestState.UNTESTED):
+                    continue
+                self.tests_to_run.append(test)
         self.run_next_test()
 
     def reap_completed_tests(self):
@@ -647,6 +674,65 @@ class Goofy(object):
                 # But keep going
             finally:
                 self.run_queue.task_done()
+
+    def run_tests_with_status(self, *statuses_to_run):
+        '''Runs all top-level tests with a particular status.
+
+        All active tests, plus any tests to re-run, are reset.
+        '''
+        tests_to_reset = []
+        tests_to_run = []
+
+        for test in self.test_list.get_top_level_tests():
+            status = test.get_state().status
+            if status == TestState.ACTIVE or status in statuses_to_run:
+                # Reset the test (later; we will need to abort
+                # all active tests first).
+                tests_to_reset.append(test)
+            if status in statuses_to_run:
+                tests_to_run.append(test)
+
+        self.abort_active_tests()
+
+        # Reset all statuses of the tests to run (in case any tests were active;
+        # we want them to be run again).
+        for test_to_reset in tests_to_reset:
+            for test in test_to_reset.walk():
+                test.update_state(status=TestState.UNTESTED)
+
+        self.run_tests(tests_to_run, untested_only=True)
+
+    def restart_tests(self):
+        '''Restarts all tests.'''
+        self.abort_active_tests()
+        for test in self.test_list.walk():
+            test.update_state(status=TestState.UNTESTED)
+        self.run_tests(self.test_list)
+
+    def auto_run(self):
+        '''"Auto-runs" tests that have not been run yet.'''
+        self.run_tests_with_status(TestState.UNTESTED, TestState.ACTIVE)
+
+    def re_run_failed(self):
+        '''Re-runs failed tests.'''
+        self.run_tests_with_status(TestState.FAILED)
+
+    def handle_switch_test(self, event):
+        test = self.test_list.lookup_path(event.path)
+        if test:
+            invoc = self.invocations.get(test)
+            if invoc and test.backgroundable:
+                # Already running: just bring to the front if it
+                # has a UI.
+                logging.info('Setting visible test to %s', test.path)
+                self.event_client.post_event(
+                    Event(Event.Type.SET_VISIBLE_TEST, path=test.path))
+            self.abort_active_tests()
+            for t in test.walk():
+                t.update_state(status=TestState.UNTESTED)
+            self.run_tests(test)
+        else:
+            logging.error('unknown test %r' % event.key)
 
 
 if __name__ == '__main__':

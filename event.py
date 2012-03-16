@@ -29,11 +29,24 @@ class Event(object):
                       state=TestState(...))
     '''
     Type = type('Event.Type', (), {
+            # The state of a test has changed.
             'STATE_CHANGE':          'goofy:state_change',
+            # The UI has come up.
             'UI_READY':              'goofy:ui_ready',
+            # Tells goofy to switch to a new test.
             'SWITCH_TEST':           'goofy:switch_test',
+            # Tells goofy to rotate visibility to the next active test.
             'SHOW_NEXT_ACTIVE_TEST': 'goofy:show_next_active_test',
+            # Tells goofy to show a particular test.
             'SET_VISIBLE_TEST':      'goofy:set_visible_test',
+            # Tells goofy to clear all state and restart testing.
+            'RESTART_TESTS':  'goofy:restart_tests',
+            # Tells goofy to run all tests that haven't been run yet.
+            'AUTO_RUN': 'goofy:auto_run',
+            # Tells goofy to set all failed tests' state to untested and re-run.
+            'RE_RUN_FAILED': 'goofy:re_run_failed',
+            # Tells goofy to go to the review screen.
+            'REVIEW': 'goofy:review',
             })
 
     def __init__(self, type, **kw):  # pylint: disable=W0622

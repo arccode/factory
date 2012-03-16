@@ -113,6 +113,16 @@ _ST_LABEL_ZH_SIZE = (150, 35)
 
 _NO_ACTIVE_TEST_DELAY_MS = 500
 
+GLOBAL_HOT_KEY_EVENTS = {
+    'r': Event.Type.RESTART_TESTS,
+    'a': Event.Type.AUTO_RUN,
+    'f': Event.Type.RE_RUN_FAILED,
+    }
+try:
+    # Works only if X is available.
+    GLOBAL_HOT_KEY_MASK = X.ControlMask | X.Mod1Mask
+except:
+    pass
 
 # ---------------------------------------------------------------------------
 # Client Library
@@ -631,11 +641,11 @@ class TestDirectory(gtk.VBox):
         if shortcut is None:
             # Find a suitable shortcut.  For groups, use numbers.  For
             # regular tests, use alpha (letters).
-            if isinstance(test, factory.TestGroup):
-              gen = (x for x in string.digits if x not in self._shortcut_map)
+            if test.is_group():
+                gen = (x for x in string.digits if x not in self._shortcut_map)
             else:
-              gen = (x for x in test.label_en.lower() + string.lowercase
-                     if x.isalnum() and x not in self._shortcut_map)
+                gen = (x for x in test.label_en.lower() + string.lowercase
+                       if x.isalnum() and x not in self._shortcut_map)
             shortcut = next(gen, None)
         if shortcut is None:
             logging.error('Unable to find shortcut for %s' % test.path)
@@ -654,12 +664,21 @@ class TestDirectory(gtk.VBox):
                 logging.warning('Ignoring unknown keycode %r' % keycode)
                 continue
             shortcut = keycode_map[keycode]
-            if shortcut not in self._shortcut_map:
-                logging.warning('Ignoring unbound shortcut %r' % shortcut)
-                continue
-            test_path = self._shortcut_map[shortcut]
-            event_client.post_event(Event(Event.Type.SWITCH_TEST,
-                                          key=test_path))
+
+            if (xevent.state & GLOBAL_HOT_KEY_MASK ==
+                GLOBAL_HOT_KEY_MASK):
+                event_type = GLOBAL_HOT_KEY_EVENTS.get(shortcut)
+                if event_type:
+                    event_client.post_event(Event(event_type))
+                else:
+                    logging.warning('Unbound global hot key %s' % key)
+            else:
+                if shortcut not in self._shortcut_map:
+                    logging.warning('Ignoring unbound shortcut %r' % shortcut)
+                    continue
+                test_path = self._shortcut_map[shortcut]
+                event_client.post_event(Event(Event.Type.SWITCH_TEST,
+                                              path=test_path))
         return True
 
     def update(self, new_test_status):
@@ -751,7 +770,7 @@ class UiState(object):
             '''
             results = []
             for test in tests:
-                if isinstance(test, factory.TestGroup):
+                if test.is_group():
                     results.append((test, TestState.UNTESTED))
                     if test not in active_groups:
                         continue
@@ -830,6 +849,8 @@ def grab_shortcut_keys(disp, event_handler, event_client):
     shortcut_set = set(string.lowercase + string.digits)
     keycode_map = {}
     for mod, shortcut in ([(X.ControlMask, k) for k in shortcut_set] +
+                          [(GLOBAL_HOT_KEY_MASK, k)
+                           for k in GLOBAL_HOT_KEY_EVENTS] +
                           [(X.Mod1Mask, 'Tab')]):  # Mod1 = Alt
         keysym = gtk.gdk.keyval_from_name(shortcut)
         keycode = disp.keysym_to_keycode(keysym)
