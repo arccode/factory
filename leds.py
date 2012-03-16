@@ -9,6 +9,7 @@ Routines to modify keyboard LED state.
 '''
 
 import fcntl
+import logging
 import os
 import sys
 import threading
