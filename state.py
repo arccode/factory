@@ -83,20 +83,27 @@ class FactoryState(object):
             of test paths).
         @param kw: See TestState.update for allowable arguments (e.g.,
             status and increment_count).
+
+        @return: A tuple containing the new state, and a boolean indicating
+            whether the state was just changed.
         '''
         state = self._tests_shelf.get(path)
         old_state_repr = repr(state)
+        changed = False
+
         if not state:
+            changed = True
             state = TestState()
 
-        state.update(**kw)
+        changed = changed | state.update(**kw)  # Don't short-circuit
 
-        logging.debug('Updating test state for %s: %s -> %s',
-                path, old_state_repr, state)
-        self._tests_shelf[path] = state
-        self._tests_shelf.sync()
+        if changed:
+            logging.debug('Updating test state for %s: %s -> %s',
+                          path, old_state_repr, state)
+            self._tests_shelf[path] = state
+            self._tests_shelf.sync()
 
-        return state
+        return state, changed
 
     @_synchronized
     def get_test_state(self, path):

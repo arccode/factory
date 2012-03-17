@@ -227,7 +227,11 @@ class TestState(object):
         @param increment_shutdown_count: An amount by which to increment
             shutdown_count.
         @param visible: If non-None, whether the test should become visible.
+
+        Returns True if anything was changed.
         '''
+        old_dict = dict(self.__dict__)
+
         if status:
             self.status = status
         if error_msg is not None:
@@ -239,6 +243,8 @@ class TestState(object):
 
         self.count += increment_count
         self.shutdown_count += increment_shutdown_count
+
+        return self.__dict__ != old_dict
 
     @classmethod
     def from_dict_or_object(cls, obj):
@@ -518,8 +524,8 @@ class FactoryTestList(FactoryTest):
         Internal-only; clients should call update_state directly on the
         appropriate TestState object.
         '''
-        ret = self.state_instance.update_test_state(path, **kw)
-        if self.state_change_callback:
+        ret, changed = self.state_instance.update_test_state(path, **kw)
+        if changed and self.state_change_callback:
             self.state_change_callback(  # pylint: disable=E1102
                 self.lookup_path(path), ret)
         return ret
