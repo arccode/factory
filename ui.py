@@ -35,6 +35,7 @@ import string
 import subprocess
 import sys
 from itertools import izip, product
+from optparse import OptionParser
 
 # GTK and X modules
 import gobject
@@ -937,9 +938,14 @@ def main(test_list_path):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) != 2:
-        print 'usage: %s <test list path>' % sys.argv[0]
-        sys.exit(1)
+    parser = OptionParser(usage='usage: %prog [options] TEST-LIST-PATH')
+    parser.add_option('-v', '--verbose', dest='verbose',
+                      action='store_true',
+                      help='Enable debug logging')
+    (options, args) = parser.parse_args()
 
-    factory.init_logging("cros/factory/ui", verbose=True)
+    if len(args) != 1:
+        parser.error('Incorrect number of arguments')
+
+    factory.init_logging('ui', verbose=options.verbose)
     main(sys.argv[1])

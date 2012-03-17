@@ -368,6 +368,8 @@ class Goofy(object):
 
     def start_ui(self):
         ui_proc_args = [FACTORY_UI_PATH, self.test_list_path]
+        if self.options.verbose:
+            ui_proc_args.append('-v')
         logging.info('Starting ui %s', ui_proc_args)
         self.ui_process = subprocess.Popen(ui_proc_args)
         logging.info('Waiting for UI to come up...')
