@@ -779,7 +779,7 @@ class TestDirectory(gtk.VBox):
                 if event_type:
                     event_client.post_event(Event(event_type))
                 else:
-                    logging.warning('Unbound global hot key %s' % key)
+                    logging.warning('Unbound global hot key %s', key)
             else:
                 if shortcut not in self._shortcut_map:
                     logging.warning('Ignoring unbound shortcut %r' % shortcut)

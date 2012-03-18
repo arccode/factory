@@ -10,7 +10,6 @@
 The main factory flow that runs the factory test and finalizes a device.
 '''
 
-import inspect
 import logging
 import os
 import pickle
@@ -375,11 +374,16 @@ class Goofy(object):
 
         self.event_handlers = {
             Event.Type.SWITCH_TEST: self.handle_switch_test,
-            Event.Type.SHOW_NEXT_ACTIVE_TEST: self.show_next_active_test,
-            Event.Type.RESTART_TESTS: self.restart_tests,
-            Event.Type.AUTO_RUN: self.auto_run,
-            Event.Type.RE_RUN_FAILED: self.re_run_failed,
-            Event.Type.REVIEW: self.show_review_information,
+            Event.Type.SHOW_NEXT_ACTIVE_TEST:
+                lambda event: self.show_next_active_test(),
+            Event.Type.RESTART_TESTS:
+                lambda event: self.restart_tests(),
+            Event.Type.AUTO_RUN:
+                lambda event: self.auto_run(),
+            Event.Type.RE_RUN_FAILED:
+                lambda event: self.re_run_failed(),
+            Event.Type.REVIEW:
+                lambda event: self.show_review_information(),
         }
 
     def __del__(self):
@@ -500,12 +504,11 @@ class Goofy(object):
         '''
         handler = self.event_handlers.get(event.type)
         if handler:
-            if 'event' in inspect.getargspec(handler).args:
-                handler(event=event)
-            else:
-                handler()
+            handler(event)
         else:
-            logging.debug('Unbound event type %s' % event.type)
+            # We don't register handlers for all event types - just ignore
+            # this event.
+            logging.debug('Unbound event type %s', event.type)
 
     def run_next_test(self):
         '''
@@ -776,7 +779,7 @@ class Goofy(object):
         '''Re-runs failed tests.'''
         self.run_tests_with_status(TestState.FAILED)
 
-    def show_review_information(self, event):
+    def show_review_information(self):
         '''Event handler for showing review information screen.
 
         The information screene is rendered by main UI program (ui.py), so in
@@ -787,6 +790,10 @@ class Goofy(object):
         self.run_tests([])
 
     def handle_switch_test(self, event):
+        '''Switches to a particular test.
+
+        @param event: The SWITCH_TEST event.
+        '''
         test = self.test_list.lookup_path(event.path)
         if test:
             invoc = self.invocations.get(test)
@@ -796,12 +803,13 @@ class Goofy(object):
                 logging.info('Setting visible test to %s', test.path)
                 self.event_client.post_event(
                     Event(Event.Type.SET_VISIBLE_TEST, path=test.path))
+                return
             self.abort_active_tests()
             for t in test.walk():
                 t.update_state(status=TestState.UNTESTED)
             self.run_tests(test)
         else:
-            logging.error('unknown test %r' % event.key)
+            logging.error('Unknown test %r', event.key)
 
 
 if __name__ == '__main__':
