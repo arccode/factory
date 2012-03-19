@@ -65,6 +65,10 @@ PASSED = TestState.PASSED
 FAILED = TestState.FAILED
 UNTESTED = TestState.UNTESTED
 
+# Arrow symbols
+SYMBOL_RIGHT_ARROW = u'\u25b8'
+SYMBOL_DOWN_ARROW = u'\u25bc'
+
 # Color definition
 BLACK = gtk.gdk.Color()
 RED =   gtk.gdk.Color(0xFFFF, 0, 0)
@@ -88,6 +92,17 @@ LABEL_LARGE_FONT = pango.FontDescription('courier new condensed 24')
 
 FAIL_TIMEOUT = 30
 
+MESSAGE_NO_ACTIVE_TESTS = (
+        "No more tests to run. To re-run items, press shortcuts\n"
+        "from the test list in right side or from following list:\n\n"
+        "Ctrl-Alt-A (Auto-Run):\n"
+        "  Test remaining untested items.\n\n"
+        "Ctrl-Alt-F (Re-run Failed):\n"
+        "  Re-test failed and untested items.\n\n"
+        "Ctrl-Alt-R (Reset):\n"
+        "  Re-test everything.\n\n"
+        )
+
 USER_PASS_FAIL_SELECT_STR = (
     'hit TAB to fail and ENTER to pass\n' +
     '錯誤請按 TAB，成功請按 ENTER')
@@ -108,9 +123,6 @@ _LABEL_STATUS_SIZE = (140, 30)
 _LABEL_STATUS_FONT = pango.FontDescription(
     'courier new bold extra-condensed 16')
 _OTHER_LABEL_FONT = pango.FontDescription('courier new condensed 20')
-
-_ST_LABEL_EN_SIZE = (250, 35)
-_ST_LABEL_ZH_SIZE = (150, 35)
 
 _NO_ACTIVE_TEST_DELAY_MS = 500
 
@@ -565,10 +577,19 @@ class TestLabelBox(gtk.EventBox):  # pylint: disable=R0904
     def __init__(self, test):
         gtk.EventBox.__init__(self)
         self.modify_bg(gtk.STATE_NORMAL, LABEL_COLORS[TestState.UNTESTED])
+        self._is_group = test.is_group()
         depth = len(test.get_ancestor_groups())
-        label_en_text = ' ' + ('..' * depth) + test.label_en
+        self._label_text = ' %s%s%s' % (
+                ' ' * depth,
+                SYMBOL_RIGHT_ARROW if self._is_group else ' ',
+                test.label_en)
+        if self._is_group:
+            self._label_text_collapsed = ' %s%s%s' % (
+                    ' ' * depth,
+                    SYMBOL_DOWN_ARROW if self._is_group else '',
+                    test.label_en)
         self._label_en = make_label(
-            label_en_text, size=_LABEL_EN_SIZE,
+            self._label_text, size=_LABEL_EN_SIZE,
             font=_LABEL_EN_FONT, alignment=(0, 0.5),
             fg=_LABEL_UNTESTED_FG)
         self._label_zh = make_label(
@@ -609,6 +630,11 @@ class TestLabelBox(gtk.EventBox):  # pylint: disable=R0904
         self._status = status
         label_fg = (_LABEL_UNTESTED_FG if status == TestState.UNTESTED
                     else BLACK)
+        if self._is_group:
+            self._label_en.set_text(
+                    self._label_text_collapsed if status == TestState.ACTIVE
+                    else self._label_text)
+
         for label in [self._label_en, self._label_zh, self._label_t]:
             label.modify_fg(gtk.STATE_NORMAL, label_fg)
         self.modify_bg(gtk.STATE_NORMAL, LABEL_COLORS[status])
@@ -826,7 +852,8 @@ class UiState(object):
                 self._test_widget_box.set_padding(0, 0, 0, 0)
                 label_box = gtk.EventBox()
                 label_box.modify_bg(gtk.STATE_NORMAL, BLACK)
-                label = make_label('no active test', font=_OTHER_LABEL_FONT,
+                label = make_label(MESSAGE_NO_ACTIVE_TESTS,
+                                   font=_OTHER_LABEL_FONT,
                                    alignment=(0.5, 0.5))
                 label_box.add(label)
                 self._test_widget_box.add(label_box)
