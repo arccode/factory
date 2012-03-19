@@ -43,11 +43,8 @@ LIFE_CYCLE_STAGES = [
 
 
 MakeDatastoreSubclass('CompDb', {
-    'component_list_deprecated': (list, str),
-    'component_list_eol': (list, str),
-    'component_list_qualified': (list, str),
-    'component_list_supported': (list, str),
-    'component_registry': (dict, (dict, str)),
+    'registry': (dict, (dict, str)),
+    'status_map': (dict, (dict, str)),
     })
 
 MakeDatastoreSubclass('Hwid', {
@@ -56,18 +53,13 @@ MakeDatastoreSubclass('Hwid', {
     })
 
 MakeDatastoreSubclass('Device', {
-    'bitmap_file_path': str,
-    'hash_map': (dict, str),
-    'hwid_list_deprecated': (list, str),
-    'hwid_list_eol': (list, str),
-    'hwid_list_qualified': (list, str),
-    'hwid_list_supported': (list, str),
     'hwid_map': (dict, Hwid),
+    'hwid_status_map': (dict, (list, str)),
     'initial_config_map': (dict, (dict, str)),
     'initial_config_use_map': (dict, (list, str)),
-    'release_map': (dict, (list, str)),
     'variant_map': (dict, (list, str)),
     'volatile_map': (dict, (dict, str)),
+    'volatile_value_map': (dict, str),
     'vpd_ro_field_list': (list, str),
     })
 
@@ -76,13 +68,11 @@ MakeDatastoreSubclass('Device', {
 # 'probe result', stored as a map in device.
 
 # TODO(tammo): Enforce that volatile canonical names (the keys in the
-# hash_map) are all lower case, to allow for the special 'ANY' tag.
+# volatile_value_map) are all lower case, to allow for the special 'ANY' tag.
 
 # TODO(tammo): For those routines that take 'data' as the first arg,
 # consider making them methods of a DeviceDb class and then have the
 # constructor for that class read the data from disk.
-
-# TODO(tammo): Should release move into volatile?
 
 # TODO(tammo): Refactor code to lift out the command line tool parts
 # from the core functionality of the module.  Goal is that the key
@@ -243,7 +233,7 @@ def CalcHwidStatusMap(device):
   """TODO(tammo): XXX more here XXX."""
   status_map = {}
   for status in LIFE_CYCLE_STAGES:
-    for prefix in getattr(device, 'hwid_list_' + status, []):
+    for prefix in device.hwid_status_map.get(status, []):
       parts = reversed(prefix.split('-'))
       bom_status_map = status_map.setdefault(next(parts), {})
       volatile = next(parts, None)
@@ -263,7 +253,7 @@ def LookupHwidStatus(device, bom, volatile, variant):
       if target_pattern.startswith(prefix):
         return True
   for status in LIFE_CYCLE_STAGES:
-    if ContainsHwid(getattr(device, 'hwid_list_' + status, [])):
+    if ContainsHwid(device.hwid_status_map.get(status, [])):
       return status
   return None
 
@@ -271,13 +261,13 @@ def LookupHwidStatus(device, bom, volatile, variant):
 def CalcCompDbClassMap(comp_db):
   """Return dict of (comp_name: comp_class) mappings."""
   return dict((comp_name, comp_class) for comp_name in comp_map
-              for comp_class, comp_map in comp_db.component_registry.items())
+              for comp_class, comp_map in comp_db.registry.items())
 
 
 def CalcCompDbProbeValMap(comp_db):
   """Return dict of (probe_value: comp_name) mappings."""
   return dict((probe_value, comp_name)
-              for comp_map in comp_db.component_registry.values()
+              for comp_map in comp_db.registry.values()
               for comp_name, probe_value in comp_map.items())
 
 
@@ -398,64 +388,48 @@ def TraverseCompMapHierarchy(rev_comp_map, branch_cb, leaf_cb, cb_arg):
   SubTraverse(rev_comp_map, cb_arg, 0)
 
 
-def FilterExternalHwidAttrs(device, target_bom_set,
-                            masks=Obj(initial_config_set=set(),
-                                      release_set=set())):
-  """Return those attributes shared by the target boms but not masked out.
+def FilterInitialConfig(device, target_bom_set, mask=set()):
+  """Return initial_config shared by the target boms but not masked out.
 
-  Calculate the sets of release and initial_config values that are
-  shared by all of the boms in the target_bom_set.  Then filter these
-  sets to contain only values not already present in their respective
-  mask.
+  Calculate the set of initial_config values that are shared by all of
+  the boms in the target_bom_set.  Then filter this set to contain
+  only values not already present in the mask.
   """
   # TODO(tammo): Instead pre-compute reverse maps, and return unions.
-  return Obj(
-      release_set=set(
-          release for release, bom_list in device.release_map.items()
-          if (release not in masks.release_set and
-              target_bom_set <= set(bom_list))),
-      initial_config_set=set(
-          ic for ic, bom_list in device.initial_config_use_map.items()
-          if (ic not in masks.initial_config_set and
-              target_bom_set <= set(bom_list))))
+  return set(
+      ic for ic, bom_list in device.initial_config_use_map.items()
+      if (ic not in mask and target_bom_set <= set(bom_list)))
 
 
 def PrintHwidHierarchy(board, device, hwid_map):
   """Hierarchically show all details for all HWIDs for the specified board.
 
-  Details include the component configuration, initial config, and release.
+  Details include the component configuration and initial config.
   """
-  def UpdateMasks(a, b):
-    return Obj(release_set=(a.release_set | b.release_set),
-               initial_config_set=(a.initial_config_set | b.initial_config_set))
-  def ShowCommon(depth, masks, bom_set, common_comp_map):
-    misc_common = FilterExternalHwidAttrs(device, bom_set, masks)
+  def ShowCommon(depth, mask, bom_set, common_comp_map):
+    common_initial_config = FilterInitialConfig(device, bom_set, mask)
     IndentedStructuredPrint(depth * 2, '-'.join(sorted(bom_set)),
                             comp=common_comp_map,
-                            initial_config=misc_common.initial_config_set,
-                            release=misc_common.release_set)
-    return UpdateMasks(masks, misc_common)
-  def ShowHwids(depth, masks, bom_set):
+                            initial_config=common_initial_config)
+    return mask | common_initial_config
+  def ShowHwids(depth, mask, bom_set):
     for bom in bom_set:
       hwid = hwid_map[bom]
-      misc_common = FilterExternalHwidAttrs(device, set([bom]), masks)
+      common_initial_config = FilterInitialConfig(device, set([bom]), mask)
       variants = dict((FmtHwid(board, bom, volind, variant),
                        ','.join(device.variant_map[variant]))
                       for variant in hwid.variant_list
                       for volind in device.volatile_map
                       if LookupHwidStatus(device, bom, volind, variant))
-      if misc_common.initial_config_set or misc_common.release_set:
+      if common_initial_config:
         IndentedStructuredPrint((depth + 1) * 2, bom,
-                                initial_config=misc_common.initial_config_set,
-                                release=misc_common.release_set)
+                                initial_config=common_initial_config)
         IndentedStructuredPrint((depth + 2) * 2, None, variants)
       else:
         IndentedStructuredPrint(depth * 2, None, variants)
   # TODO(tammo): Fix the cb arg usage to allow omission here.
   TraverseCompMapHierarchy(CalcReverseComponentMap(hwid_map),
-                           ShowCommon, ShowHwids,
-                           Obj(initial_config_set=set(),
-                               release_set=set()))
+                           ShowCommon, ShowHwids, set())
 
 
 def ProcessComponentCrossproduct(data, board, comp_list):
@@ -527,10 +501,11 @@ def CookDeviceProbeResults(device, probe_results):
   """TODO(tammo): Add more here XXX."""
   match = Obj(volatile_set=set(), initial_config_set=set())
   # TODO(tammo): Precompute this reverse map.
-  hash_reference_map = dict((v, c) for c, v in device.hash_map.items())
-  vol_map = dict((c, hash_reference_map[v])
+  volatile_reference_map = dict((v, c) for c, v in
+                                device.volatile_value_map.items())
+  vol_map = dict((c, volatile_reference_map[v])
                  for c, v in probe_results.volatiles.items()
-                 if v in hash_reference_map)
+                 if v in volatile_reference_map)
   for volatile, vol_reference_map in device.volatile_map.items():
     if all(vol_reference_map[c] == v for c, v in vol_map.items()
            if vol_reference_map[c] != 'ANY'):
@@ -560,17 +535,9 @@ def LookupHwidProperties(data, hwid):
   props.status = LookupHwidStatus(device, props.bom,
                                   props.volatile, props.variant)
   # TODO(tammo): Refactor if FilterExternalHwidAttrs is pre-computed.
-  misc_attrs = FilterExternalHwidAttrs(device, set([props.bom]))
-  # TODO(tammo): Move this release check into the data validation.
-  # Hwid lookup should not fail on account of data that has passed
-  # validation.
-  # if len(misc_attrs.release_set) != 1:
-  #   raise Error, ('expected one release for hwid %r, found %s' % (
-  #       hwid, repr(sorted(misc_attrs.release_set)))
-  props.release = next(iter(misc_attrs.release_set), None)
-  props.initial_config = next(iter(misc_attrs.initial_config_set), None)
+  initial_config_set = FilterInitialConfig(device, set([props.bom]))
+  props.initial_config = next(iter(initial_config_set), None)
   props.vpd_ro_field_list = device.vpd_ro_field_list
-  props.bitmap_file_path = device.bitmap_file_path
   props.component_map = hwid_details.component_map
   return props
 
@@ -626,7 +593,7 @@ def CreateHwidsCommand(config, data):
                                   variant_list=variant_list))
                   for bom_name, comp_map in zip(bom_name_list, comp_map_list))
   device = data.device_db[config.board]
-  device.hwid_list_proposed = bom_name_list
+  device.hwid_status_map.setdefault('proposed', []).extend(bom_name_list)
   PrintHwidHierarchy(config.board, device, hwid_map)
   if config.make_it_so:
     #TODO(tammo): Actually add to the device hwid_map, and qualify.
@@ -722,13 +689,13 @@ def ProbeDeviceProperties(config, data):
   # load the probe module here. The probe module depends on other
   # modules that are not available except on DUT machines.
   from probe import Probe
-  probe_results = Probe(data.comp_db.component_registry)
+  probe_results = Probe(data.comp_db.registry)
   if config.raw:
     print YamlWrite(probe_results.__dict__)
     return
   IndentedStructuredPrint(0, 'component probe results:',
                           probe_results.components)
-  missing_classes = (set(data.comp_db.component_registry) -
+  missing_classes = (set(data.comp_db.registry) -
   set(probe_results.components))
   if missing_classes:
     logging.warning('missing results for comp classes: %s' %
@@ -764,7 +731,7 @@ def AssimilateProbeData(config, data):
   """
   probe_results = Obj(**YamlRead(sys.stdin.read()))
   components = getattr(probe_results, 'components', {})
-  registry = data.comp_db.component_registry
+  registry = data.comp_db.registry
   if not set(components) <= set(registry):
     logging.critical('data contains component classes that are not preset in '
                      'the component_db, specifically %r' %
@@ -837,18 +804,17 @@ def FilterDatabase(config, data):
                                       target_variant_set)
     filtered_device.hwid_map[bom] = filtered_hwid
     for comp_class, comp_name in hwid.component_map.items():
-      filtered_comp_db.component_registry[comp_class] = \
-          data.comp_db.component_registry[comp_class]
+      filtered_comp_db.registry[comp_class] = \
+          data.comp_db.registry[comp_class]
   for volatile_index in target_volatile_set:
     volatile_details = device.volatile_map[volatile_index]
     filtered_device.volatile_map[volatile_index] = volatile_details
     for volatile_class, volatile_name in volatile_details.items():
-      volatile_value = device.hash_map[volatile_name]
-      filtered_device.hash_map[volatile_name] = volatile_value
+      volatile_value = device.volatile_value_map[volatile_name]
+      filtered_device.volatile_value_map[volatile_name] = volatile_value
   for variant_index in target_variant_set:
     variant_details = device.variant_map[variant_index]
     filtered_device.variant_map[variant_index] = variant_details
-  filtered_device.bitmap_file_path = device.bitmap_file_path
   filtered_device.vpd_ro_field_list = device.vpd_ro_field_list
   WriteDatastore(config.dest_dir,
                  Obj(comp_db=filtered_comp_db,
