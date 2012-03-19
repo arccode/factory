@@ -53,6 +53,7 @@ except:
 
 # Factory and autotest modules
 import factory_common
+from autotest_lib.client.common_lib import error
 from autotest_lib.client.cros import factory
 from autotest_lib.client.cros.factory import TestState
 from autotest_lib.client.cros.factory.event import Event, EventClient
@@ -487,6 +488,22 @@ def run_test_widget(dummy_job, test_widget,
     else:
         window.hide()
 
+    # When gtk.main() is running, it ignores all uncaught exceptions, which is
+    # not preferred by most of our factory tests.  To prevent writing special
+    # function raising errors, we hook top level exception handler to always
+    # leave GTK main and raise exception again.
+
+    def exception_hook(exc_type, value, traceback):
+       # Prevent re-entrant.
+       sys.excepthook = old_excepthook
+       session['exception'] = (exc_type, value, traceback)
+       gobject.idle_add(gtk.main_quit)
+       return old_excepthook(exc_type, value, traceback)
+
+    session = {}
+    old_excepthook = sys.excepthook
+    sys.excepthook = exception_hook
+
     gtk.main()
 
     gtk.gdk.pointer_ungrab()
@@ -495,6 +512,13 @@ def run_test_widget(dummy_job, test_widget,
         cleanup_callback()
 
     del event_client
+
+    sys.excepthook = old_excepthook
+    exc_info = session.get('exception')
+    if exc_info is not None:
+       logging.error(exc_info[0], exc_info=exc_info)
+       raise error.TestError(exc_info[1])
+
 
 
 # ---------------------------------------------------------------------------
