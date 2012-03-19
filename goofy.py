@@ -428,7 +428,7 @@ class Goofy(object):
                               error_msg='Too many shutdowns')
         else:
             # Need to shutdown again
-            self.shutdown()
+            self.shutdown('reboot')
 
     def init_states(self):
         '''
