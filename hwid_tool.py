@@ -825,6 +825,84 @@ def FilterDatabase(config, data):
   # the schema for that has been refactored to be cleaner.
 
 
+@Command('legacy_export',
+         CmdArg('-b', '--board', required=True),
+         CmdArg('-d', '--dest_dir', required=True),
+         CmdArg('-e', '--extra'),
+         CmdArg('-s', '--status', default='supported'))
+def LegacyExport(config, data):
+  """Generate legacy-format 'components_<HWID>' files.
+
+  For the specified board, in the specified destination directory,
+  this will create a hash.db file and one file per HWID.  All of these
+  files should be compatible with the pre-hwid-tool era code.
+
+  The goal of this command is to enable maintaining data in the new
+  format for use with factory branches that can only consume the older
+  format.
+
+  The 'extra' argument can specify a file that contains extra dict
+  extries that will be included in each of the hwid files.  This is
+  useful for specifying the legacy fields that no longer exist in the
+  new data format.
+
+  This command will be removed once we are no longer supporting any
+  boards that depend on the old-style data formatting.
+  """
+  from pprint import pprint
+  if config.board not in data.device_db:
+    print 'ERROR: unknown board %r.' % config.board
+    return
+  if not os.path.exists(config.dest_dir):
+    print 'ERROR: destination directory %r does not exist.' % config.dest_dir
+    return
+  extra_fields = eval(open(config.extra).read()) if config.extra else None
+  device = data.device_db[config.board]
+  hash_db_path = os.path.join(config.dest_dir, 'hash.db')
+  with open(hash_db_path, 'w') as f:
+    pprint(device.volatile_value_map, f)
+  ic_reverse_map = {}
+  for ic_index, bom_list in device.initial_config_use_map.items():
+    for bom in bom_list:
+      ic_reverse_map[bom] = ic_index
+  def WriteLegacyHwidFile(bom, volind, variant, hwid):
+    hwid_str = FmtHwid(config.board, bom, volind, variant)
+    export_data = {'part_id_hwqual': [hwid_str]}
+    for comp_class, comp_name in hwid.component_map.items():
+      if comp_name == 'NONE':
+        probe_result = ''
+      elif comp_name == 'ANY':
+        probe_result = '*'
+      else:
+        probe_result = data.comp_db.registry[comp_class][comp_name]
+      export_data['part_id_' + comp_class] = [probe_result]
+    for vol_class, vol_name in device.volatile_map[volind].items():
+      export_data['hash_' + vol_class] = [vol_name]
+    variant_data = device.variant_map[variant]
+    if len(variant_data) not in [0, 1]:
+      print ('ERROR: legacy_export expects zero or one variants, '
+             'hwid %s has %d.' % (hwid_str, len(variant_data)))
+    for variant_value in variant_data:
+      export_data['part_id_keyboard'] = [variant_value]
+    initial_config = device.initial_config_map[ic_reverse_map[bom]]
+    for ic_class, ic_value in initial_config.items():
+      export_data['version_' + ic_class] = [ic_value]
+    export_data['config_factory_initial'] = initial_config.keys()
+    export_data.update(extra_fields)
+    hwid_file_name = ('components ' + hwid_str).replace(' ', '_')
+    hwid_file_path = os.path.join(config.dest_dir, hwid_file_name)
+    with open(hwid_file_path, 'w') as f:
+      pprint(export_data, f)
+  for bom, hwid in device.hwid_map.items():
+    for volind in device.volatile_map:
+      for variant in hwid.variant_list:
+        status = LookupHwidStatus(device, bom, volind, variant)
+        if (config.status != '' and
+            (status is None or config.status != status)):
+           continue
+        WriteLegacyHwidFile(bom, volind, variant, hwid)
+
+
 class HackedArgumentParser(ArgumentParser):
   """Replace the usage and help strings to better format command names.
 
