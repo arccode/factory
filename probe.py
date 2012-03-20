@@ -515,13 +515,14 @@ def _ProbeEcFlashChip(ec_fw):
 
 @_ComponentProbe('embedded_controller')
 def _ProbeEmbeddedController():
-  """Reformat superiotool output."""
-  cmd_stdout = RunShellCmd('superiotool').stdout
-  # Example cmd output:
-  # 'superiotool r\nFound Nuvoton WPCE775x (id=0x05, rev=0x02) at 0x2e'
-  match = re.findall(r'Found (.*) at', cmd_stdout)
-  return CompactStr(match.pop()) if match else None
-
+  """Reformat mosys output."""
+  # Example mosys command output:
+  # vendor="VENDOR" name="CHIPNAME" fw_version="ECFWVER"
+  ecinfo = re.findall(r'\bvendor="([^"]*)".*\bname="([^"]*)"',
+                      RunShellCmd('mosys -k ec info').stdout)
+  if ecinfo:
+    return CompactStr(*ecinfo)
+  return None
 
 @_ComponentProbe('ethernet')
 def _ProbeEthernet(flimflam):
