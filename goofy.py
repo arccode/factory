@@ -356,6 +356,7 @@ class Goofy(object):
             Event.Type.RESTART_TESTS: self.restart_tests,
             Event.Type.AUTO_RUN: self.auto_run,
             Event.Type.RE_RUN_FAILED: self.re_run_failed,
+            Event.Type.REVIEW: self.show_review_information,
         }
 
     def __del__(self):
@@ -442,15 +443,14 @@ class Goofy(object):
         # Any 'active' tests should be marked as failed now.
         for test in self.test_list.walk():
             state = test.get_state()
-            if isinstance(test, factory.InformationScreen):
-                test.update_state(status=TestState.UNTESTED, error_msg='')
-            elif state.status == TestState.ACTIVE:
-                if isinstance(test, factory.ShutdownStep):
-                    # Shutdown while the test was active - that's good.
-                    self.handle_shutdown_complete(test, state)
-                else:
-                    test.update_state(status=TestState.FAILED,
-                                      error_msg='Unknown (shutdown?)')
+            if state.status != TestState.ACTIVE:
+                continue
+            if isinstance(test, factory.ShutdownStep):
+                # Shutdown while the test was active - that's good.
+                self.handle_shutdown_complete(test, state)
+            else:
+                test.update_state(status=TestState.FAILED,
+                                  error_msg='Unknown (shutdown?)')
 
     def show_next_active_test(self):
         '''
@@ -575,9 +575,12 @@ class Goofy(object):
                     self.set_visible_test(t)
                     break
 
-    def abort_active_tests(self):
+    def kill_active_tests(self, abort):
         '''
         Kills and waits for all active tests.
+
+        @param abort: True to change state of killed tests to FAILED, False for
+                UNTESTED.
         '''
         self.reap_completed_tests()
         for test, invoc in self.invocations.items():
@@ -585,7 +588,12 @@ class Goofy(object):
             invoc.abort_and_join()
             factory.console.info('Killed %s' % test.path)
             del self.invocations[test]
+            if not abort:
+                test.update_state(status=TestState.UNTESTED)
         self.reap_completed_tests()
+
+    def abort_active_tests(self):
+        self.kill_active_tests(True)
 
     def shutdown(self, operation):
         '''
@@ -716,6 +724,16 @@ class Goofy(object):
     def re_run_failed(self):
         '''Re-runs failed tests.'''
         self.run_tests_with_status(TestState.FAILED)
+
+    def show_review_information(self, event):
+        '''Event handler for showing review information screen.
+
+        The information screene is rendered by main UI program (ui.py), so in
+        goofy we only need to kill all active tests, set them as untested, and
+        clear remaining tests.
+        '''
+        self.kill_active_tests(False)
+        self.run_tests([])
 
     def handle_switch_test(self, event):
         test = self.test_list.lookup_path(event.path)

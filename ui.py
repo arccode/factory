@@ -34,7 +34,7 @@ import re
 import string
 import subprocess
 import sys
-from itertools import izip, product
+from itertools import count, izip, product
 from optparse import OptionParser
 
 # GTK and X modules
@@ -98,9 +98,11 @@ MESSAGE_NO_ACTIVE_TESTS = (
         "Ctrl-Alt-A (Auto-Run):\n"
         "  Test remaining untested items.\n\n"
         "Ctrl-Alt-F (Re-run Failed):\n"
-        "  Re-test failed and untested items.\n\n"
+        "  Re-test failed items.\n\n"
         "Ctrl-Alt-R (Reset):\n"
         "  Re-test everything.\n\n"
+        "Ctrl-Alt-Z (Information):\n"
+        "  Review test results and information.\n\n"
         )
 
 USER_PASS_FAIL_SELECT_STR = (
@@ -130,6 +132,7 @@ GLOBAL_HOT_KEY_EVENTS = {
     'r': Event.Type.RESTART_TESTS,
     'a': Event.Type.AUTO_RUN,
     'f': Event.Type.RE_RUN_FAILED,
+    'z': Event.Type.REVIEW,
     }
 try:
     # Works only if X is available.
@@ -641,6 +644,58 @@ class TestLabelBox(gtk.EventBox):  # pylint: disable=R0904
         self.queue_draw()
 
 
+class ReviewInformation(object):
+
+    LABEL_EN_FONT = pango.FontDescription('courier new extra-condensed 16')
+    TAB_BORDER = 20
+
+    def __init__(self, test_list):
+        self.test_list = test_list
+
+    def make_error_tab(self, test, state):
+        msg = '%s (%s)\n%s' % (test.label_en, test.label_zh,
+                               str(state.error_msg))
+        label = make_label(msg, font=self.LABEL_EN_FONT, alignment=(0.0, 0.0))
+        label.set_line_wrap(True)
+        frame = gtk.Frame()
+        frame.add(label)
+        return frame
+
+    def make_widget(self):
+        bg_color = gtk.gdk.Color(0x1000, 0x1000, 0x1000)
+        self.notebook = gtk.Notebook()
+        self.notebook.modify_bg(gtk.STATE_NORMAL, bg_color)
+
+        test_list = self.test_list
+        state_map = test_list.get_state_map()
+        tab, _ = make_summary_box([test_list], state_map)
+        tab.set_border_width(self.TAB_BORDER)
+        self.notebook.append_page(tab, make_label('Summary'))
+
+        for i, t in izip(
+            count(1),
+            [t for t in test_list.walk()
+             if state_map[t].status == factory.TestState.FAILED
+             and t.is_leaf()]):
+            tab = self.make_error_tab(t, state_map[t])
+            tab.set_border_width(self.TAB_BORDER)
+            self.notebook.append_page(tab, make_label('#%02d' % i))
+
+        prompt = 'Review: Test Status Information'
+        if self.notebook.get_n_pages() > 1:
+            prompt += '\nPress left/right to change tabs'
+
+        control_label = make_label(prompt, font=self.LABEL_EN_FONT,
+                                   alignment=(0.5, 0.5))
+        vbox = gtk.VBox()
+        vbox.set_spacing(self.TAB_BORDER)
+        vbox.pack_start(control_label, False, False)
+        vbox.pack_start(self.notebook, False, False)
+        vbox.show_all()
+        vbox.grab_focus = self.notebook.grab_focus
+        return vbox
+
+
 class TestDirectory(gtk.VBox):
     '''Widget containing a list of tests, colored by test status.
 
@@ -715,8 +770,7 @@ class TestDirectory(gtk.VBox):
                 continue
             shortcut = keycode_map[keycode]
 
-            if (xevent.state & GLOBAL_HOT_KEY_MASK ==
-                GLOBAL_HOT_KEY_MASK):
+            if (xevent.state & GLOBAL_HOT_KEY_MASK == GLOBAL_HOT_KEY_MASK):
                 event_type = GLOBAL_HOT_KEY_EVENTS.get(shortcut)
                 if event_type:
                     event_client.post_event(Event(event_type))
@@ -791,13 +845,61 @@ class TestDirectory(gtk.VBox):
 
 class UiState(object):
 
+    WIDGET_NONE = 0
+    WIDGET_IDLE = 1
+    WIDGET_SUMMARY = 2
+    WIDGET_REVIEW = 3
+
     def __init__(self, test_widget_box, test_directory_widget, test_list):
         self._test_widget_box = test_widget_box
         self._test_directory_widget = test_directory_widget
         self._test_list = test_list
         self._transition_count = 0
         self._active_test_label_map = None
+        self._active_widget = self.WIDGET_NONE
         self.update_test_state()
+
+    def show_idle_widget(self):
+        self.remove_state_widget()
+        self._test_widget_box.set(0.5, 0.5, 0.0, 0.0)
+        self._test_widget_box.set_padding(0, 0, 0, 0)
+        label = make_label(MESSAGE_NO_ACTIVE_TESTS,
+                           font=_OTHER_LABEL_FONT,
+                           alignment=(0.5, 0.5))
+        self._test_widget_box.add(label)
+        self._test_widget_box.show_all()
+        self._active_widget = self.WIDGET_IDLE
+
+    def show_summary_widget(self):
+        self.remove_state_widget()
+        state_map = self._test_list.get_state_map()
+        self._test_widget_box.set(0.5, 0.0, 0.0, 0.0)
+        self._test_widget_box.set_padding(40, 0, 0, 0)
+        vbox, self._active_test_label_map = make_summary_box(
+            [t for t in self._test_list.subtests
+             if state_map[t].status == TestState.ACTIVE],
+            state_map)
+        self._test_widget_box.add(vbox)
+        self._test_widget_box.show_all()
+        self._active_widget = self.WIDGET_SUMMARY
+
+    def show_review_widget(self):
+        self.remove_state_widget()
+        self._review_request = False
+        self._test_widget_box.set(0.5, 0.5, 0.0, 0.0)
+        self._test_widget_box.set_padding(0, 0, 0, 0)
+        widget = ReviewInformation(self._test_list).make_widget()
+        self._test_widget_box.add(widget)
+        self._test_widget_box.show_all()
+        widget.grab_focus()
+        self._active_widget = self.WIDGET_REVIEW
+
+    def remove_state_widget(self):
+        for child in self._test_widget_box.get_children():
+            child.hide()
+            self._test_widget_box.remove(child)
+        self._active_test_label_map = None
+        self._active_widget = self.WIDGET_NONE
 
     def update_test_state(self):
         state_map = self._test_list.get_state_map()
@@ -832,35 +934,25 @@ class UiState(object):
         visible_test_state = filter_visible_test_state(self._test_list.subtests)
         self._test_directory_widget.update(visible_test_state)
 
-        def remove_state_widget():
-            for child in self._test_widget_box.get_children():
-                self._test_widget_box.remove(child)
-            self._active_test_label_map = None
-
         if not active_tests:
-            # Display the "no active tests" widget if there are still no
-            # active tests after _NO_ACTIVE_TEST_DELAY_MS.
-            def run(transition_count):
-                if transition_count != self._transition_count:
-                    # Something has happened
-                    return False
+            # Display the idle or review information screen.
+            def waiting_for_transition():
+                return (self._active_widget not in
+                        [self.WIDGET_REVIEW, self.WIDGET_IDLE])
 
-                self._transition_count += 1
-                remove_state_widget()
+            # For smooth transition between tests, idle widget if activated only
+            # after _NO_ACTIVE_TEST_DELAY_MS without state change.
+            def idle_transition_check(cookie):
+                if (waiting_for_transition() and
+                    cookie == self._transition_count):
+                    self._transition_count += 1
+                    self.show_idle_widget()
+                return False
 
-                self._test_widget_box.set(0.5, 0.5, 0.0, 0.0)
-                self._test_widget_box.set_padding(0, 0, 0, 0)
-                label_box = gtk.EventBox()
-                label_box.modify_bg(gtk.STATE_NORMAL, BLACK)
-                label = make_label(MESSAGE_NO_ACTIVE_TESTS,
-                                   font=_OTHER_LABEL_FONT,
-                                   alignment=(0.5, 0.5))
-                label_box.add(label)
-                self._test_widget_box.add(label_box)
-                self._test_widget_box.show_all()
-
-            gobject.timeout_add(_NO_ACTIVE_TEST_DELAY_MS, run,
-                                self._transition_count)
+            if waiting_for_transition():
+                gobject.timeout_add(_NO_ACTIVE_TEST_DELAY_MS,
+                                    idle_transition_check,
+                                    self._transition_count)
             return
 
         self._transition_count += 1
@@ -868,7 +960,7 @@ class UiState(object):
         if any(t.has_ui for t in active_tests):
             # Remove the widget (if any) since there is an active test
             # with a UI.
-            remove_state_widget()
+            self.remove_state_widget()
             return
 
         if (self._active_test_label_map is not None and
@@ -881,16 +973,8 @@ class UiState(object):
                     LABEL_COLORS[state_map[test].status])
             return
 
-        remove_state_widget()
         # No active UI; draw summary of current test states
-        self._test_widget_box.set(0.5, 0.0, 0.0, 0.0)
-        self._test_widget_box.set_padding(40, 0, 0, 0)
-        vbox, self._active_test_label_map = make_summary_box(
-            [t for t in self._test_list.subtests
-             if state_map[t].status == TestState.ACTIVE],
-            state_map)
-        self._test_widget_box.add(vbox)
-        self._test_widget_box.show_all()
+        self.show_summary_widget()
 
 
 def grab_shortcut_keys(disp, event_handler, event_client):
@@ -932,6 +1016,9 @@ def main(test_list_path):
     def handle_event(event):
         if event.type == Event.Type.STATE_CHANGE:
             ui_state.update_test_state()
+        elif event.type == Event.Type.REVIEW:
+            logging.info("Operator activates review information screen")
+            ui_state.show_review_widget()
 
     test_list = factory.read_test_list(test_list_path)
 

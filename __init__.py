@@ -299,9 +299,9 @@ class FactoryTest(object):
         @param subtests: A list of tests to run inside this test.
         @param id: A unique ID for the test (defaults to the autotest name).
         @param has_ui: True if the test has a UI.  (This defaults to True for
-            OperatorTest and InformationScreen.)  If has_ui is not True,
-            then when the test is running, the statuses of the test and its
-            siblings will be shown in the test UI area instead.
+            OperatorTest.)  If has_ui is not True, then when the test is
+            running, the statuses of the test and its siblings will be shown in
+            the test UI area instead.
         @param never_fails: True if the test never fails, but only returns to an
             untested state.
         @param _root: True only if this is the root node (for internal use
@@ -555,11 +555,6 @@ class FactoryAutotestTest(FactoryTest):
 
 
 class OperatorTest(FactoryAutotestTest):
-    has_ui = True
-
-
-class InformationScreen(OperatorTest):
-    never_fails = True
     has_ui = True
 
 
