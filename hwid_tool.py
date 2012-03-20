@@ -10,6 +10,7 @@ import logging
 import os
 import random
 import re
+import string
 import sys
 import time
 import zlib
@@ -64,6 +65,23 @@ MakeDatastoreSubclass('Device', {
     })
 
 
+# TODO(tammo): Variant data should have 'probe results' stored in the
+# component_db, and the variant_map should only contain a list of
+# canonical component names.  Based on the component classes that
+# occur in the variant_map, automatically derive a set of components
+# that are 'secondary' and make sure these components never appear in
+# any Hwid component_map.
+
+# TODO(tammo): The hwid_status_map should support some kind of more
+# obvious glob syntax -- the current bom-volatile is counterintuitive
+# since it does not match the hwid string field order, and also not
+# very flexible.  Make sure to add proper sanity checking invariants
+# -- for example to make sure each hwid has only one status.
+
+# TODO(tammo): The initial_config_use_map should support glob matching
+# similar to the hwid_status_map, this would allow boms to have
+# different initial_config depending on their volatile setting.
+
 # TODO(tammo): Fix initial config to have canonical names for each
 # 'probe result', stored as a map in device.
 
@@ -109,6 +127,22 @@ def ParseHwid(hwid):
   if not all(x.isalpha() for x in [board, bom, variant, volatile]):
     raise Error, 'bad (non-alpha) part for hwid %r' % hwid
   return Obj(board=board, bom=bom, variant=variant, volatile=volatile)
+
+
+def AlphaIndex(num):
+  """Generate an alphabetic value corresponding to the input number.
+
+  Translate 0->A, 1->B, .. 25->Z, 26->AA, 27->AB, and so on.
+  """
+  result = ''
+  alpha_count = len(string.uppercase)
+  while True:
+    result = string.uppercase[num % alpha_count] + result
+    num /= alpha_count
+    if num == 0:
+      break
+    num -= 1
+  return result
 
 
 def ComponentConfigStr(component_map):
@@ -487,7 +521,7 @@ def CookComponentProbeResults(comp_db, probe_results):
   """TODO(tammo): Add more here XXX."""
   match = Obj(known={}, unknown={})
   comp_reference_map = CalcCompDbProbeValMap(comp_db)
-  for probe_class, probe_value in probe_results.components.items():
+  for probe_class, probe_value in probe_results.found_components.items():
     if probe_value is None:
       continue
     if probe_value in comp_reference_map:
@@ -694,12 +728,15 @@ def ProbeDeviceProperties(config, data):
     print YamlWrite(probe_results.__dict__)
     return
   IndentedStructuredPrint(0, 'component probe results:',
-                          probe_results.components)
+                          probe_results.found_components)
+  IndentedStructuredPrint(0, 'missing components (no results):',
+                          probe_results.missing_components)
   missing_classes = (set(data.comp_db.registry) -
-  set(probe_results.components))
+                     set(probe_results.found_components))
   if missing_classes:
-    logging.warning('missing results for comp classes: %s' %
+    logging.warning('missing information for comp classes: %s' %
                     ', '.join(missing_classes))
+
   cooked_components = CookComponentProbeResults(data.comp_db, probe_results)
   if cooked_components.known:
     IndentedStructuredPrint(0, 'known components:', cooked_components.known)
@@ -723,25 +760,55 @@ def ProbeDeviceProperties(config, data):
 
 
 @Command('assimilate_probe_data',
-         CmdArg('-b', '--board'))
+         CmdArg('-b', '--board'),
+         CmdArg('--bom'))
 def AssimilateProbeData(config, data):
-  """Read new data from stdin then merge into existing data.
+  """Merge new data from stdin into existing data, optionally create a new bom.
 
-  TODO(tammo): Add more here.
+  By default only new component probe results are added to the
+  component database.  Canonical names are automatically chosen for
+  these new components, which can be changed later by renaming.
+
+  If a board is specified, then any volatile or initial_config data is
+  added to the corresponding board data.
+
+  If a bom name is specified, and if a bom of that name does not
+  already exist, attempt to create it, and associate those properties
+  specified by the input data.  If there is already a bom with the
+  same properties, the request will fail.  If such a bom already
+  exists with the specified name, ensure that its initial_config and
+  any initial_config info in the input data match.
+
+  Variant data that cannot be derived from the input data must be
+  added to the bom later using other commands.
+
+  Boms created using this command do not have any status, and hence
+  there is no binding made with any new volatile properties add using
+  the input data.
   """
   probe_results = Obj(**YamlRead(sys.stdin.read()))
-  components = getattr(probe_results, 'components', {})
+  components = getattr(probe_results, 'found_components', {})
   registry = data.comp_db.registry
   if not set(components) <= set(registry):
     logging.critical('data contains component classes that are not preset in '
                      'the component_db, specifically %r' %
                      sorted(set(components) - set(registry)))
   reverse_registry = CalcCompDbProbeValMap(data.comp_db)
+  component_match_dict = {}
+  # TODO(tammo): Once variant data is properly mapped into the
+  # component space, segreate any variant component data into a
+  # variant list.
   for comp_class, probe_value in components.items():
-    if probe_value is None or probe_value in reverse_registry:
-      continue
-    comp_map = registry[comp_class]
-    comp_map['%s_%d' % (comp_class, len(comp_map))] = probe_value
+    if probe_value in reverse_registry:
+      component_match_dict[comp_class] = reverse_registry[probe_value]
+      print 'found component %r for probe result %r' % (
+          reverse_registry[probe_value], probe_value)
+    else:
+      comp_map = registry[comp_class]
+      comp_name = '%s_%d' % (comp_class, len(comp_map))
+      comp_map[comp_name] = probe_value
+      component_match_dict[comp_class] = comp_name
+      print 'adding component %r for probe result %r' % (comp_name, probe_value)
   if not config.board:
     if (hasattr(probe_results, 'volatile') or
         hasattr(probe_results, 'initial_config')):
@@ -749,6 +816,72 @@ def AssimilateProbeData(config, data):
                       'assimilated when a board is specified')
     return
   device = data.device_db[config.board]
+  for comp_class in getattr(probe_results, 'missing_components', {}):
+    component_match_dict[comp_class] = 'NONE'
+  component_match_dict_str = ComponentConfigStr(component_match_dict)
+  bom_name_match = None
+  for bom_name, bom in device.hwid_map.items():
+    if ComponentConfigStr(bom.component_map) == component_match_dict_str:
+      bom_name_match = bom_name
+      print 'found bom match: %r' % bom_name
+      break
+  reverse_volatile_map = dict((v, c) for c, v in
+                              device.volatile_value_map.items())
+  probe_volatiles = getattr(probe_results, 'volatiles', {})
+  volatile_match_dict = {}
+  for volatile_class, probe_value in probe_volatiles.items():
+    if probe_value in reverse_volatile_map:
+      volatile_match_dict[volatile_class] = reverse_volatile_map[probe_value]
+    else:
+      volatile_name = '%s_%d' % (volatile_class, len(device.volatile_value_map))
+      device.volatile_value_map[volatile_name] = probe_value
+      volatile_match_dict[volatile_class] = volatile_name
+  volatile_match_index = None
+  for volatile_index, volatile in device.volatile_map.items():
+    if volatile_match_dict == volatile:
+      volatile_match_index = volatile_index
+      print 'found volatile match: %r' % volatile_match_index
+      break
+  else:
+    volatile_match_index = AlphaIndex(len(device.volatile_map))
+    device.volatile_map[volatile_match_index] = volatile_match_dict
+    print 'added volatile: %r' % volatile_match_index
+  probe_initial_config = getattr(probe_results, 'initial_configs', {})
+  initial_config_match_index = None
+  for initial_config_index, initial_config in device.initial_config_map.items():
+    if probe_initial_config == initial_config:
+      initial_config_match_index = initial_config_index
+      print 'found initial_config match: %r' % initial_config_match_index
+      break
+  else:
+    initial_config_match_index = str(len(device.initial_config_map))
+    device.initial_config_map[initial_config_match_index] = probe_initial_config
+    print 'added initial_config: %r' % initial_config_match_index
+  if not config.bom:
+    return
+  # TODO(tammo): Validate input bom name string.
+  if bom_name_match and bom_name_match != config.bom:
+    print 'matching bom %r already exists, ignoring bom argument %r' % (
+        bom_name_match, config.bom)
+    return
+  bom_name = config.bom
+  if bom_name not in device.hwid_map:
+    bom = Hwid.New()
+    bom.component_map = component_match_dict
+    device.hwid_map[config.bom] = bom
+    print 'added bom: %r' % bom_name
+  elif (ComponentConfigStr(device.hwid_map[bom_name].component_map) !=
+        component_match_dict_str):
+    print 'bom %r exists, but component list differs from this data' % bom_name
+    # TODO(tammo): Print exact differences.
+    return
+  # TODO(tammo): Another elif to test that initial_config settings match.
+  else:
+    print 'bom %r exists and component list matches' % bom_name
+  ic_use_list = device.initial_config_use_map.setdefault(
+      initial_config_match_index, [])
+  if bom_name not in ic_use_list:
+    ic_use_list.append(bom_name)
 
 
 @Command('board_create',
@@ -763,7 +896,6 @@ def CreateBoard(config, data):
     print 'ERROR: Board %s already exists.' % board_name
     return
   data.device_db[board_name] = Device.New()
-  print data.device_db[board_name].__dict__
 
 
 @Command('filter_database',

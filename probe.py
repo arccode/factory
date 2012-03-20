@@ -836,9 +836,14 @@ def Probe(component_registry, probe_volatile=True, probe_initial_config=True):
   component_result_map = {}
   hash_result_map = {}
   initial_config_result_map = {}
+  missing_component_list = []
   for component_class, fun_data in sorted(_COMPONENT_PROBE_MAP.items()):
     fun = fun_data[arch] if isinstance(fun_data, dict) else fun_data
-    component_result_map[component_class] = RunProbe(fun)
+    result = RunProbe(fun)
+    if result is not None:
+      component_result_map[component_class] = result
+    else:
+      missing_component_list.append(component_class)
   if probe_volatile:
     # TODO(tammo): Lift out the hash generation, to allow convenient
     # generation of hashes directly for firmware images (as opposed to
@@ -857,6 +862,7 @@ def Probe(component_registry, probe_volatile=True, probe_initial_config=True):
       initial_config_result_map[initial_config_class] = RunProbe(fun)
   else:
     initial_config_result_map = None
-  return Obj(components=component_result_map,
+  return Obj(found_components=component_result_map,
+             missing_components=missing_component_list,
              volatiles=hash_result_map,
              initial_configs=initial_config_result_map)
