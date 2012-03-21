@@ -272,10 +272,7 @@ class FactoryTest(object):
     # display the summary of running tests.
     has_ui = False
 
-    REPR_FIELDS = ['id', 'label_en', 'label_zh',
-                   'autotest_name', 'iterations',
-                   'kbd_shortcut', 'dargs', 'unique_name',
-                   'backgroundable',
+    REPR_FIELDS = ['id', 'autotest_name', 'dargs', 'backgroundable',
                    'never_fails']
 
     def __init__(self,
@@ -289,14 +286,7 @@ class FactoryTest(object):
                  id=None,                  # pylint: disable=W0622
                  has_ui=None,
                  never_fails=None,
-                 _root=None,
-                 # TODO(jsalz): Kill off deprecated fields
-                 # (chrome-os-partner:7407)
-                 subtest_tag_prefix=None,  # Deprecated; use ID
-                 label_zw=None,            # Deprecated; use label_zh
-                 subtest_list=None,        # Deprecated; use subtests
-                 drop_caches=None,         # Ignored; pylint: disable=W0613
-                 unique_name=None):        # Deprecated; ignored
+                 _root=None):
         '''
         Constructor.
 
@@ -318,13 +308,12 @@ class FactoryTest(object):
             only).
         '''
         self.label_en = label_en
-        self.label_zh = label_zw or label_zh
+        self.label_zh = label_zh
         self.autotest_name = autotest_name
         self.kbd_shortcut = kbd_shortcut.lower() if kbd_shortcut else None
         self.dargs = dargs or {}
-        self.unique_name = unique_name
         self.backgroundable = backgroundable
-        self.subtests = subtests or subtest_list or []
+        self.subtests = subtests or []
         self.path = ''
         self.parent = None
         self.root = None
@@ -332,7 +321,7 @@ class FactoryTest(object):
         if _root:
             self.id = None
         else:
-            self.id = subtest_tag_prefix or id or autotest_name
+            self.id = id or autotest_name
             assert self.id, (
                 'Tests require either an id or autotest name: %r' % self)
             assert '.' not in self.id, (
