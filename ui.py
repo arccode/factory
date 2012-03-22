@@ -615,7 +615,7 @@ class TestLabelBox(gtk.EventBox):  # pylint: disable=R0904
     def set_shortcut(self, shortcut):
         if shortcut is None:
             return
-        self._label_t.set_text('C-%s' % shortcut)
+        self._label_t.set_text('C-%s' % shortcut.upper())
         attrs = self._label_en.get_attributes() or pango.AttrList()
         attrs.filter(lambda attr: attr.type == pango.ATTR_UNDERLINE)
         index_hotkey = self._label_en.get_text().upper().find(shortcut.upper())
