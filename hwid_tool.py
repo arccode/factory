@@ -1019,7 +1019,8 @@ def LegacyExport(config, data):
     initial_config = device.initial_config_map[ic_reverse_map[bom]]
     for ic_class, ic_value in initial_config.items():
       export_data['version_' + ic_class] = [ic_value]
-    export_data['config_factory_initial'] = initial_config.keys()
+    export_data['config_factory_initial'] = sorted(
+        'version_' + ic_class for ic_class in initial_config)
     export_data.update(extra_fields)
     hwid_file_name = ('components ' + hwid_str).replace(' ', '_')
     hwid_file_path = os.path.join(config.dest_dir, hwid_file_name)
