@@ -715,12 +715,15 @@ class TestDirectory(gtk.VBox):
           test set changes.
     '''
 
-    def __init__(self):
+    def __init__(self, test_list):
         gtk.VBox.__init__(self)
         self.set_spacing(0)
         self._label_map = {}
         self._visible_status = []
         self._shortcut_map = {}
+        self._hard_shortcuts = set(
+            test.kbd_shortcut for test in test_list.walk()
+            if test.kbd_shortcut is not None)
 
     def _get_test_label(self, test):
         if test.path in self._label_map:
@@ -750,7 +753,8 @@ class TestDirectory(gtk.VBox):
                 gen = (x for x in string.digits if x not in self._shortcut_map)
             else:
                 gen = (x for x in test.label_en.lower() + string.lowercase
-                       if x.isalnum() and x not in self._shortcut_map)
+                       if x.isalnum() and x not in self._shortcut_map
+                       and x not in self._hard_shortcuts)
             shortcut = next(gen, None)
         if shortcut is None:
             logging.error('Unable to find shortcut for %s' % test.path)
@@ -1047,7 +1051,7 @@ def main(test_list_path):
         screen_size = (screen.get_width(), screen.get_height())
     window.set_size_request(*screen_size)
 
-    test_directory = TestDirectory()
+    test_directory = TestDirectory(test_list)
 
     rhs_box = gtk.EventBox()
     rhs_box.modify_bg(gtk.STATE_NORMAL, _LABEL_TROUGH_COLOR)
