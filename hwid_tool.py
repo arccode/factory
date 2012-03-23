@@ -98,6 +98,10 @@ MakeDatastoreSubclass('Device', {
 # and the command line tool parts should just be one of the clients of
 # that API.
 
+# TODO(tammo): Make sure that command line commands raise Error for
+# any early termination (no calls to return), to make sure that the
+# database does not get written.
+
 
 def HwidChecksum(text):
   return ('%04u' % (zlib.crc32(text) & 0xffffffffL))[-4:]
@@ -294,8 +298,15 @@ def LookupHwidStatus(device, bom, volatile, variant):
 
 def CalcCompDbClassMap(comp_db):
   """Return dict of (comp_name: comp_class) mappings."""
-  return dict((comp_name, comp_class) for comp_name in comp_map
-              for comp_class, comp_map in comp_db.registry.items())
+  return dict((comp_name, comp_class)
+              for comp_class, comp_map in comp_db.registry.items()
+              for comp_name in comp_map)
+
+
+def CompRegistryFlatten(registry):
+  return dict((comp_name, probe_result)
+              for comp_class, comp_map in registry.items()
+              for comp_name, probe_result in comp_map.items())
 
 
 def CalcCompDbProbeValMap(comp_db):
@@ -1034,6 +1045,39 @@ def LegacyExport(config, data):
             (status is None or config.status != status)):
            continue
         WriteLegacyHwidFile(bom, volind, variant, hwid)
+
+
+@Command('rename_comps')
+def RenameComponents(config, data):
+   """Change canonical component names.
+
+   Given a list of old-new name pairs on stdin, replace each instance
+   of each old name with the corresponding new name in the
+   component_db and in all board files.  The expected stdin format is
+   one pair per line, and the two words in each pair are whitespace
+   separated.
+   """
+   registry = data.comp_db.registry
+   flattened_registry = CompRegistryFlatten(registry)
+   comp_class_map = CalcCompDbClassMap(data.comp_db)
+   for line in sys.stdin:
+     parts = line.strip().split()
+     if len(parts) != 2:
+       raise Error, ('each line of input must have exactly 2 words, '
+                     'found %d [%s]' % (len(parts), line.strip()))
+     old_name, new_name = parts
+     if old_name not in flattened_registry:
+       raise Error, 'unknown canonical component name %r' % old_name
+     # TODO(tammo): Validate new_name.
+     comp_class = comp_class_map[old_name]
+     comp_map = registry[comp_class]
+     probe_result = comp_map[old_name]
+     del comp_map[old_name]
+     comp_map[new_name] = probe_result
+     for device in data.device_db.values():
+       for hwid in device.hwid_map.values():
+         if hwid.component_map.get(comp_class, None) == old_name:
+           hwid.component_map[comp_class] = new_name
 
 
 class HackedArgumentParser(ArgumentParser):
