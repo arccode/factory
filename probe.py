@@ -405,32 +405,6 @@ def _ProbeDisplayConverter():
   return next((x for x in part_id_gen if x is not None), None)
 
 
-# TODO(tammo): Either remove this probe or make it work better.
-# @_ComponentProbe('cardreader')
-def _ProbeCardreader(component_registry):
-  """Look for white listed card readers in system logs.
-
-  A cardreader is generally powered off until cards are inserted.
-  Therefore, instead of directly checking, we compare log data against
-  a white list of known devices.
-
-  This avoids needing to insert a card just for probing purposes, but
-  does still require that a card was inserted at some point prior to
-  probing.  NOTE: The overhead of scanning the logs can be
-  significant, and is naturally undesirable.
-  """
-  pattern = r'New USB device found, idVendor=.*, idProduct=.*'
-  grep_result = RunShellCmd('grep -s %s /var/log/messages*' % repr(pattern))
-  cardreader_whitelist = component_registry['cardreader'].values()
-  match_list = [re.findall(r'idVendor=(.*), idProduct=(.*)', line)
-                for line in grep_result.stdout.splitlines()]
-  device_str_list = ['%s:%s' % match[0] for match in match_list if match]
-  found_cardreader_set = set(device for device in device_str_list
-                             if device in cardreader_whitelist)
-  return (' '.join(found_cardreader_set) if found_cardreader_set
-          else None)
-
-
 @_ComponentProbe('chipset', 'x86')
 def _ProbeChipsetX86():
   """On x86, host bridge is always the first PCI device."""
@@ -775,21 +749,7 @@ def _ProbeTouchpadFirmwareVersion(touchpad):
   return touchpad.fw_ident if touchpad is not None else None
 
 
-# TODO(tammo): Consider getting rid of the component_registry
-# argument.  Without it, probeing can be done independently of any
-# component database, which is conceptually much cleaner.  Currently
-# the only code that needs this is the card_reader probe to whitelist
-# device identifiers, but this probe also has other ugliness -- it
-# does not actually probe, but instead just crawls logs. which will
-# introduce flakiness if the reader was never used.  One possible
-# approach here is to add an option to the functional test for the
-# card reader, so that it checks that the card readers it finds are
-# the ones that we want.  The benefit here is that the functional test
-# will always have all the information it needs, because the reader is
-# active.  For example, it could use the hwid_tool to query the reader
-# associated with the system (and maybe just give a warning if there
-# is no hwid set yet).
-def Probe(component_registry, probe_volatile=True, probe_initial_config=True):
+def Probe(probe_volatile=True, probe_initial_config=True):
   """Return device component, hash, and initial_config data.
 
   Run all of the available probing routines that make sense for the
@@ -801,10 +761,6 @@ def Probe(component_registry, probe_volatile=True, probe_initial_config=True):
   can be done afterwards.
 
   Args:
-    component_registry: Dict of {component name: probe result} data,
-      which can be used by probe routines (for example as a whitelist
-      of known components of certain component classes, eg
-      cardreader).
     probe_volatile: On False, do not probe for volatile data and
       return None for the corresponding field.
     probe_initial_config: On False, do not probe for initial_config
@@ -814,7 +770,7 @@ def Probe(component_registry, probe_volatile=True, probe_initial_config=True):
     containing the corresponding dict of probe results.
   """
   arch = RunShellCmd('crossystem arch').stdout.strip()
-  shared_data = { 'arch': arch, 'component_registry': component_registry }
+  shared_data = { 'arch': arch }
   def PopulateSharedData(data_name):
     if data_name in shared_data:
       return

@@ -207,7 +207,7 @@ def verify_hwid():
     data = hwid_tool.ReadDatastore(g_options.db_path)
     hwid_properties = hwid_tool.LookupHwidProperties(data, hwid)
     DebugMsg('expected system properties: %s' % hwid_properties.__dict__)
-    probe_results = probe.Probe(data.comp_db.component_registry)
+    probe_results = probe.Probe()
     DebugMsg('found system properties: %s' % probe_results.__dict__)
     cooked_components = hwid_tool.CookComponentProbeResults(
         data.comp_db, probe_results)

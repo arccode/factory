@@ -723,7 +723,7 @@ def ProbeDeviceProperties(config, data):
   # load the probe module here. The probe module depends on other
   # modules that are not available except on DUT machines.
   from probe import Probe
-  probe_results = Probe(data.comp_db.registry)
+  probe_results = Probe()
   if config.raw:
     print YamlWrite(probe_results.__dict__)
     return
