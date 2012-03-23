@@ -39,7 +39,7 @@ from gft_common import ErrorMsg, VerboseMsg, DebugMsg, ErrorDie
 
 
 # Update this if any field names (or formats) have been changed.
-REPORT_VERSION = 3
+REPORT_VERSION = 4
 
 # Keys in decoding results
 KEY_INFO_DECODERS = 'decoders'
@@ -155,9 +155,7 @@ def ValidateReport(native_report):
                            ]
   mandatory_dict_keys = ['crossystem',
                          'hwid_properties',
-                         'probe_results',
-                         'cooked_device_details',
-                         'cooked_components',
+                         'cooked_probe_results',
                          'ro_vpd',
                          'rw_vpd',
                          ]
@@ -269,10 +267,7 @@ def CreateReport(create_params,
 
   # HWID-related Device Data
   report['hwid_properties'] = system_details.hwid_properties.__dict__
-  report['probe_results'] = system_details.probe_results.__dict__
-  report['cooked_components'] = system_details.cooked_components.__dict__
-  report['cooked_device_details'] = (
-      system_details.cooked_device_details.__dict__)
+  report['cooked_probe_results'] = system_details.cooked_results.__dict__
 
   # Firmware write protection status
   # TODO(hungte) Replace by crosfw.Flashrom.

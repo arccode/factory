@@ -789,17 +789,18 @@ def Probe(probe_volatile=True, probe_initial_config=True):
       logging.exception('Probe FAILED (%s), see traceback, returning None.' %
                         fun.__name__)
       return None
-  component_result_map = {}
-  hash_result_map = {}
-  initial_config_result_map = {}
-  missing_component_list = []
+  results = Obj(
+      found_components={},
+      missing_components=[],
+      volatiles={},
+      initial_configs={})
   for component_class, fun_data in sorted(_COMPONENT_PROBE_MAP.items()):
     fun = fun_data[arch] if isinstance(fun_data, dict) else fun_data
-    result = RunProbe(fun)
-    if result is not None:
-      component_result_map[component_class] = result
+    probe_value = RunProbe(fun)
+    if probe_value is not None:
+      results.found_components[component_class] = probe_value
     else:
-      missing_component_list.append(component_class)
+      results.missing_components.append(component_class)
   if probe_volatile:
     # TODO(tammo): Lift out the hash generation, to allow convenient
     # generation of hashes directly for firmware images (as opposed to
@@ -810,15 +811,11 @@ def Probe(probe_volatile=True, probe_initial_config=True):
     # probing for new BOM components, should help with appending new
     # hash values to the database.
     for hash_class, fun in sorted(_HASH_PROBE_MAP.items()):
-      hash_result_map[hash_class] = RunProbe(fun)
-  else:
-    hash_result_map = None
+      results.volatiles[hash_class] = RunProbe(fun)
   if probe_initial_config:
     for initial_config_class, fun in sorted(_INITIAL_CONFIG_PROBE_MAP.items()):
-      initial_config_result_map[initial_config_class] = RunProbe(fun)
-  else:
-    initial_config_result_map = None
-  return Obj(found_components=component_result_map,
-             missing_components=missing_component_list,
-             volatiles=hash_result_map,
-             initial_configs=initial_config_result_map)
+      probe_value = RunProbe(fun)
+      # TODO(tammo): Remove this conversion once initial_config is improved.
+      probe_value = '' if probe_value is None else probe_value
+      results.initial_configs[initial_config_class] = probe_value
+  return results

@@ -3,7 +3,6 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-from argparse import ArgumentParser
 
 import difflib
 import logging
@@ -12,10 +11,10 @@ import random
 import re
 import string
 import sys
-import time
 import zlib
 
-from common import Error, Obj
+from argparse import ArgumentParser, Action
+from common import Error, Obj, SetupLogging
 from bom_names import BOM_NAME_SET
 from hwid_database import InvalidDataError, MakeDatastoreSubclass
 from hwid_database import YamlWrite, YamlRead
@@ -64,6 +63,10 @@ MakeDatastoreSubclass('Device', {
     'vpd_ro_field_list': (list, str),
     })
 
+
+# TODO(tammo): Maintain the invariant that the set of component
+# classes in the component_db matches the set of component classes in
+# all boms, and also matches the set output by the probing code.
 
 # TODO(tammo): Variant data should have 'probe results' stored in the
 # component_db, and the variant_map should only contain a list of
@@ -528,38 +531,42 @@ def ProcessComponentCrossproduct(data, board, comp_list):
           if ComponentConfigStr(comp_map) not in existing_comp_map_str_set]
 
 
-def CookComponentProbeResults(comp_db, probe_results):
-  """TODO(tammo): Add more here XXX."""
-  match = Obj(known={}, unknown={})
-  comp_reference_map = CalcCompDbProbeValMap(comp_db)
+def CookProbeResults(data, probe_results, board_name):
+  """Correlate probe results with component and board data.
+
+  For components, return a comp_class:comp_name dict for matches.  For
+  volatile and initial_config, return corresponding sets of index
+  values where the index values correspond to existing board data that
+  matches the probe results.
+  """
+  results = Obj(
+      matched_components={},
+      matched_volatiles=[],
+      matched_volatile_tags=[],
+      matched_initial_config_tags=[])
+  results.__dict__.update(probe_results.__dict__)
+  comp_reference_map = CalcCompDbProbeValMap(data.comp_db)
   for probe_class, probe_value in probe_results.found_components.items():
-    if probe_value is None:
-      continue
     if probe_value in comp_reference_map:
-      match.known[probe_class] = comp_reference_map[probe_value]
-    else:
-      match.unknown[probe_class] = probe_value
-  return match
-
-
-def CookDeviceProbeResults(device, probe_results):
-  """TODO(tammo): Add more here XXX."""
-  match = Obj(volatile_set=set(), initial_config_set=set())
-  # TODO(tammo): Precompute this reverse map.
-  volatile_reference_map = dict((v, c) for c, v in
-                                device.volatile_value_map.items())
-  vol_map = dict((c, volatile_reference_map[v])
-                 for c, v in probe_results.volatiles.items()
-                 if v in volatile_reference_map)
-  for volatile, vol_reference_map in device.volatile_map.items():
-    if all(vol_reference_map[c] == v for c, v in vol_map.items()
-           if vol_reference_map[c] != 'ANY'):
-      match.volatile_set.add(volatile)
-  for initial_config, ic_map in device.initial_config_map.items():
-    if all(probe_results.initial_configs.get(ic_class, None) != ic_value
-           for ic_class, ic_value in ic_map.items()):
-      match.initial_config_set.add(initial_config)
-  return match
+      results.matched_components[probe_class] = comp_reference_map[probe_value]
+  device = data.device_db[board_name]
+  volatile_reference_map = dict(
+      (v, c) for c, v in device.volatile_value_map.items())
+  results.matched_volatiles = dict(
+      (c, volatile_reference_map[v])
+      for c, v in probe_results.volatiles.items()
+      if v in volatile_reference_map)
+  for volatile_tag, volatile_map in device.volatile_map.items():
+    if (all(results.matched_volatiles.get(c, None) == v
+            for c, v in volatile_map.items())
+        and volatile_tag not in results.matched_volatile_tags):
+      results.matched_volatile_tags.append(volatile_tag)
+  for initial_config_tag, ic_map in device.initial_config_map.items():
+    if (all(probe_results.initial_configs.get(ic_class, None) == ic_value
+           for ic_class, ic_value in ic_map.items())
+        and initial_config_tag not in results.matched_initial_config_tags):
+      results.matched_initial_config_tags.append(initial_config_tag)
+  return results
 
 
 def LookupHwidProperties(data, hwid):
@@ -724,52 +731,6 @@ def ComponentBreakdownCommand(config, data):
       IndentedStructuredPrint(0, comp_class + ':', comp_map)
 
 
-@Command('probe_device',
-         CmdArg('-b', '--board'),
-         CmdArg('-c', '--classes', nargs='*'),
-         CmdArg('-r', '--raw', action='store_true'))
-def ProbeDeviceProperties(config, data):
-  # TODO(tammo): Implement classes arg behavior.
-  # TODO(tammo): Move this command into gooftool to avoid having to
-  # load the probe module here. The probe module depends on other
-  # modules that are not available except on DUT machines.
-  from probe import Probe
-  probe_results = Probe()
-  if config.raw:
-    print YamlWrite(probe_results.__dict__)
-    return
-  IndentedStructuredPrint(0, 'component probe results:',
-                          probe_results.found_components)
-  IndentedStructuredPrint(0, 'missing components (no results):',
-                          probe_results.missing_components)
-  missing_classes = (set(data.comp_db.registry) -
-                     set(probe_results.found_components))
-  if missing_classes:
-    logging.warning('missing information for comp classes: %s' %
-                    ', '.join(missing_classes))
-
-  cooked_components = CookComponentProbeResults(data.comp_db, probe_results)
-  if cooked_components.known:
-    IndentedStructuredPrint(0, 'known components:', cooked_components.known)
-  if cooked_components.unknown:
-    IndentedStructuredPrint(0, 'unknown components:', cooked_components.unknown)
-  if config.board:
-    if config.board not in data.device_db:
-      logging.critical('unknown board %r (known boards: %s' %
-                       (config.board, ', '.join(sorted(data.device_db))))
-      return
-    device = data.device_db[config.board]
-    cooked_device_details = CookDeviceProbeResults(device, probe_results)
-    IndentedStructuredPrint(0, 'volatile probe results:',
-                            probe_results.volatiles)
-    IndentedStructuredPrint(0, 'matching volatile tags:',
-                            cooked_device_details.volatile_set)
-    IndentedStructuredPrint(0, 'initial_config probe results:',
-                            probe_results.initial_configs)
-    IndentedStructuredPrint(0, 'matching initial_config tags:',
-                            cooked_device_details.initial_config_set)
-
-
 @Command('assimilate_probe_data',
          CmdArg('-b', '--board'),
          CmdArg('--bom'))
@@ -798,6 +759,7 @@ def AssimilateProbeData(config, data):
   the input data.
   """
   probe_results = Obj(**YamlRead(sys.stdin.read()))
+  # TODO(tammo): Refactor to use CookProbeResults.
   components = getattr(probe_results, 'found_components', {})
   registry = data.comp_db.registry
   if not set(components) <= set(registry):
@@ -847,7 +809,6 @@ def AssimilateProbeData(config, data):
       volatile_name = '%s_%d' % (volatile_class, len(device.volatile_value_map))
       device.volatile_value_map[volatile_name] = probe_value
       volatile_match_dict[volatile_class] = volatile_name
-  volatile_match_index = None
   for volatile_index, volatile in device.volatile_map.items():
     if volatile_match_dict == volatile:
       volatile_match_index = volatile_index
@@ -858,7 +819,6 @@ def AssimilateProbeData(config, data):
     device.volatile_map[volatile_match_index] = volatile_match_dict
     print 'added volatile: %r' % volatile_match_index
   probe_initial_config = getattr(probe_results, 'initial_configs', {})
-  initial_config_match_index = None
   for initial_config_index, initial_config in device.initial_config_map.items():
     if probe_initial_config == initial_config:
       initial_config_match_index = initial_config_index
@@ -1120,7 +1080,13 @@ def ParseCmdline():
       description='Visualize and/or modify HWID and related component data.')
   parser.add_argument('-p', '--data_path', metavar='PATH',
                       default=DEFAULT_HWID_DATA_PATH)
-  parser.add_argument('-v', '--verbosity', choices='01234', default='2')
+  class VerbosityAction(Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+      logging_level = {4: logging.DEBUG, 3: logging.INFO, 2: logging.WARNING,
+                       1: logging.ERROR, 0: logging.CRITICAL}[int(values)]
+      setattr(namespace, self.dest, logging_level)
+  parser.add_argument('-v', '--verbosity', choices='01234', default='2',
+                      action=VerbosityAction)
   parser.add_argument('-l', '--log_file')
   subparsers = parser.add_subparsers(dest='command_name')
   for cmd_name, (fun, doc, arg_list) in G_commands.items():
@@ -1131,22 +1097,10 @@ def ParseCmdline():
   return parser.parse_args()
 
 
-def SetupLogging(config):
-  """Configure logging level, format, and target file/stream."""
-  logging.basicConfig(
-      format='%(levelname)-8s %(asctime)-8s %(message)s',
-      datefmt='%H:%M:%S',
-      level={4: logging.DEBUG, 3: logging.INFO, 2: logging.WARNING,
-             1: logging.ERROR, 0: logging.CRITICAL}[int(config.verbosity)],
-      **({'filename': config.log_file} if config.log_file else {}))
-  logging.Formatter.converter = time.gmtime
-  logging.info(time.strftime('%Y.%m.%d %Z', time.gmtime()))
-
-
 def Main():
   """Run sub-command specified by the command line args."""
   config = ParseCmdline()
-  SetupLogging(config)
+  SetupLogging(config.verbosity, config.log_file)
   data = ReadDatastore(config.data_path)
   try:
     config.command(config, data)

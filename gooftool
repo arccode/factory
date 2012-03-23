@@ -15,11 +15,13 @@ gooftool: Google Factory Tool, providing all Google Required Test
 
 import copy
 import glob
+import logging
 import optparse
 import os
 import re
 import sys
 import tempfile
+import yaml
 
 ########################################################################
 # cros/gft modules
@@ -34,7 +36,7 @@ import gpio
 import hwid_tool
 import probe
 
-from common import Obj
+from common import Obj, SetupLogging
 from gft_common import WarningMsg, VerboseMsg, DebugMsg, ErrorMsg, ErrorDie
 
 
@@ -189,6 +191,15 @@ def write_hwid():
 
 
 @GFTCommand
+def run_probe():
+  """Print yaml-formatted breakdown of probed device properties."""
+  SetupLogging(logging.DEBUG, g_options.probe_log)
+  probe_results = probe.Probe()
+  print yaml.dump(probe_results.__dict__, default_flow_style=False)
+  return True
+
+
+@GFTCommand
 def verify_hwid():
   """Verify system HWID properties match probed device properties.
 
@@ -199,58 +210,54 @@ def verify_hwid():
   those specified for its HWID.
   """
   main_fw_file = crosfw.LoadMainFirmware().path
-  gbb_result = gft_common.SystemOutput('gbb_utility -g --hwid %s' %
-                                       main_fw_file)
+  gbb_result = gft_common.SystemOutput(
+      'gbb_utility -g --hwid %s' % main_fw_file)
   hwid = re.findall(r'hardware_id:(.*)', gbb_result)[0].strip()
   DebugMsg('system HWID: %r\n' % hwid)
   try:
     data = hwid_tool.ReadDatastore(g_options.db_path)
     hwid_properties = hwid_tool.LookupHwidProperties(data, hwid)
-    DebugMsg('expected system properties: %s' % hwid_properties.__dict__)
+    board = hwid_properties.board
+    DebugMsg('expected system properties:\n%s' %
+             yaml.dump(hwid_properties.__dict__, default_flow_style=False))
     probe_results = probe.Probe()
-    DebugMsg('found system properties: %s' % probe_results.__dict__)
-    cooked_components = hwid_tool.CookComponentProbeResults(
-        data.comp_db, probe_results)
-    DebugMsg('cooked components: %s' % cooked_components.__dict__)
-    device = data.device_db[hwid_properties.board]
-    cooked_device_details = hwid_tool.CookDeviceProbeResults(
-        device, probe_results)
-    DebugMsg('cooked device details: %s' % cooked_device_details.__dict__)
+    cooked_results = hwid_tool.CookProbeResults(data, probe_results, board)
+    DebugMsg('found system properties:\n%s' %
+             yaml.dump(cooked_results.__dict__, default_flow_style=False))
     global g_cached_device_data
     g_cached_device_data = Obj(
         hwid_properties=hwid_properties,
-        probe_results=probe_results,
-        cooked_components=cooked_components,
-        cooked_device_details=cooked_device_details)
+        cooked_results=cooked_results)
   except hwid_tool.Error, e:
     ErrorDie('verify_hwid: FAILED.\n%s' % e)
   match_errors = []
-  for comp_class, comp_value in hwid_properties.component_map.items():
-    if comp_value == 'ANY':
+  for comp_class, expected_name in hwid_properties.component_map.items():
+    if expected_name == 'ANY':
       continue
-    found_value = cooked_components.known.get(comp_class, None)
-    if found_value != comp_value:
-      if found_value is None:
-        alt_value = cooked_components.unknown.get(comp_class, None)
-        found_value = 'UNKNOWN %r' % alt_value
-      match_errors.append('  %s component mismatch, expected %s, found %s' %
-                          (comp_class, comp_value, found_value))
+    if expected_name == cooked_results.matched_components.get(comp_class, None):
+      continue
+    if comp_class in probe_results.missing_components:
+      match_errors.append('  %s component mismatch, expected %s, found nothing'
+                          % (comp_class, expected_name))
+    else:
+      probe_value = probe_results.found_components.get(comp_class, None)
+      match_errors.append('  %s component mismatch, expected %s, found  %r' %
+                          (comp_class, expected_name, probe_value))
   if match_errors:
     ErrorDie('verify_hwid: FAILED.\n%s' % '\n'.join(match_errors))
-  if hwid_properties.volatile not in cooked_device_details.volatile_set:
+  if hwid_properties.volatile not in cooked_results.matched_volatile_tags:
     msg = ('  HWID specified volatile %s, but found match only for %s' %
            (hwid_properties.volatile,
-            ', '.join(cooked_device_details.volatile_set)))
+            ', '.join(cooked_results.matched_volatile_tags)))
     ErrorDie('verify_hwid: FAILED.\n%s' % msg)
   if (hwid_properties.initial_config is not None and
       hwid_properties.initial_config not in
-      cooked_device_details.initial_config_set):
+      cooked_results.matched_initial_config_tags):
     msg = ('  HWID specified initial_config %s, but found match only for %s' %
            (hwid_properties.initial_config,
-            ', '.join(cooked_device_details.initial_config_set)))
+            ', '.join(cooked_results.matched_initial_config_tags)))
     ErrorDie('verify_hwid: FAILED.\n%s' % msg)
   # TODO(tammo): Verify HWID status is supported (or deprecated for RMA).
-  # TODO(tammo): Verify release string.
   # TODO(tammo): Verify VPD here, using hwid_properties.vpd_ro_field_list.
   print 'Verified: %s' % hwid
   return True
@@ -523,6 +530,10 @@ def ConsoleParser():
   parser.add_option('--log_path', metavar='PATH',
                     default=gft_common.DEFAULT_CONSOLE_LOG_PATH,
                     help='use the given path for verbose logs.')
+  # TODO(tammo): Remove this when gooftool converts to use logging module.
+  parser.add_option('--probe_log', metavar='PATH',
+                    default='/var/log/factory_probe.log',
+                    help='probe process details')
   # Debugging
   parser.add_option('--debug_dryrun_wpfw', action='store_true',
                     help='make --wpfw in dry-run mode (debugging only)')
