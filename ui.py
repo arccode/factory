@@ -90,7 +90,7 @@ LABEL_COLORS = {
 LABEL_FONT = pango.FontDescription('courier new condensed 16')
 LABEL_LARGE_FONT = pango.FontDescription('courier new condensed 24')
 
-FAIL_TIMEOUT = 30
+FAIL_TIMEOUT = 60
 
 MESSAGE_NO_ACTIVE_TESTS = (
         "No more tests to run. To re-run items, press shortcuts\n"
