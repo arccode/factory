@@ -24,7 +24,6 @@ import sys
 from array import array
 from glob import glob
 from fcntl import ioctl
-from inspect import getargspec
 from tempfile import NamedTemporaryFile
 
 import edid
@@ -48,19 +47,10 @@ from common import CompactStr, Error, Obj, RunShellCmd
 # leads to bitrot and fragility.
 
 
-# Load-time decorator-populated { class : probe function } tables.
+# Load-time decorator-populated dicts (arch of None implies generality):
+# { arch : { class : probe function } }
 _COMPONENT_PROBE_MAP = {}
-_HASH_PROBE_MAP = {}
 _INITIAL_CONFIG_PROBE_MAP = {}
-
-# Load-time decorator-populated { key : function } table.
-_COMMON_DATA_PROVIDER_MAP = {
-  'arch': None,               # Always calculated by Probe().
-  'component_registry': None  # Provided as arg to Probe() itself.
-  }
-
-# Load-time decorator-populated { function : required common data } table.
-_SHARED_DATA_REQS_MAP = {}
 
 
 def _LoadKernelModule(name):
@@ -171,7 +161,12 @@ class _FlimflamDevices(object):
   attribute:value items.
   """
 
-  def __init__(self):
+  cached_dev_list = None
+
+  @classmethod
+  def GetDevices(c, devtype):
+    """Return device Obj list for devices with the specified type."""
+
     def ProcessDevice(device):
       properties = device.GetProperties()
       get_prop = lambda p: flimflam.convert_dbus_value(properties[p])
@@ -185,51 +180,24 @@ class _FlimflamDevices(object):
                       'ModelID', 'Manufacturer']
           if ('Cellular.%s' % key) in properties)
       return result
-    self.dev_list = [ProcessDevice(device) for device in
-                     flimflam.FlimFlam().GetObjectList('Device')]
 
-  def GetDevices(self, devtype):
-    """Return device Obj list for devices with the specified type."""
-    return [dev for dev in self.dev_list if dev.devtype == devtype]
+    if c.cached_dev_list is None:
+      c.cached_dev_list = [ProcessDevice(device) for device in
+                           flimflam.FlimFlam().GetObjectList('Device')]
+    return [dev for dev in c.cached_dev_list if dev.devtype == devtype]
 
-  def ReadSysfsDeviceIds(self, devtype):
+  @classmethod
+  def ReadSysfsDeviceIds(c, devtype):
     """Return _ReadSysfsDeviceId result for each device of specified type."""
-    ids = [_ReadSysfsDeviceId(dev.path) for dev in self.GetDevices(devtype)]
+    ids = [_ReadSysfsDeviceId(dev.path) for dev in c.GetDevices(devtype)]
     return ' ; '.join(ids) if ids else None
 
 
-def _RegisterSharedDataRequirements(fun):
-  args = getargspec(fun)[0]
-  for arg in args:
-    assert arg in _COMMON_DATA_PROVIDER_MAP, \
-        'No provider for required common data %s' % repr(arg)
-  _SHARED_DATA_REQS_MAP[fun] = args
-
-
-def _ProvidesSharedData(data_name):
-  def Decorate(f):
-    assert data_name not in _COMMON_DATA_PROVIDER_MAP, \
-        'Multiple functions providing %s common data.' % repr(data_name)
-    _COMMON_DATA_PROVIDER_MAP[data_name] = f
-    _RegisterSharedDataRequirements(f)
-    return f
-  return Decorate
-
-
-@_ProvidesSharedData('ec_fw')
-def _LoadEcFirmware():
-  return crosfw.LoadEcFirmware()
-
-
-@_ProvidesSharedData('main_fw')
-def _LoadMainFirmware():
-  return crosfw.LoadMainFirmware()
-
-
-@_ProvidesSharedData('touchpad')
-def _LoadTouchpadData():
+class _TouchpadData():
   """Return Obj with hw_ident and fw_ident string fields."""
-  def Synaptics():
+
+  @classmethod
+  def Synaptics(c):
     detect_program = '/opt/Synaptics/bin/syndetect'
     if not os.path.exists(detect_program):
       return None
@@ -248,8 +216,10 @@ def _LoadTouchpadData():
     # Delete the " on xxx Port" substring, as we do not care about the port.
     model = re.sub(' on [^ ]* [Pp]ort$', '', model)
     firmware = properties.get('Firmware ID', None)
-    return Obj(hw_ident=model, fw_ident=firmware)
-  def Cypress():
+    return Obj(ident_str=model, fw_version=firmware)
+
+  @classmethod
+  def Cypress(c):
     for node in glob('/sys/class/input/mouse[0-9]*/device/device'):
       model_path_list = [os.path.join(node, field) for field in
                          ['product_id', 'hardware_version', 'protocol_version']]
@@ -258,55 +228,66 @@ def _LoadTouchpadData():
                  model_path_list + [firmware_path]):
         continue
       return Obj(
-        hw_ident=CompactStr([open(path).read().strip()
-                             for path in model_path_list]),
-        fw_ident=CompactStr(open(firmware_path).read().strip()))
+        ident_str=CompactStr(
+            [open(path).read().strip() for path in model_path_list]),
+        fw_version=CompactStr(open(firmware_path).read().strip()))
     return None
-  def Generic():
+
+  @classmethod
+  def Generic(c):
     # TODO(hungte) add more information from id/*
     # format: N: Name="???_trackpad"
     input_file = '/proc/bus/input/devices'
     cmd = 'grep -iE "^N.*(touch *pad|track *pad)" %s' % input_file
     info = RunShellCmd(cmd).stdout.splitlines()
     info = [re.sub('^[^"]*"(.*)"$', r'\1', device) for device in info]
-    return Obj(hw_ident=(', '.join(info) if info else None), fw_ident=None)
-  result_gen = (vendor_fun() for vendor_fun in [Cypress, Synaptics, Generic])
-  return next((x for x in result_gen if x is not None),
-              Obj(hw_ident=None, fw_ident=None))
+    return Obj(ident_str=(', '.join(info) if info else None), fw_version=None)
+
+  cached_data = None
+
+  @classmethod
+  def Get(c):
+    if c.cached_data is None:
+      c.cached_data = Obj(ident_str=None, fw_version=None)
+      for vendor_fun in [c.Cypress, c.Synaptics, c.Generic]:
+        data = vendor_fun()
+        if data is not None:
+          c.cached_data = data
+          break
+    return c.cached_data
 
 
-@_ProvidesSharedData('flimflam')
-def _LoadFlimflam():
-  """Function wrapper to allow decoration of the class contructor."""
-  return _FlimflamDevices()
-
-
-def _ComponentProbe(comp_class, *arch_targets):
-  """Decorator that populates _COMPONENT_PROBE_MAP.
+def _ProbeFun(probe_map, probe_class, *arch_targets):
+  """Decorator that populates probe_map.
 
   There can only be one probe function for each arch for each
-  comp_class.  If no arch_targets are specified, the probe is assumed
-  to be general and apply for all arch values.
+  probe_class.  If no arch_targets are specified, the probe is assumed
+  to be general and apply for those arches whithout arch specific
+  probes.
 
   Args:
-    comp_class: Target component class for which the generator
-      produces results.
-    arch_targets: List of arch strings for which the probe is relevant.
+    probe_map: Map to update.
+    comp_class: Probe class for which the probe fun produces results.
+    arch_targets: List of arches for which the probe is relevant.
   """
   def Decorate(f):
-    if not arch_targets:
-      assert comp_class not in _COMPONENT_PROBE_MAP, \
-          'Multiple generic component probe functions for %s' % repr(comp_class)
-      _COMPONENT_PROBE_MAP[comp_class] = f
-    else:
-      arch_map = _COMPONENT_PROBE_MAP.setdefault(comp_class, {})
-      assert set(arch_targets).isdisjoint(set(arch_map)), \
-          'Overlapping target architectures for %s probe function' % comp_class
-      for arch in arch_targets:
-        arch_map[arch] = f
-    _RegisterSharedDataRequirements(f)
+    arch_list = arch_targets if arch_targets else [None]
+    for arch in arch_list:
+      arch_probe_map = probe_map.setdefault(arch, {})
+      assert probe_class not in arch_probe_map, (
+          'Multiple component probe functions for %r %r',
+          arch if arch else 'generic', probe_class)
+      arch_probe_map[probe_class] = f
     return f
   return Decorate
+
+
+def _ComponentProbe(probe_class, *arch_targets):
+  return _ProbeFun(_COMPONENT_PROBE_MAP, probe_class, *arch_targets)
+
+
+def _InitialConfigProbe(probe_class, *arch_targets):
+  return _ProbeFun(_INITIAL_CONFIG_PROBE_MAP, probe_class, *arch_targets)
 
 
 @_ComponentProbe('audio_codec')
@@ -380,8 +361,8 @@ def _ProbeCamera():
 
 
 @_ComponentProbe('cellular')
-def _ProbeCellular(flimflam):
-  return flimflam.ReadSysfsDeviceIds('cellular')
+def _ProbeCellular():
+  return _FlimflamDevices.ReadSysfsDeviceIds('cellular')
 
 
 @_ComponentProbe('display_converter')
@@ -484,8 +465,8 @@ def _ProbeDramArm():
 
 
 @_ComponentProbe('ec_flash_chip')
-def _ProbeEcFlashChip(ec_fw):
-  return ec_fw.chip_id
+def _ProbeEcFlashChip():
+  return crosfw.LoadEcFirmware().GetChipId()
 
 
 @_ComponentProbe('embedded_controller')
@@ -500,13 +481,13 @@ def _ProbeEmbeddedController():
   return None
 
 @_ComponentProbe('ethernet')
-def _ProbeEthernet(flimflam):
-  return flimflam.ReadSysfsDeviceIds('ethernet')
+def _ProbeEthernet():
+  return _FlimflamDevices.ReadSysfsDeviceIds('ethernet')
 
 
 @_ComponentProbe('flash_chip')
-def _ProbeMainFlashChip(main_fw):
-  return main_fw.chip_id
+def _ProbeMainFlashChip():
+  return crosfw.LoadMainFirmware().GetChipId()
 
 
 @_ComponentProbe('storage')
@@ -533,8 +514,8 @@ def _ProbeStorage():
 
 
 @_ComponentProbe('touchpad')
-def _ProbeTouchpad(touchpad):
-  return touchpad.hw_ident if touchpad is not None else None
+def _ProbeTouchpad():
+  return _TouchpadData.Get().ident_str
 
 
 @_ComponentProbe('tpm')
@@ -552,10 +533,12 @@ def _ProbeTpm():
 
 
 @_ComponentProbe('usb_hosts')
-def _ProbeUsbHosts(arch):
+def _ProbeUsbHosts():
   """Compile USB data from sysfs."""
   # On x86, USB hosts are PCI devices, located in parent of root USB.
   # On ARM and others, use the root device itself.
+  # TODO(tammo): Think of a better way to do this, without arch.
+  arch = Shell('crossystem arch').stdout.strip()
   relpath = '.' if arch == 'arm' else '..'
   usb_bus_list = glob('/sys/bus/usb/devices/usb*')
   usb_host_list = [os.path.join(os.path.realpath(path), relpath)
@@ -572,126 +555,12 @@ def _ProbeVga():
 
 
 @_ComponentProbe('wireless')
-def _ProbeWireless(flimflam):
-  return flimflam.ReadSysfsDeviceIds('wifi')
-
-
-def _HashProbe(hash_class):
-  """Decorator that populates _HASH_PROBE_MAP.
-
-  There can be only one probe function for each hash_class.
-  """
-  def Decorate(f):
-    assert hash_class not in _HASH_PROBE_MAP, \
-        'Multiple hash probe functions for %s' % repr(hash_class)
-    _HASH_PROBE_MAP[hash_class] = f
-    _RegisterSharedDataRequirements(f)
-    return f
-  return Decorate
-
-
-@_HashProbe('ro_main_firmware')
-def _GetMainFirmwareReadOnlyHash(main_fw):
-  """Returns hash of main firmware (BIOS) read only parts.
-
-  Allows verification that we have proper keys / boot code / recovery
-  image installed.
-
-  Algorithm: sha256(fmap, RO_SECTION[-GBB]).
-  """
-  raw_image = open(main_fw.path, 'rb').read()
-  image = crosfw.FirmwareImage(raw_image)
-  hash_src = image.get_fmap_blob()
-  gbb = image.get_section('GBB')
-  zero_gbb = chr(0) * len(gbb)
-  image.put_section('GBB', zero_gbb)
-  hash_src += image.get_section('RO_SECTION')
-  return hashlib.sha256(hash_src).hexdigest()
-
-
-@_HashProbe('hash_gbb')
-def _GetMainFirmwareGbbHash(main_fw):
-  """Returns hash of main firmware (BIOS) GBB section.
-
-  Allows verification that we have proper keys / images / HWID.
-
-  Algorithm: sha256(GBB[-HWID]).
-  """
-  raw_image = open(main_fw.path, 'rb').read()
-  image = crosfw.FirmwareImage(raw_image)
-  # Clobber HWID in a copy of the GBB, to get a HWID-independent hash.
-  with NamedTemporaryFile('wb', delete=True) as f:
-    f.write(image.get_section('GBB'))
-    RunShellCmd('gbb_utility -s --hwid="ChromeOS" "%s"' % f.name)
-    hash_src = f.read()
-  return hashlib.sha256(hash_src).hexdigest()
-
-
-@_HashProbe('ro_ec_firmware')
-def _GetEcFirmwareReadOnlyHash(ec_fw):
-  """Returns hash of Embedded Controller firmware read only parts.
-
-  Allows verification that we have proper updated version of EC firmware.
-
-  Algorithm: sha256(fmap, EC_RO).
-  """
-  if ec_fw.chip_id is None:
-    return None
-  raw_image = open(ec_fw.path, 'rb').read()
-  image = crosfw.FirmwareImage(raw_image)
-  hash_src = image.get_fmap_blob()
-  hash_src += image.get_section('EC_RO')
-  return hashlib.sha256(hash_src).hexdigest()
-
-
-def _CalculateMainFwKeyHash(main_fw_file, key_name):
-  """Returns hash of the specified key from the main firmware.
-
-  Extracts specified GBB key element from the main firmware, using vbutil_key
-  command.
-
-  Algorithm: vbutil_key | grep "Key sha1sum".
-  """
-  with NamedTemporaryFile(prefix='gbb_%s_' % key_name, delete=True) as f:
-    if not RunShellCmd('gbb_utility -g --%s=%s %s' %
-                       (key_name, f.name, main_fw_file)).success:
-      raise Error('cannot get %s from GBB' % key_name)
-
-    key_info = RunShellCmd('vbutil_key --unpack %s' % f.name).stdout
-    sha1sum = re.findall(r'Key sha1sum:[\s]+([\w]+)', key_info)
-    if len(sha1sum) != 1:
-      logging.error("Failed calling vbutil_key for firmware key hash.")
-      return None
-    return sha1sum[0]
-
-
-@_HashProbe('key_recovery')
-def _CalculateRecoveryKeyHash(main_fw):
-  return _CalculateMainFwKeyHash(main_fw.path, 'recoverykey')
-
-
-@_HashProbe('key_root')
-def _CalculateRootKeyHash(main_fw):
-  return _CalculateMainFwKeyHash(main_fw.path, 'rootkey')
-
-
-def _InitialConfigProbe(initial_config_class):
-  """Decorator that populates _INITIAL_CONFIG_PROBE_MAP.
-
-  There can be only one probe function for each initial_config_class.
-  """
-  def Decorate(f):
-    assert initial_config_class not in _INITIAL_CONFIG_PROBE_MAP, \
-        'Multiple initial config probe functions for %s' % \
-        repr(initial_config_class)
-    _INITIAL_CONFIG_PROBE_MAP[initial_config_class] = f
-    _RegisterSharedDataRequirements(f)
-    return f
-  return Decorate
+def _ProbeWireless():
+  return _FlimflamDevices.ReadSysfsDeviceIds('wifi')
 
 
 @_InitialConfigProbe('cellular_fw_version')
-def _ProbeCellularFirmwareVersion(flimflam):
+def _ProbeCellularFirmwareVersion():
   """Return firmware detail strings for all cellular devices."""
   def GetVersionString(dev_attrs):
     """Use flimflam or modem status data to generate a version string.
@@ -719,38 +588,99 @@ def _ProbeCellularFirmwareVersion(flimflam):
       return info[0]
     return None
   results = [GetVersionString(dev.attributes) for dev in
-             flimflam.GetDevices('cellular')]
+             _FlimflamDevices.GetDevices('cellular')]
   results = [x for x in results if x is not None]
-  return ' ; '.join(results) if results else None
+  return ' ; '.join(results)
 
 
 @_InitialConfigProbe('rw_fw_version')
-def _ProbeRwFirmwareVersion(main_fw):
-  """Returns RW (writable) firmware version from VBLOCK sections.
-
-  If A/B has different version, that means this system needs a reboot +
-  firmwar update so return value is a "error report" in the form "A=x, B=y".
-  """
-  versions = [None, None]
-  with open(main_fw.path, 'rb') as f:
-    image = crosfw.FirmwareImage(f.read())
-  for (index, name) in enumerate(['VBLOCK_A', 'VBLOCK_B']):
-    data = image.get_section(name)
+def _ProbeRwFirmwareVersion():
+  """Returns RW (writable) firmware version from VBLOCK sections."""
+  def GetVersion(section_name):
+    data = image.get_section(section_name)
     block = vblock.unpack_verification_block(data)
-    versions[index] = block['VbFirmwarePreambleHeader']['firmware_version']
-  if len(versions) != 2:
-    raise Error('Bad RW FW version data.')
+    return block['VbFirmwarePreambleHeader']['firmware_version']
+  main_fw_file = crosfw.LoadMainFirmware().GetFileName()
+  image = crosfw.FirmwareImage(open(main_fw_file, 'rb').read())
+  versions = map(GetVersion, ['VBLOCK_A', 'VBLOCK_B'])
   if versions[0] != versions[1]:
     return 'A=%d, B=%d' % versions
   return '%d' % versions[0]
 
 
 @_InitialConfigProbe('touchpad_fw_version')
-def _ProbeTouchpadFirmwareVersion(touchpad):
-  return touchpad.fw_ident if touchpad is not None else None
+def _ProbeTouchpadFirmwareVersion():
+  return _TouchpadData.Get().fw_version
 
 
-def Probe(probe_volatile=True, probe_initial_config=True):
+def _GbbHash(image):
+  """Algorithm: sha256(GBB[-HWID]); GBB without HWID."""
+  with NamedTemporaryFile('wb') as f:
+    f.write(image.get_section('GBB'))
+    RunShellCmd('gbb_utility -s --hwid="ChromeOS" "%s"' % f.name)
+    hash_src = f.read()
+  return hashlib.sha256(hash_src).hexdigest()
+
+
+def _MainRoHash(image):
+  """Algorithm: sha256(fmap, RO_SECTION[-GBB])."""
+  hash_src = image.get_fmap_blob()
+  gbb = image.get_section('GBB')
+  zero_gbb = chr(0) * len(gbb)
+  image.put_section('GBB', zero_gbb)
+  hash_src += image.get_section('RO_SECTION')
+  image.put_section('GBB', gbb)
+  return hashlib.sha256(hash_src).hexdigest()
+
+
+def _EcRoHash(image):
+  """Algorithm: sha256(fmap, EC_RO)."""
+  hash_src = image.get_fmap_blob()
+  hash_src += image.get_section('EC_RO')
+  return hashlib.sha256(hash_src).hexdigest()
+
+
+def _FwKeyHash(main_fw_file, key_name):
+  """Hash specified GBB key, extracted by vbutil_key."""
+  with NamedTemporaryFile(prefix='gbb_%s_' % key_name) as f:
+    if not RunShellCmd('gbb_utility -g --%s=%s %s' %
+                       (key_name, f.name, main_fw_file)).success:
+      raise Error('cannot get %s from GBB' % key_name)
+
+    key_info = RunShellCmd('vbutil_key --unpack %s' % f.name).stdout
+    sha1sum = re.findall(r'Key sha1sum:[\s]+([\w]+)', key_info)
+    if len(sha1sum) != 1:
+      logging.error("Failed calling vbutil_key for firmware key hash.")
+      return None
+    return sha1sum[0]
+
+
+def CalculateFirmwareHashes(fw_file_path):
+  """Calculate the volatile hashes corresponding to a firmware blob.
+
+  Given a firmware blob, determine what kind of firmware it is based
+  on what sections are present.  Then generate a dict containing the
+  corresponding hash values.
+  """
+  raw_image = open(fw_file_path, 'rb').read()
+  try:
+    image = crosfw.FirmwareImage(raw_image)
+  except:
+    return None
+  hashes = {}
+  if image.has_section('EC_RO'):
+    hashes['ro_ec_firmware'] = _EcRoHash(image)
+  elif image.has_section('GBB') and image.has_section('RO_SECTION'):
+    hashes['hash_gbb'] = _GbbHash(image)
+    hashes['ro_main_firmware'] = _MainRoHash(image)
+    hashes['key_recovery'] = _FwKeyHash(fw_file_path, 'recoverykey')
+    hashes['key_root'] = _FwKeyHash(fw_file_path, 'rootkey')
+  return hashes
+
+
+def Probe(target_comp_classes=[],
+          probe_volatile=True,
+          probe_initial_config=True):
   """Return device component, hash, and initial_config data.
 
   Run all of the available probing routines that make sense for the
@@ -762,6 +692,8 @@ def Probe(probe_volatile=True, probe_initial_config=True):
   can be done afterwards.
 
   Args:
+    component_classes: Which component classes to probe for.  The
+      empty list implies all classes.
     probe_volatile: On False, do not probe for volatile data and
       return None for the corresponding field.
     probe_initial_config: On False, do not probe for initial_config
@@ -770,53 +702,46 @@ def Probe(probe_volatile=True, probe_initial_config=True):
     Obj with components, volatile, and initial_config fields, each
     containing the corresponding dict of probe results.
   """
-  arch = RunShellCmd('crossystem arch').stdout.strip()
-  shared_data = { 'arch': arch }
-  def PopulateSharedData(data_name):
-    if data_name in shared_data:
-      return
-    fun = _COMMON_DATA_PROVIDER_MAP[data_name]
-    shared_data[data_name] = RunFunWithSharedData(fun)
-  def RunFunWithSharedData(fun):
-    required_data_name_list = _SHARED_DATA_REQS_MAP[fun]
-    map(PopulateSharedData, required_data_name_list)
-    fun_args = dict((x, shared_data[x]) for x in shared_data
-                    if x in required_data_name_list)
-    return fun(**fun_args)
-  def RunProbe(fun):
+  def RunProbe(probe_fun):
     try:
-      return RunFunWithSharedData(fun)
+      return probe_fun()
     except Exception:
-      logging.exception('Probe FAILED (%s), see traceback, returning None.' %
-                        fun.__name__)
+      logging.exception('Probe %r FAILED (see traceback), returning None.',
+                        probe_fun.__name__)
       return None
+  def FilterProbes(ref_probe_map, arch, probe_class_white_list):
+    generic_probes = ref_probe_map.get(None, {})
+    arch_probes = ref_probe_map.get(arch, {})
+    if not probe_class_white_list:
+      probe_class_white_list = set(generic_probes) | set(arch_probes)
+    print probe_class_white_list, generic_probes, arch_probes
+    return dict((probe_class, (arch_probes[probe_class]
+                               if probe_class in arch_probes
+                               else generic_probes[probe_class]))
+                for probe_class in sorted(probe_class_white_list))
   results = Obj(
       found_components={},
       missing_components=[],
       volatiles={},
       initial_configs={})
-  for component_class, fun_data in sorted(_COMPONENT_PROBE_MAP.items()):
-    fun = fun_data[arch] if isinstance(fun_data, dict) else fun_data
-    probe_value = RunProbe(fun)
-    if probe_value is not None:
-      results.found_components[component_class] = probe_value
-    else:
-      results.missing_components.append(component_class)
-  if probe_volatile:
-    # TODO(tammo): Lift out the hash generation, to allow convenient
-    # generation of hashes directly for firmware images (as opposed to
-    # just DUT machines).  Ideally provide a command (maybe in
-    # hwid_tool) which will take an arbitrary firmware image/blob,
-    # determine the firmware type (main, ec, etc) and then generate
-    # all of the corresponding hashes.  This command, similar to
-    # probing for new BOM components, should help with appending new
-    # hash values to the database.
-    for hash_class, fun in sorted(_HASH_PROBE_MAP.items()):
-      results.volatiles[hash_class] = RunProbe(fun)
+  arch = RunShellCmd('crossystem arch').stdout.strip()
+  comp_probes = FilterProbes(_COMPONENT_PROBE_MAP, arch, target_comp_classes)
   if probe_initial_config:
-    for initial_config_class, fun in sorted(_INITIAL_CONFIG_PROBE_MAP.items()):
-      probe_value = RunProbe(fun)
-      # TODO(tammo): Remove this conversion once initial_config is improved.
-      probe_value = '' if probe_value is None else probe_value
-      results.initial_configs[initial_config_class] = probe_value
+    ic_probes = FilterProbes(_INITIAL_CONFIG_PROBE_MAP, arch, [])
+  else:
+    ic_probes = {}
+  for comp_class, probe_fun in comp_probes.items():
+    probe_value = RunProbe(probe_fun)
+    if probe_value is not None:
+      results.found_components[comp_class] = probe_value
+    else:
+      results.missing_components.append(comp_class)
+  for ic_class, probe_fun in ic_probes.items():
+    results.initial_configs[ic_class] = RunProbe(probe_fun)
+  if probe_volatile:
+    main_fw_file = crosfw.LoadMainFirmware().GetFileName()
+    results.volatiles.update(CalculateFirmwareHashes(main_fw_file))
+    ec_fw_file = crosfw.LoadEcFirmware().GetFileName()
+    if ec_fw_file is not None:
+      results.volatiles.update(CalculateFirmwareHashes(ec_fw_file))
   return results

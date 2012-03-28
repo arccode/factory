@@ -182,7 +182,7 @@ def write_hwid():
     ErrorDie('write_hwid: No HWID specified (must specify using --hwid arg).')
   hwid = g_options.hwid
   DebugMsg('write_hwid: using hwid string %r' % hwid)
-  main_fw_file = crosfw.LoadMainFirmware().path
+  main_fw_file = crosfw.LoadMainFirmware().GetFileName()
   cmd = ('gbb_utility --set --hwid="%s" "%s"' % (hwid, main_fw_file))
   gft_common.System(cmd)
   flashrom = crosfw.Flashrom(crosfw.TARGET_MAIN)
@@ -209,7 +209,7 @@ def verify_hwid():
   that list.  Finally, verify that the DUT initial config values match
   those specified for its HWID.
   """
-  main_fw_file = crosfw.LoadMainFirmware().path
+  main_fw_file = crosfw.LoadMainFirmware().GetFileName()
   gbb_result = gft_common.SystemOutput(
       'gbb_utility -g --hwid %s' % main_fw_file)
   hwid = re.findall(r'hardware_id:(.*)', gbb_result)[0].strip()
@@ -270,7 +270,7 @@ def verify_keys():
   if not os.path.exists(script):
     ErrorDie('verify_keys: cannot find script to verify.')
   kernel_device = GetReleaseKernelPartitionPath()
-  main_fw_path = crosfw.LoadMainFirmware().path
+  main_fw_path = crosfw.LoadMainFirmware().GetFileName()
   command = '%s %s %s' % (script, kernel_device, main_fw_path)
   try:
     VerboseSystemCommand(command, prompt='verify_keys: ')
@@ -285,7 +285,7 @@ def verify_vpd():
   try:
     # TODO(tammo): Verify that all of the VPD fields specified for the
     # board (using hwid properties) have values.
-    image_file = crosfw.LoadMainFirmware().path
+    image_file = crosfw.LoadMainFirmware().GetFileName()
     gft_vpd.ValidateVpdData(image_file, g_options.verbose)
     gft_vpd.SetFirmwareBitmapLocale(image_file)
   except gft_common.GFTError, e:
@@ -363,7 +363,7 @@ def create_report():
     # reports for machines where the hwid validation fails.
     ErrorDie('create_report: must run verify_hwid first')
 
-  vpd_source = crosfw.LoadMainFirmware().path
+  vpd_source = crosfw.LoadMainFirmware().GetFileName()
   report = gft_report.CreateReport(sys.argv,
                                    system_details=g_cached_device_data,
                                    verbose_log_path=g_options.log_path,
@@ -414,8 +414,8 @@ def wpfw():
   read_binary = gft_common.ReadBinaryFile
   ec_fw = crosfw.LoadEcFirmware()
   main_fw = crosfw.LoadMainFirmware()
-  target_set = [('bios', main_fw.path)]
-  if ec_fw.chip_id is not None:
+  target_set = [('bios', main_fw.GetFileName())]
+  if ec_fw.GetChipId() is not None:
     target_set.insert(0, ('ec', ec_fw.path))
     assert target_set[0][0] == 'ec'
   else:

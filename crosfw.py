@@ -15,14 +15,12 @@ To get the content of (cacheable) firmware, use LoadMainFirmware() or
 import collections
 import logging
 import re
-import tempfile
+
+from tempfile import NamedTemporaryFile
 
 import common
 import fmap
 
-
-# Global dict to cache firmware details: {target_name: (chip_id, file handle)}.
-_g_firmware_details = {}
 
 # Names to select target bus.
 TARGET_MAIN = 'main'
@@ -30,7 +28,6 @@ TARGET_EC = 'ec'
 
 # Types of named tuples
 WpStatus = collections.namedtuple('WpStatus', 'enabled offset size')
-FirmwareContent = collections.namedtuple('FirwmareContent', 'chip_id path')
 
 
 class Flashrom(object):
@@ -83,7 +80,7 @@ class Flashrom(object):
       Image data read from flash chipset.
     """
     if filename is None:
-      with tempfile.NamedTemporaryFile(prefix='fw_%s_' % self._target) as f:
+      with NamedTemporaryFile(prefix='fw_%s_' % self._target) as f:
         return self.Read(f.name)
     sections_param = [name % '-i %s' for name in sections or []]
     self._InvokeCommand("-r '%s' %s %s" % (filename, ' '.join(sections_param),
@@ -103,7 +100,7 @@ class Flashrom(object):
             ((data is None) and (filename is not None))), \
                 "Either data or filename should be None."
     if data is not None:
-      with tempfile.NamedTemporaryFile(prefix='fw_%s_' % self._target) as f:
+      with NamedTemporaryFile(prefix='fw_%s_' % self._target) as f:
         f.write(data)
         f.flush()
         return self.Write(None, f.name)
@@ -204,38 +201,53 @@ class FirmwareImage(object):
     return fmap.fmap_encode(self._fmap)
 
 
-def LoadFirmware(target):
-  """Returns the chipset ID and path to a file containing firmware data.
+class FirmwareContent(object):
+  """Access to the firmware chip_id and content file for a specific target.
 
-  Runs flashrom twice.  First probe for the chip_id.  Then, if a chip
-  is found, dump the contents of flash into a file.
-
-  Args:
-    target: Which target to access.  For example TARGET_MAIN or TARGET_EC.
-
-  Returns:
-    FirmwareContent with chipset ID and file path.  If given target does not
-    exist, both ID and path are None.
+  This class keeps track of all the instances of itself that exist.
+  The goal being that only one instance ever gets created for each
+  target. This mapping of targets to instances is tracked by the
+  _target_cache class data member.
   """
-  if target in _g_firmware_details:
-    chip_id, fw_file = _g_firmware_details[target]
-    return FirmwareContent(chip_id, fw_file.name)
 
-  flashrom = Flashrom(target)
-  info = flashrom.GetName()
-  chip_id = ' '.join([info['vendor'], info['name']]) if info else None
-  if chip_id is not None:
-    fw_file = tempfile.NamedTemporaryFile(prefix='fw_%s_' % target)
-    flashrom.Read(filename=fw_file.name)
-  _g_firmware_details[target] = (chip_id, fw_file)
-  return FirmwareContent(chip_id, fw_file.name if fw_file else None)
+  # Cache of target:instance pairs.
+  _target_cache = {}
+
+  @classmethod
+  def Load(c, target):
+    """Create class instance for target, using cached copy if available."""
+    if target in c._target_cache:
+      return c._target_cache[target]
+    obj = c()
+    obj.target = target
+    obj.flashrom = Flashrom(target)
+    c._target_cache[target] = obj
+    return obj
+
+  def GetChipId(self):
+    """Caching get of flashrom chip identifier.  None if no chip is present."""
+    if not hasattr(self, 'chip_id'):
+      info = flashrom.GetName()
+      self.chip_id = ' '.join([info['vendor'], info['name']]) if info else None
+    return self.chip_id
+
+  def GetFileName(self):
+    """Filename containing firmware data.  None if no chip is present."""
+    if self.GetChipId() is None:
+      return None
+    if not hasattr(self, 'filename'):
+      fileref = NamedTemporaryFile(prefix='fw_%s_' % self.target)
+      self.flashrom.Read(filename=fileref.filename)
+      self.fileref = fileref
+      self.filename = fileref.filename
+    return self.filename
 
 
 def LoadEcFirmware():
   """Returns flashrom data from Embedded Controller chipset."""
-  return LoadFirmware(TARGET_EC)
+  return FirmwareContent.Load(TARGET_EC)
 
 
 def LoadMainFirmware():
   """Returns flashrom data from main firmware (also known as BIOS)."""
-  return LoadFirmware(TARGET_MAIN)
+  return FirmwareContent.Load(TARGET_MAIN)
