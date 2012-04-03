@@ -33,7 +33,7 @@ import vblock
 sys.path.append('/usr/local/lib/flimflam/test')
 import flimflam
 
-from common import CompactStr, Error, Obj, RunShellCmd
+from common import CompactStr, Error, Obj, Shell
 
 
 # TODO(tammo): Some tests look for multiple components, some tests
@@ -56,9 +56,9 @@ _INITIAL_CONFIG_PROBE_MAP = {}
 def _LoadKernelModule(name):
   """Ensure kernel module is loaded.  If not already loaded, do the load."""
   # TODO(tammo): Maybe lift into shared data for performance reasons.
-  loaded = RunShellCmd('lsmod | grep -q %s' % name).success
+  loaded = Shell('lsmod | grep -q %s' % name).success
   if not loaded:
-    loaded = RunShellCmd('modprobe %s' % name).success
+    loaded = Shell('modprobe %s' % name).success
     if not loaded:
       raise Error('Cannot load kernel module: %s' % name)
 
@@ -201,13 +201,13 @@ class _TouchpadData():
     detect_program = '/opt/Synaptics/bin/syndetect'
     if not os.path.exists(detect_program):
       return None
-    lock_check = RunShellCmd('lsof /dev/serio_raw0 | grep -q "^X"')
+    lock_check = Shell('lsof /dev/serio_raw0 | grep -q "^X"')
     if lock_check.success and not os.getenv('DISPLAY'):
       logging.error('Synaptics touchpad detection with X in the '
                     'foreground requires DISPLAY and XAUTHORITY '
                     'to be set properly.')
       return None
-    result = RunShellCmd(detect_program)
+    result = Shell(detect_program)
     if not result.success:
       return None
     properties = dict(map(str.strip, line.split('=', 1))
@@ -239,7 +239,7 @@ class _TouchpadData():
     # format: N: Name="???_trackpad"
     input_file = '/proc/bus/input/devices'
     cmd = 'grep -iE "^N.*(touch *pad|track *pad)" %s' % input_file
-    info = RunShellCmd(cmd).stdout.splitlines()
+    info = Shell(cmd).stdout.splitlines()
     info = [re.sub('^[^"]*"(.*)"$', r'\1', device) for device in info]
     return Obj(ident_str=(', '.join(info) if info else None), fw_version=None)
 
@@ -293,7 +293,7 @@ def _InitialConfigProbe(probe_class, *arch_targets):
 @_ComponentProbe('audio_codec')
 def _ProbeAudioCodec():
   """Looks for codec strings in /proc/asound then at PCM details."""
-  grep_result = RunShellCmd('grep -R "Codec:" /proc/asound/*')
+  grep_result = Shell('grep -R "Codec:" /proc/asound/*')
   match_list = [re.findall(r'.*Codec:(.*)', line)
                 for line in grep_result.stdout.splitlines()]
   result_set = set(CompactStr(match) for match in match_list if match)
@@ -380,7 +380,7 @@ def _ProbeDisplayConverter():
           dev_chrontel = os.path.basename(dev_path)
           break
     cmd = 'ch7036_monitor -d %s -p' % dev_chrontel
-    if os.path.exists(dev_chrontel) and RunShellCmd(cmd).success:
+    if os.path.exists(dev_chrontel) and Shell(cmd).success:
       return 'ch7036'
     return None
   part_id_gen = (probe_fun() for probe_fun in [ProbeChrontel])
@@ -412,7 +412,7 @@ def _ProbeCpuX86():
   #   model name : Intel(R) Atom(TM) CPU ???
   #   model name : Intel(R) Atom(TM) CPU ???
   cmd = r'sed -nr "s/^model name\s*: (.*)/\1/p" /proc/cpuinfo'
-  stdout = RunShellCmd(cmd).stdout.splitlines()
+  stdout = Shell(cmd).stdout.splitlines()
   return CompactStr(stdout[0] + ' [%d cores]' % len(stdout))
 
 
@@ -426,7 +426,7 @@ def _ProbeCpuArm():
   #   processor : 0
   #   processor : 1
   cmd = r'sed -nr "s/^[Pp]rocessor\s*: (.*)/\1/p" /proc/cpuinfo'
-  stdout = RunShellCmd(cmd).stdout.splitlines()
+  stdout = Shell(cmd).stdout.splitlines()
   return CompactStr(stdout[0] + ' [%d cores]' % len(stdout) - 1)
 
 
@@ -447,8 +447,8 @@ def _ProbeDramX86():
   """Combine mosys memory timing and geometry information."""
   # TODO(tammo): Document why mosys cannot load i2c_dev itself.
   _LoadKernelModule('i2c_dev')
-  time_data = RunShellCmd('mosys -k memory spd print timings').stdout
-  size_data = RunShellCmd('mosys -k memory spd print geometry').stdout
+  time_data = Shell('mosys -k memory spd print timings').stdout
+  size_data = Shell('mosys -k memory spd print geometry').stdout
   times = dict(re.findall('dimm="([^"]*)".*speeds="([^"]*)"', time_data))
   sizes = dict(re.findall('dimm="([^"]*)".*size_mb="([^"]*)"', size_data))
   return CompactStr(['%s|%s|%s' % (i, sizes[i], times[i].replace(' ', ''))
@@ -475,7 +475,7 @@ def _ProbeEmbeddedController():
   # Example mosys command output:
   # vendor="VENDOR" name="CHIPNAME" fw_version="ECFWVER"
   ecinfo = re.findall(r'\bvendor="([^"]*)".*\bname="([^"]*)"',
-                      RunShellCmd('mosys -k ec info').stdout)
+                      Shell('mosys -k ec info').stdout)
   if ecinfo:
     return CompactStr(*ecinfo)
   return None
@@ -522,7 +522,7 @@ def _ProbeTouchpad():
 def _ProbeTpm():
   """Return Manufacturer_info : Chip_Version string from tpm_version output."""
   tpm_data = [line.partition(':') for line in
-              RunShellCmd('tpm_version').stdout.splitlines()]
+              Shell('tpm_version').stdout.splitlines()]
   tpm_dict = dict((key.strip(), value.strip()) for
                   key, _, value in tpm_data)
   mfg = tpm_dict.get('Manufacturer Info', None)
@@ -582,7 +582,7 @@ def _ProbeCellularFirmwareVersion():
       return CompactStr([dev_attrs[key] for key in version_format])
     # If nothing available, try 'modem status'.
     cmd = 'modem status | grep firmware_revision'
-    modem_status = RunShellCmd(cmd).stdout.strip()
+    modem_status = Shell(cmd).stdout.strip()
     info = re.findall('^\s*firmware_revision:\s*(.*)', modem_status)
     if info and info[0]:
       return info[0]
@@ -617,7 +617,7 @@ def _GbbHash(image):
   """Algorithm: sha256(GBB[-HWID]); GBB without HWID."""
   with NamedTemporaryFile('wb') as f:
     f.write(image.get_section('GBB'))
-    RunShellCmd('gbb_utility -s --hwid="ChromeOS" "%s"' % f.name)
+    Shell('gbb_utility -s --hwid="ChromeOS" "%s"' % f.name)
     hash_src = f.read()
   return hashlib.sha256(hash_src).hexdigest()
 
@@ -643,11 +643,10 @@ def _EcRoHash(image):
 def _FwKeyHash(main_fw_file, key_name):
   """Hash specified GBB key, extracted by vbutil_key."""
   with NamedTemporaryFile(prefix='gbb_%s_' % key_name) as f:
-    if not RunShellCmd('gbb_utility -g --%s=%s %s' %
-                       (key_name, f.name, main_fw_file)).success:
+    if not Shell('gbb_utility -g --%s=%s %s' %
+                 (key_name, f.name, main_fw_file)).success:
       raise Error('cannot get %s from GBB' % key_name)
-
-    key_info = RunShellCmd('vbutil_key --unpack %s' % f.name).stdout
+    key_info = Shell('vbutil_key --unpack %s' % f.name).stdout
     sha1sum = re.findall(r'Key sha1sum:[\s]+([\w]+)', key_info)
     if len(sha1sum) != 1:
       logging.error("Failed calling vbutil_key for firmware key hash.")
@@ -714,7 +713,6 @@ def Probe(target_comp_classes=[],
     arch_probes = ref_probe_map.get(arch, {})
     if not probe_class_white_list:
       probe_class_white_list = set(generic_probes) | set(arch_probes)
-    print probe_class_white_list, generic_probes, arch_probes
     return dict((probe_class, (arch_probes[probe_class]
                                if probe_class in arch_probes
                                else generic_probes[probe_class]))
@@ -724,7 +722,7 @@ def Probe(target_comp_classes=[],
       missing_components=[],
       volatiles={},
       initial_configs={})
-  arch = RunShellCmd('crossystem arch').stdout.strip()
+  arch = Shell('crossystem arch').stdout.strip()
   comp_probes = FilterProbes(_COMPONENT_PROBE_MAP, arch, target_comp_classes)
   if probe_initial_config:
     ic_probes = FilterProbes(_INITIAL_CONFIG_PROBE_MAP, arch, [])
@@ -737,7 +735,9 @@ def Probe(target_comp_classes=[],
     else:
       results.missing_components.append(comp_class)
   for ic_class, probe_fun in ic_probes.items():
-    results.initial_configs[ic_class] = RunProbe(probe_fun)
+    probe_value = RunProbe(probe_fun)
+    if probe_value is not None:
+      results.initial_configs[ic_class] = probe_value
   if probe_volatile:
     main_fw_file = crosfw.LoadMainFirmware().GetFileName()
     results.volatiles.update(CalculateFirmwareHashes(main_fw_file))

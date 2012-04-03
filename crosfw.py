@@ -18,8 +18,9 @@ import re
 
 from tempfile import NamedTemporaryFile
 
-import common
 import fmap
+
+from common import Shell
 
 
 # Names to select target bus.
@@ -46,7 +47,7 @@ class Flashrom(object):
   def _InvokeCommand(self, param, ignore_status=False):
     command = ' '.join(['flashrom', self._TARGET_MAP[self._target], param])
     logging.debug('Flashrom._InvokeCommand: %s', command)
-    result = common.RunShellCmd(command)
+    result = Shell(command)
     if not (ignore_status or result.success):
       raise IOError, "Failed in command: %s\n%s" % (command, result.stderr)
     return result
@@ -202,7 +203,7 @@ class FirmwareImage(object):
 
 
 class FirmwareContent(object):
-  """Access to the firmware chip_id and content file for a specific target.
+  """Wrapper around flashrom for a specific firmware target.
 
   This class keeps track of all the instances of itself that exist.
   The goal being that only one instance ever gets created for each
@@ -227,7 +228,7 @@ class FirmwareContent(object):
   def GetChipId(self):
     """Caching get of flashrom chip identifier.  None if no chip is present."""
     if not hasattr(self, 'chip_id'):
-      info = flashrom.GetName()
+      info = self.flashrom.GetName()
       self.chip_id = ' '.join([info['vendor'], info['name']]) if info else None
     return self.chip_id
 
@@ -237,10 +238,14 @@ class FirmwareContent(object):
       return None
     if not hasattr(self, 'filename'):
       fileref = NamedTemporaryFile(prefix='fw_%s_' % self.target)
-      self.flashrom.Read(filename=fileref.filename)
+      self.flashrom.Read(filename=fileref.name)
       self.fileref = fileref
-      self.filename = fileref.filename
+      self.filename = fileref.name
     return self.filename
+
+  def Write(self, sections=None):
+    """Call flashrom write for specific sections."""
+    self.flashrom.Write(filename=self.GetFileName(), sections=sections)
 
 
 def LoadEcFirmware():

@@ -3,25 +3,28 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+"""Visualize and/or modify HWID and related component data."""
+
 
 import difflib
 import logging
 import os
 import random
-import re
 import string
 import sys
 import zlib
 
-from argparse import ArgumentParser, Action
-from common import Error, Obj, SetupLogging
 from bom_names import BOM_NAME_SET
-from hwid_database import InvalidDataError, MakeDatastoreSubclass, YamlRead
+from common import Error, Obj, SetupLogging, YamlWrite, YamlRead
+from hacked_argparse import CmdArg, Command, ParseCmdline, verbosity_cmd_arg
+from hwid_database import InvalidDataError, MakeDatastoreSubclass
 
 
 # The expected location of HWID data within a factory image.
 DEFAULT_HWID_DATA_PATH = '/usr/local/factory/hwid'
 
+
+# File that contains component data shared by all boards.
 COMPONENT_DB_FILENAME = 'component_db'
 
 
@@ -104,6 +107,12 @@ MakeDatastoreSubclass('Device', {
 # any early termination (no calls to return), to make sure that the
 # database does not get written.
 
+# TODO(tammo): Get rid of the 'ANY' and/or 'NONE' special values in
+# Hwid.component_map.  Instead add not_present_components and
+# (optionally) anything_goes_components lists.  If component classes
+# are not in either the map or the not_present list, they are
+# implicitly in anything_goes.
+
 
 def HwidChecksum(text):
   return ('%04u' % (zlib.crc32(text) & 0xffffffffL))[-4:]
@@ -132,7 +141,8 @@ def ParseHwid(hwid):
   board, bom = parts
   if not all(x.isalpha() for x in [board, bom, variant, volatile]):
     raise Error, 'bad (non-alpha) part for hwid %r' % hwid
-  return Obj(board=board, bom=bom, variant=variant, volatile=volatile)
+  return Obj(hwid=hwid, board=board, bom=bom,
+             variant=variant, volatile=volatile)
 
 
 def AlphaIndex(num):
@@ -230,7 +240,7 @@ def ReadDatastore(path):
       try:
         data.device_db[entry] = Device.Decode(f.read())
       except InvalidDataError, e:
-        logging.error('%r decode failed: %s' % (entry_path, e))
+        logging.error('%r decode failed: %s', entry_path, e)
   return data
 
 
@@ -246,10 +256,9 @@ def WriteDatastore(path, data):
       diff = [line for line in difflib.unified_diff(file_data, internal_data)]
       if not diff:
         return
-      logging.info('updating %s with changes:\n%s' %
-                   (filename, '\n'.join(diff)))
+      logging.info('updating %s with changes:\n%s', filename, '\n'.join(diff))
     else:
-      logging.info('creating new data file %s' % filename)
+      logging.info('creating new data file %s', filename)
     with open(full_path, 'w') as f:
       f.write('%s\n' % '\n'.join(internal_data))
   WriteOnDiff(COMPONENT_DB_FILENAME, data.comp_db.Encode())
@@ -580,30 +589,6 @@ def LookupHwidProperties(data, hwid):
   return props
 
 
-# List of sub-commands that can be specified as command line
-# arguments.  This list is populated by the @Command decorators around
-# the corresponding command implementation functions.
-G_commands = {}
-
-
-def Command(cmd_name, *arg_list):
-  """Decorator to populate the global command list.
-
-  Function doc strings are extracted and shown to users as part of the
-  help message for each command.
-  """
-  def Decorate(fun):
-    doc = fun.__doc__ if fun.__doc__ else None
-    G_commands[cmd_name] = (fun, doc, arg_list)
-    return fun
-  return Decorate
-
-
-def CmdArg(*tags, **kvargs):
-  """Allow decorator arg specification using real argparse syntax."""
-  return (tags, kvargs)
-
-
 @Command('create_hwids',
          CmdArg('-b', '--board', required=True),
          CmdArg('-c', '--comps', nargs='*', required=True),
@@ -750,7 +735,7 @@ def AssimilateProbeData(config, data):
   registry = data.comp_db.registry
   if not set(components) <= set(registry):
     logging.critical('data contains component classes that are not preset in '
-                     'the component_db, specifically %r' %
+                     'the component_db, specifically %r',
                      sorted(set(components) - set(registry)))
   reverse_registry = CalcCompDbProbeValMap(data.comp_db)
   component_match_dict = {}
@@ -1026,67 +1011,16 @@ def RenameComponents(config, data):
           hwid.component_map[comp_class] = new_name
 
 
-class HackedArgumentParser(ArgumentParser):
-  """Replace the usage and help strings to better format command names.
-
-  The default formatting is terrible, cramming all the command names
-  into one line with no spacing so that they are very hard to
-  copy-paste.  Instead format command names one-per-line.  For
-  simplicity make usage just return the help message text.
-
-  Reformatting is done using regexp-substitution because the argparse
-  formatting internals are explicitly declared to be private, and so
-  doing things this way should be no less fragile than trying to
-  replace the relevant argparse internals.
-  """
-
-  def format_sub_cmd_menu(self):
-    """Return str with aligned list of 'cmd-name : first-doc-line' strs."""
-    max_cmd_len = max(len(c) for c in G_commands)
-    def format_item(cmd_name):
-      doc = G_commands[cmd_name][1]
-      doc = '' if doc is None else ' : ' + doc.split('\n')[0]
-      return (max_cmd_len - len(cmd_name) + 2) * ' ' + cmd_name + doc
-    return '\n'.join(format_item(cmd_name) for cmd_name in sorted(G_commands))
-
-  def format_help(self):
-    s = ArgumentParser.format_help(self)
-    s = re.sub(r'(?ms)\].*{.*}.*\.\.\.', r'] <sub-command>', s)
-    s = re.sub(r'(?ms)(positional.*)(optional arguments:)',
-               r'sub-commands:\n%s\n\n\2' % self.format_sub_cmd_menu(), s)
-    return s
-
-  def format_usage(self):
-    return self.format_help() + '\n'
-
-
-def ParseCmdline():
-  """Return object containing all argparse-processed command line data."""
-  parser = HackedArgumentParser(
-      description='Visualize and/or modify HWID and related component data.')
-  parser.add_argument('-p', '--data_path', metavar='PATH',
-                      default=DEFAULT_HWID_DATA_PATH)
-  class VerbosityAction(Action):
-    def __call__(self, parser, namespace, values, option_string=None):
-      logging_level = {4: logging.DEBUG, 3: logging.INFO, 2: logging.WARNING,
-                       1: logging.ERROR, 0: logging.CRITICAL}[int(values)]
-      setattr(namespace, self.dest, logging_level)
-  parser.add_argument('-v', '--verbosity', choices='01234', default='2',
-                      action=VerbosityAction)
-  parser.add_argument('-l', '--log_file')
-  subparsers = parser.add_subparsers(dest='command_name')
-  for cmd_name, (fun, doc, arg_list) in G_commands.items():
-    subparser = subparsers.add_parser(cmd_name, description=doc)
-    subparser.set_defaults(command=fun)
-    for (tags, kvargs) in arg_list:
-      subparser.add_argument(*tags, **kvargs)
-  return parser.parse_args()
-
-
 def Main():
   """Run sub-command specified by the command line args."""
-  config = ParseCmdline()
-  SetupLogging(config.verbosity, config.log_file)
+  config = ParseCmdline(
+      'Visualize and/or modify HWID and related component data.',
+      CmdArg('-p', '--data_path', metavar='PATH',
+             default=DEFAULT_HWID_DATA_PATH),
+      CmdArg('-l', '--log', metavar='PATH',
+             help='Write logs to this file.'),
+      verbosity_cmd_arg)
+  SetupLogging(config.verbosity, config.log)
   data = ReadDatastore(config.data_path)
   try:
     config.command(config, data)

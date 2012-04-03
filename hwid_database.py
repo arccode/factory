@@ -5,15 +5,7 @@
 import inspect
 import yaml
 
-
-def YamlWrite(structured_data):
-  """Wrap yaml.dump to make calling convention consistent."""
-  return yaml.dump(structured_data, default_flow_style=False)
-
-
-def YamlRead(serialized_data):
-  """Wrap yaml.load to make calling convention consistent."""
-  return yaml.safe_load(serialized_data)
+from common import YamlWrite, YamlRead
 
 
 class InvalidDataError(ValueError):

@@ -8,6 +8,7 @@
 import logging
 import re
 import time
+import yaml
 
 from subprocess import Popen, PIPE
 
@@ -27,8 +28,7 @@ class Obj(object):
     return repr(self.__dict__)
 
 
-# TODO(tammo): Combine this with gft_common.ShellExecution.
-def RunShellCmd(cmd):
+def Shell(cmd):
   """Run cmd in a shell, return Obj containing stdout, stderr, and status.
 
   The cmd stdout and stderr output is debug-logged.
@@ -42,7 +42,8 @@ def RunShellCmd(cmd):
   logging.debug('running %s' % repr(cmd) +
                 (', stdout: %s' % repr(stdout.strip()) if stdout else '') +
                 (', stderr: %s' % repr(stderr.strip()) if stderr else ''))
-  return Obj(stdout=stdout, stderr=stderr, success=(not process.poll()))
+  status = process.poll()
+  return Obj(stdout=stdout, stderr=stderr, status=status, success=(status == 0))
 
 
 def CompactStr(data):
@@ -75,3 +76,38 @@ def SetupLogging(level=logging.WARNING, log_file_name=None):
       **({'filename': log_file_name} if log_file_name else {}))
   logging.Formatter.converter = time.gmtime
   logging.info(time.strftime('%Y.%m.%d %Z', time.gmtime()))
+
+
+def YamlWrite(structured_data):
+  """Wrap yaml.dump to make calling convention consistent."""
+  return yaml.dump(structured_data, default_flow_style=False)
+
+
+def YamlRead(serialized_data):
+  """Wrap yaml.load to make calling convention consistent."""
+  return yaml.safe_load(serialized_data)
+
+
+def ParseKeyValueData(pattern, data):
+  """Converts structured text into a {(key, value)} dict.
+
+  Args:
+    pattern: A regex pattern to decode key/value pairs
+    data: The text to be parsed.
+
+  Returns:
+    A { key: value, ... } dict.
+
+  Raises:
+    ValueError: When the input is invalid.
+  """
+  parsed_list = {}
+  for line in data.splitlines():
+    matched = re.match(pattern, line.strip())
+    if not matched:
+      raise ValueError('Invalid data: %s' % line)
+    (name, value) = (matched.group(1), matched.group(2))
+    if name in parsed_list:
+      raise ValueError('Duplicate key: %s' % name)
+    parsed_list[name] = value
+  return parsed_list

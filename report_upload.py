@@ -1,6 +1,4 @@
-#!/usr/bin/python
-#
-# Copyright (c) 2010 The Chromium OS Authors. All rights reserved.
+# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -9,6 +7,7 @@ gft_upload: Provides various protocols for uploading report files.
 """
 
 import ftplib
+import logging
 import os
 import re
 import sys
@@ -17,8 +16,7 @@ import urllib
 import urlparse
 import xmlrpclib
 
-import gft_common
-from gft_common import DebugMsg, ErrorDie, ErrorMsg, VerboseMsg, WarningMsg
+from common import Error, Shell
 
 
 # Constants
@@ -43,8 +41,8 @@ def RetryCommand(callback, message_prefix, interval):
     message = results.get('message', 'unknown')
     abort = results.get('abort', False)
     if (not interval) or abort:
-      ErrorDie('%s: %s' % (message_prefix, message))
-    ErrorMsg('%s: %s' % (message_prefix, message))
+      raise Error('%s: %s' % message_prefix, message)
+    logging.error('%s: %s', message_prefix, message)
     for i in range(interval, 0, -1):
       if i % 10 == 0:
         sys.stderr.write(" Retry in %d seconds...\n" % i)
@@ -60,30 +58,28 @@ def CustomUpload(source_path, custom_command):
     custom_command: A shell script command to invoke.
   """
   if not custom_command:
-    ErrorDie('CustomUpload: need a shell command for customized uploading.')
+    raise Error('CustomUpload: need a shell command for customized uploading.')
   cmd = '%s %s' % (custom_command, source_path)
-  DebugMsg('CustomUpload: custom: %s' % cmd)
+  logging.debug('CustomUpload: custom: %s', cmd)
   if os.system(cmd) != 0:
-    ErrorDie('CustomUpload: failed: %s' % cmd)
-  VerboseMsg('CustomUpload: successfully invoked command: %s.' % cmd)
+    raise Error('CustomUpload: failed: %s' % cmd)
+  logging.info('CustomUpload: successfully invoked command: %s.', cmd)
   return True
 
 
 def ShopFloorUpload(source_path, remote_spec,
                     retry_interval=DEFAULT_RETRY_INTERVAL):
   if '#' not in remote_spec:
-    ErrorDie('ShopFloorUpload: need a valid parameter in URL#SN format.')
+    raise Error('ShopFloorUpload: need a valid parameter in URL#SN format.')
   (server_url, _, serial_number) = remote_spec.partition('#')
-  DebugMsg("ShopFloorUpload: [%s].UploadReport(%s, %s)" %
-           (server_url, serial_number, source_path))
+  logging.debug("ShopFloorUpload: [%s].UploadReport(%s, %s)",
+                server_url, serial_number, source_path)
   instance = xmlrpclib.ServerProxy(server_url, allow_none=True, verbose=False)
   remote_name = os.path.basename(source_path)
   with open(source_path, 'rb') as source_handle:
     blob = xmlrpclib.Binary(source_handle.read())
 
   def ShopFloorCallback(result):
-    abort = False
-    message = None
     try:
       instance.UploadReport(serial_number, blob, remote_name)
       return True
@@ -96,7 +92,7 @@ def ShopFloorUpload(source_path, remote_spec,
       result['abort'] = False
 
   RetryCommand(ShopFloorCallback, 'ShopFloorUpload', interval=retry_interval)
-  VerboseMsg('ShopFloorUpload: successfully uploaded to: %s' % remote_spec)
+  logging.info('ShopFloorUpload: successfully uploaded to: %s', remote_spec)
   return True
 
 
@@ -109,37 +105,38 @@ def CurlCommand(curl_command, success_string=None, abort_string=None,
     success_string: String to be recognized as "uploaded successfully".
   """
   if not curl_command:
-    ErrorDie('CurlCommand: need parameters for curl.')
+    raise Error('CurlCommand: need parameters for curl.')
 
   cmd = 'curl -s -S %s' % curl_command
-  DebugMsg('CurlCommand: %s' % cmd)
+  logging.debug('CurlCommand: %s', cmd)
 
   # man curl(1) for EXIT CODES not related to temporary network failure.
   curl_abort_exit_codes = [1, 2, 3, 27, 37, 43, 45, 53, 54, 58, 59, 63]
 
   def CurlCallback(result):
-    (exit_code, stdout, stderr) = (
-        gft_common.ShellExecution(cmd, ignore_status=True))
+    cmd_result = Shell(cmd)
     abort = False
     message = None
-    if exit_code == 0:
-      if abort_string and stdout.find(abort_string) >= 0:
+    if cmd_result.success:
+      if abort_string and cmd_result.stdout.find(abort_string) >= 0:
         message = "Abort: Found abort pattern: %s" % abort_string
-      elif (not success_string) or (stdout.find(success_string) >= 0):
+      elif ((not success_string) or
+            (cmd_result.stdout.find(success_string) >= 0)):
         return True
       else:
         message = "Retry: No valid pattern (%s) in response." % success_string
-      DebugMsg("CurlCallback: original response: %s" %
-               ' '.join(stdout.splitlines()))
+      logging.debug("CurlCallback: original response: %s",
+                    ' '.join(cmd_result.stdout.splitlines()))
     else:
-      message = '#%d %s' % (exit_code, stderr if stderr else stdout)
-      if exit_code in curl_abort_exit_codes:
+      message = '#%d %s' % (cmd_result.status, cmd_result.stderr
+                            if cmd_result.stderr else cmd_result.stdout)
+      if cmd_result.status in curl_abort_exit_codes:
         abort = True
     result['abort'] = abort
     result['message'] = message
 
   RetryCommand(CurlCallback, 'CurlCommand', interval=retry_interval)
-  VerboseMsg('CurlCommand: successfully executed: %s' % cmd)
+  logging.info('CurlCommand: successfully executed: %s', cmd)
   return True
 
 
@@ -191,7 +188,7 @@ def FtpUpload(source_path, ftp_url, retry_interval=DEFAULT_RETRY_INTERVAL,
 
   # Check and specify default parameters
   if not host:
-    ErrorDie('FtpUpload: invalid ftp url: %s' % ftp_url)
+    raise Error('FtpUpload: invalid ftp url: %s' % ftp_url)
   if not port:
     port = ftplib.FTP_PORT
   if not userid:
@@ -207,14 +204,14 @@ def FtpUpload(source_path, ftp_url, retry_interval=DEFAULT_RETRY_INTERVAL,
 
   source_name = os.path.split(source_path)[1]
   dest_name = os.path.split(path)[1]
-  DebugMsg('source name: %s, dest_name: %s -> %s' % (source_name, path,
-                                                     dest_name))
+  logging.debug('source name: %s, dest_name: %s -> %s',
+                source_name, path, dest_name)
   if source_name and (not dest_name):
     path = os.path.join(path, source_name)
 
   ftp = ftplib.FTP()
   url = 'ftp://%s:%s@%s:%s/ %s' % (userid, passwd, host, port, path)
-  VerboseMsg('FtpUpload: target is %s' % url)
+  logging.info('FtpUpload: target is %s', url)
 
   def FtpCallback(result):
     try:
@@ -226,19 +223,19 @@ def FtpUpload(source_path, ftp_url, retry_interval=DEFAULT_RETRY_INTERVAL,
   RetryCommand(FtpCallback, 'FtpUpload', interval=retry_interval)
 
   # Ready for copying files
-  DebugMsg('FtpUpload: connected, uploading to %s...' % path)
+  logging.debug('FtpUpload: connected, uploading to %s...', path)
   ftp.login(user=userid, passwd=passwd)
   with open(source_path, 'rb') as fileobj:
     ftp.storbinary('STOR %s' % path, fileobj)
-  DebugMsg('FtpUpload: upload complete.')
+  logging.debug('FtpUpload: upload complete.')
   ftp.quit()
-  VerboseMsg('FtpUpload: successfully uploaded to %s' % ftp_url)
+  logging.info('FtpUpload: successfully uploaded to %s', ftp_url)
   return True
 
 
 def NoneUpload(source_path, **kargs):
   """ Dummy function for bypassing uploads """
-  WarningMsg('NoneUpload%s: skipped uploading %s' % (kargs, source_path))
+  logging.warning('NoneUpload%s: skipped uploading %s', kargs, source_path)
   return True
 
 
@@ -270,49 +267,5 @@ def Upload(path, method, **kargs):
   elif method == 'cpfe':
     return CpfeUpload(path, param, **kargs)
   else:
-    ErrorDie('Upload: unknown method: %s' % method)
+    raise Error('Upload: unknown method: %s' % method)
   return False
-
-
-#############################################################################
-# Console main entry
-@gft_common.GFTConsole
-def main():
-  gft_common.SetVerboseLevel(True)
-  # gft_common.SetDebugLevel(True)
-  if len(sys.argv) != 3:
-    print "Usage: %s upload_file_path upload_method" % sys.argv[0]
-    print """
-    Supported values for upload_method:
-
-    none
-        Do nothing.
-
-    ftp://userid:passwd@host:port/path
-        Upload to a FTP site using python ftplib (for backward compatible and
-        better connection status checking).
-
-    ftps://userid:passwd@host:port/path [curl_options]
-        Upload by FTP-SSL protocol using curl.
-
-    curl:ftp[s]://userid:passwd@host:port/path [curl_options]
-        Upload by FTP(s) protocol using curl, allowing customized curl
-        parameters like --ftp-create-dirs.
-
-    cpfe:cpfe_url [curl_options]
-        Upload to Google ChromeOS Partner Front End.
-
-    shopfloor:shopfloor_url#serial_number
-        Upload to ChromeOS factory shop floor XMLRPC interface (more info in
-        src/platform/factory-utils/factory_setup/shopfloor*)
-
-    custom:shell_command
-        Invoke a shell command to upload the file.
-    """
-    sys.exit(1)
-
-  if not Upload(sys.argv[1], sys.argv[2]):
-    ErrorDie('ftp_upload: FAILED.')
-
-if __name__ == '__main__':
-  main()
