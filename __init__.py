@@ -15,18 +15,29 @@ To log to the factory console, use:
 '''
 
 
+import getpass
 import logging
 import os
 import sys
 
 
+def in_chroot():
+    '''Returns True if currently in the chroot.'''
+    return 'CROS_WORKON_SRCROOT' in os.environ
+
+
 def get_log_root():
     '''Returns the root for logging and state.
 
-    This is usually /var/log but may be overridden by the
-    CROS_FACTORY_LOG_ROOT environment variable.
+    This is usually /var/log, or /tmp/factory.$USER if in the chroot, but may be
+    overridden by the CROS_FACTORY_LOG_ROOT environment variable.
     '''
-    return os.environ.get('CROS_FACTORY_LOG_ROOT', '/var/log')
+    ret = os.environ.get('CROS_FACTORY_LOG_ROOT')
+    if ret:
+        return ret
+    if in_chroot():
+        return '/tmp/factory.%s' % getpass.getuser()
+    return '/var/log'
 
 
 CONSOLE_LOG_PATH = os.path.join(get_log_root(), 'console.log')

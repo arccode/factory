@@ -45,6 +45,22 @@ DEFAULT_TEST_LIST_PATH = os.path.join(
         CLIENT_PATH , 'site_tests', 'suite_Factory', 'test_list')
 HWID_CFG_PATH = '/usr/local/share/chromeos-hwid/cfg'
 
+GOOFY_IN_CHROOT_WARNING = '\n' + ('*' * 70) + '''
+You are running Goofy inside the chroot.  Autotests are not supported.
+
+To use Goofy in the chroot, first install an Xvnc server:
+
+    sudo apt-get install tightvncserver
+
+...and then start a VNC X server outside the chroot:
+
+    vncserver :10 &
+    vncviewer :10
+
+...and run Goofy as follows:
+
+    env --unset=XAUTHORITY DISPLAY=localhost:10 python goofy.py
+''' + ('*' * 70)
 
 def get_hwid_cfg():
     '''
@@ -206,6 +222,13 @@ class TestInvocation(object):
         @return: tuple of status (TestState.PASSED or TestState.FAILED) and
             error message, if any
         '''
+        if self.goofy.options.no_autotest:
+            logging.warn('In --noautotest mode; not running %s' %
+                         self.test.autotest_name)
+
+            time.sleep(2)
+            return TestState.PASSED, 'Passed'
+
         status = TestState.FAILED
         error_msg = 'Unknown'
 
@@ -509,6 +532,12 @@ class Goofy(object):
             self.tests_to_run.popleft()
 
             if isinstance(test, factory.ShutdownStep):
+                if factory.in_chroot():
+                    logging.warn('In chroot: not shutting down')
+                    test.update_state(status=TestState.PASSED,
+                                      increment_count=1)
+                    continue
+
                 test.update_state(status=TestState.ACTIVE, increment_count=1,
                                   error_msg='', shutdown_count=0)
                 # Save pending test list in the state server
@@ -602,6 +631,9 @@ class Goofy(object):
         Args:
             operation: 'reboot' or 'halt'.
         '''
+        if factory.in_chroot():
+            assert False, 'Shutdown not supported in chroot'
+
         assert operation in ['reboot', 'halt']
         logging.info('Shutting down: %s', operation)
         subprocess.check_call('sync')
@@ -620,9 +652,27 @@ class Goofy(object):
         parser.add_option('--print_test_list', dest='print_test_list',
                           metavar='FILE',
                           help='Read and print test list FILE, and exit')
+        parser.add_option('--restart', dest='restart',
+                          action='store_true',
+                          help='Clear all test state')
+        parser.add_option('--noautotest', dest='no_autotest',
+                          action='store_true',
+                          help=("Don't actually run autotests "
+                                "(defaults to true in chroot)"),
+                          default=factory.in_chroot())
         (self.options, self.args) = parser.parse_args()
 
         factory.init_logging('goofy', verbose=self.options.verbose)
+
+        if factory.in_chroot() and (
+            os.environ.get('DISPLAY') in [None, '', ':0', ':0.0']):
+            # That's not going to work!  Tell the user how to run
+            # this way.
+            logging.warn(GOOFY_IN_CHROOT_WARNING)
+            time.sleep(1)
+
+        if self.options.restart:
+            state.clear_state()
 
         if self.options.print_test_list:
             print (factory.read_test_list(self.options.print_test_list).
@@ -652,16 +702,17 @@ class Goofy(object):
         self.test_list.state_change_callback = state_change_callback
 
         try:
-            tests_after_reboot = self.state_instance.get_shared_data(
-                'tests_after_reboot')
+            tests_after_shutdown = self.state_instance.get_shared_data(
+                'tests_after_shutdown')
         except KeyError:
-            tests_after_reboot = None
+            tests_after_shutdown = None
 
-        if tests_after_reboot is not None:
-            logging.info('Resuming tests after reboot: %s', tests_after_reboot)
-            self.state_instance.set_shared_data('tests_after_reboot', None)
+        if tests_after_shutdown is not None:
+            logging.info('Resuming tests after shutdown: %s',
+                         tests_after_shutdown)
+            self.state_instance.set_shared_data('tests_after_shutdown', None)
             self.tests_to_run.extend(
-                self.test_list.lookup_path(t) for t in tests_after_reboot)
+                self.test_list.lookup_path(t) for t in tests_after_shutdown)
             self.run_next_test()
         else:
             self.run_tests(self.test_list, untested_only=True)

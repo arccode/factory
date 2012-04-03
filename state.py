@@ -10,7 +10,13 @@ can be used to handle factory test states (status) and shared persistent data.
 '''
 
 
-import logging, os, shelve, SimpleXMLRPCServer, sys, threading
+import logging
+import os
+import shelve
+import shutil
+import SimpleXMLRPCServer
+import sys
+import threading
 import xmlrpclib
 
 import factory_common
@@ -18,11 +24,12 @@ from autotest_lib.client.cros import factory
 from autotest_lib.client.cros.factory import TestState
 
 
+FACTORY_STATE_VERSION = 2
 DEFAULT_FACTORY_STATE_PORT = 0x0FAC
 DEFAULT_FACTORY_STATE_ADDRESS = 'localhost'
 DEFAULT_FACTORY_STATE_BIND_ADDRESS = 'localhost'
-DEFAULT_FACTORY_STATE_FILE = os.path.join(
-    factory.get_log_root(), 'factory_state')
+DEFAULT_FACTORY_STATE_FILE_PATH = os.path.join(
+    factory.get_log_root(), 'factory_state.v%d' % FACTORY_STATE_VERSION)
 
 
 def _synchronized(f):
@@ -33,6 +40,18 @@ def _synchronized(f):
         with self._lock:  # pylint: disable=W0212
             return f(self, *args, **kw)
     return wrapped
+
+
+def clear_state(state_file_path=None):
+    '''Clears test state (removes the state file path).
+
+    Args:
+        state_file_path: Path to state; uses the default path if None.
+    '''
+    state_file_path = state_file_path or DEFAULT_FACTORY_STATE_FILE_PATH
+    logging.warn('Clearing state file path %s' % state_file_path)
+    if os.path.exists(state_file_path):
+        shutil.rmtree(state_file_path)
 
 
 class FactoryState(object):
@@ -54,7 +73,6 @@ class FactoryState(object):
 
     See help(FactoryState.[methodname]) for more information.
     '''
-    VERSION = 2
 
     def __init__(self, state_file_path=None):
         '''
@@ -63,9 +81,7 @@ class FactoryState(object):
         Parameters:
             state_file_path:    External file to store the state information.
         '''
-        if not state_file_path:
-            state_file_path = '%s.v%s' % (DEFAULT_FACTORY_STATE_FILE,
-                                          self.VERSION)
+        state_file_path = state_file_path or DEFAULT_FACTORY_STATE_FILE_PATH
         if not os.path.exists(state_file_path):
             os.makedirs(state_file_path)
         self._tests_shelf = shelve.open(state_file_path + '/tests')

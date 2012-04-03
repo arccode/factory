@@ -1091,7 +1091,8 @@ def main(test_list_path):
                         test_widget_allocation.height)
     factory.set_shared_data('test_widget_size', test_widget_size)
 
-    dummy_console = Console(console_box.get_allocation())
+    if not factory.in_chroot():
+        dummy_console = Console(console_box.get_allocation())
 
     event_client.post_event(Event(Event.Type.UI_READY))
 
