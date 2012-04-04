@@ -53,6 +53,30 @@ class FactoryTest(unittest.TestCase):
 
         self.assertEqual([], failures)
 
+    def test_options(self):
+        base_test_list = 'TEST_LIST = []\n'
+
+        # This is a valid option.
+        factory.read_test_list(
+            text=base_test_list +
+            'options.auto_run_on_start = True')
+
+        try:
+            factory.read_test_list(
+                text=base_test_list + 'options.auto_run_on_start = 3')
+            self.fail('Expected exception')
+        except factory.TestListError as e:
+            self.assertTrue(
+                'Option auto_run_on_start has unexpected type' in e[0], e)
+
+        try:
+            factory.read_test_list(
+                text=base_test_list + 'options.fly_me_to_the_moon = 3')
+            self.fail('Expected exception')
+        except factory.TestListError as e:
+            # Sorry, swinging among the stars is currently unsupported.
+            self.assertTrue(
+                'Unknown option fly_me_to_the_moon' in e[0], e)
 
 if __name__ == "__main__":
     factory.init_logging('factory_unittest')

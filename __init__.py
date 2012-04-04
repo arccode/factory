@@ -21,6 +21,10 @@ import os
 import sys
 
 
+class TestListError(Exception):
+    pass
+
+
 def in_chroot():
     '''Returns True if currently in the chroot.'''
     return 'CROS_WORKON_SRCROOT' in os.environ
@@ -155,19 +159,31 @@ def del_shared_data(key):
     return get_state_instance().del_shared_data(key)
 
 
-def read_test_list(path, state_instance=None):
+def read_test_list(path=None, state_instance=None, text=None):
+    if len([x for x in [path, text] if x]) != 1:
+        raise TestListError('Exactly one of path and text must be set')
+
     test_list_locals = {}
     # Import test classes into the evaluation namespace
     for (k, v) in dict(globals()).iteritems():
         if type(v) == type and issubclass(v, FactoryTest):
             test_list_locals[k] = v
 
-    execfile(path, {}, test_list_locals)
+    options = Options()
+    test_list_locals['options'] = options
+
+    if path:
+        execfile(path, {}, test_list_locals)
+    else:
+        exec text in {}, test_list_locals
     assert 'TEST_LIST' in test_list_locals, (
-        'Test list %s does not define TEST_LIST' % path)
+        'Test list %s does not define TEST_LIST' % (path or '<text>'))
+
+    options.check_valid()
 
     return FactoryTestList(test_list_locals['TEST_LIST'],
-                           state_instance or get_state_instance())
+                           state_instance or get_state_instance(),
+                           options)
 
 
 _inited_logging = False
@@ -197,6 +213,37 @@ def init_logging(prefix=None, verbose=False):
         datefmt='%Y-%m-%d %H:%M:%S')
 
     logging.debug('Initialized logging')
+
+
+class Options(object):
+    '''Test list options.
+
+    These may be set by assigning to the options variable in a test list (e.g.,
+    'options.auto_run_on_start = False').
+    '''
+    # Perform an implicit auto-run when the test driver starts up?
+    auto_run_on_start = True
+
+    # Perform an implicit auto-run when the user switches to any test?
+    auto_run_on_keypress = False
+
+    def check_valid(self):
+        '''Throws a TestListError if there are any invalid options.'''
+        # Make sure no errant options, or options with weird types,
+        # were set.
+        default_options = Options()
+        for key in sorted(self.__dict__):
+            if key.startswith('_'):
+                continue
+            if not hasattr(default_options, key):
+                raise TestListError('Unknown option %s' % key)
+
+            value = getattr(self, key)
+            default_value = getattr(default_options, key)
+            if type(value) != type(default_value):
+                raise TestListError(
+                    'Option %s has unexpected type %s (should be %s)' % (
+                        key, type(value), type(default_value)))
 
 
 class TestState(object):
@@ -502,13 +549,14 @@ class FactoryTestList(FactoryTest):
     Properties:
         path_map: A map from test paths to FactoryTest objects.
     '''
-    def __init__(self, subtests, state_instance):
+    def __init__(self, subtests, state_instance, options):
         super(FactoryTestList, self).__init__(_root=True, subtests=subtests)
         self.state_instance = state_instance
         self.subtests = subtests
         self.path_map = {}
         self.root = self
         self.state_change_callback = None
+        self.options = options
         self._init('', self.path_map)
 
     def get_all_tests(self):

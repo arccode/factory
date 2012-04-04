@@ -870,22 +870,29 @@ class Goofy(object):
                 self.test_list.lookup_path(t) for t in tests_after_shutdown)
             self.run_queue.put(self.run_next_test)
         else:
-            self.run_queue.put(
-                lambda: self.run_tests(self.test_list, untested_only=True))
+            if self.test_list.options.auto_run_on_start:
+                self.run_queue.put(
+                    lambda: self.run_tests(self.test_list, untested_only=True))
 
     def run(self):
         '''Runs Goofy.'''
         # Process events forever.
-        while self.run_once():
+        while self.run_once(True):
             pass
 
-    def run_once(self):
+    def run_once(self, block=False):
         '''Runs all items pending in the event loop.
+
+        Args:
+            block: If true, block until at least one event is processed.
 
         Returns:
             True to keep going or False to shut down.
         '''
-        events = [self.run_queue.get()]  # Get at least one event
+        events = []
+        if block:
+            # Get at least one event
+            events.append(self.run_queue.get())
         while True:
             try:
                 events.append(self.run_queue.get_nowait())
@@ -910,15 +917,34 @@ class Goofy(object):
                 self.run_queue.task_done()
         return True
 
-    def run_tests_with_status(self, *statuses_to_run):
+    def run_tests_with_status(self, statuses_to_run, starting_at=None):
         '''Runs all top-level tests with a particular status.
 
         All active tests, plus any tests to re-run, are reset.
+
+        Args:
+            starting_at: If provided, only auto-runs tests beginning with
+                this test.
         '''
+        if starting_at:
+            # Make sure they passed a test, not a string.
+            assert isinstance(starting_at, factory.FactoryTest)
+
         tests_to_reset = []
         tests_to_run = []
 
+        found_starting_at = False
+
         for test in self.test_list.get_top_level_tests():
+            if starting_at:
+                if test == starting_at:
+                    # We've found starting_at; do auto-run on all
+                    # subsequent tests.
+                    found_starting_at = True
+                if not found_starting_at:
+                    # Don't start this guy yet
+                    continue
+
             status = test.get_state().status
             if status == TestState.ACTIVE or status in statuses_to_run:
                 # Reset the test (later; we will need to abort
@@ -944,13 +970,19 @@ class Goofy(object):
             test.update_state(status=TestState.UNTESTED)
         self.run_tests(self.test_list)
 
-    def auto_run(self):
-        '''"Auto-runs" tests that have not been run yet.'''
-        self.run_tests_with_status(TestState.UNTESTED, TestState.ACTIVE)
+    def auto_run(self, starting_at=None):
+        '''"Auto-runs" tests that have not been run yet.
+
+        Args:
+            starting_at: If provide, only auto-runs tests beginning with
+                this test.
+        '''
+        self.run_tests_with_status([TestState.UNTESTED, TestState.ACTIVE],
+                                   starting_at=starting_at)
 
     def re_run_failed(self):
         '''Re-runs failed tests.'''
-        self.run_tests_with_status(TestState.FAILED)
+        self.run_tests_with_status([TestState.FAILED])
 
     def show_review_information(self):
         '''Event handler for showing review information screen.
@@ -968,21 +1000,27 @@ class Goofy(object):
         @param event: The SWITCH_TEST event.
         '''
         test = self.test_list.lookup_path(event.path)
-        if test:
-            invoc = self.invocations.get(test)
-            if invoc and test.backgroundable:
-                # Already running: just bring to the front if it
-                # has a UI.
-                logging.info('Setting visible test to %s', test.path)
-                self.event_client.post_event(
-                    Event(Event.Type.SET_VISIBLE_TEST, path=test.path))
-                return
-            self.abort_active_tests()
-            for t in test.walk():
-                t.update_state(status=TestState.UNTESTED)
-            self.run_tests(test)
-        else:
+        if not test:
             logging.error('Unknown test %r', event.key)
+            return
+
+        invoc = self.invocations.get(test)
+        if invoc and test.backgroundable:
+            # Already running: just bring to the front if it
+            # has a UI.
+            logging.info('Setting visible test to %s', test.path)
+            self.event_client.post_event(
+                Event(Event.Type.SET_VISIBLE_TEST, path=test.path))
+            return
+
+        self.abort_active_tests()
+        for t in test.walk():
+            t.update_state(status=TestState.UNTESTED)
+
+        if self.test_list.options.auto_run_on_keypress:
+            self.auto_run(starting_at=test)
+        else:
+            self.run_tests(test)
 
     def wait(self):
         '''Waits for all pending invocations.
