@@ -30,7 +30,7 @@ from collections import deque
 from optparse import OptionParser
 
 import factory_common
-from autotest_lib.client.bin import prespawner
+from autotest_lib.client.bin.prespawner import Prespawner
 from autotest_lib.client.cros import factory
 from autotest_lib.client.cros.factory import state
 from autotest_lib.client.cros.factory import TestState
@@ -172,7 +172,14 @@ def are_shift_keys_depressed():
     KEY_RIGHTSHIFT = 54
 
     for kbd in glob.glob("/dev/input/by-path/*kbd"):
-        f = os.open(kbd, os.O_RDONLY)
+        try:
+            f = os.open(kbd, os.O_RDONLY)
+        except OSError as e:
+            if factory.in_chroot():
+                # That's OK; we're just not root
+                continue
+            else:
+                raise
         buf = array.array('b', [0] * 96)
 
         # EVIOCGKEY (from #include <linux/input.h>)
@@ -240,7 +247,7 @@ class DUTEnvironment(Environment):
         assert False, 'Never reached (should %s)' % operation
 
     def spawn_autotest(self, name, args, env_additions, result_file):
-        return prespawner.spawn(args, env_additions)
+        return self.goofy.prespawner.spawn(args, env_additions)
 
 
 class ChrootEnvironment(Environment):
@@ -276,7 +283,8 @@ class TestInvocation(object):
         '''
         self.goofy = goofy
         self.test = test
-        self.thread = threading.Thread(target=self._run)
+        self.thread = threading.Thread(target=self._run,
+                                       name='TestInvocation-%s' % test.path)
         self.on_completion = on_completion
 
         self._lock = threading.Lock()
@@ -472,6 +480,7 @@ class Goofy(object):
         self.event_server = None
         self.event_server_thread = None
         self.event_client = None
+        self.prespawner = None
         self.ui_process = None
         self.run_queue = Queue.Queue()
         self.invocations = {}
@@ -514,21 +523,28 @@ class Goofy(object):
             self.event_server_thread.join()
             self.event_server.server_close()
             self.event_server_thread = None
-        prespawner.stop()
+        if self.prespawner:
+            logging.info('Stopping prespawner')
+            self.prespawner.stop()
+            self.prespawner = None
+        if self.event_client:
+            self.event_client.close()
         self.check_exceptions()
 
     def start_state_server(self):
         self.state_instance, self.state_server = state.create_server()
         logging.info('Starting state server')
         self.state_server_thread = threading.Thread(
-            target=self.state_server.serve_forever)
+            target=self.state_server.serve_forever,
+            name='StateServer')
         self.state_server_thread.start()
 
     def start_event_server(self):
         self.event_server = EventServer()
         logging.info('Starting factory event server')
         self.event_server_thread = threading.Thread(
-            target=self.event_server.serve_forever)  # pylint: disable=E1101
+            target=self.event_server.serve_forever,
+            name='EventServer')  # pylint: disable=E1101
         self.event_server_thread.start()
 
         self.event_client = EventClient(
@@ -832,7 +848,7 @@ class Goofy(object):
         self.start_event_server()
         if self.options.ui:
             self.start_ui()
-        prespawner.start()
+        self.prespawner = Prespawner()
 
         def state_change_callback(test, state):
             self.event_client.post_event(
@@ -887,6 +903,8 @@ class Goofy(object):
             except Exception as e:  # pylint: disable=W0703
                 logging.error('Error in event loop: %s', e)
                 traceback.print_exc(sys.stderr)
+                self.record_exception(traceback.format_exception_only(
+                        *sys.exc_info()[:2]))
                 # But keep going
             finally:
                 self.run_queue.task_done()

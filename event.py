@@ -64,6 +64,16 @@ class Event(object):
             excluded_keys=['type', 'timestamp'])
 
 
+_unique_id_lock = threading.Lock()
+_unique_id = 1
+def get_unique_id():
+    global _unique_id
+    with _unique_id_lock:
+        ret = _unique_id
+        _unique_id += 1
+    return ret
+
+
 class EventServerRequestHandler(SocketServer.BaseRequestHandler):
     '''
     Request handler for the event server.
@@ -73,6 +83,8 @@ class EventServerRequestHandler(SocketServer.BaseRequestHandler):
     # pylint: disable=W0201,W0212
     def setup(self):
         SocketServer.BaseRequestHandler.setup(self)
+        threading.current_thread().name = (
+            'EventServerRequestHandler-%d' % get_unique_id())
         # A thread to be used to send messages that are posted to the queue.
         self.send_thread = None
         # A queue containing messages.
@@ -85,7 +97,9 @@ class EventServerRequestHandler(SocketServer.BaseRequestHandler):
         try:
             self.server._subscribe(self.queue)
 
-            self.send_thread = threading.Thread(target=self._run_send_thread)
+            self.send_thread = threading.Thread(
+                target=self._run_send_thread,
+                name='EventServerSendThread-%d' % get_unique_id())
             self.send_thread.daemon = True
             self.send_thread.start()
 
@@ -127,6 +141,7 @@ class EventServer(SocketServer.ThreadingUnixStreamServer):
     '''
     allow_reuse_address = True
     socket_type = socket.SOCK_SEQPACKET
+    daemon_threads = True
 
     def __init__(self, path=None):
         '''
@@ -243,12 +258,28 @@ class EventClient(object):
                 self.callbacks.add(callback)
 
         if should_start_thread:
-            self.recv_thread = threading.Thread(target=self._run_recv_thread)
+            self.recv_thread = threading.Thread(
+                target=self._run_recv_thread,
+                name='EventServerRecvThread-%d' % get_unique_id())
             self.recv_thread.daemon = True
             self.recv_thread.start()
+        else:
+            self.recv_thread = None
+
+    def close(self):
+        '''Closes the client, waiting for any threads to terminate.'''
+        if not self.socket:
+            return
+
+        # Shutdown the socket to cause recv_thread to terminate.
+        self.socket.shutdown(socket.SHUT_WR)
+        self.socket.close()
+        self.socket = None
+        if self.recv_thread:
+            self.recv_thread.join()
 
     def __del__(self):
-        self.socket.close()
+        self.close()
 
     def post_event(self, event):
         '''
