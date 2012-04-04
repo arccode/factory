@@ -10,10 +10,14 @@
 The main factory flow that runs the factory test and finalizes a device.
 '''
 
+import array
+import fcntl
+import glob
 import logging
 import os
 import pickle
 import pipes
+import Queue
 import re
 import signal
 import subprocess
@@ -24,7 +28,6 @@ import time
 import traceback
 from collections import deque
 from optparse import OptionParser
-from Queue import Queue
 
 import factory_common
 from autotest_lib.client.bin import prespawner
@@ -60,6 +63,7 @@ To use Goofy in the chroot, first install an Xvnc server:
 
     env --unset=XAUTHORITY DISPLAY=localhost:10 python goofy.py
 ''' + ('*' * 70)
+suppress_chroot_warning = False
 
 def get_hwid_cfg():
     '''
@@ -97,6 +101,9 @@ def find_test_list():
         return test_list
     logging.info('ERROR: Cannot find any test list.')
 
+# TODO(jsalz): Move utility functions (e.g., is_process_alive,
+# kill_process_tree, are_shift_keys_depressed) into a separate
+# utilities module.
 
 def is_process_alive(pid):
     '''
@@ -158,6 +165,103 @@ def kill_process_tree(process, caption):
     logging.warn('Failed to stop %s process. Ignoring.', caption)
 
 
+def are_shift_keys_depressed():
+    '''Returns True if both shift keys are depressed.'''
+    # From #include <linux/input.h>
+    KEY_LEFTSHIFT = 42
+    KEY_RIGHTSHIFT = 54
+
+    for kbd in glob.glob("/dev/input/by-path/*kbd"):
+        f = os.open(kbd, os.O_RDONLY)
+        buf = array.array('b', [0] * 96)
+
+        # EVIOCGKEY (from #include <linux/input.h>)
+        fcntl.ioctl(f, 0x80604518, buf)
+
+        def is_pressed(key):
+            return (buf[key / 8] & (1 << (key % 8))) != 0
+
+        if is_pressed(KEY_LEFTSHIFT) and is_pressed(KEY_RIGHTSHIFT):
+            return True
+
+    return False
+
+
+class Environment(object):
+    '''
+    Abstract base class for external test operations, e.g., run an autotest,
+    shutdown, or reboot.
+
+    The Environment is assumed not to be thread-safe: callers must grab the lock
+    before calling any methods.  This is primarily necessary because we mock out
+    this Environment with mox, and unfortunately mox is not thread-safe.
+    TODO(jsalz): Try to write a thread-safe wrapper for mox.
+    '''
+    lock = threading.Lock()
+
+    def shutdown(self, operation):
+        '''
+        Shuts the machine down (from a ShutdownStep).
+
+        Args:
+            operation: 'reboot' or 'halt'.
+
+        Returns:
+            True if Goofy should gracefully exit, or False if Goofy
+                should just consider the shutdown to have suceeded (e.g.,
+                in the chroot).
+        '''
+        raise NotImplementedError()
+
+
+    def spawn_autotest(self, name, args, env_additions, result_file):
+        '''
+        Spawns a process to run an autotest.
+
+        Args:
+            name: Name of the autotest to spawn.
+            args: Command-line arguments.
+            env_additions: Additions to the environment.
+            result_file: Expected location of the result file.
+        '''
+        raise NotImplementedError()
+
+
+class DUTEnvironment(Environment):
+    '''
+    A real environment on a device under test.
+    '''
+    def shutdown(self, operation):
+        assert operation in ['reboot', 'halt']
+        logging.info('Shutting down: %s', operation)
+        subprocess.check_call('sync')
+        subprocess.check_call(operation)
+        time.sleep(30)
+        assert False, 'Never reached (should %s)' % operation
+
+    def spawn_autotest(self, name, args, env_additions, result_file):
+        return prespawner.spawn(args, env_additions)
+
+
+class ChrootEnvironment(Environment):
+    '''
+    A chroot environment that doesn't actually shutdown or run autotests.
+    '''
+    def shutdown(self, operation):
+        assert operation in ['reboot', 'halt']
+        logging.warn('In chroot: skipping %s', operation)
+        return False
+
+    def spawn_autotest(self, name, args, env_additions, result_file):
+        logging.warn('In chroot: skipping autotest %s', name)
+        # Just mark it as passed
+        with open(result_file, 'w') as out:
+            pickle.dump((TestState.PASSED, 'Passed'), out)
+        # Start a process that will return with a true exit status in
+        # 2 seconds (just like a happy autotest).
+        return subprocess.Popen(['sleep', '2'])
+
+
 class TestInvocation(object):
     '''
     State for an active test.
@@ -180,6 +284,10 @@ class TestInvocation(object):
         self._aborted = False
         self._completed = False
         self._process = None
+
+    def __repr__(self):
+        return 'TestInvocation(_aborted=%s, _completed=%s)' % (
+            self._aborted, self._completed)
 
     def start(self):
         '''Starts the test thread.'''
@@ -221,13 +329,6 @@ class TestInvocation(object):
         @return: tuple of status (TestState.PASSED or TestState.FAILED) and
             error message, if any
         '''
-        if self.goofy.options.no_autotest:
-            logging.warn('In --noautotest mode; not running %s' %
-                         self.test.autotest_name)
-
-            time.sleep(2)
-            return TestState.PASSED, 'Passed'
-
         status = TestState.FAILED
         error_msg = 'Unknown'
 
@@ -269,8 +370,10 @@ class TestInvocation(object):
                     [pipes.quote(arg) for arg in args]))
 
             with self._lock:
-                self._process = prespawner.spawn(
-                    args, {'CROS_FACTORY_TEST_PATH': test.path})
+                with self.goofy.env.lock:
+                    self._process = self.goofy.env.spawn_autotest(
+                        test.autotest_name, args,
+                        {'CROS_FACTORY_TEST_PATH': test.path}, result_file)
 
             returncode = self._process.wait()
             with self._lock:
@@ -297,6 +400,10 @@ class TestInvocation(object):
                 error_msg = ''
         except Exception:  # pylint: disable=W0703
             traceback.print_exc(sys.stderr)
+            # Make sure Goofy reports the exception upon destruction
+            # (e.g., for testing)
+            self.goofy.record_exception(traceback.format_exception_only(
+                    *sys.exc_info()[:2]))
         finally:
             factory.console.info('Test %s: %s' % (test.path, status))
             return status, error_msg  # pylint: disable=W0150
@@ -312,16 +419,20 @@ class TestInvocation(object):
         test_tag = '%s_%s' % (self.test.path, count)
         dargs = dict(self.test.dargs)
         dargs.update({'tag': test_tag,
-                      'test_list_path': self.goofy.test_list_path})
+                      'test_list_path': self.goofy.options.test_list})
 
         status, error_msg = self._invoke_autotest(self.test, dargs)
         self.test.update_state(status=status, error_msg=error_msg,
                                visible=False)
         with self._lock:
             self._completed = True
-        self.goofy.run_queue.put(self.goofy.reap_completed_tests)
-        self.goofy.run_queue.put(self.on_completion)
 
+        self.goofy.run_queue.put(self.goofy.reap_completed_tests)
+        if self.on_completion:
+            self.goofy.run_queue.put(self.on_completion)
+
+
+_inited_logging = False
 
 class Goofy(object):
     '''
@@ -348,11 +459,11 @@ class Goofy(object):
             test(s) complete.
         options: Command-line options.
         args: Command-line args.
-        test_list_path: The path to the test list.
         test_list: The test list.
         event_handlers: Map of Event.Type to the method used to handle that
             event.  If the method has an 'event' argument, the event is passed
             to the handler.
+        exceptions: Exceptions encountered in invocation threads.
     '''
     def __init__(self):
         self.state_instance = None
@@ -362,14 +473,13 @@ class Goofy(object):
         self.event_server_thread = None
         self.event_client = None
         self.ui_process = None
-        self.run_queue = Queue()
+        self.run_queue = Queue.Queue()
         self.invocations = {}
         self.tests_to_run = deque()
         self.visible_test = None
 
         self.options = None
         self.args = None
-        self.test_list_path = None
         self.test_list = None
 
         self.event_handlers = {
@@ -386,18 +496,26 @@ class Goofy(object):
                 lambda event: self.show_review_information(),
         }
 
-    def __del__(self):
+        self.exceptions = []
+
+    def destroy(self):
         if self.ui_process:
             kill_process_tree(self.ui_process, 'ui')
+            self.ui_process = None
         if self.state_server_thread:
             logging.info('Stopping state server')
             self.state_server.shutdown()
             self.state_server_thread.join()
+            self.state_server.server_close()
+            self.state_server_thread = None
         if self.event_server_thread:
             logging.info('Stopping event server')
             self.event_server.shutdown()  # pylint: disable=E1101
             self.event_server_thread.join()
+            self.event_server.server_close()
+            self.event_server_thread = None
         prespawner.stop()
+        self.check_exceptions()
 
     def start_state_server(self):
         self.state_instance, self.state_server = state.create_server()
@@ -417,7 +535,7 @@ class Goofy(object):
             callback=self.handle_event, event_loop=self.run_queue)
 
     def start_ui(self):
-        ui_proc_args = [FACTORY_UI_PATH, self.test_list_path]
+        ui_proc_args = [FACTORY_UI_PATH, self.options.test_list]
         if self.options.verbose:
             ui_proc_args.append('-v')
         logging.info('Starting ui %s', ui_proc_args)
@@ -451,12 +569,18 @@ class Goofy(object):
             # Good!
             test.update_state(status=TestState.PASSED, error_msg='')
         elif state.shutdown_count > test.iterations:
-            # Shutdowned too many times
+            # Shut down too many times
             test.update_state(status=TestState.FAILED,
                               error_msg='Too many shutdowns')
+        elif are_shift_keys_depressed():
+            logging.info('Shift keys are depressed; cancelling restarts')
+            # Abort shutdown
+            test.update_state(
+                status=TestState.FAILED,
+                error_msg='Shutdown aborted with double shift keys')
         else:
             # Need to shutdown again
-            self.shutdown('reboot')
+            self.env.shutdown('reboot')
 
     def init_states(self):
         '''
@@ -535,12 +659,6 @@ class Goofy(object):
             self.tests_to_run.popleft()
 
             if isinstance(test, factory.ShutdownStep):
-                if factory.in_chroot():
-                    logging.warn('In chroot: not shutting down')
-                    test.update_state(status=TestState.PASSED,
-                                      increment_count=1)
-                    continue
-
                 test.update_state(status=TestState.ACTIVE, increment_count=1,
                                   error_msg='', shutdown_count=0)
                 # Save pending test list in the state server
@@ -548,7 +666,18 @@ class Goofy(object):
                     'tests_after_shutdown',
                     [t.path for t in self.tests_to_run])
 
-                self.shutdown(test.operation)
+                with self.env.lock:
+                    shutdown_result = self.env.shutdown(test.operation)
+                if shutdown_result:
+                    # That's all, folks!
+                    self.run_queue.put(None)
+                    return
+                else:
+                    # Just pass (e.g., in the chroot).
+                    test.update_state(status=TestState.PASSED)
+                    self.state_instance.set_shared_data(
+                        'tests_after_shutdown', None)
+                    continue
 
             invoc = TestInvocation(self, test, on_completion=self.run_next_test)
             self.invocations[test] = invoc
@@ -627,27 +756,19 @@ class Goofy(object):
     def abort_active_tests(self):
         self.kill_active_tests(True)
 
-    def shutdown(self, operation):
-        '''
-        Shuts the machine (from a ShutdownStep).
+    def main(self):
+        self.init()
+        self.run()
+
+    def init(self, args=None, env=None):
+        '''Initializes Goofy.
 
         Args:
-            operation: 'reboot' or 'halt'.
+            args: A list of command-line arguments.  Uses sys.argv if
+                args is None.
+            env: An Environment instance to use (or None to choose
+                ChrootEnvironment or DUTEnvironment as appropriate).
         '''
-        if factory.in_chroot():
-            assert False, 'Shutdown not supported in chroot'
-
-        assert operation in ['reboot', 'halt']
-        logging.info('Shutting down: %s', operation)
-        subprocess.check_call('sync')
-        subprocess.check_call(operation)
-        time.sleep(30)
-        assert False, 'Never reached (should %s)' % operation
-
-    def reboot(self):
-        self.shutdown('reboot')
-
-    def main(self):
         parser = OptionParser()
         parser.add_option('-v', '--verbose', dest='verbose',
                           action='store_true',
@@ -658,21 +779,35 @@ class Goofy(object):
         parser.add_option('--restart', dest='restart',
                           action='store_true',
                           help='Clear all test state')
-        parser.add_option('--noautotest', dest='no_autotest',
-                          action='store_true',
-                          help=("Don't actually run autotests "
-                                "(defaults to true in chroot)"),
-                          default=factory.in_chroot())
-        (self.options, self.args) = parser.parse_args()
+        parser.add_option('--noui', dest='ui',
+                          action='store_false', default=True,
+                          help='Disable the UI')
+        parser.add_option('--test_list', dest='test_list',
+                          metavar='FILE',
+                          help='Use FILE as test list')
+        (self.options, self.args) = parser.parse_args(args)
 
-        factory.init_logging('goofy', verbose=self.options.verbose)
+        global _inited_logging
+        if not _inited_logging:
+            factory.init_logging('goofy', verbose=self.options.verbose)
+            _inited_logging = True
 
-        if factory.in_chroot() and (
+        if (not suppress_chroot_warning and
+            factory.in_chroot() and
             os.environ.get('DISPLAY') in [None, '', ':0', ':0.0']):
             # That's not going to work!  Tell the user how to run
             # this way.
             logging.warn(GOOFY_IN_CHROOT_WARNING)
             time.sleep(1)
+
+        if env:
+            self.env = env
+        elif factory.in_chroot():
+            self.env = ChrootEnvironment()
+            logging.warn(
+                'Using chroot environment: will not actually run autotests')
+        else:
+            self.env = DUTEnvironment()
 
         if self.options.restart:
             state.clear_state()
@@ -688,14 +823,15 @@ class Goofy(object):
         # Update HWID configuration tag.
         self.state_instance.set_shared_data('hwid_cfg', get_hwid_cfg())
 
-        self.test_list_path = find_test_list()
-        self.test_list = factory.read_test_list(self.test_list_path,
+        self.options.test_list = (self.options.test_list or find_test_list())
+        self.test_list = factory.read_test_list(self.options.test_list,
                                                 self.state_instance)
         logging.info('TEST_LIST:\n%s', self.test_list.__repr__(recursive=True))
 
         self.init_states()
         self.start_event_server()
-        self.start_ui()
+        if self.options.ui:
+            self.start_ui()
         prespawner.start()
 
         def state_change_callback(test, state):
@@ -716,17 +852,35 @@ class Goofy(object):
             self.state_instance.set_shared_data('tests_after_shutdown', None)
             self.tests_to_run.extend(
                 self.test_list.lookup_path(t) for t in tests_after_shutdown)
-            self.run_next_test()
+            self.run_queue.put(self.run_next_test)
         else:
-            self.run_tests(self.test_list, untested_only=True)
+            self.run_queue.put(
+                lambda: self.run_tests(self.test_list, untested_only=True))
 
+    def run(self):
+        '''Runs Goofy.'''
         # Process events forever.
+        while self.run_once():
+            pass
+
+    def run_once(self):
+        '''Runs all items pending in the event loop.
+
+        Returns:
+            True to keep going or False to shut down.
+        '''
+        events = [self.run_queue.get()]  # Get at least one event
         while True:
-            event = self.run_queue.get()
-            if not event:
-                # Shutdown request (although this currently never happens).
-                self.run_queue.task_done()
+            try:
+                events.append(self.run_queue.get_nowait())
+            except Queue.Empty:
                 break
+
+        for event in events:
+            if not event:
+                # Shutdown request.
+                self.run_queue.task_done()
+                return False
 
             try:
                 event()
@@ -736,6 +890,7 @@ class Goofy(object):
                 # But keep going
             finally:
                 self.run_queue.task_done()
+        return True
 
     def run_tests_with_status(self, *statuses_to_run):
         '''Runs all top-level tests with a particular status.
@@ -810,6 +965,29 @@ class Goofy(object):
             self.run_tests(test)
         else:
             logging.error('Unknown test %r', event.key)
+
+    def wait(self):
+        '''Waits for all pending invocations.
+
+        Useful for testing.
+        '''
+        for k, v in self.invocations.iteritems():
+            logging.info('Waiting for %s to complete...', k)
+            v.thread.join()
+
+    def check_exceptions(self):
+        '''Raises an error if any exceptions have occurred in
+        invocation threads.'''
+        if self.exceptions:
+            raise RuntimeError('Exception in invocation thread: %r' %
+                               self.exceptions)
+
+    def record_exception(self, msg):
+        '''Records an exception in an invocation thread.
+
+        An exception with the given message will be rethrown when
+        Goofy is destroyed.'''
+        self.exceptions.append(msg)
 
 
 if __name__ == '__main__':
