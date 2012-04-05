@@ -80,6 +80,7 @@ SEP_COLOR = gtk.gdk.color_parse('grey50')
 
 RGBA_GREEN_OVERLAY = (0, 0.5, 0, 0.6)
 RGBA_YELLOW_OVERLAY = (0.6, 0.6, 0, 0.6)
+RGBA_RED_OVERLAY = (0.5, 0, 0, 0.6)
 
 LABEL_COLORS = {
     TestState.ACTIVE: gtk.gdk.color_parse('light goldenrod'),
