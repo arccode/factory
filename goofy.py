@@ -824,6 +824,7 @@ class Goofy(object):
                 'Using chroot environment: will not actually run autotests')
         else:
             self.env = DUTEnvironment()
+        self.env.goofy = self
 
         if self.options.restart:
             state.clear_state()
@@ -849,6 +850,7 @@ class Goofy(object):
         if self.options.ui:
             self.start_ui()
         self.prespawner = Prespawner()
+        self.prespawner.start()
 
         def state_change_callback(test, state):
             self.event_client.post_event(
