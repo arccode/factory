@@ -16,12 +16,11 @@ import zlib
 from argparse import ArgumentParser, Action
 from common import Error, Obj, SetupLogging
 from bom_names import BOM_NAME_SET
-from hwid_database import InvalidDataError, MakeDatastoreSubclass
-from hwid_database import YamlWrite, YamlRead
+from hwid_database import InvalidDataError, MakeDatastoreSubclass, YamlRead
 
 
 # The expected location of HWID data within a factory image.
-DEFAULT_HWID_DATA_PATH= '/usr/local/factory/hwid'
+DEFAULT_HWID_DATA_PATH = '/usr/local/factory/hwid'
 
 COMPONENT_DB_FILENAME = 'component_db'
 
@@ -264,22 +263,9 @@ def GetAvailableBomNames(data, board, count):
   available_names = [bn for bn in BOM_NAME_SET if bn not in existing_bom_names]
   random.shuffle(available_names)
   if len(available_names) < count:
-    raise Error('too few available bom names (only %d left)' % len(available))
+    raise Error('too few available bom names (only %d left)' %
+                len(available_names))
   return available_names[:count]
-
-
-# TODO(tammo): Generate re-usable derived data like status maps when
-# data is initially loaded.  This also acts as sanity checking.
-def CalcHwidStatusMap(device):
-  """TODO(tammo): XXX more here XXX."""
-  status_map = {}
-  for status in LIFE_CYCLE_STAGES:
-    for prefix in device.hwid_status_map.get(status, []):
-      parts = reversed(prefix.split('-'))
-      bom_status_map = status_map.setdefault(next(parts), {})
-      volatile = next(parts, None)
-      variant = next(parts, None)
-  # TODO(tammo): Finish this, then get rid of LookupHwidStatus.
 
 
 def LookupHwidStatus(device, bom, volatile, variant):
@@ -906,13 +892,13 @@ def FilterDatabase(config, data):
     filtered_hwid.variant_list = list(set(hwid.variant_list) &
                                       target_variant_set)
     filtered_device.hwid_map[bom] = filtered_hwid
-    for comp_class, comp_name in hwid.component_map.items():
+    for comp_class in hwid.component_map:
       filtered_comp_db.registry[comp_class] = \
           data.comp_db.registry[comp_class]
   for volatile_index in target_volatile_set:
     volatile_details = device.volatile_map[volatile_index]
     filtered_device.volatile_map[volatile_index] = volatile_details
-    for volatile_class, volatile_name in volatile_details.items():
+    for volatile_name in volatile_details.values():
       volatile_value = device.volatile_value_map[volatile_name]
       filtered_device.volatile_value_map[volatile_name] = volatile_value
   for variant_index in target_variant_set:
@@ -1003,41 +989,41 @@ def LegacyExport(config, data):
         status = LookupHwidStatus(device, bom, volind, variant)
         if (config.status != '' and
             (status is None or config.status != status)):
-           continue
+          continue
         WriteLegacyHwidFile(bom, volind, variant, hwid)
 
 
 @Command('rename_comps')
 def RenameComponents(config, data):
-   """Change canonical component names.
+  """Change canonical component names.
 
-   Given a list of old-new name pairs on stdin, replace each instance
-   of each old name with the corresponding new name in the
-   component_db and in all board files.  The expected stdin format is
-   one pair per line, and the two words in each pair are whitespace
-   separated.
-   """
-   registry = data.comp_db.registry
-   flattened_registry = CompRegistryFlatten(registry)
-   comp_class_map = CalcCompDbClassMap(data.comp_db)
-   for line in sys.stdin:
-     parts = line.strip().split()
-     if len(parts) != 2:
-       raise Error, ('each line of input must have exactly 2 words, '
-                     'found %d [%s]' % (len(parts), line.strip()))
-     old_name, new_name = parts
-     if old_name not in flattened_registry:
-       raise Error, 'unknown canonical component name %r' % old_name
-     # TODO(tammo): Validate new_name.
-     comp_class = comp_class_map[old_name]
-     comp_map = registry[comp_class]
-     probe_result = comp_map[old_name]
-     del comp_map[old_name]
-     comp_map[new_name] = probe_result
-     for device in data.device_db.values():
-       for hwid in device.hwid_map.values():
-         if hwid.component_map.get(comp_class, None) == old_name:
-           hwid.component_map[comp_class] = new_name
+  Given a list of old-new name pairs on stdin, replace each instance
+  of each old name with the corresponding new name in the
+  component_db and in all board files.  The expected stdin format is
+  one pair per line, and the two words in each pair are whitespace
+  separated.
+  """
+  registry = data.comp_db.registry
+  flattened_registry = CompRegistryFlatten(registry)
+  comp_class_map = CalcCompDbClassMap(data.comp_db)
+  for line in sys.stdin:
+    parts = line.strip().split()
+    if len(parts) != 2:
+      raise Error, ('each line of input must have exactly 2 words, '
+                    'found %d [%s]' % (len(parts), line.strip()))
+    old_name, new_name = parts
+    if old_name not in flattened_registry:
+      raise Error, 'unknown canonical component name %r' % old_name
+    # TODO(tammo): Validate new_name.
+    comp_class = comp_class_map[old_name]
+    comp_map = registry[comp_class]
+    probe_result = comp_map[old_name]
+    del comp_map[old_name]
+    comp_map[new_name] = probe_result
+    for device in data.device_db.values():
+      for hwid in device.hwid_map.values():
+        if hwid.component_map.get(comp_class, None) == old_name:
+          hwid.component_map[comp_class] = new_name
 
 
 class HackedArgumentParser(ArgumentParser):

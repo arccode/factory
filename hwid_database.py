@@ -3,8 +3,6 @@
 # found in the LICENSE file.
 
 import inspect
-import logging
-import os
 import yaml
 
 
@@ -43,13 +41,13 @@ class _DatastoreClass(object):
     return yaml_data
 
   @classmethod
-  def New(c):
-    return c(**dict((elt_key, '' if not isinstance(elt_type, tuple)
-                     else ({} if elt_type[0] is dict else []))
-                    for elt_key, elt_type in c._schema.items()))
+  def New(cls):
+    return cls(**dict((elt_key, '' if not isinstance(elt_type, tuple)
+                       else ({} if elt_type[0] is dict else []))
+                      for elt_key, elt_type in cls._schema.items()))
 
   @classmethod
-  def Decode(c, data):
+  def Decode(cls, data):
     """Given YAML string, creates corresponding object and check its schema."""
     def NestedDecode(elt_type, elt_data):
       """Apply appropriate constructors to nested object data."""
@@ -67,14 +65,14 @@ class _DatastoreClass(object):
       field_dict = YamlRead(data)
     except yaml.YAMLError, e:
       raise InvalidDataError("YAML deserialization error: %s" % e)
-    c.ValidateSchema(field_dict)
+    cls.ValidateSchema(field_dict)
     cooked_field_dict = dict(
         (elt_key, NestedDecode(elt_type, field_dict[elt_key]))
-        for elt_key, elt_type in c._schema.items())
-    return c(**cooked_field_dict)
+        for elt_key, elt_type in cls._schema.items())
+    return cls(**cooked_field_dict)
 
   @classmethod
-  def ValidateSchema(c, field_dict):
+  def ValidateSchema(cls, field_dict):
     """Ensures the layout of field_dict matches the class schema specification.
 
     This should be run before data is coerced into objects.  When the
@@ -91,19 +89,19 @@ class _DatastoreClass(object):
       if len(collection_type_data) != 2:
         raise InvalidDataError(
             '%r schema contains bad type definiton for element %r, ' %
-            (c.__name__, top_level_tag) +
+            (cls.__name__, top_level_tag) +
             'expected (collection type, field type) tuple, '
             'found %s' % repr(collection_type_data))
       collection_type, field_type = collection_type_data
       if collection_type not in [dict, list]:
         raise InvalidDataError(
             '%r schema element %r has illegal collection type %r ' %
-            (c.__name__, top_level_tag, collection_type.__name__) +
+            (cls.__name__, top_level_tag, collection_type.__name__) +
             '(only "dict" and "list" are supported)')
       if not isinstance(collection_data, collection_type):
         raise InvalidDataError(
             '%r schema validation failed for element %r, ' %
-            (c.__name__, top_level_tag) +
+            (cls.__name__, top_level_tag) +
             'expected type %r, found %r' %
             (collection_type.__name__, type(collection_data).__name__))
       if collection_type is dict:
@@ -111,7 +109,7 @@ class _DatastoreClass(object):
           if not (isinstance(field_key, str) or isinstance(field_key, int)):
             raise InvalidDataError(
                 '%r schema validation failed for element %r, ' %
-                (c.__name__, top_level_tag) +
+                (cls.__name__, top_level_tag) +
                 'dict key must be "str" or "int", found %r' %
                 (type(field_key).__name__))
           ValidateField(top_level_tag, field_type, field_data)
@@ -127,16 +125,17 @@ class _DatastoreClass(object):
         if not isinstance(field_data, field_type):
           raise InvalidDataError(
               '%r schema validation failed for element %r, ' %
-              (c.__name__, top_level_tag) +
+              (cls.__name__, top_level_tag) +
               'expected type %r, found %r' %
               (field_type.__name__, type(field_data).__name__))
-    if (set(c._schema) ^ set(field_dict)):
+    if (set(cls._schema) ^ set(field_dict)):
       raise InvalidDataError(
-          '%r schema and data dict keys do not match, ' % c.__name__ +
+          '%r schema and data dict keys do not match, ' % cls.__name__ +
           'data is missing keys: %r, ' %
-          sorted(set(c._schema) - set(field_dict)) +
-          'data has extra keys: %r' % sorted(set(field_dict) - set(c._schema)))
-    for top_level_tag, field_type in c._schema.items():
+          sorted(set(cls._schema) - set(field_dict)) +
+          'data has extra keys: %r' %
+          sorted(set(field_dict) - set(cls._schema)))
+    for top_level_tag, field_type in cls._schema.items():
       ValidateField(top_level_tag, field_type, field_dict[top_level_tag])
 
 

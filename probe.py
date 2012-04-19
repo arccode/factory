@@ -23,6 +23,7 @@ import sys
 
 from array import array
 from glob import glob
+from fcntl import ioctl
 from inspect import getargspec
 from tempfile import NamedTemporaryFile
 
@@ -72,7 +73,7 @@ def _LoadKernelModule(name):
       raise Error('Cannot load kernel module: %s' % name)
 
 
-def _ReadSysfsFields(base_path, field_list, optional_field_list=[]):
+def _ReadSysfsFields(base_path, field_list, optional_field_list=None):
   """Return dict of {field_name: field_value} corresponding to sysfs contents.
 
   Args:
@@ -85,7 +86,7 @@ def _ReadSysfsFields(base_path, field_list, optional_field_list=[]):
     Dict of field names and values, or None if required fields are not
     all present.
   """
-  all_fields_list  = field_list + optional_field_list
+  all_fields_list  = field_list + (optional_field_list or [])
   path_list = [os.path.join(base_path, field) for field in all_fields_list]
   data = dict((field, open(path).read().strip())
               for field, path in zip(all_fields_list, path_list)
