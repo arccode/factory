@@ -17,8 +17,10 @@ import tempfile
 import threading
 import time
 import unittest
+from Queue import Queue
 
 from mox import IgnoreArg
+from ws4py.client import WebSocketBaseClient
 
 from autotest_lib.client.cros import factory
 from autotest_lib.client.cros.factory import goofy
@@ -29,11 +31,10 @@ from autotest_lib.client.cros.factory.goofy import Environment
 from autotest_lib.client.cros.factory.goofy import Goofy
 
 
-def init_goofy(env=None, test_list=None, options='', restart=True):
+def init_goofy(env=None, test_list=None, options='', restart=True, ui='none'):
     '''Initializes and returns a Goofy.'''
     goofy = Goofy()
-    # Make a copy (since we'll be modifying it.
-    args = ['--noui']
+    args = ['--ui', ui]
     if restart:
         args.append('--restart')
     if test_list:
@@ -70,12 +71,18 @@ def mock_autotest(env, name, passed, error_msg):
 class GoofyTest(unittest.TestCase):
     '''Base class for Goofy test cases.'''
     options = ''
+    ui = 'none'
 
     def setUp(self):
         self.mocker = mox.Mox()
         self.env = self.mocker.CreateMock(Environment)
         self.state = state.get_instance()
-        self.goofy = init_goofy(self.env, self.test_list, self.options)
+        self.before_init_goofy()
+        self.mocker.ReplayAll()
+        self.goofy = init_goofy(self.env, self.test_list, self.options,
+                                ui=self.ui)
+        self.mocker.VerifyAll()
+        self.mocker.ResetAll()
 
     def tearDown(self):
         self.goofy.destroy()
@@ -101,6 +108,9 @@ class GoofyTest(unittest.TestCase):
         self.mocker.VerifyAll()
         self.mocker.ResetAll()
 
+    def before_init_goofy(self):
+        '''Hook invoked before init_goofy.'''
+
     def check_one_test(self, id, name, passed, error_msg, trigger=None):
         '''Runs a single autotest, waiting for it to complete.
 
@@ -113,7 +123,6 @@ class GoofyTest(unittest.TestCase):
                 set up to trigger the autotest.  If None, then the test is
                 expected to start itself.
         '''
-
         mock_autotest(self.env, name, passed, error_msg)
         self.mocker.ReplayAll()
         if trigger:
@@ -124,9 +133,9 @@ class GoofyTest(unittest.TestCase):
         self._wait()
         state = self.state.get_test_state(id)
         self.assertEqual(TestState.PASSED if passed else TestState.FAILED,
-                         state['status'])
-        self.assertEqual(1, state['count'])
-        self.assertEqual(error_msg, state['error_msg'])
+                         state.status)
+        self.assertEqual(1, state.count)
+        self.assertEqual(error_msg, state.error_msg)
 
 
 # A simple test list with three tests.
@@ -145,6 +154,74 @@ class BasicTest(GoofyTest):
         self.check_one_test('a', 'a_A', True, '')
         self.check_one_test('b', 'b_B', False, 'Uh-oh')
         self.check_one_test('c', 'c_C', False, 'Uh-oh')
+
+
+class WebSocketTest(GoofyTest):
+    '''A test case that checks the behavior of web sockets.'''
+    test_list = ABC_TEST_LIST
+    ui = 'chrome'
+
+    def before_init_goofy(self):
+        # Keep a record of events we received
+        self.events = []
+        # Trigger this event once the web socket closes
+        self.ws_done = threading.Event()
+
+        class MyClient(WebSocketBaseClient):
+            def handshake_ok(socket_self):
+                pass
+
+            def received_message(socket_self, message):
+                event = Event.from_json(str(message))
+                logging.info('Test client received %s', event)
+                self.events.append(event)
+                if event.type == Event.Type.HELLO:
+                    socket_self.send(Event(Event.Type.KEEPALIVE,
+                                           uuid=event.uuid).to_json())
+
+        ws = MyClient(
+            'http://localhost:%d/event' % state.DEFAULT_FACTORY_STATE_PORT,
+            protocols=None, extensions=None)
+
+        def open_web_socket():
+            ws.connect()
+            ws.run()
+            self.ws_done.set()
+        self.env.launch_chrome().WithSideEffects(
+            lambda: threading.Thread(target=open_web_socket).start()
+            ).AndReturn(None)
+
+    def runTest(self):
+        self.check_one_test('a', 'a_A', True, '')
+        self.check_one_test('b', 'b_B', False, 'Uh-oh')
+        self.check_one_test('c', 'c_C', False, 'Uh-oh')
+
+        # Kill Goofy and wait for the web socket to close gracefully
+        self.goofy.destroy()
+        self.ws_done.wait()
+
+        events_by_type = {}
+        for event in self.events:
+            events_by_type.setdefault(event.type, []).append(event)
+
+        # There should be one hello event
+        self.assertEqual(1, len(events_by_type[Event.Type.HELLO]))
+
+        # There should be at least one log event
+        self.assertTrue(Event.Type.LOG in events_by_type), repr(events_by_type)
+
+        # Each test should have a transition to active and to its
+        # final state
+        for path, final_status in (('a', TestState.PASSED),
+                                   ('b', TestState.FAILED),
+                                   ('c', TestState.FAILED)):
+            statuses = [
+                event.state['status']
+                for event in events_by_type[Event.Type.STATE_CHANGE]
+                if event.path == path]
+            self.assertEqual(
+                ['UNTESTED', 'ACTIVE', final_status],
+                statuses)
 
 
 class ShutdownTest(GoofyTest):
@@ -218,6 +295,39 @@ class AutoRunKeypressTest(NoAutoRunTest):
         self._runTestB()
         # Unlike in NoAutoRunTest, C should now be run.
         self.check_one_test('c', 'c_C', True, '')
+
+
+class PyTestTest(GoofyTest):
+    '''Tests the Python test driver.
+
+    Note that no mocks are used here, since it's easy enough to just have the
+    Python driver run a 'real' test (execpython).
+    '''
+    test_list = '''
+        OperatorTest(id='a', pytest_name='execpython',
+                     dargs={'script': 'assert "Tomato" == "Tomato"'}),
+        OperatorTest(id='b', pytest_name='execpython',
+                     dargs={'script': ("assert 'Pa-TAY-to' == 'Pa-TAH-to', "
+                                       "Let's call the whole thing off")})
+    '''
+    def runTest(self):
+        self.goofy.run_once()
+        self.assertEquals(['a'],
+                          [test.id for test in self.goofy.invocations])
+        self.goofy.wait()
+        self.assertEquals(
+            TestState.PASSED,
+            factory.get_state_instance().get_test_state('a').status)
+
+        self.goofy.run_once()
+        self.assertEquals(['b'],
+                          [test.id for test in self.goofy.invocations])
+        self.goofy.wait()
+        failed_state = factory.get_state_instance().get_test_state('b')
+        self.assertEquals(TestState.FAILED, failed_state.status)
+        self.assertTrue(
+            '''Let\'s call the whole thing off''' in failed_state.error_msg,
+            failed_state.error_msg)
 
 
 if __name__ == "__main__":

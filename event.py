@@ -2,12 +2,24 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import cPickle as pickle, errno, logging, os, socket, SocketServer, sys
-import tempfile, threading, time, traceback, types
+import cPickle as pickle
+import errno
+import json
+import logging
+import os
+import socket
+import SocketServer
+import sys
+import tempfile
+import threading
+import time
+import traceback
+import types
 from Queue import Queue
 
 import factory_common
 from autotest_lib.client.cros import factory
+from autotest_lib.client.cros.factory.unicode_to_string import UnicodeToString
 
 
 # Environment variable storing the path to the endpoint.
@@ -16,6 +28,21 @@ CROS_FACTORY_EVENT = 'CROS_FACTORY_EVENT'
 # Maximum allowed size for messages.  If messages are bigger than this, they
 # will be truncated by the seqpacket sockets.
 _MAX_MESSAGE_SIZE = 65535
+
+
+def json_default_repr(obj):
+    '''Converts an object into a suitable representation for
+    JSON-ification.
+
+    If obj is an object, this returns a dict with all properties
+    not beginning in '_'.  Otherwise, the original object is
+    returned.
+    '''
+    if isinstance(obj, object):
+        return dict([(k,v) for k, v in obj.__dict__.iteritems()
+                     if k[0] != "_"])
+    else:
+        return obj
 
 
 class Event(object):
@@ -47,6 +74,15 @@ class Event(object):
             'RE_RUN_FAILED': 'goofy:re_run_failed',
             # Tells goofy to go to the review screen.
             'REVIEW': 'goofy:review',
+            # Tells the UI about a single new line in the log.
+            'LOG': 'goofy:log',
+            # A hello message to a new WebSocket.  Contains a 'uuid' parameter
+            # identification the particular invocation of the server.
+            'HELLO': 'goofy:hello',
+            # A keepalive message from the UI.  Contains a 'uuid' parameter
+            # containing the same 'uuid' value received when the client received
+            # its HELLO.
+            'KEEPALIVE': 'goofy:keepalive',
             })
 
     def __init__(self, type, **kw):  # pylint: disable=W0622
@@ -63,6 +99,14 @@ class Event(object):
                 'timestamp=%s' % time.ctime(self.timestamp)],
             excluded_keys=['type', 'timestamp'])
 
+    def to_json(self):
+        return json.dumps(self, default=json_default_repr)
+
+    @staticmethod
+    def from_json(encoded_event):
+        kw = UnicodeToString(json.loads(encoded_event))
+        type = kw.pop('type')
+        return Event(type=type, **kw)
 
 _unique_id_lock = threading.Lock()
 _unique_id = 1
@@ -212,7 +256,7 @@ class EventClient(object):
     All events sent through this class must be subclasses of Event.  It
     marshals Event classes through the server by pickling them.
     '''
-    def __init__(self, path=None, callback=None, event_loop=None):
+    def __init__(self, path=None, callback=None, event_loop=None, name=None):
         '''
         Constructor.
 
@@ -229,6 +273,7 @@ class EventClient(object):
               invoked in the gobject event loop using idle_add.
             - EVENT_LOOP_GOBJECT_IO, in which case the callback will be
               invoked from an async IO handler.
+        @param name: An optional name for the client
         '''
         self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_SEQPACKET)
         self.callbacks = set()
@@ -256,11 +301,13 @@ class EventClient(object):
                     self.socket, gobject.IO_IN,
                     lambda source, condition: self._read_one_message())
                 self.callbacks.add(callback)
+            else:
+                self.callbacks.add(callback)
 
         if should_start_thread:
             self.recv_thread = threading.Thread(
                 target=self._run_recv_thread,
-                name='EventServerRecvThread-%d' % get_unique_id())
+                name='EventServerRecvThread-%s' % (name or get_unique_id()))
             self.recv_thread.daemon = True
             self.recv_thread.start()
         else:
@@ -272,11 +319,11 @@ class EventClient(object):
             return
 
         # Shutdown the socket to cause recv_thread to terminate.
-        self.socket.shutdown(socket.SHUT_WR)
-        self.socket.close()
-        self.socket = None
+        self.socket.shutdown(socket.SHUT_RDWR)
         if self.recv_thread:
             self.recv_thread.join()
+        self.socket.close()
+        self.socket = None
 
     def __del__(self):
         self.close()
@@ -306,12 +353,12 @@ class EventClient(object):
 
         def check_condition(event):
             if condition(event):
-                queue.put(None)
+                queue.put(event)
 
         try:
             with self._lock:
                 self.callbacks.add(check_condition)
-            queue.get()
+            return queue.get()
         finally:
             with self._lock:
                 self.callbacks.remove(check_condition)
@@ -355,4 +402,5 @@ class EventClient(object):
                 logging.warn('Event client: error in callback')
                 traceback.print_exc(sys.stderr)
                 # Keep going
+
         return True

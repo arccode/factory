@@ -13,9 +13,10 @@ The main factory flow that runs the factory test and finalizes a device.
 import array
 import fcntl
 import glob
+import hashlib
 import logging
 import os
-import pickle
+import cPickle as pickle
 import pipes
 import Queue
 import re
@@ -26,25 +27,27 @@ import tempfile
 import threading
 import time
 import traceback
+import unittest
+import uuid
 from collections import deque
 from optparse import OptionParser
+from StringIO import StringIO
 
 import factory_common
 from autotest_lib.client.bin.prespawner import Prespawner
 from autotest_lib.client.cros import factory
 from autotest_lib.client.cros.factory import state
 from autotest_lib.client.cros.factory import TestState
+from autotest_lib.client.cros.factory import utils
 from autotest_lib.client.cros.factory.event import Event
 from autotest_lib.client.cros.factory.event import EventClient
 from autotest_lib.client.cros.factory.event import EventServer
+from autotest_lib.client.cros.factory.invocation import TestInvocation
+from autotest_lib.client.cros.factory.web_socket_manager import WebSocketManager
 
 
-SCRIPT_PATH = os.path.realpath(__file__)
-CROS_FACTORY_LIB_PATH = os.path.dirname(SCRIPT_PATH)
-FACTORY_UI_PATH = os.path.join(CROS_FACTORY_LIB_PATH, 'ui')
-CLIENT_PATH = os.path.realpath(os.path.join(CROS_FACTORY_LIB_PATH, '..', '..'))
 DEFAULT_TEST_LIST_PATH = os.path.join(
-        CLIENT_PATH , 'site_tests', 'suite_Factory', 'test_list')
+        factory.CLIENT_PATH , 'site_tests', 'suite_Factory', 'test_list')
 HWID_CFG_PATH = '/usr/local/share/chromeos-hwid/cfg'
 
 GOOFY_IN_CHROOT_WARNING = '\n' + ('*' * 70) + '''
@@ -101,98 +104,6 @@ def find_test_list():
         return test_list
     logging.info('ERROR: Cannot find any test list.')
 
-# TODO(jsalz): Move utility functions (e.g., is_process_alive,
-# kill_process_tree, are_shift_keys_depressed) into a separate
-# utilities module.
-
-def is_process_alive(pid):
-    '''
-    Returns true if the named process is alive and not a zombie.
-    '''
-    try:
-        with open("/proc/%d/stat" % pid) as f:
-            return f.readline().split()[2] != 'Z'
-    except IOError:
-        return False
-
-
-def kill_process_tree(process, caption):
-    '''
-    Kills a process and all its subprocesses.
-
-    @param process: The process to kill (opened with the subprocess module).
-    @param caption: A caption describing the process.
-    '''
-    # os.kill does not kill child processes. os.killpg kills all processes
-    # sharing same group (and is usually used for killing process tree). But in
-    # our case, to preserve PGID for autotest and upstart service, we need to
-    # iterate through each level until leaf of the tree.
-
-    def get_all_pids(root):
-        ps_output = subprocess.Popen(['ps','--no-headers','-eo','pid,ppid'],
-                                     stdout=subprocess.PIPE)
-        children = {}
-        for line in ps_output.stdout:
-            match = re.findall('\d+', line)
-            children.setdefault(int(match[1]), []).append(int(match[0]))
-        pids = []
-        def add_children(pid):
-            pids.append(pid)
-            map(add_children, children.get(pid, []))
-        add_children(root)
-        # Reverse the list to first kill children then parents.
-        # Note reversed(pids) will return an iterator instead of real list, so
-        # we must explicitly call pids.reverse() here.
-        pids.reverse()
-        return pids
-
-    pids = get_all_pids(process.pid)
-    for sig in [signal.SIGTERM, signal.SIGKILL]:
-        logging.info('Stopping %s (pid=%s)...', caption, sorted(pids))
-
-        for i in range(25):  # Try 25 times (200 ms between tries)
-            for pid in pids:
-                try:
-                    logging.info("Sending signal %s to %d", sig, pid)
-                    os.kill(pid, sig)
-                except OSError:
-                    pass
-            pids = filter(is_process_alive, pids)
-            if not pids:
-                return
-            time.sleep(0.2)  # Sleep 200 ms and try again
-
-    logging.warn('Failed to stop %s process. Ignoring.', caption)
-
-
-def are_shift_keys_depressed():
-    '''Returns True if both shift keys are depressed.'''
-    # From #include <linux/input.h>
-    KEY_LEFTSHIFT = 42
-    KEY_RIGHTSHIFT = 54
-
-    for kbd in glob.glob("/dev/input/by-path/*kbd"):
-        try:
-            f = os.open(kbd, os.O_RDONLY)
-        except OSError as e:
-            if factory.in_chroot():
-                # That's OK; we're just not root
-                continue
-            else:
-                raise
-        buf = array.array('b', [0] * 96)
-
-        # EVIOCGKEY (from #include <linux/input.h>)
-        fcntl.ioctl(f, 0x80604518, buf)
-
-        def is_pressed(key):
-            return (buf[key / 8] & (1 << (key % 8))) != 0
-
-        if is_pressed(KEY_LEFTSHIFT) and is_pressed(KEY_RIGHTSHIFT):
-            return True
-
-    return False
-
 
 class Environment(object):
     '''
@@ -220,6 +131,14 @@ class Environment(object):
         '''
         raise NotImplementedError()
 
+    def launch_chrome(self):
+        '''
+        Launches Chrome.
+
+        Returns:
+            The Chrome subprocess (or None if none).
+        '''
+        raise NotImplementedError()
 
     def spawn_autotest(self, name, args, env_additions, result_file):
         '''
@@ -249,8 +168,24 @@ class DUTEnvironment(Environment):
     def spawn_autotest(self, name, args, env_additions, result_file):
         return self.goofy.prespawner.spawn(args, env_additions)
 
+    def launch_chrome(self):
+        chrome_command = [
+            '/opt/google/chrome/chrome',
+            '--user-data-dir=%s/factory-chrome-datadir' %
+            factory.get_log_root(),
+            '--aura-host-window-use-fullscreen',
+            '--kiosk',
+            'http://localhost:%d/' % state.DEFAULT_FACTORY_STATE_PORT,
+            ]
 
-class ChrootEnvironment(Environment):
+        chrome_log = os.path.join(factory.get_log_root(), 'factory.chrome.log')
+        chrome_log_file = open(chrome_log, "a")
+        logging.info('Launching Chrome; logs in %s' % chrome_log)
+        return subprocess.Popen(chrome_command,
+                                stdout=chrome_log_file,
+                                stderr=subprocess.STDOUT)
+
+class FakeChrootEnvironment(Environment):
     '''
     A chroot environment that doesn't actually shutdown or run autotests.
     '''
@@ -261,183 +196,21 @@ class ChrootEnvironment(Environment):
 
     def spawn_autotest(self, name, args, env_additions, result_file):
         logging.warn('In chroot: skipping autotest %s', name)
-        # Just mark it as passed
+        # Mark it as passed with 75% probability, or failed with 25%
+        # probability (depending on a hash of the autotest name).
+        pseudo_random = ord(hashlib.sha1(name).digest()[0]) / 256.0
+        passed = pseudo_random > .25
+
         with open(result_file, 'w') as out:
-            pickle.dump((TestState.PASSED, 'Passed'), out)
+            pickle.dump((passed, '' if passed else 'Simulated failure'), out)
         # Start a process that will return with a true exit status in
         # 2 seconds (just like a happy autotest).
         return subprocess.Popen(['sleep', '2'])
 
-
-class TestInvocation(object):
-    '''
-    State for an active test.
-    '''
-    def __init__(self, goofy, test, on_completion=None):
-        '''Constructor.
-
-        @param goofy: The controlling Goofy object.
-        @param test: The FactoryTest object to test.
-        @param on_completion: Callback to invoke in the goofy event queue
-            on completion.
-        '''
-        self.goofy = goofy
-        self.test = test
-        self.thread = threading.Thread(target=self._run,
-                                       name='TestInvocation-%s' % test.path)
-        self.on_completion = on_completion
-
-        self._lock = threading.Lock()
-        # The following properties are guarded by the lock.
-        self._aborted = False
-        self._completed = False
-        self._process = None
-
-    def __repr__(self):
-        return 'TestInvocation(_aborted=%s, _completed=%s)' % (
-            self._aborted, self._completed)
-
-    def start(self):
-        '''Starts the test thread.'''
-        self.thread.start()
-
-    def abort_and_join(self):
-        '''
-        Aborts a test (must be called from the event controller thread).
-        '''
-        with self._lock:
-            self._aborted = True
-            if self._process:
-                kill_process_tree(self._process, 'autotest')
-        if self.thread:
-            self.thread.join()
-        with self._lock:
-            # Should be set by the thread itself, but just in case...
-            self._completed = True
-
-    def is_completed(self):
-        '''
-        Returns true if the test has finished.
-        '''
-        with self._lock:
-            return self._completed
-
-    def _invoke_autotest(self, test, dargs):
-        '''
-        Invokes an autotest test.
-
-        This method encapsulates all the magic necessary to run a single
-        autotest test using the 'autotest' command-line tool and get a
-        sane pass/fail status and error message out.  It may be better
-        to just write our own command-line wrapper for job.run_test
-        instead.
-
-        @param test: the autotest to run
-        @param dargs: the argument map
-        @return: tuple of status (TestState.PASSED or TestState.FAILED) and
-            error message, if any
-        '''
-        status = TestState.FAILED
-        error_msg = 'Unknown'
-
-        try:
-            client_dir = CLIENT_PATH
-
-            output_dir = '%s/results/%s' % (client_dir, test.path)
-            if not os.path.exists(output_dir):
-                os.makedirs(output_dir)
-            tmp_dir = tempfile.mkdtemp(prefix='tmp', dir=output_dir)
-
-            control_file = os.path.join(tmp_dir, 'control')
-            result_file = os.path.join(tmp_dir, 'result')
-            args_file = os.path.join(tmp_dir, 'args')
-
-            with open(args_file, 'w') as f:
-                pickle.dump(dargs, f)
-
-            # Create a new control file to use to run the test
-            with open(control_file, 'w') as f:
-                print >> f, 'import common, traceback, utils'
-                print >> f, 'import cPickle as pickle'
-                print >> f, ("success = job.run_test("
-                            "'%s', **pickle.load(open('%s')))" % (
-                    test.autotest_name, args_file))
-
-                print >> f, (
-                    "pickle.dump((success, "
-                    "str(job.last_error) if job.last_error else None), "
-                    "open('%s', 'w'), protocol=2)"
-                    % result_file)
-
-            args = ['%s/bin/autotest' % client_dir,
-                    '--output_dir', output_dir,
-                    control_file]
-
-            factory.console.info('Running test %s' % test.path)
-            logging.debug('Test command line: %s', ' '.join(
-                    [pipes.quote(arg) for arg in args]))
-
-            with self._lock:
-                with self.goofy.env.lock:
-                    self._process = self.goofy.env.spawn_autotest(
-                        test.autotest_name, args,
-                        {'CROS_FACTORY_TEST_PATH': test.path}, result_file)
-
-            returncode = self._process.wait()
-            with self._lock:
-                if self._aborted:
-                    error_msg = 'Aborted by operator'
-                    return
-
-            if returncode:
-                # Only happens when there is an autotest-level problem (not when
-                # the test actually failed).
-                error_msg = 'autotest returned with code %d' % returncode
-                return
-
-            with open(result_file) as f:
-                try:
-                    success, error_msg = pickle.load(f)
-                except:  # pylint: disable=W0702
-                    logging.exception('Unable to retrieve autotest results')
-                    error_msg = 'Unable to retrieve autotest results'
-                    return
-
-            if success:
-                status = TestState.PASSED
-                error_msg = ''
-        except Exception:  # pylint: disable=W0703
-            traceback.print_exc(sys.stderr)
-            # Make sure Goofy reports the exception upon destruction
-            # (e.g., for testing)
-            self.goofy.record_exception(traceback.format_exception_only(
-                    *sys.exc_info()[:2]))
-        finally:
-            factory.console.info('Test %s: %s' % (test.path, status))
-            return status, error_msg  # pylint: disable=W0150
-
-    def _run(self):
-        with self._lock:
-            if self._aborted:
-                return
-
-        count = self.test.update_state(
-            status=TestState.ACTIVE, increment_count=1, error_msg='').count
-
-        test_tag = '%s_%s' % (self.test.path, count)
-        dargs = dict(self.test.dargs)
-        dargs.update({'tag': test_tag,
-                      'test_list_path': self.goofy.options.test_list})
-
-        status, error_msg = self._invoke_autotest(self.test, dargs)
-        self.test.update_state(status=status, error_msg=error_msg,
-                               visible=False)
-        with self._lock:
-            self._completed = True
-
-        self.goofy.run_queue.put(self.goofy.reap_completed_tests)
-        if self.on_completion:
-            self.goofy.run_queue.put(self.on_completion)
+    def launch_chrome(self):
+        logging.warn('In chroot; not launching Chrome. '
+                     'Please open http://localhost:%d/ in Chrome.',
+                     state.DEFAULT_FACTORY_STATE_PORT)
 
 
 _inited_logging = False
@@ -453,6 +226,7 @@ class Goofy(object):
     TODO: Unit tests. (chrome-os-partner:7409)
 
     Properties:
+        uuid: A unique UUID for this invocation of Goofy.
         state_instance: An instance of FactoryState.
         state_server: The FactoryState XML/RPC server.
         state_server_thread: A thread running state_server.
@@ -474,6 +248,7 @@ class Goofy(object):
         exceptions: Exceptions encountered in invocation threads.
     '''
     def __init__(self):
+        self.uuid = str(uuid.uuid4())
         self.state_instance = None
         self.state_server = None
         self.state_server_thread = None
@@ -486,31 +261,54 @@ class Goofy(object):
         self.invocations = {}
         self.tests_to_run = deque()
         self.visible_test = None
+        self.chrome = None
 
         self.options = None
         self.args = None
         self.test_list = None
+
+        def test_or_root(event):
+            '''Returns the top-level parent for a test (the root node of the
+            tests that need to be run together if the given test path is to
+            be run).'''
+            try:
+                path = event.path
+            except KeyError:
+                path = None
+
+            if path:
+                return self.test_list.lookup_path(path).get_top_level_parent()
+            else:
+                return self.test_list
 
         self.event_handlers = {
             Event.Type.SWITCH_TEST: self.handle_switch_test,
             Event.Type.SHOW_NEXT_ACTIVE_TEST:
                 lambda event: self.show_next_active_test(),
             Event.Type.RESTART_TESTS:
-                lambda event: self.restart_tests(),
+                lambda event: self.restart_tests(root=test_or_root(event)),
             Event.Type.AUTO_RUN:
-                lambda event: self.auto_run(),
+                lambda event: self.auto_run(root=test_or_root(event)),
             Event.Type.RE_RUN_FAILED:
-                lambda event: self.re_run_failed(),
+                lambda event: self.re_run_failed(root=test_or_root(event)),
             Event.Type.REVIEW:
                 lambda event: self.show_review_information(),
         }
 
         self.exceptions = []
+        self.web_socket_manager = None
 
     def destroy(self):
+        if self.chrome:
+            self.chrome.kill()
+            self.chrome = None
         if self.ui_process:
-            kill_process_tree(self.ui_process, 'ui')
+            utils.kill_process_tree(self.ui_process, 'ui')
             self.ui_process = None
+        if self.web_socket_manager:
+            logging.info('Stopping web sockets')
+            self.web_socket_manager.close()
+            self.web_socket_manager = None
         if self.state_server_thread:
             logging.info('Stopping state server')
             self.state_server.shutdown()
@@ -528,11 +326,15 @@ class Goofy(object):
             self.prespawner.stop()
             self.prespawner = None
         if self.event_client:
+            logging.info('Closing event client')
             self.event_client.close()
+            self.event_client = None
         self.check_exceptions()
+        logging.info('Done destroying Goofy')
 
     def start_state_server(self):
-        self.state_instance, self.state_server = state.create_server()
+        self.state_instance, self.state_server = (
+            state.create_server(bind_address='0.0.0.0'))
         logging.info('Starting state server')
         self.state_server_thread = threading.Thread(
             target=self.state_server.serve_forever,
@@ -550,8 +352,13 @@ class Goofy(object):
         self.event_client = EventClient(
             callback=self.handle_event, event_loop=self.run_queue)
 
+        self.web_socket_manager = WebSocketManager(self.uuid)
+        self.state_server.add_handler("/event",
+            self.web_socket_manager.handle_web_socket)
+
     def start_ui(self):
-        ui_proc_args = [FACTORY_UI_PATH, self.options.test_list]
+        ui_proc_args = [os.path.join(factory.CROS_FACTORY_LIB_PATH, 'ui'),
+                        self.options.test_list]
         if self.options.verbose:
             ui_proc_args.append('-v')
         logging.info('Starting ui %s', ui_proc_args)
@@ -588,7 +395,7 @@ class Goofy(object):
             # Shut down too many times
             test.update_state(status=TestState.FAILED,
                               error_msg='Too many shutdowns')
-        elif are_shift_keys_depressed():
+        elif utils.are_shift_keys_depressed():
             logging.info('Shift keys are depressed; cancelling restarts')
             # Abort shutdown
             test.update_state(
@@ -783,7 +590,7 @@ class Goofy(object):
             args: A list of command-line arguments.  Uses sys.argv if
                 args is None.
             env: An Environment instance to use (or None to choose
-                ChrootEnvironment or DUTEnvironment as appropriate).
+                FakeChrootEnvironment or DUTEnvironment as appropriate).
         '''
         parser = OptionParser()
         parser.add_option('-v', '--verbose', dest='verbose',
@@ -795,9 +602,10 @@ class Goofy(object):
         parser.add_option('--restart', dest='restart',
                           action='store_true',
                           help='Clear all test state')
-        parser.add_option('--noui', dest='ui',
-                          action='store_false', default=True,
-                          help='Disable the UI')
+        parser.add_option('--ui', dest='ui', type='choice',
+                          choices=['none', 'gtk', 'chrome'],
+                          default='gtk',
+                          help='UI to use')
         parser.add_option('--test_list', dest='test_list',
                           metavar='FILE',
                           help='Use FILE as test list')
@@ -810,6 +618,7 @@ class Goofy(object):
 
         if (not suppress_chroot_warning and
             factory.in_chroot() and
+            self.options.ui == 'gtk' and
             os.environ.get('DISPLAY') in [None, '', ':0', ':0.0']):
             # That's not going to work!  Tell the user how to run
             # this way.
@@ -819,7 +628,7 @@ class Goofy(object):
         if env:
             self.env = env
         elif factory.in_chroot():
-            self.env = ChrootEnvironment()
+            self.env = FakeChrootEnvironment()
             logging.warn(
                 'Using chroot environment: will not actually run autotests')
         else:
@@ -844,11 +653,21 @@ class Goofy(object):
         self.test_list = factory.read_test_list(self.options.test_list,
                                                 self.state_instance)
         logging.info('TEST_LIST:\n%s', self.test_list.__repr__(recursive=True))
+        self.state_instance.test_list = self.test_list
 
         self.init_states()
         self.start_event_server()
-        if self.options.ui:
+
+        if self.options.ui == 'chrome':
+            # TODO(jsalz): Get dynamically from UI
+            self.state_instance.set_shared_data('test_widget_size', (975,600))
+
+            self.env.launch_chrome()
+            logging.info('Waiting for a web socket connection')
+            self.web_socket_manager.wait()
+        elif self.options.ui == 'gtk':
             self.start_ui()
+
         self.prespawner = Prespawner()
         self.prespawner.start()
 
@@ -919,7 +738,8 @@ class Goofy(object):
                 self.run_queue.task_done()
         return True
 
-    def run_tests_with_status(self, statuses_to_run, starting_at=None):
+    def run_tests_with_status(self, statuses_to_run, starting_at=None,
+        root=None):
         '''Runs all top-level tests with a particular status.
 
         All active tests, plus any tests to re-run, are reset.
@@ -928,6 +748,8 @@ class Goofy(object):
             starting_at: If provided, only auto-runs tests beginning with
                 this test.
         '''
+        root = root or self.test_list
+
         if starting_at:
             # Make sure they passed a test, not a string.
             assert isinstance(starting_at, factory.FactoryTest)
@@ -937,7 +759,7 @@ class Goofy(object):
 
         found_starting_at = False
 
-        for test in self.test_list.get_top_level_tests():
+        for test in root.get_top_level_tests():
             if starting_at:
                 if test == starting_at:
                     # We've found starting_at; do auto-run on all
@@ -965,26 +787,31 @@ class Goofy(object):
 
         self.run_tests(tests_to_run, untested_only=True)
 
-    def restart_tests(self):
+    def restart_tests(self, root=None):
         '''Restarts all tests.'''
-        self.abort_active_tests()
-        for test in self.test_list.walk():
-            test.update_state(status=TestState.UNTESTED)
-        self.run_tests(self.test_list)
+        root = root or self.test_list
 
-    def auto_run(self, starting_at=None):
+        self.abort_active_tests()
+        for test in root.walk():
+            test.update_state(status=TestState.UNTESTED)
+        self.run_tests(root)
+
+    def auto_run(self, starting_at=None, root=None):
         '''"Auto-runs" tests that have not been run yet.
 
         Args:
             starting_at: If provide, only auto-runs tests beginning with
                 this test.
         '''
+        root = root or self.test_list
         self.run_tests_with_status([TestState.UNTESTED, TestState.ACTIVE],
-                                   starting_at=starting_at)
+                                   starting_at=starting_at,
+                                   root=root)
 
-    def re_run_failed(self):
+    def re_run_failed(self, root=None):
         '''Re-runs failed tests.'''
-        self.run_tests_with_status([TestState.FAILED])
+        root = root or self.test_list
+        self.run_tests_with_status([TestState.FAILED], root=root)
 
     def show_review_information(self):
         '''Event handler for showing review information screen.

@@ -21,6 +21,11 @@ import os
 import sys
 
 
+SCRIPT_PATH = os.path.realpath(__file__)
+CROS_FACTORY_LIB_PATH = os.path.dirname(SCRIPT_PATH)
+CLIENT_PATH = os.path.realpath(os.path.join(CROS_FACTORY_LIB_PATH, '..', '..'))
+
+
 class TestListError(Exception):
     pass
 
@@ -208,7 +213,8 @@ def init_logging(prefix=None, verbose=False):
         "Logging has already been initialized")
 
     logging.basicConfig(
-        format=prefix + ': [%(levelname)s] %(asctime)s.%(msecs)03d %(message)s',
+        format=('[%(levelname)s] ' + prefix +
+                ' %(filename)s:%(lineno)d %(asctime)s.%(msecs)03d %(message)s'),
         level=logging.DEBUG if verbose else logging.INFO,
         datefmt='%Y-%m-%d %H:%M:%S')
 
@@ -330,13 +336,14 @@ class FactoryTest(object):
     # display the summary of running tests.
     has_ui = False
 
-    REPR_FIELDS = ['id', 'autotest_name', 'dargs', 'backgroundable',
-                   'never_fails']
+    REPR_FIELDS = ['id', 'autotest_name', 'pytest_name', 'dargs',
+                   'backgroundable', 'never_fails']
 
     def __init__(self,
                  label_en='',
                  label_zh='',
                  autotest_name=None,
+                 pytest_name=None,
                  kbd_shortcut=None,
                  dargs=None,
                  backgroundable=False,
@@ -351,6 +358,8 @@ class FactoryTest(object):
         @param label_en: An English label.
         @param label_zh: A Chinese label.
         @param autotest_name: The name of the autotest to run.
+        @param pytest_name: The name of the pytest to run (relative to
+            autotest_lib.client.cros.factory.tests).
         @param kbd_shortcut: The keyboard shortcut for the test.
         @param dargs: Autotest arguments.
         @param backgroundable: Whether the test may run in the background.
@@ -368,6 +377,7 @@ class FactoryTest(object):
         self.label_en = label_en
         self.label_zh = label_zh
         self.autotest_name = autotest_name
+        self.pytest_name = pytest_name
         self.kbd_shortcut = kbd_shortcut.lower() if kbd_shortcut else None
         self.dargs = dargs or {}
         self.backgroundable = backgroundable
@@ -376,10 +386,13 @@ class FactoryTest(object):
         self.parent = None
         self.root = None
 
+        assert not (autotest_name and pytest_name), (
+            'No more than one of autotest_name, pytest_name must be specified')
+
         if _root:
             self.id = None
         else:
-            self.id = id or autotest_name
+            self.id = id or autotest_name or pytest_name.rpartition('.')[2]
             assert self.id, (
                 'Tests require either an id or autotest name: %r' % self)
             assert '.' not in self.id, (
@@ -399,8 +412,18 @@ class FactoryTest(object):
                 # autotest_name is type_NameInCamelCase.
                 self.label_en = self.autotest_name.partition('_')[2]
 
-        assert not (autotest_name and self.subtests), (
+        assert not ((autotest_name or pytest_name) and self.subtests), (
             'Test %s may not have both an autotest and subtests' % self.id)
+
+    def to_struct(self):
+        '''Returns the node as a struct suitable for JSONification.'''
+        ret = dict(
+            (k, getattr(self, k))
+            for k in ['id', 'path', 'label_en', 'label_zh',
+                      'kbd_shortcut', 'backgroundable'])
+        ret['subtests'] = [subtest.to_struct() for subtest in self.subtests]
+        return ret
+
 
     def __repr__(self, recursive=False):
         attrs = ['%s=%s' % (k, repr(getattr(self, k)))
@@ -542,6 +565,19 @@ class FactoryTest(object):
                 self.parent and
                 (self.parent == self.root or self.parent.is_group()))
 
+    def get_top_level_parent(self):
+        if self.is_top_level_test() or not self.parent:
+            return self
+        return self.parent.get_top_level_parent()
+
+    def get_top_level_tests(self):
+        '''
+        Returns a list of top-level tests.
+        '''
+        return [node for node in self.walk()
+                if node.is_top_level_test()]
+
+
 class FactoryTestList(FactoryTest):
     '''
     The root node for factory tests.
@@ -574,13 +610,6 @@ class FactoryTestList(FactoryTest):
         return dict(
             (self.lookup_path(k), TestState.from_dict_or_object(v))
             for k, v in self.state_instance.get_test_states().iteritems())
-
-    def get_top_level_tests(self):
-        '''
-        Returns a list of top-level tests.
-        '''
-        return [node for node in self.walk()
-                if node.is_top_level_test()]
 
     def lookup_path(self, path):
         '''

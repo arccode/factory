@@ -11,17 +11,25 @@ can be used to handle factory test states (status) and shared persistent data.
 
 
 import logging
+import mimetypes
 import os
 import shelve
 import shutil
-import SimpleXMLRPCServer
+import SocketServer
 import sys
 import threading
-import xmlrpclib
+import time
+
+from hashlib import sha1
 
 import factory_common
+
+from jsonrpclib import jsonclass
+from jsonrpclib import jsonrpc
+from jsonrpclib import SimpleJSONRPCServer
 from autotest_lib.client.cros import factory
 from autotest_lib.client.cros.factory import TestState
+from autotest_lib.client.cros.factory import unicode_to_string
 
 
 FACTORY_STATE_VERSION = 2
@@ -54,6 +62,16 @@ def clear_state(state_file_path=None):
         shutil.rmtree(state_file_path)
 
 
+class TestHistoryItem(object):
+    def __init__(self, path, state, log, trace=None):
+        self.path = path
+        self.state = state
+        self.log = log
+        self.trace = trace
+        self.time = time.time()
+
+
+@unicode_to_string.UnicodeToStringClass
 class FactoryState(object):
     '''
     The core implementation for factory state control.
@@ -68,6 +86,10 @@ class FactoryState(object):
         To track the execution status of factory auto tests, you can use
         get_test_state, get_test_states methods, and update_test_state
         methods.
+
+    All arguments may be provided either as strings, or as Unicode strings in
+    which case they are converted to strings using UTF-8.  All returned values
+    are strings (not Unicode).
 
     This object is thread-safe.
 
@@ -86,7 +108,13 @@ class FactoryState(object):
             os.makedirs(state_file_path)
         self._tests_shelf = shelve.open(state_file_path + '/tests')
         self._data_shelf = shelve.open(state_file_path + '/data')
+        self._test_history_shelf = shelve.open(state_file_path +
+                                               '/test_history')
         self._lock = threading.RLock()
+        self.test_list_struct = None
+
+        if TestState not in jsonclass.supported_types:
+            jsonclass.supported_types.append(TestState)
 
     @_synchronized
     def update_test_state(self, path, **kw):
@@ -142,6 +170,12 @@ class FactoryState(object):
         '''
         return dict(self._tests_shelf)
 
+    def get_test_list(self):
+        '''
+        Returns the test list.
+        '''
+        return self.test_list.to_struct()
+
     @_synchronized
     def set_shared_data(self, key, value):
         '''
@@ -171,6 +205,36 @@ class FactoryState(object):
         '''
         del self._data_shelf[key]
 
+    @_synchronized
+    def add_test_history(self, history_item):
+        path = history_item.path
+        assert path
+
+        length_key = path + '[length]'
+        num_entries = self._test_history_shelf.get(length_key, 0)
+        self._test_history_shelf[path + '[%d]' % num_entries] = history_item
+        self._test_history_shelf[length_key] = num_entries + 1
+
+    @_synchronized
+    def get_test_history(self, paths):
+        if type(paths) != list:
+            paths = [paths]
+        ret = []
+
+        for path in paths:
+            i = 0
+            while True:
+                value = self._test_history_shelf.get(path + '[%d]' % i)
+
+                i += 1
+                if not value:
+                    break
+                ret.append(value)
+
+        ret.sort(key=lambda item: item.time)
+
+        return ret
+
 
 def get_instance(address=DEFAULT_FACTORY_STATE_ADDRESS,
                  port=DEFAULT_FACTORY_STATE_PORT):
@@ -182,29 +246,90 @@ def get_instance(address=DEFAULT_FACTORY_STATE_ADDRESS,
     @return An object with all public functions from FactoryState.
         See help(FactoryState) for more information.
     '''
-    return xmlrpclib.ServerProxy('http://%s:%d' % (address, port),
-                                 allow_none=True, verbose=False)
+    return jsonrpc.ServerProxy('http://%s:%d' % (address, port),
+                               verbose=False)
+
+
+class MyJSONRPCRequestHandler(SimpleJSONRPCServer.SimpleJSONRPCRequestHandler):
+    def do_GET(self):
+        logging.warn("HTTP request for path %s" % self.path)
+
+        handler = self.server.handlers.get(self.path)
+        if handler:
+            return handler(self)
+
+        if self.path == "/":
+            self.path = "/index.html"
+
+        if ".." in self.path.split("/"):
+            logging.warn("Invalid path")
+            self.send_response(404)
+            return
+
+        mime_type = mimetypes.guess_type(self.path)
+        if not mime_type:
+            logging.warn("Unable to guess MIME type")
+            self.send_response(404)
+            return
+
+        local_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                  "static",
+                                  self.path.lstrip("/"))
+        if not os.path.exists(local_path):
+            logging.warn("File not found: %s" % local_path)
+            self.send_response(404)
+            return
+
+        self.send_response(200)
+        self.send_header("Content-Type", mime_type[0])
+        self.send_header("Content-Length", os.path.getsize(local_path))
+        self.end_headers()
+        with open(local_path) as f:
+            shutil.copyfileobj(f, self.wfile)
+
+
+class ThreadedJSONRPCServer(SocketServer.ThreadingMixIn,
+                            SimpleJSONRPCServer.SimpleJSONRPCServer):
+    '''The JSON/RPC server.
+
+    Properties:
+        handlers: A map from URLs to callbacks handling them.  (The callback
+            takes a single argument: the request to handle.)
+    '''
+    def __init__(self, *args, **kwargs):
+        SimpleJSONRPCServer.SimpleJSONRPCServer.__init__(self, *args, **kwargs)
+        self.handlers = {}
+
+    def add_handler(self, url, callback):
+        self.handlers[url] = callback
 
 
 def create_server(state_file_path=None, bind_address=None, port=None):
     '''
-    Creates a FactoryState object and an XML/RPC server to serve it.
+    Creates a FactoryState object and an JSON/RPC server to serve it.
 
     @param state_file_path: The path containing the saved state.
     @param bind_address: Address to bind to, defaulting to
         DEFAULT_FACTORY_STATE_BIND_ADDRESS.
     @param port: Port to bind to, defaulting to DEFAULT_FACTORY_STATE_PORT.
-    @return A tuple of the FactoryState instance and the SimpleXMLRPCServer
+    @return A tuple of the FactoryState instance and the SimpleJSONRPCServer
         instance.
     '''
+    # We have some icons in SVG format, but this isn't recognized in
+    # the standard Python mimetypes set.
+    mimetypes.add_type('image/svg+xml', '.svg')
+
     if not bind_address:
         bind_address = DEFAULT_FACTORY_STATE_BIND_ADDRESS
     if not port:
         port = DEFAULT_FACTORY_STATE_PORT
     instance = FactoryState(state_file_path)
-    server = SimpleXMLRPCServer.SimpleXMLRPCServer((bind_address, port),
-                                                   allow_none=True,
-                                                   logRequests=False)
+    server = ThreadedJSONRPCServer(
+        (bind_address, port),
+        requestHandler=MyJSONRPCRequestHandler,
+        logRequests=False)
+
     server.register_introspection_functions()
     server.register_instance(instance)
+    server.web_socket_handler = None
     return instance, server
