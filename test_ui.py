@@ -75,7 +75,10 @@ class UI(object):
     def run(self):
         '''Runs the test UI, waiting until the test completes.'''
         event = self.event_client.wait(
-            lambda event: event.type == Event.Type.END_TEST)
+            lambda event:
+                (event.type == Event.Type.END_TEST and
+                 event.invocation == self.invocation and
+                 event.test == self.test))
         logging.info('Received end test event %r', event)
         self.event_client.close()
 
