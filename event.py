@@ -83,6 +83,18 @@ class Event(object):
             # containing the same 'uuid' value received when the client received
             # its HELLO.
             'KEEPALIVE': 'goofy:keepalive',
+            # Sets the UI in the test pane.
+            'SET_HTML': 'goofy:set_html',
+            # Runs JavaScript in the test pane.
+            'RUN_JS': 'goofy:run_js',
+            # Calls a JavaScript function in the test pane.
+            'CALL_JS_FUNCTION': 'goofy:call_js_function',
+            # Event from a test UI.
+            'TEST_UI_EVENT': 'goofy:test_ui_event',
+            # Message from the test UI that it has finished.
+            'END_TEST': 'goofy:end_test',
+            # Message to tell the test UI to destroy itself.
+            'DESTROY_TEST': 'goofy:destroy_test',
             })
 
     def __init__(self, type, **kw):  # pylint: disable=W0622

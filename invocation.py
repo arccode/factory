@@ -14,11 +14,13 @@ import tempfile
 import threading
 import traceback
 import unittest
+import uuid
 from optparse import OptionParser
 from StringIO import StringIO
 
 import factory_common
 from autotest_lib.client.cros import factory
+from autotest_lib.client.cros.factory.event import Event
 from autotest_lib.client.cros.factory import TestState
 from autotest_lib.client.cros.factory import utils
 
@@ -49,7 +51,9 @@ class TestInvocation(object):
         self.thread = threading.Thread(target=self._run,
                                        name='TestInvocation-%s' % test.path)
         self.on_completion = on_completion
-
+        self.uuid = str(uuid.uuid4())
+        self.env_additions = {'CROS_FACTORY_TEST_PATH': self.test.path,
+                              'CROS_FACTORY_TEST_INVOCATION': self.uuid}
         self._lock = threading.Lock()
         # The following properties are guarded by the lock.
         self._aborted = False
@@ -147,8 +151,8 @@ class TestInvocation(object):
             with self._lock:
                 with self.goofy.env.lock:
                     self._process = self.goofy.env.spawn_autotest(
-                        self.test.autotest_name, args,
-                        {'CROS_FACTORY_TEST_PATH': self.test.path}, result_file)
+                        self.test.autotest_name, args, self.env_additions,
+                        result_file)
 
             returncode = self._process.wait()
             with self._lock:
@@ -225,17 +229,24 @@ class TestInvocation(object):
                              ' '.join([pipes.quote(arg) for arg in args]),
                              log_path)
 
-                pytest = subprocess.Popen(args,
-                                          stdin=open("/dev/null"),
-                                          stdout=log,
-                                          stderr=subprocess.STDOUT)
-                pytest.wait()
-                if pytest.returncode:
+                env = dict(os.environ)
+                env.update(self.env_additions)
+                with self._lock:
+                    if self._aborted:
+                        return TestState.FAILED, 'Aborted before starting'
+                    self._process = subprocess.Popen(
+                        args,
+                        env=env,
+                        stdin=open(os.devnull, "w"),
+                        stdout=log,
+                        stderr=subprocess.STDOUT)
+                self._process.wait()
+                with self._lock:
+                    if self._aborted:
+                        return TestState.FAILED, 'Aborted by operator'
+                if self._process.returncode:
                     return TestState.FAILED, (
                         'Test returned code %d' % pytest.returncode)
-            with self._lock:
-                if self._aborted:
-                    return TestState.FAILED, 'Aborted by operator'
 
             if not os.path.exists(results_path):
                 return TestState.FAILED, 'pytest did not complete'
@@ -264,13 +275,22 @@ class TestInvocation(object):
 
         factory.console.info('Running test %s' % self.test.path)
 
-        if self.test.autotest_name:
-            status, error_msg = self._invoke_autotest()
-        elif self.test.pytest_name:
-            status, error_msg = self._invoke_pytest()
-        else:
-            status = TestState.FAILED
-            error_msg = 'No autotest_name or pytest_name'
+        try:
+            if self.test.autotest_name:
+                status, error_msg = self._invoke_autotest()
+            elif self.test.pytest_name:
+                status, error_msg = self._invoke_pytest()
+            else:
+                status = TestState.FAILED
+                error_msg = 'No autotest_name or pytest_name'
+        finally:
+            try:
+                self.goofy.event_client.post_event(
+                    Event(Event.Type.DESTROY_TEST,
+                          test=self.test.path,
+                          invocation=self.uuid))
+            except:
+                logging.exception('Unable to post END_TEST event')
 
         factory.console.info('Test %s %s%s',
                              self.test.path,
