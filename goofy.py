@@ -273,7 +273,7 @@ class Goofy(object):
             be run).'''
             try:
                 path = event.path
-            except KeyError:
+            except AttributeError:
                 path = None
 
             if path:
