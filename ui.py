@@ -293,6 +293,10 @@ def make_countdown_widget(prompt=None, value=None, fg=LIGHT_GREEN):
     return eb, countdown
 
 
+def is_chrome_ui():
+    return os.environ.get('CROS_UI') == 'chrome'
+
+
 def hide_cursor(gdk_window):
     pixmap = gtk.gdk.Pixmap(None, 1, 1, 1)
     color = gtk.gdk.Color()
@@ -470,10 +474,17 @@ def run_test_widget(dummy_job, test_widget,
     window.modify_bg(gtk.STATE_NORMAL, BLACK)
     window.set_size_request(*test_widget_size)
 
+    test_widget_position = factory.get_shared_data('test_widget_position')
+    if test_widget_position:
+        window.move(*test_widget_position)
+
     def show_window():
         window.show()
         window.window.raise_()  # pylint: disable=E1101
-        gtk.gdk.pointer_grab(window.window, confine_to=window.window)
+        if is_chrome_ui():
+            window.present()
+        else:
+            gtk.gdk.pointer_grab(window.window, confine_to=window.window)
         if invisible_cursor:
             hide_cursor(window.window)
 
@@ -526,7 +537,8 @@ def run_test_widget(dummy_job, test_widget,
 
     gtk.main()
 
-    gtk.gdk.pointer_ungrab()
+    if not is_chrome_ui():
+        gtk.gdk.pointer_ungrab()
 
     if cleanup_callback is not None:
         cleanup_callback()

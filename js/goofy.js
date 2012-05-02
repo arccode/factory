@@ -279,6 +279,14 @@ cros.factory.Goofy.prototype.initSplitPanes = function() {
             mainAndConsole.setFirstComponentSize(
                 mainAndConsole.getFirstComponentSize());
             propagate = true;
+
+            var rect = mainComponent.getElement().getBoundingClientRect();
+            this.sendRpc('set_shared_data',
+                         ['test_widget_size',
+                          [rect.width, rect.height],
+                          'test_widget_position',
+                          [rect.left, rect.top]],
+                         function(unused) {});
         }, false, this);
     mainAndConsole.setFirstComponentSize(
         mainAndConsole.getFirstComponentSize());

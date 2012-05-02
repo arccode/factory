@@ -69,8 +69,12 @@ body {
 #goofy-control, #goofy-main-and-console .goog-splitpane-second-container {
   overflow: auto;
 }
-#goofy-main, #goofy-console {
+#goofy-console {
   padding: .5em;
+}
+#goofy-main {
+  left: 0; top: 0;
+  width: 100%; height: 100%;
 }
 #goofy-main iframe {
   position: absolute;

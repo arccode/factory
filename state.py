@@ -177,11 +177,18 @@ class FactoryState(object):
         return self.test_list.to_struct()
 
     @_synchronized
-    def set_shared_data(self, key, value):
+    def set_shared_data(self, *key_value_pairs):
         '''
-        Sets a shared data item.
+        Sets shared data items.
+
+        Args:
+            key_value_pairs: A series of alternating keys and values
+                (k1, v1, k2, v2...).  In the simple case this can just
+                be a single key and value.
         '''
-        self._data_shelf[key] = value
+        assert len(key_value_pairs) % 2 == 0, repr(key_value_pairs)
+        for i in range(0, len(key_value_pairs), 2):
+            self._data_shelf[key_value_pairs[i]] = key_value_pairs[i + 1]
         self._data_shelf.sync()
 
     @_synchronized

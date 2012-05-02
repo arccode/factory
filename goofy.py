@@ -658,13 +658,25 @@ class Goofy(object):
         self.init_states()
         self.start_event_server()
 
-        if self.options.ui == 'chrome':
-            # TODO(jsalz): Get dynamically from UI
-            self.state_instance.set_shared_data('test_widget_size', (975,600))
+        # Set CROS_UI since some behaviors in ui.py depend on the
+        # particular UI in use.  TODO(jsalz): Remove this (and all
+        # places it is used) when the GTK UI is removed.
+        os.environ['CROS_UI'] = self.options.ui
 
+        if self.options.ui == 'chrome':
             self.env.launch_chrome()
             logging.info('Waiting for a web socket connection')
             self.web_socket_manager.wait()
+
+            # Wait for the test widget size to be set; this is done in
+            # an asynchronous RPC so there is a small chance that the
+            # web socket might be opened first.
+            for i in range(100):  # 10 s
+                if self.state_instance.get_shared_data('test_widget_size'):
+                    break
+                time.sleep(0.1)  # 100 ms
+            else:
+                logging.warn('Never received test_widget_size from UI')
         elif self.options.ui == 'gtk':
             self.start_ui()
 
