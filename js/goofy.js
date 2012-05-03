@@ -40,7 +40,8 @@ cros.factory.DEBUG_WINDOW_ENABLED = true;
 cros.factory.AUTO_COLLAPSE = false;
 
 /**
- * Keep-alive interval for the WebSocket.
+ * Keep-alive interval for the WebSocket.  (Chrome times out
+ * WebSockets every ~1 min, so 30 s seems like a good interval.)
  * @const
  * @type number
  */
