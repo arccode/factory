@@ -957,7 +957,8 @@ def LegacyExport(config, data):
       print ('ERROR: legacy_export expects zero or one variants, '
              'hwid %s has %d.' % (hwid_str, len(variant_data)))
     for variant_value in variant_data:
-      export_data['part_id_keyboard'] = [variant_value]
+      export_data['part_id_keyboard'] = [
+        data.comp_db.registry['keyboard'][variant_value]]
     initial_config = device.initial_config_map[ic_reverse_map[bom]]
     for ic_class, ic_value in initial_config.items():
       export_data['version_' + ic_class] = [ic_value]
