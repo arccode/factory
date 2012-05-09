@@ -183,13 +183,17 @@ def make_label(message, font=LABEL_FONT, fg=LIGHT_GREEN,
 
 def make_status_row(init_prompt,
                     init_status,
-                    label_size=_LABEL_STATUS_ROW_SIZE):
+                    label_size=_LABEL_STATUS_ROW_SIZE,
+                    is_standard_status=True):
     """Returns a widget that live updates prompt and status in a row.
 
     Args:
         init_prompt: The prompt label text.
         init_status: The status label text.
         label_size: The desired size of the prompt label and the status label.
+        is_standard_status: True to interpret status by the values defined by
+            LABEL_COLORS, and render text by corresponding color. False to
+            display arbitrary text without changing text color.
 
     Returns:
         1) A dict whose content is linked by the widget.
@@ -198,6 +202,7 @@ def make_status_row(init_prompt,
     display_dict = {}
     display_dict['prompt'] = init_prompt
     display_dict['status'] = init_status
+    display_dict['is_standard_status'] = is_standard_status
 
     def prompt_label_expose(widget, event):
         prompt = display_dict['prompt']
@@ -206,7 +211,8 @@ def make_status_row(init_prompt,
     def status_label_expose(widget, event):
         status = display_dict['status']
         widget.set_text(status)
-        widget.modify_fg(gtk.STATE_NORMAL, LABEL_COLORS[status])
+        if is_standard_status:
+            widget.modify_fg(gtk.STATE_NORMAL, LABEL_COLORS[status])
 
     prompt_label = make_label(
             init_prompt, size=label_size,
@@ -214,7 +220,7 @@ def make_status_row(init_prompt,
     delimiter_label = make_label(':', alignment=(0, 0.5))
     status_label = make_label(
             init_status, size=label_size,
-            alignment=(0, 0.5), fg=LABEL_COLORS[init_status])
+            alignment=(0, 0.5))
 
     widget = gtk.HBox()
     widget.pack_end(status_label, False, False)
