@@ -25,7 +25,7 @@ SCRIPT_DIR="$(dirname $0)"
 STATEFUL_PARTITION="/mnt/stateful_partition"
 WIPE_TAG_FILE="$STATEFUL_PARTITION/factory_install_reset"
 SPLASH_FILE="$STATEFUL_PARTITION/wipe_splash.png"
-SPLASH_SOURCE="$SCRIPT_DIR/wipe_splash.png"
+SPLASH_SOURCE="$SCRIPT_DIR/../misc/wipe_splash.png"
 TAGS="factory"
 
 # usage: enable_kernel partition_no

@@ -60,7 +60,7 @@ def GetReleaseKernelPartitionPath():
 
 
 def FindScript(script_name):
-  script_path = os.path.join(sys.path[0], script_name)
+  script_path = os.path.join(sys.path[0], 'sh', script_name)
   if not os.path.exists(script_path):
     raise Error('Needed script %s does not exist.' % script_path)
   return script_path
@@ -171,7 +171,7 @@ def VerifyHwid(options):
 @Command('verify_keys')
 def VerifyKeys(options):
   """Verify keys in firmware and SSD match."""
-  script = FindScript('gft_verify_keys.sh')
+  script = FindScript('verify_keys.sh')
   kernel_device = GetReleaseKernelPartitionPath()
   main_fw_file = crosfw.LoadMainFirmware().GetFileName()
   result = Shell('%s %s %s' % (script, kernel_device, main_fw_file))
@@ -208,7 +208,7 @@ def SetFirmwareBitmapLocale(options):
 @Command('verify_system_time')
 def VerifySystemTime(options):
   """Verify system time is later than release filesystem creation time."""
-  script = FindScript('gft_verify_system_time.sh')
+  script = FindScript('verify_system_time.sh')
   rootfs_device = GetReleaseRootPartitionPath()
   result = Shell('%s %s' % (script, rootfs_device))
   if not result.success:
@@ -218,7 +218,7 @@ def VerifySystemTime(options):
 @Command('verify_rootfs')
 def VerifyRootFs(options):
   """Verify rootfs on SSD is valid by checking hash."""
-  script = FindScript('gft_verify_rootfs.sh')
+  script = FindScript('verify_rootfs.sh')
   rootfs_device = GetReleaseRootPartitionPath()
   result = Shell('%s %s' % (script, rootfs_device))
   if not result.success:
@@ -279,7 +279,7 @@ def ClearGbbFlags(options):
   No GBB flags are set in release/shipping state, but they are useful
   for factory/development.  See "gbb_utility --flags" for details.
   """
-  script = FindScript('gft_clear_gbb_flags.sh')
+  script = FindScript('clear_gbb_flags.sh')
   result = Shell(script)
   if not result.success:
     raise Error, '%r failed, stderr: %r' % (script, result.stderr)
@@ -290,7 +290,7 @@ def ClearGbbFlags(options):
                 help='use non-secure but faster wipe method.'))
 def PrepareWipe(options):
   """Prepare system for transition to release state in next reboot."""
-  script = FindScript('gft_prepare_wipe.sh')
+  script = FindScript('prepare_wipe.sh')
   tag = 'fast' if options.fast else ''
   rootfs_device = GetReleaseRootPartitionPath()
   result = Shell('FACTORY_WIPE_TAGS=%s %s %s' % (tag, script, rootfs_device))
