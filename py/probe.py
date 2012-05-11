@@ -437,7 +437,7 @@ def _ProbeDisplayPanel():
                  for path in glob('/sys/class/drm/*LVDS*/edid'))
   _LoadKernelModule('i2c_dev')
   edid_set |= set(edid.LoadFromI2c(path)
-                  for path in sorted(glob('/dev/i2c-?')))
+                  for path in sorted(glob('/dev/i2c-[0-9]*')))
   edid_set -= set([None])
   return ' ; '.join(sorted(edid_set)) if edid_set else None
 
