@@ -659,6 +659,9 @@ class Goofy(object):
         self.options.test_list = (self.options.test_list or find_test_list())
         self.test_list = factory.read_test_list(self.options.test_list,
                                                 self.state_instance)
+        if not self.state_instance.has_shared_data('ui_lang'):
+            self.state_instance.set_shared_data('ui_lang',
+                                                self.test_list.options.ui_lang)
         logging.info('TEST_LIST:\n%s', self.test_list.__repr__(recursive=True))
         self.state_instance.test_list = self.test_list
 

@@ -233,6 +233,9 @@ class Options(object):
     # Perform an implicit auto-run when the user switches to any test?
     auto_run_on_keypress = False
 
+    # Default UI language
+    ui_lang = 'en'
+
     def check_valid(self):
         '''Throws a TestListError if there are any invalid options.'''
         # Make sure no errant options, or options with weird types,

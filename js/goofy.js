@@ -303,8 +303,7 @@ cros.factory.Goofy.prototype.initSplitPanes = function() {
                                             rect.height * uiScaleFactor],
                                            'test_widget_position',
                                            [rect.left * uiScaleFactor,
-                                            rect.top * uiScaleFactor]],
-                                          function(unused) {});
+                                            rect.top * uiScaleFactor]]);
                          });
         }, false, this);
     mainAndConsole.setFirstComponentSize(
@@ -377,8 +376,15 @@ cros.factory.Goofy.prototype.initLanguageSelector = function() {
         function(event) {
             this.zhMode = !this.zhMode;
             this.updateLanguage();
+            this.sendRpc('set_shared_data',
+                         ['ui_lang', this.zhMode ? 'zh' : 'en']);
         }, false, this);
+
     this.updateLanguage();
+    this.sendRpc('get_shared_data', ['ui_lang'], function(lang) {
+            this.zhMode = lang == 'zh';
+            this.updateLanguage();
+        });
 };
 
 /**
@@ -785,7 +791,7 @@ cros.factory.Goofy.prototype.sendEvent = function(type, properties) {
 /**
  * Calls an RPC function and invokes callback with the result.
  * @param {Object} args
- * @param {Object} callback
+ * @param {Object=} callback
  */
 cros.factory.Goofy.prototype.sendRpc = function(method, args, callback) {
     var request = goog.json.serialize({method: method, params: args, id: 1});
@@ -795,8 +801,11 @@ cros.factory.Goofy.prototype.sendRpc = function(method, args, callback) {
         '/', function() {
             cros.factory.logger.info('RPC response: ' + this.getResponseText());
             // TODO(jsalz): handle errors
-            callback.call(factoryThis,
-                          goog.json.unsafeParse(this.getResponseText()).result);
+            if (callback) {
+                callback.call(
+                    factoryThis,
+                    goog.json.unsafeParse(this.getResponseText()).result);
+            }
         },
         'POST', request);
 };
