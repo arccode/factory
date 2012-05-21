@@ -7,7 +7,30 @@ set -e
 SCRIPT_BASE="$(readlink -f "$(dirname "$0")")"
 FACTORY_LOG_FILE=/var/log/factory.log
 
+SUITE_FACTORY="$(dirname "$0")"/../../site_tests/suite_Factory
+BOARD_SETUP="$(readlink -f "$SUITE_FACTORY")/board_setup_factory.sh"
+
+# Default args for Goofy.
+GOOFY_ARGS=""
+
+# Default implementation for factory_setup (no-op).  May be overriden
+# by board_setup_factory.sh.
+factory_setup() {
+    true
+}
+
+load_setup() {
+  # Load board-specific parameters, if any.
+  if [ -s $BOARD_SETUP ]; then
+    echo "Loading board-specific parameters..." 1>&2
+    . $BOARD_SETUP
+  fi
+
+  factory_setup
+}
+
 start_factory() {
+  load_setup
   echo "
     Starting factory program...
 
@@ -25,10 +48,11 @@ start_factory() {
   # This script should be located in .../autotest/cros/factory.
   cd "$SCRIPT_BASE/../.."
   eval "$("$SCRIPT_BASE/startx.sh" 2>/var/log/startx.err)"
-  "$SCRIPT_BASE/goofy" >>"$FACTORY_LOG_FILE" 2>&1
+  "$SCRIPT_BASE/goofy" $GOOFY_ARGS >>"$FACTORY_LOG_FILE" 2>&1
 }
 
 stop_factory() {
+  load_setup
   # Try to kill X, and any other Python scripts, five times.
   echo -n "Stopping factory."
   for i in $(seq 5); do
