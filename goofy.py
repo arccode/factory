@@ -175,6 +175,8 @@ class DUTEnvironment(Environment):
             factory.get_log_root(),
             '--aura-host-window-use-fullscreen',
             '--kiosk',
+            ('--default-device-scale-factor=%d' %
+             self.goofy.options.ui_scale_factor),
             'http://localhost:%d/' % state.DEFAULT_FACTORY_STATE_PORT,
             ]
 
@@ -606,6 +608,10 @@ class Goofy(object):
                           choices=['none', 'gtk', 'chrome'],
                           default='gtk',
                           help='UI to use')
+        parser.add_option('--ui_scale_factor', dest='ui_scale_factor',
+                          type='int', default=1,
+                          help=('Factor by which to scale UI '
+                                '(Chrome UI only)'))
         parser.add_option('--test_list', dest='test_list',
                           metavar='FILE',
                           help='Use FILE as test list')
@@ -646,8 +652,9 @@ class Goofy(object):
         logging.info('Started')
 
         self.start_state_server()
-        # Update HWID configuration tag.
         self.state_instance.set_shared_data('hwid_cfg', get_hwid_cfg())
+        self.state_instance.set_shared_data('ui_scale_factor',
+                                            self.options.ui_scale_factor)
 
         self.options.test_list = (self.options.test_list or find_test_list())
         self.test_list = factory.read_test_list(self.options.test_list,
@@ -672,8 +679,11 @@ class Goofy(object):
             # an asynchronous RPC so there is a small chance that the
             # web socket might be opened first.
             for i in range(100):  # 10 s
-                if self.state_instance.get_shared_data('test_widget_size'):
-                    break
+                try:
+                    if self.state_instance.get_shared_data('test_widget_size'):
+                        break
+                except KeyError:
+                    pass  # Retry
                 time.sleep(0.1)  # 100 ms
             else:
                 logging.warn('Never received test_widget_size from UI')

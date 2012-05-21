@@ -48,6 +48,18 @@ cros.factory.AUTO_COLLAPSE = false;
 cros.factory.KEEP_ALIVE_INTERVAL_MSEC = 30000;
 
 /**
+ * Width of the control panel, as a fraction of the viewport size.
+ * @type number
+ */
+cros.factory.CONTROL_PANEL_WIDTH_FRACTION = 0.2;
+
+/**
+ * Height of the log pane, as a fraction of the viewport size.
+ * @type number
+ */
+cros.factory.LOG_PANE_HEIGHT_FRACTION = 0.2;
+
+/**
  * An item in the test list.
  * @typedef {{path: string, label_en: string, label_zh: string,
  *            kbd_shortcut: string, subtests: Array}}
@@ -246,20 +258,21 @@ cros.factory.Goofy = function() {
  * Initializes the split panes.
  */
 cros.factory.Goofy.prototype.initSplitPanes = function() {
+    var viewportSize = goog.dom.getViewportSize(goog.dom.getWindow(document));
     var mainComponent = new goog.ui.Component();
     var consoleComponent = new goog.ui.Component();
     var mainAndConsole = new goog.ui.SplitPane(
         mainComponent, consoleComponent,
         goog.ui.SplitPane.Orientation.VERTICAL);
-    var viewportHeight = goog.dom.getViewportSize(
-        goog.dom.getWindow(document) || window).height;
-    mainAndConsole.setInitialSize(viewportHeight - 200);
+    mainAndConsole.setInitialSize(viewportSize.height *
+                                  (1 - cros.factory.LOG_PANE_HEIGHT_FRACTION));
 
     var controlComponent = new goog.ui.Component();
     var topSplitPane = new goog.ui.SplitPane(
         controlComponent, mainAndConsole,
         goog.ui.SplitPane.Orientation.HORIZONTAL);
-    topSplitPane.setInitialSize(300);
+    topSplitPane.setInitialSize(viewportSize.width *
+                                cros.factory.CONTROL_PANEL_WIDTH_FRACTION);
     topSplitPane.decorate(document.getElementById('goofy-splitpane'));
 
     mainComponent.getElement().id = 'goofy-main';
@@ -282,12 +295,17 @@ cros.factory.Goofy.prototype.initSplitPanes = function() {
             propagate = true;
 
             var rect = mainComponent.getElement().getBoundingClientRect();
-            this.sendRpc('set_shared_data',
-                         ['test_widget_size',
-                          [rect.width, rect.height],
-                          'test_widget_position',
-                          [rect.left, rect.top]],
-                         function(unused) {});
+            this.sendRpc('get_shared_data', ['ui_scale_factor'],
+                         function(uiScaleFactor) {
+                             this.sendRpc('set_shared_data',
+                                          ['test_widget_size',
+                                           [rect.width * uiScaleFactor,
+                                            rect.height * uiScaleFactor],
+                                           'test_widget_position',
+                                           [rect.left * uiScaleFactor,
+                                            rect.top * uiScaleFactor]],
+                                          function(unused) {});
+                         });
         }, false, this);
     mainAndConsole.setFirstComponentSize(
         mainAndConsole.getFirstComponentSize());
@@ -548,7 +566,10 @@ cros.factory.Goofy.prototype.showTestPopup = function(path, labelElement) {
                        function(event) {
                            this.showTestLogs(allPaths);
                        }, true, this);
-    menu.addChild(item, true);
+    // Disable 'Show test logs...' for now since it is presented
+    // behind the running test; we'd need to hide test to show it
+    // properly.  TODO(jsalz): Re-enable.
+    // menu.addChild(item, true);
 
     menu.render(document.body);
     menu.showAtElement(labelElement,
