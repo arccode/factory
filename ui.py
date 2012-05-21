@@ -489,10 +489,11 @@ def run_test_widget(dummy_job, test_widget,
         window.window.raise_()  # pylint: disable=E1101
         if is_chrome_ui():
             window.present()
+            window.window.set_cursor(gtk.gdk.Cursor(gtk.gdk.LEFT_PTR))
         else:
             gtk.gdk.pointer_grab(window.window, confine_to=window.window)
-        if invisible_cursor:
-            hide_cursor(window.window)
+            if invisible_cursor:
+                hide_cursor(window.window)
 
     test_path = factory.get_current_test_path()
 
