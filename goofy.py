@@ -42,6 +42,7 @@ from autotest_lib.client.cros.factory import utils
 from autotest_lib.client.cros.factory.event import Event
 from autotest_lib.client.cros.factory.event import EventClient
 from autotest_lib.client.cros.factory.event import EventServer
+from autotest_lib.client.cros.factory.event_log import EventLog
 from autotest_lib.client.cros.factory.invocation import TestInvocation
 from autotest_lib.client.cros.factory.web_socket_manager import WebSocketManager
 
@@ -257,6 +258,7 @@ class Goofy(object):
         self.event_server = None
         self.event_server_thread = None
         self.event_client = None
+        self.event_log = None
         self.prespawner = None
         self.ui_process = None
         self.run_queue = Queue.Queue()
@@ -331,6 +333,9 @@ class Goofy(object):
             logging.info('Closing event client')
             self.event_client.close()
             self.event_client = None
+        if self.event_log:
+            self.event_log.Close()
+            self.event_log = None
         self.check_exceptions()
         logging.info('Done destroying Goofy')
 
@@ -582,7 +587,20 @@ class Goofy(object):
         self.kill_active_tests(True)
 
     def main(self):
-        self.init()
+        try:
+            self.init()
+            self.event_log.AppendEvent('init',
+                                       success=True)
+        except:
+            if self.event_log:
+                try:
+                    self.event_log.AppendEvent('init',
+                                               success=False,
+                                               trace=traceback.format_exc())
+                except:
+                    pass
+            raise
+
         self.run()
 
     def init(self, args=None, env=None):
@@ -621,6 +639,7 @@ class Goofy(object):
         if not _inited_logging:
             factory.init_logging('goofy', verbose=self.options.verbose)
             _inited_logging = True
+        self.event_log = EventLog('goofy')
 
         if (not suppress_chroot_warning and
             factory.in_chroot() and
