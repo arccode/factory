@@ -37,17 +37,23 @@ def GetPrimaryDevicePath(partition=None):
             open(sysfs_path).read().strip() == '0')
   alpha_re = re.compile(r'^/dev/([a-zA-Z]+)[0-9]+$')
   alnum_re = re.compile(r'^/dev/([a-zA-Z]+[0-9]+)p[0-9]+$')
-  dev_set = set(
-      dev
-      for path in Shell('cgpt find -t rootfs').stdout.strip().split()
-      for dev in alpha_re.findall(path) + alnum_re.findall(path)
-      if IsFixed(dev))
+  matched_alnum = False
+  dev_set = set()
+  for path in Shell('cgpt find -t rootfs').stdout.strip().split():
+    for dev in alpha_re.findall(path):
+      if IsFixed(dev):
+        dev_set.add(dev)
+        matched_alnum = False
+    for dev in alnum_re.findall(path):
+      if IsFixed(dev):
+        dev_set.add(dev)
+        matched_alnum = True
   if len(dev_set) != 1:
     raise Error('zero or multiple primary devs: %s' % dev_set)
   dev_path = os.path.join('/dev', dev_set.pop())
   if partition is None:
     return dev_path
-  fmt_str = '%sp%d' if alnum_re.match(dev_path) else '%s%d'
+  fmt_str = '%sp%d' if matched_alnum else '%s%d'
   return fmt_str % (dev_path, partition)
 
 
@@ -60,7 +66,7 @@ def GetReleaseKernelPartitionPath():
 
 
 def FindScript(script_name):
-  script_path = os.path.join(sys.path[0], 'sh', script_name)
+  script_path = os.path.join(os.path.dirname(sys.path[0]), 'sh', script_name)
   if not os.path.exists(script_path):
     raise Error('Needed script %s does not exist.' % script_path)
   return script_path
