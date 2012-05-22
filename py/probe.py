@@ -365,6 +365,11 @@ def _ProbeCellular():
   return _FlimflamDevices.ReadSysfsDeviceIds('cellular')
 
 
+@_ComponentProbe('wimax')
+def _ProbeWimax():
+  return _FlimflamDevices.ReadSysfsDeviceIds('wimax')
+
+
 @_ComponentProbe('display_converter')
 def _ProbeDisplayConverter():
   """Try brand-specific probes, return the first viable result."""
