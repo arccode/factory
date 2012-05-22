@@ -95,6 +95,10 @@ class Event(object):
             'END_TEST': 'goofy:end_test',
             # Message to tell the test UI to destroy itself.
             'DESTROY_TEST': 'goofy:destroy_test',
+            # Message telling Goofy should re-read system info.
+            'UPDATE_SYSTEM_INFO': 'goofy:update_system_info',
+            # Message containing new system info from Goofy.
+            'SYSTEM_INFO': 'goofy:system_info',
             })
 
     def __init__(self, type, **kw):  # pylint: disable=W0622

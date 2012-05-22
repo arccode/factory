@@ -60,6 +60,34 @@ cros.factory.CONTROL_PANEL_WIDTH_FRACTION = 0.2;
 cros.factory.LOG_PANE_HEIGHT_FRACTION = 0.2;
 
 /**
+ * Makes a label that displays English (or optionally Chinese).
+ * @param {string} en
+ * @param {string=} zh
+ */
+cros.factory.Label = function(en, zh) {
+    return '<span class="goofy-label-en">' + en + '</span>' +
+      '<span class="goofy-label-zh">' + (zh || en) + '</span>';
+};
+
+/**
+ * Labels for items in system info.
+ * @type Array.<Object.<string, string>>
+ */
+cros.factory.SYSTEM_INFO_LABELS = [
+    {key: 'device_serial_number', label: cros.factory.Label('Serial Number')},
+    {key: 'wlan0_mac', label: cros.factory.Label('WLAN MAC')},
+    {key: 'kernel_version', label: cros.factory.Label('Kernel')},
+    {key: 'ec_version', label: cros.factory.Label('EC')},
+    {key: 'firmware_version', label: cros.factory.Label('Firmware')},
+    {key: 'factory_image', label: cros.factory.Label('Factory Image')},
+    {key: 'release_image', label: cros.factory.Label('Release Image')},
+    {key: 'factory_md5sum', label: cros.factory.Label('Factory MD5SUM')}
+                                   ];
+
+cros.factory.UNKNOWN_LABEL = '<span class="goofy-unknown">' +
+    cros.factory.Label('Unknown') + '</span>';
+
+/**
  * An item in the test list.
  * @typedef {{path: string, label_en: string, label_zh: string,
  *            kbd_shortcut: string, subtests: Array}}
@@ -364,6 +392,7 @@ cros.factory.Goofy.prototype.init = function() {
 
     this.initWebSocket();
     this.sendRpc('get_test_list', [], this.setTestList);
+    this.sendRpc('get_shared_data', ['system_info'], this.setSystemInfo);
 };
 
 /**
@@ -414,6 +443,25 @@ cros.factory.Goofy.prototype.updateLanguage = function() {
     goog.dom.classes.enable(document.body, 'goofy-lang-en', !this.zhMode);
     goog.dom.classes.enable(document.body, 'goofy-lang-zh', this.zhMode);
 }
+
+/**
+ * Updates the system info tooltip.
+ * @param systemInfo Object.<string, string>
+ */
+cros.factory.Goofy.prototype.setSystemInfo = function(systemInfo) {
+    var table = [];
+    table.push('<table id="goofy-system-info">');
+    goog.array.forEach(cros.factory.SYSTEM_INFO_LABELS, function(item) {
+            var value = systemInfo[item.key] == undefined ?
+                cros.factory.UNKNOWN_LABEL :
+                goog.string.htmlEscape(systemInfo[item.key]);
+            table.push(
+                       '<tr><th>' + item.label + '</th><td>' + value +
+                       '</td></tr>');
+        });
+    table.push('</table>');
+    this.infoTooltip.setHtml(table.join(''));
+};
 
 /**
  * Handles a keyboard shortcut.
@@ -900,6 +948,8 @@ cros.factory.Goofy.prototype.handleBackendEvent = function(jsonMessage) {
         if (invocation) {
             invocation.dispose();
         }
+    } else if (message.type == 'goofy:system_info') {
+        this.setSystemInfo(message['system_info']);
     }
 };
 

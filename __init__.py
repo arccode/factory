@@ -152,8 +152,8 @@ def get_shared_data(key, default=None):
     return get_state_instance().get_shared_data(key)
 
 
-def set_shared_data(key, value):
-    return get_state_instance().set_shared_data(key, value)
+def set_shared_data(*key_value_pairs):
+    return get_state_instance().set_shared_data(*key_value_pairs)
 
 
 def has_shared_data(key):

@@ -27,8 +27,8 @@ from autotest_lib.client.cros.factory import goofy
 from autotest_lib.client.cros.factory import state
 from autotest_lib.client.cros.factory import TestState
 from autotest_lib.client.cros.factory.event import Event
-from autotest_lib.client.cros.factory.goofy import Environment
 from autotest_lib.client.cros.factory.goofy import Goofy
+from autotest_lib.client.cros.factory.test_environment import Environment
 
 
 def init_goofy(env=None, test_list=None, options='', restart=True, ui='none'):
@@ -185,6 +185,10 @@ class WebSocketTest(GoofyTest):
 
         def open_web_socket():
             ws.connect()
+            # Simulate setting the test widget size/position, since goofy
+            # waits for it.
+            factory.set_shared_data('test_widget_size', [100, 200],
+                                    'test_widget_position', [300, 400])
             ws.run()
             self.ws_done.set()
         self.env.launch_chrome().WithSideEffects(

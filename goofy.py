@@ -13,7 +13,6 @@ The main factory flow that runs the factory test and finalizes a device.
 import array
 import fcntl
 import glob
-import hashlib
 import logging
 import os
 import cPickle as pickle
@@ -44,6 +43,7 @@ from autotest_lib.client.cros.factory.event import EventClient
 from autotest_lib.client.cros.factory.event import EventServer
 from autotest_lib.client.cros.factory.event_log import EventLog
 from autotest_lib.client.cros.factory.invocation import TestInvocation
+from autotest_lib.client.cros.factory import test_environment
 from autotest_lib.client.cros.factory.web_socket_manager import WebSocketManager
 
 
@@ -104,116 +104,6 @@ def find_test_list():
         logging.info('Using default test list: ' + test_list)
         return test_list
     logging.info('ERROR: Cannot find any test list.')
-
-
-class Environment(object):
-    '''
-    Abstract base class for external test operations, e.g., run an autotest,
-    shutdown, or reboot.
-
-    The Environment is assumed not to be thread-safe: callers must grab the lock
-    before calling any methods.  This is primarily necessary because we mock out
-    this Environment with mox, and unfortunately mox is not thread-safe.
-    TODO(jsalz): Try to write a thread-safe wrapper for mox.
-    '''
-    lock = threading.Lock()
-
-    def shutdown(self, operation):
-        '''
-        Shuts the machine down (from a ShutdownStep).
-
-        Args:
-            operation: 'reboot' or 'halt'.
-
-        Returns:
-            True if Goofy should gracefully exit, or False if Goofy
-                should just consider the shutdown to have suceeded (e.g.,
-                in the chroot).
-        '''
-        raise NotImplementedError()
-
-    def launch_chrome(self):
-        '''
-        Launches Chrome.
-
-        Returns:
-            The Chrome subprocess (or None if none).
-        '''
-        raise NotImplementedError()
-
-    def spawn_autotest(self, name, args, env_additions, result_file):
-        '''
-        Spawns a process to run an autotest.
-
-        Args:
-            name: Name of the autotest to spawn.
-            args: Command-line arguments.
-            env_additions: Additions to the environment.
-            result_file: Expected location of the result file.
-        '''
-        raise NotImplementedError()
-
-
-class DUTEnvironment(Environment):
-    '''
-    A real environment on a device under test.
-    '''
-    def shutdown(self, operation):
-        assert operation in ['reboot', 'halt']
-        logging.info('Shutting down: %s', operation)
-        subprocess.check_call('sync')
-        subprocess.check_call(operation)
-        time.sleep(30)
-        assert False, 'Never reached (should %s)' % operation
-
-    def spawn_autotest(self, name, args, env_additions, result_file):
-        return self.goofy.prespawner.spawn(args, env_additions)
-
-    def launch_chrome(self):
-        chrome_command = [
-            '/opt/google/chrome/chrome',
-            '--user-data-dir=%s/factory-chrome-datadir' %
-            factory.get_log_root(),
-            '--aura-host-window-use-fullscreen',
-            '--kiosk',
-            ('--default-device-scale-factor=%d' %
-             self.goofy.options.ui_scale_factor),
-            'http://localhost:%d/' % state.DEFAULT_FACTORY_STATE_PORT,
-            ]
-
-        chrome_log = os.path.join(factory.get_log_root(), 'factory.chrome.log')
-        chrome_log_file = open(chrome_log, "a")
-        logging.info('Launching Chrome; logs in %s' % chrome_log)
-        return subprocess.Popen(chrome_command,
-                                stdout=chrome_log_file,
-                                stderr=subprocess.STDOUT)
-
-class FakeChrootEnvironment(Environment):
-    '''
-    A chroot environment that doesn't actually shutdown or run autotests.
-    '''
-    def shutdown(self, operation):
-        assert operation in ['reboot', 'halt']
-        logging.warn('In chroot: skipping %s', operation)
-        return False
-
-    def spawn_autotest(self, name, args, env_additions, result_file):
-        logging.warn('In chroot: skipping autotest %s', name)
-        # Mark it as passed with 75% probability, or failed with 25%
-        # probability (depending on a hash of the autotest name).
-        pseudo_random = ord(hashlib.sha1(name).digest()[0]) / 256.0
-        passed = pseudo_random > .25
-
-        with open(result_file, 'w') as out:
-            pickle.dump((passed, '' if passed else 'Simulated failure'), out)
-        # Start a process that will return with a true exit status in
-        # 2 seconds (just like a happy autotest).
-        return subprocess.Popen(['sleep', '2'])
-
-    def launch_chrome(self):
-        logging.warn('In chroot; not launching Chrome. '
-                     'Please open http://localhost:%d/ in Chrome.',
-                     state.DEFAULT_FACTORY_STATE_PORT)
 
 
 _inited_logging = False
@@ -298,6 +188,8 @@ class Goofy(object):
                 lambda event: self.re_run_failed(root=test_or_root(event)),
             Event.Type.REVIEW:
                 lambda event: self.show_review_information(),
+            Event.Type.UPDATE_SYSTEM_INFO:
+                lambda event: self.update_system_info(),
         }
 
         self.exceptions = []
@@ -604,6 +496,14 @@ class Goofy(object):
 
         self.run()
 
+    def update_system_info(self):
+        '''Updates system info.'''
+        system_info = test_environment.SystemInfo(self.env, self.state_instance)
+        self.state_instance.set_shared_data('system_info', system_info.__dict__)
+        self.event_client.post_event(Event(Event.Type.SYSTEM_INFO,
+                                           system_info=system_info.__dict__))
+        logging.info('System info: %r', system_info.__dict__)
+
     def init(self, args=None, env=None):
         '''Initializes Goofy.
 
@@ -654,11 +554,11 @@ class Goofy(object):
         if env:
             self.env = env
         elif factory.in_chroot():
-            self.env = FakeChrootEnvironment()
+            self.env = test_environment.FakeChrootEnvironment()
             logging.warn(
                 'Using chroot environment: will not actually run autotests')
         else:
-            self.env = DUTEnvironment()
+            self.env = test_environment.DUTEnvironment()
         self.env.goofy = self
 
         if self.options.restart:
@@ -687,6 +587,8 @@ class Goofy(object):
 
         self.init_states()
         self.start_event_server()
+
+        self.update_system_info()
 
         # Set CROS_UI since some behaviors in ui.py depend on the
         # particular UI in use.  TODO(jsalz): Remove this (and all

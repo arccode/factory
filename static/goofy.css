@@ -175,9 +175,12 @@ dl.goofy-history {
   padding-right: 1em;
   padding-top: 1em;
 }
-#goofy-versions th, #goofy-versions td {
+#goofy-system-info th, #goofy-system-info td {
   text-align: left;
   padding: 0 .1em 0 .1em;
+}
+#goofy-system-info th {
+  padding-right: 1em;
 }
 #goofy-version th {
   text-wrap: none;
@@ -186,6 +189,10 @@ dl.goofy-history {
   position: absolute;
   right: 5px;
   bottom: 5px;
+}
+.goofy-unknown {
+  color: darkgray;
+  font-style: italic;
 }
 
 /* Elements in the console pane. */
