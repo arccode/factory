@@ -241,8 +241,18 @@ def VerifyWpSwitch(options):
 @Command('verify_switch_dev')
 def VerifyDevSwitch(options):
   """Verify developer switch is disabled."""
-  if Shell('crossystem devsw_cur').stdout.strip() != '0':
-    raise Error, 'developer mode is enabled'
+  result = Shell('crossystem devsw_cur')
+  if result.success:
+    if result.stdout.strip() != '0':
+      raise Error, 'developer mode is enabled'
+    else:
+      return
+  # Try ChromeOS-EC. This may hang 15 seconds if the EC does not respond.
+  logging.warn('VerifyDevSwitch: Trying ChromeOS-EC...')
+  if not Shell('ectool vboot 0').success:
+    raise Error, 'failed to turn off developer mode.'
+  # TODO(hungte) Verify if the switch is turned off properly, using "ectoo
+  # vboot" and parse the key-value pairs, when the names are determined.
 
 
 @Command('write_protect')
