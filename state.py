@@ -113,6 +113,18 @@ class FactoryState(object):
         if TestState not in jsonclass.supported_types:
             jsonclass.supported_types.append(TestState)
 
+    def close(self):
+        '''
+        Shuts down the state instance.
+        '''
+        for shelf in [self._tests_shelf,
+                      self._data_shelf,
+                      self._test_history_shelf]:
+            try:
+                shelf.close()
+            except:
+                logging.exception('Unable to close shelf')
+
     @_synchronized
     def update_test_state(self, path, **kw):
         '''

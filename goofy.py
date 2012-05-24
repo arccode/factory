@@ -215,6 +215,8 @@ class Goofy(object):
             self.state_server_thread.join()
             self.state_server.server_close()
             self.state_server_thread = None
+        if self.state_instance:
+            self.state_instance.close()
         if self.event_server_thread:
             logging.info('Stopping event server')
             self.event_server.shutdown()  # pylint: disable=E1101
