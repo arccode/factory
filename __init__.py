@@ -568,10 +568,10 @@ class FactoryTest(object):
                 self.parent and
                 (self.parent == self.root or self.parent.is_group()))
 
-    def get_top_level_parent(self):
-        if self.is_top_level_test() or not self.parent:
+    def get_top_level_parent_or_group(self):
+        if self.is_group() or self.is_top_level_test() or not self.parent:
             return self
-        return self.parent.get_top_level_parent()
+        return self.parent.get_top_level_parent_or_group()
 
     def get_top_level_tests(self):
         '''

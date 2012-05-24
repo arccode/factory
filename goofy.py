@@ -281,7 +281,8 @@ class Goofy(object):
                 path = None
 
             if path:
-                return self.test_list.lookup_path(path).get_top_level_parent()
+                return (self.test_list.lookup_path(path).
+                        get_top_level_parent_or_group())
             else:
                 return self.test_list
 
