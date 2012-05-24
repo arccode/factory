@@ -424,7 +424,7 @@ cros.factory.Goofy.prototype.handleShortcut = function(key) {
         var test = this.pathTestMap[path];
         if (test.kbd_shortcut &&
             test.kbd_shortcut.toLowerCase() == key.toLowerCase()) {
-            this.sendEvent('goofy:show_or_run', {path: path});
+            this.sendEvent('goofy:restart_tests', {path: path});
             return;
         }
     }
