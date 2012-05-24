@@ -654,12 +654,13 @@ cros.factory.Goofy.prototype.updateTestToolTip =
 
     tooltip.setHtml('')
 
-    if (test.state.status != 'FAILED' || this.contextMenuVisible) {
+    var errorMsg = test.state['error_msg'];
+    if (test.state.status != 'FAILED' || this.contextMenuVisible || !errorMsg) {
         // Don't bother showing it.
         event.preventDefault();
     } else {
         // Show the last failure.
-        var lines = test.state['error_msg'].split('\n');
+        var lines = errorMsg.split('\n');
         var html = ('Failure in "' + test.label_en + '":' +
                     '<div class="goofy-test-failure">' +
                     goog.string.htmlEscape(lines.shift()) + '</span>');
@@ -672,15 +673,18 @@ cros.factory.Goofy.prototype.updateTestToolTip =
         }
 
         tooltip.setHtml(html);
-        var link = goog.dom.getElementByClass(
+
+        if (lines.length) {
+            var link = goog.dom.getElementByClass(
             'goofy-test-failure-detail-link', tooltip.getElement());
-        goog.events.listen(
-            link, goog.events.EventType.CLICK,
-            function(event) {
-                goog.dom.classes.add(tooltip.getElement(),
-                                     'goofy-test-failure-expanded');
-                tooltip.reposition();
-        }, true, this);
+            goog.events.listen(
+                link, goog.events.EventType.CLICK,
+                function(event) {
+                    goog.dom.classes.add(tooltip.getElement(),
+                                         'goofy-test-failure-expanded');
+                    tooltip.reposition();
+            }, true, this);
+        }
     }
 };
 
