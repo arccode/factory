@@ -20,6 +20,9 @@ UUID_RE = re.compile(r'^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-'
 
 
 class EventLogTest(unittest.TestCase):
+  def testGetBootId(self):
+    assert UUID_RE.match(event_log.GetBootId())
+
   def testGetDeviceId(self):
     device_id = event_log.GetDeviceId()
     assert (MAC_RE.match(device_id) or
@@ -57,12 +60,12 @@ class EventLogTest(unittest.TestCase):
                   e=['E1', {'E2': 'E3'}],
                   f=True,
                   g=u"<<<囧>>>".encode('utf-8'))
-    log.AppendEvent('event0', **event0)
-    log.AppendEvent('event1')
+    log.Log('event0', **event0)
+    log.Log('event1')
     log.Close()
 
     try:
-      log.AppendEvent('should-fail')
+      log.Log('should-fail')
       self.fail('Expected exception')
     except:
       pass
@@ -77,10 +80,12 @@ class EventLogTest(unittest.TestCase):
       del i['TIME']
 
     self.assertEqual(
-      ['EVENT', 'SEQ', 'device_id', 'filename', 'image_id', 'log_id'],
+      ['EVENT', 'SEQ', 'boot_id', 'device_id', 'filename', 'image_id',
+       'log_id'],
       sorted(log_data[0].keys()))
     self.assertEqual('preamble', log_data[0]['EVENT'])
     self.assertEqual(0, log_data[0]['SEQ'])
+    self.assertEqual(event_log.GetBootId(), log_data[0]['boot_id'])
     self.assertEqual(event_log.GetDeviceId(), log_data[0]['device_id'])
     self.assertEqual(event_log.GetImageId(), log_data[0]['image_id'])
     self.assertEqual(os.path.basename(log.path), log_data[0]['filename'])

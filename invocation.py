@@ -12,6 +12,7 @@ import re
 import subprocess
 import tempfile
 import threading
+import time
 import traceback
 import unittest
 import uuid
@@ -21,8 +22,13 @@ from StringIO import StringIO
 import factory_common
 from autotest_lib.client.cros import factory
 from autotest_lib.client.cros.factory.event import Event
+from autotest_lib.client.cros.factory import event_log
 from autotest_lib.client.cros.factory import TestState
 from autotest_lib.client.cros.factory import utils
+
+
+# Number of bytes to include from the log of a failed test.
+ERROR_LOG_TAIL_LENGTH = 8*1024
 
 
 class PyTestInfo(object):
@@ -51,9 +57,10 @@ class TestInvocation(object):
         self.thread = threading.Thread(target=self._run,
                                        name='TestInvocation-%s' % test.path)
         self.on_completion = on_completion
-        self.uuid = str(uuid.uuid4())
+        self.uuid = event_log.TimedUuid()
         self.env_additions = {'CROS_FACTORY_TEST_PATH': self.test.path,
                               'CROS_FACTORY_TEST_INVOCATION': self.uuid}
+        self.debug_log_path = None
         self._lock = threading.Lock()
         # The following properties are guarded by the lock.
         self._aborted = False
@@ -115,7 +122,11 @@ class TestInvocation(object):
         error_msg = 'Unknown'
 
         try:
-            output_dir = '%s/results/%s' % (factory.CLIENT_PATH, self.test.path)
+            output_dir = '%s/results/%s' % (factory.CLIENT_PATH,
+                                            self.test.path)
+            self.debug_log_path = os.path.join(
+                output_dir,
+                'results/default/debug/client.INFO')
             if not os.path.exists(output_dir):
                 os.makedirs(output_dir)
             tmp_dir = tempfile.mkdtemp(prefix='tmp', dir=output_dir)
@@ -275,6 +286,19 @@ class TestInvocation(object):
 
         factory.console.info('Running test %s' % self.test.path)
 
+        log_args = dict(
+            path=self.test.path,
+            # Use Python representation for dargs, since some elements
+            # may not be representable in YAML.
+            dargs=repr(self.test.dargs),
+            invocation=self.uuid)
+        if self.test.autotest_name:
+            log_args['autotest_name'] = self.test.autotest_name
+        if self.test.pytest_name:
+            log_args['pytest_name'] = self.test.pytest_name
+
+        self.goofy.event_log.Log('start_test', **log_args)
+        start_time = time.time()
         try:
             if self.test.autotest_name:
                 status, error_msg = self._invoke_autotest()
@@ -291,6 +315,26 @@ class TestInvocation(object):
                           invocation=self.uuid))
             except:
                 logging.exception('Unable to post END_TEST event')
+
+            try:
+                # Leave all items in log_args; this duplicates
+                # things but will make it easier to grok the output.
+                log_args.update(dict(status=status,
+                                     duration=time.time() - start_time))
+                if error_msg:
+                    log_args['error_msg'] = error_msg
+                if self.debug_log_path and os.path.exists(self.debug_log_path):
+                    try:
+                        debug_log_size = os.path.getsize(self.debug_log_path)
+                        offset = max(0, debug_log_size - ERROR_LOG_TAIL_LENGTH)
+                        with open(self.debug_log_path) as f:
+                            f.seek(offset)
+                            log_args['log_tail'] = f.read()
+                    except:
+                        logging.exception('Unable to read log tail')
+                self.goofy.event_log.Log('end_test', **log_args)
+            except:
+                logging.exception('Unable to log end_test event')
 
         factory.console.info('Test %s %s%s',
                              self.test.path,

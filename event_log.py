@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -16,6 +17,19 @@ from uuid import uuid4
 
 import factory_common
 from autotest_lib.client.cros import factory
+
+
+def TimedUuid():
+  """Returns a UUID that is roughly sorted by time.
+
+  The first 8 hexits are replaced by the current time in 100ths of a
+  second, mod 2**32.  This will roll over once every 490 days, but it
+  will cause UUIDs to be sorted by time in the vast majority of cases
+  (handy for ls'ing directories); and it still contains far more than
+  enough randomness to remain unique.
+  """
+  return ("%08x" % (int(time.time() * 100) & 0xFFFFFFFF) +
+          str(uuid4())[8:])
 
 
 def YamlDump(structured_data):
@@ -81,6 +95,11 @@ def GetDeviceId():
   return device_id
 
 
+def GetBootId():
+  """Returns the boot ID."""
+  return open("/proc/sys/kernel/random/boot_id", "r").read().strip()
+
+
 def GetImageId():
   """Returns the image ID.
 
@@ -135,7 +154,7 @@ class EventLog(object):
     self.prefix = prefix
     self.seq = 0
     self.lock = threading.Lock()
-    self.log_id = str(uuid4())
+    self.log_id = TimedUuid()
     filename = "%s-%s" % (prefix, self.log_id)
     if not os.path.exists(EVENT_LOG_DIR):
       try:
@@ -147,11 +166,12 @@ class EventLog(object):
     self.path = os.path.join(EVENT_LOG_DIR, filename)
     logging.info('Logging events for %s to %s', prefix, self.path)
     self.file = open(self.path, "w")
-    self.AppendEvent("preamble",
-                     log_id=self.log_id,
-                     device_id=GetDeviceId(),
-                     image_id=GetImageId(),
-                     filename=filename)
+    self.Log("preamble",
+             log_id=self.log_id,
+             boot_id=GetBootId(),
+             device_id=GetDeviceId(),
+             image_id=GetImageId(),
+             filename=filename)
 
   def Close(self):
     """Closes associated log file."""
@@ -159,7 +179,7 @@ class EventLog(object):
       self.file.close()
       self.file = None
 
-  def AppendEvent(self, event_name, **kwargs):
+  def Log(self, event_name, **kwargs):
     """Writes new event stanza to log file, with consistent metadata.
 
     Appends a stanza contain the following fields to the log:
@@ -176,8 +196,7 @@ class EventLog(object):
         data, eg string or int.
       kwargs: Dict of additional fields for inclusion in the event
         stanza.  Field keys must be alphanumeric and lowercase. Field
-        values can be flat (int or string) or structured (dict or list).
-        Dicts and lists will be automatically yaml-ified.  Other data
+        values will be automatically yaml-ified.  Other data
         types will result in a ValueError.
     """
     def TypeCheck(data):
@@ -188,10 +207,6 @@ class EventLog(object):
           TypeCheck(v)
       elif isinstance (data, list):
         map(TypeCheck, data)
-      elif not (isinstance(data, str) or isinstance(data, int) or
-                isinstance(data, bool)):
-        raise ValueError, ("values must be one of {dict, list, str, int, bool}"
-                           ", found %s" % type(data).__name__)
 
     with self.lock:
       if self.file is None:

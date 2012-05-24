@@ -13,6 +13,7 @@ import subprocess
 import threading
 import time
 
+from autotest_lib.client.cros import factory
 from autotest_lib.client.cros.factory import state
 
 
@@ -86,6 +87,8 @@ class DUTEnvironment(Environment):
             factory.get_log_root(),
             '--aura-host-window-use-fullscreen',
             '--kiosk',
+            ('--default-device-scale-factor=%d' %
+             self.goofy.options.ui_scale_factor),
             'http://localhost:%d/' % state.DEFAULT_FACTORY_STATE_PORT,
             ]
 

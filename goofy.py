@@ -303,6 +303,7 @@ class Goofy(object):
                 error_msg='Shutdown aborted with double shift keys')
         else:
             # Need to shutdown again
+            self.event_log.Log('shutdown', operation='reboot')
             self.env.shutdown('reboot')
 
     def init_states(self):
@@ -390,6 +391,7 @@ class Goofy(object):
                     [t.path for t in self.tests_to_run])
 
                 with self.env.lock:
+                    self.event_log.Log('shutdown', operation=test.operation)
                     shutdown_result = self.env.shutdown(test.operation)
                 if shutdown_result:
                     # That's all, folks!
@@ -482,14 +484,14 @@ class Goofy(object):
     def main(self):
         try:
             self.init()
-            self.event_log.AppendEvent('init',
-                                       success=True)
+            self.event_log.Log('goofy_init',
+                               success=True)
         except:
             if self.event_log:
                 try:
-                    self.event_log.AppendEvent('init',
-                                               success=False,
-                                               trace=traceback.format_exc())
+                    self.event_log.Log('goofy_init',
+                                       success=False,
+                                       trace=traceback.format_exc())
                 except:
                     pass
             raise
