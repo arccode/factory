@@ -323,7 +323,9 @@ class TestInvocation(object):
                                      duration=time.time() - start_time))
                 if error_msg:
                     log_args['error_msg'] = error_msg
-                if self.debug_log_path and os.path.exists(self.debug_log_path):
+                if (status != TestState.PASSED and
+                    self.debug_log_path and
+                    os.path.exists(self.debug_log_path)):
                     try:
                         debug_log_size = os.path.getsize(self.debug_log_path)
                         offset = max(0, debug_log_size - ERROR_LOG_TAIL_LENGTH)

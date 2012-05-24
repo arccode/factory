@@ -51,6 +51,9 @@ DEFAULT_TEST_LIST_PATH = os.path.join(
         factory.CLIENT_PATH , 'site_tests', 'suite_Factory', 'test_list')
 HWID_CFG_PATH = '/usr/local/share/chromeos-hwid/cfg'
 
+# File that suppresses reboot if present (e.g., for development).
+NO_REBOOT_FILE = '/var/log/factory.noreboot'
+
 GOOFY_IN_CHROOT_WARNING = '\n' + ('*' * 70) + '''
 You are running Goofy inside the chroot.  Autotests are not supported.
 
@@ -383,6 +386,13 @@ class Goofy(object):
             self.tests_to_run.popleft()
 
             if isinstance(test, factory.ShutdownStep):
+                if os.path.exists(NO_REBOOT_FILE):
+                    test.update_state(
+                        status=TestState.FAILED, increment_count=1,
+                        error_msg=('Skipped shutdown since %s is present' %
+                                   NO_REBOOT_FILE))
+                    continue
+
                 test.update_state(status=TestState.ACTIVE, increment_count=1,
                                   error_msg='', shutdown_count=0)
                 # Save pending test list in the state server

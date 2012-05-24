@@ -31,13 +31,10 @@ from autotest_lib.client.cros import factory
 from autotest_lib.client.cros.factory import TestState
 from autotest_lib.client.cros.factory import unicode_to_string
 
-
-FACTORY_STATE_VERSION = 2
 DEFAULT_FACTORY_STATE_PORT = 0x0FAC
 DEFAULT_FACTORY_STATE_ADDRESS = 'localhost'
 DEFAULT_FACTORY_STATE_BIND_ADDRESS = 'localhost'
-DEFAULT_FACTORY_STATE_FILE_PATH = os.path.join(
-    factory.get_log_root(), 'factory_state.v%d' % FACTORY_STATE_VERSION)
+DEFAULT_FACTORY_STATE_FILE_PATH = factory.get_state_root()
 
 
 def _synchronized(f):

@@ -1,4 +1,4 @@
-# Copyright (c) 2010 The Chromium OS Authors. All rights reserved.
+# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -25,6 +25,8 @@ SCRIPT_PATH = os.path.realpath(__file__)
 CROS_FACTORY_LIB_PATH = os.path.dirname(SCRIPT_PATH)
 CLIENT_PATH = os.path.realpath(os.path.join(CROS_FACTORY_LIB_PATH, '..', '..'))
 
+FACTORY_STATE_VERSION = 2
+
 
 class TestListError(Exception):
     pass
@@ -47,6 +49,12 @@ def get_log_root():
     if in_chroot():
         return '/tmp/factory.%s' % getpass.getuser()
     return '/var/log'
+
+
+def get_state_root():
+    '''Returns the root for all factory state.'''
+    return os.path.join(
+        get_log_root(), 'factory_state.v%d' % FACTORY_STATE_VERSION)
 
 
 CONSOLE_LOG_PATH = os.path.join(get_log_root(), 'console.log')

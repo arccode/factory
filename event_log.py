@@ -19,6 +19,10 @@ import factory_common
 from autotest_lib.client.cros import factory
 
 
+class EventLogException(Exception):
+  pass
+
+
 def TimedUuid():
   """Returns a UUID that is roughly sorted by time.
 
@@ -55,7 +59,7 @@ def TimeString(unix_time=None):
 # data, once the corresponding modules move over from the autotest
 # repo.
 
-EVENT_LOG_DIR = os.path.join(factory.get_log_root(), "events")
+EVENT_LOG_DIR = os.path.join(factory.get_state_root(), "events")
 
 # Path to use to generate a device ID in case none exists (i.e.,
 # there is no wlan0 interface).
@@ -67,7 +71,7 @@ IMAGE_ID_PATH = os.path.join(EVENT_LOG_DIR, ".image_id")
 
 WLAN0_MAC_PATH = "/sys/class/net/wlan0/address"
 
-PREFIX_RE = re.compile("^[a-z0-9_\.]+$")
+PREFIX_RE = re.compile("^[a-zA-Z0-9_\.]+$")
 EVENT_NAME_RE = re.compile("^[a-z0-9_]+$")
 EVENT_KEY_RE = EVENT_NAME_RE
 
@@ -128,7 +132,14 @@ class EventLog(object):
     log_id: The ID of the log file.
   """
 
-  def __init__(self, prefix):
+  @staticmethod
+  def ForAutoTest():
+    """Creates an EventLog object for the running autotest."""
+    path = os.environ.get('CROS_FACTORY_TEST_PATH', 'autotest')
+    uuid = os.environ.get('CROS_FACTORY_TEST_INVOCATION') or TimedUuid()
+    return EventLog(path, uuid)
+
+  def __init__(self, prefix, log_id=None):
     """Creates a new event log file, returning an EventLog instance.
 
     A new file will be created of the form <prefix>-UUID, where UUID is
@@ -147,6 +158,7 @@ class EventLog(object):
         humans differentiate between event log files (since UUIDs all
         look the same).  If string is not alphanumeric with period and
         underscore punctuation, raises ValueError.
+      log_id: A UUID for the log (or None, in which case TimedUuid() is used)
     """
     if not PREFIX_RE.match(prefix):
       raise ValueError, "prefix %r must match re %s" % (
@@ -154,7 +166,7 @@ class EventLog(object):
     self.prefix = prefix
     self.seq = 0
     self.lock = threading.Lock()
-    self.log_id = TimedUuid()
+    self.log_id = log_id or TimedUuid()
     filename = "%s-%s" % (prefix, self.log_id)
     if not os.path.exists(EVENT_LOG_DIR):
       try:
@@ -165,6 +177,8 @@ class EventLog(object):
           raise
     self.path = os.path.join(EVENT_LOG_DIR, filename)
     logging.info('Logging events for %s to %s', prefix, self.path)
+    if os.path.exists(self.path):
+      raise EventLogException, "Log %s already exists" % self.path
     self.file = open(self.path, "w")
     self.Log("preamble",
              log_id=self.log_id,
