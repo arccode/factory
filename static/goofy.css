@@ -113,6 +113,8 @@ body {
 .goofy-kbd-shortcut {
   float: right;
   font-size: 75%;
+  padding-right: .5em;
+  color: darkgray;
 }
 
 .goofy-test-icon {
@@ -186,6 +188,7 @@ dl.goofy-history {
   text-wrap: none;
 }
 #goofy-system-info-hover {
+  display: none;  /* TODO(jsalz) */
   position: absolute;
   right: 5px;
   bottom: 5px;

@@ -29,11 +29,6 @@ goog.require('goog.ui.tree.TreeControl');
 cros.factory.logger = goog.debug.Logger.getLogger('cros.factory');
 
 /**
- * @define {boolean} Whether to enable the debug window.
- */
-cros.factory.DEBUG_WINDOW_ENABLED = true;
-
-/**
  * @define {boolean} Whether to automatically collapse items once tests have
  *     completed.
  */
@@ -278,8 +273,17 @@ cros.factory.Goofy = function() {
     this.invocations = {};
 
     var debugWindow = new goog.debug.FancyWindow('main');
-    debugWindow.setEnabled(cros.factory.DEBUG_WINDOW_ENABLED);
+    debugWindow.setEnabled(false);
     debugWindow.init();
+    // Magic keyboard shortcut Ctrl-Alt-1 to open the debugging window.
+    goog.events.listen(
+        window, goog.events.EventType.KEYDOWN,
+        function(event) {
+            if (event.altKey && event.ctrlKey &&
+                '1' == String.fromCharCode(event.keyCode)) {
+                debugWindow.setEnabled(true);
+            }
+        }, false, this);
 };
 
 /**
@@ -847,7 +851,8 @@ cros.factory.Goofy.prototype.sendRpc = function(method, args, callback) {
     var factoryThis = this;
     goog.net.XhrIo.send(
         '/', function() {
-            cros.factory.logger.info('RPC response: ' + this.getResponseText());
+            cros.factory.logger.info('RPC response for ' + method + ': ' +
+                                     this.getResponseText());
             // TODO(jsalz): handle errors
             if (callback) {
                 callback.call(
