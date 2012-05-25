@@ -47,24 +47,6 @@ def RetryCommand(callback, message_prefix, interval):
       if i % 10 == 0:
         sys.stderr.write(" Retry in %d seconds...\n" % i)
       time.sleep(1)
-  return True
-
-
-def CustomUpload(source_path, custom_command):
-  """Uploads the source file by a customized shell command.
-
-  Args:
-    source_path: File to upload.
-    custom_command: A shell script command to invoke.
-  """
-  if not custom_command:
-    raise Error('CustomUpload: need a shell command for customized uploading.')
-  cmd = '%s %s' % (custom_command, source_path)
-  logging.debug('CustomUpload: custom: %s', cmd)
-  if os.system(cmd) != 0:
-    raise Error('CustomUpload: failed: %s' % cmd)
-  logging.info('CustomUpload: successfully invoked command: %s.', cmd)
-  return True
 
 
 def ShopFloorUpload(source_path, remote_spec,
@@ -93,7 +75,6 @@ def ShopFloorUpload(source_path, remote_spec,
 
   RetryCommand(ShopFloorCallback, 'ShopFloorUpload', interval=retry_interval)
   logging.info('ShopFloorUpload: successfully uploaded to: %s', remote_spec)
-  return True
 
 
 def CurlCommand(curl_command, success_string=None, abort_string=None,
@@ -122,7 +103,7 @@ def CurlCommand(curl_command, success_string=None, abort_string=None,
         message = "Abort: Found abort pattern: %s" % abort_string
       elif ((not success_string) or
             (cmd_result.stdout.find(success_string) >= 0)):
-        return True
+        return
       else:
         message = "Retry: No valid pattern (%s) in response." % success_string
       logging.debug("CurlCallback: original response: %s",
@@ -137,7 +118,6 @@ def CurlCommand(curl_command, success_string=None, abort_string=None,
 
   RetryCommand(CurlCallback, 'CurlCommand', interval=retry_interval)
   logging.info('CurlCommand: successfully executed: %s', cmd)
-  return True
 
 
 def CurlUrlUpload(source_path, params, **kargs):
@@ -216,7 +196,7 @@ def FtpUpload(source_path, ftp_url, retry_interval=DEFAULT_RETRY_INTERVAL,
   def FtpCallback(result):
     try:
       ftp.connect(host=host, port=port, timeout=retry_timeout)
-      return True
+      return
     except Exception, e:
       result['message'] = '%s' % e
 
@@ -230,42 +210,3 @@ def FtpUpload(source_path, ftp_url, retry_interval=DEFAULT_RETRY_INTERVAL,
   logging.debug('FtpUpload: upload complete.')
   ftp.quit()
   logging.info('FtpUpload: successfully uploaded to %s', ftp_url)
-  return True
-
-
-def NoneUpload(source_path, **kargs):
-  """ Dummy function for bypassing uploads """
-  logging.warning('NoneUpload%s: skipped uploading %s', kargs, source_path)
-  return True
-
-
-def Upload(path, method, **kargs):
-  """Uploads a file by given method.
-
-  Args:
-    path: File path to be uploaded.
-    method: A string to specify the method to upload files.
-  """
-  args = method.split(':', 1)
-  method = args[0]
-  param = args[1] if len(args) > 1 else None
-
-  if method == 'none':
-    return NoneUpload(path, **kargs)
-  elif method == 'custom':
-    return CustomUpload(path, param, **kargs)
-  elif method == 'shopfloor':
-    return ShopFloorUpload(path, param, **kargs)
-  elif method == 'ftp':
-    return FtpUpload(path, 'ftp:' + param, **kargs)
-  elif method == 'ftps':
-    return CurlUrlUpload(path, '--ftp-ssl-reqd ftp:%s' % param, **kargs)
-  elif method == 'curl' and param.startswith('ftp://'):
-    return CurlUrlUpload(path, param, **kargs)
-  elif method == 'curl' and param.startswith('ftps://'):
-    return CurlUrlUpload(path, '--ftp-ssl-reqd ' + param, **kargs)
-  elif method == 'cpfe':
-    return CpfeUpload(path, param, **kargs)
-  else:
-    raise Error('Upload: unknown method: %s' % method)
-  return False
