@@ -50,8 +50,15 @@ class EventLogTest(unittest.TestCase):
     os.unlink(event_log.IMAGE_ID_PATH)
     self.assertNotEqual(image_id, event_log.GetImageId())
 
-  def testEventLog(self):
-    log = event_log.EventLog('test')
+  def testEventLogDefer(self):
+    self._testEventLog(True)
+
+  def testEventLogNoDefer(self):
+    self._testEventLog(False)
+
+  def _testEventLog(self, defer):
+    log = event_log.EventLog('test', defer=defer)
+    self.assertEqual(os.path.exists(log.path), not defer)
 
     event0 = dict(a='A',
                   b=1,
@@ -97,6 +104,11 @@ class EventLogTest(unittest.TestCase):
     self.assertEqual(dict(EVENT='event1', SEQ=2), log_data[2])
     self.assertEqual(None, log_data[3])
 
+  def testDeferWithoutEvents(self):
+    log = event_log.EventLog('test', defer=True)
+    path = log.path
+    log.Close()
+    self.assertFalse(os.path.exists(path))
 
 if __name__ == "__main__":
     unittest.main()

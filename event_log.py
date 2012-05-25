@@ -139,7 +139,7 @@ class EventLog(object):
     uuid = os.environ.get('CROS_FACTORY_TEST_INVOCATION') or TimedUuid()
     return EventLog(path, uuid)
 
-  def __init__(self, prefix, log_id=None):
+  def __init__(self, prefix, log_id=None, defer=True):
     """Creates a new event log file, returning an EventLog instance.
 
     A new file will be created of the form <prefix>-UUID, where UUID is
@@ -159,7 +159,10 @@ class EventLog(object):
         look the same).  If string is not alphanumeric with period and
         underscore punctuation, raises ValueError.
       log_id: A UUID for the log (or None, in which case TimedUuid() is used)
+      defer: If True, then the file will not be written until the first
+        event is logged (if ever).
     """
+    self.file = None
     if not PREFIX_RE.match(prefix):
       raise ValueError, "prefix %r must match re %s" % (
         prefix, PREFIX_RE.pattern)
@@ -167,31 +170,22 @@ class EventLog(object):
     self.seq = 0
     self.lock = threading.Lock()
     self.log_id = log_id or TimedUuid()
-    filename = "%s-%s" % (prefix, self.log_id)
-    if not os.path.exists(EVENT_LOG_DIR):
-      try:
-        os.makedirs(EVENT_LOG_DIR)
-      except:
-        # Maybe someone else tried to create it simultaneously
-        if not os.path.exists(EVENT_LOG_DIR):
-          raise
-    self.path = os.path.join(EVENT_LOG_DIR, filename)
-    logging.info('Logging events for %s to %s', prefix, self.path)
+    self.filename = "%s-%s" % (prefix, self.log_id)
+    self.path = os.path.join(EVENT_LOG_DIR, self.filename)
+    logging.info('Logging events for %s to %s', self.prefix, self.path)
     if os.path.exists(self.path):
       raise EventLogException, "Log %s already exists" % self.path
-    self.file = open(self.path, "w")
-    self.Log("preamble",
-             log_id=self.log_id,
-             boot_id=GetBootId(),
-             device_id=GetDeviceId(),
-             image_id=GetImageId(),
-             filename=filename)
+    self.opened = False
+
+    if not defer:
+      self._OpenUnlocked()
 
   def Close(self):
     """Closes associated log file."""
     with self.lock:
-      self.file.close()
-      self.file = None
+      if self.file:
+        self.file.close()
+        self.file = None
 
   def Log(self, event_name, **kwargs):
     """Writes new event stanza to log file, with consistent metadata.
@@ -213,6 +207,42 @@ class EventLog(object):
         values will be automatically yaml-ified.  Other data
         types will result in a ValueError.
     """
+    with self.lock:
+      self._LogUnlocked(event_name, **kwargs)
+
+  def _OpenUnlocked(self):
+    """Opens the file and writes the preamble (if not already open).
+
+    Requires that the lock has already been acquired.
+    """
+    dir = os.path.dirname(self.path)
+    if not os.path.exists(dir):
+      try:
+        os.makedirs(dir)
+      except:
+        # Maybe someone else tried to create it simultaneously
+        if not os.path.exists(dir):
+          raise
+
+    if self.opened:
+      return
+    self.opened = True
+
+    self.file = open(self.path, "w")
+    self._LogUnlocked("preamble",
+                      log_id=self.log_id,
+                      boot_id=GetBootId(),
+                      device_id=GetDeviceId(),
+                      image_id=GetImageId(),
+                      filename=self.filename)
+
+  def _LogUnlocked(self, event_name, **kwargs):
+    """Same as Log, but requires that the lock has already been acquired.
+
+    See Log() for Args and Returns.
+    """
+    self._OpenUnlocked()
+
     def TypeCheck(data):
       if isinstance(data, dict):
         for k, v in data.items():
@@ -222,25 +252,24 @@ class EventLog(object):
       elif isinstance (data, list):
         map(TypeCheck, data)
 
-    with self.lock:
-      if self.file is None:
-        raise IOError, "cannot append to closed file for prefix %r" % (
-          self.prefix)
-      if not EVENT_NAME_RE.match(event_name):
-        raise ValueError, "event_name %r must match %s" % (
-          event_name, EVENT_NAME_RE.pattern)
-      TypeCheck(kwargs)
-      for k in kwargs:
-        if not EVENT_KEY_RE.match(k):
-          raise ValueError, "key %r must match re %s" % (
-            k, EVENT_KEY_RE.pattern)
-      data = {
-          "EVENT": event_name,
-          "SEQ": self.seq,
-          "TIME": TimeString()
-          }
-      data.update(kwargs)
-      self.file.write(YamlDump(data))
-      self.file.write("---\n")
-      self.file.flush()
-      self.seq += 1
+    if self.file is None:
+      raise IOError, "cannot append to closed file for prefix %r" % (
+        self.prefix)
+    if not EVENT_NAME_RE.match(event_name):
+      raise ValueError, "event_name %r must match %s" % (
+        event_name, EVENT_NAME_RE.pattern)
+    TypeCheck(kwargs)
+    for k in kwargs:
+      if not EVENT_KEY_RE.match(k):
+        raise ValueError, "key %r must match re %s" % (
+          k, EVENT_KEY_RE.pattern)
+    data = {
+        "EVENT": event_name,
+        "SEQ": self.seq,
+        "TIME": TimeString()
+        }
+    data.update(kwargs)
+    self.file.write(YamlDump(data))
+    self.file.write("---\n")
+    self.file.flush()
+    self.seq += 1
