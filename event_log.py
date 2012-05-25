@@ -243,22 +243,12 @@ class EventLog(object):
     """
     self._OpenUnlocked()
 
-    def TypeCheck(data):
-      if isinstance(data, dict):
-        for k, v in data.items():
-          if not isinstance(k, str):
-            raise ValueError, "dict keys must be strings, found key %r" % k
-          TypeCheck(v)
-      elif isinstance (data, list):
-        map(TypeCheck, data)
-
     if self.file is None:
       raise IOError, "cannot append to closed file for prefix %r" % (
         self.prefix)
     if not EVENT_NAME_RE.match(event_name):
       raise ValueError, "event_name %r must match %s" % (
         event_name, EVENT_NAME_RE.pattern)
-    TypeCheck(kwargs)
     for k in kwargs:
       if not EVENT_KEY_RE.match(k):
         raise ValueError, "key %r must match re %s" % (
