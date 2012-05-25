@@ -17,20 +17,6 @@ class UpdaterException(Exception):
     pass
 
 
-def FindAutotestPath():
-    '''Returns the path to the autotest directory containing this script.'''
-    # Find the autotest root.
-    path_components = os.path.realpath(__file__).split('/')
-    for i in reversed(range(len(path_components))):
-        if path_components[i] == 'autotest':
-            break
-    else:
-        raise UpdaterException('Unable to find autotest root in %s' %
-                               path_components)
-
-    return '/'.join(path_components[0:i+1])
-
-
 def CheckCriticalFiles(autotest_new_path):
     '''Raises an exception if certain critical files are missing.'''
     critical_files = [
@@ -60,7 +46,10 @@ def TryUpdate(pre_update_hook=None):
         True if an update was performed and the machine should be
         rebooted.
     '''
-    autotest_path = FindAutotestPath()
+    # On a real device, this will resolve to 'autotest' (since 'client'
+    # is a symlink to that).  In the chroot, this will resolve to the
+    # 'client' directory.
+    autotest_path = factory.CLIENT_PATH
 
     # Determine whether an update is necessary.
     md5sum_file = os.path.join(autotest_path, 'MD5SUM')
@@ -86,7 +75,7 @@ def TryUpdate(pre_update_hook=None):
     autotest_new_path = '%s.new' % autotest_path
     rsync_command = [
         'rsync',
-        '-a', '--delete',
+        '-a', '--delete', '--stats',
         # Use copies of identical files from the old autotest
         # as much as possible to save network bandwidth.
         '--copy-dest=%s' % autotest_path,
