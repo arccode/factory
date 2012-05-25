@@ -4,4 +4,4 @@
 # found in the LICENSE file.
 
 MYDIR="$(dirname $(readlink -f $0))"
-PYTHONPATH=$MYDIR/py_pkg $MYDIR/py/hwid_tool.py
+PYTHONPATH=$MYDIR/py_pkg $MYDIR/py/hwid_tool.py "$@"
