@@ -4,6 +4,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import fnmatch
 import logging
 import os
 import cPickle as pickle
@@ -195,6 +196,7 @@ class TestInvocation(object):
             self.goofy.record_exception(traceback.format_exception_only(
                     *sys.exc_info()[:2]))
         finally:
+            self.clean_autotest_logs(output_dir)
             return status, error_msg  # pylint: disable=W0150
 
     def _invoke_pytest(self):
@@ -275,6 +277,36 @@ class TestInvocation(object):
                 except:
                     logging.exception('Unable to delete temporary file %s',
                                       f)
+
+    def clean_autotest_logs(self, output_dir):
+        globs = self.goofy.test_list.options.preserve_autotest_results
+        if '*' in globs:
+            # Keep everything
+            return
+
+        deleted_count = 0
+        preserved_count = 0
+        for root, dirs, files in os.walk(output_dir, topdown=False):
+            for f in files:
+                if any(fnmatch.fnmatch(f, g)
+                       for g in globs):
+                    # Keep it
+                    preserved_count = 1
+                else:
+                    try:
+                        os.unlink(os.path.join(root, f))
+                        deleted_count += 1
+                    except:
+                        logging.exception('Unable to remove %s' %
+                                          os.path.join(root, f))
+            try:
+                # Try to remove the directory (in case it's empty now)
+                os.rmdir(root)
+            except:
+                # Not empty; that's OK
+                pass
+        logging.info('Preserved %d files matching %s and removed %d',
+                     preserved_count, globs, deleted_count)
 
     def _run(self):
         with self._lock:

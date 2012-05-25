@@ -244,6 +244,9 @@ class Options(object):
     # Default UI language
     ui_lang = 'en'
 
+    # Preserve only autotest results matching these globs.
+    preserve_autotest_results = ['*.DEBUG', '*.INFO']
+
     def check_valid(self):
         '''Throws a TestListError if there are any invalid options.'''
         # Make sure no errant options, or options with weird types,
