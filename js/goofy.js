@@ -21,6 +21,7 @@ goog.require('goog.Uri');
 goog.require('goog.ui.AdvancedTooltip');
 goog.require('goog.ui.Dialog');
 goog.require('goog.ui.Dialog.ButtonSet');
+goog.require('goog.ui.MenuSeparator');
 goog.require('goog.ui.PopupMenu');
 goog.require('goog.ui.Select');
 goog.require('goog.ui.SplitPane');
@@ -567,8 +568,11 @@ cros.factory.Goofy.prototype.showTestLogs = function(paths) {
  *     displayed.
  * @param {Element} labelElement the label element of the node in the test
  *     tree.
+ * @param {Array.<goog.ui.Control>=} extraItems items to prepend to the
+ *     menu.
  */
-cros.factory.Goofy.prototype.showTestPopup = function(path, labelElement) {
+cros.factory.Goofy.prototype.showTestPopup = function(path, labelElement,
+                                                      extraItems) {
     this.contextMenuVisible = true;
     // Hide all tooltips so that they don't fight with the context menu.
     goog.array.forEach(this.tooltips, function(tooltip) {
@@ -576,6 +580,14 @@ cros.factory.Goofy.prototype.showTestPopup = function(path, labelElement) {
         });
 
     var menu = new goog.ui.PopupMenu();
+
+    if (extraItems && extraItems.length) {
+        goog.array.forEach(extraItems, function(item) {
+                menu.addChild(item, true);
+            }, this);
+        menu.addChild(new goog.ui.MenuSeparator(), true);
+    }
+
     var numLeaves = 0;
     var numLeavesByStatus = {};
     var test = this.pathTestMap[path];
@@ -739,7 +751,14 @@ cros.factory.Goofy.prototype.setTestList = function(testList) {
         document.getElementById('goofy-title'),
         goog.events.EventType.CONTEXTMENU,
         function(event) {
-            this.showTestPopup('', document.getElementById('goofy-logo-text'));
+            var updateItem = new goog.ui.MenuItem('Update factory software');
+            goog.events.listen(updateItem, goog.ui.Component.EventType.ACTION,
+                               function(event) {
+                                   this.sendEvent('goofy:update_factory', {});
+                               }, true, this);
+            this.showTestPopup('', document.getElementById('goofy-logo-text'),
+                               [updateItem]);
+
             event.stopPropagation();
             event.preventDefault();
         }, true, this);

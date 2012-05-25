@@ -99,6 +99,9 @@ class Event(object):
             'UPDATE_SYSTEM_INFO': 'goofy:update_system_info',
             # Message containing new system info from Goofy.
             'SYSTEM_INFO': 'goofy:system_info',
+            # Tells Goofy to stop all tests and update factory
+            # software.
+            'UPDATE_FACTORY': 'goofy:update_factory',
             })
 
     def __init__(self, type, **kw):  # pylint: disable=W0622

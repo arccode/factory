@@ -2,7 +2,7 @@
 #
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2010 The Chromium OS Authors. All rights reserved.
+# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -37,6 +37,7 @@ from autotest_lib.client.bin.prespawner import Prespawner
 from autotest_lib.client.cros import factory
 from autotest_lib.client.cros.factory import state
 from autotest_lib.client.cros.factory import TestState
+from autotest_lib.client.cros.factory import updater
 from autotest_lib.client.cros.factory import utils
 from autotest_lib.client.cros.factory.event import Event
 from autotest_lib.client.cros.factory.event import EventClient
@@ -193,6 +194,8 @@ class Goofy(object):
                 lambda event: self.show_review_information(),
             Event.Type.UPDATE_SYSTEM_INFO:
                 lambda event: self.update_system_info(),
+            Event.Type.UPDATE_FACTORY:
+                lambda event: self.update_factory(),
         }
 
         self.exceptions = []
@@ -517,6 +520,16 @@ class Goofy(object):
         self.event_client.post_event(Event(Event.Type.SYSTEM_INFO,
                                            system_info=system_info.__dict__))
         logging.info('System info: %r', system_info.__dict__)
+
+    def update_factory(self):
+        self.kill_active_tests(False)
+        self.run_tests([])
+
+        try:
+            if updater.TryUpdate(pre_update_hook=self.state_instance.close):
+                self.env.shutdown('reboot')
+        except:
+            factory.console.exception('Unable to update')
 
     def init(self, args=None, env=None):
         '''Initializes Goofy.

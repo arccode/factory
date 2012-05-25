@@ -17,6 +17,7 @@ CSS_SOURCES=\
     goog/css/dialog.css \
     goog/css/menu.css \
     goog/css/menuitem.css \
+    goog/css/menuseparator.css \
     goog/css/submenu.css \
     goog/css/tooltip.css \
     goog/css/tree.css

@@ -113,6 +113,7 @@ class FactoryState(object):
         if TestState not in jsonclass.supported_types:
             jsonclass.supported_types.append(TestState)
 
+    @_synchronized
     def close(self):
         '''
         Shuts down the state instance.

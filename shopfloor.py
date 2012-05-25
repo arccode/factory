@@ -20,6 +20,7 @@ For the protocol details, check:
  src/platform/factory-utils/factory_setup/shopfloor_server.
 """
 
+import os
 import urlparse
 import xmlrpclib
 from xmlrpclib import Binary, Fault
@@ -42,6 +43,11 @@ API_GET_VPD = 'GetVPD'
 
 # Default port number from shopfloor_server.py.
 _DEFAULT_SERVER_PORT = 8082
+
+# Environment variable containing the shopfloor server URL (for
+# testing).  Setting this overrides the shopfloor server URL and
+# causes the shopfloor server to be considered enabled.
+SHOPFLOOR_SERVER_ENV_VAR_NAME = 'CROS_SHOPFLOOR_SERVER_URL'
 
 # ----------------------------------------------------------------------------
 # Utility Functions
@@ -89,7 +95,8 @@ def reset():
 
 def is_enabled():
     """Checks if current factory is configured to use shop floor system."""
-    return _get_session(SESSION_ENABLED)
+    return (bool(os.environ.get(SHOPFLOOR_SERVER_ENV_VAR_NAME)) or
+            _get_session(SESSION_ENABLED))
 
 
 def set_enabled(enabled):
@@ -104,7 +111,8 @@ def set_server_url(url):
 
 def get_server_url():
     """Gets last configured shop floor server URL."""
-    return _get_session(SESSION_SERVER_URL)
+    return (os.environ.get(SHOPFLOOR_SERVER_ENV_VAR_NAME) or
+            _get_session(SESSION_SERVER_URL))
 
 
 def detect_default_server_url():
@@ -130,7 +138,7 @@ def get_instance(url=None):
     @return An object with all public functions from shopfloor.ShopFloorBase.
     """
     if not url:
-        url = _get_session(SESSION_SERVER_URL)
+        url = get_server_url()
     if not url:
         raise Exception("Shop floor server URL is NOT configured.")
     return xmlrpclib.ServerProxy(url, allow_none=True, verbose=False)
