@@ -102,6 +102,8 @@ class Event(object):
             # Tells Goofy to stop all tests and update factory
             # software.
             'UPDATE_FACTORY': 'goofy:update_factory',
+            # Tells Goofy to stop all tests.
+            'STOP': 'goofy:stop',
             })
 
     def __init__(self, type, **kw):  # pylint: disable=W0622

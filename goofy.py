@@ -196,6 +196,8 @@ class Goofy(object):
                 lambda event: self.update_system_info(),
             Event.Type.UPDATE_FACTORY:
                 lambda event: self.update_factory(),
+            Event.Type.STOP:
+                lambda event: self.stop(),
         }
 
         self.exceptions = []
@@ -492,6 +494,10 @@ class Goofy(object):
             if not abort:
                 test.update_state(status=TestState.UNTESTED)
         self.reap_completed_tests()
+
+    def stop(self):
+        self.kill_active_tests(False)
+        self.run_tests([])
 
     def abort_active_tests(self):
         self.kill_active_tests(True)

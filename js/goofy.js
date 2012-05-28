@@ -629,6 +629,14 @@ cros.factory.Goofy.prototype.showTestPopup = function(path, labelElement,
             this.sendEvent('goofy:auto_run', {'path': path});
         }), true);
     }
+    menu.addChild(new goog.ui.MenuSeparator(), true);
+    // TODO(jsalz): This isn't quite right since it stops all tests.
+    // But close enough for now.
+    menu.addChild(this.makeMenuItem('Stop', 'active',
+                                    numLeavesByStatus['ACTIVE'] || 0,
+                                    test, function(event) {
+        this.sendEvent('goofy:stop');
+    }), true);
 
     var item = new goog.ui.MenuItem('Show test logs...');
     item.setEnabled(test.state.status != 'UNTESTED');
@@ -756,6 +764,7 @@ cros.factory.Goofy.prototype.setTestList = function(testList) {
                                function(event) {
                                    this.sendEvent('goofy:update_factory', {});
                                }, true, this);
+
             this.showTestPopup('', document.getElementById('goofy-logo-text'),
                                [updateItem]);
 
