@@ -631,7 +631,7 @@ def _GbbHash(image):
     f.seek(0)
     hash_src = f.read()
     assert len(hash_src) == len(data)
-  return hashlib.sha256(hash_src).hexdigest()
+  return 'gv2#' + hashlib.sha256(hash_src).hexdigest()
 
 
 def _MainRoHash(image):
@@ -642,14 +642,14 @@ def _MainRoHash(image):
   image.put_section('GBB', zero_gbb)
   hash_src += image.get_section('RO_SECTION')
   image.put_section('GBB', gbb)
-  return hashlib.sha256(hash_src).hexdigest()
+  return 'mv2#' + hashlib.sha256(hash_src).hexdigest()
 
 
 def _EcRoHash(image):
   """Algorithm: sha256(fmap, EC_RO)."""
   hash_src = image.get_fmap_blob()
   hash_src += image.get_section('EC_RO')
-  return hashlib.sha256(hash_src).hexdigest()
+  return 'ev2#' + hashlib.sha256(hash_src).hexdigest()
 
 
 def _FwKeyHash(main_fw_file, key_name):
@@ -663,7 +663,7 @@ def _FwKeyHash(main_fw_file, key_name):
     if len(sha1sum) != 1:
       logging.error("Failed calling vbutil_key for firmware key hash.")
       return None
-    return sha1sum[0]
+    return 'kv2#' + sha1sum[0]
 
 
 def CalculateFirmwareHashes(fw_file_path):
