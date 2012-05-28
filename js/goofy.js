@@ -70,14 +70,17 @@ cros.factory.Label = function(en, zh) {
  * @type Array.<Object.<string, string>>
  */
 cros.factory.SYSTEM_INFO_LABELS = [
-    {key: 'device_serial_number', label: cros.factory.Label('Serial Number')},
+    {key: 'serial_number', label: cros.factory.Label('Serial Number')},
+    {key: 'factory_image_version',
+     label: cros.factory.Label('Factory Image Version')},
     {key: 'wlan0_mac', label: cros.factory.Label('WLAN MAC')},
     {key: 'kernel_version', label: cros.factory.Label('Kernel')},
     {key: 'ec_version', label: cros.factory.Label('EC')},
     {key: 'firmware_version', label: cros.factory.Label('Firmware')},
-    {key: 'factory_image', label: cros.factory.Label('Factory Image')},
-    {key: 'release_image', label: cros.factory.Label('Release Image')},
-    {key: 'factory_md5sum', label: cros.factory.Label('Factory MD5SUM')}
+    {key: 'factory_md5sum', label: cros.factory.Label('Factory MD5SUM'),
+     transform: function(value) {
+            return value || cros.factory.Label('(no update)')
+        }}
                                    ];
 
 cros.factory.UNKNOWN_LABEL = '<span class="goofy-unknown">' +
@@ -457,11 +460,17 @@ cros.factory.Goofy.prototype.setSystemInfo = function(systemInfo) {
     var table = [];
     table.push('<table id="goofy-system-info">');
     goog.array.forEach(cros.factory.SYSTEM_INFO_LABELS, function(item) {
-            var value = systemInfo[item.key] == undefined ?
-                cros.factory.UNKNOWN_LABEL :
-                goog.string.htmlEscape(systemInfo[item.key]);
+            var value = systemInfo[item.key];
+            var html;
+            if (item.transform) {
+                html = item.transform(value);
+            } else {
+                html = value == undefined ?
+                    cros.factory.UNKNOWN_LABEL :
+                    goog.string.htmlEscape(value);
+            }
             table.push(
-                       '<tr><th>' + item.label + '</th><td>' + value +
+                       '<tr><th>' + item.label + '</th><td>' + html +
                        '</td></tr>');
         });
     table.push('</table>');

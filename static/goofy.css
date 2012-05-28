@@ -178,6 +178,7 @@ dl.goofy-history {
   padding-top: 1em;
 }
 #goofy-system-info th, #goofy-system-info td {
+  font-size: 75%;
   text-align: left;
   padding: 0 .1em 0 .1em;
 }
@@ -188,10 +189,9 @@ dl.goofy-history {
   text-wrap: none;
 }
 #goofy-system-info-hover {
-  display: none;  /* TODO(jsalz) */
-  position: absolute;
-  right: 5px;
-  bottom: 5px;
+  position: fixed;
+  right: 16px;
+  bottom: 2px;
 }
 .goofy-unknown {
   color: darkgray;

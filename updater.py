@@ -17,6 +17,19 @@ class UpdaterException(Exception):
     pass
 
 
+def GetCurrentMD5SUM():
+    '''Returns MD5SUM of the current autotest directory.
+
+    Returns None if there has been no update (i.e., unable to read
+    the MD5SUM file).
+    '''
+    md5sum_file = os.path.join(factory.CLIENT_PATH, 'MD5SUM')
+    if os.path.exists(md5sum_file):
+        return open(md5sum_file, 'r').read().strip()
+    else:
+        return None
+
+
 def CheckCriticalFiles(autotest_new_path):
     '''Raises an exception if certain critical files are missing.'''
     critical_files = [

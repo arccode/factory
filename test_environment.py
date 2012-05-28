@@ -8,13 +8,20 @@ import cPickle as pickle
 import hashlib
 import logging
 import os
+from Queue import Queue
 import re
 import subprocess
 import threading
 import time
 
+import factory_common
 from autotest_lib.client.cros import factory
+from autotest_lib.client.cros.factory import shopfloor
 from autotest_lib.client.cros.factory import state
+from autotest_lib.client.cros.factory import updater
+
+
+ECTOOL_TIMEOUT_SEC = 0.1
 
 
 class Environment(object):
@@ -131,10 +138,21 @@ class FakeChrootEnvironment(Environment):
 class SystemInfo(object):
     '''Information about the system.'''
     def __init__(self, env, state):
+        self.serial_number = None
         try:
-            self.device_serial_number = state.get_shared_data('serial_number')
+            self.serial_number = shopfloor.get_serial_number()
         except:
-            self.device_serial_number = None
+            pass
+
+        self.factory_image_version = None
+        try:
+            lsb_release = open('/etc/lsb-release').read()
+            match = re.search('^GOOGLE_RELEASE=(.+)$', lsb_release,
+                              re.MULTILINE)
+            if match:
+                self.factory_image_version = match.group(1)
+        except:
+            pass
 
         try:
             self.wlan0_mac = open('/sys/class/net/wlan0/address').read().strip()
@@ -148,11 +166,56 @@ class SystemInfo(object):
         except:
             self.kernel_version = None
 
-        # TODO(jsalz): Set these items as well (adding items to env as
-        # appropriate for invocations of crossystem, ectool, mosys, etc.),
-        # and/or get more items from hwidprobe as available.
         self.ec_version = None
+        try:
+            # Call ectool in a separate thread since it may timeout on older
+            # ECs.
+            queue = Queue()
+            def ReadVersion():
+                ectool = subprocess.Popen(['ectool', 'version'],
+                                          stdout=subprocess.PIPE)
+                stdout, _ = ectool.communicate()
+                queue.put(stdout)
+                ectool.wait()
+            thread = threading.Thread(target=ReadVersion)
+            thread.daemon = True
+            thread.start()
+
+            # Throws Empty exception on timeout; we'll fall through and try
+            # mosys
+            stdout = queue.get(timeout=ECTOOL_TIMEOUT_SEC)
+            match = re.search('^Build info:\s+(.+)$', stdout, re.MULTILINE)
+            if match:
+                self.ec_version = match.group(1)
+        except:
+            pass
+
+        # ectool failed; try mosys
+        if not self.ec_version:
+            try:
+                ectool = subprocess.Popen(['mosys', 'ec', 'info', '-l'],
+                                          stdout=subprocess.PIPE)
+                stdout, _ = ectool.communicate()
+                match = re.search('^fw_version\s+\|\s+(.+)$', stdout,
+                                  re.MULTILINE)
+                if match:
+                    self.ec_version = match.group(1)
+            except:
+                pass
+
         self.firmware_version = None
-        self.factory_image = None
-        self.release_image = None
-        self.factory_md5sum = None
+        try:
+            crossystem = subprocess.Popen(['crossystem', 'fwid'],
+                                          stdout=subprocess.PIPE)
+            stdout, _ = crossystem.communicate()
+            self.firmware_version = stdout.strip() or None
+        except:
+            pass
+
+        self.factory_md5sum = updater.GetCurrentMD5SUM()
+
+
+if __name__ == '__main__':
+    import yaml
+    print yaml.dump(SystemInfo(None, None).__dict__,
+                    default_flow_style=False)
