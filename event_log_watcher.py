@@ -11,32 +11,31 @@ import threading
 import time
 
 from autotest_lib.client.cros import factory
+from autotest_lib.client.cros.factory import event_log
 
-EVENT_LOG_DIR = os.path.join(factory.get_log_root(), 'factory/event')
-EVENT_LOG_DB_DIR = os.path.join(factory.get_log_root(), 'factory/event_log_db')
 EVENT_SEPARATOR = '\n---\n'
-
 KEY_OFFSET = 'offset'
+EVENT_LOG_DB_FILE = os.path.join(factory.get_state_root(), 'event_log_db')
 
 class EventLogWatcher(object):
   '''An object watches event log and invokes a callback as new logs appear.'''
 
   def __init__(self, watch_period_sec=30,
-             event_log_dir=EVENT_LOG_DIR,
-             event_log_db_dir=EVENT_LOG_DB_DIR,
+             event_log_dir=event_log.EVENT_LOG_DIR,
+             event_log_db_file=EVENT_LOG_DB_FILE,
              handle_event_logs_callback=None):
     '''Constructor.
 
     Args:
       watch_period_sec: The time period in seconds between consecutive
           watches.
-      event_log_db_dir: The directory of database files which store event logs.
+      event_log_db_file: The file in which to store the DB of event logs.
       handle_event_logs__callback: The callback to trigger after new event logs
           found.
     '''
     self._watch_period_sec = watch_period_sec
     self._event_log_dir = event_log_dir
-    self._event_log_db_dir = event_log_db_dir
+    self._event_log_db_file = event_log_db_file
     self._handle_event_logs_callback = handle_event_logs_callback
     self._watch_thread = None
     self._aborted = threading.Event()
@@ -74,8 +73,8 @@ class EventLogWatcher(object):
           self._db[file_name][KEY_OFFSET] != os.path.getsize(file_path)):
         try:
           self.ScanEventLog(file_name)
-        except Exception as e:
-          logging.exception('Error scanning event log %s' % file_name)
+        except:
+          logging.exception('Error scanning event log %s', file_name)
           has_err = True
 
     self._db.sync()
@@ -88,8 +87,10 @@ class EventLogWatcher(object):
     self._watch_thread.join()
     self._watch_thread = None
     logging.info('Stopped watching.')
+    self.Close()
 
-    # Close databse when no one can access it now.
+  def Close(self):
+    '''Closes the database.'''
     self._db.close()
 
   def WatchForever(self):
@@ -107,14 +108,12 @@ class EventLogWatcher(object):
 
   def GetOrCreateDb(self):
     '''Gets the database or recreate one if exception occurs.'''
-    db_file = os.path.join(self._event_log_db_dir, 'db')
     try:
-      db = shelve.open(db_file)
+      db = shelve.open(self._event_log_db_file)
     except Exception:
-      for file_name in os.listdir(self._event_log_db_dir):
-        os.unlink(os.path.join(self._event_log_db_dir, file_name))
-      db = shelve.open(db_file)
-      logging.exception('Corrupted database, recreated one')
+      logging.exception('Corrupted database, recreating')
+      os.unlink(self._event_log_db_file)
+      db = shelve.open(self._event_log_db_file)
     return db
 
   def ScanEventLog(self, log_name):
@@ -133,11 +132,14 @@ class EventLogWatcher(object):
 
     with open(os.path.join(self._event_log_dir, log_name)) as f:
       f.seek(log_state[KEY_OFFSET])
-      chunk = f.read().rpartition(EVENT_SEPARATOR)[0]
 
+      chunk = f.read()
+      last_separator = chunk.rfind(EVENT_SEPARATOR)
       # No need to proceed if available chunk is empty.
-      if len(chunk) == 0:
+      if last_separator == -1:
         return
+
+      chunk = chunk[0:(last_separator + len(EVENT_SEPARATOR))]
 
       if self._handle_event_logs_callback != None:
         self._handle_event_logs_callback(log_name, chunk)
