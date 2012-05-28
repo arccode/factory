@@ -620,10 +620,17 @@ def _ProbeTouchpadFirmwareVersion():
 
 def _GbbHash(image):
   """Algorithm: sha256(GBB[-HWID]); GBB without HWID."""
-  with NamedTemporaryFile('wb') as f:
-    f.write(image.get_section('GBB'))
-    Shell('gbb_utility -s --hwid="ChromeOS" "%s"' % f.name)
+  with NamedTemporaryFile('w+b') as f:
+    data = image.get_section('GBB')
+    f.write(data)
+    f.flush()
+    if not Shell('gbb_utility -s --hwid="ChromeOS" "%s"' % f.name).success:
+      logging.error("Failed calling gbb_utility to calcuate GBB hash.")
+      return None
+    # Rewind to re-read the data.
+    f.seek(0)
     hash_src = f.read()
+    assert len(hash_src) == len(data)
   return hashlib.sha256(hash_src).hexdigest()
 
 
