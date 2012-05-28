@@ -58,6 +58,7 @@ def get_state_root():
 
 
 CONSOLE_LOG_PATH = os.path.join(get_log_root(), 'console.log')
+FACTORY_LOG_PATH = os.path.join(get_log_root(), 'factory.log')
 
 
 _state_instance = None
