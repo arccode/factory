@@ -17,7 +17,7 @@ import os
 import re
 import sys
 
-from tempfile import gettempdir
+from tempfile import gettempdir, NamedTemporaryFile
 
 import bmpblk
 import crosfw
@@ -26,11 +26,12 @@ import probe
 import report_upload
 import vpd_data
 
-from common import Error, ParseKeyValueData, SetupLogging, Shell, YamlWrite
+from common import Error, ParseKeyValueData, SetupLogging, Shell
+from common import YamlRead, YamlWrite
 from hacked_argparse import CmdArg, Command, ParseCmdline, verbosity_cmd_arg
-from tempfile import NamedTemporaryFile
 
 # TODO(tammo): Remove imp logic once the cros/factory code moves into this repo.
+# NOTE: These imports also corrupt the python logging module...
 import imp
 at_common = imp.find_module('common', ['/usr/local/autotest/client/bin'])
 imp.load_module('at_common', *at_common)
@@ -112,6 +113,93 @@ def WriteHwid(options):
   _event_log.Log('write_hwid', hwid=options.hwid)
 
 
+_hwdb_path_cmd_arg = CmdArg(
+    '--hwdb_path', metavar='PATH',
+    default=hwid_tool.DEFAULT_HWID_DATA_PATH,
+    help='Path to the HWID database.')
+
+
+@Command('probe_hwids',
+         _hwdb_path_cmd_arg,
+         CmdArg('-b', '--board', metavar='BOARD',
+                help='BOARD name', required=True),
+         CmdArg('--bom', metavar='BOM', help='BOM name'),
+         CmdArg('--variant', metavar='VARIANT', help='VARIANT code'),
+         CmdArg('--comp_map', action='store_true'),
+         CmdArg('--status', nargs='*',
+                help='consider only HWIDs with this status'))
+def ProbeHwid(options):
+  """Determine a list of possible HWIDs using provided args and probeing.
+
+  VOLATILE can always be determined by probing.  To get a unique
+  result, VARIANT must be specified for all cases where the matching
+  BOM has more than one associated variant code, otherwise all HWID
+  variants will be returned.  Both VARIANT and BOM information can
+  alternatively be specified using the --comp_map argument, which
+  allows specifying a list of
+
+    component-class: canonical-component-name
+
+  pairs on stdin, one per line (yaml format).  Based on what is known
+  from BOM and comp_map, determine a list of components to probe for,
+  and use those probe results to resolve a list of matching HWIDs.  If
+  no boms, components, or variant codes are specified, then a list of
+  all HWIDs that match probable components will be returned.
+
+  Returns (on stdout): A list of HWIDs that match the available probe
+  results and argument contraints, one per line.
+  """
+  hwdb = hwid_tool.ReadDatastore(options.hwdb_path)
+  if options.board not in hwdb.device_db:
+    sys.exit('ERROR: unknown board %r' % options.board)
+  device = hwdb.device_db[options.board]
+  component_map = {}
+  if options.bom:
+    bom_details = device.hwid_map.get(options.bom, None)
+    if bom_details is None:
+      sys.exit('ERROR: unkown bom %r for board %r' %
+               (options.bom, options.board))
+    component_map.update(bom_details.component_map)
+  comp_db_class_map = hwid_tool.CalcCompDbClassMap(hwdb.comp_db)
+  if options.variant:
+    variant_details = device.variant_map.get(options.variant, None)
+    if options.variant is None:
+      sys.exit('ERROR: unknown variant code %r for board %r' %
+               (options.variant, options.board))
+    for comp_name in variant_details:
+      comp_class = comp_db_class_map[comp_name]
+      if comp_class in component_map:
+        sys.exit('ERROR: multiple specifications for %r components'
+                 ' (both VARIANT and BOM)' % comp_class)
+      component_map[comp_class] = comp_name
+  if options.comp_map:
+    input_map = YamlRead(sys.stdin.read())
+    logging.info('stdin component map: %r', input_map)
+    for key, value in input_map.items():
+      if key not in hwdb.comp_db.registry:
+        sys.exit('ERROR: unknown component class %r (from stdin)' % key)
+      if value not in comp_db_class_map:
+        sys.exit('ERROR: unkown component name %r (from stdin)' % value)
+      if key in component_map:
+        sys.exit('ERROR: multiple specifications for %r components'
+                 ' (stdin and BOM/VARIANT)' % key)
+      component_map[key] = value
+  missing_classes = list(set(hwdb.comp_db.registry) - set(component_map))
+  if missing_classes:
+    logging.info('probing for %s', ', '.join(missing_classes))
+  probe_results = probe.Probe(target_comp_classes=missing_classes,
+                              probe_volatile=True, probe_initial_config=False)
+  cooked_results = hwid_tool.CookProbeResults(
+    hwdb, probe_results, options.board)
+  cooked_results.matched_components.update(component_map)
+  status_set = set(options.status) if options.status else set(['supported'])
+  hwid_set = hwid_tool.MatchHwids(hwdb, cooked_results, options.board,
+                                  status_set)
+  if not hwid_set:
+    sys.exit('NO matching HWIDs found')
+  print '\n'.join(hwid_set)
+
+
 @Command('probe',
          CmdArg('--comps', nargs='*',
                 help='List of keys from the component_db registry.'),
@@ -125,12 +213,6 @@ def RunProbe(options):
                               probe_volatile=not options.no_vol,
                               probe_initial_config=not options.no_ic)
   print YamlWrite(probe_results.__dict__)
-
-
-_hwdb_path_cmd_arg = CmdArg(
-    '--hwdb_path', metavar='PATH',
-    default=hwid_tool.DEFAULT_HWID_DATA_PATH,
-    help='Path to the HWID database.')
 
 
 @Command('verify_components',
@@ -206,6 +288,10 @@ def VerifyHwid(options):
   _event_log.Log('probe',
                  results=cooked_results.__dict__)
   match_errors = []
+  # TODO(tammo): Refactor to use hwid_tool.MatchHwids() ; this will
+  # make error reporting harder...  Or maybe just factor out the
+  # shared matching logic, and add error reporting to that, which the
+  # MatchHwids routine could ignore.
   for comp_class, expected_name in hwid_properties.component_map.items():
     if expected_name == 'ANY':
       continue
@@ -510,8 +596,7 @@ def Main():
       'Perform Google required factory tests.',
       CmdArg('-l', '--log', metavar='PATH',
              help='Write logs to this file.'),
-      verbosity_cmd_arg
-      )
+      verbosity_cmd_arg)
   SetupLogging(options.verbosity, options.log)
   logging.debug('gooftool options: %s', repr(options))
   try:

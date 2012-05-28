@@ -75,7 +75,10 @@ MakeDatastoreSubclass('Device', {
 # canonical component names.  Based on the component classes that
 # occur in the variant_map, automatically derive a set of components
 # that are 'secondary' and make sure these components never appear in
-# any Hwid component_map.
+# any Hwid component_map.  Basically, the variant data should be a top
+# level datapoint that feeds into creating per-hwid component_maps.
+# Calculations on hwids should use these unified (bom+variant)
+# component maps.
 
 # TODO(tammo): The hwid_status_map should support some kind of more
 # obvious glob syntax -- the current bom-volatile is counterintuitive
@@ -574,6 +577,46 @@ def CookProbeResults(data, probe_results, board_name):
         and initial_config_tag not in results.matched_initial_config_tags):
       results.matched_initial_config_tags.append(initial_config_tag)
   return results
+
+
+def MatchHwids(data, cooked_results, board_name, status_set):
+  """Return a list of all HWIDs compatible with the cooked probe results."""
+  logging.info('looking for HWIDs to match:\n%s', YamlWrite(cooked_results))
+  logging.info('matching only status: %s', ', '.join(status_set))
+  device = data.device_db[board_name]
+  matching_hwids = []
+  for bom_name, bom_details in device.hwid_map.items():
+    match = True
+    # TODO(tammo): The expected component_map used here should include
+    # variant component data, ie the outer loop should be over
+    # variants and not boms.
+    for comp_class, expected_name in bom_details.component_map.items():
+      if expected_name == 'ANY':
+        continue
+      found_name = cooked_results.matched_components.get(comp_class, None)
+      if expected_name == found_name:
+        continue
+      match = False
+      break
+    if not match:
+      continue
+    logging.info('considering bom %s', bom_name)
+    found_component_names = cooked_results.matched_components.values()
+    for variant_code in bom_details.variant_list:
+      variant_details = device.variant_map[variant_code]
+      logging.info('variant details: %r, found_component_names: %r',
+                   variant_details, found_component_names)
+      if not all(comp_name in found_component_names
+                 for comp_name in variant_details):
+        continue
+      logging.info('variant %r matched, checking volatiles', variant_code)
+      for volatile_code in cooked_results.matched_volatile_tags:
+        status = LookupHwidStatus(device, bom_name, volatile_code, variant_code)
+        logging.info('volatile_code %r has status %r', volatile_code, status)
+        if status in status_set:
+          hwid = FmtHwid(board_name, bom_name, volatile_code, variant_code)
+          matching_hwids.append(hwid)
+  return matching_hwids
 
 
 def LookupHwidProperties(data, hwid):
