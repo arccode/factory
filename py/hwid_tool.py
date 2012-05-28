@@ -113,6 +113,8 @@ MakeDatastoreSubclass('Device', {
 # are not in either the map or the not_present list, they are
 # implicitly in anything_goes.
 
+# TODO(tammo): Add examples to the command line function docstrings.
+
 
 def HwidChecksum(text):
   return ('%04u' % (zlib.crc32(text) & 0xffffffffL))[-4:]
@@ -740,7 +742,7 @@ def AssimilateProbeData(config, data):
   reverse_registry = CalcCompDbProbeValMap(data.comp_db)
   component_match_dict = {}
   # TODO(tammo): Once variant data is properly mapped into the
-  # component space, segreate any variant component data into a
+  # component space, segregate any variant component data into a
   # variant list.
   for comp_class, probe_value in components.items():
     if probe_value in reverse_registry:

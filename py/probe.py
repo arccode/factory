@@ -682,7 +682,7 @@ def CalculateFirmwareHashes(fw_file_path):
   return hashes
 
 
-def Probe(target_comp_classes=[],
+def Probe(target_comp_classes=None,
           probe_volatile=True,
           probe_initial_config=True):
   """Return device component, hash, and initial_config data.
@@ -696,8 +696,8 @@ def Probe(target_comp_classes=[],
   can be done afterwards.
 
   Args:
-    component_classes: Which component classes to probe for.  The
-      empty list implies all classes.
+    component_classes: Which component classes to probe for.  A None
+      value implies all classes.
     probe_volatile: On False, do not probe for volatile data and
       return None for the corresponding field.
     probe_initial_config: On False, do not probe for initial_config
@@ -716,7 +716,7 @@ def Probe(target_comp_classes=[],
   def FilterProbes(ref_probe_map, arch, probe_class_white_list):
     generic_probes = ref_probe_map.get(None, {})
     arch_probes = ref_probe_map.get(arch, {})
-    if not probe_class_white_list:
+    if probe_class_white_list is None:
       probe_class_white_list = set(generic_probes) | set(arch_probes)
     return dict((probe_class, (arch_probes[probe_class]
                                if probe_class in arch_probes

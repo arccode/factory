@@ -133,6 +133,50 @@ _hwdb_path_cmd_arg = CmdArg(
     help='Path to the HWID database.')
 
 
+@Command('verify_components',
+         _hwdb_path_cmd_arg,
+         CmdArg('comp_white_list', nargs='*'))
+def VerifyComponents(options):
+  """Verify that probable components all match entries in the component_db.
+
+  Probe for each component class in the comp_white_list and verify
+  that a corresponding match exists in the component_db -- make sure
+  that these components are present, that they have been approved, but
+  do not check against any specific BOM/HWID configurations.
+  """
+  hwdb = hwid_tool.ReadDatastore(options.hwdb_path)
+  if not options.comp_white_list:
+    sys.exit('ERROR: no component white list specified; possible choices:\n  %s'
+             % '\n  '.join(sorted(hwdb.comp_db.registry)))
+  for comp_class in options.comp_white_list:
+    if comp_class not in hwdb.comp_db.registry:
+      sys.exit('ERROR: specified white list component class %r does not exist'
+               ' in the component DB.' % comp_class)
+  probe_results = probe.Probe(target_comp_classes=options.comp_white_list,
+                              probe_volatile=False, probe_initial_config=False)
+  probe_val_map = hwid_tool.CalcCompDbProbeValMap(hwdb.comp_db)
+  errors = []
+  matches = []
+  for comp_class in sorted(options.comp_white_list):
+    probe_val = probe_results.found_components.get(comp_class, None)
+    if probe_val is not None:
+      comp_name = probe_val_map.get(probe_val, None)
+      if comp_name is not None:
+        matches.append(comp_name)
+      else:
+        errors.append('unsupported %r component found with probe result'
+                      ' %r (no matching name in the component DB)' %
+                      (comp_class, probe_val))
+    else:
+      errors.append('missing %r component' % comp_class)
+  if errors:
+    print '\n'.join(errors)
+    sys.exit('component verification FAILURE')
+  else:
+    print 'component verification SUCCESS'
+    print 'found components:\n  %s' % '\n  '.join(matches)
+
+
 @Command('verify_hwid',
          _hwdb_path_cmd_arg)
 def VerifyHwid(options):
