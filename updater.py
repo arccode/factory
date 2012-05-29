@@ -71,12 +71,12 @@ def TryUpdate(pre_update_hook=None):
     else:
         current_md5sum = None
 
-    url = shopfloor.get_server_url()
+    url = shopfloor.get_server_url() or shopfloor.detect_default_server_url()
     factory.console.info(
         'Checking for updates at <%s>... (current MD5SUM is %s)',
         url, current_md5sum)
 
-    shopfloor_client = shopfloor.get_instance()
+    shopfloor_client = shopfloor.get_instance(detect=True)
     new_md5sum = shopfloor_client.GetTestMd5sum()
     factory.console.info('MD5SUM from server is %s', new_md5sum)
     if current_md5sum == new_md5sum:
