@@ -17,6 +17,11 @@ EVENT_SEPARATOR = '\n---\n'
 KEY_OFFSET = 'offset'
 EVENT_LOG_DB_FILE = os.path.join(factory.get_state_root(), 'event_log_db')
 
+
+class ScanException(Exception):
+  pass
+
+
 class EventLogWatcher(object):
   '''An object watches event log and invokes a callback as new logs appear.'''
 
@@ -64,22 +69,27 @@ class EventLogWatcher(object):
           log callback will be ignored.
 
     Raise:
-      Exception: if at least one ScanEventLog call throws exception.
+      ScanException: if at least one ScanEventLog call throws exception.
     '''
-    has_err = False
+    exceptions = []
     for file_name in os.listdir(self._event_log_dir):
       file_path = os.path.join(self._event_log_dir, file_name)
       if (not self._db.has_key(file_name) or
           self._db[file_name][KEY_OFFSET] != os.path.getsize(file_path)):
         try:
           self.ScanEventLog(file_name)
-        except:
+        except Exception, e:
           logging.exception('Error scanning event log %s', file_name)
-          has_err = True
+          exceptions.append(e)
 
     self._db.sync()
-    if not suppress_error and has_err:
-      raise Exception('At least one scan action failed')
+    if not suppress_error and exceptions:
+      if len(exceptions) == 1:
+        raise ScanException('Log scan handler failed: %s' % exceptions[0])
+      else:
+        raise ScanException('%d log scan handlers failed (first is %s)' %
+                            (len(exceptions),
+                             str(exceptions[0])))
 
   def StopWatchThread(self):
     '''Stops the event logs watching thread.'''

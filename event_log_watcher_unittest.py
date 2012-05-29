@@ -132,7 +132,7 @@ class EventLogWatcherTest(unittest.TestCase):
   def testHandleEventLogsFail(self):
     mock = mox.MockAnything()
     mock.handle_event_log(MOCK_LOG_NAME, MOCK_PREAMBLE).AndRaise(
-            Exception())
+            Exception("Bar"))
     mox.Replay(mock)
     watcher = EventLogWatcher(MOCK_PERIOD, self.events_dir, self.db,
         mock.handle_event_log)
@@ -149,7 +149,7 @@ class EventLogWatcherTest(unittest.TestCase):
   def testFlushEventLogsFail(self):
     mock = mox.MockAnything()
     mock.handle_event_log(MOCK_LOG_NAME, MOCK_PREAMBLE).AndRaise(
-            Exception())
+            Exception("Foo"))
     mox.Replay(mock)
     watcher = EventLogWatcher(MOCK_PERIOD, self.events_dir, self.db,
         mock.handle_event_log)
@@ -157,7 +157,7 @@ class EventLogWatcherTest(unittest.TestCase):
     self.WriteLog(MOCK_PREAMBLE, MOCK_LOG_NAME)
 
     # Assert exception caught.
-    self.assertRaises(Exception, watcher.FlushEventLogs)
+    self.assertRaises(event_log_watcher.ScanException, watcher.FlushEventLogs)
 
     # Assert that watcher did not update the new event as uploaded
     # when handle logs fail.
