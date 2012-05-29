@@ -93,6 +93,11 @@ body {
 }
 #goofy-logo-text {
   vertical-align: middle;
+  cursor: pointer;
+}
+#goofy-logo-down-arrow {
+  font-size: 60%;
+  vertical-align: .25em;
 }
 #goofy-language-selector {
   float: right;

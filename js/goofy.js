@@ -764,22 +764,29 @@ cros.factory.Goofy.prototype.setTestList = function(testList) {
         addListener(path, node.getLabelElement(), node.getRowElement());
     }
 
-    goog.events.listen(
-        document.getElementById('goofy-title'),
-        goog.events.EventType.CONTEXTMENU,
-        function(event) {
-            var updateItem = new goog.ui.MenuItem('Update factory software');
-            goog.events.listen(updateItem, goog.ui.Component.EventType.ACTION,
-                               function(event) {
-                                   this.sendEvent('goofy:update_factory', {});
-                               }, true, this);
+    goog.array.forEach([goog.events.EventType.MOUSEDOWN,
+                        goog.events.EventType.CONTEXTMENU],
+        function(eventType) {
+            goog.events.listen(
+                document.getElementById('goofy-title'),
+                eventType,
+                function(event) {
+                    var updateItem = new goog.ui.MenuItem(
+                        'Update factory software');
+                    goog.events.listen(
+                        updateItem, goog.ui.Component.EventType.ACTION,
+                        function(event) {
+                            this.sendEvent('goofy:update_factory', {});
+                        }, true, this);
 
-            this.showTestPopup('', document.getElementById('goofy-logo-text'),
-                               [updateItem]);
+                    this.showTestPopup(
+                        '', document.getElementById('goofy-logo-text'),
+                        [updateItem]);
 
-            event.stopPropagation();
-            event.preventDefault();
-        }, true, this);
+                    event.stopPropagation();
+                    event.preventDefault();
+                }, true, this);
+        }, this);
 
     this.testTree.collapseAll();
     this.sendRpc('get_test_states', [], function(stateMap) {
