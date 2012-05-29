@@ -79,7 +79,7 @@ def TryUpdate(pre_update_hook=None):
     shopfloor_client = shopfloor.get_instance(detect=True)
     new_md5sum = shopfloor_client.GetTestMd5sum()
     factory.console.info('MD5SUM from server is %s', new_md5sum)
-    if current_md5sum == new_md5sum:
+    if current_md5sum == new_md5sum or new_md5sum is None:
         factory.console.info('Factory software is up to date')
         return False
 
