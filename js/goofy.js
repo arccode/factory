@@ -66,6 +66,18 @@ cros.factory.Label = function(en, zh) {
 };
 
 /**
+ * Makes control content that displays English (or optionally Chinese).
+ * @param {string} en
+ * @param {string=} zh
+ * @return {Node}
+ */
+cros.factory.Content = function(en, zh) {
+    var span = document.createElement('span');
+    span.innerHTML = cros.factory.Label(en, zh);
+    return span;
+};
+
+/**
  * Labels for items in system info.
  * @type Array.<Object.<string, string>>
  */
@@ -498,30 +510,42 @@ cros.factory.Goofy.prototype.handleShortcut = function(key) {
  * TODO(jsalz): Figure out the correct logic for this and how to localize this.
  * (Please just consider this a rough cut for now!)
  *
- * @param {string} verb the action.
- * @param {string} adjective a descriptive adjective for the tests (e.g.,
+ * @param {string} verbEn the action in English.
+ * @param {string} verbZh the action in Chinese.
+ * @param {string} adjectiveEn a descriptive adjective for the tests (e.g.,
  *     'failed').
+ * @param {string} adjectiveZh the adjective in Chinese.
  * @param {number} count the number of tests.
  * @param {cros.factory.TestListEntry} test the name of the root node containing
  *     the tests.
  * @param {Object} handler the handler function (see goog.events.listen).
  */
 cros.factory.Goofy.prototype.makeMenuItem = function(
-    verb, adjective, count, test, handler) {
-    var label = verb + ' ';
+    verbEn, verbZh, adjectiveEn, adjectiveZh, count, test, handler) {
 
+    var labelEn = verbEn + ' ';
+    var labelZh = verbZh;
     if (!test.subtests.length) {
         // leaf node
-        label += adjective + ' test ' + test.label_en;
+        labelEn += adjectiveEn + ' test ' + test.label_en;
+        labelZh += adjectiveZh + '測試';
     } else {
-        label += count + ' ' + adjective + ' ' +
+        labelEn += count + ' ' + adjectiveEn + ' ' +
             (count == 1 ? 'test' : 'tests');
         if (test.label_en) {
-            label += ' in "' + goog.string.htmlEscape(test.label_en) + '"';
+            labelEn += ' in "' + goog.string.htmlEscape(test.label_en) + '"';
         }
+
+        labelZh += count + '個' + adjectiveZh;
+        if (test.label_en || test.label_zh) {
+            labelZh += ('在“' +
+                goog.string.htmlEscape(test.label_en || test.label_zh) +
+                '”裡面的');
+        }
+        labelZh += '測試';
     }
 
-    var item = new goog.ui.MenuItem(label);
+    var item = new goog.ui.MenuItem(cros.factory.Content(labelEn, labelZh));
     item.setEnabled(count != 0);
     goog.events.listen(item, goog.ui.Component.EventType.ACTION,
                        handler, true, this);
@@ -615,33 +639,40 @@ cros.factory.Goofy.prototype.showTestPopup = function(path, labelElement,
     }
     countLeaves(test);
 
-    var restartOrRun = numLeavesByStatus['UNTESTED'] == numLeaves ?
+    var restartOrRunEn = numLeavesByStatus['UNTESTED'] == numLeaves ?
         'Run' : 'Restart';
+    var restartOrRunZh = numLeavesByStatus['UNTESTED'] == numLeaves ?
+        '執行' : '重跑';
     if (numLeaves > 1) {
-        restartOrRun += ' all';
+        restartOrRunEn += ' all';
+        restartOrRunZh += '所有的';
     }
-    menu.addChild(this.makeMenuItem(restartOrRun, '', numLeaves, test,
+    menu.addChild(this.makeMenuItem(restartOrRunEn, restartOrRunZh,
+                                    '', '',
+                                    numLeaves, test,
                                     function(event) {
         this.sendEvent('goofy:restart_tests', {'path': path});
     }), true);
     if (test.subtests.length) {
         // Only show for parents.
-        menu.addChild(this.makeMenuItem('Restart', 'failed',
-                                        numLeavesByStatus['FAILED'] || 0,
-                                        test, function(event) {
-            this.sendEvent('goofy:re_run_failed', {'path': path});
-        }), true);
-        menu.addChild(this.makeMenuItem('Run', 'untested',
-                                        (numLeavesByStatus['UNTESTED'] || 0 +
-                                         numLeavesByStatus['ACTIVE'] || 0),
-                                        test, function(event) {
-            this.sendEvent('goofy:auto_run', {'path': path});
-        }), true);
+        menu.addChild(this.makeMenuItem(
+            'Restart', '重跑', 'failed', '已失敗的',
+            numLeavesByStatus['FAILED'] || 0,
+            test, function(event) {
+                this.sendEvent('goofy:re_run_failed', {'path': path});
+            }), true);
+        menu.addChild(this.makeMenuItem(
+            'Run', '執行', 'untested', '未測的',
+            (numLeavesByStatus['UNTESTED'] || 0 +
+             numLeavesByStatus['ACTIVE'] || 0),
+            test, function(event) {
+                this.sendEvent('goofy:auto_run', {'path': path});
+            }), true);
     }
     menu.addChild(new goog.ui.MenuSeparator(), true);
     // TODO(jsalz): This isn't quite right since it stops all tests.
     // But close enough for now.
-    menu.addChild(this.makeMenuItem('Stop', 'active',
+    menu.addChild(this.makeMenuItem('Stop', '停止', 'active', '正在跑的',
                                     numLeavesByStatus['ACTIVE'] || 0,
                                     test, function(event) {
         this.sendEvent('goofy:stop');
@@ -772,7 +803,8 @@ cros.factory.Goofy.prototype.setTestList = function(testList) {
                 eventType,
                 function(event) {
                     var updateItem = new goog.ui.MenuItem(
-                        'Update factory software');
+                        cros.factory.Content('Update factory software',
+                                             '更新工廠軟體'));
                     goog.events.listen(
                         updateItem, goog.ui.Component.EventType.ACTION,
                         function(event) {
