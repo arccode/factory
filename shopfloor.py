@@ -153,15 +153,19 @@ def detect_default_server_url():
     return None
 
 
-def get_instance(url=None):
+def get_instance(url=None, detect=False):
     """Gets an instance (for client side) to access the shop floor server.
 
     @param url: URL of the shop floor server. If None, use the value in
             factory shared data.
+    @param detect: If True, attempt to detect the server URL if none is
+        specified.
     @return An object with all public functions from shopfloor.ShopFloorBase.
     """
     if not url:
         url = get_server_url()
+    if not url and detect:
+        url = detect_default_server_url()
     if not url:
         raise Exception("Shop floor server URL is NOT configured.")
     return xmlrpclib.ServerProxy(url, allow_none=True, verbose=False)
