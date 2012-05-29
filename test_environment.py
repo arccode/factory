@@ -172,11 +172,14 @@ class SystemInfo(object):
             # ECs.
             queue = Queue()
             def ReadVersion():
-                ectool = subprocess.Popen(['ectool', 'version'],
-                                          stdout=subprocess.PIPE)
-                stdout, _ = ectool.communicate()
-                queue.put(stdout)
-                ectool.wait()
+                try:
+                    ectool = subprocess.Popen(['ectool', 'version'],
+                                              stdout=subprocess.PIPE)
+                    stdout, _ = ectool.communicate()
+                    queue.put(stdout)
+                    ectool.wait()
+                except:
+                    pass
             thread = threading.Thread(target=ReadVersion)
             thread.daemon = True
             thread.start()
