@@ -168,43 +168,15 @@ class SystemInfo(object):
 
         self.ec_version = None
         try:
-            # Call ectool in a separate thread since it may timeout on older
-            # ECs.
-            queue = Queue()
-            def ReadVersion():
-                try:
-                    ectool = subprocess.Popen(['ectool', 'version'],
-                                              stdout=subprocess.PIPE)
-                    stdout, _ = ectool.communicate()
-                    queue.put(stdout)
-                    ectool.wait()
-                except:
-                    pass
-            thread = threading.Thread(target=ReadVersion)
-            thread.daemon = True
-            thread.start()
-
-            # Throws Empty exception on timeout; we'll fall through and try
-            # mosys
-            stdout = queue.get(timeout=ECTOOL_TIMEOUT_SEC)
-            match = re.search('^Build info:\s+(.+)$', stdout, re.MULTILINE)
+            ectool = subprocess.Popen(['mosys', 'ec', 'info', '-l'],
+                                      stdout=subprocess.PIPE)
+            stdout, _ = ectool.communicate()
+            match = re.search('^fw_version\s+\|\s+(.+)$', stdout,
+                              re.MULTILINE)
             if match:
                 self.ec_version = match.group(1)
         except:
             pass
-
-        # ectool failed; try mosys
-        if not self.ec_version:
-            try:
-                ectool = subprocess.Popen(['mosys', 'ec', 'info', '-l'],
-                                          stdout=subprocess.PIPE)
-                stdout, _ = ectool.communicate()
-                match = re.search('^fw_version\s+\|\s+(.+)$', stdout,
-                                  re.MULTILINE)
-                if match:
-                    self.ec_version = match.group(1)
-            except:
-                pass
 
         self.firmware_version = None
         try:
