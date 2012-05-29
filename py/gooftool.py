@@ -498,7 +498,7 @@ def Finalize(options):
   SetFirmwareBitmapLocale({})
   if not options.dev:
     EnableFwWp({})
-  LogSystemDetails()
+  LogSystemDetails(options)
   UploadReport(options)
   PrepareWipe(options)
 
