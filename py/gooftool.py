@@ -23,7 +23,6 @@ import bmpblk
 import crosfw
 import hwid_tool
 import probe
-import report
 import report_upload
 import vpd_data
 
@@ -81,7 +80,8 @@ def GetReleaseKernelPartitionPath():
 
 
 def FindScript(script_name):
-  script_path = os.path.join(os.path.dirname(sys.path[0]), 'sh', script_name)
+  script_path = os.path.join(os.path.dirname(os.path.dirname(
+        os.path.realpath(__file__))), 'sh', script_name)
   if not os.path.exists(script_path):
     raise Error('Needed script %s does not exist.' % script_path)
   return script_path
