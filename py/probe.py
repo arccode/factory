@@ -663,7 +663,7 @@ def _FwKeyHash(main_fw_file, key_name):
     if len(sha1sum) != 1:
       logging.error("Failed calling vbutil_key for firmware key hash.")
       return None
-    return 'kv2#' + sha1sum[0]
+    return 'kv3#' + sha1sum[0]
 
 
 def CalculateFirmwareHashes(fw_file_path):
