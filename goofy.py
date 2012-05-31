@@ -623,6 +623,8 @@ class Goofy(object):
 
         self.update_system_info()
 
+        os.environ['CROS_FACTORY'] = '1'
+
         # Set CROS_UI since some behaviors in ui.py depend on the
         # particular UI in use.  TODO(jsalz): Remove this (and all
         # places it is used) when the GTK UI is removed.

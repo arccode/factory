@@ -34,6 +34,8 @@ import re
 import string
 import subprocess
 import sys
+import threading
+import time
 from itertools import count, izip, product
 from optparse import OptionParser
 
@@ -1024,6 +1026,38 @@ def grab_shortcut_keys(disp, event_handler, event_client):
         root.display.next_event()
     gobject.io_add_watch(root.display, gobject.IO_IN, event_handler,
                          root.display, keycode_map, event_client)
+
+
+def start_reposition_thread(title_regexp):
+    '''Starts a thread to reposition a client window once it appears.
+
+    This is useful to avoid blocking the console.
+
+    Args:
+      title_regexp: A regexp for the window's title (used to find the
+        window to reposition).
+    '''
+    test_widget_position = (
+        factory.get_shared_data('test_widget_position'))
+    if not test_widget_position:
+        return
+
+    def reposition():
+        display = Display()
+        root = display.screen().root
+        for i in xrange(50):
+            wins = [win for win in root.query_tree().children
+                    if re.match(title_regexp, win.get_wm_name())]
+            if wins:
+                wins[0].configure(x=test_widget_position[0],
+                                  y=test_widget_position[1])
+                display.sync()
+                return
+            # Wait 100 ms and try again.
+            time.sleep(.1)
+    thread = threading.Thread(target=reposition)
+    thread.daemon = True
+    thread.start()
 
 
 def main(test_list_path):
