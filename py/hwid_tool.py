@@ -536,6 +536,18 @@ def CookProbeResults(data, probe_results, board_name):
   values where the index values correspond to existing board data that
   matches the probe results.
   """
+  def CompareMaps(caption, map1, map2):
+    if all(map2.get(c, None) == v for c, v in map1.items()):
+      return True
+    # Try to provide more debug information
+    logging.debug('Unmatchd set: %s', caption)
+    logging.debug('---')
+    for c, v1 in map2.items():
+      v2 = map2.get(c, None)
+      logging.debug('%s: Expected="%s", Probed="%s" (%s)', c, v1, v2,
+                    'matched' if (v1 == v2) else 'UNMATCHED')
+    logging.debug('---')
+
   results = Obj(
       matched_components={},
       matched_volatiles=[],
@@ -554,13 +566,11 @@ def CookProbeResults(data, probe_results, board_name):
       for c, v in probe_results.volatiles.items()
       if v in volatile_reference_map)
   for volatile_tag, volatile_map in device.volatile_map.items():
-    if (all(results.matched_volatiles.get(c, None) == v
-            for c, v in volatile_map.items())
+    if (CompareMaps(volatile_tag, volatile_map, results.matched_volatiles)
         and volatile_tag not in results.matched_volatile_tags):
-      results.matched_volatile_tags.append(volatile_tag)
+        results.matched_volatile_tags.append(volatile_tag)
   for initial_config_tag, ic_map in device.initial_config_map.items():
-    if (all(probe_results.initial_configs.get(ic_class, None) == ic_value
-           for ic_class, ic_value in ic_map.items())
+    if (CompareMaps(initial_config_tag, ic_map, probe_results.initial_configs)
         and initial_config_tag not in results.matched_initial_config_tags):
       results.matched_initial_config_tags.append(initial_config_tag)
   return results
