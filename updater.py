@@ -44,6 +44,23 @@ def CheckCriticalFiles(autotest_new_path):
             'Aborting update: Missing critical files %r' % missing_files)
 
 
+def RunRsync(*rsync_command):
+    '''Runs rsync with the given command.'''
+    factory.console.info('Running `%s`',
+                         ' '.join(rsync_command))
+    # Run rsync.
+    rsync = subprocess.Popen(rsync_command,
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.STDOUT)
+    stdout, _ = rsync.communicate()
+    if stdout:
+        factory.console.info('rsync output: %s', stdout)
+    if rsync.returncode:
+        raise UpdaterException('rsync returned status %d; aborting' %
+                               rsync.returncode)
+    factory.console.info('rsync succeeded')
+
+
 def TryUpdate(pre_update_hook=None):
     '''Attempts to update the autotest directory on the device.
 
@@ -86,7 +103,7 @@ def TryUpdate(pre_update_hook=None):
     # An update is necessary.  Construct the rsync command.
     update_port = shopfloor_client.GetUpdatePort()
     autotest_new_path = '%s.new' % autotest_path
-    rsync_command = [
+    RunRsync(
         'rsync',
         '-a', '--delete', '--stats',
         # Use copies of identical files from the old autotest
@@ -96,21 +113,7 @@ def TryUpdate(pre_update_hook=None):
             urlparse(url).hostname,
             update_port,
             new_md5sum),
-        '%s/' % autotest_new_path]
-    factory.console.info('Running `%s`',
-                         ' '.join(rsync_command))
-
-    # Run rsync.
-    rsync = subprocess.Popen(rsync_command,
-                             stdout=subprocess.PIPE,
-                             stderr=subprocess.STDOUT)
-    stdout, _ = rsync.communicate()
-    if stdout:
-        factory.console.info('rsync output: %s', stdout)
-    if rsync.returncode:
-        raise UpdaterException('rsync returned status %d; aborting' %
-                               rsync.returncode)
-    factory.console.info('rsync succeeded')
+        '%s/' % autotest_new_path)
 
     CheckCriticalFiles(autotest_new_path)
 
@@ -124,6 +127,13 @@ def TryUpdate(pre_update_hook=None):
     if factory.in_chroot():
         raise UpdaterException('Aborting update: In chroot')
 
+    # Copy over autotest results.
+    autotest_results = os.path.join(autotest_path, 'results')
+    if os.path.exists(autotest_results):
+        RunRsync('rsync', '-a',
+                 autotest_results,
+                 autotest_new_path)
+
     # Alright, here we go!  This is the point of no return.
     if pre_update_hook:
         pre_update_hook()
@@ -131,4 +141,7 @@ def TryUpdate(pre_update_hook=None):
     # If one of these fails, we're screwed.
     shutil.move(autotest_path, autotest_old_path)
     shutil.move(autotest_new_path, autotest_path)
+    # Delete the autotest.old tree
+    shutil.rmtree(autotest_old_path, ignore_errors=True)
+    factory.console.info('Update successful')
     return True
