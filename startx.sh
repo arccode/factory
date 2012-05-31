@@ -24,7 +24,7 @@ board_post_setup() {
 }
 
 setup_xauth() {
-  MCOOKIE=$(head -c 8 /dev/urandom | openssl md5)
+  MCOOKIE=$(head -c 8 /dev/urandom | md5sum | cut -d' ' -f1)
   ${XAUTH} -q -f ${XAUTH_FILE} add ${DISPLAY} . ${MCOOKIE}
 }
 
