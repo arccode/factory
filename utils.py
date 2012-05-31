@@ -106,3 +106,9 @@ def are_shift_keys_depressed():
     return False
 
 
+class Enum(frozenset):
+    '''An enumeration type.'''
+    def __getattr__(self, name):
+        if name in self:
+            return name
+        raise AttributeError
