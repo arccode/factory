@@ -123,8 +123,9 @@ class TestInvocation(object):
         error_msg = 'Unknown'
 
         try:
-            output_dir = '%s/results/%s' % (factory.CLIENT_PATH,
-                                            self.test.path)
+            output_dir = '%s/results/%s-%s' % (factory.CLIENT_PATH,
+                                               self.test.path,
+                                               self.uuid)
             self.debug_log_path = os.path.join(
                 output_dir,
                 'results/default/debug/client.INFO')
