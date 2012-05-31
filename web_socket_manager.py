@@ -44,9 +44,9 @@ class WebSocketManager(object):
         self.event_client = EventClient(callback=self._handle_event,
                                         name='WebSocketManager')
         self.tail_process = subprocess.Popen(
-            ["tail", "-f", factory.CONSOLE_LOG_PATH],
-            stdin=open("/dev/null"),
-            stdout=subprocess.PIPE)
+            ["tail", "-F", factory.CONSOLE_LOG_PATH],
+            stdout=subprocess.PIPE,
+            close_fds=True)
         self.tail_thread = threading.Thread(target=self._tail_console)
         self.tail_thread.start()
         self.closed = False
