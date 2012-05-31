@@ -92,6 +92,7 @@ class DUTEnvironment(Environment):
             '/opt/google/chrome/chrome',
             '--user-data-dir=%s/factory-chrome-datadir' %
             factory.get_log_root(),
+            '--disable-translate',
             '--aura-host-window-use-fullscreen',
             '--kiosk',
             ('--default-device-scale-factor=%d' %
