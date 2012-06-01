@@ -203,7 +203,8 @@ def VerifyHwid(options):
       hwdb, probe_results, hwid_properties.board)
   logging.debug('found system properties:\n%s',
                 YamlWrite(cooked_results.__dict__))
-  # TODO(tammo): Output a new-style log event with device details here.
+  _event_log.Log('probe',
+                 results=cooked_results.__dict__)
   match_errors = []
   for comp_class, expected_name in hwid_properties.component_map.items():
     if expected_name == 'ANY':
