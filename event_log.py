@@ -234,6 +234,7 @@ class EventLog(object):
                       boot_id=GetBootId(),
                       device_id=GetDeviceId(),
                       image_id=GetImageId(),
+                      factory_md5sum=factory.get_current_md5sum(),
                       filename=self.filename)
 
   def _LogUnlocked(self, event_name, **kwargs):

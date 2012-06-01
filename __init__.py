@@ -96,6 +96,19 @@ def get_lsb_data():
     return data
 
 
+def get_current_md5sum():
+    '''Returns MD5SUM of the current autotest directory.
+
+    Returns None if there has been no update (i.e., unable to read
+    the MD5SUM file).
+    '''
+    md5sum_file = os.path.join(CLIENT_PATH, 'MD5SUM')
+    if os.path.exists(md5sum_file):
+        return open(md5sum_file, 'r').read().strip()
+    else:
+        return None
+
+
 def _init_console_log():
     handler = logging.FileHandler(CONSOLE_LOG_PATH, "a", delay=True)
     log_format = '[%(levelname)s] %(message)s'

@@ -18,7 +18,6 @@ import factory_common
 from autotest_lib.client.cros import factory
 from autotest_lib.client.cros.factory import shopfloor
 from autotest_lib.client.cros.factory import state
-from autotest_lib.client.cros.factory import updater
 
 
 ECTOOL_TIMEOUT_SEC = 0.1
@@ -188,7 +187,7 @@ class SystemInfo(object):
         except:
             pass
 
-        self.factory_md5sum = updater.GetCurrentMD5SUM()
+        self.factory_md5sum = factory.get_current_md5sum()
 
 
 if __name__ == '__main__':
