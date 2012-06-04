@@ -9,6 +9,7 @@ import os
 import re
 import threading
 
+from autotest_lib.client.cros import factory
 from autotest_lib.client.cros.factory import TestState
 from autotest_lib.client.cros.factory.event import Event, EventClient
 
@@ -26,12 +27,17 @@ class UI(object):
         self.invocation = os.environ['CROS_FACTORY_TEST_INVOCATION']
         self.event_handlers = {}
 
-    def set_html(self, html):
+    def set_html(self, html, append=False):
         '''Sets the UI in the test pane.'''
         self.event_client.post_event(Event(Event.Type.SET_HTML,
                                            test=self.test,
                                            invocation=self.invocation,
-                                           html=html))
+                                           html=html,
+                                           append=append))
+
+    def append_html(self, html):
+        '''Append to the UI in the test pane.'''
+        self.set_html(html, True)
 
     def run_js(self, js, **kwargs):
         '''Runs JavaScript code in the UI.
@@ -71,6 +77,30 @@ class UI(object):
                 object).
         '''
         self.event_handlers.setdefault(subtype, []).append(handler)
+
+    def url_for_file(self, path):
+        '''Returns a URL that can be used to serve a local file.
+
+        Args:
+          path: path to the local file
+
+        Returns:
+          url: A (possibly relative) URL that refers to the file
+        '''
+        return factory.get_state_instance().url_for_file(path)
+
+    def url_for_data(self, mime_type, data, expiration=None):
+        '''Returns a URL that can be used to serve a static collection
+        of bytes.
+
+        Args:
+          mime_type: MIME type for the data
+          data: Data to serve
+          expiration_secs: If not None, the number of seconds in which
+            the data will expire.
+        '''
+        return factory.get_state_instance().url_for_data(
+            mime_type, data, expiration)
 
     def run(self):
         '''Runs the test UI, waiting until the test completes.'''

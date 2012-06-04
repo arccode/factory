@@ -1007,7 +1007,12 @@ cros.factory.Goofy.prototype.handleBackendEvent = function(jsonMessage) {
         var invocation = this.getOrCreateInvocation(
             message.test, message.invocation);
         if (invocation) {
-            invocation.iframe.contentDocument.body.innerHTML = message['html'];
+            if (message.append) {
+                invocation.iframe.contentDocument.write(message['html']);
+            } else {
+                invocation.iframe.contentDocument.body.innerHTML =
+                    message['html'];
+            }
         }
     } else if (message.type == 'goofy:run_js') {
         var invocation = this.getOrCreateInvocation(

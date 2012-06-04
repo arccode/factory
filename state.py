@@ -13,6 +13,8 @@ can be used to handle factory test states (status) and shared persistent data.
 import logging
 import mimetypes
 import os
+import Queue
+import re
 import shelve
 import shutil
 import SocketServer
@@ -21,6 +23,7 @@ import threading
 import time
 
 from hashlib import sha1
+from uuid import uuid4
 
 import factory_common
 
@@ -91,6 +94,14 @@ class FactoryState(object):
     This object is thread-safe.
 
     See help(FactoryState.[methodname]) for more information.
+
+    Properties:
+        _generated_files: Map from UUID to paths on disk.  These are
+            not persisted on disk (though they could be if necessary).
+        _generated_data: Map from UUID to (mime_type, data) pairs for
+            transient objects to serve.
+        _generated_data_expiration: Priority queue of expiration times
+            for objects in _generated_data.
     '''
 
     def __init__(self, state_file_path=None):
@@ -109,6 +120,10 @@ class FactoryState(object):
                                                '/test_history')
         self._lock = threading.RLock()
         self.test_list_struct = None
+
+        self._generated_files = {}
+        self._generated_data = {}
+        self._generated_data_expiration = Queue.PriorityQueue()
 
         if TestState not in jsonclass.supported_types:
             jsonclass.supported_types.append(TestState)
@@ -252,6 +267,54 @@ class FactoryState(object):
 
         return ret
 
+    @_synchronized
+    def url_for_file(self, path):
+        '''Returns a URL that can be used to serve a local file.
+
+        Args:
+          path: path to the local file
+
+        Returns:
+          url: A (possibly relative) URL that refers to the file
+        '''
+        uuid = str(uuid4())
+        uri_path = '/generated-files/%s/%s' % (uuid, os.path.basename(path))
+        self._generated_files[uuid] = path
+        return uri_path
+
+    @_synchronized
+    def url_for_data(self, mime_type, data, expiration_secs=None):
+        '''Returns a URL that can be used to serve a static collection
+        of bytes.
+
+        Args:
+          mime_type: MIME type for the data
+          data: Data to serve
+          expiration_secs: If not None, the number of seconds in which
+            the data will expire.
+        '''
+        uuid = str(uuid4())
+        self._generated_data[uuid] = mime_type, data
+        if expiration_secs:
+            now = time.time()
+            self._generated_data_expiration.put(
+                (now + expiration_secs, uuid))
+
+            # Reap old items.
+            while True:
+                try:
+                    item = self._generated_data_expiration.get_nowait()
+                except Queue.Empty:
+                    break
+
+                if item[0] < now:
+                    del self._generated_data[item[1]]
+                else:
+                    # Not expired yet; put it back and we're done
+                    self._generated_data_expiration.put(item)
+                    break
+        uri_path = '/generated-data/%s' % uuid
+        return uri_path
 
 def get_instance(address=DEFAULT_FACTORY_STATE_ADDRESS,
                  port=DEFAULT_FACTORY_STATE_PORT):
@@ -269,11 +332,28 @@ def get_instance(address=DEFAULT_FACTORY_STATE_ADDRESS,
 
 class MyJSONRPCRequestHandler(SimpleJSONRPCServer.SimpleJSONRPCRequestHandler):
     def do_GET(self):
-        logging.warn("HTTP request for path %s" % self.path)
+        logging.info('HTTP request for path %s', self.path)
 
         handler = self.server.handlers.get(self.path)
         if handler:
             return handler(self)
+
+        match = re.match('^/generated-data/([-0-9a-f]+)$', self.path)
+        if match:
+            generated_data = self.server._generated_data.get(match.group(1))
+            if not generated_data:
+                logging.warn('Unknown or expired generated data %s',
+                             match.group(1))
+                self.send_response(404)
+                return
+
+            mime_type, data = generated_data
+
+            self.send_response(200)
+            self.send_header('Content-Type', mime_type)
+            self.send_header('Content-Length', len(data))
+            self.end_headers()
+            self.wfile.write(data)
 
         if self.path == "/":
             self.path = "/index.html"
@@ -289,9 +369,22 @@ class MyJSONRPCRequestHandler(SimpleJSONRPCServer.SimpleJSONRPCRequestHandler):
             self.send_response(404)
             return
 
-        local_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                  "static",
-                                  self.path.lstrip("/"))
+        local_path = None
+        match = re.match('^/generated-files/([-0-9a-f]+)/', self.path)
+        if match:
+            local_path = self.server._generated_files.get(match.group(1))
+            if not local_path:
+                logging.warn('Unknown generated file %s in path %s',
+                             match.group(1), self.path)
+                self.send_response(404)
+                return
+
+        if not local_path:
+            local_path = os.path.join(
+                os.path.dirname(os.path.realpath(__file__)),
+                "static",
+                self.path.lstrip("/"))
+
         if not os.path.exists(local_path):
             logging.warn("File not found: %s" % local_path)
             self.send_response(404)
@@ -345,6 +438,10 @@ def create_server(state_file_path=None, bind_address=None, port=None):
         (bind_address, port),
         requestHandler=MyJSONRPCRequestHandler,
         logRequests=False)
+
+    # Give the server the generated-files and -data maps.
+    server._generated_files = instance._generated_files
+    server._generated_data = instance._generated_data
 
     server.register_introspection_functions()
     server.register_instance(instance)
