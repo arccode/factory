@@ -87,6 +87,19 @@ class DUTEnvironment(Environment):
         return self.goofy.prespawner.spawn(args, env_additions)
 
     def launch_chrome(self):
+        # The cursor speed needs to be adjusted when running in QEMU
+        # (but after Chrome starts and has fiddled with the settings
+        # itself).
+        if factory.in_qemu():
+            def FixCursor():
+                for _ in xrange(6):  # Every 500ms for 3 seconds
+                    time.sleep(.5)
+                    subprocess.check_call(['xset','m','200','200'])
+
+            thread = threading.Thread(target=FixCursor)
+            thread.daemon = True
+            thread.start()
+
         chrome_command = [
             '/opt/google/chrome/chrome',
             '--user-data-dir=%s/factory-chrome-datadir' %

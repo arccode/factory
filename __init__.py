@@ -37,6 +37,11 @@ def in_chroot():
     return 'CROS_WORKON_SRCROOT' in os.environ
 
 
+def in_qemu():
+    '''Returns True if running within QEMU.'''
+    return 'QEMU' in open('/proc/cpuinfo').read()
+
+
 def get_log_root():
     '''Returns the root for logging and state.
 

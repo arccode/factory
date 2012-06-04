@@ -602,6 +602,11 @@ class Goofy(object):
                    __repr__(recursive=True))
             return
 
+        if self.options.ui_scale_factor != 1 and factory.in_qemu():
+            logging.warn(
+                'In QEMU; ignoring ui_scale_factor argument')
+            self.options.ui_scale_factor = 1
+
         logging.info('Started')
 
         self.start_state_server()
