@@ -1039,9 +1039,9 @@ cros.factory.Goofy.prototype.handleBackendEvent = function(jsonMessage) {
         var invocation = this.getOrCreateInvocation(
             message.test, message.invocation);
         if (invocation) {
-            var func = invocation.iframe.contentWindow[message['name']];
+            var func = invocation.iframe.contentWindow.eval(message['name']);
             if (func) {
-                func.apply(this, message['args']);
+                func.apply(invocation.iframe.contentWindow, message['args']);
             } else {
                 cros.factory.logger.severe('Unable to find function ' + func +
                                            ' in UI for test ' + message.test);

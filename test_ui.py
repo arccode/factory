@@ -59,6 +59,9 @@ class UI(object):
     def call_js_function(self, name, *args):
         '''Calls a JavaScript function in the test pane.
 
+        This will be run within window scope (i.e., 'this' will be the
+        test pane window).
+
         Args:
             name: The name of the function to execute.
             args: Arguments to the function.
