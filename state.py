@@ -71,6 +71,51 @@ class TestHistoryItem(object):
         self.time = time.time()
 
 
+class PathResolver(object):
+    '''Resolves paths in URLs.'''
+    def __init__(self):
+        self._paths = {}
+
+    def AddPath(self, url_path, local_path):
+        '''Adds a prefix mapping:
+
+        For example,
+
+            AddPath('/foo', '/usr/local/docs')
+
+        will cause paths to resolved as follows:
+
+            /foo            -> /usr/local/docs
+            /foo/index.html -> /usr/local/docs/index.html
+
+        Args:
+            url_path: The path in the URL
+        '''
+        self._paths[url_path] = local_path
+
+    def Resolve(self, url_path):
+        '''Resolves a path mapping.
+
+        Returns None if no paths match.'
+
+        Args:
+            url_path: A path in a URL (starting with /).
+        '''
+        if not url_path.startswith('/'):
+            return None
+
+        prefix = url_path
+        while prefix != '':
+            local_prefix = self._paths.get(prefix)
+            if local_prefix:
+                return local_prefix + url_path[len(prefix):]
+            prefix, _, _ = prefix.rpartition('/')
+
+        root_prefix = self._paths.get('/')
+        if root_prefix:
+            return root_prefix + url_path
+
+
 @unicode_to_string.UnicodeToStringClass
 class FactoryState(object):
     '''
@@ -124,6 +169,7 @@ class FactoryState(object):
         self._generated_files = {}
         self._generated_data = {}
         self._generated_data_expiration = Queue.PriorityQueue()
+        self._resolver = PathResolver()
 
         if TestState not in jsonclass.supported_types:
             jsonclass.supported_types.append(TestState)
@@ -332,6 +378,11 @@ class FactoryState(object):
         uri_path = '/generated-data/%s' % uuid
         return uri_path
 
+    @_synchronized
+    def register_path(self, url_path, local_path):
+        self._resolver.AddPath(url_path, local_path)
+
+
 def get_instance(address=DEFAULT_FACTORY_STATE_ADDRESS,
                  port=DEFAULT_FACTORY_STATE_PORT):
     '''
@@ -371,8 +422,8 @@ class MyJSONRPCRequestHandler(SimpleJSONRPCServer.SimpleJSONRPCRequestHandler):
             self.end_headers()
             self.wfile.write(data)
 
-        if self.path == "/":
-            self.path = "/index.html"
+        if self.path.endswith('/'):
+            self.path += 'index.html'
 
         if ".." in self.path.split("/"):
             logging.warn("Invalid path")
@@ -395,14 +446,9 @@ class MyJSONRPCRequestHandler(SimpleJSONRPCServer.SimpleJSONRPCRequestHandler):
                 self.send_response(404)
                 return
 
-        if not local_path:
-            local_path = os.path.join(
-                os.path.dirname(os.path.realpath(__file__)),
-                "static",
-                self.path.lstrip("/"))
-
-        if not os.path.exists(local_path):
-            logging.warn("File not found: %s" % local_path)
+        local_path = self.server._resolver.Resolve(self.path)
+        if not local_path or not os.path.exists(local_path):
+            logging.warn("File not found: %s", (local_path or self.path))
             self.send_response(404)
             return
 
@@ -450,14 +496,19 @@ def create_server(state_file_path=None, bind_address=None, port=None):
     if not port:
         port = DEFAULT_FACTORY_STATE_PORT
     instance = FactoryState(state_file_path)
+    instance._resolver.AddPath(
+        '/',
+        os.path.join(os.path.dirname(os.path.realpath(__file__)), 'static'))
+
     server = ThreadedJSONRPCServer(
         (bind_address, port),
         requestHandler=MyJSONRPCRequestHandler,
         logRequests=False)
 
-    # Give the server the generated-files and -data maps.
+    # Give the server the information it needs to resolve URLs.
     server._generated_files = instance._generated_files
     server._generated_data = instance._generated_data
+    server._resolver = instance._resolver
 
     server.register_introspection_functions()
     server.register_instance(instance)

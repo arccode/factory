@@ -8,6 +8,7 @@ import logging
 import os
 import re
 import threading
+import traceback
 
 from autotest_lib.client.cros import factory
 from autotest_lib.client.cros.factory import TestState
@@ -19,13 +20,103 @@ class FactoryTestFailure(Exception):
 
 
 class UI(object):
-    '''Web UI for a Goofy test.'''
+    '''Web UI for a Goofy test.
+
+    You can set your test up in the following ways:
+
+    1. For simple tests with just Python+HTML+JS:
+
+         mytest.py
+         mytest.js    (automatically loaded)
+         mytest.html  (automatically loaded)
+
+       This works for autotests too:
+
+         factory_MyTest.py
+         factory_MyTest.js    (automatically loaded)
+         factory_MyTest.html  (automatically loaded)
+
+    2. If you have more files to include, like images
+       or other JavaScript libraries:
+
+         mytest.py
+         mytest_static/
+           mytest.js           (automatically loaded)
+           mytest.html         (automatically loaded)
+           some_js_library.js  (NOT automatically loaded;
+                                use <script src="some_js_lib.js">)
+           some_image.gif      (use <img src="some_image.gif">)
+
+    3. Same as #2, but with a directory just called "static" instead of
+       "mytest_static".  This is nicer if your test is already in a
+       directory that contains the test name (as for autotests).  So
+       for a test called factory_MyTest.py, you might have:
+
+         factory_MyTest/
+           factory_MyTest.py
+           static/
+             factory_MyTest.html  (automatically loaded)
+             factory_MyTest.js    (automatically loaded)
+             some_js_library.js
+             some_image.gif
+
+    Note that if you rename .html or .js files during development, you
+    may need to restart the server for your changes to take effect.
+    '''
     def __init__(self):
         self.lock = threading.RLock()
         self.event_client = EventClient(callback=self._handle_event)
         self.test = os.environ['CROS_FACTORY_TEST_PATH']
         self.invocation = os.environ['CROS_FACTORY_TEST_INVOCATION']
         self.event_handlers = {}
+
+        # Set base URL so that hrefs will resolve properly,
+        # and pull in Goofy CSS.
+        self.append_html('\n'.join([
+                    '<base href="/tests/%s/">' % self.test,
+                    ('<link rel="stylesheet" type="text/css" '
+                     'href="/goofy.css">')]))
+        self._setup_static_files(
+            os.path.realpath(traceback.extract_stack()[-2][0]))
+
+    def _setup_static_files(self, py_script):
+        # Get path to caller and register static files/directories.
+        base = os.path.splitext(py_script)[0]
+
+        # Directories we'll autoload .html and .js files from.
+        autoload_bases = [base]
+
+        # Find and register the static directory, if any.
+        static_dirs = filter(os.path.exists,
+                             [base + '_static',
+                              os.path.join(py_script, 'static')])
+        if len(static_dirs) > 1:
+            raise FactoryTestFailure('Cannot have both of %s - delete one!' %
+                                     static_dirs)
+        if static_dirs:
+            factory.get_state_instance().register_path(
+                '/tests/%s' % self.test, static_dirs[0])
+            autoload_bases.append(
+                os.path.join(static_dirs[0], os.path.basename(base)))
+
+        # Autoload .html and .js files.
+        for extension in ('js', 'html'):
+            autoload = filter(os.path.exists,
+                              [x + '.' + extension
+                               for x in autoload_bases])
+            if len(autoload) > 1:
+                raise FactoryTestFailure(
+                    'Cannot have both of %s - delete one!' %
+                    autoload)
+            if autoload:
+                factory.get_state_instance().register_path(
+                    '/tests/%s/%s' % (self.test, os.path.basename(autoload[0])),
+                    autoload[0])
+                if extension == 'html':
+                    self.append_html(open(autoload[0]).read())
+                else:
+                    self.append_html('<script src="%s"></script>' %
+                                     os.path.basename(autoload[0]))
 
     def set_html(self, html, append=False):
         '''Sets the UI in the test pane.'''
