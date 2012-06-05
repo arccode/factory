@@ -1026,8 +1026,14 @@ cros.factory.Goofy.prototype.handleBackendEvent = function(jsonMessage) {
         var invocation = this.getOrCreateInvocation(
             message.test, message.invocation);
         if (invocation) {
+            // We need to evaluate the code in the context of the content
+            // window, but we also need to give it a variable.  Stash it
+            // in the window and load it directly in the eval command.
+            invocation.iframe.contentWindow.__goofy_args = message['args'];
             invocation.iframe.contentWindow.eval(
+                'var args = window.__goofy_args;' +
                 /** @type string */ (message['js']));
+            delete invocation.iframe.contentWindow.__goofy_args;
         }
     } else if (message.type == 'goofy:call_js_function') {
         var invocation = this.getOrCreateInvocation(
