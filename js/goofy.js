@@ -50,6 +50,12 @@ cros.factory.KEEP_ALIVE_INTERVAL_MSEC = 30000;
 cros.factory.CONTROL_PANEL_WIDTH_FRACTION = 0.2;
 
 /**
+ * Minimum width of the control panel, in pixels.
+ * @type number
+ */
+cros.factory.CONTROL_PANEL_MIN_WIDTH = 275;
+
+/**
  * Height of the log pane, as a fraction of the viewport size.
  * @type number
  */
@@ -319,8 +325,10 @@ cros.factory.Goofy.prototype.initSplitPanes = function() {
     var topSplitPane = new goog.ui.SplitPane(
         controlComponent, mainAndConsole,
         goog.ui.SplitPane.Orientation.HORIZONTAL);
-    topSplitPane.setInitialSize(viewportSize.width *
-                                cros.factory.CONTROL_PANEL_WIDTH_FRACTION);
+    topSplitPane.setInitialSize(
+        Math.max(cros.factory.CONTROL_PANEL_MIN_WIDTH,
+                 viewportSize.width *
+                 cros.factory.CONTROL_PANEL_WIDTH_FRACTION));
     topSplitPane.decorate(document.getElementById('goofy-splitpane'));
 
     mainComponent.getElement().id = 'goofy-main';
