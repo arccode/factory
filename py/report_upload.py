@@ -41,7 +41,7 @@ def RetryCommand(callback, message_prefix, interval):
     message = results.get('message', 'unknown')
     abort = results.get('abort', False)
     if (not interval) or abort:
-      raise Error('%s: %s' % message_prefix, message)
+      raise Error('%s: %s' % (message_prefix, message))
     logging.error('%s: %s', message_prefix, message)
     for i in range(interval, 0, -1):
       if i % 10 == 0:
