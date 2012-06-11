@@ -9,6 +9,7 @@
 import logging
 import os
 import random
+import re
 import string
 import sys
 import zlib
@@ -27,13 +28,16 @@ DEFAULT_HWID_DATA_PATH = '/usr/local/factory/hwid'
 COMPONENT_DB_FILENAME = 'component_db'
 
 
-# Possible life cycle stages for components and HWIDs.
+# Glob-matching for 'BOM VARIANT-VOLATILE' regexp.
+HWID_GLOB_RE = re.compile(r'^([A-Z]+|\*) ([A-Z]+|\*)-([A-Z]+|\*)$')
+
+
+# Possible life cycle stages (status) for components and HWIDs.
 LIFE_CYCLE_STAGES = [
     'supported',
     'qualified',
     'deprecated',
-    'eol',
-    'proposed']
+    'eol']
 
 
 MakeDatastoreClass('XCompData', {
@@ -83,7 +87,7 @@ MakeDatastoreClass('InitialConfigData', {
     'enforced_for_boms': (list, str),
     })
 
-MakeDatastoreClass('Device', {
+MakeDatastoreClass('DeviceData', {
     'boms': (dict, BomData),
     'hwid_status': StatusData,
     'initial_configs': (dict, InitialConfigData),
@@ -162,13 +166,6 @@ MakeDatastoreClass('Device', {
 
 def HwidChecksum(text):
   return ('%04u' % (zlib.crc32(text) & 0xffffffffL))[-4:]
-
-
-def FmtHwid(board, bom, volatile, variant):
-  """Generate HWID string.  See the hwid spec for details."""
-  text = '%s %s %s-%s' % (board, bom, variant, volatile)
-  assert text.isupper(), 'HWID cannot have lower case text parts.'
-  return str(text + ' ' + HwidChecksum(text))
 
 
 def ParseHwid(hwid):
@@ -281,33 +278,104 @@ class CompDb(YamlDatastore):
                                full_path)
     with open(full_path, 'r') as f:
       self.__dict__.update(ComponentRegistry.Decode(f.read()).__dict__)
+    # TODO(tammo): Enforce invariants here.
 
   def Write(self):
     """Write the component_db and all device data files."""
+    # TODO(tammo): Enforce invariants here.
     data = ComponentRegistry(**dict(
         (field_name, getattr(self, field_name))
         for field_name in ComponentRegistry.FieldNames()))
     self.WriteOnDiff(COMPONENT_DB_FILENAME, data.Encode())
 
 
-class HardwareDb(YamlDatastore):
+class Device(YamlDatastore):
+
+  def PreprocessData(self):
+    # TODO(tammo): Enforce invariants here.
+    self._reverse_ic_map = {}
+    for index, data in self.initial_configs.items():
+      for bom_name in data.enforced_for_boms:
+        self._reverse_ic_map.setdefault(bom_name, set()).add(index)
+    self._hwid_status_map = {}
+    status_globs = [(pattern, status)
+                    for status in LIFE_CYCLE_STAGES
+                    for pattern in getattr(self.hwid_status, status)]
+    for pattern, status in status_globs:
+      match = HWID_GLOB_RE.findall(pattern)
+      if not match:
+        raise Error, 'illegal hwid_status pattern %r' % pattern
+      bom, variant, volatile = match.pop()
+      target_boms = [bom] if bom != '*' else self.boms.keys()
+      target_vars = [variant] if variant != '*' else self.variants.keys()
+      target_vols = [volatile] if volatile != '*' else self.volatiles.keys()
+      for bom_name in target_boms:
+        var_status = self._hwid_status_map.setdefault(bom_name, {})
+        for var_code in target_vars:
+          vol_status = var_status.setdefault(var_code, {})
+          for vol_code in target_vols:
+            prev_status = vol_status.get(vol_code, None)
+            if prev_status is not None:
+              raise Error, ('hwid_status pattern %r too broad, '
+                            '%s %s-%s already has status %r' %
+                            (pattern, bom_name, var_code,
+                             vol_code, prev_status))
+            vol_status[vol_code] = status
+
+  def FilterInitialConfigs(self, target_bom_names):
+    """Return all initial_config indices shared by the target boms."""
+    return set().union(*[self._reverse_ic_map.get(bom_name, set())
+                         for bom_name in target_bom_names])
+
+  def GetVolatileCodes(self, bom_name, variant_code, status_mask):
+    variant_status_map = self._hwid_status_map.get(bom_name, {})
+    volatile_status_map = variant_status_map.get(variant_code, {})
+    return set(volatile_code for volatile_code, status
+               in volatile_status_map.items()
+               if status not in status_mask)
+
+  def GetHwidStatus(self, bom_name, variant_code, volatile_code):
+    variant_status_map = self._hwid_status_map.get(bom_name, {})
+    volatile_status_map = variant_status_map.get(variant_code, {})
+    return volatile_status_map.get(volatile_code, None)
+
+  def FmtHwid(self, bom, variant, volatile):
+    """Generate HWID string.  See the hwid spec for details."""
+    text = '%s %s %s-%s' % (self.board_name, bom, variant, volatile)
+    assert text.isupper(), 'HWID cannot have lower case text parts.'
+    return str(text + ' ' + HwidChecksum(text))
+
+  def __init__(self, path, board_name):
+    self._path = path
+    full_path = os.path.join(path, board_name)
+    if not os.path.isfile(full_path):
+      raise Error, 'path %r is not a board file'
+    with open(full_path, 'r') as f:
+      self.__dict__.update(DeviceData.Decode(f.read()).__dict__)
+    self.board_name = board_name
+    self.PreprocessData()
+
+  def Write(self):
+    # TODO(tammo): Enforce invariants here.
+    data = DeviceData(**dict((field_name, getattr(self, field_name))
+                             for field_name in DeviceData.FieldNames()))
+    self.WriteOnDiff(self.board_name, data.Encode())
+
+
+class HardwareDb(object):
 
   def __init__(self, path):
     """Read the component_db and all device data files."""
-    self._path = path
     self.comp_db = CompDb(path)
-    device_paths = [(entry, os.path.join(path, entry))
-                    for entry in os.listdir(path)
-                    if entry.isalpha() and entry.isupper()]
-    device_paths = [(e, p) for (e, p) in device_paths if os.path.isfile(p)]
-    self.devices = dict((e, Device.Decode(open(p, 'r').read()))
-                        for e, p in device_paths)
+    self.devices = dict((entry, Device(path, entry))
+                        for entry in os.listdir(path)
+                        if entry.isalpha() and entry.isupper())
 
   def Write(self):
     """Write the component_db and all device data files."""
     self.comp_db.Write()
-    for device_name, device in self.devices.items():
-      self.WriteOnDiff(device_name, device.Encode())
+    for device in self.devices.values():
+      device.Write()
 
 
 class XCompDb(YamlDatastore):
@@ -385,7 +453,7 @@ class XHardwareDb(YamlDatastore):
       status = StatusData(**dict(
           (status, xdevice.hwid_status_map.get(status, []))
           for status in LIFE_CYCLE_STAGES))
-      device = Device(
+      device = DeviceData(
         vpd_ro_fields=xdevice.vpd_ro_field_list,
         volatiles=xdevice.volatile_map,
         volatile_values=xdevice.volatile_value_map,
@@ -405,23 +473,6 @@ def GetAvailableBomNames(data, board, count):
     raise Error('too few available bom names (only %d left)' %
                 len(available_names))
   return available_names[:count]
-
-
-def LookupHwidStatus(device, bom, volatile, variant):
-  """Match hwid details against prefix-based status data.
-
-  Returns:
-    A status string, or None if no status was found.
-  """
-  target_pattern = (bom + '-' + volatile + '-' + variant)
-  def ContainsHwid(prefix_list):
-    for prefix in prefix_list:
-      if target_pattern.startswith(prefix):
-        return True
-  for status in LIFE_CYCLE_STAGES:
-    if ContainsHwid(device.hwid_status_map.get(status, [])):
-      return status
-  return None
 
 
 def CalcCompDbClassMap(comp_db):
@@ -561,48 +612,38 @@ def TraverseCompMapHierarchy(rev_comp_map, branch_cb, leaf_cb, cb_arg):
   SubTraverse(rev_comp_map, cb_arg, 0)
 
 
-def FilterInitialConfig(device, target_bom_set, mask=set()):
-  """Return initial_config shared by the target boms but not masked out.
-
-  Calculate the set of initial_config values that are shared by all of
-  the boms in the target_bom_set.  Then filter this set to contain
-  only values not already present in the mask.
-  """
-  # TODO(tammo): Instead pre-compute reverse maps, and return unions.
-  return set(
-      ic for ic, bom_list in device.initial_config_use_map.items()
-      if (ic not in mask and target_bom_set <= set(bom_list)))
-
-
-def PrintHwidHierarchy(board, device, bom_map):
+def PrintHwidHierarchy(device, bom_map, status_mask):
   """Hierarchically show all details for all specified BOMs.
 
-  Details include the component configuration and initial config.
+  Details include both primary and variant component configurations,
+  initial config, and status.
   """
-  def ShowCommon(depth, mask, bom_set, common_comp_map):
-    common_initial_config = FilterInitialConfig(device, bom_set, mask)
-    IndentedStructuredPrint(depth * 2, '-'.join(sorted(bom_set)),
-                            comp=common_comp_map,
-                            initial_config=common_initial_config)
-    return mask | common_initial_config
-  def ShowHwids(depth, mask, bom_set):
-    for bom_name in bom_set:
-      bom = bom_map[bom]
-      common_initial_config = FilterInitialConfig(device, set([bom_name]), mask)
-      variants = dict((FmtHwid(board, bom_name, vol_code, variant),
-                       ','.join(device.variants[variant]))
-                      for variant in bom.variants
-                      for vol_code in device.volatiles
-                      if LookupHwidStatus(device, bom_name, vol_code, variant))
-      if common_initial_config:
+  def ShowCommon(depth, ic_mask, bom_name_set, common_comp_map):
+    common_ic = device.FilterInitialConfigs(bom_name_set) - ic_mask
+    IndentedStructuredPrint(depth * 2, '-'.join(sorted(bom_name_set)),
+                            primary=common_comp_map, initial_config=common_ic)
+    return ic_mask | common_ic
+  def ShowHwids(depth, bom_name):
+    bom = device.boms[bom_name]
+    for variant_code in sorted(bom.variants):
+      for volatile_code in sorted(device.GetVolatileCodes(
+        bom_name, variant_code, status_mask)):
+        variant = device.variants[variant_code]
+        hwid = device.FmtHwid(bom_name, variant_code, volatile_code)
+        status = device.GetHwidStatus(bom_name, variant_code, volatile_code)
+        IndentedStructuredPrint(depth * 2, '%s  [%s]' % (hwid, status),
+                                variant=variant.components)
+  def ShowBom(depth, ic_mask, bom_name_set):
+    for bom_name in sorted(bom_name_set):
+      common_ic = device.FilterInitialConfigs(set([bom_name])) - ic_mask
+      if common_ic:
         IndentedStructuredPrint((depth + 1) * 2, bom_name,
-                                initial_config=common_initial_config)
-        IndentedStructuredPrint((depth + 2) * 2, None, variants)
-      else:
-        IndentedStructuredPrint(depth * 2, None, variants)
+                                initial_config=common_ic)
+        depth += 2
+      ShowHwids(depth, bom_name)
   # TODO(tammo): Fix the cb arg usage to allow omission here.
   TraverseCompMapHierarchy(CalcReverseComponentMap(bom_map),
-                           ShowCommon, ShowHwids, set())
+                           ShowCommon, ShowBom, set())
 
 
 def ProcessComponentCrossproduct(data, board, comp_list):
@@ -736,10 +777,10 @@ def MatchHwids(data, cooked_results, board_name, status_set):
         continue
       logging.info('variant %r matched, checking volatiles', variant_code)
       for volatile_code in cooked_results.matched_volatile_tags:
-        status = LookupHwidStatus(device, bom_name, volatile_code, variant_code)
+        status = device.GetHwidStatus(bom_name, volatile_code, variant_code)
         logging.info('volatile_code %r has status %r', volatile_code, status)
         if status in status_set:
-          hwid = FmtHwid(board_name, bom_name, volatile_code, variant_code)
+          hwid = device.FmtHwid(bom_name, volatile_code, variant_code)
           matching_hwids.append(hwid)
   return matching_hwids
 
@@ -759,8 +800,7 @@ def LookupHwidProperties(data, hwid):
   if props.volatile not in device.volatile_map:
     raise Error, ('hwid %r volatile %s does not match database' %
                   (hwid, props.volatile))
-  props.status = LookupHwidStatus(device, props.bom,
-                                  props.volatile, props.variant)
+  props.status = device.GetHwidStatus(props.bom, props.volatile, props.variant)
   # TODO(tammo): Refactor if FilterExternalHwidAttrs is pre-computed.
   initial_config_set = FilterInitialConfig(device, set([props.bom]))
   props.initial_config = next(iter(initial_config_set), None)
@@ -797,13 +837,14 @@ def CreateHwidsCommand(config, data):
                   for bom_name, comp_map in zip(bom_name_list, comp_map_list))
   device = data.devices[config.board]
   device.hwid_status_map.setdefault('proposed', []).extend(bom_name_list)
-  PrintHwidHierarchy(config.board, device, hwid_map)
+  PrintHwidHierarchy(device, hwid_map, set([None]))
   if config.make_it_so:
     #TODO(tammo): Actually add to the device hwid_map, and qualify.
     pass
 
 
 @Command('hwid_overview',
+         CmdArg('--status', nargs='*'),
          CmdArg('-b', '--board'))
 def HwidHierarchyViewCommand(config, hw_db):
   """Show HWIDs in visually efficient hierarchical manner.
@@ -819,7 +860,8 @@ def HwidHierarchyViewCommand(config, hw_db):
         continue
     else:
       print '---- %s ----\n' % board
-    PrintHwidHierarchy(board, device, device.boms)
+    status_mask = config.status if config.status else set([None])
+    PrintHwidHierarchy(device, device.boms, status_mask)
 
 
 @Command('list_hwids',
@@ -841,11 +883,11 @@ def ListHwidsCommand(config, data):
     for bom, hwid in device.hwid_map.items():
       for volind in device.volatile_map:
         for variant in hwid.variant_list:
-          status = LookupHwidStatus(device, bom, volind, variant)
+          status = device.GetHwidStatus(bom, volind, variant)
           if (config.status != '' and
               (status is None or config.status != status)):
             continue
-          result = FmtHwid(board, bom, volind, variant)
+          result = device.FmtHwid(bom, volind, variant)
           if config.verbose:
             result = '%s: %s' % (status, result)
           result_list.append(result)
@@ -1041,7 +1083,7 @@ def FilterDatabase(config, data):
   for bom, hwid in device.hwid_map.items():
     for variant in hwid.variant_list:
       for volatile in device.volatile_map:
-        status = LookupHwidStatus(device, bom, volatile, variant)
+        status = device.GetHwidStatus(bom, volatile, variant)
         if status in config.by_status:
           variant_map = target_hwid_map.setdefault(bom, {})
           volatile_list = variant_map.setdefault(variant, [])
@@ -1120,7 +1162,7 @@ def LegacyExport(config, data):
     for bom in bom_list:
       ic_reverse_map[bom] = ic_index
   def WriteLegacyHwidFile(bom, volind, variant, hwid):
-    hwid_str = FmtHwid(config.board, bom, volind, variant)
+    hwid_str = device.FmtHwid(bom, volind, variant)
     export_data = {'part_id_hwqual': [hwid_str]}
     for comp_class, comp_name in hwid.component_map.items():
       if comp_name == 'NONE':
@@ -1152,7 +1194,7 @@ def LegacyExport(config, data):
   for bom, hwid in device.hwid_map.items():
     for volind in device.volatile_map:
       for variant in hwid.variant_list:
-        status = LookupHwidStatus(device, bom, volind, variant)
+        status = device.GetHwidStatus(bom, volind, variant)
         if (config.status != '' and
             (status is None or config.status != status)):
           continue
