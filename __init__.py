@@ -295,6 +295,7 @@ class TestState(object):
     @property error_msg: The last error message that caused a test failure.
     @property shutdown_count: The next of times the test has caused a shutdown.
     @property visible: Whether the test is the currently visible test.
+    @property invocation: The currently executing invocation.
     '''
     ACTIVE = 'ACTIVE'
     PASSED = 'PASSED'
@@ -302,18 +303,20 @@ class TestState(object):
     UNTESTED = 'UNTESTED'
 
     def __init__(self, status=UNTESTED, count=0, visible=False, error_msg=None,
-                 shutdown_count=0):
+                 shutdown_count=0, invocation=None):
         self.status = status
         self.count = count
         self.visible = visible
         self.error_msg = error_msg
         self.shutdown_count = shutdown_count
+        self.invocation = None
 
     def __repr__(self):
         return std_repr(self)
 
     def update(self, status=None, increment_count=0, error_msg=None,
-               shutdown_count=None, increment_shutdown_count=0, visible=None):
+               shutdown_count=None, increment_shutdown_count=0, visible=None,
+               invocation=None):
         '''
         Updates the state of a test.
 
@@ -324,6 +327,8 @@ class TestState(object):
         @param increment_shutdown_count: An amount by which to increment
             shutdown_count.
         @param visible: If non-None, whether the test should become visible.
+        @param invocation: The currently executing invocation, if any.
+            (Applies only if the status is ACTIVE.)
 
         Returns True if anything was changed.
         '''
@@ -337,6 +342,11 @@ class TestState(object):
             self.shutdown_count = shutdown_count
         if visible is not None:
             self.visible = visible
+
+        if self.status != self.ACTIVE:
+            self.invocation = None
+        elif invocation is not None:
+            self.invocation = invocation
 
         self.count += increment_count
         self.shutdown_count += increment_shutdown_count

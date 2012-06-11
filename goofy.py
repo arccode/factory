@@ -325,6 +325,8 @@ class Goofy(object):
             # defaulting to an untested state.
             test.update_state(update_parent=False, visible=False)
 
+        var_log_messages = None
+
         # Any 'active' tests should be marked as failed now.
         for test in self.test_list.walk():
             state = test.get_state()
@@ -334,8 +336,32 @@ class Goofy(object):
                 # Shutdown while the test was active - that's good.
                 self.handle_shutdown_complete(test, state)
             else:
-                test.update_state(status=TestState.FAILED,
-                                  error_msg='Unknown (shutdown?)')
+                # Unexpected shutdown.  Grab /var/log/messages for context.
+                if var_log_messages is None:
+                    try:
+                        var_log_messages = (
+                            utils.var_log_messages_before_reboot())
+                        # Write it to the log, to make it easier to
+                        # correlate with /var/log/messages.
+                        logging.info(
+                            'Unexpected shutdown. '
+                            'Tail of /var/log/messages before last reboot:\n'
+                            '%s', ('\n'.join(
+                                    '    ' + x for x in var_log_messages)))
+                    except:
+                        logging.exception('Unable to grok /var/log/messages')
+                        var_log_messages = []
+
+                error_msg = 'Unexpected shutdown while test was running'
+                self.event_log.Log('end_test',
+                                   path=test.path,
+                                   status=TestState.FAILED,
+                                   invocation=test.get_state().invocation,
+                                   error_msg=error_msg,
+                                   var_log_messages='\n'.join(var_log_messages))
+                test.update_state(
+                    status=TestState.FAILED,
+                    error_msg=error_msg)
 
     def show_next_active_test(self):
         '''
@@ -620,7 +646,6 @@ class Goofy(object):
         if not self.state_instance.has_shared_data('ui_lang'):
             self.state_instance.set_shared_data('ui_lang',
                                                 self.test_list.options.ui_lang)
-        logging.info('TEST_LIST:\n%s', self.test_list.__repr__(recursive=True))
         self.state_instance.test_list = self.test_list
 
         self.init_states()

@@ -106,6 +106,48 @@ def are_shift_keys_depressed():
     return False
 
 
+def var_log_messages_before_reboot(lines=100,
+                                   max_length=1024*1024,
+                                   path='/var/log/messages'):
+    '''Returns the last few lines in /var/log/messages
+    before the current boot.
+
+    Returns:
+        An array of lines.  Empty if the marker indicating kernel boot
+        could not be found.
+
+    Args:
+        lines: number of lines to return.
+        max_length: maximum amount of data at end of file to read.
+        path: path to /var/log/messages.
+    '''
+    offset = max(0, os.path.getsize(path) - max_length)
+    with open(path) as f:
+        f.seek(offset)
+        data = f.read()
+
+    # Find the last element matching the RE signaling kernel start.
+    matches = list(re.finditer(r'kernel:\s+\[\s+0\.\d+\] Linux version', data))
+    if not matches:
+        return []
+
+    match = matches[-1]
+    tail_lines = data[:match.start()].split('\n')
+    tail_lines.pop()  # Remove incomplete line at end
+
+    # Skip some common lines that may have been written before the Linux
+    # version.
+    while tail_lines and any(
+        re.search(x, tail_lines[-1])
+        for x in [r'0\.000000\]',
+                  r'rsyslogd.+\(re\)start',
+                  r'/proc/kmsg started']):
+        tail_lines.pop()
+
+    # Done!  Return the last few lines.
+    return tail_lines[-lines:]
+
+
 class Enum(frozenset):
     '''An enumeration type.'''
     def __getattr__(self, name):

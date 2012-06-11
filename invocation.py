@@ -315,7 +315,8 @@ class TestInvocation(object):
                 return
 
         self.count = self.test.update_state(
-            status=TestState.ACTIVE, increment_count=1, error_msg='').count
+            status=TestState.ACTIVE, increment_count=1, error_msg='',
+            invocation=self.uuid).count
 
         factory.console.info('Running test %s' % self.test.path)
 

@@ -332,7 +332,7 @@ def get_instance(address=DEFAULT_FACTORY_STATE_ADDRESS,
 
 class MyJSONRPCRequestHandler(SimpleJSONRPCServer.SimpleJSONRPCRequestHandler):
     def do_GET(self):
-        logging.info('HTTP request for path %s', self.path)
+        logging.debug('HTTP request for path %s', self.path)
 
         handler = self.server.handlers.get(self.path)
         if handler:
