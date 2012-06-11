@@ -83,7 +83,10 @@ class _DatastoreBase(object):
         if collection_type is list:
           return [NestedDecode(field_type, field) for field in elt_data]
       elif issubclass(elt_type, _DatastoreBase):
-        return elt_type(**elt_data)
+        cooked_field_dict = dict(
+          (subelt_key, NestedDecode(subelt_type, elt_data[subelt_key]))
+          for subelt_key, subelt_type in elt_type._schema.items())
+        return elt_type(**cooked_field_dict)
       return elt_data
     try:
       field_dict = YamlRead(data)

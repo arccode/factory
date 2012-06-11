@@ -36,18 +36,18 @@ LIFE_CYCLE_STAGES = [
     'proposed']
 
 
-MakeDatastoreClass('CompData', {
+MakeDatastoreClass('XCompData', {
     'registry': (dict, (dict, str)),
     'status_map': (dict, (dict, str)),
     })
 
-MakeDatastoreClass('Hwid', {
+MakeDatastoreClass('XHwid', {
     'component_map': (dict, str),
     'variant_list': (list, str),
     })
 
-MakeDatastoreClass('Device', {
-    'hwid_map': (dict, Hwid),
+MakeDatastoreClass('XDevice', {
+    'hwid_map': (dict, XHwid),
     'hwid_status_map': (dict, (list, str)),
     'initial_config_map': (dict, (dict, str)),
     'initial_config_use_map': (dict, (list, str)),
@@ -55,6 +55,42 @@ MakeDatastoreClass('Device', {
     'volatile_map': (dict, (dict, str)),
     'volatile_value_map': (dict, str),
     'vpd_ro_field_list': (list, str),
+     })
+
+
+MakeDatastoreClass('StatusData', dict(
+    (status_name, (list, str))
+    for status_name in LIFE_CYCLE_STAGES))
+
+MakeDatastoreClass('ComponentRegistry', {
+    'components': (dict, (dict, str)),
+    'status': StatusData,
+    })
+
+MakeDatastoreClass('ComponentData', {
+    'classes_dontcare': (list, str),
+    'classes_missing': (list, str),
+    'components': (dict, str),
+    })
+
+MakeDatastoreClass('BomData', {
+    'primary': ComponentData,
+    'variants': (list, str),
+    })
+
+MakeDatastoreClass('InitialConfigData', {
+    'constraints': (dict, str),
+    'enforced_for_boms': (list, str),
+    })
+
+MakeDatastoreClass('Device', {
+    'boms': (dict, BomData),
+    'hwid_status': StatusData,
+    'initial_configs': (dict, InitialConfigData),
+    'variants': (dict, ComponentData),
+    'volatiles': (dict, (dict, str)),
+    'volatile_values': (dict, str),
+    'vpd_ro_fields': (list, str),
     })
 
 
@@ -239,17 +275,18 @@ class CompDb(YamlDatastore):
 
   def __init__(self, path):
     self._path = path
-    component_db_path = os.path.join(path, COMPONENT_DB_FILENAME)
-    if not os.path.isfile(component_db_path):
-      raise InvalidDataError, (
-          'ComponentDB not found (expected path is %r).' % component_db_path)
-    with open(component_db_path, 'r') as f:
-      self.__dict__.update(CompData.Decode(f.read()).__dict__)
+    full_path = os.path.join(path, COMPONENT_DB_FILENAME)
+    if not os.path.isfile(full_path):
+      raise InvalidDataError, ('ComponentDB not found (expected path is %r).' %
+                               full_path)
+    with open(full_path, 'r') as f:
+      self.__dict__.update(ComponentRegistry.Decode(f.read()).__dict__)
 
   def Write(self):
     """Write the component_db and all device data files."""
-    data = CompData(**dict((field_name, getattr(self, field_name))
-                           for field_name in CompData.FieldNames()))
+    data = ComponentRegistry(**dict(
+        (field_name, getattr(self, field_name))
+        for field_name in ComponentRegistry.FieldNames()))
     self.WriteOnDiff(COMPONENT_DB_FILENAME, data.Encode())
 
 
@@ -270,6 +307,92 @@ class HardwareDb(YamlDatastore):
     """Write the component_db and all device data files."""
     self.comp_db.Write()
     for device_name, device in self.devices.items():
+      self.WriteOnDiff(device_name, device.Encode())
+
+
+class XCompDb(YamlDatastore):
+
+  def __init__(self, path):
+    self._path = path
+    full_path = os.path.join(path, COMPONENT_DB_FILENAME)
+    if not os.path.isfile(full_path):
+      raise InvalidDataError, (
+          'ComponentDB not found (expected path is %r).' % full_path)
+    with open(full_path, 'r') as f:
+      self.__dict__.update(XCompData.Decode(f.read()).__dict__)
+
+  def Convert(self):
+    data = ComponentRegistry(
+      components=self.registry,
+      status=StatusData(**dict((status, self.status_map.get(status, []))
+                               for status in LIFE_CYCLE_STAGES)))
+    self.WriteOnDiff(COMPONENT_DB_FILENAME, data.Encode())
+
+
+class XHardwareDb(YamlDatastore):
+
+  def __init__(self, path):
+    """Read the component_db and all device data files."""
+    self._path = path
+    self.comp_db = XCompDb(path)
+    device_paths = [(entry, os.path.join(path, entry))
+                    for entry in os.listdir(path)
+                    if entry.isalpha() and entry.isupper()]
+    device_paths = [(e, p) for (e, p) in device_paths if os.path.isfile(p)]
+    self.devices = dict((e, XDevice.Decode(open(p, 'r').read()))
+                        for e, p in device_paths)
+
+  def Convert(self):
+    def ConvertBom(xhwid):
+      primary = ComponentData(
+        components={},
+        classes_dontcare=[],
+        classes_missing=[])
+      for comp_class, comp_name in xhwid.component_map.items():
+        if comp_name == 'ANY':
+          primary.classes_dontcare.append(comp_class)
+        elif comp_name == 'NONE':
+          primary.classes_missing.append(comp_class)
+        else:
+          primary.components[comp_class] = comp_name
+      data = BomData(
+        primary=primary,
+        variants=xhwid.variant_list)
+      return data
+    def ConvertVariant(comp_list):
+      assert(len(comp_list) <= 1)
+      data = ComponentData(
+        components={},
+        classes_dontcare=[],
+        classes_missing=[])
+      if len(comp_list) == 1:
+        data.components['keyboard'] = comp_list.pop()
+      return data
+    def ConvertIc(ic, use_list):
+      return InitialConfigData(
+        constraints=ic,
+        enforced_for_boms=use_list if use_list is not None else [])
+    self.comp_db.Convert()
+    for device_name, xdevice in self.devices.items():
+      boms = dict((b_name, ConvertBom(b)) for b_name, b
+                  in xdevice.hwid_map.items())
+      variants = dict((v_name, ConvertVariant(v)) for v_name, v
+                      in xdevice.variant_map.items())
+      ics = dict((ic_name, ConvertIc(
+            ic, xdevice.initial_config_use_map.get(
+              ic_name, None)))
+                 for ic_name, ic in xdevice.initial_config_map.items())
+      status = StatusData(**dict(
+          (status, xdevice.hwid_status_map.get(status, []))
+          for status in LIFE_CYCLE_STAGES))
+      device = Device(
+        vpd_ro_fields=xdevice.vpd_ro_field_list,
+        volatiles=xdevice.volatile_map,
+        volatile_values=xdevice.volatile_value_map,
+        hwid_status=status,
+        initial_configs=ics,
+        boms=boms,
+        variants=variants)
       self.WriteOnDiff(device_name, device.Encode())
 
 
@@ -321,18 +444,18 @@ def CalcCompDbProbeValMap(comp_db):
               for comp_name, probe_value in comp_map.items())
 
 
-def CalcReverseComponentMap(hwid_map):
+def CalcReverseComponentMap(bom_map):
   """Return dict of (comp_class: dict of (component: bom name set)) mappings.
 
   For each component in each comp_class, reveals the set of boms
   containing that component.
   """
   comp_class_map = {}
-  for bom, hwid in hwid_map.items():
-    for comp_class, comp in hwid.component_map.items():
+  for bom_name, bom in bom_map.items():
+    for comp_class, comp in bom.primary.components.items():
       comp_map = comp_class_map.setdefault(comp_class, {})
       comp_bom_set = comp_map.setdefault(comp, set())
-      comp_bom_set.add(bom)
+      comp_bom_set.add(bom_name)
   return comp_class_map
 
 
@@ -451,8 +574,8 @@ def FilterInitialConfig(device, target_bom_set, mask=set()):
       if (ic not in mask and target_bom_set <= set(bom_list)))
 
 
-def PrintHwidHierarchy(board, device, hwid_map):
-  """Hierarchically show all details for all HWIDs for the specified board.
+def PrintHwidHierarchy(board, device, bom_map):
+  """Hierarchically show all details for all specified BOMs.
 
   Details include the component configuration and initial config.
   """
@@ -463,22 +586,22 @@ def PrintHwidHierarchy(board, device, hwid_map):
                             initial_config=common_initial_config)
     return mask | common_initial_config
   def ShowHwids(depth, mask, bom_set):
-    for bom in bom_set:
-      hwid = hwid_map[bom]
-      common_initial_config = FilterInitialConfig(device, set([bom]), mask)
-      variants = dict((FmtHwid(board, bom, volind, variant),
-                       ','.join(device.variant_map[variant]))
-                      for variant in hwid.variant_list
-                      for volind in device.volatile_map
-                      if LookupHwidStatus(device, bom, volind, variant))
+    for bom_name in bom_set:
+      bom = bom_map[bom]
+      common_initial_config = FilterInitialConfig(device, set([bom_name]), mask)
+      variants = dict((FmtHwid(board, bom_name, vol_code, variant),
+                       ','.join(device.variants[variant]))
+                      for variant in bom.variants
+                      for vol_code in device.volatiles
+                      if LookupHwidStatus(device, bom_name, vol_code, variant))
       if common_initial_config:
-        IndentedStructuredPrint((depth + 1) * 2, bom,
+        IndentedStructuredPrint((depth + 1) * 2, bom_name,
                                 initial_config=common_initial_config)
         IndentedStructuredPrint((depth + 2) * 2, None, variants)
       else:
         IndentedStructuredPrint(depth * 2, None, variants)
   # TODO(tammo): Fix the cb arg usage to allow omission here.
-  TraverseCompMapHierarchy(CalcReverseComponentMap(hwid_map),
+  TraverseCompMapHierarchy(CalcReverseComponentMap(bom_map),
                            ShowCommon, ShowHwids, set())
 
 
@@ -682,7 +805,7 @@ def CreateHwidsCommand(config, data):
 
 @Command('hwid_overview',
          CmdArg('-b', '--board'))
-def HwidHierarchyViewCommand(config, data):
+def HwidHierarchyViewCommand(config, hw_db):
   """Show HWIDs in visually efficient hierarchical manner.
 
   Starting with the set of all HWIDs for each board or a selected
@@ -690,13 +813,13 @@ def HwidHierarchyViewCommand(config, data):
   subsets of HWIDs with maximally shared data and repeat until there
   are only singleton sets, at which point print the full HWID strings.
   """
-  for board, device in data.devices.items():
+  for board, device in hw_db.devices.items():
     if config.board:
       if not config.board == board:
         continue
     else:
       print '---- %s ----\n' % board
-    PrintHwidHierarchy(board, device, device.hwid_map)
+    PrintHwidHierarchy(board, device, device.boms)
 
 
 @Command('list_hwids',
@@ -732,20 +855,20 @@ def ListHwidsCommand(config, data):
 
 @Command('component_breakdown',
          CmdArg('-b', '--board'))
-def ComponentBreakdownCommand(config, data):
+def ComponentBreakdownCommand(config, hw_db):
   """Map components to HWIDs, organized by component.
 
   For all boards, or for a specified board, first show the set of
   common components.  For all the non-common components, show a list
   of BOM names that use them.
   """
-  for board, device in data.devices.items():
+  for board, device in hw_db.devices.items():
     if config.board:
       if not config.board == board:
         continue
     else:
       print '---- %s ----' % board
-    rev_comp_map = CalcReverseComponentMap(device.hwid_map)
+    rev_comp_map = CalcReverseComponentMap(device.boms)
     common_comp_map = CalcCommonComponentMap(rev_comp_map)
     IndentedStructuredPrint(0, 'common:', common_comp_map)
     remaining_comp_class_set = set(rev_comp_map) - set(common_comp_map)
@@ -1079,6 +1202,7 @@ def Main():
              help='Write logs to this file.'),
       verbosity_cmd_arg)
   SetupLogging(config.verbosity, config.log)
+  #XXX hw_db = XHardwareDb(config.data_path).Convert()
   hw_db = HardwareDb(config.data_path)
   try:
     config.command(config, hw_db)
