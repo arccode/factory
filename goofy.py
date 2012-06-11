@@ -298,22 +298,65 @@ class Goofy(object):
         state = test.update_state(increment_shutdown_count=1)
         logging.info('Detected shutdown (%d of %d)',
                      state.shutdown_count, test.iterations)
-        if state.shutdown_count == test.iterations:
+
+        def log_and_update_state(status, error_msg, **kw):
+            self.event_log.Log('rebooted',
+                               status=status, error_msg=error_msg, **kw)
+            test.update_state(status=status, error_msg=error_msg)
+
+        if not self.last_shutdown_time:
+            log_and_update_state(status=TestState.FAILED,
+                                 error_msg='Unable to read shutdown_time')
+            return
+
+        now = time.time()
+        logging.info('%.03f s passed since reboot',
+                     now - self.last_shutdown_time)
+
+        if self.last_shutdown_time > now:
+            test.update_state(status=TestState.FAILED,
+                              error_msg='Time moved backward during reboot')
+        elif (isinstance(test, factory.RebootStep) and
+              self.test_list.options.max_reboot_time_secs and
+              (now - self.last_shutdown_time >
+               self.test_list.options.max_reboot_time_secs)):
+            # A reboot took too long; fail.  (We don't check this for
+            # HaltSteps, because the machine could be halted for a
+            # very long time, and even unplugged with battery backup,
+            # thus hosing the clock.)
+            log_and_update_state(
+                status=TestState.FAILED,
+                error_msg=('More than %d s elapsed during reboot '
+                           '(%.03f s, from %s to %s)' % (
+                        self.test_list.options.max_reboot_time_secs,
+                        now - self.last_shutdown_time,
+                        utils.TimeString(self.last_shutdown_time),
+                        utils.TimeString(now))),
+                duration=(now-self.last_shutdown_time))
+        elif state.shutdown_count == test.iterations:
             # Good!
-            test.update_state(status=TestState.PASSED, error_msg='')
+            log_and_update_state(status=TestState.PASSED,
+                                 duration=(now - self.last_shutdown_time),
+                                 error_msg='')
         elif state.shutdown_count > test.iterations:
             # Shut down too many times
-            test.update_state(status=TestState.FAILED,
-                              error_msg='Too many shutdowns')
+            log_and_update_state(status=TestState.FAILED,
+                                 error_msg='Too many shutdowns')
         elif utils.are_shift_keys_depressed():
             logging.info('Shift keys are depressed; cancelling restarts')
             # Abort shutdown
-            test.update_state(
+            log_and_update_state(
                 status=TestState.FAILED,
                 error_msg='Shutdown aborted with double shift keys')
         else:
             # Need to shutdown again
+            log_and_update_state(
+                status=TestState.ACTIVE,
+                error_msg='',
+                iteration=state.shutdown_count)
             self.event_log.Log('shutdown', operation='reboot')
+            self.state_instance.set_shared_data('shutdown_time',
+                                                time.time())
             self.env.shutdown('reboot')
 
     def init_states(self):
@@ -432,6 +475,9 @@ class Goofy(object):
                 self.state_instance.set_shared_data(
                     'tests_after_shutdown',
                     [t.path for t in self.tests_to_run])
+                # Save shutdown time
+                self.state_instance.set_shared_data('shutdown_time',
+                                                    time.time())
 
                 with self.env.lock:
                     self.event_log.Log('shutdown', operation=test.operation)
@@ -639,6 +685,9 @@ class Goofy(object):
         self.state_instance.set_shared_data('hwid_cfg', get_hwid_cfg())
         self.state_instance.set_shared_data('ui_scale_factor',
                                             self.options.ui_scale_factor)
+        self.last_shutdown_time = (
+            self.state_instance.get_shared_data('shutdown_time', optional=True))
+        self.state_instance.del_shared_data('shutdown_time', optional=True)
 
         self.options.test_list = (self.options.test_list or find_test_list())
         self.test_list = factory.read_test_list(self.options.test_list,

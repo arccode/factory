@@ -9,6 +9,7 @@
 import factory_common
 
 import logging
+import math
 import mox
 import pickle
 import re
@@ -260,6 +261,47 @@ class ShutdownTest(GoofyTest):
 
         # No more shutdowns - now 'a' should run.
         self.check_one_test('a', 'a_A', True, '')
+
+
+class RebootFailureTest(GoofyTest):
+    test_list = '''
+        RebootStep(id='shutdown'),
+    '''
+    def runTest(self):
+        # Expect a reboot request
+        self.env.shutdown('reboot').AndReturn(True)
+        self.mocker.ReplayAll()
+        self.assertTrue(self.goofy.run_once())
+        self._wait()
+
+        # That should have enqueued a task that will cause Goofy
+        # to shut down.
+        self.mocker.ReplayAll()
+        self.assertFalse(self.goofy.run_once())
+        self._wait()
+
+        # Something pretty close to the current time should be written
+        # as the shutdown time.
+        shutdown_time = self.state.get_shared_data('shutdown_time')
+        self.assertTrue(math.fabs(time.time() - shutdown_time) < 2)
+
+        # Fudge the shutdown time to be a long time ago.
+        self.state.set_shared_data(
+            'shutdown_time',
+            time.time() - (factory.Options.max_reboot_time_secs + 1))
+
+        # Kill and restart Goofy to simulate a reboot.
+        # Goofy should fail the test since it has been too long.
+        self.goofy.destroy()
+        self.goofy = init_goofy(self.env, self.test_list, restart=False)
+        self._wait()
+
+        state = factory.get_state_instance().get_test_state('shutdown')
+        self.assertEquals(TestState.FAILED, state.status)
+        logging.info('%s', state.error_msg)
+        self.assertTrue(state.error_msg.startswith(
+                'More than %d s elapsed during reboot' %
+                factory.Options.max_reboot_time_secs))
 
 
 class NoAutoRunTest(GoofyTest):

@@ -17,10 +17,15 @@ from uuid import uuid4
 
 import factory_common
 from autotest_lib.client.cros import factory
+from autotest_lib.client.cros.factory import utils
 
 
 class EventLogException(Exception):
   pass
+
+
+# Since gooftool uses this.
+TimeString = utils.TimeString
 
 
 def TimedUuid():
@@ -42,18 +47,6 @@ def YamlDump(structured_data):
                    default_flow_style=False,
                    allow_unicode=True)
 
-
-def TimeString(unix_time=None):
-  """Returns the current time (using UTC) as a string.
-
-  The format is like ISO8601 but with milliseconds:
-
-    2012-05-22T14:15:08.123Z
-  """
-
-  t = unix_time or time.time()
-  return "%s.%03dZ" % (time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(t)),
-                    int((t - int(t)) * 1000))
 
 # TODO(tammo): Replace these definitions references to real canonical
 # data, once the corresponding modules move over from the autotest
@@ -257,7 +250,7 @@ class EventLog(object):
     data = {
         "EVENT": event_name,
         "SEQ": self.seq,
-        "TIME": TimeString()
+        "TIME": utils.TimeString()
         }
     data.update(kwargs)
     self.file.write(YamlDump(data))

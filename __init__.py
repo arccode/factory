@@ -266,6 +266,10 @@ class Options(object):
     # Preserve only autotest results matching these globs.
     preserve_autotest_results = ['*.DEBUG', '*.INFO']
 
+    # Maximum amount of time allowed between reboots.  If this threshold is
+    # exceeded, the reboot is considered failed.
+    max_reboot_time_secs = 180
+
     def check_valid(self):
         '''Throws a TestListError if there are any invalid options.'''
         # Make sure no errant options, or options with weird types,

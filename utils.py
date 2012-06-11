@@ -17,6 +17,19 @@ import time
 from autotest_lib.client.cros import factory
 
 
+def TimeString(unix_time=None):
+  """Returns a time (using UTC) as a string.
+
+  The format is like ISO8601 but with milliseconds:
+
+    2012-05-22T14:15:08.123Z
+  """
+
+  t = unix_time or time.time()
+  return "%s.%03dZ" % (time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(t)),
+                    int((t - int(t)) * 1000))
+
+
 def is_process_alive(pid):
     '''
     Returns true if the named process is alive and not a zombie.

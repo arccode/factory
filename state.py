@@ -217,11 +217,19 @@ class FactoryState(object):
         self._data_shelf.sync()
 
     @_synchronized
-    def get_shared_data(self, key):
+    def get_shared_data(self, key, optional=False):
         '''
         Retrieves a shared data item.
+
+        Args:
+            key: The key whose value to retrieve.
+            optional: True to return None if not found; False to raise
+                a KeyError.
         '''
-        return self._data_shelf[key]
+        if optional:
+            return self._data_shelf.get(key)
+        else:
+            return self._data_shelf[key]
 
     @_synchronized
     def has_shared_data(self, key):
@@ -231,11 +239,19 @@ class FactoryState(object):
         return key in self._data_shelf
 
     @_synchronized
-    def del_shared_data(self, key):
+    def del_shared_data(self, key, optional=False):
         '''
         Deletes a shared data item.
+
+        Args:
+            key: The key whose value to retrieve.
+            optional: False to raise a KeyError if not found.
         '''
-        del self._data_shelf[key]
+        try:
+            del self._data_shelf[key]
+        except KeyError:
+            if not optional:
+                raise
 
     @_synchronized
     def add_test_history(self, history_item):
