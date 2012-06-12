@@ -164,6 +164,7 @@ class Goofy(object):
         self.options = None
         self.args = None
         self.test_list = None
+        self.on_ui_startup = []
 
         def test_or_root(event):
             '''Returns the top-level parent for a test (the root node of the
@@ -349,15 +350,49 @@ class Goofy(object):
                 status=TestState.FAILED,
                 error_msg='Shutdown aborted with double shift keys')
         else:
-            # Need to shutdown again
-            log_and_update_state(
-                status=TestState.ACTIVE,
-                error_msg='',
-                iteration=state.shutdown_count)
-            self.event_log.Log('shutdown', operation='reboot')
-            self.state_instance.set_shared_data('shutdown_time',
+            def handler():
+                if self._prompt_cancel_shutdown(test, state.shutdown_count + 1):
+                    log_and_update_state(
+                        status=TestState.FAILED,
+                        error_msg='Shutdown aborted by operator')
+                    return
+
+                # Time to shutdown again
+                log_and_update_state(
+                    status=TestState.ACTIVE,
+                    error_msg='',
+                    iteration=state.shutdown_count)
+
+                self.event_log.Log('shutdown', operation='reboot')
+                self.state_instance.set_shared_data('shutdown_time',
                                                 time.time())
-            self.env.shutdown('reboot')
+                self.env.shutdown('reboot')
+
+            self.on_ui_startup.append(handler)
+
+    def _prompt_cancel_shutdown(self, test, iteration):
+        if self.options.ui != 'chrome':
+            return False
+
+        pending_shutdown_data = {
+            'delay_secs': test.delay_secs,
+            'time': time.time() + test.delay_secs,
+            'operation': test.operation,
+            'iteration': iteration,
+            'iterations': test.iterations,
+            }
+
+        # Create a new (threaded) event client since we
+        # don't want to use the event loop for this.
+        with EventClient() as event_client:
+            event_client.post_event(Event(Event.Type.PENDING_SHUTDOWN,
+                                          **pending_shutdown_data))
+            aborted = event_client.wait(
+                lambda event: event.type == Event.Type.CANCEL_SHUTDOWN,
+                timeout=test.delay_secs) is not None
+            if aborted:
+                event_client.post_event(Event(Event.Type.PENDING_SHUTDOWN))
+            return aborted
 
     def init_states(self):
         '''
@@ -471,6 +506,14 @@ class Goofy(object):
 
                 test.update_state(status=TestState.ACTIVE, increment_count=1,
                                   error_msg='', shutdown_count=0)
+                if self._prompt_cancel_shutdown(test, 1):
+                    self.event_log.Log('reboot_cancelled')
+                    test.update_state(
+                        status=TestState.FAILED, increment_count=1,
+                        error_msg='Shutdown aborted by operator',
+                        shutdown_count=0)
+                    return
+
                 # Save pending test list in the state server
                 self.state_instance.set_shared_data(
                     'tests_after_shutdown',
@@ -491,6 +534,10 @@ class Goofy(object):
                     test.update_state(status=TestState.PASSED)
                     self.state_instance.set_shared_data(
                         'tests_after_shutdown', None)
+                    # Send event with no fields to indicate that there is no
+                    # longer a pending shutdown.
+                    self.event_client.post_event(Event(
+                            Event.Type.PENDING_SHUTDOWN))
                     continue
 
             invoc = TestInvocation(self, test, on_completion=self.run_next_test)
@@ -729,6 +776,9 @@ class Goofy(object):
                 logging.warn('Never received test_widget_size from UI')
         elif self.options.ui == 'gtk':
             self.start_ui()
+
+        for handler in self.on_ui_startup:
+            handler()
 
         self.prespawner = Prespawner()
         self.prespawner.start()

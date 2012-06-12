@@ -209,8 +209,21 @@ dl.goofy-history {
   font-style: italic;
 }
 
-/* Overrides for Closure components. */
+/* Dialogs. */
+.goofy-shutdown-dialog .modal-dialog-content {
+  padding: 0.5em;
+  font-size: 200%;
+}
 
+.goofy-shutdown-dialog .progress-bar-horizontal {
+  margin: .25em 0;
+}
+
+.goofy-shutdown-dialog p {
+  padding-bottom: 0.5em;
+}
+
+/* Overrides for Closure components. */
 #goofy .goog-menu {
   margin-left: -1em;
 }
@@ -241,8 +254,14 @@ dl.goofy-history {
 #goofy-control .selected .goog-tree-item-label {
   background-color: #cddff0;
 }
+.modal-dialog-bg {
+  z-index: 3;
+}
+.modal-dialog {
+  z-index: 4;
+}
 
-/* Split pane definitions (not included in Closure). */
+/* Definitions for closure components not included in Closure. */
 .goog-splitpane {
   position: absolute;
   overflow: hidden;
@@ -262,4 +281,29 @@ dl.goofy-history {
 .goog-splitpane-second-container {
   overflow: hidden;
   position: absolute;
+}
+.progress-bar-vertical,
+.progress-bar-horizontal {
+  position: relative;
+  border: 1px solid #949dad;
+  background: white;
+  overflow: hidden;
+}
+
+.progress-bar-horizontal {
+  width: 100%;
+  height: 24px;
+}
+
+.progress-bar-vertical {
+  width: 14px;
+  height: 200px;
+}
+
+.progress-bar-thumb {
+  position: relative;
+  background: #d4e4ff;
+  overflow: hidden;
+  width: 100%;
+  height: 100%;
 }

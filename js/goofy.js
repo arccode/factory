@@ -13,6 +13,7 @@ goog.require('goog.dom.iframe');
 goog.require('goog.events');
 goog.require('goog.events.EventHandler');
 goog.require('goog.json');
+goog.require('goog.math');
 goog.require('goog.net.WebSocket');
 goog.require('goog.net.XhrIo');
 goog.require('goog.string');
@@ -23,6 +24,7 @@ goog.require('goog.ui.Dialog');
 goog.require('goog.ui.Dialog.ButtonSet');
 goog.require('goog.ui.MenuSeparator');
 goog.require('goog.ui.PopupMenu');
+goog.require('goog.ui.ProgressBar');
 goog.require('goog.ui.Select');
 goog.require('goog.ui.SplitPane');
 goog.require('goog.ui.tree.TreeControl');
@@ -110,6 +112,13 @@ cros.factory.UNKNOWN_LABEL = '<span class="goofy-unknown">' +
  *            kbd_shortcut: string, subtests: Array}}
  */
 cros.factory.TestListEntry;
+
+/**
+ * A pending shutdown event.
+ * @typedef {{delay_secs: number, time: number, operation: string,
+ *            iteration: number, iterations: number }}
+ */
+cros.factory.PendingShutdownEvent;
 
 /**
  * Public API for tests.
@@ -293,6 +302,12 @@ cros.factory.Goofy = function() {
      * @type Object.<string, cros.factory.Invocation>
      */
     this.invocations = {};
+
+    /**
+     * Reboot prompt modal dialog.
+     * @type goog.ui.Dialog
+     */
+    this.shutdownDialog = null;
 
     var debugWindow = new goog.debug.FancyWindow('main');
     debugWindow.setEnabled(false);
@@ -495,6 +510,88 @@ cros.factory.Goofy.prototype.setSystemInfo = function(systemInfo) {
         });
     table.push('</table>');
     this.infoTooltip.setHtml(table.join(''));
+};
+
+/**
+ * Deals with data about a pending reboot.
+ * @param {cros.factory.PendingShutdownEvent} shutdownInfo
+ */
+cros.factory.Goofy.prototype.setPendingShutdown = function(shutdownInfo) {
+    if (this.shutdownDialog) {
+        this.shutdownDialog.setVisible(false);
+        this.shutdownDialog.dispose();
+        this.shutdownDialog = null;
+    }
+    if (!shutdownInfo || !shutdownInfo.time) {
+        return;
+    }
+
+    var verbEn = shutdownInfo.operation == 'reboot' ?
+        'Rebooting' : 'Shutting down';
+    var verbZh = shutdownInfo.operation == 'reboot' ? '重開機' : '關機';
+
+    var timesEn = shutdownInfo.iterations == 1 ? 'once' : (
+        shutdownInfo.iteration + ' of ' + shutdownInfo.iterations + ' times');
+    var timesZh = shutdownInfo.iterations == 1 ? '1次' : (
+        shutdownInfo.iterations + '次' + verbZh + '測試中的第' +
+        shutdownInfo.iteration + '次');
+
+    this.shutdownDialog = new goog.ui.Dialog();
+    this.shutdownDialog.setContent(
+        '<p>' + verbEn + ' in <span class="goofy-shutdown-secs"></span> ' +
+        'second<span class="goofy-shutdown-secs-plural"></span> (' + timesEn +
+        ').<br>' +
+        'To cancel, press the Escape key.</p>' +
+        '<p>將會在<span class="goofy-shutdown-secs"></span>秒內' + verbZh +
+        '（' + timesZh + '）.<br>按ESC鍵取消.</p>');
+
+    var progressBar = new goog.ui.ProgressBar();
+    progressBar.render(this.shutdownDialog.getContentElement());
+
+    function tick() {
+        var now = new Date().getTime() / 1000.0;
+
+        var startTime = shutdownInfo.time - shutdownInfo.delay_secs;
+        var endTime = shutdownInfo.time;
+        var fraction = (now - startTime) / (endTime - startTime);
+        progressBar.setValue(goog.math.clamp(fraction, 0, 1) * 100);
+
+        var secondsLeft = 1 + Math.floor(Math.max(0, endTime - now));
+        goog.array.forEach(
+            goog.dom.getElementsByClass('goofy-shutdown-secs'), function(elt) {
+                elt.innerHTML = secondsLeft;
+            }, this);
+        goog.array.forEach(
+            goog.dom.getElementsByClass('goofy-shutdown-secs-plural'),
+            function(elt) {
+                elt.innerHTML = secondsLeft == 1 ? '' : 's';
+            }, this);
+    }
+
+    var timer = new goog.Timer(20);
+    goog.events.listen(timer, goog.Timer.TICK, tick, false, this);
+    timer.start();
+
+    goog.events.listen(this.shutdownDialog, goog.ui.Component.EventType.HIDE,
+                       function(event) {
+                           timer.dispose();
+                       }, false, this);
+
+    function onKey(e) {
+        if (e.keyCode == goog.events.KeyCodes.ESC) {
+            this.sendEvent('goofy:cancel_shutdown', {});
+            // Wait for Goofy to reset the pending_shutdown data.
+        }
+    }
+    goog.events.listen(this.shutdownDialog.getElement(),
+                       goog.events.EventType.KEYDOWN, onKey, false, this);
+
+    this.shutdownDialog.setButtonSet(null);
+    this.shutdownDialog.setHasTitleCloseButton(false);
+    this.shutdownDialog.setEscapeToCancel(false);
+    goog.dom.classes.add(this.shutdownDialog.getElement(),
+                         'goofy-shutdown-dialog');
+    this.shutdownDialog.setVisible(true);
 };
 
 /**
@@ -1052,6 +1149,9 @@ cros.factory.Goofy.prototype.handleBackendEvent = function(jsonMessage) {
         }
     } else if (message.type == 'goofy:system_info') {
         this.setSystemInfo(message['system_info']);
+    } else if (message.type == 'goofy:pending_shutdown') {
+        this.setPendingShutdown(
+            /** @type {cros.factory.PendingShutdownMessage} */(message));
     }
 };
 

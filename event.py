@@ -15,7 +15,7 @@ import threading
 import time
 import traceback
 import types
-from Queue import Queue
+from Queue import Empty, Queue
 
 import factory_common
 from autotest_lib.client.cros import factory
@@ -104,6 +104,10 @@ class Event(object):
             'UPDATE_FACTORY': 'goofy:update_factory',
             # Tells Goofy to stop all tests.
             'STOP': 'goofy:stop',
+            # Indicates a pending shutdown.
+            'PENDING_SHUTDOWN': 'goofy:pending_shutdown',
+            # Cancels a pending shutdown.
+            'CANCEL_SHUTDOWN': 'goofy:cancel_shutdown',
             })
 
     def __init__(self, type, **kw):  # pylint: disable=W0622
@@ -349,6 +353,16 @@ class EventClient(object):
     def __del__(self):
         self.close()
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        try:
+            self.close()
+        except:
+            pass
+        return False
+
     def post_event(self, event):
         '''
         Posts an event to the server.
@@ -362,13 +376,15 @@ class EventClient(object):
             raise IOError("Message too large (%d bytes)" % len(message))
         self.socket.sendall(message)
 
-    def wait(self, condition):
+    def wait(self, condition, timeout=None):
         '''
         Waits for an event matching a condition.
 
         @param condition: A function to evaluate.  The function takes one
             argument (an event to evaluate) and returns whether the condition
             applies.
+        @param timeout: A timeout in seconds.  wait will return None on
+            timeout.
         '''
         queue = Queue()
 
@@ -379,7 +395,9 @@ class EventClient(object):
         try:
             with self._lock:
                 self.callbacks.add(check_condition)
-            return queue.get()
+            return queue.get(timeout=timeout)
+        except Empty:
+            return None
         finally:
             with self._lock:
                 self.callbacks.remove(check_condition)

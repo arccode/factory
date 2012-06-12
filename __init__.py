@@ -704,11 +704,12 @@ class ShutdownStep(AutomatedSubTest):
         iterations: The number of times to reboot.
         operation: The command to run to perform the shutdown
             (REBOOT or HALT).
+        delay_secs: Number of seconds the operator has to abort the shutdown.
     '''
     REBOOT = 'reboot'
     HALT = 'halt'
 
-    def __init__(self, operation, iterations=1, **kw):
+    def __init__(self, operation, iterations=1, delay_secs=5, **kw):
         kw.setdefault('id', operation)
         super(ShutdownStep, self).__init__(**kw)
         assert not self.autotest_name, (
@@ -716,11 +717,13 @@ class ShutdownStep(AutomatedSubTest):
         assert not self.subtests, 'Reboot/halt steps may not have subtests'
         assert not self.backgroundable, (
             'Reboot/halt steps may not be backgroundable')
+
         assert iterations > 0
         self.iterations = iterations
-
         assert operation in [self.REBOOT, self.HALT]
         self.operation = operation
+        assert delay_secs >= 0
+        self.delay_secs = delay_secs
 
 
 class HaltStep(ShutdownStep):
