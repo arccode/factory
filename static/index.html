@@ -11,7 +11,8 @@
   </head>
   <body>
     <div class="goog-splitpane" id="goofy-splitpane">
-      <div id="goofy-control" class="goog-splitpane-first-container">
+      <div class="goog-splitpane-first-container">
+       <div id="goofy-control">
         <div class="goofy-horizontal-border">
           <div class="goofy-horizontal-border-1"></div>
           <div class="goofy-horizontal-border-2"></div>
@@ -29,6 +30,14 @@
         </h1>
         <div id="goofy-loading"><img src="images/active.gif">Loading test list...</img></div>
         <div id="goofy-test-tree"></div>
+       </div>
+       <div id="goofy-engineering-mode-indicator">
+         <span class="goofy-label-en">Engineering mode</span>
+         <span class="goofy-label-zh">工程模式</span>
+         <img id="goofy-disable-engineering-mode" style="display: none"
+              onclick="goofy.setEngineeringMode(false)"
+              src="white_close.png">
+       </div>
       </div>
       <div class="goog-splitpane-handle"></div>
       <div id="goofy-main-and-console" class="goog-splitpane-second-container"></div>

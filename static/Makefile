@@ -14,6 +14,7 @@ CLOSURE_LIB_DIR := $(CLOSURE_LIB_DIR)$(CLOSURE_LIB_VERSION)
 CLOSURE_COMPILER_JAR=/opt/closure-compiler-bin-0/lib/closure-compiler-bin.jar
 
 CSS_SOURCES=\
+    goog/css/checkbox.css \
     goog/css/dialog.css \
     goog/css/menu.css \
     goog/css/menuitem.css \

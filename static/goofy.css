@@ -66,6 +66,10 @@ body {
   left: 75%; width: 100%; height: 100%;
   background-color: #cddff0;
 }
+#goofy-control {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+}
 #goofy-control, #goofy-main-and-console .goog-splitpane-second-container {
   overflow: auto;
 }
@@ -81,6 +85,35 @@ body {
   left: 0; top: 0;
   width: 100%; height: 100%;
   padding: .5em;
+}
+
+/* Overrides for engineering mode. */
+#goofy-engineering-mode-indicator {
+  background-color: red;
+  color: white;
+  display: none;
+  font-weight: bold;
+  height: 2em;
+  line-height: 2em;
+  position: absolute;
+  text-align: center;
+  left: 0; right: 0; bottom: 0; 
+}
+#goofy-engineering-mode-indicator a {
+  color: white;
+}
+.goofy-engineering-mode #goofy-engineering-mode-indicator {
+  display: block;
+}
+.goofy-engineering-mode #goofy-control {
+  bottom: 2em;
+}
+#goofy-disable-engineering-mode {
+  border: none;
+  cursor: pointer;
+  margin-left: 1em;
+  vertical-align: -5px;
+  width: 21; height: 21;
 }
 
 /* Elements in the control pane. */
@@ -211,18 +244,22 @@ dl.goofy-history {
 
 /* Dialogs. */
 .goofy-shutdown-dialog .modal-dialog-content {
-  padding: 0.5em;
   font-size: 200%;
+  padding: 0.5em;
 }
-
 .goofy-shutdown-dialog .progress-bar-horizontal {
   margin: .25em 0;
 }
-
 .goofy-shutdown-dialog p {
   padding-bottom: 0.5em;
 }
-
+.goofy-engineering-mode-dialog .modal-dialog-userInput {
+  font-size: 200%;
+  -webkit-text-security: disc;
+}
+.goofy-engineering-mode-dialog br {
+  display: none;
+}
 /* Overrides for Closure components. */
 #goofy .goog-menu {
   margin-left: -1em;

@@ -254,6 +254,10 @@ class Options(object):
     These may be set by assigning to the options variable in a test list (e.g.,
     'options.auto_run_on_start = False').
     '''
+    # Allowable types for an option (defaults to the type of the default
+    # value).
+    _types = {}
+
     # Perform an implicit auto-run when the test driver starts up?
     auto_run_on_start = True
 
@@ -270,6 +274,12 @@ class Options(object):
     # exceeded, the reboot is considered failed.
     max_reboot_time_secs = 180
 
+    # SHA1 hash for a eng password in UI.  Use None to always
+    # enable eng mode.  To generate, run `echo -n '<password>'
+    # | sha1sum`.
+    engineering_password_sha1 = None
+    _types['engineering_password_sha1'] = (type(None), str)
+
     def check_valid(self):
         '''Throws a TestListError if there are any invalid options.'''
         # Make sure no errant options, or options with weird types,
@@ -282,11 +292,13 @@ class Options(object):
                 raise TestListError('Unknown option %s' % key)
 
             value = getattr(self, key)
-            default_value = getattr(default_options, key)
-            if type(value) != type(default_value):
+            allowable_types = Options._types.get(
+                key,
+                [type(getattr(default_options, key))]);
+            if type(value) not in allowable_types:
                 raise TestListError(
                     'Option %s has unexpected type %s (should be %s)' % (
-                        key, type(value), type(default_value)))
+                        key, type(value), allowable_types))
 
 
 class TestState(object):

@@ -4,6 +4,8 @@
 
 goog.provide('cros.factory.Goofy');
 
+goog.require('goog.crypt');
+goog.require('goog.crypt.Sha1');
 goog.require('goog.debug.ErrorHandler');
 goog.require('goog.debug.FancyWindow');
 goog.require('goog.debug.Logger');
@@ -20,11 +22,13 @@ goog.require('goog.string');
 goog.require('goog.style');
 goog.require('goog.Uri');
 goog.require('goog.ui.AdvancedTooltip');
+goog.require('goog.ui.Checkbox');
 goog.require('goog.ui.Dialog');
 goog.require('goog.ui.Dialog.ButtonSet');
 goog.require('goog.ui.MenuSeparator');
 goog.require('goog.ui.PopupMenu');
 goog.require('goog.ui.ProgressBar');
+goog.require('goog.ui.Prompt');
 goog.require('goog.ui.Select');
 goog.require('goog.ui.SplitPane');
 goog.require('goog.ui.tree.TreeControl');
@@ -62,6 +66,12 @@ cros.factory.CONTROL_PANEL_MIN_WIDTH = 275;
  * @type number
  */
 cros.factory.LOG_PANE_HEIGHT_FRACTION = 0.2;
+
+/**
+ * Minimum height of the log pane, in pixels.
+ * @type number
+ */
+cros.factory.LOG_PANE_MIN_HEIGHT = 170;
 
 /**
  * Makes a label that displays English (or optionally Chinese).
@@ -304,21 +314,50 @@ cros.factory.Goofy = function() {
     this.invocations = {};
 
     /**
-     * Reboot prompt modal dialog.
+     * Eng mode prompt.
+     * @type goog.ui.Dialog
+     */
+    this.engineeringModeDialog = null;
+
+    /**
+     * Shutdown prompt dialog.
      * @type goog.ui.Dialog
      */
     this.shutdownDialog = null;
 
+    /**
+     * Whether eng mode is enabled.
+     * @type {boolean}
+     */
+    this.engineeringMode = false;
+
+    /**
+     * SHA1 hash of password to take UI out of operator mode.  If
+     * null, eng mode is always enabled.  Defaults to an invalid '?',
+     * which means that eng mode cannot be entered (will be set from
+     * Goofy's shared_data).
+     * @type {?string}
+     */
+    this.engineeringPasswordSHA1 = '?';
+
     var debugWindow = new goog.debug.FancyWindow('main');
     debugWindow.setEnabled(false);
     debugWindow.init();
-    // Magic keyboard shortcut Ctrl-Alt-1 to open the debugging window.
+    // Magic keyboard shortcuts.
     goog.events.listen(
         window, goog.events.EventType.KEYDOWN,
         function(event) {
-            if (event.altKey && event.ctrlKey &&
-                '1' == String.fromCharCode(event.keyCode)) {
-                debugWindow.setEnabled(true);
+            if (event.altKey && event.ctrlKey) {
+                switch (String.fromCharCode(event.keyCode)) {
+                case '0':
+                    this.promptEngineeringPassword();
+                    break;
+                case '1':
+                    debugWindow.setEnabled(true);
+                    break;
+                default:
+                    // Nothing
+                }
             }
         }, false, this);
 };
@@ -333,8 +372,10 @@ cros.factory.Goofy.prototype.initSplitPanes = function() {
     var mainAndConsole = new goog.ui.SplitPane(
         mainComponent, consoleComponent,
         goog.ui.SplitPane.Orientation.VERTICAL);
-    mainAndConsole.setInitialSize(viewportSize.height *
-                                  (1 - cros.factory.LOG_PANE_HEIGHT_FRACTION));
+    mainAndConsole.setInitialSize(
+        viewportSize.height -
+        Math.max(cros.factory.LOG_PANE_MIN_HEIGHT,
+                 1 - cros.factory.LOG_PANE_HEIGHT_FRACTION));
 
     var controlComponent = new goog.ui.Component();
     var topSplitPane = new goog.ui.SplitPane(
@@ -386,6 +427,13 @@ cros.factory.Goofy.prototype.initSplitPanes = function() {
                 goog.dom.getViewportSize(goog.dom.getWindow(document) ||
                                          window));
         });
+
+    function onKey(e) {
+        if (e.keyCode == goog.events.KeyCodes.ESC) {
+            this.sendEvent('goofy:cancel_shutdown', {});
+            // Wait for Goofy to reset the pending_shutdown data.
+        }
+    }
 }
 
 /**
@@ -436,6 +484,19 @@ cros.factory.Goofy.prototype.init = function() {
     this.initWebSocket();
     this.sendRpc('get_test_list', [], this.setTestList);
     this.sendRpc('get_shared_data', ['system_info'], this.setSystemInfo);
+    this.sendRpc(
+        'get_shared_data', ['test_list_options'],
+            function(options) {
+                this.engineeringPasswordSHA1 =
+                    options['engineering_password_sha1'];
+                // If no password, enable eng mode, and don't
+                // show the 'disable' link, since there is no way to
+                // enable it.
+                goog.style.showElement(document.getElementById(
+                    'goofy-disable-engineering-mode'),
+                    this.engineeringPasswordSHA1 != null);
+                this.setEngineeringMode(this.engineeringPasswordSHA1 == null);
+            });
 };
 
 /**
@@ -513,6 +574,93 @@ cros.factory.Goofy.prototype.setSystemInfo = function(systemInfo) {
 };
 
 /**
+ * Displays an alert.
+ * @param {string} messageHtml
+ */
+cros.factory.Goofy.prototype.alert = function(messageHtml) {
+    var dialog = new goog.ui.Dialog();
+    dialog.setTitle('Alert');
+    dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
+    dialog.setContent(messageHtml);
+    dialog.setVisible(true);
+    goog.dom.classes.add(dialog.getElement(), 'goofy-alert');
+    this.positionOverConsole(dialog.getElement());
+};
+
+/**
+ * Centers an element over the console.
+ * @param {Element} element
+ */
+cros.factory.Goofy.prototype.positionOverConsole = function(element) {
+    var consoleBounds = goog.style.getBounds(this.console.parentNode);
+    var size = goog.style.getSize(element);
+    goog.style.setPosition(
+        element,
+        consoleBounds.left + consoleBounds.width/2 - size.width/2,
+        consoleBounds.top + consoleBounds.height/2 - size.height/2);
+};
+
+/**
+ * Prompts to enter eng mode.
+ */
+cros.factory.Goofy.prototype.promptEngineeringPassword = function() {
+    if (this.engineeringModeDialog) {
+        this.engineeringModeDialog.setVisible(false);
+        this.engineeringModeDialog.dispose();
+        this.engineeringModeDialog = null;
+    }
+    if (!this.engineeringPasswordSHA1) {
+        this.alert('No password has been set.');
+        return;
+    }
+    if (this.engineeringMode) {
+        this.setEngineeringMode(false);
+        return;
+    }
+
+    this.engineeringModeDialog = new goog.ui.Prompt(
+        'Password', '',
+        goog.bind(function(text) {
+            if (!text || text == '') {
+                return;
+            }
+            var hash = new goog.crypt.Sha1();
+            hash.update(text);
+            var digest = goog.crypt.byteArrayToHex(hash.digest());
+            if (digest == this.engineeringPasswordSHA1) {
+                this.setEngineeringMode(true);
+            } else {
+                this.alert('Incorrect password.');
+            }
+        }, this));
+    this.engineeringModeDialog.setVisible(true);
+    goog.dom.classes.add(this.engineeringModeDialog.getElement(),
+                         'goofy-engineering-mode-dialog');
+    this.engineeringModeDialog.reposition();
+    this.positionOverConsole(this.engineeringModeDialog.getElement());
+};
+
+/**
+ * Sets eng mode.
+ * @param {boolean} enabled
+ */
+cros.factory.Goofy.prototype.setEngineeringMode = function(enabled) {
+    this.engineeringMode = enabled;
+    goog.dom.classes.enable(document.body, 'goofy-engineering-mode', enabled);
+};
+
+/**
+ * Closes any open dialog.
+ */
+cros.factory.Goofy.prototype.closeDialog = function() {
+    if (this.dialog) {
+        this.dialog.setVisible(false);
+        this.dialog.dispose();
+        this.dialog = null;
+    }
+};
+
+/**
  * Deals with data about a pending reboot.
  * @param {cros.factory.PendingShutdownEvent} shutdownInfo
  */
@@ -525,6 +673,7 @@ cros.factory.Goofy.prototype.setPendingShutdown = function(shutdownInfo) {
     if (!shutdownInfo || !shutdownInfo.time) {
         return;
     }
+    this.closeDialog();
 
     var verbEn = shutdownInfo.operation == 'reboot' ?
         'Rebooting' : 'Shutting down';
@@ -1151,7 +1300,7 @@ cros.factory.Goofy.prototype.handleBackendEvent = function(jsonMessage) {
         this.setSystemInfo(message['system_info']);
     } else if (message.type == 'goofy:pending_shutdown') {
         this.setPendingShutdown(
-            /** @type {cros.factory.PendingShutdownMessage} */(message));
+            /** @type {cros.factory.PendingShutdownEvent} */(message));
     }
 };
 

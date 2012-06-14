@@ -742,6 +742,9 @@ class Goofy(object):
         if not self.state_instance.has_shared_data('ui_lang'):
             self.state_instance.set_shared_data('ui_lang',
                                                 self.test_list.options.ui_lang)
+        self.state_instance.set_shared_data(
+            'test_list_options',
+            self.test_list.options.__dict__)
         self.state_instance.test_list = self.test_list
 
         self.init_states()
