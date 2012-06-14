@@ -72,6 +72,8 @@ class Event(object):
             'AUTO_RUN': 'goofy:auto_run',
             # Tells goofy to set all failed tests' state to untested and re-run.
             'RE_RUN_FAILED': 'goofy:re_run_failed',
+            # Tells goofy to re-run all tests with particular statuses.
+            'RUN_TESTS_WITH_STATUS': 'goofy:run_tests_with_status',
             # Tells goofy to go to the review screen.
             'REVIEW': 'goofy:review',
             # Tells the UI about a single new line in the log.

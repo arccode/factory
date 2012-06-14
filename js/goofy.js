@@ -773,18 +773,22 @@ cros.factory.Goofy.prototype.handleShortcut = function(key) {
  * @param {cros.factory.TestListEntry} test the name of the root node containing
  *     the tests.
  * @param {Object} handler the handler function (see goog.events.listen).
+ * @param {boolean=} opt_adjectiveAtEnd put the adjective at the end in English
+ *     (e.g., tests that have *not passed*)
  */
 cros.factory.Goofy.prototype.makeMenuItem = function(
-    verbEn, verbZh, adjectiveEn, adjectiveZh, count, test, handler) {
+    verbEn, verbZh, adjectiveEn, adjectiveZh, count, test, handler,
+    opt_adjectiveAtEnd) {
 
     var labelEn = verbEn + ' ';
     var labelZh = verbZh;
     if (!test.subtests.length) {
         // leaf node
-        labelEn += adjectiveEn + ' test ' + test.label_en;
+        labelEn += (opt_adjectiveAtEnd ? '' : adjectiveEn) +
+            ' test ' + test.label_en;
         labelZh += adjectiveZh + '測試';
     } else {
-        labelEn += count + ' ' + adjectiveEn + ' ' +
+        labelEn += count + ' ' + (opt_adjectiveAtEnd ? '' : adjectiveEn) + ' ' +
             (count == 1 ? 'test' : 'tests');
         if (test.label_en) {
             labelEn += ' in "' + goog.string.htmlEscape(test.label_en) + '"';
@@ -797,6 +801,10 @@ cros.factory.Goofy.prototype.makeMenuItem = function(
                 '”裡面的');
         }
         labelZh += '測試';
+    }
+
+    if (opt_adjectiveAtEnd) {
+        labelEn += ' that ' + (count == 1 ? 'has' : 'have') + ' not passed';
     }
 
     var item = new goog.ui.MenuItem(cros.factory.Content(labelEn, labelZh));
@@ -910,15 +918,20 @@ cros.factory.Goofy.prototype.showTestPopup = function(path, labelElement,
     if (test.subtests.length) {
         // Only show for parents.
         menu.addChild(this.makeMenuItem(
-            'Restart', '重跑', 'failed', '已失敗的',
-            numLeavesByStatus['FAILED'] || 0,
+            'Restart', '重跑', 'not passed', '未成功',
+            (numLeavesByStatus['UNTESTED'] || 0) +
+            (numLeavesByStatus['ACTIVE'] || 0) +
+            (numLeavesByStatus['FAILED'] || 0),
             test, function(event) {
-                this.sendEvent('goofy:re_run_failed', {'path': path});
-            }), true);
+                this.sendEvent('goofy:run_tests_with_status', {
+                        'status': ['UNTESTED', 'ACTIVE', 'FAILED'],
+                        'path': path
+                    });
+            }, /*opt_adjectiveAtEnd=*/true), true);
         menu.addChild(this.makeMenuItem(
             'Run', '執行', 'untested', '未測的',
-            (numLeavesByStatus['UNTESTED'] || 0 +
-             numLeavesByStatus['ACTIVE'] || 0),
+            (numLeavesByStatus['UNTESTED'] || 0) +
+            (numLeavesByStatus['ACTIVE'] || 0),
             test, function(event) {
                 this.sendEvent('goofy:auto_run', {'path': path});
             }), true);

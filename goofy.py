@@ -191,6 +191,10 @@ class Goofy(object):
                 lambda event: self.auto_run(root=test_or_root(event)),
             Event.Type.RE_RUN_FAILED:
                 lambda event: self.re_run_failed(root=test_or_root(event)),
+            Event.Type.RUN_TESTS_WITH_STATUS:
+                lambda event: self.run_tests_with_status(
+                    event.status,
+                    root=test_or_root(event)),
             Event.Type.REVIEW:
                 lambda event: self.show_review_information(),
             Event.Type.UPDATE_SYSTEM_INFO:
