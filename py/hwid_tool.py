@@ -216,52 +216,15 @@ def ComponentConfigStr(component_map):
   return ' '.join(sorted(substr(k, v) for k, v in component_map.items()))
 
 
-def IndentedStructuredPrint(depth, title, *content, **tagged_content):
-  """Print YAML-like dict representation, but with fancy alignment and tagging.
+def FmtRightAlignedDict(d):
+  max_key_width = max(len(k) for k in d) if d else 0
+  return ['%s%s: %s' % ((max_key_width - len(k)) * ' ', k, v)
+          for k, v in sorted((k, v) for k, v in d.items())]
 
-  The content_dict data is formatted into key and value columns, such
-  the key column is fixed width and all of the keys are right aligned.
-
-  Args:
-    depth: Number of empty spaces to prefix each output line with.
-    title: Header line.  Ignored if ''/None, otherwise contents indented +2.
-    content: Multiple dict or list/set objects.  If dict, each of its
-      key-value pairs is printed colon-separated, one pair per line.
-      The data on all lines are aligned around the colon characters.
-      The keys are right aliged to the colon and the values left
-      aligned.  If list or set, there is no alignment and the list
-      elements are comma-separated.
-    tagged_content: Dict of (tag: content) mappings. Content is
-      formatted like content above, but each output line is prefixed
-      with the tag in parens.
-  Returns:
-    Nothing.
-  """
-  if title:
-    print ' ' * depth + title
-    depth += 2
-  lhs_width_list = [len(tag) + len(k) + len(tag)
-                    for tag, elt in tagged_content.items()
-                    for k in elt if isinstance(elt, dict)]
-  lhs_width_list += [len(k) for elt in content
-                     for k in elt if isinstance(elt, dict)]
-  max_key_width = max(lhs_width_list) if lhs_width_list else 0
-  def PrintElt(elt, tag):
-    if isinstance(elt, dict):
-      for k, v in sorted((k, v) for k, v in elt.items()):
-        print '%s%s%s%s: %s' % (
-          depth * ' ',
-          tag,
-          (max_key_width - len(tag) - len(k)) * ' ',
-          k,
-          'NONE' if v is None else ("''" if v == '' else v))
-    if elt and (isinstance(elt, list) or isinstance(elt, set)):
-      print (depth * ' ' + tag + ', '.join(str(s) for s in sorted(elt)))
-  for elt in content:
-    PrintElt(elt, '')
-  for tag, elt in sorted(tagged_content.items()):
-    PrintElt(elt, '(%s) ' % tag if tag != '' else '')
-  print ''
+def FmtLeftAlignedDict(d):
+  max_key_width = max(len(k) for k in d) if d else 0
+  return ['%s%s: %s' % (k, (max_key_width - len(k)) * ' ', v)
+          for k, v in sorted((k, v) for k, v in d.items())]
 
 
 # TODO(tammo): Move CompDb and HardwareDb into their own files, and
@@ -322,10 +285,18 @@ class Device(YamlDatastore):
                              vol_code, prev_status))
             vol_status[vol_code] = status
 
-  def FilterInitialConfigs(self, target_bom_names):
+  def CommonInitialConfigs(self, target_bom_names):
     """Return all initial_config indices shared by the target boms."""
     return set().union(*[self._reverse_ic_map.get(bom_name, set())
                          for bom_name in target_bom_names])
+
+  def CommonMissingClasses(self, target_bom_names):
+    boms = [self.boms[bom_name] for bom_name in target_bom_names]
+    return set().union(*[set(bom.primary.classes_missing) for bom in boms])
+
+  def CommonDontcareClasses(self, target_bom_names):
+    boms = [self.boms[bom_name] for bom_name in target_bom_names]
+    return set().union(*[set(bom.primary.classes_dontcare) for bom in boms])
 
   def GetVolatileCodes(self, bom_name, variant_code, status_mask):
     variant_status_map = self._hwid_status_map.get(bom_name, {})
@@ -618,11 +589,26 @@ def PrintHwidHierarchy(device, bom_map, status_mask):
   Details include both primary and variant component configurations,
   initial config, and status.
   """
-  def ShowCommon(depth, ic_mask, bom_name_set, common_comp_map):
-    common_ic = device.FilterInitialConfigs(bom_name_set) - ic_mask
-    IndentedStructuredPrint(depth * 2, '-'.join(sorted(bom_name_set)),
-                            primary=common_comp_map, initial_config=common_ic)
-    return ic_mask | common_ic
+  def ShowCommon(depth, masks, bom_name_set, common_comp_map):
+    common_output = {}
+    common_ic = device.CommonInitialConfigs(bom_name_set) - masks.ic
+    if common_ic:
+      common_output['initial_config'] = ', '.join([str(x) for x in common_ic])
+    common_missing = device.CommonMissingClasses(bom_name_set) - masks.missing
+    if common_missing:
+      common_output['classes missing'] = ', '.join(common_missing)
+    common_wild = device.CommonDontcareClasses(bom_name_set) - masks.wild
+    if common_wild:
+      common_output['classes dontcare'] = ', '.join(common_wild)
+    print (depth * '  ') + '-'.join(sorted(bom_name_set))
+    for line in FmtLeftAlignedDict(common_output):
+      print (depth * '  ') + '  ' + line
+    for line in FmtRightAlignedDict(common_comp_map):
+      print (depth * '  ') + '  (primary) ' + line
+    print ''
+    return Obj(ic=masks.ic | common_ic,
+               missing=masks.missing | common_missing,
+               wild=masks.wild | common_wild)
   def ShowHwids(depth, bom_name):
     bom = device.boms[bom_name]
     for variant_code in sorted(bom.variants):
@@ -631,19 +617,22 @@ def PrintHwidHierarchy(device, bom_map, status_mask):
         variant = device.variants[variant_code]
         hwid = device.FmtHwid(bom_name, variant_code, volatile_code)
         status = device.GetHwidStatus(bom_name, variant_code, volatile_code)
-        IndentedStructuredPrint(depth * 2, '%s  [%s]' % (hwid, status),
-                                variant=variant.components)
-  def ShowBom(depth, ic_mask, bom_name_set):
+        print (depth * '  ') + '%s  [%s]' % (hwid, status)
+        for line in FmtRightAlignedDict(variant.components):
+          print (depth * '  ') + '  (primary) ' + line
+        print ''
+  def ShowBom(depth, masks, bom_name_set):
     for bom_name in sorted(bom_name_set):
-      common_ic = device.FilterInitialConfigs(set([bom_name])) - ic_mask
+      common_ic = device.CommonInitialConfigs(set([bom_name])) - masks.ic
       if common_ic:
-        IndentedStructuredPrint((depth + 1) * 2, bom_name,
-                                initial_config=common_ic)
+        print (depth * '  ') + (
+          'initial_config: %s' % ', '.join([str(x) for x in common_ic]))
+        print ''
         depth += 2
       ShowHwids(depth, bom_name)
-  # TODO(tammo): Fix the cb arg usage to allow omission here.
+  masks = Obj(ic=set(), missing=set(), wild=set())
   TraverseCompMapHierarchy(CalcReverseComponentMap(bom_map),
-                           ShowCommon, ShowBom, set())
+                           ShowCommon, ShowBom, masks)
 
 
 def ProcessComponentCrossproduct(data, board, comp_list):
@@ -802,7 +791,7 @@ def LookupHwidProperties(data, hwid):
                   (hwid, props.volatile))
   props.status = device.GetHwidStatus(props.bom, props.volatile, props.variant)
   # TODO(tammo): Refactor if FilterExternalHwidAttrs is pre-computed.
-  initial_config_set = FilterInitialConfig(device, set([props.bom]))
+  initial_config_set = CommonInitialConfig(device, set([props.bom]))
   props.initial_config = next(iter(initial_config_set), None)
   props.vpd_ro_field_list = device.vpd_ro_field_list
   props.component_map = hwid_details.component_map
@@ -912,7 +901,9 @@ def ComponentBreakdownCommand(config, hw_db):
       print '---- %s ----' % board
     rev_comp_map = CalcReverseComponentMap(device.boms)
     common_comp_map = CalcCommonComponentMap(rev_comp_map)
-    IndentedStructuredPrint(0, 'common:', common_comp_map)
+    print 'common:'
+    for line in FmtRightAlignedDict(common_comp_map):
+      print '  ' + line
     remaining_comp_class_set = set(rev_comp_map) - set(common_comp_map)
     sorted_remaining_comp_class_list = sorted(
         [(len(rev_comp_map[comp_class]), comp_class)
@@ -921,7 +912,9 @@ def ComponentBreakdownCommand(config, hw_db):
       comp_class = sorted_remaining_comp_class_list.pop()[1]
       comp_map = dict((comp, ', '.join(sorted(bom_set)))
                       for comp, bom_set in rev_comp_map[comp_class].items())
-      IndentedStructuredPrint(0, comp_class + ':', comp_map)
+      print comp_class + ':'
+      for line in FmtRightAlignedDict(comp_map):
+        print '  ' + line
 
 
 @Command('assimilate_probe_data',
