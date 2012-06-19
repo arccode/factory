@@ -32,7 +32,9 @@ from jsonrpclib import jsonrpc
 from jsonrpclib import SimpleJSONRPCServer
 from autotest_lib.client.cros import factory
 from autotest_lib.client.cros.factory import TestState
+from autotest_lib.client.cros.factory import system
 from autotest_lib.client.cros.factory import unicode_to_string
+
 
 DEFAULT_FACTORY_STATE_PORT = 0x0FAC
 DEFAULT_FACTORY_STATE_ADDRESS = 'localhost'
@@ -381,6 +383,14 @@ class FactoryState(object):
     @_synchronized
     def register_path(self, url_path, local_path):
         self._resolver.AddPath(url_path, local_path)
+
+    def get_system_status(self):
+        '''Returns system status information.
+
+        This may include system load, battery status, etc.  See
+        system.SystemStatus().
+        '''
+        return system.SystemStatus().__dict__
 
 
 def get_instance(address=DEFAULT_FACTORY_STATE_ADDRESS,

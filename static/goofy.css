@@ -68,7 +68,7 @@ body {
 }
 #goofy-control {
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0; left: 0; right: 0; bottom: 20px;
 }
 #goofy-control, #goofy-main-and-console .goog-splitpane-second-container {
   overflow: auto;
@@ -87,15 +87,48 @@ body {
   padding: .5em;
 }
 
-/* Overrides for engineering mode. */
+/* Overrides for status bar. */
+#goofy-status-bar {
+  border-top: 1px solid lightgray;
+  font-size: 75%;
+  height: 20px; left: 0; right: 0; bottom: 0;
+  position: absolute;
+}
+#goofy-status-bar-main {
+  padding-top: 4px;
+}
+.goofy-status-bar-item {
+  padding-left: .5em;
+}
+.goofy-status-bar-item:not(.goofy-value-known) .goofy-value {
+  display: none;
+}
+.goofy-status-bar-item.goofy-value-known .goofy-unknown {
+  display: none;
+}
+.goofy-battery-charging:before {
+  content: '↑';
+}
+.goofy-battery-discharging:before {
+  content: '↓';
+}
+.goofy-battery-full:before {
+  content: 'F';
+}
+.goofy-engineering-mode #goofy-status-bar {
+  /* Status bar contains the engineering-mode indicator. */
+  height: 44px;
+  /* No border necessary. */
+  border-top: 0px;
+}
 #goofy-engineering-mode-indicator {
   background-color: red;
   color: white;
   display: none;
+  font-size: 150%;
   font-weight: bold;
-  height: 2em;
-  line-height: 2em;
-  position: absolute;
+  height: 24px;
+  line-height: 24px;
   text-align: center;
   left: 0; right: 0; bottom: 0; 
 }
@@ -106,7 +139,7 @@ body {
   display: block;
 }
 .goofy-engineering-mode #goofy-control {
-  bottom: 2em;
+  bottom: 44px;
 }
 #goofy-disable-engineering-mode {
   border: none;
@@ -220,17 +253,14 @@ dl.goofy-history {
   font-size: 75%;
   text-align: left;
   padding: 0 .1em 0 .1em;
+  white-space: nowrap;
 }
 #goofy-system-info th {
   padding-right: 1em;
 }
-#goofy-version th {
-  text-wrap: none;
-}
 #goofy-system-info-hover {
-  position: fixed;
-  right: 16px;
-  bottom: 2px;
+  float: right;
+  margin-top: -1px;
 }
 .goofy-unknown {
   color: darkgray;
@@ -260,6 +290,7 @@ dl.goofy-history {
 .goofy-engineering-mode-dialog br {
   display: none;
 }
+
 /* Overrides for Closure components. */
 #goofy .goog-menu {
   margin-left: -1em;

@@ -14,6 +14,7 @@ goog.require('goog.dom.classes');
 goog.require('goog.dom.iframe');
 goog.require('goog.events');
 goog.require('goog.events.EventHandler');
+goog.require('goog.i18n.NumberFormat');
 goog.require('goog.json');
 goog.require('goog.math');
 goog.require('goog.net.WebSocket');
@@ -48,6 +49,13 @@ cros.factory.AUTO_COLLAPSE = false;
  * @type number
  */
 cros.factory.KEEP_ALIVE_INTERVAL_MSEC = 30000;
+
+/**
+ * Interval at which to update system status.
+ * @const
+ * @type number
+ */
+cros.factory.SYSTEM_STATUS_INTERVAL_MSEC = 5000;
 
 /**
  * Width of the control panel, as a fraction of the viewport size.
@@ -462,6 +470,9 @@ cros.factory.Goofy.prototype.initWebSocket = function() {
                        }, false, this);
     window.setInterval(goog.bind(this.keepAlive, this),
                        cros.factory.KEEP_ALIVE_INTERVAL_MSEC);
+    window.setInterval(goog.bind(this.updateStatus, this),
+                       cros.factory.SYSTEM_STATUS_INTERVAL_MSEC);
+    this.updateStatus();
     this.ws.open("ws://" + window.location.host + "/event");
 };
 
@@ -1217,6 +1228,64 @@ cros.factory.Goofy.prototype.keepAlive = function() {
     if (this.ws.isOpen()) {
         this.sendEvent('goofy:keepalive', {'uuid': this.uuid});
     }
+};
+
+cros.factory.Goofy.prototype.LOAD_AVERAGE_FORMAT = (
+    new goog.i18n.NumberFormat('0.00'));
+cros.factory.Goofy.prototype.PERCENT_CPU_FORMAT = (
+    new goog.i18n.NumberFormat('0.0%'));
+cros.factory.Goofy.prototype.PERCENT_BATTERY_FORMAT = (
+    new goog.i18n.NumberFormat('0%'));
+/**
+ * Gets the system status.
+ */
+cros.factory.Goofy.prototype.updateStatus = function() {
+    this.sendRpc('get_system_status', [], function(status) {
+        function setValue(id, value) {
+            var element = document.getElementById(id);
+            goog.dom.classes.enable(element, 'goofy-value-known',
+                                    value != null);
+            goog.dom.getElementByClass('goofy-value', element
+                                       ).innerHTML = value;
+        }
+
+        setValue('goofy-load-average',
+                 status['load_avg'] ?
+                 this.LOAD_AVERAGE_FORMAT.format(status['load_avg'][0]) :
+                 null);
+
+        if (this.lastStatus) {
+            var lastCpu = goog.math.sum.apply(this, this.lastStatus['cpu']);
+            var currentCpu = goog.math.sum.apply(this, status['cpu']);
+            var lastIdle = this.lastStatus['cpu'][3];
+            var currentIdle = status['cpu'][3];
+            var deltaIdle = currentIdle - lastIdle;
+            var deltaTotal = currentCpu - lastCpu;
+            setValue('goofy-percent-cpu',
+                     this.PERCENT_CPU_FORMAT.format(
+                         (deltaTotal - deltaIdle) / deltaTotal));
+        } else {
+            setValue('goofy-percent-cpu', null);
+        }
+
+        var chargeIndicator = document.getElementById(
+            'goofy-battery-charge-indicator');
+        var percent = null;
+        var batteryStatus = 'unknown';
+        if (status.battery && status.battery.charge_full) {
+            percent = this.PERCENT_BATTERY_FORMAT.format(
+                status.battery.charge_now / status.battery.charge_full);
+            if (goog.array.contains(['Full', 'Charging', 'Discharging'],
+                                    status.battery.status)) {
+                batteryStatus = status.battery.status.toLowerCase();
+            }
+        }
+        setValue('goofy-percent-battery', percent);
+        goog.dom.classes.set(
+            chargeIndicator, 'goofy-battery-' + batteryStatus);
+
+        this.lastStatus = status;
+    });
 };
 
 /**

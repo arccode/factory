@@ -9,18 +9,13 @@ import hashlib
 import logging
 import os
 from Queue import Queue
-import re
 import subprocess
 import threading
 import time
 
 import factory_common
 from autotest_lib.client.cros import factory
-from autotest_lib.client.cros.factory import shopfloor
 from autotest_lib.client.cros.factory import state
-
-
-ECTOOL_TIMEOUT_SEC = 0.1
 
 
 class Environment(object):
@@ -148,62 +143,3 @@ class FakeChrootEnvironment(Environment):
                      state.DEFAULT_FACTORY_STATE_PORT)
 
 
-class SystemInfo(object):
-    '''Information about the system.'''
-    def __init__(self, env, state):
-        self.serial_number = None
-        try:
-            self.serial_number = shopfloor.get_serial_number()
-        except:
-            pass
-
-        self.factory_image_version = None
-        try:
-            lsb_release = open('/etc/lsb-release').read()
-            match = re.search('^GOOGLE_RELEASE=(.+)$', lsb_release,
-                              re.MULTILINE)
-            if match:
-                self.factory_image_version = match.group(1)
-        except:
-            pass
-
-        try:
-            self.wlan0_mac = open('/sys/class/net/wlan0/address').read().strip()
-        except:
-            self.wlan0_mac = None
-
-        try:
-            uname = subprocess.Popen(['uname', '-r'], stdout=subprocess.PIPE)
-            stdout, _ = uname.communicate()
-            self.kernel_version = stdout.strip()
-        except:
-            self.kernel_version = None
-
-        self.ec_version = None
-        try:
-            ectool = subprocess.Popen(['mosys', 'ec', 'info', '-l'],
-                                      stdout=subprocess.PIPE)
-            stdout, _ = ectool.communicate()
-            match = re.search('^fw_version\s+\|\s+(.+)$', stdout,
-                              re.MULTILINE)
-            if match:
-                self.ec_version = match.group(1)
-        except:
-            pass
-
-        self.firmware_version = None
-        try:
-            crossystem = subprocess.Popen(['crossystem', 'fwid'],
-                                          stdout=subprocess.PIPE)
-            stdout, _ = crossystem.communicate()
-            self.firmware_version = stdout.strip() or None
-        except:
-            pass
-
-        self.factory_md5sum = factory.get_current_md5sum()
-
-
-if __name__ == '__main__':
-    import yaml
-    print yaml.dump(SystemInfo(None, None).__dict__,
-                    default_flow_style=False)

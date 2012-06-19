@@ -44,6 +44,7 @@ from autotest_lib.client.cros.factory.event import EventClient
 from autotest_lib.client.cros.factory.event import EventServer
 from autotest_lib.client.cros.factory.event_log import EventLog
 from autotest_lib.client.cros.factory.invocation import TestInvocation
+from autotest_lib.client.cros.factory import system
 from autotest_lib.client.cros.factory import test_environment
 from autotest_lib.client.cros.factory.web_socket_manager import WebSocketManager
 
@@ -644,7 +645,7 @@ class Goofy(object):
 
     def update_system_info(self):
         '''Updates system info.'''
-        system_info = test_environment.SystemInfo(self.env, self.state_instance)
+        system_info = system.SystemInfo()
         self.state_instance.set_shared_data('system_info', system_info.__dict__)
         self.event_client.post_event(Event(Event.Type.SYSTEM_INFO,
                                            system_info=system_info.__dict__))
