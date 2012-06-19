@@ -126,10 +126,10 @@ def _ReadSysfsUsbFields(path):
   return result
 
 
-def _ReadSysfsDeviceId(path):
+def _ReadSysfsDeviceId(path, ignore_usb=False):
   """Returns sysfs PCI or USB device identification string."""
   return (_ReadSysfsPciFields(path) or
-          _ReadSysfsUsbFields(path) or
+          (_ReadSysfsUsbFields(path) if not ignore_usb else None) or
           None)
 
 
@@ -187,9 +187,12 @@ class _FlimflamDevices(object):
     return [dev for dev in c.cached_dev_list if dev.devtype == devtype]
 
   @classmethod
-  def ReadSysfsDeviceIds(c, devtype):
+  def ReadSysfsDeviceIds(c, devtype, ignore_usb=False):
     """Return _ReadSysfsDeviceId result for each device of specified type."""
-    ids = [_ReadSysfsDeviceId(dev.path) for dev in c.GetDevices(devtype)]
+    ids = [_ReadSysfsDeviceId(dev.path, ignore_usb)
+           for dev in c.GetDevices(devtype)]
+    # Filter out 'None' results
+    ids = [device for device in ids if device is not None]
     return ' ; '.join(ids) if ids else None
 
 
@@ -487,7 +490,9 @@ def _ProbeEmbeddedController():
 
 @_ComponentProbe('ethernet')
 def _ProbeEthernet():
-  return _FlimflamDevices.ReadSysfsDeviceIds('ethernet')
+  # Build-in ethernet devices should not be attached to USB. They are usually
+  # either PCI or SOC.
+  return _FlimflamDevices.ReadSysfsDeviceIds('ethernet', ignore_usb=True)
 
 
 @_ComponentProbe('flash_chip')
