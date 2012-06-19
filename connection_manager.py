@@ -4,6 +4,7 @@
 
 import dbus
 import httplib
+import logging
 import os
 import re
 import subprocess
@@ -11,7 +12,12 @@ import sys
 import time
 
 from autotest_lib.client.cros import flimflam_test_path
-import flimflam
+
+try:
+  import flimflam
+except ImportError:
+  # E.g., in chroot
+  pass
 
 _CONNECTION_TIMEOUT_SEC = 15.0
 _PING_TIMEOUT_SEC = 15
@@ -51,7 +57,8 @@ class ConnectionManager():
 
   def __init__(self, wlans=None,
                network_manager=_DEFAULT_MANAGER,
-               process_name=_DEFAULT_PROC_NAME):
+               process_name=_DEFAULT_PROC_NAME,
+               start_enabled=True):
     '''Constructor.
 
     Args:
@@ -62,6 +69,7 @@ class ConnectionManager():
       process_name: The name of the network manager process, which should be
                     flimflamd or shill. If you are not sure about it, you can
                     use _UNKNOWN_PROC to let the class auto-detect it.
+      start_enabled: Whether networking should start enabled.
     '''
     # Black hole for those useless outputs.
     self.fnull = open(os.devnull, 'w')
@@ -80,7 +88,8 @@ class ConnectionManager():
     # Start network manager to get device info.
     self.EnableNetworking()
     self._GetDeviceInfo()
-    self.DisableNetworking()
+    if not start_enabled:
+      self.DisableNetworking()
 
   def _DetectProcName(self):
     '''Detects the network manager process with pgrep.'''
@@ -141,21 +150,6 @@ class ConnectionManager():
       subprocess.call("ifconfig %s down" % dev['Interface'],
                       shell=True, stdout=self.fnull, stderr=self.fnull)
 
-  def CheckHost(self, host, timeout=_PING_TIMEOUT_SEC):
-    '''Checks if we can reach a host.
-
-    Args:
-      host: The host address.
-      timeout: Timeout in seconds. Integers only.
-
-    Returns:
-      True if host is successfully pinged.
-    '''
-    if subprocess.call("ping %s -c 1 -w %d" % (host, int(timeout)), shell=True,
-                       stdout=self.fnull, stderr=self.fnull):
-      return False
-    return True
-
   def WaitForConnection(self, timeout=_CONNECTION_TIMEOUT_SEC):
     '''A blocking function that waits until any network is connected.
 
@@ -184,3 +178,38 @@ class ConnectionManager():
 
     stat = flim.GetSystemState()
     return stat != 'offline'
+
+
+class DummyConnectionManager(object):
+  '''A dummy connection manager that always reports being connected.
+
+  Useful, e.g., in the chroot.'''
+  def __init__(self):
+    pass
+
+  def DisableNetworking(self):
+    logging.warn('DisableNetworking: no network manager is set')
+
+  def EnableNetworking(self):
+    logging.warn('EnableNetworking: no network manager is set')
+
+  def WaitForConnection(self, timeout=_CONNECTION_TIMEOUT_SEC):
+    pass
+
+  def IsConnected(self):
+    return True
+
+def PingHost(host, timeout=_PING_TIMEOUT_SEC):
+  '''Checks if we can reach a host.
+
+  Args:
+    host: The host address.
+    timeout: Timeout in seconds. Integers only.
+
+  Returns:
+    True if host is successfully pinged.
+  '''
+  with open(os.devnull, "w") as fnull:
+    return subprocess.call(
+      "ping %s -c 1 -w %d" % (host, int(timeout)),
+      shell=True, stdout=fnull, stderr=fnull)

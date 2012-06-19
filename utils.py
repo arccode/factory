@@ -9,14 +9,12 @@ import fcntl
 import glob
 import logging
 import os
+import Queue
 import re
 import signal
 import subprocess
 import sys
 import time
-
-import factory_common
-from autotest_lib.client.cros import factory
 
 
 def TimeString(unix_time=None):
@@ -30,6 +28,16 @@ def TimeString(unix_time=None):
     t = unix_time or time.time()
     return "%s.%03dZ" % (time.strftime("%Y-%m-%dT%H:%M:%S", time.gmtime(t)),
                          int((t - int(t)) * 1000))
+
+
+def in_chroot():
+    '''Returns True if currently in the chroot.'''
+    return 'CROS_WORKON_SRCROOT' in os.environ
+
+
+def in_qemu():
+    '''Returns True if running within QEMU.'''
+    return 'QEMU' in open('/proc/cpuinfo').read()
 
 
 def is_process_alive(pid):
@@ -102,7 +110,7 @@ def are_shift_keys_depressed():
         try:
             f = os.open(kbd, os.O_RDONLY)
         except OSError as e:
-            if factory.in_chroot():
+            if in_chroot():
                 # That's OK; we're just not root
                 continue
             else:
@@ -161,6 +169,22 @@ def var_log_messages_before_reboot(lines=100,
 
     # Done!  Return the last few lines.
     return tail_lines[-lines:]
+
+
+def DrainQueue(queue):
+    '''
+    Returns as many elements as can be obtained from a queue
+    without blocking.
+
+    (This may be no elements at all.)
+    '''
+    ret = []
+    while True:
+        try:
+            ret.append(queue.get_nowait())
+        except Queue.Empty:
+            break
+    return ret
 
 
 class Enum(frozenset):

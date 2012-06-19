@@ -131,6 +131,9 @@ class Goofy(object):
         event_server: The EventServer socket server.
         event_server_thread: A thread running event_server.
         event_client: A client to the event server.
+        connection_manager: The connection_manager object.
+        network_enabled: Whether the connection_manager is currently
+            enabling connections.
         ui_process: The factory ui process object.
         run_queue: A queue of callbacks to invoke from the main thread.
         invocations: A map from FactoryTest objects to the corresponding
@@ -153,6 +156,8 @@ class Goofy(object):
         self.event_server = None
         self.event_server_thread = None
         self.event_client = None
+        self.connection_manager = None
+        self.network_enabled = True
         self.event_log = None
         self.prespawner = None
         self.ui_process = None
@@ -549,7 +554,28 @@ class Goofy(object):
             self.invocations[test] = invoc
             if self.visible_test is None and test.has_ui:
                 self.set_visible_test(test)
+            self.check_connection_manager()
             invoc.start()
+
+    def check_connection_manager(self):
+        exclusive_tests = [
+            test.path
+            for test in self.invocations
+            if test.is_exclusive(
+                factory.FactoryTest.EXCLUSIVE_OPTIONS.NETWORKING)]
+        if exclusive_tests:
+            # Make sure networking is disabled.
+            if self.network_enabled:
+                logging.info('Disabling network, as requested by %s',
+                             exclusive_tests)
+                self.connection_manager.DisableNetworking()
+                self.network_enabled = False
+        else:
+            # Make sure networking is enabled.
+            if not self.network_enabled:
+                logging.info('Re-enabling network')
+                self.connection_manager.EnableNetworking()
+                self.network_enabled = True
 
     def run_tests(self, subtrees, untested_only=False):
         '''
@@ -726,7 +752,7 @@ class Goofy(object):
                    __repr__(recursive=True))
             return
 
-        if self.options.ui_scale_factor != 1 and factory.in_qemu():
+        if self.options.ui_scale_factor != 1 and utils.in_qemu():
             logging.warn(
                 'In QEMU; ignoring ui_scale_factor argument')
             self.options.ui_scale_factor = 1
@@ -754,6 +780,8 @@ class Goofy(object):
 
         self.init_states()
         self.start_event_server()
+        self.connection_manager = self.env.create_connection_manager(
+            self.test_list.options.wlans)
 
         self.update_system_info()
 
@@ -830,15 +858,16 @@ class Goofy(object):
         Returns:
             True to keep going or False to shut down.
         '''
-        events = []
-        if block:
-            # Get at least one event
-            events.append(self.run_queue.get())
-        while True:
-            try:
-                events.append(self.run_queue.get_nowait())
-            except Queue.Empty:
-                break
+        events = utils.DrainQueue(self.run_queue)
+        if not events:
+            # Nothing on the run queue.
+            self._run_queue_idle()
+            if block:
+                # Block for at least one event...
+                events.append(self.run_queue.get())
+                # ...and grab anything else that showed up at the same
+                # time.
+                events.extend(utils.DrainQueue(self.run_queue))
 
         for event in events:
             if not event:
@@ -857,6 +886,10 @@ class Goofy(object):
             finally:
                 self.run_queue.task_done()
         return True
+
+    def _run_queue_idle(self):
+        '''Invoked when the run queue has no events.'''
+        self.check_connection_manager()
 
     def run_tests_with_status(self, statuses_to_run, starting_at=None,
         root=None):

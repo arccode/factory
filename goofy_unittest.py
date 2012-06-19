@@ -29,6 +29,8 @@ from autotest_lib.client.cros.factory import state
 from autotest_lib.client.cros.factory import TestState
 from autotest_lib.client.cros.factory.event import Event
 from autotest_lib.client.cros.factory.goofy import Goofy
+from autotest_lib.client.cros.factory.connection_manager \
+    import ConnectionManager
 from autotest_lib.client.cros.factory.test_environment import Environment
 
 
@@ -73,11 +75,16 @@ class GoofyTest(unittest.TestCase):
     '''Base class for Goofy test cases.'''
     options = ''
     ui = 'none'
+    expected_create_connection_manager_arg = []
 
     def setUp(self):
         self.mocker = mox.Mox()
         self.env = self.mocker.CreateMock(Environment)
         self.state = state.get_instance()
+        self.connection_manager = self.mocker.CreateMock(ConnectionManager)
+        self.env.create_connection_manager(
+            self.expected_create_connection_manager_arg).AndReturn(
+            self.connection_manager)
         self.before_init_goofy()
         self.mocker.ReplayAll()
         self.goofy = init_goofy(self.env, self.test_list, self.options,
@@ -95,7 +102,7 @@ class GoofyTest(unittest.TestCase):
                              if t != threading.current_thread()]
             if not extra_threads:
                 break
-            logging.info('Waiting for threads to die: %r', extra_threads)
+            logging.info('Waiting for %d threads to die', len(extra_threads))
 
             # Wait another 100 ms
             time.sleep(.1)
@@ -253,6 +260,8 @@ class ShutdownTest(GoofyTest):
         # Kill and restart Goofy to simulate a shutdown.
         # Goofy should call for another shutdown.
         for _ in range(2):
+            self.env.create_connection_manager([]).AndReturn(
+                self.connection_manager)
             self.env.shutdown('reboot').AndReturn(True)
             self.mocker.ReplayAll()
             self.goofy.destroy()
@@ -293,6 +302,11 @@ class RebootFailureTest(GoofyTest):
         # Kill and restart Goofy to simulate a reboot.
         # Goofy should fail the test since it has been too long.
         self.goofy.destroy()
+
+        self.mocker.ResetAll()
+        self.env.create_connection_manager([]).AndReturn(
+            self.connection_manager)
+        self.mocker.ReplayAll()
         self.goofy = init_goofy(self.env, self.test_list, restart=False)
         self._wait()
 
@@ -376,13 +390,35 @@ class PyTestTest(GoofyTest):
             failed_state.error_msg)
 
 
+class ConnectionManagerTest(GoofyTest):
+    options = '''
+       options.wlans = [WLAN('foo', 'bar', 'baz')]
+    '''
+    test_list = '''
+       OperatorTest(id='a', autotest_name='a_A'),
+       TestGroup(id='b', exclusive='NETWORKING', subtests=[
+          OperatorTest(id='b1', autotest_name='b_B1'),
+          OperatorTest(id='b2', autotest_name='b_B2'),
+       ]),
+       OperatorTest(id='c', autotest_name='c_C'),
+    '''
+    expected_create_connection_manager_arg = mox.Func(
+        lambda arg: (len(arg) == 1 and
+                     arg[0].__dict__ == dict(ssid='foo',
+                                             security='bar',
+                                             passphrase='baz')))
+    def runTest(self):
+        self.check_one_test('a', 'a_A', True, '')
+        self.connection_manager.DisableNetworking()
+        self.check_one_test('b.b1', 'b_B1', False, 'Uh-oh')
+        self.check_one_test('b.b2', 'b_B2', False, 'Uh-oh')
+        self.connection_manager.EnableNetworking()
+        self.check_one_test('c', 'c_C', True, '')
+
+
 if __name__ == "__main__":
     factory.init_logging('goofy_unittest')
     goofy._inited_logging = True
     goofy.suppress_chroot_warning = True
 
     unittest.main()
-    # To run a single test (e.g., while developing), use a line like this:
-    #
-    #   unittest.TextTestRunner().run(AutoRunTest())
-

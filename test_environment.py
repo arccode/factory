@@ -15,7 +15,9 @@ import time
 
 import factory_common
 from autotest_lib.client.cros import factory
+from autotest_lib.client.cros.factory import connection_manager
 from autotest_lib.client.cros.factory import state
+from autotest_lib.client.cros.factory import utils
 
 
 class Environment(object):
@@ -65,6 +67,12 @@ class Environment(object):
         '''
         raise NotImplementedError()
 
+    def create_connection_manager(self, wlans):
+        '''
+        Creates a ConnectionManager.
+        '''
+        raise NotImplementedError()
+
 
 class DUTEnvironment(Environment):
     '''
@@ -85,7 +93,7 @@ class DUTEnvironment(Environment):
         # The cursor speed needs to be adjusted when running in QEMU
         # (but after Chrome starts and has fiddled with the settings
         # itself).
-        if factory.in_qemu():
+        if utils.in_qemu():
             def FixCursor():
                 for _ in xrange(6):  # Every 500ms for 3 seconds
                     time.sleep(.5)
@@ -114,6 +122,9 @@ class DUTEnvironment(Environment):
                                 stdout=chrome_log_file,
                                 stderr=subprocess.STDOUT)
 
+    def create_connection_manager(self, wlans):
+        return connection_manager.ConnectionManager()
+
 
 class FakeChrootEnvironment(Environment):
     '''
@@ -141,5 +152,8 @@ class FakeChrootEnvironment(Environment):
         logging.warn('In chroot; not launching Chrome. '
                      'Please open http://localhost:%d/ in Chrome.',
                      state.DEFAULT_FACTORY_STATE_PORT)
+
+    def create_connection_manager(self, wlans):
+        return connection_manager.DummyConnectionManager()
 
 

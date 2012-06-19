@@ -20,6 +20,9 @@ import logging
 import os
 import sys
 
+import factory_common
+from autotest_lib.client.cros.factory import connection_manager
+from autotest_lib.client.cros.factory import utils
 
 SCRIPT_PATH = os.path.realpath(__file__)
 CROS_FACTORY_LIB_PATH = os.path.dirname(SCRIPT_PATH)
@@ -32,14 +35,8 @@ class TestListError(Exception):
     pass
 
 
-def in_chroot():
-    '''Returns True if currently in the chroot.'''
-    return 'CROS_WORKON_SRCROOT' in os.environ
-
-
-def in_qemu():
-    '''Returns True if running within QEMU.'''
-    return 'QEMU' in open('/proc/cpuinfo').read()
+# For compatibility; moved to utils.
+in_chroot = utils.in_chroot
 
 
 def get_log_root():
@@ -201,6 +198,10 @@ def read_test_list(path=None, state_instance=None, text=None):
         if type(v) == type and issubclass(v, FactoryTest):
             test_list_locals[k] = v
 
+    # Import WLAN into the evaluation namespace, since it is used
+    # to construct the wlans option.
+    test_list_locals['WLAN'] = connection_manager.WLAN
+
     options = Options()
     test_list_locals['options'] = options
 
@@ -279,6 +280,9 @@ class Options(object):
     # | sha1sum`.
     engineering_password_sha1 = None
     _types['engineering_password_sha1'] = (type(None), str)
+
+    # WLANs that network_manager may connect to.
+    wlans = []
 
     def check_valid(self):
         '''Throws a TestListError if there are any invalid options.'''
@@ -396,7 +400,10 @@ class FactoryTest(object):
     has_ui = False
 
     REPR_FIELDS = ['id', 'autotest_name', 'pytest_name', 'dargs',
-                   'backgroundable', 'never_fails']
+                   'backgroundable', 'exclusive', 'never_fails']
+
+    # Subsystems that the test may require exclusive access to.
+    EXCLUSIVE_OPTIONS = utils.Enum(['NETWORKING'])
 
     def __init__(self,
                  label_en='',
@@ -410,6 +417,7 @@ class FactoryTest(object):
                  id=None,                  # pylint: disable=W0622
                  has_ui=None,
                  never_fails=None,
+                 exclusive=None,
                  _root=None):
         '''
         Constructor.
@@ -430,6 +438,9 @@ class FactoryTest(object):
             the test UI area instead.
         @param never_fails: True if the test never fails, but only returns to an
             untested state.
+        @param exclusive: Items that the test may require exclusive access to.
+            May be a list or a single string.  Items must all be in
+            EXCLUSIVE_OPTIONS.  Tests may not be backgroundable.
         @param _root: True only if this is the root node (for internal use
             only).
         '''
@@ -440,6 +451,10 @@ class FactoryTest(object):
         self.kbd_shortcut = kbd_shortcut.lower() if kbd_shortcut else None
         self.dargs = dargs or {}
         self.backgroundable = backgroundable
+        if isinstance(exclusive, str):
+            self.exclusive = [exclusive]
+        else:
+            self.exclusive = exclusive or []
         self.subtests = subtests or []
         self.path = ''
         self.parent = None
@@ -470,6 +485,16 @@ class FactoryTest(object):
             elif self.autotest_name:
                 # autotest_name is type_NameInCamelCase.
                 self.label_en = self.autotest_name.partition('_')[2]
+
+        assert not (backgroundable and exclusive), (
+            'Test %s may not have both backgroundable and exclusive' %
+            self.id)
+        bogus_exclusive_items = set(self.exclusive) - self.EXCLUSIVE_OPTIONS
+        assert not bogus_exclusive_items, (
+            'In test %s, invalid exclusive options: %s (should be in %s)' % (
+                self.id,
+                bogus_exclusive_items,
+                self.EXCLUSIVE_OPTIONS))
 
         assert not ((autotest_name or pytest_name) and self.subtests), (
             'Test %s may not have both an autotest and subtests' % self.id)
@@ -635,6 +660,17 @@ class FactoryTest(object):
         '''
         return [node for node in self.walk()
                 if node.is_top_level_test()]
+
+    def is_exclusive(self, option):
+        '''
+        Returns true if the test or any parent is exclusive w.r.t. option.
+
+        Args:
+          option: A member of EXCLUSIVE_OPTIONS.
+        '''
+        assert option in self.EXCLUSIVE_OPTIONS
+        return option in self.exclusive or (
+            self.parent and self.parent.is_exclusive(option))
 
 
 class FactoryTestList(FactoryTest):
