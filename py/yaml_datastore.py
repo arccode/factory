@@ -82,12 +82,20 @@ class _DatastoreBase(object):
                       for field_key, field in elt_data.items())
         if collection_type is list:
           return [NestedDecode(field_type, field) for field in elt_data]
+      elif isinstance(elt_type, list):
+        for elt_subtype in elt_type:
+          try:
+            return NestedDecode(elt_subtype, elt_data)
+          except:
+            continue
       elif issubclass(elt_type, _DatastoreBase):
         cooked_field_dict = dict(
           (subelt_key, NestedDecode(subelt_type, elt_data[subelt_key]))
           for subelt_key, subelt_type in elt_type._schema.items())
         return elt_type(**cooked_field_dict)
-      return elt_data
+      elif isinstance(elt_data, elt_type):
+        return elt_data
+      raise InvalidDataError
     try:
       field_dict = YamlRead(data)
     except yaml.YAMLError, e:
@@ -150,15 +158,23 @@ class _DatastoreBase(object):
     def ValidateField(top_level_tag, field_type, field_data):
       if isinstance(field_type, tuple):
         ValidateCollection(top_level_tag, field_type, field_data)
+        return
+      if isinstance(field_type, list):
+        for field_subtype in field_type:
+          try:
+            ValidateField(top_level_tag, field_subtype, field_data)
+            return
+          except InvalidDataError:
+            continue
       elif issubclass(field_type, _DatastoreBase):
         field_type.ValidateSchema(field_data)
-      else:
-        if not isinstance(field_data, field_type):
-          raise InvalidDataError(
-              '%r schema validation failed for element %r, ' %
-              (cls.__name__, top_level_tag) +
-              'expected type %r, found %r' %
-              (field_type.__name__, type(field_data).__name__))
+        return
+      elif isinstance(field_data, field_type):
+        return
+      raise InvalidDataError(
+        '%r schema validation failed for element %r, expected type %r, found %r'
+        % (cls.__name__, top_level_tag,
+           field_type.__name__, type(field_data).__name__))
     if (set(cls._schema) ^ set(field_dict)):
       raise InvalidDataError(
           '%r schema and data dict keys do not match, ' % cls.__name__ +

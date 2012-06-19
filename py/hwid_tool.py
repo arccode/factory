@@ -74,7 +74,7 @@ MakeDatastoreClass('ComponentRegistry', {
 MakeDatastoreClass('ComponentData', {
     'classes_dontcare': (list, str),
     'classes_missing': (list, str),
-    'components': (dict, str),
+    'components': (dict, [str, (list, str)]),
     })
 
 MakeDatastoreClass('BomData', {
@@ -233,6 +233,30 @@ def FmtLeftAlignedDict(d):
 
 class CompDb(YamlDatastore):
 
+  def _BuildNameResultMap(self):
+    self.name_result_map = dict(
+      (comp_name, probe_result)
+      for comp_class, comp_map in self.registry.items()
+      for comp_name, probe_result in comp_map.items())
+
+  def _BuildResultNameMap(self):
+    self.result_name_map = dict(
+      (probe_result, comp_name)
+      for comp_class, comp_map in self.registry.items()
+      for comp_name, probe_result in comp_map.items())
+
+  def _BuildNameClassMap(self):
+    self.name_class_map = dict(
+      (comp_name, comp_class)
+      for comp_class, comp_map in self.registry.items()
+      for comp_name in comp_map)
+
+  def _PreprocessData(self):
+    self._BuildResultNameMap()
+    self._BuildNameResultMap()
+    self._BuildNameClassMap()
+    # TODO(tammo): Enforce invariants here.
+
   def __init__(self, path):
     self._path = path
     full_path = os.path.join(path, COMPONENT_DB_FILENAME)
@@ -241,7 +265,7 @@ class CompDb(YamlDatastore):
                                full_path)
     with open(full_path, 'r') as f:
       self.__dict__.update(ComponentRegistry.Decode(f.read()).__dict__)
-    # TODO(tammo): Enforce invariants here.
+    self._PreprocessData()
 
   def Write(self):
     """Write the component_db and all device data files."""
@@ -254,12 +278,13 @@ class CompDb(YamlDatastore):
 
 class Device(YamlDatastore):
 
-  def PreprocessData(self):
-    # TODO(tammo): Enforce invariants here.
+  def _BuildReverseIcMap(self):
     self._reverse_ic_map = {}
     for index, data in self.initial_configs.items():
       for bom_name in data.enforced_for_boms:
         self._reverse_ic_map.setdefault(bom_name, set()).add(index)
+
+  def _BuildHwidStatusMap(self):
     self._hwid_status_map = {}
     status_globs = [(pattern, status)
                     for status in LIFE_CYCLE_STAGES
@@ -284,6 +309,11 @@ class Device(YamlDatastore):
                             (pattern, bom_name, var_code,
                              vol_code, prev_status))
             vol_status[vol_code] = status
+
+  def _PreprocessData(self):
+    self._BuildReverseIcMap()
+    self._BuildHwidStatusMap()
+    # TODO(tammo): Enforce invariants here.
 
   def CommonInitialConfigs(self, target_bom_names):
     """Return all initial_config indices shared by the target boms."""
@@ -310,6 +340,17 @@ class Device(YamlDatastore):
     volatile_status_map = variant_status_map.get(variant_code, {})
     return volatile_status_map.get(volatile_code, None)
 
+  def AvailableBomNames(self, count):
+    """Return count random bom names that are not yet used by board."""
+    existing_names = set(bom_name for bom_name in self.boms)
+    available_names = [bom_name for bom_name in BOM_NAME_SET
+                       if bom_name not in existing_names]
+    random.shuffle(available_names)
+    if len(available_names) < count:
+      raise Error('too few available bom names (only %d left)' %
+                  len(available_names))
+    return available_names[:count]
+
   def FmtHwid(self, bom, variant, volatile):
     """Generate HWID string.  See the hwid spec for details."""
     text = '%s %s %s-%s' % (self.board_name, bom, variant, volatile)
@@ -324,7 +365,7 @@ class Device(YamlDatastore):
     with open(full_path, 'r') as f:
       self.__dict__.update(DeviceData.Decode(f.read()).__dict__)
     self.board_name = board_name
-    self.PreprocessData()
+    self._PreprocessData()
 
   def Write(self):
     # TODO(tammo): Enforce invariants here.
@@ -435,37 +476,6 @@ class XHardwareDb(YamlDatastore):
       self.WriteOnDiff(device_name, device.Encode())
 
 
-def GetAvailableBomNames(data, board, count):
-  """Return count random bom names that are not yet used by board."""
-  existing_bom_names = set(bn for bn in data.devices[board].hwid_map)
-  available_names = [bn for bn in BOM_NAME_SET if bn not in existing_bom_names]
-  random.shuffle(available_names)
-  if len(available_names) < count:
-    raise Error('too few available bom names (only %d left)' %
-                len(available_names))
-  return available_names[:count]
-
-
-def CalcCompDbClassMap(comp_db):
-  """Return dict of (comp_name: comp_class) mappings."""
-  return dict((comp_name, comp_class)
-              for comp_class, comp_map in comp_db.registry.items()
-              for comp_name in comp_map)
-
-
-def CompRegistryFlatten(registry):
-  return dict((comp_name, probe_result)
-              for comp_class, comp_map in registry.items()
-              for comp_name, probe_result in comp_map.items())
-
-
-def CalcCompDbProbeValMap(comp_db):
-  """Return dict of (probe_value: comp_name) mappings."""
-  return dict((probe_value, comp_name)
-              for comp_map in comp_db.registry.values()
-              for comp_name, probe_value in comp_map.items())
-
-
 def CalcReverseComponentMap(bom_map):
   """Return dict of (comp_class: dict of (component: bom name set)) mappings.
 
@@ -474,10 +484,12 @@ def CalcReverseComponentMap(bom_map):
   """
   comp_class_map = {}
   for bom_name, bom in bom_map.items():
-    for comp_class, comp in bom.primary.components.items():
+    for comp_class, comp_data in bom.primary.components.items():
       comp_map = comp_class_map.setdefault(comp_class, {})
-      comp_bom_set = comp_map.setdefault(comp, set())
-      comp_bom_set.add(bom_name)
+      comps = comp_data if isinstance(comp_data, list) else [comp_data]
+      for comp in comps:
+        comp_bom_set = comp_map.setdefault(comp, set())
+        comp_bom_set.add(bom_name)
   return comp_class_map
 
 
@@ -650,7 +662,7 @@ def ProcessComponentCrossproduct(data, board, comp_list):
   """
   def ClassifyInputComponents(comp_list):
     """Return dict of (comp_class: comp list), associating comps to classes."""
-    comp_db_class_map = CalcCompDbClassMap(data.comp_db)
+    comp_db_class_map = data.comp_db.name_class_map
     comp_class_subset = set(comp_db_class_map[comp] for comp in comp_list)
     return dict((comp_class, [comp for comp in comp_list
                               if comp_db_class_map[comp] == comp_class])
@@ -712,7 +724,7 @@ def CookProbeResults(data, probe_results, board_name):
       matched_volatile_tags=[],
       matched_initial_config_tags=[])
   results.__dict__.update(probe_results.__dict__)
-  comp_reference_map = CalcCompDbProbeValMap(data.comp_db)
+  comp_reference_map = data.comp_db.result_name_map
   for probe_class, probe_value in probe_results.found_components.items():
     if probe_value in comp_reference_map:
       results.matched_components[probe_class] = comp_reference_map[probe_value]
@@ -819,7 +831,8 @@ def CreateHwidsCommand(config, data):
   """
   # TODO(tammo): Validate inputs -- comp names, variant names, etc.
   comp_map_list = ProcessComponentCrossproduct(data, config.board, config.comps)
-  bom_name_list = GetAvailableBomNames(data, config.board, len(comp_map_list))
+  bom_count = len(comp_map_list)
+  bom_name_list = data.devices[config.board].AvailableBomNames(bom_count)
   variant_list = config.variants if config.variants else []
   hwid_map = dict((bom_name, Hwid(component_map=comp_map,
                                   variant_list=variant_list))
@@ -952,7 +965,7 @@ def AssimilateProbeData(config, data):
     logging.critical('data contains component classes that are not preset in '
                      'the component_db, specifically %r',
                      sorted(set(components) - set(registry)))
-  reverse_registry = CalcCompDbProbeValMap(data.comp_db)
+  reverse_registry = data.comp_db.result_name_map
   component_match_dict = {}
   # TODO(tammo): Once variant data is properly mapped into the
   # component space, segregate any variant component data into a
@@ -1204,20 +1217,17 @@ def RenameComponents(config, data):
   one pair per line, and the two words in each pair are whitespace
   separated.
   """
-  registry = data.comp_db.registry
-  flattened_registry = CompRegistryFlatten(registry)
-  comp_class_map = CalcCompDbClassMap(data.comp_db)
   for line in sys.stdin:
     parts = line.strip().split()
     if len(parts) != 2:
       raise Error, ('each line of input must have exactly 2 words, '
                     'found %d [%s]' % (len(parts), line.strip()))
     old_name, new_name = parts
-    if old_name not in flattened_registry:
+    if old_name not in data.comp_db.name_result_map:
       raise Error, 'unknown canonical component name %r' % old_name
     # TODO(tammo): Validate new_name.
-    comp_class = comp_class_map[old_name]
-    comp_map = registry[comp_class]
+    comp_class = data.comp_db.name_class_map[old_name]
+    comp_map = data.comp_db.registry[comp_class]
     probe_result = comp_map[old_name]
     del comp_map[old_name]
     comp_map[new_name] = probe_result
