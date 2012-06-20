@@ -16,6 +16,7 @@ import logging
 import os
 import re
 import sys
+import time
 
 from tempfile import gettempdir, NamedTemporaryFile
 
@@ -36,7 +37,7 @@ import imp
 at_common = imp.find_module('common', ['/usr/local/autotest/client/bin'])
 imp.load_module('at_common', *at_common)
 from autotest_lib.client.cros.factory.event_log import EventLog, EVENT_LOG_DIR
-from autotest_lib.client.cros.factory.event_log import TimeString, TimedUuid
+from autotest_lib.client.cros.factory.event_log import TimedUuid
 from autotest_lib.client.cros.factory import FACTORY_LOG_PATH
 
 
@@ -534,12 +535,15 @@ _upload_method_cmd_arg = CmdArg(
          _upload_method_cmd_arg)
 def UploadReport(options):
   """Create and a report containing key device details."""
+  def NormalizeAsFileName(token):
+    return re.sub(r'\W+', '', token).strip()
   ro_vpd = ReadRoVpd(crosfw.LoadMainFirmware().GetFileName())
   device_sn = ro_vpd.get('serial_number', None)
   if device_sn is None:
     logging.warning('RO_VPD missing device serial number')
     device_sn = 'MISSING_SN_' + TimedUuid()
-  target_name = '%s_%s.tbz2' % (TimeString(), device_sn)
+  target_name = '%s_%s.tbz2' % (time.strftime('%Y%m%dT%H%M%SZ', time.gmtime()),
+                                NormalizeAsFileName(device_sn))
   target_path = os.path.join(gettempdir(), target_name)
   # Intentionally ignoring dotfiles in EVENT_LOG_DIR.
   tar_cmd = 'cd %s ; tar cjf %s *' % (EVENT_LOG_DIR, target_path)
