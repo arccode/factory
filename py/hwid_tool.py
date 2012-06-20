@@ -236,19 +236,19 @@ class CompDb(YamlDatastore):
   def _BuildNameResultMap(self):
     self.name_result_map = dict(
       (comp_name, probe_result)
-      for comp_class, comp_map in self.registry.items()
+      for comp_class, comp_map in self.components.items()
       for comp_name, probe_result in comp_map.items())
 
   def _BuildResultNameMap(self):
     self.result_name_map = dict(
       (probe_result, comp_name)
-      for comp_class, comp_map in self.registry.items()
+      for comp_class, comp_map in self.components.items()
       for comp_name, probe_result in comp_map.items())
 
   def _BuildNameClassMap(self):
     self.name_class_map = dict(
       (comp_name, comp_class)
-      for comp_class, comp_map in self.registry.items()
+      for comp_class, comp_map in self.components.items()
       for comp_name in comp_map)
 
   def _PreprocessData(self):
@@ -274,6 +274,66 @@ class CompDb(YamlDatastore):
         (field_name, getattr(self, field_name))
         for field_name in ComponentRegistry.FieldNames()))
     self.WriteOnDiff(COMPONENT_DB_FILENAME, data.Encode())
+
+
+class CookedBoms(object):
+
+  def _BuildCompBomsMap(self):
+    """Build dict of (component: bom name set) mappings.
+
+    Match each component with the set of boms containing it.
+    """
+    self.comp_boms_map = {}
+    for bom_name, bom in self.bom_map.items():
+      for comp_class, comp_data in bom.primary.components.items():
+        comps = comp_data if isinstance(comp_data, list) else [comp_data]
+        for comp in comps:
+          self.comp_boms_map.setdefault(comp, set()).add(bom_name)
+
+  def _BuildCommonCompMap(self):
+    """Return (comp_class: [comp]) dict for components common to all boms."""
+    self.comp_map = {}
+    for bom_name, bom in self.bom_map.items():
+      for comp_class, comp_data in bom.primary.components.items():
+        comps = comp_data if isinstance(comp_data, list) else [comp_data]
+        for comp in comps:
+          if self.comp_boms_map[comp] == self.names:
+            self.comp_map.setdefault(comp_class, set()).add(comp)
+
+  def _BuildCommonComps(self):
+    self.common_comps = set()
+    for comps in self.comp_map.values():
+      self.common_comps |= set(comps)
+
+  def _BuildHierarchy(self):
+    self.hierarchy = []
+    def AddBom(bom_names):
+      self.hierarchy.append(CookedBoms(dict(
+            (bom_name, self.bom_map[bom_name])
+            for bom_name in bom_names)))
+    uncommon_comp_boms_map = dict(
+      (comp, bom_names) for comp, bom_names in self.comp_boms_map.items()
+      if comp not in self.common_comps)
+    uncommon_bom_names = set().union(*uncommon_comp_boms_map.values())
+    if len(self.names) > 1:
+      for bom_name in self.names - uncommon_bom_names:
+        AddBom([bom_name])
+    while uncommon_bom_names:
+      related_bom_sets = [
+        bom_subset & uncommon_bom_names
+        for comp, bom_subset in uncommon_comp_boms_map.items()]
+      most_related = sorted([(len(rbs), rbs) for rbs in related_bom_sets],
+                            reverse=True)[0][1]
+      AddBom(most_related)
+      uncommon_bom_names -= most_related
+
+  def __init__(self, bom_map):
+    self.bom_map = bom_map
+    self.names = set(bom_map)
+    self._BuildCompBomsMap()
+    self._BuildCommonCompMap()
+    self._BuildCommonComps()
+    self._BuildHierarchy()
 
 
 class Device(YamlDatastore):
@@ -313,20 +373,24 @@ class Device(YamlDatastore):
   def _PreprocessData(self):
     self._BuildReverseIcMap()
     self._BuildHwidStatusMap()
+    self.cooked_boms = CookedBoms(self.boms)
     # TODO(tammo): Enforce invariants here.
 
   def CommonInitialConfigs(self, target_bom_names):
     """Return all initial_config indices shared by the target boms."""
-    return set().union(*[self._reverse_ic_map.get(bom_name, set())
-                         for bom_name in target_bom_names])
+    return set.intersection(*[
+        self._reverse_ic_map.get(bom_name, set())
+        for bom_name in target_bom_names])
 
   def CommonMissingClasses(self, target_bom_names):
-    boms = [self.boms[bom_name] for bom_name in target_bom_names]
-    return set().union(*[set(bom.primary.classes_missing) for bom in boms])
+    return set.intersection(*[
+        set(self.boms[bom_name].primary.classes_missing)
+        for bom_name in target_bom_names])
 
   def CommonDontcareClasses(self, target_bom_names):
-    boms = [self.boms[bom_name] for bom_name in target_bom_names]
-    return set().union(*[set(bom.primary.classes_dontcare) for bom in boms])
+    return set.intersection(*[
+        set(self.boms[bom_name].primary.classes_dontcare)
+        for bom_name in target_bom_names])
 
   def GetVolatileCodes(self, bom_name, variant_code, status_mask):
     variant_status_map = self._hwid_status_map.get(bom_name, {})
@@ -476,151 +540,12 @@ class XHardwareDb(YamlDatastore):
       self.WriteOnDiff(device_name, device.Encode())
 
 
-def CalcReverseComponentMap(bom_map):
-  """Return dict of (comp_class: dict of (component: bom name set)) mappings.
-
-  For each component in each comp_class, reveals the set of boms
-  containing that component.
-  """
-  comp_class_map = {}
-  for bom_name, bom in bom_map.items():
-    for comp_class, comp_data in bom.primary.components.items():
-      comp_map = comp_class_map.setdefault(comp_class, {})
-      comps = comp_data if isinstance(comp_data, list) else [comp_data]
-      for comp in comps:
-        comp_bom_set = comp_map.setdefault(comp, set())
-        comp_bom_set.add(bom_name)
-  return comp_class_map
-
-
-def CalcBiggestBomSet(rev_comp_map):
-  """For the component with the most boms using it, return that bom set.
-
-  If there multiple components have equal numbers of boms, only one
-  will be returned.  Fails when no componets have any boms (KeyError).
-  """
-  return sorted([(len(bom_set), bom_set)
-                 for comp_map in rev_comp_map.values()
-                 for bom_set in comp_map.values()]).pop()[1]
-
-
-def CalcFullBomSet(rev_comp_map):
-  """Return the superset of all bom sets from the rev_comp_map."""
-  return set(bom for comp_map in rev_comp_map.values()
-             for bom_set in comp_map.values() for bom in bom_set)
-
-
-def CalcCommonComponentMap(rev_comp_map):
-  """Return (comp_class: comp) dict for only components with maximal bom set."""
-  full_bom_set = CalcFullBomSet(rev_comp_map)
-  return dict(
-      (comp_class, comp)
-      for comp_class, comp_map in rev_comp_map.items()
-      for comp, comp_bom_set in comp_map.items()
-      if comp_bom_set == full_bom_set)
-
-
-def SplitReverseComponentMap(rev_comp_map):
-  """Parition rev_comp_map into left and right parts by largest bom set.
-
-  Calculate the set of common components shared by all of the bom in
-  the rev_comp_map.  For the remaining components, use the largest set
-  of boms that share one component as a radix and partition the
-  remaining rev_comp_map data into left (data for boms in the largest
-  bom set) and right (all other data).
-
-  Returns:
-    Obj containing the left and right rev_comp_map partitions, a dict
-    of common components, and the bom superset for the input
-    rev_comp_map (meaning the bom set matching the common components).
-  """
-  if not rev_comp_map:
-    return None
-  full_bom_set = CalcFullBomSet(rev_comp_map)
-  split_bom_set = CalcBiggestBomSet(rev_comp_map)
-  common_comp_map = {}
-  left_rev_comp_map = {}
-  right_rev_comp_map = {}
-  for comp_class, comp_map in rev_comp_map.items():
-    for comp, bom_set in comp_map.items():
-      if bom_set == full_bom_set:
-        common_comp_map[comp_class] = comp
-      else:
-        overlap_bom_set = bom_set & split_bom_set
-        if overlap_bom_set:
-          left_rev_comp_map.setdefault(comp_class, {})[comp] = overlap_bom_set
-        extra_bom_set = bom_set - split_bom_set
-        if extra_bom_set:
-          right_rev_comp_map.setdefault(comp_class, {})[comp] = extra_bom_set
-  return Obj(target_bom_set=full_bom_set,
-             common_comp_map=common_comp_map,
-             left_rev_comp_map=left_rev_comp_map,
-             right_rev_comp_map=right_rev_comp_map)
-
-
-def TraverseCompMapHierarchy(rev_comp_map, branch_cb, leaf_cb, cb_arg):
-  """Derive component-usage hwid hierarchy and eval callback at key points.
-
-  The component data in rev_comp_map is used to derive a tree
-  structure where branch nodes indicate a set of components that are
-  shared by all of the boms across the branches subtrees.  Callback
-  functions are evaluated both for each branch and also for each leaf
-  node.
-
-  Args:
-    rev_comp_map: A reverse component map.
-    branch_cb: Callback funtion to be executed at branch nodes
-      (indicating the existence of common components).
-    leaf_cb: Callback function to be executed at lead nodes (meaning
-      specific boms).
-    cb_arg: Argument passed to both callbacks.  Branch callbacks must
-      return updated versions of this data, which will be passsed to
-      the recursive traversal of contained subtrees.
-  Returns:
-    Nothing.
-  """
-  def SubTraverse(rev_comp_map, cb_arg, depth):
-    """Recursive helper; tracks recursion depth and allows cb_arg update."""
-    split = SplitReverseComponentMap(rev_comp_map)
-    if split is None:
-      return
-    if split.common_comp_map:
-      cb_arg = branch_cb(depth, cb_arg, split.target_bom_set,
-                         split.common_comp_map)
-      depth += 1
-    SubTraverse(split.left_rev_comp_map, cb_arg, depth)
-    if not split.left_rev_comp_map:
-      leaf_cb(depth, cb_arg, split.target_bom_set)
-    SubTraverse(split.right_rev_comp_map, cb_arg, depth)
-  SubTraverse(rev_comp_map, cb_arg, 0)
-
-
 def PrintHwidHierarchy(device, bom_map, status_mask):
   """Hierarchically show all details for all specified BOMs.
 
   Details include both primary and variant component configurations,
   initial config, and status.
   """
-  def ShowCommon(depth, masks, bom_name_set, common_comp_map):
-    common_output = {}
-    common_ic = device.CommonInitialConfigs(bom_name_set) - masks.ic
-    if common_ic:
-      common_output['initial_config'] = ', '.join([str(x) for x in common_ic])
-    common_missing = device.CommonMissingClasses(bom_name_set) - masks.missing
-    if common_missing:
-      common_output['classes missing'] = ', '.join(common_missing)
-    common_wild = device.CommonDontcareClasses(bom_name_set) - masks.wild
-    if common_wild:
-      common_output['classes dontcare'] = ', '.join(common_wild)
-    print (depth * '  ') + '-'.join(sorted(bom_name_set))
-    for line in FmtLeftAlignedDict(common_output):
-      print (depth * '  ') + '  ' + line
-    for line in FmtRightAlignedDict(common_comp_map):
-      print (depth * '  ') + '  (primary) ' + line
-    print ''
-    return Obj(ic=masks.ic | common_ic,
-               missing=masks.missing | common_missing,
-               wild=masks.wild | common_wild)
   def ShowHwids(depth, bom_name):
     bom = device.boms[bom_name]
     for variant_code in sorted(bom.variants):
@@ -633,18 +558,39 @@ def PrintHwidHierarchy(device, bom_map, status_mask):
         for line in FmtRightAlignedDict(variant.components):
           print (depth * '  ') + '  (primary) ' + line
         print ''
-  def ShowBom(depth, masks, bom_name_set):
-    for bom_name in sorted(bom_name_set):
-      common_ic = device.CommonInitialConfigs(set([bom_name])) - masks.ic
-      if common_ic:
-        print (depth * '  ') + (
-          'initial_config: %s' % ', '.join([str(x) for x in common_ic]))
-        print ''
-        depth += 2
-      ShowHwids(depth, bom_name)
-  masks = Obj(ic=set(), missing=set(), wild=set())
-  TraverseCompMapHierarchy(CalcReverseComponentMap(bom_map),
-                           ShowCommon, ShowBom, masks)
+  def TraverseBomHierarchy(boms, depth, masks):
+    print (depth * '  ') + '-'.join(sorted(boms.names))
+    common_ic = device.CommonInitialConfigs(boms.names) - masks.ic
+    common_missing = device.CommonMissingClasses(boms.names) - masks.missing
+    common_wild = device.CommonDontcareClasses(boms.names) - masks.wild
+    common_data = {'initial_config': common_ic,
+                   'classes missing': common_missing,
+                   'classes dontcare': common_wild}
+    common_output = dict((k, ', '.join([str(x) for x in v]))
+                         for k, v in common_data.items() if v)
+    for line in FmtLeftAlignedDict(common_output):
+      print (depth * '  ') + '  ' + line
+    common_present = dict(
+      (comp_class, ', '.join(x for x in (comps - masks.present)))
+      for comp_class, comps in boms.comp_map.items()
+      if comps - masks.present)
+    for line in FmtRightAlignedDict(common_present):
+      print (depth * '  ') + '  (primary) ' + line
+    print ''
+    if len(boms.names) == 1:
+      ShowHwids(depth + 1, list(boms.names)[0])
+    for sub_boms in boms.hierarchy:
+      TraverseBomHierarchy(
+        sub_boms,
+        depth + 1,
+        Obj(ic=masks.ic | common_ic,
+            missing = masks.missing | common_missing,
+            wild = masks.wild | common_wild,
+            present = masks.present | boms.common_comps))
+  TraverseBomHierarchy(
+    device.cooked_boms,
+    0,
+    Obj(ic=set(), present=set(), missing=set(), wild=set()))
 
 
 def ProcessComponentCrossproduct(data, board, comp_list):
