@@ -201,10 +201,78 @@ def FmtRightAlignedDict(d):
   return ['%s%s: %s' % ((max_key_width - len(k)) * ' ', k, v)
           for k, v in sorted((k, v) for k, v in d.items())]
 
+
 def FmtLeftAlignedDict(d):
   max_key_width = max(len(k) for k in d) if d else 0
   return ['%s%s: %s' % (k, (max_key_width - len(k)) * ' ', v)
           for k, v in sorted((k, v) for k, v in d.items())]
+
+
+def ComponentDataClasses(component_data):
+  return (set(component_data.classes_dontcare) |
+          set(component_data.classes_missing) |
+          set(component_data.components))
+
+
+class Validate:
+
+  @classmethod
+  def HwidPart(cls, tag, name, maxlen):
+    if not (name.isalpha() and name.isupper() and len(name) <= maxlen):
+      raise Error, ('%s names must be upper-case, alpha-only, and '
+                    '%d characters or less, not %r' % (tag, maxlen, name))
+
+  @classmethod
+  def BoardName(cls, name):
+    cls.HwidPart('board', name, 9)
+
+  @classmethod
+  def BomName(cls, name):
+    cls.HwidPart('bom', name, 8)
+
+  @classmethod
+  def Status(cls, status):
+    if not status in LIFE_CYCLE_STAGES:
+      raise Error, ('status must be one of {%s}, not %r' %
+                    (', '.join(LIFE_CYCLE_STAGES), status))
+
+
+class EnforceInvariants:
+
+  @classmethod
+  def DeviceData(cls, comp_db, board_name, device_data):
+    def VariantClassesAllMatch():
+      variant_classes_union = set().union(
+        ComponentDataClasses(variant) for variant in device_data.variants)
+      for var_code, variant in device_data.items:
+        if ComponentDataClasses(variant) != variant_classes_union:
+          raise Error, (
+            '%r variants do not all have the same component class '
+            'coverage; variant component classes are [%s]; '
+            'variant %r does not match' %
+            (board_name, ', '.join(variant_classes_union), var_code))
+      return variant_classes_union
+    def CompClassesComplete():
+      variant_classes_union = VariantClassesAllMatch()
+      primary_classes_union = set().union(
+        ComponentDataClasses(bom.primary) for bom in device_data.boms)
+      classes_overlap = variant_classes_union & primary_classes_union
+      if classes_overlap:
+        raise Error, (
+          '%r primary bom components and variants have overlapping '
+          'component classes [%s]' %
+          (board_name, ', '.join(classes_overlap)))
+      classes_union = variant_classes_union | primary_classes_union
+      if classes_union != comp_db.all_comp_classes:
+        missing = comp_db.all_comp_classes - classes_union
+        if missing:
+          raise Error, (
+            '%r primary + variant component classes do not have sufficient '
+            'coverage, missing [%s]' % (board_name, ', '.join(missing)))
+        extra = classes_union - comp_db.all_comp_classes
+        if extra:
+          raise Error, ('%r unknown component classes [%s]' % (
+              board_name, ', '.join(extra)))
 
 
 class CompDb(YamlDatastore):
@@ -231,7 +299,17 @@ class CompDb(YamlDatastore):
     self._BuildResultNameMap()
     self._BuildNameResultMap()
     self._BuildNameClassMap()
+    self.all_comp_classes = set(self.components)
+    self.all_comp_names = set(self.name_class_map)
     # TODO(tammo): Enforce invariants here.
+
+  def CompExists(self, comp):
+    if comp not in self.all_comp_names:
+      raise Error, 'unknown component named %r' % comp
+
+  def CompClassExists(self, comp_class):
+    if comp_class not in self.all_comp_classes:
+      raise Error, 'unknown component class %r' % comp_class
 
   def __init__(self, path):
     self._path = path
@@ -242,6 +320,18 @@ class CompDb(YamlDatastore):
     with open(full_path, 'r') as f:
       self.__dict__.update(ComponentRegistry.Decode(f.read()).__dict__)
     self._PreprocessData()
+
+  def CreateComponentData(self, components, dontcare, missing):
+    """Verify comp_class completeness across the specified inputs."""
+    comp_map = dict((self.name_class_map[comp], comp) for comp in components)
+    class_conflict = set(dontcare) & set(missing) & set(comp_map)
+    if class_conflict:
+      raise Error, ('illegal component specification, conflicting data for '
+                    'component classes: %s' % ', '.join(class_conflict))
+    return ComponentData(
+      classes_dontcare=sorted(dontcare),
+      classes_missing=sorted(missing),
+      components=comp_map)
 
   def Write(self):
     """Write the component_db and all device data files."""
@@ -320,6 +410,25 @@ class Device(YamlDatastore):
       for bom_name in data.enforced_for_boms:
         self._reverse_ic_map.setdefault(bom_name, set()).add(index)
 
+  def UpdateHwidStatusMaps(self, bom, variant, volatile, status):
+    target_boms = [bom] if bom != '*' else self.boms.keys()
+    target_vars = [variant] if variant != '*' else self.variants.keys()
+    target_vols = [volatile] if volatile != '*' else self.volatiles.keys()
+    for bom_name in target_boms:
+      var_status = self._hwid_status_map.setdefault(bom_name, {})
+      for var_code in target_vars:
+        vol_status = var_status.setdefault(var_code, {})
+        for vol_code in target_vols:
+          prev_status = vol_status.get(vol_code, None)
+          if prev_status is not None:
+            raise Error, ('hwid_status pattern %r too broad, '
+                          '%s %s-%s already has status %r' %
+                          (pattern, bom_name, var_code,
+                           vol_code, prev_status))
+          vol_status[vol_code] = status
+          hwid = self.FmtHwid(bom_name, var_code, vol_code)
+          self.flat_hwid_status_map[hwid] = status
+
   def _BuildHwidStatusMaps(self):
     self._hwid_status_map = {}
     self.flat_hwid_status_map = {}
@@ -331,45 +440,50 @@ class Device(YamlDatastore):
       if not match:
         raise Error, 'illegal hwid_status pattern %r' % pattern
       bom, variant, volatile = match.pop()
-      target_boms = [bom] if bom != '*' else self.boms.keys()
-      target_vars = [variant] if variant != '*' else self.variants.keys()
-      target_vols = [volatile] if volatile != '*' else self.volatiles.keys()
-      for bom_name in target_boms:
-        var_status = self._hwid_status_map.setdefault(bom_name, {})
-        for var_code in target_vars:
-          vol_status = var_status.setdefault(var_code, {})
-          for vol_code in target_vols:
-            prev_status = vol_status.get(vol_code, None)
-            if prev_status is not None:
-              raise Error, ('hwid_status pattern %r too broad, '
-                            '%s %s-%s already has status %r' %
-                            (pattern, bom_name, var_code,
-                             vol_code, prev_status))
-            vol_status[vol_code] = status
-            hwid = self.FmtHwid(bom_name, var_code, vol_code)
-            self.flat_hwid_status_map[hwid] = status
+      self.UpdateHwidStatusMaps(bom, variant, volatile, status)
+
+  def _BuildPrimeryClassSet(self):
+    self.primary_classes = set().union(*[
+        ComponentDataClasses(bom.primary) for bom in self.boms.values()])
 
   def _PreprocessData(self):
     self._BuildReverseIcMap()
     self._BuildHwidStatusMaps()
+    self._BuildPrimeryClassSet()
     self.cooked_boms = CookedBoms(self.boms)
-    # TODO(tammo): Enforce invariants here.
+
+  def _EnforceInvariants(self):
+    pass
+
+  def BomExists(self, bom_name):
+    if bom_name not in self.boms:
+      raise Error, 'unknown bom %r for board %r' % (bom_name, self.board_name)
+
+  def VariantExists(self, var_code):
+    if var_code not in self.variants:
+      raise Error, ('unknown variant %r for board %r' %
+                    (var_code, self.board_name))
+
+  def VolatileExists(self, vol_code):
+    if vol_code not in self.volatiles:
+      raise Error, ('unknown volatile %r for board %r' %
+                    (vol_code, self.board_name))
 
   def CommonInitialConfigs(self, target_bom_names):
     """Return all initial_config indices shared by the target boms."""
     return set.intersection(*[
         self._reverse_ic_map.get(bom_name, set())
-        for bom_name in target_bom_names])
+        for bom_name in target_bom_names]) if target_bom_names else set()
 
   def CommonMissingClasses(self, target_bom_names):
     return set.intersection(*[
         set(self.boms[bom_name].primary.classes_missing)
-        for bom_name in target_bom_names])
+        for bom_name in target_bom_names]) if target_bom_names else set()
 
   def CommonDontcareClasses(self, target_bom_names):
     return set.intersection(*[
         set(self.boms[bom_name].primary.classes_dontcare)
-        for bom_name in target_bom_names])
+        for bom_name in target_bom_names]) if target_bom_names else set()
 
   def GetVolatileCodes(self, bom_name, variant_code, status_mask):
     variant_status_map = self._hwid_status_map.get(bom_name, {})
@@ -377,6 +491,11 @@ class Device(YamlDatastore):
     return set(volatile_code for volatile_code, status
                in volatile_status_map.items()
                if status in status_mask)
+
+  def SetHwidStatus(self, bom, variant, volatile, status):
+    self.UpdateHwidStatusMaps(bom, variant, volatile, status)
+    pattern = '%s %s-%s' % (bom, variant, volatile)
+    getattr(self.hwid_status, status).append(pattern)
 
   def GetHwidStatus(self, bom_name, variant_code, volatile_code):
     variant_status_map = self._hwid_status_map.get(bom_name, {})
@@ -390,9 +509,44 @@ class Device(YamlDatastore):
                        if bom_name not in existing_names]
     random.shuffle(available_names)
     if len(available_names) < count:
-      raise Error('too few available bom names (only %d left)' %
+      raise Error('too few available bom names (%d left)' %
                   len(available_names))
     return available_names[:count]
+
+  def CreateBom(self, bom_name, component_data):
+    if bom_name in self.boms:
+      raise Error, '%s bom %s already exists' % (self.board_name, bom_name)
+    if self.boms:
+      existing_primary_classes = set().union(*[
+        ComponentDataClasses(bom.primary) for bom in self.boms.values()])
+      new_primary_classes = ComponentDataClasses(component_data)
+      if new_primary_classes != existing_primary_classes:
+        msg = ('proposed bom has different component class '
+               'coverage than existing %s boms' % self.board_name)
+        missing = existing_primary_classes - new_primary_classes
+        if missing:
+          msg += ', missing [%s]' % ', '.join(sorted(missing))
+        extra = new_primary_classes - existing_primary_classes
+        if extra:
+          msg += ', extra [%s]' %  ', '.join(sorted(extra))
+        raise Error, msg
+    bom_data = BomData(primary=component_data, variants=[])
+    self.boms[bom_name] = bom_data
+
+  def CreateVariant(self, component_data):
+    for existing_var_code, existing_variant in self.variants.items():
+      if component_data.__dict__ == existing_variant.__dict__:
+        raise Error, ('%s equivalent variant %s already exists' %
+                      (self.board_name, existing_var_code))
+    if self.variants:
+      variant_classes = set().union(
+        ComponentDataClasses(variant) for variant in self.variants)
+      if ComponentDataClasses(component_data) != variant_classes:
+        raise Error, ('proposed variant component data has different class '
+                      'coverage than existing %s variants' % self.board_name)
+    var_code = AlphaIndex(len(self.variants))
+    self.variants[var_code] = component_data
+    return var_code
 
   def FmtHwid(self, bom, variant, volatile):
     """Generate HWID string.  See the hwid spec for details."""
@@ -400,31 +554,52 @@ class Device(YamlDatastore):
     assert text.isupper(), 'HWID cannot have lower case text parts.'
     return str(text + ' ' + HwidChecksum(text))
 
-  def __init__(self, path, board_name):
+  def __init__(self, path, comp_db, board_name, device_data):
     self._path = path
+    self._comp_db = comp_db
+    self.__dict__.update(device_data.__dict__)
+    self.board_name = board_name
+    self._PreprocessData()
+    self._EnforceInvariants()
+
+  @classmethod
+  def Read(cls, path, comp_db, board_name):
     full_path = os.path.join(path, board_name)
     if not os.path.isfile(full_path):
       raise Error, 'path %r is not a board file'
     with open(full_path, 'r') as f:
-      self.__dict__.update(DeviceData.Decode(f.read()).__dict__)
-    self.board_name = board_name
-    self._PreprocessData()
+      return cls(path, comp_db, board_name, DeviceData.Decode(f.read()))
 
   def Write(self):
-    # TODO(tammo): Enforce invariants here.
-    data = DeviceData(**dict((field_name, getattr(self, field_name))
-                             for field_name in DeviceData.FieldNames()))
-    self.WriteOnDiff(self.board_name, data.Encode())
+    # TODO(tammo) Enforce invariants for a clean updated copy of self.
+    device_data = DeviceData(**dict(
+        (field_name, getattr(self, field_name))
+        for field_name in DeviceData.FieldNames()))
+    self.WriteOnDiff(self.board_name, device_data.Encode())
 
 
 class HardwareDb(object):
 
   def __init__(self, path):
     """Read the component_db and all device data files."""
+    self._path = path
     self.comp_db = CompDb(path)
-    self.devices = dict((entry, Device(path, entry))
+    self.devices = dict((entry, Device.Read(path, self.comp_db, entry))
                         for entry in os.listdir(path)
                         if entry.isalpha() and entry.isupper())
+
+  def CreateDevice(self, board_name):
+    Validate.BoardName(board_name)
+    if board_name in self.devices:
+      raise Error, ('board %r already exists' % board_name)
+    device_data = DeviceData.New()
+    device = Device(self._path, self.comp_db, board_name, device_data)
+    self.devices[board_name] = device
+
+  def GetDevice(self, board_name):
+    if board_name not in self.devices:
+      raise Error, ('board %r does not exist' % board_name)
+    return self.devices[board_name]
 
   def Write(self):
     """Write the component_db and all device data files."""
@@ -538,6 +713,11 @@ def PrintHwidHierarchy(device, bom_map, status_mask):
           print (depth * '  ') + '  (primary) ' + line
         print ''
   def TraverseBomHierarchy(boms, depth, masks):
+    def FmtList(l):
+      if len(l) == 1:
+        return str(list(l)[0])
+      elts = [((depth + 2) * '  ') + str(x) for x in sorted(l)]
+      return '\n' + '\n'.join(elts)
     print (depth * '  ') + '-'.join(sorted(boms.names))
     common_ic = device.CommonInitialConfigs(boms.names) - masks.ic
     common_missing = device.CommonMissingClasses(boms.names) - masks.missing
@@ -545,8 +725,7 @@ def PrintHwidHierarchy(device, bom_map, status_mask):
     common_data = {'initial_config': common_ic,
                    'classes missing': common_missing,
                    'classes dontcare': common_wild}
-    common_output = dict((k, ', '.join([str(x) for x in v]))
-                         for k, v in common_data.items() if v)
+    common_output = dict((k,  FmtList(v)) for k, v in common_data.items() if v)
     for line in FmtLeftAlignedDict(common_output):
       print (depth * '  ') + '  ' + line
     common_present = dict(
@@ -735,130 +914,108 @@ def LookupHwidProperties(data, hwid):
   return props
 
 
-@Command('create_hwids',
+@Command('create_device',
+         CmdArg('board_name'))
+def CreateBoard(config, hw_db):
+  """Create a fresh empty device data file with specified board name."""
+  hw_db.CreateDevice(config.board_name)
+
+
+@Command('create_bom',
          CmdArg('-b', '--board', required=True),
-         CmdArg('-c', '--comps', nargs='*', required=True),
-         CmdArg('-x', '--make_it_so', action='store_true'),
-         CmdArg('-v', '--variants', nargs='*'))
-def CreateHwidsCommand(config, data):
-  """Derive new HWIDs from the cross-product of specified components.
-
-  For the specific board, the specified components indicate a
-  potential set of new HWIDs.  It is only necessary to specify
-  components that are different from those commonly shared by the
-  boards existing HWIDs.  The target set of new HWIDs is then derived
-  by looking at the maxmimal number of combinations between the new
-  differing components.
-
-  By default this command just prints the set of HWIDs that would be
-  added.  To actually create them, it is necessary to specify the
-  make_it_so option.
-  """
-  # TODO(tammo): Validate inputs -- comp names, variant names, etc.
-  comp_map_list = ProcessComponentCrossproduct(data, config.board, config.comps)
-  bom_count = len(comp_map_list)
-  bom_name_list = data.devices[config.board].AvailableBomNames(bom_count)
-  variant_list = config.variants if config.variants else []
-  hwid_map = dict((bom_name, Hwid(component_map=comp_map,
-                                  variant_list=variant_list))
-                  for bom_name, comp_map in zip(bom_name_list, comp_map_list))
-  device = data.devices[config.board]
-  device.hwid_status_map.setdefault('proposed', []).extend(bom_name_list)
-  PrintHwidHierarchy(device, hwid_map, set([None]))
-  if config.make_it_so:
-    #TODO(tammo): Actually add to the device hwid_map, and qualify.
-    pass
+         CmdArg('-c', '--comps', nargs='*', default=[]),
+         CmdArg('-m', '--missing', nargs='*', default=[]),
+         CmdArg('-d', '--dontcare', nargs='*', default=[]),
+         CmdArg('--variant_classes', nargs='*', default=[]),
+         CmdArg('-n', '--name'))
+def CreateBom(config, hw_db):
+  device = hw_db.GetDevice(config.board)
+  map(hw_db.comp_db.CompExists, config.comps)
+  map(hw_db.comp_db.CompClassExists, config.variant_classes)
+  if config.variant_classes:
+    variant_classes = set(config.variant_classes)
+  elif not device.boms:
+    raise Error, 'variant classes must be declared for the first bom'
+  else:
+    variant_classes = hw_db.comp_db.all_comp_classes - device.primary_classes
+  if config.missing == ['*'] and config.dontcare == ['*']:
+    raise Error, 'missing and dontcase can be simultaneously wildcarded (*)'
+  if config.missing == ['*']:
+    config.missing = hw_db.comp_db.all_comp_classes - variant_classes
+  map(hw_db.comp_db.CompClassExists, config.missing)
+  if config.dontcare == ['*']:
+    config.dontcare = hw_db.comp_db.all_comp_classes - variant_classes
+  map(hw_db.comp_db.CompClassExists, config.dontcare)
+  bom_name = config.name if config.name else device.AvailableBomNames(1)[0]
+  Validate.BomName(bom_name)
+  component_data = hw_db.comp_db.CreateComponentData(
+    config.comps, config.dontcare, config.missing)
+  print 'creating %s bom %s' % (config.board, bom_name)
+  device.CreateBom(bom_name, component_data)
 
 
-@Command('hwid_overview',
-         CmdArg('--status', nargs='*'),
-         CmdArg('-b', '--board'))
-def HwidHierarchyViewCommand(config, hw_db):
-  """Show HWIDs in visually efficient hierarchical manner.
-
-  Starting with the set of all HWIDs for each board or a selected
-  board, show the set of common components and data values, then find
-  subsets of HWIDs with maximally shared data and repeat until there
-  are only singleton sets, at which point print the full HWID strings.
-  """
-  status_mask = config.status if config.status else LIFE_CYCLE_STAGES
-  for board, device in hw_db.devices.items():
-    if config.board:
-      if not config.board == board:
-        continue
-    else:
-      print '---- %s ----\n' % board
-    PrintHwidHierarchy(device, device.boms, status_mask)
+@Command('create_variant',
+         CmdArg('-b', '--board', required=True),
+         CmdArg('-c', '--comps', nargs='*', default=[]),
+         CmdArg('-m', '--missing', nargs='*', default=[]),
+         CmdArg('-d', '--dontcare', nargs='*', default=[]))
+def CreateVariant(config, hw_db):
+  device = hw_db.GetDevice(config.board)
+  map(hw_db.comp_db.CompExists, config.comps)
+  map(hw_db.comp_db.CompClassExists, config.missing)
+  map(hw_db.comp_db.CompClassExists, config.dontcare)
+  component_data = hw_db.comp_db.CreateComponentData(
+    config.comps, config.missing, config.dontcare)
+  variant = device.CreateVariant(component_data)
+  print 'created %s variant %s' % (config.board, variant)
 
 
-@Command('list_hwids',
-         CmdArg('-b', '--board'),
-         CmdArg('-s', '--status', nargs='*'),
-         CmdArg('-v', '--verbose', action='store_true',
-                help='show status in addition to the HWID string itself'))
-def ListHwidsCommand(config, data):
-  """Print sorted list of existing HWIDs.
-
-  Optionally list HWIDs for specific status values (default is for all
-  HWIDs which have some kind of status to be shown).  Optionally show
-  the status of each HWID.  Optionally limit the list to a specific
-  board.
-  """
-  result_list = []
-  status_mask = config.status if config.status else LIFE_CYCLE_STAGES
-  for board, device in data.devices.items():
-    if config.board:
-      if not config.board == board:
-        continue
-    filtered_hwid_status_map = dict(
-      (hwid, status) for hwid, status in device.flat_hwid_status_map.items()
-      if status in status_mask)
-    max_hwid_len = max(len(x) for x in filtered_hwid_status_map)
-    for hwid, status in sorted(filtered_hwid_status_map.items()):
-      if config.verbose:
-        print '%s%s  [%s]' % (hwid, (max_hwid_len - len(hwid)) * ' ', status)
-      else:
-        print hwid
+@Command('assign_variant',
+         CmdArg('-b', '--board', required=True),
+         CmdArg('--bom', required=True),
+         CmdArg('--variant', required=True))
+def AssignVariant(config, hw_db):
+  device = hw_db.GetDevice(config.board)
+  device.BomExists(config.bom)
+  device.VariantExists(config.variant)
+  bom = device.boms[config.bom]
+  if config.variant in bom.variants:
+    print '%s bom %s already uses variant %s' % (
+      config.board, config.bom, config.variant)
+  else:
+    bom.variants.append(config.variant)
+    print 'added variant %s for %s bom %s' % (
+      config.board, config.bom, config.variant)
 
 
-@Command('component_breakdown',
-         CmdArg('-b', '--board'))
-def ComponentBreakdownCommand(config, hw_db):
-  """Map components to HWIDs, organized by component.
-
-  For all boards, or for a specified board, first show the set of
-  common components.  For all the non-common components, show a list
-  of BOM names that use them.
-  """
-  for board, device in hw_db.devices.items():
-    if config.board:
-      if not config.board == board:
-        continue
-    else:
-      print '---- %s ----' % board
-    print '[common]'
-    common_comp_map = dict(
-      (comp_class, ', '.join(comps))
-      for comp_class, comps in device.cooked_boms.comp_map.items())
-    for line in FmtRightAlignedDict(common_comp_map):
-      print '  ' + line
-    uncommon_comps = (set(device.cooked_boms.comp_boms_map) -
-                      device.cooked_boms.common_comps)
-    uncommon_comp_map = {}
-    for comp in uncommon_comps:
-      comp_class = hw_db.comp_db.name_class_map[comp]
-      bom_names = device.cooked_boms.comp_boms_map[comp]
-      comp_map = uncommon_comp_map.setdefault(comp_class, {})
-      comp_map[comp] = ', '.join(sorted(bom_names))
-    for comp_class, comp_map in uncommon_comp_map.items():
-      print comp_class + ':'
-      for line in FmtRightAlignedDict(comp_map):
-        print '  ' + line
+@Command('set_hwid_status',
+         CmdArg('-b', '--board', required=True),
+         CmdArg('--bom', required=True),
+         CmdArg('--variant', required=True),
+         CmdArg('--volatile', required=True),
+         CmdArg('status'))
+def SetHwidStatus(config, hw_db):
+  device = hw_db.GetDevice(config.board)
+  if config.bom != '*':
+    device.BomExists(config.bom)
+  if config.variant != '*':
+    device.VariantExists(config.variant)
+  if config.volatile != '*':
+    device.VolatileExists(config.volatile)
+  Validate.Status(config.status)
+  if not device.boms:
+    raise Error, 'cannot assign status, %s has no BOMs' % device.board_name
+  if not device.variants:
+    raise Error, 'cannot assign status, %s has no variants' % device.board_name
+  if not device.volatiles:
+    raise Error, 'cannot assign status, %s has no volatiles' % device.board_name
+  device.SetHwidStatus(
+    config.bom, config.variant, config.volatile, config.status)
 
 
-@Command('assimilate_probe_data',
-         CmdArg('-b', '--board'),
-         CmdArg('--bom'))
+@Command('assimilate_data',
+         CmdArg('-b', '--board', required=True),
+         CmdArg('--create_bom'))
 def AssimilateProbeData(config, data):
   """Merge new data from stdin into existing data, optionally create a new bom.
 
@@ -980,18 +1137,128 @@ def AssimilateProbeData(config, data):
     ic_use_list.append(bom_name)
 
 
-@Command('board_create',
-         CmdArg('board_name'))
-def CreateBoard(config, data):
-  """Create an fresh empty board with specified name."""
-  if not config.board_name.isalpha():
-    print 'ERROR: Board names must be alpha-only.'
-    return
-  board_name = config.board_name.upper()
-  if board_name in data.devices:
-    print 'ERROR: Board %s already exists.' % board_name
-    return
-  data.devices[board_name] = Device.New()
+# TODO(tammo): Make this command useful or get rid of it.
+# @Command('create_hwids',
+#         CmdArg('-b', '--board', required=True),
+#         CmdArg('-c', '--comps', nargs='*', required=True),
+#         CmdArg('-x', '--make_it_so', action='store_true'),
+#         CmdArg('-v', '--variants', nargs='*'))
+def CreateHwidsCommand(config, data):
+  """Derive new HWIDs from the cross-product of specified components.
+
+  For the specific board, the specified components indicate a
+  potential set of new HWIDs.  It is only necessary to specify
+  components that are different from those commonly shared by the
+  boards existing HWIDs.  The target set of new HWIDs is then derived
+  by looking at the maxmimal number of combinations between the new
+  differing components.
+
+  By default this command just prints the set of HWIDs that would be
+  added.  To actually create them, it is necessary to specify the
+  make_it_so option.
+  """
+  # TODO(tammo): Validate inputs -- comp names, variant names, etc.
+  comp_map_list = ProcessComponentCrossproduct(data, config.board, config.comps)
+  bom_count = len(comp_map_list)
+  bom_name_list = data.devices[config.board].AvailableBomNames(bom_count)
+  variant_list = config.variants if config.variants else []
+  hwid_map = dict((bom_name, Hwid(component_map=comp_map,
+                                  variant_list=variant_list))
+                  for bom_name, comp_map in zip(bom_name_list, comp_map_list))
+  device = data.devices[config.board]
+  device.hwid_status_map.setdefault('proposed', []).extend(bom_name_list)
+  PrintHwidHierarchy(device, hwid_map, set([None]))
+  if config.make_it_so:
+    #TODO(tammo): Actually add to the device hwid_map, and qualify.
+    pass
+
+
+@Command('hwid_overview',
+         CmdArg('--status', nargs='*'),
+         CmdArg('-b', '--board'))
+def HwidHierarchyViewCommand(config, hw_db):
+  """Show HWIDs in visually efficient hierarchical manner.
+
+  Starting with the set of all HWIDs for each board or a selected
+  board, show the set of common components and data values, then find
+  subsets of HWIDs with maximally shared data and repeat until there
+  are only singleton sets, at which point print the full HWID strings.
+  """
+  map(Validate.Status, config.status if config.status else [])
+  status_mask = config.status if config.status else LIFE_CYCLE_STAGES
+  for board, device in hw_db.devices.items():
+    if config.board:
+      if not config.board == board:
+        continue
+    else:
+      print '---- %s ----\n' % board
+    PrintHwidHierarchy(device, device.boms, status_mask)
+
+
+@Command('hwid_list',
+         CmdArg('-b', '--board'),
+         CmdArg('-s', '--status', nargs='*'),
+         CmdArg('-v', '--verbose', action='store_true',
+                help='show status in addition to the HWID string itself'))
+def ListHwidsCommand(config, hw_db):
+  """Print sorted list of existing HWIDs.
+
+  Optionally list HWIDs for specific status values (default is for all
+  HWIDs which have some kind of status to be shown).  Optionally show
+  the status of each HWID.  Optionally limit the list to a specific
+  board.
+  """
+  result_list = []
+  status_mask = config.status if config.status else LIFE_CYCLE_STAGES
+  for board, device in hw_db.devices.items():
+    if config.board:
+      if not config.board == board:
+        continue
+    filtered_hwid_status_map = dict(
+      (hwid, status) for hwid, status in device.flat_hwid_status_map.items()
+      if status in status_mask)
+    max_hwid_len = (max(len(x) for x in filtered_hwid_status_map)
+                    if filtered_hwid_status_map else 0)
+    for hwid, status in sorted(filtered_hwid_status_map.items()):
+      if config.verbose:
+        print '%s%s  [%s]' % (hwid, (max_hwid_len - len(hwid)) * ' ', status)
+      else:
+        print hwid
+
+
+@Command('component_breakdown',
+         CmdArg('-b', '--board'))
+def ComponentBreakdownCommand(config, hw_db):
+  """Map components to HWIDs, organized by component.
+
+  For all boards, or for a specified board, first show the set of
+  common components.  For all the non-common components, show a list
+  of BOM names that use them.
+  """
+  for board, device in hw_db.devices.items():
+    if config.board:
+      if not config.board == board:
+        continue
+    else:
+      print '---- %s ----' % board
+    print '[common]'
+    common_comp_map = dict(
+      (comp_class, ', '.join(comps))
+      for comp_class, comps in device.cooked_boms.comp_map.items())
+    for line in FmtRightAlignedDict(common_comp_map):
+      print '  ' + line
+    uncommon_comps = (set(device.cooked_boms.comp_boms_map) -
+                      device.cooked_boms.common_comps)
+    uncommon_comp_map = {}
+    for comp in uncommon_comps:
+      comp_class = hw_db.comp_db.name_class_map[comp]
+      bom_names = device.cooked_boms.comp_boms_map[comp]
+      comp_map = uncommon_comp_map.setdefault(comp_class, {})
+      comp_map[comp] = ', '.join(sorted(bom_names))
+    for comp_class, comp_map in uncommon_comp_map.items():
+      print comp_class + ':'
+      for line in FmtRightAlignedDict(comp_map):
+        print '  ' + line
 
 
 @Command('filter_database',
@@ -1053,11 +1320,12 @@ def FilterDatabase(config, data):
   # the schema for that has been refactored to be cleaner.
 
 
-@Command('legacy_export',
-         CmdArg('-b', '--board', required=True),
-         CmdArg('-d', '--dest_dir', required=True),
-         CmdArg('-e', '--extra'),
-         CmdArg('-s', '--status', default='supported'))
+# TODO(tammo): If someone is using this, make it work; otherwise delete.
+# @Command('legacy_export',
+#          CmdArg('-b', '--board', required=True),
+#          CmdArg('-d', '--dest_dir', required=True),
+#          CmdArg('-e', '--extra'),
+#          CmdArg('-s', '--status', default='supported'))
 def LegacyExport(config, data):
   """Generate legacy-format 'components_<HWID>' files.
 
@@ -1133,7 +1401,7 @@ def LegacyExport(config, data):
         WriteLegacyHwidFile(bom, volind, variant, hwid)
 
 
-@Command('rename_comps')
+@Command('rename_components')
 def RenameComponents(config, data):
   """Change canonical component names.
 

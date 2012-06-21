@@ -66,9 +66,16 @@ class _DatastoreBase(object):
 
   @classmethod
   def New(cls):
-    return cls(**dict((elt_key, '' if not isinstance(elt_type, tuple)
-                       else ({} if elt_type[0] is dict else []))
-                      for elt_key, elt_type in cls._schema.items()))
+    field_dict = {}
+    for elt_key, elt_type in cls._schema.items():
+      if isinstance(elt_type, tuple):
+        elt_data = {} if elt_type[0] is dict else []
+      elif issubclass(elt_type, _DatastoreBase):
+        elt_data = elt_type.New()
+      else:
+        elt_data = ''
+      field_dict[elt_key] = elt_data
+    return cls(**field_dict)
 
   @classmethod
   def Decode(cls, data):
