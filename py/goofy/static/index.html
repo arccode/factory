@@ -1,0 +1,67 @@
+<html id="goofy">
+  <head>
+    <title>CrOS Factory</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+    <link rel="stylesheet" type="text/css" href="closure.css">
+    <link rel="stylesheet" type="text/css" href="goofy.css">
+    <link rel="icon" type="image/png" href="images/logo32.png">
+
+    <script type="text/javascript" src="goofy.js">
+    </script>
+  </head>
+  <body>
+    <div class="goog-splitpane" id="goofy-splitpane">
+      <div class="goog-splitpane-first-container">
+       <div id="goofy-control">
+         <div class="goofy-horizontal-border">
+           <div class="goofy-horizontal-border-1"></div>
+           <div class="goofy-horizontal-border-2"></div>
+           <div class="goofy-horizontal-border-3"></div>
+           <div class="goofy-horizontal-border-4"></div>
+         </div>
+         <span id="goofy-language-selector">
+           <span class="goofy-label-en">En 英</span>
+           <span class="goofy-label-zh">Zh 中</span>
+         </span>
+         <h1 id="goofy-title">
+           <img id="goofy-logo" src="images/logo128.png">
+           <span id="goofy-logo-text">CrOS Factory<span id="goofy-logo-down-arrow"> ▼</span>
+           </span>
+         </h1>
+         <div id="goofy-loading"><img src="images/active.gif">Loading test list...</img></div>
+         <div id="goofy-test-tree"></div>
+       </div>
+       <div id="goofy-status-bar">
+         <div id="goofy-engineering-mode-indicator">
+           <span class="goofy-label-en">Engineering mode</span>
+           <span class="goofy-label-zh">工程模式</span>
+           <img id="goofy-disable-engineering-mode" style="display: none"
+                onclick="goofy.setEngineeringMode(false)"
+                src="white_close.png">
+         </div>
+         <div id="goofy-status-bar-main">
+           <span class="goofy-status-bar-item" id="goofy-load-average">
+             Load:
+             <span class="goofy-value"></span>
+             <span class="goofy-unknown">N/A</span>
+           </span>
+           <span class="goofy-status-bar-item" id="goofy-percent-cpu">
+             CPU:
+             <span class="goofy-value"></span>
+             <span class="goofy-unknown">N/A</span>
+           </span>
+           <span class="goofy-status-bar-item" id="goofy-percent-battery">
+             Battery:
+             <span class="goofy-value"></span
+              ><span class="goofy-unknown">N/A</span
+              ><span id="goofy-battery-charge-indicator"></span>
+           </span>
+           <img id="goofy-system-info-hover" src="images/info.png">
+         </div>
+       </div>
+      </div>
+      <div class="goog-splitpane-handle"></div>
+      <div id="goofy-main-and-console" class="goog-splitpane-second-container"></div>
+    </div>
+  </body>
+</html>
