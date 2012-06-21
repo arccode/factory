@@ -33,11 +33,11 @@ HWID_GLOB_RE = re.compile(r'^([A-Z]+|\*) ([A-Z]+|\*)-([A-Z]+|\*)$')
 
 
 # Possible life cycle stages (status) for components and HWIDs.
-LIFE_CYCLE_STAGES = [
+LIFE_CYCLE_STAGES = set([
     'supported',
     'qualified',
     'deprecated',
-    'eol']
+    'eol'])
 
 
 MakeDatastoreClass('XCompData', {
@@ -114,28 +114,14 @@ MakeDatastoreClass('DeviceData', {
 # Calculations on hwids should use these unified (bom+variant)
 # component maps.
 
-# TODO(tammo): The hwid_status_map should support some kind of more
-# obvious glob syntax -- the current bom-volatile is counterintuitive
-# since it does not match the hwid string field order, and also not
-# very flexible.  Make sure to add proper sanity checking invariants
-# -- for example to make sure each hwid has only one status.
-
-# TODO(tammo): The initial_config_use_map should support glob matching
-# similar to the hwid_status_map, this would allow boms to have
-# different initial_config depending on their volatile setting.
-
-# TODO(tammo): Fix initial config to have canonical names for each
-# 'probe result', stored as a map in device.
+# TODO(tammo): Make sure to add proper sanity checking status
+# invariants -- each hwid should have only one status.
 
 # TODO(tammo): Enforce that volatile canonical names (the keys in the
 # volatile_value_map) are all lower case, to allow for the special
 # 'ANY' tag.  Or not ... this might be worth some thought; volatile
 # must always be a perfect match, so there should either be a value or
 # nothing?
-
-# TODO(tammo): For those routines that take 'data' as the first arg,
-# consider making them methods of a DeviceDb class and then have the
-# constructor for that class read the data from disk.
 
 # TODO(tammo): Refactor code to lift out the command line tool parts
 # from the core functionality of the module.  Goal is that the key
@@ -146,12 +132,6 @@ MakeDatastoreClass('DeviceData', {
 # TODO(tammo): Make sure that command line commands raise Error for
 # any early termination (no calls to return), to make sure that the
 # database does not get written.
-
-# TODO(tammo): Get rid of the 'ANY' and/or 'NONE' special values in
-# Hwid.component_map.  Instead add not_present_components and
-# (optionally) anything_goes_components lists.  If component classes
-# are not in either the map or the not_present list, they are
-# implicitly in anything_goes.
 
 # TODO(tammo): Add examples to the command line function docstrings.
 
@@ -225,10 +205,6 @@ def FmtLeftAlignedDict(d):
   max_key_width = max(len(k) for k in d) if d else 0
   return ['%s%s: %s' % (k, (max_key_width - len(k)) * ' ', v)
           for k, v in sorted((k, v) for k, v in d.items())]
-
-
-# TODO(tammo): Move CompDb and HardwareDb into their own files, and
-# then pull relevant functions into them as methods.
 
 
 class CompDb(YamlDatastore):
@@ -344,8 +320,9 @@ class Device(YamlDatastore):
       for bom_name in data.enforced_for_boms:
         self._reverse_ic_map.setdefault(bom_name, set()).add(index)
 
-  def _BuildHwidStatusMap(self):
+  def _BuildHwidStatusMaps(self):
     self._hwid_status_map = {}
+    self.flat_hwid_status_map = {}
     status_globs = [(pattern, status)
                     for status in LIFE_CYCLE_STAGES
                     for pattern in getattr(self.hwid_status, status)]
@@ -369,10 +346,12 @@ class Device(YamlDatastore):
                             (pattern, bom_name, var_code,
                              vol_code, prev_status))
             vol_status[vol_code] = status
+            hwid = self.FmtHwid(bom_name, var_code, vol_code)
+            self.flat_hwid_status_map[hwid] = status
 
   def _PreprocessData(self):
     self._BuildReverseIcMap()
-    self._BuildHwidStatusMap()
+    self._BuildHwidStatusMaps()
     self.cooked_boms = CookedBoms(self.boms)
     # TODO(tammo): Enforce invariants here.
 
@@ -397,7 +376,7 @@ class Device(YamlDatastore):
     volatile_status_map = variant_status_map.get(variant_code, {})
     return set(volatile_code for volatile_code, status
                in volatile_status_map.items()
-               if status not in status_mask)
+               if status in status_mask)
 
   def GetHwidStatus(self, bom_name, variant_code, volatile_code):
     variant_status_map = self._hwid_status_map.get(bom_name, {})
@@ -802,45 +781,44 @@ def HwidHierarchyViewCommand(config, hw_db):
   subsets of HWIDs with maximally shared data and repeat until there
   are only singleton sets, at which point print the full HWID strings.
   """
+  status_mask = config.status if config.status else LIFE_CYCLE_STAGES
   for board, device in hw_db.devices.items():
     if config.board:
       if not config.board == board:
         continue
     else:
       print '---- %s ----\n' % board
-    status_mask = config.status if config.status else set([None])
     PrintHwidHierarchy(device, device.boms, status_mask)
 
 
 @Command('list_hwids',
          CmdArg('-b', '--board'),
-         CmdArg('-s', '--status', default='supported'),
-         CmdArg('-v', '--verbose', action='store_true'))
+         CmdArg('-s', '--status', nargs='*'),
+         CmdArg('-v', '--verbose', action='store_true',
+                help='show status in addition to the HWID string itself'))
 def ListHwidsCommand(config, data):
-  """Print sorted list of supported HWIDs.
+  """Print sorted list of existing HWIDs.
 
-  Optionally list HWIDs for other status values, or '' for all HWIDs.
-  Optionally show the status of each HWID.  Optionally limit the list
-  to a specific board.
+  Optionally list HWIDs for specific status values (default is for all
+  HWIDs which have some kind of status to be shown).  Optionally show
+  the status of each HWID.  Optionally limit the list to a specific
+  board.
   """
   result_list = []
+  status_mask = config.status if config.status else LIFE_CYCLE_STAGES
   for board, device in data.devices.items():
     if config.board:
       if not config.board == board:
         continue
-    for bom, hwid in device.hwid_map.items():
-      for volind in device.volatile_map:
-        for variant in hwid.variant_list:
-          status = device.GetHwidStatus(bom, volind, variant)
-          if (config.status != '' and
-              (status is None or config.status != status)):
-            continue
-          result = device.FmtHwid(bom, volind, variant)
-          if config.verbose:
-            result = '%s: %s' % (status, result)
-          result_list.append(result)
-  for result in sorted(result_list):
-    print result
+    filtered_hwid_status_map = dict(
+      (hwid, status) for hwid, status in device.flat_hwid_status_map.items()
+      if status in status_mask)
+    max_hwid_len = max(len(x) for x in filtered_hwid_status_map)
+    for hwid, status in sorted(filtered_hwid_status_map.items()):
+      if config.verbose:
+        print '%s%s  [%s]' % (hwid, (max_hwid_len - len(hwid)) * ' ', status)
+      else:
+        print hwid
 
 
 @Command('component_breakdown',
@@ -858,19 +836,21 @@ def ComponentBreakdownCommand(config, hw_db):
         continue
     else:
       print '---- %s ----' % board
-    rev_comp_map = CalcReverseComponentMap(device.boms)
-    common_comp_map = CalcCommonComponentMap(rev_comp_map)
-    print 'common:'
+    print '[common]'
+    common_comp_map = dict(
+      (comp_class, ', '.join(comps))
+      for comp_class, comps in device.cooked_boms.comp_map.items())
     for line in FmtRightAlignedDict(common_comp_map):
       print '  ' + line
-    remaining_comp_class_set = set(rev_comp_map) - set(common_comp_map)
-    sorted_remaining_comp_class_list = sorted(
-        [(len(rev_comp_map[comp_class]), comp_class)
-         for comp_class in  remaining_comp_class_set])
-    while sorted_remaining_comp_class_list:
-      comp_class = sorted_remaining_comp_class_list.pop()[1]
-      comp_map = dict((comp, ', '.join(sorted(bom_set)))
-                      for comp, bom_set in rev_comp_map[comp_class].items())
+    uncommon_comps = (set(device.cooked_boms.comp_boms_map) -
+                      device.cooked_boms.common_comps)
+    uncommon_comp_map = {}
+    for comp in uncommon_comps:
+      comp_class = hw_db.comp_db.name_class_map[comp]
+      bom_names = device.cooked_boms.comp_boms_map[comp]
+      comp_map = uncommon_comp_map.setdefault(comp_class, {})
+      comp_map[comp] = ', '.join(sorted(bom_names))
+    for comp_class, comp_map in uncommon_comp_map.items():
       print comp_class + ':'
       for line in FmtRightAlignedDict(comp_map):
         print '  ' + line
