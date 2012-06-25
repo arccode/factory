@@ -559,7 +559,7 @@ def UploadReport(options):
   if method == 'shopfloor':
     report_upload.ShopFloorUpload(target_path, param)
   elif method == 'ftp':
-    report_upload.FtpUpload(target_path, 'ftp://' + param)
+    report_upload.FtpUpload(target_path, 'ftp:' + param)
   elif method == 'ftps':
     report_upload.CurlUrlUpload(target_path, '--ftp-ssl-reqd ftp:%s' % param)
   elif method == 'cpfe':

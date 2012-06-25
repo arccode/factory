@@ -115,6 +115,7 @@ def CurlCommand(curl_command, success_string=None, abort_string=None,
         abort = True
     result['abort'] = abort
     result['message'] = message
+    return cmd_result.success
 
   RetryCommand(CurlCallback, 'CurlCommand', interval=retry_interval)
   logging.info('CurlCommand: successfully executed: %s', cmd)
@@ -196,9 +197,10 @@ def FtpUpload(source_path, ftp_url, retry_interval=DEFAULT_RETRY_INTERVAL,
   def FtpCallback(result):
     try:
       ftp.connect(host=host, port=port, timeout=retry_timeout)
-      return
     except Exception, e:
       result['message'] = '%s' % e
+      return False
+    return True
 
   RetryCommand(FtpCallback, 'FtpUpload', interval=retry_interval)
 
