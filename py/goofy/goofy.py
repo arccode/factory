@@ -50,7 +50,7 @@ from cros.factory.goofy.web_socket_manager import WebSocketManager
 
 
 DEFAULT_TEST_LIST_PATH = os.path.join(
-        factory.CLIENT_PATH , 'site_tests', 'suite_Factory', 'test_list')
+    factory.FACTORY_PATH , 'test_lists', 'test_list')
 HWID_CFG_PATH = '/usr/local/share/chromeos-hwid/cfg'
 
 # File that suppresses reboot if present (e.g., for development).

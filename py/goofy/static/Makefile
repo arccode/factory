@@ -6,10 +6,8 @@ BUILD_DEPS=../../../build_deps
 
 CLOSURE_LIB_VERSION=20111110-r1376
 
-CLOSURE_LIB_ARCHIVE := $(BUILD_DEPS)/closure_library/closure-library-
-CLOSURE_LIB_ARCHIVE := $(CLOSURE_LIB_ARCHIVE)$(CLOSURE_LIB_VERSION).tar.bz2
-CLOSURE_LIB_DIR := $(BUILD_DEPS)/closure_library/closure-library-
-CLOSURE_LIB_DIR := $(CLOSURE_LIB_DIR)$(CLOSURE_LIB_VERSION)
+CLOSURE_LIB_ARCHIVE := /var/cache/distfiles/target/cros-binary/closure-library-$(CLOSURE_LIB_VERSION).tar.bz2
+CLOSURE_LIB_DIR := $(or $(WORKDIR),/tmp)/closure-library-$(CLOSURE_LIB_VERSION)
 
 CLOSURE_COMPILER_JAR=/opt/closure-compiler-bin-0/lib/closure-compiler-bin.jar
 

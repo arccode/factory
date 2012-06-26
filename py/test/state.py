@@ -508,7 +508,7 @@ def create_server(state_file_path=None, bind_address=None, port=None):
     instance = FactoryState(state_file_path)
     instance._resolver.AddPath(
         '/',
-        os.path.join(os.path.dirname(os.path.realpath(__file__)), 'static'))
+        os.path.join(factory.FACTORY_PACKAGE_PATH, 'goofy/static'))
 
     server = ThreadedJSONRPCServer(
         (bind_address, port),

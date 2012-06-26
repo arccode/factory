@@ -26,7 +26,9 @@ from cros.factory.test import utils
 
 SCRIPT_PATH = os.path.realpath(__file__)
 CROS_FACTORY_LIB_PATH = os.path.dirname(SCRIPT_PATH)
-CLIENT_PATH = os.path.realpath(os.path.join(CROS_FACTORY_LIB_PATH, '..', '..'))
+FACTORY_PATH = os.path.realpath(os.path.join(CROS_FACTORY_LIB_PATH, '..', '..'))
+FACTORY_PACKAGE_PATH = os.path.join(FACTORY_PATH, 'py_pkg', 'cros', 'factory')
+CLIENT_PATH = FACTORY_PATH
 
 FACTORY_STATE_VERSION = 2
 
