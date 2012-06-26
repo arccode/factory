@@ -12,11 +12,11 @@
 import gtk
 
 from autotest_lib.client.bin import test
-from autotest_lib.client.cros import factory
+from cros.factory.test import factory
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.common_lib import utils
-from autotest_lib.client.cros.factory import task
-from autotest_lib.client.cros.factory import ui as ful
+from cros.factory import task
+from cros.factory import ui as ful
 
 
 def _make_decision_widget(message, key_action_mapping):

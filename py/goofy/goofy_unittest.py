@@ -23,15 +23,15 @@ from Queue import Queue
 from mox import IgnoreArg
 from ws4py.client import WebSocketBaseClient
 
-from autotest_lib.client.cros import factory
-from autotest_lib.client.cros.factory import goofy
-from autotest_lib.client.cros.factory import state
-from autotest_lib.client.cros.factory import TestState
-from autotest_lib.client.cros.factory.event import Event
-from autotest_lib.client.cros.factory.goofy import Goofy
-from autotest_lib.client.cros.factory.connection_manager \
+from cros.factory.test import factory
+from cros.factory.goofy import goofy
+from cros.factory.test import state
+from cros.factory.test.factory import TestState
+from cros.factory.test.event import Event
+from cros.factory.goofy.goofy import Goofy
+from cros.factory.goofy.connection_manager \
     import ConnectionManager
-from autotest_lib.client.cros.factory.test_environment import Environment
+from cros.factory.goofy.test_environment import Environment
 
 
 def init_goofy(env=None, test_list=None, options='', restart=True, ui='none'):

@@ -18,8 +18,8 @@ import types
 from Queue import Empty, Queue
 
 import factory_common
-from autotest_lib.client.cros import factory
-from autotest_lib.client.cros.factory.unicode_to_string import UnicodeToString
+from cros.factory.test import factory
+from cros.factory.test.unicode_to_string import UnicodeToString
 
 
 # Environment variable storing the path to the endpoint.

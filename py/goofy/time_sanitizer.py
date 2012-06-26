@@ -15,7 +15,7 @@ import os
 import time
 
 import factory_common
-from autotest_lib.client.cros import factory
+from cros.factory.test import factory
 
 
 def _FormatTime(t):

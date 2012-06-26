@@ -21,11 +21,12 @@ from optparse import OptionParser
 from StringIO import StringIO
 
 import factory_common
-from autotest_lib.client.cros import factory
-from autotest_lib.client.cros.factory.event import Event
-from autotest_lib.client.cros.factory import event_log
-from autotest_lib.client.cros.factory import TestState
-from autotest_lib.client.cros.factory import utils
+from cros.factory.test import factory
+from cros.factory.test.event import Event
+from cros.factory import event_log
+from cros.factory.test.factory import TestState
+from cros.factory.test import utils
+from cros.factory.test import pytests
 
 
 # Number of bytes to include from the log of a failed test.
@@ -396,9 +397,8 @@ def run_pytest(test_info):
             run.
     '''
     try:
-        __import__('autotest_lib.client.cros.factory.tests.%s' %
-                   test_info.pytest_name)
-        module = getattr(factory.tests, test_info.pytest_name)
+        __import__('cros.factory.test.pytests.%s' % test_info.pytest_name)
+        module = getattr(pytests, test_info.pytest_name)
         suite = unittest.TestLoader().loadTestsFromModule(module)
 
         # Recursively set

@@ -11,8 +11,7 @@ import re
 import unittest
 import yaml
 
-from autotest_lib.client.cros import factory
-from autotest_lib.client.cros.factory import event_log
+from cros.factory import event_log
 
 MAC_RE = re.compile(r'^([a-f0-9]{2}:){5}[a-f0-9]{2}$')
 UUID_RE = re.compile(r'^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-'
@@ -87,8 +86,8 @@ class EventLogTest(unittest.TestCase):
       del i['TIME']
 
     self.assertEqual(
-      ['EVENT', 'SEQ', 'boot_id', 'device_id', 'filename', 'image_id',
-       'log_id'],
+      ['EVENT', 'SEQ', 'boot_id', 'device_id', 'factory_md5sum', 'filename',
+       'image_id', 'log_id'],
       sorted(log_data[0].keys()))
     self.assertEqual('preamble', log_data[0]['EVENT'])
     self.assertEqual(0, log_data[0]['SEQ'])

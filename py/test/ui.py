@@ -56,9 +56,9 @@ except:
 # Factory and autotest modules
 import factory_common
 from autotest_lib.client.common_lib import error
-from autotest_lib.client.cros import factory
-from autotest_lib.client.cros.factory import TestState
-from autotest_lib.client.cros.factory.event import Event, EventClient
+from cros.factory.test import factory
+from cros.factory import TestState
+from cros.factory.event import Event, EventClient
 
 
 # For compatibility with tests before TestState existed

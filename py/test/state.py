@@ -30,10 +30,10 @@ import factory_common
 from jsonrpclib import jsonclass
 from jsonrpclib import jsonrpc
 from jsonrpclib import SimpleJSONRPCServer
-from autotest_lib.client.cros import factory
-from autotest_lib.client.cros.factory import TestState
-from autotest_lib.client.cros.factory import system
-from autotest_lib.client.cros.factory import unicode_to_string
+from cros.factory.test import factory
+from cros.factory.test.factory import TestState
+from cros.factory.goofy import system
+from cros.factory.test import unicode_to_string
 
 
 DEFAULT_FACTORY_STATE_PORT = 0x0FAC

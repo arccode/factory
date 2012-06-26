@@ -27,7 +27,7 @@ import xmlrpclib
 from xmlrpclib import Binary, Fault
 
 import factory_common
-from autotest_lib.client.cros import factory
+from cros.factory.test import factory
 
 
 # Name of the factory shared data key that maps to session info.

@@ -11,8 +11,8 @@ import time
 import yaml
 
 import factory_common
-from autotest_lib.client.cros import factory
-from autotest_lib.client.cros.factory import shopfloor
+from cros.factory.test import factory
+from cros.factory.test import shopfloor
 
 
 class SystemInfo(object):

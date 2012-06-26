@@ -14,9 +14,9 @@ import ws4py
 from hashlib import sha1
 from ws4py.websocket import WebSocket
 
-from autotest_lib.client.cros import factory
-from autotest_lib.client.cros.factory.event import Event
-from autotest_lib.client.cros.factory.event import EventClient
+from cros.factory.test import factory
+from cros.factory.test.event import Event
+from cros.factory.test.event import EventClient
 
 
 class WebSocketManager(object):

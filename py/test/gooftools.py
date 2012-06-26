@@ -17,7 +17,7 @@ import tempfile
 
 import factory_common
 from autotest_lib.client.common_lib import error
-from autotest_lib.client.cros import factory
+from cros.factory.test import factory
 
 
 GOOFTOOL_HOME = '/usr/local/factory'

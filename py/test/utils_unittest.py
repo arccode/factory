@@ -9,7 +9,7 @@ import tempfile
 import unittest
 
 import factory_common
-from autotest_lib.client.cros.factory import utils
+from cros.factory.test import utils
 
 
 EARLIER_VAR_LOG_MESSAGES = '''19:26:17 kernel: That's all, folks.

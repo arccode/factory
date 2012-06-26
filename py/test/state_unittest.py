@@ -7,7 +7,7 @@
 import unittest
 
 import factory_common
-from autotest_lib.client.cros.factory.state import PathResolver
+from cros.factory.test.state import PathResolver
 
 
 class PathResolverTest(unittest.TestCase):

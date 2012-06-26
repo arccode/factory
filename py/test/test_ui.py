@@ -10,9 +10,9 @@ import re
 import threading
 import traceback
 
-from autotest_lib.client.cros import factory
-from autotest_lib.client.cros.factory import TestState
-from autotest_lib.client.cros.factory.event import Event, EventClient
+from cros.factory.test import factory
+from cros.factory import TestState
+from cros.factory.event import Event, EventClient
 
 
 class FactoryTestFailure(Exception):

@@ -11,9 +11,8 @@ import subprocess
 import sys
 import time
 
-from autotest_lib.client.cros import flimflam_test_path
-
 try:
+  from cros import flimflam_test_path
   import flimflam
 except ImportError:
   # E.g., in chroot

@@ -14,10 +14,10 @@ import os
 import traceback
 import unittest
 
-from autotest_lib.client.cros import factory
+from cros.factory.test import factory
 
 
-FACTORY_DIR = os.path.dirname(os.path.realpath(__file__))
+SRCROOT = os.environ.get('CROS_WORKON_SRCROOT')
 
 
 class FactoryTest(unittest.TestCase):
@@ -28,14 +28,13 @@ class FactoryTest(unittest.TestCase):
         # factory_unittest.py).  Construct the paths to the reference test list
         # and any test lists in private overlays.
         test_lists = [
-            os.path.join(FACTORY_DIR,
-                         '../../site_tests/suite_Factory/test_list.all')
+            os.path.join(SRCROOT,
+                         'src/third_party/autotest/files/client/site_tests/'
+                         'suite_Factory/test_list.all')
             ]
 
-        # Go up six directories to find the top-level source directory.
-        src_dir = os.path.join(FACTORY_DIR, *(['..'] * 6))
         test_lists.extend(os.path.realpath(x) for x in glob.glob(
-                os.path.join(src_dir, 'private-overlays/*/'
+                os.path.join(SRCROOT, 'src/private-overlays/*/'
                              'chromeos-base/autotest-private-board/'
                              'files/test_list*')))
 

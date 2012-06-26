@@ -10,8 +10,8 @@ import shelve
 import threading
 import time
 
-from autotest_lib.client.cros import factory
-from autotest_lib.client.cros.factory import event_log
+from cros.factory.test import factory
+from cros.factory import event_log
 
 EVENT_SEPARATOR = '\n---\n'
 KEY_OFFSET = 'offset'

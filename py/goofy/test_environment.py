@@ -14,10 +14,10 @@ import threading
 import time
 
 import factory_common
-from autotest_lib.client.cros import factory
-from autotest_lib.client.cros.factory import connection_manager
-from autotest_lib.client.cros.factory import state
-from autotest_lib.client.cros.factory import utils
+from cros.factory.test import factory
+from cros.factory.goofy import connection_manager
+from cros.factory.test import state
+from cros.factory.test import utils
 
 
 class Environment(object):

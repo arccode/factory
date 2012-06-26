@@ -36,9 +36,9 @@ from hacked_argparse import CmdArg, Command, ParseCmdline, verbosity_cmd_arg
 import imp
 at_common = imp.find_module('common', ['/usr/local/autotest/client/bin'])
 imp.load_module('at_common', *at_common)
-from autotest_lib.client.cros.factory.event_log import EventLog, EVENT_LOG_DIR
-from autotest_lib.client.cros.factory.event_log import TimedUuid
-from autotest_lib.client.cros.factory import FACTORY_LOG_PATH
+from cros.factory.event_log import EventLog, EVENT_LOG_DIR
+from cros.factory.event_log import TimedUuid
+from cros.factory import FACTORY_LOG_PATH
 
 
 # Use a global event log, so that only a single log is created when

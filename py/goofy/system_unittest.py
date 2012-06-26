@@ -7,7 +7,7 @@
 import unittest
 
 import factory_common
-from autotest_lib.client.cros.factory.system import SystemStatus
+from cros.factory.goofy.system import SystemStatus
 
 
 class SystemStatusTest(unittest.TestCase):
@@ -17,7 +17,7 @@ class SystemStatusTest(unittest.TestCase):
         status = SystemStatus()
         # Don't check battery, since this system might not even have one.
         self.assertTrue(isinstance(status.battery, dict))
-        self.assertEquals(3, len(status.loadavg))
+        self.assertEquals(3, len(status.load_avg))
         self.assertEquals(10, len(status.cpu))
 
 

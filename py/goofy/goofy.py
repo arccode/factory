@@ -33,20 +33,20 @@ from optparse import OptionParser
 from StringIO import StringIO
 
 import factory_common
-from autotest_lib.client.bin.prespawner import Prespawner
-from autotest_lib.client.cros import factory
-from autotest_lib.client.cros.factory import state
-from autotest_lib.client.cros.factory import TestState
-from autotest_lib.client.cros.factory import updater
-from autotest_lib.client.cros.factory import utils
-from autotest_lib.client.cros.factory.event import Event
-from autotest_lib.client.cros.factory.event import EventClient
-from autotest_lib.client.cros.factory.event import EventServer
-from autotest_lib.client.cros.factory.event_log import EventLog
-from autotest_lib.client.cros.factory.invocation import TestInvocation
-from autotest_lib.client.cros.factory import system
-from autotest_lib.client.cros.factory import test_environment
-from autotest_lib.client.cros.factory.web_socket_manager import WebSocketManager
+from cros.factory.goofy.prespawner import Prespawner
+from cros.factory.test import factory
+from cros.factory.test import state
+from cros.factory.test.factory import TestState
+from cros.factory.goofy import updater
+from cros.factory.test import utils
+from cros.factory.test.event import Event
+from cros.factory.test.event import EventClient
+from cros.factory.test.event import EventServer
+from cros.factory.event_log import EventLog
+from cros.factory.goofy.invocation import TestInvocation
+from cros.factory.goofy import system
+from cros.factory.goofy import test_environment
+from cros.factory.goofy.web_socket_manager import WebSocketManager
 
 
 DEFAULT_TEST_LIST_PATH = os.path.join(

@@ -18,8 +18,8 @@ import gobject
 import gtk
 
 import factory_common
-from autotest_lib.client.cros import factory
-from autotest_lib.client.cros.factory import ui
+from cros.factory.test import factory
+from cros.factory import ui
 
 
 def schedule(task, *args, **kargs):

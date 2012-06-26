@@ -8,7 +8,7 @@
 import factory_common
 
 import unittest
-from autotest_lib.client.cros.factory.unicode_to_string \
+from cros.factory.test.unicode_to_string \
     import UnicodeToString, UnicodeToStringArgs, UnicodeToStringClass
 
 # My favorite character: 囧

@@ -14,7 +14,7 @@ import unittest
 from contextlib import contextmanager
 
 import factory_common
-from autotest_lib.client.cros.factory import time_sanitizer
+from cros.factory.goofy import time_sanitizer
 
 
 BASE_TIME = float(

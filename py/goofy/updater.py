@@ -9,8 +9,8 @@ import subprocess
 from urlparse import urlparse
 import uuid
 
-from autotest_lib.client.cros import factory
-from autotest_lib.client.cros.factory import shopfloor
+from cros.factory.test import factory
+from cros.factory.test import shopfloor
 
 
 class UpdaterException(Exception):

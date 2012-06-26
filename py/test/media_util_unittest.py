@@ -13,8 +13,8 @@ import pyudev
 import unittest
 
 from autotest_lib.client.common_lib.autotemp import tempfile
-from autotest_lib.client.cros.factory.media_util import MediaMonitor
-from autotest_lib.client.cros.factory.media_util import MountedMedia
+from cros.factory.media_util import MediaMonitor
+from cros.factory.media_util import MountedMedia
 
 # udev constants
 _UDEV_ACTION_INSERT = 'add'
