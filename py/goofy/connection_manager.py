@@ -12,7 +12,7 @@ import sys
 import time
 
 try:
-  from cros import flimflam_test_path
+  from cros.factory.goofy import flimflam_test_path
   import flimflam
 except ImportError:
   # E.g., in chroot

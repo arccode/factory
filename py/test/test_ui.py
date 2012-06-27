@@ -11,8 +11,8 @@ import threading
 import traceback
 
 from cros.factory.test import factory
-from cros.factory import TestState
-from cros.factory.event import Event, EventClient
+from cros.factory.test.factory import TestState
+from cros.factory.test.event import Event, EventClient
 
 
 class FactoryTestFailure(Exception):

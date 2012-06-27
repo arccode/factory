@@ -19,7 +19,7 @@ import gtk
 
 import factory_common
 from cros.factory.test import factory
-from cros.factory import ui
+from cros.factory.test import ui
 
 
 def schedule(task, *args, **kargs):

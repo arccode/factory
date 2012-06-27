@@ -9,8 +9,8 @@ XAUTH_FILE=/home/chronos/.Xauthority
 SERVER_READY=
 DISPLAY=":0"
 
-SUITE_FACTORY="$(dirname "$0")"/../../site_tests/suite_Factory
-BOARD_SETUP="$(readlink -f "$SUITE_FACTORY")/board_setup_x.sh"
+FACTORY="$(dirname "$(dirname "$(readlink -f "$0")")")"
+BOARD_SETUP="$FACTORY/custom/board_setup_x.sh"
 
 # Default X server parameters
 X_ARG="-r -s 0 -p 0 -dpms -nolisten tcp vt01 -auth ${XAUTH_FILE}"

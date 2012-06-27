@@ -49,8 +49,8 @@ from cros.factory.goofy import test_environment
 from cros.factory.goofy.web_socket_manager import WebSocketManager
 
 
-DEFAULT_TEST_LIST_PATH = os.path.join(
-    factory.FACTORY_PATH , 'test_lists', 'test_list')
+DEFAULT_TEST_LISTS_DIR = os.path.join(factory.FACTORY_PATH, 'test_lists')
+CUSTOM_DIR = os.path.join(factory.FACTORY_PATH, 'custom')
 HWID_CFG_PATH = '/usr/local/share/chromeos-hwid/cfg'
 
 # File that suppresses reboot if present (e.g., for development).
@@ -92,24 +92,22 @@ def find_test_list():
     '''
     hwid_cfg = get_hwid_cfg()
 
-    # Try in order: test_list, test_list.$hwid_cfg, test_list.all
+    search_dirs = [CUSTOM_DIR, DEFAULT_TEST_LISTS_DIR]
+
+    # Try in order: test_list_${hwid_cfg}, test_list, test_list.all
+    search_files = ['test_list', 'test_list.all']
     if hwid_cfg:
-        test_list = '%s_%s' % (DEFAULT_TEST_LIST_PATH, hwid_cfg)
-        if os.path.exists(test_list):
-            logging.info('Using special test list: %s', test_list)
-            return test_list
-        logging.info('WARNING: no specific test list for config: %s', hwid_cfg)
+        search_files.insert(0, hwid_cfg)
 
-    test_list = DEFAULT_TEST_LIST_PATH
-    if os.path.exists(test_list):
-        return test_list
+    for d in search_dirs:
+        for f in search_files:
+            test_list = os.path.join(d, f)
+            if os.path.exists(test_list):
+                return test_list
 
-    test_list = ('%s.all' % DEFAULT_TEST_LIST_PATH)
-    if os.path.exists(test_list):
-        logging.info('Using default test list: ' + test_list)
-        return test_list
-    logging.info('ERROR: Cannot find any test list.')
-
+    logging.warn('Cannot find test lists named any of %s in any of %s',
+                 search_files, search_dirs)
+    return None
 
 _inited_logging = False
 
@@ -767,7 +765,13 @@ class Goofy(object):
             self.state_instance.get_shared_data('shutdown_time', optional=True))
         self.state_instance.del_shared_data('shutdown_time', optional=True)
 
-        self.options.test_list = (self.options.test_list or find_test_list())
+        if not self.options.test_list:
+            self.options.test_list = find_test_list()
+            if not self.options.test_list:
+                logging.error('No test list. Aborting.')
+                sys.exit(1)
+            logging.info('Using test list %s', self.options.test_list)
+
         self.test_list = factory.read_test_list(self.options.test_list,
                                                 self.state_instance)
         if not self.state_instance.has_shared_data('ui_lang'):

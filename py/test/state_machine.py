@@ -13,8 +13,8 @@ import gtk
 import re
 
 from autotest_lib.client.bin import test
-from cros.factory import task
-from cros.factory import ui as ful
+from cros.factory.test import task
+from cros.factory.test import ui as ful
 
 
 _LABEL_SIZE = (300, 30)

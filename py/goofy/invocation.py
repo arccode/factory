@@ -155,7 +155,8 @@ class TestInvocation(object):
                     "open('%s', 'w'), protocol=2)"
                     % result_file)
 
-            args = ['%s/bin/autotest' % factory.CLIENT_PATH,
+            args = [os.path.join(os.path.dirname(factory.FACTORY_PATH),
+                                 'autotest/bin/autotest'),
                     '--output_dir', output_dir,
                     control_file]
 

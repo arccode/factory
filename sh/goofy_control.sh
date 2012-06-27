@@ -4,11 +4,10 @@
 # found in the LICENSE file.
 
 set -e
-SCRIPT_BASE="$(readlink -f "$(dirname "$0")")"
+FACTORY="$(dirname "$(dirname "$(readlink -f "$0")")")"
 FACTORY_LOG_FILE=/var/log/factory.log
 
-SUITE_FACTORY="$(dirname "$0")"/../../site_tests/suite_Factory
-BOARD_SETUP="$(readlink -f "$SUITE_FACTORY")/board_setup_factory.sh"
+BOARD_SETUP="$FACTORY/custom/board_setup_factory.sh"
 
 # Default args for Goofy.
 GOOFY_ARGS=""
@@ -39,16 +38,15 @@ start_factory() {
       tail $FACTORY_LOG_FILE
 
     If it keeps failing, try to reset by:
-      $SCRIPT_BASE/restart.sh -a
+      $FACTORY/bin/restart -a
   "
 
   # Preload modules here
   modprobe i2c-dev 2>/dev/null || true
 
-  # This script should be located in .../autotest/cros/factory.
-  cd "$SCRIPT_BASE/../.."
-  eval "$("$SCRIPT_BASE/startx.sh" 2>/var/log/startx.err)"
-  "$SCRIPT_BASE/goofy" $GOOFY_ARGS >>"$FACTORY_LOG_FILE" 2>&1
+  cd "$FACTORY"/../autotest
+  eval "$("$FACTORY/sh/startx.sh" 2>/var/log/startx.err)"
+  "$FACTORY/bin/goofy" $GOOFY_ARGS >>"$FACTORY_LOG_FILE" 2>&1
 }
 
 stop_factory() {
@@ -67,10 +65,10 @@ stop_factory() {
       tail $FACTORY_LOG_FILE
 
     To restart, press Ctrl-Alt-F2, log in, and type:
-      $SCRIPT_BASE/restart.sh
+      $FACTORY/bin/restart
 
     If restarting does not work, try to reset by:
-      $SCRIPT_BASE/restart.sh -a
+      $FACTORY/bin/restart -a
     "
 }
 
