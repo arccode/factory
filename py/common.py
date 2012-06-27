@@ -28,7 +28,7 @@ class Obj(object):
     return repr(self.__dict__)
 
 
-def Shell(cmd):
+def Shell(cmd, stdin=None):
   """Run cmd in a shell, return Obj containing stdout, stderr, and status.
 
   The cmd stdout and stderr output is debug-logged.
@@ -36,9 +36,10 @@ def Shell(cmd):
   Args:
     cmd: Full shell command line as a string, which can contain
       redirection (popes, etc).
+    stdin: String that will be passed as stdin to the command.
   """
-  process = Popen(cmd, stdout=PIPE, stderr=PIPE, shell=True)
-  stdout, stderr = process.communicate()
+  process = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=True)
+  stdout, stderr = process.communicate(input=stdin)
   logging.debug('running %s' % repr(cmd) +
                 (', stdout: %s' % repr(stdout.strip()) if stdout else '') +
                 (', stderr: %s' % repr(stderr.strip()) if stderr else ''))

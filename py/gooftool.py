@@ -22,7 +22,6 @@ from tempfile import gettempdir, NamedTemporaryFile
 
 import bmpblk
 import crosfw
-import hwid_tool
 import probe
 import report_upload
 import vpd_data
@@ -30,6 +29,7 @@ import vpd_data
 from common import Error, ParseKeyValueData, SetupLogging, Shell
 from common import YamlRead, YamlWrite
 from hacked_argparse import CmdArg, Command, ParseCmdline, verbosity_cmd_arg
+from hwid_tool import HardwareDb
 
 import factory_common
 from cros.factory.event_log import EventLog, EVENT_LOG_DIR
@@ -145,10 +145,8 @@ def ProbeHwid(options):
   Returns (on stdout): A list of HWIDs that match the available probe
   results and argument contraints, one per line.
   """
-  hwdb = hwid_tool.ReadDatastore(options.hwdb_path)
-  if options.board not in hwdb.device_db:
-    sys.exit('ERROR: unknown board %r' % options.board)
-  device = hwdb.device_db[options.board]
+  hw_db = HardwareDb(options.data_path)
+  device = hw_db.GetDevice(options.board)
   component_map = {}
   if options.bom:
     bom_details = device.hwid_map.get(options.bom, None)
@@ -208,7 +206,7 @@ def RunProbe(options):
   probe_results = probe.Probe(target_comp_classes=options.comps,
                               probe_volatile=not options.no_vol,
                               probe_initial_config=not options.no_ic)
-  print YamlWrite(probe_results.__dict__)
+  print probe_results.Encode()
 
 
 @Command('verify_components',

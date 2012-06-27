@@ -30,11 +30,14 @@ import edid
 import crosfw
 import vblock
 
-sys.path.append('/usr/local/lib/flimflam/test')
-import flimflam
+try:
+  sys.path.append('/usr/local/lib/flimflam/test')
+  import flimflam
+except:
+  pass
 
 from common import CompactStr, Error, Obj, Shell
-
+from hwid_tool import ProbeResults
 
 # TODO(tammo): Some tests look for multiple components, some tests
 # throw away all but the first, and some just look for one.  All tests
@@ -52,6 +55,8 @@ from common import CompactStr, Error, Obj, Shell
 _COMPONENT_PROBE_MAP = {}
 _INITIAL_CONFIG_PROBE_MAP = {}
 
+# Load-time decorator-populated set of probably component classes.
+PROBABLE_COMPONENT_CLASSES = set()
 
 def _LoadKernelModule(name, error_on_fail=True):
   """Ensure kernel module is loaded.  If not already loaded, do the load."""
@@ -193,8 +198,7 @@ class _FlimflamDevices(object):
     ids = [_ReadSysfsDeviceId(dev.path, ignore_usb)
            for dev in c.GetDevices(devtype)]
     # Filter out 'None' results
-    ids = [device for device in ids if device is not None]
-    return ' ; '.join(ids) if ids else None
+    return sorted(device for device in ids if device is not None)
 
 
 class _TouchpadData():
@@ -287,6 +291,7 @@ def _ProbeFun(probe_map, probe_class, *arch_targets):
 
 
 def _ComponentProbe(probe_class, *arch_targets):
+  PROBABLE_COMPONENT_CLASSES.add(probe_class)
   return _ProbeFun(_COMPONENT_PROBE_MAP, probe_class, *arch_targets)
 
 
@@ -302,12 +307,12 @@ def _ProbeAudioCodec():
                 for line in grep_result.stdout.splitlines()]
   result_set = set(CompactStr(match) for match in match_list if match)
   if result_set:
-    return ' ; '.join(result_set)
+    return result_set
   # Formatted '00-00: WM??? PCM wm???-hifi-0: ...'
   pcm_data = open('/proc/asound/pcm').read().strip().split(' ')
   if len(pcm_data) > 2:
-    return CompactStr(pcm_data[1])
-  return None
+    return [CompactStr(pcm_data[1])]
+  return []
 
 
 @_ComponentProbe('battery')
@@ -322,13 +327,13 @@ def _ProbeBattery():
                        for node_path, type_data
                        in zip(node_path_list, type_data_list)
                        if type_data == 'Battery']
-  results = [CompactStr(x) for x in battery_data_list]
-  return ' ; '.join(results) if results else None
+  return sorted(CompactStr(x) for x in battery_data_list)
 
 
 @_ComponentProbe('bluetooth')
 def _ProbeBluetooth():
-  return _ReadSysfsDeviceId('/sys/class/bluetooth/hci0/device')
+  device_id = _ReadSysfsDeviceId('/sys/class/bluetooth/hci0/device')
+  return [device_id] if device_id is not None else []
 
 
 @_ComponentProbe('camera')
@@ -361,7 +366,7 @@ def _ProbeCamera():
         info.append('V4L2:%04x %04x' % (v4l2_ident, buf[V4L2_INDEX_REVISION]))
   except:
     pass
-  return CompactStr(info) if info else None
+  return [CompactStr(info)] if info else []
 
 
 @_ComponentProbe('cellular')
@@ -394,13 +399,14 @@ def _ProbeDisplayConverter():
       return 'ch7036'
     return None
   part_id_gen = (probe_fun() for probe_fun in [ProbeChrontel])
-  return next((x for x in part_id_gen if x is not None), None)
+  return next(([x] for x in part_id_gen if x is not None), [])
 
 
 @_ComponentProbe('chipset', 'x86')
 def _ProbeChipsetX86():
   """On x86, host bridge is always the first PCI device."""
-  return _ReadSysfsDeviceId('/sys/bus/pci/devices/0000:00:00.0')
+  device_id = _ReadSysfsDeviceId('/sys/bus/pci/devices/0000:00:00.0')
+  return [device_id] if device_id is not None else []
 
 
 @_ComponentProbe('chipset', 'arm')
@@ -409,9 +415,9 @@ def _ProbeChipsetArm():
   # Format: manufacturer,model [NUL] compat-manufacturer,model [NUL] ...
   fdt_compatible_file = '/proc/device-tree/compatible'
   if not os.path.exists(fdt_compatible_file):
-    return None
+    return []
   compatible_list = open(fdt_compatible_file).read().strip()
-  return CompactStr(compatible_list.strip(chr(0)).split(chr(0)))
+  return [CompactStr(compatible_list.strip(chr(0)).split(chr(0)))]
 
 
 @_ComponentProbe('cpu', 'x86')
@@ -423,7 +429,7 @@ def _ProbeCpuX86():
   #   model name : Intel(R) Atom(TM) CPU ???
   cmd = r'sed -nr "s/^model name\s*: (.*)/\1/p" /proc/cpuinfo'
   stdout = Shell(cmd).stdout.splitlines()
-  return CompactStr(stdout[0] + ' [%d cores]' % len(stdout))
+  return [CompactStr(stdout[0] + ' [%d cores]' % len(stdout))]
 
 
 @_ComponentProbe('cpu', 'arm')
@@ -437,7 +443,7 @@ def _ProbeCpuArm():
   #   processor : 1
   cmd = r'sed -nr "s/^[Pp]rocessor\s*: (.*)/\1/p" /proc/cpuinfo'
   stdout = Shell(cmd).stdout.splitlines()
-  return CompactStr(stdout[0] + ' [%d cores]' % (len(stdout) - 1))
+  return [CompactStr(stdout[0] + ' [%d cores]' % len(stdout) - 1)]
 
 
 @_ComponentProbe('display_panel')
@@ -449,7 +455,7 @@ def _ProbeDisplayPanel():
   edid_set |= set(edid.LoadFromI2c(path)
                   for path in sorted(glob('/dev/i2c-[0-9]*')))
   edid_set -= set([None])
-  return ' ; '.join(sorted(edid_set)) if edid_set else None
+  return sorted(edid_set) if edid_set else []
 
 
 @_ComponentProbe('dram', 'x86')
@@ -461,8 +467,8 @@ def _ProbeDramX86():
   size_data = Shell('mosys -k memory spd print geometry').stdout
   times = dict(re.findall('dimm="([^"]*)".*speeds="([^"]*)"', time_data))
   sizes = dict(re.findall('dimm="([^"]*)".*size_mb="([^"]*)"', size_data))
-  return CompactStr(['%s|%s|%s' % (i, sizes[i], times[i].replace(' ', ''))
-                     for i in sorted(times)])
+  return [CompactStr(['%s|%s|%s' % (i, sizes[i], times[i].replace(' ', ''))
+                      for i in sorted(times)])]
 
 
 @_ComponentProbe('dram', 'arm')
@@ -471,12 +477,13 @@ def _ProbeDramArm():
   # TODO(tammo): Request that mosys provide this info (by any means).
   cmdline = open('/proc/cmdline').read().strip()
   # Format: *mem=384M@0M (size@address)
-  return CompactStr(re.findall(r'\s\w*mem=(\d+M@\d+M)', cmdline))
+  return [CompactStr(re.findall(r'\s\w*mem=(\d+M@\d+M)', cmdline))]
 
 
 @_ComponentProbe('ec_flash_chip')
 def _ProbeEcFlashChip():
-  return crosfw.LoadEcFirmware().GetChipId()
+  chip_id = crosfw.LoadEcFirmware().GetChipId()
+  return [chip_id] if chip_id is not None else []
 
 
 @_ComponentProbe('embedded_controller')
@@ -486,9 +493,8 @@ def _ProbeEmbeddedController():
   # vendor="VENDOR" name="CHIPNAME" fw_version="ECFWVER"
   ecinfo = re.findall(r'\bvendor="([^"]*)".*\bname="([^"]*)"',
                       Shell('mosys -k ec info').stdout)
-  if ecinfo:
-    return CompactStr(*ecinfo)
-  return None
+  return [CompactStr(*ecinfo)] if ecinfo else []
+
 
 @_ComponentProbe('ethernet')
 def _ProbeEthernet():
@@ -499,7 +505,8 @@ def _ProbeEthernet():
 
 @_ComponentProbe('flash_chip')
 def _ProbeMainFlashChip():
-  return crosfw.LoadMainFirmware().GetChipId()
+  chip_id = crosfw.LoadMainFirmware().GetChipId()
+  return [chip_id] if chip_id else []
 
 
 @_ComponentProbe('storage')
@@ -520,14 +527,14 @@ def _ProbeStorage():
             None)
     return CompactStr(data + [size]) if data is not None else None
   fixed_devices = [node for node in glob('/sys/class/block/*') if IsFixed(node)]
-  ident_list = [ident for ident in map(ProcessNode, fixed_devices)
-                if ident is not None]
-  return ' ; '.join(ident_list) if ident_list else None
+  return [ident for ident in map(ProcessNode, fixed_devices)
+          if ident is not None]
 
 
 @_ComponentProbe('touchpad')
 def _ProbeTouchpad():
-  return _TouchpadData.Get().ident_str
+  ident_str = _TouchpadData.Get().ident_str
+  return [ident_str] if ident_str is not None else []
 
 
 @_ComponentProbe('tpm')
@@ -540,8 +547,8 @@ def _ProbeTpm():
   mfg = tpm_dict.get('Manufacturer Info', None)
   version = tpm_dict.get('Chip Version', None)
   if mfg is not None and version is not None:
-    return mfg + ':' + version
-  return None
+    return [mfg + ':' + version]
+  return []
 
 
 @_ComponentProbe('usb_hosts')
@@ -557,13 +564,13 @@ def _ProbeUsbHosts():
                    for path in usb_bus_list]
   # Usually there are several USB hosts, so only list the primary information.
   device_id_list = [_ReadSysfsDeviceId(usb_host) for usb_host in usb_host_list]
-  valid_device_id_list = [x for x in device_id_list if x is not None]
-  return ' '.join(valid_device_id_list) if valid_device_id_list else None
+  return [x for x in device_id_list if x is not None]
 
 
 @_ComponentProbe('vga')
 def _ProbeVga():
-  return _ReadSysfsNodeId('/sys/class/graphics/fb0')
+  node_id = _ReadSysfsNodeId('/sys/class/graphics/fb0')
+  return [node_id] if node_id is not None else []
 
 
 @_ComponentProbe('wireless')
@@ -736,31 +743,36 @@ def Probe(target_comp_classes=None,
                                if probe_class in arch_probes
                                else generic_probes[probe_class]))
                 for probe_class in sorted(probe_class_white_list))
-  results = Obj(
-      found_components={},
-      missing_components=[],
-      volatiles={},
-      initial_configs={})
   arch = Shell('crossystem arch').stdout.strip()
   comp_probes = FilterProbes(_COMPONENT_PROBE_MAP, arch, target_comp_classes)
   if probe_initial_config:
     ic_probes = FilterProbes(_INITIAL_CONFIG_PROBE_MAP, arch, [])
   else:
     ic_probes = {}
+  found_components={}
+  missing_component_classes=[]
   for comp_class, probe_fun in comp_probes.items():
-    probe_value = RunProbe(probe_fun)
-    if probe_value is not None:
-      results.found_components[comp_class] = probe_value
+    probe_values = RunProbe(probe_fun)
+    if not probe_values:
+      missing_component_classes.append(comp_class)
+    elif len(probe_values) == 1:
+      found_components[comp_class] = probe_values.pop()
     else:
-      results.missing_components.append(comp_class)
+      found_components[comp_class] = probe_values
+  initial_configs={}
   for ic_class, probe_fun in ic_probes.items():
     probe_value = RunProbe(probe_fun)
     if probe_value is not None:
-      results.initial_configs[ic_class] = probe_value
+      initial_configs[ic_class] = probe_value
+  volatiles={}
   if probe_volatile:
     main_fw_file = crosfw.LoadMainFirmware().GetFileName()
-    results.volatiles.update(CalculateFirmwareHashes(main_fw_file))
+    volatiles.update(CalculateFirmwareHashes(main_fw_file))
     ec_fw_file = crosfw.LoadEcFirmware().GetFileName()
     if ec_fw_file is not None:
-      results.volatiles.update(CalculateFirmwareHashes(ec_fw_file))
-  return results
+      volatiles.update(CalculateFirmwareHashes(ec_fw_file))
+  return ProbeResults(
+    found_components=found_components,
+    missing_component_classes=missing_component_classes,
+    volatiles=volatiles,
+    initial_configs=initial_configs)

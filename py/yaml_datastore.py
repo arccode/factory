@@ -25,18 +25,19 @@ class InvalidDataError(ValueError):
 
 class YamlDatastore(object):
 
-  def WriteOnDiff(self, filename, raw_data):
+  def WriteOnDiff(self, path, filename, raw_data):
     """Write data to file if there are any differences, logging the diffs.
 
     The file will be created if it does not exist.
     """
-    full_path = os.path.join(self._path, filename)
+    full_path = os.path.join(path, filename)
     internal_data = (DATA_FILE_WARNING_MESSAGE_HEADER.split('\n') +
                      raw_data.strip('\n').split('\n'))
     if os.path.exists(full_path):
       file_data = [line.rstrip('\n') for line in open(full_path, 'r')]
       diff = [line for line in difflib.unified_diff(file_data, internal_data)]
       if not diff:
+        logging.debug('no differences for %s' % full_path)
         return
       logging.info('updating %s with changes:\n%s', filename, '\n'.join(diff))
     else:
@@ -88,7 +89,7 @@ class _DatastoreBase(object):
           return dict((field_key, NestedDecode(field_type, field))
                       for field_key, field in elt_data.items())
         if collection_type is list:
-          return [NestedDecode(field_type, field) for field in elt_data]
+          return sorted(NestedDecode(field_type, field) for field in elt_data)
       elif isinstance(elt_type, list):
         for elt_subtype in elt_type:
           try:
