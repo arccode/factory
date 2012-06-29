@@ -263,6 +263,18 @@ class Validate:
       raise Error, ('volatile result names must match the regexp %r, not %r' %
                     (regexp, name))
 
+  @classmethod
+  def InitialConfigContraintName(cls, name):
+    regexp = r'^([a-zA-Z0-9_]+)$'
+    if not re.match(regexp, name):
+      raise Error, ('initial config constraint names must match the '
+                    'regexp %r, not %r' % (regexp, name))
+
+  @classmethod
+  def InitialConfigTag(cls, tag):
+    if not tag.isdigit():
+      raise Error, 'initial config tags must be digits, not %r' % tag
+
 
 class CompDb(YamlDatastore):
 
@@ -446,20 +458,19 @@ class CookedProbeResults(object):
     self.matched_components.sort()
 
   def _MatchVolatiles(self):
-    self.matched_volatile_names = []
+    self.matched_volatiles = {}
     self.unmatched_volatiles = {}
     for probe_class, probe_result in self.volatiles.items():
       volatile_name = self._device.reverse_vol_value_map.get(probe_result, None)
       if volatile_name is not None:
-        self.matched_volatile_names.append(volatile_name)
+        self.matched_volatiles[probe_class] = volatile_name
       else:
         self.unmatched_volatiles[probe_class] = probe_result
-    self.matched_volatile_names.sort()
 
   def _MatchVolTags(self):
     self.matched_vol_tags = sorted(
       tag for tag, volatile in self._device.volatiles.items()
-      if sorted(volatile.values()) == self.matched_volatile_names)
+      if volatile == self.matched_volatiles)
 
   def _MatchIcTags(self):
     self.matched_ic_tags = sorted(
@@ -477,8 +488,8 @@ class CookedProbeResults(object):
       self.component_data_classes == self._comp_db.all_comp_classes)
     self.passed_ic_matched_boms = set()
     for bom_name in self.matched_boms:
-      enforced_ics = self._device.reverse_ic_map[bom_name]
-      if enforced_ics <= self.matched_ic_tags:
+      enforced_ics = self._device.reverse_ic_map.get(bom_name, [])
+      if set(enforced_ics) <= set(self.matched_ic_tags):
         self.passed_ic_matched_boms.add(bom_name)
 
   def _MatchHwids(self):
@@ -551,15 +562,17 @@ class Device(YamlDatastore):
       bom, variant, volatile = match.pop()
       self.UpdateHwidStatusMaps(bom, variant, volatile, status)
 
-  def _BuildPrimeryClassSet(self):
+  def _BuildClassSets(self):
     self.primary_classes = set().union(*[
         ComponentSpecClasses(bom.primary) for bom in self.boms.values()])
+    self.variant_classes = (self._comp_db.all_comp_classes -
+                            self.primary_classes)
 
   def _PreprocessData(self):
     self._BuildReverseVolValueMap()
     self._BuildReverseIcMap()
     self._BuildHwidStatusMaps()
-    self._BuildPrimeryClassSet()
+    self._BuildClassSets()
     self.cooked_boms = CookedBoms(self.boms)
 
   def _EnforceVariantClassesAllMatch(self):
@@ -570,12 +583,10 @@ class Device(YamlDatastore):
     """
     if not self.primary_classes or not self.variants:
       return
-    expected_variant_classes = (self._comp_db.all_comp_classes -
-                                self.primary_classes)
     variant_classes = set().union(*[
         ComponentSpecClasses(variant) for variant in self.variants.values()])
-    if expected_variant_classes != variant_classes:
-      missing = expected_variant_classes - variant_classes
+    if self.variant_classes != variant_classes:
+      missing = self.variant_classes - variant_classes
       extra = ((variant_classes | self.primary_classes) -
                self._comp_db.all_comp_classes)
       msg = ('%r primary and variant classes are incomplete; '
@@ -655,6 +666,7 @@ class Device(YamlDatastore):
     self.UpdateHwidStatusMaps(bom, variant, volatile, status)
     pattern = '%s %s-%s' % (bom, variant, volatile)
     getattr(self.hwid_status, status).append(pattern)
+    self._PreprocessData()
 
   def GetHwidStatus(self, bom_name, variant_code, volatile_code):
     variant_status_map = self._hwid_status_map.get(bom_name, {})
@@ -717,6 +729,20 @@ class Device(YamlDatastore):
     self.volatile_values[vol_name] = vol_value
     self._PreprocessData()
     return vol_name
+
+  def AddVolatile(self, spec):
+    vol_tag = AlphaIndex(len(self.volatiles))
+    self.volatiles[vol_tag] = spec
+    self._PreprocessData()
+    return vol_tag
+
+  def AddInitialConfig(self, constraints):
+    map(Validate.InitialConfigContraintName, constraints)
+    ic = InitialConfigSpec(constraints=constraints, enforced_for_boms=[])
+    ic_tag = str(len(self.initial_configs))
+    self.initial_configs[ic_tag] = ic
+    self._PreprocessData()
+    return ic_tag
 
   def MatchBoms(self, component_data):
     return set(
@@ -1085,6 +1111,7 @@ def AssignVariant(config, hw_db):
 def AssignInitialConfig(config, hw_db):
   device = hw_db.GetDevice(config.board)
   device.BomExists(config.bom)
+  Validate.InitialConfigTag(config.ic)
   device.InitialConfigExists(config.ic)
   ic = device.initial_configs[config.ic]
   if config.cancel:
@@ -1100,12 +1127,14 @@ def AssignInitialConfig(config, hw_db):
       print 'initial config %s already enforced for bom %s' % (
         config.ic, config.bom)
     else:
-      ic.enforced_for_boms.append(config.ic)
+      ic.enforced_for_boms.append(config.bom)
       ic.enforced_for_boms.sort()
       print 'enforcing initial config %s for bom %s' % (config.ic, config.bom)
 
 
-# TODO(tammo): How to change existing status values?
+# TODO(tammo): How to change existing status values?  Set to None and
+# derive globs?  Or allow globs only here, not in the file?  No, the
+# file should also have globs...
 @Command('set_hwid_status',
          CmdArg('-b', '--board', required=True),
          CmdArg('--bom', required=True),
@@ -1145,7 +1174,7 @@ def AssimilateProbeResults(config, hw_db):
   If a bom name is specified, and if a bom of that name does not
   already exist, attempt to create it, and associate the components
   specified by the input data.  If there is already a bom with the
-  same components, the request will fail.
+  exact same component mappings, the request will fail.
 
   Variant data that cannot be derived from the input data must be
   added to the bom later using other commands.
@@ -1163,9 +1192,9 @@ def AssimilateProbeResults(config, hw_db):
   for comp in cooked_results.matched_components:
     print 'found matching %r component %r' % (
       hw_db.comp_db.name_class_map[comp], comp)
-  for vol_name in cooked_results.matched_volatile_names:
+  for vol_class, vol_name in cooked_results.matched_volatiles.items():
     print 'found matching %r %r volatile %r' % (
-      device.board_name, device.reverse_vol_value_map[vol_name], vol_name)
+      device.board_name, vol_class, vol_name)
   for comp_class, comp_prs in cooked_results.unmatched_components.items():
     for comp_probe_result in comp_prs:
       comp_name = hw_db.comp_db.AddComponent(comp_class, comp_probe_result)
@@ -1175,29 +1204,40 @@ def AssimilateProbeResults(config, hw_db):
     vol_name = device.AddVolatileValue(vol_class, vol_value)
     print 'added volatile_value/probe_result %r : %r' % (
       vol_name, vol_value)
-  if cooked_results.matched_vol_tags:
-    print 'matching volatile tags: %s' % ', '.join(
-      cooked_results.matched_vol_tags)
-  if cooked_results.matched_ic_tags:
-    print 'matching initial config tags: %s' % ', '.join(
-      cooked_results.matched_ic_tags)
   if cooked_results.matched_boms:
     print '%s matching boms: %s' % (
       'exactly' if cooked_results.component_data_is_complete else 'partially',
       ', '.join(sorted(cooked_results.matched_boms)))
+  # Cook again, to pick up mappings to added comps/vols.
+  cooked_results = CookedProbeResults(
+          hw_db.comp_db, device, probe_results)
+  if cooked_results.matched_vol_tags:
+    print 'matching volatile tags: %s' % ', '.join(
+      cooked_results.matched_vol_tags)
+  else:
+    vol_tag = device.AddVolatile(cooked_results.matched_volatiles)
+    print 'added volatile spec as tag %s' % vol_tag
+  if cooked_results.matched_ic_tags:
+    print 'matching initial config tags: %s' % ', '.join(
+      cooked_results.matched_ic_tags)
+  else:
+    ic_tag = device.AddInitialConfig(cooked_results.initial_configs)
+    print 'added initial config spec as tag %s' % ic_tag
+    cooked_results.matched_ic_tags = [ic_tag]
   if config.create_bom != False:
-    # Cook again, to pick up mappings to added comps/vols.
-    cooked_results = CookedProbeResults(hw_db.comp_db, device, probe_results)
-    print cooked_results.component_data_classes
     missing_classes = (hw_db.comp_db.all_comp_classes -
-                       cooked_results.component_data_classes)
+                       cooked_results.component_data_classes -
+                       device.variant_classes)
     if missing_classes:
       print ('ignoring create_bom argument; component data missing [%s] classes'
              % ', '.join(missing_classes))
       return
-    if cooked_results.matched_boms:
-      print 'ignoring create_bom argument; a matching bom already exists'
-      return
+    for bom_name in cooked_results.matched_boms:
+      bom = device.boms[bom_name]
+      if bom.primary == cooked_results.matched_components:
+        print ('ignoring create_bom argument; identical bom %r already exists' %
+               bom_name)
+        return
     if config.create_bom in device.boms:
       print ('bom %r exists, but component list differs from this data' %
              config.create_bom)
