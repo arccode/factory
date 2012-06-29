@@ -89,7 +89,8 @@ class UI(object):
         # Find and register the static directory, if any.
         static_dirs = filter(os.path.exists,
                              [base + '_static',
-                              os.path.join(py_script, 'static')])
+                              os.path.join(os.path.dirname(py_script), 'static')
+                             ])
         if len(static_dirs) > 1:
             raise FactoryTestFailure('Cannot have both of %s - delete one!' %
                                      static_dirs)
