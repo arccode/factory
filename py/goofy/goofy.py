@@ -38,6 +38,9 @@ from cros.factory.test import factory
 from cros.factory.test import state
 from cros.factory.test.factory import TestState
 from cros.factory.goofy import updater
+from cros.factory.goofy import test_steps
+from cros.factory.goofy.event_log_watcher import EventLogWatcher
+from cros.factory.test import shopfloor
 from cros.factory.test import utils
 from cros.factory.test.event import Event
 from cros.factory.test.event import EventClient
@@ -155,6 +158,7 @@ class Goofy(object):
         self.event_server_thread = None
         self.event_client = None
         self.connection_manager = None
+        self.log_watcher = None
         self.network_enabled = True
         self.event_log = None
         self.prespawner = None
@@ -237,6 +241,10 @@ class Goofy(object):
             self.event_server_thread.join()
             self.event_server.server_close()
             self.event_server_thread = None
+        if self.log_watcher:
+            if self.log_watcher.IsThreadStarted():
+                self.log_watcher.StopWatchThread()
+            self.log_watcher = None
         if self.prespawner:
             logging.info('Stopping prespawner')
             self.prespawner.stop()
@@ -747,7 +755,9 @@ class Goofy(object):
             state.clear_state()
 
         if self.options.print_test_list:
-            print (factory.read_test_list(self.options.print_test_list).
+            print (factory.read_test_list(
+                    self.options.print_test_list,
+                    test_classes=dict(test_steps.__dict__)).
                    __repr__(recursive=True))
             return
 
@@ -773,8 +783,10 @@ class Goofy(object):
                 sys.exit(1)
             logging.info('Using test list %s', self.options.test_list)
 
-        self.test_list = factory.read_test_list(self.options.test_list,
-                                                self.state_instance)
+        self.test_list = factory.read_test_list(
+            self.options.test_list,
+            self.state_instance,
+            test_classes=dict(test_steps.__dict__))
         if not self.state_instance.has_shared_data('ui_lang'):
             self.state_instance.set_shared_data('ui_lang',
                                                 self.test_list.options.ui_lang)
@@ -787,6 +799,14 @@ class Goofy(object):
         self.start_event_server()
         self.connection_manager = self.env.create_connection_manager(
             self.test_list.options.wlans)
+        # Note that we create a log watcher even if
+        # sync_event_log_period_secs isn't set (no background
+        # syncing), since we may use it to flush event logs as well.
+        self.log_watcher = EventLogWatcher(
+            self.test_list.options.sync_event_log_period_secs,
+            handle_event_logs_callback=self._handle_event_logs)
+        if self.test_list.options.sync_event_log_period_secs:
+            self.log_watcher.StartWatchThread()
 
         self.update_system_info()
 
@@ -895,6 +915,22 @@ class Goofy(object):
     def _run_queue_idle(self):
         '''Invoked when the run queue has no events.'''
         self.check_connection_manager()
+
+    def _handle_event_logs(self, log_name, chunk):
+        '''Callback for event watcher.
+
+        Attempts to upload the event logs to the shopfloor server.
+        '''
+        description = 'event logs (%s, %d bytes)' % (log_name, len(chunk))
+        start_time = time.time()
+        logging.info('Syncing %s', description)
+        shopfloor_client = shopfloor.get_instance(
+            detect=True,
+            timeout=self.test_list.options.shopfloor_timeout_secs)
+        shopfloor_client.UploadEvent(log_name, chunk)
+        logging.info(
+            'Successfully synced %s in %.03f s',
+            description, time.time() - start_time)
 
     def run_tests_with_status(self, statuses_to_run, starting_at=None,
         root=None):

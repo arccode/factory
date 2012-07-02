@@ -11,6 +11,7 @@ import cPickle as pickle
 import pipes
 import re
 import subprocess
+import sys
 import tempfile
 import threading
 import time
@@ -281,6 +282,18 @@ class TestInvocation(object):
                     logging.exception('Unable to delete temporary file %s',
                                       f)
 
+    def _invoke_target(self):
+        '''
+        Invokes a target directly within Goofy.
+        '''
+        try:
+            self.test.invocation_target(self)
+            return TestState.PASSED, ''
+        except:
+            logging.exception('Exception while invoking target')
+            error_msg = traceback.format_exc()
+            return TestState.FAILED, traceback.format_exc()
+
     def clean_autotest_logs(self, output_dir):
         globs = self.goofy.test_list.options.preserve_autotest_results
         if '*' in globs:
@@ -340,9 +353,12 @@ class TestInvocation(object):
                 status, error_msg = self._invoke_autotest()
             elif self.test.pytest_name:
                 status, error_msg = self._invoke_pytest()
+            elif self.test.invocation_target:
+                status, error_msg = self._invoke_target()
             else:
                 status = TestState.FAILED
-                error_msg = 'No autotest_name or pytest_name'
+                error_msg = (
+                    'No autotest_name, pytest_name, or invocation_target')
         finally:
             try:
                 self.goofy.event_client.post_event(

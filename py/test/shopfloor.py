@@ -27,6 +27,7 @@ import xmlrpclib
 from xmlrpclib import Binary, Fault
 
 import factory_common
+from cros.factory.utils import net_utils
 from cros.factory.test import factory
 
 
@@ -153,13 +154,14 @@ def detect_default_server_url():
     return None
 
 
-def get_instance(url=None, detect=False):
+def get_instance(url=None, detect=False, timeout=None):
     """Gets an instance (for client side) to access the shop floor server.
 
     @param url: URL of the shop floor server. If None, use the value in
             factory shared data.
     @param detect: If True, attempt to detect the server URL if none is
         specified.
+    @param timeout: If not None, the timeout in seconds.
     @return An object with all public functions from shopfloor.ShopFloorBase.
     """
     if not url:
@@ -168,7 +170,8 @@ def get_instance(url=None, detect=False):
         url = detect_default_server_url()
     if not url:
         raise Exception("Shop floor server URL is NOT configured.")
-    return xmlrpclib.ServerProxy(url, allow_none=True, verbose=False)
+    return net_utils.TimeoutXMLRPCServerProxy(
+        url, allow_none=True, verbose=False, timeout=timeout)
 
 
 @_server_api

@@ -190,15 +190,18 @@ def del_shared_data(key):
     return get_state_instance().del_shared_data(key)
 
 
-def read_test_list(path=None, state_instance=None, text=None):
+def read_test_list(path=None, state_instance=None, text=None,
+                   test_classes={}):
     if len([x for x in [path, text] if x]) != 1:
         raise TestListError('Exactly one of path and text must be set')
 
     test_list_locals = {}
+
     # Import test classes into the evaluation namespace
-    for (k, v) in dict(globals()).iteritems():
-        if type(v) == type and issubclass(v, FactoryTest):
-            test_list_locals[k] = v
+    for d in dict(globals()), test_classes:
+        for (k, v) in d.iteritems():
+            if type(v) == type and issubclass(v, FactoryTest):
+                test_list_locals[k] = v
 
     # Import WLAN into the evaluation namespace, since it is used
     # to construct the wlans option.
@@ -283,8 +286,16 @@ class Options(object):
     engineering_password_sha1 = None
     _types['engineering_password_sha1'] = (type(None), str)
 
-    # WLANs that network_manager may connect to.
+    # WLANs that the connection manager may connect to.
     wlans = []
+
+    # Automatically send events to the shopfloor server when
+    # it is reachable.
+    sync_event_log_period_secs = None
+    _types['sync_event_log_period_secs'] = (type(None), int)
+
+    # Timeout talking to shopfloor server for background operations.
+    shopfloor_timeout_secs = 10
 
     def check_valid(self):
         '''Throws a TestListError if there are any invalid options.'''
@@ -412,6 +423,7 @@ class FactoryTest(object):
                  label_zh='',
                  autotest_name=None,
                  pytest_name=None,
+                 invocation_target=None,
                  kbd_shortcut=None,
                  dargs=None,
                  backgroundable=False,
@@ -420,7 +432,8 @@ class FactoryTest(object):
                  has_ui=None,
                  never_fails=None,
                  exclusive=None,
-                 _root=None):
+                 _root=None,
+                 _default_id=None):
         '''
         Constructor.
 
@@ -429,6 +442,8 @@ class FactoryTest(object):
         @param autotest_name: The name of the autotest to run.
         @param pytest_name: The name of the pytest to run (relative to
             autotest_lib.client.cros.factory.tests).
+        @param invocation_target: The function to execute to run the test
+            (within the Goofy process).
         @param kbd_shortcut: The keyboard shortcut for the test.
         @param dargs: Autotest arguments.
         @param backgroundable: Whether the test may run in the background.
@@ -443,6 +458,7 @@ class FactoryTest(object):
         @param exclusive: Items that the test may require exclusive access to.
             May be a list or a single string.  Items must all be in
             EXCLUSIVE_OPTIONS.  Tests may not be backgroundable.
+        @param _default_id: A default ID to use if no ID is specified.
         @param _root: True only if this is the root node (for internal use
             only).
         '''
@@ -450,6 +466,7 @@ class FactoryTest(object):
         self.label_zh = label_zh
         self.autotest_name = autotest_name
         self.pytest_name = pytest_name
+        self.invocation_target = invocation_target
         self.kbd_shortcut = kbd_shortcut.lower() if kbd_shortcut else None
         self.dargs = dargs or {}
         self.backgroundable = backgroundable
@@ -462,18 +479,28 @@ class FactoryTest(object):
         self.parent = None
         self.root = None
 
-        assert not (autotest_name and pytest_name), (
-            'No more than one of autotest_name, pytest_name must be specified')
-
         if _root:
             self.id = None
         else:
-            self.id = id or autotest_name or pytest_name.rpartition('.')[2]
+            if id:
+                self.id = id
+            elif autotest_name:
+                self.id = autotest_name
+            elif pytest_name:
+                self.id = pytest_name.rpartition('.')[2]
+            else:
+                self.id = _default_id
+
             assert self.id, (
-                'Tests require either an id or autotest name: %r' % self)
+                'id not specified for test: %r' % self)
             assert '.' not in self.id, (
                 'id cannot contain a period: %r' % self)
             # Note that we check ID uniqueness in _init.
+
+        assert len(filter(None, [autotest_name, pytest_name,
+                                 invocation_target, subtests])) <= 1, (
+            'No more than one of autotest_name, pytest_name, '
+            'invocation_target, and subtests must be specified')
 
         if has_ui is not None:
             self.has_ui = has_ui
@@ -497,9 +524,6 @@ class FactoryTest(object):
                 self.id,
                 bogus_exclusive_items,
                 self.EXCLUSIVE_OPTIONS))
-
-        assert not ((autotest_name or pytest_name) and self.subtests), (
-            'Test %s may not have both an autotest and subtests' % self.id)
 
     def to_struct(self):
         '''Returns the node as a struct suitable for JSONification.'''

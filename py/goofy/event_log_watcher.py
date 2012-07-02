@@ -7,8 +7,10 @@
 import logging
 import os
 import shelve
+import sys
 import threading
 import time
+import traceback
 
 from cros.factory.test import factory
 from cros.factory import event_log
@@ -49,9 +51,22 @@ class EventLogWatcher(object):
 
   def StartWatchThread(self):
     '''Starts a thread to watch event logs.'''
-    logging.info('Start watching...')
-    self._watch_thread = threading.Thread(target=self.WatchForever)
+    logging.info('Watching event logs...')
+    self._watch_thread = threading.Thread(target=self.WatchForever,
+                                          name='EventLogWatcher')
     self._watch_thread.start()
+
+  def IsThreadStarted(self):
+    '''Returns True if the thread is currently running.'''
+    return self._watch_thread is not None
+
+  def IsScanning(self):
+    '''Returns True if currently scanning (i.e., the lock is held).'''
+    if self._scan_lock.acquire():
+      self._scan_lock.release()
+      return False
+    else:
+      return True
 
   def FlushEventLogs(self):
     '''Flushes event logs.
@@ -71,6 +86,11 @@ class EventLogWatcher(object):
     Raise:
       ScanException: if at least one ScanEventLog call throws exception.
     '''
+    if not os.path.exists(self._event_log_dir):
+      logging.warn("Event log directory %s does not exist yet",
+                   self._event_log_dir)
+      return
+
     exceptions = []
     for file_name in os.listdir(self._event_log_dir):
       file_path = os.path.join(self._event_log_dir, file_name)
@@ -79,7 +99,16 @@ class EventLogWatcher(object):
         try:
           self.ScanEventLog(file_name)
         except Exception, e:
-          logging.exception('Error scanning event log %s', file_name)
+          if suppress_error:
+            # We're suppressing errors, so just log one line at INFO
+            # level, not a whole traceback.
+            logging.info(
+              'Error handling event log %s: %s', file_name,
+              ''.join(traceback.format_exception_only(
+                  *sys.exc_info()[:2])).strip())
+          else:
+            logging.exception(
+              'Error handling event log %s', file_name)
           exceptions.append(e)
 
     self._db.sync()
