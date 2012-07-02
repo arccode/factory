@@ -29,6 +29,7 @@ CROS_FACTORY_LIB_PATH = os.path.dirname(SCRIPT_PATH)
 FACTORY_PATH = os.path.realpath(os.path.join(CROS_FACTORY_LIB_PATH, '..', '..'))
 FACTORY_PACKAGE_PATH = os.path.join(FACTORY_PATH, 'py_pkg', 'cros', 'factory')
 CLIENT_PATH = FACTORY_PATH
+FACTORY_MD5SUM_PATH = os.path.join(FACTORY_PATH, 'MD5SUM')
 
 FACTORY_STATE_VERSION = 2
 
@@ -106,9 +107,8 @@ def get_current_md5sum():
     Returns None if there has been no update (i.e., unable to read
     the MD5SUM file).
     '''
-    md5sum_file = os.path.join(CLIENT_PATH, 'MD5SUM')
-    if os.path.exists(md5sum_file):
-        return open(md5sum_file, 'r').read().strip()
+    if os.path.exists(FACTORY_MD5SUM_PATH):
+        return open(FACTORY_MD5SUM_PATH, 'r').read().strip()
     else:
         return None
 
