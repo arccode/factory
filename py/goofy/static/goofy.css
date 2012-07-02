@@ -95,7 +95,7 @@ body {
   position: absolute;
 }
 #goofy-status-bar-main {
-  padding-top: 4px;
+  padding-top: 1px;
 }
 .goofy-status-bar-item {
   padding-left: .5em;
