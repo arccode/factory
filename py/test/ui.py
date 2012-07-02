@@ -55,9 +55,9 @@ except:
 
 # Factory and autotest modules
 import factory_common
-from autotest_lib.client.common_lib import error
 from cros.factory.test import factory
 from cros.factory.test.factory import TestState
+from cros.factory.test.test_ui import FactoryTestFailure
 from cros.factory.test.event import Event, EventClient
 
 
@@ -558,7 +558,7 @@ def run_test_widget(dummy_job, test_widget,
     exc_info = session.get('exception')
     if exc_info is not None:
        logging.error(exc_info[0], exc_info=exc_info)
-       raise error.TestError(exc_info[1])
+       raise FactoryTestFailure(exc_info[1])
 
 
 

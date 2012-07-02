@@ -276,8 +276,9 @@ class Goofy(object):
             self.web_socket_manager.handle_web_socket)
 
     def start_ui(self):
-        ui_proc_args = [os.path.join(factory.CROS_FACTORY_LIB_PATH, 'ui'),
-                        self.options.test_list]
+        ui_proc_args = [
+            os.path.join(factory.FACTORY_PACKAGE_PATH, 'test', 'ui.py'),
+            self.options.test_list]
         if self.options.verbose:
             ui_proc_args.append('-v')
         logging.info('Starting ui %s', ui_proc_args)
