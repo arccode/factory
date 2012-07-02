@@ -115,6 +115,7 @@ cros.factory.SYSTEM_INFO_LABELS = [
     {key: 'kernel_version', label: cros.factory.Label('Kernel')},
     {key: 'ec_version', label: cros.factory.Label('EC')},
     {key: 'firmware_version', label: cros.factory.Label('Firmware')},
+    {key: 'root_device', label: cros.factory.Label('Root Device')},
     {key: 'factory_md5sum', label: cros.factory.Label('Factory MD5SUM'),
      transform: function(value) {
             return value || cros.factory.Label('(no update)')

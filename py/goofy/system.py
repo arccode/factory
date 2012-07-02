@@ -71,6 +71,15 @@ class SystemInfo(object):
         except:
             pass
 
+        self.root_device = None
+        try:
+            rootdev = subprocess.Popen(['rootdev', '-s'],
+                                       stdout=subprocess.PIPE)
+            stdout, _ = rootdev.communicate()
+            self.root_device = stdout.strip()
+        except:
+            pass
+
         self.factory_md5sum = factory.get_current_md5sum()
 
 
