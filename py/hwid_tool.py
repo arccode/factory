@@ -40,28 +40,6 @@ LIFE_CYCLE_STAGES = set([
     'eol'])
 
 
-MakeDatastoreClass('XCompData', {
-    'registry': (dict, (dict, str)),
-    'status_map': (dict, (dict, str)),
-    })
-
-MakeDatastoreClass('XHwid', {
-    'component_map': (dict, str),
-    'variant_list': (list, str),
-    })
-
-MakeDatastoreClass('XDevice', {
-    'hwid_map': (dict, XHwid),
-    'hwid_status_map': (dict, (list, str)),
-    'initial_config_map': (dict, (dict, str)),
-    'initial_config_use_map': (dict, (list, str)),
-    'variant_map': (dict, (list, str)),
-    'volatile_map': (dict, (dict, str)),
-    'volatile_value_map': (dict, str),
-    'vpd_ro_field_list': (list, str),
-     })
-
-
 MakeDatastoreClass('StatusData', dict(
     (status_name, (list, str))
     for status_name in LIFE_CYCLE_STAGES))
@@ -109,42 +87,17 @@ MakeDatastoreClass('ProbeResults', {
     'initial_configs': (dict, str),
     })
 
-
-# TODO(tammo): Variant data should have 'probe results' stored in the
-# component_db, and the variant_map should only contain a list of
-# canonical component names.  Based on the component classes that
-# occur in the variant_map, automatically derive a set of components
-# that are 'secondary' and make sure these components never appear in
-# any Hwid component_map.  Basically, the variant data should be a top
-# level datapoint that feeds into creating per-hwid component_maps.
-# Calculations on hwids should use these unified (bom+variant)
-# component maps.
-
-# TODO(tammo): Enforce that volatile canonical names (the keys in the
-# volatile_value_map) are all lower case, to allow for the special
-# 'ANY' tag.  Or not ... this might be worth some thought; volatile
-# must always be a perfect match, so there should either be a value or
-# nothing?
-
-# TODO(tammo): Refactor code to lift out the command line tool parts
-# from the core functionality of the module.  Goal is that the key
-# operations should be accessible with a meaningful programmatic API,
-# and the command line tool parts should just be one of the clients of
-# that API.
-
-# TODO(tammo): Make sure that command line commands raise Error for
-# any early termination (no calls to return), to make sure that the
-# database does not get written.
-
-# TODO(tammo): Add examples to the command line function docstrings.
-
-# TODO(tammo): Hwid should be Bom, and it should be two lists of
-# component classes (missing and any) and a map of classes to
-# canonical names (either an atom, or a list).  Device data should
-# track variant information.  Variant data should also just be a list
-# of Bom datastructures, but named with variant codes?  That way the
-# full bom for each hwid can be calcualted by just merging the primary
-# and variant bom data.
+MakeDatastoreClass('HwidData', {
+    'hwid': str,
+    'board_name': str,
+    'bom_name': str,
+    'variant_code': str,
+    'volatile_code': str,
+    'status': str,
+    'components': ComponentSpec,
+    'initial_config': (dict, str),
+    'ro_vpds': (list, str),
+    })
 
 
 def HwidChecksum(text):
@@ -225,6 +178,10 @@ def CombineComponentSpecs(a, b):
     classes_dontcare=list(set(a.classes_dontcare) | set(b.classes_dontcare)),
     classes_missing=list(set(a.classes_missing) | set(b.classes_missing)),
     components=components)
+
+
+def ComponentSpecsConflict(a, b):
+  return (ComponentSpecClasses(a) & ComponentSpecClasses(b)) != set()
 
 
 class Validate:
@@ -477,34 +434,35 @@ class CookedProbeResults(object):
       tag for tag, ic in self._device.initial_configs.items()
       if ic.constraints == self.initial_configs)
 
-  def _MatchBoms(self):
+  def _BuildMatchTree(self):
     self.component_data = ComponentData(
       classes_missing=self.missing_component_classes,
       extant_components=self.matched_components)
-    self.matched_boms = self._device.MatchBoms(self.component_data)
     self.component_data_classes = self._comp_db.ComponentDataClasses(
       self.component_data)
     self.component_data_is_complete = (
       self.component_data_classes == self._comp_db.all_comp_classes)
-    self.passed_ic_matched_boms = set()
-    for bom_name in self.matched_boms:
-      enforced_ics = self._device.reverse_ic_map.get(bom_name, [])
-      if set(enforced_ics) <= set(self.matched_ic_tags):
-        self.passed_ic_matched_boms.add(bom_name)
-
-  def _MatchHwids(self):
+    self.match_tree = dict((bom_name, {}) for bom_name in
+                           self._device.MatchBoms(self.component_data))
     self.matched_hwids = set()
-    if not self.component_data_is_complete:
-      return
-    for bom_name in self.passed_ic_matched_boms:
+    for bom_name, variant_tree in self.match_tree.items():
       matching_variants = self._device.MatchVariants(
         bom_name, self.component_data)
       for var_code in matching_variants:
+        volatile_tree = variant_tree.setdefault(var_code, {})
         for vol_tag in self.matched_vol_tags:
           status = self._device.GetHwidStatus(bom_name, var_code, vol_tag)
           if status is not None:
+            volatile_tree[vol_tag] = status
             hwid = self._device.FmtHwid(bom_name, var_code, vol_tag)
             self.matched_hwids.add(hwid)
+
+  def _MatchInitialConfigs(self):
+    self.matched_ic_boms = set()
+    for bom_name in self.match_tree:
+      enforced_ics = self._device.reverse_ic_map.get(bom_name, [])
+      if set(enforced_ics) >= set(self.matched_ic_tags):
+        self.matched_ic_boms.add(bom_name)
 
   def __init__(self, comp_db, device, probe_results):
     self._comp_db = comp_db
@@ -514,8 +472,8 @@ class CookedProbeResults(object):
     self._MatchVolatiles()
     self._MatchVolTags()
     self._MatchIcTags()
-    self._MatchBoms()
-    self._MatchHwids()
+    self._BuildMatchTree()
+    self._MatchInitialConfigs()
 
 
 class Device(YamlDatastore):
@@ -615,10 +573,22 @@ class Device(YamlDatastore):
       raise Error, ('volatiles are not all unique; '
                     'volatiles [%s] are redundant' % ', '.join(extra))
 
+  def _EnforceInitialConfigsDontConflict(self):
+    for bom_name in self.boms:
+      combined_constraints = {}
+      for ic_tag in self.reverse_ic_map.get(bom_name, []):
+        for key, value in self.initial_configs[ic_tag].constraints.items():
+          existing_value = combined_constraints.get(key, None)
+          if existing_value is not None and existing_value != value:
+            raise Error, ('initial configs for bom %r conflict; enforced '
+                          'tags specify more than one differing constraint '
+                          'for %r' % (bom_name, key))
+
   def EnforceInvariants(self):
     self._EnforceVariantClassesAllMatch()
     self._EnforceCompClassesAllMatch()
     self._EnforceVolatileUniqueness()
+    self._EnforceInitialConfigsDontConflict()
 
   def BomExists(self, bom_name):
     if bom_name not in self.boms:
@@ -813,97 +783,32 @@ class HardwareDb(object):
       raise Error, ('board %r does not exist' % board_name)
     return self.devices[board_name]
 
+  def GetHwidData(self, hwid):
+    """Return corresponding HwidData for specified HWID string."""
+    hwid_parts = ParseHwid(hwid)
+    device = self.GetDevice(hwid_parts.board)
+    device.BomExists(hwid_parts.bom)
+    device.VariantExists(hwid_parts.variant)
+    device.VolatileExists(hwid_parts.volatile)
+    return HwidData(
+      hwid=hwid,
+      board_name=hwid_parts.board,
+      bom_name=hwid_parts.bom,
+      variant_code=hwid_parts.variant,
+      volatile_code=hwid_parts.volatile,
+      status=device.GetHwidStatus(
+        hwid_parts.bom, hwid_parts.volatile, hwid_parts.variant),
+      components = CombineComponentSpecs(
+        device.boms[hwid_parts.bom].primary,
+        device.variants[hwid_parts.variant]),
+      initial_config = device.GetInitialConfig(hwid_parts.bom),
+      ro_vpds=device.vpd_ro_field_list.copy())
+
   def Write(self):
     """Write the component_db and all device data files."""
     self.comp_db.Write(self._path)
     for device in self.devices.values():
       device.Write(self._path)
-
-
-class XCompDb(YamlDatastore):
-
-  def __init__(self, path):
-    self._path = path
-    full_path = os.path.join(path, COMPONENT_DB_FILENAME)
-    if not os.path.isfile(full_path):
-      raise InvalidDataError, (
-          'ComponentDB not found (expected path is %r).' % full_path)
-    with open(full_path, 'r') as f:
-      self.__dict__.update(XCompData.Decode(f.read()).__dict__)
-
-  def Convert(self):
-    data = ComponentRegistry(
-      components=self.registry,
-      status=StatusData(**dict((status, self.status_map.get(status, []))
-                               for status in LIFE_CYCLE_STAGES)))
-    self.WriteOnDiff(COMPONENT_DB_FILENAME, data.Encode())
-
-
-class XHardwareDb(YamlDatastore):
-
-  def __init__(self, path):
-    """Read the component_db and all device data files."""
-    self._path = path
-    self.comp_db = XCompDb(path)
-    device_paths = [(entry, os.path.join(path, entry))
-                    for entry in os.listdir(path)
-                    if entry.isalpha() and entry.isupper()]
-    device_paths = [(e, p) for (e, p) in device_paths if os.path.isfile(p)]
-    self.devices = dict((e, XDevice.Decode(open(p, 'r').read()))
-                        for e, p in device_paths)
-
-  def Convert(self):
-    def ConvertBom(xhwid):
-      primary = ComponentSpec(
-        components={},
-        classes_dontcare=[],
-        classes_missing=[])
-      for comp_class, comp_name in xhwid.component_map.items():
-        if comp_name == 'ANY':
-          primary.classes_dontcare.append(comp_class)
-        elif comp_name == 'NONE':
-          primary.classes_missing.append(comp_class)
-        else:
-          primary.components[comp_class] = comp_name
-      data = BomSpec(
-        primary=primary,
-        variants=xhwid.variant_list)
-      return data
-    def ConvertVariant(comp_list):
-      assert(len(comp_list) <= 1)
-      data = ComponentSpec(
-        components={},
-        classes_dontcare=[],
-        classes_missing=[])
-      if len(comp_list) == 1:
-        data.components['keyboard'] = comp_list.pop()
-      return data
-    def ConvertIc(ic, use_list):
-      return InitialConfigSpec(
-        constraints=ic,
-        enforced_for_boms=use_list if use_list is not None else [])
-    self.comp_db.Convert()
-    for device_name, xdevice in self.devices.items():
-      boms = dict((b_name, ConvertBom(b)) for b_name, b
-                  in xdevice.hwid_map.items())
-      variants = dict((v_name, ConvertVariant(v)) for v_name, v
-                      in xdevice.variant_map.items())
-      ics = dict((ic_name, ConvertIc(
-            ic, xdevice.initial_config_use_map.get(
-              ic_name, None)))
-                 for ic_name, ic in xdevice.initial_config_map.items())
-      status = StatusData(**dict(
-          (status, xdevice.hwid_status_map.get(status, []))
-          for status in LIFE_CYCLE_STAGES))
-      device = DeviceSpec(
-        vpd_ro_fields=xdevice.vpd_ro_field_list,
-        volatiles=xdevice.volatile_map,
-        volatile_values=xdevice.volatile_value_map,
-        hwid_status=status,
-        initial_configs=ics,
-        boms=boms,
-        variants=variants)
-      self.WriteOnDiff(device_name, device.Encode())
 
 
 def PrintHwidHierarchy(device, bom_map, status_mask):
@@ -963,68 +868,7 @@ def PrintHwidHierarchy(device, bom_map, status_mask):
     Obj(ic=set(), present=set(), missing=set(), wild=set()))
 
 
-def MatchHwids(data, cooked_results, board_name, status_set):
-  """Return a list of all HWIDs compatible with the cooked probe results."""
-  logging.info('looking for HWIDs to match:\n%s', YamlWrite(cooked_results))
-  logging.info('matching only status: %s', ', '.join(status_set))
-  device = data.devices[board_name]
-  matching_hwids = []
-  for bom_name, bom_details in device.hwid_map.items():
-    match = True
-    # TODO(tammo): The expected component_map used here should include
-    # variant component data, ie the outer loop should be over
-    # variants and not boms.
-    for comp_class, expected_name in bom_details.component_map.items():
-      if expected_name == 'ANY':
-        continue
-      found_name = cooked_results.matched_components.get(comp_class, None)
-      if expected_name == found_name:
-        continue
-      match = False
-      break
-    if not match:
-      continue
-    logging.info('considering bom %s', bom_name)
-    found_component_names = cooked_results.matched_components.values()
-    for variant_code in bom_details.variant_list:
-      variant_details = device.variant_map[variant_code]
-      logging.info('variant details: %r, found_component_names: %r',
-                   variant_details, found_component_names)
-      if not all(comp_name in found_component_names
-                 for comp_name in variant_details):
-        continue
-      logging.info('variant %r matched, checking volatiles', variant_code)
-      for volatile_code in cooked_results.matched_volatile_tags:
-        status = device.GetHwidStatus(bom_name, volatile_code, variant_code)
-        logging.info('volatile_code %r has status %r', volatile_code, status)
-        if status in status_set:
-          hwid = device.FmtHwid(bom_name, volatile_code, variant_code)
-          matching_hwids.append(hwid)
-  return matching_hwids
-
-
-def LookupHwidProperties(data, hwid):
-  """TODO(tammo): Add more here XXX."""
-  props = ParseHwid(hwid)
-  if props.board not in data.devices:
-    raise Error, 'hwid %r board %s could not be found' % (hwid, props.board)
-  device = data.devices[props.board]
-  if props.bom not in device.hwid_map:
-    raise Error, 'hwid %r bom %s could not be found' % (hwid, props.bom)
-  hwid_details = device.hwid_map[props.bom]
-  if props.variant not in hwid_details.variant_list:
-    raise Error, ('hwid %r variant %s does not match database' %
-                  (hwid, props.variant))
-  if props.volatile not in device.volatile_map:
-    raise Error, ('hwid %r volatile %s does not match database' %
-                  (hwid, props.volatile))
-  props.status = device.GetHwidStatus(props.bom, props.volatile, props.variant)
-  # TODO(tammo): Refactor if FilterExternalHwidAttrs is pre-computed.
-  initial_config_set = CommonInitialConfig(device, set([props.bom]))
-  props.initial_config = next(iter(initial_config_set), None)
-  props.vpd_ro_field_list = device.vpd_ro_field_list
-  props.component_map = hwid_details.component_map
-  return props
+# TODO(tammo): Add examples to the command line function docstrings.
 
 
 @Command('create_device',
@@ -1134,7 +978,7 @@ def AssignInitialConfig(config, hw_db):
 
 # TODO(tammo): How to change existing status values?  Set to None and
 # derive globs?  Or allow globs only here, not in the file?  No, the
-# file should also have globs...
+# file should also have globs... XXX
 @Command('set_hwid_status',
          CmdArg('-b', '--board', required=True),
          CmdArg('--bom', required=True),
@@ -1204,10 +1048,10 @@ def AssimilateProbeResults(config, hw_db):
     vol_name = device.AddVolatileValue(vol_class, vol_value)
     print 'added volatile_value/probe_result %r : %r' % (
       vol_name, vol_value)
-  if cooked_results.matched_boms:
+  if cooked_results.match_tree:
     print '%s matching boms: %s' % (
       'exactly' if cooked_results.component_data_is_complete else 'partially',
-      ', '.join(sorted(cooked_results.matched_boms)))
+      ', '.join(sorted(cooked_results.match_tree)))
   # Cook again, to pick up mappings to added comps/vols.
   cooked_results = CookedProbeResults(
           hw_db.comp_db, device, probe_results)
@@ -1232,7 +1076,7 @@ def AssimilateProbeResults(config, hw_db):
       print ('ignoring create_bom argument; component data missing [%s] classes'
              % ', '.join(missing_classes))
       return
-    for bom_name in cooked_results.matched_boms:
+    for bom_name in cooked_results.match_tree:
       bom = device.boms[bom_name]
       if bom.primary == cooked_results.matched_components:
         print ('ignoring create_bom argument; identical bom %r already exists' %
@@ -1522,7 +1366,6 @@ def Main():
              help='Write logs to this file.'),
       verbosity_cmd_arg)
   SetupLogging(config.verbosity, config.log)
-  #XXX hw_db = XHardwareDb(config.data_path).Convert()
   hw_db = HardwareDb(config.data_path)
   try:
     config.command(config, hw_db)
