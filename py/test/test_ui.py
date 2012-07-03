@@ -65,21 +65,22 @@ class UI(object):
   '''
   def __init__(self):
     self.lock = threading.RLock()
-    self.event_client = EventClient(callback=self._handle_event)
+    self.event_client = EventClient(callback=self._HandleEvent)
     self.test = os.environ['CROS_FACTORY_TEST_PATH']
     self.invocation = os.environ['CROS_FACTORY_TEST_INVOCATION']
     self.event_handlers = {}
 
     # Set base URL so that hrefs will resolve properly,
     # and pull in Goofy CSS.
-    self.append_html('\n'.join([
+    self.AppendHTML('\n'.join([
           '<base href="/tests/%s/">' % self.test,
           ('<link rel="stylesheet" type="text/css" '
            'href="/goofy.css">')]))
-    self._setup_static_files(
+    self._SetupStaticFiles(
       os.path.realpath(traceback.extract_stack()[-2][0]))
+    self.error_msgs = []
 
-  def _setup_static_files(self, py_script):
+  def _SetupStaticFiles(self, py_script):
     # Get path to caller and register static files/directories.
     base = os.path.splitext(py_script)[0]
 
@@ -89,7 +90,7 @@ class UI(object):
     # Find and register the static directory, if any.
     static_dirs = filter(os.path.exists,
                [base + '_static',
-               os.path.join(os.path.dirname(py_script), 'static')
+                os.path.join(os.path.dirname(py_script), 'static')
                ])
     if len(static_dirs) > 1:
       raise FactoryTestFailure('Cannot have both of %s - delete one!' %
@@ -103,8 +104,8 @@ class UI(object):
     # Autoload .html and .js files.
     for extension in ('js', 'html'):
       autoload = filter(os.path.exists,
-               [x + '.' + extension
-                for x in autoload_bases])
+                [x + '.' + extension
+                 for x in autoload_bases])
       if len(autoload) > 1:
         raise FactoryTestFailure(
           'Cannot have both of %s - delete one!' %
@@ -114,24 +115,29 @@ class UI(object):
           '/tests/%s/%s' % (self.test, os.path.basename(autoload[0])),
           autoload[0])
         if extension == 'html':
-          self.append_html(open(autoload[0]).read())
+          self.AppendHTML(open(autoload[0]).read())
         else:
-          self.append_html('<script src="%s"></script>' %
+          self.AppendHTML('<script src="%s"></script>' %
                    os.path.basename(autoload[0]))
 
-  def set_html(self, html, append=False):
-    '''Sets the UI in the test pane.'''
+  def SetHTML(self, html, append=False, id=None):
+    '''Sets the UI in the test pane.
+
+    Args:
+      id: If given, writes html to the element identified by id.
+    '''
     self.event_client.post_event(Event(Event.Type.SET_HTML,
-                      test=self.test,
-                      invocation=self.invocation,
-                      html=html,
-                      append=append))
+                       test=self.test,
+                       invocation=self.invocation,
+                       html=html,
+                       append=append,
+                       id=id))
 
-  def append_html(self, html):
+  def AppendHTML(self, html):
     '''Append to the UI in the test pane.'''
-    self.set_html(html, True)
+    self.SetHTML(html, True)
 
-  def run_js(self, js, **kwargs):
+  def RunJS(self, js, **kwargs):
     '''Runs JavaScript code in the UI.
 
     Args:
@@ -141,14 +147,14 @@ class UI(object):
         context.
 
     Example:
-      ui.run_js('alert(args.msg)', msg='The British are coming')
+      ui.RunJS('alert(args.msg)', msg='The British are coming')
     '''
     self.event_client.post_event(Event(Event.Type.RUN_JS,
-                      test=self.test,
-                      invocation=self.invocation,
-                      js=js, args=kwargs))
+                       test=self.test,
+                       invocation=self.invocation,
+                       js=js, args=kwargs))
 
-  def call_js_function(self, name, *args):
+  def CallJSFunction(self, name, *args):
     '''Calls a JavaScript function in the test pane.
 
     This will be run within window scope (i.e., 'this' will be the
@@ -159,11 +165,11 @@ class UI(object):
       args: Arguments to the function.
     '''
     self.event_client.post_event(Event(Event.Type.CALL_JS_FUNCTION,
-                      test=self.test,
-                      invocation=self.invocation,
-                      name=name, args=args))
+                       test=self.test,
+                       invocation=self.invocation,
+                       name=name, args=args))
 
-  def add_event_handler(self, subtype, handler):
+  def AddEventHandler(self, subtype, handler):
     '''Adds an event handler.
 
     Args:
@@ -173,31 +179,52 @@ class UI(object):
     '''
     self.event_handlers.setdefault(subtype, []).append(handler)
 
-  def url_for_file(self, path):
+  def URLForFile(self, path):
     '''Returns a URL that can be used to serve a local file.
 
     Args:
-     path: path to the local file
+      path: path to the local file
 
     Returns:
-     url: A (possibly relative) URL that refers to the file
+      url: A (possibly relative) URL that refers to the file
     '''
-    return factory.get_state_instance().url_for_file(path)
+    return factory.get_state_instance().URLForFile(path)
 
-  def url_for_data(self, mime_type, data, expiration=None):
+  def URLForData(self, mime_type, data, expiration=None):
     '''Returns a URL that can be used to serve a static collection
     of bytes.
 
     Args:
-     mime_type: MIME type for the data
-     data: Data to serve
-     expiration_secs: If not None, the number of seconds in which
+      mime_type: MIME type for the data
+      data: Data to serve
+      expiration_secs: If not None, the number of seconds in which
       the data will expire.
     '''
-    return factory.get_state_instance().url_for_data(
+    return factory.get_state_instance().URLForData(
       mime_type, data, expiration)
 
-  def run(self):
+  def Pass(self):
+    '''Passes the test.'''
+    self.event_client.post_event(Event(Event.Type.END_TEST,
+                       test=self.test,
+                       invocation=self.invocation,
+                       status=TestState.PASSED))
+
+  def Fail(self, error_msg):
+    '''Fails the test immediately.'''
+    self.event_client.post_event(Event(Event.Type.END_TEST,
+                       test=self.test,
+                       invocation=self.invocation,
+                       status=TestState.FAILED,
+                       error_msg=error_msg))
+
+  def FailLater(self, error_msg):
+    '''Appends a error message to the error message list, which causes
+    the test to fail later.
+    '''
+    self.error_msgs.append(error_msg)
+
+  def Run(self):
     '''Runs the test UI, waiting until the test completes.'''
     event = self.event_client.wait(
       lambda event:
@@ -207,14 +234,18 @@ class UI(object):
     logging.info('Received end test event %r', event)
     self.event_client.close()
 
-    if event.status == TestState.PASSED:
+    if event.status == TestState.PASSED and not self.error_msgs:
       pass
-    elif event.status == TestState.FAILED:
-      raise FactoryTestFailure(event.error_msg)
+    elif event.status == TestState.FAILED or self.error_msgs:
+      error_msg = getattr(event, 'error_msg', '')
+      if self.error_msgs:
+        error_msg += ('\n'.join([''] + self.error_msgs))
+
+      raise FactoryTestFailure(error_msg)
     else:
       raise ValueError('Unexpected status in event %r' % event)
 
-  def _handle_event(self, event):
+  def _HandleEvent(self, event):
     '''Handles an event sent by a test UI.'''
     if (event.type == Event.Type.TEST_UI_EVENT and
       event.test == self.test and

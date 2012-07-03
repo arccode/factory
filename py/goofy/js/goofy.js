@@ -1426,10 +1426,20 @@ cros.factory.Goofy.prototype.handleBackendEvent = function(jsonMessage) {
         var invocation = this.getOrCreateInvocation(
             message.test, message.invocation);
         if (invocation) {
-            if (!message.append && invocation.iframe.contentDocument.body) {
-                goog.dom.removeChildren(invocation.iframe.contentDocument.body);
+            if (message.id) {
+                var element = invocation.iframe.contentDocument.getElementById(
+                                                                    message.id);
+                if (!message.append && element) {
+                    element.innerHTML = '';
+                }
+                element.innerHTML += message['html'];
+            } else {
+                if (!message.append && invocation.iframe.contentDocument.body) {
+                    goog.dom.removeChildren(
+                                    invocation.iframe.contentDocument.body);
+                }
+                invocation.iframe.contentDocument.write(message['html']);
             }
-            invocation.iframe.contentDocument.write(message['html']);
         }
     } else if (message.type == 'goofy:run_js') {
         var invocation = this.getOrCreateInvocation(

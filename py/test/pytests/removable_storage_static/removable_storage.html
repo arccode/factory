@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<head>
+<link rel='stylesheet' type='text/css' href='removable_storage.css'></link>
+</head>
+<body>
+<div class='test-info-container'>
+  <div class='test-title-container' id='title'>
+  </div>
+  <div class='test-prompt-container'>
+    <span class='test-instruction' id='instruction'></span>
+    <span class='test-progress-bar' id='progress-bar-container'>
+      Test Progress<br/>測試進度:
+      <div id='progress-bar'>
+        <div class='progress-bar-thumb'></div>
+        <div id='progress-bar-indicator'></div>
+      </div>
+    </span>
+  </div>
+  <div class='test-state-container'>
+    <div class='middle' id='state'></div>
+  </div>
+  <div class='test-button-container'>
+    <div class='middle'>
+      <input type='button' class='test-button' value='Mark Failed' onclick='window.test.fail()'/>
+    </div>
+  </div>
+</div>
+</body>
+</html>
