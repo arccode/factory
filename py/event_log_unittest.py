@@ -5,7 +5,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import factory_common
+import factory_common  # pylint: disable=W0611
 import os
 import re
 import unittest
@@ -73,7 +73,7 @@ class EventLogTest(unittest.TestCase):
     try:
       log.Log('should-fail')
       self.fail('Expected exception')
-    except:
+    except:  # pylint: disable=W0702
       pass
 
     log_data = list(yaml.load_all(open(log.path, "r")))
@@ -110,4 +110,4 @@ class EventLogTest(unittest.TestCase):
     self.assertFalse(os.path.exists(path))
 
 if __name__ == "__main__":
-    unittest.main()
+  unittest.main()

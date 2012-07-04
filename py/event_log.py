@@ -15,7 +15,7 @@ import yaml
 
 from uuid import uuid4
 
-import factory_common
+import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
 from cros.factory.test import utils
 
@@ -78,7 +78,7 @@ def GetDeviceId():
   This is derived from the wlan0 MAC address.  If no wlan0 device is
   available, one is generated into DEVICE_ID_PATH.
   """
-  global device_id
+  global device_id  # pylint: disable=W0603
   if not device_id:
     for path in [WLAN0_MAC_PATH, DEVICE_ID_PATH]:
       if os.path.exists(path):
@@ -87,7 +87,7 @@ def GetDeviceId():
     else:
       device_id = str(uuid4())
       with open(DEVICE_ID_PATH, "w") as f:
-        print >>f, device_id
+        print >> f, device_id
       logging.warning('No device ID available: generated %s', device_id)
   return device_id
 
@@ -102,14 +102,14 @@ def GetImageId():
 
   This is stored in IMAGE_ID_PATH; one is generated if not available.
   """
-  global image_id
+  global image_id  # pylint: disable=W0603
   if not image_id:
     if os.path.exists(IMAGE_ID_PATH):
       image_id = open(IMAGE_ID_PATH).read().strip()
     else:
       image_id = str(uuid4())
       with open(IMAGE_ID_PATH, "w") as f:
-        print >>f, image_id
+        print >> f, image_id
       logging.info('No image ID available yet: generated %s', image_id)
   return image_id
 
@@ -208,13 +208,13 @@ class EventLog(object):
 
     Requires that the lock has already been acquired.
     """
-    dir = os.path.dirname(self.path)
-    if not os.path.exists(dir):
+    parent_dir = os.path.dirname(self.path)
+    if not os.path.exists(parent_dir):
       try:
-        os.makedirs(dir)
-      except:
+        os.makedirs(parent_dir)
+      except:  # pylint: disable=W0702
         # Maybe someone else tried to create it simultaneously
-        if not os.path.exists(dir):
+        if not os.path.exists(parent_dir):
           raise
 
     if self.opened:
