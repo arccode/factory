@@ -31,15 +31,10 @@ from common import Error, ParseKeyValueData, SetupLogging, Shell
 from common import YamlRead, YamlWrite
 from hacked_argparse import CmdArg, Command, ParseCmdline, verbosity_cmd_arg
 
-# TODO(tammo): Remove imp logic once the cros/factory code moves into this repo.
-# NOTE: These imports also corrupt the python logging module...
-import imp
-at_common = imp.find_module('common', ['/usr/local/autotest/client/bin'])
-imp.load_module('at_common', *at_common)
+import factory_common
 from cros.factory.event_log import EventLog, EVENT_LOG_DIR
 from cros.factory.event_log import TimedUuid
-from cros.factory import FACTORY_LOG_PATH
-
+from cros.factory.test.factory import FACTORY_LOG_PATH
 
 # Use a global event log, so that only a single log is created when
 # gooftool is called programmatically.
