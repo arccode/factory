@@ -17,7 +17,8 @@ from fcntl import ioctl
 from glob import glob
 from time import sleep
 
-from common import Obj
+import factory_common  # pylint: disable=W0611
+from cros.factory.common import Obj
 
 
 # Constants lifted from EDID documentation.

@@ -20,18 +20,18 @@ import time
 
 from tempfile import gettempdir, NamedTemporaryFile
 
-import bmpblk
-import crosfw
-import probe
-import report_upload
-import vpd_data
+import factory_common  # pylint: disable=W0611
+import cros.factory.gooftool.bmpblk
+import cros.factory.gooftool.crosfw
+import cros.factory.gooftool.probe
+import cros.factory.gooftool.report_upload
+import cros.factory.gooftool.vpd_data
 
-from common import Error, ParseKeyValueData, SetupLogging, Shell
-from common import YamlRead, YamlWrite
-from hacked_argparse import CmdArg, Command, ParseCmdline, verbosity_cmd_arg
-from hwid_tool import HardwareDb
-
-import factory_common
+from cros.factory.common import Error, ParseKeyValueData, SetupLogging, Shell
+from cros.factory.common import YamlRead, YamlWrite
+from cros.factory.hacked_argparse import CmdArg, Command, ParseCmdline
+from cros.factory.hacked_argparse import verbosity_cmd_arg
+from cros.factory.hwdb.hwid_tool import HardwareDb
 from cros.factory.event_log import EventLog, EVENT_LOG_DIR
 from cros.factory.event_log import TimedUuid
 from cros.factory.test.factory import FACTORY_LOG_PATH

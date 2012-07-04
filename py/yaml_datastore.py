@@ -9,7 +9,9 @@ import logging
 import os
 import yaml
 
-from common import YamlWrite, YamlRead
+import factory_common  # pylint: disable=W0611
+
+from cros.factory.common import YamlWrite, YamlRead
 
 
 # Warning message prepended to all datastore files.

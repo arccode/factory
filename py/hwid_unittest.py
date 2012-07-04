@@ -15,10 +15,11 @@ from contextlib import contextmanager
 from tempfile import mkdtemp
 from traceback import format_exc
 
-import hwid_tool
+import factory_common  # pylint: disable=W0611
 
-from common import Shell, SetupLogging
-from probe import PROBABLE_COMPONENT_CLASSES
+from cros.factory.common import Shell, SetupLogging
+from cros.factory.gooftool.probe import PROBABLE_COMPONENT_CLASSES
+from cros.factory.hwdb import hwid_tool
 
 
 @contextmanager

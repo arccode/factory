@@ -15,10 +15,14 @@ import string  # pylint: disable=W0402
 import sys
 import zlib
 
-from bom_names import BOM_NAME_SET
-from common import Error, Obj, SetupLogging
-from hacked_argparse import CmdArg, Command, ParseCmdline, verbosity_cmd_arg
-from yaml_datastore import InvalidDataError, MakeDatastoreClass, YamlDatastore
+import factory_common  # pylint: disable=W0611
+
+from cros.factory.common import Error, Obj, SetupLogging
+from cros.factory.hacked_argparse import CmdArg, Command, ParseCmdline
+from cros.factory.hacked_argparse import verbosity_cmd_arg
+from cros.factory.hwdb.bom_names import BOM_NAME_SET
+from cros.factory.hwdb.yaml_datastore import InvalidDataError
+from cros.factory.hwdb.yaml_datastore import MakeDatastoreClass, YamlDatastore
 
 
 # The expected location of HWID data within a factory image.
@@ -288,8 +292,8 @@ class CompDb(YamlDatastore):
     self._PreprocessData()
     return comp_name
 
-  def __init__(self, data):
-    YamlDatastore.__init__(data)
+  def __init__(self, data):  # pylint: disable=W0231
+    self.__dict__.update(data.__dict__)
     self._PreprocessData()
     self.EnforceInvariants()
 
@@ -761,8 +765,8 @@ class Device(YamlDatastore):
     assert text.isupper(), 'HWID cannot have lower case text parts.'
     return str(text + ' ' + HwidChecksum(text))
 
-  def __init__(self, comp_db, board_name, device_data):
-    YamlDatastore.__init__(device_data)
+  def __init__(self, comp_db, board_name, device_data):  # pylint: disable=W0231
+    self.__dict__.update(device_data.__dict__)
     self._comp_db = comp_db
     self.board_name = board_name
     self._PreprocessData()

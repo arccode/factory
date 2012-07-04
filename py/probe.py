@@ -26,18 +26,20 @@ from glob import glob
 from fcntl import ioctl
 from tempfile import NamedTemporaryFile
 
-import edid
-import crosfw
-import vblock
+import factory_common  # pylint: disable=W0611
+
+import cros.factory.gooftool.edid
+import cros.factory.gooftool.crosfw
+import cros.factory.gooftool.vblock
+
+from cros.factory.common import CompactStr, Error, Obj, Shell
+from cros.factory.hwdb.hwid_tool import ProbeResults
 
 try:
   sys.path.append('/usr/local/lib/flimflam/test')
   import flimflam
 except:
   pass
-
-from common import CompactStr, Error, Obj, Shell
-from hwid_tool import ProbeResults
 
 # TODO(tammo): Some tests look for multiple components, some tests
 # throw away all but the first, and some just look for one.  All tests

@@ -20,7 +20,8 @@ from tempfile import NamedTemporaryFile
 
 import fmap
 
-from common import Shell
+import factory_common  # pylint: disable=W0611
+from cros.factory.common import Shell
 
 
 # Names to select target bus.
