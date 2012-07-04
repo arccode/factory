@@ -77,6 +77,30 @@ volatiles:
   ro_main_firmware: mv2#58b7c3484b4ce620cba066401a3e7c39a57ed
 '''
 
+g_dummy_volatiles_results_str = '''
+found_components: {}
+initial_configs: {}
+missing_component_classes: []
+volatiles:
+  hash_gbb: aaaa
+  key_recovery: bbbb
+  key_root: cccc
+  ro_ec_firmware: dddd
+  ro_main_firmware: eeee
+'''
+
+g_dummy_volatiles_alt_results_str = '''
+found_components: {}
+initial_configs: {}
+missing_component_classes: []
+volatiles:
+  hash_gbb: AAAA
+  key_recovery: BBBB
+  key_root: CCCC
+  ro_ec_firmware: DDDD
+  ro_main_firmware: EEEE
+'''
+
 
 class HwidTest(unittest.TestCase):
 
@@ -85,6 +109,8 @@ class HwidTest(unittest.TestCase):
     self.hwid_tool_cmd = os.path.join(path, 'hwid_tool.py')
     self.dir = mkdtemp()
     self.test_log = os.path.join(self.dir, 'test_log')
+    logging.shutdown()
+    reload(logging)
     SetupLogging(level=logging.INFO, log_file_name=self.test_log)
     self.hwid_tool_log = os.path.join(self.dir, 'hwid_tool_log')
     comp_classes = PROBABLE_COMPONENT_CLASSES | set(['keyboard'])
@@ -148,10 +174,60 @@ class HwidTest(unittest.TestCase):
       self.runTool('set_hwid_status -b FOO --bom OOGG '
                    '--variant A --volatile "*" supported')
       device = hwid_tool.HardwareDb(self.dir).devices['FOO']
-      self.assertEqual(device.GetHwidStatus('OOGG', 'A', 'A'), 'supported')
+      status = device.GetHwidStatus('OOGG', 'A', 'A')
+      self.assertEqual(status, 'supported', status)
       self.runTool('hwid_overview', show_stdout=True)
       self.runTool('hwid_list', show_stdout=True)
       self.runTool('component_breakdown', show_stdout=True)
+
+  def testStatusChanges(self):
+    with LogOnException(
+      self._testMethodName, self.test_log, self.hwid_tool_log):
+      self.runTool('create_device FOO')
+      hw_db = hwid_tool.HardwareDb(self.dir)
+      hw_db.comp_db.AddComponent('keyboard', 'xkb:us::eng', 'sunrex_kbd_us')
+      hw_db.comp_db.AddComponent('keyboard', 'xkb:gb:extd:eng', 'sunrex_kbd_gb')
+      hw_db.comp_db.Write(self.dir)
+      self.runTool('create_bom --board=FOO --dontcare="*" -n BAR '
+                   '--variant_classes keyboard')
+      self.runTool('create_variant --board=FOO -c sunrex_kbd_us')
+      self.runTool('create_variant --board=FOO -c sunrex_kbd_gb')
+      self.runTool('assign_variant --board=FOO --bom BAR --variant A')
+      self.runTool('assign_variant --board=FOO --bom BAR --variant B')
+      self.runTool('assimilate_data --board=FOO',
+                   stdin=g_dummy_volatiles_results_str,
+                   show_stdout=True)
+      self.runTool('assimilate_data --board=FOO',
+                   stdin=g_dummy_volatiles_alt_results_str,
+                   show_stdout=True)
+      self.runTool('set_hwid_status -b FOO --bom BAR '
+                   '--variant A --volatile "*" supported')
+      device = hwid_tool.HardwareDb(self.dir).devices['FOO']
+      self.assertEqual(device.hwid_status.supported, ['BAR A-A', 'BAR A-B'],
+                       device.hwid_status.supported)
+      self.runTool('set_hwid_status -b FOO --bom BAR '
+                   '--variant B --volatile B deprecated')
+      self.runTool('set_hwid_status -b FOO --bom BAR '
+                   '--variant A --volatile B deprecated')
+      device = hwid_tool.HardwareDb(self.dir).devices['FOO']
+      self.assertEqual(device.hwid_status.supported, ['BAR A-A'],
+                       device.hwid_status.supported)
+      self.assertEqual(device.hwid_status.deprecated, ['BAR *-B'],
+                       device.hwid_status.deprecated)
+      self.runTool('set_hwid_status -b FOO --bom BAR '
+                   '--variant A --volatile A deprecated')
+      device = hwid_tool.HardwareDb(self.dir).devices['FOO']
+      self.assertEqual(device.hwid_status.supported, [],
+                       device.hwid_status.supported)
+      self.assertEqual(device.hwid_status.deprecated, ['BAR *-B', 'BAR A-A'],
+                       device.hwid_status.deprecated)
+      self.runTool('set_hwid_status -b FOO --bom BAR '
+                   '--variant B --volatile A deprecated')
+      device = hwid_tool.HardwareDb(self.dir).devices['FOO']
+      self.assertEqual(device.hwid_status.supported, [],
+                       device.hwid_status.supported)
+      self.assertEqual(device.hwid_status.deprecated, ['BAR *-*'],
+                       device.hwid_status.deprecated)
 
 
 if __name__ == '__main__':

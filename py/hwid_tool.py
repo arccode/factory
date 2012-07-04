@@ -29,7 +29,7 @@ COMPONENT_DB_FILENAME = 'component_db'
 
 
 # Glob-matching for 'BOM VARIANT-VOLATILE' regexp.
-HWID_GLOB_RE = re.compile(r'^([A-Z]+|\*) ([A-Z]+|\*)-([A-Z]+|\*)$')
+HWID_GLOB_RE = re.compile(r'^([A-Z]+) ([A-Z]+|\*)-([A-Z]+|\*)$')
 
 
 # Possible life cycle stages (status) for components and HWIDs.
@@ -488,21 +488,44 @@ class Device(YamlDatastore):
     self.reverse_vol_value_map = dict(
       (v, k) for k, v in self.volatile_values.items())
 
+  def UpdateHwidStatusPatterns(self):
+    status_tree = dict((status, {}) for status in LIFE_CYCLE_STAGES)
+    for bom_name, var_status in self._hwid_status_map.items():
+      for var_code, vol_status in var_status.items():
+        for vol_code, status in vol_status.items():
+          bom_subtree = status_tree[status].setdefault(bom_name, {})
+          bom_subtree.setdefault(vol_code, set()).add(var_code)
+    for status in LIFE_CYCLE_STAGES:
+      patterns = set()
+      for bom_name, bom_subtree in status_tree[status].items():
+        star_var_vols = set(
+          vol_code for vol_code, var_set in bom_subtree.items()
+          if var_set == set(self.boms[bom_name].variants))
+        if star_var_vols == set(self.volatiles):
+          patterns.add('%s *-*' % bom_name)
+          continue
+        for vol_code, var_codes in bom_subtree.items():
+          if vol_code in star_var_vols:
+            patterns.add('%s *-%s' % (bom_name, vol_code))
+            continue
+          for var_code in var_codes:
+            patterns.add('%s %s-%s' % (bom_name, var_code, vol_code))
+      setattr(self.hwid_status, status, sorted(patterns))
+
   def UpdateHwidStatusMaps(self, bom, variant, volatile, status):
-    target_boms = [bom] if bom != '*' else self.boms.keys()
-    target_vars = [variant] if variant != '*' else self.variants.keys()
-    target_vols = [volatile] if volatile != '*' else self.volatiles.keys()
+    target_boms = set([bom]) if bom != '*' else set(self.boms)
+    target_vols = set([volatile]) if volatile != '*' else set(self.volatiles)
     for bom_name in target_boms:
       var_status = self._hwid_status_map.setdefault(bom_name, {})
+      all_vars = set(self.boms[bom_name].variants)
+      target_vars = [variant] if variant != '*' else all_vars
       for var_code in target_vars:
         vol_status = var_status.setdefault(var_code, {})
         for vol_code in target_vols:
           prev_status = vol_status.get(vol_code, None)
           if prev_status is not None:
-            raise Error, ('hwid_status pattern %r too broad, '
-                          '%s %s-%s already has status %r' %
-                          (pattern, bom_name, var_code,
-                           vol_code, prev_status))
+            logging.info('hwid %s %s-%s status change %r -> %r'
+                         % (bom_name, var_code, vol_code, prev_status, status))
           vol_status[vol_code] = status
           hwid = self.FmtHwid(bom_name, var_code, vol_code)
           self.flat_hwid_status_map[hwid] = status
@@ -634,8 +657,7 @@ class Device(YamlDatastore):
 
   def SetHwidStatus(self, bom, variant, volatile, status):
     self.UpdateHwidStatusMaps(bom, variant, volatile, status)
-    pattern = '%s %s-%s' % (bom, variant, volatile)
-    getattr(self.hwid_status, status).append(pattern)
+    self.UpdateHwidStatusPatterns()
     self._PreprocessData()
 
   def GetHwidStatus(self, bom_name, variant_code, volatile_code):
@@ -681,8 +703,8 @@ class Device(YamlDatastore):
         raise Error, ('%s equivalent variant %s already exists' %
                       (self.board_name, existing_var_code))
     if self.variants:
-      variant_classes = set().union(
-        ComponentSpecClasses(variant) for variant in self.variants)
+      variant_classes = set().union(*[
+        ComponentSpecClasses(variant) for variant in self.variants.values()])
       if ComponentSpecClasses(component_spec) != variant_classes:
         raise Error, ('proposed variant component data has different class '
                       'coverage than existing %s variants' % self.board_name)
@@ -723,11 +745,12 @@ class Device(YamlDatastore):
   def MatchVariants(self, bom_name, component_data):
     matches = set()
     bom = self.boms[bom_name]
-    for var_code, variant in self.variants:
+    for var_code, variant in self.variants.items():
       if var_code not in bom.variants:
         continue
       variant_spec = CombineComponentSpecs(bom.primary, variant)
-      if self._comp_db.MatchComponentSpec(variant_spec, component_data):
+      if self._comp_db.MatchComponentSpec(variant_spec,
+                                          component_data.extant_components):
         matches.add(var_code)
     return matches
 
@@ -976,9 +999,6 @@ def AssignInitialConfig(config, hw_db):
       print 'enforcing initial config %s for bom %s' % (config.ic, config.bom)
 
 
-# TODO(tammo): How to change existing status values?  Set to None and
-# derive globs?  Or allow globs only here, not in the file?  No, the
-# file should also have globs... XXX
 @Command('set_hwid_status',
          CmdArg('-b', '--board', required=True),
          CmdArg('--bom', required=True),
