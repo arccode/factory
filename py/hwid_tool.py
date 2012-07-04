@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# pylint: disable=E0602,E1101,W0201
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -10,12 +11,12 @@ import logging
 import os
 import random
 import re
-import string
+import string  # pylint: disable=W0402
 import sys
 import zlib
 
 from bom_names import BOM_NAME_SET
-from common import Error, Obj, SetupLogging, YamlWrite, YamlRead
+from common import Error, Obj, SetupLogging
 from hacked_argparse import CmdArg, Command, ParseCmdline, verbosity_cmd_arg
 from yaml_datastore import InvalidDataError, MakeDatastoreClass, YamlDatastore
 
@@ -184,7 +185,7 @@ def ComponentSpecsConflict(a, b):
   return (ComponentSpecClasses(a) & ComponentSpecClasses(b)) != set()
 
 
-class Validate:
+class Validate:  # pylint: disable=W0232
 
   @classmethod
   def HwidPart(cls, tag, name, maxlen):
@@ -288,7 +289,7 @@ class CompDb(YamlDatastore):
     return comp_name
 
   def __init__(self, data):
-    self.__dict__.update(data.__dict__)
+    YamlDatastore.__init__(data)
     self._PreprocessData()
     self.EnforceInvariants()
 
@@ -347,7 +348,7 @@ class CookedBoms(object):
     """
     self.comp_boms_map = {}
     for bom_name, bom in self.bom_map.items():
-      for comp_class, comp_data in bom.primary.components.items():
+      for comp_data in bom.primary.components.values():
         comps = comp_data if isinstance(comp_data, list) else [comp_data]
         for comp in comps:
           self.comp_boms_map.setdefault(comp, set()).add(bom_name)
@@ -355,7 +356,7 @@ class CookedBoms(object):
   def _BuildCommonCompMap(self):
     """Return (comp_class: [comp]) dict for components common to all boms."""
     self.comp_map = {}
-    for bom_name, bom in self.bom_map.items():
+    for bom in self.bom_map.values():
       for comp_class, comp_data in bom.primary.components.items():
         comps = comp_data if isinstance(comp_data, list) else [comp_data]
         for comp in comps:
@@ -383,7 +384,7 @@ class CookedBoms(object):
     while uncommon_bom_names:
       related_bom_sets = [
         bom_subset & uncommon_bom_names
-        for comp, bom_subset in uncommon_comp_boms_map.items()]
+        for bom_subset in uncommon_comp_boms_map.values()]
       most_related = sorted([(len(rbs), rbs) for rbs in related_bom_sets],
                             reverse=True)[0][1]
       AddBom(most_related)
@@ -524,8 +525,8 @@ class Device(YamlDatastore):
         for vol_code in target_vols:
           prev_status = vol_status.get(vol_code, None)
           if prev_status is not None:
-            logging.info('hwid %s %s-%s status change %r -> %r'
-                         % (bom_name, var_code, vol_code, prev_status, status))
+            logging.info('hwid %s %s-%s status change %r -> %r',
+                         bom_name, var_code, vol_code, prev_status, status)
           vol_status[vol_code] = status
           hwid = self.FmtHwid(bom_name, var_code, vol_code)
           self.flat_hwid_status_map[hwid] = status
@@ -761,8 +762,8 @@ class Device(YamlDatastore):
     return str(text + ' ' + HwidChecksum(text))
 
   def __init__(self, comp_db, board_name, device_data):
+    YamlDatastore.__init__(device_data)
     self._comp_db = comp_db
-    self.__dict__.update(device_data.__dict__)
     self.board_name = board_name
     self._PreprocessData()
     self.EnforceInvariants()
@@ -834,7 +835,7 @@ class HardwareDb(object):
       device.Write(self._path)
 
 
-def PrintHwidHierarchy(device, bom_map, status_mask):
+def PrintHwidHierarchy(device, cooked_boms, status_mask):
   """Hierarchically show all details for all specified BOMs.
 
   Details include both primary and variant component configurations,
@@ -886,7 +887,7 @@ def PrintHwidHierarchy(device, bom_map, status_mask):
             wild = masks.wild | common_wild,
             present = masks.present | boms.common_comps))
   TraverseBomHierarchy(
-    device.cooked_boms,
+    cooked_boms,
     0,
     Obj(ic=set(), present=set(), missing=set(), wild=set()))
 
@@ -1136,7 +1137,7 @@ def HwidHierarchyViewCommand(config, hw_db):
         continue
     else:
       print '---- %s ----\n' % board
-    PrintHwidHierarchy(device, device.boms, status_mask)
+    PrintHwidHierarchy(device, device.cooked_boms, status_mask)
 
 
 @Command('hwid_list',
@@ -1152,7 +1153,6 @@ def ListHwidsCommand(config, hw_db):
   the status of each HWID.  Optionally limit the list to a specific
   board.
   """
-  result_list = []
   status_mask = config.status if config.status else LIFE_CYCLE_STAGES
   for board, device in hw_db.devices.items():
     if config.board:
@@ -1347,7 +1347,7 @@ def LegacyExport(config, data):
 
 
 @Command('rename_components')
-def RenameComponents(config, data):
+def RenameComponents(config, data):  # pylint: disable=W0613
   """Change canonical component names.
 
   Given a list of old-new name pairs on stdin, replace each instance

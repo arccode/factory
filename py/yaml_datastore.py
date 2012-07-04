@@ -1,3 +1,4 @@
+# pylint: disable=E1101
 # Copyright (c) 2011 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -37,7 +38,7 @@ class YamlDatastore(object):
       file_data = [line.rstrip('\n') for line in open(full_path, 'r')]
       diff = [line for line in difflib.unified_diff(file_data, internal_data)]
       if not diff:
-        logging.debug('no differences for %s' % full_path)
+        logging.debug('no differences for %s', full_path)
         return
       logging.info('updating %s with changes:\n%s', filename, '\n'.join(diff))
     else:
@@ -94,11 +95,12 @@ class _DatastoreBase(object):
         for elt_subtype in elt_type:
           try:
             return NestedDecode(elt_subtype, elt_data)
-          except:
+          except:  # pylint: disable=W0702
             continue
       elif issubclass(elt_type, _DatastoreBase):
         cooked_field_dict = dict(
           (subelt_key, NestedDecode(subelt_type, elt_data[subelt_key]))
+          # pylint: disable=W0212
           for subelt_key, subelt_type in elt_type._schema.items())
         return elt_type(**cooked_field_dict)
       elif isinstance(elt_data, elt_type):
