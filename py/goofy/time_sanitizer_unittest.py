@@ -13,7 +13,7 @@ import unittest
 
 from contextlib import contextmanager
 
-import factory_common
+import factory_common  # pylint: disable=W0611
 from cros.factory.goofy import time_sanitizer
 
 
@@ -22,8 +22,11 @@ BASE_TIME = float(
 
 SECONDS_PER_DAY = 86400
 
+
 class TimeSanitizerTest(unittest.TestCase):
   def testBaseTimeFile(self):
+    # pylint: disable=W0212
+    # (access to protected members)
     with tempfile.NamedTemporaryFile() as f:
       self.assertEquals(os.stat(f.name).st_mtime,
                         time_sanitizer._GetBaseTime(f.name))
@@ -84,7 +87,7 @@ class TimeSanitizerTest(unittest.TestCase):
       self.fake_time.SetTime(BASE_TIME + 261.5)
     self.assertEquals(BASE_TIME + 261.5, self._ReadStateFile())
 
-if __name__ == "__main__":
-    unittest.main()
 
+if __name__ == "__main__":
+  unittest.main()
 

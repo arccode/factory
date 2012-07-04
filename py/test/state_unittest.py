@@ -6,35 +6,35 @@
 
 import unittest
 
-import factory_common
+import factory_common # pylint: disable=W0611
 from cros.factory.test.state import PathResolver
 
 
 class PathResolverTest(unittest.TestCase):
-    def testWithRoot(self):
-        resolver = PathResolver()
-        resolver.AddPath('/', '/root')
-        resolver.AddPath('/a/b', '/c/d')
-        resolver.AddPath('/a', '/e')
+  def testWithRoot(self):
+    resolver = PathResolver()
+    resolver.AddPath('/', '/root')
+    resolver.AddPath('/a/b', '/c/d')
+    resolver.AddPath('/a', '/e')
 
-        for url_path, expected_local_path in (
-            ('/', '/root'),
-            ('/a/b', '/c/d'),
-            ('/a', '/e'),
-            ('/a/b/X', '/c/d/X'),
-            ('/a/X', '/e/X'),
-            ('/X', '/root/X'),
-            ('/X/', '/root/X/'),
-            ('/X/Y', '/root/X/Y'),
-            ('Blah', None)):
-            self.assertEqual(expected_local_path,
-                             resolver.Resolve(url_path))
+    for url_path, expected_local_path in (
+      ('/', '/root'),
+      ('/a/b', '/c/d'),
+      ('/a', '/e'),
+      ('/a/b/X', '/c/d/X'),
+      ('/a/X', '/e/X'),
+      ('/X', '/root/X'),
+      ('/X/', '/root/X/'),
+      ('/X/Y', '/root/X/Y'),
+      ('Blah', None)):
+      self.assertEqual(expected_local_path,
+               resolver.Resolve(url_path))
 
-    def testNoRoot(self):
-        resolver = PathResolver()
-        resolver.AddPath('/a/b', '/c/d')
-        self.assertEqual(None, resolver.Resolve('/b'))
-        self.assertEqual('/c/d/X', resolver.Resolve('/a/b/X'))
+  def testNoRoot(self):
+    resolver = PathResolver()
+    resolver.AddPath('/a/b', '/c/d')
+    self.assertEqual(None, resolver.Resolve('/b'))
+    self.assertEqual('/c/d/X', resolver.Resolve('/a/b/X'))
 
 if __name__ == "__main__":
-    unittest.main()
+  unittest.main()

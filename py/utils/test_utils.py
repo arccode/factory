@@ -9,8 +9,8 @@ import random
 
 
 def FindUnusedTCPPort():
-    '''Returns an unused TCP port for testing.
+  '''Returns an unused TCP port for testing.
 
-    Currently just returns a random port from [10000,20000).
-    '''
-    return random.randint(10000, 19999)
+  Currently just returns a random port from [10000,20000).
+  '''
+  return random.randint(10000, 19999)

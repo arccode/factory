@@ -4,7 +4,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import factory_common
+import factory_common  # pylint: disable=W0611
 
 import logging
 import mox

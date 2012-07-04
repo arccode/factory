@@ -2,15 +2,61 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-DESTDIR=image
+BUILD_DIR=build
+DESTDIR=$(BUILD)/image
 TARGET_DIR=/usr/local/factory
 
-FACTORY=${DESTDIR}/${TARGET_DIR}
+FACTORY=$(DESTDIR)/$(TARGET_DIR)
 
-# TODO(jsalz): Make this a blacklist instead of a whitelist!
-LINT_WHITELIST=\
-	py/event_log.py \
-	py/event_log_unittest.py
+PYLINTRC=../../../chromite/pylintrc
+PYLINT_OPTIONS=\
+	--ignored-classes=Event
+
+LINT_BLACKLIST=\
+	py/argparse.py \
+	py/bmpblk.py \
+	py/crosfw.py \
+	py/edid.py \
+	py/fmap.py \
+	py/gooftool.py \
+	py/goofy/connection_manager.py \
+	py/goofy/event_log_watcher.py \
+	py/goofy/event_log_watcher_unittest.py \
+	py/goofy/invocation.py \
+	py/goofy/prespawner.py \
+	py/goofy/system.py \
+	py/goofy/system_unittest.py \
+	py/goofy/test_environment.py \
+	py/goofy/test_steps.py \
+	py/goofy/updater.py \
+	py/goofy/web_socket_manager.py \
+	py/hacked_argparse.py \
+	py/hwid_database.py \
+	py/hwid_tool.py \
+	py/probe.py \
+	py/report_upload.py \
+	py/test/event.py \
+	py/test/factory.py \
+	py/test/factory_unittest.py \
+	py/test/gooftools.py \
+	py/test/leds.py \
+	py/test/line_item_check.py \
+	py/test/media_util.py \
+	py/test/media_util_unittest.py \
+	py/test/pytests/execpython.py \
+	py/test/shopfloor.py \
+	py/test/state_machine.py \
+	py/test/state.py \
+	py/test/state_unittest.py \
+	py/test/task.py \
+	py/test/test_ui.py \
+	py/test/ui.py \
+	py/test/unicode_to_string.py \
+	py/test/unicode_to_string_unittest.py \
+	py/test/utils.py \
+	py/test/utils_unittest.py \
+	py/vblock.py \
+	py/vpd_data.py
 
 UNITTESTS=\
 	py/event_log_unittest.py \
@@ -28,19 +74,24 @@ UNITTESTS=\
 # package is fixed and /usr/bin/java works
 # (https://bugs.gentoo.org/416341)
 default:
-	env PATH=/opt/icedtea6-bin-1.6.2/bin:${PATH} \
+	env PATH=/opt/icedtea6-bin-1.6.2/bin:$(PATH) \
 	    $(MAKE) -C py/goofy/static \
-	        CLOSURE_LIB_ARCHIVE="${CLOSURE_LIB_ARCHIVE}"
+	        CLOSURE_LIB_ARCHIVE="$(CLOSURE_LIB_ARCHIVE)"
 
 install:
-	mkdir -p ${FACTORY}
-	cp -ar bin misc py py_pkg sh test_lists ${FACTORY}
-	ln -s bin/gooftool bin/edid bin/hwid_tool ${FACTORY}
+	mkdir -p $(FACTORY)
+	cp -ar bin misc py py_pkg sh test_lists $(FACTORY)
+	ln -s bin/gooftool bin/edid bin/hwid_tool $(FACTORY)
 
 lint:
 	env PYTHONPATH=py_pkg pylint \
-	    --rcfile=../../../chromite/pylintrc \
-	    $(LINT_WHITELIST)
+	    --rcfile=$(PYLINTRC) \
+	    $(PYLINT_OPTIONS) \
+	    $(filter-out $(LINT_BLACKLIST), \
+	        $(shell find py -name '*.py' -type f | sort))
+
+clean:
+	rm -rf $(BUILD_DIR)
 
 GREEN=\033[22;32m
 RED=\033[22;31m
@@ -53,20 +104,20 @@ test:
 	echo "Test logs will be written to $$logdir"; \
 	echo; \
 	for f in $(UNITTESTS); do \
-	  total=$$(expr $$total + 1); \
-	  echo -ne "*** RUN $$f"; \
-	  log=$$logdir/$$(basename $$f).log; \
-	  if $$f >$$log 2>&1; then \
-	    good=$$(expr $$good + 1); \
-	    echo -e "\r$(GREEN)*** PASS $$f$(WHITE)"; \
-	  else \
-	    echo -e "\r$(RED)*** FAIL $$f$(WHITE)"; \
-	    echo "    (log in $$log)"; \
-	  fi; \
+	    total=$$(expr $$total + 1); \
+	    echo -ne "*** RUN $$f"; \
+	    log=$$logdir/$$(basename $$f).log; \
+	    if $$f >$$log 2>&1; then \
+	        good=$$(expr $$good + 1); \
+	        echo -e "\r$(GREEN)*** PASS $$f$(WHITE)"; \
+	    else \
+	        echo -e "\r$(RED)*** FAIL $$f$(WHITE)"; \
+	        echo "    (log in $$log)"; \
+	    fi; \
 	done; \
 	echo; \
 	echo -e "$(GREEN)$$good/$$total tests passed.$(WHITE)"; \
 	if [ $$good != $$total ]; then \
-	  echo -e "$(RED)$$(expr $$total - $$good)/$$total tests failed.$(WHITE)"; \
-	  false; \
+	    echo -e "$(RED)$$(expr $$total - $$good)/$$total tests failed.$(WHITE)"; \
+	    false; \
 	fi

@@ -15,7 +15,7 @@ import subprocess
 import sys
 import tempfile
 
-import factory_common
+import factory_common  # pylint: disable=W0611
 from autotest_lib.client.common_lib import error
 from cros.factory.test import factory
 

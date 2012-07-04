@@ -14,7 +14,7 @@ import os
 import sys
 import threading
 
-import factory_common
+import factory_common  # pylint: disable=W0611
 from autotest_lib.client.bin import utils
 
 

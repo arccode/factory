@@ -6,20 +6,20 @@
 
 import unittest
 
-import factory_common
+import factory_common  # pylint: disable=W0611
 from cros.factory.goofy.system import SystemStatus
 
 
 class SystemStatusTest(unittest.TestCase):
-    def runTest(self):
-        # Don't care about the values; just make sure there's something
-        # there.
-        status = SystemStatus()
-        # Don't check battery, since this system might not even have one.
-        self.assertTrue(isinstance(status.battery, dict))
-        self.assertEquals(3, len(status.load_avg))
-        self.assertEquals(10, len(status.cpu))
+  def runTest(self):
+    # Don't care about the values; just make sure there's something
+    # there.
+    status = SystemStatus()
+    # Don't check battery, since this system might not even have one.
+    self.assertTrue(isinstance(status.battery, dict))
+    self.assertEquals(3, len(status.load_avg))
+    self.assertEquals(10, len(status.cpu))
 
 
 if __name__ == "__main__":
-    unittest.main()
+  unittest.main()

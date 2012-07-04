@@ -7,14 +7,12 @@
 import argparse
 import ctypes
 import daemon
-import lockfile
 import logging
 import math
-import optparse
 import os
 import time
 
-import factory_common
+import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
 
 
@@ -91,14 +89,14 @@ class TimeSanitizer(object):
       os.makedirs(os.path.dirname(self.state_file))
 
   def Run(self):
-      '''Runs forever, immediately and then every monitor_interval_secs.'''
-      while True:
-        try:
-          self.RunOnce()
-        except:
-          logging.exception()
+    '''Runs forever, immediately and then every monitor_interval_secs.'''
+    while True:
+      try:
+        self.RunOnce()
+      except:  # pylint: disable=W0702
+        logging.exception('Exception in run loop')
 
-        time.sleep(self.monitor_interval_secs)
+      time.sleep(self.monitor_interval_secs)
 
   def RunOnce(self):
     '''Runs once, returning immediately.'''
@@ -107,7 +105,7 @@ class TimeSanitizer(object):
       try:
         minimum_time = max(minimum_time,
                            float(open(self.state_file).read().strip()))
-      except:
+      except:  # pylint: disable=W0702
         logging.exception('Unable to read %s', self.state_file)
     else:
       logging.warn('State file %s does not exist', self.state_file)
@@ -137,7 +135,7 @@ class TimeSanitizer(object):
     with open(self.state_file, 'w') as f:
       logging.debug('Recording current time %s into %s',
                     _FormatTime(now), self.state_file)
-      print >>f, now
+      print >> f, now
 
 
 def _GetBaseTime(base_time_file):
@@ -150,7 +148,7 @@ def _GetBaseTime(base_time_file):
       logging.info('Using %s (mtime of %s) as base time',
                    _FormatTime(base_time), base_time_file)
       return base_time
-    except:
+    except:  # pylint: disable=W0702
       logging.exception('Unable to stat %s', base_time_file)
   else:
     logging.warn('base-time-file %s does not exist',
@@ -166,7 +164,7 @@ def main():
                       help='file to maintain state across reboots')
   parser.add_argument('--daemon', action='store_true',
                       help=('run as a daemon (to keep known-good time '
-                            'in state file up to date)')),
+                            'in state file up to date)'))
   parser.add_argument('--log', metavar='FILE',
                       default=os.path.join(factory.get_log_root(),
                                            'time_sanitizer.log'),
@@ -177,11 +175,11 @@ def main():
   parser.add_argument('--time-bump-secs', metavar='SECS', type=int,
                       default=60,
                       help=('how far ahead to move the time '
-                            'if the clock is hosed')),
+                            'if the clock is hosed'))
   parser.add_argument('--max-leap-secs', metavar='SECS', type=int,
                       default=(SECONDS_PER_DAY * 30),
                       help=('maximum possible time leap without the clock '
-                            'being considered hosed')),
+                            'being considered hosed'))
   parser.add_argument('--verbose', '-v', action='store_true',
                       help='verbose log')
   parser.add_argument('--base-time-file', metavar='FILE',
@@ -210,4 +208,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+  main()
