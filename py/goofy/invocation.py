@@ -84,8 +84,9 @@ class TestInvocation(object):
     '''
     with self._lock:
       self._aborted = True
-      if self._process:
-        utils.kill_process_tree(self._process, 'autotest')
+      process = self._process
+    if process:
+      utils.kill_process_tree(process, 'autotest')
     if self.thread:
       self.thread.join()
     with self._lock:
@@ -96,8 +97,7 @@ class TestInvocation(object):
     '''
     Returns true if the test has finished.
     '''
-    with self._lock:
-      return self._completed
+    return self._completed
 
   def _invoke_autotest(self):
     '''
@@ -264,7 +264,7 @@ class TestInvocation(object):
             return TestState.FAILED, 'Aborted by operator'
         if self._process.returncode:
           return TestState.FAILED, (
-            'Test returned code %d' % pytest.returncode)
+            'Test returned code %d' % self._process.returncode)
 
       if not os.path.exists(results_path):
         return TestState.FAILED, 'pytest did not complete'

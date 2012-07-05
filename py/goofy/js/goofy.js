@@ -986,7 +986,7 @@ cros.factory.Goofy.prototype.showTestPopup = function(path, labelElement,
     menu.addChild(this.makeMenuItem('Stop', '停止', 'active', '正在跑的',
                                     numLeavesByStatus['ACTIVE'] || 0,
                                     test, function(event) {
-        this.sendEvent('goofy:stop');
+        this.sendEvent('goofy:stop', {'path': path, 'fail': true});
     }), true);
 
     var item = new goog.ui.MenuItem('Show test logs...');

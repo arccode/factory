@@ -434,21 +434,21 @@ class FactoryTest(object):
   EXCLUSIVE_OPTIONS = utils.Enum(['NETWORKING'])
 
   def __init__(self,
-         label_en='',
-         label_zh='',
-         autotest_name=None,
-         pytest_name=None,
-         invocation_target=None,
-         kbd_shortcut=None,
-         dargs=None,
-         backgroundable=False,
-         subtests=None,
-         id=None,         # pylint: disable=W0622
-         has_ui=None,
-         never_fails=None,
-         exclusive=None,
-         _root=None,
-         _default_id=None):
+               label_en='',
+               label_zh='',
+               autotest_name=None,
+               pytest_name=None,
+               invocation_target=None,
+               kbd_shortcut=None,
+               dargs=None,
+               backgroundable=False,
+               subtests=None,
+               id=None,         # pylint: disable=W0622
+               has_ui=None,
+               never_fails=None,
+               exclusive=None,
+               _root=None,
+               _default_id=None):
     '''
     Constructor.
 
@@ -595,12 +595,19 @@ class FactoryTest(object):
     '''
     return not self.subtests
 
+  def has_ancestor(self, other):
+    '''
+    Returns True if other is an ancestor of this test (or is that test
+    itself).
+    '''
+    return (self == other) or (self.parent and self.parent.has_ancestor(other))
+
   def get_ancestors(self):
    '''
    Returns list of ancestors, ordered by seniority.
    '''
    if self.parent is not None:
-    return self.parent.get_ancestors() + [self.parent]
+     return self.parent.get_ancestors() + [self.parent]
    return []
 
   def get_ancestor_groups(self):

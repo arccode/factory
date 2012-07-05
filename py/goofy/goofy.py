@@ -166,18 +166,25 @@ class Goofy(object):
     self.env = None
     self.last_shutdown_time = None
 
-    def test_or_root(event):
-      '''Returns the top-level parent for a test (the root node of the
-      tests that need to be run together if the given test path is to
-      be run).'''
+    def test_or_root(event, parent_or_group=True):
+      '''Returns the test affected by a particular event.
+
+      Args:
+        event: The event containing an optional 'path' attribute.
+        parent_on_group: If True, returns the top-level parent for a test (the
+          root node of the tests that need to be run together if the given test
+          path is to be run).
+      '''
       try:
         path = event.path
       except AttributeError:
         path = None
 
       if path:
-        return (self.test_list.lookup_path(path).
-            get_top_level_parent_or_group())
+        test = self.test_list.lookup_path(path)
+        if parent_or_group:
+          test = test.get_top_level_parent_or_group()
+        return test
       else:
         return self.test_list
 
@@ -202,7 +209,8 @@ class Goofy(object):
       Event.Type.UPDATE_FACTORY:
         lambda event: self.update_factory(),
       Event.Type.STOP:
-        lambda event: self.stop(),
+        lambda event: self.stop(root=test_or_root(event, False),
+                                fail=getattr(event, 'fail', False)),
       Event.Type.SET_VISIBLE_TEST:
         lambda event: self.set_visible_test(
           self.test_list.lookup_path(event.path)),
@@ -623,7 +631,7 @@ class Goofy(object):
         del self.invocations[t]
 
     if (self.visible_test is None or
-      self.visible_test not in self.invocations):
+        self.visible_test not in self.invocations):
       self.set_visible_test(None)
       # Make the first running test, if any, the visible test
       for t in self.test_list.walk():
@@ -631,15 +639,20 @@ class Goofy(object):
           self.set_visible_test(t)
           break
 
-  def kill_active_tests(self, abort):
+  def kill_active_tests(self, abort, root=None):
     '''
     Kills and waits for all active tests.
 
-    @param abort: True to change state of killed tests to FAILED, False for
+    Args:
+      abort: True to change state of killed tests to FAILED, False for
         UNTESTED.
+      root: If set, only kills tests with root as an ancestor.
     '''
     self.reap_completed_tests()
     for test, invoc in self.invocations.items():
+      if root and not test.has_ancestor(root):
+        continue
+
       factory.console.info('Killing active test %s...' % test.path)
       invoc.abort_and_join()
       factory.console.info('Killed %s' % test.path)
@@ -648,9 +661,12 @@ class Goofy(object):
         test.update_state(status=TestState.UNTESTED)
     self.reap_completed_tests()
 
-  def stop(self):
-    self.kill_active_tests(False)
-    self.run_tests([])
+  def stop(self, root=None, fail=False):
+    self.kill_active_tests(fail, root)
+    # Remove any tests in the run queue under the root.
+    self.tests_to_run = deque([x for x in self.tests_to_run
+                               if root and not x.has_ancestor(root)])
+    self.run_next_test()
 
   def abort_active_tests(self):
     self.kill_active_tests(True)
@@ -903,9 +919,8 @@ class Goofy(object):
 
       try:
         event()
-      except Exception as e:  # pylint: disable=W0703
-        logging.error('Error in event loop: %s', e)
-        traceback.print_exc(sys.stderr)
+      except:  # pylint: disable=W0702
+        logging.exception('Error in event loop')
         self.record_exception(traceback.format_exception_only(
             *sys.exc_info()[:2]))
         # But keep going
