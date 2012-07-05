@@ -698,6 +698,9 @@ cros.factory.Goofy.prototype.setSystemInfo = function(systemInfo) {
         });
     table.push('</table>');
     this.infoTooltip.setHtml(table.join(''));
+
+    goog.dom.classes.enable(document.body, 'goofy-update-available',
+                            !!systemInfo['update_md5sum']);
 };
 
 /**
@@ -1353,18 +1356,8 @@ cros.factory.Goofy.prototype.setTestList = function(testList) {
                         return;
                     }
 
-                    var updateItem = new goog.ui.MenuItem(
-                        cros.factory.Content('Update factory software',
-                                             '更新工廠軟體'));
-                    goog.events.listen(
-                        updateItem, goog.ui.Component.EventType.ACTION,
-                        function(event) {
-                            this.sendEvent('goofy:update_factory', {});
-                        }, true, this);
-
                     this.showTestPopup(
-                        '', document.getElementById('goofy-logo-text'),
-                        [updateItem]);
+                        '', document.getElementById('goofy-logo-text'));
 
                     event.stopPropagation();
                     event.preventDefault();
@@ -1379,6 +1372,14 @@ cros.factory.Goofy.prototype.setTestList = function(testList) {
             }
         }
     });
+};
+
+/**
+ * Sends an event to update factory software.
+ * @export
+ */
+cros.factory.Goofy.prototype.updateFactorySoftware = function() {
+    this.sendEvent('goofy:update_factory', {});
 };
 
 /**

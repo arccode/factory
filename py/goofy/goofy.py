@@ -48,6 +48,8 @@ HWID_CFG_PATH = '/usr/local/share/chromeos-hwid/cfg'
 # File that suppresses reboot if present (e.g., for development).
 NO_REBOOT_FILE = '/var/log/factory.noreboot'
 
+RUN_QUEUE_TIMEOUT_SECS = 10
+
 GOOFY_IN_CHROOT_WARNING = '\n' + ('*' * 70) + '''
 You are running Goofy inside the chroot.  Autotests are not supported.
 
@@ -164,6 +166,7 @@ class Goofy(object):
     self.on_ui_startup = []
     self.env = None
     self.last_shutdown_time = None
+    self.last_update_check = None
 
     def test_or_root(event, parent_or_group=True):
       '''Returns the test affected by a particular event.
@@ -625,6 +628,35 @@ class Goofy(object):
         self.connection_manager.EnableNetworking()
         self.network_enabled = True
 
+  def check_for_updates(self):
+    '''
+    Schedules an asynchronous check for updates if necessary.
+    '''
+    if not self.test_list.options.update_period_secs:
+      # Not enabled.
+      return
+
+    now = time.time()
+    if self.last_update_check and (
+        now - self.last_update_check <
+        self.test_list.options.update_period_secs):
+      # Not yet time for another check.
+      return
+
+    self.last_update_check = now
+
+    def handle_check_for_update(reached_shopfloor, md5sum, needs_update):
+      if reached_shopfloor:
+        new_update_md5sum = md5sum if needs_update else None
+        if system.SystemInfo.update_md5sum != new_update_md5sum:
+          logging.info('Received new update MD5SUM: %s', new_update_md5sum)
+          system.SystemInfo.update_md5sum = new_update_md5sum
+          self.run_queue.put(self.update_system_info)
+
+    updater.CheckForUpdateAsync(
+      handle_check_for_update,
+      self.test_list.options.shopfloor_timeout_secs)
+
   def run_tests(self, subtrees, untested_only=False):
     '''
     Runs tests under subtree.
@@ -938,15 +970,22 @@ class Goofy(object):
       True to keep going or False to shut down.
     '''
     events = utils.DrainQueue(self.run_queue)
-    if not events:
+    while not events:
       # Nothing on the run queue.
       self._run_queue_idle()
       if block:
         # Block for at least one event...
-        events.append(self.run_queue.get())
+        try:
+          events.append(self.run_queue.get(timeout=RUN_QUEUE_TIMEOUT_SECS))
+        except Queue.Empty:
+          # Keep going (calling _run_queue_idle() again at the top of
+          # the loop)
+          continue
         # ...and grab anything else that showed up at the same
         # time.
         events.extend(utils.DrainQueue(self.run_queue))
+      else:
+        break
 
     for event in events:
       if not event:
@@ -968,6 +1007,7 @@ class Goofy(object):
   def _run_queue_idle(self):
     '''Invoked when the run queue has no events.'''
     self.check_connection_manager()
+    self.check_for_updates()
 
   def _handle_event_logs(self, log_name, chunk):
     '''Callback for event watcher.

@@ -21,6 +21,9 @@ class SystemInfo(object):
   This is mostly static information that changes rarely if ever
   (e.g., version numbers, serial numbers, etc.).
   '''
+  # If not None, an update that is available from the update server.
+  update_md5sum = None
+
   def __init__(self):
     self.serial_number = None
     try:
@@ -81,6 +84,10 @@ class SystemInfo(object):
       pass
 
     self.factory_md5sum = factory.get_current_md5sum()
+
+    # update_md5sum is currently in SystemInfo's __dict__ but not this
+    # object's.  Copy it from SystemInfo into this object's __dict__.
+    self.update_md5sum = SystemInfo.update_md5sum
 
 
 class SystemStatus(object):

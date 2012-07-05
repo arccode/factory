@@ -324,6 +324,10 @@ class Options(object):
   sync_event_log_period_secs = None
   _types['sync_event_log_period_secs'] = (type(None), int)
 
+  # Interval to use when checking for factory software updates.
+  update_period_secs = None
+  _types['update_period_secs'] = (type(None), int)
+
   # Timeout talking to shopfloor server for background operations.
   shopfloor_timeout_secs = 10
 

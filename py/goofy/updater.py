@@ -3,11 +3,17 @@
 # found in the LICENSE file.
 
 
+import logging
 import os
 import shutil
 import subprocess
+import sys
+import threading
+import time
+import traceback
 from urlparse import urlparse
 import uuid
+
 
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
@@ -125,3 +131,57 @@ def TryUpdate(pre_update_hook=None):
   shutil.rmtree(new_path, ignore_errors=True)
   factory.console.info('Update successful')
   return True
+
+
+def CheckForUpdate(timeout):
+  '''Checks for an update synchronously.
+
+  Raises:
+    An exception if unable to contact the shopfloor server.
+
+  Returns:
+    A tuple (md5sum, needs_update):
+      md5sum: the MD5SUM returned by shopfloor server, or None if it is not
+        available or test environment is not installed on the shopfloor server
+        yet.
+      needs_update: is True if an update is necessary (i.e., md5sum is not None,
+        and md5sum isn't the same as the MD5SUM in the current autotest
+        directory).
+  '''
+  shopfloor_client = shopfloor.get_instance(detect=True, timeout=timeout)
+  new_md5sum = shopfloor_client.GetTestMd5sum()
+  current_md5sum = factory.get_current_md5sum()
+  return (new_md5sum,
+          new_md5sum and new_md5sum != current_md5sum)
+
+
+def CheckForUpdateAsync(callback, timeout):
+  '''Checks for an update asynchronously.
+
+  Launches a separate thread, checks for an update, and invokes callback (in
+  at most timeout seconds) in that separate thread with the following arguments:
+
+    callback(reached_shopfloor, md5sum, needs_update)
+
+  reached_shopfloor is True if the updater was actually able to communicate
+  with the shopfloor server, or False on timeout.
+
+  md5sum and needs_update are as in the return value for CheckForUpdate.
+  '''
+  current_md5sum = factory.get_current_md5sum()
+
+  def Run():
+    try:
+      callback(True, *CheckForUpdate(timeout))
+    except:
+      # Just an info, not a trace, since this is pretty common (and not
+      # necessarily an error) and we don't want logs to get out of control.
+      logging.info(
+        'Unable to contact shopfloor server to check for updates: %s',
+        '\n'.join(traceback.format_exception_only(*sys.exc_info()[:2])).strip())
+      callback(False, None, False)
+
+  update_thread = threading.Thread(target=Run, name='UpdateThread')
+  update_thread.daemon = True
+  update_thread.start()
+  return

@@ -107,31 +107,48 @@ body {
 .goofy-battery-full:before {
   content: 'F';
 }
-.goofy-engineering-mode #goofy-status-bar {
-  /* Status bar contains the engineering-mode indicator. */
+.goofy-engineering-mode #goofy-status-bar,
+.goofy-update-available #goofy-status-bar {
+  /* Status bar contains one indicator. */
   height: 44px;
   /* No border necessary. */
   border-top: 0px;
 }
-#goofy-engineering-mode-indicator {
-  background-color: red;
+.goofy-engineering-mode.goofy-update-available #goofy-status-bar {
+  /* Status bar contains both indicators. */
+  height: 68px;
+}
+.goofy-indicator {
   color: white;
   display: none;
-  font-size: 150%;
-  font-weight: bold;
   height: 24px;
   line-height: 24px;
   text-align: center;
-  left: 0; right: 0; bottom: 0; 
+  left: 0; right: 0;
 }
-#goofy-engineering-mode-indicator a {
+.goofy-indicator a {
   color: white;
+}
+#goofy-engineering-mode-indicator {
+  background-color: red;
+  font-weight: bold;
+  font-size: 150%;
+}
+#goofy-update-available-indicator {
+  background-color: green;
 }
 .goofy-engineering-mode #goofy-engineering-mode-indicator {
   display: block;
 }
-.goofy-engineering-mode #goofy-control {
+.goofy-update-available #goofy-update-available-indicator {
+  display: block;
+}
+.goofy-engineering-mode #goofy-control,
+.goofy-update-available #goofy-control {
   bottom: 44px;
+}
+.goofy-engineering-mode.goofy-update-available #goofy-control {
+  bottom: 68px;
 }
 #goofy-disable-engineering-mode {
   border: none;
