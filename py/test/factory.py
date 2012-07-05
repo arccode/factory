@@ -42,24 +42,39 @@ class TestListError(Exception):
 in_chroot = utils.in_chroot
 
 
-def get_log_root():
+def get_factory_root(subdir=None):
   '''Returns the root for logging and state.
 
   This is usually /var/log, or /tmp/factory.$USER if in the chroot, but may be
-  overridden by the CROS_FACTORY_LOG_ROOT environment variable.
+  overridden by the CROS_FACTORY_ROOT environment variable.
+
+  Creates the directory it doesn't exist.
+
+  Args:
+   subdir: If not None, returns that subdirectory.
   '''
-  ret = os.environ.get('CROS_FACTORY_LOG_ROOT')
-  if ret:
-    return ret
-  if in_chroot():
-    return '/tmp/factory.%s' % getpass.getuser()
-  return '/var/log'
+  ret = (os.environ.get('CROS_FACTORY_ROOT') or
+      (('/tmp/factory.%s' % getpass.getuser())
+      if utils.in_chroot() else '/var/factory'))
+  if subdir:
+    ret = os.path.join(ret, subdir)
+  utils.TryMakeDirs(ret)
+  return ret
+
+
+def get_log_root():
+  '''Returns the root for logs'''
+  return get_factory_root('log')
 
 
 def get_state_root():
   '''Returns the root for all factory state.'''
-  return os.path.join(
-    get_log_root(), 'factory_state.v%d' % FACTORY_STATE_VERSION)
+  return get_factory_root('state')
+
+
+def get_test_data_root():
+  '''Returns the root for all test logs/state.'''
+  return get_factory_root('tests')
 
 
 CONSOLE_LOG_PATH = os.path.join(get_log_root(), 'console.log')

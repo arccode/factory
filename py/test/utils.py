@@ -187,6 +187,19 @@ def DrainQueue(queue):
   return ret
 
 
+def TryMakeDirs(path):
+  '''
+  Tries to create a directory and its parents.
+
+  Doesn't ever raise an exception if it can't create the directory.
+  '''
+  try:
+    if not os.path.exists(path):
+      os.makedirs(path)
+  except:
+    pass
+
+
 class Enum(frozenset):
   '''An enumeration type.'''
   def __getattr__(self, name):

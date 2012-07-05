@@ -5,11 +5,7 @@
 
 # This script restarts factory test program.
 
-FACTORY_LOG_FILE=/var/log/factory.log
-FACTORY_START_TAG_FILE=/usr/local/autotest/factory_started
-FACTORY_CONTROL_FILE=/usr/local/autotest/control
-FACTORY_STATE_PREFIX=/var/log/factory_state
-
+FACTORY_BASE=/var/factory
 SCRIPT="$0"
 
 # Restart without session ID, the parent process may be one of the
@@ -22,54 +18,36 @@ fi
 usage_help() {
   echo "usage: $SCRIPT [options]
     options:
-      -s | state:   clear state files, implies -r ( $FACTORY_STATE_PREFIX* )
-      -l | log:     backup and reset factory log files ( $FACTORY_LOG_FILE )
-      -c | control: refresh control file, implies -r ( $FACTORY_CONTROL_FILE )
-      -r | restart: clear factory start tag ( $FACTORY_START_TAG_FILE )
-      -a | all:     restart everything
+      -s | state:   clear state files ($FACTORY_BASE/state)
+      -l | log:     clear factory log files ($FACTORY_BASE/log)
+      -t | tests:   clear test data ($FACTORY_BASE/tests)
+      -a | all:     clear everything
       -h | help:    this help screen
   "
 }
 
 clear_files() {
-  local opt="$1"
-  local file="$2"
-  local is_multi="$3"
-  if [ -z "$opt" ]; then
-    return 0
-  fi
-  if [ -n "$is_multi" ]; then
-    echo -n "$file"* " "
-    rm -rf "$file"*  2>/dev/null
-  else
-    echo -n "$file "
-    rm -rf "$file" "$file.bak" 2>/dev/null
-  fi
+  enabled="$1"
+  dir="$2"
+  [ -n "$enabled" ] && echo rm -rf "$FACTORY_BASE/$dir/*"
 }
 
+delete=""
 while [ $# -gt 0 ]; do
   opt="$1"
   shift
   case "$opt" in
     -l | log )
-      opt_log=1
+      delete="$delete log"
       ;;
     -s | state )
-      opt_state=1
-      opt_start_tag=1
+      delete="$delete state"
       ;;
-    -c | control )
-      opt_control=1
-      opt_start_tag=1
-      ;;
-    -r | restart )
-      opt_start_tag=1
+    -t | tests )
+      delete="$delete tests"
       ;;
     -a | all )
-      opt_log=1
-      opt_state=1
-      opt_control=1
-      opt_start_tag=1
+      delete="$delete log state tests"
       ;;
     -h | help )
       usage_help
@@ -92,14 +70,12 @@ done
 killall -9 /usr/bin/python 2>/dev/null
 echo "done."
 
-echo -n "Resetting files: "
-clear_files "$opt_log" "$FACTORY_LOG_FILE" ""
-clear_files "$opt_state" "$FACTORY_STATE_PREFIX" "1"
-clear_files "$opt_control" "$FACTORY_CONTROL_FILE" ""
-clear_files "$opt_start_tag" "$FACTORY_START_TAG_FILE" ""
-echo " done."
+for d in $delete; do
+  rm -rf /var/factory/$d
+  mkdir -p /var/factory/$d
+done
 
-echo "Restarting new factory test program..."
+echo "Restarting factory tests..."
 # Ensure full stop, we don't want to have the same factory
 # process recycled after we've been killing bits of it.
 stop factory

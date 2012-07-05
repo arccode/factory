@@ -5,7 +5,7 @@
 
 set -e
 FACTORY="$(dirname "$(dirname "$(readlink -f "$0")")")"
-FACTORY_LOG_FILE=/var/log/factory.log
+FACTORY_LOG_FILE=/var/factory/log/factory.log
 
 BOARD_SETUP="$FACTORY/custom/board_setup_factory.sh"
 

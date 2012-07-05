@@ -719,6 +719,11 @@ class Goofy(object):
               help='Use FILE as test list')
     (self.options, self.args) = parser.parse_args(args)
 
+    # Make sure factory directories exist.
+    factory.get_log_root()
+    factory.get_state_root()
+    factory.get_test_data_root()
+
     global _inited_logging  # pylint: disable=W0603
     if not _inited_logging:
       factory.init_logging('goofy', verbose=self.options.verbose)

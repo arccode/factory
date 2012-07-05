@@ -81,7 +81,10 @@ default:
 install:
 	mkdir -p $(FACTORY)
 	cp -ar bin misc py py_pkg sh test_lists $(FACTORY)
-	ln -s bin/gooftool bin/edid bin/hwid_tool $(FACTORY)
+	ln -sf bin/gooftool bin/edid bin/hwid_tool ${FACTORY}
+	mkdir -m755 -p ${DESTDIR}/var/log
+	mkdir -m755 -p $(addprefix ${DESTDIR}/var/factory/,log state tests)
+	ln -sf $(addprefix ../factory/log/,factory.log console.log) ${DESTDIR}/var/log
 
 lint:
 	env PYTHONPATH=py_pkg pylint \
