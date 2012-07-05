@@ -1090,6 +1090,12 @@ cros.factory.Goofy.prototype.setTestList = function(testList) {
         goog.events.listen(
             rowElement, goog.events.EventType.CONTEXTMENU,
             function(event) {
+                if (event.ctrlKey) {
+                    // Ignore; let the default (browser) context menu
+                    // show up.
+                    return;
+                }
+
                 this.showTestPopup(path, labelElement);
                 event.stopPropagation();
                 event.preventDefault();
@@ -1120,6 +1126,11 @@ cros.factory.Goofy.prototype.setTestList = function(testList) {
                     if (eventType == goog.events.EventType.MOUSEDOWN &&
                         event.button != 0) {
                         // Only process primary button for MOUSEDOWN.
+                        return;
+                    }
+                    if (event.ctrlKey) {
+                        // Ignore; let the default (browser) context menu
+                        // show up.
                         return;
                     }
 
