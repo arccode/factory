@@ -501,9 +501,11 @@ def run_test_widget(dummy_job, test_widget,
 
   def handle_event(event):
     if (event.type == Event.Type.STATE_CHANGE and
-      test_path and event.path == test_path and
-      event.state.visible):
-      show_window()
+      test_path and event.path == test_path):
+      if event.state.visible:
+        show_window()
+      else:
+        window.hide()
 
   event_client = EventClient(
       callback=handle_event, event_loop=EventClient.EVENT_LOOP_GOBJECT_IO)

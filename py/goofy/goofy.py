@@ -203,6 +203,9 @@ class Goofy(object):
         lambda event: self.update_factory(),
       Event.Type.STOP:
         lambda event: self.stop(),
+      Event.Type.SET_VISIBLE_TEST:
+        lambda event: self.set_visible_test(
+          self.test_list.lookup_path(event.path)),
     }
 
     self.exceptions = []
@@ -1030,8 +1033,7 @@ class Goofy(object):
       # Already running: just bring to the front if it
       # has a UI.
       logging.info('Setting visible test to %s', test.path)
-      self.event_client.post_event(
-        Event(Event.Type.SET_VISIBLE_TEST, path=test.path))
+      self.set_visible_test(test)
       return
 
     self.abort_active_tests()

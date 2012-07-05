@@ -229,6 +229,10 @@ cros.factory.Invocation = function(goofy, path, uuid) {
      * @type HTMLIFrameElement
      */
     this.iframe = goog.dom.iframe.createBlank(new goog.dom.DomHelper(document));
+    goog.dom.classes.add(this.iframe, 'goofy-test-iframe');
+    goog.dom.classes.enable(this.iframe, 'goofy-test-visible',
+                            /** @type boolean */(
+                                goofy.pathTestMap[path].state.visible));
     document.getElementById('goofy-main').appendChild(this.iframe);
     this.iframe.contentWindow.test = this.test;
 };
@@ -269,10 +273,22 @@ cros.factory.Goofy = function() {
     this.uuid = null;
 
     /**
-     * Whether the context menu is currently visible.
-     * @type boolean
+     * The currently visible context menu, if any.
+     * @type goog.ui.PopupMenu
      */
-    this.contextMenuVisible = false;
+    this.contextMenu = null;
+
+    /**
+     * The last test for which a context menu was displayed.
+     * @type {?string}
+     */
+    this.lastContextMenuPath = null;
+
+    /**
+     * The time at which the last context menu was hidden.
+     * @type {?number}
+     */
+    this.lastContextMenuHideTime = null;
 
     /**
      * All tooltips that we have created.
@@ -880,13 +896,30 @@ cros.factory.Goofy.prototype.showTestLogs = function(paths) {
  */
 cros.factory.Goofy.prototype.showTestPopup = function(path, labelElement,
                                                       extraItems) {
-    this.contextMenuVisible = true;
+    var test = this.pathTestMap[path];
+
+    if (path == this.lastContextMenuPath &&
+        (goog.now() - this.lastContextMenuHideTime <
+         goog.ui.PopupBase.DEBOUNCE_DELAY_MS)) {
+        // We just hid it; don't reshow.
+        return false;
+    }
+
+    // If it's a leaf node, and it's the active but not the visible
+    // test, ask the backend to make it visible.
+    if (test.state.status == 'ACTIVE' &&
+        !/** @type boolean */(test.state.visible) &&
+        !test.subtests.length) {
+        this.sendEvent('goofy:set_visible_test', {'path': path});
+    }
+
     // Hide all tooltips so that they don't fight with the context menu.
     goog.array.forEach(this.tooltips, function(tooltip) {
             tooltip.setVisible(false);
         });
 
-    var menu = new goog.ui.PopupMenu();
+    var menu = this.contextMenu = new goog.ui.PopupMenu();
+    this.lastContextMenuPath = path;
 
     if (extraItems && extraItems.length) {
         goog.array.forEach(extraItems, function(item) {
@@ -897,7 +930,6 @@ cros.factory.Goofy.prototype.showTestPopup = function(path, labelElement,
 
     var numLeaves = 0;
     var numLeavesByStatus = {};
-    var test = this.pathTestMap[path];
     var allPaths = [];
     function countLeaves(test) {
         allPaths.push(test.path);
@@ -975,8 +1007,10 @@ cros.factory.Goofy.prototype.showTestPopup = function(path, labelElement,
     goog.events.listen(menu, goog.ui.Component.EventType.HIDE,
                        function(event) {
                            menu.dispose();
-                           this.contextMenuVisible = false;
+                           this.contextMenu = null;
+                           this.lastContextMenuHideTime = goog.now();
                        }, true, this);
+    return true;
 };
 
 /**
@@ -994,7 +1028,7 @@ cros.factory.Goofy.prototype.updateTestToolTip =
     tooltip.setHtml('')
 
     var errorMsg = test.state['error_msg'];
-    if (test.state.status != 'FAILED' || this.contextMenuVisible || !errorMsg) {
+    if (test.state.status != 'FAILED' || this.contextMenu || !errorMsg) {
         // Don't bother showing it.
         event.preventDefault();
     } else {
@@ -1063,9 +1097,11 @@ cros.factory.Goofy.prototype.setTestList = function(testList) {
         goog.events.listen(
             labelElement, goog.events.EventType.MOUSEDOWN,
             function(event) {
-                this.showTestPopup(path, labelElement);
-                event.stopPropagation();
-                event.preventDefault();
+                if (event.button == 0) {
+                    this.showTestPopup(path, labelElement);
+                    event.stopPropagation();
+                    event.preventDefault();
+                }
             }, true, this);
     }, this);
 
@@ -1081,6 +1117,12 @@ cros.factory.Goofy.prototype.setTestList = function(testList) {
                 document.getElementById('goofy-title'),
                 eventType,
                 function(event) {
+                    if (eventType == goog.events.EventType.MOUSEDOWN &&
+                        event.button != 0) {
+                        // Only process primary button for MOUSEDOWN.
+                        return;
+                    }
+
                     var updateItem = new goog.ui.MenuItem(
                         cros.factory.Content('Update factory software',
                                              '更新工廠軟體'));
@@ -1136,6 +1178,15 @@ cros.factory.Goofy.prototype.setTestState = function(path, state) {
                 return goog.string.startsWith(cls, "goofy-status-") && cls
             }),
         'goofy-status-' + state.status.toLowerCase());
+
+    var visible = /** @type boolean */(state.visible);
+    goog.dom.classes.enable(elt, 'goofy-test-visible', visible);
+    goog.object.forEach(this.invocations, function(invoc, uuid) {
+            if (invoc.path == path) {
+                goog.dom.classes.enable(invoc.iframe,
+                                        'goofy-test-visible', visible);
+            }
+        }, this);
 
     if (state.status == 'ACTIVE') {
         // Automatically show the test if it is running.

@@ -76,16 +76,6 @@ body {
 #goofy-console {
   padding: .5em;
 }
-#goofy-main {
-  left: 0; top: 0;
-  width: 100%; height: 100%;
-}
-#goofy-main iframe {
-  position: absolute;
-  left: 0; top: 0;
-  width: 100%; height: 100%;
-  padding: .5em;
-}
 
 /* Overrides for status bar. */
 #goofy-status-bar {
@@ -195,6 +185,9 @@ body {
   vertical-align: -2px;
   width: 16px; height: 16px;
 }
+.goofy-test-visible .goog-tree-item-label {
+  background-color: red;
+}
 .goofy-status-passed > div > .goofy-test-icon {
   background-image: url(images/passed.gif);
 }
@@ -267,6 +260,21 @@ dl.goofy-history {
   font-style: italic;
 }
 
+/* Elements in the main pane. */
+#goofy-main {
+  left: 0; top: 0;
+  width: 100%; height: 100%;
+}
+.goofy-test-iframe {
+  position: absolute;
+  left: 0; top: 0;
+  width: 100%; height: 100%;
+  padding: .5em;
+  display: none;
+}
+.goofy-test-iframe.goofy-test-visible {
+  display: inline;
+}
 /* Elements in the console pane. */
 .goofy-internal-log {
   font-style: italic;
@@ -314,12 +322,17 @@ dl.goofy-history {
 }
 #goofy-control .goog-tree-item-label {
   margin-left: 2px;
+  cursor: pointer;
 }
 #goofy-control .goog-tree-expand-icon {
   vertical-align: -1px;
 }
-/* Use same color, whether or not it's focused. */
-#goofy-control .selected .goog-tree-item-label {
+/* No background for any tree items in the control pane. */
+#goofy-control .goog-tree-item-label {
+  background-color: transparent;
+}
+/* Add a background for the visible test. */
+#goofy-control .goofy-test-visible .goog-tree-item-label {
   background-color: #cddff0;
 }
 .modal-dialog-bg {
