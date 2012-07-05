@@ -256,7 +256,8 @@ class TestInvocation(object):
             env=env,
             stdin=open(os.devnull, "w"),
             stdout=log,
-            stderr=subprocess.STDOUT)
+            stderr=subprocess.STDOUT,
+            close_fds=True)
         self._process.wait()
         with self._lock:
           if self._aborted:
