@@ -76,7 +76,8 @@ UNITTESTS=\
 default:
 	env PATH=/opt/icedtea6-bin-1.6.2/bin:$(PATH) \
 	    $(MAKE) -C py/goofy/static \
-	        CLOSURE_LIB_ARCHIVE="$(CLOSURE_LIB_ARCHIVE)"
+	        $(if $(CLOSURE_LIB_ARCHIVE), \
+                  CLOSURE_LIB_ARCHIVE="$(CLOSURE_LIB_ARCHIVE)",)
 
 install:
 	mkdir -p $(FACTORY)
