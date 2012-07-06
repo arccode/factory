@@ -18,6 +18,7 @@ import time
 import traceback
 import unittest
 import uuid
+import yaml
 from optparse import OptionParser
 from StringIO import StringIO
 
@@ -63,7 +64,17 @@ class TestInvocation(object):
     self.uuid = event_log.TimedUuid()
     self.env_additions = {'CROS_FACTORY_TEST_PATH': self.test.path,
                 'CROS_FACTORY_TEST_INVOCATION': self.uuid}
-    self.debug_log_path = None
+    self.output_dir = os.path.join(factory.get_test_data_root(),
+                                   '%s-%s' % (self.test.path,
+                                              self.uuid))
+    utils.TryMakeDirs(self.output_dir)
+    self.metadata_file = os.path.join(self.output_dir, 'metadata')
+    self.metadata = {}
+    self.update_metadata(path=test.path,
+                         init_time=time.time(),
+                         invocation=str(self.uuid))
+
+    self.log_path = os.path.join(self.output_dir, 'log')
     self._lock = threading.Lock()
     # The following properties are guarded by the lock.
     self._aborted = False
@@ -73,6 +84,13 @@ class TestInvocation(object):
   def __repr__(self):
     return 'TestInvocation(_aborted=%s, _completed=%s)' % (
       self._aborted, self._completed)
+
+  def update_metadata(self, **kwargs):
+    self.metadata.update(kwargs)
+    tmp = self.metadata_file + '.tmp'
+    with open(tmp, 'w') as f:
+      yaml.dump(self.metadata, f, default_flow_style=False)
+    os.rename(tmp, self.metadata_file)
 
   def start(self):
     '''Starts the test thread.'''
@@ -125,15 +143,10 @@ class TestInvocation(object):
     error_msg = 'Unknown'
 
     try:
-      output_dir = '%s/%s-%s' % (factory.get_test_data_root(),
-                    self.test.path,
-                    self.uuid)
-      self.debug_log_path = os.path.join(
-        output_dir,
-        'results/default/debug/client.INFO')
-      if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
-      tmp_dir = tempfile.mkdtemp(prefix='tmp', dir=output_dir)
+      # Symlink client.INFO to the log path.
+      os.symlink('results/default/debug/client.INFO',
+                 self.log_path)
+      tmp_dir = tempfile.mkdtemp(prefix='tmp', dir=self.output_dir)
 
       control_file = os.path.join(tmp_dir, 'control')
       result_file = os.path.join(tmp_dir, 'result')
@@ -158,7 +171,7 @@ class TestInvocation(object):
 
       args = [os.path.join(os.path.dirname(factory.FACTORY_PATH),
                  'autotest/bin/autotest'),
-          '--output_dir', output_dir,
+          '--output_dir', self.output_dir,
           control_file]
 
       logging.debug('Test command line: %s', ' '.join(
@@ -200,7 +213,7 @@ class TestInvocation(object):
       self.goofy.record_exception(traceback.format_exception_only(
           *sys.exc_info()[:2]))
     finally:
-      self.clean_autotest_logs(output_dir)
+      self.clean_autotest_logs()
       return status, error_msg  # pylint: disable=W0150
 
   def _invoke_pytest(self):
@@ -220,13 +233,9 @@ class TestInvocation(object):
       info_path = make_tmp('info')
       results_path = make_tmp('results')
 
-      log_dir = os.path.join(factory.get_log_root(),
-                   'factory_test_logs')
+      log_dir = os.path.join(factory.get_test_data_root())
       if not os.path.exists(log_dir):
         os.makedirs(log_dir)
-      log_path = os.path.join(log_dir,
-                  '%s.%03d' % (self.test.path,
-                         self.count))
 
       with open(info_path, 'w') as info:
         pickle.dump(PyTestInfo(
@@ -238,13 +247,17 @@ class TestInvocation(object):
               info)
 
       # Invoke the unittest driver in a separate process.
-      with open(log_path, "w") as log:
+      with open(self.log_path, "w") as log:
         this_file = os.path.realpath(__file__)
         this_file = re.sub(r'\.pyc$', '.py', this_file)
         args = [this_file, '--pytest', info_path]
+
+        cmd_line = ' '.join([pipes.quote(arg) for arg in args])
+        print >> log, 'Running test: %s' % cmd_line
+        log.flush()
+
         logging.debug('Test command line: %s >& %s',
-               ' '.join([pipes.quote(arg) for arg in args]),
-               log_path)
+                      cmd_line, self.log_path)
 
         env = dict(os.environ)
         env.update(self.env_additions)
@@ -295,7 +308,7 @@ class TestInvocation(object):
       error_msg = traceback.format_exc()
       return TestState.FAILED, traceback.format_exc()
 
-  def clean_autotest_logs(self, output_dir):
+  def clean_autotest_logs(self):
     globs = self.goofy.test_list.options.preserve_autotest_results
     if '*' in globs:
       # Keep everything
@@ -303,10 +316,10 @@ class TestInvocation(object):
 
     deleted_count = 0
     preserved_count = 0
-    for root, dirs, files in os.walk(output_dir, topdown=False):
+    for root, dirs, files in os.walk(self.output_dir, topdown=False):
       for f in files:
-        if any(fnmatch.fnmatch(f, g)
-             for g in globs):
+        if f in ['log', 'metadata'] or any(fnmatch.fnmatch(f, g)
+                                           for g in globs):
           # Keep it
           preserved_count = 1
         else:
@@ -348,6 +361,9 @@ class TestInvocation(object):
       log_args['pytest_name'] = self.test.pytest_name
 
     self.goofy.event_log.Log('start_test', **log_args)
+
+    metadata = log_args
+    self.update_metadata(start_time=time.time(), **log_args)
     start_time = time.time()
     try:
       if self.test.autotest_name:
@@ -372,22 +388,24 @@ class TestInvocation(object):
       try:
         # Leave all items in log_args; this duplicates
         # things but will make it easier to grok the output.
+        end_time = time.time()
         log_args.update(dict(status=status,
-                   duration=time.time() - start_time))
+                             duration=(end_time - start_time)))
         if error_msg:
           log_args['error_msg'] = error_msg
         if (status != TestState.PASSED and
-          self.debug_log_path and
-          os.path.exists(self.debug_log_path)):
+            self.log_path and
+            os.path.exists(self.log_path)):
           try:
-            debug_log_size = os.path.getsize(self.debug_log_path)
-            offset = max(0, debug_log_size - ERROR_LOG_TAIL_LENGTH)
-            with open(self.debug_log_path) as f:
+            log_size = os.path.getsize(self.log_path)
+            offset = max(0, log_size - ERROR_LOG_TAIL_LENGTH)
+            with open(self.log_path) as f:
               f.seek(offset)
               log_args['log_tail'] = f.read()
           except:
             logging.exception('Unable to read log tail')
         self.goofy.event_log.Log('end_test', **log_args)
+        self.update_metadata(end_time=end_time, **log_args)
       except:
         logging.exception('Unable to log end_test event')
 

@@ -10,6 +10,7 @@ can be used to handle factory test states (status) and shared persistent data.
 '''
 
 
+import glob
 import logging
 import mimetypes
 import os
@@ -21,6 +22,7 @@ import SocketServer
 import sys
 import threading
 import time
+import yaml
 
 from hashlib import sha1
 from uuid import uuid4
@@ -62,15 +64,6 @@ def clear_state(state_file_path=None):
   logging.warn('Clearing state file path %s' % state_file_path)
   if os.path.exists(state_file_path):
     shutil.rmtree(state_file_path)
-
-
-class TestHistoryItem(object):
-  def __init__(self, path, state, log, trace=None):
-    self.path = path
-    self.state = state
-    self.log = log
-    self.trace = trace
-    self.time = time.time()
 
 
 class PathResolver(object):
@@ -163,8 +156,6 @@ class FactoryState(object):
       os.makedirs(state_file_path)
     self._tests_shelf = shelve.open(state_file_path + '/tests')
     self._data_shelf = shelve.open(state_file_path + '/data')
-    self._test_history_shelf = shelve.open(state_file_path +
-                        '/test_history')
     self._lock = threading.RLock()
     self.test_list_struct = None
 
@@ -182,8 +173,7 @@ class FactoryState(object):
     Shuts down the state instance.
     '''
     for shelf in [self._tests_shelf,
-           self._data_shelf,
-           self._test_history_shelf]:
+                  self._data_shelf]:
       try:
         shelf.close()
       except:
@@ -301,35 +291,37 @@ class FactoryState(object):
       if not optional:
         raise
 
-  @_synchronized
-  def add_test_history(self, history_item):
-    path = history_item.path
-    assert path
-
-    length_key = path + '[length]'
-    num_entries = self._test_history_shelf.get(length_key, 0)
-    self._test_history_shelf[path + '[%d]' % num_entries] = history_item
-    self._test_history_shelf[length_key] = num_entries + 1
-
-  @_synchronized
-  def get_test_history(self, paths):
-    if type(paths) != list:
-      paths = [paths]
+  def get_test_history(self, *test_paths):
+    '''Returns metadata for all previous (and current) runs of a test.'''
     ret = []
 
-    for path in paths:
-      i = 0
-      while True:
-        value = self._test_history_shelf.get(path + '[%d]' % i)
+    for path in test_paths:
+      for f in glob.glob(os.path.join(factory.get_test_data_root(),
+                                      path + '-*',
+                                      'metadata')):
+        try:
+          ret.append(yaml.load(open(f)))
+        except:
+          logging.exception('Unable to load test metadata %s', f)
 
-        i += 1
-        if not value:
-          break
-        ret.append(value)
-
-    ret.sort(key=lambda item: item.time)
-
+    ret.sort(getattr(ret, 'init_time', None))
     return ret
+
+  def get_test_history_entry(self, path, invocation):
+    '''Returns metadata and log for one test invocation.'''
+    test_dir = os.path.join(factory.get_test_data_root(),
+                            '%s-%s' % (path, invocation))
+
+    log_file = os.path.join(test_dir, 'log')
+    try:
+      log = open(log_file).read()
+    except:
+      # Oh well
+      logging.exception('Unable to read log file %s', log_file)
+      log = None
+
+    return {'metadata': yaml.load(open(os.path.join(test_dir, 'metadata'))),
+            'log': log}
 
   @_synchronized
   def url_for_file(self, path):

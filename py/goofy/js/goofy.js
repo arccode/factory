@@ -6,6 +6,7 @@ goog.provide('cros.factory.Goofy');
 
 goog.require('goog.crypt');
 goog.require('goog.crypt.Sha1');
+goog.require('goog.date.Date');
 goog.require('goog.debug.ErrorHandler');
 goog.require('goog.debug.FancyWindow');
 goog.require('goog.debug.Logger');
@@ -14,6 +15,7 @@ goog.require('goog.dom.classes');
 goog.require('goog.dom.iframe');
 goog.require('goog.events');
 goog.require('goog.events.EventHandler');
+goog.require('goog.i18n.DateTimeFormat');
 goog.require('goog.i18n.NumberFormat');
 goog.require('goog.json');
 goog.require('goog.math');
@@ -32,7 +34,9 @@ goog.require('goog.ui.ProgressBar');
 goog.require('goog.ui.Prompt');
 goog.require('goog.ui.Select');
 goog.require('goog.ui.SplitPane');
+goog.require('goog.ui.SubMenu');
 goog.require('goog.ui.tree.TreeControl');
+goog.require('goog.window');
 
 cros.factory.logger = goog.debug.Logger.getLogger('cros.factory');
 
@@ -411,7 +415,7 @@ cros.factory.Goofy.prototype.initSplitPanes = function() {
             // Oof... error while logging an error!  Maybe the DOM
             // isn't set up properly yet; just ignore.
         }
-    }, this));
+    }, this), false);
 
     var controlComponent = new goog.ui.Component();
     var topSplitPane = new goog.ui.SplitPane(
@@ -854,49 +858,6 @@ cros.factory.Goofy.prototype.makeMenuItem = function(
 };
 
 /**
- * Displays test logs in a modal dialog.
- * @param {Array.<string>} paths paths whose logs should be displayed.
- *    (The first entry should be the root; its name will be used as the
- *    title.)
- */
-cros.factory.Goofy.prototype.showTestLogs = function(paths) {
-    this.sendRpc('get_test_history', [paths], function(history) {
-        var dialog = new goog.ui.Dialog();
-
-        if (history.length) {
-            var viewSize = goog.dom.getViewportSize(
-                goog.dom.getWindow(document) || window);
-            var maxWidth = viewSize.width * 0.75;
-            var maxHeight = viewSize.height * 0.75;
-
-            var content = [
-                '<dl class="goofy-history" style="max-width: ' +
-                maxWidth + 'px; max-height: ' + maxHeight + 'px">'
-                           ];
-            goog.array.forEach(history, function(item) {
-                content.push('<dt class="goofy-history-item history-item-' +
-                             item.state.status +
-                             '">' + goog.string.htmlEscape(item.path) +
-                             ' (run ' +
-                             item.state.count + ')</dt>');
-                content.push('<dd>' + goog.string.htmlEscape(item.log) +
-                             '</dd>');
-            }, this);
-            content.push('</dl>');
-            dialog.setContent(content.join(''));
-        } else {
-            dialog.setContent('<div class="goofy-history-none">' +
-                              'No test runs have completed yet.</div>');
-        }
-        dialog.setTitle(
-            'Logs for ' + (paths[0] == '' ? 'all tests' :
-                           '"' + goog.string.htmlEscape(paths[0]) + '"'));
-        dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk())
-        dialog.setVisible(true);
-    });
-};
-
-/**
  * Displays a context menu for a test in the test tree.
  * @param {string} path the path of the test whose context menu should be
  *     displayed.
@@ -1000,16 +961,10 @@ cros.factory.Goofy.prototype.showTestPopup = function(path, labelElement,
         this.sendEvent('goofy:stop', {'path': path, 'fail': true});
     }), true);
 
-    var item = new goog.ui.MenuItem('Show test logs...');
-    item.setEnabled(test.state.status != 'UNTESTED');
-    goog.events.listen(item, goog.ui.Component.EventType.ACTION,
-                       function(event) {
-                           this.showTestLogs(allPaths);
-                       }, true, this);
-    // Disable 'Show test logs...' for now since it is presented
-    // behind the running test; we'd need to hide test to show it
-    // properly.  TODO(jsalz): Re-enable.
-    // menu.addChild(item, true);
+    if (this.engineeringMode && !test.subtests.length) {
+        menu.addChild(new goog.ui.MenuSeparator(), true);
+        menu.addChild(this.createViewLogMenu(path), true);
+    }
 
     menu.render(document.body);
     menu.showAtElement(labelElement,
@@ -1022,6 +977,164 @@ cros.factory.Goofy.prototype.showTestPopup = function(path, labelElement,
                            this.lastContextMenuHideTime = goog.now();
                        }, true, this);
     return true;
+};
+
+cros.factory.Goofy.prototype.HMS_TIME_FORMAT =
+    new goog.i18n.DateTimeFormat('HH:mm:ss');
+/**
+ * Returns a "View logs" submenu for a given test path.
+ * @param path string
+ * @return goog.ui.SubMenu
+ */
+cros.factory.Goofy.prototype.createViewLogMenu = function(path) {
+    var subMenu = new goog.ui.SubMenu('View logs');
+    var loadingItem = new goog.ui.MenuItem('Loading...');
+    loadingItem.setEnabled(false);
+    subMenu.addItem(loadingItem);
+
+    this.sendRpc('get_test_history', [path], function(history) {
+            if (!subMenu.isVisible()) {
+                // e.g., menu already went away
+                return;
+            }
+
+            if (!history.length) {
+                loadingItem.setCaption('No logs available');
+                return;
+            }
+
+            subMenu.removeItem(loadingItem);
+
+            // Arrange in descending order of time (it is returned in
+            // ascending order).
+            history.reverse();
+
+            var count = history.length;
+            goog.array.forEach(history, function(entry) {
+                var status = entry.status ? entry.status.toLowerCase() :
+                    'started';
+                var title = count-- + '. ';
+
+                if (entry.init_time) {
+                    // TODO(jsalz): Localize (but not that important since this
+                    // is not for operators)
+
+                    title += this.HMS_TIME_FORMAT.format(
+                        new Date(entry.init_time * 1000));
+                }
+                title += ' (' + status;
+
+                var time = /** @type number */(entry.end_time) ||
+                    entry.init_time;
+                if (time) {
+                    var secondsAgo = goog.now() / 1000.0 - time;
+
+                    var hoursAgo = Math.floor(secondsAgo / 3600);
+                    secondsAgo -= hoursAgo * 3600;
+
+                    var minutesAgo = Math.floor(secondsAgo / 60);
+                    secondsAgo -= minutesAgo * 60;
+
+                    title += ' ';
+                    if (hoursAgo) {
+                        title += hoursAgo + ' h ';
+                    }
+                    if (minutesAgo) {
+                        title += minutesAgo + ' m ';
+                    }
+                    title += Math.floor(secondsAgo) + ' s ago';
+                }
+                title += ')…';
+
+                var item = new goog.ui.MenuItem(
+                    goog.dom.createDom('span',
+                                       'goofy-view-logs-status-' + status,
+                                       title));
+                goog.events.listen(
+                    item, goog.ui.Component.EventType.ACTION,
+                    function(event) {
+                        this.showHistoryEntry(
+                            entry.path,
+                            /** @type string */(entry.invocation));
+                    }, false, this);
+
+                subMenu.addItem(item);
+            }, this);
+        });
+
+    return subMenu;
+};
+
+cros.factory.Goofy.prototype.FULL_TIME_FORMAT =
+    new goog.i18n.DateTimeFormat('yyyy-MM-dd HH:mm:ss.SSS');
+/**
+ * Displays a dialog containing history for a given test invocation.
+ * @param {string} path
+ * @param {string} invocation
+ */
+cros.factory.Goofy.prototype.showHistoryEntry = function(path, invocation) {
+    this.sendRpc(
+        'get_test_history_entry', [path, invocation],
+        function(data) {
+            var metadata = /** @type Object */(data.metadata);
+            var log = /** @type string */(data.log);
+
+            var viewSize = goog.dom.getViewportSize(
+                goog.dom.getWindow(document) || window);
+            var maxWidth = viewSize.width * 0.75;
+            var maxHeight = viewSize.height * 0.75;
+
+            var metadataTable = [];
+            metadataTable.push('<table class="goofy-history-metadata>"');
+            goog.array.forEach(
+                [['status', 'Status'],
+                 ['init_time', 'Creation time'],
+                 ['start_time', 'Start time'],
+                 ['end_time', 'End time']],
+                function(f) {
+                    var name = f[0];
+                    var title = f[1];
+
+                    if (metadata[name]) {
+                        var value = metadata[name];
+                        delete metadata[name];
+                        if (goog.string.endsWith(name, '_time')) {
+                            value = this.FULL_TIME_FORMAT.format(
+                                new Date(value * 1000));
+                        }
+                        metadataTable.push(
+                            '<tr><th>' + title + '</th><td>' +
+                            goog.string.htmlEscape(value) +
+                            '</td></tr>');
+                    }
+                }, this);
+
+            var keys = goog.object.getKeys(metadata);
+            goog.array.forEach(keys, function(key) {
+                metadataTable.push('<tr><th>' + key + '</th><td>' +
+                                   goog.string.htmlEscape(metadata[key]) +
+                                   '</td></tr>');
+                }, this);
+
+            metadataTable.push('</table>');
+
+            var dialog = new goog.ui.Dialog();
+            dialog.setTitle(metadata.path +
+                            ' (invocation ' + metadata.invocation + ')');
+            dialog.setModal(false);
+            dialog.setContent(
+                '<div class="goofy-history" style="max-width: ' +
+                maxWidth + '; max-height: ' + maxHeight + '">' +
+                '<div class=goofy-history-header>Test Info</div>' +
+                metadataTable.join('') +
+                '<div class=goofy-history-header>Log</div>' +
+                '<div class=goofy-history-log>' +
+                goog.string.htmlEscape(log) +
+                '</div>' +
+                '</div>');
+            dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
+            dialog.setVisible(true);
+        });
 };
 
 /**
@@ -1294,11 +1407,17 @@ cros.factory.Goofy.prototype.sendRpc = function(method, args, callback) {
                 return;
             }
 
+            var response = goog.json.unsafeParse(this.getResponseText());
+            if (response.error) {
+                factoryThis.logToConsole('RPC error calling ' + method + ': ' +
+                                         goog.debug.expose(response.error),
+                                         'goofy-internal-error');
+                return;
+            }
+
             // TODO(jsalz): handle errors
             if (callback) {
-                callback.call(
-                    factoryThis,
-                    goog.json.unsafeParse(this.getResponseText()).result);
+                callback.call(factoryThis, response.result);
             }
         },
         'POST', request);
