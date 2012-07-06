@@ -402,6 +402,17 @@ cros.factory.Goofy.prototype.initSplitPanes = function() {
         Math.max(cros.factory.LOG_PANE_MIN_HEIGHT,
                  1 - cros.factory.LOG_PANE_HEIGHT_FRACTION));
 
+    goog.debug.catchErrors(goog.bind(function(info) {
+        try {
+            this.logToConsole('JavaScript error (' + info.fileName +
+                              ', line ' + info.line + '): ' + info.message,
+                              'goofy-internal-error');
+        } catch (e) {
+            // Oof... error while logging an error!  Maybe the DOM
+            // isn't set up properly yet; just ignore.
+        }
+    }, this));
+
     var controlComponent = new goog.ui.Component();
     var topSplitPane = new goog.ui.SplitPane(
         controlComponent, mainAndConsole,
@@ -1274,6 +1285,15 @@ cros.factory.Goofy.prototype.sendRpc = function(method, args, callback) {
         '/', function() {
             cros.factory.logger.info('RPC response for ' + method + ': ' +
                                      this.getResponseText());
+
+            if (this.getLastErrorCode() != goog.net.ErrorCode.NO_ERROR) {
+                factoryThis.logToConsole('RPC error calling ' + method + ': ' +
+                    goog.net.ErrorCode.getDebugMessage(this.getLastErrorCode()),
+                    'goofy-internal-error');
+                // TODO(jsalz): handle error
+                return;
+            }
+
             // TODO(jsalz): handle errors
             if (callback) {
                 callback.call(

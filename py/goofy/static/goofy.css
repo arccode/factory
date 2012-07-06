@@ -279,6 +279,9 @@ dl.goofy-history {
 .goofy-internal-log {
   font-style: italic;
 }
+.goofy-internal-error {
+  color: red;
+}
 
 /* Dialogs. */
 .goofy-shutdown-dialog .modal-dialog-content {
