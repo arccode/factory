@@ -727,7 +727,7 @@ class Goofy(object):
               help='Clear all test state')
     parser.add_option('--ui', dest='ui', type='choice',
               choices=['none', 'gtk', 'chrome'],
-              default='gtk',
+              default=('chrome' if utils.in_chroot() else 'gtk'),
               help='UI to use')
     parser.add_option('--ui_scale_factor', dest='ui_scale_factor',
               type='int', default=1,
