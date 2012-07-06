@@ -39,6 +39,10 @@ FACTORY_STATE_VERSION = 2
 # (for tests like '3G').
 ID_REGEXP = re.compile(r'^\w+$')
 
+# Special value for require_run meaning "all tests".
+ALL = 'all'
+
+
 class TestListError(Exception):
   pass
 
@@ -302,7 +306,8 @@ class Options(object):
 
   # SHA1 hash for a eng password in UI. Use None to always
   # enable eng mode. To generate, run `echo -n '<password>'
-  # | sha1sum`.
+  # | sha1sum`. For example, for 'test0000', the hash is
+  # 266abb9bec3aff5c37bd025463ee5c14ac18bfca.
   engineering_password_sha1 = None
   _types['engineering_password_sha1'] = (type(None), str)
 
@@ -452,6 +457,7 @@ class FactoryTest(object):
                has_ui=None,
                never_fails=None,
                exclusive=None,
+               require_run=None,
                _root=None,
                _default_id=None):
     '''
@@ -479,6 +485,14 @@ class FactoryTest(object):
       May be a list or a single string. Items must all be in
       EXCLUSIVE_OPTIONS. Tests may not be backgroundable.
     @param _default_id: A default ID to use if no ID is specified.
+    @param require_run: Path (or list of paths) to tests that must have been
+      completed before this test may be run. If the specified path
+      includes this test, then all tests up to (but not including) this
+      test must have been run already. For instance, if this test is
+      SMT.FlushEventLogs, and require_run is "SMT", then all tests in
+      SMT before FlushEventLogs must have already been run. The string
+      "all" may be used to refer to the root (i.e., all tests in the
+      whole test list before this one must already have been run).
     @param _root: True only if this is the root node (for internal use
       only).
     '''
@@ -494,6 +508,10 @@ class FactoryTest(object):
       self.exclusive = [exclusive]
     else:
       self.exclusive = exclusive or []
+    if isinstance(require_run, str):
+      self.require_run_paths = [require_run]
+    else:
+      self.require_run_paths = require_run or []
     self.subtests = subtests or []
     self.path = ''
     self.parent = None
@@ -745,6 +763,18 @@ class FactoryTestList(FactoryTest):
     self.state_change_callback = None
     self.options = options
     self._init('', self.path_map)
+
+    # Resolve require_run_paths to the actual test objects.
+    for test in self.walk():
+      test.require_run = []
+      for x in test.require_run_paths:
+        required_test = self if x == ALL else self.lookup_path(x)
+        if not required_test:
+          raise TestListError(
+            "Unknown test %s in %s's require_run argument (note "
+            "that full paths are required)"
+            % (x, test.path))
+        test.require_run.append(required_test)
 
   def get_all_tests(self):
     '''

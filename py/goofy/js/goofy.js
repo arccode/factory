@@ -710,6 +710,7 @@ cros.factory.Goofy.prototype.promptEngineeringPassword = function() {
 cros.factory.Goofy.prototype.setEngineeringMode = function(enabled) {
     this.engineeringMode = enabled;
     goog.dom.classes.enable(document.body, 'goofy-engineering-mode', enabled);
+    this.sendRpc('set_shared_data', ['engineering_mode', enabled]);
 };
 
 /**

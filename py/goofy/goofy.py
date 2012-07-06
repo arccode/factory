@@ -509,6 +509,13 @@ class Goofy(object):
         self.tests_to_run.popleft()
         return
 
+      for i in test.require_run:
+        for j in i.walk():
+          if j.get_state().status == TestState.ACTIVE:
+            logging.info('Waiting for active test %s to complete '
+                   'before running %s', j.path, test.path)
+            return
+
       if self.invocations and not (test.backgroundable and all(
         [x.backgroundable for x in self.invocations])):
         logging.debug('Waiting for non-backgroundable tests to '
@@ -517,12 +524,43 @@ class Goofy(object):
 
       self.tests_to_run.popleft()
 
+      untested = set()
+      for i in test.require_run:
+        for j in i.walk():
+          if j == test:
+            # We've hit this test itself; stop checking
+            break
+          if j.get_state().status == TestState.UNTESTED:
+            # Found an untested test; move on to the next
+            # element in require_run.
+            untested.add(j)
+            break
+
+      if untested:
+        untested_paths = ', '.join(sorted([x.path for x in untested]))
+        if self.state_instance.get_shared_data('engineering_mode',
+                                               optional=True):
+          # In engineering mode, we'll let it go.
+          factory.console.warn('In engineering mode; running '
+                               '%s even though required tests '
+                               '[%s] have not completed',
+                               test.path, untested_paths)
+        else:
+          # Not in engineering mode; mark it failed.
+          error_msg = ('Required tests [%s] have not been run yet'
+                       % untested_paths)
+          factory.console.error('Not running %s: %s',
+                                test.path, error_msg)
+          test.update_state(status=TestState.FAILED,
+                            error_msg=error_msg)
+          continue
+
       if isinstance(test, factory.ShutdownStep):
         if os.path.exists(NO_REBOOT_FILE):
           test.update_state(
             status=TestState.FAILED, increment_count=1,
             error_msg=('Skipped shutdown since %s is present' %
-                   NO_REBOOT_FILE))
+                       NO_REBOOT_FILE))
           continue
 
         test.update_state(status=TestState.ACTIVE, increment_count=1,

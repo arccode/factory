@@ -120,7 +120,8 @@ class GoofyTest(unittest.TestCase):
   def before_init_goofy(self):
     '''Hook invoked before init_goofy.'''
 
-  def check_one_test(self, test_id, name, passed, error_msg, trigger=None):
+  def check_one_test(self, test_id, name, passed, error_msg, trigger=None,
+                     does_not_start=False):
     '''Runs a single autotest, waiting for it to complete.
 
     Args:
@@ -131,19 +132,22 @@ class GoofyTest(unittest.TestCase):
       trigger: An optional callable that will be executed after mocks are
         set up to trigger the autotest.  If None, then the test is
         expected to start itself.
+      does_not_start: If True, checks that the test does not start
+        (e.g., due to an unsatisfied require_run).
     '''
-    mock_autotest(self.env, name, passed, error_msg)
+    if not does_not_start:
+      mock_autotest(self.env, name, passed, error_msg)
     self.mocker.ReplayAll()
     if trigger:
       trigger()
     self.assertTrue(self.goofy.run_once())
-    self.assertEqual([test_id],
-             [test.path for test in self.goofy.invocations])
+    self.assertEqual([] if does_not_start else [test_id],
+                     [test.path for test in self.goofy.invocations])
     self._wait()
     test_state = self.state.get_test_state(test_id)
     self.assertEqual(TestState.PASSED if passed else TestState.FAILED,
              test_state.status)
-    self.assertEqual(1, test_state.count)
+    self.assertEqual(0 if does_not_start else 1, test_state.count)
     self.assertEqual(error_msg, test_state.error_msg)
 
 
@@ -423,6 +427,26 @@ class ConnectionManagerTest(GoofyTest):
     self.check_one_test('b.b2', 'b_B2', False, 'Uh-oh')
     self.connection_manager.EnableNetworking()
     self.check_one_test('c', 'c_C', True, '')
+
+
+class RequireRunTest(GoofyTest):
+  options = '''
+    options.auto_run_on_start = False
+  '''
+  test_list = '''
+    OperatorTest(id='a', autotest_name='a_A'),
+    OperatorTest(id='b', autotest_name='b_B', require_run='a'),
+  '''
+  def runTest(self):
+    self.goofy.restart_tests(
+      root=self.goofy.test_list.lookup_path('b'))
+    self.check_one_test('b', 'b_B', False,
+              'Required tests [a] have not been run yet',
+              does_not_start=True)
+
+    self.goofy.restart_tests()
+    self.check_one_test('a', 'a_A', True, '')
+    self.check_one_test('b', 'b_B', True, '')
 
 
 if __name__ == "__main__":
