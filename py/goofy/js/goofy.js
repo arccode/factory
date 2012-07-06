@@ -1193,7 +1193,7 @@ cros.factory.Goofy.prototype.setTestState = function(path, state) {
     var visible = /** @type boolean */(state.visible);
     goog.dom.classes.enable(elt, 'goofy-test-visible', visible);
     goog.object.forEach(this.invocations, function(invoc, uuid) {
-            if (invoc.path == path) {
+            if (invoc && invoc.path == path) {
                 goog.dom.classes.enable(invoc.iframe,
                                         'goofy-test-visible', visible);
             }
