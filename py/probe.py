@@ -53,14 +53,15 @@ _COMPONENT_PROBE_MAP = {}
 _INITIAL_CONFIG_PROBE_MAP = {}
 
 
-def _LoadKernelModule(name):
+def _LoadKernelModule(name, error_on_fail=True):
   """Ensure kernel module is loaded.  If not already loaded, do the load."""
   # TODO(tammo): Maybe lift into shared data for performance reasons.
   loaded = Shell('lsmod | grep -q %s' % name).success
   if not loaded:
     loaded = Shell('modprobe %s' % name).success
-    if not loaded:
+    if (not loaded) and error_on_fail:
       raise Error('Cannot load kernel module: %s' % name)
+  return loaded
 
 
 def _ReadSysfsFields(base_path, field_list, optional_field_list=None):
@@ -379,7 +380,8 @@ def _ProbeDisplayConverter():
   def ProbeChrontel():
     """Search style borrowed from the /etc/init/chrontel.conf behavior."""
     _LoadKernelModule('i2c-dev')
-    _LoadKernelModule('i2c-i801')
+    # i2c-i801 is not available on some devices (ex, ARM).
+    _LoadKernelModule('i2c-i801', error_on_fail=False)
     dev_chrontel = '/dev/i2c-chrontel'
     if not os.path.exists(dev_chrontel):
       for dev_path in glob('/sys/class/i2c-adapter/*'):
@@ -435,7 +437,7 @@ def _ProbeCpuArm():
   #   processor : 1
   cmd = r'sed -nr "s/^[Pp]rocessor\s*: (.*)/\1/p" /proc/cpuinfo'
   stdout = Shell(cmd).stdout.splitlines()
-  return CompactStr(stdout[0] + ' [%d cores]' % len(stdout) - 1)
+  return CompactStr(stdout[0] + ' [%d cores]' % (len(stdout) - 1))
 
 
 @_ComponentProbe('display_panel')
