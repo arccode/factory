@@ -1561,6 +1561,12 @@ cros.factory.Goofy.prototype.handleBackendEvent = function(jsonMessage) {
         this.logToConsole(message.message);
     } else if (message.type == 'goofy:state_change') {
         this.setTestState(message.path, message.state);
+    } else if (message.type == 'goofy:init_test_ui') {
+        var invocation = this.getOrCreateInvocation(
+            message.test, message.invocation);
+        if (invocation) {
+            goog.dom.iframe.writeContent(invocation.iframe, message['html']);
+        }
     } else if (message.type == 'goofy:set_html') {
         var invocation = this.getOrCreateInvocation(
             message.test, message.invocation);
@@ -1573,11 +1579,18 @@ cros.factory.Goofy.prototype.handleBackendEvent = function(jsonMessage) {
                 }
                 element.innerHTML += message['html'];
             } else {
-                if (!message.append && invocation.iframe.contentDocument.body) {
-                    goog.dom.removeChildren(
-                                    invocation.iframe.contentDocument.body);
+                var body = invocation.iframe.contentDocument.body;
+                if (body) {
+                    if (!message.append) {
+                        body.innerHTML = '';
+                    }
+                    body.innerHTML += message['html'];
+                } else {
+                    this.logToConsole(
+                        'Test UI not initialized.',
+                        'goofy-internal-error'
+                    );
                 }
-                invocation.iframe.contentDocument.write(message['html']);
             }
         }
     } else if (message.type == 'goofy:run_js') {

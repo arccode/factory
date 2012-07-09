@@ -85,6 +85,8 @@ class Event(object):
       # containing the same 'uuid' value received when the client received
       # its HELLO.
       'KEEPALIVE': 'goofy:keepalive',
+      # Initializes the test UI.
+      'INIT_TEST_UI': 'goofy:init_test_ui',
       # Sets the UI in the test pane.
       'SET_HTML': 'goofy:set_html',
       # Runs JavaScript in the test pane.
