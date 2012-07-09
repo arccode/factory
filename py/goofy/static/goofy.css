@@ -70,11 +70,13 @@ body {
   position: absolute;
   top: 0; left: 0; right: 0; bottom: 20px;
 }
+#goofy-control, #goofy-status-bar {
+  cursor: default;
+  -webkit-user-select: none;
+  user-select: none;
+}
 #goofy-control, #goofy-main-and-console .goog-splitpane-second-container {
   overflow: auto;
-}
-#goofy-console {
-  padding: .5em;
 }
 
 /* Overrides for status bar. */
@@ -159,10 +161,10 @@ body {
 #goofy-language-selector {
   float: right;
   padding: .675em .5em .5em .5em;
-}
-#goofy-language:hover {
-  text-decoration: underline;
   cursor: pointer;
+}
+#goofy-language-selector:hover {
+  text-decoration: underline;
 }
 #goofy-loading {
   font-style: italic;
