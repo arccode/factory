@@ -122,7 +122,7 @@ cros.factory.SYSTEM_INFO_LABELS = [
     {key: 'root_device', label: cros.factory.Label('Root Device')},
     {key: 'factory_md5sum', label: cros.factory.Label('Factory MD5SUM'),
      transform: function(value) {
-            return value || cros.factory.Label('(no update)')
+            return value || cros.factory.Label('(no update)');
         }}
                                    ];
 
@@ -425,7 +425,19 @@ cros.factory.Goofy.prototype.initSplitPanes = function() {
         Math.max(cros.factory.CONTROL_PANEL_MIN_WIDTH,
                  viewportSize.width *
                  cros.factory.CONTROL_PANEL_WIDTH_FRACTION));
-    topSplitPane.decorate(document.getElementById('goofy-splitpane'));
+    // Decorate the uppermost splitpane and disable its context menu.
+    var topSplitPaneElement = document.getElementById('goofy-splitpane');
+    topSplitPane.decorate(topSplitPaneElement);
+    // Disable context menu except in engineering mode.
+    goog.events.listen(
+        topSplitPaneElement, goog.events.EventType.CONTEXTMENU,
+        function(event) {
+            if (!this.engineeringMode) {
+                event.stopPropagation();
+                event.preventDefault();
+            }
+        },
+        true, this);
 
     mainComponent.getElement().id = 'goofy-main';
     consoleComponent.getElement().id = 'goofy-console';
@@ -1210,7 +1222,7 @@ cros.factory.Goofy.prototype.setTestList = function(testList) {
             tooltip, goog.ui.Component.EventType.BEFORE_SHOW,
             function(event) {
                 this.updateTestToolTip(path, tooltip, event);
-            }, true, this)
+            }, true, this);
         goog.events.listen(
             rowElement, goog.events.EventType.CONTEXTMENU,
             function(event) {
