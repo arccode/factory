@@ -420,6 +420,23 @@ class TestState(object):
       return obj
 
 
+def overall_status(statuses):
+  '''
+  Returns the "overall status" given a list of statuses.
+
+  This is the first element of [ACTIVE, FAILED, UNTESTED, PASSED]
+  (in that order) that is present in the status list.
+  '''
+  status_set = set(statuses)
+  for status in [TestState.ACTIVE, TestState.FAILED,
+                 TestState.UNTESTED, TestState.PASSED]:
+    if status in statuses:
+      return status
+
+  # E.g., if statuses is empty
+  return TestState.UNTESTED
+
+
 class FactoryTest(object):
   '''
   A factory test object.
@@ -676,15 +693,10 @@ class FactoryTest(object):
     if not self.subtests:
       return
 
-    statuses = set([x.get_state().status for x in self.subtests])
-
     # If there are any active tests, consider it active; if any failed,
     # consider it failed, etc. The order is important!
     # pylint: disable=W0631
-    for status in [TestState.ACTIVE, TestState.FAILED,
-            TestState.UNTESTED, TestState.PASSED]:
-      if status in statuses:
-        break
+    status = overall_status([x.get_state().status for x in self.subtests])
 
     if status != self.get_state().status:
       self.update_state(status=status)

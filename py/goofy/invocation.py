@@ -23,6 +23,7 @@ from optparse import OptionParser
 from StringIO import StringIO
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.goofy import test_steps
 from cros.factory.test import factory
 from cros.factory.test.event import Event
 from cros.factory import event_log
@@ -42,6 +43,11 @@ class PyTestInfo(object):
     self.pytest_name = pytest_name
     self.args = args
     self.results_path = results_path
+
+  def ReadTestList(self):
+    '''Reads and returns the test list.'''
+    return factory.read_test_list(self.test_list,
+                                  test_classes=test_steps.__dict__)
 
 
 class TestInvocation(object):

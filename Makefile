@@ -10,7 +10,8 @@ FACTORY=$(DESTDIR)/$(TARGET_DIR)
 
 PYLINTRC=../../../chromite/pylintrc
 PYLINT_OPTIONS=\
-	--ignored-classes=Event
+	--ignored-classes=Event \
+	--generated-members=test_info
 
 LINT_BLACKLIST=\
 	py/argparse.py \

@@ -1,9 +1,11 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2010 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import cgi
 import logging
 import os
 import re
@@ -17,6 +19,10 @@ from cros.factory.test.event import Event, EventClient
 
 class FactoryTestFailure(Exception):
   pass
+
+
+# Import cgi.escape.
+Escape = cgi.escape
 
 
 class UI(object):
@@ -63,7 +69,7 @@ class UI(object):
   Note that if you rename .html or .js files during development, you
   may need to restart the server for your changes to take effect.
   '''
-  def __init__(self):
+  def __init__(self, css=None):
     self.lock = threading.RLock()
     self.event_client = EventClient(callback=self._HandleEvent)
     self.test = os.environ['CROS_FACTORY_TEST_PATH']
@@ -73,6 +79,8 @@ class UI(object):
     self._SetupStaticFiles(
         os.path.realpath(traceback.extract_stack()[-2][0]))
     self.error_msgs = []
+    if css:
+      self.AppendCSS(css)
 
   def _SetupStaticFiles(self, py_script):
     # Get path to caller and register static files/directories.
@@ -95,36 +103,36 @@ class UI(object):
       autoload_bases.append(
           os.path.join(static_dirs[0], os.path.basename(base)))
 
-    # Autoload .html and .js files.
-    for extension in ('html', 'js'):
+    def GetAutoload(extension):
       autoload = filter(os.path.exists,
                         [x + '.' + extension
                          for x in autoload_bases])
+      if not autoload:
+        return ''
       if len(autoload) > 1:
         raise FactoryTestFailure(
             'Cannot have both of %s - delete one!' %
             autoload)
-      if autoload:
-        factory.get_state_instance().register_path(
-            '/tests/%s/%s' % (self.test, os.path.basename(autoload[0])),
-            autoload[0])
-        if extension == 'html':
-          # Set base URL so that hrefs will resolve properly,
-          # and pull in Goofy CSS.
-          doc = '\n'.join(['<base href="/tests/%s/">' % self.test,
-                           ('<link rel="stylesheet" type="text/css" '
-                            'href="/goofy.css">')])
-          doc += open(autoload[0]).read()
-          self._InitTestUI(doc)
-        else:
-          self.RunJS(open(autoload[0]).read())
 
-  def _InitTestUI(self, html):
-    '''Initializes the UI with the given HTML string.'''
+      factory.get_state_instance().register_path(
+        '/tests/%s/%s' % (self.test, os.path.basename(autoload[0])),
+        autoload[0])
+      return open(autoload[0]).read()
+
+    html = '\n'.join(
+      ['<head id="head">',
+       '<base href="/tests/%s/">' % self.test,
+       '<link rel="stylesheet" type="text/css" href="/goofy.css">',
+       '<link rel="stylesheet" type="text/css" href="/test.css">',
+       GetAutoload('html')])
     self.event_client.post_event(Event(Event.Type.INIT_TEST_UI,
-                                 test=self.test,
-                                 invocation=self.invocation,
-                                 html=html))
+                                       test=self.test,
+                                       invocation=self.invocation,
+                                       html=html))
+
+    js = GetAutoload('js')
+    if js:
+      self.RunJS(js)
 
   def SetHTML(self, html, append=False, id=None):
     '''Sets the UI in the test pane.
@@ -146,6 +154,11 @@ class UI(object):
   def AppendHTML(self, html, **kwargs):
     '''Append to the UI in the test pane.'''
     self.SetHTML(html, True, **kwargs)
+
+  def AppendCSS(self, css):
+    '''Append CSS in the test pane.'''
+    self.AppendHTML('<style type="text/css">%s</style>' % css,
+                    id="head")
 
   def RunJS(self, js, **kwargs):
     '''Runs JavaScript code in the UI.
@@ -234,6 +247,10 @@ class UI(object):
     '''
     self.error_msgs.append(error_msg)
 
+  def EnablePassFailKeys(self):
+    '''Allows space/enter to pass the test, and escape to fail it.'''
+    self.RunJS('window.test.enablePassFailKeys()')
+
   def Run(self):
     '''Runs the test UI, waiting until the test completes.'''
     event = self.event_client.wait(
@@ -263,3 +280,37 @@ class UI(object):
       with self.lock:
         for handler in self.event_handlers.get(event.subtype, []):
           handler(event)
+
+  def MakeLabel(self, en, zh=None):
+    '''Returns a label which will appear in the active language.
+
+    Args:
+        en: The English-language label.
+        zh: The Chinese-language label (or None if unspecified).
+    '''
+    return ('<span class="goofy-label-en">%s</span>'
+            '<span class="goofy-label-zh">%s</span>' %
+            (en, (en if zh is None else zh)))
+
+  def MakeTestLabel(self, test):
+    '''Returns label for a test name in the active language.
+
+    Args:
+       test: A test object from the test list.
+    '''
+    return self.MakeLabel(Escape(test.label_en), Escape(test.label_zh))
+
+  STATUS_ZH = {
+    TestState.PASSED: u'良好',
+    TestState.FAILED: u'不良',
+    TestState.ACTIVE: u'正在測',
+    TestState.UNTESTED: u'未測'
+  }
+  def MakeStatusLabel(self, status):
+    '''Returns label for a test status in the active language.
+
+    Args:
+        status: One of [PASSED, FAILED, ACTIVE, UNTESTED]
+    '''
+    return self.MakeLabel(status.lower(),
+                          self.STATUS_ZH.get(status, status))

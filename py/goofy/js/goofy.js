@@ -15,6 +15,7 @@ goog.require('goog.dom.classes');
 goog.require('goog.dom.iframe');
 goog.require('goog.events');
 goog.require('goog.events.EventHandler');
+goog.require('goog.events.KeyCodes');
 goog.require('goog.i18n.DateTimeFormat');
 goog.require('goog.i18n.NumberFormat');
 goog.require('goog.json');
@@ -200,6 +201,27 @@ cros.factory.Test.prototype.sendTestEvent = function(subtype, data) {
 };
 
 /**
+ * Binds space/enter to "pass" and escape to "fail."
+ * @export
+ */
+cros.factory.Test.prototype.enablePassFailKeys = function() {
+    goog.events.listen(
+        this.invocation.iframe.contentWindow, goog.events.EventType.KEYPRESS,
+        function(event) {
+            if (event.keyCode == goog.events.KeyCodes.ENTER ||
+                event.keyCode == goog.events.KeyCodes.SPACE ||
+                event.keyCode == 'p'.charCodeAt(0) ||
+                event.keyCode == 'P'.charCodeAt(0)) {
+                this.pass();
+            } else if (event.keyCode == goog.events.KeyCodes.ESC ||
+                       event.keyCode == 'f'.charCodeAt(0) ||
+                       event.keyCode == 'F'.charCodeAt(0)) {
+                this.fail();
+            }
+        }, false, this);
+};
+
+/**
  * UI for a single test invocation.
  * @constructor
  * @param {cros.factory.Goofy} goofy
@@ -239,6 +261,15 @@ cros.factory.Invocation = function(goofy, path, uuid) {
                                 goofy.pathTestMap[path].state.visible));
     document.getElementById('goofy-main').appendChild(this.iframe);
     this.iframe.contentWindow.test = this.test;
+    this.iframe.contentWindow.focus();
+};
+
+/**
+ * Returns state information for this invocation.
+ * @return Object
+ */
+cros.factory.Invocation.prototype.getState = function() {
+    return this.goofy.pathTestMap[this.path].state;
 };
 
 /**
@@ -488,13 +519,30 @@ cros.factory.Goofy.prototype.initSplitPanes = function() {
                                          window));
         });
 
-    function onKey(e) {
-        if (e.keyCode == goog.events.KeyCodes.ESC) {
-            this.sendEvent('goofy:cancel_shutdown', {});
-            // Wait for Goofy to reset the pending_shutdown data.
-        }
-    }
-}
+    // Whenever we get focus, try to focus any visible iframe.
+    goog.events.listen(
+        window, goog.events.EventType.FOCUS,
+        function(event) {
+            this.focusInvocation();
+        }, false, this);
+};
+
+/**
+ * Returns focus to any visible invocation.
+ */
+cros.factory.Goofy.prototype.focusInvocation = function() {
+    goog.object.forEach(this.invocations, function(i) {
+            if (i && i.iframe && /** @type boolean */(
+                    i.getState().visible)) {
+                goog.Timer.callOnce(goog.bind(function() {
+                    if (!this.contextMenu) {
+                        i.iframe.focus();
+                        i.iframe.contentWindow.focus();
+                    }
+                }, this));
+            }
+        }, this);
+};
 
 /**
  * Initializes the WebSocket.
@@ -603,12 +651,28 @@ cros.factory.Goofy.prototype.getOrCreateInvocation = function(
 };
 
 /**
+ * Updates language classes in a document based on the current value of
+ * zhMode.
+ */
+cros.factory.Goofy.prototype.updateLanguageInDocument = function(doc) {
+    if (doc.body) {
+        goog.dom.classes.enable(doc.body, 'goofy-lang-en', !this.zhMode);
+        goog.dom.classes.enable(doc.body, 'goofy-lang-zh', this.zhMode);
+    }
+};
+
+/**
  * Updates language classes in the UI based on the current value of
  * zhMode.
  */
 cros.factory.Goofy.prototype.updateLanguage = function() {
-    goog.dom.classes.enable(document.body, 'goofy-lang-en', !this.zhMode);
-    goog.dom.classes.enable(document.body, 'goofy-lang-zh', this.zhMode);
+    this.updateLanguageInDocument.call(this, document);
+    goog.object.forEach(this.invocations, function(i) {
+        if (i && i.iframe) {
+            this.updateLanguageInDocument.call(this,
+                i.iframe.contentDocument);
+        }
+    }, this);
 }
 
 /**
@@ -996,6 +1060,8 @@ cros.factory.Goofy.prototype.showTestPopup = function(path, labelElement,
                            menu.dispose();
                            this.contextMenu = null;
                            this.lastContextMenuHideTime = goog.now();
+                           // Return focus to visible test, if any.
+                           this.focusInvocation();
                        }, true, this);
     return true;
 };
@@ -1341,6 +1407,9 @@ cros.factory.Goofy.prototype.setTestState = function(path, state) {
             if (invoc && invoc.path == path) {
                 goog.dom.classes.enable(invoc.iframe,
                                         'goofy-test-visible', visible);
+                if (visible) {
+                    this.iframe.contentWindow.focus();
+                }
             }
         }, this);
 
@@ -1593,6 +1662,7 @@ cros.factory.Goofy.prototype.handleBackendEvent = function(jsonMessage) {
                     );
                 }
             }
+            this.updateLanguageInDocument(invocation.iframe.contentDocument);
         }
     } else if (message.type == 'goofy:run_js') {
         var invocation = this.getOrCreateInvocation(
