@@ -233,7 +233,7 @@ class RemovableStorageTest(unittest.TestCase):
       elif m == _RW_TEST_MODE_SEQUENTIAL:
         # Converts block counts into bytes
         bytes_to_operate = (self._sequential_block_count *
-                  self._block_size)
+                            self._block_size)
         loop = 1
         factory.console.info('Performing sequential r/w test of %d bytes' %
                              bytes_to_operate)
@@ -267,9 +267,9 @@ class RemovableStorageTest(unittest.TestCase):
             # restrict the range in which we perform the random r/w
             # test.
             random_tail = min(
-                  random_tail,
-                  int(0x7FFFFFFF / _SECTOR_SIZE) -
-                  int(bytes_to_operate / _SECTOR_SIZE))
+                random_tail,
+                int(0x7FFFFFFF / _SECTOR_SIZE) -
+                int(bytes_to_operate / _SECTOR_SIZE))
             factory.console.info('No large file support')
 
         if random_tail < random_head:
@@ -340,15 +340,19 @@ class RemovableStorageTest(unittest.TestCase):
                                                     self._target_device))
       else:
         if m == _RW_TEST_MODE_RANDOM:
-          factory.console.info('random_read_speed: %.3f MB/s' %
-            ((self._block_size * loop) / total_time_read / 1000 / 1000))
-          factory.console.info('random_write_speed: %.3f MB/s' %
-            ((self._block_size * loop) / total_time_write / 1000 / 1000))
+          factory.console.info(
+              'random_read_speed: %.3f MB/s' %
+              ((self._block_size * loop) / total_time_read / 1000 / 1000))
+          factory.console.info(
+              'random_write_speed: %.3f MB/s' %
+              ((self._block_size * loop) / total_time_write / 1000 / 1000))
         elif m == _RW_TEST_MODE_SEQUENTIAL:
-          factory.console.info('sequential_read_speed: %.3f MB/s' %
-                  (bytes_to_operate / total_time_read / 1000 / 1000))
-          factory.console.info('sequential_write_speed: %.3f MB/s' %
-                  (bytes_to_operate / total_time_write / 1000 / 1000))
+          factory.console.info(
+              'sequential_read_speed: %.3f MB/s' %
+              (bytes_to_operate / total_time_read / 1000 / 1000))
+          factory.console.info(
+              'sequential_write_speed: %.3f MB/s' %
+              (bytes_to_operate / total_time_write / 1000 / 1000))
 
     self._ui.SetHTML(_REMOVE_FMT_STR(self._media), id='instruction')
     self._state = _STATE_RW_TEST_WAIT_REMOVE
@@ -479,7 +483,7 @@ class RemovableStorageTest(unittest.TestCase):
       self._locktest_removal_image = '%s_locktest_remove.png' % self._media
 
     self._ui.SetHTML(_RW_TEST_INSERT_FMT_STR(self._media),
-              id='instruction')
+                     id='instruction')
     self._state = _STATE_RW_TEST_WAIT_INSERT
     self._ui.SetHTML(_IMG_HTML_TAG(self._insertion_image), id='state')
 
@@ -494,10 +498,9 @@ class RemovableStorageTest(unittest.TestCase):
     self.SetProgressBarValue(0)
 
     # Create a daemon pyudev thread to listen to device events
-    self._pyudev_thread = PyudevThread(
-                              self.UdevEventCallback,
-                              subsystem='block',
-                              device_type='disk')
+    self._pyudev_thread = PyudevThread(self.UdevEventCallback,
+                                       subsystem='block',
+                                       device_type='disk')
     self._pyudev_thread.daemon = True
     self._pyudev_thread.start()
 
