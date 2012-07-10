@@ -3,7 +3,7 @@
 # found in the LICENSE file.
 
 BUILD_DIR=build
-DESTDIR=$(BUILD)/image
+DESTDIR=$(BUILD_DIR)/image
 TARGET_DIR=/usr/local/factory
 
 FACTORY=$(DESTDIR)/$(TARGET_DIR)
