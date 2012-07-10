@@ -388,6 +388,14 @@ cros.factory.Goofy = function() {
                     // Nothing
                 }
             }
+            // Disable shortcut Ctrl-Alt-* when not in engineering mode.
+            // Note: platformModifierKey == Command-key for Mac browser;
+            //     for non-Mac browsers, it is Ctrl-key.
+            if (!this.engineeringMode &&
+                event.altKey && event.platformModifierKey) {
+                event.stopPropagation();
+                event.preventDefault();
+            }
         }, false, this);
 };
 
