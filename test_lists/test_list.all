@@ -144,7 +144,7 @@ TEST_LIST = [
                 dargs={'test_fan': True}),
 
             FactoryTest(
-                id='Temp Sensor',
+                id='TempSensor',
                 label_zh='溫度感測',
                 autotest_name='hardware_EC',
                 dargs={'num_temp_sensor': 10}),

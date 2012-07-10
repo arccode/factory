@@ -18,6 +18,7 @@ To log to the factory console, use:
 import getpass
 import logging
 import os
+import re
 import sys
 
 import factory_common # pylint: disable=W0611
@@ -33,6 +34,10 @@ FACTORY_MD5SUM_PATH = os.path.join(FACTORY_PATH, 'MD5SUM')
 
 FACTORY_STATE_VERSION = 2
 
+# Regexp that all IDs should match.  Currently we just warn if it doesn't
+# match, for backward compatibility.  Note that this allows leading digits
+# (for tests like '3G').
+ID_REGEXP = re.compile(r'^\w+$')
 
 class TestListError(Exception):
   pass
@@ -510,6 +515,9 @@ class FactoryTest(object):
         'id not specified for test: %r' % self)
       assert '.' not in self.id, (
         'id cannot contain a period: %r' % self)
+      if not ID_REGEXP.match(self.id):
+        logging.warn('ID %r does not match regexp %s',
+                     self.id, ID_REGEXP.pattern)
       # Note that we check ID uniqueness in _init.
 
     assert len(filter(None, [autotest_name, pytest_name,
