@@ -880,7 +880,6 @@ class ShutdownStep(AutomatedSubTest):
   HALT = 'halt'
 
   def __init__(self, operation, iterations=1, delay_secs=5, **kw):
-    kw.setdefault('id', operation)
     super(ShutdownStep, self).__init__(**kw)
     assert not self.autotest_name, (
         'Reboot/halt steps may not have an autotest')
@@ -899,12 +898,14 @@ class ShutdownStep(AutomatedSubTest):
 class HaltStep(ShutdownStep):
   '''Halts the machine.'''
   def __init__(self, **kw):
+    kw.setdefault('id', 'Halt')
     super(HaltStep, self).__init__(operation=ShutdownStep.HALT, **kw)
 
 
 class RebootStep(ShutdownStep):
   '''Reboots the machine.'''
   def __init__(self, **kw):
+    kw.setdefault('id', 'Reboot')
     super(RebootStep, self).__init__(operation=ShutdownStep.REBOOT, **kw)
 
 
