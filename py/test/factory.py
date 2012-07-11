@@ -99,18 +99,20 @@ def get_current_test_path():
 
 
 def get_lsb_data():
-  """Reads all key-value pairs from system lsb-* configuration files."""
+  '''Reads all key-value pairs from system lsb-* configuration files.'''
   # TODO(hungte) Re-implement using regex.
   # lsb-* file format:
   # [#]KEY="VALUE DATA"
   lsb_files = ('/etc/lsb-release',
-         '/usr/local/etc/lsb-release',
-         '/usr/local/etc/lsb-factory')
+               '/usr/local/etc/lsb-release',
+               '/usr/local/etc/lsb-factory')
+
   def unquote(entry):
     for c in ('"', "'"):
       if entry.startswith(c) and entry.endswith(c):
         return entry[1:-1]
     return entry
+
   data = dict()
   for lsb_file in lsb_files:
     if not os.path.exists(lsb_file):
@@ -154,7 +156,7 @@ def _init_console_log():
 console = _init_console_log()
 
 
-def std_repr(obj, extra=[], excluded_keys=[], true_only=False):
+def std_repr(obj, extra=None, excluded_keys=None, true_only=False):
   '''
   Returns the representation of an object including its properties.
 
@@ -163,24 +165,26 @@ def std_repr(obj, extra=[], excluded_keys=[], true_only=False):
   @param true_only: Whether to include only values that evaluate to
     true.
   '''
-  # pylint: disable=W0102
-  return (obj.__class__.__name__ + '(' +
-      ', '.join(extra +
-           ['%s=%s' % (k, repr(getattr(obj, k)))
-            for k in sorted(obj.__dict__.keys())
-            if k[0] != '_' and k not in excluded_keys and
-            (not true_only or getattr(obj, k))])
-      + ')')
+  extra = extra or []
+  excluded_keys = excluded_keys or []
+  return (obj.__class__.__name__ + '('
+          + ', '.join(
+              extra +
+              ['%s=%s' % (k, repr(getattr(obj, k)))
+               for k in sorted(obj.__dict__.keys())
+               if k[0] != '_' and k not in excluded_keys and (
+                   not true_only or getattr(obj, k))])
+          + ')')
 
 
-def log(s):
+def log(message):
   '''
   Logs a message to the console. Deprecated; use the 'console'
   property instead.
 
   TODO(jsalz): Remove references throughout factory tests.
   '''
-  console.info(s)
+  console.info(message)
 
 
 def get_state_instance():
@@ -258,7 +262,7 @@ def init_logging(prefix=None, verbose=False):
     name.
   @param verbose: True for debug logging, false for info logging.
   '''
-  global _inited_logging # pylint: disable=W0603
+  global _inited_logging  # pylint: disable=W0603
   assert not _inited_logging, "May only call init_logging once"
   _inited_logging = True
 
@@ -272,7 +276,7 @@ def init_logging(prefix=None, verbose=False):
 
   logging.basicConfig(
     format=('[%(levelname)s] ' + prefix +
-        ' %(filename)s:%(lineno)d %(asctime)s.%(msecs)03d %(message)s'),
+            ' %(filename)s:%(lineno)d %(asctime)s.%(msecs)03d %(message)s'),
     level=logging.DEBUG if verbose else logging.INFO,
     datefmt='%Y-%m-%d %H:%M:%S')
 
@@ -336,12 +340,11 @@ class Options(object):
 
       value = getattr(self, key)
       allowable_types = Options._types.get(
-        key,
-        [type(getattr(default_options, key))])
+          key, [type(getattr(default_options, key))])
       if type(value) not in allowable_types:
         raise TestListError(
-          'Option %s has unexpected type %s (should be %s)' % (
-            key, type(value), allowable_types))
+            'Option %s has unexpected type %s (should be %s)' % (
+                key, type(value), allowable_types))
 
 
 class TestState(object):
@@ -362,7 +365,7 @@ class TestState(object):
   UNTESTED = 'UNTESTED'
 
   def __init__(self, status=UNTESTED, count=0, visible=False, error_msg=None,
-         shutdown_count=0, invocation=None):
+               shutdown_count=0, invocation=None):
     self.status = status
     self.count = count
     self.visible = visible
@@ -374,8 +377,8 @@ class TestState(object):
     return std_repr(self)
 
   def update(self, status=None, increment_count=0, error_msg=None,
-        shutdown_count=None, increment_shutdown_count=0, visible=None,
-        invocation=None):
+             shutdown_count=None, increment_shutdown_count=0, visible=None,
+             invocation=None):
     '''
     Updates the state of a test.
 
@@ -471,7 +474,7 @@ class FactoryTest(object):
                dargs=None,
                backgroundable=False,
                subtests=None,
-               id=None,         # pylint: disable=W0622
+               id=None,  # pylint: disable=W0622
                has_ui=None,
                never_fails=None,
                exclusive=None,
@@ -548,18 +551,18 @@ class FactoryTest(object):
         self.id = _default_id
 
       assert self.id, (
-        'id not specified for test: %r' % self)
+          'id not specified for test: %r' % self)
       assert '.' not in self.id, (
-        'id cannot contain a period: %r' % self)
+          'id cannot contain a period: %r' % self)
       if not ID_REGEXP.match(self.id):
         logging.warn('ID %r does not match regexp %s',
                      self.id, ID_REGEXP.pattern)
       # Note that we check ID uniqueness in _init.
 
     assert len(filter(None, [autotest_name, pytest_name,
-                 invocation_target, subtests])) <= 1, (
-      'No more than one of autotest_name, pytest_name, '
-      'invocation_target, and subtests must be specified')
+                             invocation_target, subtests])) <= 1, (
+        'No more than one of autotest_name, pytest_name, '
+        'invocation_target, and subtests must be specified')
 
     if has_ui is not None:
       self.has_ui = has_ui
@@ -575,38 +578,34 @@ class FactoryTest(object):
         self.label_en = self.autotest_name.partition('_')[2]
 
     assert not (backgroundable and exclusive), (
-      'Test %s may not have both backgroundable and exclusive' %
-      self.id)
+        'Test %s may not have both backgroundable and exclusive' % self.id)
     bogus_exclusive_items = set(self.exclusive) - self.EXCLUSIVE_OPTIONS
     assert not bogus_exclusive_items, (
-      'In test %s, invalid exclusive options: %s (should be in %s)' % (
-        self.id,
-        bogus_exclusive_items,
-        self.EXCLUSIVE_OPTIONS))
+        'In test %s, invalid exclusive options: %s (should be in %s)' %
+        (self.id, bogus_exclusive_items, self.EXCLUSIVE_OPTIONS))
 
   def to_struct(self):
     '''Returns the node as a struct suitable for JSONification.'''
     ret = dict(
-      (k, getattr(self, k))
-      for k in ['id', 'path', 'label_en', 'label_zh',
-           'kbd_shortcut', 'backgroundable'])
+        (k, getattr(self, k))
+        for k in ['id', 'path', 'label_en', 'label_zh',
+                  'kbd_shortcut', 'backgroundable'])
     ret['subtests'] = [subtest.to_struct() for subtest in self.subtests]
     return ret
 
 
   def __repr__(self, recursive=False):
     attrs = ['%s=%s' % (k, repr(getattr(self, k)))
-         for k in sorted(self.__dict__.keys())
-         if k in FactoryTest.REPR_FIELDS and getattr(self, k)]
+             for k in sorted(self.__dict__.keys())
+             if k in FactoryTest.REPR_FIELDS and getattr(self, k)]
     if recursive and self.subtests:
       indent = '  ' * (1 + self.path.count('.'))
       attrs.append(
-        'subtests=[' +
-        ('\n' +
-         ',\n'.join([subtest.__repr__(recursive)
-               for subtest in self.subtests]
-              )).replace('\n', '\n' + indent)
-        + '\n]')
+          'subtests=['
+          + ('\n' + ',\n'.join([subtest.__repr__(recursive)
+                                for subtest in self.subtests])
+             ).replace('\n', '\n' + indent)
+          + '\n]')
 
     return '%s(%s)' % (self.__class__.__name__, ', '.join(attrs))
 
@@ -678,7 +677,7 @@ class FactoryTest(object):
       status = TestState.UNTESTED
 
     ret = TestState.from_dict_or_object(
-      self.root._update_test_state( # pylint: disable=W0212
+      self.root._update_test_state(  # pylint: disable=W0212
         self.path, status=status, **kw))
     if update_parent and self.parent:
       self.parent.update_status_from_children()
@@ -697,9 +696,7 @@ class FactoryTest(object):
 
     # If there are any active tests, consider it active; if any failed,
     # consider it failed, etc. The order is important!
-    # pylint: disable=W0631
     status = overall_status([x.get_state().status for x in self.subtests])
-
     if status != self.get_state().status:
       self.update_state(status=status)
 
@@ -734,8 +731,8 @@ class FactoryTest(object):
     together to be meaningful.
     '''
     return ((not self.is_group()) and
-        self.parent and
-        (self.parent == self.root or self.parent.is_group()))
+            self.parent and
+            (self.parent == self.root or self.parent.is_group()))
 
   def get_top_level_parent_or_group(self):
     if self.is_group() or self.is_top_level_test() or not self.parent:
@@ -746,8 +743,7 @@ class FactoryTest(object):
     '''
     Returns a list of top-level tests.
     '''
-    return [node for node in self.walk()
-        if node.is_top_level_test()]
+    return [node for node in self.walk() if node.is_top_level_test()]
 
   def is_exclusive(self, option):
     '''
@@ -758,7 +754,7 @@ class FactoryTest(object):
     '''
     assert option in self.EXCLUSIVE_OPTIONS
     return option in self.exclusive or (
-      self.parent and self.parent.is_exclusive(option))
+        self.parent and self.parent.is_exclusive(option))
 
 
 class FactoryTestList(FactoryTest):
@@ -821,8 +817,8 @@ class FactoryTestList(FactoryTest):
     '''
     ret, changed = self.state_instance.update_test_state(path, **kw)
     if changed and self.state_change_callback:
-      self.state_change_callback( # pylint: disable=E1102
-        self.lookup_path(path), ret)
+      self.state_change_callback(  # pylint: disable=E1102
+          self.lookup_path(path), ret)
     return ret
 
 
@@ -861,10 +857,10 @@ class ShutdownStep(AutomatedSubTest):
     kw.setdefault('id', operation)
     super(ShutdownStep, self).__init__(**kw)
     assert not self.autotest_name, (
-      'Reboot/halt steps may not have an autotest')
+        'Reboot/halt steps may not have an autotest')
     assert not self.subtests, 'Reboot/halt steps may not have subtests'
     assert not self.backgroundable, (
-      'Reboot/halt steps may not be backgroundable')
+        'Reboot/halt steps may not be backgroundable')
 
     assert iterations > 0
     self.iterations = iterations
