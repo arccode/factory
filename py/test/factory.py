@@ -188,9 +188,8 @@ def get_state_instance():
   Returns a cached factory state client instance.
   '''
   # Delay loading modules to prevent circular dependency.
-  import factory_common # pylint: disable=W0611
-  from cros.factory.test import state
-  global _state_instance # pylint: disable=W0603
+  from cros.factory.test import state  # pylint: disable=W0404
+  global _state_instance  # pylint: disable=W0603
   if _state_instance is None:
     _state_instance = state.get_instance()
   return _state_instance
@@ -215,7 +214,9 @@ def del_shared_data(key):
 
 
 def read_test_list(path=None, state_instance=None, text=None,
-          test_classes={}):
+                   test_classes=None):
+  test_classes = test_classes or {}
+
   if len([x for x in [path, text] if x]) != 1:
     raise TestListError('Exactly one of path and text must be set')
 
@@ -336,7 +337,7 @@ class Options(object):
       value = getattr(self, key)
       allowable_types = Options._types.get(
         key,
-        [type(getattr(default_options, key))]);
+        [type(getattr(default_options, key))])
       if type(value) not in allowable_types:
         raise TestListError(
           'Option %s has unexpected type %s (should be %s)' % (
@@ -367,7 +368,7 @@ class TestState(object):
     self.visible = visible
     self.error_msg = error_msg
     self.shutdown_count = shutdown_count
-    self.invocation = None
+    self.invocation = invocation
 
   def __repr__(self):
     return std_repr(self)
@@ -430,7 +431,7 @@ def overall_status(statuses):
   status_set = set(statuses)
   for status in [TestState.ACTIVE, TestState.FAILED,
                  TestState.UNTESTED, TestState.PASSED]:
-    if status in statuses:
+    if status in status_set:
       return status
 
   # E.g., if statuses is empty
@@ -624,6 +625,7 @@ class FactoryTest(object):
 
     for subtest in self.subtests:
       subtest.parent = self
+      # pylint: disable=W0212
       subtest._init((self.path + '.' if len(self.path) else ''), path_map)
 
   def depth(self):
@@ -646,18 +648,18 @@ class FactoryTest(object):
     return (self == other) or (self.parent and self.parent.has_ancestor(other))
 
   def get_ancestors(self):
-   '''
-   Returns list of ancestors, ordered by seniority.
-   '''
-   if self.parent is not None:
-     return self.parent.get_ancestors() + [self.parent]
-   return []
+    '''
+    Returns list of ancestors, ordered by seniority.
+    '''
+    if self.parent is not None:
+      return self.parent.get_ancestors() + [self.parent]
+    return []
 
   def get_ancestor_groups(self):
-   '''
-   Returns list of ancestors that are groups, ordered by seniority.
-   '''
-   return [node for node in self.get_ancestors() if node.is_group()]
+    '''
+    Returns list of ancestors that are groups, ordered by seniority.
+    '''
+    return [node for node in self.get_ancestors() if node.is_group()]
 
   def get_state(self):
     '''

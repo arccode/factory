@@ -40,7 +40,7 @@ class FactoryTest(unittest.TestCase):
       logging.info('Parsing test list %s', test_list)
       try:
         factory.read_test_list(test_list)
-      except:
+      except:  # pylint: disable=W0702
         failures.append(test_list)
         traceback.print_exc()
 

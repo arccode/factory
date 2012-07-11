@@ -37,8 +37,6 @@ LINT_BLACKLIST=\
 	py/probe.py \
 	py/report_upload.py \
 	py/test/event.py \
-	py/test/factory.py \
-	py/test/factory_unittest.py \
 	py/test/gooftools.py \
 	py/test/leds.py \
 	py/test/line_item_check.py \
