@@ -3,73 +3,63 @@
  * found in the LICENSE file.
  */
 
-.test-info-container {
+.template-info-container {
   position: absolute;
   left: 0; top: 0;
   width: 98%; height: 98%;
   background-color: #cddff0;
   display: block;
 }
-.test-title-container {
+.template-title-container {
   width: 100%; height: 10%;
   font-size: 2.5em;
   font-weight: bold;
-  padding-left: 1em;
+  padding-left: 0.5em;
 }
-.test-prompt-container {
+.template-prompt-container {
   width: 98%; height: 30%;
   margin: auto;
-  background-color: #ffffff;
+  background-color: white;
   display: block;
 }
-.test-instruction {
+.template-instruction {
   position: absolute;
   left: 0;
   width: 75%; height: 100%;
   font-size: 1.5em;
   padding-left: 1em;
 }
-.test-progress-bar {
+.template-progress-bar {
   position: absolute;
   left: 75%; top: 15%;
   width: 20%; height: 100%;
   display: none;
 }
+.template-state-container {
+  position: relative;
+  top: 1%;
+  width: 98%; height: 45%;
+  margin: auto;
+  background-color: white;
+  text-align: center;
+  display: table;
+}
+.template-button-container {
+  position: relative;
+  top: 2%;
+  width: 100%; height:10%;
+  padding-right: 1em;
+}
+
+/* For progress bar */
 .progress-bar-thumb {
   position: relative;
   overflow: hidden;
   width: 100%; height: 100%;
 }
-#progress-bar-indicator {
+#template-progress-bar-indicator {
   position: absolute;
   top: 0;
   width: 100%;
   text-align: center;
-}
-.test-state-container {
-  position: relative;
-  top: 1%;
-  width: 98%; height: 45%;
-  margin: auto;
-  background-color: #ffffff;
-  display: table;
-}
-.test-button-container {
-  position: relative;
-  top: 2%;
-  width: 100%; height:10%;
-  padding-right: 1em;
-  text-align: right;
-  display: table;
-}
-.middle {
-  display: table-cell;
-  vertical-align: middle;
-}
-.test-button {
-  color: #ffffff;
-  font-weight: bold;
-  background-color: #505050;
-  border-radius: 1em;
-  padding: 1em;
 }

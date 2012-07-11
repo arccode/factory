@@ -10,6 +10,14 @@ th {
   text-align: left;
 }
 
+button {
+  color: white;
+  font-weight: bold;
+  background-color: #505050;
+  border-radius: 1em;
+  padding: 1em;
+}
+
 /* To vertically center, use
  * <div class="test-vcenter-outer"><div class="test-vcenter-inner">
  *   ... content ...
@@ -37,4 +45,7 @@ th {
 }
 .test-status-active {
   color: black;
+}
+.test-error {
+  color: #D00;
 }

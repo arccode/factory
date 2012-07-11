@@ -235,6 +235,11 @@ class Enum(frozenset):
     raise AttributeError
 
 
+def ReadOneLine(filename):
+  '''Returns the first line as a string from the given file.'''
+  return open(filename, 'r').readline().rstrip('\n')
+
+
 def FormatExceptionOnly():
   '''Formats the current exception string.
 

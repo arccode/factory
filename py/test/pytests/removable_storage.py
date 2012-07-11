@@ -22,6 +22,7 @@ import unittest
 
 from cros.factory.test import factory
 from cros.factory.test import test_ui
+from cros.factory.test import ui_templates
 
 
 _STATE_RW_TEST_WAIT_INSERT = 1
@@ -53,25 +54,27 @@ _RW_TEST_MODE_RANDOM = 1
 _RW_TEST_MODE_SEQUENTIAL = 2
 
 _RW_TEST_INSERT_FMT_STR = (
-    lambda t:
-      ('<br/>'.join(['insert %s drive for read/write test...' % t,
+    lambda t: test_ui.MakeLabel(
+      '<br/>'.join(['insert %s drive for read/write test...' % t,
                     'WARNING: DATA ON INSERTED MEDIA WILL BE LOST!']),
-       '<br/>'.join([u'插入%s存儲以進行讀寫測試...' % t,
+      '<br/>'.join([u'插入%s存儲以進行讀寫測試...' % t,
                     u'注意: 插入裝置上的資料將會被清除!'])))
-_REMOVE_FMT_STR = lambda t: ('remove %s drive...' % t, u'提取%s存儲...' % t)
-_TESTING_FMT_STR = lambda t: ('testing %s...' % t, u'%s 檢查中...' % t)
+_REMOVE_FMT_STR = lambda t: test_ui.MakeLabel('remove %s drive...' % t,
+                                              u'提取%s存儲...' % t)
+_TESTING_FMT_STR = lambda t: test_ui.MakeLabel('testing %s...' % t,
+                                               u'%s 檢查中...' % t)
 _LOCKTEST_INSERT_FMT_STR = (
     lambda t:
-      ('toggle lock switch and insert %s drive again...' % t,
-       u'切換防寫開關並再次插入%s存儲...' % t))
+      test_ui.MakeLabel('toggle lock switch and insert %s drive again...' % t,
+                        u'切換防寫開關並再次插入%s存儲...' % t))
 _LOCKTEST_REMOVE_FMT_STR = (
     lambda t:
-      ('remove %s drive and toggle lock switch...' % t,
-       u'提取%s存儲並關閉防寫開關...' % t))
+      test_ui.MakeLabel('remove %s drive and toggle lock switch...' % t,
+                        u'提取%s存儲並關閉防寫開關...' % t))
 _ERR_REMOVE_TOO_EARLY_FMT_STR = (
     lambda t:
-      ('Device removed too early (%s).' % t,
-       u'太早移除外部儲存裝置 (%s).' % t))
+      test_ui.MakeLabel('Device removed too early (%s).' % t,
+                        u'太早移除外部儲存裝置 (%s).' % t))
 _ERR_TEST_FAILED_FMT_STR = (
     lambda test_name, target_dev:
       'IO error while running %s test on %s.' % (test_name, target_dev))
@@ -83,7 +86,7 @@ _ERR_LOCKTEST_FAILED_FMT_STR = (
     lambda target_dev: 'Locktest failed on %s.' % target_dev)
 _ERR_DEVICE_READ_ONLY_STR = (
     lambda target_dev: '%s is read-only.' % target_dev)
-_TEST_TITLE = ('Card Reader Test', u'讀卡機測試')
+_TEST_TITLE = test_ui.MakeLabel('Card Reader Test', u'讀卡機測試')
 _IMG_HTML_TAG = (
     lambda src: '<img src="%s" style="display:block; margin:0 auto;"/>' % src)
 
@@ -116,6 +119,7 @@ class RemovableStorageTest(unittest.TestCase):
     self._perform_sequential_test = False
     self._sequential_block_count = 1024
     self._ui = test_ui.UI()
+    self._template = ui_templates.TwoSections(self._ui)
     self._perform_locktest = False
     self._error = ''
     self._target_device = None
@@ -210,9 +214,8 @@ class RemovableStorageTest(unittest.TestCase):
     This method executes only random read / write test by default.
     Sequential read / write test can be enabled through dargs.
     '''
-    self._ui.SetHTML(self._ui.MakeLabel(*_TESTING_FMT_STR(self._target_device)),
-                     id='instruction')
-    self._ui.SetHTML(_IMG_HTML_TAG(self._testing_image), id='state')
+    self._template.SetInstruction(_TESTING_FMT_STR(self._target_device))
+    self._template.SetState(_IMG_HTML_TAG(self._testing_image))
 
     dev_path = self._target_device
     dev_size = self.GetDeviceSize(dev_path)
@@ -355,26 +358,22 @@ class RemovableStorageTest(unittest.TestCase):
               'sequential_write_speed: %.3f MB/s' %
               (bytes_to_operate / total_time_write / 1000 / 1000))
 
-    self._ui.SetHTML(self._ui.MakeLabel(*_REMOVE_FMT_STR(self._media)),
-                     id='instruction')
+    self._template.SetInstruction(_REMOVE_FMT_STR(self._media))
     self._state = _STATE_RW_TEST_WAIT_REMOVE
-    self._ui.SetHTML(_IMG_HTML_TAG(self._removal_image), id='state')
+    self._template.SetState(_IMG_HTML_TAG(self._removal_image))
 
   def TestLock(self):
     '''SD card write protection test.'''
-    self._ui.SetHTML(self._ui.MakeLabel(*_TESTING_FMT_STR(self._target_device)),
-                     id='instruction')
-    self._ui.SetHTML(_IMG_HTML_TAG(self._testing_image), id='state')
+    self._template.SetInstruction(_TESTING_FMT_STR(self._target_device))
+    self._template.SetState(_IMG_HTML_TAG(self._testing_image))
 
     ro = self.GetDeviceRo(self._target_device)
 
     if ro is False:
       self._ui.FailLater(_ERR_LOCKTEST_FAILED_FMT_STR(self._target_device))
-    self._ui.SetHTML(
-        self._ui.MakeLabel(*_LOCKTEST_REMOVE_FMT_STR(self._media)),
-        id='instruction')
+    self._template.SetInstruction(_LOCKTEST_REMOVE_FMT_STR(self._media))
     self._state = _STATE_LOCKTEST_WAIT_REMOVE
-    self._ui.SetHTML(_IMG_HTML_TAG(self._locktest_removal_image), id='state')
+    self._template.SetState(_IMG_HTML_TAG(self._locktest_removal_image))
     self.AdvanceProgress()
 
   def UdevEventCallback(self, action, device):
@@ -402,47 +401,27 @@ class RemovableStorageTest(unittest.TestCase):
         factory.console.info('Device removed : %s' % device.device_node)
         if self._state == _STATE_RW_TEST_WAIT_REMOVE:
           if self._perform_locktest:
-            self._ui.SetHTML(
-                self._ui.MakeLabel(*_LOCKTEST_INSERT_FMT_STR(self._media)),
-                id='instruction')
+            self._template.SetInstruction(
+                _LOCKTEST_INSERT_FMT_STR(self._media))
             self._state = _STATE_LOCKTEST_WAIT_INSERT
-            self._ui.SetHTML(_IMG_HTML_TAG(self._locktest_insertion_image),
-                             id='state')
-
+            self._template.SetState(
+                _IMG_HTML_TAG(self._locktest_insertion_image))
           else:
             self._ui.Pass()
         elif self._state == _STATE_LOCKTEST_WAIT_REMOVE:
           self._ui.Pass()
         else:
-          self._ui.SetHTML(
-              self._ui.MakeLabel(
-              *_ERR_REMOVE_TOO_EARLY_FMT_STR(self._target_device)),
-              id='instruction')
+          self._template.SetInstruction(
+              _ERR_REMOVE_TOO_EARLY_FMT_STR(self._target_device))
           self._ui.Fail('Device %s removed too early' % self._target_device)
     return True
-
-  def DrawProgressBar(self):
-    '''Draw the progress bar and set it visible on the Chrome test UI.
-
-    Best practice is that if the operator needs to wait more than 5 seconds,
-    we should show the progress bar to indicate test progress.
-    '''
-    self._ui.CallJSFunction('DrawProgressBar')
-
-  def SetProgressBarValue(self, value):
-    '''Set the value of the progress bar.
-
-    Args:
-      value: A value between 0 and 100 to indicate test progress.
-    '''
-    value = int(value)
-    self._ui.CallJSFunction('SetProgressBarValue', value)
 
   def AdvanceProgress(self, value=1):
     self._finished_tests += value
     if self._finished_tests > self._total_tests:
       self._finished_tests = self._total_tests
-    self.SetProgressBarValue(100 * self._finished_tests / self._total_tests)
+    self._template.SetProgressBarValue(
+        100 * self._finished_tests / self._total_tests)
 
   def runTest(self):
     '''Main entrance of removable storage test.
@@ -481,7 +460,7 @@ class RemovableStorageTest(unittest.TestCase):
 
     factory.console.info('media = %s' % self._media)
 
-    self._ui.SetHTML(self._ui.MakeLabel(*_TEST_TITLE), id='title')
+    self._template.SetTitle(_TEST_TITLE)
     self._insertion_image = '%s_insert.png' % self._media
     self._removal_image = '%s_remove.png' % self._media
     self._testing_image = '%s_testing.png' % self._media
@@ -490,20 +469,19 @@ class RemovableStorageTest(unittest.TestCase):
       self._locktest_insertion_image = '%s_locktest_insert.png' % self._media
       self._locktest_removal_image = '%s_locktest_remove.png' % self._media
 
-    self._ui.SetHTML(self._ui.MakeLabel(*_RW_TEST_INSERT_FMT_STR(self._media)),
-                     id='instruction')
+    self._template.SetInstruction(_RW_TEST_INSERT_FMT_STR(self._media))
     self._state = _STATE_RW_TEST_WAIT_INSERT
-    self._ui.SetHTML(_IMG_HTML_TAG(self._insertion_image), id='state')
+    self._template.SetState(_IMG_HTML_TAG(self._insertion_image))
 
     # Initialize progress bar
-    self.DrawProgressBar()
+    self._template.DrawProgressBar()
     self._total_tests = 1
     if self._perform_sequential_test:
       self._total_tests += 1
     if self._perform_locktest:
       self._total_tests += 1
     self._finished_tests = 0
-    self.SetProgressBarValue(0)
+    self._template.SetProgressBarValue(0)
 
     # Create a daemon pyudev thread to listen to device events
     self._pyudev_thread = PyudevThread(self.UdevEventCallback,

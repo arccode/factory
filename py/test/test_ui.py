@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2010 The Chromium OS Authors. All rights reserved.
+# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -22,6 +22,45 @@ FactoryTestFailure = factory.FactoryTestFailure
 
 # Import cgi.escape.
 Escape = cgi.escape
+
+
+def MakeLabel(en, zh=None, css_class=None):
+  '''Returns a label which will appear in the active language.
+
+  Args:
+      en: The English-language label.
+      zh: The Chinese-language label (or None if unspecified).
+      css_class: The CSS class to decorate the label (or None if unspecified).
+  '''
+  return ('<span class="goofy-label-en %s">%s</span>'
+          '<span class="goofy-label-zh %s">%s</span>' %
+          ('' if css_class is None else css_class, en,
+           '' if css_class is None else css_class, (en if zh is None else zh)))
+
+
+def MakeTestLabel(test):
+  '''Returns label for a test name in the active language.
+
+  Args:
+     test: A test object from the test list.
+  '''
+  return MakeLabel(Escape(test.label_en), Escape(test.label_zh))
+
+
+def MakeStatusLabel(status):
+  '''Returns label for a test status in the active language.
+
+  Args:
+      status: One of [PASSED, FAILED, ACTIVE, UNTESTED]
+  '''
+  STATUS_ZH = {
+    TestState.PASSED: u'良好',
+    TestState.FAILED: u'不良',
+    TestState.ACTIVE: u'正在測',
+    TestState.UNTESTED: u'未測'
+  }
+  return MakeLabel(status.lower(),
+                   STATUS_ZH.get(status, status))
 
 
 class UI(object):
@@ -65,6 +104,16 @@ class UI(object):
        some_js_library.js
        some_image.gif
 
+  4. Some UI templates are available. Templates have several predefined
+    sections like title, instruction, state. Hepler functions are
+    provided in the template class to access different sections. See
+    test/test_ui_templates.py for more information.
+
+    Currently there are two templates available:
+      - ui_templates.OneSection
+      - ui_templates.TwoSections
+
+
   Note that if you rename .html or .js files during development, you
   may need to restart the server for your changes to take effect.
   '''
@@ -75,8 +124,7 @@ class UI(object):
     self.invocation = os.environ['CROS_FACTORY_TEST_INVOCATION']
     self.event_handlers = {}
 
-    self._SetupStaticFiles(
-        os.path.realpath(traceback.extract_stack()[-2][0]))
+    self._SetupStaticFiles(os.path.realpath(traceback.extract_stack()[-2][0]))
     self.error_msgs = []
     if css:
       self.AppendCSS(css)
@@ -124,10 +172,7 @@ class UI(object):
        '<link rel="stylesheet" type="text/css" href="/goofy.css">',
        '<link rel="stylesheet" type="text/css" href="/test.css">',
        GetAutoload('html')])
-    self.event_client.post_event(Event(Event.Type.INIT_TEST_UI,
-                                       test=self.test,
-                                       invocation=self.invocation,
-                                       html=html))
+    self.PostEvent(Event(Event.Type.INIT_TEST_UI, html=html))
 
     js = GetAutoload('js')
     if js:
@@ -143,12 +188,7 @@ class UI(object):
     Args:
       id: If given, writes html to the element identified by id.
     '''
-    self.event_client.post_event(Event(Event.Type.SET_HTML,
-                                 test=self.test,
-                                 invocation=self.invocation,
-                                 html=html,
-                                 append=append,
-                                 id=id))
+    self.PostEvent(Event(Event.Type.SET_HTML, html=html, append=append, id=id))
 
   def AppendHTML(self, html, **kwargs):
     '''Append to the UI in the test pane.'''
@@ -171,10 +211,7 @@ class UI(object):
     Example:
       ui.RunJS('alert(args.msg)', msg='The British are coming')
     '''
-    self.event_client.post_event(Event(Event.Type.RUN_JS,
-                                 test=self.test,
-                                 invocation=self.invocation,
-                                 js=js, args=kwargs))
+    self.PostEvent(Event(Event.Type.RUN_JS, js=js, args=kwargs))
 
   def CallJSFunction(self, name, *args):
     '''Calls a JavaScript function in the test pane.
@@ -186,10 +223,7 @@ class UI(object):
       name: The name of the function to execute.
       args: Arguments to the function.
     '''
-    self.event_client.post_event(Event(Event.Type.CALL_JS_FUNCTION,
-                                 test=self.test,
-                                 invocation=self.invocation,
-                                 name=name, args=args))
+    self.PostEvent(Event(Event.Type.CALL_JS_FUNCTION, name=name, args=args))
 
   def AddEventHandler(self, subtype, handler):
     '''Adds an event handler.
@@ -200,6 +234,16 @@ class UI(object):
         object).
     '''
     self.event_handlers.setdefault(subtype, []).append(handler)
+
+  def PostEvent(self, event):
+    '''Posts an event to the event queue.
+
+    Adds the test and invocation properties.
+
+    Tests should use this instead of invoking post_event directly.'''
+    event.test = self.test
+    event.invocation = self.invocation
+    self.event_client.post_event(event)
 
   def URLForFile(self, path):
     '''Returns a URL that can be used to serve a local file.
@@ -227,18 +271,12 @@ class UI(object):
 
   def Pass(self):
     '''Passes the test.'''
-    self.event_client.post_event(Event(Event.Type.END_TEST,
-                                 test=self.test,
-                                 invocation=self.invocation,
-                                 status=TestState.PASSED))
+    self.PostEvent(Event(Event.Type.END_TEST, status=TestState.PASSED))
 
   def Fail(self, error_msg):
     '''Fails the test immediately.'''
-    self.event_client.post_event(Event(Event.Type.END_TEST,
-                                 test=self.test,
-                                 invocation=self.invocation,
-                                 status=TestState.FAILED,
-                                 error_msg=error_msg))
+    self.PostEvent(Event(Event.Type.END_TEST, status=TestState.FAILED,
+                         error_msg=error_msg))
 
   def FailLater(self, error_msg):
     '''Appends a error message to the error message list, which causes
@@ -279,37 +317,3 @@ class UI(object):
       with self.lock:
         for handler in self.event_handlers.get(event.subtype, []):
           handler(event)
-
-  def MakeLabel(self, en, zh=None):
-    '''Returns a label which will appear in the active language.
-
-    Args:
-        en: The English-language label.
-        zh: The Chinese-language label (or None if unspecified).
-    '''
-    return ('<span class="goofy-label-en">%s</span>'
-            '<span class="goofy-label-zh">%s</span>' %
-            (en, (en if zh is None else zh)))
-
-  def MakeTestLabel(self, test):
-    '''Returns label for a test name in the active language.
-
-    Args:
-       test: A test object from the test list.
-    '''
-    return self.MakeLabel(Escape(test.label_en), Escape(test.label_zh))
-
-  STATUS_ZH = {
-    TestState.PASSED: u'良好',
-    TestState.FAILED: u'不良',
-    TestState.ACTIVE: u'正在測',
-    TestState.UNTESTED: u'未測'
-  }
-  def MakeStatusLabel(self, status):
-    '''Returns label for a test status in the active language.
-
-    Args:
-        status: One of [PASSED, FAILED, ACTIVE, UNTESTED]
-    '''
-    return self.MakeLabel(status.lower(),
-                          self.STATUS_ZH.get(status, status))

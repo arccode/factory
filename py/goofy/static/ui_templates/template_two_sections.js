@@ -15,7 +15,8 @@ function DrawProgressBar() {
 
 function SetProgressBarValue(value) {
   var container = document.getElementById('progress-bar-container');
-  var indicator = document.getElementById('progress-bar-indicator');
+  var indicator = document.getElementById(
+      'template-progress-bar-indicator');
 
   container.progressBar.setValue(value);
   indicator.innerHTML = value + '%';

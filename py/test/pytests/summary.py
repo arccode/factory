@@ -60,8 +60,8 @@ class Report(unittest.TestCase):
 
       table.append('<tr class="test-status-%s"><th>%s</th><td>%s</td></tr>'
                    % (state.status,
-                      ui.MakeTestLabel(t),
-                      ui.MakeStatusLabel(state.status)))
+                      test_ui.MakeTestLabel(t),
+                      test_ui.MakeStatusLabel(state.status)))
       statuses.append(state.status)
 
     overall_status = factory.overall_status(statuses)
@@ -70,13 +70,13 @@ class Report(unittest.TestCase):
         '<div class="test-vcenter-outer"><div class="test-vcenter-inner">',
         'Test Status for %s:' % test.parent.path,
         '<div class="test-status-%s" style="font-size: 300%%">%s</div>' % (
-            overall_status, ui.MakeStatusLabel(overall_status)),
+            overall_status, test_ui.MakeStatusLabel(overall_status)),
         '<table>',
         ] + table + [
         '</table>',
         '<a onclick="onclick:window.test.pass()" href="#">',
-        ui.MakeLabel('Click or press SPACE to continue',
-                     u'點擊或按空白鍵繼續'),
+        test_ui.MakeLabel('Click or press SPACE to continue',
+                          u'點擊或按空白鍵繼續'),
         '</a>',
         '</div></div>',
         ]
