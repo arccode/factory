@@ -24,8 +24,6 @@ LINT_BLACKLIST=\
 	py/goofy/event_log_watcher.py \
 	py/goofy/event_log_watcher_unittest.py \
 	py/goofy/prespawner.py \
-	py/goofy/system.py \
-	py/goofy/system_unittest.py \
 	py/goofy/test_environment.py \
 	py/goofy/updater.py \
 	py/goofy/web_socket_manager.py \

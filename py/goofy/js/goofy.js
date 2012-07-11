@@ -117,6 +117,7 @@ cros.factory.SYSTEM_INFO_LABELS = [
     {key: 'factory_image_version',
      label: cros.factory.Label('Factory Image Version')},
     {key: 'wlan0_mac', label: cros.factory.Label('WLAN MAC')},
+    {key: 'ips', label: cros.factory.Label('IP Addresses')},
     {key: 'kernel_version', label: cros.factory.Label('Kernel')},
     {key: 'ec_version', label: cros.factory.Label('EC')},
     {key: 'firmware_version', label: cros.factory.Label('Firmware')},
@@ -390,6 +391,12 @@ cros.factory.Goofy = function() {
      * @type {boolean}
      */
     this.engineeringMode = false;
+
+    /**
+     * Last system info received.
+     * @type Object.<string, Object>
+     */
+    this.systemInfo = {};
 
     /**
      * SHA1 hash of password to take UI out of operator mode.  If
@@ -680,6 +687,8 @@ cros.factory.Goofy.prototype.updateLanguage = function() {
  * @param systemInfo Object.<string, string>
  */
 cros.factory.Goofy.prototype.setSystemInfo = function(systemInfo) {
+    this.systemInfo = systemInfo;
+
     var table = [];
     table.push('<table id="goofy-system-info">');
     goog.array.forEach(cros.factory.SYSTEM_INFO_LABELS, function(item) {
@@ -1542,6 +1551,9 @@ cros.factory.Goofy.prototype.PERCENT_BATTERY_FORMAT = (
  */
 cros.factory.Goofy.prototype.updateStatus = function() {
     this.sendRpc('get_system_status', [], function(status) {
+        this.systemInfo['ips'] = status['ips'];
+        this.setSystemInfo(this.systemInfo);
+
         function setValue(id, value) {
             var element = document.getElementById(id);
             goog.dom.classes.enable(element, 'goofy-value-known',

@@ -5,14 +5,18 @@
 # found in the LICENSE file.
 
 
+import netifaces
 import re
 import subprocess
-import time
-import yaml
+
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
+
+# pylint: disable=W0702
+# Disable checking of exception types, since we catch all exceptions
+# in many places.
 
 
 class SystemInfo(object):
@@ -90,6 +94,32 @@ class SystemInfo(object):
     self.update_md5sum = SystemInfo.update_md5sum
 
 
+def GetIPv4Addresses():
+  '''Returns a string describing interfaces' IPv4 addresses.
+
+  The returned string is of the format
+
+    eth0=192.168.1.10, wlan0=192.168.16.14
+  '''
+  ret = []
+  for i in sorted(netifaces.interfaces()):
+    if i.startswith('lo'):
+      # Boring
+      continue
+
+    try:
+      addresses = netifaces.ifaddresses(i).get(netifaces.AF_INET, [])
+    except ValueError:
+      continue
+
+    ips = [x.get('addr') for x in addresses
+           if 'addr' in x] or ['none']
+
+    ret.append('%s=%s' % (i, '+'.join(ips)))
+
+  return ', '.join(ret)
+
+
 class SystemStatus(object):
   '''Information about the current system status.
 
@@ -99,13 +129,13 @@ class SystemStatus(object):
   def __init__(self):
     self.battery = {}
     for k, item_type in [('charge_full', int),
-               ('charge_full_design', int),
-               ('charge_now', int),
-               ('current_now', int),
-               ('present', bool),
-               ('status', str),
-               ('voltage_min_design', int),
-               ('voltage_now', int)]:
+                         ('charge_full_design', int),
+                         ('charge_now', int),
+                         ('current_now', int),
+                         ('present', bool),
+                         ('status', str),
+                         ('voltage_min_design', int),
+                         ('voltage_now', int)]:
       try:
         self.battery[k] = item_type(
           open('/sys/class/power_supply/BAT0/%s' % k).read().strip())
@@ -123,6 +153,10 @@ class SystemStatus(object):
     except:
       self.cpu = None
 
+    try:
+      self.ips = GetIPv4Addresses()
+    except:
+      self.ips = None
 
 if __name__ == '__main__':
   import yaml
