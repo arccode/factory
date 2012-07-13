@@ -8,7 +8,6 @@
 import cgi
 import logging
 import os
-import re
 import threading
 import traceback
 
@@ -17,8 +16,8 @@ from cros.factory.test.factory import TestState
 from cros.factory.test.event import Event, EventClient
 
 
-class FactoryTestFailure(Exception):
-  pass
+# For compatibility; moved to factory.
+FactoryTestFailure = factory.FactoryTestFailure
 
 
 # Import cgi.escape.
@@ -134,7 +133,7 @@ class UI(object):
     if js:
       self.RunJS(js)
 
-  def SetHTML(self, html, append=False, id=None):
+  def SetHTML(self, html, append=False, id=None):  # pylint: disable=W0622
     '''Sets the UI in the test pane.
 
     Note that <script> tags are not allowed in SetHTML() and

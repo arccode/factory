@@ -15,6 +15,7 @@ import traceback
 import unittest
 
 from cros.factory.test import factory
+from cros.factory.goofy import test_steps
 
 
 SRCROOT = os.environ.get('CROS_WORKON_SRCROOT')
@@ -39,7 +40,7 @@ class FactoryTest(unittest.TestCase):
     for test_list in test_lists:
       logging.info('Parsing test list %s', test_list)
       try:
-        factory.read_test_list(test_list)
+        factory.read_test_list(test_list, test_classes=test_steps.__dict__)
       except:  # pylint: disable=W0702
         failures.append(test_list)
         traceback.print_exc()

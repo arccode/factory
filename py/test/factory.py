@@ -43,10 +43,6 @@ ID_REGEXP = re.compile(r'^\w+$')
 ALL = 'all'
 
 
-class TestListError(Exception):
-  pass
-
-
 # For compatibility; moved to utils.
 in_chroot = utils.in_chroot
 
@@ -443,6 +439,24 @@ def overall_status(statuses):
 
   # E.g., if statuses is empty
   return TestState.UNTESTED
+
+
+class TestListError(Exception):
+  pass
+
+
+class FactoryTestFailure(Exception):
+  '''
+  Failure of a factory test.
+
+  Args:
+    message: The exception message.
+    status: The status to report for the failure (usually FAILED
+      but possibly UNTESTED).
+  '''
+  def __init__(self, message=None, status=TestState.FAILED):
+    super(FactoryTestFailure, self).__init__(message)
+    self.status = status
 
 
 class FactoryTest(object):

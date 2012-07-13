@@ -23,12 +23,10 @@ LINT_BLACKLIST=\
 	py/goofy/connection_manager.py \
 	py/goofy/event_log_watcher.py \
 	py/goofy/event_log_watcher_unittest.py \
-	py/goofy/invocation.py \
 	py/goofy/prespawner.py \
 	py/goofy/system.py \
 	py/goofy/system_unittest.py \
 	py/goofy/test_environment.py \
-	py/goofy/test_steps.py \
 	py/goofy/updater.py \
 	py/goofy/web_socket_manager.py \
 	py/hacked_argparse.py \
@@ -48,7 +46,6 @@ LINT_BLACKLIST=\
 	py/test/state.py \
 	py/test/state_unittest.py \
 	py/test/task.py \
-	py/test/test_ui.py \
 	py/test/ui.py \
 	py/test/unicode_to_string.py \
 	py/test/unicode_to_string_unittest.py \

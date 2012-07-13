@@ -48,6 +48,10 @@ HWID_CFG_PATH = '/usr/local/share/chromeos-hwid/cfg'
 # File that suppresses reboot if present (e.g., for development).
 NO_REBOOT_FILE = '/var/log/factory.noreboot'
 
+# Value for tests_after_shutdown that forces auto-run (e.g., after
+# a factory update, when the available set of tests might change).
+FORCE_AUTO_RUN = 'force_auto_run'
+
 RUN_QUEUE_TIMEOUT_SECS = 10
 
 GOOFY_IN_CHROOT_WARNING = '\n' + ('*' * 70) + '''
@@ -765,12 +769,19 @@ class Goofy(object):
                        system_info=system_info.__dict__))
     logging.info('System info: %r', system_info.__dict__)
 
-  def update_factory(self):
+  def update_factory(self, auto_run_on_restart=False):
+    '''Commences updating factory software.'''
     self.kill_active_tests(False)
     self.run_tests([])
 
+    def pre_update_hook():
+      if auto_run_on_restart:
+        self.state_instance.set_shared_data('tests_after_shutdown',
+                                            FORCE_AUTO_RUN)
+      self.state_instance.close()
+
     try:
-      if updater.TryUpdate(pre_update_hook=self.state_instance.close):
+      if updater.TryUpdate(pre_update_hook=pre_update_hook):
         self.env.shutdown('reboot')
     except:  # pylint: disable=W0702
       factory.console.exception('Unable to update')
@@ -942,17 +953,18 @@ class Goofy(object):
     except KeyError:
       tests_after_shutdown = None
 
-    if tests_after_shutdown is not None:
+    force_auto_run = (tests_after_shutdown == FORCE_AUTO_RUN)
+    if not force_auto_run and tests_after_shutdown is not None:
       logging.info('Resuming tests after shutdown: %s',
              tests_after_shutdown)
-      self.state_instance.set_shared_data('tests_after_shutdown', None)
       self.tests_to_run.extend(
         self.test_list.lookup_path(t) for t in tests_after_shutdown)
       self.run_queue.put(self.run_next_test)
     else:
-      if self.test_list.options.auto_run_on_start:
+      if force_auto_run or self.test_list.options.auto_run_on_start:
         self.run_queue.put(
           lambda: self.run_tests(self.test_list, untested_only=True))
+    self.state_instance.set_shared_data('tests_after_shutdown', None)
 
   def run(self):
     '''Runs Goofy.'''

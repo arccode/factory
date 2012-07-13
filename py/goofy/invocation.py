@@ -17,10 +17,8 @@ import threading
 import time
 import traceback
 import unittest
-import uuid
 import yaml
 from optparse import OptionParser
-from StringIO import StringIO
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.goofy import test_steps
@@ -35,6 +33,7 @@ from cros.factory.test import pytests
 # Number of bytes to include from the log of a failed test.
 ERROR_LOG_TAIL_LENGTH = 8*1024
 
+# pylint: disable=W0702
 
 class PyTestInfo(object):
   def __init__(self, test_list, path, pytest_name, args, results_path):
@@ -79,6 +78,7 @@ class TestInvocation(object):
     self.update_metadata(path=test.path,
                          init_time=time.time(),
                          invocation=str(self.uuid))
+    self.count = None
 
     self.log_path = os.path.join(self.output_dir, 'log')
     self._lock = threading.Lock()
@@ -204,7 +204,7 @@ class TestInvocation(object):
       with open(result_file) as f:
         try:
           success, error_msg = pickle.load(f)
-        except:  # pylint: disable=W0702
+        except:
           logging.exception('Unable to retrieve autotest results')
           error_msg = 'Unable to retrieve autotest results'
           return
@@ -230,9 +230,9 @@ class TestInvocation(object):
 
     files_to_delete = []
     try:
-      def make_tmp(type):
+      def make_tmp(prefix):
         ret = tempfile.mktemp(
-          prefix='%s-%s-' % (self.test.path, type))
+          prefix='%s-%s-' % (self.test.path, prefix))
         files_to_delete.append(ret)
         return ret
 
@@ -290,7 +290,7 @@ class TestInvocation(object):
 
       with open(results_path) as f:
         return pickle.load(f)
-    except:  # pylint: disable=W0702
+    except:
       logging.exception('Unable to retrieve pytest results')
       return TestState.FAILED, 'Unable to retrieve pytest results'
     finally:
@@ -311,8 +311,14 @@ class TestInvocation(object):
       return TestState.PASSED, ''
     except:
       logging.exception('Exception while invoking target')
-      error_msg = traceback.format_exc()
-      return TestState.FAILED, traceback.format_exc()
+
+      if sys.exc_info()[0] == factory.FactoryTestFailure:
+        # Use the status from the exception.
+        status = sys.exc_info()[1].status
+      else:
+        status = TestState.FAILED
+
+      return status, traceback.format_exc()
 
   def clean_autotest_logs(self):
     globs = self.goofy.test_list.options.preserve_autotest_results
@@ -322,7 +328,7 @@ class TestInvocation(object):
 
     deleted_count = 0
     preserved_count = 0
-    for root, dirs, files in os.walk(self.output_dir, topdown=False):
+    for root, dummy_dirs, files in os.walk(self.output_dir, topdown=False):
       for f in files:
         if f in ['log', 'metadata'] or any(fnmatch.fnmatch(f, g)
                                            for g in globs):
@@ -333,12 +339,12 @@ class TestInvocation(object):
             os.unlink(os.path.join(root, f))
             deleted_count += 1
           except:
-            logging.exception('Unable to remove %s' %
-                      os.path.join(root, f))
+            logging.exception('Unable to remove %s',
+                              os.path.join(root, f))
       try:
         # Try to remove the directory (in case it's empty now)
         os.rmdir(root)
-      except:
+      except OSError:
         # Not empty; that's OK
         pass
     logging.info('Preserved %d files matching %s and removed %d',
@@ -368,7 +374,6 @@ class TestInvocation(object):
 
     self.goofy.event_log.Log('start_test', **log_args)
 
-    metadata = log_args
     self.update_metadata(start_time=time.time(), **log_args)
     start_time = time.time()
     try:
@@ -455,7 +460,7 @@ def run_pytest(test_info):
     runner = unittest.TextTestRunner()
     result = runner.run(suite)
 
-    def format_error_msg(test_name, trace):
+    def format_error_msg(trace):
       '''Formats a trace so that the actual error message is in the last
       line.
       '''
@@ -467,7 +472,7 @@ def run_pytest(test_info):
     all_failures = result.failures + result.errors
     if all_failures:
       status = TestState.FAILED
-      error_msg = '; '.join(format_error_msg(test_name, trace)
+      error_msg = '; '.join(format_error_msg(trace)
                   for test_name, trace in all_failures)
       logging.info('pytest failure: %s', error_msg)
     else:
@@ -485,7 +490,7 @@ def main():
   parser = OptionParser()
   parser.add_option('--pytest', dest='pytest_info',
             help='Info for pytest to run')
-  (options, args) = parser.parse_args()
+  (options, dummy_args) = parser.parse_args()
 
   assert options.pytest_info
 
