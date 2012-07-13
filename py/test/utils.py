@@ -15,6 +15,7 @@ import signal
 import subprocess
 import sys
 import time
+import traceback
 
 
 def TimeString(unix_time=None):
@@ -206,3 +207,14 @@ class Enum(frozenset):
     if name in self:
       return name
     raise AttributeError
+
+
+def FormatExceptionOnly():
+  '''Formats the current exception string.
+
+  Must only be called from inside an exception handler.
+
+  Returns:
+    A string.'''
+  return '\n'.join(
+    traceback.format_exception_only(*sys.exc_info()[:2])).strip()

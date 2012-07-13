@@ -327,6 +327,14 @@ class Options(object):
   # Timeout talking to shopfloor server for background operations.
   shopfloor_timeout_secs = 10
 
+  # Whether to use the time sanitizer.
+  time_sanitizer = True
+
+  # Interval to use when syncing time with the shopfloor server.
+  # Requires the time sanitizer.
+  sync_time_period_secs = None
+  _types['sync_time_period_secs'] = (type(None), int)
+
   def check_valid(self):
     '''Throws a TestListError if there are any invalid options.'''
     # Make sure no errant options, or options with weird types,

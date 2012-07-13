@@ -4,16 +4,16 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import argparse
 import ctypes
-import daemon
 import logging
 import math
 import os
+import threading
 import time
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
+from cros.factory.test import shopfloor
 
 
 def _FormatTime(t):
@@ -44,10 +44,12 @@ SECONDS_PER_DAY = 86400
 
 
 class TimeSanitizer(object):
-  def __init__(self, state_file,
-               monitor_interval_secs,
-               time_bump_secs,
-               max_leap_secs,
+  def __init__(self,
+               state_file=os.path.join(factory.get_state_root(),
+                                       'time_sanitizer_base_time'),
+               monitor_interval_secs=30,
+               time_bump_secs=60,
+               max_leap_secs=(SECONDS_PER_DAY * 30),
                base_time=None):
     '''Attempts to ensure that system time is monotonic and sane.
 
@@ -81,9 +83,15 @@ class TimeSanitizer(object):
     self.time_bump_secs = time_bump_secs
     self.max_leap_secs = max_leap_secs
     self.base_time = base_time
+    self.lock = threading.Lock()
 
+    # Whether to avoid re-raising exceptions from unsuccessful shopfloor
+    # operations.  Set to False for testing.
+    self.__exceptions = True
     # Set time object.  This may be mocked out.
     self._time = Time()
+    # Set shopfloor.  This may be mocked out.
+    self._shopfloor = shopfloor
 
     if not os.path.isdir(os.path.dirname(self.state_file)):
       os.makedirs(os.path.dirname(self.state_file))
@@ -137,8 +145,40 @@ class TimeSanitizer(object):
                     _FormatTime(now), self.state_file)
       print >> f, now
 
+  def SyncWithShopfloor(self, timeout=5):
+    '''Attempts to synchronize the clock with the shopfloor server.
 
-def _GetBaseTime(base_time_file):
+    Thread-safe.
+
+    Returns:
+      True if synced, False if not (e.g., time is before current time).
+
+    Raises:
+      Exception if unable to contact the shopfloor server.
+    '''
+    proxy = self._shopfloor.get_instance(detect=True,
+                                         timeout=timeout)
+    shopfloor_time = proxy.GetTime()
+    logging.info('Got time %s GMT from shopfloor server',
+                 _FormatTime(shopfloor_time))
+
+    with self.lock:
+      self.RunOnce()
+      now = self._time.Time()
+      if shopfloor_time < now:
+        logging.warn('Shopfloor server time is before current time %s; '
+                     'not syncing', _FormatTime(now))
+        return False
+      else:
+        self._time.SetTime(shopfloor_time)
+        with open(self.state_file, 'w') as f:
+          logging.debug('Recording shopfloor time %s into %s',
+                        _FormatTime(shopfloor_time), self.state_file)
+          print >> f, shopfloor_time
+        return True
+
+
+def GetBaseTimeFromFile(base_time_file):
   '''Returns the base time to use (the mtime of base_time_file or None).
 
   Never throws an exception.'''
@@ -154,58 +194,3 @@ def _GetBaseTime(base_time_file):
     logging.warn('base-time-file %s does not exist',
                  base_time_file)
   return None
-
-
-def main():
-  parser = argparse.ArgumentParser(description='Ensure sanity of system time.')
-  parser.add_argument('--state-file', metavar='FILE',
-                      default=os.path.join(factory.get_state_root(),
-                                           'time_sanitizer.state'),
-                      help='file to maintain state across reboots')
-  parser.add_argument('--daemon', action='store_true',
-                      help=('run as a daemon (to keep known-good time '
-                            'in state file up to date)'))
-  parser.add_argument('--log', metavar='FILE',
-                      default=os.path.join(factory.get_log_root(),
-                                           'time_sanitizer.log'),
-                      help='log file (if run as a daemon)')
-  parser.add_argument('--monitor-interval-secs', metavar='SECS', type=int,
-                      default=30,
-                      help='period with which to monitor time')
-  parser.add_argument('--time-bump-secs', metavar='SECS', type=int,
-                      default=60,
-                      help=('how far ahead to move the time '
-                            'if the clock is hosed'))
-  parser.add_argument('--max-leap-secs', metavar='SECS', type=int,
-                      default=(SECONDS_PER_DAY * 30),
-                      help=('maximum possible time leap without the clock '
-                            'being considered hosed'))
-  parser.add_argument('--verbose', '-v', action='store_true',
-                      help='verbose log')
-  parser.add_argument('--base-time-file', metavar='FILE',
-                      default='/usr/local/etc/lsb-factory',
-                      help=('a file whose mtime represents the minimum '
-                            'possible time that can ever be seen'))
-  args = parser.parse_args()
-
-  logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO,
-                      filename=args.log if args.daemon else None)
-
-  sanitizer = TimeSanitizer(os.path.realpath(args.state_file)
-                            if args.state_file else None,
-                            _GetBaseTime(args.base_time_file)
-                            if args.base_time_file else None,
-                            args.monitor_interval_secs,
-                            args.time_bump_secs,
-                            args.max_leap_secs)
-
-  # Make sure we run once (even in daemon mode) before returning.
-  sanitizer.RunOnce()
-
-  if args.daemon:
-    with daemon.DaemonContext():
-      sanitizer.Run()
-
-
-if __name__ == '__main__':
-  main()

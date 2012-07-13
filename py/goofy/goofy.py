@@ -38,6 +38,7 @@ from cros.factory.event_log import EventLog
 from cros.factory.goofy.invocation import TestInvocation
 from cros.factory.goofy import system
 from cros.factory.goofy import test_environment
+from cros.factory.goofy import time_sanitizer
 from cros.factory.goofy.web_socket_manager import WebSocketManager
 
 
@@ -153,6 +154,8 @@ class Goofy(object):
     self.event_server_thread = None
     self.event_client = None
     self.connection_manager = None
+    self.time_sanitizer = None
+    self.time_synced = False
     self.log_watcher = None
     self.network_enabled = True
     self.event_log = None
@@ -171,6 +174,7 @@ class Goofy(object):
     self.env = None
     self.last_shutdown_time = None
     self.last_update_check = None
+    self.last_sync_time = None
 
     def test_or_root(event, parent_or_group=True):
       '''Returns the test affected by a particular event.
@@ -797,25 +801,25 @@ class Goofy(object):
     '''
     parser = OptionParser()
     parser.add_option('-v', '--verbose', dest='verbose',
-              action='store_true',
-              help='Enable debug logging')
+                      action='store_true',
+                      help='Enable debug logging')
     parser.add_option('--print_test_list', dest='print_test_list',
-              metavar='FILE',
-              help='Read and print test list FILE, and exit')
+                      metavar='FILE',
+                      help='Read and print test list FILE, and exit')
     parser.add_option('--restart', dest='restart',
-              action='store_true',
-              help='Clear all test state')
+                      action='store_true',
+                      help='Clear all test state')
     parser.add_option('--ui', dest='ui', type='choice',
-              choices=['none', 'gtk', 'chrome'],
-              default=('chrome' if utils.in_chroot() else 'gtk'),
-              help='UI to use')
+                      choices=['none', 'gtk', 'chrome'],
+                      default=('chrome' if utils.in_chroot() else 'gtk'),
+                      help='UI to use')
     parser.add_option('--ui_scale_factor', dest='ui_scale_factor',
-              type='int', default=1,
-              help=('Factor by which to scale UI '
-                '(Chrome UI only)'))
+                      type='int', default=1,
+                      help=('Factor by which to scale UI '
+                            '(Chrome UI only)'))
     parser.add_option('--test_list', dest='test_list',
-              metavar='FILE',
-              help='Use FILE as test list')
+                      metavar='FILE',
+                      help='Use FILE as test list')
     (self.options, self.args) = parser.parse_args(args)
 
     # Make sure factory directories exist.
@@ -827,6 +831,7 @@ class Goofy(object):
     if not _inited_logging:
       factory.init_logging('goofy', verbose=self.options.verbose)
       _inited_logging = True
+
     self.event_log = EventLog('goofy')
 
     if (not suppress_chroot_warning and
@@ -891,6 +896,15 @@ class Goofy(object):
       'test_list_options',
       self.test_list.options.__dict__)
     self.state_instance.test_list = self.test_list
+
+    if self.test_list.options.time_sanitizer:
+      self.time_sanitizer = time_sanitizer.TimeSanitizer(
+        base_time=time_sanitizer.GetBaseTimeFromFile(
+          # lsb-factory is written by the factory install shim during
+          # installation, so it should have a good time obtained from
+          # the mini-Omaha server.
+          '/usr/local/etc/lsb-factory'))
+      self.time_sanitizer.RunOnce()
 
     self.init_states()
     self.start_event_server()
@@ -1016,10 +1030,42 @@ class Goofy(object):
         self.run_queue.task_done()
     return True
 
+  def sync_time_in_background(self):
+    '''Attempts to sync time with the shopfloor server.'''
+    if ((not self.test_list.options.sync_time_period_secs) or
+        (not self.time_sanitizer) or
+        self.time_synced or
+        factory.in_chroot()):
+      # Not enabled or already succeeded.
+      return
+
+    now = time.time()
+    if self.last_sync_time and (
+        now - self.last_sync_time <
+        self.test_list.options.sync_time_period_secs):
+      # Not yet time for another check.
+      return
+    self.last_sync_time = now
+
+    def target():
+      try:
+        self.time_sanitizer.SyncWithShopfloor()
+        self.time_synced = True
+      except:  # pylint: disable=W0702
+        # Oh well.  Log an error (but no trace)
+        logging.info(
+          'Unable to get time from shopfloor server: %s',
+          utils.FormatExceptionOnly())
+
+    thread = threading.Thread(target=target)
+    thread.daemon = True
+    thread.start()
+
   def _run_queue_idle(self):
     '''Invoked when the run queue has no events.'''
     self.check_connection_manager()
     self.check_for_updates()
+    self.sync_time_in_background()
 
   def _handle_event_logs(self, log_name, chunk):
     '''Callback for event watcher.
