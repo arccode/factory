@@ -869,6 +869,14 @@ cros.factory.Goofy.prototype.setPendingShutdown = function(shutdownInfo) {
     goog.dom.classes.add(this.shutdownDialog.getElement(),
                          'goofy-shutdown-dialog');
     this.shutdownDialog.setVisible(true);
+    // The dialog has no close box or buttons, so focus is a little weird.
+    // If it does lose focus, return it to the dialog.
+    goog.events.listen(
+        this.shutdownDialog.getElement(), goog.events.EventType.BLUR,
+        function(event) {
+            goog.Timer.callOnce(goog.bind(this.shutdownDialog.focus,
+                                          this.shutdownDialog));
+        }, false, this);
 };
 
 /**
