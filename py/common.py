@@ -58,7 +58,7 @@ def CompactStr(data):
     treat like string input.
   """
   if isinstance(data, list) or isinstance(data, tuple):
-    data = ' '.join(x for x in data if x != '')
+    data = ' '.join(x for x in data if x)
   return re.sub('\s+', ' ', data).strip()
 
 
