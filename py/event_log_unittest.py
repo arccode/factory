@@ -6,9 +6,13 @@
 # found in the LICENSE file.
 
 import factory_common  # pylint: disable=W0611
+import mox
 import os
 import re
 import shutil
+import tempfile
+import threading
+import time
 import unittest
 import yaml
 
@@ -28,11 +32,109 @@ class BasicTest(unittest.TestCase):
       self.assertFalse(event_log.EVENT_NAME_RE.match(i))
 
 
+class GlobalSeqTest(unittest.TestCase):
+  def setUp(self):
+    self.path = tempfile.NamedTemporaryFile().name
+
+  def tearDown(self):
+    #os.unlink(self.path)
+    #os.unlink(self.path + event_log.GlobalSeq.BACKUP_SUFFIX)
+    pass
+
+  def testSeq(self):
+    def read_seq():
+      return int(open(self.path).read() or '0')
+    def read_seq_backup():
+      return int(open(self.path + event_log.GlobalSeq.BACKUP_SUFFIX).read()
+                 or '0')
+    DELTA = event_log.GlobalSeq.BACKUP_SEQUENCE_INCREMENT
+
+    seq1 = event_log.GlobalSeq(self.path)
+    self.assertEquals(0, read_seq())
+    self.assertEquals(0, read_seq_backup())
+    self.assertEquals(0, seq1.Next())
+    seq2 = event_log.GlobalSeq(self.path)
+    self.assertEquals(1, seq2.Next())
+    self.assertEquals(2, read_seq())
+    self.assertEquals(2, read_seq_backup())
+    self.assertEquals(2, seq1.Next())
+    self.assertEquals(3, read_seq())
+    self.assertEquals(3, read_seq_backup())
+
+    # Disaster strikes!
+    os.unlink(seq1.path)
+    self.assertEquals(3 + DELTA, seq1.Next())
+    self.assertEquals(4 + DELTA, read_seq())
+    self.assertEquals(4 + DELTA, read_seq_backup())
+    self.assertEquals(4 + DELTA, seq1.Next())
+    self.assertEquals(5 + DELTA, read_seq())
+    self.assertEquals(5 + DELTA, read_seq_backup())
+
+    # Apocalyse strikes - both files are deleted!
+    os.unlink(seq1.path)
+    os.unlink(seq1.backup_path)
+
+    mocker = mox.Mox()
+    seq1._time = mocker.CreateMockAnything()
+    seq1._time.time().AndReturn(1342422945.125)  # pylint: disable=W0212
+    mocker.ReplayAll()
+    self.assertEquals(1342422945125, seq1.Next())
+    mocker.VerifyAll()
+    self.assertEquals(1342422945126, read_seq())
+    self.assertEquals(1342422945126, read_seq_backup())
+
+  def _testThreads(self, after_read=lambda: True):
+    '''Tests atomicity by doing operations in 20 threads for 1 sec.
+
+    Args:
+      after_read: See GlobalSeq._after_read.
+    '''
+    values = []
+
+    start_time = time.time()
+    end_time = start_time + 1
+
+    def target():
+      seq = event_log.GlobalSeq(self.path, _after_read=after_read)
+      while time.time() < end_time:
+        values.append(seq.Next())
+
+    threads = [threading.Thread(target=target) for _ in xrange(20)]
+    for t in threads:
+      t.start()
+    for t in threads:
+      t.join()
+
+    # After we sort, should be numbers [0, len(values)).
+    values.sort()
+    self.assertEquals(range(len(values)), values)
+    return values
+
+  def testThreadsWithSleep(self):
+    values = self._testThreads(after_read=lambda: time.sleep(.1))
+    # There should be about 20 values (1 every 50 ms for 1 s).
+    # Significantly more or less than that and something went wrong.
+    self.assertTrue(len(values) > 10, values)
+    self.assertTrue(len(values) < 50, values)
+
+  def testThreadsWithoutSleep(self):
+    values = self._testThreads()
+    # There should be lots of values (I get 2500 on my laptop); we'll
+    # just make sure there are >100.
+    self.assertTrue(len(values) > 100, values)
+
+
 class EventLogTest(unittest.TestCase):
   def setUp(self):
     # Remove events directory and reset globals
     shutil.rmtree(event_log.EVENT_LOG_DIR, ignore_errors=True)
     event_log.device_id = event_log.image_id = None
+
+    self.tmp = tempfile.mkdtemp()
+    self.seq = event_log.GlobalSeq(os.path.join(self.tmp, 'seq'))
+
+  def tearDown(self):
+    shutil.rmtree(self.tmp)
 
   def testGetBootId(self):
     assert UUID_RE.match(event_log.GetBootId())
@@ -71,7 +173,7 @@ class EventLogTest(unittest.TestCase):
     self._testEventLog(False)
 
   def _testEventLog(self, defer):
-    log = event_log.EventLog('test', defer=defer)
+    log = event_log.EventLog('test', defer=defer, seq=self.seq)
     self.assertEqual(os.path.exists(log.path), not defer)
 
     event0 = dict(a='A',
@@ -80,7 +182,7 @@ class EventLogTest(unittest.TestCase):
                   d={'D1': 3, 'D2': 4},
                   e=['E1', {'E2': 'E3'}],
                   f=True,
-                  g=u"<<<囧>>>".encode('utf-8'))
+                  g=u"[[[囧]]]".encode('utf-8'))
     log.Log('event0', **event0)
     log.Log('event1')
     log.Close()
@@ -120,7 +222,7 @@ class EventLogTest(unittest.TestCase):
     self.assertEqual(None, log_data[3])
 
   def testDeferWithoutEvents(self):
-    log = event_log.EventLog('test', defer=True)
+    log = event_log.EventLog('test', defer=True, seq=self.seq)
     path = log.path
     log.Close()
     self.assertFalse(os.path.exists(path))

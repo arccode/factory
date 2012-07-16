@@ -6,6 +6,7 @@
 """Routines for producing event logs."""
 
 
+import fcntl
 import logging
 import re
 import os
@@ -140,6 +141,83 @@ def IncrementBootSequence():
     os.fdatasync(f.fileno())
 
 
+class GlobalSeq(object):
+  '''Manages a global sequence number in a file.
+
+  We keep two files, '.seq' and '.seq.backup'.  Each file contains the
+  next number to be assigned (or an empty file for '0').  If all else
+  fails, the current time in ms is used.
+
+  flock is used to ensure atomicity.
+  '''
+  BACKUP_SEQUENCE_INCREMENT = 100
+  BACKUP_SUFFIX = '.backup'
+
+  def __init__(self, path=None, _after_read=lambda: True):
+    path = path or os.path.join(EVENT_LOG_DIR, '.seq')
+
+    self.path = path
+    self.backup_path = path + self.BACKUP_SUFFIX
+    # Time module; may be mocked
+    self._time = time
+    # Function to call immediately after reading the value;
+    # may be used for testing atomicity.
+    self._after_read = _after_read
+
+    for f in [self.path, self.backup_path]:
+      try:
+        # Try to create the file atomically.
+        utils.TryMakeDirs(os.path.dirname(f))
+        fd = os.open(f, os.O_WRONLY | os.O_CREAT | os.O_EXCL)
+        logging.info('Created global sequence file %s', f)
+        os.close(fd)
+      except OSError:
+        if not os.path.exists(path):
+          raise
+
+  def Next(self):
+    try:
+      fd = os.open(self.path, os.O_RDWR)
+      try:
+        fcntl.flock(fd, fcntl.LOCK_EX)
+      except:
+        # flock failed; close the file and re-raise.
+        os.close(fd)
+        raise
+
+      with os.fdopen(fd, 'r+') as f:
+        value = int(f.read() or '0')
+        self._after_read()
+        f.seek(0)
+        f.write(str(value + 1))
+
+      # Also write to the backup file.
+      with open(self.backup_path, 'w') as f:
+        f.write(str(value + 1))
+
+      return value
+    except (IOError, OSError, ValueError):
+      logging.exception('Unable to read global sequence number from %s; '
+                        'trying backup %s', self.path, self.backup_path)
+
+      try:
+        with open(self.backup_path) as f:
+          value = int(f.read() or '0') + self.BACKUP_SEQUENCE_INCREMENT
+      except (IOError, OSError, ValueError):
+        # Oy, couldn't even read that!  Fall back to system time in ms.
+        value = int(self._time.time() * 1000)
+        logging.exception('Unable to read backup sequence number.  Using '
+                          'system time in milliseconds (%d)', value)
+
+      # Save the value and backup value.
+      with open(self.path, 'w') as f:
+        f.write(str(value + 1))
+      with open(self.backup_path, 'w') as f:
+        f.write(str(value + 1))
+
+      return value
+
+
 class EventLog(object):
   """Event logger.
 
@@ -158,7 +236,7 @@ class EventLog(object):
     uuid = os.environ.get('CROS_FACTORY_TEST_INVOCATION') or TimedUuid()
     return EventLog(path, uuid)
 
-  def __init__(self, prefix, log_id=None, defer=True):
+  def __init__(self, prefix, log_id=None, defer=True, seq=None):
     """Creates a new event log file, returning an EventLog instance.
 
     A new file will be created of the form <prefix>-UUID, where UUID is
@@ -180,13 +258,14 @@ class EventLog(object):
       log_id: A UUID for the log (or None, in which case TimedUuid() is used)
       defer: If True, then the file will not be written until the first
         event is logged (if ever).
+      seq: The GlobalSeq object to use (creates a new one if None).
     """
     self.file = None
     if not PREFIX_RE.match(prefix):
       raise ValueError, "prefix %r must match re %s" % (
         prefix, PREFIX_RE.pattern)
     self.prefix = prefix
-    self.seq = 0
+    self.seq = seq or GlobalSeq()
     self.lock = threading.Lock()
     self.log_id = log_id or TimedUuid()
     self.filename = "%s-%s" % (prefix, self.log_id)
@@ -211,8 +290,7 @@ class EventLog(object):
 
     Appends a stanza contain the following fields to the log:
       TIME: Formatted as per TimeString().
-      SEQ: Monotonically increating counter.  The preamble will always
-        have SEQ=0.
+      SEQ: Monotonically increating counter.
       EVENT - From event_name input.
       ... - Other fields from kwargs.
 
@@ -278,7 +356,7 @@ class EventLog(object):
           k, EVENT_KEY_RE.pattern)
     data = {
         "EVENT": event_name,
-        "SEQ": self.seq,
+        "SEQ": self.seq.Next(),
         "TIME": utils.TimeString()
         }
     data.update(kwargs)
@@ -286,4 +364,3 @@ class EventLog(object):
     self.file.write("---\n")
     self.file.flush()
     os.fdatasync(self.file.fileno())
-    self.seq += 1
