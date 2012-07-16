@@ -12,7 +12,7 @@ PYLINTRC=../../../chromite/pylintrc
 PYLINT_OPTIONS=\
 	--rcfile=$(PYLINTRC) \
 	--ignored-classes=Event \
-	--generated-members=test_info
+	--generated-members=test_info,AndReturn,AndRaise
 
 LINT_BLACKLIST=\
 	py/argparse.py \
@@ -62,10 +62,12 @@ UNITTESTS=\
 	py/goofy/goofy_unittest.py \
 	py/goofy/system_unittest.py \
 	py/goofy/time_sanitizer_unittest.py \
+	py/goofy/updater_unittest.py \
 	py/test/factory_unittest.py \
 	py/test/state_unittest.py \
 	py/test/unicode_to_string_unittest.py \
 	py/test/utils_unittest.py
+
 # TODO(sheckylin): Get py/test/media_util_unittest.py working.
 
 # TODO(jsalz): remove the hard-coded path once the icedtea6-bin

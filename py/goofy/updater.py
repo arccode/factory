@@ -168,8 +168,6 @@ def CheckForUpdateAsync(callback, timeout):
 
   md5sum and needs_update are as in the return value for CheckForUpdate.
   '''
-  current_md5sum = factory.get_current_md5sum()
-
   def Run():
     try:
       callback(True, *CheckForUpdate(timeout))
