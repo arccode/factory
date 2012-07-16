@@ -29,6 +29,15 @@ load_setup() {
 }
 
 start_factory() {
+  # Work around the fact that after mount-encrypted was made the default, /var
+  # is wiped every boot. TODO(jsalz): Remove this once chrome-os-partner:11392
+  # is addressed.
+  if [ ! -d /var/factory ]; then
+    mkdir -p /mnt/stateful_partition/var_overlay/factory /var/factory
+    mount --bind /mnt/stateful_partition/var_overlay/factory /var/factory
+    mkdir -p /var/factory/{log,state,tests}
+  fi
+
   # This should already exist, but just in case...
   mkdir -p "$(dirname "$FACTORY_LOG_FILE")"
 
