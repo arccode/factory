@@ -35,7 +35,8 @@ start_factory() {
   if [ ! -d /var/factory ]; then
     mkdir -p /mnt/stateful_partition/var_overlay/factory /var/factory
     mount --bind /mnt/stateful_partition/var_overlay/factory /var/factory
-    mkdir -p /var/factory/{log,state,tests}
+    mkdir -p /var/factory/log /var/factory/state /var/factory/tests
+    ln -sf /var/factory/log/factory.log /var/log
   fi
 
   # This should already exist, but just in case...
