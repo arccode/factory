@@ -110,6 +110,7 @@ class DUTEnvironment(Environment):
       '--disable-translate',
       '--aura-host-window-use-fullscreen',
       '--kiosk',
+      '--kiosk-mode-screensaver-path=/dev/null',
       ('--default-device-scale-factor=%d' %
        self.goofy.options.ui_scale_factor),
       'http://localhost:%d/' % state.DEFAULT_FACTORY_STATE_PORT,
