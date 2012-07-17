@@ -8,6 +8,7 @@
 import factory_common  # pylint: disable=W0611
 import os
 import re
+import shutil
 import unittest
 import yaml
 
@@ -28,6 +29,11 @@ class BasicTest(unittest.TestCase):
 
 
 class EventLogTest(unittest.TestCase):
+  def setUp(self):
+    # Remove events directory and reset globals
+    shutil.rmtree(event_log.EVENT_LOG_DIR, ignore_errors=True)
+    event_log.device_id = event_log.image_id = None
+
   def testGetBootId(self):
     assert UUID_RE.match(event_log.GetBootId())
 
@@ -95,12 +101,13 @@ class EventLogTest(unittest.TestCase):
       del i['TIME']
 
     self.assertEqual(
-      ['EVENT', 'SEQ', 'boot_id', 'device_id', 'factory_md5sum', 'filename',
-       'image_id', 'log_id'],
+      ['EVENT', 'SEQ', 'boot_id', 'boot_sequence', 'device_id',
+       'factory_md5sum', 'filename', 'image_id', 'log_id'],
       sorted(log_data[0].keys()))
     self.assertEqual('preamble', log_data[0]['EVENT'])
     self.assertEqual(0, log_data[0]['SEQ'])
     self.assertEqual(event_log.GetBootId(), log_data[0]['boot_id'])
+    self.assertEqual(-1, log_data[0]['boot_sequence'])
     self.assertEqual(event_log.GetDeviceId(), log_data[0]['device_id'])
     self.assertEqual(event_log.GetImageId(), log_data[0]['image_id'])
     self.assertEqual(os.path.basename(log.path), log_data[0]['filename'])
@@ -117,6 +124,18 @@ class EventLogTest(unittest.TestCase):
     path = log.path
     log.Close()
     self.assertFalse(os.path.exists(path))
+
+  def testBootSequence(self):
+    try:
+      os.unlink(event_log.BOOT_SEQUENCE_PATH)
+    except OSError:
+      pass
+
+    for i in xrange(-1, 5):
+      self.assertEqual(i, event_log.GetBootSequence())
+      event_log.IncrementBootSequence()
+      self.assertEqual(str(i + 1),
+                       open(event_log.BOOT_SEQUENCE_PATH).read())
 
 if __name__ == "__main__":
   unittest.main()

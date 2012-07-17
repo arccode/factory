@@ -62,6 +62,8 @@ DEVICE_ID_PATH = os.path.join(EVENT_LOG_DIR, ".device_id")
 # this is the first time we're creating an event log).
 IMAGE_ID_PATH = os.path.join(EVENT_LOG_DIR, ".image_id")
 
+BOOT_SEQUENCE_PATH = os.path.join(EVENT_LOG_DIR, ".boot_sequence")
+
 WLAN0_MAC_PATH = "/sys/class/net/wlan0/address"
 
 PREFIX_RE = re.compile("^[a-zA-Z0-9_\.]+$")
@@ -108,10 +110,34 @@ def GetImageId():
       image_id = open(IMAGE_ID_PATH).read().strip()
     else:
       image_id = str(uuid4())
+      utils.TryMakeDirs(os.path.dirname(IMAGE_ID_PATH))
       with open(IMAGE_ID_PATH, "w") as f:
         print >> f, image_id
       logging.info('No image ID available yet: generated %s', image_id)
   return image_id
+
+
+def GetBootSequence():
+  '''Returns the current boot sequence (or -1 if not available).'''
+  try:
+    return int(open(BOOT_SEQUENCE_PATH).read())
+  except (IOError, ValueError):
+    return -1
+
+
+def IncrementBootSequence():
+  '''Increments the boot sequence.
+
+  Creates the boot sequence file if it does not already exist.
+  '''
+  boot_sequence = GetBootSequence() + 1
+
+  logging.info('Boot sequence: %d', boot_sequence)
+
+  utils.TryMakeDirs(os.path.dirname(BOOT_SEQUENCE_PATH))
+  with open(BOOT_SEQUENCE_PATH, "w") as f:
+    f.write('%d' % boot_sequence)
+    os.fdatasync(f.fileno())
 
 
 class EventLog(object):
@@ -229,6 +255,7 @@ class EventLog(object):
                       boot_id=GetBootId(),
                       device_id=GetDeviceId(),
                       image_id=GetImageId(),
+                      boot_sequence=GetBootSequence(),
                       factory_md5sum=factory.get_current_md5sum(),
                       filename=self.filename)
 

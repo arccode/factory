@@ -34,6 +34,7 @@ from cros.factory.test import utils
 from cros.factory.test.event import Event
 from cros.factory.test.event import EventClient
 from cros.factory.test.event import EventServer
+from cros.factory import event_log
 from cros.factory.event_log import EventLog
 from cros.factory.goofy.invocation import TestInvocation
 from cros.factory.goofy.goofy_rpc import GoofyRPC
@@ -868,6 +869,7 @@ class Goofy(object):
       factory.init_logging('goofy', verbose=self.options.verbose)
       _inited_logging = True
 
+    event_log.IncrementBootSequence()
     self.event_log = EventLog('goofy')
 
     if (not suppress_chroot_warning and
