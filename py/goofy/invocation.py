@@ -52,14 +52,22 @@ class PyTestInfo(object):
 class TestInvocation(object):
   '''
   State for an active test.
+
+  Properties:
+    update_state_on_completion: State for Goofy to update on
+      completion; Goofy will call test.update_state(
+      **update_state_on_completion).  So update_state_on_completion
+      will have at least status and error_msg properties to update
+      the test state.
   '''
   def __init__(self, goofy, test, on_completion=None):
     '''Constructor.
 
-    @param goofy: The controlling Goofy object.
-    @param test: The FactoryTest object to test.
-    @param on_completion: Callback to invoke in the goofy event queue
-      on completion.
+    Args:
+      goofy: The controlling Goofy object.
+      test: The FactoryTest object to test.
+      on_completion: Callback to invoke in the goofy event queue
+        on completion.
     '''
     self.goofy = goofy
     self.test = test
@@ -79,8 +87,9 @@ class TestInvocation(object):
                          init_time=time.time(),
                          invocation=str(self.uuid))
     self.count = None
-
     self.log_path = os.path.join(self.output_dir, 'log')
+    self.update_state_on_completion = {}
+
     self._lock = threading.Lock()
     # The following properties are guarded by the lock.
     self._aborted = False
@@ -355,11 +364,15 @@ class TestInvocation(object):
       if self._aborted:
         return
 
-    self.count = self.test.update_state(
-      status=TestState.ACTIVE, increment_count=1, error_msg='',
-      invocation=self.uuid).count
-
-    factory.console.info('Running test %s' % self.test.path)
+    if self.test.iterations > 1:
+      iteration_string = ' [%s/%s]' % (
+        self.test.iterations -
+        self.test.get_state().iterations_left + 1,
+        self.test.iterations)
+    else:
+      iteration_string = ''
+    factory.console.info('Running test %s%s',
+                         self.test.path, iteration_string)
 
     log_args = dict(
       path=self.test.path,
@@ -420,14 +433,16 @@ class TestInvocation(object):
       except:
         logging.exception('Unable to log end_test event')
 
-    factory.console.info('Test %s %s%s',
-               self.test.path,
-               status,
-               ': %s' % error_msg if error_msg else '')
+    factory.console.info('Test %s%s %s%s',
+                         self.test.path,
+                         iteration_string,
+                         status,
+                         ': %s' % error_msg if error_msg else '')
 
-    self.test.update_state(status=status, error_msg=error_msg,
-                 visible=False)
     with self._lock:
+      self.update_state_on_completion = dict(
+        status=status, error_msg=error_msg,
+        visible=False, decrement_iterations_left=1)
       self._completed = True
 
     self.goofy.run_queue.put(self.goofy.reap_completed_tests)

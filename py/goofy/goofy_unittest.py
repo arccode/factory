@@ -121,7 +121,7 @@ class GoofyTest(unittest.TestCase):
     '''Hook invoked before init_goofy.'''
 
   def check_one_test(self, test_id, name, passed, error_msg, trigger=None,
-                     does_not_start=False):
+                     does_not_start=False, setup_mocks=True, expected_count=1):
     '''Runs a single autotest, waiting for it to complete.
 
     Args:
@@ -132,10 +132,12 @@ class GoofyTest(unittest.TestCase):
       trigger: An optional callable that will be executed after mocks are
         set up to trigger the autotest.  If None, then the test is
         expected to start itself.
-      does_not_start: If True, checks that the test does not start
+      does_not_start: If True, checks that the test is not expected to start
         (e.g., due to an unsatisfied require_run).
+      setup_mocks: If True, sets up mocks for the test runs.
+      expected_count: The expected run count.
     '''
-    if not does_not_start:
+    if setup_mocks and not does_not_start:
       mock_autotest(self.env, name, passed, error_msg)
     self.mocker.ReplayAll()
     if trigger:
@@ -147,7 +149,7 @@ class GoofyTest(unittest.TestCase):
     test_state = self.state.get_test_state(test_id)
     self.assertEqual(TestState.PASSED if passed else TestState.FAILED,
              test_state.status)
-    self.assertEqual(0 if does_not_start else 1, test_state.count)
+    self.assertEqual(0 if does_not_start else expected_count, test_state.count)
     self.assertEqual(error_msg, test_state.error_msg)
 
 
@@ -235,17 +237,17 @@ class WebSocketTest(GoofyTest):
     self.assertTrue(Event.Type.LOG in events_by_type,
             repr(events_by_type))
 
-    # Each test should have a transition to active and to its
-    # final state
+    # Each test should have a transition to active, a transition to
+    # active + visible, and then to its final state
     for path, final_status in (('a', TestState.PASSED),
-                   ('b', TestState.FAILED),
-                   ('c', TestState.FAILED)):
+                               ('b', TestState.FAILED),
+                               ('c', TestState.FAILED)):
       statuses = [
         event.state['status']
         for event in events_by_type[Event.Type.STATE_CHANGE]
         if event.path == path]
       self.assertEqual(
-        ['UNTESTED', 'ACTIVE', final_status],
+        ['ACTIVE', 'ACTIVE', final_status],
         statuses)
 
 
@@ -401,6 +403,32 @@ class PyTestTest(GoofyTest):
     self.assertTrue(
       '''Let\'s call the whole thing off''' in failed_state.error_msg,
       failed_state.error_msg)
+
+
+class MultipleIterationsTest(GoofyTest):
+  '''Tests running a test multiple times.'''
+  test_list = '''
+    OperatorTest(id='a', autotest_name='a_A'),
+    OperatorTest(id='b', autotest_name='b_B', iterations=3),
+    OperatorTest(id='c', autotest_name='c_C', iterations=3),
+    OperatorTest(id='d', autotest_name='d_D'),
+  '''
+  def runTest(self):
+    self.check_one_test('a', 'a_A', True, '')
+
+    mock_autotest(self.env, 'b_B', True, '')
+    mock_autotest(self.env, 'b_B', True, '')
+    mock_autotest(self.env, 'b_B', True, '')
+    self.check_one_test('b', 'b_B', True, '', setup_mocks=False,
+                        expected_count=3)
+
+    mock_autotest(self.env, 'c_C', True, '')
+    mock_autotest(self.env, 'c_C', False, 'I bent my wookie')
+    # iterations=3, but it should stop after the first failed iteration.
+    self.check_one_test('c', 'c_C', False, 'I bent my wookie',
+                        setup_mocks=False, expected_count=2)
+
+    self.check_one_test('d', 'd_D', True, '')
 
 
 class ConnectionManagerTest(GoofyTest):

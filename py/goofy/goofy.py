@@ -609,12 +609,20 @@ class Goofy(object):
               Event.Type.PENDING_SHUTDOWN))
           continue
 
-      invoc = TestInvocation(self, test, on_completion=self.run_next_test)
-      self.invocations[test] = invoc
-      if self.visible_test is None and test.has_ui:
-        self.set_visible_test(test)
-      self.check_connection_manager()
-      invoc.start()
+      self._run_test(test, test.iterations)
+
+  def _run_test(self, test, iterations_left=None):
+    invoc = TestInvocation(self, test, on_completion=self.run_next_test)
+    new_state = test.update_state(
+      status=TestState.ACTIVE, increment_count=1, error_msg='',
+      invocation=invoc.uuid, iterations_left=iterations_left)
+    invoc.count = new_state.count
+
+    self.invocations[test] = invoc
+    if self.visible_test is None and test.has_ui:
+      self.set_visible_test(test)
+    self.check_connection_manager()
+    invoc.start()
 
   def check_connection_manager(self):
     exclusive_tests = [
@@ -705,7 +713,12 @@ class Goofy(object):
     '''
     for t, v in dict(self.invocations).iteritems():
       if v.is_completed():
+        new_state = t.update_state(**v.update_state_on_completion)
         del self.invocations[t]
+
+        if new_state.iterations_left and new_state.status == TestState.PASSED:
+          # Play it again, Sam!
+          self._run_test(t)
 
     if (self.visible_test is None or
         self.visible_test not in self.invocations):
@@ -733,7 +746,9 @@ class Goofy(object):
       factory.console.info('Killing active test %s...' % test.path)
       invoc.abort_and_join()
       factory.console.info('Killed %s' % test.path)
+      test.update_state(**invoc.update_state_on_completion)
       del self.invocations[test]
+
       if not abort:
         test.update_state(status=TestState.UNTESTED)
     self.reap_completed_tests()
@@ -1200,9 +1215,11 @@ class Goofy(object):
 
     Useful for testing.
     '''
-    for k, v in self.invocations.iteritems():
-      logging.info('Waiting for %s to complete...', k)
-      v.thread.join()
+    while self.invocations:
+      for k, v in self.invocations.iteritems():
+        logging.info('Waiting for %s to complete...', k)
+        v.thread.join()
+      self.reap_completed_tests()
 
   def check_exceptions(self):
     '''Raises an error if any exceptions have occurred in

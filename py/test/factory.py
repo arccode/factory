@@ -359,13 +359,16 @@ class TestState(object):
   '''
   The complete state of a test.
 
-  @property status: The status of the test (one of ACTIVE, PASSED,
-    FAILED, or UNTESTED).
-  @property count: The number of times the test has been run.
-  @property error_msg: The last error message that caused a test failure.
-  @property shutdown_count: The next of times the test has caused a shutdown.
-  @property visible: Whether the test is the currently visible test.
-  @property invocation: The currently executing invocation.
+  Properties:
+    status: The status of the test (one of ACTIVE, PASSED,
+      FAILED, or UNTESTED).
+    count: The number of times the test has been run.
+    error_msg: The last error message that caused a test failure.
+    shutdown_count: The next of times the test has caused a shutdown.
+    visible: Whether the test is the currently visible test.
+    invocation: The currently executing invocation.
+    iterations_left: For an active test, the number of remaining
+      iterations after the current one.
   '''
   ACTIVE = 'ACTIVE'
   PASSED = 'PASSED'
@@ -373,20 +376,22 @@ class TestState(object):
   UNTESTED = 'UNTESTED'
 
   def __init__(self, status=UNTESTED, count=0, visible=False, error_msg=None,
-               shutdown_count=0, invocation=None):
+               shutdown_count=0, invocation=None, iterations_left=0):
     self.status = status
     self.count = count
     self.visible = visible
     self.error_msg = error_msg
     self.shutdown_count = shutdown_count
     self.invocation = invocation
+    self.iterations_left = iterations_left
 
   def __repr__(self):
     return std_repr(self)
 
   def update(self, status=None, increment_count=0, error_msg=None,
              shutdown_count=None, increment_shutdown_count=0, visible=None,
-             invocation=None):
+             invocation=None,
+             decrement_iterations_left=0, iterations_left=None):
     '''
     Updates the state of a test.
 
@@ -399,6 +404,9 @@ class TestState(object):
     @param visible: If non-None, whether the test should become visible.
     @param invocation: The currently executing invocation, if any.
       (Applies only if the status is ACTIVE.)
+    @param iterations_left: If non-None, the new iterations_left.
+    @param decrement_iterations_left: An amount by which to decrement
+      iterations_left.
 
     Returns True if anything was changed.
     '''
@@ -410,6 +418,8 @@ class TestState(object):
       self.error_msg = error_msg
     if shutdown_count is not None:
       self.shutdown_count = shutdown_count
+    if iterations_left is not None:
+      self.iterations_left = iterations_left
     if visible is not None:
       self.visible = visible
 
@@ -420,6 +430,8 @@ class TestState(object):
 
     self.count += increment_count
     self.shutdown_count += increment_shutdown_count
+    self.iterations_left = max(
+      0, self.iterations_left - decrement_iterations_left)
 
     return self.__dict__ != old_dict
 
@@ -505,6 +517,7 @@ class FactoryTest(object):
                never_fails=None,
                exclusive=None,
                require_run=None,
+               iterations=1,
                _root=None,
                _default_id=None):
     '''
@@ -540,6 +553,7 @@ class FactoryTest(object):
       SMT before FlushEventLogs must have already been run. The string
       "all" may be used to refer to the root (i.e., all tests in the
       whole test list before this one must already have been run).
+    @param iterations: Number of times to run the test.
     @param _root: True only if this is the root node (for internal use
       only).
     '''
@@ -563,6 +577,10 @@ class FactoryTest(object):
     self.path = ''
     self.parent = None
     self.root = None
+    self.iterations = iterations
+    assert isinstance(self.iterations, int) and self.iterations > 0, (
+      'In test %s, Iterations must be a positive integer, not %r' % (
+        self.path, self.iterations))
 
     if _root:
       self.id = None
@@ -879,7 +897,7 @@ class ShutdownStep(AutomatedSubTest):
   REBOOT = 'reboot'
   HALT = 'halt'
 
-  def __init__(self, operation, iterations=1, delay_secs=5, **kw):
+  def __init__(self, operation, delay_secs=5, **kw):
     super(ShutdownStep, self).__init__(**kw)
     assert not self.autotest_name, (
         'Reboot/halt steps may not have an autotest')
@@ -887,8 +905,6 @@ class ShutdownStep(AutomatedSubTest):
     assert not self.backgroundable, (
         'Reboot/halt steps may not be backgroundable')
 
-    assert iterations > 0
-    self.iterations = iterations
     assert operation in [self.REBOOT, self.HALT]
     self.operation = operation
     assert delay_secs >= 0
