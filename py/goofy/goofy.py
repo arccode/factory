@@ -379,13 +379,16 @@ class Goofy(object):
       log_and_update_state(
         status=TestState.FAILED,
         error_msg='Shutdown aborted with double shift keys')
+      self.cancel_pending_tests()
     else:
       def handler():
         if self._prompt_cancel_shutdown(
           test, test_state.shutdown_count + 1):
+          factory.console.info('Shutdown aborted by operator')
           log_and_update_state(
             status=TestState.FAILED,
             error_msg='Shutdown aborted by operator')
+          self.cancel_pending_tests()
           return
 
         # Time to shutdown again
@@ -438,6 +441,11 @@ class Goofy(object):
 
     # Any 'active' tests should be marked as failed now.
     for test in self.test_list.walk():
+      if not test.is_leaf():
+        # Don't bother with parents; they will be updated when their
+        # children are updated.
+        continue
+
       test_state = test.get_state()
       if test_state.status != TestState.ACTIVE:
         continue
@@ -673,6 +681,10 @@ class Goofy(object):
       handle_check_for_update,
       self.test_list.options.shopfloor_timeout_secs)
 
+  def cancel_pending_tests(self):
+    '''Cancels any tests in the run queue.'''
+    self.run_tests([])
+
   def run_tests(self, subtrees, untested_only=False):
     '''
     Runs tests under subtree.
@@ -791,7 +803,7 @@ class Goofy(object):
   def update_factory(self, auto_run_on_restart=False):
     '''Commences updating factory software.'''
     self.kill_active_tests(False)
-    self.run_tests([])
+    self.cancel_pending_tests()
 
     def pre_update_hook():
       if auto_run_on_restart:
@@ -964,17 +976,17 @@ class Goofy(object):
     elif self.options.ui == 'gtk':
       self.start_ui()
 
-    for handler in self.on_ui_startup:
-      handler()
-
-    self.prespawner = Prespawner()
-    self.prespawner.start()
-
     def state_change_callback(test, test_state):
       self.event_client.post_event(
         Event(Event.Type.STATE_CHANGE,
             path=test.path, state=test_state))
     self.test_list.state_change_callback = state_change_callback
+
+    for handler in self.on_ui_startup:
+      handler()
+
+    self.prespawner = Prespawner()
+    self.prespawner.start()
 
     try:
       tests_after_shutdown = self.state_instance.get_shared_data(
@@ -1181,7 +1193,7 @@ class Goofy(object):
     clear remaining tests.
     '''
     self.kill_active_tests(False)
-    self.run_tests([])
+    self.cancel_pending_tests()
 
   def handle_switch_test(self, event):
     '''Switches to a particular test.
