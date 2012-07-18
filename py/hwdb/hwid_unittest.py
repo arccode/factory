@@ -117,7 +117,8 @@ class HwidTest(unittest.TestCase):
     self.hwid_tool_log = os.path.join(self.dir, 'hwid_tool_log')
     comp_classes = PROBABLE_COMPONENT_CLASSES | set(['keyboard'])
     registry = hwid_tool.ComponentRegistry(
-      components=dict((comp_class, {}) for comp_class in comp_classes),
+      opaque_components={'keyboard':[]},
+      probable_components=dict((comp_class, {}) for comp_class in comp_classes),
       status=hwid_tool.StatusData.New())
     comp_db = hwid_tool.CompDb(registry)
     comp_db.Write(self.dir)
@@ -147,8 +148,8 @@ class HwidTest(unittest.TestCase):
                    stdin=g_zgb_probe_results_str,
                    show_stdout=True)
       hw_db = hwid_tool.HardwareDb(self.dir)
-      self.assertEqual(len(hw_db.comp_db.components['usb_hosts']), 5,
-                       hw_db.comp_db.components.get('usb_hosts', None))
+      self.assertEqual(len(hw_db.comp_db.probable_components['usb_hosts']), 5,
+                       hw_db.comp_db.probable_components.get('usb_hosts', None))
       self.assertEqual(len(hw_db.devices), 1, hw_db.devices.keys())
       device = hw_db.devices['FOO']
       self.assertEqual(len(device.boms), 2, device.boms.keys())

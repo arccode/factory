@@ -50,7 +50,8 @@ MakeDatastoreClass('StatusData', dict(
     for status_name in LIFE_CYCLE_STAGES))
 
 MakeDatastoreClass('ComponentRegistry', {
-    'components': (dict, (dict, str)),
+    'probable_components': (dict, (dict, str)),
+    'opaque_components': (dict, (list, str)),
     'status': StatusData,
     })
 
@@ -243,26 +244,35 @@ class CompDb(YamlDatastore):
   def _BuildNameResultMap(self):
     self.name_result_map = dict(
       (comp_name, probe_result)
-      for comp_class, comp_map in self.components.items()
+      for comp_class, comp_map in self.probable_components.items()
       for comp_name, probe_result in comp_map.items())
 
   def _BuildResultNameMap(self):
     self.result_name_map = dict(
       (probe_result, comp_name)
-      for comp_class, comp_map in self.components.items()
+      for comp_class, comp_map in self.probable_components.items()
       for comp_name, probe_result in comp_map.items())
 
-  def _BuildNameClassMap(self):
-    self.name_class_map = dict(
+  def _BuildNameClassMaps(self):
+    self.name_class_map = {}
+    self.name_class_map.update(dict(
       (comp_name, comp_class)
-      for comp_class, comp_map in self.components.items()
-      for comp_name in comp_map)
+      for comp_class, comps in self.opaque_components.items()
+      for comp_name in comps))
+    self.name_class_map.update(dict(
+      (comp_name, comp_class)
+      for comp_class, comp_map in self.probable_components.items()
+      for comp_name in comp_map))
+    self.class_name_map = {}
+    for name, comp_class in self.name_class_map.items():
+      self.class_name_map.setdefault(comp_class, set()).add(name)
 
   def _PreprocessData(self):
     self._BuildResultNameMap()
     self._BuildNameResultMap()
-    self._BuildNameClassMap()
-    self.all_comp_classes = set(self.components)
+    self._BuildNameClassMaps()
+    self.all_comp_classes = (set(self.opaque_components) |
+                             set(self.probable_components))
     self.all_comp_names = set(self.name_class_map)
 
   def _EnforceProbeResultUniqueness(self):
@@ -270,6 +280,18 @@ class CompDb(YamlDatastore):
       extra = set(self.name_result_map) - set(self.result_name_map.values())
       raise Error, ('probe results are not all unique; '
                     'components [%s] are redundant' % ', '.join(extra))
+
+  def _EnforceCompNameUniqueness(self):
+    names = set()
+    overlap = set()
+    for comp_map in self.probable_components.values():
+      for name in comp_map.values():
+        (names if name not in names else overlap).add(name)
+    for comps in self.opaque_components.values():
+      for name in comps:
+        (names if name not in names else overlap).add(name)
+    if overlap:
+      raise Error, ('component names [%s] are not unique' % ', '.join(overlap))
 
   def EnforceInvariants(self):
     self._EnforceProbeResultUniqueness()
@@ -282,13 +304,17 @@ class CompDb(YamlDatastore):
     if comp_class not in self.all_comp_classes:
       raise Error, 'unknown component class %r' % comp_class
 
-  def AddComponent(self, comp_class, probe_result, comp_name=None):
-    comp_map = self.components[comp_class]
+  def AddComponent(self, comp_class, probe_result=None, comp_name=None):
     if comp_name is None:
-      comp_name = '%s_%d' % (comp_class, len(comp_map))
+      comp_count = len(self.class_name_map.get(comp_class, set()))
+      comp_name = '%s_%d' % (comp_class, comp_count)
     Validate.ComponentName(comp_name)
-    assert comp_name not in comp_map
-    comp_map[comp_name] = probe_result
+    assert comp_name not in self.name_class_map
+    if probe_result is not None:
+      comp_map = self.probable_components.setdefault(comp_class, {})
+      comp_map[comp_name] = probe_result
+    else:
+      self.opaque_components.setdefault(comp_class, []).append(comp_name)
     self._PreprocessData()
     return comp_name
 
