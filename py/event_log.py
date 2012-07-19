@@ -258,4 +258,5 @@ class EventLog(object):
     self.file.write(YamlDump(data))
     self.file.write("---\n")
     self.file.flush()
+    os.fdatasync(self.file.fileno())
     self.seq += 1
