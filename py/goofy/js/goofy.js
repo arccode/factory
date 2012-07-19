@@ -963,6 +963,42 @@ cros.factory.Goofy.prototype.makeMenuItem = function(
 };
 
 /**
+ * Returns true if all tests in the test lists before a given test have been
+ * run.
+ * @param {cros.factory.TestListEntry} test
+ */
+cros.factory.Goofy.prototype.allTestsRunBefore = function(test) {
+    var root = this.pathTestMap[''];
+
+    // Create a stack containing only the root node, and walk through
+    // it depth-first.  (Use a stack rather than recursion since we
+    // want to be able to bail out easily when we hit 'test' or an
+    // incomplete test.)
+    var stack = [root];
+    while (stack) {
+        var item = stack.pop();
+        if (item == test) {
+            return true;
+        }
+        if (item.subtests.length) {
+            // Append elements in right-to-left order so we will
+            // examine them in the correct order.
+            var copy = goog.array.clone(item.subtests);
+            copy.reverse();
+            goog.array.extend(stack, copy);
+        } else {
+            if (item.state.status == 'ACTIVE' ||
+                item.state.status == 'UNTESTED') {
+                return false;
+            }
+        }
+    }
+    // We should never reach this, since it means that we never saw
+    // test while iterating!
+    throw Error('Test not in test list');
+};
+
+/**
  * Displays a context menu for a test in the test tree.
  * @param {string} path the path of the test whose context menu should be
  *     displayed.
@@ -1022,40 +1058,46 @@ cros.factory.Goofy.prototype.showTestPopup = function(path, labelElement,
     }
     countLeaves(test);
 
-    var restartOrRunEn = numLeavesByStatus['UNTESTED'] == numLeaves ?
-        'Run' : 'Restart';
-    var restartOrRunZh = numLeavesByStatus['UNTESTED'] == numLeaves ?
-        '執行' : '重跑';
-    if (numLeaves > 1) {
-        restartOrRunEn += ' all';
-        restartOrRunZh += '所有的';
-    }
-    menu.addChild(this.makeMenuItem(restartOrRunEn, restartOrRunZh,
-                                    '', '',
-                                    numLeaves, test,
-                                    function(event) {
-        this.sendEvent('goofy:restart_tests', {'path': path});
-    }), true);
-    if (test.subtests.length) {
-        // Only show for parents.
+    if (!this.engineeringMode && !this.allTestsRunBefore(test)) {
+        var item = new goog.ui.MenuItem(cros.factory.Content(
+            'Not in engineering mode; cannot skip tests',
+            '工程模式才能跳過測試'));
+        menu.addChild(item, true);
+        menu.setEnabled(false);
+    } else {
+        var allUntested = numLeavesByStatus['UNTESTED'] == numLeaves;
+        var restartOrRunEn = allUntested ? 'Run' : 'Restart';
+        var restartOrRunZh = allUntested ? '執行' : '重跑';
+        if (numLeaves > 1) {
+            restartOrRunEn += ' all';
+            restartOrRunZh += '所有的';
+        }
         menu.addChild(this.makeMenuItem(
-            'Restart', '重跑', 'not passed', '未成功',
-            (numLeavesByStatus['UNTESTED'] || 0) +
-            (numLeavesByStatus['ACTIVE'] || 0) +
-            (numLeavesByStatus['FAILED'] || 0),
-            test, function(event) {
-                this.sendEvent('goofy:run_tests_with_status', {
+            restartOrRunEn, restartOrRunZh, '', '', numLeaves, test,
+            function(event) {
+                this.sendEvent('goofy:restart_tests', {'path': path});
+            }), true);
+        if (test.subtests.length) {
+            // Only show for parents.
+            menu.addChild(this.makeMenuItem(
+                'Restart', '重跑', 'not passed', '未成功',
+                (numLeavesByStatus['UNTESTED'] || 0) +
+                (numLeavesByStatus['ACTIVE'] || 0) +
+                (numLeavesByStatus['FAILED'] || 0),
+                test, function(event) {
+                    this.sendEvent('goofy:run_tests_with_status', {
                         'status': ['UNTESTED', 'ACTIVE', 'FAILED'],
                         'path': path
                     });
-            }, /*opt_adjectiveAtEnd=*/true), true);
-        menu.addChild(this.makeMenuItem(
-            'Run', '執行', 'untested', '未測的',
-            (numLeavesByStatus['UNTESTED'] || 0) +
-            (numLeavesByStatus['ACTIVE'] || 0),
-            test, function(event) {
-                this.sendEvent('goofy:auto_run', {'path': path});
-            }), true);
+                }, /*opt_adjectiveAtEnd=*/true), true);
+            menu.addChild(this.makeMenuItem(
+                'Run', '執行', 'untested', '未測的',
+                (numLeavesByStatus['UNTESTED'] || 0) +
+                (numLeavesByStatus['ACTIVE'] || 0),
+                test, function(event) {
+                    this.sendEvent('goofy:auto_run', {'path': path});
+                }), true);
+        }
     }
     menu.addChild(new goog.ui.MenuSeparator(), true);
     // TODO(jsalz): This isn't quite right since it stops all tests.
