@@ -27,10 +27,9 @@ _SAT_DURATION_SECS = 60
 # Change this to True if you want secure wipe (very slow).
 _ENABLE_FACTORY_SECURE_WIPE = False
 
-# Change this to False to enable developer-friendly finalization.
-# Firmware write protection and dev-switch check are bypassed in developer mode.
-# THIS IS REQUIRED TO BE FALSE FOR SHIPPING DEVICES.
-_ENABLE_DEVELOPER_MODE = True  # WARNING: True is ONLY ALLOWED FOR DEBUGGING.
+# Change this to True for enabling firmware write protection.
+# *** THIS IS REQUIRED TO BE TRUE FOR MASS PRODUCTION / SHIPPING DEVICES. ***
+_ENABLE_WRITE_PROTECTION = False  # WARNING: False is ONLY ALLOWED FOR PRE-MP.
 
 # Change this to enable checking external power (AC) before starting test.
 _ENABLE_CHECK_EXTERNAL_POWER = False
@@ -239,7 +238,7 @@ TEST_LIST = [
         label_zh='最終程序',
         kbd_shortcut='f',
         dargs={
-            'developer_mode': _ENABLE_DEVELOPER_MODE,
+            'write_protection': _ENABLE_WRITE_PROTECTION,
             'upload_method': _REPORT_UPLOAD_METHOD,
             'secure_wipe': _ENABLE_FACTORY_SECURE_WIPE,
         }),

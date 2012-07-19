@@ -394,7 +394,7 @@ def VerifyRootFs(options):
 def VerifyWpSwitch(options):
   """Verify hardware write protection switch is enabled."""
   if Shell('crossystem wpsw_cur').stdout.strip() != '1':
-    raise Error, 'write protection is disabled'
+    raise Error, 'write protection switch is disabled'
 
 
 @Command('verify_switch_dev')
@@ -407,11 +407,11 @@ def VerifyDevSwitch(options):
     else:
       return
   # devsw_cur is not available -- probably a device using keyboard-based
-  # developer/recovery mode.  We can't verify this until next reboot, because
-  # the real values are stored in TPM.
-  logging.warn('VerifyDevSwitch: Trying disable_dev_request...')
-  if not Shell('crossystem disable_dev_request=1').success:
-    raise Error, 'failed to turn off developer mode.'
+  # developer/recovery mode.  That will be handled in prepare_wipe.sh by
+  # setting "crossystem disable_dev_request=1" -- although we can't verify that
+  # until next reboot, because the real values are stored in TPM.
+  logging.warn('VerifyDevSwitch: No physical switch.')
+  _event_log.Log('switch_dev', type='virtual switch')
 
 
 @Command('write_protect')
@@ -443,6 +443,7 @@ def EnableFwWp(options):
   _event_log.Log('wp', fw='main')
   ec_fw_file = crosfw.LoadEcFirmware().GetFileName()
   if ec_fw_file is not None:
+    # TODO(hungte) Support WP_RO if that section exist.
     WriteProtect(ec_fw_file, 'ec', 'EC_RO')
     _event_log.Log('wp', fw='ec')
   else:
@@ -477,8 +478,8 @@ def PrepareWipe(options):
 
 
 @Command('verify',
-         CmdArg('--dev', action='store_true',
-                help='Do not verify switch state (dev mode and fw wp).'),
+         CmdArg('--no_write_protect', action='store_true',
+                help='Do not check write protection switch state.'),
          _hwdb_path_cmd_arg)
 def Verify(options):
   """Verifies if whole factory process is ready for finalization.
@@ -488,9 +489,9 @@ def Verify(options):
   checks include dev switch, firmware write protection switch, hwid,
   system time, keys, and root file system.
   """
-  if not options.dev:
-    VerifyDevSwitch({})
+  if not options.no_write_protect:
     VerifyWpSwitch({})
+  VerifyDevSwitch({})
   VerifyHwid(options)
   VerifySystemTime({})
   VerifyKeys({})
@@ -564,8 +565,8 @@ def UploadReport(options):
 
 
 @Command('finalize',
-         CmdArg('--dev', action='store_true',
-                help='Do not verify or alter write protection or dev mode.'),
+         CmdArg('--no_write_protect', action='store_true',
+                help='Do not enable firmware write protection.'),
          CmdArg('--fast', action='store_true',
                 help='use non-secure but faster wipe method.'),
          _hwdb_path_cmd_arg,
@@ -573,16 +574,20 @@ def UploadReport(options):
 def Finalize(options):
   """Verify system readiness and trigger transition into release state.
 
-  This routine first verifies system state (see verify command), then
-  clears all of the testing flags from the GBB, then modifies firmware
-  bitmaps to match locale.  Then it enables firmware write protection
-  and sets the necessary boot flags to cause wipe of the factory image
-  on the next boot.
+  This routine first verifies system state (see verify command), modifies
+  firmware bitmaps to match locale, and then clears all of the factory-friendly
+  flags from the GBB.  If everything is fine, it enables firmware write
+  protection (cannot rollback after this stage), uploads system logs & reports,
+  and sets the necessary boot flags to cause wipe of the factory image on the
+  next boot.
   """
-  ClearGbbFlags({})
   Verify(options)
   SetFirmwareBitmapLocale({})
-  if not options.dev:
+  ClearGbbFlags({})
+  if options.no_write_protect:
+    logging.warn('WARNING: Firmware Write Protection is SKIPPED.')
+    _event_log.Log('wp', fw='both', status='skipped')
+  else:
     EnableFwWp({})
   LogSystemDetails(options)
   UploadReport(options)
