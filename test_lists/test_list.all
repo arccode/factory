@@ -206,7 +206,7 @@ TEST_LIST = [
     OperatorTest(
         id='CardReader',
         label_zh='SD 讀卡機',
-        autotest_name='factory_RemovableStorage',
+        pytest_name='removable_storage',
         dargs={'media': 'SD',
                'block_size': 512 * 1024,       # 512KB block size
                'random_block_count': 3,        # Randomly r/w 3 blocks
