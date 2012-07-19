@@ -9,6 +9,7 @@ import fcntl
 import glob
 import logging
 import os
+import pipes
 import Queue
 import re
 import signal
@@ -199,6 +200,31 @@ def TryMakeDirs(path):
       os.makedirs(path)
   except:
     pass
+
+
+def CheckOutput(*args, **kwargs):
+  '''Calls a process and returns its output.
+
+  (Emulates subprocess.check_output from Python 2.7.)
+  '''
+  process = subprocess.Popen(stdout=subprocess.PIPE, *args, **kwargs)
+  stdout, dummy_stderr = process.communicate()
+  retcode = process.poll()
+  if retcode:
+    raise subprocess.CalledProcessError(retcode, kwargs.get('args') or args[0])
+  return stdout
+
+
+def LogAndCheckCall(*args, **kwargs):
+  '''Logs a command and invokes subprocess.check_call.'''
+  logging.info('Running: %s', ' '.join(pipes.quote(arg) for arg in args[0]))
+  return subprocess.check_call(*args, **kwargs)
+
+
+def LogAndCheckOutput(*args, **kwargs):
+  '''Logs a command and invokes subprocess.check_output.'''
+  logging.info('Running: %s', ' '.join(pipes.quote(arg) for arg in args[0]))
+  return CheckOutput(*args, **kwargs)
 
 
 class Enum(frozenset):
