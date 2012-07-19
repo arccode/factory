@@ -55,6 +55,13 @@ MakeDatastoreClass('ComponentRegistry', {
     'status': StatusData,
     })
 
+# To keep the database more human readable, the below components field
+# contains a dict mapping component class to _either_ a single
+# component name string for singletons _or_ a list of component name
+# strings for when multiple components should exist for a single
+# class.  This will allow single line database entries for the many
+# singleton cases, only expanding to multi-line lists when there are
+# actually multiple entries to track.
 MakeDatastoreClass('ComponentSpec', {
     'classes_dontcare': (list, str),
     'classes_missing': (list, str),
@@ -144,18 +151,6 @@ def AlphaIndex(num):
       break
     num -= 1
   return result
-
-
-def ComponentConfigStr(component_map):
-  """Represent component_map with a single canonical string.
-
-  Component names are unique.  ANY and NONE are combined with the
-  corresponding component class name to become unique.  The resulting
-  substrings are sorted and concatenated.
-  """
-  def substr(comp_class, comp):
-    return comp_class + '_' + comp if comp in ['ANY', 'NONE'] else comp
-  return ' '.join(sorted(substr(k, v) for k, v in component_map.items()))
 
 
 def FmtRightAlignedDict(d):
@@ -274,6 +269,10 @@ class CompDb(YamlDatastore):
     self.all_comp_classes = (set(self.opaque_components) |
                              set(self.probable_components))
     self.all_comp_names = set(self.name_class_map)
+    self.opaque_comp_names = set(
+      comp_name
+      for comp_class, comps in self.opaque_components.items()
+      for comp_name in comps)
 
   def _EnforceProbeResultUniqueness(self):
     if len(self.result_name_map) < len(self.name_result_map):
@@ -324,8 +323,23 @@ class CompDb(YamlDatastore):
     self.EnforceInvariants()
 
   def CreateComponentSpec(self, components, dontcare, missing):
-    """Verify comp_class completeness across the specified inputs."""
-    comp_map = dict((self.name_class_map[comp], comp) for comp in components)
+    """Build spec from a lists of component names and classes.
+
+    This properly builds the ComponentSpec.components mapping (see
+    schema documenation) -- create a singleton if there previously was
+    nothing, create a list of two elts if there was a singleton, and
+    otherwise just add to an existing list.
+    """
+    comp_map = {}
+    for comp in components:
+      comp_class = self.name_class_map[comp]
+      comp_data = comp_map.get(comp_class, None)
+      if comp_data is None:
+        comp_map[comp_class] = comp
+      elif isinstance(comp_data, list):
+        comp_data.append(comp)
+      else:
+        comp_map[comp_class] = [comp_data, comp]
     class_conflict = set(dontcare) & set(missing) & set(comp_map)
     if class_conflict:
       raise Error, ('illegal component specification, conflicting data for '
@@ -831,6 +845,7 @@ class HardwareDb(object):
       raise Error, ('board %r already exists' % board_name)
     device = Device(self.comp_db, board_name, DeviceSpec.New())
     self.devices[board_name] = device
+    return device
 
   def GetDevice(self, board_name):
     if board_name not in self.devices:
@@ -1377,7 +1392,7 @@ def LegacyExport(config, data):
 
 
 @Command('rename_components')
-def RenameComponents(config, data):  # pylint: disable=W0613
+def RenameComponents(config, hw_db):  # pylint: disable=W0613
   """Change canonical component names.
 
   Given a list of old-new name pairs on stdin, replace each instance
@@ -1386,24 +1401,36 @@ def RenameComponents(config, data):  # pylint: disable=W0613
   one pair per line, and the two words in each pair are whitespace
   separated.
   """
-  for line in sys.stdin:
-    parts = line.strip().split()
-    if len(parts) != 2:
+  pairs = [line.strip().split() for line in sys.stdin]
+  comp_db = hw_db.comp_db
+  for pair in pairs:
+    if len(pair) != 2:
       raise Error, ('each line of input must have exactly 2 words, '
-                    'found %d [%s]' % (len(parts), line.strip()))
-    old_name, new_name = parts
-    if old_name not in data.comp_db.name_result_map:
-      raise Error, 'unknown canonical component name %r' % old_name
-    # TODO(tammo): Validate new_name.
-    comp_class = data.comp_db.name_class_map[old_name]
-    comp_map = data.comp_db.registry[comp_class]
-    probe_result = comp_map[old_name]
-    del comp_map[old_name]
-    comp_map[new_name] = probe_result
-    for device in data.devices.values():
-      for hwid in device.hwid_map.values():
-        if hwid.component_map.get(comp_class, None) == old_name:
-          hwid.component_map[comp_class] = new_name
+                    'found line with %r' % pair)
+    old_name, new_name = pair
+    Validate.ComponentName(new_name)
+    comp_db.CompExists(old_name)
+  for old_name, new_name in pairs:
+    comp_class = comp_db.name_class_map[old_name]
+    if old_name in comp_db.opaque_comp_names:
+      comps = comp_db.opaque_components[comp_class]
+      comps.remove(old_name)
+      comps.append(new_name)
+    else:
+      comp_map = comp_db.probable_components[comp_class]
+      comp_map[new_name] = comp_map.pop(old_name)
+    def UpdateComponentSpec(spec):
+      for comp_class, comp_data in spec.components.items():
+        if isinstance(comp_data, list) and old_name in comp_data:
+          comp_data.remove(old_name)
+          comp_data.append(new_name)
+        elif comp_data == old_name:
+          spec.components[comp_class] = new_name
+    for device in hw_db.devices.values():
+      for bom in device.boms.values():
+        UpdateComponentSpec(bom.primary)
+      for variant in device.variants.values():
+        UpdateComponentSpec(variant)
 
 
 def Main():

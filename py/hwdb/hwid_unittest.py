@@ -103,7 +103,6 @@ volatiles:
   ro_main_firmware: EEEE
 '''
 
-
 class HwidTest(unittest.TestCase):
 
   def setUp(self):
@@ -160,7 +159,7 @@ class HwidTest(unittest.TestCase):
                        '9999', device.initial_configs['0'].constraints)
       self.runTool('create_bom --board=FOO --missing="*" -n OOGG')
       hw_db = hwid_tool.HardwareDb(self.dir)
-      hw_db.comp_db.AddComponent('keyboard', 'xkb:us::eng', 'sunrex_kbd_us')
+      hw_db.comp_db.AddComponent('keyboard', comp_name='sunrex_kbd_us')
       hw_db.comp_db.Write(self.dir)
       device = hw_db.devices['FOO']
       self.assertTrue('OOGG' in device.boms, device.boms.keys())
@@ -189,8 +188,8 @@ class HwidTest(unittest.TestCase):
       self._testMethodName, self.test_log, self.hwid_tool_log):
       self.runTool('create_device FOO')
       hw_db = hwid_tool.HardwareDb(self.dir)
-      hw_db.comp_db.AddComponent('keyboard', 'xkb:us::eng', 'sunrex_kbd_us')
-      hw_db.comp_db.AddComponent('keyboard', 'xkb:gb:extd:eng', 'sunrex_kbd_gb')
+      hw_db.comp_db.AddComponent('keyboard', comp_name='sunrex_kbd_us')
+      hw_db.comp_db.AddComponent('keyboard', comp_name='sunrex_kbd_gb')
       hw_db.comp_db.Write(self.dir)
       self.runTool('create_bom --board=FOO --dontcare="*" -n BAR '
                    '--variant_classes keyboard')
@@ -232,6 +231,56 @@ class HwidTest(unittest.TestCase):
                        device.hwid_status.supported)
       self.assertEqual(device.hwid_status.deprecated, ['BAR *-*'],
                        device.hwid_status.deprecated)
+
+  def testRename(self):
+    with LogOnException(
+      self._testMethodName, self.test_log, self.hwid_tool_log):
+      hw_db = hwid_tool.HardwareDb(self.dir)
+      hw_db.comp_db.AddComponent('keyboard', comp_name='kbd_0')
+      hw_db.comp_db.AddComponent('keyboard', comp_name='kbd_1')
+      hw_db.comp_db.AddComponent('cpu', comp_name='cpu_0', probe_result='XXX')
+      hw_db.comp_db.AddComponent('cpu', comp_name='cpu_1', probe_result='YYY')
+      hw_db.comp_db.AddComponent('tpm', comp_name='tpm_0', probe_result='ZZZ')
+      hw_db.comp_db.Write(self.dir)
+      rename_stdin_0 = 'kbd_0 sunrex_kbd_us\n'
+      self.runTool('rename_components', stdin=rename_stdin_0)
+      hw_db = hwid_tool.HardwareDb(self.dir)
+      self.assertEqual(hw_db.comp_db.opaque_components['keyboard'],
+                       ['kbd_1', 'sunrex_kbd_us'],
+                       hw_db.comp_db.opaque_components)
+      variant_component_spec = hw_db.comp_db.CreateComponentSpec(
+        components=['tpm_0'], dontcare=[], missing=[])
+      bom_component_spec = hw_db.comp_db.CreateComponentSpec(
+        components=['kbd_1', 'cpu_0', 'cpu_1'],
+        dontcare=list(hw_db.comp_db.all_comp_classes -
+                      set(['keyboard', 'cpu', 'tpm'])),
+        missing=[])
+      device = hw_db.CreateDevice('FOO')
+      device.CreateVariant(variant_component_spec)
+      device.CreateBom('BAR', bom_component_spec)
+      hw_db.Write()
+      rename_stdin_1 = (
+        'kbd_1 sunrex_kbd_gb\n'
+        'cpu_1 ibm_deep_blue_4\n'
+        'tpm_0 nsa_spies_on_U_2000\n')
+      self.runTool('rename_components', stdin=rename_stdin_1)
+      hw_db = hwid_tool.HardwareDb(self.dir)
+      self.assertEqual(hw_db.comp_db.opaque_components['keyboard'],
+                       ['sunrex_kbd_gb', 'sunrex_kbd_us'],
+                       hw_db.comp_db.opaque_components)
+      self.assertEqual(sorted(hw_db.comp_db.probable_components['cpu'].keys()),
+                       ['cpu_0', 'ibm_deep_blue_4'],
+                       hw_db.comp_db.probable_components)
+      self.assertTrue('FOO' in hw_db.devices, hw_db.devices.keys())
+      device = hw_db.devices['FOO']
+      bom = device.boms['BAR'].primary
+      self.assertEqual(bom.components['cpu'], ['cpu_0', 'ibm_deep_blue_4'],
+                       bom.components)
+      self.assertEqual(bom.components['keyboard'], 'sunrex_kbd_gb',
+                       bom.components)
+      variant = device.variants['A']
+      self.assertEqual(variant.components['tpm'], 'nsa_spies_on_U_2000',
+                       variant.components)
 
 
 if __name__ == '__main__':
