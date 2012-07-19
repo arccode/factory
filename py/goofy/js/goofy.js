@@ -1659,6 +1659,7 @@ cros.factory.Goofy.prototype.handleBackendEvent = function(jsonMessage) {
             goog.dom.iframe.writeContent(
                 invocation.iframe,
                 /** @type {string} */(message['html']));
+            this.updateLanguageInDocument(invocation.iframe.contentDocument);
         }
     } else if (message.type == 'goofy:set_html') {
         var invocation = this.getOrCreateInvocation(
@@ -1680,12 +1681,9 @@ cros.factory.Goofy.prototype.handleBackendEvent = function(jsonMessage) {
                     body.innerHTML += message['html'];
                 } else {
                     this.logToConsole(
-                        'Test UI not initialized.',
-                        'goofy-internal-error'
-                    );
+                        'Test UI not initialized.', 'goofy-internal-error');
                 }
             }
-            this.updateLanguageInDocument(invocation.iframe.contentDocument);
         }
     } else if (message.type == 'goofy:run_js') {
         var invocation = this.getOrCreateInvocation(
