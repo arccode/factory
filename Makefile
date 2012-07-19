@@ -10,6 +10,7 @@ FACTORY=$(DESTDIR)/$(TARGET_DIR)
 
 PYLINTRC=../../../chromite/pylintrc
 PYLINT_OPTIONS=\
+	--rcfile=$(PYLINTRC) \
 	--ignored-classes=Event \
 	--generated-members=test_info
 
@@ -52,6 +53,9 @@ LINT_BLACKLIST=\
 	py/vblock.py \
 	py/vpd_data.py
 
+LINT_FILES=$(filter-out $(LINT_BLACKLIST), \
+               $(shell find py -name '*.py' -type f | sort))
+
 UNITTESTS=\
 	py/event_log_unittest.py \
 	py/goofy/event_log_watcher_unittest.py \
@@ -82,11 +86,7 @@ install:
 	ln -sf $(addprefix ../factory/log/,factory.log console.log) ${DESTDIR}/var/log
 
 lint:
-	env PYTHONPATH=py_pkg pylint \
-	    --rcfile=$(PYLINTRC) \
-	    $(PYLINT_OPTIONS) \
-	    $(filter-out $(LINT_BLACKLIST), \
-	        $(shell find py -name '*.py' -type f | sort))
+	env PYTHONPATH=py_pkg pylint $(PYLINT_OPTIONS) $(LINT_FILES)
 
 clean:
 	rm -rf $(BUILD_DIR)
