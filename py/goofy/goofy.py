@@ -480,6 +480,11 @@ class Goofy(object):
           status=TestState.FAILED,
           error_msg=error_msg)
 
+        factory.console.info('Unexpected shutdown while test %s '
+                             'running; cancelling any pending tests',
+                             test.path)
+        self.state_instance.set_shared_data('tests_after_shutdown', [])
+
   def show_next_active_test(self):
     '''
     Rotates to the next visible active test.
