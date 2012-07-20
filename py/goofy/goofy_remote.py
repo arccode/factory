@@ -46,7 +46,9 @@ def SyncTestList(host, test_list=None):
       return
     test_list = test_lists[0]
 
-  utils.LogAndCheckCall(['rsync', test_list,
+  utils.LogAndCheckCall(['rsync',
+                         '-e', 'ssh ' + ' '.join(ssh_options),
+                         test_list,
                          host + ':/usr/local/factory/custom/test_list'])
 
 
@@ -76,12 +78,12 @@ def main():
                  '-o', 'StrictHostKeyChecking=no']
 
   logging.basicConfig(level=logging.INFO)
-  os.environ['RSYNC_CONNECT_PROG'] = 'ssh ' + ' '.join(ssh_options)
 
   utils.LogAndCheckCall(['make', '--quiet'], cwd=factory.FACTORY_PATH)
   SyncTestList(args.host, args.test_list)
 
   utils.LogAndCheckCall(['rsync', '-aC', '--exclude', '*.pyc'] +
+                        ['-e', 'ssh ' + ' '.join(ssh_options)] +
                         [os.path.join(factory.FACTORY_PATH, x)
                          for x in ('bin', 'py', 'py_pkg', 'sh', 'test_lists')] +
                         ['%s:/usr/local/factory' % args.host])
