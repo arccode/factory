@@ -65,7 +65,7 @@ IMAGE_ID_PATH = os.path.join(EVENT_LOG_DIR, ".image_id")
 WLAN0_MAC_PATH = "/sys/class/net/wlan0/address"
 
 PREFIX_RE = re.compile("^[a-zA-Z0-9_\.]+$")
-EVENT_NAME_RE = re.compile("^[a-z0-9_]+$")
+EVENT_NAME_RE = re.compile(r"^[a-zA-Z_]\w*$")
 EVENT_KEY_RE = EVENT_NAME_RE
 
 device_id = None
@@ -192,9 +192,11 @@ class EventLog(object):
 
     Stanzas are terminated by "---\n".
 
+    event_name and kwarg keys must all start with [a-zA-Z_] and
+    contain only [a-zA-Z0-9_] (like Python identifiers).
+
     Args:
-      event_name: Used to indentify event field.  Must be serialized
-        data, eg string or int.
+      event_name: Used to indentify event field.
       kwargs: Dict of additional fields for inclusion in the event
         stanza.  Field keys must be alphanumeric and lowercase. Field
         values will be automatically yaml-ified.  Other data

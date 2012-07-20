@@ -18,6 +18,15 @@ UUID_RE = re.compile(r'^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-'
                      '[a-f0-9]{4}-[a-f0-9]{12}$')
 
 
+class BasicTest(unittest.TestCase):
+  def testEventNameRE(self):
+    for i in ('a', '_', 'azAZ09_', 'a0'):
+      self.assertTrue(event_log.EVENT_NAME_RE.match(i))
+
+    for i in ('', 'a.', '0', '0a'):
+      self.assertFalse(event_log.EVENT_NAME_RE.match(i))
+
+
 class EventLogTest(unittest.TestCase):
   def testGetBootId(self):
     assert UUID_RE.match(event_log.GetBootId())
