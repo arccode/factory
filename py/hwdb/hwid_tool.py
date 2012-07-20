@@ -9,11 +9,12 @@
 
 import logging
 import os
-import random
 import re
-import string  # pylint: disable=W0402
 import sys
-import zlib
+
+from random import shuffle
+from string import uppercase  # pylint: disable=W0402
+from zlib import crc32
 
 import factory_common  # pylint: disable=W0611
 
@@ -114,7 +115,7 @@ MakeDatastoreClass('HwidData', {
 
 
 def HwidChecksum(text):
-  return ('%04u' % (zlib.crc32(text) & 0xffffffffL))[-4:]
+  return ('%04u' % (crc32(text) & 0xffffffffL))[-4:]
 
 
 def ParseHwid(hwid):
@@ -143,9 +144,9 @@ def AlphaIndex(num):
   Translate 0->A, 1->B, .. 25->Z, 26->AA, 27->AB, and so on.
   """
   result = ''
-  alpha_count = len(string.uppercase)
+  alpha_count = len(uppercase)
   while True:
-    result = string.uppercase[num % alpha_count] + result
+    result = uppercase[num % alpha_count] + result
     num /= alpha_count
     if num == 0:
       break
@@ -166,12 +167,44 @@ def FmtLeftAlignedDict(d):
 
 
 def ComponentSpecClasses(component_spec):
+  """Return full set of component classes referenced anywhere in the spec."""
   return (set(component_spec.classes_dontcare) |
           set(component_spec.classes_missing) |
           set(component_spec.components))
 
 
+def ComponentSpecClassCompsMap(component_spec):
+  """Return comp_class:[comp_name] dict.
+
+  Since the ComponentSpec allows for mappings from component class to
+  either lists or singletons, this routine generates a more useful
+  dict which converts all singletons to lists of one element.  This
+  allows traversal of the datastructure without needing to inspect any
+  types.
+  """
+  return dict(
+    (comp_class, comp_data if isinstance(comp_data, list) else [comp_data])
+    for comp_class, comp_data in component_spec.components.items())
+
+
+def ComponentSpecCompClassMap(component_spec):
+  """Return comp_name:comp_class dict, for lookup of component class by name."""
+  return dict(
+    (comp, comp_class)
+    for comp_class, comps in ComponentSpecClassCompsMap(component_spec).items()
+    for comp in comps)
+
+
 def CombineComponentSpecs(a, b):
+  """Return the union of two ComponentSpecs, ignoring any conflicts.
+
+  Creates a new ComponentSpec which is input A with B merged into it,
+  meaning that for conflicting component mappings (meaning different
+  mappings for a given component class), the result will contain the
+  mapping from B (the A mapping gets clobbered).  For dontcare and
+  missing, the result contains the unions of the respective component
+  class sets.
+  """
   components = {}
   components.update(a.components)
   components.update(b.components)
@@ -182,6 +215,11 @@ def CombineComponentSpecs(a, b):
 
 
 def ComponentSpecsConflict(a, b):
+  """Determine if the specs refer to any overlapping classes.
+
+  In other words, determine if combining them would result in any
+  conflict (loss of information).
+  """
   return (ComponentSpecClasses(a) & ComponentSpecClasses(b)) != set()
 
 
@@ -350,12 +388,13 @@ class CompDb(YamlDatastore):
       components=comp_map)
 
   def MatchComponentSpec(self, spec, found_components):
+    spec_comp_class_map = ComponentSpecCompClassMap(spec)
     for comp in found_components:
       comp_class = self.name_class_map[comp]
       if comp_class in spec.classes_dontcare:
         continue
       if (comp_class in spec.classes_missing or
-          comp not in spec.components):
+          comp not in spec_comp_class_map):
         return False
     return True
 
@@ -392,20 +431,16 @@ class CookedBoms(object):
     """
     self.comp_boms_map = {}
     for bom_name, bom in self.bom_map.items():
-      for comp_data in bom.primary.components.values():
-        comps = comp_data if isinstance(comp_data, list) else [comp_data]
-        for comp in comps:
-          self.comp_boms_map.setdefault(comp, set()).add(bom_name)
+      for comp in ComponentSpecCompClassMap(bom.primary):
+        self.comp_boms_map.setdefault(comp, set()).add(bom_name)
 
   def _BuildCommonCompMap(self):
     """Return (comp_class: [comp]) dict for components common to all boms."""
     self.comp_map = {}
     for bom in self.bom_map.values():
-      for comp_class, comp_data in bom.primary.components.items():
-        comps = comp_data if isinstance(comp_data, list) else [comp_data]
-        for comp in comps:
-          if self.comp_boms_map[comp] == self.names:
-            self.comp_map.setdefault(comp_class, set()).add(comp)
+      for comp, comp_class in ComponentSpecCompClassMap(bom.primary).items():
+        if self.comp_boms_map[comp] == self.names:
+          self.comp_map.setdefault(comp_class, set()).add(comp)
 
   def _BuildCommonComps(self):
     self.common_comps = set()
@@ -657,6 +692,7 @@ class Device(YamlDatastore):
     self._EnforceCompClassesAllMatch()
     self._EnforceVolatileUniqueness()
     self._EnforceInitialConfigsDontConflict()
+    # TODO(tammo): prevent hwid and contained component status conflicts
 
   def BomExists(self, bom_name):
     if bom_name not in self.boms:
@@ -715,7 +751,7 @@ class Device(YamlDatastore):
     existing_names = set(bom_name for bom_name in self.boms)
     available_names = [bom_name for bom_name in BOM_NAME_SET
                        if bom_name not in existing_names]
-    random.shuffle(available_names)
+    shuffle(available_names)
     if len(available_names) < count:
       raise Error('too few available bom names (%d left)' %
                   len(available_names))
@@ -833,7 +869,7 @@ class HardwareDb(object):
 
   def __init__(self, path):
     """Read the component_db and all device data files."""
-    self._path = path
+    self.path = path
     self.comp_db = CompDb.Read(path)
     self.devices = dict((entry, Device.Read(path, self.comp_db, entry))
                         for entry in os.listdir(path)
@@ -875,9 +911,9 @@ class HardwareDb(object):
 
   def Write(self):
     """Write the component_db and all device data files."""
-    self.comp_db.Write(self._path)
+    self.comp_db.Write(self.path)
     for device in self.devices.values():
-      device.Write(self._path)
+      device.Write(self.path)
 
 
 def PrintHwidHierarchy(device, cooked_boms, status_mask):
@@ -895,8 +931,11 @@ def PrintHwidHierarchy(device, cooked_boms, status_mask):
         hwid = device.FmtHwid(bom_name, variant_code, volatile_code)
         status = device.GetHwidStatus(bom_name, variant_code, volatile_code)
         print (depth * '  ') + '%s  [%s]' % (hwid, status)
-        for line in FmtRightAlignedDict(variant.components):
-          print (depth * '  ') + '  (primary) ' + line
+        variant_comps = dict(
+          (comp_class, ', '.join(comps))
+          for comp_class, comps in ComponentSpecClassCompsMap(variant).items())
+        for line in FmtRightAlignedDict(variant_comps):
+          print (depth * '  ') + '  (variant) ' + line
         print ''
   def TraverseBomHierarchy(boms, depth, masks):
     def FmtList(l):
@@ -1163,6 +1202,9 @@ def AssimilateProbeResults(config, hw_db):
     device.CreateBom(bom_name, component_spec)
 
 
+# TODO(tammo): add_component and set_component_status commands
+
+
 @Command('hwid_overview',
          CmdArg('--status', nargs='*'),
          CmdArg('-b', '--board'))
@@ -1253,9 +1295,9 @@ def ComponentBreakdownCommand(config, hw_db):
 
 @Command('filter_database',
          CmdArg('-b', '--board', required=True),
-         CmdArg('-d', '--dest_dir', required=True),
-         CmdArg('-s', '--by_status', nargs='*', default=['supported']))
-def FilterDatabase(config, data):
+         CmdArg('-d', '--dest_dir'),
+         CmdArg('-s', '--status', nargs='*', default=['supported']))
+def FilterDatabase(config, hw_db):
   """Generate trimmed down board data file and corresponding component_db.
 
   Generate a board data file containing only those boms matching the
@@ -1263,51 +1305,84 @@ def FilterDatabase(config, data):
   that is used by those boms.  Also produce a component_db which
   contains entries only for those components used by the selected
   boms.
+
+  If dest_dir is not specified, a subdirectory of the current database
+  directory will automatically be created with the name
+  'filtered_db_BOARD', for the corresponding board name.
   """
-  # TODO(tammo): Validate inputs -- board name, status, etc.
-  device = data.devices[config.board]
-  target_hwid_map = {}
-  target_volatile_set = set()
-  target_variant_set = set()
-  for bom, hwid in device.hwid_map.items():
-    for variant in hwid.variant_list:
-      for volatile in device.volatile_map:
-        status = device.GetHwidStatus(bom, volatile, variant)
-        if status in config.by_status:
-          variant_map = target_hwid_map.setdefault(bom, {})
-          volatile_list = variant_map.setdefault(variant, [])
-          volatile_list.append(volatile)
-          target_volatile_set.add(volatile)
-          target_variant_set.add(variant)
-  filtered_comp_db = CompDb.New()
-  filtered_device = Device.New()
-  for bom in target_hwid_map:
-    hwid = device.hwid_map[bom]
-    filtered_hwid = Hwid.New()
-    filtered_hwid.component_map = hwid.component_map
-    filtered_hwid.variant_list = list(set(hwid.variant_list) &
-                                      target_variant_set)
-    filtered_device.hwid_map[bom] = filtered_hwid
-    for comp_class in hwid.component_map:
-      filtered_comp_db.registry[comp_class] = \
-          data.comp_db.registry[comp_class]
-  for volatile_index in target_volatile_set:
-    volatile_details = device.volatile_map[volatile_index]
-    filtered_device.volatile_map[volatile_index] = volatile_details
-    for volatile_name in volatile_details.values():
-      volatile_value = device.volatile_value_map[volatile_name]
-      filtered_device.volatile_value_map[volatile_name] = volatile_value
-  for variant_index in target_variant_set:
-    variant_details = device.variant_map[variant_index]
-    filtered_device.variant_map[variant_index] = variant_details
-  filtered_device.vpd_ro_field_list = device.vpd_ro_field_list
-  WriteDatastore(config.dest_dir,
-                 Obj(comp_db=filtered_comp_db,
-                     device_db={config.board: filtered_device}))
-  # TODO(tammo): Also filter initial_config once the schema for that
-  # has been refactored to be cleaner.
-  # TODO(tammo): Also filter status for both boms and components once
-  # the schema for that has been refactored to be cleaner.
+  device = hw_db.GetDevice(config.board)
+  if not config.dest_dir:
+    config.dest_dir = os.path.join(hw_db.path, 'filtered_db_' + config.board)
+    if not os.path.isdir(config.dest_dir):
+      os.mkdir(config.dest_dir)
+  elif not os.path.isdir(config.dest_dir):
+    raise Error, ('target directory %r does not exist' % config.dest_dir)
+  map(Validate.Status, config.status)
+  target_status = {}
+  target_hwids = set()
+  target_boms = set()
+  target_variants = set()
+  target_volatiles = set()
+  for hwid, status in device.flat_hwid_status_map.items():
+    parsed_hwid = ParseHwid(hwid)
+    if status not in config.status:
+      continue
+    target_hwids.add(parsed_hwid)
+    target_boms.add(parsed_hwid.bom)
+    target_variants.add(parsed_hwid.variant)
+    target_volatiles.add(parsed_hwid.volatile)
+    target_status.setdefault(status, []).append(parsed_hwid)
+  target_components = (
+    set(comp for comp, boms in device.cooked_boms.comp_boms_map.items()
+        if target_boms & boms) |
+    set(comp
+        for var_code in target_variants
+        for comp in ComponentSpecCompClassMap(device.variants[var_code])))
+  target_volatile_names = set(
+    vol_name
+    for vol_code in target_volatiles
+    for vol_name in device.volatiles[vol_code].values())
+  comp_db = hw_db.comp_db
+  filtered_comp_db = CompDb(ComponentRegistry(
+    probable_components=dict(
+      (comp_class, dict(
+          (comp_name, probe_result)
+          for comp_name, probe_result in comp_map.items()
+          if comp_name in target_components))
+       for comp_class, comp_map in comp_db.probable_components.items()),
+    opaque_components=dict(
+      (comp_class, [comp_name for comp_name in comps
+                    if comp_name in target_components])
+      for comp_class, comps in comp_db.opaque_components.items()),
+    status=StatusData(**dict(
+        (status, [comp_name for comp_name in getattr(comp_db.status, status)
+                  if comp_name in target_components])
+        for status in LIFE_CYCLE_STAGES))))
+  filtered_device = Device(filtered_comp_db, config.board, DeviceSpec(
+    boms=dict((bom_name, bom) for bom_name, bom in device.boms.items()
+              if bom_name in target_boms),
+    hwid_status=StatusData(**dict(
+          (status, ['%s %s-%s' % (hwid.bom, hwid.variant, hwid.volatile)
+                    for hwid in target_status.get(status, set())])
+          for status in LIFE_CYCLE_STAGES)),
+    initial_configs=dict(
+        (ic_tag, InitialConfigSpec(
+            constraints=ic.constraints,
+            enforced_for_boms=list(set(ic.enforced_for_boms) & target_boms)))
+        for ic_tag, ic in device.initial_configs.items()
+        if set(ic.enforced_for_boms) & target_boms),
+    variants=dict((var_code, device.variants[var_code])
+                  for var_code in target_variants),
+    volatiles=dict((vol_code, vol_spec)
+                   for vol_code, vol_spec in device.volatiles.items()
+                   if vol_code in target_volatiles),
+    volatile_values=dict((vol_name, device.volatile_values[vol_name])
+                         for vol_name in target_volatile_names),
+    vpd_ro_fields=device.vpd_ro_fields))
+  filtered_comp_db.Write(config.dest_dir)
+  filtered_hw_db = HardwareDb(config.dest_dir)
+  filtered_hw_db.devices[config.board] = filtered_device
+  filtered_hw_db.Write()
 
 
 # TODO(tammo): If someone is using this, make it work; otherwise delete.

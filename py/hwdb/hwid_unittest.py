@@ -282,6 +282,62 @@ class HwidTest(unittest.TestCase):
       self.assertEqual(variant.components['tpm'], 'nsa_spies_on_U_2000',
                        variant.components)
 
+  def testFilterDatabase(self):
+    with LogOnException(
+      self._testMethodName, self.test_log, self.hwid_tool_log):
+      hw_db = hwid_tool.HardwareDb(self.dir)
+      hw_db.comp_db.AddComponent('keyboard', comp_name='kbd_0')
+      hw_db.comp_db.AddComponent('keyboard', comp_name='kbd_1')
+      hw_db.comp_db.AddComponent('cpu', comp_name='cpu_0', probe_result='XXX')
+      hw_db.comp_db.AddComponent('cpu', comp_name='cpu_1', probe_result='YYY')
+      hw_db.comp_db.AddComponent('cpu', comp_name='cpu_2', probe_result='ZZZ')
+      hw_db.comp_db.AddComponent('tpm', comp_name='tpm_0', probe_result='AAA')
+      device = hw_db.CreateDevice('FOO')
+      var_a = device.CreateVariant(hw_db.comp_db.CreateComponentSpec(
+          components=['tpm_0'], dontcare=[], missing=[]))
+      device.CreateBom('BAR', hw_db.comp_db.CreateComponentSpec(
+          components=['kbd_1', 'cpu_0', 'cpu_1'],
+          dontcare=list(hw_db.comp_db.all_comp_classes -
+                        set(['keyboard', 'cpu', 'tpm'])),
+          missing=[]))
+      device.CreateBom('BAZ', hw_db.comp_db.CreateComponentSpec(
+            components=[],
+            dontcare=list(hw_db.comp_db.all_comp_classes - set(['tpm'])),
+            missing=[]))
+      device.AddVolatileValue('hash_gbb', 'AAA', 'v0')
+      device.AddVolatileValue('key_recovery', 'BBB', 'v1')
+      device.AddVolatileValue('key_root', 'CCC', 'v2')
+      device.AddVolatileValue('ro_ec_firmware', 'DDD', 'v3')
+      device.AddVolatileValue('ro_main_firmware', 'EEE', 'v4')
+      device.AddVolatileValue('ro_main_firmware', 'FFF', 'v5')
+      vol_a = device.AddVolatile({'hash_gbb': 'v0',
+                                  'key_recovery': 'v1',
+                                  'key_root': 'v2',
+                                  'ro_ec_firmware': 'v3',
+                                  'ro_main_firmware': 'v4'})
+      vol_b = device.AddVolatile({'hash_gbb': 'v0',
+                                  'key_recovery': 'v1',
+                                  'key_root': 'v2',
+                                  'ro_ec_firmware': 'v3',
+                                  'ro_main_firmware': 'v5'})
+      device.SetHwidStatus('BAR', var_a, vol_a, 'supported')
+      device.SetHwidStatus('BAZ', var_a, vol_b, 'deprecated')
+      hw_db.Write()
+      self.runTool('filter_database -b FOO')
+      filter_path = os.path.join(self.dir, 'filtered_db_FOO')
+      f_hw_db = hwid_tool.HardwareDb(filter_path)
+      f_device = f_hw_db.devices['FOO']
+      self.assertEqual(f_device.boms.keys(), ['BAR'], f_device.boms.keys())
+      cpu_comps = f_hw_db.comp_db.probable_components.get('cpu', [])
+      self.assertEqual(sorted(cpu_comps.keys()), ['cpu_0', 'cpu_1'], cpu_comps)
+      hw_db = hwid_tool.HardwareDb(self.dir)
+      hw_db.devices['FOO'].SetHwidStatus('BAZ', var_a, vol_a, 'supported')
+      hw_db.Write()
+      self.runTool('filter_database -b FOO')
+      f_device = hwid_tool.HardwareDb(filter_path).devices['FOO']
+      self.assertEqual(sorted(f_device.boms.keys()), ['BAR', 'BAZ'],
+                       f_device.boms.keys())
+
 
 if __name__ == '__main__':
   unittest.main()
