@@ -5,10 +5,12 @@
 # found in the LICENSE file.
 
 import base64
+import collections
 import httplib
 import logging
 import subprocess
 import threading
+import time
 import ws4py
 
 from hashlib import sha1
@@ -17,6 +19,10 @@ from ws4py.websocket import WebSocket
 from cros.factory.test import factory
 from cros.factory.test.event import Event
 from cros.factory.test.event import EventClient
+
+
+# Number of lines to buffer for new clients.
+TAIL_BUFFER_SIZE = 10
 
 
 class WebSocketManager(object):
@@ -32,6 +38,10 @@ class WebSocketManager(object):
   UUID, we disconnect the client.  This insures that we are always
   talking to a client that has a complete picture of our state
   (i.e., if the server restarts, the client must restart as well).
+
+  Properties:
+    tail_buffer: A rotating buffer of the last TAIL_BUFFER_SIZE lines,
+        to give to new web clients.
   '''
   def __init__(self, uuid):
     self.uuid = uuid
@@ -50,6 +60,7 @@ class WebSocketManager(object):
     self.tail_thread = threading.Thread(target=self._tail_console)
     self.tail_thread.start()
     self.closed = False
+    self.tail_buffer = collections.deque()
 
   def close(self):
     with self.lock:
@@ -133,9 +144,18 @@ class WebSocketManager(object):
     # Add a per-socket lock to use for sending, since ws4py is not
     # thread-safe.
     web_socket.send_lock = threading.Lock()
+
+    with self.lock:
+      lines = list(self.tail_buffer)
+
     with web_socket.send_lock:
       web_socket.send(Event(Event.Type.HELLO,
                   uuid=self.uuid).to_json())
+      for line in lines:
+        # Send the last n lines.
+        web_socket.send(Event(Event.Type.LOG,
+                              message=line).to_json())
+
 
     try:
       with self.lock:
@@ -161,10 +181,27 @@ class WebSocketManager(object):
     in general) since only the UI is interested in these log
     lines.
     '''
+    # tail seems to have a bug where, when outputting to a pipe, it
+    # doesn't output the first batch of data until it receives some
+    # new output.  Let tail start up, then output a single line to
+    # wake it up.  This is a terrible hack, but it's better than
+    # missing a bunch of lines.  A better fix might involve emulating
+    # tail directly in Python.
+    def target():
+      time.sleep(0.5)
+      factory.console.info('Opened console.')
+    thread = threading.Thread(target=target)
+    thread.daemon = True
+    thread.start()
+
     while True:
       line = self.tail_process.stdout.readline()
       if line == '':
         break
+      with self.lock:
+        self.tail_buffer.append(line)
+        while len(self.tail_buffer) > TAIL_BUFFER_SIZE:
+          self.tail_buffer.popleft()
       self._handle_event(
         Event(Event.Type.LOG,
             message=line.rstrip("\n")))
