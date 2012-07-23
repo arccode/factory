@@ -29,6 +29,8 @@ class CountDownTest(unittest.TestCase):
         id='system-load')
 
   def runTest(self):
+    # Allow attributes to be defined outside __init__
+    # pylint: disable=W0201
     self._ui = test_ui.UI()
     self._duration_secs = self.test_info.args['duration_secs']
     self._start_secs = time.time()

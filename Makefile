@@ -9,9 +9,11 @@ TARGET_DIR=/usr/local/factory
 FACTORY=$(DESTDIR)/$(TARGET_DIR)
 
 PYLINTRC=../../../chromite/pylintrc
+
 PYLINT_OPTIONS=\
 	--rcfile=$(PYLINTRC) \
 	--ignored-classes=Event \
+	--disable=R0921 \
 	--generated-members=test_info,AndReturn,AndRaise
 
 LINT_BLACKLIST=\
