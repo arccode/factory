@@ -239,9 +239,15 @@ def read_test_list(path=None, state_instance=None, text=None,
       if type(v) == type and issubclass(v, FactoryTest):
         test_list_locals[k] = v
 
-  # Import WLAN into the evaluation namespace, since it is used
-  # to construct the wlans option.
+  # Import types necessary to construct the test list.
   test_list_locals['WLAN'] = connection_manager.WLAN
+  test_list_locals['RequireRun'] = RequireRun
+  test_list_locals['ALL'] = ALL
+
+  # Add "Passed(x)" as an alias for "RequireRun(x, passed=True)", e.g.,
+  #
+  #   OperatorTest(..., require_run=Passed('a'))
+  test_list_locals['Passed'] = lambda name: RequireRun(name, passed=True)
 
   options = Options()
   test_list_locals['options'] = options
@@ -490,6 +496,24 @@ class FactoryTestFailure(Exception):
     self.status = status
 
 
+class RequireRun(object):
+  '''Requirement that a test has run (and optionally passed).'''
+  def __init__(self, path, passed=True):
+    '''Constructor.
+
+    Args:
+      path: Path to the test that must have been run.  "ALL" is
+        a valid value and refers to the root (all tests).
+      passed: Whether the test is required to have passed.
+    '''
+    # '' is the key of the root and will resolve to the root node.
+    self.path = ('' if path == ALL else path)
+    self.passed = passed
+    # The test object will be resolved later (it is not available
+    # upon creation).
+    self.test = None
+
+
 class FactoryTest(object):
   '''
   A factory test object.
@@ -556,14 +580,29 @@ class FactoryTest(object):
       May be a list or a single string. Items must all be in
       EXCLUSIVE_OPTIONS. Tests may not be backgroundable.
     @param _default_id: A default ID to use if no ID is specified.
-    @param require_run: Path (or list of paths) to tests that must have been
-      completed before this test may be run. If the specified path
-      includes this test, then all tests up to (but not including) this
-      test must have been run already. For instance, if this test is
-      SMT.FlushEventLogs, and require_run is "SMT", then all tests in
-      SMT before FlushEventLogs must have already been run. The string
-      "all" may be used to refer to the root (i.e., all tests in the
-      whole test list before this one must already have been run).
+    @param require_run: A list of RequireRun objects indicating which
+      tests must have been run (and optionally passed) before this
+      test may be run.  If the specified path includes this test, then
+      all tests up to (but not including) this test must have been run
+      already. For instance, if this test is SMT.FlushEventLogs, and
+      require_run is "SMT", then all tests in SMT before
+      FlushEventLogs must have already been run. ALL may be used to
+      refer to the root (i.e., all tests in the whole test list before
+      this one must already have been run).
+
+      Examples:
+        require_run='x'                 # These three are equivalent;
+        require_run=RequireRun('x')     # requires that X has been run
+        require_run=[RequireRun('x')]   # (but not necessarily passed)
+
+        require_run=Passed('x')         # These are equivalent;
+        require_run=[Passed('x')]       # requires that X has passed
+
+        require_run=Passed(ALL)         # Requires that all previous tests
+                                        # have passed
+
+        require_run=['x', Passed('y')]  # Requires that x has been run
+                                        # and y has passed
     @param iterations: Number of times to run the test.
     @param _root: True only if this is the root node (for internal use
       only).
@@ -580,10 +619,20 @@ class FactoryTest(object):
       self.exclusive = [exclusive]
     else:
       self.exclusive = exclusive or []
-    if isinstance(require_run, str):
-      self.require_run_paths = [require_run]
-    else:
-      self.require_run_paths = require_run or []
+
+    require_run = require_run or []
+    if not isinstance(require_run, list):
+      # E.g., a single string or RequireRun object
+      require_run = [require_run]
+    # Turn strings into single RequireRun objects
+    require_run = [RequireRun(x) if isinstance(x, str) else x
+                   for x in require_run]
+    assert (isinstance(require_run, list) and
+            all(isinstance(x, RequireRun) for x in require_run)), (
+                'require_run must be a list of RequireRun objects (%r)' %
+                require_run)
+    self.require_run = require_run
+
     self.subtests = subtests or []
     self.path = ''
     self.parent = None
@@ -829,17 +878,15 @@ class FactoryTestList(FactoryTest):
     self.options = options
     self._init('', self.path_map)
 
-    # Resolve require_run_paths to the actual test objects.
+    # Resolve require_run paths to the actual test objects.
     for test in self.walk():
-      test.require_run = []
-      for x in test.require_run_paths:
-        required_test = self if x == ALL else self.lookup_path(x)
-        if not required_test:
+      for requirement in test.require_run:
+        requirement.test = self.lookup_path(requirement.path)
+        if not requirement.test:
           raise TestListError(
             "Unknown test %s in %s's require_run argument (note "
             "that full paths are required)"
-            % (x, test.path))
-        test.require_run.append(required_test)
+            % (requirement.path, test.path))
 
   def get_all_tests(self):
     '''

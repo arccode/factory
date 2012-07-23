@@ -537,11 +537,11 @@ class Goofy(object):
         self.tests_to_run.popleft()
         return
 
-      for i in test.require_run:
-        for j in i.walk():
-          if j.get_state().status == TestState.ACTIVE:
+      for requirement in test.require_run:
+        for i in requirement.test.walk():
+          if i.get_state().status == TestState.ACTIVE:
             logging.info('Waiting for active test %s to complete '
-                   'before running %s', j.path, test.path)
+                         'before running %s', i.path, test.path)
             return
 
       if self.invocations and not (test.backgroundable and all(
@@ -553,15 +553,17 @@ class Goofy(object):
       self.tests_to_run.popleft()
 
       untested = set()
-      for i in test.require_run:
-        for j in i.walk():
-          if j == test:
+      for requirement in test.require_run:
+        for i in requirement.test.walk():
+          if i == test:
             # We've hit this test itself; stop checking
             break
-          if j.get_state().status == TestState.UNTESTED:
+          if ((i.get_state().status == TestState.UNTESTED) or
+              (requirement.passed and i.get_state().status !=
+               TestState.PASSED)):
             # Found an untested test; move on to the next
             # element in require_run.
-            untested.add(j)
+            untested.add(i)
             break
 
       if untested:

@@ -477,6 +477,25 @@ class RequireRunTest(GoofyTest):
     self.check_one_test('b', 'b_B', True, '')
 
 
+class RequireRunPassedTest(GoofyTest):
+  options = '''
+    options.auto_run_on_start = True
+  '''
+  test_list = '''
+    OperatorTest(id='a', autotest_name='a_A'),
+    OperatorTest(id='b', autotest_name='b_B', require_run=Passed('a')),
+  '''
+  def runTest(self):
+    self.check_one_test('a', 'a_A', False, '')
+    self.check_one_test('b', 'b_B', False,
+              'Required tests [a] have not been run yet',
+              does_not_start=True)
+
+    self.goofy.restart_tests()
+    self.check_one_test('a', 'a_A', True, '', expected_count=2)
+    self.check_one_test('b', 'b_B', True, '')
+
+
 if __name__ == "__main__":
   factory.init_logging('goofy_unittest')
   goofy._inited_logging = True
