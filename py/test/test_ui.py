@@ -20,8 +20,17 @@ from cros.factory.test.event import Event, EventClient
 FactoryTestFailure = factory.FactoryTestFailure
 
 
-# Import cgi.escape.
-Escape = cgi.escape
+def Escape(text, preserve_line_breaks=True):
+  '''Escapes HTML.
+
+  Args:
+    text: The text te escape.
+    preserve_line_breaks: True to preserve line breaks.
+  '''
+  html = cgi.escape(text)
+  if preserve_line_breaks:
+    html = html.replace('\n', '<br>')
+    return html
 
 
 def MakeLabel(en, zh=None, css_class=None):

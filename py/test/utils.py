@@ -15,6 +15,7 @@ import re
 import signal
 import subprocess
 import sys
+import threading
 import time
 import traceback
 
@@ -249,3 +250,15 @@ def FormatExceptionOnly():
     A string.'''
   return '\n'.join(
     traceback.format_exception_only(*sys.exc_info()[:2])).strip()
+
+
+def StartDaemonThread(*args, **kwargs):
+  '''Creates, starts, and returns a daemon thread.
+
+  Args:
+    See threading.Thread().
+  '''
+  thread = threading.Thread(*args, **kwargs)
+  thread.daemon = True
+  thread.start()
+  return thread

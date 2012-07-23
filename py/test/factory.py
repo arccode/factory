@@ -20,6 +20,7 @@ import logging
 import os
 import re
 import sys
+import yaml
 
 import factory_common # pylint: disable=W0611
 from cros.factory.goofy import connection_manager
@@ -92,6 +93,16 @@ _state_instance = None
 def get_current_test_path():
   # Returns the path of the currently executing test, if any.
   return os.environ.get("CROS_FACTORY_TEST_PATH")
+
+
+def get_current_test_metadata():
+  '''Returns metadata for the currently executing test, if any.'''
+  path = os.environ.get("CROS_FACTORY_TEST_METADATA")
+  if not path or not os.path.exists(path):
+    return {}
+
+  with open(path) as f:
+    return yaml.load(f)
 
 
 def get_lsb_data():

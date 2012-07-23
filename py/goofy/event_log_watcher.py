@@ -62,7 +62,7 @@ class EventLogWatcher(object):
 
   def IsScanning(self):
     '''Returns True if currently scanning (i.e., the lock is held).'''
-    if self._scan_lock.acquire():
+    if self._scan_lock.acquire(blocking=False):
       self._scan_lock.release()
       return False
     else:

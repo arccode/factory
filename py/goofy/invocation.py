@@ -75,17 +75,20 @@ class TestInvocation(object):
                      name='TestInvocation-%s' % test.path)
     self.on_completion = on_completion
     self.uuid = event_log.TimedUuid()
-    self.env_additions = {'CROS_FACTORY_TEST_PATH': self.test.path,
-                'CROS_FACTORY_TEST_INVOCATION': self.uuid}
     self.output_dir = os.path.join(factory.get_test_data_root(),
                                    '%s-%s' % (self.test.path,
                                               self.uuid))
     utils.TryMakeDirs(self.output_dir)
     self.metadata_file = os.path.join(self.output_dir, 'metadata')
+    self.env_additions = {'CROS_FACTORY_TEST_PATH': self.test.path,
+                          'CROS_FACTORY_TEST_INVOCATION': self.uuid,
+                          'CROS_FACTORY_TEST_METADATA': self.metadata_file}
     self.metadata = {}
     self.update_metadata(path=test.path,
                          init_time=time.time(),
-                         invocation=str(self.uuid))
+                         invocation=str(self.uuid),
+                         label_en=test.label_en,
+                         label_zh=test.label_zh)
     self.count = None
     self.log_path = os.path.join(self.output_dir, 'log')
     self.update_state_on_completion = {}

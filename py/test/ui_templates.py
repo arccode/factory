@@ -8,13 +8,15 @@
 import os
 
 from cros.factory.test import factory
+from cros.factory.test import test_ui
 
 _UI_TEMPLATE_PATH = '/ui_templates'
 
 class BaseTemplate(object):
   '''Base class for test UI template.'''
-  def _LoadTemplate(self, ui, template_name):
-    '''Load HTML and JS files of the template.'''
+  def __init__(self, ui, template_name):
+    self._ui = ui
+
     template_base = os.path.join(factory.FACTORY_PACKAGE_PATH,
                                  'goofy/static/ui_templates')
     html_file = os.path.join(template_base, template_name + '.html')
@@ -22,12 +24,23 @@ class BaseTemplate(object):
            'Template %s does not exist.' % template_name
 
     # Load template HTML
-    ui.SetHTML(open(html_file).read())
+    self._ui.SetHTML(open(html_file).read())
 
     # Load template JS if it exists
     js_file = os.path.join(template_base, template_name + '.js')
     if os.path.exists(js_file):
-      ui.RunJS(open(js_file).read())
+      self._ui.RunJS(open(js_file).read())
+
+    metadata = factory.get_current_test_metadata()
+    self.SetTitle(test_ui.MakeLabel(metadata.get('label_en', ''),
+                                    metadata.get('label_zh', '')))
+
+  def SetTitle(self, html):
+    '''Sets the title of the test UI.
+
+    Args:
+      html: The html content to write.'''
+    self._ui.SetHTML(html, id='title')
 
 
 class OneSection(BaseTemplate):
@@ -44,15 +57,7 @@ class OneSection(BaseTemplate):
         operator.
   '''
   def __init__(self, ui): # pylint: disable=W0231
-    self._ui = ui
-    self._LoadTemplate(self._ui, 'template_one_section')
-
-  def SetTitle(self, html):
-    '''Sets the title of the test UI.
-
-    Args:
-      html: The html content to write.'''
-    self._ui.SetHTML(html, id='title')
+    super(OneSection, self).__init__(ui, 'template_one_section')
 
   def SetState(self, html, append=False):
     '''Sets the state section in the test UI.
@@ -82,15 +87,7 @@ class TwoSections(BaseTemplate):
         test. The progress bar is hidden by default.
   '''
   def __init__(self, ui): # pylint: disable=W0231
-    self._ui = ui
-    self._LoadTemplate(self._ui, 'template_two_sections')
-
-  def SetTitle(self, html):
-    '''Sets the title of the test UI.
-
-    Args:
-      html: The html content to write.'''
-    self._ui.SetHTML(html, id='title')
+    super(TwoSections, self).__init__(ui, 'template_two_sections')
 
   def SetInstruction(self, html, append=False):
     '''Sets the instruction to operator.

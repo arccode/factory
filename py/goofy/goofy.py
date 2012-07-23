@@ -36,6 +36,7 @@ from cros.factory.test.event import EventClient
 from cros.factory.test.event import EventServer
 from cros.factory.event_log import EventLog
 from cros.factory.goofy.invocation import TestInvocation
+from cros.factory.goofy.goofy_rpc import GoofyRPC
 from cros.factory.goofy import system
 from cros.factory.goofy import test_environment
 from cros.factory.goofy import time_sanitizer
@@ -150,6 +151,7 @@ class Goofy(object):
     self.state_instance = None
     self.state_server = None
     self.state_server_thread = None
+    self.goofy_rpc = None
     self.event_server = None
     self.event_server_thread = None
     self.event_client = None
@@ -275,6 +277,8 @@ class Goofy(object):
   def start_state_server(self):
     self.state_instance, self.state_server = (
       state.create_server(bind_address='0.0.0.0'))
+    self.goofy_rpc = GoofyRPC(self)
+    self.goofy_rpc.RegisterMethods(self.state_instance)
     logging.info('Starting state server')
     self.state_server_thread = threading.Thread(
       target=self.state_server.serve_forever,
@@ -947,7 +951,7 @@ class Goofy(object):
     # syncing), since we may use it to flush event logs as well.
     self.log_watcher = EventLogWatcher(
       self.test_list.options.sync_event_log_period_secs,
-      handle_event_logs_callback=self._handle_event_logs)
+      handle_event_logs_callback=self.handle_event_logs)
     if self.test_list.options.sync_event_log_period_secs:
       self.log_watcher.StartWatchThread()
 
@@ -1099,7 +1103,7 @@ class Goofy(object):
     self.check_for_updates()
     self.sync_time_in_background()
 
-  def _handle_event_logs(self, log_name, chunk):
+  def handle_event_logs(self, log_name, chunk):
     '''Callback for event watcher.
 
     Attempts to upload the event logs to the shopfloor server.

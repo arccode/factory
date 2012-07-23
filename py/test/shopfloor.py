@@ -51,6 +51,9 @@ _DEFAULT_SERVER_PORT = 8082
 # causes the shopfloor server to be considered enabled.
 SHOPFLOOR_SERVER_ENV_VAR_NAME = 'CROS_SHOPFLOOR_SERVER_URL'
 
+# Exception message when shopfloor server is not configured.
+SHOPFLOOR_NOT_CONFIGURED_STR = "Shop floor server URL is not configured"
+
 # ----------------------------------------------------------------------------
 # Exception Types
 
@@ -169,7 +172,7 @@ def get_instance(url=None, detect=False, timeout=None):
   if not url and detect:
     url = detect_default_server_url()
   if not url:
-    raise Exception("Shop floor server URL is NOT configured.")
+    raise Exception(SHOPFLOOR_NOT_CONFIGURED_STR)
   return net_utils.TimeoutXMLRPCServerProxy(
     url, allow_none=True, verbose=False, timeout=timeout)
 

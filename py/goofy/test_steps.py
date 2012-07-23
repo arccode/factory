@@ -16,23 +16,6 @@ from cros.factory.test.factory import FactoryTest
 from cros.factory.test.factory import TestState
 
 
-class FlushEventLogsStep(FactoryTest):
-  '''Synchronizes event logs.'''
-  def __init__(self, **kw):
-    super(FlushEventLogsStep, self).__init__(invocation_target=self._Run,
-                                             _default_id='FlushEventLogs',
-                                             **kw)
-
-  def _Run(self, invocation):
-    log_watcher = invocation.goofy.log_watcher
-    # Display a message on the console if we're going to need to wait
-    if log_watcher.IsScanning():
-      factory.console.info('Waiting for current scan to finish...')
-    factory.console.info('Flushing event logs...')
-    log_watcher.FlushEventLogs()
-    factory.console.info('Flushed event logs.')
-
-
 class CheckUpdateStep(FactoryTest):
   '''Checks for updates and starts an update if available.
 
