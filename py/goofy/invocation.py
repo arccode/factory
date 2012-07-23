@@ -10,6 +10,7 @@ import os
 import cPickle as pickle
 import pipes
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -265,14 +266,13 @@ class TestInvocation(object):
               info)
 
       # Invoke the unittest driver in a separate process.
-      with open(self.log_path, "w") as log:
+      with open(self.log_path, 'wb', 0) as log:
         this_file = os.path.realpath(__file__)
         this_file = re.sub(r'\.pyc$', '.py', this_file)
         args = [this_file, '--pytest', info_path]
 
         cmd_line = ' '.join([pipes.quote(arg) for arg in args])
         print >> log, 'Running test: %s' % cmd_line
-        log.flush()
 
         logging.debug('Test command line: %s >& %s',
                       cmd_line, self.log_path)
@@ -282,13 +282,24 @@ class TestInvocation(object):
         with self._lock:
           if self._aborted:
             return TestState.FAILED, 'Aborted before starting'
+
           self._process = subprocess.Popen(
             args,
             env=env,
             stdin=open(os.devnull, "w"),
-            stdout=log,
+            stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             close_fds=True)
+
+        # Tee process's stderr to both the log and our stderr; this
+        # will end when the process dies.
+        while True:
+          line = self._process.stdout.readline()
+          if not line:
+            break
+          log.write(line)
+          sys.stderr.write('%s> %s' % (self.test.path, line))
+
         self._process.wait()
         with self._lock:
           if self._aborted:
