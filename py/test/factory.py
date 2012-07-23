@@ -608,7 +608,7 @@ class FactoryTest(object):
       only).
     '''
     self.label_en = label_en
-    self.label_zh = label_zh
+    self.label_zh = label_zh.decode('utf-8')
     self.autotest_name = autotest_name
     self.pytest_name = pytest_name
     self.invocation_target = invocation_target
