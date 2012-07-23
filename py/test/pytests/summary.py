@@ -68,7 +68,8 @@ class Report(unittest.TestCase):
 
     html = [
         '<div class="test-vcenter-outer"><div class="test-vcenter-inner">',
-        'Test Status for %s:' % test.parent.path,
+        test_ui.MakeLabel('Test Status for %s:' % test.parent.path,
+                          u'%s 測試結果列表：' % test.parent.path),
         '<div class="test-status-%s" style="font-size: 300%%">%s</div>' % (
             overall_status, test_ui.MakeStatusLabel(overall_status)),
         '<table>',
