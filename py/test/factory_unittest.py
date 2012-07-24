@@ -21,7 +21,7 @@ from cros.factory.goofy import test_steps
 SRCROOT = os.environ.get('CROS_WORKON_SRCROOT')
 
 
-class FactoryTest(unittest.TestCase):
+class FactoryModuleTest(unittest.TestCase):
   def test_parse_test_lists(self):
     '''Checks that all known test lists are parseable.'''
     # This test is located in a full source checkout (e.g.,
@@ -74,6 +74,14 @@ class FactoryTest(unittest.TestCase):
       # Sorry, swinging among the stars is currently unsupported.
       self.assertTrue(
         'Unknown option fly_me_to_the_moon' in e[0], e)
+
+  def test_py_test_name_to_id(self):
+    for name, test_id in (('a', 'A'),
+                          ('_', '_'),
+                          ('ab', 'Ab'),
+                          ('a_b', 'AB'),
+                          ('foo_bar', 'FooBar')):
+      self.assertEqual(test_id, factory.FactoryTest.pytest_name_to_id(name))
 
 if __name__ == "__main__":
   factory.init_logging('factory_unittest')

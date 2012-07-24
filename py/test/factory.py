@@ -650,7 +650,7 @@ class FactoryTest(object):
       elif autotest_name:
         self.id = autotest_name
       elif pytest_name:
-        self.id = pytest_name.rpartition('.')[2]
+        self.id = self.pytest_name_to_id(pytest_name)
       else:
         self.id = _default_id
 
@@ -687,6 +687,18 @@ class FactoryTest(object):
     assert not bogus_exclusive_items, (
         'In test %s, invalid exclusive options: %s (should be in %s)' %
         (self.id, bogus_exclusive_items, self.EXCLUSIVE_OPTIONS))
+
+  @staticmethod
+  def pytest_name_to_id(pytest_name):
+    '''Converts a pytest name to an ID.
+
+    Removes all but the rightmost dot-separated component, removes
+    underscores, and converts to CamelCase.
+    '''
+    name = pytest_name.rpartition('.')[2]
+    return re.sub('(?:^|_)([a-z])',
+                  lambda match: match.group(1).upper(),
+                  name)
 
   def to_struct(self):
     '''Returns the node as a struct suitable for JSONification.'''
