@@ -9,10 +9,10 @@ import netifaces
 import re
 import subprocess
 
-
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
+from cros.factory.test import utils
 
 # pylint: disable=W0702
 # Disable checking of exception types, since we catch all exceptions
@@ -125,7 +125,14 @@ class SystemStatus(object):
 
   This is information that changes frequently, e.g., load average
   or battery information.
+
+  We log a bunch of system status here.
   '''
+
+  GET_FAN_SPEED_RE = re.compile('Current fan RPM: ([0-9]*)')
+  TEMP_SENSOR_RE = re.compile('Reading temperature...([0-9]*)')
+  MAX_TEMPERATURE_COUNT = 10
+
   def __init__(self):
     self.battery = {}
     for k, item_type in [('charge_full', int),
@@ -142,6 +149,18 @@ class SystemStatus(object):
       except:
         self.battery[k] = None
 
+    # Get fan speed
+    self.fan_rpm = self.GetFanSpeed()
+
+    # Get temperatures from sensors
+    self.temperatures = []
+    for i in xrange(self.MAX_TEMPERATURE_COUNT):
+      temp = self.GetTemperature(i)
+      if temp is None:
+        break
+      # Convert from Kelvin to Celsius
+      self.temperatures.append(int(temp) - 273)
+
     try:
       self.load_avg = map(
         float, open('/proc/loadavg').read().split()[0:3])
@@ -157,6 +176,25 @@ class SystemStatus(object):
       self.ips = GetIPv4Addresses()
     except:
       self.ips = None
+
+  def CallECTool(self, cmd):
+    full_cmd = ['ectool'] + cmd
+    result = utils.CheckOutput(full_cmd)
+    return result
+
+  def GetFanSpeed(self):
+    try:
+      response = self.CallECTool(['pwmgetfanrpm'])
+      return int(self.GET_FAN_SPEED_RE.findall(response)[0])
+    except Exception: # pylint: disable=W0703
+      return None
+
+  def GetTemperature(self, idx):
+    try:
+      response = self.CallECTool(['temps', '%d' % idx])
+      return int(self.TEMP_SENSOR_RE.findall(response)[0])
+    except Exception: # pylint: disable=W0703
+      return None
 
 if __name__ == '__main__':
   import yaml

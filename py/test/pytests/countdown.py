@@ -10,10 +10,13 @@ Test parameter:
   duration_secs: Number of seconds to count down.
 '''
 
+import datetime
 import time
 import unittest
 
-from cros.factory.test import test_ui
+from cros.factory.event_log import EventLog
+from cros.factory.goofy.system import SystemStatus
+from cros.factory.test import factory, test_ui
 
 
 class CountDownTest(unittest.TestCase):
@@ -33,13 +36,25 @@ class CountDownTest(unittest.TestCase):
     # pylint: disable=W0201
     self._ui = test_ui.UI()
     self._duration_secs = self.test_info.args['duration_secs']
+    self._log_interval = self.test_info.args.get('log_interval', 10)
     self._start_secs = time.time()
     self._elapsed_secs = 0
     self._remaining_secs = self._duration_secs
+    self._next_log_time = 0
+    self._event_log = EventLog.ForAutoTest()
 
     # Loop until count-down ends.
     while self._remaining_secs >= 0:
       self.UpdateTimeAndLoad()
+
+      if time.time() >= self._next_log_time:
+        sys_status = SystemStatus()
+        self._event_log.Log('system_status', **sys_status.__dict__)
+        factory.console.info('Status at %s: %s' % (
+            datetime.datetime.now().isoformat(),
+            sys_status.__dict__))
+        self._next_log_time = time.time() + self._log_interval
+
       time.sleep(1)
       self._elapsed_secs = time.time() - self._start_secs
       self._remaining_secs = round(self._duration_secs - self._elapsed_secs)
