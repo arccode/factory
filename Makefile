@@ -21,8 +21,20 @@ LINT_BLACKLIST=\
 	py/bmpblk.py \
 	py/crosfw.py \
 	py/edid.py \
-	py/fmap.py \
+	py/fmap/py \
 	py/gooftool.py \
+	py/gooftool/bmpblk.py \
+	py/gooftool/crosfw.py \
+	py/gooftool/edid.py \
+	py/gooftool/fmap.py \
+	py/gooftool/gooftool.py \
+	py/gooftool/probe.py \
+	py/gooftool/report_upload.py \
+	py/gooftool/vblock.py \
+	py/gooftool/vpd_data.py \
+	py/goofy/invocation.py \
+	py/hwdb/hwid_tool.py \
+	py/hwdb/hwid_unittest.py \
 	py/goofy/connection_manager.py \
 	py/goofy/event_log_watcher.py \
 	py/goofy/event_log_watcher_unittest.py \
