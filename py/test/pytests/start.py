@@ -15,7 +15,6 @@
 #       URL by 'shop_floor_server_url' darg.
 # 'press_to_continue': Prompts and waits for a key press (SPACE) to continue.
 
-import cgi
 import glob
 import os
 import socket
@@ -193,13 +192,13 @@ class ShopFloorTask(FactoryTask):
       self.Stop()
       return True
     except shopfloor.ServerFault as e:
-      ShowErrorMsg('Server error:<br/>%s' % cgi.escape(e.__str__()))
+      ShowErrorMsg('Server error:<br/>%s' % test_ui.Escape(e.__str__()))
     except ValueError as e:
       ShowErrorMsg(e.message)
     except socket.gaierror as e:
       ShowErrorMsg('Network failure (address error).')
     except socket.error as e:
-      ShowErrorMsg('Network failure:<br/>%s' % cgi.escape(e[1].__str__()))
+      ShowErrorMsg('Network failure:<br/>%s' % test_ui.Escape(e[1].__str__()))
     except:
       ShowErrorMsg(sys.exc_info()[1])
     return False

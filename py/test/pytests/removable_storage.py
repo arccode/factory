@@ -15,7 +15,6 @@
 import os
 import pyudev
 import random
-import subprocess
 import threading
 import time
 import unittest
@@ -23,6 +22,7 @@ import unittest
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
+from cros.factory.test import utils
 
 
 _STATE_RW_TEST_WAIT_INSERT = 1
@@ -176,11 +176,12 @@ class RemovableStorageTest(unittest.TestCase):
     Args:
       dev_path: path to device file.
     '''
-    subp = subprocess.Popen(['blockdev', '--getsize64', dev_path],
-                            stdout=subprocess.PIPE)
-    dev_size = subp.communicate()[0]
+    try:
+      dev_size = utils.CheckOutput(['blockdev', '--getsize64', dev_path])
+    except:  # pylint: disable=W0702
+      self._ui.Fail(_ERR_GET_DEV_SIZE_FAILED_FMT_STR(dev_path))
 
-    if subp.returncode != 0 or dev_size is None:
+    if not dev_size:
       self._ui.Fail(_ERR_GET_DEV_SIZE_FAILED_FMT_STR(dev_path))
 
     dev_size = int(dev_size)
@@ -196,11 +197,9 @@ class RemovableStorageTest(unittest.TestCase):
     Args:
       dev_path: path to device file.
     '''
-    subp = subprocess.Popen(['blockdev', '--getro', dev_path],
-                            stdout=subprocess.PIPE)
-    ro = subp.communicate()[0]
-
-    if subp.returncode != 0 or ro is None:
+    try:
+      ro = utils.CheckOutput(['blockdev', '--getro', dev_path])
+    except:  # pylint: disable=W0702
       self._ui.Fail(_ERR_RO_TEST_FAILED_FMT_STR(dev_path))
 
     ro = int(ro)
