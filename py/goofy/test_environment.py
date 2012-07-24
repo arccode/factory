@@ -1,6 +1,6 @@
 #!/usr/bin/python
 #
-# Copyright (c) 2010 The Chromium OS Authors. All rights reserved.
+# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -124,7 +124,7 @@ class DUTEnvironment(Environment):
                 stderr=subprocess.STDOUT)
 
   def create_connection_manager(self, wlans):
-    return connection_manager.ConnectionManager()
+    return connection_manager.ConnectionManager(wlans)
 
 
 class FakeChrootEnvironment(Environment):

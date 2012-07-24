@@ -27,6 +27,7 @@ _DEFAULT_MANAGER = 'flimflam'
 _DEFAULT_PROC_NAME = _UNKNOWN_PROC
 _MANAGER_LIST = ['flimflam', 'shill']
 _PROC_NAME_LIST = [_UNKNOWN_PROC, 'flimflamd', 'shill']
+_SUBSERVICE_LIST = ['flimflam_respawn', 'wpasupplicant', 'modemmanager']
 
 
 class ConnectionManagerException(Exception):
@@ -129,8 +130,9 @@ class ConnectionManager():
   def EnableNetworking(self):
     '''Tells underlying connection manager to try auto-connecting.'''
     # Start network manager.
-    subprocess.call("start %s" % self.network_manager, shell=True,
-                    stdout=self.fnull, stderr=self.fnull)
+    for service in [self.network_manager] + _SUBSERVICE_LIST:
+      subprocess.call("start %s" % service, shell=True,
+                      stdout=self.fnull, stderr=self.fnull)
 
     # Configure the network manager to auto-connect wireless networks.
     flim = flimflam.FlimFlam()
@@ -141,8 +143,9 @@ class ConnectionManager():
     '''Tells underlying connection manager to terminate any existing connection.
     '''
     # Stop network manager.
-    subprocess.call("stop %s" % self.network_manager, shell=True,
-                    stdout=self.fnull, stderr=self.fnull)
+    for service in _SUBSERVICE_LIST + [self.network_manager]:
+      subprocess.call("stop %s" % service, shell=True,
+                      stdout=self.fnull, stderr=self.fnull)
 
     # Turn down drivers for interfaces to really stop the network.
     for dev in self.device_list:
