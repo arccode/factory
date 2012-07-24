@@ -96,7 +96,7 @@ def unpack_ImageInfo(blob, offset=0):
 def unpack_ScreenLayout(blob, base=0, offset=0):
   """ Unpacks a ScreenLayout from a blob, starting from offset. """
   layout = []
-  for index in range(MAX_IMAGE_IN_LAYOUT):
+  for _ in range(MAX_IMAGE_IN_LAYOUT):
     fields = struct.unpack_from(FORMAT_SCREEN_LAYOUT_IMAGE, blob, offset)
     offset += struct.calcsize(FORMAT_SCREEN_LAYOUT_IMAGE)
     image = dict(zip(NAMES_SCREEN_LAYOUT_IMAGE, fields))
@@ -125,9 +125,9 @@ def unpack_bmpblock(blob, offset=0):
   data = unpack_BmpBlockHeader(blob, offset)
   layout_offset = offset + struct.calcsize(FORMAT_BMPBLOCK_HEADER)
   localizations = []
-  for index_locale in range(data['number_of_localizations']):
+  for _ in range(data['number_of_localizations']):
     layouts = []
-    for index_layout in range(data['number_of_screenlayouts']):
+    for _ in range(data['number_of_screenlayouts']):
       layouts.append(unpack_ScreenLayout(blob, offset, layout_offset))
       layout_offset += (struct.calcsize(FORMAT_SCREEN_LAYOUT_IMAGE) *
                         MAX_IMAGE_IN_LAYOUT)

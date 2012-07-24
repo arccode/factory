@@ -28,17 +28,16 @@ from tempfile import NamedTemporaryFile
 
 import factory_common  # pylint: disable=W0611
 
-import cros.factory.gooftool.edid
-import cros.factory.gooftool.crosfw
-import cros.factory.gooftool.vblock
-
 from cros.factory.common import CompactStr, Error, Obj, Shell
-from cros.factory.hwdb.hwid_tool import ProbeResults
+from cros.factory.gooftool import edid
+from cros.factory.gooftool import crosfw
+from cros.factory.gooftool import vblock
+from cros.factory.hwdb.hwid_tool import ProbeResults  # pylint: disable=E0611
 
 try:
   sys.path.append('/usr/local/lib/flimflam/test')
-  import flimflam
-except:
+  import flimflam  # pylint: disable=F0401
+except: # pylint: disable=W0702
   pass
 
 # TODO(tammo): Some tests look for multiple components, some tests
@@ -172,7 +171,7 @@ class _FlimflamDevices(object):
   cached_dev_list = None
 
   @classmethod
-  def GetDevices(c, devtype):
+  def GetDevices(cls, devtype):
     """Return device Obj list for devices with the specified type."""
 
     def ProcessDevice(device):
@@ -189,25 +188,25 @@ class _FlimflamDevices(object):
           if ('Cellular.%s' % key) in properties)
       return result
 
-    if c.cached_dev_list is None:
-      c.cached_dev_list = [ProcessDevice(device) for device in
-                           flimflam.FlimFlam().GetObjectList('Device')]
-    return [dev for dev in c.cached_dev_list if dev.devtype == devtype]
+    if cls.cached_dev_list is None:
+      cls.cached_dev_list = [ProcessDevice(device) for device in
+                             flimflam.FlimFlam().GetObjectList('Device')]
+    return [dev for dev in cls.cached_dev_list if dev.devtype == devtype]
 
   @classmethod
-  def ReadSysfsDeviceIds(c, devtype, ignore_usb=False):
+  def ReadSysfsDeviceIds(cls, devtype, ignore_usb=False):
     """Return _ReadSysfsDeviceId result for each device of specified type."""
     ids = [_ReadSysfsDeviceId(dev.path, ignore_usb)
-           for dev in c.GetDevices(devtype)]
+           for dev in cls.GetDevices(devtype)]
     # Filter out 'None' results
     return sorted(device for device in ids if device is not None)
 
 
-class _TouchpadData():
+class _TouchpadData():  # pylint: disable=W0232
   """Return Obj with hw_ident and fw_ident string fields."""
 
   @classmethod
-  def Synaptics(c):
+  def Synaptics(cls):
     detect_program = '/opt/Synaptics/bin/syndetect'
     if not os.path.exists(detect_program):
       return None
@@ -229,7 +228,7 @@ class _TouchpadData():
     return Obj(ident_str=model, fw_version=firmware)
 
   @classmethod
-  def Cypress(c):
+  def Cypress(cls):
     for node in glob('/sys/class/input/mouse[0-9]*/device/device'):
       model_path_list = [os.path.join(node, field) for field in
                          ['product_id', 'hardware_version', 'protocol_version']]
@@ -244,7 +243,7 @@ class _TouchpadData():
     return None
 
   @classmethod
-  def Generic(c):
+  def Generic(cls):
     # TODO(hungte) add more information from id/*
     # format: N: Name="???_trackpad"
     input_file = '/proc/bus/input/devices'
@@ -256,15 +255,15 @@ class _TouchpadData():
   cached_data = None
 
   @classmethod
-  def Get(c):
-    if c.cached_data is None:
-      c.cached_data = Obj(ident_str=None, fw_version=None)
-      for vendor_fun in [c.Cypress, c.Synaptics, c.Generic]:
+  def Get(cls):
+    if cls.cached_data is None:
+      cls.cached_data = Obj(ident_str=None, fw_version=None)
+      for vendor_fun in [cls.Cypress, cls.Synaptics, cls.Generic]:
         data = vendor_fun()
         if data is not None:
-          c.cached_data = data
+          cls.cached_data = data
           break
-    return c.cached_data
+    return cls.cached_data
 
 
 def _ProbeFun(probe_map, probe_class, *arch_targets):
@@ -366,7 +365,7 @@ def _ProbeCamera():
       v4l2_ident = buf[V4L2_INDEX_IDENT]
       if v4l2_ident >= V4L2_VALID_IDENT:
         info.append('V4L2:%04x %04x' % (v4l2_ident, buf[V4L2_INDEX_REVISION]))
-  except:
+  except:  # pylint: disable=W0702
     pass
   return [CompactStr(info)] if info else []
 
@@ -692,7 +691,7 @@ def CalculateFirmwareHashes(fw_file_path):
   raw_image = open(fw_file_path, 'rb').read()
   try:
     image = crosfw.FirmwareImage(raw_image)
-  except:
+  except:  # pylint: disable=W0702
     return None
   hashes = {}
   if image.has_section('EC_RO'):
@@ -732,7 +731,7 @@ def Probe(target_comp_classes=None,
   def RunProbe(probe_fun):
     try:
       return probe_fun()
-    except Exception:
+    except Exception:  # pylint: disable=W0703
       logging.exception('Probe %r FAILED (see traceback), returning None.',
                         probe_fun.__name__)
       return None
@@ -751,8 +750,8 @@ def Probe(target_comp_classes=None,
     ic_probes = FilterProbes(_INITIAL_CONFIG_PROBE_MAP, arch, [])
   else:
     ic_probes = {}
-  found_components={}
-  missing_component_classes=[]
+  found_components = {}
+  missing_component_classes = []
   for comp_class, probe_fun in comp_probes.items():
     probe_values = RunProbe(probe_fun)
     if not probe_values:
@@ -761,12 +760,12 @@ def Probe(target_comp_classes=None,
       found_components[comp_class] = probe_values.pop()
     else:
       found_components[comp_class] = probe_values
-  initial_configs={}
+  initial_configs = {}
   for ic_class, probe_fun in ic_probes.items():
     probe_value = RunProbe(probe_fun)
     if probe_value is not None:
       initial_configs[ic_class] = probe_value
-  volatiles={}
+  volatiles = {}
   if probe_volatile:
     main_fw_file = crosfw.LoadMainFirmware().GetFileName()
     volatiles.update(CalculateFirmwareHashes(main_fw_file))

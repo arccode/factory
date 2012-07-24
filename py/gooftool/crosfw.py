@@ -1,3 +1,4 @@
+# pylint: disable=W0201
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -59,7 +60,7 @@ class Flashrom(object):
 
   def SetTarget(self, target):
     """Sets current target (bus) to access."""
-    assert target in self.VALID_TARGETS, "Unknown target: %s" % target
+    assert target in self._VALID_TARGETS, "Unknown target: %s" % target
     self._target = target
 
   def GetSize(self):
@@ -158,7 +159,7 @@ class Flashrom(object):
 class FirmwareImage(object):
   """Provides access to firmware image via FMAP sections."""
   def __init__(self, image_source):
-    self._image = image_source;
+    self._image = image_source
     self._fmap = fmap.fmap_decode(self._image)
     self._areas = dict(
         (entry['name'], [entry['offset'], entry['size']])
@@ -216,14 +217,14 @@ class FirmwareContent(object):
   _target_cache = {}
 
   @classmethod
-  def Load(c, target):
+  def Load(cls, target):
     """Create class instance for target, using cached copy if available."""
-    if target in c._target_cache:
-      return c._target_cache[target]
-    obj = c()
+    if target in cls._target_cache:
+      return cls._target_cache[target]
+    obj = cls()
     obj.target = target
     obj.flashrom = Flashrom(target)
-    c._target_cache[target] = obj
+    cls._target_cache[target] = obj
     return obj
 
   def GetChipId(self):

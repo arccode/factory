@@ -12,29 +12,14 @@ PYLINTRC=../../../chromite/pylintrc
 
 PYLINT_OPTIONS=\
 	--rcfile=$(PYLINTRC) \
-	--ignored-classes=Event \
+	--ignored-classes=Event,Obj \
 	--disable=R0921 \
 	--generated-members=test_info,AndReturn,AndRaise
 
 LINT_BLACKLIST=\
 	py/argparse.py \
-	py/bmpblk.py \
-	py/crosfw.py \
-	py/edid.py \
-	py/fmap/py \
-	py/gooftool.py \
-	py/gooftool/bmpblk.py \
-	py/gooftool/crosfw.py \
-	py/gooftool/edid.py \
-	py/gooftool/fmap.py \
-	py/gooftool/gooftool.py \
-	py/gooftool/probe.py \
-	py/gooftool/report_upload.py \
 	py/gooftool/vblock.py \
-	py/gooftool/vpd_data.py \
 	py/goofy/invocation.py \
-	py/hwdb/hwid_tool.py \
-	py/hwdb/hwid_unittest.py \
 	py/goofy/connection_manager.py \
 	py/goofy/event_log_watcher.py \
 	py/goofy/event_log_watcher_unittest.py \
@@ -42,11 +27,6 @@ LINT_BLACKLIST=\
 	py/goofy/test_environment.py \
 	py/goofy/updater.py \
 	py/goofy/web_socket_manager.py \
-	py/hacked_argparse.py \
-	py/hwid_database.py \
-	py/hwid_tool.py \
-	py/probe.py \
-	py/report_upload.py \
 	py/test/event.py \
 	py/test/gooftools.py \
 	py/test/leds.py \
@@ -63,9 +43,7 @@ LINT_BLACKLIST=\
 	py/test/unicode_to_string.py \
 	py/test/unicode_to_string_unittest.py \
 	py/test/utils.py \
-	py/test/utils_unittest.py \
-	py/vblock.py \
-	py/vpd_data.py
+	py/test/utils_unittest.py
 
 LINT_FILES=$(filter-out $(LINT_BLACKLIST), \
                $(shell find py -name '*.py' -type f | sort))
@@ -82,7 +60,8 @@ UNITTESTS=\
 	py/test/unicode_to_string_unittest.py \
 	py/test/utils_unittest.py \
 	py/utils/net_utils_unittest.py \
-	py/utils/process_utils_unittest.py
+	py/utils/process_utils_unittest.py \
+	py/hwdb/hwid_unittest.py
 
 # TODO(sheckylin): Get py/test/media_util_unittest.py working.
 

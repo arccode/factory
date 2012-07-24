@@ -25,8 +25,8 @@ class HackedArgParser(ArgumentParser):
   replace the relevant argparse internals.
   """
 
-  def __init__(self, subcommands={}, **kvargs):
-    self.subcommands = subcommands
+  def __init__(self, subcommands=None, **kvargs):
+    self.subcommands = subcommands if subcommands is not None else {}
     ArgumentParser.__init__(self, **kvargs)
 
   def format_sub_cmd_menu(self):

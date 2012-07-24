@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# pylint: disable=E1101
 #
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
@@ -21,17 +22,17 @@ import time
 from tempfile import gettempdir, NamedTemporaryFile
 
 import factory_common  # pylint: disable=W0611
-import cros.factory.gooftool.bmpblk
-import cros.factory.gooftool.crosfw
-import cros.factory.gooftool.probe
-import cros.factory.gooftool.report_upload
-import cros.factory.gooftool.vpd_data
 
 from cros.factory.common import Error, ParseKeyValueData, SetupLogging, Shell
 from cros.factory.common import YamlRead, YamlWrite
+from cros.factory.gooftool import crosfw
+from cros.factory.gooftool import report_upload
+from cros.factory.gooftool.bmpblk import unpack_bmpblock
+from cros.factory.gooftool.probe import Probe
+from cros.factory.gooftool.vpd_data import KNOWN_VPD_FIELD_DATA
 from cros.factory.hacked_argparse import CmdArg, Command, ParseCmdline
 from cros.factory.hacked_argparse import verbosity_cmd_arg
-from cros.factory.hwdb.hwid_tool import HardwareDb
+from cros.factory.hwdb import hwid_tool
 from cros.factory.event_log import EventLog, EVENT_LOG_DIR
 from cros.factory.event_log import TimedUuid
 from cros.factory.test.factory import FACTORY_LOG_PATH
@@ -155,27 +156,30 @@ def ProbeHwid(options):
   results and argument contraints, one per line.
   """
   map(hwid_tool.Validate.Status, options.status)
-  hw_db = HardwareDb(options.data_path)
+  hw_db = hwid_tool.HardwareDb(options.data_path)
   comp_db = hw_db.comp_db
   device = hw_db.GetDevice(options.board)
   component_spec = hwid_tool.ComponentSpec.New()
   if options.bom:
     device.BomExists(options.bom)
-    component_spec = CombineComponentSpecs(
+    component_spec = hwid_tool.CombineComponentSpecs(
       component_spec, device.boms[options.bom].primary)
   if options.variant:
     device.VariantExists(options.variant)
     variant_spec = device.variants[options.variant]
-    if ComponentSpecsConflict(component_spec, variant_spec):
+    if hwid_tool.ComponentSpecsConflict(component_spec, variant_spec):
+      # TODO(tammo): This error meesage arg is wrong; fix this when
+      # also making the whole function work (it is definitely broken).
       sys.exit('ERROR: multiple specifications for %r components'
-               ' (both VARIANT and BOM)' % comp_class)
-    component_spec = CombineComponentSpecs(component_spec, variant_spec)
+               ' (both VARIANT and BOM)' % component_spec)
+    component_spec = hwid_tool.CombineComponentSpecs(
+      component_spec, variant_spec)
   if options.stdin_comp_map:
     input_map = YamlRead(sys.stdin.read())
     logging.info('stdin component map: %r', input_map)
-    spec_classes = ComponentSpecClasses(component_spec)
+    spec_classes = hwid_tool.ComponentSpecClasses(component_spec)
     for key, value in input_map.items():
-      if key not in comp_db.all_comp_vlasses:
+      if key not in comp_db.all_comp_classes:
         sys.exit('ERROR: unknown component class %r (from stdin)' % key)
       if value not in comp_db.all_comp_names:
         sys.exit('ERROR: unkown component name %r (from stdin)' % value)
@@ -183,12 +187,12 @@ def ProbeHwid(options):
         sys.exit('ERROR: multiple specifications for %r components'
                  ' (stdin and BOM/VARIANT)' % key)
     component_spec.components.update(input_map)
-  logging.info('component spec used for matching:\n%s' % component_spec.Encode)
-  spec_classes = ComponentSpecClasses(component_spec)
+  logging.info('component spec used for matching:\n%s', component_spec.Encode)
+  spec_classes = hwid_tool.ComponentSpecClasses(component_spec)
   missing_classes = list(set(comp_db.all_comp_classes) - spec_classes)
   if missing_classes and not options.optimistic:
     logging.info('probing for missing classes %s', ', '.join(missing_classes))
-    probe_results = probe.Probe(target_comp_classes=missing_classes,
+    probe_results = Probe(target_comp_classes=missing_classes,
                                 probe_volatile=True, probe_initial_config=False)
   else:
     probe_results = hwid_tool.ProbeResults(
@@ -201,7 +205,7 @@ def ProbeHwid(options):
   if cooked_results.matched_hwids:
     print '\n'.join(cooked_results.matched_hwids)
     return
-  logging.info('exact HWID matching failed, but the following BOMs match: %s' %
+  logging.info('exact HWID matching failed, but the following BOMs match: %s',
                ', '.join(sorted(cooked_results.match_tree)))
   if options.optimistic and len(cooked_results.match_tree) == 1:
     bom_name = set(cooked_results.match_tree).pop()
@@ -224,7 +228,7 @@ def ProbeHwid(options):
   else:
     logging.info('optimistic matching not attempted because either it was '
                  'not requested, or because the number of BOMs was <> 1')
-  print 'NO matching HWIDs found')
+  print 'NO matching HWIDs found'
 
 
 @Command('probe',
@@ -236,7 +240,7 @@ def ProbeHwid(options):
                 help='Do not probe initial_config data.'))
 def RunProbe(options):
   """Print yaml-formatted breakdown of probed device properties."""
-  probe_results = probe.Probe(target_comp_classes=options.comps,
+  probe_results = Probe(target_comp_classes=options.comps,
                               probe_volatile=not options.no_vol,
                               probe_initial_config=not options.no_ic)
   print probe_results.Encode()
@@ -261,7 +265,7 @@ def VerifyComponents(options):
     if comp_class not in comp_db.components:
       sys.exit('ERROR: specified component class %r does not exist'
                ' in the component DB.' % comp_class)
-  probe_results = probe.Probe(target_comp_classes=options.target_comps,
+  probe_results = Probe(target_comp_classes=options.target_comps,
                               probe_volatile=False, probe_initial_config=False)
   errors = []
   matches = []
@@ -305,7 +309,7 @@ def VerifyHwid(options):
     for key in ro_vpd_keys:
       if key not in ro_vpd:
         sys.exit('Missing required VPD field: %s' % key)
-      known_valid_values = vpd_data.KNOWN_VPD_KEY_DATA.get(key, None)
+      known_valid_values = KNOWN_VPD_FIELD_DATA.get(key, None)
       value = ro_vpd[key]
       if known_valid_values is not None and value not in known_valid_values:
         sys.exit('Invalid VPD entry : key %r, value %r' % (key, value))
@@ -324,15 +328,15 @@ def VerifyHwid(options):
   logging.debug('expected system properties:\n%s', hwid_data.Encode())
   device = hw_db.GetDevice(hwid_data.board_name)
   cooked_probe_results = hwid_tool.CookedProbeResults(
-    hw_db.comp_db, device, probe.Probe())
+    hw_db.comp_db, device, Probe())
   logging.debug('found system properties:\n%s',
-                YamlWrite(cooked_results.__dict__))
+                YamlWrite(cooked_probe_results.__dict__))
   _event_log.Log(
     'probe',
-    found_components=cooked_results.found_components,
-    missing_component_classes=cooked_results.missing_component_classes,
-    volatiles=cooked_results.volatiles,
-    initial_configs=cooked_results.initial_configs)
+    found_components=cooked_probe_results.found_components,
+    missing_component_classes=cooked_probe_results.missing_component_classes,
+    volatiles=cooked_probe_results.volatiles,
+    initial_configs=cooked_probe_results.initial_configs)
   if hwid not in cooked_probe_results.matched_hwids:
     err_msg = 'HWID verification FAILED.\n'
     if cooked_probe_results.unmatched_components:
@@ -364,7 +368,7 @@ def VerifyHwid(options):
 
 
 @Command('verify_keys')
-def VerifyKeys(options):
+def VerifyKeys(options):  # pylint: disable=W0613
   """Verify keys in firmware and SSD match."""
   script = FindScript('verify_keys.sh')
   kernel_device = GetReleaseKernelPartitionPath()
@@ -375,7 +379,7 @@ def VerifyKeys(options):
 
 
 @Command('set_fw_bitmap_locale')
-def SetFirmwareBitmapLocale(options):
+def SetFirmwareBitmapLocale(options):  # pylint: disable=W0613
   """Use VPD locale value to set firmware bitmap default language."""
   image_file = crosfw.LoadMainFirmware().GetFileName()
   locale = ReadRoVpd(image_file).get('initial_locale', None)
@@ -384,7 +388,7 @@ def SetFirmwareBitmapLocale(options):
   bitmap_locales = []
   with NamedTemporaryFile() as f:
     Shell('gbb_utility -g --bmpfv=%s %s' % (f.name, image_file))
-    bmpblk_data = bmpblk.unpack_bmpblock(f.read())
+    bmpblk_data = unpack_bmpblock(f.read())
     bitmap_locales = bmpblk_data.get('locales', bitmap_locales)
   # Some locale values are just a language code and others are a
   # hyphen-separated language code and country code pair.  We care
@@ -401,7 +405,7 @@ def SetFirmwareBitmapLocale(options):
 
 
 @Command('verify_system_time')
-def VerifySystemTime(options):
+def VerifySystemTime(options):  # pylint: disable=W0613
   """Verify system time is later than release filesystem creation time."""
   script = FindScript('verify_system_time.sh')
   rootfs_device = GetReleaseRootPartitionPath()
@@ -411,7 +415,7 @@ def VerifySystemTime(options):
 
 
 @Command('verify_rootfs')
-def VerifyRootFs(options):
+def VerifyRootFs(options):  # pylint: disable=W0613
   """Verify rootfs on SSD is valid by checking hash."""
   script = FindScript('verify_rootfs.sh')
   rootfs_device = GetReleaseRootPartitionPath()
@@ -421,14 +425,14 @@ def VerifyRootFs(options):
 
 
 @Command('verify_switch_wp')
-def VerifyWpSwitch(options):
+def VerifyWpSwitch(options):  # pylint: disable=W0613
   """Verify hardware write protection switch is enabled."""
   if Shell('crossystem wpsw_cur').stdout.strip() != '1':
     raise Error, 'write protection switch is disabled'
 
 
 @Command('verify_switch_dev')
-def VerifyDevSwitch(options):
+def VerifyDevSwitch(options):  # pylint: disable=W0613
   """Verify developer switch is disabled."""
   result = Shell('crossystem devsw_cur')
   if result.success:
@@ -445,7 +449,7 @@ def VerifyDevSwitch(options):
 
 
 @Command('write_protect')
-def EnableFwWp(options):
+def EnableFwWp(options):  # pylint: disable=W0613
   """Enable then verify firmware write protection."""
 
   def WriteProtect(fw_file_path, fw_type, section):
@@ -481,7 +485,7 @@ def EnableFwWp(options):
 
 
 @Command('clear_gbb_flags')
-def ClearGbbFlags(options):
+def ClearGbbFlags(options):  # pylint: disable=W0613
   """Zero out the GBB flags, in preparation for transition to release state.
 
   No GBB flags are set in release/shipping state, but they are useful
@@ -529,7 +533,7 @@ def Verify(options):
 
 
 @Command('log_system_details')
-def LogSystemDetails(options):
+def LogSystemDetails(options):  # pylint: disable=W0613
   """Write miscellaneous system details to the event log."""
   raw_cs_data = Shell('crossystem').stdout.strip().splitlines()
   # The crossytem output contains many lines like:

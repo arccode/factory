@@ -20,8 +20,9 @@ Usage:
   tuple of decoded area flags.
 """
 
+
 import struct
-import sys
+
 
 # constants imported from lib/fmap.h
 FMAP_SIGNATURE = "__FMAP__"
@@ -51,6 +52,7 @@ FMAP_AREA_NAMES = (
     'name',
     'flags',
 )
+
 
 # format string
 FMAP_HEADER_FORMAT = "<8sBBQI%dsH" % (FMAP_STRLEN)
@@ -111,7 +113,7 @@ def fmap_decode(blob, offset=None):
   (fmap, size) = _fmap_decode_header(blob, offset)
   fmap['areas'] = []
   offset = offset + size
-  for i in range(fmap['nareas']):
+  for _ in range(fmap['nareas']):
     (area, size) = _fmap_decode_area(blob, offset)
     offset = offset + size
     fmap['areas'].append(area)
@@ -145,8 +147,8 @@ def fmap_encode(obj):
   return blob
 
 
-if __name__ == '__main__':
-  # main entry, do a unit test
+def main():
+  """Unit test."""
   blob = open('bin/example.bin').read()
   obj = fmap_decode(blob)
   print obj
@@ -154,3 +156,7 @@ if __name__ == '__main__':
   obj2 = fmap_decode(blob2)
   print obj2
   assert obj == obj2
+
+
+if __name__ == '__main__':
+  main()

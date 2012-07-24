@@ -1,3 +1,4 @@
+#!/usr/bin/python -u
 # pylint: disable=E1101
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
@@ -8,7 +9,6 @@ import logging
 import os
 import re
 import shutil
-import sys
 import unittest
 
 from contextlib import contextmanager
@@ -135,7 +135,8 @@ class HwidTest(unittest.TestCase):
       logging.error('stderr:\n' + cmd_result.stderr)
     if show_stdout:
       logging.info('stdout:\n' + cmd_result.stdout)
-    self.assertTrue(cmd_result.success, 'running %r failed' % cmd)
+    if assertSuccess:
+      self.assertTrue(cmd_result.success, 'running %r failed' % cmd)
     return cmd_result
 
   def testComplexRunthrough(self):

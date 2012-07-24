@@ -1320,7 +1320,7 @@ def LegacyExport(config, data):
   This command will be removed once we are no longer supporting any
   boards that depend on the old-style data formatting.
   """
-  from pprint import pprint
+  from pprint import pprint  # pylint: disable=W0404
   if config.board not in data.devices:
     print 'ERROR: unknown board %r.' % config.board
     return

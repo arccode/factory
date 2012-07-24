@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# pylint: disable=C0301
 #
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be

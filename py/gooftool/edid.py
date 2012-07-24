@@ -14,11 +14,9 @@ import logging
 import os
 
 from fcntl import ioctl
-from glob import glob
 from time import sleep
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.common import Obj
 
 
 # Constants lifted from EDID documentation.
@@ -110,7 +108,7 @@ def _I2cDump(bus, address, size):
     sleep(0.05)  # Wait i2c to get ready
     if os.write(fd, chr(0)) == 1:
       blob = os.read(fd, size)
-  except:
+  except:  # pylint: disable=W0702
     pass
   finally:
     if fd >= 0:
@@ -126,8 +124,8 @@ def LoadFromI2c(path):
 
 
 if __name__ == '__main__':
-  """For debugging, print parse result for specified i2c bus."""
+  # For debugging, print parse result for specified i2c bus.
   import sys
-  assert len(sys.argv) == 2, ('You must provide one argument '
-                              ', the i2c bus number.')
+  if len(sys.argv) != 2:
+    sys.exit('You must provide the i2c bus number as an argument.')
   print repr(LoadFromI2c(int(sys.argv[1])))

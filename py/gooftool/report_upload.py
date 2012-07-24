@@ -16,7 +16,9 @@ import urllib
 import urlparse
 import xmlrpclib
 
-from common import Error, Shell
+import factory_common  # pylint: disable=W0611
+
+from cros.factory.common import Error, Shell
 
 
 # Constants
@@ -161,7 +163,8 @@ def FtpUpload(source_path, ftp_url, retry_interval=DEFAULT_RETRY_INTERVAL,
   """
   # scheme: ftp, netloc: user:pass@host:port, path: /...
   url_struct = urlparse.urlparse(ftp_url)
-  tokens = re.match('(([^:]*)(:([^@]*))?@)?([^:]*)(:(.*))?', url_struct.netloc)
+  regexp = '(([^:]*)(:([^@]*))?@)?([^:]*)(:(.*))?'
+  tokens = re.match(regexp, url_struct.netloc)  # pylint: disable=E1101
   userid = tokens.group(2)
   passwd = tokens.group(4)
   host = tokens.group(5)
@@ -179,7 +182,7 @@ def FtpUpload(source_path, ftp_url, retry_interval=DEFAULT_RETRY_INTERVAL,
 
   # Parse destination path: According to RFC1738, 3.2.2,
   # Starting with %2F means absolute path, otherwise relative.
-  path = urllib.unquote(url_struct.path)
+  path = urllib.unquote(url_struct.path)  # pylint: disable=E1101
   assert path[0] == '/', 'Unknown FTP URL path.'
   path = path[1:]
 
@@ -197,7 +200,7 @@ def FtpUpload(source_path, ftp_url, retry_interval=DEFAULT_RETRY_INTERVAL,
   def FtpCallback(result):
     try:
       ftp.connect(host=host, port=port, timeout=retry_timeout)
-    except Exception, e:
+    except Exception, e:  # pylint: disable=W0703
       result['message'] = '%s' % e
       return False
     return True
