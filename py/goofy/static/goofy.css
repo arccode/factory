@@ -88,9 +88,17 @@ body {
 }
 #goofy-status-bar-main {
   padding-top: 1px;
+  width: 100%;
 }
-.goofy-status-bar-item {
-  padding-left: .5em;
+#goofy-status-bar-main img {
+  padding-left: .25em;
+  padding-right: .2em;
+}
+#goofy-status-bar-main img {
+  vertical-align: -4px;
+}
+.goofy-status-bar-section {
+  display: inline-block;
 }
 .goofy-status-bar-item:not(.goofy-value-known) .goofy-value {
   display: none;

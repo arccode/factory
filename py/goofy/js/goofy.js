@@ -1639,6 +1639,15 @@ cros.factory.Goofy.prototype.updateStatus = function() {
         goog.dom.classes.set(
             chargeIndicator, 'goofy-battery-' + batteryStatus);
 
+        var temperatures = status['temperatures'];
+        var temp = null;
+        if (temperatures && temperatures.length) {
+            var lastTemp = temperatures[temperatures.length - 1];
+            if (lastTemp) {
+                temp = Math.round(lastTemp) + '°C';
+            }
+        }
+        setValue('goofy-temperature', temp);
         this.lastStatus = status;
     });
 };

@@ -46,22 +46,37 @@
            </a>
          </div>
          <div id="goofy-status-bar-main">
-           <span class="goofy-status-bar-item" id="goofy-load-average">
-             Load:
-             <span class="goofy-value"></span>
-             <span class="goofy-unknown">N/A</span>
+          <span class="goofy-status-bar-section" style="min-width: 35%">
+           <img src="images/chip.png"
+           ><span class="goofy-status-bar-item" id="goofy-load-average"
+             ><span class="goofy-value"></span
+             ><span class="goofy-unknown">N/A</span>
            </span>
-           <span class="goofy-status-bar-item" id="goofy-percent-cpu">
-             CPU:
-             <span class="goofy-value"></span>
-             <span class="goofy-unknown">N/A</span>
+           /
+           <span class="goofy-status-bar-item" id="goofy-percent-cpu"
+             ><span class="goofy-value"></span
+             ><span class="goofy-unknown">N/A</span>
            </span>
-           <span class="goofy-status-bar-item" id="goofy-percent-battery">
-             Battery:
-             <span class="goofy-value"></span
+          </span>
+
+          <span class="goofy-status-bar-section">
+           <img src="images/battery.png"
+           ><span class="goofy-status-bar-item" id="goofy-percent-battery"
+              ><span class="goofy-value"></span
               ><span class="goofy-unknown">N/A</span
               ><span id="goofy-battery-charge-indicator"></span>
            </span>
+          </span>
+
+          <span class="goofy-status-bar-section">
+           <img src="images/thermometer.png" style="padding-left: 1.5em"
+           ><span class="goofy-status-bar-item" id="goofy-temperature"
+              ><span class="goofy-value"></span
+              ><span class="goofy-unknown">N/A</span
+              ><span id="goofy-temperature-indicator"></span>
+           </span>
+          </span>
+
            <img id="goofy-system-info-hover" src="images/info.png">
          </div>
        </div>
