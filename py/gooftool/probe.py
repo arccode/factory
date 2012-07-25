@@ -750,16 +750,16 @@ def Probe(target_comp_classes=None,
     ic_probes = FilterProbes(_INITIAL_CONFIG_PROBE_MAP, arch, [])
   else:
     ic_probes = {}
-  found_components = {}
+  found_probe_value_map = {}
   missing_component_classes = []
   for comp_class, probe_fun in comp_probes.items():
     probe_values = RunProbe(probe_fun)
     if not probe_values:
       missing_component_classes.append(comp_class)
     elif len(probe_values) == 1:
-      found_components[comp_class] = probe_values.pop()
+      found_probe_value_map[comp_class] = probe_values.pop()
     else:
-      found_components[comp_class] = probe_values
+      found_probe_value_map[comp_class] = sorted(probe_values)
   initial_configs = {}
   for ic_class, probe_fun in ic_probes.items():
     probe_value = RunProbe(probe_fun)
@@ -773,7 +773,7 @@ def Probe(target_comp_classes=None,
     if ec_fw_file is not None:
       volatiles.update(CalculateFirmwareHashes(ec_fw_file))
   return ProbeResults(
-    found_components=found_components,
+    found_probe_value_map=found_probe_value_map,
     missing_component_classes=missing_component_classes,
-    volatiles=volatiles,
+    found_volatile_values=volatiles,
     initial_configs=initial_configs)

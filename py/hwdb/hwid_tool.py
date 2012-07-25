@@ -38,6 +38,9 @@ COMPONENT_DB_FILENAME = 'component_db'
 BVV_GLOB_RE = re.compile(r'^([A-Z]+)\s+([A-Z]+|\*)-([A-Z]+|\*)$')
 BBVV_GLOB_RE = re.compile(r'^([A-Z]+)\s+([A-Z]+|\*)\s+([A-Z]+|\*)-([A-Z]+|\*)$')
 
+# HWID regexp.
+HWID_RE = re.compile(r'^([A-Z]+) ([A-Z]+) ([A-Z]+)-([A-Z]+) ([0-9]+)$')
+
 
 # Possible life cycle stages (status) for components and HWIDs.
 LIFE_CYCLE_STAGES = set([
@@ -70,6 +73,15 @@ MakeDatastoreClass('ComponentSpec', {
     'components': (dict, [str, (list, str)]),
     })
 
+# ComponentData is the matching data for ComponentSpec -- in other
+# words, ComponentSpec expresses an expectation (including, for
+# example, dontcare), whereas ComponentData expresses an actual
+# configuration.
+MakeDatastoreClass('ComponentData', {
+    'classes_missing': (list, str),
+    'extant_components': (list, str),
+    })
+
 MakeDatastoreClass('BomSpec', {
     'primary': ComponentSpec,
     'variants': (list, str),
@@ -80,6 +92,9 @@ MakeDatastoreClass('InitialConfigSpec', {
     'enforced_for_boms': (list, str),
     })
 
+# TODO(tammo): Consider creating an explicit common-for-all-boms
+# component-spec at the device level, to reduce the per-bom noise.
+# The contents of this could be derived automatically.
 MakeDatastoreClass('DeviceSpec', {
     'boms': (dict, BomSpec),
     'hwid_status': StatusData,
@@ -90,28 +105,11 @@ MakeDatastoreClass('DeviceSpec', {
     'vpd_ro_fields': (list, str),
     })
 
-MakeDatastoreClass('ComponentData', {
-    'classes_missing': (list, str),
-    'extant_components': (list, str),
-    })
-
 MakeDatastoreClass('ProbeResults', {
-    'found_components': (dict, [str, (list, str)]),
+    'found_probe_value_map': (dict, [str, (list, str)]),
     'missing_component_classes': (list, str),
-    'volatiles': (dict, str),
+    'found_volatile_values': (dict, str),
     'initial_configs': (dict, str),
-    })
-
-MakeDatastoreClass('HwidData', {
-    'hwid': str,
-    'board_name': str,
-    'bom_name': str,
-    'variant_code': str,
-    'volatile_code': str,
-    'status': str,
-    'components': ComponentSpec,
-    'initial_config': (dict, str),
-    'ro_vpds': (list, str),
     })
 
 
@@ -121,20 +119,16 @@ def HwidChecksum(text):
 
 def ParseHwid(hwid):
   """Parse HWID string details.  See the hwid spec for details."""
-  parts = hwid.split()
-  if len(parts) != 4:
+  match = HWID_RE.findall(hwid)
+  if not match:
     raise Error, ('illegal hwid %r, does not match ' % hwid +
                   '"BOARD BOM VARIANT-VOLATILE CHECKSUM" format')
-  checksum = parts.pop()
-  if checksum != HwidChecksum(' '.join(parts)):
-    raise Error, 'bad checksum for hwid %r' % hwid
-  varvol = parts.pop().split('-')
-  if len(varvol) != 2:
-    raise Error, 'bad variant-volatile part for hwid %r' % hwid
-  variant, volatile = varvol
-  board, bom = parts
-  if not all(x.isalpha() for x in [board, bom, variant, volatile]):
-    raise Error, 'bad (non-alpha) part for hwid %r' % hwid
+  board, bom, variant, volatile, checksum = match.pop()
+  expected_checksum = HwidChecksum(
+    '%s %s %s-%s' % (board, bom, variant, volatile))
+  if checksum != expected_checksum:
+    raise Error, 'bad checksum for hwid %r (expected %s)' % (
+      hwid, expected_checksum)
   return Obj(hwid=hwid, board=board, bom=bom,
              variant=variant, volatile=volatile)
 
@@ -361,7 +355,8 @@ class CompDb(YamlDatastore):
     self._PreprocessData()
     self.EnforceInvariants()
 
-  def CreateComponentSpec(self, components, dontcare, missing):
+  def CreateComponentSpec(self, components=None, dontcare=None, missing=None,
+                          filter_component_classes=None):
     """Build spec from a lists of component names and classes.
 
     This properly builds the ComponentSpec.components mapping (see
@@ -369,9 +364,14 @@ class CompDb(YamlDatastore):
     nothing, create a list of two elts if there was a singleton, and
     otherwise just add to an existing list.
     """
+    components = components if components is not None else []
+    dontcare = dontcare if dontcare is not None else []
+    missing = missing if missing is not None else []
     comp_map = {}
     for comp in components:
       comp_class = self.name_class_map[comp]
+      if filter_component_classes and comp_class in filter_component_classes:
+        continue
       comp_data = comp_map.get(comp_class, None)
       if comp_data is None:
         comp_map[comp_class] = comp
@@ -379,6 +379,9 @@ class CompDb(YamlDatastore):
         comp_data.append(comp)
       else:
         comp_map[comp_class] = [comp_data, comp]
+    if filter_component_classes:
+      missing = list(set(missing) - set(filter_component_classes))
+      dontcare = list(set(dontcare) - set(filter_component_classes))
     class_conflict = set(dontcare) & set(missing) & set(comp_map)
     if class_conflict:
       raise Error, ('illegal component specification, conflicting data for '
@@ -388,14 +391,23 @@ class CompDb(YamlDatastore):
       classes_missing=sorted(missing),
       components=comp_map)
 
-  def MatchComponentSpec(self, spec, found_components):
-    spec_comp_class_map = ComponentSpecCompClassMap(spec)
-    for comp in found_components:
+  def MatchComponentSpecWithData(self, component_spec, component_data):
+    """Does the specification match the actual configuration data?
+
+    For all extant components check they either match exactly or are
+    specified as dontcare.  For all actually missing components, check
+    they are specified as either missing or dontcare.
+    """
+    spec_class_comps_map = ComponentSpecClassCompsMap(component_spec)
+    for comp_class in component_data.classes_missing:
+      if comp_class in component_spec.components:
+        return False
+    for comp in component_data.extant_components:
       comp_class = self.name_class_map[comp]
-      if comp_class in spec.classes_dontcare:
-        continue
-      if (comp_class in spec.classes_missing or
-          comp not in spec_comp_class_map):
+      if comp_class in component_spec.classes_missing:
+        return False
+      expected_comps = spec_class_comps_map.get(comp_class, None)
+      if expected_comps is not None and comp not in expected_comps:
         return False
     return True
 
@@ -403,6 +415,29 @@ class CompDb(YamlDatastore):
     return (set(component_data.classes_missing) |
             set(self.name_class_map[comp]
                 for comp in component_data.extant_components))
+
+  def ComponentDataIsComplete(self, component_data):
+    return self.ComponentDataClasses(component_data) == self.all_comp_classes
+
+  def MatchComponentProbeValues(self, found_probe_value_map):
+    """Resolve component probe results into canonical names.
+
+    Returns the extant_components part of a ComponentData, along with
+    a dict of {comp_class:probe_value} for all of the unidentifiable
+    components from the input.
+    """
+    result = Obj(matched=[], unmatched={})
+    for probe_class, pr_data in found_probe_value_map.items():
+      probe_values = pr_data if isinstance(pr_data, list) else [pr_data]
+      for probe_value in probe_values:
+        component_name = self.result_name_map.get(probe_value, None)
+        if component_name is not None:
+          result.matched.append(component_name)
+        else:
+          pr_list = result.unmatched.setdefault(probe_class, [])
+          pr_list.append(probe_value)
+    result.matched.sort()
+    return result
 
   @classmethod
   def Read(cls, path):
@@ -477,84 +512,6 @@ class CookedBoms(object):
     self._BuildCommonCompMap()
     self._BuildCommonComps()
     self._BuildHierarchy()
-
-
-class CookedProbeResults(object):
-
-  def _MatchComponents(self):
-    self.matched_components = []
-    self.unmatched_components = {}
-    for probe_class, pr_data in self.found_components.items():
-      probe_results = pr_data if isinstance(pr_data, list) else [pr_data]
-      for probe_result in probe_results:
-        component_name = self._comp_db.result_name_map.get(probe_result, None)
-        if component_name is not None:
-          self.matched_components.append(component_name)
-        else:
-          pr_list = self.unmatched_components.setdefault(probe_class, [])
-          pr_list.append(probe_result)
-    self.matched_components.sort()
-
-  def _MatchVolatiles(self):
-    self.matched_volatiles = {}
-    self.unmatched_volatiles = {}
-    for probe_class, probe_result in self.volatiles.items():
-      volatile_name = self._device.reverse_vol_value_map.get(probe_result, None)
-      if volatile_name is not None:
-        self.matched_volatiles[probe_class] = volatile_name
-      else:
-        self.unmatched_volatiles[probe_class] = probe_result
-
-  def _MatchVolTags(self):
-    self.matched_vol_tags = sorted(
-      tag for tag, volatile in self._device.volatiles.items()
-      if volatile == self.matched_volatiles)
-
-  def _MatchIcTags(self):
-    self.matched_ic_tags = sorted(
-      tag for tag, ic in self._device.initial_configs.items()
-      if ic.constraints == self.initial_configs)
-
-  def _BuildMatchTree(self):
-    self.component_data = ComponentData(
-      classes_missing=self.missing_component_classes,
-      extant_components=self.matched_components)
-    self.component_data_classes = self._comp_db.ComponentDataClasses(
-      self.component_data)
-    self.component_data_is_complete = (
-      self.component_data_classes == self._comp_db.all_comp_classes)
-    self.match_tree = dict((bom_name, {}) for bom_name in
-                           self._device.MatchBoms(self.component_data))
-    self.matched_hwids = set()
-    for bom_name, variant_tree in self.match_tree.items():
-      matching_variants = self._device.MatchVariants(
-        bom_name, self.component_data)
-      for var_code in matching_variants:
-        volatile_tree = variant_tree.setdefault(var_code, {})
-        for vol_tag in self.matched_vol_tags:
-          status = self._device.GetHwidStatus(bom_name, var_code, vol_tag)
-          if status is not None:
-            volatile_tree[vol_tag] = status
-            hwid = self._device.FmtHwid(bom_name, var_code, vol_tag)
-            self.matched_hwids.add(hwid)
-
-  def _MatchInitialConfigs(self):
-    self.matched_ic_boms = set()
-    for bom_name in self.match_tree:
-      enforced_ics = self._device.reverse_ic_map.get(bom_name, [])
-      if set(enforced_ics) >= set(self.matched_ic_tags):
-        self.matched_ic_boms.add(bom_name)
-
-  def __init__(self, comp_db, device, probe_results):
-    self._comp_db = comp_db
-    self._device = device
-    self.__dict__.update(probe_results.__dict__)
-    self._MatchComponents()
-    self._MatchVolatiles()
-    self._MatchVolTags()
-    self._MatchIcTags()
-    self._BuildMatchTree()
-    self._MatchInitialConfigs()
 
 
 class Device(YamlDatastore):
@@ -694,6 +651,9 @@ class Device(YamlDatastore):
     self._EnforceVolatileUniqueness()
     self._EnforceInitialConfigsDontConflict()
     # TODO(tammo): prevent hwid and contained component status conflicts
+    # TODO(tammo): for all status values, make sure the corresponding
+    # hwid exists ; that the bom has those variant and volatiles
+    # assigned
 
   def BomExists(self, bom_name):
     if bom_name not in self.boms:
@@ -736,6 +696,12 @@ class Device(YamlDatastore):
     return set(volatile_code for volatile_code, status
                in volatile_status_map.items()
                if status in status_mask)
+
+  def GetInitialConfigConstraints(self, bom_name):
+    constraints = {}
+    for ic_code in self.reverse_ic_map.get(bom_name, []):
+      constraints.update(self.initial_configs[ic_code].constraints)
+    return constraints
 
   def SetHwidStatus(self, bom, variant, volatile, status):
     self.UpdateHwidStatusMaps(bom, variant, volatile, status)
@@ -818,11 +784,31 @@ class Device(YamlDatastore):
     self._PreprocessData()
     return ic_tag
 
+  def MatchVolatileValues(self, value_map):
+    result = Obj(
+      matched_volatiles={},
+      unmatched_values={},
+      matched_tags=[])
+    for probe_class, probe_value in value_map.items():
+      volatile_name = self.reverse_vol_value_map.get(probe_value, None)
+      if volatile_name is not None:
+        result.matched_volatiles[probe_class] = volatile_name
+      else:
+        result.unmatched_values[probe_class] = probe_value
+    result.matched_tags = sorted(
+      tag for tag, volatile in self.volatiles.items()
+      if volatile == result.matched_volatiles)
+    return result
+
+  def MatchInitialConfigValues(self, value_map):
+    return sorted(
+      tag for tag, ic in self.initial_configs.items()
+      if ic.constraints == self.initial_configs)
+
   def MatchBoms(self, component_data):
     return set(
       bom_name for bom_name, bom in self.boms.items()
-      if self._comp_db.MatchComponentSpec(
-        bom.primary, component_data.extant_components))
+      if self._comp_db.MatchComponentSpecWithData(bom.primary, component_data))
 
   def MatchVariants(self, bom_name, component_data):
     matches = set()
@@ -831,10 +817,45 @@ class Device(YamlDatastore):
       if var_code not in bom.variants:
         continue
       variant_spec = CombineComponentSpecs(bom.primary, variant)
-      if self._comp_db.MatchComponentSpec(variant_spec,
-                                          component_data.extant_components):
+      if self._comp_db.MatchComponentSpecWithData(variant_spec, component_data):
         matches.add(var_code)
     return matches
+
+  def BuildMatchTree(self, component_data, volatile_tags=None):
+    """Return nesting dicts with matches for component and volatile data.
+
+    Tree looks like {bom_name: {var_code: {vol_code: (hwid,
+    status)}}}, containing those boms that match the component_data,
+    then for those boms the variants that match the component_data,
+    and finally those volatiles that match the specified set of tags
+    and also have non-None status.
+    """
+    volatile_tags = volatile_tags if volatile_tags is not None else []
+    match_tree = dict((bom_name, {}) for bom_name in
+                      self.MatchBoms(component_data))
+    for bom_name, variant_tree in match_tree.items():
+      matching_variants = self.MatchVariants(bom_name, component_data)
+      for var_code in matching_variants:
+        volatile_tree = variant_tree.setdefault(var_code, {})
+        for vol_tag in volatile_tags:
+          status = self.GetHwidStatus(bom_name, var_code, vol_tag)
+          if status is not None:
+            volatile_tree[vol_tag] = status
+    return match_tree
+
+  def GetMatchTreeHwids(self, match_tree):
+    """Return a {hwid: status} dict built from a MatchTree."""
+    return dict(
+      (self.FmtHwid(bom_name, variant_code, volatile_code), status)
+      for bom_name, variant_tree in match_tree.items()
+      for variant_code, volatile_tree in variant_tree.items()
+      for volatile_code, status in volatile_tree.items())
+
+  def IntersectBomsAndInitialConfigs(self, initial_config_tags):
+    """Return bom_name list for which specified initial_configs are enforced."""
+    return set(
+      bom_name for bom_name in self.boms
+      if set(self.reverse_ic_map.get(bom_name, [])) <= set(initial_config_tags))
 
   def FmtHwid(self, bom, variant, volatile):
     """Generate HWID string.  See the hwid spec for details."""
@@ -884,31 +905,12 @@ class HardwareDb(object):
     self.devices[board_name] = device
     return device
 
-  def GetDevice(self, board_name):
+  def GetDevice(self, board_name=None):
+    if board_name is None and len(self.devices) == 1:
+      return self.devices[self.devices.keys().pop()]
     if board_name not in self.devices:
       raise Error, ('board %r does not exist' % board_name)
     return self.devices[board_name]
-
-  def GetHwidData(self, hwid):
-    """Return corresponding HwidData for specified HWID string."""
-    hwid_parts = ParseHwid(hwid)
-    device = self.GetDevice(hwid_parts.board)
-    device.BomExists(hwid_parts.bom)
-    device.VariantExists(hwid_parts.variant)
-    device.VolatileExists(hwid_parts.volatile)
-    return HwidData(
-      hwid=hwid,
-      board_name=hwid_parts.board,
-      bom_name=hwid_parts.bom,
-      variant_code=hwid_parts.variant,
-      volatile_code=hwid_parts.volatile,
-      status=device.GetHwidStatus(
-        hwid_parts.bom, hwid_parts.volatile, hwid_parts.variant),
-      components = CombineComponentSpecs(
-        device.boms[hwid_parts.bom].primary,
-        device.variants[hwid_parts.variant]),
-      initial_config = device.GetInitialConfig(hwid_parts.bom),
-      ro_vpds=device.vpd_ro_field_list.copy())
 
   def Write(self):
     """Write the component_db and all device data files."""
@@ -1205,56 +1207,70 @@ def AssimilateProbeResults(config, hw_db):
   """
   device = hw_db.GetDevice(config.board)
   probe_results = ProbeResults.Decode(sys.stdin.read())
-  for comp_class in (set(probe_results.found_components) |
+  for comp_class in (set(probe_results.found_probe_value_map) |
                      set(probe_results.missing_component_classes)):
     hw_db.comp_db.CompClassExists(comp_class)
-  cooked_results = CookedProbeResults(hw_db.comp_db, device, probe_results)
-  for comp in cooked_results.matched_components:
+  cooked_components = hw_db.comp_db.MatchComponentProbeValues(
+    probe_results.found_probe_value_map)
+  for comp in cooked_components.matched:
     print 'found matching %r component %r' % (
       hw_db.comp_db.name_class_map[comp], comp)
-  for vol_class, vol_name in cooked_results.matched_volatiles.items():
-    print 'found matching %r %r volatile %r' % (
-      device.board_name, vol_class, vol_name)
-  for comp_class, comp_prs in cooked_results.unmatched_components.items():
+  for comp_class, comp_prs in cooked_components.unmatched.items():
     for comp_probe_result in comp_prs:
       comp_name = hw_db.comp_db.AddComponent(comp_class, comp_probe_result)
       print 'added component/probe_result %r : %r' % (
         comp_name, comp_probe_result)
-  for vol_class, vol_value in cooked_results.unmatched_volatiles.items():
+  cooked_volatiles = device.MatchVolatileValues(
+    probe_results.found_volatile_values)
+  for vol_class, vol_name in cooked_volatiles.matched_volatiles.items():
+    print 'found matching %r %r volatile %r' % (
+      device.board_name, vol_class, vol_name)
+  for vol_class, vol_value in cooked_volatiles.unmatched_values.items():
     vol_name = device.AddVolatileValue(vol_class, vol_value)
     print 'added volatile_value/probe_result %r : %r' % (
       vol_name, vol_value)
-  if cooked_results.match_tree:
-    print '%s matching boms: %s' % (
-      'exactly' if cooked_results.component_data_is_complete else 'partially',
-      ', '.join(sorted(cooked_results.match_tree)))
-  # Cook again, to pick up mappings to added comps/vols.
-  cooked_results = CookedProbeResults(
-          hw_db.comp_db, device, probe_results)
-  if cooked_results.matched_vol_tags:
-    print 'matching volatile tags: %s' % ', '.join(
-      cooked_results.matched_vol_tags)
+  cooked_initial_configs = device.MatchInitialConfigValues(
+    probe_results.initial_configs)
+  if cooked_initial_configs:
+    print 'matching initial config tags: %s' % ', '.join(cooked_initial_configs)
   else:
-    vol_tag = device.AddVolatile(cooked_results.matched_volatiles)
-    print 'added volatile spec as tag %s' % vol_tag
-  if cooked_results.matched_ic_tags:
-    print 'matching initial config tags: %s' % ', '.join(
-      cooked_results.matched_ic_tags)
-  else:
-    ic_tag = device.AddInitialConfig(cooked_results.initial_configs)
+    ic_tag = device.AddInitialConfig(probe_results.initial_configs)
     print 'added initial config spec as tag %s' % ic_tag
-    cooked_results.matched_ic_tags = [ic_tag]
+  # Cook components and volatiles again, to pick up new mappings.
+  recooked_components = hw_db.comp_db.MatchComponentProbeValues(
+    probe_results.found_probe_value_map)
+  component_data = ComponentData(
+    extant_components=recooked_components.matched,
+    classes_missing=probe_results.missing_component_classes)
+  recooked_volatiles = device.MatchVolatileValues(
+    probe_results.found_volatile_values)
+  if recooked_volatiles.matched_tags:
+    print 'matching volatile tags: %s' % ', '.join(
+      recooked_volatiles.matched_tags)
+  else:
+    vol_tag = device.AddVolatile(recooked_volatiles.matched_volatiles)
+    print 'added volatile spec as tag %s' % vol_tag
+  match_tree = device.BuildMatchTree(
+    component_data, recooked_volatiles.matched_tags)
+  if match_tree:
+    is_complete = hw_db.comp_db.ComponentDataIsComplete(component_data)
+    print '%s matching boms: %s' % (
+      'exactly' if is_complete else 'partially', ', '.join(sorted(match_tree)))
   if config.create_bom != False:
-    missing_classes = (hw_db.comp_db.all_comp_classes -
-                       cooked_results.component_data_classes -
-                       device.variant_classes)
+    missing_classes = (
+      hw_db.comp_db.all_comp_classes - device.variant_classes -
+      hw_db.comp_db.ComponentDataClasses(component_data))
     if missing_classes:
       print ('ignoring create_bom argument; component data missing [%s] classes'
              % ', '.join(missing_classes))
       return
-    for bom_name in cooked_results.match_tree:
+    component_spec = hw_db.comp_db.CreateComponentSpec(
+      components=recooked_components.matched,
+      missing=component_data.classes_missing,
+      filter_component_classes=device.variant_classes)
+    for bom_name in match_tree:
       bom = device.boms[bom_name]
-      if bom.primary == cooked_results.matched_components:
+      if bom.primary == component_spec.components:
         print ('ignoring create_bom argument; identical bom %r already exists' %
                bom_name)
         return
@@ -1265,10 +1281,6 @@ def AssimilateProbeResults(config, hw_db):
     bom_name = (config.create_bom if config.create_bom
                 else device.AvailableBomNames(1)[0])
     Validate.BomName(bom_name)
-    component_spec = hw_db.comp_db.CreateComponentSpec(
-      components=cooked_results.matched_components,
-      dontcare=set(),
-      missing=cooked_results.missing_component_classes)
     print 'creating %s bom %s' % (config.board, bom_name)
     device.CreateBom(bom_name, component_spec)
 

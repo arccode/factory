@@ -29,7 +29,7 @@ from cros.factory.common import YamlRead, YamlWrite
 from cros.factory.gooftool import crosfw
 from cros.factory.gooftool import report_upload
 from cros.factory.gooftool.bmpblk import unpack_bmpblock
-from cros.factory.gooftool.probe import Probe
+from cros.factory.gooftool.probe import Probe, PROBABLE_COMPONENT_CLASSES
 from cros.factory.gooftool.vpd_data import KNOWN_VPD_FIELD_DATA
 from cros.factory.hacked_argparse import CmdArg, Command, ParseCmdline
 from cros.factory.hacked_argparse import verbosity_cmd_arg
@@ -112,12 +112,13 @@ def ReadRwVpd(fw_image_file):
          CmdArg('hwid', metavar='HWID', help='HWID string'))
 def WriteHwid(options):
   """Write specified HWID value into the system BB."""
-  logging.debug('writing hwid string %r', options.hwid)
+  logging.info('writing hwid string %r', options.hwid)
   main_fw = crosfw.LoadMainFirmware()
   Shell('gbb_utility --set --hwid="%s" "%s"' %
         (options.hwid, main_fw.GetFileName()))
   main_fw.Write(sections=['GBB'])
   _event_log.Log('write_hwid', hwid=options.hwid)
+  print 'Wrote HWID: %r' % options.hwid
 
 
 _hwdb_path_cmd_arg = CmdArg(
@@ -126,41 +127,46 @@ _hwdb_path_cmd_arg = CmdArg(
     help='Path to the HWID database.')
 
 
-@Command('probe_hwids',
+_hwid_status_list_cmd_arg = CmdArg(
+  '--status', nargs='*', default=['supported'],
+  help='allow only HWIDs with these status values')
+
+
+@Command('best_match_hwids',
          _hwdb_path_cmd_arg,
          CmdArg('-b', '--board', metavar='BOARD',
-                help='BOARD name', required=True),
+                help='optional BOARD name, needed only if data is present '
+                'for more than one'),
          CmdArg('--bom', metavar='BOM', help='BOM name'),
          CmdArg('--variant', metavar='VARIANT', help='VARIANT code'),
          CmdArg('--optimistic', action='store_true',
                 help='do not probe; assume singletons match'),
-         CmdArg('--stdin_comp_map', action='store_true'),
+         CmdArg('--comps', nargs='*', default=[],
+                help='list of canonical component names'),
+         CmdArg('--missing', nargs='*', default=[],
+                help='list component classes to be assumed missing'),
          CmdArg('--status', nargs='*', default=['supported'],
-                help='consider only HWIDs with this status'))
-# TODO(tammo): Add a 'hw-only probe' option that does not probe firmware.
-def ProbeHwid(options):
+                help='consider only HWIDs within this list of status values'))
+def BestMatchHwids(options):
   """Determine a list of possible HWIDs using provided args and probeing.
 
   VOLATILE can always be determined by probing.  To get a unique
   result, VARIANT must be specified for all cases where the matching
   BOM has more than one associated variant code, otherwise all HWID
   variants will be returned.  Both VARIANT and BOM information can
-  alternatively be specified using the --stdin_comp_map argument,
-  which allows specifying a list of
-
-    component-class: canonical-component-name
-
-  pairs on stdin, one per line (yaml format).  Based on what is known
-  from BOM and stdin_comp_map, determine a list of components to probe
-  for, and use those probe results to resolve a list of matching
-  HWIDs.  If no boms, components, or variant codes are specified, then
-  a list of all HWIDs that match probable components will be returned.
+  alternatively be specified using the --stdin_comps argument, which
+  allows specifying a list of canonical names (one per line) on stdin,
+  one per line.  Based on what is known from BOM and stdin_comps,
+  determine a list of components to probe for, and use those probe
+  results to resolve a list of matching HWIDs.  If no boms,
+  components, or variant codes are specified, then a list of all HWIDs
+  that match probable components will be returned.
 
   Returns (on stdout): A list of HWIDs that match the available probe
   results and argument contraints, one per line.
   """
   map(hwid_tool.Validate.Status, options.status)
-  hw_db = hwid_tool.HardwareDb(options.data_path)
+  hw_db = hwid_tool.HardwareDb(options.hwdb_path)
   comp_db = hw_db.comp_db
   device = hw_db.GetDevice(options.board)
   component_spec = hwid_tool.ComponentSpec.New()
@@ -172,67 +178,118 @@ def ProbeHwid(options):
     device.VariantExists(options.variant)
     variant_spec = device.variants[options.variant]
     if hwid_tool.ComponentSpecsConflict(component_spec, variant_spec):
-      # TODO(tammo): This error meesage arg is wrong; fix this when
-      # also making the whole function work (it is definitely broken).
-      sys.exit('ERROR: multiple specifications for %r components'
-               ' (both VARIANT and BOM)' % component_spec)
+      sys.exit('ERROR: multiple specifications for these components:\n%s'
+               % YamlWrite(sorted(ComponentSpecClasses(component_spec) &
+                                  ComponentSpecClasses(variant_spec))))
     component_spec = hwid_tool.CombineComponentSpecs(
       component_spec, variant_spec)
-  if options.stdin_comp_map:
-    input_map = YamlRead(sys.stdin.read())
-    logging.info('stdin component map: %r', input_map)
-    spec_classes = hwid_tool.ComponentSpecClasses(component_spec)
-    for key, value in input_map.items():
-      if key not in comp_db.all_comp_classes:
-        sys.exit('ERROR: unknown component class %r (from stdin)' % key)
-      if value not in comp_db.all_comp_names:
-        sys.exit('ERROR: unkown component name %r (from stdin)' % value)
-      if key in spec_classes:
-        sys.exit('ERROR: multiple specifications for %r components'
-                 ' (stdin and BOM/VARIANT)' % key)
-    component_spec.components.update(input_map)
-  logging.info('component spec used for matching:\n%s', component_spec.Encode)
+  if options.comps or options.missing:
+    map(comp_db.CompExists, options.comps)
+    map(comp_db.CompClassExists, options.missing)
+    extra_comp_spec = comp_db.CreateComponentSpec(
+      components=options.comps,
+      missing=options.missing)
+    print 'cmdline asserted components:\n%s' % extra_comp_spec.Encode()
+    if hwid_tool.ComponentSpecsConflict(component_spec, extra_comp_spec):
+      sys.exit('ERROR: multiple specifications for these components:\n%s'
+               % YamlWrite(sorted(ComponentSpecClasses(component_spec) &
+                                  ComponentSpecClasses(extra_comp_spec))))
+    component_spec = hwid_tool.CombineComponentSpecs(
+      component_spec, extra_comp_spec)
   spec_classes = hwid_tool.ComponentSpecClasses(component_spec)
-  missing_classes = list(set(comp_db.all_comp_classes) - spec_classes)
+  missing_classes = set(comp_db.all_comp_classes) - spec_classes
   if missing_classes and not options.optimistic:
-    logging.info('probing for missing classes %s', ', '.join(missing_classes))
-    probe_results = Probe(target_comp_classes=missing_classes,
-                                probe_volatile=True, probe_initial_config=False)
-  else:
-    probe_results = hwid_tool.ProbeResults(
-      found_components=component_spec.components,
-      missing_component_classes=component_spec.classes_missing,
-      volatiles={}, initial_configs={})
-  cooked_results = hwid_tool.CookedProbeResults(comp_db, device, probe_results)
-  if not cooked_results.match_tree:
-    sys.exit('NO matching BOMs found')
-  if cooked_results.matched_hwids:
-    print '\n'.join(cooked_results.matched_hwids)
+    non_probable_missing = missing_classes - PROBABLE_COMPONENT_CLASSES
+    if non_probable_missing:
+      sys.exit('FAILURE: these classes are necessary, were not specified '
+               'as inputs, and cannot be probed for:\n%s' %
+               YamlWrite(list(non_probable_missing)))
+    print 'probing for missing classes:'
+    print YamlWrite(list(missing_classes))
+    probe_results = Probe(target_comp_classes=list(missing_classes),
+                          probe_volatile=False, probe_initial_config=False)
+    cooked_components = comp_db.MatchComponentProbeValues(
+      probe_results.found_probe_value_map)
+    if cooked_components.unmatched:
+      sys.exit('ERROR: some probed components are unrecognized:\n%s'
+               % YamlWrite(cooked_components.unmatched))
+    probed_comp_spec = comp_db.CreateComponentSpec(
+      components=cooked_components.matched,
+      missing=probe_results.missing_component_classes)
+    component_spec = hwid_tool.CombineComponentSpecs(
+      component_spec, probed_comp_spec)
+  print YamlWrite({'component data used for matching': {
+        'missing component classes': component_spec.classes_missing,
+        'found components': component_spec.components}})
+  component_data = hwid_tool.ComponentData(
+    extant_components=hwid_tool.ComponentSpecCompClassMap(
+      component_spec).keys(),
+    classes_missing=component_spec.classes_missing)
+  match_tree = device.BuildMatchTree(component_data)
+  if not match_tree:
+    sys.exit('FAILURE: NO matching BOMs found')
+  print 'potential BOMs/VARIANTs:'
+  potential_variants = set()
+  potential_volatiles = set()
+  for bom_name, variant_tree in match_tree.items():
+    print '  BOM: %-8s   VARIANTS: %s' % (
+      bom_name, ', '.join(sorted(variant_tree)))
+    for variant_code in variant_tree:
+      potential_variants.add(variant_code)
+      for volatile_code in device.volatiles:
+        status = device.GetHwidStatus(bom_name, variant_code, volatile_code)
+        if status in options.status:
+          potential_volatiles.add(volatile_code)
+  print ''
+  if len(potential_variants) == 0:
+    sys.exit('FAILURE: no matching VARIANTs found')
+  if len(potential_volatiles) == 0:
+    sys.exit('FAILURE: no VOLATILEs found for potential matching BOMs/VARIANTS '
+             '(with specified status)')
+  if options.optimistic and len(potential_volatiles) == 1:
+    print ('MATCHING HWID: %s' %
+           device.FmtHwid(bom_name, variant_code, potential_volatiles.pop()))
     return
-  logging.info('exact HWID matching failed, but the following BOMs match: %s',
-               ', '.join(sorted(cooked_results.match_tree)))
-  if options.optimistic and len(cooked_results.match_tree) == 1:
-    bom_name = set(cooked_results.match_tree).pop()
+  print ('probing VOLATILEs to resolve potential matches: %s\n' %
+         ', '.join(sorted(potential_volatiles)))
+  vol_probe_results = Probe(
+    target_comp_classes=[],
+    probe_volatile=True,
+    probe_initial_config=False)
+  cooked_volatiles = device.MatchVolatileValues(
+    vol_probe_results.found_volatile_values)
+  match_tree = device.BuildMatchTree(
+    component_data, cooked_volatiles.matched_tags)
+  matched_hwids = device.GetMatchTreeHwids(match_tree)
+  if matched_hwids:
+    for hwid in matched_hwids:
+      print 'MATCHING HWID: %s' % hwid
+    return
+  print 'exact HWID matching failed, but the following BOMs match: %s' % (
+    ', '.join(sorted(match_tree)))
+  if options.optimistic and len(match_tree) == 1:
+    bom_name = set(match_tree).pop()
     bom = device.boms[bom_name]
-    variant_matches = cooked_results.match_tree[bom_name]
+    variant_matches = match_tree[bom_name]
     if len(variant_matches) == 1:
       var_code = set(variant_matches).pop()
     elif len(bom.variants) == 1:
       var_code = set(bom.variants).pop()
     else:
-      sys.exit('NO matching HWIDs found; optimistic matching failed because '
-               'there were too many variants to choose from for BOM %r' %
-               bom_name)
-    print '\n'.join(
-      device.FmtHwid(bom_name, var_code, vol_code)
-      for vol_code in device.volatiles
-      if device.GetHwidStatus(bom_name, var_code, vol_code)
-      in options.status)
+      sys.exit('FAILURE: NO matching HWIDs found; optimistic matching failed  '
+               'because there were too many variants to choose from for BOM %r'
+               % bom_name)
+    hwids = [device.FmtHwid(bom_name, var_code, vol_code)
+             for vol_code in device.volatiles
+             if device.GetHwidStatus(bom_name, var_code, vol_code)
+             in options.status]
+    for hwid in hwids:
+      print 'MATCHING HWID: %s' % hwid
     return
   else:
-    logging.info('optimistic matching not attempted because either it was '
-                 'not requested, or because the number of BOMs was <> 1')
-  print 'NO matching HWIDs found'
+    print ('optimistic matching not attempted because either it was '
+           'not requested, or because the number of BOMs was <> 1\n')
+  sys.exit('FAILURE: NO matching HWIDs found')
 
 
 @Command('probe',
@@ -294,8 +351,7 @@ def VerifyComponents(options):
 
 
 @Command('verify_hwid',
-         CmdArg('--status', nargs='*', default=['supported'],
-                help='allow only HWIDs with these status values'),
+         _hwid_status_list_cmd_arg,
          _hwdb_path_cmd_arg)
 def VerifyHwid(options):
   """Verify system HWID properties match probed device properties.
@@ -322,53 +378,73 @@ def VerifyHwid(options):
   map(hwid_tool.Validate.Status, options.status)
   main_fw_file = crosfw.LoadMainFirmware().GetFileName()
   gbb_result = Shell('gbb_utility -g --hwid %s' % main_fw_file).stdout
-  hwid = re.findall(r'hardware_id:(.*)', gbb_result)[0].strip()
+  hwid_str = re.findall(r'hardware_id:(.*)', gbb_result)[0].strip()
+  hwid = hwid_tool.ParseHwid(hwid_str)
   hw_db = hwid_tool.HardwareDb(options.hwdb_path)
-  hwid_data = hw_db.GetHwidData(hwid)
-  logging.info('Verifying system HWID: %r', hwid_data.hwid)
-  if hwid_data.status not in options.status:
+  print 'Verifying system HWID: %r\n' % hwid.hwid
+  device = hw_db.GetDevice(hwid.board)
+  hwid_status = device.GetHwidStatus(hwid.bom, hwid.variant, hwid.volatile)
+  if hwid_status not in options.status:
     sys.exit('HWID status must be one of [%s], found %r' %
-             (', '.join(options.status, hwid_data.status)))
-  logging.debug('expected system properties:\n%s', hwid_data.Encode())
-  device = hw_db.GetDevice(hwid_data.board_name)
-  cooked_probe_results = hwid_tool.CookedProbeResults(
-    hw_db.comp_db, device, Probe())
-  logging.debug('found system properties:\n%s',
-                YamlWrite(cooked_probe_results.__dict__))
+             (', '.join(options.status, hwid_status)))
+  probe_results = Probe()
+  cooked_components = hw_db.comp_db.MatchComponentProbeValues(
+    probe_results.found_probe_value_map)
+  cooked_volatiles = device.MatchVolatileValues(
+    probe_results.found_volatile_values)
+  cooked_initial_configs = device.MatchInitialConfigValues(
+    probe_results.initial_configs)
+  component_data = hwid_tool.ComponentData(
+    extant_components=cooked_components.matched,
+    classes_missing=probe_results.missing_component_classes)
+  match_tree = device.BuildMatchTree(
+    component_data, cooked_volatiles.matched_tags)
+  matched_hwids = device.GetMatchTreeHwids(match_tree)
+  print 'HWID status: %s\n' % hwid_status
+  print 'probed system components:'
+  print YamlWrite(cooked_components.__dict__)
+  print 'missing component classes:'
+  print YamlWrite(probe_results.missing_component_classes)
+  print 'probed volatiles:'
+  print YamlWrite(cooked_volatiles.__dict__)
+  print 'probed initial_configs:'
+  print YamlWrite(cooked_initial_configs)
+  print 'hwid match tree:'
+  print YamlWrite(match_tree)
   _event_log.Log(
     'probe',
-    found_components=cooked_probe_results.found_components,
-    missing_component_classes=cooked_probe_results.missing_component_classes,
-    volatiles=cooked_probe_results.volatiles,
-    initial_configs=cooked_probe_results.initial_configs)
-  if hwid not in cooked_probe_results.matched_hwids:
+    found_components=cooked_components.__dict__,
+    missing_component_classes=probe_results.missing_component_classes,
+    volatiles=cooked_volatiles.__dict__,
+    initial_configs=cooked_initial_configs)
+  if hwid.hwid not in matched_hwids:
     err_msg = 'HWID verification FAILED.\n'
-    if cooked_probe_results.unmatched_components:
+    if cooked_components.unmatched:
       sys.exit(err_msg + 'some components could not be indentified:\n%s' %
-               YamlWrite(cooked_probe_results.unmatched_components))
-    if not cooked_probe_results.match_tree:
+               YamlWrite(cooked_components.unmatched))
+    if not match_tree:
       sys.exit(err_msg + 'no matching boms were found for components:\n%s' %
-               cooked_probe_results.component_data.Encode())
-    if hwid.bom_name not in cooked_probe_results.match_tree:
+               component_data.Encode())
+    if hwid.bom not in match_tree:
       sys.exit(err_msg + 'matching boms [%s] do not include target bom %r' %
-               (', '.join(sorted(cooked_probe_results.match_tree)),
-                hwid_data.bom))
-    err_msg += 'target bom %r matches components' % hwid_data.bom_name
-    if hwid.bom_name not in device.matched_ic_boms:
+               (', '.join(sorted(match_tree)), hwid.bom))
+    err_msg += 'target bom %r matches components' % hwid.bom
+    if hwid.bom not in device.IntersectBomsAndInitialConfigs(
+      cooked_initial_configs):
       sys.exit(err_msg + ', but failed initial config verification')
-    match_tree = cooked_probe_results.match_tree
-    matched_variants = match_tree.get(hwid_data.bom_name, {})
-    if hwid.variant_code not in matched_variants:
+    matched_variants = match_tree.get(hwid.bom, {})
+    if hwid.variant not in matched_variants:
       sys.exit(err_msg + ', but target variant_code %r did not match' %
-               hwid_data.variant_code)
-    matched_volatiles = matched_variants.get(hwid_data.variant_code, {})
-    if hwid.volatile_code not in matched_volatiles:
+               hwid.variant)
+    matched_volatiles = matched_variants.get(hwid.variant, {})
+    if hwid.volatile not in matched_volatiles:
       sys.exit(err_msg + ', but target volatile_code %r did not match' %
-               hwid_data.volatile_code)
-    found_status = matched_volatiles.get(hwid_data.volatile_code, None)
+               hwid.volatile)
+    found_status = matched_volatiles.get(hwid.volatile, None)
     sys.exit(err_msg + ', but hwid status %r was unacceptable' % found_status)
-  VerifyVpd(hwid_data.ro_vpds)
+  VerifyVpd(device.vpd_ro_fields)
   _event_log.Log('verified_hwid', hwid=hwid)
+  print 'Verification SUCCESS!'
 
 
 @Command('verify_keys')
@@ -531,6 +607,7 @@ def PrepareWipe(options):
 @Command('verify',
          CmdArg('--no_write_protect', action='store_true',
                 help='Do not check write protection switch state.'),
+         _hwid_status_list_cmd_arg,
          _hwdb_path_cmd_arg)
 def Verify(options):
   """Verifies if whole factory process is ready for finalization.
@@ -633,6 +710,7 @@ def UploadReport(options):
          CmdArg('--fast', action='store_true',
                 help='use non-secure but faster wipe method.'),
          _hwdb_path_cmd_arg,
+         _hwid_status_list_cmd_arg,
          _upload_method_cmd_arg,
          _add_file_cmd_arg)
 def Finalize(options):
