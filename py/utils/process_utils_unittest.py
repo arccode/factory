@@ -42,8 +42,7 @@ class SpawnTest(unittest.TestCase):
 
   def testShell(self):
     process = Spawn('echo foo', shell=True,
-                    stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                    log=True)
+                    stdout=PIPE, stderr=PIPE, log=True)
     stdout, stderr = process.communicate()
     self.assertEquals('foo\n', stdout)
     self.assertEquals('', stderr)
@@ -51,6 +50,62 @@ class SpawnTest(unittest.TestCase):
     self.assertEquals([('INFO', 'Running command: "echo foo"')],
                       self.log_entries)
 
+  def testCall(self):
+    process = Spawn('echo blah; exit 3', shell=True, call=True)
+    self.assertEquals(3, process.returncode)
+    # stdout/stderr are not trapped
+    self.assertEquals(None, process.stdout)
+    self.assertEquals(None, process.stdout_data)
+
+    # Would cause a bad buffering situation.
+    self.assertRaises(ValueError,
+                      lambda: Spawn('echo', call=True, stdout=PIPE))
+    self.assertRaises(ValueError,
+                      lambda: Spawn('echo', call=True, stderr=PIPE))
+
+  def testCheckCall(self):
+    Spawn('exit 0', shell=True, check_call=True)
+    self.assertRaises(subprocess.CalledProcessError,
+                      lambda: Spawn('exit 3', shell=True, check_call=True))
+
+    self.assertFalse(self.log_entries)
+    self.assertRaises(
+        subprocess.CalledProcessError,
+        lambda: Spawn('exit 3', shell=True, check_call=True, log=True))
+    self.assertEquals([('INFO', 'Running command: "exit 3"'),
+                       ('ERROR', 'Exit code 3 from command: "exit 3"')],
+                      self.log_entries)
+
+  def testReadStdout(self):
+    process = Spawn('echo foo; exit 3', shell=True, read_stdout=True)
+    self.assertEquals('foo\n', process.stdout_data)
+    self.assertEquals(None, process.stderr_data)
+    self.assertEquals(3, process.returncode)
+
+  def testReadStderr(self):
+    process = Spawn('echo bar >& 2', shell=True, read_stderr=True)
+    self.assertEquals(None, process.stdout_data)
+    self.assertEquals('bar\n', process.stderr_data)
+    self.assertEquals(0, process.returncode)
+
+  def testReadStdoutAndStderr(self):
+    process = Spawn('echo foo; echo bar >& 2', shell=True,
+                    read_stdout=True, read_stderr=True)
+    self.assertEquals('foo\n', process.stdout_data)
+    self.assertEquals('bar\n', process.stderr_data)
+    self.assertEquals(('foo\n', 'bar\n'), process.communicate())
+    self.assertEquals(0, process.returncode)
+
+  def testLogStderrOnError(self):
+    Spawn('echo foo >& 2', shell=True, log_stderr_on_error=True)
+    self.assertFalse(self.log_entries)
+
+    Spawn('echo foo >& 2; exit 3', shell=True, log_stderr_on_error=True)
+    self.assertEquals(
+        [('ERROR',
+          'Exit code 3 from command: "echo foo >& 2; exit 3"; '
+          'stderr: """\nfoo\n\n"""')],
+        self.log_entries)
 
 if __name__ == '__main__':
   logging.basicConfig(level=logging.INFO)
