@@ -34,19 +34,23 @@ def Spawn(args, **kwargs):
         ['cmd'], read_stdout=True, read_stderr=True).communicate()
 
   Args:
-    log: Set to True to do a logging.info before running the command,
-      or to any logging object to call its info method.
-    call: Set to True to wait for the command to complete.
-    check_call: Set to True to wait for the command to complete,
-      throwing an exception if it fails.  This implies call=True.
-    log_stderr_on_error: Logs stderr only if the command fails.  Implies
-      read_stderr=True and call=True.
-    read_stdout: Set to True to wait for the command to complete,
-      saving the contents to the return object's stdout_data attribute.
-      This implies call=True and stdout=PIPE.
-    read_stderr: Set to True to wait for the command to complete,
-      saving the contents to the return object's stderr_data attribute.
-      This implies call=True and stderr=PIPE.
+    log: Do a logging.info before running the command, or to any
+      logging object to call its info method.
+    call: Wait for the command to complete.
+    check_call: Wait for the command to complete, throwing an
+      exception if it fails.  This implies call=True.
+    check_output: Wait for the command to complete, throwing an
+      exception if it fails, and saves the contents to the return
+      object's stdout_data attribute.  Implies check_call=True and
+      read_stdout=True.
+    log_stderr_on_error: Log stderr only if the command fails.
+      Implies read_stderr=True and call=True.
+    read_stdout: Wait for the command to complete, saving the contents
+      to the return object's stdout_data attribute.  This implies
+      call=True and stdout=PIPE.
+    read_stderr: Wait for the command to complete, saving the contents
+      to the return object's stderr_data attribute.  This implies
+      call=True and stderr=PIPE.
 
   Returns/Raises:
     Same as Popen.
@@ -67,10 +71,14 @@ def Spawn(args, **kwargs):
 
   call = kwargs.pop('call', False)
   check_call = kwargs.pop('check_call', False)
+  check_output = kwargs.pop('check_output', False)
   read_stdout = kwargs.pop('read_stdout', False)
   read_stderr = kwargs.pop('read_stderr', False)
   log_stderr_on_error = kwargs.pop('log_stderr_on_error', False)
 
+  if check_output:
+    check_call = True
+    read_stdout = True
   if check_call:
     call = True
   if log_stderr_on_error:

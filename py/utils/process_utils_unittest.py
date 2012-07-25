@@ -76,6 +76,13 @@ class SpawnTest(unittest.TestCase):
                        ('ERROR', 'Exit code 3 from command: "exit 3"')],
                       self.log_entries)
 
+  def testCheckOutput(self):
+    self.assertEquals(
+        'foo\n',
+        Spawn('echo foo', shell=True, check_output=True).stdout_data)
+    self.assertRaises(subprocess.CalledProcessError,
+                      lambda: Spawn('exit 3', shell=True, check_output=True))
+
   def testReadStdout(self):
     process = Spawn('echo foo; exit 3', shell=True, read_stdout=True)
     self.assertEquals('foo\n', process.stdout_data)

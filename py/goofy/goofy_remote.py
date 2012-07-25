@@ -16,24 +16,26 @@ import tempfile
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
-from cros.factory.test import utils
+from cros.factory.utils.process_utils import Spawn
 
 
 SRCROOT = os.environ['CROS_WORKON_SRCROOT']
-ssh_options = None  # set in main
+
+ssh_command = None  # set in main
+rsync_command = None
 
 
 def SyncTestList(host, test_list=None):
   if test_list is None:
     logging.info('Checking release board on %s...', host)
-    release = utils.LogAndCheckOutput(['ssh'] + ssh_options +
-                                      [host, 'cat /etc/lsb-release'])
+    release = Spawn(ssh_command + [host, 'cat /etc/lsb-release'],
+                    check_output=True, log=True).stdout_data
     match = re.search(r'^CHROMEOS_RELEASE_BOARD=(.+)', release, re.MULTILINE)
     if not match:
       logging.warn('Unable to determine release board')
       return
     board = match.group(1)
-    logging.info('Board is %s; copying test_list from overlay', board)
+    logging.info('Copying test_list from %s overlay', board)
 
     release_board = match.group(1)
     test_list_glob = os.path.join(
@@ -46,10 +48,9 @@ def SyncTestList(host, test_list=None):
       return
     test_list = test_lists[0]
 
-  utils.LogAndCheckCall(['rsync',
-                         '-e', 'ssh ' + ' '.join(ssh_options),
-                         test_list,
-                         host + ':/usr/local/factory/custom/test_list'])
+  Spawn(rsync_command +
+        [test_list, host + ':/usr/local/factory/custom/test_list'],
+        check_call=True, log=True)
 
 
 def main():
@@ -59,6 +60,8 @@ def main():
                       help='host to run on')
   parser.add_argument('-a', dest='clear_state', action='store_true',
                       help='clear Goofy state and logs on device')
+  parser.add_argument('--autotest', dest='autotest', action='store_true',
+                      help='also rsync autotest directory')
   parser.add_argument('--test_list',
                       help=("test list to use (defaults to the one in "
                             "the board's overlay"))
@@ -71,26 +74,38 @@ def main():
   testing_rsa.flush()
   os.fchmod(testing_rsa.fileno(), 0400)
 
-  global ssh_options  # pylint: disable=W0603
-  ssh_options = ['-o', 'IdentityFile=%s' % testing_rsa.name,
+  global ssh_command, rsync_command  # pylint: disable=W0603
+  ssh_command = ['ssh',
+                 '-o', 'IdentityFile=%s' % testing_rsa.name,
                  '-o', 'UserKnownHostsFile=/dev/null',
                  '-o', 'User=root',
                  '-o', 'StrictHostKeyChecking=no']
+  rsync_command = ['rsync', '-e', ' '.join(ssh_command)]
 
   logging.basicConfig(level=logging.INFO)
 
-  utils.LogAndCheckCall(['make', '--quiet'], cwd=factory.FACTORY_PATH)
+  Spawn(['make', '--quiet'], cwd=factory.FACTORY_PATH,
+        check_call=True, log=True)
   SyncTestList(args.host, args.test_list)
 
-  utils.LogAndCheckCall(['rsync', '-aC', '--exclude', '*.pyc'] +
-                        ['-e', 'ssh ' + ' '.join(ssh_options)] +
-                        [os.path.join(factory.FACTORY_PATH, x)
-                         for x in ('bin', 'py', 'py_pkg', 'sh', 'test_lists')] +
-                        ['%s:/usr/local/factory' % args.host])
+  if args.autotest:
+    Spawn(rsync_command +
+          ['-aC', '--exclude', 'tests'] +
+          [os.path.join(SRCROOT, 'src/third_party/autotest/files/client/'),
+           '%s:/usr/local/autotest/' % args.host],
+          check_call=True, log=True)
 
-  utils.LogAndCheckCall(['ssh'] + ssh_options +
-                        [args.host, '/usr/local/factory/bin/restart'] +
-                        (['-a'] if args.clear_state else []))
+  Spawn(rsync_command +
+        ['-aC', '--exclude', '*.pyc'] +
+        [os.path.join(factory.FACTORY_PATH, x)
+         for x in ('bin', 'py', 'py_pkg', 'sh', 'test_lists')] +
+        ['%s:/usr/local/factory' % args.host],
+        check_call=True, log=True)
+
+  Spawn(ssh_command +
+        [args.host, '/usr/local/factory/bin/restart'] +
+        (['-a'] if args.clear_state else []),
+        check_call=True, log=True)
 
 
 if __name__ == '__main__':
