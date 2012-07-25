@@ -174,8 +174,7 @@ class HwidTest(unittest.TestCase):
       device = hwid_tool.HardwareDb(self.dir).devices['FOO']
       self.assertEqual(device.initial_configs['0'].enforced_for_boms,
                        ['OOGG'])
-      self.runTool('set_hwid_status -b FOO --bom OOGG '
-                   '--variant A --volatile "*" supported')
+      self.runTool('set_hwid_status "FOO OOGG A-*" supported')
       device = hwid_tool.HardwareDb(self.dir).devices['FOO']
       status = device.GetHwidStatus('OOGG', 'A', 'A')
       self.assertEqual(status, 'supported', status)
@@ -203,29 +202,24 @@ class HwidTest(unittest.TestCase):
       self.runTool('assimilate_data --board=FOO',
                    stdin=g_dummy_volatiles_alt_results_str,
                    show_stdout=True)
-      self.runTool('set_hwid_status -b FOO --bom BAR '
-                   '--variant A --volatile "*" supported')
+      self.runTool('set_hwid_status "FOO BAR A-*" supported')
       device = hwid_tool.HardwareDb(self.dir).devices['FOO']
       self.assertEqual(device.hwid_status.supported, ['BAR A-A', 'BAR A-B'],
                        device.hwid_status.supported)
-      self.runTool('set_hwid_status -b FOO --bom BAR '
-                   '--variant B --volatile B deprecated')
-      self.runTool('set_hwid_status -b FOO --bom BAR '
-                   '--variant A --volatile B deprecated')
+      self.runTool('set_hwid_status "FOO BAR B-B" deprecated')
+      self.runTool('set_hwid_status "FOO BAR A-B" deprecated')
       device = hwid_tool.HardwareDb(self.dir).devices['FOO']
       self.assertEqual(device.hwid_status.supported, ['BAR A-A'],
                        device.hwid_status.supported)
       self.assertEqual(device.hwid_status.deprecated, ['BAR *-B'],
                        device.hwid_status.deprecated)
-      self.runTool('set_hwid_status -b FOO --bom BAR '
-                   '--variant A --volatile A deprecated')
+      self.runTool('set_hwid_status "FOO BAR A-A" deprecated')
       device = hwid_tool.HardwareDb(self.dir).devices['FOO']
       self.assertEqual(device.hwid_status.supported, [],
                        device.hwid_status.supported)
       self.assertEqual(device.hwid_status.deprecated, ['BAR *-B', 'BAR A-A'],
                        device.hwid_status.deprecated)
-      self.runTool('set_hwid_status -b FOO --bom BAR '
-                   '--variant B --volatile A deprecated')
+      self.runTool('set_hwid_status "FOO BAR B-A" deprecated')
       device = hwid_tool.HardwareDb(self.dir).devices['FOO']
       self.assertEqual(device.hwid_status.supported, [],
                        device.hwid_status.supported)

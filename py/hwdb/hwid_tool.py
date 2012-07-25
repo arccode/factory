@@ -34,8 +34,9 @@ DEFAULT_HWID_DATA_PATH = '/usr/local/factory/hwid'
 COMPONENT_DB_FILENAME = 'component_db'
 
 
-# Glob-matching for 'BOM VARIANT-VOLATILE' regexp.
-HWID_GLOB_RE = re.compile(r'^([A-Z]+) ([A-Z]+|\*)-([A-Z]+|\*)$')
+# Glob-matching for 'BOM VARIANT-VOLATILE' and 'BOARD BOM VARIANT-VOLATILE'.
+BVV_GLOB_RE = re.compile(r'^([A-Z]+)\s+([A-Z]+|\*)-([A-Z]+|\*)$')
+BBVV_GLOB_RE = re.compile(r'^([A-Z]+)\s+([A-Z]+|\*)\s+([A-Z]+|\*)-([A-Z]+|\*)$')
 
 
 # Possible life cycle stages (status) for components and HWIDs.
@@ -617,7 +618,7 @@ class Device(YamlDatastore):
                     for status in LIFE_CYCLE_STAGES
                     for pattern in getattr(self.hwid_status, status)]
     for pattern, status in status_globs:
-      match = HWID_GLOB_RE.findall(pattern)
+      match = BVV_GLOB_RE.findall(pattern)
       if not match:
         raise Error, 'illegal hwid_status pattern %r' % pattern
       bom, variant, volatile = match.pop()
@@ -982,18 +983,38 @@ def PrintHwidHierarchy(device, cooked_boms, status_mask):
 @Command('create_device',
          CmdArg('board_name'))
 def CreateBoard(config, hw_db):
-  """Create a fresh empty device data file with specified board name."""
+  """Create empty device data file for specified board."""
   hw_db.CreateDevice(config.board_name)
 
 
 @Command('create_bom',
          CmdArg('-b', '--board', required=True),
-         CmdArg('-c', '--comps', nargs='*', default=[]),
-         CmdArg('-m', '--missing', nargs='*', default=[]),
-         CmdArg('-d', '--dontcare', nargs='*', default=[]),
-         CmdArg('--variant_classes', nargs='*', default=[]),
-         CmdArg('-n', '--name'))
+         CmdArg('-c', '--comps', nargs='*', default=[], help=
+                'list of component names'),
+         CmdArg('-m', '--missing', nargs='*', default=[], help=
+                'list of component classes, or "*"'),
+         CmdArg('-d', '--dontcare', nargs='*', default=[], help=
+                'list of component classes, or "*"'),
+         CmdArg('--variant_classes', nargs='*', default=[], help=
+                'list of component classes'),
+         CmdArg('-n', '--name', help='optional bom name; '
+                'will be automatically provided if not specified'))
 def CreateBom(config, hw_db):
+  """Create a new bom with specified components.
+
+  Either --missing or --dontcare can optionally be passed '*' to
+  indicate all components are either missing or always-matched.
+
+  The '*' wildcard will automatically cover all non-variant component
+  classes for the specified board.  Correspondingly, if this is the
+  first bom for the board, then you likely also want to specify
+  --variant_classes to explicitly enunerate which classes will be
+  covered by variants (and should not be included in the missing or
+  dontcare sets).
+
+  If no name is specified for the new bom, a name will be
+  automatically provided from a pool of unused bom names.
+  """
   device = hw_db.GetDevice(config.board)
   map(hw_db.comp_db.CompExists, config.comps)
   map(hw_db.comp_db.CompClassExists, config.variant_classes)
@@ -1004,7 +1025,7 @@ def CreateBom(config, hw_db):
   else:
     variant_classes = hw_db.comp_db.all_comp_classes - device.primary_classes
   if config.missing == ['*'] and config.dontcare == ['*']:
-    raise Error, 'missing and dontcase can be simultaneously wildcarded (*)'
+    raise Error, 'missing and dontcase cannot be simultaneously wildcarded (*)'
   if config.missing == ['*']:
     config.missing = hw_db.comp_db.all_comp_classes - variant_classes
   map(hw_db.comp_db.CompClassExists, config.missing)
@@ -1023,10 +1044,29 @@ def CreateBom(config, hw_db):
 
 @Command('create_variant',
          CmdArg('-b', '--board', required=True),
-         CmdArg('-c', '--comps', nargs='*', default=[]),
-         CmdArg('-m', '--missing', nargs='*', default=[]),
-         CmdArg('-d', '--dontcare', nargs='*', default=[]))
+         CmdArg('-c', '--comps', nargs='*', default=[], help=
+                'list of component names'),
+         CmdArg('-m', '--missing', nargs='*', default=[], help=
+                'list of component classes'),
+         CmdArg('-d', '--dontcare', nargs='*', default=[], help=
+                'list of component classes'))
 def CreateVariant(config, hw_db):
+  """Create a new variant with specified components.
+
+  For the specified board, create a new variant from given compontent
+  specs.
+
+  Examples:
+
+  // Create board FOO variant for the 'logitec_us_ext' keyboard.
+  create_variant -b FOO -c logitec_ex_ext
+
+  // Create an empty variant for board FOO.
+  create_variant -b FOO
+
+  // Create a variant that matches all possible keyboard for board FOO.
+  create_variant -b FOO --dontcare keyboard
+  """
   device = hw_db.GetDevice(config.board)
   map(hw_db.comp_db.CompExists, config.comps)
   map(hw_db.comp_db.CompClassExists, config.missing)
@@ -1042,6 +1082,7 @@ def CreateVariant(config, hw_db):
          CmdArg('--bom', required=True),
          CmdArg('--variant', required=True))
 def AssignVariant(config, hw_db):
+  """Associate variant with bom."""
   device = hw_db.GetDevice(config.board)
   device.BomExists(config.bom)
   device.VariantExists(config.variant)
@@ -1061,6 +1102,12 @@ def AssignVariant(config, hw_db):
          CmdArg('--ic', required=True),
          CmdArg('--cancel', action='store_true'))
 def AssignInitialConfig(config, hw_db):
+  """Start or cancel initial config enforcement.
+
+  Make sure that the specified initial_config is enforced for the
+  specified board-bom combination.  Unless --cancel is specified, in
+  which case any matching enforcement is terminated.
+  """
   device = hw_db.GetDevice(config.board)
   device.BomExists(config.bom)
   Validate.InitialConfigTag(config.ic)
@@ -1085,19 +1132,44 @@ def AssignInitialConfig(config, hw_db):
 
 
 @Command('set_hwid_status',
-         CmdArg('-b', '--board', required=True),
-         CmdArg('--bom', required=True),
-         CmdArg('--variant', required=True),
-         CmdArg('--volatile', required=True),
+         CmdArg('pattern'),
          CmdArg('status'))
 def SetHwidStatus(config, hw_db):
-  device = hw_db.GetDevice(config.board)
-  if config.bom != '*':
-    device.BomExists(config.bom)
-  if config.variant != '*':
-    device.VariantExists(config.variant)
-  if config.volatile != '*':
-    device.VolatileExists(config.volatile)
+  """(Re)Assign status to HWIDs.
+
+  Set the status for a single HWID or for a group of HWIDs specified
+  using '*'-based glob expressions over BOM, VARIANT, and VOLATILE
+  fields.  The '*' value implies all possible values for the
+  corresponding field.
+
+  For all of the affected HWIDs, their status will be reset as
+  specified.  This will clobber any existing status, if any.
+
+  Examples:
+
+  // This sets supported status for all variants of device FOO bom BAR
+  // with volatile code X.
+  set_hwid_status 'FOO BAR *-X' supported
+
+  // This sets 'eol' status just for 'FOO BAR A-B'
+  set_hwid_status 'FOO BAR A-B' eol
+
+  // This sets 'deprecated' status for all FOO boms and variants with
+  // volatile code C.
+  set_hwid_status 'FOO * *-C' deprecated
+  """
+  match = BBVV_GLOB_RE.findall(config.pattern)
+  if not match:
+    raise Error, ('illegal input pattern %r, expected '
+                  'BOARD BOM VARIANT-VOLATILE' % config.pattern)
+  board, bom, variant, volatile = match.pop()
+  device = hw_db.GetDevice(board)
+  if bom != '*':
+    device.BomExists(bom)
+  if variant != '*':
+    device.VariantExists(variant)
+  if volatile != '*':
+    device.VolatileExists(volatile)
   Validate.Status(config.status)
   if not device.boms:
     raise Error, 'cannot assign status, %s has no BOMs' % device.board_name
@@ -1105,15 +1177,14 @@ def SetHwidStatus(config, hw_db):
     raise Error, 'cannot assign status, %s has no variants' % device.board_name
   if not device.volatiles:
     raise Error, 'cannot assign status, %s has no volatiles' % device.board_name
-  device.SetHwidStatus(
-    config.bom, config.variant, config.volatile, config.status)
+  device.SetHwidStatus(bom, variant, volatile, config.status)
 
 
 @Command('assimilate_data',
          CmdArg('-b', '--board', required=True),
          CmdArg('--create_bom', nargs='?', default=False, metavar='BOM_NAME'))
 def AssimilateProbeResults(config, hw_db):
-  """Merge new data from stdin into existing data, optionally create a new bom.
+  """Merge new data from stdin, optionally create new bom.
 
   Any new data is added to the hardware database, including component
   probe results, volatile result, and initial_config data.  Canonical
@@ -1298,7 +1369,7 @@ def ComponentBreakdownCommand(config, hw_db):
          CmdArg('-d', '--dest_dir'),
          CmdArg('-s', '--status', nargs='*', default=['supported']))
 def FilterDatabase(config, hw_db):
-  """Generate trimmed down board data file and corresponding component_db.
+  """Filter board and component_db files based on status.
 
   Generate a board data file containing only those boms matching the
   specified status, and only that portion of the related board data
