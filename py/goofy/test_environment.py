@@ -18,6 +18,7 @@ from cros.factory.test import factory
 from cros.factory.goofy import connection_manager
 from cros.factory.test import state
 from cros.factory.test import utils
+from cros.factory.utils.process_utils import Spawn
 
 
 class Environment(object):
@@ -119,9 +120,9 @@ class DUTEnvironment(Environment):
     chrome_log = os.path.join(factory.get_log_root(), 'factory.chrome.log')
     chrome_log_file = open(chrome_log, "a")
     logging.info('Launching Chrome; logs in %s' % chrome_log)
-    return subprocess.Popen(chrome_command,
-                stdout=chrome_log_file,
-                stderr=subprocess.STDOUT)
+    return Spawn(chrome_command,
+                 stdout=chrome_log_file,
+                 stderr=subprocess.STDOUT)
 
   def create_connection_manager(self, wlans):
     return connection_manager.ConnectionManager(wlans)

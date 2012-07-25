@@ -19,6 +19,7 @@ from ws4py.websocket import WebSocket
 from cros.factory.test import factory
 from cros.factory.test.event import Event
 from cros.factory.test.event import EventClient
+from cros.factory.utils.process_utils import Spawn
 
 
 # Number of lines to buffer for new clients.
@@ -53,10 +54,9 @@ class WebSocketManager(object):
 
     self.event_client = EventClient(callback=self._handle_event,
                     name='WebSocketManager')
-    self.tail_process = subprocess.Popen(
-      ["tail", "-F", factory.CONSOLE_LOG_PATH],
-      stdout=subprocess.PIPE,
-      close_fds=True)
+    self.tail_process = Spawn(
+        ["tail", "-F", factory.CONSOLE_LOG_PATH],
+        stdout=subprocess.PIPE)
     self.tail_thread = threading.Thread(target=self._tail_console)
     self.tail_thread.start()
     self.closed = False

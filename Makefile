@@ -80,7 +80,9 @@ UNITTESTS=\
 	py/test/factory_unittest.py \
 	py/test/state_unittest.py \
 	py/test/unicode_to_string_unittest.py \
-	py/test/utils_unittest.py
+	py/test/utils_unittest.py \
+	py/utils/net_utils_unittest.py \
+	py/utils/process_utils_unittest.py
 
 # TODO(sheckylin): Get py/test/media_util_unittest.py working.
 

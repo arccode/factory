@@ -13,7 +13,6 @@ import math
 import mox
 import pickle
 import re
-import subprocess
 import tempfile
 import threading
 import time
@@ -31,6 +30,7 @@ from cros.factory.goofy.goofy import Goofy
 from cros.factory.goofy.connection_manager \
   import ConnectionManager
 from cros.factory.goofy.test_environment import Environment
+from cros.factory.utils.process_utils import Spawn
 
 
 def init_goofy(env=None, test_list=None, options='', restart=True, ui='none'):
@@ -64,7 +64,7 @@ def mock_autotest(env, name, passed, error_msg):
           result_file):
     with open(result_file, 'w') as out:
       pickle.dump((passed, error_msg), out)
-      return subprocess.Popen(['true'])
+      return Spawn(['true'])
 
   env.spawn_autotest(
     name, IgnoreArg(), IgnoreArg(), IgnoreArg()).WithSideEffects(

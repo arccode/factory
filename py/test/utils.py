@@ -20,6 +20,9 @@ import time
 import traceback
 
 
+from cros.factory.utils.process_utils import Spawn
+
+
 def TimeString(unix_time=None):
   """Returns a time (using UTC) as a string.
 
@@ -67,8 +70,8 @@ def kill_process_tree(process, caption):
   # iterate through each level until leaf of the tree.
 
   def get_all_pids(root):
-    ps_output = subprocess.Popen(['ps','--no-headers','-eo','pid,ppid'],
-                   stdout=subprocess.PIPE)
+    ps_output = Spawn(['ps','--no-headers','-eo','pid,ppid'],
+                      stdout=subprocess.PIPE)
     children = {}
     for line in ps_output.stdout:
       match = re.findall('\d+', line)

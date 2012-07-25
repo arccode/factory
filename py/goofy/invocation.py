@@ -29,6 +29,7 @@ from cros.factory import event_log
 from cros.factory.test.factory import TestState
 from cros.factory.test import utils
 from cros.factory.test import pytests
+from cros.factory.utils.process_utils import Spawn
 
 
 # Number of bytes to include from the log of a failed test.
@@ -283,13 +284,12 @@ class TestInvocation(object):
           if self._aborted:
             return TestState.FAILED, 'Aborted before starting'
 
-          self._process = subprocess.Popen(
+          self._process = Spawn(
             args,
             env=env,
             stdin=open(os.devnull, "w"),
             stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            close_fds=True)
+            stderr=subprocess.STDOUT)
 
         # Tee process's stderr to both the log and our stderr; this
         # will end when the process dies.

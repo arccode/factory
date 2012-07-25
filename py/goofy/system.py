@@ -13,6 +13,7 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import utils
+from cros.factory.utils.process_utils import Spawn
 
 # pylint: disable=W0702
 # Disable checking of exception types, since we catch all exceptions
@@ -80,8 +81,8 @@ class SystemInfo(object):
 
     self.root_device = None
     try:
-      rootdev = subprocess.Popen(['rootdev', '-s'],
-                     stdout=subprocess.PIPE)
+      rootdev = Spawn(['rootdev', '-s'],
+                      stdout=subprocess.PIPE)
       stdout, _ = rootdev.communicate()
       self.root_device = stdout.strip()
     except:

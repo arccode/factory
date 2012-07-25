@@ -17,6 +17,7 @@ import uuid
 
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
+from cros.factory.utils.process_utils import Spawn
 
 
 class UpdaterException(Exception):
@@ -39,12 +40,10 @@ def CheckCriticalFiles(new_path):
 
 def RunRsync(*rsync_command):
   '''Runs rsync with the given command.'''
-  factory.console.info('Running `%s`',
-             ' '.join(rsync_command))
-  # Run rsync.
-  rsync = subprocess.Popen(rsync_command,
-               stdout=subprocess.PIPE,
-               stderr=subprocess.STDOUT)
+  rsync = Spawn(rsync_command,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                log=factory.console)
   stdout, _ = rsync.communicate()
   if stdout:
     factory.console.info('rsync output: %s', stdout)

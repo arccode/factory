@@ -1,4 +1,4 @@
-# Copyright (c) 2010 The Chromium OS Authors. All rights reserved.
+# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -7,11 +7,16 @@
 A library to prespawn autotest processes to minimize startup overhead.
 '''
 
-import cPickle as pickle, os, sys
-
-
-import logging, subprocess, threading
+import cPickle as pickle
+import logging
+import os
+import subprocess
+import sys
+import threading
 from Queue import Queue
+
+
+from cros.factory.utils.process_utils import Spawn
 
 
 NUM_PRESPAWNED_PROCESSES = 1
@@ -48,7 +53,7 @@ class Prespawner():
     '''
     def run():
       while not self.terminated:
-        process = subprocess.Popen(
+        process = Spawn(
           ['python', '-u', PRESPAWNER_PATH,
            '--prespawn_autotest'],
           cwd=os.path.dirname(PRESPAWNER_PATH),

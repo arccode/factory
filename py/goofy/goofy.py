@@ -12,7 +12,6 @@ The main factory flow that runs the factory test and finalizes a device.
 import logging
 import os
 import Queue
-import subprocess
 import sys
 import threading
 import time
@@ -42,6 +41,7 @@ from cros.factory.goofy import system
 from cros.factory.goofy import test_environment
 from cros.factory.goofy import time_sanitizer
 from cros.factory.goofy.web_socket_manager import WebSocketManager
+from cros.factory.utils.process_utils import Spawn
 
 
 DEFAULT_TEST_LISTS_DIR = os.path.join(factory.FACTORY_PATH, 'test_lists')
@@ -308,7 +308,7 @@ class Goofy(object):
     if self.options.verbose:
       ui_proc_args.append('-v')
     logging.info('Starting ui %s', ui_proc_args)
-    self.ui_process = subprocess.Popen(ui_proc_args)
+    self.ui_process = Spawn(ui_proc_args)
     logging.info('Waiting for UI to come up...')
     self.event_client.wait(
       lambda event: event.type == Event.Type.UI_READY)
