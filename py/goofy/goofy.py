@@ -41,6 +41,7 @@ from cros.factory.goofy import system
 from cros.factory.goofy import test_environment
 from cros.factory.goofy import time_sanitizer
 from cros.factory.goofy.web_socket_manager import WebSocketManager
+from cros.factory.goofy.charge_manager import ChargeManager
 from cros.factory.utils.process_utils import Spawn
 
 
@@ -157,6 +158,7 @@ class Goofy(object):
     self.event_server_thread = None
     self.event_client = None
     self.connection_manager = None
+    self.charge_manager = None
     self.time_sanitizer = None
     self.time_synced = False
     self.log_watcher = None
@@ -964,6 +966,13 @@ class Goofy(object):
 
     self.update_system_info()
 
+    assert ((self.test_list.options.min_charge_pct is None) ==
+            (self.test_list.options.max_charge_pct is None))
+    if (self.test_list.options.min_charge_pct and
+        self.test_list.options.max_charge_pct):
+      self.charge_manager = ChargeManager(self.test_list.options.min_charge_pct,
+                                          self.test_list.options.max_charge_pct)
+
     os.environ['CROS_FACTORY'] = '1'
     os.environ['CROS_DISABLE_SITE_SYSINFO'] = '1'
 
@@ -1105,10 +1114,15 @@ class Goofy(object):
     thread.start()
 
   def _run_queue_idle(self):
-    '''Invoked when the run queue has no events.'''
+    '''Invoked when the run queue has no events.
+
+    This method must not raise exception.
+    '''
     self.check_connection_manager()
     self.check_for_updates()
     self.sync_time_in_background()
+    if self.charge_manager:
+      self.charge_manager.AdjustChargeState()
 
   def handle_event_logs(self, log_name, chunk):
     '''Callback for event watcher.

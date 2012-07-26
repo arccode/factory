@@ -352,6 +352,14 @@ class Options(object):
   sync_time_period_secs = None
   _types['sync_time_period_secs'] = (type(None), int)
 
+  # The range in which the charge level should be. If min_charge_pct and
+  # max_charge_pct are set, Goofy will use ChargeManager to attempt to keep
+  # the battery charge within these thresholds.
+  min_charge_pct = None
+  _types['min_charge_pct'] = (type(None), int)
+  max_charge_pct = None
+  _types['max_charge_pct'] = (type(None), int)
+
   def check_valid(self):
     '''Throws a TestListError if there are any invalid options.'''
     # Make sure no errant options, or options with weird types,
