@@ -199,7 +199,7 @@ class TestInvocation(object):
           [pipes.quote(arg) for arg in args]))
 
       self.env_additions['CROS_PROC_TITLE'] = (
-          'python autotest %s.py (%s)' % (
+          '%s.py (factory autotest %s)' % (
               self.test.autotest_name, self.output_dir))
 
       with self._lock:
@@ -284,7 +284,7 @@ class TestInvocation(object):
                       cmd_line, self.log_path)
 
         self.env_additions['CROS_PROC_TITLE'] = (
-            'python %s.py (%s)' % (
+            '%s.py (factory pytest %s)' % (
                 self.test.pytest_name, self.output_dir))
 
         env = dict(os.environ)
