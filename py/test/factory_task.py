@@ -7,11 +7,9 @@
 # found in the LICENSE file.
 
 from cros.factory.test import factory
+from cros.factory.test import utils
 
-_FACTORY_TASK_EVENT_SUBTYPE = 'NextTask'
-_TASK_STATE_NOT_STARTED = 1
-_TASK_STATE_RUNNING = 2
-_TASK_STATE_FINISHED = 3
+TaskState = utils.Enum('NOT_STARTED', 'RUNNING', 'FINISHED')
 
 
 class FactoryTaskManager(object):
@@ -33,6 +31,7 @@ class FactoryTaskManager(object):
     if self._task_list:
       self._current_task = self._task_list[0]
       self._current_task._task_manager = self
+      self._current_task._ui = self._ui
       self._current_task._Start() # pylint: disable=W0212
     else:
       self._ui.Pass()
@@ -47,22 +46,34 @@ class FactoryTask(object):
 
   Subclass should implement Run(), and possibly Cleanup() if the user
   wants to do soem cleaning jobs.'''
-  _execution_status = _TASK_STATE_NOT_STARTED
+  _execution_status = TaskState.NOT_STARTED
 
   def _Start(self):
-    assert self._execution_status == _TASK_STATE_NOT_STARTED, \
-           'Task %s has been run before.' % self.__class__.__name__
+    assert self._execution_status == TaskState.NOT_STARTED, \
+        'Task %s has been run before.' % self.__class__.__name__
     factory.console.info('%s started.' % self.__class__.__name__)
-    self._execution_status = _TASK_STATE_RUNNING
+    self._execution_status = TaskState.RUNNING
     self.Run()
 
   def Stop(self):
-    assert self._execution_status == _TASK_STATE_RUNNING, \
-           'Task %s is not running.' % self.__class__.__name__
+    assert self._execution_status == TaskState.RUNNING, \
+        'Task %s is not running.' % self.__class__.__name__
     factory.console.info('%s stopped.' % self.__class__.__name__)
-    self._execution_status = _TASK_STATE_FINISHED
+    self._execution_status = TaskState.FINISHED
     self.Cleanup()
     self._task_manager.RunNextTask() # pylint: disable=E1101
+
+  def Fail(self, error_msg, later=False):
+    '''Does Cleanup and fails the task.'''
+    assert self._execution_status == TaskState.RUNNING, \
+        'Task %s is not running.' % self.__class__.__name__
+    factory.console.info('%s failed: %s' % (self.__class__.__name__, error_msg))
+    self._execution_status = TaskState.FINISHED
+    self.Cleanup()
+    if later:
+      self._ui.FailLater(error_msg) # pylint: disable=E1101
+    else:
+      self._ui.Fail(error_msg)  # pylint: disable=E1101
 
   def Run(self):
     raise NotImplementedError
