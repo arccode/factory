@@ -20,6 +20,7 @@ import traceback
 import unittest
 import yaml
 from optparse import OptionParser
+from setproctitle import setproctitle
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.goofy import test_steps
@@ -197,6 +198,10 @@ class TestInvocation(object):
       logging.debug('Test command line: %s', ' '.join(
           [pipes.quote(arg) for arg in args]))
 
+      self.env_additions['CROS_PROC_TITLE'] = (
+          'python autotest %s.py (%s)' % (
+              self.test.autotest_name, self.output_dir))
+
       with self._lock:
         with self.goofy.env.lock:
           self._process = self.goofy.env.spawn_autotest(
@@ -263,7 +268,7 @@ class TestInvocation(object):
             path=self.test.path,
             pytest_name=self.test.pytest_name,
             args=self.test.dargs,
-            results_path = results_path),
+            results_path=results_path),
               info)
 
       # Invoke the unittest driver in a separate process.
@@ -277,6 +282,10 @@ class TestInvocation(object):
 
         logging.debug('Test command line: %s >& %s',
                       cmd_line, self.log_path)
+
+        self.env_additions['CROS_PROC_TITLE'] = (
+            'python %s.py (%s)' % (
+                self.test.pytest_name, self.output_dir))
 
         env = dict(os.environ)
         env.update(self.env_additions)
@@ -518,13 +527,16 @@ def run_pytest(test_info):
 def main():
   parser = OptionParser()
   parser.add_option('--pytest', dest='pytest_info',
-            help='Info for pytest to run')
+                    help='Info for pytest to run')
   (options, dummy_args) = parser.parse_args()
 
   assert options.pytest_info
 
   info = pickle.load(open(options.pytest_info))
   factory.init_logging(info.path)
+  proc_title = os.environ.get('CROS_PROC_TITLE')
+  if proc_title:
+    setproctitle(proc_title)
   run_pytest(info)
 
 if __name__ == '__main__':
