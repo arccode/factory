@@ -62,6 +62,8 @@ def main():
                       help='clear Goofy state and logs on device')
   parser.add_argument('--autotest', dest='autotest', action='store_true',
                       help='also rsync autotest directory')
+  parser.add_argument('--norestart', dest='restart', action='store_false',
+                      help="don't restart Goofy")
   parser.add_argument('--test_list',
                       help=("test list to use (defaults to the one in "
                             "the board's overlay"))
@@ -102,10 +104,11 @@ def main():
         ['%s:/usr/local/factory' % args.host],
         check_call=True, log=True)
 
-  Spawn(ssh_command +
-        [args.host, '/usr/local/factory/bin/restart'] +
-        (['-a'] if args.clear_state else []),
-        check_call=True, log=True)
+  if args.restart:
+    Spawn(ssh_command +
+          [args.host, '/usr/local/factory/bin/restart'] +
+          (['-a'] if args.clear_state else []),
+          check_call=True, log=True)
 
 
 if __name__ == '__main__':
