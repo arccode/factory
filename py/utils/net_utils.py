@@ -8,7 +8,6 @@ import glob
 import httplib
 import os
 import subprocess
-import time
 import xmlrpclib
 
 DEFAULT_TIMEOUT = 10
