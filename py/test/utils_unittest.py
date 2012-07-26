@@ -55,5 +55,16 @@ class VarLogMessagesTest(unittest.TestCase):
         "19:26:17 kernel: That's all, folks.",
         ], self._GetMessages(EARLIER_VAR_LOG_MESSAGES, 1))
 
+
+class FlattenListTest(unittest.TestCase):
+  def runTest(self):
+    self.assertEquals([], utils.FlattenList([]))
+    self.assertEquals([], utils.FlattenList([[]]))
+    self.assertEquals([1], utils.FlattenList([1]))
+    self.assertEquals([1], utils.FlattenList([1,[]]))
+    self.assertEquals([1,2,3,4,5,6],
+                      utils.FlattenList([1,2,[3,4,[]],5,6]))
+
+
 if __name__ == "__main__":
   unittest.main()

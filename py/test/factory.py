@@ -568,7 +568,9 @@ class FactoryTest(object):
     @param kbd_shortcut: The keyboard shortcut for the test.
     @param dargs: Autotest arguments.
     @param backgroundable: Whether the test may run in the background.
-    @param subtests: A list of tests to run inside this test.
+    @param subtests: A list of tests to run inside this test.  In order
+      to make conditional construction easier, this may contain None items
+      (which are removed) or nested arrays (which are flattened).
     @param id: A unique ID for the test (defaults to the autotest name).
     @param has_ui: True if the test has a UI. (This defaults to True for
       OperatorTest.) If has_ui is not True, then when the test is
@@ -608,7 +610,8 @@ class FactoryTest(object):
       only).
     '''
     self.label_en = label_en
-    self.label_zh = label_zh.decode('utf-8')
+    self.label_zh = (label_zh if isinstance(label_zh, unicode)
+                     else label_zh.decode('utf-8'))
     self.autotest_name = autotest_name
     self.pytest_name = pytest_name
     self.invocation_target = invocation_target
@@ -633,7 +636,7 @@ class FactoryTest(object):
                 require_run)
     self.require_run = require_run
 
-    self.subtests = subtests or []
+    self.subtests = filter(None, utils.FlattenList(subtests or []))
     self.path = ''
     self.parent = None
     self.root = None
@@ -883,7 +886,7 @@ class FactoryTestList(FactoryTest):
   def __init__(self, subtests, state_instance, options):
     super(FactoryTestList, self).__init__(_root=True, subtests=subtests)
     self.state_instance = state_instance
-    self.subtests = subtests
+    self.subtests = filter(None, utils.FlattenList(subtests))
     self.path_map = {}
     self.root = self
     self.state_change_callback = None

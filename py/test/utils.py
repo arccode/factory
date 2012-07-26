@@ -265,3 +265,15 @@ def StartDaemonThread(*args, **kwargs):
   thread.daemon = True
   thread.start()
   return thread
+
+
+def FlattenList(lst):
+  '''Flattens a list, recursively including all items in contained arrays.
+
+  For example:
+
+    FlattenList([1,2,[3,4,[]],5,6]) == [1,2,3,4,5,6]
+  '''
+  return sum((FlattenList(x) if isinstance(x, list) else [x]
+              for x in lst),
+             [])
