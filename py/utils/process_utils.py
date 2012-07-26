@@ -4,11 +4,31 @@
 
 
 import logging
+import os
 import pipes
 import subprocess
 
 
 PIPE = subprocess.PIPE
+
+
+# File descriptor for /dev/null.
+dev_null = None
+
+
+def OpenDevNull():
+  '''Opens and returns a readable/writable file pointing to /dev/null.
+
+  The file object may be reused.
+  '''
+  global dev_null  # pylint: disable=W0603
+  if not dev_null:
+    # There is a possible race condition here, but it is extremely
+    # unlikely and won't hurt anyway (we'll just have multiple files
+    # pointing at /dev/null).
+    dev_null = open(os.devnull, 'r+')
+
+  return dev_null
 
 
 def Spawn(args, **kwargs):
@@ -36,6 +56,10 @@ def Spawn(args, **kwargs):
   Args:
     log: Do a logging.info before running the command, or to any
       logging object to call its info method.
+    stdout: Same as subprocess.Popen, but may be set to DEV_NULL to discard
+      all stdout.
+    stderr: Same as subprocess.Popen, but may be set to DEV_NULL to discard
+      all stderr.
     call: Wait for the command to complete.
     check_call: Wait for the command to complete, throwing an
       exception if it fails.  This implies call=True.
@@ -48,9 +72,11 @@ def Spawn(args, **kwargs):
     read_stdout: Wait for the command to complete, saving the contents
       to the return object's stdout_data attribute.  This implies
       call=True and stdout=PIPE.
+    ignore_stdout: Ignore stdout.
     read_stderr: Wait for the command to complete, saving the contents
       to the return object's stderr_data attribute.  This implies
       call=True and stderr=PIPE.
+    ignore_stderr: Ignore stderr.
 
   Returns/Raises:
     Same as Popen.
@@ -73,8 +99,20 @@ def Spawn(args, **kwargs):
   check_call = kwargs.pop('check_call', False)
   check_output = kwargs.pop('check_output', False)
   read_stdout = kwargs.pop('read_stdout', False)
+  ignore_stdout = kwargs.pop('ignore_stdout', False)
   read_stderr = kwargs.pop('read_stderr', False)
+  ignore_stderr = kwargs.pop('ignore_stderr', False)
   log_stderr_on_error = kwargs.pop('log_stderr_on_error', False)
+
+  if ignore_stdout:
+    assert not read_stdout
+    assert not kwargs.get('stdout')
+    kwargs['stdout'] = OpenDevNull()
+  if ignore_stderr:
+    assert not read_stderr
+    assert not log_stderr_on_error
+    assert not kwargs.get('stderr')
+    kwargs['stderr'] = OpenDevNull()
 
   if check_output:
     check_call = True
@@ -89,7 +127,7 @@ def Spawn(args, **kwargs):
     kwargs['stdout'] = PIPE
   if read_stderr:
     call = True
-    assert kwargs.get('stdout') in [None, PIPE]
+    assert kwargs.get('stderr') in [None, PIPE]
     kwargs['stderr'] = PIPE
 
   if call and (not read_stdout) and kwargs.get('stdout') == PIPE:

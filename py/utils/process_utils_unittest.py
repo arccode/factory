@@ -6,11 +6,13 @@
 
 
 import logging
+import os
 import subprocess
 import unittest
 from logging import handlers
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.utils import process_utils
 from cros.factory.utils.process_utils import Spawn, PIPE
 
 
@@ -24,6 +26,8 @@ class SpawnTest(unittest.TestCase):
 
     self.handler = handlers.MemoryHandler(capacity=0, target=Target())
     logging.getLogger().addHandler(self.handler)
+
+    process_utils.dev_null = None
 
   def tearDown(self):
     logging.getLogger().removeHandler(self.handler)
@@ -113,6 +117,27 @@ class SpawnTest(unittest.TestCase):
           'Exit code 3 from command: "echo foo >& 2; exit 3"; '
           'stderr: """\nfoo\n\n"""')],
         self.log_entries)
+
+  def testIgnoreStdout(self):
+    self.assertFalse(process_utils.dev_null)
+    process = Spawn('echo ignored; echo foo >& 2', shell=True,
+                    ignore_stdout=True, read_stderr=True)
+    self.assertTrue(process_utils.dev_null)
+    self.assertEquals('foo\n', process.stderr_data)
+
+  def testIgnoreStderr(self):
+    self.assertFalse(process_utils.dev_null)
+    process = Spawn('echo foo; echo ignored >& 2', shell=True,
+                    read_stdout=True, ignore_stderr=True)
+    self.assertTrue(process_utils.dev_null)
+    self.assertEquals('foo\n', process.stdout_data)
+
+  def testOpenDevNull(self):
+    self.assertFalse(process_utils.dev_null)
+    dev_null = process_utils.OpenDevNull()
+    self.assertEquals(os.devnull, dev_null.name)
+    self.assertEquals(dev_null, process_utils.OpenDevNull())
+
 
 if __name__ == '__main__':
   logging.basicConfig(level=logging.INFO)
