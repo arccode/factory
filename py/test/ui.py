@@ -1,7 +1,7 @@
 #!/usr/bin/python -u
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2010 The Chromium OS Authors. All rights reserved.
+# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -59,6 +59,7 @@ from cros.factory.test import factory
 from cros.factory.test.factory import TestState
 from cros.factory.test.test_ui import FactoryTestFailure
 from cros.factory.test.event import Event, EventClient
+from cros.factory.utils import debug_utils
 
 
 # For compatibility with tests before TestState existed
@@ -476,6 +477,8 @@ def run_test_widget(dummy_job, test_widget,
           invisible_cursor=True,
           window_registration_callback=None,
           cleanup_callback=None):
+  debug_utils.AddDebugHook()
+
   test_widget_size = factory.get_shared_data('test_widget_size')
 
   window = gtk.Window(gtk.WINDOW_TOPLEVEL)
