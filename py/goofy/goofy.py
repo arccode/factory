@@ -26,7 +26,6 @@ from cros.factory.test import factory
 from cros.factory.test import state
 from cros.factory.test.factory import TestState
 from cros.factory.goofy import updater
-from cros.factory.goofy import test_steps
 from cros.factory.goofy.event_log_watcher import EventLogWatcher
 from cros.factory.test import shopfloor
 from cros.factory.test import utils
@@ -221,8 +220,6 @@ class Goofy(object):
         lambda event: self.show_review_information(),
       Event.Type.UPDATE_SYSTEM_INFO:
         lambda event: self.update_system_info(),
-      Event.Type.UPDATE_FACTORY:
-        lambda event: self.update_factory(),
       Event.Type.STOP:
         lambda event: self.stop(root=test_or_root(event, False),
                                 fail=getattr(event, 'fail', False)),
@@ -819,8 +816,18 @@ class Goofy(object):
                        system_info=system_info.__dict__))
     logging.info('System info: %r', system_info.__dict__)
 
-  def update_factory(self, auto_run_on_restart=False):
-    '''Commences updating factory software.'''
+  def update_factory(self, auto_run_on_restart=False, post_update_hook=None):
+    '''Commences updating factory software.
+
+    Args:
+      auto_run_on_restart: Auto-run when the machine comes back up.
+      post_update_hook: Code to call after update but immediately before
+        restart.
+
+    Returns:
+      Never if the update was successful (we just reboot).
+      False if the update was unnecessary (no update available).
+    '''
     self.kill_active_tests(False)
     self.cancel_pending_tests()
 
@@ -830,11 +837,10 @@ class Goofy(object):
                                             FORCE_AUTO_RUN)
       self.state_instance.close()
 
-    try:
-      if updater.TryUpdate(pre_update_hook=pre_update_hook):
-        self.env.shutdown('reboot')
-    except:  # pylint: disable=W0702
-      factory.console.exception('Unable to update')
+    if updater.TryUpdate(pre_update_hook=pre_update_hook):
+      if post_update_hook:
+        post_update_hook()
+      self.env.shutdown('reboot')
 
   def init(self, args=None, env=None):
     '''Initializes Goofy.
@@ -904,10 +910,8 @@ class Goofy(object):
       state.clear_state()
 
     if self.options.print_test_list:
-      print (factory.read_test_list(
-          self.options.print_test_list,
-          test_classes=dict(test_steps.__dict__)).
-           __repr__(recursive=True))
+      print factory.read_test_list(
+          self.options.print_test_list).__repr__(recursive=True)
       return
 
     if self.options.ui_scale_factor != 1 and utils.in_qemu():
@@ -934,8 +938,7 @@ class Goofy(object):
 
     self.test_list = factory.read_test_list(
       self.options.test_list,
-      self.state_instance,
-      test_classes=dict(test_steps.__dict__))
+      self.state_instance)
     if not self.state_instance.has_shared_data('ui_lang'):
       self.state_instance.set_shared_data('ui_lang',
                         self.test_list.options.ui_lang)

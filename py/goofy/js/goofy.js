@@ -155,6 +155,12 @@ cros.factory.Test = function(invocation) {
      * @type cros.factory.Invocation
      */
     this.invocation = invocation;
+
+    /**
+     * Map of char codes to handlers.  Null if not yet initialized.
+     * @type {?Object.<number, function()>}
+     */
+    this.keyHandlers = null;
 };
 
 /**
@@ -220,6 +226,36 @@ cros.factory.Test.prototype.enablePassFailKeys = function() {
                 this.fail();
             }
         }, false, this);
+};
+
+/**
+ * Binds a key to a handler.
+ * @param {number} keyCode the key code to bind.
+ * @param {function()} handler the function to call when the key is pressed.
+ * @export
+ */
+cros.factory.Test.prototype.bindKey = function(keyCode, handler) {
+    if (!this.keyHandlers) {
+        this.keyHandlers = new Object();
+        // Set up the listener.
+        goog.events.listen(
+            this.invocation.iframe.contentWindow,
+            goog.events.EventType.KEYPRESS,
+            function(event) {
+                handler = this.keyHandlers[event.keyCode];
+                if (handler) {
+                    handler();
+                }
+            }, false, this);
+    }
+    this.keyHandlers[keyCode] = handler;
+};
+
+/**
+ * Triggers an update check.
+ */
+cros.factory.Test.prototype.updateFactory = function() {
+    this.invocation.goofy.updateFactory();
 };
 
 /**
@@ -1478,8 +1514,49 @@ cros.factory.Goofy.prototype.setTestList = function(testList) {
  * Sends an event to update factory software.
  * @export
  */
-cros.factory.Goofy.prototype.updateFactorySoftware = function() {
-    this.sendEvent('goofy:update_factory', {});
+cros.factory.Goofy.prototype.updateFactory = function() {
+    var dialog = new goog.ui.Dialog();
+    this.registerDialog(dialog);
+    dialog.setHasTitleCloseButton(false);
+    dialog.setContent(
+        cros.factory.Label('Updating factory software. Please wait...',
+                           '正在更新工廠軟體，請稍等...'));
+    dialog.setButtonSet(null);
+    dialog.setVisible(true);
+    // Set title manually, since we want to use HTML.
+    goog.dom.getElementByClass(
+        'modal-dialog-title-text', dialog.getElement()).innerHTML = (
+            cros.factory.Label('Software update', '更新工廠軟體'));
+    dialog.reposition();
+
+    this.sendRpc(
+        'UpdateFactory', [], function(ret) {
+            var success = ret[0];
+            var updated = ret[1];
+            var restartTime = ret[2];
+            var errorMsg = ret[3];
+
+            if (updated) {
+                dialog.setTitle('Update succeeded');
+                dialog.setContent(
+                    cros.factory.Label(
+                        'Update succeeded. Restarting.',
+                        '更新已成功，' +
+                        '將會在幾秒鐘之內重新啟動。'));
+            } else if (success) {  // but not updated
+                dialog.setContent(cros.factory.Label(
+                    'No update is currently necessary.',
+                    '目前不用更新工廠軟體'));
+                dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
+            } else {
+                dialog.setContent(
+                    cros.factory.Label('Update failed:',
+                                       '更新失敗了：') +
+                    '<pre>' + goog.string.htmlEscape(errorMsg) + '</pre>');
+                dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
+            }
+            dialog.reposition();
+        });
 };
 
 /**

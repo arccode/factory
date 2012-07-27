@@ -319,6 +319,16 @@ class UI(object):
     else:
       raise ValueError('Unexpected status in event %r' % event)
 
+  def BindKeyJS(self, key, js):
+    '''Sets a JavaScript function to invoke if a key is pressed.
+
+    Args:
+      key: The key to bind (if a string), or an integer character code.
+      js: The JavaScript to execute when pressed.
+    '''
+    key_code = key if isinstance(key, int) else ord(key)
+    self.RunJS('window.test.bindKey(%d, function() { %s })' % (key_code, js))
+
   def _HandleEvent(self, event):
     '''Handles an event sent by a test UI.'''
     if (event.type == Event.Type.TEST_UI_EVENT and

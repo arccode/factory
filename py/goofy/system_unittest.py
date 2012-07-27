@@ -45,7 +45,7 @@ class SystemStatusTest(unittest.TestCase):
 class ParseTemperaturesTest(unittest.TestCase):
   def runTest(self):
     # pylint: disable=W0212
-    self.assertEquals([1, 2, None, 4, None],
+    self.assertEquals([1, 2, None, 4],
                       system.SystemStatus._ParseTemperatures(
                           '0: 274\n'
                           '1: 275\n'

@@ -224,20 +224,16 @@ def del_shared_data(key):
   return get_state_instance().del_shared_data(key)
 
 
-def read_test_list(path=None, state_instance=None, text=None,
-                   test_classes=None):
-  test_classes = test_classes or {}
-
+def read_test_list(path=None, state_instance=None, text=None):
   if len([x for x in [path, text] if x]) != 1:
     raise TestListError('Exactly one of path and text must be set')
 
   test_list_locals = {}
 
   # Import test classes into the evaluation namespace
-  for d in dict(globals()), test_classes:
-    for (k, v) in d.iteritems():
-      if type(v) == type and issubclass(v, FactoryTest):
-        test_list_locals[k] = v
+  for (k, v) in dict(globals()).iteritems():
+    if type(v) == type and issubclass(v, FactoryTest):
+      test_list_locals[k] = v
 
   # Import types necessary to construct the test list.
   test_list_locals['WLAN'] = connection_manager.WLAN
