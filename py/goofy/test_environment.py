@@ -114,7 +114,8 @@ class DUTEnvironment(Environment):
       '--kiosk-mode-screensaver-path=/dev/null',
       ('--default-device-scale-factor=%d' %
        self.goofy.options.ui_scale_factor),
-      'http://localhost:%d/' % state.DEFAULT_FACTORY_STATE_PORT,
+      # Hard-code localhost IP so Chrome doesn't have to rely on DNS.
+      'http://127.0.0.1:%d/' % state.DEFAULT_FACTORY_STATE_PORT,
       ]
 
     chrome_log = os.path.join(factory.get_log_root(), 'factory.chrome.log')
