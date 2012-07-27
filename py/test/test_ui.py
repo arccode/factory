@@ -128,7 +128,8 @@ class UI(object):
   '''
   def __init__(self, css=None):
     self.lock = threading.RLock()
-    self.event_client = EventClient(callback=self._HandleEvent)
+    self.event_client = EventClient(callback=self._HandleEvent,
+                                    event_loop=EventClient.EVENT_LOOP_WAIT)
     self.test = os.environ['CROS_FACTORY_TEST_PATH']
     self.invocation = os.environ['CROS_FACTORY_TEST_INVOCATION']
     self.event_handlers = {}

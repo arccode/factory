@@ -1,4 +1,4 @@
-# Copyright (c) 2011 The Chromium OS Authors. All rights reserved.
+# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -29,6 +29,9 @@ CROS_FACTORY_EVENT = 'CROS_FACTORY_EVENT'
 # will be truncated by the seqpacket sockets.
 _MAX_MESSAGE_SIZE = 65535
 
+# Hello message send by the server and expected as the first datagram by
+# the client.
+_HELLO_MESSAGE = '\1'
 
 def json_default_repr(obj):
   '''Converts an object into a suitable representation for
@@ -170,6 +173,10 @@ class EventServerRequestHandler(SocketServer.BaseRequestHandler):
     try:
       self.server._subscribe(self.queue)
 
+      # Send hello, now that we've subscribed.  Client will wait for
+      # it before returning from the constructor.
+      self.request.send(_HELLO_MESSAGE)
+
       self.send_thread = threading.Thread(
         target=self._run_send_thread,
         name='EventServerSendThread-%d' % get_unique_id())
@@ -278,6 +285,7 @@ class EventServer(SocketServer.ThreadingUnixStreamServer):
 class EventClient(object):
   EVENT_LOOP_GOBJECT_IDLE = 'EVENT_LOOP_GOBJECT_IDLE'
   EVENT_LOOP_GOBJECT_IO = 'EVENT_LOOP_GOBJECT_IO'
+  EVENT_LOOP_WAIT = 'EVENT_LOOP_WAIT'
 
   '''
   A client used to post and receive messages from an event server.
@@ -297,21 +305,31 @@ class EventClient(object):
       of:
 
       - A Queue object, in which case a lambda invoking the callback is
-       written to the queue.
+        written to the queue.
       - EVENT_LOOP_GOBJECT_IDLE, in which case the callback will be
-       invoked in the gobject event loop using idle_add.
+        invoked in the gobject event loop using idle_add.
       - EVENT_LOOP_GOBJECT_IO, in which case the callback will be
-       invoked from an async IO handler.
+        invoked from an async IO handler.
+      - EVENT_LOOP_WAIT, in which case the caller must invoke wait() to
+        handle incoming messages.
     @param name: An optional name for the client
     '''
     self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_SEQPACKET)
     self.callbacks = set()
+    self.event_loop = event_loop
     logging.debug('Initializing event client')
 
-    should_start_thread = True
+    should_start_thread = event_loop not in (
+        self.EVENT_LOOP_GOBJECT_IO, self.EVENT_LOOP_WAIT)
 
     path = path or os.environ[CROS_FACTORY_EVENT]
     self.socket.connect(path)
+
+    hello = self.socket.recv(len(_HELLO_MESSAGE))
+    if hello != _HELLO_MESSAGE:
+      raise socket.error('Event client expected hello (%r) but got %r' %
+                         _HELLO_MESSAGE, hello)
+
     self._lock = threading.Lock()
 
     if callback:
@@ -325,10 +343,9 @@ class EventClient(object):
           lambda event: gobject.idle_add(callback, event))
       elif event_loop == self.EVENT_LOOP_GOBJECT_IO:
         import gobject
-        should_start_thread = False
         gobject.io_add_watch(
           self.socket, gobject.IO_IN,
-          lambda source, condition: self._read_one_message())
+          lambda source, condition: self._read_one_message()[0])
         self.callbacks.add(callback)
       else:
         self.callbacks.add(callback)
@@ -384,12 +401,28 @@ class EventClient(object):
     '''
     Waits for an event matching a condition.
 
-    @param condition: A function to evaluate. The function takes one
-      argument (an event to evaluate) and returns whether the condition
-      applies.
-    @param timeout: A timeout in seconds. wait will return None on
-      timeout.
+    Args:
+      condition: A function to evaluate. The function takes one
+        argument (an event to evaluate) and returns whether the condition
+        applies.
+      timeout: A timeout in seconds. wait will return None on
+        timeout.
+
+    Returns:
+      The event that matched the condition, or None if the connection
+      was closed.
     '''
+    if self.event_loop == self.EVENT_LOOP_WAIT:
+      assert not timeout, 'Timeout is not currently supported in wait()'
+
+      # We are the event loop.
+      while True:
+        keep_going, event = self._read_one_message()
+        if not keep_going:  # Closed
+          return None
+        if event and condition(event):
+          return event
+
     queue = Queue()
 
     def check_condition(event):
@@ -410,23 +443,26 @@ class EventClient(object):
     '''
     Thread to receive messages and broadcast them to callbacks.
     '''
-    while self._read_one_message():
+    while self._read_one_message()[0]:
       pass
 
   def _read_one_message(self):
     '''
-    Handles one incomming message from the socket.
+    Handles one incoming message from the socket.
 
-    @return: True if event processing should continue (i.e., not EOF).
+    Returns:
+      (keep_going, event), where:
+        keep_going: True if event processing should continue (i.e., not EOF).
+        event: The message if any.
     '''
     bytes = self.socket.recv(_MAX_MESSAGE_SIZE + 1)
     if len(bytes) > _MAX_MESSAGE_SIZE:
       # The message may have been truncated - ignore it
       logging.error('Event client: message too large')
-      return True
+      return True, None
 
     if len(bytes) == 0:
-      return False
+      return False, None
 
     try:
       event = pickle.loads(bytes)
@@ -434,7 +470,7 @@ class EventClient(object):
     except:
       logging.warn('Event client: bad message %r', bytes)
       traceback.print_exc(sys.stderr)
-      return True
+      return True, None
 
     with self._lock:
       callbacks = list(self.callbacks)
@@ -446,4 +482,4 @@ class EventClient(object):
         traceback.print_exc(sys.stderr)
         # Keep going
 
-    return True
+    return True, event
