@@ -387,6 +387,12 @@ cros.factory.Goofy = function() {
     this.shutdownDialog = null;
 
     /**
+     * Visible dialogs.
+     * @type Array.<goog.ui.Dialog>
+     */
+    this.dialogs = [];
+
+    /**
      * Whether eng mode is enabled.
      * @type {boolean}
      */
@@ -407,34 +413,51 @@ cros.factory.Goofy = function() {
      */
     this.engineeringPasswordSHA1 = '?';
 
-    var debugWindow = new goog.debug.FancyWindow('main');
-    debugWindow.setEnabled(false);
-    debugWindow.init();
-    // Magic keyboard shortcuts.
+    /**
+     * Debug window.
+     * @type {goog.debug.FancyWindow}
+     */
+    this.debugWindow = new goog.debug.FancyWindow('main');
+    this.debugWindow.setEnabled(false);
+    this.debugWindow.init();
+
+    /**
+     * Key listener bound to this object.
+     */
+    this.boundKeyListener = goog.bind(this.keyListener, this);
+
+    // Set up magic keyboard shortcuts.
     goog.events.listen(
-        window, goog.events.EventType.KEYDOWN,
-        function(event) {
-            if (event.altKey && event.ctrlKey) {
-                switch (String.fromCharCode(event.keyCode)) {
-                case '0':
-                    this.promptEngineeringPassword();
-                    break;
-                case '1':
-                    debugWindow.setEnabled(true);
-                    break;
-                default:
-                    // Nothing
-                }
+        window, goog.events.EventType.KEYDOWN, this.keyListener, true, this);
+};
+
+/**
+ * Event listener for Ctrl-Alt-keypress.
+ * @param {goog.events.KeyEvent} event
+ */
+cros.factory.Goofy.prototype.keyListener = function(event) {
+    if (event.altKey && event.ctrlKey) {
+        switch (String.fromCharCode(event.keyCode)) {
+        case '0':
+            if (!this.dialogs.length) {  // If no dialogs are shown yet
+                this.promptEngineeringPassword();
             }
-            // Disable shortcut Ctrl-Alt-* when not in engineering mode.
-            // Note: platformModifierKey == Command-key for Mac browser;
-            //     for non-Mac browsers, it is Ctrl-key.
-            if (!this.engineeringMode &&
-                event.altKey && event.platformModifierKey) {
-                event.stopPropagation();
-                event.preventDefault();
-            }
-        }, false, this);
+            break;
+        case '1':
+            this.debugWindow.setEnabled(true);
+            break;
+        default:
+            // Nothing
+        }
+    }
+    // Disable shortcut Ctrl-Alt-* when not in engineering mode.
+    // Note: platformModifierKey == Command-key for Mac browser;
+    //     for non-Mac browsers, it is Ctrl-key.
+    if (!this.engineeringMode &&
+        event.altKey && event.platformModifierKey) {
+        event.stopPropagation();
+        event.preventDefault();
+    }
 };
 
 /**
@@ -526,18 +549,25 @@ cros.factory.Goofy.prototype.initSplitPanes = function() {
                                          window));
         });
 
-    // Whenever we get focus, try to focus any visible iframe.
+    // Whenever we get focus, try to focus any visible iframe (if no modal
+    // dialog is visible).
     goog.events.listen(
         window, goog.events.EventType.FOCUS,
-        function(event) {
-            this.focusInvocation();
-        }, false, this);
+        function() { goog.Timer.callOnce(this.focusInvocation, 0, this); },
+        false, this);
 };
 
 /**
  * Returns focus to any visible invocation.
  */
 cros.factory.Goofy.prototype.focusInvocation = function() {
+    if (goog.array.find(this.dialogs, function(dialog) {
+                return dialog.isVisible();
+            })) {
+        // Don't divert focus, since a dialog is visible.
+        return;
+    }
+
     goog.object.forEach(this.invocations, function(i) {
             if (i && i.iframe && /** @type boolean */(
                     i.getState().visible)) {
@@ -713,11 +743,39 @@ cros.factory.Goofy.prototype.setSystemInfo = function(systemInfo) {
 };
 
 /**
+ * Registers a dialog.  sets the dialog setDisposeOnHide to true, and
+ * returns focus to any running invocation when the dialog is
+ * hidden/disposed.
+ *
+ * @param {goog.ui.Dialog} dialog
+ */
+cros.factory.Goofy.prototype.registerDialog = function(dialog) {
+    this.dialogs.push(dialog);
+    dialog.setDisposeOnHide(true);
+    goog.events.listen(dialog, goog.ui.Component.EventType.SHOW, function() {
+            window.focus();
+            // Hack: if the dialog contains an input element, focus it.  (For
+            // instance, Prompt only calls select(), not focus(), on the text
+            // field, which causes ESC and Enter shortcuts not to work.)
+            var inputs =
+                dialog.getContentElement().getElementsByTagName('input');
+            if (inputs.length) {
+                inputs[0].focus();
+            }
+        }, false, this);
+    goog.events.listen(dialog, goog.ui.Component.EventType.HIDE, function() {
+            goog.Timer.callOnce(this.focusInvocation, 0, this);
+            goog.array.remove(this.dialogs, dialog);
+        }, false, this);
+};
+
+/**
  * Displays an alert.
  * @param {string} messageHtml
  */
 cros.factory.Goofy.prototype.alert = function(messageHtml) {
     var dialog = new goog.ui.Dialog();
+    this.registerDialog(dialog);
     dialog.setTitle('Alert');
     dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
     dialog.setContent(messageHtml);
@@ -772,6 +830,7 @@ cros.factory.Goofy.prototype.promptEngineeringPassword = function() {
                 this.alert('Incorrect password.');
             }
         }, this));
+    this.registerDialog(this.engineeringModeDialog);
     this.engineeringModeDialog.setVisible(true);
     goog.dom.classes.add(this.engineeringModeDialog.getElement(),
                          'goofy-engineering-mode-dialog');
@@ -790,17 +849,6 @@ cros.factory.Goofy.prototype.setEngineeringMode = function(enabled) {
 };
 
 /**
- * Closes any open dialog.
- */
-cros.factory.Goofy.prototype.closeDialog = function() {
-    if (this.dialog) {
-        this.dialog.setVisible(false);
-        this.dialog.dispose();
-        this.dialog = null;
-    }
-};
-
-/**
  * Deals with data about a pending reboot.
  * @param {cros.factory.PendingShutdownEvent} shutdownInfo
  */
@@ -813,7 +861,6 @@ cros.factory.Goofy.prototype.setPendingShutdown = function(shutdownInfo) {
     if (!shutdownInfo || !shutdownInfo.time) {
         return;
     }
-    this.closeDialog();
 
     var verbEn = shutdownInfo.operation == 'reboot' ?
         'Rebooting' : 'Shutting down';
@@ -826,6 +873,7 @@ cros.factory.Goofy.prototype.setPendingShutdown = function(shutdownInfo) {
         shutdownInfo.iteration + '次');
 
     this.shutdownDialog = new goog.ui.Dialog();
+    this.registerDialog(this.shutdownDialog);
     this.shutdownDialog.setContent(
         '<p>' + verbEn + ' in <span class="goofy-shutdown-secs"></span> ' +
         'second<span class="goofy-shutdown-secs-plural"></span> (' + timesEn +
@@ -1268,6 +1316,7 @@ cros.factory.Goofy.prototype.showHistoryEntry = function(path, invocation) {
             metadataTable.push('</table>');
 
             var dialog = new goog.ui.Dialog();
+            this.registerDialog(dialog);
             dialog.setTitle(metadata.path +
                             ' (invocation ' + metadata.invocation + ')');
             dialog.setModal(false);
@@ -1712,6 +1761,12 @@ cros.factory.Goofy.prototype.handleBackendEvent = function(jsonMessage) {
                 /** @type {string} */(message['html']));
             this.updateLanguageInDocument(invocation.iframe.contentDocument);
         }
+
+        // In the content window's evaluation context, add our keydown
+        // listener.
+        invocation.iframe.contentWindow.eval(
+            'window.addEventListener("keydown", ' +
+            'window.test.invocation.goofy.boundKeyListener)');
     } else if (message.type == 'goofy:set_html') {
         var invocation = this.getOrCreateInvocation(
             message.test, message.invocation);
