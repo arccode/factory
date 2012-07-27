@@ -53,7 +53,7 @@ def RunRsync(*rsync_command):
   factory.console.info('rsync succeeded')
 
 
-def TryUpdate(pre_update_hook=None):
+def TryUpdate(pre_update_hook=None, rsync_timeout=15):
   '''Attempts to update the autotest directory on the device.
 
   Atomically replaces the autotest directory with new contents.
@@ -63,6 +63,7 @@ def TryUpdate(pre_update_hook=None):
   Args:
     pre_update_hook: A routine to be invoked before the
       autotest directory is swapped out.
+    rsync_timeout: I/O timeout of rsync in seconds.
 
   Returns:
     True if an update was performed and the machine should be
@@ -95,6 +96,7 @@ def TryUpdate(pre_update_hook=None):
   RunRsync(
     'rsync',
     '-a', '--delete', '--stats',
+    '--timeout=%s' % rsync_timeout,
     # Use copies of identical files from the old autotest
     # as much as possible to save network bandwidth.
     '--copy-dest=%s' % parent_dir,
