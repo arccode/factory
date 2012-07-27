@@ -1,5 +1,5 @@
 #!/bin/sh
-# Copyright (c) 2011 The Chromium OS Authors. All rights reserved.
+# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -29,16 +29,6 @@ load_setup() {
 }
 
 start_factory() {
-  # Work around the fact that after mount-encrypted was made the default, /var
-  # is wiped every boot. TODO(jsalz): Remove this once chrome-os-partner:11392
-  # is addressed.
-  if [ ! -d /var/factory ]; then
-    mkdir -p /mnt/stateful_partition/var_overlay/factory /var/factory
-    mount --bind /mnt/stateful_partition/var_overlay/factory /var/factory
-    mkdir -p /var/factory/log /var/factory/state /var/factory/tests
-    ln -sf /var/factory/log/factory.log /var/log
-  fi
-
   # This should already exist, but just in case...
   mkdir -p "$(dirname "$FACTORY_LOG_FILE")"
 
