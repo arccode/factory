@@ -1,5 +1,5 @@
 #!/bin/sh
-# Copyright (c) 2011 The Chromium OS Authors. All rights reserved.
+# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -107,7 +107,7 @@ main() {
   fi
   disable_kernel "$(( factory_partno - 1 ))"
   enable_kernel "$(( release_partno - 1 ))"
-  crossytem disable_dev_request=1
+  crossystem disable_dev_request=1
   alert "Syncing disks..."
   sync
   sleep 3  # For sync to take place.
