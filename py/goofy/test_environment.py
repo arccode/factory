@@ -9,6 +9,7 @@ import hashlib
 import logging
 import os
 from Queue import Queue
+import shutil
 import subprocess
 import threading
 import time
@@ -104,10 +105,14 @@ class DUTEnvironment(Environment):
       thread.daemon = True
       thread.start()
 
+    chrome_data_dir = os.path.join(factory.get_state_root(),
+                                   'chrome-data-dir')
+    # Start with a fresh data directory every time.
+    shutil.rmtree(chrome_data_dir, ignore_errors=True)
+
     chrome_command = [
       '/opt/google/chrome/chrome',
-      '--user-data-dir=%s/factory-chrome-datadir' %
-      factory.get_log_root(),
+      '--user-data-dir=%s' % chrome_data_dir,
       '--disable-translate',
       '--aura-host-window-use-fullscreen',
       '--kiosk',
