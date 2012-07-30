@@ -169,6 +169,15 @@ class BasicTest(GoofyTest):
     self.check_one_test('a', 'a_A', True, '')
     self.check_one_test('b', 'b_B', False, 'Uh-oh')
     self.check_one_test('c', 'c_C', False, 'Uh-oh')
+    self.assertEqual(
+        'id: null\n'
+        'path: null\n'
+        'subtests:\n'
+        '- {count: 1, error_msg: null, id: a, path: a, status: PASSED}\n'
+        '- {count: 1, error_msg: Uh-oh, id: b, path: b, status: FAILED}\n'
+        '- {count: 1, error_msg: Uh-oh, id: c, path: c, status: FAILED}\n',
+        self.goofy.test_list.as_yaml(
+            factory.get_state_instance().get_test_states()))
 
 
 class WebSocketTest(GoofyTest):

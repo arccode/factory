@@ -25,6 +25,7 @@ import yaml
 import factory_common # pylint: disable=W0611
 from cros.factory.goofy import connection_manager
 from cros.factory.test import utils
+from cros.factory.test.unicode_to_string import UnicodeToString
 
 SCRIPT_PATH = os.path.realpath(__file__)
 CROS_FACTORY_LIB_PATH = os.path.dirname(SCRIPT_PATH)
@@ -878,6 +879,28 @@ class FactoryTest(object):
     assert option in self.EXCLUSIVE_OPTIONS
     return option in self.exclusive or (
         self.parent and self.parent.is_exclusive(option))
+
+  def as_dict(self, state_map=None):
+    '''
+    Returns this node and children in a dictionary suitable for YAMLification.
+    '''
+    node = {'id': self.id or None, 'path': self.path or None}
+    if not self.subtests and state_map:
+      state = state_map[self.path]
+      node['status'] = state.status
+      node['count'] = state.count
+      node['error_msg'] = state.error_msg or None
+    # Convert to string, in case state_map has Unicode stuff from an RPC call
+    node = UnicodeToString(node)
+    if self.subtests:
+      node['subtests'] = [x.as_dict(state_map) for x in self.subtests]
+    return node
+
+  def as_yaml(self, state_map=None):
+    '''
+    Returns this node and children in YAML format.
+    '''
+    return yaml.dump(self.as_dict(state_map))
 
 
 class FactoryTestList(FactoryTest):

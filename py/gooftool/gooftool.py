@@ -15,6 +15,7 @@ on each device as part of the assembly process.
 
 import logging
 import os
+import pipes
 import re
 import sys
 import time
@@ -559,10 +560,13 @@ _upload_method_cmd_arg = CmdArg(
     '--upload_method', metavar='METHOD:PARAM',
     help=('How to perform the upload.  METHOD should be one of '
           '{ftp, shopfloor, curl, cpfe, custom}.'))
-
+_add_file_cmd_arg = CmdArg(
+    '--add_file', metavar='FILE', action='append',
+    help='Extra file to include in report (must be an absolute path)')
 
 @Command('upload_report',
-         _upload_method_cmd_arg)
+         _upload_method_cmd_arg,
+         _add_file_cmd_arg)
 def UploadReport(options):
   """Create and a report containing key device details."""
   def NormalizeAsFileName(token):
@@ -578,6 +582,15 @@ def UploadReport(options):
   # Intentionally ignoring dotfiles in EVENT_LOG_DIR.
   tar_cmd = 'cd %s ; tar cjf %s *' % (EVENT_LOG_DIR, target_path)
   tar_cmd += ' --add-file %s' % FACTORY_LOG_PATH
+  if options.add_file:
+    for f in options.add_file:
+      # Require absolute paths since the tar command may change the
+      # directory.
+      if not f.startswith('/'):
+        raise Error('Not an absolute path: %s' % f)
+      if not os.path.exists(f):
+        raise Error('File does not exist: %s' % f)
+      tar_cmd += ' --add-file %s' % pipes.quote(f)
   cmd_result = Shell(tar_cmd)
   if not cmd_result.success:
     raise Error('unable to tar event logs, cmd %r failed, stderr: %r' %
@@ -604,7 +617,8 @@ def UploadReport(options):
          CmdArg('--fast', action='store_true',
                 help='use non-secure but faster wipe method.'),
          _hwdb_path_cmd_arg,
-         _upload_method_cmd_arg)
+         _upload_method_cmd_arg,
+         _add_file_cmd_arg)
 def Finalize(options):
   """Verify system readiness and trigger transition into release state.
 
