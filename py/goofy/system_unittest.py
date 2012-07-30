@@ -42,5 +42,22 @@ class SystemStatusTest(unittest.TestCase):
     mox.Verify(netifaces)
 
 
+class ParseTemperaturesTest(unittest.TestCase):
+  def runTest(self):
+    # pylint: disable=W0212
+    self.assertEquals([1, 2, None, 4, None],
+                      system.SystemStatus._ParseTemperatures(
+                          '0: 274\n'
+                          '1: 275\n'
+                          'Sensor 2 error\n'
+                          '3: 277\n'
+                          'Sensor 4 error\n'))
+    self.assertEquals(['Foo', 'Bar', None, 'Baz'],
+                      system.SystemStatus._ParseTemperatureInfo(
+                          '0: 3 Foo\n'
+                          '1: 4 Bar\n'
+                          'EC returned error result code 2\n'
+                          '3: 255 Baz\n'))
+
 if __name__ == "__main__":
   unittest.main()

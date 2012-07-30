@@ -132,7 +132,8 @@ class SystemStatus(object):
 
   GET_FAN_SPEED_RE = re.compile('Current fan RPM: ([0-9]*)')
   TEMP_SENSOR_RE = re.compile('Reading temperature...([0-9]*)')
-  MAX_TEMPERATURE_COUNT = 10
+  TEMPERATURE_RE = re.compile('^(\d+): (\d+)$', re.MULTILINE)
+  TEMPERATURE_INFO_RE = re.compile('^(\d+): \d+ (.+)$', re.MULTILINE)
 
   def __init__(self):
     self.battery = {}
@@ -154,13 +155,17 @@ class SystemStatus(object):
     self.fan_rpm = self.GetFanSpeed()
 
     # Get temperatures from sensors
-    self.temperatures = []
-    for i in xrange(self.MAX_TEMPERATURE_COUNT):
-      temp = self.GetTemperature(i)
-      if temp is None:
-        break
-      # Convert from Kelvin to Celsius
-      self.temperatures.append(int(temp) - 273)
+    try:
+      self.temperatures = self._ParseTemperatures(
+          self.CallECTool(['temps', 'all']))
+    except:
+      self.temperatures = []
+
+    try:
+      self.main_temperature_index = self._ParseTemperatureInfo(
+          self.CallECTool(['tempsinfo', 'all'])).index('PECI')
+    except:
+      self.main_temperature_index = None
 
     try:
       self.load_avg = map(
@@ -178,10 +183,40 @@ class SystemStatus(object):
     except:
       self.ips = None
 
+  @staticmethod
+  def _ParseTemperatures(ectool_output):
+    '''Returns a list of temperatures for various sensors.
+
+    Args:
+      ectool_output: Output of "ectool temps all".
+    '''
+    temps = []
+    for match in SystemStatus.TEMPERATURE_RE.finditer(ectool_output):
+      sensor = int(match.group(1) or match.group(3))
+      while len(temps) < sensor + 1:
+        temps.append(None)
+      # Convert Kelvin to Celsius and add
+      temps[sensor] = int(match.group(2)) - 273 if match.group(2) else None
+    return temps
+
+  @staticmethod
+  def _ParseTemperatureInfo(ectool_output):
+    '''Returns a list of temperatures for various sensors.
+
+    Args:
+      ectool_output: Output of "ectool tempsinfo all".
+    '''
+    infos = []
+    for match in SystemStatus.TEMPERATURE_INFO_RE.finditer(ectool_output):
+      sensor = int(match.group(1))
+      while len(infos) < sensor + 1:
+        infos.append(None)
+      infos[sensor] = match.group(2)
+    return infos
+
   def CallECTool(self, cmd):
     full_cmd = ['ectool'] + cmd
-    result = utils.CheckOutput(full_cmd)
-    return result
+    return Spawn(full_cmd, read_stdout=True, ignore_stderr=True).stdout_data
 
   def GetFanSpeed(self):
     try:

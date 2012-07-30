@@ -1689,11 +1689,14 @@ cros.factory.Goofy.prototype.updateStatus = function() {
             chargeIndicator, 'goofy-battery-' + batteryStatus);
 
         var temperatures = status['temperatures'];
+        var mainTemperatureIndex = status['main_temperature_index'];
         var temp = null;
         // TODO(jsalz): Generalize to select and use the correct
         // temperature.
-        if (temperatures && temperatures.length >= 10 && temperatures[9]) {
-            temp = Math.round(temperatures[9]) + '°C';
+        if (mainTemperatureIndex != null &&
+            temperatures && temperatures.length > mainTemperatureIndex &&
+            temperatures[mainTemperatureIndex]) {
+            temp = Math.round(temperatures[mainTemperatureIndex]) + '°C';
         }
         setValue('goofy-temperature', temp);
         this.lastStatus = status;
