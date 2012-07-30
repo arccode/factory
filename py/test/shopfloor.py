@@ -1,7 +1,8 @@
-# Copyright (c) 2010 The Chromium OS Authors. All rights reserved.
+#!/usr/bin/python
+#
+# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
-
 
 """Wrapper for Factory Shop Floor.
 
@@ -228,6 +229,11 @@ def get_hwid():
 def get_vpd():
   """Gets VPD associated with current pinned serial number."""
   return get_instance().GetVPD(get_serial_number())
+
+@_server_api
+def get_registration_code_map():
+  """Gets registration codes associated with current pinned serial number."""
+  return get_instance().GetRegistrationCodeMap(get_serial_number())
 
 
 @_server_api

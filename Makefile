@@ -65,6 +65,7 @@ UNITTESTS=\
 	py/goofy/updater_unittest.py \
 	py/test/factory_unittest.py \
 	py/test/state_unittest.py \
+	py/test/registration_codes_unittest.py \
 	py/test/unicode_to_string_unittest.py \
 	py/test/utils_unittest.py \
 	py/utils/net_utils_unittest.py \
