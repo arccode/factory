@@ -34,7 +34,13 @@ class CountDownTest(unittest.TestCase):
   def runTest(self):
     # Allow attributes to be defined outside __init__
     # pylint: disable=W0201
+    args = self.test_info.args
+
     self._ui = test_ui.UI()
+    title_en = args.get('title_en', 'Countdown')
+    self._ui.SetHTML(title_en, id='countdown-title-en')
+    self._ui.SetHTML(args.get('title_zh', title_en), id='countdown-title-zh')
+
     self._duration_secs = self.test_info.args['duration_secs']
     self._log_interval = self.test_info.args.get('log_interval', 10)
     self._start_secs = time.time()

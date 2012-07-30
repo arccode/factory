@@ -1,23 +1,65 @@
 <!DOCTYPE html>
 <meta charset="utf-8">
-<div style="position: absolute; top: 80%">
-  <h1>
-    <span class='goofy-label-en'>Run-in Test</span>
-    <span class='goofy-label-zh'>燒機測試</span>
-  </h1>
-  <div>
-    <span class='goofy-label-en'>Elapsed time: </span>
-    <span class='goofy-label-zh'>經過時間： </span>
-    <span id='elapsed-time'>00:00:00</span>
-  </div>
-  <div>
-    <span class='goofy-label-en'>Remaining time: </span>
-    <span class='goofy-label-zh'>剩餘時間： </span>
-    <span id='remaining-time'>00:00:00</span>
-  </div>
-  <div>
-    <span class='goofy-label-en'>Load: </span>
-    <span class='goofy-label-zh'>系統負載： </span>
-    <span id='system-load'></span>
-  </div>
-</div>
+
+<style type="text/css">
+table {
+  margin: auto;
+  border: solid 4px #779FD3;
+  border-spacing: 0;
+}
+th, td {
+  padding: 0 8px;
+}
+thead tr {
+  font-size: 200%;
+  background-color: #CDDFF0;
+}
+thead tr th {
+  text-align: center;
+}
+tbody tr:first-child * {
+  padding-top: 4px;
+}
+tbody tr:last-child * {
+  padding-bottom: 4px;
+}
+</style>
+
+<div class="test-vcenter-outer">
+<div class="test-vcenter-inner">
+
+<table>
+  <thead>
+    <tr>
+      <th colspan=2>
+        <span class='goofy-label-en' id='countdown-title-en'></span>
+        <span class='goofy-label-zh' id='countdown-title-zh'></span>
+      </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>
+        <span class='goofy-label-en'>Elapsed time:</span>
+        <span class='goofy-label-zh'>經過時間：</span>
+      </th>
+      <td id='elapsed-time'>00:00:00</td>
+    </tr>
+    <tr>
+      <th>
+        <span class='goofy-label-en'>Remaining time:</span>
+        <span class='goofy-label-zh'>剩餘時間：</span>
+      </th>
+      <td id='remaining-time'>00:00:00</td>
+    </tr>
+    <tr>
+      <th>
+        <span class='goofy-label-en'>Load:</span>
+        <span class='goofy-label-zh'>系統負載：</span>
+      </th>
+      <td id='system-load'></span>
+    </tr>
+  </tbody>
+</table>
+
+</div></div>
