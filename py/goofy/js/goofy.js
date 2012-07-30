@@ -1690,11 +1690,10 @@ cros.factory.Goofy.prototype.updateStatus = function() {
 
         var temperatures = status['temperatures'];
         var temp = null;
-        if (temperatures && temperatures.length) {
-            var lastTemp = temperatures[temperatures.length - 1];
-            if (lastTemp) {
-                temp = Math.round(lastTemp) + '°C';
-            }
+        // TODO(jsalz): Generalize to select and use the correct
+        // temperature.
+        if (temperatures && temperatures.length >= 10 && temperatures[9]) {
+            temp = Math.round(temperatures[9]) + '°C';
         }
         setValue('goofy-temperature', temp);
         this.lastStatus = status;
