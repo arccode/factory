@@ -319,6 +319,8 @@ class Goofy(object):
   def set_visible_test(self, test):
     if self.visible_test == test:
       return
+    if test and not test.has_ui:
+      return
 
     if test:
       test.update_state(visible=True)
