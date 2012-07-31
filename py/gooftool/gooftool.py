@@ -456,32 +456,45 @@ def VerifyDevSwitch(options):  # pylint: disable=W0613
 def EnableFwWp(options):  # pylint: disable=W0613
   """Enable then verify firmware write protection."""
 
-  def WriteProtect(fw_file_path, fw_type, section):
+  def CalculateLegacyRange(image, length, section_data):
+    ro_size = length / 2
+    ro_a = int(section_data[0] / ro_size)
+    ro_b = int((section_data[0] + section_data[1] - 1) / ro_size)
+    if ro_a != ro_b:
+      raise Error("%s firmware section %s has illegal size" %
+                  (fw_type, section))
+    ro_offset = ro_a * ro_size
+    return (ro_offset, ro_size)
+
+  def WriteProtect(fw_file_path, fw_type, legacy_section):
     """Calculate protection size, then invoke flashrom.
 
     Our supported chips only allow write protecting half their total
     size, so we parition the flash chipset space accordingly.
     """
     raw_image = open(fw_file_path, 'rb').read()
+    wp_section = 'WP_RO'
     image = crosfw.FirmwareImage(raw_image)
-    if not image.has_section(section):
-      raise Error('could not find %s firmware section %s' % (fw_type, section))
-    section_data = image.get_section_area(section)
-    protectable_size = len(raw_image) / 2
-    ro_a = int(section_data[0] / protectable_size)
-    ro_b = int((section_data[0] + section_data[1] - 1) / protectable_size)
-    if ro_a != ro_b:
-      raise Error("%s firmware section %s has illegal size" %
-                  (fw_type, section))
-    ro_offset = ro_a * protectable_size
-    logging.debug('write protecting %s', fw_type)
-    crosfw.Flashrom(fw_type).EnableWriteProtection(ro_offset, protectable_size)
+    if image.has_section(wp_section):
+      section_data = image.get_section_area(wp_section)
+      ro_offset = section_data[0]
+      ro_size = section_data[1]
+    elif image.has_section(legacy_section):
+      section_data = image.get_section_area(legacy_section)
+      (ro_offset, ro_size) = CalculateLegacyRange(
+          image, len(raw_image), section_data)
+    else:
+      raise Error('could not find %s firmware section %s or %s' %
+                  (fw_type, wp_section, legacy_section))
+
+    logging.debug('write protecting %s [off=%x size=%x]', fw_type,
+                  ro_offset, ro_size)
+    crosfw.Flashrom(fw_type).EnableWriteProtection(ro_offset, ro_size)
 
   WriteProtect(crosfw.LoadMainFirmware().GetFileName(), 'main', 'RO_SECTION')
   _event_log.Log('wp', fw='main')
   ec_fw_file = crosfw.LoadEcFirmware().GetFileName()
   if ec_fw_file is not None:
-    # TODO(hungte) Support WP_RO if that section exist.
     WriteProtect(ec_fw_file, 'ec', 'EC_RO')
     _event_log.Log('wp', fw='ec')
   else:
