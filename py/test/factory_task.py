@@ -9,7 +9,7 @@
 from cros.factory.test import factory
 from cros.factory.test import utils
 
-TaskState = utils.Enum('NOT_STARTED', 'RUNNING', 'FINISHED')
+TaskState = utils.Enum(['NOT_STARTED', 'RUNNING', 'FINISHED'])
 
 
 class FactoryTaskManager(object):

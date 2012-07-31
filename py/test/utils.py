@@ -241,7 +241,15 @@ def LogAndCheckOutput(*args, **kwargs):
 
 
 class Enum(frozenset):
-  '''An enumeration type.'''
+  '''An enumeration type.
+
+  Usage:
+    To create a enum object:
+      dummy_enum = utils.Enum(['A', 'B', 'C'])
+
+    To access a enum object, use:
+      dummy_enum.A
+      dummy_enum.B'''
   def __getattr__(self, name):
     if name in self:
       return name
