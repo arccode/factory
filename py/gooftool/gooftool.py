@@ -80,8 +80,11 @@ def GetReleaseKernelPartitionPath():
 
 
 def FindScript(script_name):
-  script_path = os.path.join(os.path.dirname(os.path.dirname(
-        os.path.realpath(__file__))), 'sh', script_name)
+  # __file__ is in /usr/local/factory/py/gooftool/gooftool.py
+  # scripts should be in /usr/local/factory/sh/*
+  factory_base = os.path.realpath(os.path.join(
+      os.path.dirname(os.path.realpath(__file__)), '..', '..'))
+  script_path = os.path.join(factory_base, 'sh', script_name)
   if not os.path.exists(script_path):
     raise Error('Needed script %s does not exist.' % script_path)
   return script_path
