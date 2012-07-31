@@ -328,7 +328,7 @@ def _ProbeBattery():
                        for node_path, type_data
                        in zip(node_path_list, type_data_list)
                        if type_data == 'Battery']
-  return sorted(CompactStr(x) for x in battery_data_list)
+  return sorted(CompactStr(x) for x in battery_data_list if x)
 
 
 @_ComponentProbe('bluetooth')
