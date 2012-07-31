@@ -25,11 +25,8 @@
 #                the ICCID.
 #
 
-import os
 import re
 import serial as pyserial
-import sys
-import time
 import unittest
 
 from cros.factory.test import factory
@@ -37,7 +34,6 @@ from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test import utils
 from cros.factory.test.factory_task import FactoryTask, FactoryTaskManager
-from cros.factory.test.event import Event, EventClient
 from cros.factory.event_log import EventLog
 
 _TEST_TITLE = test_ui.MakeLabel('SIM / IMEI / MEID Extraction',
@@ -139,6 +135,8 @@ class StartTest(unittest.TestCase):
     self.event_log = EventLog.ForAutoTest()
 
   def runTest(self):
+    # Allow attributes to be defined outside __init__
+    # pylint: disable=W0201
     args = self.test_info.args
     self.modem_path = args.get('modem_path', None)
     self.imei_re = args.get('imei_re', None)
