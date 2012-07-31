@@ -42,17 +42,21 @@ class VarLogMessagesTest(unittest.TestCase):
     self.assertEquals([
         "19:27:17 kernel: That's all, folks.",
         "19:27:17 kernel: Kernel logging (proc) stopped.",
+        "<after reboot, kernel came up at 19:27:56>",
         ], self._GetMessages(VAR_LOG_MESSAGES, 2))
     self.assertEquals([
         "19:27:17 kernel: Kernel logging (proc) stopped.",
+        "<after reboot, kernel came up at 19:27:56>",
         ], self._GetMessages(VAR_LOG_MESSAGES, 1))
     self.assertEquals([
         "19:00:00 kernel: 7 p.m. and all's well.",
         "19:27:17 kernel: That's all, folks.",
         "19:27:17 kernel: Kernel logging (proc) stopped.",
+        "<after reboot, kernel came up at 19:27:56>",
         ], self._GetMessages(VAR_LOG_MESSAGES, 100))
     self.assertEquals([
         "19:26:17 kernel: That's all, folks.",
+        "<after reboot, kernel came up at 19:26:56>",
         ], self._GetMessages(EARLIER_VAR_LOG_MESSAGES, 1))
 
 

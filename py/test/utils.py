@@ -146,8 +146,8 @@ def are_shift_keys_depressed():
 
 
 def var_log_messages_before_reboot(lines=100,
-                  max_length=1024*1024,
-                  path='/var/log/messages'):
+                                   max_length=5*1024*1024,
+                                   path='/var/log/messages'):
   '''Returns the last few lines in /var/log/messages
   before the current boot.
 
@@ -166,7 +166,8 @@ def var_log_messages_before_reboot(lines=100,
     data = f.read()
 
   # Find the last element matching the RE signaling kernel start.
-  matches = list(re.finditer(r'kernel:\s+\[\s+0\.\d+\] Linux version', data))
+  matches = list(re.finditer(
+      r'^(\S+)\s.*kernel:\s+\[\s+0\.\d+\] Linux version', data, re.MULTILINE))
   if not matches:
     return []
 
@@ -184,7 +185,8 @@ def var_log_messages_before_reboot(lines=100,
     tail_lines.pop()
 
   # Done! Return the last few lines.
-  return tail_lines[-lines:]
+  return tail_lines[-lines:] + [
+      '<after reboot, kernel came up at %s>' % match.group(1)]
 
 
 def DrainQueue(queue):

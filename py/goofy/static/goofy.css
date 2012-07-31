@@ -251,7 +251,7 @@ body {
   font-weight: bold;
   font-size: 125%:
 }
-.goofy-history {
+.goofy-history, .goofy-log-data {
   overflow: auto;
 }
 .goofy-history table {
@@ -267,9 +267,13 @@ table + .goofy-history-header {
 .goofy-history th {
   padding-right: 1em;
 }
-.goofy-history-metadata, .goofy-history-log {
+.goofy-history-metadata, .goofy-history-log, .goofy-log-data {
   white-space: pre;
   font-size: 75%;
+}
+.goofy-log-time {
+  font-size: 75%;
+  padding-top: 0.5em;
 }
 #goofy-system-info th, #goofy-system-info td {
   font-size: 75%;

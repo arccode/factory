@@ -9,12 +9,18 @@
 
 import inspect
 import logging
+import os
 import Queue
+import re
 import time
 
+import factory_common  # pylint: disable=W0611
 from cros.factory.test import utils
+from cros.factory.utils.process_utils import Spawn
+
 
 REBOOT_AFTER_UPDATE_DELAY_SECS = 5
+VAR_LOG_MESSAGES = '/var/log/messages'
 
 
 class GoofyRPC(object):
@@ -76,3 +82,55 @@ class GoofyRPC(object):
 
     self.goofy.run_queue.put(Target)
     return ret_value.get()
+
+  def GetVarLogMessages(self, max_length=256*1024):
+    '''Returns the last n bytes of /var/log/messages.
+
+    Args:
+      max_length: Maximum number of bytes to return.
+    '''
+    offset = max(0, os.path.getsize(VAR_LOG_MESSAGES) - max_length)
+    with open(VAR_LOG_MESSAGES, 'r') as f:
+      f.seek(offset)
+      if offset != 0:
+        # Skip first (probably incomplete) line
+        offset += len(f.readline())
+      data = f.read()
+
+    if offset:
+      data = ('<truncated %d bytes>\n' % offset) + data
+
+    return unicode(data, encoding='utf-8', errors='replace')
+
+  def GetVarLogMessagesBeforeReboot(self, lines=100, max_length=5*1024*1024):
+    '''Returns the last few lines in /var/log/messages before the current boot.
+
+    Args:
+      See utils.var_log_messages_before_reboot.
+    '''
+    lines = utils.var_log_messages_before_reboot(lines=lines,
+                                                 max_length=max_length)
+    if lines:
+      return unicode('\n'.join(lines) + '\n',
+                     encoding='utf-8', errors='replace')
+    else:
+      return None
+
+  def GetDmesg(self):
+    '''Returns the contents of dmesg.
+
+    Approximate timestamps are added to each line.'''
+    try:
+      dmesg = Spawn(['dmesg'], check_call=True, read_stdout=True).stdout_data
+      uptime = float(open('/proc/uptime').read().split()[0])
+      boot_time = time.time() - uptime
+
+      def FormatTime(match):
+        return (utils.TimeString(boot_time + float(match.group(1))) + ' ' +
+                match.group(0))
+
+      # (?m) = multiline
+      return re.sub(r'(?m)^\[([.\d]+)\]', FormatTime, dmesg)
+    except:
+      logging.exception('Blah')
+      raise

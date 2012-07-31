@@ -5,8 +5,10 @@
 goog.provide('cros.factory.Goofy');
 
 goog.require('goog.crypt');
+goog.require('goog.crypt.base64');
 goog.require('goog.crypt.Sha1');
 goog.require('goog.date.Date');
+goog.require('goog.date.DateTime');
 goog.require('goog.debug.ErrorHandler');
 goog.require('goog.debug.FancyWindow');
 goog.require('goog.debug.Logger');
@@ -85,6 +87,12 @@ cros.factory.LOG_PANE_HEIGHT_FRACTION = 0.2;
  * @type number
  */
 cros.factory.LOG_PANE_MIN_HEIGHT = 170;
+
+/**
+ * Maximum size of a dialog (width or height) as a fraction of viewport size.
+ * @type number
+ */
+cros.factory.MAX_DIALOG_SIZE_FRACTION = 0.75;
 
 /**
  * Makes a label that displays English (or optionally Chinese).
@@ -468,6 +476,15 @@ cros.factory.Goofy = function() {
 };
 
 /**
+ * Sets the title of a modal dialog as HTML.
+ * @param {string} titleHTML
+ */
+cros.factory.Goofy.setDialogTitleHTML = function(dialog, titleHTML) {
+    goog.dom.getElementByClass(
+        'modal-dialog-title-text', dialog.getElement()).innerHTML = titleHTML;
+};
+
+/**
  * Event listener for Ctrl-Alt-keypress.
  * @param {goog.events.KeyEvent} event
  */
@@ -681,6 +698,11 @@ cros.factory.Goofy.prototype.init = function() {
                     this.engineeringPasswordSHA1 != null);
                 this.setEngineeringMode(this.engineeringPasswordSHA1 == null);
             });
+
+    var timer = new goog.Timer(1000);
+    goog.events.listen(timer, goog.Timer.TICK, this.updateTime, false, this);
+    timer.dispatchTick();
+    timer.start();
 };
 
 /**
@@ -771,11 +793,26 @@ cros.factory.Goofy.prototype.setSystemInfo = function(systemInfo) {
                        '<tr><th>' + item.label + '</th><td>' + html +
                        '</td></tr>');
         });
+    table.push('<tr><th>' +
+               cros.factory.Label('System time', '系統時間') +
+               '</th><td id="goofy-time"></td></th></tr>');
     table.push('</table>');
     this.infoTooltip.setHtml(table.join(''));
+    this.updateTime();
 
     goog.dom.classes.enable(document.body, 'goofy-update-available',
                             !!systemInfo['update_md5sum']);
+};
+
+/**
+ * Updates the current time.
+ */
+cros.factory.Goofy.prototype.updateTime = function() {
+    var element = document.getElementById('goofy-time');
+    if (element) {
+        element.innerHTML = new goog.date.DateTime().toUTCIsoString(true) +
+            ' UTC';
+    }
 };
 
 /**
@@ -1118,13 +1155,6 @@ cros.factory.Goofy.prototype.showTestPopup = function(path, labelElement,
     var menu = this.contextMenu = new goog.ui.PopupMenu();
     this.lastContextMenuPath = path;
 
-    if (extraItems && extraItems.length) {
-        goog.array.forEach(extraItems, function(item) {
-                menu.addChild(item, true);
-            }, this);
-        menu.addChild(new goog.ui.MenuSeparator(), true);
-    }
-
     var numLeaves = 0;
     var numLeavesByStatus = {};
     var allPaths = [];
@@ -1195,6 +1225,13 @@ cros.factory.Goofy.prototype.showTestPopup = function(path, labelElement,
     if (this.engineeringMode && !test.subtests.length) {
         menu.addChild(new goog.ui.MenuSeparator(), true);
         menu.addChild(this.createViewLogMenu(path), true);
+    }
+
+    if (extraItems && extraItems.length) {
+        menu.addChild(new goog.ui.MenuSeparator(), true);
+        goog.array.forEach(extraItems, function(item) {
+                menu.addChild(item, true);
+            }, this);
     }
 
     menu.render(document.body);
@@ -1298,6 +1335,93 @@ cros.factory.Goofy.prototype.createViewLogMenu = function(path) {
     return subMenu;
 };
 
+/**
+ * Displays a dialog containing logs.
+ * @param {string} titleHTML
+ * @param {string} data text to show in the dialog.
+ */
+cros.factory.Goofy.prototype.showLogDialog = function(titleHTML, data) {
+    var dialog = new goog.ui.Dialog();
+    this.registerDialog(dialog);
+    dialog.setModal(false);
+
+    var viewSize = goog.dom.getViewportSize(
+        goog.dom.getWindow(document) || window);
+    var maxWidth = viewSize.width * cros.factory.MAX_DIALOG_SIZE_FRACTION;
+    var maxHeight = viewSize.height * cros.factory.MAX_DIALOG_SIZE_FRACTION;
+
+    dialog.setContent('<div class="goofy-log-data"' +
+                      ' style="max-width: ' + maxWidth +
+                      '; max-height: ' + maxHeight + '">' +
+                      goog.string.htmlEscape(data) +
+                      '</div>' +
+                      '<div class="goofy-log-time"></div>');
+    dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
+    dialog.setVisible(true);
+    cros.factory.Goofy.setDialogTitleHTML(dialog, titleHTML);
+
+    var logDataElement = goog.dom.getElementByClass('goofy-log-data',
+                                                    dialog.getContentElement());
+    logDataElement.scrollTop = logDataElement.scrollHeight;
+
+    var logTimeElement = goog.dom.getElementByClass('goofy-log-time',
+                                                    dialog.getContentElement());
+    var timer = new goog.Timer(1000);
+    goog.events.listen(timer, goog.Timer.TICK, function(event) {
+            // Show time in the same format as in the logs
+            logTimeElement.innerHTML = (
+                cros.factory.Label('System time: ',
+                                   '系統時間：') +
+                new goog.date.DateTime().toUTCIsoString(true, true).
+                    replace(' ', 'T'));
+        }, false, this);
+    timer.dispatchTick();
+    timer.start();
+    goog.events.listen(dialog, goog.ui.Component.EventType.HIDE,
+                       function(event) {
+                           timer.dispose();
+                       }, false, this);
+};
+
+
+/**
+ * Displays a dialog containing the contents of /var/log/messages.
+ */
+cros.factory.Goofy.prototype.viewVarLogMessages = function() {
+    this.sendRpc(
+        'GetVarLogMessages', [],
+        function(data) {
+            this.showLogDialog('/var/log/messages', data);
+        });
+};
+
+/**
+ * Displays a dialog containing the contents of /var/log/messages
+ * before the last reboot.
+ */
+cros.factory.Goofy.prototype.viewVarLogMessagesBeforeReboot = function() {
+    this.sendRpc(
+        'GetVarLogMessagesBeforeReboot', [],
+        function(data) {
+            data = data || 'Unable to find log message indicating reboot.';
+            this.showLogDialog(
+                cros.factory.Label('/var/log/messages before last reboot',
+                                   '上次重開機前的 /var/log/messages'),
+                data);
+        });
+};
+
+/**
+ * Displays a dialog containing the contents of dmesg.
+ */
+cros.factory.Goofy.prototype.viewDmesg = function() {
+    this.sendRpc(
+        'GetDmesg', [],
+        function(data) {
+            this.showLogDialog('dmesg', data);
+        });
+};
+
 cros.factory.Goofy.prototype.FULL_TIME_FORMAT =
     new goog.i18n.DateTimeFormat('yyyy-MM-dd HH:mm:ss.SSS');
 /**
@@ -1314,8 +1438,10 @@ cros.factory.Goofy.prototype.showHistoryEntry = function(path, invocation) {
 
             var viewSize = goog.dom.getViewportSize(
                 goog.dom.getWindow(document) || window);
-            var maxWidth = viewSize.width * 0.75;
-            var maxHeight = viewSize.height * 0.75;
+            var maxWidth = viewSize.width *
+                cros.factory.MAX_DIALOG_SIZE_FRACTION;
+            var maxHeight = viewSize.height *
+                cros.factory.MAX_DIALOG_SIZE_FRACTION;
 
             var metadataTable = [];
             metadataTable.push('<table class="goofy-history-metadata>"');
@@ -1492,8 +1618,45 @@ cros.factory.Goofy.prototype.setTestList = function(testList) {
                         return;
                     }
 
+                    var extraItems;
+                    if (this.engineeringMode) {
+                        var viewVarLogMessagesItem = new goog.ui.MenuItem(
+                            cros.factory.Content('View /var/log/messages',
+                                                 '檢視 /var/log/messages'));
+                        goog.events.listen(
+                            viewVarLogMessagesItem,
+                            goog.ui.Component.EventType.ACTION,
+                            this.viewVarLogMessages, false, this);
+
+                        var viewVarLogMessagesBeforeRebootItem =
+                            new goog.ui.MenuItem(
+                                cros.factory.Content(
+                                    'View /var/log/messages ' +
+                                    'before last reboot',
+                                    '檢視上次重開機前的 ' +
+                                    '/var/log/messages'));
+                        goog.events.listen(viewVarLogMessagesBeforeRebootItem,
+                                           goog.ui.Component.EventType.ACTION,
+                                           this.viewVarLogMessagesBeforeReboot,
+                                           false, this);
+
+                        var viewDmesgItem = new goog.ui.MenuItem(
+                            cros.factory.Content('View dmesg',
+                                                 '檢視 dmesg'));
+                        goog.events.listen(viewDmesgItem,
+                                           goog.ui.Component.EventType.ACTION,
+                                           this.viewDmesg, false, this);
+
+                        extraItems = [viewVarLogMessagesItem,
+                                      viewVarLogMessagesBeforeRebootItem,
+                                      viewDmesgItem];
+                    } else {
+                        extraItems = [];
+                    }
+
                     this.showTestPopup(
-                        '', document.getElementById('goofy-logo-text'));
+                        '', document.getElementById('goofy-logo-text'),
+                        extraItems);
 
                     event.stopPropagation();
                     event.preventDefault();
@@ -1523,10 +1686,9 @@ cros.factory.Goofy.prototype.updateFactory = function() {
                            '正在更新工廠軟體，請稍等...'));
     dialog.setButtonSet(null);
     dialog.setVisible(true);
-    // Set title manually, since we want to use HTML.
-    goog.dom.getElementByClass(
-        'modal-dialog-title-text', dialog.getElement()).innerHTML = (
-            cros.factory.Label('Software update', '更新工廠軟體'));
+    cros.factory.Goofy.setDialogTitleHTML(
+        dialog,
+        cros.factory.Label('Software update', '更新工廠軟體'));
     dialog.reposition();
 
     this.sendRpc(
