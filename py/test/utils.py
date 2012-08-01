@@ -38,10 +38,11 @@ def TimeString(unix_time=None, time_separator=':', milliseconds=True):
 
   t = unix_time or time.time()
   ret = time.strftime(
-      "%Y-%m-%dT%H" + time_separator + "%M" + time_separator + "%SZ",
+      "%Y-%m-%dT%H" + time_separator + "%M" + time_separator + "%S",
       time.gmtime(t))
   if milliseconds:
-    ret += ".%03dZ" % int((t - int(t)) * 1000)
+    ret += ".%03d" % int((t - int(t)) * 1000)
+  ret += "Z"
   return ret
 
 
