@@ -9,6 +9,19 @@ CLOSURE_LIB_VERSION=20111110-r1376
 CLOSURE_LIB_ARCHIVE := /var/cache/distfiles/target/cros-binary/closure-library-$(CLOSURE_LIB_VERSION).tar.bz2
 CLOSURE_LIB_DIR := $(or $(WORKDIR),/tmp)/closure-library-$(CLOSURE_LIB_VERSION)
 
+ifneq "$(shell test -e $(CLOSURE_LIB_ARCHIVE) && echo yes)" "yes"
+  DEFAULT_BOARD=$(or $(shell cat $$HOME/trunk/src/scripts/.default_board \
+                       2>/dev/null),x86-generic)
+  $(info ***)
+  $(info *** $(CLOSURE_LIB_ARCHIVE) does not exist.)
+  $(info *** Perhaps it needs to be downloaded from BCS.  Run this:)
+  $(info *** (you can use any board))
+  $(info ***)
+  $(info ***   emerge-$(DEFAULT_BOARD) chromeos-factory)
+  $(info ***)
+  $(error Terminating)
+endif
+
 CLOSURE_COMPILER_JAR=/opt/closure-compiler-bin-0/lib/closure-compiler-bin.jar
 
 CSS_SOURCES=\
