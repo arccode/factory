@@ -16,7 +16,7 @@ import time
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import utils
-from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils import process_utils
 
 
 REBOOT_AFTER_UPDATE_DELAY_SECS = 5
@@ -116,21 +116,22 @@ class GoofyRPC(object):
     else:
       return None
 
+  @staticmethod
+  def _ReadUptime():
+    return open('/proc/uptime').read()
+
   def GetDmesg(self):
     '''Returns the contents of dmesg.
 
     Approximate timestamps are added to each line.'''
-    try:
-      dmesg = Spawn(['dmesg'], check_call=True, read_stdout=True).stdout_data
-      uptime = float(open('/proc/uptime').read().split()[0])
-      boot_time = time.time() - uptime
+    dmesg = process_utils.Spawn(['dmesg'],
+                                check_call=True, read_stdout=True).stdout_data
+    uptime = float(self._ReadUptime().split()[0])
+    boot_time = time.time() - uptime
 
-      def FormatTime(match):
-        return (utils.TimeString(boot_time + float(match.group(1))) + ' ' +
-                match.group(0))
+    def FormatTime(match):
+      return (utils.TimeString(boot_time + float(match.group(1))) + ' ' +
+              match.group(0))
 
-      # (?m) = multiline
-      return re.sub(r'(?m)^\[\s*([.\d]+)\]', FormatTime, dmesg)
-    except:
-      logging.exception('Blah')
-      raise
+    # (?m) = multiline
+    return re.sub(r'(?m)^\[\s*([.\d]+)\]', FormatTime, dmesg)

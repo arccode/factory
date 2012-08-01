@@ -58,6 +58,7 @@ UNITTESTS=\
 	py/event_log_unittest.py \
 	py/goofy/charge_manager_unittest.py \
 	py/goofy/event_log_watcher_unittest.py \
+	py/goofy/goofy_rpc_unittest.py \
 	py/goofy/goofy_unittest.py \
 	py/goofy/system_unittest.py \
 	py/goofy/time_sanitizer_unittest.py \
