@@ -15,6 +15,7 @@ import re
 import time
 
 import factory_common  # pylint: disable=W0611
+from cros.factory import factory_bug
 from cros.factory.test import utils
 from cros.factory.utils import process_utils
 
@@ -36,11 +37,14 @@ class GoofyRPC(object):
           name == 'RegisterMethods'):
         continue
 
-      # Bind the state instance method to our method.  (The _m=m
-      # argument is necessary to bind m immediately, since m will
+      # Bind the state instance method to our method.  (We need to
+      # put this in a separate method to rebind m, since it will
       # change during the next for loop iteration.)
-      state_instance.__dict__[name] = (
-          lambda _m=m, *args, **kwargs: _m(*args, **kwargs))
+      def SetEntry(m):
+        # pylint: disable=W0108
+        state_instance.__dict__[name] = (
+          lambda *args, **kwargs: m(*args, **kwargs))
+      SetEntry(m)
 
   def FlushEventLogs(self):
     '''Flushes event logs if an event_log_watcher is available.
@@ -135,3 +139,30 @@ class GoofyRPC(object):
 
     # (?m) = multiline
     return re.sub(r'(?m)^\[\s*([.\d]+)\]', FormatTime, dmesg)
+
+  def IsUSBDriveAvailable(self):
+    try:
+      with factory_bug.MountUSB(read_only=True):
+        return True
+    except (IOError, OSError):
+      return False
+
+  def SaveLogsToUSB(self, archive_id=None):
+    '''Saves logs to a USB stick.
+
+    Returns:
+      [dev, archive_name, archive_size, temporary]:
+        dev: The device that was mounted or used
+        archive_name: The file name of the archive
+        archive_size: The size of the archive
+        temporary: Whether the USB drive was temporarily mounted
+    '''
+    try:
+      with factory_bug.MountUSB() as mount:
+        output_file = factory_bug.SaveLogs(mount.mount_point, archive_id)
+        return [mount.dev, os.path.basename(output_file),
+                os.path.getsize(output_file),
+                mount.temporary]
+    except:
+      logging.exception('Unable to save logs to USB')
+      raise

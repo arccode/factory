@@ -65,6 +65,13 @@ cros.factory.KEEP_ALIVE_INTERVAL_MSEC = 30000;
 cros.factory.SYSTEM_STATUS_INTERVAL_MSEC = 5000;
 
 /**
+ * Interval at which to try mounting the USB drive.
+ * @const
+ * @type number
+ */
+cros.factory.MOUNT_USB_DELAY_MSEC = 1000;
+
+/**
  * Width of the control panel, as a fraction of the viewport size.
  * @type number
  */
@@ -106,9 +113,14 @@ cros.factory.Label = function(en, zh) {
 
 /**
  * Makes control content that displays English (or optionally Chinese).
+ *
+ * Note that this actually returns a Node, but we call it an unknown
+ * type so it will be accepted by various buggy methods such as
+ * goog.ui.Dialog.setTitle.
+ *
  * @param {string} en
  * @param {string=} zh
- * @return {Node}
+ * @return {?}
  */
 cros.factory.Content = function(en, zh) {
     var span = document.createElement('span');
@@ -1426,6 +1438,114 @@ cros.factory.Goofy.prototype.viewDmesg = function() {
         });
 };
 
+/**
+ * Saves factory logs to a USB drive.
+ */
+cros.factory.Goofy.prototype.saveFactoryLogsToUSB = function() {
+    var titleContent = cros.factory.Content(
+        'Save Factory Logs to USB', '保存工廠記錄到 U盤');
+
+    function doSave() {
+        function callback(id) {
+            if (id == null) {
+                // Cancelled.
+                return;
+            }
+
+            var dialog = new goog.ui.Dialog();
+            this.registerDialog(dialog);
+            dialog.setTitle(titleContent);
+            dialog.setContent(
+                cros.factory.Label('Saving factory logs to USB drive...',
+                                   '正在保存工廠記錄到 U盤...'));
+            dialog.setButtonSet(null);
+            dialog.setVisible(true);
+            this.positionOverConsole(dialog.getElement());
+            this.sendRpc('SaveLogsToUSB', [id],
+                function(info) {
+                    var dev = info[0];
+                    var filename = info[1];
+                    var size = info[2];
+                    var temporary = info[3];
+
+                    dialog.setContent(
+                        cros.factory.Label(
+                            'Success! Saved factory logs (' + size +
+                            ' bytes) to ' + dev + ' as<br>' + filename + '.' +
+                            (temporary ? ' The drive has been unmounted.' : ''),
+                            '保存工廠記錄 (' + size +
+                            ' bytes) 到 U盤 ' +
+                            dev + ' 已成功，檔案叫<br>' +
+                            filename + '。' +
+                            (temporary ? 'U盤已卸載。' : '')));
+                    dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
+                    this.positionOverConsole(dialog.getElement());
+                }, function(response) {
+                    dialog.setContent(
+                        'Unable to save logs: ' +
+                        goog.string.htmlEscape(response.error.message));
+                    dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
+                    this.positionOverConsole(dialog.getElement());
+                });
+        }
+
+        var idDialog = new goog.ui.Prompt(
+            titleContent,
+            cros.factory.Label(
+                'Enter an optional identifier for the archive ' +
+                '(or press Enter for none):',
+                '請輸入識別號給工廠記錄檔案，' +
+                '或按回車鍵不選：'),
+            goog.bind(callback, this));
+        this.registerDialog(idDialog);
+        idDialog.setVisible(true);
+        goog.dom.classes.add(idDialog.getElement(),
+                             'goofy-log-identifier-prompt');
+        this.positionOverConsole(idDialog.getElement());
+    }
+
+    // Active timer, if any.
+    var timer = null;
+
+    var waitForUSBDialog = new goog.ui.Dialog();
+    this.registerDialog(waitForUSBDialog);
+    waitForUSBDialog.setContent(
+        cros.factory.Label('Please insert a formatted USB stick<br>' +
+                           'and wait a moment for it to be mounted.',
+                           '請插入 U盤後稍等掛載。'));
+    waitForUSBDialog.setButtonSet(
+        new goog.ui.Dialog.ButtonSet().
+            addButton(goog.ui.Dialog.ButtonSet.DefaultButtons.CANCEL,
+                      false, true));
+    waitForUSBDialog.setTitle(titleContent);
+
+    function waitForUSB() {
+        function restartWaitForUSB() {
+            waitForUSBDialog.setVisible(true);
+            this.positionOverConsole(waitForUSBDialog.getElement());
+            timer = goog.Timer.callOnce(goog.bind(waitForUSB, this),
+                                        cros.factory.MOUNT_USB_DELAY_MSEC);
+        }
+        this.sendRpc(
+            'IsUSBDriveAvailable', [],
+            function(available) {
+                if (available) {
+                    waitForUSBDialog.dispose();
+                    doSave.call(this);
+                } else {
+                    restartWaitForUSB.call(this);
+                }
+            }, goog.bind(restartWaitForUSB, this));
+    }
+    goog.events.listen(waitForUSBDialog, goog.ui.Component.EventType.HIDE,
+                       function(event) {
+                           if (timer) {
+                               goog.Timer.clear(timer);
+                           }
+                       }, false, this);
+    waitForUSB.call(this);
+};
+
 cros.factory.Goofy.prototype.FULL_TIME_FORMAT =
     new goog.i18n.DateTimeFormat('yyyy-MM-dd HH:mm:ss.SSS');
 /**
@@ -1642,7 +1762,7 @@ cros.factory.Goofy.prototype.setTestList = function(testList) {
                         return;
                     }
 
-                    var extraItems;
+                    var extraItems = [];
                     if (this.engineeringMode) {
                         var viewVarLogMessagesItem = new goog.ui.MenuItem(
                             cros.factory.Content('View /var/log/messages',
@@ -1651,6 +1771,7 @@ cros.factory.Goofy.prototype.setTestList = function(testList) {
                             viewVarLogMessagesItem,
                             goog.ui.Component.EventType.ACTION,
                             this.viewVarLogMessages, false, this);
+                        extraItems.push(viewVarLogMessagesItem);
 
                         var viewVarLogMessagesBeforeRebootItem =
                             new goog.ui.MenuItem(
@@ -1663,6 +1784,7 @@ cros.factory.Goofy.prototype.setTestList = function(testList) {
                                            goog.ui.Component.EventType.ACTION,
                                            this.viewVarLogMessagesBeforeReboot,
                                            false, this);
+                        extraItems.push(viewVarLogMessagesBeforeRebootItem);
 
                         var viewDmesgItem = new goog.ui.MenuItem(
                             cros.factory.Content('View dmesg',
@@ -1670,12 +1792,19 @@ cros.factory.Goofy.prototype.setTestList = function(testList) {
                         goog.events.listen(viewDmesgItem,
                                            goog.ui.Component.EventType.ACTION,
                                            this.viewDmesg, false, this);
+                        extraItems.push(viewDmesgItem);
 
-                        extraItems = [viewVarLogMessagesItem,
-                                      viewVarLogMessagesBeforeRebootItem,
-                                      viewDmesgItem];
-                    } else {
-                        extraItems = [];
+                        extraItems.push(new goog.ui.MenuSeparator());
+
+                        var saveFactoryLogsToUSBItem = new goog.ui.MenuItem(
+                            cros.factory.Content(
+                                'Save factory logs to USB drive...',
+                                '保存工廠記錄到 U盤'));
+                        goog.events.listen(saveFactoryLogsToUSBItem,
+                                           goog.ui.Component.EventType.ACTION,
+                                           this.saveFactoryLogsToUSB,
+                                           false, this);
+                        extraItems.push(saveFactoryLogsToUSBItem);
                     }
 
                     this.showTestPopup(
@@ -1851,8 +1980,10 @@ cros.factory.Goofy.prototype.sendEvent = function(type, properties) {
  * Calls an RPC function and invokes callback with the result.
  * @param {Object} args
  * @param {Object=} callback
+ * @param {Object=} opt_errorCallback
  */
-cros.factory.Goofy.prototype.sendRpc = function(method, args, callback) {
+cros.factory.Goofy.prototype.sendRpc = function(
+    method, args, callback, opt_errorCallback) {
     var request = goog.json.serialize({method: method, params: args, id: 1});
     cros.factory.logger.info('RPC request: ' + request);
     var factoryThis = this;
@@ -1874,10 +2005,12 @@ cros.factory.Goofy.prototype.sendRpc = function(method, args, callback) {
                 factoryThis.logToConsole('RPC error calling ' + method + ': ' +
                                          goog.debug.expose(response.error),
                                          'goofy-internal-error');
+                if (opt_errorCallback) {
+                    opt_errorCallback.call(factoryThis, response);
+                }
                 return;
             }
 
-            // TODO(jsalz): handle errors
             if (callback) {
                 callback.call(factoryThis, response.result);
             }

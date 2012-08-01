@@ -340,8 +340,18 @@ table + .goofy-history-header {
   font-size: 200%;
   -webkit-text-security: disc;
 }
-.goofy-engineering-mode-dialog br {
+.goofy-engineering-mode-dialog br, .goofy-log-identifier-prompt br {
   display: none;
+}
+.goofy-log-identifier-prompt input {
+  margin-top: 0.5em;
+  width: 100%;
+}
+.modal-dialog-buttons {
+  text-align: center;
+}
+.modal-dialog-buttons button {
+  margin: 0 .5em;
 }
 
 /* Overrides for Closure components. */

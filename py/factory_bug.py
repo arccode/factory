@@ -8,6 +8,7 @@ import argparse
 from contextlib import contextmanager
 from glob import glob
 import logging
+from collections import namedtuple
 import os
 import re
 import shutil
@@ -18,8 +19,18 @@ from cros.factory.test import utils
 from cros.factory.utils.process_utils import Spawn
 
 
+# Info about a mounted partition.
+#
+# Properties:
+#   dev: The device that was mounted or re-used.
+#   mount_point: The mount point of the device.
+#   temporary: Whether the device is being temporarily mounted.
+MountUSBInfo = namedtuple('MountUSBInfo',
+                          ['dev', 'mount_point', 'temporary'])
+
+
 @contextmanager
-def MountUSB():
+def MountUSB(read_only=False):
   '''Mounts (or re-uses) a USB drive, returning the path.
 
   Acts as a context manager.  If we mount a partition, we will
@@ -33,7 +44,7 @@ def MountUSB():
   when exiting the context manager.
 
   Returns:
-    A path to the mounted partition.
+    A MountUSBInfo object.
 
   Raises:
     IOError if no mounted or mountable partition is found.
@@ -45,7 +56,8 @@ def MountUSB():
     raise IOError('No USB devices available')
 
   # See if any are already mounted
-  mount_output = Spawn(['mount'], read_stdout=True, check_call=True).stdout_data
+  mount_output = Spawn(['mount'], read_stdout=True,
+                       check_call=True, log=True).stdout_data
   matches = [x for x in re.findall(r'^(/dev/(sd[a-z])\d*) on (\S+)',
                                    mount_output, re.MULTILINE)
              if x[1] in usb_devices]
@@ -53,7 +65,7 @@ def MountUSB():
     dev, _, path = matches[0]
     # Already mounted: yield it and we're done
     logging.info('Using mounted USB drive %s on %s', dev, path)
-    yield path
+    yield MountUSBInfo(dev=dev, mount_point=path, temporary=False)
 
     # Just to be on the safe side, sync once the caller says they're
     # done with it.
@@ -70,12 +82,14 @@ def MountUSB():
       dev = '/dev/%s%s' % (usb_device, suffix)
       tried.append(dev)
       try:
-        if Spawn(['mount', dev, mount_dir],
+        if Spawn(['mount'] +
+                 (['-o', 'ro'] if read_only else []) +
+                 [dev, mount_dir],
                  ignore_stdout=True, log_stderr_on_error=True,
                  call=True).returncode == 0:
           # Success
           logging.info('Mounted %s on %s', dev, mount_dir)
-          yield mount_dir
+          yield MountUSBInfo(dev=dev, mount_point=mount_dir, temporary=True)
           return
       finally:
         # Always try to unmount, even if we think the mount
@@ -115,8 +129,8 @@ def SaveLogs(output_dir, archive_id=None):
   filename = 'factory_bug.'
   if archive_id:
     filename += archive_id.replace('/', '') + '.'
-    filename += '%s.tar.bz2' % utils.TimeString(time_separator='_',
-                                                milliseconds=False)
+  filename += '%s.tar.bz2' % utils.TimeString(time_separator='_',
+                                              milliseconds=False)
 
   output_file = os.path.join(output_dir, filename)
 
@@ -125,9 +139,10 @@ def SaveLogs(output_dir, archive_id=None):
     with open(os.path.join(tmp, 'crossystem'), 'w') as f:
       Spawn('crossystem', stdout=f, stderr=f, check_call=True)
 
-      print >> f, '\nectool version:'
-      f.flush()
-      Spawn(['ectool', 'version'], stdout=f, check_call=True)
+      if not utils.in_chroot():
+        print >> f, '\nectool version:'
+        f.flush()
+        Spawn(['ectool', 'version'], stdout=f, check_call=True)
 
     with open(os.path.join(tmp, 'dmesg'), 'w') as f:
       Spawn('dmesg', stdout=f, check_call=True)
@@ -140,9 +155,15 @@ def SaveLogs(output_dir, archive_id=None):
         '/usr/local/etc/lsb-*']], [])
 
     logging.info('Saving %s to %s...', files, output_file)
-    Spawn(['tar', 'cfj', output_file] + files,
-          cwd=tmp, check_call=True,
-          ignore_stdout=True, log_stderr_on_error=True)
+    process = Spawn(['tar', 'cfj', output_file] + files,
+                    cwd=tmp, call=True,
+                    ignore_stdout=True, log_stderr_on_error=True)
+    # 0 = successful termination
+    # 1 = "some files differ" (e.g., files changed while we were
+    #     reading them, which is OK)
+    if process.returncode not in [0, 1]:
+      raise IOError('tar process failed with returncode %d' %
+                    process.returncode)
 
     return output_file
   finally:
@@ -166,8 +187,8 @@ def main():
   args = parser.parse_args()
 
   with (MountUSB() if args.usb
-        else DummyContext(args.output_dir)) as output_dir:
-    output_file = SaveLogs(output_dir, args.id)
+        else DummyContext((None, args.output_dir))) as mount:
+    output_file = SaveLogs(mount.mount_point, args.id)
     logging.info('Wrote %s (%d bytes)',
                  output_file, os.path.getsize(output_file))
 
