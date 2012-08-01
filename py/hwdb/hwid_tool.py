@@ -803,7 +803,7 @@ class Device(YamlDatastore):
   def MatchInitialConfigValues(self, value_map):
     return sorted(
       tag for tag, ic in self.initial_configs.items()
-      if ic.constraints == self.initial_configs)
+      if ic.constraints == value_map)
 
   def MatchBoms(self, component_data):
     return set(

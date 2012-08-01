@@ -45,11 +45,12 @@ LINT_BLACKLIST=\
 	py/test/utils.py \
 	py/test/utils_unittest.py
 
-# Temporary changes for broken code.  TODO(tammo, itspeter): Remove.
+# Temporary changes for broken code.  TODO(jsalz, itspeter): Remove.
 LINT_BLACKLIST += \
-	py/gooftool/gooftool.py \
-	py/hwdb/hwid_tool.py \
-	py/test/pytests/probe_cellular_info.py
+	py/test/pytests/probe_cellular_info.py \
+	py/goofy/goofy.py \
+	py/goofy/goofy_unittest.py \
+	py/goofy/system.py
 
 LINT_FILES=$(filter-out $(LINT_BLACKLIST), \
                $(shell find py -name '*.py' -type f | sort))

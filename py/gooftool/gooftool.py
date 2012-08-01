@@ -25,7 +25,7 @@ from tempfile import gettempdir, NamedTemporaryFile
 import factory_common  # pylint: disable=W0611
 
 from cros.factory.common import Error, ParseKeyValueData, SetupLogging, Shell
-from cros.factory.common import YamlRead, YamlWrite
+from cros.factory.common import YamlWrite
 from cros.factory.gooftool import crosfw
 from cros.factory.gooftool import report_upload
 from cros.factory.gooftool.bmpblk import unpack_bmpblock
@@ -179,8 +179,9 @@ def BestMatchHwids(options):
     variant_spec = device.variants[options.variant]
     if hwid_tool.ComponentSpecsConflict(component_spec, variant_spec):
       sys.exit('ERROR: multiple specifications for these components:\n%s'
-               % YamlWrite(sorted(ComponentSpecClasses(component_spec) &
-                                  ComponentSpecClasses(variant_spec))))
+               % YamlWrite(sorted(
+                   hwid_tool.ComponentSpecClasses(component_spec) &
+                   hwid_tool.ComponentSpecClasses(variant_spec))))
     component_spec = hwid_tool.CombineComponentSpecs(
       component_spec, variant_spec)
   if options.comps or options.missing:
@@ -192,8 +193,9 @@ def BestMatchHwids(options):
     print 'cmdline asserted components:\n%s' % extra_comp_spec.Encode()
     if hwid_tool.ComponentSpecsConflict(component_spec, extra_comp_spec):
       sys.exit('ERROR: multiple specifications for these components:\n%s'
-               % YamlWrite(sorted(ComponentSpecClasses(component_spec) &
-                                  ComponentSpecClasses(extra_comp_spec))))
+               % YamlWrite(sorted(
+                   hwid_tool.ComponentSpecClasses(component_spec) &
+                   hwid_tool.ComponentSpecClasses(extra_comp_spec))))
     component_spec = hwid_tool.CombineComponentSpecs(
       component_spec, extra_comp_spec)
   spec_classes = hwid_tool.ComponentSpecClasses(component_spec)
@@ -246,9 +248,13 @@ def BestMatchHwids(options):
   if len(potential_volatiles) == 0:
     sys.exit('FAILURE: no VOLATILEs found for potential matching BOMs/VARIANTS '
              '(with specified status)')
-  if options.optimistic and len(potential_volatiles) == 1:
-    print ('MATCHING HWID: %s' %
-           device.FmtHwid(bom_name, variant_code, potential_volatiles.pop()))
+  if (options.optimistic and
+      len(match_tree) == 1 and
+      len(potential_variants) == 1 and
+      len(potential_volatiles) == 1):
+    print ('MATCHING HWID: %s' % device.FmtHwid(match_tree.keys().pop(),
+                                                potential_variants.pop(),
+                                                potential_volatiles.pop()))
     return
   print ('probing VOLATILEs to resolve potential matches: %s\n' %
          ', '.join(sorted(potential_volatiles)))
