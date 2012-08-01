@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright (c) 2010 The Chromium OS Authors. All rights reserved.
+# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -304,7 +304,7 @@ class FactoryState(object):
         except:
           logging.exception('Unable to load test metadata %s', f)
 
-    ret.sort(getattr(ret, 'init_time', None))
+    ret.sort(key=lambda item: item.get('init_time', None))
     return ret
 
   def get_test_history_entry(self, path, invocation):

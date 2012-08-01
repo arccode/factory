@@ -424,8 +424,7 @@ class TestState(object):
     @param increment_shutdown_count: An amount by which to increment
       shutdown_count.
     @param visible: If non-None, whether the test should become visible.
-    @param invocation: The currently executing invocation, if any.
-      (Applies only if the status is ACTIVE.)
+    @param invocation: The currently executing or last invocation, if any.
     @param iterations_left: If non-None, the new iterations_left.
     @param decrement_iterations_left: An amount by which to decrement
       iterations_left.
@@ -445,9 +444,7 @@ class TestState(object):
     if visible is not None:
       self.visible = visible
 
-    if self.status != self.ACTIVE:
-      self.invocation = None
-    elif invocation is not None:
+    if invocation is not None:
       self.invocation = invocation
 
     self.count += increment_count

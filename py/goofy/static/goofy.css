@@ -233,13 +233,16 @@ body {
 .goofy-test-failure-expanded .goofy-test-failure-detail {
   display: block;
 }
-.goofy-test-failure-detail-link {
+.goofy-test-failure-detail-link, .goofy-test-failure-view-log-link {
   text-decoration: underline;
   cursor: pointer;
   color: blue;
   font-style: italic;
   font-size: 75%;
   padding-top: 1em;
+}
+.goofy-test-failure-detail + .goofy-test-failure-view-log-link {
+  padding-top: 0;
 }
 .goofy-test-failure-detail {
   white-space: pre;

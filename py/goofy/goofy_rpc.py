@@ -130,7 +130,7 @@ class GoofyRPC(object):
                 match.group(0))
 
       # (?m) = multiline
-      return re.sub(r'(?m)^\[([.\d]+)\]', FormatTime, dmesg)
+      return re.sub(r'(?m)^\[\s*([.\d]+)\]', FormatTime, dmesg)
     except:
       logging.exception('Blah')
       raise

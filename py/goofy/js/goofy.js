@@ -1283,7 +1283,7 @@ cros.factory.Goofy.prototype.createViewLogMenu = function(path) {
             goog.array.forEach(history, function(entry) {
                 var status = entry.status ? entry.status.toLowerCase() :
                     'started';
-                var title = count-- + '. ';
+                var title = count-- + '. Run at ';
 
                 if (entry.init_time) {
                     // TODO(jsalz): Localize (but not that important since this
@@ -1469,7 +1469,13 @@ cros.factory.Goofy.prototype.showHistoryEntry = function(path, invocation) {
                 }, this);
 
             var keys = goog.object.getKeys(metadata);
+            keys.sort();
             goog.array.forEach(keys, function(key) {
+                if (key == 'log_tail') {
+                    // Skip log_tail, since we already have the
+                    // entire log.
+                    return;
+                }
                 metadataTable.push('<tr><th>' + key + '</th><td>' +
                                    goog.string.htmlEscape(metadata[key]) +
                                    '</td></tr>');
@@ -1528,6 +1534,10 @@ cros.factory.Goofy.prototype.updateTestToolTip =
                      '<div class="goofy-test-failure-detail">' +
                      goog.string.htmlEscape(lines.join('\n')) + '</div>');
         }
+        if (test.state.invocation) {
+            html += ('<div class="goofy-test-failure-view-log-link">' +
+                     'View log...</div>')
+        }
 
         tooltip.setHtml(html);
 
@@ -1541,6 +1551,16 @@ cros.factory.Goofy.prototype.updateTestToolTip =
                                          'goofy-test-failure-expanded');
                     tooltip.reposition();
             }, true, this);
+        }
+        if (test.state.invocation) {
+            var link = goog.dom.getElementByClass(
+                'goofy-test-failure-view-log-link', tooltip.getElement());
+            goog.events.listen(
+                link, goog.events.EventType.CLICK,
+                function(event) {
+                    tooltip.dispose();
+                    this.showHistoryEntry(test.path, test.state.invocation);
+                }, false, this);
         }
     }
 };
