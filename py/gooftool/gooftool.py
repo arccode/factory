@@ -532,13 +532,14 @@ def VerifyDevSwitch(options):  # pylint: disable=W0613
 def EnableFwWp(options):  # pylint: disable=W0613
   """Enable then verify firmware write protection."""
 
-  def CalculateLegacyRange(image, length, section_data):
+  def CalculateLegacyRange(fw_type, length, section_data,
+                           section_name):
     ro_size = length / 2
     ro_a = int(section_data[0] / ro_size)
     ro_b = int((section_data[0] + section_data[1] - 1) / ro_size)
     if ro_a != ro_b:
       raise Error("%s firmware section %s has illegal size" %
-                  (fw_type, section))
+                  (fw_type, section_name))
     ro_offset = ro_a * ro_size
     return (ro_offset, ro_size)
 
@@ -558,7 +559,7 @@ def EnableFwWp(options):  # pylint: disable=W0613
     elif image.has_section(legacy_section):
       section_data = image.get_section_area(legacy_section)
       (ro_offset, ro_size) = CalculateLegacyRange(
-          image, len(raw_image), section_data)
+          fw_type, len(raw_image), section_data, legacy_section)
     else:
       raise Error('could not find %s firmware section %s or %s' %
                   (fw_type, wp_section, legacy_section))
