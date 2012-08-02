@@ -595,12 +595,7 @@ class Device(YamlDatastore):
     self.cooked_boms = CookedBoms(self.boms)
 
   def _EnforceVariantClassesAllMatch(self):
-    """Verify that all variants have the same class coverage.
-
-    The set of variant classes are implicitly the set of all possible
-    classes, minus those classes used in bom primaries.
-    """
-    if not self.primary_classes or not self.variants:
+    if not self.boms or not self.variants:
       return
     variant_classes = set().union(*[
         ComponentSpecClasses(variant) for variant in self.variants.values()])
@@ -619,13 +614,29 @@ class Device(YamlDatastore):
                       (self.board_name, ', '.join(variant_classes), var_code))
 
   def _EnforceCompClassesAllMatch(self):
-    if not self.primary_classes:
-      return
+    """Verify that all boms and variants have the same class coverage.
+
+    Class coverage for boms and variants must be the same to allow
+    arbitrary combinations between them.  The set of variant classes
+    is implicitly the set of all possible classes minus those classes
+    used in bom primaries.
+
+    Also make sure that all classes are known, meaning that they occur
+    in the component_db.
+    """
+    for comp_class in self.primary_classes:
+      if comp_class not in self._comp_db.all_comp_classes:
+        raise Error, ('%s refers to unknown component class %r' % (
+            self.board_name, comp_class))
     for bom_name, bom in self.boms.items():
       if ComponentSpecClasses(bom.primary) != self.primary_classes:
-        raise Error, ('%r primary classes are [%s]; bom %r does not match' %
-                      (self.board_name, ', '.join(self.primary_classes),
-                       bom_name))
+        raise Error, ('%s primary classes are [%s]; bom %r does not match' % (
+                self.board_name, ', '.join(self.primary_classes), bom_name))
+    for var_code, variant in self.variants.items():
+      if ComponentSpecClasses(variant) != self.variant_classes:
+        raise Error, ('%s variant classes are [%s]; variant %r does not match' %
+                      (self.board_name, ', '.join(self.variant_classes),
+                       var_code))
 
   def _EnforceVolatileUniqueness(self):
     if len(self.volatile_values) < len(self.reverse_vol_value_map):
@@ -925,6 +936,11 @@ def PrintHwidHierarchy(device, cooked_boms, status_mask):
   Details include both primary and variant component configurations,
   initial config, and status.
   """
+  def FmtList(depth, l):
+    if len(l) == 1:
+      return str(list(l)[0])
+    elts = [((depth + 2) * '  ') + str(x) for x in sorted(l)]
+    return '\n' + '\n'.join(elts)
   def ShowHwids(depth, bom_name):
     bom = device.boms[bom_name]
     for variant_code in sorted(bom.variants):
@@ -939,13 +955,14 @@ def PrintHwidHierarchy(device, cooked_boms, status_mask):
           for comp_class, comps in ComponentSpecClassCompsMap(variant).items())
         for line in FmtRightAlignedDict(variant_comps):
           print (depth * '  ') + '  (variant) ' + line
+        extra_class_data = {'classes missing': variant.classes_missing,
+                            'classes dontcare': variant.classes_dontcare}
+        extra_class_output = dict(
+          (k,  FmtList(depth, v)) for k, v in extra_class_data.items() if v)
+        for line in FmtLeftAlignedDict(extra_class_output):
+          print (depth * '  ') + '  ' + line
         print ''
   def TraverseBomHierarchy(boms, depth, masks):
-    def FmtList(l):
-      if len(l) == 1:
-        return str(list(l)[0])
-      elts = [((depth + 2) * '  ') + str(x) for x in sorted(l)]
-      return '\n' + '\n'.join(elts)
     print (depth * '  ') + '-'.join(sorted(boms.names))
     common_ic = device.CommonInitialConfigs(boms.names) - masks.ic
     common_missing = device.CommonMissingClasses(boms.names) - masks.missing
@@ -953,7 +970,8 @@ def PrintHwidHierarchy(device, cooked_boms, status_mask):
     common_data = {'initial_config': common_ic,
                    'classes missing': common_missing,
                    'classes dontcare': common_wild}
-    common_output = dict((k,  FmtList(v)) for k, v in common_data.items() if v)
+    common_output = dict(
+      (k,  FmtList(depth, v)) for k, v in common_data.items() if v)
     for line in FmtLeftAlignedDict(common_output):
       print (depth * '  ') + '  ' + line
     common_present = dict(
