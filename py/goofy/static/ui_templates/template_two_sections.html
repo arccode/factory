@@ -3,32 +3,32 @@
 <head>
 <link rel='stylesheet' type='text/css' href='/ui_templates/template.css'></link>
 </head>
+
 <body>
-<div class='test-info template-info-container'>
-  <div class='template-title-container test-title' id='title'>
-  </div>
-  <div class='template-prompt-container'>
-    <span class='template-instruction' id='instruction'></span>
-    <span class='template-progress-bar' id='progress-bar-container'>
-      <span class='goofy-label-en'>Test Progress:</span>
-      <span class='goofy-label-zh'>測試進度:</span>
-      <div id='progress-bar'>
-        <div class='progress-bar-thumb'></div>
-        <div id='template-progress-bar-indicator'></div>
-      </div>
-    </span>
-  </div>
-  <div class='test-vcenter-outer test-state template-state-container'>
+<div class='template-title-container' id='title'>
+</div>
+<div class='template-prompt-container'>
+  <span class='template-instruction' id='instruction'></span>
+  <span class='template-progress-bar' id='progress-bar-container'>
+    <span class='goofy-label-en'>Test Progress:</span>
+    <span class='goofy-label-zh'>測試進度:</span>
+    <div id='progress-bar'>
+      <div class='progress-bar-thumb'></div>
+      <div id='template-progress-bar-indicator'></div>
+    </div>
+  </span>
+</div>
+<div class='template-state-container-2'>
+  <div class='test-vcenter-outer'>
     <div class='test-vcenter-inner' id='state'></div>
   </div>
-  <div class='test-vcenter-outer template-button-container'>
-    <div class='test-vcenter-inner' style='text-align: right'>
-      <button onclick='window.test.fail()'>
-        <span class='goofy-label-en'>Mark Failed</span>
-        <span class='goofy-label-zh'>標記失敗</span>
-      </button>
-    </div>
-  </div>
 </div>
+<div class='template-button-container'>
+  <button onclick='window.test.fail()'>
+    <span class='goofy-label-en'>Mark Failed</span>
+    <span class='goofy-label-zh'>標記失敗</span>
+  </button>
+</div>
+
 </body>
 </html>

@@ -574,6 +574,8 @@ cros.factory.Goofy.prototype.initSplitPanes = function() {
         false, this);
 
     mainComponent.getElement().id = 'goofy-main';
+    mainComponent.getElement().innerHTML = (
+        '<img id="goofy-main-logo" src="images/logo256.png">');
     consoleComponent.getElement().id = 'goofy-console';
     this.console = consoleComponent.getElement();
     this.main = mainComponent.getElement();
@@ -1289,7 +1291,9 @@ cros.factory.Goofy.prototype.createViewLogMenu = function(path) {
                 return;
             }
 
-            subMenu.removeItem(loadingItem);
+            if (subMenu.indexOfChild(loadingItem) >= 0) {
+                subMenu.removeItem(loadingItem);
+            }
 
             // Arrange in descending order of time (it is returned in
             // ascending order).

@@ -68,7 +68,8 @@ body {
 }
 #goofy-control {
   position: absolute;
-  top: 0; left: 0; right: 0; bottom: 20px;
+  top: 45px; left: 0; right: 0; bottom: 20px;
+  padding: 5px 0;
 }
 #goofy-control, #goofy-status-bar {
   cursor: default;
@@ -167,13 +168,17 @@ body {
 }
 
 /* Elements in the control pane. */
-#goofy-control h1 {
-  font-size: 125%;
-  padding: .25em;
+h1 {
+  font-size: 20px;
+  font-weight: normal;
+  border-bottom: 1px solid #cddff0;
+  height: 34px;
+  padding-top: 7px;
 }
 #goofy-logo {
-  height: 22px;
-  vertical-align: middle;
+  height: 18px;
+  vertical-align: -3px;
+  padding: 0 3px 0 7px;
 }
 #goofy-logo-text {
   vertical-align: middle;
@@ -181,11 +186,11 @@ body {
 }
 #goofy-logo-down-arrow {
   font-size: 60%;
-  vertical-align: .25em;
+  vertical-align: 3px;
 }
 #goofy-language-selector {
   float: right;
-  padding: .675em .5em .5em .5em;
+  padding: 10px 5px;
   cursor: pointer;
 }
 #goofy-language-selector:hover {
@@ -306,18 +311,27 @@ table + .goofy-history-header {
 #goofy-main {
   left: 0; top: 0;
   width: 100%; height: 100%;
+  background: -webkit-linear-gradient(210deg, #cddff0, #85b4df);
+}
+#goofy-main-logo {
+  opacity: 0.1;
+  position: absolute;
+  left: 50%; top: 50%;
+  margin: -128px 0 0 -128px;
 }
 .goofy-test-iframe {
   position: absolute;
   left: 0; top: 0;
   width: 100%; height: 100%;
-  padding: .5em;
   display: none;
 }
 .goofy-test-iframe.goofy-test-visible {
   display: inline;
 }
 /* Elements in the console pane. */
+#goofy-console {
+  padding: .5em .5em 0 .5em;
+}
 .goofy-internal-log {
   font-style: italic;
 }
@@ -389,6 +403,9 @@ table + .goofy-history-header {
 /* Add a background for the visible test. */
 #goofy-control .goofy-test-visible .goog-tree-item-label {
   background-color: #cddff0;
+}
+button {
+  padding: 6px 16px;
 }
 .modal-dialog-bg {
   z-index: 3;

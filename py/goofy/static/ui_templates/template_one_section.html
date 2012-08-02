@@ -3,20 +3,20 @@
 <head>
 <link rel='stylesheet' type='text/css' href='/ui_templates/template.css'></link>
 </head>
-<body>
-<div class='template-info-container'>
-  <div class='template-title-container' id='title'>
-  </div>
-  <div class='test-vcenter-outer template-state-container' style='height: 75%'>
+<body class='template-info-container'>
+
+<div class='template-title-container' id='title'></div>
+<div class='template-state-container-1'>
+  <div class='test-vcenter-outer'>
     <div class='test-vcenter-inner' id='state'></div>
   </div>
-  <div class='test-vcenter-outer template-button-container'>
-    <div class='test-vcenter-inner' style='text-align: right'>
-      <button onclick='window.test.fail()'>
-        <span class='goofy-label-en'>Mark Failed</span>
-        <span class='goofy-label-zh'>標記失敗</span>
-      </button>
-    </div>
-  </div>
+</div>
+<div class='template-button-container'>
+  <button onclick='window.test.fail()'>
+    <span class='goofy-label-en'>Mark Failed</span>
+    <span class='goofy-label-zh'>標記失敗</span>
+  </button>
+</div>
+
 </body>
 </html>
