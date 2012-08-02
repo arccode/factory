@@ -12,6 +12,7 @@ from collections import namedtuple
 import os
 import re
 import shutil
+import sys
 import tempfile
 
 import factory_common  # pylint: disable=W0611
@@ -85,7 +86,7 @@ def MountUSB(read_only=False):
         if Spawn(['mount'] +
                  (['-o', 'ro'] if read_only else []) +
                  [dev, mount_dir],
-                 ignore_stdout=True, log_stderr_on_error=True,
+                 ignore_stdout=True, ignore_stderr=True,
                  call=True).returncode == 0:
           # Success
           logging.info('Mounted %s on %s', dev, mount_dir)
@@ -113,7 +114,8 @@ def DummyContext(arg):
   yield arg
 
 
-def SaveLogs(output_dir, archive_id=None):
+def SaveLogs(output_dir, archive_id=None,
+             var='/var', usr_local='/usr/local', etc='/etc'):
   '''Saves dmesg and relevant log files to a new archive in output_dir.
 
   The archive will be named factory_bug.<description>.<timestamp>.tar.bz2,
@@ -123,6 +125,7 @@ def SaveLogs(output_dir, archive_id=None):
     output_dir: The directory in which to create the file.
     archive_id: An optional short ID to put in the filename (so
       archives may be more easily differentiated).
+    var, usr_local, etc: Paths to the relavant directories.
   '''
   output_dir = os.path.realpath(output_dir)
 
@@ -147,13 +150,15 @@ def SaveLogs(output_dir, archive_id=None):
     with open(os.path.join(tmp, 'dmesg'), 'w') as f:
       Spawn('dmesg', stdout=f, check_call=True)
 
-    files = ['crossystem', 'dmesg'] + sum([glob(x) for x in [
-        '/var/log',
-        '/var/factory',
-        '/usr/local/factory/MD5SUM',
-        '/etc/lsb-release',
-        '/usr/local/etc/lsb-*']], [])
+    files = ['crossystem', 'dmesg'] + sum(
+        [glob(x) for x in [
+            os.path.join(var, 'log'),
+            os.path.join(var, 'factory'),
+            os.path.join(usr_local, 'factory', 'MD5SUM'),
+            os.path.join(etc, 'lsb-release'),
+            os.path.join(usr_local, 'etc', 'lsb-*')]], [])
 
+    utils.TryMakeDirs(os.path.dirname(output_file))
     logging.info('Saving %s to %s...', files, output_file)
     process = Spawn(['tar', 'cfj', output_file] + files,
                     cwd=tmp, call=True,
@@ -170,13 +175,73 @@ def SaveLogs(output_dir, archive_id=None):
     shutil.rmtree(tmp, ignore_errors=True)
 
 
+# Root directory to use when root partition is USB
+USB_ROOT_OUTPUT_DIR = '/mnt/stateful_partition/factory_bug'
+
+# Encrypted var partition mount point.
+SSD_STATEFUL_ROOT = '/tmp/sda1'
+
+# Stateful partition mount point
+SSD_STATEFUL_MOUNT_POINT = os.path.join(SSD_STATEFUL_ROOT,
+                                        'mnt/stateful_partition')
+
+EXAMPLES = """Examples:
+
+  When booting from SSD:
+
+    # Save logs to /tmp
+    factory_bug
+
+    # Save logs to a USB drive (using the first one already mounted, or the
+    # first mountable on any USB device if none is mounted yet)
+    factory_bug --usb
+
+  When booting from a USB drive:
+
+    # Mount sda1, sda3, encrypted stateful partition from SSD,
+    # and save logs to the USB drive's stateful partition
+    factory_bug
+
+    # Same as above, but don't save the logs
+    factory_bug --mount
+
+"""
+
 def main():
   logging.basicConfig(level=logging.INFO)
+
+  # First parse mtab, since that will affect some of our defaults.
+  root_is_usb = False
+  have_ssd_stateful = False
+  mounted_sda1 = None
+  mounted_sda3 = None
+  for line in open('/etc/mtab'):
+    dev, mount_point = line.split()[0:2]
+    if ((mount_point == '/mnt/stateful_partition') and
+        '/usb' in os.readlink(os.path.join('/sys/class/block',
+                                           os.path.basename(dev)))):
+      root_is_usb = True
+    elif mount_point == os.path.join(SSD_STATEFUL_ROOT, 'var'):
+      have_ssd_stateful = True
+    elif dev == '/dev/sda1':
+      mounted_sda1 = mount_point
+    elif dev == '/dev/sda3':
+      mounted_sda3 = mount_point
+
   parser = argparse.ArgumentParser(
-      description='Save logs to a file or USB drive.')
+      description=("Save logs to a file or USB drive "
+                   "and/or mount encrypted SSD partition."),
+      epilog=EXAMPLES,
+      formatter_class=argparse.RawDescriptionHelpFormatter)
   parser.add_argument('--output_dir', '-o', dest='output_dir', metavar='DIR',
-                      default='/tmp',
-                      help='output directory in which to save file')
+                      default=(USB_ROOT_OUTPUT_DIR if root_is_usb else '/tmp'),
+                      help=('output directory in which to save file. Normally '
+                            'default to /tmp, but defaults to ' +
+                            USB_ROOT_OUTPUT_DIR + ' when booted '
+                            'from USB'))
+  parser.add_argument('--mount', action='store_true',
+                      help=("when booted from USD, only "
+                            "mount encrypted SSD and exit (don't save logs)"))
   parser.add_argument('--usb', action='store_true',
                       help=('save logs to a USB stick (using any mounted '
                             'USB drive partition if available, otherwise '
@@ -186,12 +251,68 @@ def main():
                             'differentiate archives'))
   args = parser.parse_args()
 
-  with (MountUSB() if args.usb
-        else DummyContext((None, args.output_dir))) as mount:
-    output_file = SaveLogs(mount.mount_point, args.id)
-    logging.info('Wrote %s (%d bytes)',
-                 output_file, os.path.getsize(output_file))
+  paths = {}
 
+  if root_is_usb:
+    logging.warn('Root partition is a USB drive')
+    if not os.path.exists('/dev/sda1'):
+      # TODO(jsalz): Make this work on ARM too.
+      logging.error('/dev/sda1 does not exist; cannot mount SSD')
+      sys.exit(1)
+    logging.warn('Saving report to the %s directory', USB_ROOT_OUTPUT_DIR)
+    args.usb = False
+
+    def Mount(device, mount_point=None, options=None):
+      dev = os.path.join('/dev', device)
+      mount_point = mount_point or os.path.join('/tmp', device)
+
+      utils.TryMakeDirs(mount_point)
+      Spawn(['mount'] + (options or []) + [dev, mount_point],
+            log=True, check_call=True)
+      return mount_point
+
+    if not have_ssd_stateful:
+      if not mounted_sda1:
+        utils.TryMakeDirs(SSD_STATEFUL_MOUNT_POINT)
+        Mount('/dev/sda1', SSD_STATEFUL_MOUNT_POINT)
+        mounted_sda1 = SSD_STATEFUL_MOUNT_POINT
+      elif mounted_sda1 != SSD_STATEFUL_MOUNT_POINT:
+        parser.error('Works only when sda1 is mounted at %s (not %s)' % (
+            SSD_STATEFUL_MOUNT_POINT, mounted_sda1))
+
+      new_env = dict(os.environ)
+      new_env['MOUNT_ENCRYPTED_ROOT'] = SSD_STATEFUL_ROOT
+      for d in ['var', 'home/chronos']:
+        utils.TryMakeDirs(os.path.join(SSD_STATEFUL_ROOT, d))
+      Spawn(['mount-encrypted', 'factory'], env=new_env, log=True,
+            check_call=True)
+
+    # Use ext2 to make sure that we don't accidentally use ext4 (which
+    # may write to the partition even in read-only mode)
+    mounted_sda3 = mounted_sda3 or Mount(
+        'sda3', '/tmp/sda3',
+        ['-o', 'ro', '-t', 'ext2'])
+
+    paths = dict(var=os.path.join(SSD_STATEFUL_ROOT, 'var'),
+                 usr_local=os.path.join(mounted_sda1, 'dev_image'),
+                 etc=os.path.join(mounted_sda3, 'etc'))
+  elif args.mount:
+    parser.error('--mount only applies when root device is USB')
+
+  # When --mount is specified, we only mount and don't actually
+  # collect logs.
+  if not args.mount:
+    with (MountUSB() if args.usb
+          else DummyContext(MountUSBInfo(None, args.output_dir, False))
+          ) as mount:
+      output_file = SaveLogs(mount.mount_point, args.id, **paths)
+      logging.info('Wrote %s (%d bytes)',
+                   output_file, os.path.getsize(output_file))
+
+  if root_is_usb:
+    logging.info('SSD remains mounted:')
+    logging.info(' - sda3 = %s', mounted_sda3)
+    logging.info(' - encrypted stateful partition = %s', SSD_STATEFUL_ROOT)
 
 if __name__ == '__main__':
   main()
