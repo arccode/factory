@@ -827,11 +827,15 @@ cros.factory.Goofy.prototype.registerDialog = function(dialog) {
     dialog.setDisposeOnHide(true);
     goog.events.listen(dialog, goog.ui.Component.EventType.SHOW, function() {
             window.focus();
-            // Hack: if the dialog contains an input element, focus it.  (For
-            // instance, Prompt only calls select(), not focus(), on the text
-            // field, which causes ESC and Enter shortcuts not to work.)
-            var inputs =
-                dialog.getContentElement().getElementsByTagName('input');
+            // Hack: if the dialog contains an input element or
+            // button, focus it.  (For instance, Prompt only calls
+            // select(), not focus(), on the text field, which causes
+            // ESC and Enter shortcuts not to work.)
+            var elt = dialog.getElement();
+            var inputs = elt.getElementsByTagName('input');
+            if (!inputs.length) {
+                inputs = elt.getElementsByTagName('button');
+            }
             if (inputs.length) {
                 inputs[0].focus();
             }
