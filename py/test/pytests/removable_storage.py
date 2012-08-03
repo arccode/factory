@@ -33,11 +33,12 @@ _STATE_LOCKTEST_WAIT_REMOVE = 4
 # udev constants
 _UDEV_ACTION_INSERT = 'add'
 _UDEV_ACTION_REMOVE = 'remove'
+_UDEV_ACTION_CHANGE = 'change'
 _UDEV_MMCBLK_PATH   = '/dev/mmcblk'
 # USB card reader attributes and common text string in descriptors
-_USB_CARD_ATTRS   = ['vendor', 'model', 'product', 'configuration',
-                     'manufacturer']
-_USB_CARD_DESCS   = ['card', 'reader']
+_CARD_READER_ATTRS = ['vendor', 'model', 'product', 'configuration',
+                      'manufacturer', 'driver']
+_CARD_READER_DESCS = ['sd', 'card', 'reader']
 
 # The GPT ( http://en.wikipedia.org/wiki/GUID_Partition_Table )
 # occupies the first 34 and the last 33 512-byte blocks.
@@ -153,9 +154,9 @@ class RemovableStorageTest(unittest.TestCase):
         return vidpid.strip()
     return self.GetVidpid(device.parent)
 
-  def IsUSBCardReader(self, device):
-    attr_str = self.GetAttrs(device, set(_USB_CARD_ATTRS)).lower()
-    for desc in _USB_CARD_DESCS:
+  def IsCardReader(self, device):
+    attr_str = self.GetAttrs(device, set(_CARD_READER_ATTRS)).lower()
+    for desc in _CARD_READER_DESCS:
       if desc in attr_str:
         return True
     return False
@@ -163,7 +164,7 @@ class RemovableStorageTest(unittest.TestCase):
   def IsSD(self, device):
     if device.device_node.find(_UDEV_MMCBLK_PATH) == 0:
       return True
-    return self.IsUSBCardReader(device)
+    return self.IsCardReader(device)
 
   def GetDeviceType(self, device):
     if self.IsSD(device):
@@ -376,6 +377,14 @@ class RemovableStorageTest(unittest.TestCase):
     self.AdvanceProgress()
 
   def UdevEventCallback(self, action, device):
+    if action == _UDEV_ACTION_CHANGE:
+      node = os.path.basename(device.device_node)
+      if any(len(x) > 3 and x[3] == node for x in
+             [l.strip().split() for l in open('/proc/partitions').readlines()]):
+        action = _UDEV_ACTION_INSERT
+      else:
+        action = _UDEV_ACTION_REMOVE
+
     if action == _UDEV_ACTION_INSERT:
       if self._state == _STATE_RW_TEST_WAIT_INSERT:
         if self._vidpid is None:
