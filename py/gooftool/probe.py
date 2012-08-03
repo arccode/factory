@@ -633,6 +633,16 @@ def _ProbeTouchpadFirmwareVersion():
   return _TouchpadData.Get().fw_version
 
 
+def _AddFirmwareIdTag(image, id_name='RO_FRID'):
+  """Returns firmware ID in '#NAME' format if available."""
+  if not image.has_section(id_name):
+    return ''
+  id_stripped = image.get_section(id_name).strip(chr(0))
+  if id_stripped:
+    return '#%s' % id_stripped
+  return ''
+
+
 def _GbbHash(image):
   """Algorithm: sha256(GBB[-HWID]); GBB without HWID."""
   with NamedTemporaryFile('w+b') as f:
@@ -657,18 +667,24 @@ def _MainRoHash(image):
   image.put_section('GBB', zero_gbb)
   hash_src += image.get_section('RO_SECTION')
   image.put_section('GBB', gbb)
-  return 'mv2#' + hashlib.sha256(hash_src).hexdigest()
+  return 'mv2#%s%s' % (hashlib.sha256(hash_src).hexdigest(),
+                       _AddFirmwareIdTag(image))
 
 
 def _EcRoHash(image):
   """Algorithm: sha256(fmap, EC_RO)."""
   hash_src = image.get_fmap_blob()
   hash_src += image.get_section('EC_RO')
-  return 'ev2#' + hashlib.sha256(hash_src).hexdigest()
+  return 'ev2#%s%s' % (hashlib.sha256(hash_src).hexdigest(),
+                       _AddFirmwareIdTag(image))
 
 
 def _FwKeyHash(main_fw_file, key_name):
   """Hash specified GBB key, extracted by vbutil_key."""
+  known_hashes = {
+      'b11d74edd286c144e1135b49e7f0bc20cf041f10': 'devkeys/rootkey',
+      'c14bd720b70d97394257e3e826bd8f43de48d4ed': 'devkeys/recovery',
+  }
   with NamedTemporaryFile(prefix='gbb_%s_' % key_name) as f:
     if not Shell('gbb_utility -g --%s=%s %s' %
                  (key_name, f.name, main_fw_file)).success:
@@ -678,7 +694,10 @@ def _FwKeyHash(main_fw_file, key_name):
     if len(sha1sum) != 1:
       logging.error("Failed calling vbutil_key for firmware key hash.")
       return None
-    return 'kv3#' + sha1sum[0]
+    sha1 = sha1sum[0]
+    if sha1 in known_hashes:
+      sha1 += '#' + known_hashes[sha1]
+    return 'kv3#' + sha1
 
 
 def CalculateFirmwareHashes(fw_file_path):
