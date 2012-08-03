@@ -559,7 +559,7 @@ cros.factory.Goofy.prototype.initSplitPanes = function() {
                 event.preventDefault();
             }
         },
-        true, this);
+        false, this);
 
     mainComponent.getElement().id = 'goofy-main';
     consoleComponent.getElement().id = 'goofy-console';
