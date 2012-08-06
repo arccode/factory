@@ -31,6 +31,7 @@ load_setup() {
 start_factory() {
   # This should already exist, but just in case...
   mkdir -p "$(dirname "$FACTORY_LOG_FILE")"
+  ln -sf "$FACTORY_LOG_FILE" /var/log
 
   load_setup
   echo "
