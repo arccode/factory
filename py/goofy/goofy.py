@@ -176,6 +176,7 @@ class Goofy(object):
     self.test_list = None
     self.on_ui_startup = []
     self.env = None
+    self.last_idle = None
     self.last_shutdown_time = None
     self.last_update_check = None
     self.last_sync_time = None
@@ -1088,7 +1089,13 @@ class Goofy(object):
     return True
 
   def sync_time_in_background(self):
-    '''Attempts to sync time with the shopfloor server.'''
+    '''Writes out current time and tries to sync with shopfloor server.'''
+    if not self.time_sanitizer:
+      return
+
+    # Write out the current time.
+    self.time_sanitizer.SaveTime()
+
     if ((not self.test_list.options.sync_time_period_secs) or
         (not self.time_sanitizer) or
         self.time_synced or
@@ -1123,6 +1130,15 @@ class Goofy(object):
 
     This method must not raise exception.
     '''
+    now = time.time()
+    if (self.last_idle and
+        now < (self.last_idle + RUN_QUEUE_TIMEOUT_SECS - 1)):
+      # Don't run more often than once every (RUN_QUEUE_TIMEOUT_SECS -
+      # 1) seconds.
+      return
+
+    self.last_idle = now
+
     self.check_connection_manager()
     self.check_for_updates()
     self.sync_time_in_background()

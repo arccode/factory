@@ -83,7 +83,7 @@ class TimeSanitizer(object):
     self.time_bump_secs = time_bump_secs
     self.max_leap_secs = max_leap_secs
     self.base_time = base_time
-    self.lock = threading.Lock()
+    self.lock = threading.RLock()
 
     # Whether to avoid re-raising exceptions from unsuccessful shopfloor
     # operations.  Set to False for testing.
@@ -140,10 +140,23 @@ class TimeSanitizer(object):
         self._time.SetTime(sane_time)
         now = sane_time
 
-    with open(self.state_file, 'w') as f:
-      logging.debug('Recording current time %s into %s',
-                    _FormatTime(now), self.state_file)
-      print >> f, now
+    self.SaveTime(now)
+
+  def SaveTime(self, now=None):
+    '''Writes the current time to the state file.
+
+    Thread-safe.
+
+    Args:
+      now: The present time if already known.  If None, time.time() will be
+        used.
+    '''
+    with self.lock:
+      with open(self.state_file, 'w') as f:
+        now = now or self._time.Time()
+        logging.debug('Recording current time %s into %s',
+                      _FormatTime(now), self.state_file)
+        print >> f, now
 
   def SyncWithShopfloor(self, timeout=5):
     '''Attempts to synchronize the clock with the shopfloor server.
