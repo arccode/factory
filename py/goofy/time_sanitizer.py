@@ -14,6 +14,8 @@ import time
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
+from cros.factory.test import utils
+from cros.factory.utils.process_utils import Spawn
 
 
 def _FormatTime(t):
@@ -39,6 +41,11 @@ class Time(object):
     value = timespec(int(s), int(us * 1000000))
     librt.clock_settime(0, ctypes.pointer(value))
 
+    # Set hwclock (in a background thread, since this is slow).
+    utils.StartDaemonThread(
+        target=lambda:
+          Spawn(['hwclock', '-w', '--utc', '--noadjfile'],
+                check_call=True, log=True))
 
 SECONDS_PER_DAY = 86400
 
