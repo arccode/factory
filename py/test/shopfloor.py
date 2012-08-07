@@ -165,7 +165,8 @@ def get_instance(url=None, detect=False, timeout=None):
       factory shared data.
   @param detect: If True, attempt to detect the server URL if none is
     specified.
-  @param timeout: If not None, the timeout in seconds.
+  @param timeout: If not None, the timeout in seconds. This timeout is for RPC
+    calls on the proxy, not for get_instance() itself.
   @return An object with all public functions from shopfloor.ShopFloorBase.
   """
   if not url:

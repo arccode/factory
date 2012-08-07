@@ -53,7 +53,7 @@ def RunRsync(*rsync_command):
   factory.console.info('rsync succeeded')
 
 
-def TryUpdate(pre_update_hook=None, rsync_timeout=15):
+def TryUpdate(pre_update_hook=None, timeout=15):
   '''Attempts to update the autotest directory on the device.
 
   Atomically replaces the autotest directory with new contents.
@@ -63,7 +63,10 @@ def TryUpdate(pre_update_hook=None, rsync_timeout=15):
   Args:
     pre_update_hook: A routine to be invoked before the
       autotest directory is swapped out.
-    rsync_timeout: I/O timeout of rsync in seconds.
+    timeout: This timeout serves at two places.
+      1. Timeout in seconds for RPC calls on the proxy which provides
+        remote services on shopfloor server.
+      2. I/O timeout of rsync in seconds.
 
   Returns:
     True if an update was performed and the machine should be
@@ -80,7 +83,7 @@ def TryUpdate(pre_update_hook=None, rsync_timeout=15):
     'Checking for updates at <%s>... (current MD5SUM is %s)',
     url, current_md5sum)
 
-  shopfloor_client = shopfloor.get_instance(detect=True)
+  shopfloor_client = shopfloor.get_instance(detect=True, timeout=timeout)
   new_md5sum = shopfloor_client.GetTestMd5sum()
   factory.console.info('MD5SUM from server is %s', new_md5sum)
   if current_md5sum == new_md5sum or new_md5sum is None:
@@ -96,7 +99,7 @@ def TryUpdate(pre_update_hook=None, rsync_timeout=15):
   RunRsync(
     'rsync',
     '-a', '--delete', '--stats',
-    '--timeout=%s' % rsync_timeout,
+    '--timeout=%s' % timeout,
     # Use copies of identical files from the old autotest
     # as much as possible to save network bandwidth.
     '--copy-dest=%s' % parent_dir,
