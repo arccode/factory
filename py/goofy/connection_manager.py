@@ -48,15 +48,16 @@ class WLAN(object):
       security: Wireless network security type. For example:
         "none": no security.
         "wep": fixed key WEP.
-        "wpa": WPA-PSK.
+        "wpa": WPA-PSK (but see below; use "psk" instead).
         "rsn": IEEE 802.11i-PSK
-        "psk": WPA2-PSK[AES], WPA-PSK[TKIP] + WPA2-PSK[AES]. Also either
-               "wpa" or "rsn".
+        "psk": WPA2-PSK[AES], WPA-PSK[TKIP] + WPA2-PSK[AES].
+               Also, "wpa" and "rsn" can be replaced by "psk".
         "802_1x": IEEE 802.11i with 802.1x authentication.
 
         Note that when using "wpa" for WPA2-PSK[AES] or
         WPA-PSK[TKIP] + WPA2-PSK[AES], flimflam can connect but it will always
-        cache the first passphrase that works.
+        cache the first passphrase that works. For this reason, use "psk"
+        instead of "wpa".
       passphrase: Wireless network password.
     '''
     self.ssid = ssid
