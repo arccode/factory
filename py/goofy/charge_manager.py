@@ -82,6 +82,9 @@ class ChargeManager(object):
     '''Get current charge level in percentage.'''
     charge_now = self._ReadLine(self._battery_path + '/charge_now')
     charge_full = self._ReadLine(self._battery_path + '/charge_full')
+
+    if float(charge_full) <= 0:
+      return None # Something wrong with the battery
     return round(float(charge_now) * 100.0 / float(charge_full))
 
   def _SetChargerState(self, charger_option, force_idle):
@@ -132,7 +135,9 @@ class ChargeManager(object):
       return
 
     charge = self._GetChargePct()
-    if charge < self._min_charge_pct:
+    if charge is None:
+      self._LogState("Battery error")
+    elif charge < self._min_charge_pct:
       self._StartCharging()
     elif charge > self._max_charge_pct:
       self._ForceDischarge()
