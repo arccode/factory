@@ -459,8 +459,8 @@ def _ProbeDisplayPanel():
   return sorted(edid_set) if edid_set else []
 
 
-@_ComponentProbe('dram', 'x86')
-def _ProbeDramX86():
+@_ComponentProbe('dram')
+def _ProbeDram():
   """Combine mosys memory timing and geometry information."""
   # TODO(tammo): Document why mosys cannot load i2c_dev itself.
   _LoadKernelModule('i2c_dev')
@@ -470,15 +470,6 @@ def _ProbeDramX86():
   sizes = dict(re.findall('dimm="([^"]*)".*size_mb="([^"]*)"', size_data))
   return [CompactStr(['%s|%s|%s' % (i, sizes[i], times[i].replace(' ', ''))
                       for i in sorted(times)])]
-
-
-@_ComponentProbe('dram', 'arm')
-def _ProbeDramArm():
-  """Memory is not directly probable, so use kernel cmdline info."""
-  # TODO(tammo): Request that mosys provide this info (by any means).
-  cmdline = open('/proc/cmdline').read().strip()
-  # Format: *mem=384M@0M (size@address)
-  return [CompactStr(re.findall(r'\s\w*mem=(\d+M@\d+M)', cmdline))]
 
 
 @_ComponentProbe('ec_flash_chip')
