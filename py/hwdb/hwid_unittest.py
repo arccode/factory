@@ -332,6 +332,34 @@ class HwidTest(unittest.TestCase):
       self.assertEqual(sorted(f_device.boms.keys()), ['BAR', 'BAZ'],
                        f_device.boms.keys())
 
+  def testBomMatrixCreation(self):
+    with LogOnException(
+      self._testMethodName, self.test_log, self.hwid_tool_log):
+      hw_db = hwid_tool.HardwareDb(self.dir)
+      hw_db.comp_db.AddComponent('cpu', comp_name='cpu_0', probe_result='XXX')
+      hw_db.comp_db.AddComponent('cpu', comp_name='cpu_1', probe_result='YYY')
+      hw_db.comp_db.AddComponent('cpu', comp_name='cpu_2', probe_result='ZZZ')
+      hw_db.comp_db.AddComponent('tpm', comp_name='tpm_0', probe_result='AAA')
+      hw_db.comp_db.AddComponent('tpm', comp_name='tpm_1', probe_result='BBB')
+      hw_db.comp_db.AddComponent('tpm', comp_name='tpm_2', probe_result='CCC')
+      hw_db.comp_db.AddComponent('keyboard', comp_name='kbd_0')
+      hw_db.comp_db.AddComponent('keyboard', comp_name='kbd_1')
+      device = hw_db.CreateDevice('FOO')
+      device.CreateBom('BAR', hw_db.comp_db.CreateComponentSpec(
+          dontcare=hw_db.comp_db.all_comp_classes))
+      cross_comp_classes = set(['cpu', 'tpm', 'keyboard'])
+      device.CreateBom('BAZ', hw_db.comp_db.CreateComponentSpec(
+          missing=hw_db.comp_db.all_comp_classes - cross_comp_classes,
+          components=['cpu_0', 'tpm_0', 'kbd_0']))
+      hw_db.Write()
+      self.runTool('create_bom_matrix -b FOO --missing %s --cross_comps cpu_0 '
+                   'cpu_1 cpu_2 tpm_0 tpm_1 tpm_2 kbd_0 kbd_1' %
+                   ' '.join(hw_db.comp_db.all_comp_classes -
+                            cross_comp_classes))
+      device = hwid_tool.HardwareDb(self.dir).devices['FOO']
+      self.assertEqual(len(device.boms), 19,
+                       (len(device.boms), device.boms.keys()))
+
 
 if __name__ == '__main__':
   unittest.main()

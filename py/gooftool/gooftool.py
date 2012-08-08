@@ -164,6 +164,13 @@ def BestMatchHwids(options):
 
   Returns (on stdout): A list of HWIDs that match the available probe
   results and argument contraints, one per line.
+
+  Example:
+
+  // Three ways to specify a keyboard (assuming it is a variant component)
+  gooftool best_match_hwids --missing keyboard
+  gooftool best_match_hwids --variant A or
+  gooftool best_match_hwids --comps us_kbd
   """
   map(hwid_tool.Validate.Status, options.status)
   hw_db = hwid_tool.HardwareDb(options.hwdb_path)
@@ -204,8 +211,10 @@ def BestMatchHwids(options):
     non_probable_missing = missing_classes - PROBABLE_COMPONENT_CLASSES
     if non_probable_missing:
       sys.exit('FAILURE: these classes are necessary, were not specified '
-               'as inputs, and cannot be probed for:\n%s' %
-               YamlWrite(list(non_probable_missing)))
+               'as inputs, and cannot be probed for:\n%s'
+               'This problem can often be addressed by specifying all of '
+               'the missing components on the command line (see the command '
+               'help).' % YamlWrite(list(non_probable_missing)))
     print 'probing for missing classes:'
     print YamlWrite(list(missing_classes))
     probe_results = Probe(target_comp_classes=list(missing_classes),

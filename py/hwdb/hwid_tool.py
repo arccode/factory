@@ -12,6 +12,7 @@ import os
 import re
 import sys
 
+from itertools import chain
 from random import shuffle
 from string import uppercase  # pylint: disable=W0402
 from zlib import crc32
@@ -216,6 +217,12 @@ def ComponentSpecsConflict(a, b):
   conflict (loss of information).
   """
   return (ComponentSpecClasses(a) & ComponentSpecClasses(b)) != set()
+
+
+def ComponentSpecsEqual(a, b):
+  return ((set(a.classes_dontcare) == set(b.classes_dontcare)) and
+          (set(a.classes_missing) == set(b.classes_missing)) and
+          a.components == b.components)
 
 
 class Validate:  # pylint: disable=W0232
@@ -1062,6 +1069,90 @@ def CreateBom(config, hw_db):
   device.CreateBom(bom_name, component_spec)
 
 
+@Command('create_bom_matrix',
+         CmdArg('-b', '--board', required=True),
+         CmdArg('--cross_comps', nargs='*', default=[], help=
+                'list of component names'),
+         CmdArg('--fixed_comps', nargs='*', default=[], help=
+                'list of component names'),
+         CmdArg('-m', '--missing', nargs='*', default=[], help=
+                'list of component classes'),
+         CmdArg('-d', '--dontcare', nargs='*', default=[], help=
+                'list of component classes'))
+def CreateBomMatrix(config, hw_db):
+  """Create all possible boms from the specified components.
+
+  Enough components need to be specified to avoid any ambiguity in
+  component configurations.  Specifically, component class coverage
+  must be complete.  To make this as easy as possible, this command
+  will assume that any component classes not specified on the command
+  line should match the bindings of existing boms.  If there are no
+  existing boms, or if the existing boms do not all have exactly the
+  same component bindings for the classes in question, this will fail.
+  In other words, it is necessary to specify components on the command
+  line for all component classes that do not share common mappings
+  across all existing boms.
+
+  NOTE: This routine will only assign a single component per component
+  class, and hence is not useful for creating boms where more than one
+  component should be present for a single component class.
+
+  Example:
+
+  // Create all of the 18 boms possible with 3 cpus, 3 tpms, and 2 keyboards:
+  create_bom_matrix -b FOO --missing %s --cross_comps cpu_0 \
+    cpu_1 cpu_2 tpm_0 tpm_1 tpm_2 kbd_0 kbd_1
+  """
+  def DoCrossproduct(target_comps_list, accumulator=[]): # pylint: disable=W0102
+    return (list(chain.from_iterable(
+        [DoCrossproduct(target_comps_list[1:], accumulator + [comp])
+         for comp in target_comps_list[0]]))
+        if target_comps_list else [accumulator])
+  comp_db = hw_db.comp_db
+  device = hw_db.GetDevice(config.board)
+  map(comp_db.CompExists, config.cross_comps)
+  map(comp_db.CompExists, config.fixed_comps)
+  map(comp_db.CompClassExists, config.dontcare)
+  map(comp_db.CompClassExists, config.missing)
+  fixed_component_spec = comp_db.CreateComponentSpec(
+    components=config.fixed_comps,
+    dontcare=config.dontcare,
+    missing=config.missing)
+  common_component_spec = comp_db.CreateComponentSpec(
+    components=device.cooked_boms.common_comps,
+    filter_component_classes=ComponentSpecClasses(fixed_component_spec))
+  fixed_component_spec = CombineComponentSpecs(
+    fixed_component_spec, common_component_spec)
+  print 'fixed component spec:\n%s' % fixed_component_spec.Encode()
+  cross_component_spec = comp_db.CreateComponentSpec(
+    components=config.cross_comps)
+  cross_class_comps_map = ComponentSpecClassCompsMap(cross_component_spec)
+  total_classes = (ComponentSpecClasses(fixed_component_spec) |
+                   set(cross_class_comps_map))
+  if total_classes != device.primary_classes:
+    raise Error, ('component specification insufficient, also need '
+                  'specification for component classes: %s' %
+                  ', '.join(sorted(device.primary_classes - total_classes)))
+  crossproduct = DoCrossproduct(cross_class_comps_map.values())
+  target_component_specs = []
+  for comps in crossproduct:
+    component_spec = comp_db.CreateComponentSpec(components=comps)
+    component_spec = CombineComponentSpecs(fixed_component_spec, component_spec)
+    def Unique((bom_name, bom)):
+      if not ComponentSpecsEqual(component_spec, bom.primary):
+        return True
+      print 'existing bom matches one config: %s' % bom_name
+    if not all(map(Unique, device.boms.items())):
+      continue
+    target_component_specs.append(component_spec)
+  print 'creating %d new boms\n' % len(target_component_specs)
+  bom_names = device.AvailableBomNames(len(target_component_specs))
+  for bom_name, component_spec in zip(bom_names, target_component_specs):
+    print bom_name
+    print component_spec.Encode()
+    device.CreateBom(bom_name, component_spec)
+
+
 @Command('create_variant',
          CmdArg('-b', '--board', required=True),
          CmdArg('-c', '--comps', nargs='*', default=[], help=
@@ -1101,6 +1192,7 @@ def CreateVariant(config, hw_db):
          CmdArg('-b', '--board', required=True),
          CmdArg('--bom', required=True),
          CmdArg('--variant', required=True))
+# TODO(tammo): Make --bom into a list --boms and assign to all.
 def AssignVariant(config, hw_db):
   """Associate variant with bom."""
   device = hw_db.GetDevice(config.board)
