@@ -36,6 +36,8 @@ class ChargeManagerTest(unittest.TestCase):
     os.makedirs(self._ac_path)
     with open(os.path.join(self._ac_path, "type"), "w") as f:
       f.write("Mains")
+    with open(os.path.join(self._ac_path, "online"), "w") as f:
+      f.write("1")
 
   def RemoveAC(self):
     if self._ac_path:

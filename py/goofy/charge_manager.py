@@ -65,8 +65,8 @@ class ChargeManager(object):
   def _CheckACPresent(self):
     '''Check if AC power is present.'''
     try:
-      self._FindPowerPath(self.PowerSource.MAINS)
-      return True
+      p = self._FindPowerPath(self.PowerSource.MAINS)
+      return self._ReadLine(os.path.join(p, "online")) == "1"
     except ChargeManagerException:
       return False
 
