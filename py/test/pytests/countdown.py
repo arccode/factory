@@ -8,6 +8,9 @@ It only shows count down and system loads for run-in period.
 
 Test parameter:
   duration_secs: Number of seconds to count down.
+  log_interval (default: 10): Number of seconds to log system status.
+  position_top_right (default: False): If True, the countdown window will
+      be placed in the top-right corner. Otherwise, it is center aligned.
 '''
 
 import datetime
@@ -40,6 +43,12 @@ class CountDownTest(unittest.TestCase):
     title_en = args.get('title_en', 'Countdown')
     self._ui.SetHTML(title_en, id='countdown-title-en')
     self._ui.SetHTML(args.get('title_zh', title_en), id='countdown-title-zh')
+
+    # A workaround for some machines in which graphics test would
+    # overlay countdown info.
+    if self.test_info.args.get('position_top_right', False):
+      self._ui.RunJS('document.getElementById("countdown-container").className'
+                     ' = "float-right";')
 
     self._duration_secs = self.test_info.args['duration_secs']
     self._log_interval = self.test_info.args.get('log_interval', 10)
