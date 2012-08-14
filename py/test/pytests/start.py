@@ -13,10 +13,12 @@
 # 'require_shop_floor': Prompts and waits for serial number as input.  The
 #       server is default to the host running mini-omaha, unless you specify an
 #       URL by 'shop_floor_server_url' darg.
+# 'check_factory_install_complete': Check factory install process was complete.
 # 'press_to_continue': Prompts and waits for a key press (SPACE) to continue.
 
 import glob
 import os
+import re
 import socket
 import sys
 import time
@@ -27,6 +29,7 @@ from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test import utils
+from cros.factory.test.args import Arg
 from cros.factory.test.factory_task import FactoryTask, FactoryTaskManager
 from cros.factory.test.event import Event, EventClient
 from cros.factory.event_log import EventLog
@@ -35,6 +38,16 @@ from cros.factory.event_log import EventLog
 _TEST_TITLE = test_ui.MakeLabel('Start Factory Test', u'开始工厂测试')
 
 # Messages for tasks
+_MSG_INSTALL_INCOMPLETE = test_ui.MakeLabel(
+    '<br/>'.join([
+        'Factory install process did not complete. Auto-testing stopped.<br/>',
+        'Please install the factory test image using the mini-Omaha server',
+        'rather than booting from a USB drive.</br>']),
+    '<br/>'.join([
+        u'安装过程中失败, 停止自動測試。<br/>',
+        u'請使用完整的 mini-Omaha 伺服器安裝測試程式，',
+        u'不要直接從 USB 碟開機執行。<br/>']),
+    'start-font-size test-error')
 _MSG_TASK_POWER = test_ui.MakeLabel(
     'Plug in external power to continue.',
     u'请插上外接电源以继续。',
@@ -93,7 +106,7 @@ _JS_SHOP_FLOOR = '''
       }
     })
     element.focus();''' % _EVENT_SUBTYPE_SHOP_FLOOR
-
+_LSB_FACTORY_PATH = '/usr/local/etc/lsb-factory'
 
 class PressSpaceTask(FactoryTask):
   def __init__(self, ui, template): # pylint: disable=W0231
@@ -146,6 +159,30 @@ class ExternalPowerTask(FactoryTask):
           raise ValueError('Invalid external power state "%s" in %s' %
                            (status, status_file))
     raise IOError('Unable to determine external power state.')
+
+
+class FactoryInstallCompleteTask(FactoryTask):
+  def __init__(self, ui, template): # pylint: disable=W0231
+    self._ui = ui
+    self._template = template
+
+  def Run(self):
+    if not os.path.exists(_LSB_FACTORY_PATH):
+      factory.console.error('%s is missing' % _LSB_FACTORY_PATH)
+      self._template.SetState(_MSG_INSTALL_INCOMPLETE)
+      return
+    version_info = utils.CheckOutput(['ectool', 'version'])
+    ro_version_output = re.search(r'^RO version:\s*(\S+)$', version_info,
+                                  re.MULTILINE)
+    rw_version_output = re.search(r'^RW version:\s*(\S+)$', version_info,
+                                  re.MULTILINE)
+    if (ro_version_output is None or rw_version_output is None
+        or ro_version_output.group(1) != rw_version_output.group(1)):
+      self._template.SetState(_MSG_INSTALL_INCOMPLETE)
+      factory.console.info(
+          'EC RO and RW version does not match, %s' % version_info)
+      return
+    self.Stop()
 
 
 class ShopFloorTask(FactoryTask):
@@ -205,6 +242,23 @@ class ShopFloorTask(FactoryTask):
 
 
 class StartTest(unittest.TestCase):
+  ARGS = [
+    Arg('press_to_continue', bool, 'Need to press space to continue',
+        default=True, optional=True),
+    Arg('require_external_power', bool,
+        'Prompts and waits for external power to be applied.',
+        default=False, optional=True),
+    Arg('require_shop_floor', bool,
+        ('Prompts and waits for serial number as input.'
+         'The server is default to the host running mini-omaha,'
+         'unless you specify an URL by "shop_floor_server_url" darg.'),
+        default=None, optional=True),
+    Arg('shop_floor_server_url', str, 'shopfloor server url',
+        default=None, optional=True),
+    Arg('check_factory_install_complete', bool,
+        'Check factory install process was complete.',
+        default=None, optional=True)
+  ]
   def __init__(self, *args, **kwargs):
     super(StartTest, self).__init__(*args, **kwargs)
     self._task_list = []
@@ -213,32 +267,28 @@ class StartTest(unittest.TestCase):
     self._ui.AppendCSS('.start-font-size {font-size: 2em;}')
     self._template.SetTitle(_TEST_TITLE)
 
-    self._press_to_continue = True
-    self._require_external_power = False
-    self._require_shop_floor = None
-    self._shop_floor_server_url = None
 
   def runTest(self):
-    args = self.test_info.args
-    self._press_to_continue = args.get('press_to_continue', True)
-    self._require_external_power = args.get('require_external_power', False)
-    self._require_shop_floor = args.get('require_shop_floor', None)
-    self._shop_floor_server_url = args.get('shop_floor_server_url', None)
 
     # Reset shop floor data only if require_shop_floor is explicitly
     # defined, for test lists using factory_Start multiple times between
     # groups (ex, to prompt for space or check power adapter).
-    if self._require_shop_floor is not None:
+    if self.args.require_shop_floor is not None:
       shopfloor.reset()
-      shopfloor.set_enabled(self._require_shop_floor)
+      shopfloor.set_enabled(self.args.require_shop_floor)
 
-    if self._require_shop_floor:
+    if self.args.require_shop_floor:
       self._task_list.append(ShopFloorTask(self._ui,
                                            self._template,
-                                           self._shop_floor_server_url))
-    if self._require_external_power:
+                                           self.args.shop_floor_server_url))
+
+    if self.args.check_factory_install_complete:
+      self._task_list.append(FactoryInstallCompleteTask(self._ui,
+                                           self._template))
+
+    if self.args.require_external_power:
       self._task_list.append(ExternalPowerTask(self._ui, self._template))
-    if self._press_to_continue:
+    if self.args.press_to_continue:
       self._task_list.append(PressSpaceTask(self._ui, self._template))
 
     FactoryTaskManager(self._ui, self._task_list).Run()
