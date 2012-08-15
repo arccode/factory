@@ -109,6 +109,13 @@ def TryUpdate(pre_update_hook=None, timeout=15):
       new_md5sum),
     '%s/' % new_path)
 
+  hwid_path = os.path.join(factory.FACTORY_PATH, 'hwid')
+  new_hwid_path = os.path.join(new_path, 'factory', 'hwid')
+  if os.path.exists(hwid_path) and not os.path.exists(new_hwid_path):
+    RunRsync(
+      'rsync', '-a',
+      hwid_path, '%s/factory' % new_path)
+
   CheckCriticalFiles(new_path)
 
   new_md5sum_path = os.path.join(new_path, 'factory', 'MD5SUM')
