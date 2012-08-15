@@ -132,12 +132,36 @@ class DUTEnvironment(Environment):
       'http://127.0.0.1:%d/' % state.DEFAULT_FACTORY_STATE_PORT,
       ]
 
-    chrome_log = os.path.join(factory.get_log_root(), 'factory.chrome.log')
-    chrome_log_file = open(chrome_log, "a")
-    logging.info('Launching Chrome; logs in %s' % chrome_log)
-    return Spawn(chrome_command,
-                 stdout=chrome_log_file,
-                 stderr=subprocess.STDOUT)
+    if self.goofy.options.automation:
+      # Automation script will be responsible for opening chrome browser
+      # argument order:
+      # chrome_binary_location, option1, option2, ..., factory_url
+      automation_command = [
+          '/usr/local/factory/py/automation/factory_automation.py']
+      automation_command.extend(chrome_command)
+
+      automation_log = os.path.join(factory.get_log_root(),
+                                    'factory_automation.log')
+      automation_log_file = open(automation_log, 'a')
+
+      # Make sure chromedriver is in the system path
+      new_env = os.environ.copy()
+      new_env['PATH'] += ':/usr/local/factory/bin'
+
+      logging.info('Launching factory_automation: log in %s', automation_log)
+      return Spawn(automation_command,
+                   stdout=automation_log_file,
+                   stderr=subprocess.STDOUT,
+                   # Make other automation logs go to the correct place
+                   cwd=factory.get_log_root(),
+                   env=new_env)
+    else:
+      chrome_log = os.path.join(factory.get_log_root(), 'factory.chrome.log')
+      chrome_log_file = open(chrome_log, 'a')
+      logging.info('Launching Chrome; logs in %s', chrome_log)
+      return Spawn(chrome_command,
+                   stdout=chrome_log_file,
+                   stderr=subprocess.STDOUT)
 
   def create_connection_manager(self, wlans, scan_wifi_period_secs):
     return connection_manager.ConnectionManager(wlans,
@@ -173,5 +197,3 @@ class FakeChrootEnvironment(Environment):
 
   def create_connection_manager(self, wlans, scan_wifi_period_secs):
     return connection_manager.DummyConnectionManager()
-
-

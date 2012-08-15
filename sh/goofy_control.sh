@@ -12,6 +12,9 @@ BOARD_SETUP="$FACTORY/custom/board_setup_factory.sh"
 # Default args for Goofy.
 GOOFY_ARGS=""
 
+# If this exits, then start factory with automation
+AUTOMATION_FILE="/var/factory/state/factory.automation"
+
 # Default implementation for factory_setup (no-op).  May be overriden
 # by board_setup_factory.sh.
 factory_setup() {
@@ -23,6 +26,11 @@ load_setup() {
   if [ -s $BOARD_SETUP ]; then
     echo "Loading board-specific parameters..." 1>&2
     . $BOARD_SETUP
+  fi
+
+  if [ -f $AUTOMATION_FILE ]; then
+    echo "Automation is enabled" 1>&2
+    GOOFY_ARGS="$GOOFY_ARGS --automation"
   fi
 
   factory_setup

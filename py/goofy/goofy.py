@@ -668,7 +668,7 @@ class Goofy(object):
             status=TestState.FAILED, increment_count=1,
             error_msg='Shutdown aborted by operator',
             shutdown_count=0)
-          return
+          continue
 
         # Save pending test list in the state server
         self.state_instance.set_shared_data(
@@ -951,6 +951,9 @@ class Goofy(object):
                       help='Use FILE as test list')
     parser.add_option('--dummy_shopfloor', action='store_true',
                       help='Use a dummy shopfloor server')
+    parser.add_option('--automation', dest='automation',
+                      action='store_true',
+                      help='Enable automation on running factory test')
     (self.options, self.args) = parser.parse_args(args)
 
     # Make sure factory directories exist.

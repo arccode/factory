@@ -390,6 +390,13 @@ cros.factory.Goofy = function() {
      */
     this.pathTestMap = new Object();
 
+
+    /**
+     * A map from test path to the tree node html id for external reference.
+     * @type Object.<string, string>
+     */
+    this.pathNodeIdMap = new Object();
+
     /**
      * Whether Chinese mode is currently enabled.
      *
@@ -1940,6 +1947,7 @@ cros.factory.Goofy.prototype.addToNode = function(parent, test) {
 
     this.pathNodeMap[test.path] = node;
     this.pathTestMap[test.path] = test;
+    this.pathNodeIdMap[test.path] = node.getId();
     node.factoryTest = test;
 };
 

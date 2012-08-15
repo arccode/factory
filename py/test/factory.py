@@ -759,6 +759,7 @@ class FactoryTest(object):
         (k, getattr(self, k))
         for k in ['id', 'path', 'label_en', 'label_zh',
                   'kbd_shortcut', 'backgroundable'])
+    ret['is_shutdown_step'] = isinstance(self, ShutdownStep)
     ret['subtests'] = [subtest.to_struct() for subtest in self.subtests]
     return ret
 
