@@ -23,6 +23,17 @@ def _FormatTime(t):
   return '%s.%06dZ' % (time.strftime('%Y-%m-%dT%H:%M:%S', time.gmtime(s)),
                        int(us * 1000000))
 
+def CheckHwclock():
+  '''Check hwclock is working by a write(retry once if fail) and a read.'''
+  for _ in xrange(2):
+    if Spawn(['hwclock', '-w', '--utc', '--noadjfile'], log=True,
+             log_stderr_on_error=True).returncode == 0:
+      break
+    else:
+      logging.error('Unable to set hwclock time')
+
+  logging.info('Current hwclock time: %s' %
+      Spawn(['hwclock', '-r'], log=True, read_stdout=True).stdout_data)
 
 librt = ctypes.cdll.LoadLibrary('librt.so')
 class timespec(ctypes.Structure):
@@ -41,11 +52,8 @@ class Time(object):
     value = timespec(int(s), int(us * 1000000))
     librt.clock_settime(0, ctypes.pointer(value))
 
-    # Set hwclock (in a background thread, since this is slow).
-    utils.StartDaemonThread(
-        target=lambda:
-          Spawn(['hwclock', '-w', '--utc', '--noadjfile'],
-                check_call=True, log=True))
+    # Set hwclock after we set time(in a background thread, since this is slow).
+    utils.StartDaemonThread(target=CheckHwclock)
 
 SECONDS_PER_DAY = 86400
 
@@ -102,6 +110,10 @@ class TimeSanitizer(object):
 
     if not os.path.isdir(os.path.dirname(self.state_file)):
       os.makedirs(os.path.dirname(self.state_file))
+
+    # Set hwclock (in a background thread, since this is slow).
+    # Do this upon startup to ensure hwclock is working
+    utils.StartDaemonThread(target=CheckHwclock)
 
   def Run(self):
     '''Runs forever, immediately and then every monitor_interval_secs.'''
