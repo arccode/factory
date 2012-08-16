@@ -19,6 +19,10 @@ from cros.factory.test.factory import TestState
 # For compatibility; moved to factory.
 FactoryTestFailure = factory.FactoryTestFailure
 
+# Keycodes
+ENTER_KEY = 13
+ESCAPE_KEY = 27
+
 
 def Escape(text, preserve_line_breaks=True):
   '''Escapes HTML.
@@ -54,6 +58,23 @@ def MakeTestLabel(test):
      test: A test object from the test list.
   '''
   return MakeLabel(Escape(test.label_en), Escape(test.label_zh))
+
+
+def MakePassFailKeyLabel(pass_key=True, fail_key=True):
+  '''
+  Returns label for an instruction of pressing pass key in the active
+  language.
+  '''
+  if not pass_key and not fail_key:
+    return ''
+  en, zh = '', ''
+  if pass_key:
+    en += 'Press Enter to pass. '
+    zh += u'通過請按ENTER鍵  '
+  if fail_key:
+    en += 'Press ESC to fail.'
+    zh += u'失敗請按ESC鍵'
+  return MakeLabel(en, zh)
 
 
 def MakeStatusLabel(status):
@@ -296,7 +317,7 @@ class UI(object):
 
   def EnablePassFailKeys(self):
     '''Allows space/enter to pass the test, and escape to fail it.'''
-    self.RunJS('window.test.enablePassFailKeys()')
+    self.BindStandardKeys()
 
   def Run(self):
     '''Runs the test UI, waiting until the test completes.'''
@@ -319,6 +340,36 @@ class UI(object):
     else:
       raise ValueError('Unexpected status in event %r' % event)
 
+  def BindStandardKeys(self, bind_pass_keys=True, bind_fail_keys=True):
+    '''Binds standard pass and/or fail keys.
+
+    Args:
+      bind_pass_keys: True if binding pass keys, including enter, space,
+        'p', and 'P'.
+      bind_fail_keys: True if binding fail keys, including ESC, 'f', and 'F'.
+    '''
+    items = []
+    if bind_pass_keys:
+      items.extend([(key, 'window.test.pass()') for key in '\r pP'])
+    if bind_fail_keys:
+      items.extend([(key, 'window.test.fail()') for key in 'fF\x1b'])
+    self.BindKeysJS(items)
+
+  def BindKeysJS(self, items):
+    '''Binds keys to JavaScript code.
+
+    Args:
+      items: A list of tuples (key, js), where
+        key: The key to bind (if a string), or an integer character code.
+        js: The JavaScript to execute when pressed.
+    '''
+    js_list = []
+    for key, js in items:
+      key_code = key if isinstance(key, int) else ord(key)
+      js_list.append('window.test.bindKey(%d, function() { %s });' %
+                     (key_code, js))
+    self.RunJS(''.join(js_list))
+
   def BindKeyJS(self, key, js):
     '''Sets a JavaScript function to invoke if a key is pressed.
 
@@ -326,8 +377,7 @@ class UI(object):
       key: The key to bind (if a string), or an integer character code.
       js: The JavaScript to execute when pressed.
     '''
-    key_code = key if isinstance(key, int) else ord(key)
-    self.RunJS('window.test.bindKey(%d, function() { %s })' % (key_code, js))
+    self.BindKeysJS([(key, js)])
 
   def _HandleEvent(self, event):
     '''Handles an event sent by a test UI.'''

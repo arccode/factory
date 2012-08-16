@@ -229,27 +229,6 @@ cros.factory.Test.prototype.sendTestEvent = function(subtype, data) {
 };
 
 /**
- * Binds space/enter to "pass" and escape to "fail."
- * @export
- */
-cros.factory.Test.prototype.enablePassFailKeys = function() {
-    goog.events.listen(
-        this.invocation.iframe.contentWindow, goog.events.EventType.KEYPRESS,
-        function(event) {
-            if (event.keyCode == goog.events.KeyCodes.ENTER ||
-                event.keyCode == goog.events.KeyCodes.SPACE ||
-                event.keyCode == 'p'.charCodeAt(0) ||
-                event.keyCode == 'P'.charCodeAt(0)) {
-                this.pass();
-            } else if (event.keyCode == goog.events.KeyCodes.ESC ||
-                       event.keyCode == 'f'.charCodeAt(0) ||
-                       event.keyCode == 'F'.charCodeAt(0)) {
-                this.fail();
-            }
-        }, false, this);
-};
-
-/**
  * Binds a key to a handler.
  * @param {number} keyCode the key code to bind.
  * @param {function()} handler the function to call when the key is pressed.
@@ -261,7 +240,7 @@ cros.factory.Test.prototype.bindKey = function(keyCode, handler) {
         // Set up the listener.
         goog.events.listen(
             this.invocation.iframe.contentWindow,
-            goog.events.EventType.KEYPRESS,
+            goog.events.EventType.KEYUP,
             function(event) {
                 handler = this.keyHandlers[event.keyCode];
                 if (handler) {
