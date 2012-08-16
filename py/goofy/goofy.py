@@ -446,6 +446,7 @@ class Goofy(object):
       test.update_state(update_parent=False, visible=False)
 
     var_log_messages = None
+    mosys_log = None
 
     # Any 'active' tests should be marked as failed now.
     for test in self.test_list.walk():
@@ -477,13 +478,20 @@ class Goofy(object):
             logging.exception('Unable to grok /var/log/messages')
             var_log_messages = []
 
+        if mosys_log is None:
+          mosys_log = utils.Spawn(['mosys', 'eventlog', 'list'],
+              read_stdout=True, log_stderr_on_error=True).stdout_data
+          # Write it to the log also.
+          logging.info('System eventlog from mosys:\n%s\n', mosys_log)
+
         error_msg = 'Unexpected shutdown while test was running'
         self.event_log.Log('end_test',
                    path=test.path,
                    status=TestState.FAILED,
                    invocation=test.get_state().invocation,
                    error_msg=error_msg,
-                   var_log_messages='\n'.join(var_log_messages))
+                   var_log_messages='\n'.join(var_log_messages),
+                   mosys_log=mosys_log)
         test.update_state(
           status=TestState.FAILED,
           error_msg=error_msg)
