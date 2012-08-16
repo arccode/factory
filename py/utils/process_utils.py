@@ -3,10 +3,13 @@
 # found in the LICENSE file.
 
 
+import getpass
 import logging
 import os
 import pipes
 import subprocess
+import types
+from StringIO import StringIO
 
 
 PIPE = subprocess.PIPE
@@ -14,6 +17,17 @@ PIPE = subprocess.PIPE
 
 # File descriptor for /dev/null.
 dev_null = None
+
+
+def WrapLines(data):
+  '''Returns a function that returns a list of all lines in data.'''
+  def Wrapper(strip=False):
+    ret = StringIO(data).readlines()
+    if strip:
+      ret = [x.strip() for x in ret]
+    return ret
+
+  return Wrapper
 
 
 def OpenDevNull():
@@ -62,7 +76,10 @@ def Spawn(args, **kwargs):
       all stderr.
     call: Wait for the command to complete.
     check_call: Wait for the command to complete, throwing an
-      exception if it fails.  This implies call=True.
+      exception if it fails.  This implies call=True.  This may be either
+      True to signify that any non-zero exit status is failure, or a function
+      that takes a returncode and returns True if that returncode is
+      considered OK (e.g., lambda returncode: returncode in [0,1]).
     check_output: Wait for the command to complete, throwing an
       exception if it fails, and saves the contents to the return
       object's stdout_data attribute.  Implies check_call=True and
@@ -77,6 +94,7 @@ def Spawn(args, **kwargs):
       to the return object's stderr_data attribute.  This implies
       call=True and stderr=PIPE.
     ignore_stderr: Ignore stderr.
+    sudo: Prepend sudo to arguments if user is not root.
 
   Returns/Raises:
     Same as Popen.
@@ -103,6 +121,13 @@ def Spawn(args, **kwargs):
   read_stderr = kwargs.pop('read_stderr', False)
   ignore_stderr = kwargs.pop('ignore_stderr', False)
   log_stderr_on_error = kwargs.pop('log_stderr_on_error', False)
+  sudo = kwargs.pop('sudo', False)
+
+  if sudo and getpass.getuser() != 'root':
+    if kwargs.pop('shell', False):
+      args = ['sudo', 'sh', '-c', args]
+    else:
+      args = ['sudo'] + args
 
   if ignore_stdout:
     assert not read_stdout
@@ -115,7 +140,7 @@ def Spawn(args, **kwargs):
     kwargs['stderr'] = OpenDevNull()
 
   if check_output:
-    check_call = True
+    check_call = check_call or True
     read_stdout = True
   if check_call:
     call = True
@@ -139,22 +164,30 @@ def Spawn(args, **kwargs):
 
   process = subprocess.Popen(args, **kwargs)
   process.stdout_data = None
+  process.stdout_lines = None
   process.stderr_data = None
+  process.stderr_lines = None
 
   if call:
     if read_stdout or read_stderr:
       stdout, stderr = process.communicate()
       if read_stdout:
         process.stdout_data = stdout
+        process.stdout_lines = WrapLines(process.stdout_data)
       if read_stderr:
         process.stderr_data = stderr
+        process.stderr_lines = WrapLines(process.stderr_data)
       process.communicate = (
           lambda: (process.stdout_data, process.stderr_data))
     else:
       # No need to communicate; just wait
       process.wait()
 
-    if process.returncode != 0:
+    if type(check_call) == types.FunctionType:
+      failed = not check_call(process.returncode)
+    else:
+      failed = process.returncode != 0
+    if failed:
       if log or log_stderr_on_error:
         message = 'Exit code %d from command: "%s"' % (
             process.returncode, args_to_log)

@@ -69,6 +69,7 @@ UNITTESTS=\
 	py/test/registration_codes_unittest.py \
 	py/test/unicode_to_string_unittest.py \
 	py/test/utils_unittest.py \
+	py/tools/diff_image_unittest.py \
 	py/utils/net_utils_unittest.py \
 	py/utils/process_utils_unittest.py \
 	py/hwdb/hwid_unittest.py

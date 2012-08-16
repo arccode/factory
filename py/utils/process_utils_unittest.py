@@ -80,6 +80,11 @@ class SpawnTest(unittest.TestCase):
                        ('ERROR', 'Exit code 3 from command: "exit 3"')],
                       self.log_entries)
 
+  def testCheckCallFunction(self):
+    Spawn('exit 3', shell=True, check_call=lambda code: code == 3)
+    self.assertRaises(subprocess.CalledProcessError,
+        lambda: Spawn('exit 2', shell=True, check_call=lambda code: code == 3))
+
   def testCheckOutput(self):
     self.assertEquals(
         'foo\n',
@@ -88,15 +93,18 @@ class SpawnTest(unittest.TestCase):
                       lambda: Spawn('exit 3', shell=True, check_output=True))
 
   def testReadStdout(self):
-    process = Spawn('echo foo; exit 3', shell=True, read_stdout=True)
-    self.assertEquals('foo\n', process.stdout_data)
+    process = Spawn('echo foo; echo bar; exit 3', shell=True, read_stdout=True)
+    self.assertEquals('foo\nbar\n', process.stdout_data)
+    self.assertEquals(['foo\n', 'bar\n'], process.stdout_lines())
+    self.assertEquals(['foo', 'bar'], process.stdout_lines(strip=True))
     self.assertEquals(None, process.stderr_data)
     self.assertEquals(3, process.returncode)
 
   def testReadStderr(self):
-    process = Spawn('echo bar >& 2', shell=True, read_stderr=True)
+    process = Spawn('(echo bar; echo foo) >& 2', shell=True, read_stderr=True)
     self.assertEquals(None, process.stdout_data)
-    self.assertEquals('bar\n', process.stderr_data)
+    self.assertEquals('bar\nfoo\n', process.stderr_data)
+    self.assertEquals(['bar\n', 'foo\n'], process.stderr_lines())
     self.assertEquals(0, process.returncode)
 
   def testReadStdoutAndStderr(self):
