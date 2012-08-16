@@ -80,8 +80,12 @@ class ChargeManager(object):
 
   def _GetChargePct(self):
     '''Get current charge level in percentage.'''
-    charge_now = self._ReadLine(self._battery_path + '/charge_now')
-    charge_full = self._ReadLine(self._battery_path + '/charge_full')
+    try:
+      charge_now = self._ReadLine(self._battery_path + '/charge_now')
+      charge_full = self._ReadLine(self._battery_path + '/charge_full')
+    except IOError:
+      # Battery driver is not fully initialized
+      return None
 
     if float(charge_full) <= 0:
       return None # Something wrong with the battery
