@@ -13,12 +13,14 @@
 #   * Lock (write protection) test
 
 import os
+import logging
 import pyudev
 import random
 import threading
 import time
 import unittest
 
+from cros.factory.event_log import EventLog
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -54,24 +56,32 @@ _SKIP_TAIL_BLOCK = 33
 _RW_TEST_MODE_RANDOM = 1
 _RW_TEST_MODE_SEQUENTIAL = 2
 
+_MILLION = 1000000
+
 _RW_TEST_INSERT_FMT_STR = (
     lambda t: test_ui.MakeLabel(
-      '<br/>'.join(['insert %s drive for read/write test...' % t,
+      '<br/>'.join(['Insert %s drive for read/write test...' % t,
                     'WARNING: DATA ON INSERTED MEDIA WILL BE LOST!']),
-      '<br/>'.join([u'插入%s存儲以進行讀寫測試...' % t,
+      '<br/>'.join([u'插入 %s 存儲以進行讀寫測試...' % t,
                     u'注意: 插入裝置上的資料將會被清除!'])))
-_REMOVE_FMT_STR = lambda t: test_ui.MakeLabel('remove %s drive...' % t,
-                                              u'提取%s存儲...' % t)
-_TESTING_FMT_STR = lambda t: test_ui.MakeLabel('testing %s...' % t,
+_REMOVE_FMT_STR = lambda t: test_ui.MakeLabel('Remove %s drive...' % t,
+                                              u'提取 %s 存儲...' % t)
+_TESTING_FMT_STR = lambda t: test_ui.MakeLabel('Testing %s...' % t,
                                                u'%s 檢查中...' % t)
+_TESTING_RANDOM_RW_FMT_STR = lambda loop, bsize: test_ui.MakeLabel(
+    'Performing r/w test on %d %d-byte random blocks...</br>' % (loop, bsize),
+    u'執行 %d 個 %d 位元組區塊隨機讀寫測試...</br>' % (loop, bsize))
+_TESTING_SEQUENTIAL_RW_FMT_STR = lambda bsize: test_ui.MakeLabel(
+    'Performing sequential r/w test of %d bytes...</br>' % bsize,
+    u'執行 %d 位元組區塊連續讀寫測試...</br>' % bsize)
 _LOCKTEST_INSERT_FMT_STR = (
     lambda t:
-      test_ui.MakeLabel('toggle lock switch and insert %s drive again...' % t,
-                        u'切換防寫開關並再次插入%s存儲...' % t))
+      test_ui.MakeLabel('Toggle lock switch and insert %s drive again...' % t,
+                        u'切換防寫開關並再次插入 %s 存儲...' % t))
 _LOCKTEST_REMOVE_FMT_STR = (
     lambda t:
-      test_ui.MakeLabel('remove %s drive and toggle lock switch...' % t,
-                        u'提取%s存儲並關閉防寫開關...' % t))
+      test_ui.MakeLabel('Remove %s drive and toggle lock switch...' % t,
+                        u'提取 %s 存儲並關閉防寫開關...' % t))
 _ERR_REMOVE_TOO_EARLY_FMT_STR = (
     lambda t:
       test_ui.MakeLabel('Device removed too early (%s).' % t,
@@ -87,6 +97,9 @@ _ERR_LOCKTEST_FAILED_FMT_STR = (
     lambda target_dev: 'Locktest failed on %s.' % target_dev)
 _ERR_DEVICE_READ_ONLY_STR = (
     lambda target_dev: '%s is read-only.' % target_dev)
+_ERR_SPEED_CHECK_FAILED_FMT_STR = (
+    lambda test_type, target_dev:
+        '%s_speed of %s does not meet lower bound.' % (test_type, target_dev))
 _TEST_TITLE = test_ui.MakeLabel('Card Reader Test', u'讀卡機測試')
 _IMG_HTML_TAG = (
     lambda src: '<img src="%s" style="display:block; margin:0 auto;"/>' % src)
@@ -154,17 +167,14 @@ class RemovableStorageTest(unittest.TestCase):
         return vidpid.strip()
     return self.GetVidpid(device.parent)
 
-  def IsCardReader(self, device):
+  def IsSD(self, device):
+    if device.device_node.find(_UDEV_MMCBLK_PATH) == 0:
+      return True
     attr_str = self.GetAttrs(device, set(_CARD_READER_ATTRS)).lower()
     for desc in _CARD_READER_DESCS:
       if desc in attr_str:
         return True
     return False
-
-  def IsSD(self, device):
-    if device.device_node.find(_UDEV_MMCBLK_PATH) == 0:
-      return True
-    return self.IsCardReader(device)
 
   def GetDeviceType(self, device):
     if self.IsSD(device):
@@ -186,8 +196,8 @@ class RemovableStorageTest(unittest.TestCase):
       self._ui.Fail(_ERR_GET_DEV_SIZE_FAILED_FMT_STR(dev_path))
 
     dev_size = int(dev_size)
-    gb = dev_size / 1000.0 / 1000.0 / 1000.0
-    factory.console.info('dev size of %s : %d bytes (%.3f GB)' %
+    gb = dev_size / 1000000000.0
+    logging.info('Dev size of %s : %d bytes (%.3f GB)' %
                          (dev_path, dev_size, gb))
 
     return dev_size
@@ -204,7 +214,7 @@ class RemovableStorageTest(unittest.TestCase):
       self._ui.Fail(_ERR_RO_TEST_FAILED_FMT_STR(dev_path))
 
     ro = int(ro)
-    factory.console.info('%s RO : %d' % (dev_path, ro))
+    logging.info('%s RO : %d' % (dev_path, ro))
 
     return ro == 1
 
@@ -224,7 +234,9 @@ class RemovableStorageTest(unittest.TestCase):
     total_time_read = 0.0
     total_time_write = 0.0
 
-    mode = [_RW_TEST_MODE_RANDOM]
+    mode = []
+    if self._perform_random_test is True:
+      mode.append(_RW_TEST_MODE_RANDOM)
     if self._perform_sequential_test is True:
       mode.append(_RW_TEST_MODE_SEQUENTIAL)
     for m in mode:
@@ -232,15 +244,15 @@ class RemovableStorageTest(unittest.TestCase):
         # Read/Write one block each time
         bytes_to_operate = self._block_size
         loop = self._random_block_count
-        factory.console.info('Performing r/w test on %d %d-byte random blocks' %
-                             (loop, self._block_size))
+        self._template.SetState(
+            _TESTING_RANDOM_RW_FMT_STR(loop, bytes_to_operate), append=True)
       elif m == _RW_TEST_MODE_SEQUENTIAL:
         # Converts block counts into bytes
         bytes_to_operate = (self._sequential_block_count *
                             self._block_size)
         loop = 1
-        factory.console.info('Performing sequential r/w test of %d bytes' %
-                             bytes_to_operate)
+        self._template.SetState(
+            _TESTING_SEQUENTIAL_RW_FMT_STR(bytes_to_operate), append=True)
 
       try:
         dev_fd = os.open(dev_path, os.O_RDWR)
@@ -274,12 +286,11 @@ class RemovableStorageTest(unittest.TestCase):
                 random_tail,
                 int(0x7FFFFFFF / _SECTOR_SIZE) -
                 int(bytes_to_operate / _SECTOR_SIZE))
-            factory.console.info('No large file support')
+            logging.info('No large file support')
 
         if random_tail < random_head:
           self._ui.Fail('Block size too large for r/w test.')
 
-        random.seed()
         for x in range(loop): # pylint: disable=W0612
           # Select one random block as starting point.
           random_block = random.randint(random_head, random_tail)
@@ -343,21 +354,38 @@ class RemovableStorageTest(unittest.TestCase):
         self._ui.FailLater(_ERR_TEST_FAILED_FMT_STR(test_name,
                                                     self._target_device))
       else:
-        if m == _RW_TEST_MODE_RANDOM:
-          factory.console.info(
-              'random_read_speed: %.3f MB/s' %
-              ((self._block_size * loop) / total_time_read / 1000 / 1000))
-          factory.console.info(
-              'random_write_speed: %.3f MB/s' %
-              ((self._block_size * loop) / total_time_write / 1000 / 1000))
-        elif m == _RW_TEST_MODE_SEQUENTIAL:
-          factory.console.info(
-              'sequential_read_speed: %.3f MB/s' %
-              (bytes_to_operate / total_time_read / 1000 / 1000))
-          factory.console.info(
-              'sequential_write_speed: %.3f MB/s' %
-              (bytes_to_operate / total_time_write / 1000 / 1000))
+        update_bin = {}
+        def _CheckThreshold(test_type, value, threshold):
+          update_bin['%s_speed' % test_type] = value
+          logging.info('%s_speed: %.3f MB/s' % (test_type, value))
+          if threshold:
+            update_bin['%s_threshold' % test_type] = threshold
+            if value < threshold:
+              self._ui.FailLater(_ERR_SPEED_CHECK_FAILED_FMT_STR(
+                  test_type, self._target_device))
 
+        if m == _RW_TEST_MODE_RANDOM:
+          random_read_speed = (
+              (self._block_size * loop) / total_time_read / _MILLION)
+          random_write_speed = (
+              (self._block_size * loop) / total_time_write / _MILLION)
+          _CheckThreshold('random_read', random_read_speed,
+                          self._random_read_threshold)
+          _CheckThreshold('random_write', random_write_speed,
+                          self._random_write_threshold)
+        elif m == _RW_TEST_MODE_SEQUENTIAL:
+          sequential_read_speed = (
+              bytes_to_operate / total_time_read / _MILLION)
+          sequential_write_speed = (
+              bytes_to_operate / total_time_write / _MILLION)
+          _CheckThreshold('sequential_read', sequential_read_speed,
+                          self._sequential_read_threshold)
+          _CheckThreshold('sequential_write', sequential_write_speed,
+                          self._sequential_write_threshold)
+
+        self._metrics.update(update_bin)
+
+    EventLog.ForAutoTest().Log(('%s_rw_speed' % self._media), **self._metrics)
     self._template.SetInstruction(_REMOVE_FMT_STR(self._media))
     self._state = _STATE_RW_TEST_WAIT_REMOVE
     self._template.SetState(_IMG_HTML_TAG(self._removal_image))
@@ -387,14 +415,19 @@ class RemovableStorageTest(unittest.TestCase):
 
     if action == _UDEV_ACTION_INSERT:
       if self._state == _STATE_RW_TEST_WAIT_INSERT:
-        if self._vidpid is None:
-          if self._media != self.GetDeviceType(device):
-            return True
-        else:
+        if self._vidpid:
           device_vidpid = self.GetVidpid(device)
           if device_vidpid not in self._vidpid:
             return True
-          factory.console.info('VID:PID == %s' % self._vidpid)
+          logging.info('VID:PID == %s' % self._vidpid)
+        elif self._sys_path:
+          if (not os.path.exists(self._sys_path) or
+              not self._sys_path in device.sys_path):
+            return True
+          logging.info('sys path = %s' % self._sys_path)
+        else:
+          if self._media != self.GetDeviceType(device):
+            return True
         factory.console.info('%s device inserted : %s' %
                              (self._media, device.device_node))
         self._target_device = device.device_node
@@ -439,12 +472,24 @@ class RemovableStorageTest(unittest.TestCase):
         Media type [None]
       vipid:
         Vender ID and Product ID of the target testing device [None]
+      sys_path:
+        The expected sys path that udev events should come from [None]
       block_size:
         Size of each block in bytes used in read / write test [1024]
+      perform_random_test:
+        Whether to run random read / write test [True]
+      random_read_threshold:
+        The lowest random read rate the device should achieve [None]
+      random_write_threshold:
+        The lowest random write rate the device should achieve [None]
       random_block_count:
         Number of blocks to test during random read / write test [3]
-      perform_sequential:
+      perform_sequential_test:
         Whether to run sequential read / write test [False]
+      sequential_read_threshold:
+        The lowest sequential read rate the device should achieve [None]
+      sequential_write_threshold:
+        The lowest sequential write rate the device should achieve [None]
       sequential_block_count:
         Number of blocks to test in sequential read / write test [1024]
       perform_locktest:
@@ -453,20 +498,31 @@ class RemovableStorageTest(unittest.TestCase):
     args = self.test_info.args  # pylint: disable=E1101
     self._media = args.get('media')
     self._vidpid = args.get('vidpid')
+    self._sys_path = args.get('sys_path')
     self._block_size = args.get('block_size', 1024)
+    self._perform_random_test = args.get('perform_random_test', True)
+    self._random_read_threshold = args.get('random_read_threshold', None)
+    self._random_write_threshold = args.get('random_write_threshold', None)
     self._random_block_count = args.get('random_block_count', 3)
     self._perform_sequential_test = args.get('perform_sequential_test', False)
+    self._sequential_read_threshold = args.get(
+        'sequential_read_threshold', None)
+    self._sequential_write_threshold = args.get(
+        'sequential_write_threshold', None)
     self._sequential_block_count = args.get('sequential_block_count', 1024)
     self._perform_locktest = args.get('perform_locktest', False)
 
     os.chdir(os.path.join(os.path.dirname(__file__), '%s_static' %
                           self.test_info.pytest_name)) # pylint: disable=E1101
 
+    random.seed(0)
+    self._metrics = {}
+
     if self._vidpid and type(self._vidpid) != type(list()):
       # Convert vidpid to a list.
       self._vidpid = [self._vidpid]
 
-    factory.console.info('media = %s' % self._media)
+    logging.info('media = %s' % self._media)
 
     self._template.SetTitle(_TEST_TITLE)
     self._insertion_image = '%s_insert.png' % self._media
@@ -483,7 +539,9 @@ class RemovableStorageTest(unittest.TestCase):
 
     # Initialize progress bar
     self._template.DrawProgressBar()
-    self._total_tests = 1
+    self._total_tests = 0
+    if self._perform_random_test:
+      self._total_tests += 1
     if self._perform_sequential_test:
       self._total_tests += 1
     if self._perform_locktest:
