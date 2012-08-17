@@ -1767,48 +1767,38 @@ cros.factory.Goofy.prototype.setTestList = function(testList) {
                     }
 
                     var extraItems = [];
-                    if (this.engineeringMode) {
-                        var viewVarLogMessagesItem = new goog.ui.MenuItem(
-                            cros.factory.Content('View /var/log/messages',
-                                                 '檢視 /var/log/messages'));
-                        goog.events.listen(
-                            viewVarLogMessagesItem,
-                            goog.ui.Component.EventType.ACTION,
-                            this.viewVarLogMessages, false, this);
-                        extraItems.push(viewVarLogMessagesItem);
+                    var addExtraItem = goog.bind(
+                        function(labelEn, labelZh, action) {
+                            var item = new goog.ui.MenuItem(
+                                cros.factory.Content(labelEn, labelZh));
+                            goog.events.listen(
+                                item,
+                                goog.ui.Component.EventType.ACTION,
+                                action, false, this);
+                            extraItems.push(item);
+                        }, this);
+                    addExtraItem('Update factory software',
+                                 '更新工廠軟體',
+                                 this.updateFactory);
 
-                        var viewVarLogMessagesBeforeRebootItem =
-                            new goog.ui.MenuItem(
-                                cros.factory.Content(
-                                    'View /var/log/messages ' +
+                    if (this.engineeringMode) {
+                        extraItems.push(new goog.ui.MenuSeparator());
+                        addExtraItem('View /var/log/messages',
+                                     '檢視 /var/log/messages',
+                                     this.viewVarLogMessages);
+                        addExtraItem('View /var/log/messages ' +
                                     'before last reboot',
                                     '檢視上次重開機前的 ' +
-                                    '/var/log/messages'));
-                        goog.events.listen(viewVarLogMessagesBeforeRebootItem,
-                                           goog.ui.Component.EventType.ACTION,
-                                           this.viewVarLogMessagesBeforeReboot,
-                                           false, this);
-                        extraItems.push(viewVarLogMessagesBeforeRebootItem);
-
-                        var viewDmesgItem = new goog.ui.MenuItem(
-                            cros.factory.Content('View dmesg',
-                                                 '檢視 dmesg'));
-                        goog.events.listen(viewDmesgItem,
-                                           goog.ui.Component.EventType.ACTION,
-                                           this.viewDmesg, false, this);
-                        extraItems.push(viewDmesgItem);
+                                     '/var/log/messages',
+                                     this.viewVarLogMessagesBeforeReboot);
+                        addExtraItem('View dmesg', '檢視 dmesg',
+                                     this.viewDmesg);
 
                         extraItems.push(new goog.ui.MenuSeparator());
 
-                        var saveFactoryLogsToUSBItem = new goog.ui.MenuItem(
-                            cros.factory.Content(
-                                'Save factory logs to USB drive...',
-                                '保存工廠記錄到 U盤'));
-                        goog.events.listen(saveFactoryLogsToUSBItem,
-                                           goog.ui.Component.EventType.ACTION,
-                                           this.saveFactoryLogsToUSB,
-                                           false, this);
-                        extraItems.push(saveFactoryLogsToUSBItem);
+                        addExtraItem('Save factory logs to USB drive...',
+                                     '保存工廠記錄到 U盤',
+                                     this.saveFactoryLogsToUSB);
                     }
 
                     this.showTestPopup(
