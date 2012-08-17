@@ -21,15 +21,18 @@ For the protocol details, check:
  src/platform/factory-utils/factory_setup/shopfloor_server.
 """
 
+import hashlib
 import logging
 import os
+import tempfile
 import urlparse
 import xmlrpclib
-from xmlrpclib import Binary, Fault
+from xmlrpclib import Binary
 
 import factory_common # pylint: disable=W0611
-from cros.factory.utils import net_utils
 from cros.factory.test import factory
+from cros.factory.utils import net_utils
+from cros.factory.utils.process_utils import Spawn
 
 
 # Name of the factory shared data key that maps to session info.
@@ -54,6 +57,10 @@ SHOPFLOOR_SERVER_ENV_VAR_NAME = 'CROS_SHOPFLOOR_SERVER_URL'
 
 # Exception message when shopfloor server is not configured.
 SHOPFLOOR_NOT_CONFIGURED_STR = "Shop floor server URL is not configured"
+
+# Some tests refer to "shopfloor.Fault" so we need to export it from
+# shopfloor.
+Fault = xmlrpclib.Fault
 
 # ----------------------------------------------------------------------------
 # Exception Types
@@ -225,6 +232,46 @@ def get_hwid():
   """Gets HWID associated with current pinned serial number."""
   return get_instance().GetHWID(get_serial_number())
 
+
+@_server_api
+def get_hwid_updater():
+  """Gets HWID updater, if any."""
+  hwid_updater = get_instance().GetHWIDUpdater()
+  if isinstance(hwid_updater, Binary):
+    hwid_updater = hwid_updater.data
+  return hwid_updater
+
+
+def update_local_hwid_data():
+  """Updates HWID information from shopfloor server.
+
+  Executes the HWID updater retrieved from the shopfloor server
+  (which generally overwrites files in /usr/local/factory/hwid).
+
+  Returns:
+    True if updated, False if no update was available.
+  """
+  updater_data = get_hwid_updater()
+  if updater_data:
+    hwid_updater_sh = tempfile.NamedTemporaryFile(
+        prefix='hwid_updater.', suffix='.sh', delete=False)
+    hwid_updater_sh.write(updater_data)
+    os.fchmod(hwid_updater_sh.fileno(), 0755)
+    hwid_updater_sh.close()
+    factory.console.info(
+        'Received HWID updater %s from shopfloor server (md5sum %s); '
+        'executing',
+        hwid_updater_sh.name,
+        hashlib.md5(open(hwid_updater_sh.name).read()).hexdigest())
+
+    with open(factory.CONSOLE_LOG_PATH, 'a') as log:
+      Spawn([hwid_updater_sh.name],
+            stdout=log, stderr=log, log=True,
+            check_call=True)
+    return True
+  else:
+    factory.log('No HWID update available from shopfloor server')
+    return False
 
 @_server_api
 def get_vpd():
