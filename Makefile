@@ -66,8 +66,9 @@ LINT_BLACKLIST=\
 LINT_BLACKLIST += \
 	py/test/pytests/probe_cellular_info.py
 
-LINT_FILES=$(filter-out $(LINT_BLACKLIST), \
-               $(shell find py -name '*.py' -type f | sort))
+LINT_FILES=$(shell find py -name '*.py' -type f | sort)
+
+LINT_WHITELIST=$(filter-out $(LINT_BLACKLIST),$(LINT_FILES))
 
 UNITTESTS=\
 	py/board/chromeos_ec_unittest.py \
@@ -141,20 +142,39 @@ install: par
 lint:
 	@set -e -o pipefail; \
 	out=$$(mktemp); \
-	echo Linting $(shell echo $(LINT_FILES) | wc -w) files...; \
-	if ! env PYTHONPATH=py_pkg pylint $(PYLINT_OPTIONS) $(LINT_FILES) \
+	echo Linting $(shell echo $(LINT_WHITELIST) | wc -w) files...; \
+	if [ -n "$(LINT_WHITELIST)" ] && \
+	    ! env PYTHONPATH=py_pkg pylint $(PYLINT_OPTIONS) $(LINT_WHITELIST) \
 	    |& tee $$out; then \
 	  echo; \
 	  echo To re-lint failed files, run:; \
-	  echo make lint LINT_FILES=\""$$( \
+	  echo make lint LINT_WHITELIST=\""$$( \
 	    grep '^\*' $$out | cut -c22- | tr . / | \
 	    sed 's/$$/.py/' | tr '\n' ' ')"\"; \
 	  echo; \
 	  rm -f $$out; \
 	  exit 1; \
 	fi; \
-	echo ...no lint errors!; \
+	echo ...no lint errors! You are awesome!; \
 	rm -f $$out
+
+lint-presubmit:
+	$(MAKE) lint \
+	    LINT_FILES="$(filter %.py,$(PRESUBMIT_FILES))" \
+	    2>/dev/null
+
+test-presubmit:
+	if [ ! -e .tests-passed ]; then \
+	    echo 'Unit tests have not passed.  Please run "make test".'; \
+	    exit 1; \
+	fi
+	changed=$$(find $$PRESUBMIT_FILES -newer .tests-passed); \
+	if [ -n "$$changed" ]; then \
+	    echo "Files have changed since last time unit tests passed:"; \
+	    echo "$$changed" | sed -e 's/^/  /'; \
+	    echo 'Please run "make test".'; \
+	    exit 1; \
+	fi
 
 clean:
 	rm -rf $(BUILD_DIR)
@@ -165,6 +185,7 @@ WHITE=\033[22;0m
 
 test:
 	@total=0; good=0; \
+	rm -f .tests-passed; \
 	logdir=/tmp/test.logs.$$(date +%Y%m%d_%H%M%S); \
 	mkdir $$logdir; \
 	echo "Test logs will be written to $$logdir"; \
@@ -183,7 +204,9 @@ test:
 	done; \
 	echo; \
 	echo -e "$(GREEN)$$good/$$total tests passed.$(WHITE)"; \
-	if [ $$good != $$total ]; then \
+	if [ $$good == $$total ]; then \
+	    touch .tests-passed; \
+	else \
 	    echo -e "$(RED)$$(expr $$total - $$good)/$$total tests failed.$(WHITE)"; \
 	    false; \
 	fi
