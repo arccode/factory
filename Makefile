@@ -49,7 +49,6 @@ LINT_BLACKLIST=\
 LINT_BLACKLIST += \
 	py/test/pytests/probe_cellular_info.py \
 	py/goofy/goofy.py \
-	py/goofy/goofy_unittest.py \
 	py/goofy/system.py
 
 LINT_FILES=$(filter-out $(LINT_BLACKLIST), \

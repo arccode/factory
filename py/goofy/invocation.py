@@ -23,12 +23,14 @@ from optparse import OptionParser
 from setproctitle import setproctitle
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import factory
-from cros.factory.test.event import Event
 from cros.factory import event_log
-from cros.factory.test.factory import TestState
-from cros.factory.test import utils
+from cros.factory.test import factory
 from cros.factory.test import pytests
+from cros.factory.test import utils
+
+from cros.factory.test.args import Args
+from cros.factory.test.event import Event
+from cros.factory.test.factory import TestState
 from cros.factory.utils.process_utils import Spawn
 
 
@@ -488,6 +490,9 @@ def run_pytest(test_info):
     def set_test_info(test):
       if isinstance(test, unittest.TestCase):
         test.test_info = test_info
+        arg_spec = getattr(test, 'ARGS', None)
+        if arg_spec:
+          setattr(test, 'args', Args(*arg_spec).Parse(test_info.args))
       elif isinstance(test, unittest.TestSuite):
         for x in test:
           set_test_info(x)
