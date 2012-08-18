@@ -69,7 +69,7 @@ class Report(unittest.TestCase):
     html = [
         '<div class="test-vcenter-outer"><div class="test-vcenter-inner">',
         test_ui.MakeLabel('Test Status for %s:' % test.parent.path,
-                          u'%s 測試結果列表：' % test.parent.path),
+                          u'%s 测试结果列表：' % test.parent.path),
         '<div class="test-status-%s" style="font-size: 300%%">%s</div>' % (
             overall_status, test_ui.MakeStatusLabel(overall_status)),
         '<table>',
@@ -77,7 +77,7 @@ class Report(unittest.TestCase):
         '</table>',
         '<a onclick="onclick:window.test.pass()" href="#">',
         test_ui.MakeLabel('Click or press SPACE to continue',
-                          u'點擊或按空白鍵繼續'),
+                          u'点击或按空白键继续'),
         '</a>',
         '</div></div>',
         ]

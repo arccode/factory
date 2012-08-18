@@ -30,7 +30,7 @@ class FlushEventLogs(unittest.TestCase):
       while True:
         template.SetState(test_ui.MakeLabel(
             'Contacting shopfloor server...',
-            '正在與shopfloor server連線...'))
+            '正在与shopfloor server连线...'))
 
         try:
           factory.get_state_instance().FlushEventLogs()
@@ -46,7 +46,7 @@ class FlushEventLogs(unittest.TestCase):
               'Press SPACE to update.',
 
               u'有可用的更新。'
-              u'安空白鍵更新。'))
+              u'安空白键更新。'))
 
           # Note that updateFactory() will kill this test.
           ui.BindKeyJS(' ', 'window.test.updateFactory()')
@@ -59,11 +59,11 @@ class FlushEventLogs(unittest.TestCase):
             test_ui.MakeLabel(
                 ('Unable to contact shopfloor server. '
                  'Will try again in '),
-                '無法連線到 shopfloor server。') +
+                '无法连线到 shopfloor server。') +
             ('<span id="retry">%d</span>' % retry_secs) +
             test_ui.MakeLabel(
                 ' seconds.',
-                '秒後自動重試。') +
+                '秒后自动重试。') +
             '<br><br>' +
             test_ui.Escape(exception_string))
 

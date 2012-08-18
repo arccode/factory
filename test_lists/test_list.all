@@ -86,7 +86,7 @@ TEST_LIST = [
 
     OperatorTest(
         autotest_name='factory_Start',
-        label_zh='開始',
+        label_zh='开始',
         never_fails=True,
         # 'press_to_continue' can be disabled by default when the configuration
         # includes other explicit prompts, like _ENABLE_SHOP_FLOOR (operator
@@ -100,27 +100,27 @@ TEST_LIST = [
 
     OperatorTest(
         autotest_name='factory_StressTest',
-        label_zh='壓力測試',
+        label_zh='压力测试',
         dargs={'seconds': _SAT_DURATION_SECS}),
 
     FactoryTest(
         id="Graphics",
-        label_zh='圖型',
+        label_zh='图型',
         autotest_name='graphics_GLBench'),
 
     AutomatedSequence(
         id='PowerCtrl',
-        label_zh='電源管理',
+        label_zh='电源管理',
         subtests=[
 
             AutomatedSubTest(
                 label_en='sleep / wake',
-                label_zh='睡眠 / 喚醒',
+                label_zh='睡眠 / 唤醒',
                 autotest_name='power_Resume'),
 
             AutomatedRebootSubTest(
                 label_en='reboot (%s times)' % _REBOOT_SEQ_ITERATIONS,
-                label_zh='重新開機 (%s 次)' % _REBOOT_SEQ_ITERATIONS,
+                label_zh='重新开机 (%s 次)' % _REBOOT_SEQ_ITERATIONS,
                 iterations=_REBOOT_SEQ_ITERATIONS),
         ]),
 
@@ -133,69 +133,69 @@ TEST_LIST = [
 
             FactoryTest(
                 id='Basic',
-                label_zh='基本測試',
+                label_zh='基本测试',
                 autotest_name='hardware_EC'),
 
             FactoryTest(
                 id='Fan',
-                label_zh='風扇',
+                label_zh='风扇',
                 autotest_name='hardware_EC',
                 dargs={'test_fan': True}),
 
             FactoryTest(
                 id='TempSensor',
-                label_zh='溫度感測',
+                label_zh='温度传感',
                 autotest_name='hardware_EC',
                 dargs={'num_temp_sensor': 10}),
 
             FactoryTest(
                 id='Battery',
-                label_zh='電池',
+                label_zh='电池',
                 autotest_name='hardware_EC',
                 dargs={'test_battery': True}),
         ]),
 
     OperatorTest(
         autotest_name='factory_Display',
-        label_zh='顯示'),
+        label_zh='显示'),
 
     # Remove this test if your device does not have external display.
     OperatorTest(
         autotest_name='factory_ExtDisplay',
-        label_zh='外接顯示',
+        label_zh='外接显示',
         dargs={'has_audio':True,
                'audio_sample_path':_DEFAULT_AUDIO_SAMPLE}),
 
     OperatorTest(
         autotest_name='factory_LidSwitch',
-        label_zh='上蓋開關'),
+        label_zh='上盖开关'),
 
     OperatorTest(
         autotest_name='factory_Audio',
-        label_zh='音源裝置',
+        label_zh='音源装置',
         dargs={'audio_sample_path':_DEFAULT_AUDIO_SAMPLE}),
 
     OperatorTest(
         autotest_name='factory_Camera',
-        label_zh='相機'),
+        label_zh='相机'),
 
     OperatorTest(
         autotest_name='factory_LightSensor',
-        label_zh='光感應器'),
+        label_zh='光感应器'),
 
     OperatorTest(
         id="KbBacklight",
         autotest_name='factory_KeyboardBacklight',
-        label_zh='鍵盤背光'),
+        label_zh='键盘背光'),
 
     OperatorTest(
         autotest_name='factory_Keyboard',
-        label_zh='鍵盤',
+        label_zh='键盘',
         kbd_shortcut='k'),
 
     OperatorTest(
         autotest_name='factory_Touchpad',
-        label_zh='觸控板'),
+        label_zh='触控板'),
 
     OperatorTest(
         autotest_name='factory_USB',
@@ -204,7 +204,7 @@ TEST_LIST = [
 
     OperatorTest(
         id='CardReader',
-        label_zh='SD 讀卡機',
+        label_zh='SD 读卡机',
         pytest_name='removable_storage',
         dargs={'media': 'SD',
                'block_size': 512 * 1024,       # 512KB block size
@@ -220,7 +220,7 @@ TEST_LIST = [
     # TEST THAT YOU HAVE HAD REVIEWED BY GOOGLE.
     OperatorTest(
         autotest_name='factory_VPD',
-        label_zh='產品資訊',
+        label_zh='产品资讯',
         kbd_shortcut='v'),
 
     # THIS IS A GOOGLE REQUIRED TEST.
@@ -228,14 +228,14 @@ TEST_LIST = [
     # TEST THAT YOU HAVE HAD REVIEWED BY GOOGLE.
     OperatorTest(
         autotest_name='factory_HWID',
-        label_zh='硬體代號',
+        label_zh='硬体代号',
         kbd_shortcut='h'),
 
     # THIS IS A GOOGLE REQUIRED TEST.
     # PLEASE DO NOT REMOVE THIS TEST IN PRODUCTION RELEASES.
     OperatorTest(
         autotest_name='factory_Finalize',
-        label_zh='最終程序',
+        label_zh='最终程序',
         kbd_shortcut='f',
         dargs={
             'write_protection': _ENABLE_WRITE_PROTECTION,

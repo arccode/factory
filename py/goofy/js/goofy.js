@@ -808,7 +808,7 @@ cros.factory.Goofy.prototype.setSystemInfo = function(systemInfo) {
                        '</td></tr>');
         });
     table.push('<tr><th>' +
-               cros.factory.Label('System time', '系統時間') +
+               cros.factory.Label('System time', '系统时间') +
                '</th><td id="goofy-time"></td></th></tr>');
     table.push('</table>');
     this.infoTooltip.setHtml(table.join(''));
@@ -955,12 +955,12 @@ cros.factory.Goofy.prototype.setPendingShutdown = function(shutdownInfo) {
 
     var verbEn = shutdownInfo.operation == 'reboot' ?
         'Rebooting' : 'Shutting down';
-    var verbZh = shutdownInfo.operation == 'reboot' ? '重開機' : '關機';
+    var verbZh = shutdownInfo.operation == 'reboot' ? '重开机' : '关机';
 
     var timesEn = shutdownInfo.iterations == 1 ? 'once' : (
         shutdownInfo.iteration + ' of ' + shutdownInfo.iterations + ' times');
     var timesZh = shutdownInfo.iterations == 1 ? '1次' : (
-        shutdownInfo.iterations + '次' + verbZh + '測試中的第' +
+        shutdownInfo.iterations + '次' + verbZh + '测试中的第' +
         shutdownInfo.iteration + '次');
 
     this.shutdownDialog = new goog.ui.Dialog();
@@ -970,8 +970,8 @@ cros.factory.Goofy.prototype.setPendingShutdown = function(shutdownInfo) {
         'second<span class="goofy-shutdown-secs-plural"></span> (' + timesEn +
         ').<br>' +
         'To cancel, press the Escape key.</p>' +
-        '<p>將會在<span class="goofy-shutdown-secs"></span>秒內' + verbZh +
-        '（' + timesZh + '）.<br>按ESC鍵取消.</p>');
+        '<p>将会在<span class="goofy-shutdown-secs"></span>秒内' + verbZh +
+        '（' + timesZh + '）.<br>按ESC键取消.</p>');
 
     var progressBar = new goog.ui.ProgressBar();
     progressBar.render(this.shutdownDialog.getContentElement());
@@ -1073,7 +1073,7 @@ cros.factory.Goofy.prototype.makeMenuItem = function(
         // leaf node
         labelEn += (opt_adjectiveAtEnd ? '' : adjectiveEn) +
             ' test ' + test.label_en;
-        labelZh += adjectiveZh + '測試';
+        labelZh += adjectiveZh + '测试';
     } else {
         labelEn += count + ' ' + (opt_adjectiveAtEnd ? '' : adjectiveEn) + ' ' +
             (count == 1 ? 'test' : 'tests');
@@ -1081,13 +1081,13 @@ cros.factory.Goofy.prototype.makeMenuItem = function(
             labelEn += ' in "' + goog.string.htmlEscape(test.label_en) + '"';
         }
 
-        labelZh += count + '個' + adjectiveZh;
+        labelZh += count + '个' + adjectiveZh;
         if (test.label_en || test.label_zh) {
             labelZh += ('在“' +
                 goog.string.htmlEscape(test.label_en || test.label_zh) +
-                '”裡面的');
+                '”里面的');
         }
-        labelZh += '測試';
+        labelZh += '测试';
     }
 
     if (opt_adjectiveAtEnd) {
@@ -1193,13 +1193,13 @@ cros.factory.Goofy.prototype.showTestPopup = function(path, labelElement,
     if (!this.engineeringMode && !this.allTestsRunBefore(test)) {
         var item = new goog.ui.MenuItem(cros.factory.Content(
             'Not in engineering mode; cannot skip tests',
-            '工程模式才能跳過測試'));
+            '工程模式才能跳过测试'));
         menu.addChild(item, true);
         menu.setEnabled(false);
     } else {
         var allUntested = numLeavesByStatus['UNTESTED'] == numLeaves;
         var restartOrRunEn = allUntested ? 'Run' : 'Restart';
-        var restartOrRunZh = allUntested ? '執行' : '重跑';
+        var restartOrRunZh = allUntested ? '执行' : '重跑';
         if (numLeaves > 1) {
             restartOrRunEn += ' all';
             restartOrRunZh += '所有的';
@@ -1223,7 +1223,7 @@ cros.factory.Goofy.prototype.showTestPopup = function(path, labelElement,
                     });
                 }, /*opt_adjectiveAtEnd=*/true), true);
             menu.addChild(this.makeMenuItem(
-                'Run', '執行', 'untested', '未測的',
+                'Run', '执行', 'untested', '未测的',
                 (numLeavesByStatus['UNTESTED'] || 0) +
                 (numLeavesByStatus['ACTIVE'] || 0),
                 test, function(event) {
@@ -1391,7 +1391,7 @@ cros.factory.Goofy.prototype.showLogDialog = function(titleHTML, data) {
             // Show time in the same format as in the logs
             logTimeElement.innerHTML = (
                 cros.factory.Label('System time: ',
-                                   '系統時間：') +
+                                   '系统时间：') +
                 new goog.date.DateTime().toUTCIsoString(true, true).
                     replace(' ', 'T'));
         }, false, this);
@@ -1426,7 +1426,7 @@ cros.factory.Goofy.prototype.viewVarLogMessagesBeforeReboot = function() {
             data = data || 'Unable to find log message indicating reboot.';
             this.showLogDialog(
                 cros.factory.Label('/var/log/messages before last reboot',
-                                   '上次重開機前的 /var/log/messages'),
+                                   '上次重开机前的 /var/log/messages'),
                 data);
         });
 };
@@ -1447,7 +1447,7 @@ cros.factory.Goofy.prototype.viewDmesg = function() {
  */
 cros.factory.Goofy.prototype.saveFactoryLogsToUSB = function() {
     var titleContent = cros.factory.Content(
-        'Save Factory Logs to USB', '保存工廠記錄到 U盤');
+        'Save Factory Logs to USB', '保存工厂记录到 U盘');
 
     function doSave() {
         function callback(id) {
@@ -1461,7 +1461,7 @@ cros.factory.Goofy.prototype.saveFactoryLogsToUSB = function() {
             dialog.setTitle(titleContent);
             dialog.setContent(
                 cros.factory.Label('Saving factory logs to USB drive...',
-                                   '正在保存工廠記錄到 U盤...'));
+                                   '正在保存工厂记录到 U盘...'));
             dialog.setButtonSet(null);
             dialog.setVisible(true);
             this.positionOverConsole(dialog.getElement());
@@ -1477,11 +1477,11 @@ cros.factory.Goofy.prototype.saveFactoryLogsToUSB = function() {
                             'Success! Saved factory logs (' + size +
                             ' bytes) to ' + dev + ' as<br>' + filename + '.' +
                             (temporary ? ' The drive has been unmounted.' : ''),
-                            '保存工廠記錄 (' + size +
-                            ' bytes) 到 U盤 ' +
-                            dev + ' 已成功，檔案叫<br>' +
+                            '保存工厂记录 (' + size +
+                            ' bytes) 到 U盘 ' +
+                            dev + ' 已成功，文件叫<br>' +
                             filename + '。' +
-                            (temporary ? 'U盤已卸載。' : '')));
+                            (temporary ? 'U盘已卸载。' : '')));
                     dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
                     this.positionOverConsole(dialog.getElement());
                 }, function(response) {
@@ -1498,8 +1498,8 @@ cros.factory.Goofy.prototype.saveFactoryLogsToUSB = function() {
             cros.factory.Label(
                 'Enter an optional identifier for the archive ' +
                 '(or press Enter for none):',
-                '請輸入識別號給工廠記錄檔案，' +
-                '或按回車鍵不選：'),
+                '请输入识別号给工厂记录文件，' +
+                '或按回车键不选：'),
             goog.bind(callback, this));
         this.registerDialog(idDialog);
         idDialog.setVisible(true);
@@ -1516,7 +1516,7 @@ cros.factory.Goofy.prototype.saveFactoryLogsToUSB = function() {
     waitForUSBDialog.setContent(
         cros.factory.Label('Please insert a formatted USB stick<br>' +
                            'and wait a moment for it to be mounted.',
-                           '請插入 U盤後稍等掛載。'));
+                           '请插入 U盘后稍等掛载。'));
     waitForUSBDialog.setButtonSet(
         new goog.ui.Dialog.ButtonSet().
             addButton(goog.ui.Dialog.ButtonSet.DefaultButtons.CANCEL,
@@ -1778,26 +1778,26 @@ cros.factory.Goofy.prototype.setTestList = function(testList) {
                             extraItems.push(item);
                         }, this);
                     addExtraItem('Update factory software',
-                                 '更新工廠軟體',
+                                 '更新工厂软体',
                                  this.updateFactory);
 
                     if (this.engineeringMode) {
                         extraItems.push(new goog.ui.MenuSeparator());
                         addExtraItem('View /var/log/messages',
-                                     '檢視 /var/log/messages',
+                                     '检视 /var/log/messages',
                                      this.viewVarLogMessages);
                         addExtraItem('View /var/log/messages ' +
                                     'before last reboot',
-                                    '檢視上次重開機前的 ' +
+                                    '检视上次重开机前的 ' +
                                      '/var/log/messages',
                                      this.viewVarLogMessagesBeforeReboot);
-                        addExtraItem('View dmesg', '檢視 dmesg',
+                        addExtraItem('View dmesg', '检视 dmesg',
                                      this.viewDmesg);
 
                         extraItems.push(new goog.ui.MenuSeparator());
 
                         addExtraItem('Save factory logs to USB drive...',
-                                     '保存工廠記錄到 U盤',
+                                     '保存工厂记录到 U盘',
                                      this.saveFactoryLogsToUSB);
                     }
 
@@ -1830,12 +1830,12 @@ cros.factory.Goofy.prototype.updateFactory = function() {
     dialog.setHasTitleCloseButton(false);
     dialog.setContent(
         cros.factory.Label('Updating factory software. Please wait...',
-                           '正在更新工廠軟體，請稍等...'));
+                           '正在更新工厂软体，请稍等...'));
     dialog.setButtonSet(null);
     dialog.setVisible(true);
     cros.factory.Goofy.setDialogTitleHTML(
         dialog,
-        cros.factory.Label('Software update', '更新工廠軟體'));
+        cros.factory.Label('Software update', '更新工厂软体'));
     dialog.reposition();
 
     this.sendRpc(
@@ -1851,16 +1851,16 @@ cros.factory.Goofy.prototype.updateFactory = function() {
                     cros.factory.Label(
                         'Update succeeded. Restarting.',
                         '更新已成功，' +
-                        '將會在幾秒鐘之內重新啟動。'));
+                        '将会在几秒钟之内重新启动。'));
             } else if (success) {  // but not updated
                 dialog.setContent(cros.factory.Label(
                     'No update is currently necessary.',
-                    '目前不用更新工廠軟體'));
+                    '目前不用更新工厂软体'));
                 dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
             } else {
                 dialog.setContent(
                     cros.factory.Label('Update failed:',
-                                       '更新失敗了：') +
+                                       '更新失败了：') +
                     '<pre>' + goog.string.htmlEscape(errorMsg) + '</pre>');
                 dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
             }

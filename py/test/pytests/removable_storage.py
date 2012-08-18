@@ -63,30 +63,30 @@ _RW_TEST_INSERT_FMT_STR = (
     lambda t: test_ui.MakeLabel(
       '<br/>'.join(['Insert %s drive for read/write test...' % t,
                     'WARNING: DATA ON INSERTED MEDIA WILL BE LOST!']),
-      '<br/>'.join([u'插入 %s 存儲以進行讀寫測試...' % t,
-                    u'注意: 插入裝置上的資料將會被清除!'])))
+      '<br/>'.join([u'插入 %s 存储以进行读写测试...' % t,
+                    u'注意: 插入装置上的资料将会被清除!'])))
 _REMOVE_FMT_STR = lambda t: test_ui.MakeLabel('Remove %s drive...' % t,
-                                              u'提取 %s 存儲...' % t)
+                                              u'提取 %s 存储...' % t)
 _TESTING_FMT_STR = lambda t: test_ui.MakeLabel('Testing %s...' % t,
-                                               u'%s 檢查中...' % t)
+                                               u'%s 检查中...' % t)
 _TESTING_RANDOM_RW_FMT_STR = lambda loop, bsize: test_ui.MakeLabel(
     'Performing r/w test on %d %d-byte random blocks...</br>' % (loop, bsize),
-    u'執行 %d 個 %d 位元組區塊隨機讀寫測試...</br>' % (loop, bsize))
+    u'执行 %d 个 %d 字节区块随机读写测试...</br>' % (loop, bsize))
 _TESTING_SEQUENTIAL_RW_FMT_STR = lambda bsize: test_ui.MakeLabel(
     'Performing sequential r/w test of %d bytes...</br>' % bsize,
-    u'執行 %d 位元組區塊連續讀寫測試...</br>' % bsize)
+    u'执行 %d 字节区块连续读写测试...</br>' % bsize)
 _LOCKTEST_INSERT_FMT_STR = (
     lambda t:
       test_ui.MakeLabel('Toggle lock switch and insert %s drive again...' % t,
-                        u'切換防寫開關並再次插入 %s 存儲...' % t))
+                        u'切换写保护开关并再次插入 %s 存储...' % t))
 _LOCKTEST_REMOVE_FMT_STR = (
     lambda t:
       test_ui.MakeLabel('Remove %s drive and toggle lock switch...' % t,
-                        u'提取 %s 存儲並關閉防寫開關...' % t))
+                        u'提取 %s 存储并关闭写保护开关...' % t))
 _ERR_REMOVE_TOO_EARLY_FMT_STR = (
     lambda t:
       test_ui.MakeLabel('Device removed too early (%s).' % t,
-                        u'太早移除外部儲存裝置 (%s).' % t))
+                        u'太早移除外部储存装置 (%s).' % t))
 _ERR_TEST_FAILED_FMT_STR = (
     lambda test_name, target_dev:
       'IO error while running %s test on %s.' % (test_name, target_dev))
@@ -101,7 +101,7 @@ _ERR_DEVICE_READ_ONLY_STR = (
 _ERR_SPEED_CHECK_FAILED_FMT_STR = (
     lambda test_type, target_dev:
         '%s_speed of %s does not meet lower bound.' % (test_type, target_dev))
-_TEST_TITLE = test_ui.MakeLabel('Card Reader Test', u'讀卡機測試')
+_TEST_TITLE = test_ui.MakeLabel('Card Reader Test', u'读卡机测试')
 _IMG_HTML_TAG = (
     lambda src: '<img src="%s" style="display:block; margin:0 auto;"/>' % src)
 

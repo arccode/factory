@@ -37,7 +37,7 @@ from cros.factory.test.factory_task import FactoryTask, FactoryTaskManager
 from cros.factory.event_log import EventLog
 
 _TEST_TITLE = test_ui.MakeLabel('SIM / IMEI / MEID Extraction',
-                                u'數據機資訊提取')
+                                u'数据机资讯提取')
 DEVICE_NORMAL_RESPONSE = 'OK'
 
 

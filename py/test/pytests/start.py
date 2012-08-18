@@ -32,20 +32,20 @@ from cros.factory.test.event import Event, EventClient
 from cros.factory.event_log import EventLog
 
 
-_TEST_TITLE = test_ui.MakeLabel('Start Factory Test', u'開始工廠測試')
+_TEST_TITLE = test_ui.MakeLabel('Start Factory Test', u'开始工厂测试')
 
 # Messages for tasks
 _MSG_TASK_POWER = test_ui.MakeLabel(
     'Plug in external power to continue.',
-    u'請插上外接電源以繼續。',
+    u'请插上外接电源以继续。',
     'start-font-size')
 _MSG_TASK_SERIAL = test_ui.MakeLabel(
     'Enter valid serial number:<br/>',
-    u'請輸入有效的序號:<br/>',
+    u'请输入有效的序号:<br/>',
     'start-font-size')
 _MSG_TASK_SPACE = test_ui.MakeLabel(
     'Hit SPACE to start testing...',
-    u'按 "空白鍵" 開始測試...',
+    u'按 "空白键" 开始测试...',
     'start-font-size')
 _MSG_NO_SHOP_FLOOR_SERVER_URL = test_ui.MakeLabel(
     '<br/>'.join([
@@ -55,10 +55,10 @@ _MSG_NO_SHOP_FLOOR_SERVER_URL = test_ui.MakeLabel(
         'For debugging or development, use the listed hot-keys to start',
         'individual tests.']),
     '<br/>'.join([
-        u'未指定 Shop Floor 伺服器位址，停止自動測試。<br/>',
-        u'請使用完整的 mini-Omaha 伺服器安裝測試程式，',
-        u'不要直接從 USB 碟開機執行。<br/>',
-        u'若想除錯或執行部份測試，請直接按下對應熱鍵。']),
+        u'未指定 Shop Floor 服务器位址，停止自动测试。<br/>',
+        u'请使用完整的 mini-Omaha 服务器安装测试程式，',
+        u'不要直接从 USB 碟开机执行。<br/>',
+        u'若想除错或执行部份测试，请直接按下对应热键。']),
     'start-font-size test-error')
 
 # Javascripts and HTML for tasks

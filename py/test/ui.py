@@ -111,7 +111,7 @@ MESSAGE_NO_ACTIVE_TESTS = (
 
 USER_PASS_FAIL_SELECT_STR = (
   'hit TAB to fail and ENTER to pass\n' +
-  '錯誤請按 TAB，成功請按 ENTER')
+  '错误请按 TAB，成功请按 ENTER')
 # Resolution where original UI is designed for.
 _UI_SCREEN_WIDTH = 1280
 _UI_SCREEN_HEIGHT = 800
@@ -288,7 +288,7 @@ def make_vsep(width=1):
 
 def make_countdown_widget(prompt=None, value=None, fg=LIGHT_GREEN):
   if prompt is None:
-    prompt = 'time remaining / 剩餘時間: '
+    prompt = 'time remaining / 剩余时间: '
   if value is None:
     value = '%s' % FAIL_TIMEOUT
   title = make_label(prompt, fg=fg, alignment=(1, 0.5))
@@ -359,8 +359,8 @@ def make_input_window(prompt=None,
   @return: A widget with prompt, input entry, and status label. To access
     these elements, use attribute 'prompt', 'entry', and 'label'.
   """
-  DEFAULT_MSG_INVALID = "Invalid input / 輸入不正確"
-  DEFAULT_PROMPT = "Enter Data / 輸入資料:"
+  DEFAULT_MSG_INVALID = "Invalid input / 输入不正确"
+  DEFAULT_PROMPT = "Enter Data / 输入资料:"
 
   def enter_callback(entry):
     text = entry.get_text()

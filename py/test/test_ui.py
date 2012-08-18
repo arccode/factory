@@ -65,8 +65,8 @@ def MakeStatusLabel(status):
   STATUS_ZH = {
     TestState.PASSED: u'良好',
     TestState.FAILED: u'不良',
-    TestState.ACTIVE: u'正在測',
-    TestState.UNTESTED: u'未測'
+    TestState.ACTIVE: u'正在测',
+    TestState.UNTESTED: u'未测'
   }
   return MakeLabel(status.lower(),
                    STATUS_ZH.get(status, status))
