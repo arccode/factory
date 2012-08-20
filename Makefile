@@ -3,8 +3,13 @@
 # found in the LICENSE file.
 
 BUILD_DIR=build
+PAR_BUILD_DIR=$(BUILD_DIR)/par
 DESTDIR=$(BUILD_DIR)/image
 TARGET_DIR=/usr/local/factory
+PYTHON_SITEDIR=$(shell echo \
+  'from distutils.sysconfig import get_python_lib; ' \
+  'print(get_python_lib())' | python)
+PYTHON=python
 
 FACTORY=$(DESTDIR)/$(TARGET_DIR)
 
@@ -84,13 +89,38 @@ default:
 	        $(if $(CLOSURE_LIB_ARCHIVE), \
                   CLOSURE_LIB_ARCHIVE="$(CLOSURE_LIB_ARCHIVE)",)
 
+par:
+# Build par (Python archive) file containing all py and pyc files.
+	rm -rf $(PAR_BUILD_DIR)
+	mkdir -p $(PAR_BUILD_DIR)/cros
+	rsync -a \
+	  --exclude '*_unittest.py' \
+	  --exclude 'factory_common.py*' \
+	  --include '*.py' \
+	  --include '*/' --exclude '*' \
+	  py/ $(PAR_BUILD_DIR)/cros/factory/
+# Copy necessary third-party packages.
+	rsync -a $(PYTHON_SITEDIR)/jsonrpclib $(PAR_BUILD_DIR)
+# Add empty __init__.py files so Python realizes these directories are
+# modules.
+	touch $(PAR_BUILD_DIR)/cros/__init__.py
+	touch $(PAR_BUILD_DIR)/cros/factory/__init__.py
+# Add an empty factory_common file (since many scripts import factory_common).
+	touch $(PAR_BUILD_DIR)/factory_common.py
+	cd $(PAR_BUILD_DIR) && zip -qr factory.par *
+	mv $(PAR_BUILD_DIR)/factory.par $(FACTORY)
+# Sanity check: make sure we can import event_log using only the par file.
+	PYTHONPATH=$(FACTORY)/factory.par $(PYTHON) -c \
+	  'import cros.factory.test.state'
+
 install:
 	mkdir -p $(FACTORY)
-	cp -ar bin misc py py_pkg sh test_lists $(FACTORY)
+	rsync -a --exclude '*.pyc' bin misc py py_pkg sh test_lists $(FACTORY)
 	ln -sf bin/gooftool bin/edid bin/hwid_tool ${FACTORY}
 	mkdir -m755 -p ${DESTDIR}/var/log
 	mkdir -m755 -p $(addprefix ${DESTDIR}/var/factory/,log state tests)
 	ln -sf $(addprefix ../factory/log/,factory.log console.log) ${DESTDIR}/var/log
+
 
 lint:
 	env PYTHONPATH=py_pkg pylint $(PYLINT_OPTIONS) $(LINT_FILES)
@@ -103,6 +133,7 @@ RED=\033[22;31m
 WHITE=\033[22;0m
 
 test:
+	make -s par
 	@total=0; good=0; \
 	logdir=/tmp/test.logs.$$(date +%Y%m%d_%H%M%S); \
 	mkdir $$logdir; \
