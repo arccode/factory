@@ -401,7 +401,7 @@ def VerifyHwid(options):
   hwid_status = device.GetHwidStatus(hwid.bom, hwid.variant, hwid.volatile)
   if hwid_status not in options.status:
     sys.exit('HWID status must be one of [%s], found %r' %
-             (', '.join(options.status, hwid_status)))
+             (', '.join(options.status), hwid_status))
   probe_results = Probe()
   cooked_components = hw_db.comp_db.MatchComponentProbeValues(
     probe_results.found_probe_value_map)
