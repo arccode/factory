@@ -4,10 +4,12 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-
+import glob
 import netifaces
+import os
 import re
 import subprocess
+import threading
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
@@ -17,6 +19,29 @@ from cros.factory.utils.process_utils import Spawn
 # pylint: disable=W0702
 # Disable checking of exception types, since we catch all exceptions
 # in many places.
+
+_ec = None
+_lock = threading.Lock()
+def GetEC():
+  '''Initializes a EC instance from environment variable CROS_FACTORY_EC_CLASS,
+  or use the default EC class ChromeOSEC if the variable is empty.
+
+  The board-specific CROS_FACTORY_EC_CLASS environment variable is set in
+  board_setup_factory.sh.
+
+  Returns:
+    An instance of the specified EC class implementation.'''
+  # pylint: disable=W0603
+  with _lock:
+    global _ec
+    if _ec:
+      return _ec
+
+    ec = os.environ.get('CROS_FACTORY_EC_CLASS',
+                        'cros.factory.board.chromeos_ec.ChromeOSEC')
+    module, cls = ec.rsplit('.', 1)
+    _ec = getattr(__import__(module, fromlist=[cls]), cls)()
+    return _ec
 
 
 class SystemInfo(object):
@@ -65,13 +90,7 @@ class SystemInfo(object):
 
     self.ec_version = None
     try:
-      ectool = subprocess.Popen(['mosys', 'ec', 'info', '-l'],
-                    stdout=subprocess.PIPE)
-      stdout, _ = ectool.communicate()
-      match = re.search('^fw_version\s+\|\s+(.+)$', stdout,
-                re.MULTILINE)
-      if match:
-        self.ec_version = match.group(1)
+      self.ec_version = GetEC().GetVersion()
     except:
       pass
 
@@ -142,6 +161,13 @@ class SystemStatus(object):
 
   def __init__(self):
     self.battery = {}
+    self.battery_sysfs_path = None
+    path_list = glob.glob('/sys/class/power_supply/*/type')
+    for p in path_list:
+      if open(p).read().strip() == 'Battery':
+        self.battery_sysfs_path = os.path.dirname(p)
+        break
+
     for k, item_type in [('charge_full', int),
                          ('charge_full_design', int),
                          ('charge_now', int),
@@ -152,23 +178,21 @@ class SystemStatus(object):
                          ('voltage_now', int)]:
       try:
         self.battery[k] = item_type(
-          open('/sys/class/power_supply/BAT0/%s' % k).read().strip())
+          open(os.path.join(self.battery_sysfs_path, k)).read().strip())
       except:
         self.battery[k] = None
 
     # Get fan speed
-    self.fan_rpm = self.GetFanSpeed()
+    self.fan_rpm = GetEC().GetFanRPM()
 
     # Get temperatures from sensors
     try:
-      self.temperatures = self._ParseTemperatures(
-          self.CallECTool(['temps', 'all']))
+      self.temperatures = GetEC().GetTemperatures()
     except:
       self.temperatures = []
 
     try:
-      self.main_temperature_index = self._ParseTemperatureInfo(
-          self.CallECTool(['tempsinfo', 'all'])).index('PECI')
+      self.main_temperature_index = GetEC().GetMainTemperatureIndex()
     except:
       self.main_temperature_index = None
 
@@ -188,54 +212,6 @@ class SystemStatus(object):
     except:
       self.ips = None
 
-  @staticmethod
-  def _ParseTemperatures(ectool_output):
-    '''Returns a list of temperatures for various sensors.
-
-    Args:
-      ectool_output: Output of "ectool temps all".
-    '''
-    temps = []
-    for match in SystemStatus.TEMPERATURE_RE.finditer(ectool_output):
-      sensor = int(match.group(1) or match.group(3))
-      while len(temps) < sensor + 1:
-        temps.append(None)
-      # Convert Kelvin to Celsius and add
-      temps[sensor] = int(match.group(2)) - 273 if match.group(2) else None
-    return temps
-
-  @staticmethod
-  def _ParseTemperatureInfo(ectool_output):
-    '''Returns a list of temperatures for various sensors.
-
-    Args:
-      ectool_output: Output of "ectool tempsinfo all".
-    '''
-    infos = []
-    for match in SystemStatus.TEMPERATURE_INFO_RE.finditer(ectool_output):
-      sensor = int(match.group(1))
-      while len(infos) < sensor + 1:
-        infos.append(None)
-      infos[sensor] = match.group(2)
-    return infos
-
-  def CallECTool(self, cmd):
-    full_cmd = ['ectool'] + cmd
-    return Spawn(full_cmd, read_stdout=True, ignore_stderr=True).stdout_data
-
-  def GetFanSpeed(self):
-    try:
-      response = self.CallECTool(['pwmgetfanrpm'])
-      return int(self.GET_FAN_SPEED_RE.findall(response)[0])
-    except Exception: # pylint: disable=W0703
-      return None
-
-  def GetTemperature(self, idx):
-    try:
-      response = self.CallECTool(['temps', '%d' % idx])
-      return int(self.TEMP_SENSOR_RE.findall(response)[0])
-    except Exception: # pylint: disable=W0703
-      return None
 
 if __name__ == '__main__':
   import yaml

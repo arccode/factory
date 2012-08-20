@@ -32,9 +32,9 @@ import factory_common # pylint: disable=W0611
 from jsonrpclib import jsonclass
 from jsonrpclib import jsonrpc
 from jsonrpclib import SimpleJSONRPCServer
+from cros.factory import system
 from cros.factory.test import factory
 from cros.factory.test.factory import TestState
-from cros.factory.goofy import system
 from cros.factory.test import unicode_to_string
 
 

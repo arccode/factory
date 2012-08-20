@@ -22,26 +22,26 @@ from collections import deque
 from optparse import OptionParser
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.goofy.prespawner import Prespawner
-from cros.factory.test import factory
-from cros.factory.test import state
-from cros.factory.test.factory import TestState
+from cros.factory import event_log
+from cros.factory import system
+from cros.factory.event_log import EventLog
+from cros.factory.goofy import test_environment
+from cros.factory.goofy import time_sanitizer
 from cros.factory.goofy import updater
 from cros.factory.goofy.event_log_watcher import EventLogWatcher
+from cros.factory.goofy.goofy_rpc import GoofyRPC
+from cros.factory.goofy.invocation import TestInvocation
+from cros.factory.goofy.prespawner import Prespawner
+from cros.factory.goofy.web_socket_manager import WebSocketManager
+from cros.factory.system.charge_manager import ChargeManager
+from cros.factory.test import factory
+from cros.factory.test import state
 from cros.factory.test import shopfloor
 from cros.factory.test import utils
 from cros.factory.test.event import Event
 from cros.factory.test.event import EventClient
 from cros.factory.test.event import EventServer
-from cros.factory import event_log
-from cros.factory.event_log import EventLog
-from cros.factory.goofy.invocation import TestInvocation
-from cros.factory.goofy.goofy_rpc import GoofyRPC
-from cros.factory.goofy import system
-from cros.factory.goofy import test_environment
-from cros.factory.goofy import time_sanitizer
-from cros.factory.goofy.web_socket_manager import WebSocketManager
-from cros.factory.goofy.charge_manager import ChargeManager
+from cros.factory.test.factory import TestState
 from cros.factory.utils.process_utils import Spawn
 
 

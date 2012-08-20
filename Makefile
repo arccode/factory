@@ -41,6 +41,7 @@ LINT_BLACKLIST=\
 	py/shopfloor/shopfloor_unittest.py \
 	py/shopfloor/simple_shopfloor.py \
 	py/shopfloor/template.py \
+	py/system/charge_manager_unittest.py \
 	py/test/event.py \
 	py/test/gooftools.py \
 	py/test/leds.py \
@@ -62,24 +63,24 @@ LINT_BLACKLIST=\
 # Temporary changes for broken code.  TODO(jsalz, itspeter): Remove.
 LINT_BLACKLIST += \
 	py/test/pytests/probe_cellular_info.py \
-	py/goofy/goofy.py \
-	py/goofy/system.py
+	py/goofy/goofy.py
 
 LINT_FILES=$(filter-out $(LINT_BLACKLIST), \
                $(shell find py -name '*.py' -type f | sort))
 
 UNITTESTS=\
+	py/board/chromeos_ec_unittest.py \
 	py/event_log_unittest.py \
-	py/goofy/charge_manager_unittest.py \
 	py/goofy/event_log_watcher_unittest.py \
 	py/goofy/goofy_rpc_unittest.py \
 	py/goofy/goofy_unittest.py \
-	py/goofy/system_unittest.py \
 	py/goofy/time_sanitizer_unittest.py \
 	py/goofy/updater_unittest.py \
 	py/shopfloor/factory_update_server_unittest.py \
 	py/shopfloor/shopfloor_unittest.py \
 	py/shopfloor/shopfloor_standalone_unittest.py \
+	py/system/charge_manager_unittest.py \
+	py/system/system_unittest.py \
 	py/test/factory_unittest.py \
 	py/test/state_unittest.py \
 	py/test/registration_codes_unittest.py \

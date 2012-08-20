@@ -8,16 +8,33 @@ import mox
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.goofy import system
+from cros.factory import system
+from cros.factory.system.ec import EC
 
 
 class SystemStatusTest(unittest.TestCase):
+  def setUp(self):
+    self.mox = mox.Mox()
+
+  def tearDown(self):
+    self.mox.UnsetStubs()
+
   def runTest(self):
+
+    # Set up mocks for EC interface
+    mock_ec = self.mox.CreateMock(EC)
+    self.mox.StubOutWithMock(system, 'GetEC')
     # Set up mocks for netifaces.
-    netifaces = system.netifaces = mox.MockAnything()
+    netifaces = system.netifaces = self.mox.CreateMockAnything()
     netifaces.AF_INET = 2
     netifaces.AF_INET6 = 10
 
+    system.GetEC().AndReturn(mock_ec)
+    mock_ec.GetFanRPM().AndReturn(2000)
+    system.GetEC().AndReturn(mock_ec)
+    mock_ec.GetTemperatures().AndReturn([1, 2, 3, 4, 5])
+    system.GetEC().AndReturn(mock_ec)
+    mock_ec.GetMainTemperatureIndex().AndReturn(2)
     netifaces.interfaces().AndReturn(['lo0', 'eth0', 'wlan0'])
     netifaces.ifaddresses('eth0').AndReturn(
       {netifaces.AF_INET6: [{'addr': 'aa:aa:aa:aa:aa:aa'}],
@@ -26,7 +43,7 @@ class SystemStatusTest(unittest.TestCase):
     netifaces.ifaddresses('wlan0').AndReturn(
       {netifaces.AF_INET: [{'addr': '192.168.16.100'},
                            {'addr': '192.168.16.101'}]})
-    mox.Replay(netifaces)
+    self.mox.ReplayAll()
 
     # Don't care about the values; just make sure there's something
     # there.
@@ -39,25 +56,8 @@ class SystemStatusTest(unittest.TestCase):
       'eth0=192.168.1.100, wlan0=192.168.16.100+192.168.16.101',
       status.ips)
 
-    mox.Verify(netifaces)
+    self.mox.VerifyAll()
 
-
-class ParseTemperaturesTest(unittest.TestCase):
-  def runTest(self):
-    # pylint: disable=W0212
-    self.assertEquals([1, 2, None, 4],
-                      system.SystemStatus._ParseTemperatures(
-                          '0: 274\n'
-                          '1: 275\n'
-                          'Sensor 2 error\n'
-                          '3: 277\n'
-                          'Sensor 4 error\n'))
-    self.assertEquals(['Foo', 'Bar', None, 'Baz'],
-                      system.SystemStatus._ParseTemperatureInfo(
-                          '0: 3 Foo\n'
-                          '1: 4 Bar\n'
-                          'EC returned error result code 2\n'
-                          '3: 255 Baz\n'))
 
 if __name__ == "__main__":
   unittest.main()

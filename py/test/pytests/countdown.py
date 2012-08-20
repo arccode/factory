@@ -18,7 +18,7 @@ import time
 import unittest
 
 from cros.factory.event_log import EventLog
-from cros.factory.goofy.system import SystemStatus
+from cros.factory.system import SystemStatus
 from cros.factory.test import factory, test_ui
 
 
