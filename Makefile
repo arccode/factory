@@ -12,6 +12,7 @@ PYTHON_SITEDIR=$(shell echo \
 PYTHON=python
 
 FACTORY=$(DESTDIR)/$(TARGET_DIR)
+PAR_DEST_DIR=$(FACTORY)
 
 PYLINTRC=../../../chromite/pylintrc
 
@@ -32,6 +33,14 @@ LINT_BLACKLIST=\
 	py/goofy/test_environment.py \
 	py/goofy/updater.py \
 	py/goofy/web_socket_manager.py \
+	py/shopfloor/__init__.py \
+	py/shopfloor/factory_update_server.py \
+	py/shopfloor/factory_update_server_unittest.py \
+	py/shopfloor/shopfloor_server.py \
+	py/shopfloor/shopfloor_standalone_unittest.py \
+	py/shopfloor/shopfloor_unittest.py \
+	py/shopfloor/simple_shopfloor.py \
+	py/shopfloor/template.py \
 	py/test/event.py \
 	py/test/gooftools.py \
 	py/test/leds.py \
@@ -68,6 +77,9 @@ UNITTESTS=\
 	py/goofy/system_unittest.py \
 	py/goofy/time_sanitizer_unittest.py \
 	py/goofy/updater_unittest.py \
+	py/shopfloor/factory_update_server_unittest.py \
+	py/shopfloor/shopfloor_unittest.py \
+	py/shopfloor/shopfloor_standalone_unittest.py \
 	py/test/factory_unittest.py \
 	py/test/state_unittest.py \
 	py/test/registration_codes_unittest.py \
@@ -108,7 +120,7 @@ par:
 # Add an empty factory_common file (since many scripts import factory_common).
 	touch $(PAR_BUILD_DIR)/factory_common.py
 	cd $(PAR_BUILD_DIR) && zip -qr factory.par *
-	mv $(PAR_BUILD_DIR)/factory.par $(FACTORY)
+	mv $(PAR_BUILD_DIR)/factory.par $(PAR_DEST_DIR)
 # Sanity check: make sure we can import event_log using only the par file.
 	PYTHONPATH=$(FACTORY)/factory.par $(PYTHON) -c \
 	  'import cros.factory.test.state'
@@ -133,7 +145,6 @@ RED=\033[22;31m
 WHITE=\033[22;0m
 
 test:
-	make -s par
 	@total=0; good=0; \
 	logdir=/tmp/test.logs.$$(date +%Y%m%d_%H%M%S); \
 	mkdir $$logdir; \
