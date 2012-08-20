@@ -25,6 +25,7 @@ from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test import utils
+from cros.factory.test.args import Arg
 
 
 _STATE_RW_TEST_WAIT_INSERT = 1
@@ -126,15 +127,8 @@ class RemovableStorageTest(unittest.TestCase):
 
   def __init__(self, *args, **kwargs):
     super(RemovableStorageTest, self).__init__(*args, **kwargs)
-    self._media = None
-    self._vidpid = None
-    self._block_size = 1024
-    self._random_block_count = 3
-    self._perform_sequential_test = False
-    self._sequential_block_count = 1024
     self._ui = test_ui.UI()
     self._template = ui_templates.TwoSections(self._ui)
-    self._perform_locktest = False
     self._error = ''
     self._target_device = None
     self._insertion_image = None
@@ -235,21 +229,21 @@ class RemovableStorageTest(unittest.TestCase):
     total_time_write = 0.0
 
     mode = []
-    if self._perform_random_test is True:
+    if self.args.perform_random_test is True:
       mode.append(_RW_TEST_MODE_RANDOM)
-    if self._perform_sequential_test is True:
+    if self.args.perform_sequential_test is True:
       mode.append(_RW_TEST_MODE_SEQUENTIAL)
     for m in mode:
       if m == _RW_TEST_MODE_RANDOM:
         # Read/Write one block each time
-        bytes_to_operate = self._block_size
-        loop = self._random_block_count
+        bytes_to_operate = self.args.block_size
+        loop = self.args.random_block_count
         self._template.SetState(
             _TESTING_RANDOM_RW_FMT_STR(loop, bytes_to_operate), append=True)
       elif m == _RW_TEST_MODE_SEQUENTIAL:
         # Converts block counts into bytes
-        bytes_to_operate = (self._sequential_block_count *
-                            self._block_size)
+        bytes_to_operate = (self.args.sequential_block_count *
+                            self.args.block_size)
         loop = 1
         self._template.SetState(
             _TESTING_SEQUENTIAL_RW_FMT_STR(bytes_to_operate), append=True)
@@ -366,27 +360,28 @@ class RemovableStorageTest(unittest.TestCase):
 
         if m == _RW_TEST_MODE_RANDOM:
           random_read_speed = (
-              (self._block_size * loop) / total_time_read / _MILLION)
+              (self.args.block_size * loop) / total_time_read / _MILLION)
           random_write_speed = (
-              (self._block_size * loop) / total_time_write / _MILLION)
+              (self.args.block_size * loop) / total_time_write / _MILLION)
           _CheckThreshold('random_read', random_read_speed,
-                          self._random_read_threshold)
+                          self.args.random_read_threshold)
           _CheckThreshold('random_write', random_write_speed,
-                          self._random_write_threshold)
+                          self.args.random_write_threshold)
         elif m == _RW_TEST_MODE_SEQUENTIAL:
           sequential_read_speed = (
               bytes_to_operate / total_time_read / _MILLION)
           sequential_write_speed = (
               bytes_to_operate / total_time_write / _MILLION)
           _CheckThreshold('sequential_read', sequential_read_speed,
-                          self._sequential_read_threshold)
+                          self.args.sequential_read_threshold)
           _CheckThreshold('sequential_write', sequential_write_speed,
-                          self._sequential_write_threshold)
+                          self.args.sequential_write_threshold)
 
         self._metrics.update(update_bin)
 
-    EventLog.ForAutoTest().Log(('%s_rw_speed' % self._media), **self._metrics)
-    self._template.SetInstruction(_REMOVE_FMT_STR(self._media))
+    EventLog.ForAutoTest().Log(('%s_rw_speed' % self.args.media),
+                               **self._metrics)
+    self._template.SetInstruction(_REMOVE_FMT_STR(self.args.media))
     self._state = _STATE_RW_TEST_WAIT_REMOVE
     self._template.SetState(_IMG_HTML_TAG(self._removal_image))
 
@@ -399,7 +394,7 @@ class RemovableStorageTest(unittest.TestCase):
 
     if ro is False:
       self._ui.FailLater(_ERR_LOCKTEST_FAILED_FMT_STR(self._target_device))
-    self._template.SetInstruction(_LOCKTEST_REMOVE_FMT_STR(self._media))
+    self._template.SetInstruction(_LOCKTEST_REMOVE_FMT_STR(self.args.media))
     self._state = _STATE_LOCKTEST_WAIT_REMOVE
     self._template.SetState(_IMG_HTML_TAG(self._locktest_removal_image))
     self.AdvanceProgress()
@@ -415,35 +410,35 @@ class RemovableStorageTest(unittest.TestCase):
 
     if action == _UDEV_ACTION_INSERT:
       if self._state == _STATE_RW_TEST_WAIT_INSERT:
-        if self._vidpid:
+        if self.args.vidpid:
           device_vidpid = self.GetVidpid(device)
-          if device_vidpid not in self._vidpid:
+          if device_vidpid not in self.args.vidpid:
             return True
-          logging.info('VID:PID == %s' % self._vidpid)
-        elif self._sys_path:
-          if (not os.path.exists(self._sys_path) or
-              not self._sys_path in device.sys_path):
+          logging.info('VID:PID == %s' % self.args.vidpid)
+        elif self.args.sysfs_path:
+          if (not os.path.exists(self.args.sysfs_path) or
+              not self.args.sysfs_path in device.sys_path):
             return True
-          logging.info('sys path = %s' % self._sys_path)
+          logging.info('sys path = %s' % self.args.sysfs_path)
         else:
-          if self._media != self.GetDeviceType(device):
+          if self.args.media != self.GetDeviceType(device):
             return True
         factory.console.info('%s device inserted : %s' %
-                             (self._media, device.device_node))
+                             (self.args.media, device.device_node))
         self._target_device = device.device_node
         self.TestReadWrite()
       elif self._state == _STATE_LOCKTEST_WAIT_INSERT:
         factory.console.info('%s device inserted : %s' %
-                             (self._media, device.device_node))
+                             (self.args.media, device.device_node))
         if self._target_device == device.device_node:
           self.TestLock()
     elif action == _UDEV_ACTION_REMOVE:
       if self._target_device == device.device_node:
         factory.console.info('Device removed : %s' % device.device_node)
         if self._state == _STATE_RW_TEST_WAIT_REMOVE:
-          if self._perform_locktest:
+          if self.args.perform_locktest:
             self._template.SetInstruction(
-                _LOCKTEST_INSERT_FMT_STR(self._media))
+                _LOCKTEST_INSERT_FMT_STR(self.args.media))
             self._state = _STATE_LOCKTEST_WAIT_INSERT
             self._template.SetState(
                 _IMG_HTML_TAG(self._locktest_insertion_image))
@@ -464,87 +459,75 @@ class RemovableStorageTest(unittest.TestCase):
     self._template.SetProgressBarValue(
         100 * self._finished_tests / self._total_tests)
 
+  ARGS = [
+    Arg('media', str, 'Media type'),
+    Arg('vidpid', (str, list),
+        'Vendor ID and Product ID of the target testing device', None,
+        optional=True),
+    Arg('sysfs_path', str, 'The expected sysfs path that udev events should'
+        'come from, ex: /sys/devices/pci0000:00/0000:00:1a.0/usb1/1-1/1-1.2',
+        None, optional=True),
+    Arg('block_size', int,
+        'Size of each block in bytes used in read / write test', 1024),
+    Arg('perform_random_test', bool,
+        'Whether to run random read / write test', True),
+    Arg('random_read_threshold', (int, float),
+        'The lowest random read rate the device should achieve', None,
+        optional=True),
+    Arg('random_write_threshold', (int, float),
+        'The lowest random write rate the device should achieve', None,
+        optional=True),
+    Arg('random_block_count', int,
+        'Number of blocks to test during random read / write test', 3),
+    Arg('perform_sequential_test', bool,
+        'Whether to run sequential read / write tes', False),
+    Arg('sequential_read_threshold', (int, float),
+        'The lowest sequential read rate the device should achieve',
+        None, optional=True),
+    Arg('sequential_write_threshold', (int, float),
+        'The lowest sequential write rate the device should achieve',
+        None, optional=True),
+    Arg('sequential_block_count', int,
+        'Number of blocks to test in sequential read / write test', 1024),
+    Arg('perform_locktest', bool, 'Whether to run lock test', False)
+  ]
+
   def runTest(self):
-    '''Main entrance of removable storage test.
-
-    Test parameters:
-      media:
-        Media type [None]
-      vipid:
-        Vender ID and Product ID of the target testing device [None]
-      sys_path:
-        The expected sys path that udev events should come from [None]
-      block_size:
-        Size of each block in bytes used in read / write test [1024]
-      perform_random_test:
-        Whether to run random read / write test [True]
-      random_read_threshold:
-        The lowest random read rate the device should achieve [None]
-      random_write_threshold:
-        The lowest random write rate the device should achieve [None]
-      random_block_count:
-        Number of blocks to test during random read / write test [3]
-      perform_sequential_test:
-        Whether to run sequential read / write test [False]
-      sequential_read_threshold:
-        The lowest sequential read rate the device should achieve [None]
-      sequential_write_threshold:
-        The lowest sequential write rate the device should achieve [None]
-      sequential_block_count:
-        Number of blocks to test in sequential read / write test [1024]
-      perform_locktest:
-        Whether to run lock test [False]
-    '''
-    args = self.test_info.args  # pylint: disable=E1101
-    self._media = args.get('media')
-    self._vidpid = args.get('vidpid')
-    self._sys_path = args.get('sys_path')
-    self._block_size = args.get('block_size', 1024)
-    self._perform_random_test = args.get('perform_random_test', True)
-    self._random_read_threshold = args.get('random_read_threshold', None)
-    self._random_write_threshold = args.get('random_write_threshold', None)
-    self._random_block_count = args.get('random_block_count', 3)
-    self._perform_sequential_test = args.get('perform_sequential_test', False)
-    self._sequential_read_threshold = args.get(
-        'sequential_read_threshold', None)
-    self._sequential_write_threshold = args.get(
-        'sequential_write_threshold', None)
-    self._sequential_block_count = args.get('sequential_block_count', 1024)
-    self._perform_locktest = args.get('perform_locktest', False)
-
+    '''Main entrance of removable storage test.'''
     os.chdir(os.path.join(os.path.dirname(__file__), '%s_static' %
                           self.test_info.pytest_name)) # pylint: disable=E1101
 
     random.seed(0)
     self._metrics = {}
 
-    if self._vidpid and type(self._vidpid) != type(list()):
+    if self.args.vidpid and type(self.args.vidpid) != type(list()):
       # Convert vidpid to a list.
-      self._vidpid = [self._vidpid]
+      self.args.vidpid = [self.args.vidpid]
 
-    logging.info('media = %s' % self._media)
+    logging.info('media = %s' % self.args.media)
 
     self._template.SetTitle(_TEST_TITLE)
-    self._insertion_image = '%s_insert.png' % self._media
-    self._removal_image = '%s_remove.png' % self._media
-    self._testing_image = '%s_testing.png' % self._media
+    self._insertion_image = '%s_insert.png' % self.args.media
+    self._removal_image = '%s_remove.png' % self.args.media
+    self._testing_image = '%s_testing.png' % self.args.media
 
-    if self._perform_locktest:
-      self._locktest_insertion_image = '%s_locktest_insert.png' % self._media
-      self._locktest_removal_image = '%s_locktest_remove.png' % self._media
+    if self.args.perform_locktest:
+      self._locktest_insertion_image = ('%s_locktest_insert.png' %
+                                        self.args.media)
+      self._locktest_removal_image = '%s_locktest_remove.png' % self.args.media
 
-    self._template.SetInstruction(_RW_TEST_INSERT_FMT_STR(self._media))
+    self._template.SetInstruction(_RW_TEST_INSERT_FMT_STR(self.args.media))
     self._state = _STATE_RW_TEST_WAIT_INSERT
     self._template.SetState(_IMG_HTML_TAG(self._insertion_image))
 
     # Initialize progress bar
     self._template.DrawProgressBar()
     self._total_tests = 0
-    if self._perform_random_test:
+    if self.args.perform_random_test:
       self._total_tests += 1
-    if self._perform_sequential_test:
+    if self.args.perform_sequential_test:
       self._total_tests += 1
-    if self._perform_locktest:
+    if self.args.perform_locktest:
       self._total_tests += 1
     self._finished_tests = 0
     self._template.SetProgressBarValue(0)
