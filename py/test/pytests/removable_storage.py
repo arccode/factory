@@ -124,6 +124,7 @@ class PyudevThread(threading.Thread):
 
 
 class RemovableStorageTest(unittest.TestCase):
+  # pylint: disable=E1101
 
   def __init__(self, *args, **kwargs):
     super(RemovableStorageTest, self).__init__(*args, **kwargs)
@@ -140,6 +141,7 @@ class RemovableStorageTest(unittest.TestCase):
     self._pyudev_thread = None
     self._total_tests = 0
     self._finished_tests = 0
+    self._metrics = {}
 
   def GetAttrs(self, device, key_set):
     if device is None:
@@ -191,8 +193,7 @@ class RemovableStorageTest(unittest.TestCase):
 
     dev_size = int(dev_size)
     gb = dev_size / 1000000000.0
-    logging.info('Dev size of %s : %d bytes (%.3f GB)' %
-                         (dev_path, dev_size, gb))
+    logging.info('Dev size of %s : %d bytes (%.3f GB)', dev_path, dev_size, gb)
 
     return dev_size
 
@@ -208,7 +209,7 @@ class RemovableStorageTest(unittest.TestCase):
       self._ui.Fail(_ERR_RO_TEST_FAILED_FMT_STR(dev_path))
 
     ro = int(ro)
-    logging.info('%s RO : %d' % (dev_path, ro))
+    logging.info('%s RO : %d', dev_path, ro)
 
     return ro == 1
 
@@ -351,7 +352,7 @@ class RemovableStorageTest(unittest.TestCase):
         update_bin = {}
         def _CheckThreshold(test_type, value, threshold):
           update_bin['%s_speed' % test_type] = value
-          logging.info('%s_speed: %.3f MB/s' % (test_type, value))
+          logging.info('%s_speed: %.3f MB/s', test_type, value)
           if threshold:
             update_bin['%s_threshold' % test_type] = threshold
             if value < threshold:
@@ -414,12 +415,12 @@ class RemovableStorageTest(unittest.TestCase):
           device_vidpid = self.GetVidpid(device)
           if device_vidpid not in self.args.vidpid:
             return True
-          logging.info('VID:PID == %s' % self.args.vidpid)
+          logging.info('VID:PID == %s', self.args.vidpid)
         elif self.args.sysfs_path:
           if (not os.path.exists(self.args.sysfs_path) or
               not self.args.sysfs_path in device.sys_path):
             return True
-          logging.info('sys path = %s' % self.args.sysfs_path)
+          logging.info('sys path = %s', self.args.sysfs_path)
         else:
           if self.args.media != self.GetDeviceType(device):
             return True
@@ -498,13 +499,12 @@ class RemovableStorageTest(unittest.TestCase):
                           self.test_info.pytest_name)) # pylint: disable=E1101
 
     random.seed(0)
-    self._metrics = {}
 
     if self.args.vidpid and type(self.args.vidpid) != type(list()):
       # Convert vidpid to a list.
       self.args.vidpid = [self.args.vidpid]
 
-    logging.info('media = %s' % self.args.media)
+    logging.info('media = %s', self.args.media)
 
     self._template.SetTitle(_TEST_TITLE)
     self._insertion_image = '%s_insert.png' % self.args.media
