@@ -18,7 +18,7 @@ from traceback import format_exc
 import factory_common  # pylint: disable=W0611
 
 from cros.factory.common import Shell, SetupLogging
-from cros.factory.gooftool.probe import PROBABLE_COMPONENT_CLASSES
+from cros.factory.gooftool.probe import PROBEABLE_COMPONENT_CLASSES
 from cros.factory.hwdb import hwid_tool
 
 
@@ -114,10 +114,11 @@ class HwidTest(unittest.TestCase):
     reload(logging)
     SetupLogging(level=logging.INFO, log_file_name=self.test_log)
     self.hwid_tool_log = os.path.join(self.dir, 'hwid_tool_log')
-    comp_classes = PROBABLE_COMPONENT_CLASSES | set(['keyboard'])
+    comp_classes = PROBEABLE_COMPONENT_CLASSES | set(['keyboard'])
     registry = hwid_tool.ComponentRegistry(
       opaque_components={'keyboard':[]},
-      probable_components=dict((comp_class, {}) for comp_class in comp_classes),
+      probeable_components=dict(
+          (comp_class, {}) for comp_class in comp_classes),
       status=hwid_tool.StatusData.New())
     comp_db = hwid_tool.CompDb(registry)
     comp_db.Write(self.dir)
@@ -148,8 +149,8 @@ class HwidTest(unittest.TestCase):
                    stdin=g_zgb_probe_results_str,
                    show_stdout=True)
       hw_db = hwid_tool.HardwareDb(self.dir)
-      self.assertEqual(len(hw_db.comp_db.probable_components['usb_hosts']), 5,
-                       hw_db.comp_db.probable_components.get('usb_hosts', None))
+      self.assertEqual(len(hw_db.comp_db.probeable_components['usb_hosts']), 5,
+          hw_db.comp_db.probeable_components.get('usb_hosts', None))
       self.assertEqual(len(hw_db.devices), 1, hw_db.devices.keys())
       device = hw_db.devices['FOO']
       self.assertEqual(len(device.boms), 2, device.boms.keys())
@@ -262,9 +263,9 @@ class HwidTest(unittest.TestCase):
       self.assertEqual(hw_db.comp_db.opaque_components['keyboard'],
                        ['sunrex_kbd_gb', 'sunrex_kbd_us'],
                        hw_db.comp_db.opaque_components)
-      self.assertEqual(sorted(hw_db.comp_db.probable_components['cpu'].keys()),
+      self.assertEqual(sorted(hw_db.comp_db.probeable_components['cpu'].keys()),
                        ['cpu_0', 'ibm_deep_blue_4'],
-                       hw_db.comp_db.probable_components)
+                       hw_db.comp_db.probeable_components)
       self.assertTrue('FOO' in hw_db.devices, hw_db.devices.keys())
       device = hw_db.devices['FOO']
       bom = device.boms['BAR'].primary
@@ -322,7 +323,7 @@ class HwidTest(unittest.TestCase):
       f_hw_db = hwid_tool.HardwareDb(filter_path)
       f_device = f_hw_db.devices['FOO']
       self.assertEqual(f_device.boms.keys(), ['BAR'], f_device.boms.keys())
-      cpu_comps = f_hw_db.comp_db.probable_components.get('cpu', [])
+      cpu_comps = f_hw_db.comp_db.probeable_components.get('cpu', [])
       self.assertEqual(sorted(cpu_comps.keys()), ['cpu_0', 'cpu_1'], cpu_comps)
       hw_db = hwid_tool.HardwareDb(self.dir)
       hw_db.devices['FOO'].SetHwidStatus('BAZ', var_a, vol_a, 'supported')

@@ -57,7 +57,7 @@ _COMPONENT_PROBE_MAP = {}
 _INITIAL_CONFIG_PROBE_MAP = {}
 
 # Load-time decorator-populated set of probably component classes.
-PROBABLE_COMPONENT_CLASSES = set()
+PROBEABLE_COMPONENT_CLASSES = set()
 
 def _LoadKernelModule(name, error_on_fail=True):
   """Ensure kernel module is loaded.  If not already loaded, do the load."""
@@ -292,7 +292,7 @@ def _ProbeFun(probe_map, probe_class, *arch_targets):
 
 
 def _ComponentProbe(probe_class, *arch_targets):
-  PROBABLE_COMPONENT_CLASSES.add(probe_class)
+  PROBEABLE_COMPONENT_CLASSES.add(probe_class)
   return _ProbeFun(_COMPONENT_PROBE_MAP, probe_class, *arch_targets)
 
 

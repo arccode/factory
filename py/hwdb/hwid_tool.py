@@ -56,7 +56,7 @@ MakeDatastoreClass('StatusData', dict(
     for status_name in LIFE_CYCLE_STAGES))
 
 MakeDatastoreClass('ComponentRegistry', {
-    'probable_components': (dict, (dict, str)),
+    'probeable_components': (dict, (dict, str)),
     'opaque_components': (dict, (list, str)),
     'status': StatusData,
     })
@@ -279,13 +279,13 @@ class CompDb(YamlDatastore):
   def _BuildNameResultMap(self):
     self.name_result_map = dict(
       (comp_name, probe_result)
-      for comp_class, comp_map in self.probable_components.items()
+      for comp_class, comp_map in self.probeable_components.items()
       for comp_name, probe_result in comp_map.items())
 
   def _BuildResultNameMap(self):
     self.result_name_map = dict(
       (probe_result, comp_name)
-      for comp_class, comp_map in self.probable_components.items()
+      for comp_class, comp_map in self.probeable_components.items()
       for comp_name, probe_result in comp_map.items())
 
   def _BuildNameClassMaps(self):
@@ -296,7 +296,7 @@ class CompDb(YamlDatastore):
       for comp_name in comps))
     self.name_class_map.update(dict(
       (comp_name, comp_class)
-      for comp_class, comp_map in self.probable_components.items()
+      for comp_class, comp_map in self.probeable_components.items()
       for comp_name in comp_map))
     self.class_name_map = {}
     for name, comp_class in self.name_class_map.items():
@@ -307,7 +307,7 @@ class CompDb(YamlDatastore):
     self._BuildNameResultMap()
     self._BuildNameClassMaps()
     self.all_comp_classes = (set(self.opaque_components) |
-                             set(self.probable_components))
+                             set(self.probeable_components))
     self.all_comp_names = set(self.name_class_map)
     self.opaque_comp_names = set(
       comp_name
@@ -323,7 +323,7 @@ class CompDb(YamlDatastore):
   def _EnforceCompNameUniqueness(self):
     names = set()
     overlap = set()
-    for comp_map in self.probable_components.values():
+    for comp_map in self.probeable_components.values():
       for name in comp_map.values():
         (names if name not in names else overlap).add(name)
     for comps in self.opaque_components.values():
@@ -350,7 +350,7 @@ class CompDb(YamlDatastore):
     Validate.ComponentName(comp_name)
     assert comp_name not in self.name_class_map
     if probe_result is not None:
-      comp_map = self.probable_components.setdefault(comp_class, {})
+      comp_map = self.probeable_components.setdefault(comp_class, {})
       comp_map[comp_name] = probe_result
     else:
       self.opaque_components.setdefault(comp_class, []).append(comp_name)
@@ -1537,12 +1537,12 @@ def FilterDatabase(config, hw_db):
     for vol_name in device.volatiles[vol_code].values())
   comp_db = hw_db.comp_db
   filtered_comp_db = CompDb(ComponentRegistry(
-    probable_components=dict(
+    probeable_components=dict(
       (comp_class, dict(
           (comp_name, probe_result)
           for comp_name, probe_result in comp_map.items()
           if comp_name in target_components))
-       for comp_class, comp_map in comp_db.probable_components.items()),
+       for comp_class, comp_map in comp_db.probeable_components.items()),
     opaque_components=dict(
       (comp_class, [comp_name for comp_name in comps
                     if comp_name in target_components])
@@ -1685,7 +1685,7 @@ def RenameComponents(config, hw_db):  # pylint: disable=W0613
       comps.remove(old_name)
       comps.append(new_name)
     else:
-      comp_map = comp_db.probable_components[comp_class]
+      comp_map = comp_db.probeable_components[comp_class]
       comp_map[new_name] = comp_map.pop(old_name)
     def UpdateComponentSpec(spec):
       for comp_class, comp_data in spec.components.items():

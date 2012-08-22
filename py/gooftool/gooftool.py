@@ -29,7 +29,7 @@ from cros.factory.common import YamlWrite
 from cros.factory.gooftool import crosfw
 from cros.factory.gooftool import report_upload
 from cros.factory.gooftool.bmpblk import unpack_bmpblock
-from cros.factory.gooftool.probe import Probe, PROBABLE_COMPONENT_CLASSES
+from cros.factory.gooftool.probe import Probe, PROBEABLE_COMPONENT_CLASSES
 from cros.factory.gooftool.vpd_data import KNOWN_VPD_FIELD_DATA
 from cros.factory.hacked_argparse import CmdArg, Command, ParseCmdline
 from cros.factory.hacked_argparse import verbosity_cmd_arg
@@ -160,7 +160,7 @@ def BestMatchHwids(options):
   determine a list of components to probe for, and use those probe
   results to resolve a list of matching HWIDs.  If no boms,
   components, or variant codes are specified, then a list of all HWIDs
-  that match probable components will be returned.
+  that match probeable components will be returned.
 
   Returns (on stdout): A list of HWIDs that match the available probe
   results and argument contraints, one per line.
@@ -208,13 +208,13 @@ def BestMatchHwids(options):
   spec_classes = hwid_tool.ComponentSpecClasses(component_spec)
   missing_classes = set(comp_db.all_comp_classes) - spec_classes
   if missing_classes and not options.optimistic:
-    non_probable_missing = missing_classes - PROBABLE_COMPONENT_CLASSES
-    if non_probable_missing:
+    non_probeable_missing = missing_classes - PROBEABLE_COMPONENT_CLASSES
+    if non_probeable_missing:
       sys.exit('FAILURE: these classes are necessary, were not specified '
                'as inputs, and cannot be probed for:\n%s'
                'This problem can often be addressed by specifying all of '
                'the missing components on the command line (see the command '
-               'help).' % YamlWrite(list(non_probable_missing)))
+               'help).' % YamlWrite(list(non_probeable_missing)))
     print 'probing for missing classes:'
     print YamlWrite(list(missing_classes))
     probe_results = Probe(target_comp_classes=list(missing_classes),
@@ -326,7 +326,7 @@ def RunProbe(options):
          _hwdb_path_cmd_arg,
          CmdArg('target_comps', nargs='*'))
 def VerifyComponents(options):
-  """Verify that probable components all match entries in the component_db.
+  """Verify that probeable components all match entries in the component_db.
 
   Probe for each component class in the target_comps and verify
   that a corresponding match exists in the component_db -- make sure
