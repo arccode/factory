@@ -139,6 +139,7 @@ cros.factory.SYSTEM_INFO_LABELS = [
     {key: 'wlan0_mac', label: cros.factory.Label('WLAN MAC')},
     {key: 'ips', label: cros.factory.Label('IP Addresses')},
     {key: 'kernel_version', label: cros.factory.Label('Kernel')},
+    {key: 'architecture', label: cros.factory.Label('Architecture')},
     {key: 'ec_version', label: cros.factory.Label('EC')},
     {key: 'firmware_version', label: cros.factory.Label('Firmware')},
     {key: 'root_device', label: cros.factory.Label('Root Device')},

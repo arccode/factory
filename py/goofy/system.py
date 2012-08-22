@@ -57,6 +57,12 @@ class SystemInfo(object):
     except:
       self.kernel_version = None
 
+    try:
+      self.architecture = Spawn(['uname', '-m'],
+                                check_output=True).stdout_data.strip()
+    except:
+      self.architecture = None
+
     self.ec_version = None
     try:
       ectool = subprocess.Popen(['mosys', 'ec', 'info', '-l'],

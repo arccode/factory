@@ -16,7 +16,7 @@ import time
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
-from cros.factory.goofy import connection_manager
+from cros.factory.goofy import connection_manager, system
 from cros.factory.test import state
 from cros.factory.test import utils
 from cros.factory.utils.process_utils import Spawn
@@ -110,6 +110,13 @@ class DUTEnvironment(Environment):
     # Start with a fresh data directory every time.
     shutil.rmtree(chrome_data_dir, ignore_errors=True)
 
+    # Setup GPU & acceleration flags which differ between x86/ARM SoC
+    system_info = system.SystemInfo()
+    if system_info.architecture == "armv7l":
+      accelerated_flag = "--use-gl=egl"
+    else:
+      accelerated_flag = "--enable-accelerated-layers"
+
     chrome_command = [
       '/opt/google/chrome/chrome',
       '--user-data-dir=%s' % chrome_data_dir,
@@ -117,6 +124,7 @@ class DUTEnvironment(Environment):
       '--aura-host-window-use-fullscreen',
       '--kiosk',
       '--kiosk-mode-screensaver-path=/dev/null',
+      accelerated_flag,
       ('--default-device-scale-factor=%d' %
        self.goofy.options.ui_scale_factor),
       # Hard-code localhost IP so Chrome doesn't have to rely on DNS.
