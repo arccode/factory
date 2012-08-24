@@ -10,14 +10,13 @@ import logging
 import os
 import re
 import shutil
-import subprocess
 import sys
 import tempfile
 import time
 import unittest
 import xmlrpclib
 
-import factory_common
+import factory_common  # pylint: disable=W0611
 from cros.factory import shopfloor
 from cros.factory.shopfloor import shopfloor_server
 from cros.factory.utils.process_utils import Spawn
@@ -27,6 +26,7 @@ class ShopFloorServerTest(unittest.TestCase):
 
   def setUp(self):
     '''Starts shop floor server and creates client proxy.'''
+    # pylint: disable=W0212
     self.server_port = shopfloor_server._DEFAULT_SERVER_PORT
     self.base_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
     self.data_dir = tempfile.mkdtemp(prefix='shopfloor_data.')
@@ -34,7 +34,11 @@ class ShopFloorServerTest(unittest.TestCase):
         os.path.join(self.data_dir, shopfloor.REGISTRATION_CODE_LOG_CSV))
     csv_source = os.path.join(self.base_dir, 'testdata', 'devices.csv')
     csv_work = os.path.join(self.data_dir, 'devices.csv')
+    aux_csv_source = os.path.join(self.base_dir, 'testdata', 'aux_mlb.csv')
+    aux_csv_work = os.path.join(self.data_dir, 'aux_mlb.csv')
+
     shutil.copyfile(csv_source, csv_work)
+    shutil.copyfile(aux_csv_source, aux_csv_work)
     os.mkdir(os.path.join(self.data_dir, shopfloor.UPDATE_DIR))
     os.mkdir(os.path.join(self.data_dir, shopfloor.UPDATE_DIR, 'factory'))
 
@@ -53,11 +57,11 @@ class ShopFloorServerTest(unittest.TestCase):
     self.proxy = xmlrpclib.ServerProxy('http://localhost:%s' % self.server_port,
                                        allow_none=True)
     # Waits the server to be ready, up to 1 second.
-    for i in xrange(10):
+    for _ in xrange(10):
       try:
         self.proxy.Ping()
         break
-      except:
+      except:  # pylint: disable=W0702
         time.sleep(0.1)
         continue
     else:
@@ -194,6 +198,11 @@ class ShopFloorServerTest(unittest.TestCase):
       self.assertEqual(events[0], 'PREAMBLE')
       self.assertEqual(events[1], 'EVENT_1')
       self.assertEqual(events[2], 'EVENT_2')
+
+  def testGetDeviceData(self):
+    self.assertEqual({'serial_number': 'MLB00001',
+                      'has_lte': True},
+                     self.proxy.GetAuxData('mlb', 'MLB00001'))
 
 
 if __name__ == '__main__':

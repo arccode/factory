@@ -40,6 +40,9 @@ class ShopFloorBase(object):
   NAME = 'ShopFloorBase'
   VERSION = 4
 
+  def __init__(self):
+    self.data_dir = None  # Set by shopfloor_server
+
   def _InitBase(self):
     """Initializes the base class."""
     if not os.path.exists(self.data_dir):
@@ -174,6 +177,23 @@ class ShopFloorBase(object):
       a XML-RPC server module.
     """
     raise NotImplementedError('GetRegistrationCode')
+
+  def GetAuxData(self, table_name, id):
+    """Returns a row from an auxiliary table.
+
+    Args:
+      table_name: The table containing the desired row.
+      id: The ID of the row to return.
+
+    Returns:
+      A map of properties from the given table.
+
+    Raises:
+      ValueError if the ID cannot be found in the table.  Note this will be
+      converted to xmlrpclib.Fault when being used as an XML-RPC server
+      module.
+    """
+    raise NotImplementedError('GetAuxData')
 
   def LogRegistrationCodeMap(self, hwid, registration_code_map):
     """Logs that a particular registration code has been used."""

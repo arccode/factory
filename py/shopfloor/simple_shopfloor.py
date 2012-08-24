@@ -6,7 +6,7 @@
 
 This module provides an easy way to setup and use shop floor system. Use Google
 Docs or Excel to create a spreadsheet and export as CSV (comma separated
-values), with following fields:
+values), called devices.csv, with the following fields:
 
   serial_number: The serial number of each device.
   hwid: The HWID string assigned for each serial number.
@@ -14,22 +14,38 @@ values), with following fields:
             "test_data" in RO_VPD section.
   rw_vpd_*: Read-writeable VPD values, using same syntax described in ro_vpd_*.
 
+You may also add files named aux_*.csv; they will be parsed and their
+values returned via GetAuxData.  In the header row of aux_*.csv,
+column names may optionally be followed by contain a type (one of
+bool, int, float, or str) in square brackets; this means values in that
+column are parsed as that type.  For instance, if you have a file called
+aux_mlb.csv with the following contents:
+
+  id,foo[int],bar
+  MLB001,123,baz
+  MLB002,456,qux
+
+then:
+
+  GetAuxData('mlb', 'MLB001') == {'foo': 123, 'bar': 'baz'}
+  GetAuxData('mlb', 'MLB002') == {'foo': 456, 'bar': 'qux'}
+
 To use this module, run following command in factory_setup folder:
   shopfloor_server.py -m shopfloor.simple.ShopFloor -c PATH_TO_CSV_FILE.csv
 
-You can find a sample CSV file in in:
+You can find sample CSV files in:
   factory_setup/test_data/shopfloor/simple.csv
+  factory_setup/test_data/shopfloor/aux_mlb.csv
 """
 
 import csv
+import glob
 import logging
 import os
 import re
 import time
 
-from xmlrpclib import Binary
-
-import factory_common
+import factory_common  # pylint: disable=W0611
 from cros.factory import shopfloor
 
 
@@ -41,12 +57,28 @@ class ShopFloor(shopfloor.ShopFloorBase):
   NAME = "CSV-file based shop floor system"
   VERSION = 4
 
+  def __init__(self):
+    super(ShopFloor, self).__init__()
+    self.data_store = None
+    self.aux_data = {}
+    self.reports_dir = None
+
   def Init(self):
     devices_csv = os.path.join(self.data_dir, 'devices.csv')
     logging.info("Parsing %s...", devices_csv)
     self.data_store = LoadCsvData(devices_csv)
     logging.info("Loaded %d entries from %s.",
                  len(self.data_store), devices_csv)
+
+    for f in glob.glob(os.path.join(self.data_dir, '*.csv')):
+      match = re.match('^aux_(\w+)\.csv',
+                       os.path.basename(f))
+      if not match:
+        continue
+      table_name = match.group(1)
+      logging.info("Reading table %s from %s", table_name, f)
+      assert table_name not in self.aux_data
+      self.aux_data[table_name] = LoadAuxCsvData(f)
 
     # Put uploaded reports in a "reports" folder inside data_dir.
     self.reports_dir = os.path.join(self.data_dir, 'reports')
@@ -75,6 +107,9 @@ class ShopFloor(shopfloor.ShopFloorBase):
   def GetVPD(self, serial):
     self._CheckSerialNumber(serial)
     return self.data_store[serial]['vpd']
+
+  def GetAuxData(self, table_name, id):  # pylint: disable=W0622
+    return self.aux_data[table_name][id]
 
   def GetRegistrationCodeMap(self, serial):
     self._CheckSerialNumber(serial)
@@ -183,4 +218,96 @@ def LoadCsvData(filename):
                'vpd': build_vpd(row),
                'registration_code_map': build_registration_code_map(row)}
       data[serial_number] = entry
+  return data
+
+
+def LoadAuxCsvData(csv_file):
+  '''Parses an aux_*.csv CSV file.  See file docstring for syntax.
+
+  Args:
+    csv_file: Path to the file.
+
+  Returns:
+    A map. Each item's key is the ID of a row, and the value is a map
+    of all columns in the row.
+
+  Raises:
+    ValueError if the CSV is not semantically valid.
+    Other exceptions as raised by csv.reader.
+  '''
+  def ParseBoolean(value):
+    if value in ['0', 'false', 'False']:
+      return False
+    if value in ['1', 'true', 'True']:
+      return True
+    raise ValueError('%r is not a Boolean value' % value)
+
+  data = {}
+
+  with open(csv_file, 'rb') as source:
+    reader = csv.reader(source)
+    headers = reader.next()
+
+    # A list of tuples (name, parser), where parser is a function that
+    # can be used to parse the column (e.g., the str or int builtins).
+    cols = []
+    # Set of all column names, for duplicate detection.
+    col_name_set = set()
+    # Matches 'foo' or 'foo[int]'.
+    HEADER_REGEXP = re.compile('^(\w+)(?:\[(\w+)\])?$')
+    PARSERS = {
+        'str': str,
+        'bool': ParseBoolean,
+        'int': int,
+        'float': float
+        }
+    for header in headers:
+      match = HEADER_REGEXP.match(header)
+      if not match:
+        raise ValueError("In %s, header %r does not match regexp %s"
+                         % (csv_file, header, HEADER_REGEXP.pattern))
+
+      col_name, col_type = match.groups()
+      if col_type:
+        parser = PARSERS.get(col_type)
+        if not parser:
+          raise ValueError("In %s, header %r has unknown type %r"
+                           " (should be one of %r)"
+                           % (csv_file, col_name, col_type,
+                              sorted(PARSERS.keys())))
+      else:
+        # No type; default to string.
+        parser = str
+      cols.append((col_name, parser))
+
+      if col_name in col_name_set:
+        raise ValueError("In %s, more than one column named %r"
+                         % (csv_file, col_name))
+      col_name_set.add(col_name)
+
+    # Use the first column as the ID column.
+    id_column_name = cols[0][0]
+
+    row_number = 1
+    for row in reader:
+      row_number += 1
+      if len(row) != len(cols):
+        raise ValueError("In %s:%d, expected %d columns but got %d",
+                         csv_file, row_number, len(headers), len(row))
+      row_data = {}
+
+      for value, col in zip(row, cols):
+        try:
+          row_data[col[0]] = col[1](value)
+        except ValueError as e:
+          # Re-raise with row number and column name
+          raise ValueError("In %s:%d.%s, %s" %
+                           (csv_file, row_number, col[0], e))
+
+      row_id = row_data.get(id_column_name)
+      if row_id in data:
+        raise ValueError("In %s:%d, duplicate ID %r" %
+                         (csv_file, row_number, row_id))
+      data[row_id] = row_data
+
   return data

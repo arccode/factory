@@ -40,8 +40,6 @@ LINT_BLACKLIST=\
 	py/shopfloor/factory_update_server_unittest.py \
 	py/shopfloor/shopfloor_server.py \
 	py/shopfloor/shopfloor_standalone_unittest.py \
-	py/shopfloor/shopfloor_unittest.py \
-	py/shopfloor/simple_shopfloor.py \
 	py/shopfloor/template.py \
 	py/system/charge_manager_unittest.py \
 	py/test/event.py \

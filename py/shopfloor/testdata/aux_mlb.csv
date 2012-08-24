@@ -1,0 +1,5 @@
+serial_number,has_lte[bool]
+MLB00001,True
+MLB00002,False
+MLB00003,True
+MLB00004,False
