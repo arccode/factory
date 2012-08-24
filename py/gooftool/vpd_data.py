@@ -11,7 +11,7 @@
 """Collection of valid VPD values for ChromeOS."""
 
 
-# keyboard_layout: http://gerrit.chromium.org/gerrit/gitweb?p=chromium/src.git;a=blob;f=chrome/browser/chromeos/input_method/ibus_input_methods.txt
+# keyboard_layout: https://gerrit.chromium.org/gerrit/gitweb?p=chromium/src.git;a=blob;f=chrome/browser/chromeos/input_method/input_methods.txt
 KEYBOARD_LAYOUT = [
   'xkb:nl::nld',
   'xkb:be::nld',
@@ -201,7 +201,7 @@ INITIAL_LOCALE = [
   "zu",
   ]
 
-# initial_timezone: http://git.chromium.org/gitweb/?p=chromium.git;a=blob;f=chrome/browser/chromeos/dom_ui/system_settings_provider.cc
+# initial_timezone: http://git.chromium.org/gitweb/?p=chromium.git;a=blob;f=chrome/browser/chromeos/system/timezone_settings.cc
 INITIAL_TIMEZONE = [
   "Pacific/Majuro",
   "Pacific/Midway",
