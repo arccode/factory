@@ -39,7 +39,7 @@ def Shell(cmd, stdin=None):
     stdin: String that will be passed as stdin to the command.
   """
   process = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=True)
-  stdout, stderr = process.communicate(input=stdin)
+  stdout, stderr = process.communicate(input=stdin)  # pylint: disable=E1123
   logging.debug('running %s' % repr(cmd) +
                 (', stdout: %s' % repr(stdout.strip()) if stdout else '') +
                 (', stderr: %s' % repr(stderr.strip()) if stderr else ''))

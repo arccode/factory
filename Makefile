@@ -16,11 +16,13 @@ PAR_DEST_DIR=$(FACTORY)
 
 PYLINTRC=../../../chromite/pylintrc
 
+# TODO(shik): Re-enable R0801 once flash_firmware.py and
+# setup_netboot.py are fixed.
 PYLINT_OPTIONS=\
 	--rcfile=$(PYLINTRC) \
 	--ignored-classes=Event,Obj \
-	--disable=R0921 \
-	--generated-members=test_info,AndReturn,AndRaise
+	--disable=R0921,R0801 \
+	--generated-members=test_info,AndReturn,AndRaise,args
 
 LINT_BLACKLIST=\
 	py/argparse.py \

@@ -68,7 +68,7 @@ def KillProcess(pat):
 
 
 def ResetServoPort():
-  global SERVO_PORT
+  global SERVO_PORT  # pylint: disable=W0603
   sock = socket.socket()
   sock.bind(('', 0))
   SERVO_PORT = sock.getsockname()[1]
