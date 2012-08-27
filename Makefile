@@ -2,6 +2,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+SHELL := bash
+
 BUILD_DIR=build
 PAR_BUILD_DIR=$(BUILD_DIR)/par
 DESTDIR=$(BUILD_DIR)/image
@@ -49,7 +51,6 @@ LINT_BLACKLIST=\
 	py/test/media_util.py \
 	py/test/media_util_unittest.py \
 	py/test/pytests/execpython.py \
-	py/test/shopfloor.py \
 	py/test/state_machine.py \
 	py/test/state.py \
 	py/test/state_unittest.py \
@@ -60,10 +61,9 @@ LINT_BLACKLIST=\
 	py/test/utils.py \
 	py/test/utils_unittest.py
 
-# Temporary changes for broken code.  TODO(jsalz, itspeter): Remove.
+# Temporary changes for broken code.  TODO(itspeter): Remove.
 LINT_BLACKLIST += \
-	py/test/pytests/probe_cellular_info.py \
-	py/goofy/goofy.py
+	py/test/pytests/probe_cellular_info.py
 
 LINT_FILES=$(filter-out $(LINT_BLACKLIST), \
                $(shell find py -name '*.py' -type f | sort))
@@ -136,7 +136,22 @@ install:
 
 
 lint:
-	env PYTHONPATH=py_pkg pylint $(PYLINT_OPTIONS) $(LINT_FILES)
+	@set -e -o pipefail; \
+	out=$$(mktemp); \
+	echo Linting $(shell echo $(LINT_FILES) | wc -w) files...; \
+	if ! env PYTHONPATH=py_pkg pylint $(PYLINT_OPTIONS) $(LINT_FILES) \
+	    |& tee $$out; then \
+	  echo; \
+	  echo To re-lint failed files, run:; \
+	  echo make lint LINT_FILES=\""$$( \
+	    grep '^\*' $$out | cut -c22- | tr . / | \
+	    sed 's/$$/.py/' | tr '\n' ' ')"\"; \
+	  echo; \
+	  rm -f $$out; \
+	  exit 1; \
+	fi; \
+	echo ...no lint errors!; \
+	rm -f $$out
 
 clean:
 	rm -rf $(BUILD_DIR)

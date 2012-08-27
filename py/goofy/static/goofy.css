@@ -232,6 +232,10 @@ h1 {
 .goofy-status-untested > div > .goofy-test-icon {
   background-image: url(images/untested.gif);
 }
+.goofy-skip .goog-tree-item-label {
+  text-decoration: line-through;
+  color: darkgray !important;
+}
 .goofy-test-failure-expanded .goofy-test-failure-detail-link {
   display: none;
 }

@@ -12,6 +12,7 @@ import logging
 import os
 import Queue
 import re
+import threading
 import time
 
 import factory_common  # pylint: disable=W0611
@@ -166,3 +167,16 @@ class GoofyRPC(object):
     except:
       logging.exception('Unable to save logs to USB')
       raise
+
+  def UpdateSkippedTests(self):
+    '''Updates skipped tests based on run_if.'''
+    done = threading.Event()
+
+    def Target():
+      try:
+        self.goofy.update_skipped_tests()
+      finally:
+        done.set()
+
+    self.goofy.run_queue.put(Target)
+    done.wait()

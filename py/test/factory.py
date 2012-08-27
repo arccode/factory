@@ -397,8 +397,13 @@ class TestState(object):
   FAILED = 'FAILED'
   UNTESTED = 'UNTESTED'
 
+  # Error message used for tests that are considered passed only because
+  # they have been skipped.
+  SKIPPED_MSG = 'SKIPPED'
+
   def __init__(self, status=UNTESTED, count=0, visible=False, error_msg=None,
-               shutdown_count=0, invocation=None, iterations_left=0):
+               shutdown_count=0, invocation=None, iterations_left=0,
+               skip=False):
     self.status = status
     self.count = count
     self.visible = visible
@@ -406,6 +411,7 @@ class TestState(object):
     self.shutdown_count = shutdown_count
     self.invocation = invocation
     self.iterations_left = iterations_left
+    self.skip = skip
 
   def __repr__(self):
     return std_repr(self)
@@ -413,7 +419,8 @@ class TestState(object):
   def update(self, status=None, increment_count=0, error_msg=None,
              shutdown_count=None, increment_shutdown_count=0, visible=None,
              invocation=None,
-             decrement_iterations_left=0, iterations_left=None):
+             decrement_iterations_left=0, iterations_left=None,
+             skip=None):
     '''
     Updates the state of a test.
 
@@ -428,6 +435,7 @@ class TestState(object):
     @param iterations_left: If non-None, the new iterations_left.
     @param decrement_iterations_left: An amount by which to decrement
       iterations_left.
+    @param skip: Whether the test should be skipped.
 
     Returns True if anything was changed.
     '''
@@ -443,6 +451,8 @@ class TestState(object):
       self.iterations_left = iterations_left
     if visible is not None:
       self.visible = visible
+    if skip is not None:
+      self.skip = skip
 
     if invocation is not None:
       self.invocation = invocation
@@ -524,6 +534,12 @@ class FactoryTest(object):
   among its siblings). Each node also has a path (unique throughout the
   tree), constructed by joining the IDs of all the test's ancestors
   with a '.' delimiter.
+
+  Properties:
+    Mostly the same as constructor args.  Additionally:
+      run_if_table_name: The table_name portion of the run_if ctor arg.
+      run_if_col: The column name portion of the run_if ctor arg.
+      run_if_not: Whether the sense of the argument is inverted.
   '''
 
   # If True, the test never fails, but only returns to an untested state.
@@ -538,6 +554,8 @@ class FactoryTest(object):
 
   # Subsystems that the test may require exclusive access to.
   EXCLUSIVE_OPTIONS = utils.Enum(['NETWORKING'])
+
+  RUN_IF_REGEXP = re.compile(r'^(!)?(\w+)\.(\w+)$')
 
   def __init__(self,
                label_en='',
@@ -554,6 +572,7 @@ class FactoryTest(object):
                never_fails=None,
                exclusive=None,
                require_run=None,
+               run_if=None,
                iterations=1,
                _root=None,
                _default_id=None):
@@ -607,6 +626,14 @@ class FactoryTest(object):
 
         require_run=['x', Passed('y')]  # Requires that x has been run
                                         # and y has passed
+    @param run_if: Condition under which the test should be run.  This
+      must currently be a string of the format
+
+        table_name.col
+        !table_name.col
+
+      If the auxiliary table 'table_name' is available, then its column 'col'
+      is used to determine whether the test should be run.
     @param iterations: Number of times to run the test.
     @param _root: True only if this is the root node (for internal use
       only).
@@ -637,6 +664,17 @@ class FactoryTest(object):
                 'require_run must be a list of RequireRun objects (%r)' %
                 require_run)
     self.require_run = require_run
+
+    self.run_if_table_name = None
+    self.run_if_col = None
+    self.run_if_not = False
+    if run_if:
+      match = self.RUN_IF_REGEXP.match(run_if)
+      assert match, ('In test %s, run_if value %r does not match %s',
+                     self.path, run_if, self.RUN_IF_REGEXP.pattern)
+      self.run_if_not = match.group(1) is not None
+      self.run_if_table_name = match.group(2)
+      self.run_if_col = match.group(3)
 
     self.subtests = filter(None, utils.FlattenList(subtests or []))
     self.path = ''

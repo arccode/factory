@@ -318,6 +318,9 @@ cros.factory.Invocation = function(goofy, path, uuid) {
                             /** @type boolean */(
                                 goofy.pathTestMap[path].state.visible));
     document.getElementById('goofy-main').appendChild(this.iframe);
+    this.iframe.contentWindow.$ = goog.bind(function(id) {
+        return this.iframe.contentDocument.getElementById(id);
+    }, this);
     this.iframe.contentWindow.test = this.test;
     this.iframe.contentWindow.focus();
 };
@@ -1896,6 +1899,9 @@ cros.factory.Goofy.prototype.setTestState = function(path, state) {
                 return goog.string.startsWith(cls, "goofy-status-") && cls
             }),
         'goofy-status-' + state.status.toLowerCase());
+
+    goog.dom.classes.enable(elt, 'goofy-skip',
+                            /** @type boolean */(state.skip));
 
     var visible = /** @type boolean */(state.visible);
     goog.dom.classes.enable(elt, 'goofy-test-visible', visible);

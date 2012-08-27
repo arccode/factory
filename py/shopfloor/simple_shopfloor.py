@@ -76,9 +76,11 @@ class ShopFloor(shopfloor.ShopFloorBase):
       if not match:
         continue
       table_name = match.group(1)
-      logging.info("Reading table %s from %s", table_name, f)
+      logging.info("Reading table %s from %s...", table_name, f)
       assert table_name not in self.aux_data
       self.aux_data[table_name] = LoadAuxCsvData(f)
+      logging.info("Loaded %d entries from %s",
+                   len(self.aux_data[table_name]), f)
 
     # Put uploaded reports in a "reports" folder inside data_dir.
     self.reports_dir = os.path.join(self.data_dir, 'reports')

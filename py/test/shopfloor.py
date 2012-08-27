@@ -38,6 +38,9 @@ from cros.factory.utils.process_utils import Spawn
 # Name of the factory shared data key that maps to session info.
 KEY_SHOPFLOOR_SESSION = 'shopfloor.session'
 
+# Prefix for auxiliary session data entries.
+KEY_SESSION_AUX_PREFIX = 'shopfloor.aux.'
+
 # Session data will be serialized, so we're not using class/namedtuple. The
 # session is a simple dictionary with following keys:
 SESSION_SERIAL_NUMBER = 'serial_number'
@@ -46,6 +49,10 @@ SESSION_ENABLED = 'enabled'
 
 API_GET_HWID = 'GetHWID'
 API_GET_VPD = 'GetVPD'
+
+# A key that can be used in get_aux_data() to refer to the
+# motherboard.
+AUX_TABLE_MLB = 'mlb'
 
 # Default port number from shopfloor_server.py.
 _DEFAULT_SERVER_PORT = 8082
@@ -87,6 +94,9 @@ def _server_api(call):
 # ----------------------------------------------------------------------------
 # Utility Functions
 
+def _get_aux_shared_data_key(table_name):
+  return KEY_SESSION_AUX_PREFIX + table_name
+
 def _fetch_current_session():
   """Gets current shop floor session from factory states shared data.
 
@@ -95,9 +105,11 @@ def _fetch_current_session():
   if factory.has_shared_data(KEY_SHOPFLOOR_SESSION):
     session = factory.get_shared_data(KEY_SHOPFLOOR_SESSION)
   else:
-    session = {SESSION_SERIAL_NUMBER: None,
-          SESSION_SERVER_URL: None,
-          SESSION_ENABLED: False}
+    session = {
+        SESSION_SERIAL_NUMBER: None,
+        SESSION_SERVER_URL: None,
+        SESSION_ENABLED: False,
+        }
     factory.set_shared_data(KEY_SHOPFLOOR_SESSION, session)
   return session
 
@@ -184,6 +196,41 @@ def get_instance(url=None, detect=False, timeout=None):
     raise Exception(SHOPFLOOR_NOT_CONFIGURED_STR)
   return net_utils.TimeoutXMLRPCServerProxy(
     url, allow_none=True, verbose=False, timeout=timeout)
+
+
+def save_aux_data(table_name, id, data):  # pylint: disable=W0622
+  """Saves data from an auxiliary table."""
+  logging.info('Setting aux data for table %r to ID %r, value %r',
+               table_name, id, data)
+  factory.set_shared_data(_get_aux_shared_data_key(table_name),
+                          (id, data))
+
+
+def select_aux_data(table_name, id):  # pylint: disable=W0622
+  """Selects a row in an auxiliary table.
+
+  This row's data will be returned for future invocations of
+  get_selected_aux_data.
+
+  For instance, one might call:
+
+    select_aux_data('mlb', 'MLB00001')
+
+  ...and from then on,
+
+    get_selected_aux_data('mlb')
+
+  will return the data from the 'mlb' table corresponding to ID 'MLB00001'.
+
+  Returns:
+    The data for that row.
+
+  Raises:
+    ValueError if the row cannot be found in the shopfloor server.
+  """
+  data = get_aux_data(table_name, id)
+  save_aux_data(table_name, id, data)
+  return data
 
 
 @_server_api
@@ -285,12 +332,32 @@ def get_registration_code_map():
 
 
 @_server_api
-def get_aux_data(table_name, id):
-  """Returns a row from an auxiliary table.
+def get_aux_data(table_name, id):  # pylint: disable=W0622
+  """Fetches a row from an auxiliary table.
+
+  Args:
+    table_name: The auxiliary table from which to return data.
+    id: The ID of the row.
 
   See GetAuxData in py/shopfloor/__init__.py for details.
   """
   return get_instance().GetAuxData(table_name, id)
+
+
+def get_selected_aux_data(table_name):
+  """Returns the previously selected row from an auxiliary table.
+
+  Args:
+    table_name: The auxiliary table from which to return data.
+
+  Raises:
+    ValueError: If select_aux_data has not yet succeeded for this table.
+  """
+  dummy_id, data = factory.get_shared_data(
+      _get_aux_shared_data_key(table_name), default=(None, None))
+  if not data:
+    raise ValueError('No aux data selected for table %s' % table_name)
+  return data
 
 
 @_server_api

@@ -28,6 +28,7 @@ from cros.factory.test import state
 from cros.factory.goofy.connection_manager import ConnectionManager
 from cros.factory.goofy.goofy import Goofy
 from cros.factory.goofy.test_environment import Environment
+from cros.factory.test import shopfloor
 from cros.factory.test.event import Event
 from cros.factory.test.factory import TestState
 from cros.factory.utils.process_utils import Spawn
@@ -503,6 +504,46 @@ class RequireRunPassedTest(GoofyTest):
     self.goofy.restart_tests()
     self.check_one_test('a', 'a_A', True, '', expected_count=2)
     self.check_one_test('b', 'b_B', True, '')
+
+
+class RunIfTest(GoofyTest):
+  options = '''
+    options.auto_run_on_start = True
+  '''
+  test_list = '''
+    OperatorTest(id='a', autotest_name='a_A', run_if='foo.bar'),
+    OperatorTest(id='b', autotest_name='b_B', run_if='!foo.bar'),
+    OperatorTest(id='c', autotest_name='c_C'),
+  '''
+  def runTest(self):
+    state_instance = factory.get_state_instance()
+
+    # Set foo.bar in the state server.
+    shopfloor.save_aux_data('foo', 'MLB00001', {'bar': True})
+    self.goofy.update_skipped_tests()
+    a_state = state_instance.get_test_state('a')
+    self.assertEquals(False, a_state.skip)
+    b_state = state_instance.get_test_state('b')
+    self.assertEquals(True, b_state.skip)
+
+    self.check_one_test('a', 'a_A', True, '')
+    self.check_one_test('c', 'c_C', True, '')
+    a_state = state_instance.get_test_state('a')
+    self.assertEquals(TestState.PASSED, a_state.status)
+    self.assertEquals('', a_state.error_msg)
+    b_state = state_instance.get_test_state('b')
+    self.assertEquals(TestState.PASSED, b_state.status)
+    self.assertEquals(TestState.SKIPPED_MSG, b_state.error_msg)
+
+    # Set foo.bar=False.  The state of b_B should switch to untested.
+    shopfloor.save_aux_data('foo', 'MLB00001', {'bar': False})
+    self.goofy.update_skipped_tests()
+    a_state = state_instance.get_test_state('a')
+    self.assertEquals(TestState.PASSED, a_state.status)
+    self.assertEquals('', a_state.error_msg)
+    b_state = state_instance.get_test_state('b')
+    self.assertEquals(TestState.UNTESTED, b_state.status)
+    self.assertEquals('', b_state.error_msg)
 
 
 if __name__ == "__main__":

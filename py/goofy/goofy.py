@@ -479,11 +479,15 @@ class Goofy(object):
             logging.exception('Unable to grok /var/log/messages')
             var_log_messages = []
 
-        if mosys_log is None:
-          mosys_log = utils.Spawn(['mosys', 'eventlog', 'list'],
-              read_stdout=True, log_stderr_on_error=True).stdout_data
-          # Write it to the log also.
-          logging.info('System eventlog from mosys:\n%s\n', mosys_log)
+        if mosys_log is None and not utils.in_chroot():
+          try:
+            mosys_log = utils.Spawn(
+                ['mosys', 'eventlog', 'list'],
+                read_stdout=True, log_stderr_on_error=True).stdout_data
+            # Write it to the log also.
+            logging.info('System eventlog from mosys:\n%s\n', mosys_log)
+          except:  # pylint: disable=W0702
+            logging.exception('Unable to read mosys eventlog')
 
         error_msg = 'Unexpected shutdown while test was running'
         self.event_log.Log('end_test',
@@ -504,6 +508,34 @@ class Goofy(object):
                                'running; cancelling any pending tests',
                                test.path)
           self.state_instance.set_shared_data('tests_after_shutdown', [])
+
+    self.update_skipped_tests()
+
+  def update_skipped_tests(self):
+    '''
+    Updates skipped states based on run_if.
+    '''
+    for t in self.test_list.walk():
+      if t.is_leaf() and t.run_if_table_name:
+        skip = False
+        try:
+          aux = shopfloor.get_selected_aux_data(t.run_if_table_name)
+          value = aux.get(t.run_if_col)
+          if value is not None:
+            skip = (not value) ^ t.run_if_not
+        except ValueError:
+          # Not available; assume it shouldn't be skipped
+          pass
+
+        test_state = t.get_state()
+        if ((not skip) and
+            (test_state.status == TestState.PASSED) and
+            (test_state.error_msg == TestState.SKIPPED_MSG)):
+          # It was marked as skipped before, but now we need to run it.
+          # Mark as untested.
+          t.update_state(skip=skip, status=TestState.UNTESTED, error_msg='')
+        else:
+          t.update_state(skip=skip)
 
   def show_next_active_test(self):
     '''
@@ -549,6 +581,13 @@ class Goofy(object):
 
       if test in self.invocations:
         logging.info('Next test %s is already running', test.path)
+        self.tests_to_run.popleft()
+        return
+
+      if test.get_state().skip:
+        factory.console.info('Skipping test %s', test.path)
+        test.update_state(status=TestState.PASSED,
+                          error_msg=TestState.SKIPPED_MSG)
         self.tests_to_run.popleft()
         return
 
