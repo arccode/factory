@@ -56,6 +56,7 @@ class WebSocketManager(object):
                     name='WebSocketManager')
     self.tail_process = Spawn(
         ["tail", "-F", factory.CONSOLE_LOG_PATH],
+        ignore_stdin=True,
         stdout=subprocess.PIPE)
     self.tail_thread = threading.Thread(target=self._tail_console)
     self.tail_thread.start()
@@ -171,7 +172,10 @@ class WebSocketManager(object):
 
   def wait(self):
     '''Waits for one socket to connect successfully.'''
-    self.has_confirmed_socket.wait()
+    while not self.has_confirmed_socket.is_set():
+      # Wait at most 100 ms at a time; without a timeout, this seems
+      # to eat SIGINT signals.
+      self.has_confirmed_socket.wait(0.1)
 
   def _tail_console(self):
     '''Tails the console log, generating an event whenever a new

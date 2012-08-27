@@ -117,6 +117,7 @@ def Spawn(args, **kwargs):
   check_call = kwargs.pop('check_call', False)
   check_output = kwargs.pop('check_output', False)
   read_stdout = kwargs.pop('read_stdout', False)
+  ignore_stdin = kwargs.pop('ignore_stdin', False)
   ignore_stdout = kwargs.pop('ignore_stdout', False)
   read_stderr = kwargs.pop('read_stderr', False)
   ignore_stderr = kwargs.pop('ignore_stderr', False)
@@ -129,6 +130,9 @@ def Spawn(args, **kwargs):
     else:
       args = ['sudo'] + args
 
+  if ignore_stdin:
+    assert not kwargs.get('stdin')
+    kwargs['stdin'] = OpenDevNull()
   if ignore_stdout:
     assert not read_stdout
     assert not kwargs.get('stdout')

@@ -12,6 +12,7 @@ The main factory flow that runs the factory test and finalizes a device.
 import logging
 import os
 import Queue
+import signal
 import sys
 import threading
 import time
@@ -852,6 +853,11 @@ class Goofy(object):
         post_update_hook()
       self.env.shutdown('reboot')
 
+  def handle_sigint(self, signum, frame):
+    logging.error('Received SIGINT')
+    self.run_queue.put(None)
+    raise KeyboardInterrupt()
+
   def init(self, args=None, env=None):
     '''Initializes Goofy.
 
@@ -861,6 +867,8 @@ class Goofy(object):
       env: An Environment instance to use (or None to choose
         FakeChrootEnvironment or DUTEnvironment as appropriate).
     '''
+    signal.signal(signal.SIGINT, self.handle_sigint)
+
     parser = OptionParser()
     parser.add_option('-v', '--verbose', dest='verbose',
                       action='store_true',
@@ -1309,4 +1317,8 @@ class Goofy(object):
 
 
 if __name__ == '__main__':
-  Goofy().main()
+  goofy = Goofy()
+  try:
+    goofy.main()
+  finally:
+    goofy.destroy()
