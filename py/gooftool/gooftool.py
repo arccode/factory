@@ -336,9 +336,9 @@ def VerifyComponents(options):
   comp_db = hwid_tool.HardwareDb(options.hwdb_path).comp_db
   if not options.target_comps:
     sys.exit('ERROR: no target component classes specified; possible choices:\n'
-             + '\n  '.join(sorted(comp_db.components)))
+             + '\n  '.join(sorted(comp_db.probeable_components)))
   for comp_class in options.target_comps:
-    if comp_class not in comp_db.components:
+    if comp_class not in comp_db.probeable_components:
       sys.exit('ERROR: specified component class %r does not exist'
                ' in the component DB.' % comp_class)
   probe_results = Probe(target_comp_classes=options.target_comps,
@@ -346,7 +346,7 @@ def VerifyComponents(options):
   errors = []
   matches = []
   for comp_class in sorted(options.target_comps):
-    probe_val = probe_results.found_components.get(comp_class, None)
+    probe_val = probe_results.found_probe_value_map.get(comp_class, None)
     if probe_val is not None:
       comp_name = comp_db.result_name_map.get(probe_val, None)
       if comp_name is not None:
@@ -357,12 +357,14 @@ def VerifyComponents(options):
                       (comp_class, probe_val))
     else:
       errors.append('missing %r component' % comp_class)
+  if matches:
+    print 'found probeable components:\n  %s' % '\n  '.join(matches)
+
   if errors:
-    print '\n'.join(errors)
-    sys.exit('component verification FAILURE')
+    print '\nerrors:\n  %s' % '\n  '.join(errors)
+    sys.exit('\ncomponent verification FAILURE')
   else:
-    print 'component verification SUCCESS'
-    print 'found components:\n  %s' % '\n  '.join(matches)
+    print "\ncomponent verification SUCCESS"
 
 
 @Command('verify_hwid',
