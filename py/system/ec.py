@@ -52,6 +52,13 @@ class EC(object):
       A string of the EC firmware version. Raises ECException when fail.'''
     raise NotImplementedError
 
+  def GetConsoleLog(self):
+    '''Gets the EC console log.
+
+    Returns:
+      A string containing EC console log. Raises ECException when fail.'''
+    raise NotImplementedError
+
   def SetChargeState(self, state):
     '''Sets the charge state.
 

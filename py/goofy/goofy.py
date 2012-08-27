@@ -452,6 +452,7 @@ class Goofy(object):
 
     var_log_messages = None
     mosys_log = None
+    ec_console_log = None
 
     # Any 'active' tests should be marked as failed now.
     for test in self.test_list.walk():
@@ -492,6 +493,15 @@ class Goofy(object):
             logging.info('System eventlog from mosys:\n%s\n', mosys_log)
           except:  # pylint: disable=W0702
             logging.exception('Unable to read mosys eventlog')
+
+        if ec_console_log is None:
+          try:
+            ec = system.GetEC()
+            ec_console_log = ec.GetConsoleLog()
+            logging.info('EC console log after reboot:\n%s\n', ec_console_log)
+          except:
+            logging.exception('Error retrieving EC console log')
+
 
         error_msg = 'Unexpected shutdown while test was running'
         self.event_log.Log('end_test',

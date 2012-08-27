@@ -82,6 +82,18 @@ class ChromeOSECTest(unittest.TestCase):
     self.assertEquals(self.ec.GetVersion(), 'link_v1.1.227-3b0e131')
     self.mox.VerifyAll()
 
+  def testGetConsoleLog(self):
+    _MOCK_LOG = '\n'.join([
+        '[hostcmd 0x20]',
+        '[hostcmd 0x60]',
+        '[charge state idle -> charge]'])
+
+    # pylint: disable=W0212
+    self.ec._CallECTool(['console']).AndReturn(_MOCK_LOG)
+    self.mox.ReplayAll()
+    self.assertEquals(self.ec.GetConsoleLog(), _MOCK_LOG)
+    self.mox.VerifyAll()
+
   def testCharge(self):
     # pylint: disable=W0212
     self.ec._CallECTool(['chargeforceidle', '0'])

@@ -70,6 +70,9 @@ class ChromeOSEC(EC):
                            ignore_stderr=True).stdout_data
     return self.EC_VERSION_RE.search(response).group(1)
 
+  def GetConsoleLog(self):
+    return self._CallECTool(['console'])
+
   def SetChargeState(self, state):
     try:
       if state == EC.ChargeState.CHARGE:
