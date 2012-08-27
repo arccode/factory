@@ -338,6 +338,9 @@ class Options(object):
   update_period_secs = None
   _types['update_period_secs'] = (type(None), int)
 
+  # Interval to use for periodic wireless networks scanning.
+  scan_wifi_period_secs = 10
+
   # Timeout talking to shopfloor server for background operations.
   shopfloor_timeout_secs = 10
 

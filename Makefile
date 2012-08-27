@@ -30,7 +30,6 @@ LINT_BLACKLIST=\
 	py/argparse.py \
 	py/gooftool/vblock.py \
 	py/goofy/invocation.py \
-	py/goofy/connection_manager.py \
 	py/goofy/event_log_watcher.py \
 	py/goofy/event_log_watcher_unittest.py \
 	py/goofy/prespawner.py \
@@ -72,6 +71,7 @@ LINT_WHITELIST=$(filter-out $(LINT_BLACKLIST),$(LINT_FILES))
 UNITTESTS=\
 	py/board/chromeos_ec_unittest.py \
 	py/event_log_unittest.py \
+	py/goofy/connection_manager_unittest.py \
 	py/goofy/event_log_watcher_unittest.py \
 	py/goofy/goofy_rpc_unittest.py \
 	py/goofy/goofy_unittest.py \

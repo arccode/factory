@@ -139,8 +139,9 @@ class DUTEnvironment(Environment):
                  stdout=chrome_log_file,
                  stderr=subprocess.STDOUT)
 
-  def create_connection_manager(self, wlans):
-    return connection_manager.ConnectionManager(wlans)
+  def create_connection_manager(self, wlans, scan_wifi_period_secs):
+    return connection_manager.ConnectionManager(wlans,
+                                                scan_wifi_period_secs)
 
 
 class FakeChrootEnvironment(Environment):
