@@ -136,7 +136,7 @@ class ExternalPowerTask(FactoryTask):
 
   def CheckEvent(self):
     state = self.GetExternalPowerState()
-    factory.console.info('power state: ', state)
+    factory.console.info('power state: %s' % state)
     if state == self.AC_CONNECTED:
       return True
     return False

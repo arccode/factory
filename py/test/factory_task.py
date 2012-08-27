@@ -45,7 +45,7 @@ class FactoryTask(object):
   '''Base class for factory tasks.
 
   Subclass should implement Run(), and possibly Cleanup() if the user
-  wants to do soem cleaning jobs.'''
+  wants to do some cleaning jobs.'''
   _execution_status = TaskState.NOT_STARTED
 
   def _Start(self):
