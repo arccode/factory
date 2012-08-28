@@ -183,7 +183,10 @@ class SystemStatus(object):
         self.battery[k] = None
 
     # Get fan speed
-    self.fan_rpm = GetEC().GetFanRPM()
+    try:
+      self.fan_rpm = GetEC().GetFanRPM()
+    except:
+      self.fan_rpm = None
 
     # Get temperatures from sensors
     try:

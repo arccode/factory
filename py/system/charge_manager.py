@@ -69,12 +69,15 @@ class ChargeManager(object):
       self._LogState("AC unplugged")
       return
 
-    charge = self._power.GetChargePct()
-    if charge is None:
-      self._LogState("Battery error")
-    elif charge < self._min_charge_pct:
-      self._StartCharging()
-    elif charge > self._max_charge_pct:
-      self._ForceDischarge()
-    else:
-      self._StopCharging()
+    try:
+      charge = self._power.GetChargePct()
+      if charge is None:
+        self._LogState("Battery error")
+      elif charge < self._min_charge_pct:
+        self._StartCharging()
+      elif charge > self._max_charge_pct:
+        self._ForceDischarge()
+      else:
+        self._StopCharging()
+    except:
+      logging.error('Unable to set charge state.')
