@@ -11,7 +11,7 @@ set -e
 
 dir=$(dirname $(readlink -f $0))
 if [ -d $dir/cros ]; then
-  lib=$dir/cros
+  lib=$dir
 elif [ -e $dir/factory.par ]; then
   lib=$dir/factory.par
 else

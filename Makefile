@@ -14,6 +14,7 @@ PYTHON_SITEDIR=$(shell echo \
 PYTHON=python
 
 FACTORY=$(DESTDIR)/$(TARGET_DIR)
+FACTORY_BUNDLE=$(FACTORY)/bundle
 PAR_DEST_DIR=$(FACTORY)
 
 PYLINTRC=../../../chromite/pylintrc
@@ -121,19 +122,21 @@ par:
 # Add an empty factory_common file (since many scripts import factory_common).
 	touch $(PAR_BUILD_DIR)/factory_common.py
 	cd $(PAR_BUILD_DIR) && zip -qr factory.par *
-	mv $(PAR_BUILD_DIR)/factory.par $(PAR_DEST_DIR)
 # Sanity check: make sure we can import event_log using only the par file.
-	PYTHONPATH=$(PAR_DEST_DIR)/factory.par $(PYTHON) -c \
+	PYTHONPATH=$(PAR_BUILD_DIR)/factory.par $(PYTHON) -c \
 	  'import cros.factory.test.state'
 
-install:
+install: par
 	mkdir -p $(FACTORY)
 	rsync -a --exclude '*.pyc' bin misc py py_pkg sh test_lists $(FACTORY)
 	ln -sf bin/gooftool bin/edid bin/hwid_tool ${FACTORY}
 	mkdir -m755 -p ${DESTDIR}/var/log
 	mkdir -m755 -p $(addprefix ${DESTDIR}/var/factory/,log state tests)
 	ln -sf $(addprefix ../factory/log/,factory.log console.log) ${DESTDIR}/var/log
-
+# Make factory bundle overlay
+	mkdir -p $(FACTORY_BUNDLE)/shopfloor
+	cp -a $(PAR_BUILD_DIR)/factory.par $(FACTORY_BUNDLE)/shopfloor
+	cp sh/shopfloor_server.sh $(FACTORY_BUNDLE)/shopfloor
 
 lint:
 	@set -e -o pipefail; \
