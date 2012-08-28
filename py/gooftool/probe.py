@@ -87,7 +87,7 @@ def _ReadSysfsFields(base_path, field_list, optional_field_list=None):
   path_list = [os.path.join(base_path, field) for field in all_fields_list]
   data = dict((field, open(path).read().strip())
               for field, path in zip(all_fields_list, path_list)
-              if os.path.exists(path))
+              if os.path.exists(path) and not os.path.isdir(path))
   result = [data[field] for field in all_fields_list if field in data]
   return result if set(data) >= set(field_list) else None
 
@@ -154,6 +154,62 @@ def _ReadSysfsNodeId(path):
            open(name_path).read().strip()) or
           None)
 
+
+def _RecursiveProbe(path, read_method):
+  """Recursively probes in path and all the subdirectory using read_method.
+
+  Args:
+    path: Root path of the recursive probing.
+    read_method: The method used to probe device information.
+      This method accepts an input path and returns a string.
+      e.g. _ReadSysfsUsbFields, _ReadSysfsPciFields, or _ReadSysfsDeviceId.
+
+  Returns:
+    A list of strings which contains probed results under path and
+    all the subdirectory of path. Duplicated data will be omitted.
+  """
+  def _InternalRecursiveProbe(path, visited_path, data_list, read_method):
+    """Recursively probes in path and all the subdirectory using read_method.
+
+    Args:
+      path: Root path of the recursive probing.
+      visited_path: A set containing visited paths. These paths will not
+        be visited again.
+      data_list: A list of string which contains probed results.
+        This list will be appended through the recursive probing.
+      read_method: The method used to probe device information.
+        This method accepts an input path and returns a string.
+
+    Returns:
+      No return value. data_list in the input will be appended with probed
+      information. Duplicated data will be omitted.
+    """
+    path = os.path.realpath(path)
+    if path in visited_path:
+      return
+
+    if os.path.isdir(path):
+      data = read_method(path)
+      # Only append new data
+      if data not in data_list:
+        data_list.append(data)
+      entries_list = os.listdir(path)
+      visited_path.add(path)
+    else:
+      return
+
+    for filename in entries_list:
+      # Do not search directory upward
+      if filename == 'subsystem':
+        continue
+      sub_path = os.path.join(path, filename)
+      _InternalRecursiveProbe(sub_path, visited_path, data_list, read_method)
+    return
+
+  visited_path = set()
+  data_list = []
+  _InternalRecursiveProbe(path, visited_path, data_list, read_method)
+  return data_list
 
 class _FlimflamDevices(object):
   """Wrapper around flimflam (connection manager) information.
@@ -344,8 +400,14 @@ def _ProbeBattery():
 
 @_ComponentProbe('bluetooth')
 def _ProbeBluetooth():
+  # Probe in primary path
   device_id = _ReadSysfsDeviceId('/sys/class/bluetooth/hci0/device')
-  return [device_id] if device_id is not None else []
+  if device_id:
+    return [device_id]
+  # Use information in driver if probe failed in primary path
+  device_id_list = _RecursiveProbe('/sys/module/bluetooth/holders',
+                                   _ReadSysfsDeviceId)
+  return sorted(CompactStr(x) for x in device_id_list if x)
 
 
 @_ComponentProbe('camera')
