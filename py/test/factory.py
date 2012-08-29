@@ -250,9 +250,9 @@ def read_test_list(path=None, state_instance=None, text=None):
   test_list_locals['options'] = options
 
   if path:
-    execfile(path, {}, test_list_locals)
+    execfile(path, test_list_locals)
   else:
-    exec text in {}, test_list_locals
+    exec text in test_list_locals
   assert 'TEST_LIST' in test_list_locals, (
     'Test list %s does not define TEST_LIST' % (path or '<text>'))
 
