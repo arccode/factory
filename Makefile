@@ -123,7 +123,7 @@ par:
 	cd $(PAR_BUILD_DIR) && zip -qr factory.par *
 	mv $(PAR_BUILD_DIR)/factory.par $(PAR_DEST_DIR)
 # Sanity check: make sure we can import event_log using only the par file.
-	PYTHONPATH=$(FACTORY)/factory.par $(PYTHON) -c \
+	PYTHONPATH=$(PAR_DEST_DIR)/factory.par $(PYTHON) -c \
 	  'import cros.factory.test.state'
 
 install:

@@ -892,7 +892,7 @@ class Goofy(object):
         post_update_hook()
       self.env.shutdown('reboot')
 
-  def handle_sigint(self, signum, frame):
+  def handle_sigint(self, dummy_signum, dummy_frame):
     logging.error('Received SIGINT')
     self.run_queue.put(None)
     raise KeyboardInterrupt()
