@@ -15,17 +15,19 @@ Example:
 '''
 
 
+import glob
 import imp
 import logging
 import optparse
 import os
+import shutil
 import SimpleXMLRPCServer
 
 import factory_common
 from cros.factory import shopfloor
 
 
-_DEFAULT_SERVER_PORT = 8082
+DEFAULT_SERVER_PORT = 8082
 # By default, this server is supposed to serve on same host running omaha
 # server, accepting connections from client devices; so the address to bind is
 # "all interfaces (0.0.0.0)". For partners running server on clients, they may
@@ -82,7 +84,7 @@ def main():
                     default=_DEFAULT_SERVER_ADDRESS,
                     help='address to bind (default: %default)')
   parser.add_option('-p', '--port', dest='port', metavar='PORT', type='int',
-                    default=_DEFAULT_SERVER_PORT,
+                    default=DEFAULT_SERVER_PORT,
                     help='port to bind (default: %default)')
   parser.add_option(
       '-m', '--module', dest='module', metavar='MODULE',
@@ -101,6 +103,9 @@ def main():
                     help='increase message verbosity')
   parser.add_option('-q', '--quiet', action='store_true', dest='quiet',
                     help='turn off verbose messages')
+  parser.add_option('--dummy', action='store_true',
+                    help=('run dummy shopfloor server, using simple shopfloor '
+                          'server and data from testdata directory'))
   (options, args) = parser.parse_args()
   if args:
     parser.error('Invalid args: %s' % ' '.join(args))
@@ -119,6 +124,9 @@ def main():
   if options.quiet:
     logging.disable(logging.INFO)
 
+  if options.dummy:
+    options.module = 'cros.factory.shopfloor.simple_shopfloor'
+
   SHOPFLOOR_SUFFIX = '.ShopFloor'
   if options.module.endswith(SHOPFLOOR_SUFFIX):
     options.module = options.module[0:-len(SHOPFLOOR_SUFFIX)]
@@ -136,7 +144,16 @@ def main():
 
     instance.data_dir = options.data_dir
     instance.config = options.config
+
     instance._InitBase()
+
+    if options.dummy:
+      for f in glob.glob(
+          os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                       'testdata', '*.csv')):
+        logging.warn('Using data file %s from dummy shopfloor server', f)
+        shutil.copy(f, instance.data_dir)
+
     instance.Init()
   except:
     logging.exception('Failed loading module: %s', options.module)

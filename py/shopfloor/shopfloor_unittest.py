@@ -27,7 +27,7 @@ class ShopFloorServerTest(unittest.TestCase):
   def setUp(self):
     '''Starts shop floor server and creates client proxy.'''
     # pylint: disable=W0212
-    self.server_port = shopfloor_server._DEFAULT_SERVER_PORT
+    self.server_port = shopfloor_server.DEFAULT_SERVER_PORT
     self.base_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
     self.data_dir = tempfile.mkdtemp(prefix='shopfloor_data.')
     self.registration_code_log = (

@@ -167,6 +167,7 @@ class Goofy(object):
     self.event_log = None
     self.prespawner = None
     self.ui_process = None
+    self.dummy_shopfloor = None
     self.run_queue = Queue.Queue()
     self.invocations = {}
     self.tests_to_run = deque()
@@ -238,6 +239,9 @@ class Goofy(object):
     if self.chrome:
       self.chrome.kill()
       self.chrome = None
+    if self.dummy_shopfloor:
+      self.dummy_shopfloor.kill()
+      self.dummy_shopfloor = None
     if self.ui_process:
       utils.kill_process_tree(self.ui_process, 'ui')
       self.ui_process = None
@@ -929,6 +933,8 @@ class Goofy(object):
     parser.add_option('--test_list', dest='test_list',
                       metavar='FILE',
                       help='Use FILE as test list')
+    parser.add_option('--dummy_shopfloor', action='store_true',
+                      help='Use a dummy shopfloor server')
     (self.options, self.args) = parser.parse_args(args)
 
     # Make sure factory directories exist.
@@ -975,6 +981,13 @@ class Goofy(object):
       logging.warn(
         'In QEMU; ignoring ui_scale_factor argument')
       self.options.ui_scale_factor = 1
+
+    if self.options.dummy_shopfloor:
+      os.environ[shopfloor.SHOPFLOOR_SERVER_ENV_VAR_NAME] = (
+          'http://localhost:%d/' % shopfloor.DEFAULT_SERVER_PORT)
+      self.dummy_shopfloor = Spawn(
+          [os.path.join(factory.FACTORY_PATH, 'bin', 'shopfloor_server'),
+           '--dummy'])
 
     logging.info('Started')
 

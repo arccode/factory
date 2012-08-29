@@ -55,7 +55,7 @@ API_GET_VPD = 'GetVPD'
 AUX_TABLE_MLB = 'mlb'
 
 # Default port number from shopfloor_server.py.
-_DEFAULT_SERVER_PORT = 8082
+DEFAULT_SERVER_PORT = 8082
 
 # Environment variable containing the shopfloor server URL (for
 # testing). Setting this overrides the shopfloor server URL and
@@ -172,7 +172,7 @@ def detect_default_server_url():
   omaha_url = lsb_values.get('FACTORY_OMAHA_URL', None)
   if omaha_url:
     omaha = urlparse.urlsplit(omaha_url)
-    netloc = '%s:%s' % (omaha.netloc.split(':')[0], _DEFAULT_SERVER_PORT)
+    netloc = '%s:%s' % (omaha.netloc.split(':')[0], DEFAULT_SERVER_PORT)
     return urlparse.urlunsplit((omaha.scheme, netloc, '/', '', ''))
   return None
 
