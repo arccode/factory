@@ -79,5 +79,5 @@ class ChargeManager(object):
         self._ForceDischarge()
       else:
         self._StopCharging()
-    except:
-      logging.error('Unable to set charge state.')
+    except Exception as e:  # pylint: disable=W0703
+      logging.error('Unable to set charge state: %s', e)
