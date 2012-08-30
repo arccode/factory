@@ -198,19 +198,22 @@ class TimeSanitizer(object):
         return True
 
 
-def GetBaseTimeFromFile(base_time_file):
-  '''Returns the base time to use (the mtime of base_time_file or None).
+def GetBaseTimeFromFile(*base_time_files):
+  '''Returns the base time to use.
+
+  This will be the mtime of the first existing file in
+  base_time_files, or None.
 
   Never throws an exception.'''
-  if os.path.exists(base_time_file):
-    try:
-      base_time = os.stat(base_time_file).st_mtime
-      logging.info('Using %s (mtime of %s) as base time',
-                   _FormatTime(base_time), base_time_file)
-      return base_time
-    except:  # pylint: disable=W0702
-      logging.exception('Unable to stat %s', base_time_file)
-  else:
-    logging.warn('base-time-file %s does not exist',
-                 base_time_file)
+  for f in base_time_files:
+    if os.path.exists(f):
+      try:
+        base_time = os.stat(f).st_mtime
+        logging.info('Using %s (mtime of %s) as base time',
+                     _FormatTime(base_time), f)
+        return base_time
+      except:  # pylint: disable=W0702
+        logging.exception('Unable to stat %s', f)
+    else:
+      logging.warn('base-time-file %s does not exist', f)
   return None

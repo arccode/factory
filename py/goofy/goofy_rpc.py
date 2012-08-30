@@ -180,3 +180,6 @@ class GoofyRPC(object):
 
     self.goofy.run_queue.put(Target)
     done.wait()
+
+  def SyncTimeWithShopfloorServer(self):
+    self.goofy.sync_time_with_shopfloor_server()

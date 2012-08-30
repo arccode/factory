@@ -1022,8 +1022,12 @@ class Goofy(object):
         base_time=time_sanitizer.GetBaseTimeFromFile(
           # lsb-factory is written by the factory install shim during
           # installation, so it should have a good time obtained from
-          # the mini-Omaha server.
-          '/usr/local/etc/lsb-factory'))
+          # the mini-Omaha server.  If it's not available, we'll use
+          # /etc/lsb-factory (which will be much older, but reasonably
+          # sane) and rely on a shopfloor sync to set a more accurate
+          # time.
+          '/usr/local/etc/lsb-factory',
+          '/etc/lsb-release'))
       self.time_sanitizer.RunOnce()
 
     self.init_states()
@@ -1157,6 +1161,28 @@ class Goofy(object):
         self.run_queue.task_done()
     return True
 
+  def _should_sync_time(self):
+    '''Returns True if we should attempt syncing time with shopfloor.'''
+    return (self.test_list.options.sync_time_period_secs and
+            self.time_sanitizer and
+            (not self.time_synced) and
+            (not factory.in_chroot()))
+
+  def sync_time_with_shopfloor_server(self):
+    '''Syncs time with shopfloor server, if not yet synced.
+
+    Returns:
+      False if no time sanitizer is available, or True if this sync (or a
+      previous sync) succeeded.
+
+    Raises:
+      Exception if unable to contact the shopfloor server.
+    '''
+    if self._should_sync_time():
+      self.time_sanitizer.SyncWithShopfloor()
+      self.time_synced = True
+    return self.time_synced
+
   def sync_time_in_background(self):
     '''Writes out current time and tries to sync with shopfloor server.'''
     if not self.time_sanitizer:
@@ -1165,11 +1191,7 @@ class Goofy(object):
     # Write out the current time.
     self.time_sanitizer.SaveTime()
 
-    if ((not self.test_list.options.sync_time_period_secs) or
-        (not self.time_sanitizer) or
-        self.time_synced or
-        factory.in_chroot()):
-      # Not enabled or already succeeded.
+    if not self._should_sync_time():
       return
 
     now = time.time()
@@ -1182,8 +1204,7 @@ class Goofy(object):
 
     def target():
       try:
-        self.time_sanitizer.SyncWithShopfloor()
-        self.time_synced = True
+        self.sync_time_with_shopfloor_server()
       except:  # pylint: disable=W0702
         # Oh well.  Log an error (but no trace)
         logging.info(
