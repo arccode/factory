@@ -15,7 +15,6 @@ PYTHON=python
 
 FACTORY=$(DESTDIR)/$(TARGET_DIR)
 FACTORY_BUNDLE=$(FACTORY)/bundle
-PAR_DEST_DIR=$(FACTORY)
 
 PYLINTRC=../../../chromite/pylintrc
 
@@ -126,6 +125,7 @@ par:
 # Sanity check: make sure we can import event_log using only the par file.
 	PYTHONPATH=$(PAR_BUILD_DIR)/factory.par $(PYTHON) -c \
 	  'import cros.factory.test.state'
+	$(if $(PAR_DEST_DIR),cp $(PAR_BUILD_DIR)/factory.par $(PAR_DEST_DIR))
 
 install: par
 	mkdir -p $(FACTORY)
