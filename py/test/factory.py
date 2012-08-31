@@ -357,6 +357,10 @@ class Options(object):
   max_charge_pct = None
   _types['max_charge_pct'] = (type(None), int)
 
+  # The shopfloor server URL.
+  shopfloor_server_url = None
+  _types['shopfloor_server_url'] = (type(None), str)
+
   def check_valid(self):
     '''Throws a TestListError if there are any invalid options.'''
     # Make sure no errant options, or options with weird types,

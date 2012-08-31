@@ -992,13 +992,6 @@ class Goofy(object):
         'In QEMU; ignoring ui_scale_factor argument')
       self.options.ui_scale_factor = 1
 
-    if self.options.dummy_shopfloor:
-      os.environ[shopfloor.SHOPFLOOR_SERVER_ENV_VAR_NAME] = (
-          'http://localhost:%d/' % shopfloor.DEFAULT_SERVER_PORT)
-      self.dummy_shopfloor = Spawn(
-          [os.path.join(factory.FACTORY_PATH, 'bin', 'shopfloor_server'),
-           '--dummy'])
-
     logging.info('Started')
 
     self.start_state_server()
@@ -1026,6 +1019,15 @@ class Goofy(object):
       'test_list_options',
       self.test_list.options.__dict__)
     self.state_instance.test_list = self.test_list
+
+    if self.options.dummy_shopfloor:
+      os.environ[shopfloor.SHOPFLOOR_SERVER_ENV_VAR_NAME] = (
+          'http://localhost:%d/' % shopfloor.DEFAULT_SERVER_PORT)
+      self.dummy_shopfloor = Spawn(
+          [os.path.join(factory.FACTORY_PATH, 'bin', 'shopfloor_server'),
+           '--dummy'])
+    elif self.test_list.options.shopfloor_server_url:
+      shopfloor.set_server_url(self.test_list.options.shopfloor_server_url)
 
     if self.test_list.options.time_sanitizer:
       self.time_sanitizer = time_sanitizer.TimeSanitizer(
