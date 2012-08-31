@@ -16,6 +16,7 @@ Example:
 
 
 import glob
+import hashlib
 import imp
 import logging
 import optparse
@@ -165,6 +166,17 @@ def main():
   except:
     logging.exception('Failed loading module: %s', options.module)
     exit(1)
+
+  # Find the HWID updater (if any).  Throw an exception if there are >1.
+  hwid_updater_path = instance._GetHWIDUpdaterPath()
+  if hwid_updater_path:
+    logging.info('Using HWID updater %s (md5sum %s)' % (
+        hwid_updater_path,
+        hashlib.md5(open(hwid_updater_path).read()).hexdigest()))
+  else:
+    logging.warn('No HWID updater id currently available; add a single '
+                 'file named %s to enable dynamic updating of HWIDs.' %
+                 os.path.join(options.data_dir, shopfloor.HWID_UPDATER_PATTERN))
 
   try:
     instance._StartBase()

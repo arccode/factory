@@ -89,6 +89,19 @@ class ShopFloorServerTest(unittest.TestCase):
     self.assertRaises(xmlrpclib.Fault, self.proxy.GetHWID, 'CR001000')
     self.assertRaises(xmlrpclib.Fault, self.proxy.GetHWID, 'CR001026')
 
+  def testGetHWIDUpdater_None(self):
+    self.assertEquals(None, self.proxy.GetHWIDUpdater())
+
+  def testGetHWIDUpdater_One(self):
+    with open(os.path.join(self.data_dir, 'hwid_updater.sh'), 'w') as f:
+      f.write('foobar')
+    self.assertEquals('foobar', self.proxy.GetHWIDUpdater().data)
+
+  def testGetHWIDUpdater_Two(self):
+    for i in (1, 2):
+      open(os.path.join(self.data_dir, 'hwid_updater_%d.sh' % i), 'w').close()
+    self.assertRaises(xmlrpclib.Fault, self.proxy.GetHWIDUpdater)
+
   def testGetVPD(self):
     # VPD fields defined in simple.csv
     RO_FIELDS = ('keyboard_layout', 'initial_locale', 'initial_timezone')

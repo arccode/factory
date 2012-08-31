@@ -10,6 +10,7 @@ functions to interact with their real shop floor system.
 """
 
 import csv
+import glob
 import logging
 import os
 import time
@@ -25,7 +26,12 @@ from cros.factory.shopfloor import factory_update_server
 EVENTS_DIR = 'events'
 REPORTS_DIR = 'reports'
 UPDATE_DIR = 'update'
+HWID_UPDATER_PATTERN = 'hwid_*'
 REGISTRATION_CODE_LOG_CSV = 'registration_code_log.csv'
+
+
+class ShopFloorException(Exception):
+  pass
 
 
 class ShopFloorBase(object):
@@ -111,6 +117,38 @@ class ShopFloorBase(object):
       a XML-RPC server module.
     """
     raise NotImplementedError('GetHWID')
+
+  def _GetHWIDUpdaterPath(self):
+    """Returns the path to HWID updater bundle, if available.
+
+    Returns:
+      The path to the file (or None).
+
+    Raises:
+      ShopFloorException if there are >1 HWID bundles available.
+    """
+    bundles = glob.glob(os.path.join(self.data_dir, HWID_UPDATER_PATTERN))
+    if not bundles:
+      return None
+
+    if len(bundles) > 1:
+      raise ShopFloorException('Multiple HWID bundles available: %s (please '
+                               'delete all but one)' % bundles)
+
+    return bundles[0]
+
+  def GetHWIDUpdater(self):
+    """Returns a HWID updater bundle, if available.
+
+    Returns:
+      The binary-encoded contents of a file named 'hwid_*' in the data
+      directory.  If there are no such files, returns None.
+
+    Raises:
+      ShopFloorException if there are >1 HWID bundles available.
+    """
+    path = self._GetHWIDUpdaterPath()
+    return Binary(open(path).read()) if path else None
 
   def GetVPD(self, serial):
     """Returns VPD data to set (in dictionary format).
