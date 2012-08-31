@@ -22,6 +22,7 @@ import optparse
 import os
 import shutil
 import SimpleXMLRPCServer
+import socket
 
 import factory_common
 from cros.factory import shopfloor
@@ -123,6 +124,12 @@ def main():
   logging.basicConfig(level=verbosity, format=log_format)
   if options.quiet:
     logging.disable(logging.INFO)
+
+  # Disable all DNS lookups, since otherwise the logging code may try to
+  # resolve IP addresses, which may delay request handling.
+  def FakeGetFQDN(name=''):
+    return name or 'localhost'
+  socket.getfqdn = FakeGetFQDN
 
   if options.dummy:
     options.module = 'cros.factory.shopfloor.simple_shopfloor'
