@@ -158,6 +158,9 @@ lint:
 	echo ...no lint errors! You are awesome!; \
 	rm -f $$out
 
+PRESUBMIT_FILES := $(shell echo $$PRESUBMIT_FILES)
+PRESUBMIT_FILES := $(patsubst $(shell pwd)/%,%,$(PRESUBMIT_FILES))
+
 lint-presubmit:
 	$(MAKE) lint \
 	    LINT_FILES="$(filter %.py,$(PRESUBMIT_FILES))" \
