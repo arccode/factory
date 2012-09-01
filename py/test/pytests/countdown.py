@@ -25,7 +25,7 @@ from cros.factory.test.args import Arg
 
 
 class CountDownTest(unittest.TestCase):
-  def ParseSeconds(self, secs):
+  def FormatSeconds(self, secs):
     hours = int(secs / 3600)
     minutes = int((secs / 60) % 60)
     seconds = int(secs % 60)
@@ -33,10 +33,10 @@ class CountDownTest(unittest.TestCase):
 
   def UpdateTimeAndLoad(self):
     self._ui.SetHTML(
-        self.ParseSeconds(self._elapsed_secs),
+        self.FormatSeconds(self._elapsed_secs),
         id='elapsed-time')
     self._ui.SetHTML(
-        self.ParseSeconds(self._remaining_secs),
+        self.FormatSeconds(self._remaining_secs),
         id='remaining-time')
     self._ui.SetHTML(
         ' '.join(open('/proc/loadavg').read().split()[0:3]),
@@ -67,11 +67,9 @@ class CountDownTest(unittest.TestCase):
       self._ui.RunJS('document.getElementById("countdown-container").className'
                      ' = "float-right";')
 
-    self._duration_secs = self.args.duration_secs
-    self._log_interval = self.args.log_interval
     self._start_secs = time.time()
     self._elapsed_secs = 0
-    self._remaining_secs = self._duration_secs
+    self._remaining_secs = self.args.duration_secs
     self._next_log_time = 0
     self._event_log = EventLog.ForAutoTest()
 
@@ -85,8 +83,8 @@ class CountDownTest(unittest.TestCase):
         factory.console.info('Status at %s: %s' % (
             datetime.datetime.now().isoformat(),
             sys_status.__dict__))
-        self._next_log_time = time.time() + self._log_interval
+        self._next_log_time = time.time() + self.args.log_interval
 
       time.sleep(1)
       self._elapsed_secs = time.time() - self._start_secs
-      self._remaining_secs = round(self._duration_secs - self._elapsed_secs)
+      self._remaining_secs = round(self.args.duration_secs - self._elapsed_secs)
