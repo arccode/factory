@@ -89,6 +89,7 @@ def GetDeviceId():
         break
     else:
       device_id = str(uuid4())
+      utils.TryMakeDirs(os.path.dirname(DEVICE_ID_PATH))
       with open(DEVICE_ID_PATH, "w") as f:
         print >> f, device_id
       logging.warning('No device ID available: generated %s', device_id)
