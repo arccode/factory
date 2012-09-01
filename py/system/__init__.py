@@ -70,23 +70,26 @@ class SystemInfo(object):
     except:
       pass
 
+    self.wlan0_mac = None
     try:
       self.wlan0_mac = open('/sys/class/net/wlan0/address').read().strip()
     except:
-      self.wlan0_mac = None
+      pass
 
+    self.kernel_version = None
     try:
       uname = subprocess.Popen(['uname', '-r'], stdout=subprocess.PIPE)
       stdout, _ = uname.communicate()
       self.kernel_version = stdout.strip()
     except:
-      self.kernel_version = None
+      pass
 
+    self.architecture = None
     try:
       self.architecture = Spawn(['uname', '-m'],
                                 check_output=True).stdout_data.strip()
     except:
-      self.architecture = None
+      pass
 
     self.ec_version = None
     try:
@@ -153,11 +156,6 @@ class SystemStatus(object):
 
   We log a bunch of system status here.
   '''
-
-  GET_FAN_SPEED_RE = re.compile('Current fan RPM: ([0-9]*)')
-  TEMP_SENSOR_RE = re.compile('Reading temperature...([0-9]*)')
-  TEMPERATURE_RE = re.compile('^(\d+): (\d+)$', re.MULTILINE)
-  TEMPERATURE_INFO_RE = re.compile('^(\d+): \d+ (.+)$', re.MULTILINE)
 
   def __init__(self):
     self.battery = {}
