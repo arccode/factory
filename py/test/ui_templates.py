@@ -42,6 +42,22 @@ class BaseTemplate(object):
       html: The html content to write.'''
     self._ui.SetHTML(html, id='title')
 
+  def BindStandardKeys(self, bind_pass_key=True, bind_fail_key=True):
+    '''Binds standard pass and/or fail keys.
+
+    Also shows prompt at the bottom of the test area.
+
+    Args:
+      bind_pass_key: True to bind keys to pass the test.
+      bind_fail_key: True to bind keys to fail the test.
+    '''
+    self._ui.SetHTML(
+      test_ui.MakePassFailKeyLabel(pass_key=bind_pass_key,
+                                   fail_key=bind_fail_key),
+      id='prompt-pass-fail-keys')
+    self._ui.BindStandardKeys(bind_pass_keys=bind_pass_key,
+                              bind_fail_keys=bind_fail_key)
+
 
 class OneSection(BaseTemplate):
   '''A simple template that has only one big section.
