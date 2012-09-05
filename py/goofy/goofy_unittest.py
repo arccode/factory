@@ -76,7 +76,8 @@ class GoofyTest(unittest.TestCase):
   '''Base class for Goofy test cases.'''
   options = ''
   ui = 'none'
-  expected_create_connection_manager_arg = []
+  expected_create_connection_manager_args = (
+      [], factory.Options.scan_wifi_period_secs)
   test_list = None  # Overridden by subclasses
 
   def setUp(self):
@@ -85,7 +86,7 @@ class GoofyTest(unittest.TestCase):
     self.state = state.get_instance()
     self.connection_manager = self.mocker.CreateMock(ConnectionManager)
     self.env.create_connection_manager(
-      self.expected_create_connection_manager_arg).AndReturn(
+      *self.expected_create_connection_manager_args).AndReturn(
       self.connection_manager)
     self.before_init_goofy()
     self.mocker.ReplayAll()
@@ -285,8 +286,9 @@ class ShutdownTest(GoofyTest):
     # Kill and restart Goofy to simulate a shutdown.
     # Goofy should call for another shutdown.
     for _ in range(2):
-      self.env.create_connection_manager([]).AndReturn(
-        self.connection_manager)
+      self.env.create_connection_manager(
+          [], factory.Options.scan_wifi_period_secs).AndReturn(
+              self.connection_manager)
       self.env.shutdown('reboot').AndReturn(True)
       self.mocker.ReplayAll()
       self.goofy.destroy()
@@ -329,8 +331,9 @@ class RebootFailureTest(GoofyTest):
     self.goofy.destroy()
 
     self.mocker.ResetAll()
-    self.env.create_connection_manager([]).AndReturn(
-      self.connection_manager)
+    self.env.create_connection_manager(
+        [], factory.Options.scan_wifi_period_secs).AndReturn(
+            self.connection_manager)
     self.mocker.ReplayAll()
     self.goofy = init_goofy(self.env, self.test_list, restart=False)
     self._wait()
@@ -443,7 +446,7 @@ class MultipleIterationsTest(GoofyTest):
 
 class ConnectionManagerTest(GoofyTest):
   options = '''
-    options.wlans = [WLAN('foo', 'bar', 'baz')]
+    options.wlans = [WLAN('foo', 'psk', 'bar')]
   '''
   test_list = '''
     OperatorTest(id='a', autotest_name='a_A'),
@@ -453,11 +456,13 @@ class ConnectionManagerTest(GoofyTest):
     ]),
     OperatorTest(id='c', autotest_name='c_C'),
   '''
-  expected_create_connection_manager_arg = mox.Func(
+  expected_create_connection_manager_args = (mox.Func(
     lambda arg: (len(arg) == 1 and
            arg[0].__dict__ == dict(ssid='foo',
-                       security='bar',
-                       passphrase='baz')))
+                       security='psk',
+                       passphrase='bar'))),
+    factory.Options.scan_wifi_period_secs)
+
   def runTest(self):
     self.check_one_test('a', 'a_A', True, '')
     self.connection_manager.DisableNetworking()

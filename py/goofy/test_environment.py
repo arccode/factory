@@ -70,7 +70,7 @@ class Environment(object):
     '''
     raise NotImplementedError()
 
-  def create_connection_manager(self, wlans):
+  def create_connection_manager(self, wlans, scan_wifi_period_secs):
     '''
     Creates a ConnectionManager.
     '''
@@ -171,7 +171,7 @@ class FakeChrootEnvironment(Environment):
            'Please open http://localhost:%d/ in Chrome.',
            state.DEFAULT_FACTORY_STATE_PORT)
 
-  def create_connection_manager(self, wlans):
+  def create_connection_manager(self, wlans, scan_wifi_period_secs):
     return connection_manager.DummyConnectionManager()
 
 
