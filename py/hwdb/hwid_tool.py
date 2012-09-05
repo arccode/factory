@@ -398,25 +398,38 @@ class CompDb(YamlDatastore):
       classes_missing=sorted(missing),
       components=comp_map)
 
-  def MatchComponentSpecWithData(self, component_spec, component_data):
+  def MatchComponentSpecWithData(self, component_spec, component_data,
+                                 mismatches=None):
     """Does the specification match the actual configuration data?
 
     For all extant components check they either match exactly or are
     specified as dontcare.  For all actually missing components, check
     they are specified as either missing or dontcare.
+
+    Args:
+      mismatches: If not None, will be populated with a list of reasons why
+        the component spec does not match.
+
+    Returns:
+      True if the component spec matches.
     """
+    if mismatches is None:
+      mismatches = []
+
     spec_class_comps_map = ComponentSpecClassCompsMap(component_spec)
     for comp_class in component_data.classes_missing:
       if comp_class in component_spec.components:
-        return False
+        mismatches.append('component class %s is missing' % comp_class)
     for comp in component_data.extant_components:
       comp_class = self.name_class_map[comp]
       if comp_class in component_spec.classes_missing:
-        return False
+        mismatches.append('component class %s should be missing '
+                          'but was detected as %s' % (comp_class, comp))
       expected_comps = spec_class_comps_map.get(comp_class, None)
       if expected_comps is not None and comp not in expected_comps:
-        return False
-    return True
+        mismatches.append('component class %s should be one of %s but was '
+                          'detected as %s' % (comp_class, expected_comps, comp))
+    return not mismatches
 
   def ComponentDataClasses(self, component_data):
     return (set(component_data.classes_missing) |
@@ -824,9 +837,17 @@ class Device(YamlDatastore):
       if ic.constraints == value_map)
 
   def MatchBoms(self, component_data):
-    return set(
-      bom_name for bom_name, bom in self.boms.items()
-      if self._comp_db.MatchComponentSpecWithData(bom.primary, component_data))
+    ret = set()
+    for bom_name, bom in self.boms.items():
+      mismatches = []
+      if self._comp_db.MatchComponentSpecWithData(bom.primary, component_data,
+                                                  mismatches):
+        ret.add(bom_name)
+      else:
+        logging.debug('%s does not match: ', bom_name)
+        for m in mismatches:
+          logging.debug('  - %s', m)
+    return ret
 
   def MatchVariants(self, bom_name, component_data):
     matches = set()
