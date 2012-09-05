@@ -271,7 +271,6 @@ class EventLog(object):
     self.log_id = log_id or TimedUuid()
     self.filename = "%s-%s" % (prefix, self.log_id)
     self.path = os.path.join(EVENT_LOG_DIR, self.filename)
-    logging.info('Logging events for %s to %s', self.prefix, self.path)
     if os.path.exists(self.path):
       raise EventLogException, "Log %s already exists" % self.path
     self.opened = False
@@ -315,6 +314,8 @@ class EventLog(object):
 
     Requires that the lock has already been acquired.
     """
+    logging.info('Logging events for %s to %s', self.prefix, self.path)
+
     parent_dir = os.path.dirname(self.path)
     if not os.path.exists(parent_dir):
       try:
