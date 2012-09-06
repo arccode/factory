@@ -314,8 +314,6 @@ class EventLog(object):
 
     Requires that the lock has already been acquired.
     """
-    logging.info('Logging events for %s to %s', self.prefix, self.path)
-
     parent_dir = os.path.dirname(self.path)
     if not os.path.exists(parent_dir):
       try:
@@ -328,6 +326,8 @@ class EventLog(object):
     if self.opened:
       return
     self.opened = True
+
+    logging.info('Logging events for %s to %s', self.prefix, self.path)
 
     self.file = open(self.path, "w")
     self._LogUnlocked("preamble",
