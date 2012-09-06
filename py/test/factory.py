@@ -364,6 +364,9 @@ class Options(object):
   shopfloor_server_url = None
   _types['shopfloor_server_url'] = (type(None), str)
 
+  # Whether to stop on any failure.
+  stop_on_failure = False
+
   def check_valid(self):
     '''Throws a TestListError if there are any invalid options.'''
     # Make sure no errant options, or options with weird types,

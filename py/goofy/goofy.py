@@ -807,6 +807,13 @@ class Goofy(object):
         new_state = t.update_state(**v.update_state_on_completion)
         del self.invocations[t]
 
+        # Stop on failure if flag is true.
+        if (self.test_list.options.stop_on_failure and
+            new_state.status == TestState.FAILED):
+          # Clean all the tests to cause goofy to stop.
+          self.tests_to_run = []
+          factory.console.info("Stop on failure triggered. Empty the queue.")
+
         if new_state.iterations_left and new_state.status == TestState.PASSED:
           # Play it again, Sam!
           self._run_test(t)

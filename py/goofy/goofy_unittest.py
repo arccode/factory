@@ -551,6 +551,28 @@ class RunIfTest(GoofyTest):
     self.assertEquals('', b_state.error_msg)
 
 
+class StopOnFailureTest(GoofyTest):
+  '''A unittest that checks if the goofy will stop after a test fails.'''
+  test_list = ABC_TEST_LIST
+  options = '''
+    options.auto_run_on_start = True
+    options.stop_on_failure = True
+  '''
+  def runTest(self):
+    mock_autotest(self.env, 'a_A', True, '')
+    mock_autotest(self.env, 'b_B', False, 'Oops!')
+    self.mocker.ReplayAll()
+    # Make sure events are all processed.
+    for _ in range(3):
+      self.assertTrue(self.goofy.run_once())
+      self.goofy.wait()
+
+    state_instance = factory.get_state_instance()
+    self.assertEquals(
+        [TestState.PASSED, TestState.FAILED, TestState.UNTESTED],
+        [state_instance.get_test_state(x).status for x in ['a', 'b', 'c']])
+    self._wait()
+
 if __name__ == "__main__":
   factory.init_logging('goofy_unittest')
   goofy._inited_logging = True
