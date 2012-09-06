@@ -82,6 +82,20 @@ class TestInvocation(object):
                                    '%s-%s' % (self.test.path,
                                               self.uuid))
     utils.TryMakeDirs(self.output_dir)
+
+    # Create a symlink for the latest test run, so if we're looking at the
+    # logs we don't need to enter the whole UUID.
+    latest_symlink = os.path.join(factory.get_test_data_root(),
+                                  self.test.path)
+    try:
+      os.remove(latest_symlink)
+    except OSError:
+      pass
+    try:
+      os.symlink(os.path.basename(self.output_dir), latest_symlink)
+    except OSError:
+      logging.exception('Unable to create symlink %s', latest_symlink)
+
     self.metadata_file = os.path.join(self.output_dir, 'metadata')
     self.env_additions = {'CROS_FACTORY_TEST_PATH': self.test.path,
                           'CROS_FACTORY_TEST_INVOCATION': self.uuid,
