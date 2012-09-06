@@ -564,7 +564,8 @@ class FactoryTest(object):
   has_ui = False
 
   REPR_FIELDS = ['id', 'autotest_name', 'pytest_name', 'dargs',
-          'backgroundable', 'exclusive', 'never_fails']
+          'backgroundable', 'exclusive', 'never_fails',
+          'enable_services', 'disable_services']
 
   # Subsystems that the test may require exclusive access to.
   EXCLUSIVE_OPTIONS = utils.Enum(['NETWORKING'])
@@ -585,6 +586,8 @@ class FactoryTest(object):
                has_ui=None,
                never_fails=None,
                exclusive=None,
+               enable_services=None,
+               disable_services=None,
                require_run=None,
                run_if=None,
                iterations=1,
@@ -616,6 +619,8 @@ class FactoryTest(object):
     @param exclusive: Items that the test may require exclusive access to.
       May be a list or a single string. Items must all be in
       EXCLUSIVE_OPTIONS. Tests may not be backgroundable.
+    @param enable_services: Services to enable for the test to run correctly.
+    @param disable_services: Services to disable for the test to run correctly.
     @param _default_id: A default ID to use if no ID is specified.
     @param require_run: A list of RequireRun objects indicating which
       tests must have been run (and optionally passed) before this
@@ -665,6 +670,14 @@ class FactoryTest(object):
       self.exclusive = [exclusive]
     else:
       self.exclusive = exclusive or []
+    if isinstance(enable_services, str):
+      self.enable_services = [enable_services]
+    else:
+      self.enable_services = enable_services or []
+    if isinstance(disable_services, str):
+      self.disable_services = [disable_services]
+    else:
+      self.disable_services = disable_services or []
 
     require_run = require_run or []
     if not isinstance(require_run, list):
@@ -744,6 +757,9 @@ class FactoryTest(object):
     assert not bogus_exclusive_items, (
         'In test %s, invalid exclusive options: %s (should be in %s)' %
         (self.id, bogus_exclusive_items, self.EXCLUSIVE_OPTIONS))
+    assert not (backgroundable and (enable_services or disable_services)), (
+        'Test %s may not be backgroundable with enable_services or '
+        'disable_services specified.' % self.id)
 
   @staticmethod
   def pytest_name_to_id(pytest_name):

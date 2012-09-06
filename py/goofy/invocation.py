@@ -24,10 +24,10 @@ from setproctitle import setproctitle
 
 import factory_common  # pylint: disable=W0611
 from cros.factory import event_log
+from cros.factory.goofy.service_manager import ServiceManager
 from cros.factory.test import factory
 from cros.factory.test import pytests
 from cros.factory.test import utils
-
 from cros.factory.test.args import Args
 from cros.factory.test.event import Event
 from cros.factory.test.factory import TestState
@@ -412,6 +412,10 @@ class TestInvocation(object):
     factory.console.info('Running test %s%s',
                          self.test.path, iteration_string)
 
+    service_manager = ServiceManager()
+    service_manager.SetupServices(enable_services=self.test.enable_services,
+                                  disable_services=self.test.disable_services)
+
     log_args = dict(
       path=self.test.path,
       # Use Python representation for dargs, since some elements
@@ -474,6 +478,8 @@ class TestInvocation(object):
         self.update_metadata(end_time=end_time, **log_args)
       except:
         logging.exception('Unable to log end_test event')
+
+    service_manager.RestoreServices()
 
     factory.console.info(u'Test %s%s %s%s',
                          self.test.path,
