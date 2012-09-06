@@ -16,7 +16,6 @@ The script (run in chroot) will:
 '''
 
 import argparse
-import atexit
 import logging
 import os
 import shutil
@@ -121,7 +120,7 @@ def Main():
            '--address=%s' % args.shopfloor_ip,
            '--port=%s' % args.shopfloor_port],
            check_call=True, log=True)
-  except:
+  except:  # pylint: disable=W0702
     logging.warning('Shopfloor error. Possibly port already in use?')
 
 if __name__ == '__main__':

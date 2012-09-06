@@ -32,7 +32,7 @@ def CheckHwclock():
     else:
       logging.error('Unable to set hwclock time')
 
-  logging.info('Current hwclock time: %s' %
+  logging.info('Current hwclock time: %s',
       Spawn(['hwclock', '-r'], log=True, read_stdout=True).stdout_data)
 
 librt = ctypes.cdll.LoadLibrary('librt.so')

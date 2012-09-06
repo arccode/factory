@@ -499,9 +499,8 @@ class Goofy(object):
             ec = system.GetEC()
             ec_console_log = ec.GetConsoleLog()
             logging.info('EC console log after reboot:\n%s\n', ec_console_log)
-          except:
+          except:  # pylint: disable=W0702
             logging.exception('Error retrieving EC console log')
-
 
         error_msg = 'Unexpected shutdown while test was running'
         self.event_log.Log('end_test',
