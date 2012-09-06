@@ -12,6 +12,8 @@ from cros.factory.board.chromeos_ec import ChromeOSEC
 from cros.factory.system.ec import EC
 
 
+# pylint: disable=W0212
+
 class ChromeOSECTest(unittest.TestCase):
   def setUp(self):
     self.mox = mox.Mox()
@@ -30,7 +32,6 @@ class ChromeOSECTest(unittest.TestCase):
         '3: 303',
         '4: 313',
         '5: 323'])
-    # pylint: disable=W0212
     self.ec._CallECTool(['temps', 'all']).AndReturn(_MOCK_TEMPS)
     self.mox.ReplayAll()
     self.assertEquals(self.ec.GetTemperatures(), [0, 10, 20, 30, 40, 50])
@@ -49,7 +50,6 @@ class ChromeOSECTest(unittest.TestCase):
         '8: 1 ECInternal',
         '9: 0 PECI'
     ])
-    # pylint: disable=W0212
     self.ec._CallECTool(['tempsinfo', 'all']).AndReturn(_MOCK_TEMPS_INFO)
     self.mox.ReplayAll()
     self.assertEquals(self.ec.GetMainTemperatureIndex(), 9)
@@ -57,10 +57,25 @@ class ChromeOSECTest(unittest.TestCase):
 
   def testGetFanRPM(self):
     _MOCK_FAN_RPM = 'Current fan RPM: 2974\n'
-    # pylint: disable=W0212
     self.ec._CallECTool(['pwmgetfanrpm']).AndReturn(_MOCK_FAN_RPM)
     self.mox.ReplayAll()
     self.assertEquals(self.ec.GetFanRPM(), 2974)
+    self.mox.VerifyAll()
+
+  def testSetFanRPM(self):
+    self.ec._Spawn(['ectool', 'pwmsetfanrpm', '12345'],
+                   check_call=True, ignore_stdout=True,
+                   log_stderr_on_error=True)
+    self.mox.ReplayAll()
+    self.ec.SetFanRPM(12345)
+    self.mox.VerifyAll()
+
+  def testSetFanRPMAuto(self):
+    self.ec._Spawn(['ectool', 'autofanctrl', 'on'],
+                   check_call=True, ignore_stdout=True,
+                   log_stderr_on_error=True)
+    self.mox.ReplayAll()
+    self.ec.SetFanRPM(self.ec.AUTO)
     self.mox.VerifyAll()
 
   def testGetVersion(self):
@@ -75,7 +90,6 @@ class ChromeOSECTest(unittest.TestCase):
     dummy = Dummy()
     dummy.stdout_data = _MOCK_VERSION
 
-    # pylint: disable=W0212
     self.ec._Spawn(['mosys', 'ec', 'info', '-l'], ignore_stderr=True,
                    read_stdout=True).AndReturn(dummy)
     self.mox.ReplayAll()
@@ -88,14 +102,12 @@ class ChromeOSECTest(unittest.TestCase):
         '[hostcmd 0x60]',
         '[charge state idle -> charge]'])
 
-    # pylint: disable=W0212
     self.ec._CallECTool(['console']).AndReturn(_MOCK_LOG)
     self.mox.ReplayAll()
     self.assertEquals(self.ec.GetConsoleLog(), _MOCK_LOG)
     self.mox.VerifyAll()
 
   def testCharge(self):
-    # pylint: disable=W0212
     self.ec._CallECTool(['chargeforceidle', '0'])
     self.ec._CallECTool(['i2cwrite', '16', '0', '0x12', '0x12', '0xf912'])
     self.mox.ReplayAll()
@@ -103,7 +115,6 @@ class ChromeOSECTest(unittest.TestCase):
     self.mox.VerifyAll()
 
   def testDischarge(self):
-    # pylint: disable=W0212
     self.ec._CallECTool(['chargeforceidle', '1'])
     self.ec._CallECTool(['i2cwrite', '16', '0', '0x12', '0x12', '0xf952'])
     self.mox.ReplayAll()
@@ -111,7 +122,6 @@ class ChromeOSECTest(unittest.TestCase):
     self.mox.VerifyAll()
 
   def testStopCharge(self):
-    # pylint: disable=W0212
     self.ec._CallECTool(['chargeforceidle', '1'])
     self.ec._CallECTool(['i2cwrite', '16', '0', '0x12', '0x12', '0xf912'])
     self.mox.ReplayAll()

@@ -19,6 +19,9 @@ class EC(object):
   '''Basic EC interface class.'''
   ChargeState = Enum(['CHARGE', 'IDLE', 'DISCHARGE'])
 
+  # Auto fan speed.
+  AUTO = 'auto'
+
   # Functions that are used in Goofy. Must be implemented.
   def GetTemperatures(self):
     '''Gets a list of temperatures for various sensors.
@@ -75,7 +78,7 @@ class EC(object):
     '''Sets the target fan RPM.
 
     Args:
-      rpm: Target fan RPM.
+      rpm: Target fan RPM, or AUTO for auto.
 
     Returns:
       Raises ECException when fail.

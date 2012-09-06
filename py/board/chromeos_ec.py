@@ -64,6 +64,18 @@ class ChromeOSEC(EC):
     except Exception as e: # pylint: disable=W0703
       raise ECException('Unable to get fan speed: %s' % e)
 
+  def SetFanRPM(self, rpm):
+    try:
+      self._Spawn(
+          ['ectool'] +
+          (['autofanctrl', 'on'] if rpm == self.AUTO else
+           ['pwmsetfanrpm', str(rpm)]),
+          check_call=True,
+          ignore_stdout=True,
+          log_stderr_on_error=True)
+    except Exception as e: # pylint: disable=W0703
+      raise ECException('Unable to set fan speed: %s' % e)
+
   def GetVersion(self):
     response = self._Spawn(['mosys', 'ec', 'info', '-l'],
                            read_stdout=True,
