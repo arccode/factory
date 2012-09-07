@@ -39,7 +39,7 @@ class Power(object):
     try:
       p = self.FindPowerPath(self.PowerSource.MAINS)
       return ReadOneLine(os.path.join(p, "online")) == "1"
-    except PowerException:
+    except (PowerException, IOError):
       return False
 
   def CheckBatteryPresent(self):
