@@ -677,7 +677,7 @@ def LogSystemDetails(options):  # pylint: disable=W0613
 _upload_method_cmd_arg = CmdArg(
     '--upload_method', metavar='METHOD:PARAM',
     help=('How to perform the upload.  METHOD should be one of '
-          '{ftp, shopfloor, curl, cpfe, custom}.'))
+          '{ftp, shopfloor, ftps, cpfe}.'))
 _add_file_cmd_arg = CmdArg(
     '--add_file', metavar='FILE', action='append',
     help='Extra file to include in report (must be an absolute path)')

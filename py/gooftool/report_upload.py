@@ -86,11 +86,25 @@ def CurlCommand(curl_command, success_string=None, abort_string=None,
   Args:
     curl_command: Parameters to be invoked with curl.
     success_string: String to be recognized as "uploaded successfully".
+        For example: '226 Transfer complete'.
+    abort_string: String to be recognized to abort retrying.
   """
   if not curl_command:
     raise Error('CurlCommand: need parameters for curl.')
 
-  cmd = 'curl -s -S %s' % curl_command
+  # If we want to match success_string in output, we should enable -v/--verbose,
+  # otherwise, we can use -s/--silent.
+  # -S/--show-error will make curl show errors when they occur.
+  # If we want to match success_string or abort_string,
+  # we should redirect stderr to stdout and match in stdout to get all the
+  # output by curl.
+  # You may need to use -k/--insecure to allow connections to SSL sites
+  # without certificate.
+
+  arg_verbose_silent = '-v' if success_string else '-s'
+  arg_redirect_stderr = '--stderr -' if success_string or abort_string else ''
+  cmd = 'curl -S %s %s %s' % (arg_verbose_silent, arg_redirect_stderr,
+                              curl_command)
   logging.debug('CurlCommand: %s', cmd)
 
   # man curl(1) for EXIT CODES not related to temporary network failure.
@@ -100,24 +114,27 @@ def CurlCommand(curl_command, success_string=None, abort_string=None,
     cmd_result = Shell(cmd)
     abort = False
     message = None
-    if cmd_result.success:
-      if abort_string and cmd_result.stdout.find(abort_string) >= 0:
-        message = "Abort: Found abort pattern: %s" % abort_string
-      elif ((not success_string) or
-            (cmd_result.stdout.find(success_string) >= 0)):
-        return
-      else:
+    return_value = False
+    if abort_string and cmd_result.stdout.find(abort_string) >= 0:
+      message = "Abort: Found abort pattern: %s" % abort_string
+      abort = True
+      return_value = False
+    elif cmd_result.success:
+      if success_string and cmd_result.stdout.find(success_string) < 0:
         message = "Retry: No valid pattern (%s) in response." % success_string
-      logging.debug("CurlCallback: original response: %s",
-                    ' '.join(cmd_result.stdout.splitlines()))
+      else:
+        return_value = True
     else:
       message = '#%d %s' % (cmd_result.status, cmd_result.stderr
                             if cmd_result.stderr else cmd_result.stdout)
       if cmd_result.status in curl_abort_exit_codes:
         abort = True
+
+    logging.debug("CurlCallback: original response: %s",
+                  ' '.join(cmd_result.stdout.splitlines()))
     result['abort'] = abort
     result['message'] = message
-    return cmd_result.success
+    return return_value
 
   RetryCommand(CurlCallback, 'CurlCommand', interval=retry_interval)
   logging.info('CurlCommand: successfully executed: %s', cmd)
