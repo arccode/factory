@@ -60,10 +60,6 @@ LINT_BLACKLIST=\
 	py/test/utils.py \
 	py/test/utils_unittest.py
 
-# Temporary changes for broken code.  TODO(itspeter): Remove.
-LINT_BLACKLIST += \
-	py/test/pytests/probe_cellular_info.py
-
 LINT_FILES=$(shell find py -name '*.py' -type f | sort)
 
 LINT_WHITELIST=$(filter-out $(LINT_BLACKLIST),$(LINT_FILES))
@@ -150,7 +146,7 @@ lint:
 	  echo To re-lint failed files, run:; \
 	  echo make lint LINT_WHITELIST=\""$$( \
 	    grep '^\*' $$out | cut -c22- | tr . / | \
-	    sed 's/$$/.py/' | tr '\n' ' ')"\"; \
+	    sed 's/$$/.py/' | tr '\n' ' ' | sed -e 's/ $$//')"\"; \
 	  echo; \
 	  rm -f $$out; \
 	  exit 1; \
