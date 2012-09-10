@@ -25,6 +25,9 @@ class ChromeOSEC(EC):
 
   _Spawn = staticmethod(Spawn)
 
+  # Cached main temperature index. Set at the first call to GetTemperature.
+  _main_temperature_index = None
+
   def __init__(self):
     super(ChromeOSEC, self).__init__()
 
@@ -47,15 +50,19 @@ class ChromeOSEC(EC):
       raise ECException('Unable to get temperatures: %s' % e)
 
   def GetMainTemperatureIndex(self):
-    try:
-      ectool_output = self._CallECTool(['tempsinfo', 'all'])
-      for match in self.TEMPERATURE_INFO_RE.finditer(
-          ectool_output):
-        if match.group(2) == 'PECI':
-          return int(match.group(1))
-      raise ECException('The expected index of PECI cannot be found')
-    except Exception as e: # pylint: disable=W0703
-      raise ECException('Unable to get main temperature index: %s' % e)
+    if self._main_temperature_index is None:
+      try:
+        ectool_output = self._CallECTool(['tempsinfo', 'all'])
+        for match in self.TEMPERATURE_INFO_RE.finditer(
+            ectool_output):
+          if match.group(2) == 'PECI':
+            self._main_temperature_index = int(match.group(1))
+            break
+        else:
+          raise ECException('The expected index of PECI cannot be found')
+      except Exception as e: # pylint: disable=W0703
+        raise ECException('Unable to get main temperature index: %s' % e)
+    return self._main_temperature_index
 
   def GetFanRPM(self):
     try:
