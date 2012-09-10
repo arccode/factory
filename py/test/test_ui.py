@@ -10,6 +10,7 @@ import logging
 import os
 import threading
 import traceback
+import uuid
 
 from cros.factory.test import factory
 from cros.factory.test.event import Event, EventClient
@@ -378,6 +379,18 @@ class UI(object):
       js: The JavaScript to execute when pressed.
     '''
     self.BindKeysJS([(key, js)])
+
+  def BindKey(self, key, handler):
+    '''Sets a key binding to invoke the handler if the key is pressed.
+
+    Args:
+      key: The key to bind.
+      handler: The handler to invoke with a single argument (the event
+          object).
+    '''
+    uuid_str = str(uuid.uuid4())
+    self.BindKeyJS(key, 'test.sendTestEvent("%s", {});' % uuid_str)
+    self.AddEventHandler(uuid_str, handler)
 
   def _HandleEvent(self, event):
     '''Handles an event sent by a test UI.'''
