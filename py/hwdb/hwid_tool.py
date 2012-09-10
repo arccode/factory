@@ -25,10 +25,16 @@ from cros.factory.hacked_argparse import verbosity_cmd_arg
 from cros.factory.hwdb.bom_names import BOM_NAME_SET
 from cros.factory.hwdb.yaml_datastore import InvalidDataError
 from cros.factory.hwdb.yaml_datastore import MakeDatastoreClass, YamlDatastore
+from cros.factory.test import utils
 
 
-# The expected location of HWID data within a factory image.
-DEFAULT_HWID_DATA_PATH = '/usr/local/factory/hwid'
+# The expected location of HWID data within a factory image or the
+# chroot.
+DEFAULT_HWID_DATA_PATH = (
+    os.path.join(os.environ['CROS_WORKON_SRCROOT'],
+                 'src', 'platform', 'chromeos-hwid', 'v2')
+    if utils.in_chroot()
+    else '/usr/local/factory/hwid')
 
 
 # File that contains component data shared by all boards.
