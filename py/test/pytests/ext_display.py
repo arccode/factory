@@ -7,12 +7,14 @@
 """Test external display with optional audio playback test."""
 
 import os
-import time
+import threading
 import unittest
+import uuid
 
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
+from cros.factory.test.event import Event
 from cros.factory.test.factory_task import FactoryTask, FactoryTaskManager
 from cros.factory.utils.process_utils import Spawn
 
@@ -64,8 +66,6 @@ class ExtDisplayTask(FactoryTask):  # pylint: disable=W0223
     self._title = title
     self._instruction = instruction
     self._pass_key = pass_key
-    self._CONNECT = 'connected'
-    self._DISCONNECT = 'disconnected'
 
   def _BindPassFailKeys(self):
     """Binds pass and/or fail keys.
@@ -78,8 +78,10 @@ class ExtDisplayTask(FactoryTask):  # pylint: disable=W0223
       self._ui.BindKey(test_ui.ENTER_KEY, lambda _: self.Pass())
     else:
       self._ui.BindKey(test_ui.ENTER_KEY, lambda _: None)
+
     self._ui.BindKey(test_ui.ESCAPE_KEY,
-                     lambda _: self.Fail('Failed by operator.', later=True))
+                     lambda _: self.Fail(
+        '%s failed by operator.' % self.__class__.__name__, later=True))
 
   def _SetTitleInstruction(self):
     """Sets title and instruction.
@@ -102,24 +104,6 @@ class ExtDisplayTask(FactoryTask):  # pylint: disable=W0223
     self._SetTitleInstruction()
     self._BindPassFailKeys()
 
-  def WaitDisplay(self, display, connect):
-    """Implementation of wait for a display to connect/disconnect.
-
-    It is a blocking call.
-
-    Args:
-      display: xrandr display name.
-      connect: (self._CONNECT/self._DISCONNECT) wait for connect/disconnect.
-    """
-    def _Predicate(display, connect):
-      expect = '%s %s' % (display, connect)
-      return expect in Spawn(['xrandr', '-d', ':0'],
-                             check_call=True, read_stdout=True).stdout_data
-
-    while not _Predicate(display, connect):
-      time.sleep(_CONNECTION_CHECK_PERIOD_SECS)
-    self.Pass()
-
   def RunCommand(self, command, fail_message=None):
     """Executes a command and checks if it runs successfully.
 
@@ -133,7 +117,92 @@ class ExtDisplayTask(FactoryTask):  # pylint: disable=W0223
       self.Fail('%s\nerror:%s' % (fail_message, p.stderr_data))
 
 
-class ConnectTask(ExtDisplayTask):
+class WaitDisplayThread(threading.Thread):
+  """A thread to wait for display connection state.
+
+  When expected connection state is observed, it calls on_success and stop.
+  Or the calling thread can stop it using stop().
+  It probes display state every _CONNECTION_CHECK_PERIOD_SECS seconds.
+
+  Args:
+    display_id: target display ID.
+    connect: (self._CONNECT/self._DISCONNECT) checks for connect/disconnect.
+    on_success: callback for success.
+  """
+  def __init__(self, display_id, connect, on_success):
+    threading.Thread.__init__(self, name='WaitDisplayThread')
+    self._done = threading.Event()
+    self._display_id = display_id
+    self._connect = connect
+    self._on_success = on_success
+
+  def run(self):
+    expect = '%s %s' % (self._display_id, self._connect)
+    while not self._done.is_set():
+      if expect in Spawn(['xrandr', '-d', ':0'],
+                         call=True, read_stdout=True).stdout_data:
+        self._on_success()
+      else:
+        self._done.wait(_CONNECTION_CHECK_PERIOD_SECS)
+
+  def Stop(self):
+    """Stops the thread.
+    """
+    self._done.set()
+
+
+class DetectDisplayTask(ExtDisplayTask):
+  """Task to wait for connecting / disconnecting a external display.
+
+  A base class of ConnectTask and DisconnectTask.
+
+  Args:
+    ui: refer base class.
+    template: refer base class.
+    title: refer base class.
+    instruction: refer base class.
+    display_label: target display's human readable name.
+    display_id: target display's id in xrandr.
+    connect: (_CONNECT/_DISCONNECT) checks for connect/disconnect.
+  """
+  _CONNECT = 'connected'
+  _DISCONNECT = 'disconnected'
+
+  def __init__(self, ui, template, title, instruction, display_label,
+               display_id, connect):
+    super(DetectDisplayTask, self).__init__(ui, template, title, instruction,
+                                            pass_key=False)
+    self._display_label = display_label
+    self._display_id = display_id
+    self._wait_display = WaitDisplayThread(display_id, connect,
+                                           self.PostSuccessEvent)
+    self._pass_event = str(uuid.uuid4())  # used to bind a post event.
+
+  def PostSuccessEvent(self):
+    """Posts an event to trigger self.Pass().
+
+    It is called by another thread. It ensures that self.Pass() is called
+    via event queue to prevent race condition.
+    """
+    self._ui.PostEvent(Event(Event.Type.TEST_UI_EVENT,
+                             subtype=self._pass_event))
+
+  def Prepare(self):
+    """Called before running display detection loop.
+    """
+    pass
+
+  def Run(self):
+    self.InitUI()
+    self.Prepare()
+    self._ui.AddEventHandler(self._pass_event, lambda _: self.Pass())
+    self._wait_display.start()
+
+  def Cleanup(self):
+    self._wait_display.Stop()
+
+
+class ConnectTask(DetectDisplayTask):
   """Task to wait for a external display to connect.
 
   Args:
@@ -143,19 +212,14 @@ class ConnectTask(ExtDisplayTask):
     display_id: target display's id in xrandr.
   """
   def __init__(self, ui, template, display_label, display_id):
-    super(ConnectTask, self).__init__(ui, template,
-                                      _TITLE_CONNECT_TEST(display_label),
-                                      _MSG_CONNECT_TEST(display_label),
-                                      pass_key=False)
-    self._display_label = display_label
-    self._display_id = display_id
-
-  def Run(self):
-    self.InitUI()
-    self.WaitDisplay(self._display_id, self._CONNECT)
+    super(ConnectTask, self).__init__(
+      ui, template,
+      _TITLE_CONNECT_TEST(display_label),
+      _MSG_CONNECT_TEST(display_label),
+      display_label, display_id, DetectDisplayTask._CONNECT)
 
 
-class DisconnectTask(ExtDisplayTask):
+class DisconnectTask(DetectDisplayTask):
   """Task to wait for a external display to disconnect.
 
   Args:
@@ -165,20 +229,17 @@ class DisconnectTask(ExtDisplayTask):
     display_id: target display's id in xrandr.
   """
   def __init__(self, ui, template, display_label, display_id):
-    super(DisconnectTask, self).__init__(ui, template,
-                                         _TITLE_DISCONNECT_TEST(display_label),
-                                         _MSG_DISCONNECT_TEST(display_label),
-                                         pass_key=False)
-    self._display_label = display_label
-    self._display_id = display_id
+    super(DisconnectTask, self).__init__(
+      ui, template,
+      _TITLE_DISCONNECT_TEST(display_label),
+      _MSG_DISCONNECT_TEST(display_label),
+      display_label, display_id, DetectDisplayTask._DISCONNECT)
 
-  def Run(self):
-    self.InitUI()
+  def Prepare(self):
     self.RunCommand(
       ['xrandr', '-d', ':0', '--output', self._display_id, '--off'],
       'Fail to turn off display %s(%s)' % (self._display_label,
                                            self._display_id))
-    self.WaitDisplay(self._display_id, self._DISCONNECT)
 
 
 class VideoTask(ExtDisplayTask):
