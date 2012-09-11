@@ -79,9 +79,11 @@ class CountDownTest(unittest.TestCase):
 
       if time.time() >= self._next_log_time:
         sys_status = SystemStatus()
-        self._event_log.Log('system_status', **sys_status.__dict__)
-        factory.console.info('Status at %s: %s' % (
+        self._event_log.Log('system_status', elapsed_secs=self._elapsed_secs,
+                            **sys_status.__dict__)
+        factory.console.info('Status at %s (%d seconds elapsed): %s' % (
             datetime.datetime.now().isoformat(),
+            self._elapsed_secs,
             sys_status.__dict__))
         self._next_log_time = time.time() + self.args.log_interval
 
