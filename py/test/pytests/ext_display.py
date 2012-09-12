@@ -287,16 +287,19 @@ class AudioTask(ExtDisplayTask):
     self._display_label = display_label
     self._audio_port = audio_port
     self._audio_sample = audio_sample
+    self._play = None
 
   def Run(self):
     self.InitUI()
     self.RunCommand(
       ['amixer', '-c', '0', 'cset', 'name="%s"' % self._audio_port, 'on'],
       'Fail to enable audio.')
-    self.RunCommand(['aplay', '-q', self._audio_sample],
-                    'Cannot play audio %s' % self._audio_sample)
+    self._play = Spawn(['aplay', '-q', self._audio_sample])
 
   def Cleanup(self):
+    if self._play and self._play.poll() is None:
+      self._play.terminate()
+
     self.RunCommand(
       ['amixer', '-c', '0', 'cset', 'name="%s"' % self._audio_port, 'off'],
       'Fail to disable audio.')
