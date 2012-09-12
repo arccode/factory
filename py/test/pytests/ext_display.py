@@ -58,16 +58,16 @@ class ExtDisplayTask(FactoryTask):  # pylint: disable=W0223
   """Base class of tasks for external display test.
 
   Args:
-    ui: a test_ui.UI object.
-    template: a ui_templates.TwoSections object.
+    args: a ExtDisplayTaskArg object.
     title: task title showed on the upper-left corner of the test area.
     instruction: task instruction showed on the center of the test area.
     pass_key: True to bind Enter key to pass the task.
   """
-  def __init__(self, ui, template, title, instruction,  # pylint: disable=W0231
+  def __init__(self, args, title, instruction,  # pylint: disable=W0231
                pass_key=True):
-    self._ui = ui
-    self._template = template
+    self._args = args
+    self._ui = args.ui
+    self._template = args.template
     self._title = title
     self._instruction = instruction
     self._pass_key = pass_key
@@ -131,21 +131,19 @@ class WaitDisplayThread(threading.Thread):
 
   Args:
     display_id: target display ID.
-    connect: (self._CONNECT/self._DISCONNECT) checks for connect/disconnect.
+    connect: 'connected' / 'disconnected'
     on_success: callback for success.
   """
   def __init__(self, display_id, connect, on_success):
     threading.Thread.__init__(self, name='WaitDisplayThread')
     self._done = threading.Event()
-    self._display_id = display_id
-    self._connect = connect
+    self._xrandr_expect = '%s %s' % (display_id, connect)
     self._on_success = on_success
 
   def run(self):
-    expect = '%s %s' % (self._display_id, self._connect)
     while not self._done.is_set():
-      if expect in Spawn(['xrandr', '-d', ':0'],
-                         call=True, read_stdout=True).stdout_data:
+      if self._xrandr_expect in Spawn(['xrandr', '-d', ':0'],
+                                      call=True, read_stdout=True).stdout_data:
         self._on_success()
       else:
         self._done.wait(_CONNECTION_CHECK_PERIOD_SECS)
@@ -162,8 +160,7 @@ class DetectDisplayTask(ExtDisplayTask):
   A base class of ConnectTask and DisconnectTask.
 
   Args:
-    ui: refer base class.
-    template: refer base class.
+    args: refer base class.
     title: refer base class.
     instruction: refer base class.
     display_label: target display's human readable name.
@@ -173,13 +170,10 @@ class DetectDisplayTask(ExtDisplayTask):
   _CONNECT = 'connected'
   _DISCONNECT = 'disconnected'
 
-  def __init__(self, ui, template, title, instruction, display_label,
-               display_id, connect):
-    super(DetectDisplayTask, self).__init__(ui, template, title, instruction,
+  def __init__(self, args, title, instruction, connect):
+    super(DetectDisplayTask, self).__init__(args, title, instruction,
                                             pass_key=False)
-    self._display_label = display_label
-    self._display_id = display_id
-    self._wait_display = WaitDisplayThread(display_id, connect,
+    self._wait_display = WaitDisplayThread(args.display_id, connect,
                                            self.PostSuccessEvent)
     self._pass_event = str(uuid.uuid4())  # used to bind a post event.
 
@@ -211,42 +205,34 @@ class ConnectTask(DetectDisplayTask):
   """Task to wait for a external display to connect.
 
   Args:
-    ui: refer base class.
-    template: refer base class.
-    display_label: target display's human readable name.
-    display_id: target display's id in xrandr.
+    args: refer base class.
   """
-  def __init__(self, ui, template, display_label, display_id):
+  def __init__(self, args):
     super(ConnectTask, self).__init__(
-      ui, template,
-      _TITLE_CONNECT_TEST(display_label),
-      _MSG_CONNECT_TEST(display_label),
-      display_label, display_id, DetectDisplayTask._CONNECT)
+      args,
+      _TITLE_CONNECT_TEST(args.display_label),
+      _MSG_CONNECT_TEST(args.display_label),
+      DetectDisplayTask._CONNECT)
 
 
 class DisconnectTask(DetectDisplayTask):
   """Task to wait for a external display to disconnect.
 
   Args:
-    ui: refer base class.
-    template: refer base class.
-    display_label: target display's human readable name.
-    display_id: target display's id in xrandr.
-    main_display_id: computer's main display's id in xrandr.
+    args: refer base class.
   """
-  def __init__(self, ui, template, display_label, display_id, main_display_id):
+  def __init__(self, args):
     super(DisconnectTask, self).__init__(
-      ui, template,
-      _TITLE_DISCONNECT_TEST(display_label),
-      _MSG_DISCONNECT_TEST(display_label),
-      display_label, display_id, DetectDisplayTask._DISCONNECT)
-    self._main_display_id = main_display_id
+      args,
+      _TITLE_DISCONNECT_TEST(args.display_label),
+      _MSG_DISCONNECT_TEST(args.display_label),
+      DetectDisplayTask._DISCONNECT)
 
   def Prepare(self):
     self.RunCommand(
-      ['xrandr', '-d', ':0', '--output', self._main_display_id, '--auto',
-       '--output', self._display_id, '--off'],
-      'Fail to switch back to main display %s' % self._main_display_id,)
+      ['xrandr', '-d', ':0', '--output', self._args.main_display_id, '--auto',
+       '--output', self._args.display_id, '--off'],
+      'Fail to switch back to main display %s' % self._args.main_display_id)
 
 
 class VideoTask(ExtDisplayTask):
@@ -256,68 +242,90 @@ class VideoTask(ExtDisplayTask):
   is promoted on the external display.
 
   Args:
-    ui: refer base class.
-    template: refer base class.
-    display_label: target display's human readable name.
-    display_id: target display's id in xrandr.
-    main_display_id: computer's main display's id in xrandr.
+    args: refer base class.
   """
-  def __init__(self, ui, template, display_label, display_id, main_display_id):
+  def __init__(self, args):
     # Bind a random key (0-9) to pass the task.
     self._pass_num = str(random.randint(0, 9))
     instruction = '%s<br>%s' % (
-      _MSG_VIDEO_TEST(display_label),
+      _MSG_VIDEO_TEST(args.display_label),
       _MSG_PROMPT_PASS_KEY(self._pass_num))
 
-    super(VideoTask, self).__init__(ui, template,
-                                    _TITLE_VIDEO_TEST(display_label),
+    super(VideoTask, self).__init__(args,
+                                    _TITLE_VIDEO_TEST(args.display_label),
                                     instruction,
                                     pass_key=False)
-    self._ext_display_only = [
-      'xrandr', '-d', ':0', '--output', main_display_id, '--off',
-      '--output', display_id, '--auto']
-    self._msg_fail_ext = 'Fail to show display %s(%s)' % (display_label,
-                                                          display_id)
 
   def Run(self):
     self.InitUI()
     self._ui.BindKey(self._pass_num, lambda _: self.Pass())
-    self.RunCommand(self._ext_display_only, self._msg_fail_ext)
+    self.RunCommand(
+      ['xrandr', '-d', ':0', '--output', self._args.main_display_id, '--off',
+      '--output', self._args.display_id, '--auto'],
+      'Fail to show display %s' % self._args.display_id)
 
 
 class AudioTask(ExtDisplayTask):
   """Task to play audio through external display.
 
   Args:
-    ui: refer base class.
-    template: refer base class.
-    display_label: target display's human readable name.
-    audio_port: target display's audio port in amixer.
-    audio_sample: audio sample filename.
+    args: refer base class.
   """
-  def __init__(self, ui, template, display_label, audio_port, audio_sample):
-    super(AudioTask, self).__init__(ui, template,
-                                    _TITLE_AUDIO_TEST(display_label),
-                                    _MSG_AUDIO_TEST(display_label))
-    self._display_label = display_label
-    self._audio_port = audio_port
-    self._audio_sample = audio_sample
+  def __init__(self, args):
+    super(AudioTask, self).__init__(args,
+                                    _TITLE_AUDIO_TEST(args.display_label),
+                                    _MSG_AUDIO_TEST(args.display_label))
     self._play = None
 
   def Run(self):
     self.InitUI()
     self.RunCommand(
-      ['amixer', '-c', '0', 'cset', 'name="%s"' % self._audio_port, 'on'],
+      ['amixer', '-c', '0', 'cset', 'name="%s"' % self._args.audio_port, 'on'],
       'Fail to enable audio.')
-    self._play = Spawn(['aplay', '-q', self._audio_sample])
+    self._play = Spawn(['aplay', '-q', self._args.audio_sample])
 
   def Cleanup(self):
     if self._play and self._play.poll() is None:
       self._play.terminate()
 
     self.RunCommand(
-      ['amixer', '-c', '0', 'cset', 'name="%s"' % self._audio_port, 'off'],
+      ['amixer', '-c', '0', 'cset', 'name="%s"' % self._args.audio_port, 'off'],
       'Fail to disable audio.')
+
+
+class ExtDisplayTaskArg(object):
+  """Contains args needed by ExtDisplayTask.
+  """
+  def __init__(self):
+    self.main_display_id = None
+    self.display_label = None
+    self.display_id = None
+    self.audio_port = None
+    self.audio_sample = None
+    self.ui = None
+    self.template = None
+
+  def ParseDisplayInfo(self, info):
+    """
+    It parses tuple from args.display_info.
+
+    Args:
+      info: a tuple in args.display_info. Refer display_info definition.
+
+    Raises:
+      ValueError if parse error.
+    """
+    # Sanity check
+    if (len(info) not in set([2, 4]) or
+        any([type(i) is not str for i in info])):
+      raise ValueError('ERROR: invalid display_info item: ' + str(info))
+
+    self.display_label, self.display_id = info[:2]
+    if len(info) == 4:
+      self.audio_port, self.audio_sample = info[2:4]
+      if not os.path.isfile(self.audio_sample):
+        raise ValueError('ERROR: Cannot find audio sample file: ' +
+                         self.audio_sample)
 
 
 class ExtDisplayTest(unittest.TestCase):
@@ -362,45 +370,18 @@ class ExtDisplayTest(unittest.TestCase):
     Raises:
       ValueError if args.display_info is invalid.
     """
-    def _ParseDisplayInfo(info):
-      """Parses tuple inside args.display_info.
-
-      Args:
-        info: a tuple in args.display_info. Refer display_info definition.
-
-      Returns:
-        (display_label, display_id, audio_port, audio_sample)
-        audio_port and audio_sample could be None.
-      """
-      num_args = len(info)
-      if (num_args not in set([2, 4]) or
-          any([type(args) is not str for args in info])):
-        raise ValueError('ERROR: invalid display_info item: ' + str(info))
-      display_label, display_id = info[:2]
-      if num_args == 4:
-        audio_port, audio_sample = info[2:4]
-        if not os.path.isfile(audio_sample):
-          raise ValueError('ERROR: Cannot find audio sample file: ' +
-                           audio_sample)
-        return (display_label, display_id, audio_port, audio_sample)
-      else:
-        return (display_label, display_id, None, None)
-
     tasks = []
-    ui = self._ui
-    template = self._template
-    main_display_id = self.args.main_display
     for info in self.args.display_info:
-      display_label, display_id, audio_port, audio_sample = _ParseDisplayInfo(
-        info)
-      tasks.append(ConnectTask(ui, template, display_label, display_id))
-      tasks.append(VideoTask(ui, template, display_label, display_id,
-                             main_display_id))
-      if audio_sample:
-        tasks.append(AudioTask(ui, template, display_label, audio_port,
-                               audio_sample))
-      tasks.append(DisconnectTask(ui, template, display_label, display_id,
-                                  main_display_id))
+      args = ExtDisplayTaskArg()
+      args.ParseDisplayInfo(info)
+      args.main_display_id = self.args.main_display
+      args.ui = self._ui
+      args.template = self._template
+      tasks.append(ConnectTask(args))
+      tasks.append(VideoTask(args))
+      if args.audio_sample:
+        tasks.append(AudioTask(args))
+      tasks.append(DisconnectTask(args))
     return tasks
 
   def runTest(self):
