@@ -109,13 +109,13 @@ def Main():
 
   # Run shopfloor_server
   shopfloor_dir = os.path.join(SRCROOT,
-                               'src/platform/factory-utils/factory_setup')
+                               'src/platform/factory/py/shopfloor')
   csv_file = os.path.join(shopfloor_dir,
-                        'testdata/shopfloor/devices.csv')
+                        'testdata/devices.csv')
   shutil.copy(csv_file, temp_dir)
   try:
     Spawn(['%s/shopfloor_server.py' % shopfloor_dir,
-           '--module=shopfloor.simple.ShopFloor',
+           '--module=simple_shopfloor',
            '--data-dir=%s' % temp_dir,
            '--address=%s' % args.shopfloor_ip,
            '--port=%s' % args.shopfloor_port],

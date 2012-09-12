@@ -217,8 +217,8 @@ def ParseOptions():
                     help='Show colorful output for logging.')
   parser.add_option('--no_check_packages', dest='do_check_packages',
                     default=True, action='store_false', help='')
-  parser.add_option('--do_modify_netboot_ip', dest='do_modify_betboot_ip',
-                    default=False, action='store_true', help='')
+  parser.add_option('--do_modify_netboot_ip', dest='do_modify_netboot_ip',
+                    default=True, action='store_true', help='')
   parser.add_option('--no_tftp', dest='do_tftp',
                     default=True, action='store_false', help='')
   parser.add_option('--no_dhcp', dest='do_dhcp',
@@ -252,7 +252,7 @@ def main():
   if options.do_check_packages:
     CheckPackagesInstalled()
 
-  if options.do_modify_betboot_ip:
+  if options.do_modify_netboot_ip:
     ModifyNetbootIP(options.host, options.initrd)
 
   if options.do_generate_image:
