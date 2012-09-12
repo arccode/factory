@@ -7,6 +7,7 @@
 """Test external display with optional audio playback test."""
 
 import os
+import random
 import threading
 import unittest
 import uuid
@@ -22,6 +23,7 @@ _TEST_TITLE = test_ui.MakeLabel('External Display Test',
                                 u'外接显示屏测试')
 _DIV_CENTER_INSTRUCTION = """
 <div id='instruction-center' class='template-instruction'></div>"""
+_CSS = '#pass_key {font-size:36px; font-weight:bold;}'
 
 # Interval (seconds) of probing connection state.
 _CONNECTION_CHECK_PERIOD_SECS = 2
@@ -47,6 +49,9 @@ _MSG_AUDIO_TEST = lambda d: test_ui.MakeLabel(
 _MSG_DISCONNECT_TEST = lambda d: test_ui.MakeLabel(
   'Disconnect external display: %s' % d,
   u'移除外接显示屏: %s' % d)
+_MSG_PROMPT_PASS_KEY = lambda k: test_ui.MakeLabel(
+  'Press <span id="pass_key">%s</span> to pass the test.' % k,
+  u'通過請按 <span id="pass_key">%s</span> 鍵' % k)
 
 
 class ExtDisplayTask(FactoryTask):  # pylint: disable=W0223
@@ -227,25 +232,28 @@ class DisconnectTask(DetectDisplayTask):
     template: refer base class.
     display_label: target display's human readable name.
     display_id: target display's id in xrandr.
+    main_display_id: computer's main display's id in xrandr.
   """
-  def __init__(self, ui, template, display_label, display_id):
+  def __init__(self, ui, template, display_label, display_id, main_display_id):
     super(DisconnectTask, self).__init__(
       ui, template,
       _TITLE_DISCONNECT_TEST(display_label),
       _MSG_DISCONNECT_TEST(display_label),
       display_label, display_id, DetectDisplayTask._DISCONNECT)
+    self._main_display_id = main_display_id
 
   def Prepare(self):
     self.RunCommand(
-      ['xrandr', '-d', ':0', '--output', self._display_id, '--off'],
-      'Fail to turn off display %s(%s)' % (self._display_label,
-                                           self._display_id))
+      ['xrandr', '-d', ':0', '--output', self._main_display_id, '--auto',
+       '--output', self._display_id, '--off'],
+      'Fail to switch back to main display %s' % self._main_display_id,)
 
 
 class VideoTask(ExtDisplayTask):
-  """Task to show screen on main and external displays.
+  """Task to show screen on external display only.
 
-  The task is passed only after an operator press Enter.
+  The task is passed only after an operator press a random digit which
+  is promoted on the external display.
 
   Args:
     ui: refer base class.
@@ -255,19 +263,26 @@ class VideoTask(ExtDisplayTask):
     main_display_id: computer's main display's id in xrandr.
   """
   def __init__(self, ui, template, display_label, display_id, main_display_id):
+    # Bind a random key (0-9) to pass the task.
+    self._pass_num = str(random.randint(0, 9))
+    instruction = '%s<br>%s' % (
+      _MSG_VIDEO_TEST(display_label),
+      _MSG_PROMPT_PASS_KEY(self._pass_num))
+
     super(VideoTask, self).__init__(ui, template,
                                     _TITLE_VIDEO_TEST(display_label),
-                                    _MSG_VIDEO_TEST(display_label))
-    self._display_label = display_label
-    self._display_id = display_id
-    self._main_display_id = main_display_id
+                                    instruction,
+                                    pass_key=False)
+    self._ext_display_only = [
+      'xrandr', '-d', ':0', '--output', main_display_id, '--off',
+      '--output', display_id, '--auto']
+    self._msg_fail_ext = 'Fail to show display %s(%s)' % (display_label,
+                                                          display_id)
 
   def Run(self):
     self.InitUI()
-    self.RunCommand(
-      ['xrandr', '-d', ':0', '--output', self._main_display_id, '--auto',
-       '--crtc', '0', '--output', self._display_id, '--auto', '--crtc', '1'],
-      'Fail to show display %s(%s)' % (self._display_label, self._display_id))
+    self._ui.BindKey(self._pass_num, lambda _: self.Pass())
+    self.RunCommand(self._ext_display_only, self._msg_fail_ext)
 
 
 class AudioTask(ExtDisplayTask):
@@ -336,6 +351,7 @@ class ExtDisplayTest(unittest.TestCase):
     self._template.SetTitle(_TEST_TITLE)
     self._template.SetState(_DIV_CENTER_INSTRUCTION)
     self._template.DrawProgressBar()
+    self._ui.AppendCSS(_CSS)
 
   def ComposeTasks(self):
     """Composes test tasks acoording to display_info dargs.
@@ -383,7 +399,8 @@ class ExtDisplayTest(unittest.TestCase):
       if audio_sample:
         tasks.append(AudioTask(ui, template, display_label, audio_port,
                                audio_sample))
-      tasks.append(DisconnectTask(ui, template, display_label, display_id))
+      tasks.append(DisconnectTask(ui, template, display_label, display_id,
+                                  main_display_id))
     return tasks
 
   def runTest(self):
