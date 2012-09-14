@@ -88,7 +88,10 @@ par:
 	  --include '*/' --exclude '*' \
 	  py/ $(PAR_BUILD_DIR)/cros/factory/
 # Copy necessary third-party packages.
-	rsync -a $(PYTHON_SITEDIR)/jsonrpclib $(PAR_BUILD_DIR)
+	rsync -a \
+	  $(PYTHON_SITEDIR)/argparse.py \
+	  $(PYTHON_SITEDIR)/jsonrpclib \
+	  $(PAR_BUILD_DIR)
 # Add empty __init__.py files so Python realizes these directories are
 # modules.
 	touch $(PAR_BUILD_DIR)/cros/__init__.py
