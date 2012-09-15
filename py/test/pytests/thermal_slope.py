@@ -156,7 +156,7 @@ class ThermalSlopeTest(unittest.TestCase):
       self._Sleep()
     else:
       self.fail(u'Temperature never got down to %s°C' %
-                self.args.cool_down_max_duration_secs)
+                self.args.cool_down_temperature_c)
 
     self.ec.SetFanRPM(self.args.target_fan_rpm)
 
