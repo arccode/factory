@@ -10,7 +10,7 @@ u'''Determines how fast the processor heats/cools.
    reaches <cool_down_temperature_c> (at least
    <cool_down_min_duration_secs> but at most
    <cool_down_max_duration_secs>).  Fails if unable to cool down to
-   that temperature.
+   <cool_down_max_temperature_c>.
 
 2. 'idle' stage: Spins the fan to <target_fan_rpm> and waits
    <fan_spin_down_secs>.
@@ -61,6 +61,11 @@ class ThermalSlopeTest(unittest.TestCase):
       Arg('cool_down_temperature_c', (int, float),
           'Target temperature for cool_down',
           default=50),
+      Arg('cool_down_max_temperature_c', (int, float),
+          'Maximum allowable temperature after cool_down '
+          '(if higher than this, the test will not run). '
+          'Defaults to cool_down_temperature_c',
+          optional=True),
       Arg('target_fan_rpm', (int, float),
           'Target RPM of fan during slope test',
           default=4000),
@@ -155,8 +160,11 @@ class ThermalSlopeTest(unittest.TestCase):
         break
       self._Sleep()
     else:
-      self.fail(u'Temperature never got down to %s°C' %
-                self.args.cool_down_temperature_c)
+      max_temperature_c = (self.args.cool_down_max_temperature_c or
+                           self.args.cool_down_temperature_c)
+      if self._MainTemperature() > max_temperature_c:
+        self.fail(u'Temperature never got down to %s°C' %
+                  max_temperature_c)
 
     self.ec.SetFanRPM(self.args.target_fan_rpm)
 
