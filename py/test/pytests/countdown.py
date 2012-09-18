@@ -65,6 +65,17 @@ class CountDownTest(unittest.TestCase):
 
     for index, (current, last) in enumerate(
         zip(status.temperatures, last_status.temperatures)):
+
+      # Ignore the case when both are None since it could just mean the
+      # sensor doesn't exist. If only one of them is None, then there
+      # is a problem.
+      if last is None and current is None:
+        continue
+      if last is None or current is None:
+        self.fail(
+            'Cannot read temperature index %d (current: %d, last: %d)' %
+            (index, current, last))
+
       if abs(current - last) > self._temp_max_delta:
         factory.console.warn(
             'ALARM! Temperature index %d delta over %d (current: %d, last: %d)',
