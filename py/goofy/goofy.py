@@ -702,7 +702,8 @@ class Goofy(object):
     invoc = TestInvocation(self, test, on_completion=self.run_next_test)
     new_state = test.update_state(
       status=TestState.ACTIVE, increment_count=1, error_msg='',
-      invocation=invoc.uuid, iterations_left=iterations_left)
+      invocation=invoc.uuid, iterations_left=iterations_left,
+      visible=(self.visible_test == test))
     invoc.count = new_state.count
 
     self.invocations[test] = invoc
