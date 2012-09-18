@@ -427,6 +427,8 @@ class CompDb(YamlDatastore):
     for comp_class in component_data.classes_missing:
       if comp_class in component_spec.components:
         mismatches.append('component class %s is missing' % comp_class)
+    comp_class_to_match = set(component_spec.components.keys())
+    comp_class_matched = set()
     for comp in component_data.extant_components:
       comp_class = self.name_class_map[comp]
       if comp_class in component_spec.classes_missing:
@@ -436,6 +438,13 @@ class CompDb(YamlDatastore):
       if expected_comps is not None and comp not in expected_comps:
         mismatches.append('component class %s should be one of %s but was '
                           'detected as %s' % (comp_class, expected_comps, comp))
+      # add one item to comp_class_matched
+      comp_class_matched.add(comp_class)
+    comp_class_not_matched = comp_class_to_match - comp_class_matched
+    if len(comp_class_not_matched) != 0:
+      mismatches.append('these component classes did not match '
+                        'the probed result: %s' %
+                        ', '.join(comp_class_not_matched))
     return not mismatches
 
   def ComponentDataClasses(self, component_data):
