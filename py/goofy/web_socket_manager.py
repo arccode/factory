@@ -154,8 +154,9 @@ class WebSocketManager(object):
                   uuid=self.uuid).to_json())
       for line in lines:
         # Send the last n lines.
-        web_socket.send(Event(Event.Type.LOG,
-                              message=line).to_json())
+        web_socket.send(
+          Event(Event.Type.LOG,
+                message=unicode(line, errors='replace')).to_json())
 
 
     try:
@@ -208,7 +209,7 @@ class WebSocketManager(object):
           self.tail_buffer.popleft()
       self._handle_event(
         Event(Event.Type.LOG,
-            message=line.rstrip("\n")))
+            message=unicode(line, errors='replace').rstrip("\n")))
 
   def _handle_event(self, event):
     '''Sends an event to each open WebSocket client.'''
