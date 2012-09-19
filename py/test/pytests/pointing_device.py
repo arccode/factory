@@ -30,6 +30,12 @@ _MSG_BUTTON_CAPTION = test_ui.MakeLabel('Click me', u'点击')
 _MSG_INSTRUCTION_RIGHT_CLICK = test_ui.MakeLabel(
   'Please right-click the pointing device.',
   u'请按下指向装置右键')
+_MSG_INSTRUCTION_SCROLL_UP = test_ui.MakeLabel(
+  'Please scroll up with the pointing device.',
+  u'请用指向装置向上卷动')
+_MSG_INSTRUCTION_SCROLL_DOWN = test_ui.MakeLabel(
+  'Please scroll down with the pointing device.',
+  u'请用指向装置向下卷动')
 
 _CSS = """
 .pd-button-div { font-size: 24px; position: absolute; text-align: center; }
@@ -58,7 +64,18 @@ def _ButtonHTML(button_id, caption):
 _INSTRUCTION_HTML = (
   '<div id="pd-instruction">%s</div>') % _MSG_INSTRUCTION
 
-_JS = """
+
+def _GenerateJS(scroll, scroll_threshold):
+  """Generates a JS code for the test.
+
+  Args:
+    scroll: True to append scroll test after right-click test.
+    scroll_threshold: threshold for recognizing scroll event.
+
+  Returns:
+    JS code.
+  """
+  click_button_js = """
 var pd = {};
 pd.buttonClicked = {};
 pd.remainingButtons = 4;
@@ -73,23 +90,59 @@ pd.clickButton = function(id) {
     pd.startRightClickTest();
   }
 };
+pd.setInstruction = function(instruction) {
+  document.getElementById('pd-instruction').innerHTML = instruction;
+};
+"""
+  right_click_js = """
 pd.startRightClickTest = function() {
-  document.getElementById('pd-instruction').innerHTML = '%s';
+  pd.setInstruction('%s');
   document.getElementById('state').oncontextmenu = function(event) {
     if (event.which == 3) {
-      window.test.pass();
-    }};
+      %s
+    }
+    return false;
+  };
 };
-""" % _MSG_INSTRUCTION_RIGHT_CLICK
+""" % (_MSG_INSTRUCTION_RIGHT_CLICK,
+       'pd.startUpScrollTest();' if scroll else 'window.test.pass();')
+
+  js = [click_button_js, right_click_js]
+  if scroll:
+    js.append(Template("""
+pd.startUpScrollTest = function() {
+  pd.setInstruction('$up_inst');
+  document.addEventListener('mousewheel', function(e) {
+    if (e.wheelDelta >= $delta) {
+      pd.startDownScrollTest();
+    }});
+};
+pd.startDownScrollTest = function() {
+  pd.setInstruction('$down_inst');
+  document.addEventListener('mousewheel', function(e) {
+    if (e.wheelDelta <= -$delta) {
+      window.test.pass();
+    }});
+};
+""").substitute(up_inst=_MSG_INSTRUCTION_SCROLL_UP,
+                down_inst=_MSG_INSTRUCTION_SCROLL_DOWN,
+                delta=scroll_threshold))
+  return '\n'.join(js)
+
 
 class PointingDeviceUI(ui_templates.OneSection):
   """Composes an UI for pointing device test.
+
+  Args:
+    ui: UI object.
+    scroll: True to add scroll test.
+    scroll_thresold: Threshold for recognizing scroll event.
   """
 
-  def __init__(self, ui):
+  def __init__(self, ui, scroll, scroll_threshold):
     super(PointingDeviceUI, self).__init__(ui)
     ui.AppendCSS(_CSS)
-    ui.RunJS(_JS)
+    ui.RunJS(_GenerateJS(scroll, scroll_threshold))
 
   def AppendHTML(self, html):
     self.SetState(html, append=True)
@@ -123,14 +176,19 @@ class PointingDeviceTest(unittest.TestCase):
   clicked and a right-click is triggered.
   """
   ARGS = [
-    Arg('touchpad', str, 'TouchPad device name in xinput.', optional=False)
+    Arg('touchpad', str, 'TouchPad device name in xinput.', optional=False),
+    Arg('test_scroll', bool, 'Test device\'s scroll feature.', default=False),
+    Arg('scroll_threshold', int, 'Threshold for recognizing scroll event.',
+        default=50)
   ]
 
   def __init__(self, *args, **kwargs):
     super(PointingDeviceTest, self).__init__(*args, **kwargs)
-    self._ui = PointingDeviceUI(test_ui.UI())
+    self._ui = None
 
   def setUp(self):
+    self._ui = PointingDeviceUI(test_ui.UI(), self.args.test_scroll,
+                                self.args.scroll_threshold)
     if not self.SetXinputDeviceEnabled(self.args.touchpad, False):
       self._ui.Fail('Failed to disable touchpad.')
 
