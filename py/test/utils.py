@@ -354,3 +354,36 @@ class LoadManager(object):
     if self._process and self._process.poll() is None:
       logging.info('LoadManager: Terminating the process.')
       self._process.terminate()
+
+
+def Retry(max_retry_times, interval, callback, target, *args, **kwargs):
+  """Retries a function call with limited times until it returns True.
+
+  Args:
+    max_retry_times: The max retry times for target function to return True.
+    interval: The sleep interval between each trial.
+    callback: The callback after each retry iteration. Caller can use this
+              callback to track progress. Callback should accept two arguments:
+              callback(retry_time, max_retry_times).
+    target: The target function for retry. *args and **kwargs will be passed to
+            target.
+
+  Returns:
+    Within max_retry_times, if the return value of target function is
+    neither None nor False, returns the value.
+    If target function returns False or None or it throws
+    any exception for max_retry_times, returns None.
+  """
+  result = None
+  for retry_time in xrange(max_retry_times):
+    try:
+      result = target(*args, **kwargs)
+    except Exception as e: # pylint: disable=W0703
+      logging.exception('Retry...')
+    if(callback):
+      callback(retry_time, max_retry_times)
+    if result:
+      logging.info('Retry: Get result in retry_time: %d.', retry_time)
+      break
+    time.sleep(interval)
+  return result
