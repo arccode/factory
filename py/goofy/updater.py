@@ -96,13 +96,18 @@ def TryUpdate(pre_update_hook=None, timeout=15):
   # An update is necessary.  Construct the rsync command.
   update_port = shopfloor_client.GetUpdatePort()
   new_path = os.path.join(parent_dir, 'updater.new')
+  # rsync --link-dest considers any existing files to be definitive,
+  # so wipe anything that's already there.
+  if os.path.exists(new_path):
+    shutil.rmtree(new_path)
+
   RunRsync(
     'rsync',
     '-a', '--delete', '--stats',
     '--timeout=%s' % timeout,
-    # Use copies of identical files from the old autotest
-    # as much as possible to save network bandwidth.
-    '--copy-dest=%s' % parent_dir,
+    # Use hard links of identical files from the old directories to
+    # save network bandwidth and temporary space on disk.
+    '--link-dest=%s' % parent_dir,
     'rsync://%s:%d/factory/%s/' % (
       urlparse(url).hostname,
       update_port,
