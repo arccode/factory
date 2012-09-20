@@ -47,6 +47,8 @@ class CountDownTest(unittest.TestCase):
         id='system-load')
 
   def SetupStatusDetection(self):
+    # TODO(chinyue): Fix in CL:33518
+    # pylint: disable=W0201
     self._grace_secs = self.args.detection_params.get(
         'grace_secs', _DEFAULT_GRACE_SECS)
     self._temp_max_delta = self.args.detection_params.get(
