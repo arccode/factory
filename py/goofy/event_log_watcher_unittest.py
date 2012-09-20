@@ -6,7 +6,6 @@
 
 import factory_common  # pylint: disable=W0611
 
-import logging
 import mox
 import os
 import shutil
@@ -54,6 +53,8 @@ class EventLogWatcherTest(unittest.TestCase):
   def testWatchThread(self):
     class Handler():
       handled = False
+      def __init__(self):
+        pass
       def handle_cb(self, path, logs):
         self.handled = True
     h = Handler()
@@ -64,7 +65,7 @@ class EventLogWatcherTest(unittest.TestCase):
     self.WriteLog(MOCK_PREAMBLE)
 
     # Assert handle_cb has ever been called in 2 seconds.
-    for i in range(200):
+    for _ in range(200):
       if h.handled:
         break
       time.sleep(MOCK_PERIOD)

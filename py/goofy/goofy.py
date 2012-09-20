@@ -1265,7 +1265,6 @@ class Goofy(object):
     '''
     description = 'event logs (%s, %d bytes)' % (log_name, len(chunk))
     start_time = time.time()
-    logging.info('Syncing %s', description)
     shopfloor_client = shopfloor.get_instance(
       detect=True,
       timeout=self.test_list.options.shopfloor_timeout_secs)

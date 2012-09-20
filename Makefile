@@ -30,8 +30,6 @@ LINT_BLACKLIST=\
 	py/argparse.py \
 	py/gooftool/vblock.py \
 	py/goofy/invocation.py \
-	py/goofy/event_log_watcher.py \
-	py/goofy/event_log_watcher_unittest.py \
 	py/goofy/prespawner.py \
 	py/goofy/test_environment.py \
 	py/goofy/updater.py \

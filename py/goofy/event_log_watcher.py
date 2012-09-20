@@ -7,13 +7,11 @@
 import logging
 import os
 import shelve
-import sys
 import threading
-import time
-import traceback
 
-from cros.factory.test import factory
 from cros.factory import event_log
+from cros.factory.test import factory
+from cros.factory.test import utils
 
 EVENT_SEPARATOR = '\n---\n'
 KEY_OFFSET = 'offset'
@@ -91,34 +89,33 @@ class EventLogWatcher(object):
                    self._event_log_dir)
       return
 
-    exceptions = []
+    first_exception = None
+    exception_count = 0
+
     for file_name in os.listdir(self._event_log_dir):
       file_path = os.path.join(self._event_log_dir, file_name)
       if (not self._db.has_key(file_name) or
           self._db[file_name][KEY_OFFSET] != os.path.getsize(file_path)):
         try:
           self.ScanEventLog(file_name)
-        except Exception, e:
-          if suppress_error:
-            # We're suppressing errors, so just log one line at INFO
-            # level, not a whole traceback.
-            logging.info(
-              'Error handling event log %s: %s', file_name,
-              ''.join(traceback.format_exception_only(
-                  *sys.exc_info()[:2])).strip())
-          else:
-            logging.exception(
-              'Error handling event log %s', file_name)
-          exceptions.append(e)
+        except:  # pylint: disable=W0702
+          if not first_exception:
+            first_exception = file_name + ': ' + utils.FormatExceptionOnly()
+          exception_count += 1
 
     self._db.sync()
-    if not suppress_error and exceptions:
-      if len(exceptions) == 1:
-        raise ScanException('Log scan handler failed: %s' % exceptions[0])
+
+    if exception_count:
+      if exception_count == 1:
+        msg = 'Log scan handler failed: %s' % first_exception
       else:
-        raise ScanException('%d log scan handlers failed (first is %s)' %
-                            (len(exceptions),
-                             str(exceptions[0])))
+        msg = '%d log scan handlers failed; first is: %s' % (
+            exception_count, first_exception)
+
+      if suppress_error:
+        logging.info(msg)
+      else:
+        raise ScanException(msg)
 
   def StopWatchThread(self):
     '''Stops the event logs watching thread.'''
@@ -142,14 +139,14 @@ class EventLogWatcher(object):
       try:
         with self._scan_lock:
           self.ScanEventLogs()
-      except Exception:
+      except:  # pylint: disable=W0702
         logging.exception('Error in event log watcher thread')
 
   def GetOrCreateDb(self):
     '''Gets the database or recreate one if exception occurs.'''
     try:
       db = shelve.open(self._event_log_db_file)
-    except Exception:
+    except:  # pylint: disable=W0702
       logging.exception('Corrupted database, recreating')
       os.unlink(self._event_log_db_file)
       db = shelve.open(self._event_log_db_file)

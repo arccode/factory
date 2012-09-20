@@ -54,8 +54,11 @@ class SyncShopfloor(unittest.TestCase):
           ui.BindKeyJS(' ', 'window.test.updateFactory()')
           return
         except:  # pylint: disable=W0702
-          logging.exception('Unable to flush event logs')
           exception_string = utils.FormatExceptionOnly()
+          # Log only the exception string, not the entire exception,
+          # since this may happen repeatedly.
+          logging.error('Unable to sync with shopfloor server: %s',
+                        exception_string)
 
         template.SetState(
             test_ui.MakeLabel(
