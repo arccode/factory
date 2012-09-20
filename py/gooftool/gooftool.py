@@ -525,7 +525,8 @@ def VerifyRootFs(options):  # pylint: disable=W0613
   rootfs_device = GetReleaseRootPartitionPath()
   result = Shell('%s %s' % (script, rootfs_device))
   if not result.success:
-    raise Error, '%r failed, stderr: %r' % (script, result.stderr)
+    raise Error, '%r failed, stdout: %r, stderr: %r' % (
+        script, result.stdout, result.stderr)
 
 
 @Command('verify_switch_wp')
