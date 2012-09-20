@@ -36,6 +36,7 @@ from cros.factory import system
 from cros.factory.test import factory
 from cros.factory.test.factory import TestState
 from cros.factory.test import unicode_to_string
+from cros.factory.utils.string_utils import CleanUTF8
 
 
 DEFAULT_FACTORY_STATE_PORT = 0x0FAC
@@ -314,7 +315,7 @@ class FactoryState(object):
 
     log_file = os.path.join(test_dir, 'log')
     try:
-      log = open(log_file).read()
+      log = CleanUTF8(open(log_file).read())
     except:
       # Oh well
       logging.exception('Unable to read log file %s', log_file)

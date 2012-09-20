@@ -20,6 +20,7 @@ from cros.factory.test import factory
 from cros.factory.test.event import Event
 from cros.factory.test.event import EventClient
 from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils.string_utils import DecodeUTF8
 
 
 # Number of lines to buffer for new clients.
@@ -156,7 +157,7 @@ class WebSocketManager(object):
         # Send the last n lines.
         web_socket.send(
           Event(Event.Type.LOG,
-                message=unicode(line, errors='replace')).to_json())
+                message=DecodeUTF8(line)).to_json())
 
 
     try:
@@ -209,7 +210,7 @@ class WebSocketManager(object):
           self.tail_buffer.popleft()
       self._handle_event(
         Event(Event.Type.LOG,
-            message=unicode(line, errors='replace').rstrip("\n")))
+            message=DecodeUTF8(line).rstrip("\n")))
 
   def _handle_event(self, event):
     '''Sends an event to each open WebSocket client.'''

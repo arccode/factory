@@ -32,6 +32,7 @@ from cros.factory.test.args import Args
 from cros.factory.test.event import Event
 from cros.factory.test.factory import TestState
 from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils.string_utils import DecodeUTF8
 
 
 # Number of bytes to include from the log of a failed test.
@@ -427,6 +428,7 @@ class TestInvocation(object):
     self.update_metadata(start_time=time.time(), **log_args)
     start_time = time.time()
     try:
+      status, error_msg = None, None
       if self.test.autotest_name:
         status, error_msg = self._invoke_autotest()
       elif self.test.pytest_name:
@@ -438,6 +440,9 @@ class TestInvocation(object):
         error_msg = (
           'No autotest_name, pytest_name, or invocation_target')
     finally:
+      if error_msg:
+        error_msg = DecodeUTF8(error_msg)
+
       try:
         self.goofy.event_client.post_event(
           Event(Event.Type.DESTROY_TEST,
@@ -462,7 +467,7 @@ class TestInvocation(object):
             offset = max(0, log_size - ERROR_LOG_TAIL_LENGTH)
             with open(self.log_path) as f:
               f.seek(offset)
-              log_args['log_tail'] = f.read()
+              log_args['log_tail'] = DecodeUTF8(f.read())
           except:
             logging.exception('Unable to read log tail')
         self.goofy.event_log.Log('end_test', **log_args)
@@ -470,11 +475,11 @@ class TestInvocation(object):
       except:
         logging.exception('Unable to log end_test event')
 
-    factory.console.info('Test %s%s %s%s',
+    factory.console.info(u'Test %s%s %s%s',
                          self.test.path,
                          iteration_string,
                          status,
-                         ': %s' % error_msg if error_msg else '')
+                         u': %s' % error_msg if error_msg else '')
 
     with self._lock:
       self.update_state_on_completion = dict(
