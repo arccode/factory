@@ -134,7 +134,7 @@ class ConnectionManager():
     self._ConfigureWifi(wlans)
 
     if start_enabled:
-      self.EnableNetworking()
+      self.EnableNetworking(reset=False)
     else:
       self.DisableNetworking()
 
@@ -194,6 +194,8 @@ class ConnectionManager():
         logging.exception("Unable to remove the network profile."
                           " File non-existent?")
 
+    logging.info('Enabling networking')
+
     # Start network manager.
     for service in [self.network_manager] + self.subservices:
       subprocess.call("start %s" % service, shell=True,
@@ -230,6 +232,8 @@ class ConnectionManager():
   def DisableNetworking(self):
     '''Tells underlying connection manager to terminate any existing connection.
     '''
+    logging.info('Disabling networking')
+
     # Stop network manager.
     for service in self.subservices + [self.network_manager]:
       subprocess.call("stop %s" % service, shell=True,

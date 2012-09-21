@@ -55,6 +55,8 @@ class ConnectionManagerTest(unittest.TestCase):
   def setUp(self):
     self.mox = mox.Mox()
     self.mox.StubOutWithMock(connection_manager, 'GetBaseNetworkManager')
+    self.mox.StubOutWithMock(glob, 'glob')
+    self.mox.StubOutWithMock(subprocess, 'call')
     self.fakeBaseNetworkManager = self.mox.CreateMockAnything()
     self.fakeData = _FAKE_DATA.copy()
     self.fakeData['wlans'] = [connection_manager.WLAN(ssid='fake_server',
@@ -66,8 +68,6 @@ class ConnectionManagerTest(unittest.TestCase):
     self.mox.UnsetStubs()
 
   def MockDisableNetworking(self):
-    self.mox.StubOutWithMock(glob, 'glob')
-    self.mox.StubOutWithMock(subprocess, 'call')
     for service in _FAKE_SUBSERVICE_LIST + [_FAKE_MANAGER]:
       subprocess.call("stop %s" % service, shell=True,
                       stdout=mox.IgnoreArg(), stderr=mox.IgnoreArg())
@@ -78,10 +78,11 @@ class ConnectionManagerTest(unittest.TestCase):
       subprocess.call("ifconfig %s down" % dev, shell=True,
                       stdout=mox.IgnoreArg(), stderr=mox.IgnoreArg())
 
-  def MockEnableNetworking(self):
-    self.MockDisableNetworking()
-    self.mox.StubOutWithMock(os, 'remove')
-    os.remove(_FAKE_PROFILE_LOCATION % _FAKE_PROC_NAME)
+  def MockEnableNetworking(self, reset=True):
+    if reset:
+      self.MockDisableNetworking()
+      self.mox.StubOutWithMock(os, 'remove')
+      os.remove(_FAKE_PROFILE_LOCATION % _FAKE_PROC_NAME)
 
     for service in [_FAKE_MANAGER] + _FAKE_SUBSERVICE_LIST:
       subprocess.call("start %s" % service, shell=True,
@@ -108,7 +109,7 @@ class ConnectionManagerTest(unittest.TestCase):
       })
 
   def testInitWithEnableNetworking(self):
-    self.MockEnableNetworking()
+    self.MockEnableNetworking(reset=False)
 
     self.mox.ReplayAll()
     connection_manager.ConnectionManager(start_enabled=True,
