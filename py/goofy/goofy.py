@@ -1416,5 +1416,9 @@ if __name__ == '__main__':
   goofy = Goofy()
   try:
     goofy.main()
+  except:
+    # Log the error before trying to shut down.
+    logging.exception('Error in main loop')
+    raise
   finally:
     goofy.destroy()
