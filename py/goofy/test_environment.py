@@ -5,6 +5,7 @@
 # found in the LICENSE file.
 
 import cPickle as pickle
+import datetime
 import hashlib
 import logging
 import os
@@ -149,19 +150,31 @@ class DUTEnvironment(Environment):
       new_env['PATH'] += ':/usr/local/factory/bin'
 
       logging.info('Launching factory_automation: log in %s', automation_log)
-      return Spawn(automation_command,
-                   stdout=automation_log_file,
-                   stderr=subprocess.STDOUT,
-                   # Make other automation logs go to the correct place
-                   cwd=factory.get_log_root(),
-                   env=new_env)
+      process = Spawn(automation_command,
+                      stdout=automation_log_file,
+                      stderr=subprocess.STDOUT,
+                      # Make other automation logs go to the correct place
+                      cwd=factory.get_log_root(),
+                      env=new_env)
     else:
       chrome_log = os.path.join(factory.get_log_root(), 'factory.chrome.log')
-      chrome_log_file = open(chrome_log, 'a')
+      chrome_log_file = open(chrome_log, 'a', 0)
+      chrome_log_file.write('#\n# %s: Starting chrome\n#\n' %
+                            datetime.datetime.now().isoformat())
       logging.info('Launching Chrome; logs in %s', chrome_log)
-      return Spawn(chrome_command,
-                   stdout=chrome_log_file,
-                   stderr=subprocess.STDOUT)
+      process = Spawn(chrome_command,
+                      stdout=chrome_log_file,
+                      stderr=subprocess.STDOUT)
+
+    logging.info('Chrome has been launched: PID %d', process.pid)
+    # Start thread to wait for Chrome to die and log its return
+    # status
+    def WaitForChrome():
+      returncode = process.wait()
+      logging.info('Chrome exited with return code %d', returncode)
+      chrome_log_file.write('#\n# %s: Chrome exited with return code %d\n#\n' %
+                            (datetime.datetime.now().isoformat(), returncode))
+    utils.StartDaemonThread(target=WaitForChrome)
 
   def create_connection_manager(self, wlans, scan_wifi_period_secs):
     return connection_manager.ConnectionManager(wlans,
