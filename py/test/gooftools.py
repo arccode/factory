@@ -16,8 +16,8 @@ import sys
 import tempfile
 
 import factory_common  # pylint: disable=W0611
-from autotest_lib.client.common_lib import error
 from cros.factory.test import factory
+from cros.factory.test.test_ui import FactoryTestFailure
 
 
 GOOFTOOL_HOME = '/usr/local/factory'
@@ -80,6 +80,6 @@ def run(command, ignore_status=False):
         exception_message = '\n'.join(
                 [error_message for error_message in err.splitlines()
                  if error_message.startswith('ERROR')]) or message
-        raise error.TestError(exception_message)
+        raise FactoryTestFailure(exception_message)
 
     return (out, err, return_code)

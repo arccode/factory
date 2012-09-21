@@ -278,7 +278,8 @@ def BestMatchHwids(options):
   matched_hwids = device.GetMatchTreeHwids(match_tree)
   if matched_hwids:
     for hwid in matched_hwids:
-      print 'MATCHING HWID: %s' % hwid
+      if matched_hwids[hwid] in options.status:
+        print 'MATCHING HWID: %s' % hwid
     return
   print 'exact HWID matching failed, but the following BOMs match: %s' % (
     ', '.join(sorted(match_tree)))
