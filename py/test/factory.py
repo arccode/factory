@@ -352,6 +352,10 @@ class Options(object):
   sync_time_period_secs = None
   _types['sync_time_period_secs'] = (type(None), int)
 
+  # Interval at which to log disk usage stats.
+  log_disk_space_period_secs = 120
+  _types['log_disk_space_period_secs'] = (type(None), int)
+
   # The range in which the charge level should be. If min_charge_pct and
   # max_charge_pct are set, Goofy will use ChargeManager to attempt to keep
   # the battery charge within these thresholds.

@@ -35,6 +35,7 @@ from cros.factory.goofy.invocation import TestInvocation
 from cros.factory.goofy.prespawner import Prespawner
 from cros.factory.goofy.web_socket_manager import WebSocketManager
 from cros.factory.system.charge_manager import ChargeManager
+from cros.factory.system import disk_space
 from cros.factory.test import factory
 from cros.factory.test import state
 from cros.factory.test import shopfloor
@@ -183,6 +184,7 @@ class Goofy(object):
     self.last_shutdown_time = None
     self.last_update_check = None
     self.last_sync_time = None
+    self.last_log_disk_space_time = None
 
     def test_or_root(event, parent_or_group=True):
       '''Returns the test affected by a particular event.
@@ -1206,6 +1208,22 @@ class Goofy(object):
       self.time_synced = True
     return self.time_synced
 
+  def log_disk_space_stats(self):
+    if not self.test_list.options.log_disk_space_period_secs:
+      return
+
+    now = time.time()
+    if (self.last_log_disk_space_time and
+        now - self.last_log_disk_space_time <
+        self.test_list.options.log_disk_space_period_secs):
+      return
+    self.last_log_disk_space_time = now
+
+    try:
+      logging.info(disk_space.FormatSpaceUsedAll())
+    except:  # pylint: disable=W0702
+      logging.exception('Unable to get disk space used')
+
   def sync_time_in_background(self):
     '''Writes out current time and tries to sync with shopfloor server.'''
     if not self.time_sanitizer:
@@ -1255,6 +1273,7 @@ class Goofy(object):
     self.check_connection_manager()
     self.check_for_updates()
     self.sync_time_in_background()
+    self.log_disk_space_stats()
     if self.charge_manager:
       self.charge_manager.AdjustChargeState()
 

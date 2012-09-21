@@ -75,6 +75,7 @@ UNITTESTS=\
 	py/shopfloor/shopfloor_unittest.py \
 	py/shopfloor/shopfloor_standalone_unittest.py \
 	py/system/charge_manager_unittest.py \
+	py/system/disk_space_unittest.py \
 	py/system/system_unittest.py \
 	py/test/factory_unittest.py \
 	py/test/state_unittest.py \
