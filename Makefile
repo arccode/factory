@@ -59,35 +59,14 @@ LINT_BLACKLIST=\
 	py/test/utils_unittest.py
 
 LINT_FILES=$(shell find py -name '*.py' -type f | sort)
-
 LINT_WHITELIST=$(filter-out $(LINT_BLACKLIST),$(LINT_FILES))
 
-UNITTESTS=\
-	py/board/chromeos_ec_unittest.py \
-	py/event_log_unittest.py \
-	py/goofy/connection_manager_unittest.py \
-	py/goofy/event_log_watcher_unittest.py \
-	py/goofy/goofy_rpc_unittest.py \
-	py/goofy/goofy_unittest.py \
-	py/goofy/time_sanitizer_unittest.py \
-	py/goofy/updater_unittest.py \
-	py/shopfloor/factory_update_server_unittest.py \
-	py/shopfloor/shopfloor_unittest.py \
-	py/shopfloor/shopfloor_standalone_unittest.py \
-	py/system/charge_manager_unittest.py \
-	py/system/disk_space_unittest.py \
-	py/system/system_unittest.py \
-	py/test/factory_unittest.py \
-	py/test/state_unittest.py \
-	py/test/registration_codes_unittest.py \
-	py/test/unicode_to_string_unittest.py \
-	py/test/utils_unittest.py \
-	py/tools/diff_image_unittest.py \
-	py/utils/net_utils_unittest.py \
-	py/utils/process_utils_unittest.py \
-	py/hwdb/hwid_unittest.py
-
+UNITTESTS=$(shell find py -name '*_unittest.py' | sort)
 # TODO(sheckylin): Get py/test/media_util_unittest.py working.
+UNITTESTS_BLACKLIST=\
+	py/test/media_util_unittest.py
+UNITTESTS_WHITELIST=$(filter-out $(UNITTESTS_BLACKLIST),$(UNITTESTS))
+
 
 # TODO(jsalz): remove the hard-coded path once the icedtea6-bin
 # package is fixed and /usr/bin/java works
@@ -188,7 +167,7 @@ test:
 	mkdir $$logdir; \
 	echo "Test logs will be written to $$logdir"; \
 	echo; \
-	for f in $(UNITTESTS); do \
+	for f in $(UNITTESTS_WHITELIST); do \
 	    total=$$(expr $$total + 1); \
 	    echo -ne "*** RUN $$f"; \
 	    log=$$logdir/$$(basename $$f).log; \
