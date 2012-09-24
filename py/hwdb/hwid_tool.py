@@ -1220,7 +1220,7 @@ def CreateVariant(config, hw_db):
   map(hw_db.comp_db.CompClassExists, config.missing)
   map(hw_db.comp_db.CompClassExists, config.dontcare)
   component_spec = hw_db.comp_db.CreateComponentSpec(
-    config.comps, config.missing, config.dontcare)
+    config.comps, config.dontcare, config.missing)
   variant = device.CreateVariant(component_spec)
   print 'created %s variant %s' % (config.board, variant)
 
