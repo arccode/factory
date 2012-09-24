@@ -322,8 +322,19 @@ def _ProbeBattery():
   node_path_list = glob('/sys/class/power_supply/*')
   type_data_list = [_ReadSysfsFields(node_path, ['type'])[0]
                     for node_path in node_path_list]
-  battery_field_list = ['manufacturer', 'model_name', 'technology',
-                        'charge_full_design']
+  battery_field_list = ['manufacturer', 'model_name', 'technology']
+  # probe energy_full_design or charge_full_design, battery can have either
+  battery_full_field_candidate = ['charge_full_design',
+                                  'energy_full_design']
+  battery_full_field_candidate_found = False
+  for candidate in battery_full_field_candidate:
+    if any(os.path.exists(os.path.join(path, candidate))
+           for path in node_path_list):
+      battery_field_list.append(candidate)
+      battery_full_field_candidate_found = True
+      break
+  if not battery_full_field_candidate_found:
+    return []
   battery_data_list = [_ReadSysfsFields(node_path, battery_field_list)
                        for node_path, type_data
                        in zip(node_path_list, type_data_list)
