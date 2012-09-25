@@ -28,7 +28,7 @@ from tempfile import NamedTemporaryFile
 
 import factory_common  # pylint: disable=W0611
 
-from cros.factory.common import CompactStr, Error, Obj, Shell
+from cros.factory.common import CompactStr, Error, Obj, ParseKeyValueData, Shell
 from cros.factory.gooftool import edid
 from cros.factory.gooftool import crosfw
 from cros.factory.gooftool import vblock
@@ -725,9 +725,23 @@ def CalculateFirmwareHashes(fw_file_path):
   return hashes
 
 
+def ReadVpd(fw_image_file, kind):
+  raw_vpd_data = Shell('vpd -i %s -l -f %s' % (kind, fw_image_file)).stdout
+  return ParseKeyValueData('"(.*)"="(.*)"$', raw_vpd_data)
+
+
+def ReadRoVpd(fw_image_file):
+  return ReadVpd(fw_image_file, 'RO_VPD')
+
+
+def ReadRwVpd(fw_image_file):
+  return ReadVpd(fw_image_file, 'RW_VPD')
+
+
 def Probe(target_comp_classes=None,
           probe_volatile=True,
-          probe_initial_config=True):
+          probe_initial_config=True,
+          probe_vpd=False):
   """Return device component, hash, and initial_config data.
 
   Run all of the available probing routines that make sense for the
@@ -745,6 +759,8 @@ def Probe(target_comp_classes=None,
       return None for the corresponding field.
     probe_initial_config: On False, do not probe for initial_config
       data and return None for the corresponding field.
+    probe_vpd: On True, include vpd data in the volatiles (handy for use with
+      'gooftool verify_hwid --probe_results=...').
   Returns:
     Obj with components, volatile, and initial_config fields, each
     containing the corresponding dict of probe results.
@@ -793,6 +809,12 @@ def Probe(target_comp_classes=None,
     ec_fw_file = crosfw.LoadEcFirmware().GetFileName()
     if ec_fw_file is not None:
       volatiles.update(CalculateFirmwareHashes(ec_fw_file))
+  if probe_vpd:
+    image_file = crosfw.LoadMainFirmware().GetFileName()
+    for which, vpd in (('ro', ReadRoVpd(image_file)),
+                       ('rw', ReadRwVpd(image_file))):
+      for k, v in sorted(vpd.items()):
+        volatiles['vpd.%s.%s' % (which, k)] = v
   return ProbeResults(
     found_probe_value_map=found_probe_value_map,
     missing_component_classes=missing_component_classes,

@@ -24,12 +24,13 @@ from tempfile import gettempdir, NamedTemporaryFile
 
 import factory_common  # pylint: disable=W0611
 
-from cros.factory.common import Error, ParseKeyValueData, SetupLogging, Shell
+from cros.factory.common import Error, SetupLogging, Shell
 from cros.factory.common import YamlWrite
 from cros.factory.gooftool import crosfw
 from cros.factory.gooftool import report_upload
 from cros.factory.gooftool.bmpblk import unpack_bmpblock
 from cros.factory.gooftool.probe import Probe, PROBEABLE_COMPONENT_CLASSES
+from cros.factory.gooftool.probe import ReadRoVpd, ReadRwVpd
 from cros.factory.gooftool.vpd_data import KNOWN_VPD_FIELD_DATA
 from cros.factory.hacked_argparse import CmdArg, Command, ParseCmdline
 from cros.factory.hacked_argparse import verbosity_cmd_arg
@@ -88,19 +89,6 @@ def FindScript(script_name):
   if not os.path.exists(script_path):
     raise Error('Needed script %s does not exist.' % script_path)
   return script_path
-
-
-def ReadVpd(fw_image_file, kind):
-  raw_vpd_data = Shell('vpd -i %s -l -f %s' % (kind, fw_image_file)).stdout
-  return ParseKeyValueData('"(.*)"="(.*)"$', raw_vpd_data)
-
-
-def ReadRoVpd(fw_image_file):
-  return ReadVpd(fw_image_file, 'RO_VPD')
-
-
-def ReadRwVpd(fw_image_file):
-  return ReadVpd(fw_image_file, 'RW_VPD')
 
 
 # TODO(tammo): Replace calls to sys.exit with raise Exit, and maybe
@@ -314,12 +302,15 @@ def BestMatchHwids(options):
          CmdArg('--no_vol', action='store_true',
                 help='Do not probe volatile data.'),
          CmdArg('--no_ic', action='store_true',
-                help='Do not probe initial_config data.'))
+                help='Do not probe initial_config data.'),
+         CmdArg('--include_vpd', action='store_true',
+                help='Include VPD data in volatiles.'))
 def RunProbe(options):
   """Print yaml-formatted breakdown of probed device properties."""
   probe_results = Probe(target_comp_classes=options.comps,
-                              probe_volatile=not options.no_vol,
-                              probe_initial_config=not options.no_ic)
+                        probe_volatile=not options.no_vol,
+                        probe_initial_config=not options.no_ic,
+                        probe_vpd=options.include_vpd)
   print probe_results.Encode()
 
 
@@ -343,7 +334,7 @@ def VerifyComponents(options):
       sys.exit('ERROR: specified component class %r does not exist'
                ' in the component DB.' % comp_class)
   probe_results = Probe(target_comp_classes=options.target_comps,
-                              probe_volatile=False, probe_initial_config=False)
+                        probe_volatile=False, probe_initial_config=False)
   errors = []
   matches = []
   for comp_class in sorted(options.target_comps):
@@ -370,7 +361,13 @@ def VerifyComponents(options):
 
 @Command('verify_hwid',
          _hwid_status_list_cmd_arg,
-         _hwdb_path_cmd_arg)
+         _hwdb_path_cmd_arg,
+         CmdArg('--probe_results', metavar='RESULTS.yaml',
+                help=('Output from "gooftool probe" (used instead of '
+                      'probing this system).')),
+         CmdArg('--hwid', metavar='HWID',
+                help=('HWID to verify (instead of the currently set HWID of '
+                      'this system)')))
 def VerifyHwid(options):
   """Verify system HWID properties match probed device properties.
 
@@ -383,7 +380,6 @@ def VerifyHwid(options):
   possible verify that values are legitimate.
   """
   def VerifyVpd(ro_vpd_keys, rw_vpd_keys):
-    ro_vpd = ReadRoVpd(main_fw_file)
     for key in ro_vpd_keys:
       if key not in ro_vpd:
         sys.exit('Missing required RO VPD field: %s' % key)
@@ -391,7 +387,6 @@ def VerifyHwid(options):
       value = ro_vpd[key]
       if (known_valid_values is not None) and (value not in known_valid_values):
         sys.exit('Invalid RO VPD entry : key %r, value %r' % (key, value))
-    rw_vpd = ReadRwVpd(main_fw_file)
     for key in rw_vpd_keys:
       if key not in rw_vpd:
         sys.exit('Missing required RW VPD field: %s' % key)
@@ -401,18 +396,38 @@ def VerifyHwid(options):
         sys.exit('Invalid RW VPD entry : key %r, value %r' % (key, value))
     _event_log.Log('vpd', ro_vpd=ro_vpd, rw_vpd=rw_vpd)
   map(hwid_tool.Validate.Status, options.status)
+
   main_fw_file = crosfw.LoadMainFirmware().GetFileName()
-  gbb_result = Shell('gbb_utility -g --hwid %s' % main_fw_file).stdout
-  hwid_str = re.findall(r'hardware_id:(.*)', gbb_result)[0].strip()
+
+  if options.hwid:
+    hwid_str = options.hwid
+  else:
+    gbb_result = Shell('gbb_utility -g --hwid %s' % main_fw_file).stdout
+    hwid_str = re.findall(r'hardware_id:(.*)', gbb_result)[0].strip()
   hwid = hwid_tool.ParseHwid(hwid_str)
   hw_db = hwid_tool.HardwareDb(options.hwdb_path)
-  print 'Verifying system HWID: %r\n' % hwid.hwid
+  print 'Verifying HWID: %r\n' % hwid.hwid
   device = hw_db.GetDevice(hwid.board)
   hwid_status = device.GetHwidStatus(hwid.bom, hwid.variant, hwid.volatile)
   if hwid_status not in options.status:
     sys.exit('HWID status must be one of [%s], found %r' %
              (', '.join(options.status), hwid_status))
-  probe_results = Probe()
+  if options.probe_results:
+    # Pull in probe results (including VPD data) from the given file
+    # rather than probing the current system.
+    probe_results = hwid_tool.ProbeResults.Decode(
+        open(options.probe_results).read())
+    ro_vpd = {}
+    rw_vpd = {}
+    for k, v in probe_results.found_volatile_values.items():
+      match = re.match('^vpd\.(ro|rw)\.(\w+)$', k)
+      if match:
+        del probe_results.found_volatile_values[k]
+        (ro_vpd if match.group(1) == 'ro' else rw_vpd)[match.group(2)] = v
+  else:
+    probe_results = Probe()
+    ro_vpd = ReadRoVpd(main_fw_file)
+    rw_vpd = ReadRwVpd(main_fw_file)
   cooked_components = hw_db.comp_db.MatchComponentProbeValues(
     probe_results.found_probe_value_map)
   cooked_volatiles = device.MatchVolatileValues(
