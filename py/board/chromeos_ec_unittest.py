@@ -78,6 +78,38 @@ class ChromeOSECTest(unittest.TestCase):
     self.ec.SetFanRPM(self.ec.AUTO)
     self.mox.VerifyAll()
 
+  def testI2CRead(self):
+    _MOCK_I2C_READ = 'Read from I2C port 0 at 0x12 offset 0x12 = 0xf912'
+    self.ec._CallECTool(['i2cread', '16', '0', '18',
+                         '18']).AndReturn(_MOCK_I2C_READ)
+    self.mox.ReplayAll()
+    self.assertEquals(self.ec.I2CRead(0, 0x12, 0x12), 0xf912)
+    self.mox.VerifyAll()
+
+  def testI2CWrite(self):
+    self.ec._Spawn(['ectool', 'i2cwrite', '16', '0', '18', '18', '0'],
+                   check_call=True, ignore_stdout=True,
+                   log_stderr_on_error=True)
+    self.mox.ReplayAll()
+    self.ec.I2CWrite(0, 0x12, 0x12, 0)
+    self.mox.VerifyAll()
+
+  def testGetChargerCurrent(self):
+    _MOCK_I2C_READ = 'Read from I2C port 0 at 0x12 offset 0x14 = 0x1000'
+    self.ec._CallECTool(['i2cread', '16', '0', '18',
+                         '20']).AndReturn(_MOCK_I2C_READ)
+    self.mox.ReplayAll()
+    self.assertEquals(self.ec.GetChargerCurrent(), 0x1000)
+    self.mox.VerifyAll()
+
+  def testGetBatteryCurrent(self):
+    _MOCK_I2C_READ = 'Read from I2C port 0 at 0x16 offset 0xa = 0x1000'
+    self.ec._CallECTool(['i2cread', '16', '0', '22',
+                         '10']).AndReturn(_MOCK_I2C_READ)
+    self.mox.ReplayAll()
+    self.assertEquals(self.ec.GetBatteryCurrent(), 0x1000)
+    self.mox.VerifyAll()
+
   def testGetVersion(self):
     _MOCK_VERSION = '\n'.join([
         'vendor               | ti',

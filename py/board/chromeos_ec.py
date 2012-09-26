@@ -18,6 +18,7 @@ class ChromeOSEC(EC):
   TEMPERATURE_RE = re.compile('^(\d+): (\d+)$', re.MULTILINE)
   TEMPERATURE_INFO_RE = re.compile('^(\d+): \d+ (.+)$', re.MULTILINE)
   EC_VERSION_RE = re.compile('^fw_version\s+\|\s+(.+)$', re.MULTILINE)
+  I2C_READ_RE = re.compile('I2C port \d+ at \S+ offset \S+ = (0x[0-9a-f]+)')
 
   # Charger option bytes
   CHARGER_OPTION_NORMAL = "0xf912"
@@ -34,6 +35,24 @@ class ChromeOSEC(EC):
   def _CallECTool(self, cmd):
     return Spawn(['ectool'] + cmd, read_stdout=True,
                  ignore_stderr=True).stdout_data
+
+  def I2CRead(self, port, addr, reg):
+    try:
+      ectool_output = self._CallECTool(['i2cread', '16', str(port), str(addr),
+                                        str(reg)])
+      return int(self.I2C_READ_RE.findall(ectool_output)[0], 16)
+    except Exception as e: # pylint: disable=W0703
+      raise ECException('Unable to read from I2C: %s' % e)
+
+  def I2CWrite(self, port, addr, reg, value):
+    try:
+      self._Spawn(['ectool', 'i2cwrite', '16', str(port), str(addr),
+                  str(reg), str(value)],
+                  check_call=True,
+                  ignore_stdout=True,
+                  log_stderr_on_error=True)
+    except Exception as e: # pylint: disable=W0703
+      raise ECException('Unable to read from I2C: %s' % e)
 
   def GetTemperatures(self):
     try:
@@ -110,3 +129,9 @@ class ChromeOSEC(EC):
         raise ECException('Unknown EC charge state: %s' % state)
     except Exception as e:
       raise ECException('Unable to set charge state: %s' % e)
+
+  def GetChargerCurrent(self):
+    return self.I2CRead(0, 0x12, 0x14)
+
+  def GetBatteryCurrent(self):
+    return self.I2CRead(0, 0x16, 0x0a)

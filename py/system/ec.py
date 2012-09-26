@@ -84,3 +84,46 @@ class EC(object):
       Raises ECException when fail.
     '''
     raise NotImplementedError
+
+  def I2CRead(self, port, addr, reg):
+    '''Reads 16-bit value from I2C bus.
+
+    Args:
+      port: I2C port ID.
+      addr: I2C slave address.
+      reg: Slave register address.
+
+    Returns:
+      Integer value read from slave. Raises ECException when fail.
+    '''
+    raise NotImplementedError
+
+  def I2CWrite(self, port, addr, reg, value):
+    '''Writes 16-bit value to I2C bus.
+
+    Args:
+      port: I2C port ID.
+      addr: I2C slave address.
+      reg: Slave register address.
+      value: 16-bit value to write.
+
+    Returns:
+      Raises ECException when fail.
+    '''
+    raise NotImplementedError
+
+  def GetChargerCurrent(self):
+    '''Gets the amount of current we ask from charger.
+
+    Returns:
+      Interger value in mA. Raises ECException when fail.
+    '''
+    raise NotImplementedError
+
+  def GetBatteryCurrent(self):
+    '''Gets the amount of current battery is charging/discharging at.
+
+    Returns:
+      Integer value in mA. Raises ECException when fail.
+    '''
+    raise NotImplementedError
