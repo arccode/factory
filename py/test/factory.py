@@ -568,7 +568,7 @@ class FactoryTest(object):
           'enable_services', 'disable_services']
 
   # Subsystems that the test may require exclusive access to.
-  EXCLUSIVE_OPTIONS = utils.Enum(['NETWORKING'])
+  EXCLUSIVE_OPTIONS = utils.Enum(['NETWORKING', 'CHARGER'])
 
   RUN_IF_REGEXP = re.compile(r'^(!)?(\w+)\.(\w+)$')
 

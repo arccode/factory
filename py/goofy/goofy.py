@@ -134,8 +134,6 @@ class Goofy(object):
     event_server_thread: A thread running event_server.
     event_client: A client to the event server.
     connection_manager: The connection_manager object.
-    network_enabled: Whether the connection_manager is currently
-      enabling connections.
     ui_process: The factory ui process object.
     run_queue: A queue of callbacks to invoke from the main thread.
     invocations: A map from FactoryTest objects to the corresponding
@@ -164,7 +162,6 @@ class Goofy(object):
     self.time_sanitizer = None
     self.time_synced = False
     self.log_watcher = None
-    self.network_enabled = True
     self.event_log = None
     self.prespawner = None
     self.ui_process = None
@@ -185,6 +182,7 @@ class Goofy(object):
     self.last_update_check = None
     self.last_sync_time = None
     self.last_log_disk_space_time = None
+    self.exclusive_items = set()
 
     def test_or_root(event, parent_or_group=True):
       '''Returns the test affected by a particular event.
@@ -711,28 +709,37 @@ class Goofy(object):
     self.invocations[test] = invoc
     if self.visible_test is None and test.has_ui:
       self.set_visible_test(test)
-    self.check_connection_manager()
+    self.check_exclusive()
     invoc.start()
 
-  def check_connection_manager(self):
-    exclusive_tests = [
-      test.path
-      for test in self.invocations
-      if test.is_exclusive(
-        factory.FactoryTest.EXCLUSIVE_OPTIONS.NETWORKING)]
-    if exclusive_tests:
-      # Make sure networking is disabled.
-      if self.network_enabled:
-        logging.info('Disabling network, as requested by %s',
-               exclusive_tests)
-        self.connection_manager.DisableNetworking()
-        self.network_enabled = False
-    else:
-      # Make sure networking is enabled.
-      if not self.network_enabled:
-        logging.info('Re-enabling network')
-        self.connection_manager.EnableNetworking()
-        self.network_enabled = True
+  def check_exclusive(self):
+    current_exclusive_items = set([
+        item
+        for item in factory.FactoryTest.EXCLUSIVE_OPTIONS
+        if any([test.is_exclusive(item) for test in self.invocations])])
+
+    new_exclusive_items = current_exclusive_items - self.exclusive_items
+    if factory.FactoryTest.EXCLUSIVE_OPTIONS.NETWORKING in new_exclusive_items:
+      logging.info('Disabling network')
+      self.connection_manager.DisableNetworking()
+    if factory.FactoryTest.EXCLUSIVE_OPTIONS.CHARGER in new_exclusive_items:
+      logging.info('Stop controlling charger')
+
+    new_non_exclusive_items = self.exclusive_items - current_exclusive_items
+    if (factory.FactoryTest.EXCLUSIVE_OPTIONS.NETWORKING in
+        new_non_exclusive_items):
+      logging.info('Re-enabling network')
+      self.connection_manager.EnableNetworking()
+    if factory.FactoryTest.EXCLUSIVE_OPTIONS.CHARGER in new_non_exclusive_items:
+      logging.info('Start controlling charger')
+
+    # Only adjust charge state if not excluded
+    if (self.charge_manager and
+        not factory.FactoryTest.EXCLUSIVE_OPTIONS.CHARGER in
+        current_exclusive_items):
+      self.charge_manager.AdjustChargeState()
+
+    self.exclusive_items = current_exclusive_items
 
   def check_for_updates(self):
     '''
@@ -1270,12 +1277,10 @@ class Goofy(object):
 
     self.last_idle = now
 
-    self.check_connection_manager()
+    self.check_exclusive()
     self.check_for_updates()
     self.sync_time_in_background()
     self.log_disk_space_stats()
-    if self.charge_manager:
-      self.charge_manager.AdjustChargeState()
 
   def handle_event_logs(self, log_name, chunk):
     '''Callback for event watcher.
