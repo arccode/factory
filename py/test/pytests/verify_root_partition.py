@@ -27,6 +27,7 @@ class VerifyRootPartitionTest(unittest.TestCase):
           default='sda4'),
       Arg('root_device', str, 'Device containing root partition',
           default='sda5'),
+      Arg('max_bytes', int, 'Maximum number of bytes to read', optional=True),
       ]
 
   def runTest(self):
@@ -37,14 +38,18 @@ class VerifyRootPartitionTest(unittest.TestCase):
       with open('/dev/%s' % self.args.kern_a_device) as kern_a:
         shutil.copyfileobj(kern_a, kern_a_bin)
       kern_a_bin.flush()
-      vbutil_kernel_output = Spawn(
+      vbutil_kernel = Spawn(
           ['vbutil_kernel', '--verify', kern_a_bin.name, '--verbose'],
-          log=True, check_output=True).stdout_data
+          log=True, read_stdout=True)
+      self.assertEqual(
+          0, vbutil_kernel.returncode,
+          ('Unable to verify kernel in KERN-A; perhaps this device was imaged '
+           'with chromeos-install instead of mini-Omaha server?'))
 
-    logging.info('vbutil_kernel output is:\n%s', vbutil_kernel_output)
+    logging.info('vbutil_kernel output is:\n%s', vbutil_kernel.stdout_data)
 
     DM_REGEXP = re.compile(r'dm="vroot none ro,(0 (\d+) .+)"')
-    match = DM_REGEXP.search(vbutil_kernel_output)
+    match = DM_REGEXP.search(vbutil_kernel.stdout_data)
     assert match, 'Cannot find regexp %r in vbutil_kernel output' % (
         DM_REGEXP.pattern)
 
@@ -62,17 +67,26 @@ class VerifyRootPartitionTest(unittest.TestCase):
     # Map the device
     Spawn(['dmsetup', 'create', '-r', DM_DEVICE_NAME, '--table',
            table], check_call=True, log=True, log_stderr_on_error=True)
-    # Read it all; there will be an I/O error on failure
+
+    # Read data from the partition; there will be an I/O error on failure
+    if self.args.max_bytes is None:
+      bytes_to_read = partition_size
+    else:
+      bytes_to_read = min(partition_size, self.args.max_bytes)
+
     with open(DM_DEVICE_PATH) as dm_device:
       bytes_read = 0
       while True:
-        count = len(dm_device.read(BLOCK_SIZE))
+        bytes_left = bytes_to_read - bytes_read
+        if not bytes_left:
+          break
+        count = len(dm_device.read(min(BLOCK_SIZE, bytes_left)))
         if not count:
           break
         bytes_read += count
         logging.info('Read %s bytes (%.1f%%)',
-            bytes_read, bytes_read * 100. / partition_size)
-    self.assertEquals(partition_size, bytes_read)
+            bytes_read, bytes_read * 100. / bytes_to_read)
+    self.assertEquals(bytes_to_read, bytes_read)
 
   def tearDown(self):
     self._RemoveDMDevice()
