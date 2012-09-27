@@ -62,14 +62,14 @@ class ChargeManager(object):
     battery discharge. Otherwise, charger is set to idle mode and is neither
     charging nor discharging.
     This method never throw exception.'''
-    if not self._power.CheckBatteryPresent():
-      self._LogState("Battery not present")
-      return
-    if not self._power.CheckACPresent():
-      self._LogState("AC unplugged")
-      return
-
     try:
+      if not self._power.CheckBatteryPresent():
+        self._LogState("Battery not present")
+        return
+      if not self._power.CheckACPresent():
+        self._LogState("AC unplugged")
+        return
+
       charge = self._power.GetChargePct()
       if charge is None:
         self._LogState("Battery error")
