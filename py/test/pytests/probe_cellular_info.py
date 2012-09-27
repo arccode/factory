@@ -21,8 +21,6 @@
 # 'modem_path': Path to the modem, for ex: /dev/ttyUSB0. Setting this implies
 #               use AT command directly with the modem. Otherwise, flimflam
 #               will handle the extraction.
-# 'pin_command': Additional PIN related command to execute before extracts
-#                the ICCID.
 #
 
 import re
@@ -81,8 +79,7 @@ class IMEITask(FactoryTask):
 
   def Run(self):
     if not self.test.modem_path:
-      # TODO(itspeter): Parse flimflam to get the IMEI.
-      modem_info = utils.CheckOutput(['mmcli', '-m','0'])
+      modem_info = utils.CheckOutput(['modem', 'status'])
       imei = re.search(self.test.imei_re, modem_info).group(1)
     else:
       # Directly issue commands to the modem.
@@ -103,14 +100,8 @@ class ICCIDTask(FactoryTask):
 
   def Run(self):
     if not self.test.modem_path:
-      # TODO(itspeter): Parse flimflam to get the ICCID.
-      if self.test.pin_command: # Additional command to manipulate sim.
-        pin_ret = utils.CheckOutput(
-            ['mmcli', '-i', '0'] + self.test.pin_command)
-        factory.log('pin command returned:%s' % pin_ret)
-
-      sim_info = utils.CheckOutput(['mmcli', '-i', '0'])
-      iccid = re.search(self.test.iccid_re, sim_info).group(1)
+      modem_info = utils.CheckOutput(['modem', 'status'])
+      iccid = re.search(self.test.iccid_re, modem_info).group(1)
     else:
       # Directly issue commands to the modem.
       modem = _Serial(self.test.modem_path)
