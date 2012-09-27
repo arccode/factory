@@ -172,18 +172,6 @@ class SelectHWIDTask(FactoryTask):
     hwids += [(hwid, hwid) for hwid in known_list]
     return hwids
 
-  def RenderPage(self):
-    self.test.template.SetState(_MESSAGE_CHOOSE_HWID)
-    start = self.page_index * self.SELECTION_PER_PAGE
-    end = start + self.SELECTION_PER_PAGE
-    for index, data in enumerate(self.hwid_list[start:end]):
-      self.test.template.SetState('<div style="%s">%s) %s</div>' %
-                                  (_HWID_ENTRY_STYLE, index, data[0]),
-                                  append=True)
-    if self.pages > 1:
-      self.test.template.SetState(_MESSAGE_NAVIGATE_PAGES(self.page_index + 1,
-                                                     self.pages), append=True)
-
   def SetHWID(self, event):
     # TODO(tammo) Use hwid_tool or probe to quick probe if selected HWID
     # matches current system, by checking non-firmware components.
