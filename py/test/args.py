@@ -95,15 +95,15 @@ class Args(object):
     errors = []
     for arg in self.args:
       value = dargs.get(arg.name)
-      if value is None:
+      if arg.name not in dargs:
         if not arg.optional:
           errors.append('Required argument %s not specified' % arg.name)
           continue
         if arg.default is not None:
           value = arg.default
 
-      if (value is not None and (
-          not any(isinstance(value, t) for t in arg.type))):
+      if (arg.name in dargs and
+          not any(isinstance(value, t) for t in arg.type)):
         errors.append('Argument %s should have type %r, not %r' % (
             arg.name, arg.type, type(value)))
         continue

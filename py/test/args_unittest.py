@@ -29,6 +29,16 @@ class ArgsTest(unittest.TestCase):
     return dict((k, v) for k, v in values.__dict__.iteritems()
                 if not k.startswith('_'))
 
+  def testIntOrNone(self):
+    self.parser = Args(
+        Arg('int_or_none', (int, type(None)), 'X', default=5))
+    self.assertEquals(dict(int_or_none=5),
+                      self.Parse(dict()))
+    self.assertEquals(dict(int_or_none=10),
+                      self.Parse(dict(int_or_none=10)))
+    self.assertEquals(dict(int_or_none=None),
+                      self.Parse(dict(int_or_none=None)))
+
   def testRequired(self):
     self.assertEquals({'has_default': 'DEFAULT_VALUE',
                        'required': 'x',
