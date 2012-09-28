@@ -164,6 +164,12 @@ RED=\033[22;31m
 WHITE=\033[22;0m
 
 test:
+	@if ! python -c 'import jsonrpclib'; then \
+	    echo '*** jsonrpclib is not available in your chroot. '; \
+	    echo '*** Please "sudo emerge dev-python/jsonrpclib".'; \
+	    echo '*** (see http://crosbug.com/34858)'; \
+	    exit 1; \
+	fi
 	@total=0; good=0; \
 	rm -f .tests-passed; \
 	logdir=/tmp/test.logs.$$(date +%Y%m%d_%H%M%S); \
