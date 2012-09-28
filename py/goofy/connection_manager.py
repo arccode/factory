@@ -210,7 +210,7 @@ class ConnectionManager():
 
     # Configure the wireless network scanning interval.
     for dev in self._GetInterfaces():
-      if 'wlan' in dev:
+      if 'wlan' in dev or 'mlan' in dev:
         try:
           device = base_manager.FindElementByNameSubstring('Device', dev)
           device.SetProperty('ScanInterval', dbus.UInt16(self.scan_interval))
