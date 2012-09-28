@@ -718,15 +718,15 @@ cros.factory.Goofy.prototype.initLanguageSelector = function() {
         goog.events.EventType.CLICK,
         function(event) {
             this.zhMode = !this.zhMode;
-            this.updateLanguage();
+            this.updateCSSClasses();
             this.sendRpc('set_shared_data',
                          ['ui_lang', this.zhMode ? 'zh' : 'en']);
         }, false, this);
 
-    this.updateLanguage();
+    this.updateCSSClasses();
     this.sendRpc('get_shared_data', ['ui_lang'], function(lang) {
             this.zhMode = lang == 'zh';
-            this.updateLanguage();
+            this.updateCSSClasses();
         });
 };
 
@@ -753,10 +753,14 @@ cros.factory.Goofy.prototype.getOrCreateInvocation = function(
  * Updates language classes in a document based on the current value of
  * zhMode.
  */
-cros.factory.Goofy.prototype.updateLanguageInDocument = function(doc) {
+cros.factory.Goofy.prototype.updateCSSClassesInDocument = function(doc) {
     if (doc.body) {
         goog.dom.classes.enable(doc.body, 'goofy-lang-en', !this.zhMode);
         goog.dom.classes.enable(doc.body, 'goofy-lang-zh', this.zhMode);
+        goog.dom.classes.enable(doc.body, 'goofy-engineering-mode',
+                                this.engineeringMode);
+        goog.dom.classes.enable(doc.body, 'goofy-operator-mode',
+                                !this.engineeringMode);
     }
 };
 
@@ -764,11 +768,11 @@ cros.factory.Goofy.prototype.updateLanguageInDocument = function(doc) {
  * Updates language classes in the UI based on the current value of
  * zhMode.
  */
-cros.factory.Goofy.prototype.updateLanguage = function() {
-    this.updateLanguageInDocument.call(this, document);
+cros.factory.Goofy.prototype.updateCSSClasses = function() {
+    this.updateCSSClassesInDocument.call(this, document);
     goog.object.forEach(this.invocations, function(i) {
         if (i && i.iframe) {
-            this.updateLanguageInDocument.call(this,
+            this.updateCSSClassesInDocument.call(this,
                 i.iframe.contentDocument);
         }
     }, this);
@@ -925,7 +929,7 @@ cros.factory.Goofy.prototype.promptEngineeringPassword = function() {
  */
 cros.factory.Goofy.prototype.setEngineeringMode = function(enabled) {
     this.engineeringMode = enabled;
-    goog.dom.classes.enable(document.body, 'goofy-engineering-mode', enabled);
+    this.updateCSSClasses();
     this.sendRpc('set_shared_data', ['engineering_mode', enabled]);
 };
 
@@ -2146,7 +2150,7 @@ cros.factory.Goofy.prototype.handleBackendEvent = function(jsonMessage) {
             goog.dom.iframe.writeContent(
                 invocation.iframe,
                 /** @type {string} */(message['html']));
-            this.updateLanguageInDocument(invocation.iframe.contentDocument);
+            this.updateCSSClassesInDocument(invocation.iframe.contentDocument);
         }
 
         // In the content window's evaluation context, add our keydown

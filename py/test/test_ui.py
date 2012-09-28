@@ -392,6 +392,10 @@ class UI(object):
     self.BindKeyJS(key, 'test.sendTestEvent("%s", {});' % uuid_str)
     self.AddEventHandler(uuid_str, handler)
 
+  def InEngineeringMode(self):
+    '''Returns True if in engineering mode.'''
+    return factory.get_shared_data('engineering_mode')
+
   def _HandleEvent(self, event):
     '''Handles an event sent by a test UI.'''
     if (event.type == Event.Type.TEST_UI_EVENT and

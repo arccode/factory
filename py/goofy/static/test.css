@@ -41,3 +41,7 @@ th {
 .test-error {
   color: #D00;
 }
+
+.goofy-operator-mode .test-engineering-mode-only {
+  display: none;
+}
