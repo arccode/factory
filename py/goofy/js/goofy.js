@@ -990,7 +990,8 @@ cros.factory.Goofy.prototype.setPendingShutdown = function(shutdownInfo) {
     goog.events.listen(timer, goog.Timer.TICK, tick, false, this);
     timer.start();
 
-    goog.events.listen(this.shutdownDialog, goog.ui.Component.EventType.HIDE,
+    goog.events.listen(this.shutdownDialog,
+                       goog.ui.PopupBase.EventType.BEFORE_HIDE,
                        function(event) {
                            timer.dispose();
                        }, false, this);
