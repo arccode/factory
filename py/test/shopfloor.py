@@ -156,10 +156,18 @@ def set_server_url(url):
   _set_session(SESSION_SERVER_URL, url)
 
 
-def get_server_url():
-  """Gets last configured shop floor server URL."""
-  return (os.environ.get(SHOPFLOOR_SERVER_ENV_VAR_NAME) or
-      _get_session(SESSION_SERVER_URL))
+def get_server_url(detect=True):
+  """Gets shop floor server URL.
+
+  Args:
+    detect: If True, attempts to detect the URL with
+      detect_default_server_url().
+  """
+  url = (os.environ.get(SHOPFLOOR_SERVER_ENV_VAR_NAME) or
+         _get_session(SESSION_SERVER_URL))
+  if detect:
+    url = url or detect_default_server_url()
+  return url
 
 
 def detect_default_server_url():

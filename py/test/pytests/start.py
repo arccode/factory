@@ -10,9 +10,7 @@
 #
 # The start provides several settings (set via darg):
 # 'require_external_power': Prompts and waits for external power to be applied.
-# 'require_shop_floor': Prompts and waits for serial number as input.  The
-#       server is default to the host running mini-omaha, unless you specify an
-#       URL by 'shop_floor_server_url' darg.
+# 'require_shop_floor': Prompts and waits for serial number as input.
 # 'check_factory_install_complete': Check factory install process was complete.
 # 'press_to_continue': Prompts and waits for a key press (SPACE) to continue.
 
@@ -186,20 +184,18 @@ class FactoryInstallCompleteTask(FactoryTask):
 
 
 class ShopFloorTask(FactoryTask):
-  def __init__(self, ui, template, server_url): # pylint: disable=W0231
+  def __init__(self, ui, template): # pylint: disable=W0231
     self._ui = ui
     self._template = template
-    self._server_url = server_url or shopfloor.detect_default_server_url()
 
   def Run(self):
     # Many developers will try to run factory test image directly without
     # mini-omaha server, so we should either alert and fail, or ask for
     # server address.
-    if not self._server_url:
+    if not shopfloor.get_server_url():
       self._template.SetState(_MSG_NO_SHOP_FLOOR_SERVER_URL)
       return
 
-    shopfloor.set_server_url(self._server_url)
     self._ui.AddEventHandler(_EVENT_SUBTYPE_SHOP_FLOOR,
                              self.ValidateSerialNumber)
     self._template.SetState(_MSG_TASK_SERIAL + _HTML_SHOP_FLOOR)
@@ -249,11 +245,7 @@ class StartTest(unittest.TestCase):
         'Prompts and waits for external power to be applied.',
         default=False, optional=True),
     Arg('require_shop_floor', bool,
-        ('Prompts and waits for serial number as input.'
-         'The server is default to the host running mini-omaha,'
-         'unless you specify an URL by "shop_floor_server_url" darg.'),
-        default=None, optional=True),
-    Arg('shop_floor_server_url', str, 'shopfloor server url',
+        'Prompts and waits for serial number as input.',
         default=None, optional=True),
     Arg('check_factory_install_complete', bool,
         'Check factory install process was complete.',
@@ -274,13 +266,11 @@ class StartTest(unittest.TestCase):
     # defined, for test lists using factory_Start multiple times between
     # groups (ex, to prompt for space or check power adapter).
     if self.args.require_shop_floor is not None:
-      shopfloor.reset()
       shopfloor.set_enabled(self.args.require_shop_floor)
 
     if self.args.require_shop_floor:
       self._task_list.append(ShopFloorTask(self._ui,
-                                           self._template,
-                                           self.args.shop_floor_server_url))
+                                           self._template))
 
     if self.args.check_factory_install_complete:
       self._task_list.append(FactoryInstallCompleteTask(self._ui,
