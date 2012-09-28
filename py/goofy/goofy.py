@@ -1112,6 +1112,12 @@ class Goofy(object):
     elif self.options.ui == 'gtk':
       self.start_ui()
 
+    # Create download path for autotest beforehand or autotests run at
+    # the same time might fail due to race condition.
+    if not factory.in_chroot():
+      utils.TryMakeDirs(os.path.join('/usr/local/autotest', 'tests',
+                                     'download'))
+
     def state_change_callback(test, test_state):
       self.event_client.post_event(
         Event(Event.Type.STATE_CHANGE,
