@@ -36,7 +36,7 @@ _MESSAGE_AUTO_PROBE_HWID = test_ui.MakeLabel('Auto probing HWID...',
                                              u'自动侦测 HWID 中...',
                                              'hwid-font-size')
 _MESSAGE_WRITING = (lambda hwid:
-    test_ui.MakeLabel('Writing HWID:', u'写入 HWID: %s' % hwid,
+    test_ui.MakeLabel('Writing HWID: %s' % hwid, u'写入 HWID: %s' % hwid,
                       'hwid-font-size'))
 _MESSAGE_CHOOSE_HWID = test_ui.MakeLabel('Select HWID:</br></br>',
                                          u'选择 HWID：</br></br>',
