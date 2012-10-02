@@ -57,6 +57,8 @@ class SystemInfo(object):
     self.serial_number = None
     try:
       self.serial_number = shopfloor.get_serial_number()
+      if type(self.serial_number) != str or type(self.serial_number) != unicode:
+        self.serial_number = self.serial_number.__str__()
     except:
       pass
 

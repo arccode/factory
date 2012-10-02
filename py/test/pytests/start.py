@@ -29,8 +29,9 @@ from cros.factory.test import ui_templates
 from cros.factory.test import utils
 from cros.factory.test.args import Arg
 from cros.factory.test.factory_task import FactoryTask, FactoryTaskManager
-from cros.factory.test.event import Event, EventClient
+from cros.factory.test.event import Event
 from cros.factory.event_log import EventLog
+from cros.factory.utils.process_utils import Spawn
 
 
 _TEST_TITLE = test_ui.MakeLabel('Start Factory Test', u'开始工厂测试')
@@ -71,6 +72,8 @@ _MSG_NO_SHOP_FLOOR_SERVER_URL = test_ui.MakeLabel(
         u'不要直接从 USB 碟开机执行。<br/>',
         u'若想除错或执行部份测试，请直接按下对应热键。']),
     'start-font-size test-error')
+_MSG_READING_VPD_SERIAL = test_ui.MakeLabel(
+    'Reading VPD...', u'讀取 VPD 中...', 'start-font-size')
 
 # Javascripts and HTML for tasks
 _JS_SPACE = '''
@@ -107,14 +110,13 @@ _JS_SHOP_FLOOR = '''
 _LSB_FACTORY_PATH = '/usr/local/etc/lsb-factory'
 
 class PressSpaceTask(FactoryTask):
-  def __init__(self, ui, template): # pylint: disable=W0231
-    self._ui = ui
-    self._template = template
+  def __init__(self, test): # pylint: disable=W0231
+    self._test = test
 
   def Run(self):
-    self._template.SetState(_MSG_TASK_SPACE)
-    self._ui.RunJS(_JS_SPACE)
-    self._ui.CallJSFunction('enableSpaceKeyPressListener')
+    self._test.template.SetState(_MSG_TASK_SPACE)
+    self._test.ui.RunJS(_JS_SPACE)
+    self._test.ui.CallJSFunction('enableSpaceKeyPressListener')
 
 
 class ExternalPowerTask(FactoryTask):
@@ -122,15 +124,14 @@ class ExternalPowerTask(FactoryTask):
   AC_DISCONNECTED = 2
   AC_CHECK_PERIOD = 0.5
 
-  def __init__(self, ui, template): # pylint: disable=W0231
-    self._ui = ui
-    self._template = template
+  def __init__(self, test): # pylint: disable=W0231
+    self._test = test
 
   def Run(self):
-    self._template.SetState(_MSG_TASK_POWER)
+    self._test.template.SetState(_MSG_TASK_POWER)
     while not self.CheckEvent():
       time.sleep(self.AC_CHECK_PERIOD)
-    self.Stop()
+    self.Pass()
 
   def CheckEvent(self):
     state = self.GetExternalPowerState()
@@ -160,14 +161,13 @@ class ExternalPowerTask(FactoryTask):
 
 
 class FactoryInstallCompleteTask(FactoryTask):
-  def __init__(self, ui, template): # pylint: disable=W0231
-    self._ui = ui
-    self._template = template
+  def __init__(self, test): # pylint: disable=W0231
+    self._test = test
 
   def Run(self):
     if not os.path.exists(_LSB_FACTORY_PATH):
       factory.console.error('%s is missing' % _LSB_FACTORY_PATH)
-      self._template.SetState(_MSG_INSTALL_INCOMPLETE)
+      self._test.template.SetState(_MSG_INSTALL_INCOMPLETE)
       return
     version_info = utils.CheckOutput(['ectool', 'version'])
     ro_version_output = re.search(r'^RO version:\s*(\S+)$', version_info,
@@ -176,30 +176,29 @@ class FactoryInstallCompleteTask(FactoryTask):
                                   re.MULTILINE)
     if (ro_version_output is None or rw_version_output is None
         or ro_version_output.group(1) != rw_version_output.group(1)):
-      self._template.SetState(_MSG_INSTALL_INCOMPLETE)
+      self._test.template.SetState(_MSG_INSTALL_INCOMPLETE)
       factory.console.info(
           'EC RO and RW version does not match, %s' % version_info)
       return
-    self.Stop()
+    self.Pass()
 
 
 class ShopFloorTask(FactoryTask):
-  def __init__(self, ui, template): # pylint: disable=W0231
-    self._ui = ui
-    self._template = template
+  def __init__(self, test): # pylint: disable=W0231
+    self._test = test
 
   def Run(self):
     # Many developers will try to run factory test image directly without
     # mini-omaha server, so we should either alert and fail, or ask for
     # server address.
     if not shopfloor.get_server_url():
-      self._template.SetState(_MSG_NO_SHOP_FLOOR_SERVER_URL)
+      self._test.template.SetState(_MSG_NO_SHOP_FLOOR_SERVER_URL)
       return
 
-    self._ui.AddEventHandler(_EVENT_SUBTYPE_SHOP_FLOOR,
-                             self.ValidateSerialNumber)
-    self._template.SetState(_MSG_TASK_SERIAL + _HTML_SHOP_FLOOR)
-    self._ui.RunJS(_JS_SHOP_FLOOR)
+    self._test.ui.AddEventHandler(_EVENT_SUBTYPE_SHOP_FLOOR,
+                                  self.ValidateSerialNumber)
+    self._test.template.SetState(_MSG_TASK_SERIAL + _HTML_SHOP_FLOOR)
+    self._test.ui.RunJS(_JS_SHOP_FLOOR)
 
   def ValidateSerialNumber(self, event):
     # When the input is not valid (or temporary network failure), either
@@ -209,8 +208,8 @@ class ShopFloorTask(FactoryTask):
     serial = event.data
 
     def ShowErrorMsg(error_msg):
-      self._ui.SetHTML(error_msg, id='errormsg')
-      self._ui.RunJS(
+      self._test.ui.SetHTML(error_msg, id='errormsg')
+      self._test.ui.RunJS(
           'var e = document.getElementById("serial");'
           'e.focus(); e.select();')
 
@@ -221,8 +220,9 @@ class ShopFloorTask(FactoryTask):
                                  serial_number=serial)
       factory.console.info('Serial number: %s' % serial)
       shopfloor.set_serial_number(serial)
-      EventClient().post_event(Event(Event.Type.UPDATE_SYSTEM_INFO))
-      self.Stop()
+      self._test.ui.event_client.post_event(
+          Event(Event.Type.UPDATE_SYSTEM_INFO))
+      self.Pass()
       return True
     except shopfloor.ServerFault as e:
       ShowErrorMsg('Server error:<br/>%s' % test_ui.Escape(e.__str__()))
@@ -237,6 +237,44 @@ class ShopFloorTask(FactoryTask):
     return False
 
 
+class ReadVPDSerialTask(FactoryTask):
+  '''If the serial number is already stored in VPD, we can just read it.'''
+  def __init__(self, test): # pylint: disable=W0231
+    self._test = test
+
+  def Run(self):
+    serial_number_vpd_keys = self._test.args.serial_number_vpd_keys
+    serial_number = None
+
+    def _ReadVPD(key):
+      return Spawn(['vpd', '-g', key], check_output=True).stdout_data
+
+    if serial_number_vpd_keys:
+      self._test.template.SetState(_MSG_READING_VPD_SERIAL)
+      if (type(serial_number_vpd_keys) == str or
+          type(serial_number_vpd_keys) == unicode):
+        vpd_value = _ReadVPD(serial_number_vpd_keys)
+        if not vpd_value:
+          self.Fail('VPD value of %s is empty.' % serial_number_vpd_keys)
+          return
+        else:
+          serial_number = vpd_value
+      else: # If we need multiple VPD entries as the serial number...
+        serial_number = dict()
+        for v in serial_number_vpd_keys:
+          vpd_value = _ReadVPD(v)
+          if not vpd_value:
+            self.Fail('VPD value of %s is empty.' % v)
+            return
+          else:
+            serial_number[v] = vpd_value
+
+    EventLog.ForAutoTest().Log('mlb_serial_number', serial_number=serial_number)
+    shopfloor.set_serial_number(serial_number)
+    self._test.ui.event_client.post_event(Event(Event.Type.UPDATE_SYSTEM_INFO))
+    self.Pass()
+
+
 class StartTest(unittest.TestCase):
   ARGS = [
     Arg('press_to_continue', bool, 'Need to press space to continue',
@@ -245,20 +283,25 @@ class StartTest(unittest.TestCase):
         'Prompts and waits for external power to be applied.',
         default=False, optional=True),
     Arg('require_shop_floor', bool,
-        'Prompts and waits for serial number as input.',
+        'Prompts and waits for serial number as input if no VPD keys are '
+        'provided as serial numbers, or reads serial numbers from VPD.',
         default=None, optional=True),
     Arg('check_factory_install_complete', bool,
         'Check factory install process was complete.',
+        default=None, optional=True),
+    Arg('serial_number_vpd_keys', (str, unicode, list),
+        'A string or list of strings indicating a set of VPDs that are used '
+        'as the key to fetch data from shop floor proxy.',
         default=None, optional=True)
   ]
+
   def __init__(self, *args, **kwargs):
     super(StartTest, self).__init__(*args, **kwargs)
     self._task_list = []
-    self._ui = test_ui.UI()
-    self._template = ui_templates.OneSection(self._ui)
-    self._ui.AppendCSS('.start-font-size {font-size: 2em;}')
-    self._template.SetTitle(_TEST_TITLE)
-
+    self.ui = test_ui.UI()
+    self.template = ui_templates.OneSection(self.ui)
+    self.ui.AppendCSS('.start-font-size {font-size: 2em;}')
+    self.template.SetTitle(_TEST_TITLE)
 
   def runTest(self):
 
@@ -269,16 +312,17 @@ class StartTest(unittest.TestCase):
       shopfloor.set_enabled(self.args.require_shop_floor)
 
     if self.args.require_shop_floor:
-      self._task_list.append(ShopFloorTask(self._ui,
-                                           self._template))
+      if self.args.serial_number_vpd_keys:
+        self._task_list.append(ReadVPDSerialTask(self))
+      else:
+        self._task_list.append(ShopFloorTask(self))
 
     if self.args.check_factory_install_complete:
-      self._task_list.append(FactoryInstallCompleteTask(self._ui,
-                                           self._template))
+      self._task_list.append(FactoryInstallCompleteTask(self))
 
     if self.args.require_external_power:
-      self._task_list.append(ExternalPowerTask(self._ui, self._template))
+      self._task_list.append(ExternalPowerTask(self))
     if self.args.press_to_continue:
-      self._task_list.append(PressSpaceTask(self._ui, self._template))
+      self._task_list.append(PressSpaceTask(self))
 
-    FactoryTaskManager(self._ui, self._task_list).Run()
+    FactoryTaskManager(self.ui, self._task_list).Run()
