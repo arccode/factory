@@ -53,6 +53,10 @@ class Arg(object):
     if any(not isinstance(x, TYPE) for x in type):
       raise ValueError('Argument %s has invalid types %r' % (name, type))
 
+    # Allow None for all optional arguments without defaults.
+    if optional and (default is None) and (None not in type):
+      type += (TYPE(None),)
+
     if not help:
       raise ValueError('Argument %s is missing a help string' % name)
 

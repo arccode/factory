@@ -57,6 +57,12 @@ class ArgsTest(unittest.TestCase):
                        'int_or_string_typed': None,
                        'int_typed': None},
                       self.Parse(dict(required='x', optional='y')))
+    self.assertEquals({'has_default': 'DEFAULT_VALUE',
+                       'required': 'x',
+                       'optional': None,
+                       'int_or_string_typed': None,
+                       'int_typed': None},
+                      self.Parse(dict(required='x', optional=None)))
 
   def testInt(self):
     self.assertEquals({'has_default': 'DEFAULT_VALUE',
