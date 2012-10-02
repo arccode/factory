@@ -114,10 +114,19 @@ _hwdb_path_cmd_arg = CmdArg(
     default=hwid_tool.DEFAULT_HWID_DATA_PATH,
     help='Path to the HWID database.')
 
-
 _hwid_status_list_cmd_arg = CmdArg(
   '--status', nargs='*', default=['supported'],
   help='allow only HWIDs with these status values')
+
+_probe_results_cmd_arg = CmdArg(
+    '--probe_results', metavar='RESULTS.yaml',
+    help=('Output from "gooftool probe" (used instead of '
+          'probing this system).'))
+
+_hwid_cmd_arg = CmdArg(
+    '--hwid', metavar='HWID',
+    help=('HWID to verify (instead of the currently set HWID of '
+          'this system)'))
 
 
 @Command('best_match_hwids',
@@ -362,12 +371,8 @@ def VerifyComponents(options):
 @Command('verify_hwid',
          _hwid_status_list_cmd_arg,
          _hwdb_path_cmd_arg,
-         CmdArg('--probe_results', metavar='RESULTS.yaml',
-                help=('Output from "gooftool probe" (used instead of '
-                      'probing this system).')),
-         CmdArg('--hwid', metavar='HWID',
-                help=('HWID to verify (instead of the currently set HWID of '
-                      'this system)')))
+         _probe_results_cmd_arg,
+         _hwid_cmd_arg)
 def VerifyHwid(options):
   """Verify system HWID properties match probed device properties.
 
@@ -650,7 +655,9 @@ def PrepareWipe(options):
          CmdArg('--no_write_protect', action='store_true',
                 help='Do not check write protection switch state.'),
          _hwid_status_list_cmd_arg,
-         _hwdb_path_cmd_arg)
+         _hwdb_path_cmd_arg,
+         _probe_results_cmd_arg,
+         _hwid_cmd_arg)
 def Verify(options):
   """Verifies if whole factory process is ready for finalization.
 
@@ -754,7 +761,9 @@ def UploadReport(options):
          _hwdb_path_cmd_arg,
          _hwid_status_list_cmd_arg,
          _upload_method_cmd_arg,
-         _add_file_cmd_arg)
+         _add_file_cmd_arg,
+         _probe_results_cmd_arg,
+         _hwid_cmd_arg)
 def Finalize(options):
   """Verify system readiness and trigger transition into release state.
 
