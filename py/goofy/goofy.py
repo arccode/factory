@@ -183,6 +183,7 @@ class Goofy(object):
     self.last_sync_time = None
     self.last_log_disk_space_time = None
     self.exclusive_items = set()
+    self.event_log = None
 
     def test_or_root(event, parent_or_group=True):
       '''Returns the test affected by a particular event.
@@ -976,6 +977,11 @@ class Goofy(object):
       factory.init_logging('goofy', verbose=self.options.verbose)
       _inited_logging = True
 
+    if self.options.print_test_list:
+      print factory.read_test_list(
+          self.options.print_test_list).__repr__(recursive=True)
+      sys.exit(0)
+
     event_log.IncrementBootSequence()
     self.event_log = EventLog('goofy')
 
@@ -1000,11 +1006,6 @@ class Goofy(object):
 
     if self.options.restart:
       state.clear_state()
-
-    if self.options.print_test_list:
-      print factory.read_test_list(
-          self.options.print_test_list).__repr__(recursive=True)
-      return
 
     if self.options.ui_scale_factor != 1 and utils.in_qemu():
       logging.warn(
@@ -1048,7 +1049,7 @@ class Goofy(object):
     elif self.test_list.options.shopfloor_server_url:
       shopfloor.set_server_url(self.test_list.options.shopfloor_server_url)
 
-    if self.test_list.options.time_sanitizer:
+    if self.test_list.options.time_sanitizer and not utils.in_chroot():
       self.time_sanitizer = time_sanitizer.TimeSanitizer(
         base_time=time_sanitizer.GetBaseTimeFromFile(
           # lsb-factory is written by the factory install shim during
@@ -1445,8 +1446,12 @@ if __name__ == '__main__':
   goofy = Goofy()
   try:
     goofy.main()
+  except SystemExit:
+    # Propagate SystemExit without logging.
+    raise
   except:
-    # Log the error before trying to shut down.
+    # Log the error before trying to shut down (unless it's a graceful
+    # exit).
     logging.exception('Error in main loop')
     raise
   finally:
