@@ -17,7 +17,7 @@ from traceback import format_exc
 
 import factory_common  # pylint: disable=W0611
 
-from cros.factory.common import Shell, SetupLogging
+from cros.factory.common import Error, Shell, SetupLogging
 from cros.factory.gooftool.probe import PROBEABLE_COMPONENT_CLASSES
 from cros.factory.hwdb import hwid_tool
 
@@ -361,6 +361,105 @@ class HwidTest(unittest.TestCase):
       self.assertEqual(len(device.boms), 19,
                        (len(device.boms), device.boms.keys()))
 
+
+class HwidRegexpTest(unittest.TestCase):
+
+  def _assertRegexMatches(self, regex, matched_strings, unmatched_strings):
+    """Assert if regex matches correctly with given matching strings."""
+    failed_to_match = [item for item in matched_strings
+                       if not regex.match(item)]
+    failed_to_unmatch = [item for item in unmatched_strings
+                         if regex.match(item)]
+    self.assertFalse(failed_to_match or failed_to_unmatch,
+        "regex %r matching test failed:\n"
+        "should match:%s\n  should NOT match:%s" % (
+            regex.pattern, failed_to_match or "pass",
+            failed_to_unmatch or "pass"))
+
+  def testHwidNameRegex(self):
+    parseable = [
+      "TREE BLUE A-B 1234",
+      "WATER YELLOW A-AA 4217",
+      "STONE BLACK A-C 3547",
+      "SAND 8AA-ABC A-A 1234",
+      "ABCDEFGHI 123456789-123456789-123456789-12 A-A 1234",
+      "CLOUD WWW-4ZZ-3MABC-2 A-AA 1234"]
+    unparseable = [
+      "TREE A-B 9152",
+      "TREE 1-B 9152",
+      "TREE A-2 9152",
+      "TREE A-B 19152",
+      "TREE A-B A152",
+      "TREE BLUE A- 4217",
+      "TREE BLUE -C 3547",
+      "ABCDEFGHIJ 123456789-123456789-123456789-12 A-A 1234",
+      "ABCDEFGHI 123456789-123456789-123456789-123 A-A 1234",
+      "SAND 8AA_ABC A-A 1234",
+      "SAND 8AA.ABC A-A 1234",
+      "SAND 8AA ABC A-A 1234"]
+    self._assertRegexMatches(hwid_tool.HWID_RE, parseable, unparseable)
+
+  def testHwidBbvvNameRegex(self):
+    """Ensure the BOM names are parsed correctly with the regular expression"""
+    parseable = [
+      "TREE BLUE A-B",
+      "TREE BLUE *-B",
+      "TREE BLUE A-*",
+      "TREE BLUE *-*",
+      "WATER YELLOW A-AA",
+      "STONE BLACK A-C",
+      "SAND 8AA-ABC A-A",
+      "ABCDEFGHI 123456789-123456789-123456789-12 A-A",
+      "CLOUD WWW-4ZZ-3MABC-2 A-AA"]
+    unparseable = [
+      "TREE BLUE A-",
+      "TREE BLUE A-1",
+      "TREE BLUE -C",
+      "TREE BLUE 1-C",
+      "ABCDEFGHIJ 123456789-123456789-123456789-12 A-A",
+      "ABCDEFGHI 123456789-123456789-123456789-123 A-A",
+      "SAND 8AA_ABC A-A",
+      "SAND 8AA.ABC A-A",
+      "SAND 8AA ABC A-A"]
+    self._assertRegexMatches(hwid_tool.BBVV_GLOB_RE, parseable, unparseable)
+
+  def testHwidBvvNameRegex(self):
+    """Ensure the BOM names are parsed correctly with the regular expression"""
+    parseable = [
+      "BLUE A-B",
+      "BLUE *-B",
+      "BLUE A-*",
+      "BLUE *-*",
+      "YELLOW A-AA",
+      "BLACK A-C",
+      "8AA-ABC A-A",
+      "123456789-123456789-123456789-12 A-A",
+      "WWW-4ZZ-3MABC-2 A-AA"]
+    unparseable = [
+      "BLUE A-",
+      "BLUE A-1",
+      "BLUE -C",
+      "BLUE 1-C",
+      "123456789-123456789-123456789-123 A-A",
+      "8AA_ABC A-A",
+      "8AA.ABC A-A",
+      "8AA ABC A-A"]
+    self._assertRegexMatches(hwid_tool.BVV_GLOB_RE, parseable, unparseable)
+
+  def testValidate(self):
+    hwid_tool.Validate.BoardName("WATER")
+    hwid_tool.Validate.BoardName("ABCDEFGHI")
+    self.assertRaises(Error, hwid_tool.Validate.BoardName, ("WATER123"))
+    self.assertRaises(Error, hwid_tool.Validate.BoardName, ("123"))
+    self.assertRaises(Error, hwid_tool.Validate.BoardName, ("WATER-ABC"))
+    self.assertRaises(Error, hwid_tool.Validate.BoardName, ("ABCDEFGHIJ"))
+
+    hwid_tool.Validate.BomName("BLUE")
+    hwid_tool.Validate.BomName("8AB-CEF")
+    hwid_tool.Validate.BomName("888-4H4-CEF-2")
+    self.assertRaises(Error, hwid_tool.Validate.BomName, ("A_B"))
+    self.assertRaises(Error, hwid_tool.Validate.BomName, ("A.B"))
+    self.assertRaises(Error, hwid_tool.Validate.BomName, ("ABC-ABC ABC"))
 
 if __name__ == '__main__':
   unittest.main()

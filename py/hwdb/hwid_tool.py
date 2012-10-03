@@ -40,14 +40,29 @@ DEFAULT_HWID_DATA_PATH = (
 # File that contains component data shared by all boards.
 COMPONENT_DB_FILENAME = 'component_db'
 
+# The size the board and bom name characters.
+MAX_BOARD_NAME_SIZE = 9
+MAX_BOM_NAME_SIZE = 32
+
+# Regular expression raw strings to match each of HWID component.
+BOARD_RE_PATTERN = r'[A-Z]{,%s}' % MAX_BOARD_NAME_SIZE
+BOM_RE_PATTERN = r'[A-Z0-9-]{,%s}' % MAX_BOM_NAME_SIZE
+VARIANT_RE_PATTERN = r'[A-Z]+'
+VOLATILE_RE_PATTERN = r'[A-Z]+'
+
+# Regular expresions to match just BOARD and BOM
+BOARD_RE = re.compile(r'^(%s)$' % BOARD_RE_PATTERN)
+BOM_RE = re.compile(r'^(%s)$' % BOM_RE_PATTERN)
 
 # Glob-matching for 'BOM VARIANT-VOLATILE' and 'BOARD BOM VARIANT-VOLATILE'.
-BVV_GLOB_RE = re.compile(r'^([A-Z]+)\s+([A-Z]+|\*)-([A-Z]+|\*)$')
-BBVV_GLOB_RE = re.compile(r'^([A-Z]+)\s+([A-Z]+|\*)\s+([A-Z]+|\*)-([A-Z]+|\*)$')
+BVV_GLOB_RE = re.compile(r'^(%s)\s+(%s|\*)-(%s|\*)$'
+    % (BOM_RE_PATTERN, VARIANT_RE_PATTERN, VOLATILE_RE_PATTERN))
+BBVV_GLOB_RE = re.compile(r'^(%s)\s+(%s|\*)\s+(%s|\*)-(%s|\*)$' % (
+    BOARD_RE_PATTERN, BOM_RE_PATTERN, VARIANT_RE_PATTERN, VOLATILE_RE_PATTERN))
 
 # HWID regexp.
-HWID_RE = re.compile(r'^([A-Z]+) ([A-Z]+) ([A-Z]+)-([A-Z]+) ([0-9]+)$')
-
+HWID_RE = re.compile(r'^(%s) (%s) (%s)-(%s) ([0-9]+)$' % (BOARD_RE_PATTERN,
+    BOM_RE_PATTERN, VARIANT_RE_PATTERN, VOLATILE_RE_PATTERN))
 
 # Possible life cycle stages (status) for components and HWIDs.
 LIFE_CYCLE_STAGES = set([
@@ -55,7 +70,6 @@ LIFE_CYCLE_STAGES = set([
     'qualified',
     'deprecated',
     'eol'])
-
 
 MakeDatastoreClass('StatusData', dict(
     (status_name, (list, str))
@@ -235,18 +249,18 @@ def ComponentSpecsEqual(a, b):
 class Validate:  # pylint: disable=W0232
 
   @classmethod
-  def HwidPart(cls, tag, name, maxlen):
-    if not (name.isalpha() and name.isupper() and len(name) <= maxlen):
-      raise Error, ('%s names must be upper-case, alpha-only, and '
-                    '%d characters or less, not %r' % (tag, maxlen, name))
+  def HwidPart(cls, tag, name, matching_re):
+    if not matching_re.match(name):
+      raise Error, ('%s name %s does not match %s' % (
+          tag, name, matching_re.pattern))
 
   @classmethod
   def BoardName(cls, name):
-    cls.HwidPart('board', name, 9)
+    cls.HwidPart('board', name, BOARD_RE)
 
   @classmethod
   def BomName(cls, name):
-    cls.HwidPart('bom', name, 8)
+    cls.HwidPart('bom', name, BOM_RE)
 
   @classmethod
   def Status(cls, status):
