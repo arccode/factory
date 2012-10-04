@@ -110,7 +110,7 @@ def GetImageId():
   if not image_id:
     if os.path.exists(IMAGE_ID_PATH):
       image_id = open(IMAGE_ID_PATH).read().strip()
-    else:
+    if not image_id:
       image_id = str(uuid4())
       utils.TryMakeDirs(os.path.dirname(IMAGE_ID_PATH))
       with open(IMAGE_ID_PATH, "w") as f:
