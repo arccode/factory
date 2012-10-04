@@ -30,28 +30,33 @@ _CONNECTION_CHECK_PERIOD_SECS = 2
 
 # Messages for tasks
 _TITLE_CONNECT_TEST = lambda d: test_ui.MakeLabel(
-  '%s Connect' % d, u'%s 连接' % d)
+    '%s Connect' % d, u'%s 连接' % d)
 _TITLE_VIDEO_TEST = lambda d: test_ui.MakeLabel(
-  '%s Video' % d, u'%s 视讯' % d)
+    '%s Video' % d, u'%s 视讯' % d)
 _TITLE_AUDIO_TEST = lambda d: test_ui.MakeLabel(
-  '%s Audio' % d, u'%s 音讯' % d)
+    '%s Audio' % d, u'%s 音讯' % d)
 _TITLE_DISCONNECT_TEST = lambda d: test_ui.MakeLabel(
-  '%s Disconnect' % d, u'%s 移除' % d)
+    '%s Disconnect' % d, u'%s 移除' % d)
 _MSG_CONNECT_TEST = lambda d: test_ui.MakeLabel(
-  'Connect external display: %s' % d,
-  u'请接上外接显示屏: %s' % d)
+    'Connect external display: %s' % d,
+    u'请接上外接显示屏: %s' % d)
 _MSG_VIDEO_TEST = lambda d: test_ui.MakeLabel(
-  'Do you see video on %s?' % d,
-  u'外接显示屏 %s 是否有画面?' % d)
+    'Do you see video on %s?' % d,
+    u'外接显示屏 %s 是否有画面?' % d)
 _MSG_AUDIO_TEST = lambda d: test_ui.MakeLabel(
-  'Do you hear audio from %s?' % d,
-  u'外接显示屏 %s 是否有听到声音?' % d)
+    'Do you hear audio from %s?' % d,
+    u'外接显示屏 %s 是否有听到声音?' % d)
+_MSG_AUDIO_RANDOM_TEST = lambda d, k: test_ui.MakeLabel(
+    '</br>'.join(['Press the number you hear from %s to pass the test.' % d,
+                  'Press <span id="pass_key">%s</span> to replay.' % k]),
+    '</br>'.join([u'请按你从 %s 输出所听到的数字' % d,
+                  u'按 <span id="pass_key">%s</span> 重播语音' % k]))
 _MSG_DISCONNECT_TEST = lambda d: test_ui.MakeLabel(
-  'Disconnect external display: %s' % d,
-  u'移除外接显示屏: %s' % d)
+    'Disconnect external display: %s' % d,
+    u'移除外接显示屏: %s' % d)
 _MSG_PROMPT_PASS_KEY = lambda k: test_ui.MakeLabel(
-  'Press <span id="pass_key">%s</span> to pass the test.' % k,
-  u'通過請按 <span id="pass_key">%s</span> 鍵' % k)
+    'Press <span id="pass_key">%d</span> to pass the test.' % k,
+    u'通过请按 <span id="pass_key">%d</span> 键' % k)
 
 
 class ExtDisplayTask(FactoryTask):  # pylint: disable=W0223
@@ -87,6 +92,19 @@ class ExtDisplayTask(FactoryTask):  # pylint: disable=W0223
     self._ui.BindKey(test_ui.ESCAPE_KEY,
                      lambda _: self.Fail(
         '%s failed by operator.' % self.__class__.__name__, later=True))
+
+  def _BindNumKeys(self, pass_num):
+    """Binds pass_num to pass the task and others to fail it."""
+    for i in xrange(0, 10):
+      if i == pass_num:
+        self._ui.BindKey(str(i), lambda _: self.Pass())
+      else:
+        self._ui.BindKey(str(i), lambda _: self.Fail('Wrong key pressed.'))
+
+  def _UnbindNumKeys(self):
+    """Unbinds all num keys"""
+    for i in xrange(0, 10):
+      self._ui.UnbindKey(str(i))
 
   def _SetTitleInstruction(self):
     """Sets title and instruction.
@@ -246,7 +264,7 @@ class VideoTask(ExtDisplayTask):
   """
   def __init__(self, args):
     # Bind a random key (0-9) to pass the task.
-    self._pass_num = str(random.randint(0, 9))
+    self._pass_num = random.randint(0, 9)
     instruction = '%s<br>%s' % (
       _MSG_VIDEO_TEST(args.display_label),
       _MSG_PROMPT_PASS_KEY(self._pass_num))
@@ -258,11 +276,14 @@ class VideoTask(ExtDisplayTask):
 
   def Run(self):
     self.InitUI()
-    self._ui.BindKey(self._pass_num, lambda _: self.Pass())
+    self._BindNumKeys(self._pass_num)
     self.RunCommand(
       ['xrandr', '-d', ':0', '--output', self._args.main_display_id, '--off',
       '--output', self._args.display_id, '--auto'],
       'Fail to show display %s' % self._args.display_id)
+
+  def Cleanup(self):
+    self._UnbindNumKeys()
 
 
 class AudioTask(ExtDisplayTask):
@@ -272,9 +293,18 @@ class AudioTask(ExtDisplayTask):
     args: refer base class.
   """
   def __init__(self, args):
-    super(AudioTask, self).__init__(args,
-                                    _TITLE_AUDIO_TEST(args.display_label),
-                                    _MSG_AUDIO_TEST(args.display_label))
+    self._pass_num = random.randint(0, 9)
+    if args.audio_sample:
+      super(AudioTask, self).__init__(args,
+                                      _TITLE_AUDIO_TEST(args.display_label),
+                                      _MSG_AUDIO_TEST(args.display_label))
+    else:
+      super(AudioTask, self).__init__(args,
+                                      _TITLE_AUDIO_TEST(args.display_label),
+                                      _MSG_AUDIO_RANDOM_TEST(
+                                          args.display_label, 'r'),
+                                      pass_key=False)
+
     self._play = None
 
   def Run(self):
@@ -282,11 +312,23 @@ class AudioTask(ExtDisplayTask):
     self.RunCommand(
       ['amixer', '-c', '0', 'cset', 'name="%s"' % self._args.audio_port, 'on'],
       'Fail to enable audio.')
-    self._play = Spawn(['aplay', '-q', self._args.audio_sample])
+    if self._args.audio_sample:
+      self._play = Spawn(['aplay', '-q', self._args.audio_sample])
+    else:
+      def PlayVoice(num):
+        lang = self._ui.GetUILanguage()
+        self._ui.PlayAudioFile('%d_%s.ogg' % (num, lang))
+
+      self._BindNumKeys(self._pass_num)
+      for k in 'rR':
+        self._ui.BindKey(k, lambda _: PlayVoice(self._pass_num))
+      PlayVoice(self._pass_num)
 
   def Cleanup(self):
     if self._play and self._play.poll() is None:
       self._play.terminate()
+
+    self._UnbindNumKeys()
 
     self.RunCommand(
       ['amixer', '-c', '0', 'cset', 'name="%s"' % self._args.audio_port, 'off'],
@@ -317,13 +359,13 @@ class ExtDisplayTaskArg(object):
     """
     # Sanity check
     if (len(info) not in set([2, 4]) or
-        any([type(i) is not str for i in info])):
+        any(not isinstance(i, (str, type(None))) for i in info)):
       raise ValueError('ERROR: invalid display_info item: ' + str(info))
 
     self.display_label, self.display_id = info[:2]
     if len(info) == 4:
       self.audio_port, self.audio_sample = info[2:4]
-      if not os.path.isfile(self.audio_sample):
+      if self.audio_sample and not os.path.isfile(self.audio_sample):
         raise ValueError('ERROR: Cannot find audio sample file: ' +
                          self.audio_sample)
 
@@ -340,6 +382,7 @@ class ExtDisplayTest(unittest.TestCase):
          'display_id: (str) ID used to identify display in xrandr. e.g. VGA1.\n'
          'audio_port: (str, opt) amixer port name for audio test.\n'
          'audio_sample: (str, opt) path to an audio sample file.\n'
+         'Set audio_sample as None will enable cheat-proof audio test.\n'
          'Note that audio_port and audio_sample must be set together to\n'
          'enable audio playback test.'),
         optional=False),
@@ -379,7 +422,7 @@ class ExtDisplayTest(unittest.TestCase):
       args.template = self._template
       tasks.append(ConnectTask(args))
       tasks.append(VideoTask(args))
-      if args.audio_sample:
+      if args.audio_port:
         tasks.append(AudioTask(args))
       tasks.append(DisconnectTask(args))
     return tasks

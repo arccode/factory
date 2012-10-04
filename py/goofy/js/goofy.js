@@ -252,6 +252,17 @@ cros.factory.Test.prototype.bindKey = function(keyCode, handler) {
 };
 
 /**
+ * Unbinds a key and removes its handler.
+ * @param {number} keyCode the key code to unbind.
+ * @export
+ */
+cros.factory.Test.prototype.unbindKey = function(keyCode) {
+    if (this.keyHandlers && keyCode in this.keyHandlers) {
+        delete this.keyHandlers[keyCode];
+    }
+}
+
+/**
  * Triggers an update check.
  */
 cros.factory.Test.prototype.updateFactory = function() {

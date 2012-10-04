@@ -9,7 +9,6 @@ import datetime
 import hashlib
 import logging
 import os
-from Queue import Queue
 import shutil
 import subprocess
 import threading
@@ -126,6 +125,9 @@ class DUTEnvironment(Environment):
       '--aura-host-window-use-fullscreen',
       '--kiosk',
       '--kiosk-mode-screensaver-path=/dev/null',
+      '--use-cras',
+      '--enable-audio-mixer',
+      '--enable-renderer-side-mixing',
       accelerated_flag,
       ('--default-device-scale-factor=%d' %
        self.goofy.options.ui_scale_factor),

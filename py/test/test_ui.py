@@ -392,6 +392,15 @@ class UI(object):
     self.BindKeyJS(key, 'test.sendTestEvent("%s", {});' % uuid_str)
     self.AddEventHandler(uuid_str, handler)
 
+  def UnbindKey(self, key):
+    '''Removes a key binding in frontend Javascript.
+
+    Args:
+      key: The key to unbind.
+    '''
+    key_code = key if isinstance(key, int) else ord(key)
+    self.RunJS('window.test.unbindKey(%d);' % key_code)
+
   def InEngineeringMode(self):
     '''Returns True if in engineering mode.'''
     return factory.get_shared_data('engineering_mode')
@@ -404,3 +413,19 @@ class UI(object):
       with self.lock:
         for handler in self.event_handlers.get(event.subtype, []):
           handler(event)
+
+  def GetUILanguage(self):
+    '''Returns current enabled language in UI.'''
+    return factory.get_shared_data('ui_lang')
+
+  def PlayAudioFile(self, audio_file):
+    '''Plays an audio file in the given path.'''
+    js = '''
+        var audio_element = new Audio("%s");
+        audio_element.addEventListener(
+            "canplaythrough",
+            function () {
+              audio_element.play();
+            });
+    ''' % os.path.join('/sounds', audio_file)
+    self.RunJS(js)
