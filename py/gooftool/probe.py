@@ -581,6 +581,15 @@ def _ProbeWireless():
   return _FlimflamDevices.ReadSysfsDeviceIds('wifi')
 
 
+@_ComponentProbe('keyboard')
+def _ProbeKeyboard():
+  ro_vpd = ReadRoVpd(crosfw.LoadMainFirmware().GetFileName())
+  try:
+    return [ro_vpd['keyboard_layout']]
+  except KeyError:
+    return []
+
+
 @_InitialConfigProbe('cellular_fw_version')
 def _ProbeCellularFirmwareVersion():
   """Return firmware detail strings for all cellular devices."""
