@@ -31,7 +31,7 @@ from cros.factory.gooftool import report_upload
 from cros.factory.gooftool.bmpblk import unpack_bmpblock
 from cros.factory.gooftool.probe import Probe, PROBEABLE_COMPONENT_CLASSES
 from cros.factory.gooftool.probe import ReadRoVpd, ReadRwVpd
-from cros.factory.gooftool.vpd_data import KNOWN_VPD_FIELD_DATA
+from cros.factory.gooftool.vpd_data import KNOWN_VPD_FIELD_DATA, FilterVPD
 from cros.factory.hacked_argparse import CmdArg, Command, ParseCmdline
 from cros.factory.hacked_argparse import verbosity_cmd_arg
 from cros.factory.hwdb import hwid_tool
@@ -399,7 +399,7 @@ def VerifyHwid(options):
       value = rw_vpd[key]
       if (known_valid_values is not None) and (value not in known_valid_values):
         sys.exit('Invalid RW VPD entry : key %r, value %r' % (key, value))
-    _event_log.Log('vpd', ro_vpd=ro_vpd, rw_vpd=rw_vpd)
+    _event_log.Log('vpd', ro_vpd=FilterVPD(ro_vpd), rw_vpd=FilterVPD(rw_vpd))
   map(hwid_tool.Validate.Status, options.status)
 
   main_fw_file = crosfw.LoadMainFirmware().GetFileName()
