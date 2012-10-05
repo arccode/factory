@@ -186,6 +186,10 @@ test:
 	    else \
 	        echo -e "\r$(RED)*** FAIL $$f$(WHITE)"; \
 	        echo "    (log in $$log)"; \
+	        if grep -q "^KeyboardInterrupt" $$log; then \
+	            echo "Keyboard interrupt; stopping."; \
+	            exit 1; \
+	        fi; \
 	    fi; \
 	done; \
 	echo; \
