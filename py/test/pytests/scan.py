@@ -31,12 +31,15 @@ class Scan(unittest.TestCase):
         '(defaults to the same as the English label)'),
     Arg('event_log_key', str,
         'Key to use for event log', optional=True),
+    Arg('shared_data_key', str,
+        'Key to use to store in scanned value in shared data', optional=True),
     Arg('regexp', str,
         'Regexp that the scanned value must match', optional=True),
   ]
 
   def HandleScanValue(self, event):
     def SetError(label_en, label_zh=None):
+      logging.info('Scan error: %r', label_en)
       self.ui.SetHTML(test_ui.MakeLabel(label_en, label_zh),
                       id='scan-error')
       self.ui.RunJS('$("scan-value").focus();'
@@ -74,12 +77,17 @@ class Scan(unittest.TestCase):
       except:  # pylint: disable=W0622
         logging.exception('select_aux_data failed')
         return SetError(utils.FormatExceptionOnly())
+      factory.get_state_instance().UpdateSkippedTests()
 
     if self.args.event_log_key:
       EventLog.ForAutoTest().Log('scan',
                                  key=self.args.event_log_key,
                                  value=scan_value)
-    factory.get_state_instance().UpdateSkippedTests()
+
+    if self.args.shared_data_key:
+      factory.set_shared_data(self.args.shared_data_key,
+                              scan_value)
+
     self.ui.Pass()
 
   def setUp(self):

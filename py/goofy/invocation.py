@@ -17,6 +17,7 @@ import tempfile
 import threading
 import time
 import traceback
+import types
 import unittest
 import yaml
 from optparse import OptionParser
@@ -27,6 +28,7 @@ from cros.factory import event_log
 from cros.factory.goofy.service_manager import ServiceManager
 from cros.factory.test import factory
 from cros.factory.test import pytests
+from cros.factory.test import shopfloor
 from cros.factory.test import utils
 from cros.factory.test.args import Args
 from cros.factory.test.event import Event
@@ -39,6 +41,61 @@ from cros.factory.utils.string_utils import DecodeUTF8
 ERROR_LOG_TAIL_LENGTH = 8*1024
 
 # pylint: disable=W0702
+
+
+def ResolveTestArgs(dargs):
+  '''Resolves an argument dictionary by evaluating any functions.
+
+  For instance, in a test list:
+
+    OperatorTest(
+      ...
+      dargs={
+          'method': 'Foo',
+          'args': lambda env: [
+              env.state.get_shared_data('mlb_serial_number'),
+              env.shopfloor.get_serial_number(),
+              env.GetMACAddress('wlan0'),
+          ]
+      })
+
+  This will be resolved to something like this before the test is run:
+
+    OperatorTest(
+      ...
+      dargs={
+          'method': 'Foo',
+          'args': ['MLB12345', 'X67890', '00:11:22:33:44:55']
+      })
+
+  Args:
+    dargs: An test argument dictionary from the test list.
+
+  Returns:
+    dargs, except that any values that are lambdas are replaced with the
+      results of evaluating them with a single argument, 'env',
+      which is an instance of the Env class.
+  '''
+  class Env(object):
+    '''Environment for resolving test arguments.'''
+    def __init__(self):
+      self.state = factory.get_state_instance()
+      self.shopfloor = shopfloor
+
+    def GetMACAddress(self, interface):
+      return open('/sys/class/net/%s/address' % interface).read().strip()
+
+  def ResolveArg(k, v):
+    '''Resolves a single argument.'''
+    if not isinstance(v, types.FunctionType):
+      return v
+
+    v = v(Env())
+    logging.info('Resolved argument %s to %r', k, v)
+    return v
+
+  return dict((k, ResolveArg(k, v)) for k, v in dargs.iteritems())
+
 
 class PyTestInfo(object):
   def __init__(self, test_list, path, pytest_name, args, results_path):
@@ -277,12 +334,18 @@ class TestInvocation(object):
       if not os.path.exists(log_dir):
         os.makedirs(log_dir)
 
+      try:
+        args = ResolveTestArgs(self.test.dargs)
+      except Exception, e:
+        logging.exception('Unable to resolve test arguments')
+        return TestState.FAILED, 'Unable to resolve test arguments: %s' % e
+
       with open(info_path, 'w') as info:
         pickle.dump(PyTestInfo(
             test_list=self.goofy.options.test_list,
             path=self.test.path,
             pytest_name=self.test.pytest_name,
-            args=self.test.dargs,
+            args=args,
             results_path=results_path),
               info)
 

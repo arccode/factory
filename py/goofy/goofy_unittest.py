@@ -396,7 +396,7 @@ class PyTestTest(GoofyTest):
            dargs={'script': 'assert "Tomato" == "Tomato"'}),
     OperatorTest(id='b', pytest_name='execpython',
            dargs={'script': ("assert 'Pa-TAY-to' == 'Pa-TAH-to', "
-                     "Let's call the whole thing off")})
+                             "'Let\\\\\'s call the whole thing off'")})
   '''
   def runTest(self):
     self.goofy.run_once()
@@ -414,7 +414,22 @@ class PyTestTest(GoofyTest):
     failed_state = factory.get_state_instance().get_test_state('b')
     self.assertEquals(TestState.FAILED, failed_state.status)
     self.assertTrue(
-      '''Let\'s call the whole thing off''' in failed_state.error_msg,
+      '''Let's call the whole thing off''' in failed_state.error_msg,
+      failed_state.error_msg)
+
+
+class PyLambdaTest(GoofyTest):
+  test_list = '''
+    OperatorTest(id='a', pytest_name='execpython',
+           dargs={'script': lambda env: 'raise ValueError("It"+"Failed")'})
+  '''
+  def runTest(self):
+    self.goofy.run_once()
+    self.goofy.wait()
+    failed_state = factory.get_state_instance().get_test_state('a')
+    self.assertEquals(TestState.FAILED, failed_state.status)
+    self.assertTrue(
+      '''ItFailed''' in failed_state.error_msg,
       failed_state.error_msg)
 
 
