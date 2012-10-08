@@ -154,6 +154,7 @@ def SaveLogs(output_dir, archive_id=None,
         [glob(x) for x in [
             os.path.join(var, 'log'),
             os.path.join(var, 'factory'),
+            os.path.join(var, 'spool', 'crash'),
             os.path.join(usr_local, 'factory', 'MD5SUM'),
             os.path.join(etc, 'lsb-release'),
             os.path.join(usr_local, 'etc', 'lsb-*')]], [])
