@@ -111,7 +111,10 @@ def Spawn(args, **kwargs):
   if log:
     if log != True:
       logger = log
-    logger.info('Running command: "%s"', args_to_log)
+    message = 'Running command: "%s"' % args_to_log
+    if 'cwd' in kwargs:
+      message += ' in %s' % kwargs['cwd']
+    logger.info(message)
 
   call = kwargs.pop('call', False)
   check_call = kwargs.pop('check_call', False)

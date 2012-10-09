@@ -13,63 +13,70 @@ import shutil
 import sys
 import tempfile
 
-
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import utils
 from cros.factory.tools.mount_partition import MountPartition
-from cros.factory.utils.process_utils import Spawn, PIPE
+from cros.factory.utils.process_utils import Spawn
 
 
+SRC = os.path.join(os.environ['CROS_WORKON_SRCROOT'], 'src')
 def GetDefaultBoardOrNone():
   try:
-    return open(os.path.join(os.environ['CROS_WORKON_SRCROOT'],
-                             'src', 'scripts', '.default_board')).read().strip()
+    return open(os.path.join(SRC, 'scripts', '.default_board')).read().strip()
   except IOError:
     return None
 
+def ParseListArg(value):
+  value = sum([re.split('[ ,:]', x) for x in value], [])
+  return [x for x in value if x]
 
-REPOS = {
-    'factory': 'platform/factory',
-    'board-overlay': 'private-overlays/overlay-%(board)s-private',
-    'autotest': 'third_party/autotest/files'
-}
 
-MAX_COMMITS = 1000
-TEST_LIST_PATH = 'chromeos-base/autotest-private-board/files/test_list'
+PACKAGES = {
+    'factory':
+      dict(path='platform/factory', package='chromeos-base/chromeos-factory'),
+    'chromeos-factory-board':
+      dict(path='private-overlays/overlay-%(board)s-private',
+           package='chromeos-base/chromeos-factory-board'),
+    'autotest-private-board':
+      dict(path='private-overlays/overlay-%(board)s-private',
+           package='chromeos-base/autotest-private-board'),
+    'autotest':
+      dict(path='third_party/autotest/files',
+           package='chromeos-base/autotest'),
+    'autotest-factory':
+      dict(path='third_party/autotest/files',
+           package='chromeos-base/autotest-factory'),
+    }
+
+# A secret value for 'output' to make the script modify the image in place.
+# Only for testing.
 IN_PLACE = 'IN_PLACE'
-MOUNT_POINT = '/tmp/patch_image_mount'
-
-class Repo(object):
-  def __init__(self, repo_id, path):
-    self.repo_id = repo_id
-    self.path = path
-    self.affected_paths = set()
-
-class Commit(object):
-  def __init__(self, hash, repo, count):  # pylint: disable=W0622
-    self.hash = hash
-    self.repo = repo
-    self.count = count
-    self.files = []
-
-  def __repr__(self):
-    return 'Commit(%s in %s)' % (self.hash[0:8] + '...', self.repo.repo_id)
-
+OLD_IMAGE_MOUNT_POINT = '/tmp/old_image_mount'
+NEW_IMAGE_MOUNT_POINT = '/tmp/new_image_mount'
+ALL = 'ALL'
 
 def main():
   parser = argparse.ArgumentParser(
       description="Patches a factory image according with particular commits.")
   parser.add_argument('--input', '-i', help='Input image', required=True)
   parser.add_argument('--output', '-o', help='Output image', required=True)
-  parser.add_argument('--commits', '--commit', help=(
-      'Commit hashes in factory, board overlay, or autotest repository'),
-                      action='append', required=True)
+  parser.add_argument('--branch', '-b',
+                      help='Branch to patch (e.g., factory-2848.B)',
+                      required=True)
   parser.add_argument('--verbose', '-v', action='count')
+  parser.add_argument('--packages', '--package',
+                      help=('Packages to patch in (%s, or '
+                            'one or more of [%s])' % (
+                                ALL, ','.join(sorted(PACKAGES.keys())))),
+                      action='append', default=['ALL'])
   parser.add_argument('--board', help='Board (default: %(default)s)',
                       default=GetDefaultBoardOrNone())
-  parser.add_argument('--yes', '-y',
-                      help="Don't prompt for confirmation",
-                      action='store_true')
+  parser.add_argument('--no-clean', action='store_false', dest='clean',
+                      help="Don't insist on clean repositories (be careful!)")
+  parser.add_argument('--no-emerge', action='store_false', dest='emerge',
+                      help="Don't emerge (for debugging only)")
+  parser.add_argument('--yes', '-y', action='store_true',
+                      help="Don't ask for confirmation")
   args = parser.parse_args()
   logging.basicConfig(level=logging.INFO - 10 * (args.verbose or 0))
 
@@ -82,160 +89,153 @@ def main():
   if args.output != IN_PLACE and os.path.exists(args.output):
     parser.error('Output file %s exists; please remove it first' % args.output)
 
-  # Allow spaces, commas, or colons to separate commits
-  args.commits = sum([re.split('[ ,:]', x) for x in args.commits], [])
-  args.commits = [x for x in args.commits if x]
+  args.packages = set(ParseListArg(args.packages))
+  if ALL in args.packages:
+    args.packages = set(PACKAGES.keys())
+  bad_packages = args.packages - set(PACKAGES.keys())
+  if bad_packages:
+    parser.error('Bad packages %s (should be in %s)' % (
+        list(bad_packages), sorted(PACKAGES.keys())))
 
-  repos = [Repo(k, os.path.join(os.environ['CROS_WORKON_SRCROOT'], 'src',
-                                v % {'board': args.board}))
-           for k, v in sorted(REPOS.items())]
+  repo_paths = set([
+      os.path.join(SRC, PACKAGES[k]['path'] % {'board': args.board})
+      for k in args.packages])
+  packages = set(PACKAGES[k]['package'] for k in args.packages)
 
-  all_commits = []
+  # Check the packages are all clean
+  for path in repo_paths:
+    stdout = Spawn(['git', 'status', '--ignored', '--porcelain'],
+                   cwd=path, check_output=True).stdout_data
+    if stdout:
+      logging.error('Repository %s is not clean:\n%s', path, stdout)
+      if args.clean:
+        logging.error('To clean it (but be careful!):\n\n'
+                      'cd %s && git clean -xdf', path)
+        sys.exit(1)
 
-  # Get last bunch of commits in each repo in reverse order.  This is
-  # necessary to know which revision we should use to fetch all the
-  # files that we're going to patch.
-  count = 0
-  for r in repos:
-    for line in Spawn(
-        ['git', 'log', '--format=%H', '-%d' % MAX_COMMITS],
-        cwd=r.path, check_output=True).stdout_data.strip().split():
-      all_commits.append(Commit(line, r, count))
-      count += 1
+  # Check out the appropriate branch in each repo
+  for path in repo_paths:
+    Spawn(['git', 'checkout',
+           (args.branch.replace('cros/', 'cros-internal/')
+            if path.endswith('-private')
+            else args.branch.replace('cros-internal/', 'cros/'))],
+          cwd=path, log=True, check_call=True)
 
-  fail = False
-  commits = []
-  # Make sure all desired commits are accounted for.
-  for commit_hash in args.commits:
-    found = [c for c in all_commits
-             if c.hash.startswith(commit_hash)]
-    if not found:
-      logging.error(
-          'Unable to find commit %r (is the correct branch checked out?)',
-          commit_hash)
-      fail = True
-    if len(found) > 1:
-      logging.error('Ambiguous commit %r (matches %s)', commit_hash, found)
-      fail = True
+  # Emerge the packages
+  tarballs = []
 
-    # Get the subject
-    commit = found[0]
-    commit.subject = Spawn(['git', 'log', '-1', '--format=%s',
-                              commit.hash], check_output=True,
-                             cwd=commit.repo.path).stdout_data.strip()
+  if args.emerge:
+    Spawn(['emerge-%s' % args.board, '--buildpkg', '-j', str(len(packages))] +
+          sorted(packages),
+          log=True, check_call=True)
 
-    # Get the list of files
-    for f in Spawn(['git', 'diff-tree', '--no-commit-id', '--name-only', '-r',
-                    commit.hash], cwd=commit.repo.path,
-                   check_output=True).stdout_lines(True):
-      commit.files.append(f)
-      commit.repo.affected_paths.add(f)
-    commits.append(commit)
-
-  if fail:
-    parser.exit(1)
-  if not commits:
-    # Shouldn't happen, but just in case
-    parser.exit(1, 'No commits found')
-
-  commits.sort(key=lambda x: x.count)
-  for commit in commits:
-    logging.info('Found %s: %s', commit, commit.subject)
+  for package in packages:
+    ebuild = Spawn(
+        ['equery-%s' % args.board, 'w', package],
+        check_output=True).stdout_data.strip()
+    tarball = os.path.join(
+        '/build', args.board, 'packages',
+        os.path.dirname(package),
+        os.path.basename(ebuild).replace('.ebuild', '.tbz2'))
+    logging.info('%s %s (%d bytes)', 'Built' if args.emerge else 'Reusing',
+                 tarball, os.path.getsize(tarball))
+    tarballs.append(tarball)
 
   # Create staging directory
-  staging_dir = tempfile.mkdtemp(prefix='image.')
+  staging_dir = tempfile.mkdtemp(prefix='new-image.')
   os.chmod(staging_dir, 0755)
 
-  # Remove repos with no commits
-  repos = [r for r in repos if r.affected_paths]
-  for r in repos:
-    # Remove ebuild symlinks from affected paths.
-    if r.repo_id == 'board-overlay':
-      r.affected_paths = set(
-          p for p in r.affected_paths
-          if not re.search(r'/autotest-private-board-.+-r\d+\.ebuild$', p))
+  # Unpack tarballs to staging directory
+  for t in tarballs:
+    Spawn(['tar', 'xfj', t, '-C', staging_dir],
+          check_call=True, log=True)
 
-      if r.affected_paths != set([TEST_LIST_PATH]):
-        sys.exit('In board-overlay repo, expected only %r in commits but have '
-                 'have %s' % (
-                     TEST_LIST_PATH, r.affected_paths))
+  # Apply install mask
+  install_mask = Spawn(
+      ['source %s && echo "$FACTORY_TEST_INSTALL_MASK"' %
+       os.path.join(SRC, 'scripts', 'common.sh')],
+      shell=True, check_output=True, log=True).stdout_data.strip().split()
+  for f in install_mask:
+    # Use shell to expand glob since Python's globbing is a bit stupid
+    assert not re.search(r'\s', f)
+    Spawn(['shopt -s nullglob; rm -rf %s/%s' % (staging_dir, f)],
+          shell=True, check_call=True)
 
-    if r.repo_id == 'factory':
-      if 'py/goofy/js/goofy.js' in r.affected_paths:
-        sys.exit("Sorry, I can't patch in goofy.js changes.  You'll need to "
-                 "build and patch goofy.js yourself.")
+  # Move /usr/local/{factory,autotest} to dev_image
+  dev_image = os.path.join(staging_dir, 'dev_image')
+  os.mkdir(dev_image)
+  for f in ['factory', 'autotest']:
+    path = os.path.join(staging_dir, 'usr', 'local', f)
+    if os.path.exists(path):
+      shutil.move(path, dev_image)
 
-    logging.info('In repo %s, affected paths are %s',
-                 r.repo_id, sorted(list(r.affected_paths)))
+  # Delete usr and var directories
+  for f in ['usr', 'var']:
+    path = os.path.join(staging_dir, f)
+    if os.path.exists(path):
+      shutil.rmtree(path)
 
-    # Get a copy of the latest checkout, with all the files mentioned
-    # in the CL.
-    repo_staging_dir = tempfile.mkdtemp(prefix='image.%s.' % r.repo_id)
-    logging.info('Staging %s into %s', r.repo_id, repo_staging_dir)
+  diffs = tempfile.NamedTemporaryFile(prefix='patch_image.diff.',
+                                      delete=False)
 
-    first_commit = [c for c in commits if c.repo == r][0]
-    git = Spawn(['git', 'archive', '--format=tar', first_commit.hash],
-                cwd=r.path, stdout=PIPE)
-    tar_xf = Spawn(['tar', 'xf', '-'] + list(r.affected_paths),
-                   cwd=repo_staging_dir, stdin=git.stdout)
+  # Find and remove identical files to avoid massive mtime changes.
+  utils.TryMakeDirs(OLD_IMAGE_MOUNT_POINT)
+  with MountPartition(args.input, 1, OLD_IMAGE_MOUNT_POINT):
+    for root, dirs, files in os.walk(staging_dir):
+      for is_dir in [False, True]:
+        for f in dirs if is_dir else files:
+          path = os.path.join(root, f)
+          assert path.startswith(staging_dir + '/')
+          rel_path = os.path.relpath(path, staging_dir)
+          dest_path = os.path.join(OLD_IMAGE_MOUNT_POINT, rel_path)
 
-    git.stdout.close()
-    if git.wait():
-      sys.exit('git failed')
-    if tar_xf.wait():
-      sys.exit('tar failed')
+          if not os.path.exists(dest_path):
+            diffs.write('*** File %s does not exist in old image\n' % rel_path)
+            continue
 
-    RSYNC = ['rsync', '-a', '--chmod=Duga+rx']
+          src_islink = os.path.islink(path)
+          dest_islink = os.path.islink(dest_path)
+          if src_islink != dest_islink:
+            continue
+          if src_islink:
+            if os.readlink(path) == os.readlink(dest_path):
+              # They are identical.  No need to rsync; delete it.
+              os.unlink(path)
+            continue
 
-    # Now... really stage it.  This is different for each repo.
-    if r.repo_id == 'factory':
-      dest_dir = os.path.join(staging_dir, 'dev_image', 'factory')
-      utils.TryMakeDirs(dest_dir)
-      Spawn(RSYNC + [repo_staging_dir + '/', dest_dir + '/'],
-            log=True, check_call=True)
-    elif r.repo_id == 'autotest':
-      # There shouldn't be anything in autotest except for the
-      # 'client' directory.
-      all_files = os.listdir(repo_staging_dir)
-      if all_files != ['client']:
-        sys.exit('Expected only client directory to be modified in autotest, '
-                 'but other files %r are present too' % all_files)
-      dest_dir = os.path.join(staging_dir, 'dev_image', 'autotest')
-      utils.TryMakeDirs(dest_dir)
-      Spawn(RSYNC + [repo_staging_dir + '/client/', dest_dir + '/'],
-            log=True, check_call=True)
-    elif r.repo_id == 'board-overlay':
-      # There is only one file in this overlay: test_list
-      dest_dir = os.path.join(
-          staging_dir,
-          'dev_image', 'autotest', 'client', 'site_tests', 'suite_Factory')
-      utils.TryMakeDirs(dest_dir)
-      Spawn(RSYNC + [repo_staging_dir + '/' + TEST_LIST_PATH,
-                     dest_dir],
-            log=True, check_call=True)
-    else:
-      sys.exit('Unknown repo ID %s' % r.repo_id)
+          if is_dir:
+            continue
 
-  # Use root for everything in staging.
-  Spawn(['chown', '-R', 'root:root', staging_dir],
-        log=True, sudo=True, check_call=True)
+          if f == '.keep':
+            # Just to tell Gentoo to keep the directory; delete it
+            os.unlink(path)
+            continue
 
-  diffs = tempfile.NamedTemporaryFile(prefix='patch_image_diffs.', delete=False)
-  with MountPartition(args.input, 1, MOUNT_POINT):
-    for f in Spawn(['find', '.', '!', '-type', 'd'],
-                   cwd=staging_dir, check_output=True).stdout_lines():
-      f = f.strip()[2:]  # Strip and remove './' at beginning
-      Spawn(['diff', '-u',
-             os.path.join(MOUNT_POINT, f),
-             os.path.join(staging_dir, f)],
-            stdout=diffs, call=True)
+          src_stat = os.stat(path)
+          dest_stat = os.stat(dest_path)
+          if (src_stat.st_mode != dest_stat.st_mode or
+              src_stat.st_size != dest_stat.st_size or
+              open(path).read() != open(dest_path).read()):
+            # They are different; write a diff
+            Spawn(['diff', '-u', path, dest_path], stdout=diffs, call=True)
+          else:
+            # They are identical.  No need to rsync; delete the src file.
+            os.unlink(path)
+
+  # Delete empty directories in dev_image
+  for root, dirs, files in os.walk(dev_image, topdown=False):
+    for d in dirs:
+      try:
+        os.rmdir(os.path.join(root, d))
+      except OSError:
+        pass  # Not empty, no worries
+
   diffs.close()
-
   # Do a "find" command to show all affected paths.
   sys.stdout.write(
       ('\n'
        '\n'
-       '*** The following files will be patched into the image.\n'
+       '*** The following changes files will be patched into the image.\n'
        '***\n'
        '*** Note that the individual changes that you mentioned will not\n'
        '*** be cherry-picked; rather the LATEST VERSION of the file in the\n'
@@ -271,10 +271,15 @@ def main():
     logging.info('Copying %s to %s', args.input, args.output)
     shutil.copyfile(args.input, args.output)
 
-  utils.TryMakeDirs(MOUNT_POINT)
-  with MountPartition(args.output, 1, MOUNT_POINT, rw=True):
-    Spawn(['rsync', '-av', staging_dir + '/', MOUNT_POINT + '/'],
+  utils.TryMakeDirs(NEW_IMAGE_MOUNT_POINT)
+  with MountPartition(args.output, 1, NEW_IMAGE_MOUNT_POINT, rw=True):
+    Spawn(['rsync', '-av', staging_dir + '/', NEW_IMAGE_MOUNT_POINT + '/'],
           sudo=True, log=True, check_output=True)
+
+  logging.info('\n'
+               '***\n'
+               '*** Created %s (%d bytes)\n'
+               '***', args.output, os.path.getsize(args.output))
 
 
 if __name__ == '__main__':
