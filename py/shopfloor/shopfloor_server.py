@@ -24,6 +24,8 @@ import os
 import shutil
 import SimpleXMLRPCServer
 import socket
+import zipfile
+from fnmatch import fnmatch
 
 import factory_common
 from cros.factory import shopfloor
@@ -156,11 +158,34 @@ def main():
     instance._InitBase()
 
     if options.dummy:
-      for f in glob.glob(
-          os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                       'testdata', '*.csv')):
-        logging.warn('Using data file %s from dummy shopfloor server', f)
-        shutil.copy(f, instance.data_dir)
+      root, ext, path = __file__.partition('.par/')
+      if ext:
+        # We're inside a .par file.  Load test data from inside the par.
+        # TODO(jsalz): Factor this logic out to a separate method.
+        z = zipfile.ZipFile(root + ext[:-1])
+        pattern = os.path.join(os.path.dirname(path), 'testdata', '*.csv')
+        csvs = [x for x in z.namelist() if fnmatch(x, pattern)]
+        if not csvs:
+          logging.critical('No test files matching %s', pattern)
+          exit(1)
+        for f in csvs:
+          logging.warn('Using data file %s%s%s from dummy shopfloor server',
+                       root, ext, f)
+          with open(os.path.join(instance.data_dir, os.path.basename(f)),
+                    'w') as out:
+            out.write(z.read(f))
+        z.close()
+      else:
+        pattern = os.path.join(
+            os.path.dirname(os.path.realpath(__file__)),
+            'testdata', '*.csv')
+        csvs = glob.glob(pattern)
+        if not csvs:
+          logging.critical('No test files matching %s', pattern)
+          exit(1)
+        for f in csvs:
+          logging.warn('Using data file %s from dummy shopfloor server', f)
+          shutil.copy(f, instance.data_dir)
 
     instance.Init()
   except:

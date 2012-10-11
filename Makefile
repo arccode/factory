@@ -85,6 +85,7 @@ par:
 	  --exclude '*_unittest.py' \
 	  --exclude 'factory_common.py*' \
 	  --include '*.py' \
+	  --include '*.csv' \
 	  --include '*/' --exclude '*' \
 	  py/ $(PAR_BUILD_DIR)/cros/factory/
 # Copy necessary third-party packages.
