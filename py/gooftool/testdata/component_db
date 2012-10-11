@@ -1,0 +1,156 @@
+# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+#
+# This file was generated (mostly) with:
+#
+#  grep ComponentProbe py/gooftool/probe.py | \
+#    perl -ne "if (/\@_ComponentProbe\('(\w+)/) "\
+#      '{ $i = uc($1); print "  $1:\n    ${1}_1: '\
+#      '${i}_1\n    ${1}_2: ${i}_2\n" }'
+
+opaque_components: {}
+probeable_components:
+  audio_codec:
+    audio_codec_1: AUDIO_CODEC_1
+    audio_codec_2: AUDIO_CODEC_2
+  battery:
+    battery_1: BATTERY_1
+    battery_2: BATTERY_2
+  bluetooth:
+    bluetooth_1: BLUETOOTH_1
+    bluetooth_2: BLUETOOTH_2
+  camera:
+    camera_1: CAMERA_1
+    camera_2: CAMERA_2
+  cellular:
+    cellular_1: CELLULAR_1
+    cellular_2: CELLULAR_2
+  wimax:
+    wimax_1: WIMAX_1
+    wimax_2: WIMAX_2
+  display_converter:
+    display_converter_1: DISPLAY_CONVERTER_1
+    display_converter_2: DISPLAY_CONVERTER_2
+  chipset:
+    chipset_1: CHIPSET_1
+    chipset_2: CHIPSET_2
+  cpu:
+    cpu_1: CPU_1
+    cpu_2: CPU_2
+  display_panel:
+    display_panel_1: DISPLAY_PANEL_1
+    display_panel_2: DISPLAY_PANEL_2
+  dram:
+    dram_1: DRAM_1
+    dram_2: DRAM_2
+  ec_flash_chip:
+    ec_flash_chip_1: EC_FLASH_CHIP_1
+    ec_flash_chip_2: EC_FLASH_CHIP_2
+  embedded_controller:
+    embedded_controller_1: EMBEDDED_CONTROLLER_1
+    embedded_controller_2: EMBEDDED_CONTROLLER_2
+  ethernet:
+    ethernet_1: ETHERNET_1
+    ethernet_2: ETHERNET_2
+  flash_chip:
+    flash_chip_1: FLASH_CHIP_1
+    flash_chip_2: FLASH_CHIP_2
+  storage:
+    storage_1: STORAGE_1
+    storage_2: STORAGE_2
+  touchpad:
+    touchpad_1: TOUCHPAD_1
+    touchpad_2: TOUCHPAD_2
+  tpm:
+    tpm_1: TPM_1
+    tpm_2: TPM_2
+  usb_hosts:
+    usb_hosts_1: USB_HOSTS_1
+    usb_hosts_2: USB_HOSTS_2
+  vga:
+    vga_1: VGA_1
+    vga_2: VGA_2
+  wireless:
+    wireless_1: WIRELESS_1
+    wireless_2: WIRELESS_2
+  keyboard:
+    keyboard_1: KEYBOARD_1
+    keyboard_2: KEYBOARD_2
+  audio_codec:
+    audio_codec_1: AUDIO_CODEC_1
+    audio_codec_2: AUDIO_CODEC_2
+  battery:
+    battery_1: BATTERY_1
+    battery_2: BATTERY_2
+  bluetooth:
+    bluetooth_1: BLUETOOTH_1
+    bluetooth_2: BLUETOOTH_2
+  camera:
+    camera_1: CAMERA_1
+    camera_2: CAMERA_2
+  cellular:
+    cellular_1: CELLULAR_1
+    cellular_2: CELLULAR_2
+  wimax:
+    wimax_1: WIMAX_1
+    wimax_2: WIMAX_2
+  display_converter:
+    display_converter_1: DISPLAY_CONVERTER_1
+    display_converter_2: DISPLAY_CONVERTER_2
+  chipset:
+    chipset_1: CHIPSET_1
+    chipset_2: CHIPSET_2
+  chipset:
+    chipset_1: CHIPSET_1
+    chipset_2: CHIPSET_2
+  cpu:
+    cpu_1: CPU_1
+    cpu_2: CPU_2
+  cpu:
+    cpu_1: CPU_1
+    cpu_2: CPU_2
+  display_panel:
+    display_panel_1: DISPLAY_PANEL_1
+    display_panel_2: DISPLAY_PANEL_2
+  dram:
+    dram_1: DRAM_1
+    dram_2: DRAM_2
+  ec_flash_chip:
+    ec_flash_chip_1: EC_FLASH_CHIP_1
+    ec_flash_chip_2: EC_FLASH_CHIP_2
+  embedded_controller:
+    embedded_controller_1: EMBEDDED_CONTROLLER_1
+    embedded_controller_2: EMBEDDED_CONTROLLER_2
+  ethernet:
+    ethernet_1: ETHERNET_1
+    ethernet_2: ETHERNET_2
+  flash_chip:
+    flash_chip_1: FLASH_CHIP_1
+    flash_chip_2: FLASH_CHIP_2
+  storage:
+    storage_1: STORAGE_1
+    storage_2: STORAGE_2
+  touchpad:
+    touchpad_1: TOUCHPAD_1
+    touchpad_2: TOUCHPAD_2
+  tpm:
+    tpm_1: TPM_1
+    tpm_2: TPM_2
+  usb_hosts:
+    usb_hosts_1: USB_HOSTS_1
+    usb_hosts_2: USB_HOSTS_2
+  vga:
+    vga_1: VGA_1
+    vga_2: VGA_2
+  wireless:
+    wireless_1: WIRELESS_1
+    wireless_2: WIRELESS_2
+  keyboard:
+    keyboard_1: KEYBOARD_1
+    keyboard_2: KEYBOARD_2
+status:
+  deprecated: []
+  eol: []
+  qualified: []
+  supported: []

@@ -402,7 +402,8 @@ def VerifyHwid(options):
     _event_log.Log('vpd', ro_vpd=FilterVPD(ro_vpd), rw_vpd=FilterVPD(rw_vpd))
   map(hwid_tool.Validate.Status, options.status)
 
-  main_fw_file = crosfw.LoadMainFirmware().GetFileName()
+  if not options.hwid or not options.probe_results:
+    main_fw_file = crosfw.LoadMainFirmware().GetFileName()
 
   if options.hwid:
     hwid_str = options.hwid

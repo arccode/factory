@@ -22,11 +22,18 @@ def Indent(data):
 
 
 class VerifyHWIDTest(unittest.TestCase):
-  def runTest(self):
+  def testHWIDRepo(self):
+    self._RunTest(
+        os.path.join(os.environ['CROS_WORKON_SRCROOT'],
+                     'src', 'platform', 'chromeos-hwid', 'v2'))
+
+  def testFakeData(self):
+    self._RunTest(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                               'testdata'))
+
+  def _RunTest(self, test_data_path):
     test_data = yaml.load_all(
-        open(os.path.join(
-            os.environ['CROS_WORKON_SRCROOT'],
-            'src', 'platform', 'chromeos-hwid', 'v2', 'test_data.yaml')))
+        open(os.path.join(test_data_path, 'test_data.yaml')))
 
     failures = []
     for d in test_data:
@@ -49,6 +56,7 @@ class VerifyHWIDTest(unittest.TestCase):
                          '--v=4',
                          'verify_hwid',
                          '--hwid=%s' % hwid,
+                         '--hwdb_path=%s' % test_data_path,
                          '--probe_results=%s' % f.name,
                          '--status'] +
                         list(hwid_tool.LIFE_CYCLE_STAGES),

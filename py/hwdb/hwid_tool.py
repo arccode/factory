@@ -651,8 +651,7 @@ class Device(YamlDatastore):
         ComponentSpecClasses(variant) for variant in self.variants.values()])
     if self.variant_classes != variant_classes:
       missing = self.variant_classes - variant_classes
-      extra = ((variant_classes | self.primary_classes) -
-               self._comp_db.all_comp_classes)
+      extra = variant_classes - self.variant_classes
       msg = ('%r primary and variant classes are incomplete; '
              'primary + variant != all classes' % self.board_name)
       msg += '; missing [%s]' % ', '.join(missing) if missing else ''
@@ -858,7 +857,8 @@ class Device(YamlDatastore):
         result.unmatched_values[probe_class] = probe_value
     result.matched_tags = sorted(
       tag for tag, volatile in self.volatiles.items()
-      if volatile == result.matched_volatiles)
+      if (volatile == result.matched_volatiles
+          or not volatile))
     return result
 
   def MatchInitialConfigValues(self, value_map):

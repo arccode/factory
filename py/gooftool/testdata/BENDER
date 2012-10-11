@@ -1,0 +1,58 @@
+boms:
+  LEELA:
+    primary:
+      classes_dontcare: []
+      classes_missing: []
+      components:
+        audio_codec: audio_codec_1
+        battery: battery_1
+        bluetooth: bluetooth_1
+        camera: camera_1
+        cellular: cellular_1
+        wimax: wimax_1
+        display_converter: display_converter_1
+        chipset: chipset_1
+        cpu: cpu_1
+        display_panel: display_panel_1
+        dram: dram_1
+        ec_flash_chip: ec_flash_chip_1
+        embedded_controller: embedded_controller_1
+        ethernet: ethernet_1
+        flash_chip: flash_chip_1
+        storage: storage_1
+        touchpad: touchpad_1
+        tpm: tpm_1
+        usb_hosts: usb_hosts_1
+        vga: vga_1
+        wireless: wireless_1
+    variants:
+    - A
+hwid_status:
+  deprecated: []
+  eol: []
+  qualified: []
+  supported:
+  - LEELA *-*
+initial_configs:
+  '0':
+    constraints: {}
+    enforced_for_boms: []
+variants:
+  A:
+    classes_dontcare:
+    - keyboard
+    classes_missing: []
+    components: {}
+volatile_values:
+  volatile_1: VOLATILE_1
+  volatile_2: VOLATILE_2
+volatiles:
+  A: {}
+  B:
+    volatile_1: VOLATILE_1
+vpd_ro_fields:
+- vpd_ro_field_1
+- vpd_ro_field_2
+vpd_rw_fields:
+- vpd_rw_field_1
+- vpd_rw_field_2

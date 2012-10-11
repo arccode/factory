@@ -1,0 +1,151 @@
+# Test data for HWID verification.
+#
+# This file contains a series of YAML documents, each containing:
+#
+# - A HWID field identifying the HWID to verify against
+# - An optional ERROR field.  If present, verification is expected to fail with
+#   the given error (a regexp).  If not present, verification is expected to
+#   succeed.
+# - A probe result (the output of 'gooftool probe --include_vpd' on a device).
+#
+# The unit test verify_hwid_unittest.py will verify that gooftool verify_hwid on
+# each of these probe results succeeds or fails as expected.
+---
+HWID: BENDER LEELA A-A 0489
+found_probe_value_map:
+  audio_codec: AUDIO_CODEC_1
+  battery: BATTERY_1
+  bluetooth: BLUETOOTH_1
+  camera: CAMERA_1
+  cellular: CELLULAR_1
+  display_converter: DISPLAY_CONVERTER_1
+  chipset: CHIPSET_1
+  cpu: CPU_1
+  display_panel: DISPLAY_PANEL_1
+  dram: DRAM_1
+  ec_flash_chip: EC_FLASH_CHIP_1
+  embedded_controller: EMBEDDED_CONTROLLER_1
+  ethernet: ETHERNET_1
+  flash_chip: FLASH_CHIP_1
+  keyboard: KEYBOARD_1
+  storage: STORAGE_1
+  touchpad: TOUCHPAD_1
+  tpm: TPM_1
+  usb_hosts: USB_HOSTS_1
+  vga: VGA_1
+  wimax: WIMAX_1
+  wireless: WIRELESS_1
+found_volatile_values:
+  hash_gbb: HASH_GBB_1
+  key_recovery: KEY_RECOVERY_1
+  key_root: KEY_ROOT_1
+  ro_ec_firmware: RO_EC_FIRMWARE_1
+  ro_main_firmware: RO_MAIN_FIRMWARE_1
+  vpd.ro.vpd_ro_field_1: VPD_RO_FIELD_1
+  vpd.ro.vpd_ro_field_2: VPD_RO_FIELD_2
+  vpd.rw.vpd_rw_field_1: VPD_RW_FIELD_1
+  vpd.rw.vpd_rw_field_2: VPD_RW_FIELD_2
+initial_configs: {}
+missing_component_classes: []
+---
+HWID: BENDER LEELA A-A 0000
+ERROR: bad checksum
+found_probe_value_map:
+  audio_codec: AUDIO_CODEC_1
+  battery: BATTERY_1
+  bluetooth: BLUETOOTH_1
+  camera: CAMERA_1
+  cellular: CELLULAR_1
+  display_converter: DISPLAY_CONVERTER_1
+  chipset: CHIPSET_1
+  cpu: CPU_1
+  display_panel: DISPLAY_PANEL_1
+  dram: DRAM_1
+  ec_flash_chip: EC_FLASH_CHIP_1
+  embedded_controller: EMBEDDED_CONTROLLER_1
+  ethernet: ETHERNET_1
+  flash_chip: FLASH_CHIP_1
+  keyboard: KEYBOARD_1
+  storage: STORAGE_1
+  touchpad: TOUCHPAD_1
+  tpm: TPM_1
+  usb_hosts: USB_HOSTS_1
+  vga: VGA_1
+  wimax: WIMAX_1
+  wireless: WIRELESS_1
+found_volatile_values:
+  volatile_1: VOLATILE_1
+  vpd.ro.vpd_ro_field_1: VPD_RO_FIELD_1
+  vpd.ro.vpd_ro_field_2: VPD_RO_FIELD_2
+  vpd.rw.vpd_rw_field_1: VPD_RW_FIELD_1
+  vpd.rw.vpd_rw_field_2: VPD_RW_FIELD_2
+initial_configs: {}
+missing_component_classes: []
+---
+HWID: BENDER LEELA A-A 0489
+found_probe_value_map:
+  audio_codec: AUDIO_CODEC_1
+  battery: BATTERY_1
+  bluetooth: BLUETOOTH_1
+  camera: CAMERA_1
+  cellular: CELLULAR_1
+  display_converter: DISPLAY_CONVERTER_1
+  chipset: CHIPSET_1
+  cpu: CPU_1
+  display_panel: DISPLAY_PANEL_1
+  dram: DRAM_1
+  ec_flash_chip: EC_FLASH_CHIP_1
+  embedded_controller: EMBEDDED_CONTROLLER_1
+  ethernet: ETHERNET_1
+  flash_chip: FLASH_CHIP_1
+  keyboard: KEYBOARD_1
+  storage: STORAGE_1
+  touchpad: TOUCHPAD_1
+  tpm: TPM_1
+  usb_hosts: USB_HOSTS_1
+  vga: VGA_1
+  wimax: WIMAX_1
+  wireless: WIRELESS_1
+found_volatile_values:
+  # Invalid volatile, but using a wildcard volatile so it's OK
+  volatile_1: VOLATILE_INVALID
+  vpd.ro.vpd_ro_field_1: VPD_RO_FIELD_1
+  vpd.ro.vpd_ro_field_2: VPD_RO_FIELD_2
+  vpd.rw.vpd_rw_field_1: VPD_RW_FIELD_1
+  vpd.rw.vpd_rw_field_2: VPD_RW_FIELD_2
+initial_configs: {}
+missing_component_classes: []
+---
+HWID: BENDER LEELA A-B 2467
+ERROR: "target volatile_code 'B' did not match"
+found_probe_value_map:
+  audio_codec: AUDIO_CODEC_1
+  battery: BATTERY_1
+  bluetooth: BLUETOOTH_1
+  camera: CAMERA_1
+  cellular: CELLULAR_1
+  display_converter: DISPLAY_CONVERTER_1
+  chipset: CHIPSET_1
+  cpu: CPU_1
+  display_panel: DISPLAY_PANEL_1
+  dram: DRAM_1
+  ec_flash_chip: EC_FLASH_CHIP_1
+  embedded_controller: EMBEDDED_CONTROLLER_1
+  ethernet: ETHERNET_1
+  flash_chip: FLASH_CHIP_1
+  keyboard: KEYBOARD_1
+  storage: STORAGE_1
+  touchpad: TOUCHPAD_1
+  tpm: TPM_1
+  usb_hosts: USB_HOSTS_1
+  vga: VGA_1
+  wimax: WIMAX_1
+  wireless: WIRELESS_1
+found_volatile_values:
+  volatile_1: VOLATILE_INVALID
+  vpd.ro.vpd_ro_field_1: VPD_RO_FIELD_1
+  vpd.ro.vpd_ro_field_2: VPD_RO_FIELD_2
+  vpd.rw.vpd_rw_field_1: VPD_RW_FIELD_1
+  vpd.rw.vpd_rw_field_2: VPD_RW_FIELD_2
+initial_configs: {}
+missing_component_classes: []
