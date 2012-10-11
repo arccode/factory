@@ -27,15 +27,15 @@ cleanup() {
 
 invoke() {
   # Usage: invoke "message" "shell-command"
-  result=0
-  message="$1"
+  local result=0
+  local message="$1"
   shift
   eval $@ >"$_STDOUT" 2>"$_STDERR" || result=$?
   if [ "$result" != 0 ]; then
     alert "ERROR: Failed to $message"
     alert "Command detail: $@"
     cat "$_STDOUT" "$_STDERR" 1>&2
-    return 1
+    exit 1
   fi
   cat "$_STDOUT"
   return $result
@@ -77,8 +77,7 @@ set -e
 trap cleanup EXIT
 alert "Checking firmware GBB flags..."
 while [ "$RETRIES" -gt 0 ]; do
-  clear_gbb_flags "$FIRMWARE_IMAGE" || RETURN=$?
+  clear_gbb_flags "$FIRMWARE_IMAGE"
   RETRIES="$((RETRIES - 1))"
 done
-exit $RETURN
-
+exit 1
