@@ -512,25 +512,29 @@ def _ProbeMainFlashChip():
   return [chip_id] if chip_id else []
 
 
-@_ComponentProbe('storage')
-def _ProbeStorage():
-  """Compile sysfs data for all non-removable block storage devices."""
+def _GetFixedDevices():
+  """Returns paths to all fixed storage devices on the system."""
   def IsFixed(node):
     path = os.path.join(node, 'removable')
     return (os.path.exists(path) and open(path).read().strip() == '0')
+  return [node for node in glob('/sys/class/block/*') if IsFixed(node)]
+
+
+@_ComponentProbe('storage')
+def _ProbeStorage():
+  """Compile sysfs data for all non-removable block storage devices."""
   def ProcessNode(node_path):
     dev_path = os.path.join(node_path, 'device')
     size_path = os.path.join(os.path.dirname(dev_path), 'size')
     size = ('#' + open(size_path).read().strip()
             if os.path.exists(size_path) else '')
     ata_fields = ['vendor', 'model']
-    emmc_fields = ['type', 'name', 'fwrev', 'hwrev', 'oemid', 'manfid']
+    emmc_fields = ['type', 'name', 'hwrev', 'oemid', 'manfid']
     data = (_ReadSysfsFields(dev_path, ata_fields) or
             _ReadSysfsFields(dev_path, emmc_fields) or
             None)
     return CompactStr(data + [size]) if data is not None else None
-  fixed_devices = [node for node in glob('/sys/class/block/*') if IsFixed(node)]
-  return [ident for ident in map(ProcessNode, fixed_devices)
+  return [ident for ident in map(ProcessNode, _GetFixedDevices())
           if ident is not None]
 
 
@@ -624,7 +628,7 @@ def _ProbeCellularFirmwareVersion():
   return ' ; '.join(results)
 
 
-@_InitialConfigProbe('rw_fw_version')
+@_InitialConfigProbe('rw_fw_key_version')
 def _ProbeRwFirmwareVersion():
   """Returns RW (writable) firmware version from VBLOCK sections."""
   def GetVersion(section_name):
@@ -642,6 +646,18 @@ def _ProbeRwFirmwareVersion():
 @_InitialConfigProbe('touchpad_fw_version')
 def _ProbeTouchpadFirmwareVersion():
   return _TouchpadData.Get().fw_version
+
+
+@_InitialConfigProbe('storage_fw_version')
+def _ProbeStorageFirmwareVersion():
+  """Returns firmware rev for all fixed devices."""
+  ret = []
+  for f in _GetFixedDevices():
+    ret.extend(
+        _ReadSysfsFields(os.path.join(f, 'device'), ['rev'])       # ATA
+        or _ReadSysfsFields(os.path.join(f, 'device'), ['fwrev'])  # eMMC
+        or [])
+  return CompactStr(ret)
 
 
 def _AddFirmwareIdTag(image, id_name='RO_FRID'):
@@ -794,7 +810,7 @@ def Probe(target_comp_classes=None,
   arch = Shell('crossystem arch').stdout.strip()
   comp_probes = FilterProbes(_COMPONENT_PROBE_MAP, arch, target_comp_classes)
   if probe_initial_config:
-    ic_probes = FilterProbes(_INITIAL_CONFIG_PROBE_MAP, arch, [])
+    ic_probes = FilterProbes(_INITIAL_CONFIG_PROBE_MAP, arch, None)
   else:
     ic_probes = {}
   found_probe_value_map = {}
