@@ -660,7 +660,8 @@ def _GbbHash(image):
     data = image.get_section('GBB')
     f.write(data)
     f.flush()
-    if not Shell('gbb_utility -s --hwid="ChromeOS" "%s"' % f.name).success:
+    if not Shell('gbb_utility -s --hwid="ChromeOS" --flags=0 "%s"' %
+                 f.name).success:
       logging.error("Failed calling gbb_utility to calcuate GBB hash.")
       return None
     # Rewind to re-read the data.
