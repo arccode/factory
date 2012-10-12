@@ -12,6 +12,7 @@ import glob
 import logging
 import os
 import re
+import sys
 import tempfile
 
 import factory_common  # pylint: disable=W0611
@@ -33,7 +34,7 @@ def SyncTestList(host, test_list=None):
     match = re.search(r'^CHROMEOS_RELEASE_BOARD=(.+)', release, re.MULTILINE)
     if not match:
       logging.warn('Unable to determine release board')
-      return
+      return None
     board = match.group(1)
     logging.info('Copying test_list from %s overlay', board)
 
@@ -52,6 +53,8 @@ def SyncTestList(host, test_list=None):
         [test_list, host + ':/usr/local/factory/custom/test_list'],
         check_call=True, log=True)
 
+  return board
+
 
 def main():
   parser = argparse.ArgumentParser(
@@ -64,6 +67,8 @@ def main():
                       help='also rsync autotest directory')
   parser.add_argument('--norestart', dest='restart', action='store_false',
                       help="don't restart Goofy")
+  parser.add_argument('--hwid', action='store_true',
+                      help="update HWID bundle")
   parser.add_argument('--test_list',
                       help=("test list to use (defaults to the one in "
                             "the board's overlay"))
@@ -88,7 +93,7 @@ def main():
 
   Spawn(['make', '--quiet'], cwd=factory.FACTORY_PATH,
         check_call=True, log=True)
-  SyncTestList(args.host, args.test_list)
+  board = SyncTestList(args.host, args.test_list)
 
   if args.autotest:
     Spawn(rsync_command +
@@ -103,6 +108,18 @@ def main():
          for x in ('bin', 'py', 'py_pkg', 'sh', 'test_lists')] +
         ['%s:/usr/local/factory' % args.host],
         check_call=True, log=True)
+
+  if args.hwid:
+    if not board:
+      sys.exit('Cannot update hwid without board')
+    chromeos_hwid_path = os.path.join(
+        os.path.dirname(factory.FACTORY_PATH), 'chromeos-hwid')
+    Spawn(['./create_bundle', board.upper()],
+          cwd=chromeos_hwid_path, check_call=True, log=True)
+    Spawn(ssh_command + [args.host, 'bash'],
+          stdin=open(os.path.join(chromeos_hwid_path,
+                                  'hwid_bundle_%s.sh' % board.upper())),
+          check_call=True, log=True)
 
   if args.restart:
     Spawn(ssh_command +
