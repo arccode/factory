@@ -107,9 +107,13 @@ def main():
                     help='increase message verbosity')
   parser.add_option('-q', '--quiet', action='store_true', dest='quiet',
                     help='turn off verbose messages')
+  parser.add_option('--simple', action='store_true',
+                    help=('use simple shopfloor server (equivalent to '
+                          '-m cros.factory.shopfloor.simple_shopfloor)'))
   parser.add_option('--dummy', action='store_true',
                     help=('run dummy shopfloor server, using simple shopfloor '
-                          'server and data from testdata directory'))
+                          'server and data from testdata directory (implies '
+                          '--simple)'))
   (options, args) = parser.parse_args()
   if args:
     parser.error('Invalid args: %s' % ' '.join(args))
@@ -135,6 +139,8 @@ def main():
   socket.getfqdn = FakeGetFQDN
 
   if options.dummy:
+    options.simple = True
+  if options.simple:
     options.module = 'cros.factory.shopfloor.simple_shopfloor'
 
   SHOPFLOOR_SUFFIX = '.ShopFloor'
