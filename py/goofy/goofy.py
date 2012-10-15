@@ -598,13 +598,6 @@ class Goofy(object):
         self.tests_to_run.popleft()
         return
 
-      if test.get_state().skip:
-        factory.console.info('Skipping test %s', test.path)
-        test.update_state(status=TestState.PASSED,
-                          error_msg=TestState.SKIPPED_MSG)
-        self.tests_to_run.popleft()
-        return
-
       for requirement in test.require_run:
         for i in requirement.test.walk():
           if i.get_state().status == TestState.ACTIVE:
@@ -617,6 +610,13 @@ class Goofy(object):
         logging.debug('Waiting for non-backgroundable tests to '
                 'complete before running %s', test.path)
         return
+
+      if test.get_state().skip:
+        factory.console.info('Skipping test %s', test.path)
+        test.update_state(status=TestState.PASSED,
+                          error_msg=TestState.SKIPPED_MSG)
+        self.tests_to_run.popleft()
+        continue
 
       self.tests_to_run.popleft()
 
