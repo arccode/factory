@@ -27,6 +27,7 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.common import Error, SetupLogging, Shell
 from cros.factory.common import YamlWrite
 from cros.factory.gooftool import crosfw
+from cros.factory.gooftool import Gooftool
 from cros.factory.gooftool import report_upload
 from cros.factory.gooftool.bmpblk import unpack_bmpblock
 from cros.factory.gooftool.probe import Probe, PROBEABLE_COMPONENT_CLASSES
@@ -335,32 +336,24 @@ def VerifyComponents(options):
   do not check against any specific BOM/HWID configurations.
   """
   comp_db = hwid_tool.HardwareDb(options.hwdb_path).comp_db
-  if not options.target_comps:
-    sys.exit('ERROR: no target component classes specified; possible choices:\n'
-             + '\n  '.join(sorted(comp_db.probeable_components)))
-  for comp_class in options.target_comps:
-    if comp_class not in comp_db.probeable_components:
-      sys.exit('ERROR: specified component class %r does not exist'
-               ' in the component DB.' % comp_class)
-  probe_results = Probe(target_comp_classes=options.target_comps,
-                        probe_volatile=False, probe_initial_config=False)
-  errors = []
+  try:
+    result = Gooftool(component_db=comp_db).VerifyComponents(
+        options.target_comps)
+  except ValueError, e:
+    sys.exit(e)
+
+  # group by matches and errors
   matches = []
-  for comp_class in sorted(options.target_comps):
-    probe_val = probe_results.found_probe_value_map.get(comp_class, None)
-    if probe_val is not None:
-      comp_name = comp_db.result_name_map.get(probe_val, None)
-      if comp_name is not None:
-        matches.append(comp_name)
+  errors = []
+  for result_list in result.values():
+    for component_name, _, error in result_list:
+      if component_name:
+        matches.append(component_name)
       else:
-        errors.append('unsupported %r component found with probe result'
-                      ' %r (no matching name in the component DB)' %
-                      (comp_class, probe_val))
-    else:
-      errors.append('missing %r component' % comp_class)
+        errors.append(error)
+
   if matches:
     print 'found probeable components:\n  %s' % '\n  '.join(matches)
-
   if errors:
     print '\nerrors:\n  %s' % '\n  '.join(errors)
     sys.exit('\ncomponent verification FAILURE')
