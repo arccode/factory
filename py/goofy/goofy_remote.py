@@ -27,21 +27,21 @@ rsync_command = None
 
 
 def SyncTestList(host, test_list=None):
+  logging.info('Checking release board on %s...', host)
+  release = Spawn(ssh_command + [host, 'cat /etc/lsb-release'],
+                  check_output=True, log=True).stdout_data
+  match = re.search(r'^CHROMEOS_RELEASE_BOARD=(.+)', release, re.MULTILINE)
+  if not match:
+    logging.warn('Unable to determine release board')
+    return None
+  board = match.group(1)
+
   if test_list is None:
-    logging.info('Checking release board on %s...', host)
-    release = Spawn(ssh_command + [host, 'cat /etc/lsb-release'],
-                    check_output=True, log=True).stdout_data
-    match = re.search(r'^CHROMEOS_RELEASE_BOARD=(.+)', release, re.MULTILINE)
-    if not match:
-      logging.warn('Unable to determine release board')
-      return None
-    board = match.group(1)
     logging.info('Copying test_list from %s overlay', board)
 
-    release_board = match.group(1)
     test_list_glob = os.path.join(
         os.environ['CROS_WORKON_SRCROOT'], 'src',
-        '*-overlays', 'overlay-%s-*' % release_board,
+        '*-overlays', 'overlay-%s-*' % board,
         'chromeos-base', 'autotest-private-board', 'files', 'test_list')
     test_lists = glob.glob(test_list_glob)
     if not test_lists:
