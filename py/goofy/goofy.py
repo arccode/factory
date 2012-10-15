@@ -1080,10 +1080,10 @@ class Goofy(object):
 
     assert ((self.test_list.options.min_charge_pct is None) ==
             (self.test_list.options.max_charge_pct is None))
-    if (self.test_list.options.min_charge_pct and
-        self.test_list.options.max_charge_pct):
+    if self.test_list.options.min_charge_pct is not None:
       self.charge_manager = ChargeManager(self.test_list.options.min_charge_pct,
                                           self.test_list.options.max_charge_pct)
+      system.SystemStatus.charge_manager = self.charge_manager
 
     os.environ['CROS_FACTORY'] = '1'
     os.environ['CROS_DISABLE_SITE_SYSINFO'] = '1'

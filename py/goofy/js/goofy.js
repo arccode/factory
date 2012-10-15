@@ -2068,7 +2068,7 @@ cros.factory.Goofy.prototype.updateStatus = function() {
         if (status.battery && status.battery.charge_full) {
             percent = this.PERCENT_BATTERY_FORMAT.format(
                 status.battery.charge_now / status.battery.charge_full);
-            if (goog.array.contains(['Full', 'Charging', 'Discharging'],
+            if (goog.array.contains(['Full', 'Charging', 'Discharging', 'Idle'],
                                     status.battery.status)) {
                 batteryStatus = status.battery.status.toLowerCase();
             }

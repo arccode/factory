@@ -113,6 +113,9 @@ body {
 .goofy-battery-discharging:before {
   content: '↓';
 }
+.goofy-battery-idle:before {
+  content: '=';
+}
 .goofy-battery-full:before {
   content: 'F';
 }

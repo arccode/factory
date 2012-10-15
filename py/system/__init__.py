@@ -12,6 +12,7 @@ import subprocess
 import threading
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.system.ec import EC
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.utils.process_utils import Spawn
@@ -158,6 +159,9 @@ class SystemStatus(object):
 
   We log a bunch of system status here.
   '''
+  # Class variable: a charge_manager instance for checking force
+  # charge status.
+  charge_manager = None
 
   def __init__(self):
     self.battery = {}
@@ -181,6 +185,17 @@ class SystemStatus(object):
           open(os.path.join(self.battery_sysfs_path, k)).read().strip())
       except:
         self.battery[k] = None
+
+    self.battery['force'] = False
+    if self.charge_manager:
+      force_status = {
+          EC.ChargeState.DISCHARGE: 'Discharging',
+          EC.ChargeState.CHARGE: 'Charging',
+          EC.ChargeState.IDLE: 'Idle'}.get(
+              self.charge_manager.state)
+      if force_status:
+        self.battery['status'] = force_status
+        self.battery['force'] = True
 
     # Get fan speed
     try:

@@ -8,13 +8,21 @@ import factory_common # pylint: disable=W0611
 from cros.factory import system
 from cros.factory.system.ec import EC
 from cros.factory.system.power import Power
+from cros.factory.test.utils import Enum
 
 class ChargeManagerException(Exception):
   pass
 
 class ChargeManager(object):
+  '''Properties:
+
+    state: The current state (an element of either ErrorState or
+      EC.ChargeState).
+  '''
   _power = Power()
   _ec = system.GetEC()
+
+  ErrorState = Enum(['BATTERY_NOT_PRESENT', 'AC_UNPLUGGED', 'BATTERY_ERROR'])
 
   def __init__(self, min_charge_pct, max_charge_pct):
     '''Constructor.
@@ -35,23 +43,23 @@ class ChargeManager(object):
 
     self._min_charge_pct = min_charge_pct
     self._max_charge_pct = max_charge_pct
-    self._current_state = None
+    self.state = None
 
-  def _LogState(self, new_state):
-    if self._current_state != new_state:
-      self._current_state = new_state
-      logging.info("Charger state: %s", new_state)
+  def _SetState(self, new_state):
+    if self.state != new_state:
+      self.state = new_state
+      logging.info("Charger state: %s", self.state)
 
   def _StartCharging(self):
-    self._LogState("charging")
+    self._SetState(EC.ChargeState.CHARGE)
     self._ec.SetChargeState(EC.ChargeState.CHARGE)
 
   def _StopCharging(self):
-    self._LogState("idle")
+    self._SetState(EC.ChargeState.IDLE)
     self._ec.SetChargeState(EC.ChargeState.IDLE)
 
   def _ForceDischarge(self):
-    self._LogState("discharging")
+    self._SetState(EC.ChargeState.DISCHARGE)
     self._ec.SetChargeState(EC.ChargeState.DISCHARGE)
 
   def AdjustChargeState(self):
@@ -64,15 +72,15 @@ class ChargeManager(object):
     This method never throw exception.'''
     try:
       if not self._power.CheckBatteryPresent():
-        self._LogState("Battery not present")
+        self._SetState(self.ErrorState.BATTERY_NOT_PRESENT)
         return
       if not self._power.CheckACPresent():
-        self._LogState("AC unplugged")
+        self._SetState(self.ErrorState.AC_UNPLUGGED)
         return
 
       charge = self._power.GetChargePct()
       if charge is None:
-        self._LogState("Battery error")
+        self._SetState(self.ErrorState.BATTERY_ERROR)
       elif charge < self._min_charge_pct:
         self._StartCharging()
       elif charge > self._max_charge_pct:

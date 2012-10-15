@@ -6,6 +6,7 @@
 
 import factory_common  # pylint: disable=W0611
 
+import logging
 import mox
 import unittest
 
@@ -67,4 +68,5 @@ class ChargeManagerTest(unittest.TestCase):
 
 
 if __name__ == '__main__':
+  logging.basicConfig(level=logging.INFO)
   unittest.main()
