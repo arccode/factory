@@ -1068,36 +1068,37 @@ cros.factory.Goofy.prototype.handleShortcut = function(key) {
  * @param {Object} handler the handler function (see goog.events.listen).
  * @param {boolean=} opt_adjectiveAtEnd put the adjective at the end in English
  *     (e.g., tests that have *not passed*)
+ * @param {string=} opt_suffixEn a suffix in English (e.g.,
+ *     ' and continue testing')
+ * @param {string=} opt_suffixZh a suffix in Chinese (e.g., '並繼續')
  */
 cros.factory.Goofy.prototype.makeMenuItem = function(
     verbEn, verbZh, adjectiveEn, adjectiveZh, count, test, handler,
-    opt_adjectiveAtEnd) {
+    opt_adjectiveAtEnd, opt_suffixEn, opt_suffixZh) {
 
     var labelEn = verbEn + ' ';
     var labelZh = verbZh;
     if (!test.subtests.length) {
         // leaf node
         labelEn += (opt_adjectiveAtEnd ? '' : adjectiveEn) +
-            ' test ' + test.label_en;
-        labelZh += adjectiveZh + '测试';
+            ' test “' + test.label_en + '”';
+        labelZh += adjectiveZh + '测试' + '「' + test.label_zh + '」';
     } else {
         labelEn += count + ' ' + (opt_adjectiveAtEnd ? '' : adjectiveEn) + ' ' +
-            (count == 1 ? 'test' : 'tests');
-        if (test.label_en) {
-            labelEn += ' in "' + goog.string.htmlEscape(test.label_en) + '"';
-        }
-
-        labelZh += count + '个' + adjectiveZh;
-        if (test.label_en || test.label_zh) {
-            labelZh += ('在“' +
-                goog.string.htmlEscape(test.label_en || test.label_zh) +
-                '”里面的');
-        }
-        labelZh += '测试';
+            (count == 1 ? 'test' : 'tests') + ' in "' +
+            goog.string.htmlEscape(test.label_en) + '"';
+        labelZh += count + '个' + adjectiveZh + '在“' +
+            goog.string.htmlEscape(test.label_zh) + '”里面的测试';
     }
 
     if (opt_adjectiveAtEnd) {
         labelEn += ' that ' + (count == 1 ? 'has' : 'have') + ' not passed';
+    }
+    if (opt_suffixEn) {
+        labelEn += opt_suffixEn;
+    }
+    if (opt_suffixZh) {
+        labelZh += opt_suffixZh;
     }
 
     var item = new goog.ui.MenuItem(cros.factory.Content(labelEn, labelZh));
@@ -1201,7 +1202,7 @@ cros.factory.Goofy.prototype.showTestPopup = function(path, labelElement,
             'Not in engineering mode; cannot skip tests',
             '工程模式才能跳过测试'));
         menu.addChild(item, true);
-        menu.setEnabled(false);
+        item.setEnabled(false);
     } else {
         var allUntested = numLeavesByStatus['UNTESTED'] == numLeaves;
         var restartOrRunEn = allUntested ? 'Run' : 'Restart';
@@ -1238,13 +1239,26 @@ cros.factory.Goofy.prototype.showTestPopup = function(path, labelElement,
         }
     }
     menu.addChild(new goog.ui.MenuSeparator(), true);
-    // TODO(jsalz): This isn't quite right since it stops all tests.
-    // But close enough for now.
-    menu.addChild(this.makeMenuItem('Stop', '停止', 'active', '正在跑的',
-                                    numLeavesByStatus['ACTIVE'] || 0,
-                                    test, function(event) {
-        this.sendEvent('goofy:stop', {'path': path, 'fail': true});
-    }), true);
+
+    var stopAllItem = new goog.ui.MenuItem(cros.factory.Content(
+        'Stop all tests',
+        '停止所有的测试'));
+    stopAllItem.setEnabled(numLeavesByStatus['ACTIVE'] > 0);
+    menu.addChild(stopAllItem, true);
+    goog.events.listen(
+        stopAllItem, goog.ui.Component.EventType.ACTION,
+        function(event) {
+            this.sendEvent('goofy:stop', {'fail': true});
+        }, true, this);
+
+    if (numLeavesByStatus['ACTIVE']) {
+      menu.addChild(this.makeMenuItem(
+          'Abort', '取消', 'active', '執行中的',
+          numLeavesByStatus['ACTIVE'] || 0,
+          test, function(event) {
+              this.sendEvent('goofy:stop', {'path': path, 'fail': true});
+          }, false, ' and continue testing', '並繼續'), true);
+    }
 
     if (this.engineeringMode && !test.subtests.length) {
         menu.addChild(new goog.ui.MenuSeparator(), true);
@@ -1934,6 +1948,9 @@ cros.factory.Goofy.prototype.setTestState = function(path, state) {
 
 /**
  * Adds a test node to the tree.
+ *
+ * Also normalizes the test node by adding label_zh if not present.
+ *
  * @param {goog.ui.tree.BaseNode} parent
  * @param {cros.factory.TestListEntry} test
  */
@@ -1942,10 +1959,12 @@ cros.factory.Goofy.prototype.addToNode = function(parent, test) {
     if (parent == null) {
         node = this.testTree;
     } else {
+        test.label_zh = test.label_zh || test.label_en;
+
         var label = '<span class="goofy-label-en">' +
             goog.string.htmlEscape(test.label_en) + '</span>';
         label += '<span class="goofy-label-zh">' +
-            goog.string.htmlEscape(test.label_zh || test.label_en) + '</span>';
+            goog.string.htmlEscape(test.label_zh) + '</span>';
         if (test.kbd_shortcut) {
             label = '<span class="goofy-kbd-shortcut">Alt-' +
                 goog.string.htmlEscape(test.kbd_shortcut.toUpperCase()) +
