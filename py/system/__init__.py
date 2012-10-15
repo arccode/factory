@@ -124,6 +124,29 @@ class SystemInfo(object):
     # object's.  Copy it from SystemInfo into this object's __dict__.
     self.update_md5sum = SystemInfo.update_md5sum
 
+def GetIPv4Interfaces():
+  '''Returns a list of IPv4 interfaces.'''
+  interfaces = sorted(netifaces.interfaces())
+  return [x for x in interfaces if x != 'lo']
+
+def GetIPv4InterfaceAddresses(interface):
+  '''Returns a list of ips of an interface'''
+  try:
+    addresses = netifaces.ifaddresses(interface).get(netifaces.AF_INET, [])
+  except ValueError:
+    pass
+  ips = [x.get('addr') for x in addresses
+         if 'addr' in x] or ['none']
+  return ips
+
+def IsInterfaceConnected(prefix):
+  '''Returns whether any interface starting with prefix is connected'''
+  ips = []
+  for interface in GetIPv4Interfaces():
+    if interface.startswith(prefix):
+      ips += [x for x in GetIPv4InterfaceAddresses(interface) if x != 'none']
+
+  return ips != []
 
 def GetIPv4Addresses():
   '''Returns a string describing interfaces' IPv4 addresses.
@@ -133,20 +156,10 @@ def GetIPv4Addresses():
     eth0=192.168.1.10, wlan0=192.168.16.14
   '''
   ret = []
-  for i in sorted(netifaces.interfaces()):
-    if i.startswith('lo'):
-      # Boring
-      continue
-
-    try:
-      addresses = netifaces.ifaddresses(i).get(netifaces.AF_INET, [])
-    except ValueError:
-      continue
-
-    ips = [x.get('addr') for x in addresses
-           if 'addr' in x] or ['none']
-
-    ret.append('%s=%s' % (i, '+'.join(ips)))
+  interfaces = GetIPv4Interfaces()
+  for interface in interfaces:
+    ips = GetIPv4InterfaceAddresses(interface)
+    ret.append('%s=%s' % (interface, '+'.join(ips)))
 
   return ', '.join(ret)
 
@@ -230,6 +243,15 @@ class SystemStatus(object):
     except:
       self.ips = None
 
+    try:
+      self.eth_on = IsInterfaceConnected('eth')
+    except:
+      self.eth_on = None
+
+    try:
+      self.wlan_on = IsInterfaceConnected('wlan')
+    except:
+      self.wlan_on = None
 
 if __name__ == '__main__':
   import yaml

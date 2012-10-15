@@ -2127,6 +2127,14 @@ cros.factory.Goofy.prototype.updateStatus = function() {
             temp = Math.round(temperatures[mainTemperatureIndex]) + '°C';
         }
         setValue('goofy-temperature', temp);
+
+        var eth_indicator = document.getElementById('goofy-eth-indicator')
+        goog.dom.classes.enable(eth_indicator, "goofy-eth-enabled",
+                                status['eth_on'])
+        var wlan_indicator = document.getElementById('goofy-wlan-indicator')
+        goog.dom.classes.enable(wlan_indicator, "goofy-wlan-enabled",
+                                status['wlan_on'])
+
         this.lastStatus = status;
     });
 };

@@ -170,6 +170,28 @@ body {
   width: 21; height: 21;
 }
 
+#goofy-eth-indicator {
+  background-image: url('images/eth_off.png');
+  background-repeat: no-repeat;
+  background-position: center;
+  vertical-align: -4px;
+  width: 18px; height: 18px;
+  padding-left: 0.5em;
+}
+.goofy-eth-enabled#goofy-eth-indicator {
+  background-image: url('images/eth_on.png');
+}
+#goofy-wlan-indicator {
+  background-image: url('images/wlan_off.png');
+  background-repeat: no-repeat;
+  background-position: center;
+  vertical-align: -4px;
+  width: 18px; height: 18px;
+  padding-left: 0.5em;
+}
+.goofy-wlan-enabled#goofy-wlan-indicator {
+  background-image: url('images/wlan_on.png');
+}
 /* Elements in the control pane. */
 h1 {
   font-size: 20px;
