@@ -24,6 +24,13 @@
 .template-state-container-2 {
   top: 152px;
 }
+.template-state-scrollable {
+  box-sizing: border-box;
+  height: 100%;
+  overflow: auto;
+  padding: 10px;
+  width: 100%;
+}
 .template-prompt-container {
   position: absolute;
   top: 68px; height: 84px;

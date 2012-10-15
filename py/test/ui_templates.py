@@ -83,6 +83,30 @@ class OneSection(BaseTemplate):
     self._ui.SetHTML(html, append=append, id='state')
 
 
+class OneScrollableSection(BaseTemplate):
+  '''Like OneSection, but is used to show more info.
+
+  Instead of central-aligned state window, it shows state in a scrollable
+  element and state is left-aligned.
+
+  This template provides the following sections:
+    - SetTitle:
+        For the title of the test.
+    - SetState:
+        For displaying the state of the test.
+  '''
+  def __init__(self, ui): # pylint: disable=W0231
+    super(OneScrollableSection, self).__init__(
+      ui, 'template_one_scrollable_section')
+
+  def SetState(self, html, append=False):
+    '''Sets the state section in the test UI.
+
+    Args:
+      html: The html to write.'''
+    self._ui.SetHTML(html, append=append, id='state')
+
+
 class TwoSections(BaseTemplate):
   '''A template that consists of two sections.
 
