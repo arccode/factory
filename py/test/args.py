@@ -57,6 +57,11 @@ class Arg(object):
     if optional and (default is None) and (None not in type):
       type += (TYPE(None),)
 
+    # Check type of default.
+    if default and (not any(isinstance(default, t) for t in type)):
+      raise ValueError('Default value %s should have type %r, not %r' % (
+                       default, type, TYPE(default)))
+
     if not help:
       raise ValueError('Argument %s is missing a help string' % name)
 

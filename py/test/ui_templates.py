@@ -12,6 +12,76 @@ from cros.factory.test import test_ui
 
 _UI_TEMPLATE_PATH = '/ui_templates'
 
+class Option(object):
+  '''Utility class for generating and manipulating HTML option tag.
+
+  Args:
+    value: Text value of the option. This is the value inside option tag.
+    display: Displayed value of the option. This is the value shown on page.
+    selected: Boolean value indicating whether this option is selected.
+  '''
+  def __init__(self, value, display, selected=False):
+    self._value = value
+    self._display = display
+    self._selected = selected
+
+  def SetSelected(self, value):
+    '''Set selected attribute
+
+    Args:
+      value: A boolean value indicating the selected status.
+    '''
+    self._selected = value
+
+  def GenerateHTML(self):
+    '''Generate HTML tag.'''
+    return '<option value="%s" %s>%s</option>' % (
+           self._value, 'selected' if self._selected else '', self._display)
+
+
+class SelectBox(object):
+  '''Utility class for generating and manipulating HTML select box and options.
+
+  Args:
+    id: ID of the select box.
+    size: The size of the select box.
+    style: CSS style to apply on the select box.
+  '''
+  def __init__(self, element_id, size=10, style=None):
+    self._element_id = element_id
+    self._size = size
+    self._style = style
+    self._option_list = []
+
+  def InsertOption(self, value, display, index=None):
+    '''Inserts a option into the select box.
+
+    Args:
+      value: Text value of the option. This is the value inside option tag.
+      display: Displayed value of the option. This is the value shown on page.
+    '''
+    option = Option(value, display)
+    if index:
+      self._option_list.insert(index, option)
+    else:
+      self._option_list.append(option)
+
+  def SetSelectedIndex(self, index):
+    '''Set the given index as selected.'''
+    if len(self._option_list) < index:
+      return
+    self._option_list[index].SetSelected(True)
+
+  def GenerateHTML(self):
+    '''Generate HTML tags.'''
+    ele_list = ['<select id="%s" size=%d style="%s">' % (
+                self._element_id, self._size, self._style)]
+    for opt in self._option_list:
+      ele_list += [opt.GenerateHTML()]
+    ele_list += ['</select>']
+    return '\n'.join(ele_list)
+
+
 class BaseTemplate(object):
   '''Base class for test UI template.'''
   def __init__(self, ui, template_name):

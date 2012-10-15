@@ -23,9 +23,9 @@ from cros.factory.test import factory
 from cros.factory.test import gooftools
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
-from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
 from cros.factory.test.factory_task import FactoryTask, FactoryTaskManager
+from cros.factory.test.ui_templates import OneSection, SelectBox
 from cros.factory.utils.process_utils import Spawn
 
 _MESSAGE_FETCH_FROM_SHOP_FLOOR = test_ui.MakeLabel(
@@ -180,18 +180,16 @@ class SelectHWIDTask(FactoryTask):
 
   def RenderPage(self):
     self.test.template.SetState(_MESSAGE_CHOOSE_HWID)
-    select_list = ['<select size=%d style="%s" id="%s">' %
-                   (_SELECTION_PER_PAGE, _SELECT_BOX_STYLE, _SELECT_BOX_ID)]
+    select_list = SelectBox(_SELECT_BOX_ID, _SELECTION_PER_PAGE,
+                            _SELECT_BOX_STYLE)
     for data in self.hwid_list:
-      select_list.append('<option value="%s">%s</option>' % (data[0], data[1]))
-    select_list.append('</select>')
-    self.test.template.SetState(select_list, append=True)
+      select_list.InsertOption(data[0], data[1])
+    select_list.SetSelectedIndex(0)
+    self.test.template.SetState(select_list.GenerateHTML(), append=True)
     self.test.template.SetState(_MESSAGE_HOW_TO_SELECT, append=True)
     self.test.ui.BindKeyJS(13, _JS_HWID_SELECT)
     self.test.ui.AddEventHandler(_EVENT_SUBTYPE_HWID_SELECT, self.SetHWID)
-    self.test.ui.RunJS('document.getElementById("%s").selectedIndex=0' %
-                       _SELECT_BOX_ID)
-    self.test.ui.RunJS('document.getElementById("%s").focus()' % _SELECT_BOX_ID)
+    self.test.ui.SetFocus(_SELECT_BOX_ID)
 
   def Run(self):
     self.hwid_list = self.BuildHWIDList()
@@ -238,7 +236,7 @@ class HWIDTest(unittest.TestCase):
     self.hwid_list = None
     self.task_list = []
     self.ui = test_ui.UI()
-    self.template = ui_templates.OneSection(self.ui)
+    self.template = OneSection(self.ui)
     self.ui.AppendCSS(_TEST_DEFAULT_CSS)
     self.template.SetTitle(_TEST_TITLE)
 
