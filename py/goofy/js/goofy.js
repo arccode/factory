@@ -1079,16 +1079,24 @@ cros.factory.Goofy.prototype.makeMenuItem = function(
     var labelEn = verbEn + ' ';
     var labelZh = verbZh;
     if (!test.subtests.length) {
-        // leaf node
+        // Leaf node (there will always be both a label_en and label_zh)
         labelEn += (opt_adjectiveAtEnd ? '' : adjectiveEn) +
             ' test “' + test.label_en + '”';
         labelZh += adjectiveZh + '测试' + '「' + test.label_zh + '」';
     } else {
         labelEn += count + ' ' + (opt_adjectiveAtEnd ? '' : adjectiveEn) + ' ' +
-            (count == 1 ? 'test' : 'tests') + ' in "' +
-            goog.string.htmlEscape(test.label_en) + '"';
-        labelZh += count + '个' + adjectiveZh + '在“' +
-            goog.string.htmlEscape(test.label_zh) + '”里面的测试';
+            (count == 1 ? 'test' : 'tests');
+        if (test.label_en) {
+            // Not the root node; include the name
+            labelEn += ' in "' + goog.string.htmlEscape(test.label_en) + '"';
+        }
+
+        labelZh += count + '个' + adjectiveZh;
+        if (test.label_zh) {
+            // Not the root node; include the name
+            labelZh += '在「' + goog.string.htmlEscape(test.label_zh) + '」里面';
+        }
+        labelZh += '的测试';
     }
 
     if (opt_adjectiveAtEnd) {
@@ -1949,7 +1957,8 @@ cros.factory.Goofy.prototype.setTestState = function(path, state) {
 /**
  * Adds a test node to the tree.
  *
- * Also normalizes the test node by adding label_zh if not present.
+ * Also normalizes the test node by adding label_zh if not present.  (The root
+ * node will have neither label.)
  *
  * @param {goog.ui.tree.BaseNode} parent
  * @param {cros.factory.TestListEntry} test
