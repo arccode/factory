@@ -37,6 +37,19 @@ class ChromeOSECTest(unittest.TestCase):
     self.assertEquals(self.ec.GetTemperatures(), [0, 10, 20, 30, 40, 50])
     self.mox.VerifyAll()
 
+  def testGetTemperaturesNotCalibrated(self):
+    _MOCK_TEMPS = '\n'.join([
+        '0: 273',
+        '1: 283',
+        'Sensor 2 not calibrated',
+        '3: 303',
+        '4: 313',
+        '5: 323'])
+    self.ec._CallECTool(['temps', 'all']).AndReturn(_MOCK_TEMPS)
+    self.mox.ReplayAll()
+    self.assertEquals(self.ec.GetTemperatures(), [0, 10, None, 30, 40, 50])
+    self.mox.VerifyAll()
+
   def testGetTemperatureMainIndex(self):
     _MOCK_TEMPS_INFO = '\n'.join([
         '0: 0 I2C_CPU-Die',
