@@ -161,7 +161,9 @@ def SaveLogs(output_dir, archive_id=None,
 
     utils.TryMakeDirs(os.path.dirname(output_file))
     logging.info('Saving %s to %s...', files, output_file)
-    process = Spawn(['tar', 'cfj', output_file] + files,
+    # Exclude Chrome extension (the Extensions directory) from bug reports.
+    process = Spawn(['tar', 'cfj', output_file,
+                     '--exclude', 'Extensions'] + files,
                     cwd=tmp, call=True,
                     ignore_stdout=True, log_stderr_on_error=True)
     # 0 = successful termination
