@@ -514,10 +514,19 @@ def _ProbeMainFlashChip():
 
 def _GetFixedDevices():
   """Returns paths to all fixed storage devices on the system."""
-  def IsFixed(node):
+  ret = []
+
+  for node in sorted(glob('/sys/class/block/*')):
     path = os.path.join(node, 'removable')
-    return (os.path.exists(path) and open(path).read().strip() == '0')
-  return [node for node in glob('/sys/class/block/*') if IsFixed(node)]
+    if not os.path.exists(path) or open(path).read().strip() != '0':
+      continue
+    if re.match('^loop|^dm-', os.path.basename(node)):
+      # Loopback or dm-verity device; skip
+      continue
+
+    ret.append(node)
+
+  return ret
 
 
 @_ComponentProbe('storage')
@@ -653,10 +662,14 @@ def _ProbeStorageFirmwareVersion():
   """Returns firmware rev for all fixed devices."""
   ret = []
   for f in _GetFixedDevices():
-    ret.extend(
-        _ReadSysfsFields(os.path.join(f, 'device'), ['rev'])       # ATA
-        or _ReadSysfsFields(os.path.join(f, 'device'), ['fwrev'])  # eMMC
-        or [])
+    smartctl = Shell('smartctl --all %s' %
+                      os.path.join('/dev', os.path.basename(f))).stdout
+    matches = re.findall('(?m)^Firmware Version:\s+(.+)$', smartctl)
+    if matches:
+      ret.extend(matches)
+    else:
+      # Use fwrev file (e.g., for eMMC where smartctl is unsupported)
+      ret.extend(_ReadSysfsFields(os.path.join(f, 'device'), ['fwrev']) or [])
   return CompactStr(ret)
 
 
