@@ -51,6 +51,11 @@ class BadBlocksTest(unittest.TestCase):
     thread.start()
     self.ui.Run()
 
+  def tearDown(self):
+    # Sync, so that any problems (like writing outside of our partition)
+    # will show up sooner rather than later.
+    Spawn(['sync'], call=True)
+
   def _CheckBadBlocks(self):
     try:
       self._CheckBadBlocksImpl()
@@ -92,11 +97,12 @@ class BadBlocksTest(unittest.TestCase):
                       'fs_block_size %d is not a multiple of sector_size %d' % (
                           fs_block_size, sector_size))
 
-    unused_sector_within_partition = (fs_first_block + fs_block_count) * (
+    first_unused_sector = (fs_first_block + fs_block_count) * (
         fs_block_size / sector_size)
-    first_block = unused_sector_within_partition + cgpt_start_sector
-    sectors_to_test = (min(cgpt_sector_count, self.args.max_bytes / sector_size)
-                       if self.args.max_bytes else cgpt_sector_count)
+    first_block = first_unused_sector + cgpt_start_sector
+    sectors_to_test = cgpt_sector_count - first_unused_sector
+    if self.args.max_bytes:
+      sectors_to_test = min(sectors_to_test, self.args.max_bytes / sector_size)
     last_block = first_block + sectors_to_test - 1
     self.assertTrue(last_block >= first_block)
 
@@ -112,7 +118,7 @@ class BadBlocksTest(unittest.TestCase):
          for x in ['fs_first_block', 'fs_block_count', 'fs_block_size',
                    'cgpt_start_sector', 'cgpt_sector_count',
                    'sector_size',
-                   'unused_sector_within_partition',
+                   'first_unused_sector',
                    'sectors_to_test',
                    'first_block',
                    'last_block']]))
