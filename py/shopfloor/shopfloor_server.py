@@ -77,12 +77,12 @@ def _RunAsServer(address, port, instance):
 
 def main():
   '''Main entry when being invoked by command line.'''
-  if 'CROS_WORKON_SRCROOT' in os.environ:
+  default_data_dir = 'shopfloor_data'
+  if not os.path.exists(default_data_dir) and (
+      'CROS_WORKON_SRCROOT' in os.environ):
     default_data_dir = os.path.join(
         os.environ['CROS_WORKON_SRCROOT'],
         'src', 'platform', 'factory', 'shopfloor_data')
-  else:
-    default_data_dir = 'shopfloor_data'
 
   parser = optparse.OptionParser()
   parser.add_option('-a', '--address', dest='address', metavar='ADDR',
