@@ -26,7 +26,7 @@ ssh_command = None  # set in main
 rsync_command = None
 
 
-def SyncTestList(host, test_list=None):
+def SyncTestList(host, test_list, clear_factory_environment):
   logging.info('Checking release board on %s...', host)
   release = Spawn(ssh_command + [host, 'cat /etc/lsb-release'],
                   check_output=True, log=True).stdout_data
@@ -49,6 +49,14 @@ def SyncTestList(host, test_list=None):
       return
     test_list = test_lists[0]
 
+  if clear_factory_environment:
+    test_list_data = open(test_list).read().replace(
+        '_FACTORY_ENVIRONMENT = True',
+        '_FACTORY_ENVIRONMENT = False')
+    tmp_test_list = tempfile.NamedTemporaryFile(prefix='test_list.', bufsize=0)
+    tmp_test_list.write(test_list_data)
+    test_list = tmp_test_list.name
+
   Spawn(rsync_command +
         [test_list, host + ':/usr/local/factory/custom/test_list'],
         check_call=True, log=True)
@@ -63,6 +71,9 @@ def main():
                       help='host to run on')
   parser.add_argument('-a', dest='clear_state', action='store_true',
                       help='clear Goofy state and logs on device')
+  parser.add_argument('-e', dest='clear_factory_environment',
+                      action='store_true',
+                      help='set _FACTORY_ENVIRONMENT = False in test_list')
   parser.add_argument('--autotest', dest='autotest', action='store_true',
                       help='also rsync autotest directory')
   parser.add_argument('--norestart', dest='restart', action='store_false',
@@ -93,7 +104,8 @@ def main():
 
   Spawn(['make', '--quiet'], cwd=factory.FACTORY_PATH,
         check_call=True, log=True)
-  board = SyncTestList(args.host, args.test_list)
+  board = SyncTestList(
+      args.host, args.test_list, args.clear_factory_environment)
 
   if args.autotest:
     Spawn(rsync_command +
