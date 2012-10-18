@@ -17,6 +17,7 @@ import re
 import subprocess
 import threading
 import unittest
+from select import select
 
 import factory_common  # pylint: disable=W0611
 
@@ -31,6 +32,9 @@ HTML = '''
 <div id="bb-status" style="font-size: 150%"></div>
 <div id="bb-progress"></div>
 '''
+
+# Timeout for badblocks output
+TIMEOUT_SECS = 10
 
 class BadBlocksTest(unittest.TestCase):
   ARGS = [
@@ -104,14 +108,6 @@ class BadBlocksTest(unittest.TestCase):
     if self.args.max_bytes:
       sectors_to_test = min(sectors_to_test, self.args.max_bytes / sector_size)
     last_block = first_block + sectors_to_test - 1
-    self.assertTrue(last_block >= first_block)
-
-    test_size_mb = '%.1f MiB' % (
-        (last_block - first_block + 1) * sector_size / 1024.**2)
-
-    self.template.SetInstruction(
-        MakeLabel('Testing %s region of SSD' % test_size_mb,
-                  '正在测试 %s 的 SSD 空间' % test_size_mb))
 
     logging.info(', '.join(
         ['%s=%s' % (x, locals()[x])
@@ -122,6 +118,15 @@ class BadBlocksTest(unittest.TestCase):
                    'sectors_to_test',
                    'first_block',
                    'last_block']]))
+
+    self.assertTrue(last_block >= first_block)
+
+    test_size_mb = '%.1f MiB' % (
+        (last_block - first_block + 1) * sector_size / 1024.**2)
+
+    self.template.SetInstruction(
+        MakeLabel('Testing %s region of SSD' % test_size_mb,
+                  '正在测试 %s 的 SSD 空间' % test_size_mb))
 
     # Kill any badblocks processes currently running
     Spawn(['killall', 'badblocks'], ignore_stderr=True, call=True)
@@ -157,6 +162,10 @@ class BadBlocksTest(unittest.TestCase):
     UpdatePhase()
 
     while True:
+      # Assume no output in TIMEOUT_SECS means hung on disk op.
+      rlist, _, _ = select([process.stdout], [], [], TIMEOUT_SECS)
+      self.assertTrue(rlist, 'No badblocks output for %d s' % TIMEOUT_SECS)
+
       ch = process.stdout.read(1)
       if ch in ['', '\x08', '\r', '\n']:
         line = ''.join(buf).strip()
