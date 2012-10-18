@@ -131,6 +131,7 @@ class DUTEnvironment(Environment):
       accelerated_flag,
       ('--default-device-scale-factor=%d' %
        self.goofy.options.ui_scale_factor),
+      '--disable-extensions',
       # Hard-code localhost IP so Chrome doesn't have to rely on DNS.
       'http://127.0.0.1:%d/' % state.DEFAULT_FACTORY_STATE_PORT,
       ]
