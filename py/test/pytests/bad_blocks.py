@@ -191,7 +191,7 @@ class BadBlocksTest(unittest.TestCase):
           lines.append(line)
 
         if ch == '':
-          return
+          break
         buf = []
       else:
         buf.append(ch)
