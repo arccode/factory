@@ -18,8 +18,6 @@ The script (run in chroot) will:
 import argparse
 import logging
 import os
-import shutil
-import socket
 import tempfile
 import time
 import thread
@@ -42,8 +40,13 @@ def Main():
                       help='the path of the automation config file to use '
                            '(if not specified, '
                            'use automation/automation.config on device)')
-  parser.add_argument('--shopfloor_ip', default='192.168.123.1')
-  parser.add_argument('--shopfloor_port', default=None)
+  parser.add_argument('--testlist', default=None,
+                      help='the path of the customize testlist to use'
+                           '(if not specified, use default testlist')
+  parser.add_argument('--shopfloor_ip', default='192.168.1.254')
+  parser.add_argument('--shopfloor_port', default=8082)
+  parser.add_argument('--shopfloor_dir', default=None)
+  parser.add_argument('--logdata_dir')
 
   args = parser.parse_args()
 
@@ -64,11 +67,18 @@ def Main():
   ssh_command = ['ssh'] + connection_option
   rsync_command = ['rsync', '-a', '--quiet', '-e',  ' '.join(ssh_command)]
 
+  # if giving test_list, copy the file to DUT
+  if args.testlist:
+    Spawn(scp_command +
+          [args.testlist, args.device +
+           ':/usr/local/factory/custom/test_list'],
+          check_call=True, log=True)
+
   # Update shopfloor address on the device test_list
   Spawn(ssh_command +
         [args.device,
-         "sed -i \"s/^_SHOP_FLOOR_SERVER_URL = '.*'/"
-         "_SHOP_FLOOR_SERVER_URL = 'http:\/\/%s:%s\/'/g\" "
+         "sed -i \"s/^options.shopfloor_server_url = '.*'/"
+         "options.shopfloor_server_url = 'http:\/\/%s:%s\/'/g\" "
          "/usr/local/factory/custom/test_list" %
          (args.shopfloor_ip, args.shopfloor_port)],
          check_call=True, log=True)
@@ -88,40 +98,34 @@ def Main():
         [args.device, '/usr/local/factory/bin/restart'],
          check_call=True, log=True)
 
-  # Shopfloor data and /var/factory will be placed in this dir
-  temp_dir = tempfile.mkdtemp(prefix='shopfloor_')
-
   # rsync log on device
   def SyncLog():
     while True:
       time.sleep(0.1)
       Spawn(rsync_command +
-            ['%s:/var/factory' % args.device, temp_dir],
+            ['%s:/var/factory' % args.device, args.logdata_dir],
             ignore_stdout=True, ignore_stderr=True)
   thread.start_new_thread(SyncLog, ())
 
-  if args.shopfloor_port is None:
-    # Find unused port
-    s = socket.socket()
-    s.bind((args.shopfloor_ip, 0))
-    args.shopfloor_port = s.getsockname()[1]
-    s.close()
-
   # Run shopfloor_server
-  shopfloor_dir = os.path.join(SRCROOT,
-                               'src/platform/factory/py/shopfloor')
-  csv_file = os.path.join(shopfloor_dir,
-                        'testdata/devices.csv')
-  shutil.copy(csv_file, temp_dir)
   try:
-    Spawn(['%s/shopfloor_server.py' % shopfloor_dir,
-           '--module=simple_shopfloor',
-           '--data-dir=%s' % temp_dir,
-           '--address=%s' % args.shopfloor_ip,
-           '--port=%s' % args.shopfloor_port],
-           check_call=True, log=True)
+    # Check whether use specific shopfloor directory
+    # if not, send message to user
+    if args.shopfloor_dir:
+      logging.info('Shopfloor directory: ' + args.shopfloor_dir)
+      data_dir = os.path.join(args.shopfloor_dir, 'shopfloor_data')
+      logging.info('Shopfloor data directory: ' + data_dir)
+      Spawn(['%s/shopfloor_server.sh' % args.shopfloor_dir,
+             '--simple',
+             '--address=%s' % args.shopfloor_ip,
+             '--port=%s' % args.shopfloor_port,
+             '--data-dir=%s' % data_dir],
+            check_call=True, log=True)
+    else:
+      logging.info('Shopfloor server is not started')
   except:  # pylint: disable=W0702
     logging.warning('Shopfloor error. Possibly port already in use?')
+
 
 if __name__ == '__main__':
   Main()
