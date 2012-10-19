@@ -6,14 +6,16 @@
 
 
 import logging
+import mox
 import os
 import subprocess
+import time
 import unittest
 from logging import handlers
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.utils import process_utils
-from cros.factory.utils.process_utils import Spawn, PIPE
+from cros.factory.utils.process_utils import PIPE, Spawn, TerminateOrKillProcess
 
 
 class SpawnTest(unittest.TestCase):
@@ -145,6 +147,34 @@ class SpawnTest(unittest.TestCase):
     dev_null = process_utils.OpenDevNull()
     self.assertEquals(os.devnull, dev_null.name)
     self.assertEquals(dev_null, process_utils.OpenDevNull())
+
+
+class TerminateOrKillProcessTest(unittest.TestCase):
+  def setUp(self):
+    self.m = mox.Mox()
+    self.m.StubOutWithMock(logging, 'info')
+
+  def tearDown(self):
+    self.m.UnsetStubs()
+
+  def testTerminateProcess(self):
+    process = Spawn(['sleep', '10'])
+    logging.info('Stopping process %d', process.pid)
+    logging.info('Process %d stopped', process.pid)
+    self.m.ReplayAll()
+    TerminateOrKillProcess(process, 2)
+    self.m.VerifyAll()
+
+  def testKillProcess(self):
+    process = Spawn('trap true SIGTERM SIGKILL; sleep 10', shell=True)
+    # Allow the process some time to execute and setup signal trap.
+    time.sleep(1)
+    logging.info('Stopping process %d', process.pid)
+    logging.info('Sending SIGKILL to process %d', process.pid)
+    logging.info('Process %d stopped', process.pid)
+    self.m.ReplayAll()
+    TerminateOrKillProcess(process, 2)
+    self.m.VerifyAll()
 
 
 if __name__ == '__main__':

@@ -8,6 +8,7 @@ import logging
 import os
 import pipes
 import subprocess
+import threading
 import types
 from StringIO import StringIO
 
@@ -206,3 +207,30 @@ def Spawn(args, **kwargs):
         raise subprocess.CalledProcessError(process.returncode, args)
 
   return process
+
+
+def TerminateOrKillProcess(process, wait_seconds=1):
+  '''Terminates a process and waits for it.
+
+  The function sends SIGTERM to terminate the process, if it's not terminated
+  in wait_seconds, then sends a SIGKILL.
+  '''
+  pid = process.pid
+  logging.info('Stopping process %d', pid)
+  process.terminate()
+
+  reaped = threading.Event()
+  def WaitAndKill():
+    reaped.wait(wait_seconds)
+    if not reaped.is_set():
+      try:
+        logging.info('Sending SIGKILL to process %d', pid)
+        process.kill()
+      except:  # pylint: disable=W0702
+        pass
+  thread = threading.Thread(target=WaitAndKill)
+  thread.start()
+  process.wait()
+  reaped.set()
+  thread.join()
+  logging.info('Process %d stopped', pid)
