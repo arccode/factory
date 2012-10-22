@@ -70,7 +70,7 @@ class VerifyHWIDTest(unittest.TestCase):
               expected_verified, verified)
         elif (not expected_verified) and not expected_error.search(
             process.stderr_data):
-          failure = 'expected regexp %r in stderr' % expected_error
+          failure = 'expected regexp %r in stderr' % expected_error.pattern
 
         if failure:
           f.delete = False
