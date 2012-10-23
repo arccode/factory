@@ -32,9 +32,15 @@ class ChromeOSEC(EC):
   def __init__(self):
     super(ChromeOSEC, self).__init__()
 
-  def _CallECTool(self, cmd):
-    return Spawn(['ectool'] + cmd, read_stdout=True,
-                 ignore_stderr=True).stdout_data
+  def _CallECTool(self, cmd, check=True):
+    p = Spawn(['ectool'] + cmd, read_stdout=True, ignore_stderr=True,
+              call=True)
+    if check:
+      if p.returncode == 252:
+        raise ECException('EC is locked by write protection')
+      elif p.returncode != 0:
+        raise ECException('EC returned error %d' % p.returncode)
+    return p.stdout_data
 
   def I2CRead(self, port, addr, reg):
     try:
@@ -46,17 +52,14 @@ class ChromeOSEC(EC):
 
   def I2CWrite(self, port, addr, reg, value):
     try:
-      self._Spawn(['ectool', 'i2cwrite', '16', str(port), str(addr),
-                  str(reg), str(value)],
-                  check_call=True,
-                  ignore_stdout=True,
-                  log_stderr_on_error=True)
+      self._CallECTool(['i2cwrite', '16', str(port), str(addr),
+                       str(reg), str(value)])
     except Exception as e: # pylint: disable=W0703
       raise ECException('Unable to read from I2C: %s' % e)
 
   def GetTemperatures(self):
     try:
-      ectool_output = self._CallECTool(['temps', 'all'])
+      ectool_output = self._CallECTool(['temps', 'all'], check=False)
       temps = []
       for match in self.TEMPERATURE_RE.finditer(ectool_output):
         sensor = int(match.group(1))
@@ -71,7 +74,7 @@ class ChromeOSEC(EC):
   def GetMainTemperatureIndex(self):
     if self._main_temperature_index is None:
       try:
-        ectool_output = self._CallECTool(['tempsinfo', 'all'])
+        ectool_output = self._CallECTool(['tempsinfo', 'all'], check=False)
         for match in self.TEMPERATURE_INFO_RE.finditer(
             ectool_output):
           if match.group(2) == 'PECI':
@@ -85,7 +88,7 @@ class ChromeOSEC(EC):
 
   def GetFanRPM(self):
     try:
-      ectool_output = self._CallECTool(['pwmgetfanrpm'])
+      ectool_output = self._CallECTool(['pwmgetfanrpm'], check=False)
       return int(self.GET_FAN_SPEED_RE.findall(ectool_output)[0])
     except Exception as e: # pylint: disable=W0703
       raise ECException('Unable to get fan speed: %s' % e)
@@ -109,7 +112,7 @@ class ChromeOSEC(EC):
     return self.EC_VERSION_RE.search(response).group(1)
 
   def GetConsoleLog(self):
-    return self._CallECTool(['console'])
+    return self._CallECTool(['console'], check=False)
 
   def SetChargeState(self, state):
     try:

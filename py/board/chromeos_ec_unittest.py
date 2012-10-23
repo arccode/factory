@@ -32,7 +32,7 @@ class ChromeOSECTest(unittest.TestCase):
         '3: 303',
         '4: 313',
         '5: 323'])
-    self.ec._CallECTool(['temps', 'all']).AndReturn(_MOCK_TEMPS)
+    self.ec._CallECTool(['temps', 'all'], check=False).AndReturn(_MOCK_TEMPS)
     self.mox.ReplayAll()
     self.assertEquals(self.ec.GetTemperatures(), [0, 10, 20, 30, 40, 50])
     self.mox.VerifyAll()
@@ -45,7 +45,7 @@ class ChromeOSECTest(unittest.TestCase):
         '3: 303',
         '4: 313',
         '5: 323'])
-    self.ec._CallECTool(['temps', 'all']).AndReturn(_MOCK_TEMPS)
+    self.ec._CallECTool(['temps', 'all'], check=False).AndReturn(_MOCK_TEMPS)
     self.mox.ReplayAll()
     self.assertEquals(self.ec.GetTemperatures(), [0, 10, None, 30, 40, 50])
     self.mox.VerifyAll()
@@ -63,14 +63,15 @@ class ChromeOSECTest(unittest.TestCase):
         '8: 1 ECInternal',
         '9: 0 PECI'
     ])
-    self.ec._CallECTool(['tempsinfo', 'all']).AndReturn(_MOCK_TEMPS_INFO)
+    self.ec._CallECTool(['tempsinfo', 'all'],
+                        check=False).AndReturn(_MOCK_TEMPS_INFO)
     self.mox.ReplayAll()
     self.assertEquals(self.ec.GetMainTemperatureIndex(), 9)
     self.mox.VerifyAll()
 
   def testGetFanRPM(self):
     _MOCK_FAN_RPM = 'Current fan RPM: 2974\n'
-    self.ec._CallECTool(['pwmgetfanrpm']).AndReturn(_MOCK_FAN_RPM)
+    self.ec._CallECTool(['pwmgetfanrpm'], check=False).AndReturn(_MOCK_FAN_RPM)
     self.mox.ReplayAll()
     self.assertEquals(self.ec.GetFanRPM(), 2974)
     self.mox.VerifyAll()
@@ -100,9 +101,7 @@ class ChromeOSECTest(unittest.TestCase):
     self.mox.VerifyAll()
 
   def testI2CWrite(self):
-    self.ec._Spawn(['ectool', 'i2cwrite', '16', '0', '18', '18', '0'],
-                   check_call=True, ignore_stdout=True,
-                   log_stderr_on_error=True)
+    self.ec._CallECTool(['i2cwrite', '16', '0', '18', '18', '0'])
     self.mox.ReplayAll()
     self.ec.I2CWrite(0, 0x12, 0x12, 0)
     self.mox.VerifyAll()
@@ -147,7 +146,7 @@ class ChromeOSECTest(unittest.TestCase):
         '[hostcmd 0x60]',
         '[charge state idle -> charge]'])
 
-    self.ec._CallECTool(['console']).AndReturn(_MOCK_LOG)
+    self.ec._CallECTool(['console'], check=False).AndReturn(_MOCK_LOG)
     self.mox.ReplayAll()
     self.assertEquals(self.ec.GetConsoleLog(), _MOCK_LOG)
     self.mox.VerifyAll()
