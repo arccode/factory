@@ -1,4 +1,4 @@
-#!/usr/bin/python -u
+#!/usr/bin/python -Bu
 #
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
@@ -61,19 +61,21 @@ def main():
   parser.add_argument('--input', '-i', help='Input image', required=True)
   parser.add_argument('--output', '-o', help='Output image', required=True)
   parser.add_argument('--branch', '-b',
-                      help='Branch to patch (e.g., factory-2848.B)',
+                      help='Branch to patch (e.g., factory-2848.B or HEAD)',
                       required=True)
   parser.add_argument('--verbose', '-v', action='count')
   parser.add_argument('--packages', '--package',
                       help=('Packages to patch in (%s, or '
                             'one or more of [%s])' % (
                                 ALL, ','.join(sorted(PACKAGES.keys())))),
-                      action='append', default=['ALL'])
+                      action='append', required=True)
   parser.add_argument('--board', help='Board (default: %(default)s)',
                       default=GetDefaultBoardOrNone())
   parser.add_argument('--no-clean', action='store_false', dest='clean',
                       help="Don't insist on clean repositories (be careful!)")
   parser.add_argument('--no-emerge', action='store_false', dest='emerge',
+                      help="Don't emerge (for debugging only)")
+  parser.add_argument('--no-sync', action='store_false', dest='sync',
                       help="Don't emerge (for debugging only)")
   parser.add_argument('--yes', '-y', action='store_true',
                       help="Don't ask for confirmation")
@@ -90,6 +92,7 @@ def main():
     parser.error('Output file %s exists; please remove it first' % args.output)
 
   args.packages = set(ParseListArg(args.packages))
+
   if ALL in args.packages:
     args.packages = set(PACKAGES.keys())
   bad_packages = args.packages - set(PACKAGES.keys())
@@ -97,9 +100,9 @@ def main():
     parser.error('Bad packages %s (should be in %s)' % (
         list(bad_packages), sorted(PACKAGES.keys())))
 
-  repo_paths = set([
-      os.path.join(SRC, PACKAGES[k]['path'] % {'board': args.board})
-      for k in args.packages])
+  repo_relpaths = [PACKAGES[k]['path'] % {'board': args.board}
+                   for k in args.packages]
+  repo_paths = [os.path.join(SRC, x) for x in repo_relpaths]
   packages = set(PACKAGES[k]['package'] for k in args.packages)
 
   # Check the packages are all clean
@@ -110,16 +113,34 @@ def main():
       logging.error('Repository %s is not clean:\n%s', path, stdout)
       if args.clean:
         logging.error('To clean it (but be careful!):\n\n'
-                      'cd %s && git clean -xdf', path)
+                      '( cd %s && git clean -xdf )', path)
         sys.exit(1)
+
+  if args.sync:
+    # Do git fetches in parallel
+    for i, process in enumerate(
+        [Spawn(['git', 'fetch'], log=True, cwd=path) for path in repo_paths]):
+      if process.wait() != 0:
+        sys.exit('git fetch in %s failed' % repo_paths[i])
+
+    for path in repo_paths:
+      process = Spawn(['repo', 'rebase', '.'], read_stderr=True,
+                      cwd=path, log=True, call=True)
+      if process.wait() != 0:
+        if (process.returncode == 255 and
+            re.search('has a detat?ched HEAD', process.stderr_data)):
+          pass
+        else:
+          sys.exit('repo rebase in %s failed' % path)
 
   # Check out the appropriate branch in each repo
   for path in repo_paths:
-    Spawn(['git', 'checkout',
-           (args.branch.replace('cros/', 'cros-internal/')
-            if path.endswith('-private')
-            else args.branch.replace('cros-internal/', 'cros/'))],
-          cwd=path, log=True, check_call=True)
+    if args.branch.startswith('factory-'):
+      branch = ('cros-internal/' if path.endswith('-private') else 'cros/'
+                + args.branch)
+    else:
+      branch = args.branch
+    Spawn(['git', 'checkout', branch], cwd=path, log=True, check_call=True)
 
   # Emerge the packages
   tarballs = []
@@ -161,13 +182,16 @@ def main():
     Spawn(['shopt -s nullglob; rm -rf %s/%s' % (staging_dir, f)],
           shell=True, check_call=True)
 
-  # Move /usr/local/{factory,autotest} to dev_image
+  # Move /usr/local/factory to dev_image.
   dev_image = os.path.join(staging_dir, 'dev_image')
   os.mkdir(dev_image)
-  for f in ['factory', 'autotest']:
-    path = os.path.join(staging_dir, 'usr', 'local', f)
-    if os.path.exists(path):
-      shutil.move(path, dev_image)
+  path = os.path.join(staging_dir, 'usr', 'local', 'factory')
+  if os.path.exists(path):
+    shutil.move(path, dev_image)
+  # Move /usr/local/autotest/client to /usr/local/autotest.
+  path = os.path.join(staging_dir, 'usr', 'local', 'autotest', 'client')
+  if os.path.exists(path):
+    shutil.move(path, os.path.join(dev_image, 'autotest'))
 
   # Delete usr and var directories
   for f in ['usr', 'var']:
@@ -206,14 +230,14 @@ def main():
           if is_dir:
             continue
 
-          if f == '.keep':
+          if f in ['.keep', 'chromedriver']:
             # Just to tell Gentoo to keep the directory; delete it
             os.unlink(path)
             continue
 
           src_stat = os.stat(path)
           dest_stat = os.stat(dest_path)
-          if (src_stat.st_mode != dest_stat.st_mode or
+          if ((src_stat.st_mode & ~7) != (dest_stat.st_mode & ~7) or
               src_stat.st_size != dest_stat.st_size or
               open(path).read() != open(dest_path).read()):
             # They are different; write a diff
