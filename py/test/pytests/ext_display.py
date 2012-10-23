@@ -16,7 +16,8 @@ from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
 from cros.factory.test.event import Event
-from cros.factory.test.factory_task import FactoryTask, FactoryTaskManager
+from cros.factory.test.factory_task import FactoryTaskManager
+from cros.factory.test.factory_task import InteractiveFactoryTask
 from cros.factory.utils.process_utils import Spawn
 
 _TEST_TITLE = test_ui.MakeLabel('External Display Test',
@@ -59,7 +60,7 @@ _MSG_PROMPT_PASS_KEY = lambda k: test_ui.MakeLabel(
     u'通过请按 <span id="pass_key">%d</span> 键' % k)
 
 
-class ExtDisplayTask(FactoryTask):  # pylint: disable=W0223
+class ExtDisplayTask(InteractiveFactoryTask):  # pylint: disable=W0223
   """Base class of tasks for external display test.
 
   Args:
@@ -70,41 +71,13 @@ class ExtDisplayTask(FactoryTask):  # pylint: disable=W0223
   """
   def __init__(self, args, title, instruction,  # pylint: disable=W0231
                pass_key=True):
+    super(ExtDisplayTask, self).__init__(args.ui)
     self._args = args
     self._ui = args.ui
     self._template = args.template
     self._title = title
     self._instruction = instruction
     self._pass_key = pass_key
-
-  def _BindPassFailKeys(self):
-    """Binds pass and/or fail keys.
-
-    If self._pass_key is True, binds Enter key to pass the task; otherwise,
-    pressing Enter triggers nothing.
-    Always binds Esc key to fail the task.
-    """
-    if self._pass_key:
-      self._ui.BindKey(test_ui.ENTER_KEY, lambda _: self.Pass())
-    else:
-      self._ui.BindKey(test_ui.ENTER_KEY, lambda _: None)
-
-    self._ui.BindKey(test_ui.ESCAPE_KEY,
-                     lambda _: self.Fail(
-        '%s failed by operator.' % self.__class__.__name__, later=True))
-
-  def _BindNumKeys(self, pass_num):
-    """Binds pass_num to pass the task and others to fail it."""
-    for i in xrange(0, 10):
-      if i == pass_num:
-        self._ui.BindKey(str(i), lambda _: self.Pass())
-      else:
-        self._ui.BindKey(str(i), lambda _: self.Fail('Wrong key pressed.'))
-
-  def _UnbindNumKeys(self):
-    """Unbinds all num keys"""
-    for i in xrange(0, 10):
-      self._ui.UnbindKey(str(i))
 
   def _SetTitleInstruction(self):
     """Sets title and instruction.
@@ -125,19 +98,7 @@ class ExtDisplayTask(FactoryTask):  # pylint: disable=W0223
     Should be called in the beginning of Run().
     """
     self._SetTitleInstruction()
-    self._BindPassFailKeys()
-
-  def RunCommand(self, command, fail_message=None):
-    """Executes a command and checks if it runs successfully.
-
-    Args:
-      command: command list.
-      fail_message: optional string. If assigned and the command's return code
-          is nonzero, Fail will be called with fail_message.
-    """
-    p = Spawn(command, call=True, ignore_stdout=True, read_stderr=True)
-    if p.returncode != 0 and fail_message:
-      self.Fail('%s\nerror:%s' % (fail_message, p.stderr_data))
+    self.BindPassFailKeys(self._pass_key)
 
 
 class WaitDisplayThread(threading.Thread):
@@ -264,10 +225,10 @@ class VideoTask(ExtDisplayTask):
   """
   def __init__(self, args):
     # Bind a random key (0-9) to pass the task.
-    self._pass_num = random.randint(0, 9)
+    self._pass_digit = random.randint(0, 9)
     instruction = '%s<br>%s' % (
       _MSG_VIDEO_TEST(args.display_label),
-      _MSG_PROMPT_PASS_KEY(self._pass_num))
+      _MSG_PROMPT_PASS_KEY(self._pass_digit))
 
     super(VideoTask, self).__init__(args,
                                     _TITLE_VIDEO_TEST(args.display_label),
@@ -276,14 +237,14 @@ class VideoTask(ExtDisplayTask):
 
   def Run(self):
     self.InitUI()
-    self._BindNumKeys(self._pass_num)
+    self.BindDigitKeys(self._pass_digit)
     self.RunCommand(
       ['xrandr', '-d', ':0', '--output', self._args.main_display_id, '--off',
       '--output', self._args.display_id, '--auto'],
       'Fail to show display %s' % self._args.display_id)
 
   def Cleanup(self):
-    self._UnbindNumKeys()
+    self.UnbindDigitKeys()
 
 
 class AudioTask(ExtDisplayTask):
@@ -293,7 +254,7 @@ class AudioTask(ExtDisplayTask):
     args: refer base class.
   """
   def __init__(self, args):
-    self._pass_num = random.randint(0, 9)
+    self._pass_digit = random.randint(0, 9)
     if args.audio_sample:
       super(AudioTask, self).__init__(args,
                                       _TITLE_AUDIO_TEST(args.display_label),
@@ -319,16 +280,16 @@ class AudioTask(ExtDisplayTask):
         lang = self._ui.GetUILanguage()
         self._ui.PlayAudioFile('%d_%s.ogg' % (num, lang))
 
-      self._BindNumKeys(self._pass_num)
+      self.BindDigitKeys(self._pass_digit)
       for k in 'rR':
-        self._ui.BindKey(k, lambda _: PlayVoice(self._pass_num))
-      PlayVoice(self._pass_num)
+        self._ui.BindKey(k, lambda _: PlayVoice(self._pass_digit))
+      PlayVoice(self._pass_digit)
 
   def Cleanup(self):
     if self._play and self._play.poll() is None:
       self._play.terminate()
 
-    self._UnbindNumKeys()
+    self.UnbindDigitKeys()
 
     self.RunCommand(
       ['amixer', '-c', '0', 'cset', 'name="%s"' % self._args.audio_port, 'off'],
