@@ -18,6 +18,7 @@ from cros.factory.test.args import Arg
 from cros.factory.test.event import Event
 from cros.factory.test.factory_task import FactoryTaskManager
 from cros.factory.test.factory_task import InteractiveFactoryTask
+from cros.factory.test.pytests import audio
 from cros.factory.utils.process_utils import Spawn
 
 _TEST_TITLE = test_ui.MakeLabel('External Display Test',
@@ -34,8 +35,6 @@ _TITLE_CONNECT_TEST = lambda d: test_ui.MakeLabel(
     '%s Connect' % d, u'%s 连接' % d)
 _TITLE_VIDEO_TEST = lambda d: test_ui.MakeLabel(
     '%s Video' % d, u'%s 视讯' % d)
-_TITLE_AUDIO_TEST = lambda d: test_ui.MakeLabel(
-    '%s Audio' % d, u'%s 音讯' % d)
 _TITLE_DISCONNECT_TEST = lambda d: test_ui.MakeLabel(
     '%s Disconnect' % d, u'%s 移除' % d)
 _MSG_CONNECT_TEST = lambda d: test_ui.MakeLabel(
@@ -44,14 +43,6 @@ _MSG_CONNECT_TEST = lambda d: test_ui.MakeLabel(
 _MSG_VIDEO_TEST = lambda d: test_ui.MakeLabel(
     'Do you see video on %s?' % d,
     u'外接显示屏 %s 是否有画面?' % d)
-_MSG_AUDIO_TEST = lambda d: test_ui.MakeLabel(
-    'Do you hear audio from %s?' % d,
-    u'外接显示屏 %s 是否有听到声音?' % d)
-_MSG_AUDIO_RANDOM_TEST = lambda d, k: test_ui.MakeLabel(
-    '</br>'.join(['Press the number you hear from %s to pass the test.' % d,
-                  'Press <span id="pass_key">%s</span> to replay.' % k]),
-    '</br>'.join([u'请按你从 %s 输出所听到的数字' % d,
-                  u'按 <span id="pass_key">%s</span> 重播语音' % k]))
 _MSG_DISCONNECT_TEST = lambda d: test_ui.MakeLabel(
     'Disconnect external display: %s' % d,
     u'移除外接显示屏: %s' % d)
@@ -98,7 +89,7 @@ class ExtDisplayTask(InteractiveFactoryTask):  # pylint: disable=W0223
     Should be called in the beginning of Run().
     """
     self._SetTitleInstruction()
-    self.BindPassFailKeys(self._pass_key)
+    self.BindPassFailKeys(pass_key=self._pass_key)
 
 
 class WaitDisplayThread(threading.Thread):
@@ -247,55 +238,6 @@ class VideoTask(ExtDisplayTask):
     self.UnbindDigitKeys()
 
 
-class AudioTask(ExtDisplayTask):
-  """Task to play audio through external display.
-
-  Args:
-    args: refer base class.
-  """
-  def __init__(self, args):
-    self._pass_digit = random.randint(0, 9)
-    if args.audio_sample:
-      super(AudioTask, self).__init__(args,
-                                      _TITLE_AUDIO_TEST(args.display_label),
-                                      _MSG_AUDIO_TEST(args.display_label))
-    else:
-      super(AudioTask, self).__init__(args,
-                                      _TITLE_AUDIO_TEST(args.display_label),
-                                      _MSG_AUDIO_RANDOM_TEST(
-                                          args.display_label, 'r'),
-                                      pass_key=False)
-
-    self._play = None
-
-  def Run(self):
-    self.InitUI()
-    self.RunCommand(
-      ['amixer', '-c', '0', 'cset', 'name="%s"' % self._args.audio_port, 'on'],
-      'Fail to enable audio.')
-    if self._args.audio_sample:
-      self._play = Spawn(['aplay', '-q', self._args.audio_sample])
-    else:
-      def PlayVoice(num):
-        lang = self._ui.GetUILanguage()
-        self._ui.PlayAudioFile('%d_%s.ogg' % (num, lang))
-
-      self.BindDigitKeys(self._pass_digit)
-      for k in 'rR':
-        self._ui.BindKey(k, lambda _: PlayVoice(self._pass_digit))
-      PlayVoice(self._pass_digit)
-
-  def Cleanup(self):
-    if self._play and self._play.poll() is None:
-      self._play.terminate()
-
-    self.UnbindDigitKeys()
-
-    self.RunCommand(
-      ['amixer', '-c', '0', 'cset', 'name="%s"' % self._args.audio_port, 'off'],
-      'Fail to disable audio.')
-
-
 class ExtDisplayTaskArg(object):
   """Contains args needed by ExtDisplayTask.
   """
@@ -384,7 +326,9 @@ class ExtDisplayTest(unittest.TestCase):
       tasks.append(ConnectTask(args))
       tasks.append(VideoTask(args))
       if args.audio_port:
-        tasks.append(AudioTask(args))
+        tasks.append(audio.AudioDigitPlaybackTask(
+            self._ui, args.display_label, args.audio_port,
+            'instruction', 'instruction-center'))
       tasks.append(DisconnectTask(args))
     return tasks
 
