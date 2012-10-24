@@ -9,10 +9,22 @@ import re
 import struct
 
 
+# Registration code length in characters.
+REGISTRATION_CODE_LENGTH = 72
+
+
 def CheckRegistrationCode(code):
-  '''Checks that a registration code is valid, raising a ValueError if not.'''
-  if len(code) != 72:
-    raise ValueError('Registration code %r is not 72 characters long' % code)
+  """Checks that a registration code is valid.
+
+  Args:
+    code: The registration code to check.
+
+  Raises:
+    ValueError: If the registration code is invalid.
+  """
+  if len(code) != REGISTRATION_CODE_LENGTH:
+    raise ValueError('Registration code %r is not %d characters long' % (
+        code, REGISTRATION_CODE_LENGTH))
   if re.search('[^0-9a-f]', code):
     raise ValueError('Registration code %r has invalid characters' % code)
 
