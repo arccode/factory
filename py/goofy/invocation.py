@@ -29,6 +29,7 @@ from cros.factory.goofy.service_manager import ServiceManager
 from cros.factory.test import factory
 from cros.factory.test import pytests
 from cros.factory.test import shopfloor
+from cros.factory.test import test_ui
 from cros.factory.test import utils
 from cros.factory.test.args import Args
 from cros.factory.test.event import Event
@@ -598,7 +599,7 @@ def run_pytest(test_info):
       error_msg = error_msg.replace('FactoryTestFailure: ', '')
       return error_msg + '\n' + trace
 
-    all_failures = result.failures + result.errors
+    all_failures = result.failures + result.errors + test_ui.exception_list
     if all_failures:
       status = TestState.FAILED
       error_msg = '; '.join(format_error_msg(trace)
@@ -622,6 +623,8 @@ def main():
   (options, dummy_args) = parser.parse_args()
 
   assert options.pytest_info
+
+  test_ui.exception_list = []
 
   info = pickle.load(open(options.pytest_info))
   factory.init_logging(info.path)

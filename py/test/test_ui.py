@@ -13,6 +13,7 @@ import traceback
 import uuid
 
 from cros.factory.test import factory
+from cros.factory.test import utils
 from cros.factory.test.event import Event, EventClient
 from cros.factory.test.factory import TestState
 
@@ -23,6 +24,12 @@ FactoryTestFailure = factory.FactoryTestFailure
 # Keycodes
 ENTER_KEY = 13
 ESCAPE_KEY = 27
+
+# A list of tuple (exception-source, exception-desc):
+#   exception-source: Source of exception. For example, 'ui-thread' if the
+#     exception comes from UI thread.
+#   exception-desc: Exception message.
+exception_list = []
 
 
 def Escape(text, preserve_line_breaks=True):
@@ -320,8 +327,19 @@ class UI(object):
     '''Allows space/enter to pass the test, and escape to fail it.'''
     self.BindStandardKeys()
 
-  def Run(self):
-    '''Runs the test UI, waiting until the test completes.'''
+  def Run(self, blocking=True, on_finish=None):
+    '''Runs the test UI, waiting until the test completes.
+
+    Args:
+      blocking: True if running UI in the same thread. False if creating a
+        dedicated UI thread.
+      on_finish: Callback function when UI ends. This can be used to notify
+        the test for necessary clean-up (e.g. terminate an event loop.)
+    '''
+    if not blocking:
+      return utils.StartDaemonThread(
+          target=lambda: self.Run(blocking=True, on_finish=on_finish))
+
     event = self.event_client.wait(
         lambda event:
           (event.type == Event.Type.END_TEST and
@@ -330,16 +348,20 @@ class UI(object):
     logging.info('Received end test event %r', event)
     self.event_client.close()
 
-    if event.status == TestState.PASSED and not self.error_msgs:
-      pass
-    elif event.status == TestState.FAILED or self.error_msgs:
-      error_msg = getattr(event, 'error_msg', '')
-      if self.error_msgs:
-        error_msg += ('\n'.join([''] + self.error_msgs))
+    try:
+      if event.status == TestState.PASSED and not self.error_msgs:
+        pass
+      elif event.status == TestState.FAILED or self.error_msgs:
+        error_msg = getattr(event, 'error_msg', '')
+        if self.error_msgs:
+          error_msg += ('\n'.join([''] + self.error_msgs))
 
-      raise FactoryTestFailure(error_msg)
-    else:
-      raise ValueError('Unexpected status in event %r' % event)
+        exception_list.append(('ui-thread', 'Failed from UI\n%s' % error_msg))
+      else:
+        raise ValueError('Unexpected status in event %r' % event)
+    finally:
+      if on_finish:
+        on_finish()
 
   def BindStandardKeys(self, bind_pass_keys=True, bind_fail_keys=True):
     '''Binds standard pass and/or fail keys.
