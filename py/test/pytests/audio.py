@@ -7,10 +7,23 @@
 """Tests audio playback and record."""
 
 import random
+import unittest
+
 from cros.factory.test import test_ui
+from cros.factory.test import ui_templates
+from cros.factory.test.args import Arg
+from cros.factory.test.factory_task import FactoryTaskManager
 from cros.factory.test.factory_task import InteractiveFactoryTask
 
-_MSG_AUDIO_RANDOM_TEST = lambda d, k: test_ui.MakeLabel(
+_TEST_TITLE = test_ui.MakeLabel('Audio Test',
+                                u'音讯测试')
+_DIV_CENTER_INSTRUCTION = """
+<div id='instruction-center' class='template-instruction'></div>"""
+_CSS = '#pass_key {font-size:36px; font-weight:bold;}'
+
+_TITLE_AUDIO_RANDOM_TEST = lambda l: test_ui.MakeLabel('%s Audio' % l,
+                                                       u'%s音讯' % l)
+_INSTRUCTION_AUDIO_RANDOM_TEST = lambda d, k: test_ui.MakeLabel(
     '</br>'.join(['Press the number you hear from %s to pass the test.' % d,
                   'Press "%s" to replay.' % k]),
     '</br>'.join([u'请按你从 %s 输出所听到的数字' % d,
@@ -29,7 +42,7 @@ class AudioDigitPlaybackTask(InteractiveFactoryTask):
     port_id: ID of audio port to output.
     title_id: HTML id for placing testing title.
     instruction_id: HTML id for placing instruction.
-    """
+  """
 
   def __init__(self, ui, port_label, port_id, title_id, instruction_id):
     super(AudioDigitPlaybackTask, self).__init__(ui)
@@ -40,18 +53,17 @@ class AudioDigitPlaybackTask(InteractiveFactoryTask):
     self._instruction_id = instruction_id
 
   def _InitUI(self):
-    self._ui.SetHTML(test_ui.MakeLabel('%s Audio' % self._port_label,
-                                       u'%s 音讯' % self._port_label),
+    self._ui.SetHTML(_TITLE_AUDIO_RANDOM_TEST(self._port_label),
                      id=self._title_id)
     self._ui.SetHTML(
-      '%s<br>%s' % (_MSG_AUDIO_RANDOM_TEST(self._port_label, 'r'),
+      '%s<br>%s' % (_INSTRUCTION_AUDIO_RANDOM_TEST(self._port_label, 'r'),
                     test_ui.MakePassFailKeyLabel(pass_key=False)),
       id=self._instruction_id)
     self.BindPassFailKeys(pass_key=False)
 
   def Run(self):
     self._InitUI()
-    self.RunCommand(self._audio_mixer + ['on'], 'Fail to enable audio.')
+    self.RunCommand(self._audio_mixer + ['on,on'], 'Fail to enable audio.')
 
     def _PlayVoice(num):
       lang = self._ui.GetUILanguage()
@@ -64,4 +76,57 @@ class AudioDigitPlaybackTask(InteractiveFactoryTask):
 
   def Cleanup(self):
     self.UnbindDigitKeys()
-    self.RunCommand(self._audio_mixer + ['off'], 'Fail to disable audio.')
+    self.RunCommand(self._audio_mixer + ['off,off'], 'Fail to disable audio.')
+
+
+class AudioTest(unittest.TestCase):
+  """Tests audio playback via both internal and external devices.
+
+  It randomly picks a digit to play and checks if the operator presses the
+  correct digit. It also prevents key-swiping cheating.
+  """
+  ARGS = [
+    Arg('internal_port_id', str, 'amixer ID for internal audio.',
+        optional=True),
+    Arg('external_port_id', str, 'amixer ID for external audio.',
+        optional=True),
+  ]
+
+  def setUp(self):
+    self._ui = test_ui.UI()
+    self._template = ui_templates.TwoSections(self._ui)
+    self._task_manager = None
+
+  def InitUI(self):
+    """Initializes UI.
+
+    Sets test title and draw progress bar.
+    """
+    self._template.SetTitle(_TEST_TITLE)
+    self._template.SetState(_DIV_CENTER_INSTRUCTION)
+    self._template.DrawProgressBar()
+    self._ui.AppendCSS(_CSS)
+
+  def ComposeTasks(self):
+    """Composes subtasks based on dargs.
+
+    Returns:
+      A list of AudioDigitPlaybackTask.
+    """
+    tasks = []
+    if self.args.internal_port_id:
+      tasks.append(AudioDigitPlaybackTask(
+          self._ui, 'Internal', self.args.internal_port_id,
+          'instruction', 'instruction-center'))
+    if self.args.external_port_id:
+      tasks.append(AudioDigitPlaybackTask(
+          self._ui, 'External', self.args.external_port_id,
+          'instruction', 'instruction-center'))
+    return tasks
+
+  def runTest(self):
+    self.InitUI()
+    self._task_manager = FactoryTaskManager(
+      self._ui, self.ComposeTasks(),
+      update_progress=self._template.SetProgressBarValue)
+    self._task_manager.Run()
