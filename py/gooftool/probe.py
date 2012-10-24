@@ -666,10 +666,14 @@ def _ProbeStorageFirmwareVersion():
                       os.path.join('/dev', os.path.basename(f))).stdout
     matches = re.findall('(?m)^Firmware Version:\s+(.+)$', smartctl)
     if matches:
+      if re.search(r'(?m)^Device Model:\s+SanDisk', smartctl):
+        # Canonicalize SanDisk firmware versions by replacing 'CS' with '11'.
+        matches = [re.sub('^CS', '11', x) for x in matches]
       ret.extend(matches)
     else:
       # Use fwrev file (e.g., for eMMC where smartctl is unsupported)
       ret.extend(_ReadSysfsFields(os.path.join(f, 'device'), ['fwrev']) or [])
+
   return CompactStr(ret)
 
 
