@@ -14,6 +14,8 @@ from cros.factory.gooftool import Gooftool
 from cros.factory.gooftool.probe import Probe
 from cros.factory.hwdb import hwid_tool
 from cros.factory.hwdb.hwid_tool import ProbeResults  # pylint: disable=E0611
+from cros.factory.gooftool import Mismatch
+from cros.factory.gooftool import ProbedComponentResult
 
 class GooftoolTest(unittest.TestCase):
   def setUp(self):
@@ -24,9 +26,8 @@ class GooftoolTest(unittest.TestCase):
     self._mock_probe = self.mox.CreateMock(Probe)
     testdata_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                  'testdata')
-    test_db = (
-        hwid_tool.HardwareDb(testdata_path).comp_db)
-    self._gooftool = Gooftool(probe=self._mock_probe, component_db=test_db)
+    test_db = hwid_tool.HardwareDb(testdata_path)
+    self._gooftool = Gooftool(probe=self._mock_probe, hardware_db=test_db)
 
   def tearDown(self):
     self.mox.VerifyAll()
@@ -76,6 +77,45 @@ class GooftoolTest(unittest.TestCase):
     self.assertRaises(
         ValueError,
         self._gooftool.VerifyComponents, ['camera', 'bad_class_name'])
+
+  def testFindBOMMismatches(self):
+    self.mox.ReplayAll()
+
+    # expect fully matched result
+    self.assertEquals(
+        {},
+        self._gooftool.FindBOMMismatches(
+            'BENDER',
+            'LEELA',
+            {'camera': [ProbedComponentResult('camera_1', 'CAMERA_1', None)],
+             'tpm': [ProbedComponentResult('tpm_1', 'TPM_1', None)],
+             'vga': [ProbedComponentResult('vga_1', 'VGA_1', None)]}))
+
+    # expect mismatch results
+    self.assertEquals(
+        {'camera': Mismatch(
+            expected=set(['camera_1']), actual=set(['camera_2'])),
+         'vga': Mismatch(
+            expected=set(['vga_1']), actual=set(['vga_2']))},
+        self._gooftool.FindBOMMismatches(
+            'BENDER',
+            'LEELA',
+            {'camera': [ProbedComponentResult('camera_2', 'CAMERA_2', None)],
+             'tpm': [ProbedComponentResult('tpm_1', 'TPM_1', None)],
+             'vga': [ProbedComponentResult('vga_2', 'VGA_2', None)]}))
+
+  def testFindBOMMismatchesError(self):
+    self.mox.ReplayAll()
+
+    self.assertRaises(
+      ValueError, self._gooftool.FindBOMMismatches, 'NO_BARD', 'LEELA',
+      {'camera': [ProbedComponentResult('camera_1', 'CAMERA_1', None)]})
+    self.assertRaises(
+      ValueError, self._gooftool.FindBOMMismatches, 'BENDER', 'NO_BOM', {})
+    self.assertRaises(
+      ValueError, self._gooftool.FindBOMMismatches, 'BENDER', None, {})
+    self.assertRaises(
+      ValueError, self._gooftool.FindBOMMismatches, 'BENDER', 'LEELA', None)
 
 
 if __name__ == '__main__':
