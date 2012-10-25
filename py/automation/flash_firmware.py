@@ -12,7 +12,7 @@ import sys
 import time
 
 
-BOARD_CONFIG = {'link': {'vref': 'pp3300'}}
+BOARD_CONFIG = {'link': {'vref': 'pp3300'}, 'daisy': {'vref': 'pp1800'}}
 SERVO_PORT = 9999
 SSH_PORT = 22
 
