@@ -42,6 +42,21 @@ class UpdateFirmwareTest(unittest.TestCase):
 
     While running updater, it shows updater activity on factory UI.
     """
+    # Remove /tmp/chromeos-firmwareupdate-running if the process
+    # doesn't seem to be alive anymore.  (http://crosbug.com/p/15642)
+    LOCK_FILE = '/tmp/chromeos-firmwareupdate-running'
+    if os.path.exists(LOCK_FILE):
+      process = Spawn(['pgrep', '-f', 'chromeos-firmwareupdate'],
+                      call=True, log=True, read_stdout=True)
+      if process.returncode == 0:
+        # Found a chromeos-firmwareupdate alive.
+        self._ui.Fail('Lock file %s is present and firmware update already '
+                      'running (PID %s)' % (
+            LOCK_FILE, ', '.join(process.stdout_data.split())))
+        return
+      logging.warn('Removing %s', LOCK_FILE)
+      os.unlink(LOCK_FILE)
+
     p = Spawn(
       [self.args.firmware_updater, '--force', '--factory',
        '--update_ec' if self.args.update_ec else '--noupdate_ec',
