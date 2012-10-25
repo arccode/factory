@@ -1052,6 +1052,14 @@ cros.factory.Goofy.prototype.handleShortcut = function(key) {
 };
 
 /**
+ * Does "auto-run": run all tests that have not yet passed.
+ */
+cros.factory.Goofy.prototype.startAutoTest = function() {
+    this.sendEvent('goofy:run_tests_with_status', {
+        'status': ['UNTESTED', 'ACTIVE', 'FAILED']});
+}
+
+/**
  * Makes a menu item for a context-sensitive menu.
  *
  * TODO(jsalz): Figure out the correct logic for this and how to localize this.
@@ -1219,11 +1227,13 @@ cros.factory.Goofy.prototype.showTestPopup = function(path, labelElement,
             restartOrRunEn += ' all';
             restartOrRunZh += '所有的';
         }
-        menu.addChild(this.makeMenuItem(
-            restartOrRunEn, restartOrRunZh, '', '', numLeaves, test,
-            function(event) {
-                this.sendEvent('goofy:restart_tests', {'path': path});
-            }), true);
+        if (this.engineeringMode) {
+            menu.addChild(this.makeMenuItem(
+                restartOrRunEn, restartOrRunZh, '', '', numLeaves, test,
+                function(event) {
+                    this.sendEvent('goofy:restart_tests', {'path': path});
+                }), true);
+        }
         if (test.subtests.length) {
             // Only show for parents.
             menu.addChild(this.makeMenuItem(
@@ -1821,13 +1831,12 @@ cros.factory.Goofy.prototype.setTestList = function(testList) {
                                      this.viewVarLogMessagesBeforeReboot);
                         addExtraItem('View dmesg', '检视 dmesg',
                                      this.viewDmesg);
-
-                        extraItems.push(new goog.ui.MenuSeparator());
-
-                        addExtraItem('Save factory logs to USB drive...',
-                                     '保存工厂记录到 U盘',
-                                     this.saveFactoryLogsToUSB);
                     }
+
+                    extraItems.push(new goog.ui.MenuSeparator());
+                    addExtraItem('Save factory logs to USB drive...',
+                                 '保存工厂记录到 U盘',
+                                 this.saveFactoryLogsToUSB);
 
                     this.showTestPopup(
                         '', document.getElementById('goofy-logo-text'),

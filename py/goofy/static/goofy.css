@@ -213,12 +213,18 @@ h1 {
   font-size: 60%;
   vertical-align: 3px;
 }
-#goofy-language-selector {
+#goofy-upper-right {
   float: right;
-  padding: 10px 5px;
+  padding: 4px 5px;
+}
+#goofy-language-selector {
+  vertical-align: 9px;
+  padding-right: 4px;
+}
+#goofy-go, #goofy-language-selector {
   cursor: pointer;
 }
-#goofy-language-selector:hover {
+#goofy-go:hover, #goofy-language-selector:hover {
   text-decoration: underline;
 }
 #goofy-loading {
