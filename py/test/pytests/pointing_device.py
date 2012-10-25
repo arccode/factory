@@ -23,10 +23,11 @@ from cros.factory.utils.process_utils import Spawn
 _MSG_TEST_TITLE = test_ui.MakeLabel('Non-touchpad Pointing Device Test',
                                     u'非触控板之指向装置测试')
 _MSG_INSTRUCTION = test_ui.MakeLabel(
-  ('Please use a pointing device other than touchpad to click the four '
-   'corner buttons.'),
-  u'请使用非触控板之指向装置点击角落的四个按钮')
-_MSG_BUTTON_CAPTION = test_ui.MakeLabel('Click me', u'点击')
+  'Please move the pointer over four quarters.', u'请移動鼠標至此文字四周')
+_MSG_MOVE_HERE = test_ui.MakeLabel('Move Here!', u'移動鼠標至此')
+_MSG_INSTRUCTION_CLICK = test_ui.MakeLabel(
+  'Please click the pointing device.',
+  u'请按下指向装置左键')
 _MSG_INSTRUCTION_RIGHT_CLICK = test_ui.MakeLabel(
   'Please right-click the pointing device.',
   u'请按下指向装置右键')
@@ -38,31 +39,30 @@ _MSG_INSTRUCTION_SCROLL_DOWN = test_ui.MakeLabel(
   u'请用指向装置向下卷动')
 
 _CSS = """
-.pd-button-div { font-size: 24px; position: absolute; text-align: center; }
-.pd-button { height: 40px; width: 150px; }
-#pd-button-tl { top: 30px; left: 30px; }
-#pd-button-tr { top: 30px; right: 30px; }
-#pd-button-bl { bottom: 30px; left: 30px; }
-#pd-button-br { bottom: 30px; right: 30px; }
-.instruction { font-size: 24px; padding-bottom: 12px; }
-#pd-instruction { font-size: 24px; padding-bottom: 12px; }
+.pd-quarter { height: 50%; width: 50%; position: absolute; display: table;}
+#pd-quarter-1 { top: 0; right: 0; }
+#pd-quarter-2 { top: 0; left: 0; }
+#pd-quarter-3 { bottom: 0; left: 0; }
+#pd-quarter-4 { bottom: 0; right: 0; }
+#pd-instruction { font-size: 24px; padding-bottom: 12px;}
 """
-
-_BUTTON_ID = lambda pos: 'pd-button-' + pos
-
-def _ButtonHTML(button_id, caption):
-  """Generates a test button."""
-  return Template("""
-<div id='$button_id' class='pd-button-div'>
-  <button class='pd-button' type='button'
-          onclick="pd.clickButton('$button_id');">
-    <span id='$button_id-caption'>$caption</span>
-  </button>
-</div>
-""").substitute(button_id=button_id, caption=caption)
 
 _INSTRUCTION_HTML = (
   '<div id="pd-instruction">%s</div>') % _MSG_INSTRUCTION
+
+def _QuarterHTML(nth_quarter):
+  """Generates a div of a quarter area.
+
+  Args:
+    nth_quarter: quarter of [1, 4].
+  """
+  return Template("""
+<div id='$quarter_id' class='pd-quarter'
+     onmouseover='pd.quarterMouseOver("$quarter_id");'>
+  <div class='test-vcenter-inner'>$caption</div>
+</div>
+""").substitute(quarter_id='pd-quarter-%d' % nth_quarter,
+                caption=_MSG_MOVE_HERE)
 
 
 def _GenerateJS(scroll, scroll_threshold):
@@ -75,30 +75,45 @@ def _GenerateJS(scroll, scroll_threshold):
   Returns:
     JS code.
   """
-  click_button_js = """
+  setup = """
 var pd = {};
-pd.buttonClicked = {};
-pd.remainingButtons = 4;
-pd.clickButton = function(id) {
-  if (id in pd.buttonClicked) {
-    return;
-  }
-  pd.buttonClicked[id] = true;
-  document.getElementById(id).style.display = 'none';
-  pd.remainingButtons -= 1;
-  if (pd.remainingButtons == 0) {
-    pd.startRightClickTest();
-  }
-};
 pd.setInstruction = function(instruction) {
   document.getElementById('pd-instruction').innerHTML = instruction;
 };
+// Prevent right click from popping up menu.
+document.oncontextmenu = function() { return false; }
 """
-  right_click_js = """
+  mouseover_test = """
+pd.quarterTouched = {};
+pd.remainingQuarters = 4;
+pd.quarterMouseOver = function(id) {
+  if (id in pd.quarterTouched) {
+    return;
+  }
+  document.getElementById(id).onmouseover = '';
+  document.getElementById(id).style.display = 'none';
+  pd.quarterTouched[id] = true;
+  pd.remainingQuarters -= 1;
+  if (pd.remainingQuarters == 0) {
+    pd.startClickTest();
+  }
+};
+"""
+  click_test = """
+pd.startClickTest = function() {
+  pd.setInstruction('%s');
+  document.getElementById('state').onclick = function(event) {
+    event.target.onclick = '';
+    pd.startRightClickTest();
+  };
+};
+""" % _MSG_INSTRUCTION_CLICK
+  right_click_test = """
 pd.startRightClickTest = function() {
   pd.setInstruction('%s');
   document.getElementById('state').oncontextmenu = function(event) {
     if (event.which == 3) {
+      event.target.oncontextmenu = '';
       %s
     }
     return false;
@@ -107,7 +122,7 @@ pd.startRightClickTest = function() {
 """ % (_MSG_INSTRUCTION_RIGHT_CLICK,
        'pd.startUpScrollTest();' if scroll else 'window.test.pass();')
 
-  js = [click_button_js, right_click_js]
+  js = [setup, mouseover_test, click_test, right_click_test]
   if scroll:
     js.append(Template("""
 pd.startUpScrollTest = function() {
@@ -147,20 +162,11 @@ class PointingDeviceUI(ui_templates.OneSection):
   def AppendHTML(self, html):
     self.SetState(html, append=True)
 
-  def AddButton(self, caption, position):
-    """Adds a button.
-
-    Args:
-      caption: Caption of a button.
-      position: Position of a button. One of ['tr', 'tl', 'br', 'bl'].
+  def AddQuarters(self):
+    """Adds four quarter area div for pointing device movement test.
     """
-    self.AppendHTML(_ButtonHTML(_BUTTON_ID(position), caption))
-
-  def AddButtons(self, caption):
-    """Adds four buttons at corners of the test area.
-    """
-    for pos in ['tr', 'tl', 'br', 'bl']:
-      self.AddButton(caption, pos)
+    for quarter in xrange(1, 5):
+      self.AppendHTML(_QuarterHTML(quarter))
 
   def Run(self):
     self._ui.Run()
@@ -182,10 +188,6 @@ class PointingDeviceTest(unittest.TestCase):
         default=50)
   ]
 
-  def __init__(self, *args, **kwargs):
-    super(PointingDeviceTest, self).__init__(*args, **kwargs)
-    self._ui = None
-
   def setUp(self):
     self._ui = PointingDeviceUI(test_ui.UI(), self.args.test_scroll,
                                 self.args.scroll_threshold)
@@ -199,7 +201,7 @@ class PointingDeviceTest(unittest.TestCase):
   def runTest(self):
     ui = self._ui
     ui.SetTitle(_MSG_TEST_TITLE)
-    ui.AddButtons(_MSG_BUTTON_CAPTION)
+    ui.AddQuarters()
     ui.AppendHTML(_INSTRUCTION_HTML)
     ui.BindStandardKeys(bind_pass_key=False, bind_fail_key=True)
     ui.Run()
