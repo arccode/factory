@@ -110,10 +110,12 @@ class Finalize(unittest.TestCase):
     power = Power()
     def CheckRequiredTests():
       '''Returns True if all tests have passed.'''
+      test_list = self.test_info.ReadTestList()
       state_map = factory.get_state_instance().get_test_states()
-      return not any(x.status in [factory.TestState.FAILED,
+      return not any(v.status in [factory.TestState.FAILED,
                                   factory.TestState.UNTESTED]
-                     for x in state_map.values())
+                     for k, v in state_map.iteritems()
+                     if test_list.lookup_path(k))
 
     items = [(CheckRequiredTests,
               MakeLabel("Verify all tests passed",
