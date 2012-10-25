@@ -1200,15 +1200,27 @@ class Goofy(object):
         self.run_queue.task_done()
     return True
 
-  def _should_sync_time(self):
-    '''Returns True if we should attempt syncing time with shopfloor.'''
-    return (self.test_list.options.sync_time_period_secs and
+  def _should_sync_time(self, foreground=False):
+    '''Returns True if we should attempt syncing time with shopfloor.
+
+    Args:
+      foreground: If True, synchronizes even if background syncing
+        is disabled (e.g., in explicit sync requests from the
+        SyncShopfloor test).
+    '''
+    return ((foreground or
+             self.test_list.options.sync_time_period_secs) and
             self.time_sanitizer and
             (not self.time_synced) and
             (not factory.in_chroot()))
 
-  def sync_time_with_shopfloor_server(self):
+  def sync_time_with_shopfloor_server(self, foreground=False):
     '''Syncs time with shopfloor server, if not yet synced.
+
+    Args:
+      foreground: If True, synchronizes even if background syncing
+        is disabled (e.g., in explicit sync requests from the
+        SyncShopfloor test).
 
     Returns:
       False if no time sanitizer is available, or True if this sync (or a
@@ -1217,7 +1229,7 @@ class Goofy(object):
     Raises:
       Exception if unable to contact the shopfloor server.
     '''
-    if self._should_sync_time():
+    if self._should_sync_time(foreground):
       self.time_sanitizer.SyncWithShopfloor()
       self.time_synced = True
     return self.time_synced

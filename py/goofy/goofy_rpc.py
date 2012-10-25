@@ -182,4 +182,4 @@ class GoofyRPC(object):
     done.wait()
 
   def SyncTimeWithShopfloorServer(self):
-    self.goofy.sync_time_with_shopfloor_server()
+    self.goofy.sync_time_with_shopfloor_server(True)
