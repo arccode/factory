@@ -136,7 +136,7 @@ def main():
   # Check out the appropriate branch in each repo
   for path in repo_paths:
     if args.branch.startswith('factory-'):
-      branch = ('cros-internal/' if path.endswith('-private') else 'cros/'
+      branch = (('cros-internal/' if path.endswith('-private') else 'cros/')
                 + args.branch)
     else:
       branch = args.branch
