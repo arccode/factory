@@ -477,8 +477,6 @@ def run_test_widget(dummy_job, test_widget,
           invisible_cursor=True,
           window_registration_callback=None,
           cleanup_callback=None):
-  debug_utils.AddDebugHook()
-
   test_widget_size = factory.get_shared_data('test_widget_size')
 
   window = gtk.Window(gtk.WINDOW_TOPLEVEL)
