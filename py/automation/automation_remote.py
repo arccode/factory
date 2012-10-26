@@ -46,7 +46,10 @@ def Main():
   parser.add_argument('--shopfloor_ip', default='192.168.1.254')
   parser.add_argument('--shopfloor_port', default=8082)
   parser.add_argument('--shopfloor_dir', default=None)
-  parser.add_argument('--logdata_dir')
+  parser.add_argument('--logdata_dir', help='the local path where the logs are'
+                      ' copied to')
+  parser.add_argument('--serial_number',
+                      help='the serial number of the DUT')
 
   args = parser.parse_args()
 
@@ -89,6 +92,16 @@ def Main():
           [args.config, args.device +
            ':/usr/local/factory/py/automation/automation.config'],
           check_call=True, log=True)
+
+  # Replace the serial number
+  if args.serial_number:
+    Spawn(ssh_command +
+          [args.device,
+           "sed -i 's/SERIAL_NUMBER/%s/g' "
+           "/usr/local/factory/py/automation/automation.config" %
+           args.serial_number],
+          check_call=True, log=True)
+
   # Turn on automation
   Spawn(ssh_command +
         [args.device, 'touch /var/factory/state/factory.automation'],
