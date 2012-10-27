@@ -185,7 +185,7 @@ class ShopFloorServerTest(unittest.TestCase):
     # Make sure it was logged.
     log = open(self.registration_code_log).read()
     self.assertTrue(re.match(
-        '^MAGICA MADOKA A-A 1214,'
+        '^MAGICA,'
         '000000000000000000000000000000000000'
         '0000000000000000000000000000190a55ad,'
         '010101010101010101010101010101010101'

@@ -235,9 +235,10 @@ class ShopFloorBase(object):
 
   def LogRegistrationCodeMap(self, hwid, registration_code_map):
     """Logs that a particular registration code has been used."""
-    self._registration_code_writer.writerow(
-        [hwid, registration_code_map['user'], registration_code_map['group'],
-         time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())])
+    platform = hwid.split()[0]
+    self._registration_code_writer.writerow([
+        platform, registration_code_map['user'], registration_code_map['group'],
+        time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())])
     os.fdatasync(self._registration_code_log.fileno())
 
   def GetTestMd5sum(self):
