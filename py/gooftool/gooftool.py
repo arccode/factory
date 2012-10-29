@@ -751,8 +751,11 @@ def Main():
       'Perform Google required factory tests.',
       CmdArg('-l', '--log', metavar='PATH',
              help='Write logs to this file.'),
+      CmdArg('--suppress-event-logs', action='store_true',
+             help='Suppress event logging.'),
       verbosity_cmd_arg)
   SetupLogging(options.verbosity, options.log)
+  _event_log.suppress = options.suppress_event_logs
   logging.debug('gooftool options: %s', repr(options))
   try:
     logging.debug('GOOFTOOL command %r', options.command_name)

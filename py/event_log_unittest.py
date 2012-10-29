@@ -166,6 +166,12 @@ class EventLogTest(unittest.TestCase):
     os.unlink(event_log.IMAGE_ID_PATH)
     self.assertNotEqual(image_id, event_log.GetImageId())
 
+  def testSuppress(self):
+    for suppress in [False, True]:
+      log = event_log.EventLog('test', suppress=suppress)
+      log.Log('test')
+      self.assertEquals(not suppress, os.path.exists(log.path))
+
   def testEventLogDefer(self):
     self._testEventLog(True)
 

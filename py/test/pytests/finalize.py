@@ -120,7 +120,8 @@ class Finalize(unittest.TestCase):
     items = [(CheckRequiredTests,
               MakeLabel("Verify all tests passed",
                         "确认测试项目都已成功了")),
-             (lambda: gooftools.run('gooftool verify_switch_dev'),
+             (lambda: gooftools.run('gooftool --suppress-event-logs '
+                                    'verify_switch_dev'),
               MakeLabel("Turn off Developer Switch",
                         "停用开发者开关(DevSwitch)"))]
     if self.args.min_charge_pct:
@@ -131,7 +132,8 @@ class Finalize(unittest.TestCase):
                               "充电到%d%%" %
                               self.args.min_charge_pct)))
     if self.args.write_protection:
-      items += [(lambda: gooftools.run('gooftool verify_switch_wp'),
+      items += [(lambda: gooftools.run('gooftool --suppress-event-logs '
+                                       'verify_switch_wp'),
                  MakeLabel("Enable write protection pin",
                            "确认硬体写入保护已开启"))]
 

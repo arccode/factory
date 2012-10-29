@@ -237,7 +237,7 @@ class EventLog(object):
     uuid = os.environ.get('CROS_FACTORY_TEST_INVOCATION') or TimedUuid()
     return EventLog(path, uuid)
 
-  def __init__(self, prefix, log_id=None, defer=True, seq=None):
+  def __init__(self, prefix, log_id=None, defer=True, seq=None, suppress=False):
     """Creates a new event log file, returning an EventLog instance.
 
     A new file will be created of the form <prefix>-UUID, where UUID is
@@ -260,14 +260,18 @@ class EventLog(object):
       defer: If True, then the file will not be written until the first
         event is logged (if ever).
       seq: The GlobalSeq object to use (creates a new one if None).
+      suppress: True to suppress event logging, turning this into a dummy
+        object.  (This may also be be specified by directly modifying the
+        suppress property.)
     """
     self.file = None
+    self.suppress = suppress
     if not PREFIX_RE.match(prefix):
       raise ValueError, "prefix %r must match re %s" % (
         prefix, PREFIX_RE.pattern)
     self.prefix = prefix
-    self.seq = seq or GlobalSeq()
     self.lock = threading.Lock()
+    self.seq = seq or GlobalSeq()
     self.log_id = log_id or TimedUuid()
     self.filename = "%s-%s" % (prefix, self.log_id)
     self.path = os.path.join(EVENT_LOG_DIR, self.filename)
@@ -275,7 +279,7 @@ class EventLog(object):
       raise EventLogException, "Log %s already exists" % self.path
     self.opened = False
 
-    if not defer:
+    if not self.suppress and not defer:
       self._OpenUnlocked()
 
   def Close(self):
@@ -306,6 +310,9 @@ class EventLog(object):
         values will be automatically yaml-ified.  Other data
         types will result in a ValueError.
     """
+    if self.suppress:
+      return
+
     with self.lock:
       self._LogUnlocked(event_name, **kwargs)
 
