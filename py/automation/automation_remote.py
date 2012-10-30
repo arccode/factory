@@ -18,12 +18,13 @@ The script (run in chroot) will:
 import argparse
 import logging
 import os
+import signal
 import tempfile
 import time
 import thread
 
 import factory_common # pylint: disable=W0611
-from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils.process_utils import Spawn, TerminateOrKillProcess
 
 
 SRCROOT = os.environ['CROS_WORKON_SRCROOT']
@@ -120,7 +121,11 @@ def Main():
             ignore_stdout=True, ignore_stderr=True)
   thread.start_new_thread(SyncLog, ())
 
-  # Run shopfloor_server
+  def handler(signum, frame):  # pylint: disable=W0613
+    raise SystemExit
+  signal.signal(signal.SIGTERM, handler)
+
+  shopfloor = None
   try:
     # Check whether use specific shopfloor directory
     # if not, send message to user
@@ -128,16 +133,19 @@ def Main():
       logging.info('Shopfloor directory: ' + args.shopfloor_dir)
       data_dir = os.path.join(args.shopfloor_dir, 'shopfloor_data')
       logging.info('Shopfloor data directory: ' + data_dir)
-      Spawn(['%s/shopfloor_server.sh' % args.shopfloor_dir,
-             '--simple',
-             '--address=%s' % args.shopfloor_ip,
-             '--port=%s' % args.shopfloor_port,
-             '--data-dir=%s' % data_dir],
-            check_call=True, log=True)
+      shopfloor = Spawn(['%s/shopfloor_server.sh' % args.shopfloor_dir,
+                         '--simple',
+                         '--address=%s' % args.shopfloor_ip,
+                         '--port=%s' % args.shopfloor_port,
+                         '--data-dir=%s' % data_dir], log=True)
+      shopfloor.wait()
     else:
       logging.info('Shopfloor server is not started')
   except:  # pylint: disable=W0702
     logging.warning('Shopfloor error. Possibly port already in use?')
+  finally:
+    if shopfloor:
+      TerminateOrKillProcess(shopfloor)
 
 
 if __name__ == '__main__':

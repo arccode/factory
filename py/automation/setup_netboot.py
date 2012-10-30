@@ -9,6 +9,7 @@ import optparse
 import os
 import re
 import shutil
+import signal
 import stat
 import subprocess
 import sys
@@ -214,9 +215,8 @@ def StartMiniomahaServer(miniomaha_dir, port):
   # Do not remove the extension ".py" when killing process,
   # or it may kill itself since when arguments is matching this pattern.
   KillProcess('miniomaha.py.*' + str(port))
-  cmd = os.path.join(miniomaha_dir, 'miniomaha.py')
-  cmd += ' --port %d' % port
-  CheckCall(cmd)
+  return Spawn([os.path.join(miniomaha_dir, 'miniomaha.py'),
+                '--port=%d' % port], log=True)
 
 
 def ParseOptions():
@@ -287,8 +287,6 @@ def main():
   CheckCall('sudo true #caching sudo')
 
   tftp_dir = tempfile.mkdtemp(prefix='tftp_')
-  tftpd = None
-  dhcpd = None
 
   if options.do_check_packages:
     CheckPackagesInstalled()
@@ -300,6 +298,13 @@ def main():
     GenerateImage(options.host, options.port, tftp_dir,
                   options.script, options.initrd, options.vmlinux)
 
+  def handler(signum, frame):  # pylint: disable=W0613
+    raise SystemExit
+  signal.signal(signal.SIGTERM, handler)
+
+  tftpd = None
+  dhcpd = None
+  miniomaha = None
   try:
     if options.do_tftp:
       tftpd = StartTFTPServer(options.host, tftp_dir)
@@ -319,12 +324,15 @@ def main():
                          options.hwid_updater, options.firmware_updater)
 
     if options.do_miniomaha:
-      StartMiniomahaServer(options.miniomaha_dir, options.port)
+      miniomaha = StartMiniomahaServer(options.miniomaha_dir, options.port)
+      miniomaha.wait()
   finally:
     if tftpd:
       TerminateOrKillProcess(tftpd)
     if dhcpd:
       TerminateOrKillProcess(dhcpd)
+    if miniomaha:
+      TerminateOrKillProcess(miniomaha)
 
 
 if __name__ == '__main__':
