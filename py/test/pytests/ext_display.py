@@ -326,8 +326,10 @@ class ExtDisplayTest(unittest.TestCase):
       tasks.append(ConnectTask(args))
       tasks.append(VideoTask(args))
       if args.audio_port:
+        audio_label = test_ui.MakeLabel('%s Audio' % args.display_label,
+                                        u' %s 音讯' % args.display_label)
         tasks.append(audio.AudioDigitPlaybackTask(
-            self._ui, args.display_label, args.audio_port,
+            self._ui, audio_label, args.audio_port,
             'instruction', 'instruction-center'))
       tasks.append(DisconnectTask(args))
     return tasks
