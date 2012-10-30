@@ -7,11 +7,14 @@
 """Tests audio playback and record."""
 
 import random
+import threading
 import unittest
+import uuid
 
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
+from cros.factory.test.event import Event
 from cros.factory.test.factory_task import FactoryTaskManager
 from cros.factory.test.factory_task import InteractiveFactoryTask
 from cros.factory.utils.process_utils import Spawn
@@ -104,6 +107,102 @@ class AudioDigitPlaybackTask(InteractiveFactoryTask):
     self.RunCommand(self._port_switch + ['off,off'], 'Fail to disable audio.')
 
 
+# TODO(deanliao): abstract state detection thread/task to common utils.
+class WaitHeadphoneThread(threading.Thread):
+  """A thread to wait for headphone.
+
+  When headphone is plugged, it calls on_success and stop.
+  Or the calling thread can stop it using stop().
+
+  Args:
+    headphone_numid: headphone's numid in amixer.
+    wait_for_connect: True to wait for headphone connect. Otherwise,
+        wait for disconnect.
+    on_success: callback for success.
+    check_period: status checking period in seconds. Default 1.
+  """
+  def __init__(self, headphone_numid, wait_for_connect, on_success,
+               check_period=1.0):
+    super(WaitHeadphoneThread, self).__init__(name='WaitHeadphoneThread')
+    self._done = threading.Event()
+    self._numid = headphone_numid
+    self._wait_for_connect = wait_for_connect
+    self._on_success = on_success
+    self._check_period = check_period
+
+  def run(self):
+    cmd = ['amixer', '-c', '0', 'cget', 'numid=%s' % self._numid]
+    if self._wait_for_connect:
+      expect = 'values=on'
+    else:
+      expect = 'values=off'
+    while not self._done.is_set():
+      if expect in Spawn(cmd, read_stdout=True).stdout_data:
+        self._on_success()
+      else:
+        self._done.wait(self._check_period)
+
+  def Stop(self):
+    """Stops the thread.
+    """
+    self._done.set()
+
+
+class DetectHeadphoneTask(InteractiveFactoryTask):
+  """Task to wait for headphone connect/disconnect.
+
+  Args:
+    ui: cros.factory.test.test_ui object.
+    headphone_numid: headphone's numid in amixer.
+    wait_for_connect: True to wait for headphone connect. Otherwise,
+        wait for disconnect.
+    title_id: HTML id for placing testing title.
+    instruction_id: HTML id for placing instruction.
+  """
+  def __init__(self, ui, headphone_numid, wait_for_connect,
+               title_id, instruction_id):
+    super(DetectHeadphoneTask, self).__init__(ui)
+    self._title_id = title_id
+    self._instruction_id = instruction_id
+    self._wait_headphone = WaitHeadphoneThread(headphone_numid,
+                                               wait_for_connect,
+                                               self.PostSuccessEvent)
+    self._pass_event = str(uuid.uuid4())  # used to bind a post event.
+    if wait_for_connect:
+      self._title = test_ui.MakeLabel('Connect Headphone', u'连接耳机')
+      self._instruction = test_ui.MakeLabel('Please plug headphone in.',
+                                            u'请接上耳机')
+    else:
+      self._title = test_ui.MakeLabel('Discnnect Headphone', u'移除耳机')
+      self._instruction = test_ui.MakeLabel('Please unplug headphone.',
+                                            u'请拔下耳机')
+
+  def PostSuccessEvent(self):
+    """Posts an event to trigger self.Pass().
+
+    It is called by another thread. It ensures that self.Pass() is called
+    via event queue to prevent race condition.
+    """
+    self._ui.PostEvent(Event(Event.Type.TEST_UI_EVENT,
+                             subtype=self._pass_event))
+
+  def _InitUI(self):
+    self._ui.SetHTML(self._title, id=self._title_id)
+    self._ui.SetHTML(
+      '%s<br>%s' % (self._instruction,
+                    test_ui.MakePassFailKeyLabel(pass_key=False)),
+      id=self._instruction_id)
+    self.BindPassFailKeys(pass_key=False, fail_later=False)
+
+  def Run(self):
+    self._InitUI()
+    self._ui.AddEventHandler(self._pass_event, lambda _: self.Pass())
+    self._wait_headphone.start()
+
+  def Cleanup(self):
+    self._wait_headphone.Stop()
+
+
 class AudioTest(unittest.TestCase):
   """Tests audio playback via both internal and external devices.
 
@@ -127,7 +226,10 @@ class AudioTest(unittest.TestCase):
         default=('External Headphone', u'外接耳机')),
     Arg('external_volume', int, 'External playback volume, default 100%.',
         default=100),
-    Arg('test_left_right', bool, 'Test left and right channel.', default=True)
+    Arg('test_left_right', bool, 'Test left and right channel.', default=True),
+    Arg('headphone_numid', str,
+        'amixer numid for headphone. Skip connection check if empty.',
+        optional=True),
   ]
 
   def setUp(self):
@@ -163,12 +265,18 @@ class AudioTest(unittest.TestCase):
 
     tasks = []
     if self.args.internal_port_id:
+      if self.args.headphone_numid:
+        tasks.append(DetectHeadphoneTask(self._ui, self.args.headphone_numid,
+                                         False, _TITLE_ID, _INSTRUCTION_ID))
       args = (self._ui, test_ui.MakeLabel(*self.args.internal_port_label),
               self.args.internal_port_id, _TITLE_ID, _INSTRUCTION_ID,
               self.args.internal_volume)
       _ComposeLeftRightTasks(tasks, args)
 
     if self.args.external_port_id:
+      if self.args.headphone_numid:
+        tasks.append(DetectHeadphoneTask(self._ui, self.args.headphone_numid,
+                                         True, _TITLE_ID, _INSTRUCTION_ID))
       args = (self._ui, test_ui.MakeLabel(*self.args.external_port_label),
               self.args.external_port_id, _TITLE_ID, _INSTRUCTION_ID,
               self.args.external_volume)

@@ -155,7 +155,7 @@ class InteractiveFactoryTask(FactoryTask):  # pylint: disable=W0223
     super(InteractiveFactoryTask, self).__init__()
     self._ui = ui
 
-  def BindPassFailKeys(self, pass_key=True):
+  def BindPassFailKeys(self, pass_key=True, fail_later=True):
     """Binds pass and/or fail keys.
 
     If pass_key is True, binds Enter key to pass the task; otherwise, pressing
@@ -164,13 +164,14 @@ class InteractiveFactoryTask(FactoryTask):  # pylint: disable=W0223
 
     Args:
       pass_key: True to bind Enter key to pass the task.
+      fail_later: True to fail later when Esc is pressed.
     """
     self._ui.BindKey(test_ui.ENTER_KEY,
                      lambda _: self.Pass() if pass_key else None)
 
     self._ui.BindKey(test_ui.ESCAPE_KEY,
                      lambda _: self.Fail(
-        '%s failed by operator.' % self.__class__.__name__, later=True))
+        '%s failed by operator.' % self.__class__.__name__, later=fail_later))
 
   def BindDigitKeys(self, pass_digit):
     """Binds the pass_digit to pass the task and other digits to fail it.
