@@ -204,7 +204,6 @@ class ShopFloorTask(FactoryTask):
     # When the input is not valid (or temporary network failure), either
     # return False or raise a ValueError with message to be displayed in
     # bottom status line of input window.
-    factory.console.info('Got event: ', event.data)
     serial = event.data
 
     def ShowErrorMsg(error_msg):
