@@ -39,7 +39,7 @@ _MSG_TIME_REMAINING = lambda t: test_ui.MakeLabel(
     'Time remaining: %d' % t, u'剩余时间：%d' % t, 'lid-test-info')
 
 _ID_PROMPT = 'lid-test-prompt'
-_ID_COUNTDOWN_TIMER = 'lid-testtimer'
+_ID_COUNTDOWN_TIMER = 'lid-test-timer'
 _HTML_LID_SWITCH = '<div id="%s"></div>\n<div id="%s"></div>\n' % (
     _ID_PROMPT, _ID_COUNTDOWN_TIMER)
 
@@ -48,7 +48,7 @@ _LID_SWITCH_TEST_DEFAULT_CSS = '.lid-test-info { font-size: 2em; }'
 
 class LidSwitchTest(unittest.TestCase):
   ARGS = [
-    Arg('timeout', int, 'Timeout value for the test.',
+    Arg('timeout_secs', int, 'Timeout value for the test.',
         default=_DEFAULT_TIMEOUT),
     Arg('ok_audio_path', (str, unicode),
         'Path to the OK audio file which is played after detecting lid close'
@@ -70,6 +70,9 @@ class LidSwitchTest(unittest.TestCase):
     # Create a thread to run countdown timer.
     StartDaemonThread(target=self.CountdownTimer)
 
+  def tearDown(self):
+    self.TerminateProcess()
+
   def MonitorDbusSignal(self):
     """Creates a process to monitor dbus signals and checks for lid events."""
     self.monitor_process = Spawn(['dbus-monitor', '--system'],
@@ -83,7 +86,6 @@ class LidSwitchTest(unittest.TestCase):
             self.ui.SetHTML(_MSG_PROMPT_OPEN, id=_ID_PROMPT)
             self.PlayOkAudio()
           elif member == _DBUS_LID_OPENED:
-            self.TerminateProcess()
             self.ui.Pass()
 
   def TerminateProcess(self):
@@ -96,13 +98,12 @@ class LidSwitchTest(unittest.TestCase):
 
   def CountdownTimer(self):
     """Starts a countdown timer and fails the test if timer reaches zero."""
-    time_remaining = _DEFAULT_TIMEOUT
+    time_remaining = self.args.timeout_secs
     while time_remaining > 0:
-      self.ui.SetHTML('%s' % _MSG_TIME_REMAINING(time_remaining),
+      self.ui.SetHTML(_MSG_TIME_REMAINING(time_remaining),
                       id=_ID_COUNTDOWN_TIMER)
       time.sleep(1)
       time_remaining -= 1
-    self.TerminateProcess()
     self.ui.Fail('Lid switch test failed due to timeout.')
 
   def runTest(self):
