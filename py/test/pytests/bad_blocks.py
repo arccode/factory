@@ -16,11 +16,14 @@ import logging
 import re
 import subprocess
 import threading
+import time
 import unittest
 from select import select
 
 import factory_common  # pylint: disable=W0611
 
+from cros.factory.event_log import EventLog
+from cros.factory.test import factory
 from cros.factory.test import ui_templates
 from cros.factory.test import utils
 from cros.factory.test.args import Arg
@@ -33,15 +36,18 @@ HTML = '''
 <div id="bb-progress"></div>
 '''
 
-# Timeout for badblocks output
-TIMEOUT_SECS = 10
-
 class BadBlocksTest(unittest.TestCase):
   ARGS = [
       Arg('device', str, 'The device on which to test.', default='sda'),
       Arg('max_bytes', int, 'Maximum size to test, in bytes.', optional=True),
       Arg('max_errors', int, 'Stops testing after the given number of errors.',
           default=20, optional=True),
+      Arg('timeout_secs', (int, float), 'Timeout in seconds for progress lines',
+          default=10),
+      Arg('log_threshold_secs', (int, float),
+          'If no badblocks output is detected for this long, log an error '
+          'but do not fail',
+          default=5),
       ]
 
   def setUp(self):
@@ -49,6 +55,7 @@ class BadBlocksTest(unittest.TestCase):
     self.template = ui_templates.TwoSections(self.ui)
     self.template.SetState(HTML)
     self.template.DrawProgressBar()
+    self._event_log = EventLog.ForAutoTest()
 
   def runTest(self):
     thread = threading.Thread(target=self._CheckBadBlocks)
@@ -156,15 +163,26 @@ class BadBlocksTest(unittest.TestCase):
     lines = []
 
     def UpdatePhase():
+      self._event_log.Log('start_phase', current_phase=current_phase)
       self.ui.SetHTML(MakeLabel('Phase', '阶段') + ' %d/%d: ' % (
           min(current_phase + 1, total_phases), total_phases),
                       id='bb-phase')
     UpdatePhase()
 
     while True:
-      # Assume no output in TIMEOUT_SECS means hung on disk op.
-      rlist, _, _ = select([process.stdout], [], [], TIMEOUT_SECS)
-      self.assertTrue(rlist, 'No badblocks output for %d s' % TIMEOUT_SECS)
+      # Assume no output in timeout_secs means hung on disk op.
+      start_time = time.time()
+      rlist, _, _ = select([process.stdout], [], [], self.args.timeout_secs)
+      end_time = time.time()
+
+      if end_time - start_time > self.args.log_threshold_secs:
+        factory.console.warn('Delay of %.2f s between badblocks progress lines',
+                             end_time - start_time)
+        self._event_log.Log('delay', duration_secs=end_time - start_time)
+
+      self.assertTrue(
+          rlist,
+          'Timeout: No badblocks output for %.2f s' % self.args.timeout_secs)
 
       ch = process.stdout.read(1)
       if ch in ['', '\x08', '\r', '\n']:
