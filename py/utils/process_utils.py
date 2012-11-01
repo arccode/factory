@@ -46,6 +46,40 @@ def OpenDevNull():
   return dev_null
 
 
+def CheckOutput(*args, **kwargs):
+  '''Runs command and returns its output.
+
+  It is like subprocess.check_output but with the extra flexibility of Spawn.
+
+  Args:
+    Refer Spawn.
+
+  Returns:
+    stdout
+
+  Raises:
+    subprocess.CalledProcessError if returncode != 0.
+  '''
+  kwargs['check_output'] = True
+  return Spawn(*args, **kwargs).stdout_data
+
+
+def SpawnOutput(*args, **kwargs):
+  '''Runs command and returns its output.
+
+  Like CheckOutput. But it won't raise exception unless you set
+  check_output=True.
+
+  Args:
+    Refer Spawn.
+
+  Returns:
+    stdout
+  '''
+  kwargs['read_stdout'] = True
+  return Spawn(*args, **kwargs).stdout_data
+
+
 def Spawn(args, **kwargs):
   '''
   Popen wrapper with extra functionality:

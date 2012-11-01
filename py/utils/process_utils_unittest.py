@@ -15,7 +15,10 @@ from logging import handlers
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.utils import process_utils
-from cros.factory.utils.process_utils import PIPE, Spawn, TerminateOrKillProcess
+from cros.factory.utils.process_utils import CheckOutput, PIPE, Spawn
+from cros.factory.utils.process_utils import SpawnOutput
+from cros.factory.utils.process_utils import TerminateOrKillProcess
+
 
 
 class SpawnTest(unittest.TestCase):
@@ -147,6 +150,26 @@ class SpawnTest(unittest.TestCase):
     dev_null = process_utils.OpenDevNull()
     self.assertEquals(os.devnull, dev_null.name)
     self.assertEquals(dev_null, process_utils.OpenDevNull())
+
+
+_CMD_FOO_SUCCESS = 'echo foo; exit 0'
+_CMD_FOO_FAILED = 'echo foo; exit 1'
+
+
+class CheckOutputTest(unittest.TestCase):
+  def testCheckOutput(self):
+    self.assertEquals('foo\n', CheckOutput(_CMD_FOO_SUCCESS, shell=True))
+    self.assertRaises(subprocess.CalledProcessError,
+                      lambda: CheckOutput(_CMD_FOO_FAILED, shell=True))
+
+
+class SpawnOutputTest(unittest.TestCase):
+  def testSpawnOutput(self):
+    self.assertEquals('foo\n', SpawnOutput(_CMD_FOO_SUCCESS, shell=True))
+    self.assertEquals('foo\n', SpawnOutput(_CMD_FOO_FAILED, shell=True))
+    self.assertRaises(subprocess.CalledProcessError,
+                      lambda: SpawnOutput(_CMD_FOO_FAILED, shell=True,
+                                          check_output=True))
 
 
 class TerminateOrKillProcessTest(unittest.TestCase):
