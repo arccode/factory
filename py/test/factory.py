@@ -371,6 +371,12 @@ class Options(object):
   # Whether to stop on any failure.
   stop_on_failure = False
 
+  # Disables log rotation by writing /var/lib/cleanup_logs_paused (see
+  # /usr/sbin/chromeos-cleanup-logs).  Note that setting this to False
+  # does not delete any existing cleanup_logs_paused file; it merely
+  # prevents its creation on future Goofy runs.
+  disable_log_rotation = True
+
   def check_valid(self):
     '''Throws a TestListError if there are any invalid options.'''
     # Make sure no errant options, or options with weird types,

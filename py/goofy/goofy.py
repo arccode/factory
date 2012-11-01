@@ -1040,6 +1040,9 @@ class Goofy(object):
       self.test_list.options.__dict__)
     self.state_instance.test_list = self.test_list
 
+    if not utils.in_chroot() and self.test_list.options.disable_log_rotation:
+      open('/var/lib/cleanup_logs_paused', 'w').close()
+
     if self.options.dummy_shopfloor:
       os.environ[shopfloor.SHOPFLOOR_SERVER_ENV_VAR_NAME] = (
           'http://localhost:%d/' % shopfloor.DEFAULT_SERVER_PORT)
