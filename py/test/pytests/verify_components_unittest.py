@@ -12,6 +12,7 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.gooftool import Gooftool
 from cros.factory.gooftool import Mismatch
 from cros.factory.gooftool import ProbedComponentResult
+from cros.factory.test import shopfloor
 from cros.factory.test.pytests import verify_components
 from cros.factory.test.pytests.verify_components import CheckComponentsTask
 from cros.factory.test.pytests.verify_components import VerifyAnyBOMTask
@@ -25,6 +26,7 @@ class VerifyComponentsUnitTest(unittest.TestCase):
     self._mock_test = self._mox.CreateMock(
         verify_components.VerifyComponentsTest)
     self._mock_test.gooftool = self._mox.CreateMock(Gooftool)
+    self._mock_shopfloor = self._mox.CreateMock(shopfloor)
     self._mock_test.template = self._mox.CreateMock(OneSection)
     self._mock_test.board = "BENDER"
 
@@ -39,7 +41,6 @@ class VerifyComponentsUnitTest(unittest.TestCase):
 
     self._mox.StubOutWithMock(task, "Pass")
     self._mox.StubOutWithMock(task, "Fail")
-
 
   def testCheckComponentsTaskPass(self):
     task = CheckComponentsTask(self._mock_test)
@@ -129,6 +130,59 @@ class VerifyComponentsUnitTest(unittest.TestCase):
 
     self._mox.ReplayAll()
     task.Run()
+
+  def testLookupBOMList(self):
+    stub_table = "table"
+    self._mock_shopfloor.get_server_url().MultipleTimes().AndReturn(
+        "http://StubUrl.com")
+    self._mock_shopfloor.get_selected_aux_data(
+        stub_table).MultipleTimes().AndReturn(
+           {"field_1": 1, "field_2": 2, "field_3": 3})
+
+    self._mox.ReplayAll()
+    stub_mapping = {1: ["BLUE"], 2: ["RED"]}
+
+    # tests to cover both mapping cases
+    self.assertEquals(
+      ["BLUE"],
+      verify_components.LookupBOMList(self._mock_shopfloor, stub_table,
+                                      "field_1", stub_mapping))
+    self.assertEquals(
+      ["RED"],
+      verify_components.LookupBOMList(self._mock_shopfloor, stub_table,
+                                      "field_2", stub_mapping))
+
+    # the field and its value exist but no BOM mapping
+    self.assertRaises(
+      ValueError,
+      verify_components.LookupBOMList, self._mock_shopfloor, stub_table,
+                                       "field_3", stub_mapping)
+    # the field doesn't exist
+    self.assertRaises(
+      ValueError,
+      verify_components.LookupBOMList, self._mock_shopfloor, stub_table,
+                                       "field_4", stub_mapping)
+
+  def testLookupBOMListNoShopfloor(self):
+    self._mock_shopfloor.get_server_url().AndReturn("")
+
+    self._mox.ReplayAll()
+
+    self.assertRaises(
+      ValueError,
+      verify_components.LookupBOMList,
+      self._mock_shopfloor, "table", "field_1", [])
+
+  def testLookupBOMListNoAuxTable(self):
+    self._mock_shopfloor.get_server_url().AndReturn("http://StubUrl.com")
+    self._mock_shopfloor.get_selected_aux_data("table").AndRaise(ValueError)
+
+    self._mox.ReplayAll()
+
+    self.assertRaises(
+      ValueError,
+      verify_components.LookupBOMList,
+      self._mock_shopfloor, "table", "field_1", [])
 
 
 if __name__ == '__main__':
