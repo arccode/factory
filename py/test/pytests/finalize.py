@@ -5,13 +5,14 @@
 
 import logging
 import os
+import re
 import threading
 import time
 import unittest
 import yaml
 
 import factory_common  # pylint: disable=W0611
-from cros.factory import event_log
+from cros.factory.event_log import EventLog
 from cros.factory.system.power import Power
 from cros.factory.test import factory
 from cros.factory.test import gooftools
@@ -57,7 +58,16 @@ class Finalize(unittest.TestCase):
           default=True),
       Arg('upload_method', str,
           'Upload method for "gooftool finalize"',
-          optional=True)
+          optional=True),
+      Arg('waive_tests', list,
+          'Do not require certain tests to pass.  This is a list of elements; '
+          'each element must either be a test path, or a tuple of test path '
+          'and a regular expression that must match the error message in '
+          'order to waive the test, e.g.: [("FATP.FooBar", r"Timeout")].  '
+          'Error messages may be multiline (e.g., stack traces) so this is a '
+          'multiline match.  This is a Python re.match operation, so it will '
+          'match from the beginning of the error string.',
+          default=[]),
       ]
 
   def setUp(self):
@@ -67,6 +77,10 @@ class Finalize(unittest.TestCase):
     self.go_cond = threading.Condition()
     self.test_states_path = os.path.join(factory.get_log_root(),
                                          'test_states')
+    self.event_log = EventLog.ForAutoTest()
+
+    # Set of waived tests.
+    self.waived_tests = set()
 
     # Normalize 0 to None (since various things, e.g.,
     # Condition.wait(timeout), treat 0 and None differently.
@@ -74,15 +88,30 @@ class Finalize(unittest.TestCase):
       self.args.polling_seconds = None
 
   def runTest(self):
+    # Check waived_tests argument.
     test_list = self.test_info.ReadTestList()
+
+    # Preprocess waive_tests: turn it into a list of tuples where the
+    # first element is the test name and the second is the regular
+    # expression.
+    for i, w in enumerate(self.args.waive_tests):
+      if isinstance(w, str):
+        w = (w, '')  # '' matches anything
+      self.assertTrue(isinstance(w, tuple) and
+                      len(w) == 2,
+                      'Invalid waive_tests element %r' % (w,))
+      self.assertTrue(test_list.lookup_path(w[0]),
+                      'Test %r does not exist' % w[0])
+      self.args.waive_tests[i] = (w[0], re.compile(w[1], re.MULTILINE))
+
     test_states = test_list.as_dict(
       factory.get_state_instance().get_test_states())
 
     with open(self.test_states_path, 'w') as f:
       yaml.dump(test_states, f)
 
-    event_log.EventLog.ForAutoTest().Log('test_states',
-                                         test_states=test_states)
+    self.event_log.Log('test_states',
+                       test_states=test_states)
 
     def Go(force=False):
       with self.go_cond:
@@ -109,13 +138,39 @@ class Finalize(unittest.TestCase):
   def RunPreflight(self):
     power = Power()
     def CheckRequiredTests():
-      '''Returns True if all tests have passed.'''
+      '''Returns True if all tests (except waived tests) have passed.'''
       test_list = self.test_info.ReadTestList()
       state_map = factory.get_state_instance().get_test_states()
-      return not any(v.status in [factory.TestState.FAILED,
-                                  factory.TestState.UNTESTED]
-                     for k, v in state_map.iteritems()
-                     if test_list.lookup_path(k))
+
+      self.waived_tests = set()
+
+      for k, v in state_map.iteritems():
+        test = test_list.lookup_path(k)
+        if not test:
+          # Test has been removed (e.g., by updater).
+          continue
+
+        if test.subtests:
+          # There are subtests.  Don't check the parent itself (only check
+          # the children).
+          continue
+
+        if v.status == factory.TestState.UNTESTED:
+          return False
+        if v.status == factory.TestState.FAILED:
+          # See if it's been waived.
+          waived = False
+          for path, regex in self.args.waive_tests:
+            if path == k and regex.match(v.error_msg):
+              self.waived_tests.add(k)
+              waived = True
+              break
+
+          if not waived:
+            # It has not been waived.
+            return False
+
+      return True
 
     items = [(CheckRequiredTests,
               MakeLabel("Verify all tests passed",
@@ -221,6 +276,11 @@ class Finalize(unittest.TestCase):
     upload_method = self.NormalizeUploadMethod(self.args.upload_method)
 
     command = 'gooftool -v 4 -l %s finalize' % factory.CONSOLE_LOG_PATH
+    if self.waived_tests:
+      self.Warn('TESTS WERE WAIVED: %s.' % sorted(list(self.waived_tests)))
+    self.event_log.Log('waived_tests',
+                       waived_tests=sorted(list(self.waived_tests)))
+
     if not self.args.write_protection:
       self.Warn('WRITE PROTECTION IS DISABLED.')
       command += ' --no_write_protect'
