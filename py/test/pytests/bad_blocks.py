@@ -37,6 +37,13 @@ HTML = '''
 '''
 
 class BadBlocksTest(unittest.TestCase):
+  # SATA link speed, or None if unknown.
+  sata_link_speed_mbps = None
+  # /var/log/messages file.
+  var_log_messages = None
+  # Full path to the device.
+  device_path = None
+
   ARGS = [
       Arg('device', str, 'The device on which to test.', default='sda'),
       Arg('max_bytes', int, 'Maximum size to test, in bytes.', optional=True),
@@ -65,6 +72,7 @@ class BadBlocksTest(unittest.TestCase):
   def tearDown(self):
     # Sync, so that any problems (like writing outside of our partition)
     # will show up sooner rather than later.
+    self._LogSmartctl()
     Spawn(['sync'], call=True)
 
   def _CheckBadBlocks(self):
@@ -80,7 +88,7 @@ class BadBlocksTest(unittest.TestCase):
     self.assertFalse(utils.in_chroot(),
                      'badblocks test may not be run within the chroot')
 
-    device_path = '/dev/%s' % self.args.device
+    self.device_path = '/dev/%s' % self.args.device
     partition_path = '/dev/%s1' % self.args.device  # Always partition 1
 
     # Determine total length of the FS
@@ -95,7 +103,7 @@ class BadBlocksTest(unittest.TestCase):
 
     # Grok cgpt data to find the partition size
     cgpt_start_sector, cgpt_sector_count = [
-        int(Spawn(['cgpt', 'show', device_path, '-i', '1', flag],
+        int(Spawn(['cgpt', 'show', self.device_path, '-i', '1', flag],
                   log=True, check_output=True).stdout_data.strip())
         for flag in ('-b', '-s')]
     sector_size = int(
@@ -145,7 +153,7 @@ class BadBlocksTest(unittest.TestCase):
     process = Spawn(['badblocks', '-fsvw', '-b', str(sector_size)] +
                     (['-e', str(self.args.max_errors)]
                      if self.args.max_errors else []) +
-                    [device_path, str(last_block), str(first_block)],
+                    [self.device_path, str(last_block), str(first_block)],
                     log=True, bufsize=0,
                     stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
@@ -162,6 +170,9 @@ class BadBlocksTest(unittest.TestCase):
     buf = []
     lines = []
 
+    self._UpdateSATALinkSpeed()
+    self._LogSmartctl()
+
     def UpdatePhase():
       self._event_log.Log('start_phase', current_phase=current_phase)
       self.ui.SetHTML(MakeLabel('Phase', '阶段') + ' %d/%d: ' % (
@@ -174,6 +185,7 @@ class BadBlocksTest(unittest.TestCase):
       start_time = time.time()
       rlist, _, _ = select([process.stdout], [], [], self.args.timeout_secs)
       end_time = time.time()
+      self._UpdateSATALinkSpeed()
 
       if end_time - start_time > self.args.log_threshold_secs:
         factory.console.warn('Delay of %.2f s between badblocks progress lines',
@@ -230,3 +242,44 @@ class BadBlocksTest(unittest.TestCase):
     last_line = lines[-1]
     self.assertEquals('Pass completed, 0 bad blocks found. (0/0/0 errors)',
                       last_line)
+
+  def _LogSmartctl(self):
+    smartctl_output = Spawn(['smartctl', '-a', self.device_path],
+                            check_output=True).stdout_data
+    self._event_log.Log('smartctl', stdout=smartctl_output)
+    logging.info('smartctl output: %s', smartctl_output)
+
+    self.assertTrue(
+        'SMART overall-health self-assessment test result: PASSED'
+        in smartctl_output,
+        'SMART says drive is not healthy')
+
+  def _UpdateSATALinkSpeed(self):
+    '''Updates the current SATA link speed based on /var/log/messages.'''
+    first_time = self.sata_link_speed_mbps is None
+    if not self.var_log_messages:
+      self.var_log_messages = open('/var/log/messages')
+
+    # List of dicts to log.
+    events = []
+
+    while True:
+      log_line = self.var_log_messages.readline()
+      if not log_line:
+        break
+      log_line = log_line.strip()
+      match = re.match(r'(\S)+.+SATA link up ([0-9.]+) (G|M)bps', log_line)
+      if match:
+        self.sata_link_speed_mbps = (
+            int(float(match.group(2)) *
+                (1000 if match.group(3) == 'G' else 1)))
+        events.append(dict(speed_mbps=self.sata_link_speed_mbps,
+                           log_line=log_line))
+
+    if first_time and events:
+      # First time, ignore all but the last
+      events = events[-1:]
+
+    for event in events:
+      logging.info('SATA link info: %r', event)
+      self._event_log.Log('sata_link_info', **event)
