@@ -52,8 +52,8 @@ class LidSwitchTest(unittest.TestCase):
         default=_DEFAULT_TIMEOUT),
     Arg('ok_audio_path', (str, unicode),
         'Path to the OK audio file which is played after detecting lid close'
-        'signal. Defaults to play ok_zh.ogg in /sounds.',
-        default='ok_zh.ogg'),
+        'signal. Defaults to play ok_*.ogg in /sounds.',
+        default=None, optional=True),
     Arg('audio_volume', int, 'Audio volume to use when playing OK audio file.',
         default=100)
   ]
@@ -95,6 +95,8 @@ class LidSwitchTest(unittest.TestCase):
   def PlayOkAudio(self):
     if self.args.ok_audio_path:
       self.ui.PlayAudioFile(self.args.ok_audio_path)
+    else:
+      self.ui.PlayAudioFile('ok_%s.ogg' % self.ui.GetUILanguage())
 
   def CountdownTimer(self):
     """Starts a countdown timer and fails the test if timer reaches zero."""
