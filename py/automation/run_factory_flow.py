@@ -9,6 +9,7 @@ import glob
 import logging
 import optparse
 import os
+import shutil
 import tempfile
 import time
 
@@ -41,13 +42,13 @@ class GSUtil(object):
     return Spawn(' '.join(cmd), log=True, check_call=True, read_stdout=True,
                  shell=True).stdout_data.strip()
 
-  def GetBinaryURI(self, gs_dir, filetype, key=''):
+  def GetBinaryURI(self, gs_dir, filetype, key='', tag=''):
     fileext = {'factory': 'zip',
                'firmware': 'tar.bz2',
                'recovery': 'zip'}
     if key:
-      filespec = 'chromeos_*_%s_%s*_%s-channel_%s.bin' % (self.board, filetype,
-                                                          self.channel, key)
+      filespec = 'chromeos_*_%s_%s*%s_%s-channel_%s.bin' % (
+          self.board, filetype, tag, self.channel, key)
     else:
       filespec = 'ChromeOS-%s-*-%s.%s' % (filetype, self.board,
                                           fileext[filetype])
@@ -73,7 +74,7 @@ def ExtractFile(compressed_file, output_dir):
 
 
 def SetupNetboot(board, bundle_dir, recovery_bin,
-                 dhcp_iface, host_ip, dut_mac, dut_ip):
+                 dhcp_iface, host_ip, dut_mac, dut_ip, firmware_updater=''):
   script = os.path.join(SRCROOT,
                         'src/platform/factory/py/automation/setup_netboot.py')
   factory = os.path.join(bundle_dir, 'factory_test',
@@ -97,6 +98,8 @@ def SetupNetboot(board, bundle_dir, recovery_bin,
          '--dut_mac=%s' % dut_mac,
          '--dut_address=%s' % dut_ip,
          ]
+  if firmware_updater:
+    cmd.append('--firmware_updater=%s' % firmware_updater)
   return Spawn(cmd, log=True, sudo=True)
 
 
@@ -134,7 +137,9 @@ def FinalizeDUT(shopfloor_dir, host_ip, dut_ip, logdata_dir,
 
 def RunFactoryFlow(board, factory_channel, recovery_channel,
                    dhcp_iface, host_ip, dut_mac, dut_ip,
-                   factory_branch='', recovery_key='',
+                   factory_branch='', recovery_branch='', recovery_key='',
+                   bios_channel='', bios_branch='', bios_key='', bios_tag='',
+                   bios_file='', ec_file='',
                    servo_serial='', finalize=False,
                    config='', testlist='', serial_number=''):
   gsutil = GSUtil(board, factory_channel)
@@ -147,17 +152,28 @@ def RunFactoryFlow(board, factory_channel, recovery_channel,
   logging.debug('Firmware from source URI: %s', firmware_uri)
 
   gsutil = GSUtil(board, recovery_channel)
-  build_dir = gsutil.GetLatestBuildDir()
+  build_dir = gsutil.GetLatestBuildDir(branch=recovery_branch)
   recovery_version = build_dir[:-1].rpartition('/')[2]
   logging.info('Latest recovery build: %s', recovery_version)
   recovery_uri = gsutil.GetBinaryURI(build_dir, 'recovery', key=recovery_key)
   logging.debug('recovery URI: %s', recovery_uri)
+
+  if bios_channel and not bios_file:
+    gsutil = GSUtil(board, bios_channel)
+    build_dir = gsutil.GetLatestBuildDir(branch=bios_branch)
+    bios_version = build_dir[:-1].rpartition('/')[2]
+    logging.info('Latest bios build: %s', bios_version)
+    bios_uri = gsutil.GetBinaryURI(build_dir, 'firmware',
+                                   key=bios_key, tag=bios_tag)
+    logging.debug('bios URI: %s', bios_uri)
 
   work_dir = tempfile.mkdtemp(prefix='build_%s_' % factory_version)
   logging.debug('Downloading files to %s', work_dir)
   bundle_file = GSUtil.DownloadURI(bundle_uri, work_dir)
   firmware_file = GSUtil.DownloadURI(firmware_uri, work_dir)
   recovery_file = GSUtil.DownloadURI(recovery_uri, work_dir)
+  if bios_channel and not bios_file:
+    bios_file = GSUtil.DownloadURI(bios_uri, work_dir)
 
   logging.debug('Extracting files...')
   bundle_dir = os.path.join(work_dir, 'bundle')
@@ -169,12 +185,34 @@ def RunFactoryFlow(board, factory_channel, recovery_channel,
     ExtractFile(recovery_file, recovery_dir)
     recovery_file = os.path.join(recovery_dir, 'recovery_image.bin')
 
+  if bios_file or ec_file:
+    Spawn([os.path.join(bundle_dir, 'factory_setup',
+                        'extract_firmware_updater.sh'),
+           '--image', recovery_file, '--output_dir', work_dir],
+          log=True, check_call=True)
+    firmware_updater = os.path.join(work_dir, 'chromeos-firmwareupdate')
+    updater_dir = os.path.join(work_dir, 'updater')
+    os.mkdir(updater_dir)
+    Spawn([firmware_updater, '--sb_extract', updater_dir],
+          log=True, check_call=True)
+    if bios_file:
+      logging.info('Using BIOS from %s', bios_file)
+      shutil.copyfile(bios_file, os.path.join(updater_dir, 'bios.bin'))
+    if ec_file:
+      logging.info('Using EC from %s', ec_file)
+      shutil.copyfile(ec_file, os.path.join(updater_dir, 'ec.bin'))
+    Spawn([firmware_updater, '--sb_repack', updater_dir],
+          log=True, check_call=True)
+  else:
+    firmware_updater = ''
+
   netboot_process = None
   automation_process = None
   try:
     logging.debug('Setting up netboot environment...')
     netboot_process = SetupNetboot(board, bundle_dir, recovery_file,
-                                   dhcp_iface, host_ip, dut_mac, dut_ip)
+                                   dhcp_iface, host_ip, dut_mac, dut_ip,
+                                   firmware_updater)
 
     logging.debug('Flashing firmware to DUT...')
     netboot_bios = os.path.join(firmware_dir, 'nv_image-%s.bin' % board)
@@ -208,11 +246,11 @@ def RunFactoryFlow(board, factory_channel, recovery_channel,
         raise FinalizeError
       logging.info('Finalize report: %s', report_file)
 
-    logging.info('Test result: SUCCESS! factory %s recovery %s',
-                 factory_version, recovery_version)
+    logging.info('Test result: SUCCESS! %s %s factory %s recovery %s',
+                 board, serial_number, factory_version, recovery_version)
   except:  # pylint: disable=W0702
-    logging.error('Test result: FAIL! factory %s recovery %s',
-                  factory_version, recovery_version)
+    logging.error('Test result: FAIL! %s %s factory %s recovery %s',
+                  board, serial_number, factory_version, recovery_version)
   finally:
     if netboot_process:
       TerminateOrKillProcess(netboot_process)
@@ -247,8 +285,22 @@ if __name__ == '__main__':
                     help='Factory branch to use.')
   parser.add_option('--recovery_channel',
                     help='Channel from where to download recovery image.')
+  parser.add_option('--recovery_branch', default='',
+                    help='FSI branch to use.')
   parser.add_option('--recovery_key', default='',
                     help='Key by which recovery image was signed.')
+  parser.add_option('--bios_channel',
+                    help='Channel from where to download BIOS image.')
+  parser.add_option('--bios_branch', default='',
+                    help='BIOS branch to use.')
+  parser.add_option('--bios_key', default='',
+                    help='Key by which BIOS image was signed.')
+  parser.add_option('--bios_tag', default='',
+                    help='Tag to select which BIOS image to use.')
+  parser.add_option('--bios_file', default='',
+                    help='Local BIOS image to use.')
+  parser.add_option('--ec_file', default='',
+                    help='Local EC image to use.')
   parser.add_option('--dhcp_iface',
                     help='Network interface to run DHCP server.')
   parser.add_option('--host_ip', default='192.168.1.254',
@@ -273,6 +325,9 @@ if __name__ == '__main__':
                  options.factory_channel, options.recovery_channel,
                  options.dhcp_iface, options.host_ip,
                  options.dut_mac, options.dut_ip,
-                 options.factory_branch, options.recovery_key,
+                 options.factory_branch, options.recovery_branch,
+                 options.recovery_key, options.bios_channel,
+                 options.bios_branch, options.bios_key, options.bios_tag,
+                 options.bios_file, options.ec_file,
                  options.servo_serial, options.finalize,
                  options.config, options.testlist, options.serial_number)
