@@ -25,6 +25,7 @@ import shutil
 import SimpleXMLRPCServer
 import signal
 import socket
+import SocketServer
 import zipfile
 from fnmatch import fnmatch
 
@@ -53,6 +54,11 @@ def _LoadShopFloorModule(module_name):
   return __import__(module_name, fromlist=['ShopFloor']).ShopFloor
 
 
+class ThreadedXMLRPCServer(SocketServer.ThreadingMixIn,
+                           SimpleXMLRPCServer.SimpleXMLRPCServer):
+  pass
+
+
 def _RunAsServer(address, port, instance):
   '''Starts a XML-RPC server in given address and port.
 
@@ -65,9 +71,9 @@ def _RunAsServer(address, port, instance):
     Never returns if the server is started successfully, otherwise some
     exception will be raised.
   '''
-  server = SimpleXMLRPCServer.SimpleXMLRPCServer((address, port),
-                                                 allow_none=True,
-                                                 logRequests=False)
+  server = ThreadedXMLRPCServer((address, port),
+                                allow_none=True,
+                                logRequests=True)
   server.register_introspection_functions()
   server.register_instance(instance)
   logging.info('Server started: http://%s:%s "%s" version %s',
