@@ -38,6 +38,7 @@ from cros.factory.hwdb import hwid_tool
 from cros.factory.event_log import EventLog, EVENT_LOG_DIR
 from cros.factory.event_log import TimedUuid
 from cros.factory.test.factory import FACTORY_LOG_PATH
+from cros.factory.utils.process_utils import Spawn
 
 
 # Use a global event log, so that only a single log is created when
@@ -692,9 +693,19 @@ def UploadReport(options):
         raise Error('File does not exist: %s' % f)
       tar_cmd += ' --add-file %s' % pipes.quote(f)
   cmd_result = Shell(tar_cmd)
-  if not cmd_result.success:
+
+  if ((cmd_result.status == 1) and
+      all((x == '' or
+           'file changed as we read it' in x or
+           "Removing leading `/' from member names" in x)
+          for x in cmd_result.stderr.split('\n'))):
+    # That's OK.  Make sure it's valid though.
+    Spawn(['tar', 'tfj', target_path], check_call=True, log=True,
+          ignore_stdout=True)
+  elif not cmd_result.success:
     raise Error('unable to tar event logs, cmd %r failed, stderr: %r' %
                 (tar_cmd, cmd_result.stderr))
+
   if options.upload_method is None or options.upload_method == 'none':
     logging.warning('REPORT UPLOAD SKIPPED (report left at %s)', target_path)
     return
