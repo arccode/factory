@@ -7,6 +7,7 @@
 
 '''RPC methods exported from Goofy.'''
 
+import argparse
 import inspect
 import logging
 import os
@@ -17,7 +18,9 @@ import time
 
 import factory_common  # pylint: disable=W0611
 from cros.factory import factory_bug
+from cros.factory.test import factory
 from cros.factory.test import utils
+from cros.factory.test.event import Event
 from cros.factory.utils import process_utils
 
 
@@ -183,3 +186,39 @@ class GoofyRPC(object):
 
   def SyncTimeWithShopfloorServer(self):
     self.goofy.sync_time_with_shopfloor_server(True)
+
+  def PostEvent(self, event):
+    '''Posts an event.'''
+    self.goofy.event_client.post_event(event)
+
+  def RunTest(self, path):
+    '''Runs a test.'''
+    self.PostEvent(Event(Event.Type.RESTART_TESTS,
+                         path=path))
+
+
+def main():
+  parser = argparse.ArgumentParser(
+      description="Sends an RPC to Goofy.")
+  parser.add_argument(
+      'command',
+      help=('The command to run (as a Python expression), e.g.: '
+            '''RunTest('FATP.Stress.BadBlocks')'''))
+  args = parser.parse_args()
+
+  goofy = factory.get_state_instance()
+  logging.basicConfig(level=logging.INFO)
+
+  if '(' not in args.command:
+    parser.error('Expected parentheses in command, e.g.: '
+                 '''RunTest('FATP.Stress.BadBlocks')''')
+
+  logging.info('Evaluating expression: %s', args.command)
+  eval(args.command, {},
+       dict((x, getattr(goofy, x))
+            for x in GoofyRPC.__dict__.keys()
+            if not x.startswith('_')))
+
+
+if __name__ == '__main__':
+  main()
