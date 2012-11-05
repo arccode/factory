@@ -17,7 +17,6 @@ Example:
 
 import glob
 import hashlib
-import imp
 import logging
 import optparse
 import os
@@ -26,11 +25,15 @@ import SimpleXMLRPCServer
 import signal
 import socket
 import SocketServer
+import threading
+import time
 import zipfile
 from fnmatch import fnmatch
+from SimpleXMLRPCServer import SimpleXMLRPCServer, SimpleXMLRPCRequestHandler
 
-import factory_common
+import factory_common  # pylint: disable=W0611
 from cros.factory import shopfloor
+from cros.factory.test import utils
 
 
 DEFAULT_SERVER_PORT = 8082
@@ -39,6 +42,9 @@ DEFAULT_SERVER_PORT = 8082
 # "all interfaces (0.0.0.0)". For partners running server on clients, they may
 # want to change address to "localhost".
 _DEFAULT_SERVER_ADDRESS = '0.0.0.0'
+
+
+# pylint: disable=W0212
 
 
 def _LoadShopFloorModule(module_name):
@@ -54,9 +60,46 @@ def _LoadShopFloorModule(module_name):
   return __import__(module_name, fromlist=['ShopFloor']).ShopFloor
 
 
-class ThreadedXMLRPCServer(SocketServer.ThreadingMixIn,
-                           SimpleXMLRPCServer.SimpleXMLRPCServer):
-  pass
+class MyXMLRPCServer(SocketServer.ThreadingMixIn,
+                     SimpleXMLRPCServer):
+  """XML/RPC server subclass that logs method calls."""
+  # For saving method name and exception between _marshaled_dispatch and
+  # _dispatch.
+  local = threading.local()
+
+  def _marshaled_dispatch(self, data, dispatch_method=None):
+    self.local.method = None
+    self.local.exception = None
+
+    response_data = ''
+    start_time = time.time()
+    try:
+      response_data = SimpleXMLRPCServer._marshaled_dispatch(
+          self, data, dispatch_method)
+      return response_data
+    finally:
+      logging.info('%s %s [%.3f s, %d B in, %d B out]%s',
+                   self.local.client_address[0],
+                   self.local.method,
+                   time.time() - start_time,
+                   len(data),
+                   len(response_data),
+                   (': %s' % self.local.exception
+                    if self.local.exception else ''))
+
+  def _dispatch(self, method, params):
+    try:
+      self.local.method = method
+      return SimpleXMLRPCServer._dispatch(self, method, params)
+    except:
+      self.local.exception = utils.FormatExceptionOnly()
+      raise
+
+
+class MyXMLRPCRequestHandler(SimpleXMLRPCRequestHandler):
+  def do_POST(self):
+    MyXMLRPCServer.local.client_address = self.client_address
+    SimpleXMLRPCRequestHandler.do_POST(self)
 
 
 def _RunAsServer(address, port, instance):
@@ -71,9 +114,10 @@ def _RunAsServer(address, port, instance):
     Never returns if the server is started successfully, otherwise some
     exception will be raised.
   '''
-  server = ThreadedXMLRPCServer((address, port),
-                                allow_none=True,
-                                logRequests=True)
+  server = MyXMLRPCServer((address, port),
+                          MyXMLRPCRequestHandler,
+                          allow_none=True,
+                          logRequests=False)
   server.register_introspection_functions()
   server.register_instance(instance)
   logging.info('Server started: http://%s:%s "%s" version %s',
@@ -201,19 +245,19 @@ def main():
           shutil.copy(f, instance.data_dir)
 
     instance.Init()
-  except:
+  except:  # pylint: disable=W0702
     logging.exception('Failed loading module: %s', options.module)
     exit(1)
 
   # Find the HWID updater (if any).  Throw an exception if there are >1.
   hwid_updater_path = instance._GetHWIDUpdaterPath()
   if hwid_updater_path:
-    logging.info('Using HWID updater %s (md5sum %s)' % (
-        hwid_updater_path,
-        hashlib.md5(open(hwid_updater_path).read()).hexdigest()))
+    logging.info('Using HWID updater %s (md5sum %s)',
+                 hwid_updater_path,
+                 hashlib.md5(open(hwid_updater_path).read()).hexdigest())
   else:
     logging.warn('No HWID updater id currently available; add a single '
-                 'file named %s to enable dynamic updating of HWIDs.' %
+                 'file named %s to enable dynamic updating of HWIDs.',
                  os.path.join(options.data_dir, shopfloor.HWID_UPDATER_PATTERN))
 
   def handler(signum, frame):  # pylint: disable=W0613
