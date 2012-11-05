@@ -61,7 +61,10 @@ class KeyboardTest(unittest.TestCase):
         default=6),
     Arg('timeout_secs', int, 'Timeout for the test.', default=30),
     Arg('key_order_list', list, 'A list of keycodes that need to be pressed '
-        'sequentially to pass the test.', default=None, optional=True)
+        'sequentially to pass the test.', default=None, optional=True),
+    Arg('board', str,
+        'If presents, in filename, the board name is appended after layout. ',
+        default=''),
   ]
 
   def setUp(self):
@@ -71,6 +74,8 @@ class KeyboardTest(unittest.TestCase):
 
     # Initialize keyboard layout and bindings
     self.layout = self.GetKeyboardLayout()
+    if self.args.board:
+      self.layout += '_%s' % self.args.board
     self.bindings = self.ReadBindings(self.layout)
 
     # Initialize frontend presentation
