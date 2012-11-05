@@ -203,7 +203,7 @@ def main():
   parser.add_argument(
       'command',
       help=('The command to run (as a Python expression), e.g.: '
-            '''RunTest('FATP.Stress.BadBlocks')'''))
+            '''RunTest('RunIn.Stress.BadBlocks')'''))
   args = parser.parse_args()
 
   goofy = factory.get_state_instance()
@@ -211,7 +211,7 @@ def main():
 
   if '(' not in args.command:
     parser.error('Expected parentheses in command, e.g.: '
-                 '''RunTest('FATP.Stress.BadBlocks')''')
+                 '''RunTest('RunIn.Stress.BadBlocks')''')
 
   logging.info('Evaluating expression: %s', args.command)
   eval(args.command, {},
