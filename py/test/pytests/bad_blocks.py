@@ -51,6 +51,9 @@ class BadBlocksTest(unittest.TestCase):
           default=20, optional=True),
       Arg('timeout_secs', (int, float), 'Timeout in seconds for progress lines',
           default=10),
+      Arg('extra_log_cmd', str,
+          'Extra command to run at start/finish to collect logs.',
+          optional=True),
       Arg('log_threshold_secs', (int, float),
           'If no badblocks output is detected for this long, log an error '
           'but do not fail',
@@ -62,7 +65,7 @@ class BadBlocksTest(unittest.TestCase):
     self.template = ui_templates.TwoSections(self.ui)
     self.template.SetState(HTML)
     self.template.DrawProgressBar()
-    self._event_log = EventLog.ForAutoTest()
+    self.event_log = EventLog.ForAutoTest()
 
   def runTest(self):
     thread = threading.Thread(target=self._CheckBadBlocks)
@@ -174,7 +177,7 @@ class BadBlocksTest(unittest.TestCase):
     self._LogSmartctl()
 
     def UpdatePhase():
-      self._event_log.Log('start_phase', current_phase=current_phase)
+      self.event_log.Log('start_phase', current_phase=current_phase)
       self.ui.SetHTML(MakeLabel('Phase', '阶段') + ' %d/%d: ' % (
           min(current_phase + 1, total_phases), total_phases),
                       id='bb-phase')
@@ -190,7 +193,7 @@ class BadBlocksTest(unittest.TestCase):
       if end_time - start_time > self.args.log_threshold_secs:
         factory.console.warn('Delay of %.2f s between badblocks progress lines',
                              end_time - start_time)
-        self._event_log.Log('delay', duration_secs=end_time - start_time)
+        self.event_log.Log('delay', duration_secs=end_time - start_time)
 
       self.assertTrue(
           rlist,
@@ -244,9 +247,21 @@ class BadBlocksTest(unittest.TestCase):
                       last_line)
 
   def _LogSmartctl(self):
+    if self.args.extra_log_cmd:
+      process = Spawn(
+          self.args.extra_log_cmd, shell=True,
+          ignore_stdin=True, read_stdout=True, read_stderr=True,
+          call=True, log=True)
+      if process.stdout_data:
+        logging.info('stdout:\n%s', process.stdout_data)
+      if process.stderr_data:
+        logging.info('stderr:\n%s', process.stderr_data)
+      self.event_log.Log('log_command', command=self.args.extra_log_cmd,
+                         stdout=process.stdout_data, stderr=process.stderr_data)
+
     smartctl_output = Spawn(['smartctl', '-a', self.device_path],
                             check_output=True).stdout_data
-    self._event_log.Log('smartctl', stdout=smartctl_output)
+    self.event_log.Log('smartctl', stdout=smartctl_output)
     logging.info('smartctl output: %s', smartctl_output)
 
     self.assertTrue(
@@ -256,12 +271,12 @@ class BadBlocksTest(unittest.TestCase):
 
   def _UpdateSATALinkSpeed(self):
     '''Updates the current SATA link speed based on /var/log/messages.'''
-    first_time = self.sata_link_speed_mbps is None
-    if not self.var_log_messages:
+    first_time = self.var_log_messages is None
+    if first_time:
       self.var_log_messages = open('/var/log/messages')
 
     # List of dicts to log.
-    events = []
+    link_info_events = []
 
     while True:
       log_line = self.var_log_messages.readline()
@@ -273,13 +288,18 @@ class BadBlocksTest(unittest.TestCase):
         self.sata_link_speed_mbps = (
             int(float(match.group(2)) *
                 (1000 if match.group(3) == 'G' else 1)))
-        events.append(dict(speed_mbps=self.sata_link_speed_mbps,
+        link_info_events.append(dict(speed_mbps=self.sata_link_speed_mbps,
                            log_line=log_line))
 
-    if first_time and events:
-      # First time, ignore all but the last
-      events = events[-1:]
+      # Copy any ATA-related messages to the test log, and put in event logs.
+      if not first_time and re.search(r'\bata[0-9.]+:', log_line):
+        logging.info('System log message: %s', log_line)
+        self.event_log.Log('system_log_message', log_line=log_line)
 
-    for event in events:
+    if first_time and link_info_events:
+      # First time, ignore all but the last
+      link_info_events = link_info_events[-1:]
+
+    for event in link_info_events:
       logging.info('SATA link info: %r', event)
-      self._event_log.Log('sata_link_info', **event)
+      self.event_log.Log('sata_link_info', **event)
