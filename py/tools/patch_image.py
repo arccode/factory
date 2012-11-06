@@ -60,6 +60,7 @@ def main():
       description="Patches a factory image according with particular commits.")
   parser.add_argument('--input', '-i', help='Input image', required=True)
   parser.add_argument('--output', '-o', help='Output image', required=True)
+  parser.add_argument('--output-updater', help='Output factory.tar.bz2')
   parser.add_argument('--branch', '-b',
                       help='Branch to patch (e.g., factory-2848.B or HEAD)',
                       required=True)
@@ -90,6 +91,14 @@ def main():
     parser.error('Input image %s does not exist' % args.input)
   if args.output != IN_PLACE and os.path.exists(args.output):
     parser.error('Output file %s exists; please remove it first' % args.output)
+
+  args.output_updater = (
+      args.output_updater or
+      os.path.join(os.path.dirname(os.path.realpath(args.output)),
+                   'factory.tar.bz2'))
+  if os.path.exists(args.output):
+    parser.error('Output update file %s exists; please remove it first' %
+                 args.output_updater)
 
   args.packages = set(ParseListArg(args.packages))
 
@@ -305,6 +314,10 @@ def main():
                '*** Created %s (%d bytes)\n'
                '***', args.output, os.path.getsize(args.output))
 
+  Spawn([os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                      'make_update_bundle.py'),
+         '-i', args.output, '-o', args.output_updater],
+        log=True, check_call=True)
 
 if __name__ == '__main__':
   main()
