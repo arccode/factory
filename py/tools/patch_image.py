@@ -125,10 +125,20 @@ def main():
                       '( cd %s && git clean -xdf )', path)
         sys.exit(1)
 
+  # Check out the appropriate branch in each repo
+  for path in repo_paths:
+    if args.branch.startswith('factory-'):
+      branch = (('cros-internal/' if path.endswith('-private') else 'cros/')
+                + args.branch)
+    else:
+      branch = args.branch
+    Spawn(['git', 'checkout', branch], cwd=path, log=True, check_call=True)
+
+  # Do repo syncs in parallel (followed by a rebase+sync if it fails)
   if args.sync:
-    # Do git fetches in parallel
     for i, process in enumerate(
-        [Spawn(['git', 'fetch'], log=True, cwd=path) for path in repo_paths]):
+        [Spawn('repo sync . || (repo rebase . && repo sync .)',
+               log=True, cwd=path, shell=True) for path in set(repo_paths)]):
       if process.wait() != 0:
         sys.exit('git fetch in %s failed' % repo_paths[i])
 
@@ -141,15 +151,6 @@ def main():
           pass
         else:
           sys.exit('repo rebase in %s failed' % path)
-
-  # Check out the appropriate branch in each repo
-  for path in repo_paths:
-    if args.branch.startswith('factory-'):
-      branch = (('cros-internal/' if path.endswith('-private') else 'cros/')
-                + args.branch)
-    else:
-      branch = args.branch
-    Spawn(['git', 'checkout', branch], cwd=path, log=True, check_call=True)
 
   # Emerge the packages
   tarballs = []
@@ -174,6 +175,12 @@ def main():
   # Create staging directory
   staging_dir = tempfile.mkdtemp(prefix='new-image.')
   os.chmod(staging_dir, 0755)
+
+  # Create the /usr/local/factory/custom symlink.
+  factory_dir = os.path.join(staging_dir, 'usr', 'local', 'factory')
+  utils.TryMakeDirs(factory_dir)
+  os.symlink('../autotest/client/site_tests/suite_Factory',
+             os.path.join(factory_dir, 'custom'))
 
   # Unpack tarballs to staging directory
   for t in tarballs:
@@ -250,7 +257,7 @@ def main():
               src_stat.st_size != dest_stat.st_size or
               open(path).read() != open(dest_path).read()):
             # They are different; write a diff
-            Spawn(['diff', '-u', path, dest_path], stdout=diffs, call=True)
+            Spawn(['diff', '-u', dest_path, path], stdout=diffs, call=True)
           else:
             # They are identical.  No need to rsync; delete the src file.
             os.unlink(path)
