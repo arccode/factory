@@ -4,7 +4,10 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Runs chromeos-firmwareupdate to force update EC/firmware."""
+"""Displays a message.
+
+The operator can press the space or enter key to proceed.
+"""
 
 
 import unittest
