@@ -218,8 +218,14 @@ h1 {
   padding: 4px 5px;
 }
 #goofy-language-selector {
-  vertical-align: 9px;
+  display: inline-table;
+  text-align: center;
+  vertical-align: 10px;
   padding-right: 4px;
+  margin-top: -8px;
+}
+#goofy-language-selector td {
+  font-size: 55%;
 }
 #goofy-go, #goofy-language-selector {
   cursor: pointer;
