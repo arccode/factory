@@ -11,6 +11,7 @@ import cPickle as pickle
 import pipes
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -587,6 +588,12 @@ def run_pytest(test_info):
           set_test_info(x)
     set_test_info(suite)
 
+    # Register a handler for SIGTERM, so that Python interpreter has
+    # a chance to do clean up procedures when SIGTERM is received.
+    def _SIGTERMHandler(signum, frame):
+      logging.error('SIGTERM received')
+      raise factory.FactoryTestFailure('SIGTERM received')
+    signal.signal(signal.SIGTERM, _SIGTERMHandler)
     runner = unittest.TextTestRunner()
     result = runner.run(suite)
 
