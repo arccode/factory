@@ -17,7 +17,7 @@ from cros.factory.test.args import Arg
 from cros.factory.test.event import Event
 from cros.factory.test.factory_task import FactoryTaskManager
 from cros.factory.test.factory_task import InteractiveFactoryTask
-from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils.process_utils import SpawnOutput
 
 _TEST_TITLE = test_ui.MakeLabel('Audio Test',
                                 u'音讯测试')
@@ -83,28 +83,36 @@ class AudioDigitPlaybackTask(InteractiveFactoryTask):
   def Run(self):
     def _HasPlaybackVolume(port_id):
       volumn_name = '%s Playback Volume' % port_id
-      if volumn_name in Spawn(['amixer', '-c', '0','controls'],
-                              read_stdout=True).stdout_data:
-        return True
-      return False
+      return volumn_name in SpawnOutput(['amixer', '-c', '0','controls'])
 
-    self._InitUI()
-    self.RunCommand(self._port_switch + ['on,on'], 'Fail to enable audio.')
-    if _HasPlaybackVolume(self._port_id):
-      self.RunCommand(self._port_volume, 'Fail to set playback volume.')
+    def _PlayDigit(num):
+      """Plays digit sound with language from UI.
 
-    def _PlayVoice(num):
+      Args:
+        num: digit number to play.
+      """
       lang = self._ui.GetUILanguage()
       self._ui.PlayAudioFile('%d_%s.ogg' % (num, lang))
 
+    # It makes no sense to continue if it fails to enable audio port.
+    if not self.RunCommand(self._port_switch + ['on,on'],
+                           'Fail to enable audio port.'):
+      return
+
+    self._InitUI()
+
+    if _HasPlaybackVolume(self._port_id):
+      self.RunCommand(self._port_volume)
+
     self.BindDigitKeys(self._pass_digit)
     for k in 'rR':
-      self._ui.BindKey(k, lambda _: _PlayVoice(self._pass_digit))
-    _PlayVoice(self._pass_digit)
+      self._ui.BindKey(k, lambda _: _PlayDigit(self._pass_digit))
+    _PlayDigit(self._pass_digit)
 
   def Cleanup(self):
     self.UnbindDigitKeys()
-    self.RunCommand(self._port_switch + ['off,off'], 'Fail to disable audio.')
+    self.RunCommand(self._port_switch + ['off,off'],
+                    'Fail to disable audio port.')
 
 
 # TODO(deanliao): abstract state detection thread/task to common utils.
@@ -137,8 +145,9 @@ class WaitHeadphoneThread(threading.Thread):
     else:
       expect = 'values=off'
     while not self._done.is_set():
-      if expect in Spawn(cmd, read_stdout=True).stdout_data:
+      if expect in SpawnOutput(cmd):
         self._on_success()
+        self.Stop()
       else:
         self._done.wait(self._check_period)
 
