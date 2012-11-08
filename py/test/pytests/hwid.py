@@ -114,7 +114,8 @@ class AutoProbeHWIDTask(FactoryTask):
     self.test = test
 
   def Run(self):
-    shopfloor.update_local_hwid_data()
+    if shopfloor.is_enabled():
+      shopfloor.update_local_hwid_data()
     self.test.template.SetState(_MESSAGE_AUTO_PROBE_HWID)
     gooftool_cmd = 'gooftool best_match_hwids'
     if self.test.args.missing:
