@@ -6,7 +6,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-from cros.factory.test import factory
+import logging
+
 from cros.factory.test import test_ui
 from cros.factory.test import utils
 from cros.factory.utils.process_utils import Spawn
@@ -88,7 +89,7 @@ class FactoryTask(object):
   def _Start(self):
     assert self._execution_status == TaskState.NOT_STARTED, \
         'Task %s has been run before.' % self.__class__.__name__
-    factory.console.info('%s started.' % self.__class__.__name__)
+    logging.info('Start ' + self.__class__.__name__)
     self._execution_status = TaskState.RUNNING
     self.Run()
 
@@ -100,11 +101,14 @@ class FactoryTask(object):
     Args:
       reason: Enum FinishReason.
     """
-    assert self._execution_status == TaskState.RUNNING, \
-        'Task %s is not running.' % self.__class__.__name__
-    factory.console.info('%s %s.' % (self.__class__.__name__, reason))
+    logging.info('%s %s.', (self.__class__.__name__, reason))
+    assert self._IsRunning(), (
+      'Trying to finish %s which is not running.' % (self.__class__.__name__))
     self._execution_status = TaskState.FINISHED
     self.Cleanup()
+
+  def _IsRunning(self):
+    return self._execution_status == TaskState.RUNNING
 
   def Stop(self):
     self._Finish(FinishReason.STOPPED)
@@ -115,9 +119,20 @@ class FactoryTask(object):
     self._task_manager.RunNextTask() # pylint: disable=E1101
 
   def Fail(self, error_msg, later=False):
-    '''Does Cleanup and fails the task.'''
+    '''Fails the task and perform cleanup.
+
+    Args:
+      error_msg: Error message.
+      later: If True, it allows subsequent tasks to execute and fails its
+          parent test case later.
+    '''
+    logging.warning('%s FAILED. Reason: %s', (self.__class__.__name__,
+                                              error_msg))
+    if not self._IsRunning():
+      # Prevent multiple call of _Finish().
+      return
+
     self._Finish(FinishReason.FAILED)
-    factory.console.info('error: ' + error_msg)
     if later:
       self._ui.FailLater(error_msg) # pylint: disable=E1101
       self._task_manager.RunNextTask() # pylint: disable=E1101
@@ -130,17 +145,27 @@ class FactoryTask(object):
   def Cleanup(self):
     pass
 
-  def RunCommand(self, command, fail_message=None):
+  def RunCommand(self, command, fail_message=None, fail_later=True):
     """Executes a command and checks if it runs successfully.
 
     Args:
-      command: command list (or string).
+      command: command list.
       fail_message: optional string. If assigned and the command's return code
           is nonzero, Fail will be called with fail_message.
+      fail_later: True to fail the parent test case later when the command
+          fails to execute.
+
+    Returns:
+      True if command executes successfully; otherwise, False.
     """
+    logging.info('RunCommand: ' + ' '.join(command))
     p = Spawn(command, call=True, ignore_stdout=True, read_stderr=True)
     if p.returncode != 0 and fail_message:
-      self.Fail('%s\nerror:%s' % (fail_message, p.stderr_data))
+      self.Fail(
+        '%s\nFailed running: %s\nSTDERR: %s' % (
+          fail_message, ' '.join(command), p.stderr_data),
+        later=fail_later)
+    return p.returncode == 0
 
 
 class InteractiveFactoryTask(FactoryTask):  # pylint: disable=W0223
@@ -173,7 +198,7 @@ class InteractiveFactoryTask(FactoryTask):  # pylint: disable=W0223
                      lambda _: self.Fail(
         '%s failed by operator.' % self.__class__.__name__, later=fail_later))
 
-  def BindDigitKeys(self, pass_digit):
+  def BindDigitKeys(self, pass_digit, fail_later=True):
     """Binds the pass_digit to pass the task and other digits to fail it.
 
     To prevent operator's cheating by key swiping, we bind the remaining digit
@@ -181,12 +206,15 @@ class InteractiveFactoryTask(FactoryTask):  # pylint: disable=W0223
 
     Arg:
       pass_digit: a digit [0, 9] to pass the task.
+      fail_later: True to fail the parent test case later when the wrong key is
+          pressed.
     """
     for i in xrange(0, 10):
       if i == pass_digit:
         self._ui.BindKey(str(i), lambda _: self.Pass())
       else:
-        self._ui.BindKey(str(i), lambda _: self.Fail('Wrong key pressed.'))
+        self._ui.BindKey(str(i), lambda _: self.Fail('Wrong key pressed.',
+                                                     later=fail_later))
 
   def UnbindDigitKeys(self):
     """Unbinds all digit keys."""
