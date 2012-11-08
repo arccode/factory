@@ -6,7 +6,6 @@
 
 """Test external display with optional audio playback test."""
 
-import os
 import random
 import threading
 import unittest
@@ -19,7 +18,7 @@ from cros.factory.test.event import Event
 from cros.factory.test.factory_task import FactoryTaskManager
 from cros.factory.test.factory_task import InteractiveFactoryTask
 from cros.factory.test.pytests import audio
-from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils.process_utils import SpawnOutput
 
 _TEST_TITLE = test_ui.MakeLabel('External Display Test',
                                 u'外接显示屏测试')
@@ -82,14 +81,17 @@ class ExtDisplayTask(InteractiveFactoryTask):  # pylint: disable=W0223
                     test_ui.MakePassFailKeyLabel(pass_key=self._pass_key)),
       id='instruction-center')
 
-  def InitUI(self):
+  def InitUI(self, fail_later=True):
     """Initializes UI.
 
     Sets task title and instruction. Binds pass/fail keys.
     Should be called in the beginning of Run().
+
+    Args:
+      fail_later: True to fail later when fail key is pressed.
     """
     self._SetTitleInstruction()
-    self.BindPassFailKeys(pass_key=self._pass_key)
+    self.BindPassFailKeys(pass_key=self._pass_key, fail_later=fail_later)
 
 
 class WaitDisplayThread(threading.Thread):
@@ -112,9 +114,9 @@ class WaitDisplayThread(threading.Thread):
 
   def run(self):
     while not self._done.is_set():
-      if self._xrandr_expect in Spawn(['xrandr', '-d', ':0'],
-                                      call=True, read_stdout=True).stdout_data:
+      if self._xrandr_expect in SpawnOutput(['xrandr', '-d', ':0']):
         self._on_success()
+        self.Stop()
       else:
         self._done.wait(_CONNECTION_CHECK_PERIOD_SECS)
 
@@ -162,7 +164,9 @@ class DetectDisplayTask(ExtDisplayTask):
     pass
 
   def Run(self):
-    self.InitUI()
+    # If the display is unable to detect, it should not perform the remaining
+    # tasks.
+    self.InitUI(fail_later=False)
     self.Prepare()
     self._ui.AddEventHandler(self._pass_event, lambda _: self.Pass())
     self._wait_display.start()
@@ -246,7 +250,6 @@ class ExtDisplayTaskArg(object):
     self.display_label = None
     self.display_id = None
     self.audio_port = None
-    self.audio_sample = None
     self.ui = None
     self.template = None
 
@@ -261,16 +264,12 @@ class ExtDisplayTaskArg(object):
       ValueError if parse error.
     """
     # Sanity check
-    if (len(info) not in set([2, 4]) or
-        any(not isinstance(i, (str, type(None))) for i in info)):
+    if (len(info) not in [2, 3] or any(not isinstance(i, str) for i in info)):
       raise ValueError('ERROR: invalid display_info item: ' + str(info))
 
     self.display_label, self.display_id = info[:2]
-    if len(info) == 4:
-      self.audio_port, self.audio_sample = info[2:4]
-      if self.audio_sample and not os.path.isfile(self.audio_sample):
-        raise ValueError('ERROR: Cannot find audio sample file: ' +
-                         self.audio_sample)
+    if len(info) == 3:
+      self.audio_port = info[2]
 
 
 class ExtDisplayTest(unittest.TestCase):
@@ -278,16 +277,12 @@ class ExtDisplayTest(unittest.TestCase):
     Arg('main_display', str, 'xrandr ID for ChromeBook\'s main display.',
         optional=False),
     Arg('display_info', list,
-        ('A list of tuples: [(display_label, display_id, audio_port, '
-         'audio_sample),...].\n'
+        ('A list of tuple: (display_label, display_id, audio_port).\n'
          'Each tuple represents an external port.\n'
          'display_label: (str) display name seen by operator, e.g. VGA.\n'
          'display_id: (str) ID used to identify display in xrandr. e.g. VGA1.\n'
-         'audio_port: (str, opt) amixer port name for audio test.\n'
-         'audio_sample: (str, opt) path to an audio sample file.\n'
-         'Set audio_sample as None will enable cheat-proof audio test.\n'
-         'Note that audio_port and audio_sample must be set together to\n'
-         'enable audio playback test.'),
+         'audio_port: (str, opt) amixer port name for audio test. If set,\n'
+         '    the audio playback test is added for the display.'),
         optional=False),
   ]
 
