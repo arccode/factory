@@ -468,3 +468,7 @@ class UI(object):
   def SetFocus(self, element_id):
     '''Set focus to the element specified by element_id'''
     self.RunJS('$("%s").focus()' % element_id)
+
+  def SetSelected(self, element_id):
+    '''Set the specified element as selected'''
+    self.RunJS('$("%s").select()' % element_id)

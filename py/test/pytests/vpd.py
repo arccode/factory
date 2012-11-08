@@ -5,6 +5,7 @@
 # found in the LICENSE file.
 
 import logging
+import re
 import unittest
 
 from cros.factory import locale
@@ -16,7 +17,7 @@ from cros.factory.test.args import Arg
 from cros.factory.test.factory_task import FactoryTask, FactoryTaskManager
 from cros.factory.test.ui_templates import OneSection, SelectBox
 from cros.factory.test.utils import Enum
-from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils.process_utils import CheckOutput, Spawn
 
 _MSG_FETCH_FROM_SHOP_FLOOR = test_ui.MakeLabel(
     'Fetching VPD from shop floor server...',
@@ -32,43 +33,55 @@ _MSG_HOW_TO_SELECT = test_ui.MakeLabel(
     '</br>Select with ENTER', u'</br>按 ENTER 选择', 'vpd-info')
 # The "ESC" is available primarily for RMA and testing process, when operator
 # does not want to change existing serial number.
-_MSG_SERIAL_NUMBER_PROMPT = test_ui.MakeLabel(
-    'Enter Serial Number: ', u'输入序号: ', 'vpd-info')
-_MSG_ESC_TO_SKIP = test_ui.MakeLabel(
-    '</br>(ESC to re-use current machine serial number)',
-    u'</br>(ESC 使用目前已写入机器的序号)',
+_MSG_MANUAL_INPUT_PROMPT = lambda en, zh: test_ui.MakeLabel(
+    'Enter %s: ' % en, u'输入%s: ' % zh, 'vpd-info')
+_MSG_MANUAL_SELECT_PROMPT = lambda en, zh: test_ui.MakeLabel(
+    'Select %s: </br>' % en, u'选择%s: </br>' % zh, 'vpd-info')
+_MSG_ESC_TO_SKIP = lambda en, zh: test_ui.MakeLabel(
+    '</br>(ESC to re-use current machine %s)' % en,
+    u'</br>(ESC 使用目前已写入机器的%s)' % zh,
     'vpd-info')
 
-_ERR_NO_VALID_SERIAL_NUMBER = test_ui.MakeLabel(
-    'Found no valid serial number on machine.',
-    u'机器上并无合法的序号',
+_ERR_NO_VALID_VPD = lambda en, zh: test_ui.MakeLabel(
+    'Found no valid %s on machine.' % en,
+    u'机器上并无合法的%s' % zh,
+    'vpd-info test-error')
+_ERR_INPUT_INVALID = lambda en, zh: test_ui.MakeLabel(
+    'Invalid %s value.' % en,
+    u'输入的%s不合法' % zh,
     'vpd-info test-error')
 
 _DEFAULT_VPD_TEST_CSS = '.vpd-info {font-size: 2em;}'
 
-_SERIAL_INPUT_ID = 'serial'
-_HTML_SERIAL_NUMBER = """
+_HTML_MANUAL_INPUT = lambda ele_id: """
     <input type="text" id="%s" style="width: 20em; font-size: 2em;"/>
     <div id="errormsg" class="vpd-info test-error"></div>
-""" % _SERIAL_INPUT_ID
-_EVENT_SUBTYPE_VPD_SERIAL = 'VPD-serial'
-_JS_SERIAL_NUMBER = """
+""" % ele_id
+_EVENT_SUBTYPE_VPD_PREFIX = 'VPD-'
+_JS_MANUAL_INPUT = lambda ele_id, event_subtype: """
     ele = document.getElementById("%s");
     window.test.sendTestEvent("%s", ele.value);
-""" % (_SERIAL_INPUT_ID, _EVENT_SUBTYPE_VPD_SERIAL)
+""" % (ele_id, event_subtype)
 
-_SELECT_BOX_ID = 'region_select'
+_REGION_SELECT_BOX_ID = 'region_select'
 _SELECT_BOX_STYLE = 'font-size: 1.5em; background-color: white;'
 _SELECTION_PER_PAGE = 10
 _EVENT_SUBTYPE_SELECT_REGION = 'VPD-region'
-_JS_SELECT_REGION = """
+_JS_SELECT_BOX = lambda ele_id, event_subtype: """
     ele = document.getElementById("%s");
     idx = ele.selectedIndex;
     window.test.sendTestEvent("%s", ele.options[idx].value);
-""" % (_SELECT_BOX_ID, _EVENT_SUBTYPE_SELECT_REGION)
+""" % (ele_id, event_subtype)
 
+_VPD_SECTIONS = {'ro': 'RO_VPD', 'rw': 'RW_VPD'}
+
+_REGEX_TYPE = type(re.compile(''))
 
 class WriteVPDTask(FactoryTask):
+  """A task to write VPD.
+
+  Args:
+    vpd_test: The main VPD TestCase object."""
   def __init__(self, vpd_test):
     super(WriteVPDTask, self).__init__()
     self.test = vpd_test
@@ -97,24 +110,26 @@ class WriteVPDTask(FactoryTask):
     self.test.template.SetState('<div class="vpd-info">%s</div>' % (
                                 '</br>'.join(vpd_list)), append=True)
 
-    VPD_SECTIONS = (('RO_VPD', 'ro'), ('RW_VPD', 'rw'))
-    for (section, vpd_type) in VPD_SECTIONS:
+    for (vpd_type, section) in _VPD_SECTIONS.items():
       if not self.test.vpd.get(vpd_type, None):
         continue
       vpds = self.FormatVPDParameter(self.test.vpd[vpd_type])
       Spawn(['vpd', '-i', '%s' % section] + vpds, log=True, check_call=True)
 
-    if self.test.registration_code_map is not None:
+    if self.test.registration_code_map:
       # Check registration codes (fail test if invalid).
       for k in ['user', 'group']:
         if k not in self.test.registration_code_map:
           raise factory.FactoryTestFailure('Missing %s registration code' % k)
-        registration_codes.CheckRegistrationCode(
-            self.test.registration_code_map[k])
+        try:
+          registration_codes.CheckRegistrationCode(
+              self.test.registration_code_map[k])
+        except ValueError as e:
+          self.Fail(str(e))
 
       # Add registration codes, being careful not to log the command.
       logging.info('Storing registration codes.')
-      Spawn(['vpd', '-i', '%s' % 'RW_VPD'] + self.FormatVPDParameter(
+      Spawn(['vpd', '-i', 'RW_VPD'] + self.FormatVPDParameter(
             # See <http://src.chromium.org/svn/trunk/src/chrome/
             # browser/chromeos/extensions/echo_private_api.cc>.
             {'ubind_attribute': self.test.registration_code_map['user'],
@@ -124,7 +139,10 @@ class WriteVPDTask(FactoryTask):
 
 
 class ShopFloorVPDTask(FactoryTask):
-  """A task to fetch VPD from shop floor server."""
+  """A task to fetch VPD from shop floor server.
+
+  Args:
+    vpd_test: The main VPD TestCase object."""
   def __init__(self, vpd_test):
     super(ShopFloorVPDTask, self).__init__()
     self.test = vpd_test
@@ -132,48 +150,125 @@ class ShopFloorVPDTask(FactoryTask):
   def Run(self):
     self.test.template.SetState(_MSG_FETCH_FROM_SHOP_FLOOR)
     self.test.vpd.update(shopfloor.get_vpd())
-    if self.test.registration_code_map is not None:
+    if self.test.registration_code_map:
       self.test.registration_code_map.update(
         shopfloor.get_registration_code_map())
-    factory.console.info(self.test.vpd)
     self.Pass()
 
 
-class SerialNumberTask(FactoryTask):
-  """Factory task to select an unique serial number for VPD.
+class VPDInfo(object):
+  """A class for checking all the manual input VPD fields."""
+  def __init__(self, region, key, label_en, label_zh, value_check):
+    if region not in ['ro', 'rw']:
+      raise ValueError('VPD region must be either \'ro\' or \'rw\'.')
+    self.region = region
+    if not isinstance(key, str):
+      raise TypeError('VPD id must be a string.')
+    self.key = key
+    if not isinstance(label_en, (str, unicode)):
+      raise TypeError('VPD English label must be a string or unicode string.')
+    self.label_en = label_en
+    if not isinstance(label_zh, (str, unicode)):
+      raise TypeError('VPD Chinese label must be a string or unicode string.')
+    self.label_zh = label_zh
+    if not isinstance(value_check, (list, str, type(None))):
+      raise TypeError('VPD possible values must be a list of strings, '
+                      'a regexp string, no None.')
+    if isinstance(value_check, list):
+      for v in value_check:
+        if not isinstance(v, (str, unicode)):
+          raise TypeError('VPD possible value needs to be a string.')
+      self.value_check = value_check
+    elif isinstance(value_check, str):
+      self.value_check = re.compile(value_check)
+    else: # value_check is None
+      self.value_check = value_check
+
+
+class ManualInputTask(FactoryTask):
+  """Factory task to let user manually enter value for the given VPD.
 
   Partners should fill this in with the correct serial number
-  printed on the box and physical device."""
-  def __init__(self, vpd_test):
-    super(SerialNumberTask, self).__init__()
-    self.test = vpd_test
+  printed on the box and physical device.
 
-  def OnComplete(self, serial_number):
-    if serial_number:
-      self.test.vpd['ro']['serial_number'] = serial_number.strip()
+  Args:
+    vpd_test: The main VPD TestCase object.
+    vpd_info: The VPD info field that requires to be manually entered."""
+  def __init__(self, vpd_test, vpd_info):
+    super(ManualInputTask, self).__init__()
+    self.test = vpd_test
+    self.vpd_info = vpd_info
+
+  def OnComplete(self, vpd_value):
+    if vpd_value:
+      # Special handling for registration codes. We need to be careful not to
+      # log them.
+      if self.vpd_info.key == 'ubind_attribute':
+        self.test.registration_code_map['user'] = vpd_value
+      elif self.vpd_info.key == 'gbind_attribute':
+        self.test.registration_code_map['group'] = vpd_value
+      else:
+        self.test.vpd[self.vpd_info.region][self.vpd_info.key] = vpd_value
     self.Pass()
 
   def OnEnterPressed(self, event):
-    sn = event.data
-    if sn:
-      self.OnComplete(sn)
+    vpd_value = event.data
+    if vpd_value:
+      if (isinstance(self.vpd_info.value_check, _REGEX_TYPE)) and (
+          not self.vpd_info.value_check.match(vpd_value)):
+        self.test.ui.SetHTML(_ERR_INPUT_INVALID(
+            self.vpd_info.label_en, self.vpd_info.label_zh), id='errormsg')
+        self.test.ui.SetSelected(self.vpd_info.key)
+        return
+      self.OnComplete(vpd_value)
 
   def OnESCPressed(self):
-    vpd_sn = Spawn(['vpd', '-g', 'serial_number'],
-                   check_output=True).stdout_data.strip()
-    if not vpd_sn:
-      self.test.ui.SetHTML(_ERR_NO_VALID_SERIAL_NUMBER, id='errormsg')
+    vpd_value = CheckOutput(['vpd', '-i', _VPD_SECTIONS[self.vpd_info.region],
+                            '-g', self.vpd_info.key]).strip()
+    if not vpd_value:
+      self.test.ui.SetHTML(_ERR_NO_VALID_VPD(
+          self.vpd_info.label_en, self.vpd_info.label_zh), id='errormsg')
     else:
       self.OnComplete(None)
 
   def Run(self):
-    self.test.template.SetState(_MSG_SERIAL_NUMBER_PROMPT)
-    self.test.template.SetState(_HTML_SERIAL_NUMBER, append=True)
-    self.test.template.SetState(_MSG_ESC_TO_SKIP, append=True)
-    self.test.ui.SetFocus(_SERIAL_INPUT_ID)
-    self.test.ui.BindKeyJS(test_ui.ENTER_KEY, _JS_SERIAL_NUMBER)
-    self.test.ui.AddEventHandler(_EVENT_SUBTYPE_VPD_SERIAL, self.OnEnterPressed)
+    if isinstance(self.vpd_info.value_check, list):
+      # Renders a select box to list all the possible values.
+      self.RenderSelectBox()
+    else:
+      self.RenderInputBox()
+
+  def _AppendState(self, html):
+    self.test.template.SetState(html, append=True)
+
+  def RenderSelectBox(self):
+    vpd_event_subtype = _EVENT_SUBTYPE_VPD_PREFIX + self.vpd_info.key
+    self.test.template.SetState(_MSG_MANUAL_SELECT_PROMPT(
+        self.vpd_info.label_en, self.vpd_info.label_zh))
+    select_box = SelectBox(self.vpd_info.key, _SELECTION_PER_PAGE,
+                           _SELECT_BOX_STYLE)
+    for index, value in enumerate(self.vpd_info.value_check):
+      select_box.InsertOption(value, '%s - %s' % (index, value))
+    select_box.SetSelectedIndex(0)
+    self._AppendState(select_box.GenerateHTML())
+    self._AppendState(_MSG_HOW_TO_SELECT)
+    self.test.ui.BindKeyJS(test_ui.ENTER_KEY, _JS_SELECT_BOX(
+        self.vpd_info.key, vpd_event_subtype))
+    self.test.ui.AddEventHandler(vpd_event_subtype, self.OnEnterPressed)
+    self.test.ui.SetFocus(self.vpd_info.key)
+
+  def RenderInputBox(self):
+    vpd_event_subtype = _EVENT_SUBTYPE_VPD_PREFIX + self.vpd_info.key
+    self.test.template.SetState(_MSG_MANUAL_INPUT_PROMPT(
+        self.vpd_info.label_en, self.vpd_info.label_zh))
+    self._AppendState(_HTML_MANUAL_INPUT(self.vpd_info.key))
+    self._AppendState(_MSG_ESC_TO_SKIP(self.vpd_info.label_en,
+                                       self.vpd_info.label_zh))
+    self.test.ui.BindKeyJS(test_ui.ENTER_KEY, _JS_MANUAL_INPUT(
+        self.vpd_info.key, vpd_event_subtype))
+    self.test.ui.AddEventHandler(vpd_event_subtype, self.OnEnterPressed)
     self.test.ui.BindKey(test_ui.ESCAPE_KEY, lambda _: self.OnESCPressed())
+    self.test.ui.SetFocus(self.vpd_info.key)
 
   def Cleanup(self):
     self.test.ui.UnbindKey(test_ui.ENTER_KEY)
@@ -181,7 +276,10 @@ class SerialNumberTask(FactoryTask):
 
 
 class SelectRegionTask(FactoryTask):
-  """Factory task to select region info (locale, keyboard layout, timezone)."""
+  """Factory task to select region info (locale, keyboard layout, timezone).
+
+  Args:
+    vpd_test: The main VPD TestCase object."""
   def __init__(self, vpd_test, regions=None):
     super(SelectRegionTask, self).__init__()
     self.test = vpd_test
@@ -200,7 +298,7 @@ class SelectRegionTask(FactoryTask):
 
   def RenderPage(self):
     self.test.template.SetState(_MSG_SELECT_REGION)
-    select_box = SelectBox(_SELECT_BOX_ID, _SELECTION_PER_PAGE,
+    select_box = SelectBox(_REGION_SELECT_BOX_ID, _SELECTION_PER_PAGE,
                            _SELECT_BOX_STYLE)
     for index, region in enumerate(self.region_list):
       select_box.InsertOption(index, '%s - (%s %s %s)' % (
@@ -208,9 +306,10 @@ class SelectRegionTask(FactoryTask):
     select_box.SetSelectedIndex(0)
     self.test.template.SetState(select_box.GenerateHTML(), append=True)
     self.test.template.SetState(_MSG_HOW_TO_SELECT, append=True)
-    self.test.ui.BindKeyJS(test_ui.ENTER_KEY, _JS_SELECT_REGION)
+    self.test.ui.BindKeyJS(test_ui.ENTER_KEY, _JS_SELECT_BOX(
+        _REGION_SELECT_BOX_ID, _EVENT_SUBTYPE_SELECT_REGION))
     self.test.ui.AddEventHandler(_EVENT_SUBTYPE_SELECT_REGION, self.SaveVPD)
-    self.test.ui.SetFocus(_SELECT_BOX_ID)
+    self.test.ui.SetFocus(_REGION_SELECT_BOX_ID)
 
   def Run(self):
     if self.regions is None:
@@ -231,10 +330,18 @@ class VPDTest(unittest.TestCase):
         '{"ro": { RO_VPD key-value pairs }, "rw": { RW_VPD key-value pairs }}',
         default=None, optional=True),
     Arg('store_registration_codes', bool,
-        'Whether to store registration codes onto the machine.', default=False,
-        optional=True),
+        'Whether to store registration codes onto the machine.', default=False),
     Arg('task_list', list, 'A list of tasks to execute.',
-        default=[VPDTasks.serial, VPDTasks.region], optional=True)
+        default=[VPDTasks.serial, VPDTasks.region]),
+    Arg('manual_input_fields', list, 'A list of tuples (vpd_region, key, '
+        'en_display_name, zh_display_name, VALUE_CHECK) indicating the VPD '
+        'fields that need to be manually entered.\n'
+        'VALUE_CHECK can be a list of strings, a regexp string, or None. '
+        'If VALUE_CHECK is None or a regexp string then a text input box will '
+        'show up to let user input value. The entered value will be validated '
+        'if VALUE_CHECK is a regexp string. Otherwise a select box containing '
+        'all the possible values will be used to let user select a value from '
+        'it.', default=[], optional=True)
   ]
 
   def setUp(self):
@@ -242,8 +349,7 @@ class VPDTest(unittest.TestCase):
     self.template = OneSection(self.ui)
     self.ui.AppendCSS(_DEFAULT_VPD_TEST_CSS)
     self.tasks = []
-    self.registration_code_map = (
-        {} if self.args.store_registration_codes else None)
+    self.registration_code_map = {}
     self.vpd = {'ro': {}, 'rw': {}}
     if self.args.override_vpd:
       if self.ui.IsEngineeringMode():
@@ -257,7 +363,11 @@ class VPDTest(unittest.TestCase):
         self.tasks += [ShopFloorVPDTask(self)]
       else:
         if self.VPDTasks.serial in self.args.task_list:
-          self.tasks += [SerialNumberTask(self)]
+          self.args.manual_input_fields.insert(
+              0, ('ro', 'serial_number', 'Serial Number', u'序号', None))
+        for v in self.args.manual_input_fields:
+          self.tasks += [ManualInputTask(
+              self, VPDInfo(v[0], v[1], v[2], v[3], v[4]))]
         if self.VPDTasks.region in self.args.task_list:
           self.tasks += [SelectRegionTask(self)]
     self.tasks += [WriteVPDTask(self)]
