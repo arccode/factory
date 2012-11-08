@@ -15,6 +15,7 @@
 # 'press_to_continue': Prompts and waits for a key press (SPACE) to continue.
 
 import glob
+import logging
 import os
 import re
 import socket
@@ -135,7 +136,7 @@ class ExternalPowerTask(FactoryTask):
 
   def CheckEvent(self):
     state = self.GetExternalPowerState()
-    factory.console.info('power state: %s' % state)
+    logging.info('power state: %s', state)
     if state == self.AC_CONNECTED:
       return True
     return False
@@ -217,7 +218,7 @@ class ShopFloorTask(FactoryTask):
       shopfloor.check_serial_number(serial.strip())
       EventLog.ForAutoTest().Log('mlb_serial_number',
                                  serial_number=serial)
-      factory.console.info('Serial number: %s' % serial)
+      logging.info('Serial number: %s', serial)
       shopfloor.set_serial_number(serial)
       self._test.ui.event_client.post_event(
           Event(Event.Type.UPDATE_SYSTEM_INFO))

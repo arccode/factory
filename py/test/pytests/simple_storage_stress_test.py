@@ -19,12 +19,12 @@ In addition, unexpected abortion will leave the temporary file uncleaned in the
 specified directory.
 """
 
+import logging
 import os
 import tempfile
 import time
 import unittest
 
-from cros.factory.test import factory
 from cros.factory.test import utils
 from cros.factory.test.args import Arg
 
@@ -60,13 +60,13 @@ class StartTest(unittest.TestCase):
     write_time = time.time() - start_time
 
     # Drop cache to ensure the system do a real read.
-    factory.console.debug('Memory usage before drop_caches = %s',
-                          utils.CheckOutput(['free', '-m']))
+    logging.debug('Memory usage before drop_caches = %s',
+                  utils.CheckOutput(['free', '-m']))
     # For the constant, please refer to 'man drop_caches'
     with open('/proc/sys/vm/drop_caches', 'w') as f:
       f.write('3')
-    factory.console.debug('Memory usage after drop_caches = %s',
-                          utils.CheckOutput(['free', '-m']))
+    logging.debug('Memory usage after drop_caches = %s',
+                  utils.CheckOutput(['free', '-m']))
 
     # perform read operation.
     start_time = time.time()
@@ -78,15 +78,15 @@ class StartTest(unittest.TestCase):
       remaining_bytes -= size
     read_time = time.time() - start_time
 
-    factory.console.info('Write time=%.3f secs', write_time)
-    factory.console.info('Read time=%.3f secs', read_time)
+    logging.info('Write time=%.3f secs', write_time)
+    logging.info('Read time=%.3f secs', read_time)
     return True
 
   def runTest(self):
     file_size = self.args.file_size
     for iteration in xrange(self.args.operations):
       with tempfile.NamedTemporaryFile(dir=self.args.dir) as temp_file:
-        factory.console.info(
-            '[%d/%d]: Tempfile[%s] created for %d bytes write/read test',
-            iteration, self.args.operations, temp_file.name, file_size)
+        logging.info(
+          '[%d/%d]: Tempfile[%s] created for %d bytes write/read test',
+          iteration, self.args.operations, temp_file.name, file_size)
         self.ReadWriteFile(temp_file, file_size)

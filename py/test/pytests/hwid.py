@@ -15,6 +15,7 @@
 # test. Please refer to ARGS below for detailed explanation.
 
 import factory_common # pylint: disable=W0611
+import logging
 import re
 import unittest
 
@@ -88,7 +89,7 @@ class WriteHWIDTask(FactoryTask):
     if hwid != current_hwid:
       gooftools.run("gooftool write_hwid '%s'" % hwid)
     else:
-      factory.console.info("Probed HWID is the same as the one already on "
+      logging.info("Probed HWID is the same as the one already on "
                            "the machine. Skip write.")
     self.Stop()
 
@@ -135,10 +136,10 @@ class AutoProbeHWIDTask(FactoryTask):
         match = HWID_RE.search(matched_hwids[i]).group(0)
         if match:
           self.test.hwid_list.append(match)
-      factory.console.info("Found matched HWIDs: %s" % self.test.hwid_list)
+      logging.info("Found matched HWIDs: %s", self.test.hwid_list)
     else:
       self.test.template.SetState(_ERR_HWID_NOT_FOUND)
-      factory.console.info("Cannot find matched HWID.")
+      factory.console.error("Cannot find matched HWID.")
     self.Stop()
 
 
@@ -163,7 +164,7 @@ class SelectHWIDTask(FactoryTask):
                                           ignore_status=True)
       known_list = stdout.splitlines()
       if (not known_list) or (result != 0):
-        factory.console.info('Warning: No valid HWID database in system.')
+        factory.console.error('Warning: No valid HWID database in system.')
         known_list = []
 
     # Build a list with elements in (hwid_value, display_text).

@@ -13,14 +13,14 @@ Test parameter:
   duration_secs: Number of seconds to stress CPU.
 '''
 
+import logging
 import time
 import unittest
-from cros.factory.test import factory
 
 class UrandomTest(unittest.TestCase):
   def runTest(self):
     duration_secs = self.test_info.args['duration_secs']
-    factory.console.info('Getting /dev/urandom for %d seconds', duration_secs)
+    logging.info('Getting /dev/urandom for %d seconds', duration_secs)
 
     with open('/dev/urandom') as f:
       end_time = time.time() + duration_secs

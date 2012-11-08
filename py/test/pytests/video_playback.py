@@ -4,9 +4,9 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import logging
 import unittest
 
-from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
 
@@ -31,9 +31,9 @@ class VideoPlaybackTest(unittest.TestCase):
   ]
 
   def runTest(self):
-    factory.console.info('Video Playback test started')
-    factory.console.info('video_file=[%s]' % self.args.video_file)
-    factory.console.info('time_limit=%s secs' % self.args.time_limit)
+    logging.info('Video Playback test started')
+    logging.info('video_file=[%s]', self.args.video_file)
+    logging.info('time_limit=%s secs', self.args.time_limit)
     ui = test_ui.UI()
     ui.CallJSFunction('init',
                       self.args.video_file,
@@ -41,4 +41,4 @@ class VideoPlaybackTest(unittest.TestCase):
                       self.args.time_limit,
                       self.args.show_controls)
     ui.Run()
-    factory.console.info('Video Playback test finished')
+    logging.info('Video Playback test finished')

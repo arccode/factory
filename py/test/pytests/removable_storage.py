@@ -424,18 +424,18 @@ class RemovableStorageTest(unittest.TestCase):
         else:
           if self.args.media != self.GetDeviceType(device):
             return True
-        factory.console.info('%s device inserted : %s' %
-                             (self.args.media, device.device_node))
+        logging.info('%s device inserted : %s', (self.args.media,
+                                                 device.device_node))
         self._target_device = device.device_node
         self.TestReadWrite()
       elif self._state == _STATE_LOCKTEST_WAIT_INSERT:
-        factory.console.info('%s device inserted : %s' %
-                             (self.args.media, device.device_node))
+        logging.info('%s device inserted : %s', (self.args.media,
+                                                 device.device_node))
         if self._target_device == device.device_node:
           self.TestLock()
     elif action == _UDEV_ACTION_REMOVE:
       if self._target_device == device.device_node:
-        factory.console.info('Device removed : %s' % device.device_node)
+        logging.info('Device removed : %s', device.device_node)
         if self._state == _STATE_RW_TEST_WAIT_REMOVE:
           if self.args.perform_locktest:
             self._template.SetInstruction(
