@@ -127,7 +127,7 @@ class SystemInfo(object):
 def GetIPv4Interfaces():
   '''Returns a list of IPv4 interfaces.'''
   interfaces = sorted(netifaces.interfaces())
-  return [x for x in interfaces if x != 'lo']
+  return [x for x in interfaces if not x.startswith('lo')]
 
 def GetIPv4InterfaceAddresses(interface):
   '''Returns a list of ips of an interface'''
