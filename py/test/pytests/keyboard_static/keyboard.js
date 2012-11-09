@@ -57,6 +57,19 @@ keyboardTest.prototype.markKeydown = function(keycode) {
   if (!divs.length) {
     return;
   }
+  if (this.keyOrderList && this.keyOrderList.indexOf(keycode) != -1) {
+    // Checks if the key has been pressed following the given order.
+    var index = this.keyOrderList.indexOf(keycode);
+    if (index > 0) {
+      var untested = this.getClassArray("keyboard-test-key-untested");
+      for (var i = 0; i < untested.length; ++i) {
+        if (this.matchKeycode(untested[i].id, this.keyOrderList[index - 1])) {
+          // Returns if the previous key is untested.
+          return;
+        }
+      }
+    }
+  }
   divs.forEach(function(element) {
       if (!element)
         return;
@@ -76,20 +89,6 @@ keyboardTest.prototype.markKeyup = function(keycode) {
   var divs = this.getClassArray("keyboard-test-keydown");
   if (!divs.length) {
     return;
-  }
-  if (this.keyOrderList && this.keyOrderList.indexOf(keycode) != -1) {
-    // Checks if the key has been pressed following the given order.
-    var index = this.keyOrderList.indexOf(keycode);
-    if (index > 0) {
-      var untested = this.getClassArray("keyboard-test-key-untested");
-      for (var i = 0; i < untested.length; ++i) {
-        if (this.matchKeycode(untested[i].id, this.keyOrderList[index - 1])) {
-          // Resets the test if the previous key is untested.
-          this.resetTest();
-          return;
-        }
-      }
-    }
   }
   divs.forEach(function(element) {
       if (!element)
