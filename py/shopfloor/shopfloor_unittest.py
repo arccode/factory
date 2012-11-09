@@ -23,15 +23,15 @@ from cros.factory.utils.process_utils import Spawn
 
 
 class ShopFloorServerTest(unittest.TestCase):
-
   def setUp(self):
     '''Starts shop floor server and creates client proxy.'''
     # pylint: disable=W0212
     self.server_port = shopfloor_server.DEFAULT_SERVER_PORT
     self.base_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
     self.data_dir = tempfile.mkdtemp(prefix='shopfloor_data.')
+    self.logs_dir = os.path.join(self.data_dir, time.strftime('logs.%Y%m%d'))
     self.registration_code_log = (
-        os.path.join(self.data_dir, shopfloor.REGISTRATION_CODE_LOG_CSV))
+        os.path.join(self.logs_dir, shopfloor.REGISTRATION_CODE_LOG_CSV))
     csv_source = os.path.join(self.base_dir, 'testdata', 'devices.csv')
     csv_work = os.path.join(self.data_dir, 'devices.csv')
     aux_csv_source = os.path.join(self.base_dir, 'testdata', 'aux_mlb.csv')
@@ -148,7 +148,7 @@ class ShopFloorServerTest(unittest.TestCase):
     # Upload simple blob
     blob = 'Simple Blob'
     report_name = 'simple_blob.rpt'
-    report_path = os.path.join(self.data_dir, shopfloor.REPORTS_DIR,
+    report_path = os.path.join(self.logs_dir, shopfloor.REPORTS_DIR,
                                report_name)
     self.proxy.UploadReport('CR001020', shopfloor.Binary('Simple Blob'),
                             report_name)
@@ -194,8 +194,7 @@ class ShopFloorServerTest(unittest.TestCase):
 
   def testUploadEvent(self):
     # Check if events dir is created.
-    events_dir = os.path.join(self.data_dir, shopfloor.EVENTS_DIR)
-    self.assertTrue(os.path.isdir(events_dir))
+    events_dir = os.path.join(self.logs_dir, shopfloor.EVENTS_DIR)
 
     # A new event file should be created.
     self.assertTrue(self.proxy.UploadEvent('LOG_C835C718',

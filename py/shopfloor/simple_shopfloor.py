@@ -61,7 +61,6 @@ class ShopFloor(shopfloor.ShopFloorBase):
     super(ShopFloor, self).__init__()
     self.data_store = None
     self.aux_data = {}
-    self.reports_dir = None
 
   def Init(self):
     devices_csv = os.path.join(self.data_dir, 'devices.csv')
@@ -82,14 +81,9 @@ class ShopFloor(shopfloor.ShopFloorBase):
       logging.info("Loaded %d entries from %s",
                    len(self.aux_data[table_name]), f)
 
-    # Put uploaded reports in a "reports" folder inside data_dir.
-    self.reports_dir = os.path.join(self.data_dir, 'reports')
-    if not os.path.isdir(self.reports_dir):
-      os.mkdir(self.reports_dir)
-
     # Try to touch some files inside directory, to make sure the directory is
     # writable, and everything I/O system is working fine.
-    stamp_file = os.path.join(self.reports_dir, ".touch")
+    stamp_file = os.path.join(self.data_dir, ".touch")
     with open(stamp_file, "w") as stamp_handle:
       stamp_handle.write("%s - VERSION %s" % (self.NAME, self.VERSION))
     os.remove(stamp_file)
@@ -134,7 +128,7 @@ class ShopFloor(shopfloor.ShopFloorBase):
                                     time.strftime("%Y%m%d-%H%M%S%z")))
       if is_gzip_blob(report_blob):
         report_name += ".gz"
-    report_path = os.path.join(self.reports_dir, report_name)
+    report_path = os.path.join(self.GetReportsDir(), report_name)
     with open(report_path, "wb") as report_obj:
       report_obj.write(report_blob)
 

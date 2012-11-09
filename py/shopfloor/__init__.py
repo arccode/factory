@@ -21,6 +21,7 @@ from xmlrpclib import Binary
 
 import factory_common
 from cros.factory.shopfloor import factory_update_server
+from cros.factory.test import utils
 
 
 EVENTS_DIR = 'events'
@@ -28,6 +29,10 @@ REPORTS_DIR = 'reports'
 UPDATE_DIR = 'update'
 HWID_UPDATER_PATTERN = 'hwid_*'
 REGISTRATION_CODE_LOG_CSV = 'registration_code_log.csv'
+
+
+class NewlineTerminatedCSVDialect(csv.excel):
+  lineterminator = '\n'
 
 
 class ShopFloorException(Exception):
@@ -48,6 +53,8 @@ class ShopFloorBase(object):
 
   def __init__(self):
     self.data_dir = None  # Set by shopfloor_server
+    self.update_dir = None
+    self.update_server = None
 
   def _InitBase(self):
     """Initializes the base class."""
@@ -56,29 +63,12 @@ class ShopFloorBase(object):
                    self.data_dir)
       os.makedirs(self.data_dir)
 
-    self._registration_code_log = open(
-        os.path.join(self.data_dir, REGISTRATION_CODE_LOG_CSV), "ab", 0)
-    class Dialect(csv.excel):
-      lineterminator = '\n'
-    self._registration_code_writer = csv.writer(self._registration_code_log,
-                                                dialect=Dialect)
-
-    # Put events uploaded from DUT in the "events" directory in data_dir.
-    self._events_dir = os.path.join(self.data_dir, EVENTS_DIR)
-    if not os.path.isdir(self._events_dir):
-      os.mkdir(self._events_dir)
-
     # Dynamic test directory for holding updates is called "update" in data_dir.
-    update_dir = os.path.join(self.data_dir, UPDATE_DIR)
-    if os.path.exists(update_dir):
-      self.update_dir = os.path.realpath(update_dir)
-      self.update_server = factory_update_server.FactoryUpdateServer(
-          self.update_dir)
-    else:
-      logging.warn('Update directory %s does not exist; '
-                   'disabling update server.', update_dir)
-      self.update_dir = None
-      self.update_server = None
+    self.update_dir = os.path.join(self.data_dir, UPDATE_DIR)
+    utils.TryMakeDirs(self.update_dir)
+    self.update_dir = os.path.realpath(self.update_dir)
+    self.update_server = factory_update_server.FactoryUpdateServer(
+        self.update_dir)
 
   def _StartBase(self):
     """Starts the base class."""
@@ -90,6 +80,31 @@ class ShopFloorBase(object):
     """Stops the base class."""
     if self.update_server:
       self.update_server.Stop()
+
+  def GetLogsDir(self, subdir=None):
+    """Returns the active logs directory.
+
+    This is the data directory base plus a path element "logs.YYMMDD",
+    where YYMMDD is today's date in the local time zone.  This creates
+    the directory if it does not exist.
+
+    Args:
+      subdir: If not None, this is appended to the path.
+    """
+    ret = os.path.join(self.data_dir,
+                       time.strftime('logs.%Y%m%d'))
+    if subdir:
+      ret = os.path.join(ret, subdir)
+    utils.TryMakeDirs(ret)
+    return ret
+
+  def GetEventsDir(self):
+    """Returns the active events directory."""
+    return self.GetLogsDir(EVENTS_DIR)
+
+  def GetReportsDir(self):
+    """Returns the active reports directory."""
+    return self.GetLogsDir(REPORTS_DIR)
 
   def Init(self):
     """Initializes the shop floor system.
@@ -127,13 +142,19 @@ class ShopFloorBase(object):
     Raises:
       ShopFloorException if there are >1 HWID bundles available.
     """
-    bundles = glob.glob(os.path.join(self.data_dir, HWID_UPDATER_PATTERN))
+    bundles = (
+        glob.glob(os.path.join(
+            self.data_dir, HWID_UPDATER_PATTERN)) +
+        glob.glob(os.path.join(
+            self.data_dir, UPDATE_DIR, HWID_UPDATER_PATTERN)))
     if not bundles:
       return None
 
     if len(bundles) > 1:
-      raise ShopFloorException('Multiple HWID bundles available: %s (please '
-                               'delete all but one)' % bundles)
+      error = ('Multiple HWID bundles available: %s (please '
+               'delete all but one)' % bundles)
+      logging.error(error)
+      raise ShopFloorException(error)
 
     return bundles[0]
 
@@ -216,7 +237,7 @@ class ShopFloorBase(object):
     """
     raise NotImplementedError('GetRegistrationCode')
 
-  def GetAuxData(self, table_name, id):
+  def GetAuxData(self, table_name, id):  # pylint: disable=W0622
     """Returns a row from an auxiliary table.
 
     Args:
@@ -235,11 +256,14 @@ class ShopFloorBase(object):
 
   def LogRegistrationCodeMap(self, hwid, registration_code_map):
     """Logs that a particular registration code has been used."""
-    platform = hwid.split()[0]
-    self._registration_code_writer.writerow([
+    with open(os.path.join(
+        self.GetLogsDir(), "registration_code_log.csv"), "ab") as f:
+      platform = hwid.split()[0]
+
+      csv.writer(f, dialect=NewlineTerminatedCSVDialect).writerow([
         platform, registration_code_map['user'], registration_code_map['group'],
         time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())])
-    os.fdatasync(self._registration_code_log.fileno())
+      os.fdatasync(f.fileno())
 
   def GetTestMd5sum(self):
     """Gets the latest md5sum of dynamic test tarball.
@@ -282,13 +306,10 @@ class ShopFloorBase(object):
     Raises:
       IOError if unable to save the chunk of events.
     """
-    if not os.path.exists(self._events_dir):
-      os.makedirs(self._events_dir)
-
     if isinstance(chunk, Binary):
       chunk = chunk.data
 
-    log_file = os.path.join(self._events_dir, log_name)
+    log_file = os.path.join(self.GetEventsDir(), log_name)
     with open(log_file, 'a') as f:
       f.write(chunk)
     return True
