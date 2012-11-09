@@ -35,7 +35,7 @@ class SystemStatusTest(unittest.TestCase):
     mock_ec.GetTemperatures().AndReturn([1, 2, 3, 4, 5])
     system.GetEC().AndReturn(mock_ec)
     mock_ec.GetMainTemperatureIndex().AndReturn(2)
-    netifaces.interfaces().AndReturn(['lo0', 'eth0', 'wlan0'])
+    netifaces.interfaces().AndReturn(['lo', 'eth0', 'wlan0'])
     netifaces.ifaddresses('eth0').AndReturn(
       {netifaces.AF_INET6: [{'addr': 'aa:aa:aa:aa:aa:aa'}],
        netifaces.AF_INET: [{'broadcast': '192.168.1.255',
