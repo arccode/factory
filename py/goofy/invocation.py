@@ -474,8 +474,7 @@ class TestInvocation(object):
         self.test.iterations)
     else:
       iteration_string = ''
-    factory.console.info('Running test %s%s',
-                         self.test.path, iteration_string)
+    logging.info('Running test %s%s', self.test.path, iteration_string)
 
     service_manager = ServiceManager()
     service_manager.SetupServices(enable_services=self.test.enable_services,
@@ -546,11 +545,12 @@ class TestInvocation(object):
 
     service_manager.RestoreServices()
 
-    factory.console.info(u'Test %s%s %s%s',
-                         self.test.path,
-                         iteration_string,
-                         status,
-                         u': %s' % error_msg if error_msg else '')
+    logging.info(u'Test %s%s %s', self.test.path, iteration_string,
+                 ': '.join([status, error_msg]))
+    if status == TestState.FAILED:
+      reason = error_msg.split('\n')[0]
+      factory.console.error('Test %s%s %s: %s', self.test.path,
+                            iteration_string, status, reason)
 
     with self._lock:
       self.update_state_on_completion = dict(
