@@ -101,7 +101,7 @@ class FactoryTask(object):
     Args:
       reason: Enum FinishReason.
     """
-    logging.info('%s %s.', (self.__class__.__name__, reason))
+    logging.info('%s %s.', self.__class__.__name__, reason)
     assert self._IsRunning(), (
       'Trying to finish %s which is not running.' % (self.__class__.__name__))
     self._execution_status = TaskState.FINISHED
@@ -126,8 +126,7 @@ class FactoryTask(object):
       later: If True, it allows subsequent tasks to execute and fails its
           parent test case later.
     '''
-    logging.warning('%s FAILED. Reason: %s', (self.__class__.__name__,
-                                              error_msg))
+    logging.warning('%s FAILED. Reason: %s', self.__class__.__name__, error_msg)
     if not self._IsRunning():
       # Prevent multiple call of _Finish().
       return
