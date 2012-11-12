@@ -15,18 +15,41 @@ from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test import utils
+from cros.factory.test.args import Arg
 
+_CSS = """
+#state {
+  font-size: 200%;
+}
+.sync-detail {
+  font-size: 40%;
+  width: 75%;
+  margin-left: 12.5%;
+  padding-top: 2em;
+  text-align: left;
+}
+"""
 
 class SyncShopfloor(unittest.TestCase):
-  def runTest(self):
-    retry_secs = self.test_info.args.get('retry_secs', 10)
-    timeout_secs = self.test_info.args.get('timeout_secs', 10)
+  ARGS = [
+      Arg('first_retry_secs', int,
+          'Time to wait after the first attempt; this will increase '
+          'exponentially up to retry_secs.  This is useful because '
+          'sometimes the network may not be available by the time the '
+          'tests starts, but a full 10-second wait is unnecessary.',
+          1),
+      Arg('retry_secs', int, 'Maximum time to wait between retries', 10),
+      Arg('timeout_secs', int, 'Timeout for XML/RPC operations', 10),
+      ]
 
+  def runTest(self):
     ui = test_ui.UI()
     template = ui_templates.OneSection(ui)
-    ui.AppendCSS('#state { text-align: left }')
+    ui.AppendCSS(_CSS)
 
     def target():
+      retry_secs = self.args.first_retry_secs
+
       while True:
         template.SetState(test_ui.MakeLabel(
             'Contacting shopfloor server...',
@@ -36,7 +59,8 @@ class SyncShopfloor(unittest.TestCase):
           goofy = factory.get_state_instance()
           goofy.FlushEventLogs()
           goofy.SyncTimeWithShopfloorServer()
-          dummy_md5sum, needs_update = updater.CheckForUpdate(timeout_secs)
+          dummy_md5sum, needs_update = updater.CheckForUpdate(
+              self.args.timeout_secs)
           if not needs_update:
             # No update necessary; pass.
             ui.Pass()
@@ -69,12 +93,14 @@ class SyncShopfloor(unittest.TestCase):
             test_ui.MakeLabel(
                 ' seconds.',
                 '秒后自动重试。') +
-            '<br><br>' +
-            test_ui.Escape(exception_string))
+            '<div class=sync-detail>' +
+            test_ui.Escape(exception_string) + '</div>')
 
         for i in xrange(retry_secs):
           time.sleep(1)
           ui.SetHTML(str(retry_secs - i - 1), id='retry')
+
+        retry_secs = min(2 * retry_secs, self.args.retry_secs)
 
     utils.StartDaemonThread(target=target)
     ui.Run()
