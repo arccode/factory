@@ -12,6 +12,7 @@ import threading
 from cros.factory import event_log
 from cros.factory.test import factory
 from cros.factory.test import utils
+from cros.factory.utils.shelve_utils import OpenShelfOrBackup
 
 EVENT_SEPARATOR = '\n---\n'
 KEY_OFFSET = 'offset'
@@ -145,7 +146,7 @@ class EventLogWatcher(object):
   def GetOrCreateDb(self):
     '''Gets the database or recreate one if exception occurs.'''
     try:
-      db = shelve.open(self._event_log_db_file)
+      db = OpenShelfOrBackup(self._event_log_db_file)
     except:  # pylint: disable=W0702
       logging.exception('Corrupted database, recreating')
       os.unlink(self._event_log_db_file)

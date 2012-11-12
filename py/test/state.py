@@ -35,6 +35,7 @@ from cros.factory import system
 from cros.factory.test import factory
 from cros.factory.test.factory import TestState
 from cros.factory.test import unicode_to_string
+from cros.factory.utils.shelve_utils import OpenShelfOrBackup
 from cros.factory.utils.string_utils import CleanUTF8
 
 
@@ -154,8 +155,8 @@ class FactoryState(object):
     state_file_path = state_file_path or DEFAULT_FACTORY_STATE_FILE_PATH
     if not os.path.exists(state_file_path):
       os.makedirs(state_file_path)
-    self._tests_shelf = shelve.open(state_file_path + '/tests')
-    self._data_shelf = shelve.open(state_file_path + '/data')
+    self._tests_shelf = OpenShelfOrBackup(state_file_path + '/tests')
+    self._data_shelf = OpenShelfOrBackup(state_file_path + '/data')
     self._lock = threading.RLock()
     self.test_list_struct = None
 
