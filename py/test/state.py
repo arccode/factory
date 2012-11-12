@@ -9,6 +9,7 @@ This module provides both client and server side of a XML RPC based server which
 can be used to handle factory test states (status) and shared persistent data.
 '''
 
+import factory_common # pylint: disable=W0611
 
 import glob
 import logging
@@ -26,8 +27,6 @@ import yaml
 
 from hashlib import sha1
 from uuid import uuid4
-
-import factory_common # pylint: disable=W0611
 
 from jsonrpclib import jsonclass
 from jsonrpclib import jsonrpc
