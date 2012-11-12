@@ -27,7 +27,6 @@ from cros.factory.test import utils
 EVENTS_DIR = 'events'
 REPORTS_DIR = 'reports'
 UPDATE_DIR = 'update'
-HWID_UPDATER_PATTERN = 'hwid_*'
 REGISTRATION_CODE_LOG_CSV = 'registration_code_log.csv'
 
 
@@ -133,31 +132,6 @@ class ShopFloorBase(object):
     """
     raise NotImplementedError('GetHWID')
 
-  def _GetHWIDUpdaterPath(self):
-    """Returns the path to HWID updater bundle, if available.
-
-    Returns:
-      The path to the file (or None).
-
-    Raises:
-      ShopFloorException if there are >1 HWID bundles available.
-    """
-    bundles = (
-        glob.glob(os.path.join(
-            self.data_dir, HWID_UPDATER_PATTERN)) +
-        glob.glob(os.path.join(
-            self.data_dir, UPDATE_DIR, HWID_UPDATER_PATTERN)))
-    if not bundles:
-      return None
-
-    if len(bundles) > 1:
-      error = ('Multiple HWID bundles available: %s (please '
-               'delete all but one)' % bundles)
-      logging.error(error)
-      raise ShopFloorException(error)
-
-    return bundles[0]
-
   def GetHWIDUpdater(self):
     """Returns a HWID updater bundle, if available.
 
@@ -168,7 +142,7 @@ class ShopFloorBase(object):
     Raises:
       ShopFloorException if there are >1 HWID bundles available.
     """
-    path = self._GetHWIDUpdaterPath()
+    path = self.update_server.hwid_path
     return Binary(open(path).read()) if path else None
 
   def GetVPD(self, serial):
@@ -271,16 +245,7 @@ class ShopFloorBase(object):
     Returns:
       A string of md5sum.  None if no dynamic test tarball is installed.
     """
-    if not self.update_dir:
-      return None
-
-    md5file = os.path.join(self.update_dir,
-                           factory_update_server.FACTORY_DIR,
-                           factory_update_server.LATEST_MD5SUM)
-    if not os.path.isfile(md5file):
-      return None
-    with open(md5file, 'r') as f:
-      return f.readline().strip()
+    return self.update_server.GetTestMd5sum()
 
   def GetUpdatePort(self):
     """Returns the port to use for rsync updates.

@@ -18,7 +18,8 @@ import xmlrpclib
 
 import factory_common  # pylint: disable=W0611
 from cros.factory import shopfloor
-from cros.factory.shopfloor import shopfloor_server
+from cros.factory.shopfloor import factory_update_server
+from cros.factory.utils import test_utils
 from cros.factory.utils.process_utils import Spawn
 
 
@@ -26,7 +27,7 @@ class ShopFloorServerTest(unittest.TestCase):
   def setUp(self):
     '''Starts shop floor server and creates client proxy.'''
     # pylint: disable=W0212
-    self.server_port = shopfloor_server.DEFAULT_SERVER_PORT
+    self.server_port = test_utils.FindUnusedTCPPort()
     self.base_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
     self.data_dir = tempfile.mkdtemp(prefix='shopfloor_data.')
     self.logs_dir = os.path.join(self.data_dir, time.strftime('logs.%Y%m%d'))
@@ -42,6 +43,7 @@ class ShopFloorServerTest(unittest.TestCase):
     os.mkdir(os.path.join(self.data_dir, shopfloor.UPDATE_DIR))
     os.mkdir(os.path.join(self.data_dir, shopfloor.UPDATE_DIR, 'factory'))
 
+    factory_update_server.poll_interval_sec = 0.1
     # Use shopfloor_server.py (or the SHOPFLOOR_SERVER_CMD environment
     # variable if set).
     cmd = os.environ.get(
@@ -89,18 +91,34 @@ class ShopFloorServerTest(unittest.TestCase):
     self.assertRaises(xmlrpclib.Fault, self.proxy.GetHWID, 'CR001000')
     self.assertRaises(xmlrpclib.Fault, self.proxy.GetHWID, 'CR001026')
 
-  def testGetHWIDUpdater_None(self):
+  def testGetHWIDUpdater(self):
     self.assertEquals(None, self.proxy.GetHWIDUpdater())
 
-  def testGetHWIDUpdater_One(self):
-    with open(os.path.join(self.data_dir, 'hwid_updater.sh'), 'w') as f:
+    # Add a HWID updater; the update server will start serving it within
+    # a second.
+    with open(os.path.join(self.data_dir, shopfloor.UPDATE_DIR,
+                           'hwid_updater.sh'), 'w') as f:
       f.write('foobar')
-    self.assertEquals('foobar', self.proxy.GetHWIDUpdater().data)
 
-  def testGetHWIDUpdater_Two(self):
-    for i in (1, 2):
-      open(os.path.join(self.data_dir, 'hwid_updater_%d.sh' % i), 'w').close()
-    self.assertRaises(xmlrpclib.Fault, self.proxy.GetHWIDUpdater)
+    for _ in xrange(20):
+      updater = self.proxy.GetHWIDUpdater()
+      if updater:
+        self.assertEqual('foobar', updater.data)
+        break
+      time.sleep(0.1)
+    else:
+      self.fail('HWID updater was never picked up')
+
+    # Add another file; now there should be no updater returned since
+    # this is an invalid state.
+    open(os.path.join(self.data_dir, shopfloor.UPDATE_DIR,
+                      'hwid_updater2.sh'), 'w').close()
+    for _ in xrange(20):
+      if self.proxy.GetHWIDUpdater() is None:
+        break  # Good!
+      time.sleep(0.1)
+    else:
+      self.fail('HWID updater never reverted to None')
 
   def testGetVPD(self):
     # VPD fields defined in simple.csv
@@ -163,13 +181,20 @@ class ShopFloorServerTest(unittest.TestCase):
     self.assertRaises(xmlrpclib.Fault, self.proxy.Finalize, '0999')
 
   def testGetTestMd5sum(self):
-    md5_work = os.path.join(self.data_dir, shopfloor.UPDATE_DIR,
-                            'factory', 'latest.md5sum')
-    with open(md5_work, "w") as f:
-      f.write('0891a16c456fcc322b656d5f91fbf060')
-    self.assertEqual(self.proxy.GetTestMd5sum(),
-                     '0891a16c456fcc322b656d5f91fbf060')
-    os.remove(md5_work)
+    shutil.copyfile(os.path.join(os.path.dirname(__file__),
+                                 'testdata', 'factory.tar.bz2'),
+                    os.path.join(self.data_dir, shopfloor.UPDATE_DIR,
+                                 'factory.tar.bz2'))
+
+    # It should be unpacked within a second.
+    for _ in xrange(20):
+      md5sum = self.proxy.GetTestMd5sum()
+      if md5sum:
+        self.assertEqual('18cac06201e65e060f757193c153cacb', md5sum)
+        break
+      time.sleep(0.1)
+    else:
+      self.fail('No update found')
 
   def testGetTestMd5sumWithoutMd5sumFile(self):
     self.assertTrue(self.proxy.GetTestMd5sum() is None)

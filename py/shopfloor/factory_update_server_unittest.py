@@ -7,13 +7,14 @@
 
 import os
 import shutil
-import sys
 import tempfile
-import time
 import unittest
 
-import factory_common
-import factory_update_server
+import factory_common  # pylint: disable=W0611
+from cros.factory.shopfloor import factory_update_server
+
+
+# pylint: disable=W0212
 
 
 BASE_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -29,11 +30,13 @@ class BasicTests(unittest.TestCase):
 class FactoryUpdateServerTest(unittest.TestCase):
   def setUp(self):
     self.work_dir = tempfile.mkdtemp(prefix='dts')
+    self.update_server = None
     self._CreateUpdateServer()
+    factory_update_server.poll_interval_sec = 0.1
 
   def _CreateUpdateServer(self):
     self.update_server = factory_update_server.FactoryUpdateServer(
-        self.work_dir, poll_interval_sec=0.1)
+        self.work_dir)
 
   def tearDown(self):
     self.update_server.Stop()
@@ -62,7 +65,7 @@ class FactoryUpdateServerTest(unittest.TestCase):
 
     # Put partially-written factory.tar.bz2 into the working folder.
     with open(tarball_dest, "w") as f:
-      print >>f, "Not really a bzip2"
+      f.write("Not really a bzip2")
     self.update_server.RunOnce()
 
     # Put factory.tar.bz2 into the working folder.

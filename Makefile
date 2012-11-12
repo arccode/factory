@@ -34,8 +34,6 @@ LINT_BLACKLIST=\
 	py/goofy/test_environment.py \
 	py/goofy/updater.py \
 	py/goofy/web_socket_manager.py \
-	py/shopfloor/factory_update_server.py \
-	py/shopfloor/factory_update_server_unittest.py \
 	py/shopfloor/shopfloor_standalone_unittest.py \
 	py/shopfloor/template.py \
 	py/system/charge_manager_unittest.py \

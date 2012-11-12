@@ -11,13 +11,12 @@ into factory_dir (under state_dir).  It also starts an rsync server
 to serve factory_dir for clients to fetch update files.
 '''
 
-import errno
+import glob
 import logging
 import os
 import shutil
 import subprocess
 import threading
-import time
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.utils.process_utils import Spawn, TerminateOrKillProcess
@@ -72,25 +71,73 @@ def CalculateMd5sum(filename):
   return output.split()[0]
 
 
-class FactoryUpdateServer():
+class ChangeDetector(object):
+  """Detects changes in a file.
 
-  def __init__(self, state_dir, rsyncd_port=DEFAULT_RSYNCD_PORT,
-               poll_interval_sec=1):
+  Properties:
+    path: The last path detected to the file.
+  """
+  def __init__(self, pattern):
+    """Constructor:
+
+    Args:
+      pattern: The path (or pattern) to monitor.
+    """
+    self.pattern = pattern
+    self.path = None
+    self.stat = None
+
+  def HasChanged(self):
+    """Returns True if the file has changed since the last invocation."""
+    paths = glob.glob(self.pattern)
+
+    last_path = self.path
+    last_stat = self.stat
+
+    if len(paths) != 1:
+      if not paths:
+        # No files; that's OK
+        pass
+      else:
+        # Multiple files; that's a problem!
+        logging.warn('Multiple files match pattern %s', self.pattern)
+
+      self.path = None
+      self.stat = None
+      return self.path != last_path
+
+    self.path = paths[0]
+    self.stat = os.stat(self.path)
+
+    return (self.path != last_path or
+            not last_stat or
+            ((self.stat.st_mtime, self.stat.st_size) !=
+             (last_stat.st_mtime, last_stat.st_size)))
+
+
+class FactoryUpdateServer():
+  poll_interval_sec = 1
+
+  def __init__(self, state_dir, rsyncd_port=DEFAULT_RSYNCD_PORT):
     self.state_dir = state_dir
     self.factory_dir = os.path.join(state_dir, FACTORY_DIR)
     self.rsyncd_port = rsyncd_port
     if not os.path.exists(self.factory_dir):
       os.mkdir(self.factory_dir)
-    self.poll_interval_sec = poll_interval_sec
+    self.hwid_path = None
+
     self._stop_event = threading.Event()
     self._rsyncd = StartRsyncServer(rsyncd_port, state_dir, self.factory_dir)
     self._tarball_path = os.path.join(self.state_dir, TARBALL_NAME)
 
     self._thread = None
-    self._last_stat = None
     self._run_count = 0
     self._update_count = 0
     self._errors = 0
+
+    self._factory_detector = ChangeDetector(self._tarball_path)
+    self._hwid_detector = ChangeDetector(
+        os.path.join(state_dir, 'hwid_*.sh'))
 
   def Start(self):
     assert not self._thread
@@ -107,6 +154,17 @@ class FactoryUpdateServer():
     if self._thread:
       self._thread.join()
       self._thread = None
+
+  def GetTestMd5sum(self):
+    """Returns the MD5SUM of the current update tarball."""
+    if not self._factory_detector.path:
+      return None
+
+    md5file = os.path.join(self.state_dir, FACTORY_DIR, LATEST_MD5SUM)
+    if not os.path.isfile(md5file):
+      return None
+    with open(md5file, 'r') as f:
+      return f.readline().strip()
 
   def _HandleTarball(self):
     new_tarball_path = self._tarball_path + '.new'
@@ -188,7 +246,7 @@ class FactoryUpdateServer():
     while True:
       try:
         self.RunOnce()
-      except:
+      except:  # pylint: disable=W0702
         logging.exception('Error in event loop')
 
       self._stop_event.wait(self.poll_interval_sec)
@@ -199,36 +257,34 @@ class FactoryUpdateServer():
     try:
       self._run_count += 1
 
-      try:
-        stat = os.stat(self._tarball_path)
-      except OSError as e:
-        if e.errno == errno.ENOENT:
-          # File doesn't exist
-          return
-        raise
+      if self._factory_detector.HasChanged():
+        if self._factory_detector.path:
+          logging.info('Verifying integrity of tarball %s',
+                       self._factory_detector.path)
+          process = Spawn(['tar', '-tjf', self._tarball_path],
+                          ignore_stdout=True, ignore_stderr=True, call=True)
+          if process.returncode == 0:
+            # Re-stat in case it finished being written while we were
+            # verifying it.
+            self._factory_detector.HasChanged()
+            self._HandleTarball()
+          else:
+            logging.warn(
+                'Tarball %s (%d bytes) is corrupt or incomplete',
+                self._tarball_path, os.path.getsize(self._tarball_path))
+        else:
+          # It's disappeared!
+          logging.warn('Tarball %s has disappeared',
+                       self._tarball_path)
 
-      if (self._last_stat and
-          ((stat.st_mtime, stat.st_size) ==
-           (self._last_stat.st_mtime, self._last_stat.st_size))):
-        # No change
-        return
-
-      self._last_stat = stat
-      try:
-        with open(os.devnull, "w") as devnull:
-          logging.info('Verifying integrity of tarball %s', self._tarball_path)
-          subprocess.check_call(['tar', '-tjf', self._tarball_path],
-                                stdout=devnull, stderr=devnull)
-      except subprocess.CalledProcessError:
-        # E.g., still copying
-        logging.warn('Tarball %s (%d bytes) is corrupt or incomplete',
-                     self._tarball_path, stat.st_size)
-        return
-
-      # Re-stat in case it finished being written while we were
-      # verifying it.
-      self._last_stat = os.stat(self._tarball_path)
-      self._HandleTarball()
+      if self._hwid_detector.HasChanged():
+        self.hwid_path = self._hwid_detector.path
+        if self.hwid_path is None:
+          logging.warn('HWID bundle %s is no longer valid',
+                       self._hwid_detector.pattern)
+        else:
+          logging.info('Found new HWID bundle %s (MD5SUM %s); serving it',
+                       self.hwid_path, CalculateMd5sum(self.hwid_path))
     except:
       self._errors += 1
       raise
