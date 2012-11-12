@@ -37,6 +37,24 @@ from cros.factory.utils.process_utils import CheckOutput
 
 _TEST_TITLE = test_ui.MakeLabel('Start Factory Test', u'开始工厂测试')
 
+_CSS = """
+.start-font-size {
+  font-size: 2em;
+}
+.start-contacting-server {
+  background-image: url('/images/active.gif');
+  background-repeat: no-repeat;
+  padding-left: 18px;
+  font-size: 12px;
+  color: gray;
+}
+#errormsg {
+  margin-top: 12px;
+  min-height: 2em;
+  font-size: 150%;
+}
+"""
+
 # Messages for tasks
 _MSG_INSTALL_INCOMPLETE = test_ui.MakeLabel(
     '<br/>'.join([
@@ -68,13 +86,16 @@ _MSG_NO_SHOP_FLOOR_SERVER_URL = test_ui.MakeLabel(
         'For debugging or development, use the listed hot-keys to start',
         'individual tests.']),
     '<br/>'.join([
-        u'未指定 Shop Floor 服务器位址，停止自动测试。<br/>',
+        u'未指定 shop floor 服务器位址，停止自动测试。<br/>',
         u'请使用完整的 mini-Omaha 服务器安装测试程式，',
         u'不要直接从 USB 碟开机执行。<br/>',
         u'若想除错或执行部份测试，请直接按下对应热键。']),
     'start-font-size test-error')
 _MSG_READING_VPD_SERIAL = test_ui.MakeLabel(
     'Reading VPD...', u'讀取 VPD 中...', 'start-font-size')
+_MSG_CONTACTING_SERVER = test_ui.MakeLabel(
+    'Contacting shop floor server...', u'正在和 shop floor server 联络...',
+    r'start-contacting-server')
 
 # Javascripts and HTML for tasks
 _JS_SPACE = '''
@@ -91,7 +112,7 @@ _JS_SPACE = '''
 _EVENT_SUBTYPE_SHOP_FLOOR = 'Start-Serial'
 _HTML_SHOP_FLOOR = '''
     <input type="text" id="serial" style="height: 2.5em; width: 20em"/>
-    <div id="errormsg" class="start-font-size test-error"></div>'''
+    <div id="errormsg" class="test-error"></div>'''
 _JS_SHOP_FLOOR = '''
     function submit() {
       var text = document.getElementById("serial");
@@ -207,11 +228,14 @@ class ShopFloorTask(FactoryTask):
     # bottom status line of input window.
     serial = event.data
 
+    self._test.ui.SetHTML(_MSG_CONTACTING_SERVER, id='errormsg')
+    self._test.ui.RunJS('$("serial").disabled = true')
+
     def ShowErrorMsg(error_msg):
       self._test.ui.SetHTML(error_msg, id='errormsg')
       self._test.ui.RunJS(
           'var e = document.getElementById("serial");'
-          'e.focus(); e.select();')
+          'e.focus(); e.select(); e.disabled = false')
 
     try:
       # All exceptions
@@ -225,13 +249,13 @@ class ShopFloorTask(FactoryTask):
       self.Pass()
       return True
     except shopfloor.ServerFault as e:
-      ShowErrorMsg('Server error:<br/>%s' % test_ui.Escape(e.__str__()))
+      ShowErrorMsg('Server error: %s' % test_ui.Escape(e.__str__()))
     except ValueError as e:
       ShowErrorMsg(e.message)
     except socket.gaierror as e:
       ShowErrorMsg('Network failure (address error).')
     except socket.error as e:
-      ShowErrorMsg('Network failure:<br/>%s' % test_ui.Escape(e[1].__str__()))
+      ShowErrorMsg('Network failure: %s' % test_ui.Escape(e[1].__str__()))
     except:
       ShowErrorMsg(sys.exc_info()[1])
     return False
@@ -300,7 +324,7 @@ class StartTest(unittest.TestCase):
     self._task_list = []
     self.ui = test_ui.UI()
     self.template = ui_templates.OneSection(self.ui)
-    self.ui.AppendCSS('.start-font-size {font-size: 2em;}')
+    self.ui.AppendCSS(_CSS)
     self.template.SetTitle(_TEST_TITLE)
 
   def runTest(self):
