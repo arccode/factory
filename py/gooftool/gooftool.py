@@ -12,7 +12,6 @@ provides all of the Google required test functionality and must be run
 on each device as part of the assembly process.
 """
 
-
 import logging
 import os
 import pipes
@@ -44,41 +43,6 @@ from cros.factory.test.factory import FACTORY_LOG_PATH
 # Use a global event log, so that only a single log is created when
 # gooftool is called programmatically.
 _event_log = EventLog('gooftool')
-
-
-def GetPrimaryDevicePath(partition=None):
-  def IsFixed(dev):
-    sysfs_path = '/sys/block/%s/removable' % dev
-    return (os.path.exists(sysfs_path) and
-            open(sysfs_path).read().strip() == '0')
-  alpha_re = re.compile(r'^/dev/([a-zA-Z]+)[0-9]+$')
-  alnum_re = re.compile(r'^/dev/([a-zA-Z]+[0-9]+)p[0-9]+$')
-  matched_alnum = False
-  dev_set = set()
-  for path in Shell('cgpt find -t rootfs').stdout.strip().split():
-    for dev in alpha_re.findall(path):
-      if IsFixed(dev):
-        dev_set.add(dev)
-        matched_alnum = False
-    for dev in alnum_re.findall(path):
-      if IsFixed(dev):
-        dev_set.add(dev)
-        matched_alnum = True
-  if len(dev_set) != 1:
-    raise Error('zero or multiple primary devs: %s' % dev_set)
-  dev_path = os.path.join('/dev', dev_set.pop())
-  if partition is None:
-    return dev_path
-  fmt_str = '%sp%d' if matched_alnum else '%s%d'
-  return fmt_str % (dev_path, partition)
-
-
-def GetReleaseRootPartitionPath():
-  return GetPrimaryDevicePath(5)
-
-
-def GetReleaseKernelPartitionPath():
-  return GetPrimaryDevicePath(4)
 
 
 def FindScript(script_name):
@@ -490,7 +454,7 @@ def VerifyHwid(options):
 def VerifyKeys(options):  # pylint: disable=W0613
   """Verify keys in firmware and SSD match."""
   script = FindScript('verify_keys.sh')
-  kernel_device = GetReleaseKernelPartitionPath()
+  kernel_device = Gooftool().GetReleaseKernelPartitionPath()
   main_fw_file = crosfw.LoadMainFirmware().GetFileName()
   result = Shell('%s %s %s' % (script, kernel_device, main_fw_file))
   if not result.success:
@@ -527,7 +491,7 @@ def SetFirmwareBitmapLocale(options):  # pylint: disable=W0613
 def VerifySystemTime(options):  # pylint: disable=W0613
   """Verify system time is later than release filesystem creation time."""
   script = FindScript('verify_system_time.sh')
-  rootfs_device = GetReleaseRootPartitionPath()
+  rootfs_device = Gooftool().GetReleaseRootPartitionPath()
   result = Shell('%s %s' % (script, rootfs_device))
   if not result.success:
     raise Error, '%r failed, stderr: %r' % (script, result.stderr)
@@ -537,7 +501,7 @@ def VerifySystemTime(options):  # pylint: disable=W0613
 def VerifyRootFs(options):  # pylint: disable=W0613
   """Verify rootfs on SSD is valid by checking hash."""
   script = FindScript('verify_rootfs.sh')
-  rootfs_device = GetReleaseRootPartitionPath()
+  rootfs_device = Gooftool().GetReleaseRootPartitionPath()
   result = Shell('%s %s' % (script, rootfs_device))
   if not result.success:
     raise Error, '%r failed, stdout: %r, stderr: %r' % (
@@ -639,7 +603,7 @@ def PrepareWipe(options):
   """Prepare system for transition to release state in next reboot."""
   script = FindScript('prepare_wipe.sh')
   tag = 'fast' if options.fast else ''
-  rootfs_device = GetReleaseRootPartitionPath()
+  rootfs_device = Gooftool().GetReleaseRootPartitionPath()
   result = Shell('FACTORY_WIPE_TAGS=%s %s %s' % (tag, script, rootfs_device))
   if not result.success:
     raise Error, '%r failed, stderr: %r' % (script, result.stderr)

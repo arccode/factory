@@ -4,9 +4,14 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import os
+import re
+
 from collections import namedtuple
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.common import Error
+from cros.factory.common import Shell
 from cros.factory.hwdb import hwid_tool
 from cros.factory.gooftool.probe import Probe
 
@@ -17,6 +22,59 @@ ProbedComponentResult = namedtuple('VerifyComponentResult',
 
 # The mismatch result tuple.
 Mismatch = namedtuple('Mismatch', ['expected', 'actual'])
+
+class Util(object):
+  """A collection of util functions that Gooftool needs."""
+
+  def __init__(self):
+    self._shell = Shell
+
+  def _IsDeviceFixed(self, dev):
+    """Check if a device is a fixed device, i.e. not a removable device.
+
+    Args:
+      dev: A device string under /sys/block.
+
+    Returns:
+      True if the given device is fixed, and false if it is not.
+    """
+
+    sysfs_path = '/sys/block/%s/removable' % dev
+    return (os.path.exists(sysfs_path) and
+            open(sysfs_path).read().strip() == '0')
+
+  def GetPrimaryDevicePath(self, partition=None):
+    """Gets the path for the primary device, which is the only non-removable
+    device in the system.
+
+    Args:
+      partition: The index of the partition on primary device.
+
+    Returns:
+      The path to the primary device. If partition is specified, the path
+      points to that partition of the primary device. e.g. /dev/sda1
+    """
+
+    alpha_re = re.compile(r'^/dev/([a-zA-Z]+)[0-9]+$')
+    alnum_re = re.compile(r'^/dev/([a-zA-Z]+[0-9]+)p[0-9]+$')
+    matched_alnum = False
+    dev_set = set()
+    for path in self._shell('cgpt find -t rootfs').stdout.strip().split():
+      for dev in alpha_re.findall(path):
+        if self._IsDeviceFixed(dev):
+          dev_set.add(dev)
+          matched_alnum = False
+      for dev in alnum_re.findall(path):
+        if self._IsDeviceFixed(dev):
+          dev_set.add(dev)
+          matched_alnum = True
+    if len(dev_set) != 1:
+      raise Error('zero or multiple primary devs: %s' % dev_set)
+    dev_path = os.path.join('/dev', dev_set.pop())
+    if partition is None:
+      return dev_path
+    fmt_str = '%sp%d' if matched_alnum else '%s%d'
+    return fmt_str % (dev_path, partition)
 
 
 class Gooftool(object):
@@ -44,6 +102,7 @@ class Gooftool(object):
         hwid_tool.HardwareDb(hwid_tool.DEFAULT_HWID_DATA_PATH))
     self._component_db = component_db or self._hardware_db.comp_db
     self._probe = probe or Probe
+    self._util = Util()
 
   def VerifyComponents(self, component_list):
     '''Verifies the given component list against the component db to ensure
@@ -152,3 +211,15 @@ class Gooftool(object):
         mismatches[comp_class] = Mismatch(expected_names, probed_comp_names)
 
     return mismatches
+
+  def GetReleaseRootPartitionPath(self):
+    '''Gets the path for release root partition.'''
+
+    return self._util.GetPrimaryDevicePath(5)
+
+  def GetReleaseKernelPartitionPath(self):
+    '''Gets the path for release kernel partition.'''
+
+    return self._util.GetPrimaryDevicePath(4)
+
+

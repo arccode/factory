@@ -10,6 +10,9 @@ import os
 import unittest
 
 import factory_common  # pylint: disable=W0611
+from cros.factory import gooftool
+from cros.factory.common import Error
+from cros.factory.common import Shell
 from cros.factory.gooftool import Gooftool
 from cros.factory.gooftool.probe import Probe
 from cros.factory.hwdb import hwid_tool
@@ -27,7 +30,15 @@ class GooftoolTest(unittest.TestCase):
     testdata_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                  'testdata')
     test_db = hwid_tool.HardwareDb(testdata_path)
+
+    self._util = gooftool.Util()
+    self._util._shell = self.mox.CreateMock(Shell)
+
     self._gooftool = Gooftool(probe=self._mock_probe, hardware_db=test_db)
+    self._gooftool._util = self._util  # pylint: disable=W0212
+
+    # Mock out small wrapper functions that do not need unittests.
+    self.mox.StubOutWithMock(self._util, "_IsDeviceFixed")
 
   def tearDown(self):
     self.mox.VerifyAll()
@@ -116,6 +127,47 @@ class GooftoolTest(unittest.TestCase):
       ValueError, self._gooftool.FindBOMMismatches, 'BENDER', None, {})
     self.assertRaises(
       ValueError, self._gooftool.FindBOMMismatches, 'BENDER', 'LEELA', None)
+
+  def testGetPrimaryDevicePath(self):
+    '''Test for GetPrimaryDevice.'''
+
+    self._util._IsDeviceFixed(   # pylint: disable=W0212
+        "sda").MultipleTimes().AndReturn(True)
+    self._util._IsDeviceFixed(   # pylint: disable=W0212
+        "sdb").MultipleTimes().AndReturn(False)
+
+    stub_cgpt_result = lambda: None
+    stub_cgpt_result.stdout = "/dev/sda3\n/dev/sda1\n/dev/sdb1"
+    self._util._shell(  # pylint: disable=W0212
+        'cgpt find -t rootfs').MultipleTimes().AndReturn(stub_cgpt_result)
+
+    self.mox.ReplayAll()
+
+    self.assertEquals("/dev/sda", self._util.GetPrimaryDevicePath())
+    self.assertEquals("/dev/sda1", self._util.GetPrimaryDevicePath(1))
+    self.assertEquals("/dev/sda2", self._util.GetPrimaryDevicePath(2))
+
+    # also test thin callers
+    self.assertEquals("/dev/sda5", self._gooftool.GetReleaseRootPartitionPath())
+    self.assertEquals("/dev/sda4",
+                      self._gooftool.GetReleaseKernelPartitionPath())
+
+  def testGetPrimaryDevicePathMultiple(self):
+    '''Test for GetPrimaryDevice when multiple primary devices are found.'''
+
+    self._util._IsDeviceFixed(  # pylint: disable=W0212
+        "sda").MultipleTimes().AndReturn(True)
+    self._util._IsDeviceFixed(  # pylint: disable=W0212
+        "sdb").MultipleTimes().AndReturn(True)
+
+    stub_cgpt_result = lambda: None
+    stub_cgpt_result.stdout = "/dev/sda3\n/dev/sda1\n/dev/sdb1"
+    self._util._shell(  # pylint: disable=W0212
+        'cgpt find -t rootfs').AndReturn(stub_cgpt_result)
+
+    self.mox.ReplayAll()
+
+    self.assertRaises(Error, self._util.GetPrimaryDevicePath)
 
 
 if __name__ == '__main__':
