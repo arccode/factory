@@ -231,7 +231,7 @@ class ShopFloorBase(object):
   def LogRegistrationCodeMap(self, hwid, registration_code_map):
     """Logs that a particular registration code has been used."""
     with open(os.path.join(
-        self.GetLogsDir(), "registration_code_log.csv"), "ab") as f:
+        self.data_dir, "registration_code_log.csv"), "ab") as f:
       platform = hwid.split()[0]
 
       csv.writer(f, dialect=NewlineTerminatedCSVDialect).writerow([

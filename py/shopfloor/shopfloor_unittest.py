@@ -32,7 +32,7 @@ class ShopFloorServerTest(unittest.TestCase):
     self.data_dir = tempfile.mkdtemp(prefix='shopfloor_data.')
     self.logs_dir = os.path.join(self.data_dir, time.strftime('logs.%Y%m%d'))
     self.registration_code_log = (
-        os.path.join(self.logs_dir, shopfloor.REGISTRATION_CODE_LOG_CSV))
+        os.path.join(self.data_dir, shopfloor.REGISTRATION_CODE_LOG_CSV))
     csv_source = os.path.join(self.base_dir, 'testdata', 'devices.csv')
     csv_work = os.path.join(self.data_dir, 'devices.csv')
     aux_csv_source = os.path.join(self.base_dir, 'testdata', 'aux_mlb.csv')
