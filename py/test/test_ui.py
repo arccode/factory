@@ -332,36 +332,45 @@ class UI(object):
 
     Args:
       blocking: True if running UI in the same thread. False if creating a
-        dedicated UI thread.
+        dedicated UI thread. Test UI must not be non-blocking if used in
+        autotest.
       on_finish: Callback function when UI ends. This can be used to notify
         the test for necessary clean-up (e.g. terminate an event loop.)
     '''
+    def _RunImpl(self, blocking, on_finish):
+      event = self.event_client.wait(
+          lambda event:
+            (event.type == Event.Type.END_TEST and
+             event.invocation == self.invocation and
+             event.test == self.test))
+      logging.info('Received end test event %r', event)
+      self.event_client.close()
+
+      try:
+        if event.status == TestState.PASSED and not self.error_msgs:
+          pass
+        elif event.status == TestState.FAILED or self.error_msgs:
+          error_msg = getattr(event, 'error_msg', '')
+          if self.error_msgs:
+            error_msg += ('\n'.join([''] + self.error_msgs))
+
+          if blocking:
+            raise FactoryTestFailure(error_msg)
+          else:
+            # Save exception if UI is not run in the main thread
+            exception_list.append(('ui-thread',
+                                   'Failed from UI\n%s' % error_msg))
+        else:
+          raise ValueError('Unexpected status in event %r' % event)
+      finally:
+        if on_finish:
+          on_finish()
+
     if not blocking:
       return utils.StartDaemonThread(
-          target=lambda: self.Run(blocking=True, on_finish=on_finish))
-
-    event = self.event_client.wait(
-        lambda event:
-          (event.type == Event.Type.END_TEST and
-           event.invocation == self.invocation and
-           event.test == self.test))
-    logging.info('Received end test event %r', event)
-    self.event_client.close()
-
-    try:
-      if event.status == TestState.PASSED and not self.error_msgs:
-        pass
-      elif event.status == TestState.FAILED or self.error_msgs:
-        error_msg = getattr(event, 'error_msg', '')
-        if self.error_msgs:
-          error_msg += ('\n'.join([''] + self.error_msgs))
-
-        exception_list.append(('ui-thread', 'Failed from UI\n%s' % error_msg))
-      else:
-        raise ValueError('Unexpected status in event %r' % event)
-    finally:
-      if on_finish:
-        on_finish()
+          target=lambda: _RunImpl(self, blocking=False, on_finish=on_finish))
+    else:
+      _RunImpl(self, blocking=True, on_finish=on_finish)
 
   def BindStandardKeys(self, bind_pass_keys=True, bind_fail_keys=True):
     '''Binds standard pass and/or fail keys.
