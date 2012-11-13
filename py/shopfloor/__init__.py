@@ -13,6 +13,7 @@ import csv
 import glob
 import logging
 import os
+import shutil
 import time
 import xmlrpclib
 
@@ -22,12 +23,14 @@ from xmlrpclib import Binary
 import factory_common
 from cros.factory.shopfloor import factory_update_server
 from cros.factory.test import utils
+from cros.factory.utils.process_utils import Spawn
 
 
 EVENTS_DIR = 'events'
 REPORTS_DIR = 'reports'
 UPDATE_DIR = 'update'
 REGISTRATION_CODE_LOG_CSV = 'registration_code_log.csv'
+LOGS_DIR_FORMAT = 'logs.%Y%m%d'
 
 
 class NewlineTerminatedCSVDialect(csv.excel):
@@ -45,6 +48,12 @@ class ShopFloorBase(object):
     config: The configuration data provided by the '-c' argument to
       shopfloor_server.
     data_dir: The top-level directory for shopfloor data.
+    _auto_archive_logs: An optional path to use for auto-archiving
+      logs (see the --auto-archive-logs command-line argument).  This
+      must contain the string 'DATE'.
+    _auto_archive_logs_dir_exists: True if the parent of _auto_archive_logs
+      existed the last time we checked, False if not, or None if we've
+      never checked.
   """
 
   NAME = 'ShopFloorBase'
@@ -54,9 +63,20 @@ class ShopFloorBase(object):
     self.data_dir = None  # Set by shopfloor_server
     self.update_dir = None
     self.update_server = None
+    self._auto_archive_logs = None
+    self._auto_archive_logs_dir_exists = None
 
-  def _InitBase(self):
-    """Initializes the base class."""
+  def _InitBase(self, auto_archive_logs):
+    """Initializes the base class.
+
+    Args:
+      auto_archive_logs: See _auto_archive_logs property.
+    """
+    if auto_archive_logs:
+      assert 'DATE' in auto_archive_logs, (
+          '--auto-archive-logs flag must contain the string DATE')
+    self._auto_archive_logs = auto_archive_logs
+
     if not os.path.exists(self.data_dir):
       logging.warn('Data directory %s does not exist; creating it',
                    self.data_dir)
@@ -67,7 +87,8 @@ class ShopFloorBase(object):
     utils.TryMakeDirs(self.update_dir)
     self.update_dir = os.path.realpath(self.update_dir)
     self.update_server = factory_update_server.FactoryUpdateServer(
-        self.update_dir)
+        self.update_dir,
+        on_idle=(self._AutoSaveLogs if self._auto_archive_logs else None))
 
   def _StartBase(self):
     """Starts the base class."""
@@ -80,6 +101,57 @@ class ShopFloorBase(object):
     if self.update_server:
       self.update_server.Stop()
 
+  def _AutoSaveLogs(self):
+    """Implements functionality to automatically save logs to USB.
+
+    (See the description of the --auto-archive-logs command-line argument
+    for details.)
+    """
+    auto_archive_dir = os.path.dirname(self._auto_archive_logs)
+    new_auto_archive_logs_dir_exists = os.path.isdir(auto_archive_dir)
+    if new_auto_archive_logs_dir_exists != self._auto_archive_logs_dir_exists:
+      # If the auto-archive directory is newly present (or not present),
+      # log a message.
+      if new_auto_archive_logs_dir_exists:
+        logging.info("Auto-archive directory %s found; will auto-archive "
+                     "yesterday's logs there if not present",
+                     auto_archive_dir)
+      else:
+        logging.info("Auto-archive directory %s not found; create it (or mount "
+                     "media there) to auto-archive yesterday's logs",
+                     auto_archive_dir)
+      self._auto_archive_logs_dir_exists = new_auto_archive_logs_dir_exists
+
+    if new_auto_archive_logs_dir_exists:
+      yesterday = time.localtime(time.time() - 86400)
+      yesterday_logs_dir_name = time.strftime(LOGS_DIR_FORMAT, yesterday)
+      archive_name = os.path.join(
+          self._auto_archive_logs.replace(
+              'DATE', time.strftime('%Y%m%d', yesterday)))
+      if os.path.exists(archive_name):
+        # We've already done this.
+        return
+
+      yesterday_logs_dir = os.path.join(self.data_dir, yesterday_logs_dir_name)
+      if not os.path.exists(yesterday_logs_dir):
+        # There aren't any logs from yesterday.
+        return
+
+      in_progress_name = archive_name + '.INPROGRESS'
+      logging.info('Archiving %s to %s', yesterday_logs_dir, archive_name)
+
+      have_pbzip2 = Spawn(
+          ['which', 'pbzip2'],
+          ignore_stdout=True, ignore_stderr=True, call=True).returncode == 0
+
+      Spawn(['tar', '-I', 'pbzip2' if have_pbzip2 else 'bzip2',
+             '-cf', in_progress_name, '-C', self.data_dir,
+             yesterday_logs_dir_name],
+            check_call=True, log=True, log_stderr_on_error=True)
+      shutil.move(in_progress_name, archive_name)
+      logging.info('Finishing archiving %s to %s',
+                   yesterday_logs_dir, archive_name)
+
   def GetLogsDir(self, subdir=None):
     """Returns the active logs directory.
 
@@ -90,8 +162,7 @@ class ShopFloorBase(object):
     Args:
       subdir: If not None, this is appended to the path.
     """
-    ret = os.path.join(self.data_dir,
-                       time.strftime('logs.%Y%m%d'))
+    ret = os.path.join(self.data_dir, time.strftime(LOGS_DIR_FORMAT))
     if subdir:
       ret = os.path.join(ret, subdir)
     utils.TryMakeDirs(ret)

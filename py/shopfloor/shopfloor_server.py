@@ -158,6 +158,13 @@ def main():
                     help='increase message verbosity')
   parser.add_option('-q', '--quiet', action='store_true', dest='quiet',
                     help='turn off verbose messages')
+  parser.add_option(
+      '--auto-archive-logs', metavar='TEMPLATE',
+      default='/media/shopfloorlg/logs.DATE.tar.bz2',
+      help=("File in which to automatically archive yesterday's logs. "
+            "Logs will be archived if this path's parent exists.  The format "
+            "must contain the string 'DATE'; this will be replaced with "
+            "yesterday's date. (default: %default)"))
   parser.add_option('--simple', action='store_true',
                     help=('use simple shopfloor server (equivalent to '
                           '-m cros.factory.shopfloor.simple_shopfloor)'))
@@ -214,7 +221,7 @@ def main():
     instance.data_dir = options.data_dir
     instance.config = options.config
 
-    instance._InitBase()
+    instance._InitBase(options.auto_archive_logs)
 
     if options.dummy:
       root, ext, path = __file__.partition('.par/')

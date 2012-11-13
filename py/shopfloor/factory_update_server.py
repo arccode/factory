@@ -118,13 +118,22 @@ class ChangeDetector(object):
 class FactoryUpdateServer():
   poll_interval_sec = 1
 
-  def __init__(self, state_dir, rsyncd_port=DEFAULT_RSYNCD_PORT):
+  def __init__(self, state_dir, rsyncd_port=DEFAULT_RSYNCD_PORT, on_idle=None):
+    """Constructor.
+
+    Args:
+      state_dir: Update state directory (generally shopfloor_data/update).
+      rsyncd_port: Port on which to open rsyncd.
+      on_idle: If non-None, a function to call on idle (generally every
+        second).
+    """
     self.state_dir = state_dir
     self.factory_dir = os.path.join(state_dir, FACTORY_DIR)
     self.rsyncd_port = rsyncd_port
     if not os.path.exists(self.factory_dir):
       os.mkdir(self.factory_dir)
     self.hwid_path = None
+    self.on_idle = on_idle
 
     self._stop_event = threading.Event()
     self._rsyncd = StartRsyncServer(rsyncd_port, state_dir, self.factory_dir)
@@ -285,6 +294,12 @@ class FactoryUpdateServer():
         else:
           logging.info('Found new HWID bundle %s (MD5SUM %s); serving it',
                        self.hwid_path, CalculateMd5sum(self.hwid_path))
+
+      if self.on_idle:
+        try:
+          self.on_idle()
+        except:  # pylint: disable=W0702
+          logging.exception('Exception in idle hook')
     except:
       self._errors += 1
       raise

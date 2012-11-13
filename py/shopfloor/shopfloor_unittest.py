@@ -30,6 +30,7 @@ class ShopFloorServerTest(unittest.TestCase):
     self.server_port = test_utils.FindUnusedTCPPort()
     self.base_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
     self.data_dir = tempfile.mkdtemp(prefix='shopfloor_data.')
+    self.auto_archive_logs = os.path.join(self.data_dir, 'auto-archive-logs')
     self.logs_dir = os.path.join(self.data_dir, time.strftime('logs.%Y%m%d'))
     self.registration_code_log = (
         os.path.join(self.data_dir, shopfloor.REGISTRATION_CODE_LOG_CSV))
@@ -54,7 +55,9 @@ class ShopFloorServerTest(unittest.TestCase):
     cmd.extend([
         '-q', '-a', 'localhost', '-p', str(self.server_port),
         '-m', 'cros.factory.shopfloor.simple_shopfloor',
-        '-d', self.data_dir])
+        '-d', self.data_dir,
+        '--auto-archive-logs', os.path.join(self.auto_archive_logs,
+                                            'logs.DATE.tar.bz2')])
     self.process = Spawn(cmd, log=True)
     self.proxy = xmlrpclib.ServerProxy('http://localhost:%s' % self.server_port,
                                        allow_none=True)
@@ -175,6 +178,24 @@ class ShopFloorServerTest(unittest.TestCase):
 
     # Try to upload to invalid serial number
     self.assertRaises(xmlrpclib.Fault, self.proxy.UploadReport, 'CR00200', blob)
+
+    # Move the report to yesterday's dir.  "Insert" some media and
+    # check that the logs are archived.
+    yesterday_localtime = time.localtime(time.time() - 24*60*60)
+    yesterday = time.strftime(shopfloor.LOGS_DIR_FORMAT, yesterday_localtime)
+    shutil.move(self.logs_dir,
+                os.path.join(self.data_dir, yesterday))
+
+    os.makedirs(self.auto_archive_logs)
+    dest_path = os.path.join(
+        self.auto_archive_logs,
+        time.strftime('logs.%Y%m%d.tar.bz2', yesterday_localtime))
+    for _ in xrange(20):
+      if os.path.exists(dest_path):
+        break
+      time.sleep(.1)
+    else:
+      self.fail('%s was never created' % dest_path)
 
   def testFinalize(self):
     self.proxy.Finalize('CR001024')
