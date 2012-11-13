@@ -165,16 +165,22 @@ class ShopFloorServerTest(unittest.TestCase):
     self.assertRaises(xmlrpclib.Fault, self.proxy.GetVPD, 'MAGICA')
     return True
 
+  def testSaveAuxLog(self):
+    self.proxy.SaveAuxLog('foo/bar', shopfloor.Binary('Blob'))
+    self.assertEquals(
+        'Blob',
+        open(os.path.join(self.logs_dir, shopfloor.AUX_LOGS_DIR,
+                          'foo/bar')).read())
+
   def testUploadReport(self):
     # Upload simple blob
     blob = 'Simple Blob'
     report_name = 'simple_blob.rpt'
     report_path = os.path.join(self.logs_dir, shopfloor.REPORTS_DIR,
                                report_name)
-    self.proxy.UploadReport('CR001020', shopfloor.Binary('Simple Blob'),
+    self.proxy.UploadReport('CR001020', shopfloor.Binary(blob),
                             report_name)
-    self.assertTrue(os.path.exists(report_path))
-    self.assertTrue(open(report_path).read(), blob)
+    self.assertEquals(open(report_path).read(), blob)
 
     # Try to upload to invalid serial number
     self.assertRaises(xmlrpclib.Fault, self.proxy.UploadReport, 'CR00200', blob)

@@ -22,12 +22,14 @@ from xmlrpclib import Binary
 
 import factory_common
 from cros.factory.shopfloor import factory_update_server
+from cros.factory.test import shopfloor
 from cros.factory.test import utils
 from cros.factory.utils.process_utils import Spawn
 
 
 EVENTS_DIR = 'events'
 REPORTS_DIR = 'reports'
+AUX_LOGS_DIR = 'aux_logs'
 UPDATE_DIR = 'update'
 REGISTRATION_CODE_LOG_CSV = 'registration_code_log.csv'
 LOGS_DIR_FORMAT = 'logs.%Y%m%d'
@@ -176,6 +178,10 @@ class ShopFloorBase(object):
     """Returns the active reports directory."""
     return self.GetLogsDir(REPORTS_DIR)
 
+  def GetAuxLogsDir(self):
+    """Returns the active auxiliary logs directory."""
+    return self.GetLogsDir(AUX_LOGS_DIR)
+
   def Init(self):
     """Initializes the shop floor system.
 
@@ -252,6 +258,29 @@ class ShopFloorBase(object):
       a XML-RPC server module.
     """
     raise NotImplementedError('UploadReport')
+
+  def SaveAuxLog(self, name, contents):
+    """Saves an auxiliary log into the logs.$(DATE)/aux_logs directory.
+
+    In general, this should probably be compressed to save space.
+
+    Args:
+      name: Name of the report.  Any existing log with the same name will be
+        overwritten.  Subdirectories are allowed.
+      contents: Contents of the report.  If this is binary, it should be
+        wrapped in a shopfloor.Binary object.
+    """
+    if isinstance(contents, shopfloor.Binary):
+      contents = contents.data
+
+    # Disallow absolute paths and paths with '..'.
+    assert not os.path.isabs(name)
+    assert '..' not in os.path.split(name)
+
+    path = os.path.join(self.GetAuxLogsDir(), name)
+    utils.TryMakeDirs(os.path.dirname(path))
+    with open(path, "wb") as f:
+      f.write(contents)
 
   def Finalize(self, serial):
     """Marks target device (by serial) to be ready for shipment.
