@@ -115,6 +115,40 @@ class GooftoolTest(unittest.TestCase):
              'tpm': [ProbedComponentResult('tpm_1', 'TPM_1', None)],
              'vga': [ProbedComponentResult('vga_2', 'VGA_2', None)]}))
 
+  def testFindBOMMismatchesMissingDontcare(self):
+    self.mox.ReplayAll()
+
+    # expect fully matched result
+    self.assertEquals(
+        {},
+        self._gooftool.FindBOMMismatches(
+            'BENDER',
+            'FRY',
+             # expect = don't care, actual = some value
+            {'camera': [ProbedComponentResult('camera_2', 'CAMERA_2', None)],
+             # expect = don't care, actual = missing
+             'cpu': [ProbedComponentResult(None, None, "Missing")],
+             # expect = missing, actual = missing
+             'cellular': [ProbedComponentResult(None, None, "Missing")]}))
+
+    # expect mismatch results
+    self.assertEquals(
+        {'cellular': Mismatch(
+            expected=None,
+            actual=[ProbedComponentResult('cellular_1', 'CELLULAR_1', None)]),
+         'dram': Mismatch(
+            expected=set(['dram_1']), actual=set([None]))},
+        self._gooftool.FindBOMMismatches(
+            'BENDER',
+            'FRY',
+             # expect correct value
+            {'camera': [ProbedComponentResult('camera_2', 'CAMERA_2', None)],
+             # expect = missing, actual = some value
+             'cellular': [ProbedComponentResult(
+                 'cellular_1', 'CELLULAR_1', None)],
+             # expect = some value, actual = missing
+             'dram': [ProbedComponentResult(None, None, 'Missing')]}))
+
   def testFindBOMMismatchesError(self):
     self.mox.ReplayAll()
 

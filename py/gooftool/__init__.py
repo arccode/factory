@@ -17,7 +17,7 @@ from cros.factory.gooftool.probe import Probe
 
 
 # A named tuple to store the probed component name and the error if any.
-ProbedComponentResult = namedtuple('VerifyComponentResult',
+ProbedComponentResult = namedtuple('ProbedComponentResult',
                                   ['component_name', 'probed_string', 'error'])
 
 # The mismatch result tuple.
@@ -194,6 +194,13 @@ class Gooftool(object):
     for comp_class, results in probed_comps.items():
       if comp_class in primary.classes_dontcare:  # skip don't care components
         continue
+
+      # If a component is expected to be missing, then empty probed result
+      # is expected.
+      if comp_class in primary.classes_missing and (
+          not any(result.probed_string for result in results)):
+        continue
+
       if comp_class not in primary.components:
         mismatches[comp_class] = Mismatch(None, results)
         continue

@@ -34,9 +34,10 @@ _MSG_NO_SHOP_FLOOR_SERVER_URL = test_ui.MakeLabel(
 class CheckComponentsTask(FactoryTask):
   '''Checks the given components are in the components db.'''
 
-  def __init__(self, test):
+  def __init__(self, test, allow_missing=False):
     super(CheckComponentsTask, self).__init__()
     self._test = test
+    self._allow_missing = allow_missing
 
   def Run(self):
     """Runs the test.
@@ -58,6 +59,9 @@ class CheckComponentsTask(FactoryTask):
     error_msgs = []
     for class_result in result.values():
       for component_result in class_result:
+        # If the component is missing, but it is allowed, ignore the error.
+        if not component_result.probed_string and self._allow_missing:
+          continue
         if component_result.error:
           error_msgs.append(component_result.error)
     if error_msgs:
@@ -184,7 +188,8 @@ class VerifyComponentsTest(unittest.TestCase):
     self.component_list = self.args.component_list
     self.board = self.args.board
 
-    task_list = [CheckComponentsTask(self)]
+    allow_missing = (self.args.bom_whitelist != None)
+    task_list = [CheckComponentsTask(self, allow_missing)]
 
     # Run VerifyAnyBOMTask if the BOM whitelist is specified.
     if self.args.bom_whitelist:

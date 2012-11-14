@@ -63,6 +63,8 @@ class VerifyComponentsUnitTest(unittest.TestCase):
     self.assertEquals(probed, self._mock_test.probed_results)
 
   def testCheckComponentsTaskFailed(self):
+    '''Test for component name not found error.'''
+
     task = CheckComponentsTask(self._mock_test)
     self._StubPassFail(task)
     self._mock_test.component_list = ['camera', 'cpu']
@@ -72,6 +74,50 @@ class VerifyComponentsUnitTest(unittest.TestCase):
     # bad probed results
     probed = {'camera':[ProbedComponentResult('camera_1', 'CAMERA_1', None)],
               'cpu': [ProbedComponentResult(None, 'CPU_1', "Fake error")]}
+    self._mock_test.gooftool.VerifyComponents(
+        self._mock_test.component_list).AndReturn(probed)
+
+    task.Fail(mox.IsA(str))
+
+    self._mox.ReplayAll()
+    task.Run()
+    # esnure the result is appended
+    self.assertEquals(probed, self._mock_test.probed_results)
+
+  def testCheckComponentsTaskAllowMissing(self):
+    '''Test for component missing error when it is allowed.'''
+
+    task = CheckComponentsTask(self._mock_test, allow_missing=True)
+    self._StubPassFail(task)
+    self._mock_test.component_list = ['camera', 'cpu']
+
+    self._mock_test.template.SetState(mox.IsA(unicode))
+
+    probed = {'camera':[ProbedComponentResult('camera_1', 'CAMERA_1', None)],
+              # Missing is allowed.
+              'cpu': [ProbedComponentResult(None, None, "Fake missing error")]}
+    self._mock_test.gooftool.VerifyComponents(
+        self._mock_test.component_list).AndReturn(probed)
+
+    task.Pass()
+
+    self._mox.ReplayAll()
+    task.Run()
+    # esnure the result is appended
+    self.assertEquals(probed, self._mock_test.probed_results)
+
+  def testCheckComponentsTaskNotAllowMissing(self):
+    '''Test for component missing error when it is NOT allowed.'''
+
+    task = CheckComponentsTask(self._mock_test, allow_missing=False)
+    self._StubPassFail(task)
+    self._mock_test.component_list = ['camera', 'cpu']
+
+    self._mock_test.template.SetState(mox.IsA(unicode))
+
+    probed = {'camera':[ProbedComponentResult('camera_1', 'CAMERA_1', None)],
+              # Missing is not allowed and should be captured.
+              'cpu': [ProbedComponentResult(None, None, "Fake missing error")]}
     self._mock_test.gooftool.VerifyComponents(
         self._mock_test.component_list).AndReturn(probed)
 

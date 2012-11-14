@@ -27,6 +27,34 @@ boms:
         wireless: wireless_1
     variants:
     - A
+  FRY:
+    primary:
+      classes_dontcare:
+      - camera
+      - cpu
+      classes_missing:
+      - cellular
+      components:
+        audio_codec: audio_codec_1
+        battery: battery_1
+        bluetooth: bluetooth_1
+        wimax: wimax_1
+        display_converter: display_converter_1
+        chipset: chipset_1
+        display_panel: display_panel_1
+        dram: dram_1
+        ec_flash_chip: ec_flash_chip_1
+        embedded_controller: embedded_controller_1
+        ethernet: ethernet_1
+        flash_chip: flash_chip_1
+        storage: storage_1
+        touchpad: touchpad_1
+        tpm: tpm_1
+        usb_hosts: usb_hosts_1
+        vga: vga_1
+        wireless: wireless_1
+    variants:
+    - A
 hwid_status:
   deprecated: []
   eol: []
