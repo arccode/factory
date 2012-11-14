@@ -139,7 +139,7 @@ def RunFactoryFlow(board, factory_channel, recovery_channel,
                    dhcp_iface, host_ip, dut_mac, dut_ip,
                    factory_branch='', recovery_branch='', recovery_key='',
                    bios_channel='', bios_branch='', bios_key='', bios_tag='',
-                   bios_file='', ec_file='',
+                   firmware_updater='', bios_file='', ec_file='',
                    servo_serial='', finalize=False,
                    config='', testlist='', serial_number=''):
   gsutil = GSUtil(board, factory_channel)
@@ -186,11 +186,12 @@ def RunFactoryFlow(board, factory_channel, recovery_channel,
     recovery_file = os.path.join(recovery_dir, 'recovery_image.bin')
 
   if bios_file or ec_file:
-    Spawn([os.path.join(bundle_dir, 'factory_setup',
-                        'extract_firmware_updater.sh'),
-           '--image', recovery_file, '--output_dir', work_dir],
-          log=True, check_call=True)
-    firmware_updater = os.path.join(work_dir, 'chromeos-firmwareupdate')
+    if not firmware_updater:
+      Spawn([os.path.join(bundle_dir, 'factory_setup',
+                          'extract_firmware_updater.sh'),
+             '--image', recovery_file, '--output_dir', work_dir],
+            log=True, check_call=True)
+      firmware_updater = os.path.join(work_dir, 'chromeos-firmwareupdate')
     updater_dir = os.path.join(work_dir, 'updater')
     os.mkdir(updater_dir)
     Spawn([firmware_updater, '--sb_extract', updater_dir],
@@ -203,8 +204,6 @@ def RunFactoryFlow(board, factory_channel, recovery_channel,
       shutil.copyfile(ec_file, os.path.join(updater_dir, 'ec.bin'))
     Spawn([firmware_updater, '--sb_repack', updater_dir],
           log=True, check_call=True)
-  else:
-    firmware_updater = ''
 
   netboot_process = None
   automation_process = None
@@ -297,6 +296,8 @@ if __name__ == '__main__':
                     help='Key by which BIOS image was signed.')
   parser.add_option('--bios_tag', default='',
                     help='Tag to select which BIOS image to use.')
+  parser.add_option('--firmware_updater', default='',
+                    help='Firmware updater to use.')
   parser.add_option('--bios_file', default='',
                     help='Local BIOS image to use.')
   parser.add_option('--ec_file', default='',
@@ -328,6 +329,6 @@ if __name__ == '__main__':
                  options.factory_branch, options.recovery_branch,
                  options.recovery_key, options.bios_channel,
                  options.bios_branch, options.bios_key, options.bios_tag,
-                 options.bios_file, options.ec_file,
+                 options.firmware_updater, options.bios_file, options.ec_file,
                  options.servo_serial, options.finalize,
                  options.config, options.testlist, options.serial_number)
