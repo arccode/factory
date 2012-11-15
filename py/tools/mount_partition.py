@@ -7,25 +7,34 @@
 import argparse
 import logging
 import os
+import tempfile
 import time
 from contextlib import contextmanager
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.utils.process_utils import Spawn
 
-def MountPartition(image_file, index, mount_point, rw=False):
+def MountPartition(image_file, index=None, mount_point=None, rw=False):
   '''Mounts a partition in an image file.
 
   Args:
     image_file: The image file.
-    index: The index of the partition.
-    mount_point: The mount point for the loopback mount.
+    index: The index of the partition, or None to mount as a single
+      partition.
+    mount_point: The mount point for the loopback mount.  If None,
+      a temporary directory is used.
     rw: Whether to mount as read/write.
 
   Raises:
     OSError: if image file or mount point doesn't exist.
     subprocess.CalledProcessError: if mount fails.
   '''
+  if not mount_point:
+    mount_point = tempfile.mkdtemp(prefix='mount_partition.')
+    remove_mount_point = True
+  else:
+    remove_mount_point = False
+
   if not os.path.exists(image_file):
     raise OSError('Image file %s does not exist' % image_file)
   if not os.path.isdir(mount_point):
@@ -35,18 +44,18 @@ def MountPartition(image_file, index, mount_point, rw=False):
     if line.split()[1] == mount_point:
       raise OSError('Mount point %s is already mounted' % mount_point)
 
-  def RunCGPT(option):
-    '''Runs cgpt and returns the integer result.'''
-    return int(
-        Spawn(['cgpt', 'show', '-i', str(index),
-               option, image_file],
-              read_stdout=True, check_call=True).stdout_data)
-  offset = RunCGPT('-b') * 512
-  size = RunCGPT('-s') * 512
-  Spawn(['mount', '-o',
-         '%s,loop,offset=%d,sizelimit=%d' % (
-             'rw' if rw else 'ro', offset, size),
-         image_file, mount_point],
+  options = '%s,loop' % ('rw' if rw else 'ro')
+  if index:
+    def RunCGPT(option):
+      '''Runs cgpt and returns the integer result.'''
+      return int(
+          Spawn(['cgpt', 'show', '-i', str(index),
+                 option, image_file],
+                read_stdout=True, check_call=True).stdout_data)
+    offset = RunCGPT('-b') * 512
+    size = RunCGPT('-s') * 512
+    options += ',offset=%d,sizelimit=%d' % (offset, size)
+  Spawn(['mount', '-o', options, image_file, mount_point],
         log=True, check_call=True, sudo=True)
 
   @contextmanager
@@ -54,13 +63,20 @@ def MountPartition(image_file, index, mount_point, rw=False):
     try:
       yield mount_point
     finally:
+      logging.info('Unmounting %s', mount_point)
       for _ in range(5):
-        if Spawn(['umount', mount_point], log=True, call=True,
-                 log_stderr_on_error=True, sudo=True).returncode == 0:
+        if Spawn(['umount', mount_point], call=True, sudo=True,
+                 ignore_stderr=True).returncode == 0:
           break
         time.sleep(1)  # And retry
       else:
         logging.warn('Unable to umount %s', mount_point)
+
+      if remove_mount_point:
+        try:
+          os.rmdir(mount_point)
+        except OSError:
+          pass
 
   return Unmounter()
 
