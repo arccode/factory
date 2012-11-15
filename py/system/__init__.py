@@ -5,6 +5,7 @@
 # found in the LICENSE file.
 
 import glob
+import logging
 import netifaces
 import os
 import re
@@ -15,6 +16,7 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.system.ec import EC
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
+from cros.factory.test.utils import ReadOneLine
 from cros.factory.utils.process_utils import Spawn
 
 # pylint: disable=W0702
@@ -259,3 +261,20 @@ if __name__ == '__main__':
              system_status=SystemStatus().__dict__),
           default_flow_style=False)
 
+
+def SetBacklightBrightness(level):
+  '''Sets the backlight brightness level.
+
+  Args:
+    level: A floating-point value in [0.0, 1.0] indicating the backlight
+        brightness level.
+  Raises:
+    ValueError if the specified value is invalid.
+  '''
+  if not (level >= 0.0 and level <= 1.0):
+    raise ValueError('Invalid brightness level.')
+  interfaces = glob.glob('/sys/class/backlight/*')
+  for i in interfaces:
+    with open(os.path.join(i, 'brightness'), 'w') as f:
+      f.write('%d' % int(
+          level * float(ReadOneLine(os.path.join(i, 'max_brightness')))))
