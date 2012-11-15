@@ -32,7 +32,7 @@ from cros.factory.test.args import Arg
 from cros.factory.test.factory_task import FactoryTask, FactoryTaskManager
 from cros.factory.test.event import Event
 from cros.factory.event_log import EventLog
-from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils.process_utils import CheckOutput
 
 
 _TEST_TITLE = test_ui.MakeLabel('Start Factory Test', u'开始工厂测试')
@@ -247,7 +247,7 @@ class ReadVPDSerialTask(FactoryTask):
     serial_number = None
 
     def _ReadVPD(key):
-      return Spawn(['vpd', '-g', key], check_output=True).stdout_data
+      return CheckOutput(['vpd', '-g', key])
 
     if serial_number_vpd_keys:
       self._test.template.SetState(_MSG_READING_VPD_SERIAL)

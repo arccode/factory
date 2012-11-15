@@ -27,7 +27,7 @@ from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
 from cros.factory.test.ui_templates import OneSection
 from cros.factory.test.utils import StartDaemonThread
-from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils.process_utils import CheckOutput, Spawn
 
 _MSG_TIME_REMAINING = lambda t: test_ui.MakeLabel(
     'Time remaining: %d' % t, u'剩余时间：%d' % t, 'keyboard-test-info')
@@ -98,8 +98,7 @@ class KeyboardTest(unittest.TestCase):
     """Uses the given keyboard layout or auto-detect from VPD."""
     if self.args.layout:
       return self.args.layout
-    vpd_layout = Spawn(['vpd', '-g', 'initial_locale'],
-                       check_output=True).stdout_data.strip()
+    vpd_layout = CheckOutput(['vpd', '-g', 'initial_locale']).strip()
     return vpd_layout if vpd_layout else 'en-US'
 
   def ReadBindings(self, layout):
@@ -117,8 +116,8 @@ class KeyboardTest(unittest.TestCase):
 
   def EnableXKeyboard(self, enable):
     """Enables/Disables keyboard at the X server."""
-    Spawn(['xinput', 'set-prop', self.args.keyboard_device_name,
-           'Device Enabled', '1' if enable else '0'], check_call=True)
+    CheckOutput(['xinput', 'set-prop', self.args.keyboard_device_name,
+                 'Device Enabled', '1' if enable else '0'])
 
   def MonitorEvtest(self):
     """Monitors keyboard events from output of evtest."""

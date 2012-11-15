@@ -17,7 +17,7 @@ import unittest
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
-from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils.process_utils import Spawn, SpawnOutput
 
 
 _MSG_TEST_TITLE = test_ui.MakeLabel('Non-touchpad Pointing Device Test',
@@ -216,12 +216,10 @@ class PointingDeviceTest(unittest.TestCase):
     Returns:
       False if failed.
     """
-    process = Spawn(['xinput', 'list-props', device], read_stdout=True,
-                    log_stderr_on_error=True)
-    if process.returncode != 0 or 'Device Enabled' not in process.stdout_data:
+    if 'Device Enabled' not in SpawnOutput(['xinput', 'list-props', device],
+                                           log_stderr_on_error=True):
       return False
 
-    process = Spawn(
+    return Spawn(
       ['xinput', 'set-prop', device, 'Device Enabled', str(int(enabled))],
-      read_stdout=True, log_stderr_on_error=True)
-    return process.returncode == 0
+      log_stderr_on_error=True).returncode == 0
