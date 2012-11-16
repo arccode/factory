@@ -12,13 +12,16 @@ from cros.factory.utils.process_utils import Spawn
 
 
 class ChromeOSEC(EC):
-  '''EC interface for ChromeOS EC. Uses ectool to access EC.'''
+  """EC interface for ChromeOS EC. Uses ectool to access EC."""
   # pylint: disable=W0223
   GET_FAN_SPEED_RE = re.compile('Current fan RPM: ([0-9]*)')
   TEMPERATURE_RE = re.compile('^(\d+): (\d+)$', re.MULTILINE)
   TEMPERATURE_INFO_RE = re.compile('^(\d+): \d+ (.+)$', re.MULTILINE)
   EC_VERSION_RE = re.compile('^fw_version\s+\|\s+(.+)$', re.MULTILINE)
   I2C_READ_RE = re.compile('I2C port \d+ at \S+ offset \S+ = (0x[0-9a-f]+)')
+
+  # Expected battery info.
+  BATTERY_DESIGN_CAPACITY_RE = re.compile('Design capacity:\s+([1-9]\d*)\s+mAh')
 
   # Charger option bytes
   CHARGER_OPTION_NORMAL = "0xf912"
@@ -33,8 +36,17 @@ class ChromeOSEC(EC):
     super(ChromeOSEC, self).__init__()
 
   def _CallECTool(self, cmd, check=True):
-    p = Spawn(['ectool'] + cmd, read_stdout=True, ignore_stderr=True,
-              call=True)
+    """Invokes ectool.
+
+    Args:
+      cmd: ectool argument list
+      check: True to check returncode and raise ECException for non-zero
+          returncode.
+
+    Returns:
+      ectool command's stdout.
+    """
+    p = Spawn(['ectool'] + cmd, read_stdout=True, ignore_stderr=True)
     if check:
       if p.returncode == 252:
         raise ECException('EC is locked by write protection')
@@ -103,7 +115,10 @@ class ChromeOSEC(EC):
           ignore_stdout=True,
           log_stderr_on_error=True)
     except Exception as e: # pylint: disable=W0703
-      raise ECException('Unable to set fan speed: %s' % e)
+      if rpm == self.AUTO:
+        raise ECException('Unable to set auto fan control: %s' % e)
+      else:
+        raise ECException('Unable to set fan speed to %d RPM: %s' % (rpm, e))
 
   def GetVersion(self):
     response = self._Spawn(['mosys', 'ec', 'info', '-l'],
@@ -138,3 +153,19 @@ class ChromeOSEC(EC):
 
   def GetBatteryCurrent(self):
     return self.I2CRead(0, 0x16, 0x0a)
+
+  def Hello(self):
+    try:
+      if self._CallECTool(['hello']).find('EC says hello') == -1:
+        raise ECException('Did not find "EC says hello".')
+    except Exception as e:
+      raise ECException('Unable to say hello: %s' % e)
+
+  def GetBatteryDesignCapacity(self):
+    try:
+      m = self.BATTERY_DESIGN_CAPACITY_RE.search(self._CallECTool(['battery']))
+      if not m:
+        raise ECException('Design capacity not found.')
+      return int(m.group(1))
+    except Exception as e:
+      raise ECException('Unable to get battery design capacity: %s' % e)

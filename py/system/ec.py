@@ -16,7 +16,7 @@ class ECException(Exception):
 
 
 class EC(object):
-  '''Basic EC interface class.'''
+  """Basic EC interface class."""
   ChargeState = Enum(['CHARGE', 'IDLE', 'DISCHARGE'])
 
   # Auto fan speed.
@@ -24,69 +24,85 @@ class EC(object):
 
   # Functions that are used in Goofy. Must be implemented.
   def GetTemperatures(self):
-    '''Gets a list of temperatures for various sensors.
+    """Gets a list of temperatures for various sensors.
 
     Returns:
-      A list of int indicating the temperatures in Celsius. Raises ECException
-      when fail.'''
+      A list of int indicating the temperatures in Celsius.
+      For those sensors which don't have readings, fill None instead.
+
+    Raises:
+      ECException when fail.
+    """
     raise NotImplementedError
 
   def GetMainTemperatureIndex(self):
-    '''Gets the main index in temperatures list that should be logged.
+    """Gets the main index in temperatures list that should be logged.
 
     This is typically the CPU temperature.
 
     Returns:
-      A int indicating the main temperature index. Raises ECException when
-      fail.'''
+      A int indicating the main temperature index.
+
+    Raises:
+      ECException when fail.
+    """
     raise NotImplementedError
 
   def GetFanRPM(self):
-    '''Gets the fan RPM.
+    """Gets the fan RPM.
 
     Returns:
-      A int indicating the fan RPM. Raises ECException when fail.'''
+      A int indicating the fan RPM.
+
+    Raises:
+      ECException when fail.
+    """
     raise NotImplementedError
 
   def GetVersion(self):
-    '''Gets the EC firmware version.
+    """Gets the EC firmware version.
 
     Returns:
-      A string of the EC firmware version. Raises ECException when fail.'''
+      A string of the EC firmware version.
+
+    Raises:
+      ECException when fail.
+    """
     raise NotImplementedError
 
   def GetConsoleLog(self):
-    '''Gets the EC console log.
+    """Gets the EC console log.
 
     Returns:
-      A string containing EC console log. Raises ECException when fail.'''
+      A string containing EC console log.
+    """
     raise NotImplementedError
 
   def SetChargeState(self, state):
-    '''Sets the charge state.
+    """Sets the charge state.
 
     Args:
       state: One of the three states in ChargeState.
 
-    Returns:
-      Raises ECException when fail.
-    '''
+    Raises:
+       ECException when fail.
+    """
     raise NotImplementedError
 
   # Optional functions. Implement them if you need them in your tests.
   def SetFanRPM(self, rpm):
-    '''Sets the target fan RPM.
+    """Sets the target fan RPM.
 
     Args:
-      rpm: Target fan RPM, or AUTO for auto.
+      rpm: Target fan RPM, or EC.AUTO for auto fan control.
 
-    Returns:
-      Raises ECException when fail.
-    '''
+    Raises:
+      ECException when fail.
+    """
     raise NotImplementedError
 
   def I2CRead(self, port, addr, reg):
-    '''Reads 16-bit value from I2C bus.
+    """Reads 16-bit value from I2C bus.
 
     Args:
       port: I2C port ID.
@@ -94,12 +110,14 @@ class EC(object):
       reg: Slave register address.
 
     Returns:
-      Integer value read from slave. Raises ECException when fail.
-    '''
+      Integer value read from slave.
+    Raises:
+      ECException when fail.
+    """
     raise NotImplementedError
 
   def I2CWrite(self, port, addr, reg, value):
-    '''Writes 16-bit value to I2C bus.
+    """Writes 16-bit value to I2C bus.
 
     Args:
       port: I2C port ID.
@@ -107,23 +125,48 @@ class EC(object):
       reg: Slave register address.
       value: 16-bit value to write.
 
-    Returns:
-      Raises ECException when fail.
-    '''
+    Raises:
+       ECException when fail.
+    """
     raise NotImplementedError
 
   def GetChargerCurrent(self):
-    '''Gets the amount of current we ask from charger.
+    """Gets the amount of current we ask from charger.
 
     Returns:
-      Interger value in mA. Raises ECException when fail.
-    '''
+      Interger value in mA.
+
+    Raises:
+      ECException when fail.
+    """
     raise NotImplementedError
 
   def GetBatteryCurrent(self):
-    '''Gets the amount of current battery is charging/discharging at.
+    """Gets the amount of current battery is charging/discharging at.
 
     Returns:
-      Integer value in mA. Raises ECException when fail.
-    '''
+      Integer value in mA.
+
+    Raises:
+      ECException when fail.
+    """
+    raise NotImplementedError
+
+  def Hello(self):
+    """Says hello to EC.
+
+    Raises:
+      ECException if EC does not respond correctly.
+    """
+    raise NotImplementedError
+
+  def GetBatteryDesignCapacity(self):
+    """Gets battery's design capacity.
+
+    Returns:
+      Battery's design capacity in mAh.
+
+    Raises:
+      ECException if battery's design capacity cannot be obtained.
+    """
     raise NotImplementedError

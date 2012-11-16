@@ -9,7 +9,7 @@ import mox
 import unittest
 
 from cros.factory.board.chromeos_ec import ChromeOSEC
-from cros.factory.system.ec import EC
+from cros.factory.system.ec import EC, ECException
 
 
 # pylint: disable=W0212
@@ -170,6 +170,47 @@ class ChromeOSECTest(unittest.TestCase):
     self.ec._CallECTool(['i2cwrite', '16', '0', '0x12', '0x12', '0xf912'])
     self.mox.ReplayAll()
     self.ec.SetChargeState(EC.ChargeState.IDLE)
+    self.mox.VerifyAll()
+
+  def testHello(self):
+    self.ec._CallECTool(['hello']).AndReturn('EC says hello')
+    self.mox.ReplayAll()
+    self.ec.Hello()
+    self.mox.VerifyAll()
+
+  def testHelloFail(self):
+    self.ec._CallECTool(['hello']).AndReturn('EC dooes not say hello')
+    self.mox.ReplayAll()
+    self.assertRaises(ECException, self.ec.Hello)
+    self.mox.VerifyAll()
+
+  def testProbeBattery(self):
+    _BATTERY_INFO = """Battery info:
+  OEM name:          FOO
+  Design capacity:   8000 mAh
+"""
+    self.ec._CallECTool(['battery']).AndReturn(_BATTERY_INFO)
+    self.mox.ReplayAll()
+    self.assertEqual(8000, self.ec.GetBatteryDesignCapacity())
+    self.mox.VerifyAll()
+
+  def testProbeBatteryFail(self):
+    _BATTERY_INFO = """Battery info:
+  OEM name:          FOO
+"""
+    self.ec._CallECTool(['battery']).AndReturn(_BATTERY_INFO)
+    self.mox.ReplayAll()
+    self.assertRaises(ECException, self.ec.GetBatteryDesignCapacity)
+    self.mox.VerifyAll()
+
+  def testProbeBatteryFailZeroBatteryCapacity(self):
+    _BATTERY_INFO = """Battery info:
+  OEM name:          FOO
+  Design capacity:   0 mAh
+"""
+    self.ec._CallECTool(['battery']).AndReturn(_BATTERY_INFO)
+    self.mox.ReplayAll()
+    self.assertRaises(ECException, self.ec.GetBatteryDesignCapacity)
     self.mox.VerifyAll()
 
 
