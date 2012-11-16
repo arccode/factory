@@ -87,6 +87,8 @@ def get_test_data_root():
 CONSOLE_LOG_PATH = os.path.join(get_log_root(), 'console.log')
 FACTORY_LOG_PATH = os.path.join(get_log_root(), 'factory.log')
 
+# Path to factory log on a "real" device.
+FACTORY_LOG_PATH_ON_DEVICE = '/var/factory/log/factory.log'
 
 _state_instance = None
 

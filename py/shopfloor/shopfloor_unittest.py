@@ -13,17 +13,19 @@ import shutil
 import sys
 import tempfile
 import time
-import unittest
+import unittest2
 import xmlrpclib
 
 import factory_common  # pylint: disable=W0611
 from cros.factory import shopfloor
 from cros.factory.shopfloor import factory_update_server
+from cros.factory.test import factory
+from cros.factory.test import utils
 from cros.factory.utils import test_utils
 from cros.factory.utils.process_utils import Spawn
 
 
-class ShopFloorServerTest(unittest.TestCase):
+class ShopFloorServerTest(unittest2.TestCase):
   def setUp(self):
     '''Starts shop floor server and creates client proxy.'''
     # pylint: disable=W0212
@@ -172,15 +174,61 @@ class ShopFloorServerTest(unittest.TestCase):
         open(os.path.join(self.logs_dir, shopfloor.AUX_LOGS_DIR,
                           'foo/bar')).read())
 
+  def _MakeTarFile(self, content_path, compress=True):
+    """Makes a tar archive containing a single empty file.
+
+    Args:
+      content_path: The path to the empty file within the archive.
+
+    Returns: The tar archive contents as a string.
+    """
+    tmp = tempfile.mkdtemp('tar')
+    try:
+      factory_log_path = os.path.join(
+          tmp, content_path.lstrip('/'))
+      utils.TryMakeDirs(os.path.dirname(factory_log_path))
+      open(factory_log_path, 'w').close()
+      return Spawn([
+          'tar', '-c' + ('j' if compress else '') + 'f', '-', '-C', tmp,
+          content_path.lstrip('/')],
+                   check_output=True).stdout_data
+    finally:
+      shutil.rmtree(tmp)
+
+  def testUploadCorruptReport_Empty(self):
+    self.assertRaisesRegexp(
+        xmlrpclib.Fault,
+        'This does not look like a tar archive',
+        self.proxy.UploadReport, 'CR001020', shopfloor.Binary(''), 'foo')
+
+  def testUploadCorruptReport_MissingLog(self):
+    self.assertRaisesRegexp(
+        xmlrpclib.Fault,
+        factory.FACTORY_LOG_PATH_ON_DEVICE.lstrip('/') + ' missing',
+        self.proxy.UploadReport, 'CR001020',
+        shopfloor.Binary(self._MakeTarFile('foo')), 'foo')
+
+  def testUploadCorruptReport_CorruptBZ2(self):
+    tbz2 = self._MakeTarFile('foo')
+    tbz2 = tbz2[:-1]  # Truncate the file
+    self.assertRaisesRegexp(
+        xmlrpclib.Fault,
+        'Compressed file ends unexpectedly',
+        self.proxy.UploadReport, 'CR001020',
+        shopfloor.Binary(tbz2), 'foo')
+
   def testUploadReport(self):
     # Upload simple blob
-    blob = 'Simple Blob'
-    report_name = 'simple_blob.rpt'
+    blob = self._MakeTarFile(factory.FACTORY_LOG_PATH_ON_DEVICE)
+
+    report_name = 'simple_blob.rpt.bz2'
     report_path = os.path.join(self.logs_dir, shopfloor.REPORTS_DIR,
                                report_name)
     self.proxy.UploadReport('CR001020', shopfloor.Binary(blob),
                             report_name)
-    self.assertEquals(open(report_path).read(), blob)
+    self.assertEquals(blob, open(report_path).read())
+    self.assertTrue(re.match('^[0-9a-f]{32}\s',
+                             open(report_path + '.md5').read()))
 
     # Try to upload to invalid serial number
     self.assertRaises(xmlrpclib.Fault, self.proxy.UploadReport, 'CR00200', blob)
@@ -271,4 +319,4 @@ class ShopFloorServerTest(unittest.TestCase):
 
 if __name__ == '__main__':
   logging.basicConfig(level=logging.INFO)
-  unittest.main()
+  unittest2.main()

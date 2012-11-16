@@ -22,6 +22,7 @@ from xmlrpclib import Binary
 
 import factory_common
 from cros.factory.shopfloor import factory_update_server
+from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import utils
 from cros.factory.utils.process_utils import Spawn
@@ -34,6 +35,7 @@ UPDATE_DIR = 'update'
 REGISTRATION_CODE_LOG_CSV = 'registration_code_log.csv'
 LOGS_DIR_FORMAT = 'logs.%Y%m%d'
 
+IN_PROGRESS_SUFFIX = '.INPROGRESS'
 
 class NewlineTerminatedCSVDialect(csv.excel):
   lineterminator = '\n'
@@ -139,7 +141,7 @@ class ShopFloorBase(object):
         # There aren't any logs from yesterday.
         return
 
-      in_progress_name = archive_name + '.INPROGRESS'
+      in_progress_name = archive_name + IN_PROGRESS_SUFFIX
       logging.info('Archiving %s to %s', yesterday_logs_dir, archive_name)
 
       have_pbzip2 = Spawn(
@@ -153,6 +155,48 @@ class ShopFloorBase(object):
       shutil.move(in_progress_name, archive_name)
       logging.info('Finishing archiving %s to %s',
                    yesterday_logs_dir, archive_name)
+
+  def CheckReportIntegrity(self, report_path):
+    """Checks the integrity of a report.
+
+    This checks to make sure that "tar tf" on the report does not return any
+    errors, and that the report contains var/factory/log/factory.log.
+
+    Raises:
+      ShopFloorException on error.
+    """
+    process = Spawn(['tar', '-tf', report_path], log=True,
+                     read_stdout=True, read_stderr=True)
+
+    if process.returncode:
+      error = 'Corrupt report: tar failed'
+    elif (factory.FACTORY_LOG_PATH_ON_DEVICE.lstrip('/') not in
+          process.stdout_data.split('\n')):
+      error = 'Corrupt report: %s missing' % (
+          factory.FACTORY_LOG_PATH_ON_DEVICE.lstrip('/'))
+    else:
+      # OK!  Save the MD5SUM (removing the INPROGRESS suffix if any)
+      # and return.
+      md5_path = report_path
+      if report_path.endswith(IN_PROGRESS_SUFFIX):
+        md5_path = md5_path[:-len(IN_PROGRESS_SUFFIX)]
+      md5_path += '.md5'
+      try:
+        with open(md5_path, 'w') as f:
+          Spawn(['md5sum', report_path], stdout=f, check_call=True)
+      except:
+        try:
+          os.unlink(md5_path)
+        except OSError:
+          pass
+        raise
+      return
+
+    error += ': tar returncode=%d, stderr=%r' % (
+        process.returncode, process.stderr_data)
+    logging.error(error)
+    raise ShopFloorException(error)
+
 
   def GetLogsDir(self, subdir=None):
     """Returns the active logs directory.
