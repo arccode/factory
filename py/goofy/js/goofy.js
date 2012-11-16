@@ -270,6 +270,18 @@ cros.factory.Test.prototype.updateFactory = function() {
 };
 
 /**
+ * Sets iframe to fullscreen size. Also iframe gets higher z-index than
+ * test panel so it will cover all other stuffs in goofy.
+ * @export
+ * @param {boolean} enables fullscreen iframe or not.
+ */
+cros.factory.Test.prototype.setFullScreen = function(enable) {
+    goog.dom.classes.enable(this.invocation.iframe, 'goofy-test-fullscreen',
+                            enable);
+};
+
+
+/**
  * UI for a single test invocation.
  * @constructor
  * @param {cros.factory.Goofy} goofy

@@ -369,6 +369,14 @@ table + .goofy-history-header {
 .goofy-test-iframe.goofy-test-visible {
   display: inline;
 }
+.goofy-test-iframe.goofy-test-fullscreen {
+  position: fixed;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 3;
+}
 /* Elements in the console pane. */
 #goofy-console {
   padding: .5em .5em 0 .5em;
