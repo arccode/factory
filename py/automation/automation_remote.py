@@ -135,6 +135,7 @@ def Main():
       logging.info('Shopfloor data directory: ' + data_dir)
       shopfloor = Spawn(['%s/shopfloor_server.sh' % args.shopfloor_dir,
                          '--simple',
+                         '--auto-archive-logs=',
                          '--address=%s' % args.shopfloor_ip,
                          '--port=%s' % args.shopfloor_port,
                          '--data-dir=%s' % data_dir], log=True)
