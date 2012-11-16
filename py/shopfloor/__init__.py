@@ -55,6 +55,7 @@ class ShopFloorBase(object):
     _auto_archive_logs: An optional path to use for auto-archiving
       logs (see the --auto-archive-logs command-line argument).  This
       must contain the string 'DATE'.
+    _auto_archive_logs_days: Number of days of logs to save.
     _auto_archive_logs_dir_exists: True if the parent of _auto_archive_logs
       existed the last time we checked, False if not, or None if we've
       never checked.
@@ -68,18 +69,20 @@ class ShopFloorBase(object):
     self.update_dir = None
     self.update_server = None
     self._auto_archive_logs = None
+    self._auto_archive_logs_days = None
     self._auto_archive_logs_dir_exists = None
 
-  def _InitBase(self, auto_archive_logs):
+  def _InitBase(self, auto_archive_logs, auto_archive_logs_days):
     """Initializes the base class.
 
     Args:
       auto_archive_logs: See _auto_archive_logs property.
     """
-    if auto_archive_logs:
+    if auto_archive_logs_days > 0 and auto_archive_logs:
       assert 'DATE' in auto_archive_logs, (
           '--auto-archive-logs flag must contain the string DATE')
-    self._auto_archive_logs = auto_archive_logs
+      self._auto_archive_logs = auto_archive_logs
+      self._auto_archive_logs_days = auto_archive_logs_days
 
     if not os.path.exists(self.data_dir):
       logging.warn('Data directory %s does not exist; creating it',
@@ -118,43 +121,44 @@ class ShopFloorBase(object):
       # log a message.
       if new_auto_archive_logs_dir_exists:
         logging.info("Auto-archive directory %s found; will auto-archive "
-                     "yesterday's logs there if not present",
-                     auto_archive_dir)
+                     "past %d days' logs there if not present",
+                     auto_archive_dir, self._auto_archive_logs_days)
       else:
         logging.info("Auto-archive directory %s not found; create it (or mount "
-                     "media there) to auto-archive yesterday's logs",
-                     auto_archive_dir)
+                     "media there) to auto-archive past %d days' logs",
+                     auto_archive_dir, self._auto_archive_logs_days)
       self._auto_archive_logs_dir_exists = new_auto_archive_logs_dir_exists
 
     if new_auto_archive_logs_dir_exists:
-      yesterday = time.localtime(time.time() - 86400)
-      yesterday_logs_dir_name = time.strftime(LOGS_DIR_FORMAT, yesterday)
-      archive_name = os.path.join(
-          self._auto_archive_logs.replace(
-              'DATE', time.strftime('%Y%m%d', yesterday)))
-      if os.path.exists(archive_name):
-        # We've already done this.
-        return
+      for days_ago in xrange(1, self._auto_archive_logs_days + 1):
+        past_day = time.localtime(time.time() - days_ago * 86400)
+        past_day_logs_dir_name = time.strftime(LOGS_DIR_FORMAT, past_day)
+        archive_name = os.path.join(
+            self._auto_archive_logs.replace(
+                'DATE', time.strftime('%Y%m%d', past_day)))
+        if os.path.exists(archive_name):
+          # We've already done this.
+          continue
 
-      yesterday_logs_dir = os.path.join(self.data_dir, yesterday_logs_dir_name)
-      if not os.path.exists(yesterday_logs_dir):
-        # There aren't any logs from yesterday.
-        return
+        past_day_logs_dir = os.path.join(self.data_dir, past_day_logs_dir_name)
+        if not os.path.exists(past_day_logs_dir):
+          # There aren't any logs from past_day.
+          continue
 
-      in_progress_name = archive_name + IN_PROGRESS_SUFFIX
-      logging.info('Archiving %s to %s', yesterday_logs_dir, archive_name)
+        in_progress_name = archive_name + IN_PROGRESS_SUFFIX
+        logging.info('Archiving %s to %s', past_day_logs_dir, archive_name)
 
-      have_pbzip2 = Spawn(
-          ['which', 'pbzip2'],
-          ignore_stdout=True, ignore_stderr=True, call=True).returncode == 0
+        have_pbzip2 = Spawn(
+            ['which', 'pbzip2'],
+            ignore_stdout=True, ignore_stderr=True, call=True).returncode == 0
 
-      Spawn(['tar', '-I', 'pbzip2' if have_pbzip2 else 'bzip2',
-             '-cf', in_progress_name, '-C', self.data_dir,
-             yesterday_logs_dir_name],
-            check_call=True, log=True, log_stderr_on_error=True)
-      shutil.move(in_progress_name, archive_name)
-      logging.info('Finishing archiving %s to %s',
-                   yesterday_logs_dir, archive_name)
+        Spawn(['tar', '-I', 'pbzip2' if have_pbzip2 else 'bzip2',
+               '-cf', in_progress_name, '-C', self.data_dir,
+               past_day_logs_dir_name],
+              check_call=True, log=True, log_stderr_on_error=True)
+        shutil.move(in_progress_name, archive_name)
+        logging.info('Finishing archiving %s to %s',
+                     past_day_logs_dir, archive_name)
 
   def CheckReportIntegrity(self, report_path):
     """Checks the integrity of a report.
