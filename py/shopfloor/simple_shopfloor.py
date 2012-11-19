@@ -43,7 +43,6 @@ import glob
 import logging
 import os
 import re
-import shutil
 import time
 
 import factory_common  # pylint: disable=W0611
@@ -129,20 +128,7 @@ class ShopFloor(shopfloor.ShopFloorBase):
                                     time.strftime("%Y%m%d-%H%M%S%z")))
       if is_gzip_blob(report_blob):
         report_name += ".gz"
-    report_path = os.path.join(self.GetReportsDir(), report_name)
-    in_progress_path = report_path + shopfloor.IN_PROGRESS_SUFFIX
-    try:
-      with open(in_progress_path, "wb") as f:
-        f.write(report_blob)
-      self.CheckReportIntegrity(in_progress_path)
-      shutil.move(in_progress_path, report_path)
-    finally:
-      try:
-        # Attempt to remove the in-progress file (e.g., if the
-        # integrity check failed)
-        os.unlink(in_progress_path)
-      except OSError:
-        pass
+    self.SaveReport(report_name, report_blob)
 
   def Finalize(self, serial):
     # Finalize is currently not implemented.

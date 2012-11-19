@@ -160,6 +160,31 @@ class ShopFloorBase(object):
         logging.info('Finishing archiving %s to %s',
                      past_day_logs_dir, archive_name)
 
+  def SaveReport(self, report_name, report_blob):
+    """Saves a report to disk and checks its integrity.
+
+    Args:
+      report_path: Name of the report.
+      report_blob: Contents of the report.
+
+    Raises:
+      ShopFloorException on error.
+    """
+    report_path = os.path.join(self.GetReportsDir(), report_name)
+    in_progress_path = report_path + IN_PROGRESS_SUFFIX
+    try:
+      with open(in_progress_path, "wb") as f:
+        f.write(report_blob)
+      self.CheckReportIntegrity(in_progress_path)
+      shutil.move(in_progress_path, report_path)
+    finally:
+      try:
+        # Attempt to remove the in-progress file (e.g., if the
+        # integrity check failed)
+        os.unlink(in_progress_path)
+      except OSError:
+        pass
+
   def CheckReportIntegrity(self, report_path):
     """Checks the integrity of a report.
 
