@@ -44,6 +44,8 @@ class ShopFloorStandaloneTest(unittest.TestCase):
     os.chmod(shopfloor_server_path, 0755)
 
     os.environ['SHOPFLOOR_SERVER_CMD'] = shopfloor_server_path
+    # Disable all site directories to simulate a plain-vanilla Python.
+    os.environ['CROS_SHOPFLOOR_PYTHON_OPTS'] = "-sS"
 
     shopfloor_unittest = os.path.join(script_dir, 'shopfloor_unittest.py')
     self.process = Spawn([shopfloor_unittest], check_call=True, log=True)

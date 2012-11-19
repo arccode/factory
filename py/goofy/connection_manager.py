@@ -2,7 +2,6 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import dbus
 import glob
 import logging
 import os
@@ -11,6 +10,7 @@ import time
 
 try:
   from cros.factory.goofy import flimflam_test_path  # pylint: disable=W0611
+  import dbus  # pylint: disable=F0401
   import flimflam  # pylint: disable=F0401
 except ImportError:
   # E.g., in chroot

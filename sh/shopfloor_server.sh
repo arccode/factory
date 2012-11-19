@@ -19,5 +19,6 @@ else
   exit 1
 fi
 
-exec env PYTHONPATH=$lib:$PYTHONPATH python -m \
-    cros.factory.shopfloor.shopfloor_server "$@"
+exec env PYTHONPATH=$lib:$PYTHONPATH python \
+    $CROS_SHOPFLOOR_PYTHON_OPTS \
+    -m cros.factory.shopfloor.shopfloor_server "$@"
