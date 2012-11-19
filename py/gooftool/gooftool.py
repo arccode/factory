@@ -46,17 +46,6 @@ from cros.factory.utils.process_utils import Spawn
 _event_log = EventLog('gooftool')
 
 
-def FindScript(script_name):
-  # __file__ is in /usr/local/factory/py/gooftool/gooftool.py
-  # scripts should be in /usr/local/factory/sh/*
-  factory_base = os.path.realpath(os.path.join(
-      os.path.dirname(os.path.realpath(__file__)), '..', '..'))
-  script_path = os.path.join(factory_base, 'sh', script_name)
-  if not os.path.exists(script_path):
-    raise Error('Needed script %s does not exist.' % script_path)
-  return script_path
-
-
 # TODO(tammo): Replace calls to sys.exit with raise Exit, and maybe
 # treat that specially (as a smoot exit, as opposed to the more
 # verbose output for generic Error).
@@ -66,6 +55,7 @@ def FindScript(script_name):
          CmdArg('hwid', metavar='HWID', help='HWID string'))
 def WriteHwid(options):
   """Write specified HWID value into the system BB."""
+
   logging.info('writing hwid string %r', options.hwid)
   main_fw = crosfw.LoadMainFirmware()
   Shell('gbb_utility --set --hwid="%s" "%s"' %
@@ -135,6 +125,7 @@ def BestMatchHwids(options):
   gooftool best_match_hwids --variant A or
   gooftool best_match_hwids --comps us_kbd
   """
+
   map(hwid_tool.Validate.Status, options.status)
   hw_db = hwid_tool.HardwareDb(options.hwdb_path)
   comp_db = hw_db.comp_db
@@ -282,6 +273,7 @@ def BestMatchHwids(options):
                 help='Include VPD data in volatiles.'))
 def RunProbe(options):
   """Print yaml-formatted breakdown of probed device properties."""
+
   probe_results = Probe(target_comp_classes=options.comps,
                         probe_volatile=not options.no_vol,
                         probe_initial_config=not options.no_ic,
@@ -300,6 +292,7 @@ def VerifyComponents(options):
   that these components are present, that they have been approved, but
   do not check against any specific BOM/HWID configurations.
   """
+
   comp_db = hwid_tool.HardwareDb(options.hwdb_path).comp_db
   try:
     result = Gooftool(component_db=comp_db).VerifyComponents(
@@ -342,6 +335,7 @@ def VerifyHwid(options):
   the necessary fields as specified by the board data, and when
   possible verify that values are legitimate.
   """
+
   def VerifyVpd(ro_vpd_keys, rw_vpd_keys):
     for key in ro_vpd_keys:
       if key not in ro_vpd:
@@ -454,17 +448,14 @@ def VerifyHwid(options):
 @Command('verify_keys')
 def VerifyKeys(options):  # pylint: disable=W0613
   """Verify keys in firmware and SSD match."""
-  script = FindScript('verify_keys.sh')
-  kernel_device = Gooftool().GetReleaseKernelPartitionPath()
-  main_fw_file = crosfw.LoadMainFirmware().GetFileName()
-  result = Shell('%s %s %s' % (script, kernel_device, main_fw_file))
-  if not result.success:
-    raise Error, '%r failed, stderr: %r' % (script, result.stderr)
+
+  return Gooftool().VerifyKeys()
 
 
 @Command('set_fw_bitmap_locale')
 def SetFirmwareBitmapLocale(options):  # pylint: disable=W0613
   """Use VPD locale value to set firmware bitmap default language."""
+
   image_file = crosfw.LoadMainFirmware().GetFileName()
   locale = ReadRoVpd(image_file).get('initial_locale', None)
   if locale is None:
@@ -491,27 +482,21 @@ def SetFirmwareBitmapLocale(options):  # pylint: disable=W0613
 @Command('verify_system_time')
 def VerifySystemTime(options):  # pylint: disable=W0613
   """Verify system time is later than release filesystem creation time."""
-  script = FindScript('verify_system_time.sh')
-  rootfs_device = Gooftool().GetReleaseRootPartitionPath()
-  result = Shell('%s %s' % (script, rootfs_device))
-  if not result.success:
-    raise Error, '%r failed, stderr: %r' % (script, result.stderr)
+
+  return Gooftool().VerifySystemTime()
 
 
 @Command('verify_rootfs')
 def VerifyRootFs(options):  # pylint: disable=W0613
   """Verify rootfs on SSD is valid by checking hash."""
-  script = FindScript('verify_rootfs.sh')
-  rootfs_device = Gooftool().GetReleaseRootPartitionPath()
-  result = Shell('%s %s' % (script, rootfs_device))
-  if not result.success:
-    raise Error, '%r failed, stdout: %r, stderr: %r' % (
-        script, result.stdout, result.stderr)
+
+  return Gooftool().VerifyRootFs()
 
 
 @Command('verify_switch_wp')
 def VerifyWpSwitch(options):  # pylint: disable=W0613
   """Verify hardware write protection switch is enabled."""
+
   if Shell('crossystem wpsw_cur').stdout.strip() != '1':
     raise Error, 'write protection switch is disabled'
 
@@ -519,6 +504,7 @@ def VerifyWpSwitch(options):  # pylint: disable=W0613
 @Command('verify_switch_dev')
 def VerifyDevSwitch(options):  # pylint: disable=W0613
   """Verify developer switch is disabled."""
+
   VBSD_HONOR_VIRT_DEV_SWITCH = 0x400
   flags = int(Shell('crossystem vdat_flags').stdout.strip(), 0)
   if (flags & VBSD_HONOR_VIRT_DEV_SWITCH) != 0:
@@ -554,6 +540,7 @@ def EnableFwWp(options):  # pylint: disable=W0613
     Our supported chips only allow write protecting half their total
     size, so we parition the flash chipset space accordingly.
     """
+
     raw_image = open(fw_file_path, 'rb').read()
     wp_section = 'WP_RO'
     image = crosfw.FirmwareImage(raw_image)
@@ -590,10 +577,8 @@ def ClearGbbFlags(options):  # pylint: disable=W0613
   No GBB flags are set in release/shipping state, but they are useful
   for factory/development.  See "gbb_utility --flags" for details.
   """
-  script = FindScript('clear_gbb_flags.sh')
-  result = Shell(script)
-  if not result.success:
-    raise Error, '%r failed, stderr: %r' % (script, result.stderr)
+
+  Gooftool().ClearGbbFlags()
   _event_log.Log('clear_gbb_flags')
 
 
@@ -602,13 +587,8 @@ def ClearGbbFlags(options):  # pylint: disable=W0613
                 help='use non-secure but faster wipe method.'))
 def PrepareWipe(options):
   """Prepare system for transition to release state in next reboot."""
-  script = FindScript('prepare_wipe.sh')
-  tag = 'fast' if options.fast else ''
-  rootfs_device = Gooftool().GetReleaseRootPartitionPath()
-  result = Shell('FACTORY_WIPE_TAGS=%s %s %s' % (tag, script, rootfs_device))
-  if not result.success:
-    raise Error, '%r failed, stderr: %r' % (script, result.stderr)
 
+  Gooftool().PrepareWipe(options.fast)
 
 @Command('verify',
          CmdArg('--no_write_protect', action='store_true',
@@ -625,6 +605,7 @@ def Verify(options):
   checks include dev switch, firmware write protection switch, hwid,
   system time, keys, and root file system.
   """
+
   if not options.no_write_protect:
     VerifyWpSwitch({})
   VerifyDevSwitch({})
@@ -637,6 +618,7 @@ def Verify(options):
 @Command('log_system_details')
 def LogSystemDetails(options):  # pylint: disable=W0613
   """Write miscellaneous system details to the event log."""
+
   raw_cs_data = Shell('crossystem').stdout.strip().splitlines()
   # The crossytem output contains many lines like:
   # 'key = value  # description'
@@ -670,6 +652,7 @@ _add_file_cmd_arg = CmdArg(
          _add_file_cmd_arg)
 def UploadReport(options):
   """Create and a report containing key device details."""
+
   def NormalizeAsFileName(token):
     return re.sub(r'\W+', '', token).strip()
   ro_vpd = ReadRoVpd(crosfw.LoadMainFirmware().GetFileName())
@@ -743,6 +726,7 @@ def Finalize(options):
   and sets the necessary boot flags to cause wipe of the factory image on the
   next boot.
   """
+
   Verify(options)
   SetFirmwareBitmapLocale({})
   ClearGbbFlags({})
@@ -758,6 +742,7 @@ def Finalize(options):
 
 def Main():
   """Run sub-command specified by the command line args."""
+
   options = ParseCmdline(
       'Perform Google required factory tests.',
       CmdArg('-l', '--log', metavar='PATH',

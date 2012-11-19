@@ -13,6 +13,7 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.common import Error
 from cros.factory.common import Shell
 from cros.factory.hwdb import hwid_tool
+from cros.factory.gooftool import crosfw
 from cros.factory.gooftool.probe import Probe
 
 
@@ -27,7 +28,7 @@ class Util(object):
   """A collection of util functions that Gooftool needs."""
 
   def __init__(self):
-    self._shell = Shell
+    self.shell = Shell
 
   def _IsDeviceFixed(self, dev):
     """Check if a device is a fixed device, i.e. not a removable device.
@@ -59,7 +60,7 @@ class Util(object):
     alnum_re = re.compile(r'^/dev/([a-zA-Z]+[0-9]+)p[0-9]+$')
     matched_alnum = False
     dev_set = set()
-    for path in self._shell('cgpt find -t rootfs').stdout.strip().split():
+    for path in self.shell('cgpt find -t rootfs').stdout.strip().split():
       for dev in alpha_re.findall(path):
         if self._IsDeviceFixed(dev):
           dev_set.add(dev)
@@ -75,6 +76,57 @@ class Util(object):
       return dev_path
     fmt_str = '%sp%d' if matched_alnum else '%s%d'
     return fmt_str % (dev_path, partition)
+
+  def FindScript(self, script_name):
+    """Finds the script under /usr/local/factory/sh
+
+    Args:
+      script_name: The name of the script to look for.
+
+    Returns:
+      The path of the found script.
+
+    Raises:
+      Error if the script is not found.
+    """
+
+    # __file__ is in /usr/local/factory/py/gooftool/__init__.py
+    factory_base = os.path.realpath(os.path.join(
+        os.path.dirname(os.path.realpath(__file__)), '..', '..'))
+    script_path = os.path.join(factory_base, 'sh', script_name)
+    if not os.path.isfile(script_path):
+      raise Error('Needed script %s does not exist.' % script_path)
+    return script_path
+
+  def FindAndRunScript(self, script_name, post_opts=None, pre_opts=None):
+    """Finds and runs the script with given options.
+
+    Args:
+      script_name: The name of the script to look up and run.
+      post_opts: A list of strings that will be appended in the command after
+                 the script's name.
+      pre_opts: A list of strings that will be prepended in the command before
+                the script's name.
+
+    Returns:
+      The result of execusion.
+
+    Raises:
+      Error if execusion failed.
+    """
+
+    assert not post_opts or isinstance(post_opts, list)
+    assert not pre_opts or isinstance(pre_opts, list)
+
+    script = self.FindScript(script_name)
+    cmd = '%s %s %s' % (" ".join(pre_opts) if pre_opts else "",
+                        script,
+                        " ".join(post_opts) if post_opts else "")
+    result = self.shell(cmd.strip())
+    if not result.success:
+      raise Error, '%r failed, stderr: %r' % (cmd, result.stderr)
+
+    return result
 
 
 class Gooftool(object):
@@ -103,6 +155,7 @@ class Gooftool(object):
     self._component_db = component_db or self._hardware_db.comp_db
     self._probe = probe or Probe
     self._util = Util()
+    self._crosfw = crosfw
 
   def VerifyComponents(self, component_list):
     '''Verifies the given component list against the component db to ensure
@@ -229,4 +282,45 @@ class Gooftool(object):
 
     return self._util.GetPrimaryDevicePath(4)
 
+  def VerifyKeys(self):
+    """Verify keys in firmware and SSD match."""
+
+    return self._util.FindAndRunScript(
+        'verify_keys.sh',
+        [self.GetReleaseKernelPartitionPath(),
+         self._crosfw.LoadMainFirmware().GetFileName()])
+
+  def VerifySystemTime(self):
+    '''Verify system time is later than release filesystem creation time.'''
+
+    return self._util.FindAndRunScript(
+        'verify_system_time.sh',
+        [self.GetReleaseRootPartitionPath()])
+
+  def VerifyRootFs(self):
+    '''Verify rootfs on SSD is valid by checking hash.'''
+    return self._util.FindAndRunScript(
+        'verify_rootfs.sh',
+        [self.GetReleaseRootPartitionPath()])
+
+  def ClearGbbFlags(self):
+    """Zero out the GBB flags, in preparation for transition to release state.
+
+    No GBB flags are set in release/shipping state, but they are useful
+    for factory/development.  See "gbb_utility --flags" for details.
+    """
+
+    self._util.FindAndRunScript('clear_gbb_flags.sh')
+
+  def PrepareWipe(self, is_fast=None):
+    """Prepare system for transition to release state in next reboot.
+
+    Args:
+      is_fast: Whether or not to apply fast wipe.
+    """
+
+    self._util.FindAndRunScript(
+        'prepare_wipe.sh',
+        [self.GetReleaseRootPartitionPath()],
+        ['FACTORY_WIPE_TAGS=fast'] if is_fast else [])
 
