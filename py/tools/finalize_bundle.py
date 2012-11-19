@@ -446,8 +446,9 @@ class FinalizeBundle(object):
     instructions = [
         'To start a mini-Omaha server:',
         '',
-        '  cd shopfloor_setup',
+        '  cd factory_setup',
         '  ./make_factory_package.sh \\',
+        '    --board %s \\' % self.board,
         '    --run_omaha \\',
         '    --release ../%s \\' % os.path.relpath(release_images[0],
                                                    self.bundle_dir),
