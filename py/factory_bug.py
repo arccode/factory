@@ -156,6 +156,7 @@ def SaveLogs(output_dir, archive_id=None,
             os.path.join(var, 'factory'),
             os.path.join(var, 'spool', 'crash'),
             os.path.join(usr_local, 'factory', 'MD5SUM'),
+            os.path.join(usr_local, 'factory', 'hwid'),
             os.path.join(etc, 'lsb-release'),
             os.path.join(usr_local, 'etc', 'lsb-*')]], [])
 
