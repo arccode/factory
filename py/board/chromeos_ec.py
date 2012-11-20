@@ -110,7 +110,7 @@ class ChromeOSEC(EC):
       self._Spawn(
           ['ectool'] +
           (['autofanctrl', 'on'] if rpm == self.AUTO else
-           ['pwmsetfanrpm', str(rpm)]),
+           ['pwmsetfanrpm', '%d' % rpm]),
           check_call=True,
           ignore_stdout=True,
           log_stderr_on_error=True)
