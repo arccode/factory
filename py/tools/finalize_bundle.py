@@ -449,6 +449,7 @@ class FinalizeBundle(object):
         '  cd factory_setup',
         '  ./make_factory_package.sh \\',
         '    --board %s \\' % self.board,
+        '    --complete_script complete_script.sh',
         '    --run_omaha \\',
         '    --release ../%s \\' % os.path.relpath(release_images[0],
                                                    self.bundle_dir),
