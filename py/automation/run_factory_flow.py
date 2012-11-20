@@ -10,10 +10,12 @@ import logging
 import optparse
 import os
 import shutil
+import socket
 import tempfile
 import time
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.automation.servo import Servo
 from cros.factory.utils.process_utils import Spawn, TerminateOrKillProcess
 
 
@@ -22,6 +24,16 @@ SRCROOT = os.environ['CROS_WORKON_SRCROOT']
 
 class FinalizeError(Exception):
   '''Failure of running finalize on DUT.'''
+  pass
+
+
+class ExtractFileError(Exception):
+  '''Failure of extracting compressed file.'''
+  pass
+
+
+class DUTBootupError(Exception):
+  '''Failure of booting up DUT.'''
   pass
 
 
@@ -57,63 +69,97 @@ class GSUtil(object):
 
   @staticmethod
   def DownloadURI(uri, local_dir):
+    logging.debug('Downloading %s to %s', uri, local_dir)
     Spawn(['gsutil', 'cp', '-q', uri, local_dir], log=True, check_call=True)
     return os.path.join(local_dir, uri.rpartition('/')[2])
 
 
 def ExtractFile(compressed_file, output_dir):
+  '''Extracts compressed file to output folder.'''
+
   os.mkdir(output_dir)
+  logging.debug('Extracting %s to %s', compressed_file, output_dir)
   if compressed_file.endswith('.zip'):
-    return Spawn(['unzip', compressed_file, '-d', output_dir], log=True,
-                 check_call=True)
-  elif compressed_file.endswith('.tar.bz2'):
-    return Spawn(['tar', '-xjf', compressed_file, '-C', output_dir], log=True,
-                 check_call=True)
+    cmd = ['unzip', compressed_file, '-d', output_dir]
+  elif (compressed_file.endswith('.tar.bz2') or
+        compressed_file.endswith('.tbz2')):
+    cmd = ['tar', '-xjf', compressed_file, '-C', output_dir]
+  elif (compressed_file.endswith('.tar.gz') or
+        compressed_file.endswith('.tgz')):
+    cmd = ['tar', '-xzf', compressed_file, '-C', output_dir]
   else:
-    logging.error('Unsupported compressed file type', compressed_file)
+    raise ExtractFileError('Unsupported compressed file: %s' % compressed_file)
+
+  return Spawn(cmd, log=True, check_call=True)
 
 
-def SetupNetboot(board, bundle_dir, recovery_bin,
-                 dhcp_iface, host_ip, dut_mac, dut_ip, firmware_updater=''):
+def SetupNetboot(board, bundle_dir, recovery_image,
+                 dhcp_iface, host_ip, dut_mac, dut_ip,
+                 firmware_updater='', hwid_updater='',
+                 install_method='netboot'):
   script = os.path.join(SRCROOT,
                         'src/platform/factory/py/automation/setup_netboot.py')
   factory = os.path.join(bundle_dir, 'factory_test',
                          'chromiumos_factory_image.bin')
   miniomaha_dir = os.path.join(bundle_dir, 'factory_setup')
-  netboot_dir = os.path.join(bundle_dir, 'factory_shim', 'netboot')
-  vmlinux = os.path.join(netboot_dir, 'vmlinux.uimg')
-  initrd = os.path.join(netboot_dir, 'initrd.uimg')
-  hwid_updater = os.path.join(bundle_dir, 'hwid',
-                              'hwid_bundle_%s_all.sh' % board.upper())
+  if not hwid_updater:
+    hwid_updater = os.path.join(bundle_dir, 'hwid',
+                                'hwid_bundle_%s_all.sh' % board.upper())
+  subnet = host_ip.rsplit('.', 1)[0] + '.0'
   cmd = [script,
          '--board=%s' % board,
          '--factory=%s' % factory,
-         '--release=%s' % recovery_bin,
+         '--release=%s' % recovery_image,
          '--miniomaha_dir=%s' % miniomaha_dir,
-         '--vmlinux=%s' % vmlinux,
-         '--initrd=%s' % initrd,
          '--hwid_updater=%s' % hwid_updater,
          '--host=%s' % host_ip,
          '--dhcp_iface=%s' % dhcp_iface,
+         '--dhcp_subnet=%s' % subnet,
          '--dut_mac=%s' % dut_mac,
          '--dut_address=%s' % dut_ip,
          ]
   if firmware_updater:
     cmd.append('--firmware_updater=%s' % firmware_updater)
+  if install_method == 'netboot':
+    netboot_dir = os.path.join(bundle_dir, 'factory_shim', 'netboot')
+    vmlinux = os.path.join(netboot_dir, 'vmlinux.uimg')
+    initrd = os.path.join(netboot_dir, 'initrd.uimg')
+    cmd.extend(['--vmlinux=%s' % vmlinux, '--initrd=%s' % initrd])
+  else:
+    cmd.append('--no_tftp')
   return Spawn(cmd, log=True, sudo=True)
 
 
-def FlashFirmware(board, firmware, dut_ip, servo_serial=''):
-  script = os.path.join(SRCROOT,
-                        'src/platform/factory/py/automation/flash_firmware.py')
-  cmd = [script,
-         '--board=%s' % board,
-         '--firmware=%s' % firmware,
-         '--remote=%s' % dut_ip,
-         ]
-  if servo_serial:
-    cmd.append('--servo_serial=%s' % servo_serial)
-  return Spawn(cmd, log=True, check_call=True, sudo=True)
+def UpdateServerAddress(lsb_factory, host_ip):
+  Spawn(['sed', '-i', 's|//.*:|//%s:|' % host_ip, lsb_factory],
+        log=True, check_call=True, sudo=True)
+
+
+def WaitDUTBootup(dut_ip, ping_timeout=60, ssh_timeout=600):
+  logging.debug('Ping DUT...')
+  start_time = time.time()
+  while ping_timeout:
+    if Spawn(['ping', '-c', '1', '-W', '1', dut_ip],
+             log=False, call=True, ignore_stdout=True).returncode == 0:
+      break
+    ping_timeout -= 1
+  else:
+    raise DUTBootupError('Unable to ping %s' % dut_ip)
+  logging.debug("DUT could be ping'd after %d seconds",
+                time.time() - start_time)
+
+  logging.debug('Connect DUT ssh port...')
+  start_time = time.time()
+  deadline = start_time + ssh_timeout
+  while time.time() < deadline:
+    try:
+      socket.create_connection((dut_ip, 22)).close()
+      break
+    except:  # pylint: disable=W0702
+      time.sleep(1)
+  else:
+    raise DUTBootupError('Unable to ssh %s' % dut_ip)
+  logging.debug("DUT could be ssh'd after %d seconds", time.time() - start_time)
 
 
 def FinalizeDUT(shopfloor_dir, host_ip, dut_ip, logdata_dir,
@@ -135,87 +181,147 @@ def FinalizeDUT(shopfloor_dir, host_ip, dut_ip, logdata_dir,
   return Spawn(cmd, log=True, sudo=True)
 
 
-def RunFactoryFlow(board, factory_channel, recovery_channel,
-                   dhcp_iface, host_ip, dut_mac, dut_ip,
-                   factory_branch='', recovery_branch='', recovery_key='',
-                   bios_channel='', bios_branch='', bios_key='', bios_tag='',
-                   firmware_updater='', bios_file='', ec_file='',
-                   servo_serial='', finalize=False,
-                   config='', testlist='', serial_number=''):
-  gsutil = GSUtil(board, factory_channel)
-  build_dir = gsutil.GetLatestBuildDir(branch=factory_branch)
-  factory_version = build_dir[:-1].rpartition('/')[2]
-  logging.info('Latest factory build: %s', factory_version)
-  bundle_uri = gsutil.GetBinaryURI(build_dir, 'factory')
-  logging.debug('Factory bundle URI: %s', bundle_uri)
-  firmware_uri = gsutil.GetBinaryURI(build_dir, 'firmware')
-  logging.debug('Firmware from source URI: %s', firmware_uri)
+def RunFactoryFlow(board, dhcp_iface, host_ip, dut_mac, dut_ip,
+                   factory_channel='', factory_branch='', recovery_channel='',
+                   recovery_branch='', recovery_key='', firmware_channel='',
+                   firmware_branch='', firmware_key='', firmware_tag='',
+                   bundle_dir='', recovery_image='', install_shim='',
+                   firmware_updater='', hwid_updater='', bios_bin='', ec_bin='',
+                   netboot_bios='', finalize=False, automation_config='',
+                   testlist='', serial_number='', servo_serial='',
+                   servo_usb_dev=''):
+  start_time = time.time()
+  work_dir = tempfile.mkdtemp(prefix='build_')
+  logging.debug('Work dir: %s', work_dir)
 
-  gsutil = GSUtil(board, recovery_channel)
-  build_dir = gsutil.GetLatestBuildDir(branch=recovery_branch)
-  recovery_version = build_dir[:-1].rpartition('/')[2]
-  logging.info('Latest recovery build: %s', recovery_version)
-  recovery_uri = gsutil.GetBinaryURI(build_dir, 'recovery', key=recovery_key)
-  logging.debug('recovery URI: %s', recovery_uri)
+  # Determine install method.
+  if install_shim:
+    install_method = 'miniomaha'
+  else:
+    install_method = 'netboot'
 
-  if bios_channel and not bios_file:
-    gsutil = GSUtil(board, bios_channel)
-    build_dir = gsutil.GetLatestBuildDir(branch=bios_branch)
-    bios_version = build_dir[:-1].rpartition('/')[2]
-    logging.info('Latest bios build: %s', bios_version)
-    bios_uri = gsutil.GetBinaryURI(build_dir, 'firmware',
-                                   key=bios_key, tag=bios_tag)
-    logging.debug('bios URI: %s', bios_uri)
+  if factory_channel and not bundle_dir:
+    # Download and extract factory bundle.
+    gsutil = GSUtil(board, factory_channel)
+    build_dir = gsutil.GetLatestBuildDir(branch=factory_branch)
+    factory_version = build_dir[:-1].rpartition('/')[2]
+    bundle_uri = gsutil.GetBinaryURI(build_dir, 'factory')
+    logging.info('Latest factory bundle version %s URI %s',
+                 factory_version, bundle_uri)
+    bundle_file = GSUtil.DownloadURI(bundle_uri, work_dir)
+    bundle_dir = os.path.join(work_dir, 'bundle')
+    ExtractFile(bundle_file, bundle_dir)
+  else:
+    # TODO(chinyue): Have a better way to determine factory bundle version.
+    factory_version = os.path.basename(bundle_dir)
 
-  work_dir = tempfile.mkdtemp(prefix='build_%s_' % factory_version)
-  logging.debug('Downloading files to %s', work_dir)
-  bundle_file = GSUtil.DownloadURI(bundle_uri, work_dir)
-  firmware_file = GSUtil.DownloadURI(firmware_uri, work_dir)
-  recovery_file = GSUtil.DownloadURI(recovery_uri, work_dir)
-  if bios_channel and not bios_file:
-    bios_file = GSUtil.DownloadURI(bios_uri, work_dir)
+  if recovery_channel and not recovery_image:
+    # Download recovery image.
+    gsutil = GSUtil(board, recovery_channel)
+    build_dir = gsutil.GetLatestBuildDir(branch=recovery_branch)
+    recovery_version = build_dir[:-1].rpartition('/')[2]
+    recovery_uri = gsutil.GetBinaryURI(build_dir, 'recovery', key=recovery_key)
+    logging.info('Latest recovery image version %s URI %s',
+                 recovery_version, recovery_uri)
+    recovery_image = GSUtil.DownloadURI(recovery_uri, work_dir)
+    if not recovery_key:
+      # Unsigned recovery image is inside a compressed file, so extract it.
+      recovery_dir = os.path.join(work_dir, 'recovery')
+      ExtractFile(recovery_image, recovery_dir)
+      recovery_image = os.path.join(recovery_dir, 'recovery_image.bin')
+  else:
+    # TODO(chinyue): Have a better way to determine recovery image version.
+    recovery_version = os.path.basename(recovery_image)
 
-  logging.debug('Extracting files...')
-  bundle_dir = os.path.join(work_dir, 'bundle')
-  ExtractFile(bundle_file, bundle_dir)
-  firmware_dir = os.path.join(work_dir, 'firmware_from_source')
-  ExtractFile(firmware_file, firmware_dir)
-  if not recovery_key:
-    recovery_dir = os.path.join(work_dir, 'recovery')
-    ExtractFile(recovery_file, recovery_dir)
-    recovery_file = os.path.join(recovery_dir, 'recovery_image.bin')
+  if firmware_channel and not bios_bin:
+    # Download firmware.
+    gsutil = GSUtil(board, firmware_channel)
+    build_dir = gsutil.GetLatestBuildDir(branch=firmware_branch)
+    firmware_version = build_dir[:-1].rpartition('/')[2]
+    firmware_uri = gsutil.GetBinaryURI(build_dir, 'firmware',
+                                       key=firmware_key, tag=firmware_tag)
+    logging.info('Latest firmware version %s URI: %s',
+                 firmware_version, firmware_uri)
+    bios_bin = GSUtil.DownloadURI(firmware_uri, work_dir)
+  else:
+    # TODO(chinyue): Have a better way to determine firmware version.
+    firmware_version = os.path.basename(bios_bin)
 
-  if bios_file or ec_file:
+  if install_method == 'netboot' and not netboot_bios:
+    # Download netboot firmware.
+    gsutil = GSUtil(board, factory_channel)
+    build_dir = gsutil.GetLatestBuildDir(branch=factory_branch)
+    firmware_uri = gsutil.GetBinaryURI(build_dir, 'firmware')
+    logging.info('Latest firmware from source URI %s', firmware_uri)
+    firmware_file = GSUtil.DownloadURI(firmware_uri, work_dir)
+    firmware_dir = os.path.join(work_dir, 'firmware_from_source')
+    ExtractFile(firmware_file, firmware_dir)
+    netboot_bios = os.path.join(firmware_dir, 'nv_image-%s.bin' % board)
+
+  if bios_bin or ec_bin:
+    # Replace firmware updater with BIOS or EC specified.
     if not firmware_updater:
       Spawn([os.path.join(bundle_dir, 'factory_setup',
                           'extract_firmware_updater.sh'),
-             '--image', recovery_file, '--output_dir', work_dir],
+             '--image', recovery_image, '--output_dir', work_dir],
             log=True, check_call=True)
       firmware_updater = os.path.join(work_dir, 'chromeos-firmwareupdate')
     updater_dir = os.path.join(work_dir, 'updater')
     os.mkdir(updater_dir)
     Spawn([firmware_updater, '--sb_extract', updater_dir],
           log=True, check_call=True)
-    if bios_file:
-      logging.info('Using BIOS from %s', bios_file)
-      shutil.copyfile(bios_file, os.path.join(updater_dir, 'bios.bin'))
-    if ec_file:
-      logging.info('Using EC from %s', ec_file)
-      shutil.copyfile(ec_file, os.path.join(updater_dir, 'ec.bin'))
+    if bios_bin:
+      logging.info('Using firmware from %s', bios_bin)
+      shutil.copyfile(bios_bin, os.path.join(updater_dir, 'bios.bin'))
+    if ec_bin:
+      logging.info('Using EC from %s', ec_bin)
+      shutil.copyfile(ec_bin, os.path.join(updater_dir, 'ec.bin'))
     Spawn([firmware_updater, '--sb_repack', updater_dir],
           log=True, check_call=True)
 
+  if install_method == 'miniomaha':
+    # Update IP addresses in copied install shim.
+    clone_install_shim = os.path.join(work_dir, 'install_shim.bin')
+    shutil.copyfile(install_shim, clone_install_shim)
+    mount_dir = os.path.join(work_dir, 'install_shim_1')
+    os.mkdir(mount_dir)
+    Spawn([os.path.join(bundle_dir, 'factory_setup', 'mount_partition.sh'),
+           clone_install_shim, '1', mount_dir],
+          log=True, check_call=True, sudo=True)
+    UpdateServerAddress(os.path.join(mount_dir, 'dev_image/etc/lsb-factory'),
+                        host_ip)
+    Spawn(['umount', mount_dir], log=True, check_call=True, sudo=True)
+    install_shim = clone_install_shim
+
+  test_setup = '%s %s %s install, factory: %s, recovery: %s' % (
+      board, serial_number if finalize else '', install_method,
+      factory_version, recovery_version)
   netboot_process = None
   automation_process = None
   try:
-    logging.debug('Setting up netboot environment...')
-    netboot_process = SetupNetboot(board, bundle_dir, recovery_file,
+    logging.debug('Setting up environment...')
+    netboot_process = SetupNetboot(board, bundle_dir, recovery_image,
                                    dhcp_iface, host_ip, dut_mac, dut_ip,
-                                   firmware_updater)
+                                   firmware_updater, hwid_updater,
+                                   install_method)
 
-    logging.debug('Flashing firmware to DUT...')
-    netboot_bios = os.path.join(firmware_dir, 'nv_image-%s.bin' % board)
-    FlashFirmware(board, netboot_bios, dut_ip, servo_serial=servo_serial)
+    servo = Servo(board=board, servo_serial=servo_serial)
+    servo.StartServod()
+    time.sleep(3)
+    try:
+      servo.ConnectServod()
+      servo.HWInit()
+      if install_method == 'netboot':
+        logging.debug('Flashing netboot firmware to DUT...')
+        servo.FlashFirmware(netboot_bios)
+        servo.ColdReset()
+      elif install_method == 'miniomaha':
+        logging.debug('Boot DUT using install shim...')
+        servo.BootDUTFromImage(install_shim, servo_usb_dev)
+    finally:
+      servo.StopServod()
+
+    WaitDUTBootup(dut_ip)
 
     if finalize:
       logging.debug('Running GRT tests and finalize DUT...')
@@ -225,36 +331,36 @@ def RunFactoryFlow(board, factory_channel, recovery_channel,
       log_file = os.path.join(logdata_dir, 'factory', 'log', 'factory.log')
       logging.debug('Factory log: %s', log_file)
       automation_process = FinalizeDUT(shopfloor_dir, host_ip, dut_ip,
-                                       logdata_dir, config, testlist,
+                                       logdata_dir, automation_config, testlist,
                                        serial_number)
 
       def WaitReport(wait_seconds=300):
-        report_spec = os.path.join(shopfloor_dir, 'shopfloor_data', 'reports',
+        report_spec = os.path.join(shopfloor_dir, 'shopfloor_data',
+                                   time.strftime('logs.%Y%m%d'), 'reports',
                                    '*.tbz2')
         logging.debug('Watching for finalize report at %s', report_spec)
-        start = time.time()
-        while time.time() - start < wait_seconds:
+        deadline = time.time() + wait_seconds
+        while time.time() < deadline:
           match = glob.glob(report_spec)
           if match:
             return match[0]
-          time.sleep(5)
+          time.sleep(1)
         return None
       report_file = WaitReport()
       if not report_file:
-        logging.info('No report found, DUT finalize failed.')
-        raise FinalizeError
+        raise FinalizeError('No report found, DUT finalize failed')
       logging.info('Finalize report: %s', report_file)
 
-    logging.info('Test result: SUCCESS! %s %s factory %s recovery %s',
-                 board, serial_number, factory_version, recovery_version)
+    logging.info('Test result: SUCCESS! %s', test_setup)
   except:  # pylint: disable=W0702
-    logging.error('Test result: FAIL! %s %s factory %s recovery %s',
-                  board, serial_number, factory_version, recovery_version)
+    logging.error('Test result: FAIL! %s', test_setup)
   finally:
     if netboot_process:
       TerminateOrKillProcess(netboot_process)
     if automation_process:
       TerminateOrKillProcess(automation_process)
+
+  logging.debug("Factory testing took %d seconds", time.time() - start_time)
 
 
 if __name__ == '__main__':
@@ -288,20 +394,32 @@ if __name__ == '__main__':
                     help='FSI branch to use.')
   parser.add_option('--recovery_key', default='',
                     help='Key by which recovery image was signed.')
-  parser.add_option('--bios_channel',
-                    help='Channel from where to download BIOS image.')
-  parser.add_option('--bios_branch', default='',
-                    help='BIOS branch to use.')
-  parser.add_option('--bios_key', default='',
-                    help='Key by which BIOS image was signed.')
-  parser.add_option('--bios_tag', default='',
-                    help='Tag to select which BIOS image to use.')
+  parser.add_option('--firmware_channel',
+                    help='Channel from where to download firmware.')
+  parser.add_option('--firmware_branch', default='',
+                    help='Firmware branch to use.')
+  parser.add_option('--firmware_key', default='',
+                    help='Key by which firmware was signed.')
+  parser.add_option('--firmware_tag', default='',
+                    help='Tag to select which firmware to use.')
+  parser.add_option('--bundle_dir', default='',
+                    help='Factory bundle that has been extracted.')
+  parser.add_option('--recovery_image', default='',
+                    help='Recovery image to use.')
+  parser.add_option('--install_shim', default='',
+                    help='Install shim to use.')
   parser.add_option('--firmware_updater', default='',
                     help='Firmware updater to use.')
-  parser.add_option('--bios_file', default='',
-                    help='Local BIOS image to use.')
-  parser.add_option('--ec_file', default='',
-                    help='Local EC image to use.')
+  parser.add_option('--hwid_updater', default='',
+                    help='HWID updater to use.')
+  parser.add_option('--bios_bin', default='',
+                    help='Firmware to use.')
+  parser.add_option('--ec_bin', default='',
+                    help='EC to use.')
+  parser.add_option('--netboot_bios', default='',
+                    help='Netboot firmware to use.')
+  parser.add_option('--servo_usb_dev', default='',
+                    help='Device path for the USB key on Servo.')
   parser.add_option('--dhcp_iface',
                     help='Network interface to run DHCP server.')
   parser.add_option('--host_ip', default='192.168.1.254',
@@ -314,7 +432,7 @@ if __name__ == '__main__':
                     help='Servo serial number.')
   parser.add_option('--finalize', action='store_true', default=False,
                     help='Finalize DUT after installation.')
-  parser.add_option('--config', default='',
+  parser.add_option('--automation_config', default='',
                     help='Automation config used to finalize DUT.')
   parser.add_option('--testlist', default='',
                     help='Test list used to finalize DUT.')
@@ -322,13 +440,13 @@ if __name__ == '__main__':
                     help='Serial number for DUT.')
   options = parser.parse_args()[0]
 
-  RunFactoryFlow(options.board,
-                 options.factory_channel, options.recovery_channel,
-                 options.dhcp_iface, options.host_ip,
-                 options.dut_mac, options.dut_ip,
-                 options.factory_branch, options.recovery_branch,
-                 options.recovery_key, options.bios_channel,
-                 options.bios_branch, options.bios_key, options.bios_tag,
-                 options.firmware_updater, options.bios_file, options.ec_file,
-                 options.servo_serial, options.finalize,
-                 options.config, options.testlist, options.serial_number)
+  RunFactoryFlow(
+      options.board, options.dhcp_iface, options.host_ip, options.dut_mac,
+      options.dut_ip, options.factory_channel, options.factory_branch,
+      options.recovery_channel, options.recovery_branch, options.recovery_key,
+      options.firmware_channel, options.firmware_branch, options.firmware_key,
+      options.firmware_tag, options.bundle_dir, options.recovery_image,
+      options.install_shim, options.firmware_updater, options.hwid_updater,
+      options.bios_bin, options.ec_bin, options.netboot_bios,
+      options.finalize, options.automation_config, options.testlist,
+      options.serial_number, options.servo_serial, options.servo_usb_dev)
