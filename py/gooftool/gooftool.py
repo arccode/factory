@@ -53,14 +53,11 @@ _event_log = EventLog('gooftool')
 
 @Command('write_hwid',
          CmdArg('hwid', metavar='HWID', help='HWID string'))
-def WriteHwid(options):
+def WriteHWID(options):
   """Write specified HWID value into the system BB."""
 
   logging.info('writing hwid string %r', options.hwid)
-  main_fw = crosfw.LoadMainFirmware()
-  Shell('gbb_utility --set --hwid="%s" "%s"' %
-        (options.hwid, main_fw.GetFileName()))
-  main_fw.Write(sections=['GBB'])
+  Gooftool().WriteHWID(options.hwid)
   _event_log.Log('write_hwid', hwid=options.hwid)
   print 'Wrote HWID: %r' % options.hwid
 
@@ -273,13 +270,10 @@ def BestMatchHwids(options):
                 help='Include VPD data in volatiles.'))
 def RunProbe(options):
   """Print yaml-formatted breakdown of probed device properties."""
-
-  probe_results = Probe(target_comp_classes=options.comps,
-                        probe_volatile=not options.no_vol,
-                        probe_initial_config=not options.no_ic,
-                        probe_vpd=options.include_vpd)
-  print probe_results.Encode()
-
+  print Gooftool().Probe(target_comp_classes=options.comps,
+                         probe_volatile=not options.no_vol,
+                         probe_initial_config=not options.no_ic,
+                         probe_vpd=options.include_vpd).Encode()
 
 @Command('verify_components',
          _hwdb_path_cmd_arg,
@@ -494,11 +488,10 @@ def VerifyRootFs(options):  # pylint: disable=W0613
 
 
 @Command('verify_switch_wp')
-def VerifyWpSwitch(options):  # pylint: disable=W0613
+def VerifyWPSwitch(options):  # pylint: disable=W0613
   """Verify hardware write protection switch is enabled."""
 
-  if Shell('crossystem wpsw_cur').stdout.strip() != '1':
-    raise Error, 'write protection switch is disabled'
+  Gooftool().VerifyWPSwitch()
 
 
 @Command('verify_switch_dev')
@@ -571,14 +564,14 @@ def EnableFwWp(options):  # pylint: disable=W0613
 
 
 @Command('clear_gbb_flags')
-def ClearGbbFlags(options):  # pylint: disable=W0613
+def ClearGBBFlags(options):  # pylint: disable=W0613
   """Zero out the GBB flags, in preparation for transition to release state.
 
   No GBB flags are set in release/shipping state, but they are useful
   for factory/development.  See "gbb_utility --flags" for details.
   """
 
-  Gooftool().ClearGbbFlags()
+  Gooftool().ClearGBBFlags()
   _event_log.Log('clear_gbb_flags')
 
 
@@ -607,7 +600,7 @@ def Verify(options):
   """
 
   if not options.no_write_protect:
-    VerifyWpSwitch({})
+    VerifyWPSwitch({})
   VerifyDevSwitch({})
   VerifyHwid(options)
   VerifySystemTime({})
@@ -729,7 +722,7 @@ def Finalize(options):
 
   Verify(options)
   SetFirmwareBitmapLocale({})
-  ClearGbbFlags({})
+  ClearGBBFlags({})
   if options.no_write_protect:
     logging.warn('WARNING: Firmware Write Protection is SKIPPED.')
     _event_log.Log('wp', fw='both', status='skipped')

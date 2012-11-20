@@ -10,6 +10,8 @@ import mox
 import os
 import unittest
 
+from collections import namedtuple
+
 import factory_common  # pylint: disable=W0611
 from cros.factory import gooftool
 from cros.factory.common import Error
@@ -21,6 +23,9 @@ from cros.factory.hwdb import hwid_tool
 from cros.factory.hwdb.hwid_tool import ProbeResults  # pylint: disable=E0611
 from cros.factory.gooftool import Mismatch
 from cros.factory.gooftool import ProbedComponentResult
+
+# A stub for stdout
+StubStdout = namedtuple('StubStdout', ['stdout'])
 
 class GooftoolTest(unittest.TestCase):
   def setUp(self):
@@ -174,10 +179,8 @@ class GooftoolTest(unittest.TestCase):
     self._util._IsDeviceFixed(
         "sdb").MultipleTimes().AndReturn(False)
 
-    stub_cgpt_result = lambda: None
-    stub_cgpt_result.stdout = "/dev/sda3\n/dev/sda1\n/dev/sdb1"
-    self._util.shell(
-        'cgpt find -t rootfs').MultipleTimes().AndReturn(stub_cgpt_result)
+    self._util.shell('cgpt find -t rootfs').MultipleTimes().AndReturn(
+        StubStdout("/dev/sda3\n/dev/sda1\n/dev/sdb1"))
 
     self.mox.ReplayAll()
 
@@ -186,9 +189,8 @@ class GooftoolTest(unittest.TestCase):
     self.assertEquals("/dev/sda2", self._util.GetPrimaryDevicePath(2))
 
     # also test thin callers
-    self.assertEquals("/dev/sda5", self._gooftool.GetReleaseRootPartitionPath())
-    self.assertEquals("/dev/sda4",
-                      self._gooftool.GetReleaseKernelPartitionPath())
+    self.assertEquals("/dev/sda5", self._util.GetReleaseRootPartitionPath())
+    self.assertEquals("/dev/sda4", self._util.GetReleaseKernelPartitionPath())
 
   def testGetPrimaryDevicePathMultiple(self):
     '''Test for GetPrimaryDevice when multiple primary devices are found.'''
@@ -198,10 +200,8 @@ class GooftoolTest(unittest.TestCase):
     self._util._IsDeviceFixed(
         "sdb").MultipleTimes().AndReturn(True)
 
-    stub_cgpt_result = lambda: None
-    stub_cgpt_result.stdout = "/dev/sda3\n/dev/sda1\n/dev/sdb1"
-    self._util.shell(
-        'cgpt find -t rootfs').AndReturn(stub_cgpt_result)
+    self._util.shell('cgpt find -t rootfs').AndReturn(
+        StubStdout("/dev/sda3\n/dev/sda1\n/dev/sdb1"))
 
     self.mox.ReplayAll()
 
@@ -231,8 +231,8 @@ class GooftoolTest(unittest.TestCase):
   def testVerifyKey(self):
     self.mox.StubOutWithMock(self._gooftool._util, "FindAndRunScript")
 
-    self.mox.StubOutWithMock(self._gooftool, "GetReleaseKernelPartitionPath")
-    self._gooftool.GetReleaseKernelPartitionPath().AndReturn("kernel")
+    self.mox.StubOutWithMock(self._util, "GetReleaseKernelPartitionPath")
+    self._util.GetReleaseKernelPartitionPath().AndReturn("kernel")
 
     class MockMainFirmware(object):
       def GetFileName(self):
@@ -248,8 +248,8 @@ class GooftoolTest(unittest.TestCase):
   def testVerifySystemTime(self):
     self.mox.StubOutWithMock(self._gooftool._util, "FindAndRunScript")
 
-    self.mox.StubOutWithMock(self._gooftool, "GetReleaseRootPartitionPath")
-    self._gooftool.GetReleaseRootPartitionPath().AndReturn("root")
+    self.mox.StubOutWithMock(self._util, "GetReleaseRootPartitionPath")
+    self._util.GetReleaseRootPartitionPath().AndReturn("root")
 
     self._gooftool._util.FindAndRunScript("verify_system_time.sh", ["root"])
 
@@ -259,25 +259,25 @@ class GooftoolTest(unittest.TestCase):
   def testVerifyRootFs(self):
     self.mox.StubOutWithMock(self._gooftool._util, "FindAndRunScript")
 
-    self.mox.StubOutWithMock(self._gooftool, "GetReleaseRootPartitionPath")
-    self._gooftool.GetReleaseRootPartitionPath().AndReturn("root")
+    self.mox.StubOutWithMock(self._util, "GetReleaseRootPartitionPath")
+    self._util.GetReleaseRootPartitionPath().AndReturn("root")
 
     self._gooftool._util.FindAndRunScript("verify_rootfs.sh", ["root"])
 
     self.mox.ReplayAll()
     self._gooftool.VerifyRootFs()
 
-  def testClearGbbFlags(self):
+  def testClearGBBFlags(self):
     self.mox.StubOutWithMock(self._gooftool._util, "FindAndRunScript")
     self._gooftool._util.FindAndRunScript("clear_gbb_flags.sh")
     self.mox.ReplayAll()
-    self._gooftool.ClearGbbFlags()
+    self._gooftool.ClearGBBFlags()
 
   def testPrepareWipe(self):
     self.mox.StubOutWithMock(self._gooftool._util, "FindAndRunScript")
 
-    self.mox.StubOutWithMock(self._gooftool, "GetReleaseRootPartitionPath")
-    self._gooftool.GetReleaseRootPartitionPath().MultipleTimes().AndReturn(
+    self.mox.StubOutWithMock(self._util, "GetReleaseRootPartitionPath")
+    self._util.GetReleaseRootPartitionPath().MultipleTimes().AndReturn(
         "root")
 
     self._gooftool._util.FindAndRunScript("prepare_wipe.sh", ["root"], [])
@@ -288,6 +288,38 @@ class GooftoolTest(unittest.TestCase):
 
     self._gooftool.PrepareWipe(False)
     self._gooftool.PrepareWipe(True)
+
+  def testWriteHWID(self):
+    class MockMainFirmware(object):
+      def GetFileName(self):
+        return "firmware"
+      def Write(self, sections):
+        assert sections == ['GBB']
+
+    self._gooftool._crosfw.LoadMainFirmware().MultipleTimes().AndReturn(
+      MockMainFirmware())
+    self._util.shell('gbb_utility --set --hwid="hwid1" "firmware"')
+    self._util.shell('gbb_utility --set --hwid="hwid2" "firmware"')
+
+    self.mox.ReplayAll()
+
+    self._gooftool.WriteHWID("hwid1")
+    self._gooftool.WriteHWID("hwid2")
+
+  def testVerifyWPSwitch(self):
+    # 1st call: enabled
+    self._util.shell('crossystem wpsw_cur').AndReturn(StubStdout('1'))
+    # 2nd call: disabled
+    self._util.shell('crossystem wpsw_cur').AndReturn(StubStdout('0'))
+
+    self.mox.ReplayAll()
+
+    self._gooftool.VerifyWPSwitch()
+    try:
+      self._gooftool.VerifyWPSwitch()
+      self.fail("The second call should raise exception for wpsw disabled")
+    except Error:
+      pass # pylint: disable=W0702
 
 if __name__ == '__main__':
   logging.basicConfig(level=logging.INFO)

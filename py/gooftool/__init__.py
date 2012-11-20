@@ -128,6 +128,17 @@ class Util(object):
 
     return result
 
+  def GetReleaseRootPartitionPath(self):
+    '''Gets the path for release root partition.'''
+
+    return self.GetPrimaryDevicePath(5)
+
+  def GetReleaseKernelPartitionPath(self):
+    '''Gets the path for release kernel partition.'''
+
+    return self.GetPrimaryDevicePath(4)
+
+
 
 class Gooftool(object):
   '''A class to perform hardware probing and verification and to implement
@@ -272,22 +283,12 @@ class Gooftool(object):
 
     return mismatches
 
-  def GetReleaseRootPartitionPath(self):
-    '''Gets the path for release root partition.'''
-
-    return self._util.GetPrimaryDevicePath(5)
-
-  def GetReleaseKernelPartitionPath(self):
-    '''Gets the path for release kernel partition.'''
-
-    return self._util.GetPrimaryDevicePath(4)
-
   def VerifyKeys(self):
     """Verify keys in firmware and SSD match."""
 
     return self._util.FindAndRunScript(
         'verify_keys.sh',
-        [self.GetReleaseKernelPartitionPath(),
+        [self._util.GetReleaseKernelPartitionPath(),
          self._crosfw.LoadMainFirmware().GetFileName()])
 
   def VerifySystemTime(self):
@@ -295,15 +296,15 @@ class Gooftool(object):
 
     return self._util.FindAndRunScript(
         'verify_system_time.sh',
-        [self.GetReleaseRootPartitionPath()])
+        [self._util.GetReleaseRootPartitionPath()])
 
   def VerifyRootFs(self):
     '''Verify rootfs on SSD is valid by checking hash.'''
     return self._util.FindAndRunScript(
         'verify_rootfs.sh',
-        [self.GetReleaseRootPartitionPath()])
+        [self._util.GetReleaseRootPartitionPath()])
 
-  def ClearGbbFlags(self):
+  def ClearGBBFlags(self):
     """Zero out the GBB flags, in preparation for transition to release state.
 
     No GBB flags are set in release/shipping state, but they are useful
@@ -321,6 +322,55 @@ class Gooftool(object):
 
     self._util.FindAndRunScript(
         'prepare_wipe.sh',
-        [self.GetReleaseRootPartitionPath()],
+        [self._util.GetReleaseRootPartitionPath()],
         ['FACTORY_WIPE_TAGS=fast'] if is_fast else [])
 
+  def Probe(self, target_comp_classes, probe_volatile=True,
+            probe_initial_config=True, probe_vpd=False):
+    """Returns probed results for device components, hash, and initial config
+    data.
+
+    This method is essentially a wrapper for probe.Probe. Please refer to
+    probe.Probe for more detailed description.
+
+    Args:
+      target_comp_classes: Which component classes to probe for.  A None value
+        implies all classes.
+      probe_volatile: On False, do not probe for volatile data and
+        return None for the corresponding field.
+      probe_initial_config: On False, do not probe for initial_config
+        data and return None for the corresponding field.
+      probe_vpd: On True, include vpd data in the volatiles.
+
+    Returns:
+      cros.factory.hwdb.hwid_tool.ProbeResults object containing the probed
+      results.
+    """
+
+    return self._probe(target_comp_classes=target_comp_classes,
+                       probe_volatile=probe_volatile,
+                       probe_initial_config=probe_initial_config,
+                       probe_vpd=probe_vpd)
+
+  def WriteHWID(self, hwid=None):
+    """Writes specified HWID value into the system BB.
+
+    Args:
+      hwid: The HWID string to be written to the device.
+    """
+
+    assert hwid
+    main_fw = self._crosfw.LoadMainFirmware()
+    self._util.shell('gbb_utility --set --hwid="%s" "%s"' %
+          (hwid, main_fw.GetFileName()))
+    main_fw.Write(sections=['GBB'])
+
+  def VerifyWPSwitch(self):  # pylint: disable=W0613
+    """Verifes hardware write protection switch is enabled.
+
+    Raises:
+      Error when there is an error.
+    """
+
+    if self._util.shell('crossystem wpsw_cur').stdout.strip() != '1':
+      raise Error, 'write protection switch is disabled'
