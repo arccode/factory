@@ -53,11 +53,14 @@ class TpmDiagnosisTest(unittest.TestCase):
       if line.find(self.args.success_pattern) != -1:
         success = True
 
+    p.poll()
     if success:
       self._ui.Pass()
     else:
-      self._ui.Fail('TPM self-diagnose failed: %d.' % p.returncode)
-
+      self._ui.Fail(
+        'TPM self-diagnose failed: Cannot find a success pattern: "%s". '
+        'tpm_selftest returncode: %d.' % (self.args.success_pattern,
+                                          p.returncode))
 
   def runTest(self):
     threading.Thread(target=self.DiagnoseTpm).start()
