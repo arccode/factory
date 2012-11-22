@@ -23,6 +23,7 @@ import optparse
 import os
 import shutil
 import SimpleXMLRPCServer
+import signal
 import socket
 import zipfile
 from fnmatch import fnmatch
@@ -208,6 +209,10 @@ def main():
     logging.warn('No HWID updater id currently available; add a single '
                  'file named %s to enable dynamic updating of HWIDs.' %
                  os.path.join(options.data_dir, shopfloor.HWID_UPDATER_PATTERN))
+
+  def handler(signum, frame):  # pylint: disable=W0613
+    raise SystemExit
+  signal.signal(signal.SIGTERM, handler)
 
   try:
     instance._StartBase()

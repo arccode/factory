@@ -19,6 +19,9 @@ import subprocess
 import threading
 import time
 
+import factory_common  # pylint: disable=W0611
+from cros.factory.utils.process_utils import Spawn, TerminateOrKillProcess
+
 
 FACTORY_DIR = 'factory'
 AUTOTEST_DIR = 'autotest'
@@ -51,28 +54,15 @@ def StartRsyncServer(port, state_dir, factory_dir):
   with open(configfile, 'w') as f:
     f.write(data)
 
-  p = subprocess.Popen(('rsync', '--daemon', '--no-detach',
-                        '--config=%s' % configfile))
+  p = Spawn(['rsync', '--daemon', '--no-detach', '--config=%s' % configfile],
+            log=True)
   logging.info('Rsync server (pid %d) started on port %d', p.pid, port)
   return p
 
 
 def StopRsyncServer(rsyncd_process):
   logging.info('Stopping rsync server (pid %d)', rsyncd_process.pid)
-  rsyncd_process.terminate()
-
-  # If not terminated in a second, send a kill -9.
-  def WaitAndKill():
-    time.sleep(1)
-    try:
-      rsyncd_process.kill()
-    except:
-      pass
-  thread = threading.Thread(target=WaitAndKill)
-  thread.daemon = True
-  thread.start()
-
-  rsyncd_process.wait()
+  TerminateOrKillProcess(rsyncd_process)
   logging.debug('Rsync server stopped')
 
 
