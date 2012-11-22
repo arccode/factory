@@ -353,6 +353,7 @@ def RunFactoryFlow(board, dhcp_iface, host_ip, dut_mac, dut_ip,
 
     logging.info('Test result: SUCCESS! %s', test_setup)
   except:  # pylint: disable=W0702
+    logging.exception('Factory flow testing terminated')
     logging.error('Test result: FAIL! %s', test_setup)
   finally:
     if netboot_process:
