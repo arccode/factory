@@ -328,7 +328,7 @@ def RunFactoryFlow(board, dhcp_iface, host_ip, dut_mac, dut_ip,
       shopfloor_dir = os.path.join(bundle_dir, 'shopfloor')
       logdata_dir = os.path.join(shopfloor_dir, 'log_data')
       os.mkdir(logdata_dir)
-      log_file = os.path.join(logdata_dir, 'factory', 'log', 'factory.log')
+      log_file = os.path.join(logdata_dir, 'log', 'factory.log')
       logging.debug('Factory log: %s', log_file)
       automation_process = FinalizeDUT(shopfloor_dir, host_ip, dut_ip,
                                        logdata_dir, automation_config, testlist,

@@ -21,7 +21,6 @@ import os
 import signal
 import tempfile
 import time
-import thread
 
 import factory_common # pylint: disable=W0611
 from cros.factory.utils.process_utils import Spawn, TerminateOrKillProcess
@@ -112,15 +111,6 @@ def Main():
         [args.device, '/usr/local/factory/bin/restart'],
          check_call=True, log=True)
 
-  # rsync log on device
-  def SyncLog():
-    while True:
-      time.sleep(0.1)
-      Spawn(rsync_command +
-            ['%s:/var/factory' % args.device, args.logdata_dir],
-            ignore_stdout=True, ignore_stderr=True)
-  thread.start_new_thread(SyncLog, ())
-
   def handler(signum, frame):  # pylint: disable=W0613
     raise SystemExit
   signal.signal(signal.SIGTERM, handler)
@@ -139,11 +129,17 @@ def Main():
                          '--address=%s' % args.shopfloor_ip,
                          '--port=%s' % args.shopfloor_port,
                          '--data-dir=%s' % data_dir], log=True)
-      shopfloor.wait()
     else:
-      logging.info('Shopfloor server is not started')
-  except:  # pylint: disable=W0702
-    logging.warning('Shopfloor error. Possibly port already in use?')
+      logging.info('Shopfloor server not started')
+
+    # Rsync log from DUT.
+    while True:
+      if Spawn(rsync_command + ['%s:/var/factory/log' % args.device,
+                                args.logdata_dir],
+               log=False, call=True, ignore_stdout=True,
+               ignore_stderr=True).returncode != 0:
+        break
+      time.sleep(0.1)
   finally:
     if shopfloor:
       TerminateOrKillProcess(shopfloor)
