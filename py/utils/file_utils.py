@@ -6,6 +6,8 @@
 
 
 from contextlib import contextmanager
+
+import logging
 import os
 import tempfile
 
@@ -27,3 +29,22 @@ def UnopenedTemporaryFile(**args):
     yield path
   finally:
     os.unlink(path)
+
+
+def ReadLines(filename):
+  """Returns a file as list of lines.
+
+  It is used to facilitate unittest.
+
+  Args:
+    filename: file name.
+
+  Returns:
+    List of lines of the file content. None if IOError.
+  """
+  try:
+    with open(filename) as f:
+      return f.readlines()
+  except IOError as e:
+    logging.error('Cannot read file "%s": %s', filename, e)
+    return None
