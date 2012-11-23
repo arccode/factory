@@ -111,7 +111,8 @@ install: par
 	ln -sf $(addprefix ../factory/log/,factory.log console.log) ${DESTDIR}/var/log
 # Make factory bundle overlay
 	mkdir -p $(FACTORY_BUNDLE)/factory_setup/
-	rsync -a --exclude testdata setup/ $(FACTORY_BUNDLE)/factory_setup/
+	rsync -a --exclude testdata --exclude README.txt \
+	  setup/ $(FACTORY_BUNDLE)/factory_setup/
 	mkdir -p $(FACTORY_BUNDLE)/shopfloor
 	cp -a $(PAR_BUILD_DIR)/factory.par $(FACTORY_BUNDLE)/shopfloor
 	cp sh/shopfloor_server.sh $(FACTORY_BUNDLE)/shopfloor
