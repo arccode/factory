@@ -117,7 +117,7 @@ class FactoryLineItemCheckBase(test.test):
                 self.widgets.append(_make_decision_widget(
                     prompt_message,
                     key_action_mapping))
-                self._items.append((self.widgets[idx], None))
+                self._items.append((self.widgets[idx], cmd_line))
 
             factory.log('Item %d: %s' % (idx, cmd_line))
 
