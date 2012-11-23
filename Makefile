@@ -110,9 +110,25 @@ install: par
 	mkdir -m755 -p $(addprefix ${DESTDIR}/var/factory/,log state tests)
 	ln -sf $(addprefix ../factory/log/,factory.log console.log) ${DESTDIR}/var/log
 # Make factory bundle overlay
+	mkdir -p $(FACTORY_BUNDLE)/factory_setup/
+	rsync -a --exclude testdata setup/ $(FACTORY_BUNDLE)/factory_setup/
 	mkdir -p $(FACTORY_BUNDLE)/shopfloor
 	cp -a $(PAR_BUILD_DIR)/factory.par $(FACTORY_BUNDLE)/shopfloor
 	cp sh/shopfloor_server.sh $(FACTORY_BUNDLE)/shopfloor
+# Within factory_setup, replace symlinks with the files they point to
+# (relative to the setup directory in the source tree)
+	@set -ex; for f in $$(cd setup; find . -type l); do \
+	  symlink_path=$$(readlink setup/$$f); \
+	  target_path=$(CROS_WORKON_SRCROOT)/src/platform; \
+	  target_path=$$target_path/factory/setup/$$f; \
+	  target_path=$$(dirname $$target_path)/$$symlink_path; \
+	  rm -f $(FACTORY_BUNDLE)/factory_setup/$$f; \
+	  cp -a $$target_path $(FACTORY_BUNDLE)/factory_setup/$$f; \
+        done
+# Install cgpt, used by factory_setup.  TODO(jsalz/hungte): Find a better way
+# to do this.
+	mkdir -p $(FACTORY_BUNDLE)/factory_setup/bin
+	cp /usr/bin/cgpt $(FACTORY_BUNDLE)/factory_setup/bin
 
 lint:
 	@set -e -o pipefail; \
