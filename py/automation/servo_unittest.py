@@ -136,12 +136,14 @@ class ServoTest(unittest.TestCase):
     s = servo.Servo()
     self.mox.StubOutWithMock(s, 'SetupUSBForHost')
     self.mox.StubOutWithMock(s, 'SwitchUSBToDUT')
+    self.mox.StubOutWithMock(s, 'Set')
     self.mox.StubOutWithMock(s, 'RecoveryBootDUT')
     s.SetupUSBForHost()
     servo.Spawn('pv /path/to/image | sudo dd of=/path/to/usb '
                 'iflag=fullblock oflag=dsync bs=8M',
                 log=True, check_call=True, shell=True)
     s.SwitchUSBToDUT()
+    s.Set('dev_mode', 'on')
     s.RecoveryBootDUT(wait=0)
     self.mox.ReplayAll()
 

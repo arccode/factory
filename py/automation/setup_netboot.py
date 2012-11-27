@@ -249,8 +249,8 @@ def ParseOptions():
                     help='Show colorful output for logging.')
   parser.add_option('--no_check_packages', dest='do_check_packages',
                     default=True, action='store_false', help='')
-  parser.add_option('--do_modify_netboot_ip', dest='do_modify_netboot_ip',
-                    default=True, action='store_true', help='')
+  parser.add_option('--no_modify_netboot_ip', dest='do_modify_netboot_ip',
+                    default=True, action='store_false', help='')
   parser.add_option('--no_tftp', dest='do_tftp',
                     default=True, action='store_false', help='')
   parser.add_option('--no_dhcp', dest='do_dhcp',
@@ -270,9 +270,10 @@ def ParseOptions():
     log_format = '\033[1;33m' + log_format + '\033[0m'
   logging.basicConfig(level=logging.INFO, format=log_format)
 
-  miss_opts = [opt for opt, val in options.__dict__.iteritems() if val == None]
-  if miss_opts:
-    ErrorExit('Missing argument(s): ' + ', '.join(miss_opts))
+  if options.do_modify_netboot_ip and not options.initrd:
+    ErrorExit('Please specify initrd to be updated with netboot IP.')
+  if options.do_generate_image and (not options.initrd or not options.vmlinux):
+    ErrorExit('Please specify initrd and vmlinux for generating netboot image.')
   if options.do_dhcp and (not options.dhcp_iface or not options.dut_mac or
                           not options.dut_address):
     ErrorExit('Please specify dhcp_iface, dhcp_subnet, dhcp_netmask, dut_mac, '

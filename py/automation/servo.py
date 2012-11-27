@@ -162,7 +162,8 @@ class Servo(object):
     self.Set('spi2_buf_on_flex_en', 'off')
 
   def BootDUTFromImage(self, image_path, usb_dev,
-                       usb_ready_wait=15, recovery_boot_wait=10):
+                       usb_ready_wait=15, recovery_boot_wait=10,
+                       dev_mode='on'):
     '''Copies image to USB key on local attached Servo board, and recovery boot
     DUT from the USB key.'''
     # TODO(chinyue): Auto-probe the USB key device on host.
@@ -173,4 +174,5 @@ class Servo(object):
            'iflag=fullblock', 'oflag=dsync', 'bs=8M']
     Spawn(' '.join(cmd), log=True, check_call=True, shell=True)
     self.SwitchUSBToDUT()
+    self.Set('dev_mode', dev_mode)
     self.RecoveryBootDUT(wait=recovery_boot_wait)

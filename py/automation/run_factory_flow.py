@@ -126,6 +126,8 @@ def SetupNetboot(board, bundle_dir, recovery_image,
     initrd = os.path.join(netboot_dir, 'initrd.uimg')
     cmd.extend(['--vmlinux=%s' % vmlinux, '--initrd=%s' % initrd])
   else:
+    cmd.append('--no_modify_netboot_ip')
+    cmd.append('--no_generate_image')
     cmd.append('--no_tftp')
   return Spawn(cmd, log=True, sudo=True)
 
@@ -135,7 +137,7 @@ def UpdateServerAddress(lsb_factory, host_ip):
         log=True, check_call=True, sudo=True)
 
 
-def WaitDUTBootup(dut_ip, ping_timeout=60, ssh_timeout=600):
+def WaitDUTBootup(dut_ip, ping_timeout=120, ssh_timeout=600):
   logging.debug('Ping DUT...')
   start_time = time.time()
   while ping_timeout:
