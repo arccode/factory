@@ -157,8 +157,8 @@ class FactoryTask(object):
     Returns:
       True if command executes successfully; otherwise, False.
     """
-    logging.info('RunCommand: ' + ' '.join(command))
-    p = Spawn(command, call=True, ignore_stdout=True, read_stderr=True)
+    p = Spawn(command, call=True, ignore_stdout=True, read_stderr=True,
+              log=True)
     if p.returncode != 0 and fail_message:
       self.Fail(
         '%s\nFailed running: %s\nSTDERR: %s' % (

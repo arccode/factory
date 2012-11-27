@@ -7,6 +7,7 @@
 """Test external display with optional audio playback test."""
 
 import random
+import re
 import threading
 import unittest
 import uuid
@@ -109,12 +110,13 @@ class WaitDisplayThread(threading.Thread):
   def __init__(self, display_id, connect, on_success):
     threading.Thread.__init__(self, name='WaitDisplayThread')
     self._done = threading.Event()
-    self._xrandr_expect = '%s %s' % (display_id, connect)
+    self._xrandr_expect = re.compile('^%s %s' % (display_id, connect),
+                                     re.MULTILINE)
     self._on_success = on_success
 
   def run(self):
     while not self._done.is_set():
-      if self._xrandr_expect in SpawnOutput(['xrandr', '-d', ':0']):
+      if self._xrandr_expect.search(SpawnOutput(['xrandr', '-d', ':0'])):
         self._on_success()
         self.Stop()
       else:
@@ -234,9 +236,12 @@ class VideoTask(ExtDisplayTask):
     self.InitUI()
     self.BindDigitKeys(self._pass_digit)
     self.RunCommand(
-      ['xrandr', '-d', ':0', '--output', self._args.main_display_id, '--off',
-      '--output', self._args.display_id, '--auto'],
-      'Fail to show display %s' % self._args.display_id)
+      ['xrandr', '-d', ':0', '--output', self._args.main_display_id, '--auto',
+       '--output', self._args.display_id, '--auto'],
+      'Fail to set dual display on %s' % self._args.display_id)
+    self.RunCommand(
+      ['xrandr', '-d', ':0', '--output', self._args.main_display_id, '--off'],
+      'Fail to turn off main display %s' % self._args.main_display_id)
 
   def Cleanup(self):
     self.UnbindDigitKeys()
