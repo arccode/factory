@@ -20,6 +20,10 @@ from cros.factory.tools.mount_partition import MountPartition
 from cros.factory.utils.process_utils import Spawn
 
 
+FIRMWARE_UPDATE_BINARIES = [
+    'crossystem', 'dump_fmap', 'flashrom', 'gbb_utility', 'mosys', 'vpd']
+
+
 SRC = os.path.join(os.environ['CROS_WORKON_SRCROOT'], 'src')
 def GetDefaultBoardOrNone():
   try:
@@ -31,6 +35,42 @@ def ParseListArg(value):
   value = sum([re.split('[ ,:]', x) for x in value], [])
   return [x for x in value if x]
 
+def ContentsDiffer(src_path, dest_path):
+  """Returns True if the two files differ.
+
+  The files are considered to differ if:
+
+    - Their modes are different.
+    - If the files are firmware updaters, and they contain any differing files
+      *except* for the binaries listed in FIRMWARE_UPDATE_BINARIES.
+    - If the files are not firmware updaters, and they have different contents.
+  """
+  src_stat = os.stat(src_path)
+  dest_stat = os.stat(dest_path)
+
+  if (src_stat.st_mode & ~7) != (dest_stat.st_mode & ~7):
+    return True
+
+  if all(os.path.basename(x) == 'chromeos-firmwareupdate'
+         for x in (src_path, dest_path)):
+    hashes = []
+    for p in src_path, dest_path:
+      output = Spawn([p, '-V'], log=True, check_output=True).stdout_data
+      hash_codes = {}
+      for line in output.rpartition('Package Content:')[2].strip().split('\n'):
+        hash_code, _, filename = line.rpartition(' *./')
+        assert hash_code and filename, (
+            'Unable to parse chromeos-firmwareupdate output')
+        if filename not in FIRMWARE_UPDATE_BINARIES:
+          # Not a binary file; add to the hashes
+          hash_codes[filename] = hash_code
+      hashes.append(hash_codes)
+
+    logging.info('Firmware hashes: %s', hashes)
+    return hashes[0] != hashes[1]
+  else:
+    return ((src_stat.st_size != dest_stat.st_size) or
+            (open(src_path).read() != open(dest_path).read()))
 
 PACKAGES = {
     'factory':
@@ -273,11 +313,7 @@ def main():
             os.unlink(path)
             continue
 
-          src_stat = os.stat(path)
-          dest_stat = os.stat(dest_path)
-          if ((src_stat.st_mode & ~7) != (dest_stat.st_mode & ~7) or
-              src_stat.st_size != dest_stat.st_size or
-              open(path).read() != open(dest_path).read()):
+          if ContentsDiffer(path, dest_path):
             # They are different; write a diff
             Spawn(['diff', '-u', dest_path, path], stdout=diffs, call=True)
           else:
