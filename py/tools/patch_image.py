@@ -7,6 +7,7 @@
 
 import argparse
 import logging
+import multiprocessing
 import os
 import re
 import shutil
@@ -33,19 +34,25 @@ def ParseListArg(value):
 
 PACKAGES = {
     'factory':
-      dict(path='platform/factory', package='chromeos-base/chromeos-factory'),
+      dict(path='platform/factory',
+           package='chromeos-base/chromeos-factory',
+           workon=True),
     'chromeos-factory-board':
       dict(path='private-overlays/overlay-%(board)s-private',
-           package='chromeos-base/chromeos-factory-board'),
+           package='chromeos-base/chromeos-factory-board',
+           workon=False),
     'autotest-private-board':
       dict(path='private-overlays/overlay-%(board)s-private',
-           package='chromeos-base/autotest-private-board'),
+           package='chromeos-base/autotest-private-board',
+           workon=False),
     'autotest':
       dict(path='third_party/autotest/files',
-           package='chromeos-base/autotest'),
+           package='chromeos-base/autotest',
+           workon=True),
     'autotest-factory':
       dict(path='third_party/autotest/files',
-           package='chromeos-base/autotest-factory'),
+           package='chromeos-base/autotest-factory',
+           workon=True),
     }
 
 # A secret value for 'output' to make the script modify the image in place.
@@ -111,8 +118,11 @@ def main():
 
   repo_relpaths = [PACKAGES[k]['path'] % {'board': args.board}
                    for k in args.packages]
-  repo_paths = [os.path.join(SRC, x) for x in repo_relpaths]
-  packages = set(PACKAGES[k]['package'] for k in args.packages)
+  repo_paths = sorted(set([os.path.join(SRC, x) for x in repo_relpaths]))
+  packages = sorted(set(PACKAGES[k]['package'] for k in args.packages))
+  workon_packages = sorted(set(PACKAGES[k]['package']
+                               for k in args.packages
+                               if PACKAGES[k]['workon']))
 
   # Check the packages are all clean
   for path in repo_paths:
@@ -134,11 +144,15 @@ def main():
       branch = args.branch
     Spawn(['git', 'checkout', branch], cwd=path, log=True, check_call=True)
 
+  # Do workons
+  if workon_packages:
+    Spawn(['cros_workon', 'start'] + workon_packages, log=True, call=True)
+
   # Do repo syncs in parallel (followed by a rebase+sync if it fails)
   if args.sync:
     for i, process in enumerate(
         [Spawn('repo sync . || (repo rebase . && repo sync .)',
-               log=True, cwd=path, shell=True) for path in set(repo_paths)]):
+               log=True, cwd=path, shell=True) for path in repo_paths]):
       if process.wait() != 0:
         sys.exit('git fetch in %s failed' % repo_paths[i])
 
@@ -152,12 +166,20 @@ def main():
         else:
           sys.exit('repo rebase in %s failed' % path)
 
+  # If there are any autotest packages required, unmerge them all so that
+  # any old packages don't get in the way.  There's probably a better way
+  # to do this.
+  if [x for x in args.packages if x.startswith('autotest')]:
+    Spawn('emerge-link --unmerge $(cros_workon list --all | grep autotest)',
+          log=True, shell=True, check_call=True)
+
   # Emerge the packages
   tarballs = []
 
   if args.emerge:
-    Spawn(['emerge-%s' % args.board, '--buildpkg', '-j', str(len(packages))] +
-          sorted(packages),
+    Spawn(['emerge-%s' % args.board, '--buildpkg',
+           '-j', str(multiprocessing.cpu_count())] +
+          packages,
           log=True, check_call=True)
 
   for package in packages:
