@@ -179,6 +179,14 @@ class SystemStatus(object):
   charge_manager = None
 
   def __init__(self):
+    def _CalculateBatteryFractionFull(battery):
+      for t in ['charge', 'energy']:
+        now = battery['%s_now' % t]
+        full = battery['%s_full' % t]
+        if (now is not None and full is not None and full > 0 and now >= 0):
+          return float(now) / full
+      return None
+
     self.battery = {}
     self.battery_sysfs_path = None
     path_list = glob.glob('/sys/class/power_supply/*/type')
@@ -194,12 +202,17 @@ class SystemStatus(object):
                          ('present', bool),
                          ('status', str),
                          ('voltage_min_design', int),
-                         ('voltage_now', int)]:
+                         ('voltage_now', int),
+                         ('energy_full', int),
+                         ('energy_full_design', int),
+                         ('energy_now', int)]:
       try:
         self.battery[k] = item_type(
           open(os.path.join(self.battery_sysfs_path, k)).read().strip())
       except:
         self.battery[k] = None
+
+    self.battery['fraction_full'] = _CalculateBatteryFractionFull(self.battery)
 
     self.battery['force'] = False
     if self.charge_manager:

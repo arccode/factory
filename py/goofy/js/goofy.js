@@ -2129,9 +2129,11 @@ cros.factory.Goofy.prototype.updateStatus = function() {
             'goofy-battery-charge-indicator');
         var percent = null;
         var batteryStatus = 'unknown';
-        if (status.battery && status.battery.charge_full) {
-            percent = this.PERCENT_BATTERY_FORMAT.format(
-                status.battery.charge_now / status.battery.charge_full);
+        if (status.battery) {
+            if (status.battery.fraction_full != null) {
+                percent = this.PERCENT_BATTERY_FORMAT.format(
+                    status.battery.fraction_full);
+            }
             if (goog.array.contains(['Full', 'Charging', 'Discharging', 'Idle'],
                                     status.battery.status)) {
                 batteryStatus = status.battery.status.toLowerCase();
