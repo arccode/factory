@@ -16,10 +16,17 @@ import time
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.automation.servo import Servo
+from cros.factory.test import utils
 from cros.factory.utils.process_utils import Spawn, TerminateOrKillProcess
 
 
 SRCROOT = os.environ['CROS_WORKON_SRCROOT']
+SUPPORTED_INSTALL_METHODS = ('netboot', 'install_shim', 'usbimg')
+
+
+class InvalidArgumentError(Exception):
+  '''Failure of passing invalid arguments.'''
+  pass
 
 
 class FinalizeError(Exception):
@@ -77,7 +84,7 @@ class GSUtil(object):
 def ExtractFile(compressed_file, output_dir):
   '''Extracts compressed file to output folder.'''
 
-  os.mkdir(output_dir)
+  utils.TryMakeDirs(output_dir)
   logging.debug('Extracting %s to %s', compressed_file, output_dir)
   if compressed_file.endswith('.zip'):
     cmd = ['unzip', compressed_file, '-d', output_dir]
@@ -125,10 +132,14 @@ def SetupNetboot(board, bundle_dir, recovery_image,
     vmlinux = os.path.join(netboot_dir, 'vmlinux.uimg')
     initrd = os.path.join(netboot_dir, 'initrd.uimg')
     cmd.extend(['--vmlinux=%s' % vmlinux, '--initrd=%s' % initrd])
-  else:
+  elif install_method in ('install_shim', 'usbimg'):
     cmd.append('--no_modify_netboot_ip')
     cmd.append('--no_generate_image')
     cmd.append('--no_tftp')
+    if install_method == 'usbimg':
+      cmd.append('--no_clone_miniomaha')
+      cmd.append('--no_make_factory_package')
+      cmd.append('--no_miniomaha')
   return Spawn(cmd, log=True, sudo=True)
 
 
@@ -137,18 +148,41 @@ def UpdateServerAddress(lsb_factory, host_ip):
         log=True, check_call=True, sudo=True)
 
 
-def WaitDUTBootup(dut_ip, ping_timeout=120, ssh_timeout=600):
-  logging.debug('Ping DUT...')
-  start_time = time.time()
-  while ping_timeout:
-    if Spawn(['ping', '-c', '1', '-W', '1', dut_ip],
-             log=False, call=True, ignore_stdout=True).returncode == 0:
-      break
-    ping_timeout -= 1
-  else:
-    raise DUTBootupError('Unable to ping %s' % dut_ip)
-  logging.debug("DUT could be ping'd after %d seconds",
-                time.time() - start_time)
+def MakeFactoryPackage(board, bundle_dir, recovery_image, install_shim='',
+                       firmware_updater='', hwid_updater='', **kwargs):
+  script = os.path.join(bundle_dir, 'factory_setup', 'make_factory_package.sh')
+  factory_image = os.path.join(bundle_dir, 'factory_test',
+                               'chromiumos_factory_image.bin')
+  if not hwid_updater:
+    hwid_updater = os.path.join(bundle_dir, 'hwid',
+                                'hwid_bundle_%s_all.sh' % board.upper())
+  cmd = [script,
+         '--board=%s' % board,
+         '--factory=%s' % factory_image,
+         '--release=%s' % recovery_image,
+         '--hwid_updater=%s' % hwid_updater,
+         ]
+  if install_shim:
+    cmd.append('--install_shim=%s' % install_shim)
+  if firmware_updater:
+    cmd.append('--firmware_updater=%s' % firmware_updater)
+  cmd.extend(['--%s=%s' % (key, value) for key, value in kwargs.items()])
+  return Spawn(cmd, log=True, check_call=True)
+
+
+def WaitDUTBootup(install_method, dut_ip, ping_timeout=120, ssh_timeout=600):
+  if install_method in ('netboot', 'install_shim'):
+    logging.debug('Ping DUT...')
+    start_time = time.time()
+    while ping_timeout:
+      if Spawn(['ping', '-c', '1', '-W', '1', dut_ip],
+               log=False, call=True, ignore_stdout=True).returncode == 0:
+        break
+      ping_timeout -= 1
+    else:
+      raise DUTBootupError('Unable to ping %s' % dut_ip)
+    logging.debug("DUT could be ping'd after %d seconds",
+                  time.time() - start_time)
 
   logging.debug('Connect DUT ssh port...')
   start_time = time.time()
@@ -183,7 +217,7 @@ def FinalizeDUT(shopfloor_dir, host_ip, dut_ip, logdata_dir,
   return Spawn(cmd, log=True, sudo=True)
 
 
-def RunFactoryFlow(board, dhcp_iface, host_ip, dut_mac, dut_ip,
+def RunFactoryFlow(board, dhcp_iface, host_ip, dut_mac, dut_ip, install_method,
                    factory_channel='', factory_branch='', recovery_channel='',
                    recovery_branch='', recovery_key='', firmware_channel='',
                    firmware_branch='', firmware_key='', firmware_tag='',
@@ -195,12 +229,6 @@ def RunFactoryFlow(board, dhcp_iface, host_ip, dut_mac, dut_ip,
   start_time = time.time()
   work_dir = tempfile.mkdtemp(prefix='build_')
   logging.debug('Work dir: %s', work_dir)
-
-  # Determine install method.
-  if install_shim:
-    install_method = 'miniomaha'
-  else:
-    install_method = 'netboot'
 
   if factory_channel and not bundle_dir:
     # Download and extract factory bundle.
@@ -269,7 +297,7 @@ def RunFactoryFlow(board, dhcp_iface, host_ip, dut_mac, dut_ip,
             log=True, check_call=True)
       firmware_updater = os.path.join(work_dir, 'chromeos-firmwareupdate')
     updater_dir = os.path.join(work_dir, 'updater')
-    os.mkdir(updater_dir)
+    utils.TryMakeDirs(updater_dir)
     Spawn([firmware_updater, '--sb_extract', updater_dir],
           log=True, check_call=True)
     if bios_bin:
@@ -281,12 +309,12 @@ def RunFactoryFlow(board, dhcp_iface, host_ip, dut_mac, dut_ip,
     Spawn([firmware_updater, '--sb_repack', updater_dir],
           log=True, check_call=True)
 
-  if install_method == 'miniomaha':
+  if install_method in ('install_shim', 'usbimg'):
     # Update IP addresses in copied install shim.
     clone_install_shim = os.path.join(work_dir, 'install_shim.bin')
     shutil.copyfile(install_shim, clone_install_shim)
     mount_dir = os.path.join(work_dir, 'install_shim_1')
-    os.mkdir(mount_dir)
+    utils.TryMakeDirs(mount_dir)
     Spawn([os.path.join(bundle_dir, 'factory_setup', 'mount_partition.sh'),
            clone_install_shim, '1', mount_dir],
           log=True, check_call=True, sudo=True)
@@ -294,6 +322,14 @@ def RunFactoryFlow(board, dhcp_iface, host_ip, dut_mac, dut_ip,
                         host_ip)
     Spawn(['umount', mount_dir], log=True, check_call=True, sudo=True)
     install_shim = clone_install_shim
+
+    if install_method == 'install_shim':
+      install_image = install_shim
+    elif install_method == 'usbimg':
+      logging.debug('Prepare USB image...')
+      install_image = os.path.join(work_dir, 'USB.img')
+      MakeFactoryPackage(board, bundle_dir, recovery_image, install_shim,
+                         firmware_updater, hwid_updater, usbimg=install_image)
 
   test_setup = '%s %s %s install, factory: %s, recovery: %s' % (
       board, serial_number if finalize else '', install_method,
@@ -317,19 +353,19 @@ def RunFactoryFlow(board, dhcp_iface, host_ip, dut_mac, dut_ip,
         logging.debug('Flashing netboot firmware to DUT...')
         servo.FlashFirmware(netboot_bios)
         servo.ColdReset()
-      elif install_method == 'miniomaha':
-        logging.debug('Boot DUT using install shim...')
-        servo.BootDUTFromImage(install_shim, servo_usb_dev)
+      elif install_method in ('install_shim', 'usbimg'):
+        logging.debug('Boot DUT using image %s', install_image)
+        servo.BootDUTFromImage(install_image, servo_usb_dev)
     finally:
       servo.StopServod()
 
-    WaitDUTBootup(dut_ip)
+    WaitDUTBootup(install_method, dut_ip)
 
     if finalize:
       logging.debug('Running GRT tests and finalize DUT...')
       shopfloor_dir = os.path.join(bundle_dir, 'shopfloor')
       logdata_dir = os.path.join(shopfloor_dir, 'log_data')
-      os.mkdir(logdata_dir)
+      utils.TryMakeDirs(logdata_dir)
       log_file = os.path.join(logdata_dir, 'log', 'factory.log')
       logging.debug('Factory log: %s', log_file)
       automation_process = FinalizeDUT(shopfloor_dir, host_ip, dut_ip,
@@ -387,6 +423,9 @@ if __name__ == '__main__':
   If you have multiple servo boards, pass --servo_serial to specify the
   servo board to use.''')
   parser.add_option('--board', help='Board for which images are built.')
+  parser.add_option('--install_method', default='netboot',
+                    help='Install method user for factory flow testing. '
+                         'One of %s' % str(SUPPORTED_INSTALL_METHODS))
   parser.add_option('--factory_channel',
                     help='Channel from where to download factory bundle.')
   parser.add_option('--factory_branch', default='',
@@ -443,9 +482,15 @@ if __name__ == '__main__':
                     help='Serial number for DUT.')
   options = parser.parse_args()[0]
 
+  if options.install_method not in SUPPORTED_INSTALL_METHODS:
+    raise InvalidArgumentError('Invalid install method specified')
+  if options.install_method == 'install_shim' and not options.install_shim:
+    raise InvalidArgumentError('No install shim specified')
+
   RunFactoryFlow(
       options.board, options.dhcp_iface, options.host_ip, options.dut_mac,
-      options.dut_ip, options.factory_channel, options.factory_branch,
+      options.dut_ip, options.install_method,
+      options.factory_channel, options.factory_branch,
       options.recovery_channel, options.recovery_branch, options.recovery_key,
       options.firmware_channel, options.firmware_branch, options.firmware_key,
       options.firmware_tag, options.bundle_dir, options.recovery_image,

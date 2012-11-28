@@ -326,14 +326,14 @@ def main():
 
     if options.do_miniomaha:
       miniomaha = StartMiniomahaServer(options.miniomaha_dir, options.port)
-      miniomaha.wait()
+
+    for process in (tftpd, dhcpd, miniomaha):
+      if process is not None:
+        process.wait()
   finally:
-    if tftpd:
-      TerminateOrKillProcess(tftpd)
-    if dhcpd:
-      TerminateOrKillProcess(dhcpd)
-    if miniomaha:
-      TerminateOrKillProcess(miniomaha)
+    for process in (tftpd, dhcpd, miniomaha):
+      if process is not None:
+        TerminateOrKillProcess(process)
 
 
 if __name__ == '__main__':
