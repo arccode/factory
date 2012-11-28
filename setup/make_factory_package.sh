@@ -326,7 +326,6 @@ prepare_firmware_updater() {
 prepare_img() {
   local outdev="$(readlink -f "$FLAGS_diskimg")"
   local sectors="$FLAGS_sectors"
-  local force_full="true"
 
   # We'll need some code to put in the PMBR, for booting on legacy BIOS.
   echo "Fetch PMBR"
@@ -350,7 +349,38 @@ prepare_img() {
 
   # Create GPT partition table.
   locate_gpt
-  install_gpt "${outdev}" 0 0 "${pmbrcode}" 0 "${force_full}"
+
+  local root_fs_dir="$(mktemp -d --tmpdir)"
+  local write_gpt_path="${root_fs_dir}/usr/sbin/write_gpt.sh"
+
+  image_add_temp "${root_fs_dir}"
+  image_mount_partition "${FLAGS_release}" "3" "${root_fs_dir}" "ro" "-t ext2"
+
+  if [ ! -f "${write_gpt_path}" ]; then
+    die "This script no longer works on legacy images without write_gpt.sh"
+  fi
+
+  # We need to patch up write_gpt.sh a bit to cope with the fact we're
+  # running in a non-chroot/device env and that we're not running as root
+  local outdev_block=$(sudo losetup -f --show "${outdev}")
+  local partition_script="$(mktemp --tmpdir)"
+  image_add_temp "${partition_script}"
+
+  cat "${write_gpt_path}" > "${partition_script}"
+  echo write_base_table "${outdev_block}" "${pmbrcode}" >> "${partition_script}"
+
+  # Fix path to chromeos-common.sh
+  sed -i 's"/usr/sbin/chromeos-common.sh"lib/chromeos-common.sh"g' \
+    "${partition_script}"
+
+  # Add local bin to PATH before running locate_gpt
+  sed -i 's,locate_gpt,PATH="'"$PATH"'";locate_gpt,g' "${partition_script}"
+
+  sudo bash "${partition_script}"
+
+  sudo losetup -d "${outdev_block}"
+  image_umount_partition "${root_fs_dir}"
+
   # Activate the correct partition.
   sudo "${GPT}" add -i 2 -S 1 -P 1 "${outdev}"
 }
