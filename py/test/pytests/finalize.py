@@ -35,9 +35,13 @@ MSG_FORCE = MakeLabel("Press “f” to force starting finalization procedure.",
                       "按下 「f」 键以强迫开始最终程序。")
 MSG_READY = MakeLabel("System is READY. Press SPACE to start FINALIZATION.",
                       "系统已準备就绪。 请按空白键开始最终程序!")
-MSG_FINALIZING = MakeLabel("Finalizing, please wait...",
-                           "正在开始最终程序，請稍等...")
-
+MSG_FINALIZING = MakeLabel(
+    "Finalizing, please wait.<br>"
+    "Do not restart the device or terminate this test,<br>"
+    "or the device may because unusable.",
+    "正在开始最终程序，請稍等.<br>"
+    "不要重啓機器或停止測試，<br>"
+    "不然機器將無法開機。")
 
 class Finalize(unittest.TestCase):
   ARGS = [
