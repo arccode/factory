@@ -340,6 +340,38 @@ class Goofy(object):
       self.visible_test.update_state(visible=False)
     self.visible_test = test
 
+  def _log_startup_messages(self):
+    '''Logs the tail of var/log/messages and mosys and EC console logs.'''
+    # TODO(jsalz): This is mostly a copy-and-paste of code in init_states,
+    # for factory-3004.B only.  Consolidate and merge back to ToT.
+    if utils.in_chroot():
+      return
+
+    try:
+      var_log_messages = (
+        utils.var_log_messages_before_reboot())
+      logging.info(
+        'Tail of /var/log/messages before last reboot:\n'
+        '%s', ('\n'.join(
+            '  ' + x for x in var_log_messages)))
+    except:  # pylint: disable=W0702
+      logging.exception('Unable to grok /var/log/messages')
+
+    try:
+      mosys_log = utils.Spawn(
+          ['mosys', 'eventlog', 'list'],
+          read_stdout=True, log_stderr_on_error=True).stdout_data
+      logging.info('System eventlog from mosys:\n%s\n', mosys_log)
+    except:  # pylint: disable=W0702
+      logging.exception('Unable to read mosys eventlog')
+
+    try:
+      ec = system.GetEC()
+      ec_console_log = ec.GetConsoleLog()
+      logging.info('EC console log after reboot:\n%s\n', ec_console_log)
+    except:  # pylint: disable=W0702
+      logging.exception('Error retrieving EC console log')
+
   def handle_shutdown_complete(self, test, test_state):
     '''
     Handles the case where a shutdown was detected during a shutdown step.
@@ -354,6 +386,8 @@ class Goofy(object):
     def log_and_update_state(status, error_msg, **kw):
       self.event_log.Log('rebooted',
                  status=status, error_msg=error_msg, **kw)
+      logging.info('Rebooted: status=%s, %s', status,
+                   (('error_msg=%s' % error_msg) if error_msg else None))
       test.update_state(status=status, error_msg=error_msg)
 
     if not self.last_shutdown_time:
@@ -385,6 +419,7 @@ class Goofy(object):
             utils.TimeString(self.last_shutdown_time),
             utils.TimeString(now))),
         duration=(now-self.last_shutdown_time))
+      self._log_startup_messages()
     elif test_state.shutdown_count == test.iterations:
       # Good!
       log_and_update_state(status=TestState.PASSED,
@@ -394,6 +429,7 @@ class Goofy(object):
       # Shut down too many times
       log_and_update_state(status=TestState.FAILED,
                  error_msg='Too many shutdowns')
+      self._log_startup_messages()
     elif utils.are_shift_keys_depressed():
       logging.info('Shift keys are depressed; cancelling restarts')
       # Abort shutdown
