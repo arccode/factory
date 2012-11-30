@@ -276,15 +276,22 @@ class FinalizeBundle(object):
       return
 
     def PatchLSBFactory(mount):
-      """Patches lsb-factory in an image."""
+      """Patches lsb-factory in an image.
+
+      Returns:
+        True if there were any changes.
+      """
       lsb_factory_path = os.path.join(
           mount, 'dev_image', 'etc', 'lsb-factory')
       logging.info('Patching URLs in %s', lsb_factory_path)
+      orig_lsb_factory = open(lsb_factory_path).read()
       lsb_factory, number_of_subs = re.subn(
           '(?m)^(CHROMEOS_(AU|DEV)SERVER=).+$', r'\1' + mini_omaha_url,
-          open(lsb_factory_path).read())
+          orig_lsb_factory)
       if number_of_subs != 2:
         sys.exit('Unable to set mini-Omaha server in %s' % lsb_factory_path)
+      if lsb_factory == orig_lsb_factory:
+        return False  # No changes
 
       # Write with sudo, since only root can write this.
       process = Spawn('cat > %s' % pipes.quote(lsb_factory_path),
@@ -293,6 +300,7 @@ class FinalizeBundle(object):
       process.stdin.close()
       if process.wait():
         sys.exit('Unable to write %s' % lsb_factory_path)
+      return True
 
     # Patch in the install shim.
     shims = glob.glob(os.path.join(self.bundle_dir, 'factory_shim',
@@ -315,19 +323,21 @@ class FinalizeBundle(object):
                 ['gunzip', '-c'],
                 stdin=netboot_image_in, stdout=rootfs_out, check_call=True)
         with MountPartition(rootfs, rw=True) as mount:
-          PatchLSBFactory(os.path.join(mount, 'mnt', 'stateful_partition'))
+          lsb_factory_changed = PatchLSBFactory(
+              os.path.join(mount, 'mnt', 'stateful_partition'))
 
-        # Success!  Zip it back up.
-        with UnopenedTemporaryFile(prefix='rootfs.') as rootfs_gz:
-          with open(rootfs_gz, 'w') as out:
-            Spawn(['pigz', '-9c', rootfs], stdout=out, log=True, call=True)
+        if lsb_factory_changed:
+          # Success!  Zip it back up.
+          with UnopenedTemporaryFile(prefix='rootfs.') as rootfs_gz:
+            with open(rootfs_gz, 'w') as out:
+              Spawn(['pigz', '-9c', rootfs], stdout=out, log=True, call=True)
 
-          new_netboot_image = netboot_image + '.INPROGRESS'
-          Spawn(['mkimage', '-A', 'x86', '-O', 'linux', '-T', 'ramdisk',
-                 '-a', '0x12008000', '-n', 'Factory Install RootFS',
-                 '-C', 'gzip', '-d', rootfs_gz, new_netboot_image],
-                check_call=True, log=True)
-          shutil.move(new_netboot_image, netboot_image)
+            new_netboot_image = netboot_image + '.INPROGRESS'
+            Spawn(['mkimage', '-A', 'x86', '-O', 'linux', '-T', 'ramdisk',
+                   '-a', '0x12008000', '-n', 'Factory Install RootFS',
+                   '-C', 'gzip', '-d', rootfs_gz, new_netboot_image],
+                  check_call=True, log=True)
+            shutil.move(new_netboot_image, netboot_image)
 
   def CheckFiles(self):
     # Check that the set of files is correct
@@ -458,7 +468,8 @@ class FinalizeBundle(object):
 
     if firmwareupdates:
       instructions[-1] += ' \\'
-      instructions.append('    --firmware_updater ../' % firmwareupdates[0])
+      instructions.append('    --firmware_updater ../%s' %
+                          os.path.relpath(firmwareupdates[0], self.bundle_dir))
 
     readme_sections[readme_section_index['MINI-OMAHA SERVER']][2] = (
         '\n'.join(instructions) + '\n\n')
