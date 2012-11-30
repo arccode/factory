@@ -231,7 +231,7 @@ def RunFactoryFlow(board, dhcp_iface, host_ip, dut_mac, dut_ip, install_method,
                    firmware_updater='', hwid_updater='', bios_bin='', ec_bin='',
                    netboot_bios='', finalize=False, automation_config='',
                    testlist='', serial_number='', servo_serial='',
-                   servo_usb_dev=''):
+                   servo_usb_dev='', devices_csv=''):
   start_time = time.time()
   utils.TryMakeDirs(FILE_CACHE_DIR)
   work_dir = tempfile.mkdtemp(prefix='build_')
@@ -375,12 +375,16 @@ def RunFactoryFlow(board, dhcp_iface, host_ip, dut_mac, dut_ip, install_method,
       utils.TryMakeDirs(logdata_dir)
       log_file = os.path.join(logdata_dir, 'log', 'factory.log')
       logging.debug('Factory log: %s', log_file)
+      shopfloor_data_dir = os.path.join(shopfloor_dir, 'shopfloor_data')
+      if devices_csv:
+        shutil.copyfile(devices_csv,
+                        os.path.join(shopfloor_data_dir, 'devices.csv'))
       automation_process = FinalizeDUT(shopfloor_dir, host_ip, dut_ip,
                                        logdata_dir, automation_config, testlist,
                                        serial_number)
 
       def WaitReport(wait_seconds=300):
-        report_spec = os.path.join(shopfloor_dir, 'shopfloor_data',
+        report_spec = os.path.join(shopfloor_data_dir,
                                    time.strftime('logs.%Y%m%d'), 'reports',
                                    '*.tbz2')
         logging.debug('Watching for finalize report at %s', report_spec)
@@ -469,6 +473,8 @@ if __name__ == '__main__':
                     help='Netboot firmware to use.')
   parser.add_option('--servo_usb_dev', default='',
                     help='Device path for the USB key on Servo.')
+  parser.add_option('--devices_csv', default='',
+                    help='Custom devices.csv to use in shopfloor server.')
   parser.add_option('--dhcp_iface',
                     help='Network interface to run DHCP server.')
   parser.add_option('--host_ip', default='192.168.1.254',
@@ -504,4 +510,5 @@ if __name__ == '__main__':
       options.install_shim, options.firmware_updater, options.hwid_updater,
       options.bios_bin, options.ec_bin, options.netboot_bios,
       options.finalize, options.automation_config, options.testlist,
-      options.serial_number, options.servo_serial, options.servo_usb_dev)
+      options.serial_number, options.servo_serial, options.servo_usb_dev,
+      options.devices_csv)
