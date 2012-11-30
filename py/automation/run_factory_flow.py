@@ -22,6 +22,7 @@ from cros.factory.utils.process_utils import Spawn, TerminateOrKillProcess
 
 SRCROOT = os.environ['CROS_WORKON_SRCROOT']
 SUPPORTED_INSTALL_METHODS = ('netboot', 'install_shim', 'usbimg')
+FILE_CACHE_DIR = '/tmp/factory_file_cache'
 
 
 class InvalidArgumentError(Exception):
@@ -75,10 +76,15 @@ class GSUtil(object):
                  read_stdout=True).stdout_data.strip()
 
   @staticmethod
-  def DownloadURI(uri, local_dir):
-    logging.debug('Downloading %s to %s', uri, local_dir)
-    Spawn(['gsutil', 'cp', '-q', uri, local_dir], log=True, check_call=True)
-    return os.path.join(local_dir, uri.rpartition('/')[2])
+  def DownloadURI(uri, local_dir, force_download=False):
+    local_file = os.path.join(local_dir, uri.rpartition('/')[2])
+    if not force_download and os.path.isfile(local_file):
+      # TODO(chinyue): Add md5sum checking to see if force download needed.
+      logging.debug('Already downloaded %s', local_file)
+    else:
+      logging.debug('Downloading %s to %s', uri, local_dir)
+      Spawn(['gsutil', 'cp', '-q', uri, local_dir], log=True, check_call=True)
+    return local_file
 
 
 def ExtractFile(compressed_file, output_dir):
@@ -227,6 +233,7 @@ def RunFactoryFlow(board, dhcp_iface, host_ip, dut_mac, dut_ip, install_method,
                    testlist='', serial_number='', servo_serial='',
                    servo_usb_dev=''):
   start_time = time.time()
+  utils.TryMakeDirs(FILE_CACHE_DIR)
   work_dir = tempfile.mkdtemp(prefix='build_')
   logging.debug('Work dir: %s', work_dir)
 
@@ -238,7 +245,7 @@ def RunFactoryFlow(board, dhcp_iface, host_ip, dut_mac, dut_ip, install_method,
     bundle_uri = gsutil.GetBinaryURI(build_dir, 'factory')
     logging.info('Latest factory bundle version %s URI %s',
                  factory_version, bundle_uri)
-    bundle_file = GSUtil.DownloadURI(bundle_uri, work_dir)
+    bundle_file = GSUtil.DownloadURI(bundle_uri, FILE_CACHE_DIR)
     bundle_dir = os.path.join(work_dir, 'bundle')
     ExtractFile(bundle_file, bundle_dir)
   else:
@@ -253,7 +260,7 @@ def RunFactoryFlow(board, dhcp_iface, host_ip, dut_mac, dut_ip, install_method,
     recovery_uri = gsutil.GetBinaryURI(build_dir, 'recovery', key=recovery_key)
     logging.info('Latest recovery image version %s URI %s',
                  recovery_version, recovery_uri)
-    recovery_image = GSUtil.DownloadURI(recovery_uri, work_dir)
+    recovery_image = GSUtil.DownloadURI(recovery_uri, FILE_CACHE_DIR)
     if not recovery_key:
       # Unsigned recovery image is inside a compressed file, so extract it.
       recovery_dir = os.path.join(work_dir, 'recovery')
@@ -272,7 +279,7 @@ def RunFactoryFlow(board, dhcp_iface, host_ip, dut_mac, dut_ip, install_method,
                                        key=firmware_key, tag=firmware_tag)
     logging.info('Latest firmware version %s URI: %s',
                  firmware_version, firmware_uri)
-    bios_bin = GSUtil.DownloadURI(firmware_uri, work_dir)
+    bios_bin = GSUtil.DownloadURI(firmware_uri, FILE_CACHE_DIR)
   else:
     # TODO(chinyue): Have a better way to determine firmware version.
     firmware_version = os.path.basename(bios_bin)
@@ -283,7 +290,7 @@ def RunFactoryFlow(board, dhcp_iface, host_ip, dut_mac, dut_ip, install_method,
     build_dir = gsutil.GetLatestBuildDir(branch=factory_branch)
     firmware_uri = gsutil.GetBinaryURI(build_dir, 'firmware')
     logging.info('Latest firmware from source URI %s', firmware_uri)
-    firmware_file = GSUtil.DownloadURI(firmware_uri, work_dir)
+    firmware_file = GSUtil.DownloadURI(firmware_uri, FILE_CACHE_DIR)
     firmware_dir = os.path.join(work_dir, 'firmware_from_source')
     ExtractFile(firmware_file, firmware_dir)
     netboot_bios = os.path.join(firmware_dir, 'nv_image-%s.bin' % board)
