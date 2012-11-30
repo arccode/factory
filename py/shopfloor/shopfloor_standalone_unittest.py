@@ -22,6 +22,8 @@ class ShopFloorStandaloneTest(unittest.TestCase):
   def setUp(self):
     self.process = None
     self.tmp = tempfile.mkdtemp(prefix='shopfloor_standalone_unittest.')
+    self.tmp_build_dir = tempfile.mkdtemp(
+      prefix='shopfloor_standalone_unittest_build_dir.')
 
   def tearDown(self):
     if self.process and self.process.poll() is None:
@@ -30,11 +32,13 @@ class ShopFloorStandaloneTest(unittest.TestCase):
       except:
         pass
     shutil.rmtree(self.tmp)
+    shutil.rmtree(self.tmp_build_dir)
 
   def runTest(self):
     script_dir = os.path.dirname(os.path.realpath(__file__))
     Spawn(['make', '-s', '-C', factory.FACTORY_PATH,
-           'par', 'PAR_DEST_DIR=%s' % self.tmp],
+           'par', 'PAR_DEST_DIR=%s' % self.tmp,
+           'PAR_BUILD_DIR=%s' % self.tmp_build_dir],
           log=True, check_call=True)
 
     shopfloor_server_path = os.path.join(self.tmp, 'shopfloor_server')

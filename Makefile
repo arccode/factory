@@ -13,6 +13,10 @@ PYTHON_SITEDIR=$(shell echo \
   'print(get_python_lib())' | python)
 PYTHON=python
 
+TEST_RUNNER=py/tools/run_tests.py
+# Maximum number of parallel tests to run.
+MAX_TESTS=32
+
 FACTORY=$(DESTDIR)/$(TARGET_DIR)
 FACTORY_BUNDLE=$(FACTORY)/bundle
 
@@ -62,6 +66,8 @@ UNITTESTS=$(shell find py -name '*_unittest.py' | sort)
 UNITTESTS_BLACKLIST=\
 	py/test/media_util_unittest.py
 UNITTESTS_WHITELIST=$(filter-out $(UNITTESTS_BLACKLIST),$(UNITTESTS))
+# Tests need to run in isolate mode.
+UNITTESTS_ISOLATE_LIST=
 
 
 # TODO(jsalz): remove the hard-coded path once the icedtea6-bin
@@ -164,38 +170,13 @@ test-presubmit:
 clean:
 	rm -rf $(BUILD_DIR)
 
-GREEN=\033[22;32m
-RED=\033[22;31m
-WHITE=\033[22;0m
-
 test:
-	@total=0; good=0; \
-	rm -f .tests-passed; \
+	@rm -f .tests-passed; \
 	logdir=/tmp/test.logs.$$(date +%Y%m%d_%H%M%S); \
 	mkdir $$logdir; \
 	echo "Test logs will be written to $$logdir"; \
 	echo; \
-	for f in $(UNITTESTS_WHITELIST); do \
-	    total=$$(expr $$total + 1); \
-	    echo -ne "*** RUN $$f"; \
-	    log=$$logdir/$$(basename $$f).log; \
-	    if $$f >$$log 2>&1; then \
-	        good=$$(expr $$good + 1); \
-	        echo -e "\r$(GREEN)*** PASS $$f$(WHITE)"; \
-	    else \
-	        echo -e "\r$(RED)*** FAIL $$f$(WHITE)"; \
-	        echo "    (log in $$log)"; \
-	        if grep -q "^KeyboardInterrupt" $$log; then \
-	            echo "Keyboard interrupt; stopping."; \
-	            exit 1; \
-	        fi; \
-	    fi; \
-	done; \
-	echo; \
-	echo -e "$(GREEN)$$good/$$total tests passed.$(WHITE)"; \
-	if [ $$good == $$total ]; then \
-	    touch .tests-passed; \
-	else \
-	    echo -e "$(RED)$$(expr $$total - $$good)/$$total tests failed.$(WHITE)"; \
-	    false; \
-	fi
+	if $(TEST_RUNNER) $(UNITTESTS_WHITELIST) -i $(UNITTESTS_ISOLATE_LIST) \
+            -j $(MAX_TESTS) -l $$logdir ; then \
+		touch .tests-passed; \
+	fi;
