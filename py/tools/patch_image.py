@@ -125,6 +125,8 @@ def main():
                       help="Don't emerge (for debugging only)")
   parser.add_argument('--no-sync', action='store_false', dest='sync',
                       help="Don't emerge (for debugging only)")
+  parser.add_argument('--no-firmware', action='store_false', dest='firmware',
+                      help="Never update chromeos-firmwareupdater")
   parser.add_argument('--yes', '-y', action='store_true',
                       help="Don't ask for confirmation")
   args = parser.parse_args()
@@ -310,6 +312,11 @@ def main():
 
           if f in ['.keep', 'chromedriver']:
             # Just to tell Gentoo to keep the directory; delete it
+            os.unlink(path)
+            continue
+
+          if ((not args.firmware) and
+              os.path.basename(path) == 'chromeos-firmwareupdate'):
             os.unlink(path)
             continue
 
