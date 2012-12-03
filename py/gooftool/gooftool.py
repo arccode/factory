@@ -498,18 +498,9 @@ def VerifyWPSwitch(options):  # pylint: disable=W0613
 def VerifyDevSwitch(options):  # pylint: disable=W0613
   """Verify developer switch is disabled."""
 
-  VBSD_HONOR_VIRT_DEV_SWITCH = 0x400
-  flags = int(Shell('crossystem vdat_flags').stdout.strip(), 0)
-  if (flags & VBSD_HONOR_VIRT_DEV_SWITCH) != 0:
-    # System is using virtual developer switch.  That will be handled in
-    # prepare_wipe.sh by setting "crossystem disable_dev_request=1" -- although
-    # we can't verify that until next reboot, because the real values are stored
-    # in TPM.
+  if Gooftool().CheckDevSwitchForDisabling():
     logging.warn('VerifyDevSwitch: No physical switch.')
     _event_log.Log('switch_dev', type='virtual switch')
-    return
-  if Shell('crossystem devsw_cur').stdout.strip() != '0':
-    raise Error, 'developer mode is not disabled'
 
 
 @Command('write_protect')

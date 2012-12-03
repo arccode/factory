@@ -38,11 +38,16 @@ class GooftoolTest(unittest.TestCase):
                                  'testdata')
     test_db = hwid_tool.HardwareDb(testdata_path)
 
+    # Util functions are tested with self._util.
     self._util = gooftool.Util()
     self._util.shell = self.mox.CreateMock(Shell)
 
     self._gooftool = Gooftool(probe=self._mock_probe, hardware_db=test_db)
-    self._gooftool._util = self._util
+
+    # Util will be mocked when testing Gooftool
+    self._gooftool._util = self.mox.CreateMock(gooftool.Util)
+    self._gooftool._util.shell = self.mox.CreateMock(Shell)
+
     self._gooftool._crosfw = self.mox.CreateMock(crosfw)
 
     # Mock out small wrapper functions that do not need unittests.
@@ -90,7 +95,6 @@ class GooftoolTest(unittest.TestCase):
   def testVerifyBadComponents(self):
     self.mox.ReplayAll()
 
-    self.assertRaises(ValueError, self._gooftool.VerifyComponents, [])
     self.assertRaises(ValueError, self._gooftool.VerifyComponents, [])
     self.assertRaises(ValueError,
                       self._gooftool.VerifyComponents, ['bad_class_name'])
@@ -232,7 +236,7 @@ class GooftoolTest(unittest.TestCase):
     self.mox.StubOutWithMock(self._gooftool._util, "FindAndRunScript")
 
     self.mox.StubOutWithMock(self._util, "GetReleaseKernelPartitionPath")
-    self._util.GetReleaseKernelPartitionPath().AndReturn("kernel")
+    self._gooftool._util.GetReleaseKernelPartitionPath().AndReturn("kernel")
 
     class MockMainFirmware(object):
       def GetFileName(self):
@@ -249,7 +253,7 @@ class GooftoolTest(unittest.TestCase):
     self.mox.StubOutWithMock(self._gooftool._util, "FindAndRunScript")
 
     self.mox.StubOutWithMock(self._util, "GetReleaseRootPartitionPath")
-    self._util.GetReleaseRootPartitionPath().AndReturn("root")
+    self._gooftool._util.GetReleaseRootPartitionPath().AndReturn("root")
 
     self._gooftool._util.FindAndRunScript("verify_system_time.sh", ["root"])
 
@@ -260,7 +264,7 @@ class GooftoolTest(unittest.TestCase):
     self.mox.StubOutWithMock(self._gooftool._util, "FindAndRunScript")
 
     self.mox.StubOutWithMock(self._util, "GetReleaseRootPartitionPath")
-    self._util.GetReleaseRootPartitionPath().AndReturn("root")
+    self._gooftool._util.GetReleaseRootPartitionPath().AndReturn("root")
 
     self._gooftool._util.FindAndRunScript("verify_rootfs.sh", ["root"])
 
@@ -277,8 +281,8 @@ class GooftoolTest(unittest.TestCase):
     self.mox.StubOutWithMock(self._gooftool._util, "FindAndRunScript")
 
     self.mox.StubOutWithMock(self._util, "GetReleaseRootPartitionPath")
-    self._util.GetReleaseRootPartitionPath().MultipleTimes().AndReturn(
-        "root")
+    self._gooftool._util.GetReleaseRootPartitionPath(
+        ).MultipleTimes().AndReturn("root")
 
     self._gooftool._util.FindAndRunScript("prepare_wipe.sh", ["root"], [])
     self._gooftool._util.FindAndRunScript("prepare_wipe.sh", ["root"],
@@ -298,8 +302,8 @@ class GooftoolTest(unittest.TestCase):
 
     self._gooftool._crosfw.LoadMainFirmware().MultipleTimes().AndReturn(
       MockMainFirmware())
-    self._util.shell('gbb_utility --set --hwid="hwid1" "firmware"')
-    self._util.shell('gbb_utility --set --hwid="hwid2" "firmware"')
+    self._gooftool._util.shell('gbb_utility --set --hwid="hwid1" "firmware"')
+    self._gooftool._util.shell('gbb_utility --set --hwid="hwid2" "firmware"')
 
     self.mox.ReplayAll()
 
@@ -308,18 +312,32 @@ class GooftoolTest(unittest.TestCase):
 
   def testVerifyWPSwitch(self):
     # 1st call: enabled
-    self._util.shell('crossystem wpsw_cur').AndReturn(StubStdout('1'))
+    self._gooftool._util.shell('crossystem wpsw_cur').AndReturn(StubStdout('1'))
     # 2nd call: disabled
-    self._util.shell('crossystem wpsw_cur').AndReturn(StubStdout('0'))
+    self._gooftool._util.shell('crossystem wpsw_cur').AndReturn(StubStdout('0'))
 
     self.mox.ReplayAll()
 
     self._gooftool.VerifyWPSwitch()
-    try:
-      self._gooftool.VerifyWPSwitch()
-      self.fail("The second call should raise exception for wpsw disabled")
-    except Error:
-      pass # pylint: disable=W0702
+    self.assertRaises(Error, self._gooftool.VerifyWPSwitch)
+
+  def testCheckDevSwitchForDisabling(self):
+    # 1st call: virtual switch
+    self._gooftool._util.GetVBSharedDataFlags().AndReturn(0x400)
+
+    # 2nd call: dev mode disabled
+    self._gooftool._util.GetVBSharedDataFlags().AndReturn(0)
+    self._gooftool._util.GetCurrentDevSwitchPosition().AndReturn(0)
+
+    # 3rd call: dev mode enabled
+    self._gooftool._util.GetVBSharedDataFlags().AndReturn(0)
+    self._gooftool._util.GetCurrentDevSwitchPosition().AndReturn(1)
+
+    self.mox.ReplayAll()
+    self.assertTrue(self._gooftool.CheckDevSwitchForDisabling())
+    self.assertFalse(self._gooftool.CheckDevSwitchForDisabling())
+    self.assertRaises(Error, self._gooftool.CheckDevSwitchForDisabling)
+
 
 if __name__ == '__main__':
   logging.basicConfig(level=logging.INFO)

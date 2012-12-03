@@ -104,9 +104,9 @@ class Util(object):
     Args:
       script_name: The name of the script to look up and run.
       post_opts: A list of strings that will be appended in the command after
-                 the script's name.
+        the script's name.
       pre_opts: A list of strings that will be prepended in the command before
-                the script's name.
+        the script's name.
 
     Returns:
       The result of execusion.
@@ -138,6 +138,22 @@ class Util(object):
 
     return self.GetPrimaryDevicePath(4)
 
+  def GetVBSharedDataFlags(self):
+    """Get VbSharedData flags.
+
+    Returns:
+      An integer representation of the flags.
+    """
+
+    return int(self.shell('crossystem vdat_flags').stdout.strip(), 0)
+
+  def GetCurrentDevSwitchPosition(self):
+    """Get the position for the current developer switch.
+
+    Returns:
+      An integer representation of the current developer switch position.
+    """
+    return int(self.shell('crossystem devsw_cur').stdout.strip(), 0)
 
 
 class Gooftool(object):
@@ -374,3 +390,30 @@ class Gooftool(object):
 
     if self._util.shell('crossystem wpsw_cur').stdout.strip() != '1':
       raise Error, 'write protection switch is disabled'
+
+  def CheckDevSwitchForDisabling(self):  # pylint: disable=W0613
+    """Checks if the developer switch is ready for disabling.
+
+    It checks the developer switch is either already disabled or is virtual so
+    it could be disabled programmatically.
+
+    Returns:
+      Whether or not the developer switch is virtual.
+
+    Raises:
+      Error, if the developer switch is not ready for disabling. i.e. it is not
+      disabled and it is not virtual.
+    """
+
+    VBSD_HONOR_VIRT_DEV_SWITCH = 0x400
+    if (self._util.GetVBSharedDataFlags() & VBSD_HONOR_VIRT_DEV_SWITCH) != 0:
+      # Note when the system is using virtual developer switch. It could be
+      # disabled by "crossystem disable_dev_request=1", which is exactly what
+      # it does in prepare_wipe.sh.
+      return True
+
+    if self._util.GetCurrentDevSwitchPosition() == 0:
+      return False
+
+    raise Error, 'developer mode is not disabled'
+
