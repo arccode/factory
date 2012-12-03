@@ -208,17 +208,17 @@ def main():
         else:
           sys.exit('repo rebase in %s failed' % path)
 
-  # If there are any autotest packages required, unmerge them all so that
-  # any old packages don't get in the way.  There's probably a better way
-  # to do this.
-  if [x for x in args.packages if x.startswith('autotest')]:
-    Spawn('emerge-link --unmerge $(cros_workon list --all | grep autotest)',
-          log=True, shell=True, check_call=True)
-
   # Emerge the packages
   tarballs = []
 
   if args.emerge:
+    # If there are any autotest packages required, unmerge them all so
+    # that any old packages don't get in the way.  There's probably a
+    # better way to do this.
+    if [x for x in args.packages if x.startswith('autotest')]:
+      Spawn('emerge-link --unmerge $(cros_workon list --all | grep autotest)',
+            log=True, shell=True, check_call=True)
+
     Spawn(['emerge-%s' % args.board, '--buildpkg',
            '-j', str(multiprocessing.cpu_count())] +
           packages,
