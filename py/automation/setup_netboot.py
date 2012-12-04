@@ -183,11 +183,13 @@ def StartDHCPServer(dhcp_iface, host, subnet, netmask, dut_mac, dut_address,
                                        dut_address=dut_address,
                                        script_directive=script_directive))
   cfg.flush()
+  lease = tempfile.NamedTemporaryFile(prefix='dhcpd_', suffix='.leases',
+                                      delete=False)
+  Spawn(['touch', lease.name], check_call=True, log=True, sudo=True)
   Spawn(['/sbin/ifconfig', dhcp_iface, host], check_call=True, log=True,
         sudo=True)
-  Spawn(['touch', '/var/lib/dhcp/dhcpd.leases'], check_call=True, log=True,
-        sudo=True)
-  return Spawn(['/usr/sbin/dhcpd', '-f', '-cf', cfg.name], log=True, sudo=True)
+  return Spawn(['/usr/sbin/dhcpd', '-f', '--no-pid', '-cf', cfg.name,
+                '-lf', lease.name, dhcp_iface], log=True, sudo=True)
 
 
 def CloneMiniomaha(miniomaha_dir):
