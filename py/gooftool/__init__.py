@@ -8,14 +8,15 @@ import os
 import re
 
 from collections import namedtuple
+from tempfile import NamedTemporaryFile
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.common import Error
 from cros.factory.common import Shell
 from cros.factory.hwdb import hwid_tool
 from cros.factory.gooftool import crosfw
-from cros.factory.gooftool.probe import Probe
-
+from cros.factory.gooftool.bmpblk import unpack_bmpblock
+from cros.factory.gooftool.probe import Probe, ReadRoVpd
 
 # A named tuple to store the probed component name and the error if any.
 ProbedComponentResult = namedtuple('ProbedComponentResult',
@@ -183,6 +184,9 @@ class Gooftool(object):
     self._probe = probe or Probe
     self._util = Util()
     self._crosfw = crosfw
+    self._read_ro_vpd = ReadRoVpd
+    self._unpack_bmpblock = unpack_bmpblock
+    self._named_temporary_file = NamedTemporaryFile
 
   def VerifyComponents(self, component_list):
     '''Verifies the given component list against the component db to ensure
@@ -416,4 +420,45 @@ class Gooftool(object):
       return False
 
     raise Error, 'developer mode is not disabled'
+
+  def SetFirmwareBitmapLocale(self):
+    """Sets firmware bitmap locale to the default value stored in VPD.
+
+    This function ensures the default locale set in VPD is listed in the
+    supported locales in the firmware bitmap and sets loc_idx to the default
+    locale.
+
+    Returns:
+      A tuple of the default locale index and default locale. i.e.
+      (index, locale)
+
+      index: The index of the default locale in the bitmap.
+      locale: The 2-character-string format of the locale. e.g. "en", "zh"
+
+    Raises:
+      Error, if the initial locale is missing in VPD or the default locale is
+      not supported.
+    """
+
+    image_file = self._crosfw.LoadMainFirmware().GetFileName()
+    locale = self._read_ro_vpd(image_file).get('initial_locale', None)
+    if locale is None:
+      raise Error, 'Missing initial_locale VPD.'
+    bitmap_locales = []
+    with self._named_temporary_file() as f:
+      self._util.shell('gbb_utility -g --bmpfv=%s %s' % (f.name, image_file))
+      bmpblk_data = self._unpack_bmpblock(f.read())
+      bitmap_locales = bmpblk_data.get('locales', bitmap_locales)
+
+    # Some locale values are just a language code and others are a
+    # hyphen-separated language code and country code pair.  We care
+    # only about the language code part.
+    language_code = locale.partition('-')[0]
+    if language_code in bitmap_locales:
+      locale_index = bitmap_locales.index(language_code)
+      self._util.shell('crossystem loc_idx=%d' % locale_index)
+      return (locale_index, language_code)
+    else:
+      raise Error, ('Firmware bitmaps do not contain support for the specified '
+                    'initial locale language %r' % language_code)
 

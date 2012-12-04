@@ -19,7 +19,7 @@ import re
 import sys
 import time
 
-from tempfile import gettempdir, NamedTemporaryFile
+from tempfile import gettempdir
 
 import factory_common  # pylint: disable=W0611
 
@@ -28,7 +28,6 @@ from cros.factory.common import YamlWrite
 from cros.factory.gooftool import crosfw
 from cros.factory.gooftool import Gooftool
 from cros.factory.gooftool import report_upload
-from cros.factory.gooftool.bmpblk import unpack_bmpblock
 from cros.factory.gooftool.probe import Probe, PROBEABLE_COMPONENT_CLASSES
 from cros.factory.gooftool.probe import ReadRoVpd, ReadRwVpd
 from cros.factory.gooftool.vpd_data import KNOWN_VPD_FIELD_DATA, FilterVPD
@@ -450,27 +449,9 @@ def VerifyKeys(options):  # pylint: disable=W0613
 def SetFirmwareBitmapLocale(options):  # pylint: disable=W0613
   """Use VPD locale value to set firmware bitmap default language."""
 
-  image_file = crosfw.LoadMainFirmware().GetFileName()
-  locale = ReadRoVpd(image_file).get('initial_locale', None)
-  if locale is None:
-    raise Error, 'Missing initial_locale VPD.'
-  bitmap_locales = []
-  with NamedTemporaryFile() as f:
-    Shell('gbb_utility -g --bmpfv=%s %s' % (f.name, image_file))
-    bmpblk_data = unpack_bmpblock(f.read())
-    bitmap_locales = bmpblk_data.get('locales', bitmap_locales)
-  # Some locale values are just a language code and others are a
-  # hyphen-separated language code and country code pair.  We care
-  # only about the language code part.
-  language_code = locale.partition('-')[0]
-  if language_code not in bitmap_locales:
-    raise Error, ('Firmware bitmaps do not contain support for the specified '
-                  'initial locale language %r' % language_code)
-  else:
-    locale_index = bitmap_locales.index(language_code)
-    logging.info('Firmware bitmap initial locale set to %d (%s).',
-                 locale_index, bitmap_locales[locale_index])
-    Shell('crossystem loc_idx=%d' % locale_index)
+  (index, locale) = Gooftool().SetFirmwareBitmapLocale()
+  logging.info('Firmware bitmap initial locale set to %d (%s).',
+               index, locale)
 
 
 @Command('verify_system_time')

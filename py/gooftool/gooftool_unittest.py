@@ -11,6 +11,7 @@ import os
 import unittest
 
 from collections import namedtuple
+from tempfile import NamedTemporaryFile
 
 import factory_common  # pylint: disable=W0611
 from cros.factory import gooftool
@@ -18,7 +19,8 @@ from cros.factory.common import Error
 from cros.factory.common import Shell
 from cros.factory.gooftool import crosfw
 from cros.factory.gooftool import Gooftool
-from cros.factory.gooftool.probe import Probe
+from cros.factory.gooftool.bmpblk import unpack_bmpblock
+from cros.factory.gooftool.probe import Probe, ReadRoVpd
 from cros.factory.hwdb import hwid_tool
 from cros.factory.hwdb.hwid_tool import ProbeResults  # pylint: disable=E0611
 from cros.factory.gooftool import Mismatch
@@ -26,6 +28,20 @@ from cros.factory.gooftool import ProbedComponentResult
 
 # A stub for stdout
 StubStdout = namedtuple('StubStdout', ['stdout'])
+
+class MockMainFirmware(object):
+  def __init__(self):
+    self.GetFileName = lambda: "firmware"
+    self.Write = lambda sections: sections == ['GBB']
+
+class MockFile(object):
+  def __init__(self):
+    self.name = 'filename'
+    self.read = lambda: "read_results"
+  def __enter__(self):
+    return self
+  def __exit__(self, filetype, value, traceback):
+    pass
 
 class GooftoolTest(unittest.TestCase):
   def setUp(self):
@@ -44,11 +60,17 @@ class GooftoolTest(unittest.TestCase):
 
     self._gooftool = Gooftool(probe=self._mock_probe, hardware_db=test_db)
 
-    # Util will be mocked when testing Gooftool
+    # Util will be mocked when testing Gooftool. Note self._gooftool._util is
+    # a different object than self._util. The former should be used when
+    # testing Gooftool, and the later should be used for testing Util.
     self._gooftool._util = self.mox.CreateMock(gooftool.Util)
     self._gooftool._util.shell = self.mox.CreateMock(Shell)
 
     self._gooftool._crosfw = self.mox.CreateMock(crosfw)
+    self._gooftool._unpack_bmpblock = self.mox.CreateMock(unpack_bmpblock)
+    self._gooftool._read_ro_vpd = self.mox.CreateMock(ReadRoVpd)
+    self._gooftool._named_temporary_file = self.mox.CreateMock(
+        NamedTemporaryFile)
 
     # Mock out small wrapper functions that do not need unittests.
     self.mox.StubOutWithMock(self._util, "_IsDeviceFixed")
@@ -238,9 +260,6 @@ class GooftoolTest(unittest.TestCase):
     self.mox.StubOutWithMock(self._util, "GetReleaseKernelPartitionPath")
     self._gooftool._util.GetReleaseKernelPartitionPath().AndReturn("kernel")
 
-    class MockMainFirmware(object):
-      def GetFileName(self):
-        return "firmware"
     self._gooftool._crosfw.LoadMainFirmware().AndReturn(MockMainFirmware())
 
     self._gooftool._util.FindAndRunScript("verify_keys.sh",
@@ -294,12 +313,6 @@ class GooftoolTest(unittest.TestCase):
     self._gooftool.PrepareWipe(True)
 
   def testWriteHWID(self):
-    class MockMainFirmware(object):
-      def GetFileName(self):
-        return "firmware"
-      def Write(self, sections):
-        assert sections == ['GBB']
-
     self._gooftool._crosfw.LoadMainFirmware().MultipleTimes().AndReturn(
       MockMainFirmware())
     self._gooftool._util.shell('gbb_utility --set --hwid="hwid1" "firmware"')
@@ -338,6 +351,54 @@ class GooftoolTest(unittest.TestCase):
     self.assertFalse(self._gooftool.CheckDevSwitchForDisabling())
     self.assertRaises(Error, self._gooftool.CheckDevSwitchForDisabling)
 
+  def testSetFirmwareBitmapLocalePass(self):
+    '''Test for a normal process of setting firmware bitmap locale.'''
+
+    # Stub data from VPD for en.
+    self._gooftool._crosfw.LoadMainFirmware().AndReturn(MockMainFirmware())
+    self._gooftool._read_ro_vpd("firmware").AndReturn(
+        {'initial_locale': 'zh-TW'})
+    self._gooftool._named_temporary_file().AndReturn(MockFile())
+    self._gooftool._util.shell('gbb_utility -g --bmpfv=filename firmware')
+
+    # Stub for multiple available locales in the firmware bitmap.
+    self._gooftool._unpack_bmpblock('read_results').AndReturn(
+        {'locales': ['ja', 'zh', 'en']})
+
+    # Expect index = 1 for zh is matched.
+    self._gooftool._util.shell('crossystem loc_idx=1')
+
+    self.mox.ReplayAll()
+    self._gooftool.SetFirmwareBitmapLocale()
+
+  def testSetFirmwareBitmapLocaleNoMatch(self):
+    """Test for setting firmware bitmap locale without matching default locale.
+    """
+
+    # Stub data from VPD for en.
+    self._gooftool._crosfw.LoadMainFirmware().AndReturn(MockMainFirmware())
+    self._gooftool._read_ro_vpd("firmware").AndReturn(
+        {'initial_locale': 'en'})
+    self._gooftool._named_temporary_file().AndReturn(MockFile())
+    self._gooftool._util.shell('gbb_utility -g --bmpfv=filename firmware')
+
+    # Stub for multiple available locales in the firmware bitmap, but missing
+    # 'en'.
+    self._gooftool._unpack_bmpblock('read_results').AndReturn(
+        {'locales': ['ja', 'fr', 'zh']})
+
+    self.mox.ReplayAll()
+    self.assertRaises(Error, self._gooftool.SetFirmwareBitmapLocale)
+
+  def testSetFirmwareBitmapLocaleNoVPD(self):
+    '''Test for setting firmware bitmap locale without default locale in VPD.'''
+
+    # VPD has no locale data.
+    self._gooftool._crosfw.LoadMainFirmware().AndReturn(MockMainFirmware())
+    self._gooftool._read_ro_vpd("firmware").AndReturn({})
+
+    self.mox.ReplayAll()
+    self.assertRaises(Error, self._gooftool.SetFirmwareBitmapLocale)
 
 if __name__ == '__main__':
   logging.basicConfig(level=logging.INFO)
