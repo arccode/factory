@@ -150,7 +150,15 @@ def SaveLogs(output_dir, archive_id=None,
     with open(os.path.join(tmp, 'dmesg'), 'w') as f:
       Spawn('dmesg', stdout=f, check_call=True)
 
-    files = ['crossystem', 'dmesg'] + sum(
+    with open(os.path.join(tmp, 'mosys_eventlog'), 'w') as f:
+      Spawn(['mosys', 'eventlog', 'list'],
+            stdout=f, stderr=f, call=True)
+
+    with open(os.path.join(tmp, 'ec_console'), 'w') as f:
+      Spawn(['ectool', 'console'],
+            stdout=f, stderr=f, call=True)
+
+    files = ['crossystem', 'dmesg', 'mosys_eventlog', 'ec_console'] + sum(
         [glob(x) for x in [
             os.path.join(var, 'log'),
             os.path.join(var, 'factory'),
@@ -158,7 +166,13 @@ def SaveLogs(output_dir, archive_id=None,
             os.path.join(usr_local, 'factory', 'MD5SUM'),
             os.path.join(usr_local, 'factory', 'hwid'),
             os.path.join(etc, 'lsb-release'),
-            os.path.join(usr_local, 'etc', 'lsb-*')]], [])
+            os.path.join(usr_local, 'etc', 'lsb-*'),
+            # These are hardcoded paths because they are virtual
+            # filesystems; the data we want is always in /dev and
+            # /sys, never on the SSD.
+            '/dev/pstore',
+            '/sys/firmware/log',
+            ]], [])
 
     utils.TryMakeDirs(os.path.dirname(output_file))
     logging.info('Saving %s to %s...', files, output_file)
@@ -166,11 +180,12 @@ def SaveLogs(output_dir, archive_id=None,
     process = Spawn(['tar', 'cfj', output_file,
                      '--exclude', 'Extensions'] + files,
                     cwd=tmp, call=True,
-                    ignore_stdout=True, log_stderr_on_error=True)
+                    ignore_stdout=True,
+                    read_stderr=True)
     # 0 = successful termination
-    # 1 = "some files differ" (e.g., files changed while we were
-    #     reading them, which is OK)
+    # 1 = non-fatal errors like "some files differ"
     if process.returncode not in [0, 1]:
+      logging.error('tar stderr:\n%s', process.stderr_data)
       raise IOError('tar process failed with returncode %d' %
                     process.returncode)
 
