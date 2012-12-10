@@ -584,24 +584,7 @@ def Verify(options):
 def LogSystemDetails(options):  # pylint: disable=W0613
   """Write miscellaneous system details to the event log."""
 
-  raw_cs_data = Shell('crossystem').stdout.strip().splitlines()
-  # The crossytem output contains many lines like:
-  # 'key = value  # description'
-  # Use regexps to pull out the key-value pairs and build a dict.
-  cs_data = dict((k, v.strip()) for k, v in
-                 map(lambda x: re.findall(r'\A(\S+)\s+=\s+(.*)#.*\Z', x)[0],
-                     raw_cs_data))
-  _event_log.Log(
-      'system_details',
-      platform_name=Shell('mosys platform name').stdout.strip(),
-      crossystem=cs_data,
-      modem_status=Shell('modem status').stdout.splitlines(),
-      ec_wp_status=Shell(
-          'flashrom -p internal:bus=lpc --get-size 2>/dev/null && '
-          'flashrom -p internal:bus=lpc --wp-status || '
-          'echo "EC is not available."').stdout,
-      bios_wp_status = Shell(
-          'flashrom -p internal:bus=spi --wp-status').stdout)
+  _event_log.Log('system_details', **Gooftool().GetSystemDetails())
 
 
 _upload_method_cmd_arg = CmdArg(

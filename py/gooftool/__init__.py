@@ -140,7 +140,7 @@ class Util(object):
     return self.GetPrimaryDevicePath(4)
 
   def GetVBSharedDataFlags(self):
-    """Get VbSharedData flags.
+    """Gets VbSharedData flags.
 
     Returns:
       An integer representation of the flags.
@@ -149,13 +149,32 @@ class Util(object):
     return int(self.shell('crossystem vdat_flags').stdout.strip(), 0)
 
   def GetCurrentDevSwitchPosition(self):
-    """Get the position for the current developer switch.
+    """Gets the position for the current developer switch.
 
     Returns:
       An integer representation of the current developer switch position.
     """
     return int(self.shell('crossystem devsw_cur').stdout.strip(), 0)
 
+  def GetCrosSystem(self):
+    """Gets the output of 'crossystem'.
+
+    Returns:
+      A dict for key-value pairs for the output of 'crossystem'.
+      e.g. {'flag_name': 'flag_value'}
+    """
+    crossystem_result = self.shell('crossystem').stdout.strip().splitlines()
+    # The crossytem output contains many lines like:
+    # 'key = value  # description'
+    # Use regexps to pull out the key-value pairs and build a dict.
+    # Note that value could also contain equal signs.
+    output = {}
+    for entry in crossystem_result:
+      # Any unrecognized format should fail here.
+      key, value = re.findall(r'\A(\S+)\s+=\s+(.*)#.*\Z', entry)[0]
+      output[key] = value.strip()
+
+    return output
 
 class Gooftool(object):
   '''A class to perform hardware probing and verification and to implement
@@ -439,7 +458,6 @@ class Gooftool(object):
       Error, if the initial locale is missing in VPD or the default locale is
       not supported.
     """
-
     image_file = self._crosfw.LoadMainFirmware().GetFileName()
     locale = self._read_ro_vpd(image_file).get('initial_locale', None)
     if locale is None:
@@ -461,4 +479,27 @@ class Gooftool(object):
     else:
       raise Error, ('Firmware bitmaps do not contain support for the specified '
                     'initial locale language %r' % language_code)
+
+  def GetSystemDetails(self):
+    """Gets the system details including: platform name, crossystem,
+    modem status, EC write-protect status and bios write-protect status.
+
+    Returns:
+      A dict of system details with the following format:
+          {Name_of_the_detail: "result of the detail"}
+      Note that the outputs could be multi-line strings.
+    """
+
+    # Note: Handle the shell commands with care since unit tests cannot
+    # ensure the correctness of commands executed in shell.
+    return {
+        'platform_name': self._util.shell('mosys platform name').stdout.strip(),
+        'crossystem': self._util.GetCrosSystem(),
+        'modem_status': self._util.shell('modem status').stdout.splitlines(),
+        'ec_wp_status': self._util.shell(
+            'flashrom -p internal:bus=lpc --get-size 2>/dev/null && '
+            'flashrom -p internal:bus=lpc --wp-status || '
+            'echo "EC is not available."').stdout,
+        'bios_wp_status': self._util.shell(
+            'flashrom -p internal:bus=spi --wp-status').stdout}
 

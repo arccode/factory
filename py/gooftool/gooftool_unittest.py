@@ -43,6 +43,88 @@ class MockFile(object):
   def __exit__(self, filetype, value, traceback):
     pass
 
+class UtilTest(unittest.TestCase):
+  def setUp(self):
+    self.mox = mox.Mox()
+
+    self._util = gooftool.Util()
+
+    # Mock out small wrapper functions that do not need unittests.
+    self._util.shell = self.mox.CreateMock(Shell)
+    self.mox.StubOutWithMock(self._util, "_IsDeviceFixed")
+    self.mox.StubOutWithMock(self._util, "FindScript")
+
+  def tearDown(self):
+    self.mox.VerifyAll()
+    self.mox.UnsetStubs()
+
+  def testGetPrimaryDevicePath(self):
+    '''Test for GetPrimaryDevice.'''
+
+    self._util._IsDeviceFixed(
+        "sda").MultipleTimes().AndReturn(True)
+    self._util._IsDeviceFixed(
+        "sdb").MultipleTimes().AndReturn(False)
+
+    self._util.shell('cgpt find -t rootfs').MultipleTimes().AndReturn(
+        StubStdout("/dev/sda3\n/dev/sda1\n/dev/sdb1"))
+
+    self.mox.ReplayAll()
+
+    self.assertEquals("/dev/sda", self._util.GetPrimaryDevicePath())
+    self.assertEquals("/dev/sda1", self._util.GetPrimaryDevicePath(1))
+    self.assertEquals("/dev/sda2", self._util.GetPrimaryDevicePath(2))
+
+    # also test thin callers
+    self.assertEquals("/dev/sda5", self._util.GetReleaseRootPartitionPath())
+    self.assertEquals("/dev/sda4", self._util.GetReleaseKernelPartitionPath())
+
+  def testGetPrimaryDevicePathMultiple(self):
+    '''Test for GetPrimaryDevice when multiple primary devices are found.'''
+
+    self._util._IsDeviceFixed(
+        "sda").MultipleTimes().AndReturn(True)
+    self._util._IsDeviceFixed(
+        "sdb").MultipleTimes().AndReturn(True)
+
+    self._util.shell('cgpt find -t rootfs').AndReturn(
+        StubStdout("/dev/sda3\n/dev/sda1\n/dev/sdb1"))
+
+    self.mox.ReplayAll()
+
+    self.assertRaises(Error, self._util.GetPrimaryDevicePath)
+
+  def testFindRunScript(self):
+    self._util.FindScript(mox.IsA(str)).MultipleTimes().AndReturn("script")
+
+    stub_result = lambda: None
+    stub_result.success = True
+    self._util.shell("script").AndReturn(stub_result)  # option = []
+    self._util.shell("script").AndReturn(stub_result)  # option = None
+    self._util.shell("script a").AndReturn(stub_result)
+    self._util.shell("script a b").AndReturn(stub_result)
+    self._util.shell("c=d script a b").AndReturn(stub_result)
+    self._util.shell("c=d script").AndReturn(stub_result)
+
+    self.mox.ReplayAll()
+
+    self._util.FindAndRunScript("script")
+    self._util.FindAndRunScript("script", None)
+    self._util.FindAndRunScript("script", ["a"])
+    self._util.FindAndRunScript("script", ["a", "b"])
+    self._util.FindAndRunScript("script", ["a", "b"], ["c=d"])
+    self._util.FindAndRunScript("script", None, ["c=d"])
+
+  def testGetCrosSystem(self):
+    self._util.shell('crossystem').AndReturn(StubStdout(
+        'first_flag   =   123  # fake comment\n'
+        'second_flag  =   flag_2_value  # another fake comment'))
+
+    self.mox.ReplayAll()
+    self.assertEqual({'first_flag': '123', 'second_flag': 'flag_2_value'},
+                     self._util.GetCrosSystem())
+
+
 class GooftoolTest(unittest.TestCase):
   def setUp(self):
     self.mox = mox.Mox()
@@ -54,15 +136,7 @@ class GooftoolTest(unittest.TestCase):
                                  'testdata')
     test_db = hwid_tool.HardwareDb(testdata_path)
 
-    # Util functions are tested with self._util.
-    self._util = gooftool.Util()
-    self._util.shell = self.mox.CreateMock(Shell)
-
     self._gooftool = Gooftool(probe=self._mock_probe, hardware_db=test_db)
-
-    # Util will be mocked when testing Gooftool. Note self._gooftool._util is
-    # a different object than self._util. The former should be used when
-    # testing Gooftool, and the later should be used for testing Util.
     self._gooftool._util = self.mox.CreateMock(gooftool.Util)
     self._gooftool._util.shell = self.mox.CreateMock(Shell)
 
@@ -71,10 +145,6 @@ class GooftoolTest(unittest.TestCase):
     self._gooftool._read_ro_vpd = self.mox.CreateMock(ReadRoVpd)
     self._gooftool._named_temporary_file = self.mox.CreateMock(
         NamedTemporaryFile)
-
-    # Mock out small wrapper functions that do not need unittests.
-    self.mox.StubOutWithMock(self._util, "_IsDeviceFixed")
-    self.mox.StubOutWithMock(self._util, "FindScript")
 
   def tearDown(self):
     self.mox.VerifyAll()
@@ -197,67 +267,7 @@ class GooftoolTest(unittest.TestCase):
     self.assertRaises(
       ValueError, self._gooftool.FindBOMMismatches, 'BENDER', 'LEELA', None)
 
-  def testGetPrimaryDevicePath(self):
-    '''Test for GetPrimaryDevice.'''
-
-    self._util._IsDeviceFixed(
-        "sda").MultipleTimes().AndReturn(True)
-    self._util._IsDeviceFixed(
-        "sdb").MultipleTimes().AndReturn(False)
-
-    self._util.shell('cgpt find -t rootfs').MultipleTimes().AndReturn(
-        StubStdout("/dev/sda3\n/dev/sda1\n/dev/sdb1"))
-
-    self.mox.ReplayAll()
-
-    self.assertEquals("/dev/sda", self._util.GetPrimaryDevicePath())
-    self.assertEquals("/dev/sda1", self._util.GetPrimaryDevicePath(1))
-    self.assertEquals("/dev/sda2", self._util.GetPrimaryDevicePath(2))
-
-    # also test thin callers
-    self.assertEquals("/dev/sda5", self._util.GetReleaseRootPartitionPath())
-    self.assertEquals("/dev/sda4", self._util.GetReleaseKernelPartitionPath())
-
-  def testGetPrimaryDevicePathMultiple(self):
-    '''Test for GetPrimaryDevice when multiple primary devices are found.'''
-
-    self._util._IsDeviceFixed(
-        "sda").MultipleTimes().AndReturn(True)
-    self._util._IsDeviceFixed(
-        "sdb").MultipleTimes().AndReturn(True)
-
-    self._util.shell('cgpt find -t rootfs').AndReturn(
-        StubStdout("/dev/sda3\n/dev/sda1\n/dev/sdb1"))
-
-    self.mox.ReplayAll()
-
-    self.assertRaises(Error, self._util.GetPrimaryDevicePath)
-
-  def testFindRunScript(self):
-    self._util.FindScript(mox.IsA(str)).MultipleTimes().AndReturn("script")
-
-    stub_result = lambda: None
-    stub_result.success = True
-    self._util.shell("script").AndReturn(stub_result)  # option = []
-    self._util.shell("script").AndReturn(stub_result)  # option = None
-    self._util.shell("script a").AndReturn(stub_result)
-    self._util.shell("script a b").AndReturn(stub_result)
-    self._util.shell("c=d script a b").AndReturn(stub_result)
-    self._util.shell("c=d script").AndReturn(stub_result)
-
-    self.mox.ReplayAll()
-
-    self._util.FindAndRunScript("script")
-    self._util.FindAndRunScript("script", None)
-    self._util.FindAndRunScript("script", ["a"])
-    self._util.FindAndRunScript("script", ["a", "b"])
-    self._util.FindAndRunScript("script", ["a", "b"], ["c=d"])
-    self._util.FindAndRunScript("script", None, ["c=d"])
-
   def testVerifyKey(self):
-    self.mox.StubOutWithMock(self._gooftool._util, "FindAndRunScript")
-
-    self.mox.StubOutWithMock(self._util, "GetReleaseKernelPartitionPath")
     self._gooftool._util.GetReleaseKernelPartitionPath().AndReturn("kernel")
 
     self._gooftool._crosfw.LoadMainFirmware().AndReturn(MockMainFirmware())
@@ -269,9 +279,6 @@ class GooftoolTest(unittest.TestCase):
     self._gooftool.VerifyKeys()
 
   def testVerifySystemTime(self):
-    self.mox.StubOutWithMock(self._gooftool._util, "FindAndRunScript")
-
-    self.mox.StubOutWithMock(self._util, "GetReleaseRootPartitionPath")
     self._gooftool._util.GetReleaseRootPartitionPath().AndReturn("root")
 
     self._gooftool._util.FindAndRunScript("verify_system_time.sh", ["root"])
@@ -280,9 +287,6 @@ class GooftoolTest(unittest.TestCase):
     self._gooftool.VerifySystemTime()
 
   def testVerifyRootFs(self):
-    self.mox.StubOutWithMock(self._gooftool._util, "FindAndRunScript")
-
-    self.mox.StubOutWithMock(self._util, "GetReleaseRootPartitionPath")
     self._gooftool._util.GetReleaseRootPartitionPath().AndReturn("root")
 
     self._gooftool._util.FindAndRunScript("verify_rootfs.sh", ["root"])
@@ -291,20 +295,18 @@ class GooftoolTest(unittest.TestCase):
     self._gooftool.VerifyRootFs()
 
   def testClearGBBFlags(self):
-    self.mox.StubOutWithMock(self._gooftool._util, "FindAndRunScript")
     self._gooftool._util.FindAndRunScript("clear_gbb_flags.sh")
     self.mox.ReplayAll()
     self._gooftool.ClearGBBFlags()
 
   def testPrepareWipe(self):
-    self.mox.StubOutWithMock(self._gooftool._util, "FindAndRunScript")
-
-    self.mox.StubOutWithMock(self._util, "GetReleaseRootPartitionPath")
     self._gooftool._util.GetReleaseRootPartitionPath(
-        ).MultipleTimes().AndReturn("root")
+        ).AndReturn("root1")
+    self._gooftool._util.FindAndRunScript("prepare_wipe.sh", ["root1"], [])
 
-    self._gooftool._util.FindAndRunScript("prepare_wipe.sh", ["root"], [])
-    self._gooftool._util.FindAndRunScript("prepare_wipe.sh", ["root"],
+    self._gooftool._util.GetReleaseRootPartitionPath(
+        ).AndReturn("root2")
+    self._gooftool._util.FindAndRunScript("prepare_wipe.sh", ["root2"],
                                           ["FACTORY_WIPE_TAGS=fast"])
 
     self.mox.ReplayAll()
@@ -399,6 +401,20 @@ class GooftoolTest(unittest.TestCase):
 
     self.mox.ReplayAll()
     self.assertRaises(Error, self._gooftool.SetFirmwareBitmapLocale)
+
+  def testGetSystemDetails(self):
+    '''Test for GetSystemDetails to ensure it returns desired keys.'''
+
+    self._gooftool._util.shell(mox.IsA(str)).MultipleTimes().AndReturn(
+        StubStdout("stub_value"))
+    self._gooftool._util.GetCrosSystem().AndReturn({'key':'value'})
+
+    self.mox.ReplayAll()
+    self.assertEquals(
+        set(['platform_name', 'crossystem', 'modem_status', 'ec_wp_status',
+         'bios_wp_status']),
+        set(self._gooftool.GetSystemDetails().keys()))
+
 
 if __name__ == '__main__':
   logging.basicConfig(level=logging.INFO)
