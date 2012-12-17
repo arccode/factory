@@ -5,6 +5,7 @@
 # found in the LICENSE file.
 
 import ctypes
+from ctypes.util import find_library
 import logging
 import math
 import os
@@ -35,7 +36,7 @@ def CheckHwclock():
   logging.info('Current hwclock time: %s',
       Spawn(['hwclock', '-r'], log=True, read_stdout=True).stdout_data)
 
-librt_name = ctypes.util.find_library('rt')
+librt_name = find_library('rt')
 librt = ctypes.cdll.LoadLibrary(librt_name)
 class timespec(ctypes.Structure):
   _fields_ = [('tv_sec', ctypes.c_long),
