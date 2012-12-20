@@ -102,7 +102,7 @@ class _OptionWithMemsize(optparse.Option):
   """
 
   @staticmethod
-  def _CheckMemsize(option, opt, value):
+  def _CheckMemsize(option, opt, value): # pylint: disable=W0613
     """Check that a 'memsize' option to optparse is good.
 
     Args:
@@ -138,6 +138,8 @@ class _OptionWithMemsize(optparse.Option):
 
   TYPES = optparse.Option.TYPES + ('memsize',)
   TYPE_CHECKER = copy.copy(optparse.Option.TYPE_CHECKER)
+
+# pylint: disable=W0212
 _OptionWithMemsize.TYPE_CHECKER['memsize'] = _OptionWithMemsize._CheckMemsize
 
 
@@ -159,13 +161,14 @@ def _GetSpecialEnvVars(opts):
     opts: The options from the option parser.
 
   Returns:
-    vars: A list of 'key=value' strings for u-boot environment variables.
+    A list of 'key=value' strings for u-boot environment variables.
   """
-  vars = []
-  for opt_name, value in OPTION_ENVIRONMENT_VARS.iteritems():
+  variables = []
+  for opt_name, dummy_value in OPTION_ENVIRONMENT_VARS.iteritems():
     if getattr(opts, opt_name):
-      vars.append(OPTION_ENVIRONMENT_VARS[opt_name] % getattr(opts, opt_name))
-  return vars
+      variables.append(OPTION_ENVIRONMENT_VARS[opt_name] %
+                       getattr(opts, opt_name))
+  return variables
 
 
 def _GetSpecialKernelArgs(opts):
@@ -191,14 +194,14 @@ def _GetSpecialKernelArgs(opts):
     opts: The options from the option parser.
 
   Returns:
-    vars: A list of strings that will eventually be joined with space to create
+    A list of strings that will eventually be joined with space to create
       the kernel command line.
   """
-  vars = []
-  for opt_name, value in OPTION_KERNEL_ARGS.iteritems():
+  variables = []
+  for opt_name, dummy_value in OPTION_KERNEL_ARGS.iteritems():
     if getattr(opts, opt_name):
-      vars.append(OPTION_KERNEL_ARGS[opt_name] % getattr(opts, opt_name))
-  return vars
+      variables.append(OPTION_KERNEL_ARGS[opt_name] % getattr(opts, opt_name))
+  return variables
 
 
 def _BuildEnvironment(env_vars, kernel_args, env_size):
@@ -365,28 +368,29 @@ def _MakeOutput(input_path, output_path, fw_size):
   return outfile
 
 
-def _GetEnvVarAddr(image_file):
-  """Get environment variable section address from FMAP.
+def _GetEnvVarAddrSize(image_file):
+  """Get environment variable section address and size from FMAP.
 
   Args:
-    image_file: The image file to look for environment variable section.
+    image_file: The image file path to look for environment variable section.
 
   Returns:
-    The address of RW_ENVIRONMENT section is returned.
+    A tuple of the address and the size of RW_ENVIRONMENT section is returned.
   """
   try:
-    command = ["dump_fmap", "-p", image_file.name, "RW_ENVIRONMENT"]
+    command = ["dump_fmap", "-p", image_file, "RW_ENVIRONMENT"]
     stream = subprocess.Popen(command, stdout=subprocess.PIPE)
     result = stream.communicate()[0].split()
     if len(result) == 0:
       raise ArgumentError("Cannot find RW_ENVIRONMENT section in FMAP.")
     addr = int(result[1])
-    return addr
+    size = int(result[2])
+    return (addr, size)
   except OSError:
     raise ArgumentError("Error calling dump_fmap.")
 
 
-def _PutEnvInFile(outfile, env_str, clobber_ok):
+def _PutEnvInFile(outfile, addr, env_str, clobber_ok):
   """Put the given environment into the output file.
 
   At the moment, this just crams the env_str to the end of the file.
@@ -396,7 +400,8 @@ def _PutEnvInFile(outfile, env_str, clobber_ok):
   >>> FILE_SIZE=0x10000
   >>> f = StringIO.StringIO(chr(0) * FILE_SIZE)
   >>> env_str = _BuildEnvironment([], [], 0x100)
-  >>> _PutEnvInFile(f, env_str, False)
+  >>> addr = _GetEnvVarAddrSize[0]
+  >>> _PutEnvInFile(f, addr, env_str, False)
   >>> s = f.getvalue()
 
   # File should have kept the same size.
@@ -410,25 +415,25 @@ def _PutEnvInFile(outfile, env_str, clobber_ok):
   True
 
   # Running again should get an error if clobbering not OK.
-  >>> _PutEnvInFile(f, env_str, False)
+  >>> _PutEnvInFile(f, addr, env_str, False)
   Traceback (most recent call last):
       ...
   ArgumentError: Old arguments will be clobbered; pass --force if OK
 
   # Should be OK if clobbering OK
-  >>> _PutEnvInFile(f, env_str, True)
+  >>> _PutEnvInFile(f, addr, env_str, True)
   >>> s_new = f.getvalue()
   >>> s == s_new
   True
 
   Args:
     outfile: An already opened file.
+    addr: The address of RW_ENVIRONMENT section.
     env_str: The str to store.
     clobber_ok: If True, it's OK to clobber the old environment; if False we'll
         raise an exception if we detect and old environment.
   """
   env_size = len(env_str)
-  addr = _GetEnvVarAddr(outfile)
   outfile.seek(addr, os.SEEK_SET)
 
   old_env_str = outfile.read(env_size)
@@ -457,7 +462,7 @@ def _ParseOptions():
   parser = optparse.OptionParser(description=__doc__,
                                  option_class=_OptionWithMemsize)
 
-  parser.add_option('--env-size', dest='env_size', default=0x1000,
+  parser.add_option('--env-size', dest='env_size', default=None,
                     type='memsize',
                     help='If specified, overrides the default env_size that '
                     'u-boot expects')
@@ -512,23 +517,25 @@ def main():
     except OSError:
       raise ArgumentError("Error accessing input image: %s" % opts.input)
 
+    env_addr, env_size = _GetEnvVarAddrSize(opts.input)
     env_vars = opts.vars + _GetSpecialEnvVars(opts)
     kernel_args = opts.args + _GetSpecialKernelArgs(opts)
-    env_str = _BuildEnvironment(env_vars, kernel_args, opts.env_size)
+    env_str = _BuildEnvironment(env_vars, kernel_args,
+                                opts.env_size or env_size)
     outfile = _MakeOutput(opts.input, opts.output, opts.fw_size)
-    _PutEnvInFile(outfile, env_str, opts.force)
+    _PutEnvInFile(outfile, env_addr, env_str, opts.force)
 
     print 'Output: %s (0x%08x bytes)' % (outfile.name,
                                          os.path.getsize(outfile.name))
     print '\n  '.join(['Stored env:'] + env_vars)
   except ArgumentError, e:
-    print >>sys.stderr, "%s: error: %s" % (prog_name, str(e))
+    print >> sys.stderr, "%s: error: %s" % (prog_name, str(e))
     sys.exit(1)
 
 
 def _Test(verbose=''):
   """Run any built-in tests."""
-  import doctest
+  import doctest # pylint: disable=W0404
   assert verbose in ('', '-v')
   doctest.testmod(verbose=(verbose == '-v'))
 
