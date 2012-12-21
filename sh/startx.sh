@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Copyright (c) 2010 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
@@ -10,7 +10,8 @@ SERVER_READY=
 DISPLAY=":0"
 
 FACTORY="$(dirname "$(dirname "$(readlink -f "$0")")")"
-BOARD_SETUP="$FACTORY/custom/board_setup_x.sh"
+BOARD_SETUP=("$FACTORY/board/board_setup_x.sh"
+             "$FACTORY/custom/board_setup_x.sh")
 
 # Default X server parameters
 X_ARG="-r -s 0 -p 0 -dpms -nolisten tcp vt01 -auth ${XAUTH_FILE}"
@@ -69,10 +70,13 @@ start_x_server() {
 }
 
 # Load board-specific parameters, and override any startup procedures.
-if [ -s $BOARD_SETUP ]; then
-  echo "Loading board-specific X parameters..." 1>&2
-  . $BOARD_SETUP
-fi
+for f in "${BOARD_SETUP[@]}"; do
+  if [ -s $f ]; then
+    echo "Loading board-specific X parameters $f..." 1>&2
+    . $f
+    break
+  fi
+done
 
 board_pre_setup
 

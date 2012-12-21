@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -7,7 +7,8 @@ set -e
 FACTORY="$(dirname "$(dirname "$(readlink -f "$0")")")"
 FACTORY_LOG_FILE=/var/factory/log/factory.log
 
-BOARD_SETUP="$FACTORY/custom/board_setup_factory.sh"
+BOARD_SETUP=("$FACTORY/board/board_setup_factory.sh"
+             "$FACTORY/custom/board_setup_factory.sh")
 
 # Default args for Goofy.
 GOOFY_ARGS=""
@@ -23,10 +24,13 @@ factory_setup() {
 
 load_setup() {
   # Load board-specific parameters, if any.
-  if [ -s $BOARD_SETUP ]; then
-    echo "Loading board-specific parameters..." 1>&2
-    . $BOARD_SETUP
-  fi
+  for f in "${BOARD_SETUP[@]}"; do
+    if [ -s $f ]; then
+      echo "Loading board-specific parameters $f..." 1>&2
+      . $f
+      break
+    fi
+  done
 
   if [ -f $AUTOMATION_FILE ]; then
     echo "Automation is enabled" 1>&2

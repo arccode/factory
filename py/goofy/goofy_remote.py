@@ -37,17 +37,22 @@ def SyncTestList(host, test_list, clear_factory_environment):
   board = match.group(1)
 
   if test_list is None:
-    logging.info('Copying test_list from %s overlay', board)
+    test_list_globs = []
+    for x in [['chromeos-factory-board', 'files', 'test_lists',
+               'test_list'],
+              ['autotest-private-board', 'files', 'test_list']]:
+      test_list_globs.append(
+        os.path.join(
+            os.environ['CROS_WORKON_SRCROOT'], 'src',
+            '*-overlays', 'overlay-%s-*' % board,
+            'chromeos-base', *x))
 
-    test_list_glob = os.path.join(
-        os.environ['CROS_WORKON_SRCROOT'], 'src',
-        '*-overlays', 'overlay-%s-*' % board,
-        'chromeos-base', 'autotest-private-board', 'files', 'test_list')
-    test_lists = glob.glob(test_list_glob)
+    test_lists = sum([glob.glob(x) for x in test_list_globs], [])
     if not test_lists:
-      logging.warn('Unable to find test list %s', test_list_glob)
+      logging.warn('Unable to find test list %s', test_list_globs)
       return
     test_list = test_lists[0]
+    logging.info('Using test list %s', test_list)
 
   if clear_factory_environment:
     test_list_data = open(test_list).read().replace(
@@ -57,8 +62,12 @@ def SyncTestList(host, test_list, clear_factory_environment):
     tmp_test_list.write(test_list_data)
     test_list = tmp_test_list.name
 
+  test_list_dir = (
+      'custom' if 'autotest-private-board' in test_list
+      else 'test_lists')
+
   Spawn(rsync_command +
-        [test_list, host + ':/usr/local/factory/custom/test_list'],
+        [test_list, host + ':/usr/local/factory/%s/test_list' % test_list_dir],
         check_call=True, log=True)
 
   return board

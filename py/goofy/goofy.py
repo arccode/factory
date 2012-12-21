@@ -96,7 +96,14 @@ def find_test_list():
   '''
   hwid_cfg = get_hwid_cfg()
 
-  search_dirs = [CUSTOM_DIR, DEFAULT_TEST_LISTS_DIR]
+  search_dirs = [DEFAULT_TEST_LISTS_DIR]
+  if not utils.in_chroot():
+    # Also look in suite_Factory.  For backward compatibility only;
+    # new boards should just put the test list in the "test_lists"
+    # directory.
+    search_dirs.insert(0, os.path.join(
+        os.path.dirname(factory.FACTORY_PATH),
+        'autotest', 'site_tests', 'suite_Factory'))
 
   # Try in order: test_list_${hwid_cfg}, test_list, test_list.all
   search_files = ['test_list', 'test_list.all']
