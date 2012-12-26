@@ -11,9 +11,7 @@ dargs:
   timeout_secs: Timeout for the test. (default: 30 seconds)
 """
 
-import collections
 import logging
-import os
 import re
 import subprocess
 import time
@@ -166,6 +164,8 @@ class UpDown:
   The value is the same as value from evtest KEY event,
   where "0" is up and "1" is down.
   '''
+  def __init__(self):
+    pass
   Up = "0"
   Down = "1"
 
