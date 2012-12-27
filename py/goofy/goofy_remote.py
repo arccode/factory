@@ -130,6 +130,16 @@ def main():
            '%s:/usr/local/autotest/' % args.host],
           check_call=True, log=True)
 
+  private_path = os.path.join(SRCROOT, 'src', 'private-overlays',
+                              'overlay-%s-private' % board,
+                              'chromeos-base', 'chromeos-factory-board',
+                              'files')
+  if os.path.isdir(private_path):
+    Spawn(rsync_command +
+          ['-aC', '--exclude', 'bundle'] +
+          [private_path + '/', '%s:/usr/local/factory/' % args.host],
+          check_call=True, log=True)
+
   Spawn(rsync_command +
         ['-aC', '--exclude', '*.pyc'] +
         [os.path.join(factory.FACTORY_PATH, x)
