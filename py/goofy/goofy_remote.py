@@ -35,6 +35,8 @@ def SyncTestList(host, test_list, clear_factory_environment):
     logging.warn('Unable to determine release board')
     return None
   board = match.group(1)
+  # Uses dash in board name for overlay directory name
+  board_dash = board.replace('_', '-')
 
   if test_list is None:
     test_list_globs = []
@@ -44,7 +46,12 @@ def SyncTestList(host, test_list, clear_factory_environment):
       test_list_globs.append(
         os.path.join(
             os.environ['CROS_WORKON_SRCROOT'], 'src',
-            '*-overlays', 'overlay-%s-*' % board,
+            '*-overlays', 'overlay-%s-*' % board_dash,
+            'chromeos-base', *x))
+      test_list_globs.append(
+        os.path.join(
+            os.environ['CROS_WORKON_SRCROOT'], 'src',
+            '*-overlays', 'overlay-variant-%s-*' % board_dash,
             'chromeos-base', *x))
 
     test_lists = sum([glob.glob(x) for x in test_list_globs], [])
