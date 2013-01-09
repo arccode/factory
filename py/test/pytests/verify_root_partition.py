@@ -48,7 +48,7 @@ class VerifyRootPartitionTest(unittest.TestCase):
 
     logging.info('vbutil_kernel output is:\n%s', vbutil_kernel.stdout_data)
 
-    DM_REGEXP = re.compile(r'dm="vroot none ro,(0 (\d+) .+)"')
+    DM_REGEXP = re.compile(r'dm="(?:1 )?vroot none ro(?: 1)?,(0 (\d+) .+)"')
     match = DM_REGEXP.search(vbutil_kernel.stdout_data)
     assert match, 'Cannot find regexp %r in vbutil_kernel output' % (
         DM_REGEXP.pattern)
