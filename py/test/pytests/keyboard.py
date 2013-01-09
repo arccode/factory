@@ -47,6 +47,7 @@ _KEYBOARD_TEST_DEFAULT_CSS = (
     '.keyboard-test-keydown { background-color: yellow; opacity: 0.5; }\n'
     '.keyboard-test-keyup { background-color: green; opacity: 0.5; }\n')
 
+_POWER_KEY_CODE = 116
 
 class KeyboardTest(unittest.TestCase):
   """Tests if all the keys on a keyboard are functioning. The test checks for
@@ -65,6 +66,7 @@ class KeyboardTest(unittest.TestCase):
     Arg('board', str,
         'If presents, in filename, the board name is appended after layout. ',
         default=''),
+    Arg('skip_power_key', bool, 'Skip power button testing', default=False),
   ]
 
   def setUp(self):
@@ -77,6 +79,8 @@ class KeyboardTest(unittest.TestCase):
     if self.args.board:
       self.layout += '_%s' % self.args.board
     self.bindings = self.ReadBindings(self.layout)
+    if self.args.skip_power_key:
+      self.bindings.pop(_POWER_KEY_CODE)
 
     # Initialize frontend presentation
     self.template.SetState(_HTML_KEYBOARD)
