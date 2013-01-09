@@ -66,6 +66,7 @@ class BadBlocksTest(unittest.TestCase):
     self.template.SetState(HTML)
     self.template.DrawProgressBar()
     self.event_log = EventLog.ForAutoTest()
+    self._is_mmc = 'mmcblk' in self.args.device
 
   def runTest(self):
     thread = threading.Thread(target=self._CheckBadBlocks)
@@ -92,7 +93,9 @@ class BadBlocksTest(unittest.TestCase):
                      'badblocks test may not be run within the chroot')
 
     self.device_path = '/dev/%s' % self.args.device
-    partition_path = '/dev/%s1' % self.args.device  # Always partition 1
+    part_prefix = 'p' if self._is_mmc else ''
+    # Always partition 1
+    partition_path = '/dev/%s%s1' % (self.args.device, part_prefix)
 
     # Determine total length of the FS
     dumpe2fs = Spawn(['dumpe2fs', '-h', partition_path],
@@ -247,6 +250,11 @@ class BadBlocksTest(unittest.TestCase):
                       last_line)
 
   def _LogSmartctl(self):
+    # No smartctl on mmc.
+    # TODO (cychiang) crosbug.com/p/17146. We need to find a replacement
+    # of smartctl for mmc.
+    if self._is_mmc:
+      return
     if self.args.extra_log_cmd:
       process = Spawn(
           self.args.extra_log_cmd, shell=True,
@@ -271,6 +279,9 @@ class BadBlocksTest(unittest.TestCase):
 
   def _UpdateSATALinkSpeed(self):
     '''Updates the current SATA link speed based on /var/log/messages.'''
+    # No SATA on mmc.
+    if self._is_mmc:
+      return
     first_time = self.var_log_messages is None
     if first_time:
       self.var_log_messages = open('/var/log/messages')
