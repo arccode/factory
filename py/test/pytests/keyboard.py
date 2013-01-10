@@ -13,8 +13,8 @@ dargs:
       keyboard')
   keyboard_event_id: Keyboard input event id. (default: 6)
   timeout_secs: Timeout for the test. (default: 30 seconds)
-  key_order_list: (optional) A list of keycodes that need to be pressed
-      sequentially to pass the test.
+  sequential_press (optional): Indicate whether keycodes need to be
+      pressed sequentially or not.
 """
 
 import os
@@ -61,8 +61,8 @@ class KeyboardTest(unittest.TestCase):
     Arg('keyboard_event_id', int, 'Keyboard input event id.',
         default=6),
     Arg('timeout_secs', int, 'Timeout for the test.', default=30),
-    Arg('key_order_list', list, 'A list of keycodes that need to be pressed '
-        'sequentially to pass the test.', default=None, optional=True),
+    Arg('sequential_press', bool, 'Indicate whether keycodes need to be '
+        'pressed sequentially or not.', default=False, optional=True),
     Arg('board', str,
         'If presents, in filename, the board name is appended after layout. ',
         default=''),
@@ -82,10 +82,14 @@ class KeyboardTest(unittest.TestCase):
     if self.args.skip_power_key:
       self.bindings.pop(_POWER_KEY_CODE)
 
+    self.key_order_list = None
+    if self.args.sequential_press:
+      self.key_order_list = self.ReadKeyOrder(self.layout)
+
     # Initialize frontend presentation
     self.template.SetState(_HTML_KEYBOARD)
     self.ui.CallJSFunction('setUpKeyboardTest', self.layout, self.bindings,
-                           _ID_IMAGE, self.args.key_order_list)
+                           _ID_IMAGE, self.key_order_list)
 
     self.monitor_process = None
     self.EnableXKeyboard(False)
@@ -117,6 +121,15 @@ class KeyboardTest(unittest.TestCase):
       if not isinstance(bindings[k], list):
         bindings[k] = [bindings[k],]
     return bindings
+
+  def ReadKeyOrder(self, layout):
+    """Reads in key order that must be followed when press key."""
+    key_order_list = None
+    base = os.path.splitext(os.path.realpath(__file__))[0] + '_static'
+    key_order_list_filename = os.path.join(base, layout + '.key_order')
+    with open(key_order_list_filename, 'r') as f:
+      key_order_list = eval(f.read())
+    return key_order_list
 
   def EnableXKeyboard(self, enable):
     """Enables/Disables keyboard at the X server."""
