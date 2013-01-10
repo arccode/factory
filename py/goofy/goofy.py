@@ -44,6 +44,7 @@ from cros.factory.test.event import Event
 from cros.factory.test.event import EventClient
 from cros.factory.test.event import EventServer
 from cros.factory.test.factory import TestState
+from cros.factory.tools.key_filter import KeyFilter
 from cros.factory.utils.process_utils import Spawn
 
 
@@ -191,6 +192,7 @@ class Goofy(object):
     self.last_log_disk_space_time = None
     self.exclusive_items = set()
     self.event_log = None
+    self.key_filter = None
 
     def test_or_root(event, parent_or_group=True):
       '''Returns the test affected by a particular event.
@@ -286,6 +288,9 @@ class Goofy(object):
     if self.event_log:
       self.event_log.Close()
       self.event_log = None
+    if self.key_filter:
+      self.key_filter.Stop()
+
     self.check_exceptions()
     logging.info('Done destroying Goofy')
 
@@ -1195,6 +1200,17 @@ class Goofy(object):
         self.run_queue.put(
           lambda: self.run_tests(self.test_list, untested_only=True))
     self.state_instance.set_shared_data('tests_after_shutdown', None)
+
+    self.may_disable_cros_shortcut_keys()
+
+  def may_disable_cros_shortcut_keys(self):
+    test_options = self.test_list.options
+    if test_options.disable_cros_shortcut_keys:
+      logging.info('Filter ChromeOS shortcut keys.')
+      self.key_filter = KeyFilter(
+          unmap_caps_lock=test_options.disable_caps_lock,
+          caps_lock_keycode=test_options.caps_lock_keycode)
+      self.key_filter.Start()
 
   def run(self):
     '''Runs Goofy.'''
