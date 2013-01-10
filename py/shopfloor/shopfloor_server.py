@@ -67,15 +67,17 @@ class MyXMLRPCServer(SocketServer.ThreadingMixIn,
   # _dispatch.
   local = threading.local()
 
-  def _marshaled_dispatch(self, data, dispatch_method=None):
+  def _marshaled_dispatch(  # pylint: disable=W0221
+      self, data, dispatch_method=None, path=None):
     self.local.method = None
     self.local.exception = None
 
     response_data = ''
     start_time = time.time()
     try:
+      extra_args = [path] if path else []
       response_data = SimpleXMLRPCServer._marshaled_dispatch(
-          self, data, dispatch_method)
+          self, data, dispatch_method, *extra_args)
       return response_data
     finally:
       logging.info('%s %s [%.3f s, %d B in, %d B out]%s',
