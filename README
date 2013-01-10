@@ -1,1 +1,51 @@
 This repository contains tools and utilities used for factory testing.
+
+The layout of /usr/local/factory, as installed on devices' stateful
+partitions, is as follows.  Most of these files are installed from
+this repository, and follow this repository's directory structure.
+
+  bin/              symlinks to executable scripts and Python modules.
+  board/            Board-specific files:
+    board_setup_factory.sh    A script to add board-specific arguments when
+                                starting the Goofy, the factory test harness.
+    board_setup_x.sh          A script to add board-specific arguments
+                                when starting X.
+    *                         Other files needed by board-specific tests.
+  misc/             miscellaneous resources used outside of Goofy
+  py/               Python source code in the cros.factory module and
+                      sub-modules
+  py_pkg/           symlinks to enable importing Python packages
+  sh/               shell scripts
+  test_lists/       test lists, which are searched for in the following order:
+    test_list       A board-specific test list.  This is not present in this
+                      repo, but rather provided in a board overlay.
+    test_list.all   The default "global" test list, used if test_list is not
+                      provided by the overlay.
+
+(Note that board/ and test_lists/test_list are optional and only
+provided by board overlays, not this repository.)
+
+Within the build root (/build/$BOARD), /usr/local/factory/bundle is a
+"pseudo-directory" for the factory bundle: it is masked with
+INSTALL_MASK so it is not actually installed onto devices, but any
+files in this directory will be included in factory bundles built by
+Buildbot.  For example, the shopfloor and mini-Omaha servers are
+placed into this directory.
+
+Within board overlays, the chromeos-base/chromeos-factory-board
+package may overlay files into this directory structure.  (For
+examples of this, run "cd $CROS_WORKON_SRCROOT; find
+src/*-overlays/overlay-*/chromeos-base/chromeos-factory-board".)  For
+instance, a board overlay may install:
+
+  - a board-specific test into /usr/local/factory/py/test/pytests
+
+  - /usr/local/factory/bundle/README to include a README in the
+    factory bundle
+
+  - any arbitrary board-specific file (e.g., a proprietary tool
+    licensed only for use on a particular board) into
+    /usr/local/factory/board
+
+  - /usr/local/factory/board/board_setup_{factory,x}.sh to customize
+    Goofy or X arguments
