@@ -366,7 +366,8 @@ prepare_img() {
   local partition_script="$(mktemp --tmpdir)"
   image_add_temp "${partition_script}"
 
-  cat "${write_gpt_path}" > "${partition_script}"
+  # write_gpt_path may be only readable by user 1001 (chronos).
+  sudo cat "${write_gpt_path}" > "${partition_script}"
   echo write_base_table "${outdev_block}" "${pmbrcode}" >> "${partition_script}"
 
   # Fix path to chromeos-common.sh
@@ -376,7 +377,8 @@ prepare_img() {
   # Add local bin to PATH before running locate_gpt
   sed -i 's,locate_gpt,PATH="'"$PATH"'";locate_gpt,g' "${partition_script}"
 
-  sudo bash "${partition_script}"
+  # cd is required for the rebasing of lib/chromeos-common.
+  (cd "$SCRIPT_DIR"; sudo bash -x "${partition_script}")
 
   sudo losetup -d "${outdev_block}"
   image_umount_partition "${root_fs_dir}"
