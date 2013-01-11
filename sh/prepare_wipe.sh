@@ -45,7 +45,7 @@ rollback_changes() {
   # don't stop, even if we encounter any issues
   local failure_msg="WARNING: Failed to rollback some changes..."
   alert "WARNING: Rolling back changes."
-  crossytem disable_dev_request=0 || alert "$failure_msg"
+  crossystem disable_dev_request=0 || alert "$failure_msg"
   rm -f "$WIPE_TAG_FILE" 2>/dev/null || alert "$failure_msg"
   if [ -n "$CGPT_CONFIG" ]; then
     cgpt_restore_status "$CGPT_DEVICE" "$CGPT_CONFIG" || alert "$failure_msg"
