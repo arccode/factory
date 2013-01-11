@@ -362,13 +362,12 @@ prepare_img() {
 
   # We need to patch up write_gpt.sh a bit to cope with the fact we're
   # running in a non-chroot/device env and that we're not running as root
-  local outdev_block=$(sudo losetup -f --show "${outdev}")
   local partition_script="$(mktemp --tmpdir)"
   image_add_temp "${partition_script}"
 
   # write_gpt_path may be only readable by user 1001 (chronos).
   sudo cat "${write_gpt_path}" > "${partition_script}"
-  echo write_base_table "${outdev_block}" "${pmbrcode}" >> "${partition_script}"
+  echo 'write_base_table "$1" "${pmbrcode}"' >> "${partition_script}"
 
   # Fix path to chromeos-common.sh
   sed -i 's"/usr/sbin/chromeos-common.sh"lib/chromeos-common.sh"g' \
@@ -377,11 +376,15 @@ prepare_img() {
   # Add local bin to PATH before running locate_gpt
   sed -i 's,locate_gpt,PATH="'"$PATH"'";locate_gpt,g' "${partition_script}"
 
-  # cd is required for the rebasing of lib/chromeos-common.
-  (cd "$SCRIPT_DIR"; sudo bash -x "${partition_script}")
-
+  # Prepare block device and invoke script. Note: cd is required for the
+  # rebasing of lib/chromeos-common.
+  local ret=$FLAGS_TRUE
+  local outdev_block="$(sudo losetup -f --show "${outdev}")"
+  (cd "$SCRIPT_DIR"; sudo bash "${partition_script}" "${outdev}") ||
+    ret=$?
   sudo losetup -d "${outdev_block}"
   image_umount_partition "${root_fs_dir}"
+  [ "$ret" = $FLAGS_TRUE ] || die "Failed to setup partition (write_gpt.sh)."
 
   # Activate the correct partition.
   sudo "${GPT}" add -i 2 -S 1 -P 1 "${outdev}"
