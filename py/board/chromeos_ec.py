@@ -67,7 +67,7 @@ class ChromeOSEC(EC):
       self._CallECTool(['i2cwrite', '16', str(port), str(addr),
                        str(reg), str(value)])
     except Exception as e: # pylint: disable=W0703
-      raise ECException('Unable to read from I2C: %s' % e)
+      raise ECException('Unable to write to I2C: %s' % e)
 
   def GetTemperatures(self):
     try:
