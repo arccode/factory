@@ -455,7 +455,7 @@ def _ProbeCpuArm():
   #   processor : 1
   cmd = r'sed -nr "s/^[Pp]rocessor\s*: (.*)/\1/p" /proc/cpuinfo'
   stdout = Shell(cmd).stdout.splitlines()
-  return [CompactStr(stdout[0] + ' [%d cores]' % len(stdout) - 1)]
+  return [CompactStr(stdout[0] + ' [%d cores]' % (len(stdout) - 1))]
 
 
 @_ComponentProbe('display_panel')
