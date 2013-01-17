@@ -360,7 +360,11 @@ class VPDTest(unittest.TestCase):
 
     if not (self.args.override_vpd and self.ui.InEngineeringMode()):
       if shopfloor.is_enabled():
+        # Grab from ShopFloor, then input manual fields (if any).
         self.tasks += [ShopFloorVPDTask(self)]
+        for v in self.args.manual_input_fields:
+          self.tasks += [ManualInputTask(
+              self, VPDInfo(v[0], v[1], v[2], v[3], v[4]))]
       else:
         if self.VPDTasks.serial in self.args.task_list:
           self.args.manual_input_fields.insert(
