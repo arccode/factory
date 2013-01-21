@@ -449,10 +449,6 @@ class UI(object):
     '''Returns current enabled language in UI.'''
     return factory.get_shared_data('ui_lang')
 
-  def IsEngineeringMode(self):
-    '''Checks if goofy is in factory mode.'''
-    return factory.get_shared_data('engineering_mode')
-
   def PlayAudioFile(self, audio_file):
     '''Plays an audio file in the given path.'''
     js = '''

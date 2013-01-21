@@ -352,13 +352,13 @@ class VPDTest(unittest.TestCase):
     self.registration_code_map = {}
     self.vpd = {'ro': {}, 'rw': {}}
     if self.args.override_vpd:
-      if self.ui.IsEngineeringMode():
+      if self.ui.InEngineeringMode():
         self.vpd = self.args.override_vpd
       else:
         self.ui.Fail('override_vpd is allowed only in engineering mode.')
         return
 
-    if not (self.args.override_vpd and self.ui.IsEngineeringMode()):
+    if not (self.args.override_vpd and self.ui.InEngineeringMode()):
       if shopfloor.is_enabled():
         self.tasks += [ShopFloorVPDTask(self)]
       else:
