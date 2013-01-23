@@ -62,11 +62,12 @@ DisplayTest = function(container) {
   this.zhFailed = "失败";
   this.enUntested = "Untested";
   this.zhUntested = "未经测试";
-  this.enInstruct = "Press Space to display; Enter to pass; Esc to fail.";
-  this.zhInstruct = "按空格键显示;按Enter键通过;"
-                  + "按Esc键失败。";
-  this.gridWidth = 40;
-  this.gridHeight = 40;
+  this.enInstruct = "Press Space to display;<br>"
+                  + "After checking, Enter to pass; Esc to fail.";
+  this.zhInstruct = "按空格键显示;<br>"
+                  + "检查后按Enter键通过; 按Esc键失败。";
+  this.gridWidth = 10;
+  this.gridHeight = 10;
   this.gridStyleCSS = ""
     + ".display-subtest-grid"
     + "{background-color: white; width: 100%; height: 100%; }"
@@ -152,20 +153,24 @@ DisplayTest.prototype.setupDisplayDiv = function() {
   this.displayDiv.id = "display-div";
   this.fullScreenElement.appendChild(this.displayDiv);
 };
+
 /**
  * Setups display div style. Grids need to be taking care of separately.
  */
 DisplayTest.prototype.setDisplayDivClass = function() {
+  var displayBeforeSetting = this.display;
   //cleans up display div
   this.displayDiv.innerHTML = "";
   this.displayDiv.className = this.styleList[this.focusItem];
   if (this.displayDiv.className == "display-subtest-grid") {
-    //switches display on here so we can create grid
+    //Switches display on here so we can create grid
     //using correct width/height of display div when it is
-    //in fullscreen.
+    //in fullscreen. Uses displayBeforeSetting to restore display.
     this.switchDisplayOn();
     this.drawGrids();
-    this.switchDisplayOff();
+    if (!displayBeforeSetting) {
+      this.switchDisplayOff();
+    }
   }
 };
 
@@ -201,11 +206,11 @@ DisplayTest.prototype.drawGrids = function() {
  * Toggles the fullscreen display visibility.
  */
 DisplayTest.prototype.switchDisplayOnOff = function() {
-  this.display = !this.display;
+  //If current display is on, turns it off
   if (this.display) {
-    this.switchDisplayOn();
-  } else {
     this.switchDisplayOff();
+  } else {
+    this.switchDisplayOn();
   }
 
 };

@@ -27,7 +27,8 @@ class DisplayTest(unittest.TestCase):
   Properties:
     self.ui: test ui.
     self.template: ui template handling html layout.
-    self.checked: user has already pressed spacebar for each subtest.
+    self.checked: user has check the display of current subtest.
+    self.fullscreen: the test ui is in fullscreen or not.
   '''
 
   def setUp(self):
@@ -37,6 +38,7 @@ class DisplayTest(unittest.TestCase):
     self.ui.AppendHTML(_HTML_DISPLAY)
     self.ui.CallJSFunction('setupDisplayTest', _ID_CONTAINER)
     self.checked = False
+    self.fullscreen = False
 
   def tearDown(self):
     return
@@ -52,15 +54,18 @@ class DisplayTest(unittest.TestCase):
     '''Sets self.checked to True.Calls JS function to switch display on/off.'''
     self.checked = True
     self.ui.CallJSFunction('switchDisplayOnOff')
+    self.fullscreen = not self.fullscreen
 
   def OnEnterPressed(self):
     '''Passes the subtest only if self.checked is True.'''
     if self.checked:
       self.ui.CallJSFunction('passSubTest')
-      self.checked = False
+      # If the next subtest will be in fullscreen mode, checked should be True
+      self.checked = self.fullscreen
 
   def OnFailPressed(self):
     '''Fails the subtest only if self.checked is True.'''
     if self.checked:
       self.ui.CallJSFunction('failSubTest')
-      self.checked = False
+      # If the next subtest will be in fullscreen mode, checked should be True
+      self.checked = self.fullscreen
