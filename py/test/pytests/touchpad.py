@@ -517,7 +517,7 @@ class TouchpadTest(unittest.TestCase):
     Gets the scroll sector from y_ratio then calls Javascript to mark the sector
     as tested.
     '''
-    y_segment = int(round(y_ratio / (1.0 / float(_Y_SEGMENTS - 1))))
+    y_segment = int(y_ratio * _Y_SEGMENTS)
     logging.info('mark %d scroll segment tested', y_segment)
     self.ui.CallJSFunction('markScrollSectorTested', y_segment)
 
@@ -527,8 +527,8 @@ class TouchpadTest(unittest.TestCase):
     Gets the segment from x_ratio and y_ratio then calls Javascript to
     mark the sector as tested.
     '''
-    x_segment = int(round(x_ratio / (1.0 / float(_X_SEGMENTS - 1))))
-    y_segment = int(round(y_ratio / (1.0 / float(_Y_SEGMENTS - 1))))
+    x_segment = int(x_ratio * _X_SEGMENTS)
+    y_segment = int(y_ratio * _Y_SEGMENTS)
     logging.info('mark x-%d y-%d sector tested', x_segment, y_segment)
     self.ui.CallJSFunction('markSectorTested', x_segment, y_segment)
 
