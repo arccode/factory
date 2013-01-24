@@ -574,6 +574,9 @@ class FactoryTest(object):
   # If True, the test never fails, but only returns to an untested state.
   never_fails = False
 
+  # If True, the test can not be aborted.
+  disable_abort = False
+
   # If True, the test has a UI, so if it is active factory_ui will not
   # display the summary of running tests.
   has_ui = False
@@ -600,6 +603,7 @@ class FactoryTest(object):
                id=None,  # pylint: disable=W0622
                has_ui=None,
                never_fails=None,
+               disable_abort=None,
                exclusive=None,
                enable_services=None,
                disable_services=None,
@@ -631,6 +635,8 @@ class FactoryTest(object):
       the test UI area instead.
     @param never_fails: True if the test never fails, but only returns to an
       untested state.
+    @param disable_abort: True if the test can not be aborted
+      while it is running.
     @param exclusive: Items that the test may require exclusive access to.
       May be a list or a single string. Items must all be in
       EXCLUSIVE_OPTIONS. Tests may not be backgroundable.
@@ -757,6 +763,8 @@ class FactoryTest(object):
       self.has_ui = has_ui
     if never_fails is not None:
       self.never_fails = never_fails
+    if disable_abort is not None:
+      self.disable_abort = disable_abort
 
     # Auto-assign label text.
     if not self.label_en:
@@ -793,7 +801,7 @@ class FactoryTest(object):
     ret = dict(
         (k, getattr(self, k))
         for k in ['id', 'path', 'label_en', 'label_zh',
-                  'kbd_shortcut', 'backgroundable'])
+                  'kbd_shortcut', 'backgroundable', 'disable_abort'])
     ret['is_shutdown_step'] = isinstance(self, ShutdownStep)
     ret['subtests'] = [subtest.to_struct() for subtest in self.subtests]
     return ret

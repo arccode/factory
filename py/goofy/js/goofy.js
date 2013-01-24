@@ -155,7 +155,7 @@ cros.factory.UNKNOWN_LABEL = '<span class="goofy-unknown">' +
 /**
  * An item in the test list.
  * @typedef {{path: string, label_en: string, label_zh: string,
- *            kbd_shortcut: string, subtests: Array}}
+ *            kbd_shortcut: string, subtests: Array, disable_abort: boolean}}
  */
 cros.factory.TestListEntry;
 
@@ -1219,6 +1219,7 @@ cros.factory.Goofy.prototype.showTestPopup = function(path, labelElement,
     var numLeaves = 0;
     var numLeavesByStatus = {};
     var allPaths = [];
+    var activeAndDisableAbort = false;
     function countLeaves(test) {
         allPaths.push(test.path);
         goog.array.forEach(test.subtests, function(subtest) {
@@ -1229,6 +1230,11 @@ cros.factory.Goofy.prototype.showTestPopup = function(path, labelElement,
             ++numLeaves;
             numLeavesByStatus[test.state.status] = 1 + (
                 numLeavesByStatus[test.state.status] || 0);
+            // If there is any subtest that is active and can not be aborted,
+            // this test can not be aborted.
+            if (test.state.status == 'ACTIVE' && test.disable_abort) {
+                activeAndDisableAbort = true;
+            }
         }
     }
     countLeaves(test);
@@ -1298,7 +1304,11 @@ cros.factory.Goofy.prototype.showTestPopup = function(path, labelElement,
             this.sendEvent('goofy:stop', {'fail': true});
         }, true, this);
 
-    if (numLeavesByStatus['ACTIVE']) {
+    // When there is any active test, enable abort item in menu
+    // if goofy is in engineering mode or there is no
+    // active subtest with disable_abort=true.
+    if (numLeavesByStatus['ACTIVE'] &&
+        (this.engineeringMode || !activeAndDisableAbort)) {
       menu.addChild(this.makeMenuItem(
           'Abort', '取消', 'active', '執行中的',
           numLeavesByStatus['ACTIVE'] || 0,
