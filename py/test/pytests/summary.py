@@ -21,11 +21,20 @@ Runin
   shutdown
 
 ...then this test will show the status summary for A, B, and C.
+
+dargs:
+  disable_input_on_fail: Disable user input to pass/fail when
+    the overall status is not PASSED. If this argument is True and overall
+    status is PASSED, user can pass the test by clicking the item or hitting
+    space. If this argument is True and overall status is not PASSED,
+    the test will hang there while the control menu can still work to
+    stop/abort the test.
 '''
 
 import unittest
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.test.args import Arg
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 
@@ -41,13 +50,16 @@ th, td {
 '''
 
 class Report(unittest.TestCase):
+  ARGS = [
+    Arg('disable_input_on_fail', bool,
+        'Disable user input to pass/fail when the overall status is not PASSED',
+        default=False)]
   def runTest(self):
     test_list = self.test_info.ReadTestList()
     test = test_list.lookup_path(self.test_info.path)
     states = factory.get_state_instance().get_test_states()
 
     ui = test_ui.UI(css=CSS)
-    ui.EnablePassFailKeys()
 
     statuses = []
 
@@ -72,15 +84,24 @@ class Report(unittest.TestCase):
                           u'%s 测试结果列表：' % test.parent.path),
         '<div class="test-status-%s" style="font-size: 300%%">%s</div>' % (
             overall_status, test_ui.MakeStatusLabel(overall_status)),
-        '<table>',
-        ] + table + [
-        '</table>',
-        '<a onclick="onclick:window.test.pass()" href="#">',
-        test_ui.MakeLabel('Click or press SPACE to continue',
-                          u'点击或按空白键继续'),
-        '</a>',
-        '</div></div>',
-        ]
+        '<table>'] + table + ['</table>']
+    if (not self.args.disable_input_on_fail or
+        overall_status == factory.TestState.PASSED):
+      html = html + ['<a onclick="onclick:window.test.pass()" href="#">',
+                     test_ui.MakeLabel('Click or press SPACE to continue',
+                                       u'点击或按空白键继续'),
+                     '</a>']
+    else:
+      html = html + [test_ui.MakeLabel(
+          'Unable to proceed, since some previous tests have not passed.',
+          u'之前所有的测试必须通过才能通过此项目')]
+    html = html + ['</div></div>']
+    if not self.args.disable_input_on_fail:
+      ui.EnablePassFailKeys()
+    # If disable_input_on_fail is True, and overall status is PASSED, user
+    # can only pass the test.
+    elif overall_status == factory.TestState.PASSED:
+      ui.BindStandardKeys(bind_fail_keys=False)
 
     ui.SetHTML(''.join(html))
     ui.Run()
