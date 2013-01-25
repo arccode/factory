@@ -24,8 +24,8 @@ from cros.factory.event_log import EventLog
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test import utils
 from cros.factory.test.args import Arg
+from cros.factory.utils.process_utils import CheckOutput, SpawnOutput
 
 
 _STATE_RW_TEST_WAIT_INSERT = 1
@@ -101,6 +101,10 @@ _ERR_DEVICE_READ_ONLY_STR = (
 _ERR_SPEED_CHECK_FAILED_FMT_STR = (
     lambda test_type, target_dev:
         '%s_speed of %s does not meet lower bound.' % (test_type, target_dev))
+_ERR_VERIFY_PARTITION_FMT_STR = (
+    lambda test_type, target_dev:
+        'Partition verification failed on %s device %s. Problem with card '
+        'reader module maybe?' % (test_type, target_dev))
 _TEST_TITLE = test_ui.MakeLabel('Card Reader Test', u'读卡机测试')
 _IMG_HTML_TAG = (
     lambda src: '<img src="%s" style="display:block; margin:0 auto;"/>' % src)
@@ -126,8 +130,7 @@ class PyudevThread(threading.Thread):
 class RemovableStorageTest(unittest.TestCase):
   # pylint: disable=E1101
 
-  def __init__(self, *args, **kwargs):
-    super(RemovableStorageTest, self).__init__(*args, **kwargs)
+  def setUp(self):
     self._ui = test_ui.UI()
     self._template = ui_templates.TwoSections(self._ui)
     self._error = ''
@@ -184,7 +187,7 @@ class RemovableStorageTest(unittest.TestCase):
       dev_path: path to device file.
     '''
     try:
-      dev_size = utils.CheckOutput(['blockdev', '--getsize64', dev_path])
+      dev_size = CheckOutput(['blockdev', '--getsize64', dev_path])
     except:  # pylint: disable=W0702
       self._ui.Fail(_ERR_GET_DEV_SIZE_FAILED_FMT_STR(dev_path))
 
@@ -204,7 +207,7 @@ class RemovableStorageTest(unittest.TestCase):
       dev_path: path to device file.
     '''
     try:
-      ro = utils.CheckOutput(['blockdev', '--getro', dev_path])
+      ro = CheckOutput(['blockdev', '--getro', dev_path])
     except:  # pylint: disable=W0702
       self._ui.Fail(_ERR_RO_TEST_FAILED_FMT_STR(dev_path))
 
@@ -234,6 +237,7 @@ class RemovableStorageTest(unittest.TestCase):
       mode.append(_RW_TEST_MODE_RANDOM)
     if self.args.perform_sequential_test is True:
       mode.append(_RW_TEST_MODE_SEQUENTIAL)
+
     for m in mode:
       if m == _RW_TEST_MODE_RANDOM:
         # Read/Write one block each time
@@ -400,6 +404,25 @@ class RemovableStorageTest(unittest.TestCase):
     self._template.SetState(_IMG_HTML_TAG(self._locktest_removal_image))
     self.AdvanceProgress()
 
+  def CreatePartition(self):
+    '''Creates a small partition for SD card, so that we can check if all the
+    pins on the card reader module are intact.'''
+    dev_path = self._target_device
+    if self.args.media == 'SD':
+      SpawnOutput(['parted', '-s', dev_path, 'rm', '1'])
+      SpawnOutput(['parted', '-s', dev_path, 'mkpart', 'primary',
+                   'ext4', '0', '128'])
+
+  def VerifyPartition(self):
+    '''Verifies that there's at least one partition present in the /dev
+    directory for the device under test.'''
+    dev_path = self._target_device
+    try:
+      # Just do a simple ls on the first partition file
+      CheckOutput(['ls', dev_path + '1'])
+    except:   # pylint: disable=W0702
+      self._ui.Fail(_ERR_VERIFY_PARTITION_FMT_STR(self.args.media, dev_path))
+
   def UdevEventCallback(self, action, device):
     if action == _UDEV_ACTION_CHANGE:
       node = os.path.basename(device.device_node)
@@ -427,11 +450,15 @@ class RemovableStorageTest(unittest.TestCase):
         logging.info('%s device inserted : %s', (self.args.media,
                                                  device.device_node))
         self._target_device = device.device_node
+        if self.args.media == 'SD':
+          self.CreatePartition()
         self.TestReadWrite()
       elif self._state == _STATE_LOCKTEST_WAIT_INSERT:
         logging.info('%s device inserted : %s', (self.args.media,
                                                  device.device_node))
         if self._target_device == device.device_node:
+          if self.args.media == 'SD':
+            self.VerifyPartition()
           self.TestLock()
     elif action == _UDEV_ACTION_REMOVE:
       if self._target_device == device.device_node:
