@@ -420,6 +420,10 @@ class ShopFloorBase(object):
     """
     return self.update_server.GetTestMd5sum()
 
+  def NeedsUpdate(self, device_md5sum):
+    """Checks if the device with device_md5sum needs an update."""
+    return self.update_server.NeedsUpdate(device_md5sum)
+
   def GetUpdatePort(self):
     """Returns the port to use for rsync updates.
 

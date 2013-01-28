@@ -25,6 +25,7 @@ from cros.factory.utils.process_utils import Spawn, TerminateOrKillProcess
 FACTORY_DIR = 'factory'
 AUTOTEST_DIR = 'autotest'
 TARBALL_NAME = 'factory.tar.bz2'
+BLACKLIST_NAME = 'blacklist'
 LATEST_SYMLINK = 'latest'
 LATEST_MD5SUM = 'latest.md5sum'
 MD5SUM = 'MD5SUM'
@@ -116,6 +117,29 @@ class ChangeDetector(object):
 
 
 class FactoryUpdateServer():
+  """The class to handle factory update bundle
+
+  Properties:
+    state_dir: Update state directory (generally shopfloor_data/update)
+    factory_dir: Updater bundle directory to hold previous and current contents
+        or factory bundles.
+    rsyncd_port: Port on which to open rsyncd.
+    hwid_path: The path of hwid bundle.
+    on_idle: If non-None, a function to call on idle (generally every second).
+    _stop_event: Event to stop thread from running
+    _rsyncd: Process of rsync server daemon.
+    _tarball_path: The path to factory tarball file.
+    _blacklist_path: The path to blacklist file.
+    _blacklist: A list of md5sum which updater will not trigger update
+        unless device explicitly want to get an update(generally in
+        engineering mode).
+    _thread: The thread to run detectors and handlers in a loop.
+    _factory_detector: The detector to detect a new updater bundle has been
+        placed.
+    _hwid_detector: The detector to detect a new hwid bundle has been placed.
+    _blacklist_detector: The detector to detect a new blacklist has been
+        placed.
+  """
   poll_interval_sec = 1
 
   def __init__(self, state_dir, rsyncd_port=DEFAULT_RSYNCD_PORT, on_idle=None):
@@ -138,6 +162,8 @@ class FactoryUpdateServer():
     self._stop_event = threading.Event()
     self._rsyncd = StartRsyncServer(rsyncd_port, state_dir, self.factory_dir)
     self._tarball_path = os.path.join(self.state_dir, TARBALL_NAME)
+    self._blacklist_path = os.path.join(state_dir, BLACKLIST_NAME)
+    self._blacklist = []
 
     self._thread = None
     self._run_count = 0
@@ -147,6 +173,7 @@ class FactoryUpdateServer():
     self._factory_detector = ChangeDetector(self._tarball_path)
     self._hwid_detector = ChangeDetector(
         os.path.join(state_dir, 'hwid_*.sh'))
+    self._blacklist_detector = ChangeDetector(self._blacklist_path)
 
   def Start(self):
     assert not self._thread
@@ -174,6 +201,32 @@ class FactoryUpdateServer():
       return None
     with open(md5file, 'r') as f:
       return f.readline().strip()
+
+  def NeedsUpdate(self, device_md5sum):
+    """
+    Checks if the device with device_md5sum needs to get the update
+    of current_md5sum subjected to blacklist.
+
+    Args:
+      device_md5sum: The md5sum of factory environment on device.
+
+    Returns:
+      False: device_md5sum is in blacklist or
+             there is no new updater bundle.
+      True:  device_md5sum is not in blacklist and
+             there is a new updater bundle.
+    """
+    if device_md5sum in self._blacklist:
+      logging.info('Get device md5sum %s in blacklist', device_md5sum)
+      return False
+    current_md5sum = self.GetTestMd5sum()
+    return current_md5sum and (current_md5sum != device_md5sum)
+
+  def _HandleBlacklist(self):
+    """Reads blacklist from file"""
+    with open(self._blacklist_path, 'r') as f:
+      self._blacklist = f.read().splitlines()
+    logging.info('Blacklist md5sums: %s', ', '.join(self._blacklist))
 
   def _HandleTarball(self):
     new_tarball_path = self._tarball_path + '.new'
@@ -294,6 +347,17 @@ class FactoryUpdateServer():
         else:
           logging.info('Found new HWID bundle %s (MD5SUM %s); serving it',
                        self.hwid_path, CalculateMd5sum(self.hwid_path))
+
+      if self._blacklist_detector.HasChanged():
+        if self._blacklist_detector.path is None:
+          self._blacklist = []
+          logging.warn('Updater blacklist %s is no longer valid,'
+                       'so clear blacklist.', self._blacklist_detector.pattern)
+        else:
+          self._HandleBlacklist()
+          logging.info('Found new updater blacklist %s (MD5SUM %s); serving it',
+                       self._blacklist_path,
+                       CalculateMd5sum(self._blacklist_path))
 
       if self.on_idle:
         try:

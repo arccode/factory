@@ -49,6 +49,43 @@ class FactoryUpdateServerTest(unittest.TestCase):
     self.update_server.Stop()
     self.assertTrue(self.update_server._run_count)
 
+  def testNeedsUpdate(self):
+    self.update_server.RunOnce()
+    tarball_src = os.path.join(BASE_DIR, 'testdata/factory.tar.bz2')
+    tarball_dest = os.path.join(self.work_dir, 'factory.tar.bz2')
+    blacklist_path = os.path.join(self.work_dir, 'blacklist')
+    # Put factory.tar.bz2 into the working folder.
+    shutil.copy(tarball_src, tarball_dest)
+    # Kick the update server
+    self.update_server.RunOnce()
+
+    # Test with no blacklist
+
+    # Test with no md5sum
+    self.assertTrue(self.update_server.NeedsUpdate(None))
+    # Test with current md5sum
+    self.assertFalse(self.update_server.NeedsUpdate(
+        "18cac06201e65e060f757193c153cacb"))
+    # Test with a different md5sum
+    self.assertTrue(self.update_server.NeedsUpdate(
+        "bb51d673f53129a2cc454e95e958e43e"))
+
+    # Test with blacklist
+
+    with open(blacklist_path, "w") as f:
+      f.write("bb51d673f53129a2cc454e95e958e43e")
+    # Kick the update server to detect blacklist
+    self.update_server.RunOnce()
+
+    # Test with no md5sum
+    self.assertTrue(self.update_server.NeedsUpdate(None))
+    # Test with current md5sum
+    self.assertFalse(self.update_server.NeedsUpdate(
+        "18cac06201e65e060f757193c153cacb"))
+    # Test with a different md5sum in blacklist
+    self.assertFalse(self.update_server.NeedsUpdate(
+        "bb51d673f53129a2cc454e95e958e43e"))
+
   def testLogic(self):
     self.update_server.RunOnce()
 

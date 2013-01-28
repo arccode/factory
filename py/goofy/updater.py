@@ -9,7 +9,6 @@ import shutil
 import subprocess
 import sys
 import threading
-import time
 import traceback
 from urlparse import urlparse
 import uuid
@@ -167,8 +166,8 @@ def CheckForUpdate(timeout):
   shopfloor_client = shopfloor.get_instance(detect=True, timeout=timeout)
   new_md5sum = shopfloor_client.GetTestMd5sum()
   current_md5sum = factory.get_current_md5sum()
-  return (new_md5sum,
-          new_md5sum and new_md5sum != current_md5sum)
+  needs_update = shopfloor_client.NeedsUpdate(current_md5sum)
+  return (new_md5sum, needs_update)
 
 
 def CheckForUpdateAsync(callback, timeout):
@@ -187,7 +186,7 @@ def CheckForUpdateAsync(callback, timeout):
   def Run():
     try:
       callback(True, *CheckForUpdate(timeout))
-    except:
+    except:  # pylint: disable=W0702
       # Just an info, not a trace, since this is pretty common (and not
       # necessarily an error) and we don't want logs to get out of control.
       logging.info(
