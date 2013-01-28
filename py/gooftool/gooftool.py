@@ -608,11 +608,12 @@ def UploadReport(options):
   if device_sn is None:
     logging.warning('RO_VPD missing device serial number')
     device_sn = 'MISSING_SN_' + TimedUuid()
-  target_name = '%s_%s.tbz2' % (time.strftime('%Y%m%dT%H%M%SZ', time.gmtime()),
-                                NormalizeAsFileName(device_sn))
+  target_name = '%s_%s.tar.xz' % (time.strftime('%Y%m%dT%H%M%SZ',
+                                  time.gmtime()),
+                                  NormalizeAsFileName(device_sn))
   target_path = os.path.join(gettempdir(), target_name)
   # Intentionally ignoring dotfiles in EVENT_LOG_DIR.
-  tar_cmd = 'cd %s ; tar cjf %s *' % (EVENT_LOG_DIR, target_path)
+  tar_cmd = 'cd %s ; tar cJf %s *' % (EVENT_LOG_DIR, target_path)
   tar_cmd += ' --add-file %s' % FACTORY_LOG_PATH
   if options.add_file:
     for f in options.add_file:
@@ -631,7 +632,7 @@ def UploadReport(options):
            "Removing leading `/' from member names" in x)
           for x in cmd_result.stderr.split('\n'))):
     # That's OK.  Make sure it's valid though.
-    Spawn(['tar', 'tfj', target_path], check_call=True, log=True,
+    Spawn(['tar', 'tfJ', target_path], check_call=True, log=True,
           ignore_stdout=True)
   elif not cmd_result.success:
     raise Error('unable to tar event logs, cmd %r failed, stderr: %r' %
