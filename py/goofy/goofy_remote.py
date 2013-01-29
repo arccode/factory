@@ -26,7 +26,7 @@ ssh_command = None  # set in main
 rsync_command = None
 
 
-def SyncTestList(host, test_list, clear_factory_environment):
+def GetBoard(host):
   logging.info('Checking release board on %s...', host)
   release = Spawn(ssh_command + [host, 'cat /etc/lsb-release'],
                   check_output=True, log=True).stdout_data
@@ -34,7 +34,10 @@ def SyncTestList(host, test_list, clear_factory_environment):
   if not match:
     logging.warn('Unable to determine release board')
     return None
-  board = match.group(1)
+  return match.group(1)
+
+
+def SyncTestList(host, board, test_list, clear_factory_environment):
   # Uses dash in board name for overlay directory name
   board_dash = board.replace('_', '-')
 
@@ -120,8 +123,7 @@ def main():
 
   Spawn(['make', '--quiet'], cwd=factory.FACTORY_PATH,
         check_call=True, log=True)
-  board = SyncTestList(
-      args.host, args.test_list, args.clear_factory_environment)
+  board = GetBoard(args.host)
 
   if args.autotest:
     Spawn(rsync_command +
@@ -146,6 +148,8 @@ def main():
          for x in ('bin', 'py', 'py_pkg', 'sh', 'test_lists', 'third_party')] +
         ['%s:/usr/local/factory' % args.host],
         check_call=True, log=True)
+
+  SyncTestList(args.host, board, args.test_list, args.clear_factory_environment)
 
   if args.hwid:
     if not board:
