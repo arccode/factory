@@ -6,7 +6,7 @@ import logging
 
 import factory_common # pylint: disable=W0611
 from cros.factory import system
-from cros.factory.system.ec import EC
+from cros.factory.system.board import Board
 from cros.factory.system.power import Power
 from cros.factory.test.utils import Enum
 
@@ -17,10 +17,10 @@ class ChargeManager(object):
   '''Properties:
 
     state: The current state (an element of either ErrorState or
-      EC.ChargeState).
+      Board.ChargeState).
   '''
   _power = Power()
-  _ec = system.GetEC()
+  _board = system.GetBoard()
 
   ErrorState = Enum(['BATTERY_NOT_PRESENT', 'AC_UNPLUGGED', 'BATTERY_ERROR'])
 
@@ -51,16 +51,16 @@ class ChargeManager(object):
       logging.info("Charger state: %s", self.state)
 
   def _StartCharging(self):
-    self._SetState(EC.ChargeState.CHARGE)
-    self._ec.SetChargeState(EC.ChargeState.CHARGE)
+    self._SetState(Board.ChargeState.CHARGE)
+    self._board.SetChargeState(Board.ChargeState.CHARGE)
 
   def _StopCharging(self):
-    self._SetState(EC.ChargeState.IDLE)
-    self._ec.SetChargeState(EC.ChargeState.IDLE)
+    self._SetState(Board.ChargeState.IDLE)
+    self._board.SetChargeState(Board.ChargeState.IDLE)
 
   def _ForceDischarge(self):
-    self._SetState(EC.ChargeState.DISCHARGE)
-    self._ec.SetChargeState(EC.ChargeState.DISCHARGE)
+    self._SetState(Board.ChargeState.DISCHARGE)
+    self._board.SetChargeState(Board.ChargeState.DISCHARGE)
 
   def AdjustChargeState(self):
     '''Adjust charge state according to battery level.

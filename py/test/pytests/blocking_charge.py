@@ -16,7 +16,7 @@ import time
 import unittest
 
 from cros.factory import system
-from cros.factory.system.ec import EC
+from cros.factory.system.board import Board
 from cros.factory.system.power import Power
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -49,7 +49,7 @@ class ChargerTest(unittest.TestCase):
       ]
 
   def setUp(self):
-    self._ec = system.GetEC()
+    self._board = system.GetBoard()
     self._power = Power()
     self._ui = test_ui.UI()
     self._template = ui_templates.TwoSections(self._ui)
@@ -65,7 +65,7 @@ class ChargerTest(unittest.TestCase):
     self.assertTrue(start_charge, 'Error getting battery state.')
     if start_charge >= self.args.target_charge_pct:
       return
-    self._ec.SetChargeState(EC.ChargeState.CHARGE)
+    self._board.SetChargeState(Board.ChargeState.CHARGE)
     self._template.SetState(MakeSpriteHTMLTag('charging_sprite.png', 256, 256))
     logging.info('Charging starting at %d%%', start_charge)
 

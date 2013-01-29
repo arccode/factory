@@ -371,8 +371,8 @@ class Goofy(object):
       logging.exception('Unable to read mosys eventlog')
 
     try:
-      ec = system.GetEC()
-      ec_console_log = ec.GetConsoleLog()
+      board = system.GetBoard()
+      ec_console_log = board.GetECConsoleLog()
       logging.info('EC console log after reboot:\n%s\n', ec_console_log)
     except:  # pylint: disable=W0702
       logging.exception('Error retrieving EC console log')
@@ -545,8 +545,8 @@ class Goofy(object):
 
         if ec_console_log is None:
           try:
-            ec = system.GetEC()
-            ec_console_log = ec.GetConsoleLog()
+            board = system.GetBoard()
+            ec_console_log = board.GetECConsoleLog()
             logging.info('EC console log after reboot:\n%s\n', ec_console_log)
           except:  # pylint: disable=W0702
             logging.exception('Error retrieving EC console log')

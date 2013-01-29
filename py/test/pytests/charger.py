@@ -13,7 +13,7 @@ import time
 import unittest
 
 from cros.factory import system
-from cros.factory.system.ec import EC
+from cros.factory.system.board import Board
 from cros.factory.system.power import Power
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -39,7 +39,7 @@ class ChargerTest(unittest.TestCase):
       ]
 
   def setUp(self):
-    self._ec = system.GetEC()
+    self._board = system.GetBoard()
     self._power = Power()
     self._ui = test_ui.UI()
     self._template = ui_templates.OneSection(self._ui)
@@ -55,7 +55,7 @@ class ChargerTest(unittest.TestCase):
     self.assertTrue(charge, 'Error getting battery state.')
     if charge <= self.args.max_charge_pct:
       return
-    self._ec.SetChargeState(EC.ChargeState.DISCHARGE)
+    self._board.SetChargeState(Board.ChargeState.DISCHARGE)
 
     for elapsed in xrange(self.args.timeout):
       self._template.SetState(_DISCHARGE_TEXT(charge,
@@ -71,10 +71,10 @@ class ChargerTest(unittest.TestCase):
 
   def TestCharge(self):
     self._template.SetState(_CHARGE_TEXT)
-    self._ec.SetChargeState(EC.ChargeState.CHARGE)
+    self._board.SetChargeState(Board.ChargeState.CHARGE)
     time.sleep(3)
-    charger_current = self._ec.GetChargerCurrent()
-    battery_current = self._ec.GetBatteryCurrent()
+    charger_current = self._board.GetChargerCurrent()
+    battery_current = self._board.GetBatteryCurrent()
     logging.info('Charger current = %d, battery current = %d.',
                  charger_current, battery_current)
     self.assertFalse(charger_current > 0 and battery_current <= 0,

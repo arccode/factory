@@ -43,7 +43,7 @@ import time
 import unittest
 
 from cros.factory import system
-from cros.factory.system.ec import ECException
+from cros.factory.system.board import BoardException
 from cros.factory.test.args import Arg
 from cros.factory.test.test_ui import MakeLabel, UI
 from cros.factory.test.ui_templates import OneSection
@@ -89,11 +89,11 @@ class FanSpeedTest(unittest.TestCase):
     self._ui = UI()
     self._template = OneSection(self._ui)
     self._template.SetTitle(_TEST_TITLE)
-    self._ec = system.GetEC()
+    self._board = system.GetBoard()
 
   def tearDown(self):
     logging.info('Set auto fan speed control.')
-    self._ec.SetFanRPM(self._ec.AUTO)
+    self._board.SetFanRPM(self._board.AUTO)
 
   def SetAndGetFanSpeed(self, target_rpm):
     """Sets fan speed and observes readings for a while (blocking call).
@@ -105,7 +105,7 @@ class FanSpeedTest(unittest.TestCase):
       The average of the latest #num_samples_to_use samples as stablized fan
       speed reading.
     """
-    observed_rpm = self._ec.GetFanRPM()
+    observed_rpm = self._board.GetFanRPM()
     spin_up = target_rpm > observed_rpm
 
     status = 'Spin %s fan speed: %d -> %d RPM.' % (
@@ -116,13 +116,13 @@ class FanSpeedTest(unittest.TestCase):
     self._ui.SetHTML(observed_rpm, id=_ID_RPM)
     logging.info(status)
 
-    self._ec.SetFanRPM(int(target_rpm))
+    self._board.SetFanRPM(int(target_rpm))
     # Probe fan speed for duration_secs seconds with sampling interval
     # probe_interval_secs.
     end_time = time.time() + self.args.duration_secs
     observed_rpms = []
     while time.time() < end_time:
-      observed_rpm = self._ec.GetFanRPM()
+      observed_rpm = self._board.GetFanRPM()
       self._ui.SetHTML(observed_rpm, id=_ID_RPM)
       observed_rpms.append(observed_rpm)
       logging.info('Observed fan RPM: %s', observed_rpm)
@@ -147,8 +147,8 @@ class FanSpeedTest(unittest.TestCase):
         target_rpm = self.args.target_rpm
 
       observed_rpm = self.SetAndGetFanSpeed(target_rpm)
-    except ECException as e:
-      self._ui.Fail('EC command failed: %s' % e)
+    except BoardException as e:
+      self._ui.Fail('Board command failed: %s' % e)
       return
 
     lower_bound = target_rpm - self.args.error_margin

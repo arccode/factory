@@ -4,13 +4,15 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+# pylint: disable=W0212
+
 import factory_common  # pylint: disable=W0611
 
 import logging
 import mox
 import unittest
 
-from cros.factory.system.ec import EC
+from cros.factory.system.board import Board
 from cros.factory.system.power import Power
 from cros.factory.system.charge_manager import ChargeManager
 
@@ -19,7 +21,7 @@ class ChargeManagerTest(unittest.TestCase):
     self._charge_manager = ChargeManager(70, 80)
     self.mox = mox.Mox()
     self._charge_manager._power = self.mox.CreateMock(Power)
-    self._charge_manager._ec = self.mox.CreateMock(EC)
+    self._charge_manager._board = self.mox.CreateMock(Board)
 
   def tearDown(self):
     self.mox.UnsetStubs()
@@ -28,7 +30,7 @@ class ChargeManagerTest(unittest.TestCase):
     self._charge_manager._power.CheckBatteryPresent().AndReturn(True)
     self._charge_manager._power.CheckACPresent().AndReturn(True)
     self._charge_manager._power.GetChargePct().AndReturn(65)
-    self._charge_manager._ec.SetChargeState(EC.ChargeState.CHARGE)
+    self._charge_manager._board.SetChargeState(Board.ChargeState.CHARGE)
     self.mox.ReplayAll()
 
     self._charge_manager.AdjustChargeState()
@@ -39,7 +41,7 @@ class ChargeManagerTest(unittest.TestCase):
     self._charge_manager._power.CheckBatteryPresent().AndReturn(True)
     self._charge_manager._power.CheckACPresent().AndReturn(True)
     self._charge_manager._power.GetChargePct().AndReturn(85)
-    self._charge_manager._ec.SetChargeState(EC.ChargeState.DISCHARGE)
+    self._charge_manager._board.SetChargeState(Board.ChargeState.DISCHARGE)
     self.mox.ReplayAll()
 
     self._charge_manager.AdjustChargeState()
@@ -50,7 +52,7 @@ class ChargeManagerTest(unittest.TestCase):
     self._charge_manager._power.CheckBatteryPresent().AndReturn(True)
     self._charge_manager._power.CheckACPresent().AndReturn(True)
     self._charge_manager._power.GetChargePct().AndReturn(75)
-    self._charge_manager._ec.SetChargeState(EC.ChargeState.IDLE)
+    self._charge_manager._board.SetChargeState(Board.ChargeState.IDLE)
     self.mox.ReplayAll()
 
     self._charge_manager.AdjustChargeState()

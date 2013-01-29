@@ -9,7 +9,7 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory import system
-from cros.factory.system.ec import EC
+from cros.factory.system.board import Board
 
 
 class SystemStatusTest(unittest.TestCase):
@@ -21,20 +21,20 @@ class SystemStatusTest(unittest.TestCase):
 
   def runTest(self):
 
-    # Set up mocks for EC interface
-    mock_ec = self.mox.CreateMock(EC)
-    self.mox.StubOutWithMock(system, 'GetEC')
+    # Set up mocks for Board interface
+    mock_board = self.mox.CreateMock(Board)
+    self.mox.StubOutWithMock(system, 'GetBoard')
     # Set up mocks for netifaces.
     netifaces = system.netifaces = self.mox.CreateMockAnything()
     netifaces.AF_INET = 2
     netifaces.AF_INET6 = 10
 
-    system.GetEC().AndReturn(mock_ec)
-    mock_ec.GetFanRPM().AndReturn(2000)
-    system.GetEC().AndReturn(mock_ec)
-    mock_ec.GetTemperatures().AndReturn([1, 2, 3, 4, 5])
-    system.GetEC().AndReturn(mock_ec)
-    mock_ec.GetMainTemperatureIndex().AndReturn(2)
+    system.GetBoard().AndReturn(mock_board)
+    mock_board.GetFanRPM().AndReturn(2000)
+    system.GetBoard().AndReturn(mock_board)
+    mock_board.GetTemperatures().AndReturn([1, 2, 3, 4, 5])
+    system.GetBoard().AndReturn(mock_board)
+    mock_board.GetMainTemperatureIndex().AndReturn(2)
     netifaces.interfaces().AndReturn(['lo', 'eth0', 'wlan0'])
     netifaces.ifaddresses('eth0').AndReturn(
       {netifaces.AF_INET6: [{'addr': 'aa:aa:aa:aa:aa:aa'}],

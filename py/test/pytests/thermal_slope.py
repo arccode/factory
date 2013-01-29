@@ -91,7 +91,7 @@ class ThermalSlopeTest(unittest.TestCase):
   def setUp(self):
     self.event_log = EventLog.ForAutoTest()
     self.log = factory.console if self.args.console_log else logging
-    self.ec = system.GetEC()
+    self.board = system.GetBoard()
 
     # Process to terminate in tear-down.
     self.process = None
@@ -152,7 +152,7 @@ class ThermalSlopeTest(unittest.TestCase):
 
   def runTest(self):
     self._StartStage('cool_down')
-    self.ec.SetFanRPM(self.args.cool_down_fan_rpm)
+    self.board.SetFanRPM(self.args.cool_down_fan_rpm)
     for i in range(self.args.cool_down_max_duration_secs):
       self._Log()
       if (i >= self.args.cool_down_min_duration_secs and
@@ -166,7 +166,7 @@ class ThermalSlopeTest(unittest.TestCase):
         self.fail(u'Temperature never got down to %s°C' %
                   max_temperature_c)
 
-    self.ec.SetFanRPM(self.args.target_fan_rpm)
+    self.board.SetFanRPM(self.args.target_fan_rpm)
 
     def RunStage(stage, duration_secs):
       '''Runs a stage.
@@ -237,7 +237,7 @@ class ThermalSlopeTest(unittest.TestCase):
       self.fail(', '.join(errors))
 
   def tearDown(self):
-    self.ec.SetFanRPM(self.ec.AUTO)
+    self.board.SetFanRPM(self.board.AUTO)
     if self.process:
       self.process.terminate()
       self.process.wait()

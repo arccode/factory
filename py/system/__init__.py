@@ -13,7 +13,7 @@ import subprocess
 import threading
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.system.ec import EC
+from cros.factory.system.board import Board
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test.utils import ReadOneLine
@@ -23,28 +23,29 @@ from cros.factory.utils.process_utils import Spawn
 # Disable checking of exception types, since we catch all exceptions
 # in many places.
 
-_ec = None
+_board = None
 _lock = threading.Lock()
-def GetEC():
-  '''Initializes a EC instance from environment variable CROS_FACTORY_EC_CLASS,
-  or use the default EC class ChromeOSEC if the variable is empty.
+def GetBoard():
+  '''Initializes a board instance from environment variable
+  CROS_FACTORY_BOARD_CLASS, or use the default board class ChromeOSBoard
+  if the variable is empty.
 
-  The board-specific CROS_FACTORY_EC_CLASS environment variable is set in
+  The board-specific CROS_FACTORY_BOARD_CLASS environment variable is set in
   board_setup_factory.sh.
 
   Returns:
-    An instance of the specified EC class implementation.'''
+    An instance of the specified Board class implementation.'''
   # pylint: disable=W0603
   with _lock:
-    global _ec
-    if _ec:
-      return _ec
+    global _board
+    if _board:
+      return _board
 
-    ec = os.environ.get('CROS_FACTORY_EC_CLASS',
-                        'cros.factory.board.chromeos_ec.ChromeOSEC')
-    module, cls = ec.rsplit('.', 1)
-    _ec = getattr(__import__(module, fromlist=[cls]), cls)()
-    return _ec
+    board = os.environ.get('CROS_FACTORY_BOARD_CLASS',
+                        'cros.factory.board.chromeos_board.ChromeOSBoard')
+    module, cls = board.rsplit('.', 1)
+    _board = getattr(__import__(module, fromlist=[cls]), cls)()
+    return _board
 
 
 class SystemInfo(object):
@@ -98,7 +99,7 @@ class SystemInfo(object):
 
     self.ec_version = None
     try:
-      self.ec_version = GetEC().GetVersion()
+      self.ec_version = GetBoard().GetECVersion()
     except:
       pass
 
@@ -217,9 +218,9 @@ class SystemStatus(object):
     self.battery['force'] = False
     if self.charge_manager:
       force_status = {
-          EC.ChargeState.DISCHARGE: 'Discharging',
-          EC.ChargeState.CHARGE: 'Charging',
-          EC.ChargeState.IDLE: 'Idle'}.get(
+          Board.ChargeState.DISCHARGE: 'Discharging',
+          Board.ChargeState.CHARGE: 'Charging',
+          Board.ChargeState.IDLE: 'Idle'}.get(
               self.charge_manager.state)
       if force_status:
         self.battery['status'] = force_status
@@ -227,18 +228,18 @@ class SystemStatus(object):
 
     # Get fan speed
     try:
-      self.fan_rpm = GetEC().GetFanRPM()
+      self.fan_rpm = GetBoard().GetFanRPM()
     except:
       self.fan_rpm = None
 
     # Get temperatures from sensors
     try:
-      self.temperatures = GetEC().GetTemperatures()
+      self.temperatures = GetBoard().GetTemperatures()
     except:
       self.temperatures = []
 
     try:
-      self.main_temperature_index = GetEC().GetMainTemperatureIndex()
+      self.main_temperature_index = GetBoard().GetMainTemperatureIndex()
     except:
       self.main_temperature_index = None
 

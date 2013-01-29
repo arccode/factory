@@ -4,9 +4,9 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Test for EC temperature sensors control.
+"""Test for temperature sensors control.
 
-The test uses factory.system.EC to probe temperature sensors.
+The test uses factory.system.Board to probe temperature sensors.
 Ported from third_party/autotest/files/client/site_tests/hardware_EC.
 
 dargs:
@@ -22,8 +22,8 @@ import unittest
 from cros.factory import system
 from cros.factory.test.args import Arg
 
-class ECTempSensorsTest(unittest.TestCase):
-  """Tests EC communication with temperature sensors."""
+class BoardTempSensorsTest(unittest.TestCase):
+  """Tests communication with temperature sensors."""
   ARGS = [
     Arg('num_temp_sensor', int, 'Number of temperature sensor(s).', default=0),
     Arg('temp_sensor_to_test', list,
@@ -35,8 +35,7 @@ class ECTempSensorsTest(unittest.TestCase):
   ]
 
   def setUp(self):
-    self._ec = system.GetEC()
-    self._ec.Hello()
+    self._board = system.GetBoard()
 
   def runTest(self):
     temp_sensor_to_test = self.args.temp_sensor_to_test
@@ -47,8 +46,8 @@ class ECTempSensorsTest(unittest.TestCase):
       len(temp_sensor_to_test) > 0,
       'Either num_temp_sensor or temp_sensor_to_test must be set.')
 
-    all_sensors_temp = self._ec.GetTemperatures()
-    logging.info('Get temperature sensors from EC: %s', str(all_sensors_temp))
+    all_sensors_temp = self._board.GetTemperatures()
+    logging.info('Get temperature sensors: %s', str(all_sensors_temp))
     num_sensors = len(all_sensors_temp)
     for index in temp_sensor_to_test:
       self.assertTrue(0 <= index < num_sensors,

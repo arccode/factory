@@ -7,12 +7,12 @@
 import factory_common  # pylint: disable=W0611
 import re
 
-from cros.factory.system.ec import EC, ECException
+from cros.factory.system.board import Board, BoardException
 from cros.factory.utils.process_utils import Spawn
 
 
-class ChromeOSEC(EC):
-  """EC interface for ChromeOS EC. Uses ectool to access EC."""
+class ChromeOSBoard(Board):
+  """Board interface for ChromeOS EC. Uses ectool to access board info."""
   # pylint: disable=W0223
   GET_FAN_SPEED_RE = re.compile('Current fan RPM: ([0-9]*)')
   TEMPERATURE_RE = re.compile('^(\d+): (\d+)$', re.MULTILINE)
@@ -33,14 +33,14 @@ class ChromeOSEC(EC):
   _main_temperature_index = None
 
   def __init__(self):
-    super(ChromeOSEC, self).__init__()
+    super(ChromeOSBoard, self).__init__()
 
   def _CallECTool(self, cmd, check=True):
     """Invokes ectool.
 
     Args:
       cmd: ectool argument list
-      check: True to check returncode and raise ECException for non-zero
+      check: True to check returncode and raise BoardException for non-zero
           returncode.
 
     Returns:
@@ -49,9 +49,9 @@ class ChromeOSEC(EC):
     p = Spawn(['ectool'] + cmd, read_stdout=True, ignore_stderr=True)
     if check:
       if p.returncode == 252:
-        raise ECException('EC is locked by write protection')
+        raise BoardException('EC is locked by write protection')
       elif p.returncode != 0:
-        raise ECException('EC returned error %d' % p.returncode)
+        raise BoardException('EC returned error %d' % p.returncode)
     return p.stdout_data
 
   def I2CRead(self, port, addr, reg):
@@ -60,14 +60,14 @@ class ChromeOSEC(EC):
                                         str(reg)])
       return int(self.I2C_READ_RE.findall(ectool_output)[0], 16)
     except Exception as e: # pylint: disable=W0703
-      raise ECException('Unable to read from I2C: %s' % e)
+      raise BoardException('Unable to read from I2C: %s' % e)
 
   def I2CWrite(self, port, addr, reg, value):
     try:
       self._CallECTool(['i2cwrite', '16', str(port), str(addr),
                        str(reg), str(value)])
     except Exception as e: # pylint: disable=W0703
-      raise ECException('Unable to write to I2C: %s' % e)
+      raise BoardException('Unable to write to I2C: %s' % e)
 
   def GetTemperatures(self):
     try:
@@ -81,7 +81,7 @@ class ChromeOSEC(EC):
         temps[sensor] = int(match.group(2)) - 273 if match.group(2) else None
       return temps
     except Exception as e: # pylint: disable=W0703
-      raise ECException('Unable to get temperatures: %s' % e)
+      raise BoardException('Unable to get temperatures: %s' % e)
 
   def GetMainTemperatureIndex(self):
     if self._main_temperature_index is None:
@@ -93,9 +93,9 @@ class ChromeOSEC(EC):
             self._main_temperature_index = int(match.group(1))
             break
         else:
-          raise ECException('The expected index of PECI cannot be found')
+          raise BoardException('The expected index of PECI cannot be found')
       except Exception as e: # pylint: disable=W0703
-        raise ECException('Unable to get main temperature index: %s' % e)
+        raise BoardException('Unable to get main temperature index: %s' % e)
     return self._main_temperature_index
 
   def GetFanRPM(self):
@@ -103,7 +103,7 @@ class ChromeOSEC(EC):
       ectool_output = self._CallECTool(['pwmgetfanrpm'], check=False)
       return int(self.GET_FAN_SPEED_RE.findall(ectool_output)[0])
     except Exception as e: # pylint: disable=W0703
-      raise ECException('Unable to get fan speed: %s' % e)
+      raise BoardException('Unable to get fan speed: %s' % e)
 
   def SetFanRPM(self, rpm):
     try:
@@ -116,37 +116,37 @@ class ChromeOSEC(EC):
           log_stderr_on_error=True)
     except Exception as e: # pylint: disable=W0703
       if rpm == self.AUTO:
-        raise ECException('Unable to set auto fan control: %s' % e)
+        raise BoardException('Unable to set auto fan control: %s' % e)
       else:
-        raise ECException('Unable to set fan speed to %d RPM: %s' % (rpm, e))
+        raise BoardException('Unable to set fan speed to %d RPM: %s' % (rpm, e))
 
-  def GetVersion(self):
+  def GetECVersion(self):
     response = self._Spawn(['mosys', 'ec', 'info', '-l'],
                            read_stdout=True,
                            ignore_stderr=True).stdout_data
     return self.EC_VERSION_RE.search(response).group(1)
 
-  def GetConsoleLog(self):
+  def GetECConsoleLog(self):
     return self._CallECTool(['console'], check=False)
 
   def SetChargeState(self, state):
     try:
-      if state == EC.ChargeState.CHARGE:
+      if state == Board.ChargeState.CHARGE:
         self._CallECTool(['chargeforceidle', '0'])
         self._CallECTool(['i2cwrite', '16', '0', '0x12', '0x12',
                           self.CHARGER_OPTION_NORMAL])
-      elif state == EC.ChargeState.IDLE:
+      elif state == Board.ChargeState.IDLE:
         self._CallECTool(['chargeforceidle', '1'])
         self._CallECTool(['i2cwrite', '16', '0', '0x12', '0x12',
                           self.CHARGER_OPTION_NORMAL])
-      elif state == EC.ChargeState.DISCHARGE:
+      elif state == Board.ChargeState.DISCHARGE:
         self._CallECTool(['chargeforceidle', '1'])
         self._CallECTool(['i2cwrite', '16', '0', '0x12', '0x12',
                           self.CHARGER_OPTION_DISCHARGE])
       else:
-        raise ECException('Unknown EC charge state: %s' % state)
+        raise BoardException('Unknown EC charge state: %s' % state)
     except Exception as e:
-      raise ECException('Unable to set charge state: %s' % e)
+      raise BoardException('Unable to set charge state: %s' % e)
 
   def GetChargerCurrent(self):
     return self.I2CRead(0, 0x12, 0x14)
@@ -154,18 +154,18 @@ class ChromeOSEC(EC):
   def GetBatteryCurrent(self):
     return self.I2CRead(0, 0x16, 0x0a)
 
-  def Hello(self):
+  def ProbeEC(self):
     try:
       if self._CallECTool(['hello']).find('EC says hello') == -1:
-        raise ECException('Did not find "EC says hello".')
+        raise BoardException('Did not find "EC says hello".')
     except Exception as e:
-      raise ECException('Unable to say hello: %s' % e)
+      raise BoardException('Unable to say hello: %s' % e)
 
   def GetBatteryDesignCapacity(self):
     try:
       m = self.BATTERY_DESIGN_CAPACITY_RE.search(self._CallECTool(['battery']))
       if not m:
-        raise ECException('Design capacity not found.')
+        raise BoardException('Design capacity not found.')
       return int(m.group(1))
     except Exception as e:
-      raise ECException('Unable to get battery design capacity: %s' % e)
+      raise BoardException('Unable to get battery design capacity: %s' % e)

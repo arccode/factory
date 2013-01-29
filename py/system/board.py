@@ -11,12 +11,12 @@ import factory_common # pylint: disable=W0611
 from cros.factory.test.utils import Enum
 
 
-class ECException(Exception):
+class BoardException(Exception):
   pass
 
 
-class EC(object):
-  """Basic EC interface class."""
+class Board(object):
+  """Basic board specific interface class."""
   ChargeState = Enum(['CHARGE', 'IDLE', 'DISCHARGE'])
 
   # Auto fan speed.
@@ -31,7 +31,7 @@ class EC(object):
       For those sensors which don't have readings, fill None instead.
 
     Raises:
-      ECException when fail.
+      BoardException when fail.
     """
     raise NotImplementedError
 
@@ -44,7 +44,7 @@ class EC(object):
       A int indicating the main temperature index.
 
     Raises:
-      ECException when fail.
+      BoardException when fail.
     """
     raise NotImplementedError
 
@@ -55,22 +55,22 @@ class EC(object):
       A int indicating the fan RPM.
 
     Raises:
-      ECException when fail.
+      BoardException when fail.
     """
     raise NotImplementedError
 
-  def GetVersion(self):
+  def GetECVersion(self):
     """Gets the EC firmware version.
 
     Returns:
       A string of the EC firmware version.
 
     Raises:
-      ECException when fail.
+      BoardException when fail.
     """
     raise NotImplementedError
 
-  def GetConsoleLog(self):
+  def GetECConsoleLog(self):
     """Gets the EC console log.
 
     Returns:
@@ -85,7 +85,7 @@ class EC(object):
       state: One of the three states in ChargeState.
 
     Raises:
-       ECException when fail.
+       BoardException when fail.
     """
     raise NotImplementedError
 
@@ -94,10 +94,10 @@ class EC(object):
     """Sets the target fan RPM.
 
     Args:
-      rpm: Target fan RPM, or EC.AUTO for auto fan control.
+      rpm: Target fan RPM, or Board.AUTO for auto fan control.
 
     Raises:
-      ECException when fail.
+      BoardException when fail.
     """
     raise NotImplementedError
 
@@ -112,7 +112,7 @@ class EC(object):
     Returns:
       Integer value read from slave.
     Raises:
-      ECException when fail.
+      BoardException when fail.
     """
     raise NotImplementedError
 
@@ -126,7 +126,7 @@ class EC(object):
       value: 16-bit value to write.
 
     Raises:
-       ECException when fail.
+       BoardException when fail.
     """
     raise NotImplementedError
 
@@ -137,7 +137,7 @@ class EC(object):
       Interger value in mA.
 
     Raises:
-      ECException when fail.
+      BoardException when fail.
     """
     raise NotImplementedError
 
@@ -148,15 +148,15 @@ class EC(object):
       Integer value in mA.
 
     Raises:
-      ECException when fail.
+      BoardException when fail.
     """
     raise NotImplementedError
 
-  def Hello(self):
+  def ProbeEC(self):
     """Says hello to EC.
 
     Raises:
-      ECException if EC does not respond correctly.
+      BoardException if EC does not respond correctly.
     """
     raise NotImplementedError
 
@@ -167,6 +167,6 @@ class EC(object):
       Battery's design capacity in mAh.
 
     Raises:
-      ECException if battery's design capacity cannot be obtained.
+      BoardException if battery's design capacity cannot be obtained.
     """
     raise NotImplementedError
