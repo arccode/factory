@@ -58,6 +58,9 @@ class BadBlocksTest(unittest.TestCase):
           'If no badblocks output is detected for this long, log an error '
           'but do not fail',
           default=5),
+      Arg('log_interval_secs', int,
+          'The interval between progress logs in seconds.',
+          default=60)
       ]
 
   def setUp(self):
@@ -186,6 +189,7 @@ class BadBlocksTest(unittest.TestCase):
                       id='bb-phase')
     UpdatePhase()
 
+    last_log_time = time.time()
     while True:
       # Assume no output in timeout_secs means hung on disk op.
       start_time = time.time()
@@ -206,7 +210,13 @@ class BadBlocksTest(unittest.TestCase):
       if ch in ['', '\x08', '\r', '\n']:
         line = ''.join(buf).strip()
         if line:
-          logging.info('badblocks> %s', line)
+          # Log if this is not a progress line or log_interval_secs has passed
+          # since last log line.
+          match = re.match(r'([.0-9]+)% done, ', line)
+          log_elapsed_time = time.time() - last_log_time
+          if not match or log_elapsed_time > self.args.log_interval_secs:
+            last_log_time = time.time()
+            logging.info('badblocks> %s', line)
 
           match = re.search(r'([.0-9]+)% done, ', line)
           if match:
