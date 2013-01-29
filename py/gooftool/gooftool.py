@@ -649,7 +649,7 @@ def UploadReport(options):
   elif method == 'ftps':
     report_upload.CurlUrlUpload(target_path, '--ftp-ssl-reqd ftp:%s' % param)
   elif method == 'cpfe':
-    report_upload.CpfeUpload(target_path, param)
+    report_upload.CpfeUpload(target_path, pipes.quote(param))
   else:
     raise Error('unknown report upload method %r', method)
 

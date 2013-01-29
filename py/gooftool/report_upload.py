@@ -160,8 +160,8 @@ def CpfeUpload(source_path, cpfe_url, **kargs):
     retry: Duration (in secnods) for retry.
   """
   curl_command = '--form "report_file=@%s" %s' % (source_path, cpfe_url)
-  CPFE_SUCCESS = '[CPFE UPLOAD: OK]'
-  CPFE_ABORT = '[CPFE UPLOAD: INVALID]'
+  CPFE_SUCCESS = 'CPFE upload: OK'
+  CPFE_ABORT = 'CPFE upload: Failed'
   return CurlCommand(curl_command, success_string=CPFE_SUCCESS,
                      abort_string=CPFE_ABORT, **kargs)
 
