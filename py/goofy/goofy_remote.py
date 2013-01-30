@@ -93,6 +93,8 @@ def main():
   parser.add_argument('-e', dest='clear_factory_environment',
                       action='store_true',
                       help='set _FACTORY_ENVIRONMENT = False in test_list')
+  parser.add_argument('--board', '-b', dest='board',
+                      help='board to use (default: auto-detect')
   parser.add_argument('--autotest', dest='autotest', action='store_true',
                       help='also rsync autotest directory')
   parser.add_argument('--norestart', dest='restart', action='store_false',
@@ -123,7 +125,7 @@ def main():
 
   Spawn(['make', '--quiet'], cwd=factory.FACTORY_PATH,
         check_call=True, log=True)
-  board = GetBoard(args.host)
+  board = args.board or GetBoard(args.host)
 
   if args.autotest:
     Spawn(rsync_command +
