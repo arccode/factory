@@ -86,17 +86,27 @@ class ChromeOSBoard(Board):
   def GetMainTemperatureIndex(self):
     if self._main_temperature_index is None:
       try:
-        ectool_output = self._CallECTool(['tempsinfo', 'all'], check=False)
-        for match in self.TEMPERATURE_INFO_RE.finditer(
-            ectool_output):
-          if match.group(2) == 'PECI':
-            self._main_temperature_index = int(match.group(1))
-            break
-        else:
+        names = self.GetTemperatureSensorNames()
+        try:
+          return names.index('PECI')
+        except ValueError:
           raise BoardException('The expected index of PECI cannot be found')
       except Exception as e: # pylint: disable=W0703
         raise BoardException('Unable to get main temperature index: %s' % e)
     return self._main_temperature_index
+
+  def GetTemperatureSensorNames(self):
+    try:
+      names = []
+      ectool_output = self._CallECTool(['tempsinfo', 'all'], check=False)
+      for match in self.TEMPERATURE_INFO_RE.finditer(ectool_output):
+        sensor = int(match.group(1))
+        while len(names) < sensor + 1:
+          names.append(None)
+        names[sensor] = match.group(2)
+      return names
+    except Exception as e: # pylint: disable=W0703
+      raise BoardException('Unable to get temperature sensor names: %s' % e)
 
   def GetFanRPM(self):
     try:

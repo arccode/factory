@@ -90,6 +90,18 @@ class Board(object):
     raise NotImplementedError
 
   # Optional functions. Implement them if you need them in your tests.
+  def GetTemperaturesSensorNames(self):
+    """Gets a list of names for temperature sensors.
+
+    Returns:
+      A list of str containing the names of all temperature sensors.
+      The order must be the same as the returned list from GetTemperatures().
+
+    Raises:
+      BoardException when fail.
+    """
+    raise NotImplementedError
+
   def SetFanRPM(self, rpm):
     """Sets the target fan RPM.
 
