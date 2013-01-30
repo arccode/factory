@@ -54,7 +54,7 @@ start_factory() {
       tail $FACTORY_LOG_FILE
 
     If it keeps failing, try to reset by:
-      $FACTORY/bin/restart -a
+      factory_restart -a
   "
 
   # Preload modules here
@@ -81,10 +81,10 @@ stop_factory() {
       tail $FACTORY_LOG_FILE
 
     To restart, press Ctrl-Alt-F2, log in, and type:
-      $FACTORY/bin/restart
+      factory_restart
 
     If restarting does not work, try to reset by:
-      $FACTORY/bin/restart -a
+      factory_restart -a
     "
 }
 

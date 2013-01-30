@@ -13,6 +13,16 @@ PYTHON_SITEDIR=$(shell echo \
   'print(get_python_lib())' | python)
 PYTHON=python
 
+# Directory in which to install symlinks to certain factory binaries.
+SYMLINK_INSTALL_DIR=/usr/local/bin
+# Relative path from $(SYMLINK_INSTALL_DIR) to $(TARGET_DIR)
+SYMLINK_TARGET_RELPATH=../factory
+# Binaries that should have symlinks.
+SYMLINK_BINS=\
+	edid factory_bug factory_restart \
+	gooftool goofy goofy_control goofy_remote goofy_rpc \
+	hwid_tool make_par merge_logs mount_partition run_pytest
+
 TEST_RUNNER=py/tools/run_tests.py
 # Maximum number of parallel tests to run.
 MAX_TESTS=32
@@ -126,6 +136,13 @@ install: par
 # to do this.
 	mkdir -p $(FACTORY_BUNDLE)/factory_setup/bin
 	cp /usr/bin/cgpt $(FACTORY_BUNDLE)/factory_setup/bin
+# Add symlinks to certain binaries from /usr/local/bin to
+# /usr/local/factory/bin.
+	mkdir -p "$(DESTDIR)$(SYMLINK_INSTALL_DIR)"
+	cd "$(DESTDIR)$(SYMLINK_INSTALL_DIR)" && \
+	    ln -sf $(addprefix $(SYMLINK_TARGET_RELPATH)/bin/,$(SYMLINK_BINS)) .
+# Make sure all the symlinked binaries actually exist.
+	stat -L "$(DESTDIR)$(SYMLINK_INSTALL_DIR)"/* > /dev/null
 
 lint:
 	@set -e -o pipefail; \
