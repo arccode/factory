@@ -154,7 +154,7 @@ class SelectHWIDTask(FactoryTask):
     self.hwid_list = None
 
   def BuildHWIDList(self):
-    current_hwid = CheckOutput(['crossystem', 'hwid']).strip()
+    current_hwid = self.test.hwid or CheckOutput(['crossystem', 'hwid']).strip()
 
     if self.test.hwid_list:
       known_list = self.test.hwid_list
@@ -209,6 +209,9 @@ class HWIDTest(unittest.TestCase):
     Arg('override_hwid', (str, unicode),
         'An override HWID which is used during development.', default=None,
         optional=True),
+    Arg('manual_override', bool, 'Whether to allow manual HWID selection even '
+        'when the shopfloor server is enabled.', default=False,
+        optional=True),
     Arg('auto_probe', bool, 'Whether to enable HWID auto probe.', default=False,
         optional=True),
     Arg('auto_select', bool,
@@ -248,8 +251,10 @@ class HWIDTest(unittest.TestCase):
         self.task_list.append(AutoProbeHWIDTask(self))
         self.task_list.append(SelectHWIDTask(self))
       else:
-        self.task_list.append(ShopFloorHWIDTask(self) if shopfloor.is_enabled()
-                              else SelectHWIDTask(self))
+        if shopfloor.is_enabled():
+          self.task_list.append(ShopFloorHWIDTask(self))
+        if not shopfloor.is_enabled() or self.args.manual_override:
+          self.task_list.append(SelectHWIDTask(self))
     self.task_list.append(WriteHWIDTask(self))
 
     FactoryTaskManager(self.ui, self.task_list).Run()
