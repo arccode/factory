@@ -10,9 +10,11 @@ there's any abnormal status detected during run-in.
 '''
 
 import datetime
+import os
 import time
 import unittest
 
+from cros.factory import system
 from cros.factory.event_log import EventLog
 from cros.factory.system import SystemStatus
 from cros.factory.test import factory, test_ui
@@ -29,13 +31,39 @@ class CountDownTest(unittest.TestCase):
   def UpdateTimeAndLoad(self):
     self._ui.SetHTML(
         self.FormatSeconds(self._elapsed_secs),
-        id='elapsed-time')
+        id='cd-elapsed-time')
     self._ui.SetHTML(
         self.FormatSeconds(self._remaining_secs),
-        id='remaining-time')
+        id='cd-remaining-time')
     self._ui.SetHTML(
         ' '.join(open('/proc/loadavg').read().split()[0:3]),
-        id='system-load')
+        id='cd-system-load')
+
+  def GetVerboseLogFile(self):
+    invocation = os.environ['CROS_FACTORY_TEST_INVOCATION']
+    log_path = os.path.join(factory.get_factory_root('log'),
+                            'Countdown-log-%s' % invocation)
+    factory.console.info('Raw log stored at %s', log_path)
+    return open(log_path, 'a')
+
+  def UpdateUILog(self, sys_status):
+    log_items = [datetime.datetime.now().isoformat(),
+                 'Temperatures: %s' % sys_status.temperatures,
+                 'Fan RPM: %s' % sys_status.fan_rpm]
+    log_str = '.  '.join(log_items)
+    self._verbose_log.write(log_str + os.linesep)
+    self._verbose_log.flush()
+    self._ui.AppendHTML('%s<br>' % log_str, id='cd-log-panel')
+    self._ui.RunJS('$("cd-log-panel").scrollTop = '
+                   '$("cd-log-panel").scrollHeight;')
+
+  def UpdateLegend(self, sensor_names):
+    for idx in xrange(len(sensor_names)):
+      self._ui.AppendHTML('<div class="cd-legend-item">[%d] %s</div>' %
+                          (idx, sensor_names[idx]),
+                          id='cd-legend-item-panel')
+    if sensor_names:
+      self._ui.RunJS('$("cd-legend-panel").style.display = "block";')
 
   def DetectAbnormalStatus(self, status, last_status):
     warnings = []
@@ -96,7 +124,9 @@ class CountDownTest(unittest.TestCase):
         'countdown info.', False),
     Arg('duration_secs', int, 'Duration of time to countdown.'),
     Arg('log_interval', int,
-        'Interval of time in seconds to log system status.', 10),
+        'Interval of time in seconds to log system status.', 120),
+    Arg('ui_update_interval', int,
+        'Interval of time in seconds to update system status on UI.', 10),
     Arg('grace_secs', int,
         'Grace period before starting abnormal status detection.', 120,
         optional=True),
@@ -121,37 +151,49 @@ class CountDownTest(unittest.TestCase):
     # pylint: disable=W0201
 
     self._ui = test_ui.UI()
-    self._ui.SetHTML(self.args.title_en, id='countdown-title-en')
-    self._ui.SetHTML(self.args.title_zh, id='countdown-title-zh')
+    self._ui.SetHTML(self.args.title_en, id='cd-title-en')
+    self._ui.SetHTML(self.args.title_zh, id='cd-title-zh')
 
     # A workaround for some machines in which graphics test would
     # overlay countdown info.
     if self.args.position_top_right:
-      self._ui.RunJS('document.getElementById("countdown-container").className'
+      self._ui.RunJS('document.getElementById("cd-container").className'
                      ' = "float-right";')
 
+    self._verbose_log = self.GetVerboseLogFile()
     self._start_secs = time.time()
     self._elapsed_secs = 0
     self._remaining_secs = self.args.duration_secs
     self._next_log_time = 0
+    self._next_ui_update_time = 0
     self._event_log = EventLog.ForAutoTest()
     last_status = SystemStatus()
+
+    board = system.GetBoard()
+    try:
+      self.UpdateLegend(board.GetTemperatureSensorNames())
+    except NotImplementedError:
+      pass
 
     # Loop until count-down ends.
     while self._remaining_secs >= 0:
       self.UpdateTimeAndLoad()
 
-      if time.time() >= self._next_log_time:
+      current_time = time.time()
+      if (current_time >= self._next_log_time or
+          current_time >= self._next_ui_update_time):
         sys_status = SystemStatus()
+
+      if current_time >= self._next_log_time:
         self._event_log.Log('system_status', elapsed_secs=self._elapsed_secs,
                             **sys_status.__dict__)
-        factory.console.info('Status at %s (%d seconds elapsed): %s' % (
-            datetime.datetime.now().isoformat(),
-            self._elapsed_secs,
-            sys_status.__dict__))
         self.DetectAbnormalStatus(sys_status, last_status)
         last_status = sys_status
-        self._next_log_time = time.time() + self.args.log_interval
+        self._next_log_time = current_time + self.args.log_interval
+
+      if current_time >= self._next_ui_update_time:
+        self.UpdateUILog(sys_status)
+        self._next_ui_update_time = current_time + self.args.ui_update_interval
 
       time.sleep(1)
       self._elapsed_secs = time.time() - self._start_secs
