@@ -4,6 +4,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import ctypes
 import factory_common  # pylint: disable=W0611
 import re
 
@@ -159,10 +160,10 @@ class ChromeOSBoard(Board):
       raise BoardException('Unable to set charge state: %s' % e)
 
   def GetChargerCurrent(self):
-    return self.I2CRead(0, 0x12, 0x14)
+    return ctypes.c_int16(self.I2CRead(0, 0x12, 0x14)).value
 
   def GetBatteryCurrent(self):
-    return self.I2CRead(0, 0x16, 0x0a)
+    return ctypes.c_int16(self.I2CRead(0, 0x16, 0x0a)).value
 
   def ProbeEC(self):
     try:
