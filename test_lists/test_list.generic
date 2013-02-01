@@ -14,7 +14,6 @@
 # This file is loaded via a call to execfile() in the primary factory
 # autotest control file.
 
-
 # -- CUSTOMIZATION VARIABLES ---------------------------------------
 # You can tune these settings to fit your factory process.
 
@@ -81,6 +80,11 @@ _DEFAULT_AUDIO_SAMPLE = 'site_tests/suite_Factory/fhorn.wav'
 # AutomatedRebootSubTest: Reboot test inside AutomatedSequence.
 # TestGroup: A group of tests. Similiar to AutomatedSequence, but you can
 #            trigger individual sub items without re-testing every steps.
+
+# The test list name, for the test list selector in the UI.  This is
+# read by literally parsing this file, not evaluating it, so this must
+# be a literal string.
+TEST_LIST_NAME = 'Generic test list'
 
 TEST_LIST = [
 

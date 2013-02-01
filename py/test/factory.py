@@ -31,6 +31,8 @@ SCRIPT_PATH = os.path.realpath(__file__)
 CROS_FACTORY_LIB_PATH = os.path.dirname(SCRIPT_PATH)
 FACTORY_PATH = os.path.realpath(os.path.join(CROS_FACTORY_LIB_PATH, '..', '..'))
 FACTORY_PACKAGE_PATH = os.path.join(FACTORY_PATH, 'py_pkg', 'cros', 'factory')
+TEST_LISTS_PATH = os.path.join(FACTORY_PATH, 'test_lists')
+ACTIVE_TEST_LIST_SYMLINK = os.path.join(TEST_LISTS_PATH, 'active')
 CLIENT_PATH = FACTORY_PATH
 FACTORY_MD5SUM_PATH = os.path.join(FACTORY_PATH, 'MD5SUM')
 

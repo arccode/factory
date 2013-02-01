@@ -62,13 +62,23 @@ $(EXTRACTED): $(CLOSURE_LIB_ARCHIVE)
 # the correctness of our code, and we actually deploy the version that is
 # just the concatenation of all the dependencies (--output_mode=script).
 goofy.js: $(EXTRACTED) ../js/goofy.js
-	$(CLOSURE_BUILD) --output_mode=compiled --output_file=/dev/null
-	$(CLOSURE_BUILD) --output_mode=script --output_file=$@
+	mkdir -p tmp
+	$(CLOSURE_BUILD) --output_mode=compiled --output_file=/dev/null \
+	    >& tmp/errors.compiled || ( cat tmp/errors.compiled; exit 1 )
+	if fgrep "WARNING -" tmp/errors.compiled; then \
+	  cat tmp/errors.compiled; \
+	  echo Warning found in compiler output.; \
+	  exit 1; \
+	fi
+	$(CLOSURE_BUILD) --output_mode=script --output_file=$@ >& tmp/errors.script \
+	    >& tmp/errors.script || ( cat tmp/errors.script; exit 1 )
+	rm -rf tmp
 
 $(CSS_SOURCE_PATHS): $(EXTRACTED)
 
 closure.css: $(CSS_SOURCE_PATHS)
-	cat $^ > $@
+# Replace all references to URLs with resources in this project.
+	cat $^ | sed -re 's/\/\/ssl\.gstatic\.com\/(closure|editor)/images/g' > $@
 
 .PHONY: clean
 clean:

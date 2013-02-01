@@ -429,14 +429,11 @@ table + .goofy-history-header {
   padding-left: 1em;
   padding-right: 2em;
 }
+#goofy .goog-menuitem.goog-option {
+  padding-left: 2em;
+}
 #goofy-control .goog-tree-root {
   padding-left: .5em;
-}
-#goofy-control .goog-tree-children {
-  background-image: url(images/tree/I.png) !important;
-}
-#goofy-control .goog-tree-icon {
-  background-image: url(images/tree/tree.png);
 }
 #goofy-control .goog-tree-row {
   height: 20px;

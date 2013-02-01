@@ -28,7 +28,7 @@ class FactoryModuleTest(unittest.TestCase):
     # factory_unittest.py). Construct the paths to the reference test list
     # and any test lists in private overlays.
     test_lists = [os.path.join(factory.FACTORY_PATH, 'test_lists',
-                               'test_list.all')]
+                               'test_list.generic')]
 
     test_lists.extend(os.path.realpath(x) for x in glob.glob(
         os.path.join(SRCROOT, 'src/private-overlays/*/'

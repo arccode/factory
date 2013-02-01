@@ -19,8 +19,8 @@ this repository, and follow this repository's directory structure.
   test_lists/       test lists, which are searched for in the following order:
     test_list       A board-specific test list.  This is not present in this
                       repo, but rather provided in a board overlay.
-    test_list.all   The default "global" test list, used if test_list is not
-                      provided by the overlay.
+    test_list.generic         The default generic test list, used if test_list is
+                                not provided by the overlay.
 
 (Note that board/ and test_lists/test_list are optional and only
 provided by board overlays, not this repository.)

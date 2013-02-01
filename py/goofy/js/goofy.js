@@ -187,6 +187,12 @@ cros.factory.HistoryEntry;
 cros.factory.TestState;
 
 /**
+ * Information about a test list.
+ * @typedef {{id: string, name: string, enabled: boolean}}
+ */
+cros.factory.TestListInfo;
+
+/**
  * Public API for tests.
  * @constructor
  * @param {cros.factory.Invocation} invocation
@@ -299,7 +305,6 @@ cros.factory.Test.prototype.setFullScreen = function(enable) {
     goog.dom.classes.enable(this.invocation.iframe, 'goofy-test-fullscreen',
                             enable);
 };
-
 
 /**
  * UI for a single test invocation.
@@ -514,6 +519,12 @@ cros.factory.Goofy = function() {
      * Key listener bound to this object.
      */
     this.boundKeyListener = goog.bind(this.keyListener, this);
+
+    /**
+     * Various tests lists that can be enabled in engineering mode.
+     * @type Array.<cros.factory.TestListInfo>
+     */
+    this.testLists = [];
 
     // Set up magic keyboard shortcuts.
     goog.events.listen(
@@ -730,6 +741,9 @@ cros.factory.Goofy.prototype.init = function() {
         }, false, this);
 
     this.initWebSocket();
+    this.sendRpc('GetTestLists', [], function(testLists) {
+        this.testLists = testLists;
+    });
     this.sendRpc('get_test_list', [], this.setTestList);
     this.sendRpc('get_shared_data', ['system_info'], this.setSystemInfo);
     this.sendRpc(
@@ -1399,18 +1413,13 @@ cros.factory.Goofy.prototype.createViewLogMenu = function(path) {
     subMenu.addItem(loadingItem);
 
     this.sendRpc('get_test_history', [path], function(history) {
-            if (!subMenu.isVisible()) {
-                // e.g., menu already went away
-                return;
+            if (subMenu.getMenu().indexOfChild(loadingItem) >= 0) {
+                subMenu.getMenu().removeChild(loadingItem);
             }
 
             if (!history.length) {
                 loadingItem.setCaption('No logs available');
                 return;
-            }
-
-            if (subMenu.indexOfChild(loadingItem) >= 0) {
-                subMenu.removeItem(loadingItem);
             }
 
             // Arrange in descending order of time (it is returned in
@@ -1759,7 +1768,7 @@ cros.factory.Goofy.prototype.updateTestToolTip =
     function(path, tooltip, event) {
     var test = this.pathTestMap[path];
 
-    tooltip.setHtml('')
+    tooltip.setHtml('');
 
     var errorMsg = test.state['error_msg'];
     if (test.state.status != 'FAILED' || this.contextMenu || !errorMsg) {
@@ -1898,6 +1907,7 @@ cros.factory.Goofy.prototype.setTestList = function(testList) {
                         addExtraItem('Update factory software',
                                      '更新工厂软体',
                                      this.updateFactory);
+                        extraItems.push(this.makeSwitchTestListMenu());
                         extraItems.push(new goog.ui.MenuSeparator());
                         addExtraItem('View /var/log/messages',
                                      '检视 /var/log/messages',
@@ -1935,22 +1945,117 @@ cros.factory.Goofy.prototype.setTestList = function(testList) {
 };
 
 /**
+ * Create the switch test list menu.
+ */
+cros.factory.Goofy.prototype.makeSwitchTestListMenu = function(menu) {
+    var subMenu = new goog.ui.SubMenu(cros.factory.Content(
+        'Switch test list', '切换测试列表'));
+    goog.object.forEach(this.testLists, function(testList) {
+        var item = new goog.ui.MenuItem(testList.name);
+        item.setSelectable(true);
+        item.setSelected(testList.enabled);
+        subMenu.addItem(item);
+        if (testList.enabled) {
+            // Don't do anything if the active one is selected.
+            return;
+        }
+        goog.events.listen(
+            item,
+            goog.ui.Component.EventType.ACTION,
+            function() {
+                var dialog = new goog.ui.Dialog();
+                this.registerDialog(dialog);
+                dialog.setContent(
+                    cros.factory.Label(
+                        ('Warning: Switching to test list “' +
+                         goog.string.htmlEscape(testList.name) +
+                         '” will clear all test state.<br>' +
+                         'Are you sure you want to proceed?'),
+                        ('警示：切換至测试列表「' +
+                         goog.string.htmlEscape(testList.name) +
+                         '」将清除所有测试状态。<br>' +
+                         '确定要继续吗？')
+                        ));
+
+                var buttonSet = new goog.ui.Dialog.ButtonSet();
+                buttonSet.addButton(
+                    {key: goog.ui.Dialog.DefaultButtonKeys.OK,
+                     caption: cros.factory.Content(
+                         'Yes, clear state and restart',
+                         '确定，清除测试状态並重啓')});
+                buttonSet.addButton(
+                    {key: goog.ui.Dialog.DefaultButtonKeys.CANCEL,
+                     caption: cros.factory.Content('Cancel', '取消')},
+                    true, true);
+                dialog.setButtonSet(buttonSet);
+                dialog.setVisible(true);
+
+                var titleEn = 'Switch Test List: ' +
+                    goog.string.htmlEscape(testList.name);
+                var titleZh = '切换测试列表：' + goog.string.htmlEscape(testList.name);
+
+                cros.factory.Goofy.setDialogTitleHTML(
+                    dialog,
+                    cros.factory.Label(titleEn, titleZh));
+                dialog.reposition();
+
+                goog.events.listen(
+                    dialog, goog.ui.Dialog.EventType.SELECT, function(e) {
+                        if (e.key == goog.ui.Dialog.DefaultButtonKeys.OK) {
+                            var dialog = this.showIndefiniteActionDialog(
+                                titleEn,
+                                'Switching test list.  Please wait...',
+                                titleZh,
+                                '正在切换测试列表，请稍等...');
+                            this.sendRpc(
+                                'SwitchTestList', [testList.id],
+                                null,  // No action on success; wait to die.
+                                function(response) {
+                                    dialog.dispose();
+                                    this.alert(
+                                        'Unable to switch test list:<br>' +
+                                        goog.string.htmlEscape(
+                                            response.error.message));
+                                });
+                        }
+                    }, false, this);
+            }, false, this);
+    }, this);
+    return subMenu;
+};
+
+/**
+ * Displays a dialog for an operation that should never return.
+ * @param {string} titleEn
+ * @param {string} labelEn
+ * @param {string=} titleZh
+ * @param {string=} labelZh
+ * @return {goog.ui.Dialog}
+ */
+cros.factory.Goofy.prototype.showIndefiniteActionDialog = function(
+    titleEn, labelEn, titleZh, labelZh) {
+    var dialog = new goog.ui.Dialog();
+    this.registerDialog(dialog);
+    dialog.setHasTitleCloseButton(false);
+    dialog.setContent(cros.factory.Label(labelEn, labelZh));
+    dialog.setButtonSet(null);
+    dialog.setVisible(true);
+    cros.factory.Goofy.setDialogTitleHTML(
+        dialog, cros.factory.Label(titleEn, titleZh));
+    dialog.reposition();
+    return dialog;
+};
+
+/**
  * Sends an event to update factory software.
  * @export
  */
 cros.factory.Goofy.prototype.updateFactory = function() {
-    var dialog = new goog.ui.Dialog();
-    this.registerDialog(dialog);
-    dialog.setHasTitleCloseButton(false);
-    dialog.setContent(
-        cros.factory.Label('Updating factory software. Please wait...',
-                           '正在更新工厂软体，请稍等...'));
-    dialog.setButtonSet(null);
-    dialog.setVisible(true);
-    cros.factory.Goofy.setDialogTitleHTML(
-        dialog,
-        cros.factory.Label('Software update', '更新工厂软体'));
-    dialog.reposition();
+    var dialog = this.showIndefiniteActionDialog(
+        'Software update',
+        'Updating factory software. Please wait...',
+        '更新工厂软体',
+        '正在更新工厂软体，请稍等...');
 
     this.sendRpc(
         'UpdateFactory', [], function(ret) {

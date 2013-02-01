@@ -78,5 +78,9 @@ done
 echo "Restarting factory tests..."
 # Ensure full stop, we don't want to have the same factory
 # process recycled after we've been killing bits of it.
+#
+# Add /sbin to PATH; that's usually where stop and start are, and
+# /sbin may not be in the path.
+export PATH=/sbin:"$PATH"
 stop factory
 start factory

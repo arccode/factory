@@ -48,7 +48,6 @@ from cros.factory.tools.key_filter import KeyFilter
 from cros.factory.utils.process_utils import Spawn
 
 
-DEFAULT_TEST_LISTS_DIR = os.path.join(factory.FACTORY_PATH, 'test_lists')
 CUSTOM_DIR = os.path.join(factory.FACTORY_PATH, 'custom')
 HWID_CFG_PATH = '/usr/local/share/chromeos-hwid/cfg'
 CACHES_DIR = os.path.join(factory.get_state_root(), "caches")
@@ -95,10 +94,24 @@ def get_hwid_cfg():
 def find_test_list():
   '''
   Returns the path to the active test list, based on the HWID config tag.
+
+  The algorithm is:
+
+  - Try $FACTORY/test_lists/active (the symlink reflecting the option chosen
+    in the UI).
+  - For each of $FACTORY/custom, $FACTORY/test_lists (and
+    autotest/site_tests/suite_Factory for backward compatibility):
+    - Try test_list_${hwid_cfg} (if hwid_cfg is set)
+    - Try test_list
+    - Try test_list.generic
   '''
+  # If the 'active' symlink is present, that trumps everything else.
+  if os.path.lexists(factory.ACTIVE_TEST_LIST_SYMLINK):
+    return os.path.realpath(factory.ACTIVE_TEST_LIST_SYMLINK)
+
   hwid_cfg = get_hwid_cfg()
 
-  search_dirs = [DEFAULT_TEST_LISTS_DIR]
+  search_dirs = [CUSTOM_DIR, factory.TEST_LISTS_PATH]
   if not utils.in_chroot():
     # Also look in suite_Factory.  For backward compatibility only;
     # new boards should just put the test list in the "test_lists"
@@ -107,10 +120,11 @@ def find_test_list():
         os.path.dirname(factory.FACTORY_PATH),
         'autotest', 'site_tests', 'suite_Factory'))
 
-  # Try in order: test_list_${hwid_cfg}, test_list, test_list.all
-  search_files = ['test_list', 'test_list.all']
+
+  search_files = []
   if hwid_cfg:
-    search_files.insert(0, hwid_cfg)
+    search_files += [hwid_cfg]
+  search_files += ['test_list', 'test_list.generic']
 
   for d in search_dirs:
     for f in search_files:
@@ -121,6 +135,7 @@ def find_test_list():
   logging.warn('Cannot find test lists named any of %s in any of %s',
          search_files, search_dirs)
   return None
+
 
 _inited_logging = False
 

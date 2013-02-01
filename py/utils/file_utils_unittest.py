@@ -54,5 +54,12 @@ class ReadLinesTest(unittest.TestCase):
     lines = file_utils.ReadLines(tmp.name)
     self.assertTrue(lines is None)
 
+class TempDirectoryTest(unittest.TestCase):
+  def runTest(self):
+    with file_utils.TempDirectory(prefix='abc') as d:
+      self.assertTrue(os.path.basename(d).startswith('abc'))
+      self.assertTrue(os.path.isdir(d))
+    self.assertFalse(os.path.exists(d))
+
 if __name__ == '__main__':
   unittest.main()
