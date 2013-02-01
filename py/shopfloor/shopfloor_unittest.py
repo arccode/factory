@@ -80,6 +80,20 @@ class ShopFloorServerTest(unittest2.TestCase):
     self.process.wait()
     shutil.rmtree(self.data_dir)
 
+  def testCheckSN(self):
+    # Valid serial numbers range from CR001001 to CR001025
+    for i in range(25):
+      serial = 'CR0010%02d' % (i + 1)
+      self.assertTrue(self.proxy.CheckSN(serial))
+
+    # Test invalid serial numbers
+    self.assertRaises(xmlrpclib.Fault, self.proxy.CheckSN, '0000')
+    self.assertRaises(xmlrpclib.Fault, self.proxy.CheckSN, 'garbage')
+    self.assertRaises(xmlrpclib.Fault, self.proxy.CheckSN, '')
+    self.assertRaises(xmlrpclib.Fault, self.proxy.CheckSN, None)
+    self.assertRaises(xmlrpclib.Fault, self.proxy.CheckSN, 'CR001000')
+    self.assertRaises(xmlrpclib.Fault, self.proxy.CheckSN, 'CR001026')
+
   def testGetHWID(self):
     # Valid HWIDs range from CR001001 to CR001025
     for i in range(25):
@@ -87,14 +101,6 @@ class ShopFloorServerTest(unittest2.TestCase):
       result = self.proxy.GetHWID(serial)
       self.assertTrue(result.startswith('MAGICA '))
       self.assertEqual(len(result.split(' ')), 4)
-
-    # Test invalid serial numbers
-    self.assertRaises(xmlrpclib.Fault, self.proxy.GetHWID, '0000')
-    self.assertRaises(xmlrpclib.Fault, self.proxy.GetHWID, 'garbage')
-    self.assertRaises(xmlrpclib.Fault, self.proxy.GetHWID, '')
-    self.assertRaises(xmlrpclib.Fault, self.proxy.GetHWID, None)
-    self.assertRaises(xmlrpclib.Fault, self.proxy.GetHWID, 'CR001000')
-    self.assertRaises(xmlrpclib.Fault, self.proxy.GetHWID, 'CR001026')
 
   def testGetHWIDUpdater(self):
     self.assertEquals(None, self.proxy.GetHWIDUpdater())

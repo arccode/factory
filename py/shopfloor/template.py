@@ -13,7 +13,7 @@ floor system module.
 import logging
 
 # Always include 'shopfloor' for the abstract base class.
-import shopfloor
+from cros.factory import shopfloor
 
 
 class ShopFloor(shopfloor.ShopFloorBase):
@@ -23,7 +23,13 @@ class ShopFloor(shopfloor.ShopFloorBase):
 
   def __init__(self, config=None):
     """See help(ShopFloorBase.__init__)"""
+    super(ShopFloor, self).__init__()
+    self.config = config
     logging.info('Shop floor system started.')
+
+  def CheckSN(self, serial):
+    """See help(ShopFloorBase.CheckSN)"""
+    raise NotImplementedError('CheckSN')
 
   def GetHWID(self, serial):
     """See help(ShopFloorBase.GetHWID)"""

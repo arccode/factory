@@ -96,6 +96,9 @@ class ShopFloor(shopfloor.ShopFloorBase):
     logging.error(message)
     raise ValueError(message)
 
+  def CheckSN(self, serial):
+    return self._CheckSerialNumber(serial)
+
   def GetHWID(self, serial):
     self._CheckSerialNumber(serial)
     return self.data_store[serial]['hwid']

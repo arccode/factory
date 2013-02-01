@@ -266,6 +266,22 @@ class ShopFloorBase(object):
     """Always returns true (for client to check if server is working)."""
     return True
 
+  def CheckSN(self, serial):
+    """Checks whether a serial number is valid.
+
+    Args:
+      serial: A string of device serial number.
+
+    Returns:
+      True if the serial number provided is considered valid.
+
+    Raises:
+      ValueError if serial is invalid, or other exceptions defined by individual
+      modules. Note this will be converted to xmlrpclib.Fault when being used as
+      a XML-RPC server module.
+    """
+    raise NotImplementedError('CheckSN')
+
   def GetHWID(self, serial):
     """Returns appropriate HWID according to given serial number.
 

@@ -278,8 +278,7 @@ def get_serial_number():
 @_server_api
 def check_serial_number(serial_number):
   """Checks if given serial number is valid."""
-  # Use GetHWID to check serial number.
-  return get_instance().GetHWID(serial_number)
+  return get_instance().CheckSN(serial_number)
 
 
 @_server_api
