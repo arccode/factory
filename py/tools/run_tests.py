@@ -15,7 +15,42 @@ import tempfile
 import time
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils.process_utils import Spawn, CheckOutput
+
+TEST_PASSED_MARK = '.tests-passed'
+
+def _MaybeRunPytestsOnly(tests, isolated_tests):
+  """Filters tests according to changed file.
+
+  If all modified files since last test run are inside py/test/pytests, we
+  don't run unittests outside that directory.
+
+  Args:
+    tests: unittest paths.
+    isolated_tests: isolated unittest paths.
+
+  Returns:
+    A tuple (filtered_tests, filtered_isolated_tests) containing filtered
+    tests and isolated tests.
+  """
+  PYTEST_PATH = 'py/test/pytests'
+  if not os.path.exists(TEST_PASSED_MARK):
+    return (tests, isolated_tests)
+
+  ls_tree = CheckOutput(['git', 'ls-tree', '-r', 'HEAD']).split('\n')
+  files = [line.split()[3] for line in ls_tree if line]
+  last_test_time = os.path.getmtime(TEST_PASSED_MARK)
+  changed_files = [f for f in files if os.path.getmtime(f) > last_test_time]
+
+  if not changed_files:
+    # Nothing to test!
+    return ([], [])
+
+  if next((f for f in changed_files if not f.startswith(PYTEST_PATH)), None):
+    return (tests, isolated_tests)
+
+  return ([test for test in tests if test.startswith(PYTEST_PATH)],
+          [test for test in isolated_tests if test.startswith(PYTEST_PATH)])
 
 class _TestProc(object):
   """Creates and runs a subprocess to run an unittest.
@@ -198,12 +233,25 @@ def main():
                       help='Isolated unittests which run sequentially.')
   parser.add_argument('--nofallback', action='store_true',
                       help='Do not re-run failed test sequentially.')
+  parser.add_argument('--nofilter', action='store_true',
+                      help='Do not filter tests.')
   parser.add_argument('test', nargs='+', help='Unittest filename.')
   args = parser.parse_args()
 
-  runner = RunTests(args.test, args.jobs, args.log,
-                    isolated_tests=args.isolated, fallback=not args.nofallback)
-  sys.exit(runner.Run())
+  test, isolated = ((args.test, args.isolated)
+                    if args.nofilter
+                    else _MaybeRunPytestsOnly(args.test, args.isolated))
+
+  if os.path.exists(TEST_PASSED_MARK):
+    os.remove(TEST_PASSED_MARK)
+
+  runner = RunTests(test, args.jobs, args.log,
+                    isolated_tests=isolated, fallback=not args.nofallback)
+  return_value = runner.Run()
+  if return_value == 0:
+    with open(TEST_PASSED_MARK, 'a'):
+      os.utime(TEST_PASSED_MARK, None)
+  sys.exit(return_value)
 
 if __name__ == '__main__':
   main()

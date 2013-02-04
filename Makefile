@@ -187,12 +187,12 @@ clean:
 	rm -rf $(BUILD_DIR)
 
 test:
-	@rm -f .tests-passed; \
-	logdir=/tmp/test.logs.$$(date +%Y%m%d_%H%M%S); \
+	@logdir=/tmp/test.logs.$$(date +%Y%m%d_%H%M%S); \
 	mkdir $$logdir; \
 	echo "Test logs will be written to $$logdir"; \
 	echo; \
-	if $(TEST_RUNNER) $(UNITTESTS_WHITELIST) -i $(UNITTESTS_ISOLATE_LIST) \
-            -j $(MAX_TESTS) -l $$logdir ; then \
-		touch .tests-passed; \
-	fi;
+	$(TEST_RUNNER) $(UNITTESTS_WHITELIST) -i $(UNITTESTS_ISOLATE_LIST) \
+            -j $(MAX_TESTS) -l $$logdir $(EXTRA_TEST_FLAGS)
+
+testall:
+	@make --no-print-directory test EXTRA_TEST_FLAGS=--nofilter
