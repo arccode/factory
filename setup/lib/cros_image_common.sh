@@ -21,13 +21,14 @@ image_die() {
 
 # Finds the best gzip compressor and invoke it
 image_gzip_compress() {
-  # -n flag omits name/time from the header so that the resultant files
-  # are deterministic and hashes do not change each time.
+  # -n (and -T for pigz) omits name/time from the header so that the
+  # resultant files are deterministic and hashes do not change each
+  # time.
   if image_has_command pigz; then
     # echo " ** Using parallel gzip **" >&2
     # Tested with -b 32, 64, 128(default), 256, 1024, 16384, and -b 32 (max
     # window size of Deflate) seems to be the best in output size.
-    pigz -n -b 32 "$@"
+    pigz -nT -b 32 "$@"
   else
     gzip -n "$@"
   fi

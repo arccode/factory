@@ -152,6 +152,9 @@ class FinalizeBundle(object):
     all_files: Set of files actually present in the bundle (relative paths).
     readme_path: Path to the README file within the bundle.
     factory_image_base_version: Build of the factory image (e.g., 3004.100.0)
+    release_image_path: Path to the release image.
+    mini_omaha_script_path: Path to the script used to start the mini-Omaha
+      server.
   """
   args = None
   bundle_dir = None
@@ -163,6 +166,8 @@ class FinalizeBundle(object):
   all_files = None
   readme_path = None
   factory_image_base_version = None
+  release_image_path = None
+  mini_omaha_script_path = None
 
   def Main(self):
     if not utils.in_chroot():
@@ -174,6 +179,7 @@ class FinalizeBundle(object):
     self.DeleteFiles()
     self.MakeUpdateBundle()
     self.UpdateMiniOmahaURL()
+    self.MakeFactoryPackages()
     self.CheckFiles()
     self.UpdateReadme()
     self.Archive()
@@ -191,6 +197,10 @@ class FinalizeBundle(object):
     parser.add_argument(
         '--no-archive', dest='archive', action='store_false',
         help="Don't make a tarball (for testing only)")
+    parser.add_argument(
+        '--no-make-factory-packages', dest='make_factory_package',
+        action='store_false',
+        help="Don't call make_factory_package (for testing only)")
     parser.add_argument(
         'dir', metavar='DIR',
         help="Directory containing the bundle")
@@ -339,13 +349,60 @@ class FinalizeBundle(object):
                   check_call=True, log=True)
             shutil.move(new_netboot_image, netboot_image)
 
+  def MakeFactoryPackages(self):
+    release_images = glob.glob(os.path.join(self.bundle_dir, 'release/*.bin'))
+    if len(release_images) != 1:
+      sys.exit("Expected one release image but found %d" % len(release_images))
+    self.release_image_path = release_images[0]
+
+    factory_setup_dir = os.path.join(self.bundle_dir, 'factory_setup')
+    make_factory_package = [
+        './make_factory_package.sh',
+        '--board', self.board,
+        '--complete_script', 'complete_script.sh',
+        '--release', os.path.relpath(self.release_image_path,
+                                     factory_setup_dir),
+        '--factory', '../factory_test/chromiumos_factory_image.bin',
+        '--hwid_updater', '../hwid/hwid_bundle_%s_all.sh' % self.board.upper()]
+
+    firmware_updater = os.path.join(
+        self.bundle_dir, 'firmware', 'chromeos-firmwareupdate')
+    if os.path.exists(firmware_updater):
+      make_factory_package += [
+          '--firmware_updater', os.path.relpath(
+              firmware_updater, factory_setup_dir)]
+
+    if self.args.make_factory_package:
+      Spawn(make_factory_package, cwd=factory_setup_dir,
+            check_call=True, log=True)
+
+    # Build the mini-Omaha startup script.
+    self.mini_omaha_script_path = os.path.join(
+        self.bundle_dir, 'start_download_server.sh')
+    if os.path.exists(self.mini_omaha_script_path):
+      os.unlink(self.mini_omaha_script_path)
+    with open(self.mini_omaha_script_path, 'w') as f:
+      f.write('\n'.join([
+          '#!/bin/bash',
+          'set -e',  # Fail on error
+          'cd $(dirname $(readlink -f "$0"))/factory_setup',
+          'cat miniomaha.conf',
+          'echo Miniomaha configuration MD5SUM: $(md5sum miniomaha.conf)',
+          'echo Validating configuration...',
+          ('python miniomaha.py --validate_factory_config'),
+          'echo Starting download server.',
+          'python miniomaha.py',
+          ''  # Add newline at EOF
+          ]))
+      os.fchmod(f.fileno(), 0555)
+
   def CheckFiles(self):
     # Check that the set of files is correct
     self.all_files = set()
     for root, dirs, files in os.walk(self.bundle_dir):
       for f in files:
-        # Remove backup files.
-        if f.endswith('~'):
+        # Remove backup files and compiled Python files.
+        if f.endswith('~') or f.endswith('.pyc'):
           os.unlink(os.path.join(root, f))
           continue
         self.all_files.add(
@@ -409,10 +466,7 @@ class FinalizeBundle(object):
     with MountPartition(self.factory_image_path, 1) as f:
       vitals.append(('Factory updater MD5SUM', open(
           os.path.join(f, 'dev_image/factory/MD5SUM')).read().strip()))
-    release_images = glob.glob(os.path.join(self.bundle_dir, 'release/*.bin'))
-    if len(release_images) != 1:
-      sys.exit("Expected one release image but found %d" % len(release_images))
-    with MountPartition(release_images[0], 3) as f:
+    with MountPartition(self.release_image_path, 3) as f:
       vitals.append(('Release (FSI)', GetReleaseVersion(f)))
       bios_version, ec_version = GetFirmwareVersions(
           os.path.join(f, 'usr/sbin/chromeos-firmwareupdate'))
@@ -452,25 +506,11 @@ class FinalizeBundle(object):
     readme_sections[readme_section_index['VITAL INFORMATION']][2] = (
         vital_contents + '\n\n')
 
-    # Build the mini-Omaha startup instructions.
     instructions = [
         'To start a mini-Omaha server:',
         '',
-        '  cd factory_setup',
-        '  ./make_factory_package.sh \\',
-        '    --board %s \\' % self.board,
-        '    --complete_script complete_script.sh \\',
-        '    --run_omaha \\',
-        '    --release ../%s \\' % os.path.relpath(release_images[0],
-                                                   self.bundle_dir),
-        '    --factory ../factory_test/chromiumos_factory_image.bin \\',
-        '    --hwid_updater ../hwid/hwid_bundle_%s_all.sh' % self.board.upper()]
-
-    if firmwareupdates:
-      instructions[-1] += ' \\'
-      instructions.append('    --firmware_updater ../%s' %
-                          os.path.relpath(firmwareupdates[0], self.bundle_dir))
-
+        '  ./start_download_server.sh'
+        ]
     readme_sections[readme_section_index['MINI-OMAHA SERVER']][2] = (
         '\n'.join(instructions) + '\n\n')
 
@@ -493,14 +533,18 @@ class FinalizeBundle(object):
                     ['some lunch', 'some fruit'] +
                     ['an afternoon snack'] * 2 +
                     ['a beer'] * 8)[time.localtime().tm_hour])
-      output_file = self.bundle_dir + '.tar.bz2'
-      Spawn(['tar', '-cf', output_file,
-             '-I', 'pbzip2',
-             '-C', os.path.dirname(self.bundle_dir),
-             os.path.basename(self.bundle_dir)], log=True, check_call=True)
-      logging.info(
-          'Created %s (%.1f GiB).',
-          output_file, os.path.getsize(output_file) / (1024.*1024.*1024.))
+
+      for mini in [True, False]:
+        output_file = self.bundle_dir + ('.mini' if mini else '') + '.tar.bz2'
+        Spawn(['tar', '-cf', output_file,
+               '-I', 'pbzip2',
+               '-C', os.path.dirname(self.bundle_dir)] +
+              (['--exclude', '*.bin', '--exclude', '*.uimg'] if mini else []) +
+              [os.path.basename(self.bundle_dir)],
+              log=True, check_call=True)
+        logging.info(
+            'Created %s (%.1f GiB).',
+            output_file, os.path.getsize(output_file) / (1024.*1024.*1024.))
 
     logging.info('The README file (%s) has been updated.  Make sure to check '
                  'that it is correct!', self.readme_path)
