@@ -163,7 +163,8 @@ lint:
 	echo ...no lint errors! You are awesome!; \
 	rm -f $$out
 
-PRESUBMIT_FILES := $(shell realpath --relative-to=. $$PRESUBMIT_FILES)
+PRESUBMIT_FILES := $(if $(PRESUBMIT_FILES),\
+	             $(shell realpath --relative-to=. $(PRESUBMIT_FILES)))
 
 lint-presubmit:
 	$(MAKE) lint \
@@ -175,7 +176,7 @@ test-presubmit:
 	    echo 'Unit tests have not passed.  Please run "make test".'; \
 	    exit 1; \
 	fi
-	changed=$$(find $$PRESUBMIT_FILES -newer .tests-passed); \
+	changed=$$(find $(PRESUBMIT_FILES) -newer .tests-passed); \
 	if [ -n "$$changed" ]; then \
 	    echo "Files have changed since last time unit tests passed:"; \
 	    echo "$$changed" | sed -e 's/^/  /'; \
