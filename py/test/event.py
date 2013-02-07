@@ -77,6 +77,8 @@ class Event(object):
       'RE_RUN_FAILED': 'goofy:re_run_failed',
       # Tells goofy to re-run all tests with particular statuses.
       'RUN_TESTS_WITH_STATUS': 'goofy:run_tests_with_status',
+      # Clears state of all tests underneath the given path.
+      'CLEAR_STATE': 'goofy:clear_state',
       # Tells goofy to go to the review screen.
       'REVIEW': 'goofy:review',
       # Tells the UI about a single new line in the log.

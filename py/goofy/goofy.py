@@ -241,6 +241,8 @@ class Goofy(object):
       Event.Type.SET_VISIBLE_TEST:
         lambda event: self.set_visible_test(
           self.test_list.lookup_path(event.path)),
+      Event.Type.CLEAR_STATE:
+        lambda event: self.clear_state(self.test_list.lookup_path(event.path)),
     }
 
     self.exceptions = []
@@ -917,6 +919,12 @@ class Goofy(object):
     self.tests_to_run = deque([x for x in self.tests_to_run
                                if root and not x.has_ancestor(root)])
     self.run_next_test()
+
+  def clear_state(self, root=None):
+    self.stop(root)
+    for f in root.walk():
+      if f.is_leaf():
+        f.update_state(status=TestState.UNTESTED)
 
   def abort_active_tests(self):
     self.kill_active_tests(True)

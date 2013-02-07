@@ -1294,17 +1294,22 @@ cros.factory.Goofy.prototype.showTestPopup = function(path, labelElement,
                         'path': path
                     });
                 }, /*opt_adjectiveAtEnd=*/true), true);
-            if (this.engineeringmode) {
-                // For operators, the previous menu item is
-                // sufficient.
-                menu.addChild(this.makeMenuItem(
-                    'Run', '执行', 'untested', '未测的',
-                    (numLeavesByStatus['UNTESTED'] || 0) +
+        }
+        if (this.engineeringMode) {
+            menu.addChild(this.makeMenuItem(
+                'Clear status of', '清除', '', '', numLeaves, test,
+                function(event) {
+                    this.sendEvent('goofy:clear_state', {'path': path});
+                    }, false, '', '的狀態'), true);
+        }
+        if (this.engineeringMode && test.subtests.length) {
+            menu.addChild(this.makeMenuItem(
+                'Run', '执行', 'untested', '未测的',
+                (numLeavesByStatus['UNTESTED'] || 0) +
                     (numLeavesByStatus['ACTIVE'] || 0),
-                    test, function(event) {
-                        this.sendEvent('goofy:auto_run', {'path': path});
-                    }), true);
-            }
+                test, function(event) {
+                    this.sendEvent('goofy:auto_run', {'path': path});
+                }), true);
         }
     }
     addSeparator();
