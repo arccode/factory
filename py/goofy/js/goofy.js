@@ -167,6 +167,25 @@ cros.factory.TestListEntry;
 cros.factory.PendingShutdownEvent;
 
 /**
+ * Entry in test history returned by get_test_history.
+ * @typedef {{init_time: number, end_time: number, status: string,
+ *            path: string, invocation: string}}
+ */
+cros.factory.HistoryMetadata;
+
+/**
+ * Entry in test history.
+ * @typedef {{metadata: cros.factory.HistoryMetadata, log: string}}
+ */
+cros.factory.HistoryEntry;
+
+/**
+ * TestState object in an event or RPC response.
+ * @typedef {{status: string, skip: boolean, visible: boolean}}
+ */
+cros.factory.TestState;
+
+/**
  * Public API for tests.
  * @constructor
  * @param {cros.factory.Invocation} invocation
@@ -1398,7 +1417,9 @@ cros.factory.Goofy.prototype.createViewLogMenu = function(path) {
             history.reverse();
 
             var count = history.length;
-            goog.array.forEach(history, function(entry) {
+            goog.array.forEach(history, function(untypedEntry) {
+                var entry = /** @type cros.factory.HistoryMetadata */(
+                    untypedEntry);
                 var status = entry.status ? entry.status.toLowerCase() :
                     'started';
                 var title = count-- + '. Run at ';
@@ -1412,8 +1433,7 @@ cros.factory.Goofy.prototype.createViewLogMenu = function(path) {
                 }
                 title += ' (' + status;
 
-                var time = /** @type number */(entry.end_time) ||
-                    entry.init_time;
+                var time = entry.end_time || entry.init_time;
                 if (time) {
                     var secondsAgo = goog.now() / 1000.0 - time;
 
@@ -1441,9 +1461,7 @@ cros.factory.Goofy.prototype.createViewLogMenu = function(path) {
                 goog.events.listen(
                     item, goog.ui.Component.EventType.ACTION,
                     function(event) {
-                        this.showHistoryEntry(
-                            entry.path,
-                            /** @type string */(entry.invocation));
+                        this.showHistoryEntry(entry.path, entry.invocation);
                     }, false, this);
 
                 subMenu.addItem(item);
@@ -1658,9 +1676,8 @@ cros.factory.Goofy.prototype.FULL_TIME_FORMAT =
 cros.factory.Goofy.prototype.showHistoryEntry = function(path, invocation) {
     this.sendRpc(
         'get_test_history_entry', [path, invocation],
-        function(data) {
-            var metadata = /** @type Object */(data.metadata);
-            var log = /** @type string */(data.log);
+        function(untypedEntry) {
+            var entry = /** @type cros.factory.HistoryEntry */(untypedEntry);
 
             var viewSize = goog.dom.getViewportSize(
                 goog.dom.getWindow(document) || window);
@@ -1680,9 +1697,9 @@ cros.factory.Goofy.prototype.showHistoryEntry = function(path, invocation) {
                     var name = f[0];
                     var title = f[1];
 
-                    if (metadata[name]) {
-                        var value = metadata[name];
-                        delete metadata[name];
+                    if (entry.metadata[name]) {
+                        var value = entry.metadata[name];
+                        delete entry.metadata[name];
                         if (goog.string.endsWith(name, '_time')) {
                             value = this.FULL_TIME_FORMAT.format(
                                 new Date(value * 1000));
@@ -1694,7 +1711,7 @@ cros.factory.Goofy.prototype.showHistoryEntry = function(path, invocation) {
                     }
                 }, this);
 
-            var keys = goog.object.getKeys(metadata);
+            var keys = goog.object.getKeys(entry.metadata);
             keys.sort();
             goog.array.forEach(keys, function(key) {
                 if (key == 'log_tail') {
@@ -1703,7 +1720,7 @@ cros.factory.Goofy.prototype.showHistoryEntry = function(path, invocation) {
                     return;
                 }
                 metadataTable.push('<tr><th>' + key + '</th><td>' +
-                                   goog.string.htmlEscape(metadata[key]) +
+                                   goog.string.htmlEscape(entry.metadata[key]) +
                                    '</td></tr>');
                 }, this);
 
@@ -1711,8 +1728,8 @@ cros.factory.Goofy.prototype.showHistoryEntry = function(path, invocation) {
 
             var dialog = new goog.ui.Dialog();
             this.registerDialog(dialog);
-            dialog.setTitle(metadata.path +
-                            ' (invocation ' + metadata.invocation + ')');
+            dialog.setTitle(entry.metadata.path +
+                            ' (invocation ' + entry.metadata.invocation + ')');
             dialog.setModal(false);
             dialog.setContent(
                 '<div class="goofy-history" style="max-width: ' +
@@ -1721,7 +1738,7 @@ cros.factory.Goofy.prototype.showHistoryEntry = function(path, invocation) {
                 metadataTable.join('') +
                 '<div class=goofy-history-header>Log</div>' +
                 '<div class=goofy-history-log>' +
-                goog.string.htmlEscape(log) +
+                goog.string.htmlEscape(entry.log) +
                 '</div>' +
                 '</div>');
             dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
@@ -1967,7 +1984,7 @@ cros.factory.Goofy.prototype.updateFactory = function() {
 /**
  * Sets the state for a particular test.
  * @param {string} path
- * @param {Object.<string, Object>} state the TestState object (contained in
+ * @param {cros.factory.TestState} state the TestState object (contained in
  *     an event or as a response to the RPC call).
  */
 cros.factory.Goofy.prototype.setTestState = function(path, state) {
@@ -1992,17 +2009,16 @@ cros.factory.Goofy.prototype.setTestState = function(path, state) {
             }),
         'goofy-status-' + state.status.toLowerCase());
 
-    goog.dom.classes.enable(elt, 'goofy-skip',
-                            /** @type boolean */(state.skip));
+    goog.dom.classes.enable(elt, 'goofy-skip', state.skip);
 
-    var visible = /** @type boolean */(state.visible);
+    var visible = state.visible;
     goog.dom.classes.enable(elt, 'goofy-test-visible', visible);
     goog.object.forEach(this.invocations, function(invoc, uuid) {
             if (invoc && invoc.path == path) {
                 goog.dom.classes.enable(invoc.iframe,
                                         'goofy-test-visible', visible);
                 if (visible) {
-                    this.iframe.contentWindow.focus();
+                    invoc.iframe.contentWindow.focus();
                 }
             }
         }, this);
