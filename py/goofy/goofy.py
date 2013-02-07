@@ -156,6 +156,8 @@ class Goofy(object):
       event.  If the method has an 'event' argument, the event is passed
       to the handler.
     exceptions: Exceptions encountered in invocation threads.
+    last_log_disk_space_message: The last message we logged about disk space
+      (to avoid duplication).
   '''
   def __init__(self):
     self.uuid = str(uuid.uuid4())
@@ -191,6 +193,7 @@ class Goofy(object):
     self.last_update_check = None
     self.last_sync_time = None
     self.last_log_disk_space_time = None
+    self.last_log_disk_space_message = None
     self.exclusive_items = set()
     self.event_log = None
     self.key_filter = None
@@ -1343,7 +1346,10 @@ class Goofy(object):
     self.last_log_disk_space_time = now
 
     try:
-      logging.info(disk_space.FormatSpaceUsedAll())
+      message = disk_space.FormatSpaceUsedAll()
+      if message != self.last_log_disk_space_message:
+        logging.info(message)
+        self.last_log_disk_space_message = message
     except:  # pylint: disable=W0702
       logging.exception('Unable to get disk space used')
 
