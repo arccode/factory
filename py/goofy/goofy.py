@@ -1070,16 +1070,36 @@ class Goofy(object):
       self.state_instance.get_shared_data('shutdown_time', optional=True))
     self.state_instance.del_shared_data('shutdown_time', optional=True)
 
+    self.state_instance.del_shared_data('startup_error', optional=True)
     if not self.options.test_list:
       self.options.test_list = find_test_list()
-      if not self.options.test_list:
-        logging.error('No test list. Aborting.')
-        sys.exit(1)
+    if self.options.test_list:
       logging.info('Using test list %s', self.options.test_list)
+      try:
+        self.test_list = factory.read_test_list(
+            self.options.test_list,
+            self.state_instance)
+      except:  # pylint: disable=W0702
+        logging.exception('Unable to read test list %r', self.options.test_list)
+        self.state_instance.set_shared_data('startup_error',
+            'Unable to read test list %s\n%s' % (
+                self.options.test_list,
+                traceback.format_exc()))
+    else:
+      logging.error('No test list found.')
+      self.state_instance.set_shared_data('startup_error',
+                                          'No test list found.')
 
-    self.test_list = factory.read_test_list(
-      self.options.test_list,
-      self.state_instance)
+    if not self.test_list:
+      if self.options.ui == 'chrome':
+        # Create an empty test list with default options so that the rest of
+        # startup can proceed.
+        self.test_list = factory.FactoryTestList(
+            [], self.state_instance, factory.Options())
+      else:
+        # Bail with an error; no point in starting up.
+        sys.exit('No valid test list; exiting.')
+
     if not self.state_instance.has_shared_data('ui_lang'):
       self.state_instance.set_shared_data('ui_lang',
                         self.test_list.options.ui_lang)

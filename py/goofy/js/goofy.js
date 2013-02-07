@@ -725,6 +725,23 @@ cros.factory.Goofy.prototype.init = function() {
                     this.engineeringPasswordSHA1 != null);
                 this.setEngineeringMode(this.engineeringPasswordSHA1 == null);
             });
+    this.sendRpc(
+        'get_shared_data', ['startup_error'],
+        function(error) {
+            this.alert(
+                cros.factory.Label(
+                    ('An error occurred while starting ' +
+                     'the factory test system.<br>' +
+                     'Factory testing cannot proceed.'),
+                    ('开工厂测试系统时发生错误.<br>' +
+                     '没办法继续测试.')) +
+                    '<div class="goofy-startup-error">' +
+                    goog.string.htmlEscape(error) +
+                    '</div>');
+        },
+        function() {
+            // Unable to retrieve the key; that's fine, no startup error!
+        });
 
     var timer = new goog.Timer(1000);
     goog.events.listen(timer, goog.Timer.TICK, this.updateTime, false, this);
@@ -889,7 +906,6 @@ cros.factory.Goofy.prototype.alert = function(messageHtml) {
     dialog.setContent(messageHtml);
     dialog.setVisible(true);
     goog.dom.classes.add(dialog.getElement(), 'goofy-alert');
-    this.positionOverConsole(dialog.getElement());
 };
 
 /**

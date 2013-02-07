@@ -410,6 +410,10 @@ table + .goofy-history-header {
   margin-top: 0.5em;
   width: 100%;
 }
+.goofy-startup-error {
+  white-space: pre;
+  margin-top: 1em;
+}
 .modal-dialog-buttons {
   text-align: center;
 }
