@@ -88,14 +88,19 @@ class WirelessTest(unittest.TestCase):
 
       if self.args.test_url is not None:
         logging.debug('Try connecting to %s', self.args.test_url)
-        try:
-          urllib2.urlopen(self.args.test_url, timeout=10)
-        except urllib2.HTTPError as e:
-          factory.console.info('Connected to %s but got status code %d',
-                               self.args.test_url, e.code)
-        else:
-          factory.console.info('Successfully connected to %s',
-                               self.args.test_url)
+        for i in range(5): # pylint: disable=W0612
+          try:
+            urllib2.urlopen(self.args.test_url, timeout=2)
+          except urllib2.HTTPError as e:
+            factory.console.info('Connected to %s but got status code %d',
+                                 self.args.test_url, e.code)
+          except urllib2.URLError as e:
+            factory.console.info('Failed to connect to %s, status code %d',
+                                 self.args.test_url, e.code)
+          else:
+            factory.console.info('Successfully connected to %s',
+                                 self.args.test_url)
+            break
 
       logging.debug('Disconnecting %s', name)
       flim.DisconnectService(service)
