@@ -84,14 +84,21 @@ class SelectAuxField(unittest.TestCase):
         '选择%s' % self.args.label_zh))
 
     # Display choices as radio buttons.
+    radio_button_html = ''
+    choices = self.args.choices.keys()
+    choices.sort()
+    for i in xrange(len(choices)):
+      choice = choices[i]
+      radio_button_html += (
+          '<input name="select-value" type="radio" value="%s" id="choice_%d">' %
+           (choice, i) +
+          '<label for="choice_%d">%s</label><br>' % (i, choice))
     template.SetState(
         test_ui.MakeLabel(
             'Please select the %s and press ENTER.' % self.args.label_en,
             '请选择%s後按下 ENTER。' % (
                 self.args.label_zh or self.args.label_en)) + '<br>' +
-        ''.join(['<input name="select-value" type="radio" value="%s">%s<br>' %
-                 (choice, choice) for choice in self.args.choices.keys()]) +
-        '<br>&nbsp;'
+                radio_button_html + '<br>&nbsp;'
         '<p id="select-error" class="test-error">&nbsp;')
 
     # Handle selected value when Enter pressed.
