@@ -295,6 +295,9 @@ class Finalize(unittest.TestCase):
 
     gooftools.run(command)
 
+    if shopfloor.is_enabled():
+      shopfloor.finalize()
+
     # TODO(hungte): Use Reboot in test list to replace this, or add a
     # key-press check in developer mode.
     os.system("sync; sync; sync; shutdown -r now")
