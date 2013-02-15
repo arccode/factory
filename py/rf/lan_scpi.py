@@ -267,7 +267,7 @@ class LANSCPI(object):
     if '\n' in command:
       raise Error('Newline in command: %r' % command)
     self.logger.debug('] %s' % command)
-    print >> self.wfile, command
+    self.wfile.write(command + '\n')
 
 
 #
