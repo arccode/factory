@@ -462,6 +462,10 @@ def _ParseOptions():
   parser = optparse.OptionParser(description=__doc__,
                                  option_class=_OptionWithMemsize)
 
+  parser.add_option('--env-addr', dest='env_addr', default=None,
+                    type='int',
+                    help='If specified, overrides the default env_addr that '
+                    'u-boot expects')
   parser.add_option('--env-size', dest='env_size', default=None,
                     type='memsize',
                     help='If specified, overrides the default env_size that '
@@ -517,11 +521,14 @@ def main():
     except OSError:
       raise ArgumentError("Error accessing input image: %s" % opts.input)
 
-    env_addr, env_size = _GetEnvVarAddrSize(opts.input)
+    if opts.env_addr is None or opts.env_size is None:
+      env_addr, env_size = _GetEnvVarAddrSize(opts.input)
+    env_addr = opts.env_addr or env_addr
+    env_size = opts.env_size or env_size
+
     env_vars = opts.vars + _GetSpecialEnvVars(opts)
     kernel_args = opts.args + _GetSpecialKernelArgs(opts)
-    env_str = _BuildEnvironment(env_vars, kernel_args,
-                                opts.env_size or env_size)
+    env_str = _BuildEnvironment(env_vars, kernel_args, env_size)
     outfile = _MakeOutput(opts.input, opts.output, opts.fw_size)
     _PutEnvInFile(outfile, env_addr, env_str, opts.force)
 
