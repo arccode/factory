@@ -1,0 +1,7 @@
+__key__,__value__
+# This CSV demonstrate recursively reading from different types of CSV,
+key1,CsvLink('dict_normal.csv')
+# Following is an empty line demos the annotation feature.,
+,
+key3,CsvLink('list_of_dict_normal.csv')
+key2,33

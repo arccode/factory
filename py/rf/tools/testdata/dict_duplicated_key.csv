@@ -1,0 +1,4 @@
+__key__,__value__
+# This csv demonstrate duplicated keys.
+key1,33
+key1,22
