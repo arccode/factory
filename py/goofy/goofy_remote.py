@@ -167,7 +167,7 @@ def main():
 
   if args.restart:
     Spawn(ssh_command +
-          [args.host, '/usr/local/factory/bin/restart'] +
+          [args.host, '/usr/local/factory/bin/factory_restart'] +
           (['-a'] if args.clear_state else []),
           check_call=True, log=True)
 
