@@ -32,6 +32,7 @@ EVENTS_DIR = 'events'
 REPORTS_DIR = 'reports'
 AUX_LOGS_DIR = 'aux_logs'
 UPDATE_DIR = 'update'
+PARAMETERS_DIR = 'parameters'
 REGISTRATION_CODE_LOG_CSV = 'registration_code_log.csv'
 LOGS_DIR_FORMAT = 'logs.%Y%m%d'
 
@@ -67,6 +68,7 @@ class ShopFloorBase(object):
   def __init__(self):
     self.data_dir = None  # Set by shopfloor_server
     self.update_dir = None
+    self.parameters_dir = None
     self.update_server = None
     self._auto_archive_logs = None
     self._auto_archive_logs_days = None
@@ -96,6 +98,10 @@ class ShopFloorBase(object):
     self.update_server = factory_update_server.FactoryUpdateServer(
         self.update_dir,
         on_idle=(self._AutoSaveLogs if self._auto_archive_logs else None))
+    # Create parameters directory
+    self.parameters_dir = os.path.join(self.data_dir, PARAMETERS_DIR)
+    utils.TryMakeDirs(self.parameters_dir)
+    self.parameters_dir = os.path.realpath(self.parameters_dir)
 
   def _StartBase(self):
     """Starts the base class."""
@@ -281,6 +287,29 @@ class ShopFloorBase(object):
       a XML-RPC server module.
     """
     raise NotImplementedError('CheckSN')
+
+  def ListParameters(self, pattern):
+    """Lists files that match the pattern in parameters directory.
+
+     Args:
+       pattern: A pattern string for glob to list matched files.
+
+     Returns:
+       A list of matched files.
+
+     Raises:
+       ValueError if caller is trying to query outside parameters directory.
+    """
+    glob_pathname = os.path.abspath(os.path.join(self.parameters_dir, pattern))
+    if not glob_pathname.startswith(self.parameters_dir):
+      raise ValueError('ListParameters is limited to parameter directory')
+
+    matched_file = glob.glob(glob_pathname)
+    # Only return files.
+    matched_file = filter(os.path.isfile, matched_file)
+    return [os.path.relpath(x, self.parameters_dir) for x in matched_file]
+
+  # TODO(itspeter): Implement DownloadParameter.
 
   def GetHWID(self, serial):
     """Returns appropriate HWID according to given serial number.

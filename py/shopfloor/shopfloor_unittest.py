@@ -34,6 +34,7 @@ class ShopFloorServerTest(unittest2.TestCase):
     self.data_dir = tempfile.mkdtemp(prefix='shopfloor_data.')
     self.auto_archive_logs = os.path.join(self.data_dir, 'auto-archive-logs')
     self.logs_dir = os.path.join(self.data_dir, time.strftime('logs.%Y%m%d'))
+    self.parameters_dir = os.path.join(self.data_dir, 'parameters')
     self.registration_code_log = (
         os.path.join(self.data_dir, shopfloor.REGISTRATION_CODE_LOG_CSV))
     csv_source = os.path.join(self.base_dir, 'testdata', 'devices.csv')
@@ -93,6 +94,32 @@ class ShopFloorServerTest(unittest2.TestCase):
     self.assertRaises(xmlrpclib.Fault, self.proxy.CheckSN, None)
     self.assertRaises(xmlrpclib.Fault, self.proxy.CheckSN, 'CR001000')
     self.assertRaises(xmlrpclib.Fault, self.proxy.CheckSN, 'CR001026')
+
+  def testListParameters(self):
+    def CreateFileAndContextAsFilename(filename):
+      utils.TryMakeDirs(os.path.dirname(filename))
+      with open(filename, "w") as fd:
+        fd.write(os.path.basename(filename))
+
+    # Make few temporary files.
+    wifi_production = set(["rf/wifi/parameters.production"])
+    wifi_calibration = set(["rf/wifi/calibration_config.1",
+                            "rf/wifi/calibration_config.2"])
+    cell_production = set(["rf/cell/parameters.production"])
+
+    for filename in (wifi_production | wifi_calibration | cell_production):
+      CreateFileAndContextAsFilename(
+          os.path.join(self.parameters_dir, filename))
+    self.assertEqual(set(self.proxy.ListParameters('rf/wifi/*')),
+                     (wifi_production | wifi_calibration))
+    self.assertEqual(set(self.proxy.ListParameters('rf/wifi/calibration*')),
+                     wifi_calibration)
+    # Because ListParameters is not recursive, this should be empty set.
+    self.assertEqual(set(self.proxy.ListParameters('*')), set())
+    self.assertEqual(set(self.proxy.ListParameters('rf/*/parameters.*')),
+                     (wifi_production | cell_production))
+    # Listing files outside parameters directory should raise an exception.
+    self.assertRaises(xmlrpclib.Fault, self.proxy.ListParameters, 'rf/../../*')
 
   def testGetHWID(self):
     # Valid HWIDs range from CR001001 to CR001025
