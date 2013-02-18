@@ -310,6 +310,28 @@ class ShopFloorBase(object):
     return [os.path.relpath(x, self.parameters_dir) for x in matched_file]
 
   # TODO(itspeter): Implement DownloadParameter.
+  def GetParameter(self, path):
+    """Gets the assigned parameter file.
+
+     Args:
+       path: A relative path for locating the parameter.
+
+     Returns:
+       Content of the parameter. It is always wrapped in a shopfloor.Binary
+       object to provides best flexibility.
+
+     Raises:
+       ValueError if the parameter does not exist or is not under
+       parameters folder.
+    """
+    abspath = os.path.abspath(os.path.join(self.parameters_dir, path))
+    if not abspath.startswith(self.parameters_dir):
+      raise ValueError('GetParameter is limited to parameter directory')
+
+    if not os.path.isfile(abspath):
+      raise ValueError('File does not exist or it is not a file')
+
+    return Binary(open(abspath).read())
 
   def GetHWID(self, serial):
     """Returns appropriate HWID according to given serial number.

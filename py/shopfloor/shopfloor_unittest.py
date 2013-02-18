@@ -95,12 +95,12 @@ class ShopFloorServerTest(unittest2.TestCase):
     self.assertRaises(xmlrpclib.Fault, self.proxy.CheckSN, 'CR001000')
     self.assertRaises(xmlrpclib.Fault, self.proxy.CheckSN, 'CR001026')
 
-  def testListParameters(self):
-    def CreateFileAndContextAsFilename(filename):
-      utils.TryMakeDirs(os.path.dirname(filename))
-      with open(filename, "w") as fd:
-        fd.write(os.path.basename(filename))
+  def _CreateFileAndContextAsFilename(self, filename):
+    utils.TryMakeDirs(os.path.dirname(filename))
+    with open(filename, "w") as fd:
+      fd.write(os.path.basename(filename))
 
+  def testListParameters(self):
     # Make few temporary files.
     wifi_production = set(["rf/wifi/parameters.production"])
     wifi_calibration = set(["rf/wifi/calibration_config.1",
@@ -108,7 +108,7 @@ class ShopFloorServerTest(unittest2.TestCase):
     cell_production = set(["rf/cell/parameters.production"])
 
     for filename in (wifi_production | wifi_calibration | cell_production):
-      CreateFileAndContextAsFilename(
+      self._CreateFileAndContextAsFilename(
           os.path.join(self.parameters_dir, filename))
     self.assertEqual(set(self.proxy.ListParameters('rf/wifi/*')),
                      (wifi_production | wifi_calibration))
@@ -120,6 +120,20 @@ class ShopFloorServerTest(unittest2.TestCase):
                      (wifi_production | cell_production))
     # Listing files outside parameters directory should raise an exception.
     self.assertRaises(xmlrpclib.Fault, self.proxy.ListParameters, 'rf/../../*')
+
+  def testGetParameter(self):
+    wifi_production = "parameters.production"
+    relpath = os.path.join('rf/wifi/', wifi_production)
+    self._CreateFileAndContextAsFilename(
+        os.path.join(self.parameters_dir, relpath))
+    # Get valid parameter.
+    self.assertEquals(wifi_production, self.proxy.GetParameter(relpath).data)
+    # Get parameter that doesn't exist
+    self.assertRaises(xmlrpclib.Fault, self.proxy.GetParameter, relpath + 'foo')
+    self.assertRaises(xmlrpclib.Fault, self.proxy.GetParameter, 'rf/wifi')
+    # Get parameter outside parameters folder.
+    self.assertRaises(
+        xmlrpclib.Fault, self.proxy.GetParameter, '../devices.csv')
 
   def testGetHWID(self):
     # Valid HWIDs range from CR001001 to CR001025
