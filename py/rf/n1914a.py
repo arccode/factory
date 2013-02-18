@@ -11,8 +11,11 @@ expose a parameter called port to specify where action will take place.
 '''
 
 
+import struct
+
 import factory_common  # pylint: disable=W0611
 from cros.factory.rf.agilent_scpi import AgilentSCPI
+from cros.factory.rf.lan_scpi import Error
 
 
 class N1914A(AgilentSCPI):
@@ -28,7 +31,9 @@ class N1914A(AgilentSCPI):
     '''Sets the numeric data transferred over SCPI to ASCII.'''
     self.Send('FORM ASCii')
 
-  # TODO(itspeter): Implement related code for REAL Format.
+  def SetRealFormat(self):
+    '''Sets the numeric data transferred over SCPI to binary.'''
+    self.Send('FORM REAL')
 
   # Sampling setting related methods.
   def ToNormalMode(self, port):
@@ -39,7 +44,9 @@ class N1914A(AgilentSCPI):
     '''Sets sampling mode to 40 readings per seconds.'''
     self.Send('SENSe%d:MRATe DOUBle' % port)
 
-  # TODO(itspeter): Implement related code for Fast Mode.
+  def ToFastMode(self, port):
+    '''Sets sampling mode to fast mode, which performance depends on sensor.'''
+    self.Send('SENSe%d:MRATe FAST' % port)
 
   # Range related methods.
   def SetRange(self, port, range_setting=None):
@@ -52,7 +59,6 @@ class N1914A(AgilentSCPI):
         lower range and 1 for the upper range. Because range definition
         varies from sensor to sensor, check the manual before using this
         function.
-
     '''
     assert range_setting in [None, 0, 1]
     if range_setting is None:
@@ -111,4 +117,16 @@ class N1914A(AgilentSCPI):
   def MeasureOnce(self, port):
     '''Performs a single measurement.'''
     ret = self.Query('FETCh%d?' % port, formatter=float)
+    return ret
+
+  def MeasureOnceInBinary(self, port):
+    '''Performs a single measurement in binary format.'''
+    def UnpackBinaryInDouble(binary_array):
+      if len(binary_array) != 8:
+        raise Error('Binary double must be 8 bytes'
+                    ' not %d bytes.' % len(binary_array))
+      return struct.unpack('>d', binary_array)[0]
+
+    ret = self.QueryWithoutErrorChecking(
+        'FETCh%d?' % port, 8, formatter=UnpackBinaryInDouble)
     return ret

@@ -207,6 +207,31 @@ class LANSCPI(object):
       line1 = formatter(line1)
     return line1
 
+  def QueryWithoutErrorChecking(self, command,
+                                expected_length, formatter=None):
+    '''
+    Issues a query, returning the fixed-length result without error checking.
+
+    This is a specialized version of Query(). Error checking is disabled and
+    result is assumed to be fixed length to increase the speed.
+
+    Args:
+        command: The command to issue.
+        expected_length: expected length of result.
+        formatter: If present, a function that will be applied to the query
+            response to parse it.  The formatter may be int(), float(), a
+            function from the "Formatters" section at the bottom of this
+            file, or any other function that accepts a single string
+            argument.
+    '''
+    if '?' not in command:
+      raise Error('Called Query with non-query %r' % command)
+    self._WriteLine(command)
+    line1 = self._ReadBinary(expected_length)
+    if formatter:
+      line1 = formatter(line1)
+    return line1
+
   def Quote(self, string):
     '''
     Quotes a string.
@@ -259,6 +284,17 @@ class LANSCPI(object):
         if self.logger.isEnabledFor(logging.DEBUG):
           self.logger.debug('[ %s' % _TruncateForLogging(ret))
         return ret
+
+  def _ReadBinary(self, expected_length):
+    '''Reads a binary of fixed bytes.'''
+    with Timeout(self.timeout):
+      if not self.timeout:
+        self.logger.debug('[ (waiting)')
+      ret = self.rfile.read(expected_length)
+      ch = self.rfile.read(1)
+      if ch != '\n':
+        raise Error('Expected newline at end of binary data')
+      return ret
 
   def _WriteLine(self, command):
     '''

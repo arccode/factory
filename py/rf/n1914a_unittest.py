@@ -123,6 +123,16 @@ class N1914ATest(unittest2.TestCase):
     self.n1914a.SetAsciiFormat()
     self.assertEqual(self.n1914a.Query(QUERY), EXPECTED_RESPONSE)
 
+  def testSetRealFormat(self):
+    QUERY = 'FORM?'
+    EXPECTED_RESPONSE = 'REAL'
+    MockServerHandler.AddCommandsLookup(['FORM REAL'])
+    MockServerHandler.AddQueryLookup(QUERY, EXPECTED_RESPONSE)
+
+    self._StartTest()
+    self.n1914a.SetRealFormat()
+    self.assertEqual(self.n1914a.Query(QUERY), EXPECTED_RESPONSE)
+
   def testBasicConnect(self):
     self._StartTest()
     # Check the id.
@@ -146,6 +156,16 @@ class N1914ATest(unittest2.TestCase):
 
     self._StartTest()
     self.n1914a.ToDoubleMode(port=1)
+    self.assertEqual(self.n1914a.Query(QUERY), EXPECTED_RESPONSE)
+
+  def testToFastMode(self):
+    QUERY = 'SENSe1:MRATe?'
+    EXPECTED_RESPONSE = 'FAST'
+    MockServerHandler.AddCommandsLookup(['SENSe1:MRATe FAST'])
+    MockServerHandler.AddQueryLookup(QUERY, EXPECTED_RESPONSE)
+
+    self._StartTest()
+    self.n1914a.ToFastMode(port=1)
     self.assertEqual(self.n1914a.Query(QUERY), EXPECTED_RESPONSE)
 
   def testSetRange(self):
@@ -199,6 +219,17 @@ class N1914ATest(unittest2.TestCase):
     self.assertEqual(self.n1914a.Query(QUERY1), EXPECTED_RESPONSE_ENABLE)
     self.assertEqual(self.n1914a.Query(QUERY2), EXPECTED_RESPONSE_DISABLE)
     self.assertEqual(self.n1914a.Query(QUERY3), EXPECTED_RESPONSE_3)
+
+  def testMeasureOnceInBinary(self):
+    # EXPECTED_RESPONSE is the IEEE 754 64 bit floating point representation
+    # of EXPECTED_VALUE
+    EXPECTED_RESPONSE = str(bytearray([192, 80, 67, 70, 215, 23, 57, 14]))
+    EXPECTED_VALUE = -65.05119874255999
+    MockServerHandler.AddLookup('FETCh1?', EXPECTED_RESPONSE + '\n')
+
+    self._StartTest()
+    power = self.n1914a.MeasureOnceInBinary(port=1)
+    self.assertAlmostEqual(power, EXPECTED_VALUE)
 
   def setUp(self):
     self._AddInitialLookup()
