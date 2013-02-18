@@ -8,7 +8,9 @@ It uses i2cdetect utility to check if there's an device on specific bus.
 
 dargs:
   bus: (int) I2C bus to probe.
-  addr: (int) I2C addr to probe.
+  addr: (int, list) I2C addr to probe. Can be a list containing multiple
+    I2C addresses. If multiple addresses are specified, the test passes
+    when *any* of those exists.
 """
 
 import re
@@ -21,15 +23,21 @@ _RE_DEVICE_FOUND = re.compile('^\d\d:\s+(UU|[0-9a-f]{2})', re.MULTILINE)
 
 
 class I2CProbeTest(unittest.TestCase):
+  def probe_I2C(self, bus, addr):
+    cmd = 'i2cdetect -y %d 0x%x 0x%x' % (bus, addr, addr)
+    response = SpawnOutput(cmd.split(), log=True)
+    return _RE_DEVICE_FOUND.search(response) is not None
+
   ARGS = [
     Arg('bus', int, 'I2C bus to probe.'),
-    Arg('addr', int, 'I2C addr to probe.'),
+    Arg('addr', (int, list), 'I2C address(es) to probe.'),
   ]
 
   def runTest(self):
-    bus, addr = self.args.bus, self.args.addr
-    cmd = 'i2cdetect -y %d 0x%x 0x%x' % (bus, addr, addr)
-    response = SpawnOutput(cmd.split(), log=True)
+    bus, addr_list = self.args.bus, self.args.addr
+    if type(addr_list) != list:
+      addr_list = [addr_list]
 
-    self.assertTrue(_RE_DEVICE_FOUND.search(response) is not None,
-                    'No I2C device on bus %d addr 0x%x' % (bus, addr))
+    self.assertTrue(any([self.probe_I2C(bus, addr) for addr in addr_list]),
+                    'No I2C device on bus %d addr %s' %
+                    (bus, ', '.join(['0x%x' % addr for addr in addr_list])))
