@@ -84,6 +84,13 @@ class ConnectionManagerTest(unittest.TestCase):
       self.mox.StubOutWithMock(os, 'remove')
       os.remove(_FAKE_PROFILE_LOCATION % _FAKE_PROC_NAME)
 
+    interfaces = list(_FAKE_INTERFACES)
+    interfaces.remove('lo')
+    glob.glob('/sys/class/net/*').AndReturn(_FAKE_INTERFACES)
+    for dev in interfaces:
+      subprocess.call("ifconfig %s up" % dev, shell=True,
+                      stdout=mox.IgnoreArg(), stderr=mox.IgnoreArg())
+
     for service in [_FAKE_MANAGER] + _FAKE_SUBSERVICE_LIST:
       subprocess.call("start %s" % service, shell=True,
                       stdout=mox.IgnoreArg(), stderr=mox.IgnoreArg())

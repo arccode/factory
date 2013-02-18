@@ -201,6 +201,12 @@ class ConnectionManager():
 
     logging.info('Enabling networking')
 
+    # Turn on drivers for interfaces.
+    for dev in self._GetInterfaces():
+      logging.info('ifconfig %s up', dev)
+      subprocess.call("ifconfig %s up" % dev, shell=True, stdout=self.fnull,
+                      stderr=self.fnull)
+
     # Start network manager.
     for service in [self.network_manager] + self.subservices:
       subprocess.call("start %s" % service, shell=True,
