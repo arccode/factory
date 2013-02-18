@@ -108,7 +108,7 @@ def Main():
          check_call=True, log=True)
   # Restart factory on device
   Spawn(ssh_command +
-        [args.device, '/usr/local/factory/bin/restart'],
+        [args.device, '/usr/local/factory/bin/factory_restart'],
          check_call=True, log=True)
 
   def handler(signum, frame):  # pylint: disable=W0613
