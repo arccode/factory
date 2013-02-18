@@ -164,7 +164,7 @@ lint:
 	rm -f $$out
 
 PRESUBMIT_FILES := $(if $(PRESUBMIT_FILES),\
-	             $(shell realpath --relative-to=. $(PRESUBMIT_FILES)))
+	             $(shell realpath --relative-to=. $$PRESUBMIT_FILES))
 
 lint-presubmit:
 	$(MAKE) lint \
