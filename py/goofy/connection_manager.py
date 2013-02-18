@@ -22,11 +22,11 @@ _SLEEP_INTERVAL_SECS = 0.5
 _SCAN_INTERVAL_SECS = 10
 
 _UNKNOWN_PROC = 'unknown'
-_DEFAULT_MANAGER = 'flimflam'
+_DEFAULT_MANAGER = 'shill'
 _DEFAULT_PROC_NAME = 'shill'
 _MANAGER_LIST = ['flimflam', 'shill']
 _PROC_NAME_LIST = [_UNKNOWN_PROC, 'flimflamd', 'shill']
-_SUBSERVICE_LIST = ['flimflam_respawn', 'wpasupplicant', 'modemmanager']
+_SUBSERVICE_LIST = ['shill_respawn', 'wpasupplicant', 'modemmanager']
 
 # %s is the network manager process name, i.e. flimflam or shill.
 _PROFILE_LOCATION = '/var/cache/%s/default.profile'
@@ -136,7 +136,7 @@ class ConnectionManager():
     if start_enabled:
       self.EnableNetworking(reset=False)
     else:
-      self.DisableNetworking()
+      self.DisableNetworking(clear=False)
 
   def _DetectProcName(self):
     '''Tries to auto-detect the network manager process name.'''
@@ -193,11 +193,6 @@ class ConnectionManager():
     if reset:
       # Make sure the network services are really stopped.
       self.DisableNetworking()
-      try:
-        os.remove(self.profile_path % self.process_name)
-      except OSError:
-        logging.exception("Unable to remove the network profile."
-                          " File non-existent?")
 
     logging.info('Enabling networking')
 
@@ -240,8 +235,11 @@ class ConnectionManager():
                           wlan['SSID'])
     return True
 
-  def DisableNetworking(self):
+  def DisableNetworking(self, clear=True):
     '''Tells underlying connection manager to terminate any existing connection.
+
+    Args:
+      clear: clear configured profiles related to services.
     '''
     logging.info('Disabling networking')
 
@@ -254,6 +252,14 @@ class ConnectionManager():
     for dev in self._GetInterfaces():
       subprocess.call("ifconfig %s down" % dev, shell=True, stdout=self.fnull,
                       stderr=self.fnull)
+
+    # Delete the configured profiles
+    if clear:
+      try:
+        os.remove(self.profile_path % self.process_name)
+      except OSError:
+        logging.exception("Unable to remove the network profile."
+                          " File non-existent?")
 
   def WaitForConnection(self, timeout=_CONNECTION_TIMEOUT_SECS):
     '''A blocking function that waits until any network is connected.
