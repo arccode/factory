@@ -169,14 +169,19 @@ class ConnectionManager():
              Each item should be a WLAN object.
     '''
     for wlan in wlans:
-      self.wlans.append({
+      wlan_dict = {
         'Type': 'wifi',
         'Mode': 'managed',
         'AutoConnect': True,
         'SSID': wlan.ssid,
-        'Security': wlan.security,
-        'Passphrase': wlan.passphrase
-      })
+        'Security': wlan.security
+      }
+      # "Passphrase" is only needed for secure wifi.
+      if wlan.security is not "none":
+        wlan_dict.update({
+          'Passphrase': wlan.passphrase
+        })
+      self.wlans.append(wlan_dict)
 
   def EnableNetworking(self, reset=True):
     '''Tells underlying connection manager to try auto-connecting.
