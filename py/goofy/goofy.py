@@ -51,6 +51,7 @@ from cros.factory.utils.process_utils import Spawn
 DEFAULT_TEST_LISTS_DIR = os.path.join(factory.FACTORY_PATH, 'test_lists')
 CUSTOM_DIR = os.path.join(factory.FACTORY_PATH, 'custom')
 HWID_CFG_PATH = '/usr/local/share/chromeos-hwid/cfg'
+CACHES_DIR = os.path.join(factory.get_state_root(), "caches")
 
 # File that suppresses reboot if present (e.g., for development).
 NO_REBOOT_FILE = '/var/log/factory.noreboot'
