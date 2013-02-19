@@ -70,10 +70,6 @@ _MSG_TASK_POWER = test_ui.MakeLabel(
     'Plug in external power to continue.',
     u'请插上外接电源以继续。',
     'start-font-size')
-_MSG_TASK_SERIAL = test_ui.MakeLabel(
-    'Enter valid serial number:<br/>',
-    u'请输入有效的序号:<br/>',
-    'start-font-size')
 _MSG_TASK_SPACE = test_ui.MakeLabel(
     'Hit SPACE to start testing...',
     u'按 "空白键" 开始测试...',
@@ -219,7 +215,9 @@ class ShopFloorTask(FactoryTask):
 
     self._test.ui.AddEventHandler(_EVENT_SUBTYPE_SHOP_FLOOR,
                                   self.ValidateSerialNumber)
-    self._test.template.SetState(_MSG_TASK_SERIAL + _HTML_SHOP_FLOOR)
+    prompt_en, prompt_zh = self._test.args.prompt
+    prompt_html = test_ui.MakeLabel(prompt_en, prompt_zh, 'start-font-size')
+    self._test.template.SetState(prompt_html + _HTML_SHOP_FLOOR)
     self._test.ui.RunJS(_JS_SHOP_FLOOR)
 
   def ValidateSerialNumber(self, event):
@@ -316,8 +314,11 @@ class StartTest(unittest.TestCase):
     Arg('serial_number_vpd_keys', (str, unicode, list),
         'A string or list of strings indicating a set of VPDs that are used '
         'as the key to fetch data from shop floor proxy.',
-        default=None, optional=True)
-  ]
+        default=None, optional=True),
+    Arg('prompt', tuple,
+        'Message to show to the operator when prompting for input.',
+        default=('Enter valid serial number:<br/>',
+                 u'请输入有效的序号:<br/>'), optional=True)]
 
   def __init__(self, *args, **kwargs):
     super(StartTest, self).__init__(*args, **kwargs)
