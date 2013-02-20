@@ -231,7 +231,7 @@ def RunFactoryFlow(board, dhcp_iface, host_ip, dut_mac, dut_ip, install_method,
                    firmware_updater='', hwid_updater='', bios_bin='', ec_bin='',
                    netboot_bios='', finalize=False, automation_config='',
                    testlist='', serial_number='', servo_serial='',
-                   servo_usb_dev='', devices_csv=''):
+                   servo_config='', servo_usb_dev='', devices_csv=''):
   start_time = time.time()
   utils.TryMakeDirs(FILE_CACHE_DIR)
   work_dir = tempfile.mkdtemp(prefix='build_')
@@ -351,7 +351,7 @@ def RunFactoryFlow(board, dhcp_iface, host_ip, dut_mac, dut_ip, install_method,
                                    install_method)
 
     servo = Servo(board=board, servo_serial=servo_serial)
-    servo.StartServod()
+    servo.StartServod(config=servo_config)
     time.sleep(3)
     try:
       servo.ConnectServod()
@@ -485,6 +485,8 @@ if __name__ == '__main__':
                     help='DUT IP address. (default: %default)')
   parser.add_option('--servo_serial', default='',
                     help='Servo serial number.')
+  parser.add_option('--servo_config', default='',
+                    help='Servo config file.')
   parser.add_option('--finalize', action='store_true', default=False,
                     help='Finalize DUT after installation.')
   parser.add_option('--automation_config', default='',
@@ -510,5 +512,5 @@ if __name__ == '__main__':
       options.install_shim, options.firmware_updater, options.hwid_updater,
       options.bios_bin, options.ec_bin, options.netboot_bios,
       options.finalize, options.automation_config, options.testlist,
-      options.serial_number, options.servo_serial, options.servo_usb_dev,
-      options.devices_csv)
+      options.serial_number, options.servo_serial, options.servo_config,
+      options.servo_usb_dev, options.devices_csv)
