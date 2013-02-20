@@ -31,6 +31,7 @@ class Servo(object):
   BOARD_CONFIG = {
     'link': {'vref': 'pp3300'},
     'daisy': {'vref': 'pp1800'},
+    'daisy_spring': {'vref': 'pp1800'},
   }
 
   def __init__(self, servod_host='localhost', servod_port=9999,
