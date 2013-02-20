@@ -6,9 +6,16 @@
 
 import glob
 import httplib
+import logging
 import os
+import re
 import subprocess
 import xmlrpclib
+
+import factory_common  # pylint: disable=W0611
+from cros.factory.common import Error
+from cros.factory.test import factory
+from cros.factory.utils.process_utils import Spawn, SpawnOutput
 
 DEFAULT_TIMEOUT = 10
 
@@ -42,7 +49,7 @@ class TimeoutXMLRPCServerProxy(xmlrpclib.ServerProxy):
         timeout=timeout)
     xmlrpclib.ServerProxy.__init__(self, uri, *args, **kwargs)
 
-def FindUsableEthDevice():
+def FindUsableEthDevice(raise_exception=False):
   """Find the real ethernet interface when the flimflam is unavailable.
 
   Some devices with 4G modules may bring up fake eth interfaces during
@@ -50,6 +57,9 @@ def FindUsableEthDevice():
   in the case. Unfortunately, we may sometimes need to turn it off to
   perform tests on network components. We thus need another way to reliably
   distinguish the real interface type.
+
+  Args:
+    raise_exception: True to raise exception when no interface available.
   """
   good_eth = None
   last_level = 0
@@ -72,4 +82,73 @@ def FindUsableEthDevice():
     if current_level > last_level:
       good_eth = dev
       last_level = current_level
+  if raise_exception and not good_eth:
+    raise Error('No Ethernet interface available')
   return good_eth
+
+def SetEthernetIp(ip, interface=None):
+  '''Sets the IP address for Ethernet.
+
+  The address is set only if the interface does not already have an
+  assigned IP address. The interface will be automatically assigned by
+  Connection Manager if None is given.
+  '''
+  interface = interface or FindUsableEthDevice(raise_exception=True)
+  Spawn(['ifconfig', interface, 'up'], call=True)
+  current_ip = GetEthernetIp(interface)
+  if current_ip:
+    logging.info('Not setting IP address for interface %s: already set to %s',
+                 interface, current_ip)
+    return
+  else:
+    Spawn(['ifconfig', interface, ip], call=True)
+
+def GetEthernetIp(interface=None):
+  """Returns the IP of interface.
+
+  Args:
+    interface: None to use FindUsableEthDevice, otherwise, querying a
+    specific interface.
+
+  Returns:
+    IP address in string format. None if interface doesn't exist nor
+    IP is not assigned.
+  """
+  ip_address = None
+  interface = interface or FindUsableEthDevice(raise_exception=True)
+  ip_output = SpawnOutput(['ip', 'addr', 'show', 'dev', interface])
+  match = re.search('^\s+inet ([.0-9]+)', ip_output, re.MULTILINE)
+  if match:
+    ip_address = match.group(1)
+  return ip_address
+
+def _SendDhclientCommand(arguments, interface):
+  """Calls dhclient.
+
+  Because the read-only filesystem, using dhclient in ChromeOS needs a
+  little tweaks on few paths.
+  """
+  DHCLIENT_SCRIPT = "/usr/local/sbin/dhclient-script"
+  DHCLIENT_LEASE = os.path.join(factory.get_state_root(), "dhclient.leases")
+  Spawn(['dhclient', '-sf', DHCLIENT_SCRIPT, '-lf', DHCLIENT_LEASE, interface] +
+        arguments, call=True)
+
+def SendDhcpRequest(interface=None):
+  """Sends dhcp request via dhclient.
+
+  Args:
+    interface: None to use FindUsableEthDevice, otherwise, operation on a
+    specific interface.
+  """
+  interface = interface or FindUsableEthDevice(raise_exception=True)
+  _SendDhclientCommand([], interface)
+
+def ReleaseDhcp(interface=None):
+  """Releases a dhcp lease via dhclient.
+
+  Args:
+    interface: None to use FindUsableEthDevice, otherwise, operation on a
+    specific interface.
+  """
+  interface = interface or FindUsableEthDevice(raise_exception=True)
+  _SendDhclientCommand(['-r'], interface)
