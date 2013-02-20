@@ -105,6 +105,11 @@ def ModifyNetbootIP(host, initrd):
   load_address = re.findall('Load Address:\s*(.*)', header)[0]
   entry_point = re.findall('Entry Point:\s*(.*)', header)[0]
   image_name = re.findall('Image Name:\s*(.*)', header)[0]
+  platform = re.findall('Image Type:\s*(.*)', header)[0]
+  if platform.startswith('ARM'):
+    platform = 'arm'
+  else:
+    platform = 'x86'
   with open(initrd, mode='rb') as f:
     f.seek(64)  # skipping initrd header (64 bytes)
     gzipped_rootfs = f.read()
@@ -120,10 +125,10 @@ def ModifyNetbootIP(host, initrd):
     CheckCall('sudo umount -f %s' % td)
     CheckCall('rmdir %s' % td)
     CheckCall('pigz -9 %s' % tr)
-    # TODO(shik): Support building ramdisk for ARM platform.
-    CheckCall('mkimage -A x86 -O linux -T ramdisk'
+    CheckCall('mkimage -A %s -O linux -T ramdisk'
               ' -a %s -e %s -n "%s" -C gzip -d %s %s'
-              % (load_address, entry_point, image_name, tf.name, initrd))
+              % (platform, load_address, entry_point, image_name, tf.name,
+                 initrd))
 
 
 def GenerateImage(host, port, tftp_dir, script, initrd, vmlinux):
