@@ -4,11 +4,19 @@
 
 """A hardware test for probing USB devices.
 
-It uses lsusb utility to check if there's an USB device with given ID.
+It uses the lsusb utility to check if there's an USB device with given VID:PID
+or containing a specified string in lsusb.
+
+If search_string is defined it searches for it in lsusb -v and passes if the
+string exists, vid and pid are ignored in this case.
+
+If vid and pid are defined it searches for them in lsusb -v and passes if they
+exist.
 
 dargs:
-  vid: (str) 4-digit vendor ID.
-  pid: (str) 4-digit product ID.
+  vid: (str) optional 4-digit vendor ID.
+  pid: (str) optional 4-digit product ID.
+  search_string: (str) optional manual string to check for in lsusb -v
 """
 
 import unittest
@@ -19,14 +27,28 @@ from cros.factory.utils.process_utils import SpawnOutput
 
 class USBProbeTest(unittest.TestCase):
   ARGS = [
-    Arg('vid', str, '4-digit vendor ID'),
-    Arg('pid', str, '4-digit product ID'),
+    Arg('vid', str, '4-digit vendor ID', '', optional=True),
+    Arg('pid', str, '4-digit product ID', '', optional=True),
+    Arg('search_string', str, 'manual string to check for in lsusb -v', None,
+        optional=True),
   ]
 
-  def ProbeUSB(self, vid, pid):
-    response = SpawnOutput(['lsusb'], log=True)
-    return ('%s:%s' % (vid, pid)) in response
+  def _ProbeUSB(self, lsusb_string):
+    """Search for a string in lsusb -v.
+
+    Args:
+      lsusb_string: string to search for
+
+    Returns:
+      True if the string is found, false if not.
+    """
+    response = SpawnOutput(['lsusb', '-v'], log=True)
+    return (lsusb_string) in response
 
   def runTest(self):
-    self.assertTrue(self.ProbeUSB(self.args.vid, self.args.pid),
-                    'No specified USB device found.')
+    if (self.args.search_string):
+      usb_string = self.args.search_string
+    else:
+      usb_string = '%s:%s' % (self.args.vid, self.args.pid)
+    self.assertTrue(self._ProbeUSB(usb_string),
+                    'String: %s was not found in lsusb -v.' % usb_string)
