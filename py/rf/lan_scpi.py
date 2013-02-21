@@ -102,6 +102,7 @@ class LANSCPI(object):
                         self.host, self.port))
       self.socket.connect((self.host, self.port))
 
+    self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
     self.rfile = self.socket.makefile('rb', -1)  # Default buffering
     self.wfile = self.socket.makefile('wb', 0)   # No buffering
 
