@@ -131,7 +131,7 @@ def ModifyNetbootIP(host, initrd):
                  initrd))
 
 
-def GenerateImage(host, port, tftp_dir, script, initrd, vmlinux):
+def GenerateImage(host, port, tftp_dir, script, vmlinux, initrd=None):
   """Generate the script image which guides the netboot flow
   When netboot starts with command "dhcp", and the script image is set by
   by filename statement in DHCP server configuration, this image will be placed
@@ -160,13 +160,22 @@ def GenerateImage(host, port, tftp_dir, script, initrd, vmlinux):
     os.chmod(td, stat.S_IRWXU | stat.S_IXOTH)
   else:
     td = tftp_dir
-  uImage = os.path.join(td, 'uImage')
-  rootImg = os.path.join(td, 'rootImg')
-  shutil.copy(vmlinux, uImage)
-  shutil.copy(initrd, rootImg)
-  os.chmod(uImage, mode)
-  os.chmod(rootImg, mode)
   os.chmod(tftp_dir, stat.S_IRWXU | stat.S_IXOTH)
+  uImage = os.path.join(td, 'uImage')
+  shutil.copy(vmlinux, uImage)
+  os.chmod(uImage, mode)
+  if initrd:
+    rootImg = os.path.join(td, 'rootImg')
+    shutil.copy(initrd, rootImg)
+    os.chmod(rootImg, mode)
+
+  # The new netboot mechanism looks for vmlinux image under tftpboot directory.
+  tftpboot = os.path.join(td, 'tftpboot')
+  os.mkdir(tftpboot)
+  os.chmod(tftpboot, stat.S_IRWXU | stat.S_IXOTH)
+  uImage = os.path.join(tftpboot, 'vmlinux.uimg')
+  shutil.copy(vmlinux, uImage)
+  os.chmod(uImage, mode)
 
 
 def StartTFTPServer(host, tftp_dir):
@@ -279,8 +288,9 @@ def ParseOptions():
 
   if options.do_modify_netboot_ip and not options.initrd:
     ErrorExit('Please specify initrd to be updated with netboot IP.')
-  if options.do_generate_image and (not options.initrd or not options.vmlinux):
-    ErrorExit('Please specify initrd and vmlinux for generating netboot image.')
+  if options.do_generate_image and not options.vmlinux:
+    ErrorExit('Please specify vmlinux and initrd (optional) for generating '
+              'netboot image.')
   if options.do_dhcp and (not options.dhcp_iface or not options.dut_mac or
                           not options.dut_address):
     ErrorExit('Please specify dhcp_iface, dhcp_subnet, dhcp_netmask, dut_mac, '
@@ -304,7 +314,7 @@ def main():
 
   if options.do_generate_image:
     GenerateImage(options.host, options.port, tftp_dir,
-                  options.script, options.initrd, options.vmlinux)
+                  options.script, options.vmlinux, options.initrd)
 
   def handler(signum, frame):  # pylint: disable=W0613
     raise SystemExit
@@ -314,14 +324,14 @@ def main():
   dhcpd = None
   miniomaha = None
   try:
-    if options.do_tftp:
-      tftpd = StartTFTPServer(options.host, tftp_dir)
-
     if options.do_dhcp:
       dhcpd = StartDHCPServer(options.dhcp_iface, options.host,
                               options.dhcp_subnet, options.dhcp_netmask,
                               options.dut_mac, options.dut_address,
                               options.script)
+
+    if options.do_tftp:
+      tftpd = StartTFTPServer(options.host, tftp_dir)
 
     if options.do_clone_miniomaha:
       options.miniomaha_dir = CloneMiniomaha(options.miniomaha_dir)

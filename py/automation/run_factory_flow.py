@@ -136,8 +136,12 @@ def SetupNetboot(board, bundle_dir, recovery_image,
   if install_method == 'netboot':
     netboot_dir = os.path.join(bundle_dir, 'factory_shim', 'netboot')
     vmlinux = os.path.join(netboot_dir, 'vmlinux.uimg')
+    cmd.append('--vmlinux=%s' % vmlinux)
     initrd = os.path.join(netboot_dir, 'initrd.uimg')
-    cmd.extend(['--vmlinux=%s' % vmlinux, '--initrd=%s' % initrd])
+    if os.path.exists(initrd):
+      cmd.append('--initrd=%s' % initrd)
+    else:
+      cmd.append('--no_modify_netboot_ip')
   elif install_method in ('install_shim', 'usbimg'):
     cmd.append('--no_modify_netboot_ip')
     cmd.append('--no_generate_image')
@@ -147,6 +151,16 @@ def SetupNetboot(board, bundle_dir, recovery_image,
       cmd.append('--no_make_factory_package')
       cmd.append('--no_miniomaha')
   return Spawn(cmd, log=True, sudo=True)
+
+
+def UpdateFirmwareVars(bundle_dir, netboot_bios, host_ip):
+  omaha_url = 'http://%s:8080/update' % host_ip
+  script = os.path.join(bundle_dir, 'factory_setup', 'update_firmware_vars.py')
+  return Spawn([script, '--force',
+                '--input', netboot_bios,
+                '--tftpserverip', host_ip,
+                '--omahaserver', omaha_url],
+               log=True, check_call=True, sudo=True)
 
 
 def UpdateServerAddress(lsb_factory, host_ip):
@@ -357,6 +371,8 @@ def RunFactoryFlow(board, dhcp_iface, host_ip, dut_mac, dut_ip, install_method,
       servo.ConnectServod()
       servo.HWInit()
       if install_method == 'netboot':
+        logging.debug('Updating netboot firmware vars...')
+        UpdateFirmwareVars(bundle_dir, netboot_bios, host_ip)
         logging.debug('Flashing netboot firmware to DUT...')
         servo.FlashFirmware(netboot_bios)
         servo.ColdReset()
