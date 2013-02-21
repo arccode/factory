@@ -10,10 +10,11 @@ import logging
 import os
 import re
 import subprocess
+import time
 import xmlrpclib
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.common import Error
+from cros.factory.common import Error, TimeoutError
 from cros.factory.test import factory
 from cros.factory.utils.process_utils import Spawn, SpawnOutput
 
@@ -155,3 +156,33 @@ def ReleaseDhcp(interface=None):
   interface = interface or FindUsableEthDevice(raise_exception=True)
   Spawn(['ifconfig', interface, 'up'], call=True)
   _SendDhclientCommand(['-r'], interface)
+
+def PollForCondition(condition, timeout=10,
+                     poll_interval_secs=0.1, condition_name=None):
+  """Polls for every interval seconds until the condition is met.
+
+  It is a blocking call. The exit conditions are either the condition is met
+  or the timeout is reached.
+
+  Args:
+    condition: an boolean method without args to be polled
+    timeout: maximum number of seconds to wait, None means forever.
+    poll_interval_secs: interval to poll condition.
+    condition_name: description of the condition. Used for TimeoutError when
+        timeout is reached.
+
+  Raises:
+    TimeoutError.
+  """
+  start_time = time.time()
+  while True:
+    if condition() is True:
+      return
+    if timeout and time.time() + poll_interval_secs - start_time > timeout:
+      if condition_name:
+        condition_name = 'Timed out waiting for condition: %s' % condition_name
+      else:
+        condition_name = 'Timed out waiting for unnamed condition'
+      logging.error(condition_name)
+      raise TimeoutError(condition_name)
+    time.sleep(poll_interval_secs)

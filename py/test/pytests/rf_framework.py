@@ -16,7 +16,7 @@ from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
-
+from cros.factory.utils import net_utils
 
 class RfFramework(object):
   ARGS = [
@@ -26,6 +26,9 @@ class RfFramework(object):
       Arg('parameters', list,
           'A list of regular expressions indicates parameters to download from'
           'shopfloor server.', default=list()),
+      Arg('static_ip', str,
+          'Static IP for the DUT; default to acquire one from DHCP.',
+          default=None, optional=True),
       Arg('pre_test_outside_shield_box', bool,
           'True to execute PreTestOutsideShieldBox.',
           default=True),
@@ -52,18 +55,43 @@ class RfFramework(object):
     self.key_pressed = threading.Condition()
     self.ui.Run(blocking=False)
 
-    if len(self.args.parameters) > 0:
-      self.DownloadParameters()
-
     # Allowed user to apply fine controls in engineering_mode
     if self.ui.InEngineeringMode():
       # TODO(itspeter): expose more options in run-time.
       factory.console.debug('engineering mode detected.')
 
+  def PrepareNetwork(self):
+    def ObtainIp():
+      if self.args.static_ip is None:
+        net_utils.SendDhcpRequest()
+      else:
+        net_utils.SetEthernetIp(self.args.static_ip)
+      return True if net_utils.GetEthernetIp() else False
+
+    _PREPARE_NETWORK_TIMEOUT_SECS = 30 # Timeout for network preparation.
+    factory.console.info('Detecting Ethernet device...')
+    net_utils.PollForCondition(condition=(
+        lambda: True if net_utils.FindUsableEthDevice() else False),
+        timeout=_PREPARE_NETWORK_TIMEOUT_SECS,
+        condition_name='Detect Ethernet device')
+
+    factory.console.info('Setting up IP address...')
+    net_utils.PollForCondition(condition=ObtainIp,
+        timeout=_PREPARE_NETWORK_TIMEOUT_SECS,
+        condition_name='Setup IP address')
+
+    factory.console.info('Network prepared. IP: %r', net_utils.GetEthernetIp())
+
   def runTest(self):
     if self.args.pre_test_outside_shield_box:
+      self.PrepareNetwork()
+      if len(self.args.parameters) > 0:
+        self.DownloadParameters()
+
       self.PreTestOutsideShieldBox()
+
     if self.args.pre_test_inside_shield_box:
+      self.PrepareNetwork()
       self.PreTestInsideShieldBox()
       # TODO(itspeter): Support multiple language in prompt.
       self.Prompt(

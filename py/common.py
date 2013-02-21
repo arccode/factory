@@ -17,6 +17,9 @@ class Error(Exception):
   """Generic fatal error."""
   pass
 
+class TimeoutError(Error):
+  """Timeout error."""
+  pass
 
 class Obj(object):
   """Generic wrapper allowing dot-notation dict access."""
