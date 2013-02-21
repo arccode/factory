@@ -142,7 +142,8 @@ def ReadCsvAsListOfDict(source):
 def ReadCsv(source):
   '''Reads a csv from source and returns as a python object.'''
   original_directory = os.getcwd()
-  os.chdir(os.path.dirname(os.path.abspath(source)))
+  source = os.path.abspath(source)
+  os.chdir(os.path.dirname(source))
   # Try dict first, because dict is a subset of list of dict.
   try:
     if IsCsvADictHeader(source):
