@@ -97,8 +97,9 @@ def SetEthernetIp(ip, interface=None):
   Spawn(['ifconfig', interface, 'up'], call=True)
   current_ip = GetEthernetIp(interface)
   if current_ip:
-    logging.info('Not setting IP address for interface %s: already set to %s',
-                 interface, current_ip)
+    factory.console.info(
+        'Not setting IP address for interface %s: already set to %s',
+        interface, current_ip)
     return
   else:
     Spawn(['ifconfig', interface, ip], call=True)
@@ -131,7 +132,7 @@ def _SendDhclientCommand(arguments, interface):
   DHCLIENT_SCRIPT = "/usr/local/sbin/dhclient-script"
   DHCLIENT_LEASE = os.path.join(factory.get_state_root(), "dhclient.leases")
   Spawn(['dhclient', '-sf', DHCLIENT_SCRIPT, '-lf', DHCLIENT_LEASE, interface] +
-        arguments, call=True)
+        arguments, call=True, ignore_stdin=True)
 
 def SendDhcpRequest(interface=None):
   """Sends dhcp request via dhclient.
@@ -141,6 +142,7 @@ def SendDhcpRequest(interface=None):
     specific interface.
   """
   interface = interface or FindUsableEthDevice(raise_exception=True)
+  Spawn(['ifconfig', interface, 'up'], call=True)
   _SendDhclientCommand([], interface)
 
 def ReleaseDhcp(interface=None):
@@ -151,4 +153,5 @@ def ReleaseDhcp(interface=None):
     specific interface.
   """
   interface = interface or FindUsableEthDevice(raise_exception=True)
+  Spawn(['ifconfig', interface, 'up'], call=True)
   _SendDhclientCommand(['-r'], interface)
