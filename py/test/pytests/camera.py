@@ -27,6 +27,10 @@ _MSG_CAMERA_MANUAL_TEST = test_ui.MakeLabel(
     'Press ENTER to pass or ESC to fail.',
     zh='摄像头运作正常请按 ENTER，不正常请按 ESC',
     css_class='camera-test-info')
+_MSG_CAMERA_TIMEOUT_TEST = test_ui.MakeLabel(
+    'Running the camera until timeout.',
+    zh='运行相机直到超时',
+    css_class='camera-test-info')
 _MSG_CAMERA_FACIAL_RECOGNITION = test_ui.MakeLabel(
     'Detecting faces...',
     zh='侦测人脸中...',
@@ -71,11 +75,12 @@ _HAAR_CASCADE_PATH = (
 
 
 class CaptureTask(factory_task.InteractiveFactoryTask):
-  """Test task to test camera image capture functionality. It has two operating
+  """Test task to test camera image capture functionality. It has 3 operating
   modes, which can be adjusted through CameraTest dargs:
   1. Automatically detect faces to pass the test, or
   2. Let operator manually select whether camera capture function is working or
      not.
+  3. Run for a specified amount of time, pass if there are no errors.
 
   Args:
     camera_test: The main CameraTest object.
@@ -135,6 +140,8 @@ class CaptureTask(factory_task.InteractiveFactoryTask):
   def Init(self):
     if self.args.face_recognition:
       self.camera_test.ui.SetHTML(_MSG_CAMERA_FACIAL_RECOGNITION, id=_ID_PROMPT)
+    elif self.args.timeout_run:
+      self.camera_test.ui.SetHTML(_MSG_CAMERA_TIMEOUT_TEST, id=_ID_PROMPT)
     else:
       self.camera_test.ui.SetHTML(_MSG_CAMERA_MANUAL_TEST, id=_ID_PROMPT)
       self.BindPassFailKeys()
@@ -209,7 +216,9 @@ class CameraTest(unittest.TestCase):
     Arg('capture_resolution', tuple, 'A tuple (x-res, y-res) indicating the '
         'image capture resolution to use.', default=(1280, 720)),
     Arg('resize_ratio', float, 'The resize ratio of the captured image.',
-        default=0.4)
+        default=0.4),
+    Arg('timeout_run', bool, 'Just run the camera for timeout_secs.',
+        default=False)
   ]
 
   def EnableCamera(self):
@@ -237,14 +246,18 @@ class CameraTest(unittest.TestCase):
     self.camera_device.release()
 
   def CountdownTimer(self):
-    """Starts a countdown timer and fails the test if timer reaches zero."""
+    """Starts countdown timer and fails the test if timer reaches zero,
+    unless in timeout_run mode, than it just passes."""
     time_remaining = self.args.timeout_secs
     while time_remaining > 0:
       self.ui.SetHTML(_MSG_TIME_REMAINING(time_remaining),
                       id=_ID_COUNTDOWN_TIMER)
       time.sleep(1)
       time_remaining -= 1
-    self.ui.Fail('Camera test failed due to timeout.')
+    if self.args.timeout_run:
+      self.ui.Pass()
+    else:
+      self.ui.Fail('Camera test failed due to timeout.')
 
   def setUp(self):
     self.camera_device = None
@@ -253,7 +266,10 @@ class CameraTest(unittest.TestCase):
     self.ui.AppendCSS(_CSS_CAMERA_TEST)
     self.template.SetState(_HTML_CAMERA_TEST)
     self.ui.RunJS(_JS_CAMERA_TEST)
-    self.task_list = [CaptureTask(self), LEDTask(self)]
+    if self.args.timeout_run:
+      self.task_list = [CaptureTask(self)]
+    else:
+      self.task_list = [CaptureTask(self), LEDTask(self)]
     self.task_manager = factory_task.FactoryTaskManager(self.ui, self.task_list)
     StartDaemonThread(target=self.CountdownTimer)
 
