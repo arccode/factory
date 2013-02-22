@@ -40,11 +40,6 @@ class RfFramework(object):
           default=True)
       ]
 
-  def DownloadParameters(self):
-    """Downloads parameters from shopfloor."""
-    raise NotImplementedError(
-        'Called without implementing DownloadParameters')
-
   def setUp(self):
     self.event_log = EventLog.ForAutoTest()
     self.interactive_mode = False
@@ -59,28 +54,6 @@ class RfFramework(object):
     if self.ui.InEngineeringMode():
       # TODO(itspeter): expose more options in run-time.
       factory.console.debug('engineering mode detected.')
-
-  def PrepareNetwork(self):
-    def ObtainIp():
-      if self.args.static_ip is None:
-        net_utils.SendDhcpRequest()
-      else:
-        net_utils.SetEthernetIp(self.args.static_ip)
-      return True if net_utils.GetEthernetIp() else False
-
-    _PREPARE_NETWORK_TIMEOUT_SECS = 30 # Timeout for network preparation.
-    factory.console.info('Detecting Ethernet device...')
-    net_utils.PollForCondition(condition=(
-        lambda: True if net_utils.FindUsableEthDevice() else False),
-        timeout=_PREPARE_NETWORK_TIMEOUT_SECS,
-        condition_name='Detect Ethernet device')
-
-    factory.console.info('Setting up IP address...')
-    net_utils.PollForCondition(condition=ObtainIp,
-        timeout=_PREPARE_NETWORK_TIMEOUT_SECS,
-        condition_name='Setup IP address')
-
-    factory.console.info('Network prepared. IP: %r', net_utils.GetEthernetIp())
 
   def runTest(self):
     if self.args.pre_test_outside_shield_box:
@@ -112,6 +85,31 @@ class RfFramework(object):
     if self.args.post_test:
       self.PostTest()
 
+  def PreTestOutsideShieldBox(self):
+    """Placeholder for procedures outside the shield-box before primary test."""
+    raise NotImplementedError(
+        'Called without implementing PreTestOutsideShieldBox')
+
+  def PreTestInsideShieldBox(self):
+    """Placeholder for procedures inside the shield-box before primary test."""
+    raise NotImplementedError(
+        'Called without implementing PreTestInsideShieldBox')
+
+  def PrimaryTest(self):
+    """Placeholder for primary test."""
+    raise NotImplementedError(
+        'Called without implementing PrimaryTest')
+
+  def PostTest(self):
+    """Placeholder for prcedures after primary test."""
+    raise NotImplementedError(
+        'Called without implementing PostTest')
+
+  def DownloadParameters(self):
+    """Downloads parameters from shopfloor."""
+    raise NotImplementedError(
+        'Called without implementing DownloadParameters')
+
   def Prompt(self, prompt_str, key_to_wait=' ', force_prompt=False):
     """Displays a prompt to user and wait for a specific key.
 
@@ -135,22 +133,24 @@ class RfFramework(object):
       self.key_pressed.wait()
     self.ui.UnbindKey(key_to_wait)
 
-  def PreTestOutsideShieldBox(self):
-    """Placeholder for procedures outside the shield-box before primary test."""
-    raise NotImplementedError(
-        'Called without implementing PreTestOutsideShieldBox')
+  def PrepareNetwork(self):
+    def ObtainIp():
+      if self.args.static_ip is None:
+        net_utils.SendDhcpRequest()
+      else:
+        net_utils.SetEthernetIp(self.args.static_ip)
+      return True if net_utils.GetEthernetIp() else False
 
-  def PreTestInsideShieldBox(self):
-    """Placeholder for procedures inside the shield-box before primary test."""
-    raise NotImplementedError(
-        'Called without implementing PreTestInsideShieldBox')
+    _PREPARE_NETWORK_TIMEOUT_SECS = 30 # Timeout for network preparation.
+    factory.console.info('Detecting Ethernet device...')
+    net_utils.PollForCondition(condition=(
+        lambda: True if net_utils.FindUsableEthDevice() else False),
+        timeout=_PREPARE_NETWORK_TIMEOUT_SECS,
+        condition_name='Detect Ethernet device')
 
-  def PrimaryTest(self):
-    """Placeholder for primary test."""
-    raise NotImplementedError(
-        'Called without implementing PrimaryTest')
+    factory.console.info('Setting up IP address...')
+    net_utils.PollForCondition(condition=ObtainIp,
+        timeout=_PREPARE_NETWORK_TIMEOUT_SECS,
+        condition_name='Setup IP address')
 
-  def PostTest(self):
-    """Placeholder for prcedures after primary test."""
-    raise NotImplementedError(
-        'Called without implementing PostTest')
+    factory.console.info('Network prepared. IP: %r', net_utils.GetEthernetIp())

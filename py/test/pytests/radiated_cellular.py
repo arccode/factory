@@ -16,7 +16,7 @@ from cros.factory.test import utils
 from cros.factory.test.pytests.rf_framework import RfFramework
 
 
-class RadiatedWifi(RfFramework, unittest.TestCase):
+class RadiatedCellular(RfFramework, unittest.TestCase):
   def PreTestOutsideShieldBox(self):
     factory.console.info('PreTestOutsideShieldBox called')
     # TODO(itspeter): Switch to factory specific drivers.
