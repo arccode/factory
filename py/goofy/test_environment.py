@@ -6,6 +6,7 @@
 
 import cPickle as pickle
 import datetime
+import glob
 import hashlib
 import logging
 import os
@@ -118,8 +119,23 @@ class DUTEnvironment(Environment):
     else:
       accelerated_flag = "--enable-accelerated-layers"
 
+    # Auto detect the display modes on DUT
+    mode_paths = glob.glob('/sys/class/drm/card*/modes')
+    available_modes = []
+    for path in mode_paths:
+      with open(path, 'r') as fd:
+        mode_string = fd.read()
+        if mode_string:
+          available_modes.append(mode_string.split('x'))
+    if len(available_modes) != 1:
+      raise factory.FactoryTestFailure('More than 1 display modes were found')
+    screen_width, screen_height = [int(x) for x in available_modes[0]]
+    if self.goofy.options.one_pixel_less:
+      screen_width -= 1
+
     chrome_command = [
       '/opt/google/chrome/chrome',
+      '--ash-host-window-bounds=%dx%d' % (screen_width, screen_height),
       '--user-data-dir=%s' % chrome_data_dir,
       '--disable-translate',
       '--aura-host-window-use-fullscreen',

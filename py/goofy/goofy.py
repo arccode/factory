@@ -1014,6 +1014,10 @@ class Goofy(object):
     parser.add_option('--automation', dest='automation',
                       action='store_true',
                       help='Enable automation on running factory test')
+    parser.add_option('--one_pixel_less', dest='one_pixel_less',
+                      action='store_true',
+                      help=('Start Chrome one pixel less than the full screen.'
+                            'Needed by Exynos platform to run GTK.'))
     (self.options, self.args) = parser.parse_args(args)
 
     # Make sure factory directories exist.
@@ -1066,7 +1070,9 @@ class Goofy(object):
     self.start_state_server()
     self.state_instance.set_shared_data('hwid_cfg', get_hwid_cfg())
     self.state_instance.set_shared_data('ui_scale_factor',
-                      self.options.ui_scale_factor)
+                                        self.options.ui_scale_factor)
+    self.state_instance.set_shared_data('one_pixel_less',
+                                        self.options.one_pixel_less)
     self.last_shutdown_time = (
       self.state_instance.get_shared_data('shutdown_time', optional=True))
     self.state_instance.del_shared_data('shutdown_time', optional=True)
