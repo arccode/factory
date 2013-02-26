@@ -7,7 +7,6 @@ import logging
 import factory_common # pylint: disable=W0611
 from cros.factory import system
 from cros.factory.system.board import Board
-from cros.factory.system.power import Power
 from cros.factory.test.utils import Enum
 
 class ChargeManagerException(Exception):
@@ -19,8 +18,8 @@ class ChargeManager(object):
     state: The current state (an element of either ErrorState or
       Board.ChargeState).
   '''
-  _power = Power()
   _board = system.GetBoard()
+  _power = _board.power
 
   ErrorState = Enum(['BATTERY_NOT_PRESENT', 'AC_UNPLUGGED', 'BATTERY_ERROR'])
 

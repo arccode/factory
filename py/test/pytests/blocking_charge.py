@@ -17,7 +17,6 @@ import unittest
 
 from cros.factory import system
 from cros.factory.system.board import Board
-from cros.factory.system.power import Power
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
@@ -50,7 +49,7 @@ class ChargerTest(unittest.TestCase):
 
   def setUp(self):
     self._board = system.GetBoard()
-    self._power = Power()
+    self._power = self._board.power
     self._ui = test_ui.UI()
     self._template = ui_templates.TwoSections(self._ui)
     self._template.SetTitle(_TEST_TITLE)

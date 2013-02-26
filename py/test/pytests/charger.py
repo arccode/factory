@@ -36,7 +36,7 @@ from collections import namedtuple
 
 from cros.factory import system
 from cros.factory.system.board import Board
-from cros.factory.system.power import Power
+from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
@@ -98,6 +98,8 @@ class ChargerTest(unittest.TestCase):
           default=85),
       Arg('starting_timeout_secs', int, 'Maximum allowed time to regulate'
           'battery to starting_charge_pct', default=300),
+      Arg('check_battery_current', bool, 'Check battery current > 0'
+          'when charging and < 0 when discharging', default=True),
       Arg('spec_list', list, 'A list of tuples. Each tuple contains\n'
           '(charge_pct_change, timeout_secs, load)\n'
           'Charger needs to achieve charge_pct_change difference within\n'
@@ -113,7 +115,7 @@ class ChargerTest(unittest.TestCase):
     """Sets the test ui, template and the thread that runs ui. Initializes
     _board and _power."""
     self._board = system.GetBoard()
-    self._power = Power()
+    self._power = self._board.power
     self._ui = test_ui.UI()
     self._template = ui_templates.OneSection(self._ui)
     self._template.SetTitle(_TEST_TITLE)
@@ -143,8 +145,9 @@ class ChargerTest(unittest.TestCase):
     """Gets current that charger wants to drive through board"""
     try:
       charger_current = self._board.GetChargerCurrent()
-    except Exception, e:
-      self.fail('Cannot get charger current on this board. %s' % e)
+    except NotImplementedError:
+      logging.exception('Charger current is not available on this board')
+      return None
     else:
       return charger_current
 
@@ -200,19 +203,25 @@ class ChargerTest(unittest.TestCase):
   def _CheckCharge(self):
     """Checks current in charging state """
     charger_current = self._GetChargerCurrent()
+    if charger_current:
+      logging.info('Charger current = %d', charger_current)
+      self.assertTrue(charger_current > 0, 'Abnormal charger current')
     battery_current = self._GetBatteryCurrent()
-    logging.info('Charger current = %d, battery current = %d.',
-                 charger_current, battery_current)
-    self.assertTrue(charger_current > 0 and battery_current > 0,
-                    'Abnormal battery current')
+    logging.info('Battery current = %d.', battery_current)
+    factory.console.info('battery current %d' % battery_current)
+    if self.args.check_battery_current:
+      self.assertTrue(battery_current > 0, 'Abnormal battery current')
 
   def _CheckDischarge(self):
     """Checks current in discharging state """
     charger_current = self._GetChargerCurrent()
+    if charger_current:
+      logging.info('Charger current = %d', charger_current)
     battery_current = self._GetBatteryCurrent()
-    logging.info('Charger current = %d, battery current = %d.',
-                 charger_current, battery_current)
-    self.assertTrue(battery_current < 0, 'Abnormal battery current')
+    logging.info('Battery current = %d.', battery_current)
+    factory.console.info('battery current %d' % battery_current)
+    if self.args.check_battery_current:
+      self.assertTrue(battery_current < 0, 'Abnormal battery current')
 
   def _SetCharge(self):
     """Sets charger state to CHARGE"""

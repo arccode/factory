@@ -8,6 +8,7 @@
 
 import factory_common # pylint: disable=W0611
 
+from cros.factory.system.power import Power
 from cros.factory.test.utils import Enum
 
 
@@ -23,6 +24,10 @@ class Board(object):
   AUTO = 'auto'
 
   # Functions that are used in Goofy. Must be implemented.
+  def __init__(self):
+    # Overrides methods in Power using board-specific Power class
+    self.power = Power()
+
   def GetTemperatures(self):
     """Gets a list of temperatures for various sensors.
 

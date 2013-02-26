@@ -12,8 +12,8 @@ import unittest
 import yaml
 
 import factory_common  # pylint: disable=W0611
+from cros.factory import system
 from cros.factory.event_log import EventLog
-from cros.factory.system.power import Power
 from cros.factory.test import factory
 from cros.factory.test import gooftools
 from cros.factory.test import shopfloor
@@ -140,7 +140,7 @@ class Finalize(unittest.TestCase):
       self.ui.Fail('Exception during finalization: %s' % e)
 
   def RunPreflight(self):
-    power = Power()
+    power = system.GetBoard().power
     def CheckRequiredTests():
       '''Returns True if all tests (except waived tests) have passed.'''
       test_list = self.test_info.ReadTestList()
