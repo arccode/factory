@@ -143,7 +143,8 @@ class BadBlocksTest(unittest.TestCase):
                    'first_block',
                    'last_block']]))
 
-    self.assertTrue(last_block >= first_block)
+    self.assertTrue(last_block >= first_block,
+                    'This test requires miniOmaha installed factory test image')
 
     test_size_mb = '%.1f MiB' % (
         (last_block - first_block + 1) * sector_size / 1024.**2)
