@@ -50,7 +50,7 @@ class GSUtil(object):
   Google Storage.'''
 
   def __init__(self, board, channel):
-    self.board = board
+    self.board = board.replace('_', '-')
     self.channel = channel
 
   def GetLatestBuildDir(self, branch=''):
