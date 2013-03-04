@@ -108,8 +108,8 @@ class eMMCCheckFWVersionTest(unittest.TestCase):
     mid = open(self.args.mid_path).read().strip()[-2:]
     pnm = open(self.args.pnm_path).read().strip()
     prv = open(self.args.prv_path).read().strip()[-2:]
-    logging.info('Raw CID value: %s' % cid)
-    logging.info('MID: %s, PNM: %s, PRV: %s' % (mid, pnm, prv))
+    logging.info('Raw CID value: %s', cid)
+    logging.info('MID: %s, PNM: %s, PRV: %s', mid, pnm, prv)
     if self._ValidatePRVField(mid, pnm, prv, self.args.valid_versions):
       logging.info('eMMC firmware version is correct.')
       return # Pass the test
