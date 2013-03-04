@@ -27,6 +27,8 @@ from cros.factory.utils.process_utils import Spawn
 
 GSUTIL_CACHE_DIR = os.path.join(os.environ['HOME'], 'gsutil_cache')
 
+REQUIRED_GSUTIL_VERSION = [3, 18]  # 3.18
+
 
 def CheckDictHasOnlyKeys(dict_to_check, keys):
   """Makes sure that a dictionary's keys are valid.
@@ -64,7 +66,7 @@ def GSDownload(url):
     return cached_path
 
   in_progress_path = cached_path + '.INPROGRESS'
-  Spawn(['gsutil', 'cp', url, 'file://' + in_progress_path],
+  Spawn(['gsutil', '-m', 'cp', url, 'file://' + in_progress_path],
         check_call=True, log=True)
   shutil.move(in_progress_path, cached_path)
   return cached_path
@@ -238,7 +240,33 @@ class FinalizeBundle(object):
       self.factory_image_base_version = GetReleaseVersion(mount)
     self.readme_path = os.path.join(self.bundle_dir, 'README')
 
+  def CheckGSUtilVersion(self):
+    # Check for gsutil >= 3.18.
+    process = Spawn(['gsutil', 'version'],
+                    read_stderr=True, read_stdout=True)
+    if ("No such file or directory: '/usr/lib64/gsutil/CHECKSUM'" in
+        process.stderr_data):
+      # Sigh... workaround install bug
+      version = open('/usr/lib/gsutil/VERSION').read()
+    else:
+      match = re.match('gsutil version (.+)', process.stderr_data)
+      assert match, ('Unable to parse "gsutil version" output: %r' %
+                     process.stdout_data)
+      version = match.group(1)
+
+    version_split = [int(x) for x in version.split('.')]
+    if version_split < REQUIRED_GSUTIL_VERSION:
+      sys.exit(
+          'gsutil version >=%s is required; you seem to have %s.\n'
+          'Please download and install gsutil ('
+          'https://developers.google.com/storage/docs/gsutil_install), and '
+          'make sure this is in your PATH before the system gsutil.'  % (
+              '.'.join(str(x) for x in REQUIRED_GSUTIL_VERSION), version))
+
   def Download(self):
+    # Make sure gsutil is up to date; older versions are pretty broken.
+    self.CheckGSUtilVersion()
+
     for f in self.manifest['add_files']:
       CheckDictHasOnlyKeys(f, ['install_into', 'source', 'extract_files'])
       dest_dir = os.path.join(self.bundle_dir, f['install_into'])
