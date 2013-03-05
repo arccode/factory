@@ -8,6 +8,7 @@
 It defines common portion of various fixture involved tests.
 """
 
+import logging
 import os
 import threading
 import yaml
@@ -22,6 +23,10 @@ from cros.factory.test.args import Arg
 from cros.factory.utils import net_utils
 
 class RfFramework(object):
+  NORMAL_MODE = 'Normal'
+  DETAIL_PROMPT = 'Detail prompts'
+  DETAIL_PROMPT_WITHOUT_EQUIPMENT = 'Detail prompts without equipment'
+
   ARGS = [
       Arg('category', str,
           'Describes what category it is, should be one of calibration,'
@@ -53,6 +58,8 @@ class RfFramework(object):
     self.event_log = EventLog.ForAutoTest()
     self.caches_dir = os.path.join(CACHES_DIR, 'parameters')
     self.interactive_mode = False
+    self.equipment_enabled = True
+    self.mode = self.NORMAL_MODE
     # Initiate an UI
     self.ui = test_ui.UI()
     # TODO(itspeter): Set proper title and context for initial screen.
@@ -63,8 +70,20 @@ class RfFramework(object):
 
     # Allowed user to apply fine controls in engineering_mode
     if self.ui.InEngineeringMode():
-      # TODO(itspeter): expose more options in run-time.
       factory.console.debug('engineering mode detected.')
+      self.mode = self.SelectMode(
+          'mode',
+          [self.NORMAL_MODE, self.DETAIL_PROMPT_WITHOUT_EQUIPMENT,
+           self.DETAIL_PROMPT])
+      if self.mode == self.DETAIL_PROMPT:
+        self.interactive_mode = True
+      elif self.mode == self.DETAIL_PROMPT_WITHOUT_EQUIPMENT:
+        self.interactive_mode = True
+        self.equipment_enabled = False
+
+    factory.console.info('mode = %s', self.mode)
+    factory.console.info('interactive_mode = %s', self.interactive_mode)
+    factory.console.info('equipment_enabled = %s', self.equipment_enabled)
 
   def runTest(self):
     if self.args.pre_test_outside_shield_box:
@@ -183,6 +202,56 @@ class RfFramework(object):
         condition_name='Setup IP address')
 
     factory.console.info('Network prepared. IP: %r', net_utils.GetEthernetIp())
+
+  def SelectMode(self, title, choices):
+    def GetSelectValue(dict_wrapper, event):
+      # As python 2.x doesn't have a nonlocal keyword.
+      # simulate the nonlocal by using a dict wrapper.
+      select_value = event.data.strip()
+      logging.info('Selected value: %s', select_value)
+      dict_wrapper['select_value'] = select_value
+      with self.key_pressed:
+        self.key_pressed.notify()
+
+    def GenerateRadioButtonsHtml(choices):
+      '''Generates html snippet for the selection.
+
+      First item will be selected by default.
+      '''
+      radio_button_html = ''
+      for idx, choice in enumerate(choices):
+        radio_button_html += (
+            '<input name="select-value" type="radio" ' +
+            ('checked ' if (idx == 0) else '') +
+            'value="%s" id="choice_%d">' % (choice, idx) +
+            '<label for="choice_%d">%s</label><br>' % (idx, choice))
+      return radio_button_html
+
+    dict_wrapper = dict()
+    self.template.SetState(
+        test_ui.MakeLabel(
+            'Please select the %s and press ENTER.<br>' % title) +
+        GenerateRadioButtonsHtml(choices) + '<br>&nbsp;'
+        '<p id="select-error" class="test-error">&nbsp;')
+
+    # Handle selected value when Enter pressed.
+    self.ui.BindKeyJS(
+        '\r',
+        'window.test.sendTestEvent("select_value",'
+        'function(){'
+        '  choices = document.getElementsByName("select-value");'
+        '  for (var i = 0; i < choices.length; ++i)'
+        '    if (choices[i].checked)'
+        '      return choices[i].value;'
+        '  return "";'
+        '}())')
+    self.ui.AddEventHandler(
+        'select_value',
+        lambda event: GetSelectValue(dict_wrapper, event))
+    with self.key_pressed:
+      self.key_pressed.wait()
+    self.ui.UnbindKey('\r')
+    return dict_wrapper['select_value']
 
   def Prompt(self, prompt_str, key_to_wait=' ', force_prompt=False):
     """Displays a prompt to user and wait for a specific key.
