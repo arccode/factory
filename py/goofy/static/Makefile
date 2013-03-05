@@ -68,7 +68,8 @@ goofy.js: $(EXTRACTED) ../js/goofy.js
 	if fgrep "WARNING -" tmp/errors.compiled; then \
 	  cat tmp/errors.compiled; \
 	  echo Warning found in compiler output.; \
-	  exit 1; \
+	  echo Set GOOFY_ALLOW_WARNINGS=1 to prevent aborting.; \
+	  $(if $(not $(GOOFY_ALLOW_WARNINGS)),exit 1;) \
 	fi
 	$(CLOSURE_BUILD) --output_mode=script --output_file=$@ >& tmp/errors.script \
 	    >& tmp/errors.script || ( cat tmp/errors.script; exit 1 )
