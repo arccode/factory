@@ -1390,6 +1390,12 @@ cros.factory.Goofy.prototype.showTestPopup = function(path, labelElement,
                      goog.positioning.Corner.TOP_LEFT);
     goog.events.listen(menu, goog.ui.Component.EventType.HIDE,
                        function(event) {
+                           if (event.target != menu) {
+                               // We also receive HIDE events for
+                               // submenus, but we're interested only
+                               // in events for this top-level menu.
+                               return;
+                           }
                            menu.dispose();
                            this.contextMenu = null;
                            this.lastContextMenuHideTime = goog.now();
@@ -1414,7 +1420,7 @@ cros.factory.Goofy.prototype.createViewLogMenu = function(path) {
 
     this.sendRpc('get_test_history', [path], function(history) {
             if (subMenu.getMenu().indexOfChild(loadingItem) >= 0) {
-                subMenu.getMenu().removeChild(loadingItem);
+                subMenu.getMenu().removeChild(loadingItem, true);
             }
 
             if (!history.length) {
