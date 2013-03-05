@@ -124,11 +124,11 @@ class DUTEnvironment(Environment):
     available_modes = []
     for path in mode_paths:
       with open(path, 'r') as fd:
-        mode_string = fd.read()
-        if mode_string:
-          available_modes.append(mode_string.split('x'))
-    if len(available_modes) != 1:
-      raise factory.FactoryTestFailure('More than 1 display modes were found')
+        available_modes.extend(
+          line.strip().split('x') for line in open(path).readlines())
+    if not available_modes:
+      raise factory.FactoryTestFailure('No display mode was found')
+    logging.info('Supported display modes: %s', available_modes)
     screen_width, screen_height = [int(x) for x in available_modes[0]]
     if self.goofy.options.one_pixel_less:
       screen_width -= 1
