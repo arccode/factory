@@ -65,7 +65,7 @@ class RfFramework(object):
     # TODO(itspeter): Set proper title and context for initial screen.
     self.template = ui_templates.OneSection(self.ui)
     self.key_pressed = threading.Condition()
-    self.ui.Run(blocking=False)
+    self.ui_thread = self.ui.Run(blocking=False)
     self.failures = []
 
     # Allowed user to apply fine controls in engineering_mode
@@ -133,6 +133,7 @@ class RfFramework(object):
     if len(self.failures) > 0:
       self.ui.Fail('\n'.join(self.failures))
     self.ui.Pass()
+    self.ui_thread.join()
 
   def PreTestOutsideShieldBox(self):
     """Placeholder for procedures outside the shield-box before primary test."""
@@ -175,11 +176,15 @@ class RfFramework(object):
     """Returns True if threshold_min <= observed <= threshold_max.
 
     If either thresholds are None, then the comparison will always succeed."""
-    if threshold_min and observed < threshold_min:
+    if threshold_min is not None and observed < threshold_min:
       return False
-    if threshold_max and observed > threshold_max:
+    if threshold_max is not None and observed > threshold_max:
       return False
     return True
+
+  def FormattedPower(self, power, format_str='%7.2f'):
+    """Returns a formatted power while allowing power be a None."""
+    return 'None' if power is None else (format_str % power)
 
   def PrepareNetwork(self):
     def ObtainIp():
@@ -275,3 +280,11 @@ class RfFramework(object):
     with self.key_pressed:
       self.key_pressed.wait()
     self.ui.UnbindKey(key_to_wait)
+
+  def RunEquipmentCommand(self, function, *args, **kwargs):
+    """Wrapper for controling the equipment command.
+
+    The function will only be called if self.equipment_enabled is True.
+    """
+    if self.equipment_enabled:
+      return function(*args, **kwargs)
