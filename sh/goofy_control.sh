@@ -22,6 +22,16 @@ factory_setup() {
     true
 }
 
+# Show splash screen
+boot_splash() {
+    SPLASH_IMAGES_DIR="/usr/share/chromeos-assets/images_200_percent"
+    SPLASH_IMAGES="$SPLASH_IMAGES_DIR"/boot_splash_frame*.png
+    ply-image --clear 0xfefefe --frame-interval 25 $SPLASH_IMAGES --offset=0,-40
+    sleep 0.2
+    ply-image "/usr/local/factory/misc/boot_splash.png" --offset=0,+80
+    sleep 0.1
+}
+
 load_setup() {
   # Load board-specific parameters, if any.
   for f in "${BOARD_SETUP[@]}"; do
@@ -59,6 +69,8 @@ start_factory() {
 
   # Preload modules here
   modprobe i2c-dev 2>/dev/null || true
+
+  boot_splash
 
   cd "$FACTORY"/../autotest
   eval "$("$FACTORY/sh/startx.sh" 2>/var/log/startx.err)"
