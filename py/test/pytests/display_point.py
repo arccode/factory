@@ -12,6 +12,7 @@ import random
 import unittest
 
 from cros.factory.test import test_ui
+from cros.factory.test.args import Arg
 from cros.factory.test.ui_templates import OneSection
 
 _ID_CONTAINER = 'display-point-test-container'
@@ -22,6 +23,7 @@ _HTML_DISPLAY = """
    <link rel="stylesheet" type="text/css" href="display_point.css">
    <div id="%s">
    </div>\n"""  % _ID_CONTAINER
+
 
 class DisplayPointTest(unittest.TestCase):
   ''' Tests the function of display panel using some points.
@@ -35,17 +37,24 @@ class DisplayPointTest(unittest.TestCase):
     self.template: ui template handling html layout.
     self.list_number_point: a list of the number of points in each subtest.
   '''
+  ARGS = [
+    Arg('point_size', (float, int), 'width and height of testing point in px',
+        optional=True, default=3.0),
+    Arg('max_point_count', int, 'maximum number of points in each subtest',
+        optional=True, default=3)
+  ]
 
   def setUp(self):
     '''Initializes frontend presentation and properties.'''
     self.ui = test_ui.UI()
     self.template = OneSection(self.ui)
     self.ui.AppendHTML(_HTML_DISPLAY)
-    self.list_number_point = [random.randint(1, 3) for _ in xrange(2)]
+    self.list_number_point = [
+        random.randint(1, self.args.max_point_count) for _ in xrange(2)]
     logging.info('testing point: %s',
                  ', '.join([str(x) for x in self.list_number_point]))
     self.ui.CallJSFunction('setupDisplayPointTest', _ID_CONTAINER,
-                           self.list_number_point)
+                           self.list_number_point, float(self.args.point_size))
 
   def runTest(self):
     '''Sets the callback function of keys and run the test.'''

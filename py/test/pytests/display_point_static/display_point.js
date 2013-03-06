@@ -8,10 +8,12 @@
  * @constructor
  * @param {string} container
  * @param {array} arrayNumberPoint
+ * @param {float} pointSize
  */
-DisplayPointTest = function(container, arrayNumberPoint) {
+DisplayPointTest = function(container, arrayNumberPoint, pointSize) {
   this.container = container;
   this.arrayNumberPoint = arrayNumberPoint;
+  this.pointSize = pointSize;
   this.display = false;
   this.fullScreenElement = null;
   this.focusItem = 0;
@@ -114,6 +116,8 @@ DisplayPointTest.prototype.setupPoint = function() {
     div.style.position = "absolute";
     div.style.top = this.getRandomPosition() + "%";
     div.style.left = this.getRandomPosition() + "%";
+    div.style.width = this.pointSize + "px";
+    div.style.height = this.pointSize + "px";
     this.displayDiv.appendChild(div);
   }
 };
@@ -184,9 +188,11 @@ DisplayPointTest.prototype.failTest = function(number) {
  * Creates a display point test and runs it.
  * @param {string} container
  * @param {array} arrayNumberPoint
+ * @param {float} pointSize
  */
-function setupDisplayPointTest(container, arrayNumberPoint) {
-  window.displayPointTest = new DisplayPointTest(container, arrayNumberPoint);
+function setupDisplayPointTest(container, arrayNumberPoint, pointSize) {
+  window.displayPointTest = new DisplayPointTest(container, arrayNumberPoint,
+                                                 pointSize);
   window.displayPointTest.init();
   window.displayPointTest.initFullScreenElement();
   window.displayPointTest.initDisplayDiv();
