@@ -9,13 +9,48 @@
 
 import collections
 import logging
+import os
 import re
 import yaml
 import factory_common # pylint: disable=W0611
 
-from cros.factory.schema import Scalar, Dict, FixedDict, List, AnyOf
 from cros.factory.hwid.base32 import Base32
+from cros.factory.schema import Scalar, Dict, FixedDict, List, Tuple, AnyOf
+from cros.factory.test import utils
 
+
+# The expected location of HWID data within a factory image or the
+# chroot.
+DEFAULT_HWID_DATA_PATH = (
+    os.path.join(os.environ['CROS_WORKON_SRCROOT'],
+                 'src', 'platform', 'chromeos-hwid', 'v3')
+    if utils.in_chroot()
+    else '/usr/local/factory/hwid')
+
+
+def ProbeBoard():
+  """Probes the board name by looking up the CHROMEOS_RELEASE_BOARD variable
+  in /etc/lsb-release.
+
+  Returns:
+    The probed board name as a string.
+
+  Raises:
+    HWIDException when probe error.
+  """
+  LSB_RELEASE_FILE = '/etc/lsb-release'
+  LSB_BOARD_RE = re.compile(r'^CHROMEOS_RELEASE_BOARD=(\w+)$', re.M)
+  if utils.in_chroot():
+    raise HWIDException('Unable to determine board in chroot')
+  if not os.path.exists(LSB_RELEASE_FILE):
+    raise HWIDException('%r does not exist, unable to determine board' %
+                        LSB_RELEASE_FILE)
+  try:
+    with open(LSB_RELEASE_FILE) as f:
+      board = LSB_BOARD_RE.findall(f.read())[0]
+  except IndexError:
+    raise HWIDException('Cannot determine board from %r' % LSB_RELEASE_FILE)
+  return board
 
 def MakeList(value):
   """Converts the given value to a list.
@@ -80,13 +115,10 @@ class HWID(object):
     self.binary_string = binary_string
     self.encoded_string = encoded_string
     self.bom = bom
-    self.Verify()
+    self.VerifySelf()
 
-  def Verify(self):
-    """Verifies the HWID object.
-
-    Returns:
-      True if the HWID is valid.
+  def VerifySelf(self):
+    """Verifies the HWID object itself.
 
     Raises:
       HWIDException on verification error.
@@ -106,7 +138,36 @@ class HWID(object):
       raise HWIDException('BOM does not encode to binary string %r' %
                           self.binary_string)
     # No exception. Everything is good!
-    return True
+
+  def VerifyProbeResult(self, probe_result):
+    """Verifies that the probe result matches the settings encoded in the HWID
+    object.
+
+    Args:
+      probe_result: A YAML string of the probe result, which is usually the
+          output of the probe command.
+
+    Raises:
+      HWIDException on verification error.
+    """
+    self.database.VerifyComponents(probe_result)
+    probed_bom = self.database.ProbeResultToBOM(probe_result)
+    def PackProbedString(bom, comp_cls):
+      return [e.probed_string for e in bom.components[comp_cls] if
+              e.probed_string is not None]
+    for comp_cls in self.database.components:
+      if comp_cls not in self.database.probeable_components:
+        continue
+      probed_comp_values = MakeSet(PackProbedString(probed_bom, comp_cls))
+      expected_comp_values = MakeSet(PackProbedString(self.bom, comp_cls))
+      extra_components = probed_comp_values - expected_comp_values
+      missing_components = expected_comp_values - probed_comp_values
+      if extra_components or missing_components:
+        raise HWIDException(
+            'Component class %r has extra components: %r and missing '
+            'components: %r. Expected values are: %r' %
+            (comp_cls, sorted(extra_components), sorted(missing_components),
+             sorted(expected_comp_values)))
 
 
 class BOM(object):
@@ -159,6 +220,7 @@ class Database(object):
     image_id: A _ImageId object.
     pattern: A _Pattern object.
     encoded_fields: A _EncodedFields object.
+    probeable_components: A _ProbeableComponents objet.
     components: A _Components object.
     rules: A list of rules of the form:
         [
@@ -189,12 +251,14 @@ class Database(object):
   _HWID_FORMAT = re.compile(r'^([A-Z0-9]+) ((?:[A-Z2-7]{4}-)*[A-Z2-7]{1,4})$')
 
   def __init__(self, board, encoding_patterns, image_id, pattern,
-               encoded_fields, components, rules, allowed_skus):
+               encoded_fields, probeable_components, components, rules,
+               allowed_skus):
     self.board = board
     self.encoding_patterns = encoding_patterns
     self.image_id = image_id
     self.pattern = pattern
     self.encoded_fields = encoded_fields
+    self.probeable_components = probeable_components
     self.components = components
     self.rules = rules
     self.allowed_skus = allowed_skus
@@ -218,7 +282,7 @@ class Database(object):
       db_yaml = yaml.load(f)
 
     for key in ['board', 'encoding_patterns', 'image_id', 'pattern',
-                'encoded_fields', 'components']:
+                'encoded_fields', 'probeable_components', 'components']:
       if not db_yaml.get(key):
         raise HWIDException('%r is not specified in component database' % key)
     # TODO(jcliang): Add check for rules.
@@ -229,6 +293,7 @@ class Database(object):
                     _EncodingPatterns(db_yaml['encoding_patterns']),
                     _ImageId(db_yaml['image_id']), _Pattern(db_yaml['pattern']),
                     _EncodedFields(db_yaml['encoded_fields']),
+                    _ProbeableComponents(db_yaml['probeable_components']),
                     _Components(db_yaml['components']),
                     rules, allowed_skus)
 
@@ -394,9 +459,6 @@ class Database(object):
   def VerifyBinaryString(self, binary_string):
     """Verifies the binary string.
 
-    Returns:
-      True if the binary string is valid.
-
     Raises:
       HWIDException if verification fails.
     """
@@ -414,13 +476,9 @@ class Database(object):
                           'length <= %d, got length %d' %
                           (binary_string, self.pattern.GetTotalBitLength(),
                            len(string_without_paddings)))
-    return True
 
   def VerifyEncodedString(self, encoded_string):
     """Verifies the encoded string.
-
-    Returns:
-      True if the encoded string is valid.
 
     Raises:
       HWIDException if verification fails.
@@ -441,14 +499,10 @@ class Database(object):
     checksum = stripped[-2:]
     if not checksum == Base32.Checksum(hwid):
       raise HWIDException('Checksum of %r mismatch' % encoded_string)
-    return True
 
   def VerifyBOM(self, bom):
     """Verifies the data contained in the given BOM object matches the settings
     and definitions in the database.
-
-    Returns:
-      True if the BOM object is valid.
 
     Raises:
       HWIDException if verification fails.
@@ -513,8 +567,37 @@ class Database(object):
     if invalid_fields:
       raise HWIDException('Encoded fields %r have unknown indices' %
                           ', '.join(sorted(invalid_fields)))
-    return True
 
+  def VerifyComponents(self, probe_result, comp_list=None):
+    """Given a list of component classes, verify that the probed components of
+    all the component classes in the list are valid components in the database.
+
+    Args:
+      probe_result: A YAML string of the probe result, which is usually the
+          output of the probe command.
+      comp_list: An optional list of component class to be verified. Defaults to
+          None, which will then verify all the probeable components defined in
+          the database.
+
+    Returns:
+      A dict from component class to a list of one or more
+      ProbedComponentResult tuples.
+      {component class: [ProbedComponentResult(
+          component_name,  # The component name if found in the db, else None.
+          probed_string,   # The actual probed string. None if probing failed.
+          error)]}         # The error message if there is one; else None.
+    """
+    probed_bom = self.ProbeResultToBOM(probe_result)
+    if comp_list is None:
+      comp_list = self.probeable_components
+    if not isinstance(comp_list, list):
+      raise HWIDException('Argument comp_list should be a list')
+    invalid_cls = set(comp_list) - set(self.probeable_components)
+    if invalid_cls:
+      raise HWIDException('%r is not probeable and cannot be verified' %
+                          sorted(invalid_cls))
+    return dict((comp_cls, probed_bom.components[comp_cls]) for comp_cls in
+                comp_list)
 
 class _EncodingPatterns(dict):
   """Class for parsing encoding_patterns in database.
@@ -614,6 +697,19 @@ class _EncodedFields(dict):
           comp_value = self[field][index][comp_cls]
           if isinstance(comp_value, str):
             self[field][index][comp_cls] = [comp_value]
+
+
+class _ProbeableComponents(list):
+  """A class for storing the set of components that are probeable.
+
+  Args:
+    probeable_component_list: A list of strings indicating the probeable
+        component classes.
+  """
+  def __init__(self, probeable_component_list):
+    self.schema = List('probeable components', Scalar('component class', str))
+    self.schema.Validate(probeable_component_list)
+    super(_ProbeableComponents, self).__init__(probeable_component_list)
 
 
 class _Components(dict):

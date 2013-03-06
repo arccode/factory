@@ -35,39 +35,60 @@ class HWIDTest(unittest2.TestCase):
     self.assertEquals(set(['a', 'b']), MakeSet(('a', 'b')))
     self.assertEquals(set(['a', 'b']), MakeSet({'a': 'foo', 'b': 'bar'}))
 
-  def testVerify(self):
+  def testVerifySelf(self):
     result = open(os.path.join(_TEST_DATA_PATH,
                                'test_probe_result.yaml'), 'r').read()
     bom = self.database.ProbeResultToBOM(result)
     hwid = Encode(self.database, bom)
-    self.assertTrue(hwid.Verify())
+    self.assertEquals(None, hwid.VerifySelf())
 
     # The correct binary string: '00000111010000010100'
     original_value = hwid.binary_string
     hwid.binary_string = '000001110100000101100'
     self.assertRaisesRegexp(
-        HWIDException, r'Invalid bit string length', hwid.Verify)
+        HWIDException, r'Invalid bit string length', hwid.VerifySelf)
     hwid.binary_string = '00000011010000010100'
     self.assertRaisesRegexp(
         HWIDException, r'Binary string .* does not encode to encoded string .*',
-        hwid.Verify)
+        hwid.VerifySelf)
     hwid.binary_string = original_value
 
     original_value = hwid.encoded_string
     hwid.encoded_string = 'ASDF QWER-TY'
     self.assertRaisesRegexp(
-        HWIDException, r'Invalid board name', hwid.Verify)
+        HWIDException, r'Invalid board name', hwid.VerifySelf)
     hwid.encoded_string = original_value
 
     original_value = hwid.bom
     hwid.bom.encoded_fields['cpu'] = 10
     self.assertRaisesRegexp(
         HWIDException, r'Encoded fields .* have unknown indices',
-        hwid.Verify)
+        hwid.VerifySelf)
     hwid.bom.encoded_fields['cpu'] = 2
     self.assertRaisesRegexp(
-        HWIDException, r'BOM does not encode to binary string .*', hwid.Verify)
+        HWIDException, r'BOM does not encode to binary string .*',
+        hwid.VerifySelf)
     hwid.bom = original_value
+
+  def testVerifyProbeResult(self):
+    result = open(os.path.join(_TEST_DATA_PATH,
+                               'test_probe_result.yaml'), 'r').read()
+    bom = self.database.ProbeResultToBOM(result)
+    hwid = Encode(self.database, bom)
+    fake_result = result.replace('HDMI 1', 'HDMI 0')
+    self.assertRaisesRegexp(
+        HWIDException, r'Component class .* has extra components: .* and '
+        'missing components: .*. Expected values are: .*',
+        hwid.VerifyProbeResult, fake_result)
+    fake_result = result.replace('CPU @ 2.80GHz [4 cores]',
+                                 'CPU @ 2.40GHz [4 cores]')
+    self.assertRaisesRegexp(
+        HWIDException, r'Component class .* has extra components: .* and '
+        'missing components: .*. Expected values are: .*',
+        hwid.VerifyProbeResult, fake_result)
+    self.assertEquals(None, hwid.VerifyProbeResult(result))
+    fake_result = result.replace('4567:abcd Camera', 'woot!')
+    self.assertEquals(None, hwid.VerifyProbeResult(fake_result))
 
 
 class DatabaseTest(unittest2.TestCase):
@@ -221,7 +242,8 @@ class DatabaseTest(unittest2.TestCase):
                       self.database._GetAttributesByIndex('cellular', 0))
 
   def testVerifyBinaryString(self):
-    self.assertTrue(self.database.VerifyBinaryString('00000101001101101100'))
+    self.assertEquals(
+        None, self.database.VerifyBinaryString('00000101001101101100'))
     self.assertRaisesRegexp(
         HWIDException, r'Invalid binary string: .*',
         self.database.VerifyBinaryString, '020001010011011011000')
@@ -234,7 +256,7 @@ class DatabaseTest(unittest2.TestCase):
 
   def testVerifyEncodedString(self):
     self.assertEquals(
-        True, self.database.VerifyEncodedString('CHROMEBOOK AW3L-M7I7-V'))
+        None, self.database.VerifyEncodedString('CHROMEBOOK AW3L-M7I7-V'))
     self.assertRaisesRegexp(
         HWIDException, r'Invalid HWID string format',
         self.database.VerifyEncodedString, 'AW3L-M7I5-4')
@@ -252,7 +274,8 @@ class DatabaseTest(unittest2.TestCase):
     result = open(os.path.join(_TEST_DATA_PATH,
                                'test_probe_result.yaml'), 'r').read()
     bom = self.database.ProbeResultToBOM(result)
-    self.assertTrue(self.database.VerifyBOM(bom))
+    self.assertEquals(
+        None, self.database.VerifyBOM(bom))
 
     original_value = bom.components['ec_flash_chip']
     bom.components.pop('ec_flash_chip')
@@ -307,6 +330,41 @@ class DatabaseTest(unittest2.TestCase):
         HWIDException, r'Missing encoded fields in BOM: .*',
         self.database.VerifyBOM, bom)
     bom.encoded_fields['cpu'] = original_value
+
+  def testVerifyComponents(self):
+    result = open(os.path.join(_TEST_DATA_PATH,
+                               'test_probe_result.yaml'), 'r').read()
+    self.assertRaisesRegexp(
+        HWIDException, r'Argument comp_list should be a list',
+        self.database.VerifyComponents, result, 'cpu')
+    self.assertRaisesRegexp(
+        HWIDException, r'.* is not probeable and cannot be verified',
+        self.database.VerifyComponents, result, ['camera'])
+    self.assertEquals({
+        'audio_codec': [
+            ('codec_1', 'Codec 1', None),
+            ('hdmi_1', 'HDMI 1', None)],
+        'cellular': [
+            (None, None, 'missing \'cellular\' component')],
+        'cpu': [
+            ('cpu_5', 'CPU @ 2.80GHz [4 cores]', None)]},
+        self.database.VerifyComponents(
+            result, ['audio_codec', 'cellular', 'cpu']))
+    result = """
+        found_probe_value_map:
+          audio_codec:
+          - Codec 1
+          - HDMI 3
+        found_volatile_values: {}
+        initial_configs: {}
+        missing_component_classes: []
+    """
+    self.assertEquals({
+        'audio_codec': [
+            ('codec_1', 'Codec 1', None),
+            (None, 'HDMI 3', 'unsupported \'audio_codec\' component found with '
+             'probe result \'HDMI 3\' (no matching name in the component DB)')
+        ]}, self.database.VerifyComponents(result, ['audio_codec']))
 
 
 class PatternTest(unittest2.TestCase):

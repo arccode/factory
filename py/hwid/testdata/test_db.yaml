@@ -57,7 +57,7 @@ encoded_fields:
     0:
       cellular: NULL
     1:
-      cellular: cellular_1
+      cellular: cellular_0
   chipset:
     0:
       chipset: chipset_0
@@ -131,6 +131,32 @@ encoded_fields:
       key_root: key_root_0
       ro_ec_firmware: ro_ec_firmware_0
       ro_main_firmware: ro_main_firmware_1
+
+probeable_components:
+  - audio_codec
+  - battery
+  - bluetooth
+  - cellular
+  - chipset
+  - cpu
+  - display_converter
+  - dram
+  - ec_flash_chip
+  - embedded_controller
+  - ethernet
+  - flash_chip
+  - keyboard
+  - storage
+  - touchpad
+  - tpm
+  - usb_hosts
+  - vga
+  - wireless
+  - hash_gbb
+  - key_recovery
+  - key_root
+  - ro_ec_firmware
+  - ro_main_firmware
 
 components:
   audio_codec:

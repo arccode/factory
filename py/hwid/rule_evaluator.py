@@ -143,7 +143,7 @@ class RuleEvaluator(object):
         return [e.probed_string for e in bom.components[comp_cls] if
                 e.probed_string is not None]
       bom_comp_value_set = MakeSet(PackProbedString(hwid.bom, comp_cls))
-      if (bom_comp_value_set is not None and
+      if (bom_comp_value_set and
           db_comp_value_set <= bom_comp_value_set):
         known_values |= CreateSetFromAttributes({comp_name: comp_attr})
     # If the set is empty, add a 'None' element indicating that the component
