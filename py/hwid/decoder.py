@@ -70,7 +70,9 @@ def EncodedStringToBinaryString(database, encoded_string):
     A binary string.
   """
   database.VerifyEncodedString(encoded_string)
-  _, hwid_string = encoded_string.split(' ')
+  # TODO(jcliang): Change back in R27.
+  #_, hwid_string = encoded_string.split(' ')
+  _, hwid_string, _ = encoded_string.split(' ')
   hwid_string = hwid_string.replace('-', '')
   # Remove the 10-bit checksum at tail
   hwid_string = hwid_string[0:-2]

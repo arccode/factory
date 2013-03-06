@@ -60,7 +60,9 @@ class DecoderTest(unittest.TestCase):
   def testEncodedStringToBinaryString(self):
     self.assertEquals('00000111010000010100',
                       EncodedStringToBinaryString(
-                          self.database, 'CHROMEBOOK A5AU-LU'))
+                          # TODO(jcliang): Change back in R27.
+                          #self.database, 'CHROMEBOOK A5AU-LU'))
+                          self.database, 'CHROMEBOOK A5AU-LU 3324'))
 
   def testBinaryStringToBOM(self):
     result = open(os.path.join(_TEST_DATA_PATH,
@@ -78,9 +80,13 @@ class DecoderTest(unittest.TestCase):
     result = open(os.path.join(_TEST_DATA_PATH,
                                'test_probe_result.yaml'), 'r').read()
     reference_bom = self.database.ProbeResultToBOM(result)
-    hwid = Decode(self.database, 'CHROMEBOOK A5AU-LU')
+    # TODO(jcliang): Change back in R27.
+    #hwid = Decode(self.database, 'CHROMEBOOK A5AU-LU')
+    hwid = Decode(self.database, 'CHROMEBOOK A5AU-LU 3324')
     self.assertEquals('00000111010000010100', hwid.binary_string)
-    self.assertEquals('CHROMEBOOK A5AU-LU', hwid.encoded_string)
+    # TODO(jcliang): Change back in R27.
+    #self.assertEquals('CHROMEBOOK A5AU-LU', hwid.encoded_string)
+    self.assertEquals('CHROMEBOOK A5AU-LU 3324', hwid.encoded_string)
     self.assertEquals(reference_bom.board, hwid.bom.board)
     self.assertEquals(reference_bom.encoding_pattern_index,
                       hwid.bom.encoding_pattern_index)
