@@ -41,6 +41,11 @@ KEY_SHOPFLOOR_SESSION = 'shopfloor.session'
 # Prefix for auxiliary session data entries.
 KEY_SESSION_AUX_PREFIX = 'shopfloor.aux.'
 
+# Key for device data.  This is a dictionary of accumulated data from
+# shopfloor calls with information about the configuration of the
+# device.
+KEY_DEVICE_DATA = 'shopfloor.device'
+
 # Session data will be serialized, so we're not using class/namedtuple. The
 # session is a simple dictionary with following keys:
 SESSION_SERIAL_NUMBER = 'serial_number'
@@ -383,3 +388,25 @@ def upload_report(blob, name=None):
 def finalize():
   """Notifies shop floor server this DUT has finished testing."""
   get_instance().Finalize(get_serial_number())
+
+
+def GetDeviceData():
+  """Returns the accumulated dictionary of device data."""
+  return factory.get_shared_data(KEY_DEVICE_DATA, {})
+
+
+def UpdateDeviceData(new_device_data):
+  """Returns the accumulated dictionary of device data.
+
+  Args:
+    new_device_data: A dict with key/value pairs to update.  Old values
+      are overwritten.
+
+  Returns:
+    The updated dictionary.
+  """
+  logging.info('Updating device data: setting %s', new_device_data)
+  data = factory.get_state_instance().update_shared_data_dict(
+      KEY_DEVICE_DATA, new_device_data)
+  logging.info('Updated device data; complete device data is now %s',
+               data)

@@ -292,6 +292,32 @@ class FactoryState(object):
       if not optional:
         raise
 
+  @_synchronized
+  def update_shared_data_dict(self, key, new_data):
+    '''
+    Updates values a shared data item whose value is a dictionary.
+
+    This is roughly equivalent to
+
+      data = get_shared_data(key) or {}
+      data.update(new_data)
+      set_shared_data(key, data)
+      return data
+
+    except that it is atomic.
+
+    Args:
+      key: The key for the data item to update.
+      new_data: A dictionary of items to update.
+
+    Returns:
+      The updated value.
+    '''
+    data = self._data_shelf.get(key, {})
+    data.update(new_data)
+    self._data_shelf[key] = data
+    return data
+
   def get_test_history(self, *test_paths):
     '''Returns metadata for all previous (and current) runs of a test.'''
     ret = []
