@@ -10,6 +10,7 @@ import unittest
 
 
 from cros.factory.event_log import EventLog
+from cros.factory.system import vpd
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
@@ -33,6 +34,8 @@ class Scan(unittest.TestCase):
         'Key to use for event log', optional=True),
     Arg('shared_data_key', str,
         'Key to use to store in scanned value in shared data', optional=True),
+    Arg('rw_vpd_key', str,
+        'Key to use to store in scanned value in RW VPD', optional=True),
     Arg('regexp', str,
         'Regexp that the scanned value must match', optional=True),
   ]
@@ -40,10 +43,15 @@ class Scan(unittest.TestCase):
   def HandleScanValue(self, event):
     def SetError(label_en, label_zh=None):
       logging.info('Scan error: %r', label_en)
-      self.ui.SetHTML(test_ui.MakeLabel(label_en, label_zh),
-                      id='scan-error')
+      self.ui.SetHTML('<span class="test-error">' +
+                      test_ui.MakeLabel(label_en, label_zh) +
+                      '</span>',
+                      id='scan-status')
       self.ui.RunJS('$("scan-value").focus();'
-                    '$("scan-value").value = ""')
+                    '$("scan-value").value = "";'
+                    '$("scan-value").disabled = false')
+
+    self.ui.RunJS('$("scan-value").disabled = true')
 
     scan_value = event.data.strip()
     esc_scan_value = test_ui.Escape(scan_value)
@@ -88,6 +96,18 @@ class Scan(unittest.TestCase):
       factory.set_shared_data(self.args.shared_data_key,
                               scan_value)
 
+    if self.args.rw_vpd_key:
+      self.ui.SetHTML(
+          test_ui.MakeLabel('Writing to VPD. Please wait…',
+                            '正在写到 VPD，请稍等…') +
+          ' ' + test_ui.SPINNER_HTML_16x16,
+          id='scan-status')
+      try:
+        vpd.rw.Update({self.args.shared_data_key: scan_value})
+      except:  # pylint: disable=W0702
+        logging.exception('Setting VPD failed')
+        return SetError(utils.FormatExceptionOnly())
+
     self.ui.Pass()
 
   def setUp(self):
@@ -110,7 +130,7 @@ class Scan(unittest.TestCase):
                 self.args.label_zh or self.args.label_en)) +
         '<br><input id="scan-value" type="text" size="20">'
         '<br>&nbsp;'
-        '<p id="scan-error" class="test-error">&nbsp;')
+        '<p id="scan-status">&nbsp;')
     self.ui.RunJS("document.getElementById('scan-value').focus()")
     self.ui.BindKeyJS(
         '\r',

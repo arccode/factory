@@ -31,6 +31,8 @@ ESCAPE_KEY = 27
 #   exception-desc: Exception message.
 exception_list = []
 
+# HTML for spinner icon.
+SPINNER_HTML_16x16 = '<img src="/images/active.gif" width=16 height=16>'
 
 def Escape(text, preserve_line_breaks=True):
   '''Escapes HTML.
