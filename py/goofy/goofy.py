@@ -33,6 +33,7 @@ from cros.factory.goofy.event_log_watcher import EventLogWatcher
 from cros.factory.goofy.goofy_rpc import GoofyRPC
 from cros.factory.goofy.invocation import TestInvocation
 from cros.factory.goofy.prespawner import Prespawner
+from cros.factory.goofy.web_socket_manager import WebSocketException
 from cros.factory.goofy.web_socket_manager import WebSocketManager
 from cros.factory.system.charge_manager import ChargeManager
 from cros.factory.system import disk_space
@@ -61,6 +62,8 @@ NO_REBOOT_FILE = '/var/log/factory.noreboot'
 FORCE_AUTO_RUN = 'force_auto_run'
 
 RUN_QUEUE_TIMEOUT_SECS = 10
+
+WAIT_FOR_SOCKET_TIMEOUT_SECS = 5
 
 GOOFY_IN_CHROOT_WARNING = '\n' + ('*' * 70) + '''
 You are running Goofy inside the chroot.  Autotests are not supported.
@@ -1185,7 +1188,11 @@ class Goofy(object):
     if self.options.ui == 'chrome':
       self.env.launch_chrome()
       logging.info('Waiting for a web socket connection')
-      self.web_socket_manager.wait()
+      try:
+        self.web_socket_manager.wait(timeout_sec=(
+            None if factory.in_chroot() else WAIT_FOR_SOCKET_TIMEOUT_SECS))
+      except WebSocketException:
+        sys.exit('Failed to wait for a socket. Exiting Goofy.')
 
       # Wait for the test widget size to be set; this is done in
       # an asynchronous RPC so there is a small chance that the
