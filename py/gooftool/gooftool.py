@@ -30,7 +30,7 @@ from cros.factory.gooftool import Gooftool
 from cros.factory.gooftool import report_upload
 from cros.factory.gooftool.probe import Probe, PROBEABLE_COMPONENT_CLASSES
 from cros.factory.gooftool.probe import ReadRoVpd, ReadRwVpd
-from cros.factory.gooftool.vpd_data import KNOWN_VPD_FIELD_DATA, FilterVPD
+from cros.factory.gooftool.vpd_data import KNOWN_VPD_FIELD_DATA
 from cros.factory.hacked_argparse import CmdArg, Command, ParseCmdline
 from cros.factory.hacked_argparse import verbosity_cmd_arg
 from cros.factory.hwdb import hwid_tool
@@ -38,6 +38,7 @@ from cros.factory.event_log import EventLog, EVENT_LOG_DIR
 from cros.factory.event_log import TimedUuid
 from cros.factory.test.factory import FACTORY_LOG_PATH
 from cros.factory.utils.process_utils import Spawn
+from cros.factory.system.vpd import FilterVPD
 
 
 # Use a global event log, so that only a single log is created when
