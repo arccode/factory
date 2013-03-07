@@ -14,7 +14,7 @@ import unittest2
 from cros.factory.hwid import HWIDException, Database, MakeList, MakeSet
 from cros.factory.hwid.encoder import Encode
 
-_TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'test_data')
+_TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
 
 
 class HWIDTest(unittest2.TestCase):

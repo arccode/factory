@@ -13,7 +13,7 @@ from cros.factory.hwid import Database
 from cros.factory.hwid.decoder import EncodedStringToBinaryString
 from cros.factory.hwid.decoder import BinaryStringToBOM, Decode
 
-_TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'test_data')
+_TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
 
 
 class DecoderTest(unittest.TestCase):

@@ -15,7 +15,7 @@ from cros.factory.hwid import Database
 from cros.factory.hwid.rule_evaluator import RuleEvaluator
 import cros.factory.hwid.encoder as Encoder
 
-_TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'test_data')
+_TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
 
 
 class RuleEvaluatorTest(unittest.TestCase):
