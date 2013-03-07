@@ -50,8 +50,15 @@ class Power(object):
     except PowerException:
       return False
 
-  def GetChargePct(self):
-    '''Get current charge level in percentage.'''
+  def GetChargePct(self, get_float=False):
+    '''Get current charge level in percentage.
+
+    Args:
+      get_float: Returns charge percentage in float.
+
+    Returns:
+      Charge percentage in int/float.
+    '''
     try:
       charge_now = ReadOneLine(self._battery_path + '/charge_now')
       charge_full = ReadOneLine(self._battery_path + '/charge_full')
@@ -61,4 +68,8 @@ class Power(object):
 
     if float(charge_full) <= 0:
       return None # Something wrong with the battery
-    return round(float(charge_now) * 100.0 / float(charge_full))
+    charge_pct = float(charge_now) * 100.0 / float(charge_full)
+    if get_float:
+      return charge_pct
+    else:
+      return round(charge_pct)

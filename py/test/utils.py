@@ -340,7 +340,7 @@ class LoadManager(object):
                            '-M', '%d' %  mem_usage,
                            '-s',  '%d' % duration_secs])
     logging.info('LoadManager: Start LoadManager with %d processes'
-                 '%d M memory %d seconds.',
+                 ' %d M memory %d seconds.',
                  self._num_threads, mem_usage, duration_secs)
 
   def __enter__(self):

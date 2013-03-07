@@ -12,7 +12,7 @@ amount of change within certain time under certain load.
 dargs:
   starting_charge_pct: Starting charge level when testing.
       This value should be close to options.min_charge_pct and
-      options.max_charge_pct in the test_list. Default value is 85.
+      options.max_charge_pct in the test_list. Default value is 85.0.
   starting_timeout_secs: Maximum allowed time to regulate battery to
       starting_charge_pct. Default value is 300 secs.
   spec_list:
@@ -59,11 +59,11 @@ def _REGULATE_CHARGE_TEXT(charge, target, timeout, load,
   """
   return test_ui.MakeLabel(
       ('Discharging' if charge > target else 'Charging') +
-      'to %d%% (Current charge: %d%%, battery current: %d mA) under load %d.'
+      'to %f%% (Current charge: %f%%, battery current: %d mA) under load %d.'
       '<br>Time remaining: %d sec.' %
       (target, charge, battery_current, load, timeout),
       (u'放電' if charge > target else u'充電') +
-      u'至 %d%% (目前電量為 %d%%, 電池電流 %d mA)'
+      u'至 %f%% (目前電量為 %f%%, 電池電流 %d mA)'
       u'負載 %d.<br>剩餘時間: %d 秒.' %
       (target, charge, battery_current, load, timeout))
 
@@ -75,12 +75,14 @@ def _MEET_TEXT(target):
   Returns:
     A html label to show in test ui.
   """
-  return test_ui.MakeLabel('OK! Meet %d%%' % target, u'OK! 達到 %d%%' % target)
+  return test_ui.MakeLabel('OK! Meet %f%%' % target, u'OK! 達到 %f%%' % target)
 
 _CHARGE_TEXT = test_ui.MakeLabel('Testing charger', u'測試充電中')
 _DISCHARGE_TEXT = test_ui.MakeLabel('Testing discharge', u'測試放電中')
 
 Spec = namedtuple('Spec', 'charge_pct_change timeout_secs load')
+
+CHARGE_TOLERANCE = 0.001
 
 class ChargerTest(unittest.TestCase):
   """This class tests that charger can charge/discharge battery for certain
@@ -94,8 +96,8 @@ class ChargerTest(unittest.TestCase):
     _thread: The thread to run ui.
   """
   ARGS = [
-      Arg('starting_charge_pct', int, 'starting charge level when testing',
-          default=85),
+      Arg('starting_charge_pct', (int, float),
+          'starting charge level when testing', default=85.0),
       Arg('starting_timeout_secs', int, 'Maximum allowed time to regulate'
           'battery to starting_charge_pct', default=300),
       Arg('check_battery_current', bool, 'Check battery current > 0'
@@ -108,7 +110,7 @@ class ChargerTest(unittest.TestCase):
           'for discharging.\n'
           'One unit of load is one thread doing memory copy in stressapptest.\n'
           'The default value for load is the number of processor',
-          default=[(2, 300, ), (-2, 300, )])
+          default=[(2, 300, 1), (-2, 300, )])
       ]
 
   def setUp(self):
@@ -120,6 +122,7 @@ class ChargerTest(unittest.TestCase):
     self._template = ui_templates.OneSection(self._ui)
     self._template.SetTitle(_TEST_TITLE)
     self._thread = threading.Thread(target=self._ui.Run)
+    self.args.starting_charge_pct = float(self.args.starting_charge_pct)
 
   def _CheckPower(self):
     """Checks battery and AC power adapter are present."""
@@ -128,7 +131,7 @@ class ChargerTest(unittest.TestCase):
 
   def _GetChargePct(self):
     """Gets charge percentage through power interface"""
-    charge = self._power.GetChargePct()
+    charge = self._power.GetChargePct(get_float=True)
     self.assertTrue(charge, 'Error getting battery charge state.')
     return charge
 
@@ -151,6 +154,27 @@ class ChargerTest(unittest.TestCase):
     else:
       return charger_current
 
+  def _Meet(self, charge, target, moving_up):
+    """Checks if charge has meet the target.
+
+    Args:
+      charge: The current charge value.
+      target: The target charge value.
+      moving_up: The direction of charging. Should be True or False.
+
+    Returns:
+      True if charge is close to target enough, or charge > target when
+        moving up, or charge < target when moving down.
+      False otherwise.
+    """
+    self.assertTrue(moving_up is not None)
+    if abs(charge - target) < CHARGE_TOLERANCE:
+      return True
+    if moving_up:
+      return charge > target
+    else:
+      return charge < target
+
   def _RegulateCharge(self, spec):
     """Checks if the charger can meet the spec.
     Checks if charge percentage and battery current are available.
@@ -164,15 +188,26 @@ class ChargerTest(unittest.TestCase):
     charge = self._GetChargePct()
     battery_current = self._GetBatteryCurrent()
     target = charge + spec.charge_pct_change
+    moving_up = None
+    if abs(target - charge) < CHARGE_TOLERANCE:
+      logging.warning('Current charge is %f%%, target is %f%%.'
+                      ' They are too close so there is no need to'
+                      'charge/discharge.', charge, target)
+      return
 
-    if charge > target:
-      logging.info('Current charge is %d%%, discharge the battery to %d%%.',
+    elif charge > target:
+      logging.info('Current charge is %f%%, discharge the battery to %f%%.',
                    charge, target)
       self._SetDischarge()
+      moving_up = False
     elif charge < target:
-      logging.info('Current charge is %d%%, charge the battery to %d%%.',
+      logging.info('Current charge is %f%%, charge the battery to %f%%.',
                    charge, target)
       self._SetCharge()
+      moving_up = True
+
+    # charge should move up or down.
+    self.assertTrue(moving_up is not None)
 
     with LoadManager(duration_secs=spec.timeout_secs,
                      num_threads=spec.load):
@@ -182,10 +217,12 @@ class ChargerTest(unittest.TestCase):
             battery_current))
         time.sleep(1)
         charge = self._GetChargePct()
+        logging.info('Current charge is %f%%, target is %f%%.',
+                     charge, target)
         battery_current = self._GetBatteryCurrent()
-        if charge == target:
-          logging.info('Meet difference from %d%% to %d%%'
-                       'in %d secs under %d load.',
+        if self._Meet(charge, target, moving_up):
+          logging.info('Meet difference from %f%% to %f%%'
+                       ' in %d secs under %d load.',
                        target - spec.charge_pct_change, target,
                        elapsed, spec.load)
           self._template.SetState(_MEET_TEXT(target))
@@ -197,7 +234,7 @@ class ChargerTest(unittest.TestCase):
           else:
             self._CheckDischarge()
 
-      self.fail('Cannot regulate battery to %d%% in %d seconds.' %
+      self.fail('Cannot regulate battery to %f%% in %d seconds.' %
                 (target, spec.timeout_secs))
 
   def _CheckCharge(self):
