@@ -315,6 +315,16 @@ components:
     ro_main_firmware_1:
       value: mv2#ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff#chromebook
 
+vpd_ro_fields:
+- initial_locale
+- initial_timezone
+- keyboard_layout
+- serial_number
+
+vpd_rw_fields:
+- gbind_attribute
+- ubind_attribute
+
 rules:
   - name: Test rule 1
     when:

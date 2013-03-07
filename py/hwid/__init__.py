@@ -222,6 +222,8 @@ class Database(object):
     encoded_fields: A _EncodedFields object.
     probeable_components: A _ProbeableComponents objet.
     components: A _Components object.
+    vpd_ro_field: A _VPDFields object.
+    vpd_rw_field: A _VPDFields object.
     rules: A list of rules of the form:
         [
           {
@@ -251,8 +253,8 @@ class Database(object):
   _HWID_FORMAT = re.compile(r'^([A-Z0-9]+) ((?:[A-Z2-7]{4}-)*[A-Z2-7]{1,4})$')
 
   def __init__(self, board, encoding_patterns, image_id, pattern,
-               encoded_fields, probeable_components, components, rules,
-               allowed_skus):
+               encoded_fields, probeable_components, components,
+               vpd_ro_fields, vpd_rw_fields, rules, allowed_skus):
     self.board = board
     self.encoding_patterns = encoding_patterns
     self.image_id = image_id
@@ -260,6 +262,8 @@ class Database(object):
     self.encoded_fields = encoded_fields
     self.probeable_components = probeable_components
     self.components = components
+    self.vpd_ro_fields = vpd_ro_fields
+    self.vpd_rw_fields = vpd_rw_fields
     self.rules = rules
     self.allowed_skus = allowed_skus
 
@@ -282,7 +286,8 @@ class Database(object):
       db_yaml = yaml.load(f)
 
     for key in ['board', 'encoding_patterns', 'image_id', 'pattern',
-                'encoded_fields', 'probeable_components', 'components']:
+                'encoded_fields', 'probeable_components', 'components',
+                'vpd_ro_fields', 'vpd_rw_fields']:
       if not db_yaml.get(key):
         raise HWIDException('%r is not specified in component database' % key)
     # TODO(jcliang): Add check for rules.
@@ -295,6 +300,8 @@ class Database(object):
                     _EncodedFields(db_yaml['encoded_fields']),
                     _ProbeableComponents(db_yaml['probeable_components']),
                     _Components(db_yaml['components']),
+                    _VPDFields(db_yaml['vpd_ro_fields']),
+                    _VPDFields(db_yaml['vpd_rw_fields']),
                     rules, allowed_skus)
 
   def ProbeResultToBOM(self, probe_result):
@@ -841,3 +848,14 @@ class _Pattern(object):
           field_offset_map[field] += 1
           index += 1
     return ret
+
+class _VPDFields(list):
+  """A class for storing the required VPD fields.
+
+  Args:
+    vpd_field_list: A list of strings indicating the required VPD fields.
+  """
+  def __init__(self, vpd_field_list):
+    self.schema = List('vpd fields', Scalar('vpd field', str))
+    self.schema.Validate(vpd_field_list)
+    super(_VPDFields, self).__init__(vpd_field_list)
