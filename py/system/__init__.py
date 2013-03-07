@@ -58,6 +58,12 @@ class SystemInfo(object):
   update_md5sum = None
 
   def __init__(self):
+    self.mlb_serial_number = None
+    try:
+      self.mlb_serial_number = factory.get_shared_data('mlb_serial_number')
+    except:
+      pass
+
     self.serial_number = None
     try:
       self.serial_number = shopfloor.get_serial_number()

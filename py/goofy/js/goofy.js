@@ -133,6 +133,7 @@ cros.factory.Content = function(en, zh) {
  * @type Array.<Object.<string, string>>
  */
 cros.factory.SYSTEM_INFO_LABELS = [
+    {key: 'mlb_serial_number', label: cros.factory.Label('MLB Serial Number')},
     {key: 'serial_number', label: cros.factory.Label('Serial Number')},
     {key: 'factory_image_version',
      label: cros.factory.Label('Factory Image Version')},

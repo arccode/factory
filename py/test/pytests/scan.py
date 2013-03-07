@@ -17,6 +17,7 @@ from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test import utils
 from cros.factory.test.args import Arg
+from cros.factory.test.event import Event
 
 
 class Scan(unittest.TestCase):
@@ -108,6 +109,7 @@ class Scan(unittest.TestCase):
         logging.exception('Setting VPD failed')
         return SetError(utils.FormatExceptionOnly())
 
+    self.ui.event_client.post_event(Event(Event.Type.UPDATE_SYSTEM_INFO))
     self.ui.Pass()
 
   def setUp(self):
