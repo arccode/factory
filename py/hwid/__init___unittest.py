@@ -11,7 +11,8 @@ import factory_common # pylint: disable=W0611
 import os
 import unittest2
 
-from cros.factory.hwid import HWIDException, Database, MakeList, MakeSet
+from cros.factory.hwid import (
+    HWIDException, Database, MakeList, MakeSet, ProbedComponentResult)
 from cros.factory.hwid.encoder import Encode
 
 _TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
@@ -68,6 +69,7 @@ class HWIDTest(unittest2.TestCase):
         HWIDException, r'BOM does not encode to binary string .*', hwid.Verify)
     hwid.bom = original_value
 
+
 class DatabaseTest(unittest2.TestCase):
   def setUp(self):
     self.database = Database.LoadFile(os.path.join(_TEST_DATA_PATH,
@@ -80,40 +82,45 @@ class DatabaseTest(unittest2.TestCase):
     self.assertEquals(0, bom.encoding_pattern_index)
     self.assertEquals(0, bom.image_id)
     self.assertEquals({
-        'audio_codec': ['Codec 1', 'HDMI 1'],
-        'battery': ['Battery Li-ion 10000000'],
-        'bluetooth': ['0123:abcd 0001'],
-        'camera': ['4567:abcd Camera'],
-        'chipset': ['cdef:abcd'],
-        'cpu': ['CPU @ 2.80GHz [4 cores]'],
-        'display_panel': ['FOO:0123 [1440x900]'],
-        'dram': ['0|2048|DDR3-800,DDR3-1066,DDR3-1333,DDR3-1600 1|2048|DDR3-800'
-            ',DDR3-1066,DDR3-1333,DDR3-1600'],
-        'ec_flash_chip': ['EC Flash Chip'],
-        'embedded_controller': ['Embedded Controller'],
-        'flash_chip': ['Flash Chip'],
-        'keyboard': ['xkb:us::eng'],
-        'storage': ['16G SSD #123456'],
-        'touchpad': ['TouchPad'],
-        'tpm': ['12340000:1.2.3'],
-        'usb_hosts': ['8086:0000', '8086:0001'],
-        'vga': ['8086:0002'],
-        'wireless': ['3210:abcd'],
-        'hash_gbb': ['gv2#aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
-            'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'],
-        'key_recovery': ['kv3#bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'],
-        'key_root': ['kv3#cccccccccccccccccccccccccccccccccccccccc'],
-        'ro_ec_firmware': ['ev2#dddddddddddddddddddddddddddddddddddd'
-            'dddddddddddddddddddddddddddd#chromebook'],
-        'ro_main_firmware': ['mv2#eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
-            'eeeeeeeeeeeeeeeeeeeeeeeeeeeeee#chromebook'],
-        'cellular_fw_version': [''],
-        'rw_fw_key_version': ['2'],
-        'storage_fw_version': ['11.22.33'],
-        'wimax': None,
-        'cellular': None,
-        'display_converter': None,
-        'ethernet': None}, bom.components)
+       'audio_codec': [('codec_1', 'Codec 1', None),
+                       ('hdmi_1', 'HDMI 1', None)],
+       'battery': [('battery_huge', 'Battery Li-ion 10000000', None)],
+       'bluetooth': [('bluetooth_0', '0123:abcd 0001', None)],
+       'camera': [(None, '4567:abcd Camera',
+                   "component class 'camera' is unprobeable")],
+       'cellular': [(None, None, "missing 'cellular' component")],
+       'chipset': [('chipset_0', 'cdef:abcd', None)],
+       'cpu': [('cpu_5', 'CPU @ 2.80GHz [4 cores]', None)],
+       'display_panel': [
+          (None, 'FOO:0123 [1440x900]',
+           "component class 'display_panel' is unprobeable")],
+       'dram': [('dram_0', '0|2048|DDR3-800,DDR3-1066,DDR3-1333,DDR3-1600 '
+                 '1|2048|DDR3-800,DDR3-1066,DDR3-1333,DDR3-1600', None)],
+       'ec_flash_chip': [('ec_flash_chip_0', 'EC Flash Chip', None)],
+       'embedded_controller': [('embedded_controller_0', 'Embedded Controller',
+                               None)],
+       'ethernet': [(None, None, "missing 'ethernet' component")],
+       'flash_chip': [('flash_chip_0', 'Flash Chip', None)],
+       'hash_gbb': [('hash_gbb_0', 'gv2#aaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+                     'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', None)],
+       'key_recovery': [('key_recovery_0', 'kv3#bbbbbbbbbbbbbbbbbbb'
+                         'bbbbbbbbbbbbbbbbbbbbb', None)],
+       'key_root': [('key_root_0', 'kv3#cccccccccccccccccc'
+                     'cccccccccccccccccccccc', None)],
+       'keyboard': [('keyboard_us', 'xkb:us::eng', None)],
+       'ro_ec_firmware': [('ro_ec_firmware_0',
+                           'ev2#dddddddddddddddddddddddddddddddddddd'
+                           'dddddddddddddddddddddddddddd#chromebook', None)],
+       'ro_main_firmware': [('ro_main_firmware_0',
+                             'mv2#eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
+                             'eeeeeeeeeeeeeeeeeeeeeeeeeee#chromebook', None)],
+       'storage': [('storage_0', '16G SSD #123456', None)],
+       'touchpad': [('touchpad_0', 'TouchPad', None)],
+       'tpm': [('tpm_0', '12340000:1.2.3', None)],
+       'usb_hosts': [('usb_host_0', '8086:0000', None),
+                     ('usb_host_1', '8086:0001', None)],
+       'vga': [('vga_0', '8086:0002', None)],
+       'wireless': [('wireless_0', '3210:abcd', None)]}, bom.components)
     self.assertEquals({
         'audio_codec': 1,
         'battery': 3,
@@ -136,25 +143,43 @@ class DatabaseTest(unittest2.TestCase):
         'vga': 0,
         'wireless': 0}, bom.encoded_fields)
     result = result.replace('chipset: cdef:abcd', 'chipset: something else')
-    self.assertRaisesRegexp(
-        HWIDException, r'Cannot find matching encoded index for .* from the '
-        'probe result', self.database.ProbeResultToBOM, result)
+    self.assertEquals({
+        'audio_codec': 1,
+        'battery': 3,
+        'bluetooth': 0,
+        'camera': 0,
+        'cellular': 0,
+        'chipset': None,
+        'cpu': 5,
+        'display_panel': 0,
+        'dram': 0,
+        'ec_flash_chip': 0,
+        'embedded_controller': 0,
+        'firmware': 0,
+        'flash_chip': 0,
+        'keyboard': 0,
+        'storage': 0,
+        'touchpad': 0,
+        'tpm': 0,
+        'usb_hosts': 0,
+        'vga': 0,
+        'wireless': 0}, self.database.ProbeResultToBOM(result).encoded_fields)
 
   def testGetFieldIndexFromComponents(self):
     result = open(os.path.join(_TEST_DATA_PATH,
                                'test_probe_result.yaml'), 'r').read()
     bom = self.database.ProbeResultToBOM(result)
-    self.assertEquals(5, self.database._GetFieldIndexFromComponents(
+    self.assertEquals(5, self.database._GetFieldIndexFromProbedComponents(
         'cpu', bom.components))
-    self.assertEquals(1, self.database._GetFieldIndexFromComponents(
+    self.assertEquals(1, self.database._GetFieldIndexFromProbedComponents(
         'audio_codec', bom.components))
-    self.assertEquals(3, self.database._GetFieldIndexFromComponents(
+    self.assertEquals(3, self.database._GetFieldIndexFromProbedComponents(
         'battery', bom.components))
-    self.assertEquals(0, self.database._GetFieldIndexFromComponents(
+    self.assertEquals(0, self.database._GetFieldIndexFromProbedComponents(
         'storage', bom.components))
-    self.assertEquals(0, self.database._GetFieldIndexFromComponents(
+    self.assertEquals(0, self.database._GetFieldIndexFromProbedComponents(
         'cellular', bom.components))
-    self.assertEquals(None, self.database._GetFieldIndexFromComponents(
+    self.assertEquals(None, self.database._GetFieldIndexFromProbedComponents(
         'wimax', bom.components))
 
   def testGetAllIndices(self):
@@ -270,7 +295,7 @@ class DatabaseTest(unittest2.TestCase):
     bom.encoded_fields.pop('foo')
 
     original_value = bom.components['cpu']
-    bom.components['cpu'] = 'foo'
+    bom.components['cpu'] = [ProbedComponentResult('cpu', 'foo', None)]
     self.assertRaisesRegexp(
         HWIDException, r'Unknown component values: .*', self.database.VerifyBOM,
         bom)

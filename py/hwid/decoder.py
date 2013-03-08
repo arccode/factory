@@ -10,7 +10,7 @@
 import collections
 import factory_common # pylint: disable=W0611
 
-from cros.factory.hwid import HWID, BOM
+from cros.factory.hwid import HWID, BOM, ProbedComponentResult
 from cros.factory.hwid.base32 import Base32
 
 
@@ -49,11 +49,11 @@ def BinaryStringToBOM(database, binary_string):
     attr_dict = database._GetAttributesByIndex(field, index)
     for comp_cls, attr_list in attr_dict.iteritems():
       if attr_list is None:
-        components[comp_cls] = None
+        components[comp_cls].append(ProbedComponentResult(None, None, None))
       else:
         for attrs in attr_list:
-          components[comp_cls] += (attrs['value'] if
-              isinstance(attrs['value'], list) else [attrs['value']])
+          components[comp_cls].append(
+              ProbedComponentResult(attrs['name'], attrs['value'], None))
 
   return BOM(board, encoding_pattern, image_id, components, encoded_fields)
 

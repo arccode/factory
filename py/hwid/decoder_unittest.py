@@ -21,34 +21,41 @@ class DecoderTest(unittest.TestCase):
     self.database = Database.LoadFile(os.path.join(_TEST_DATA_PATH,
                                                    'test_db.yaml'))
     self.expected_components_from_db = {
-        'audio_codec': ['Codec 1', 'HDMI 1'],
-        'battery': ['Battery Li-ion 10000000'],
-        'bluetooth': ['0123:abcd 0001'],
-        'camera': ['4567:abcd Camera'],
-        'chipset': ['cdef:abcd'],
-        'cpu': ['CPU @ 2.80GHz [4 cores]'],
-        'display_panel': ['FOO:0123 [1440x900]'],
-        'dram': ['0|2048|DDR3-800,DDR3-1066,DDR3-1333,DDR3-1600 1|2048|DDR3-800'
-            ',DDR3-1066,DDR3-1333,DDR3-1600'],
-        'ec_flash_chip': ['EC Flash Chip'],
-        'embedded_controller': ['Embedded Controller'],
-        'flash_chip': ['Flash Chip'],
-        'keyboard': ['xkb:us::eng'],
-        'storage': ['16G SSD #123456'],
-        'touchpad': ['TouchPad'],
-        'tpm': ['12340000:1.2.3'],
-        'usb_hosts': ['8086:0000', '8086:0001'],
-        'vga': ['8086:0002'],
-        'wireless': ['3210:abcd'],
-        'hash_gbb': ['gv2#aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
-            'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'],
-        'key_recovery': ['kv3#bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'],
-        'key_root': ['kv3#cccccccccccccccccccccccccccccccccccccccc'],
-        'ro_ec_firmware': ['ev2#dddddddddddddddddddddddddddddddddddd'
-            'dddddddddddddddddddddddddddd#chromebook'],
-        'ro_main_firmware': ['mv2#eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
-            'eeeeeeeeeeeeeeeeeeeeeeeeeeeeee#chromebook'],
-        'cellular': None}
+       'audio_codec': [('codec_1', 'Codec 1', None),
+                       ('hdmi_1', 'HDMI 1', None)],
+       'battery': [('battery_huge', 'Battery Li-ion 10000000', None)],
+       'bluetooth': [('bluetooth_0', '0123:abcd 0001', None)],
+       'camera': [('camera_0', '4567:abcd Camera', None)],
+       'cellular': [(None, None, None)],
+       'chipset': [('chipset_0', 'cdef:abcd', None)],
+       'cpu': [('cpu_5', 'CPU @ 2.80GHz [4 cores]', None)],
+       'display_panel': [('display_panel_0', 'FOO:0123 [1440x900]', None)],
+       'dram': [('dram_0', '0|2048|DDR3-800,DDR3-1066,DDR3-1333,DDR3-1600 '
+                 '1|2048|DDR3-800,DDR3-1066,DDR3-1333,DDR3-1600', None)],
+       'ec_flash_chip': [('ec_flash_chip_0', 'EC Flash Chip', None)],
+       'embedded_controller': [('embedded_controller_0', 'Embedded Controller',
+                               None)],
+       'flash_chip': [('flash_chip_0', 'Flash Chip', None)],
+       'hash_gbb': [('hash_gbb_0', 'gv2#aaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+                     'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', None)],
+       'key_recovery': [('key_recovery_0', 'kv3#bbbbbbbbbbbbbbbbbbb'
+                         'bbbbbbbbbbbbbbbbbbbbb', None)],
+       'key_root': [('key_root_0', 'kv3#cccccccccccccccccc'
+                     'cccccccccccccccccccccc', None)],
+       'keyboard': [('keyboard_us', 'xkb:us::eng', None)],
+       'ro_ec_firmware': [('ro_ec_firmware_0',
+                           'ev2#dddddddddddddddddddddddddddddddddddd'
+                           'dddddddddddddddddddddddddddd#chromebook', None)],
+       'ro_main_firmware': [('ro_main_firmware_0',
+                             'mv2#eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
+                             'eeeeeeeeeeeeeeeeeeeeeeeeeee#chromebook', None)],
+       'storage': [('storage_0', '16G SSD #123456', None)],
+       'touchpad': [('touchpad_0', 'TouchPad', None)],
+       'tpm': [('tpm_0', '12340000:1.2.3', None)],
+       'usb_hosts': [('usb_host_0', '8086:0000', None),
+                     ('usb_host_1', '8086:0001', None)],
+       'vga': [('vga_0', '8086:0002', None)],
+       'wireless': [('wireless_0', '3210:abcd', None)]}
 
   def testEncodedStringToBinaryString(self):
     self.assertEquals('00000111010000010100',

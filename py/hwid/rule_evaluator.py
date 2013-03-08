@@ -139,7 +139,10 @@ class RuleEvaluator(object):
     known_values = set()
     for comp_name, comp_attr in hwid.database.components[comp_cls].iteritems():
       db_comp_value_set = MakeSet(comp_attr['value'])
-      bom_comp_value_set = MakeSet(hwid.bom.components[comp_cls])
+      def PackProbedString(bom, comp_cls):
+        return [e.probed_string for e in bom.components[comp_cls] if
+                e.probed_string is not None]
+      bom_comp_value_set = MakeSet(PackProbedString(hwid.bom, comp_cls))
       if (bom_comp_value_set is not None and
           db_comp_value_set <= bom_comp_value_set):
         known_values |= CreateSetFromAttributes({comp_name: comp_attr})

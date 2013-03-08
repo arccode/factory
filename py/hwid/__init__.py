@@ -40,6 +40,10 @@ def MakeSet(value):
   return set([value])
 
 
+# A named tuple to store the probed component name and the error if any.
+ProbedComponentResult = collections.namedtuple(
+    'ProbedComponentResult', ['component_name', 'probed_string', 'error'])
+
 class HWIDException(Exception):
   pass
 
@@ -113,7 +117,8 @@ class BOM(object):
     encoding_pattern_index: An int indicating the encoding pattern. Currently,
         only 0 is used.
     image_id: An int indicating the image id.
-    components: A dict that maps component classes to a list of their value(s).
+    components: A dict that maps component classes to a list of
+        ProbedComponentResult.
     encoded_fields: A dict that maps each encoded field to its index.
 
   Raises:
@@ -121,10 +126,18 @@ class BOM(object):
   """
   _COMPONENTS_SCHEMA = Dict(
       'bom',
-      key_type=Scalar('component_class', str),
-      value_type=AnyOf('component_name', [
-        List('list_of_component_names', Scalar('component_name', str)),
-        Scalar('none', type(None))]))
+      key_type=Scalar('component class', str),
+      value_type=List('list of ProbedComponentResult',
+                      Tuple('ProbedComponentResult', [
+                          AnyOf('component name', [
+                              Scalar('none', type(None)),
+                              Scalar('component name', str)]),
+                          AnyOf('probed string', [
+                              Scalar('none', type(None)),
+                              Scalar('probed string', str)]),
+                          AnyOf('error', [
+                              Scalar('none', type(None)),
+                              Scalar('error', str)])])))
 
   def __init__(self, board, encoding_pattern_index, image_id,
                components, encoded_fields):
@@ -229,46 +242,71 @@ class Database(object):
 
     Returns:
       A BOM object.
-
-    Raises:
-      HWIDException when parsing error.
     """
     probed_bom = yaml.load(probe_result)
+
     # TODO(jcliang): update the following two fields after the command supports
     #   encoding_pattern and image_id probing.
     encoding_pattern = 0
     image_id = 0
 
-    # Construct a dict of component classes to component values.
-    probed_components = {}
-    for category in ['found_probe_value_map', 'found_volatile_values',
-                     'initial_configs']:
-      for comp_cls, comp_value in probed_bom[category].iteritems():
-        probed_components[comp_cls] = MakeList(comp_value)
-    for comp_cls in probed_bom['missing_component_classes']:
-      probed_components[comp_cls] = None
+    def LookupProbedValue(comp_cls):
+      for field in ['found_probe_value_map', 'found_volatile_values',
+                    'initial_configs']:
+        if comp_cls in probed_bom[field]:
+          return MakeList(probed_bom[field][comp_cls])
+      # comp_cls is in probed_bom['missing_component_classes'].
+      return None
+
+    # Construct a dict of component classes to list of ProbedComponentResult.
+    probed_components = collections.defaultdict(list)
+    for comp_cls in self.components:
+      probed_comp_values = LookupProbedValue(comp_cls)
+      if probed_comp_values is not None:
+        for probed_value in probed_comp_values:
+          if comp_cls not in self.probeable_components:
+            probed_components[comp_cls].append(
+                ProbedComponentResult(
+                    None, probed_value, 'component class %r is unprobeable' %
+                    comp_cls))
+            continue
+          found = False
+          for comp_name, comp_attrs in self.components[comp_cls].iteritems():
+            if comp_attrs['value'] == probed_value:
+              probed_components[comp_cls].append(
+                  ProbedComponentResult(comp_name, probed_value, None))
+              found = True
+              break
+          if not found:
+            probed_components[comp_cls].append(
+                ProbedComponentResult(None, probed_value, (
+                    'unsupported %r component found with probe result'
+                    ' %r (no matching name in the component DB)' %
+                    (comp_cls, probed_value))))
+      else:
+        # No component of comp_cls is found in probe results.
+        probed_components[comp_cls].append(
+            ProbedComponentResult(None, probed_comp_values,
+                                  'missing %r component' % comp_cls))
 
     # Encode the components to a dict of encoded fields to encoded indices.
     encoded_fields = {}
     for field in self.encoded_fields:
-      index = self._GetFieldIndexFromComponents(field, probed_components)
-      if index is None:
-        raise HWIDException(
-            'Cannot find matching encoded index for %r from the probe result' %
-            field)
-      encoded_fields[field] = index
+      encoded_fields[field] = self._GetFieldIndexFromProbedComponents(
+          field, probed_components)
 
     return BOM(self.board, encoding_pattern, image_id, probed_components,
                encoded_fields)
 
-  def _GetFieldIndexFromComponents(self, encoded_field, components):
+  def _GetFieldIndexFromProbedComponents(self, encoded_field,
+                                         probed_components):
     """Gets the encoded index of the specified encoded field by matching
-    the given components against the definitions in the database.
+    the given probed components against the definitions in the database.
 
     Args:
       encoded_field: A string indicating the encoding field of interest.
-      components: A dict that maps a set of component classes to their
-          list of component values.
+      probed_components: A dict that maps a set of component classes to their
+          list of ProbedComponentResult.
 
     Returns:
       An int indicating the encoded index, or None if no matching encoded
@@ -286,7 +324,7 @@ class Database(object):
         # matches.
         if db_comp_names is None:
           # Special handling for NULL component.
-          if components[db_comp_cls] is not None:
+          if probed_components[db_comp_cls][0].probed_string is not None:
             found = False
             break
         else:
@@ -295,9 +333,10 @@ class Database(object):
             for name in comp_names:
               result |= MakeSet(self.components[comp_cls][name]['value'])
             return result
-          # Create a set of component values of db_comp_cls from the components
-          # argument.
-          bom_component_values_of_the_class = MakeSet(components[db_comp_cls])
+          # Create a set of component values of db_comp_cls from the
+          # probed_components argument.
+          bom_component_values_of_the_class = MakeSet([
+              x.probed_string for x in probed_components[db_comp_cls]])
           # Create a set of component values of db_comp_cls from the database.
           db_component_values_of_the_class = _GetDatabaseComponentValues(
               db_comp_cls, db_comp_names)
@@ -447,19 +486,21 @@ class Database(object):
     if bom.image_id not in self.image_id:
       raise HWIDException('Invalid image id: %r' % bom.image_id)
 
-    # All the component values in the BOM should exist in the database.
+    # All the probeable component values in the BOM should exist in the
+    # database.
     unknown_values = []
-    for comp_cls, comp_values in bom.components.iteritems():
-      if comp_values is None or comp_cls not in self.components:
-        continue
-      for comp_value in comp_values:
+    for comp_cls, probed_values in bom.components.iteritems():
+      for element in probed_values:
+        probed_value = element.probed_string
+        if probed_value is None or comp_cls not in self.probeable_components:
+          continue
         found = False
         for attrs in self.components[comp_cls].itervalues():
-          if MakeSet(attrs['value']) == MakeSet(comp_value):
+          if attrs['value'] == probed_value:
             found = True
             break
         if not found:
-          unknown_values.append('%s:%s' % (comp_cls, comp_value))
+          unknown_values.append('%s:%s' % (comp_cls, probed_value))
     if unknown_values:
       raise HWIDException('Unknown component values: %r' %
                           ', '.join(sorted(unknown_values)))
