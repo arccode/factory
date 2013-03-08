@@ -95,7 +95,7 @@ class LineCheckItemTest(unittest.TestCase):
       if stderr:
         factory.console.info('stderr: %s', stderr)
       if not self.NeedToJudgeSubTest():
-        self.RunNextSubTest()
+        self.PassSubTest()
 
   def RunNextSubTest(self):
     """Runs next subtest"""
