@@ -134,15 +134,22 @@ def main():
            '%s:/usr/local/autotest/' % args.host],
           check_call=True, log=True)
 
-  private_path = os.path.join(SRCROOT, 'src', 'private-overlays',
-                              'overlay-%s-private' % board,
-                              'chromeos-base', 'chromeos-factory-board',
-                              'files')
-  if os.path.isdir(private_path):
-    Spawn(rsync_command +
-          ['-aC', '--exclude', 'bundle'] +
-          [private_path + '/', '%s:/usr/local/factory/' % args.host],
-          check_call=True, log=True)
+  board_dash = board.replace('_', '-')
+  private_paths = [os.path.join(SRCROOT, 'src', 'private-overlays',
+                                'overlay-%s-private' % board_dash,
+                                'chromeos-base', 'chromeos-factory-board',
+                                'files'),
+                   os.path.join(SRCROOT, 'src', 'private-overlays',
+                                'overlay-variant-%s-private' % board_dash,
+                                'chromeos-base', 'chromeos-factory-board',
+                                'files')]
+
+  for private_path in private_paths:
+    if os.path.isdir(private_path):
+      Spawn(rsync_command +
+            ['-aC', '--exclude', 'bundle'] +
+            [private_path + '/', '%s:/usr/local/factory/' % args.host],
+            check_call=True, log=True)
 
   Spawn(rsync_command +
         ['-aC', '--exclude', '*.pyc'] +
