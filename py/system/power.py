@@ -50,6 +50,37 @@ class Power(object):
     except PowerException:
       return False
 
+  def GetBatteryAttribute(self, attribute_name):
+    '''Get a battery attribute.
+
+    Args:
+      attribute_name: The name of attribute in sysfs.
+
+    Returns:
+      Content of the attribute in str.
+    '''
+    try:
+      return ReadOneLine(os.path.join(self._battery_path, attribute_name))
+    except IOError:
+      # Battery driver is not fully initialized
+      return None
+
+  def GetCharge(self):
+    '''Get current charge level in mAh.'''
+    charge_now = self.GetBatteryAttribute('charge_now')
+    if charge_now:
+      return int(charge_now) / 1000
+    else:
+      return None
+
+  def GetChargeFull(self):
+    '''Get full charge level in mAh.'''
+    charge_full = self.GetBatteryAttribute('charge_full')
+    if charge_full:
+      return int(charge_full) / 1000
+    else:
+      return None
+
   def GetChargePct(self, get_float=False):
     '''Get current charge level in percentage.
 
@@ -59,11 +90,9 @@ class Power(object):
     Returns:
       Charge percentage in int/float.
     '''
-    try:
-      charge_now = ReadOneLine(self._battery_path + '/charge_now')
-      charge_full = ReadOneLine(self._battery_path + '/charge_full')
-    except IOError:
-      # Battery driver is not fully initialized
+    charge_now = self.GetBatteryAttribute('charge_now')
+    charge_full = self.GetBatteryAttribute('charge_full')
+    if charge_now is None or charge_full is None:
       return None
 
     if float(charge_full) <= 0:
