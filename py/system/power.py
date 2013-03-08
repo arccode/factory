@@ -90,15 +90,35 @@ class Power(object):
     Returns:
       Charge percentage in int/float.
     '''
-    charge_now = self.GetBatteryAttribute('charge_now')
-    charge_full = self.GetBatteryAttribute('charge_full')
-    if charge_now is None or charge_full is None:
-      return None
+    now = self.GetBatteryAttribute('charge_now')
+    full = self.GetBatteryAttribute('charge_full')
+    if now is None or full is None:
+      now = self.GetBatteryAttribute('energy_now')
+      full = self.GetBatteryAttribute('energy_full')
+      if now is None or full is None:
+        return None
 
-    if float(charge_full) <= 0:
+    if float(full) <= 0:
       return None # Something wrong with the battery
-    charge_pct = float(charge_now) * 100.0 / float(charge_full)
+    charge_pct = float(now) * 100.0 / float(full)
     if get_float:
       return charge_pct
     else:
       return round(charge_pct)
+
+  def GetWearPct(self):
+    '''Get current battery wear in percentage of new capacity.'''
+    capacity = self.GetBatteryAttribute('charge_full')
+    design_capacity = self.GetBatteryAttribute('charge_full_design')
+
+    if capacity is None or design_capacity is None:
+      # No charge values, check for energy-reporting batteries
+      capacity = self.GetBatteryAttribute('energy_full')
+      design_capacity = self.GetBatteryAttribute('energy_full_design')
+      if capacity is None or design_capacity is None:
+        # Battery driver is not fully initialized
+        return None
+
+    if float(design_capacity) <= 0:
+      return None #Something wrong with the battery
+    return 100 - (round(float(capacity) * 100 / float(design_capacity)))
