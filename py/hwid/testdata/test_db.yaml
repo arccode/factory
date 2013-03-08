@@ -315,6 +315,23 @@ components:
     ro_main_firmware_1:
       value: mv2#ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff#chromebook
 
+shopfloor_device_info:
+  component.has_cellular:
+    True:
+      cellular: cellular_0
+    False:
+      cellular: NULL
+  component.keyboard:
+    us:
+      keyboard: keyboard_us
+    gb:
+      keyboard: keyboard_gb
+  component.audio_codec:
+    set_0:
+      audio_codec: [codec_0, hdmi_0]
+    set_1:
+      audio_codec: [codec_1, hdmi_1]
+
 vpd_ro_fields:
 - initial_locale
 - initial_timezone

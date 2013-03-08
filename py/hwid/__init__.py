@@ -197,6 +197,7 @@ class Database(object):
     encoded_fields: A _EncodedFields object.
     probeable_components: A _ProbeableComponents objet.
     components: A _Components object.
+    shopfloor_device_info: A _ShopfloorDeviceInfo object.
     vpd_ro_field: A _VPDFields object.
     vpd_rw_field: A _VPDFields object.
     rules: A list of rules of the form:
@@ -232,7 +233,8 @@ class Database(object):
 
   def __init__(self, board, encoding_patterns, image_id, pattern,
                encoded_fields, probeable_components, components,
-               vpd_ro_fields, vpd_rw_fields, rules, allowed_skus):
+               shopfloor_device_info, vpd_ro_fields, vpd_rw_fields,
+               rules, allowed_skus):
     self.board = board
     self.encoding_patterns = encoding_patterns
     self.image_id = image_id
@@ -240,6 +242,7 @@ class Database(object):
     self.encoded_fields = encoded_fields
     self.probeable_components = probeable_components
     self.components = components
+    self.shopfloor_device_info = shopfloor_device_info
     self.vpd_ro_fields = vpd_ro_fields
     self.vpd_rw_fields = vpd_rw_fields
     self.rules = rules
@@ -265,7 +268,7 @@ class Database(object):
 
     for key in ['board', 'encoding_patterns', 'image_id', 'pattern',
                 'encoded_fields', 'probeable_components', 'components',
-                'vpd_ro_fields', 'vpd_rw_fields']:
+                'shopfloor_device_info', 'vpd_ro_fields', 'vpd_rw_fields']:
       if not db_yaml.get(key):
         raise HWIDException('%r is not specified in component database' % key)
     # TODO(jcliang): Add check for rules.
@@ -278,6 +281,7 @@ class Database(object):
                     _EncodedFields(db_yaml['encoded_fields']),
                     _ProbeableComponents(db_yaml['probeable_components']),
                     _Components(db_yaml['components']),
+                    _ShopfloorDeviceInfo(db_yaml['shopfloor_device_info']),
                     _VPDFields(db_yaml['vpd_ro_fields']),
                     _VPDFields(db_yaml['vpd_rw_fields']),
                     rules, allowed_skus)
@@ -374,7 +378,8 @@ class Database(object):
         # matches.
         if db_comp_names is None:
           # Special handling for NULL component.
-          if probed_components[db_comp_cls][0].probed_string is not None:
+          if (probed_components[db_comp_cls] and
+              probed_components[db_comp_cls][0].probed_string is not None):
             found = False
             break
         else:
@@ -839,6 +844,46 @@ class _Pattern(object):
           field_offset_map[field] += 1
           index += 1
     return ret
+
+
+class _ShopfloorDeviceInfo(dict):
+  """A class for storing device info mapping sent by shopfloor.
+
+  We often need to ask shopfloor for device info, and the response is usually a
+  dict of device info keys to info values. This class is used to map component
+  info to its corresponding component name.
+
+  Args:
+    shopfloor_device_info_dict: A dict of device info keys to their
+        corresponding component class-component name pairs. For example:
+
+        {'has_cellular': {
+            'yes': {cellular: cellular_0},
+            'no': {cellular: None}
+        }}
+
+        means that if the value of 'has_cellular' info key is 'yes', then
+        'cellular' component should be 'cellular_0'; if it's 'no', then
+        'cellular' component should be None.
+  """
+  def __init__(self, shopfloor_device_info_dict):
+    self.schema = Dict(
+        'shopfloor device info',
+        key_type=Scalar('device info key', str),
+        value_type=Dict('value to operation mapping',
+            key_type=AnyOf('device info value', [
+                Scalar('value string', str),
+                Scalar('boolean', bool)]),
+            value_type=Dict('component classes to names',
+                 key_type=Scalar('component class', str),
+                 value_type=AnyOf('component name', [
+                    Scalar('component name', str),
+                    List('list of component names',
+                        Scalar('component name', str)),
+                    Scalar('none', type(None))]))))
+    self.schema.Validate(shopfloor_device_info_dict)
+    super(_ShopfloorDeviceInfo, self).__init__(shopfloor_device_info_dict)
+
 
 class _VPDFields(list):
   """A class for storing the required VPD fields.
