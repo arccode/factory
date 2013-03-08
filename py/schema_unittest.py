@@ -9,7 +9,7 @@ import factory_common # pylint: disable=W0611
 import unittest2
 
 from cros.factory.schema import (
-    SchemaException, Scalar, AnyOf, Dict, FixedDict, List)
+    SchemaException, Scalar, AnyOf, Dict, FixedDict, Tuple, List)
 
 
 class SchemaTest(unittest2.TestCase):
@@ -82,6 +82,22 @@ class SchemaTest(unittest2.TestCase):
         SchemaException, r'Type mismatch on .*: expected .*int.*, got .*str.*',
         schema.Validate, [0, 1, 'foo'])
     self.assertEquals(None, schema.Validate([0, 1, 2]))
+
+  def testTuple(self):
+    self.assertRaisesRegexp(
+        SchemaException, r'element_types .* of Tuple .* is not a tuple or list',
+        Tuple, 'foo', 'foo')
+    schema = Tuple('foo', (Scalar('bar', int), Scalar('buz', str)))
+    self.assertRaisesRegexp(
+        SchemaException, r'Type mismatch on .*: expected tuple, got .*',
+        schema.Validate, 'bar')
+    self.assertRaisesRegexp(
+        SchemaException, r'Number of elements in tuple .* does not match that '
+        'defined in Tuple schema .*', schema.Validate, (0,))
+    self.assertRaisesRegexp(
+        SchemaException, r'Type mismatch on .*: expected .*, got .*',
+        schema.Validate, ('0', 'foo'))
+    self.assertEquals(None, schema.Validate((0, 'foo')))
 
   def testAnyOf(self):
     self.assertRaisesRegexp(

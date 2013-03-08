@@ -233,15 +233,14 @@ class List(BaseType):
   """
   def __init__(self, label, element_type=None):
     super(List, self).__init__(label)
-    self._element_type = copy.deepcopy(element_type)
-    if not isinstance(self._element_type, (BaseType, type(None))):
+    if element_type and not isinstance(element_type, BaseType):
       raise SchemaException(
           'element_type %r of List %r is not a Schema object' %
           (element_type, self._label))
+    self._element_type = copy.deepcopy(element_type)
 
   def Validate(self, data):
-    """Validates the given data and all its element_type against the List
-    schema.
+    """Validates the given data and all its elements against the List schema.
 
     Args:
       data: A Python data structure to be validated.
@@ -255,6 +254,50 @@ class List(BaseType):
     if self._element_type:
       for data_value in data:
         self._element_type.Validate(data_value)
+
+
+class Tuple(BaseType):
+  """Tuple schema class.
+
+  Comparing to List, the Tuple schema makes sure that every element exactly
+  matches the defined position and schema.
+
+  Attributes:
+    label: A string to describe this tuple.
+    element_types: Optional list or tuple schema object to describe the
+        types of the Tuple.
+
+  Raises:
+    SchemaException if argument format is incorrect.
+  """
+  def __init__(self, label, element_types=None):
+    super(Tuple, self).__init__(label)
+    if (element_types and
+        (not isinstance(element_types, (tuple, list))) or
+        (not all([isinstance(x, BaseType)] for x in element_types))):
+      raise SchemaException(
+          'element_types %r of Tuple %r is not a tuple or list' %
+          (element_types, self._label))
+    self._element_types = copy.deepcopy(element_types)
+
+  def Validate(self, data):
+    """Validates the given data and all its elements against the Tuple schema.
+
+    Args:
+      data: A Python data structure to be validated.
+
+    Raises:
+      SchemaException if validation fails.
+    """
+    if not isinstance(data, tuple):
+      raise SchemaException('Type mismatch on %r: expected tuple, got %r' %
+                            (self._label, type(data)))
+    if self._element_types and len(self._element_types) != len(data):
+      raise SchemaException(
+          'Number of elements in tuple %r does not match that defined '
+          'in Tuple schema %r' % (str(data), self._label))
+    for data, element_type in zip(data, self._element_types):
+      element_type.Validate(data)
 
 
 class AnyOf(BaseType):
