@@ -1,0 +1,43 @@
+found_probe_value_map:
+  audio_codec:
+  - Codec 1
+  - HDMI 1
+  battery: Battery Li-ion 10000000
+  bluetooth: 0123:abcd 0001
+  camera: 4567:abcd Camera
+  chipset: cdef:abcd
+  cpu: CPU @ 2.80GHz [4 cores]
+  display_panel: FOO:0123 [1440x900]
+  dram: 0|2048|DDR3-800,DDR3-1066,DDR3-1333,DDR3-1600 1|2048|DDR3-800,DDR3-1066,DDR3-1333,DDR3-1600
+  ec_flash_chip: EC Flash Chip
+  embedded_controller: Embedded Controller
+  flash_chip: Flash Chip
+  keyboard: xkb:us::eng
+  storage: '16G SSD #123456'
+  touchpad: TouchPad
+  tpm: 12340000:1.2.3
+  usb_hosts:
+  - 8086:0000
+  - 8086:0001
+  vga: 8086:0002
+  wireless: 3210:abcd
+found_volatile_values:
+  hash_gbb: gv2#aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+  key_recovery: kv3#bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+  key_root: kv3#cccccccccccccccccccccccccccccccccccccccc
+  ro_ec_firmware: ev2#dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd#chromebook
+  ro_main_firmware: mv2#eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee#chromebook
+  vpd.ro.vpd_ro_field_1: VPD_RO_FIELD_1
+  vpd.ro.vpd_ro_field_2: VPD_RO_FIELD_2
+  vpd.rw.vpd_rw_field_1: VPD_RW_FIELD_1
+  vpd.rw.vpd_rw_field_2: VPD_RW_FIELD_2
+initial_configs:
+  cellular_fw_version: ''
+  rw_fw_key_version: '2'
+  storage_fw_version: 11.22.33
+missing_component_classes:
+- wimax
+- cellular
+- display_converter
+- ethernet
+

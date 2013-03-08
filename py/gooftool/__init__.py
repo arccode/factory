@@ -11,12 +11,17 @@ from collections import namedtuple
 from tempfile import NamedTemporaryFile
 
 import factory_common  # pylint: disable=W0611
+import cros.factory.hwid as hwid3
 from cros.factory.common import Error
 from cros.factory.common import Shell
 from cros.factory.hwdb import hwid_tool
 from cros.factory.gooftool import crosfw
 from cros.factory.gooftool.bmpblk import unpack_bmpblock
-from cros.factory.gooftool.probe import Probe, ReadRoVpd
+from cros.factory.gooftool.probe import Probe, ReadRoVpd, ReadRwVpd
+from cros.factory.gooftool.vpd_data import KNOWN_VPD_FIELD_DATA
+from cros.factory.hwid import Database
+from cros.factory.hwid.decoder import Decode
+from cros.factory.hwid.encoder import Encode
 
 # A named tuple to store the probed component name and the error if any.
 ProbedComponentResult = namedtuple('ProbedComponentResult',
@@ -130,12 +135,12 @@ class Util(object):
     return result
 
   def GetReleaseRootPartitionPath(self):
-    '''Gets the path for release root partition.'''
+    """Gets the path for release root partition."""
 
     return self.GetPrimaryDevicePath(5)
 
   def GetReleaseKernelPartitionPath(self):
-    '''Gets the path for release kernel partition.'''
+    """Gets the path for release kernel partition."""
 
     return self.GetPrimaryDevicePath(4)
 
@@ -177,38 +182,58 @@ class Util(object):
     return output
 
 class Gooftool(object):
-  '''A class to perform hardware probing and verification and to implement
+  """A class to perform hardware probing and verification and to implement
   Google required tests.
-  '''
+  """
   # TODO(andycheng): refactor all other functions in gooftool.py to this.
 
-  def __init__(self, probe=None, hardware_db=None, component_db=None):
-    '''Constructor.
+  def __init__(self, probe=None, hwid_version=2,
+               hardware_db=None, component_db=None,
+               board=None, hwdb_path=None):
+    """Constructor.
 
     Args:
       probe: The probe to use for detecting installed components. If not
         specified, cros.factory.gooftool.probe.Probe is used.
-
+      hwid_version: The HWID version to operate on. Currently there are only two
+        options: 2 or 3.
       hardware_db: The hardware db to use. If not specified, the one in
         hwid_tool.DEFAULT_HWID_DATA_PATH is used.
-
       component_db: The component db to use for both component names and
         component classes lookup. If not specified,
         hardware_db.component.db is used.
-    '''
-    self._hardware_db = (
-        hardware_db or
-        hwid_tool.HardwareDb(hwid_tool.DEFAULT_HWID_DATA_PATH))
-    self._component_db = component_db or self._hardware_db.comp_db
+      board: A string indicating which board-specific component database to
+        load. If not specified, the board name will be detected with
+        cros.factory.hwid.ProbeBoard(). Used for HWID v3 only.
+      hwdb_path: The path to load the board-specific component database from. If
+        not specified, cros.factory.hwid.DEFAULT_HWID_DATA_PATH will be used.
+        Used for HWID v3 only.
+    """
+    self._hwid_version = hwid_version
+    if hwid_version == 2:
+      self._hardware_db = (
+          hardware_db or
+          hwid_tool.HardwareDb(hwid_tool.DEFAULT_HWID_DATA_PATH))
+      self._component_db = component_db or self._hardware_db.comp_db
+    elif hwid_version == 3:
+      self._board = board or hwid3.ProbeBoard()
+      self._hwdb_path = hwdb_path or hwid3.DEFAULT_HWID_DATA_PATH
+      self._component_db = Database.LoadFile(
+          os.path.join(self._hwdb_path, self._board.upper()))
+    else:
+      raise ValueError("Invalid HWID version: %r" % hwid_version)
+
     self._probe = probe or Probe
     self._util = Util()
     self._crosfw = crosfw
     self._read_ro_vpd = ReadRoVpd
+    self._read_rw_vpd = ReadRwVpd
+    self._hwid_decode = Decode
     self._unpack_bmpblock = unpack_bmpblock
     self._named_temporary_file = NamedTemporaryFile
 
   def VerifyComponents(self, component_list):
-    '''Verifies the given component list against the component db to ensure
+    """Verifies the given component list against the component db to ensure
     the installed components are correct.
 
     Args:
@@ -222,7 +247,7 @@ class Gooftool(object):
           component_name,  # The component name if found in the db, else None.
           probed_string,   # The actual probed string. None if probing failed.
           error)]}         # The error message if there is one.
-    '''
+    """
     probeable_classes = self._component_db.probeable_components.keys()
     if not component_list:
       raise ValueError("No component classes specified;\n" +
@@ -331,14 +356,14 @@ class Gooftool(object):
          self._crosfw.LoadMainFirmware().GetFileName()])
 
   def VerifySystemTime(self):
-    '''Verify system time is later than release filesystem creation time.'''
+    """Verify system time is later than release filesystem creation time."""
 
     return self._util.FindAndRunScript(
         'verify_system_time.sh',
         [self._util.GetReleaseRootPartitionPath()])
 
   def VerifyRootFs(self):
-    '''Verify rootfs on SSD is valid by checking hash.'''
+    """Verify rootfs on SSD is valid by checking hash."""
     return self._util.FindAndRunScript(
         'verify_rootfs.sh',
         [self._util.GetReleaseRootPartitionPath()])
@@ -503,3 +528,154 @@ class Gooftool(object):
         'bios_wp_status': self._util.shell(
             'flashrom -p internal:bus=spi --wp-status').stdout}
 
+  def VerifyComponentsV3(self, component_list):
+    """Verifies the given component list against the component db to ensure
+    the installed components are correct. This method uses the HWIDv3 component
+    database to verify components.
+
+    Args:
+      component_list: A list of components to verify.
+        (e.g., ['camera', 'cpu'])
+
+    Returns:
+      A dict from component class to a list of one or more
+      ProbedComponentResult tuples.
+      {component class: [ProbedComponentResult(
+          component_name,  # The component name if found in the db, else None.
+          probed_string,   # The actual probed string. None if probing failed.
+          error)]}         # The error message if there is one.
+    """
+    if self._hwid_version != 3:
+      raise Error, 'hwid_version needs to be 3 to run VerifyComponentsV3'
+    yaml_probe_results = self._probe(
+        target_comp_classes=component_list,
+        probe_volatile=False, probe_initial_config=False).Encode()
+    return self._component_db.VerifyComponents(yaml_probe_results,
+                                               component_list)
+
+  def GenerateHwidV3(self, device_info=None, probe_result=None):
+    """Generates the version 3 HWID of the DUT.
+
+    The HWID is generated based on the given device info and probe result. If
+    there are conflits about component information between device_info and
+    probe_result, priority is given to device_info.
+
+    Args:
+      device_info: A dict of component infomation keys to their corresponding
+        values. The format is device-specific and the meanings of each key and
+        value vary from device to device. The valid keys and values should be
+        specified in board-specific component database.
+      probe_result: The probe result to be used.
+    """
+    if self._hwid_version != 3:
+      raise Error, 'hwid_version needs to be 3 to run GenerateHwidV3'
+    if not probe_result:
+      probe_result = self._probe(None)
+    # Construct a base BOM from probe_result.
+    device_bom = self._component_db.ProbeResultToBOM(probe_result)
+    # Invalidate every unprobeable components.
+    for comp_cls in device_bom.components:
+      if comp_cls not in self._component_db.probeable_components:
+        device_bom.components[comp_cls] = []
+    # Update BOM using device_info.
+    if device_info is not None:
+      components_to_update = {}
+      for info_key, info_value in device_info.iteritems():
+        try:
+          db_device_info_dict = (
+              self._component_db.shopfloor_device_info[info_key][info_value])
+          for comp_cls, comp_name in db_device_info_dict.iteritems():
+            if comp_cls in components_to_update:
+              raise Error, ('component class %r is re-defined twice in '
+              'device_info: (%r and %r}' % (comp_cls,
+              components_to_update[comp_cls], comp_name))
+            components_to_update[comp_cls] = comp_name
+        except KeyError:
+          raise Error, 'Undefined device info {%r: %r}' % (info_key, info_value)
+      device_bom = self._component_db.UpdateComponentsOfBOM(
+          device_bom, components_to_update)
+    # Check that the BOM is valid.
+    unknown_components = [comp_cls for comp_cls in device_bom.components if
+                          not device_bom.components[comp_cls]]
+    if unknown_components:
+      raise Error, ('Components %r are unprobeable and were not specified in '
+                    'device info' % sorted(unknown_components))
+
+    return Encode(self._component_db, device_bom)
+
+
+  def VerifyHwidV3(self, encoded_string=None, probe_results=None,
+                   probed_ro_vpd=None, probed_rw_vpd=None):
+    """Verifies the given encoded version 3 HWID string against the component
+    db.
+
+    A HWID context is built with the encoded HWID string and the board-specific
+    component database. The HWID context is used to verify that the probe
+    results match the infomation encoded in the HWID string.
+
+    RO and RW VPD are also loaded and checked against the required values stored
+    in the board-specific component database.
+
+    Args:
+      encoded_string: The encoded HWID string to test. If not specified,
+        defaults to the HWID read from GBB on DUT.
+      probe_resuls: The probe results to test. If not specified, defaults to the
+        probe result got with self._probe().
+      probed_ro_vpd: A dict of probed RO VPD keys and values. If not specified,
+        defaults to the RO VPD stored on DUT.
+      probed_rw_vpd: A dict of probed RW VPD keys and values. If not specified,
+        defaults to the RW VPD stored on DUT.
+    """
+    if self._hwid_version != 3:
+      raise Error, 'hwid_version needs to be 3 to run VerifyHwidV3'
+    if not all([encoded_string, probed_ro_vpd, probed_rw_vpd]):
+      main_fw_file = crosfw.LoadMainFirmware().GetFileName()
+    if not encoded_string:
+      gbb_result = self._util.shell(
+          'gbb_utility -g --hwid %s' % main_fw_file).stdout
+      encoded_string = re.findall(r'hardware_id:(.*)', gbb_result)[0].strip()
+    if not probe_results:
+      probe_results = self._probe(None)
+    if not probed_ro_vpd:
+      probed_ro_vpd = self._read_ro_vpd(main_fw_file)
+    if not probed_rw_vpd:
+      probed_rw_vpd = self._read_rw_vpd(main_fw_file)
+
+    hwid_context = self._hwid_decode(self._component_db, encoded_string)
+    hwid_context.VerifyProbeResult(probe_results)
+    for key in self._component_db.vpd_ro_fields:
+      if key not in probed_ro_vpd:
+        raise Error, 'Missing required RO VPD field: %s' % key
+      known_valid_values = KNOWN_VPD_FIELD_DATA.get(key, None)
+      value = probed_ro_vpd[key]
+      if ((known_valid_values is not None) and
+          (value not in known_valid_values)):
+        raise Error, 'Invalid RO VPD entry : key %r, value %r' % (key, value)
+    for key in self._component_db.vpd_rw_fields:
+      if key not in probed_rw_vpd:
+        raise Error, 'Missing required RW VPD field: %s' % key
+      known_valid_values = KNOWN_VPD_FIELD_DATA.get(key, None)
+      value = probed_rw_vpd[key]
+      if ((known_valid_values is not None) and
+          (value not in known_valid_values)):
+        raise Error, 'Invalid RW VPD entry : key %r, value %r' % (key, value)
+
+
+  def FindBOMMismatchesV3(self, board, bom_name, probed_comps):
+    """Finds mismatched components for a BOM. This method uses the HWIDv3
+    component database to match components.
+
+    Args:
+      board: The name of the board containing a list of BOMs .
+      bom_name: The name of the BOM listed in the hardware database.
+      probed_comps: A named tuple for probed results.
+        Format: (component_name, probed_string, error)
+
+    Returns:
+      A dict of mismatched component list for the given BOM.
+      {component class: [Mismatch(
+        expected,  # The expected result.
+        actual)]}  # The actual probed result.
+    """
+    # TODO(jcliang): Re-implement this after rule language refactoring.
+    pass
