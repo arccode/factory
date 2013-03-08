@@ -27,10 +27,6 @@ from cros.factory.utils.string_utils import DecodeUTF8
 TAIL_BUFFER_SIZE = 10
 
 
-class WebSocketException(Exception):
-  pass
-
-
 class WebSocketManager(object):
   '''Object to manage web sockets for Goofy.
 
@@ -176,21 +172,11 @@ class WebSocketManager(object):
       with self.lock:
         self.web_sockets.discard(web_socket)
 
-  def wait(self, timeout_sec=None):
-    '''Waits for one socket to connect successfully.
-
-    Args:
-      timeout_sec: (opt) #seconds to wait. Default None means forever.
-
-    Raises:
-      WebSocketException for wait timeout.
-    '''
-    end_time = time.time() + timeout_sec if timeout_sec else None
+  def wait(self):
+    '''Waits for one socket to connect successfully.'''
     while not self.has_confirmed_socket.is_set():
       # Wait at most 100 ms at a time; without a timeout, this seems
       # to eat SIGINT signals.
-      if end_time and time.time() > end_time:
-        raise WebSocketException('Timeout waiting for a socket connection.')
       self.has_confirmed_socket.wait(0.1)
 
   def _tail_console(self):
