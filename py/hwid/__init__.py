@@ -8,6 +8,7 @@
 """Common classes for HWID v3 operation."""
 
 import collections
+import copy
 import logging
 import os
 import re
@@ -184,6 +185,13 @@ class BOM(object):
     self.encoded_fields = encoded_fields
     BOM._COMPONENTS_SCHEMA.Validate(self.components)
 
+  def Duplicate(self):
+    """Duplicates this BOM object.
+
+    Returns:
+      A deepcopy of the original BOM object.
+    """
+    return copy.deepcopy(self)
 
 class Database(object):
   """A class for reading in, parsing, and obtaining information of the given
@@ -352,6 +360,47 @@ class Database(object):
     return BOM(self.board, encoding_pattern, image_id, probed_components,
                encoded_fields)
 
+  def UpdateComponentsOfBOM(self, bom, updated_components):
+    """Updates the components data of the given BOM.
+
+    The components field of the given BOM is updated with the given component
+    class and component name, and the encoded_fields field is re-calculated.
+
+    Args:
+      bom: A BOM object to update.
+      updated_components: A dict of component classes to component names
+          indicating the set of components to update.
+
+    Returns:
+      A BOM object with updated components and encoded fields.
+    """
+    result = bom.Duplicate()
+    for component_class, component_name in updated_components.iteritems():
+      new_probed_result = []
+      if component_name is None:
+        new_probed_result.append(ProbedComponentResult(
+            None, None, 'missing %r component' % component_class))
+      else:
+        component_name = MakeList(component_name)
+        for name in component_name:
+          try:
+            new_probed_result.append(ProbedComponentResult(
+                name, self.components[component_class][name]['value'], None))
+          except KeyError:
+            raise HWIDException(
+                'Component {%r: %r} is not defined in the component database' %
+                (component_class, name))
+      # Update components data of the duplicated BOM.
+      result.components[component_class] = new_probed_result
+
+    # Re-calculate all the encoded index of each encoded field.
+    result.encoded_fields = {}
+    for field in self.encoded_fields:
+      result.encoded_fields[field] = self._GetFieldIndexFromProbedComponents(
+          field, result.components)
+
+    return result
+
   def _GetFieldIndexFromProbedComponents(self, encoded_field,
                                          probed_components):
     """Gets the encoded index of the specified encoded field by matching
@@ -383,20 +432,14 @@ class Database(object):
             found = False
             break
         else:
-          def _GetDatabaseComponentValues(comp_cls, comp_names):
-            result = set()
-            for name in comp_names:
-              result |= MakeSet(self.components[comp_cls][name]['value'])
-            return result
-          # Create a set of component values of db_comp_cls from the
+          # Create a set of component names of db_comp_cls from the
           # probed_components argument.
-          bom_component_values_of_the_class = MakeSet([
-              x.probed_string for x in probed_components[db_comp_cls]])
-          # Create a set of component values of db_comp_cls from the database.
-          db_component_values_of_the_class = _GetDatabaseComponentValues(
-              db_comp_cls, db_comp_names)
-          if (bom_component_values_of_the_class !=
-              db_component_values_of_the_class):
+          bom_component_names_of_the_class = MakeSet([
+              x.component_name for x in probed_components[db_comp_cls]])
+          # Create a set of component names of db_comp_cls from the database.
+          db_component_names_of_the_class = MakeSet(db_comp_names)
+          if (bom_component_names_of_the_class !=
+              db_component_names_of_the_class):
             found = False
             break
       if found:
@@ -558,7 +601,7 @@ class Database(object):
     # All the encoded index should exist in the database.
     invalid_fields = []
     for field, index in bom.encoded_fields.iteritems():
-      if index not in self.encoded_fields[field]:
+      if index is not None and index not in self.encoded_fields[field]:
         invalid_fields.append(field)
     if invalid_fields:
       raise HWIDException('Encoded fields %r have unknown indices' %

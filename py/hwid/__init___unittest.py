@@ -148,11 +148,11 @@ class DatabaseTest(unittest2.TestCase):
         'audio_codec': 1,
         'battery': 3,
         'bluetooth': 0,
-        'camera': 0,
+        'camera': None,
         'cellular': 0,
         'chipset': 0,
         'cpu': 5,
-        'display_panel': 0,
+        'display_panel': None,
         'dram': 0,
         'ec_flash_chip': 0,
         'embedded_controller': 0,
@@ -170,11 +170,11 @@ class DatabaseTest(unittest2.TestCase):
         'audio_codec': 1,
         'battery': 3,
         'bluetooth': 0,
-        'camera': 0,
+        'camera': None,
         'cellular': 0,
         'chipset': None,
         'cpu': 5,
-        'display_panel': 0,
+        'display_panel': None,
         'dram': 0,
         'ec_flash_chip': 0,
         'embedded_controller': 0,
@@ -187,6 +187,40 @@ class DatabaseTest(unittest2.TestCase):
         'usb_hosts': 0,
         'vga': 0,
         'wireless': 0}, self.database.ProbeResultToBOM(result).encoded_fields)
+
+  def testUpdateComponentsOfBOM(self):
+    result = open(os.path.join(_TEST_DATA_PATH,
+                               'test_probe_result.yaml'), 'r').read()
+    bom = self.database.ProbeResultToBOM(result)
+    new_bom = self.database.UpdateComponentsOfBOM(
+        bom, {'keyboard': 'keyboard_gb'})
+    self.assertEquals([('keyboard_gb', 'xkb:gb:extd:eng', None)],
+                      new_bom.components['keyboard'])
+    self.assertEquals(1, new_bom.encoded_fields['keyboard'])
+    new_bom = self.database.UpdateComponentsOfBOM(
+        bom, {'audio_codec': ['codec_0', 'hdmi_0']})
+    self.assertEquals(
+        [('codec_0', 'Codec 0', None), ('hdmi_0', 'HDMI 0', None)],
+        new_bom.components['audio_codec'])
+    self.assertEquals(0, new_bom.encoded_fields['audio_codec'])
+    new_bom = self.database.UpdateComponentsOfBOM(
+        bom, {'cellular': 'cellular_0'})
+    self.assertEquals([('cellular_0', '89ab:abcd Cellular Card', None)],
+                       new_bom.components['cellular'])
+    self.assertEquals(1, new_bom.encoded_fields['cellular'])
+    new_bom = self.database.UpdateComponentsOfBOM(
+        bom, {'cellular': None})
+    self.assertEquals([(None, None, "missing 'cellular' component")],
+                       new_bom.components['cellular'])
+    self.assertEquals(0, new_bom.encoded_fields['cellular'])
+    self.assertRaisesRegexp(
+        HWIDException,
+        r'Component {.*: .*} is not defined in the component database',
+        self.database.UpdateComponentsOfBOM, bom, {'foo': 'bar'})
+    self.assertRaisesRegexp(
+        HWIDException,
+        r'Component {.*: .*} is not defined in the component database',
+        self.database.UpdateComponentsOfBOM, bom, {'cpu': 'bar'})
 
   def testGetFieldIndexFromComponents(self):
     result = open(os.path.join(_TEST_DATA_PATH,

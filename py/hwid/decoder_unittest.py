@@ -68,6 +68,8 @@ class DecoderTest(unittest.TestCase):
     result = open(os.path.join(_TEST_DATA_PATH,
                                'test_probe_result.yaml'), 'r').read()
     reference_bom = self.database.ProbeResultToBOM(result)
+    reference_bom.encoded_fields['camera'] = 0
+    reference_bom.encoded_fields['display_panel'] = 0
     bom = BinaryStringToBOM(self.database, '00000111010000010100')
     self.assertEquals(reference_bom.board, bom.board)
     self.assertEquals(reference_bom.encoding_pattern_index,
@@ -80,6 +82,8 @@ class DecoderTest(unittest.TestCase):
     result = open(os.path.join(_TEST_DATA_PATH,
                                'test_probe_result.yaml'), 'r').read()
     reference_bom = self.database.ProbeResultToBOM(result)
+    reference_bom.encoded_fields['camera'] = 0
+    reference_bom.encoded_fields['display_panel'] = 0
     # TODO(jcliang): Change back in R27.
     #hwid = Decode(self.database, 'CHROMEBOOK A5AU-LU')
     hwid = Decode(self.database, 'CHROMEBOOK A5AU-LU 3324')
