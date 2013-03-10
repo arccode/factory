@@ -17,6 +17,7 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.event_log import EventLog
 from cros.factory.goofy.goofy import CACHES_DIR
 from cros.factory.test import factory
+from cros.factory.test import leds
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
@@ -34,8 +35,13 @@ class RfFramework(object):
       Arg('config_file', str,
           'Describes where configuration locates.'),
       Arg('parameters', list,
-          'A list of regular expressions indicates parameters to download from'
+          'A list of regular expressions indicates parameters to download from '
           'shopfloor server.', default=list()),
+      Arg('blinking_pattern', list,
+          'A list of blinking state that will be passed to Blinker for '
+          'inside shield-box primary test. '
+          'More details of format could be found under Blinker.__init__()',
+          default=[(0b111, 0.10), (0b000, 0.10)], ),
       Arg('static_ip', str,
           'Static IP for the DUT; default to acquire one from DHCP.',
           default=None, optional=True),
@@ -87,8 +93,10 @@ class RfFramework(object):
 
   def runTest(self):
     if self.args.pre_test_outside_shield_box:
+      self.template.SetState('Preparing network.')
       self.PrepareNetwork()
       if len(self.args.parameters) > 0:
+        self.template.SetState('Downloading parameters.')
         self.DownloadParameters()
 
       # Load the main configuration.
@@ -96,6 +104,7 @@ class RfFramework(object):
           self.caches_dir, self.args.config_file), "r") as fd:
         self.config = yaml.load(fd.read())
 
+      self.template.SetState('Runing outside shield box test.')
       self.PreTestOutsideShieldBox()
       self.EnterFactoryMode()
       self.Prompt(
@@ -105,7 +114,9 @@ class RfFramework(object):
 
     try:
       if self.args.pre_test_inside_shield_box:
+        self.template.SetState('Preparing network.')
         self.PrepareNetwork()
+        self.template.SetState('Runing pilot test inside shield box.')
         self.PreTestInsideShieldBox()
         # TODO(itspeter): Support multiple language in prompt.
         self.Prompt(
@@ -114,16 +125,23 @@ class RfFramework(object):
             force_prompt=True)
 
       # Primary test
-      # TODO(itspeter): Blinking the keyboard indicator.
       # TODO(itspeter): Timing on PrimaryTest().
-      self.PrimaryTest()
-      self.Prompt('Shield-box required testing finished.<br>'
-                  'Rest of the test can be executed without a shield-box.<br>'
-                  'Please press SPACE key to continue.',
-                  force_prompt=True)
+      self.template.SetState('Runing primary test.')
+      with leds.Blinker(self.args.blinking_pattern):
+        self.PrimaryTest()
+
+      # Light all LEDs to indicates test is completed.
+      leds.SetLeds(leds.LED_SCR|leds.LED_NUM|leds.LED_CAP)
+      self.Prompt(
+          'Shield-box required testing finished.<br>'
+          'Rest of the test can be executed without a shield-box.<br>'
+          'Please press SPACE key to continue.',
+          force_prompt=True)
+      leds.SetLeds(0)
 
       # Post-test
       if self.args.post_test:
+        self.template.SetState('Runing post test.')
         self.PostTest()
 
     finally:

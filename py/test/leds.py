@@ -15,7 +15,6 @@ import sys
 import threading
 
 import factory_common  # pylint: disable=W0611
-from autotest_lib.client.bin import utils
 
 
 # Constants from /usr/include/linux/kd.h.

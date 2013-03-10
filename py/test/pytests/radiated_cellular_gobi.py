@@ -82,6 +82,7 @@ class RadiatedCellularGobi(RfFramework, unittest.TestCase):
         self.StartTXTest(measurement['band_name'], measurement['channel'])
         self.Prompt('Modem is in TX mode for %s<br>'
                     'Press SPACE to continue' % measurement_name)
+        self.template.SetState('Measuring %r' % measurement_name)
 
         # Measure the channel power.
         tx_power = self.RunEquipmentCommand(
@@ -95,14 +96,18 @@ class RadiatedCellularGobi(RfFramework, unittest.TestCase):
               self.FormattedPower(min_power), self.FormattedPower(max_power))
           factory.console.info(failure)
           self.failures.append(failure)
+        else:
+          factory.console.info('Power for %r is %s', measurement_name,
+                               self.FormattedPower(tx_power))
 
         # End continuous transmit
         self.EndTXTest(measurement['band_name'], measurement['channel'])
 
       except Exception as e:
         # In order to collect more data, finish the whole test even if it fails.
-        self.failures.append(
-            'Unexpected failure on %s: %s' % (measurement_name, e))
+        failure = 'Unexpected failure on %s: %s' % (measurement_name, e)
+        factory.console.info(failure)
+        self.failures.append(failure)
 
   def PostTest(self):
     # TODO(itspeter): Switch to production drivers.
@@ -155,6 +160,7 @@ class RadiatedCellularGobi(RfFramework, unittest.TestCase):
       stdout = Spawn(SWITCH_TO_WCDMA_COMMAND, read_stdout=True,
                      log_stderr_on_error=True, check_call=True).stdout_data
       logging.info('Output when switching to WCDMA =\n%s', stdout)
+      factory.console.info('Entered factory test mode')
     except CalledProcessError:
       factory.console.info('WCDMA switching failed.')
       raise
@@ -169,6 +175,7 @@ class RadiatedCellularGobi(RfFramework, unittest.TestCase):
       stdout = Spawn(SWITCH_TO_CDMA_COMMAND, read_stdout=True,
                      log_stderr_on_error=True, check_call=True).stdout_data
       logging.info('Output when switching to CDMA =\n%s', stdout)
+      factory.console.info('Exited factory test mode')
     except CalledProcessError:
       factory.console.info('CDMA switching failed.')
 
