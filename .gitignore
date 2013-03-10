@@ -3,3 +3,4 @@
 build
 shopfloor_data
 .tests-passed
+overlay-*

@@ -30,7 +30,7 @@ MAX_TESTS=32
 FACTORY=$(DESTDIR)/$(TARGET_DIR)
 FACTORY_BUNDLE=$(FACTORY)/bundle
 
-PYLINTRC=../../../chromite/pylintrc
+PYLINTRC=$(CROS_WORKON_SRCROOT)/chromite/pylintrc
 
 # TODO(shik): Re-enable R0801 once flash_firmware.py and
 # setup_netboot.py are fixed.
@@ -194,6 +194,25 @@ test:
 	echo; \
 	$(TEST_RUNNER) $(UNITTESTS_WHITELIST) -i $(UNITTESTS_ISOLATE_LIST) \
             -j $(MAX_TESTS) -l $$logdir $(EXTRA_TEST_FLAGS)
+
+# Trick to make sure that overlays are rebuilt every time overlay-xxx is run.
+.PHONY: .phony
+
+# Builds an overlay of the given board.
+overlay-%: .phony
+	rm -rf $@
+	mkdir $@
+	rsync -a --exclude build --exclude overlay-\* ./ $@/
+	rsync -a ../../private-overlays/overlay*-$(subst overlay-,,$@)-private/\
+chromeos-base/chromeos-factory-board/files/ $@/
+
+# Tests the overlay of the given board.
+test-overlay-%: overlay-%
+	make -C $< test && touch .tests-passed
+
+# Lints the overlay of the given board.
+lint-overlay-%: overlay-%
+	make -C $< lint
 
 testall:
 	@make --no-print-directory test EXTRA_TEST_FLAGS=--nofilter
