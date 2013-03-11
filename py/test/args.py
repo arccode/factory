@@ -3,7 +3,7 @@
 # found in the LICENSE file.
 
 
-'''Argument handling for pytests.
+"""Argument handling for pytests.
 
 To use this functionality, add the ARGS attribute to your pytest.  You can then
 use the args attribute to access the attribute values.
@@ -22,7 +22,11 @@ use the args attribute to access the attribute values.
       device.StartCountdown(self.args.countdown_secs)
       time.sleep(self.args.countdown_secs)
       self.assertEquals(self.args.explode, device.exploded)
-'''
+"""
+
+
+import factory_common  # pylint: disable=W0611
+from cros.factory.test.utils import Enum
 
 
 # Save the 'type' function (since we'll be overloading it in Arg.__init__).
@@ -31,17 +35,27 @@ TYPE = type
 
 class Arg(object):
   # pylint: disable=W0622
+  def ValueMatchesType(self, value):
+    """Returns True if value matches the type for this argument."""
+    for t in self.type:
+      if isinstance(t, TYPE) and isinstance(value, t):
+        return True
+      if isinstance(t, Enum) and value in t:
+        return True
+
+    return False
+
   def __init__(self, name, type, help, default=None, optional=False):
-    '''Constructor.
+    """Constructor.
 
     Args:
       name: Name of the argument.
       type: Type of the argument, or a tuple of allowable types.  None is
-        always allowed if optional is True.
+        always allowed if optional is True.  An Enum is also permitted.
       help: A help string.
       default: A default value for the argument.
       optional: Whether the argument is optional.
-    '''
+    """
     if not name:
       raise ValueError('Argument is missing a name')
     if not type:
@@ -50,17 +64,13 @@ class Arg(object):
     # Always make type a tuple.
     if not isinstance(type, tuple):
       type = (type,)
-    if any(not isinstance(x, TYPE) for x in type):
+    if any(not isinstance(x, TYPE) and not isinstance(x, Enum)
+           for x in type):
       raise ValueError('Argument %s has invalid types %r' % (name, type))
 
     # Allow None for all optional arguments without defaults.
     if optional and (default is None) and (None not in type):
       type += (TYPE(None),)
-
-    # Check type of default.
-    if default and (not any(isinstance(default, t) for t in type)):
-      raise ValueError('Default value %s should have type %r, not %r' % (
-                       default, type, TYPE(default)))
 
     if not help:
       raise ValueError('Argument %s is missing a help string' % name)
@@ -74,14 +84,19 @@ class Arg(object):
     self.default = default
     self.optional = optional
 
+    # Check type of default.
+    if default and not self.ValueMatchesType(default):
+      raise ValueError('Default value %s should have type %r, not %r' % (
+                       default, type, TYPE(default)))
+
 
 class Args(object):
   def __init__(self, *args):
-    '''Constructs an argument parser.
+    """Constructs an argument parser.
 
     Args:
       args: A list of Arg objects.
-    '''
+    """
     self.args = args
 
     if any(not isinstance(x, Arg) for x in args):
@@ -91,14 +106,14 @@ class Args(object):
     self.args_by_name = dict((x.name, x) for x in args)
 
   def Parse(self, dargs):
-    '''Parses a dargs object from the test list.
+    """Parses a dargs object from the test list.
 
     Args:
       dargs: A name/value map of arguments from the test list.
 
     Returns:
       An object containing an attribute for each argument.
-    '''
+    """
     attributes = {}
 
     errors = []
@@ -111,8 +126,7 @@ class Args(object):
         if arg.default is not None:
           value = arg.default
 
-      if (arg.name in dargs and
-          not any(isinstance(value, t) for t in arg.type)):
+      if arg.name in dargs and not arg.ValueMatchesType(value):
         errors.append('Argument %s should have type %r, not %r' % (
             arg.name, arg.type, type(value)))
         continue

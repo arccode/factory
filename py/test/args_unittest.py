@@ -4,20 +4,22 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import unittest
+import unittest2
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.args import Arg, Args
+from cros.factory.test.utils import Enum
 
 
-class ArgsTest(unittest.TestCase):
+class ArgsTest(unittest2.TestCase):
   def setUp(self):
     self.parser = Args(
         Arg('required', str, 'X'),
         Arg('has_default', str, 'X', default='DEFAULT_VALUE'),
         Arg('optional', str, 'X', optional=True),
         Arg('int_typed', int, 'X', optional=True),
-        Arg('int_or_string_typed', (int, str), 'X', optional=True))
+        Arg('int_or_string_typed', (int, str), 'X', optional=True),
+        Arg('enum_typed', Enum(['a','b']), 'X', optional=True))
 
   def Parse(self, dargs):
     '''Parses dargs.
@@ -44,7 +46,8 @@ class ArgsTest(unittest.TestCase):
                        'required': 'x',
                        'optional': None,
                        'int_or_string_typed': None,
-                       'int_typed': None},
+                       'int_typed': None,
+                       'enum_typed': None},
                       self.Parse(dict(required='x')))
     self.assertRaises(ValueError, lambda: self.Parse(dict()))
     self.assertRaises(ValueError, lambda: self.Parse(dict(required=None)))
@@ -55,13 +58,15 @@ class ArgsTest(unittest.TestCase):
                        'required': 'x',
                        'optional': 'y',
                        'int_or_string_typed': None,
-                       'int_typed': None},
+                       'int_typed': None,
+                       'enum_typed': None},
                       self.Parse(dict(required='x', optional='y')))
     self.assertEquals({'has_default': 'DEFAULT_VALUE',
                        'required': 'x',
                        'optional': None,
                        'int_or_string_typed': None,
-                       'int_typed': None},
+                       'int_typed': None,
+                       'enum_typed': None},
                       self.Parse(dict(required='x', optional=None)))
 
   def testInt(self):
@@ -69,9 +74,23 @@ class ArgsTest(unittest.TestCase):
                        'required': 'x',
                        'optional': None,
                        'int_or_string_typed': None,
-                       'int_typed': 3},
+                       'int_typed': 3,
+                       'enum_typed': None},
                       self.Parse(dict(required='x', int_typed=3)))
     self.assertRaises(ValueError, self.Parse, dict(required='x', int_typed='3'))
+
+  def testEnum(self):
+    self.assertEquals(
+        {'has_default': 'DEFAULT_VALUE',
+         'required': 'x',
+         'optional': None,
+         'int_or_string_typed': None,
+         'int_typed': 3,
+         'enum_typed': 'a'},
+        self.Parse(dict(required='x', int_typed=3, enum_typed='a')))
+    self.assertRaisesRegexp(ValueError,
+                            'Argument enum_typed should have type \(Enum',
+                            self.Parse, dict(required='x', enum_typed='c'))
 
   def testIntOrString(self):
     for value in (3, 'x'):
@@ -79,7 +98,8 @@ class ArgsTest(unittest.TestCase):
                          'required': 'x',
                          'optional': None,
                          'int_or_string_typed': value,
-                         'int_typed': None},
+                         'int_typed': None,
+                         'enum_typed': None},
                         self.Parse(dict(required='x',
                                         int_or_string_typed=value)))
     # Wrong type
@@ -89,4 +109,4 @@ class ArgsTest(unittest.TestCase):
 
 
 if __name__ == '__main__':
-  unittest.main()
+  unittest2.main()
