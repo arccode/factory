@@ -770,7 +770,8 @@ class _Components(dict):
         FixedDict('component attributes', items={
           'value': AnyOf('probed value', [
             Scalar('probed value', str),
-            List('list of probed values', Scalar('probed value', str))])},
+            List('list of probed values', Scalar('probed value', str)),
+            Scalar('opaque component', type(None))])},
           optional_items={
             'labels': List('list of labels', Scalar('label', str))})))
     self.schema.Validate(components_dict)
