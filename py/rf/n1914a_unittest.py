@@ -88,6 +88,11 @@ class N1914ATest(unittest2.TestCase):
   EXPECTED_MODEL = 'Agilent Technologies,N1914A,MY50001187,A2.01.06'
   HOST = 'localhost'
 
+  # FETCH1_EXPECTED_RESPONSE is the IEEE 754 64 bit floating
+  # point representation of FETCH1_EXPECTED_RESPONSE
+  FETCH1_EXPECTED_RESPONSE = str(bytearray([192, 80, 67, 70, 215, 23, 57, 14]))
+  FETCH1_EXPECTED_VALUE = -65.05119874255999
+
   def _AddInitialLookup(self):
     '''Adds necessary lookup for every connection.'''
     MockServerHandler.ResetLookup()
@@ -221,15 +226,20 @@ class N1914ATest(unittest2.TestCase):
     self.assertEqual(self.n1914a.Query(QUERY3), EXPECTED_RESPONSE_3)
 
   def testMeasureOnceInBinary(self):
-    # EXPECTED_RESPONSE is the IEEE 754 64 bit floating point representation
-    # of EXPECTED_VALUE
-    EXPECTED_RESPONSE = str(bytearray([192, 80, 67, 70, 215, 23, 57, 14]))
-    EXPECTED_VALUE = -65.05119874255999
-    MockServerHandler.AddLookup('FETCh1?', EXPECTED_RESPONSE + '\n')
-
+    MockServerHandler.AddLookup('FETCh1?',
+                                self.FETCH1_EXPECTED_RESPONSE + '\n')
     self._StartTest()
     power = self.n1914a.MeasureOnceInBinary(port=1)
-    self.assertAlmostEqual(power, EXPECTED_VALUE)
+    self.assertAlmostEqual(power, self.FETCH1_EXPECTED_VALUE)
+
+  def testMeasureInBinary(self):
+    MockServerHandler.AddLookup('FETCh1?',
+                                self.FETCH1_EXPECTED_RESPONSE + '\n')
+    MockServerHandler.AddLookup('FETCh1?',
+                                self.FETCH1_EXPECTED_RESPONSE + '\n')
+    self._StartTest()
+    power = self.n1914a.MeasureInBinary(port=1, avg_length=2)
+    self.assertAlmostEqual(power, self.FETCH1_EXPECTED_VALUE)
 
   def setUp(self):
     self._AddInitialLookup()

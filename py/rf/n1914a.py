@@ -130,3 +130,9 @@ class N1914A(AgilentSCPI):
     ret = self.QueryWithoutErrorChecking(
         'FETCh%d?' % port, 8, formatter=UnpackBinaryInDouble)
     return ret
+
+  def MeasureInBinary(self, port, avg_length):
+    '''Performs measurements in binary format and returns its average.'''
+    assert avg_length > 0, 'avg_length need to be greater than 1'
+    power = [self.MeasureOnceInBinary(port) for _ in xrange(avg_length)]
+    return sum(power) / float(avg_length)
