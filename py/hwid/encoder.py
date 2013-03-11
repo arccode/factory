@@ -29,15 +29,15 @@ def BOMToBinaryString(database, bom):
           Base32.BASE32_BIT_WIDTH * Base32.BASE32_BIT_WIDTH)
   binary_list = size * [0]
 
-  # TODO(jcliang): Find a way to determine header
-  binary_list[0] = 0  # encoding_pattern is 0 for now
+  # Fill in header.
+  binary_list[0] = bom.encoding_pattern_index
   for i in xrange(1, 5):
-    binary_list[i] = 0  # image_id is 0 for now
-  # Fill in each bit
+    binary_list[i] = (bom.image_id >> (4 - i)) & 1
+  # Fill in each bit.
   bit_mapping = database.pattern.GetBitMapping()
   for index, (field, bit_offset) in bit_mapping.iteritems():
     binary_list[index] = (bom.encoded_fields[field] >> bit_offset) & 1
-  # Set stop bit
+  # Set stop bit.
   binary_list[bit_length - 1] = 1
   return ''.join(['%d' % bit for bit in binary_list])
 
@@ -55,12 +55,12 @@ def BinaryStringToEncodedString(database, binary_string):
   """
   database.VerifyBinaryString(binary_string)
   b32_string = Base32.Encode(binary_string)
-  # Make board name part of the checksum
+  # Make board name part of the checksum.
   b32_string += Base32.Checksum(database.board.upper() + ' ' + b32_string)
-  # Insert dashes to increase readibility
+  # Insert dashes to increase readibility.
   b32_string = (
       '-'.join([b32_string[i:i + 4] for i in xrange(0, len(b32_string), 4)]))
-  # TODO(jcliang): Change back into R27.
+  # TODO(jcliang): Change back in R27.
   def DummyChecksum(text):
     return ('%04u' % (crc32(text) & 0xffffffffL))[-4:]
   result = database.board.upper() + ' ' + b32_string

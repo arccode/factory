@@ -25,8 +25,17 @@ class EncoderTest(unittest.TestCase):
     result = open(os.path.join(_TEST_DATA_PATH,
                                'test_probe_result.yaml'), 'r').read()
     bom = self.database.ProbeResultToBOM(result)
+    # Manually set unprobeable components.
+    bom = self.database.UpdateComponentsOfBOM(
+        bom, {'camera': 'camera_0', 'display_panel': 'display_panel_0'})
     self.assertEquals(
         '00000111010000010100', BOMToBinaryString(self.database, bom))
+    bom.image_id = 5
+    self.assertEquals(
+        '00101111010000010100', BOMToBinaryString(self.database, bom))
+    bom.encoding_pattern_index = 1
+    self.assertEquals(
+        '10101111010000010100', BOMToBinaryString(self.database, bom))
 
   def testBinaryStringToEncodedString(self):
     # TODO(jcliang): Change back in R27.
@@ -39,6 +48,9 @@ class EncoderTest(unittest.TestCase):
     result = open(os.path.join(_TEST_DATA_PATH,
                                'test_probe_result.yaml'), 'r').read()
     bom = self.database.ProbeResultToBOM(result)
+    # Manually set unprobeable components.
+    bom = self.database.UpdateComponentsOfBOM(
+        bom, {'camera': 'camera_0', 'display_panel': 'display_panel_0'})
     hwid = Encode(self.database, bom)
     self.assertEquals('00000111010000010100', hwid.binary_string)
     # TODO(jcliang): Change back in R27.

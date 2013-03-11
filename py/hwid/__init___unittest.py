@@ -336,14 +336,14 @@ class DatabaseTest(unittest2.TestCase):
     bom.board = original_value
 
     original_value = bom.encoding_pattern_index
-    bom.encoding_pattern_index = 1
+    bom.encoding_pattern_index = 2
     self.assertRaisesRegexp(
         HWIDException, r'Invalid encoding pattern', self.database.VerifyBOM,
         bom)
     bom.encoding_pattern_index = original_value
 
     original_value = bom.image_id
-    bom.image_id = 5
+    bom.image_id = 6
     self.assertRaisesRegexp(
         HWIDException, r'Invalid image id: .*', self.database.VerifyBOM, bom)
     bom.image_id = original_value

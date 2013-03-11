@@ -63,6 +63,16 @@ class DecoderTest(unittest.TestCase):
                           # TODO(jcliang): Change back in R27.
                           #self.database, 'CHROMEBOOK A5AU-LU'))
                           self.database, 'CHROMEBOOK A5AU-LU 3324'))
+    self.assertEquals('00101111010000010100',
+                      EncodedStringToBinaryString(
+                          # TODO(jcliang): Change back in R27.
+                          #self.database, 'CHROMEBOOK F5AU-ON'))
+                          self.database, 'CHROMEBOOK F5AU-ON 8205'))
+    self.assertEquals('10000111010000010100',
+                      EncodedStringToBinaryString(
+                          # TODO(jcliang): Change back in R27.
+                          #self.database, 'CHROMEBOOK Q5AU-XL'))
+                          self.database, 'CHROMEBOOK Q5AU-XL 7463'))
 
   def testBinaryStringToBOM(self):
     result = open(os.path.join(_TEST_DATA_PATH,
@@ -77,6 +87,11 @@ class DecoderTest(unittest.TestCase):
     self.assertEquals(reference_bom.image_id, bom.image_id)
     self.assertEquals(reference_bom.encoded_fields, bom.encoded_fields)
     self.assertEquals(self.expected_components_from_db, bom.components)
+    self.assertEquals(5, BinaryStringToBOM(
+        self.database, '00101111010000010100').image_id)
+    self.assertEquals(1, BinaryStringToBOM(
+        self.database, '10000111010000010100').encoding_pattern_index)
+
 
   def testDecode(self):
     result = open(os.path.join(_TEST_DATA_PATH,

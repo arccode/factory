@@ -2,11 +2,15 @@ board: CHROMEBOOK
 
 encoding_patterns:
   0: default
+  1: new pattern
 
 image_id:
   0: EVT
   1: DVT
   2: MP
+  3: FOO
+  4: BAR
+  5: BUZ
 
 pattern:
   - audio_codec: 1

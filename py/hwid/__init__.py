@@ -307,9 +307,9 @@ class Database(object):
     """
     probed_bom = yaml.load(probe_result)
 
-    # TODO(jcliang): update the following two fields after the command supports
-    #   encoding_pattern and image_id probing.
-    encoding_pattern = 0
+    # encoding_pattern_index and image_id are unprobeable and should be set
+    # explictly. Defaults them to 0.
+    encoding_pattern_index = 0
     image_id = 0
 
     def LookupProbedValue(comp_cls):
@@ -357,7 +357,7 @@ class Database(object):
       encoded_fields[field] = self._GetFieldIndexFromProbedComponents(
           field, probed_components)
 
-    return BOM(self.board, encoding_pattern, image_id, probed_components,
+    return BOM(self.board, encoding_pattern_index, image_id, probed_components,
                encoded_fields)
 
   def UpdateComponentsOfBOM(self, bom, updated_components):
@@ -573,9 +573,9 @@ class Database(object):
       raise HWIDException('Invalid board name. Expected %r, got %r' %
                           (self.board, bom.board))
 
-    # TODO(jcliang): Add checks for encoding_pattern.
-    if bom.encoding_pattern_index != 0:
-      raise HWIDException('Invalid encoding pattern')
+    if bom.encoding_pattern_index not in self.encoding_patterns:
+      raise HWIDException('Invalid encoding pattern: %r' %
+                          bom.encoding_pattern_index)
     if bom.image_id not in self.image_id:
       raise HWIDException('Invalid image id: %r' % bom.image_id)
 
