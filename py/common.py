@@ -5,6 +5,7 @@
 """Independent general functions useful for most other code."""
 
 
+import collections
 import logging
 import re
 import time
@@ -17,9 +18,11 @@ class Error(Exception):
   """Generic fatal error."""
   pass
 
+
 class TimeoutError(Error):
   """Timeout error."""
   pass
+
 
 class Obj(object):
   """Generic wrapper allowing dot-notation dict access."""
@@ -115,3 +118,27 @@ def ParseKeyValueData(pattern, data):
       raise ValueError('Duplicate key: %s' % name)
     parsed_list[name] = value
   return parsed_list
+
+
+def MakeList(value):
+  """Converts the given value to a list.
+
+  Returns:
+    A list of elements from "value" if it is iterable (except string);
+    otherwise, a list contains only one element.
+  """
+  if isinstance(value, collections.Iterable) and not isinstance(value, str):
+    return list(value)
+  return [value]
+
+
+def MakeSet(value):
+  """Converts the given value to a set.
+
+  Returns:
+    A set of elements from "value" if it is iterable (except string);
+    otherwise, a set contains only one element.
+  """
+  if isinstance(value, collections.Iterable) and not isinstance(value, str):
+    return set(value)
+  return set([value])

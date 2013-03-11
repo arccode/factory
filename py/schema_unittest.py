@@ -8,8 +8,8 @@
 import factory_common # pylint: disable=W0611
 import unittest2
 
-from cros.factory.schema import (
-    SchemaException, Scalar, AnyOf, Dict, FixedDict, Tuple, List)
+from cros.factory.schema import (AnyOf, Dict, FixedDict, List, Optional, Scalar,
+                                 SchemaException, Tuple)
 
 
 class SchemaTest(unittest2.TestCase):
@@ -101,14 +101,43 @@ class SchemaTest(unittest2.TestCase):
 
   def testAnyOf(self):
     self.assertRaisesRegexp(
-        SchemaException, r'type_list of AnyOf .* should be a list of Schema '
-        'types', AnyOf, 'foo', Scalar('bar', int))
+        SchemaException,
+        r'type_list of AnyOf .* should be a list of Schema types',
+        AnyOf, 'foo', Scalar('bar', int))
+
+    self.assertRaisesRegexp(
+        SchemaException,
+        r'type_list of AnyOf .* should be a list of Schema types',
+        AnyOf, 'foo', [Scalar('bar', int), 'not a Schema'])
+
     schema = AnyOf('foo', [Scalar('bar', str), Scalar('buz', int)])
     self.assertRaisesRegexp(
         SchemaException, r'.* does not match any type in .*',
         schema.Validate, {'a': 0})
     self.assertEquals(None, schema.Validate('foo'))
     self.assertEquals(None, schema.Validate(0))
+
+  def testOptional(self):
+    self.assertRaisesRegexp(
+        SchemaException,
+        r'type_list of AnyOf .* should be a list of Schema types',
+        Optional, 'foo', 'not a Schema')
+
+    optional = Optional('optional bar', Scalar('bar', str))
+    self.assertRaisesRegexp(
+        SchemaException, r'.* is not None and does not match any type in .*',
+        optional.Validate, {'a': 0})
+    self.assertEquals(None, optional.Validate(None))
+    self.assertEquals(None, optional.Validate('foo'))
+
+    multiple_optional = Optional('foo',
+                                 [Scalar('bar', str), Scalar('buz', int)])
+    self.assertRaisesRegexp(
+        SchemaException, r'.* is not None and does not match any type in .*',
+        multiple_optional.Validate, {'a': 0})
+    self.assertEquals(None, multiple_optional.Validate(None))
+    self.assertEquals(None, multiple_optional.Validate('foo'))
+    self.assertEquals(None, multiple_optional.Validate(0))
 
   def testValidate(self):
     schema = (

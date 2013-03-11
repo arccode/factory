@@ -14,8 +14,10 @@ import re
 import yaml
 import factory_common # pylint: disable=W0611
 
+from cros.factory.common import MakeList, MakeSet
 from cros.factory.hwid.base32 import Base32
-from cros.factory.schema import Scalar, Dict, FixedDict, List, Tuple, AnyOf
+from cros.factory.schema import AnyOf, Dict, FixedDict, List, Optional
+from cros.factory.schema import Scalar, Tuple
 from cros.factory.test import utils
 
 
@@ -51,28 +53,6 @@ def ProbeBoard():
   except IndexError:
     raise HWIDException('Cannot determine board from %r' % LSB_RELEASE_FILE)
   return board
-
-def MakeList(value):
-  """Converts the given value to a list.
-
-  Returns:
-    A list of elements from "value" if it is iterable (except string);
-    otherwise, a list contains only one element.
-  """
-  if isinstance(value, collections.Iterable) and not isinstance(value, str):
-    return list(value)
-  return [value]
-
-def MakeSet(value):
-  """Converts the given value to a set.
-
-  Returns:
-    A set of elements from "value" if it is iterable (except string);
-    otherwise, a set contains only one element.
-  """
-  if isinstance(value, collections.Iterable) and not isinstance(value, str):
-    return set(value)
-  return set([value])
 
 
 # A named tuple to store the probed component name and the error if any.
@@ -188,17 +168,12 @@ class BOM(object):
   _COMPONENTS_SCHEMA = Dict(
       'bom',
       key_type=Scalar('component class', str),
-      value_type=List('list of ProbedComponentResult',
-                      Tuple('ProbedComponentResult', [
-                          AnyOf('component name', [
-                              Scalar('none', type(None)),
-                              Scalar('component name', str)]),
-                          AnyOf('probed string', [
-                              Scalar('none', type(None)),
-                              Scalar('probed string', str)]),
-                          AnyOf('error', [
-                              Scalar('none', type(None)),
-                              Scalar('error', str)])])))
+      value_type=List(
+          'list of ProbedComponentResult',
+          Tuple('ProbedComponentResult',
+                [Optional('component name', Scalar('component name', str)),
+                 Optional('probed string', Scalar('probed string', str)),
+                 Optional('error', Scalar('error', str))])))
 
   def __init__(self, board, encoding_pattern_index, image_id,
                components, encoded_fields):
@@ -686,24 +661,30 @@ class _EncodedFields(dict):
           Dict('encoded fields', Scalar('encoded field', str),
             Dict('encoded indices', Scalar('encoded index', int),
               Dict('component classes', Scalar('component class', str),
-                AnyOf('component names', [
+                Optional('component names', [
                   Scalar('component name', str),
                   List('list of component names',
-                       Scalar('component name', str)),
-                  Scalar('none', type(None))]
+                       Scalar('component name', str))]
                 )
               )
             )
           )
   """
   def __init__(self, encoded_fields_dict):
-    self.schema = Dict('encoded fields', Scalar('encoded field', str),
-      Dict('encoded indices', Scalar('encoded index', int),
-        Dict('component classes', Scalar('component class', str),
-          AnyOf('component names', [
-            Scalar('component name', str),
-            List('list of component names', Scalar('component name', str)),
-            Scalar('none', type(None))]))))
+    self.schema = Dict(
+      'encoded fields',
+      Scalar('encoded field', str),
+      Dict('encoded indices',
+           Scalar('encoded index', int),
+           Dict('component classes',
+                Scalar('component class', str),
+                Optional('component names',
+                         [Scalar('component name', str),
+                          List('list of component names',
+                               Scalar('component name', str))])
+                )
+           )
+      )
     self.schema.Validate(encoded_fields_dict)
     super(_EncodedFields, self).__init__(encoded_fields_dict)
     # Convert string to list of string.

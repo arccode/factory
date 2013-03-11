@@ -10,7 +10,8 @@
 import re
 import factory_common # pylint: disable=W0611
 
-from cros.factory.hwid import HWIDException, MakeSet
+from cros.factory.common import MakeSet
+from cros.factory.hwid import HWIDException
 
 
 class RuleEvaluator(object):

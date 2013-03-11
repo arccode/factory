@@ -54,6 +54,8 @@ For example:
 import copy
 import factory_common # pylint: disable=W0611
 
+from cros.factory.common import MakeList
+
 
 class SchemaException(Exception):
   pass
@@ -301,9 +303,7 @@ class Tuple(BaseType):
 
 
 class AnyOf(BaseType):
-  """AnyOf schema class.
-
-  Used to match any schemas in the given list of schemas.
+  """A Schema class which accepts any one of the given Schemas.
 
   Attributes:
     label: A human-readable string to describe this object.
@@ -311,7 +311,8 @@ class AnyOf(BaseType):
   """
   def __init__(self, label, type_list):
     super(AnyOf, self).__init__(label)
-    if not isinstance(type_list, list):
+    if (not isinstance(type_list, list) or
+        not all([isinstance(x, BaseType) for x in type_list])):
       raise SchemaException(
           'type_list of AnyOf %r should be a list of Schema types' %
           self._label)
@@ -322,6 +323,9 @@ class AnyOf(BaseType):
 
     Args:
       data: A Python data structue to be validated.
+
+    Raises:
+      SchemaException if no schemas in type_list validates the input data.
     """
     match = False
     for schema_type in self._type_list:
@@ -333,4 +337,36 @@ class AnyOf(BaseType):
       break
     if not match:
       raise SchemaException('%r does not match any type in %r' %
+                            (data, self._label))
+
+
+class Optional(AnyOf):
+  """A Schema class which accepts either None or given Schemas.
+
+  It is a special case of AnyOf class: in addition of given schema(s), it also
+  accepts None.
+
+  Attributes:
+    label: A human-readable string to describe this object.
+    types: A (a list of) Schema object(s) to be matched.
+  """
+  def __init__(self, label, types):
+    super(Optional, self).__init__(label, MakeList(types))
+
+  def Validate(self, data):
+    """Validates if the given data is None or matches any schema in types.
+
+    Args:
+      data: A Python data structue to be validated.
+
+    Raises:
+      SchemaException if data is not None and no schemas in types validates the
+      input data.
+    """
+    if data is None:
+      return
+    try:
+      super(Optional, self).Validate(data)
+    except SchemaException:
+      raise SchemaException('%r is not None and does not match any type in %r' %
                             (data, self._label))
