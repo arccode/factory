@@ -38,7 +38,7 @@ from cros.factory.event_log import EventLog, EVENT_LOG_DIR
 from cros.factory.event_log import TimedUuid
 from cros.factory.test.factory import FACTORY_LOG_PATH
 from cros.factory.utils.process_utils import Spawn
-from cros.factory.system.vpd import FilterVPD
+from cros.factory.privacy import FilterDict
 
 
 # Use a global event log, so that only a single log is created when
@@ -345,7 +345,7 @@ def VerifyHwid(options):
       value = rw_vpd[key]
       if (known_valid_values is not None) and (value not in known_valid_values):
         sys.exit('Invalid RW VPD entry : key %r, value %r' % (key, value))
-    _event_log.Log('vpd', ro_vpd=FilterVPD(ro_vpd), rw_vpd=FilterVPD(rw_vpd))
+    _event_log.Log('vpd', ro_vpd=FilterDict(ro_vpd), rw_vpd=FilterDict(rw_vpd))
   map(hwid_tool.Validate.Status, options.status)
 
   if not options.hwid or not options.probe_results:

@@ -30,6 +30,7 @@ import xmlrpclib
 from xmlrpclib import Binary
 
 import factory_common # pylint: disable=W0611
+from cros.factory import privacy
 from cros.factory.test import factory
 from cros.factory.utils import net_utils
 from cros.factory.utils.process_utils import Spawn
@@ -409,4 +410,4 @@ def UpdateDeviceData(new_device_data):
   data = factory.get_state_instance().update_shared_data_dict(
       KEY_DEVICE_DATA, new_device_data)
   logging.info('Updated device data; complete device data is now %s',
-               data)
+               privacy.FilterDict(data))

@@ -22,14 +22,6 @@ class VPDTest(unittest2.TestCase):
   def tearDown(self):
     self.mox.UnsetStubs()
 
-  def testFilterVPD(self):
-    self.assertEquals(
-        dict(a='A', b='B',
-             ubind_attribute='<redacted 1 chars>',
-             gbind_attribute='<redacted 2 chars>'),
-        vpd.FilterVPD(
-            dict(a='A', b='B', ubind_attribute='U', gbind_attribute='GG')))
-
   def testGetAll(self):
     process = self.mox.CreateMockAnything()
     process.stdout_lines(strip=True).AndReturn(['"a"="b"',

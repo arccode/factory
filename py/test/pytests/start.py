@@ -23,6 +23,7 @@ import sys
 import time
 import unittest
 
+from cros.factory.event_log import EventLog
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
@@ -31,7 +32,7 @@ from cros.factory.test import utils
 from cros.factory.test.args import Arg
 from cros.factory.test.factory_task import FactoryTask, FactoryTaskManager
 from cros.factory.test.event import Event
-from cros.factory.event_log import EventLog
+from cros.factory.test.utils import Enum
 from cros.factory.utils.process_utils import CheckOutput
 
 
@@ -304,9 +305,11 @@ class StartTest(unittest.TestCase):
     Arg('require_external_power', bool,
         'Prompts and waits for external power to be applied.',
         default=False, optional=True),
-    Arg('require_shop_floor', bool,
+    Arg('require_shop_floor', Enum([True, False, 'defer']),
         'Prompts and waits for serial number as input if no VPD keys are '
-        'provided as serial numbers, or reads serial numbers from VPD.',
+        'provided as serial numbers, or reads serial numbers from VPD. '
+        'This may be set to True, or "defer" to enable shopfloor but skip '
+        'reading the serial number.',
         default=None, optional=True),
     Arg('check_factory_install_complete', bool,
         'Check factory install process was complete.',
@@ -336,7 +339,8 @@ class StartTest(unittest.TestCase):
     if self.args.require_shop_floor is not None:
       shopfloor.set_enabled(self.args.require_shop_floor)
 
-    if self.args.require_shop_floor:
+    if (self.args.require_shop_floor and
+        self.args.require_shop_floor != 'defer'):
       if self.args.serial_number_vpd_keys:
         self._task_list.append(ReadVPDSerialTask(self))
       else:

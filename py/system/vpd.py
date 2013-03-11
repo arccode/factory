@@ -1,4 +1,3 @@
-
 #!/usr/bin/python
 # pylint: disable=W0212
 #
@@ -12,6 +11,7 @@ import re
 
 
 import factory_common  # pylint: disable=W0611
+from cros.factory import privacy
 from cros.factory.utils.process_utils import Spawn
 
 
@@ -24,21 +24,6 @@ VPD_KEY_PATTERN = re.compile(r'^[a-zA-Z0-9_.]+')
 # Allowable VPD values: all printable ASCII characters except for
 # double-quote.
 VPD_VALUE_PATTERN = re.compile(r'^[ !#-~]*$')
-
-
-# Keys that may not be logged.
-VPD_BLACKLIST_KEYS = [
-  'ubind_attribute',
-  'gbind_attribute'
-]
-def FilterVPD(vpd_map):
-  """Redact values of any keys in VPD_BLACKLIST_KEYS."""
-  def FilterItem(k, v):
-    if v is None:
-      return None
-    return '<redacted %d chars>' % len(v) if k in VPD_BLACKLIST_KEYS else v
-
-  return dict((k, FilterItem(k, v)) for k, v in sorted(vpd_map.iteritems()))
 
 
 class Partition(object):
@@ -79,7 +64,7 @@ class Partition(object):
         with a redacted value.
     """
     if log:
-      logging.info('Updating %s: %s', self.name, FilterVPD(items))
+      logging.info('Updating %s: %s', self.name, privacy.FilterDict(items))
 
     command = ['vpd', '-i', self.name]
 

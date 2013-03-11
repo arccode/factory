@@ -4,6 +4,27 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+"""Writes device VPD.
+
+This test can determine VPD values in several different ways based on the
+argument:
+
+- Manually.
+- Directly from shopfloor server.
+- From shopfloor device data.  If this option is selected with the
+  use_shopfloor_device_data arg, the following algorithm is applied:
+
+  - Locale fields (RO initial_locale, keyboard_layout, initial_timezone)
+    are set based on the 'locale' entry, which must be an item in the locale
+    database in locale.py.
+  - Registration codes are set based on the 'ubind_attribute' and
+    'gbind_attribute' entries.
+  - The RO 'serial_number' field is set based on the 'serial_number' entry.
+  - If the device data dictionary contains any keys of the format
+    'vpd.ro.xxx' or 'vpd.rw.xxx', the respective field in the RO/RW VPD
+    is set.
+"""
+
 import logging
 import re
 import unittest
@@ -333,6 +354,11 @@ class VPDTest(unittest.TestCase):
         'Whether to store registration codes onto the machine.', default=False),
     Arg('task_list', list, 'A list of tasks to execute.',
         default=[VPDTasks.serial, VPDTasks.region]),
+    Arg('use_shopfloor_device_data', bool,
+        'If shopfloor is enabled, use accumulated data in shopfloor device '
+        'data dictionary instead of contacting shopfloor server again. '
+        'See file-level docs in vpd.py for more information.',
+        default=False),
     Arg('manual_input_fields', list, 'A list of tuples (vpd_region, key, '
         'en_display_name, zh_display_name, VALUE_CHECK) indicating the VPD '
         'fields that need to be manually entered.\n'
@@ -343,6 +369,39 @@ class VPDTest(unittest.TestCase):
         'all the possible values will be used to let user select a value from '
         'it.', default=[], optional=True)
   ]
+
+  def _ReadShopFloorDeviceData(self):
+    device_data = shopfloor.GetDeviceData()
+    required_keys = set(['serial_number', 'locale',
+                         'ubind_attribute', 'gbind_attribute'])
+    missing_keys = required_keys - set(device_data.keys())
+    if missing_keys:
+      self.fail('Missing keys in shopfloor device data: %r' %
+                sorted(missing_keys))
+
+    self.vpd['ro']['serial_number'] = device_data['serial_number']
+
+    locale_code = device_data['locale']
+    regions = [entry for entry in locale.DEFAULT_REGION_LIST
+               if entry[0] == locale_code]
+    if not regions:
+      logging.exception('Invalid locale %r', locale_code)
+    dummy_locale, layout, timezone, dummy_description = (
+        locale.BuildRegionInformation(regions[0]))
+
+    self.vpd['ro']['initial_locale'] = locale_code
+    self.vpd['ro']['keyboard_layout'] = layout
+    self.vpd['ro']['initial_timezone'] = timezone
+
+    for k, v in device_data.iteritems():
+      match = re.match(r'$vpd\.(ro|rw)\.(.+)^', k)
+      if match:
+        self.vpd[match.group(1)][match.group(2)] = v
+
+    self.registration_code_map = {
+        'user': device_data['ubind_attribute'],
+        'group': device_data['gbind_attribute'],
+        }
 
   def setUp(self):
     self.ui = test_ui.UI()
@@ -361,7 +420,10 @@ class VPDTest(unittest.TestCase):
     if not (self.args.override_vpd and self.ui.InEngineeringMode()):
       if shopfloor.is_enabled():
         # Grab from ShopFloor, then input manual fields (if any).
-        self.tasks += [ShopFloorVPDTask(self)]
+        if self.args.use_shopfloor_device_data:
+          self._ReadShopFloorDeviceData()
+        else:
+          self.tasks += [ShopFloorVPDTask(self)]
         for v in self.args.manual_input_fields:
           self.tasks += [ManualInputTask(
               self, VPDInfo(v[0], v[1], v[2], v[3], v[4]))]
