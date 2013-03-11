@@ -172,9 +172,9 @@ class BOM(object):
       value_type=List(
           'list of ProbedComponentResult',
           Tuple('ProbedComponentResult',
-                [Optional('component name', Scalar('component name', str)),
-                 Optional('probed string', Scalar('probed string', str)),
-                 Optional('error', Scalar('error', str))])))
+                [Optional(Scalar('component name', str)),
+                 Optional(Scalar('probed string', str)),
+                 Optional(Scalar('error', str))])))
 
   def __init__(self, board, encoding_pattern_index, image_id,
                components, encoded_fields):
@@ -709,10 +709,9 @@ class _EncodedFields(dict):
           Dict('encoded fields', Scalar('encoded field', str),
             Dict('encoded indices', Scalar('encoded index', int),
               Dict('component classes', Scalar('component class', str),
-                Optional('component names', [
-                  Scalar('component name', str),
-                  List('list of component names',
-                       Scalar('component name', str))]
+                Optional([Scalar('component name', str),
+                          List('list of component names',
+                               Scalar('component name', str))]
                 )
               )
             )
@@ -726,8 +725,7 @@ class _EncodedFields(dict):
            Scalar('encoded index', int),
            Dict('component classes',
                 Scalar('component class', str),
-                Optional('component names',
-                         [Scalar('component name', str),
+                Optional([Scalar('component name', str),
                           List('list of component names',
                                Scalar('component name', str))])
                 )
@@ -782,9 +780,9 @@ class _Components(dict):
           Dict('components', Scalar('component class', str),
             Dict('component names', Scalar('component name', str),
               FixedDict('component attributes', items={
-                'value': AnyOf('probed value', [
-                  Scalar('probed value', str),
-                  List('list of probed values', Scalar('probed value', str))])
+                'value': AnyOf([Scalar('probed value', str),
+                                List('list of probed values',
+                                     Scalar('probed value', str))])
                 },
                 optional_items={
                   'labels': List('list of labels', Scalar('label', str))
@@ -794,15 +792,19 @@ class _Components(dict):
           )
   """
   def __init__(self, components_dict):
-    self.schema = Dict('components', Scalar('component class', str),
-      Dict('component names', Scalar('component name', str),
-        FixedDict('component attributes', items={
-          'value': AnyOf('probed value', [
-            Scalar('probed value', str),
-            List('list of probed values', Scalar('probed value', str)),
-            Scalar('opaque component', type(None))])},
-          optional_items={
-            'labels': List('list of labels', Scalar('label', str))})))
+    self.schema = Dict(
+        'components',
+        Scalar('component class', str),
+        Dict('component names',
+             Scalar('component name', str),
+             FixedDict(
+                 'component attributes',
+                 items={'value': Optional(
+                     [Scalar('probed value', str),
+                      List('list of probed values',
+                           Scalar('probed value', str))])},
+                 optional_items={'labels': List('list of labels',
+                                                Scalar('label', str))})))
     self.schema.Validate(components_dict)
     super(_Components, self).__init__(components_dict)
 
@@ -913,17 +915,19 @@ class _ShopfloorDeviceInfo(dict):
     self.schema = Dict(
         'shopfloor device info',
         key_type=Scalar('device info key', str),
-        value_type=Dict('value to operation mapping',
-            key_type=AnyOf('device info value', [
-                Scalar('value string', str),
-                Scalar('boolean', bool)]),
-            value_type=Dict('component classes to names',
-                 key_type=Scalar('component class', str),
-                 value_type=AnyOf('component name', [
-                    Scalar('component name', str),
-                    List('list of component names',
-                        Scalar('component name', str)),
-                    Scalar('none', type(None))]))))
+        value_type=Dict(
+            'value to operation mapping',
+            key_type=AnyOf(
+                [Scalar('value string', str),
+                 Scalar('boolean', bool)],
+                label='device info value'),
+            value_type=Dict(
+                'component classes to names',
+                key_type=Scalar('component class', str),
+                value_type=Optional(
+                    [Scalar('component name', str),
+                     List('list of component names',
+                          Scalar('component name', str))]))))
     self.schema.Validate(shopfloor_device_info_dict)
     super(_ShopfloorDeviceInfo, self).__init__(shopfloor_device_info_dict)
 

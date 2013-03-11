@@ -67,6 +67,9 @@ class BaseType(object):
   def __init__(self, label):
     self._label = label
 
+  def __repr__(self):
+    return 'BaseType(%r)' % self._label
+
   def Validate(self, data):
     raise NotImplementedError
 
@@ -84,8 +87,13 @@ class Scalar(BaseType):
   def __init__(self, label, element_type):
     super(Scalar, self).__init__(label)
     if getattr(element_type, '__iter__', None):
-      raise SchemaException('Scalar element type %r is iterable')
+      raise SchemaException(
+        'element_type %r of Scalar %r is not a scalar type' % (element_type,
+                                                               label))
     self._element_type = element_type
+
+  def __repr__(self):
+    return 'Scalar(%r, %r)' % (self._label, self._element_type)
 
   def Validate(self, data):
     """Validates the given data against the Scalar schema.
@@ -133,6 +141,11 @@ class Dict(BaseType):
       raise SchemaException('value_type %r of Dict %r is not Schema object' %
                             (value_type, self._label))
     self._value_type = value_type
+
+  def __repr__(self):
+    return 'Dict(%r, key_type=%r, value_type=%r)' % (self._label,
+                                                     self._key_type,
+                                                     self._value_type)
 
   def Validate(self, data):
     """Validates the given data against the Dict schema.
@@ -190,6 +203,10 @@ class FixedDict(BaseType):
     self._optional_items = (
         copy.deepcopy(optional_items) if optional_items is not None else {})
 
+  def __repr__(self):
+    return 'FixedDict(%r, items=%r, optional_items=%r)' % (self._label,
+                                                           self._items,
+                                                           self._optional_items)
   def Validate(self, data):
     """Validates the given data and all its key-value pairs against the Dict
     schema.
@@ -231,7 +248,8 @@ class List(BaseType):
 
   Attributes:
     label: A string to describe this list.
-    element_type: Optional schema object to describe the type of the List.
+    element_type: Optional schema object to validate the elements of the list.
+        Default None means no validation of elements' type.
 
   Raises:
     SchemaException if argument format is incorrect.
@@ -243,6 +261,9 @@ class List(BaseType):
           'element_type %r of List %r is not a Schema object' %
           (element_type, self._label))
     self._element_type = copy.deepcopy(element_type)
+
+  def __repr__(self):
+    return 'List(%r, %r)' % (self._label, self._element_type)
 
   def Validate(self, data):
     """Validates the given data and all its elements against the List schema.
@@ -285,6 +306,9 @@ class Tuple(BaseType):
           (element_types, self._label))
     self._element_types = copy.deepcopy(element_types)
 
+  def __repr__(self):
+    return 'Tuple(%r, %r)' % (self._label, self._element_types)
+
   def Validate(self, data):
     """Validates the given data and all its elements against the Tuple schema.
 
@@ -309,17 +333,21 @@ class AnyOf(BaseType):
   """A Schema class which accepts any one of the given Schemas.
 
   Attributes:
-    label: A human-readable string to describe this object.
-    type_list: A list of Schema objects to be matched.
+    types: A list of Schema objects to be matched.
+    label: An optional string to describe this AnyOf type.
   """
-  def __init__(self, label, type_list):
+  def __init__(self, types, label=None):
     super(AnyOf, self).__init__(label)
-    if (not isinstance(type_list, list) or
-        not all([isinstance(x, BaseType) for x in type_list])):
+    if (not isinstance(types, list) or
+        not all([isinstance(x, BaseType) for x in types])):
       raise SchemaException(
-          'type_list of AnyOf %r should be a list of Schema types' %
-          self._label)
-    self._type_list = type_list
+        'types in AnyOf(types=%r%s) should be a list of Schemas' %
+        (types, '' if label is None else ', label=%r' % label))
+    self._types = list(types)
+
+  def __repr__(self):
+    label = '' if self._label is None else ', label=%r' % self._label
+    return 'AnyOf(%r%s)' % (self._types, label)
 
   def CheckTypeOfPossibleValues(self, schema_type):
     """Checks if the acceptable types are of the same type as schema_type.
@@ -327,19 +355,19 @@ class AnyOf(BaseType):
     Args:
       schema_type: The schema type to check against with.
     """
-    return all([isinstance(k, schema_type) for k in self._type_list])
+    return all([isinstance(k, schema_type) for k in self._types])
 
   def Validate(self, data):
-    """Validates if the given data matches any schema in type_list
+    """Validates if the given data matches any schema in types
 
     Args:
       data: A Python data structue to be validated.
 
     Raises:
-      SchemaException if no schemas in type_list validates the input data.
+      SchemaException if no schemas in types validates the input data.
     """
     match = False
-    for schema_type in self._type_list:
+    for schema_type in self._types:
       try:
         schema_type.Validate(data)
       except SchemaException:
@@ -347,8 +375,8 @@ class AnyOf(BaseType):
       match = True
       break
     if not match:
-      raise SchemaException('%r does not match any type in %r' %
-                            (data, self._label))
+      raise SchemaException('%r does not match any type in %r' % (data,
+                                                                  self._types))
 
 
 class Optional(AnyOf):
@@ -358,11 +386,21 @@ class Optional(AnyOf):
   accepts None.
 
   Attributes:
-    label: A human-readable string to describe this object.
-    types: A (a list of) Schema object(s) to be matched.
+    types: A (or a list of) Schema object(s) to be matched.
+    label: An optional string to describe this Optional type.
   """
-  def __init__(self, label, types):
-    super(Optional, self).__init__(label, MakeList(types))
+  def __init__(self, types, label=None):
+    try:
+      super(Optional, self).__init__(MakeList(types), label=label)
+    except SchemaException:
+      raise SchemaException(
+        'types in Optional(types=%r%s) should be a Schema or a list of '
+        'Schemas' % (types, '' if label is None else ', label=%r' % label))
+
+
+  def __repr__(self):
+    label = '' if self._label is None else ', label=%r' % self._label
+    return 'Optional(%r%s)' % (self._types, label)
 
   def Validate(self, data):
     """Validates if the given data is None or matches any schema in types.
@@ -379,5 +417,6 @@ class Optional(AnyOf):
     try:
       super(Optional, self).Validate(data)
     except SchemaException:
-      raise SchemaException('%r is not None and does not match any type in %r' %
-                            (data, self._label))
+      raise SchemaException(
+        '%r is not None and does not match any type in %r' % (data,
+                                                              self._types))
