@@ -113,7 +113,8 @@ class Dict(BaseType):
 
   Attributes:
     label: A human-readable string to describe this Scalar.
-    key_type: A schema object indicating the schema of the keys of this Dict.
+    key_type: A schema object indicating the schema of the keys of this Dict. It
+        can be a Scalar or an AnyOf with possible values being all Scalars.
     value_type: A schema object indicating the schema of the values of this
         Dict.
 
@@ -122,7 +123,9 @@ class Dict(BaseType):
   """
   def __init__(self, label, key_type, value_type):
     super(Dict, self).__init__(label)
-    if not isinstance(key_type, Scalar):
+    if not (isinstance(key_type, Scalar) or
+           (isinstance(key_type, AnyOf) and
+            key_type.CheckTypeOfPossibleValues(Scalar))):
       raise SchemaException('key_type %r of Dict %r is not Scalar' %
                             (key_type, self._label))
     self._key_type = key_type
@@ -317,6 +320,14 @@ class AnyOf(BaseType):
           'type_list of AnyOf %r should be a list of Schema types' %
           self._label)
     self._type_list = type_list
+
+  def CheckTypeOfPossibleValues(self, schema_type):
+    """Checks if the acceptable types are of the same type as schema_type.
+
+    Args:
+      schema_type: The schema type to check against with.
+    """
+    return all([isinstance(k, schema_type) for k in self._type_list])
 
   def Validate(self, data):
     """Validates if the given data matches any schema in type_list

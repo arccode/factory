@@ -28,6 +28,10 @@ class SchemaTest(unittest2.TestCase):
         SchemaException, r'key_type .* of Dict .* is not Scalar',
         Dict, 'foo', 'key', Scalar('value', int))
     self.assertRaisesRegexp(
+        SchemaException, r'key_type .* of Dict .* is not Scalar',
+        Dict, 'foo', AnyOf('bar', [Scalar('key1', int), 'key2']),
+        Scalar('value', int))
+    self.assertRaisesRegexp(
         SchemaException, r'value_type .* of Dict .* is not Schema object',
         Dict, 'foo', Scalar('key', str), 'value')
     schema = Dict('foo', Scalar('key', int), Scalar('value', str))
@@ -41,6 +45,11 @@ class SchemaTest(unittest2.TestCase):
         SchemaException, r'Type mismatch on .*: expected .*str.*, got .*',
         schema.Validate, {0: 1})
     self.assertEquals(None, schema.Validate({0: 'bar'}))
+    schema = Dict('foo',
+                  AnyOf('key', [Scalar('key1', int), Scalar('key2', str)]),
+                  Scalar('value', str))
+    self.assertEquals(None, schema.Validate({0: 'bar'}))
+    self.assertEquals(None, schema.Validate({'foo': 'bar'}))
 
   def testFixedDict(self):
     self.assertRaisesRegexp(
