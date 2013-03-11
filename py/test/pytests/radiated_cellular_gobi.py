@@ -4,15 +4,13 @@
 # found in the LICENSE file.
 
 import logging
-import os
-import time
 import unittest
 
 import factory_common  # pylint: disable=W0611
 from subprocess import CalledProcessError
 from cros.factory.rf.modem import Modem
+from cros.factory.rf.cellular import GetIMEI
 from cros.factory.test import factory
-from cros.factory.test import shopfloor
 from cros.factory.test import utils
 from cros.factory.test.pytests.rf_framework import RfFramework
 from cros.factory.utils.net_utils import PollForCondition
@@ -26,7 +24,6 @@ SWITCH_TO_WCDMA_COMMAND = ['modem', 'set-carrier', 'Generic', 'UMTS']
 SWITCH_TO_CDMA_COMMAND = ['modem', 'set-carrier', 'Verizon', 'Wireless']
 START_TX_TEST_COMMAND = 'AT$QCALLUP="%s",%d,"on"'
 START_TX_TEST_RESPONSE = 'ALLUP: ON'
-
 END_TX_TEST_COMMAND = 'AT$QCALLUP="%s",%d,"off"'
 END_TX_TEST_RESPONSE = 'ALLUP: OFF'
 
@@ -88,26 +85,28 @@ class RadiatedCellularGobi(RfFramework, unittest.TestCase):
         tx_power = self.RunEquipmentCommand(
             N1914A.MeasureOnceInBinary, self.n1914a,
             self.power_meter_port)
-        min_power = measurement['avg_power_threshold'][0]
-        max_power = measurement['avg_power_threshold'][1]
-        if not self.IsInRange(tx_power, min_power, max_power):
-          failure = 'Power for %r is %s, out of range (%s,%s)' % (
-              measurement_name, self.FormattedPower(tx_power),
-              self.FormattedPower(min_power), self.FormattedPower(max_power))
-          factory.console.info(failure)
-          self.failures.append(failure)
-        else:
-          factory.console.info('Power for %r is %s', measurement_name,
-                               self.FormattedPower(tx_power))
 
         # End continuous transmit
         self.EndTXTest(measurement['band_name'], measurement['channel'])
 
-      except Exception as e:
+        avg_power_threshold = measurement['avg_power_threshold']
+        self.CheckPower(measurement_name, tx_power, avg_power_threshold)
+
+        if self.calibration_mode:
+          # Check if the path_loss is in expected range.
+          path_loss_range = measurement['path_loss_range']
+          path_loss = self.calibration_target[measurement_name] - tx_power
+          self.CheckPower(measurement_name, path_loss, path_loss_range,
+                          prefix='Path loss')
+      except:  # pylint: disable=W0702
         # In order to collect more data, finish the whole test even if it fails.
-        failure = 'Unexpected failure on %s: %s' % (measurement_name, e)
+        exception_string = utils.FormatExceptionOnly()
+        failure = 'Unexpected failure on %s: %s' % (
+            measurement_name, exception_string)
         factory.console.info(failure)
         self.failures.append(failure)
+    # TODO(itspeter): Save result in csv format
+    # TODO(itspeter): Generate the calibration_config
 
   def PostTest(self):
     # TODO(itspeter): Switch to production drivers.
@@ -116,43 +115,8 @@ class RadiatedCellularGobi(RfFramework, unittest.TestCase):
     # TODO(itspeter): save statistic of measurements to csv file.
     pass
 
-  def DownloadParameters(self):
-    """Downloads parameters from shopfloor and saved to state/caches."""
-    factory.console.info('Start downloading parameters...')
-    _SHOPFLOOR_TIMEOUT_SECS = 10 # Timeout for shopfloor connection.
-    _SHOPFLOOR_RETRY_INTERVAL_SECS = 10 # Seconds to wait between retries.
-    while True:
-      try:
-        logging.info('Syncing time with shopfloor...')
-        goofy = factory.get_state_instance()
-        goofy.SyncTimeWithShopfloorServer()
-
-        # Listing files on args.parameters
-        download_list = []
-        shopfloor_client = shopfloor.get_instance(
-            detect=True, timeout=_SHOPFLOOR_TIMEOUT_SECS)
-        for glob_expression in self.args.parameters:
-          logging.info('Listing %s', glob_expression)
-          download_list.extend(
-              shopfloor_client.ListParameters(glob_expression))
-        logging.info('Download list prepared:\n%s', '\n'.join(download_list))
-        # Download the list and saved to caches in state directory.
-        for filepath in download_list:
-          utils.TryMakeDirs(os.path.join(
-              self.caches_dir, os.path.dirname(filepath)))
-          binary_obj = shopfloor_client.GetParameter(filepath)
-          with open(os.path.join(self.caches_dir, filepath), 'wb') as fd:
-            fd.write(binary_obj.data)
-        return
-      except:  # pylint: disable=W0702
-        exception_string = utils.FormatExceptionOnly()
-        # Log only the exception string, not the entire exception,
-        # since this may happen repeatedly.
-        factory.console.info('Unable to sync with shopfloor server: %s',
-                             exception_string)
-      time.sleep(_SHOPFLOOR_RETRY_INTERVAL_SECS)
-
-    # TODO(itspeter): Verify the signature of parameters.
+  def GetUniqueIdentification(self):
+    return GetIMEI()
 
   def EnterFactoryMode(self):
     factory.console.info('Entering factory test mode(FTM)')

@@ -11,6 +11,7 @@ It defines common portion of various fixture involved tests.
 import logging
 import os
 import threading
+import time
 import yaml
 
 import factory_common  # pylint: disable=W0611
@@ -18,8 +19,10 @@ from cros.factory.event_log import EventLog
 from cros.factory.goofy.goofy import CACHES_DIR
 from cros.factory.test import factory
 from cros.factory.test import leds
+from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
+from cros.factory.test import utils
 from cros.factory.test.args import Arg
 from cros.factory.utils import net_utils
 
@@ -37,6 +40,8 @@ class RfFramework(object):
       Arg('parameters', list,
           'A list of regular expressions indicates parameters to download from '
           'shopfloor server.', default=list()),
+      Arg('calibration_target', str,
+          'A path to calibration_target.', optional=True),
       Arg('blinking_pattern', list,
           'A list of blinking state that will be passed to Blinker for '
           'inside shield-box primary test. '
@@ -59,11 +64,13 @@ class RfFramework(object):
   def __init__(self, *args, **kwargs):
     super(RfFramework, self ).__init__(*args, **kwargs)
     self.config = None
+    self.calibration_target = None
 
   def setUp(self):
     self.event_log = EventLog.ForAutoTest()
     self.caches_dir = os.path.join(CACHES_DIR, 'parameters')
     self.interactive_mode = False
+    self.calibration_mode = False
     self.equipment_enabled = True
     self.mode = self.NORMAL_MODE
     # Initiate an UI
@@ -97,7 +104,30 @@ class RfFramework(object):
       self.PrepareNetwork()
       if len(self.args.parameters) > 0:
         self.template.SetState('Downloading parameters.')
-        self.DownloadParameters()
+        self.DownloadParameters(self.args.parameters)
+
+      # Prepare additional parameters if we are in calibration mode.
+      if self.args.category == 'calibration':
+        self.calibration_mode = True
+        self.template.SetState('Downloading calibration_target.')
+        self.DownloadParameters([self.args.calibration_target])
+        # Load the calibration_target
+        with open(os.path.join(
+            self.caches_dir, self.args.calibration_target), "r") as fd:
+          self.calibration_target = yaml.load(fd.read())
+
+        # Confirm if this DUT is in the list of targets.
+        unique_identification = self.GetUniqueIdentification()
+        if unique_identification not in self.calibration_target:
+          failure = 'DUT %r is not in the calibration_target' % (
+              unique_identification)
+          factory.console.info(failure)
+          self.ui.Fail(failure)
+          self.ui_thread.join()
+        self.calibration_target = (
+            self.calibration_target[unique_identification])
+        factory.console.info('Calibration target=\n%s',
+            self.calibration_target)
 
       # Load the main configuration.
       with open(os.path.join(
@@ -173,11 +203,6 @@ class RfFramework(object):
     raise NotImplementedError(
         'Called without implementing PostTest')
 
-  def DownloadParameters(self):
-    """Downloads parameters from shopfloor."""
-    raise NotImplementedError(
-        'Called without implementing DownloadParameters')
-
   def EnterFactoryMode(self):
     """Prepares factory specific environment."""
     raise NotImplementedError(
@@ -189,6 +214,11 @@ class RfFramework(object):
     This function will be called when test exits."""
     raise NotImplementedError(
         'Called without implementing ExitFactoryMode')
+
+  def GetUniqueIdentification(self):
+    """Gets the unique identification for module to test."""
+    raise NotImplementedError(
+        'Called without implementing GetUniqueIdentification')
 
   def IsInRange(self, observed, threshold_min, threshold_max):
     """Returns True if threshold_min <= observed <= threshold_max.
@@ -203,6 +233,55 @@ class RfFramework(object):
   def FormattedPower(self, power, format_str='%7.2f'):
     """Returns a formatted power while allowing power be a None."""
     return 'None' if power is None else (format_str % power)
+
+  def CheckPower(self, measurement_name, power, threshold, prefix='Power'):
+    '''Simple wrapper to check and display related messages.'''
+    min_power, max_power = threshold
+    if not self.IsInRange(power, min_power, max_power):
+      failure = '%s for %r is %s, out of range (%s,%s)' % (
+          prefix, measurement_name, self.FormattedPower(power),
+          self.FormattedPower(min_power), self.FormattedPower(max_power))
+      factory.console.info(failure)
+      self.failures.append(failure)
+    else:
+      factory.console.info('%s for %r is %s',
+          prefix, measurement_name, self.FormattedPower(power))
+
+  def DownloadParameters(self, parameters):
+    """Downloads parameters from shopfloor and saved to state/caches."""
+    factory.console.info('Start downloading parameters...')
+    _SHOPFLOOR_TIMEOUT_SECS = 10 # Timeout for shopfloor connection.
+    _SHOPFLOOR_RETRY_INTERVAL_SECS = 10 # Seconds to wait between retries.
+    while True:
+      try:
+        logging.info('Syncing time with shopfloor...')
+        goofy = factory.get_state_instance()
+        goofy.SyncTimeWithShopfloorServer()
+
+        download_list = []
+        shopfloor_client = shopfloor.get_instance(
+            detect=True, timeout=_SHOPFLOOR_TIMEOUT_SECS)
+        for glob_expression in parameters:
+          logging.info('Listing %s', glob_expression)
+          download_list.extend(
+              shopfloor_client.ListParameters(glob_expression))
+        logging.info('Download list prepared:\n%s', '\n'.join(download_list))
+        # Download the list and saved to caches in state directory.
+        for filepath in download_list:
+          utils.TryMakeDirs(os.path.join(
+              self.caches_dir, os.path.dirname(filepath)))
+          binary_obj = shopfloor_client.GetParameter(filepath)
+          with open(os.path.join(self.caches_dir, filepath), 'wb') as fd:
+            fd.write(binary_obj.data)
+        return
+      except:  # pylint: disable=W0702
+        exception_string = utils.FormatExceptionOnly()
+        # Log only the exception string, not the entire exception,
+        # since this may happen repeatedly.
+        factory.console.info('Unable to sync with shopfloor server: %s',
+                             exception_string)
+      time.sleep(_SHOPFLOOR_RETRY_INTERVAL_SECS)
+    # TODO(itspeter): Verify the signature of parameters.
 
   def PrepareNetwork(self):
     def ObtainIp():

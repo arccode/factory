@@ -3,16 +3,12 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import logging
-import os
-import time
 import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.rf.modem import Modem
+from cros.factory.rf.cellular import GetIMEI
 from cros.factory.test import factory
-from cros.factory.test import shopfloor
-from cros.factory.test import utils
 from cros.factory.test.pytests.rf_framework import RfFramework
 from cros.factory.utils.net_utils import PollForCondition
 from cros.factory.rf.n1914a import N1914A
@@ -30,6 +26,7 @@ ENABLE_TX_MODE_TIMEOUT_SECS = 5
 TX_MODE_POLLING_INTERVAL_SECS = 0.5
 
 class RadiatedCellular(RfFramework, unittest.TestCase):
+
   def __init__(self, *args, **kwargs):
     super(RadiatedCellular, self ).__init__(*args, **kwargs)
     self.measurements = None
@@ -102,43 +99,8 @@ class RadiatedCellular(RfFramework, unittest.TestCase):
     # TODO(itspeter): save statistic of measurements to csv file.
     pass
 
-  def DownloadParameters(self):
-    """Downloads parameters from shopfloor and saved to state/caches."""
-    factory.console.info('Start downloading parameters...')
-    _SHOPFLOOR_TIMEOUT_SECS = 10 # Timeout for shopfloor connection.
-    _SHOPFLOOR_RETRY_INTERVAL_SECS = 10 # Seconds to wait between retries.
-    while True:
-      try:
-        logging.info('Syncing time with shopfloor...')
-        goofy = factory.get_state_instance()
-        goofy.SyncTimeWithShopfloorServer()
-
-        # Listing files on args.parameters
-        download_list = []
-        shopfloor_client = shopfloor.get_instance(
-            detect=True, timeout=_SHOPFLOOR_TIMEOUT_SECS)
-        for glob_expression in self.args.parameters:
-          logging.info('Listing %s', glob_expression)
-          download_list.extend(
-              shopfloor_client.ListParameters(glob_expression))
-        logging.info('Download list prepared:\n%s', '\n'.join(download_list))
-        # Download the list and saved to caches in state directory.
-        for filepath in download_list:
-          utils.TryMakeDirs(os.path.join(
-              self.caches_dir, os.path.dirname(filepath)))
-          binary_obj = shopfloor_client.GetParameter(filepath)
-          with open(os.path.join(self.caches_dir, filepath), 'wb') as fd:
-            fd.write(binary_obj.data)
-        return
-      except:  # pylint: disable=W0702
-        exception_string = utils.FormatExceptionOnly()
-        # Log only the exception string, not the entire exception,
-        # since this may happen repeatedly.
-        factory.console.info('Unable to sync with shopfloor server: %s',
-                             exception_string)
-      time.sleep(_SHOPFLOOR_RETRY_INTERVAL_SECS)
-
-    # TODO(itspeter): Verify the signature of parameters.
+  def GetUniqueIdentification(self):
+    return GetIMEI()
 
   def EnterFactoryMode(self):
     factory.console.info('Entering factory test mode(FTM)')
