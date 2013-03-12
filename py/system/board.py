@@ -95,7 +95,7 @@ class Board(object):
     raise NotImplementedError
 
   # Optional functions. Implement them if you need them in your tests.
-  def GetTemperaturesSensorNames(self):
+  def GetTemperatureSensorNames(self):
     """Gets a list of names for temperature sensors.
 
     Returns:
