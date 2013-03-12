@@ -15,7 +15,7 @@ import unittest
 from cros.factory.test.args import Arg
 from cros.factory.test.test_ui import MakeLabel, UI
 from cros.factory.test.ui_templates import OneScrollableSection
-from cros.factory.system.power import Power
+from cros.factory import system
 
 _TEST_TITLE = MakeLabel('Battery Self-diagnosis', u'电池自我诊断')
 _CSS = '#state {text-align:left;}'
@@ -36,7 +36,7 @@ class SysfsBatteryTest(unittest.TestCase):
     success = False
     wearAllowedPct = self.args.percent_battery_wear_allowed
 
-    power = Power()
+    power = system.GetBoard().power
     if not power.CheckBatteryPresent():
       msg = 'Cannot find battery path'
     elif power.GetChargePct() is None:
