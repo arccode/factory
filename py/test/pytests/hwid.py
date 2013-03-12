@@ -252,7 +252,11 @@ class HWIDTest(unittest.TestCase):
         self.task_list.append(SelectHWIDTask(self))
       else:
         if shopfloor.is_enabled():
-          self.task_list.append(ShopFloorHWIDTask(self))
+          device_data = shopfloor.GetDeviceData()
+          if 'hwid' in device_data:
+            self.hwid = device_data['hwid']
+          else:
+            self.task_list.append(ShopFloorHWIDTask(self))
         if not shopfloor.is_enabled() or self.args.manual_override:
           self.task_list.append(SelectHWIDTask(self))
     self.task_list.append(WriteHWIDTask(self))

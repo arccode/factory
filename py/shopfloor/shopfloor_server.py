@@ -94,6 +94,7 @@ class MyXMLRPCServer(SocketServer.ThreadingMixIn,
       self.local.method = method
       return SimpleXMLRPCServer._dispatch(self, method, params)
     except:
+      logging.exception('Exception in method %s', method)
       self.local.exception = utils.FormatExceptionOnly()
       raise
 
