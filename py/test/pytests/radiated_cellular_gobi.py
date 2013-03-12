@@ -83,8 +83,8 @@ class RadiatedCellularGobi(RfFramework, unittest.TestCase):
 
         # Measure the channel power.
         tx_power = self.RunEquipmentCommand(
-            N1914A.MeasureOnceInBinary, self.n1914a,
-            self.power_meter_port)
+            N1914A.MeasureInBinary, self.n1914a,
+            self.power_meter_port, self.config['avg_length'])
 
         # End continuous transmit
         self.EndTXTest(measurement['band_name'], measurement['channel'])
