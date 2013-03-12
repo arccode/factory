@@ -29,7 +29,7 @@ class SchemaTest(unittest2.TestCase):
         Dict, 'foo', 'key', Scalar('value', int))
     self.assertRaisesRegexp(
         SchemaException, r'key_type .* of Dict .* is not Scalar',
-        Dict, 'foo', AnyOf('bar', [Scalar('key1', int), 'key2']),
+        Dict, 'foo', AnyOf('bar', [Scalar('key1', int), List('key2')]),
         Scalar('value', int))
     self.assertRaisesRegexp(
         SchemaException, r'value_type .* of Dict .* is not Schema object',
