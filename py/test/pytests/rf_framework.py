@@ -10,13 +10,18 @@ It defines common portion of various fixture involved tests.
 
 import logging
 import os
+import re
 import threading
 import time
 import yaml
 
+from contextlib import contextmanager
+from xmlrpclib import Binary
+
 import factory_common  # pylint: disable=W0611
-from cros.factory.event_log import EventLog
+from cros.factory import event_log
 from cros.factory.goofy.goofy import CACHES_DIR
+from cros.factory.rf.tools.csv_writer import WriteCsv
 from cros.factory.test import factory
 from cros.factory.test import leds
 from cros.factory.test import shopfloor
@@ -25,6 +30,9 @@ from cros.factory.test import ui_templates
 from cros.factory.test import utils
 from cros.factory.test.args import Arg
 from cros.factory.utils import net_utils
+
+SHOPFLOOR_TIMEOUT_SECS = 10 # Timeout for shopfloor connection.
+SHOPFLOOR_RETRY_INTERVAL_SECS = 10 # Seconds to wait between retries.
 
 class RfFramework(object):
   NORMAL_MODE = 'Normal'
@@ -65,9 +73,12 @@ class RfFramework(object):
     super(RfFramework, self ).__init__(*args, **kwargs)
     self.config = None
     self.calibration_target = None
+    self.field_to_record = dict()
+    self.aux_logs = list()
+    self.unique_identification = None
 
   def setUp(self):
-    self.event_log = EventLog.ForAutoTest()
+    self.event_log = event_log.EventLog.ForAutoTest()
     self.caches_dir = os.path.join(CACHES_DIR, 'parameters')
     self.interactive_mode = False
     self.calibration_mode = False
@@ -99,6 +110,8 @@ class RfFramework(object):
     factory.console.info('equipment_enabled = %s', self.equipment_enabled)
 
   def runTest(self):
+    self.unique_identification = self.GetUniqueIdentification()
+
     if self.args.pre_test_outside_shield_box:
       self.template.SetState('Preparing network.')
       self.PrepareNetwork()
@@ -117,15 +130,14 @@ class RfFramework(object):
           self.calibration_target = yaml.load(fd.read())
 
         # Confirm if this DUT is in the list of targets.
-        unique_identification = self.GetUniqueIdentification()
-        if unique_identification not in self.calibration_target:
+        if self.unique_identification not in self.calibration_target:
           failure = 'DUT %r is not in the calibration_target' % (
-              unique_identification)
+              self.unique_identification)
           factory.console.info(failure)
           self.ui.Fail(failure)
           self.ui_thread.join()
         self.calibration_target = (
-            self.calibration_target[unique_identification])
+            self.calibration_target[self.unique_identification])
         factory.console.info('Calibration target=\n%s',
             self.calibration_target)
 
@@ -159,6 +171,8 @@ class RfFramework(object):
       self.template.SetState('Runing primary test.')
       with leds.Blinker(self.args.blinking_pattern):
         self.PrimaryTest()
+      # Save useful info to the CSV and eventlog.
+      self.LogDetail()
 
       # Light all LEDs to indicates test is completed.
       leds.SetLeds(leds.LED_SCR|leds.LED_NUM|leds.LED_CAP)
@@ -171,9 +185,12 @@ class RfFramework(object):
 
       # Post-test
       if self.args.post_test:
+        self.template.SetState('Preparing network.')
+        self.PrepareNetwork()
         self.template.SetState('Runing post test.')
         self.PostTest()
-
+        # Upload the aux_logs to shopfloor server.
+        self.UploadAuxLogs(self.aux_logs)
     finally:
       self.ExitFactoryMode()
 
@@ -247,41 +264,109 @@ class RfFramework(object):
       factory.console.info('%s for %r is %s',
           prefix, measurement_name, self.FormattedPower(power))
 
-  def DownloadParameters(self, parameters):
-    """Downloads parameters from shopfloor and saved to state/caches."""
-    factory.console.info('Start downloading parameters...')
-    _SHOPFLOOR_TIMEOUT_SECS = 10 # Timeout for shopfloor connection.
-    _SHOPFLOOR_RETRY_INTERVAL_SECS = 10 # Seconds to wait between retries.
+  def NormalizeAsFileName(self, token):
+    return re.sub(r'\W+', '', token)
+
+  def LogDetail(self):
+    # Column names
+    DEVICE_ID = 'device_id'
+    DEVICE_SN = 'device_sn'
+    MODULE_ID = 'module_id'
+    PATH = 'path'
+    FAILURES = 'failures'
+
+    # log to event log.
+    self.field_to_record[MODULE_ID] = self.unique_identification
+    self.event_log.Log('measurement_details',
+      **self.field_to_record)
+
+    # additional fields that need to be added becasue they are recorded
+    # in event log by default and we need them in csv as well.
+    device_sn = shopfloor.get_serial_number() or 'MISSING_SN'
+    path = os.environ.get('CROS_FACTORY_TEST_PATH')
+    self.field_to_record[FAILURES] = self.failures
+    self.field_to_record[DEVICE_SN] = device_sn
+    self.field_to_record[DEVICE_ID] = event_log.GetDeviceId()
+    self.field_to_record[PATH] = path
+    csv_path = '%s_%s_%s.csv' % (
+        time.strftime('%Y%m%dT%H%M%SZ', time.gmtime()),
+        self.NormalizeAsFileName(device_sn),
+        self.NormalizeAsFileName(path))
+    csv_path = os.path.join(factory.get_log_root(), 'aux', csv_path)
+    utils.TryMakeDirs(os.path.dirname(csv_path))
+    self.aux_logs.append(csv_path)
+    WriteCsv(csv_path, [self.field_to_record],
+             [MODULE_ID, DEVICE_SN, DEVICE_ID])
+    factory.console.info('Details saved to %s', csv_path)
+
+  @contextmanager
+  def GetShopfloorConnection(
+      self, timeout_secs=SHOPFLOOR_TIMEOUT_SECS,
+      retry_interval_secs=SHOPFLOOR_RETRY_INTERVAL_SECS):
+    """Yields an shopfloor client object.
+
+    Try forever until a connection of shopfloor is established.
+
+    Args:
+      timeout_secs: Timeout for shopfloor connection.
+      retry_interval_secs: Seconds to wait between retries.
+    """
     while True:
       try:
-        logging.info('Syncing time with shopfloor...')
-        goofy = factory.get_state_instance()
-        goofy.SyncTimeWithShopfloorServer()
-
-        download_list = []
         shopfloor_client = shopfloor.get_instance(
-            detect=True, timeout=_SHOPFLOOR_TIMEOUT_SECS)
-        for glob_expression in parameters:
-          logging.info('Listing %s', glob_expression)
-          download_list.extend(
-              shopfloor_client.ListParameters(glob_expression))
-        logging.info('Download list prepared:\n%s', '\n'.join(download_list))
-        # Download the list and saved to caches in state directory.
-        for filepath in download_list:
-          utils.TryMakeDirs(os.path.join(
-              self.caches_dir, os.path.dirname(filepath)))
-          binary_obj = shopfloor_client.GetParameter(filepath)
-          with open(os.path.join(self.caches_dir, filepath), 'wb') as fd:
-            fd.write(binary_obj.data)
-        return
+            detect=True, timeout=timeout_secs)
+        yield shopfloor_client
+        break
       except:  # pylint: disable=W0702
         exception_string = utils.FormatExceptionOnly()
         # Log only the exception string, not the entire exception,
         # since this may happen repeatedly.
         factory.console.info('Unable to sync with shopfloor server: %s',
                              exception_string)
-      time.sleep(_SHOPFLOOR_RETRY_INTERVAL_SECS)
-    # TODO(itspeter): Verify the signature of parameters.
+      time.sleep(retry_interval_secs)
+
+  def DownloadParameters(self, parameters):
+    """Downloads parameters from shopfloor and saved to state/caches."""
+    factory.console.info('Start downloading parameters...')
+    with self.GetShopfloorConnection() as shopfloor_client:
+      logging.info('Syncing time with shopfloor...')
+      goofy = factory.get_state_instance()
+      goofy.SyncTimeWithShopfloorServer()
+
+      download_list = []
+      for glob_expression in parameters:
+        logging.info('Listing %s', glob_expression)
+        download_list.extend(
+            shopfloor_client.ListParameters(glob_expression))
+      logging.info('Download list prepared:\n%s', '\n'.join(download_list))
+      # Download the list and saved to caches in state directory.
+      for filepath in download_list:
+        utils.TryMakeDirs(os.path.join(
+            self.caches_dir, os.path.dirname(filepath)))
+        binary_obj = shopfloor_client.GetParameter(filepath)
+        with open(os.path.join(self.caches_dir, filepath), 'wb') as fd:
+          fd.write(binary_obj.data)
+      # TODO(itspeter): Verify the signature of parameters.
+
+  def UploadAuxLogs(self, file_paths, ignore_on_fail=False):
+    """Attempts to upload arbitrary file to the shopfloor server."""
+    with self.GetShopfloorConnection() as shopfloor_client:
+      for file_path in file_paths:
+        try:
+          chunk = open(file_path, 'r').read()
+          log_name = os.path.basename(file_path)
+          factory.console.info('Uploading %s', log_name)
+          start_time = time.time()
+          shopfloor_client.SaveAuxLog(log_name, Binary(chunk))
+          factory.console.info('Successfully synced %s in %.03f s',
+              log_name, time.time() - start_time)
+        except:  # pylint: disable=W0702
+          if ignore_on_fail:
+            factory.console.info(
+                'Failed to sync with shopfloor for [%s], ignored',
+                log_name)
+          else:
+            raise
 
   def PrepareNetwork(self):
     def ObtainIp():

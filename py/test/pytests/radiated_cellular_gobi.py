@@ -89,6 +89,7 @@ class RadiatedCellularGobi(RfFramework, unittest.TestCase):
         # End continuous transmit
         self.EndTXTest(measurement['band_name'], measurement['channel'])
 
+        self.field_to_record[measurement_name] = tx_power
         avg_power_threshold = measurement['avg_power_threshold']
         self.CheckPower(measurement_name, tx_power, avg_power_threshold)
 
