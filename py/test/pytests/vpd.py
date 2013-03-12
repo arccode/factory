@@ -382,12 +382,12 @@ class VPDTest(unittest.TestCase):
     self.vpd['ro']['serial_number'] = device_data['serial_number']
 
     locale_code = device_data['locale']
-    regions = [entry for entry in locale.DEFAULT_REGION_LIST
+    regions = [entry for entry in cros_locale.DEFAULT_REGION_LIST
                if entry[0] == locale_code]
     if not regions:
       logging.exception('Invalid locale %r', locale_code)
     dummy_locale, layout, timezone, dummy_description = (
-        locale.BuildRegionInformation(regions[0]))
+        cros_locale.BuildRegionInformation(regions[0]))
 
     self.vpd['ro']['initial_locale'] = locale_code
     self.vpd['ro']['keyboard_layout'] = layout
