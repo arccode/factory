@@ -29,7 +29,7 @@ import logging
 import re
 import unittest
 
-from cros.factory import locale
+from cros.factory import cros_locale
 from cros.factory.test import factory
 from cros.factory.test import registration_codes
 from cros.factory.test import shopfloor
@@ -334,8 +334,8 @@ class SelectRegionTask(FactoryTask):
 
   def Run(self):
     if self.regions is None:
-      self.regions = locale.DEFAULT_REGION_LIST
-    self.region_list = [locale.BuildRegionInformation(entry) if entry[0]
+      self.regions = cros_locale.DEFAULT_REGION_LIST
+    self.region_list = [cros_locale.BuildRegionInformation(entry) if entry[0]
                         else ('', 'Skip', '', 'None')
                         for entry in self.regions]
     self.RenderPage()
