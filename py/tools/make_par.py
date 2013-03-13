@@ -37,6 +37,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from distutils.sysconfig import get_python_lib
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
@@ -93,21 +94,72 @@ def main(argv=None):
   parser.add_argument(
       '--output', '-o', metavar='FILE', default='factory.par',
       help='output file (default: %(default)s')
+  parser.add_argument(
+      '--add-zip', action='append', default=[],
+      help='zip files containing extra files to include')
   args = parser.parse_args(argv)
   logging.basicConfig(level=logging.WARNING - 10 * (args.verbose or 0))
 
-  tmp = tempfile.mkdtemp(prefix='make_par.')
+  tmp = os.path.realpath(tempfile.mkdtemp(prefix='make_par.'))
   try:
-    # Make factory.par file with make.
-    Spawn(['make', '-s', '-C', factory.FACTORY_PATH, 'par',
-           'PAR_DEST_DIR=%s' % tmp],
+    par_build = os.path.join(tmp, 'par_build')
+    os.mkdir(par_build)
+
+    # Copy our py sources and bins, and any overlays, into the src
+    # directory.
+    src = os.path.join(tmp, 'src')
+    os.mkdir(src)
+    Spawn(['rsync', '-a',
+           os.path.join(factory.FACTORY_PATH, 'py'),
+           os.path.join(factory.FACTORY_PATH, 'bin'),
+           src],
           log=True, check_call=True)
-    par_file = os.path.join(tmp, 'factory.par')
+    # Add files from overlay.
+    for f in args.add_zip:
+      Spawn(['unzip', '-oq', f, '-d', src],
+            log=True, check_call=True)
+
+    cros = os.path.join(par_build, 'cros')
+    os.mkdir(cros)
+    Spawn(['rsync', '-a',
+           '--exclude', '*_unittest.py',
+           '--exclude', 'factory_common.py*',
+           '--include', '*.py',
+           '--include', '*.csv',
+           '--include', '*/',
+           '--exclude', '*',
+           os.path.join(src, 'py/'),
+           os.path.join(cros, 'factory')],
+          log=True, check_call=True)
+
+    # Copy necessary third-party packages.
+    python_lib = get_python_lib()
+    Spawn(['rsync', '-a',
+           os.path.join(python_lib, 'argparse.py'),
+           os.path.join(python_lib, 'yaml'),
+           'third_party/jsonrpclib/jsonrpclib',
+           par_build],
+          log=True, check_call=True, cwd=factory.FACTORY_PATH)
+
+    # Add empty __init__.py files so Python realizes these directories
+    # are modules.
+    open(os.path.join(cros, '__init__.py'), 'w')
+    open(os.path.join(cros, 'factory', '__init__.py'), 'w')
+
+    # Add an empty factory_common file (since many scripts import
+    # factory_common).
+    open(os.path.join(par_build, 'factory_common.py'), 'w')
+
+    # Zip 'em up!
+    factory_par = os.path.join(tmp, 'factory.par')
+
+    Spawn(['zip', '-qr', factory_par, '.'],
+          check_call=True, log=True, cwd=par_build)
 
     # Build a map of runnable modules based on symlinks in bin.
     modules = {}
-    factory_bin = os.path.join(factory.FACTORY_PATH, 'bin')
-    for f in glob.glob(os.path.join(factory_bin, '*')):
+    bin_dir = os.path.join(src, 'bin')
+    for f in glob.glob(os.path.join(bin_dir, '*')):
       if not os.path.islink(f):
         continue
       dest = os.readlink(f)
@@ -123,7 +175,7 @@ def main(argv=None):
     # Concatenate the header and the par file.
     with open(args.output, 'wb') as out:
       out.write(HEADER_TEMPLATE.replace('MODULES', repr(modules)))
-      shutil.copyfileobj(open(par_file), out)
+      shutil.copyfileobj(open(factory_par), out)
       os.fchmod(out.fileno(), 0755)
 
     # Done!

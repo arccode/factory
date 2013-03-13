@@ -8,9 +8,6 @@ BUILD_DIR=build
 PAR_BUILD_DIR=$(BUILD_DIR)/par
 DESTDIR=$(BUILD_DIR)/image
 TARGET_DIR=/usr/local/factory
-PYTHON_SITEDIR=$(shell echo \
-  'from distutils.sysconfig import get_python_lib; ' \
-  'print(get_python_lib())' | python)
 PYTHON=python
 
 # Directory in which to install symlinks to certain factory binaries.
@@ -31,6 +28,10 @@ FACTORY=$(DESTDIR)/$(TARGET_DIR)
 FACTORY_BUNDLE=$(FACTORY)/bundle
 
 PYLINTRC=$(CROS_WORKON_SRCROOT)/chromite/pylintrc
+
+# Extra arguments to give to the make_par command (e.g., to add
+# files from overlays).
+MAKE_PAR_ARGS=
 
 # TODO(shik): Re-enable R0801 once flash_firmware.py and
 # setup_netboot.py are fixed.
@@ -90,29 +91,12 @@ default:
                   CLOSURE_LIB_ARCHIVE="$(CLOSURE_LIB_ARCHIVE)",)
 
 par:
-# Build par (Python archive) file containing all py and pyc files.
+## Build par (Python archive) file containing all py and pyc files.
 	rm -rf $(PAR_BUILD_DIR)
-	mkdir -p $(PAR_BUILD_DIR)/cros
-	rsync -a \
-	  --exclude '*_unittest.py' \
-	  --exclude 'factory_common.py*' \
-	  --include '*.py' \
-	  --include '*.csv' \
-	  --include '*/' --exclude '*' \
-	  py/ $(PAR_BUILD_DIR)/cros/factory/
-# Copy necessary third-party packages.
-	rsync -a \
-	  $(PYTHON_SITEDIR)/argparse.py \
-          third_party/jsonrpclib/jsonrpclib \
-	  $(PYTHON_SITEDIR)/yaml \
-	  $(PAR_BUILD_DIR)
-# Add empty __init__.py files so Python realizes these directories are
-# modules.
-	touch $(PAR_BUILD_DIR)/cros/__init__.py
-	touch $(PAR_BUILD_DIR)/cros/factory/__init__.py
-# Add an empty factory_common file (since many scripts import factory_common).
-	touch $(PAR_BUILD_DIR)/factory_common.py
-	cd $(PAR_BUILD_DIR) && zip -qr factory.par *
+	mkdir -p $(PAR_BUILD_DIR)
+	bin/make_par -v \
+	  -o $(PAR_BUILD_DIR)/factory.par \
+	  $(MAKE_PAR_ARGS)
 # Sanity check: make sure we can import event_log using only the par file.
 	PYTHONPATH=$(PAR_BUILD_DIR)/factory.par $(PYTHON) -c \
 	  'import cros.factory.test.state'
