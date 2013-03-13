@@ -43,6 +43,8 @@ DEFAULT_SERVER_PORT = 8082
 # want to change address to "localhost".
 _DEFAULT_SERVER_ADDRESS = '0.0.0.0'
 
+# File containing name of default shopfloor module
+SHOPFLOOR_MODULE_TXT = 'shopfloor_module.txt'
 
 # pylint: disable=W0212
 
@@ -128,6 +130,21 @@ def _RunAsServer(address, port, instance):
   server.serve_forever()
 
 
+def GetDefaultShopFloorModule():
+  """Returns the default shopfloor module.
+
+  This is read from SHOPFLOOR_MODULE_TXT; if that file does not
+  exist, then cros.factory.shopfloor is used.
+  """
+  module_txt = os.path.join(
+      os.path.dirname(os.path.realpath(__file__)),
+      SHOPFLOOR_MODULE_TXT)
+  if os.path.exists(module_txt):
+    with open(module_txt) as f:
+      return f.read().strip()
+  return 'cros.factory.shopfloor'
+
+
 def main():
   '''Main entry when being invoked by command line.'''
   default_data_dir = 'shopfloor_data'
@@ -146,11 +163,12 @@ def main():
                     help='port to bind (default: %default)')
   parser.add_option(
       '-m', '--module', dest='module', metavar='MODULE',
-      default='cros.factory.shopfloor',
+      default=GetDefaultShopFloorModule(),
       help=('shop floor system module to load, in '
             'PACKAGE.MODULE.CLASS format. E.g.: '
             'cros.factory.shopfloor.simple_shopfloor '
-            '(default: %default)'))
+            '(default: %default; may be overridden with a file '
+            'called shopfloor_module.txt)'))
   parser.add_option('-c', '--config', dest='config', metavar='CONFIG',
                     help='configuration data for shop floor system')
   parser.add_option('-d', '--data-dir', dest='data_dir', metavar='DIR',
