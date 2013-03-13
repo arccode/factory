@@ -42,10 +42,8 @@ class ShopFloorStandaloneTest(unittest.TestCase):
           log=True, check_call=True)
 
     shopfloor_server_path = os.path.join(self.tmp, 'shopfloor_server')
-    shutil.copyfile(os.path.join(factory.FACTORY_PATH,
-                                 'sh', 'shopfloor_server.sh'),
-                    shopfloor_server_path)
-    os.chmod(shopfloor_server_path, 0755)
+    os.symlink(os.path.realpath(os.path.join(self.tmp, 'factory.par')),
+               shopfloor_server_path)
 
     os.environ['SHOPFLOOR_SERVER_CMD'] = shopfloor_server_path
     # Disable all site directories to simulate a plain-vanilla Python.

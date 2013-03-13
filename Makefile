@@ -115,7 +115,7 @@ install: par
 	  setup/ $(FACTORY_BUNDLE)/factory_setup/
 	mkdir -p $(FACTORY_BUNDLE)/shopfloor
 	cp -a $(PAR_BUILD_DIR)/factory.par $(FACTORY_BUNDLE)/shopfloor
-	cp sh/shopfloor_server.sh $(FACTORY_BUNDLE)/shopfloor
+	ln -s factory.par $(FACTORY_BUNDLE)/shopfloor/shopfloor_server
 # Install cgpt, used by factory_setup.  TODO(jsalz/hungte): Find a better way
 # to do this.
 	mkdir -p $(FACTORY_BUNDLE)/factory_setup/bin
