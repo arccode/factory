@@ -43,11 +43,15 @@ class RfFramework(object):
       Arg('category', str,
           'Describes what category it is, should be one of calibration,'
           'production, conductive or debug.'),
+      Arg('base_directory', str,
+          'Relative path to directory for all parameters.'),
       Arg('config_file', str,
           'Describes where configuration locates.'),
       Arg('parameters', list,
           'A list of regular expressions indicates parameters to download from '
           'shopfloor server.', default=list()),
+      Arg('calibration_config', str,
+          'Calibration parameters used to compensate the pass loss.'),
       Arg('calibration_target', str,
           'A path to calibration_target.', optional=True),
       Arg('blinking_pattern', list,
@@ -73,6 +77,7 @@ class RfFramework(object):
     super(RfFramework, self ).__init__(*args, **kwargs)
     self.config = None
     self.calibration_target = None
+    self.calibration_config = None
     self.field_to_record = dict()
     self.aux_logs = list()
     self.unique_identification = None
@@ -91,6 +96,17 @@ class RfFramework(object):
     self.key_pressed = threading.Condition()
     self.ui_thread = self.ui.Run(blocking=False)
     self.failures = []
+    # point all parameters to the correct path.
+    self.args.config_file = os.path.join(
+        self.args.base_directory, self.args.config_file)
+    if self.args.calibration_target:
+      self.args.calibration_target = os.path.join(
+          self.args.base_directory, self.args.calibration_target)
+    self.args.calibration_config = os.path.join(
+        self.args.base_directory, self.args.calibration_config)
+    self.args.parameters = ([
+        os.path.join(self.args.base_directory, x) for x
+            in self.args.parameters])
 
     # Allowed user to apply fine controls in engineering_mode
     if self.ui.InEngineeringMode():
@@ -122,8 +138,6 @@ class RfFramework(object):
       # Prepare additional parameters if we are in calibration mode.
       if self.args.category == 'calibration':
         self.calibration_mode = True
-        self.template.SetState('Downloading calibration_target.')
-        self.DownloadParameters([self.args.calibration_target])
         # Load the calibration_target
         with open(os.path.join(
             self.caches_dir, self.args.calibration_target), "r") as fd:
@@ -158,6 +172,18 @@ class RfFramework(object):
       if self.args.pre_test_inside_shield_box:
         self.template.SetState('Preparing network.')
         self.PrepareNetwork()
+        # TODO(itspeter): Ask user to enter shield box information.
+        # TODO(itspeter): Verify the validity of shield-box and determine
+        #                 the corresponding calibration_config.
+
+        # Load the calibration_config.
+        with open(os.path.join(
+            self.caches_dir, self.args.calibration_config)) as fd:
+          self.calibration_config = yaml.load(fd.read())
+        self.LogDetail(event_log_key='calibration_config',
+                       field_to_record=self.calibration_config,
+                       postfix='.cal_data.csv')
+
         self.template.SetState('Runing pilot test inside shield box.')
         self.PreTestInsideShieldBox()
         # TODO(itspeter): Support multiple language in prompt.
@@ -172,7 +198,8 @@ class RfFramework(object):
       with leds.Blinker(self.args.blinking_pattern):
         self.PrimaryTest()
       # Save useful info to the CSV and eventlog.
-      self.LogDetail()
+      self.LogDetail(event_log_key='measurement_details',
+                     field_to_record=self.field_to_record)
 
       # Light all LEDs to indicates test is completed.
       leds.SetLeds(leds.LED_SCR|leds.LED_NUM|leds.LED_CAP)
@@ -197,7 +224,8 @@ class RfFramework(object):
     # Fail the test if failure happened.
     if len(self.failures) > 0:
       self.ui.Fail('\n'.join(self.failures))
-    self.ui.Pass()
+    else:
+      self.ui.Pass()
     self.ui_thread.join()
 
   def PreTestOutsideShieldBox(self):
@@ -267,36 +295,38 @@ class RfFramework(object):
   def NormalizeAsFileName(self, token):
     return re.sub(r'\W+', '', token)
 
-  def LogDetail(self):
+  def LogDetail(self, event_log_key, field_to_record, postfix='.csv'):
     # Column names
     DEVICE_ID = 'device_id'
     DEVICE_SN = 'device_sn'
     MODULE_ID = 'module_id'
     PATH = 'path'
+    INVOCATION = 'invocation'
     FAILURES = 'failures'
 
     # log to event log.
-    self.field_to_record[MODULE_ID] = self.unique_identification
-    self.event_log.Log('measurement_details',
-      **self.field_to_record)
+    field_to_record[MODULE_ID] = self.unique_identification
+    self.event_log.Log(event_log_key, **field_to_record)
 
     # additional fields that need to be added becasue they are recorded
     # in event log by default and we need them in csv as well.
     device_sn = shopfloor.get_serial_number() or 'MISSING_SN'
     path = os.environ.get('CROS_FACTORY_TEST_PATH')
-    self.field_to_record[FAILURES] = self.failures
-    self.field_to_record[DEVICE_SN] = device_sn
-    self.field_to_record[DEVICE_ID] = event_log.GetDeviceId()
-    self.field_to_record[PATH] = path
-    csv_path = '%s_%s_%s.csv' % (
+
+    field_to_record[FAILURES] = self.failures
+    field_to_record[DEVICE_SN] = device_sn
+    field_to_record[DEVICE_ID] = event_log.GetDeviceId()
+    field_to_record[PATH] = path
+    field_to_record[INVOCATION] = os.environ.get('CROS_FACTORY_TEST_INVOCATION')
+    csv_path = '%s_%s_%s%s' % (
         time.strftime('%Y%m%dT%H%M%SZ', time.gmtime()),
         self.NormalizeAsFileName(device_sn),
-        self.NormalizeAsFileName(path))
+        self.NormalizeAsFileName(path), postfix)
     csv_path = os.path.join(factory.get_log_root(), 'aux', csv_path)
     utils.TryMakeDirs(os.path.dirname(csv_path))
     self.aux_logs.append(csv_path)
-    WriteCsv(csv_path, [self.field_to_record],
-             [MODULE_ID, DEVICE_SN, DEVICE_ID])
+    WriteCsv(csv_path, [field_to_record],
+             [MODULE_ID, DEVICE_SN, DEVICE_ID, PATH, FAILURES, INVOCATION])
     factory.console.info('Details saved to %s', csv_path)
 
   @contextmanager

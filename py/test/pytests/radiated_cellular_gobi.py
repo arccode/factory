@@ -89,16 +89,19 @@ class RadiatedCellularGobi(RfFramework, unittest.TestCase):
         # End continuous transmit
         self.EndTXTest(measurement['band_name'], measurement['channel'])
 
-        self.field_to_record[measurement_name] = tx_power
-        avg_power_threshold = measurement['avg_power_threshold']
-        self.CheckPower(measurement_name, tx_power, avg_power_threshold)
-
         if self.calibration_mode:
           # Check if the path_loss is in expected range.
           path_loss_range = measurement['path_loss_range']
           path_loss = self.calibration_target[measurement_name] - tx_power
           self.CheckPower(measurement_name, path_loss, path_loss_range,
                           prefix='Path loss')
+        else:
+          tx_power += self.calibration_config[measurement_name]
+
+        self.field_to_record[measurement_name] = self.FormattedPower(tx_power)
+        avg_power_threshold = measurement['avg_power_threshold']
+        self.CheckPower(measurement_name, tx_power, avg_power_threshold)
+
       except:  # pylint: disable=W0702
         # In order to collect more data, finish the whole test even if it fails.
         exception_string = utils.FormatExceptionOnly()
