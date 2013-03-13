@@ -1,0 +1,81 @@
+# -*- coding: utf-8 -*-
+#
+# Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+"""A factory test for testing cellular module's RSSI.
+
+This test query the RSSI (Received signal strength indication) of different
+antenna path from gobi modem module.
+"""
+
+import re
+import sys
+import unittest
+
+import factory_common  # pylint: disable=W0611
+
+from cros.factory.rf.cellular import EnterFactoryMode, ExitFactoryMode
+from cros.factory.rf.utils import CheckPower
+from cros.factory.test import factory
+from cros.factory.test import utils
+from cros.factory.test.args import Arg
+
+RX_TEST_COMMAND = 'AT$QCAGC="%s",%d,"%s"'
+
+
+class CellularGobiRSSI(unittest.TestCase):
+  ARGS = [
+    Arg('modem_path', str,
+        'The relative path from /dev/, the entry point to control the modem'),
+    Arg('strength_map', list,
+        'A list of tuple in the format (ANTENNA_NAME, BAND_NAME, CHANNEL_NO, '
+        ' RETRIES, MIN_POWER, MAX_POWER)'),
+    Arg('firmware_switching', bool,
+        'Whether to switch modem firmware to UMTS.', default=True)
+  ]
+
+  def setUp(self):
+    self.modem = None
+
+  def GetRSSI(self, antenna_name, band_name, channel_no):
+    self.modem.SendCommand(RX_TEST_COMMAND % (
+      band_name, channel_no, antenna_name))
+    try:
+      line = self.modem.ReadLine()
+      match = re.match(r'RSSI: ([-+]?\d+)$', line)
+      if not match:
+        raise RuntimeError('Modem answered unexpected %r' % line)
+      rssi = int(match.group(1))
+      self.modem.ReadLine()
+      self.modem.ExpectLine('OK')
+    except:  # pylint: disable=W0702
+      # Modem might need retry to get a valid response, throw warning
+      exception_string = utils.FormatExceptionOnly()
+      factory.console.warning(exception_string)
+      rssi = None
+    return rssi
+
+  def runTest(self):
+    failures = []
+    try:
+      self.modem = EnterFactoryMode(self.args.modem_path,
+                                    self.args.firmware_switching)
+      for config_to_test in self.args.strength_map:
+        antenna_name, band_name, channel_no, retries, min_power, max_power = (
+          config_to_test)
+        max_rssi = -sys.float_info.max
+        for tries in xrange(1, retries + 1):
+          rssi = self.GetRSSI(antenna_name, band_name, channel_no)
+          if rssi:
+            factory.console.info('%d tries = %s', tries, rssi)
+            max_rssi = max(max_rssi, rssi)
+        # Compare if it is in range.
+        CheckPower('%s[%d]@%s' % (band_name, channel_no, antenna_name),
+                   max_rssi, (min_power, max_power), failures)
+    finally:
+      ExitFactoryMode(self.modem, self.args.firmware_switching)
+
+    if len(failures) > 0:
+      raise factory.FactoryTestFailure('\n'.join(failures))

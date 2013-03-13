@@ -3,19 +3,15 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import logging
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from subprocess import CalledProcessError
-from cros.factory.rf.cellular import GetIMEI
-from cros.factory.rf.modem import Modem
+from cros.factory.rf import cellular
 from cros.factory.rf.utils import CheckPower, FormattedPower
 from cros.factory.test import factory
 from cros.factory.test import utils
 from cros.factory.test.pytests.rf_framework import RfFramework
 from cros.factory.utils.net_utils import PollForCondition
-from cros.factory.utils.process_utils import Spawn
 from cros.factory.rf.n1914a import N1914A
 
 ENABLE_FACTORY_TEST_MODE_COMMAND = 'AT+CFUN=5'
@@ -118,32 +114,13 @@ class RadiatedCellularGobi(RfFramework, unittest.TestCase):
     pass
 
   def GetUniqueIdentification(self):
-    return GetIMEI()
+    return cellular.GetIMEI()
 
   def EnterFactoryMode(self):
-    factory.console.info('Entering factory test mode(FTM)')
-    try:
-      stdout = Spawn(SWITCH_TO_WCDMA_COMMAND, read_stdout=True,
-                     log_stderr_on_error=True, check_call=True).stdout_data
-      logging.info('Output when switching to WCDMA =\n%s', stdout)
-      factory.console.info('Entered factory test mode')
-    except CalledProcessError:
-      factory.console.info('WCDMA switching failed.')
-      raise
-    self.modem = Modem(self.config['modem_path'])
-    self.modem.SendCommand(ENABLE_FACTORY_TEST_MODE_COMMAND)
-    self.modem.ExpectLine('OK')
+    self.modem = cellular.EnterFactoryMode(self.config['modem_path'], True)
 
   def ExitFactoryMode(self):
-    factory.console.info('Exiting factory test mode(FTM)')
-    self.modem.SendCommand(DISABLE_FACTORY_TEST_MODE_COMMAND)
-    try:
-      stdout = Spawn(SWITCH_TO_CDMA_COMMAND, read_stdout=True,
-                     log_stderr_on_error=True, check_call=True).stdout_data
-      logging.info('Output when switching to CDMA =\n%s', stdout)
-      factory.console.info('Exited factory test mode')
-    except CalledProcessError:
-      factory.console.info('CDMA switching failed.')
+    cellular.ExitFactoryMode(self.modem, True)
 
   def StartTXTest(self, band_name, channel):
     def SendTXCommand():

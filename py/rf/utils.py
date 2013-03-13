@@ -4,6 +4,8 @@
 
 """Common functions across different RF related tests."""
 
+import factory_common  # pylint: disable=W0611
+
 from cros.factory.test import factory
 
 
