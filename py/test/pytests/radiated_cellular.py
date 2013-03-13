@@ -6,8 +6,9 @@
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.rf.modem import Modem
 from cros.factory.rf.cellular import GetIMEI
+from cros.factory.rf.modem import Modem
+from cros.factory.rf.utils import IsInRange
 from cros.factory.test import factory
 from cros.factory.test.pytests.rf_framework import RfFramework
 from cros.factory.utils.net_utils import PollForCondition
@@ -82,7 +83,7 @@ class RadiatedCellular(RfFramework, unittest.TestCase):
         tx_power = self.n1914a.MeasureOnceInBinary(self.power_meter_port)
         min_power = measurement['avg_power_threshold'][0]
         max_power = measurement['avg_power_threshold'][1]
-        if not self.IsInRange(tx_power, min_power, max_power):
+        if not IsInRange(tx_power, min_power, max_power):
           failure = 'Power for %r is %7.2f, out of range (%s,%s)' % (
               measurement_name, tx_power, min_power, max_power)
           factory.console.info(failure)

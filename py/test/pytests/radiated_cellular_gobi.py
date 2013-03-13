@@ -8,8 +8,9 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 from subprocess import CalledProcessError
-from cros.factory.rf.modem import Modem
 from cros.factory.rf.cellular import GetIMEI
+from cros.factory.rf.modem import Modem
+from cros.factory.rf.utils import CheckPower, FormattedPower
 from cros.factory.test import factory
 from cros.factory.test import utils
 from cros.factory.test.pytests.rf_framework import RfFramework
@@ -93,14 +94,15 @@ class RadiatedCellularGobi(RfFramework, unittest.TestCase):
           # Check if the path_loss is in expected range.
           path_loss_range = measurement['path_loss_range']
           path_loss = self.calibration_target[measurement_name] - tx_power
-          self.CheckPower(measurement_name, path_loss, path_loss_range,
-                          prefix='Path loss')
+          CheckPower(measurement_name, path_loss, path_loss_range,
+                     self.failures, prefix='Path loss')
         else:
           tx_power += self.calibration_config[measurement_name]
 
-        self.field_to_record[measurement_name] = self.FormattedPower(tx_power)
+        self.field_to_record[measurement_name] = FormattedPower(tx_power)
         avg_power_threshold = measurement['avg_power_threshold']
-        self.CheckPower(measurement_name, tx_power, avg_power_threshold)
+        CheckPower(measurement_name, tx_power, avg_power_threshold,
+                   self.failures)
 
       except:  # pylint: disable=W0702
         # In order to collect more data, finish the whole test even if it fails.
@@ -109,13 +111,9 @@ class RadiatedCellularGobi(RfFramework, unittest.TestCase):
             measurement_name, exception_string)
         factory.console.info(failure)
         self.failures.append(failure)
-    # TODO(itspeter): Save result in csv format
     # TODO(itspeter): Generate the calibration_config
 
   def PostTest(self):
-    # TODO(itspeter): Switch to production drivers.
-    # TODO(itspeter): Upload result to shopfloor server.
-    # TODO(itspeter): Determine the test result.
     # TODO(itspeter): save statistic of measurements to csv file.
     pass
 

@@ -265,33 +265,6 @@ class RfFramework(object):
     raise NotImplementedError(
         'Called without implementing GetUniqueIdentification')
 
-  def IsInRange(self, observed, threshold_min, threshold_max):
-    """Returns True if threshold_min <= observed <= threshold_max.
-
-    If either thresholds are None, then the comparison will always succeed."""
-    if threshold_min is not None and observed < threshold_min:
-      return False
-    if threshold_max is not None and observed > threshold_max:
-      return False
-    return True
-
-  def FormattedPower(self, power, format_str='%7.2f'):
-    """Returns a formatted power while allowing power be a None."""
-    return 'None' if power is None else (format_str % power)
-
-  def CheckPower(self, measurement_name, power, threshold, prefix='Power'):
-    '''Simple wrapper to check and display related messages.'''
-    min_power, max_power = threshold
-    if not self.IsInRange(power, min_power, max_power):
-      failure = '%s for %r is %s, out of range (%s,%s)' % (
-          prefix, measurement_name, self.FormattedPower(power),
-          self.FormattedPower(min_power), self.FormattedPower(max_power))
-      factory.console.info(failure)
-      self.failures.append(failure)
-    else:
-      factory.console.info('%s for %r is %s',
-          prefix, measurement_name, self.FormattedPower(power))
-
   def NormalizeAsFileName(self, token):
     return re.sub(r'\W+', '', token)
 
