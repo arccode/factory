@@ -472,10 +472,8 @@ class ShopFloorBase(object):
     """Logs that a particular registration code has been used."""
     with open(os.path.join(
         self.data_dir, "registration_code_log.csv"), "ab") as f:
-      platform = hwid.split()[0]
-
       csv.writer(f, dialect=NewlineTerminatedCSVDialect).writerow([
-        platform, registration_code_map['user'], registration_code_map['group'],
+        hwid, registration_code_map['user'], registration_code_map['group'],
         time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())])
       os.fdatasync(f.fileno())
 
