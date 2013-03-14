@@ -11,13 +11,17 @@ This test checks and updates touch device firmware.
 
 
 import glob
+import logging
 import os
 import unittest
 
 from cros.factory.utils.process_utils import Spawn
+from cros.factory.test import factory
 from cros.factory.test.args import Arg
 
-UPDATER = '/opt/google/touch/firmware/chromeos-touch-firmwareupdate.sh'
+FIRMWARE_UPDATER = '/opt/google/touch/firmware/chromeos-touch-firmwareupdate.sh'
+CONFIG_UPDATER = '/opt/google/touch/config/chromeos-touch-config-update.sh'
+
 
 class UpdateTouchDeviceFWTest(unittest.TestCase):
   ARGS = [
@@ -26,6 +30,17 @@ class UpdateTouchDeviceFWTest(unittest.TestCase):
     Arg('fw_name', str, 'Expected firmware file name (in /lib/firmware)'),
     Arg('fw_version', str, 'Expected firmware version'),
   ]
+
+  def run_updater_command(self, command):
+    factory.console.info('Running: %s' % command)
+    updater = Spawn(command, log=True, read_stdout=True, shell=True)
+    updater.wait()
+    if updater.returncode != 0:
+      error_message = 'Touch device %s update failed.' % self.args.device_name
+      logging.error(error_message)
+      logging.error('  stdout: %s', updater.stdout_data)
+      logging.error('  stderr: %s', updater.stderr_data)
+      raise ValueError(error_message)
 
   def runTest(self):
     # Find the appropriate device sysfs file.
@@ -39,16 +54,13 @@ class UpdateTouchDeviceFWTest(unittest.TestCase):
     expected_ver = getattr(self.args, 'fw_version')
     actual_ver = open(os.path.join(device_path, 'fw_version')).read().strip()
     if expected_ver != actual_ver:
-      # touch firmware updater fails sometimes, retry 5 times
-      for _ in range(5):
-        device_name = getattr(self.args, 'device_name')
-        fw_name = getattr(self.args, 'fw_name')
-        # updater needs a shell, parameters should be concated into
-        # command string before spawn
-        updater_cmd = "%s -f -d %s -n %s" % (UPDATER, device_name,
-                      fw_name)
-        updater = Spawn(updater_cmd, log=True, read_stdout=True, shell=True)
-        updater.wait()
-        if updater.returncode == 0:
-          return
-      raise ValueError('Touch device firmware update failed')
+      logging.info('Updating firmware from version %s to version %s',
+                   expected_ver, actual_ver)
+      firmware_updater_cmd = "%s -f -d %s -n %s" % (
+          FIRMWARE_UPDATER, self.args.device_name, self.args.fw_name)
+      self.run_updater_command(firmware_updater_cmd)
+
+    # Always force-update the device configuration
+    logging.info('Updating device configuration.')
+    config_updater_cmd = "%s -f -d %s" % (CONFIG_UPDATER, self.args.device_name)
+    self.run_updater_command(config_updater_cmd)
