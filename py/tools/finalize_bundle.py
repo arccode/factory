@@ -15,6 +15,7 @@ import shutil
 import subprocess
 import sys
 import time
+import urlparse
 import yaml
 
 import factory_common  # pylint: disable=W0611
@@ -149,6 +150,9 @@ class FinalizeBundle(object):
     bundle_name: Name of the bundle (e.g., 20121115_proto).
     factory_image_path: Path to the factory image in the bundle.
     board: Board name (e.g., link).
+    simple_board: For board name like "base_variant", simple_board is "variant".
+      simple_board == board if board is not a variant board.
+      This name is used in firmware and hwid.
     manifest: Parsed YAML manifest.
     expected_files: List of files expected to be in the bundle (relative paths).
     all_files: Set of files actually present in the bundle (relative paths).
@@ -163,6 +167,7 @@ class FinalizeBundle(object):
   bundle_name = None
   factory_image_path = None
   board = None
+  simple_board = None
   manifest = None
   expected_files = None
   all_files = None
@@ -218,6 +223,7 @@ class FinalizeBundle(object):
                         'files', 'mini_omaha_url'])
 
     self.board = self.manifest['board']
+    self.simple_board = self.board.split('_')[-1]
 
     self.bundle_name = self.manifest['bundle_name']
     if not re.match(r'^\d{8}_', self.bundle_name):
@@ -340,13 +346,16 @@ class FinalizeBundle(object):
         sys.exit('Unable to write %s' % lsb_factory_path)
       return True
 
-    # Patch in the install shim.
+    # Patch in the install shim, if present.
     shims = glob.glob(os.path.join(self.bundle_dir, 'factory_shim',
                                    'chromeos_*_factory*.bin'))
     if len(shims) > 1:
       sys.exit('Expected to find 1 shim but found %d' % len(shims))
-    with MountPartition(shims[0], 1, rw=True) as mount:
-      PatchLSBFactory(mount)
+    elif len(shims) == 1:
+      with MountPartition(shims[0], 1, rw=True) as mount:
+        PatchLSBFactory(mount)
+    else:
+      logging.warning('There is no install shim in the bundle.')
 
     # Take care of the netboot initrd as well, if present.
     netboot_image = os.path.join(self.bundle_dir, 'factory_shim',
@@ -377,6 +386,21 @@ class FinalizeBundle(object):
                   check_call=True, log=True)
             shutil.move(new_netboot_image, netboot_image)
 
+    # Take care of netboot firmware, if present.
+    netboot_firmware_image = os.path.join(self.bundle_dir, 'netboot_firmware',
+        'nv_image-%s.bin' % self.simple_board)
+    if os.path.exists(netboot_firmware_image):
+      update_firmware_vars = os.path.join(self.bundle_dir, 'factory_setup',
+                                         'update_firmware_vars.py')
+      new_netboot_firmware_image = netboot_firmware_image + '.INPROGRESS'
+      Spawn([update_firmware_vars,
+             '-i', netboot_firmware_image,
+             '-o', new_netboot_firmware_image,
+             '--omahaserver=%s' % mini_omaha_url,
+             '--tftpserverip=%s' % urlparse.urlparse(mini_omaha_url).hostname],
+             check_call=True, log=True)
+      shutil.move(new_netboot_firmware_image, netboot_firmware_image)
+
   def MakeFactoryPackages(self):
     release_images = glob.glob(os.path.join(self.bundle_dir, 'release/*.bin'))
     if len(release_images) != 1:
@@ -391,7 +415,8 @@ class FinalizeBundle(object):
         '--release', os.path.relpath(self.release_image_path,
                                      factory_setup_dir),
         '--factory', '../factory_test/chromiumos_factory_image.bin',
-        '--hwid_updater', '../hwid/hwid_bundle_%s_all.sh' % self.board.upper()]
+        '--hwid_updater', '../hwid/hwid_bundle_%s_all.sh' %
+                          self.simple_board.upper()]
 
     firmware_updater = os.path.join(
         self.bundle_dir, 'firmware', 'chromeos-firmwareupdate')
@@ -514,13 +539,15 @@ class FinalizeBundle(object):
         # This is tricky, but it's the best we can do for now.  Look for a
         # line like "link_v1.2.34-56789a 2012-10-01 12:34:56 @build70-m2"
         strings = Spawn(['strings', path], check_output=True).stdout_data
-        match = re.search('^(' + self.board + '.+@.+)$', strings, re.MULTILINE)
+        match = re.search('^(' + self.simple_board + '.+@.+)$',
+                          strings, re.MULTILINE)
         if not match:
           sys.exit('Unable to find EC version in %s' % path)
         vitals.append((f, match.group(1)))
       elif os.path.basename(f).startswith('nv_image'):
         strings = Spawn(['strings', path], check_output=True).stdout_data
-        match = re.search('^(Google_' + self.board + r'\.\d+\.\d+\.\d+)$',
+        match = re.search('^(Google_' + self.simple_board +
+                          r'\.\d+\.\d+\.\d+)$',
                           strings, re.MULTILINE | re.IGNORECASE)
         if not match:
           sys.exit('Unable to find BIOS version in %s' % path)
@@ -588,11 +615,11 @@ class FinalizeBundle(object):
     """Substitutes variables into a string.
 
     The following substitutions are made:
-      ${BOARD} -> the board name (in uppercase)
+      ${BOARD} -> the simple board name (in uppercase)
       ${FACTORY_IMAGE_BASE_VERSION} -> the factory image version
     """
     subst_vars = {
-        'BOARD': self.board.upper(),
+        'BOARD': self.simple_board.upper(),
         'FACTORY_IMAGE_BASE_VERSION': self.factory_image_base_version
         }
     return re.sub(r'\$\{(\w+)\}', lambda match: subst_vars[match.group(1)],
