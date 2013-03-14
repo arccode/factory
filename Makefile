@@ -120,6 +120,11 @@ install: par
 # to do this.
 	mkdir -p $(FACTORY_BUNDLE)/factory_setup/bin
 	cp /usr/bin/cgpt $(FACTORY_BUNDLE)/factory_setup/bin
+	cp /usr/bin/futility $(FACTORY_BUNDLE)/factory_setup/bin
+# Install actual implementation of cgpt. TODO(wfrichar/victoryang): Remove this
+# once futility implements cgpt.
+	mkdir -p $(FACTORY_BUNDLE)/factory_setup/bin/old_bins
+	cp /usr/bin/old_bins/cgpt $(FACTORY_BUNDLE)/factory_setup/bin/old_bins
 # Add symlinks to certain binaries from /usr/local/bin to
 # /usr/local/factory/bin.
 	mkdir -p "$(DESTDIR)$(SYMLINK_INSTALL_DIR)"
