@@ -37,7 +37,8 @@ def GetBoard(host):
   return match.group(1)
 
 
-def SyncTestList(host, board, test_list, clear_factory_environment):
+def SyncTestList(host, board, test_list,
+                 clear_factory_environment, clear_password, shopfloor_host):
   # Uses dash in board name for overlay directory name
   board_dash = board.replace('_', '-')
 
@@ -64,10 +65,18 @@ def SyncTestList(host, board, test_list, clear_factory_environment):
     test_list = test_lists[0]
     logging.info('Using test list %s', test_list)
 
+  old_test_list_data = test_list_data = open(test_list).read()
   if clear_factory_environment:
-    test_list_data = open(test_list).read().replace(
+    test_list_data = test_list_data.replace(
         '_FACTORY_ENVIRONMENT = True',
         '_FACTORY_ENVIRONMENT = False')
+  if clear_password:
+    test_list_data += '\noptions.engineering_password_sha1 = None\n'
+  if shopfloor_host:
+    test_list_data += '\noptions.shopfloor_server_url = "http://%s:8082/"\n' % (
+        shopfloor_host)
+
+  if old_test_list_data != test_list_data:
     tmp_test_list = tempfile.NamedTemporaryFile(prefix='test_list.', bufsize=0)
     tmp_test_list.write(test_list_data)
     test_list = tmp_test_list.name
@@ -93,6 +102,11 @@ def main():
   parser.add_argument('-e', dest='clear_factory_environment',
                       action='store_true',
                       help='set _FACTORY_ENVIRONMENT = False in test_list')
+  parser.add_argument('-p', dest='clear_password',
+                      action='store_true',
+                      help='remove password from test_list')
+  parser.add_argument('-s', dest='shopfloor_host',
+                      help='set shopfloor host')
   parser.add_argument('--board', '-b', dest='board',
                       help='board to use (default: auto-detect')
   parser.add_argument('--autotest', dest='autotest', action='store_true',
@@ -158,7 +172,9 @@ def main():
         ['%s:/usr/local/factory' % args.host],
         check_call=True, log=True)
 
-  SyncTestList(args.host, board, args.test_list, args.clear_factory_environment)
+  SyncTestList(args.host, board, args.test_list,
+               args.clear_factory_environment, args.clear_password,
+               args.shopfloor_host)
 
   if args.hwid:
     if not board:
