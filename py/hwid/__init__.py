@@ -205,7 +205,7 @@ class Database(object):
     encoded_fields: A _EncodedFields object.
     probeable_components: A _ProbeableComponents objet.
     components: A _Components object.
-    shopfloor_device_info: A _ShopfloorDeviceInfo object.
+    shopfloor_device_info: A ShopFloorDeviceInfo object.
     vpd_ro_field: A _VPDFields object.
     vpd_rw_field: A _VPDFields object.
     rules: A list of rules of the form:
@@ -289,7 +289,7 @@ class Database(object):
                     _EncodedFields(db_yaml['encoded_fields']),
                     _ProbeableComponents(db_yaml['probeable_components']),
                     _Components(db_yaml['components']),
-                    _ShopfloorDeviceInfo(db_yaml['shopfloor_device_info']),
+                    ShopFloorDeviceInfo(db_yaml['shopfloor_device_info']),
                     _VPDFields(db_yaml['vpd_ro_fields']),
                     _VPDFields(db_yaml['vpd_rw_fields']),
                     rules, allowed_skus)
@@ -536,8 +536,10 @@ class Database(object):
     stripped = stripped[:-5]
     hwid = stripped[:-2]
     checksum = stripped[-2:]
+    expected_checksum = Base32.Checksum(hwid)
     if not checksum == Base32.Checksum(hwid):
-      raise HWIDException('Checksum of %r mismatch' % encoded_string)
+      raise HWIDException('Checksum of %r mismatch (expected %r)' % (
+          encoded_string, expected_checksum))
 
   def VerifyBOM(self, bom):
     """Verifies the data contained in the given BOM object matches the settings
@@ -891,7 +893,7 @@ class _Pattern(object):
     return ret
 
 
-class _ShopfloorDeviceInfo(dict):
+class ShopFloorDeviceInfo(dict):
   """A class for storing device info mapping sent by shopfloor.
 
   We often need to ask shopfloor for device info, and the response is usually a
@@ -929,7 +931,7 @@ class _ShopfloorDeviceInfo(dict):
                      List('list of component names',
                           Scalar('component name', str))]))))
     self.schema.Validate(shopfloor_device_info_dict)
-    super(_ShopfloorDeviceInfo, self).__init__(shopfloor_device_info_dict)
+    super(ShopFloorDeviceInfo, self).__init__(shopfloor_device_info_dict)
 
 
 class _VPDFields(list):

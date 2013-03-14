@@ -214,11 +214,11 @@ class Gooftool(object):
       self._hardware_db = (
           hardware_db or
           hwid_tool.HardwareDb(hwid_tool.DEFAULT_HWID_DATA_PATH))
-      self._component_db = component_db or self._hardware_db.comp_db
+      self.db = component_db or self._hardware_db.comp_db
     elif hwid_version == 3:
       self._board = board or hwid3.ProbeBoard()
       self._hwdb_path = hwdb_path or hwid3.DEFAULT_HWID_DATA_PATH
-      self._component_db = Database.LoadFile(
+      self.db = Database.LoadFile(
           os.path.join(self._hwdb_path, self._board.upper()))
     else:
       raise ValueError("Invalid HWID version: %r" % hwid_version)
@@ -248,7 +248,7 @@ class Gooftool(object):
           probed_string,   # The actual probed string. None if probing failed.
           error)]}         # The error message if there is one.
     """
-    probeable_classes = self._component_db.probeable_components.keys()
+    probeable_classes = self.db.probeable_components.keys()
     if not component_list:
       raise ValueError("No component classes specified;\n" +
                        "Possible choices: %s" % probeable_classes)
@@ -274,7 +274,7 @@ class Gooftool(object):
 
         result_tuples = []
         for val in probe_vals:
-          comp_name = self._component_db.result_name_map.get(val, None)
+          comp_name = self.db.result_name_map.get(val, None)
           if comp_name is not None:
             result_tuples.append(ProbedComponentResult(comp_name, val, None))
           else:
@@ -550,7 +550,7 @@ class Gooftool(object):
     yaml_probe_results = self._probe(
         target_comp_classes=component_list,
         probe_volatile=False, probe_initial_config=False).Encode()
-    return self._component_db.VerifyComponents(yaml_probe_results,
+    return self.db.VerifyComponents(yaml_probe_results,
                                                component_list)
 
   def GenerateHwidV3(self, device_info=None, probe_result=None):
@@ -572,27 +572,39 @@ class Gooftool(object):
     if not probe_result:
       probe_result = self._probe(None)
     # Construct a base BOM from probe_result.
-    device_bom = self._component_db.ProbeResultToBOM(probe_result)
+    device_bom = self.db.ProbeResultToBOM(probe_result)
     # Invalidate every unprobeable components.
     for comp_cls in device_bom.components:
-      if comp_cls not in self._component_db.probeable_components:
+      if comp_cls not in self.db.probeable_components:
         device_bom.components[comp_cls] = []
     # Update BOM using device_info.
     if device_info is not None:
       components_to_update = {}
       for info_key, info_value in device_info.iteritems():
         try:
-          db_device_info_dict = (
-              self._component_db.shopfloor_device_info[info_key][info_value])
-          for comp_cls, comp_name in db_device_info_dict.iteritems():
-            if comp_cls in components_to_update:
-              raise Error, ('component class %r is re-defined twice in '
-              'device_info: (%r and %r}' % (comp_cls,
-              components_to_update[comp_cls], comp_name))
-            components_to_update[comp_cls] = comp_name
+          shopfloor_device_info_map = self.db.shopfloor_device_info[info_key]
         except KeyError:
-          raise Error, 'Undefined device info {%r: %r}' % (info_key, info_value)
-      device_bom = self._component_db.UpdateComponentsOfBOM(
+          raise KeyError(
+              'Unexpected key %r in device_info (should be one of %s)' % (
+                  info_key,
+                  ', '.join(sorted(self.db.shopfloor_device_info.keys()))))
+
+        try:
+          db_device_info_dict = shopfloor_device_info_map[info_value]
+        except KeyError:
+          raise ValueError(
+              'device_info field %r has unexpected value %r (should be one of '
+              '%s)' % (
+                  info_key, info_value,
+                  sorted(shopfloor_device_info_map.keys())))
+
+        for comp_cls, comp_name in db_device_info_dict.iteritems():
+          if comp_cls in components_to_update:
+            raise Error, ('component class %r is re-defined twice in '
+            'device_info: (%r and %r)' % (comp_cls,
+            components_to_update[comp_cls], comp_name))
+          components_to_update[comp_cls] = comp_name
+      device_bom = self.db.UpdateComponentsOfBOM(
           device_bom, components_to_update)
     # Check that the BOM is valid.
     unknown_components = [comp_cls for comp_cls in device_bom.components if
@@ -601,7 +613,7 @@ class Gooftool(object):
       raise Error, ('Components %r are unprobeable and were not specified in '
                     'device info' % sorted(unknown_components))
 
-    return Encode(self._component_db, device_bom)
+    return Encode(self.db, device_bom)
 
 
   def VerifyHwidV3(self, encoded_string=None, probe_results=None,
@@ -641,9 +653,9 @@ class Gooftool(object):
     if not probed_rw_vpd:
       probed_rw_vpd = self._read_rw_vpd(main_fw_file)
 
-    hwid_context = self._hwid_decode(self._component_db, encoded_string)
+    hwid_context = self._hwid_decode(self.db, encoded_string)
     hwid_context.VerifyProbeResult(probe_results)
-    for key in self._component_db.vpd_ro_fields:
+    for key in self.db.vpd_ro_fields:
       if key not in probed_ro_vpd:
         raise Error, 'Missing required RO VPD field: %s' % key
       known_valid_values = KNOWN_VPD_FIELD_DATA.get(key, None)
@@ -651,7 +663,7 @@ class Gooftool(object):
       if ((known_valid_values is not None) and
           (value not in known_valid_values)):
         raise Error, 'Invalid RO VPD entry : key %r, value %r' % (key, value)
-    for key in self._component_db.vpd_rw_fields:
+    for key in self.db.vpd_rw_fields:
       if key not in probed_rw_vpd:
         raise Error, 'Missing required RW VPD field: %s' % key
       known_valid_values = KNOWN_VPD_FIELD_DATA.get(key, None)

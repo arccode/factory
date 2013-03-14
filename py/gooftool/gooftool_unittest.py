@@ -523,7 +523,7 @@ class GooftoolTest(unittest2.TestCase):
         'component.foo': 'bar'
     }
     self.assertRaisesRegexp(
-        Error, r'Undefined device info {.*: .*}',
+        KeyError, r"Unexpected key 'component\.foo'",
         self._gooftool3.GenerateHwidV3, mock_device_info, mock_probe_result)
 
   def testVerifyHwidV3(self):
