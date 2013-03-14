@@ -20,17 +20,15 @@ dargs:
 import os
 import re
 import subprocess
-import time
 import unittest
 
 from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
+from cros.factory.test.countdown_timer import StartCountdownTimer
 from cros.factory.test.ui_templates import OneSection
 from cros.factory.test.utils import StartDaemonThread
 from cros.factory.utils.process_utils import CheckOutput, Spawn
 
-_MSG_TIME_REMAINING = lambda t: test_ui.MakeLabel(
-    'Time remaining: %d' % t, u'剩余时间：%d' % t, 'keyboard-test-info')
 
 _RE_EVTEST_EVENT = re.compile(
     r'^Event: time .*?, type .*? \((.*?)\), code (.*?) \(.*?\), value (.*?)$')
@@ -42,7 +40,7 @@ _HTML_KEYBOARD = (
         (_ID_IMAGE, _ID_COUNTDOWN_TIMER))
 
 _KEYBOARD_TEST_DEFAULT_CSS = (
-    '.keyboard-test-info { font-size: 2em; }\n'
+    '#keyboard-test-timer { font-size: 2em; }\n'
     '.keyboard-test-key-untested { display: none; }\n'
     '.keyboard-test-keydown { background-color: yellow; opacity: 0.5; }\n'
     '.keyboard-test-keyup { background-color: green; opacity: 0.5; }\n')
@@ -94,12 +92,16 @@ class KeyboardTest(unittest.TestCase):
     self.monitor_process = None
     self.EnableXKeyboard(False)
     StartDaemonThread(target=self.MonitorEvtest)
-    StartDaemonThread(target=self.CountdownTimer)
+    StartCountdownTimer(self.args.timeout_secs,
+                        lambda: self.ui.CallJSFunction('failTest'),
+                        self.ui,
+                        _ID_COUNTDOWN_TIMER)
 
   def tearDown(self):
     """Terminates the running process or we'll have trouble stopping the
     test."""
-    self.TerminateProcess()
+    if self.monitor_process.poll() is None:
+      self.monitor_process.terminate()
     self.EnableXKeyboard(True)
 
   def GetKeyboardLayout(self):
@@ -149,21 +151,6 @@ class KeyboardTest(unittest.TestCase):
           self.MarkKeydown(int(ev_code))
         elif ev_type == 'EV_KEY' and value == '0':
           self.MarkKeyup(int(ev_code))
-
-  def CountdownTimer(self):
-    """Starts a countdown timer and fails the test if timer reaches zero."""
-    time_remaining = self.args.timeout_secs
-    while time_remaining > 0:
-      self.ui.SetHTML(_MSG_TIME_REMAINING(time_remaining),
-                      id=_ID_COUNTDOWN_TIMER)
-      time.sleep(1)
-      time_remaining -= 1
-    self.TerminateProcess()
-    self.ui.CallJSFunction('failTest')
-
-  def TerminateProcess(self):
-    if self.monitor_process.poll() is None:
-      self.monitor_process.terminate()
 
   def MarkKeydown(self, keycode):
     """Calls Javascript to mark the given keycode as keydown."""
