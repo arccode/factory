@@ -11,10 +11,19 @@ dargs:
   ok_audio_path: (optional) an audio file's path to notify an operator to open
       the lid.
   audio_volume: (optional) volume to play the ok audio. Default 100%.
+  use_fixture: (optional, bool) True to use fixture to perform automatic lid
+      on/off test. Default False.
+  lid_close: (optional) a char command to fixture MCU to close the lid.
+      Default 0xC2.
+  lid_open: (optional) a char command to fixture MCU to open the lid.
+      Default 0xC3.
+  serial_param: (optional) The parameter list of a serial connection we
+      want to use. [port, baudrate, parity, stopbits, bytesize].
 """
 
 import asyncore
 import evdev
+import serial
 import unittest
 
 from cros.factory.test import test_ui
@@ -29,6 +38,14 @@ _MSG_PROMPT_CLOSE = test_ui.MakeLabel(
     'Close then open the lid', u'关上接着打开上盖', 'lid-test-info')
 _MSG_PROMPT_OPEN = test_ui.MakeLabel(
     'Open the lid', u'请打开上盖', 'lid-test-info')
+
+_MSG_LID_FIXTURE_CLOSE = test_ui.MakeLabel(
+    'Magnitizing lid sensor', u'磁化上盖感应器', 'lid-test-info')
+_MSG_LID_FIXTURE_OPEN = test_ui.MakeLabel(
+    'Demagnitizeing lid sensor', u'消磁化上盖感应器', 'lid-test-info')
+
+_MSG_TIME_REMAINING = lambda t: test_ui.MakeLabel(
+    'Time remaining: %d' % t, u'剩余时间：%d' % t, 'lid-test-info')
 
 _ID_PROMPT = 'lid-test-prompt'
 _ID_COUNTDOWN_TIMER = 'lid-test-timer'
@@ -63,7 +80,18 @@ class LidSwitchTest(unittest.TestCase):
     Arg('audio_volume', int, 'Audio volume to use when playing OK audio file.',
         default=100),
     Arg('event_id', int, 'Event ID for evdev. None for auto probe.',
-        default=None, optional=True)
+        default=None, optional=True),
+    Arg('use_fixture', bool,
+        'True to use fixture to perform automatic lid on/off test.',
+        default=False),
+    Arg('lid_close', str, 'A char command to fixture MCU to close the lid.',
+        default=chr(0xC2)),
+    Arg('lid_open', str, 'A char command to fixture MCU to open the lid.',
+        default=chr(0xC3)),
+    Arg('serial_param', tuple,
+        'The parameter list of a serial connection we want to use.',
+        default=('/dev/ttyUSB1', 9600, serial.PARITY_ODD, serial.STOPBITS_TWO,
+                 serial.SEVENBITS)),
   ]
 
   def setUp(self):
@@ -76,9 +104,26 @@ class LidSwitchTest(unittest.TestCase):
       self.event_dev = self.ProbeLidEventSource()
     self.ui.AppendCSS(_LID_SWITCH_TEST_DEFAULT_CSS)
     self.template.SetState(_HTML_LID_SWITCH)
-    self.ui.SetHTML(_MSG_PROMPT_CLOSE, id=_ID_PROMPT)
-    self.dispatcher = None
+    if self.args.use_fixture:
+      self.ui.SetHTML(_MSG_LID_FIXTURE_CLOSE, id=_ID_PROMPT)
+    else:
+      self.ui.SetHTML(_MSG_PROMPT_CLOSE, id=_ID_PROMPT)
+
+    # Prepare fixture auto test if needed.
+    self.serial = None
+
+    if self.args.use_fixture:
+      (port, baudrate, parity, stopbits, bytesize) = self.args.serial_param
+      self.serial = serial.Serial(port=port, baudrate=baudrate, parity=parity,
+                                  stopbits=stopbits, bytesize=bytesize)
+      try:
+        self.serial.open()
+      except serial.SerialException:
+        self.serial = None
+        self.ui.Fail('Cannot open RS-232: %r.' % self.args.serial_param)
+
     # Create a thread to monitor evdev events.
+    self.dispatcher = None
     StartDaemonThread(target=self.MonitorEvdevEvent)
     # Create a thread to run countdown timer.
     StartCountdownTimer(
@@ -87,8 +132,14 @@ class LidSwitchTest(unittest.TestCase):
         self.ui,
         _ID_COUNTDOWN_TIMER)
 
+    if self.args.use_fixture:
+      self.CloseLid()
+
   def tearDown(self):
     self.TerminateLoop()
+    if self.serial:
+      self.serial.write(self.args.lid_open)
+      self.serial.close()
 
   def ProbeLidEventSource(self):
     """Probe for lid event source."""
@@ -101,8 +152,7 @@ class LidSwitchTest(unittest.TestCase):
   def HandleEvent(self, event):
     if event.type == evdev.ecodes.EV_SW and event.code == evdev.ecodes.SW_LID:
       if event.value == 1: # LID_CLOSED
-        self.ui.SetHTML(_MSG_PROMPT_OPEN, id=_ID_PROMPT)
-        self.PlayOkAudio()
+        self.AskForOpenLid()
       elif event.value == 0: # LID_OPEN
         self.ui.Pass()
 
@@ -113,6 +163,22 @@ class LidSwitchTest(unittest.TestCase):
 
   def TerminateLoop(self):
     self.dispatcher.close()
+
+  def OpenLid(self):
+    if self.serial:
+      self.serial.write(self.args.lid_open)
+
+  def CloseLid(self):
+    if self.serial:
+      self.serial.write(self.args.lid_close)
+
+  def AskForOpenLid(self):
+    if self.args.use_fixture:
+      self.ui.SetHTML(_MSG_LID_FIXTURE_OPEN, id=_ID_PROMPT)
+      self.OpenLid()
+    else:
+      self.ui.SetHTML(_MSG_PROMPT_OPEN, id=_ID_PROMPT)
+      self.PlayOkAudio()
 
   def PlayOkAudio(self):
     if self.args.ok_audio_path:
