@@ -14,17 +14,14 @@ dargs:
 import logging
 import re
 import subprocess
-import time
 import unittest
 
 from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
+from cros.factory.test.countdown_timer import StartCountdownTimer
 from cros.factory.test.ui_templates import OneSection
 from cros.factory.test.utils import StartDaemonThread
 from cros.factory.utils.process_utils import Spawn
-
-_MSG_TIME_REMAINING = lambda t: test_ui.MakeLabel(
-    'Time remaining: %d' % t, u'剩余时间：%d' % t, 'touchpad-test-info')
 
 #Event: time 1352876832.935291, type 3 (EV_ABS), code 53
 _RE_ABS = r'^Event: time .*?, type .*? \(EV_ABS\), code .*? '
@@ -122,8 +119,6 @@ _HTML_TOUCHPAD = '''
 ''' % (_ID_CONTAINER, _ID_COUNTDOWN_TIMER)
 
 # The styles for each item on ui.
-# For countdown timer:
-#   touchpad-test-info
 # For sectors (moving and scrolling event):
 #   touchpad-test-sector-untested: sector not touched.
 #   touchpad-test-sector-tested: sector touched.
@@ -132,7 +127,7 @@ _HTML_TOUCHPAD = '''
 #   touchpad-test-circle-down: click down.
 #   touchpad-test-circle-tested: release click.
 _TOUCHPAD_TEST_DEFAULT_CSS = '''
-    .touchpad-test-info { font-size: 2em; }
+    #touchpad-test-timer { font-size: 2em; }
     .touchpad-test-sector-untested {
       background-color: gray;
       height: 100%; }
@@ -273,14 +268,18 @@ class TouchpadTest(unittest.TestCase):
     logging.info('start monitor daemon thread')
     StartDaemonThread(target=self.MonitorEvtest)
     logging.info('start countdown timer daemon thread')
-    StartDaemonThread(target=self.CountdownTimer)
+    StartCountdownTimer(self.args.timeout_secs,
+                        lambda: self.ui.CallJSFunction('failTest'),
+                        self.ui,
+                        _ID_COUNTDOWN_TIMER)
 
   def tearDown(self):
     '''
     Terminates the running process or we'll have trouble stopping the
     test. Enable the touchpad at X to enable touchpad function in test ui.
     '''
-    self.TerminateProcess()
+    if self.monitor_process.poll() is None:
+      self.monitor_process.terminate()
     self.EnableTouchpadX(True)
 
   def MonitorEvtest(self):
@@ -453,22 +452,6 @@ class TouchpadTest(unittest.TestCase):
         self.move_event.scroll)
     if _RE_EVTEST_SYNREPORT.search(event_message):
       self.move_event.sync = True
-
-  def CountdownTimer(self):
-    '''Starts a countdown timer and fails the test if timer reaches zero.'''
-    time_remaining = self.args.timeout_secs
-    while time_remaining > 0:
-      self.ui.SetHTML(_MSG_TIME_REMAINING(time_remaining),
-                      id=_ID_COUNTDOWN_TIMER)
-      time.sleep(1)
-      time_remaining -= 1
-    self.TerminateProcess()
-    self.ui.CallJSFunction('failTest')
-
-  def TerminateProcess(self):
-    '''terminate the process if it is running.'''
-    if self.monitor_process.poll() is None:
-      self.monitor_process.terminate()
 
   def DrawSingleClick(self, up_down):
     '''

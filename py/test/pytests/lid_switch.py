@@ -15,11 +15,11 @@ dargs:
 
 import asyncore
 import evdev
-import time
 import unittest
 
 from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
+from cros.factory.test.countdown_timer import StartCountdownTimer
 from cros.factory.test.ui_templates import OneSection
 from cros.factory.test.utils import StartDaemonThread
 
@@ -29,13 +29,12 @@ _MSG_PROMPT_CLOSE = test_ui.MakeLabel(
     'Close then open the lid', u'关上接着打开上盖', 'lid-test-info')
 _MSG_PROMPT_OPEN = test_ui.MakeLabel(
     'Open the lid', u'请打开上盖', 'lid-test-info')
-_MSG_TIME_REMAINING = lambda t: test_ui.MakeLabel(
-    'Time remaining: %d' % t, u'剩余时间：%d' % t, 'lid-test-info')
 
 _ID_PROMPT = 'lid-test-prompt'
 _ID_COUNTDOWN_TIMER = 'lid-test-timer'
-_HTML_LID_SWITCH = '<div id="%s"></div>\n<div id="%s"></div>\n' % (
-    _ID_PROMPT, _ID_COUNTDOWN_TIMER)
+_HTML_LID_SWITCH = ('<div id="%s"></div>\n'
+                    '<div id="%s" class="lid-test-info"></div>\n' %
+                    (_ID_PROMPT, _ID_COUNTDOWN_TIMER))
 
 _LID_SWITCH_TEST_DEFAULT_CSS = '.lid-test-info { font-size: 2em; }'
 
@@ -82,7 +81,11 @@ class LidSwitchTest(unittest.TestCase):
     # Create a thread to monitor evdev events.
     StartDaemonThread(target=self.MonitorEvdevEvent)
     # Create a thread to run countdown timer.
-    StartDaemonThread(target=self.CountdownTimer)
+    StartCountdownTimer(
+        self.args.timeout_secs,
+        lambda: self.ui.Fail('Lid switch test failed due to timeout.'),
+        self.ui,
+        _ID_COUNTDOWN_TIMER)
 
   def tearDown(self):
     self.TerminateLoop()
@@ -116,16 +119,6 @@ class LidSwitchTest(unittest.TestCase):
       self.ui.PlayAudioFile(self.args.ok_audio_path)
     else:
       self.ui.PlayAudioFile('ok_%s.ogg' % self.ui.GetUILanguage())
-
-  def CountdownTimer(self):
-    """Starts a countdown timer and fails the test if timer reaches zero."""
-    time_remaining = self.args.timeout_secs
-    while time_remaining > 0:
-      self.ui.SetHTML(_MSG_TIME_REMAINING(time_remaining),
-                      id=_ID_COUNTDOWN_TIMER)
-      time.sleep(1)
-      time_remaining -= 1
-    self.ui.Fail('Lid switch test failed due to timeout.')
 
   def runTest(self):
     self.ui.Run()
