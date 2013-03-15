@@ -39,7 +39,7 @@ def MakeUpdateBundle(factory_image, output):
            '-C', os.path.join(BUNDLE_MOUNT_POINT, 'dev_image'),
            '--exclude', 'factory/MD5SUM',
            'factory', 'autotest'],
-          sudo=True, check_call=True, log=True)
+           check_call=True, log=True)
     md5sum = (Spawn(['md5sum', output], check_output=True).
               stdout_data.split()[0])
     logging.info('MD5SUM is %s', md5sum)
