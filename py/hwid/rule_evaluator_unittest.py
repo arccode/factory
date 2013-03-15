@@ -117,8 +117,8 @@ class RuleEvaluatorTest(unittest.TestCase):
 
   def testEvaluateRules(self):
     self.assertEquals(
-        (['Test rule 1', 'Test rule 4', 'Test rule 5'], ['Test rule 3'],
-         ['Test rule 2']),
+        (['Test rule 1', 'Test rule 4', 'Test rule 5', 'Test rule 6'],
+         ['Test rule 3'], ['Test rule 2']),
         RuleEvaluator.EvaluateRules(self.hwid, self.hwid.database.rules))
 
   def testVerifySKU(self):

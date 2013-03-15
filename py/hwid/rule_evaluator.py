@@ -202,7 +202,9 @@ class RuleEvaluator(object):
     not_evaluated = []
     failed = []
     for r in rules:
-      if cls.CheckAll(hwid, r['when']):
+      if ((len(r['when']) == 1 and r['when'][0].strip() == '*') or
+          cls.CheckAll(hwid, r['when'])):
+        # A list with one '*' in 'when' means always true.
         if 'check_all' in r:
           if cls.CheckAll(hwid, r['check_all']):
             passed.append(r['name'])

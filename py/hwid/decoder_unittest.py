@@ -7,16 +7,16 @@
 
 import factory_common # pylint: disable=W0611
 import os
-import unittest
+import unittest2
 
-from cros.factory.hwid import Database
+from cros.factory.hwid import Database, HWIDException
 from cros.factory.hwid.decoder import EncodedStringToBinaryString
 from cros.factory.hwid.decoder import BinaryStringToBOM, Decode
 
 _TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
 
 
-class DecoderTest(unittest.TestCase):
+class DecoderTest(unittest2.TestCase):
   def setUp(self):
     self.database = Database.LoadFile(os.path.join(_TEST_DATA_PATH,
                                                    'test_db.yaml'))
@@ -91,7 +91,9 @@ class DecoderTest(unittest.TestCase):
         self.database, '00101111010000010100').image_id)
     self.assertEquals(1, BinaryStringToBOM(
         self.database, '10000111010000010100').encoding_pattern_index)
-
+    self.assertRaisesRegexp(
+        HWIDException, r"Invalid encoded field index: {'cpu': 6}",
+        BinaryStringToBOM, self.database, '00000111000010010100')
 
   def testDecode(self):
     result = open(os.path.join(_TEST_DATA_PATH,
@@ -115,4 +117,4 @@ class DecoderTest(unittest.TestCase):
 
 
 if __name__ == '__main__':
-  unittest.main()
+  unittest2.main()

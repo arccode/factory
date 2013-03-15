@@ -395,6 +395,13 @@ rules:
       - storage EQ SSD
       - storate EQ 16G
 
+  - name: Test rule 6
+    when:
+      - '*'
+    check_any:
+      - storage EQ SSD
+      - storate EQ 16G
+
 allowed_skus:
   - name: SKU1
     check_all:

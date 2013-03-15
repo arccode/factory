@@ -321,9 +321,35 @@ class Database(object):
                 'shopfloor_device_info', 'vpd_ro_fields', 'vpd_rw_fields']:
       if not db_yaml.get(key):
         raise HWIDException('%r is not specified in component database' % key)
-    # TODO(jcliang): Add check for rules.
+
     rules = db_yaml.get('rules')
     allowed_skus = db_yaml.get('allowed_skus')
+    # Temporary schema validations for rules and skus.
+    # TODO(jcliang): Update these schema checks after rule language refacoring.
+    if rules:
+      rules_schema = List('list of rules', FixedDict('rules',
+          items={
+              'name': Scalar('rule name', str),
+              'when': List('conditions', Scalar('condition', str))},
+          optional_items={
+              'check_all': List('rules', AnyOf([
+                  Scalar('condition', str),
+                  Dict('recursive rule',
+                       key_type=Scalar('sub-rule', str),
+                       value_type=List('list of rules'))])),
+              'check_any': List('rules', AnyOf([
+                  Scalar('condition', str),
+                  Dict('recursive rule',
+                       key_type=Scalar('sub-rule', str),
+                       value_type=List('list of rules'))]))}))
+      rules_schema.Validate(rules)
+    if allowed_skus:
+      allowed_skus_schema = List('list of skus', FixedDict('skus',
+          items={
+              'name': Scalar('sku name', str),
+              'check_all': List('conditions', Scalar('condition', str))},
+          optional_items=None))
+      allowed_skus_schema.Validate(allowed_skus)
 
     return Database(db_yaml['board'],
                     _EncodingPatterns(db_yaml['encoding_patterns']),

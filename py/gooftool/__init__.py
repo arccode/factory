@@ -22,6 +22,7 @@ from cros.factory.gooftool.vpd_data import KNOWN_VPD_FIELD_DATA
 from cros.factory.hwid import Database
 from cros.factory.hwid.decoder import Decode
 from cros.factory.hwid.encoder import Encode
+from cros.factory.hwid.rule_evaluator import RuleEvaluator
 
 # A named tuple to store the probed component name and the error if any.
 ProbedComponentResult = namedtuple('ProbedComponentResult',
@@ -655,6 +656,14 @@ class Gooftool(object):
 
     hwid_context = self._hwid_decode(self.db, encoded_string)
     hwid_context.VerifyProbeResult(probe_results)
+    if self.db.rules:
+      # passed, not_evaluated, failed
+      _, _, failed = (
+          RuleEvaluator.EvaluateRules(hwid_context, self.db.rules))
+      if failed:
+        raise Error, 'The check against the following rules failed: %r' % (
+            ', '.join(sorted(failed)))
+
     for key in self.db.vpd_ro_fields:
       if key not in probed_ro_vpd:
         raise Error, 'Missing required RO VPD field: %s' % key

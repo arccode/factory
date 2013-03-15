@@ -358,7 +358,7 @@ rules:
       - key_root EQ key_root_0
       - ro_ec_firmware EQ ro_ec_firmware_0
       - ro_main_firmware EQ ro_main_firmware_0
-      - cpu IN (cpu_1, cpu_2)
+      - cpu IN (cpu_1, cpu_2, cpu_5)
 
   - name: Test rule 3
     when:

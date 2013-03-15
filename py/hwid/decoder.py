@@ -10,7 +10,7 @@
 import collections
 import factory_common # pylint: disable=W0611
 
-from cros.factory.hwid import HWID, BOM, ProbedComponentResult
+from cros.factory.hwid import HWID, BOM, ProbedComponentResult, HWIDException
 from cros.factory.hwid.base32 import Base32
 
 
@@ -41,6 +41,12 @@ def BinaryStringToBOM(database, binary_string):
     # If a field is not encoded in the binary string but is specified in
     # the pattern of the given database, defaults its value to 0.
     encoded_fields[field] = 0
+
+  # Check that all the encoded field indices are valid.
+  for field in encoded_fields:
+    if encoded_fields[field] not in database.encoded_fields[field]:
+      raise HWIDException('Invalid encoded field index: {%r: %r}' %
+                          (field, encoded_fields[field]))
 
   # Construct the components dict.
   components = collections.defaultdict(list)
