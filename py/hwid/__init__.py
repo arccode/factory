@@ -50,7 +50,7 @@ def ProbeBoard():
                         LSB_RELEASE_FILE)
   try:
     with open(LSB_RELEASE_FILE) as f:
-      board = LSB_BOARD_RE.findall(f.read())[0]
+      board = LSB_BOARD_RE.findall(f.read())[0].rpartition('_')[-1]
   except IndexError:
     raise HWIDException('Cannot determine board from %r' % LSB_RELEASE_FILE)
   return board
