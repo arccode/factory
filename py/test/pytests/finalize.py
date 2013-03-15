@@ -14,6 +14,7 @@ import yaml
 import factory_common  # pylint: disable=W0611
 from cros.factory import system
 from cros.factory.event_log import EventLog
+from cros.factory.gooftool import Gooftool
 from cros.factory.test import factory
 from cros.factory.test import gooftools
 from cros.factory.test import shopfloor
@@ -72,6 +73,9 @@ class Finalize(unittest.TestCase):
           'multiline match.  This is a Python re.match operation, so it will '
           'match from the beginning of the error string.',
           default=[]),
+      Arg('hwid_version', int,
+          'Version of HWID library to use in gooftool.', defualt=2,
+          optional=True)
       ]
 
   def setUp(self):
@@ -82,6 +86,7 @@ class Finalize(unittest.TestCase):
     self.test_states_path = os.path.join(factory.get_log_root(),
                                          'test_states')
     self.event_log = EventLog.ForAutoTest()
+    self.gooftool = Gooftool(hwid_version=self.args.hwid_version)
 
     # Set of waived tests.
     self.waived_tests = set()
@@ -179,8 +184,8 @@ class Finalize(unittest.TestCase):
     items = [(CheckRequiredTests,
               MakeLabel("Verify all tests passed",
                         "确认测试项目都已成功了")),
-             (lambda: gooftools.run('gooftool --suppress-event-logs '
-                                    'verify_switch_dev'),
+             (lambda: (
+                self.gooftool.CheckDevSwitchForDisabling() in (True, False)),
               MakeLabel("Turn off Developer Switch",
                         "停用开发者开关(DevSwitch)"))]
     if self.args.min_charge_pct:
@@ -191,8 +196,7 @@ class Finalize(unittest.TestCase):
                               "充电到%d%%" %
                               self.args.min_charge_pct)))
     if self.args.write_protection:
-      items += [(lambda: gooftools.run('gooftool --suppress-event-logs '
-                                       'verify_switch_wp'),
+      items += [(lambda: self.gooftool.VerifyWPSwitch() == None,
                  MakeLabel("Enable write protection pin",
                            "确认硬体写入保护已开启"))]
 
@@ -279,7 +283,7 @@ class Finalize(unittest.TestCase):
   def DoFinalize(self):
     upload_method = self.NormalizeUploadMethod(self.args.upload_method)
 
-    command = 'gooftool -v 4 finalize'
+    command = 'gooftool -v 4 -i %d finalize' % self.args.hwid_version
     if self.waived_tests:
       self.Warn('TESTS WERE WAIVED: %s.' % sorted(list(self.waived_tests)))
     self.event_log.Log('waived_tests',

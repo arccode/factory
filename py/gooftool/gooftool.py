@@ -36,7 +36,6 @@ from cros.factory.gooftool.vpd_data import KNOWN_VPD_FIELD_DATA
 from cros.factory.hacked_argparse import CmdArg, Command, ParseCmdline
 from cros.factory.hacked_argparse import verbosity_cmd_arg
 from cros.factory.hwdb import hwid_tool
-from cros.factory.hwdb.yaml_datastore import InvalidDataError
 from cros.factory.test.factory import FACTORY_LOG_PATH
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.privacy import FilterDict
@@ -52,13 +51,27 @@ _event_log = EventLog('gooftool')
 # verbose output for generic Error).
 
 
+def GetGooftool(options):
+  if options.hwid_version == 2:
+    hwdb_path = getattr(options, 'hwdb_path', None)
+    component_db = (
+        hwid_tool.HardwareDb(options.hwdb_path).comp_db if hwdb_path else None)
+    return Gooftool(hwid_version=2, component_db=component_db)
+  elif options.hwid_version == 3:
+    board = getattr(options, 'board', None)
+    hwdb_path = getattr(options, 'hwdb_path', None)
+    return Gooftool(hwid_version=3, board=board, hwdb_path=hwdb_path)
+  else:
+    raise Error, 'Invalid HWID version: %r' % options.hwid_version
+
+
 @Command('write_hwid',
          CmdArg('hwid', metavar='HWID', help='HWID string'))
 def WriteHWID(options):
   """Write specified HWID value into the system BB."""
 
   logging.info('writing hwid string %r', options.hwid)
-  Gooftool().WriteHWID(options.hwid)
+  GetGooftool(options).WriteHWID(options.hwid)
   _event_log.Log('write_hwid', hwid=options.hwid)
   print 'Wrote HWID: %r' % options.hwid
 
@@ -88,8 +101,7 @@ _device_info_cmd_arg = CmdArg(
 
 _hwid_cmd_arg = CmdArg(
     '--hwid', metavar='HWID',
-    help=('HWID to verify (instead of the currently set HWID of '
-          'this system)'))
+    help='HWID to verify (instead of the currently set HWID of this system).')
 
 
 @Command('best_match_hwids',
@@ -280,16 +292,11 @@ def BestMatchHwids(options):
                 help='Include VPD data in volatiles.'))
 def RunProbe(options):
   """Print yaml-formatted breakdown of probed device properties."""
-  try:
-    print Gooftool().Probe(target_comp_classes=options.comps,
-                           probe_volatile=not options.no_vol,
-                           probe_initial_config=not options.no_ic,
-                           probe_vpd=options.include_vpd).Encode()
-  except InvalidDataError:
-    print Gooftool(hwid_version=3).Probe(target_comp_classes=options.comps,
-                                         probe_volatile=not options.no_vol,
-                                         probe_initial_config=not options.no_ic,
-                                         probe_vpd=options.include_vpd).Encode()
+  print GetGooftool(options).Probe(
+      target_comp_classes=options.comps,
+      probe_volatile=not options.no_vol,
+      probe_initial_config=not options.no_ic,
+      probe_vpd=options.include_vpd).Encode()
 
 
 @Command('verify_components',
@@ -304,9 +311,8 @@ def VerifyComponents(options):
   do not check against any specific BOM/HWID configurations.
   """
 
-  comp_db = hwid_tool.HardwareDb(options.hwdb_path).comp_db
   try:
-    result = Gooftool(component_db=comp_db).VerifyComponents(
+    result = GetGooftool(options).VerifyComponents(
         options.target_comps)
   except ValueError, e:
     sys.exit(e)
@@ -469,14 +475,14 @@ def VerifyHwid(options):
 def VerifyKeys(options):  # pylint: disable=W0613
   """Verify keys in firmware and SSD match."""
 
-  return Gooftool().VerifyKeys()
+  return GetGooftool(options).VerifyKeys()
 
 
 @Command('set_fw_bitmap_locale')
 def SetFirmwareBitmapLocale(options):  # pylint: disable=W0613
   """Use VPD locale value to set firmware bitmap default language."""
 
-  (index, locale) = Gooftool().SetFirmwareBitmapLocale()
+  (index, locale) = GetGooftool(options).SetFirmwareBitmapLocale()
   logging.info('Firmware bitmap initial locale set to %d (%s).',
                index, locale)
 
@@ -485,28 +491,28 @@ def SetFirmwareBitmapLocale(options):  # pylint: disable=W0613
 def VerifySystemTime(options):  # pylint: disable=W0613
   """Verify system time is later than release filesystem creation time."""
 
-  return Gooftool().VerifySystemTime()
+  return GetGooftool(options).VerifySystemTime()
 
 
 @Command('verify_rootfs')
 def VerifyRootFs(options):  # pylint: disable=W0613
   """Verify rootfs on SSD is valid by checking hash."""
 
-  return Gooftool().VerifyRootFs()
+  return GetGooftool(options).VerifyRootFs()
 
 
 @Command('verify_switch_wp')
 def VerifyWPSwitch(options):  # pylint: disable=W0613
   """Verify hardware write protection switch is enabled."""
 
-  Gooftool().VerifyWPSwitch()
+  GetGooftool(options).VerifyWPSwitch()
 
 
 @Command('verify_switch_dev')
 def VerifyDevSwitch(options):  # pylint: disable=W0613
   """Verify developer switch is disabled."""
 
-  if Gooftool().CheckDevSwitchForDisabling():
+  if GetGooftool(options).CheckDevSwitchForDisabling():
     logging.warn('VerifyDevSwitch: No physical switch.')
     _event_log.Log('switch_dev', type='virtual switch')
 
@@ -570,7 +576,7 @@ def ClearGBBFlags(options):  # pylint: disable=W0613
   for factory/development.  See "gbb_utility --flags" for details.
   """
 
-  Gooftool().ClearGBBFlags()
+  GetGooftool(options).ClearGBBFlags()
   _event_log.Log('clear_gbb_flags')
 
 
@@ -580,13 +586,14 @@ def ClearGBBFlags(options):  # pylint: disable=W0613
 def PrepareWipe(options):
   """Prepare system for transition to release state in next reboot."""
 
-  Gooftool().PrepareWipe(options.fast)
+  GetGooftool(options).PrepareWipe(options.fast)
 
 @Command('verify',
          CmdArg('--no_write_protect', action='store_true',
                 help='Do not check write protection switch state.'),
          _hwid_status_list_cmd_arg,
          _hwdb_path_cmd_arg,
+         _board_cmd_arg,
          _probe_results_cmd_arg,
          _hwid_cmd_arg)
 def Verify(options):
@@ -599,19 +606,25 @@ def Verify(options):
   """
 
   if not options.no_write_protect:
-    VerifyWPSwitch({})
-  VerifyDevSwitch({})
-  VerifyHwid(options)
-  VerifySystemTime({})
-  VerifyKeys({})
-  VerifyRootFs({})
+    VerifyWPSwitch(options)
+  VerifyDevSwitch(options)
+  if options.hwid_version == 2:
+    VerifyHwid(options)
+  elif options.hwid_version == 3:
+    VerifyHwidV3(options)
+  else:
+    raise Error, 'Invalid HWID version: %r' % options.hwid_version
+  VerifySystemTime(options)
+  VerifyKeys(options)
+  VerifyRootFs(options)
 
 
 @Command('log_system_details')
 def LogSystemDetails(options):  # pylint: disable=W0613
   """Write miscellaneous system details to the event log."""
 
-  _event_log.Log('system_details', **Gooftool().GetSystemDetails())
+  _event_log.Log('system_details', **Gooftool(
+      hwid_version=options.hwid_version).GetSystemDetails())
 
 
 _upload_method_cmd_arg = CmdArg(
@@ -690,6 +703,7 @@ def UploadReport(options):
          _hwid_status_list_cmd_arg,
          _upload_method_cmd_arg,
          _add_file_cmd_arg,
+         _board_cmd_arg,
          _probe_results_cmd_arg,
          _hwid_cmd_arg)
 def Finalize(options):
@@ -704,8 +718,8 @@ def Finalize(options):
   """
 
   Verify(options)
-  SetFirmwareBitmapLocale({})
-  ClearGBBFlags({})
+  SetFirmwareBitmapLocale(options)
+  ClearGBBFlags(options)
   if options.no_write_protect:
     logging.warn('WARNING: Firmware Write Protection is SKIPPED.')
     _event_log.Log('wp', fw='both', status='skipped')
@@ -731,10 +745,7 @@ def VerifyComponentsV3(options):
   do not check against any specific BOM/HWID configurations.
   """
 
-  result = Gooftool(hwid_version=3, board=options.board,
-                    hwdb_path=options.hwdb_path).VerifyComponentsV3(
-                        options.target_comps)
-
+  result = GetGooftool(options).VerifyComponentsV3(options.target_comps)
   PrintVerifyComponentsResults(result)
 
 
@@ -770,9 +781,8 @@ def GenerateHwidV3(options):
     volatiles=probe_results.found_volatile_values,
     initial_configs=probe_results.initial_configs)
 
-  hwid_object = Gooftool(hwid_version=3, board=options.board,
-                         hwdb_path=options.hwdb_path).GenerateHwidV3(
-                             device_info, probe_results.Encode())
+  hwid_object = GetGooftool(options).GenerateHwidV3(
+      device_info, probe_results.Encode())
 
   final_bom = {}
   for component_class, component_values in (
@@ -825,9 +835,8 @@ def VerifyHwidV3(options):
   _event_log.Log('vpd', probed_ro_vpd=FilterDict(probed_ro_vpd),
                  probed_rw_vpd=FilterDict(probed_rw_vpd))
 
-  Gooftool(hwid_version=3, board=options.board,
-           hwdb_path=options.hwdb_path).VerifyHwidV3(
-               hwid_str, probe_results.Encode(), probed_ro_vpd, probed_rw_vpd)
+  GetGooftool(options).VerifyHwidV3(
+      hwid_str, probe_results.Encode(), probed_ro_vpd, probed_rw_vpd)
 
   _event_log.Log('verified_hwid', hwid=hwid_str)
   print 'Verification SUCCESS!'
@@ -842,6 +851,8 @@ def Main():
              help='Write logs to this file.'),
       CmdArg('--suppress-event-logs', action='store_true',
              help='Suppress event logging.'),
+      CmdArg('-i', '--hwid-version', default=2, choices=[2, 3], type=int,
+             help='Version of HWID to operate on.'),
       verbosity_cmd_arg)
   SetupLogging(options.verbosity, options.log)
   _event_log.suppress = options.suppress_event_logs
