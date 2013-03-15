@@ -25,6 +25,9 @@ class VerifyComponentsUnitTest(unittest.TestCase):
     # mocks for setting up _mock_test used for FactoryTask tests
     self._mock_test = self._mox.CreateMock(
         verify_components.VerifyComponentsTest)
+    setattr(self._mock_test, 'args',
+            type('mock_version', (), {'hwid_version': 2}))
+    self._mock_test.args.hwid_version = 2
     self._mock_test.gooftool = self._mox.CreateMock(Gooftool)
     self._mock_shopfloor = self._mox.CreateMock(shopfloor)
     self._mock_test.template = self._mox.CreateMock(OneSection)
@@ -62,6 +65,26 @@ class VerifyComponentsUnitTest(unittest.TestCase):
     # esnure the result is appended
     self.assertEquals(probed, self._mock_test.probed_results)
 
+  def testCheckComponentsTaskPassV3(self):
+    self._mock_test.args.hwid_version = 3
+    task = CheckComponentsTask(self._mock_test)
+    self._StubPassFail(task)
+    self._mock_test.component_list = ['camera', 'cpu']
+
+    self._mock_test.template.SetState(mox.IsA(unicode))
+
+    # good probed results
+    probed = {'camera':[ProbedComponentResult('camera_1', 'CAMERA_1', None)],
+              'cpu': [ProbedComponentResult('cpu_1', 'CPU_1', None)]}
+    self._mock_test.gooftool.VerifyComponentsV3(
+        self._mock_test.component_list).AndReturn(probed)
+
+    task.Pass()
+
+    self._mox.ReplayAll()
+    task.Run()
+    # esnure the result is appended
+
   def testCheckComponentsTaskFailed(self):
     '''Test for component name not found error.'''
 
@@ -75,6 +98,29 @@ class VerifyComponentsUnitTest(unittest.TestCase):
     probed = {'camera':[ProbedComponentResult('camera_1', 'CAMERA_1', None)],
               'cpu': [ProbedComponentResult(None, 'CPU_1', "Fake error")]}
     self._mock_test.gooftool.VerifyComponents(
+        self._mock_test.component_list).AndReturn(probed)
+
+    task.Fail(mox.IsA(str))
+
+    self._mox.ReplayAll()
+    task.Run()
+    # esnure the result is appended
+    self.assertEquals(probed, self._mock_test.probed_results)
+
+  def testCheckComponentsTaskFailedV3(self):
+    '''Test for component name not found error with HWIDv3.'''
+
+    self._mock_test.args.hwid_version = 3
+    task = CheckComponentsTask(self._mock_test)
+    self._StubPassFail(task)
+    self._mock_test.component_list = ['camera', 'cpu']
+
+    self._mock_test.template.SetState(mox.IsA(unicode))
+
+    # bad probed results
+    probed = {'camera':[ProbedComponentResult('camera_1', 'CAMERA_1', None)],
+              'cpu': [ProbedComponentResult(None, 'CPU_1', "Fake error")]}
+    self._mock_test.gooftool.VerifyComponentsV3(
         self._mock_test.component_list).AndReturn(probed)
 
     task.Fail(mox.IsA(str))

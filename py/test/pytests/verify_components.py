@@ -16,6 +16,7 @@ from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
+from cros.factory.test.factory import FactoryTestFailure
 from cros.factory.test.factory_task import FactoryTask, FactoryTaskManager
 from cros.factory.gooftool import Gooftool
 
@@ -47,7 +48,11 @@ class CheckComponentsTask(FactoryTask):
 
     self._test.template.SetState(_MESSAGE_CHECKING_COMPONENTS)
     try:
-      result = self._test.gooftool.VerifyComponents(self._test.component_list)
+      if self._test.args.hwid_version == 2:
+        result = self._test.gooftool.VerifyComponents(self._test.component_list)
+      elif self._test.args.hwid_version == 3:
+        result = self._test.gooftool.VerifyComponentsV3(
+            self._test.component_list)
     except ValueError, e:
       self.Fail(str(e))
       return
@@ -169,17 +174,22 @@ class VerifyComponentsTest(unittest.TestCase):
         'specified. The matching is triggered only when a mapping if found. '
         'If no mapping is found, an error will be raised. e.g. '
         '{True: ["APPLE", "MELON"], False: ["ORANGE"]}',
-        optional=True)
+        optional=True),
+    Arg('hwid_version', int,
+        'The version of HWID functions to call. This should be set to "3" if '
+        'the DUT is using HWIDv3.',
+        default=2, optional=True)
   ]
-
-  def __init__(self, *args, **kwargs):
-    super(VerifyComponentsTest, self).__init__(*args, **kwargs)
+  def setUp(self):
     self._shopfloor = shopfloor
     self._ui = test_ui.UI()
     self._ui.AppendCSS('.progress-message {font-size: 2em;}')
     self.board = None
     self.component_list = None
-    self.gooftool = Gooftool()
+    if self.args.hwid_version not in [2, 3]:
+      raise FactoryTestFailure(
+          'Invalid HWID version: %r' % self.args.hwid_version)
+    self.gooftool = Gooftool(hwid_version=self.args.hwid_version)
     self.probed_results = None
     self.template = ui_templates.OneSection(self._ui)
     self.template.SetTitle(_TEST_TITLE)
@@ -190,6 +200,11 @@ class VerifyComponentsTest(unittest.TestCase):
 
     allow_missing = (self.args.bom_whitelist != None)
     task_list = [CheckComponentsTask(self, allow_missing)]
+
+    # TODO(jcliang): Remove this after we support BOM verification in HWIDv3.
+    if ((self.args.hwid_version == 3) and
+        (self.args.bom_whitelist or self.args.bom_mapping)):
+      raise FactoryTestFailure('BOM verifications is not supported in HWIDv3')
 
     # Run VerifyAnyBOMTask if the BOM whitelist is specified.
     if self.args.bom_whitelist:
