@@ -19,14 +19,19 @@ import unittest
 from cros.factory.test.args import Arg
 from cros.factory.utils.process_utils import SpawnOutput
 
-_RE_DEVICE_FOUND = re.compile('^\d\d:\s+(UU|[0-9a-f]{2})', re.MULTILINE)
+_RE_DEVICE_FOUND = re.compile('^(UU|[0-9a-f]{2})$')
 
 
 class I2CProbeTest(unittest.TestCase):
-  def probe_I2C(self, bus, addr):
+  def DeviceExists(self, i2c_result):
+    """Returns true if i2c_result indicates that the device exists."""
+    # Ignore first line.
+    i2c_result = i2c_result[i2c_result.find('\n'):]
+    return any(_RE_DEVICE_FOUND.match(f) for f in i2c_result.split())
+
+  def ProbeI2C(self, bus, addr):
     cmd = 'i2cdetect -y %d 0x%x 0x%x' % (bus, addr, addr)
-    response = SpawnOutput(cmd.split(), log=True)
-    return _RE_DEVICE_FOUND.search(response) is not None
+    return self.DeviceExists(SpawnOutput(cmd.split(), log=True))
 
   ARGS = [
     Arg('bus', int, 'I2C bus to probe.'),
@@ -38,6 +43,6 @@ class I2CProbeTest(unittest.TestCase):
     if type(addr_list) != list:
       addr_list = [addr_list]
 
-    self.assertTrue(any([self.probe_I2C(bus, addr) for addr in addr_list]),
+    self.assertTrue(any(self.ProbeI2C(bus, addr) for addr in addr_list),
                     'No I2C device on bus %d addr %s' %
                     (bus, ', '.join(['0x%x' % addr for addr in addr_list])))
