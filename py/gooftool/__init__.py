@@ -681,6 +681,25 @@ class Gooftool(object):
           (value not in known_valid_values)):
         raise Error, 'Invalid RW VPD entry : key %r, value %r' % (key, value)
 
+  def DecodeHwidV3(self, encoded_string):
+    """Decodes the given HWIDv3 encoded string and returns the decoded info.
+
+    Args:
+      encoded_string: The encoded HWID string to test. If not specified,
+        use gbb_utility to get HWID.
+
+    Returns:
+      The decoded HWIDv3 context object.
+    """
+    if self._hwid_version != 3:
+      raise Error, 'hwid_version needs to be 3 to run DecodeHwidV3'
+    if not encoded_string:
+      main_fw_file = crosfw.LoadMainFirmware().GetFileName()
+      gbb_result = self._util.shell(
+          'gbb_utility -g --hwid %s' % main_fw_file).stdout
+      encoded_string = re.findall(r'hardware_id:(.*)', gbb_result)[0].strip()
+    decoded_hwid_context = Decode(self.db, encoded_string)
+    return decoded_hwid_context
 
   def FindBOMMismatchesV3(self, board, bom_name, probed_comps):
     """Finds mismatched components for a BOM. This method uses the HWIDv3

@@ -18,6 +18,7 @@ import pipes
 import re
 import sys
 import time
+import yaml
 
 from tempfile import gettempdir
 
@@ -752,6 +753,7 @@ def VerifyComponentsV3(options):
 @Command('generate_hwid_v3',
          _board_cmd_arg,
          _hwdb_path_cmd_arg,
+         _probe_results_cmd_arg,
          _device_info_cmd_arg)
 def GenerateHwidV3(options):
   """Generates the HWID of the DUT.
@@ -761,10 +763,15 @@ def GenerateHwidV3(options):
   between device info and probe result, priority is given to device info.
   """
   try:
-    device_info = eval(options.device_info)
+    with open(options.device_info) as f:
+      device_info = yaml.load(f.read())
   except Exception, e:
     raise Error, 'Invalid device_info: %s' % e
-  probe_results = Probe()
+  if options.probe_results:
+    with open(options.probe_results) as f:
+      probe_results = hwid_tool.ProbeResults.Decode(f.read())
+  else:
+    probe_results = Probe()
   print 'device_info:'
   print device_info
   print 'probe result:'
@@ -802,6 +809,7 @@ def GenerateHwidV3(options):
 @Command('verify_hwid_v3',
          _board_cmd_arg,
          _hwdb_path_cmd_arg,
+         _probe_results_cmd_arg,
          _hwid_cmd_arg)
 def VerifyHwidV3(options):
   """Verify system HWID properties match probed device properties.
@@ -814,16 +822,33 @@ def VerifyHwidV3(options):
   the necessary fields as specified by the board data, and when
   possible verify that values are legitimate.
   """
-  main_fw_file = crosfw.LoadMainFirmware().GetFileName()
+  if not options.probe_results:
+    main_fw_file = crosfw.LoadMainFirmware().GetFileName()
   if options.hwid:
     hwid_str = options.hwid
   else:
     gbb_result = Shell('gbb_utility -g --hwid %s' % main_fw_file).stdout
     hwid_str = re.findall(r'hardware_id:(.*)', gbb_result)[0].strip()
   print 'Verifying HWID: %r\n' % hwid_str
-  probe_results = Probe()
-  probed_ro_vpd = ReadRoVpd(main_fw_file)
-  probed_rw_vpd = ReadRwVpd(main_fw_file)
+  if options.probe_results:
+    # Pull in probe results (including VPD data) from the given file
+    # rather than probing the current system.
+    with open(options.probe_results) as f:
+      probe_results = hwid_tool.ProbeResults.Decode(f.read())
+    probed_ro_vpd = {}
+    probed_rw_vpd = {}
+    for k, v in probe_results.found_volatile_values.items():
+      # Use items(), not iteritems(), since we will be modifying the dict in the
+      # loop.
+      match = re.match('^vpd\.(ro|rw)\.(\w+)$', k)
+      if match:
+        del probe_results.found_volatile_values[k]
+        (probed_ro_vpd if match.group(1) == 'ro'
+            else probed_rw_vpd)[match.group(2)] = v
+  else:
+    probe_results = Probe()
+    probed_ro_vpd = ReadRoVpd(main_fw_file)
+    probed_rw_vpd = ReadRwVpd(main_fw_file)
   print 'probe result:'
   print probe_results.Encode()
   _event_log.Log(
@@ -840,6 +865,37 @@ def VerifyHwidV3(options):
 
   _event_log.Log('verified_hwid', hwid=hwid_str)
   print 'Verification SUCCESS!'
+
+
+@Command('decode_hwid_v3',
+         _board_cmd_arg,
+         _hwdb_path_cmd_arg,
+         _hwid_cmd_arg)
+def DecodeHwidV3(options):
+  """Decodes the given v3 HWID and prints out decoded information.
+
+  If no HWID is given, the HWID stored on the device will be loaded and used
+  instead.
+  """
+  decoded_hwid_context = Gooftool(hwid_version=3, board=options.board,
+                                  hwdb_path=options.hwdb_path).DecodeHwidV3(
+                                      options.hwid)
+
+  print 'board: %s' % decoded_hwid_context.database.board
+  print 'binary_string: %s' % decoded_hwid_context.binary_string
+  print 'components:'
+  components = decoded_hwid_context.bom.components
+  for comp_cls in sorted(components):
+    print '%s:' % comp_cls
+    for (comp_name, probed_value, _) in sorted(components[comp_cls]):
+      if not probed_value:
+        # Some components (e.g. dram) does have probed value but is not
+        # probeable in the sense that the probed value does not contain enough
+        # information.
+        db_components = decoded_hwid_context.database.components
+        probed_value = db_components[comp_cls][comp_name]['value']
+      print '  - %s: %s' % (comp_name,
+                            probed_value if probed_value else 'UNPROBEABLE')
 
 
 def Main():
