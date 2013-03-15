@@ -39,6 +39,9 @@ class Scan(unittest.TestCase):
         'Key to use to store in scanned value in RW VPD', optional=True),
     Arg('regexp', str,
         'Regexp that the scanned value must match', optional=True),
+    Arg('check_device_data_key', str,
+        'Checks that the given value in device data matches the scanned value',
+        optional=True),
   ]
 
   def HandleScanValue(self, event):
@@ -96,6 +99,25 @@ class Scan(unittest.TestCase):
     if self.args.shared_data_key:
       factory.set_shared_data(self.args.shared_data_key,
                               scan_value)
+
+    if self.args.check_device_data_key:
+      expected_value = shopfloor.GetDeviceData().get(
+          self.args.check_device_data_key)
+      if expected_value != scan_value:
+        logging.error("Expected %r but got %r", expected_value, scan_value)
+
+        # Show expected value only in engineering mode, so the user
+        # can't fake it.
+        esc_expected_value = (
+            test_ui.Escape(expected_value) or "None")
+        return SetError(
+            'The scanned value "%s" does not match '
+            'the expected value'
+            '<span class=goofy-engineering-mode-only> "%s".</span>' % (
+                esc_scan_value, esc_expected_value),
+            u'所掃描的編號「%s」不搭配所期望的編號'
+            u'<span class=goofy-engineering-mode-only>「%s」</span>。' % (
+                esc_scan_value, esc_expected_value))
 
     if self.args.rw_vpd_key:
       self.ui.SetHTML(
