@@ -590,7 +590,7 @@ class FactoryTest(object):
   # Subsystems that the test may require exclusive access to.
   EXCLUSIVE_OPTIONS = utils.Enum(['NETWORKING', 'CHARGER'])
 
-  RUN_IF_REGEXP = re.compile(r'^(!)?(\w+)\.(\w+)$')
+  RUN_IF_REGEXP = re.compile(r'^(!)?(\w+)\.(.+)$')
 
   def __init__(self,
                label_en='',

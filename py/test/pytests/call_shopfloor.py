@@ -30,11 +30,16 @@ class Env(object):
     return open('/sys/class/net/%s/address' % interface).read().strip()
 
 
+def UpdateDeviceData(data):
+  shopfloor.UpdateDeviceData(data)
+  factory.get_state_instance().UpdateSkippedTests()
+
+
 class CallShopfloor(unittest.TestCase):
   # Possible values for the "action" handler
   RETURN_VALUE_ACTIONS = {
       # Update device data with the returned dictionary.
-      'update_device_data': shopfloor.UpdateDeviceData
+      'update_device_data': UpdateDeviceData
   }
 
   ARGS = [

@@ -362,11 +362,15 @@ def get_selected_aux_data(table_name):
   """Returns the previously selected row from an auxiliary table.
 
   Args:
-    table_name: The auxiliary table from which to return data.
+    table_name: The auxiliary table from which to return data; or
+      device_data to use the device data dict.
 
   Raises:
     ValueError: If select_aux_data has not yet succeeded for this table.
   """
+  if table_name == 'device_data':
+    return GetDeviceData()
+
   dummy_id, data = factory.get_shared_data(
       _get_aux_shared_data_key(table_name), default=(None, None))
   if not data:
