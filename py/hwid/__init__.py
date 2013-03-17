@@ -255,6 +255,48 @@ class Database(object):
     self.vpd_rw_fields = vpd_rw_fields
     self.rules = rules
     self.allowed_skus = allowed_skus
+    self._SanityChecks()
+
+  def _SanityChecks(self):
+    def _VerifyComponent(comp_cls, comp_name, label):
+      if comp_cls not in self.components:
+        raise HWIDException(
+            'Invalid component class %r in %s' % (comp_cls, label) )
+      if comp_name and comp_name not in self.components[comp_cls]:
+        raise HWIDException(
+            'Invalid component name %r in %s[%r]' %
+            (comp_name, label, comp_cls))
+
+    # Check that all the component class-name pairs in encoded_fields are valid.
+    for field, indexed_data in self.encoded_fields.iteritems():
+      for index, class_name_dict in indexed_data.iteritems():
+        for comp_cls, comp_names in class_name_dict.iteritems():
+          if comp_names is None:
+            _VerifyComponent(comp_cls, None,
+                             'encoded_fields[%r][%r]' % (field, index))
+            continue
+          for comp_name in comp_names:
+            _VerifyComponent(comp_cls, comp_name,
+                             'encoded_fields[%r][%r]' % (field, index))
+
+    # Check that all the component class-name pairs in shopfloor_device_info are
+    # valid.
+    for info_key, info_value_dict in self.shopfloor_device_info.iteritems():
+      for info_value, class_name_dict in info_value_dict.iteritems():
+        for comp_cls, comp_names in class_name_dict.iteritems():
+          if comp_names is None:
+            _VerifyComponent(
+                comp_cls, None,
+                'shopfloor_device_info[%r][%r]' % (info_key, info_value))
+          else:
+            for comp_name in comp_names:
+              _VerifyComponent(
+                  comp_cls, comp_name,
+                  'shopfloor_device_info[%r][%r]' % (info_key, info_value))
+
+    # Check that all the component classes in probeable_components are valid.
+    for comp_cls in self.probeable_components:
+      _VerifyComponent(comp_cls, None, 'probeable_components')
 
   @classmethod
   def LoadFile(cls, file_name):
@@ -741,7 +783,7 @@ class _EncodedFields(dict):
         for comp_cls in self[field][index]:
           comp_value = self[field][index][comp_cls]
           if isinstance(comp_value, str):
-            self[field][index][comp_cls] = [comp_value]
+            self[field][index][comp_cls] = MakeList(comp_value)
 
 
 class _ProbeableComponents(list):
@@ -932,6 +974,13 @@ class ShopFloorDeviceInfo(dict):
                           Scalar('component name', str))]))))
     self.schema.Validate(shopfloor_device_info_dict)
     super(ShopFloorDeviceInfo, self).__init__(shopfloor_device_info_dict)
+    # Convert string to list of string.
+    for info_key in self:
+      for info_value in self[info_key]:
+        for comp_cls in self[info_key][info_value]:
+          comp_value = self[info_key][info_value][comp_cls]
+          if isinstance(comp_value, str):
+            self[info_key][info_value][comp_cls] = MakeList(comp_value)
 
 
 class _VPDFields(list):

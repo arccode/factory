@@ -140,7 +140,6 @@ probeable_components:
   - cellular
   - chipset
   - cpu
-  - display_converter
   - display_panel
   - dram
   - ec_flash_chip

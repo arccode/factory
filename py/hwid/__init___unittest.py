@@ -7,9 +7,10 @@
 
 # pylint: disable=W0212
 
-import factory_common # pylint: disable=W0611
+import copy
 import os
 import unittest2
+import factory_common # pylint: disable=W0611
 
 from cros.factory.hwid import (
     HWIDException, Database, MakeList, MakeSet, ProbedComponentResult)
@@ -97,6 +98,45 @@ class DatabaseTest(unittest2.TestCase):
   def setUp(self):
     self.database = Database.LoadFile(os.path.join(_TEST_DATA_PATH,
                                                    'test_db.yaml'))
+
+  def testSanityChecks(self):
+    mock_db = copy.deepcopy(self.database)
+    mock_db.encoded_fields['foo'] = dict()
+    mock_db.encoded_fields['foo'][0] = {'bar': ['buz']}
+    self.assertRaisesRegexp(
+        HWIDException,
+        r"Invalid component class 'bar' in encoded_fields\['foo'\]\[0\]",
+        mock_db._SanityChecks)
+    mock_db.encoded_fields['foo'][0] = {'cpu': ['buz']}
+    self.assertRaisesRegexp(
+        HWIDException,
+        r"Invalid component name 'buz' in encoded_fields"
+        r"\['foo'\]\[0\]\['cpu'\]",
+        mock_db._SanityChecks)
+
+    del mock_db.encoded_fields['foo']
+    mock_db.shopfloor_device_info['foo'] = dict()
+    mock_db.shopfloor_device_info['foo']['bar'] = dict()
+    mock_db.shopfloor_device_info['foo']['bar'] = {'buz': ['boo']}
+    self.assertRaisesRegexp(
+        HWIDException,
+        r"Invalid component class 'buz' in shopfloor_device_info"
+        r"\['foo'\]\['bar'\]",
+        mock_db._SanityChecks)
+    mock_db.shopfloor_device_info['foo']['bar'] = {'cpu': ['boo']}
+    self.assertRaisesRegexp(
+        HWIDException,
+        r"Invalid component name 'boo' in shopfloor_device_info"
+        r"\['foo'\]\['bar'\]\['cpu'\]",
+        mock_db._SanityChecks)
+
+    del mock_db.shopfloor_device_info['foo']
+    mock_db.probeable_components.append('foo')
+    self.assertRaisesRegexp(
+        HWIDException,
+        r"Invalid component class 'foo' in probeable_components",
+        mock_db._SanityChecks)
+
   def testProbeResultToBOM(self):
     result = open(os.path.join(_TEST_DATA_PATH,
                                'test_probe_result.yaml'), 'r').read()
