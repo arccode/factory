@@ -551,29 +551,32 @@ class Gooftool(object):
     yaml_probe_results = self._probe(
         target_comp_classes=component_list,
         probe_volatile=False, probe_initial_config=False).Encode()
-    return self.db.VerifyComponents(yaml_probe_results,
-                                               component_list)
+    return self.db.VerifyComponents(yaml_probe_results, component_list)
 
-  def GenerateHwidV3(self, device_info=None, probe_result=None):
+  def GenerateHwidV3(self, device_info=None, probe_results=None):
     """Generates the version 3 HWID of the DUT.
 
     The HWID is generated based on the given device info and probe result. If
     there are conflits about component information between device_info and
-    probe_result, priority is given to device_info.
+    probe_results, priority is given to device_info.
 
     Args:
       device_info: A dict of component infomation keys to their corresponding
         values. The format is device-specific and the meanings of each key and
         value vary from device to device. The valid keys and values should be
         specified in board-specific component database.
-      probe_result: The probe result to be used.
+      probe_results: A ProbeResults object containing the probe result to be
+        used.
     """
     if self._hwid_version != 3:
       raise Error, 'hwid_version needs to be 3 to run GenerateHwidV3'
-    if not probe_result:
-      probe_result = self._probe(None)
-    # Construct a base BOM from probe_result.
-    device_bom = self.db.ProbeResultToBOM(probe_result)
+    if not probe_results:
+      probe_results = self._probe(None)
+    # pylint: disable=E1101
+    if not isinstance(probe_results, hwid_tool.ProbeResults):
+      raise Error, 'probe_results is not a ProbeResults object'
+    # Construct a base BOM from probe_results.
+    device_bom = self.db.ProbeResultToBOM(probe_results.Encode())
     # Invalidate every unprobeable components.
     for comp_cls in device_bom.components:
       if comp_cls not in self.db.probeable_components:
@@ -632,8 +635,9 @@ class Gooftool(object):
     Args:
       encoded_string: The encoded HWID string to test. If not specified,
         defaults to the HWID read from GBB on DUT.
-      probe_resuls: The probe results to test. If not specified, defaults to the
-        probe result got with self._probe().
+      probe_results: A ProbeResults object containing the probe result to be
+        tested. If not specified, defaults to the probe result got with
+        self._probe().
       probed_ro_vpd: A dict of probed RO VPD keys and values. If not specified,
         defaults to the RO VPD stored on DUT.
       probed_rw_vpd: A dict of probed RW VPD keys and values. If not specified,
@@ -649,13 +653,16 @@ class Gooftool(object):
       encoded_string = re.findall(r'hardware_id:(.*)', gbb_result)[0].strip()
     if not probe_results:
       probe_results = self._probe(None)
+    # pylint: disable=E1101
+    if not isinstance(probe_results, hwid_tool.ProbeResults):
+      raise Error, 'probe_results is not a ProbeResults object'
     if not probed_ro_vpd:
       probed_ro_vpd = self._read_ro_vpd(main_fw_file)
     if not probed_rw_vpd:
       probed_rw_vpd = self._read_rw_vpd(main_fw_file)
 
     hwid_context = self._hwid_decode(self.db, encoded_string)
-    hwid_context.VerifyProbeResult(probe_results)
+    hwid_context.VerifyProbeResult(probe_results.Encode())
     if self.db.rules:
       # passed, not_evaluated, failed
       _, _, failed = (

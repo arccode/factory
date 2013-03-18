@@ -789,7 +789,7 @@ def GenerateHwidV3(options):
     initial_configs=probe_results.initial_configs)
 
   hwid_object = GetGooftool(options).GenerateHwidV3(
-      device_info, probe_results.Encode())
+      device_info, probe_results)
 
   final_bom = {}
   for component_class, component_values in (
@@ -861,7 +861,7 @@ def VerifyHwidV3(options):
                  probed_rw_vpd=FilterDict(probed_rw_vpd))
 
   GetGooftool(options).VerifyHwidV3(
-      hwid_str, probe_results.Encode(), probed_ro_vpd, probed_rw_vpd)
+      hwid_str, probe_results, probed_ro_vpd, probed_rw_vpd)
 
   _event_log.Log('verified_hwid', hwid=hwid_str)
   print 'Verification SUCCESS!'
