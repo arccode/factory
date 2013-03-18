@@ -504,7 +504,7 @@ class FinalizeBundle(object):
     readme_section_index = {}  # Map of section name to index
     for i, s in enumerate(readme_sections):
       readme_section_index[s[1]] = i
-    for k in ['VITAL INFORMATION', 'CHANGES', 'MINI-OMAHA SERVER']:
+    for k in ['VITAL INFORMATION', 'CHANGES']:
       if k not in readme_section_index:
         sys.exit("README is missing %s section" % k)
 
@@ -567,13 +567,15 @@ class FinalizeBundle(object):
     readme_sections[readme_section_index['VITAL INFORMATION']][2] = (
         vital_contents + '\n\n')
 
-    instructions = [
-        'To start a mini-Omaha server:',
-        '',
-        '  ./start_download_server.sh'
-        ]
-    readme_sections[readme_section_index['MINI-OMAHA SERVER']][2] = (
-        '\n'.join(instructions) + '\n\n')
+    index = readme_section_index.get('MINI-OMAHA SERVER')
+    if index is not None:
+      instructions = [
+          'To start a mini-Omaha server:',
+          '',
+          '  ./start_download_server.sh'
+          ]
+      readme_sections[index][2] = (
+          '\n'.join(instructions) + '\n\n')
 
     with open(self.readme_path, 'w') as f:
       for header, _, contents in readme_sections:
