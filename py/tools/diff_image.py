@@ -107,7 +107,7 @@ def DiffImages(mount_point_1, mount_point_2, out=sys.stdout):
       is_symlink = map(os.path.islink, paths)
       if is_symlink[0] != is_symlink[1]:
         # That's a difference.
-        # pylint: disable=E9906
+        # pylint: disable=E1306
         PrintHeader('%s symlink in image1 but %s in image2' %
                     ('is' if x else 'is not' for x in is_symlink))
       elif is_symlink[0]:

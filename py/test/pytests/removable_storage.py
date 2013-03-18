@@ -447,15 +447,15 @@ class RemovableStorageTest(unittest.TestCase):
         else:
           if self.args.media != self.GetDeviceType(device):
             return True
-        logging.info('%s device inserted : %s', (self.args.media,
-                                                 device.device_node))
+        logging.info('%s device inserted : %s',
+                     self.args.media, device.device_node)
         self._target_device = device.device_node
         if self.args.media == 'SD':
           self.CreatePartition()
         self.TestReadWrite()
       elif self._state == _STATE_LOCKTEST_WAIT_INSERT:
-        logging.info('%s device inserted : %s', (self.args.media,
-                                                 device.device_node))
+        logging.info('%s device inserted : %s',
+                     self.args.media, device.device_node)
         if self._target_device == device.device_node:
           if self.args.media == 'SD':
             self.VerifyPartition()
