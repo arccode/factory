@@ -287,7 +287,7 @@ class FinalizeBundle(object):
         install_into = os.path.join(self.bundle_dir, f['install_into'])
         if self.args.download:
           if cached_file.endswith('.zip'):
-            Spawn(['unzip', '-j', '-o', cached_file,
+            Spawn(['unzip', '-o', cached_file,
                    '-d', install_into] +
                   f['extract_files'],
                   log=True, check_call=True)
@@ -421,7 +421,7 @@ class FinalizeBundle(object):
         '--release', os.path.relpath(self.release_image_path,
                                      factory_setup_dir),
         '--factory', '../factory_test/chromiumos_factory_image.bin',
-        '--hwid_updater', '../hwid/hwid_bundle_%s_all.sh' %
+        '--hwid_updater', '../hwid/hwid_v3_bundle_%s.sh' %
                           self.simple_board.upper()]
 
     firmware_updater = os.path.join(
