@@ -96,7 +96,7 @@ _probe_results_cmd_arg = CmdArg(
           'probing this system).'))
 
 _device_info_cmd_arg = CmdArg(
-    '--device_info', metavar='DEVICE_INFO', default=None,
+    '--device_info', metavar='DEVICE_INFO.yaml', default=None,
     help='A dict of device info to use instead of fetching from shopfllor '
     'server.')
 
