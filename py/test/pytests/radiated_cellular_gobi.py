@@ -32,6 +32,7 @@ class RadiatedCellularGobi(RfFramework, unittest.TestCase):
   power_meter_port = None
   modem = None
   n1914a = None
+  firmware = None
 
   def __init__(self, *args, **kwargs):
     super(RadiatedCellularGobi, self ).__init__(*args, **kwargs)
@@ -41,6 +42,7 @@ class RadiatedCellularGobi(RfFramework, unittest.TestCase):
     # TODO(itspeter): Check all parameters are in expected type.
     self.measurements = self.config['tx_measurements']
     self.power_meter_port = self.config['fixture_port']
+    self.firmware = cellular.GetModemFirmware()
 
   def PreTestInsideShieldBox(self):
     factory.console.info('PreTestInsideShieldBox called')
@@ -117,10 +119,12 @@ class RadiatedCellularGobi(RfFramework, unittest.TestCase):
     return cellular.GetIMEI()
 
   def EnterFactoryMode(self):
-    self.modem = cellular.EnterFactoryMode(self.config['modem_path'], True)
+    self.firmware = cellular.SwitchModemFirmware(cellular.WCDMA_FIRMWARE)
+    self.modem = cellular.EnterFactoryMode(self.config['modem_path'])
 
   def ExitFactoryMode(self):
-    cellular.ExitFactoryMode(self.modem, True)
+    cellular.ExitFactoryMode(self.modem)
+    cellular.SwitchModemFirmware(self.firmware)
 
   def StartTXTest(self, band_name, channel):
     def SendTXCommand():

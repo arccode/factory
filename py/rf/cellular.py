@@ -18,8 +18,9 @@ from subprocess import CalledProcessError
 MODEM_STATUS = ['modem', 'status']
 MODEM_IMEI_REG_EX = 'imei: ([0-9]*)'
 
-SWITCH_TO_WCDMA_COMMAND = ['modem', 'set-carrier', 'Generic', 'UMTS']
-SWITCH_TO_CDMA_COMMAND = ['modem', 'set-carrier', 'Verizon', 'Wireless']
+MODEM_FIRMWARE_REG_EX = 'carrier: (.*)'
+WCDMA_FIRMWARE = 'Generic UMTS'
+CDMA_FIRMWARE = 'Verizon Wireless'
 
 ENABLE_FACTORY_TEST_MODE_COMMAND = 'AT+CFUN=5'
 DISABLE_FACTORY_TEST_MODE_COMMAND = 'AT+CFUN=1'
@@ -31,12 +32,35 @@ def GetIMEI():
                  log_stderr_on_error=True, check_call=True).stdout_data
   return re.search(MODEM_IMEI_REG_EX, stdout).group(1)
 
-def EnterFactoryMode(modem_path, firmware_switching):
+def GetModemFirmware():
+  '''Returns the firmware info.'''
+  stdout = Spawn(MODEM_STATUS, read_stdout=True,
+                 log_stderr_on_error=True, check_call=True).stdout_data
+  return re.search(MODEM_FIRMWARE_REG_EX, stdout).group(1)
+
+def SwitchModemFirmware(target):
+  """Switch firmware if different from target.
+
+  Returns:
+    the firmware version before switching.
+  """
+  firmware_info = GetModemFirmware()
+  factory.console.info('Firmware version = %r', firmware_info)
+  try:
+    if firmware_info != target:
+      stdout = Spawn(['modem', 'set-carrier', target], read_stdout=True,
+                     log_stderr_on_error=True, check_call=True).stdout_data
+      logging.info('Output when switching to %r =\n%s', target, stdout)
+  except CalledProcessError:
+    factory.console.info('%r switching failed.', target)
+    raise
+  return firmware_info
+
+def EnterFactoryMode(modem_path):
   """Enters factory mode of a modem.
 
   Args:
     modem_path: path to the modem.
-    firmware_switching: whether to switch to WCDMA firmware.
 
   Returns:
     A Modem object that is ready in factory mode.
@@ -45,34 +69,18 @@ def EnterFactoryMode(modem_path, firmware_switching):
     subprocess.CalledProcessError: if switching fails.
   """
   factory.console.info('Entering factory test mode(FTM)')
-  try:
-    if firmware_switching:
-      stdout = Spawn(SWITCH_TO_WCDMA_COMMAND, read_stdout=True,
-                     log_stderr_on_error=True, check_call=True).stdout_data
-      logging.info('Output when switching to WCDMA =\n%s', stdout)
-  except CalledProcessError:
-    factory.console.info('WCDMA switching failed.')
-    raise
   modem = Modem(modem_path)
   modem.SendCommand(ENABLE_FACTORY_TEST_MODE_COMMAND)
   modem.ExpectLine('OK')
   factory.console.info('Entered factory test mode')
   return modem
 
-def ExitFactoryMode(modem, firmware_switching):
+def ExitFactoryMode(modem):
   """Exits factory mode of a modem.
 
   Args:
     modem_path: path to the modem.
-    firmware_switching: whether to switch to CDMA firmware.
   """
   factory.console.info('Exiting factory test mode(FTM)')
   modem.SendCommand(DISABLE_FACTORY_TEST_MODE_COMMAND)
-  if firmware_switching:
-    try:
-      stdout = Spawn(SWITCH_TO_CDMA_COMMAND, read_stdout=True,
-                     log_stderr_on_error=True, check_call=True).stdout_data
-      logging.info('Output when switching to CDMA =\n%s', stdout)
-    except CalledProcessError:
-      factory.console.info('CDMA switching failed.')
   factory.console.info('Exited factory test mode')

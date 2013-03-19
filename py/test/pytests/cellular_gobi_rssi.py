@@ -16,7 +16,7 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 
-from cros.factory.rf.cellular import EnterFactoryMode, ExitFactoryMode
+from cros.factory.rf import cellular
 from cros.factory.rf.utils import CheckPower
 from cros.factory.test import factory
 from cros.factory.test import utils
@@ -59,9 +59,12 @@ class CellularGobiRSSI(unittest.TestCase):
 
   def runTest(self):
     failures = []
+    firmware = cellular.GetModemFirmware()
     try:
-      self.modem = EnterFactoryMode(self.args.modem_path,
-                                    self.args.firmware_switching)
+      if self.args.firmware_switching:
+        firmware = cellular.SwitchModemFirmware(cellular.WCDMA_FIRMWARE)
+
+      self.modem = cellular.EnterFactoryMode(self.args.modem_path)
       for config_to_test in self.args.strength_map:
         antenna_name, band_name, channel_no, retries, min_power, max_power = (
           config_to_test)
@@ -76,7 +79,8 @@ class CellularGobiRSSI(unittest.TestCase):
         CheckPower('%s[%d]@%s' % (band_name, channel_no, antenna_name),
                    rssi, (min_power, max_power), failures)
     finally:
-      ExitFactoryMode(self.modem, self.args.firmware_switching)
+      cellular.ExitFactoryMode(self.modem)
+      cellular.SwitchModemFirmware(firmware)
 
     if len(failures) > 0:
       raise factory.FactoryTestFailure('\n'.join(failures))
