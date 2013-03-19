@@ -10,8 +10,8 @@ This test query the RSSI (Received signal strength indication) of different
 antenna path from gobi modem module.
 """
 
+import numpy
 import re
-import sys
 import unittest
 
 import factory_common  # pylint: disable=W0611
@@ -65,15 +65,16 @@ class CellularGobiRSSI(unittest.TestCase):
       for config_to_test in self.args.strength_map:
         antenna_name, band_name, channel_no, retries, min_power, max_power = (
           config_to_test)
-        max_rssi = -sys.float_info.max
+        rssis = list()
         for tries in xrange(1, retries + 1):
           rssi = self.GetRSSI(antenna_name, band_name, channel_no)
           if rssi:
             factory.console.info('%d tries = %s', tries, rssi)
-            max_rssi = max(max_rssi, rssi)
+            rssis.append(rssi)
         # Compare if it is in range.
+        rssi = numpy.median(rssis)
         CheckPower('%s[%d]@%s' % (band_name, channel_no, antenna_name),
-                   max_rssi, (min_power, max_power), failures)
+                   rssi, (min_power, max_power), failures)
     finally:
       ExitFactoryMode(self.modem, self.args.firmware_switching)
 
