@@ -59,9 +59,12 @@ class RfFramework(object):
           'inside shield-box primary test. '
           'More details of format could be found under Blinker.__init__()',
           default=[(0b111, 0.10), (0b000, 0.10)], ),
-      Arg('static_ip', str,
-          'Static IP for the DUT; default to acquire one from DHCP.',
-          default=None, optional=True),
+      Arg('static_ips', list,
+          'Static IP settings for different stages (stack). Format of setting '
+          'pair is (IP, override_flag). At the beginning of each stage, IP '
+          'setting will be applied if pair is not None. Using None in IP will '
+          'acquire one from DHCP. Using False in override flag will preserve '
+          'the IP setting in previous stage', default=None, optional=True),
       Arg('pre_test_outside_shield_box', bool,
           'True to execute PreTestOutsideShieldBox.',
           default=True),
@@ -129,8 +132,7 @@ class RfFramework(object):
     self.unique_identification = self.GetUniqueIdentification()
 
     if self.args.pre_test_outside_shield_box:
-      self.template.SetState('Preparing network.')
-      self.PrepareNetwork()
+      self.PrepareNetwork(self.args.static_ips.pop())
       if len(self.args.parameters) > 0:
         self.template.SetState('Downloading parameters.')
         self.DownloadParameters(self.args.parameters)
@@ -170,8 +172,7 @@ class RfFramework(object):
 
     try:
       if self.args.pre_test_inside_shield_box:
-        self.template.SetState('Preparing network.')
-        self.PrepareNetwork()
+        self.PrepareNetwork(self.args.static_ips.pop())
         # TODO(itspeter): Ask user to enter shield box information.
         # TODO(itspeter): Verify the validity of shield-box and determine
         #                 the corresponding calibration_config.
@@ -212,8 +213,7 @@ class RfFramework(object):
 
       # Post-test
       if self.args.post_test:
-        self.template.SetState('Preparing network.')
-        self.PrepareNetwork()
+        self.PrepareNetwork(self.args.static_ips.pop())
         self.template.SetState('Runing post test.')
         self.PostTest()
         # Upload the aux_logs to shopfloor server.
@@ -371,14 +371,18 @@ class RfFramework(object):
           else:
             raise
 
-  def PrepareNetwork(self):
+  def PrepareNetwork(self, static_ip_pair):
     def ObtainIp():
-      if self.args.static_ip is None:
+      if static_ip_pair[0] is None:
         net_utils.SendDhcpRequest()
       else:
-        net_utils.SetEthernetIp(self.args.static_ip)
+        net_utils.SetEthernetIp(static_ip_pair[0])
       return True if net_utils.GetEthernetIp() else False
 
+    if static_ip_pair is None:
+      return
+
+    self.template.SetState('Preparing network.')
     _PREPARE_NETWORK_TIMEOUT_SECS = 30 # Timeout for network preparation.
     factory.console.info('Detecting Ethernet device...')
     net_utils.PollForCondition(condition=(
@@ -386,10 +390,13 @@ class RfFramework(object):
         timeout=_PREPARE_NETWORK_TIMEOUT_SECS,
         condition_name='Detect Ethernet device')
 
-    factory.console.info('Setting up IP address...')
-    net_utils.PollForCondition(condition=ObtainIp,
-        timeout=_PREPARE_NETWORK_TIMEOUT_SECS,
-        condition_name='Setup IP address')
+    # Only setup the IP if required so.
+    current_ip = net_utils.GetEthernetIp(net_utils.FindUsableEthDevice())
+    if not current_ip or static_ip_pair[1] is True:
+      factory.console.info('Setting up IP address...')
+      net_utils.PollForCondition(condition=ObtainIp,
+          timeout=_PREPARE_NETWORK_TIMEOUT_SECS,
+          condition_name='Setup IP address')
 
     factory.console.info('Network prepared. IP: %r', net_utils.GetEthernetIp())
 
