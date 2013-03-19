@@ -8,19 +8,23 @@
 # This test is used to verify the functionality of bluetooth device.
 # The functionality under test are:
 # 1. Detect the specified number of bluetooth adapter on dut.
-# 2. Scan bluetooth device around and try to find at least one device.
-#    If a list of target mac addresses is given, try to find at least one device
-#    with target mac address on the list.
-# 3. Try to pair and connect with the bluetooth input device. Now it supports
+# 2. Scan remote bluetooth device and try to find at least one device.
+# 3. If a remote device keyword is given, the test will only care
+#    the devices whose 'Name' contains keyword. This applies to item 4 as well.
+# 4. If an RSSI threshold value is given, check that the largest average RSSI
+#    among all scanned devices >= threshold.
+# 5. Try to pair and connect with the bluetooth input device. Now it supports
 #    mouse.
 # Check the ARGS in BluetoothTest for the detail of arguments.
 
 import factory_common # pylint: disable=W0611
 import glob
 import logging
+import sys
 import time
 import unittest
 
+from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
@@ -115,13 +119,17 @@ class ScanDevicesTask(FactoryTask):
 
   Args:
     timeout_secs: The time duration to scan for devices.
-    target_addresses: A list of target mac addresses.
   """
   # pylint: disable=W0231
-  def __init__(self, test, timeout_secs=5, target_addresses=None):
+  def __init__(self, test):
     self._test = test
-    self._timeout_secs = timeout_secs
-    self._target_addresses = target_addresses
+    self._keyword = test.args.keyword
+    self._average_rssi_threshold = test.args.average_rssi_threshold
+    self._scan_counts = 1
+    if self._average_rssi_threshold is not None:
+      self._scan_counts = test.args.scan_counts
+    self._timeout_secs = test.args.scan_timeout_secs
+
     self._progress_thread = None
 
   def SetAndStartScanProgressBar(self, timeout_secs):
@@ -141,42 +149,101 @@ class ScanDevicesTask(FactoryTask):
     self._progress_thread = StartDaemonThread(target=UpdateProgressBar,
                                               name='ProgressThread')
 
-  def Intersection(self, list_x, list_y):
-    """Returns the list containing the intersection of two lists."""
-    list_intersection = list(set(list_x) & set(list_y))
-    return list_intersection
+  def FilterByKeyword(self, devices):
+    """Returns the devices filtered by self._keyword."""
+    filtered_devices = dict()
+    for mac, props in devices.iteritems():
+      if 'Name' not in props:
+        logging.warning('Device %s: %s does not have "Name" property.',
+                        mac, props)
+        continue
+
+      if self._keyword in props['Name']:
+        filtered_devices[mac] = props
+        logging.info('Device %s: "Name" property %s matches keyword %s.',
+                      mac, props['Name'], self._keyword)
+    return filtered_devices
+
+  def UpdateRssi(self, devices_rssis, devices):
+    """Updates devices_rssis using RSSI property in devices.
+
+    Args:
+      devices_rssis: A dict. Keys are mac addresses and values are lists of
+        scanned RSSI value.
+      devices: A dict. Keys are mac addresses and values are dicts of
+        properties.
+    """
+    for mac, props in devices.iteritems():
+      if 'RSSI' not in props:
+        logging.warning('Device %s: %s does not have "RSSI" property.',
+                        mac, props)
+        continue
+      if mac in devices_rssis:
+        devices_rssis[mac].append(props['RSSI'])
+      else:
+        devices_rssis[mac] = [props['RSSI']]
+    logging.info('UpdateRssi: %s', devices_rssis)
 
   def Run(self):
     bluetooth_manager = BluetoothManager()
     adapter = bluetooth_manager.GetFirstAdapter()
 
-    self._test.template.SetState(_MSG_SCAN_DEVICE)
-    self.SetAndStartScanProgressBar(self._timeout_secs)
-    devices = bluetooth_manager.ScanDevices(adapter, self._timeout_secs)
-    self._progress_thread.join()
+    # Records RSSI of each scan and calculates average rssi.
+    candidate_rssis = dict()
 
-    logging.info('Found %d device(s).', len(devices))
-    if len(devices) == 0:
-      self.Fail('ScanDevicesTask: Fail to find any device.')
+    for _ in xrange(self._scan_counts):
+      self._test.template.SetState(_MSG_SCAN_DEVICE)
+      self.SetAndStartScanProgressBar(self._timeout_secs)
+      devices = bluetooth_manager.ScanDevices(adapter, self._timeout_secs)
+      self._progress_thread.join()
+
+      logging.info('Found %d device(s).', len(devices))
+      for mac, props in devices.iteritems():
+        try:
+          logging.info('Device found: %s. Name: %s, RSSI: %d',
+                        mac, props["Name"], props['RSSI'])
+        except KeyError:
+          logging.exception('Name or RSSI is not available in %s', mac)
+
+      self.UpdateRssi(candidate_rssis, self.FilterByKeyword(devices))
+
+    logging.info('Found %d candidate device(s) in %s scans.',
+                 len(candidate_rssis), self._scan_counts)
+    factory.console.info('Candidate devices scan results: %s',
+        dict((str(k), [int(r) for r in v])
+             for k, v in candidate_rssis.iteritems()))
+
+    if len(candidate_rssis) == 0:
+      self.Fail('ScanDevicesTask: Fail to find any candidate device.')
       return
 
-    for address in devices.keys():
-      logging.info('Device found: %s.', address)
+    # No need to test RSSI
+    if self._average_rssi_threshold is None:
+      self.Pass()
+      return
 
-    if self._target_addresses:
-      found_targets = self.Intersection(devices.keys(),
-                                        self._target_addresses)
-      # Found at least one target mac address.
-      if len(found_targets) > 0:
-        logging.info('ScanDevicesTask: Target device found: %s.',
-                     found_targets)
-        self.Pass()
-      else:
-        logging.error('ScanDevicesTask: Fail to find target device: %s.',
-                      self._target_addresses)
-        self.Fail('ScanDevicesTask: Fail to find target device: %s.' %
-                  self._target_addresses)
+    # Calculates maximum average RSSI.
+    max_average_rssi_mac, max_average_rssi = None, -sys.float_info.max
+    for mac, rssis in candidate_rssis.iteritems():
+      average_rssi = float(sum(rssis)) / len(rssis)
+      logging.info('Device %s has average RSSI: %f', mac, average_rssi)
+      if average_rssi > max_average_rssi:
+        max_average_rssi_mac, max_average_rssi = mac, average_rssi
+
+    logging.info('Device %s has the largest average RSSI: %f',
+                 max_average_rssi_mac, max_average_rssi)
+
+    if self._average_rssi_threshold > max_average_rssi:
+      factory.console.error('The largest average RSSI %f does not meet'
+                            ' threshold %f.',
+                            max_average_rssi, self._average_rssi_threshold)
+      self.Fail('ScanDeviceTask: The largest average RSSI %f of device %s does'
+                ' not meet threshold %f.' % (
+                    max_average_rssi, max_average_rssi_mac,
+                    self._average_rssi_threshold))
     else:
+      factory.console.info('The largest average RSSI %f meets threshold %f.',
+                           max_average_rssi, self._average_rssi_threshold)
       self.Pass()
 
 
@@ -349,12 +416,18 @@ class BluetoothTest(unittest.TestCase):
         ' retry to detect adapters', default=2),
     Arg('scan_devices', bool, 'Scan bluetooth device.',
         default=False),
-    Arg('target_device_macs', (str,list),
-        'MAC addresses of target bluetooth devices. It can be a string or a'
-        ' list of strings.',
-        default=None),
+    Arg('prompt_scan_message', bool, 'Prompts a message to tell user to enable'
+        ' remote devices discovery mode', default=True),
+    Arg('keyword', str, 'Only cares remote devices whose "Name" contains'
+        ' keyword.', default='', optional=True),
+    Arg('average_rssi_threshold', float, 'Checks the largest average RSSI among'
+        ' scanned device is equal to or greater than average_rssi_threshold.',
+        default=None, optional=True),
+    Arg('scan_counts', int, 'Number of scans to calculate average RSSI',
+        default=3),
+    Arg('scan_timeout_secs', int, 'Timeout to do one scan', default=5),
     Arg('input_device_mac', str, 'The mac address of bluetooth input device',
-        default=None),
+        default=None, optional=True),
   ]
   def __init__(self, *args, **kwargs):
     super(BluetoothTest, self).__init__(*args, **kwargs)
@@ -364,18 +437,14 @@ class BluetoothTest(unittest.TestCase):
     self._task_list = []
 
   def runTest(self):
-    if (self.args.target_device_macs and
-        type(self.args.target_device_macs) == str):
-      self.args.target_device_macs = [self.args.target_device_macs]
-
     if self.args.expected_adapter_count:
       self._task_list.append(DetectAdapterTask(
           self, self.args.expected_adapter_count))
 
     if self.args.scan_devices:
-      self._task_list.append(TurnOnTask(self, _MSG_TURN_ON_DEVICE))
-      self._task_list.append(ScanDevicesTask(
-          self, target_addresses=self.args.target_device_macs))
+      if self.args.prompt_scan_message:
+        self._task_list.append(TurnOnTask(self, _MSG_TURN_ON_DEVICE))
+      self._task_list.append(ScanDevicesTask(self))
 
     if self.args.input_device_mac:
       self._task_list.append(TurnOnTask(self, _MSG_TURN_ON_INPUT_DEVICE))

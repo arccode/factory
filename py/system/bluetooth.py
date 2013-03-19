@@ -231,7 +231,7 @@ class BluetoothManager(object):
     return adapters
 
 
-  def ScanDevices(self, adapter, timeout_secs=5):
+  def ScanDevices(self, adapter, timeout_secs=5, force_quit=False):
     """Scans device around using adapter for timeout_secs.
 
     The returned value devices is a dict containing the properties of
@@ -271,6 +271,7 @@ class BluetoothManager(object):
     Args:
       adapter: The adapter interface to control.
       timeout_secs: The duration of scan.
+      force_quit: Returns without waiting for Discovery=1.
 
     Returns:
       A dict containing the information of scanned devices. The dict maps
@@ -291,9 +292,10 @@ class BluetoothManager(object):
       """
       logging.info('Device scan timed out.')
       if not scan_finished.isSet():
-        scan_finished.set()
         adapter.StopDiscovery()
-        self._main_loop.quit()
+        if force_quit:
+          logging.info('Returns without waiting for Discovery=1.')
+          self._main_loop.quit()
       else:
         logging.info('Device scan had already finished.')
       return False
@@ -310,9 +312,8 @@ class BluetoothManager(object):
       logging.info('Property Changed: %s = %s.', name, value)
       if (name == 'Discovering' and value == 0):
         logging.info('Finished device scan.')
-        if not scan_finished.isSet():
-          scan_finished.set()
-          self._main_loop.quit()
+        scan_finished.set()
+        self._main_loop.quit()
 
     def _CallbackDeviceFound(address, properties): # pylint: disable=W0613
       """The callback when a device is found.
