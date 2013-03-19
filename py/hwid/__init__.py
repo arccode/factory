@@ -697,7 +697,7 @@ class Database(object):
           error)]}         # The error message if there is one; else None.
     """
     probed_bom = self.ProbeResultToBOM(probe_result)
-    if comp_list is None:
+    if not comp_list:
       comp_list = self.probeable_components
     if not isinstance(comp_list, list):
       raise HWIDException('Argument comp_list should be a list')

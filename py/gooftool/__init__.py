@@ -548,9 +548,12 @@ class Gooftool(object):
     """
     if self._hwid_version != 3:
       raise Error, 'hwid_version needs to be 3 to run VerifyComponentsV3'
-    yaml_probe_results = self._probe(
-        target_comp_classes=component_list,
-        probe_volatile=False, probe_initial_config=False).Encode()
+    if not component_list:
+      yaml_probe_results = self._probe().Encode()
+    else:
+      yaml_probe_results = self._probe(
+          target_comp_classes=component_list,
+          probe_volatile=False, probe_initial_config=False).Encode()
     return self.db.VerifyComponents(yaml_probe_results, component_list)
 
   def GenerateHwidV3(self, device_info=None, probe_results=None):
