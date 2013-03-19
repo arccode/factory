@@ -17,8 +17,9 @@ dargs:
       Default 0xC2.
   lid_open: (optional) a char command to fixture MCU to open the lid.
       Default 0xC3.
-  serial_param: (optional) The parameter list of a serial connection we
-      want to use. [port, baudrate, parity, stopbits, bytesize].
+  serial_param: A parameter tuple of the target serial port:
+      (port, baudrate, bytesize, parity, stopbits, timeout_secs).
+      timeout_secs is used for both read and write timeout.
 """
 
 import asyncore
@@ -31,8 +32,10 @@ from cros.factory.test.args import Arg
 from cros.factory.test.countdown_timer import StartCountdownTimer
 from cros.factory.test.ui_templates import OneSection
 from cros.factory.test.utils import StartDaemonThread
+from cros.factory.utils import serial_utils
 
 _DEFAULT_TIMEOUT = 10
+_SERIAL_TIMEOUT = 1
 
 _MSG_PROMPT_CLOSE = test_ui.MakeLabel(
     'Close then open the lid', u'关上接着打开上盖', 'lid-test-info')
@@ -90,8 +93,8 @@ class LidSwitchTest(unittest.TestCase):
         default=chr(0xC3)),
     Arg('serial_param', tuple,
         'The parameter list of a serial connection we want to use.',
-        default=('/dev/ttyUSB1', 9600, serial.PARITY_ODD, serial.STOPBITS_TWO,
-                 serial.SEVENBITS)),
+        default=('/dev/ttyUSB0', 19200, serial.EIGHTBITS, serial.PARITY_NONE,
+                 serial.STOPBITS_ONE , _SERIAL_TIMEOUT)),
   ]
 
   def setUp(self):
@@ -111,16 +114,11 @@ class LidSwitchTest(unittest.TestCase):
 
     # Prepare fixture auto test if needed.
     self.serial = None
-
     if self.args.use_fixture:
-      (port, baudrate, parity, stopbits, bytesize) = self.args.serial_param
-      self.serial = serial.Serial(port=port, baudrate=baudrate, parity=parity,
-                                  stopbits=stopbits, bytesize=bytesize)
       try:
-        self.serial.open()
-      except serial.SerialException:
-        self.serial = None
-        self.ui.Fail('Cannot open RS-232: %r.' % self.args.serial_param)
+        self.serial = serial_utils.OpenSerial(self.args.serial_param)
+      except serial.SerialException as e:
+        self.ui.Fail(e)
 
     # Create a thread to monitor evdev events.
     self.dispatcher = None
