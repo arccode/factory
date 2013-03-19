@@ -79,13 +79,27 @@ def ResolveTestArgs(dargs):
       which is an instance of the Env class.
   '''
   class Env(object):
-    '''Environment for resolving test arguments.'''
+    '''Environment for resolving test arguments.
+
+    Properties:
+      state: Instance to obtain factory test.
+      device_data: Cached device data from shopfloor.
+    '''
     def __init__(self):
       self.state = factory.get_state_instance()
-      self.shopfloor = shopfloor
+      self.device_data = None
 
     def GetMACAddress(self, interface):
       return open('/sys/class/net/%s/address' % interface).read().strip()
+
+    def GetDeviceData(self):
+      '''Returns shopfloor.GetDeviceData().
+
+      The value is cached to avoid extra calls to GetDeviceData().
+      '''
+      if self.device_data is None:
+        self.device_data = shopfloor.GetDeviceData()
+      return self.device_data
 
   def ResolveArg(k, v):
     '''Resolves a single argument.'''

@@ -35,6 +35,8 @@ class Scan(unittest.TestCase):
         'Key to use for event log', optional=True),
     Arg('shared_data_key', str,
         'Key to use to store in scanned value in shared data', optional=True),
+    Arg('device_data_key', str,
+        'Key to use to store in scanned value in device data', optional=True),
     Arg('rw_vpd_key', str,
         'Key to use to store in scanned value in RW VPD', optional=True),
     Arg('regexp', str,
@@ -99,6 +101,9 @@ class Scan(unittest.TestCase):
     if self.args.shared_data_key:
       factory.set_shared_data(self.args.shared_data_key,
                               scan_value)
+
+    if self.args.device_data_key:
+      shopfloor.UpdateDeviceData({self.args.device_data_key: scan_value})
 
     if self.args.check_device_data_key:
       expected_value = shopfloor.GetDeviceData().get(
