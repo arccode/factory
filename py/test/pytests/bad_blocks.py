@@ -22,7 +22,7 @@ from select import select
 
 import factory_common  # pylint: disable=W0611
 
-from cros.factory.event_log import EventLog
+from cros.factory.event_log import Log
 from cros.factory.test import factory
 from cros.factory.test import ui_templates
 from cros.factory.test import utils
@@ -68,7 +68,6 @@ class BadBlocksTest(unittest.TestCase):
     self.template = ui_templates.TwoSections(self.ui)
     self.template.SetState(HTML)
     self.template.DrawProgressBar()
-    self.event_log = EventLog.ForAutoTest()
     self._is_mmc = 'mmcblk' in self.args.device
 
   def runTest(self):
@@ -184,7 +183,7 @@ class BadBlocksTest(unittest.TestCase):
     self._LogSmartctl()
 
     def UpdatePhase():
-      self.event_log.Log('start_phase', current_phase=current_phase)
+      Log('start_phase', current_phase=current_phase)
       self.ui.SetHTML(MakeLabel('Phase', '阶段') + ' %d/%d: ' % (
           min(current_phase + 1, total_phases), total_phases),
                       id='bb-phase')
@@ -201,7 +200,7 @@ class BadBlocksTest(unittest.TestCase):
       if end_time - start_time > self.args.log_threshold_secs:
         factory.console.warn('Delay of %.2f s between badblocks progress lines',
                              end_time - start_time)
-        self.event_log.Log('delay', duration_secs=end_time - start_time)
+        Log('delay', duration_secs=end_time - start_time)
 
       self.assertTrue(
           rlist,
@@ -275,12 +274,12 @@ class BadBlocksTest(unittest.TestCase):
         logging.info('stdout:\n%s', process.stdout_data)
       if process.stderr_data:
         logging.info('stderr:\n%s', process.stderr_data)
-      self.event_log.Log('log_command', command=self.args.extra_log_cmd,
+      Log('log_command', command=self.args.extra_log_cmd,
                          stdout=process.stdout_data, stderr=process.stderr_data)
 
     smartctl_output = Spawn(['smartctl', '-a', self.device_path],
                             check_output=True).stdout_data
-    self.event_log.Log('smartctl', stdout=smartctl_output)
+    Log('smartctl', stdout=smartctl_output)
     logging.info('smartctl output: %s', smartctl_output)
 
     self.assertTrue(
@@ -316,7 +315,7 @@ class BadBlocksTest(unittest.TestCase):
       # Copy any ATA-related messages to the test log, and put in event logs.
       if not first_time and re.search(r'\bata[0-9.]+:', log_line):
         logging.info('System log message: %s', log_line)
-        self.event_log.Log('system_log_message', log_line=log_line)
+        Log('system_log_message', log_line=log_line)
 
     if first_time and link_info_events:
       # First time, ignore all but the last
@@ -324,4 +323,4 @@ class BadBlocksTest(unittest.TestCase):
 
     for event in link_info_events:
       logging.info('SATA link info: %r', event)
-      self.event_log.Log('sata_link_info', **event)
+      Log('sata_link_info', **event)

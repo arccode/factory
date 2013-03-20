@@ -7,7 +7,7 @@ import logging
 import unittest
 
 
-from cros.factory.event_log import EventLog
+from cros.factory.event_log import Log
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
@@ -64,9 +64,7 @@ class SelectAuxField(unittest.TestCase):
     factory.get_state_instance().UpdateSkippedTests()
 
     if self.args.event_log_key:
-      EventLog.ForAutoTest().Log('select',
-                                 key=self.args.event_log_key,
-                                 value=select_value)
+      Log('select', key=self.args.event_log_key, value=select_value)
 
     self.ui.Pass()
 

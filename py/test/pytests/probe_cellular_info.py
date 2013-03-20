@@ -27,12 +27,12 @@ import re
 import serial as pyserial
 import unittest
 
+from cros.factory.event_log import Log
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test import utils
 from cros.factory.test.factory_task import FactoryTask, FactoryTaskManager
-from cros.factory.event_log import EventLog
 
 _TEST_TITLE = test_ui.MakeLabel('SIM / IMEI / MEID Extraction',
                                 u'数据机资讯提取')
@@ -89,7 +89,7 @@ class IMEITask(FactoryTask):
       modem.check_response(DEVICE_NORMAL_RESPONSE)
       modem.send_command('AT+CGSN')
       imei = modem.check_response(self.test.imei_re).group(1)
-    self.test.event_log.Log('imei', imei=imei)
+    Log('imei', imei=imei)
     factory.log('IMEI: %s' % imei)
     self.Stop()
 
@@ -110,7 +110,7 @@ class ICCIDTask(FactoryTask):
       modem.check_response(DEVICE_NORMAL_RESPONSE)
       modem.send_command('AT+ICCID?')
       iccid = modem.check_response(self.test.iccid_re).group(1)
-    self.test.event_log.Log('iccid', iccid=iccid)
+    Log('iccid', iccid=iccid)
     factory.log('ICCID: %s' % iccid)
     self.Stop()
 
@@ -123,7 +123,6 @@ class StartTest(unittest.TestCase):
     self.template = ui_templates.OneSection(self.ui)
     self.ui.AppendCSS('.start-font-size {font-size: 2em;}')
     self.template.SetTitle(_TEST_TITLE)
-    self.event_log = EventLog.ForAutoTest()
 
   def runTest(self):
     # Allow attributes to be defined outside __init__

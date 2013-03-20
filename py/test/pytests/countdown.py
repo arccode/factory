@@ -15,7 +15,7 @@ import time
 import unittest
 
 from cros.factory import system
-from cros.factory.event_log import EventLog
+from cros.factory.event_log import Log
 from cros.factory.system import SystemStatus
 from cros.factory.test import factory, test_ui
 from cros.factory.test.args import Arg
@@ -110,8 +110,8 @@ class CountDownTest(unittest.TestCase):
 
     in_grace_period = self._elapsed_secs < self.args.grace_secs
     if warnings:
-      self._event_log.Log('warnings', elapsed_secs=self._elapsed_secs,
-                          in_grace_period=in_grace_period, warnings=warnings)
+      Log('warnings', elapsed_secs=self._elapsed_secs,
+                    in_grace_period=in_grace_period, warnings=warnings)
       if not in_grace_period:
         for w in warnings:
           factory.console.warn(w)
@@ -167,7 +167,6 @@ class CountDownTest(unittest.TestCase):
     self._remaining_secs = self.args.duration_secs
     self._next_log_time = 0
     self._next_ui_update_time = 0
-    self._event_log = EventLog.ForAutoTest()
     last_status = SystemStatus()
 
     board = system.GetBoard()
@@ -186,8 +185,8 @@ class CountDownTest(unittest.TestCase):
         sys_status = SystemStatus()
 
       if current_time >= self._next_log_time:
-        self._event_log.Log('system_status', elapsed_secs=self._elapsed_secs,
-                            **sys_status.__dict__)
+        Log('system_status', elapsed_secs=self._elapsed_secs,
+                      **sys_status.__dict__)
         self.DetectAbnormalStatus(sys_status, last_status)
         last_status = sys_status
         self._next_log_time = current_time + self.args.log_interval

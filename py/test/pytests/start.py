@@ -23,7 +23,7 @@ import sys
 import time
 import unittest
 
-from cros.factory.event_log import EventLog
+from cros.factory.event_log import Log
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
@@ -239,8 +239,7 @@ class ShopFloorTask(FactoryTask):
     try:
       # All exceptions
       shopfloor.check_serial_number(serial.strip())
-      EventLog.ForAutoTest().Log('mlb_serial_number',
-                                 serial_number=serial)
+      Log('mlb_serial_number', serial_number=serial)
       logging.info('Serial number: %s', serial)
       shopfloor.set_serial_number(serial)
       self._test.ui.event_client.post_event(
@@ -292,7 +291,7 @@ class ReadVPDSerialTask(FactoryTask):
           else:
             serial_number[v] = vpd_value
 
-    EventLog.ForAutoTest().Log('mlb_serial_number', serial_number=serial_number)
+    Log('mlb_serial_number', serial_number=serial_number)
     shopfloor.set_serial_number(serial_number)
     self._test.ui.event_client.post_event(Event(Event.Type.UPDATE_SYSTEM_INFO))
     self.Pass()

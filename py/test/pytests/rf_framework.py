@@ -19,7 +19,7 @@ from contextlib import contextmanager
 from xmlrpclib import Binary
 
 import factory_common  # pylint: disable=W0611
-from cros.factory import event_log
+from cros.factory.event_log import Log, GetDeviceId
 from cros.factory.goofy.goofy import CACHES_DIR
 from cros.factory.rf.tools.csv_writer import WriteCsv
 from cros.factory.test import factory
@@ -86,7 +86,6 @@ class RfFramework(object):
     self.unique_identification = None
 
   def setUp(self):
-    self.event_log = event_log.EventLog.ForAutoTest()
     self.caches_dir = os.path.join(CACHES_DIR, 'parameters')
     self.interactive_mode = False
     self.calibration_mode = False
@@ -279,7 +278,7 @@ class RfFramework(object):
 
     # log to event log.
     field_to_record[MODULE_ID] = self.unique_identification
-    self.event_log.Log(event_log_key, **field_to_record)
+    Log(event_log_key, **field_to_record)
 
     # additional fields that need to be added becasue they are recorded
     # in event log by default and we need them in csv as well.
@@ -288,7 +287,7 @@ class RfFramework(object):
 
     field_to_record[FAILURES] = self.failures
     field_to_record[DEVICE_SN] = device_sn
-    field_to_record[DEVICE_ID] = event_log.GetDeviceId()
+    field_to_record[DEVICE_ID] = GetDeviceId()
     field_to_record[PATH] = path
     field_to_record[INVOCATION] = os.environ.get('CROS_FACTORY_TEST_INVOCATION')
     csv_path = '%s_%s_%s%s' % (

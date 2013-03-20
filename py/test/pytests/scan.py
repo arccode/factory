@@ -9,7 +9,7 @@ import socket
 import unittest
 
 
-from cros.factory.event_log import EventLog
+from cros.factory.event_log import Log
 from cros.factory.system import vpd
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
@@ -94,9 +94,7 @@ class Scan(unittest.TestCase):
       factory.get_state_instance().UpdateSkippedTests()
 
     if self.args.event_log_key:
-      EventLog.ForAutoTest().Log('scan',
-                                 key=self.args.event_log_key,
-                                 value=scan_value)
+      Log('scan', key=self.args.event_log_key, value=scan_value)
 
     if self.args.shared_data_key:
       factory.set_shared_data(self.args.shared_data_key,

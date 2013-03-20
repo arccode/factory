@@ -13,7 +13,7 @@ import yaml
 
 import factory_common  # pylint: disable=W0611
 from cros.factory import system
-from cros.factory.event_log import EventLog
+from cros.factory.event_log import Log
 from cros.factory.gooftool import Gooftool
 from cros.factory.test import factory
 from cros.factory.test import gooftools
@@ -85,7 +85,6 @@ class Finalize(unittest.TestCase):
     self.go_cond = threading.Condition()
     self.test_states_path = os.path.join(factory.get_log_root(),
                                          'test_states')
-    self.event_log = EventLog.ForAutoTest()
     self.gooftool = Gooftool(hwid_version=self.args.hwid_version)
 
     # Set of waived tests.
@@ -119,8 +118,7 @@ class Finalize(unittest.TestCase):
     with open(self.test_states_path, 'w') as f:
       yaml.dump(test_states, f)
 
-    self.event_log.Log('test_states',
-                       test_states=test_states)
+    Log('test_states', test_states=test_states)
 
     def Go(force=False):
       with self.go_cond:
@@ -286,8 +284,7 @@ class Finalize(unittest.TestCase):
     command = 'gooftool -v 4 -i %d finalize' % self.args.hwid_version
     if self.waived_tests:
       self.Warn('TESTS WERE WAIVED: %s.' % sorted(list(self.waived_tests)))
-    self.event_log.Log('waived_tests',
-                       waived_tests=sorted(list(self.waived_tests)))
+    Log('waived_tests', waived_tests=sorted(list(self.waived_tests)))
 
     if not self.args.write_protection:
       self.Warn('WRITE PROTECTION IS DISABLED.')

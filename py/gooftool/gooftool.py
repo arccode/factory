@@ -24,10 +24,9 @@ from tempfile import gettempdir
 
 import factory_common  # pylint: disable=W0611
 
+from cros.factory import event_log
 from cros.factory.common import Error, SetupLogging, Shell
 from cros.factory.common import YamlWrite
-from cros.factory.event_log import EventLog, EVENT_LOG_DIR
-from cros.factory.event_log import TimedUuid
 from cros.factory.gooftool import Gooftool
 from cros.factory.gooftool import crosfw
 from cros.factory.gooftool import report_upload
@@ -40,11 +39,6 @@ from cros.factory.hwdb import hwid_tool
 from cros.factory.test.factory import FACTORY_LOG_PATH
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.privacy import FilterDict
-
-
-# Use a global event log, so that only a single log is created when
-# gooftool is called programmatically.
-_event_log = EventLog('gooftool')
 
 
 # TODO(tammo): Replace calls to sys.exit with raise Exit, and maybe
@@ -73,7 +67,7 @@ def WriteHWID(options):
 
   logging.info('writing hwid string %r', options.hwid)
   GetGooftool(options).WriteHWID(options.hwid)
-  _event_log.Log('write_hwid', hwid=options.hwid)
+  event_log.Log('write_hwid', hwid=options.hwid)
   print 'Wrote HWID: %r' % options.hwid
 
 
@@ -378,7 +372,7 @@ def VerifyHwid(options):
       value = rw_vpd[key]
       if (known_valid_values is not None) and (value not in known_valid_values):
         sys.exit('Invalid RW VPD entry : key %r, value %r' % (key, value))
-    _event_log.Log('vpd', ro_vpd=FilterDict(ro_vpd), rw_vpd=FilterDict(rw_vpd))
+    event_log.Log('vpd', ro_vpd=FilterDict(ro_vpd), rw_vpd=FilterDict(rw_vpd))
   map(hwid_tool.Validate.Status, options.status)
 
   if not options.hwid or not options.probe_results:
@@ -436,7 +430,7 @@ def VerifyHwid(options):
   print YamlWrite(cooked_initial_configs)
   print 'hwid match tree:'
   print YamlWrite(match_tree)
-  _event_log.Log(
+  event_log.Log(
     'probe',
     found_components=cooked_components.__dict__,
     missing_component_classes=probe_results.missing_component_classes,
@@ -468,7 +462,7 @@ def VerifyHwid(options):
     found_status = matched_volatiles.get(hwid.volatile, None)
     sys.exit(err_msg + ', but hwid status %r was unacceptable' % found_status)
   VerifyVpd(device.vpd_ro_fields, device.vpd_rw_fields)
-  _event_log.Log('verified_hwid', hwid=hwid)
+  event_log.Log('verified_hwid', hwid=hwid)
   print 'Verification SUCCESS!'
 
 
@@ -515,7 +509,7 @@ def VerifyDevSwitch(options):  # pylint: disable=W0613
 
   if GetGooftool(options).CheckDevSwitchForDisabling():
     logging.warn('VerifyDevSwitch: No physical switch.')
-    _event_log.Log('switch_dev', type='virtual switch')
+    event_log.Log('switch_dev', type='virtual switch')
 
 
 @Command('write_protect')
@@ -560,11 +554,11 @@ def EnableFwWp(options):  # pylint: disable=W0613
     crosfw.Flashrom(fw_type).EnableWriteProtection(ro_offset, ro_size)
 
   WriteProtect(crosfw.LoadMainFirmware().GetFileName(), 'main', 'RO_SECTION')
-  _event_log.Log('wp', fw='main')
+  event_log.Log('wp', fw='main')
   ec_fw_file = crosfw.LoadEcFirmware().GetFileName()
   if ec_fw_file is not None:
     WriteProtect(ec_fw_file, 'ec', 'EC_RO')
-    _event_log.Log('wp', fw='ec')
+    event_log.Log('wp', fw='ec')
   else:
     logging.warning('EC not write protected (seems there is no EC flash).')
 
@@ -578,7 +572,7 @@ def ClearGBBFlags(options):  # pylint: disable=W0613
   """
 
   GetGooftool(options).ClearGBBFlags()
-  _event_log.Log('clear_gbb_flags')
+  event_log.Log('clear_gbb_flags')
 
 
 @Command('prepare_wipe',
@@ -624,7 +618,7 @@ def Verify(options):
 def LogSystemDetails(options):  # pylint: disable=W0613
   """Write miscellaneous system details to the event log."""
 
-  _event_log.Log('system_details', **Gooftool(
+  event_log.Log('system_details', **Gooftool(
       hwid_version=options.hwid_version).GetSystemDetails())
 
 
@@ -648,13 +642,13 @@ def UploadReport(options):
   device_sn = ro_vpd.get('serial_number', None)
   if device_sn is None:
     logging.warning('RO_VPD missing device serial number')
-    device_sn = 'MISSING_SN_' + TimedUuid()
+    device_sn = 'MISSING_SN_' + event_log.TimedUuid()
   target_name = '%s_%s.tar.xz' % (time.strftime('%Y%m%dT%H%M%SZ',
                                   time.gmtime()),
                                   NormalizeAsFileName(device_sn))
   target_path = os.path.join(gettempdir(), target_name)
   # Intentionally ignoring dotfiles in EVENT_LOG_DIR.
-  tar_cmd = 'cd %s ; tar cJf %s *' % (EVENT_LOG_DIR, target_path)
+  tar_cmd = 'cd %s ; tar cJf %s *' % (event_log.EVENT_LOG_DIR, target_path)
   tar_cmd += ' --add-file %s' % FACTORY_LOG_PATH
   if options.add_file:
     for f in options.add_file:
@@ -723,7 +717,7 @@ def Finalize(options):
   ClearGBBFlags(options)
   if options.no_write_protect:
     logging.warn('WARNING: Firmware Write Protection is SKIPPED.')
-    _event_log.Log('wp', fw='both', status='skipped')
+    event_log.Log('wp', fw='both', status='skipped')
   else:
     EnableFwWp({})
   LogSystemDetails(options)
@@ -781,7 +775,7 @@ def GenerateHwidV3(options):
   # any sensitive infomation.
   # TODO(jcliang): Add logging for device_info when appropriate.
 
-  _event_log.Log(
+  event_log.Log(
     'probe',
     found_components=probe_results.found_probe_value_map,
     missing_component_classes=probe_results.missing_component_classes,
@@ -795,10 +789,10 @@ def GenerateHwidV3(options):
   for component_class, component_values in (
       hwid_object.bom.components.iteritems()):
     final_bom[component_class] = [v.probed_string for v in component_values]
-  _event_log.Log(
+  event_log.Log(
     'final_bom',
     final_bom=final_bom)
-  _event_log.Log(
+  event_log.Log(
     'generated_hwid',
     encoded_string=hwid_object.encoded_string,
     binary_string=hwid_object.binary_string)
@@ -851,19 +845,19 @@ def VerifyHwidV3(options):
     probed_rw_vpd = ReadRwVpd(main_fw_file)
   print 'probe result:'
   print probe_results.Encode()
-  _event_log.Log(
+  event_log.Log(
     'probe',
     found_components=probe_results.found_probe_value_map,
     missing_component_classes=probe_results.missing_component_classes,
     volatiles=probe_results.found_volatile_values,
     initial_configs=probe_results.initial_configs)
-  _event_log.Log('vpd', probed_ro_vpd=FilterDict(probed_ro_vpd),
+  event_log.Log('vpd', probed_ro_vpd=FilterDict(probed_ro_vpd),
                  probed_rw_vpd=FilterDict(probed_rw_vpd))
 
   GetGooftool(options).VerifyHwidV3(
       hwid_str, probe_results, probed_ro_vpd, probed_rw_vpd)
 
-  _event_log.Log('verified_hwid', hwid=hwid_str)
+  event_log.Log('verified_hwid', hwid=hwid_str)
   print 'Verification SUCCESS!'
 
 
@@ -911,7 +905,8 @@ def Main():
              help='Version of HWID to operate on.'),
       verbosity_cmd_arg)
   SetupLogging(options.verbosity, options.log)
-  _event_log.suppress = options.suppress_event_logs
+  event_log.SetGlobalLoggerDefaultPrefix('gooftool')
+  event_log.GetGlobalLogger().suppress = options.suppress_event_logs
   logging.debug('gooftool options: %s', repr(options))
   try:
     logging.debug('GOOFTOOL command %r', options.command_name)

@@ -21,33 +21,12 @@ from cros.factory.test import factory
 from cros.factory.test import utils
 
 
-class EventLogException(Exception):
-  pass
-
-
-# Since gooftool uses this.
-TimeString = utils.TimeString
-
-
-def TimedUuid():
-  """Returns a UUID that is roughly sorted by time.
-
-  The first 8 hexits are replaced by the current time in 100ths of a
-  second, mod 2**32.  This will roll over once every 490 days, but it
-  will cause UUIDs to be sorted by time in the vast majority of cases
-  (handy for ls'ing directories); and it still contains far more than
-  enough randomness to remain unique.
-  """
-  return ("%08x" % (int(time.time() * 100) & 0xFFFFFFFF) +
-          str(uuid4())[8:])
-
-
-def YamlDump(structured_data):
-  """Wrap yaml.dump to make calling convention consistent."""
-  return yaml.dump(structured_data,
-                   default_flow_style=False,
-                   allow_unicode=True)
-
+# A global event logger to log all events for a test. Since each
+# test is invoked separately as a process, each test will have
+# their own "global" event log with correct context.
+_global_event_logger = None
+_event_logger_lock = threading.Lock()
+_default_event_logger_prefix = None
 
 # TODO(tammo): Replace these definitions references to real canonical
 # data, once the corresponding modules move over from the autotest
@@ -71,8 +50,102 @@ PREFIX_RE = re.compile("^[a-zA-Z0-9_\.]+$")
 EVENT_NAME_RE = re.compile(r"^[a-zA-Z_]\w*$")
 EVENT_KEY_RE = EVENT_NAME_RE
 
+# Since gooftool uses this.
+TimeString = utils.TimeString
+
 device_id = None
 image_id = None
+
+
+class EventLogException(Exception):
+  pass
+
+
+def TimedUuid():
+  """Returns a UUID that is roughly sorted by time.
+
+  The first 8 hexits are replaced by the current time in 100ths of a
+  second, mod 2**32.  This will roll over once every 490 days, but it
+  will cause UUIDs to be sorted by time in the vast majority of cases
+  (handy for ls'ing directories); and it still contains far more than
+  enough randomness to remain unique.
+  """
+  return ("%08x" % (int(time.time() * 100) & 0xFFFFFFFF) +
+          str(uuid4())[8:])
+
+
+def YamlDump(structured_data):
+  """Wraps yaml.dump to make calling convention consistent."""
+  return yaml.dump(structured_data,
+                   default_flow_style=False,
+                   allow_unicode=True)
+
+
+def Log(event_name, **kwargs):
+  """Logs the event using the global event logger.
+
+  This function is essentially a wrapper around EventLog.Log(). It
+  creates or reuses the global event logger and calls the EventLog.Log()
+  function. Note that this should only be used in unit tests, which are
+  spawned as separate processes.
+  """
+
+  GetGlobalLogger().Log(event_name, **kwargs)
+
+
+def GetGlobalLogger():
+  """Gets the singleton instance of the global event logger.
+
+  The global event logger obtains path and uuid from the environment
+  variables CROS_FACTORY_TEST_PATH and CROS_FACTORY_TEST_INVOCATION
+  respectively. Initialize EventLog directly for customized parameters.
+
+  Raises:
+    ValueError: if the test path is not defined
+  """
+
+  global _global_event_logger  # pylint: disable=W0603
+
+  if _global_event_logger is None:
+    with _event_logger_lock:
+      if _global_event_logger is None:
+        path = (_default_event_logger_prefix or
+               os.environ.get('CROS_FACTORY_TEST_PATH', None))
+        if not path:
+          raise ValueError("CROS_FACTORY_TEST_PATH environment"
+            "variable is not set")
+        uuid = os.environ.get('CROS_FACTORY_TEST_INVOCATION') or TimedUuid()
+        _global_event_logger = EventLog(path, uuid)
+
+  return _global_event_logger
+
+
+def SetGlobalLoggerDefaultPrefix(prefix):
+  """Sets the default prefix for the global logger.
+
+  Note this function must be called before the global event logger is
+  initialized (i.e. before GetGlobalLogger() is called).
+
+  Args:
+      prefix: String to identify this category of EventLog, to help
+        humans differentiate between event log files (since UUIDs all
+        look the same).  If string is not alphanumeric with period and
+        underscore punctuation, raises ValueError.
+  Raises:
+      EventLogException: if the global event logger has been initialized
+      ValueError: if the format of prefix is invalid
+  """
+
+  global _default_event_logger_prefix  # pylint: disable=W0603
+
+  if not PREFIX_RE.match(prefix):
+    raise ValueError("prefix %r must match re %s" % (
+      prefix, PREFIX_RE.pattern))
+  elif _global_event_logger:
+    raise EventLogException(("Unable to set default prefix %r after "
+      "initializing the global event logger") % prefix)
+
+  _default_event_logger_prefix = prefix
 
 
 def GetDeviceId():
@@ -197,6 +270,7 @@ class GlobalSeq(object):
         f.write(str(value + 1))
 
       return value
+
     except (IOError, OSError, ValueError):
       logging.exception('Unable to read global sequence number from %s; '
                         'trying backup %s', self.path, self.backup_path)
@@ -218,7 +292,6 @@ class GlobalSeq(object):
 
       return value
 
-
 class EventLog(object):
   """Event logger.
 
@@ -232,7 +305,10 @@ class EventLog(object):
 
   @staticmethod
   def ForAutoTest():
-    """Creates an EventLog object for the running autotest."""
+    """Deprecated, please use event_log.GetGlobalLogger() instead.
+
+    Creates an EventLog object for the running autotest."""
+
     path = os.environ.get('CROS_FACTORY_TEST_PATH', 'autotest')
     uuid = os.environ.get('CROS_FACTORY_TEST_INVOCATION') or TimedUuid()
     return EventLog(path, uuid)
@@ -267,8 +343,8 @@ class EventLog(object):
     self.file = None
     self.suppress = suppress
     if not PREFIX_RE.match(prefix):
-      raise ValueError, "prefix %r must match re %s" % (
-        prefix, PREFIX_RE.pattern)
+      raise ValueError("prefix %r must match re %s" % (
+        prefix, PREFIX_RE.pattern))
     self.prefix = prefix
     self.lock = threading.Lock()
     self.seq = seq or GlobalSeq()
@@ -357,12 +433,12 @@ class EventLog(object):
       raise IOError, "cannot append to closed file for prefix %r" % (
         self.prefix)
     if not EVENT_NAME_RE.match(event_name):
-      raise ValueError, "event_name %r must match %s" % (
-        event_name, EVENT_NAME_RE.pattern)
+      raise ValueError("event_name %r must match %s" % (
+        event_name, EVENT_NAME_RE.pattern))
     for k in kwargs:
       if not EVENT_KEY_RE.match(k):
-        raise ValueError, "key %r must match re %s" % (
-          k, EVENT_KEY_RE.pattern)
+        raise ValueError("key %r must match re %s" % (
+          k, EVENT_KEY_RE.pattern))
     data = {
         "EVENT": event_name,
         "SEQ": self.seq.Next(),

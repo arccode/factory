@@ -23,7 +23,7 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory import system
-from cros.factory.event_log import EventLog
+from cros.factory.event_log import Log
 from cros.factory.system import Board, SystemStatus
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -101,7 +101,6 @@ class BatteryCycleTest(unittest.TestCase):
     self.template.SetState(HTML)
     self.ui.AppendCSS(CSS)
     self.board = system.GetBoard()
-    self.event_log = EventLog.ForAutoTest()
     self.completed_cycles = 0
     self.mode = None
     self.start_time = time.time()
@@ -130,7 +129,7 @@ class BatteryCycleTest(unittest.TestCase):
     log_args['mode'] = self.mode
     log_args['cycle'] = self.completed_cycles
     log_args['status'] = self.status.__dict__
-    self.event_log.Log(event, **log_args)
+    Log(event, **log_args)
 
   def _UpdateHistory(self):
     """Updates history in the UI."""

@@ -245,5 +245,65 @@ class EventLogTest(unittest.TestCase):
       self.assertEqual(str(i + 1),
                        open(event_log.BOOT_SEQUENCE_PATH).read())
 
+
+class GlobalEventLogTest(unittest.TestCase):
+  def setUp(self):
+    # reset the global event logger
+    event_log._global_event_logger = None  # pylint: disable=W0212
+    # pylint: disable=W0212
+    event_log._default_event_logger_prefix = None
+
+    if 'CROS_FACTORY_TEST_PATH' in os.environ:
+      del os.environ['CROS_FACTORY_TEST_PATH']
+    if 'CROS_FACTORY_TEST_INVOCATION' in os.environ:
+      del os.environ['CROS_FACTORY_TEST_INVOCATION']
+
+  def testGlobalInstanceNoEnv(self):
+    self.assertRaises(ValueError, event_log.GetGlobalLogger)
+
+
+  def testGlobalInstancePrefix(self):
+    event_log.SetGlobalLoggerDefaultPrefix("bar")
+    log = event_log.GetGlobalLogger()
+    self.assertEqual('bar', log.prefix)
+    self.assertTrue(log.log_id)
+
+
+  def testInvalidDefaultPrefix(self):
+    self.assertRaises(ValueError,
+      event_log.SetGlobalLoggerDefaultPrefix, "---")
+
+
+  def testDefaultPrefix(self):
+    os.environ['CROS_FACTORY_TEST_PATH'] = 'FooTest'
+    event_log.SetGlobalLoggerDefaultPrefix("bar")
+
+    log = event_log.GetGlobalLogger()
+    self.assertEqual('bar', log.prefix)
+    self.assertTrue(log.log_id)
+
+    self.assertRaises(event_log.EventLogException,
+      event_log.SetGlobalLoggerDefaultPrefix, "bar2")
+
+
+  def testGlobalInstanceWithEnv(self):
+    stub_uuid = 'bfa88756-ef2b-4e58-a4a2-eda1408bc93f'
+    os.environ['CROS_FACTORY_TEST_PATH'] = 'FooTest'
+    os.environ['CROS_FACTORY_TEST_INVOCATION'] = stub_uuid
+
+    log = event_log.GetGlobalLogger()
+    self.assertEqual('FooTest', log.prefix)
+    self.assertEqual(stub_uuid, log.log_id)
+
+
+  def testSingleton(self):
+    os.environ['CROS_FACTORY_TEST_PATH'] = 'FooTest'
+    # pylint: disable=W0212
+    self.assertEquals(None, event_log._global_event_logger)
+    log1 = event_log.GetGlobalLogger()
+    log2 = event_log.GetGlobalLogger()
+    self.assertTrue(log1 is log2)
+
+
 if __name__ == "__main__":
   unittest.main()

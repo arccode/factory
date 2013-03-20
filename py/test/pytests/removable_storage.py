@@ -20,7 +20,7 @@ import threading
 import time
 import unittest
 
-from cros.factory.event_log import EventLog
+from cros.factory.event_log import Log
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -384,7 +384,7 @@ class RemovableStorageTest(unittest.TestCase):
 
         self._metrics.update(update_bin)
 
-    EventLog.ForAutoTest().Log(('%s_rw_speed' % self.args.media),
+    Log(('%s_rw_speed' % self.args.media),
                                **self._metrics)
     self._template.SetInstruction(_REMOVE_FMT_STR(self.args.media))
     self._state = _STATE_RW_TEST_WAIT_REMOVE

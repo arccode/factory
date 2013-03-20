@@ -15,7 +15,7 @@ import pprint
 import re
 import unittest
 
-from cros.factory.event_log import EventLog
+from cros.factory.event_log import Log
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -116,9 +116,8 @@ class CheckWifiCalibrationTest(unittest.TestCase):
                          pprint.pformat(low_band_table, width=200))
     factory.console.info('5GHz table=%s' %
                          pprint.pformat(high_band_table, width=200))
-    event_log = EventLog.ForAutoTest()
-    event_log.Log('low_band_table', value=low_band_table)
-    event_log.Log('high_band_table', value=high_band_table)
+    Log('low_band_table', value=low_band_table)
+    Log('high_band_table', value=high_band_table)
 
     # Check numbers of calibrated units.
     failed_flag = False

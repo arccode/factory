@@ -38,7 +38,7 @@ import unittest
 
 import factory_common # pylint: disable=W0611
 from cros.factory import system
-from cros.factory.event_log import EventLog
+from cros.factory.event_log import Log
 from cros.factory.system import SystemStatus
 from cros.factory.system.msr import MSRSnapshot
 from cros.factory.test import factory
@@ -89,7 +89,6 @@ class ThermalSlopeTest(unittest.TestCase):
 
 
   def setUp(self):
-    self.event_log = EventLog.ForAutoTest()
     self.log = factory.console if self.args.console_log else logging
     self.board = system.GetBoard()
 
@@ -120,11 +119,11 @@ class ThermalSlopeTest(unittest.TestCase):
             self.system_status.fan_rpm, self._MainTemperature(),
             (float('nan') if self.msr.pkg_power_w is None
              else self.msr.pkg_power_w)))
-    self.event_log.Log('sample',
-                       stage=self.stage,
-                       status=self.system_status.__dict__,
-                       pkg_energy_j=self.msr.pkg_energy_j,
-                       pkg_power_w=self.msr.pkg_power_w)
+    Log('sample',
+        stage=self.stage,
+        status=self.system_status.__dict__,
+        pkg_energy_j=self.msr.pkg_energy_j,
+        pkg_power_w=self.msr.pkg_power_w)
 
   def _StartStage(self, stage):
     '''Begins a new stage.'''
@@ -198,8 +197,7 @@ class ThermalSlopeTest(unittest.TestCase):
       pkg_power_w = sum(pkg_power_w[-POWER_SAMPLES:]) / POWER_SAMPLES
       self.log.info(u'%s: temp=%d°C, pkg_power_w: %.3f W',
                     stage, temp, pkg_power_w)
-      self.event_log.Log('stage_result', stage=self.stage,
-                         temp=temp, pkg_power_w=pkg_power_w)
+      Log('stage_result', stage=self.stage, temp=temp, pkg_power_w=pkg_power_w)
       return temp, pkg_power_w, duration_secs
 
     base_temp, base_pkg_power_w, _ = RunStage(
@@ -222,7 +220,7 @@ class ThermalSlopeTest(unittest.TestCase):
                          one_core_pkg_power_w - base_pkg_power_w,
                          one_core_duration_secs)
     factory.console.info(u'slope=%.5f°C/J', slope)
-    self.event_log.Log('result', slope=slope)
+    Log('result', slope=slope)
 
     errors = []
     if self.args.min_slope is not None and slope < self.args.min_slope:
