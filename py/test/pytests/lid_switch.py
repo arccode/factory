@@ -32,6 +32,7 @@ from cros.factory.test.args import Arg
 from cros.factory.test.countdown_timer import StartCountdownTimer
 from cros.factory.test.ui_templates import OneSection
 from cros.factory.test.utils import StartDaemonThread
+from cros.factory.utils import file_utils
 from cros.factory.utils import serial_utils
 
 _DEFAULT_TIMEOUT = 10
@@ -135,6 +136,7 @@ class LidSwitchTest(unittest.TestCase):
 
   def tearDown(self):
     self.TerminateLoop()
+    file_utils.TryUnlink('/var/run/power_manager/lid_opened')
     if self.serial:
       self.serial.write(self.args.lid_open)
       self.serial.close()

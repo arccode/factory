@@ -26,6 +26,7 @@ import unittest
 from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
 from cros.factory.test.ui_templates import OneSection
+from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import Spawn
 
 _TEST_TITLE = test_ui.MakeLabel('Suspend/Resume Test', zh=u'暂停/恢复测试')
@@ -63,6 +64,9 @@ class SuspendResumeTest(unittest.TestCase):
     self._template = OneSection(self._ui)
     self._template.SetTitle(_TEST_TITLE)
     self._template.SetState(_TEST_BODY)
+
+    # Remove lid-opened, which will prevent suspend.
+    file_utils.TryUnlink('/var/run/power_manager/lid_opened')
 
   def _ReadSuspendCount(self):
     """Read the current suspend count from /sys/kernel/debug/suspend_stats.
