@@ -19,9 +19,8 @@ import logging
 import os
 import random
 import re
-import threading
 import time
-import unittest
+import unittest2
 
 from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
@@ -36,7 +35,7 @@ _ID_RUN = 'sr_run'
 _TEST_BODY = ('<font size="20">%s <div id="%s"></div> of \n'
               '<div id="%s"></div></font>') % (_MSG_CYCLE, _ID_RUN, _ID_CYCLES)
 
-class SuspendResumeTest(unittest.TestCase):
+class SuspendResumeTest(unittest2.TestCase):
   ARGS = [
     Arg('cycles', int, 'Number of cycles to suspend/resume', default=1),
     Arg('suspend_delay_max_secs', int, 'Max time in sec during suspend per '
@@ -95,48 +94,42 @@ class SuspendResumeTest(unittest.TestCase):
       Boolean, True if suspend was valid, False if not.
     """
     cur_time = int(open(self.args.time_path).read().strip())
-    if cur_time < resume_at:
-      logging.info('Premature wake detected (%ds early), suprious event? (got '
-                   'touched?)', resume_at - cur_time)
-      return False
-    elif cur_time > (resume_at + self.args.resume_worst_case_secs):
-      logging.info('Late wake detected (%ds > %ds delay), timer failure?',
-                   cur_time - resume_at, self.args.resume_worst_case_secs)
-      return False
-    actual_count = self._ReadSuspendCount()
-    if actual_count < count:
-      logging.info('Suspend count %d too low, expected %d, no suspend?',
-                   actual_count, count)
-      return False
-    elif actual_count > count:
-      logging.info('Suspend count %d too high, expected %d, spurious suspend?',
-                   actual_count, count)
-      return False
-    return True
+    self.assertGreaterEqual(
+        cur_time, resume_at,
+        'Premature wake detected (%d s early), spurious event? (got touched?)'
+        % (resume_at - cur_time))
+    self.assertLessEqual(
+        cur_time, resume_at + self.args.resume_worst_case_secs,
+        'Late wake detected (%ds > %ds delay), timer failure?' % (
+            cur_time - resume_at, self.args.resume_worst_case_secs))
 
-  def _Run(self):
-    """Main test program running in a separate thread."""
+    actual_count = self._ReadSuspendCount()
+    self.assertEqual(
+        count, actual_count,
+        'Incorrect suspend count: ' + (
+            'no suspend?' if actual_count < count else 'spurious suspend?'))
+
+  def runTest(self):
+    self._ui.Run(blocking=False)
     self._ui.SetHTML(self.args.cycles, id=_ID_CYCLES)
     initial_suspend_count = self._ReadSuspendCount()
+
+    random.seed(0)  # Make test deterministic
+
     for run in range(1, self.args.cycles + 1):
       self._ui.SetHTML(run, id=_ID_RUN)
       cur_time = int(open(self.args.time_path).read().strip())
       suspend_time = random.randint(self.args.suspend_delay_min_secs,
-                     self.args.suspend_delay_max_secs)
+                                    self.args.suspend_delay_max_secs)
       logging.info('Suspend %d of %d for %d seconds.',
                    run, self.args.cycles, suspend_time)
       resume_at = suspend_time + cur_time
       open(self.args.wakealarm_path, 'w').write(str(resume_at))
       Spawn('powerd_suspend', check_call=True, log_stderr_on_error=True)
-      self.assertTrue(self._VerifySuspended(initial_suspend_count + run,
-                      resume_at), 'Device may not have suspended properly.')
+      self._VerifySuspended(initial_suspend_count + run, resume_at)
       resume_time = random.randint(self.args.resume_delay_min_secs,
-                    self.args.resume_delay_max_secs)
+                                   self.args.resume_delay_max_secs)
       logging.info('Resumed %d of %d for %d seconds',
                    run, self.args.cycles, resume_time)
       time.sleep(resume_time)
     self._ui.Pass()
-
-  def runTest(self):
-    threading.Thread(target=self._Run).start()
-    self._ui.Run()
