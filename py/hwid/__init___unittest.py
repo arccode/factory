@@ -155,8 +155,7 @@ class DatabaseTest(unittest2.TestCase):
        'chipset': [('chipset_0', 'cdef:abcd', None)],
        'cpu': [('cpu_5', 'CPU @ 2.80GHz [4 cores]', None)],
        'display_panel': [
-          (None, 'FOO:0123 [1440x900]',
-           "component class 'display_panel' is unprobeable")],
+          (None, None, "missing 'display_panel' component")],
        'dram': [('dram_0', '0|2048|DDR3-800,DDR3-1066,DDR3-1333,DDR3-1600 '
                  '1|2048|DDR3-800,DDR3-1066,DDR3-1333,DDR3-1600', None)],
        'ec_flash_chip': [('ec_flash_chip_0', 'EC Flash Chip', None)],

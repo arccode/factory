@@ -7,7 +7,6 @@ found_probe_value_map:
   camera: 4567:abcd Camera
   chipset: cdef:abcd
   cpu: CPU @ 2.80GHz [4 cores]
-  display_panel: FOO:0123 [1440x900]
   dram: 0|2048|DDR3-800,DDR3-1066,DDR3-1333,DDR3-1600 1|2048|DDR3-800,DDR3-1066,DDR3-1333,DDR3-1600
   ec_flash_chip: EC Flash Chip
   embedded_controller: Embedded Controller
@@ -35,5 +34,6 @@ missing_component_classes:
 - wimax
 - cellular
 - display_converter
+- display_panel
 - ethernet
 

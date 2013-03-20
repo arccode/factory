@@ -582,7 +582,8 @@ class Gooftool(object):
     device_bom = self.db.ProbeResultToBOM(probe_results.Encode())
     # Invalidate every unprobeable components.
     for comp_cls in device_bom.components:
-      if comp_cls not in self.db.probeable_components:
+      if not (comp_cls in self.db.probeable_components or
+              comp_cls in self.db.unprobeable_component_whitelist):
         device_bom.components[comp_cls] = []
     # Update BOM using device_info.
     if device_info is not None:

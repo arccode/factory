@@ -161,6 +161,9 @@ probeable_components:
   - ro_ec_firmware
   - ro_main_firmware
 
+unprobeable_component_whitelist:
+  - display_panel
+
 components:
   audio_codec:
     codec_0:

@@ -204,6 +204,7 @@ class Database(object):
     pattern: A _Pattern object.
     encoded_fields: A _EncodedFields object.
     probeable_components: A _ProbeableComponents objet.
+    unprobeable_component_whitelist: A _UnprobeableComponentWhitelist object.
     components: A _Components object.
     shopfloor_device_info: A ShopFloorDeviceInfo object.
     vpd_ro_field: A _VPDFields object.
@@ -240,7 +241,8 @@ class Database(object):
       r'^([A-Z0-9]+) ((?:[A-Z2-7]{4}-)*[A-Z2-7]{1,4}) ([0-9]+)$')
 
   def __init__(self, board, encoding_patterns, image_id, pattern,
-               encoded_fields, probeable_components, components,
+               encoded_fields, probeable_components,
+               unprobeable_component_whitelist, components,
                shopfloor_device_info, vpd_ro_fields, vpd_rw_fields,
                rules, allowed_skus):
     self.board = board
@@ -248,8 +250,9 @@ class Database(object):
     self.image_id = image_id
     self.pattern = pattern
     self.encoded_fields = encoded_fields
-    self.probeable_components = probeable_components
     self.components = components
+    self.probeable_components = probeable_components
+    self.unprobeable_component_whitelist = unprobeable_component_whitelist
     self.shopfloor_device_info = shopfloor_device_info
     self.vpd_ro_fields = vpd_ro_fields
     self.vpd_rw_fields = vpd_rw_fields
@@ -298,6 +301,11 @@ class Database(object):
     for comp_cls in self.probeable_components:
       _VerifyComponent(comp_cls, None, 'probeable_components')
 
+    # Check that all the component classes in unprobeable_component_whitelist
+    # are valid.
+    for comp_cls in self.unprobeable_component_whitelist:
+      _VerifyComponent(comp_cls, None, 'unprobeable_component_whitelist')
+
   @classmethod
   def LoadFile(cls, file_name):
     """Loads a device-specific component database from the given file and
@@ -317,8 +325,10 @@ class Database(object):
       db_yaml = yaml.load(f)
 
     for key in ['board', 'encoding_patterns', 'image_id', 'pattern',
-                'encoded_fields', 'probeable_components', 'components',
-                'shopfloor_device_info', 'vpd_ro_fields', 'vpd_rw_fields']:
+                'encoded_fields', 'probeable_components',
+                'unprobeable_component_whitelist',
+                'components', 'shopfloor_device_info',
+                'vpd_ro_fields', 'vpd_rw_fields']:
       if not db_yaml.get(key):
         raise HWIDException('%r is not specified in component database' % key)
 
@@ -356,6 +366,8 @@ class Database(object):
                     _ImageId(db_yaml['image_id']), _Pattern(db_yaml['pattern']),
                     _EncodedFields(db_yaml['encoded_fields']),
                     _ProbeableComponents(db_yaml['probeable_components']),
+                    _UnprobeableComponentWhitelist(
+                        db_yaml['unprobeable_component_whitelist']),
                     _Components(db_yaml['components']),
                     ShopFloorDeviceInfo(db_yaml['shopfloor_device_info']),
                     _VPDFields(db_yaml['vpd_ro_fields']),
@@ -823,6 +835,24 @@ class _ProbeableComponents(list):
     self.schema = List('probeable components', Scalar('component class', str))
     self.schema.Validate(probeable_component_list)
     super(_ProbeableComponents, self).__init__(probeable_component_list)
+
+
+class _UnprobeableComponentWhitelist(list):
+  """A class for storing the whitelist unprobeable components.
+
+  Some components are unprobeable and we are confident enough to not force
+  verification through shopfloor device info.
+
+  Args:
+    unprobeable_component_whitelist: A list of strings indicating the whitelist
+        of unprobeable component classes.
+  """
+  def __init__(self, unprobeable_component_whitelist):
+    self.schema = List('unprobeable component whitelist',
+                       Scalar('component class', str))
+    self.schema.Validate(unprobeable_component_whitelist)
+    super(_UnprobeableComponentWhitelist, self).__init__(
+        unprobeable_component_whitelist)
 
 
 class _Components(dict):
