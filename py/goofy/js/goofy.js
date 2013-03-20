@@ -2230,17 +2230,18 @@ cros.factory.Goofy.prototype.sendRpc = function(
 
             var response = goog.json.unsafeParse(this.getResponseText());
             if (response.error) {
-                factoryThis.logToConsole('RPC error calling ' + method + ': ' +
-                                         goog.debug.expose(response.error),
-                                         'goofy-internal-error');
                 if (opt_errorCallback) {
                     opt_errorCallback.call(factoryThis, response);
+                } else {
+                    factoryThis.logToConsole(
+                        'RPC error calling ' + method + ': ' +
+                            goog.debug.expose(response.error),
+                        'goofy-internal-error');
                 }
-                return;
-            }
-
-            if (callback) {
-                callback.call(factoryThis, response.result);
+            } else {
+                if (callback) {
+                    callback.call(factoryThis, response.result);
+                }
             }
         },
         'POST', request);
