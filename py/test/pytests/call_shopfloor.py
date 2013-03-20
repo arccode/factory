@@ -21,15 +21,6 @@ from cros.factory.test import factory, shopfloor
 from cros.factory.test.args import Arg
 
 
-class Env(object):
-  def __init__(self):
-    self.state = factory.get_state_instance()
-    self.shopfloor = shopfloor
-
-  def GetMACAddress(self, interface):
-    return open('/sys/class/net/%s/address' % interface).read().strip()
-
-
 def UpdateDeviceData(data):
   shopfloor.UpdateDeviceData(data)
   factory.get_state_instance().UpdateSkippedTests()
@@ -62,12 +53,6 @@ class CallShopfloor(unittest.TestCase):
               self.args.action, sorted(self.RETURN_VALUE_ACTIONS.keys())))
     else:
       action_handler = lambda value: None
-
-    env = type('Env', (), dict(state=factory.get_state_instance(),
-                               shopfloor=shopfloor))
-    if isinstance(self.args.args, types.FunctionType):
-      self.args.args = self.args.args(env)
-      self.assertTrue(isinstance(self.args.args, types.FunctionType))
 
     method = getattr(shopfloor.get_instance(detect=True), self.args.method)
     logging.info('Invoking %s(%s)',
