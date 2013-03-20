@@ -339,6 +339,22 @@ class ShopFloorServerTest(unittest2.TestCase):
         '010101010101010101010101010162319fcc,'
         '\d\d\d\d-\d\d-\d\d \d\d:\d\d:\d\d\n', log), repr(log))
 
+  def testLogRegistrationCode(self):
+    valid_code = ('000000000000000000000000000000000000'
+                  '0000000000000000000000000000190a55ad')
+    invalid_code = '1' + valid_code[1:]
+
+    # This should work.
+    self.proxy.LogRegistrationCodeMap(
+        'MAGICA MADOKA A-A 1214', {'user': valid_code, 'group': valid_code})
+
+    for invalid_map in ({'user': invalid_code, 'group': valid_code},
+                        {'user': valid_code, 'group': invalid_code}):
+      self.assertRaisesRegexp(
+          Exception, "CRC of '10+190a55ad' is invalid",
+          self.proxy.LogRegistrationCodeMap,
+          'MAGICA MADOKA A-A 1214', invalid_map)
+
   def testUploadEvent(self):
     # Check if events dir is created.
     events_dir = os.path.join(self.logs_dir, shopfloor.EVENTS_DIR)

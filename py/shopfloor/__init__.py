@@ -25,6 +25,7 @@ from cros.factory.shopfloor import factory_update_server
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import utils
+from cros.factory.test.registration_codes import CheckRegistrationCode
 from cros.factory.utils.process_utils import Spawn
 
 
@@ -470,6 +471,9 @@ class ShopFloorBase(object):
 
   def LogRegistrationCodeMap(self, hwid, registration_code_map):
     """Logs that a particular registration code has been used."""
+    for key in ('user', 'group'):
+      CheckRegistrationCode(registration_code_map[key])
+
     with open(os.path.join(
         self.data_dir, "registration_code_log.csv"), "ab") as f:
       csv.writer(f, dialect=NewlineTerminatedCSVDialect).writerow([
