@@ -9,10 +9,14 @@
 SMT has a test fixture, which communicates with DUT via serial port.
 This test is to make sure that the serial port works as expected.
 
+It can also be used to send a command to the fixture before/after a test.
+
 dargs:
   serial_param: A parameter tuple of the target serial port:
       (port, baudrate, bytesize, parity, stopbits, timeout_secs).
       timeout_secs is used for both read and write timeout.
+  send_recv: A tuple (send, recv). send is a char for the DUT to send to
+      a fixture. And recv is the expected one-char response from the fixture.
 """
 import serial
 import unittest
@@ -28,22 +32,39 @@ class SerialEchoTest(unittest.TestCase):
         'The parameter list of a serial connection we want to use.',
         default=('/dev/ttyUSB0', 19200, serial.EIGHTBITS, serial.PARITY_NONE,
                  serial.STOPBITS_ONE , _SERIAL_TIMEOUT)),
+    Arg('send_recv', tuple,
+        'A tuple (send, recv). send is a char for the DUT to send to a fixture '
+        'MCU. And recv is the expected one-char response from the fixture.',
+        default=(chr(0xE0), chr(0xE1)))
   ]
 
   def setUp(self):
-    # Prepare fixture auto test if needed.
-    self.serial = None
+    self._serial = None
+    self._send = None
+    self._recv = None
+
+    if (len(self.args.send_recv) != 2 or
+        not all(isinstance(a, str) for a in self.args.send_recv)):
+      self.fail('Invalid dargs send_recv: %s' % str(self.args.send_recv))
+    self._send, self._recv = self.args.send_recv
+
     try:
-      self.serial = serial_utils.OpenSerial(self.args.serial_param)
+      self._serial = serial_utils.OpenSerial(self.args.serial_param)
     except serial.SerialException as e:
       self.fail(e)
 
   def tearDown(self):
-    if self.serial:
-      self.serial.close()
+    if self._serial:
+      self._serial.close()
 
   def testEcho(self):
-    echo = chr(0xE0)
-    self.assertTrue(self.serial is not None, 'Invalid RS-232 connection.')
-    self.assertEqual(1, self.serial.write(echo), 'Write fail.')
-    self.assertEqual(echo, self.serial.read(), 'Read fail.')
+    self.assertTrue(self._serial is not None, 'Invalid RS-232 connection.')
+    try:
+      self.assertEqual(1, self._serial.write(self._send), 'Write fail')
+    except serial.SerialTimeoutException:
+      self.fail('Write timeout')
+
+    try:
+      self.assertEqual(self._recv, self._serial.read(), 'Read fail')
+    except serial.SerialTimeoutException:
+      self.fail('Read timeout')
