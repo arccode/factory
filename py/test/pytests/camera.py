@@ -129,12 +129,14 @@ class CaptureTask(factory_task.InteractiveFactoryTask):
       self.img_buffer.seek(0)
       cv2.imwrite(self.img_buffer.name, cv_img,
                   (cv.CV_IMWRITE_JPEG_QUALITY, _JPEG_QUALITY))
-      try:
-        self.camera_test.ui.CallJSFunction('showJpegImage',
-                                    self.img_buffer.read().encode('base64'))
-      except AttributeError:
-        # The websocket is closed because test has passed/failed.
-        return
+      if self.args.show_image:
+        try:
+          self.camera_test.ui.CallJSFunction(
+              'showJpegImage',
+              self.img_buffer.read().encode('base64'))
+        except AttributeError:
+          # The websocket is closed because test has passed/failed.
+          return
       time.sleep(tick)
 
   def Init(self):
@@ -218,7 +220,9 @@ class CameraTest(unittest.TestCase):
     Arg('resize_ratio', float, 'The resize ratio of the captured image.',
         default=0.4),
     Arg('timeout_run', bool, 'Just run the camera for timeout_secs.',
-        default=False)
+        default=False),
+    Arg('show_image', bool, 'Whether to actually show the image.',
+        default=True),
   ]
 
   def EnableCamera(self):
@@ -274,4 +278,5 @@ class CameraTest(unittest.TestCase):
     StartDaemonThread(target=self.CountdownTimer)
 
   def runTest(self):
+    self.ui.Run(blocking=False)
     self.task_manager.Run()

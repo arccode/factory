@@ -151,6 +151,7 @@ class CountDownTest(unittest.TestCase):
     # pylint: disable=W0201
 
     self._ui = test_ui.UI()
+    self._ui.Run(blocking=False)
     self._ui.SetHTML(self.args.title_en, id='cd-title-en')
     self._ui.SetHTML(self.args.title_zh, id='cd-title-zh')
 

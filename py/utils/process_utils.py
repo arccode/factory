@@ -20,15 +20,16 @@ PIPE = subprocess.PIPE
 dev_null = None
 
 
-def WrapLines(data):
-  '''Returns a function that returns a list of all lines in data.'''
-  def Wrapper(strip=False):
-    ret = StringIO(data).readlines()
-    if strip:
-      ret = [x.strip() for x in ret]
-    return ret
+def GetLines(data, strip=False):
+  """Returns a list of all lines in data.
 
-  return Wrapper
+  Args:
+    strip: If True, each line is stripped.
+  """
+  ret = StringIO(data).readlines()
+  if strip:
+    ret = [x.strip() for x in ret]
+  return ret
 
 
 def OpenDevNull():
@@ -78,6 +79,39 @@ def SpawnOutput(*args, **kwargs):
   '''
   kwargs['read_stdout'] = True
   return Spawn(*args, **kwargs).stdout_data
+
+
+class _ExtendedPopen(subprocess.Popen):
+  """Popen subclass supported a few extra methods.
+
+  Attributes:
+    stdout_data, stderr_data: Data read by communicate().  These are set by
+      the Spawn call if read_stdout/read_stderr are True.
+  """
+  stdout_data = None
+  stderr_data = None
+
+  def stdout_lines(self, strip=False):
+    """Returns lines in stdout_data as a list.
+
+    Args:
+      strip: If True, each line is stripped.
+    """
+    return GetLines(self.stdout_data, strip)
+
+  def stderr_lines(self, strip=False):
+    """Returns lines in stderr_data as a list.
+
+    Args:
+      strip: If True, each line is stripped.
+    """
+    return GetLines(self.stderr_data, strip)
+
+  def communicate(self, *args, **kwargs):
+    if self.stdout_data is None and self.stderr_data is None:
+      return super(_ExtendedPopen, self).communicate(*args, **kwargs)
+    else:
+      return self.stdout_data, self.stderr_data
 
 
 def Spawn(args, **kwargs):
@@ -204,23 +238,15 @@ def Spawn(args, **kwargs):
     raise ValueError('Cannot use call=True argument with stderr=PIPE, '
                      'since OS buffers may get filled up')
 
-  process = subprocess.Popen(args, **kwargs)
-  process.stdout_data = None
-  process.stdout_lines = None
-  process.stderr_data = None
-  process.stderr_lines = None
+  process = _ExtendedPopen(args, **kwargs)
 
   if call:
     if read_stdout or read_stderr:
       stdout, stderr = process.communicate()
       if read_stdout:
         process.stdout_data = stdout
-        process.stdout_lines = WrapLines(process.stdout_data)
       if read_stderr:
         process.stderr_data = stderr
-        process.stderr_lines = WrapLines(process.stderr_data)
-      process.communicate = (
-          lambda: (process.stdout_data, process.stderr_data))
     else:
       # No need to communicate; just wait
       process.wait()
