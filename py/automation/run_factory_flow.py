@@ -241,7 +241,8 @@ def RunFactoryFlow(board, dhcp_iface, host_ip, dut_mac, dut_ip, install_method,
                    factory_channel='', factory_branch='', recovery_channel='',
                    recovery_branch='', recovery_key='', firmware_channel='',
                    firmware_branch='', firmware_key='', firmware_tag='',
-                   bundle_dir='', recovery_image='', install_shim='',
+                   bundle_dir='', recovery_image='',
+                   install_shim='', install_shim_key='',
                    firmware_updater='', hwid_updater='', bios_bin='', ec_bin='',
                    netboot_bios='', finalize=False, automation_config='',
                    testlist='', serial_number='', servo_serial='',
@@ -331,6 +332,14 @@ def RunFactoryFlow(board, dhcp_iface, host_ip, dut_mac, dut_ip, install_method,
           log=True, check_call=True)
 
   if install_method in ('install_shim', 'usbimg'):
+    if not install_shim:
+      gsutil = GSUtil(board, factory_channel)
+      build_dir = gsutil.GetLatestBuildDir(branch=factory_branch)
+      install_shim_uri = gsutil.GetBinaryURI(build_dir, 'factory',
+                                             key=install_shim_key)
+      logging.info('Latest install shim URI %s', install_shim_uri)
+      install_shim = GSUtil.DownloadURI(install_shim_uri, FILE_CACHE_DIR)
+
     # Update IP addresses in copied install shim.
     clone_install_shim = os.path.join(work_dir, 'install_shim.bin')
     shutil.copyfile(install_shim, clone_install_shim)
@@ -480,6 +489,8 @@ if __name__ == '__main__':
                     help='Recovery image to use.')
   parser.add_option('--install_shim', default='',
                     help='Install shim to use.')
+  parser.add_option('--install_shim_key', default='',
+                    help='Key by which install shim was signed.')
   parser.add_option('--firmware_updater', default='',
                     help='Firmware updater to use.')
   parser.add_option('--hwid_updater', default='',
@@ -518,8 +529,6 @@ if __name__ == '__main__':
 
   if options.install_method not in SUPPORTED_INSTALL_METHODS:
     raise InvalidArgumentError('Invalid install method specified')
-  if options.install_method == 'install_shim' and not options.install_shim:
-    raise InvalidArgumentError('No install shim specified')
 
   RunFactoryFlow(
       options.board, options.dhcp_iface, options.host_ip, options.dut_mac,
@@ -528,7 +537,8 @@ if __name__ == '__main__':
       options.recovery_channel, options.recovery_branch, options.recovery_key,
       options.firmware_channel, options.firmware_branch, options.firmware_key,
       options.firmware_tag, options.bundle_dir, options.recovery_image,
-      options.install_shim, options.firmware_updater, options.hwid_updater,
+      options.install_shim, options.install_shim_key,
+      options.firmware_updater, options.hwid_updater,
       options.bios_bin, options.ec_bin, options.netboot_bios,
       options.finalize, options.automation_config, options.testlist,
       options.serial_number, options.servo_serial, options.servo_config,
