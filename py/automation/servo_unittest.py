@@ -76,8 +76,8 @@ class ServoTest(unittest.TestCase):
     s._server.set('warm_reset', 'off')
     # RecoveryBootDUT set command sequence.
     s._server.set('rec_mode', 'on')
-    s._server.set('warm_reset', 'on')
-    s._server.set('warm_reset', 'off')
+    s._server.set('cold_reset', 'on')
+    s._server.set('cold_reset', 'off')
     s._server.set('rec_mode', 'off')
     # SetupUSBForHost set command sequence.
     s._server.set('prtctl4_pwren', 'on')

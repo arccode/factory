@@ -110,7 +110,7 @@ class Servo(object):
     '''Boots DUT in recovery mode.'''
 
     self.Set('rec_mode', 'on')
-    self.WarmReset()
+    self.ColdReset()
     time.sleep(wait)
     self.Set('rec_mode', 'off')
 
