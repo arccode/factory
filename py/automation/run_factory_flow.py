@@ -416,6 +416,9 @@ def RunFactoryFlow(board, dhcp_iface, host_ip, dut_mac, dut_ip, install_method,
         raise FinalizeError('No report found, DUT finalize failed')
       logging.info('Finalize report: %s', report_file)
 
+      # Wait a few seconds for DUT to send finalize message to shopfloor server.
+      time.sleep(5)
+
     logging.info('Test result: SUCCESS! %s', test_setup)
   except:  # pylint: disable=W0702
     logging.exception('Factory flow testing terminated')
