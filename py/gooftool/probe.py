@@ -655,6 +655,10 @@ def _ProbeVga():
 def _ProbeWireless():
   return _FlimflamDevices.ReadSysfsDeviceIds('wifi')
 
+@_ComponentProbe('pmic')
+def _ProbePmic():
+  pmics = glob('/sys/bus/platform/devices/*-pmic')
+  return [os.path.basename(x) for x in pmics] if pmics else []
 
 @_ComponentProbe('keyboard')
 def _ProbeKeyboard():

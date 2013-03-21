@@ -56,6 +56,7 @@ found_probe_value_map:
   embedded_controller: nuvoton npce781
   ethernet: 0b95:772a ASIX Elec. Corp. AX88x72A 0001
   flash_chip: Winbond W25Q32
+  pmic: 99999-pmic
   storage: 'ATA SanDisk SSD P4 1 #31277232'
   touchpad: SynPS/2 Synaptics TouchPad
   tpm: 49465800:1.2.3.18
