@@ -278,5 +278,4 @@ class CameraTest(unittest.TestCase):
     StartDaemonThread(target=self.CountdownTimer)
 
   def runTest(self):
-    self.ui.Run(blocking=False)
     self.task_manager.Run()
