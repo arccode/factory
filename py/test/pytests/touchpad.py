@@ -7,10 +7,11 @@
 A factory test to test the functionality of touchpad.
 
 dargs:
-  touchpad_event_id: Touchpad input event id. (default: 8)
+  touchpad_event_id: Touchpad input event id. (default: None)
   timeout_secs: Timeout for the test. (default: 30 seconds)
 """
 
+import evdev
 import logging
 import re
 import subprocess
@@ -239,10 +240,11 @@ class TouchpadTest(unittest.TestCase):
         to process double click. We will only process right_btn and left_btn.
     self.monitor_process: the evtest process to get touchpad input.
         This should get terminated when test stops.
+    self.touchpad_event_path: The path of input device like /dev/input/event1.
   '''
   ARGS = [
-    Arg('touchpad_event_id', int, 'Touchpad input event id.',
-        default=8),
+    Arg('touchpad_event_id', int, 'Touchpad input event id. The test will probe'
+        ' for event id if it is not given.', default=None, optional=True),
     Arg('timeout_secs', int, 'Timeout for the test.', default=20),
     Arg('number_to_click', int, 'Target number to click.', default=10)
   ]
@@ -264,6 +266,11 @@ class TouchpadTest(unittest.TestCase):
     self.click_event = ClickEvent()
     self.touchpad_has_right_btn = False
     self.monitor_process = None
+    if self.args.touchpad_event_id is None:
+      self.touchpad_event_path = self.ProbeEventSource()
+    else:
+      self.touchpad_event_path = ('/dev/input/event' +
+                                  str(self.args.touchpad_event_id))
 
     logging.info('start monitor daemon thread')
     StartDaemonThread(target=self.MonitorEvtest)
@@ -272,6 +279,25 @@ class TouchpadTest(unittest.TestCase):
                         lambda: self.ui.CallJSFunction('failTest'),
                         self.ui,
                         _ID_COUNTDOWN_TIMER)
+
+  def ProbeEventSource(self):
+    """Probes for touch event path.
+
+    Touch device has type EV_ABS, and there is a code ABS_MT_POSITION_X in
+    the first element of one of its values.
+    It also has type EV_KEY, in which there is a code BTN_LEFT in its values.
+    """
+    for dev in map(evdev.InputDevice, evdev.list_devices()):
+      event_type_code = dev.capabilities()
+      logging.info('capabilities, %s', event_type_code)
+      if not (evdev.ecodes.EV_KEY in event_type_code and
+              evdev.ecodes.BTN_LEFT in event_type_code[evdev.ecodes.EV_KEY]):
+        continue
+      if (evdev.ecodes.EV_ABS in event_type_code):
+        codes = [x[0] for x in event_type_code[evdev.ecodes.EV_ABS]]
+        if evdev.ecodes.ABS_MT_POSITION_X in codes:
+          logging.info('Probed device path: %s; name %s', dev.fn, dev.name)
+          return dev.fn
 
   def tearDown(self):
     '''
@@ -287,9 +313,8 @@ class TouchpadTest(unittest.TestCase):
     Starts evtest process, gets the spec of touchpad, disables touchpad at X,
     and monitors touchpad events from output of evtest.
     '''
-    self.monitor_process = Spawn(['evtest', '/dev/input/event%d' % (
-                                  self.args.touchpad_event_id)],
-                                  stdout=subprocess.PIPE)
+    self.monitor_process = Spawn(['evtest', self.touchpad_event_path],
+                                 stdout=subprocess.PIPE)
     self.GetSpec()
     self.EnableTouchpadX(False)
     self.MonitorEvent()
