@@ -164,13 +164,19 @@ class LidSwitchTest(unittest.TestCase):
   def TerminateLoop(self):
     self.dispatcher.close()
 
-  def OpenLid(self):
+  def _CommandFixture(self, command):
     if self.serial:
-      self.serial.write(self.args.lid_open)
+      try:
+        self.serial.write(command)
+        self.serial.read(1)
+      except serial.SerialTimeoutException:
+        self.ui.Fail('Serial write/read timeout')
+
+  def OpenLid(self):
+    self._CommandFixture(self.args.lid_open)
 
   def CloseLid(self):
-    if self.serial:
-      self.serial.write(self.args.lid_close)
+    self._CommandFixture(self.args.lid_close)
 
   def AskForOpenLid(self):
     if self.args.use_fixture:
