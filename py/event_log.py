@@ -37,14 +37,15 @@ EVENT_LOG_DIR = os.path.join(factory.get_state_root(), "events")
 # Path to use to generate a device ID in case none exists (i.e.,
 # there is no wlan0 interface).
 DEVICE_ID_PATH = os.path.join(EVENT_LOG_DIR, ".device_id")
+WLAN0_MAC_PATH = "/sys/class/net/wlan0/address"
+MLAN0_MAC_PATH = "/sys/class/net/mlan0/address"
+DEVICE_ID_SEARCH_PATH = [WLAN0_MAC_PATH, MLAN0_MAC_PATH, DEVICE_ID_PATH]
 
 # Path to use to generate an image ID in case none exists (i.e.,
 # this is the first time we're creating an event log).
 IMAGE_ID_PATH = os.path.join(EVENT_LOG_DIR, ".image_id")
 
 BOOT_SEQUENCE_PATH = os.path.join(EVENT_LOG_DIR, ".boot_sequence")
-
-WLAN0_MAC_PATH = "/sys/class/net/wlan0/address"
 
 PREFIX_RE = re.compile("^[a-zA-Z0-9_\.]+$")
 EVENT_NAME_RE = re.compile(r"^[a-zA-Z_]\w*$")
@@ -151,12 +152,12 @@ def SetGlobalLoggerDefaultPrefix(prefix):
 def GetDeviceId():
   """Returns the device ID.
 
-  This is derived from the wlan0 MAC address.  If no wlan0 device is
-  available, one is generated into DEVICE_ID_PATH.
+  This is derived from the wlan0 or mlan0 MAC address.  If none is
+  available, the id is generated into DEVICE_ID_PATH.
   """
   global device_id  # pylint: disable=W0603
   if not device_id:
-    for path in [WLAN0_MAC_PATH, DEVICE_ID_PATH]:
+    for path in DEVICE_ID_SEARCH_PATH:
       if os.path.exists(path):
         device_id = open(path).read().strip()
         break
