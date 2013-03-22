@@ -187,6 +187,7 @@ class FinalizeBundle(object):
     self.MakeUpdateBundle()
     self.UpdateMiniOmahaURL()
     self.MakeFactoryPackages()
+    self.FixFactoryParSymlinks()
     self.CheckFiles()
     self.UpdateReadme()
     self.Archive()
@@ -400,6 +401,7 @@ class FinalizeBundle(object):
                                          'update_firmware_vars.py')
       new_netboot_firmware_image = netboot_firmware_image + '.INPROGRESS'
       Spawn([update_firmware_vars,
+             '--force',
              '-i', netboot_firmware_image,
              '-o', new_netboot_firmware_image,
              '--omahaserver=%s' % mini_omaha_url,
@@ -454,6 +456,40 @@ class FinalizeBundle(object):
           ''  # Add newline at EOF
           ]))
       os.fchmod(f.fileno(), 0555)
+
+  def FixFactoryParSymlinks(self):
+    """Fix symlinks to factory.par.
+
+    These may have been turning into real files by the buildbots.
+    """
+    factory_par_path = os.path.join(self.bundle_dir,
+                                    'shopfloor', 'factory.par')
+    with open(factory_par_path) as f:
+      factory_par_data = f.read()
+
+    # Look for files that are identical copies of factory.par.
+    for root, dummy_dirs, files in os.walk(self.bundle_dir):
+      for f in files:
+        path = os.path.join(root, f)
+        if path == factory_par_path:
+          # Don't replace it with itself!
+          continue
+        if (os.path.islink(path) or
+            os.path.getsize(path) != len(factory_par_data)):
+          # It's not a real file, or not the right size.  Skip.
+          continue
+        with open(path) as fobj:
+          data = fobj.read()
+        if data != factory_par_data:
+          # Data isn't the same.  Skip.
+          continue
+
+        # Replace the file with a symlink.
+        logging.info('Replacing %s with a symlink')
+        os.unlink(path)
+        os.symlink(os.path.relpath(factory_par_path,
+                                   os.path.dirname(path)),
+                   path)
 
   def CheckFiles(self):
     # Check that the set of files is correct
