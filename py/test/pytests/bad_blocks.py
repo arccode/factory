@@ -60,7 +60,10 @@ class BadBlocksTest(unittest.TestCase):
           default=5),
       Arg('log_interval_secs', int,
           'The interval between progress logs in seconds.',
-          default=60)
+          default=60),
+      Arg('drop_caches_interval_secs', int,
+          'The interval between dropping caches in seconds.',
+          default=120),
       ]
 
   def setUp(self):
@@ -189,7 +192,7 @@ class BadBlocksTest(unittest.TestCase):
                       id='bb-phase')
     UpdatePhase()
 
-    last_log_time = time.time()
+    last_drop_caches_time = last_log_time = time.time()
     while True:
       # Assume no output in timeout_secs means hung on disk op.
       start_time = time.time()
@@ -248,6 +251,15 @@ class BadBlocksTest(unittest.TestCase):
         if ch == '':
           break
         buf = []
+
+        # See if we shuold drop caches.
+        if (self.args.drop_caches_interval_secs and
+            (time.time() - last_drop_caches_time >
+             self.args.drop_caches_interval_secs)):
+          logging.info('Dropping caches')
+          with open('/proc/sys/vm/drop_caches', 'w') as f:
+            f.write('1')
+          last_drop_caches_time = time.time()
       else:
         buf.append(ch)
 
