@@ -150,7 +150,13 @@ class ScanDevicesTask(FactoryTask):
                                               name='ProgressThread')
 
   def FilterByKeyword(self, devices):
-    """Returns the devices filtered by self._keyword."""
+    """Returns the devices filtered by self._keyword.
+
+    If self._keyword is None, leave devices as it is.
+    """
+    if self._keyword is None:
+      return devices
+
     filtered_devices = dict()
     for mac, props in devices.iteritems():
       if 'Name' not in props:
@@ -419,7 +425,7 @@ class BluetoothTest(unittest.TestCase):
     Arg('prompt_scan_message', bool, 'Prompts a message to tell user to enable'
         ' remote devices discovery mode', default=True),
     Arg('keyword', str, 'Only cares remote devices whose "Name" contains'
-        ' keyword.', default='', optional=True),
+        ' keyword.', default=None, optional=True),
     Arg('average_rssi_threshold', float, 'Checks the largest average RSSI among'
         ' scanned device is equal to or greater than average_rssi_threshold.',
         default=None, optional=True),
