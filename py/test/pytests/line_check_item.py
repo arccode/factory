@@ -22,6 +22,7 @@ dargs:
 import unittest
 from collections import namedtuple
 
+from cros.factory.event_log import Log
 from cros.factory.test.args import Arg
 from cros.factory.test import factory
 from cros.factory.test import test_ui
@@ -84,6 +85,8 @@ class LineCheckItemTest(unittest.TestCase):
                                   log_stderr_on_error=True, shell=True)
     stdout, stderr = process.communicate()
     retcode = process.returncode
+    Log('checked_item', command=command, retcode=retcode, stdout=stdout,
+        stderr=stderr)
 
     if retcode:
       factory.console.info('%s: Exit code %d\nstdout: %s\nstderr: %s',

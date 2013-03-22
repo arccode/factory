@@ -25,9 +25,11 @@ dargs:
 import asyncore
 import evdev
 import serial
+import datetime
 import unittest
 
 from cros.factory.test import test_ui
+from cros.factory.event_log import Log
 from cros.factory.test.args import Arg
 from cros.factory.test.countdown_timer import StartCountdownTimer
 from cros.factory.test.ui_templates import OneSection
@@ -131,6 +133,11 @@ class LidSwitchTest(unittest.TestCase):
         self.ui,
         _ID_COUNTDOWN_TIMER)
 
+    # Variables to track the time it takes to open and close the lid
+    self._start_waiting_sec = self.getCurrentEpochSec()
+    self._closed_sec = 0
+    self._opened_sec = 0
+
     if self.args.use_fixture:
       self.CloseLid()
 
@@ -140,6 +147,15 @@ class LidSwitchTest(unittest.TestCase):
     if self.serial:
       self.serial.write(self.args.lid_open)
       self.serial.close()
+    Log('lit_wait_sec',
+        time_to_close_sec=(self._closed_sec - self._start_waiting_sec),
+        time_to_open_sec=(self._opened_sec - self._closed_sec),
+        use_fixture=self.args.use_fixture)
+
+  def getCurrentEpochSec(self):
+    '''Returns the time since epoch.'''
+
+    return float(datetime.datetime.now().strftime("%s.%f"))
 
   def ProbeLidEventSource(self):
     """Probe for lid event source."""
@@ -152,8 +168,10 @@ class LidSwitchTest(unittest.TestCase):
   def HandleEvent(self, event):
     if event.type == evdev.ecodes.EV_SW and event.code == evdev.ecodes.SW_LID:
       if event.value == 1: # LID_CLOSED
+        self._closed_sec = self.getCurrentEpochSec()
         self.AskForOpenLid()
       elif event.value == 0: # LID_OPEN
+        self._opened_sec = self.getCurrentEpochSec()
         self.ui.Pass()
 
   def MonitorEvdevEvent(self):

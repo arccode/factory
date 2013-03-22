@@ -155,6 +155,7 @@ class ExternalPowerTask(FactoryTask):
   def CheckEvent(self):
     state = self.GetExternalPowerState()
     logging.info('power state: %s', state)
+    Log('power_state', state=state)
     if state == self.AC_CONNECTED:
       return True
     return False
@@ -199,6 +200,8 @@ class FactoryInstallCompleteTask(FactoryTask):
       factory.console.info(
           'EC RO and RW version does not match, %s' % version_info)
       return
+    Log('factory_installed', ro_version=ro_version_output,
+        rw_version=rw_version_output)
     self.Pass()
 
 

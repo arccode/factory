@@ -12,6 +12,7 @@ This checks the existence of battery in sysfs.
 import threading
 import unittest
 
+from cros.factory.event_log import Log
 from cros.factory.test.args import Arg
 from cros.factory.test.test_ui import MakeLabel, UI
 from cros.factory.test.ui_templates import OneScrollableSection
@@ -52,6 +53,8 @@ class SysfsBatteryTest(unittest.TestCase):
     else:
       success = True
 
+    Log('battery_checked', wearPct=wearPct, allowed=wearAllowedPct,
+        success=success)
     if success:
       self._ui.Pass()
     else:

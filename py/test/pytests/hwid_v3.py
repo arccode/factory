@@ -11,6 +11,7 @@ import unittest
 import factory_common # pylint: disable=W0611
 from cros.factory import gooftool
 from cros.factory import hwid
+from cros.factory.event_log import Log
 from cros.factory.gooftool import Gooftool
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
@@ -70,6 +71,7 @@ class HWIDV3Test(unittest.TestCase):
       generated_hwid = gt.GenerateHwidV3(device_info=device_data)
       encoded_hwid = generated_hwid.encoded_string
       factory.console.info('Generated HWID: %s', encoded_hwid)
+      Log('hwid', hwid=encoded_hwid)
     else:
       encoded_hwid = None
 

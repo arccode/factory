@@ -16,6 +16,7 @@ import time
 import unittest
 
 from cros.factory import system
+from cros.factory.event_log import Log
 from cros.factory.system.board import Board
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -71,6 +72,8 @@ class ChargerTest(unittest.TestCase):
     for elapsed in xrange(self.args.timeout_secs):
       charge = self._power.GetChargePct()
       if charge >= self.args.target_charge_pct:
+        Log('charged', charge=charge, target=self.args.target_charge_pct,
+            elapsed=elapsed)
         return
       self._ui.RunJS('$("batteryIcon").style.backgroundPosition = "-%dpx 0px"' %
                      ((elapsed % 4) * 256))
@@ -86,6 +89,8 @@ class ChargerTest(unittest.TestCase):
                      elapsed / 60)
       time.sleep(1)
 
+    Log('failed_to_charge', charge=charge, target=self.args.target_charge_pct,
+        timeout_sec=self.args.timeout_secgs)
     self.fail('Cannot charge battery to %d%% in %d seconds.' %
               (self.args.target_charge_pct, self.args.timeout_secs))
 

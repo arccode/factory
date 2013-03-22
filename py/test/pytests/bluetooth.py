@@ -27,6 +27,7 @@ import unittest
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
+from cros.factory.event_log import Log
 from cros.factory.test.args import Arg
 from cros.factory.test.factory_task import FactoryTask, FactoryTaskManager
 from cros.factory.test.test_ui import MakeLabel
@@ -233,6 +234,7 @@ class ScanDevicesTask(FactoryTask):
     for mac, rssis in candidate_rssis.iteritems():
       average_rssi = float(sum(rssis)) / len(rssis)
       logging.info('Device %s has average RSSI: %f', mac, average_rssi)
+      Log('avg_rssi', mac=mac, average_rssi=average_rssi)
       if average_rssi > max_average_rssi:
         max_average_rssi_mac, max_average_rssi = mac, average_rssi
 

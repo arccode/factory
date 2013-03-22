@@ -21,6 +21,7 @@ dargs:
 
 import unittest
 
+from cros.factory.event_log import Log
 from cros.factory.test.args import Arg
 from cros.factory.utils.process_utils import SpawnOutput
 
@@ -50,5 +51,7 @@ class USBProbeTest(unittest.TestCase):
       usb_string = self.args.search_string
     else:
       usb_string = '%s:%s' % (self.args.vid, self.args.pid)
-    self.assertTrue(self._ProbeUSB(usb_string),
+    probed_result = self._ProbeUSB(usb_string)
+    Log('usb_probed', result=probed_result, usb_string=usb_string)
+    self.assertTrue(probed_result,
                     'String: %s was not found in lsusb -v.' % usb_string)

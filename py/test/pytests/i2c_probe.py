@@ -16,6 +16,7 @@ dargs:
 import re
 import unittest
 
+from cros.factory.event_log import Log
 from cros.factory.test.args import Arg
 from cros.factory.utils.process_utils import SpawnOutput
 
@@ -42,7 +43,8 @@ class I2CProbeTest(unittest.TestCase):
     bus, addr_list = self.args.bus, self.args.addr
     if type(addr_list) != list:
       addr_list = [addr_list]
-
-    self.assertTrue(any(self.ProbeI2C(bus, addr) for addr in addr_list),
+    probed_result = [self.ProbeI2C(bus, addr) for addr in addr_list]
+    Log('ic2_probed', result=probed_result, bus=bus, addr_list=addr_list)
+    self.assertTrue(any(probed_result),
                     'No I2C device on bus %d addr %s' %
                     (bus, ', '.join(['0x%x' % addr for addr in addr_list])))

@@ -30,6 +30,7 @@ import unittest
 
 import factory_common # pylint: disable=W0611
 from cros.factory.system import SystemStatus
+from cros.factory.event_log import Log
 from cros.factory.test.args import Arg
 from cros.factory.test.utils import LoadManager
 
@@ -59,9 +60,9 @@ class ThermalLoadTest(unittest.TestCase):
     self.assertTrue(self.args.heat_up_timeout_secs <= self.args.duration_secs,
                     'heat_up_timeout_secs must not be greater than '
                     'duration_secs.')
-
-    logging.info("Starting temperature is %d C",
-                 self._GetTemperature(self.args.sensor_index))
+    start_temperature = self._GetTemperature(self.args.sensor_index)
+    Log('start_temperature', temperture=start_temperature)
+    logging.info("Starting temperature is %d C", start_temperature)
     logging.info("Stressing with %d threads...", load)
     with LoadManager(duration_secs=self.args.duration_secs,
                      num_threads=load):
@@ -74,14 +75,22 @@ class ThermalLoadTest(unittest.TestCase):
 
         if not heated_up and temperature_value >= self.args.lower_threshold:
           heated_up = True
+          Log('heated', temperature_value=temperature_value,
+              lower_threshold=self.args.lower_threshold, elapsed_sec=elapsed)
           logging.info("Heated up to %d C in %d seconds",
                        self.args.lower_threshold, elapsed)
         if elapsed >= self.args.heat_up_timeout_secs and not heated_up:
+          Log('slow_temp_slope', temperature_value=temperature_value,
+              lower_threshold=self.args.lower_threshold,
+              timeout=self.args.heat_up_timeout_secs)
           self.fail("Temperature didn't go over %d in %s seconds." %
                     (self.args.lower_threshold, self.args.heat_up_timeout_secs))
 
-        self.assertTrue(temperature_value <= self.args.temperature_limit,
-                        "Temperature got over %d." %
-                        self.args.temperature_limit)
+        if temperature_value <= self.args.temperature_limit:
+          Log('over_heated', temperature_value=temperature_value,
+              temperature_limit=self.args.temperature_limit,
+              elapsed_sec=elapsed)
+          self.fail("Temperature got over %d." % self.args.temperature_limit)
 
       logging.info("Passed. Maximum temperature seen is %d C", max_temperature)
+      Log('passed', max_temperature=max_temperature)

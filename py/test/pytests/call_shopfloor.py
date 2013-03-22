@@ -17,6 +17,8 @@ import unittest
 
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.event_log import Log
+from cros.factory.privacy import FilterDict
 from cros.factory.test import factory, shopfloor
 from cros.factory.test.args import Arg
 
@@ -24,6 +26,7 @@ from cros.factory.test.args import Arg
 def UpdateDeviceData(data):
   shopfloor.UpdateDeviceData(data)
   factory.get_state_instance().UpdateSkippedTests()
+  Log('update_device_data', data=FilterDict(data))
 
 
 class CallShopfloor(unittest.TestCase):

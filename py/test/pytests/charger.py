@@ -41,6 +41,7 @@ import unittest
 from collections import namedtuple
 
 from cros.factory import system
+from cros.factory.event_log import Log
 from cros.factory.system.board import Board
 from cros.factory.test import factory
 from cros.factory.test import test_ui
@@ -223,6 +224,7 @@ class ChargerTest(unittest.TestCase):
                       ' They are too close so there is no need to'
                       'charge/discharge.', charge, self._unit,
                       target, self._unit)
+      Log('target_too_close', charge=charge, target=target)
       return
 
     elif charge > target:
@@ -256,6 +258,8 @@ class ChargerTest(unittest.TestCase):
                        target - spec.charge_change, self._unit,
                        target, self._unit,
                        elapsed, spec.load)
+          Log('meet', elapsed=elapsed, load=spec.load, target=target,
+              charge=charge)
           self._template.SetState(_MEET_TEXT(target, self.args.use_percentage))
           time.sleep(1)
           return
@@ -265,6 +269,7 @@ class ChargerTest(unittest.TestCase):
           else:
             self._CheckDischarge()
 
+      Log('not_meet', load=spec.load, target=target, charge=charge)
       self.fail('Cannot regulate battery to %.2f%s in %d seconds.' %
                 (target, self._unit, spec.timeout_secs))
 

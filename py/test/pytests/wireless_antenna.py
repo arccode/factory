@@ -25,6 +25,7 @@ import unittest
 
 from cros.factory.test import factory
 from cros.factory.test import test_ui
+from cros.factory.event_log import Log
 from cros.factory.test.args import Arg
 from cros.factory.test.ui_templates import OneSection
 from cros.factory.utils.process_utils import CheckOutput, Spawn
@@ -154,6 +155,7 @@ def IwScan(devname, frequency=None, sleep_retry_time_secs=2, max_retries=10):
                     log=True)
     stdout, stderr = process.communicate()
     retcode = process.returncode
+    Log('iw_scaned', retcode=retcode, stderr=stderr)
     if retcode == 0:
       logging.info('IwScan success.')
       return stdout
@@ -251,6 +253,7 @@ class WirelessTest(unittest.TestCase):
       if strength:
         factory.console.info('Service %s signal strength %f.', service,
                              strength)
+        Log('service_signal', service=service, strength=strength)
         if strength > max_strength:
           max_strength_service, max_strength = service, strength
       else:

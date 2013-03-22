@@ -111,7 +111,7 @@ class CountDownTest(unittest.TestCase):
     in_grace_period = self._elapsed_secs < self.args.grace_secs
     if warnings:
       Log('warnings', elapsed_secs=self._elapsed_secs,
-                    in_grace_period=in_grace_period, warnings=warnings)
+          in_grace_period=in_grace_period, warnings=warnings)
       if not in_grace_period:
         for w in warnings:
           factory.console.warn(w)
@@ -186,7 +186,7 @@ class CountDownTest(unittest.TestCase):
 
       if current_time >= self._next_log_time:
         Log('system_status', elapsed_secs=self._elapsed_secs,
-                      **sys_status.__dict__)
+            **sys_status.__dict__)
         self.DetectAbnormalStatus(sys_status, last_status)
         last_status = sys_status
         self._next_log_time = current_time + self.args.log_interval

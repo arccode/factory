@@ -30,6 +30,7 @@ import re
 import os
 import unittest
 
+from cros.factory.event_log import Log
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
@@ -110,6 +111,7 @@ class eMMCCheckFWVersionTest(unittest.TestCase):
     prv = open(self.args.prv_path).read().strip()[-2:]
     logging.info('Raw CID value: %s', cid)
     logging.info('MID: %s, PNM: %s, PRV: %s', mid, pnm, prv)
+    Log('emmc_obtained', cid=cid, mid=mid, pnm=pnm, prv=prv)
     if self._ValidatePRVField(mid, pnm, prv, self.args.valid_versions):
       logging.info('eMMC firmware version is correct.')
       return # Pass the test
