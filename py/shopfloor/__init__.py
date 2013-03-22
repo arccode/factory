@@ -411,8 +411,7 @@ class ShopFloorBase(object):
       contents: Contents of the report.  If this is binary, it should be
         wrapped in a shopfloor.Binary object.
     """
-    if isinstance(contents, shopfloor.Binary):
-      contents = contents.data
+    contents = self.UnwrapBlob(contents)
 
     # Disallow absolute paths and paths with '..'.
     assert not os.path.isabs(name)
@@ -517,8 +516,7 @@ class ShopFloorBase(object):
     Raises:
       IOError if unable to save the chunk of events.
     """
-    if isinstance(chunk, Binary):
-      chunk = chunk.data
+    chunk = self.UnwrapBlob(chunk)
 
     log_file = os.path.join(self.GetEventsDir(), log_name)
     with open(log_file, 'a') as f:
@@ -528,6 +526,10 @@ class ShopFloorBase(object):
   def GetTime(self):
     """Returns the current time in seconds since the epoch."""
     return time.time()
+
+  def UnwrapBlob(self, blob):
+    """Unwraps a blob object."""
+    return blob.data if isinstance(blob, Binary) else blob
 
 
 # Alias ShopFloorBase to ShopFloor, so that this module can be run directly.
