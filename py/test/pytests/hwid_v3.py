@@ -38,6 +38,7 @@ class HWIDV3Test(unittest.TestCase):
   def runTest(self):
     ui = test_ui.UI()
     template = ui_templates.OneSection(ui)
+    shopfloor.update_local_hwid_data()
 
     if os.path.exists(OVERRIDE_BOARD_PATH):
       with open(OVERRIDE_BOARD_PATH) as f:

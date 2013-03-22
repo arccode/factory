@@ -195,6 +195,7 @@ class VerifyComponentsTest(unittest.TestCase):
     self.template.SetTitle(_TEST_TITLE)
 
   def runTest(self):
+    shopfloor.update_local_hwid_data()
     self.component_list = self.args.component_list
     self.board = self.args.board
 
