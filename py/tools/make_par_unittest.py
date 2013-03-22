@@ -40,6 +40,42 @@ class MakePARTest(unittest.TestCase):
               log=True, call=True, env={}, cwd='/',
               ignore_stdout=True, ignore_stderr=True).returncode)
 
+  def testUnzippedPAR(self):
+    # String from make_par usage, to make sure it's running properly.
+    usage = 'Creates a self-extracting Python executable.'
+
+    link = os.path.join(self.tmp, 'make_par')
+    os.symlink(self.par, link)
+
+    # First try it without unzipping.
+    process = Spawn([link, '--help'], log=True,
+                    read_stdout=True, read_stderr=True)
+    self.assertEquals(0, process.returncode)
+    self.assertTrue(usage in process.stdout_data)
+    self.assertFalse('WARNING' in process.stderr_data, process.stderr_data)
+
+    # Unzip it in place.  Don't check_call=True, since the extra bytes
+    # in the header will cause unzip to return an exit code of 1.
+    Spawn(['unzip', self.par, '-d', self.tmp], log=True,
+          ignore_stdout=True, ignore_stderr=True, call=True)
+
+    # Patch the usage string in the unzipped file.
+    make_par_path = os.path.join(self.tmp, 'cros', 'factory', 'tools',
+                                 'make_par.py')
+    modified_usage = 'BOOYAH'
+    with open(make_par_path, 'r') as f:
+      data = f.read()
+    with open(make_par_path, 'w') as f:
+      f.write(data.replace(usage, modified_usage))
+
+    # Run help again.
+    process = Spawn([link, '--help'], log=True,
+                    read_stdout=True, read_stderr=True)
+    self.assertEquals(0, process.returncode)
+    self.assertTrue(modified_usage in process.stdout_data)
+    self.assertTrue('WARNING: factory.par has been unzipped',
+                    process.stderr_data)
+
   def testInvalidModule(self):
     link = os.path.join(self.tmp, 'invalid')
     os.symlink(self.par, link)

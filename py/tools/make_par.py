@@ -50,10 +50,23 @@ from cros.factory.utils.process_utils import Spawn, SpawnOutput
 # 'cros.factory.tools.mount_partition'}).
 HEADER_TEMPLATE = """#!/bin/sh
 
-exec \
-  env PYTHONPATH="$(readlink -f $0):$PYTHONPATH" \
-      PYTHONIOENCODING=utf-8 \
-  python -c \
+# This par file.
+par="$(readlink -f $0)"
+# The directory this par file is in.
+dir="$(dirname "$par")"
+
+if [ -e $dir/factory_common.py ]; then
+  # The .par file has been expanded.  Print a warning and use the expanded
+  # file.
+  echo WARNING: factory.par has been unzipped. Using the unzipped files. >& 2
+  export PYTHONPATH="$dir":"$PYTHONPATH"
+else
+  export PYTHONPATH="$par":"$PYTHONPATH"
+fi
+
+export PYTHONIOENCODING=utf-8
+
+exec python -c \
 "import os, runpy, sys
 
 # Remove '-c' from argument list.
