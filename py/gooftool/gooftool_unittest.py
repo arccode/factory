@@ -28,6 +28,7 @@ from cros.factory.hwdb.hwid_tool import ProbeResults  # pylint: disable=E0611
 from cros.factory.hwid import HWIDException
 from cros.factory.gooftool import Mismatch
 from cros.factory.gooftool import ProbedComponentResult
+from cros.factory.rule import RuleException
 
 _TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
 
@@ -496,7 +497,8 @@ class GooftoolTest(unittest2.TestCase):
     mock_device_info = {
         'component.has_cellular': False,
         'component.keyboard': 'us',
-        'component.dram': 'foo'
+        'component.dram': 'foo',
+        'component.audio_codec': 'set_1'
     }
     with open(os.path.join(_TEST_DATA_PATH, 'test_probe_result.yaml')) as f:
       # pylint: disable=E1101
@@ -509,29 +511,39 @@ class GooftoolTest(unittest2.TestCase):
     mock_device_info = {
         'component.has_cellular': True,
         'component.keyboard': 'gb',
-        'component.dram': 'foo'
+        'component.dram': 'foo',
+        'component.audio_codec': 'set_1'
     }
     self.assertEquals(
         'CHROMEBOOK A7IU-YS',
         self._gooftool3.GenerateHwidV3(
             mock_device_info, mock_probe_result).encoded_string)
+
     mock_device_info = {
-        'component.foo': 'bar'
+        'component.has_cellular': True,
+        'component.keyboard': 'gb',
+        'component.dram': 'foo',
+        'component.audio_codec': 'set_0'
     }
-    self.assertRaisesRegexp(
-        KeyError, r"Unexpected key 'component\.foo'",
-        self._gooftool3.GenerateHwidV3, mock_device_info, mock_probe_result)
+    self.assertEquals(
+        'CHROMEBOOK APIU-VX',
+        self._gooftool3.GenerateHwidV3(
+            mock_device_info, mock_probe_result).encoded_string)
 
   def testVerifyHwidV3(self):
     sample_probe_result = yaml.load(open(os.path.join(
         _TEST_DATA_PATH, 'test_probe_result.yaml')).read())
     sample_ro_vpd = {
-      'vpd_ro_field_1': 'VPD_RO_FIELD_1',
-      'vpd_ro_field_2': 'VPD_RO_FIELD_2'
+        'initial_locale': 'en-US',
+        'initial_timezone': 'America/Los_Angeles',
+        'keyboard_layout': 'xkb:us::eng',
+        'serial_number': 'foo'
     }
     sample_rw_vpd = {
-      'vpd_rw_field_1': 'VPD_RW_FIELD_1',
-      'vpd_rw_field_2': 'VPD_RW_FIELD_2'
+        'gbind_attribute': '333333333333333333333'
+        '33333333333333333333333333333333333333333332dbecc73',
+        'ubind_attribute': '323232323232323232323'
+        '232323232323232323232323232323232323232323256850612'
     }
     mock_probe_result = copy.deepcopy(sample_probe_result)
     mock_ro_vpd = copy.deepcopy(sample_ro_vpd)
@@ -545,20 +557,20 @@ class GooftoolTest(unittest2.TestCase):
     mock_probe_result = copy.deepcopy(sample_probe_result)
     mock_ro_vpd = copy.deepcopy(sample_ro_vpd)
     mock_rw_vpd = copy.deepcopy(sample_rw_vpd)
-    del mock_ro_vpd['vpd_ro_field_1']
+    del mock_ro_vpd['serial_number']
     # pylint: disable=E1101
     self.assertRaisesRegexp(
-        Error, r'Missing required RO VPD field: .*',
+        RuleException, r"KeyError\('serial_number',\)",
         self._gooftool3.VerifyHwidV3, 'CHROMEBOOK A5AU-LU',
         hwid_tool.ProbeResults.Decode(yaml.dump(mock_probe_result)),
         mock_ro_vpd, mock_rw_vpd)
     mock_probe_result = copy.deepcopy(sample_probe_result)
     mock_ro_vpd = copy.deepcopy(sample_ro_vpd)
     mock_rw_vpd = copy.deepcopy(sample_rw_vpd)
-    del mock_rw_vpd['vpd_rw_field_1']
+    del mock_rw_vpd['gbind_attribute']
     # pylint: disable=E1101
     self.assertRaisesRegexp(
-        Error, r'Missing required RW VPD field: .*',
+        RuleException, r"KeyError\('gbind_attribute',\)",
         self._gooftool3.VerifyHwidV3, 'CHROMEBOOK A5AU-LU',
         hwid_tool.ProbeResults.Decode(yaml.dump(mock_probe_result)),
         mock_ro_vpd, mock_rw_vpd)

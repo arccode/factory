@@ -1,7 +1,7 @@
 #!/usr/bin/python -u
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
+# Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -63,13 +63,15 @@ def BinaryStringToEncodedString(database, binary_string):
   return database.board.upper() + ' ' + b32_string
 
 
-def Encode(database, bom):
+def Encode(database, bom, skip_check=False):
   """Encodes all the given BOM object.
 
   Args:
     database: A Database object that is used to provide device-specific
         information for encoding.
     bom: A BOM object.
+    skip_check: A bool value to skip the verification when constructing the HWID
+        object. Needed when creating a HWID skelton to be further processed.
 
   Returns:
     A HWID object which contains the BOM, the binary string, and the encoded
@@ -85,4 +87,5 @@ def Encode(database, bom):
 
   binary_string = BOMToBinaryString(database, updated_bom)
   encoded_string = BinaryStringToEncodedString(database, binary_string)
-  return HWID(database, binary_string, encoded_string, updated_bom)
+  return HWID(database, binary_string, encoded_string, updated_bom,
+              skip_check=skip_check)

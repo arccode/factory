@@ -1,7 +1,7 @@
 #!/usr/bin/python -u
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
+# Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -10,7 +10,7 @@ import unittest2
 import yaml
 import factory_common # pylint: disable=W0611
 
-from cros.factory.hwid import Database, HWIDException, DEFAULT_HWID_DATA_PATH
+from cros.factory.hwid import Database, HWIDException
 from cros.factory.hwid.decoder import EncodedStringToBinaryString
 from cros.factory.hwid.decoder import BinaryStringToBOM, Decode
 
@@ -103,57 +103,6 @@ class DecoderTest(unittest2.TestCase):
     self.assertEquals('0000000000111010000010000', hwid.binary_string)
     self.assertEquals('CHROMEBOOK AA5A-Q7Z', hwid.encoded_string)
     self.assertEquals(1, hwid.bom.encoded_fields['cpu'])
-
-  def testDecodeSpringEVT(self):
-    database = Database.LoadFile(os.path.join(DEFAULT_HWID_DATA_PATH, 'SPRING'))
-    hwid = Decode(database, 'SPRING AAAD-TB2')
-    self.assertEquals({
-        'keyboard_field': 0,
-        'firmware_field': 0,
-        'antenna_field': 0,
-        'audio_codec_field': 0,
-        'battery_field': 0,
-        'bluetooth_field': 0,
-        'camera_field': 0,
-        'cellular_field': 1,
-        'chipset_field': 0,
-        'cpu_field': 0,
-        'display_panel_field': 0,
-        'dram_field': 1,
-        'embedded_controller_field': 0,
-        'flash_chip_field': 1,
-        'pcb_vendor_field': 0,
-        'pmic_field': 0,
-        'storage_field': 1,
-        'touchpad_field': 0,
-        'tpm_field': 0,
-        'usb_hosts_field': 0,
-        'wireless_field': 0,
-        }, hwid.bom.encoded_fields)
-    hwid = Decode(database, 'SPRING AQAD-T5F')
-    self.assertEquals({
-        'keyboard_field': 1,
-        'firmware_field': 0,
-        'antenna_field': 0,
-        'audio_codec_field': 0,
-        'battery_field': 0,
-        'bluetooth_field': 0,
-        'camera_field': 0,
-        'cellular_field': 1,
-        'chipset_field': 0,
-        'cpu_field': 0,
-        'display_panel_field': 0,
-        'dram_field': 1,
-        'embedded_controller_field': 0,
-        'flash_chip_field': 1,
-        'pcb_vendor_field': 0,
-        'pmic_field': 0,
-        'storage_field': 1,
-        'touchpad_field': 0,
-        'tpm_field': 0,
-        'usb_hosts_field': 0,
-        'wireless_field': 0,
-        }, hwid.bom.encoded_fields)
 
 
 if __name__ == '__main__':

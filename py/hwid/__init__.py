@@ -1,7 +1,7 @@
 #!/usr/bin/python -u
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
+# Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -13,10 +13,11 @@ import logging
 import os
 import re
 import yaml
-import factory_common # pylint: disable=W0611
 
+import factory_common # pylint: disable=W0611
 from cros.factory.common import MakeList, MakeSet
 from cros.factory.hwid.base32 import Base32
+from cros.factory.rule import Rule
 from cros.factory.schema import AnyOf, Dict, FixedDict, List, Optional
 from cros.factory.schema import Scalar, Tuple
 from cros.factory.test import utils
@@ -96,18 +97,24 @@ class HWID(object):
         "CHROMEBOOK ASDF-2345", where CHROMEBOOK is the board name and 45 is the
         checksum. Compare to binary_string, it is human-trackable.
     bom: A BOM object.
+    skip_check: Skips HWID self verification. This is needed when we want to
+        create a HWID object skeleton for further processing, e.g. a skeleton
+        HWID object to pass to rule evaluation to generate the final HWID.
+        Defaults to False.
 
   Raises:
     HWIDException if an invalid arg is found.
   """
   HEADER_BITS = 5
 
-  def __init__(self, database, binary_string, encoded_string, bom):
+  def __init__(self, database, binary_string, encoded_string, bom,
+               skip_check=False):
     self.database = database
     self.binary_string = binary_string
     self.encoded_string = encoded_string
     self.bom = bom
-    self.VerifySelf()
+    if not skip_check:
+      self.VerifySelf()
 
   def VerifySelf(self):
     """Verifies the HWID object itself.
@@ -232,56 +239,24 @@ class Database(object):
 
   Attributes:
     board: A string indicating the board name.
-    encoding_patterns: A _EncodingPatterns object.
-    image_id: A _ImageId object.
-    pattern: A _Pattern object.
-    encoded_fields: A _EncodedFields object.
-    components: A _Components object.
-    shopfloor_device_info: A ShopFloorDeviceInfo object.
-    vpd_ro_field: A _VPDFields object.
-    vpd_rw_field: A _VPDFields object.
-    rules: A list of rules of the form:
-        [
-          {
-            'name': 'rule1',
-            'when': ['condition1', 'condition2', ...],
-            'check_all' or 'check_any': ['condition1', 'condition2', ...]
-          },
-          {
-            'name': 'rule2',
-            ...
-          }
-          ...
-        ]
-    allowed_skus: A list of allowed SKUs of the form:
-        [
-          {
-            'name': 'sku1',
-            'check_all': ['condition1', 'condition2', ...]
-          }
-          {
-            'name': 'sku2',
-            ...
-          }
-          ...
-        ]
+    encoding_patterns: An EncodingPatterns object.
+    image_id: An ImageId object.
+    pattern: A Pattern object.
+    encoded_fields: An EncodedFields object.
+    components: A Components object.
+    rules: A Rules object.
   """
   _HWID_FORMAT = re.compile(r'^([A-Z0-9]+) ((?:[A-Z2-7]{4}-)*[A-Z2-7]{1,4})$')
 
   def __init__(self, board, encoding_patterns, image_id, pattern,
-               encoded_fields, components, shopfloor_device_info,
-               vpd_ro_fields, vpd_rw_fields, rules, allowed_skus):
+               encoded_fields, components, rules):
     self.board = board
     self.encoding_patterns = encoding_patterns
     self.image_id = image_id
     self.pattern = pattern
     self.encoded_fields = encoded_fields
     self.components = components
-    self.shopfloor_device_info = shopfloor_device_info
-    self.vpd_ro_fields = vpd_ro_fields
-    self.vpd_rw_fields = vpd_rw_fields
     self.rules = rules
-    self.allowed_skus = allowed_skus
     self._SanityChecks()
 
   def _SanityChecks(self):
@@ -306,20 +281,6 @@ class Database(object):
             _VerifyComponent(comp_cls, comp_name,
                              'encoded_fields[%r][%r]' % (field, index))
 
-    # Check that all the component class-name pairs in shopfloor_device_info are
-    # valid.
-    for info_key, info_value_dict in self.shopfloor_device_info.iteritems():
-      for info_value, class_name_dict in info_value_dict.iteritems():
-        for comp_cls, comp_names in class_name_dict.iteritems():
-          if comp_names is None:
-            _VerifyComponent(
-                comp_cls, None,
-                'shopfloor_device_info[%r][%r]' % (info_key, info_value))
-          else:
-            for comp_name in comp_names:
-              _VerifyComponent(
-                  comp_cls, comp_name,
-                  'shopfloor_device_info[%r][%r]' % (info_key, info_value))
 
   @classmethod
   def LoadFile(cls, file_name):
@@ -340,49 +301,17 @@ class Database(object):
       db_yaml = yaml.load(f)
 
     for key in ['board', 'encoding_patterns', 'image_id', 'pattern',
-                'encoded_fields', 'components', 'shopfloor_device_info',
-                'vpd_ro_fields', 'vpd_rw_fields']:
+                'encoded_fields', 'components', 'rules']:
       if not db_yaml.get(key):
         raise HWIDException('%r is not specified in component database' % key)
 
-    rules = db_yaml.get('rules')
-    allowed_skus = db_yaml.get('allowed_skus')
-    # Temporary schema validations for rules and skus.
-    # TODO(jcliang): Update these schema checks after rule language refacoring.
-    if rules:
-      rules_schema = List('list of rules', FixedDict('rules',
-          items={
-              'name': Scalar('rule name', str),
-              'when': List('conditions', Scalar('condition', str))},
-          optional_items={
-              'check_all': List('rules', AnyOf([
-                  Scalar('condition', str),
-                  Dict('recursive rule',
-                       key_type=Scalar('sub-rule', str),
-                       value_type=List('list of rules'))])),
-              'check_any': List('rules', AnyOf([
-                  Scalar('condition', str),
-                  Dict('recursive rule',
-                       key_type=Scalar('sub-rule', str),
-                       value_type=List('list of rules'))]))}))
-      rules_schema.Validate(rules)
-    if allowed_skus:
-      allowed_skus_schema = List('list of skus', FixedDict('skus',
-          items={
-              'name': Scalar('sku name', str),
-              'check_all': List('conditions', Scalar('condition', str))},
-          optional_items=None))
-      allowed_skus_schema.Validate(allowed_skus)
-
     return Database(db_yaml['board'],
-                    _EncodingPatterns(db_yaml['encoding_patterns']),
-                    _ImageId(db_yaml['image_id']), _Pattern(db_yaml['pattern']),
-                    _EncodedFields(db_yaml['encoded_fields']),
-                    _Components(db_yaml['components']),
-                    ShopFloorDeviceInfo(db_yaml['shopfloor_device_info']),
-                    _VPDFields(db_yaml['vpd_ro_fields']),
-                    _VPDFields(db_yaml['vpd_rw_fields']),
-                    rules, allowed_skus)
+                    EncodingPatterns(db_yaml['encoding_patterns']),
+                    ImageId(db_yaml['image_id']),
+                    Pattern(db_yaml['pattern']),
+                    EncodedFields(db_yaml['encoded_fields']),
+                    Components(db_yaml['components']),
+                    Rules(db_yaml['rules']))
 
   def ProbeResultToBOM(self, probe_result):
     """Parses the given probe result into a BOM object. Each component is
@@ -723,7 +652,7 @@ class Database(object):
     return dict((comp_cls, probed_bom.components[comp_cls]) for comp_cls in
                 comp_list)
 
-class _EncodingPatterns(dict):
+class EncodingPatterns(dict):
   """Class for parsing encoding_patterns in database.
 
   Args:
@@ -739,10 +668,10 @@ class _EncodingPatterns(dict):
                        key_type=Scalar('encoding pattern', int),
                        value_type=Scalar('encoding scheme', str))
     self.schema.Validate(encoding_patterns_dict)
-    super(_EncodingPatterns, self).__init__(encoding_patterns_dict)
+    super(EncodingPatterns, self).__init__(encoding_patterns_dict)
 
 
-class _ImageId(dict):
+class ImageId(dict):
   """Class for parsing image_id in database.
 
   Args:
@@ -758,10 +687,10 @@ class _ImageId(dict):
                        key_type=Scalar('image id', int),
                        value_type=Scalar('image name', str))
     self.schema.Validate(image_id_dict)
-    super(_ImageId, self).__init__(image_id_dict)
+    super(ImageId, self).__init__(image_id_dict)
 
 
-class _EncodedFields(dict):
+class EncodedFields(dict):
   """Class for parsing encoded_fields in database.
 
   Args:
@@ -798,7 +727,7 @@ class _EncodedFields(dict):
            )
       )
     self.schema.Validate(encoded_fields_dict)
-    super(_EncodedFields, self).__init__(encoded_fields_dict)
+    super(EncodedFields, self).__init__(encoded_fields_dict)
     # Convert string to list of string.
     for field in self:
       for index in self[field]:
@@ -808,7 +737,7 @@ class _EncodedFields(dict):
             self[field][index][comp_cls] = MakeList(comp_value)
 
 
-class _Components(dict):
+class Components(dict):
   """A class for parsing and obtaining information of a pre-defined components
   list.
 
@@ -859,7 +788,7 @@ class _Components(dict):
         # Default 'probeable' to True.
         self.probeable.add(comp_cls)
     # Squash attributes and build a dict of component class to items.
-    super(_Components, self).__init__(
+    super(Components, self).__init__(
         (comp_cls, components_dict[comp_cls]['items']) for comp_cls in
         components_dict)
 
@@ -876,7 +805,7 @@ class _Components(dict):
     return None
 
 
-class _Pattern(object):
+class Pattern(object):
   """A class for parsing and obtaining information of a pre-defined encoding
   pattern.
 
@@ -985,61 +914,44 @@ class _Pattern(object):
     return ret
 
 
-class ShopFloorDeviceInfo(dict):
-  """A class for storing device info mapping sent by shopfloor.
-
-  We often need to ask shopfloor for device info, and the response is usually a
-  dict of device info keys to info values. This class is used to map component
-  info to its corresponding component name.
+class Rules(list):
+  """A class for parsing and evaluating rules defined in the database.
 
   Args:
-    shopfloor_device_info_dict: A dict of device info keys to their
-        corresponding component class-component name pairs. For example:
-
-        {'has_cellular': {
-            'yes': {cellular: cellular_0},
-            'no': {cellular: None}
-        }}
-
-        means that if the value of 'has_cellular' info key is 'yes', then
-        'cellular' component should be 'cellular_0'; if it's 'no', then
-        'cellular' component should be None.
+    rule_list: A list of dicts that can be converted to a list of Rule objects.
   """
-  def __init__(self, shopfloor_device_info_dict):
-    self.schema = Dict(
-        'shopfloor device info',
-        key_type=Scalar('device info key', str),
-        value_type=Dict(
-            'value to operation mapping',
-            key_type=AnyOf(
-                [Scalar('value string', str),
-                 Scalar('boolean', bool)],
-                label='device info value'),
-            value_type=Dict(
-                'component classes to names',
-                key_type=Scalar('component class', str),
-                value_type=Optional(
-                    [Scalar('component name', str),
-                     List('list of component names',
-                          Scalar('component name', str))]))))
-    self.schema.Validate(shopfloor_device_info_dict)
-    super(ShopFloorDeviceInfo, self).__init__(shopfloor_device_info_dict)
-    # Convert string to list of string.
-    for info_key in self:
-      for info_value in self[info_key]:
-        for comp_cls in self[info_key][info_value]:
-          comp_value = self[info_key][info_value][comp_cls]
-          if isinstance(comp_value, str):
-            self[info_key][info_value][comp_cls] = MakeList(comp_value)
+  def __init__(self, rule_list):
+    self.schema = List('list of rules', FixedDict(
+        'rule', items={
+            'name': Scalar('rule name', str),
+            'evaluate': AnyOf([Scalar('rule function', str),
+                               List('list of rule functions',
+                                    Scalar('rule function', str))])
+        }, optional_items={
+            'when': Scalar('expression', str),
+            'otherwise': AnyOf([Scalar('rule function', str),
+                                List('list of rule functions',
+                                     Scalar('rule function', str))])
+        }))
+    self.schema.Validate(rule_list)
+    # Late import to avoid circular import problems.
+    # These imports are needed to make sure all the rule functions needed by
+    # HWID-related operations are loaded and initialized.
+    # pylint: disable = W0612
+    import cros.factory.common_rule_functions
+    import cros.factory.hwid.hwid_rule_functions
+    super(Rules, self).__init__([Rule.CreateFromDict(r) for r in rule_list])
 
+  def EvaluateRules(self, context, namespace=None):
+    """Evaluate rules under the given context. If namespace is specified, only
+    those rules with names matching the specified namespace is evaluated.
 
-class _VPDFields(list):
-  """A class for storing the required VPD fields.
-
-  Args:
-    vpd_field_list: A list of strings indicating the required VPD fields.
-  """
-  def __init__(self, vpd_field_list):
-    self.schema = List('vpd fields', Scalar('vpd field', str))
-    self.schema.Validate(vpd_field_list)
-    super(_VPDFields, self).__init__(vpd_field_list)
+    Args:
+      context: A Context object holding all the context needed to evaluate the
+          rules.
+      namespace: A regular expression string indicating the rules to be
+          evaluated.
+    """
+    for rule in self:
+      if namespace is None or re.match(namespace, rule.name):
+        rule.Evaluate(context)

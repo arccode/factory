@@ -27,10 +27,12 @@ found_volatile_values:
   key_root: kv3#key_root_0
   ro_ec_firmware: ev2#ro_ec_firmware_0
   ro_main_firmware: mv2#ro_main_firmware_0
-  vpd.ro.vpd_ro_field_1: VPD_RO_FIELD_1
-  vpd.ro.vpd_ro_field_2: VPD_RO_FIELD_2
-  vpd.rw.vpd_rw_field_1: VPD_RW_FIELD_1
-  vpd.rw.vpd_rw_field_2: VPD_RW_FIELD_2
+  vpd.ro.initial_locale: en-US
+  vpd.ro.initial_timezone: America/Los_Angeles
+  vpd.ro.keyboard_layout: xkb:us::eng
+  vpd.ro.serial_number: foo
+  vpd.rw.gbind_attribute: '33333333333333333333333333333333333333333333333333333333333333332dbecc73'
+  vpd.rw.ubind_attribute: '323232323232323232323232323232323232323232323232323232323232323256850612'
 initial_configs:
   cellular_fw_version: ''
   rw_fw_key_version: '2'

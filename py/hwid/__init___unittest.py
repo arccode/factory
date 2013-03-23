@@ -1,7 +1,7 @@
 #!/usr/bin/python -u
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
+# Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -126,22 +126,6 @@ class DatabaseTest(unittest2.TestCase):
         HWIDException,
         r"Invalid component name 'buz' in encoded_fields"
         r"\['foo'\]\[0\]\['cpu'\]",
-        mock_db._SanityChecks)
-
-    del mock_db.encoded_fields['foo']
-    mock_db.shopfloor_device_info['foo'] = dict()
-    mock_db.shopfloor_device_info['foo']['bar'] = dict()
-    mock_db.shopfloor_device_info['foo']['bar'] = {'buz': ['boo']}
-    self.assertRaisesRegexp(
-        HWIDException,
-        r"Invalid component class 'buz' in shopfloor_device_info"
-        r"\['foo'\]\['bar'\]",
-        mock_db._SanityChecks)
-    mock_db.shopfloor_device_info['foo']['bar'] = {'cpu': ['boo']}
-    self.assertRaisesRegexp(
-        HWIDException,
-        r"Invalid component name 'boo' in shopfloor_device_info"
-        r"\['foo'\]\['bar'\]\['cpu'\]",
         mock_db._SanityChecks)
 
   def testProbeResultToBOM(self):

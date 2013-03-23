@@ -266,120 +266,104 @@ components:
       ro_main_firmware_1:
         value: mv2#ro_main_firmware_1
 
-shopfloor_device_info:
-  component.has_cellular:
-    True:
-      cellular: cellular_0
-    False:
-      cellular: NULL
-  component.keyboard:
-    us:
-      keyboard: keyboard_us
-    gb:
-      keyboard: keyboard_gb
-  component.dram:
-    foo:
-      dram: dram_0
-    bar:
-      dram: dram_1
-  component.audio_codec:
-    set_0:
-      audio_codec: [codec_0, hdmi_0]
-    set_1:
-      audio_codec: [codec_1, hdmi_1]
-
-vpd_ro_fields:
-- initial_locale
-- initial_timezone
-- keyboard_layout
-- serial_number
-
-vpd_rw_fields:
-- gbind_attribute
-- ubind_attribute
-
 rules:
-  - name: Test rule 1
-    when:
-      - audio_codec EQ Codec 1
-      - audio_codec EQ HDMI 1
-    check_all:
-      - battery EQ battery_huge
-      - hash_gbb EQ hash_gbb_0
-      - key_recovery EQ key_recovery_0
-      - key_root EQ key_root_0
-      - ro_ec_firmware EQ ro_ec_firmware_0
-      - ro_main_firmware EQ ro_main_firmware_0
+- name: device_info.component.has_cellular
+  when: GetDeviceInfo('component.has_cellular')
+  evaluate: SetComponent('cellular', 'cellular_0')
+  otherwise: SetComponent('cellular', None)
 
-  - name: Test rule 2
-    when:
-      - dram EQ dram_0
-    check_all:
-      - battery EQ battery_huge
-      - hash_gbb EQ hash_gbb_0
-      - key_recovery EQ key_recovery_0
-      - key_root EQ key_root_0
-      - ro_ec_firmware EQ ro_ec_firmware_0
-      - ro_main_firmware EQ ro_main_firmware_0
-      - cpu IN (cpu_1, cpu_2)
+- name: device_info.component.keyboard
+  evaluate: >
+      SetComponent(
+          'keyboard', LookupMap(GetDeviceInfo('keyboard'), {
+              'us': 'keyboard_us',
+              'gb': 'keyboard_gb'
+          }))
 
-  - name: Test rule 3
-    when:
-      - dram EQ dram_0
-      - cellular EQ cellular_0
-    check_all:
-      - battery EQ huge_battery
-      - cpu IN (cpu_1, cpu_2)
+- name: device_info.component.dram
+  evaluate: >
+      SetComponent(
+          'dram', LookupMap(GetDeviceInfo('component.dram'), {
+              'foo': 'dram_0',
+              'bar': 'dram_1'
+          }))
 
-  - name: Test rule 4
-    when:
-      - cpu IN *
-    check_all:
-      - storage EQ SSD
-      - storage EQ 16G
-      - check_any:
-          - battery NE battery_small
-          - cpu IN (cpu_1, cpu_2, cpu_3)
+- name: device_info.component.audio_codec
+  evaluate: >
+      SetComponent(
+          'audio_codec', LookupMap(GetDeviceInfo('component.audio_codec'), {
+              'set_0': ['codec_0', 'hdmi_0'],
+              'set_1': ['codec_1', 'hdmi_1']
+          }))
 
-  - name: Test rule 5
-    when:
-      - cpu IN *
-    check_any:
-      - storage EQ SSD
-      - storate EQ 16G
+- name: vpd.ro
+  evaluate:
+  - Assert(ValidVPDValue('ro', 'initial_locale'))
+  - Assert(ValidVPDValue('ro', 'initial_timezone'))
+  - Assert(ValidVPDValue('ro', 'keyboard_layout'))
+  - Assert(ValidVPDValue('ro', 'serial_number'))
 
-  - name: Test rule 6
-    when:
-      - '*'
-    check_any:
-      - storage EQ SSD
-      - storate EQ 16G
+- name: vpd.rw
+  evaluate:
+  - CheckRegistrationCode(GetVPDValue('rw', 'gbind_attribute'))
+  - CheckRegistrationCode(GetVPDValue('rw', 'ubind_attribute'))
 
-allowed_skus:
-  - name: SKU1
-    check_all:
-      - audio_codec EQ codec_1
-      - audio_codec EQ hdmi_1
-      - cpu EQ cpu_5
-      - battery EQ battery_huge
-      - keyboard EQ US
-      - storage EQ SSD
-      - storage EQ 16G
+- name: test.rule_1
+  when: ComponentEq('audio_codec', 'Codec 1') and
+        ComponentEq('audio_codec', 'HDMI 1')
+  evaluate:
+  - Assert(ComponentEq('battery', 'battery_huge'))
+  - Assert(ComponentEq('hash_gbb', 'hash_gbb_0'))
+  - Assert(ComponentEq('key_recovery', 'key_recovery_0'))
+  - Assert(ComponentEq('key_root', 'key_root_0'))
+  - Assert(ComponentEq('ro_ec_firmware', 'ro_ec_firmware_0'))
+  - Assert(ComponentEq('ro_main_firmware', 'ro_main_firmware_0'))
 
-  - name: SKU2
-    check_all:
-      - audio_codec EQ codec_1
-      - audio_codec EQ hdmi_1
-      - cpu EQ cpu_4
-      - battery EQ battery_medium
-      - keyboard EQ GB
-      - storage EQ HDD
-      - storage EQ 500G
+- name: test.rule_2
+  when: ComponentEq('dram', 'dram_0')
+  evaluate:
+  - Assert(ComponentEq('battery', 'battery_huge'))
+  - Assert(ComponentEq('hash_gbb', 'hash_gbb_0'))
+  - Assert(ComponentEq('key_recovery', 'key_recovery_0'))
+  - Assert(ComponentEq('key_root', 'key_root_0'))
+  - Assert(ComponentEq('ro_ec_firmware', 'ro_ec_firmware_0'))
+  - Assert(ComponentEq('ro_main_firmware', 'ro_main_firmware_0'))
+  - Assert(ComponentIn('cpu', ['cpu_1', 'cpu_2']))
 
-  - name: SKU3
-    check_all:
-      - audio_codec IN *
-      - cpu IN *
-      - battery IN *
-      - keyboard IN *
-      - storage IN *
+- name: test.rule_3
+  when: ComponentEq('dram', 'dram_0') and ComponentEq('cellular', 'cellular_0')
+  evaluate:
+  - Assert(ComponentEq('battery', 'huge_battery'))
+  - Assert(ComponentIn('cpu', ['cpu_1', 'cpu_2']))
+
+- name: test.rule_4
+  when: not ComponentEq('cpu', None)
+  evaluate:
+  - Assert(ComponentEq('storage', ['SSD', '16G']))
+  - Assert((not ComponentEq('battery', 'battery_small')) or
+           (ComponentIn('cpu', ['cpu_1', 'cpu_2', 'cpu_3'])))
+
+- name: test.rule_5
+  when: not ComponentEq('cpu', None)
+  evaluate: Assert(ComponentEq('storage', 'SSD') or
+                   ComponentEq('storage', '16G'))
+
+- name: test.rule_6
+  evaluate: Assert(ComponentEq('storage', 'SSD') or
+                   ComponentEq('storage', '16G'))
+
+- name: sku.us
+  evaluate: >
+      ComponentEq('audio_codec', ['hdmi_1', 'codec_1']) and
+      ComponentEq('cpu', 'cpu_5') and
+      ComponentEq('battery', 'battery_huge') and
+      ComponentEq('keyboard', 'US') and
+      ComponentEq('storage', ['SSD', '16G'])
+
+- name: sku.gb
+  evaluate: >
+      ComponentEq('audio_codec', ['hdmi_1', 'codec_1']) and
+      ComponentEq('cpu', 'cpu_4') and
+      ComponentEq('battery', 'battery_medium') and
+      ComponentEq('keyboard', 'GB') and
+      ComponentEq('storage', ['HDD', '500G'])

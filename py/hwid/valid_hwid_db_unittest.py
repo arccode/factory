@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
+# Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -9,27 +9,87 @@
 
 import logging
 import os
-import unittest
+import re
+import unittest2
 import yaml
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.hwid import Database
+from cros.factory.gooftool import Gooftool
+from cros.factory.hwdb.hwid_tool import ProbeResults  # pylint: disable=E0611
+from cros.factory.rule import Context
 
 
-class ValidHWIDDBsTest(unittest.TestCase):
+class ValidHWIDDBsTest(unittest2.TestCase):
   def runTest(self):
     hwid_dir = os.path.join(
         os.environ['CROS_WORKON_SRCROOT'],
         'src', 'platform', 'chromeos-hwid')
 
+    board_to_test = []
     for board_name, board in yaml.load(
         open(os.path.join(hwid_dir, 'boards.yaml'))).iteritems():
       if board['version'] == 3:
-        path = os.path.join(hwid_dir, board['path'])
-        logging.info('Checking %s: %s', board_name, path)
-        Database.LoadFile(path)
+        db_path = os.path.join(hwid_dir, board['path'])
+        test_path = os.path.join(os.path.dirname(db_path), 'testdata',
+                                 board_name + '_test.yaml')
+        board_to_test.append((board_name, db_path, test_path))
+
+    for board_info in board_to_test:
+      board_name, db_path, test_path = board_info
+      logging.info('Checking %s: %s', board_name, db_path)
+      with open(test_path) as f:
+        test_samples = yaml.load_all(f.read())
+      for sample in test_samples:
+        if sample['test'] == 'encode':
+          self.TestEncode(board_name, db_path, sample)
+        elif sample['test'] == 'decode':
+          self.TestDecode(board_name, db_path, sample)
+        else:
+          raise ValueError('Invalid test type: %r' % sample['test'])
+
+  def TestEncode(self, board_name, db_path, sample_dict):
+    # Set up test variables.
+    binary_string = sample_dict['binary_string']
+    encoded_string = sample_dict['encoded_string']
+    probe_results = ProbeResults.Decode(yaml.dump(sample_dict['probe_results']))
+    logging.info('Testing encoding of BOM to %r', encoded_string)
+    # Pull in probe results (including VPD data) from the given file
+    # rather than probing the current system.
+    vpd = {'ro': {}, 'rw': {}}
+    for k, v in probe_results.found_volatile_values.items():
+      # Use items(), not iteritems(), since we will be modifying the dict in the
+      # loop.
+      match = re.match('^vpd\.(ro|rw)\.(\w+)$', k)
+      if match:
+        del probe_results.found_volatile_values[k]
+        vpd[match.group(1)][match.group(2)] = v
+    device_info = sample_dict['device_info']
+
+    # Test HWID Generation.
+    gt = Gooftool(hwid_version=3, board=board_name,
+                  hwdb_path=os.path.dirname(db_path))
+    hwid = gt.GenerateHwidV3(probe_results=probe_results,
+                             device_info=device_info)
+    self.assertEquals(binary_string, hwid.binary_string)
+    self.assertEquals(encoded_string, hwid.encoded_string)
+
+    # Test all rules.
+    gt.db.rules.EvaluateRules(Context(hwid=hwid, vpd=vpd,
+                                      device_info=device_info))
+
+  def TestDecode(self, board_name, db_path, sample_dict):
+    encoded_string = sample_dict['encoded_string']
+    binary_string = sample_dict['binary_string']
+    encoded_fields = sample_dict['encoded_fields']
+    logging.info('Testing encoding of %r to BOM', encoded_string)
+
+    gt = Gooftool(hwid_version=3, board=board_name,
+                  hwdb_path=os.path.dirname(db_path))
+    hwid = gt.DecodeHwidV3(encoded_string)
+    self.assertEquals(binary_string, hwid.binary_string)
+    self.assertEquals(encoded_fields, hwid.bom.encoded_fields)
 
 
 if __name__ == '__main__':
   logging.basicConfig(level=logging.INFO)
-  unittest.main()
+  unittest2.main()

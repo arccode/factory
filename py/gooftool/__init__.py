@@ -22,7 +22,7 @@ from cros.factory.gooftool.vpd_data import KNOWN_VPD_FIELD_DATA
 from cros.factory.hwid import Database
 from cros.factory.hwid.decoder import Decode
 from cros.factory.hwid.encoder import Encode
-from cros.factory.hwid.rule_evaluator import RuleEvaluator
+from cros.factory.rule import Context
 
 # A named tuple to store the probed component name and the error if any.
 ProbedComponentResult = namedtuple('ProbedComponentResult',
@@ -580,43 +580,10 @@ class Gooftool(object):
       raise Error, 'probe_results is not a ProbeResults object'
     # Construct a base BOM from probe_results.
     device_bom = self.db.ProbeResultToBOM(probe_results.Encode())
-    # Update BOM using device_info.
-    if device_info is not None:
-      components_to_update = {}
-      for info_key, info_value in device_info.iteritems():
-        try:
-          shopfloor_device_info_map = self.db.shopfloor_device_info[info_key]
-        except KeyError:
-          raise KeyError(
-              'Unexpected key %r in device_info (should be one of %s)' % (
-                  info_key,
-                  ', '.join(sorted(self.db.shopfloor_device_info.keys()))))
-
-        try:
-          db_device_info_dict = shopfloor_device_info_map[info_value]
-        except KeyError:
-          raise ValueError(
-              'device_info field %r has unexpected value %r (should be one of '
-              '%s)' % (
-                  info_key, info_value,
-                  sorted(shopfloor_device_info_map.keys())))
-
-        for comp_cls, comp_name in db_device_info_dict.iteritems():
-          if comp_cls in components_to_update:
-            raise Error, ('component class %r is re-defined twice in '
-            'device_info: (%r and %r)' % (comp_cls,
-            components_to_update[comp_cls], comp_name))
-          components_to_update[comp_cls] = comp_name
-      device_bom = self.db.UpdateComponentsOfBOM(
-          device_bom, components_to_update)
-    # Check that the BOM is valid.
-    unknown_components = [comp_cls for comp_cls in device_bom.components if
-                          not device_bom.components[comp_cls]]
-    if unknown_components:
-      raise Error, ('Components %r are unprobeable and were not specified in '
-                    'device info' % sorted(unknown_components))
-
-    return Encode(self.db, device_bom)
+    hwid = Encode(self.db, device_bom, skip_check=True)
+    context = Context(hwid=hwid, device_info=device_info)
+    self.db.rules.EvaluateRules(context, namespace='device_info.*')
+    return hwid
 
 
   def VerifyHwidV3(self, encoded_string=None, probe_results=None,
@@ -660,32 +627,14 @@ class Gooftool(object):
     if not probed_rw_vpd:
       probed_rw_vpd = self._read_rw_vpd(main_fw_file)
 
-    hwid_context = self._hwid_decode(self.db, encoded_string)
-    hwid_context.VerifyProbeResult(probe_results.Encode())
-    if self.db.rules:
-      # passed, not_evaluated, failed
-      _, _, failed = (
-          RuleEvaluator.EvaluateRules(hwid_context, self.db.rules))
-      if failed:
-        raise Error, 'The check against the following rules failed: %r' % (
-            ', '.join(sorted(failed)))
-
-    for key in self.db.vpd_ro_fields:
-      if key not in probed_ro_vpd:
-        raise Error, 'Missing required RO VPD field: %s' % key
-      known_valid_values = KNOWN_VPD_FIELD_DATA.get(key, None)
-      value = probed_ro_vpd[key]
-      if ((known_valid_values is not None) and
-          (value not in known_valid_values)):
-        raise Error, 'Invalid RO VPD entry : key %r, value %r' % (key, value)
-    for key in self.db.vpd_rw_fields:
-      if key not in probed_rw_vpd:
-        raise Error, 'Missing required RW VPD field: %s' % key
-      known_valid_values = KNOWN_VPD_FIELD_DATA.get(key, None)
-      value = probed_rw_vpd[key]
-      if ((known_valid_values is not None) and
-          (value not in known_valid_values)):
-        raise Error, 'Invalid RW VPD entry : key %r, value %r' % (key, value)
+    hwid = self._hwid_decode(self.db, encoded_string)
+    hwid.VerifyProbeResult(probe_results.Encode())
+    vpd = {'ro': {}, 'rw': {}}
+    vpd['ro'].update(probed_ro_vpd)
+    vpd['rw'].update(probed_rw_vpd)
+    context = Context(hwid=hwid, vpd=vpd)
+    self.db.rules.EvaluateRules(context, namespace="vpd.*")
+    self.db.rules.EvaluateRules(context, namespace="verify_component.*")
 
   def DecodeHwidV3(self, encoded_string):
     """Decodes the given HWIDv3 encoded string and returns the decoded info.
