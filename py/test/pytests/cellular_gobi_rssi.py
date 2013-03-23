@@ -16,6 +16,7 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 
+from cros.factory.event_log import Log
 from cros.factory.rf import cellular
 from cros.factory.rf.utils import CheckPower
 from cros.factory.test import factory
@@ -60,6 +61,7 @@ class CellularGobiRSSI(unittest.TestCase):
   def runTest(self):
     failures = []
     firmware = cellular.GetModemFirmware()
+    power = dict()
     try:
       if self.args.firmware_switching:
         firmware = cellular.SwitchModemFirmware(cellular.WCDMA_FIRMWARE)
@@ -69,6 +71,7 @@ class CellularGobiRSSI(unittest.TestCase):
         antenna_name, band_name, channel_no, retries, min_power, max_power = (
           config_to_test)
         rssis = list()
+        channel_name = '%s_%d_%s' % (band_name, channel_no, antenna_name)
         for tries in xrange(1, retries + 1):
           rssi = self.GetRSSI(antenna_name, band_name, channel_no)
           if rssi:
@@ -76,11 +79,12 @@ class CellularGobiRSSI(unittest.TestCase):
             rssis.append(rssi)
         # Compare if it is in range.
         rssi = numpy.median(rssis)
-        CheckPower('%s[%d]@%s' % (band_name, channel_no, antenna_name),
-                   rssi, (min_power, max_power), failures)
+        CheckPower(channel_name, rssi, (min_power, max_power), failures)
+        power[channel_name] = float(rssi)
     finally:
       cellular.ExitFactoryMode(self.modem)
       cellular.SwitchModemFirmware(firmware)
 
+    Log('cellular_rssi', **power)
     if len(failures) > 0:
       raise factory.FactoryTestFailure('\n'.join(failures))
