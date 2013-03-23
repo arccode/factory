@@ -23,6 +23,7 @@ import sys
 import time
 import unittest
 
+from cros.factory.event_log import Log
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.event_log import Log
@@ -162,6 +163,10 @@ def IwScan(devname, frequency=None, sleep_retry_time_secs=2, max_retries=10):
     elif retcode == 240:  # Device or resource busy (-16)
       try_count += 1
       time.sleep(sleep_retry_time_secs)
+    elif retcode == 234:  # Invalid argument (-22)
+      raise IwException('Failed to iw scan, ret code: %d. stderr: %s'
+                        'Frequency might be wrong.' %
+                        (retcode, stderr))
     else:
       raise IwException('Failed to iw scan, ret code: %d. stderr: %s' %
                         (retcode, stderr))
@@ -419,6 +424,10 @@ class WirelessTest(unittest.TestCase):
     for test_service, spec_antenna_strength in self._test_spec.iteritems():
       scanned_strength = scanned_service_strength[test_service]
       spec_strength = spec_antenna_strength[antenna]
+
+      Log('antenna_%s' % antenna, freq=test_service[1],
+          rssi=scanned_strength,
+          meet=(scanned_strength and scanned_strength > spec_strength))
       if not scanned_strength:
         self.fail(
             'Antenna %s, service: %s: Can not scan signal strength.' %
