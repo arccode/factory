@@ -24,10 +24,10 @@ import sys
 import time
 import unittest
 
+from cros.factory.event_log import Log
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.event_log import Log
 from cros.factory.test.args import Arg
 from cros.factory.test.factory_task import FactoryTask, FactoryTaskManager
 from cros.factory.test.test_ui import MakeLabel
@@ -240,6 +240,10 @@ class ScanDevicesTask(FactoryTask):
 
     logging.info('Device %s has the largest average RSSI: %f',
                  max_average_rssi_mac, max_average_rssi)
+
+    Log('bluetooth_scan_device', mac=str(max_average_rssi_mac),
+        rssi=float(max_average_rssi),
+        meet=max_average_rssi >= self._average_rssi_threshold)
 
     if self._average_rssi_threshold > max_average_rssi:
       factory.console.error('The largest average RSSI %f does not meet'
