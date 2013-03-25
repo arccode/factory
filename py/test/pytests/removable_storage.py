@@ -60,10 +60,10 @@ _RW_TEST_MODE_SEQUENTIAL = 2
 _MILLION = 1000000
 
 _RW_TEST_INSERT_FMT_STR = (
-    lambda t: test_ui.MakeLabel(
-      '<br/>'.join(['Insert %s drive for read/write test...' % t,
+    lambda t, extra_en, extra_zh: test_ui.MakeLabel(
+      '<br/>'.join(['Insert %s drive for read/write test... %s' % (t, extra_en),
                     'WARNING: DATA ON INSERTED MEDIA WILL BE LOST!']),
-      '<br/>'.join([u'插入 %s 存储以进行读写测试...' % t,
+      '<br/>'.join([u'插入 %s 存储以进行读写测试... %s' % (t, extra_zh),
                     u'注意: 插入装置上的资料将会被清除!'])))
 _REMOVE_FMT_STR = lambda t: test_ui.MakeLabel('Remove %s drive...' % t,
                                               u'提取 %s 存储...' % t)
@@ -517,7 +517,12 @@ class RemovableStorageTest(unittest.TestCase):
         None, optional=True),
     Arg('sequential_block_count', int,
         'Number of blocks to test in sequential read / write test', 1024),
-    Arg('perform_locktest', bool, 'Whether to run lock test', False)
+    Arg('perform_locktest', bool, 'Whether to run lock test', False),
+    Arg('extra_prompt_en', (str, unicode),
+        'An extra prompt (in English), e.g., to specify which USB port to use',
+        optional=True),
+    Arg('extra_prompt_zh', (str, unicode), 'An extra prompt (in Chinese)',
+        optional=True),
   ]
 
   def runTest(self):
@@ -543,7 +548,11 @@ class RemovableStorageTest(unittest.TestCase):
                                         self.args.media)
       self._locktest_removal_image = '%s_locktest_remove.png' % self.args.media
 
-    self._template.SetInstruction(_RW_TEST_INSERT_FMT_STR(self.args.media))
+    self._template.SetInstruction(
+        _RW_TEST_INSERT_FMT_STR(
+            self.args.media,
+            self.args.extra_prompt_en or "",
+            self.args.extra_prompt_zh or self.args.extra_prompt_en or ""))
     self._state = _STATE_RW_TEST_WAIT_INSERT
     self._template.SetState(_IMG_HTML_TAG(self._insertion_image))
 
