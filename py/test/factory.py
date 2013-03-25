@@ -310,6 +310,9 @@ class Options(object):
   # Perform an implicit auto-run when the test driver starts up?
   auto_run_on_start = True
 
+  # Whether to clear state on start.
+  clear_state_on_start = False
+
   # Perform an implicit auto-run when the user switches to any test?
   auto_run_on_keypress = False
 

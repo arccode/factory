@@ -234,6 +234,13 @@ class FactoryState(object):
     '''
     return dict(self._tests_shelf)
 
+  @_synchronized
+  def clear_test_state(self):
+    '''
+    Clears all test state.
+    '''
+    self._tests_shelf.clear()
+
   def get_test_list(self):
     '''
     Returns the test list.

@@ -1133,6 +1133,9 @@ class Goofy(object):
         # Bail with an error; no point in starting up.
         sys.exit('No valid test list; exiting.')
 
+    if self.test_list.options.clear_state_on_start:
+      self.state_instance.clear_test_state()
+
     if not self.state_instance.has_shared_data('ui_lang'):
       self.state_instance.set_shared_data('ui_lang',
                         self.test_list.options.ui_lang)
