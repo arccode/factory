@@ -48,6 +48,7 @@ def SwitchModemFirmware(target):
   factory.console.info('Firmware version = %r', firmware_info)
   try:
     if firmware_info != target:
+      factory.console.info('Switching firmware to %r', target)
       stdout = Spawn(['modem', 'set-carrier', target], read_stdout=True,
                      log_stderr_on_error=True, check_call=True).stdout_data
       logging.info('Output when switching to %r =\n%s', target, stdout)
