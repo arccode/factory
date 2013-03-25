@@ -55,9 +55,7 @@ class HWIDTest(unittest2.TestCase):
     hwid.binary_string = original_value
 
     original_value = hwid.encoded_string
-    # TODO(jcliang): Change back in R27.
-    #hwid.encoded_string = 'ASDF QWER-TY'
-    hwid.encoded_string = 'ASDF QWER-TY 1111'
+    hwid.encoded_string = 'ASDF QWER-TY'
     self.assertRaisesRegexp(
         HWIDException, r'Invalid board name', hwid.VerifySelf)
     hwid.encoded_string = original_value
@@ -331,27 +329,19 @@ class DatabaseTest(unittest2.TestCase):
 
   def testVerifyEncodedString(self):
     self.assertEquals(
-        # TODO(jcliang): Change back in R27.
-        #None, self.database.VerifyEncodedString('CHROMEBOOK AW3L-M7I7-V'))
-        None, self.database.VerifyEncodedString('CHROMEBOOK AW3L-M7I7-V 1111'))
+        None, self.database.VerifyEncodedString('CHROMEBOOK AW3L-M7I7-V'))
     self.assertRaisesRegexp(
         HWIDException, r'Invalid HWID string format',
         self.database.VerifyEncodedString, 'AW3L-M7I5-4')
     self.assertRaisesRegexp(
         HWIDException, r'Length of encoded string .* is less than 2 characters',
-        # TODO(jcliang): Change back in R27.
-        #self.database.VerifyEncodedString, 'FOO A')
-        self.database.VerifyEncodedString, 'FOO A 1111')
+        self.database.VerifyEncodedString, 'FOO A')
     self.assertRaisesRegexp(
         HWIDException, r'Invalid board name', self.database.VerifyEncodedString,
-        # TODO(jcliang): Change back in R27.
-        #'FOO AW3L-M7IK-W')
-        'FOO AW3L-M7IK-W 1111')
+        'FOO AW3L-M7IK-W')
     self.assertRaisesRegexp(
         HWIDException, r'Checksum of .* mismatch',
-        # TODO(jcliang): Change back in R27.
-        #self.database.VerifyEncodedString, 'CHROMEBOOK AW3L-M7IA-B')
-        self.database.VerifyEncodedString, 'CHROMEBOOK AW3L-M7IA-B 1111')
+        self.database.VerifyEncodedString, 'CHROMEBOOK AW3L-M7IA-B')
 
   def testVerifyBOM(self):
     result = open(os.path.join(_TEST_DATA_PATH,

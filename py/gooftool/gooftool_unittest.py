@@ -501,7 +501,7 @@ class GooftoolTest(unittest2.TestCase):
       # pylint: disable=E1101
       mock_probe_result = hwid_tool.ProbeResults.Decode(f.read())
     self.assertEquals(
-        'CHROMEBOOK A5AU-LU 3324',
+        'CHROMEBOOK A5AU-LU',
         self._gooftool3.GenerateHwidV3(
             mock_device_info, mock_probe_result).encoded_string)
 
@@ -510,7 +510,7 @@ class GooftoolTest(unittest2.TestCase):
         'component.keyboard': 'gb'
     }
     self.assertEquals(
-        'CHROMEBOOK A7IU-YS 5271',
+        'CHROMEBOOK A7IU-YS',
         self._gooftool3.GenerateHwidV3(
             mock_device_info, mock_probe_result).encoded_string)
     mock_device_info = {
@@ -544,7 +544,7 @@ class GooftoolTest(unittest2.TestCase):
     # pylint: disable=E1101
     self.assertEquals(
         None, self._gooftool3.VerifyHwidV3(
-            'CHROMEBOOK A5AU-LU 3324',
+            'CHROMEBOOK A5AU-LU',
             hwid_tool.ProbeResults.Decode(yaml.dump(mock_probe_result)),
             mock_ro_vpd, mock_rw_vpd))
     mock_probe_result = copy.deepcopy(sample_probe_result)
@@ -554,7 +554,7 @@ class GooftoolTest(unittest2.TestCase):
     # pylint: disable=E1101
     self.assertRaisesRegexp(
         Error, r'Missing required RO VPD field: .*',
-        self._gooftool3.VerifyHwidV3, 'CHROMEBOOK A5AU-LU 3324',
+        self._gooftool3.VerifyHwidV3, 'CHROMEBOOK A5AU-LU',
         hwid_tool.ProbeResults.Decode(yaml.dump(mock_probe_result)),
         mock_ro_vpd, mock_rw_vpd)
     mock_probe_result = copy.deepcopy(sample_probe_result)
@@ -564,7 +564,7 @@ class GooftoolTest(unittest2.TestCase):
     # pylint: disable=E1101
     self.assertRaisesRegexp(
         Error, r'Missing required RW VPD field: .*',
-        self._gooftool3.VerifyHwidV3, 'CHROMEBOOK A5AU-LU 3324',
+        self._gooftool3.VerifyHwidV3, 'CHROMEBOOK A5AU-LU',
         hwid_tool.ProbeResults.Decode(yaml.dump(mock_probe_result)),
         mock_ro_vpd, mock_rw_vpd)
     mock_probe_result = copy.deepcopy(sample_probe_result)
@@ -575,7 +575,7 @@ class GooftoolTest(unittest2.TestCase):
     self.assertRaisesRegexp(
         HWIDException, r'Component class .* has extra components: .* and '
         'missing components: .*', self._gooftool3.VerifyHwidV3,
-        'CHROMEBOOK A5AU-LU 3324',
+        'CHROMEBOOK A5AU-LU',
         hwid_tool.ProbeResults.Decode(yaml.dump(mock_probe_result)),
         mock_ro_vpd, mock_rw_vpd)
     mock_probe_result = copy.deepcopy(sample_probe_result)
@@ -588,7 +588,7 @@ class GooftoolTest(unittest2.TestCase):
     self.assertRaisesRegexp(
         HWIDException, r'Component class .* has extra components: .* and '
         'missing components: .*', self._gooftool3.VerifyHwidV3,
-        'CHROMEBOOK A5AU-LU 3324',
+        'CHROMEBOOK A5AU-LU',
         hwid_tool.ProbeResults.Decode(yaml.dump(mock_probe_result)),
         mock_ro_vpd, mock_rw_vpd)
 

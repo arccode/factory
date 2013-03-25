@@ -60,19 +60,13 @@ class DecoderTest(unittest2.TestCase):
   def testEncodedStringToBinaryString(self):
     self.assertEquals('00000111010000010100',
                       EncodedStringToBinaryString(
-                          # TODO(jcliang): Change back in R27.
-                          #self.database, 'CHROMEBOOK A5AU-LU'))
-                          self.database, 'CHROMEBOOK A5AU-LU 3324'))
+                          self.database, 'CHROMEBOOK A5AU-LU'))
     self.assertEquals('00101111010000010100',
                       EncodedStringToBinaryString(
-                          # TODO(jcliang): Change back in R27.
-                          #self.database, 'CHROMEBOOK F5AU-ON'))
-                          self.database, 'CHROMEBOOK F5AU-ON 8205'))
+                          self.database, 'CHROMEBOOK F5AU-ON'))
     self.assertEquals('10000111010000010100',
                       EncodedStringToBinaryString(
-                          # TODO(jcliang): Change back in R27.
-                          #self.database, 'CHROMEBOOK Q5AU-XL'))
-                          self.database, 'CHROMEBOOK Q5AU-XL 7463'))
+                          self.database, 'CHROMEBOOK Q5AU-XL'))
 
   def testBinaryStringToBOM(self):
     result = open(os.path.join(_TEST_DATA_PATH,
@@ -101,13 +95,9 @@ class DecoderTest(unittest2.TestCase):
     reference_bom = self.database.ProbeResultToBOM(result)
     reference_bom.encoded_fields['camera'] = 0
     reference_bom.encoded_fields['display_panel'] = 0
-    # TODO(jcliang): Change back in R27.
-    #hwid = Decode(self.database, 'CHROMEBOOK A5AU-LU')
-    hwid = Decode(self.database, 'CHROMEBOOK A5AU-LU 3324')
+    hwid = Decode(self.database, 'CHROMEBOOK A5AU-LU')
     self.assertEquals('00000111010000010100', hwid.binary_string)
-    # TODO(jcliang): Change back in R27.
-    #self.assertEquals('CHROMEBOOK A5AU-LU', hwid.encoded_string)
-    self.assertEquals('CHROMEBOOK A5AU-LU 3324', hwid.encoded_string)
+    self.assertEquals('CHROMEBOOK A5AU-LU', hwid.encoded_string)
     self.assertEquals(reference_bom.board, hwid.bom.board)
     self.assertEquals(reference_bom.encoding_pattern_index,
                       hwid.bom.encoding_pattern_index)

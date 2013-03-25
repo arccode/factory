@@ -6,7 +6,7 @@
 # found in the LICENSE file.
 
 """Implementation of HWID v3 encoder."""
-from zlib import crc32
+
 import factory_common # pylint: disable=W0611
 
 from cros.factory.hwid import HWID
@@ -60,11 +60,7 @@ def BinaryStringToEncodedString(database, binary_string):
   # Insert dashes to increase readibility.
   b32_string = (
       '-'.join([b32_string[i:i + 4] for i in xrange(0, len(b32_string), 4)]))
-  # TODO(jcliang): Change back in R27.
-  def DummyChecksum(text):
-    return ('%04u' % (crc32(text) & 0xffffffffL))[-4:]
-  result = database.board.upper() + ' ' + b32_string
-  return result + ' ' + DummyChecksum(result)
+  return database.board.upper() + ' ' + b32_string
 
 
 def Encode(database, bom):

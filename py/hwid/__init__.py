@@ -235,10 +235,7 @@ class Database(object):
           ...
         ]
   """
-  # TODO(jcliang): Change back in R27.
-  #_HWID_FORMAT = re.compile(r'^([A-Z0-9]+) ((?:[A-Z2-7]{4}-)*[A-Z2-7]{1,4})$')
-  _HWID_FORMAT = re.compile(
-      r'^([A-Z0-9]+) ((?:[A-Z2-7]{4}-)*[A-Z2-7]{1,4}) ([0-9]+)$')
+  _HWID_FORMAT = re.compile(r'^([A-Z0-9]+) ((?:[A-Z2-7]{4}-)*[A-Z2-7]{1,4})$')
 
   def __init__(self, board, encoding_patterns, image_id, pattern,
                encoded_fields, probeable_components,
@@ -597,10 +594,7 @@ class Database(object):
       HWIDException if verification fails.
     """
     try:
-      # TODO(jcliang): Change back in R27.
-      #board, bom_checksum = Database._HWID_FORMAT.findall(encoded_string)[0]
-      board, bom_checksum, dummy_checksum = (
-          Database._HWID_FORMAT.findall(encoded_string)[0])
+      board, bom_checksum = Database._HWID_FORMAT.findall(encoded_string)[0]
     except IndexError:
       raise HWIDException('Invalid HWID string format: %r' % encoded_string)
     if len(bom_checksum) < 2:
@@ -611,9 +605,6 @@ class Database(object):
       raise HWIDException('Invalid board name: %r' % board)
     # Verify the checksum
     stripped = encoded_string.replace('-', '')
-    # TODO(jcliang): Change back in R27.
-    # Remove dummy checksum.
-    stripped = stripped[:-5]
     hwid = stripped[:-2]
     checksum = stripped[-2:]
     expected_checksum = Base32.Checksum(hwid)

@@ -38,9 +38,7 @@ class EncoderTest(unittest.TestCase):
         '10101111010000010100', BOMToBinaryString(self.database, bom))
 
   def testBinaryStringToEncodedString(self):
-    # TODO(jcliang): Change back in R27.
-    #self.assertEquals('CHROMEBOOK A5AU-LU',
-    self.assertEquals('CHROMEBOOK A5AU-LU 3324',
+    self.assertEquals('CHROMEBOOK A5AU-LU',
                       BinaryStringToEncodedString(
                           self.database, '00000111010000010100'))
 
@@ -53,9 +51,7 @@ class EncoderTest(unittest.TestCase):
         bom, {'camera': 'camera_0', 'display_panel': 'display_panel_0'})
     hwid = Encode(self.database, bom)
     self.assertEquals('00000111010000010100', hwid.binary_string)
-    # TODO(jcliang): Change back in R27.
-    #self.assertEquals('CHROMEBOOK A5AU-LU', hwid.encoded_string)
-    self.assertEquals('CHROMEBOOK A5AU-LU 3324', hwid.encoded_string)
+    self.assertEquals('CHROMEBOOK A5AU-LU', hwid.encoded_string)
 
 
 if __name__ == '__main__':
