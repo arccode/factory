@@ -34,6 +34,48 @@ from cros.factory.utils import net_utils
 SHOPFLOOR_TIMEOUT_SECS = 10 # Timeout for shopfloor connection.
 SHOPFLOOR_RETRY_INTERVAL_SECS = 10 # Seconds to wait between retries.
 
+MSG_START = test_ui.MakeLabel(
+    'Please press SPACE key to start.',
+    u'请按 "空白键" 开始')
+MSG_DOWNLOADING_PARAMETERS = test_ui.MakeLabel(
+    'Downloading parameters...',
+    u'下载测试规格中...')
+MSG_WAITING_ETHERNET = test_ui.MakeLabel(
+    'Waiting for Ethernet connectivity...',
+    u'等待网路介面卡...')
+MSG_WAITING_IP = test_ui.MakeLabel(
+    'Waiting for IP address...',
+    u'等待 IP 设定...')
+MSG_RUNNING_SHIELD_BOX = test_ui.MakeLabel(
+    'Running test outside shield box...',
+    u'执行屏蔽箱外测试中...')
+MSG_OUTSIDE_SHIELD_BOX_COMPLETED = test_ui.MakeLabel(
+    'Procedure outside shield box is completed.<br>'
+    'Please press SPACE key to continue.',
+    u'屏蔽箱外测试已完成<br>'
+    u'请移至屏蔽箱后按 "空白键" 继续')
+MSG_CHECKING_SHIELD_BOX = test_ui.MakeLabel(
+    'Running pre-test inside shield box...',
+    u'检查屏蔽箱中...')
+MSG_SHIELD_BOX_CHECKED = test_ui.MakeLabel(
+    'Pre-test passed.<br>'
+    'Please close shield box, and then press SPACE key to continue.',
+    u'屏蔽箱检查已完成<br>'
+    u'请关闭箱门后按 "空白键" 继续')
+MSG_RUNNING_PRIMARY_TEST = test_ui.MakeLabel(
+    'Running main test...',
+    u'执行屏蔽箱内主测试中...')
+MSG_PRIMARY_TEST_COMPLETED = test_ui.MakeLabel(
+    'Shield box testing complete.<br>'
+    'The remainder of the test can be executed without a shield box.<br>'
+    'Please press SPACE key to continue.',
+    u'主测试执行完毕, 请将 DUT 移出屏蔽箱<br>'
+    u'按 "空白键" 继续剩馀测试')
+MSG_POST_TEST = test_ui.MakeLabel(
+    'Running post-test.',
+    u'执行剩馀测试中...')
+
+
 class RfFramework(object):
   NORMAL_MODE = 'Normal'
   DETAIL_PROMPT = 'Detail prompts'
@@ -129,11 +171,12 @@ class RfFramework(object):
 
   def runTest(self):
     self.unique_identification = self.GetUniqueIdentification()
+    self.Prompt(MSG_START, force_prompt=True)
 
     if self.args.pre_test_outside_shield_box:
       self.PrepareNetwork(self.args.static_ips.pop())
       if len(self.args.parameters) > 0:
-        self.template.SetState('Downloading parameters.')
+        self.template.SetState(MSG_DOWNLOADING_PARAMETERS)
         self.DownloadParameters(self.args.parameters)
 
       # Prepare additional parameters if we are in calibration mode.
@@ -161,13 +204,10 @@ class RfFramework(object):
           self.caches_dir, self.args.config_file), "r") as fd:
         self.config = yaml.load(fd.read())
 
-      self.template.SetState('Runing outside shield box test.')
+      self.template.SetState(MSG_RUNNING_SHIELD_BOX)
       self.PreTestOutsideShieldBox()
       self.EnterFactoryMode()
-      self.Prompt(
-          'Procedure outside shield-box is completed.<br>'
-          'Please press SPACE key to continue.',
-          force_prompt=True)
+      self.Prompt(MSG_OUTSIDE_SHIELD_BOX_COMPLETED, force_prompt=True)
 
     try:
       if self.args.pre_test_inside_shield_box:
@@ -184,17 +224,14 @@ class RfFramework(object):
                        field_to_record=self.calibration_config,
                        postfix='.cal_data.csv')
 
-        self.template.SetState('Runing pilot test inside shield box.')
+        self.template.SetState(MSG_CHECKING_SHIELD_BOX)
         self.PreTestInsideShieldBox()
         # TODO(itspeter): Support multiple language in prompt.
-        self.Prompt(
-            'Precheck passed.<br>'
-            'Please press SPACE key to continue after shield-box is closed.',
-            force_prompt=True)
+        self.Prompt(MSG_SHIELD_BOX_CHECKED, force_prompt=True)
 
       # Primary test
       # TODO(itspeter): Timing on PrimaryTest().
-      self.template.SetState('Runing primary test.')
+      self.template.SetState(MSG_RUNNING_SHIELD_BOX)
       with leds.Blinker(self.args.blinking_pattern):
         self.PrimaryTest()
       # Save useful info to the CSV and eventlog.
@@ -203,17 +240,13 @@ class RfFramework(object):
 
       # Light all LEDs to indicates test is completed.
       leds.SetLeds(leds.LED_SCR|leds.LED_NUM|leds.LED_CAP)
-      self.Prompt(
-          'Shield-box required testing finished.<br>'
-          'Rest of the test can be executed without a shield-box.<br>'
-          'Please press SPACE key to continue.',
-          force_prompt=True)
+      self.Prompt(MSG_PRIMARY_TEST_COMPLETED, force_prompt=True)
       leds.SetLeds(0)
 
       # Post-test
       if self.args.post_test:
         self.PrepareNetwork(self.args.static_ips.pop())
-        self.template.SetState('Runing post test.')
+        self.template.SetState(MSG_POST_TEST)
         self.PostTest()
         # Upload the aux_logs to shopfloor server.
         self.UploadAuxLogs(self.aux_logs)
@@ -381,8 +414,8 @@ class RfFramework(object):
     if static_ip_pair is None:
       return
 
-    self.template.SetState('Preparing network.')
     _PREPARE_NETWORK_TIMEOUT_SECS = 30 # Timeout for network preparation.
+    self.template.SetState(MSG_WAITING_ETHERNET)
     factory.console.info('Detecting Ethernet device...')
     net_utils.PollForCondition(condition=(
         lambda: True if net_utils.FindUsableEthDevice() else False),
@@ -392,6 +425,7 @@ class RfFramework(object):
     # Only setup the IP if required so.
     current_ip = net_utils.GetEthernetIp(net_utils.FindUsableEthDevice())
     if not current_ip or static_ip_pair[1] is True:
+      self.template.SetState(MSG_WAITING_IP)
       factory.console.info('Setting up IP address...')
       net_utils.PollForCondition(condition=ObtainIp,
           timeout=_PREPARE_NETWORK_TIMEOUT_SECS,
