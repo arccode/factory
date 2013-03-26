@@ -754,9 +754,9 @@ class FactoryTest(object):
           'id not specified for test: %r' % self)
       assert '.' not in self.id, (
           'id cannot contain a period: %r' % self)
-      if not ID_REGEXP.match(self.id):
-        logging.warn('ID %r does not match regexp %s',
-                     self.id, ID_REGEXP.pattern)
+      assert ID_REGEXP.match(self.id), (
+          'id %r does not match regexp %s' % (
+              self.id, ID_REGEXP.pattern))
       # Note that we check ID uniqueness in _init.
 
     assert len(filter(None, [autotest_name, pytest_name,
