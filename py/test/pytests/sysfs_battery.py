@@ -36,6 +36,7 @@ class SysfsBatteryTest(unittest.TestCase):
   def DiagnoseBattery(self):
     success = False
     wearAllowedPct = self.args.percent_battery_wear_allowed
+    wearPct = None
 
     power = system.GetBoard().power
     if not power.CheckBatteryPresent():
