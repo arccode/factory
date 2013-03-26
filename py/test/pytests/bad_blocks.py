@@ -46,7 +46,8 @@ class BadBlocksTest(unittest.TestCase):
 
   ARGS = [
       Arg('device', str, 'The device on which to test.', default='sda'),
-      Arg('max_bytes', long, 'Maximum size to test, in bytes.', optional=True),
+      Arg('max_bytes', (int, long), 'Maximum size to test, in bytes.',
+          optional=True),
       Arg('max_errors', int, 'Stops testing after the given number of errors.',
           default=20, optional=True),
       Arg('timeout_secs', (int, float), 'Timeout in seconds for progress lines',
