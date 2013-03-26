@@ -11,15 +11,15 @@ dargs:
       VPD)
   keyboard_device_name: Device name of keyboard. (default: 'AT Translated Set 2
       keyboard')
-  keyboard_event_id: Keyboard input event id. (default: 6)
   timeout_secs: Timeout for the test. (default: 30 seconds)
   sequential_press (optional): Indicate whether keycodes need to be
       pressed sequentially or not.
 """
 
+import asyncore
+import evdev
 import os
 import re
-import subprocess
 import unittest
 
 from cros.factory.test import test_ui
@@ -27,7 +27,7 @@ from cros.factory.test.args import Arg
 from cros.factory.test.countdown_timer import StartCountdownTimer
 from cros.factory.test.ui_templates import OneSection
 from cros.factory.test.utils import StartDaemonThread
-from cros.factory.utils.process_utils import CheckOutput, Spawn
+from cros.factory.utils.process_utils import CheckOutput
 
 
 _RE_EVTEST_EVENT = re.compile(
@@ -47,6 +47,20 @@ _KEYBOARD_TEST_DEFAULT_CSS = (
 
 _POWER_KEY_CODE = 116
 
+
+class InputDeviceDispatcher(asyncore.file_dispatcher):
+  def __init__(self, device, event_handler):
+    self.device = device
+    self.event_handler = event_handler
+    asyncore.file_dispatcher.__init__(self, device)
+
+  def recv(self, ign=None): # pylint:disable=W0613
+    return self.device.read()
+
+  def handle_read(self):
+    for event in self.recv():
+      self.event_handler(event)
+
 class KeyboardTest(unittest.TestCase):
   """Tests if all the keys on a keyboard are functioning. The test checks for
   keydown and keyup events for each key, following certain order if required,
@@ -56,8 +70,6 @@ class KeyboardTest(unittest.TestCase):
         'from VPD.', default=None, optional=True),
     Arg('keyboard_device_name', (str, unicode), 'Device name of keyboard.',
         default='AT Translated Set 2 keyboard'),
-    Arg('keyboard_event_id', int, 'Keyboard input event id.',
-        default=6),
     Arg('timeout_secs', int, 'Timeout for the test.', default=30),
     Arg('sequential_press', bool, 'Indicate whether keycodes need to be '
         'pressed sequentially or not.', default=False, optional=True),
@@ -89,9 +101,9 @@ class KeyboardTest(unittest.TestCase):
     self.ui.CallJSFunction('setUpKeyboardTest', self.layout, self.bindings,
                            _ID_IMAGE, self.key_order_list)
 
-    self.monitor_process = None
+    self.dispatchers = []
     self.EnableXKeyboard(False)
-    StartDaemonThread(target=self.MonitorEvtest)
+    StartDaemonThread(target=self.MonitorEvdevEvent)
     StartCountdownTimer(self.args.timeout_secs,
                         lambda: self.ui.CallJSFunction('failTest'),
                         self.ui,
@@ -100,8 +112,8 @@ class KeyboardTest(unittest.TestCase):
   def tearDown(self):
     """Terminates the running process or we'll have trouble stopping the
     test."""
-    if self.monitor_process.poll() is None:
-      self.monitor_process.terminate()
+    for dispatcher in self.dispatchers:
+      dispatcher.close()
     self.EnableXKeyboard(True)
 
   def GetKeyboardLayout(self):
@@ -138,19 +150,19 @@ class KeyboardTest(unittest.TestCase):
     CheckOutput(['xinput', 'set-prop', self.args.keyboard_device_name,
                  'Device Enabled', '1' if enable else '0'])
 
-  def MonitorEvtest(self):
-    """Monitors keyboard events from output of evtest."""
-    self.monitor_process = Spawn(['evtest', '/dev/input/event%d' % (
-                                  self.args.keyboard_event_id)],
-                                 stdout=subprocess.PIPE)
-    while True:
-      re_obj = _RE_EVTEST_EVENT.search(self.monitor_process.stdout.readline())
-      if re_obj:
-        ev_type, ev_code, value = re_obj.group(1, 2, 3)
-        if ev_type == 'EV_KEY' and value == '1':
-          self.MarkKeydown(int(ev_code))
-        elif ev_type == 'EV_KEY' and value == '0':
-          self.MarkKeyup(int(ev_code))
+  def MonitorEvdevEvent(self):
+    """Monitors keyboard events from evdev."""
+    for dev in map(evdev.InputDevice, evdev.list_devices()):
+      if evdev.ecodes.EV_KEY in dev.capabilities().iterkeys():
+        self.dispatchers.append(InputDeviceDispatcher(dev, self.HandleEvent))
+    asyncore.loop()
+
+  def HandleEvent(self, event):
+    if event.type == evdev.ecodes.EV_KEY:
+      if event.value == 1:
+        self.MarkKeydown(event.code)
+      elif event.value == 0:
+        self.MarkKeyup(event.code)
 
   def MarkKeydown(self, keycode):
     """Calls Javascript to mark the given keycode as keydown."""
