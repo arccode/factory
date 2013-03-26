@@ -485,7 +485,7 @@ class FinalizeBundle(object):
           continue
 
         # Replace the file with a symlink.
-        logging.info('Replacing %s with a symlink')
+        logging.info('Replacing %s with a symlink', path)
         os.unlink(path)
         os.symlink(os.path.relpath(factory_par_path,
                                    os.path.dirname(path)),
