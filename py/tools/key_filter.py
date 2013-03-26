@@ -99,7 +99,8 @@ class KeyFilterImpl(object):
   TODO(deanliao): figure out why and fix it.
   """
 
-  def __init__(self, disp, unmap_caps_lock=False, caps_lock_keycode=0):
+  def __init__(self, disp, unmap_caps_lock=False, caps_lock_keycode=0,
+               power_keycode=0):
     self._disp = disp
     self._disp.allow_events(X.AsyncKeyboard, X.CurrentTime)
     self._root = self._disp.screen().root
@@ -107,6 +108,8 @@ class KeyFilterImpl(object):
     self._unmap_caps_lock = unmap_caps_lock
     self._grab_keys = []
     InitGrabKeys(self._grab_keys)
+    if power_keycode:
+      self._grab_keys.append(Keystroke(X.AnyModifier, power_keycode))
 
     if unmap_caps_lock:
       self._caps_lock_keycode = caps_lock_keycode
@@ -230,13 +233,18 @@ def main():
                       help='Unmap CapsLock key.')
   parser.add_argument('--caps_lock_keycode', type=int, default=66,
                       help='CapsLock keycode; default 66.')
+  # Not every platform defines keysym for power button. Let's assign keycode
+  # here.
+  parser.add_argument('--power_keycode', type=int, default=124,
+                      help='Power button keycode; default 124.')
   args = parser.parse_args()
 
   factory.init_logging('key_filter', verbose=args.verbose)
 
   key_filter_impl = KeyFilterImpl(Display(),
                                   unmap_caps_lock=args.unmap_caps_lock,
-                                  caps_lock_keycode=args.caps_lock_keycode)
+                                  caps_lock_keycode=args.caps_lock_keycode,
+                                  power_keycode=args.power_keycode)
   signal.signal(signal.SIGTERM, lambda signum, frame: key_filter_impl.Terminate)
   key_filter_impl.Run()
 
