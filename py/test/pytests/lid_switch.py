@@ -147,7 +147,7 @@ class LidSwitchTest(unittest.TestCase):
     if self.serial:
       self.serial.write(self.args.lid_open)
       self.serial.close()
-    Log('lit_wait_sec',
+    Log('lid_wait_sec',
         time_to_close_sec=(self._closed_sec - self._start_waiting_sec),
         time_to_open_sec=(self._opened_sec - self._closed_sec),
         use_fixture=self.args.use_fixture)

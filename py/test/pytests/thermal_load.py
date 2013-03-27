@@ -86,7 +86,7 @@ class ThermalLoadTest(unittest.TestCase):
           self.fail("Temperature didn't go over %d in %s seconds." %
                     (self.args.lower_threshold, self.args.heat_up_timeout_secs))
 
-        if temperature_value <= self.args.temperature_limit:
+        if temperature_value > self.args.temperature_limit:
           Log('over_heated', temperature_value=temperature_value,
               temperature_limit=self.args.temperature_limit,
               elapsed_sec=elapsed)

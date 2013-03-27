@@ -26,7 +26,6 @@ import unittest
 from cros.factory.event_log import Log
 from cros.factory.test import factory
 from cros.factory.test import test_ui
-from cros.factory.event_log import Log
 from cros.factory.test.args import Arg
 from cros.factory.test.ui_templates import OneSection
 from cros.factory.utils.process_utils import CheckOutput, Spawn

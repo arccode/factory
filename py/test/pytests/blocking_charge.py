@@ -90,7 +90,7 @@ class ChargerTest(unittest.TestCase):
       time.sleep(1)
 
     Log('failed_to_charge', charge=charge, target=self.args.target_charge_pct,
-        timeout_sec=self.args.timeout_secgs)
+        timeout_sec=self.args.timeout_secs)
     self.fail('Cannot charge battery to %d%% in %d seconds.' %
               (self.args.target_charge_pct, self.args.timeout_secs))
 
