@@ -294,3 +294,19 @@ def TerminateOrKillProcess(process, wait_seconds=1):
   reaped.set()
   thread.join()
   logging.info('Process %d stopped', pid)
+
+
+def WaitEvent(event):
+  """Waits for an event without timeout, without blocking signals.
+
+  event.wait() masks all signals until the event is set; this can be used
+  instead to make sure that the signal is delivered within 100 ms.
+
+  Returns:
+    True if the event is set (i.e., always, since there is no timeout).  This
+      return value is used so that this method behaves the same way as
+      event.wait().
+  """
+  while not event.is_set():
+    event.wait(0.1)
+  return True
