@@ -80,6 +80,22 @@ modules = MODULES
 name = os.path.basename(sys.argv[0])
 module = modules.get(name)
 
+# Set the process title, if available
+try:
+  from setproctitle import setproctitle
+  setproctitle(' '.join(sys.argv))
+except:
+  pass  # Oh well
+
+# Set process title so killall/pkill will work.
+try:
+  import ctypes
+  buff = ctypes.create_string_buffer(len(name) + 1)
+  buff.value = name
+  ctypes.cdll.LoadLibrary('libc.so.6').prctl(15, ctypes.byref(buff), 0, 0, 0)
+except:
+  pass  # Oh well
+
 if not module:
   # Display an error message describing the valid commands.
   print >>sys.stderr, (
