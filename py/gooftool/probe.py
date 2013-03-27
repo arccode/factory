@@ -28,7 +28,6 @@ from tempfile import NamedTemporaryFile
 
 import factory_common  # pylint: disable=W0611
 
-from cros.factory import hwid
 from cros.factory.common import CompactStr, Error, Obj, ParseKeyValueData, Shell
 from cros.factory.gooftool import edid
 from cros.factory.gooftool import crosfw
@@ -60,9 +59,9 @@ _INITIAL_CONFIG_PROBE_MAP = {}
 # Load-time decorator-populated set of probably component classes.
 PROBEABLE_COMPONENT_CLASSES = set()
 
-# If this file is present alongside the HWID DB, we'll return its
-# probe results rather than actually probing.
-FAKE_PROBE_RESULTS_FILE = 'fake_probe_results.yaml'
+# If this file is present, we'll return its probe results rather than
+# actually probing.
+FAKE_PROBE_RESULTS_FILE = '/tmp/fake_probe_results.yaml'
 
 def _LoadKernelModule(name, error_on_fail=True):
   """Ensure kernel module is loaded.  If not already loaded, do the load."""
@@ -884,14 +883,11 @@ def Probe(target_comp_classes=None,
     Obj with components, volatile, and initial_config fields, each
     containing the corresponding dict of probe results.
   """
-  fake_probe_results_path = os.path.join(
-      hwid.DEFAULT_HWID_DATA_PATH,
-      FAKE_PROBE_RESULTS_FILE)
-  if os.path.exists(fake_probe_results_path):
+  if os.path.exists(FAKE_PROBE_RESULTS_FILE):
     # Overriding with results from a file (for testing).
-    with open(fake_probe_results_path) as f:
+    with open(FAKE_PROBE_RESULTS_FILE) as f:
       logging.warning('Using fake probe results in %s',
-                      fake_probe_results_path)
+                      FAKE_PROBE_RESULTS_FILE)
       return ProbeResults.Decode(f)
 
   def RunProbe(probe_fun):
