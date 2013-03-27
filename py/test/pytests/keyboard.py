@@ -120,8 +120,12 @@ class KeyboardTest(unittest.TestCase):
     """Uses the given keyboard layout or auto-detect from VPD."""
     if self.args.layout:
       return self.args.layout
-    vpd_layout = CheckOutput(['vpd', '-g', 'initial_locale']).strip()
-    return vpd_layout if vpd_layout else 'en-US'
+    vpd_layout = CheckOutput(['vpd', '-g', 'keyboard_layout']).strip()
+    if vpd_layout:
+      # Take US for example, translate 'xkb:us::eng' into 'xkb_us_eng'.
+      return vpd_layout.replace('::','_').replace(':','_')
+    else:
+      return 'xkb_us_eng'
 
   def ReadBindings(self, layout):
     """Reads in key bindings and their associates figure regions."""
