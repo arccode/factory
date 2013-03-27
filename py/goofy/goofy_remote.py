@@ -115,6 +115,8 @@ def main():
                       help="don't restart Goofy")
   parser.add_argument('--hwid', action='store_true',
                       help="update HWID bundle")
+  parser.add_argument('--run', '-r', dest='run_test',
+                      help="the test to run on device")
   parser.add_argument('--test_list',
                       help=("test list to use (defaults to the one in "
                             "the board's overlay"))
@@ -194,6 +196,10 @@ def main():
           (['-a'] if args.clear_state else []),
           check_call=True, log=True)
 
+  if args.run_test:
+    Spawn(ssh_command +
+          [args.host, 'goofy_rpc', r'RunTest\(\"%s\"\)' % args.run_test],
+          check_call=True, log=True)
 
 if __name__ == '__main__':
   main()
