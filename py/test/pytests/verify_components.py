@@ -194,13 +194,18 @@ class VerifyComponentsTest(unittest.TestCase):
     if self.args.hwid_version not in [2, 3]:
       raise FactoryTestFailure(
           'Invalid HWID version: %r' % self.args.hwid_version)
-    self.gooftool = Gooftool(hwid_version=self.args.hwid_version)
+
+    # Don't initialize yet; let update_local_hwid_data run first.
+    self.gooftool = None
+
     self.probed_results = None
     self.template = ui_templates.OneSection(self._ui)
     self.template.SetTitle(_TEST_TITLE)
 
   def runTest(self):
     shopfloor.update_local_hwid_data()
+
+    self.gooftool = Gooftool(hwid_version=self.args.hwid_version)
     self.component_list = self.args.component_list
     self.board = self.args.board
 
