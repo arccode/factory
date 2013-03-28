@@ -33,6 +33,8 @@ class VerifyComponentsUnitTest(unittest.TestCase):
     self._mock_test.template = self._mox.CreateMock(OneSection)
     self._mock_test.board = "BENDER"
 
+    self._mox.StubOutWithMock(verify_components, 'Log')
+
   def tearDown(self):
     self._mox.VerifyAll()
     self._mox.UnsetStubs()
@@ -57,6 +59,7 @@ class VerifyComponentsUnitTest(unittest.TestCase):
               'cpu': [ProbedComponentResult('cpu_1', 'CPU_1', None)]}
     self._mock_test.gooftool.VerifyComponents(
         self._mock_test.component_list).AndReturn(probed)
+    verify_components.Log("probed_components", result=probed)
 
     task.Pass()
 
@@ -78,6 +81,7 @@ class VerifyComponentsUnitTest(unittest.TestCase):
               'cpu': [ProbedComponentResult('cpu_1', 'CPU_1', None)]}
     self._mock_test.gooftool.VerifyComponentsV3(
         self._mock_test.component_list).AndReturn(probed)
+    verify_components.Log("probed_components", result=probed)
 
     task.Pass()
 
@@ -99,6 +103,7 @@ class VerifyComponentsUnitTest(unittest.TestCase):
               'cpu': [ProbedComponentResult(None, 'CPU_1', "Fake error")]}
     self._mock_test.gooftool.VerifyComponents(
         self._mock_test.component_list).AndReturn(probed)
+    verify_components.Log("probed_components", result=probed)
 
     task.Fail(mox.IsA(str))
 
@@ -122,6 +127,7 @@ class VerifyComponentsUnitTest(unittest.TestCase):
               'cpu': [ProbedComponentResult(None, 'CPU_1', "Fake error")]}
     self._mock_test.gooftool.VerifyComponentsV3(
         self._mock_test.component_list).AndReturn(probed)
+    verify_components.Log("probed_components", result=probed)
 
     task.Fail(mox.IsA(str))
 
@@ -144,6 +150,7 @@ class VerifyComponentsUnitTest(unittest.TestCase):
               'cpu': [ProbedComponentResult(None, None, "Fake missing error")]}
     self._mock_test.gooftool.VerifyComponents(
         self._mock_test.component_list).AndReturn(probed)
+    verify_components.Log("probed_components", result=probed)
 
     task.Pass()
 
@@ -166,6 +173,7 @@ class VerifyComponentsUnitTest(unittest.TestCase):
               'cpu': [ProbedComponentResult(None, None, "Fake missing error")]}
     self._mock_test.gooftool.VerifyComponents(
         self._mock_test.component_list).AndReturn(probed)
+    verify_components.Log("probed_components", result=probed)
 
     task.Fail(mox.IsA(str))
 
@@ -191,6 +199,7 @@ class VerifyComponentsUnitTest(unittest.TestCase):
 
   def testVerifyAnyBOMTaskPass(self):
     task = VerifyAnyBOMTask(self._mock_test, ['LEELA'])
+    verify_components.Log("bom_whitelist", whitelist=['LEELA'])
     self._StubPassFail(task)
     self._mock_test.probed_results = (
         {'camera':[ProbedComponentResult('camera_1', 'CAMERA_1', None)]})
@@ -199,6 +208,7 @@ class VerifyComponentsUnitTest(unittest.TestCase):
 
     self._mock_test.gooftool.FindBOMMismatches(
         'BENDER', 'LEELA', self._mock_test.probed_results).AndReturn({})
+    verify_components.Log("verified_bom", bom='LEELA')
 
     task.Pass()
 
@@ -208,15 +218,19 @@ class VerifyComponentsUnitTest(unittest.TestCase):
   def testVerifyAnyBOMTaskFail(self):
     task = VerifyAnyBOMTask(self._mock_test, ['LEELA'])
     self._StubPassFail(task)
+    verify_components.Log("bom_whitelist", whitelist=['LEELA'])
     self._mock_test.probed_results = (
         {'camera':[ProbedComponentResult('camera_1', 'CAMERA_1', None)],
          'cpu':[ProbedComponentResult('cpu_2', 'cpu_2', None)]})
 
     self._mock_test.template.SetState(mox.IsA(unicode))
 
+    mismatched = {'cpu': Mismatch(set(['cpu_1']), set(['cpu_2']))}
     self._mock_test.gooftool.FindBOMMismatches(
         'BENDER', 'LEELA', self._mock_test.probed_results).AndReturn(
-            {'cpu': Mismatch(set(['cpu_1']), set(['cpu_2']))})
+            mismatched)
+    verify_components.Log("failed_matching_bom",
+        all_mismatches={'LEELA': mismatched})
 
     task.Fail(mox.IsA(str))
 

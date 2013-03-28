@@ -12,6 +12,7 @@ import logging
 import unittest
 
 import factory_common # pylint: disable=W0611
+from cros.factory.event_log import Log
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -58,6 +59,7 @@ class CheckComponentsTask(FactoryTask):
       return
 
     logging.info("Probed components: %s", result)
+    Log("probed_components", result=result)
     self._test.probed_results = result
 
     # extract all errors out
@@ -97,6 +99,7 @@ class VerifyAnyBOMTask(FactoryTask):
 
     self._test.template.SetState(_MESSAGE_MATCHING_ANY_BOM)
     logging.info("Verifying BOMs: %r", self._bom_whitelist)
+    Log("bom_whitelist", whitelist=self._bom_whitelist)
 
     all_mismatches = {}  # tracks all mismatches for each BOM for debugging
     for bom in self._bom_whitelist:
@@ -104,11 +107,13 @@ class VerifyAnyBOMTask(FactoryTask):
           self._test.board, bom, self._test.probed_results)
       if not mismatches:
         logging.info("Components verified with BOM %r", bom)
+        Log("verified_bom", bom=bom)
         self.Pass()
         return
       else:
         all_mismatches[bom] = mismatches
 
+    Log("failed_matching_bom", all_mismatches=all_mismatches)
     self.Fail("Probed components did not match any of listed BOM: %s" %
               all_mismatches)
 
