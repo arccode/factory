@@ -188,7 +188,8 @@ def main():
 
   # Do workons
   if workon_packages:
-    Spawn(['cros_workon', 'start'] + workon_packages, log=True, call=True)
+    Spawn(['cros_workon', '--board', args.board, 'start'] + workon_packages,
+          log=True, call=True)
 
   # Do repo syncs in parallel (followed by a rebase+sync if it fails)
   if args.sync:
