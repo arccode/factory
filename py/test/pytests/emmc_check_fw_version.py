@@ -47,6 +47,8 @@ class eMMCCheckFWVersionTest(unittest.TestCase):
         default='/sys/devices/dw_mmc.0/mmc_host/mmc0/mmc0:0001/name'),
     Arg('prv_path', str, 'Path to PRV value',
         default='/sys/devices/dw_mmc.0/mmc_host/mmc0/mmc0:0001/prv'),
+    Arg('emmc_updater_available', bool, 'Boolean for if an eMMC FW update '
+        'utility is available.', default=False)
   ]
 
   def _ValidatePRVField(self, mid, pnm, prv, valid_versions):
@@ -90,8 +92,10 @@ class eMMCCheckFWVersionTest(unittest.TestCase):
       if valid_mid == mid and valid_pnm == pnm:
         self.assertTrue(len(prv) == 2, 'Invalid prv length')
         if re.match(regex, prv):
+          logging.info('The eMMC firmware version %s is correct.', prv)
           return True
         else:
+          logging.info('The eMMC FW version %s does not match %s.', prv, regex)
           return False
     raise ValueError('MID %s PNM %s not found in test list, wrong eMMC?' %
                      (mid, pnm))
@@ -113,21 +117,24 @@ class eMMCCheckFWVersionTest(unittest.TestCase):
     logging.info('MID: %s, PNM: %s, PRV: %s', mid, pnm, prv)
     Log('emmc_obtained', cid=cid, mid=mid, pnm=pnm, prv=prv)
     if self._ValidatePRVField(mid, pnm, prv, self.args.valid_versions):
-      logging.info('eMMC firmware version is correct.')
       return # Pass the test
 
-    ui = test_ui.UI()
-    template = ui_templates.OneSection(ui)
-    template.SetTitle(test_ui.MakeLabel(
-        'eMMC Firmware Version Incorrect',
-        'eMMC 韧体版本不对'))
-    template.SetState(
-        '<div class=test-status-failed style="font-size: 150%">' +
-        test_ui.MakeLabel(
-            'The eMMC firmware version (%s) is incorrect. '
-            '<br>Please run the eMMC firmware update tool.' % prv,
+    if self.args.emmc_updater_available:
+      ui = test_ui.UI()
+      template = ui_templates.OneSection(ui)
+      template.SetTitle(test_ui.MakeLabel(
+          'eMMC Firmware Version Incorrect',
+          'eMMC 韧体版本不对'))
+      template.SetState(
+          '<div class=test-status-failed style="font-size: 150%">' +
+          test_ui.MakeLabel(
+              'The eMMC firmware version (%s) is incorrect. '
+              '<br>Please run the eMMC firmware update tool.' % prv,
 
-            'eMMC 韧体版（%s）版本不对。'
-            '<br>必须更新 eMMC 韧体并重新安装工厂测试软件。' % prv) +
-        '</div>')
-    ui.Run()  # Forever
+              'eMMC 韧体版（%s）版本不对。'
+              '<br>必须更新 eMMC 韧体并重新安装工厂测试软件。' % prv) +
+          '</div>')
+      ui.Run()  # Forever
+    else:
+      self.fail('The eMMC firmware version (%s) is incorrect. However, no '
+                'update is currently available.' % prv)
