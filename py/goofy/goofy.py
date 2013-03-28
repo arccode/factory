@@ -1162,6 +1162,7 @@ class Goofy(object):
            '--dummy'])
     elif self.test_list.options.shopfloor_server_url:
       shopfloor.set_server_url(self.test_list.options.shopfloor_server_url)
+      shopfloor.set_enabled(True)
 
     if self.test_list.options.time_sanitizer and not utils.in_chroot():
       self.time_sanitizer = time_sanitizer.TimeSanitizer(
