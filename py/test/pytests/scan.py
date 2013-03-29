@@ -112,7 +112,7 @@ class Scan(unittest.TestCase):
         # Show expected value only in engineering mode, so the user
         # can't fake it.
         esc_expected_value = (
-            test_ui.Escape(expected_value) or "None")
+            test_ui.Escape(expected_value or "None"))
         return SetError(
             'The scanned value "%s" does not match '
             'the expected value'
