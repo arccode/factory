@@ -55,6 +55,7 @@ class HWIDV3Test(unittest.TestCase):
         probe_results = f.read()
     else:
       probe_results = gooftool.probe.Probe()
+    Log('probe', probe_results=probe_results)
 
     gt = Gooftool(hwid_version=3, board=board,
                   probe=lambda *args, **kwargs: probe_results)
