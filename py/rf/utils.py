@@ -4,6 +4,8 @@
 
 """Common functions across different RF related tests."""
 
+import math
+
 import factory_common  # pylint: disable=W0611
 
 from cros.factory.test import factory
@@ -12,7 +14,11 @@ from cros.factory.test import factory
 def IsInRange(observed, threshold_min, threshold_max):
   """Returns True if threshold_min <= observed <= threshold_max.
 
-  If either thresholds are None, then the comparison will always succeed."""
+  If either thresholds are None, then the comparison will always succeed.
+  If observed be one of nan, inf or None, False will be returned.
+  """
+  if observed is None or math.isnan(observed) or math.isinf(observed):
+    return False
   if threshold_min is not None and observed < threshold_min:
     return False
   if threshold_max is not None and observed > threshold_max:
