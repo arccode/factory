@@ -53,7 +53,7 @@ def FindGitPrefix(repo_path):
   os.chdir(GetFullRepoPath(repo_path))
   branch_list = CheckOutput(['git', 'branch', '-av'])
   for line in reversed(branch_list.split('\n')):
-    match = re.search('remotes\/m\/master\s+-> ([^/]*)/master', line)
+    match = re.search('remotes\/([^/]*)/master', line)
     if match:
       return match.group(1)
   return None
@@ -132,10 +132,11 @@ def RemoveCherryPick(diff_list):
 def DiffRepo(repo_path, branch, author):
   print '%s*** Diff %s ***%s' % (COLOR_GREEN, repo_path, COLOR_RESET)
   os.chdir(GetFullRepoPath(repo_path))
+  prefix = FindGitPrefix(repo_path)
 
   cmd = ['git', 'log', '--cherry-pick', '--oneline', '--left-right',
          '--pretty=format:%m %h (%an) %s',
-         'm/master...%s/%s' % (FindGitPrefix(repo_path), branch)]
+         '%s/master...%s/%s' % (prefix, prefix, branch)]
   if author:
     cmd += ['--author', author]
   diff = CheckOutput(cmd)
