@@ -217,8 +217,8 @@ def main():
     # that any old packages don't get in the way.  There's probably a
     # better way to do this.
     if [x for x in args.packages if x.startswith('autotest')]:
-      Spawn('emerge-%s --unmerge $(cros_workon list --all | grep autotest)'
-            % args.board,
+      Spawn('emerge-%s --unmerge $(cros_workon-%s list --all | grep autotest)'
+            % (args.board, args.board),
             log=True, shell=True, check_call=True)
 
     Spawn(['emerge-%s' % args.board, '--buildpkg',
