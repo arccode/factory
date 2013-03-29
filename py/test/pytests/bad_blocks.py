@@ -4,15 +4,18 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-'''Tests the SSD by running the badblocks command.
+'''Tests a storage device by running the badblocks command.
 
-The unused portion of the stateful partition is used.  (For instance,
-on a device with a 32GB hard drive, cgpt reports that partition 1 is
+By default the unused portion of the stateful partition is used.  (For
+instance, on a device with a 32GB hard drive, cgpt reports that partition 1 is
 about 25 GiB, but the size of the filesystem is only about 1 GiB.  We
 run the test on the unused 24 GiB.)
+
+Alternatively one can specify the use of a file in the filesystem.
 '''
 
 import logging
+import os
 import re
 import subprocess
 import threading
@@ -45,6 +48,9 @@ class BadBlocksTest(unittest.TestCase):
   device_path = None
 
   ARGS = [
+      Arg('mode', str, 'String to specify which operating mode to use, '
+          'currently this supports file or stateful_partition_free_space.',
+          default='stateful_partition_free_space'),
       Arg('device', str, 'The device on which to test.', default='sda'),
       Arg('max_bytes', (int, long), 'Maximum size to test, in bytes.',
           optional=True),
@@ -65,6 +71,9 @@ class BadBlocksTest(unittest.TestCase):
       Arg('drop_caches_interval_secs', int,
           'The interval between dropping caches in seconds.',
           default=120),
+      Arg('file_path', str, 'The path to the file to test, this should be '
+          'on the stateful partition. Only used in file mode.',
+          default='/mnt/stateful_partition/temporary_badblocks_file'),
       ]
 
   def setUp(self):
@@ -73,6 +82,23 @@ class BadBlocksTest(unittest.TestCase):
     self.template.SetState(HTML)
     self.template.DrawProgressBar()
     self._is_mmc = 'mmcblk' in self.args.device
+    if self.args.mode == 'file':
+      if self.args.max_bytes is None:
+        # Default to 100MB file size for testing.
+        self.args.max_bytes = 100 * 1024 * 1024
+      folder = os.path.dirname(self.args.file_path)
+      free_bytes = os.statvfs(folder).f_bavail * os.statvfs(folder).f_bsize
+      logging.info('Detected %dB free space at %s', free_bytes, folder)
+      # Assume we want at least 10MB free on the file system, so we make a pad.
+      pad = 10 * 1024 * 1024
+      if self.args.max_bytes > free_bytes + pad:
+        logging.warn('The file size is too large for the file system, '
+                     'clipping file to %dB.', free_bytes - pad)
+        self.args.max_bytes = free_bytes - pad
+      # Here we generate a sparse file, actual usage will happen later
+      with open(self.args.file_path, "w") as f:
+        f.seek(self.args.max_bytes - 1)
+        f.write("\0")
 
   def runTest(self):
     thread = threading.Thread(target=self._CheckBadBlocks)
@@ -84,6 +110,8 @@ class BadBlocksTest(unittest.TestCase):
     # will show up sooner rather than later.
     self._LogSmartctl()
     Spawn(['sync'], call=True)
+    if self.args.mode == 'file':
+      os.remove(self.args.file_path)
 
   def _CheckBadBlocks(self):
     try:
@@ -97,64 +125,76 @@ class BadBlocksTest(unittest.TestCase):
   def _CheckBadBlocksImpl(self):
     self.assertFalse(utils.in_chroot(),
                      'badblocks test may not be run within the chroot')
+    if self.args.mode == 'file':
+      logging.info('Using a local file at %s, size %dB.', self.args.file_path,
+                   self.args.max_bytes)
+      self.device_path = self.args.file_path
+      # Using an arbitrary 1024B sector size for file mode.
+      sector_size = 1024
+      first_block = 0
+      last_block = self.args.max_bytes / sector_size
+    elif self.args.mode == 'stateful_partition_free_space':
+      self.device_path = '/dev/%s' % self.args.device
+      part_prefix = 'p' if self._is_mmc else ''
+      # Always partition 1
+      partition_path = '/dev/%s%s1' % (self.args.device, part_prefix)
 
-    self.device_path = '/dev/%s' % self.args.device
-    part_prefix = 'p' if self._is_mmc else ''
-    # Always partition 1
-    partition_path = '/dev/%s%s1' % (self.args.device, part_prefix)
+      # Determine total length of the FS
+      dumpe2fs = Spawn(['dumpe2fs', '-h', partition_path],
+                       log=True, check_output=True).stdout_data
+      logging.info('Filesystem info for  header:\n%s', dumpe2fs)
 
-    # Determine total length of the FS
-    dumpe2fs = Spawn(['dumpe2fs', '-h', partition_path],
-                     log=True, check_output=True).stdout_data
-    logging.info('Filesystem info for  header:\n%s', dumpe2fs)
+      fields = dict(re.findall(r'^(.+):\s+(.+)$', dumpe2fs, re.MULTILINE))
+      fs_first_block = int(fields['First block'])
+      fs_block_count = int(fields['Block count'])
+      fs_block_size = int(fields['Block size'])
 
-    fields = dict(re.findall(r'^(.+):\s+(.+)$', dumpe2fs, re.MULTILINE))
-    fs_first_block = int(fields['First block'])
-    fs_block_count = int(fields['Block count'])
-    fs_block_size = int(fields['Block size'])
+      # Grok cgpt data to find the partition size
+      cgpt_start_sector, cgpt_sector_count = [
+          int(Spawn(['cgpt', 'show', self.device_path, '-i', '1', flag],
+                    log=True, check_output=True).stdout_data.strip())
+          for flag in ('-b', '-s')]
+      sector_size = int(
+          open('/sys/class/block/%s/queue/hw_sector_size'
+               % self.args.device).read().strip())
 
-    # Grok cgpt data to find the partition size
-    cgpt_start_sector, cgpt_sector_count = [
-        int(Spawn(['cgpt', 'show', self.device_path, '-i', '1', flag],
-                  log=True, check_output=True).stdout_data.strip())
-        for flag in ('-b', '-s')]
-    sector_size = int(
-        open('/sys/class/block/%s/queue/hw_sector_size'
-             % self.args.device).read().strip())
+      # Could get this to work, but for now we assume that fs_block_size is a
+      # multiple of sector_size.
+      self.assertEquals(0, fs_block_size % sector_size,
+                        'fs_block_size %d is not a multiple of sector_size %d' %
+                        (fs_block_size, sector_size))
 
-    # Could get this to work, but for now we assume that fs_block_size is a
-    # multiple of sector_size.
-    self.assertEquals(0, fs_block_size % sector_size,
-                      'fs_block_size %d is not a multiple of sector_size %d' % (
-                          fs_block_size, sector_size))
+      first_unused_sector = (fs_first_block + fs_block_count) * (
+          fs_block_size / sector_size)
+      first_block = first_unused_sector + cgpt_start_sector
+      sectors_to_test = cgpt_sector_count - first_unused_sector
+      if self.args.max_bytes:
+        sectors_to_test = min(sectors_to_test,
+                              self.args.max_bytes / sector_size)
+      last_block = first_block + sectors_to_test - 1
 
-    first_unused_sector = (fs_first_block + fs_block_count) * (
-        fs_block_size / sector_size)
-    first_block = first_unused_sector + cgpt_start_sector
-    sectors_to_test = cgpt_sector_count - first_unused_sector
-    if self.args.max_bytes:
-      sectors_to_test = min(sectors_to_test, self.args.max_bytes / sector_size)
-    last_block = first_block + sectors_to_test - 1
+      logging.info(', '.join(
+          ['%s=%s' % (x, locals()[x])
+           for x in ['fs_first_block', 'fs_block_count', 'fs_block_size',
+                     'cgpt_start_sector', 'cgpt_sector_count',
+                     'sector_size',
+                     'first_unused_sector',
+                     'sectors_to_test',
+                     'first_block',
+                     'last_block']]))
 
-    logging.info(', '.join(
-        ['%s=%s' % (x, locals()[x])
-         for x in ['fs_first_block', 'fs_block_count', 'fs_block_size',
-                   'cgpt_start_sector', 'cgpt_sector_count',
-                   'sector_size',
-                   'first_unused_sector',
-                   'sectors_to_test',
-                   'first_block',
-                   'last_block']]))
-
-    self.assertTrue(last_block >= first_block,
-                    'This test requires miniOmaha installed factory test image')
+      self.assertTrue(
+          last_block >= first_block,
+          'This test requires miniOmaha installed factory test image')
+    else:
+      raise ValueError('Invalid mode selected, check test_list mode setting.')
 
     test_size_mb = '%.1f MiB' % (
         (last_block - first_block + 1) * sector_size / 1024.**2)
 
     self.template.SetInstruction(
-        MakeLabel('Testing %s region of SSD' % test_size_mb,
-                  '正在测试 %s 的 SSD 空间' % test_size_mb))
+        MakeLabel('Testing %s region of storage' % test_size_mb,
+                  '正在测试 %s 的 存储 空间' % test_size_mb))
 
     # Kill any badblocks processes currently running
     Spawn(['killall', 'badblocks'], ignore_stderr=True, call=True)
