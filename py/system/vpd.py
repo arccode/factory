@@ -43,7 +43,7 @@ class Partition(object):
     """Returns the contents of the VPD as a dict."""
     ret = {}
     for line in Spawn(
-        ['vpd', '-i', self.name, '-l'], check_call=True).stdout_lines(
+        ['vpd', '-i', self.name, '-l'], check_output=True).stdout_lines(
             strip=True):
       match = VPD_LIST_PATTERN.match(line)
       if not match:

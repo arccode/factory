@@ -26,7 +26,8 @@ class VPDTest(unittest2.TestCase):
     process = self.mox.CreateMockAnything()
     process.stdout_lines(strip=True).AndReturn(['"a"="b"',
                                                 '"foo"="bar"'])
-    vpd.Spawn(['vpd', '-i', 'RW_VPD', '-l'], check_call=True).AndReturn(process)
+    vpd.Spawn(['vpd', '-i', 'RW_VPD', '-l'], check_output=True).AndReturn(
+      process)
     self.mox.ReplayAll()
     self.assertEquals(dict(a='b', foo='bar'), vpd.rw.GetAll())
     self.mox.VerifyAll()
@@ -36,7 +37,8 @@ class VPDTest(unittest2.TestCase):
     process = self.mox.CreateMockAnything()
     process.stdout_lines(strip=True).AndReturn(['"a"="b',  # Missing trailing "
                                                 '"foo"="bar"'])
-    vpd.Spawn(['vpd', '-i', 'RW_VPD', '-l'], check_call=True).AndReturn(process)
+    vpd.Spawn(['vpd', '-i', 'RW_VPD', '-l'], check_output=True).AndReturn(
+      process)
     logging.error('Unexpected line in %s VPD: %r',
                   'RW_VPD', '"a"="b')
     self.mox.ReplayAll()
