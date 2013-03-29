@@ -129,13 +129,16 @@ def RemoveCherryPick(diff_list):
           not in cherrypicked]
 
 
-def DiffRepo(repo_path, branch):
+def DiffRepo(repo_path, branch, author):
   print '%s*** Diff %s ***%s' % (COLOR_GREEN, repo_path, COLOR_RESET)
   os.chdir(GetFullRepoPath(repo_path))
 
-  diff = CheckOutput(['git', 'log', '--cherry-pick', '--oneline',
-                      '--left-right', '--pretty=format:%m %h (%an) %s',
-                      'm/master...%s/%s' % (FindGitPrefix(repo_path), branch)])
+  cmd = ['git', 'log', '--cherry-pick', '--oneline', '--left-right',
+         '--pretty=format:%m %h (%an) %s',
+         'm/master...%s/%s' % (FindGitPrefix(repo_path), branch)]
+  if author:
+    cmd += ['--author', author]
+  diff = CheckOutput(cmd)
 
   diff_list = GetDiffList(diff)
   diff_list = RemoveCherryPick(diff_list)
@@ -164,6 +167,8 @@ def main():
                       help='name of the factory branch')
   parser.add_argument('--board', '-b', default=None,
                       help='board name')
+  parser.add_argument('--author', '-a', default=None,
+                      help='Limit the output to this author only')
   args = parser.parse_args()
   if not args.branch:
     args.branch = GetBranch(args.board)
@@ -172,10 +177,11 @@ def main():
                   'Specify --branch to continue.')
     sys.exit(1)
 
-  for repo in REPO_LIST:
-    DiffRepo(repo, args.branch)
   if args.board:
-    DiffRepo(GetPrivateOverlay(args.board), args.branch)
+    REPO_LIST.append(GetPrivateOverlay(args.board))
+
+  for repo in REPO_LIST:
+    DiffRepo(repo, args.branch, args.author)
   sys.exit(0)
 
 if __name__ == '__main__':
