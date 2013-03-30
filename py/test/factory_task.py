@@ -25,15 +25,19 @@ class FactoryTaskManager(object):
     task_list: A list of factory tasks to be executed.
     update_progress: Optional callback to update progress bar. Passing
        percent progress as parameter.
+    on_finish: Optional callback to run when ui ends.
+        It will be passed to ui.Run().
  '''
 
-  def __init__(self, ui, task_list, update_progress=None):
+  def __init__(self, ui, task_list, update_progress=None,
+               on_finish=None):
     self._ui = ui
     self._task_list = task_list
     self._current_task = None
     self._num_tasks = len(task_list)
     self._num_done_tasks = 0
     self._update_progress = update_progress
+    self._on_finish = on_finish
 
   def RunNextTask(self):
     if self._current_task:
@@ -51,7 +55,7 @@ class FactoryTaskManager(object):
 
   def Run(self):
     self.RunNextTask()
-    self._ui.Run()
+    self._ui.Run(on_finish=self._on_finish)
 
   def PassCurrentTask(self):
     """Passes current task.
