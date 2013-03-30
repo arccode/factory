@@ -204,12 +204,11 @@ class RfFramework(object):
         self.config = yaml.load(fd.read())
       factory.console.info('Loaded config = %r', self.config['annotation'])
 
+    try:
       self.template.SetState(MSG_RUNNING_OUTSIDE_SHIELD_BOX)
       self.PreTestOutsideShieldBox()
-      self.EnterFactoryMode()
       self.Prompt(MSG_OUTSIDE_SHIELD_BOX_COMPLETED, force_prompt=True)
 
-    try:
       if self.args.pre_test_inside_shield_box:
         self.PrepareNetwork(self.args.static_ips.pop())
         # TODO(itspeter): Ask user to enter shield box information.

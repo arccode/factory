@@ -43,6 +43,7 @@ class RadiatedCellularGobi(RfFramework, unittest.TestCase):
     self.measurements = self.config['tx_measurements']
     self.power_meter_port = self.config['fixture_port']
     self.firmware = cellular.GetModemFirmware()
+    self.EnterFactoryMode()
 
   def PreTestInsideShieldBox(self):
     factory.console.info('PreTestInsideShieldBox called')
@@ -58,7 +59,7 @@ class RadiatedCellularGobi(RfFramework, unittest.TestCase):
         port=self.power_meter_port, avg_length=None)
     self.RunEquipmentCommand(
         N1914A.SetRange, self.n1914a,
-        port=self.power_meter_port, range_setting=1)
+        port=self.power_meter_port, range_setting=self.config['global_range'])
     self.RunEquipmentCommand(
         N1914A.SetTriggerToFreeRun, self.n1914a,
         port=self.power_meter_port)
