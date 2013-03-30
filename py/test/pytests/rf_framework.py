@@ -15,7 +15,6 @@ import threading
 import time
 import yaml
 
-from contextlib import contextmanager
 from xmlrpclib import Binary
 
 import factory_common  # pylint: disable=W0611
@@ -46,7 +45,7 @@ MSG_WAITING_ETHERNET = test_ui.MakeLabel(
 MSG_WAITING_IP = test_ui.MakeLabel(
     'Waiting for IP address...',
     u'等待 IP 设定...')
-MSG_RUNNING_SHIELD_BOX = test_ui.MakeLabel(
+MSG_RUNNING_OUTSIDE_SHIELD_BOX = test_ui.MakeLabel(
     'Running test outside shield box...',
     u'执行屏蔽箱外测试中...')
 MSG_OUTSIDE_SHIELD_BOX_COMPLETED = test_ui.MakeLabel(
@@ -203,8 +202,9 @@ class RfFramework(object):
       with open(os.path.join(
           self.caches_dir, self.args.config_file), "r") as fd:
         self.config = yaml.load(fd.read())
+      factory.console.info('Loaded config = %r', self.config['annotation'])
 
-      self.template.SetState(MSG_RUNNING_SHIELD_BOX)
+      self.template.SetState(MSG_RUNNING_OUTSIDE_SHIELD_BOX)
       self.PreTestOutsideShieldBox()
       self.EnterFactoryMode()
       self.Prompt(MSG_OUTSIDE_SHIELD_BOX_COMPLETED, force_prompt=True)
@@ -231,7 +231,7 @@ class RfFramework(object):
 
       # Primary test
       # TODO(itspeter): Timing on PrimaryTest().
-      self.template.SetState(MSG_RUNNING_SHIELD_BOX)
+      self.template.SetState(MSG_RUNNING_PRIMARY_TEST)
       with leds.Blinker(self.args.blinking_pattern):
         self.PrimaryTest()
       # Save useful info to the CSV and eventlog.
@@ -334,11 +334,10 @@ class RfFramework(object):
              [MODULE_ID, DEVICE_SN, DEVICE_ID, PATH, FAILURES, INVOCATION])
     factory.console.info('Details saved to %s', csv_path)
 
-  @contextmanager
   def GetShopfloorConnection(
       self, timeout_secs=SHOPFLOOR_TIMEOUT_SECS,
       retry_interval_secs=SHOPFLOOR_RETRY_INTERVAL_SECS):
-    """Yields an shopfloor client object.
+    """Returns a shopfloor client object.
 
     Try forever until a connection of shopfloor is established.
 
@@ -346,11 +345,11 @@ class RfFramework(object):
       timeout_secs: Timeout for shopfloor connection.
       retry_interval_secs: Seconds to wait between retries.
     """
+    factory.console.info('Connecting to shopfloor...')
     while True:
       try:
         shopfloor_client = shopfloor.get_instance(
             detect=True, timeout=timeout_secs)
-        yield shopfloor_client
         break
       except:  # pylint: disable=W0702
         exception_string = utils.FormatExceptionOnly()
@@ -359,49 +358,51 @@ class RfFramework(object):
         factory.console.info('Unable to sync with shopfloor server: %s',
                              exception_string)
       time.sleep(retry_interval_secs)
+    return shopfloor_client
 
   def DownloadParameters(self, parameters):
     """Downloads parameters from shopfloor and saved to state/caches."""
     factory.console.info('Start downloading parameters...')
-    with self.GetShopfloorConnection() as shopfloor_client:
-      logging.info('Syncing time with shopfloor...')
-      goofy = factory.get_state_instance()
-      goofy.SyncTimeWithShopfloorServer()
+    shopfloor_client = self.GetShopfloorConnection()
+    logging.info('Syncing time with shopfloor...')
+    goofy = factory.get_state_instance()
+    goofy.SyncTimeWithShopfloorServer()
 
-      download_list = []
-      for glob_expression in parameters:
-        logging.info('Listing %s', glob_expression)
-        download_list.extend(
-            shopfloor_client.ListParameters(glob_expression))
-      logging.info('Download list prepared:\n%s', '\n'.join(download_list))
-      # Download the list and saved to caches in state directory.
-      for filepath in download_list:
-        utils.TryMakeDirs(os.path.join(
-            self.caches_dir, os.path.dirname(filepath)))
-        binary_obj = shopfloor_client.GetParameter(filepath)
-        with open(os.path.join(self.caches_dir, filepath), 'wb') as fd:
-          fd.write(binary_obj.data)
-      # TODO(itspeter): Verify the signature of parameters.
+    download_list = []
+    for glob_expression in parameters:
+      logging.info('Listing %s', glob_expression)
+      download_list.extend(
+          shopfloor_client.ListParameters(glob_expression))
+    logging.info('Download list prepared:\n%s', '\n'.join(download_list))
+    assert len(download_list) > 0, 'No parameters found on shopfloor'
+    # Download the list and saved to caches in state directory.
+    for filepath in download_list:
+      utils.TryMakeDirs(os.path.join(
+          self.caches_dir, os.path.dirname(filepath)))
+      binary_obj = shopfloor_client.GetParameter(filepath)
+      with open(os.path.join(self.caches_dir, filepath), 'wb') as fd:
+        fd.write(binary_obj.data)
+    # TODO(itspeter): Verify the signature of parameters.
 
   def UploadAuxLogs(self, file_paths, ignore_on_fail=False):
     """Attempts to upload arbitrary file to the shopfloor server."""
-    with self.GetShopfloorConnection() as shopfloor_client:
-      for file_path in file_paths:
-        try:
-          chunk = open(file_path, 'r').read()
-          log_name = os.path.basename(file_path)
-          factory.console.info('Uploading %s', log_name)
-          start_time = time.time()
-          shopfloor_client.SaveAuxLog(log_name, Binary(chunk))
-          factory.console.info('Successfully synced %s in %.03f s',
-              log_name, time.time() - start_time)
-        except:  # pylint: disable=W0702
-          if ignore_on_fail:
-            factory.console.info(
-                'Failed to sync with shopfloor for [%s], ignored',
-                log_name)
-          else:
-            raise
+    shopfloor_client = self.GetShopfloorConnection()
+    for file_path in file_paths:
+      try:
+        chunk = open(file_path, 'r').read()
+        log_name = os.path.basename(file_path)
+        factory.console.info('Uploading %s', log_name)
+        start_time = time.time()
+        shopfloor_client.SaveAuxLog(log_name, Binary(chunk))
+        factory.console.info('Successfully synced %s in %.03f s',
+            log_name, time.time() - start_time)
+      except:  # pylint: disable=W0702
+        if ignore_on_fail:
+          factory.console.info(
+              'Failed to sync with shopfloor for [%s], ignored',
+              log_name)
+        else:
+          raise
 
   def PrepareNetwork(self, static_ip_pair):
     def ObtainIp():
