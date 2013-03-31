@@ -401,12 +401,14 @@ def GetDeviceData():
   return factory.get_shared_data(KEY_DEVICE_DATA, {})
 
 
-def UpdateDeviceData(new_device_data):
+def UpdateDeviceData(new_device_data, post_update_event=True):
   """Returns the accumulated dictionary of device data.
 
   Args:
     new_device_data: A dict with key/value pairs to update.  Old values
       are overwritten.
+    post_update_event: If True, posts an UPDATE_SYSTEM_INFO event to
+      update the test list.
 
   Returns:
     The updated dictionary.
@@ -419,5 +421,6 @@ def UpdateDeviceData(new_device_data):
       KEY_DEVICE_DATA, new_device_data)
   logging.info('Updated device data; complete device data is now %s',
                privacy.FilterDict(data))
-  EventClient().post_event(Event(Event.Type.UPDATE_SYSTEM_INFO))
+  if post_update_event:
+    EventClient().post_event(Event(Event.Type.UPDATE_SYSTEM_INFO))
   return data
