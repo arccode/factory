@@ -90,16 +90,21 @@ body {
 #goofy-status-bar-main {
   padding-top: 1px;
   width: 100%;
+  font-size: 90%;
 }
 #goofy-status-bar-main img {
-  padding-left: .25em;
-  padding-right: .2em;
+  padding-left: .15em;
+  padding-right: .1em;
 }
 #goofy-status-bar-main img {
   vertical-align: -4px;
 }
 .goofy-status-bar-section {
   display: inline-block;
+  min-width: 20%;
+}
+.goofy-status-bar-item#goofy-load-average {
+  display: none;
 }
 .goofy-status-bar-item:not(.goofy-value-known) .goofy-value {
   display: none;
@@ -176,7 +181,7 @@ body {
   background-position: center;
   vertical-align: -4px;
   width: 18px; height: 18px;
-  padding-left: 0.5em;
+  padding-left: 0.15em;
 }
 .goofy-eth-enabled#goofy-eth-indicator {
   background-image: url('images/eth_on.png');
@@ -187,7 +192,7 @@ body {
   background-position: center;
   vertical-align: -4px;
   width: 18px; height: 18px;
-  padding-left: 0.5em;
+  padding-left: 0.15em;
 }
 .goofy-wlan-enabled#goofy-wlan-indicator {
   background-image: url('images/wlan_on.png');
@@ -333,8 +338,10 @@ table + .goofy-history-header {
 #goofy-system-info th {
   padding-right: 1em;
 }
-#goofy-system-info-hover {
+.goofy-status-bar-icons {
   float: right;
+}
+#goofy-system-info-hover {
   margin-top: -1px;
 }
 .goofy-unknown {
