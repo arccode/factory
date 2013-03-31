@@ -29,7 +29,7 @@ def CheckCriticalFiles(new_path):
     os.path.join(new_path, f)
     for f in ['factory/MD5SUM',
           'factory/py_pkg/cros/factory/goofy/goofy.py',
-          'autotest/site_tests/factory_Finalize/factory_Finalize.py']]
+          'factory/py/test/pytests/finalize.py']]
   missing_files = [f for f in critical_files
            if not os.path.exists(f)]
   if missing_files:
@@ -53,9 +53,9 @@ def RunRsync(*rsync_command):
 
 
 def TryUpdate(pre_update_hook=None, timeout=15):
-  '''Attempts to update the autotest directory on the device.
+  '''Attempts to update the factory and autotest directory on the device.
 
-  Atomically replaces the autotest directory with new contents.
+  Atomically replaces the factory and autotest directory with new contents.
   This routine will always fail in the chroot (to avoid destroying
   the user's working directory).
 
@@ -94,6 +94,23 @@ def TryUpdate(pre_update_hook=None, timeout=15):
 
   # An update is necessary.  Construct the rsync command.
   update_port = shopfloor_client.GetUpdatePort()
+
+  # For autotest, do not use hard links and new directory. Since the
+  # files in autotests are too big. Also, they will be different
+  # binaries than those in the updater if they are from different images.
+  # Just rsync them in place. If it fail, it can still get update again.
+  autotest_path = os.path.join(parent_dir, 'autotest')
+  RunRsync(
+    'rsync',
+    '-a', '--delete', '--stats',
+    '--timeout=%s' % timeout,
+    'rsync://%s:%d/factory/%s/autotest/' % (
+      urlparse(url).hostname,
+      update_port,
+      new_md5sum),
+    '%s/' % autotest_path)
+
+
   new_path = os.path.join(parent_dir, 'updater.new')
   # rsync --link-dest considers any existing files to be definitive,
   # so wipe anything that's already there.
@@ -107,7 +124,7 @@ def TryUpdate(pre_update_hook=None, timeout=15):
     # Use hard links of identical files from the old directories to
     # save network bandwidth and temporary space on disk.
     '--link-dest=%s' % parent_dir,
-    'rsync://%s:%d/factory/%s/' % (
+    'rsync://%s:%d/factory/%s/factory' % (
       urlparse(url).hostname,
       update_port,
       new_md5sum),
@@ -138,7 +155,7 @@ def TryUpdate(pre_update_hook=None, timeout=15):
 
   old_path = os.path.join(parent_dir, 'updater.old.%s' % uuid.uuid4())
   # If one of these fails, we're screwed.
-  for d in ['factory', 'autotest']:
+  for d in ['factory']:
     shutil.move(os.path.join(parent_dir, d), old_path)
     shutil.move(os.path.join(new_path, d), parent_dir)
   # Delete the old and new trees
