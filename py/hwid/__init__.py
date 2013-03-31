@@ -318,7 +318,7 @@ class Database(object):
       HWIDException if there is missing field in the database.
     """
     db_yaml = None
-    with open(file_name, 'r+') as f:
+    with open(file_name, 'r') as f:
       db_yaml = yaml.load(f)
 
     for key in ['board', 'encoding_patterns', 'image_id', 'pattern',
