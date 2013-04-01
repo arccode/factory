@@ -494,8 +494,9 @@ class GooftoolTest(unittest2.TestCase):
 
   def testGenerateHwidV3(self):
     mock_device_info = {
-        'component.has_cellular': 'n',
+        'component.has_cellular': False,
         'component.keyboard': 'us',
+        'component.dram': 'foo'
     }
     with open(os.path.join(_TEST_DATA_PATH, 'test_probe_result.yaml')) as f:
       # pylint: disable=E1101
@@ -506,20 +507,14 @@ class GooftoolTest(unittest2.TestCase):
             mock_device_info, mock_probe_result).encoded_string)
 
     mock_device_info = {
-        'component.has_cellular': 'y',
-        'component.keyboard': 'gb'
+        'component.has_cellular': True,
+        'component.keyboard': 'gb',
+        'component.dram': 'foo'
     }
     self.assertEquals(
         'CHROMEBOOK A7IU-YS',
         self._gooftool3.GenerateHwidV3(
             mock_device_info, mock_probe_result).encoded_string)
-    mock_device_info = {
-        'component.has_cellular': 'y'
-    }
-    self.assertRaisesRegexp(
-        Error, r'Components .* are unprobeable and were not specified in '
-        'device info', self._gooftool3.GenerateHwidV3, mock_device_info,
-        mock_probe_result)
     mock_device_info = {
         'component.foo': 'bar'
     }

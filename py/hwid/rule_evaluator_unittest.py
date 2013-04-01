@@ -9,6 +9,7 @@
 
 import os
 import unittest
+import yaml
 import factory_common # pylint: disable=W0611
 
 from cros.factory.hwid import Database
@@ -22,13 +23,14 @@ class RuleEvaluatorTest(unittest.TestCase):
   def setUp(self):
     self.database = Database.LoadFile(os.path.join(_TEST_DATA_PATH,
                                                    'test_db.yaml'))
+    self.results = [
+        yaml.dump(result) for result in yaml.load_all(open(os.path.join(
+            _TEST_DATA_PATH, 'test_probe_result.yaml')).read())]
     # Create testing HWID
-    result = open(os.path.join(_TEST_DATA_PATH,
-                               'test_probe_result.yaml'), 'r').read()
-    bom = self.database.ProbeResultToBOM(result)
-    # Manually set unprobeable components.
-    bom = self.database.UpdateComponentsOfBOM(
-        bom, {'camera': 'camera_0', 'display_panel': 'display_panel_0'})
+    bom = self.database.ProbeResultToBOM(self.results[0])
+    bom = self.database.UpdateComponentsOfBOM(bom, {
+        'keyboard': 'keyboard_us', 'dram': 'dram_0',
+        'display_panel': 'display_panel_0'})
     self.hwid = Encoder.Encode(self.database, bom)
 
   def testConvertYamlStringToSet(self):
@@ -64,7 +66,7 @@ class RuleEvaluatorTest(unittest.TestCase):
              'storage EQ storage_0']},
          {'check_any': [
              'dram EQ dram_1',
-             'wireless EQ WIFI']}]))
+             'display_panel EQ None']}]))
     self.assertFalse(RuleEvaluator.CheckAll(
         self.hwid,
         ['battery EQ battery_huge',
@@ -74,7 +76,7 @@ class RuleEvaluatorTest(unittest.TestCase):
              'storage EQ storage_0']},
          {'check_any': [
              'dram EQ dram_1',
-             'wireless EQ WIFI']}]))
+             'display_panel EQ None']}]))
 
   def testCheckAny(self):
     self.assertTrue(RuleEvaluator.CheckAny(
@@ -94,7 +96,7 @@ class RuleEvaluatorTest(unittest.TestCase):
              'storage EQ storage_0']},
          {'check_any': [
              'dram EQ dram_1',
-             'wireless EQ WIFI']}]))
+             'display_panel EQ None']}]))
 
   def testCheckCondition(self):
     self.assertTrue(RuleEvaluator.CheckCondition(

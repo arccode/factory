@@ -10,7 +10,8 @@
 import collections
 import factory_common # pylint: disable=W0611
 
-from cros.factory.hwid import HWID, BOM, ProbedComponentResult, HWIDException
+from cros.factory.hwid import (
+    HWID, BOM, ProbedComponentResult, HWIDException, MISSING_COMPONENT_ERROR)
 from cros.factory.hwid.base32 import Base32
 
 
@@ -63,7 +64,7 @@ def BinaryStringToBOM(database, binary_string):
     for comp_cls, attr_list in attr_dict.iteritems():
       if attr_list is None:
         components[comp_cls].append(ProbedComponentResult(
-            None, None, 'missing %r component' % comp_cls))
+            None, None, MISSING_COMPONENT_ERROR(comp_cls)))
       else:
         for attrs in attr_list:
           components[comp_cls].append(

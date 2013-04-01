@@ -8,7 +8,7 @@ found_probe_value_map:
   chipset: cdef:abcd
   cpu: CPU @ 2.80GHz [4 cores]
   display_panel: FOO:0123 [1440x900]
-  dram: 0|2048|DDR3-800,DDR3-1066,DDR3-1333,DDR3-1600 1|2048|DDR3-800,DDR3-1066,DDR3-1333,DDR3-1600
+  dram: DRAM 4G
   ec_flash_chip: EC Flash Chip
   embedded_controller: Embedded Controller
   flash_chip: Flash Chip
@@ -22,11 +22,11 @@ found_probe_value_map:
   vga: 8086:0002
   wireless: 3210:abcd
 found_volatile_values:
-  hash_gbb: gv2#aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-  key_recovery: kv3#bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
-  key_root: kv3#cccccccccccccccccccccccccccccccccccccccc
-  ro_ec_firmware: ev2#dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd#chromebook
-  ro_main_firmware: mv2#eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee#chromebook
+  hash_gbb: gv2#hash_gbb_0
+  key_recovery: kv3#key_recovery_0
+  key_root: kv3#key_root_0
+  ro_ec_firmware: ev2#ro_ec_firmware_0
+  ro_main_firmware: mv2#ro_main_firmware_0
   vpd.ro.vpd_ro_field_1: VPD_RO_FIELD_1
   vpd.ro.vpd_ro_field_2: VPD_RO_FIELD_2
   vpd.rw.vpd_rw_field_1: VPD_RW_FIELD_1

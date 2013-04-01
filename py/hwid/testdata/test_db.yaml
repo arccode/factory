@@ -25,18 +25,10 @@ pattern:
 
   - display_panel: 0
   - dram: 1
-  - ec_flash_chip: 0
-  - embedded_controller: 0
-  - flash_chip: 0
   - keyboard: 1
   - cpu: 1
   - storage: 2              # 15 bits
 
-  - touchpad: 0
-  - tpm: 0
-  - usb_hosts: 0
-  - vga: 0
-  - wireless: 0
   - cpu: 1                  # 16 bits
 
 encoded_fields:
@@ -110,21 +102,6 @@ encoded_fields:
       storage: storage_1
     2:
       storage: storage_2
-  touchpad:
-    0:
-      touchpad: touchpad_0
-  tpm:
-    0:
-      tpm: tpm_0
-  usb_hosts:
-    0:
-      usb_hosts: [usb_host_0, usb_host_1]
-  vga:
-    0:
-      vga: vga_0
-  wireless:
-    0:
-      wireless: wireless_0
   firmware:
     0:
       hash_gbb: hash_gbb_0
@@ -139,184 +116,191 @@ encoded_fields:
       ro_ec_firmware: ro_ec_firmware_0
       ro_main_firmware: ro_main_firmware_1
 
-probeable_components:
-  - audio_codec
-  - battery
-  - bluetooth
-  - cellular
-  - chipset
-  - cpu
-  - dram
-  - ec_flash_chip
-  - embedded_controller
-  - flash_chip
-  - keyboard
-  - storage
-  - touchpad
-  - tpm
-  - usb_hosts
-  - vga
-  - wireless
-  - hash_gbb
-  - key_recovery
-  - key_root
-  - ro_ec_firmware
-  - ro_main_firmware
-
-unprobeable_component_whitelist:
-  - display_panel
-
 components:
   audio_codec:
-    codec_0:
-      value: Codec 0
+    attributes:
+      probeable: True
+    items:
+      codec_0:
+        value: Codec 0
 
-    codec_1:
-      value: Codec 1
+      codec_1:
+        value: Codec 1
 
-    hdmi_0:
-      value: HDMI 0
+      hdmi_0:
+        value: HDMI 0
 
-    hdmi_1:
-      value: HDMI 1
+      hdmi_1:
+        value: HDMI 1
 
   battery:
-    battery_small:
-      value: Battery Li-ion 2500000
+    attributes:
+      probeable: True
+    items:
+      battery_small:
+        value: Battery Li-ion 2500000
 
-    battery_medium:
-      value: Battery Li-ion 5000000
+      battery_medium:
+        value: Battery Li-ion 5000000
 
-    battery_large:
-      value: Battery Li-ion 7500000
+      battery_large:
+        value: Battery Li-ion 7500000
 
-    battery_huge:
-      value: Battery Li-ion 10000000
+      battery_huge:
+        value: Battery Li-ion 10000000
 
   bluetooth:
-    bluetooth_0:
-      value: 0123:abcd 0001
+    attributes:
+      probeable: True
+    items:
+      bluetooth_0:
+        value: 0123:abcd 0001
 
   camera:
-    camera_0:
-      value: 4567:abcd Camera
+    attributes:
+      probeable: True
+    items:
+      camera_0:
+        value: 4567:abcd Camera
 
   cellular:
-    cellular_0:
-      value: 89ab:abcd Cellular Card
+    attributes:
+      probeable: True
+    items:
+      cellular_0:
+        value: 89ab:abcd Cellular Card
 
   chipset:
-    chipset_0:
-      value: cdef:abcd
+    attributes:
+      probeable: True
+    items:
+      chipset_0:
+        value: cdef:abcd
 
   cpu:
-    cpu_0:
-      value: CPU @ 1.80GHz [4 cores]
+    attributes:
+      probeable: True
+    items:
+      cpu_0:
+        value: CPU @ 1.80GHz [4 cores]
 
-    cpu_1:
-      value: CPU @ 2.00GHz [4 cores]
+      cpu_1:
+        value: CPU @ 2.00GHz [4 cores]
 
-    cpu_2:
-      value: CPU @ 2.20GHz [4 cores]
+      cpu_2:
+        value: CPU @ 2.20GHz [4 cores]
 
-    cpu_3:
-      value: CPU @ 2.40GHz [4 cores]
+      cpu_3:
+        value: CPU @ 2.40GHz [4 cores]
 
-    cpu_4:
-      value: CPU @ 2.60GHz [4 cores]
+      cpu_4:
+        value: CPU @ 2.60GHz [4 cores]
 
-    cpu_5:
-      value: CPU @ 2.80GHz [4 cores]
+      cpu_5:
+        value: CPU @ 2.80GHz [4 cores]
 
   display_panel:
-    display_panel_0:
-      value: FOO:0123 [1440x900]
+    attributes:
+      probeable: False
+    items:
+      display_panel_0:
+        value: FOO:0123 [1440x900]
 
   dram:
-    dram_0:
-      value: 0|2048|DDR3-800,DDR3-1066,DDR3-1333,DDR3-1600 1|2048|DDR3-800,DDR3-1066,DDR3-1333,DDR3-1600
+    attributes:
+      probeable: True
+    items:
+      dram_0:
+        value: DRAM 4G
 
-    dram_1:
-      value: 0|4096|DDR3-800,DDR3-1066,DDR3-1333,DDR3-1600
+      dram_1:
+        value: DRAM 4G
 
   ec_flash_chip:
-    ec_flash_chip_0:
-      value: EC Flash Chip
+    attributes:
+      probeable: True
+    items:
+      ec_flash_chip_0:
+        value: EC Flash Chip
 
   embedded_controller:
-    embedded_controller_0:
-      value: Embedded Controller
+    attributes:
+      probeable: True
+    items:
+      embedded_controller_0:
+        value: Embedded Controller
 
   flash_chip:
-    flash_chip_0:
-      value: Flash Chip
+    attributes:
+      probeable: True
+    items:
+      flash_chip_0:
+        value: Flash Chip
 
   keyboard:
-    keyboard_gb:
-      value: xkb:gb:extd:eng
-      labels: [GB]
+    attributes:
+      probeable: False
+    items:
+      keyboard_gb:
+        value: xkb:gb:extd:eng
+        labels: [GB]
 
-    keyboard_us:
-      value: xkb:us::eng
-      labels: [US]
+      keyboard_us:
+        value: xkb:us::eng
+        labels: [US]
 
   storage:
-    storage_0:
-      value: '16G SSD #123456'
-      labels: [SSD, 16G]
+    attributes:
+      probeable: True
+    items:
+      storage_0:
+        value: '16G SSD #123456'
+        labels: [SSD, 16G]
 
-    storage_1:
-      value: '32G SSD #123456'
-      labels: [SSD, 32G]
+      storage_1:
+        value: '32G SSD #123456'
+        labels: [SSD, 32G]
 
-    storage_2:
-      value: '500G HDD #123456'
-      labels: [HDD, 500G]
-
-  touchpad:
-    touchpad_0:
-      value: TouchPad
-  tpm:
-    tpm_0:
-      value: 12340000:1.2.3
-
-  usb_hosts:
-    usb_host_0:
-      value: '8086:0000'
-
-    usb_host_1:
-      value: '8086:0001'
-
-  vga:
-    vga_0:
-      value: 8086:0002
-
-  wireless:
-    wireless_0:
-      value: 3210:abcd
-      labels: [WIFI]
+      storage_2:
+        value: '500G HDD #123456'
+        labels: [HDD, 500G]
 
   hash_gbb:
-    hash_gbb_0:
-      value: gv2#aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+    attributes:
+      probeable: True
+    items:
+      hash_gbb_0:
+        value: gv2#hash_gbb_0
 
   key_recovery:
-    key_recovery_0:
-      value: kv3#bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+    attributes:
+      probeable: True
+    items:
+      key_recovery_0:
+        value: kv3#key_recovery_0
 
   key_root:
-    key_root_0:
-      value: kv3#cccccccccccccccccccccccccccccccccccccccc
+    attributes:
+      probeable: True
+    items:
+      key_root_0:
+        value: kv3#key_root_0
 
   ro_ec_firmware:
-    ro_ec_firmware_0:
-      value: ev2#dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd#chromebook
+    attributes:
+      probeable: True
+    items:
+      ro_ec_firmware_0:
+        value: ev2#ro_ec_firmware_0
 
   ro_main_firmware:
-    ro_main_firmware_0:
-      value: mv2#eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee#chromebook
-    ro_main_firmware_1:
-      value: mv2#ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff#chromebook
+    attributes:
+      probeable: True
+    items:
+      ro_main_firmware_0:
+        value: mv2#ro_main_firmware_0
+      ro_main_firmware_1:
+        value: mv2#ro_main_firmware_1
 
 shopfloor_device_info:
   component.has_cellular:
@@ -329,6 +313,11 @@ shopfloor_device_info:
       keyboard: keyboard_us
     gb:
       keyboard: keyboard_gb
+  component.dram:
+    foo:
+      dram: dram_0
+    bar:
+      dram: dram_1
   component.audio_codec:
     set_0:
       audio_codec: [codec_0, hdmi_0]
@@ -380,7 +369,7 @@ rules:
 
   - name: Test rule 4
     when:
-      - wireless IN *
+      - cpu IN *
     check_all:
       - storage EQ SSD
       - storage EQ 16G
@@ -390,7 +379,7 @@ rules:
 
   - name: Test rule 5
     when:
-      - wireless IN *
+      - cpu IN *
     check_any:
       - storage EQ SSD
       - storate EQ 16G

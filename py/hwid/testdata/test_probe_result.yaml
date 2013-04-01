@@ -1,3 +1,5 @@
+---
+# reference probe result
 found_probe_value_map:
   audio_codec:
   - Codec 1
@@ -7,25 +9,18 @@ found_probe_value_map:
   camera: 4567:abcd Camera
   chipset: cdef:abcd
   cpu: CPU @ 2.80GHz [4 cores]
-  dram: 0|2048|DDR3-800,DDR3-1066,DDR3-1333,DDR3-1600 1|2048|DDR3-800,DDR3-1066,DDR3-1333,DDR3-1600
+  dram: DRAM 4G
   ec_flash_chip: EC Flash Chip
   embedded_controller: Embedded Controller
   flash_chip: Flash Chip
   keyboard: xkb:us::eng
   storage: '16G SSD #123456'
-  touchpad: TouchPad
-  tpm: 12340000:1.2.3
-  usb_hosts:
-  - 8086:0000
-  - 8086:0001
-  vga: 8086:0002
-  wireless: 3210:abcd
 found_volatile_values:
-  hash_gbb: gv2#aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
-  key_recovery: kv3#bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
-  key_root: kv3#cccccccccccccccccccccccccccccccccccccccc
-  ro_ec_firmware: ev2#dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd#chromebook
-  ro_main_firmware: mv2#eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee#chromebook
+  hash_gbb: gv2#hash_gbb_0
+  key_recovery: kv3#key_recovery_0
+  key_root: kv3#key_root_0
+  ro_ec_firmware: ev2#ro_ec_firmware_0
+  ro_main_firmware: mv2#ro_main_firmware_0
 initial_configs:
   cellular_fw_version: ''
   rw_fw_key_version: '2'
@@ -36,4 +31,19 @@ missing_component_classes:
 - display_converter
 - display_panel
 - ethernet
-
+---
+# invalid audio codec 'HDMI 3'
+found_probe_value_map:
+  audio_codec:
+  - Codec 1
+  - HDMI 3
+found_volatile_values: {}
+initial_configs: {}
+missing_component_classes: []
+---
+# invalid storage
+found_probe_value_map:
+  storage: '16G SSD #1234aa'
+found_volatile_values: {}
+initial_configs: {}
+missing_component_classes: []

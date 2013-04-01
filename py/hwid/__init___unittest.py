@@ -10,6 +10,7 @@
 import copy
 import os
 import unittest2
+import yaml
 import factory_common # pylint: disable=W0611
 
 from cros.factory.hwid import (
@@ -23,6 +24,9 @@ class HWIDTest(unittest2.TestCase):
   def setUp(self):
     self.database = Database.LoadFile(os.path.join(_TEST_DATA_PATH,
                                                    'test_db.yaml'))
+    self.results = [
+        yaml.dump(result) for result in yaml.load_all(open(os.path.join(
+            _TEST_DATA_PATH, 'test_probe_result.yaml')).read())]
 
   def testMakeList(self):
     self.assertEquals(['a'], MakeList('a'))
@@ -37,11 +41,10 @@ class HWIDTest(unittest2.TestCase):
     self.assertEquals(set(['a', 'b']), MakeSet({'a': 'foo', 'b': 'bar'}))
 
   def testVerifySelf(self):
-    result = open(os.path.join(_TEST_DATA_PATH,
-                               'test_probe_result.yaml'), 'r').read()
-    bom = self.database.ProbeResultToBOM(result)
-    bom = self.database.UpdateComponentsOfBOM(
-        bom, {'camera': 'camera_0', 'display_panel': 'display_panel_0'})
+    bom = self.database.ProbeResultToBOM(self.results[0])
+    bom = self.database.UpdateComponentsOfBOM(bom, {
+        'keyboard': 'keyboard_us', 'dram': 'dram_0',
+        'display_panel': 'display_panel_0'})
     hwid = Encode(self.database, bom)
     self.assertEquals(None, hwid.VerifySelf())
 
@@ -77,25 +80,28 @@ class HWIDTest(unittest2.TestCase):
     hwid.bom = original_value
 
   def testVerifyProbeResult(self):
-    result = open(os.path.join(_TEST_DATA_PATH,
-                               'test_probe_result.yaml'), 'r').read()
+    result = self.results[0]
     bom = self.database.ProbeResultToBOM(result)
-    bom = self.database.UpdateComponentsOfBOM(
-        bom, {'camera': 'camera_0', 'display_panel': 'display_panel_0'})
+    bom = self.database.UpdateComponentsOfBOM(bom, {
+        'keyboard': 'keyboard_us', 'dram': 'dram_0',
+        'display_panel': 'display_panel_0'})
     hwid = Encode(self.database, bom)
     fake_result = result.replace('HDMI 1', 'HDMI 0')
     self.assertRaisesRegexp(
-        HWIDException, r'Component class .* has extra components: .* and '
-        'missing components: .*. Expected values are: .*',
+        HWIDException, r"Component class 'audio_codec' has extra components: "
+        r"\['HDMI 0'\] and missing components: \['HDMI 1'\]. Expected values "
+        r"are: \['Codec 1', 'HDMI 1'\]",
         hwid.VerifyProbeResult, fake_result)
     fake_result = result.replace('CPU @ 2.80GHz [4 cores]',
                                  'CPU @ 2.40GHz [4 cores]')
     self.assertRaisesRegexp(
-        HWIDException, r'Component class .* has extra components: .* and '
-        'missing components: .*. Expected values are: .*',
+        HWIDException, r"Component class 'cpu' has extra components: "
+        r"\['CPU @ 2\.40GHz \[4 cores\]'\] and missing components: "
+        r"\['CPU @ 2\.80GHz \[4 cores\]'\]. "
+        r"Expected values are: \['CPU @ 2\.80GHz \[4 cores\]'\]",
         hwid.VerifyProbeResult, fake_result)
     self.assertEquals(None, hwid.VerifyProbeResult(result))
-    fake_result = result.replace('4567:abcd Camera', 'woot!')
+    fake_result = result.replace('xkb:us::eng', 'xkb:gb:extd:eng')
     self.assertEquals(None, hwid.VerifyProbeResult(fake_result))
 
 
@@ -103,6 +109,9 @@ class DatabaseTest(unittest2.TestCase):
   def setUp(self):
     self.database = Database.LoadFile(os.path.join(_TEST_DATA_PATH,
                                                    'test_db.yaml'))
+    self.results = [
+        yaml.dump(result) for result in yaml.load_all(open(os.path.join(
+            _TEST_DATA_PATH, 'test_probe_result.yaml')).read())]
 
   def testSanityChecks(self):
     mock_db = copy.deepcopy(self.database)
@@ -135,16 +144,8 @@ class DatabaseTest(unittest2.TestCase):
         r"\['foo'\]\['bar'\]\['cpu'\]",
         mock_db._SanityChecks)
 
-    del mock_db.shopfloor_device_info['foo']
-    mock_db.probeable_components.append('foo')
-    self.assertRaisesRegexp(
-        HWIDException,
-        r"Invalid component class 'foo' in probeable_components",
-        mock_db._SanityChecks)
-
   def testProbeResultToBOM(self):
-    result = open(os.path.join(_TEST_DATA_PATH,
-                               'test_probe_result.yaml'), 'r').read()
+    result = self.results[0]
     bom = self.database.ProbeResultToBOM(result)
     self.assertEquals('CHROMEBOOK', bom.board)
     self.assertEquals(0, bom.encoding_pattern_index)
@@ -154,87 +155,65 @@ class DatabaseTest(unittest2.TestCase):
                        ('hdmi_1', 'HDMI 1', None)],
        'battery': [('battery_huge', 'Battery Li-ion 10000000', None)],
        'bluetooth': [('bluetooth_0', '0123:abcd 0001', None)],
-       'camera': [(None, '4567:abcd Camera',
-                   "component class 'camera' is unprobeable")],
-       'cellular': [(None, None, "missing 'cellular' component")],
+       'camera': [
+          ('camera_0', '4567:abcd Camera', None)],
+       'cellular': [(None, None, "Missing 'cellular' component")],
        'chipset': [('chipset_0', 'cdef:abcd', None)],
        'cpu': [('cpu_5', 'CPU @ 2.80GHz [4 cores]', None)],
        'display_panel': [
-          (None, None, "missing 'display_panel' component")],
-       'dram': [('dram_0', '0|2048|DDR3-800,DDR3-1066,DDR3-1333,DDR3-1600 '
-                 '1|2048|DDR3-800,DDR3-1066,DDR3-1333,DDR3-1600', None)],
+          (None, None, "Missing 'display_panel' component")],
+       'dram': [
+          (None, 'DRAM 4G', "Ambiguous probe values 'DRAM 4G' of 'dram' "
+           "component. Possible components are: ['dram_0', 'dram_1']")],
        'ec_flash_chip': [('ec_flash_chip_0', 'EC Flash Chip', None)],
        'embedded_controller': [('embedded_controller_0', 'Embedded Controller',
                                None)],
        'flash_chip': [('flash_chip_0', 'Flash Chip', None)],
-       'hash_gbb': [('hash_gbb_0', 'gv2#aaaaaaaaaaaaaaaaaaaaaaaaaaaa'
-                     'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', None)],
-       'key_recovery': [('key_recovery_0', 'kv3#bbbbbbbbbbbbbbbbbbb'
-                         'bbbbbbbbbbbbbbbbbbbbb', None)],
-       'key_root': [('key_root_0', 'kv3#cccccccccccccccccc'
-                     'cccccccccccccccccccccc', None)],
-       'keyboard': [('keyboard_us', 'xkb:us::eng', None)],
-       'ro_ec_firmware': [('ro_ec_firmware_0',
-                           'ev2#dddddddddddddddddddddddddddddddddddd'
-                           'dddddddddddddddddddddddddddd#chromebook', None)],
-       'ro_main_firmware': [('ro_main_firmware_0',
-                             'mv2#eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
-                             'eeeeeeeeeeeeeeeeeeeeeeeeeee#chromebook', None)],
-       'storage': [('storage_0', '16G SSD #123456', None)],
-       'touchpad': [('touchpad_0', 'TouchPad', None)],
-       'tpm': [('tpm_0', '12340000:1.2.3', None)],
-       'usb_hosts': [('usb_host_0', '8086:0000', None),
-                     ('usb_host_1', '8086:0001', None)],
-       'vga': [('vga_0', '8086:0002', None)],
-       'wireless': [('wireless_0', '3210:abcd', None)]}, bom.components)
+       'hash_gbb': [('hash_gbb_0', 'gv2#hash_gbb_0', None)],
+       'key_recovery': [('key_recovery_0', 'kv3#key_recovery_0', None)],
+       'key_root': [('key_root_0', 'kv3#key_root_0', None)],
+       'keyboard': [
+          (None, 'xkb:us::eng', "Component class 'keyboard' is unprobeable")],
+       'ro_ec_firmware': [('ro_ec_firmware_0', 'ev2#ro_ec_firmware_0', None)],
+       'ro_main_firmware': [
+          ('ro_main_firmware_0', 'mv2#ro_main_firmware_0', None)],
+       'storage': [('storage_0', '16G SSD #123456', None)]}, bom.components)
     self.assertEquals({
         'audio_codec': 1,
         'battery': 3,
         'bluetooth': 0,
-        'camera': None,
+        'camera': 0,
         'cellular': 0,
         'chipset': 0,
         'cpu': 5,
         'display_panel': None,
-        'dram': 0,
+        'dram': None,
         'ec_flash_chip': 0,
         'embedded_controller': 0,
         'firmware': 0,
         'flash_chip': 0,
-        'keyboard': 0,
-        'storage': 0,
-        'touchpad': 0,
-        'tpm': 0,
-        'usb_hosts': 0,
-        'vga': 0,
-        'wireless': 0}, bom.encoded_fields)
+        'keyboard': None,
+        'storage': 0}, bom.encoded_fields)
     result = result.replace('chipset: cdef:abcd', 'chipset: something else')
     self.assertEquals({
         'audio_codec': 1,
         'battery': 3,
         'bluetooth': 0,
-        'camera': None,
+        'camera': 0,
         'cellular': 0,
         'chipset': None,
         'cpu': 5,
         'display_panel': None,
-        'dram': 0,
+        'dram': None,
         'ec_flash_chip': 0,
         'embedded_controller': 0,
         'firmware': 0,
         'flash_chip': 0,
-        'keyboard': 0,
-        'storage': 0,
-        'touchpad': 0,
-        'tpm': 0,
-        'usb_hosts': 0,
-        'vga': 0,
-        'wireless': 0}, self.database.ProbeResultToBOM(result).encoded_fields)
+        'keyboard': None,
+        'storage': 0}, self.database.ProbeResultToBOM(result).encoded_fields)
 
   def testUpdateComponentsOfBOM(self):
-    result = open(os.path.join(_TEST_DATA_PATH,
-                               'test_probe_result.yaml'), 'r').read()
-    bom = self.database.ProbeResultToBOM(result)
+    bom = self.database.ProbeResultToBOM(self.results[0])
     new_bom = self.database.UpdateComponentsOfBOM(
         bom, {'keyboard': 'keyboard_gb'})
     self.assertEquals([('keyboard_gb', 'xkb:gb:extd:eng', None)],
@@ -253,7 +232,7 @@ class DatabaseTest(unittest2.TestCase):
     self.assertEquals(1, new_bom.encoded_fields['cellular'])
     new_bom = self.database.UpdateComponentsOfBOM(
         bom, {'cellular': None})
-    self.assertEquals([(None, None, "missing 'cellular' component")],
+    self.assertEquals([(None, None, "Missing 'cellular' component")],
                        new_bom.components['cellular'])
     self.assertEquals(0, new_bom.encoded_fields['cellular'])
     self.assertRaisesRegexp(
@@ -266,9 +245,7 @@ class DatabaseTest(unittest2.TestCase):
         self.database.UpdateComponentsOfBOM, bom, {'cpu': 'bar'})
 
   def testGetFieldIndexFromComponents(self):
-    result = open(os.path.join(_TEST_DATA_PATH,
-                               'test_probe_result.yaml'), 'r').read()
-    bom = self.database.ProbeResultToBOM(result)
+    bom = self.database.ProbeResultToBOM(self.results[0])
     self.assertEquals(5, self.database._GetFieldIndexFromProbedComponents(
         'cpu', bom.components))
     self.assertEquals(1, self.database._GetFieldIndexFromProbedComponents(
@@ -285,7 +262,7 @@ class DatabaseTest(unittest2.TestCase):
   def testGetAllIndices(self):
     self.assertEquals([0, 1, 2, 3, 4, 5], self.database._GetAllIndices('cpu'))
     self.assertEquals([0, 1], self.database._GetAllIndices('dram'))
-    self.assertEquals([0], self.database._GetAllIndices('wireless'))
+    self.assertEquals([0], self.database._GetAllIndices('display_panel'))
 
   def testGetAttributesByIndex(self):
     self.assertEquals({'battery': [{
@@ -295,22 +272,19 @@ class DatabaseTest(unittest2.TestCase):
     self.assertEquals(
         {'hash_gbb': [{
               'name': 'hash_gbb_0',
-              'value': 'gv2#aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
-                       'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'}],
+              'value': 'gv2#hash_gbb_0'}],
          'key_recovery': [{
               'name': 'key_recovery_0',
-              'value': 'kv3#bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'}],
+              'value': 'kv3#key_recovery_0'}],
          'key_root': [{
               'name': 'key_root_0',
-              'value': 'kv3#cccccccccccccccccccccccccccccccccccccccc'}],
+              'value': 'kv3#key_root_0'}],
          'ro_ec_firmware': [{
               'name': 'ro_ec_firmware_0',
-              'value': 'ev2#ddddddddddddddddddddddddddddddddddd'
-                       'ddddddddddddddddddddddddddddd#chromebook'}],
+              'value': 'ev2#ro_ec_firmware_0'}],
          'ro_main_firmware': [{
               'name': 'ro_main_firmware_0',
-              'value': 'mv2#eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
-                       'eeeeeeeeeeeeeeeeeeeeeeeeeeeee#chromebook'}]},
+              'value': 'mv2#ro_main_firmware_0'}]},
         self.database._GetAttributesByIndex('firmware', 0))
     self.assertEquals({
         'audio_codec': [
@@ -350,9 +324,7 @@ class DatabaseTest(unittest2.TestCase):
         self.database.VerifyEncodedString, 'CHROMEBOOK AW3L-M7IA-B')
 
   def testVerifyBOM(self):
-    result = open(os.path.join(_TEST_DATA_PATH,
-                               'test_probe_result.yaml'), 'r').read()
-    bom = self.database.ProbeResultToBOM(result)
+    bom = self.database.ProbeResultToBOM(self.results[0])
     self.assertEquals(
         None, self.database.VerifyBOM(bom))
 
@@ -411,39 +383,35 @@ class DatabaseTest(unittest2.TestCase):
     bom.encoded_fields['cpu'] = original_value
 
   def testVerifyComponents(self):
-    result = open(os.path.join(_TEST_DATA_PATH,
-                               'test_probe_result.yaml'), 'r').read()
     self.assertRaisesRegexp(
         HWIDException, r'Argument comp_list should be a list',
-        self.database.VerifyComponents, result, 'cpu')
+        self.database.VerifyComponents, self.results[0], 'cpu')
     self.assertRaisesRegexp(
-        HWIDException, r'.* is not probeable and cannot be verified',
-        self.database.VerifyComponents, result, ['camera'])
+        HWIDException,
+        r"\['keyboard'\] do not have probe values and cannot be verified",
+        self.database.VerifyComponents, self.results[0], ['keyboard'])
     self.assertEquals({
         'audio_codec': [
             ('codec_1', 'Codec 1', None),
             ('hdmi_1', 'HDMI 1', None)],
         'cellular': [
-            (None, None, 'missing \'cellular\' component')],
+            (None, None, "Missing 'cellular' component")],
         'cpu': [
             ('cpu_5', 'CPU @ 2.80GHz [4 cores]', None)]},
         self.database.VerifyComponents(
-            result, ['audio_codec', 'cellular', 'cpu']))
-    result = """
-        found_probe_value_map:
-          audio_codec:
-          - Codec 1
-          - HDMI 3
-        found_volatile_values: {}
-        initial_configs: {}
-        missing_component_classes: []
-    """
+            self.results[0], ['audio_codec', 'cellular', 'cpu']))
     self.assertEquals({
         'audio_codec': [
             ('codec_1', 'Codec 1', None),
-            (None, 'HDMI 3', 'unsupported \'audio_codec\' component found with '
-             'probe result \'HDMI 3\' (no matching name in the component DB)')
-        ]}, self.database.VerifyComponents(result, ['audio_codec']))
+            (None, 'HDMI 3', "Unsupported 'audio_codec' component found with "
+             "probe result 'HDMI 3' (no matching name in the component DB)")
+        ]}, self.database.VerifyComponents(self.results[1], ['audio_codec']))
+    self.assertEquals({
+        'storage': [
+            (None, '16G SSD #1234aa', "Unsupported 'storage' component found "
+             "with probe result '16G SSD #1234aa' (no matching name in the "
+             "component DB)")]},
+        self.database.VerifyComponents(self.results[2], ['storage']))
 
 
 class PatternTest(unittest2.TestCase):

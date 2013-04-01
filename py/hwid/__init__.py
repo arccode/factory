@@ -59,6 +59,17 @@ def ProbeBoard():
 # A named tuple to store the probed component name and the error if any.
 ProbedComponentResult = collections.namedtuple(
     'ProbedComponentResult', ['component_name', 'probed_string', 'error'])
+UNPROBEABLE_COMPONENT_ERROR = lambda comp_cls: (
+    'Component class %r is unprobeable' % comp_cls)
+MISSING_COMPONENT_ERROR = lambda comp_cls: 'Missing %r component' % comp_cls
+AMBIGUOUS_COMPONENT_ERROR = lambda comp_cls, probed_value, comp_names: (
+    'Ambiguous probe values %r of %r component. Possible components are: %r' %
+    (probed_value, comp_cls, sorted(comp_names)))
+UNSUPPORTED_COMPONENT_ERROR = lambda comp_cls, probed_value: (
+    'Unsupported %r component found with probe result %r '
+    '(no matching name in the component DB)' % (comp_cls, probed_value))
+
+
 
 class HWIDException(Exception):
   pass
@@ -116,8 +127,24 @@ class HWID(object):
           'Encoded string %s does not decode to binary string %r' %
           (self.encoded_string, self.binary_string))
     if BinaryStringToBOM(self.database, self.binary_string) != self.bom:
-      raise HWIDException('Binary string %r does not decode to BOM' %
-                          self.binary_string)
+      def GetComponentsDifferences(decoded, target):
+        results = []
+        for comp_cls in set(
+            decoded.components.keys() + target.components.keys()):
+          if comp_cls not in decoded.components:
+            results.append('Decoded: does not exist. BOM: %r' %
+                target.components[comp_cls])
+          elif comp_cls not in target.components:
+            results.append('Decoded: %r. BOM: does not exist.' %
+                decoded.components[comp_cls])
+          elif decoded.components[comp_cls] != target.components[comp_cls]:
+            results.append('Decoded: %r != BOM: %r' %
+                (decoded.components[comp_cls], target.components[comp_cls]))
+        return results
+      raise HWIDException(
+          'Binary string %r does not decode to BOM. Differences: %r' %
+          (self.binary_string, GetComponentsDifferences(
+              self.bom, BinaryStringToBOM(self.database, self.binary_string))))
     # No exception. Everything is good!
 
   def VerifyProbeResult(self, probe_result):
@@ -137,7 +164,7 @@ class HWID(object):
       return [e.probed_string for e in bom.components[comp_cls] if
               e.probed_string is not None]
     for comp_cls in self.database.components:
-      if comp_cls not in self.database.probeable_components:
+      if comp_cls not in self.database.components.probeable:
         continue
       probed_comp_values = MakeSet(PackProbedString(probed_bom, comp_cls))
       expected_comp_values = MakeSet(PackProbedString(self.bom, comp_cls))
@@ -209,8 +236,6 @@ class Database(object):
     image_id: A _ImageId object.
     pattern: A _Pattern object.
     encoded_fields: A _EncodedFields object.
-    probeable_components: A _ProbeableComponents objet.
-    unprobeable_component_whitelist: A _UnprobeableComponentWhitelist object.
     components: A _Components object.
     shopfloor_device_info: A ShopFloorDeviceInfo object.
     vpd_ro_field: A _VPDFields object.
@@ -244,18 +269,14 @@ class Database(object):
   _HWID_FORMAT = re.compile(r'^([A-Z0-9]+) ((?:[A-Z2-7]{4}-)*[A-Z2-7]{1,4})$')
 
   def __init__(self, board, encoding_patterns, image_id, pattern,
-               encoded_fields, probeable_components,
-               unprobeable_component_whitelist, components,
-               shopfloor_device_info, vpd_ro_fields, vpd_rw_fields,
-               rules, allowed_skus):
+               encoded_fields, components, shopfloor_device_info,
+               vpd_ro_fields, vpd_rw_fields, rules, allowed_skus):
     self.board = board
     self.encoding_patterns = encoding_patterns
     self.image_id = image_id
     self.pattern = pattern
     self.encoded_fields = encoded_fields
     self.components = components
-    self.probeable_components = probeable_components
-    self.unprobeable_component_whitelist = unprobeable_component_whitelist
     self.shopfloor_device_info = shopfloor_device_info
     self.vpd_ro_fields = vpd_ro_fields
     self.vpd_rw_fields = vpd_rw_fields
@@ -300,15 +321,6 @@ class Database(object):
                   comp_cls, comp_name,
                   'shopfloor_device_info[%r][%r]' % (info_key, info_value))
 
-    # Check that all the component classes in probeable_components are valid.
-    for comp_cls in self.probeable_components:
-      _VerifyComponent(comp_cls, None, 'probeable_components')
-
-    # Check that all the component classes in unprobeable_component_whitelist
-    # are valid.
-    for comp_cls in self.unprobeable_component_whitelist:
-      _VerifyComponent(comp_cls, None, 'unprobeable_component_whitelist')
-
   @classmethod
   def LoadFile(cls, file_name):
     """Loads a device-specific component database from the given file and
@@ -328,9 +340,7 @@ class Database(object):
       db_yaml = yaml.load(f)
 
     for key in ['board', 'encoding_patterns', 'image_id', 'pattern',
-                'encoded_fields', 'probeable_components',
-                'unprobeable_component_whitelist',
-                'components', 'shopfloor_device_info',
+                'encoded_fields', 'components', 'shopfloor_device_info',
                 'vpd_ro_fields', 'vpd_rw_fields']:
       if not db_yaml.get(key):
         raise HWIDException('%r is not specified in component database' % key)
@@ -368,9 +378,6 @@ class Database(object):
                     _EncodingPatterns(db_yaml['encoding_patterns']),
                     _ImageId(db_yaml['image_id']), _Pattern(db_yaml['pattern']),
                     _EncodedFields(db_yaml['encoded_fields']),
-                    _ProbeableComponents(db_yaml['probeable_components']),
-                    _UnprobeableComponentWhitelist(
-                        db_yaml['unprobeable_component_whitelist']),
                     _Components(db_yaml['components']),
                     ShopFloorDeviceInfo(db_yaml['shopfloor_device_info']),
                     _VPDFields(db_yaml['vpd_ro_fields']),
@@ -409,30 +416,28 @@ class Database(object):
       probed_comp_values = LookupProbedValue(comp_cls)
       if probed_comp_values is not None:
         for probed_value in probed_comp_values:
-          if comp_cls not in self.probeable_components:
+          if comp_cls not in self.components.probeable:
             probed_components[comp_cls].append(
                 ProbedComponentResult(
-                    None, probed_value, 'component class %r is unprobeable' %
-                    comp_cls))
+                    None, probed_value, UNPROBEABLE_COMPONENT_ERROR(comp_cls)))
             continue
-          found = False
-          for comp_name, comp_attrs in self.components[comp_cls].iteritems():
-            if comp_attrs['value'] == probed_value:
-              probed_components[comp_cls].append(
-                  ProbedComponentResult(comp_name, probed_value, None))
-              found = True
-              break
-          if not found:
+          comp_names = self.components.LookupComponentNameFromValue(
+              comp_cls, probed_value)
+          if comp_names is None:
+            probed_components[comp_cls].append(ProbedComponentResult(
+                None, probed_value,
+                UNSUPPORTED_COMPONENT_ERROR(comp_cls, probed_value)))
+          elif len(comp_names) == 1:
             probed_components[comp_cls].append(
-                ProbedComponentResult(None, probed_value, (
-                    'unsupported %r component found with probe result'
-                    ' %r (no matching name in the component DB)' %
-                    (comp_cls, probed_value))))
+                ProbedComponentResult(comp_names[0], probed_value, None))
+          elif len(comp_names) > 1:
+            probed_components[comp_cls].append(ProbedComponentResult(
+                None, probed_value,
+                AMBIGUOUS_COMPONENT_ERROR(comp_cls, probed_value, comp_names)))
       else:
         # No component of comp_cls is found in probe results.
-        probed_components[comp_cls].append(
-            ProbedComponentResult(None, probed_comp_values,
-                                  'missing %r component' % comp_cls))
+        probed_components[comp_cls].append(ProbedComponentResult(
+            None, probed_comp_values, MISSING_COMPONENT_ERROR(comp_cls)))
 
     # Encode the components to a dict of encoded fields to encoded indices.
     encoded_fields = {}
@@ -462,7 +467,7 @@ class Database(object):
       new_probed_result = []
       if component_name is None:
         new_probed_result.append(ProbedComponentResult(
-            None, None, 'missing %r component' % component_class))
+            None, None, MISSING_COMPONENT_ERROR(component_class)))
       else:
         component_name = MakeList(component_name)
         for name in component_name:
@@ -664,7 +669,7 @@ class Database(object):
     for comp_cls, probed_values in bom.components.iteritems():
       for element in probed_values:
         probed_value = element.probed_string
-        if probed_value is None or comp_cls not in self.probeable_components:
+        if probed_value is None or comp_cls not in self.components.probeable:
           continue
         found = False
         for attrs in self.components[comp_cls].itervalues():
@@ -707,13 +712,14 @@ class Database(object):
     """
     probed_bom = self.ProbeResultToBOM(probe_result)
     if not comp_list:
-      comp_list = self.probeable_components
+      comp_list = sorted(self.components.probeable)
     if not isinstance(comp_list, list):
       raise HWIDException('Argument comp_list should be a list')
-    invalid_cls = set(comp_list) - set(self.probeable_components)
+    invalid_cls = set(comp_list) - set(self.components.probeable)
     if invalid_cls:
-      raise HWIDException('%r is not probeable and cannot be verified' %
-                          sorted(invalid_cls))
+      raise HWIDException(
+          '%r do not have probe values and cannot be verified' %
+          sorted(invalid_cls))
     return dict((comp_cls, probed_bom.components[comp_cls]) for comp_cls in
                 comp_list)
 
@@ -727,10 +733,6 @@ class _EncodingPatterns(dict):
           1: 'extra_encoding_pattern',
           ...
         }
-        schema:
-          Dict('encoding patterns',
-               key_type=Scalar('encoding pattern', int),
-               value_type=Scalar('encoding scheme', str))
   """
   def __init__(self, encoding_patterns_dict):
     self.schema = Dict('encoding patterns',
@@ -750,10 +752,6 @@ class _ImageId(dict):
           1: 'image_id1',
           ...
         }
-        schema:
-          Dict('image id',
-               key_type=Scalar('image id', int),
-               value_type=Scalar('image name', str))
   """
   def __init__(self, image_id_dict):
     self.schema = Dict('image id',
@@ -784,17 +782,6 @@ class _EncodedFields(dict):
           'encoded_field_name2':
           ...
         }
-        schema:
-          Dict('encoded fields', Scalar('encoded field', str),
-            Dict('encoded indices', Scalar('encoded index', int),
-              Dict('component classes', Scalar('component class', str),
-                Optional([Scalar('component name', str),
-                          List('list of component names',
-                               Scalar('component name', str))]
-                )
-              )
-            )
-          )
   """
   def __init__(self, encoded_fields_dict):
     self.schema = Dict(
@@ -821,37 +808,6 @@ class _EncodedFields(dict):
             self[field][index][comp_cls] = MakeList(comp_value)
 
 
-class _ProbeableComponents(list):
-  """A class for storing the set of components that are probeable.
-
-  Args:
-    probeable_component_list: A list of strings indicating the probeable
-        component classes.
-  """
-  def __init__(self, probeable_component_list):
-    self.schema = List('probeable components', Scalar('component class', str))
-    self.schema.Validate(probeable_component_list)
-    super(_ProbeableComponents, self).__init__(probeable_component_list)
-
-
-class _UnprobeableComponentWhitelist(list):
-  """A class for storing the whitelist unprobeable components.
-
-  Some components are unprobeable and we are confident enough to not force
-  verification through shopfloor device info.
-
-  Args:
-    unprobeable_component_whitelist: A list of strings indicating the whitelist
-        of unprobeable component classes.
-  """
-  def __init__(self, unprobeable_component_whitelist):
-    self.schema = List('unprobeable component whitelist',
-                       Scalar('component class', str))
-    self.schema.Validate(unprobeable_component_whitelist)
-    super(_UnprobeableComponentWhitelist, self).__init__(
-        unprobeable_component_whitelist)
-
-
 class _Components(dict):
   """A class for parsing and obtaining information of a pre-defined components
   list.
@@ -860,50 +816,70 @@ class _Components(dict):
     components_dict: A dict of components of the form:
         {
           'component_class1': {
-            'component_name1': {
-              'value': 'component_value1',
-              'other_attributes': 'other values',
-              ...
-            }
-            'component_name2': {
-              ...
+            'attributes': ['attr1', 'attr2', ... ]
+            'items': {
+              'component_name1': {
+                'value': 'component_value1',
+                'other_attributes': 'other values',
+                ...
+              }
+              'component_name2': {
+                ...
+              }
             }
           }
           'component_class2': {
             ...
           }
         }
-        schema:
-          Dict('components', Scalar('component class', str),
-            Dict('component names', Scalar('component name', str),
-              FixedDict('component attributes', items={
-                'value': AnyOf([Scalar('probed value', str),
-                                List('list of probed values',
-                                     Scalar('probed value', str))])
-                },
-                optional_items={
-                  'labels': List('list of labels', Scalar('label', str))
-                }
-              )
-            )
-          )
   """
+  VALID_ATTRIBUTES = ['probeable']
+
   def __init__(self, components_dict):
     self.schema = Dict(
         'components',
         Scalar('component class', str),
-        Dict('component names',
-             Scalar('component name', str),
-             FixedDict(
-                 'component attributes',
-                 items={'value': Optional(
-                     [Scalar('probed value', str),
-                      List('list of probed values',
-                           Scalar('probed value', str))])},
-                 optional_items={'labels': List('list of labels',
-                                                Scalar('label', str))})))
+        FixedDict(
+            'component description',
+            items={
+              'attributes': Dict(
+                  'attribute dict', key_type=Scalar('key', str),
+                  value_type=AnyOf(
+                      [Scalar('value', str), Scalar('value', bool)])),
+              'items': Dict(
+                  'component names', key_type=Scalar('component name', str),
+                  value_type=FixedDict(
+                     'component attributes',
+                     items={'value': Optional(Scalar('probed value', str))},
+                     optional_items={'labels': List('list of labels',
+                                                    Scalar('label', str))}))}))
     self.schema.Validate(components_dict)
-    super(_Components, self).__init__(components_dict)
+    # Classify components based on their attributes.
+    self.probeable = set()
+    for comp_cls, desc in components_dict.iteritems():
+      for attr_key, attr_value in desc['attributes'].iteritems():
+        if attr_key not in self.VALID_ATTRIBUTES:
+          raise HWIDException(
+              'Component class %r has invalid component attribute: %r' %
+              (comp_cls, attr_key))
+        if attr_key == 'probeable' and attr_value:
+          self.probeable.add(comp_cls)
+    # Squash attributes and build a dict of component class to items.
+    super(_Components, self).__init__(
+        (comp_cls, components_dict[comp_cls]['items']) for comp_cls in
+        components_dict)
+
+  def LookupComponentNameFromValue(self, comp_cls, value):
+    if comp_cls not in self:
+      raise HWIDException(
+          'Component class %r does not exist in the database' % comp_cls)
+    results = []
+    for comp_name, comp_attrs in self[comp_cls].iteritems():
+      if comp_attrs['value'] == value:
+        results.append(comp_name)
+    if results:
+      return results
+    return None
 
 
 class _Pattern(object):
@@ -913,12 +889,6 @@ class _Pattern(object):
   Args:
     pattern_list: A list of dicts that maps encoded fields to their
         bit length.
-        schema:
-          List('pattern',
-            Dict('pattern_field', {
-              Scalar('encoded_index', str): Scalar('bit_offset', int)
-            })
-          )
   """
   def __init__(self, pattern_list):
     self.schema = List('pattern',
