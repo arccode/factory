@@ -54,7 +54,7 @@ def FindGitPrefix(repo_path):
   branch_list = CheckOutput(['git', 'branch', '-av'])
   for line in reversed(branch_list.split('\n')):
     match = re.search('remotes\/([^/]*)/master', line)
-    if match:
+    if match and match.group(1) != 'm':
       return match.group(1)
   return None
 
