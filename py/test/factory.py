@@ -382,6 +382,14 @@ class Options(object):
   kick_sync_min_interval_secs = 120
   _types[kick_sync_min_interval_secs] = int
 
+  # Goofy uploads stateful partition disk usage stats to shopfloor server
+  # if stateful partition disk usage is above threshold.
+  # Goofy checks bytes usage and inodes usage of /dev/mmcblk0p1 (or /dev/sda1)
+  # and /dev/mapper/encstateful.
+  # The checking period is the same as log_disk_space_period_secs.
+  stateful_usage_threshold = None
+  _types['stateful_usage_threshold'] = (type(None), int)
+
   # The range in which the charge level should be. If min_charge_pct and
   # max_charge_pct are set, Goofy will use ChargeManager to attempt to keep
   # the battery charge within these thresholds.

@@ -25,7 +25,7 @@ from optparse import OptionParser
 import factory_common  # pylint: disable=W0611
 from cros.factory import event_log
 from cros.factory import system
-from cros.factory.event_log import EventLog
+from cros.factory.event_log import EventLog, FloatDigit
 from cros.factory.event_log_watcher import EventLogWatcher
 from cros.factory.goofy import test_environment
 from cros.factory.goofy import time_sanitizer
@@ -1423,10 +1423,49 @@ class Goofy(object):
       return
     self.last_log_disk_space_time = now
 
+    # Upload event if stateful partition usage is above threshold.
+    # Stateful partition is mounted on /usr/local, while
+    # encrypted stateful partition is mounted on /var.
+    # If there are too much logs in the factory process,
+    # these two partitions might get full.
     try:
-      message = disk_space.FormatSpaceUsedAll()
+      vfs_infos = disk_space.GetAllVFSInfo()
+      stateful_info, encrypted_info = None, None
+      for vfs_info in vfs_infos.values():
+        if '/usr/local' in vfs_info.mount_points:
+          stateful_info = vfs_info
+        if '/var' in vfs_info.mount_points:
+          encrypted_info = vfs_info
+
+      stateful = disk_space.GetPartitionUsage(stateful_info)
+      encrypted = disk_space.GetPartitionUsage(encrypted_info)
+
+      above_threshold =  (
+          self.test_list.options.stateful_usage_threshold and
+          max(stateful.bytes_used_pct,
+              stateful.inodes_used_pct,
+              encrypted.bytes_used_pct,
+              encrypted.inodes_used_pct) >
+              self.test_list.options.stateful_usage_threshold)
+
+      if above_threshold:
+        self.event_log.Log('stateful_partition_usage',
+            partitions={
+                'stateful': {
+                    'bytes_used_pct': FloatDigit(stateful.bytes_used_pct, 2),
+                    'inodes_used_pct': FloatDigit(stateful.inodes_used_pct, 2)},
+                'encrypted_stateful': {
+                    'bytes_used_pct': FloatDigit(encrypted.bytes_used_pct, 2),
+                    'inodes_used_pct': FloatDigit(encrypted.inodes_used_pct, 2)}
+            })
+        self.log_watcher.ScanEventLogs()
+
+      message = disk_space.FormatSpaceUsedAll(vfs_infos)
       if message != self.last_log_disk_space_message:
-        logging.info(message)
+        if above_threshold:
+          logging.warning(message)
+        else:
+          logging.info(message)
         self.last_log_disk_space_message = message
     except:  # pylint: disable=W0702
       logging.exception('Unable to get disk space used')

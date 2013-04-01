@@ -62,6 +62,31 @@ class EventLogException(Exception):
   pass
 
 
+class FloatDigit(object):
+  """Dumps float to yaml with specified digits under decimal point.
+
+  This class has customized __repr__ so it can be used in yaml representer.
+  Usage is like:
+  print yaml.dump(FloatDigit(0.12345, 4))
+  0.1235
+  """
+  def __init__(self, value, digit):
+    self._value = value
+    self._digit = digit
+
+  def __repr__(self):
+    return ("%%.0%df" % self._digit) % self._value
+
+
+def float_repr(dumper, data):
+  """The representer for float type."""
+  return dumper.represent_scalar(u'tag:yaml.org,2002:float', repr(data))
+
+
+# Add customized representer for type FloatDigit.
+yaml.add_representer(FloatDigit, float_repr)
+
+
 def TimedUuid():
   """Returns a UUID that is roughly sorted by time.
 

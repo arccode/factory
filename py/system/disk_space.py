@@ -14,6 +14,8 @@ _Open = open
 
 
 VFSInfo = collections.namedtuple('VFSInfo', ['mount_points', 'statvfs'])
+DiskUsedPercentage = collections.namedtuple('DiskUsedPercentage',
+    ['bytes_used_pct', 'inodes_used_pct'])
 def GetAllVFSInfo():
   '''Returns results for statvfs on all filesystems.
 
@@ -50,36 +52,69 @@ def FormatSpaceUsed(vfs_info):
   Returns:
     A string like
 
-      [/a /b: 87%/17%]
+      /a /b: 87%/17%
 
     meaning that on the device that /a and /b are mounted from, 87% of bytes
     and 17% of inodes are used (unavailable to unprivileged users).
   '''
-  return '%s: %d%%/%d%%' % (
-      ' '.join(vfs_info.mount_points),
-      (100 -
-       100.0 * vfs_info.statvfs.f_bavail / (vfs_info.statvfs.f_blocks or 1)),
-      (100 -
-       100.0 * vfs_info.statvfs.f_favail / (vfs_info.statvfs.f_files or 1)))
+  return ' '.join(vfs_info.mount_points) + (': %d%%/%d%%' %
+    GetPartitionUsage(vfs_info))
 
 
-def FormatSpaceUsedAll():
-  '''Formats disk space used by all filesystems.
+def FormatSpaceUsedAll(vfs_infos):
+  '''Formats disk space used by all filesystems in vfs_infos.
 
   The list is arranged in descending order of space used.
+
+  Args:
+    vfs_infos: a map from device to VFSInfo object.
 
   Returns:
     A string like
 
-      Space used (bytes%/inode%): [/a /b: 87%/17%] [/c: 5%/3%]
+      Disk space used (bytes%/inode%): [/a /b: 87%/17%] [/c: 5%/3%]
   '''
-  vfs_infos = GetAllVFSInfo()
   return 'Disk space used (bytes%/inodes%): ' + ' '.join(
       '[' + FormatSpaceUsed(v) + ']'
       for v in sorted(
           vfs_infos.values(),
-          key=lambda x: float(x.statvfs.f_bavail) / (x.statvfs.f_blocks or 1)))
+          key=lambda x: GetUsedPercentage(x.statvfs.f_bavail,
+                                          x.statvfs.f_blocks),
+          reverse=True))
+
+
+def GetUsedPercentage(avail, total):
+  '''Gets used percentage.
+
+  Returns:
+    Used percentage if total is not zero.
+    Returns 0.0 if avail == total == 0. This occurs for '/sys/fs/cgroup/cpu' and
+    '/sys/fs/cgroup/freezer' whose f_blocks=0L and f_bavail=0L.
+
+  Raises:
+    ZeroDivisionError if total == 0 and avail != 0.
+  '''
+  if avail == total == 0:
+    return 0.0
+  return (100 - 100.0 * avail / total)
+
+
+def GetPartitionUsage(vfs_info):
+  '''Gets the disk space usage.
+
+  Args:
+    vfs_info: a VFSInfo object.
+
+  Returns:
+    A DiskUsedPercentage namedtuple like (bytes_used_pct=87,
+                                          inodes_used_pct=17).
+  '''
+  return DiskUsedPercentage(
+             GetUsedPercentage(vfs_info.statvfs.f_bavail,
+                               vfs_info.statvfs.f_blocks),
+             GetUsedPercentage(vfs_info.statvfs.f_favail,
+                               vfs_info.statvfs.f_files))
 
 
 if __name__ == '__main__':
-  print FormatSpaceUsedAll()
+  print FormatSpaceUsedAll(GetAllVFSInfo())

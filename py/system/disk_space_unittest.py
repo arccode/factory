@@ -58,7 +58,8 @@ class DiskSpaceTest(unittest.TestCase):
     self.assertEqual(
         ('Disk space used (bytes%/inodes%): '
          '[/home /mnt/stateful_partition: 76%/46%] [/tmp: 0%/0%]'),
-        disk_space.FormatSpaceUsedAll())
+        disk_space.FormatSpaceUsedAll(
+            disk_space.GetAllVFSInfo()))
 
 
 if __name__ == '__main__':
