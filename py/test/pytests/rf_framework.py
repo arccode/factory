@@ -32,6 +32,8 @@ from cros.factory.utils import net_utils
 
 SHOPFLOOR_TIMEOUT_SECS = 10 # Timeout for shopfloor connection.
 SHOPFLOOR_RETRY_INTERVAL_SECS = 10 # Seconds to wait between retries.
+INSERT_ETHERNET_DONGLE_TIMEOUT_SECS = 30 # Timeout for inserting dongle.
+IP_SETUP_TIMEOUT_SECS = 10 # Timeout for setting IP address.
 
 MSG_START = test_ui.MakeLabel(
     'Please press SPACE key to start.',
@@ -307,6 +309,7 @@ class RfFramework(object):
     PATH = 'path'
     INVOCATION = 'invocation'
     FAILURES = 'failures'
+    TIME = 'time'
 
     # log to event log.
     field_to_record[MODULE_ID] = self.unique_identification
@@ -322,8 +325,10 @@ class RfFramework(object):
     field_to_record[DEVICE_ID] = GetDeviceId()
     field_to_record[PATH] = path
     field_to_record[INVOCATION] = os.environ.get('CROS_FACTORY_TEST_INVOCATION')
+    field_to_record[TIME] = time.strftime('%Y%m%dT%H%M%SZ', time.gmtime())
+
     csv_path = '%s_%s_%s%s' % (
-        time.strftime('%Y%m%dT%H%M%SZ', time.gmtime()),
+        field_to_record[TIME],
         self.NormalizeAsFileName(device_sn),
         self.NormalizeAsFileName(path), postfix)
     csv_path = os.path.join(factory.get_log_root(), 'aux', csv_path)
@@ -404,6 +409,7 @@ class RfFramework(object):
           raise
 
   def PrepareNetwork(self, static_ip_pair):
+    """Blocks forever until network is prepared."""
     def ObtainIp():
       if static_ip_pair[0] is None:
         net_utils.SendDhcpRequest()
@@ -414,22 +420,30 @@ class RfFramework(object):
     if static_ip_pair is None:
       return
 
-    _PREPARE_NETWORK_TIMEOUT_SECS = 30 # Timeout for network preparation.
-    self.template.SetState(MSG_WAITING_ETHERNET)
-    factory.console.info('Detecting Ethernet device...')
-    net_utils.PollForCondition(condition=(
-        lambda: True if net_utils.FindUsableEthDevice() else False),
-        timeout=_PREPARE_NETWORK_TIMEOUT_SECS,
-        condition_name='Detect Ethernet device')
+    while True:
+      self.template.SetState(MSG_WAITING_ETHERNET)
+      factory.console.info('Detecting Ethernet device...')
+      try:
+        net_utils.PollForCondition(condition=(
+            lambda: True if net_utils.FindUsableEthDevice() else False),
+            timeout=INSERT_ETHERNET_DONGLE_TIMEOUT_SECS,
+            condition_name='Detect Ethernet device')
 
-    # Only setup the IP if required so.
-    current_ip = net_utils.GetEthernetIp(net_utils.FindUsableEthDevice())
-    if not current_ip or static_ip_pair[1] is True:
-      self.template.SetState(MSG_WAITING_IP)
-      factory.console.info('Setting up IP address...')
-      net_utils.PollForCondition(condition=ObtainIp,
-          timeout=_PREPARE_NETWORK_TIMEOUT_SECS,
-          condition_name='Setup IP address')
+        # Only setup the IP if required so.
+        current_ip = net_utils.GetEthernetIp(net_utils.FindUsableEthDevice())
+        if not current_ip or static_ip_pair[1] is True:
+          self.template.SetState(MSG_WAITING_IP)
+          factory.console.info('Setting up IP address...')
+          net_utils.PollForCondition(condition=ObtainIp,
+              timeout=IP_SETUP_TIMEOUT_SECS,
+              condition_name='Setup IP address')
+          break
+        else:
+          break
+      except:  # pylint: disable=W0702
+        exception_string = utils.FormatExceptionOnly()
+        factory.console.info('Unable to setup network: %s',
+                             exception_string)
 
     factory.console.info('Network prepared. IP: %r', net_utils.GetEthernetIp())
 

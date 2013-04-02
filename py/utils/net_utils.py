@@ -8,6 +8,7 @@ import glob
 import httplib
 import logging
 import os
+import pexpect
 import re
 import subprocess
 import sys
@@ -132,16 +133,30 @@ def GetEthernetIp(interface=None):
     ip_address = match.group(1)
   return ip_address
 
-def _SendDhclientCommand(arguments, interface):
-  """Calls dhclient.
+def _SendDhclientCommand(arguments, interface,
+                         timeout=5, expect_str=pexpect.EOF):
+  """Calls dhclient as a foreground process with timeout.
 
   Because the read-only filesystem, using dhclient in ChromeOS needs a
   little tweaks on few paths.
+
   """
   DHCLIENT_SCRIPT = "/usr/local/sbin/dhclient-script"
   DHCLIENT_LEASE = os.path.join(factory.get_state_root(), "dhclient.leases")
-  Spawn(['dhclient', '-sf', DHCLIENT_SCRIPT, '-lf', DHCLIENT_LEASE, interface] +
-        arguments, call=True, ignore_stdin=True)
+  assert timeout > 0, 'Must have a timeout'
+
+  logging.info('Starting dhclient')
+  dhcp_process = pexpect.spawn('dhclient',
+      ['-sf', DHCLIENT_SCRIPT, '-lf', DHCLIENT_LEASE,
+       '-d', '-v', '--no-pid', interface] + arguments, timeout=timeout)
+  try:
+    dhcp_process.expect(expect_str)
+  except:
+    logging.info("dhclient output before timeout - %r", dhcp_process.before)
+    raise Error(
+        'Timeout when running DHCP command, check if cable is connected.')
+  finally:
+    dhcp_process.close()
 
 def SendDhcpRequest(interface=None):
   """Sends dhcp request via dhclient.
@@ -152,7 +167,8 @@ def SendDhcpRequest(interface=None):
   """
   interface = interface or FindUsableEthDevice(raise_exception=True)
   Spawn(['ifconfig', interface, 'up'], call=True)
-  _SendDhclientCommand([], interface)
+  _SendDhclientCommand([], interface,
+                       expect_str=r"bound to (\d+\.\d+\.\d+\.\d+)")
 
 def ReleaseDhcp(interface=None):
   """Releases a dhcp lease via dhclient.
