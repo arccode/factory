@@ -766,13 +766,14 @@ class Goofy(object):
               Event.Type.PENDING_SHUTDOWN))
           continue
 
-      self._run_test(test, test.iterations)
+      self._run_test(test, test.iterations, test.retries)
 
-  def _run_test(self, test, iterations_left=None):
+  def _run_test(self, test, iterations_left=None, retries_left=None):
     invoc = TestInvocation(self, test, on_completion=self.run_next_test)
     new_state = test.update_state(
       status=TestState.ACTIVE, increment_count=1, error_msg='',
       invocation=invoc.uuid, iterations_left=iterations_left,
+      retries_left=retries_left,
       visible=(self.visible_test == test))
     invoc.count = new_state.count
 
@@ -896,6 +897,12 @@ class Goofy(object):
 
         if new_state.iterations_left and new_state.status == TestState.PASSED:
           # Play it again, Sam!
+          self._run_test(t)
+        # new_state.retries_left is obtained after update.
+        # For retries_left == 0, test can still be run for the last time.
+        elif (new_state.retries_left >= 0 and
+              new_state.status == TestState.FAILED):
+          # Still have to retry, Sam!
           self._run_test(t)
 
     if (self.visible_test is None or

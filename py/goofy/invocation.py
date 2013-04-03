@@ -481,14 +481,20 @@ class TestInvocation(object):
       if self._aborted:
         return
 
+    iteration_string = ''
+    retries_string = ''
     if self.test.iterations > 1:
       iteration_string = ' [%s/%s]' % (
         self.test.iterations -
         self.test.get_state().iterations_left + 1,
         self.test.iterations)
-    else:
-      iteration_string = ''
-    logging.info('Running test %s%s', self.test.path, iteration_string)
+    if self.test.retries > 0:
+      retries_string = ' [retried %s/%s]' % (
+        self.test.retries -
+        self.test.get_state().retries_left,
+        self.test.retries)
+    logging.info('Running test %s%s%s', self.test.path,
+                 iteration_string, retries_string)
 
     service_manager = ServiceManager()
     service_manager.SetupServices(enable_services=self.test.enable_services,
@@ -561,15 +567,23 @@ class TestInvocation(object):
 
     logging.info(u'Test %s%s %s', self.test.path, iteration_string,
                  ': '.join([status, error_msg]))
+
+    decrement_iterations_left = 0
+    decrement_retries_left = 0
+
     if status == TestState.FAILED:
       reason = error_msg.split('\n')[0]
       factory.console.error('Test %s%s %s: %s', self.test.path,
                             iteration_string, status, reason)
+      decrement_retries_left = 1
+    elif status == TestState.PASSED:
+      decrement_iterations_left = 1
 
     with self._lock:
       self.update_state_on_completion = dict(
         status=status, error_msg=error_msg,
-        visible=False, decrement_iterations_left=1)
+        visible=False, decrement_iterations_left=decrement_iterations_left,
+        decrement_retries_left=decrement_retries_left)
       self._completed = True
 
     self.goofy.run_queue.put(self.goofy.reap_completed_tests)

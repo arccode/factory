@@ -425,6 +425,7 @@ class TestState(object):
     invocation: The currently executing invocation.
     iterations_left: For an active test, the number of remaining
       iterations after the current one.
+    retries_left: Maximum number of retries allowed to pass the test.
   '''
   ACTIVE = 'ACTIVE'
   PASSED = 'PASSED'
@@ -437,7 +438,7 @@ class TestState(object):
 
   def __init__(self, status=UNTESTED, count=0, visible=False, error_msg=None,
                shutdown_count=0, invocation=None, iterations_left=0,
-               skip=False):
+               retries_left=0, skip=False):
     self.status = status
     self.count = count
     self.visible = visible
@@ -445,6 +446,7 @@ class TestState(object):
     self.shutdown_count = shutdown_count
     self.invocation = invocation
     self.iterations_left = iterations_left
+    self.retries_left = retries_left
     self.skip = skip
 
   def __repr__(self):
@@ -454,6 +456,7 @@ class TestState(object):
              shutdown_count=None, increment_shutdown_count=0, visible=None,
              invocation=None,
              decrement_iterations_left=0, iterations_left=None,
+             decrement_retries_left=0, retries_left=None,
              skip=None):
     '''
     Updates the state of a test.
@@ -469,6 +472,11 @@ class TestState(object):
     @param iterations_left: If non-None, the new iterations_left.
     @param decrement_iterations_left: An amount by which to decrement
       iterations_left.
+    @param retries_left: If non-None, the new retries_left.
+      The case retries_left = -1 means the test had already used the first try
+      and all the retries.
+    @param decrement_retries_left: An amount by which to decrement
+      retries_left.
     @param skip: Whether the test should be skipped.
 
     Returns True if anything was changed.
@@ -483,6 +491,8 @@ class TestState(object):
       self.shutdown_count = shutdown_count
     if iterations_left is not None:
       self.iterations_left = iterations_left
+    if retries_left is not None:
+      self.retries_left = retries_left
     if visible is not None:
       self.visible = visible
     if skip is not None:
@@ -495,6 +505,11 @@ class TestState(object):
     self.shutdown_count += increment_shutdown_count
     self.iterations_left = max(
       0, self.iterations_left - decrement_iterations_left)
+    # If retries_left is 0 after update, it is the usual case, so test
+    # can be run for the last time. If retries_left is -1 after update,
+    # it had already used the first try and all the retries.
+    self.retries_left = max(
+      -1, self.retries_left - decrement_retries_left)
 
     return self.__dict__ != old_dict
 
@@ -615,6 +630,7 @@ class FactoryTest(object):
                require_run=None,
                run_if=None,
                iterations=1,
+               retries=0,
                _root=None,
                _default_id=None):
     '''
@@ -680,6 +696,10 @@ class FactoryTest(object):
       If the auxiliary table 'table_name' is available, then its column 'col'
       is used to determine whether the test should be run.
     @param iterations: Number of times to run the test.
+    @param retries: Maximum number of retries allowed to pass the test.
+      If it's 0, then no retries are allowed (the usual case). If, for example,
+      iterations=60 and retries=2, then the test would be run up to 62 times
+      and could fail up to twice.
     @param _root: True only if this is the root node (for internal use
       only).
     '''
@@ -737,7 +757,10 @@ class FactoryTest(object):
     assert isinstance(self.iterations, int) and self.iterations > 0, (
       'In test %s, Iterations must be a positive integer, not %r' % (
         self.path, self.iterations))
-
+    self.retries = retries
+    assert isinstance(self.retries, int) and self.retries >= 0, (
+      'In test %s, Retries must be a positive integer or 0, not %r' % (
+        self.path, self.retries))
     if _root:
       self.id = None
     else:
