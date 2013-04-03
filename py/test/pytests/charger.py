@@ -161,7 +161,7 @@ class ChargerTest(unittest.TestCase):
     if use_percentage:
       charge = self._power.GetChargePct(get_float=True)
     else:
-      charge = float(self._power.GetCharge())
+      charge = float(self._power.GetChargeMedian())
     self.assertTrue(charge is not None, 'Error getting battery charge state.')
     return charge
 

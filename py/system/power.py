@@ -5,7 +5,9 @@
 # found in the LICENSE file.
 
 import glob
+import numpy
 import os
+import time
 
 from cros.factory.test.utils import Enum, ReadOneLine
 
@@ -72,6 +74,16 @@ class Power(object):
       return int(charge_now) / 1000
     else:
       return None
+
+  def GetChargeMedian(self, read_count=10):
+    '''Read charge level several times and return the median.'''
+    charge_nows = []
+    for _ in xrange(read_count):
+      charge_now = self.GetCharge()
+      if charge_now:
+        charge_nows.append(charge_now)
+      time.sleep(0.1)
+    return numpy.median(charge_nows)
 
   def GetChargeFull(self):
     '''Get full charge level in mAh.'''
