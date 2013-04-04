@@ -34,6 +34,7 @@ from cros.factory.goofy.goofy_rpc import GoofyRPC
 from cros.factory.goofy.invocation import TestInvocation
 from cros.factory.goofy.prespawner import Prespawner
 from cros.factory.goofy.web_socket_manager import WebSocketManager
+from cros.factory.system.board import Board, BoardException
 from cros.factory.system.charge_manager import ChargeManager
 from cros.factory.system import disk_space
 from cros.factory.test import factory
@@ -815,10 +816,15 @@ class Goofy(object):
       logging.info('Start controlling charger')
 
     # Only adjust charge state if not excluded
-    if (self.charge_manager and
-        not factory.FactoryTest.EXCLUSIVE_OPTIONS.CHARGER in
+    if (factory.FactoryTest.EXCLUSIVE_OPTIONS.CHARGER not in
         current_exclusive_items):
-      self.charge_manager.AdjustChargeState()
+      if self.charge_manager:
+        self.charge_manager.AdjustChargeState()
+      else:
+        try:
+          system.GetBoard().SetChargeState(Board.ChargeState.CHARGE)
+        except BoardException:
+          logging.exception('Unable to set charge state on this board')
 
     self.exclusive_items = current_exclusive_items
 
@@ -1214,6 +1220,12 @@ class Goofy(object):
       self.charge_manager = ChargeManager(self.test_list.options.min_charge_pct,
                                           self.test_list.options.max_charge_pct)
       system.SystemStatus.charge_manager = self.charge_manager
+    else:
+      # Goofy should set charger state to charge if charge_manager is disabled.
+      try:
+        system.GetBoard().SetChargeState(Board.ChargeState.CHARGE)
+      except BoardException:
+        logging.exception('Unable to set charge state on this board')
 
     os.environ['CROS_FACTORY'] = '1'
     os.environ['CROS_DISABLE_SITE_SYSINFO'] = '1'
