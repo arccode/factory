@@ -358,4 +358,6 @@ class ChargerTest(unittest.TestCase):
       self._ui.Pass()
 
   def tearDown(self):
+    # Must enable charger to charge or we will drain the battery!
+    self._SetCharge()
     self._thread.join()
