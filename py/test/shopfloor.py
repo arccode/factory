@@ -319,6 +319,7 @@ def update_local_hwid_data():
     hwid_updater_sh.write(updater_data)
     os.fchmod(hwid_updater_sh.fileno(), 0755)
     hwid_updater_sh.close()
+    # pylint: disable=E1101
     factory.console.info(
         'Received HWID updater %s from shopfloor server (md5sum %s); '
         'executing',

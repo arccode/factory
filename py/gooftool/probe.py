@@ -767,7 +767,7 @@ def _GbbHash(image):
     f.seek(0)
     hash_src = f.read()
     assert len(hash_src) == len(data)
-  return 'gv2#' + hashlib.sha256(hash_src).hexdigest()
+  return 'gv2#' + hashlib.sha256(hash_src).hexdigest() # pylint: disable=E1101
 
 
 def _MainRoHash(image):
@@ -778,6 +778,7 @@ def _MainRoHash(image):
   image.put_section('GBB', zero_gbb)
   hash_src += image.get_section('RO_SECTION')
   image.put_section('GBB', gbb)
+  # pylint: disable=E1101
   return 'mv2#%s%s' % (hashlib.sha256(hash_src).hexdigest(),
                        _AddFirmwareIdTag(image))
 
@@ -786,6 +787,7 @@ def _EcRoHash(image):
   """Algorithm: sha256(fmap, EC_RO)."""
   hash_src = image.get_fmap_blob()
   hash_src += image.get_section('EC_RO')
+  # pylint: disable=E1101
   return 'ev2#%s%s' % (hashlib.sha256(hash_src).hexdigest(),
                        _AddFirmwareIdTag(image))
 
