@@ -184,6 +184,7 @@ class FinalizeBundle(object):
     self.LoadManifest()
     self.Download()
     self.DeleteFiles()
+    self.ModifyFactoryImage()
     self.MakeUpdateBundle()
     self.UpdateMiniOmahaURL()
     self.MakeFactoryPackages()
@@ -221,6 +222,7 @@ class FinalizeBundle(object):
         os.path.join(self.args.dir, 'MANIFEST.yaml')))
     CheckDictHasOnlyKeys(
         self.manifest, ['board', 'bundle_name', 'add_files', 'delete_files',
+                        'add_files_to_image',
                         'files', 'mini_omaha_url'])
 
     self.board = self.manifest['board']
@@ -312,6 +314,16 @@ class FinalizeBundle(object):
       path = os.path.join(self.bundle_dir, f)
       if os.path.exists(path):
         os.unlink(path)
+
+  def ModifyFactoryImage(self):
+    add_files_to_image = self.manifest.get('add_files_to_image', [])
+    if add_files_to_image:
+      with MountPartition(self.factory_image_path, 1, rw=True) as mount:
+        for f in add_files_to_image:
+          dest_dir = os.path.join(mount, 'dev_image', f['install_into'])
+          Spawn(['mkdir', '-p', dest_dir], log=True, sudo=True, check_call=True)
+          Spawn(['cp', '-a', os.path.join(self.bundle_dir, f['source']),
+                 dest_dir], log=True, sudo=True, check_call=True)
 
   def MakeUpdateBundle(self):
     # Make the factory update bundle
