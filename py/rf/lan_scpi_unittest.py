@@ -149,6 +149,7 @@ class LanScpiTest(unittest2.TestCase):
     self.lan_scpi = None
 
   def tearDown(self):
+    self.lan_scpi.Close()
     self.mock_server.shutdown() # pylint: disable=E1101
 
 if __name__ == '__main__':
