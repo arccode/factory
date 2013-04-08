@@ -17,6 +17,7 @@ import tempfile
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
+from cros.factory.test.utils import Retry
 from cros.factory.utils.process_utils import Spawn
 
 
@@ -197,9 +198,11 @@ def main():
           check_call=True, log=True)
 
   if args.run_test:
-    Spawn(ssh_command +
+    def GoofyRpcRunTest():
+      return Spawn(ssh_command +
           [args.host, 'goofy_rpc', r'RunTest\(\"%s\"\)' % args.run_test],
           check_call=True, log=True)
+    Retry(max_retry_times=10, interval=5, callback=None, target=GoofyRpcRunTest)
 
 if __name__ == '__main__':
   main()
