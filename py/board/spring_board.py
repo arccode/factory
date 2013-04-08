@@ -70,13 +70,13 @@ class SpringBoard(ChromeOSBoard):
       BoardException if state is unknown or it can not set charge state."""
     try:
       if state == Board.ChargeState.CHARGE:
-        self._CallECTool(['gpioset', 'boost_en', '1'])
+        self._CallECTool(['extpwrcurrentlimit', '9999'])
         self._CallECTool(['gpioset', 'charger_en', '1'])
       elif state == Board.ChargeState.IDLE:
-        self._CallECTool(['gpioset', 'boost_en', '1'])
+        self._CallECTool(['extpwrcurrentlimit', '9999'])
         self._CallECTool(['gpioset', 'charger_en', '0'])
       elif state == Board.ChargeState.DISCHARGE:
-        self._CallECTool(['gpioset', 'boost_en', '0'])
+        self._CallECTool(['extpwrcurrentlimit', '0'])
         self._CallECTool(['gpioset', 'charger_en', '0'])
       else:
         raise BoardException('Unknown EC charge state: %s' % state)
