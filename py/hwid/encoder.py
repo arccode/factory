@@ -75,6 +75,14 @@ def Encode(database, bom):
     A HWID object which contains the BOM, the binary string, and the encoded
     string derived from the given BOM object.
   """
-  binary_string = BOMToBinaryString(database, bom)
+  # Convert all encoded fields with None value to the default index 0.
+  components_to_update = {}
+  for field, index in bom.encoded_fields.iteritems():
+    if index is None:
+      for comp_cls, comp_name in database.encoded_fields[field][0].iteritems():
+        components_to_update[comp_cls] = comp_name
+  updated_bom = database.UpdateComponentsOfBOM(bom, components_to_update)
+
+  binary_string = BOMToBinaryString(database, updated_bom)
   encoded_string = BinaryStringToEncodedString(database, binary_string)
-  return HWID(database, binary_string, encoded_string, bom)
+  return HWID(database, binary_string, encoded_string, updated_bom)

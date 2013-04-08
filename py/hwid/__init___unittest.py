@@ -40,17 +40,21 @@ class HWIDTest(unittest2.TestCase):
     result = open(os.path.join(_TEST_DATA_PATH,
                                'test_probe_result.yaml'), 'r').read()
     bom = self.database.ProbeResultToBOM(result)
+    bom = self.database.UpdateComponentsOfBOM(
+        bom, {'camera': 'camera_0', 'display_panel': 'display_panel_0'})
     hwid = Encode(self.database, bom)
     self.assertEquals(None, hwid.VerifySelf())
 
-    # The correct binary string: '00000111010000010100'
+    # The correct binary string: '000000000011101000001100'
     original_value = hwid.binary_string
-    hwid.binary_string = '000001110100000101100'
+    hwid.binary_string = '00000000001110100000101100'
     self.assertRaisesRegexp(
         HWIDException, r'Invalid bit string length', hwid.VerifySelf)
-    hwid.binary_string = '00000011010000010100'
+    hwid.binary_string = '0000000001111010000011000'
     self.assertRaisesRegexp(
-        HWIDException, r'Binary string .* does not encode to encoded string .*',
+        HWIDException,
+        r"Encoded string CHROMEBOOK AA5A-Y6L does not decode to binary string "
+        r"'0000000001111010000011000'",
         hwid.VerifySelf)
     hwid.binary_string = original_value
 
@@ -67,7 +71,8 @@ class HWIDTest(unittest2.TestCase):
         hwid.VerifySelf)
     hwid.bom.encoded_fields['cpu'] = 2
     self.assertRaisesRegexp(
-        HWIDException, r'BOM does not encode to binary string .*',
+        HWIDException,
+        r"Binary string '0000000000111010000011000' does not decode to BOM",
         hwid.VerifySelf)
     hwid.bom = original_value
 
@@ -75,6 +80,8 @@ class HWIDTest(unittest2.TestCase):
     result = open(os.path.join(_TEST_DATA_PATH,
                                'test_probe_result.yaml'), 'r').read()
     bom = self.database.ProbeResultToBOM(result)
+    bom = self.database.UpdateComponentsOfBOM(
+        bom, {'camera': 'camera_0', 'display_panel': 'display_panel_0'})
     hwid = Encode(self.database, bom)
     fake_result = result.replace('HDMI 1', 'HDMI 0')
     self.assertRaisesRegexp(
@@ -159,7 +166,6 @@ class DatabaseTest(unittest2.TestCase):
        'ec_flash_chip': [('ec_flash_chip_0', 'EC Flash Chip', None)],
        'embedded_controller': [('embedded_controller_0', 'Embedded Controller',
                                None)],
-       'ethernet': [(None, None, "missing 'ethernet' component")],
        'flash_chip': [('flash_chip_0', 'Flash Chip', None)],
        'hash_gbb': [('hash_gbb_0', 'gv2#aaaaaaaaaaaaaaaaaaaaaaaaaaaa'
                      'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', None)],
@@ -316,7 +322,7 @@ class DatabaseTest(unittest2.TestCase):
 
   def testVerifyBinaryString(self):
     self.assertEquals(
-        None, self.database.VerifyBinaryString('00000101001101101100'))
+        None, self.database.VerifyBinaryString('0000000000111010000011000'))
     self.assertRaisesRegexp(
         HWIDException, r'Invalid binary string: .*',
         self.database.VerifyBinaryString, '020001010011011011000')
@@ -325,7 +331,7 @@ class DatabaseTest(unittest2.TestCase):
         self.database.VerifyBinaryString, '00000')
     self.assertRaisesRegexp(
         HWIDException, r'Invalid bit string length',
-        self.database.VerifyBinaryString, '0000010100110110111000')
+        self.database.VerifyBinaryString, '000000000010100110110111000')
 
   def testVerifyEncodedString(self):
     self.assertEquals(
@@ -467,7 +473,7 @@ class PatternTest(unittest2.TestCase):
     self.assertEquals(0, length['usb_hosts'])
     self.assertEquals(0, length['vga'])
     self.assertEquals(0, length['wireless'])
-    self.assertEquals(1, length['firmware'])
+    self.assertEquals(5, length['firmware'])
 
     original_value = self.pattern.pattern
     self.pattern.pattern = None
@@ -478,7 +484,7 @@ class PatternTest(unittest2.TestCase):
 
   def testGetTotalBitLength(self):
     length = self.database.pattern.GetTotalBitLength()
-    self.assertEquals(18, length)
+    self.assertEquals(22, length)
 
     original_value = self.pattern.pattern
     self.pattern.pattern = None
@@ -489,26 +495,34 @@ class PatternTest(unittest2.TestCase):
 
   def testGetBitMapping(self):
     mapping = self.pattern.GetBitMapping()
-    self.assertEquals('audio_codec', mapping[5].field)
-    self.assertEquals(0, mapping[5].bit_offset)
-    self.assertEquals('battery', mapping[6].field)
-    self.assertEquals(0, mapping[6].bit_offset)
-    self.assertEquals('battery', mapping[7].field)
-    self.assertEquals(1, mapping[7].bit_offset)
-    self.assertEquals('cellular', mapping[8].field)
-    self.assertEquals(0, mapping[8].bit_offset)
-    self.assertEquals('cpu', mapping[9].field)
+    self.assertEquals('firmware', mapping[5].field)
+    self.assertEquals(4, mapping[5].bit_offset)
+    self.assertEquals('firmware', mapping[6].field)
+    self.assertEquals(3, mapping[6].bit_offset)
+    self.assertEquals('firmware', mapping[7].field)
+    self.assertEquals(2, mapping[7].bit_offset)
+    self.assertEquals('firmware', mapping[8].field)
+    self.assertEquals(1, mapping[8].bit_offset)
+    self.assertEquals('firmware', mapping[9].field)
     self.assertEquals(0, mapping[9].bit_offset)
-    self.assertEquals('cpu', mapping[12].field)
-    self.assertEquals(1, mapping[12].bit_offset)
-    self.assertEquals('storage', mapping[13].field)
+    self.assertEquals('audio_codec', mapping[10].field)
+    self.assertEquals(0, mapping[10].bit_offset)
+    self.assertEquals('battery', mapping[11].field)
+    self.assertEquals(1, mapping[11].bit_offset)
+    self.assertEquals('battery', mapping[12].field)
+    self.assertEquals(0, mapping[12].bit_offset)
+    self.assertEquals('cellular', mapping[13].field)
     self.assertEquals(0, mapping[13].bit_offset)
-    self.assertEquals('storage', mapping[14].field)
-    self.assertEquals(1, mapping[14].bit_offset)
-    self.assertEquals('cpu', mapping[15].field)
-    self.assertEquals(2, mapping[15].bit_offset)
-    self.assertEquals('firmware', mapping[16].field)
-    self.assertEquals(0, mapping[16].bit_offset)
+    self.assertEquals('cpu', mapping[14].field)
+    self.assertEquals(0, mapping[14].bit_offset)
+    self.assertEquals('cpu', mapping[17].field)
+    self.assertEquals(1, mapping[17].bit_offset)
+    self.assertEquals('storage', mapping[18].field)
+    self.assertEquals(1, mapping[18].bit_offset)
+    self.assertEquals('storage', mapping[19].field)
+    self.assertEquals(0, mapping[19].bit_offset)
+    self.assertEquals('cpu', mapping[20].field)
+    self.assertEquals(2, mapping[20].bit_offset)
 
     original_value = self.pattern.pattern
     self.pattern.pattern = None

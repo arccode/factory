@@ -26,16 +26,23 @@ def BinaryStringToBOM(database, binary_string):
     A BOM object
   """
   database.VerifyBinaryString(binary_string)
+  stripped_binary_string = binary_string[:binary_string.rfind('1')]
 
   board = database.board
-  encoding_pattern = int(binary_string[0], 2)
-  image_id = int(binary_string[1:5], 2)
+  encoding_pattern = int(stripped_binary_string[0], 2)
+  image_id = int(stripped_binary_string[1:5], 2)
 
   # Construct the encoded fields dict.
   encoded_fields = collections.defaultdict(int)
   bit_mapping = database.pattern.GetBitMapping()
+  # Hack for Spring EVT
+  # TODO(jcliang): Remove this hack when we no longer need it.
+  if database.board == 'SPRING' and image_id == 0:
+    bit_mapping = database.pattern.GetBitMappingSpringEVT()
   for i, (field, bit_offset) in bit_mapping.iteritems():
-    encoded_fields[field] += int(binary_string[i], 2) << bit_offset
+    if i >= len(stripped_binary_string):
+      break
+    encoded_fields[field] += int(stripped_binary_string[i], 2) << bit_offset
   for field in (set(database.encoded_fields.keys()) -
                 set(encoded_fields.keys())):
     # If a field is not encoded in the binary string but is specified in
@@ -55,7 +62,8 @@ def BinaryStringToBOM(database, binary_string):
     attr_dict = database._GetAttributesByIndex(field, index)
     for comp_cls, attr_list in attr_dict.iteritems():
       if attr_list is None:
-        components[comp_cls].append(ProbedComponentResult(None, None, None))
+        components[comp_cls].append(ProbedComponentResult(
+            None, None, 'missing %r component' % comp_cls))
       else:
         for attrs in attr_list:
           components[comp_cls].append(

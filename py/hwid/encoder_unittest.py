@@ -29,13 +29,23 @@ class EncoderTest(unittest.TestCase):
     bom = self.database.UpdateComponentsOfBOM(
         bom, {'camera': 'camera_0', 'display_panel': 'display_panel_0'})
     self.assertEquals(
-        '00000111010000010100', BOMToBinaryString(self.database, bom))
-    bom.image_id = 5
+        '0000000000111010000011000', BOMToBinaryString(self.database, bom))
+    # Change firmware's encoded index to 1.
+    mocked_bom = self.database.UpdateComponentsOfBOM(
+        bom, {'ro_main_firmware': 'ro_main_firmware_1'})
     self.assertEquals(
-        '00101111010000010100', BOMToBinaryString(self.database, bom))
-    bom.encoding_pattern_index = 1
+        '0000000001111010000011000', BOMToBinaryString(self.database,
+                                                       mocked_bom))
+    # Change image id to 5.
+    mocked_bom.image_id = 5
     self.assertEquals(
-        '10101111010000010100', BOMToBinaryString(self.database, bom))
+        '0010100001111010000011000', BOMToBinaryString(self.database,
+                                                       mocked_bom))
+    # Change encoding pattern index to 1.
+    mocked_bom.encoding_pattern_index = 1
+    self.assertEquals(
+        '1010100001111010000011000', BOMToBinaryString(self.database,
+                                                       mocked_bom))
 
   def testBinaryStringToEncodedString(self):
     self.assertEquals('CHROMEBOOK A5AU-LU',
@@ -50,8 +60,8 @@ class EncoderTest(unittest.TestCase):
     bom = self.database.UpdateComponentsOfBOM(
         bom, {'camera': 'camera_0', 'display_panel': 'display_panel_0'})
     hwid = Encode(self.database, bom)
-    self.assertEquals('00000111010000010100', hwid.binary_string)
-    self.assertEquals('CHROMEBOOK A5AU-LU', hwid.encoded_string)
+    self.assertEquals('0000000000111010000011000', hwid.binary_string)
+    self.assertEquals('CHROMEBOOK AA5A-Y6L', hwid.encoded_string)
 
 
 if __name__ == '__main__':

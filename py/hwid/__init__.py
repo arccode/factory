@@ -105,18 +105,18 @@ class HWID(object):
       HWIDException on verification error.
     """
     # pylint: disable=W0404
-    from cros.factory.hwid.encoder import BOMToBinaryString
-    from cros.factory.hwid.encoder import BinaryStringToEncodedString
+    from cros.factory.hwid.decoder import BinaryStringToBOM
+    from cros.factory.hwid.decoder import EncodedStringToBinaryString
     self.database.VerifyBOM(self.bom)
     self.database.VerifyBinaryString(self.binary_string)
     self.database.VerifyEncodedString(self.encoded_string)
-    if (BinaryStringToEncodedString(self.database, self.binary_string) !=
-        self.encoded_string):
+    if (EncodedStringToBinaryString(self.database, self.encoded_string) !=
+        self.binary_string):
       raise HWIDException(
-          'Binary string %s does not encode to encoded string %r' %
-          (self.binary_string, self.encoded_string))
-    if BOMToBinaryString(self.database, self.bom) != self.binary_string:
-      raise HWIDException('BOM does not encode to binary string %r' %
+          'Encoded string %s does not decode to binary string %r' %
+          (self.encoded_string, self.binary_string))
+    if BinaryStringToBOM(self.database, self.binary_string) != self.bom:
+      raise HWIDException('Binary string %r does not decode to BOM' %
                           self.binary_string)
     # No exception. Everything is good!
 
@@ -192,6 +192,12 @@ class BOM(object):
       A deepcopy of the original BOM object.
     """
     return copy.deepcopy(self)
+
+  def __eq__(self, op2):
+    return self.__dict__ == op2.__dict__
+
+  def __ne__(self, op2):
+    return not self.__eq__(op2)
 
 class Database(object):
   """A class for reading in, parsing, and obtaining information of the given
@@ -956,6 +962,39 @@ class _Pattern(object):
 
     For example, the returned map may say that bit 5 in the encoded binary
     string corresponds to the least significant bit of encoded field 'cpu'.
+
+    Returns:
+      A list of BitEntry objects indexed by bit position in the encoded binary
+      string. Each BitEntry object has attributes (field, bit_offset) indicating
+      which bit_offset of field this particular bit corresponds to. For example,
+      if ret[6] has attributes (field='cpu', bit_offset=1), then it means that
+      bit position 6 of the encoded binary string corresponds to the bit offset
+      1 (which is the second least significant bit) of encoded field 'cpu'.
+    """
+    BitEntry = collections.namedtuple('BitEntry', ['field', 'bit_offset'])
+
+    if self.pattern is None:
+      raise HWIDException(
+          'Cannot construct bit mapping with uninitialized pattern')
+    ret = {}
+    index = HWID.HEADER_BITS   # Skips the 5-bit common header.
+    field_offset_map = collections.defaultdict(int)
+    for element in self.pattern:
+      for field, length in element.iteritems():
+        # Reverse bit order.
+        field_offset_map[field] += length
+        first_bit_index = field_offset_map[field] - 1
+        for field_index in xrange(
+            first_bit_index, first_bit_index - length, -1):
+          ret[index] = BitEntry(field, field_index)
+          index += 1
+    return ret
+
+  def GetBitMappingSpringEVT(self):
+    """Gets a map indicating the bit offset of certain encoded field a bit in a
+    encoded binary string corresponds to.
+
+    This is a hack for Spring EVT, which used the LSB first encoding pattern.
 
     Returns:
       A list of BitEntry objects indexed by bit position in the encoded binary

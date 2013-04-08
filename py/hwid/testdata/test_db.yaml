@@ -13,13 +13,16 @@ image_id:
   5: BUZ
 
 pattern:
+  - firmware: 5             # 5 bits
+
   - audio_codec: 1
   - battery: 2
   - bluetooth: 0
   - camera: 0
   - cellular: 1
   - chipset: 0
-  - cpu: 1                  # 5 bits
+  - cpu: 1                  # 10 bits
+
   - display_panel: 0
   - dram: 1
   - ec_flash_chip: 0
@@ -27,14 +30,14 @@ pattern:
   - flash_chip: 0
   - keyboard: 1
   - cpu: 1
-  - storage: 2              # 10 bits
+  - storage: 2              # 15 bits
+
   - touchpad: 0
   - tpm: 0
   - usb_hosts: 0
   - vga: 0
   - wireless: 0
-  - cpu: 1
-  - firmware: 1             # 12 bits
+  - cpu: 1                  # 16 bits
 
 encoded_fields:
   audio_codec:
@@ -146,7 +149,6 @@ probeable_components:
   - dram
   - ec_flash_chip
   - embedded_controller
-  - ethernet
   - flash_chip
   - keyboard
   - storage
@@ -244,11 +246,6 @@ components:
   embedded_controller:
     embedded_controller_0:
       value: Embedded Controller
-
-  ethernet:
-    ehternet_0:
-      value: Ethernet
-      labels: [Ethernet]
 
   flash_chip:
     flash_chip_0:

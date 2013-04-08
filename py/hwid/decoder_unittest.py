@@ -9,7 +9,7 @@ import factory_common # pylint: disable=W0611
 import os
 import unittest2
 
-from cros.factory.hwid import Database, HWIDException
+from cros.factory.hwid import Database, HWIDException, DEFAULT_HWID_DATA_PATH
 from cros.factory.hwid.decoder import EncodedStringToBinaryString
 from cros.factory.hwid.decoder import BinaryStringToBOM, Decode
 
@@ -26,7 +26,7 @@ class DecoderTest(unittest2.TestCase):
        'battery': [('battery_huge', 'Battery Li-ion 10000000', None)],
        'bluetooth': [('bluetooth_0', '0123:abcd 0001', None)],
        'camera': [('camera_0', '4567:abcd Camera', None)],
-       'cellular': [(None, None, None)],
+       'cellular': [(None, None, "missing 'cellular' component")],
        'chipset': [('chipset_0', 'cdef:abcd', None)],
        'cpu': [('cpu_5', 'CPU @ 2.80GHz [4 cores]', None)],
        'display_panel': [('display_panel_0', 'FOO:0123 [1440x900]', None)],
@@ -74,20 +74,22 @@ class DecoderTest(unittest2.TestCase):
     reference_bom = self.database.ProbeResultToBOM(result)
     reference_bom.encoded_fields['camera'] = 0
     reference_bom.encoded_fields['display_panel'] = 0
-    bom = BinaryStringToBOM(self.database, '00000111010000010100')
+    bom = BinaryStringToBOM(self.database, '0000000000111010000011000')
     self.assertEquals(reference_bom.board, bom.board)
     self.assertEquals(reference_bom.encoding_pattern_index,
                       bom.encoding_pattern_index)
     self.assertEquals(reference_bom.image_id, bom.image_id)
     self.assertEquals(reference_bom.encoded_fields, bom.encoded_fields)
     self.assertEquals(self.expected_components_from_db, bom.components)
+    bom = BinaryStringToBOM(self.database, '0000000001111010000011000')
+    self.assertEquals(1, bom.encoded_fields['firmware'])
     self.assertEquals(5, BinaryStringToBOM(
-        self.database, '00101111010000010100').image_id)
+        self.database, '0010100000111010000011000').image_id)
     self.assertEquals(1, BinaryStringToBOM(
-        self.database, '10000111010000010100').encoding_pattern_index)
+        self.database, '1000000000111010000011000').encoding_pattern_index)
     self.assertRaisesRegexp(
         HWIDException, r"Invalid encoded field index: {'cpu': 6}",
-        BinaryStringToBOM, self.database, '00000111000010010100')
+        BinaryStringToBOM, self.database, '0000000000111000010011000')
 
   def testDecode(self):
     result = open(os.path.join(_TEST_DATA_PATH,
@@ -95,15 +97,74 @@ class DecoderTest(unittest2.TestCase):
     reference_bom = self.database.ProbeResultToBOM(result)
     reference_bom.encoded_fields['camera'] = 0
     reference_bom.encoded_fields['display_panel'] = 0
-    hwid = Decode(self.database, 'CHROMEBOOK A5AU-LU')
-    self.assertEquals('00000111010000010100', hwid.binary_string)
-    self.assertEquals('CHROMEBOOK A5AU-LU', hwid.encoded_string)
+    hwid = Decode(self.database, 'CHROMEBOOK AA5A-Y6L')
+    self.assertEquals('0000000000111010000011000', hwid.binary_string)
+    self.assertEquals('CHROMEBOOK AA5A-Y6L', hwid.encoded_string)
     self.assertEquals(reference_bom.board, hwid.bom.board)
     self.assertEquals(reference_bom.encoding_pattern_index,
                       hwid.bom.encoding_pattern_index)
     self.assertEquals(reference_bom.image_id, hwid.bom.image_id)
     self.assertEquals(reference_bom.encoded_fields, hwid.bom.encoded_fields)
     self.assertEquals(self.expected_components_from_db, hwid.bom.components)
+
+  def testPreviousVersionOfEncodedString(self):
+    bom = BinaryStringToBOM(self.database, '0000000000111010000010000')
+    self.assertEquals(1, bom.encoded_fields['cpu'])
+    hwid = Decode(self.database, 'CHROMEBOOK AA5A-Q7Z')
+    self.assertEquals('0000000000111010000010000', hwid.binary_string)
+    self.assertEquals('CHROMEBOOK AA5A-Q7Z', hwid.encoded_string)
+    self.assertEquals(1, hwid.bom.encoded_fields['cpu'])
+
+  def testDecodeSpringEVT(self):
+    database = Database.LoadFile(os.path.join(DEFAULT_HWID_DATA_PATH, 'SPRING'))
+    hwid = Decode(database, 'SPRING AAAJ-ZYVT')
+    self.assertEquals({
+        'keyboard_field': 0,
+        'firmware_field': 0,
+        'antenna_field': 0,
+        'audio_codec_field': 0,
+        'battery_field': 1,
+        'bluetooth_field': 0,
+        'camera_field': 0,
+        'cellular_field': 1,
+        'chipset_field': 0,
+        'cpu_field': 0,
+        'display_panel_field': 0,
+        'dram_field': 1,
+        'embedded_controller_field': 0,
+        'flash_chip_field': 1,
+        'pcb_vendor_field': 0,
+        'pmic_field': 0,
+        'storage_field': 1,
+        'touchpad_field': 1,
+        'tpm_field': 0,
+        'usb_hosts_field': 0,
+        'wireless_field': 0,
+        }, hwid.bom.encoded_fields)
+    hwid = Decode(database, 'SPRING AQAJ-ZYJR')
+    self.assertEquals({
+        'keyboard_field': 1,
+        'firmware_field': 0,
+        'antenna_field': 0,
+        'audio_codec_field': 0,
+        'battery_field': 1,
+        'bluetooth_field': 0,
+        'camera_field': 0,
+        'cellular_field': 1,
+        'chipset_field': 0,
+        'cpu_field': 0,
+        'display_panel_field': 0,
+        'dram_field': 1,
+        'embedded_controller_field': 0,
+        'flash_chip_field': 1,
+        'pcb_vendor_field': 0,
+        'pmic_field': 0,
+        'storage_field': 1,
+        'touchpad_field': 1,
+        'tpm_field': 0,
+        'usb_hosts_field': 0,
+        'wireless_field': 0,
+        }, hwid.bom.encoded_fields)
 
 
 if __name__ == '__main__':

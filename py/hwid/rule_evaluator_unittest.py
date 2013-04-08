@@ -26,6 +26,9 @@ class RuleEvaluatorTest(unittest.TestCase):
     result = open(os.path.join(_TEST_DATA_PATH,
                                'test_probe_result.yaml'), 'r').read()
     bom = self.database.ProbeResultToBOM(result)
+    # Manually set unprobeable components.
+    bom = self.database.UpdateComponentsOfBOM(
+        bom, {'camera': 'camera_0', 'display_panel': 'display_panel_0'})
     self.hwid = Encoder.Encode(self.database, bom)
 
   def testConvertYamlStringToSet(self):

@@ -143,7 +143,6 @@ probeable_components:
   - dram
   - ec_flash_chip
   - embedded_controller
-  - ethernet
   - flash_chip
   - storage
   - touchpad
@@ -240,11 +239,6 @@ components:
   embedded_controller:
     embedded_controller_0:
       value: Embedded Controller
-
-  ethernet:
-    ehternet_0:
-      value: Ethernet
-      labels: [Ethernet]
 
   flash_chip:
     flash_chip_0:
