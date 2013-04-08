@@ -125,6 +125,7 @@ class WebSocketManager(object):
       'Sec-WebSocket-Accept',
       base64.b64encode(sha1(encoded_key + ws4py.WS_KEY).digest()))
     request.end_headers()
+    request.wfile.flush()
 
     class MyWebSocket(WebSocket):
       def received_message(socket_self, message):
