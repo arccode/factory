@@ -21,16 +21,6 @@ from cros.factory.utils.process_utils import Spawn, SpawnOutput
 DEFAULT_TIMEOUT = 10
 
 
-class TimeoutHTTPConnection(httplib.HTTPConnection):
-  def connect(self):
-    httplib.HTTPConnection.connect(self)
-    self.sock.settimeout(self.timeout)
-
-class TimeoutHTTP(httplib.HTTP):
-  _connection_class = TimeoutHTTPConnection
-  def set_timeout(self, timeout):
-    self._conn.timeout = timeout
-
 class TimeoutXMLRPCTransport(xmlrpclib.Transport):
   '''Transport subclass supporting timeout.'''
   def __init__(self, timeout=DEFAULT_TIMEOUT, *args, **kwargs):
@@ -38,8 +28,7 @@ class TimeoutXMLRPCTransport(xmlrpclib.Transport):
     self.timeout = timeout
 
   def make_connection(self, host):
-    conn = TimeoutHTTP(host)
-    conn.set_timeout(self.timeout)
+    conn = httplib.HTTPConnection(host, timeout=self.timeout)
     return conn
 
 class TimeoutXMLRPCServerProxy(xmlrpclib.ServerProxy):
