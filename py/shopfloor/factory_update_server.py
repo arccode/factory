@@ -22,7 +22,10 @@ import subprocess
 import threading
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.utils.process_utils import Spawn, TerminateOrKillProcess
+from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils.server_utils import (RsyncModule, StartRsyncServer,
+                                             StopRsyncServer)
+
 
 
 FACTORY_DIR = 'factory'
@@ -34,42 +37,6 @@ LATEST_MD5SUM = 'latest.md5sum'
 DEFAULT_UPDATE_DIR = '/var/db/factory/updates/'
 MD5SUM = 'MD5SUM'
 DEFAULT_RSYNCD_PORT = 8083
-RSYNCD_CONFIG_TEMPLATE = '''port = %(port)d
-pid file = %(pidfile)s
-log file = %(logfile)s
-use chroot = no
-[factory]
-  path = %(factory_dir)s
-  read only = yes
-'''
-
-
-def StartRsyncServer(port, state_dir, factory_dir):
-  configfile = os.path.join(state_dir, 'rsyncd.conf')
-  pidfile = os.path.join(state_dir, 'rsyncd.pid')
-  if os.path.exists(pidfile):
-    # Since rsyncd will not overwrite it if it already exists
-    os.unlink(pidfile)
-  logfile = os.path.join(state_dir, 'rsyncd.log')
-  data = RSYNCD_CONFIG_TEMPLATE % dict(port=port,
-                                       pidfile=pidfile,
-                                       logfile=logfile,
-                                       factory_dir=factory_dir)
-  with open(configfile, 'w') as f:
-    f.write(data)
-
-  p = Spawn(['rsync', '--daemon', '--no-detach', '--config=%s' % configfile],
-            log=True)
-  logging.info('Rsync server (pid %d) started on port %d', p.pid, port)
-  return p
-
-
-def StopRsyncServer(rsyncd_process):
-  logging.info('Stopping rsync server (pid %d)', rsyncd_process.pid)
-  TerminateOrKillProcess(rsyncd_process)
-  logging.debug('Rsync server stopped')
-
-
 def CalculateMd5sum(filename):
   p = subprocess.Popen(('md5sum', filename), stdout=subprocess.PIPE)
   output, _ = p.communicate()
@@ -164,7 +131,8 @@ class FactoryUpdateServer():
     self.on_idle = on_idle
 
     self._stop_event = threading.Event()
-    self._rsyncd = StartRsyncServer(rsyncd_port, state_dir, self.factory_dir)
+    self._rsyncd = StartRsyncServer(rsyncd_port, state_dir,
+        [RsyncModule(module='factory', path=self.factory_dir, read_only=True)])
     self._tarball_path = os.path.join(self.state_dir, TARBALL_NAME)
     self._blacklist_path = os.path.join(state_dir, BLACKLIST_NAME)
     self._blacklist = []

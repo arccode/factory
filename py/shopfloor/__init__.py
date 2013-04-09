@@ -21,7 +21,7 @@ import xmlrpclib
 from xmlrpclib import Binary
 
 import factory_common
-from cros.factory.shopfloor import factory_update_server
+from cros.factory.shopfloor import factory_update_server, factory_log_server
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import utils
@@ -34,6 +34,7 @@ REPORTS_DIR = 'reports'
 AUX_LOGS_DIR = 'aux_logs'
 UPDATE_DIR = 'update'
 PARAMETERS_DIR = 'parameters'
+FACTORY_LOG_DIR = 'system_logs'
 REGISTRATION_CODE_LOG_CSV = 'registration_code_log.csv'
 LOGS_DIR_FORMAT = 'logs.%Y%m%d'
 
@@ -54,6 +55,9 @@ class ShopFloorBase(object):
     config: The configuration data provided by the '-c' argument to
       shopfloor_server.
     data_dir: The top-level directory for shopfloor data.
+    update_server: An FactoryUpdateServer for factory environment update.
+    log_server: An FactoryLogServer for factory log files to be uploaded
+      from dut.
     _auto_archive_logs: An optional path to use for auto-archiving
       logs (see the --auto-archive-logs command-line argument).  This
       must contain the string 'DATE'.
@@ -71,6 +75,8 @@ class ShopFloorBase(object):
     self.update_dir = None
     self.parameters_dir = None
     self.update_server = None
+    self.factory_log_dir = None
+    self.log_server = None
     self._auto_archive_logs = None
     self._auto_archive_logs_days = None
     self._auto_archive_logs_dir_exists = None
@@ -109,17 +115,25 @@ class ShopFloorBase(object):
     self.parameters_dir = os.path.join(self.data_dir, PARAMETERS_DIR)
     utils.TryMakeDirs(self.parameters_dir)
     self.parameters_dir = os.path.realpath(self.parameters_dir)
+    # Create factory log directory
+    self.factory_log_dir = os.path.join(self.data_dir, FACTORY_LOG_DIR)
+    utils.TryMakeDirs(self.factory_log_dir)
+    self.factory_log_dir = os.path.realpath(self.factory_log_dir)
+    self.log_server = factory_log_server.FactoryLogServer(self.factory_log_dir)
 
   def _StartBase(self):
     """Starts the base class."""
     if self.update_server:
       logging.debug('Starting factory update server...')
       self.update_server.Start()
+    logging.debug('Starting factory log server...')
+    self.log_server.Start()
 
   def _StopBase(self):
     """Stops the base class."""
     if self.update_server:
       self.update_server.Stop()
+    self.log_server.Stop()
 
   def _AutoSaveLogs(self):
     """Implements functionality to automatically save logs to USB.
@@ -485,6 +499,14 @@ class ShopFloorBase(object):
         hwid, registration_code_map['user'], registration_code_map['group'],
         time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())])
       os.fdatasync(f.fileno())
+
+  def GetFactoryLogPort(self):
+    """Returns the port to use for rsync factory logs.
+
+    Returns:
+      The port, or None if there is no factory log server available.
+    """
+    return self.log_server.rsyncd_port if self.log_server else None
 
   def GetTestMd5sum(self):
     """Gets the latest md5sum of dynamic test tarball.
