@@ -11,7 +11,8 @@ instance, on a device with a 32GB hard drive, cgpt reports that partition 1 is
 about 25 GiB, but the size of the filesystem is only about 1 GiB.  We
 run the test on the unused 24 GiB.)
 
-Alternatively one can specify the use of a file in the filesystem.
+Alternatively one can specify the use of a file in the filesystem allocated by
+the test, or raw mode where a specific file/partition must be provided.
 '''
 
 import logging
@@ -49,10 +50,11 @@ class BadBlocksTest(unittest.TestCase):
 
   ARGS = [
       Arg('mode', str, 'String to specify which operating mode to use, '
-          'currently this supports file or stateful_partition_free_space.',
+          'currently this supports file, raw or stateful_partition_free_space.',
           default='stateful_partition_free_space'),
       Arg('device_path', str, 'Override the device path on which to test. '
-          'Also functions as a file path for file mode.', optional=True),
+          'Also functions as a file path for file and raw modes.',
+           optional=True),
       Arg('max_bytes', (int, long), 'Maximum size to test, in bytes.',
           optional=True),
       Arg('max_errors', int, 'Stops testing after the given number of errors.',
@@ -83,6 +85,8 @@ class BadBlocksTest(unittest.TestCase):
       # We don't want to try running bad blocks on <1kB
       self.assertTrue(self.args.max_bytes >= 1024, 'max_bytes too small.')
     if self.args.device_path is None:
+      if self.args.mode == 'raw':
+        raise ValueError('In raw mode the device_path must be specified.')
       self.args.device_path = self._ProbeStorageDevices(_STORAGE_DEVICE_PATHS)
     if self.args.mode == 'file':
       if self.args.device_path[0:5] == '/dev/':
@@ -126,13 +130,29 @@ class BadBlocksTest(unittest.TestCase):
   def _CheckBadBlocksImpl(self):
     self.assertFalse(utils.in_chroot(),
                      'badblocks test may not be run within the chroot')
+    first_block = 0
+    sector_size = 1024
     if self.args.mode == 'file':
-      logging.info('Using a local file at %s, size %dB.', self.args.device_path,
-                   self.args.max_bytes)
-      # Using an arbitrary 1024B sector size for file mode.
-      sector_size = 1024
-      first_block = 0
       last_block = self.args.max_bytes / sector_size
+      logging.info('Using a generated file at %s, size %dB, sector size %dB, '
+                   'last block %d.', self.args.device_path, self.args.max_bytes,
+                   sector_size, last_block)
+    elif self.args.mode == 'raw':
+      # For some files like dev nodes we cannot trust the stats provided by
+      # the os, so we manually seek to the end of the file to determine size.
+      with open(self.args.device_path, 'rb') as f:
+        f.seek(0, 2)
+        raw_file_bytes = f.tell()
+      if self.args.max_bytes is None or self.args.max_bytes > raw_file_bytes:
+        logging.info('Setting max_bytes to the available size of %dB.',
+                     raw_file_bytes)
+        self.args.max_bytes = raw_file_bytes
+      if self.args.device_path[0:5] == '/dev/':
+        sector_size = self._GetBlockSize(self.args.device_path)
+      last_block = self.args.max_bytes / sector_size
+      logging.info('Using an existing file at %s, size %dB, sector size %dB, '
+                   'last block %d.', self.args.device_path, self.args.max_bytes,
+                   sector_size, last_block)
     elif self.args.mode == 'stateful_partition_free_space':
       part_prefix = 'p' if self._is_mmc else ''
       # Always partition 1
@@ -153,9 +173,7 @@ class BadBlocksTest(unittest.TestCase):
           int(Spawn(['cgpt', 'show', self.args.device_path, '-i', '1', flag],
                     log=True, check_output=True).stdout_data.strip())
           for flag in ('-b', '-s')]
-      sector_size = int(
-          open('/sys/class/block/%s/queue/hw_sector_size'
-               % os.path.basename(self.args.device_path)).read().strip())
+      sector_size = self._GetBlockSize(self.args.device_path)
 
       # Could get this to work, but for now we assume that fs_block_size is a
       # multiple of sector_size.
@@ -370,6 +388,19 @@ class BadBlocksTest(unittest.TestCase):
       f.seek(file_bytes - 1)
       f.write('\0')
     return file_bytes
+
+  def _GetBlockSize(self, dev_node_path):
+    '''
+    Read the block size of a given device from sysfs.
+
+    Args:
+      dev_node_path: String of the path to the dev node of a device.
+
+    Returns:
+      Int, number of bytes in a block.
+    '''
+    return int(open('/sys/class/block/%s/queue/hw_sector_size'
+                    % os.path.basename(dev_node_path)).read().strip())
 
   def _LogSmartctl(self):
     # No smartctl on mmc.
