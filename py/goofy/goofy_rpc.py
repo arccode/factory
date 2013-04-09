@@ -96,6 +96,20 @@ class GoofyRPC(object):
     self.goofy.run_queue.put(Target)
     return ret_value.get()
 
+  def AddNote(self, note):
+    note['timestamp'] = int(time.time())
+    self.goofy.event_log.Log('note',
+                             name=note['name'],
+                             text=note['text'],
+                             timestamp=note['timestamp'],
+                             level=note['level'])
+    logging.info('Factory note from %s at %s (level=%s): %s',
+                 note['name'], note['timestamp'], note['level'],
+                 note['text'])
+    self.goofy.run_queue.put(self.goofy.stop)
+    return self.goofy.state_instance.append_shared_data_list(
+        'factory_note', note)
+
   def GetVarLogMessages(self, max_length=256*1024):
     '''Returns the last n bytes of /var/log/messages.
 

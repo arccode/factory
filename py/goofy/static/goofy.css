@@ -209,6 +209,21 @@ h1 {
   height: 18px;
   vertical-align: -3px;
   padding: 0 3px 0 7px;
+  min-width: 18px;
+  display: inline-block;
+  background-color: white;
+  background-image: url('images/logo128.png');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+}
+.goofy-note-warning#goofy-logo, .goofy-note-critical#goofy-logo {
+  background-image: url('images/warning.svg');
+  cursor: pointer;
+}
+.goofy-note-info#goofy-logo {
+  background-image: url('images/info.png');
+  cursor: pointer;
 }
 #goofy-logo-text {
   vertical-align: middle;
@@ -343,6 +358,62 @@ table + .goofy-history-header {
 }
 #goofy-system-info-hover {
   margin-top: -1px;
+}
+.goofy-note-name {
+  font-size: 75%;
+  min-width: 75px;
+  padding-right: 5px;
+  text-align: right;
+  padding-top: 5px;
+}
+.goofy-note-text {
+  font-size: 75%;
+  white-space: pre;
+  min-width: 200px;
+}
+.goofy-note-time {
+  font-size: 75%;
+  font-style: italic;
+  min-width: 75px;
+}
+#goofy-note-list {
+  margin-left: auto;
+  margin-right: auto;
+}
+.goofy-note-container {
+  overflow: auto;
+}
+.goofy-addnote-table th {
+  vertical-align: middle;
+}
+#goofy-addnote-text {
+  min-width: 350px;
+  min-height: 100px;
+}
+.goofy-fullnote-display-outer {
+  display: table;
+  height: 100%; width: 100%;
+}
+.goofy-fullnote-display-inner {
+  display: table-cell;
+  vertical-align: middle;
+  text-align: center;
+  background-color: pink;
+}
+.goofy-fullnote-title {
+  font-size: 3em;
+  text-align: center;
+}
+.goofy-fullnote-logo {
+  height: 170px;
+  width: 170px;
+  vertical-align: middle;
+}
+.goofy-fullnote-note {
+  max-height: 300px;
+  min-width: 460px;
+  overflow: auto;
+  display: inline-block;
 }
 .goofy-unknown {
   color: darkgray;

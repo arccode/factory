@@ -325,6 +325,32 @@ class FactoryState(object):
     self._data_shelf[key] = data
     return data
 
+  @_synchronized
+  def append_shared_data_list(self, key, new_item):
+    '''
+    Appends an item to a shared data item whose value is a list.
+
+    This is roughly equivalent to
+
+      data = get_shared_data(key) or []
+      data.append(new_item)
+      set_shared_data(key, data)
+      return data
+
+    except that it is atomic.
+
+    Args:
+      key: The key for the data item to append.
+      new_item: The item to be appended.
+
+    Returns:
+      The updated value.
+    '''
+    data = self._data_shelf.get(key, [])
+    data.append(new_item)
+    self._data_shelf[key] = data
+    return data
+
   def get_test_history(self, *test_paths):
     '''Returns metadata for all previous (and current) runs of a test.'''
     ret = []

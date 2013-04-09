@@ -651,11 +651,21 @@ class Goofy(object):
       # this event.
       logging.debug('Unbound event type %s', event.type)
 
+  def check_critical_factory_note(self):
+    '''
+    Returns True if the last factory note is critical.
+    '''
+    notes = self.state_instance.get_shared_data('factory_note', True)
+    return notes and notes[-1]['level'] == 'CRITICAL'
+
   def run_next_test(self):
     '''
     Runs the next eligible test (or tests) in self.tests_to_run.
     '''
     self.reap_completed_tests()
+    if self.tests_to_run and self.check_critical_factory_note():
+      self.tests_to_run.clear()
+      return
     while self.tests_to_run:
       logging.debug('Tests to run: %s',
               [x.path for x in self.tests_to_run])

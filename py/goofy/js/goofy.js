@@ -372,6 +372,66 @@ cros.factory.Invocation.prototype.dispose = function() {
 };
 
 /**
+ * Types of notes.
+ * @type Array.<string, string>
+ */
+cros.factory.NOTE_LEVEL = [
+    {'name': 'INFO', 'message': 'Informative message only'},
+    {'name': 'WARNING','message': 'Displays a warning icon'},
+    {'name': 'CRITICAL', 'message': 'Testing is stopped indefinitely'}];
+
+/**
+ * Constructor for Note.
+ * @constructor
+ * @param {string} name
+ * @param {string} text
+ * @param {string} timestamp
+ * @param {string} level
+ */
+cros.factory.Note = function(name, text, timestamp, level) {
+    this.name = name;
+    this.text = text;
+    this.timestamp = timestamp;
+    this.level = level;
+}
+
+/**
+ * UI for displaying critical factory notes.
+ * @constructor
+ * @param {Array.<cros.factory.Note>} notes
+ */
+cros.factory.CriticalNoteDisplay = function(goofy, notes) {
+    this.goofy = goofy;
+    this.div = goog.dom.createDom('div', 'goofy-fullnote-display-outer');
+    document.getElementById('goofy-main').appendChild(this.div);
+
+    var innerDiv = goog.dom.createDom('div', 'goofy-fullnote-display-inner');
+    this.div.appendChild(innerDiv);
+
+    var titleDiv = goog.dom.createDom('div', 'goofy-fullnote-title');
+    var titleImg = goog.dom.createDom('img', {'class': 'goofy-fullnote-logo',
+                                              'src': 'images/warning.svg'});
+    titleDiv.appendChild(titleImg);
+    titleDiv.appendChild(cros.factory.Content('Factory tests stopped',
+                                              '工厂测试已停止'));
+    innerDiv.appendChild(titleDiv);
+
+    var noteDiv = goog.dom.createDom('div', 'goofy-fullnote-note');
+    noteDiv.innerHTML = this.goofy.getNotesView();
+    innerDiv.appendChild(noteDiv);
+};
+
+/**
+ * Disposes of the critical factory notes display.
+ */
+cros.factory.CriticalNoteDisplay.prototype.dispose = function() {
+    if (this.div) {
+        goog.dom.removeNode(this.div);
+        this.div = null;
+    }
+};
+
+/**
  * The main Goofy UI.
  *
  * @constructor
@@ -746,6 +806,7 @@ cros.factory.Goofy.prototype.init = function() {
     });
     this.sendRpc('get_test_list', [], this.setTestList);
     this.sendRpc('get_shared_data', ['system_info'], this.setSystemInfo);
+    this.sendRpc('get_shared_data', ['factory_note'], this.updateNote);
     this.sendRpc(
         'get_shared_data', ['test_list_options'],
             function(options) {
@@ -884,6 +945,77 @@ cros.factory.Goofy.prototype.setSystemInfo = function(systemInfo) {
 
     goog.dom.classes.enable(document.body, 'goofy-update-available',
                             !!systemInfo['update_md5sum']);
+};
+
+/**
+ * Updates notes.
+ */
+cros.factory.Goofy.prototype.updateNote = function(notes) {
+    this.notes = notes;
+    var currentLevel = notes ? notes[notes.length - 1].level : '';
+
+    goog.array.forEach(cros.factory.NOTE_LEVEL, function(lvl) {
+        goog.dom.classes.enable(document.getElementById('goofy-logo'),
+                                'goofy-note-' + lvl['name'].toLowerCase(),
+                                currentLevel == lvl['name']);
+    });
+
+    if (this.noteDisplay) {
+        this.noteDisplay.dispose();
+        this.noteDisplay = null;
+    }
+
+    if (notes && notes[notes.length - 1].level == 'CRITICAL') {
+        this.noteDisplay =
+            new cros.factory.CriticalNoteDisplay(this, notes);
+    }
+};
+
+cros.factory.Goofy.prototype.MDHMS_TIME_FORMAT =
+    new goog.i18n.DateTimeFormat('MM/dd HH:mm:ss');
+/**
+ * Gets factory notes list.
+ */
+cros.factory.Goofy.prototype.getNotesView = function() {
+    var table = [];
+    table.push('<table id="goofy-note-list">');
+    goog.array.forEachRight(this.notes, function(item) {
+        var d = new Date(0);
+        d.setUTCSeconds(item.timestamp);
+        table.push('<tr><td class="goofy-note-time">' +
+                   this.MDHMS_TIME_FORMAT.format(d) +
+                   '</td><th class="goofy-note-name">' +
+                   goog.string.htmlEscape(item.name) +
+                   '</th><td class="goofy-note-text">' +
+                   goog.string.htmlEscape(item.text) +
+                   '</td></tr>');
+    }, this);
+    table.push('</table>');
+    return table.join('');
+};
+
+/**
+ * Displays a dialog of notes.
+ */
+cros.factory.Goofy.prototype.viewNotes = function() {
+    if (!this.notes)
+        return;
+
+    var dialog = new goog.ui.Dialog();
+    this.registerDialog(dialog);
+    dialog.setModal(false);
+
+    var viewSize = goog.dom.getViewportSize(
+        goog.dom.getWindow(document) || window);
+    var maxWidth = viewSize.width * cros.factory.MAX_DIALOG_SIZE_FRACTION;
+    var maxHeight = viewSize.height * cros.factory.MAX_DIALOG_SIZE_FRACTION;
+
+    dialog.setContent('<div class="goofy-note-container" style="max-width: ' +
+                      maxWidth + '; max-height: ' + maxHeight + '">' +
+                      this.getNotesView() + '</div>');
+    dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
+    dialog.setVisible(true);
+    cros.factory.Goofy.setDialogTitleHTML(dialog, 'Factory Notes');
 };
 
 /**
@@ -1289,7 +1421,13 @@ cros.factory.Goofy.prototype.showTestPopup = function(path, labelElement,
     }
     countLeaves(test);
 
-    if (!this.engineeringMode && !this.allTestsRunBefore(test)) {
+    if (this.noteDisplay) {
+        var item = new goog.ui.MenuItem(cros.factory.Content(
+            'Critical factory note; cannot run tests',
+            '工厂测试已停止'));
+        menu.addChild(item, true);
+        item.setEnabled(false);
+    } else if (!this.engineeringMode && !this.allTestsRunBefore(test)) {
         var item = new goog.ui.MenuItem(cros.factory.Content(
             'Not in engineering mode; cannot skip tests',
             '工程模式才能跳过测试'));
@@ -1572,6 +1710,92 @@ cros.factory.Goofy.prototype.viewDmesg = function() {
         function(data) {
             this.showLogDialog('dmesg', data);
         });
+};
+
+/**
+ * Add a factory note.
+ * @param {string} name
+ * @param {string} note
+ */
+cros.factory.Goofy.prototype.addNote = function(name, note, level) {
+    if (!name || !note) {
+        alert('Both fields must not be empty!');
+        return false;
+    }
+    this.sendRpc('AddNote',
+                 [new cros.factory.Note(
+                      name,
+                      note,
+                      new goog.date.DateTime().toUTCIsoString(true, true),
+                      level)],
+                 this.updateNote);
+    return true;
+};
+
+/**
+ * Displays a dialog to modify factory note.
+ */
+cros.factory.Goofy.prototype.showNoteDialog = function() {
+    var dialog = new goog.ui.Dialog();
+    this.registerDialog(dialog);
+    dialog.setModal(true);
+    this.noteDialog = dialog;
+
+    var viewSize = goog.dom.getViewportSize(
+        goog.dom.getWindow(document) || window);
+    var maxWidth = viewSize.width * cros.factory.MAX_DIALOG_SIZE_FRACTION;
+    var maxHeight = viewSize.height * cros.factory.MAX_DIALOG_SIZE_FRACTION;
+
+    var noteTable = [];
+    noteTable.push('<table class="goofy-addnote-table">');
+    noteTable.push(
+        '<tr><th>' +
+        cros.factory.Content('Your Name', '你的名字').innerHTML +
+        '</th><td>' +
+        '<input id="goofy-addnote-name" style="max-width: ' +
+        maxWidth + '"></td></tr>');
+    noteTable.push(
+        '<tr><th>' +
+        cros.factory.Content('Note Content', '注记内容').innerHTML +
+        '</th><td>' +
+        '<textarea id="goofy-addnote-text" style="max-width: ' +
+        maxWidth + '; max-height: ' + maxHeight + '">' +
+        '</textarea></td></tr>');
+    noteTable.push(
+        '<tr><th>' +
+        cros.factory.Content('Severity', '严重性').innerHTML +
+        '</th><td>' +
+        '<select id="goofy-addnote-level">');
+    goog.array.forEach(cros.factory.NOTE_LEVEL, function(lvl) {
+        noteTable.push('<option value="' + lvl['name'] + '"');
+        if (lvl['name'] == 'INFO')
+            noteTable.push(' default');
+        noteTable.push('>' + lvl['name'] + ': ' + lvl['message'] + '</option>');
+    }, this);
+    noteTable.push('</td></tr>');
+    noteTable.push('</table>');
+
+    dialog.setContent(noteTable.join(''));
+    var buttons = goog.ui.Dialog.ButtonSet.createOkCancel();
+    dialog.setButtonSet(buttons);
+    dialog.setVisible(true);
+    cros.factory.Goofy.setDialogTitleHTML(
+            dialog,
+            cros.factory.Content('Add Note', '新增注记').innerHTML);
+
+    var nameBox = document.getElementById('goofy-addnote-name');
+    var textBox = document.getElementById('goofy-addnote-text');
+    var levelBox = document.getElementById('goofy-addnote-level');
+
+    goog.events.listen(dialog, goog.ui.Dialog.EventType.SELECT,
+                       function(event) {
+                           if (event.key == "ok") {
+                               return this.addNote(
+                                   nameBox.value,
+                                   textBox.value,
+                                   levelBox.value);
+                           }
+                       }, false, this);
 };
 
 /**
@@ -1914,6 +2138,11 @@ cros.factory.Goofy.prototype.setTestList = function(testList) {
                                      '更新工厂软体',
                                      this.updateFactory);
                         extraItems.push(this.makeSwitchTestListMenu());
+                        extraItems.push(new goog.ui.MenuSeparator());
+                        addExtraItem('Save note on device', '注记',
+                                     this.showNoteDialog);
+                        addExtraItem('View notes', '检视注记',
+                                     this.viewNotes);
                         extraItems.push(new goog.ui.MenuSeparator());
                         addExtraItem('View /var/log/messages',
                                      '检视 /var/log/messages',
