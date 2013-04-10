@@ -26,10 +26,10 @@ import factory_common  # pylint: disable=W0611
 from cros.factory import event_log
 from cros.factory import system
 from cros.factory.event_log import EventLog
+from cros.factory.event_log_watcher import EventLogWatcher
 from cros.factory.goofy import test_environment
 from cros.factory.goofy import time_sanitizer
 from cros.factory.goofy import updater
-from cros.factory.goofy.event_log_watcher import EventLogWatcher
 from cros.factory.goofy.goofy_rpc import GoofyRPC
 from cros.factory.goofy.invocation import TestInvocation
 from cros.factory.goofy.prespawner import Prespawner

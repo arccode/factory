@@ -13,8 +13,8 @@ import tempfile
 import time
 import unittest
 
-from cros.factory.goofy import event_log_watcher
-from cros.factory.goofy.event_log_watcher import EventLogWatcher
+from cros.factory import event_log_watcher
+from cros.factory.event_log_watcher import EventLogWatcher
 
 MOCK_LOG_NAME = 'mylog12345'
 MOCK_PREAMBLE = 'device: 123\nimage: 456\nmd5: abc\n---\n'
