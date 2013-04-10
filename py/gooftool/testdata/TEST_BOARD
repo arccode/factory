@@ -115,8 +115,6 @@ encoded_fields:
 
 components:
   audio_codec:
-    attributes:
-      probeable: True
     items:
       codec_0:
         value: Codec 0
@@ -131,8 +129,6 @@ components:
         value: HDMI 1
 
   battery:
-    attributes:
-      probeable: True
     items:
       battery_small:
         value: Battery Li-ion 2500000
@@ -147,36 +143,26 @@ components:
         value: Battery Li-ion 10000000
 
   bluetooth:
-    attributes:
-      probeable: True
     items:
       bluetooth_0:
         value: 0123:abcd 0001
 
   camera:
-    attributes:
-      probeable: True
     items:
       camera_0:
         value: 4567:abcd Camera
 
   cellular:
-    attributes:
-      probeable: True
     items:
       cellular_0:
         value: 89ab:abcd Cellular Card
 
   chipset:
-    attributes:
-      probeable: True
     items:
       chipset_0:
         value: cdef:abcd
 
   cpu:
-    attributes:
-      probeable: True
     items:
       cpu_0:
         value: CPU @ 1.80GHz [4 cores]
@@ -197,15 +183,12 @@ components:
         value: CPU @ 2.80GHz [4 cores]
 
   display_panel:
-    attributes:
-      probeable: False
+    probeable: False
     items:
       display_panel_0:
         value: FOO:0123 [1440x900]
 
   dram:
-    attributes:
-      probeable: True
     items:
       dram_0:
         value: DRAM 4G
@@ -214,29 +197,22 @@ components:
         value: DRAM 4G
 
   ec_flash_chip:
-    attributes:
-      probeable: True
     items:
       ec_flash_chip_0:
         value: EC Flash Chip
 
   embedded_controller:
-    attributes:
-      probeable: True
     items:
       embedded_controller_0:
         value: Embedded Controller
 
   flash_chip:
-    attributes:
-      probeable: True
     items:
       flash_chip_0:
         value: Flash Chip
 
   keyboard:
-    attributes:
-      probeable: False
+    probeable: False
     items:
       keyboard_gb:
         value: xkb:gb:extd:eng
@@ -247,8 +223,6 @@ components:
         labels: [US]
 
   storage:
-    attributes:
-      probeable: True
     items:
       storage_0:
         value: '16G SSD #123456'
@@ -263,36 +237,26 @@ components:
         labels: [HDD, 500G]
 
   hash_gbb:
-    attributes:
-      probeable: True
     items:
       hash_gbb_0:
         value: gv2#hash_gbb_0
 
   key_recovery:
-    attributes:
-      probeable: True
     items:
       key_recovery_0:
         value: kv3#key_recovery_0
 
   key_root:
-    attributes:
-      probeable: True
     items:
       key_root_0:
         value: kv3#key_root_0
 
   ro_ec_firmware:
-    attributes:
-      probeable: True
     items:
       ro_ec_firmware_0:
         value: ev2#ro_ec_firmware_0
 
   ro_main_firmware:
-    attributes:
-      probeable: True
     items:
       ro_main_firmware_0:
         value: mv2#ro_main_firmware_0

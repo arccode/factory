@@ -833,8 +833,6 @@ class _Components(dict):
           }
         }
   """
-  VALID_ATTRIBUTES = ['probeable']
-
   def __init__(self, components_dict):
     self.schema = Dict(
         'components',
@@ -842,28 +840,24 @@ class _Components(dict):
         FixedDict(
             'component description',
             items={
-              'attributes': Dict(
-                  'attribute dict', key_type=Scalar('key', str),
-                  value_type=AnyOf(
-                      [Scalar('value', str), Scalar('value', bool)])),
-              'items': Dict(
-                  'component names', key_type=Scalar('component name', str),
-                  value_type=FixedDict(
-                     'component attributes',
-                     items={'value': Optional(Scalar('probed value', str))},
-                     optional_items={'labels': List('list of labels',
-                                                    Scalar('label', str))}))}))
+                'items': Dict(
+                    'component names', key_type=Scalar('component name', str),
+                    value_type=FixedDict(
+                        'component attributes',
+                        items={'value': Optional(Scalar('probed value', str))},
+                        optional_items={'labels': List('list of labels',
+                                                       Scalar('label', str))}))
+            },
+            optional_items={
+                'probeable': Scalar('is component probeable', bool)
+            }))
     self.schema.Validate(components_dict)
     # Classify components based on their attributes.
     self.probeable = set()
-    for comp_cls, desc in components_dict.iteritems():
-      for attr_key, attr_value in desc['attributes'].iteritems():
-        if attr_key not in self.VALID_ATTRIBUTES:
-          raise HWIDException(
-              'Component class %r has invalid component attribute: %r' %
-              (comp_cls, attr_key))
-        if attr_key == 'probeable' and attr_value:
-          self.probeable.add(comp_cls)
+    for comp_cls, comp_cls_properties in components_dict.iteritems():
+      if comp_cls_properties.get('probeable', True):
+        # Default 'probeable' to True.
+        self.probeable.add(comp_cls)
     # Squash attributes and build a dict of component class to items.
     super(_Components, self).__init__(
         (comp_cls, components_dict[comp_cls]['items']) for comp_cls in
