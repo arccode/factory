@@ -18,13 +18,76 @@ presses Ctrl-C to terminate it. To use it, invoke as a standalone program:
 
 import logging
 import optparse
+import os
+import pprint
+import re
 import signal
 import sys
+import yaml
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.event_log import EVENT_LOG_DIR
 from cros.factory.event_log_watcher import EventLogWatcher
+from cros.factory.event_log_watcher import EVENT_LOG_DB_FILE
+from cros.factory.test import utils
 
 DEFAULT_WATCH_INTERVAL = 30  # seconds
+EVENT_DELIMITER = '---\n'
+
+# The following YAML strings needs further handler. So far we just simply
+# remove them. It works well now, while tuples are treated as lists, unicodes
+# are treated as strings, objects are dropped.
+# TODO(waihong): Use yaml.add_multi_constructor to handle them.
+YAML_STR_BLACKLIST = [
+  r' !!python/tuple',
+  r' !!python/unicode',
+  r' !!python/object[A-Za-z_.:/]+',
+]
+
+class EventList(list):
+  '''Event List Structure.
+
+  This is a list to store multiple non-preamble events, which share
+  the same preamble event.
+
+  TODO(waihong): Unit tests.
+
+  Properties:
+    preamble: The dict of the preamble event.
+  '''
+  def __init__(self, yaml_str):
+    '''Initializer.
+
+    Args:
+      yaml_str: The string contains multiple yaml-formatted events.
+    '''
+    super(EventList, self).__init__()
+    self.preamble = None
+    self._load_from_yaml(yaml_str)
+
+  def _load_from_yaml(self, yaml_str):
+    '''Loads from multiple yaml-formatted events with delimiters.
+
+    Args:
+      yaml_str: The string contains multiple yaml-formatted events.
+    '''
+    events_str = yaml_str.split(EVENT_DELIMITER)
+    for event_str in events_str:
+      # Some expected patterns appear in the log. Remove them.
+      for regex in YAML_STR_BLACKLIST:
+        event_str = re.sub(regex, '', event_str)
+      try:
+        event = yaml.safe_load(event_str)
+      except yaml.YAMLError, e:
+        logging.exception('Error on parsing the yaml string "%s": %s',
+                          event_str, e)
+
+      if event is None:
+        continue
+      if event['EVENT'] == 'preamble':
+        self.preamble = event
+      else:
+        self.append(event)
 
 class Minijack(object):
   '''The main Minijack flow.
@@ -32,9 +95,11 @@ class Minijack(object):
   TODO(waihong): Unit tests.
 
   Properties:
+    _log_dir: The path of the event log directory.
     _log_watcher: The event log watcher.
   '''
   def __init__(self):
+    self._log_dir = None
     self._log_watcher = None
 
   def init(self):
@@ -45,6 +110,12 @@ class Minijack(object):
     # TODO(waihong): Add more options for customization.
     # TODO(waihong): Use hacked_argparse.py which is helpful for args parsing.
     parser = optparse.OptionParser()
+    parser.add_option('--event_log_dir', dest='event_log_dir', type='string',
+                      default=EVENT_LOG_DIR,
+                      help='path of the event log directory')
+    parser.add_option('--event_log_db', dest='event_log_db', type='string',
+                      default=EVENT_LOG_DB_FILE,
+                      help='file name of the event log db')
     parser.add_option('-i', '--interval', dest='interval', type='int',
                       default=DEFAULT_WATCH_INTERVAL,
                       help='log-watching interval in sec (default: %default)')
@@ -71,7 +142,10 @@ class Minijack(object):
     logging.debug('Start event log watcher, interval = %d', options.interval)
     self._log_watcher = EventLogWatcher(
         options.interval,
+        event_log_dir=options.event_log_dir,
+        event_log_db_file=options.event_log_db,
         handle_event_logs_callback=self.handle_event_logs)
+    self._log_dir = options.event_log_dir
     self._log_watcher.StartWatchThread()
 
   def destroy(self):
@@ -82,11 +156,31 @@ class Minijack(object):
         self._log_watcher.StopWatchThread()
       self._log_watcher = None
 
+  def _get_preamble_from_log_file(self, log_name):
+    '''Gets the preamble event dict from a given log file name.'''
+    # TODO(waihong): Optimize it using a cache.
+    try:
+      events_str = open(os.path.join(self._log_dir, log_name)).read()
+    except:  # pylint: disable=W0702
+      logging.exception('Error on reading log file %s: %s',
+                        log_name,
+                        utils.FormatExceptionOnly())
+      return None
+    events = EventList(events_str)
+    if not events.preamble:
+      # TODO(waihong): Check the yesterday-directory with the same log_name.
+      logging.warn('The log file does not have a preamble event: %s', log_name)
+    return events.preamble
+
   def handle_event_logs(self, log_name, chunk):
     '''Callback for event log watcher.'''
     # TODO(waihong): Implement the proper log to database convertion.
     logging.info('Get new event logs (%s, %d bytes)', log_name, len(chunk))
-    logging.debug('Log Content: \n%s', chunk)
+    events = EventList(chunk)
+    if not events.preamble:
+      events.preamble = self._get_preamble_from_log_file(log_name)
+    logging.debug('Preamble: \n%s', pprint.pformat(events.preamble))
+    logging.debug('Event List: \n%s', pprint.pformat(events))
 
   def main(self):
     '''The main Minijack logic.'''
