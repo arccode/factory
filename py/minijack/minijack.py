@@ -16,12 +16,14 @@ presses Ctrl-C to terminate it. To use it, invoke as a standalone program:
   ./minijack [options]
 '''
 
+import imp
 import logging
 import optparse
 import os
 import pprint
 import re
 import signal
+import sqlite3
 import sys
 import yaml
 
@@ -29,8 +31,10 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.event_log import EVENT_LOG_DIR
 from cros.factory.event_log_watcher import EventLogWatcher
 from cros.factory.event_log_watcher import EVENT_LOG_DB_FILE
+from cros.factory.test import factory
 from cros.factory.test import utils
 
+MINIJACK_DB_FILE = os.path.join(factory.get_state_root(), 'minijack_db')
 DEFAULT_WATCH_INTERVAL = 30  # seconds
 EVENT_DELIMITER = '---\n'
 
@@ -89,16 +93,78 @@ class EventList(list):
       else:
         self.append(event)
 
+class EventReceiver(object):
+  '''Event Receiver which invokes the proper parsers when events is received.
+
+  TODO(waihong): Unit tests.
+
+  Properties:
+    _conn: The connection object of the database.
+    _all_parsers: A list of all registered parsers.
+    _event_invokers: A dict of lists, where the event id as key and the list
+                     of handler functions as value.
+  '''
+  def __init__(self, conn):
+    self._conn = conn
+    self._all_parsers = []
+    self._event_invokers = {}
+
+  def register_parser(self, parser):
+    '''Registers a parser object.'''
+    logging.debug('Register the parser: %s', parser)
+    self._all_parsers.append(parser)
+    # Search all handle_xxx() methods in the parser instance.
+    for handler_name in dir(parser):
+      if handler_name.startswith('handle_'):
+        event_id = handler_name.split('_', 1)[1]
+        # Create a new list if not present.
+        if event_id not in self._event_invokers:
+          self._event_invokers[event_id] = []
+        # Add the handler function to the list.
+        handler_func = getattr(parser, handler_name)
+        self._event_invokers[event_id].append(handler_func)
+
+    logging.debug('Call the setup method of the parser: %s', parser)
+    parser.setup()
+
+  def receive_events(self, event_list):
+    '''Callback for an event list received.'''
+    # Drop the event list if its preamble not exist.
+    # TODO(waihong): Remove this drop once all events in the same directory.
+    if event_list.preamble is None:
+      logging.info('Drop the event list without preamble.')
+      return
+    for event in event_list:
+      self.receive_event(event_list.preamble, event)
+
+  def receive_event(self, preamble, event):
+    '''Callback for an event received.'''
+    # Event id 'all' is a special case, which means the handlers accepts
+    # all kinds of events.
+    for event_id in ('all', event['EVENT']):
+      invokers = self._event_invokers.get(event_id, [])
+      for invoker in invokers:
+        invoker(preamble, event)
+
+  def cleanup(self):
+    '''Clearns up all the parsers.'''
+    for parser in self._all_parsers:
+      parser.cleanup()
+
 class Minijack(object):
   '''The main Minijack flow.
 
   TODO(waihong): Unit tests.
 
   Properties:
+    _conn: The connection object of the database.
+    _event_receiver: The event receiver.
     _log_dir: The path of the event log directory.
     _log_watcher: The event log watcher.
   '''
   def __init__(self):
+    self._conn = None
+    self._event_receiver = None
     self._log_dir = None
     self._log_watcher = None
 
@@ -116,6 +182,9 @@ class Minijack(object):
     parser.add_option('--event_log_db', dest='event_log_db', type='string',
                       default=EVENT_LOG_DB_FILE,
                       help='file name of the event log db')
+    parser.add_option('--minijack_db', dest='minijack_db', type='string',
+                      default=MINIJACK_DB_FILE,
+                      help='file name of the Minijack db')
     parser.add_option('-i', '--interval', dest='interval', type='int',
                       default=DEFAULT_WATCH_INTERVAL,
                       help='log-watching interval in sec (default: %default)')
@@ -139,6 +208,25 @@ class Minijack(object):
     if options.quiet:
       logging.disable(logging.INFO)
 
+    logging.debug('Connect to the database: %s', options.minijack_db)
+    self._conn = sqlite3.connect(options.minijack_db)
+    # Make sqlite3 always return bytestrings for the TEXT data type.
+    self._conn.text_factory = str
+    self._event_receiver = EventReceiver(self._conn)
+
+    logging.debug('Load all the default parsers')
+    parser_pkg = imp.load_module('parser', *imp.find_module('parser'))
+    # Find all parser modules named xxx_parser.
+    for parser_name in dir(parser_pkg):
+      if parser_name.endswith('_parser'):
+        parser_module = getattr(parser_pkg, parser_name)
+        # Class name conversion: XxxParser.
+        class_name = ''.join([s.capitalize() for s in parser_name.split('_')])
+        parser_class = getattr(parser_module, class_name)
+        parser = parser_class(self._conn)
+        # Register the parser instance.
+        self._event_receiver.register_parser(parser)
+
     logging.debug('Start event log watcher, interval = %d', options.interval)
     self._log_watcher = EventLogWatcher(
         options.interval,
@@ -155,6 +243,11 @@ class Minijack(object):
       if self._log_watcher.IsThreadStarted():
         self._log_watcher.StopWatchThread()
       self._log_watcher = None
+    if self._event_receiver:
+      logging.debug('Clear-up event receiver')
+      self._event_receiver.cleanup()
+    if self._conn:
+      self._conn.close()
 
   def _get_preamble_from_log_file(self, log_name):
     '''Gets the preamble event dict from a given log file name.'''
@@ -174,13 +267,16 @@ class Minijack(object):
 
   def handle_event_logs(self, log_name, chunk):
     '''Callback for event log watcher.'''
-    # TODO(waihong): Implement the proper log to database convertion.
+    # TODO(waihong): Put it into a queue and return quickly. Consume the queue
+    # using multiple threads for speed-up.
     logging.info('Get new event logs (%s, %d bytes)', log_name, len(chunk))
     events = EventList(chunk)
     if not events.preamble:
       events.preamble = self._get_preamble_from_log_file(log_name)
     logging.debug('Preamble: \n%s', pprint.pformat(events.preamble))
     logging.debug('Event List: \n%s', pprint.pformat(events))
+    logging.debug('Disptach the event list to the receiver.')
+    self._event_receiver.receive_events(events)
 
   def main(self):
     '''The main Minijack logic.'''
