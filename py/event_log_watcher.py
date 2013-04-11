@@ -93,7 +93,9 @@ class EventLogWatcher(object):
     first_exception = None
     exception_count = 0
 
-    for file_name in os.listdir(self._event_log_dir):
+    # Lists the file by their creation time. Helps Minijack see results quickly.
+    ctime = lambda f: os.stat(os.path.join(self._event_log_dir, f)).st_ctime
+    for file_name in sorted(os.listdir(self._event_log_dir), key=ctime):
       file_path = os.path.join(self._event_log_dir, file_name)
       if (not self._db.has_key(file_name) or
           self._db[file_name][KEY_OFFSET] != os.path.getsize(file_path)):
