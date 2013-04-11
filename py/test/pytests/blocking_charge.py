@@ -44,6 +44,9 @@ class ChargerTest(unittest.TestCase):
   ARGS = [
       Arg('target_charge_pct', int, 'Target charge level',
           default=78),
+      Arg('target_charge_pct_is_delta', bool,
+          'Specify target_charge_pct is a delta of current charge',
+          default=False),
       Arg('timeout_secs', int, 'Maximum allowed time to charge battery',
           default=3600),
       ]
@@ -63,7 +66,10 @@ class ChargerTest(unittest.TestCase):
   def Charge(self):
     start_charge = self._power.GetChargePct()
     self.assertTrue(start_charge, 'Error getting battery state.')
-    if start_charge >= self.args.target_charge_pct:
+    target_charge = self.args.target_charge_pct
+    if self.args.target_charge_pct_is_delta is True:
+      target_charge = min(target_charge + start_charge, 100)
+    if start_charge >= target_charge:
       return
     self._board.SetChargeState(Board.ChargeState.CHARGE)
     self._template.SetState(MakeSpriteHTMLTag('charging_sprite.png', 256, 256))
@@ -71,8 +77,9 @@ class ChargerTest(unittest.TestCase):
 
     for elapsed in xrange(self.args.timeout_secs):
       charge = self._power.GetChargePct()
-      if charge >= self.args.target_charge_pct:
-        Log('charged', charge=charge, target=self.args.target_charge_pct,
+
+      if charge >= target_charge:
+        Log('charged', charge=charge, target=target_charge,
             elapsed=elapsed)
         return
       self._ui.RunJS('$("batteryIcon").style.backgroundPosition = "-%dpx 0px"' %
@@ -80,7 +87,7 @@ class ChargerTest(unittest.TestCase):
       self._template.SetInstruction(MakeChargeTextLabel(
                                       start_charge,
                                       charge,
-                                      self.args.target_charge_pct,
+                                      target_charge,
                                       elapsed,
                                       self.args.timeout_secs - elapsed))
       if elapsed % 300 == 0:
@@ -89,10 +96,10 @@ class ChargerTest(unittest.TestCase):
                      elapsed / 60)
       time.sleep(1)
 
-    Log('failed_to_charge', charge=charge, target=self.args.target_charge_pct,
+    Log('failed_to_charge', charge=charge, target=target_charge,
         timeout_sec=self.args.timeout_secs)
     self.fail('Cannot charge battery to %d%% in %d seconds.' %
-              (self.args.target_charge_pct, self.args.timeout_secs))
+              (target_charge, self.args.timeout_secs))
 
   def runTest(self):
     self._thread.start()
