@@ -39,19 +39,20 @@ HTML = '''
 <div id="bb-progress"></div>
 '''
 
+_STORAGE_DEVICE_PATHS = ['/dev/mmcblk0', '/dev/sda']
+
 class BadBlocksTest(unittest.TestCase):
   # SATA link speed, or None if unknown.
   sata_link_speed_mbps = None
   # /var/log/messages file.
   var_log_messages = None
-  # Full path to the device.
-  device_path = None
 
   ARGS = [
       Arg('mode', str, 'String to specify which operating mode to use, '
           'currently this supports file or stateful_partition_free_space.',
           default='stateful_partition_free_space'),
-      Arg('device', str, 'The device on which to test.', default='sda'),
+      Arg('device_path', str, 'Override the device path on which to test. '
+          'Also functions as a file path for file mode.', optional=True),
       Arg('max_bytes', (int, long), 'Maximum size to test, in bytes.',
           optional=True),
       Arg('max_errors', int, 'Stops testing after the given number of errors.',
@@ -71,9 +72,6 @@ class BadBlocksTest(unittest.TestCase):
       Arg('drop_caches_interval_secs', int,
           'The interval between dropping caches in seconds.',
           default=120),
-      Arg('file_path', str, 'The path to the file to test, this should be '
-          'on the stateful partition. Only used in file mode.',
-          default='/mnt/stateful_partition/temporary_badblocks_file'),
       ]
 
   def setUp(self):
@@ -81,24 +79,27 @@ class BadBlocksTest(unittest.TestCase):
     self.template = ui_templates.TwoSections(self.ui)
     self.template.SetState(HTML)
     self.template.DrawProgressBar()
-    self._is_mmc = 'mmcblk' in self.args.device
+    if self.args.max_bytes:
+      # We don't want to try running bad blocks on <1kB
+      self.assertTrue(self.args.max_bytes >= 1024, 'max_bytes too small.')
+    if self.args.device_path is None:
+      self.args.device_path = self._ProbeStorageDevices(_STORAGE_DEVICE_PATHS)
     if self.args.mode == 'file':
+      if self.args.device_path[0:5] == '/dev/':
+        # In file mode we want to use the filesystem, not a device node,
+        # so we default to the stateful partition.
+        self.args.device_path = '/mnt/stateful_partition/temp_badblocks_file'
       if self.args.max_bytes is None:
         # Default to 100MB file size for testing.
         self.args.max_bytes = 100 * 1024 * 1024
-      folder = os.path.dirname(self.args.file_path)
-      free_bytes = os.statvfs(folder).f_bavail * os.statvfs(folder).f_bsize
-      logging.info('Detected %dB free space at %s', free_bytes, folder)
-      # Assume we want at least 10MB free on the file system, so we make a pad.
-      pad = 10 * 1024 * 1024
-      if self.args.max_bytes > free_bytes + pad:
-        logging.warn('The file size is too large for the file system, '
-                     'clipping file to %dB.', free_bytes - pad)
-        self.args.max_bytes = free_bytes - pad
-      # Here we generate a sparse file, actual usage will happen later
-      with open(self.args.file_path, "w") as f:
-        f.seek(self.args.max_bytes - 1)
-        f.write("\0")
+      # Add in a file extension, to ensure we are only using our own file.
+      self.args.device_path = self.args.device_path + '.for_bad_blocks_test'
+      self.args.max_bytes = self._GenerateTestFile(self.args.device_path,
+                                                   self.args.max_bytes)
+    # If /dev/mmcblk0 exists assume we are eMMC, this means a unit with an
+    # external SD card inserted will not use SATA specific utilities.
+    # TODO(bhthompson): refactor this for a better device type detection.
+    self._is_mmc = os.path.exists('/dev/mmcblk0')
 
   def runTest(self):
     thread = threading.Thread(target=self._CheckBadBlocks)
@@ -111,7 +112,7 @@ class BadBlocksTest(unittest.TestCase):
     self._LogSmartctl()
     Spawn(['sync'], call=True)
     if self.args.mode == 'file':
-      os.remove(self.args.file_path)
+      os.remove(self.args.device_path)
 
   def _CheckBadBlocks(self):
     try:
@@ -126,18 +127,16 @@ class BadBlocksTest(unittest.TestCase):
     self.assertFalse(utils.in_chroot(),
                      'badblocks test may not be run within the chroot')
     if self.args.mode == 'file':
-      logging.info('Using a local file at %s, size %dB.', self.args.file_path,
+      logging.info('Using a local file at %s, size %dB.', self.args.device_path,
                    self.args.max_bytes)
-      self.device_path = self.args.file_path
       # Using an arbitrary 1024B sector size for file mode.
       sector_size = 1024
       first_block = 0
       last_block = self.args.max_bytes / sector_size
     elif self.args.mode == 'stateful_partition_free_space':
-      self.device_path = '/dev/%s' % self.args.device
       part_prefix = 'p' if self._is_mmc else ''
       # Always partition 1
-      partition_path = '/dev/%s%s1' % (self.args.device, part_prefix)
+      partition_path = '%s%s1' % (self.args.device_path, part_prefix)
 
       # Determine total length of the FS
       dumpe2fs = Spawn(['dumpe2fs', '-h', partition_path],
@@ -151,12 +150,12 @@ class BadBlocksTest(unittest.TestCase):
 
       # Grok cgpt data to find the partition size
       cgpt_start_sector, cgpt_sector_count = [
-          int(Spawn(['cgpt', 'show', self.device_path, '-i', '1', flag],
+          int(Spawn(['cgpt', 'show', self.args.device_path, '-i', '1', flag],
                     log=True, check_output=True).stdout_data.strip())
           for flag in ('-b', '-s')]
       sector_size = int(
           open('/sys/class/block/%s/queue/hw_sector_size'
-               % self.args.device).read().strip())
+               % os.path.basename(self.args.device_path)).read().strip())
 
       # Could get this to work, but for now we assume that fs_block_size is a
       # multiple of sector_size.
@@ -206,7 +205,7 @@ class BadBlocksTest(unittest.TestCase):
     process = Spawn(['badblocks', '-fsvw', '-b', str(sector_size)] +
                     (['-e', str(self.args.max_errors)]
                      if self.args.max_errors else []) +
-                    [self.device_path, str(last_block), str(first_block)],
+                    [self.args.device_path, str(last_block), str(first_block)],
                     log=True, bufsize=0,
                     stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
@@ -312,6 +311,66 @@ class BadBlocksTest(unittest.TestCase):
     self.assertEquals('Pass completed, 0 bad blocks found. (0/0/0 errors)',
                       last_line)
 
+  def _ProbeStorageDevices(self, storage_device_paths):
+    '''
+    Probe the local storage devices to determine what storage we should use.
+    Check if only a single type of storage device exists, if so we can presume
+    it is the local storage device to use. If multiple devices are found than
+    it is likely an external device was inserted and we should exit the test.
+
+    Args:
+      storage_device_paths: List of strings of storage device dev node paths.
+
+    Returns:
+      String of the storage device dev node path.
+
+    Raises:
+      ValueError if multiple storage device types are found.
+      ValueError if no storage device can be found.
+    '''
+    found_paths = []
+    for path in storage_device_paths:
+      if os.path.exists(path):
+        found_paths.append(path)
+    if len(found_paths) == 1:
+      logging.info('Probed %s to uniquely exist.', found_paths[-1])
+      return found_paths[-1]
+    elif len(found_paths) > 1:
+      raise ValueError('Multiple storage devices found, unable to determine '
+                       'internal storage, external storage device inserted?')
+    else:
+      raise ValueError('Could not locate a proper storage device.')
+
+  def _GenerateTestFile(self, file_path, file_bytes):
+    '''
+    Generate a sparse file for testing of a given size.
+
+    Args:
+      file_path: String of the path to the file to generate.
+      file_bytes: Int/Long of the number of bytes to generate.
+
+    Returns:
+      Int/Long of the number of bytes actually allocated.
+
+    Raises:
+      Assertion if the containing folder does not exist.
+      Assertion if the filesystem does not have adequate space.
+    '''
+    folder = os.path.dirname(file_path)
+    self.assertTrue(os.path.isdir(folder), 'Folder does not exist.')
+    free_bytes = os.statvfs(folder).f_bavail * os.statvfs(folder).f_bsize
+    logging.info('Detected %dB free space at %s', free_bytes, folder)
+    # Assume we want at least 10MB free on the file system, so we make a pad.
+    pad = 10 * 1024 * 1024
+    if file_bytes > free_bytes + pad:
+      logging.warn('The file size is too large for the file system, '
+                   'clipping file to %dB.', free_bytes - pad)
+      file_bytes = free_bytes - pad
+    with open(file_path, 'wb') as f:
+      f.seek(file_bytes - 1)
+      f.write('\0')
+    return file_bytes
+
   def _LogSmartctl(self):
     # No smartctl on mmc.
     # TODO (cychiang) crosbug.com/p/17146. We need to find a replacement
@@ -330,7 +389,7 @@ class BadBlocksTest(unittest.TestCase):
       Log('log_command', command=self.args.extra_log_cmd,
                          stdout=process.stdout_data, stderr=process.stderr_data)
 
-    smartctl_output = Spawn(['smartctl', '-a', self.device_path],
+    smartctl_output = Spawn(['smartctl', '-a', self.args.device_path],
                             check_output=True).stdout_data
     Log('smartctl', stdout=smartctl_output)
     logging.info('smartctl output: %s', smartctl_output)
