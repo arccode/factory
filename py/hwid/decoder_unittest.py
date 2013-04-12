@@ -106,13 +106,13 @@ class DecoderTest(unittest2.TestCase):
 
   def testDecodeSpringEVT(self):
     database = Database.LoadFile(os.path.join(DEFAULT_HWID_DATA_PATH, 'SPRING'))
-    hwid = Decode(database, 'SPRING AAAJ-ZYVT')
+    hwid = Decode(database, 'SPRING AAAD-TB2')
     self.assertEquals({
         'keyboard_field': 0,
         'firmware_field': 0,
         'antenna_field': 0,
         'audio_codec_field': 0,
-        'battery_field': 1,
+        'battery_field': 0,
         'bluetooth_field': 0,
         'camera_field': 0,
         'cellular_field': 1,
@@ -125,18 +125,18 @@ class DecoderTest(unittest2.TestCase):
         'pcb_vendor_field': 0,
         'pmic_field': 0,
         'storage_field': 1,
-        'touchpad_field': 1,
+        'touchpad_field': 0,
         'tpm_field': 0,
         'usb_hosts_field': 0,
         'wireless_field': 0,
         }, hwid.bom.encoded_fields)
-    hwid = Decode(database, 'SPRING AQAJ-ZYJR')
+    hwid = Decode(database, 'SPRING AQAD-T5F')
     self.assertEquals({
         'keyboard_field': 1,
         'firmware_field': 0,
         'antenna_field': 0,
         'audio_codec_field': 0,
-        'battery_field': 1,
+        'battery_field': 0,
         'bluetooth_field': 0,
         'camera_field': 0,
         'cellular_field': 1,
@@ -149,7 +149,7 @@ class DecoderTest(unittest2.TestCase):
         'pcb_vendor_field': 0,
         'pmic_field': 0,
         'storage_field': 1,
-        'touchpad_field': 1,
+        'touchpad_field': 0,
         'tpm_field': 0,
         'usb_hosts_field': 0,
         'wireless_field': 0,
