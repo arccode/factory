@@ -893,8 +893,10 @@ class Goofy(object):
 
     Also updates the visible test if it was reaped.
     '''
+    test_completed = False
     for t, v in dict(self.invocations).iteritems():
       if v.is_completed():
+        test_completed = True
         new_state = t.update_state(**v.update_state_on_completion)
         del self.invocations[t]
 
@@ -914,6 +916,9 @@ class Goofy(object):
               new_state.status == TestState.FAILED):
           # Still have to retry, Sam!
           self._run_test(t)
+
+    if test_completed:
+      self.log_watcher.ScanEventLogs()
 
     if (self.visible_test is None or
         self.visible_test not in self.invocations):
