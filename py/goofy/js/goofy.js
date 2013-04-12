@@ -806,7 +806,7 @@ cros.factory.Goofy.prototype.init = function() {
     });
     this.sendRpc('get_test_list', [], this.setTestList);
     this.sendRpc('get_shared_data', ['system_info'], this.setSystemInfo);
-    this.sendRpc('get_shared_data', ['factory_note'], this.updateNote);
+    this.sendRpc('get_shared_data', ['factory_note', true], this.updateNote);
     this.sendRpc(
         'get_shared_data', ['test_list_options'],
             function(options) {
