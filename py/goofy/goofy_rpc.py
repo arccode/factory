@@ -106,7 +106,8 @@ class GoofyRPC(object):
     logging.info('Factory note from %s at %s (level=%s): %s',
                  note['name'], note['timestamp'], note['level'],
                  note['text'])
-    self.goofy.run_queue.put(self.goofy.stop)
+    if note['level'] == 'CRITICAL':
+      self.goofy.run_queue.put(self.goofy.stop)
     return self.goofy.state_instance.append_shared_data_list(
         'factory_note', note)
 
