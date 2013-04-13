@@ -7,6 +7,7 @@
 import argparse
 from contextlib import contextmanager
 from glob import glob
+from itertools import chain
 import logging
 from collections import namedtuple
 import os
@@ -174,11 +175,17 @@ def SaveLogs(output_dir, archive_id=None,
             '/sys/firmware/log',
             ]], [])
 
+    # Exclude Chrome extension (the Extensions directory) and net logs from
+    # bug reports.
+    exclude_files = list(chain.from_iterable(('--exclude', x) for x in [
+        os.path.join(var, 'log', 'connectivity.*'),
+        os.path.join(var, 'log', 'net.log'),
+        'Extensions',
+        ]))
+
     utils.TryMakeDirs(os.path.dirname(output_file))
     logging.info('Saving %s to %s...', files, output_file)
-    # Exclude Chrome extension (the Extensions directory) from bug reports.
-    process = Spawn(['tar', 'cfj', output_file,
-                     '--exclude', 'Extensions'] + files,
+    process = Spawn(['tar', 'cfj', output_file] + exclude_files + files,
                     cwd=tmp, call=True,
                     ignore_stdout=True,
                     read_stderr=True)
