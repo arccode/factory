@@ -26,6 +26,7 @@ import signal
 import sqlite3
 import sys
 import yaml
+from Queue import Queue
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.event_log import EVENT_LOG_DIR
@@ -36,6 +37,7 @@ from cros.factory.test import utils
 
 MINIJACK_DB_FILE = os.path.join(factory.get_state_root(), 'minijack_db')
 DEFAULT_WATCH_INTERVAL = 30  # seconds
+DEFAULT_QUEUE_SIZE = 10
 EVENT_DELIMITER = '---\n'
 
 # The following YAML strings needs further handler. So far we just simply
@@ -132,7 +134,7 @@ class EventReceiver(object):
     # Drop the event list if its preamble not exist.
     # TODO(waihong): Remove this drop once all events in the same directory.
     if event_list.preamble is None:
-      logging.info('Drop the event list without preamble.')
+      logging.warn('Drop the event list without preamble.')
       return
     for event in event_list:
       self.receive_event(event_list.preamble, event)
@@ -161,12 +163,15 @@ class Minijack(object):
     _event_receiver: The event receiver.
     _log_dir: The path of the event log directory.
     _log_watcher: The event log watcher.
+    _queue: The queue storing event lists.
   '''
   def __init__(self):
     self._conn = None
     self._event_receiver = None
     self._log_dir = None
     self._log_watcher = None
+    # TODO(waihong): Study the performance impact of the queue max size.
+    self._queue = Queue(DEFAULT_QUEUE_SIZE)
 
   def init(self):
     '''Initializes Minijack.'''
@@ -243,6 +248,7 @@ class Minijack(object):
       if self._log_watcher.IsThreadStarted():
         self._log_watcher.StopWatchThread()
       self._log_watcher = None
+    self._queue.join()
     if self._event_receiver:
       logging.debug('Clear-up event receiver')
       self._event_receiver.cleanup()
@@ -267,22 +273,33 @@ class Minijack(object):
 
   def handle_event_logs(self, log_name, chunk):
     '''Callback for event log watcher.'''
-    # TODO(waihong): Put it into a queue and return quickly. Consume the queue
-    # using multiple threads for speed-up.
     logging.info('Get new event logs (%s, %d bytes)', log_name, len(chunk))
     events = EventList(chunk)
     if not events.preamble:
       events.preamble = self._get_preamble_from_log_file(log_name)
     logging.debug('Preamble: \n%s', pprint.pformat(events.preamble))
     logging.debug('Event List: \n%s', pprint.pformat(events))
-    logging.debug('Disptach the event list to the receiver.')
-    self._event_receiver.receive_events(events)
+    # Put the event list into the queue.
+    self._queue.put(events)
 
   def main(self):
     '''The main Minijack logic.'''
     self.init()
+    ONE_YEAR = 365 * 24 * 60 * 60
     while True:
-      pass
+      # TODO(waihong): Try to use multiple threads to dequeue and see any
+      # performance gain.
+
+      # Work-around of a Python bug that blocks Ctrl-C.
+      #   http://bugs.python.org/issue1360
+      events = self._queue.get(timeout=ONE_YEAR)
+      logging.debug('Disptach the event list to the receiver.')
+      try:
+        self._event_receiver.receive_events(events)
+      except:  # pylint: disable=W0702
+        logging.exception('Error on invoking the event lists: %s',
+                          utils.FormatExceptionOnly())
+      self._queue.task_done()
 
 if __name__ == '__main__':
   minijack = Minijack()
