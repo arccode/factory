@@ -205,3 +205,47 @@ class ParserBase(object):
     c = self._conn.cursor()
     c.execute(sql_cmd, tuple(values))
     self._conn.commit()
+
+def flatten_attr(attr):
+  '''Generator of flattened attributes.
+
+  Args:
+    attr: The attr dict/list which may contains multi-level dicts/lists.
+
+  Yields:
+    A tuple (path_of_leaf_value, leaf_value).
+
+  >>> attr = {'a': {'k1': 'v1',
+  ...               'k2': {'dd1': 'vv1',
+  ...                      'dd2': 'vv2'}},
+  ...         'b': ['i1', 'i2', 'i3'],
+  ...         'c': 'ss'}
+  >>> (dict((k, v) for k, v in flatten_attr(attr)) ==
+  ...     {'a.k1': 'v1',
+  ...      'a.k2.dd1': 'vv1',
+  ...      'a.k2.dd2': 'vv2',
+  ...      'b.0': 'i1',
+  ...      'b.1': 'i2',
+  ...      'b.2': 'i3',
+  ...      'c': 'ss'})
+  True
+  '''
+  if isinstance(attr, dict):
+    for key, val in attr.iteritems():
+      for path, leaf in flatten_attr(val):
+        if path:
+          yield key + '.' + path, leaf
+        else:
+          # Meaning that val is a leaf node, just use the key as path.
+          yield key, leaf
+  elif isinstance(attr, list):
+    for index, val in enumerate(attr):
+      for path, leaf in flatten_attr(val):
+        if path:
+          yield str(index) + '.' + path, leaf
+        else:
+          # Meaning that val is a leaf node, just use the index as path.
+          yield str(index), leaf
+  else:
+    # The leaf node.
+    yield None, attr

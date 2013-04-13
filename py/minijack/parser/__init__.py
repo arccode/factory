@@ -4,5 +4,6 @@
 
 # Add all the default parser modules here. Modules not listed here will not
 # be loaded by Minijack.
-import event_attr_parser
+import event_parser
+import attr_parser
 import test_parser
