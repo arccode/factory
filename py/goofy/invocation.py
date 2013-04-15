@@ -27,6 +27,7 @@ from setproctitle import setproctitle
 import factory_common  # pylint: disable=W0611
 from cros.factory import event_log
 from cros.factory.goofy.service_manager import ServiceManager
+from cros.factory.privacy import FilterDict
 from cros.factory.test import factory
 from cros.factory.test import pytests
 from cros.factory.test import shopfloor
@@ -107,7 +108,7 @@ def ResolveTestArgs(dargs):
       return v
 
     v = v(Env())
-    logging.info('Resolved argument %s to %r', k, v)
+    logging.info('Resolved argument %s to %r', k, FilterDict(v))
     return v
 
   return dict((k, ResolveArg(k, v)) for k, v in dargs.iteritems())

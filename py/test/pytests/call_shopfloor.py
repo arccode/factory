@@ -80,8 +80,10 @@ class CallShopfloor(unittest.TestCase):
 
     while not self.done:
       method = getattr(shopfloor.get_instance(detect=True), self.args.method)
+      args_to_log = FilterDict(self.args.args)
       message = 'Invoking %s(%s)' % (
-          self.args.method, ', '.join(repr(x) for x in self.args.args))
+          self.args.method, ', '.join(repr(x) for x in args_to_log))
+      Log('call_shopfloor', method=self.args.method, args=args_to_log)
       logging.info(message)
       template.SetState(test_ui.Escape(message))
 
