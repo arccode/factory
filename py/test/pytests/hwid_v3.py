@@ -73,6 +73,7 @@ class HWIDV3Test(unittest.TestCase):
       encoded_hwid = generated_hwid.encoded_string
       factory.console.info('Generated HWID: %s', encoded_hwid)
       Log('hwid', hwid=encoded_hwid)
+      shopfloor.UpdateDeviceData({'hwid': encoded_hwid})
     else:
       encoded_hwid = None
 
