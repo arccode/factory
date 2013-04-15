@@ -49,12 +49,23 @@ class ValidHWIDDBsTest(unittest2.TestCase):
 
   def TestEncode(self, board_name, db_path, sample_dict):
     # Set up test variables.
-    binary_string = sample_dict['binary_string']
-    encoded_string = sample_dict['encoded_string']
-    probe_results = ProbeResults.Decode(yaml.dump(sample_dict['probe_results']))
-    logging.info('Testing encoding of BOM to %r', encoded_string)
+    error = None
+    binary_string = None
+    encoded_string = None
+
+    if 'error' in sample_dict:
+      error = sample_dict['error'].strip()
+      description = sample_dict['description']
+      logging.info('Testing encoding with %s. Expecting error: %r',
+                   description, error)
+    else:
+      binary_string = sample_dict['binary_string']
+      encoded_string = sample_dict['encoded_string']
+      logging.info('Testing encoding of BOM to %r', encoded_string)
+
     # Pull in probe results (including VPD data) from the given file
     # rather than probing the current system.
+    probe_results = ProbeResults.Decode(yaml.dump(sample_dict['probe_results']))
     vpd = {'ro': {}, 'rw': {}}
     for k, v in probe_results.found_volatile_values.items():
       # Use items(), not iteritems(), since we will be modifying the dict in the
@@ -63,31 +74,56 @@ class ValidHWIDDBsTest(unittest2.TestCase):
       if match:
         del probe_results.found_volatile_values[k]
         vpd[match.group(1)][match.group(2)] = v
-    device_info = sample_dict['device_info']
+    device_info = sample_dict.get('device_info')
 
-    # Test HWID Generation.
-    gt = Gooftool(hwid_version=3, board=board_name,
-                  hwdb_path=os.path.dirname(db_path))
-    hwid = gt.GenerateHwidV3(probe_results=probe_results,
-                             device_info=device_info)
-    self.assertEquals(binary_string, hwid.binary_string)
-    self.assertEquals(encoded_string, hwid.encoded_string)
+    def _EncodeFunctions():
+      gt = Gooftool(hwid_version=3, board=board_name,
+                    hwdb_path=os.path.dirname(db_path))
+      # Test HWID Generation.
+      hwid = gt.GenerateHwidV3(probe_results=probe_results,
+                               device_info=device_info)
+      # Test all rules.
+      gt.db.rules.EvaluateRules(Context(hwid=hwid, vpd=vpd,
+                                        device_info=device_info))
+      return hwid
 
-    # Test all rules.
-    gt.db.rules.EvaluateRules(Context(hwid=hwid, vpd=vpd,
-                                      device_info=device_info))
+    if error:
+      self.assertRaisesRegexp(Exception, re.compile(error, re.S),
+                              _EncodeFunctions)
+    else:
+      hwid = _EncodeFunctions()
+      self.assertEquals(binary_string, hwid.binary_string)
+      self.assertEquals(encoded_string, hwid.encoded_string)
 
   def TestDecode(self, board_name, db_path, sample_dict):
-    encoded_string = sample_dict['encoded_string']
-    binary_string = sample_dict['binary_string']
-    encoded_fields = sample_dict['encoded_fields']
-    logging.info('Testing encoding of %r to BOM', encoded_string)
+    error = None
+    binary_string = None
+    encoded_fields = None
 
-    gt = Gooftool(hwid_version=3, board=board_name,
-                  hwdb_path=os.path.dirname(db_path))
-    hwid = gt.DecodeHwidV3(encoded_string)
-    self.assertEquals(binary_string, hwid.binary_string)
-    self.assertEquals(encoded_fields, hwid.bom.encoded_fields)
+    encoded_string = sample_dict['encoded_string']
+    if 'error' in sample_dict:
+      error = sample_dict['error'].strip()
+      description = sample_dict['description']
+      logging.info('Testing decoding of %r with %s. Expecting error: %r',
+                   encoded_string, description, error)
+    else:
+      binary_string = sample_dict['binary_string']
+      encoded_fields = sample_dict['encoded_fields']
+      logging.info('Testing decoding of %r to BOM', encoded_string)
+
+    def _DecodeFunctions():
+      gt = Gooftool(hwid_version=3, board=board_name,
+                    hwdb_path=os.path.dirname(db_path))
+      # Test HWID decoding.
+      return gt.DecodeHwidV3(encoded_string)
+
+    if error:
+      self.assertRaisesRegexp(Exception, re.compile(error, re.S),
+                              _DecodeFunctions)
+    else:
+      hwid = _DecodeFunctions()
+      self.assertEquals(binary_string, hwid.binary_string)
+      self.assertEquals(encoded_fields, hwid.bom.encoded_fields)
 
 
 if __name__ == '__main__':

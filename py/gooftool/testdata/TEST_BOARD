@@ -323,19 +323,19 @@ rules:
               'set_1': ['codec_1', 'hdmi_1']
           }))
 
-- name: vpd.ro
+- name: verify.vpd.ro
   evaluate:
   - Assert(ValidVPDValue('ro', 'initial_locale'))
   - Assert(ValidVPDValue('ro', 'initial_timezone'))
   - Assert(ValidVPDValue('ro', 'keyboard_layout'))
   - Assert(ValidVPDValue('ro', 'serial_number'))
 
-- name: vpd.rw
+- name: verify.vpd.rw
   evaluate:
   - CheckRegistrationCode(GetVPDValue('rw', 'gbind_attribute'))
   - CheckRegistrationCode(GetVPDValue('rw', 'ubind_attribute'))
 
-- name: verify_components.rule_1
+- name: verify.components.rule_1
   when: ComponentEq('audio_codec', 'Codec 1') and
         ComponentEq('audio_codec', 'HDMI 1')
   evaluate:
@@ -346,25 +346,25 @@ rules:
   - Assert(ComponentEq('ro_ec_firmware', 'ro_ec_firmware_0'))
   - Assert(ComponentEq('ro_main_firmware', 'ro_main_firmware_0'))
 
-- name: verify_components.rule_3
+- name: verify.components.rule_3
   when: ComponentEq('dram', 'dram_0') and ComponentEq('cellular', 'cellular_0')
   evaluate:
   - Assert(ComponentEq('battery', 'huge_battery'))
   - Assert(ComponentIn('cpu', ['cpu_1', 'cpu_2']))
 
-- name: verify_components.rule_4
+- name: verify.components.rule_4
   when: not ComponentEq('cpu', None)
   evaluate:
   - Assert(ComponentEq('storage', ['SSD', '16G']))
   - Assert((not ComponentEq('battery', 'battery_small')) or
            (ComponentIn('cpu', ['cpu_1', 'cpu_2', 'cpu_3'])))
 
-- name: verify_components.rule_5
+- name: verify.components.rule_5
   when: not ComponentEq('cpu', None)
   evaluate: Assert(ComponentEq('storage', 'SSD') or
                    ComponentEq('storage', '16G'))
 
-- name: verify_components.rule_6
+- name: verify.components.rule_6
   evaluate: Assert(ComponentEq('storage', 'SSD') or
                    ComponentEq('storage', '16G'))
 

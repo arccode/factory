@@ -200,8 +200,8 @@ class FactoryInstallCompleteTask(FactoryTask):
       factory.console.info(
           'EC RO and RW version does not match, %s' % version_info)
       return
-    Log('factory_installed', ro_version=ro_version_output,
-        rw_version=rw_version_output)
+    Log('factory_installed', ro_version=ro_version_output.group(1),
+        rw_version=rw_version_output.group(1))
     self.Pass()
 
 

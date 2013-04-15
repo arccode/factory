@@ -537,12 +537,15 @@ def _ProbeDram():
   """Combine mosys memory timing and geometry information."""
   # TODO(tammo): Document why mosys cannot load i2c_dev itself.
   _LoadKernelModule('i2c_dev')
+  vendor_data = Shell('mosys -k memory spd print id').stdout
   time_data = Shell('mosys -k memory spd print timings').stdout
   size_data = Shell('mosys -k memory spd print geometry').stdout
+  vendor = dict(re.findall('dimm="([^"]*)".*module_mfg="([^"]*)"', vendor_data))
   times = dict(re.findall('dimm="([^"]*)".*speeds="([^"]*)"', time_data))
   sizes = dict(re.findall('dimm="([^"]*)".*size_mb="([^"]*)"', size_data))
-  return [CompactStr(['%s|%s|%s' % (i, sizes[i], times[i].replace(' ', ''))
-                      for i in sorted(times)])]
+  return [CompactStr([
+      '%s|%s|%s|%s' % (i, vendor[i], sizes[i], times[i].replace(' ', ''))
+      for i in sorted(times)])]
 
 
 @_ComponentProbe('ec_flash_chip')

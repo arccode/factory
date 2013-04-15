@@ -13,6 +13,7 @@ from cros.factory import gooftool
 from cros.factory import hwid
 from cros.factory.event_log import Log
 from cros.factory.gooftool import Gooftool
+from cros.factory.hwdb.hwid_tool import ProbeResults  # pylint: disable=E0611
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
@@ -52,7 +53,7 @@ class HWIDV3Test(unittest.TestCase):
         '正在探索零件...'))
     if os.path.exists(OVERRIDE_PROBE_RESULTS_PATH):
       with open(OVERRIDE_PROBE_RESULTS_PATH) as f:
-        probe_results = f.read()
+        probe_results = ProbeResults.Decode(f.read())
     else:
       probe_results = gooftool.probe.Probe()
     Log('probe', probe_results=probe_results)
@@ -60,10 +61,7 @@ class HWIDV3Test(unittest.TestCase):
     gt = Gooftool(hwid_version=3, board=board,
                   probe=lambda *args, **kwargs: probe_results)
 
-    # Pass required device data entries for HWID generation/validation.
-    device_data = dict(
-        (k, v) for k, v in shopfloor.GetDeviceData().iteritems()
-        if k in gt.db.shopfloor_device_info)
+    device_data = shopfloor.GetDeviceData()
 
     if self.args.generate:
       template.SetState(test_ui.MakeLabel(
