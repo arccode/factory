@@ -16,12 +16,23 @@ BLACKLIST_KEYS = [
 def FilterDict(data):
   """Redacts values of any keys in BLACKLIST_KEYS.
 
+  Recursively filters value in data as well if value is a dict.
+  Example: data = {'BLACK1': 1,
+                   'WHITE1': {'BLACK2': 2}}
+  FilterDict(data) = {'BLACK1': <redacted 1 chars>,
+                      'WHITE1': {'BLACK2': <redacted 1 chars>}
   Args:
     data: A dictionary to redact.
   """
-  def FilterItem(k, v):
+  ret = dict(data)
+  for k, v in ret.iteritems():
     if v is None:
-      return None
-    return '<redacted %d chars>' % len(v) if k in BLACKLIST_KEYS else v
-
-  return dict((k, FilterItem(k, v)) for k, v in data.iteritems())
+      continue
+    if k in BLACKLIST_KEYS:
+      if isinstance(v, str):
+        ret[k] = '<redacted %d chars>' % len(v)
+      else:
+        ret[k] = '<redacted type %s>' % v.__class__.__name__
+    elif isinstance(v, dict):
+      ret[k] = FilterDict(v)
+  return ret
