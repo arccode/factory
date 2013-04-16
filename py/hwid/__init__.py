@@ -300,6 +300,21 @@ class Database(object):
     with open(file_name, 'r') as f:
       db_yaml = yaml.load(f)
 
+    return cls.LoadData(db_yaml);
+
+  @classmethod
+  def LoadData(cls, db_yaml):
+    """Loads a device-specific component database from the given database data.
+
+    Args:
+      db_yaml: The database in parsed dict form.
+
+    Returns:
+      A Database object containing all the settings in the database file.
+
+    Raises:
+      HWIDException if there is missing field in the database.
+    """
     for key in ['board', 'encoding_patterns', 'image_id', 'pattern',
                 'encoded_fields', 'components', 'rules']:
       if not db_yaml.get(key):
