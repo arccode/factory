@@ -249,3 +249,46 @@ def flatten_attr(attr):
   else:
     # The leaf node.
     yield None, attr
+
+def find_containing_dict_for_key(deep_dict, key):
+  '''Finds the dict that contains the given key from the deep_dict.
+
+  Args:
+    deep_dict: The dict/list which may contains multi-level dicts/lists.
+    key: A string of key.
+
+  Returns:
+    The dict that contains the given key.
+
+  >>> attr = {'a': {'k1': 'v1',
+  ...               'k2': {'dd1': 'vv1',
+  ...                      'dd2': 'vv2'}},
+  ...         'b': [{'ss': 'tt'},
+  ...               {'uu': 'vv'}],
+  ...         'c': 'ss'}
+  >>> (find_containing_dict_for_key(attr, 'dd2') ==
+  ...     {'dd1': 'vv1',
+  ...      'dd2': 'vv2'})
+  True
+  >>> (find_containing_dict_for_key(attr, 'ss') ==
+  ...     {'ss': 'tt'})
+  True
+  '''
+  if isinstance(deep_dict, dict):
+    if key in deep_dict.iterkeys():
+      # Found, return its parent.
+      return deep_dict
+    else:
+      # Try its children.
+      for val in deep_dict.itervalues():
+        result = find_containing_dict_for_key(val, key)
+        if result:
+          return result
+  elif isinstance(deep_dict, list):
+    # Try its children.
+    for val in deep_dict:
+      result = find_containing_dict_for_key(val, key)
+      if result:
+        return result
+  # Not found.
+  return None
