@@ -182,14 +182,16 @@ class Minijack(object):
     # TODO(waihong): Use hacked_argparse.py which is helpful for args parsing.
     parser = optparse.OptionParser()
     parser.add_option('--event_log_dir', dest='event_log_dir', type='string',
-                      default=EVENT_LOG_DIR,
+                      metavar='PATH', default=EVENT_LOG_DIR,
                       help='path of the event log directory')
     parser.add_option('--event_log_db', dest='event_log_db', type='string',
-                      default=EVENT_LOG_DB_FILE,
+                      metavar='FILE', default=EVENT_LOG_DB_FILE,
                       help='file name of the event log db')
     parser.add_option('--minijack_db', dest='minijack_db', type='string',
-                      default=MINIJACK_DB_FILE,
+                      metavar='FILE', default=MINIJACK_DB_FILE,
                       help='file name of the Minijack db')
+    parser.add_option('--log', dest='log', type='string', metavar='PATH',
+                      help='write log to this file instead of stderr')
     parser.add_option('-i', '--interval', dest='interval', type='int',
                       default=DEFAULT_WATCH_INTERVAL,
                       help='log-watching interval in sec (default: %default)')
@@ -209,7 +211,13 @@ class Minijack(object):
     if options.verbose > 0:
       log_format += '(%(filename)s:%(lineno)d) '
     log_format += '%(message)s'
-    logging.basicConfig(level=verbosity, format=log_format)
+
+    log_config = {'level': verbosity,
+                  'format': log_format}
+    if options.log:
+      log_config.update({'filename': options.log})
+    logging.basicConfig(**log_config)
+
     if options.quiet:
       logging.disable(logging.INFO)
 
