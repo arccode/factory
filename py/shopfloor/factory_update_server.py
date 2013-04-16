@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -14,7 +15,9 @@ to serve factory_dir for clients to fetch update files.
 import glob
 import logging
 import os
+import optparse
 import shutil
+import signal
 import subprocess
 import threading
 
@@ -28,6 +31,7 @@ TARBALL_NAME = 'factory.tar.bz2'
 BLACKLIST_NAME = 'blacklist'
 LATEST_SYMLINK = 'latest'
 LATEST_MD5SUM = 'latest.md5sum'
+DEFAULT_UPDATE_DIR = '/var/db/factory/updates/'
 MD5SUM = 'MD5SUM'
 DEFAULT_RSYNCD_PORT = 8083
 RSYNCD_CONFIG_TEMPLATE = '''port = %(port)d
@@ -367,3 +371,51 @@ class FactoryUpdateServer():
     except:
       self._errors += 1
       raise
+
+
+def main():
+  """Starts factory update server in single process standalone mode.
+
+  Shopfloor v1 instantiates factory update server in a thread. The states
+  are shared between threads by accessing object methods and variables. This
+  standalone command line entry is added for migrating to v2.
+
+  Command line parameters:
+    --port: Rsync daemon port.
+    --dir: Update state directory.
+    --verbose: Log verbosity.
+  """
+  parser = optparse.OptionParser()
+  parser.add_option('-d', '--dir', dest='state_dir', metavar='STATE_DIR',
+                    default=DEFAULT_UPDATE_DIR,
+                    help='update state directory. (default: %default)')
+  parser.add_option('-p', '--port', dest='port', metavar='PORT', type='int',
+                    default=DEFAULT_RSYNCD_PORT,
+                    help='rsync daemon port. (default: %default)')
+  parser.add_option('-v', '--verbose', action='count', dest='verbose',
+                    help='increase log verbosity')
+  (options, args) = parser.parse_args()
+  if args:
+    parser.error('Invalid args: %s' % ' '.join(args))
+
+  log_format = '%(message)s'
+  if options.verbose:
+    verbosity = logging.DEBUG
+  else:
+    verbosity = logging.INFO
+  logging.basicConfig(level=verbosity, format=log_format)
+
+  update_server = FactoryUpdateServer(
+      options.state_dir, rsyncd_port=options.port)
+  # Hook SIGTERM,SIGINT and enter the polling loop.
+  def SignalHandler(dummy_signum, dummy_frame):
+    update_server.Stop()
+    raise SystemExit
+
+  signal.signal(signal.SIGTERM, SignalHandler)
+  signal.signal(signal.SIGINT, SignalHandler)
+  update_server.Run()
+
+
+if __name__ == '__main__':
+  main()
