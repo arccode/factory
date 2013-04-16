@@ -293,7 +293,7 @@ class Rule(object):
     finally:
       if logger.error:
         raise RuleException(logger.Dump())
-      logging.info(logger.Dump())
+      logging.debug(logger.Dump())
       SetContext(None)
 
 
