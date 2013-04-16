@@ -75,11 +75,14 @@ class ShopFloorBase(object):
     self._auto_archive_logs_days = None
     self._auto_archive_logs_dir_exists = None
 
-  def _InitBase(self, auto_archive_logs, auto_archive_logs_days):
+  def _InitBase(self, auto_archive_logs, auto_archive_logs_days, updater=None):
     """Initializes the base class.
 
     Args:
       auto_archive_logs: See _auto_archive_logs property.
+      updater: A reference to factory updater. Factory updater provides
+               interfaces compatible to FactoryUpdateServer. Including
+               Start, Stop, hwid_path, GetTestMD5, NeedsUpdate and rsync_port.
     """
     if auto_archive_logs_days > 0 and auto_archive_logs:
       assert 'DATE' in auto_archive_logs, (
@@ -96,9 +99,12 @@ class ShopFloorBase(object):
     self.update_dir = os.path.join(self.data_dir, UPDATE_DIR)
     utils.TryMakeDirs(self.update_dir)
     self.update_dir = os.path.realpath(self.update_dir)
-    self.update_server = factory_update_server.FactoryUpdateServer(
-        self.update_dir,
-        on_idle=(self._AutoSaveLogs if self._auto_archive_logs else None))
+    if updater is None:
+      self.update_server = factory_update_server.FactoryUpdateServer(
+          self.update_dir,
+          on_idle=(self._AutoSaveLogs if self._auto_archive_logs else None))
+    else:
+      self.update_server = updater
     # Create parameters directory
     self.parameters_dir = os.path.join(self.data_dir, PARAMETERS_DIR)
     utils.TryMakeDirs(self.parameters_dir)
