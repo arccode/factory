@@ -307,6 +307,7 @@ DEFAULT_REGION_LIST = (
     ('da',    'xkb:dk::dan',),
     ('de',    'xkb:de:neo:ger', None, '+(Neo 2)'),
     ('el',    'xkb:gr::gre',),
+    ('en-AU', 'xkb:us::eng',),
     ('en-GB', 'xkb:gb:dvorak:eng', None, '+(Dvorak)'),
     ('en-US', 'xkb:us:altgr-intl:eng',None, '+ Extended (AltGr)'),
     ('en-US', 'xkb:us:colemak:eng', None, '+(Colemak)'),
@@ -356,6 +357,12 @@ DEFAULT_REGION_LIST = (
     # TODO(hungte) es419 has same issue as Belgium. Add extra locales after
     # Chrome supports them.
     ('es-419', 'xkb:latam::spa',),
+
+    # Use 'en-GB' for Singapore and India because they are
+    # British Commonwealth of Nations.
+    # http://en.wikipedia.org/wiki/Commonwealth_of_Nations
+    ('en-GB', 'xkb:us::eng', 'Asia/Kuala_Lumpur', 'English (Singapore)'),
+    ('en-GB', 'xkb:us::eng', 'Asia/Calcutta', 'English (India)'),
 )
 
 
