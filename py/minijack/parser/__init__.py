@@ -8,3 +8,4 @@ import event_parser
 import attr_parser
 import test_parser
 import component_parser
+import device_parser
