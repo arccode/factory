@@ -61,6 +61,18 @@ def _LoadShopFloorModule(module_name):
   logging.debug('_LoadShopFloorModule: trying %s', module_name)
   return __import__(module_name, fromlist=['ShopFloor']).ShopFloor
 
+def _LoadFactoryUpdater(updater_name):
+  '''Loads factory updater module.
+
+  Args:
+    updater_name: Name of updater module containing a FactoryUpdateServer class.
+
+  Returns:
+    Module reference.
+  '''
+  logging.debug('_LoadUpdater: trying %s', updater_name)
+  return __import__(updater_name,
+                    fromlist=['FactoryUpdateServer']).FactoryUpdateServer
 
 class MyXMLRPCServer(SocketServer.ThreadingMixIn,
                      SimpleXMLRPCServer):
@@ -196,6 +208,14 @@ def main():
                     help=('run dummy shopfloor server, using simple shopfloor '
                           'server and data from testdata directory (implies '
                           '--simple)'))
+  parser.add_option('-f', '--fcgi', dest='fastcgi', action='store_true',
+                    default=False, help='run as a FastCGI process')
+  parser.add_option('-u', '--updater', dest='updater', metavar='UPDATER',
+                    default=None,
+                    help=('factory updater module to load, in'
+                          'PACKAGE.MODULE.CLASS format. E.g.: '
+                          'cros.factory.shopfloor.launcher.external_updater '
+                          '(default: %default)'))
   (options, args) = parser.parse_args()
   if args:
     parser.error('Invalid args: %s' % ' '.join(args))
@@ -242,11 +262,22 @@ def main():
                        options.module)
       exit(1)
 
+    if options.updater:
+      try:
+        logging.debug('Loading factory updater: %s', options.updater)
+        updater = _LoadFactoryUpdater(options.updater)()
+      except:  # pylint: disable=W0702
+        logging.error('Failed loading updater: %s', options.updater)
+        exit(1)
+
     instance.data_dir = options.data_dir
     instance.config = options.config
 
+    # Shopfloor module contains update server in its base class. When it is
+    # configured to FastCGI mode, update server will be started by launcher.
     instance._InitBase(options.auto_archive_logs,
-                       options.auto_archive_logs_days)
+                       options.auto_archive_logs_days,
+                       updater=updater)
 
     if options.dummy:
       root, ext, path = __file__.partition('.par/')
@@ -289,8 +320,20 @@ def main():
 
   try:
     instance._StartBase()
-    logging.debug('Starting RPC server...')
-    _RunAsServer(address=options.address, port=options.port, instance=instance)
+    if options.fastcgi:
+      logging.debug('Starting RPC FastCGI...')
+      # TODO(rong): move FastCGI import back to file header and purge
+      #             standalone web server.
+      # Shopfloor server can be ran in standalone mode without frontend. To
+      # keep it compatible to v1 environment, the import is delayed until
+      # we do need it.
+      from cros.factory.shopfloor.launcher.fcgi_shopfloor import RunAsFastCGI
+      RunAsFastCGI(address=options.address, port=options.port,
+                   instance=instance)
+    else:
+      logging.debug('Starting RPC server...')
+      _RunAsServer(address=options.address, port=options.port,
+                   instance=instance)
   finally:
     instance._StopBase()
 
