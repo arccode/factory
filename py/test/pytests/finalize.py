@@ -286,6 +286,8 @@ class Finalize(unittest.TestCase):
       self.Warn('TESTS WERE WAIVED: %s.' % sorted(list(self.waived_tests)))
     Log('waived_tests', waived_tests=sorted(list(self.waived_tests)))
 
+    factory.get_state_instance().FlushEventLogs()
+
     if not self.args.write_protection:
       self.Warn('WRITE PROTECTION IS DISABLED.')
       command += ' --no_write_protect'
