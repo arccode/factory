@@ -9,8 +9,8 @@ class EventParser(ParserBase):
 
   TODO(waihong): Unit tests.
   '''
-  def setup(self):
-    super(EventParser, self).setup()
+  def Setup(self):
+    super(EventParser, self).Setup()
     schema_dict = {
       'device_id': 'TEXT',
       'time': 'TEXT',
@@ -25,9 +25,9 @@ class EventParser(ParserBase):
       'image_id': 'TEXT',
       'log_id': 'TEXT',
     }
-    self.setup_table('Event', schema_dict, primary_key=['device_id', 'time'])
+    self.SetupTable('Event', schema_dict, primary_key=['device_id', 'time'])
 
-  def handle_all(self, preamble, event):
+  def Handle_all(self, preamble, event):
     '''A handler for all event types.'''
     update_dict = {
       'device_id': preamble.get('device_id'),
@@ -43,4 +43,4 @@ class EventParser(ParserBase):
       'image_id': preamble.get('image_id'),
       'log_id': preamble.get('log_id'),
     }
-    self.update_or_insert_row(update_dict)
+    self.UpdateOrInsertRow(update_dict)

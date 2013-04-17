@@ -15,13 +15,14 @@ class ParserBase(object):
 
   All parser classes should inherit this ParserBase class and implement/reuse
   the following methods:
-    setup(self): This method is called on Minijack start-up.
-    cleanup(self): This method is called on Minijack shut-down.
-    handle_xxx(self, preamble, event): This method is called when an event,
+    Setup(self): This method is called on Minijack start-up.
+    Cleanup(self): This method is called on Minijack shut-down.
+    Handle_xxx(self, preamble, event): This method is called when an event,
         with event id == 'xxx', is received. The preamble and event arguments
         contain the Python dict of the preamble and the event. A parser class
-        contains multiple handle_xxx(). The handle_all() is special, which is
-        called on every event.
+        contains multiple Handle_xxx(). The Handle_all() is special, which is
+        called on every event. This method doesn't follow the naming conversion
+        as we want to keep xxx the same as the event name.
 
   Note that all the parser module should be added into __init__.py. Otherwise,
   they are not loaded by default.
@@ -43,17 +44,17 @@ class ParserBase(object):
     self.table = None
     self.pkey = []
 
-  def setup(self):
+  def Setup(self):
     '''This method is called on Minijack start-up.'''
     pass
 
-  def cleanup(self):
+  def Cleanup(self):
     '''This method is called on Minijack shut-down.'''
     pass
 
   # TODO(waihong): Move the following helper methods to a better place.
 
-  def setup_table(self, table_name, schema_dict, primary_key=None):
+  def SetupTable(self, table_name, schema_dict, primary_key=None):
     '''Configures the table information.
 
     Args:
@@ -81,7 +82,7 @@ class ParserBase(object):
     c.execute(sql_cmd)
     self._conn.commit()
 
-  def update_or_insert_row(self, update_dict):
+  def UpdateOrInsertRow(self, update_dict):
     '''Updates the row or insert it if not exists.
 
     Args:
@@ -90,7 +91,7 @@ class ParserBase(object):
     '''
     # If there is no primary key in the table, just insert it.
     if not self.pkey:
-      self.insert_row(update_dict)
+      self.InsertRow(update_dict)
       return
 
     # Create a condition dict containing the primary key.
@@ -101,12 +102,12 @@ class ParserBase(object):
       return
 
     # Search the primary key from the table to determine update or insert.
-    if self.does_row_exist(cond_dict):
-      self.update_row(update_dict)
+    if self.DoesRowExist(cond_dict):
+      self.UpdateRow(update_dict)
     else:
-      self.insert_row(update_dict)
+      self.InsertRow(update_dict)
 
-  def does_row_exist(self, cond_dict):
+  def DoesRowExist(self, cond_dict):
     '''Checks if a row exists or not.
 
     Args:
@@ -116,9 +117,9 @@ class ParserBase(object):
     Returns:
       True if exists; otherwise, False.
     '''
-    return bool(self.get_one_row(cond_dict, cond_dict.keys()))
+    return bool(self.GetOneRow(cond_dict, cond_dict.keys()))
 
-  def get_one_row(self, cond_dict, select=None):
+  def GetOneRow(self, cond_dict, select=None):
     '''Gets the first row which matches the given condition.
 
     Args:
@@ -130,9 +131,9 @@ class ParserBase(object):
     Returns:
       A list of the content of the first matching row.
     '''
-    return self.get_rows(cond_dict, select, one_row=True)
+    return self.GetRows(cond_dict, select, one_row=True)
 
-  def get_rows(self, cond_dict, select=None, one_row=False):
+  def GetRows(self, cond_dict, select=None, one_row=False):
     '''Gets all the rows which match the given condition.
 
     Args:
@@ -158,7 +159,7 @@ class ParserBase(object):
     c.execute(sql_cmd, tuple(values))
     return c.fetchone() if one_row else c.fetchall()
 
-  def update_row(self, update_dict):
+  def UpdateRow(self, update_dict):
     '''Updates the row in the table.
 
     Args:
@@ -184,7 +185,7 @@ class ParserBase(object):
     c.execute(sql_cmd, tuple(values))
     self._conn.commit()
 
-  def insert_row(self, insert_dict):
+  def InsertRow(self, insert_dict):
     '''Inserts the row into the table.
 
     Args:
@@ -206,7 +207,7 @@ class ParserBase(object):
     c.execute(sql_cmd, tuple(values))
     self._conn.commit()
 
-def flatten_attr(attr):
+def FlattenAttr(attr):
   '''Generator of flattened attributes.
 
   Args:
@@ -220,7 +221,7 @@ def flatten_attr(attr):
   ...                      'dd2': 'vv2'}},
   ...         'b': ['i1', 'i2', 'i3'],
   ...         'c': 'ss'}
-  >>> (dict((k, v) for k, v in flatten_attr(attr)) ==
+  >>> (dict((k, v) for k, v in FlattenAttr(attr)) ==
   ...     {'a.k1': 'v1',
   ...      'a.k2.dd1': 'vv1',
   ...      'a.k2.dd2': 'vv2',
@@ -232,7 +233,7 @@ def flatten_attr(attr):
   '''
   if isinstance(attr, dict):
     for key, val in attr.iteritems():
-      for path, leaf in flatten_attr(val):
+      for path, leaf in FlattenAttr(val):
         if path:
           yield key + '.' + path, leaf
         else:
@@ -240,7 +241,7 @@ def flatten_attr(attr):
           yield key, leaf
   elif isinstance(attr, list):
     for index, val in enumerate(attr):
-      for path, leaf in flatten_attr(val):
+      for path, leaf in FlattenAttr(val):
         if path:
           yield str(index) + '.' + path, leaf
         else:
@@ -250,7 +251,7 @@ def flatten_attr(attr):
     # The leaf node.
     yield None, attr
 
-def find_containing_dict_for_key(deep_dict, key):
+def FindContainingDictForKey(deep_dict, key):
   '''Finds the dict that contains the given key from the deep_dict.
 
   Args:
@@ -266,11 +267,11 @@ def find_containing_dict_for_key(deep_dict, key):
   ...         'b': [{'ss': 'tt'},
   ...               {'uu': 'vv'}],
   ...         'c': 'ss'}
-  >>> (find_containing_dict_for_key(attr, 'dd2') ==
+  >>> (FindContainingDictForKey(attr, 'dd2') ==
   ...     {'dd1': 'vv1',
   ...      'dd2': 'vv2'})
   True
-  >>> (find_containing_dict_for_key(attr, 'ss') ==
+  >>> (FindContainingDictForKey(attr, 'ss') ==
   ...     {'ss': 'tt'})
   True
   '''
@@ -281,13 +282,13 @@ def find_containing_dict_for_key(deep_dict, key):
     else:
       # Try its children.
       for val in deep_dict.itervalues():
-        result = find_containing_dict_for_key(val, key)
+        result = FindContainingDictForKey(val, key)
         if result:
           return result
   elif isinstance(deep_dict, list):
     # Try its children.
     for val in deep_dict:
-      result = find_containing_dict_for_key(val, key)
+      result = FindContainingDictForKey(val, key)
       if result:
         return result
   # Not found.

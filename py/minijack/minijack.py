@@ -71,9 +71,9 @@ class EventList(list):
     '''
     super(EventList, self).__init__()
     self.preamble = None
-    self._load_from_yaml(yaml_str)
+    self._LoadFromYaml(yaml_str)
 
-  def _load_from_yaml(self, yaml_str):
+  def _LoadFromYaml(self, yaml_str):
     '''Loads from multiple yaml-formatted events with delimiters.
 
     Args:
@@ -113,13 +113,13 @@ class EventReceiver(object):
     self._all_parsers = []
     self._event_invokers = {}
 
-  def register_parser(self, parser):
+  def RegisterParser(self, parser):
     '''Registers a parser object.'''
     logging.debug('Register the parser: %s', parser)
     self._all_parsers.append(parser)
-    # Search all handle_xxx() methods in the parser instance.
+    # Search all Handle_xxx() methods in the parser instance.
     for handler_name in dir(parser):
-      if handler_name.startswith('handle_'):
+      if handler_name.startswith('Handle_'):
         event_id = handler_name.split('_', 1)[1]
         # Create a new list if not present.
         if event_id not in self._event_invokers:
@@ -129,9 +129,9 @@ class EventReceiver(object):
         self._event_invokers[event_id].append(handler_func)
 
     logging.debug('Call the setup method of the parser: %s', parser)
-    parser.setup()
+    parser.Setup()
 
-  def receive_events(self, event_list):
+  def ReceiveEvents(self, event_list):
     '''Callback for an event list received.'''
     # Drop the event list if its preamble not exist.
     # TODO(waihong): Remove this drop once all events in the same directory.
@@ -139,9 +139,9 @@ class EventReceiver(object):
       logging.warn('Drop the event list without preamble.')
       return
     for event in event_list:
-      self.receive_event(event_list.preamble, event)
+      self.ReceiveEvent(event_list.preamble, event)
 
-  def receive_event(self, preamble, event):
+  def ReceiveEvent(self, preamble, event):
     '''Callback for an event received.'''
     # Event id 'all' is a special case, which means the handlers accepts
     # all kinds of events.
@@ -150,12 +150,12 @@ class EventReceiver(object):
       for invoker in invokers:
         invoker(preamble, event)
 
-  def cleanup(self):
+  def Cleanup(self):
     '''Clearns up all the parsers.'''
     for parser in self._all_parsers:
-      parser.cleanup()
+      parser.Cleanup()
 
-def get_yesterday_log_dir(today_dir):
+def GetYesterdayLogDir(today_dir):
   '''Get the dir name for one day before.
 
   Args:
@@ -164,13 +164,13 @@ def get_yesterday_log_dir(today_dir):
   Returns:
     A string of dir name for one day before today_dir.
 
-  >>> get_yesterday_log_dir('logs.20130417')
+  >>> GetYesterdayLogDir('logs.20130417')
   'logs.20130416'
-  >>> get_yesterday_log_dir('logs.no_date')
-  >>> get_yesterday_log_dir('invalid')
-  >>> get_yesterday_log_dir('logs.20130301')
+  >>> GetYesterdayLogDir('logs.no_date')
+  >>> GetYesterdayLogDir('invalid')
+  >>> GetYesterdayLogDir('logs.20130301')
   'logs.20130228'
-  >>> get_yesterday_log_dir('logs.20140101')
+  >>> GetYesterdayLogDir('logs.20140101')
   'logs.20131231'
   '''
   try:
@@ -200,7 +200,7 @@ class Minijack(object):
     # TODO(waihong): Study the performance impact of the queue max size.
     self._queue = Queue(DEFAULT_QUEUE_SIZE)
 
-  def init(self):
+  def Init(self):
     '''Initializes Minijack.'''
     # Exit this program when receiving Ctrl-C.
     signal.signal(signal.SIGINT, lambda signum, frame: sys.exit(0))
@@ -265,18 +265,18 @@ class Minijack(object):
         parser_class = getattr(parser_module, class_name)
         parser = parser_class(self._conn)
         # Register the parser instance.
-        self._event_receiver.register_parser(parser)
+        self._event_receiver.RegisterParser(parser)
 
     logging.debug('Start event log watcher, interval = %d', options.interval)
     self._log_watcher = EventLogWatcher(
         options.interval,
         event_log_dir=options.event_log_dir,
         event_log_db_file=options.event_log_db,
-        handle_event_logs_callback=self.handle_event_logs)
+        handle_event_logs_callback=self.HandleEventLogs)
     self._log_dir = options.event_log_dir
     self._log_watcher.StartWatchThread()
 
-  def destroy(self):
+  def Destory(self):
     '''Destorys Minijack.'''
     if self._log_watcher:
       logging.debug('Destory event log watcher')
@@ -286,11 +286,11 @@ class Minijack(object):
     self._queue.join()
     if self._event_receiver:
       logging.debug('Clear-up event receiver')
-      self._event_receiver.cleanup()
+      self._event_receiver.Cleanup()
     if self._conn:
       self._conn.close()
 
-  def _get_preamble_from_log_file(self, log_path):
+  def _GetPreambleFromLogFile(self, log_path):
     '''Gets the preamble event dict from a given log file path.'''
     # TODO(waihong): Optimize it using a cache.
     try:
@@ -303,20 +303,20 @@ class Minijack(object):
     events = EventList(events_str)
     return events.preamble
 
-  def handle_event_logs(self, log_name, chunk):
+  def HandleEventLogs(self, log_name, chunk):
     '''Callback for event log watcher.'''
     logging.info('Get new event logs (%s, %d bytes)', log_name, len(chunk))
     events = EventList(chunk)
     if not events.preamble:
       log_path = os.path.join(self._log_dir, log_name)
-      events.preamble = self._get_preamble_from_log_file(log_path)
+      events.preamble = self._GetPreambleFromLogFile(log_path)
     if not events.preamble and log_name.startswith('logs.'):
       # Try to find the preamble from the same file in the yesterday log dir.
       (today_dir, rest_path) = log_name.split('/', 1)
-      yesterday_dir = get_yesterday_log_dir(today_dir)
+      yesterday_dir = GetYesterdayLogDir(today_dir)
       if yesterday_dir:
         log_path = os.path.join(self._log_dir, yesterday_dir, rest_path)
-        events.preamble = self._get_preamble_from_log_file(log_path)
+        events.preamble = self._GetPreambleFromLogFile(log_path)
     if not events.preamble:
       logging.warn('Cannot find a preamble event in the log file: %s', log_path)
     logging.debug('Preamble: \n%s', pprint.pformat(events.preamble))
@@ -324,9 +324,9 @@ class Minijack(object):
     # Put the event list into the queue.
     self._queue.put(events)
 
-  def main(self):
+  def Main(self):
     '''The main Minijack logic.'''
-    self.init()
+    self.Init()
     ONE_YEAR = 365 * 24 * 60 * 60
     while True:
       # TODO(waihong): Try to use multiple threads to dequeue and see any
@@ -337,7 +337,7 @@ class Minijack(object):
       events = self._queue.get(timeout=ONE_YEAR)
       logging.debug('Disptach the event list to the receiver.')
       try:
-        self._event_receiver.receive_events(events)
+        self._event_receiver.ReceiveEvents(events)
       except:  # pylint: disable=W0702
         logging.exception('Error on invoking the event lists: %s',
                           utils.FormatExceptionOnly())
@@ -346,6 +346,6 @@ class Minijack(object):
 if __name__ == '__main__':
   minijack = Minijack()
   try:
-    minijack.main()
+    minijack.Main()
   finally:
-    minijack.destroy()
+    minijack.Destory()

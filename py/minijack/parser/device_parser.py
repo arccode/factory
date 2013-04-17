@@ -9,9 +9,9 @@ class DeviceParser(ParserBase):
 
   TODO(waihong): Unit tests.
   '''
-  def setup(self):
+  def Setup(self):
     '''This method is called on Minijack start-up.'''
-    super(DeviceParser, self).setup()
+    super(DeviceParser, self).Setup()
     schema_dict = {
       'device_id': 'TEXT',
       'goofy_init_time': 'TEXT',  # the first time of getting goofy_init event
@@ -23,9 +23,9 @@ class DeviceParser(ParserBase):
       'hwid_time': 'TEXT',
       'ip': 'TEXT',
     }
-    self.setup_table('Device', schema_dict, primary_key='device_id')
+    self.SetupTable('Device', schema_dict, primary_key='device_id')
 
-  def handle_goofy_init(self, preamble, event):
+  def Handle_goofy_init(self, preamble, event):
     '''A handler for a goofy_init event.'''
     if self._does_column_exist(preamble, event, 'goofy_init_time', newer=False):
       # Skip updating if the goofy_init_time is already in the table and the
@@ -35,9 +35,9 @@ class DeviceParser(ParserBase):
       'device_id': preamble.get('device_id'),
       'goofy_init_time': event.get('TIME'),
     }
-    self.update_or_insert_row(update_dict)
+    self.UpdateOrInsertRow(update_dict)
 
-  def handle_update_device_data(self, preamble, event):
+  def Handle_update_device_data(self, preamble, event):
     '''A handler for a update_device_data event.'''
     if self._does_column_exist(preamble, event, 'serial_time'):
       return
@@ -46,9 +46,9 @@ class DeviceParser(ParserBase):
       'serial': event['data'].get('serial_number'),
       'serial_time': event.get('TIME'),
     }
-    self.update_or_insert_row(update_dict)
+    self.UpdateOrInsertRow(update_dict)
 
-  def handle_scan(self, preamble, event):
+  def Handle_scan(self, preamble, event):
     '''A handler for a scan event.'''
     # If not a barcode scan of the MLB serial number, skip it.
     if event.get('key') != 'mlb_serial_number':
@@ -60,9 +60,9 @@ class DeviceParser(ParserBase):
       'mlb_serial': event.get('value'),
       'mlb_serial_time': event.get('TIME'),
     }
-    self.update_or_insert_row(update_dict)
+    self.UpdateOrInsertRow(update_dict)
 
-  def handle_hwid(self, preamble, event):
+  def Handle_hwid(self, preamble, event):
     '''A handler for a hwid event.'''
     if self._does_column_exist(preamble, event, 'hwid_time'):
       return
@@ -71,11 +71,11 @@ class DeviceParser(ParserBase):
       'hwid': event.get('hwid'),
       'hwid_time': event.get('TIME'),
     }
-    self.update_or_insert_row(update_dict)
+    self.UpdateOrInsertRow(update_dict)
 
-  def handle_verified_hwid(self, preamble, event):
+  def Handle_verified_hwid(self, preamble, event):
     '''A handler for a verified_hwid event.'''
-    self.handle_hwid(preamble, event)
+    self.Handle_hwid(preamble, event)
 
   # TODO(waihong): Fill the ip column.
 
@@ -93,7 +93,7 @@ class DeviceParser(ParserBase):
     '''
     time = event.get('TIME')
     cond_dict = {'device_id': preamble.get('device_id')}
-    row = self.get_one_row(cond_dict, [column])
+    row = self.GetOneRow(cond_dict, [column])
     if row:
       return row[0] >= time if newer else row[0] <= time
     else:

@@ -9,9 +9,9 @@ class TestParser(ParserBase):
 
   TODO(waihong): Unit tests.
   '''
-  def setup(self):
+  def Setup(self):
     '''This method is called on Minijack start-up.'''
-    super(TestParser, self).setup()
+    super(TestParser, self).Setup()
     schema_dict = {
       'invocation': 'TEXT',
       'device_id': 'TEXT',
@@ -27,9 +27,9 @@ class TestParser(ParserBase):
       'duration': 'REAL',
       'dargs': 'TEXT',
     }
-    self.setup_table('Test', schema_dict, primary_key='invocation')
+    self.SetupTable('Test', schema_dict, primary_key='invocation')
 
-  def handle_start_test(self, preamble, event):
+  def Handle_start_test(self, preamble, event):
     '''A handler for a start_test event.'''
     update_dict = {
       'invocation': event.get('invocation'),
@@ -40,9 +40,9 @@ class TestParser(ParserBase):
       'pytest_name': event.get('pytest_name'),
       'start_time': event.get('TIME'),
     }
-    self.update_or_insert_row(update_dict)
+    self.UpdateOrInsertRow(update_dict)
 
-  def handle_end_test(self, preamble, event):
+  def Handle_end_test(self, preamble, event):
     '''A handler for an end_test event.'''
     update_dict = {
       'invocation': event.get('invocation'),
@@ -56,4 +56,4 @@ class TestParser(ParserBase):
       'duration': event.get('duration'),
       'dargs': event.get('dargs'),
     }
-    self.update_or_insert_row(update_dict)
+    self.UpdateOrInsertRow(update_dict)
