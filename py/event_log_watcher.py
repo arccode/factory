@@ -93,18 +93,23 @@ class EventLogWatcher(object):
     first_exception = None
     exception_count = 0
 
-    # Lists the file by their creation time. Helps Minijack see results quickly.
-    ctime = lambda f: os.stat(os.path.join(self._event_log_dir, f)).st_ctime
-    for file_name in sorted(os.listdir(self._event_log_dir), key=ctime):
-      file_path = os.path.join(self._event_log_dir, file_name)
-      if (not self._db.has_key(file_name) or
-          self._db[file_name][KEY_OFFSET] != os.path.getsize(file_path)):
-        try:
-          self.ScanEventLog(file_name)
-        except:  # pylint: disable=W0702
-          if not first_exception:
-            first_exception = file_name + ': ' + utils.FormatExceptionOnly()
-          exception_count += 1
+    # Sorts dirs by their creation time. Helps Minijack see results quickly.
+    dir_ctime = lambda w: os.stat(w[0]).st_ctime
+    for dir_path, _, file_names in sorted(os.walk(self._event_log_dir),
+                                          key=dir_ctime):
+      # Sorts files by their creation time too.
+      file_ctime = lambda f: os.stat(os.path.join(dir_path, f)).st_ctime
+      for file_name in sorted(file_names, key=file_ctime):
+        file_path = os.path.join(dir_path, file_name)
+        relative_path = os.path.relpath(file_path, self._event_log_dir)
+        if (not self._db.has_key(relative_path) or
+            self._db[relative_path][KEY_OFFSET] != os.path.getsize(file_path)):
+          try:
+            self.ScanEventLog(relative_path)
+          except:  # pylint: disable=W0702
+            if not first_exception:
+              first_exception = relative_path + ': ' + utils.FormatExceptionOnly()
+            exception_count += 1
 
     self._db.sync()
 
