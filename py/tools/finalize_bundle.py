@@ -222,7 +222,7 @@ class FinalizeBundle(object):
         os.path.join(self.args.dir, 'MANIFEST.yaml')))
     CheckDictHasOnlyKeys(
         self.manifest, ['board', 'bundle_name', 'add_files', 'delete_files',
-                        'add_files_to_image',
+                        'add_files_to_image', 'site_tests',
                         'files', 'mini_omaha_url'])
 
     self.board = self.manifest['board']
@@ -324,6 +324,17 @@ class FinalizeBundle(object):
           Spawn(['mkdir', '-p', dest_dir], log=True, sudo=True, check_call=True)
           Spawn(['cp', '-a', os.path.join(self.bundle_dir, f['source']),
                  dest_dir], log=True, sudo=True, check_call=True)
+
+    # Removes unused site_tests
+    # suite_Factory must be preserved for /usr/local/factory/custom symlink.
+    site_tests = self.manifest.get('site_tests', []) + ['suite_Factory']
+    with MountPartition(self.factory_image_path, 1, rw=True) as mount:
+      site_tests_dir = os.path.join(mount, 'dev_image', 'autotest',
+                                    'site_tests')
+      for name in os.listdir(site_tests_dir):
+        path = os.path.join(site_tests_dir, name)
+        if name not in site_tests:
+          Spawn(['rm', '-rf', path], log=True, sudo=True, check_call=True)
 
   def MakeUpdateBundle(self):
     # Make the factory update bundle
