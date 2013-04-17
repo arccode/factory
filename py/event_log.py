@@ -39,7 +39,7 @@ EVENT_LOG_DIR = os.path.join(factory.get_state_root(), "events")
 DEVICE_ID_PATH = os.path.join(EVENT_LOG_DIR, ".device_id")
 WLAN0_MAC_PATH = "/sys/class/net/wlan0/address"
 MLAN0_MAC_PATH = "/sys/class/net/mlan0/address"
-DEVICE_ID_SEARCH_PATH = [WLAN0_MAC_PATH, MLAN0_MAC_PATH, DEVICE_ID_PATH]
+DEVICE_ID_SEARCH_PATHS = [WLAN0_MAC_PATH, MLAN0_MAC_PATH]
 
 # Path to use to generate an image ID in case none exists (i.e.,
 # this is the first time we're creating an event log).
@@ -152,21 +152,41 @@ def SetGlobalLoggerDefaultPrefix(prefix):
 def GetDeviceId():
   """Returns the device ID.
 
-  This is derived from the wlan0 or mlan0 MAC address.  If none is
-  available, the id is generated into DEVICE_ID_PATH.
+  The device ID is created and stored when this function is first called
+  on a device after imaging/reimaging. The result is stored in
+  DEVICE_ID_PATH and is used for all future references. If DEVICE_ID_PATH
+  does not exist, it is obtained from the first successful read from
+  DEVICE_ID_SEARCH_PATHS. If none is available, the id is generated.
+
+  Note that ideally a device ID does not change for one "device". However,
+  in the case that the read result from DEVICE_ID_SEARCH_PATHS changed (e.g.
+  caused by firmware update, change of components) AND the device is reimaged,
+  the device ID will change.
   """
   global device_id  # pylint: disable=W0603
-  if not device_id:
-    for path in DEVICE_ID_SEARCH_PATH:
-      if os.path.exists(path):
-        device_id = open(path).read().strip()
-        break
-    else:
-      device_id = str(uuid4())
-      utils.TryMakeDirs(os.path.dirname(DEVICE_ID_PATH))
-      with open(DEVICE_ID_PATH, "w") as f:
-        print >> f, device_id
-      logging.warning('No device ID available: generated %s', device_id)
+  if device_id:
+    return device_id
+
+  # Always respect the device ID recorded in DEVICE_ID_PATH first.
+  if os.path.exists(DEVICE_ID_PATH):
+    device_id = open(DEVICE_ID_PATH).read().strip()
+    return device_id
+
+  # Find or generate device ID from the search path.
+  for path in DEVICE_ID_SEARCH_PATHS:
+    if os.path.exists(path):
+      device_id = open(path).read().strip()
+      break
+  else:
+    device_id = str(uuid4())
+    logging.warning('No device ID available, generated %s', device_id)
+
+  # Cache the device ID to DEVICE_ID_PATH for all future references.
+  utils.TryMakeDirs(os.path.dirname(DEVICE_ID_PATH))
+  with open(DEVICE_ID_PATH, "w") as f:
+    print >> f, device_id
+  logging.info('Device id file created: %s', device_id)
+
   return device_id
 
 

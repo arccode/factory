@@ -133,13 +133,14 @@ class EventLogTest(unittest.TestCase):
     self.tmp = tempfile.mkdtemp()
     self.seq = event_log.GlobalSeq(os.path.join(self.tmp, 'seq'))
 
+
   def tearDown(self):
     shutil.rmtree(self.tmp)
 
   def testGetBootId(self):
     assert UUID_RE.match(event_log.GetBootId())
 
-  def testGetDeviceId(self):
+  def testGetDeviceIdGenerateId(self):
     device_id = event_log.GetDeviceId()
     assert (MAC_RE.match(device_id) or
             UUID_RE.match(device_id)), device_id
@@ -150,6 +151,24 @@ class EventLogTest(unittest.TestCase):
     self.assertEqual(device_id, event_log.GetDeviceId())
 
     self.assertNotEqual(device_id, event_log.GetImageId())
+
+  def testGetDeviceIdFromSearchPath(self):
+    mock_id = "MOCK_ID"
+    device_id_search_path = os.path.join(self.tmp, '.device_id_search')
+    with open(device_id_search_path, 'w') as f:
+      print >> f, mock_id
+    event_log.DEVICE_ID_SEARCH_PATHS = [device_id_search_path]
+
+    # Device ID should be the same as mock_id every time it is called.
+    device_id = event_log.GetDeviceId()
+    self.assertEqual(mock_id, device_id)
+    self.assertEqual(mock_id, event_log.GetDeviceId())
+
+    # Ensure the mock ID remains the same even if search path is gone.
+    # i.e. obtains ID from the file
+    event_log.device_id = None
+    event_log.DEVICE_ID_SEARCH_PATHS = []
+    self.assertEqual(mock_id, event_log.GetDeviceId())
 
   def testGetImageId(self):
     image_id = event_log.GetImageId()
