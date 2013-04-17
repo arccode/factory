@@ -26,6 +26,7 @@ import signal
 import sqlite3
 import sys
 import yaml
+from datetime import datetime, timedelta
 from Queue import Queue
 
 import factory_common  # pylint: disable=W0611
@@ -39,6 +40,7 @@ MINIJACK_DB_FILE = os.path.join(factory.get_state_root(), 'minijack_db')
 DEFAULT_WATCH_INTERVAL = 30  # seconds
 DEFAULT_QUEUE_SIZE = 10
 EVENT_DELIMITER = '---\n'
+LOG_DIR_DATE_FORMAT = '%Y%m%d'
 
 # The following YAML strings needs further handler. So far we just simply
 # remove them. It works well now, while tuples are treated as lists, unicodes
@@ -153,6 +155,31 @@ class EventReceiver(object):
     for parser in self._all_parsers:
       parser.cleanup()
 
+def get_yesterday_log_dir(today_dir):
+  '''Get the dir name for one day before.
+
+  Args:
+    today_dir: A string of dir name.
+
+  Returns:
+    A string of dir name for one day before today_dir.
+
+  >>> get_yesterday_log_dir('logs.20130417')
+  'logs.20130416'
+  >>> get_yesterday_log_dir('logs.no_date')
+  >>> get_yesterday_log_dir('invalid')
+  >>> get_yesterday_log_dir('logs.20130301')
+  'logs.20130228'
+  >>> get_yesterday_log_dir('logs.20140101')
+  'logs.20131231'
+  '''
+  try:
+    today = datetime.strptime(today_dir, 'logs.' + LOG_DIR_DATE_FORMAT)
+  except ValueError:
+    logging.warn('The path is not a valid format with date: %s', today_dir)
+    return None
+  return 'logs.' + (today - timedelta(days=1)).strftime(LOG_DIR_DATE_FORMAT)
+
 class Minijack(object):
   '''The main Minijack flow.
 
@@ -263,20 +290,17 @@ class Minijack(object):
     if self._conn:
       self._conn.close()
 
-  def _get_preamble_from_log_file(self, log_name):
-    '''Gets the preamble event dict from a given log file name.'''
+  def _get_preamble_from_log_file(self, log_path):
+    '''Gets the preamble event dict from a given log file path.'''
     # TODO(waihong): Optimize it using a cache.
     try:
-      events_str = open(os.path.join(self._log_dir, log_name)).read()
+      events_str = open(log_path).read()
     except:  # pylint: disable=W0702
       logging.exception('Error on reading log file %s: %s',
-                        log_name,
+                        log_path,
                         utils.FormatExceptionOnly())
       return None
     events = EventList(events_str)
-    if not events.preamble:
-      # TODO(waihong): Check the yesterday-directory with the same log_name.
-      logging.warn('The log file does not have a preamble event: %s', log_name)
     return events.preamble
 
   def handle_event_logs(self, log_name, chunk):
@@ -284,7 +308,17 @@ class Minijack(object):
     logging.info('Get new event logs (%s, %d bytes)', log_name, len(chunk))
     events = EventList(chunk)
     if not events.preamble:
-      events.preamble = self._get_preamble_from_log_file(log_name)
+      log_path = os.path.join(self._log_dir, log_name)
+      events.preamble = self._get_preamble_from_log_file(log_path)
+    if not events.preamble and log_name.startswith('logs.'):
+      # Try to find the preamble from the same file in the yesterday log dir.
+      (today_dir, rest_path) = log_name.split('/', 1)
+      yesterday_dir = get_yesterday_log_dir(today_dir)
+      if yesterday_dir:
+        log_path = os.path.join(self._log_dir, yesterday_dir, rest_path)
+        events.preamble = self._get_preamble_from_log_file(log_path)
+    if not events.preamble:
+      logging.warn('Cannot find a preamble event in the log file: %s', log_path)
     logging.debug('Preamble: \n%s', pprint.pformat(events.preamble))
     logging.debug('Event List: \n%s', pprint.pformat(events))
     # Put the event list into the queue.
