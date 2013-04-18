@@ -30,13 +30,14 @@ from datetime import datetime, timedelta
 from Queue import Queue
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.event_log import EVENT_LOG_DIR
 from cros.factory.event_log_watcher import EventLogWatcher
-from cros.factory.event_log_watcher import EVENT_LOG_DB_FILE
 from cros.factory.test import factory
 from cros.factory.test import utils
 
-MINIJACK_DB_FILE = os.path.join(factory.get_state_root(), 'minijack_db')
+SHOPFLOOR_DATA_DIR = 'shopfloor_data'
+EVENT_LOG_DB_FILE = 'event_log_db'
+MINIJACK_DB_FILE = 'minijack_db'
+
 DEFAULT_WATCH_INTERVAL = 30  # seconds
 DEFAULT_QUEUE_SIZE = 10
 EVENT_DELIMITER = '---\n'
@@ -205,18 +206,26 @@ class Minijack(object):
     # Exit this program when receiving Ctrl-C.
     signal.signal(signal.SIGINT, lambda signum, frame: sys.exit(0))
 
+    # Pick the default event log dir depending on factory run or chroot run.
+    event_log_dir = SHOPFLOOR_DATA_DIR
+    if not os.path.exists(event_log_dir) and (
+        'CROS_WORKON_SRCROOT' in os.environ):
+      event_log_dir = os.path.join(
+          os.environ['CROS_WORKON_SRCROOT'],
+          'src', 'platform', 'factory', 'shopfloor_data')
+
     # TODO(waihong): Add more options for customization.
     # TODO(waihong): Use hacked_argparse.py which is helpful for args parsing.
     parser = optparse.OptionParser()
     parser.add_option('--event_log_dir', dest='event_log_dir', type='string',
-                      metavar='PATH', default=EVENT_LOG_DIR,
-                      help='path of the event log directory')
+                      metavar='PATH', default=event_log_dir,
+                      help='path of the event log dir (default: %default)')
     parser.add_option('--event_log_db', dest='event_log_db', type='string',
-                      metavar='FILE', default=EVENT_LOG_DB_FILE,
-                      help='file name of the event log db')
+                      metavar='PATH', default=EVENT_LOG_DB_FILE,
+                      help='path of the event log db file (default: %default)')
     parser.add_option('--minijack_db', dest='minijack_db', type='string',
-                      metavar='FILE', default=MINIJACK_DB_FILE,
-                      help='file name of the Minijack db')
+                      metavar='PATH', default=MINIJACK_DB_FILE,
+                      help='path of the Minijack db file (default: %default)')
     parser.add_option('--log', dest='log', type='string', metavar='PATH',
                       help='write log to this file instead of stderr')
     parser.add_option('-i', '--interval', dest='interval', type='int',
@@ -247,6 +256,12 @@ class Minijack(object):
 
     if options.quiet:
       logging.disable(logging.INFO)
+
+    if not os.path.exists(options.event_log_dir):
+      logging.error('Event log directory "%s" does not exist\n',
+                    options.event_log_dir)
+      parser.print_help()
+      sys.exit(os.EX_NOINPUT)
 
     logging.debug('Connect to the database: %s', options.minijack_db)
     self._conn = sqlite3.connect(options.minijack_db)
