@@ -93,6 +93,10 @@ class EventList(list):
 
       if event is None:
         continue
+      if 'EVENT' not in event:
+        logging.warn('The event dict is invalid, no EVENT tag:\n%s.',
+                     pprint.pformat(event))
+        continue
       if event['EVENT'] == 'preamble':
         self.preamble = event
       else:
