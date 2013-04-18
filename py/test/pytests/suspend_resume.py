@@ -48,6 +48,8 @@ class SuspendResumeTest(unittest2.TestCase):
         default=5),
     Arg('resume_worst_case_secs', int, 'The worst case time a device is '
         'expected to take to resume', default=20),
+    Arg('suspend_worst_case_secs', int, 'The worst case time a device is '
+        'expected to take to suspend', default=60),
     Arg('wakealarm_path', str, 'Path to the wakealarm file',
         default='/sys/class/rtc/rtc0/wakealarm'),
     Arg('time_path', str, 'Path to the time (since_epoch) file',
@@ -118,17 +120,28 @@ class SuspendResumeTest(unittest2.TestCase):
 
     for run in range(1, self.args.cycles + 1):
       self._ui.SetHTML(run, id=_ID_RUN)
-      cur_time = int(open(self.args.time_path).read().strip())
+      start_time = int(open(self.args.time_path).read().strip())
       suspend_time = random.randint(self.args.suspend_delay_min_secs,
                                     self.args.suspend_delay_max_secs)
-      logging.info('Suspend %d of %d for %d seconds.',
-                   run, self.args.cycles, suspend_time)
-      resume_at = suspend_time + cur_time
-      open(self.args.wakealarm_path, 'w').write(str(resume_at))
-      Spawn('powerd_suspend', check_call=True, log_stderr_on_error=True)
-      self._VerifySuspended(initial_suspend_count + run, resume_at)
       resume_time = random.randint(self.args.resume_delay_min_secs,
                                    self.args.resume_delay_max_secs)
+      resume_at = suspend_time + start_time
+      logging.info('Suspend %d of %d for %d seconds.',
+                   run, self.args.cycles, suspend_time)
+      open(self.args.wakealarm_path, 'w').write(str(resume_at))
+      Spawn('powerd_suspend', check_call=True, log_stderr_on_error=True)
+      while self._ReadSuspendCount() < initial_suspend_count + run:
+        cur_time = int(open(self.args.time_path).read().strip())
+        self.assertGreaterEqual(start_time + self.args.suspend_worst_case_secs,
+                                cur_time, 'Suspend timeout, device did not '
+                                'suspend within %d sec.' %
+                                self.args.suspend_worst_case_secs)
+        if cur_time >= resume_at - 3:
+          logging.warn('Late suspend detected, extending the wake timer 10s.')
+          resume_at = resume_at + 10
+          open(self.args.wakealarm_path, 'w').write(str(resume_at))
+        time.sleep(1)
+      self._VerifySuspended(initial_suspend_count + run, resume_at)
       logging.info('Resumed %d of %d for %d seconds',
                    run, self.args.cycles, resume_time)
       time.sleep(resume_time)
