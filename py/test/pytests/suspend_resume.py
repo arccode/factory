@@ -28,7 +28,7 @@ from cros.factory.test.args import Arg
 from cros.factory.test.ui_templates import OneSection
 from cros.factory.test.utils import StartDaemonThread
 from cros.factory.utils import file_utils
-from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils.process_utils import Spawn, CheckOutput
 
 _TEST_TITLE = test_ui.MakeLabel('Suspend/Resume Test', zh=u'暂停/恢复测试')
 _MSG_CYCLE = test_ui.MakeLabel('Suspend/Resume:', zh=u'暂停/恢复:')
@@ -149,6 +149,12 @@ class SuspendResumeTest(unittest2.TestCase):
     random.seed(0)  # Make test deterministic
 
     for run in range(1, self.args.cycles + 1):
+      # Log disk usage to find out what cause disk full.
+      # Check crosbug.com/p/18518
+      disk_usage = CheckOutput(
+          "du -a --exclude=factory/tests /var | sort -n -r",
+          shell=True, log=True)
+      logging.info(disk_usage)
       self._ui.SetHTML(run, id=_ID_RUN)
       start_time = int(open(self.args.time_path).read().strip())
       suspend_time = random.randint(self.args.suspend_delay_min_secs,
