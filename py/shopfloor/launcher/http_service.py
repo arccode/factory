@@ -110,7 +110,7 @@ class HttpService(ServiceBase):
       output.append('%s"%s" => %s,' % (self._GetIndent(), key,
                     self._LightyConfAuto(value)))
     self._DecIndent()
-    output.append(self._GetIndent + ')')
+    output.append(self._GetIndent() + ')')
     return '\n'.join(output)
 
   def _LightyConfList(self, value_list):

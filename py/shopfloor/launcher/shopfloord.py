@@ -64,7 +64,7 @@ def main():
 
   log_format = '%(asctime)s %(levelname)s '
   log_verbosity = logging.INFO
-  if options.testrun:
+  if options.test_run:
     log_format += '(%(filename)s:%(lineno)d) '
     log_verbosity = logging.DEBUG
   log_format += '%(message)s'

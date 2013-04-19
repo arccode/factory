@@ -262,6 +262,7 @@ def main():
                        options.module)
       exit(1)
 
+    updater = None
     if options.updater:
       try:
         logging.debug('Loading factory updater: %s', options.updater)

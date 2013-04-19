@@ -33,7 +33,7 @@ class FactoryUpdateService(ServiceBase):
         'name': 'updatersvc',
         'args': [
             '-d', env.GetUpdatesDir(),
-            '-p', constants.DEFAULT_RSYNC_PORT],
+            '-p', str(constants.DEFAULT_RSYNC_PORT)],
         'path': env.GetUpdatesDir(),
         'logpipe': True,
         'auto_restart': True}
