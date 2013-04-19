@@ -32,11 +32,11 @@ _default_event_logger_prefix = None
 # data, once the corresponding modules move over from the autotest
 # repo.
 
-EVENT_LOG_DIR = os.path.join(factory.get_state_root(), "events")
+# The location to store the device ID file should be a place that is
+# less likely to be deleted.
+DEVICE_ID_PATH = os.path.join(factory.get_factory_root(), ".device_id")
 
-# Path to use to generate a device ID in case none exists (i.e.,
-# there is no wlan0 interface).
-DEVICE_ID_PATH = os.path.join(EVENT_LOG_DIR, ".device_id")
+EVENT_LOG_DIR = os.path.join(factory.get_state_root(), "events")
 WLAN0_MAC_PATH = "/sys/class/net/wlan0/address"
 MLAN0_MAC_PATH = "/sys/class/net/mlan0/address"
 DEVICE_ID_SEARCH_PATHS = [WLAN0_MAC_PATH, MLAN0_MAC_PATH]

@@ -128,11 +128,13 @@ class EventLogTest(unittest.TestCase):
   def setUp(self):
     # Remove events directory and reset globals
     shutil.rmtree(event_log.EVENT_LOG_DIR, ignore_errors=True)
+    if os.path.exists(event_log.DEVICE_ID_PATH):
+      os.unlink(event_log.DEVICE_ID_PATH)
+
     event_log.device_id = event_log.image_id = None
 
     self.tmp = tempfile.mkdtemp()
     self.seq = event_log.GlobalSeq(os.path.join(self.tmp, 'seq'))
-
 
   def tearDown(self):
     shutil.rmtree(self.tmp)
