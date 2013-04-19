@@ -45,6 +45,7 @@ class EventLogWatcher(object):
     self._handle_event_logs_callback = handle_event_logs_callback
     self._watch_thread = None
     self._aborted = threading.Event()
+    self._kick = threading.Event()
     self._db = self.GetOrCreateDb()
     self._scan_lock = threading.Lock()
 
@@ -128,10 +129,14 @@ class EventLogWatcher(object):
   def StopWatchThread(self):
     '''Stops the event logs watching thread.'''
     self._aborted.set()
+    self._kick.set()
     self._watch_thread.join()
     self._watch_thread = None
     logging.info('Stopped watching.')
     self.Close()
+
+  def KickWatchThread(self):
+    self._kick.set()
 
   def Close(self):
     '''Closes the database.'''
@@ -141,7 +146,8 @@ class EventLogWatcher(object):
     '''Watches event logs forever.'''
     while True:
       # Flush the event logs once every watch period.
-      self._aborted.wait(self._watch_period_sec)
+      self._kick.wait(self._watch_period_sec)
+      self._kick.clear()
       if self._aborted.isSet():
         return
       try:

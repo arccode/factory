@@ -924,7 +924,7 @@ class Goofy(object):
           self._run_test(t)
 
     if test_completed:
-      self.log_watcher.ScanEventLogs()
+      self.log_watcher.KickWatchThread()
 
     if (self.visible_test is None or
         self.visible_test not in self.invocations):
