@@ -223,20 +223,26 @@ class CameraTest(unittest.TestCase):
         default=False),
     Arg('show_image', bool, 'Whether to actually show the image.',
         default=True),
+    Arg('device_index', int, 'index of video device (-1 for default)',
+        default=-1)
   ]
 
   def EnableCamera(self):
-    # Search for the camera device in sysfs. On some boards OpenCV fails to
-    # determine the device index automatically.
-    uvc_vid_dirs = glob.glob(
-        '/sys/bus/usb/drivers/uvcvideo/*/video4linux/video*')
-    dev_index = None
-    if len(uvc_vid_dirs) != 1:
-      raise IOError('Multiple video capture interface found')
-    for uvc_dir_entry in uvc_vid_dirs:
-      dev_index = int(re.search(r'video([0-9]+)$', uvc_dir_entry).group(1))
-    if dev_index is not None:
-      self.camera_device = cv2.VideoCapture(dev_index)
+    if self.args.device_index >= 0:
+      self.camera_device = cv2.VideoCapture(self.args.device_index)
+    else:
+      # Search for the camera device in sysfs. On some boards OpenCV fails to
+      # determine the device index automatically.
+      uvc_vid_dirs = glob.glob(
+          '/sys/bus/usb/drivers/uvcvideo/*/video4linux/video*')
+      dev_index = None
+      if len(uvc_vid_dirs) != 1:
+        raise IOError('Multiple video capture interface found')
+      for uvc_dir_entry in uvc_vid_dirs:
+        dev_index = int(re.search(r'video([0-9]+)$', uvc_dir_entry).group(1))
+        if dev_index is not None:
+          self.camera_device = cv2.VideoCapture(dev_index)
+
     if not self.camera_device.isOpened():
       raise IOError('Unable to open video capture interface')
     # Set camera capture to HD resolution.
