@@ -817,7 +817,7 @@ class Goofy(object):
 
     # Only adjust charge state if not excluded
     if (factory.FactoryTest.EXCLUSIVE_OPTIONS.CHARGER not in
-        current_exclusive_items):
+        current_exclusive_items and not utils.in_chroot()):
       if self.charge_manager:
         self.charge_manager.AdjustChargeState()
       else:
@@ -1216,7 +1216,9 @@ class Goofy(object):
 
     assert ((self.test_list.options.min_charge_pct is None) ==
             (self.test_list.options.max_charge_pct is None))
-    if self.test_list.options.min_charge_pct is not None:
+    if utils.in_chroot():
+      logging.info('In chroot, ignoring charge manager and charge state')
+    elif self.test_list.options.min_charge_pct is not None:
       self.charge_manager = ChargeManager(self.test_list.options.min_charge_pct,
                                           self.test_list.options.max_charge_pct)
       system.SystemStatus.charge_manager = self.charge_manager
