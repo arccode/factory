@@ -129,7 +129,7 @@ def RemoveCherryPick(diff_list):
           not in cherrypicked]
 
 
-def DiffRepo(repo_path, branch, author):
+def DiffRepo(repo_path, branch, author, branch_only):
   print '%s*** Diff %s ***%s' % (COLOR_GREEN, repo_path, COLOR_RESET)
   os.chdir(GetFullRepoPath(repo_path))
   prefix = FindGitPrefix(repo_path)
@@ -147,6 +147,8 @@ def DiffRepo(repo_path, branch, author):
   # To make [Master] stands out, we only show [------] for commits that
   # are in factory branch.
   for entry in diff_list:
+    if branch_only and entry.left_right == '<':
+      continue
     print '%s%s %s%s %s %s(%s)%s' % (COLOR_YELLOW,
                                      '[Master]' if entry.left_right == '<'
                                      else '[------]',
@@ -170,6 +172,8 @@ def main():
                       help='board name')
   parser.add_argument('--author', '-a', default=None,
                       help='Limit the output to this author only')
+  parser.add_argument('--factory_only', '-o', action='store_true',
+                      help='Only show commits on factory branch')
   args = parser.parse_args()
   if not args.branch:
     args.branch = GetBranch(args.board)
@@ -182,7 +186,7 @@ def main():
     REPO_LIST.append(GetPrivateOverlay(args.board))
 
   for repo in REPO_LIST:
-    DiffRepo(repo, args.branch, args.author)
+    DiffRepo(repo, args.branch, args.author, args.factory_only)
   sys.exit(0)
 
 if __name__ == '__main__':
