@@ -51,7 +51,7 @@ class RsyncService(ServiceBase):
     # Factory update module
     rsync_config += RSYNCD_CONFIG_MODULE_PATH_TEMPLATE % dict(
         module='factory',
-        path=env.GetUpdatesDir(),
+        path=os.path.join(env.GetUpdatesDir(), 'factory'),
         read_only='yes')
 
     # Log upload module

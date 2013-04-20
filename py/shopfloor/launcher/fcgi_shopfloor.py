@@ -37,8 +37,8 @@ class WSGISession(dict):
   TEXT_PLAIN = ('Content-Type', 'text/plain')
   TEXT_XML = ('Content-Type', 'text/xml')
 
-  def __init__(self, environ, start_response):
-    dict.__init__()
+  def __init__(self, environ, start_response, *args, **kwargs):
+    super(WSGISession, self).__init__(*args, **kwargs)
     self.environ = environ
     self.time = time.time()
     self.start_response = start_response

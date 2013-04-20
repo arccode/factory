@@ -28,6 +28,7 @@ class FcgiService(ServiceBase):
                '-p', str(env.fcgi_port),
                '-m', yaml_conf['shopfloor']['shopfloor_module'],
                '-f',
+               '-v',
                '-u', 'cros.factory.shopfloor.launcher.update_state',
                '--updater-dir', env.GetUpdatesDir()],
       'auto_restart': True,
