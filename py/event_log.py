@@ -463,7 +463,7 @@ class EventLog(object):
     data = {
         "EVENT": event_name,
         "SEQ": self.seq.Next(),
-        "TIME": utils.TimeString()
+        "TIME": utils.TimeString(microseconds=True)
         }
     data.update(kwargs)
     self.file.write(YamlDump(data))

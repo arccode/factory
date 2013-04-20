@@ -225,7 +225,7 @@ class EventLogTest(unittest.TestCase):
 
     for i in log_data[0:3]:
       # Check and remove times, to make everything else easier to compare
-      assert re.match(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$',
+      assert re.match(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$',
                       i['TIME']), i['TIME']
       del i['TIME']
 

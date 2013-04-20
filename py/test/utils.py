@@ -24,7 +24,8 @@ import traceback
 from cros.factory.utils.process_utils import Spawn
 
 
-def TimeString(unix_time=None, time_separator=':', milliseconds=True):
+def TimeString(unix_time=None, time_separator=':', milliseconds=True,
+               microseconds=False):
   """Returns a time (using UTC) as a string.
 
   The format is like ISO8601 but with milliseconds:
@@ -35,13 +36,17 @@ def TimeString(unix_time=None, time_separator=':', milliseconds=True):
     unix_time: Time in seconds since the epoch.
     time_separator: Separator for time components.
     milliseconds: Whether to include milliseconds.
+    microseconds: Whether to include microseconds.
+        Ignore argument milliseconds if microseconds==True.
   """
 
   t = unix_time or time.time()
   ret = time.strftime(
       "%Y-%m-%dT%H" + time_separator + "%M" + time_separator + "%S",
       time.gmtime(t))
-  if milliseconds:
+  if microseconds:
+    ret += ".%06d" % int((t - int(t)) * 1000000)
+  elif milliseconds:
     ret += ".%03d" % int((t - int(t)) * 1000)
   ret += "Z"
   return ret
