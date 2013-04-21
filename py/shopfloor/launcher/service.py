@@ -93,7 +93,7 @@ class ServiceBase(protocol.ProcessProtocol):
       return
     self.subprocess = None
     if status.value.exitCode != 0:
-      logging.warn('process ended with status %s', status)
+      logging.warn('%s process ended with status %s', self.name, status)
     if self.auto_restart:
       if self.stopping:
         logging.info('%s ended', self.name)
@@ -121,10 +121,12 @@ class ServiceBase(protocol.ProcessProtocol):
   def Start(self):
     """Starts background service."""
     self.stopping = False
+    logging.debug('Starting %s', self.name)
     self.subprocess = reactor.spawnProcess(self, self.executable,
                                            [self.executable] + self.args,
                                            {}, self.path)
     self.pid = self.subprocess.pid
+    logging.debug('%s started: pid = %d', self.name, self.pid)
     self.start_time = time.time()
 
   def Stop(self):
