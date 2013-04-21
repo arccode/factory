@@ -20,6 +20,7 @@ class LauncherYAMLConfig(dict):
           'network_install': FixedDict(
               'network_install_fields',
               items={
+                'port': Scalar('Network download port', int),
                 'board': Dict(
                     'boards',
                     Scalar('Board name', str),
@@ -68,9 +69,11 @@ class LauncherYAMLConfig(dict):
           'shopfloor': FixedDict(
               'ShopFloor software configuration',
               items={
-                  'factory_software': Scalar('software_res', str),
-                  'shopfloor_module': Scalar('module_string', str)},
-              optional_items={'port': Scalar('port_number', int)})})
+                  'factory_software': Scalar('Factory software par file', str),
+                  'shopfloor_module': Scalar('Shopfloor factory module', str)},
+              optional_items={
+                  'port': Scalar('Shopfloor HTTPD front end port number',
+                                 int)})})
 
   def __init__(self, config_file):
     with open(config_file, 'r') as f:

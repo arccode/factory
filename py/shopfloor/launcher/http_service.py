@@ -14,6 +14,9 @@ from cros.factory.shopfloor.launcher import env
 from cros.factory.shopfloor.launcher.service import ServiceBase
 
 
+class LightyConditionalType(str):
+  pass
+
 class HttpService(ServiceBase):
 
   # Indent shift width for the generated lighttpd.conf file
@@ -74,20 +77,33 @@ class HttpService(ServiceBase):
         'server.port': httpd_port,
         # Blocks section, keep the order
         'alias.url': {'/res': env.GetResourcesDir()},
-        'fastcgi.server': {
-            '/xmlrpc': [{
-                'host': '127.0.0.1',
-                'port': env.fcgi_port,
-                'check-local': 'disable' }]}}
+        LightyConditionalType('$HTTP["url"] =~ "^/$"'): {
+          'fastcgi.server': {
+              '/': [{
+                  'host': '127.0.0.1',
+                  'port': env.fcgi_port,
+                  'check-local': 'disable' }]}}}
 
     self._WriteLightyConf(lighty_conf, conf_file)
 
-  def _WriteLightyConf(self, conf, name):
+    if 'network_install' in yaml_conf:
+      download_port = yaml_conf['network_install']['port']
+      if httpd_port != download_port:
+        download_conf = {
+            LightyConditionalType(
+                '$SERVER["socket"] == ":%d"' % download_port): {}}
+        self._WriteLightyConf(download_conf, conf_file, append=True)
+
+  def _WriteLightyConf(self, conf, name, append=False):
     """Writes top level key-value pairs to lighty.conf."""
+    mode = 'a' if append else 'w'
     self._ResetIndent()
-    with open(name, 'w') as f:
+    with open(name, mode) as f:
       for key, value in conf.iteritems():
-        f.write("%s = %s\n" % (key, self._LightyConfAuto(value)))
+        if isinstance(key, LightyConditionalType):
+          f.write("%s %s\n" % (key, self._LightyConfBlock(value)))
+        else:
+          f.write("%s = %s\n" % (key, self._LightyConfAuto(value)))
 
   def _LightyConfAuto(self, value):
     """Detects and writes value in lighty conf format."""
@@ -101,6 +117,17 @@ class HttpService(ServiceBase):
       return '"%s"' % value
     else:
       raise ValueError('Invalid lighty configuration value')
+
+  def _LightyConfBlock(self, value_dict):
+    """Converts dictionary into light conf block."""
+    output = ['{']
+    self._IncIndent()
+    for key, value in value_dict.iteritems():
+      output.append('%s%s = %s,' % (self._GetIndent(), key,
+                    self._LightyConfAuto(value)))
+    self._DecIndent()
+    output.append(self._GetIndent() + '}')
+    return '\n'.join(output)
 
   def _LightyConfDict(self, value_dict):
     """Converts dictionary into lighty conf string."""
