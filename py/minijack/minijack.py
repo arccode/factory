@@ -31,7 +31,6 @@ from Queue import Queue
 import factory_common  # pylint: disable=W0611
 from cros.factory.event_log_watcher import EventLogWatcher
 from cros.factory.minijack import parser as parser_pkg
-from cros.factory.test import factory
 from cros.factory.test import utils
 
 SHOPFLOOR_DATA_DIR = 'shopfloor_data'

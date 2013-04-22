@@ -109,7 +109,8 @@ class EventLogWatcher(object):
             self.ScanEventLog(relative_path)
           except:  # pylint: disable=W0702
             if not first_exception:
-              first_exception = relative_path + ': ' + utils.FormatExceptionOnly()
+              first_exception = (relative_path + ': ' +
+                                 utils.FormatExceptionOnly())
             exception_count += 1
 
     self._db.sync()
