@@ -34,6 +34,7 @@ _ID_CYCLES = 'sr_cycles'
 _ID_RUN = 'sr_run'
 _TEST_BODY = ('<font size="20">%s <div id="%s"></div> of \n'
               '<div id="%s"></div></font>') % (_MSG_CYCLE, _ID_RUN, _ID_CYCLES)
+_MIN_SUSPEND_MARGIN_SECS = 5
 
 class SuspendResumeTest(unittest2.TestCase):
   ARGS = [
@@ -61,6 +62,17 @@ class SuspendResumeTest(unittest2.TestCase):
                     '%s is not found, bad path?' % (self.args.wakealarm_path))
     self.assertTrue(os.path.exists(self.args.time_path), 'time_path %s is not '
                     'found, bad path?' % (self.args.time_path))
+    self.assertGreaterEqual(self.args.suspend_delay_min_secs,
+                            _MIN_SUSPEND_MARGIN_SECS, 'The '
+                            'suspend_delay_min_secs is too low, bad '
+                            'test_list?')
+    self.assertGreaterEqual(self.args.suspend_delay_max_secs,
+                            self.args.suspend_delay_min_secs, 'Invalid suspend '
+                            'timings provided in test_list (max < min).')
+    self.assertGreaterEqual(self.args.resume_delay_max_secs,
+                            self.args.resume_delay_min_secs, 'Invalid resume '
+                            'timings provided in test_list (max < min).')
+
     self._ui = test_ui.UI()
     self._template = OneSection(self._ui)
     self._template.SetTitle(_TEST_TITLE)
@@ -82,6 +94,8 @@ class SuspendResumeTest(unittest2.TestCase):
     """
     self.assertTrue(os.path.exists('/sys/kernel/debug/suspend_stats'),
                     'suspend_stats file not found.')
+    # If we just resumed, the suspend_stats file can take some time to update.
+    time.sleep(0.1)
     line_content = open('/sys/kernel/debug/suspend_stats').read().strip()
     return int(re.search(r'[0-9]+', line_content).group(0))
 
@@ -115,6 +129,7 @@ class SuspendResumeTest(unittest2.TestCase):
     self._ui.Run(blocking=False)
     self._ui.SetHTML(self.args.cycles, id=_ID_CYCLES)
     initial_suspend_count = self._ReadSuspendCount()
+    logging.info('The initial suspend count is %d.', initial_suspend_count)
 
     random.seed(0)  # Make test deterministic
 
@@ -126,23 +141,44 @@ class SuspendResumeTest(unittest2.TestCase):
       resume_time = random.randint(self.args.resume_delay_min_secs,
                                    self.args.resume_delay_max_secs)
       resume_at = suspend_time + start_time
-      logging.info('Suspend %d of %d for %d seconds.',
-                   run, self.args.cycles, suspend_time)
+      logging.info('Suspend %d of %d for %d seconds, starting at %d.',
+                   run, self.args.cycles, suspend_time, start_time)
       open(self.args.wakealarm_path, 'w').write(str(resume_at))
-      Spawn('powerd_suspend', check_call=True, log_stderr_on_error=True)
+      # We do not wait for completion to check return codes so that we can
+      # delay the wake timer as needed. Any powerd_suspend failures should be
+      # caught by verifying we actually suspended anyway.
+      # TODO(bhthompson): break this into a separate thread so we can check
+      # the return code.
+      Spawn('powerd_suspend')
+      # CAUTION: the loop below is subject to race conditions with suspend time.
       while self._ReadSuspendCount() < initial_suspend_count + run:
         cur_time = int(open(self.args.time_path).read().strip())
+        if cur_time >= resume_at - 1:
+          logging.warn('Late suspend detected, attempting wake extension')
+          # As we are attempting to adjust the wake alarm with an existing
+          # wake alarm set, we first set to a time before now to effectively
+          # disable the prior alarm which should allow us to set the new
+          # alarm. See the kernel function rtc_sysfs_set_wakealarm() in
+          # drivers/rtc/rtc-sysfs.c. These are done as separate open calls to
+          # ensure the writes flush properly. There is a race between the two
+          # write calls and the actual suspend.
+          open(self.args.wakealarm_path, 'w').write('1')
+          open(self.args.wakealarm_path, 'w').write(str(resume_at +
+                                                    _MIN_SUSPEND_MARGIN_SECS))
+          if (self._ReadSuspendCount() >= initial_suspend_count + run and
+              int(open(self.args.time_path).read().strip()) < cur_time +
+              _MIN_SUSPEND_MARGIN_SECS):
+            logging.info('Attempted wake time extension, but suspended before.')
+            break
+          resume_at = resume_at + _MIN_SUSPEND_MARGIN_SECS
+          logging.info('Attempted extending the wake timer %ds, resume is now '
+                       'at %d.', _MIN_SUSPEND_MARGIN_SECS, resume_at)
         self.assertGreaterEqual(start_time + self.args.suspend_worst_case_secs,
                                 cur_time, 'Suspend timeout, device did not '
                                 'suspend within %d sec.' %
                                 self.args.suspend_worst_case_secs)
-        if cur_time >= resume_at - 3:
-          logging.warn('Late suspend detected, extending the wake timer 10s.')
-          resume_at = resume_at + 10
-          open(self.args.wakealarm_path, 'w').write(str(resume_at))
-        time.sleep(1)
       self._VerifySuspended(initial_suspend_count + run, resume_at)
-      logging.info('Resumed %d of %d for %d seconds',
+      logging.info('Resumed %d of %d for %d seconds.',
                    run, self.args.cycles, resume_time)
       time.sleep(resume_time)
     self._ui.Pass()
