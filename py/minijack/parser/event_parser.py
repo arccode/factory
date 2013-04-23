@@ -2,45 +2,33 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-from parser_base import ParserBase
+import factory_common  # pylint: disable=W0611
+from cros.factory.minijack import model
+from cros.factory.minijack.parser import parser_base
 
-class EventParser(ParserBase):
+class EventParser(parser_base.ParserBase):
   '''The parser to create the Event table.
 
   TODO(waihong): Unit tests.
   '''
   def Setup(self):
     super(EventParser, self).Setup()
-    schema_dict = {
-      'device_id': 'TEXT',
-      'time': 'TEXT',
-      'preamble_time': 'TEXT',
-      'event': 'TEXT',
-      'event_seq': 'INTEGER',
-      'preamble_seq': 'INTEGER',
-      'boot_id': 'TEXT',
-      'boot_sequence': 'INTEGER',
-      'factory_md5sum': 'TEXT',
-      'filename': 'TEXT',
-      'image_id': 'TEXT',
-      'log_id': 'TEXT',
-    }
-    self.SetupTable('Event', schema_dict, primary_key=['device_id', 'time'])
+    self._table = self._database.GetOrCreateTable(model.Event)
 
   def Handle_all(self, preamble, event):
     '''A handler for all event types.'''
-    update_dict = {
-      'device_id': preamble.get('device_id'),
-      'time': event.get('TIME'),
-      'preamble_time': preamble.get('TIME'),
-      'event': event.get('EVENT'),
-      'event_seq': int(event.get('SEQ')),
-      'preamble_seq': int(preamble.get('SEQ')),
-      'boot_id': preamble.get('boot_id'),
-      'boot_sequence': int(preamble.get('boot_sequence')),
-      'factory_md5sum': preamble.get('factory_md5sum'),
-      'filename': preamble.get('filename'),
-      'image_id': preamble.get('image_id'),
-      'log_id': preamble.get('log_id'),
-    }
-    self.UpdateOrInsertRow(update_dict)
+    row = model.Event(
+      device_id      = preamble.get('device_id'),
+      time           = event.get('TIME'),
+      preamble_time  = preamble.get('TIME'),
+      event          = event.get('EVENT'),
+      event_seq      = int(event.get('SEQ')),
+      preamble_seq   = int(preamble.get('SEQ')),
+      boot_id        = preamble.get('boot_id'),
+      boot_sequence  = int(preamble.get('boot_sequence')),
+      factory_md5sum = preamble.get('factory_md5sum'),
+      filename       = preamble.get('filename'),
+      image_id       = preamble.get('image_id'),
+      log_id         = preamble.get('log_id'),
+    )
+    self._table.UpdateOrInsertRow(row)

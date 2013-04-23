@@ -22,7 +22,6 @@ import os
 import pprint
 import re
 import signal
-import sqlite3
 import sys
 import yaml
 from datetime import datetime, timedelta
@@ -30,6 +29,7 @@ from Queue import Queue
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.event_log_watcher import EventLogWatcher
+from cros.factory.minijack import db
 from cros.factory.minijack import parser as parser_pkg
 from cros.factory.test import utils
 
@@ -108,13 +108,11 @@ class EventReceiver(object):
   TODO(waihong): Unit tests.
 
   Properties:
-    _conn: The connection object of the database.
     _all_parsers: A list of all registered parsers.
     _event_invokers: A dict of lists, where the event id as key and the list
                      of handler functions as value.
   '''
-  def __init__(self, conn):
-    self._conn = conn
+  def __init__(self):
     self._all_parsers = []
     self._event_invokers = {}
 
@@ -191,14 +189,14 @@ class Minijack(object):
   TODO(waihong): Unit tests.
 
   Properties:
-    _conn: The connection object of the database.
+    _database: The database object.
     _event_receiver: The event receiver.
     _log_dir: The path of the event log directory.
     _log_watcher: The event log watcher.
     _queue: The queue storing event lists.
   '''
   def __init__(self):
-    self._conn = None
+    self._database = None
     self._event_receiver = None
     self._log_dir = None
     self._log_watcher = None
@@ -267,11 +265,9 @@ class Minijack(object):
       parser.print_help()
       sys.exit(os.EX_NOINPUT)
 
-    logging.debug('Connect to the database: %s', options.minijack_db)
-    self._conn = sqlite3.connect(options.minijack_db)
-    # Make sqlite3 always return bytestrings for the TEXT data type.
-    self._conn.text_factory = str
-    self._event_receiver = EventReceiver(self._conn)
+    self._database = db.Database()
+    self._database.Init(options.minijack_db)
+    self._event_receiver = EventReceiver()
 
     logging.debug('Load all the default parsers')
     # Find all parser modules named xxx_parser.
@@ -281,7 +277,7 @@ class Minijack(object):
         # Class name conversion: XxxParser.
         class_name = ''.join([s.capitalize() for s in parser_name.split('_')])
         parser_class = getattr(parser_module, class_name)
-        parser = parser_class(self._conn)
+        parser = parser_class(self._database)
         # Register the parser instance.
         self._event_receiver.RegisterParser(parser)
 
@@ -305,8 +301,8 @@ class Minijack(object):
     if self._event_receiver:
       logging.debug('Clear-up event receiver')
       self._event_receiver.Cleanup()
-    if self._conn:
-      self._conn.close()
+    if self._database:
+      self._database.Close()
 
   def _GetPreambleFromLogFile(self, log_path):
     '''Gets the preamble event dict from a given log file path.'''

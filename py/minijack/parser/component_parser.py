@@ -2,10 +2,11 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-from parser_base import ParserBase
-from parser_base import FindContainingDictForKey, FlattenAttr
+import factory_common  # pylint: disable=W0611
+from cros.factory.minijack import model
+from cros.factory.minijack.parser import parser_base
 
-class ComponentParser(ParserBase):
+class ComponentParser(parser_base.ParserBase):
   '''The parser to create the Component table.
 
   TODO(waihong): Unit tests.
@@ -13,14 +14,7 @@ class ComponentParser(ParserBase):
   def Setup(self):
     '''This method is called on Minijack start-up.'''
     super(ComponentParser, self).Setup()
-    schema_dict = {
-      'device_id': 'TEXT',
-      'time': 'TEXT',
-      'class': 'TEXT',
-      'symbolic': 'TEXT',
-    }
-    self.SetupTable('Component', schema_dict,
-                     primary_key=['device_id', 'time', 'class'])
+    self._table = self._database.GetOrCreateTable(model.Component)
 
   def Handle_probe(self, preamble, event):
     '''A handler for a probe event.'''
@@ -34,12 +28,12 @@ class ComponentParser(ParserBase):
     # We need to find all the components no matter the tree structure is
     # changed or the found_probe_value_map tag is renamed.
     keyword = 'cpu'
-    parent = FindContainingDictForKey(event, keyword)
-    for comp_class, comp_symbolic in FlattenAttr(parent):
-      update_dict = {
-        'device_id': preamble.get('device_id'),
-        'time': event.get('TIME'),
-        'class': comp_class,
-        'symbolic': comp_symbolic,
-      }
-      self.UpdateOrInsertRow(update_dict)
+    parent = parser_base.FindContainingDictForKey(event, keyword)
+    for component, symbolic in parser_base.FlattenAttr(parent):
+      row = model.Component(
+        device_id = preamble.get('device_id'),
+        time      = event.get('TIME'),
+        component = component,
+        symbolic  = symbolic,
+      )
+      self._table.UpdateOrInsertRow(row)
