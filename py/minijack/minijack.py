@@ -16,7 +16,6 @@ presses Ctrl-C to terminate it. To use it, invoke as a standalone program:
   ./minijack [options]
 '''
 
-import imp
 import logging
 import optparse
 import os
@@ -31,6 +30,7 @@ from Queue import Queue
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.event_log_watcher import EventLogWatcher
+from cros.factory.minijack import parser as parser_pkg
 from cros.factory.test import factory
 from cros.factory.test import utils
 
@@ -274,7 +274,6 @@ class Minijack(object):
     self._event_receiver = EventReceiver(self._conn)
 
     logging.debug('Load all the default parsers')
-    parser_pkg = imp.load_module('parser', *imp.find_module('parser'))
     # Find all parser modules named xxx_parser.
     for parser_name in dir(parser_pkg):
       if parser_name.endswith('_parser'):
