@@ -18,7 +18,8 @@ from cros.factory.shopfloor.launcher import ShopFloorLauncherException
 from cros.factory.shopfloor.launcher.yamlconf import LauncherYAMLConfig
 from cros.factory.shopfloor.launcher.http_service import HttpService
 from cros.factory.shopfloor.launcher.fcgi_service import FcgiService
-from cros.factory.shopfloor.launcher.update_service import FactoryUpdateService
+from cros.factory.shopfloor.launcher.rsync_service import RsyncService
+from cros.factory.shopfloor.launcher.mjack_service import MinijackService
 
 
 def StartServices():
@@ -44,7 +45,8 @@ def GenerateServices():
   """Generates service list."""
   return [FcgiService(env.launcher_config),
           HttpService(env.launcher_config),
-          FactoryUpdateService(env.launcher_config)]
+          RsyncService(env.launcher_config),
+          MinijackService(env.launcher_config)]
 
 def SearchFile(filename, folders):
   """Gets first match of filename in folders.
