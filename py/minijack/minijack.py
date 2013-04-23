@@ -39,7 +39,7 @@ MINIJACK_DB_FILE = 'minijack_db'
 
 DEFAULT_WATCH_INTERVAL = 30  # seconds
 DEFAULT_QUEUE_SIZE = 10
-EVENT_DELIMITER = '---\n'
+EVENT_DELIMITER = '\n---\n'
 LOG_DIR_DATE_FORMAT = '%Y%m%d'
 
 # The following YAML strings needs further handler. So far we just simply
@@ -79,6 +79,7 @@ class EventList(list):
     Args:
       yaml_str: The string contains multiple yaml-formatted events.
     '''
+    # TODO(waihong): Do a smart split to avoid wrong splitting.
     events_str = yaml_str.split(EVENT_DELIMITER)
     for event_str in events_str:
       # Some expected patterns appear in the log. Remove them.
