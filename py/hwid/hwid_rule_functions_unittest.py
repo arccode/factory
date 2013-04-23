@@ -16,7 +16,7 @@ import factory_common # pylint: disable=W0611
 from cros.factory.hwid import Database, HWIDException
 from cros.factory.hwid.encoder import Encode
 from cros.factory.hwid.hwid_rule_functions import (
-    GetClassAttributesOnBOM, ComponentEq, ComponentIn, GetComponentAttribute,
+    GetClassAttributesOnBOM, ComponentEq, ComponentIn,
     SetComponent, SetImageId, GetDeviceInfo, GetVPDValue, ValidVPDValue,
     CheckRegistrationCode)
 from cros.factory.rule import (
@@ -156,10 +156,9 @@ class HWIDRuleTest(unittest2.TestCase):
 
   def testGetClassAttributesOnBOM(self):
     cpu_attrs = GetClassAttributesOnBOM(self.hwid, 'cpu')
-    self.assertEquals(['cpu_5'], cpu_attrs['name'])
+    self.assertEquals(['cpu_5'], cpu_attrs)
     storage_attrs = GetClassAttributesOnBOM(self.hwid, 'storage')
-    self.assertEquals(['storage_0'], storage_attrs['name'])
-    self.assertEquals(['SSD', '16G'], storage_attrs['labels'])
+    self.assertEquals(['storage_0', 'SSD', '16G'], storage_attrs)
 
     self.assertEquals(None, GetClassAttributesOnBOM(self.hwid, 'foo'))
     self.assertEquals("ERROR: Invalid component class: 'foo'",
@@ -180,20 +179,6 @@ class HWIDRuleTest(unittest2.TestCase):
         ComponentIn('storage', ['16G', '32G']))
     self.assertFalse(
         ComponentIn('cpu', ['cpu_3', 'cpu_4']))
-
-  def testGetComponentAttribute(self):
-    self.assertEquals(
-        ['SSD', '16G'],
-        GetComponentAttribute('storage', 'labels'))
-    self.assertEquals(
-        ['codec_1', 'hdmi_1'],
-        GetComponentAttribute('audio_codec', 'name'))
-    self.assertEquals(
-        ['Codec 1', 'HDMI 1'],
-        GetComponentAttribute('audio_codec', 'value'))
-    self.assertEquals(
-        ['cpu_5'],
-        GetComponentAttribute('cpu', 'name'))
 
   def testSetComponent(self):
     SetComponent('cpu', 'cpu_3')

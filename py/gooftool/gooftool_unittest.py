@@ -448,9 +448,16 @@ class GooftoolTest(unittest2.TestCase):
         ).AndReturn(
             ProbeResults(
                 found_probe_value_map={
-                    'bluetooth': '0123:abcd 0001',
-                    'battery': 'fake value',
-                    'audio_codec': ['Codec 1', 'HDMI 1', 'fake value']},
+                    'bluetooth': {
+                        'idVendor': '0123',
+                        'idProduct': 'abcd',
+                        'bcd': '0001'},
+                    'battery': {
+                        'compact_str': 'fake value'},
+                    'audio_codec': [
+                        {'compact_str': 'Codec 1'},
+                        {'compact_str': 'HDMI 1'},
+                        {'compact_str': 'fake value'}]},
                 missing_component_classes=[],
                 found_volatile_values={},
                 initial_configs={}))
@@ -458,12 +465,15 @@ class GooftoolTest(unittest2.TestCase):
     self.mox.ReplayAll()
 
     self.assertEquals(
-        {'bluetooth': [('bluetooth_0', '0123:abcd 0001', None)],
-         'battery': [(None, 'fake value', mox.IsA(str))],
+        {'bluetooth': [('bluetooth_0',
+                        {'idVendor': '0123', 'idProduct': 'abcd',
+                         'bcd': '0001'},
+                        None)],
+         'battery': [(None, {'compact_str': 'fake value'}, mox.IsA(str))],
          'cpu': [(None, None, mox.IsA(str))],
-         'audio_codec': [('codec_1', 'Codec 1', None),
-                         ('hdmi_1', 'HDMI 1', None),
-                         (None, 'fake value', mox.IsA(str))]},
+         'audio_codec': [('codec_1', {'compact_str': 'Codec 1'}, None),
+                         ('hdmi_1', {'compact_str': 'HDMI 1'}, None),
+                         (None, {'compact_str': 'fake value'}, mox.IsA(str))]},
         self._gooftool3.VerifyComponentsV3(
             ['bluetooth', 'battery', 'cpu', 'audio_codec']))
 
@@ -577,7 +587,8 @@ class GooftoolTest(unittest2.TestCase):
     mock_probe_result = copy.deepcopy(sample_probe_result)
     mock_ro_vpd = copy.deepcopy(sample_ro_vpd)
     mock_rw_vpd = copy.deepcopy(sample_rw_vpd)
-    mock_probe_result['found_probe_value_map']['audio_codec'][1] = 'HDMI 2'
+    mock_probe_result['found_probe_value_map']['audio_codec'][1] = {
+        'compact_str': 'HDMI 2'}
     # pylint: disable=E1101
     self.assertRaisesRegexp(
         HWIDException, r'Component class .* has extra components: .* and '
@@ -588,8 +599,8 @@ class GooftoolTest(unittest2.TestCase):
     mock_probe_result = copy.deepcopy(sample_probe_result)
     mock_ro_vpd = copy.deepcopy(sample_ro_vpd)
     mock_rw_vpd = copy.deepcopy(sample_rw_vpd)
-    mock_probe_result['found_probe_value_map']['cellular'] = (
-        '89ab:abcd Cellular Card')
+    mock_probe_result['found_probe_value_map']['cellular'] = {
+        'idVendor': '89ab', 'idProduct': 'abcd', 'name': 'Cellular Card'}
     mock_probe_result['missing_component_classes'].remove('cellular')
     # pylint: disable=E1101
     self.assertRaisesRegexp(

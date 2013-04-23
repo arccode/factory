@@ -82,7 +82,9 @@ def Encode(database, bom, skip_check=False):
   for field, index in bom.encoded_fields.iteritems():
     if index is None:
       for comp_cls, comp_name in database.encoded_fields[field][0].iteritems():
-        components_to_update[comp_cls] = comp_name
+        if comp_cls not in database.components.probeable:
+          # Only convert unprobeable components.
+          components_to_update[comp_cls] = comp_name
   updated_bom = database.UpdateComponentsOfBOM(bom, components_to_update)
 
   binary_string = BOMToBinaryString(database, updated_bom)

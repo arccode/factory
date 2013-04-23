@@ -2,25 +2,50 @@
 # reference probe result
 found_probe_value_map:
   audio_codec:
-  - Codec 1
-  - HDMI 1
-  battery: Battery Li-ion 10000000
-  bluetooth: 0123:abcd 0001
-  camera: 4567:abcd Camera
-  chipset: cdef:abcd
-  cpu: CPU @ 2.80GHz [4 cores]
-  dram: DRAM 4G
-  ec_flash_chip: EC Flash Chip
-  embedded_controller: Embedded Controller
-  flash_chip: Flash Chip
-  keyboard: xkb:us::eng
-  storage: '16G SSD #123456'
+  - compact_str: Codec 1
+  - compact_str: HDMI 1
+  battery:
+    tech: Battery Li-ion
+    size: '10000000'
+  bluetooth:
+    idVendor: '0123'
+    idProduct: abcd
+    bcd: '0001'
+  camera:
+    idVendor: '4567'
+    idProduct: abcd
+    name: Camera
+  chipset:
+    compact_str: cdef:abcd
+  cpu:
+    name: CPU @ 2.80GHz
+    cores: '4'
+  dram:
+    vendor: DRAM 0
+    size: 4G
+  ec_flash_chip:
+    compact_str: EC Flash Chip
+  embedded_controller:
+    compact_str: Embedded Controller
+  flash_chip:
+    compact_str: Flash Chip
+  keyboard:
+    compact_str: xkb:us::eng
+  storage:
+    type: SSD
+    size: 16G
+    serial: '#123456'
 found_volatile_values:
-  hash_gbb: gv2#hash_gbb_0
-  key_recovery: kv3#key_recovery_0
-  key_root: kv3#key_root_0
-  ro_ec_firmware: ev2#ro_ec_firmware_0
-  ro_main_firmware: mv2#ro_main_firmware_0
+  hash_gbb:
+    compact_str: gv2#hash_gbb_0
+  key_recovery:
+    compact_str: kv3#key_recovery_0
+  key_root:
+    compact_str: kv3#key_root_0
+  ro_ec_firmware:
+    compact_str: ev2#ro_ec_firmware_0
+  ro_main_firmware:
+    compact_str: mv2#ro_main_firmware_0
 initial_configs:
   cellular_fw_version: ''
   rw_fw_key_version: '2'
@@ -35,15 +60,18 @@ missing_component_classes:
 # invalid audio codec 'HDMI 3'
 found_probe_value_map:
   audio_codec:
-  - Codec 1
-  - HDMI 3
+  - compact_str: Codec 1
+  - compact_str: HDMI 3
 found_volatile_values: {}
 initial_configs: {}
 missing_component_classes: []
 ---
 # invalid storage
 found_probe_value_map:
-  storage: '16G SSD #1234aa'
+  storage:
+    type: SSD
+    size: 16G
+    serial: '#1234aa'
 found_volatile_values: {}
 initial_configs: {}
 missing_component_classes: []

@@ -120,151 +120,193 @@ components:
   audio_codec:
     items:
       codec_0:
-        value: Codec 0
+        values: { compact_str: Codec 0 }
 
       codec_1:
-        value: Codec 1
+        values: { compact_str: Codec 1 }
 
       hdmi_0:
-        value: HDMI 0
+        values: { compact_str: HDMI 0 }
 
       hdmi_1:
-        value: HDMI 1
+        values: { compact_str: HDMI 1 }
 
   battery:
     items:
       battery_small:
-        value: Battery Li-ion 2500000
+        values:
+          tech: Battery Li-ion
+          size: '2500000'
 
       battery_medium:
-        value: Battery Li-ion 5000000
+        values:
+          tech: Battery Li-ion
+          size: '5000000'
 
       battery_large:
-        value: Battery Li-ion 7500000
+        values:
+          tech: Battery Li-ion
+          size: '7500000'
 
       battery_huge:
-        value: Battery Li-ion 10000000
+        values:
+          tech: Battery Li-ion
+          size: '10000000'
 
   bluetooth:
     items:
       bluetooth_0:
-        value: 0123:abcd 0001
+        values:
+          idVendor: '0123'
+          idProduct: abcd
+          bcd: '0001'
 
   camera:
     items:
       camera_0:
-        value: 4567:abcd Camera
+        values:
+          idVendor: '4567'
+          idProduct: abcd
+          name: Camera
 
   cellular:
     items:
       cellular_0:
-        value: 89ab:abcd Cellular Card
+        values:
+          idVendor: 89ab
+          idProduct: abcd
+          name: Cellular Card
 
   chipset:
     items:
       chipset_0:
-        value: cdef:abcd
+        values: { compact_str: 'cdef:abcd' }
 
   cpu:
     items:
       cpu_0:
-        value: CPU @ 1.80GHz [4 cores]
+        values:
+          name: CPU @ 1.80GHz
+          cores: '4'
 
       cpu_1:
-        value: CPU @ 2.00GHz [4 cores]
+        values:
+          name: CPU @ 2.00GHz
+          cores: '4'
 
       cpu_2:
-        value: CPU @ 2.20GHz [4 cores]
+        values:
+          name: CPU @ 2.20GHz
+          cores: '4'
 
       cpu_3:
-        value: CPU @ 2.40GHz [4 cores]
+        values:
+          name: CPU @ 2.40GHz
+          cores: '4'
 
       cpu_4:
-        value: CPU @ 2.60GHz [4 cores]
+        values:
+          name: CPU @ 2.60GHz
+          cores: '4'
 
       cpu_5:
-        value: CPU @ 2.80GHz [4 cores]
+        values:
+          name: CPU @ 2.80GHz
+          cores: '4'
 
   display_panel:
     probeable: False
     items:
       display_panel_0:
-        value: FOO:0123 [1440x900]
+        values: NULL
 
   dram:
     items:
       dram_0:
-        value: DRAM 4G
+        values:
+          vendor: DRAM 0
+          size: 4G
 
       dram_1:
-        value: DRAM 4G
+        values:
+          vendor: DRAM 1
+          size: 4G
 
   ec_flash_chip:
     items:
       ec_flash_chip_0:
-        value: EC Flash Chip
+        values: { compact_str: EC Flash Chip }
 
   embedded_controller:
     items:
       embedded_controller_0:
-        value: Embedded Controller
+        values: { compact_str: Embedded Controller }
 
   flash_chip:
     items:
       flash_chip_0:
-        value: Flash Chip
+        values: { compact_str: Flash Chip }
 
   keyboard:
     probeable: False
     items:
       keyboard_gb:
-        value: xkb:gb:extd:eng
+        values: NULL
         labels: [GB]
 
       keyboard_us:
-        value: xkb:us::eng
+        values: NULL
         labels: [US]
 
   storage:
     items:
       storage_0:
-        value: '16G SSD #123456'
+        values:
+          type: SSD
+          size: 16G
+          serial: '#123456'
         labels: [SSD, 16G]
 
       storage_1:
-        value: '32G SSD #123456'
+        values:
+          type: SSD
+          size: 32G
+          serial: '#123456'
         labels: [SSD, 32G]
 
       storage_2:
-        value: '500G HDD #123456'
+        values:
+          type: HDD
+          size: 500G
+          serial: '#123456'
         labels: [HDD, 500G]
 
   hash_gbb:
     items:
       hash_gbb_0:
-        value: gv2#hash_gbb_0
+        values: { compact_str: gv2#hash_gbb_0 }
 
   key_recovery:
     items:
       key_recovery_0:
-        value: kv3#key_recovery_0
+        values: { compact_str : kv3#key_recovery_0 }
 
   key_root:
     items:
       key_root_0:
-        value: kv3#key_root_0
+        values: { compact_str: kv3#key_root_0 }
 
   ro_ec_firmware:
     items:
       ro_ec_firmware_0:
-        value: ev2#ro_ec_firmware_0
+        values: { compact_str: ev2#ro_ec_firmware_0 }
 
   ro_main_firmware:
     items:
       ro_main_firmware_0:
-        value: mv2#ro_main_firmware_0
+        values: { compact_str: mv2#ro_main_firmware_0 }
       ro_main_firmware_1:
-        value: mv2#ro_main_firmware_1
+        values: { compact_str: mv2#ro_main_firmware_1 }
 
 rules:
 - name: device_info.component.has_cellular

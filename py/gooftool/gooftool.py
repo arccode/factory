@@ -12,6 +12,7 @@ provides all of the Google required test functionality and must be run
 on each device as part of the assembly process.
 """
 
+import collections
 import logging
 import os
 import pipes
@@ -768,7 +769,7 @@ def GenerateHwidV3(options):
     probe_results = Probe()
   print 'device_info:'
   print device_info
-  print 'probe result:'
+  print 'probe results:'
   print probe_results.Encode()
 
   # Do not log device_info for now until we're sure that it does not contain
@@ -788,7 +789,7 @@ def GenerateHwidV3(options):
   final_bom = {}
   for component_class, component_values in (
       hwid_object.bom.components.iteritems()):
-    final_bom[component_class] = [v.probed_string for v in component_values]
+    final_bom[component_class] = [v.probed_values for v in component_values]
   event_log.Log(
     'final_bom',
     final_bom=final_bom)
@@ -875,21 +876,22 @@ def DecodeHwidV3(options):
                                   hwdb_path=options.hwdb_path).DecodeHwidV3(
                                       options.hwid)
 
-  print 'board: %s' % decoded_hwid_context.database.board
-  print 'binary_string: %s' % decoded_hwid_context.binary_string
-  print 'components:'
+  results = {}
+  results['board'] = decoded_hwid_context.database.board
+  results['binary_string'] = decoded_hwid_context.binary_string
+  results['components'] = collections.defaultdict(list)
   components = decoded_hwid_context.bom.components
   for comp_cls in sorted(components):
-    print '%s:' % comp_cls
-    for (comp_name, probed_value, _) in sorted(components[comp_cls]):
-      if not probed_value:
-        # Some components (e.g. dram) does have probed value but is not
-        # probeable in the sense that the probed value does not contain enough
-        # information.
+    for (comp_name, probed_values, _) in sorted(components[comp_cls]):
+      if not probed_values:
         db_components = decoded_hwid_context.database.components
-        probed_value = db_components[comp_cls][comp_name]['value']
-      print '  - %s: %s' % (comp_name,
-                            probed_value if probed_value else 'UNPROBEABLE')
+        probed_values = db_components.GetComponentAttributes(
+            comp_cls, comp_name)['values']
+      results['components'][comp_cls].append(
+          {comp_name: probed_values if probed_values else None})
+  # Convert defaultdict to dict.
+  results['components'] = dict(results['components'])
+  print yaml.dump(results, default_flow_style=False)
 
 
 def Main():

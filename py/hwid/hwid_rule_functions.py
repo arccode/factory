@@ -4,8 +4,6 @@
 
 """HWID specific rule function implementations."""
 
-import collections
-import itertools
 import factory_common # pylint: disable=W0611
 
 from cros.factory.common import MakeList, MakeSet
@@ -43,36 +41,37 @@ def GetClassAttributesOnBOM(hwid, comp_cls):
     A dict of attributes extracted from database that can be used to represent
     or describe the given component class. None if comp_cls is invalid.
   """
-  def PackProbedString(bom, comp_cls):
-    return [e.probed_string for e in bom.components[comp_cls] if
-            e.probed_string is not None]
+  def PackProbedValues(bom, comp_cls):
+    results = []
+    for c in bom.components[comp_cls]:
+      if c.probed_values is None:
+        continue
+      matched_component = hwid.database.components.MatchComponentsFromValues(
+          comp_cls, c.probed_values)
+      if matched_component:
+        results.extend(matched_component.keys())
+    return results
 
-  def HasCommonElement(list1, list2):
-    # Use list here so that we can support regular expression Value objects
-    # later easier.
-    return any([v1 == v2 for v1, v2 in itertools.product(list1, list2)])
-
-  if comp_cls not in hwid.database.components:
+  if comp_cls not in hwid.database.components.GetRequiredComponents():
     GetLogger().Error('Invalid component class: %r' % comp_cls)
     return None
   # Construct a set of known values from hwid.database and hwid.bom.
-  result = collections.defaultdict(list)
-  bom_comp_value_list = PackProbedString(hwid.bom, comp_cls)
-  for comp_name, comp_attr in (
-      hwid.database.components[comp_cls].iteritems()):
-    db_comp_value_list = MakeList(comp_attr['value'])
-    if (bom_comp_value_list and
-        HasCommonElement(db_comp_value_list, bom_comp_value_list)):
-      # The probed values in BOM matches an entry in database. We have a valid
-      # component here.
-      result['name'].append(comp_name)
-      for attr_key, attr_value in comp_attr.iteritems():
-        result[attr_key].extend(MakeList(attr_value))
+  results = []
+  bom_components = PackProbedValues(hwid.bom, comp_cls)
+  for comp in bom_components:
+    try:
+      comp_attrs = hwid.database.components.GetComponentAttributes(comp_cls,
+                                                                   comp)
+      results.append(comp)
+      if 'labels' in comp_attrs:
+        results.extend(MakeList(comp_attrs['labels']))
+    except HWIDException:
+      continue
   # If the set is empty, add a None element indicating that the component
   # class is missing.
-  if not result:
-    result['name'] = None
-  return result
+  if not results:
+    results.append(None)
+  return results
 
 
 def CreateSetFromAttributes(attr_dict):
@@ -104,11 +103,10 @@ def _ComponentCompare(comp_cls, values, op_for_values):
   attrs = GetClassAttributesOnBOM(context.hwid, comp_cls)
   if attrs is None:
     return False
-  comp_attr_set = CreateSetFromAttributes(attrs)
   values = [
       Value(v) if not isinstance(v, Value) else v for v in MakeList(values)]
   return op_for_values(
-      [any([v.Matches(attr) for attr in comp_attr_set]) for v in values])
+      [any([v.Matches(attr) for attr in attrs]) for v in values])
 
 
 @RuleFunction(['hwid'])
@@ -141,21 +139,6 @@ def ComponentIn(comp_cls, values):
     True if the component is in the given values, False otherwise.
   """
   return _ComponentCompare(comp_cls, values, any)
-
-
-@RuleFunction(['hwid'])
-def GetComponentAttribute(comp_cls, key):
-  """A wrapper method to get component attribute value.
-
-  Args:
-    comp_cls: The component class to get attribute from.
-    key: A string specifying the attribute to get.
-
-  Returns:
-    The attribute value got.
-  """
-  context = GetContext()
-  return GetClassAttributesOnBOM(context.hwid, comp_cls)[key]
 
 
 @RuleFunction(['hwid'])

@@ -32,7 +32,8 @@ from cros.factory.common import CompactStr, Error, Obj, ParseKeyValueData, Shell
 from cros.factory.gooftool import edid
 from cros.factory.gooftool import crosfw
 from cros.factory.gooftool import vblock
-from cros.factory.hwdb.hwid_tool import ProbeResults  # pylint: disable=E0611
+# pylint: disable=E0611
+from cros.factory.hwdb.hwid_tool import ProbeResults, COMPACT_PROBE_STR
 
 try:
   sys.path.append('/usr/local/lib/flimflam/test')
@@ -63,6 +64,11 @@ PROBEABLE_COMPONENT_CLASSES = set()
 # actually probing.
 FAKE_PROBE_RESULTS_FILE = '/tmp/fake_probe_results.yaml'
 
+
+def DictCompactProbeStr(content):
+  return {COMPACT_PROBE_STR: CompactStr(content)}
+
+
 def _LoadKernelModule(name, error_on_fail=True):
   """Ensure kernel module is loaded.  If not already loaded, do the load."""
   # TODO(tammo): Maybe lift into shared data for performance reasons.
@@ -92,8 +98,11 @@ def _ReadSysfsFields(base_path, field_list, optional_field_list=None):
   data = dict((field, open(path).read().strip())
               for field, path in zip(all_fields_list, path_list)
               if os.path.exists(path) and not os.path.isdir(path))
-  result = [data[field] for field in all_fields_list if field in data]
-  return result if set(data) >= set(field_list) else None
+  if not set(data) >= set(field_list):
+    return None
+  data.update(DictCompactProbeStr(
+      [data[field] for field in all_fields_list if field in data]))
+  return data
 
 
 def _ReadSysfsPciFields(path):
@@ -102,12 +111,15 @@ def _ReadSysfsPciFields(path):
   field_data = _ReadSysfsFields(path, ['vendor', 'device'])
   if field_data is None:
     return None
-  vendor, device = field_data
-  return '%s:%s' % (vendor.replace('0x', ''), device.replace('0x', ''))
+  field_data.update(DictCompactProbeStr([
+      '%s:%s' % (field_data['vendor'].replace('0x', ''),
+                 field_data['device'].replace('0x', ''))]))
+  return field_data
 
 
 def _ReadSysfsUsbFields(path):
-  """Returns string containing at least the USB 'idVendor:idProduct' tuple.
+  """Returns dict containing at least the values of USB 'idVendor' and
+  'idProduct'.
 
   Args:
     path: Path used to search for USB sysfs data.  First all symlinks
@@ -116,11 +128,10 @@ def _ReadSysfsUsbFields(path):
       path looks to contain the relevent data fields.
 
   Returns:
-    A string with the above tuple if a sutable directory with
-    containing the field data can be found.  This string will also
-    contain space-separated optional field data if those are
-    available.  If no directory with the required fields are found,
-    returns None.
+    A dict with the USB 'idVendor' and 'idProduct' values if a sutable
+    directory containing the field data can be found. This dict will also
+    contain other optional field data if those are available. If no directory
+    with the required fields are found, returns None.
   """
   path = os.path.realpath(path)
   while path.find('/usb') > 0:
@@ -131,10 +142,13 @@ def _ReadSysfsUsbFields(path):
                                 ['manufacturer', 'product', 'bcdDevice'])
   if field_data is None:
     return None
-  result = '%s:%s' % (field_data[0].replace('0x', ''),
-                      field_data[1].replace('0x', ''))
-  result += (' ' + ' '.join(field_data[2:])) if field_data[2:] else ''
-  return result
+  compact_str_list = ['%s:%s' % (field_data['idVendor'].replace('0x', ''),
+                                 field_data['idProduct'].replace('0x', ''))]
+  for key in ['manufacturer', 'product', 'bcdDevice']:
+    if field_data.get(key):
+      compact_str_list.append(field_data[key])
+  field_data.update(DictCompactProbeStr(compact_str_list))
+  return field_data
 
 
 def _ReadSysfsDeviceId(path, ignore_usb=False):
@@ -364,15 +378,16 @@ def _InitialConfigProbe(probe_class, *arch_targets):
 def _ProbeAudioCodec():
   """Looks for codec strings in /proc/asound then at PCM details."""
   grep_result = Shell('grep -R "Codec:" /proc/asound/*')
-  match_list = [re.findall(r'.*Codec:(.*)', line)
-                for line in grep_result.stdout.splitlines()]
-  result_set = set(CompactStr(match) for match in match_list if match)
-  if result_set:
-    return result_set
+  match_set = set()
+  for line in grep_result.stdout.splitlines():
+    match_set |= set(re.findall(r'.*Codec:(.*)', line))
+  results = [DictCompactProbeStr(match) for match in sorted(match_set) if match]
+  if results:
+    return results
   # Formatted '00-00: WM??? PCM wm???-hifi-0: ...'
   pcm_data = open('/proc/asound/pcm').read().strip().split(' ')
   if len(pcm_data) > 2:
-    return [CompactStr(pcm_data[1])]
+    return [DictCompactProbeStr(pcm_data[1])]
   return []
 
 
@@ -380,7 +395,7 @@ def _ProbeAudioCodec():
 def _ProbeBattery():
   """Compose data from sysfs."""
   node_path_list = glob('/sys/class/power_supply/*')
-  type_data_list = [_ReadSysfsFields(node_path, ['type'])[0]
+  type_data_list = [_ReadSysfsFields(node_path, ['type'])['type']
                     for node_path in node_path_list]
   battery_field_list = ['manufacturer', 'model_name', 'technology']
   # probe energy_full_design or charge_full_design, battery can have either
@@ -399,7 +414,7 @@ def _ProbeBattery():
                        for node_path, type_data
                        in zip(node_path_list, type_data_list)
                        if type_data == 'Battery']
-  return sorted(CompactStr(x) for x in battery_data_list if x)
+  return sorted(x for x in battery_data_list if x)
 
 
 @_ComponentProbe('bluetooth')
@@ -411,22 +426,22 @@ def _ProbeBluetooth():
   # Use information in driver if probe failed in primary path
   device_id_list = _RecursiveProbe('/sys/module/bluetooth/holders',
                                    _ReadSysfsDeviceId)
-  return sorted(CompactStr(x) for x in device_id_list if x)
+  return sorted(x for x in device_id_list if x)
 
 
 @_ComponentProbe('camera')
 def _ProbeCamera():
   # TODO(tammo): What is happening here?  Arch-specific stuff?  Doc string...
   # TODO(tammo/sheckylin): Try to replace the code below with OpenCV calls.
-  info = []
+  info = {}
   camera_node = '/sys/class/video4linux/video0'
   camera_data = _ReadSysfsNodeId(camera_node)
   if camera_data:
-    info.append(camera_data)
+    info.update(camera_data)
   # For SOC cameras
-  camera_data = _ReadSysfsFields(camera_node, ['device/control/name'])
-  if camera_data:
-    info.append(camera_data)
+  camera_data_soc = _ReadSysfsFields(camera_node, ['device/control/name'])
+  if camera_data_soc:
+    info.update(camera_data_soc)
   # Try video4linux2 (v4l2) interface.
   # See /usr/include/linux/videodev2.h for definition of these consts.
   # 'ident' values are defined in include/media/v4l2-chip-ident.h
@@ -441,10 +456,11 @@ def _ProbeCamera():
       ioctl(f.fileno(), VIDIOC_DBG_G_CHIP_IDENT, buf, 1)
       v4l2_ident = buf[V4L2_INDEX_IDENT]
       if v4l2_ident >= V4L2_VALID_IDENT:
-        info.append('V4L2:%04x %04x' % (v4l2_ident, buf[V4L2_INDEX_REVISION]))
+        info['ident'] = 'V4L2:%04x %04x' % (v4l2_ident,
+                                            buf[V4L2_INDEX_REVISION])
   except:  # pylint: disable=W0702
     pass
-  return [CompactStr(info)] if info else []
+  return [info] if info else []
 
 
 @_ComponentProbe('cellular')
@@ -495,7 +511,7 @@ def _ProbeChipsetArm():
   if not os.path.exists(fdt_compatible_file):
     return []
   compatible_list = open(fdt_compatible_file).read().strip()
-  return [CompactStr(compatible_list.strip(chr(0)).split(chr(0)))]
+  return [DictCompactProbeStr(compatible_list.strip(chr(0)).split(chr(0)))]
 
 
 @_ComponentProbe('cpu', 'x86')
@@ -507,7 +523,9 @@ def _ProbeCpuX86():
   #   model name : Intel(R) Atom(TM) CPU ???
   cmd = r'sed -nr "s/^model name\s*: (.*)/\1/p" /proc/cpuinfo'
   stdout = Shell(cmd).stdout.splitlines()
-  return [CompactStr(stdout[0] + ' [%d cores]' % len(stdout))]
+  return [{'model': stdout[0], 'cores': str(len(stdout)),
+           COMPACT_PROBE_STR: CompactStr(
+               '%s [%d cores]' % (stdout[0], len(stdout)))}]
 
 
 @_ComponentProbe('cpu', 'arm')
@@ -521,19 +539,26 @@ def _ProbeCpuArm():
   #   processor : 1
   cmd = r'sed -nr "s/^[Pp]rocessor\s*: (.*)/\1/p" /proc/cpuinfo'
   stdout = Shell(cmd).stdout.splitlines()
-  return [CompactStr(stdout[0] + ' [%d cores]' % (len(stdout) - 1))]
+  return [{'model': stdout[0], 'cores': str(len(stdout) - 1),
+           COMPACT_PROBE_STR: CompactStr(
+               stdout[0] + ' [%d cores]' % (len(stdout) - 1))}]
 
 
 @_ComponentProbe('display_panel')
 def _ProbeDisplayPanel():
   """Combine all available edid data, from sysfs and directly from the i2c."""
-  edid_set = set(edid.Parse(open(path).read())
-                 for path in glob('/sys/class/drm/*LVDS*/edid'))
+  edid_list = []
+  for path in glob('/sys/class/drm/*LVDS*/edid'):
+    with open(path) as f:
+      parsed_edid = edid.Parse(f.read())
+      if parsed_edid:
+        edid_list.append(parsed_edid)
   _LoadKernelModule('i2c_dev')
-  edid_set |= set(edid.LoadFromI2c(path)
-                  for path in sorted(glob('/dev/i2c-[0-9]*')))
-  edid_set -= set([None])
-  return sorted(edid_set) if edid_set else []
+  for path in sorted(glob('/dev/i2c-[0-9]*')):
+    parsed_edid = edid.LoadFromI2c(path)
+    if parsed_edid:
+      edid_list.append(parsed_edid)
+  return edid_list
 
 
 @_ComponentProbe('dram')
@@ -541,21 +566,30 @@ def _ProbeDram():
   """Combine mosys memory timing and geometry information."""
   # TODO(tammo): Document why mosys cannot load i2c_dev itself.
   _LoadKernelModule('i2c_dev')
-  vendor_data = Shell('mosys -k memory spd print id').stdout
-  time_data = Shell('mosys -k memory spd print timings').stdout
+  part_data = Shell('mosys -k memory spd print id').stdout
+  timing_data = Shell('mosys -k memory spd print timings').stdout
   size_data = Shell('mosys -k memory spd print geometry').stdout
-  vendor = dict(re.findall('dimm="([^"]*)".*module_mfg="([^"]*)"', vendor_data))
-  times = dict(re.findall('dimm="([^"]*)".*speeds="([^"]*)"', time_data))
+  parts = dict(re.findall('dimm="([^"]*)".*part_number="([^"]*)"', part_data))
+  timings = dict(re.findall('dimm="([^"]*)".*speeds="([^"]*)"', timing_data))
   sizes = dict(re.findall('dimm="([^"]*)".*size_mb="([^"]*)"', size_data))
-  return [CompactStr([
-      '%s|%s|%s|%s' % (i, vendor[i], sizes[i], times[i].replace(' ', ''))
-      for i in sorted(times)])]
+  results = []
+  for slot in sorted(parts):
+    part = parts[slot]
+    size = sizes[slot]
+    timing = timings[slot].replace(' ', '')
+    results.append({
+        'slot': slot,
+        'part': part,
+        'size': size,
+        'timing': timing,
+        COMPACT_PROBE_STR: CompactStr(['|'.join([slot, part, size, timing])])})
+  return results
 
 
 @_ComponentProbe('ec_flash_chip')
 def _ProbeEcFlashChip():
   chip_id = crosfw.LoadEcFirmware().GetChipId()
-  return [chip_id] if chip_id is not None else []
+  return [{COMPACT_PROBE_STR: chip_id}] if chip_id is not None else []
 
 
 @_ComponentProbe('embedded_controller')
@@ -565,7 +599,10 @@ def _ProbeEmbeddedController():
   # vendor="VENDOR" name="CHIPNAME" fw_version="ECFWVER"
   ecinfo = re.findall(r'\bvendor="([^"]*)".*\bname="([^"]*)"',
                       Shell('mosys -k ec info').stdout)
-  return [CompactStr(*ecinfo)] if ecinfo else []
+  if not ecinfo:
+    return []
+  return [{'vendor': ecinfo[0][0], 'name': ecinfo[0][1],
+           COMPACT_PROBE_STR: CompactStr(*ecinfo)}]
 
 
 @_ComponentProbe('ethernet')
@@ -578,7 +615,7 @@ def _ProbeEthernet():
 @_ComponentProbe('flash_chip')
 def _ProbeMainFlashChip():
   chip_id = crosfw.LoadMainFirmware().GetChipId()
-  return [chip_id] if chip_id else []
+  return [{COMPACT_PROBE_STR: chip_id}] if chip_id else []
 
 
 def _GetFixedDevices():
@@ -604,14 +641,19 @@ def _ProbeStorage():
   def ProcessNode(node_path):
     dev_path = os.path.join(node_path, 'device')
     size_path = os.path.join(os.path.dirname(dev_path), 'size')
-    size = ('#' + open(size_path).read().strip()
-            if os.path.exists(size_path) else '')
+    sectors = (open(size_path).read().strip()
+               if os.path.exists(size_path) else '')
     ata_fields = ['vendor', 'model']
     emmc_fields = ['type', 'name', 'hwrev', 'oemid', 'manfid']
     data = (_ReadSysfsFields(dev_path, ata_fields) or
             _ReadSysfsFields(dev_path, emmc_fields) or
             None)
-    return CompactStr(data + [size]) if data is not None else None
+    if not data:
+      return None
+    data['sectors'] = sectors
+    data[COMPACT_PROBE_STR] = ' '.join([data[COMPACT_PROBE_STR],
+                                        '#' + data['sectors']])
+    return data
   return [ident for ident in map(ProcessNode, _GetFixedDevices())
           if ident is not None]
 
@@ -619,7 +661,8 @@ def _ProbeStorage():
 @_ComponentProbe('touchpad')
 def _ProbeTouchpad():
   ident_str = _TouchpadData.Get().ident_str
-  return [ident_str] if ident_str is not None else []
+  return [{'id': ident_str,
+           COMPACT_PROBE_STR: ident_str}] if ident_str is not None else []
 
 
 @_ComponentProbe('tpm')
@@ -632,7 +675,8 @@ def _ProbeTpm():
   mfg = tpm_dict.get('Manufacturer Info', None)
   version = tpm_dict.get('Chip Version', None)
   if mfg is not None and version is not None:
-    return [mfg + ':' + version]
+    return [{'manufacturer_info': mfg, 'version': version,
+             COMPACT_PROBE_STR: CompactStr(mfg + ':' + version)}]
   return []
 
 
@@ -665,13 +709,14 @@ def _ProbeWireless():
 @_ComponentProbe('pmic')
 def _ProbePmic():
   pmics = glob('/sys/bus/platform/devices/*-pmic')
-  return [os.path.basename(x) for x in pmics] if pmics else []
+  return ([{COMPACT_PROBE_STR: os.path.basename(x)} for x in pmics]
+          if pmics else [])
 
 @_ComponentProbe('keyboard')
 def _ProbeKeyboard():
   ro_vpd = ReadRoVpd(crosfw.LoadMainFirmware().GetFileName())
   try:
-    return [ro_vpd['keyboard_layout']]
+    return [{COMPACT_PROBE_STR: ro_vpd['keyboard_layout']}]
   except KeyError:
     return []
 
@@ -745,8 +790,9 @@ def _ProbeStorageFirmwareVersion():
       ret.extend(matches)
     else:
       # Use fwrev file (e.g., for eMMC where smartctl is unsupported)
-      ret.extend(_ReadSysfsFields(os.path.join(f, 'device'), ['fwrev']) or [])
-
+      fw_rev = _ReadSysfsFields(os.path.join(f, 'device'), ['fwrev'])
+      if fw_rev:
+        ret.extend(fw_rev.values())
   return CompactStr(ret)
 
 
@@ -774,7 +820,8 @@ def _GbbHash(image):
     f.seek(0)
     hash_src = f.read()
     assert len(hash_src) == len(data)
-  return 'gv2#' + hashlib.sha256(hash_src).hexdigest() # pylint: disable=E1101
+  # pylint: disable=E1101
+  return {COMPACT_PROBE_STR: 'gv2#' + hashlib.sha256(hash_src).hexdigest()}
 
 
 def _MainRoHash(image):
@@ -786,8 +833,11 @@ def _MainRoHash(image):
   hash_src += image.get_section('RO_SECTION')
   image.put_section('GBB', gbb)
   # pylint: disable=E1101
-  return 'mv2#%s%s' % (hashlib.sha256(hash_src).hexdigest(),
-                       _AddFirmwareIdTag(image))
+  return {
+      'hash': hashlib.sha256(hash_src).hexdigest(),
+      'version': _AddFirmwareIdTag(image).lstrip('#'),
+      COMPACT_PROBE_STR: 'mv2#%s%s' % (hashlib.sha256(hash_src).hexdigest(),
+                                           _AddFirmwareIdTag(image))}
 
 
 def _EcRoHash(image):
@@ -795,8 +845,11 @@ def _EcRoHash(image):
   hash_src = image.get_fmap_blob()
   hash_src += image.get_section('EC_RO')
   # pylint: disable=E1101
-  return 'ev2#%s%s' % (hashlib.sha256(hash_src).hexdigest(),
-                       _AddFirmwareIdTag(image))
+  return {
+      'hash': hashlib.sha256(hash_src).hexdigest(),
+      'version': _AddFirmwareIdTag(image).lstrip('#'),
+      COMPACT_PROBE_STR: 'ev2#%s%s' % (hashlib.sha256(hash_src).hexdigest(),
+                                           _AddFirmwareIdTag(image))}
 
 
 def _FwKeyHash(main_fw_file, key_name):
@@ -817,7 +870,7 @@ def _FwKeyHash(main_fw_file, key_name):
     sha1 = sha1sum[0]
     if sha1 in known_hashes:
       sha1 += '#' + known_hashes[sha1]
-    return 'kv3#' + sha1
+    return {COMPACT_PROBE_STR: 'kv3#' + sha1}
 
 
 def CalculateFirmwareHashes(fw_file_path):

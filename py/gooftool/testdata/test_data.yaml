@@ -13,34 +13,34 @@
 ---
 HWID: BENDER LEELA A-A 0489
 found_probe_value_map:
-  audio_codec: AUDIO_CODEC_1
-  battery: BATTERY_1
-  bluetooth: BLUETOOTH_1
-  camera: CAMERA_1
-  cellular: CELLULAR_1
-  display_converter: DISPLAY_CONVERTER_1
-  chipset: CHIPSET_1
-  cpu: CPU_1
-  display_panel: DISPLAY_PANEL_1
-  dram: DRAM_1
-  ec_flash_chip: EC_FLASH_CHIP_1
-  embedded_controller: EMBEDDED_CONTROLLER_1
-  ethernet: ETHERNET_1
-  flash_chip: FLASH_CHIP_1
-  keyboard: KEYBOARD_1
-  storage: STORAGE_1
-  touchpad: TOUCHPAD_1
-  tpm: TPM_1
-  usb_hosts: USB_HOSTS_1
-  vga: VGA_1
-  wimax: WIMAX_1
-  wireless: WIRELESS_1
+  audio_codec: { compact_str: 'AUDIO_CODEC_1' }
+  battery: { compact_str: 'BATTERY_1' }
+  bluetooth: { compact_str: 'BLUETOOTH_1' }
+  camera: { compact_str: 'CAMERA_1' }
+  cellular: { compact_str: 'CELLULAR_1' }
+  display_converter: { compact_str: 'DISPLAY_CONVERTER_1' }
+  chipset: { compact_str: 'CHIPSET_1' }
+  cpu: { compact_str: 'CPU_1' }
+  display_panel: { compact_str: 'DISPLAY_PANEL_1' }
+  dram: { compact_str: 'DRAM_1' }
+  ec_flash_chip: { compact_str: 'EC_FLASH_CHIP_1' }
+  embedded_controller: { compact_str: 'EMBEDDED_CONTROLLER_1' }
+  ethernet: { compact_str: 'ETHERNET_1' }
+  flash_chip: { compact_str: 'FLASH_CHIP_1' }
+  keyboard: { compact_str: 'KEYBOARD_1' }
+  storage: { compact_str: 'STORAGE_1' }
+  touchpad: { compact_str: 'TOUCHPAD_1' }
+  tpm: { compact_str: 'TPM_1' }
+  usb_hosts: { compact_str: 'USB_HOSTS_1' }
+  vga: { compact_str: 'VGA_1' }
+  wimax: { compact_str: 'WIMAX_1' }
+  wireless: { compact_str: 'WIRELESS_1' }
 found_volatile_values:
-  hash_gbb: HASH_GBB_1
-  key_recovery: KEY_RECOVERY_1
-  key_root: KEY_ROOT_1
-  ro_ec_firmware: RO_EC_FIRMWARE_1
-  ro_main_firmware: RO_MAIN_FIRMWARE_1
+  hash_gbb: { compact_str: 'HASH_GBB_1' }
+  key_recovery: { compact_str: 'KEY_RECOVERY_1' }
+  key_root: { compact_str: 'KEY_ROOT_1' }
+  ro_ec_firmware: { compact_str: 'RO_EC_FIRMWARE_1' }
+  ro_main_firmware: { compact_str: 'RO_MAIN_FIRMWARE_1' }
   vpd.ro.vpd_ro_field_1: VPD_RO_FIELD_1
   vpd.ro.vpd_ro_field_2: VPD_RO_FIELD_2
   vpd.rw.vpd_rw_field_1: VPD_RW_FIELD_1
@@ -51,30 +51,30 @@ missing_component_classes: []
 HWID: BENDER LEELA A-A 0000
 ERROR: bad checksum
 found_probe_value_map:
-  audio_codec: AUDIO_CODEC_1
-  battery: BATTERY_1
-  bluetooth: BLUETOOTH_1
-  camera: CAMERA_1
-  cellular: CELLULAR_1
-  display_converter: DISPLAY_CONVERTER_1
-  chipset: CHIPSET_1
-  cpu: CPU_1
-  display_panel: DISPLAY_PANEL_1
-  dram: DRAM_1
-  ec_flash_chip: EC_FLASH_CHIP_1
-  embedded_controller: EMBEDDED_CONTROLLER_1
-  ethernet: ETHERNET_1
-  flash_chip: FLASH_CHIP_1
-  keyboard: KEYBOARD_1
-  storage: STORAGE_1
-  touchpad: TOUCHPAD_1
-  tpm: TPM_1
-  usb_hosts: USB_HOSTS_1
-  vga: VGA_1
-  wimax: WIMAX_1
-  wireless: WIRELESS_1
+  audio_codec: { compact_str: 'AUDIO_CODEC_1' }
+  battery: { compact_str: 'BATTERY_1' }
+  bluetooth: { compact_str: 'BLUETOOTH_1' }
+  camera: { compact_str: 'CAMERA_1' }
+  cellular: { compact_str: 'CELLULAR_1' }
+  display_converter: { compact_str: 'DISPLAY_CONVERTER_1' }
+  chipset: { compact_str: 'CHIPSET_1' }
+  cpu: { compact_str: 'CPU_1' }
+  display_panel: { compact_str: 'DISPLAY_PANEL_1' }
+  dram: { compact_str: 'DRAM_1' }
+  ec_flash_chip: { compact_str: 'EC_FLASH_CHIP_1' }
+  embedded_controller: { compact_str: 'EMBEDDED_CONTROLLER_1' }
+  ethernet: { compact_str: 'ETHERNET_1' }
+  flash_chip: { compact_str: 'FLASH_CHIP_1' }
+  keyboard: { compact_str: 'KEYBOARD_1' }
+  storage: { compact_str: 'STORAGE_1' }
+  touchpad: { compact_str: 'TOUCHPAD_1' }
+  tpm: { compact_str: 'TPM_1' }
+  usb_hosts: { compact_str: 'USB_HOSTS_1' }
+  vga: { compact_str: 'VGA_1' }
+  wimax: { compact_str: 'WIMAX_1' }
+  wireless: { compact_str: 'WIRELESS_1' }
 found_volatile_values:
-  volatile_1: VOLATILE_1
+  volatile_1: { compact_str: 'VOLATILE_1' }
   vpd.ro.vpd_ro_field_1: VPD_RO_FIELD_1
   vpd.ro.vpd_ro_field_2: VPD_RO_FIELD_2
   vpd.rw.vpd_rw_field_1: VPD_RW_FIELD_1
@@ -84,31 +84,31 @@ missing_component_classes: []
 ---
 HWID: BENDER LEELA A-A 0489
 found_probe_value_map:
-  audio_codec: AUDIO_CODEC_1
-  battery: BATTERY_1
-  bluetooth: BLUETOOTH_1
-  camera: CAMERA_1
-  cellular: CELLULAR_1
-  display_converter: DISPLAY_CONVERTER_1
-  chipset: CHIPSET_1
-  cpu: CPU_1
-  display_panel: DISPLAY_PANEL_1
-  dram: DRAM_1
-  ec_flash_chip: EC_FLASH_CHIP_1
-  embedded_controller: EMBEDDED_CONTROLLER_1
-  ethernet: ETHERNET_1
-  flash_chip: FLASH_CHIP_1
-  keyboard: KEYBOARD_1
-  storage: STORAGE_1
-  touchpad: TOUCHPAD_1
-  tpm: TPM_1
-  usb_hosts: USB_HOSTS_1
-  vga: VGA_1
-  wimax: WIMAX_1
-  wireless: WIRELESS_1
+  audio_codec: { compact_str: 'AUDIO_CODEC_1' }
+  battery: { compact_str: 'BATTERY_1' }
+  bluetooth: { compact_str: 'BLUETOOTH_1' }
+  camera: { compact_str: 'CAMERA_1' }
+  cellular: { compact_str: 'CELLULAR_1' }
+  display_converter: { compact_str: 'DISPLAY_CONVERTER_1' }
+  chipset: { compact_str: 'CHIPSET_1' }
+  cpu: { compact_str: 'CPU_1' }
+  display_panel: { compact_str: 'DISPLAY_PANEL_1' }
+  dram: { compact_str: 'DRAM_1' }
+  ec_flash_chip: { compact_str: 'EC_FLASH_CHIP_1' }
+  embedded_controller: { compact_str: 'EMBEDDED_CONTROLLER_1' }
+  ethernet: { compact_str: 'ETHERNET_1' }
+  flash_chip: { compact_str: 'FLASH_CHIP_1' }
+  keyboard: { compact_str: 'KEYBOARD_1' }
+  storage: { compact_str: 'STORAGE_1' }
+  touchpad: { compact_str: 'TOUCHPAD_1' }
+  tpm: { compact_str: 'TPM_1' }
+  usb_hosts: { compact_str: 'USB_HOSTS_1' }
+  vga: { compact_str: 'VGA_1' }
+  wimax: { compact_str: 'WIMAX_1' }
+  wireless: { compact_str: 'WIRELESS_1' }
 found_volatile_values:
   # Invalid volatile, but using a wildcard volatile so it's OK
-  volatile_1: VOLATILE_INVALID
+  volatile_1: { compact_str: 'VOLATILE_INVALID' }
   vpd.ro.vpd_ro_field_1: VPD_RO_FIELD_1
   vpd.ro.vpd_ro_field_2: VPD_RO_FIELD_2
   vpd.rw.vpd_rw_field_1: VPD_RW_FIELD_1
@@ -119,30 +119,30 @@ missing_component_classes: []
 HWID: BENDER LEELA A-B 2467
 ERROR: "target volatile_code 'B' did not match"
 found_probe_value_map:
-  audio_codec: AUDIO_CODEC_1
-  battery: BATTERY_1
-  bluetooth: BLUETOOTH_1
-  camera: CAMERA_1
-  cellular: CELLULAR_1
-  display_converter: DISPLAY_CONVERTER_1
-  chipset: CHIPSET_1
-  cpu: CPU_1
-  display_panel: DISPLAY_PANEL_1
-  dram: DRAM_1
-  ec_flash_chip: EC_FLASH_CHIP_1
-  embedded_controller: EMBEDDED_CONTROLLER_1
-  ethernet: ETHERNET_1
-  flash_chip: FLASH_CHIP_1
-  keyboard: KEYBOARD_1
-  storage: STORAGE_1
-  touchpad: TOUCHPAD_1
-  tpm: TPM_1
-  usb_hosts: USB_HOSTS_1
-  vga: VGA_1
-  wimax: WIMAX_1
-  wireless: WIRELESS_1
+  audio_codec: { compact_str: 'AUDIO_CODEC_1' }
+  battery: { compact_str: 'BATTERY_1' }
+  bluetooth: { compact_str: 'BLUETOOTH_1' }
+  camera: { compact_str: 'CAMERA_1' }
+  cellular: { compact_str: 'CELLULAR_1' }
+  display_converter: { compact_str: 'DISPLAY_CONVERTER_1' }
+  chipset: { compact_str: 'CHIPSET_1' }
+  cpu: { compact_str: 'CPU_1' }
+  display_panel: { compact_str: 'DISPLAY_PANEL_1' }
+  dram: { compact_str: 'DRAM_1' }
+  ec_flash_chip: { compact_str: 'EC_FLASH_CHIP_1' }
+  embedded_controller: { compact_str: 'EMBEDDED_CONTROLLER_1' }
+  ethernet: { compact_str: 'ETHERNET_1' }
+  flash_chip: { compact_str: 'FLASH_CHIP_1' }
+  keyboard: { compact_str: 'KEYBOARD_1' }
+  storage: { compact_str: 'STORAGE_1' }
+  touchpad: { compact_str: 'TOUCHPAD_1' }
+  tpm: { compact_str: 'TPM_1' }
+  usb_hosts: { compact_str: 'USB_HOSTS_1' }
+  vga: { compact_str: 'VGA_1' }
+  wimax: { compact_str: 'WIMAX_1' }
+  wireless: { compact_str: 'WIRELESS_1' }
 found_volatile_values:
-  volatile_1: VOLATILE_INVALID
+  volatile_1: { compact_str: 'VOLATILE_INVALID' }
   vpd.ro.vpd_ro_field_1: VPD_RO_FIELD_1
   vpd.ro.vpd_ro_field_2: VPD_RO_FIELD_2
   vpd.rw.vpd_rw_field_1: VPD_RW_FIELD_1

@@ -17,6 +17,7 @@ from fcntl import ioctl
 from time import sleep
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.hwdb import hwid_tool
 
 
 # Constants lifted from EDID documentation.
@@ -51,7 +52,7 @@ def Parse(blob):
     blob: a binary blob with encoded EDID.
 
   Returns:
-    Identification string with extracted EDID fields.  Return None if
+    A dict of extracted keys to extracted EDID fields.  Return None if
     the blob is not a valid EDID record, and also log warning messages
     indicating the reason for parsing failure.
   """
@@ -91,7 +92,10 @@ def Parse(blob):
            ((ord(blob[HORIZONTAL_HIGH_OFFSET]) >> 4) << 8))
   height = (ord(blob[VERTICAL_OFFSET]) |
             ((ord(blob[VERTICAL_HIGH_OFFSET]) >> 4) << 8))
-  return '%s:%04x [%dx%d]' % (vendor_name, product_id, width, height)
+  return {'vendor': vendor_name, 'product_id': '%04x' % product_id,
+          'width': str(width), 'height': str(height),
+          hwid_tool.COMPACT_PROBE_STR: (
+              '%s:%04x [%dx%d]' % (vendor_name, product_id, width, height))}
 
 
 def _I2cDump(bus, address, size):

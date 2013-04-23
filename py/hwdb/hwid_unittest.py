@@ -42,38 +42,40 @@ def LogOnException(test_name, *log_files):
 # been truncated to fit in 80 columns.
 g_zgb_probe_results_str = '''
 found_probe_value_map:
-  audio_codec: Realtek ALC271X
-  battery: SANYO AS10B73 Li-ion 4400000
-  bluetooth: 0cf3:3005 0001
-  camera: 04f2:b1d8 Sonix Technology Co., Ltd. Chicony 1.3M WebCam 5582
-  cellular: 05c6:9215 Qualcomm Incorporated Qualcomm Gobi2000 0002
-  chipset: 8086:a010
-  cpu: Intel(R) Atom(TM) CPU N570 @ 1.66GHz [4 cores]
-  display_converter: ch7036
-  display_panel: AUO:5c20 [1366x768]
-  dram: 0|2048|DDR3-800,DDR3-1066,DDR3-1333
-  ec_flash_chip: Winbond W25X40
-  embedded_controller: nuvoton npce781
-  ethernet: 0b95:772a ASIX Elec. Corp. AX88x72A 0001
-  flash_chip: Winbond W25Q32
-  pmic: 99999-pmic
-  storage: 'ATA SanDisk SSD P4 1 #31277232'
-  touchpad: SynPS/2 Synaptics TouchPad
-  tpm: 49465800:1.2.3.18
+  audio_codec: { compact_str: 'Realtek ALC271X' }
+  battery: { compact_str: 'SANYO AS10B73 Li-ion 4400000' }
+  bluetooth: { compact_str: '0cf3:3005 0001' }
+  camera:
+    compact_str: '04f2:b1d8 Sonix Technology Co., Ltd. Chicony 1.3M WebCam 5582'
+  cellular:
+    compact_str: '05c6:9215 Qualcomm Incorporated Qualcomm Gobi2000 0002'
+  chipset: { compact_str: '8086:a010' }
+  cpu: { compact_str: 'Intel(R) Atom(TM) CPU N570 @ 1.66GHz [4 cores]' }
+  display_converter: { compact_str: 'ch7036' }
+  display_panel: { compact_str: 'AUO:5c20 [1366x768]' }
+  dram: { compact_str: '0|2048|DDR3-800,DDR3-1066,DDR3-1333' }
+  ec_flash_chip: { compact_str: 'Winbond W25X40' }
+  embedded_controller: { compact_str: 'nuvoton npce781' }
+  ethernet: { compact_str: '0b95:772a ASIX Elec. Corp. AX88x72A 0001' }
+  flash_chip: { compact_str: 'Winbond W25Q32' }
+  pmic: { compact_str: '99999-pmic' }
+  storage: { compact_str: 'ATA SanDisk SSD P4 1 #31277232' }
+  touchpad: { compact_str: 'SynPS/2 Synaptics TouchPad' }
+  tpm: { compact_str: '49465800:1.2.3.18' }
   usb_hosts:
-  - 8086:27cc
-  - 8086:27c8
-  - 8086:27c9
-  - 8086:27ca
-  - 8086:27cb
-  vga: 8086:a011
-  wireless: 168c:0030
+  - { compact_str: '8086:27cc' }
+  - { compact_str: '8086:27c8' }
+  - { compact_str: '8086:27c9' }
+  - { compact_str: '8086:27ca' }
+  - { compact_str: '8086:27cb' }
+  vga: { compact_str: '8086:a011' }
+  wireless: { compact_str: '168c:0030' }
 found_volatile_values:
-  hash_gbb: gv2#af80b996717d4b35ad0fab38974dd6c249dc6be6a7f33
-  key_recovery: kv3#9bd99a594c45b6739899a17ec29ac2289ee75463
-  key_root: kv3#9f59876c7f7dc881f02d934786c6b7c2c17dcaac
-  ro_ec_firmware: ev2#6067f5a021f599f4ddff8ed96ba30a2dc9d2653
-  ro_main_firmware: mv2#58b7c3484b4ce620cba066401a3e7c39a57ed
+  hash_gbb: { compact_str: 'gv2#af80b996717d4b35ad0fab38974dd6c249dc6be6a7f33' }
+  key_recovery: { compact_str: 'kv3#9bd99a594c45b6739899a17ec29ac2289ee75463' }
+  key_root: { compact_str: 'kv3#9f59876c7f7dc881f02d934786c6b7c2c17dcaac' }
+  ro_ec_firmware: { compact_str: 'ev2#6067f5a021f599f4ddff8ed96ba30a2dc9d2653' }
+  ro_main_firmware: { compact_str: 'mv2#58b7c3484b4ce620cba066401a3e7c39a57ed' }
 initial_configs:
   rw_firmware: '9999'
 missing_component_classes:
@@ -83,11 +85,11 @@ missing_component_classes:
 g_dummy_volatiles_results_str = '''
 found_probe_value_map: {}
 found_volatile_values:
-  hash_gbb: aaaa
-  key_recovery: bbbb
-  key_root: cccc
-  ro_ec_firmware: dddd
-  ro_main_firmware: eeee
+  hash_gbb: { compact_str: 'aaaa' }
+  key_recovery: { compact_str: 'bbbb' }
+  key_root: { compact_str: 'cccc' }
+  ro_ec_firmware: { compact_str: 'dddd' }
+  ro_main_firmware: { compact_str: 'eeee' }
 initial_configs: {}
 missing_component_classes: []
 '''
@@ -95,11 +97,11 @@ missing_component_classes: []
 g_dummy_volatiles_alt_results_str = '''
 found_probe_value_map: {}
 found_volatile_values:
-  hash_gbb: AAAA
-  key_recovery: BBBB
-  key_root: CCCC
-  ro_ec_firmware: DDDD
-  ro_main_firmware: EEEE
+  hash_gbb: { compact_str: 'AAAA' }
+  key_recovery: { compact_str: 'BBBB' }
+  key_root: { compact_str: 'CCCC' }
+  ro_ec_firmware: { compact_str: 'DDDD' }
+  ro_main_firmware: { compact_str: 'EEEE' }
 initial_configs: {}
 missing_component_classes: []
 '''

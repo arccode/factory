@@ -25,28 +25,46 @@ class DecoderTest(unittest2.TestCase):
         yaml.dump(result) for result in yaml.load_all(open(os.path.join(
             _TEST_DATA_PATH, 'test_probe_result.yaml')).read())]
     self.expected_components_from_db = {
-       'audio_codec': [('codec_1', 'Codec 1', None),
-                       ('hdmi_1', 'HDMI 1', None)],
-       'battery': [('battery_huge', 'Battery Li-ion 10000000', None)],
-       'bluetooth': [('bluetooth_0', '0123:abcd 0001', None)],
-       'camera': [('camera_0', '4567:abcd Camera', None)],
-       'cellular': [(None, None, "Missing 'cellular' component")],
-       'chipset': [('chipset_0', 'cdef:abcd', None)],
-       'cpu': [('cpu_5', 'CPU @ 2.80GHz [4 cores]', None)],
-       'display_panel': [('display_panel_0', 'FOO:0123 [1440x900]', None)],
-       'dram': [('dram_0', 'DRAM 4G', None)],
-       'ec_flash_chip': [('ec_flash_chip_0', 'EC Flash Chip', None)],
-       'embedded_controller': [('embedded_controller_0', 'Embedded Controller',
-                               None)],
-       'flash_chip': [('flash_chip_0', 'Flash Chip', None)],
-       'hash_gbb': [('hash_gbb_0', 'gv2#hash_gbb_0', None)],
-       'key_recovery': [('key_recovery_0', 'kv3#key_recovery_0', None)],
-       'key_root': [('key_root_0', 'kv3#key_root_0', None)],
-       'keyboard': [('keyboard_us', 'xkb:us::eng', None)],
-       'ro_ec_firmware': [('ro_ec_firmware_0', 'ev2#ro_ec_firmware_0', None)],
-       'ro_main_firmware': [
-            ('ro_main_firmware_0', 'mv2#ro_main_firmware_0', None)],
-       'storage': [('storage_0', '16G SSD #123456', None)]}
+        'audio_codec': [('codec_1', {'compact_str': 'Codec 1'}, None),
+                        ('hdmi_1', {'compact_str': 'HDMI 1'}, None)],
+        'battery': [('battery_huge',
+                     {'tech': 'Battery Li-ion', 'size': '10000000'},
+                     None)],
+        'bluetooth': [('bluetooth_0',
+                       {'idVendor': '0123', 'idProduct': 'abcd', 'bcd': '0001'},
+                       None)],
+        'camera': [('camera_0',
+                    {'idVendor': '4567', 'idProduct': 'abcd', 'name': 'Camera'},
+                    None)],
+        'cellular': [(None, None, "Missing 'cellular' component")],
+        'chipset': [('chipset_0', {'compact_str': 'cdef:abcd'}, None)],
+        'cpu': [('cpu_5',
+                 {'name': 'CPU @ 2.80GHz', 'cores': '4'},
+                 None)],
+        'display_panel': [('display_panel_0', None, None)],
+        'dram': [('dram_0', {'vendor': 'DRAM 0', 'size': '4G'}, None)],
+        'ec_flash_chip': [('ec_flash_chip_0',
+                           {'compact_str': 'EC Flash Chip'},
+                           None)],
+        'embedded_controller': [('embedded_controller_0',
+                                 {'compact_str': 'Embedded Controller'},
+                                 None)],
+        'flash_chip': [('flash_chip_0', {'compact_str': 'Flash Chip'}, None)],
+        'hash_gbb': [('hash_gbb_0', {'compact_str': 'gv2#hash_gbb_0'}, None)],
+        'key_recovery': [('key_recovery_0',
+                          {'compact_str': 'kv3#key_recovery_0'},
+                          None)],
+        'key_root': [('key_root_0', {'compact_str': 'kv3#key_root_0'}, None)],
+        'keyboard': [('keyboard_us', None, None)],
+        'ro_ec_firmware': [('ro_ec_firmware_0',
+                            {'compact_str': 'ev2#ro_ec_firmware_0'},
+                            None)],
+        'ro_main_firmware': [('ro_main_firmware_0',
+                              {'compact_str': 'mv2#ro_main_firmware_0'},
+                              None)],
+        'storage': [('storage_0',
+                     {'type': 'SSD', 'size': '16G', 'serial': '#123456'},
+                     None)]}
 
   def testEncodedStringToBinaryString(self):
     self.assertEquals('0000000000111010000011000',
@@ -62,7 +80,7 @@ class DecoderTest(unittest2.TestCase):
   def testBinaryStringToBOM(self):
     reference_bom = self.database.ProbeResultToBOM(self.results[0])
     reference_bom = self.database.UpdateComponentsOfBOM(reference_bom, {
-        'keyboard': 'keyboard_us', 'dram': 'dram_0',
+        'keyboard': 'keyboard_us',
         'display_panel': 'display_panel_0'})
     bom = BinaryStringToBOM(self.database, '0000000000111010000011000')
     self.assertEquals(reference_bom.board, bom.board)

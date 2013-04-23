@@ -68,7 +68,7 @@ def BinaryStringToBOM(database, binary_string):
       else:
         for attrs in attr_list:
           components[comp_cls].append(
-              ProbedComponentResult(attrs['name'], attrs['value'], None))
+              ProbedComponentResult(attrs['name'], attrs['values'], None))
 
   return BOM(board, encoding_pattern, image_id, components, encoded_fields)
 

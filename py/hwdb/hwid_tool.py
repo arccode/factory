@@ -64,6 +64,9 @@ BBVV_GLOB_RE = re.compile(r'^(%s)\s+(%s|\*)\s+(%s|\*)-(%s|\*)$' % (
 HWID_RE = re.compile(r'^(%s) (%s) (%s)-(%s) ([0-9]+)$' % (BOARD_RE_PATTERN,
     BOM_RE_PATTERN, VARIANT_RE_PATTERN, VOLATILE_RE_PATTERN))
 
+# Key to the concatenated probed string in probe results.
+COMPACT_PROBE_STR = 'compact_str'
+
 # Possible life cycle stages (status) for components and HWIDs.
 LIFE_CYCLE_STAGES = set([
     'supported',
@@ -128,9 +131,10 @@ MakeDatastoreClass('DeviceSpec', {
     })
 
 MakeDatastoreClass('ProbeResults', {
-    'found_probe_value_map': (dict, [str, (list, str)]),
+    'found_probe_value_map': (dict, [(dict, str),
+                                     (list, (dict, [str]))]),
     'missing_component_classes': (list, str),
-    'found_volatile_values': (dict, str),
+    'found_volatile_values': (dict, [str, (dict, str)]),
     'initial_configs': (dict, str),
     })
 
@@ -477,8 +481,12 @@ class CompDb(YamlDatastore):
     components from the input.
     """
     result = Obj(matched=[], unmatched={})
+    # Modify HWID v2 to look at probe.COMPACT_PROBE_STR field of probe results.
     for probe_class, pr_data in found_probe_value_map.items():
-      probe_values = pr_data if isinstance(pr_data, list) else [pr_data]
+      if isinstance(pr_data, list):
+        probe_values = [pr[COMPACT_PROBE_STR] for pr in pr_data]
+      else:
+        probe_values = [pr_data[COMPACT_PROBE_STR]]
       for probe_value in probe_values:
         component_name = self.result_name_map.get(probe_value, None)
         if component_name is not None:
@@ -849,7 +857,10 @@ class Device(YamlDatastore):
       matched_volatiles={},
       unmatched_values={},
       matched_tags=[])
-    for probe_class, probe_value in value_map.items():
+    # Modify HWID v2 to look at probe.COMPACT_PROBE_STR field of probe results.
+    from cros.factory.gooftool import probe
+    for probe_class, pr_data in value_map.items():
+      probe_value = pr_data[probe.COMPACT_PROBE_STR]
       volatile_name = self.reverse_vol_value_map.get(probe_value, None)
       if volatile_name is not None:
         result.matched_volatiles[probe_class] = volatile_name
@@ -1777,3 +1788,4 @@ def Main():
 
 if __name__ == '__main__':
   Main()
+

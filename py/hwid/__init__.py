@@ -11,6 +11,7 @@ import collections
 import copy
 import logging
 import os
+import pprint
 import re
 import yaml
 
@@ -59,16 +60,17 @@ def ProbeBoard():
 
 # A named tuple to store the probed component name and the error if any.
 ProbedComponentResult = collections.namedtuple(
-    'ProbedComponentResult', ['component_name', 'probed_string', 'error'])
+    'ProbedComponentResult', ['component_name', 'probed_values', 'error'])
 UNPROBEABLE_COMPONENT_ERROR = lambda comp_cls: (
     'Component class %r is unprobeable' % comp_cls)
 MISSING_COMPONENT_ERROR = lambda comp_cls: 'Missing %r component' % comp_cls
 AMBIGUOUS_COMPONENT_ERROR = lambda comp_cls, probed_value, comp_names: (
-    'Ambiguous probe values %r of %r component. Possible components are: %r' %
-    (probed_value, comp_cls, sorted(comp_names)))
+    'Ambiguous probe values %s of %r component. Possible components are: %r' %
+    (pprint.pformat(probed_value, indent=0), comp_cls, sorted(comp_names)))
 UNSUPPORTED_COMPONENT_ERROR = lambda comp_cls, probed_value: (
-    'Unsupported %r component found with probe result %r '
-    '(no matching name in the component DB)' % (comp_cls, probed_value))
+    'Unsupported %r component found with probe result %s '
+    '(no matching name in the component DB)' % (
+        comp_cls, pprint.pformat(probed_value, indent=0)))
 
 
 
@@ -167,22 +169,29 @@ class HWID(object):
     """
     self.database.VerifyComponents(probe_result)
     probed_bom = self.database.ProbeResultToBOM(probe_result)
-    def PackProbedString(bom, comp_cls):
-      return [e.probed_string for e in bom.components[comp_cls] if
-              e.probed_string is not None]
-    for comp_cls in self.database.components:
+    def PackProbedValues(bom, comp_cls):
+      results = []
+      for e in bom.components[comp_cls]:
+        if e.probed_values is None:
+          continue
+        matched_component = self.database.components.MatchComponentsFromValues(
+            comp_cls, e.probed_values)
+        if matched_component:
+          results.extend(matched_component.keys())
+      return results
+    for comp_cls in self.database.components.GetRequiredComponents():
       if comp_cls not in self.database.components.probeable:
         continue
-      probed_comp_values = MakeSet(PackProbedString(probed_bom, comp_cls))
-      expected_comp_values = MakeSet(PackProbedString(self.bom, comp_cls))
-      extra_components = probed_comp_values - expected_comp_values
-      missing_components = expected_comp_values - probed_comp_values
+      probed_components = MakeSet(PackProbedValues(probed_bom, comp_cls))
+      expected_components = MakeSet(PackProbedValues(self.bom, comp_cls))
+      extra_components = probed_components - expected_components
+      missing_components = expected_components - probed_components
       if extra_components or missing_components:
         raise HWIDException(
             'Component class %r has extra components: %r and missing '
-            'components: %r. Expected values are: %r' %
+            'components: %r. Expected components are: %r' %
             (comp_cls, sorted(extra_components), sorted(missing_components),
-             sorted(expected_comp_values)))
+             sorted(expected_components)))
 
 
 class BOM(object):
@@ -207,7 +216,9 @@ class BOM(object):
           'list of ProbedComponentResult',
           Tuple('ProbedComponentResult',
                 [Optional(Scalar('component name', str)),
-                 Optional(Scalar('probed string', str)),
+                 Optional(Dict('probed_values',
+                               key_type=Scalar('key', str),
+                               value_type=Scalar('value', str))),
                  Optional(Scalar('error', str))])))
 
   def __init__(self, board, encoding_pattern_index, image_id,
@@ -261,13 +272,12 @@ class Database(object):
 
   def _SanityChecks(self):
     def _VerifyComponent(comp_cls, comp_name, label):
-      if comp_cls not in self.components:
+      try:
+        self.components.CheckComponent(comp_cls, comp_name)
+      except HWIDException as e:
         raise HWIDException(
-            'Invalid component class %r in %s' % (comp_cls, label) )
-      if comp_name and comp_name not in self.components[comp_cls]:
-        raise HWIDException(
-            'Invalid component name %r in %s[%r]' %
-            (comp_name, label, comp_cls))
+            '%s in %s[%r]' %
+            (str(e), label, comp_cls))
 
     # Check that all the component class-name pairs in encoded_fields are valid.
     for field, indexed_data in self.encoded_fields.iteritems():
@@ -350,13 +360,16 @@ class Database(object):
       for field in ['found_probe_value_map', 'found_volatile_values',
                     'initial_configs']:
         if comp_cls in probed_bom[field]:
-          return MakeList(probed_bom[field][comp_cls])
+          # We actually want to return a list of dict here.
+          return MakeList(probed_bom[field][comp_cls] if
+                          isinstance(probed_bom[field][comp_cls], list) else
+                          [probed_bom[field][comp_cls]])
       # comp_cls is in probed_bom['missing_component_classes'].
       return None
 
     # Construct a dict of component classes to list of ProbedComponentResult.
     probed_components = collections.defaultdict(list)
-    for comp_cls in self.components:
+    for comp_cls in self.components.GetRequiredComponents():
       probed_comp_values = LookupProbedValue(comp_cls)
       if probed_comp_values is not None:
         for probed_value in probed_comp_values:
@@ -365,19 +378,21 @@ class Database(object):
                 ProbedComponentResult(
                     None, probed_value, UNPROBEABLE_COMPONENT_ERROR(comp_cls)))
             continue
-          comp_names = self.components.LookupComponentNameFromValue(
+          matched_comps = self.components.MatchComponentsFromValues(
               comp_cls, probed_value)
-          if comp_names is None:
+          if matched_comps is None:
             probed_components[comp_cls].append(ProbedComponentResult(
                 None, probed_value,
                 UNSUPPORTED_COMPONENT_ERROR(comp_cls, probed_value)))
-          elif len(comp_names) == 1:
+          elif len(matched_comps) == 1:
             probed_components[comp_cls].append(
-                ProbedComponentResult(comp_names[0], probed_value, None))
-          elif len(comp_names) > 1:
+                ProbedComponentResult(
+                    matched_comps.keys()[0], probed_value, None))
+          elif len(matched_comps) > 1:
             probed_components[comp_cls].append(ProbedComponentResult(
                 None, probed_value,
-                AMBIGUOUS_COMPONENT_ERROR(comp_cls, probed_value, comp_names)))
+                AMBIGUOUS_COMPONENT_ERROR(
+                    comp_cls, probed_value, matched_comps)))
       else:
         # No component of comp_cls is found in probe results.
         probed_components[comp_cls].append(ProbedComponentResult(
@@ -407,23 +422,19 @@ class Database(object):
       A BOM object with updated components and encoded fields.
     """
     result = bom.Duplicate()
-    for component_class, component_name in updated_components.iteritems():
+    for comp_cls, comp_name in updated_components.iteritems():
       new_probed_result = []
-      if component_name is None:
+      if comp_name is None:
         new_probed_result.append(ProbedComponentResult(
-            None, None, MISSING_COMPONENT_ERROR(component_class)))
+            None, None, MISSING_COMPONENT_ERROR(comp_cls)))
       else:
-        component_name = MakeList(component_name)
-        for name in component_name:
-          try:
-            new_probed_result.append(ProbedComponentResult(
-                name, self.components[component_class][name]['value'], None))
-          except KeyError:
-            raise HWIDException(
-                'Component {%r: %r} is not defined in the component database' %
-                (component_class, name))
+        comp_name = MakeList(comp_name)
+        for name in comp_name:
+          comp_attrs = self.components.GetComponentAttributes(comp_cls, name)
+          new_probed_result.append(ProbedComponentResult(
+              name, comp_attrs['values'], None))
       # Update components data of the duplicated BOM.
-      result.components[component_class] = new_probed_result
+      result.components[comp_cls] = new_probed_result
 
     # Re-calculate all the encoded index of each encoded field.
     result.encoded_fields = {}
@@ -460,7 +471,7 @@ class Database(object):
         if db_comp_names is None:
           # Special handling for NULL component.
           if (probed_components[db_comp_cls] and
-              probed_components[db_comp_cls][0].probed_string is not None):
+              probed_components[db_comp_cls][0].probed_values is not None):
             found = False
             break
         else:
@@ -516,7 +527,7 @@ class Database(object):
       else:
         for name in comp_names:
           # Add an additional index 'name' to record component name
-          new_attr = dict(self.components[comp_cls][name])
+          new_attr = self.components.GetComponentAttributes(comp_cls, name)
           new_attr['name'] = name
           result[comp_cls].append(new_attr)
     return result
@@ -612,16 +623,14 @@ class Database(object):
     unknown_values = []
     for comp_cls, probed_values in bom.components.iteritems():
       for element in probed_values:
-        probed_value = element.probed_string
-        if probed_value is None or comp_cls not in self.components.probeable:
+        probed_values = element.probed_values
+        if probed_values is None or comp_cls not in self.components.probeable:
           continue
-        found = False
-        for attrs in self.components[comp_cls].itervalues():
-          if attrs['value'] == probed_value:
-            found = True
-            break
-        if not found:
-          unknown_values.append('%s:%s' % (comp_cls, probed_value))
+        found_comps = (
+            self.components.MatchComponentsFromValues(comp_cls, probed_values))
+        if not found_comps:
+          unknown_values.append('%s:%s' % (comp_cls, pprint.pformat(
+              probed_values, indent=0, width=1024)))
     if unknown_values:
       raise HWIDException('Unknown component values: %r' %
                           ', '.join(sorted(unknown_values)))
@@ -651,7 +660,7 @@ class Database(object):
       ProbedComponentResult tuples.
       {component class: [ProbedComponentResult(
           component_name,  # The component name if found in the db, else None.
-          probed_string,   # The actual probed string. None if probing failed.
+          probed_values,   # The actual probed string. None if probing failed.
           error)]}         # The error message if there is one; else None.
     """
     probed_bom = self.ProbeResultToBOM(probe_result)
@@ -752,30 +761,38 @@ class EncodedFields(dict):
             self[field][index][comp_cls] = MakeList(comp_value)
 
 
-class Components(dict):
+class Components(object):
   """A class for parsing and obtaining information of a pre-defined components
   list.
 
   Args:
     components_dict: A dict of components of the form:
         {
-          'component_class1': {
-            'attributes': ['attr1', 'attr2', ... ]
+          'component_class_1': {      # Probeable component class.
+            'probeable': True,
             'items': {
-              'component_name1': {
-                'value': 'component_value1',
-                'other_attributes': 'other values',
-                ...
-              }
-              'component_name2': {
-                ...
-              }
+              'component_name_1': {
+                'values': { probed values dict }
+                'labels': [ labels ]
+              },
+              ...
             }
-          }
-          'component_class2': {
-            ...
-          }
+          },
+          'component_class_2': {      # Unprobeable component class.
+            'probeable': False,
+            'items': {
+              'component_name_2': {
+                'values': None,
+                'labels': [ labels ]
+              },
+              ...
+            }
+          },
+          ...
         }
+
+  Raises:
+    HWIDException if the given dict fails sanity checks.
   """
   def __init__(self, components_dict):
     self.schema = Dict(
@@ -788,7 +805,10 @@ class Components(dict):
                     'component names', key_type=Scalar('component name', str),
                     value_type=FixedDict(
                         'component attributes',
-                        items={'value': Optional(Scalar('probed value', str))},
+                        items={'values': Optional(
+                            Dict('probe key-value pairs',
+                                 key_type=Scalar('probe key', str),
+                                 value_type=Scalar('probe value', str)))},
                         optional_items={'labels': List('list of labels',
                                                        Scalar('label', str))}))
             },
@@ -796,28 +816,100 @@ class Components(dict):
                 'probeable': Scalar('is component probeable', bool)
             }))
     self.schema.Validate(components_dict)
+
     # Classify components based on their attributes.
     self.probeable = set()
     for comp_cls, comp_cls_properties in components_dict.iteritems():
       if comp_cls_properties.get('probeable', True):
         # Default 'probeable' to True.
         self.probeable.add(comp_cls)
-    # Squash attributes and build a dict of component class to items.
-    super(Components, self).__init__(
-        (comp_cls, components_dict[comp_cls]['items']) for comp_cls in
-        components_dict)
 
-  def LookupComponentNameFromValue(self, comp_cls, value):
-    if comp_cls not in self:
-      raise HWIDException(
-          'Component class %r does not exist in the database' % comp_cls)
-    results = []
-    for comp_name, comp_attrs in self[comp_cls].iteritems():
-      if comp_attrs['value'] == value:
-        results.append(comp_name)
+    self.components_dict = components_dict
+
+  def GetRequiredComponents(self):
+    """Gets the list of required component classes.
+
+    Returns:
+      A set of component classes that are required to present on board.
+    """
+    return set(self.components_dict.keys())
+
+  def GetComponentAttributes(self, comp_cls, comp_name):
+    """Gets the attributes of the given component.
+
+    Args:
+      comp_cls: The component class to look up for.
+      comp_name: The component name to look up for.
+
+    Returns:
+      A copy of the dict that contains all the attributes of the given
+      component.
+    """
+    self.CheckComponent(comp_cls, comp_name)
+    return copy.deepcopy(self.components_dict[comp_cls]['items'][comp_name])
+
+  def MatchComponentsFromValues(self, comp_cls, values_dict):
+    """Matches a list of components whose 'values' attributes match the given
+    'values_dict'.
+
+    Only the fields listed in the 'values' dict of each component are used as
+    matching keys.
+
+    For example, this may be used to look up all the dram components that are of
+    size 4G with {'size': '4G'} as 'values_dict' and 'dram' as 'comp_cls'.
+
+    Args:
+      comp_cls: The component class of interest.
+      values_dict: A dict of values to be used as look up key.
+
+    Returns:
+      A dict with keys being the matched component names and values being the
+      dict of component attributes corresponding to the component names.
+
+    Raises:
+      HWIDException if the given component class is invalid.
+    """
+    self.CheckComponent(comp_cls, None)
+    results = {}
+    for comp_name, comp_attrs in (
+        self.components_dict[comp_cls]['items'].iteritems()):
+      if comp_attrs['values'] is None and values_dict is None:
+        # Special handling for None values.
+        results[comp_name] = copy.deepcopy(comp_attrs)
+      else:
+        match = True
+        for key, value in values_dict.iteritems():
+          if comp_attrs['values'] is None:
+            match = False
+            break
+          elif key not in comp_attrs['values']:
+            # Only match the listed fields in 'values'.
+            continue
+          elif comp_attrs['values'][key] != value:
+            match = False
+            break
+        if match:
+          results[comp_name] = copy.deepcopy(comp_attrs)
     if results:
       return results
     return None
+
+  def CheckComponent(self, comp_cls, comp_name):
+    """Checks if the given component class and component name are valid.
+
+    Args:
+      comp_cls: The component class to check.
+      comp_name: The component name to check. Set this to None will check
+          component class validity only.
+
+    Raises:
+      HWIDException if the given component class or name are invalid.
+    """
+    if comp_cls not in self.components_dict:
+      raise HWIDException('Invalid component class %r' % comp_cls)
+    if comp_name and comp_name not in self.components_dict[comp_cls]['items']:
+      raise HWIDException('Invalid component name %r of class %r' % (comp_name,
+                                                                     comp_cls))
 
 
 class Pattern(object):
