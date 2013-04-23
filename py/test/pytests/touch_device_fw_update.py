@@ -55,7 +55,7 @@ class UpdateTouchDeviceFWTest(unittest.TestCase):
     actual_ver = open(os.path.join(device_path, 'fw_version')).read().strip()
     if expected_ver != actual_ver:
       logging.info('Updating firmware from version %s to version %s',
-                   expected_ver, actual_ver)
+                   actual_ver, expected_ver)
       firmware_updater_cmd = "%s -f -d %s -n %s" % (
           FIRMWARE_UPDATER, self.args.device_name, self.args.fw_name)
       self.run_updater_command(firmware_updater_cmd)
