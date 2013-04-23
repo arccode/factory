@@ -300,7 +300,7 @@ class Database(object):
     with open(file_name, 'r') as f:
       db_yaml = yaml.load(f)
 
-    return cls.LoadData(db_yaml);
+    return cls.LoadData(db_yaml)
 
   @classmethod
   def LoadData(cls, db_yaml):

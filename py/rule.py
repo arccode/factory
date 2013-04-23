@@ -265,6 +265,14 @@ class Rule(object):
         continue
 
   def Evaluate(self, context):
+    """Evalutes the Rule object.
+
+    Args:
+      context: A Context object.
+
+    Raises:
+      RuleException if evaluation fails.
+    """
     logger = GetLogger()
     def EvaluateAllFunctions(function_list):
       for function in function_list:
@@ -290,6 +298,27 @@ class Rule(object):
       else:
         logger.Info("Evaluating 'evaluate':")
         EvaluateAllFunctions(self.evaluate)
+    finally:
+      if logger.error:
+        raise RuleException(logger.Dump())
+      logging.debug(logger.Dump())
+      SetContext(None)
+
+  @classmethod
+  def EvaluateOnce(cls, expr, context):
+    """Evaluate the given expr under the given context once.
+
+    Args:
+      expr: A string of Python expression.
+      context: A Context object.
+
+    Returns:
+      The retrun value of evaluation of expr.
+    """
+    logger = GetLogger()
+    try:
+      SetContext(context)
+      return eval(expr, _rule_functions, {})
     finally:
       if logger.error:
         raise RuleException(logger.Dump())

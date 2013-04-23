@@ -11,7 +11,7 @@ import factory_common # pylint: disable=W0611
 
 from cros.factory.rule import (
     RuleFunction, Rule, Value, Context, RuleException,
-    SetContext, GetContext)
+    SetContext, GetContext, GetLogger)
 
 
 @RuleFunction(['string'])
@@ -20,7 +20,9 @@ def StrLen():
 
 @RuleFunction(['string'])
 def AssertStrLen(length):
-  assert len(GetContext().string) > length
+  logger = GetLogger()
+  if len(GetContext().string) <= length:
+    logger.Error('Assertion error')
 
 
 class HWIDRuleTest(unittest2.TestCase):
@@ -38,17 +40,13 @@ class HWIDRuleTest(unittest2.TestCase):
                 evaluate='AssertStrLen(6)',
                 otherwise='AssertStrLen(8)')
     self.assertRaisesRegexp(
-        RuleException, r"Evaluation of 'AssertStrLen\(6\)' in rule 'foobar2' "
-        "failed: AssertionError\(\)",
-        rule.Evaluate, self.context)
+        RuleException, r"ERROR: Assertion error", rule.Evaluate, self.context)
     rule = Rule(name='foobar2',
                 when='StrLen() > 6',
                 evaluate='AssertStrLen(6)',
                 otherwise='AssertStrLen(8)')
     self.assertRaisesRegexp(
-        RuleException, r"Evaluation of 'AssertStrLen\(8\)' in rule 'foobar2' "
-        "failed: AssertionError\(\)",
-        rule.Evaluate, self.context)
+        RuleException, r"ERROR: Assertion error", rule.Evaluate, self.context)
 
 
   def testValue(self):
@@ -89,10 +87,13 @@ class HWIDRuleTest(unittest2.TestCase):
         evaluate: AssertStrLen(6)
     """)
     self.assertRaisesRegexp(
-        RuleException, r"Evaluation of 'AssertStrLen\(6\)' in rule 'foobar2' "
-        "failed: AssertionError\(\)",
-        rule.Evaluate, self.context)
+        RuleException, r"ERROR: Assertion error", rule.Evaluate, self.context)
 
+  def testEvaluateOnce(self):
+    self.assertEquals(5, Rule.EvaluateOnce('StrLen()', self.context))
+    self.assertRaisesRegexp(
+        RuleException, r"ERROR: Assertion error",
+        Rule.EvaluateOnce, 'AssertStrLen(6)', self.context)
 
 if __name__ == '__main__':
   unittest2.main()
