@@ -96,6 +96,9 @@ class Finalize(unittest.TestCase):
       self.args.polling_seconds = None
 
   def runTest(self):
+    # Check for HWID bundle update from shopfloor.
+    shopfloor.update_local_hwid_data()
+
     # Check waived_tests argument.
     test_list = self.test_info.ReadTestList()
 
