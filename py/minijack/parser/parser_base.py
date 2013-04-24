@@ -45,21 +45,21 @@ class ParserBase(object):
     '''This method is called on Minijack shut-down.'''
     pass
 
-def FlattenAttr(attr):
+def _FlattenAttr(attr):
   '''Generator of flattened attributes.
 
   Args:
     attr: The attr dict/list which may contains multi-level dicts/lists.
 
   Yields:
-    A tuple (path_of_leaf_value, leaf_value).
+    A tuple (list_of_path, leaf_value).
 
   >>> attr = {'a': {'k1': 'v1',
   ...               'k2': {'dd1': 'vv1',
   ...                      'dd2': 'vv2'}},
   ...         'b': ['i1', 'i2', 'i3'],
   ...         'c': 'ss'}
-  >>> (dict((k, v) for k, v in FlattenAttr(attr)) ==
+  >>> (dict(('.'.join(k), v) for k, v in _FlattenAttr(attr)) ==
   ...     {'a.k1': 'v1',
   ...      'a.k2.dd1': 'vv1',
   ...      'a.k2.dd2': 'vv2',
@@ -71,23 +71,18 @@ def FlattenAttr(attr):
   '''
   if isinstance(attr, dict):
     for key, val in attr.iteritems():
-      for path, leaf in FlattenAttr(val):
-        if path:
-          yield key + '.' + path, leaf
-        else:
-          # Meaning that val is a leaf node, just use the key as path.
-          yield key, leaf
+      for path, leaf in _FlattenAttr(val):
+        yield [key] + path, leaf
   elif isinstance(attr, list):
     for index, val in enumerate(attr):
-      for path, leaf in FlattenAttr(val):
-        if path:
-          yield str(index) + '.' + path, leaf
-        else:
-          # Meaning that val is a leaf node, just use the index as path.
-          yield str(index), leaf
+      for path, leaf in _FlattenAttr(val):
+        yield [str(index)] + path, leaf
   else:
     # The leaf node.
-    yield None, attr
+    yield [], attr
+
+# Join the path list using '.'.
+FlattenAttr = lambda x: (('.'.join(k), v) for k, v in _FlattenAttr(x))
 
 def FindContainingDictForKey(deep_dict, key):
   '''Finds the dict that contains the given key from the deep_dict.

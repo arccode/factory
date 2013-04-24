@@ -24,13 +24,13 @@ class AttrParser(parser_base.ParserBase):
     rows = []
     # As the event is a tree struct which contains dicts or lists,
     # we flatten it first. The hierarchy is recorded in the Attr column.
-    for path, val in parser_base.FlattenAttr(event):
-      if path not in RESERVED_PATH:
+    for attr, value in parser_base.FlattenAttr(event):
+      if attr not in RESERVED_PATH:
         row = model.Attr(
           device_id = preamble.get('device_id'),
           time      = event.get('TIME'),
-          attr      = path,
-          value     = str(val),
+          attr      = attr,
+          value     = str(value),
         )
         rows.append(row)
     if rows:
