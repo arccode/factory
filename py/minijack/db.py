@@ -6,6 +6,8 @@ import logging
 import inspect
 import sqlite3
 
+IntegrityError = sqlite3.IntegrityError
+
 class DatabaseException(Exception):
   pass
 

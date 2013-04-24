@@ -2,7 +2,10 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import logging
+
 import factory_common  # pylint: disable=W0611
+from cros.factory.minijack import db
 from cros.factory.minijack import model
 from cros.factory.minijack.parser import parser_base
 
@@ -28,4 +31,10 @@ class AttrParser(parser_base.ParserBase):
           attr      = path,
           value     = str(val),
         )
-        self._table.UpdateOrInsertRow(row)
+        # Just insert the row for speed-up. May raises an exception if the row
+        # already exists.
+        try:
+          self._table.InsertRow(row)
+        except db.IntegrityError:
+          logging.warn('The Attr (%s, %s, %s) already exists in the table',
+                       row.device_id, row.time, row.attr)
