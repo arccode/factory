@@ -179,7 +179,6 @@ class ChargerTest(unittest.TestCase):
     try:
       charger_current = self._board.GetChargerCurrent()
     except NotImplementedError:
-      logging.exception('Charger current is not available on this board')
       return None
     else:
       return charger_current
