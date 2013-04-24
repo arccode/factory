@@ -21,6 +21,7 @@ class AttrParser(parser_base.ParserBase):
   def Handle_all(self, preamble, event):
     '''A handler for all event types.'''
     RESERVED_PATH = ('EVENT', 'SEQ', 'TIME')
+    rows = []
     # As the event is a tree struct which contains dicts or lists,
     # we flatten it first. The hierarchy is recorded in the Attr column.
     for path, val in parser_base.FlattenAttr(event):
@@ -31,10 +32,12 @@ class AttrParser(parser_base.ParserBase):
           attr      = path,
           value     = str(val),
         )
-        # Just insert the row for speed-up. May raises an exception if the row
-        # already exists.
-        try:
-          self._table.InsertRow(row)
-        except db.IntegrityError:
-          logging.warn('The Attr (%s, %s, %s) already exists in the table',
-                       row.device_id, row.time, row.attr)
+        rows.append(row)
+    if rows:
+      # Just insert the row for speed-up. May raises an exception if the row
+      # already exists.
+      try:
+        self._table.InsertRows(rows)
+      except db.IntegrityError:
+        logging.warn('The Attr (%s, %s, %s) ... already exists in the table',
+                     rows[0].device_id, rows[0].time, rows[0].attr)

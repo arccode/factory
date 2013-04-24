@@ -289,6 +289,36 @@ class Table(object):
     executor = self._executor_factory.NewExecutor()
     executor.Execute(sql_cmd, field_values, True)
 
+  def InsertRows(self, rows):
+    '''Inserts multiple rows into the table.
+
+    Args:
+      rows: A list of model instances containing the insert content.
+
+    Raises:
+      DatabaseException if not a valid model instance.
+    '''
+    if not isinstance(rows, list):
+      raise DatabaseException('The given row is not a list.')
+
+    if not rows:
+      return
+
+    # To simplify the design, we assume there is no missing field in all rows.
+    field_names = rows[0].GetFieldNames()
+    sql_cmd = ('INSERT INTO %s ( %s ) VALUES ( %s )' %
+               (self._table_name,
+                ', '.join(field_names),
+                ', '.join('?' * len(field_names))))
+    all_field_values = []
+    for row in rows:
+      if not self._model.IsValid(row):
+        raise DatabaseException('Insert a row with a wrong model.')
+      all_field_values.append(row.GetFieldValues())
+
+    executor = self._executor_factory.NewExecutor()
+    executor.Execute(sql_cmd, all_field_values, True, True)
+
   def UpdateRow(self, row):
     '''Updates the row in the table.
 
@@ -407,7 +437,7 @@ class Executor(object):
     self._conn = conn
     self._cursor = None
 
-  def Execute(self, sql_cmd, args=None, commit=False):
+  def Execute(self, sql_cmd, args=None, commit=False, many=False):
     '''Executes an SQL command.
 
     Args:
@@ -417,10 +447,12 @@ class Executor(object):
     '''
     logging.debug('Execute SQL command: %s, %s;', sql_cmd, args)
     self._cursor = self._conn.cursor()
-    if args:
-      self._cursor.execute(sql_cmd, args)
+    if not args:
+      args = tuple()
+    if many:
+      self._cursor.executemany(sql_cmd, args)
     else:
-      self._cursor.execute(sql_cmd)
+      self._cursor.execute(sql_cmd, args)
     if commit:
       self._conn.commit()
 
