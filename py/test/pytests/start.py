@@ -14,7 +14,6 @@
 # 'check_factory_install_complete': Check factory install process was complete.
 # 'press_to_continue': Prompts and waits for a key press (SPACE) to continue.
 
-import glob
 import logging
 import os
 import re
@@ -23,6 +22,7 @@ import sys
 import time
 import unittest
 
+from cros.factory import system
 from cros.factory.event_log import Log
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
@@ -161,24 +161,10 @@ class ExternalPowerTask(FactoryTask):
     return False
 
   def GetExternalPowerState(self):
-    for type_file in glob.glob('/sys/class/power_supply/*/type'):
-      type_value = utils.ReadOneLine(type_file).strip()
-      if type_value == 'Mains':
-        status_file = os.path.join(os.path.dirname(type_file), 'online')
-        try:
-          status = int(utils.ReadOneLine(status_file).strip())
-        except ValueError as details:
-          raise ValueError('Invalid external power state in %s: %s' %
-                           (status_file, details))
-        if status == 0:
-          return self.AC_DISCONNECTED
-        elif status == 1:
-          return self.AC_CONNECTED
-        else:
-          raise ValueError('Invalid external power state "%s" in %s' %
-                           (status, status_file))
-    raise IOError('Unable to determine external power state.')
-
+    if system.GetBoard().power.CheckACPresent():
+      return self.AC_CONNECTED
+    else:
+      return self.AC_DISCONNECTED
 
 class FactoryInstallCompleteTask(FactoryTask):
   def __init__(self, test): # pylint: disable=W0231
