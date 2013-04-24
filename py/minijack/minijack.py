@@ -151,7 +151,11 @@ class EventReceiver(object):
     for event_id in ('all', event['EVENT']):
       invokers = self._event_invokers.get(event_id, [])
       for invoker in invokers:
-        invoker(preamble, event)
+        try:
+          invoker(preamble, event)
+        except:  # pylint: disable=W0702
+          logging.exception('Error on invoking the parser: %s',
+                            utils.FormatExceptionOnly())
 
   def Cleanup(self):
     '''Clearns up all the parsers.'''
@@ -350,11 +354,7 @@ class Minijack(object):
       #   http://bugs.python.org/issue1360
       events = self._queue.get(timeout=ONE_YEAR)
       logging.debug('Disptach the event list to the receiver.')
-      try:
-        self._event_receiver.ReceiveEvents(events)
-      except:  # pylint: disable=W0702
-        logging.exception('Error on invoking the event lists: %s',
-                          utils.FormatExceptionOnly())
+      self._event_receiver.ReceiveEvents(events)
       self._queue.task_done()
 
 if __name__ == '__main__':
