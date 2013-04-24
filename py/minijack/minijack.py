@@ -23,6 +23,7 @@ import pprint
 import re
 import signal
 import sys
+import time
 import yaml
 from datetime import datetime, timedelta
 from Queue import Queue
@@ -136,6 +137,7 @@ class EventReceiver(object):
 
   def ReceiveEvents(self, event_list):
     '''Callback for an event list received.'''
+    start_time = time.time()
     # Drop the event list if its preamble not exist.
     # TODO(waihong): Remove this drop once all events in the same directory.
     if event_list.preamble is None:
@@ -143,6 +145,10 @@ class EventReceiver(object):
       return
     for event in event_list:
       self.ReceiveEvent(event_list.preamble, event)
+    logging.info('Dumped to database (%s, %d events, %.3f sec)',
+                 event_list.preamble.get('filename'),
+                 len(event_list),
+                 time.time() - start_time)
 
   def ReceiveEvent(self, preamble, event):
     '''Callback for an event received.'''
@@ -361,6 +367,10 @@ class Minijack(object):
       logging.debug('Disptach the event list to the receiver.')
       self._event_receiver.ReceiveEvents(events)
       self._queue.task_done()
+      # Note that it is not a real idle. The event_log_watch may be getting
+      # new event logs but have not put them in the queue yet.
+      if self._queue.empty():
+        logging.info('Minijack is idle.')
 
 if __name__ == '__main__':
   minijack = Minijack()
