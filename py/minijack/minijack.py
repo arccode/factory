@@ -204,8 +204,7 @@ class Minijack(object):
     self._event_receiver = None
     self._log_dir = None
     self._log_watcher = None
-    # TODO(waihong): Study the performance impact of the queue max size.
-    self._queue = Queue(DEFAULT_QUEUE_SIZE)
+    self._queue = None
 
   def Init(self):
     '''Initializes Minijack.'''
@@ -237,6 +236,9 @@ class Minijack(object):
     parser.add_option('-i', '--interval', dest='interval', type='int',
                       default=DEFAULT_WATCH_INTERVAL,
                       help='log-watching interval in sec (default: %default)')
+    parser.add_option('-s', '--queue_size', dest='queue_size', type='int',
+                      metavar='SIZE', default=DEFAULT_QUEUE_SIZE,
+                      help='max size of the queue (default: %default)')
     parser.add_option('-v', '--verbose', action='count', dest='verbose',
                       help='increase message verbosity')
     parser.add_option('-q', '--quiet', action='store_true', dest='quiet',
@@ -269,6 +271,8 @@ class Minijack(object):
       parser.print_help()
       sys.exit(os.EX_NOINPUT)
 
+    # TODO(waihong): Study the performance impact of the queue max size.
+    self._queue = Queue(options.queue_size)
     self._database = db.Database()
     self._database.Init(options.minijack_db)
     self._event_receiver = EventReceiver()
@@ -301,7 +305,8 @@ class Minijack(object):
       if self._log_watcher.IsThreadStarted():
         self._log_watcher.StopWatchThread()
       self._log_watcher = None
-    self._queue.join()
+    if self._queue:
+      self._queue.join()
     if self._event_receiver:
       logging.debug('Clear-up event receiver')
       self._event_receiver.Cleanup()
