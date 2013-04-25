@@ -242,7 +242,10 @@ class ChargerTest(unittest.TestCase):
 
     with LoadManager(duration_secs=spec.timeout_secs,
                      num_threads=spec.load):
-      for elapsed in xrange(spec.timeout_secs):
+      start_time = time.time()
+      spec_end_time = start_time + spec.timeout_secs
+      while time.time() < spec_end_time:
+        elapsed = time.time() - start_time
         self._template.SetState(_REGULATE_CHARGE_TEXT(
             charge, target, spec.timeout_secs - elapsed, spec.load,
             battery_current, self.args.use_percentage))
