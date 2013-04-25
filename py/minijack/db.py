@@ -527,6 +527,9 @@ class Database(object):
     # Make sqlite3 always return bytestrings for the TEXT data type.
     self._conn.text_factory = str
     self._executor_factory = ExecutorFactory(self._conn)
+    executor = self._executor_factory.NewExecutor()
+    # Use MEMORY journaling mode which saves disk I/O.
+    executor.Execute('PRAGMA journal_mode = MEMORY')
 
   def GetExecutorFactory(self):
     '''Gets the executor factory.'''
