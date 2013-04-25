@@ -10,10 +10,11 @@
 # provided.
 
 from distutils.version import StrictVersion
+import time
 import unittest
 
 from cros.factory.event_log import Log
-from cros.factory.system import SystemInfo
+from cros.factory.system import SystemInfo, SystemStatus
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -35,6 +36,9 @@ _MSG_VERSION_MISMATCH = test_ui.MakeLabel(
     'Factory image version is incorrect. Please re-image this device.',
     u'映像版本不正确，请重新安装。',
     'start-font-size test-error')
+_MSG_NETWORK = test_ui.MakeLabel(
+    'Please connect to ethernet.',
+    u'请连接到以太网。')
 _MSG_NETBOOT = test_ui.MakeLabel(
     'Factory image version is incorrect. Press space to re-image.',
     u'映像版本不正确，请按空白键重新安装。')
@@ -65,6 +69,11 @@ class ImageCheckTask(FactoryTask):
   def __init__(self, test): # pylint: disable=W0231
     self._test = test
 
+  def CheckNetwork(self):
+    while not SystemStatus().eth_on:
+      time.sleep(0.5)
+      self._test.template.SetState(_MSG_NETWORK)
+
   def PromptReimage(self):
     self._test.template.SetState(_MSG_NETBOOT)
     self._test.ui.RunJS(_JS_SPACE)
@@ -88,6 +97,7 @@ class ImageCheckTask(FactoryTask):
       factory.console.error('Current factory image version is incorrect: %s',
                             ver)
       if self._test.args.netboot_fw:
+        self.CheckNetwork()
         self.PromptReimage()
       else:
         self._test.template.SetState(_MSG_VERSION_MISMATCH)
