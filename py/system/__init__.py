@@ -84,7 +84,11 @@ class SystemInfo(object):
 
     self.wlan0_mac = None
     try:
-      self.wlan0_mac = open('/sys/class/net/wlan0/address').read().strip()
+      for wlan_interface in ['mlan0', 'wlan0']:
+        address_path = os.path.join('/sys/class/net/',
+                                    wlan_interface, 'address')
+        if os.path.exists(address_path):
+          self.wlan0_mac = open(address_path).read().strip()
     except:
       pass
 
@@ -271,7 +275,8 @@ class SystemStatus(object):
       self.eth_on = None
 
     try:
-      self.wlan_on = IsInterfaceConnected('wlan')
+      self.wlan_on = (IsInterfaceConnected('mlan') or
+                      IsInterfaceConnected('wlan'))
     except:
       self.wlan_on = None
 
