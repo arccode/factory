@@ -530,6 +530,8 @@ class Database(object):
     executor = self._executor_factory.NewExecutor()
     # Use MEMORY journaling mode which saves disk I/O.
     executor.Execute('PRAGMA journal_mode = MEMORY')
+    # Don't wait OS to write all content to disk before the next action.
+    executor.Execute('PRAGMA synchronous = OFF')
 
   def GetExecutorFactory(self):
     '''Gets the executor factory.'''
