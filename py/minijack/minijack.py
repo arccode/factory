@@ -40,18 +40,14 @@ MINIJACK_DB_FILE = 'minijack_db'
 
 DEFAULT_WATCH_INTERVAL = 30  # seconds
 DEFAULT_QUEUE_SIZE = 10
-EVENT_DELIMITER = '\n---\n'
 LOG_DIR_DATE_FORMAT = '%Y%m%d'
 
 # The following YAML strings needs further handler. So far we just simply
 # remove them. It works well now, while tuples are treated as lists, unicodes
 # are treated as strings, objects are dropped.
 # TODO(waihong): Use yaml.add_multi_constructor to handle them.
-YAML_STR_BLACKLIST = [
-  r' !!python/tuple',
-  r' !!python/unicode',
-  r' !!python/object[A-Za-z_.:/]+',
-]
+YAML_STR_BLACKLIST = (
+    r'( !!python/tuple| !!python/unicode| !!python/object[A-Za-z_.:/]+)')
 
 class EventList(list):
   '''Event List Structure.
@@ -80,28 +76,23 @@ class EventList(list):
     Args:
       yaml_str: The string contains multiple yaml-formatted events.
     '''
-    # TODO(waihong): Do a smart split to avoid wrong splitting.
-    events_str = yaml_str.split(EVENT_DELIMITER)
-    for event_str in events_str:
-      # Some expected patterns appear in the log. Remove them.
-      for regex in YAML_STR_BLACKLIST:
-        event_str = re.sub(regex, '', event_str)
-      try:
-        event = yaml.safe_load(event_str)
-      except yaml.YAMLError, e:
-        logging.exception('Error on parsing the yaml string "%s": %s',
-                          event_str, e)
-
-      if event is None:
-        continue
-      if 'EVENT' not in event:
-        logging.warn('The event dict is invalid, no EVENT tag:\n%s.',
-                     pprint.pformat(event))
-        continue
-      if event['EVENT'] == 'preamble':
-        self.preamble = event
-      else:
-        self.append(event)
+    # Some un-expected patterns appear in the log. Remove them.
+    yaml_str = re.sub(YAML_STR_BLACKLIST, '', yaml_str)
+    try:
+      for event in yaml.safe_load_all(yaml_str):
+        if not event:
+          continue
+        if 'EVENT' not in event:
+          logging.warn('The event dict is invalid, no EVENT tag:\n%s.',
+                       pprint.pformat(event))
+          continue
+        if event['EVENT'] == 'preamble':
+          self.preamble = event
+        else:
+          self.append(event)
+    except yaml.YAMLError, e:
+      logging.exception('Error on parsing the yaml string "%s": %s',
+                        yaml_str, e)
 
 class EventReceiver(object):
   '''Event Receiver which invokes the proper parsers when events is received.
