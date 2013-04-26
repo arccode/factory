@@ -22,9 +22,11 @@ class Event(db.Model):
   log_id         = db.TextField()
 
 class Attr(db.Model):
-  device_id = db.TextField(primary_key=True)
-  time      = db.TextField(primary_key=True)
-  attr      = db.TextField(primary_key=True)
+  # No primary_key for the Attr table for speed-up. Duplication check is
+  # done using the Event table.
+  device_id = db.TextField()
+  time      = db.TextField()
+  attr      = db.TextField()
   value     = db.TextField()
 
 class Test(db.Model):

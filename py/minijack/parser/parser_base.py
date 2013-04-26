@@ -35,7 +35,6 @@ class ParserBase(object):
   '''
   def __init__(self, database):
     self._database = database
-    self._table = None
 
   def Setup(self):
     '''This method is called on Minijack start-up.'''

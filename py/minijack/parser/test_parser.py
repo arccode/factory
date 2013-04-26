@@ -11,6 +11,10 @@ class TestParser(parser_base.ParserBase):
 
   TODO(waihong): Unit tests.
   '''
+  def __init__(self, database):
+    super(TestParser, self).__init__(database)
+    self._table = None
+
   def Setup(self):
     '''This method is called on Minijack start-up.'''
     super(TestParser, self).Setup()
