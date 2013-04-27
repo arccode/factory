@@ -335,6 +335,7 @@ class Minijack(object):
   def HandleEventLogs(self, log_name, chunk):
     '''Callback for event log watcher.'''
     logging.info('Get new event logs (%s, %d bytes)', log_name, len(chunk))
+    start_time = time.time()
     events = EventList(chunk)
     if not events.preamble:
       log_path = os.path.join(self._log_dir, log_name)
@@ -348,6 +349,10 @@ class Minijack(object):
         events.preamble = self._GetPreambleFromLogFile(log_path)
     if not events.preamble:
       logging.warn('Cannot find a preamble event in the log file: %s', log_path)
+    else:
+      logging.info('YAML to Python obj (%s, %.3f sec)',
+                   events.preamble.get('filename'),
+                   time.time() - start_time)
     logging.debug('Preamble: \n%s', pprint.pformat(events.preamble))
     logging.debug('Event List: \n%s', pprint.pformat(events))
     # Put the event list into the queue.
