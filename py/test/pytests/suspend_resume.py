@@ -20,11 +20,13 @@ import os
 import random
 import re
 import time
+import threading
 import unittest2
 
 from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
 from cros.factory.test.ui_templates import OneSection
+from cros.factory.test.utils import StartDaemonThread
 from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import Spawn
 
@@ -80,6 +82,19 @@ class SuspendResumeTest(unittest2.TestCase):
 
     # Remove lid-opened, which will prevent suspend.
     file_utils.TryUnlink('/var/run/power_manager/lid_opened')
+
+    self.start_suspend = threading.Event()
+    self.suspend_started = threading.Event()
+    StartDaemonThread(target=self._MonitorSuspend)
+
+  def _MonitorSuspend(self):
+    """Run the powerd_suspend command as needed by the main thread, monitoring
+    the return code.
+    """
+    while self.start_suspend.wait():
+      self.suspend_started.set()
+      Spawn('powerd_suspend', check_call=True, log_stderr_on_error=True)
+      self.suspend_started.clear()
 
   def _ReadSuspendCount(self):
     """Read the current suspend count from /sys/kernel/debug/suspend_stats.
@@ -144,12 +159,10 @@ class SuspendResumeTest(unittest2.TestCase):
       logging.info('Suspend %d of %d for %d seconds, starting at %d.',
                    run, self.args.cycles, suspend_time, start_time)
       open(self.args.wakealarm_path, 'w').write(str(resume_at))
-      # We do not wait for completion to check return codes so that we can
-      # delay the wake timer as needed. Any powerd_suspend failures should be
-      # caught by verifying we actually suspended anyway.
-      # TODO(bhthompson): break this into a separate thread so we can check
-      # the return code.
-      Spawn('powerd_suspend')
+      self.start_suspend.set()
+      self.assertTrue(self.suspend_started.wait(_MIN_SUSPEND_MARGIN_SECS),
+                      'Suspend thread timed out.')
+      self.start_suspend.clear()
       # CAUTION: the loop below is subject to race conditions with suspend time.
       while self._ReadSuspendCount() < initial_suspend_count + run:
         cur_time = int(open(self.args.time_path).read().strip())
