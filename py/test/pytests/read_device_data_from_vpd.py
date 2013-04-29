@@ -40,5 +40,6 @@ class CallShopfloor(unittest.TestCase):
     vpd_data = vpd.rw.GetAll()
     shopfloor.UpdateDeviceData(
         dict((k[len(self.args.prefix):], v)
-             for k, v in vpd_data.iteritems()))
+             for k, v in vpd_data.iteritems() if k.startswith(
+                 self.args.prefix)))
     factory.get_state_instance().UpdateSkippedTests()
