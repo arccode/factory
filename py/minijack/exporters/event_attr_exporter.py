@@ -7,20 +7,20 @@ import logging
 import factory_common  # pylint: disable=W0611
 from cros.factory.minijack import db
 from cros.factory.minijack import model
-from cros.factory.minijack.parser import parser_base
+from cros.factory.minijack.exporters import exporter_base
 
-class EventAttrParser(parser_base.ParserBase):
-  '''The parser to create the Event and Attr tables.
+class EventAttrExporter(exporter_base.ExporterBase):
+  '''The exporter to create the Event and Attr tables.
 
   TODO(waihong): Unit tests.
   '''
   def __init__(self, database):
-    super(EventAttrParser, self).__init__(database)
+    super(EventAttrExporter, self).__init__(database)
     self._event_table = None
     self._attr_table = None
 
   def Setup(self):
-    super(EventAttrParser, self).Setup()
+    super(EventAttrExporter, self).Setup()
     self._event_table = self._database.GetOrCreateTable(model.Event)
     self._attr_table = self._database.GetOrCreateTable(model.Attr)
 
@@ -60,7 +60,7 @@ class EventAttrParser(parser_base.ParserBase):
     rows = []
     # As the event is a tree struct which contains dicts or lists,
     # we flatten it first. The hierarchy is recorded in the Attr column.
-    for attr, value in parser_base.FlattenAttr(event):
+    for attr, value in exporter_base.FlattenAttr(event):
       if attr not in RESERVED_PATH:
         row = model.Attr(
           device_id = preamble.get('device_id'),

@@ -2,30 +2,30 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-class ParserBase(object):
-  '''The base class of parsers.
+class ExporterBase(object):
+  '''The base class of exporters.
 
-  An parser is a customized class which analyses event logs and converts
-  the knowledge into a database.
+  An exporter is a customized class which analyses event logs and dumps their
+  knowledge into a database.
 
-  All parser classes should inherit this ParserBase class and implement/reuse
+  All exporter classes should inherit this ExporterBase class and implement/reuse
   the following methods:
     Setup(self): This method is called on Minijack start-up.
     Cleanup(self): This method is called on Minijack shut-down.
     Handle_xxx(self, preamble, event): This method is called when an event,
         with event id == 'xxx', is received. The preamble and event arguments
-        contain the Python dict of the preamble and the event. A parser class
+        contain the Python dict of the preamble and the event. An exporter class
         contains multiple Handle_xxx(). The Handle_all() is special, which is
         called on every event. This method doesn't follow the naming conversion
         as we want to keep xxx the same as the event name.
 
-  Note that all the parser module should be added into __init__.py. Otherwise,
+  Note that all the exporter module should be added into __init__.py. Otherwise,
   they are not loaded by default.
 
   Some naming conversions:
-    module file name: xxx_parser.py
-    module name: xxx_parser
-    class name: XxxParser
+    module file name: xxx_exporter.py
+    module name: xxx_exporter
+    class name: XxxExporter
 
   TODO(waihong): Unit tests.
 

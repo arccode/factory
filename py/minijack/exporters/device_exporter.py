@@ -4,20 +4,20 @@
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.minijack import model
-from cros.factory.minijack.parser import parser_base
+from cros.factory.minijack.exporters import exporter_base
 
-class DeviceParser(parser_base.ParserBase):
-  '''The parser to create the Device table.
+class DeviceExporter(exporter_base.ExporterBase):
+  '''The exporter to create the Device table.
 
   TODO(waihong): Unit tests.
   '''
   def __init__(self, database):
-    super(DeviceParser, self).__init__(database)
+    super(DeviceExporter, self).__init__(database)
     self._table = None
 
   def Setup(self):
     '''This method is called on Minijack start-up.'''
-    super(DeviceParser, self).Setup()
+    super(DeviceExporter, self).Setup()
     self._table = self._database.GetOrCreateTable(model.Device)
 
   def Handle_goofy_init(self, preamble, event):

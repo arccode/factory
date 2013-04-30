@@ -4,20 +4,20 @@
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.minijack import model
-from cros.factory.minijack.parser import parser_base
+from cros.factory.minijack.exporters import exporter_base
 
-class TestParser(parser_base.ParserBase):
-  '''The parser to create the Test table.
+class TestExporter(exporter_base.ExporterBase):
+  '''The exporter to create the Test table.
 
   TODO(waihong): Unit tests.
   '''
   def __init__(self, database):
-    super(TestParser, self).__init__(database)
+    super(TestExporter, self).__init__(database)
     self._table = None
 
   def Setup(self):
     '''This method is called on Minijack start-up.'''
-    super(TestParser, self).Setup()
+    super(TestExporter, self).Setup()
     self._table = self._database.GetOrCreateTable(model.Test)
 
   def Handle_start_test(self, preamble, event):

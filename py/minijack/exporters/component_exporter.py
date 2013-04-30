@@ -4,20 +4,20 @@
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.minijack import model
-from cros.factory.minijack.parser import parser_base
+from cros.factory.minijack.exporters import exporter_base
 
-class ComponentParser(parser_base.ParserBase):
-  '''The parser to create the Component table.
+class ComponentExporter(exporter_base.ExporterBase):
+  '''The exporter to create the Component table.
 
   TODO(waihong): Unit tests.
   '''
   def __init__(self, database):
-    super(ComponentParser, self).__init__(database)
+    super(ComponentExporter, self).__init__(database)
     self._table = None
 
   def Setup(self):
     '''This method is called on Minijack start-up.'''
-    super(ComponentParser, self).Setup()
+    super(ComponentExporter, self).Setup()
     self._table = self._database.GetOrCreateTable(model.Component)
 
   def Handle_probe(self, preamble, event):
@@ -32,8 +32,8 @@ class ComponentParser(parser_base.ParserBase):
     # We need to find all the components no matter the tree structure is
     # changed or the found_probe_value_map tag is renamed.
     keyword = 'cpu'
-    parent = parser_base.FindContainingDictForKey(event, keyword)
-    for component, symbolic in parser_base.FlattenAttr(parent):
+    parent = exporter_base.FindContainingDictForKey(event, keyword)
+    for component, symbolic in exporter_base.FlattenAttr(parent):
       row = model.Component(
         device_id = preamble.get('device_id'),
         time      = event.get('TIME'),

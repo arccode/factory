@@ -31,7 +31,7 @@ from Queue import Queue
 import factory_common  # pylint: disable=W0611
 from cros.factory.event_log_watcher import EventLogWatcher
 from cros.factory.minijack import db
-from cros.factory.minijack import parser as parser_pkg
+from cros.factory.minijack import exporters as exporter_pkg
 from cros.factory.test import utils
 
 SHOPFLOOR_DATA_DIR = 'shopfloor_data'
@@ -95,36 +95,36 @@ class EventList(list):
                         yaml_str, e)
 
 class EventReceiver(object):
-  '''Event Receiver which invokes the proper parsers when events is received.
+  '''Event Receiver which invokes the proper exporters when events is received.
 
   TODO(waihong): Unit tests.
 
   Properties:
-    _all_parsers: A list of all registered parsers.
+    _all_exporters: A list of all registered exporters.
     _event_invokers: A dict of lists, where the event id as key and the list
                      of handler functions as value.
   '''
   def __init__(self):
-    self._all_parsers = []
+    self._all_exporters = []
     self._event_invokers = {}
 
-  def RegisterParser(self, parser):
-    '''Registers a parser object.'''
-    logging.debug('Register the parser: %s', parser)
-    self._all_parsers.append(parser)
-    # Search all Handle_xxx() methods in the parser instance.
-    for handler_name in dir(parser):
+  def RegisterExporter(self, exporter):
+    '''Registers a exporter object.'''
+    logging.debug('Register the exporter: %s', exporter)
+    self._all_exporters.append(exporter)
+    # Search all Handle_xxx() methods in the exporter instance.
+    for handler_name in dir(exporter):
       if handler_name.startswith('Handle_'):
         event_id = handler_name.split('_', 1)[1]
         # Create a new list if not present.
         if event_id not in self._event_invokers:
           self._event_invokers[event_id] = []
         # Add the handler function to the list.
-        handler_func = getattr(parser, handler_name)
+        handler_func = getattr(exporter, handler_name)
         self._event_invokers[event_id].append(handler_func)
 
-    logging.debug('Call the setup method of the parser: %s', parser)
-    parser.Setup()
+    logging.debug('Call the setup method of the exporter: %s', exporter)
+    exporter.Setup()
 
   def ReceiveEvents(self, event_list):
     '''Callback for an event list received.'''
@@ -151,13 +151,13 @@ class EventReceiver(object):
         try:
           invoker(preamble, event)
         except:  # pylint: disable=W0702
-          logging.exception('Error on invoking the parser: %s',
+          logging.exception('Error on invoking the exporter: %s',
                             utils.FormatExceptionOnly())
 
   def Cleanup(self):
-    '''Clearns up all the parsers.'''
-    for parser in self._all_parsers:
-      parser.Cleanup()
+    '''Clearns up all the exporters.'''
+    for exporter in self._all_exporters:
+      exporter.Cleanup()
 
 def GetYesterdayLogDir(today_dir):
   '''Get the dir name for one day before.
@@ -274,17 +274,17 @@ class Minijack(object):
     self._database.Init(options.minijack_db)
     self._event_receiver = EventReceiver()
 
-    logging.debug('Load all the default parsers')
-    # Find all parser modules named xxx_parser.
-    for parser_name in dir(parser_pkg):
-      if parser_name.endswith('_parser'):
-        parser_module = getattr(parser_pkg, parser_name)
-        # Class name conversion: XxxParser.
-        class_name = ''.join([s.capitalize() for s in parser_name.split('_')])
-        parser_class = getattr(parser_module, class_name)
-        parser = parser_class(self._database)
-        # Register the parser instance.
-        self._event_receiver.RegisterParser(parser)
+    logging.debug('Load all the default exporters')
+    # Find all exporter modules named xxx_exporter.
+    for exporter_name in dir(exporter_pkg):
+      if exporter_name.endswith('_exporter'):
+        exporter_module = getattr(exporter_pkg, exporter_name)
+        # Class name conversion: XxxExporter.
+        class_name = ''.join([s.capitalize() for s in exporter_name.split('_')])
+        exporter_class = getattr(exporter_module, class_name)
+        exporter = exporter_class(self._database)
+        # Register the exporter instance.
+        self._event_receiver.RegisterExporter(exporter)
 
     logging.debug('Start event log watcher, interval = %d', options.interval)
     self._log_watcher = EventLogWatcher(
