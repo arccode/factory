@@ -3,6 +3,7 @@
 # found in the LICENSE file.
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.minijack import minijack
 from cros.factory.minijack import model
 from cros.factory.minijack.exporters import exporter_base
 
@@ -20,7 +21,7 @@ class ComponentExporter(exporter_base.ExporterBase):
     super(ComponentExporter, self).Setup()
     self._table = self._database.GetOrCreateTable(model.Component)
 
-  def Handle_probe(self, preamble, event):
+  def Handle_probe(self, packet):
     '''A handler for a probe event.'''
     # Find the dict which contain the 'cpu' keyword. An event example like:
     #   probe_results:
@@ -32,11 +33,11 @@ class ComponentExporter(exporter_base.ExporterBase):
     # We need to find all the components no matter the tree structure is
     # changed or the found_probe_value_map tag is renamed.
     keyword = 'cpu'
-    parent = exporter_base.FindContainingDictForKey(event, keyword)
-    for component, symbolic in exporter_base.FlattenAttr(parent):
+    parent = packet.FindAttrContainingKey(keyword)
+    for component, symbolic in minijack.EventPacket.FlattenAttr(parent):
       row = model.Component(
-        device_id = preamble.get('device_id'),
-        time      = event.get('TIME'),
+        device_id = packet.preamble.get('device_id'),
+        time      = packet.event.get('TIME'),
         component = component,
         symbolic  = symbolic,
       )

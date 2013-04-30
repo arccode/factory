@@ -91,6 +91,77 @@ class EventStream(list):
       logging.exception('Error on parsing the yaml string "%s": %s',
                         yaml_str, e)
 
+class EventPacket(object):
+  '''Event Packet Structure.
+
+  An EventPacket is a non-preamble event combined with its preamble. It is
+  used as an argument to pass to the exporters.
+
+  Properties:
+    preamble: The dict of the preamble event.
+    event: The dict of the non-preamble event.
+  '''
+  def __init__(self, preamble, event):
+    self.preamble = preamble
+    self.event = event
+
+  @staticmethod
+  def FlattenAttr(attr):
+    '''Generator of flattened attributes.
+
+    Args:
+      attr: The attr dict/list which may contains multi-level dicts/lists.
+
+    Yields:
+      A tuple (path_str, leaf_value).
+    '''
+    def _FlattenAttr(attr):
+      if isinstance(attr, dict):
+        for key, val in attr.iteritems():
+          for path, leaf in _FlattenAttr(val):
+            yield [key] + path, leaf
+      elif isinstance(attr, list):
+        for index, val in enumerate(attr):
+          for path, leaf in _FlattenAttr(val):
+            yield [str(index)] + path, leaf
+      else:
+        # The leaf node.
+        yield [], attr
+
+    # Join the path list using '.'.
+    return (('.'.join(k), v) for k, v in _FlattenAttr(attr))
+
+  def FindAttrContainingKey(self, key):
+    '''Finds the attr in the event that contains the given key.
+
+    Args:
+      key: A string of key.
+
+    Returns:
+      The dict inside the event that contains the given key.
+    '''
+    def _FindContainingDictForKey(deep_dict, key):
+      if isinstance(deep_dict, dict):
+        if key in deep_dict.iterkeys():
+          # Found, return its parent.
+          return deep_dict
+        else:
+          # Try its children.
+          for val in deep_dict.itervalues():
+            result = _FindContainingDictForKey(val, key)
+            if result:
+              return result
+      elif isinstance(deep_dict, list):
+        # Try its children.
+        for val in deep_dict:
+          result = _FindContainingDictForKey(val, key)
+          if result:
+            return result
+      # Not found.
+      return None
+
+    return _FindContainingDictForKey(self.event, key)
+
 class EventReceiver(object):
   '''Event Receiver which invokes the proper exporters when events is received.
 
@@ -132,21 +203,22 @@ class EventReceiver(object):
       logging.warn('Drop the event stream without preamble.')
       return
     for event in stream:
-      self.ReceiveEvent(stream.preamble, event)
+      packet = EventPacket(stream.preamble, event)
+      self.ReceiveEventPacket(packet)
     logging.info('Dumped to database (%s, %d events, %.3f sec)',
                  stream.preamble.get('filename'),
                  len(stream),
                  time.time() - start_time)
 
-  def ReceiveEvent(self, preamble, event):
-    '''Callback for an event received.'''
+  def ReceiveEventPacket(self, packet):
+    '''Callback for an event packet received.'''
     # Event id 'all' is a special case, which means the handlers accepts
     # all kinds of events.
-    for event_id in ('all', event['EVENT']):
+    for event_id in ('all', packet.event['EVENT']):
       invokers = self._event_invokers.get(event_id, [])
       for invoker in invokers:
         try:
-          invoker(preamble, event)
+          invoker(packet)
         except:  # pylint: disable=W0702
           logging.exception('Error on invoking the exporter: %s',
                             utils.FormatExceptionOnly())

@@ -20,74 +20,73 @@ class DeviceExporter(exporter_base.ExporterBase):
     super(DeviceExporter, self).Setup()
     self._table = self._database.GetOrCreateTable(model.Device)
 
-  def Handle_goofy_init(self, preamble, event):
+  def Handle_goofy_init(self, packet):
     '''A handler for a goofy_init event.'''
-    if self._DoesFieldExist(preamble, event, 'goofy_init_time', newer=False):
+    if self._DoesFieldExist(packet, 'goofy_init_time', newer=False):
       # Skip updating if the goofy_init_time is already in the table and the
       # goofy_init_time is older then this one.
       return
     row = model.Device(
-      device_id       = preamble.get('device_id'),
-      goofy_init_time = event.get('TIME'),
+      device_id       = packet.preamble.get('device_id'),
+      goofy_init_time = packet.event.get('TIME'),
     )
     self._table.UpdateOrInsertRow(row)
 
-  def Handle_update_device_data(self, preamble, event):
+  def Handle_update_device_data(self, packet):
     '''A handler for a update_device_data event.'''
-    if self._DoesFieldExist(preamble, event, 'serial_time'):
+    if self._DoesFieldExist(packet, 'serial_time'):
       return
     row = model.Device(
-      device_id   = preamble.get('device_id'),
-      serial      = event['data'].get('serial_number'),
-      serial_time = event.get('TIME'),
+      device_id   = packet.preamble.get('device_id'),
+      serial      = packet.event.get('data').get('serial_number'),
+      serial_time = packet.event.get('TIME'),
     )
     self._table.UpdateOrInsertRow(row)
 
-  def Handle_scan(self, preamble, event):
+  def Handle_scan(self, packet):
     '''A handler for a scan event.'''
     # If not a barcode scan of the MLB serial number, skip it.
-    if event.get('key') != 'mlb_serial_number':
+    if packet.event.get('key') != 'mlb_serial_number':
       return
-    if self._DoesFieldExist(preamble, event, 'mlb_serial_time'):
+    if self._DoesFieldExist(packet, 'mlb_serial_time'):
       return
     row = model.Device(
-      device_id       = preamble.get('device_id'),
-      mlb_serial      = event.get('value'),
-      mlb_serial_time = event.get('TIME'),
+      device_id       = packet.preamble.get('device_id'),
+      mlb_serial      = packet.event.get('value'),
+      mlb_serial_time = packet.event.get('TIME'),
     )
     self._table.UpdateOrInsertRow(row)
 
-  def Handle_hwid(self, preamble, event):
+  def Handle_hwid(self, packet):
     '''A handler for a hwid event.'''
-    if self._DoesFieldExist(preamble, event, 'hwid_time'):
+    if self._DoesFieldExist(packet, 'hwid_time'):
       return
     row = model.Device(
-      device_id = preamble.get('device_id'),
-      hwid      = event.get('hwid'),
-      hwid_time = event.get('TIME'),
+      device_id = packet.preamble.get('device_id'),
+      hwid      = packet.event.get('hwid'),
+      hwid_time = packet.event.get('TIME'),
     )
     self._table.UpdateOrInsertRow(row)
 
-  def Handle_verified_hwid(self, preamble, event):
+  def Handle_verified_hwid(self, packet):
     '''A handler for a verified_hwid event.'''
-    self.Handle_hwid(preamble, event)
+    self.Handle_hwid(packet)
 
   # TODO(waihong): Fill the ip field.
 
-  def _DoesFieldExist(self, preamble, event, field, newer=True):
+  def _DoesFieldExist(self, packet, field, newer=True):
     '''Checks if a given field already in the table and it is newer (older).
 
     Args:
-      preamble: A dict of preamble.
-      event: A dict of event.
+      packet: An EventPacket object.
       field: A string of field name. The field contains timestamps.
       newer: True to check for newer; otherwise, check for older.
 
     Returns:
       True if the field exists and is newer (older); otherwise, False.
     '''
-    time = event.get('TIME')
-    condition = model.Device(device_id=preamble.get('device_id'))
+    time = packet.event.get('TIME')
+    condition = model.Device(device_id=packet.preamble.get('device_id'))
     row = self._table.GetOneRow(condition)
     if row:
       return (getattr(row, field) >= time if newer else

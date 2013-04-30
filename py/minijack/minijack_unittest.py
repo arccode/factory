@@ -47,6 +47,7 @@ test_states:
       error_msg: null
       id: CheckeMMCFirmwareVersion
       path: SMT.CheckeMMCFirmwareVersion
+      tag: Special.Watermark
       status: PASSED
   - id: FATP
     path: FATP
@@ -112,6 +113,38 @@ class EventStreamTest(unittest.TestCase):
     stream = minijack.EventStream(yaml_str)
     self.assertEqual('d0:xx:xx:xx:xx:df', stream.preamble['device_id'])
     self.assertEqual(0, len(stream))
+
+class EventPacketTest(unittest.TestCase):
+  def setUp(self):
+    yaml_str = _YAML_STR_EXAMPLE
+    self._stream = minijack.EventStream(yaml_str)
+
+  def testEventPacket(self):
+    packet = minijack.EventPacket(self._stream.preamble, self._stream[0])
+    self.assertEqual('d0:xx:xx:xx:xx:df', packet.preamble['device_id'])
+    self.assertEqual('test_states', packet.event['EVENT'])
+
+  def testFlattenAttr(self):
+    packet = minijack.EventPacket(self._stream.preamble, self._stream[0])
+    generator = minijack.EventPacket.FlattenAttr(packet.event)
+    flattened = dict((k, v) for k, v in generator)
+    self.assertEqual(37, len(flattened))
+    self.assertIn('test_states.id', flattened)
+    self.assertNotIn('test_states.subtests', flattened)
+    self.assertNotIn('test_states.subtests.0', flattened)
+    self.assertIn('test_states.subtests.0.id', flattened)
+    self.assertEqual('SMT', flattened['test_states.subtests.0.id'])
+    self.assertIn('test_states.subtests.0.subtests.1.subtests.0.id', flattened)
+    self.assertEqual('SyncShopFloor',
+        flattened['test_states.subtests.0.subtests.1.subtests.0.id'])
+
+  def testFindAttrContainingKey(self):
+    packet = minijack.EventPacket(self._stream.preamble, self._stream[0])
+    attr_dict = packet.FindAttrContainingKey('tag')
+    self.assertEqual(6, len(attr_dict))
+    self.assertIn('tag', attr_dict)
+    self.assertIn('path', attr_dict)
+    self.assertIn('SMT.CheckeMMCFirmwareVersion', attr_dict['path'])
 
 if __name__ == "__main__":
   logging.disable(logging.ERROR)

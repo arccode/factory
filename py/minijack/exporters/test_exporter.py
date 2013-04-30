@@ -20,31 +20,31 @@ class TestExporter(exporter_base.ExporterBase):
     super(TestExporter, self).Setup()
     self._table = self._database.GetOrCreateTable(model.Test)
 
-  def Handle_start_test(self, preamble, event):
+  def Handle_start_test(self, packet):
     '''A handler for a start_test event.'''
     row = model.Test(
-      invocation     = event.get('invocation'),
-      device_id      = preamble.get('device_id'),
-      factory_md5sum = preamble.get('factory_md5sum'),
-      image_id       = preamble.get('image_id'),
-      path           = event.get('path'),
-      pytest_name    = event.get('pytest_name'),
-      start_time     = event.get('TIME'),
+      invocation     = packet.event.get('invocation'),
+      device_id      = packet.preamble.get('device_id'),
+      factory_md5sum = packet.preamble.get('factory_md5sum'),
+      image_id       = packet.preamble.get('image_id'),
+      path           = packet.event.get('path'),
+      pytest_name    = packet.event.get('pytest_name'),
+      start_time     = packet.event.get('TIME'),
     )
     self._table.UpdateOrInsertRow(row)
 
-  def Handle_end_test(self, preamble, event):
+  def Handle_end_test(self, packet):
     '''A handler for an end_test event.'''
     row = model.Test(
-      invocation     = event.get('invocation'),
-      device_id      = preamble.get('device_id'),
-      factory_md5sum = preamble.get('factory_md5sum'),
-      image_id       = preamble.get('image_id'),
-      path           = event.get('path'),
-      pytest_name    = event.get('pytest_name'),
-      status         = event.get('status'),
-      end_time       = event.get('TIME'),
-      duration       = event.get('duration'),
-      dargs          = event.get('dargs'),
+      invocation     = packet.event.get('invocation'),
+      device_id      = packet.preamble.get('device_id'),
+      factory_md5sum = packet.preamble.get('factory_md5sum'),
+      image_id       = packet.preamble.get('image_id'),
+      path           = packet.event.get('path'),
+      pytest_name    = packet.event.get('pytest_name'),
+      status         = packet.event.get('status'),
+      end_time       = packet.event.get('TIME'),
+      duration       = packet.event.get('duration'),
+      dargs          = packet.event.get('dargs'),
     )
     self._table.UpdateOrInsertRow(row)
