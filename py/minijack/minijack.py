@@ -48,13 +48,11 @@ LOG_DIR_DATE_FORMAT = '%Y%m%d'
 YAML_STR_BLACKLIST = (
     r'( !!python/tuple| !!python/unicode| !!python/object[A-Za-z_.:/]+)')
 
-class EventList(list):
-  '''Event List Structure.
+class EventStream(list):
+  '''Event Stream Structure.
 
-  This is a list to store multiple non-preamble events, which share
+  An EventStream is a list to store multiple non-preamble events, which share
   the same preamble event.
-
-  TODO(waihong): Unit tests.
 
   Properties:
     preamble: The dict of the preamble event.
@@ -65,7 +63,7 @@ class EventList(list):
     Args:
       yaml_str: The string contains multiple yaml-formatted events.
     '''
-    super(EventList, self).__init__()
+    super(EventStream, self).__init__()
     self.preamble = None
     self._LoadFromYaml(yaml_str)
 
@@ -125,19 +123,19 @@ class EventReceiver(object):
     logging.debug('Call the setup method of the exporter: %s', exporter)
     exporter.Setup()
 
-  def ReceiveEvents(self, event_list):
-    '''Callback for an event list received.'''
+  def ReceiveEventStream(self, stream):
+    '''Callback for an event stream received.'''
     start_time = time.time()
-    # Drop the event list if its preamble not exist.
+    # Drop the event stream if its preamble not exist.
     # TODO(waihong): Remove this drop once all events in the same directory.
-    if event_list.preamble is None:
-      logging.warn('Drop the event list without preamble.')
+    if stream.preamble is None:
+      logging.warn('Drop the event stream without preamble.')
       return
-    for event in event_list:
-      self.ReceiveEvent(event_list.preamble, event)
+    for event in stream:
+      self.ReceiveEvent(stream.preamble, event)
     logging.info('Dumped to database (%s, %d events, %.3f sec)',
-                 event_list.preamble.get('filename'),
-                 len(event_list),
+                 stream.preamble.get('filename'),
+                 len(stream),
                  time.time() - start_time)
 
   def ReceiveEvent(self, preamble, event):
@@ -193,7 +191,7 @@ class Minijack(object):
     _event_receiver: The event receiver.
     _log_dir: The path of the event log directory.
     _log_watcher: The event log watcher.
-    _queue: The queue storing event lists.
+    _queue: The queue storing event streams.
   '''
   def __init__(self):
     self._database = None
@@ -321,34 +319,34 @@ class Minijack(object):
                         log_path,
                         utils.FormatExceptionOnly())
       return None
-    events = EventList(events_str)
-    return events.preamble
+    stream = EventStream(events_str)
+    return stream.preamble
 
   def HandleEventLogs(self, log_name, chunk):
     '''Callback for event log watcher.'''
     logging.info('Get new event logs (%s, %d bytes)', log_name, len(chunk))
     start_time = time.time()
-    events = EventList(chunk)
-    if not events.preamble:
+    stream = EventStream(chunk)
+    if not stream.preamble:
       log_path = os.path.join(self._log_dir, log_name)
-      events.preamble = self._GetPreambleFromLogFile(log_path)
-    if not events.preamble and log_name.startswith('logs.'):
+      stream.preamble = self._GetPreambleFromLogFile(log_path)
+    if not stream.preamble and log_name.startswith('logs.'):
       # Try to find the preamble from the same file in the yesterday log dir.
       (today_dir, rest_path) = log_name.split('/', 1)
       yesterday_dir = GetYesterdayLogDir(today_dir)
       if yesterday_dir:
         log_path = os.path.join(self._log_dir, yesterday_dir, rest_path)
-        events.preamble = self._GetPreambleFromLogFile(log_path)
-    if not events.preamble:
+        stream.preamble = self._GetPreambleFromLogFile(log_path)
+    if not stream.preamble:
       logging.warn('Cannot find a preamble event in the log file: %s', log_path)
     else:
       logging.info('YAML to Python obj (%s, %.3f sec)',
-                   events.preamble.get('filename'),
+                   stream.preamble.get('filename'),
                    time.time() - start_time)
-    logging.debug('Preamble: \n%s', pprint.pformat(events.preamble))
-    logging.debug('Event List: \n%s', pprint.pformat(events))
-    # Put the event list into the queue.
-    self._queue.put(events)
+    logging.debug('Preamble: \n%s', pprint.pformat(stream.preamble))
+    logging.debug('Events: \n%s', pprint.pformat(stream))
+    # Put the event stream into the queue.
+    self._queue.put(stream)
 
   def Main(self):
     '''The main Minijack logic.'''
@@ -360,9 +358,9 @@ class Minijack(object):
 
       # Work-around of a Python bug that blocks Ctrl-C.
       #   http://bugs.python.org/issue1360
-      events = self._queue.get(timeout=ONE_YEAR)
-      logging.debug('Disptach the event list to the receiver.')
-      self._event_receiver.ReceiveEvents(events)
+      stream = self._queue.get(timeout=ONE_YEAR)
+      logging.debug('Disptach the event stream to the receiver.')
+      self._event_receiver.ReceiveEventStream(stream)
       self._queue.task_done()
       # Note that it is not a real idle. The event_log_watch may be getting
       # new event logs but have not put them in the queue yet.
