@@ -11,7 +11,6 @@ class ExporterBase(object):
   All exporter classes should inherit this ExporterBase class and implement/reuse
   the following methods:
     Setup(self): This method is called on Minijack start-up.
-    Cleanup(self): This method is called on Minijack shut-down.
     Handle_xxx(self, packet): This method is called when an event packet, with
         event id == 'xxx', is received. The argument packet is an EventPacket
         object which contains the dicts of the event preamble and the event
@@ -39,8 +38,4 @@ class ExporterBase(object):
 
   def Setup(self):
     '''This method is called on Minijack start-up.'''
-    pass
-
-  def Cleanup(self):
-    '''This method is called on Minijack shut-down.'''
     pass

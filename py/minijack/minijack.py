@@ -223,10 +223,38 @@ class EventReceiver(object):
           logging.exception('Error on invoking the exporter: %s',
                             utils.FormatExceptionOnly())
 
-  def Cleanup(self):
-    '''Clearns up all the exporters.'''
-    for exporter in self._all_exporters:
-      exporter.Cleanup()
+class EventReceivingWorker(object):
+  '''A callable worker for receiving events and dumping to database.
+
+  TODO(waihong): Unit tests.
+
+  Properties:
+    _database: The database object.
+    _receiver: The event receiver object.
+  '''
+  def __init__(self, database):
+    self._database = database
+
+    # TODO(waihong): Make the exporter module an argument for customization.
+    self._receiver = EventReceiver()
+    logging.debug('Load all the default exporters')
+    # Find all exporter modules named xxx_exporter.
+    exporter_pkg = __import__('cros.factory.minijack',
+                              fromlist=['exporters']).exporters
+    for exporter_name in dir(exporter_pkg):
+      if exporter_name.endswith('_exporter'):
+        exporter_module = getattr(exporter_pkg, exporter_name)
+        # Class name conversion: XxxExporter.
+        class_name = ''.join([s.capitalize() for s in exporter_name.split('_')])
+        exporter_class = getattr(exporter_module, class_name)
+        exporter = exporter_class(self._database)
+        # Register the exporter instance.
+        self._receiver.RegisterExporter(exporter)
+
+  def __call__(self, stream):
+    '''Receives an event stream and dumps to database.'''
+    logging.debug('Disptach the event stream to the receiver.')
+    self._receiver.ReceiveEventStream(stream)
 
 def GetYesterdayLogDir(today_dir):
   '''Get the dir name for one day before.
@@ -260,14 +288,14 @@ class Minijack(object):
 
   Properties:
     _database: The database object.
-    _event_receiver: The event receiver.
+    _event_receiving_worker: The event receiving worker.
     _log_dir: The path of the event log directory.
     _log_watcher: The event log watcher.
     _queue: The queue storing event streams.
   '''
   def __init__(self):
     self._database = None
-    self._event_receiver = None
+    self._event_receiving_worker = None
     self._log_dir = None
     self._log_watcher = None
     self._queue = None
@@ -339,23 +367,10 @@ class Minijack(object):
 
     # TODO(waihong): Study the performance impact of the queue max size.
     self._queue = Queue(options.queue_size)
+
     self._database = db.Database()
     self._database.Init(options.minijack_db)
-    self._event_receiver = EventReceiver()
-
-    logging.debug('Load all the default exporters')
-    # Find all exporter modules named xxx_exporter.
-    exporter_pkg = __import__('cros.factory.minijack',
-                              fromlist=['exporters']).exporters
-    for exporter_name in dir(exporter_pkg):
-      if exporter_name.endswith('_exporter'):
-        exporter_module = getattr(exporter_pkg, exporter_name)
-        # Class name conversion: XxxExporter.
-        class_name = ''.join([s.capitalize() for s in exporter_name.split('_')])
-        exporter_class = getattr(exporter_module, class_name)
-        exporter = exporter_class(self._database)
-        # Register the exporter instance.
-        self._event_receiver.RegisterExporter(exporter)
+    self._event_receiving_worker = EventReceivingWorker(self._database)
 
     logging.debug('Start event log watcher, interval = %d', options.interval)
     self._log_watcher = EventLogWatcher(
@@ -375,9 +390,6 @@ class Minijack(object):
       self._log_watcher = None
     if self._queue:
       self._queue.join()
-    if self._event_receiver:
-      logging.debug('Clear-up event receiver')
-      self._event_receiver.Cleanup()
     if self._database:
       self._database.Close()
 
@@ -431,8 +443,7 @@ class Minijack(object):
       # Work-around of a Python bug that blocks Ctrl-C.
       #   http://bugs.python.org/issue1360
       stream = self._queue.get(timeout=ONE_YEAR)
-      logging.debug('Disptach the event stream to the receiver.')
-      self._event_receiver.ReceiveEventStream(stream)
+      self._event_receiving_worker(stream)
       self._queue.task_done()
       # Note that it is not a real idle. The event_log_watch may be getting
       # new event logs but have not put them in the queue yet.
