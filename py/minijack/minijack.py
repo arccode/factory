@@ -17,6 +17,7 @@ presses Ctrl-C to terminate it. To use it, invoke as a standalone program:
 '''
 
 import logging
+import multiprocessing
 import optparse
 import os
 import pprint
@@ -26,7 +27,6 @@ import sys
 import time
 import yaml
 from datetime import datetime, timedelta
-from Queue import Queue
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.event_log_watcher import EventLogWatcher
@@ -38,6 +38,7 @@ EVENT_LOG_DB_FILE = 'event_log_db'
 MINIJACK_DB_FILE = 'minijack_db'
 
 DEFAULT_WATCH_INTERVAL = 30  # seconds
+DEFAULT_JOB_NUMBER = 6
 DEFAULT_QUEUE_SIZE = 10
 LOG_DIR_DATE_FORMAT = '%Y%m%d'
 
@@ -246,10 +247,18 @@ class EventReceivingWorker(object):
         # Register the exporter instance.
         self._receiver.RegisterExporter(exporter)
 
-  def __call__(self, stream):
-    '''Receives an event stream and dumps to database.'''
-    logging.debug('Disptach the event stream to the receiver.')
-    self._receiver.ReceiveEventStream(stream)
+  # TODO(waihong): Abstract the input as a general iterator instead of a queue.
+  def __call__(self, input_queue):
+    '''Receives an event stream from the input queue and dumps to database.'''
+    for stream in iter(input_queue.get, None):
+      self._receiver.ReceiveEventStream(stream)
+      input_queue.task_done()
+      # Note that it is not a real idle. The event-log-watcher or the
+      # event-loading-worker may be processing new event logs but have
+      # not put them in the queue yet.
+      # TODO(waihong): Do an accurate check to confirm the idle state.
+      if input_queue.empty():
+        logging.info('Minijack is idle.')
 
 class EventBlob(object):
   '''A structure to wrap the information returned from event log watcher.
@@ -273,9 +282,14 @@ class EventLoadingWorker(object):
   def __init__(self, log_dir):
     self._log_dir = log_dir
 
-  def __call__(self, blob):
-    '''Loads an event blob and parses its YAML string to a Python object.'''
-    return self._ConvertToEventStream(blob)
+  # TODO(waihong): Abstract the input as a general iterator instead of a queue.
+  def __call__(self, input_queue, output_queue):
+    '''Loads an event blob from the queue and converts to an event stream.'''
+    for blob in iter(input_queue.get, None):
+      stream = self._ConvertToEventStream(blob)
+      if stream:
+        output_queue.put(stream)
+      input_queue.task_done()
 
   def _GetPreambleFromLogFile(self, log_path):
     '''Gets the preamble event dict from a given log file path.'''
@@ -350,22 +364,24 @@ class Minijack(object):
 
   Properties:
     _database: The database object.
-    _event_loading_worker: The event loading worker.
-    _event_receiving_worker: The event receiving worker.
     _log_watcher: The event log watcher.
-    _queue: The queue storing event streams.
+    _worker_processes: A list of worker processes.
+    _event_blob_queue: The queue storing event blobs.
+    _event_stream_queue: The queue storing event streams.
   '''
   def __init__(self):
     self._database = None
-    self._event_loading_worker = None
-    self._event_receiving_worker = None
     self._log_watcher = None
-    self._queue = None
+    self._worker_processes = []
+    self._event_blob_queue = None
+    self._event_stream_queue = None
 
   def Init(self):
     '''Initializes Minijack.'''
-    # Exit this program when receiving Ctrl-C.
-    signal.signal(signal.SIGINT, lambda signum, frame: sys.exit(0))
+    # Ignore Ctrl-C for all processes. The main process will be changed later.
+    # We don't want Ctrl-C to break the sub-process works. The terminations of
+    # sub-processes are controlled by the main process.
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
 
     # Pick the default event log dir depending on factory run or chroot run.
     event_log_dir = SHOPFLOOR_DATA_DIR
@@ -392,6 +408,9 @@ class Minijack(object):
     parser.add_option('-i', '--interval', dest='interval', type='int',
                       default=DEFAULT_WATCH_INTERVAL,
                       help='log-watching interval in sec (default: %default)')
+    parser.add_option('-j', '--jobs', dest='jobs', type='int',
+                      default=DEFAULT_JOB_NUMBER,
+                      help='jobs to load events parallelly (default: %default)')
     parser.add_option('-s', '--queue_size', dest='queue_size', type='int',
                       metavar='SIZE', default=DEFAULT_QUEUE_SIZE,
                       help='max size of the queue (default: %default)')
@@ -427,60 +446,75 @@ class Minijack(object):
       parser.print_help()
       sys.exit(os.EX_NOINPUT)
 
+    if options.jobs < 1:
+      logging.error('Job number should be larger than or equal to 1.\n')
+      parser.print_help()
+      sys.exit(os.EX_NOINPUT)
+
     # TODO(waihong): Study the performance impact of the queue max size.
-    self._queue = Queue(options.queue_size)
+    maxsize = options.queue_size
+    self._event_blob_queue = multiprocessing.JoinableQueue(maxsize)
+    self._event_stream_queue = multiprocessing.JoinableQueue(maxsize)
 
-    self._event_loading_worker = EventLoadingWorker(options.event_log_dir)
-
-    self._database = db.Database()
-    self._database.Init(options.minijack_db)
-    self._event_receiving_worker = EventReceivingWorker(self._database)
-
-    logging.debug('Start event log watcher, interval = %d', options.interval)
+    logging.debug('Init event log watcher, interval = %d', options.interval)
     self._log_watcher = EventLogWatcher(
         options.interval,
         event_log_dir=options.event_log_dir,
         event_log_db_file=options.event_log_db,
         handle_event_logs_callback=self.HandleEventLogs)
-    self._log_watcher.StartWatchThread()
+
+    logging.debug('Init event loading workers, jobs = %d', options.jobs)
+    self._worker_processes = [multiprocessing.Process(
+          target=EventLoadingWorker(options.event_log_dir),
+          args=(self._event_blob_queue, self._event_stream_queue)
+        ) for _ in range(options.jobs)]
+
+    logging.debug('Init event receiving workers')
+    self._database = db.Database()
+    self._database.Init(options.minijack_db)
+    self._worker_processes.append(multiprocessing.Process(
+        target=EventReceivingWorker(self._database),
+        args=(self._event_stream_queue,)))
 
   def Destory(self):
     '''Destorys Minijack.'''
-    if self._log_watcher:
-      logging.debug('Destory event log watcher')
-      if self._log_watcher.IsThreadStarted():
-        self._log_watcher.StopWatchThread()
-      self._log_watcher = None
-    if self._queue:
-      self._queue.join()
+    logging.info('Stopping event log watcher...')
+    if self._log_watcher and self._log_watcher.IsThreadStarted():
+      self._log_watcher.StopWatchThread()
+    logging.info('Emptying all queues...')
+    for queue in (self._event_blob_queue, self._event_stream_queue):
+      if queue:
+        queue.join()
+    logging.info('Terminating all worker processes...')
+    for process in self._worker_processes:
+      if process:
+        process.terminate()
+        process.join()
     if self._database:
       self._database.Close()
+      self._database = None
+    logging.info('Minijack is shutdown gracefully.')
 
   def HandleEventLogs(self, log_name, chunk):
     '''Callback for event log watcher.'''
     logging.info('Get new event logs (%s, %d bytes)', log_name, len(chunk))
     blob = EventBlob({'log_name': log_name}, chunk)
-    stream = self._event_loading_worker(blob)
-    if stream:
-      self._queue.put(stream)
+    self._event_blob_queue.put(blob)
 
   def Main(self):
     '''The main Minijack logic.'''
     self.Init()
-    ONE_YEAR = 365 * 24 * 60 * 60
-    while True:
-      # TODO(waihong): Try to use multiple threads to dequeue and see any
-      # performance gain.
+    logging.debug('Start the subprocesses and the event log watcher thread')
+    for process in self._worker_processes:
+      process.daemon = True
+      process.start()
+    self._log_watcher.StartWatchThread()
 
-      # Work-around of a Python bug that blocks Ctrl-C.
-      #   http://bugs.python.org/issue1360
-      stream = self._queue.get(timeout=ONE_YEAR)
-      self._event_receiving_worker(stream)
-      self._queue.task_done()
-      # Note that it is not a real idle. The event_log_watch may be getting
-      # new event logs but have not put them in the queue yet.
-      if self._queue.empty():
-        logging.info('Minijack is idle.')
+    # Exit main process when receiving Ctrl-C or a default kill signal.
+    signal_handler = lambda signum, frame: sys.exit(0)
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
+    signal.pause()
 
 if __name__ == '__main__':
   minijack = Minijack()
