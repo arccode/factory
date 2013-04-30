@@ -197,11 +197,6 @@ class EventReceiver(object):
   def ReceiveEventStream(self, stream):
     '''Callback for an event stream received.'''
     start_time = time.time()
-    # Drop the event stream if its preamble not exist.
-    # TODO(waihong): Remove this drop once all events in the same directory.
-    if stream.preamble is None:
-      logging.warn('Drop the event stream without preamble.')
-      return
     for event in stream:
       packet = EventPacket(stream.preamble, event)
       self.ReceiveEventPacket(packet)
@@ -256,6 +251,73 @@ class EventReceivingWorker(object):
     logging.debug('Disptach the event stream to the receiver.')
     self._receiver.ReceiveEventStream(stream)
 
+class EventBlob(object):
+  '''A structure to wrap the information returned from event log watcher.
+
+  Properties:
+    metadata: A dict to keep the metadata.
+    chunk: A byte-list to store the orignal event data.
+  '''
+  def __init__(self, metadata, chunk):
+    self.metadata = metadata
+    self.chunk = chunk
+
+class EventLoadingWorker(object):
+  '''A callable worker for loading events and converting to Python objects.
+
+  TODO(waihong): Unit tests.
+
+  Properties:
+    _log_dir: The path of the event log directory.
+  '''
+  def __init__(self, log_dir):
+    self._log_dir = log_dir
+
+  def __call__(self, blob):
+    '''Loads an event blob and parses its YAML string to a Python object.'''
+    return self._ConvertToEventStream(blob)
+
+  def _GetPreambleFromLogFile(self, log_path):
+    '''Gets the preamble event dict from a given log file path.'''
+    # TODO(waihong): Optimize it using a cache.
+    try:
+      events_str = open(log_path).read()
+    except:  # pylint: disable=W0702
+      logging.exception('Error on reading log file %s: %s',
+                        log_path,
+                        utils.FormatExceptionOnly())
+      return None
+    stream = EventStream(events_str)
+    return stream.preamble
+
+  def _ConvertToEventStream(self, blob):
+    '''Callback for event log watcher.'''
+    start_time = time.time()
+    log_name = blob.metadata['log_name']
+    stream = EventStream(blob.chunk)
+
+    # TODO(waihong): Abstract the filesystem access.
+    if not stream.preamble:
+      log_path = os.path.join(self._log_dir, log_name)
+      stream.preamble = self._GetPreambleFromLogFile(log_path)
+    if not stream.preamble and log_name.startswith('logs.'):
+      # Try to find the preamble from the same file in the yesterday log dir.
+      (today_dir, rest_path) = log_name.split('/', 1)
+      yesterday_dir = GetYesterdayLogDir(today_dir)
+      if yesterday_dir:
+        log_path = os.path.join(self._log_dir, yesterday_dir, rest_path)
+        stream.preamble = self._GetPreambleFromLogFile(log_path)
+
+    if not stream.preamble:
+      logging.warn('Drop the event stream without preamble, log file: %s',
+                   log_name)
+      return None
+    else:
+      logging.info('YAML to Python obj (%s, %.3f sec)',
+                   stream.preamble.get('filename'),
+                   time.time() - start_time)
+      return stream
+
 def GetYesterdayLogDir(today_dir):
   '''Get the dir name for one day before.
 
@@ -288,15 +350,15 @@ class Minijack(object):
 
   Properties:
     _database: The database object.
+    _event_loading_worker: The event loading worker.
     _event_receiving_worker: The event receiving worker.
-    _log_dir: The path of the event log directory.
     _log_watcher: The event log watcher.
     _queue: The queue storing event streams.
   '''
   def __init__(self):
     self._database = None
+    self._event_loading_worker = None
     self._event_receiving_worker = None
-    self._log_dir = None
     self._log_watcher = None
     self._queue = None
 
@@ -368,6 +430,8 @@ class Minijack(object):
     # TODO(waihong): Study the performance impact of the queue max size.
     self._queue = Queue(options.queue_size)
 
+    self._event_loading_worker = EventLoadingWorker(options.event_log_dir)
+
     self._database = db.Database()
     self._database.Init(options.minijack_db)
     self._event_receiving_worker = EventReceivingWorker(self._database)
@@ -378,7 +442,6 @@ class Minijack(object):
         event_log_dir=options.event_log_dir,
         event_log_db_file=options.event_log_db,
         handle_event_logs_callback=self.HandleEventLogs)
-    self._log_dir = options.event_log_dir
     self._log_watcher.StartWatchThread()
 
   def Destory(self):
@@ -393,44 +456,13 @@ class Minijack(object):
     if self._database:
       self._database.Close()
 
-  def _GetPreambleFromLogFile(self, log_path):
-    '''Gets the preamble event dict from a given log file path.'''
-    # TODO(waihong): Optimize it using a cache.
-    try:
-      events_str = open(log_path).read()
-    except:  # pylint: disable=W0702
-      logging.exception('Error on reading log file %s: %s',
-                        log_path,
-                        utils.FormatExceptionOnly())
-      return None
-    stream = EventStream(events_str)
-    return stream.preamble
-
   def HandleEventLogs(self, log_name, chunk):
     '''Callback for event log watcher.'''
     logging.info('Get new event logs (%s, %d bytes)', log_name, len(chunk))
-    start_time = time.time()
-    stream = EventStream(chunk)
-    if not stream.preamble:
-      log_path = os.path.join(self._log_dir, log_name)
-      stream.preamble = self._GetPreambleFromLogFile(log_path)
-    if not stream.preamble and log_name.startswith('logs.'):
-      # Try to find the preamble from the same file in the yesterday log dir.
-      (today_dir, rest_path) = log_name.split('/', 1)
-      yesterday_dir = GetYesterdayLogDir(today_dir)
-      if yesterday_dir:
-        log_path = os.path.join(self._log_dir, yesterday_dir, rest_path)
-        stream.preamble = self._GetPreambleFromLogFile(log_path)
-    if not stream.preamble:
-      logging.warn('Cannot find a preamble event in the log file: %s', log_path)
-    else:
-      logging.info('YAML to Python obj (%s, %.3f sec)',
-                   stream.preamble.get('filename'),
-                   time.time() - start_time)
-    logging.debug('Preamble: \n%s', pprint.pformat(stream.preamble))
-    logging.debug('Events: \n%s', pprint.pformat(stream))
-    # Put the event stream into the queue.
-    self._queue.put(stream)
+    blob = EventBlob({'log_name': log_name}, chunk)
+    stream = self._event_loading_worker(blob)
+    if stream:
+      self._queue.put(stream)
 
   def Main(self):
     '''The main Minijack logic.'''
