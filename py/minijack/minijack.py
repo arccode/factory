@@ -31,7 +31,6 @@ from Queue import Queue
 import factory_common  # pylint: disable=W0611
 from cros.factory.event_log_watcher import EventLogWatcher
 from cros.factory.minijack import db
-from cros.factory.minijack import exporters as exporter_pkg
 from cros.factory.test import utils
 
 SHOPFLOOR_DATA_DIR = 'shopfloor_data'
@@ -276,6 +275,8 @@ class Minijack(object):
 
     logging.debug('Load all the default exporters')
     # Find all exporter modules named xxx_exporter.
+    exporter_pkg = __import__('cros.factory.minijack',
+                              fromlist=['exporters']).exporters
     for exporter_name in dir(exporter_pkg):
       if exporter_name.endswith('_exporter'):
         exporter_module = getattr(exporter_pkg, exporter_name)
