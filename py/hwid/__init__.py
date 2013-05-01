@@ -18,7 +18,7 @@ import yaml
 import factory_common # pylint: disable=W0611
 from cros.factory.common import MakeList, MakeSet
 from cros.factory.hwid.base32 import Base32
-from cros.factory.rule import Rule
+from cros.factory.rule import Rule, Value
 from cros.factory.schema import AnyOf, Dict, FixedDict, List, Optional
 from cros.factory.schema import Scalar, Tuple
 from cros.factory.test import utils
@@ -218,7 +218,9 @@ class BOM(object):
                 [Optional(Scalar('component name', str)),
                  Optional(Dict('probed_values',
                                key_type=Scalar('key', str),
-                               value_type=Scalar('value', str))),
+                               value_type=AnyOf([
+                                   Scalar('value', str),
+                                   Scalar('value', Value)]))),
                  Optional(Scalar('error', str))])))
 
   def __init__(self, board, encoding_pattern_index, image_id,
@@ -385,9 +387,10 @@ class Database(object):
                 None, probed_value,
                 UNSUPPORTED_COMPONENT_ERROR(comp_cls, probed_value)))
           elif len(matched_comps) == 1:
+            comp_name, comp_data = matched_comps.items()[0]
             probed_components[comp_cls].append(
                 ProbedComponentResult(
-                    matched_comps.keys()[0], probed_value, None))
+                    comp_name, comp_data['values'], None))
           elif len(matched_comps) > 1:
             probed_components[comp_cls].append(ProbedComponentResult(
                 None, probed_value,
@@ -808,7 +811,9 @@ class Components(object):
                         items={'values': Optional(
                             Dict('probe key-value pairs',
                                  key_type=Scalar('probe key', str),
-                                 value_type=Scalar('probe value', str)))},
+                                 value_type=AnyOf([
+                                     Scalar('probe value', str),
+                                     Scalar('probe value regexp', Value)])))},
                         optional_items={'labels': List('list of labels',
                                                        Scalar('label', str))}))
             },
@@ -823,6 +828,15 @@ class Components(object):
       if comp_cls_properties.get('probeable', True):
         # Default 'probeable' to True.
         self.probeable.add(comp_cls)
+
+    # Convert all probe values to Value objects.
+    for comp_cls_data in components_dict.itervalues():
+      for comp_cls_item_attrs in comp_cls_data['items'].itervalues():
+        if comp_cls_item_attrs['values'] is None:
+          continue
+        for key, value in comp_cls_item_attrs['values'].items():
+          if not isinstance(value, Value):
+            comp_cls_item_attrs['values'][key] = Value(value)
 
     self.components_dict = components_dict
 
@@ -885,7 +899,7 @@ class Components(object):
           elif key not in comp_attrs['values']:
             # Only match the listed fields in 'values'.
             continue
-          elif comp_attrs['values'][key] != value:
+          elif not comp_attrs['values'][key].Matches(value):
             match = False
             break
         if match:

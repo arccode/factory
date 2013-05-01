@@ -17,6 +17,7 @@ from cros.factory.hwid import (
     HWIDException, Database, MakeList, MakeSet, ProbedComponentResult,
     Components)
 from cros.factory.hwid.encoder import Encode
+from cros.factory.rule import Value
 
 _TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
 
@@ -135,47 +136,59 @@ class DatabaseTest(unittest2.TestCase):
     self.assertEquals(0, bom.encoding_pattern_index)
     self.assertEquals(0, bom.image_id)
     self.assertEquals({
-        'audio_codec': [('codec_1', {'compact_str': 'Codec 1'}, None),
-                        ('hdmi_1', {'compact_str': 'HDMI 1'}, None)],
+        'audio_codec': [('codec_1', {'compact_str': Value('Codec 1')}, None),
+                        ('hdmi_1', {'compact_str': Value('HDMI 1')}, None)],
         'battery': [('battery_huge',
-                     {'tech': 'Battery Li-ion', 'size': '10000000'},
+                     {'tech': Value('Battery Li-ion'),
+                      'size': Value('10000000')},
                      None)],
         'bluetooth': [('bluetooth_0',
-                       {'idVendor': '0123', 'idProduct': 'abcd', 'bcd': '0001'},
+                       {'idVendor': Value('0123'), 'idProduct': Value('abcd'),
+                        'bcd': Value('0001')},
                        None)],
         'camera': [('camera_0',
-                    {'idVendor': '4567', 'idProduct': 'abcd', 'name': 'Camera'},
+                    {'idVendor': Value('4567'), 'idProduct': Value('abcd'),
+                     'name': Value('Camera')},
                     None)],
         'cellular': [(None, None, "Missing 'cellular' component")],
-        'chipset': [('chipset_0', {'compact_str': 'cdef:abcd'}, None)],
+        'chipset': [('chipset_0', {'compact_str': Value('cdef:abcd')}, None)],
         'cpu': [('cpu_5',
-                 {'name': 'CPU @ 2.80GHz', 'cores': '4'},
+                 {'name': Value('CPU @ 2.80GHz'), 'cores': Value('4')},
                  None)],
         'display_panel': [(None, None, "Missing 'display_panel' component")],
-        'dram': [('dram_0', {'vendor': 'DRAM 0', 'size': '4G'}, None)],
+        'dram': [('dram_0',
+                  {'vendor': Value('DRAM 0'), 'size': Value('4G')},
+                  None)],
         'ec_flash_chip': [('ec_flash_chip_0',
-                           {'compact_str': 'EC Flash Chip'},
+                           {'compact_str': Value('EC Flash Chip')},
                            None)],
         'embedded_controller': [('embedded_controller_0',
-                                 {'compact_str': 'Embedded Controller'},
+                                 {'compact_str': Value('Embedded Controller')},
                                  None)],
-        'flash_chip': [('flash_chip_0', {'compact_str': 'Flash Chip'}, None)],
-        'hash_gbb': [('hash_gbb_0', {'compact_str': 'gv2#hash_gbb_0'}, None)],
+        'flash_chip': [('flash_chip_0',
+                        {'compact_str': Value('Flash Chip')},
+                        None)],
+        'hash_gbb': [('hash_gbb_0',
+                      {'compact_str': Value('gv2#hash_gbb_0')},
+                      None)],
         'key_recovery': [('key_recovery_0',
-                          {'compact_str': 'kv3#key_recovery_0'},
+                          {'compact_str': Value('kv3#key_recovery_0')},
                           None)],
-        'key_root': [('key_root_0', {'compact_str': 'kv3#key_root_0'}, None)],
+        'key_root': [('key_root_0',
+                      {'compact_str': Value('kv3#key_root_0')},
+                      None)],
         'keyboard': [(None,
                       {'compact_str': 'xkb:us::eng'},
                       "Component class 'keyboard' is unprobeable")],
         'ro_ec_firmware': [('ro_ec_firmware_0',
-                            {'compact_str': 'ev2#ro_ec_firmware_0'},
+                            {'compact_str': Value('ev2#ro_ec_firmware_0')},
                             None)],
         'ro_main_firmware': [('ro_main_firmware_0',
-                              {'compact_str': 'mv2#ro_main_firmware_0'},
+                              {'compact_str': Value('mv2#ro_main_firmware_0')},
                               None)],
         'storage': [('storage_0',
-                     {'type': 'SSD', 'size': '16G', 'serial': '#123456'},
+                     {'type': Value('SSD'), 'size': Value('16G'),
+                      'serial': Value(r'^#123\d+$', is_re=True)},
                      None)]},
         bom.components)
     self.assertEquals({
@@ -225,15 +238,15 @@ class DatabaseTest(unittest2.TestCase):
     new_bom = self.database.UpdateComponentsOfBOM(
         bom, {'audio_codec': ['codec_0', 'hdmi_0']})
     self.assertEquals(
-        [('codec_0', {'compact_str': 'Codec 0'}, None),
-         ('hdmi_0', {'compact_str': 'HDMI 0'}, None)],
+        [('codec_0', {'compact_str': Value('Codec 0')}, None),
+         ('hdmi_0', {'compact_str': Value('HDMI 0')}, None)],
         new_bom.components['audio_codec'])
     self.assertEquals(0, new_bom.encoded_fields['audio_codec'])
     new_bom = self.database.UpdateComponentsOfBOM(
         bom, {'cellular': 'cellular_0'})
     self.assertEquals([('cellular_0',
-                        {'idVendor': '89ab', 'idProduct': 'abcd',
-                         'name': 'Cellular Card'},
+                        {'idVendor': Value('89ab'), 'idProduct': Value('abcd'),
+                         'name': Value('Cellular Card')},
                         None)],
                        new_bom.components['cellular'])
     self.assertEquals(1, new_bom.encoded_fields['cellular'])
@@ -275,35 +288,35 @@ class DatabaseTest(unittest2.TestCase):
     self.assertEquals({'battery': [{
                           'name': 'battery_large',
                           'values': {
-                              'tech': 'Battery Li-ion',
-                              'size': '7500000'}}]},
+                              'tech': Value('Battery Li-ion'),
+                              'size': Value('7500000')}}]},
                       self.database._GetAttributesByIndex('battery', 2))
     self.assertEquals(
         {'hash_gbb': [{
               'name': 'hash_gbb_0',
               'values': {
-                  'compact_str': 'gv2#hash_gbb_0'}}],
+                  'compact_str': Value('gv2#hash_gbb_0')}}],
          'key_recovery': [{
               'name': 'key_recovery_0',
               'values': {
-                  'compact_str': 'kv3#key_recovery_0'}}],
+                  'compact_str': Value('kv3#key_recovery_0')}}],
          'key_root': [{
               'name': 'key_root_0',
               'values': {
-                  'compact_str': 'kv3#key_root_0'}}],
+                  'compact_str': Value('kv3#key_root_0')}}],
          'ro_ec_firmware': [{
               'name': 'ro_ec_firmware_0',
               'values': {
-                  'compact_str': 'ev2#ro_ec_firmware_0'}}],
+                  'compact_str': Value('ev2#ro_ec_firmware_0')}}],
          'ro_main_firmware': [{
               'name': 'ro_main_firmware_0',
               'values': {
-                  'compact_str': 'mv2#ro_main_firmware_0'}}]},
+                  'compact_str': Value('mv2#ro_main_firmware_0')}}]},
         self.database._GetAttributesByIndex('firmware', 0))
     self.assertEquals({
         'audio_codec': [
-            {'name': 'codec_0', 'values': {'compact_str': 'Codec 0'}},
-            {'name': 'hdmi_0', 'values': {'compact_str': 'HDMI 0'}}]},
+            {'name': 'codec_0', 'values': {'compact_str': Value('Codec 0')}},
+            {'name': 'hdmi_0', 'values': {'compact_str': Value('HDMI 0')}}]},
         self.database._GetAttributesByIndex('audio_codec', 0))
     self.assertEquals({'cellular': None},
                       self.database._GetAttributesByIndex('cellular', 0))
@@ -383,8 +396,8 @@ class DatabaseTest(unittest2.TestCase):
     bom.encoded_fields.pop('foo')
 
     original_value = bom.components['cpu']
-    bom.components['cpu'] = [
-        ProbedComponentResult('cpu', {'name': 'foo', 'cores': '4'}, None)]
+    bom.components['cpu'] = [ProbedComponentResult(
+        'cpu', {'name': Value('foo'), 'cores': Value('4')}, None)]
     self.assertRaisesRegexp(
         HWIDException, r'Unknown component values: .*', self.database.VerifyBOM,
         bom)
@@ -408,17 +421,18 @@ class DatabaseTest(unittest2.TestCase):
         self.database.VerifyComponents, self.results[0], ['keyboard'])
     self.assertEquals({
         'audio_codec': [
-            ('codec_1', {'compact_str': 'Codec 1'}, None),
-            ('hdmi_1', {'compact_str': 'HDMI 1'}, None)],
+            ('codec_1', {'compact_str': Value('Codec 1')}, None),
+            ('hdmi_1', {'compact_str': Value('HDMI 1')}, None)],
         'cellular': [
             (None, None, "Missing 'cellular' component")],
         'cpu': [
-            ('cpu_5', {'name': 'CPU @ 2.80GHz', 'cores': '4'}, None)]},
+            ('cpu_5', {'name': Value('CPU @ 2.80GHz'), 'cores': Value('4')},
+             None)]},
         self.database.VerifyComponents(
             self.results[0], ['audio_codec', 'cellular', 'cpu']))
     self.assertEquals({
         'audio_codec': [
-            ('codec_1', {'compact_str': 'Codec 1'}, None),
+            ('codec_1', {'compact_str': Value('Codec 1')}, None),
             (None, {'compact_str': 'HDMI 3'},
              "Unsupported 'audio_codec' component found with probe result "
              "{ 'compact_str': 'HDMI 3'} (no matching name in the "
@@ -549,7 +563,7 @@ class ComponentsTest(unittest2.TestCase):
 
   def testGetComponentAttributes(self):
     self.assertEquals(
-        {'values': {'field1': 'foo', 'field2': 'bar'}},
+        {'values': {'field1': Value('foo'), 'field2': Value('bar')}},
         self.components.GetComponentAttributes('comp_cls_1', 'comp_1'))
     self.assertEquals(
         {'values': None, 'labels': ['FOO', 'BAR']},
@@ -559,8 +573,8 @@ class ComponentsTest(unittest2.TestCase):
     self.assertEquals(
         {'comp_1': {
             'values': {
-                'field1': 'foo',
-                'field2': 'bar'}}},
+                'field1': Value('foo'),
+                'field2': Value('bar')}}},
         self.components.MatchComponentsFromValues('comp_cls_1',
                                                   {'field1': 'foo',
                                                    'field2': 'bar'}))
@@ -572,13 +586,13 @@ class ComponentsTest(unittest2.TestCase):
     self.assertEquals(
         {'comp_1': {
             'values': {
-                'field1': 'foo',
-                'field2': 'bar'}},
+                'field1': Value('foo'),
+                'field2': Value('bar')}},
          'comp_3': {
              'values': {
-                'field1': 'foo',
-                'field2': 'buz',
-                'field3': 'acme'}}},
+                'field1': Value('foo'),
+                'field2': Value('buz'),
+                'field3': Value('acme')}}},
         self.components.MatchComponentsFromValues('comp_cls_1',
                                                   {'field1': 'foo'}))
 

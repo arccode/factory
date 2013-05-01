@@ -28,7 +28,7 @@ from cros.factory.hwdb.hwid_tool import ProbeResults  # pylint: disable=E0611
 from cros.factory.hwid import HWIDException
 from cros.factory.gooftool import Mismatch
 from cros.factory.gooftool import ProbedComponentResult
-from cros.factory.rule import RuleException
+from cros.factory.rule import RuleException, Value
 
 _TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
 
@@ -466,13 +466,13 @@ class GooftoolTest(unittest2.TestCase):
 
     self.assertEquals(
         {'bluetooth': [('bluetooth_0',
-                        {'idVendor': '0123', 'idProduct': 'abcd',
-                         'bcd': '0001'},
+                        {'idVendor': Value('0123'), 'idProduct': Value('abcd'),
+                         'bcd': Value('0001')},
                         None)],
          'battery': [(None, {'compact_str': 'fake value'}, mox.IsA(str))],
          'cpu': [(None, None, mox.IsA(str))],
-         'audio_codec': [('codec_1', {'compact_str': 'Codec 1'}, None),
-                         ('hdmi_1', {'compact_str': 'HDMI 1'}, None),
+         'audio_codec': [('codec_1', {'compact_str': Value('Codec 1')}, None),
+                         ('hdmi_1', {'compact_str': Value('HDMI 1')}, None),
                          (None, {'compact_str': 'fake value'}, mox.IsA(str))]},
         self._gooftool3.VerifyComponentsV3(
             ['bluetooth', 'battery', 'cpu', 'audio_codec']))

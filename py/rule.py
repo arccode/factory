@@ -384,6 +384,10 @@ class Value(object):
       True if self matches operand, False otherwise.
     """
     if isinstance(operand, Value):
+      if operand.is_re:
+        # If operand is a regular expression Value object, compare with __eq__
+        # directly.
+        return self.__eq__(operand)
       operand = operand.raw_value
     if self.is_re:
       return re.match(self.raw_value, operand) is not None
