@@ -95,13 +95,15 @@ class EventLogWatcher(object):
     exception_count = 0
 
     # Sorts dirs by their creation time. Helps Minijack see results quickly.
-    dir_ctime = lambda w: os.stat(w[0]).st_ctime
+    dir_ctime = lambda w: os.lstat(w[0]).st_ctime
     for dir_path, _, file_names in sorted(os.walk(self._event_log_dir),
                                           key=dir_ctime):
       # Sorts files by their creation time too.
-      file_ctime = lambda f: os.stat(os.path.join(dir_path, f)).st_ctime
+      file_ctime = lambda f: os.lstat(os.path.join(dir_path, f)).st_ctime
       for file_name in sorted(file_names, key=file_ctime):
         file_path = os.path.join(dir_path, file_name)
+        if not os.path.isfile(file_path):
+          continue
         relative_path = os.path.relpath(file_path, self._event_log_dir)
         if (not self._db.has_key(relative_path) or
             self._db[relative_path][KEY_OFFSET] != os.path.getsize(file_path)):
