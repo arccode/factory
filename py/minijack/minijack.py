@@ -164,8 +164,8 @@ class EventPacket(object):
 
     return _FindContainingDictForKey(self.event, key)
 
-class EventReceiver(object):
-  '''Event Receiver which invokes the proper exporters when events is received.
+class EventSinker(object):
+  '''Event Sinker which invokes the proper exporters to sink events to database.
 
   TODO(waihong): Unit tests.
 
@@ -196,19 +196,19 @@ class EventReceiver(object):
     logging.debug('Call the setup method of the exporter: %s', exporter)
     exporter.Setup()
 
-  def ReceiveEventStream(self, stream):
-    '''Callback for an event stream received.'''
+  def SinkEventStream(self, stream):
+    '''Sinks the given event stream.'''
     start_time = time.time()
     for event in stream:
       packet = EventPacket(stream.preamble, event)
-      self.ReceiveEventPacket(packet)
-    logging.info('Dumped to database (%s, %d events, %.3f sec)',
+      self.SinkEventPacket(packet)
+    logging.info('Sinked to database (%s, %d events, %.3f sec)',
                  stream.preamble.get('filename'),
                  len(stream),
                  time.time() - start_time)
 
-  def ReceiveEventPacket(self, packet):
-    '''Callback for an event packet received.'''
+  def SinkEventPacket(self, packet):
+    '''Sink the given event packet.'''
     # Event id 'all' is a special case, which means the handlers accepts
     # all kinds of events.
     for event_id in ('all', packet.event['EVENT']):
@@ -220,20 +220,20 @@ class EventReceiver(object):
           logging.exception('Error on invoking the exporter: %s',
                             utils.FormatExceptionOnly())
 
-class EventReceivingWorker(object):
-  '''A callable worker for receiving events and dumping to database.
+class EventSinkingWorker(object):
+  '''A callable worker for sinking events to database.
 
   TODO(waihong): Unit tests.
 
   Properties:
     _database: The database object.
-    _receiver: The event receiver object.
+    _sinker: The event sinker object.
   '''
   def __init__(self, database):
     self._database = database
 
     # TODO(waihong): Make the exporter module an argument for customization.
-    self._receiver = EventReceiver()
+    self._sinker = EventSinker()
     logging.debug('Load all the default exporters')
     # Find all exporter modules named xxx_exporter.
     exporter_pkg = __import__('cros.factory.minijack',
@@ -246,13 +246,13 @@ class EventReceivingWorker(object):
         exporter_class = getattr(exporter_module, class_name)
         exporter = exporter_class(self._database)
         # Register the exporter instance.
-        self._receiver.RegisterExporter(exporter)
+        self._sinker.RegisterExporter(exporter)
 
   # TODO(waihong): Abstract the input as a general iterator instead of a queue.
   def __call__(self, input_queue):
-    '''Receives an event stream from the input queue and dumps to database.'''
+    '''Receives an event stream from the input queue and sinks to database.'''
     for stream in iter(input_queue.get, None):
-      self._receiver.ReceiveEventStream(stream)
+      self._sinker.SinkEventStream(stream)
       input_queue.task_done()
       # Note that it is not a real idle. The event-log-watcher or the
       # event-loading-worker may be processing new event logs but have
@@ -481,11 +481,11 @@ class Minijack(object):
           args=(self._event_blob_queue, self._event_stream_queue)
         ) for _ in range(options.jobs)]
 
-    logging.debug('Init event receiving workers')
+    logging.debug('Init event sinking workers')
     self._database = db.Database()
     self._database.Init(options.minijack_db)
     self._worker_processes.append(multiprocessing.Process(
-        target=EventReceivingWorker(self._database),
+        target=EventSinkingWorker(self._database),
         args=(self._event_stream_queue,)))
 
   def Destory(self):
