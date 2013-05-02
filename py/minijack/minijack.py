@@ -40,6 +40,7 @@ MINIJACK_DB_FILE = 'minijack_db'
 DEFAULT_WATCH_INTERVAL = 30  # seconds
 DEFAULT_JOB_NUMBER = 6
 DEFAULT_QUEUE_SIZE = 10
+EVENT_DELIMITER = '---\n'
 LOG_DIR_DATE_FORMAT = '%Y%m%d'
 
 # The following YAML strings needs further handler. So far we just simply
@@ -293,15 +294,25 @@ class EventLoadingWorker(object):
 
   def _GetPreambleFromLogFile(self, log_path):
     '''Gets the preamble event dict from a given log file path.'''
+    def ReadLinesUntil(lines, delimiter):
+      '''A generator to yield the lines iterator until the delimiter matched.'''
+      for line in lines:
+        if line == delimiter:
+          break
+        else:
+          yield line
+
     # TODO(waihong): Optimize it using a cache.
     try:
-      events_str = open(log_path).read()
+      with open(log_path) as lines:
+        # Only read the first event, i.e. the lines until EVENT_DELIMITER.
+        yaml_str = ''.join(ReadLinesUntil(lines, EVENT_DELIMITER))
     except:  # pylint: disable=W0702
       logging.exception('Error on reading log file %s: %s',
                         log_path,
                         utils.FormatExceptionOnly())
       return None
-    stream = EventStream(events_str)
+    stream = EventStream(yaml_str)
     return stream.preamble
 
   def _ConvertToEventStream(self, blob):
