@@ -582,8 +582,9 @@ class Gooftool(object):
     device_bom = self.db.ProbeResultToBOM(probe_results.Encode())
     hwid = Encode(self.db, device_bom, skip_check=True)
     # Verify the probe result with the generated HWID to make sure nothing is
-    # mis-configured after setting default values to unspecified encoded fields.
+    # mis-configured after setting default values to unprobeable encoded fields.
     hwid.VerifyProbeResult(probe_results.Encode())
+    # Update unprobeable components with rules defined in database.
     context = Context(hwid=hwid, device_info=device_info)
     self.db.rules.EvaluateRules(context, namespace='device_info.*')
     return hwid

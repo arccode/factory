@@ -66,11 +66,11 @@ UNPROBEABLE_COMPONENT_ERROR = lambda comp_cls: (
 MISSING_COMPONENT_ERROR = lambda comp_cls: 'Missing %r component' % comp_cls
 AMBIGUOUS_COMPONENT_ERROR = lambda comp_cls, probed_value, comp_names: (
     'Ambiguous probe values %s of %r component. Possible components are: %r' %
-    (pprint.pformat(probed_value, indent=0), comp_cls, sorted(comp_names)))
+    (pprint.pformat(probed_value, indent=2), comp_cls, sorted(comp_names)))
 UNSUPPORTED_COMPONENT_ERROR = lambda comp_cls, probed_value: (
     'Unsupported %r component found with probe result %s '
     '(no matching name in the component DB)' % (
-        comp_cls, pprint.pformat(probed_value, indent=0)))
+        comp_cls, pprint.pformat(probed_value, indent=2)))
 
 
 

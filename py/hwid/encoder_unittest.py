@@ -10,7 +10,7 @@ import unittest
 import yaml
 import factory_common # pylint: disable=W0611
 
-from cros.factory.hwid import Database
+from cros.factory.hwid import Database, HWIDException
 from cros.factory.hwid.encoder import BOMToBinaryString
 from cros.factory.hwid.encoder import BinaryStringToEncodedString, Encode
 
@@ -29,8 +29,7 @@ class EncoderTest(unittest.TestCase):
     bom = self.database.ProbeResultToBOM(self.results[0])
     # Manually set unprobeable components.
     bom = self.database.UpdateComponentsOfBOM(bom, {
-        'keyboard': 'keyboard_us', 'dram': 'dram_0',
-        'display_panel': 'display_panel_0'})
+        'keyboard': 'keyboard_us', 'display_panel': 'display_panel_0'})
     self.assertEquals(
         '0000000000111010000011000', BOMToBinaryString(self.database, bom))
     # Change firmware's encoded index to 1.
@@ -59,12 +58,33 @@ class EncoderTest(unittest.TestCase):
     bom = self.database.ProbeResultToBOM(self.results[0])
     # Manually set unprobeable components.
     bom = self.database.UpdateComponentsOfBOM(bom, {
-        'keyboard': 'keyboard_us', 'dram': 'dram_0',
-        'display_panel': 'display_panel_0'})
+        'keyboard': 'keyboard_us', 'display_panel': 'display_panel_0'})
     hwid = Encode(self.database, bom)
     self.assertEquals('0000000000111010000011000', hwid.binary_string)
     self.assertEquals('CHROMEBOOK AA5A-Y6L', hwid.encoded_string)
 
+  def testEncodeError(self):
+    # Missing required component 'dram'.
+    mock_results = yaml.load(self.results[0])
+    mock_results['found_probe_value_map'].pop('dram')
+    mock_results['missing_component_classes'].append('dram')
+    bom = self.database.ProbeResultToBOM(yaml.dump(mock_results))
+    bom = self.database.UpdateComponentsOfBOM(bom, {
+        'keyboard': 'keyboard_us', 'display_panel': 'display_panel_0'})
+    self.assertRaisesRegexp(
+        HWIDException, r"Missing 'dram' component", Encode, self.database, bom)
+
+    # Unsupported probe values of component 'dram'.
+    mock_results = yaml.load(self.results[0])
+    mock_results['found_probe_value_map']['dram'] = {
+        'vendor': 'FOO', 'size': '4G'}
+    bom = self.database.ProbeResultToBOM(yaml.dump(mock_results))
+    bom = self.database.UpdateComponentsOfBOM(bom, {
+        'keyboard': 'keyboard_us', 'display_panel': 'display_panel_0'})
+    self.assertRaisesRegexp(
+        HWIDException, r"Unsupported 'dram' component found with probe result "
+        "{ 'size': '4G', 'vendor': 'FOO'} \(no matching name in the component "
+        "DB\)", Encode, self.database, bom)
 
 if __name__ == '__main__':
   unittest.main()

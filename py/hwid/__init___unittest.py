@@ -421,13 +421,14 @@ class DatabaseTest(unittest2.TestCase):
             ('codec_1', {'compact_str': 'Codec 1'}, None),
             (None, {'compact_str': 'HDMI 3'},
              "Unsupported 'audio_codec' component found with probe result "
-             "{'compact_str': 'HDMI 3'} (no matching name in the component DB)")
+             "{ 'compact_str': 'HDMI 3'} (no matching name in the "
+             "component DB)")
         ]}, self.database.VerifyComponents(self.results[1], ['audio_codec']))
     self.assertEquals({
         'storage': [
             (None, {'type': 'SSD', 'size': '16G', 'serial': '#1234aa'},
              "Unsupported 'storage' component found with probe result "
-             "{'serial': '#1234aa', 'size': '16G', 'type': 'SSD'} "
+             "{ 'serial': '#1234aa', 'size': '16G', 'type': 'SSD'} "
              "(no matching name in the component DB)")]},
         self.database.VerifyComponents(self.results[2], ['storage']))
 
