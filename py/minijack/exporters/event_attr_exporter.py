@@ -66,9 +66,18 @@ class EventAttrExporter(exporter_base.ExporterBase):
         row = model.Attr(
           device_id = packet.preamble.get('device_id'),
           time      = packet.event.get('TIME'),
-          attr      = attr,
-          value     = str(value),
+          attr      = _ToAsciiString(attr),
+          value     = _ToAsciiString(value),
         )
         rows.append(row)
     if rows:
       self._attr_table.InsertRows(rows)
+
+def _ToAsciiString(value):
+  '''Convert any type object to an ascii string.'''
+  if isinstance(value, str):
+    return value.encode('string_escape')
+  elif isinstance(value, unicode):
+    return value.encode('unicode_escape')
+  else:
+    return str(value)
