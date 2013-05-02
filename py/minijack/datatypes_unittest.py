@@ -7,7 +7,7 @@ import logging
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.minijack import minijack
+from cros.factory.minijack.datatypes import EventStream, EventPacket
 
 _YAML_STR_EXAMPLE = '''EVENT: preamble
 SEQ: 3622
@@ -76,7 +76,7 @@ class EventStreamTest(unittest.TestCase):
 
   def testLoadFromYaml(self):
     yaml_str = '\n'.join(self._yaml_str_list)
-    stream = minijack.EventStream(yaml_str)
+    stream = EventStream(yaml_str)
     self.assertEqual('d0:xx:xx:xx:xx:df', stream.preamble['device_id'])
     self.assertEqual(2, len(stream))
     self.assertEqual('test_states', stream[0]['EVENT'])
@@ -90,43 +90,43 @@ class EventStreamTest(unittest.TestCase):
   def testMissingEvent(self):
     self._yaml_str_list.remove('EVENT: test_states')
     yaml_str = '\n'.join(self._yaml_str_list)
-    stream = minijack.EventStream(yaml_str)
+    stream = EventStream(yaml_str)
     self.assertEqual('d0:xx:xx:xx:xx:df', stream.preamble['device_id'])
     self.assertEqual(1, len(stream))
 
   def testMissingPreamble(self):
     yaml_str = '\n'.join(self._yaml_str_list[11:])  # drop the preamble event
-    stream = minijack.EventStream(yaml_str)
+    stream = EventStream(yaml_str)
     self.assertIs(None, stream.preamble)
     self.assertEqual(2, len(stream))
 
   def testMissingPreambleEvent(self):
     self._yaml_str_list.remove('EVENT: preamble')
     yaml_str = '\n'.join(self._yaml_str_list)
-    stream = minijack.EventStream(yaml_str)
+    stream = EventStream(yaml_str)
     self.assertIs(None, stream.preamble)
     self.assertEqual(2, len(stream))
 
   def testWrongYAML(self):
     self._yaml_str_list.remove('  - id: SMT')
     yaml_str = '\n'.join(self._yaml_str_list)
-    stream = minijack.EventStream(yaml_str)
+    stream = EventStream(yaml_str)
     self.assertEqual('d0:xx:xx:xx:xx:df', stream.preamble['device_id'])
     self.assertEqual(0, len(stream))
 
 class EventPacketTest(unittest.TestCase):
   def setUp(self):
     yaml_str = _YAML_STR_EXAMPLE
-    self._stream = minijack.EventStream(yaml_str)
+    self._stream = EventStream(yaml_str)
 
   def testEventPacket(self):
-    packet = minijack.EventPacket(self._stream.preamble, self._stream[0])
+    packet = EventPacket(self._stream.preamble, self._stream[0])
     self.assertEqual('d0:xx:xx:xx:xx:df', packet.preamble['device_id'])
     self.assertEqual('test_states', packet.event['EVENT'])
 
   def testFlattenAttr(self):
-    packet = minijack.EventPacket(self._stream.preamble, self._stream[0])
-    generator = minijack.EventPacket.FlattenAttr(packet.event)
+    packet = EventPacket(self._stream.preamble, self._stream[0])
+    generator = EventPacket.FlattenAttr(packet.event)
     flattened = dict((k, v) for k, v in generator)
     self.assertEqual(37, len(flattened))
     self.assertIn('test_states.id', flattened)
@@ -139,7 +139,7 @@ class EventPacketTest(unittest.TestCase):
         flattened['test_states.subtests.0.subtests.1.subtests.0.id'])
 
   def testFindAttrContainingKey(self):
-    packet = minijack.EventPacket(self._stream.preamble, self._stream[0])
+    packet = EventPacket(self._stream.preamble, self._stream[0])
     attr_dict = packet.FindAttrContainingKey('tag')
     self.assertEqual(6, len(attr_dict))
     self.assertIn('tag', attr_dict)

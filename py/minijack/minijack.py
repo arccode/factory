@@ -20,17 +20,15 @@ import logging
 import multiprocessing
 import optparse
 import os
-import pprint
-import re
 import signal
 import sys
 import time
-import yaml
-from datetime import datetime, timedelta
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.event_log_watcher import EventLogWatcher
 from cros.factory.minijack import db
+from cros.factory.minijack.datatypes import EventBlob, EventPacket
+from cros.factory.minijack.workers import IdentityWorker, EventLoadingWorker
 from cros.factory.test import utils
 
 SHOPFLOOR_DATA_DIR = 'shopfloor_data'
@@ -40,129 +38,6 @@ MINIJACK_DB_FILE = 'minijack_db'
 DEFAULT_WATCH_INTERVAL = 30  # seconds
 DEFAULT_JOB_NUMBER = 6
 DEFAULT_QUEUE_SIZE = 10
-EVENT_DELIMITER = '---\n'
-LOG_DIR_DATE_FORMAT = '%Y%m%d'
-
-# The following YAML strings needs further handler. So far we just simply
-# remove them. It works well now, while tuples are treated as lists, unicodes
-# are treated as strings, objects are dropped.
-# TODO(waihong): Use yaml.add_multi_constructor to handle them.
-YAML_STR_BLACKLIST = (
-    r'( !!python/tuple| !!python/unicode| !!python/object[A-Za-z_.:/]+)')
-
-class EventStream(list):
-  '''Event Stream Structure.
-
-  An EventStream is a list to store multiple non-preamble events, which share
-  the same preamble event.
-
-  Properties:
-    preamble: The dict of the preamble event.
-  '''
-  def __init__(self, yaml_str):
-    '''Initializer.
-
-    Args:
-      yaml_str: The string contains multiple yaml-formatted events.
-    '''
-    super(EventStream, self).__init__()
-    self.preamble = None
-    self._LoadFromYaml(yaml_str)
-
-  def _LoadFromYaml(self, yaml_str):
-    '''Loads from multiple yaml-formatted events with delimiters.
-
-    Args:
-      yaml_str: The string contains multiple yaml-formatted events.
-    '''
-    # Some un-expected patterns appear in the log. Remove them.
-    yaml_str = re.sub(YAML_STR_BLACKLIST, '', yaml_str)
-    try:
-      for event in yaml.safe_load_all(yaml_str):
-        if not event:
-          continue
-        if 'EVENT' not in event:
-          logging.warn('The event dict is invalid, no EVENT tag:\n%s.',
-                       pprint.pformat(event))
-          continue
-        if event['EVENT'] == 'preamble':
-          self.preamble = event
-        else:
-          self.append(event)
-    except yaml.YAMLError, e:
-      logging.exception('Error on parsing the yaml string "%s": %s',
-                        yaml_str, e)
-
-class EventPacket(object):
-  '''Event Packet Structure.
-
-  An EventPacket is a non-preamble event combined with its preamble. It is
-  used as an argument to pass to the exporters.
-
-  Properties:
-    preamble: The dict of the preamble event.
-    event: The dict of the non-preamble event.
-  '''
-  def __init__(self, preamble, event):
-    self.preamble = preamble
-    self.event = event
-
-  @staticmethod
-  def FlattenAttr(attr):
-    '''Generator of flattened attributes.
-
-    Args:
-      attr: The attr dict/list which may contains multi-level dicts/lists.
-
-    Yields:
-      A tuple (path_str, leaf_value).
-    '''
-    def _FlattenAttr(attr):
-      if isinstance(attr, dict):
-        for key, val in attr.iteritems():
-          for path, leaf in _FlattenAttr(val):
-            yield [key] + path, leaf
-      elif isinstance(attr, list):
-        for index, val in enumerate(attr):
-          for path, leaf in _FlattenAttr(val):
-            yield [str(index)] + path, leaf
-      else:
-        # The leaf node.
-        yield [], attr
-
-    # Join the path list using '.'.
-    return (('.'.join(k), v) for k, v in _FlattenAttr(attr))
-
-  def FindAttrContainingKey(self, key):
-    '''Finds the attr in the event that contains the given key.
-
-    Args:
-      key: A string of key.
-
-    Returns:
-      The dict inside the event that contains the given key.
-    '''
-    def _FindContainingDictForKey(deep_dict, key):
-      if isinstance(deep_dict, dict):
-        if key in deep_dict.iterkeys():
-          # Found, return its parent.
-          return deep_dict
-        else:
-          # Try its children.
-          for val in deep_dict.itervalues():
-            result = _FindContainingDictForKey(val, key)
-            if result:
-              return result
-      elif isinstance(deep_dict, list):
-        # Try its children.
-        for val in deep_dict:
-          result = _FindContainingDictForKey(val, key)
-          if result:
-            return result
-      # Not found.
-      return None
-
-    return _FindContainingDictForKey(self.event, key)
 
 class EventSinker(object):
   '''Event Sinker which invokes the proper exporters to sink events to database.
@@ -237,137 +112,6 @@ class EventSinker(object):
         except:  # pylint: disable=W0702
           logging.exception('Error on invoking the exporter: %s',
                             utils.FormatExceptionOnly())
-
-class EventBlob(object):
-  '''A structure to wrap the information returned from event log watcher.
-
-  Properties:
-    metadata: A dict to keep the metadata.
-    chunk: A byte-list to store the orignal event data.
-  '''
-  def __init__(self, metadata, chunk):
-    self.metadata = metadata
-    self.chunk = chunk
-
-class WorkerBase(object):
-  '''The base class of callable workers.
-
-  A worker is an elemental units to process data. It will be delivered to
-  multiple processes/machines to complete the job. All its subclasses should
-  implement the Process() method.
-  '''
-  def __call__(self, input_reader, output_writer):
-    '''Iterates the input_reader and calls output_write to process the values.
-
-    Args:
-      input_reader: An iterator to get values.
-      output_reader: A callable object to process the values.
-    '''
-    for data in input_reader:
-      for result in self.Process(data):
-        output_writer(result)
-
-  def Process(self, dummy_data):
-    '''A generator to output the processed results of the given data.'''
-    raise NotImplementedError
-
-class IdentityWorker(WorkerBase):
-  '''A callable worker to simply put the data from input to output.'''
-  def Process(self, data):
-    yield data
-
-class EventLoadingWorker(WorkerBase):
-  '''A callable worker for loading events and converting to Python objects.
-
-  TODO(waihong): Unit tests.
-
-  Properties:
-    _log_dir: The path of the event log directory.
-  '''
-  def __init__(self, log_dir):
-    super(EventLoadingWorker, self).__init__()
-    self._log_dir = log_dir
-
-  def Process(self, blob):
-    '''Generates an event stream from an given event blob.'''
-    yield self._ConvertToEventStream(blob)
-
-  def _GetPreambleFromLogFile(self, log_path):
-    '''Gets the preamble event dict from a given log file path.'''
-    def ReadLinesUntil(lines, delimiter):
-      '''A generator to yield the lines iterator until the delimiter matched.'''
-      for line in lines:
-        if line == delimiter:
-          break
-        else:
-          yield line
-
-    # TODO(waihong): Optimize it using a cache.
-    try:
-      with open(log_path) as lines:
-        # Only read the first event, i.e. the lines until EVENT_DELIMITER.
-        yaml_str = ''.join(ReadLinesUntil(lines, EVENT_DELIMITER))
-    except:  # pylint: disable=W0702
-      logging.exception('Error on reading log file %s: %s',
-                        log_path,
-                        utils.FormatExceptionOnly())
-      return None
-    stream = EventStream(yaml_str)
-    return stream.preamble
-
-  def _ConvertToEventStream(self, blob):
-    '''Callback for event log watcher.'''
-    start_time = time.time()
-    log_name = blob.metadata['log_name']
-    stream = EventStream(blob.chunk)
-
-    # TODO(waihong): Abstract the filesystem access.
-    if not stream.preamble:
-      log_path = os.path.join(self._log_dir, log_name)
-      stream.preamble = self._GetPreambleFromLogFile(log_path)
-    if not stream.preamble and log_name.startswith('logs.'):
-      # Try to find the preamble from the same file in the yesterday log dir.
-      (today_dir, rest_path) = log_name.split('/', 1)
-      yesterday_dir = GetYesterdayLogDir(today_dir)
-      if yesterday_dir:
-        log_path = os.path.join(self._log_dir, yesterday_dir, rest_path)
-        if os.path.isfile(log_path):
-          stream.preamble = self._GetPreambleFromLogFile(log_path)
-
-    if not stream.preamble:
-      logging.warn('Drop the event stream without preamble, log file: %s',
-                   log_name)
-      return None
-    else:
-      logging.info('YAML to Python obj (%s, %.3f sec)',
-                   stream.preamble.get('filename'),
-                   time.time() - start_time)
-      return stream
-
-def GetYesterdayLogDir(today_dir):
-  '''Get the dir name for one day before.
-
-  Args:
-    today_dir: A string of dir name.
-
-  Returns:
-    A string of dir name for one day before today_dir.
-
-  >>> GetYesterdayLogDir('logs.20130417')
-  'logs.20130416'
-  >>> GetYesterdayLogDir('logs.no_date')
-  >>> GetYesterdayLogDir('invalid')
-  >>> GetYesterdayLogDir('logs.20130301')
-  'logs.20130228'
-  >>> GetYesterdayLogDir('logs.20140101')
-  'logs.20131231'
-  '''
-  try:
-    today = datetime.strptime(today_dir, 'logs.' + LOG_DIR_DATE_FORMAT)
-  except ValueError:
-    logging.warn('The path is not a valid format with date: %s', today_dir)
-    return None
-  return 'logs.' + (today - timedelta(days=1)).strftime(LOG_DIR_DATE_FORMAT)
 
 class Minijack(object):
   '''The main Minijack flow.

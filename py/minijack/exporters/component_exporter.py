@@ -3,8 +3,8 @@
 # found in the LICENSE file.
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.minijack import minijack
 from cros.factory.minijack import model
+from cros.factory.minijack.datatypes import EventPacket
 from cros.factory.minijack.exporters import exporter_base
 
 class ComponentExporter(exporter_base.ExporterBase):
@@ -34,7 +34,7 @@ class ComponentExporter(exporter_base.ExporterBase):
     # changed or the found_probe_value_map tag is renamed.
     keyword = 'cpu'
     parent = packet.FindAttrContainingKey(keyword)
-    for component, symbolic in minijack.EventPacket.FlattenAttr(parent):
+    for component, symbolic in EventPacket.FlattenAttr(parent):
       row = model.Component(
         device_id = packet.preamble.get('device_id'),
         time      = packet.event.get('TIME'),

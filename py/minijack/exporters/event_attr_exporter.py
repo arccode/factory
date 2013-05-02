@@ -6,8 +6,8 @@ import logging
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.minijack import db
-from cros.factory.minijack import minijack
 from cros.factory.minijack import model
+from cros.factory.minijack.datatypes import EventPacket
 from cros.factory.minijack.exporters import exporter_base
 
 class EventAttrExporter(exporter_base.ExporterBase):
@@ -61,7 +61,7 @@ class EventAttrExporter(exporter_base.ExporterBase):
     rows = []
     # As the event is a tree struct which contains dicts or lists,
     # we flatten it first. The hierarchy is recorded in the Attr column.
-    for attr, value in minijack.EventPacket.FlattenAttr(packet.event):
+    for attr, value in EventPacket.FlattenAttr(packet.event):
       if attr not in RESERVED_PATH:
         row = model.Attr(
           device_id = packet.preamble.get('device_id'),
