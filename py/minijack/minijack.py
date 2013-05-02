@@ -331,7 +331,8 @@ class EventLoadingWorker(object):
       yesterday_dir = GetYesterdayLogDir(today_dir)
       if yesterday_dir:
         log_path = os.path.join(self._log_dir, yesterday_dir, rest_path)
-        stream.preamble = self._GetPreambleFromLogFile(log_path)
+        if os.path.isfile(log_path):
+          stream.preamble = self._GetPreambleFromLogFile(log_path)
 
     if not stream.preamble:
       logging.warn('Drop the event stream without preamble, log file: %s',
