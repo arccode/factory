@@ -170,13 +170,31 @@ class EventSinker(object):
   TODO(waihong): Unit tests.
 
   Properties:
+    _database: The database object.
     _all_exporters: A list of all registered exporters.
     _event_invokers: A dict of lists, where the event id as key and the list
                      of handler functions as value.
   '''
-  def __init__(self):
+  def __init__(self, database):
+    self._database = database
     self._all_exporters = []
     self._event_invokers = {}
+    self.RegisterDefaultExporters()
+
+  def RegisterDefaultExporters(self):
+    '''Registers the default exporters.'''
+    # Find all exporter modules named xxx_exporter.
+    exporter_pkg = __import__('cros.factory.minijack',
+                              fromlist=['exporters']).exporters
+    for exporter_name in dir(exporter_pkg):
+      if exporter_name.endswith('_exporter'):
+        exporter_module = getattr(exporter_pkg, exporter_name)
+        # Class name conversion: XxxExporter.
+        class_name = ''.join([s.capitalize() for s in exporter_name.split('_')])
+        exporter_class = getattr(exporter_module, class_name)
+        exporter = exporter_class(self._database)
+        # Register the exporter instance.
+        self.RegisterExporter(exporter)
 
   def RegisterExporter(self, exporter):
     '''Registers a exporter object.'''
@@ -221,38 +239,12 @@ class EventSinker(object):
                             utils.FormatExceptionOnly())
 
 class EventSinkingWorker(object):
-  '''A callable worker for sinking events to database.
-
-  TODO(waihong): Unit tests.
-
-  Properties:
-    _database: The database object.
-    _sinker: The event sinker object.
-  '''
-  def __init__(self, database):
-    self._database = database
-
-    # TODO(waihong): Make the exporter module an argument for customization.
-    self._sinker = EventSinker()
-    logging.debug('Load all the default exporters')
-    # Find all exporter modules named xxx_exporter.
-    exporter_pkg = __import__('cros.factory.minijack',
-                              fromlist=['exporters']).exporters
-    for exporter_name in dir(exporter_pkg):
-      if exporter_name.endswith('_exporter'):
-        exporter_module = getattr(exporter_pkg, exporter_name)
-        # Class name conversion: XxxExporter.
-        class_name = ''.join([s.capitalize() for s in exporter_name.split('_')])
-        exporter_class = getattr(exporter_module, class_name)
-        exporter = exporter_class(self._database)
-        # Register the exporter instance.
-        self._sinker.RegisterExporter(exporter)
-
+  '''A callable worker for sinking events to database.'''
   # TODO(waihong): Abstract the input as a general iterator instead of a queue.
-  def __call__(self, input_queue):
+  def __call__(self, input_queue, output_writer):
     '''Receives an event stream from the input queue and sinks to database.'''
     for stream in iter(input_queue.get, None):
-      self._sinker.SinkEventStream(stream)
+      output_writer(stream)
       input_queue.task_done()
       # Note that it is not a real idle. The event-log-watcher or the
       # event-loading-worker may be processing new event logs but have
@@ -484,9 +476,10 @@ class Minijack(object):
     logging.debug('Init event sinking workers')
     self._database = db.Database()
     self._database.Init(options.minijack_db)
+    sinker = EventSinker(self._database)
     self._worker_processes.append(multiprocessing.Process(
-        target=EventSinkingWorker(self._database),
-        args=(self._event_stream_queue,)))
+        target=EventSinkingWorker(),
+        args=(self._event_stream_queue, sinker.SinkEventStream)))
 
   def Destory(self):
     '''Destorys Minijack.'''
