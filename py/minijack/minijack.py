@@ -238,21 +238,6 @@ class EventSinker(object):
           logging.exception('Error on invoking the exporter: %s',
                             utils.FormatExceptionOnly())
 
-class EventSinkingWorker(object):
-  '''A callable worker for sinking events to database.'''
-  # TODO(waihong): Abstract the input as a general iterator instead of a queue.
-  def __call__(self, input_queue, output_writer):
-    '''Receives an event stream from the input queue and sinks to database.'''
-    for stream in iter(input_queue.get, None):
-      output_writer(stream)
-      input_queue.task_done()
-      # Note that it is not a real idle. The event-log-watcher or the
-      # event-loading-worker may be processing new event logs but have
-      # not put them in the queue yet.
-      # TODO(waihong): Do an accurate check to confirm the idle state.
-      if input_queue.empty():
-        logging.info('Minijack is idle.')
-
 class EventBlob(object):
   '''A structure to wrap the information returned from event log watcher.
 
@@ -264,7 +249,34 @@ class EventBlob(object):
     self.metadata = metadata
     self.chunk = chunk
 
-class EventLoadingWorker(object):
+class WorkerBase(object):
+  '''The base class of callable workers.
+
+  A worker is an elemental units to process data. It will be delivered to
+  multiple processes/machines to complete the job. All its subclasses should
+  implement the Process() method.
+  '''
+  def __call__(self, input_reader, output_writer):
+    '''Iterates the input_reader and calls output_write to process the values.
+
+    Args:
+      input_reader: An iterator to get values.
+      output_reader: A callable object to process the values.
+    '''
+    for data in input_reader:
+      for result in self.Process(data):
+        output_writer(result)
+
+  def Process(self, dummy_data):
+    '''A generator to output the processed results of the given data.'''
+    raise NotImplementedError
+
+class IdentityWorker(WorkerBase):
+  '''A callable worker to simply put the data from input to output.'''
+  def Process(self, data):
+    yield data
+
+class EventLoadingWorker(WorkerBase):
   '''A callable worker for loading events and converting to Python objects.
 
   TODO(waihong): Unit tests.
@@ -273,16 +285,12 @@ class EventLoadingWorker(object):
     _log_dir: The path of the event log directory.
   '''
   def __init__(self, log_dir):
+    super(EventLoadingWorker, self).__init__()
     self._log_dir = log_dir
 
-  # TODO(waihong): Abstract the input as a general iterator instead of a queue.
-  def __call__(self, input_queue, output_queue):
-    '''Loads an event blob from the queue and converts to an event stream.'''
-    for blob in iter(input_queue.get, None):
-      stream = self._ConvertToEventStream(blob)
-      if stream:
-        output_queue.put(stream)
-      input_queue.task_done()
+  def Process(self, blob):
+    '''Generates an event stream from an given event blob.'''
+    yield self._ConvertToEventStream(blob)
 
   def _GetPreambleFromLogFile(self, log_path):
     '''Gets the preamble event dict from a given log file path.'''
@@ -470,7 +478,11 @@ class Minijack(object):
     logging.debug('Init event loading workers, jobs = %d', options.jobs)
     self._worker_processes = [multiprocessing.Process(
           target=EventLoadingWorker(options.event_log_dir),
-          args=(self._event_blob_queue, self._event_stream_queue)
+          kwargs=dict(
+            input_reader=iter(self._event_blob_queue.get, None),
+            output_writer=lambda stream: (
+              self._event_stream_queue.put(stream) if stream else None,
+              self._event_blob_queue.task_done()))
         ) for _ in range(options.jobs)]
 
     logging.debug('Init event sinking workers')
@@ -478,8 +490,15 @@ class Minijack(object):
     self._database.Init(options.minijack_db)
     sinker = EventSinker(self._database)
     self._worker_processes.append(multiprocessing.Process(
-        target=EventSinkingWorker(),
-        args=(self._event_stream_queue, sinker.SinkEventStream)))
+        target=IdentityWorker(),
+        kwargs=dict(
+          input_reader=iter(self._event_stream_queue.get, None),
+          output_writer=lambda stream: (
+            sinker.SinkEventStream(stream),
+            self._event_stream_queue.task_done(),
+            # TODO(waihong): Move the queue monitoring to the main loop such
+            # that it has better controls to create/terminate processes.
+            self.CheckQueuesEmpty()))))
 
   def Destory(self):
     '''Destorys Minijack.'''
@@ -505,6 +524,11 @@ class Minijack(object):
     logging.info('Get new event logs (%s, %d bytes)', log_name, len(chunk))
     blob = EventBlob({'log_name': log_name}, chunk)
     self._event_blob_queue.put(blob)
+
+  def CheckQueuesEmpty(self):
+    '''Checks queues empty to info users Minijack is idle.'''
+    if all((self._event_blob_queue.empty(), self._event_stream_queue.empty())):
+      logging.info('Minijack is idle.')
 
   def Main(self):
     '''The main Minijack logic.'''
