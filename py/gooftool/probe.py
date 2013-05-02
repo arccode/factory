@@ -465,7 +465,13 @@ def _ProbeCamera():
 
 @_ComponentProbe('cellular')
 def _ProbeCellular():
-  return _FlimflamDevices.ReadSysfsDeviceIds('cellular')
+  data = _FlimflamDevices.ReadSysfsDeviceIds('cellular')
+  if data:
+    carrier = re.findall(
+        r'^\s*carrier: (.*)$', Shell('modem status').stdout, re.M)
+    if carrier:
+      data[0]['carrier'] = carrier[0]
+  return data
 
 
 @_ComponentProbe('wimax')
