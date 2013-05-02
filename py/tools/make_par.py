@@ -163,8 +163,9 @@ def main(argv=None):
 
     # Copy necessary third-party packages.
     python_lib = get_python_lib()
+    standard_lib = get_python_lib(plat_specific=False, standard_lib=True)
     Spawn(['rsync', '-a',
-           os.path.join(python_lib, 'argparse.py'),
+           os.path.join(standard_lib, 'argparse.py'),
            os.path.join(python_lib, 'yaml'),
            'third_party/jsonrpclib/jsonrpclib',
            par_build],
