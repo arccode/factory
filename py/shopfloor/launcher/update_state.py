@@ -9,11 +9,14 @@ interfaces to query updater state.
 """
 
 # TODO(rong): Update server state interfaces will be moved back to shopfloor
-# after we deprecate v1. The data shared between processes should store into
+# after we deprecate v1. The data shared between processes should store in
 # a local db.
 
 import glob
 import os
+
+import factory_common  # pylint: disable=W0611
+from cros.factory.shopfloor.launcher import constants
 
 
 FACTORY_DIR = 'factory'
@@ -24,10 +27,11 @@ class FactoryUpdater(object):
   """The class reports update bundle state.
 
   Properties:
-    state_dir: Update state directory (generally shopfloor_data/update)
     factory_dir: Updater bundle directory to hold previous and current contents
         or factory bundles.
     hwid_path: The path of hwid bundle.
+    rsyncd_port: Rsync daemon bind port.
+    state_dir: Update state directory (generally shopfloor_data/update)
   """
 
   def __init__(self, state_dir):
@@ -36,6 +40,7 @@ class FactoryUpdater(object):
     Args:
       state_dir: Update state directory (generally shopfloor_data/update).
     """
+    self.rsyncd_port = constants.DEFAULT_RSYNC_PORT
     self.state_dir = state_dir
     self.factory_dir = os.path.join(state_dir, FACTORY_DIR)
     if not os.path.exists(self.factory_dir):
