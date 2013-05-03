@@ -72,7 +72,7 @@ def _LoadFactoryUpdater(updater_name):
   '''
   logging.debug('_LoadUpdater: trying %s', updater_name)
   return __import__(updater_name,
-                    fromlist=['FactoryUpdateServer']).FactoryUpdateServer
+                    fromlist=['FactoryUpdater']).FactoryUpdater
 
 class MyXMLRPCServer(SocketServer.ThreadingMixIn,
                      SimpleXMLRPCServer):
@@ -160,6 +160,7 @@ def GetDefaultShopFloorModule():
 def main():
   '''Main entry when being invoked by command line.'''
   default_data_dir = 'shopfloor_data'
+  external_updater_dir = 'updates'
   if not os.path.exists(default_data_dir) and (
       'CROS_WORKON_SRCROOT' in os.environ):
     default_data_dir = os.path.join(
@@ -216,6 +217,9 @@ def main():
                           'PACKAGE.MODULE.CLASS format. E.g.: '
                           'cros.factory.shopfloor.launcher.external_updater '
                           '(default: %default)'))
+  parser.add_option('--updater-dir', dest='updater_dir', metavar='UPDATE_DIR',
+                    default=external_updater_dir,
+                    help='external updater module dir. (default: %default)')
   (options, args) = parser.parse_args()
   if args:
     parser.error('Invalid args: %s' % ' '.join(args))
@@ -253,6 +257,11 @@ def main():
     logging.warn("The value of the '-m' flag no longer needs to end with %r; "
                  "use '-m %s' instead", SHOPFLOOR_SUFFIX, options.module)
 
+  updater = None
+  if options.updater:
+    logging.debug('Loading factory updater: %s', options.updater)
+    updater = _LoadFactoryUpdater(options.updater)(options.updater_dir)
+
   try:
     logging.debug('Loading shop floor system module: %s', options.module)
     instance = _LoadShopFloorModule(options.module)()
@@ -261,15 +270,6 @@ def main():
       logging.critical('Module does not inherit ShopFloorBase: %s',
                        options.module)
       exit(1)
-
-    updater = None
-    if options.updater:
-      try:
-        logging.debug('Loading factory updater: %s', options.updater)
-        updater = _LoadFactoryUpdater(options.updater)()
-      except:  # pylint: disable=W0702
-        logging.error('Failed loading updater: %s', options.updater)
-        exit(1)
 
     instance.data_dir = options.data_dir
     instance.config = options.config
