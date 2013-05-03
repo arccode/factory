@@ -31,6 +31,11 @@ rsync_port = constants.DEFAULT_RSYNC_PORT
 # FastCGI service bind port
 fcgi_port = constants.DEFAULT_FCGI_PORT
 
+# Launcher config holds the dictionary deserialized from YAML config file
+launcher_config = {}
+# Launcher services contains all external applications launched by shopfloord
+launcher_services = []
+
 def GetFCGIExec():
   """Gets FastCGI program path."""
   return os.path.join(runtime_dir, constants.FCGI_EXEC)

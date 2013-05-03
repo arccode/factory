@@ -21,40 +21,30 @@ from cros.factory.shopfloor.launcher.fcgi_service import FcgiService
 from cros.factory.shopfloor.launcher.update_service import FactoryUpdateService
 
 
-# Launcher config holds the dictionary deserialized from YAML config file
-_launcher_config = {}
-# Launcher services contains all external applications launched by shopfloord
-_launcher_services = []
-
 def StartServices():
   """Starts all services."""
-  global _launcher_services
-  for service in _launcher_services:
+  for service in env.launcher_services:
     if not service.subprocess:
       service.Start()
 
 def StopServices():
   """Stops all services."""
-  global _launcher_services
-  for service in _launcher_services:
+  for service in env.launcher_services:
     if service.subprocess:
       service.Stop()
 
 def UpdateConfig(yaml_config_file):
   """Loads new launcher config file and restarts all services."""
-  global _launcher_services
-  global _launcher_config
   StopServices()
-  _launcher_config = LauncherYAMLConfig(  # pylint: disable=W0621
-      yaml_config_file)
-  _launcher_services = GenerateServices()  # pylint: disable=W0621
+  env.launcher_config = LauncherYAMLConfig(yaml_config_file)
+  env.launcher_services = GenerateServices()
   StartServices()
 
 def GenerateServices():
   """Generates service list."""
-  global _launcher_config
-  return [FcgiService(_launcher_config), HttpService(_launcher_config),
-          FactoryUpdateService(_launcher_config)]
+  return [FcgiService(env.launcher_config),
+          HttpService(env.launcher_config),
+          FactoryUpdateService(env.launcher_config)]
 
 def SearchFile(filename, folders):
   """Gets first match of filename in folders.
@@ -124,7 +114,7 @@ def ListResources(launcher_config_file=None):
   if launcher_config_file:
     config = LauncherYAMLConfig(launcher_config_file)
   else:
-    config = _launcher_config
+    config = env.launcher_config
 
   return _GetResourceLeaves(config)
 
@@ -173,8 +163,8 @@ def PrepareResources(resources):
 
 def GetInfo():
   """Gets currunt running configuration info."""
-  return (_launcher_config['info']['version'] + '\n' +
-          _launcher_config['info']['note'] + '\n')
+  return '\n'.join([env.launcher_config['info']['version'],
+                    env.launcher_config['info']['note']])
 
 def CreateSystemFolders():
   """Creates folder for Uber ShopFloor installation."""
