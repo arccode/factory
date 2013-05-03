@@ -363,6 +363,17 @@ class Options(object):
   log_disk_space_period_secs = 120
   _types['log_disk_space_period_secs'] = (type(None), int)
 
+  # The timeout value to rsync factory logs.
+  sync_log_period_secs = None
+  _types['sync_log_period_secs'] = (type(None), int)
+  # The list of log files to rsync periodically.
+  sync_log_paths = [
+      '/var/factory/log/',
+      '/var/log/messages',
+      '/var/log/Xorg.0.log',
+      '/var/log/bios_info.txt',
+      '/var/log/ec_info.txt']
+
   # The range in which the charge level should be. If min_charge_pct and
   # max_charge_pct are set, Goofy will use ChargeManager to attempt to keep
   # the battery charge within these thresholds.

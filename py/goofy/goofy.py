@@ -33,6 +33,7 @@ from cros.factory.goofy import updater
 from cros.factory.goofy.goofy_rpc import GoofyRPC
 from cros.factory.goofy.invocation import TestInvocation
 from cros.factory.goofy.prespawner import Prespawner
+from cros.factory.goofy.system_log_manager import SystemLogManager
 from cros.factory.goofy.web_socket_manager import WebSocketManager
 from cros.factory.system.board import Board, BoardException
 from cros.factory.system.charge_manager import ChargeManager
@@ -189,6 +190,7 @@ class Goofy(object):
     self.time_sanitizer = None
     self.time_synced = False
     self.log_watcher = None
+    self.system_log_manager = None
     self.event_log = None
     self.prespawner = None
     self.ui_process = None
@@ -299,6 +301,10 @@ class Goofy(object):
       if self.log_watcher.IsThreadStarted():
         self.log_watcher.StopWatchThread()
       self.log_watcher = None
+    if self.system_log_manager:
+      if self.system_log_manager.IsThreadRunning():
+        self.system_log_manager.StopSyncThread()
+      self.system_log_manager = None
     if self.prespawner:
       logging.info('Stopping prespawner')
       self.prespawner.stop()
@@ -1211,6 +1217,15 @@ class Goofy(object):
       handle_event_logs_callback=self.handle_event_logs)
     if self.test_list.options.sync_event_log_period_secs:
       self.log_watcher.StartWatchThread()
+
+    # Note that we create a system log manager even if
+    # sync_log_period_secs isn't set (no background
+    # syncing), since we may kick it to sync logs in its
+    # thread.
+    self.system_log_manager = SystemLogManager(
+      self.test_list.options.sync_log_paths,
+      self.test_list.options.sync_log_period_secs)
+    self.system_log_manager.StartSyncThread()
 
     self.update_system_info()
 
