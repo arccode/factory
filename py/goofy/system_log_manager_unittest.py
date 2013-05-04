@@ -320,6 +320,27 @@ class TestSystemLogManager(unittest.TestCase):
 
     self.mox.VerifyAll()
 
+  def testClearOnce(self):
+    """Clears log files once."""
+    self.SetMock()
+    clear_file_prefix = 'clear_' + MOCK_FILE_PREFIX
+    for _ in xrange(3):
+      tempfile.mkstemp(prefix=clear_file_prefix, dir='/tmp')
+    clear_file_lists = [os.path.join('/tmp', clear_file_prefix + '*')]
+    self.MockSyncOnce()
+
+    self.mox.ReplayAll()
+
+    self.manager = system_log_manager.SystemLogManager(
+        MOCK_SYNC_LOG_PATHS, MOCK_SYNC_PERIOD_SEC,
+        MOCK_SHOPFLOOR_TIMEOUT, MOCK_RSYNC_IO_TIMEOUT,
+        MOCK_POLLING_PERIOD, clear_file_lists)
+    self.manager.StartSyncThread()
+    time.sleep(MOCK_SYNC_PERIOD_SEC + MOCK_POLLING_PERIOD * 3.8)
+    self.manager.StopSyncThread()
+
+    self.mox.VerifyAll()
+    self.assertEqual(sum([glob.glob(x) for x in clear_file_lists], []), [])
 
 if __name__ == "__main__":
   unittest.main()

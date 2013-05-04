@@ -4,6 +4,7 @@
 
 import glob
 import logging
+import os
 import threading
 import time
 from urlparse import urlparse
@@ -22,6 +23,7 @@ class SystemLogManager(object):
   """The manager that takes care of system log files.
 
   Properties:
+    clear_log_paths: A list of log paths to clear.
     sync_log_paths: A list of log paths to sync.
     sync_period_sec: The time period in seconds between consecutive syncs.
       If set to None, manager will only sync upon being kicked.
@@ -37,7 +39,7 @@ class SystemLogManager(object):
     polling_period: The period to poll rsync subprocess.
   """
   def __init__(self, sync_log_paths, sync_period_sec=300, shopfloor_timeout=5,
-               rsync_io_timeout=5, polling_period=1):
+               rsync_io_timeout=5, polling_period=1, clear_log_paths=None):
     self._sync_log_paths = sync_log_paths
     self._sync_period_sec = sync_period_sec
     self._shopfloor_timeout = shopfloor_timeout
@@ -48,6 +50,7 @@ class SystemLogManager(object):
     self._extra_files = []
     self._callback = None
     self._polling_period = polling_period
+    self._clear_log_paths = clear_log_paths if clear_log_paths else []
 
   def IsThreadRunning(self):
     """Returns True if _sync_thread is running."""
@@ -114,6 +117,15 @@ class SystemLogManager(object):
     return ['rsync://%s:%s/system_logs/%s' %
             (urlparse(url).hostname, factory_log_port, folder_name)]
 
+  def _ClearLogs(self):
+    """Clears system logs listed in _clear_log_paths."""
+    file_list = sum([glob.glob(x) for x in self._clear_log_paths], [])
+    for f in file_list:
+      try:
+        os.unlink(f)
+      except:  # pylint: disable=W0702
+        logging.exception('Fail to remove file %s', f)
+
   def _SyncLogs(self, extra_files, callback, abort_time):
     """Syncs system logs and extra files to server with a callback.
 
@@ -168,6 +180,7 @@ class SystemLogManager(object):
       if self._aborted.isSet():
         return
       try:
+        self._ClearLogs()
         if self._sync_period_sec:
           abort_time = time.time() + self._sync_period_sec
         else:
