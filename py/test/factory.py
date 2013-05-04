@@ -363,7 +363,7 @@ class Options(object):
   log_disk_space_period_secs = 120
   _types['log_disk_space_period_secs'] = (type(None), int)
 
-  # The timeout value to rsync factory logs.
+  # The time interval to rsync system logs.
   sync_log_period_secs = None
   _types['sync_log_period_secs'] = (type(None), int)
   # The list of log files to rsync periodically.
@@ -373,6 +373,14 @@ class Options(object):
       '/var/log/Xorg.0.log',
       '/var/log/bios_info.txt',
       '/var/log/ec_info.txt']
+
+  # The list of core dump pattern to watch
+  core_dump_watchlist = None
+  _types['core_dump_watchlist'] = (type(None), list)
+
+  # The minimum interval between two kick syncs due to core dump files.
+  kick_sync_min_interval_secs = 120
+  _types[kick_sync_min_interval_secs] = int
 
   # The range in which the charge level should be. If min_charge_pct and
   # max_charge_pct are set, Goofy will use ChargeManager to attempt to keep

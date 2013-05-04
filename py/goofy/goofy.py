@@ -37,6 +37,7 @@ from cros.factory.goofy.system_log_manager import SystemLogManager
 from cros.factory.goofy.web_socket_manager import WebSocketManager
 from cros.factory.system.board import Board, BoardException
 from cros.factory.system.charge_manager import ChargeManager
+from cros.factory.system.core_dump_manager import CoreDumpManager
 from cros.factory.system import disk_space
 from cros.factory.test import factory
 from cros.factory.test import state
@@ -175,6 +176,9 @@ class Goofy(object):
     exceptions: Exceptions encountered in invocation threads.
     last_log_disk_space_message: The last message we logged about disk space
       (to avoid duplication).
+    last_kick_sync_time: The last time to kick system_log_manager to sync
+      because of core dump files (to avoid kicking too soon then abort the
+      sync.)
   '''
   def __init__(self):
     self.uuid = str(uuid.uuid4())
@@ -212,6 +216,7 @@ class Goofy(object):
     self.last_sync_time = None
     self.last_log_disk_space_time = None
     self.last_log_disk_space_message = None
+    self.last_kick_sync_time = None
     self.exclusive_items = set()
     self.event_log = None
     self.key_filter = None
@@ -1244,6 +1249,9 @@ class Goofy(object):
       except BoardException:
         logging.exception('Unable to set charge state on this board')
 
+    self.core_dump_manager = CoreDumpManager(
+        self.test_list.options.core_dump_watchlist)
+
     os.environ['CROS_FACTORY'] = '1'
     os.environ['CROS_DISABLE_SITE_SYSINFO'] = '1'
 
@@ -1423,6 +1431,29 @@ class Goofy(object):
     except:  # pylint: disable=W0702
       logging.exception('Unable to get disk space used')
 
+  def check_core_dump(self):
+    '''Checks if there is any core dumped file.
+
+    Removes unwanted core dump files immediately.
+    Syncs those files matching watch list to server with a delay between
+    each sync. After the files have been synced to server, deletes the files.
+    '''
+    core_dump_files = self.core_dump_manager.ScanFiles()
+    if core_dump_files:
+      now = time.time()
+      if (self.last_kick_sync_time and now - self.last_kick_sync_time <
+          self.test_list.options.kick_sync_min_interval_secs):
+        return
+      self.last_kick_sync_time = now
+
+      # Sends event to server
+      self.event_log.Log('core_dumped', files=core_dump_files)
+      self.log_watcher.KickWatchThread()
+
+      # Syncs files to server
+      self.system_log_manager.KickSyncThread(
+          core_dump_files, self.core_dump_manager.ClearFiles)
+
   def sync_time_in_background(self):
     '''Writes out current time and tries to sync with shopfloor server.'''
     if not self.time_sanitizer:
@@ -1473,6 +1504,7 @@ class Goofy(object):
     self.check_for_updates()
     self.sync_time_in_background()
     self.log_disk_space_stats()
+    self.check_core_dump()
 
   def handle_event_logs(self, log_name, chunk):
     '''Callback for event watcher.

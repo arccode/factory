@@ -60,6 +60,8 @@ class CoreDumpManager(object):
       for root, dirs, files in os.walk(self._crash_dir):
         for f in files:
           if os.path.join(root, f) not in watched_files:
+            logging.warning('Remove %s because it is not in watchlist',
+                            os.path.join(root, f))
             os.unlink(os.path.join(root, f))
         for d in dirs:
           os.rmdir(os.path.join(root, d))
