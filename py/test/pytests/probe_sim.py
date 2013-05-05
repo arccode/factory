@@ -55,7 +55,11 @@ class WaitSIMCardThread(threading.Thread):
 
   def run(self):
     while not self._done.is_set() and not self._force_stop.is_set():
-      Spawn(['modem', 'reset'], call=True, log=True)
+      # Only do modem reset when probing for insert event.
+      # modem status will not show IMSI if sim card is removed even without
+      # modem reset.
+      if self._simcard_event == ProbeSIMCardTask.INSERT_SIM_CARD:
+        Spawn(['modem', 'reset'], call=True, log=True)
       output = SpawnOutput(['modem', 'status'], log=True)
       logging.info(output)
       present = self._re_present.search(output)
