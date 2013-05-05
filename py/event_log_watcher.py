@@ -29,7 +29,8 @@ class EventLogWatcher(object):
   def __init__(self, watch_period_sec=30,
              event_log_dir=event_log.EVENT_LOG_DIR,
              event_log_db_file=EVENT_LOG_DB_FILE,
-             handle_event_logs_callback=None):
+             handle_event_logs_callback=None,
+             num_log_per_callback=0):
     '''Constructor.
 
     Args:
@@ -38,11 +39,14 @@ class EventLogWatcher(object):
       event_log_db_file: The file in which to store the DB of event logs.
       handle_event_logs__callback: The callback to trigger after new event logs
           found.
+      num_log_per_callback: The maximum number of log files per callback, or 0
+          for unlimited number of log files.
     '''
     self._watch_period_sec = watch_period_sec
     self._event_log_dir = event_log_dir
     self._event_log_db_file = event_log_db_file
     self._handle_event_logs_callback = handle_event_logs_callback
+    self._num_log_per_callback = num_log_per_callback
     self._watch_thread = None
     self._aborted = threading.Event()
     self._kick = threading.Event()
@@ -76,6 +80,40 @@ class EventLogWatcher(object):
     with self._scan_lock:
       self.ScanEventLogs(False)
 
+  def _CallEventLogHandler(self, chunk_info_list, suppress_error):
+    '''Invoke event log handler callback.
+
+    Args:
+      chunk_info_list: A list of tuple (log_name, chunk).
+      suppress_error: if set to true then any exception from handle event
+          log callback will be ignored.
+
+    Raises:
+      ScanException: if upload handler throws exception.
+    '''
+    try:
+      if self._handle_event_logs_callback is not None:
+        self._handle_event_logs_callback(chunk_info_list)
+    except: # pylint: disable=W0702
+      if suppress_error:
+        logging.exception('Upload handler error')
+      else:
+        raise ScanException(utils.FormatExceptionOnly())
+      return
+
+    try:
+      # Update log state to db.
+      for log_name, chunk in chunk_info_list:
+        log_state = self._db.setdefault(log_name, {KEY_OFFSET: 0})
+        log_state[KEY_OFFSET] += len(chunk)
+        self._db[log_name] = log_state
+      self._db.sync()
+    except: # pylint: disable=W0702
+      if suppress_error:
+        logging.exception('Upload handler error')
+      else:
+        raise ScanException(utils.FormatExceptionOnly())
+
   def ScanEventLogs(self, suppress_error=True):
     '''Scans event logs.
 
@@ -91,8 +129,7 @@ class EventLogWatcher(object):
                    self._event_log_dir)
       return
 
-    first_exception = None
-    exception_count = 0
+    chunk_info_list = []
 
     # Sorts dirs by their creation time. Helps Minijack see results quickly.
     dir_ctime = lambda w: os.lstat(w[0]).st_ctime
@@ -108,26 +145,23 @@ class EventLogWatcher(object):
         if (not self._db.has_key(relative_path) or
             self._db[relative_path][KEY_OFFSET] != os.path.getsize(file_path)):
           try:
-            self.ScanEventLog(relative_path)
+            chunk_info = self.ScanEventLog(relative_path)
+            if chunk_info is not None:
+              chunk_info_list.append(chunk_info)
           except:  # pylint: disable=W0702
-            if not first_exception:
-              first_exception = (relative_path + ': ' +
-                                 utils.FormatExceptionOnly())
-            exception_count += 1
+            msg = relative_path + ': ' + utils.FormatExceptionOnly()
+            if suppress_error:
+              logging.info(msg)
+            else:
+              raise ScanException(msg)
+        if (self._num_log_per_callback and
+            len(chunk_info_list) >= self._num_log_per_callback):
+          self._CallEventLogHandler(chunk_info_list, suppress_error)
+          chunk_info_list = []
 
-    self._db.sync()
+    if chunk_info_list:
+      self._CallEventLogHandler(chunk_info_list, suppress_error)
 
-    if exception_count:
-      if exception_count == 1:
-        msg = 'Log scan handler failed: %s' % first_exception
-      else:
-        msg = '%d log scan handlers failed; first is: %s' % (
-            exception_count, first_exception)
-
-      if suppress_error:
-        logging.info(msg)
-      else:
-        raise ScanException(msg)
 
   def StopWatchThread(self):
     '''Stops the event logs watching thread.'''
@@ -177,9 +211,6 @@ class EventLogWatcher(object):
 
     Args:
       log_name: name of the log file.
-
-    Raise:
-      Exception: propagate exception from handle_event_logs_callback.
     '''
     log_state = self._db.setdefault(log_name, {KEY_OFFSET: 0})
 
@@ -193,13 +224,7 @@ class EventLogWatcher(object):
         return
 
       chunk = chunk[0:(last_separator + len(EVENT_SEPARATOR))]
-
-      if self._handle_event_logs_callback != None:
-        self._handle_event_logs_callback(log_name, chunk)
-
-      # Update log state to db.
-      log_state[KEY_OFFSET] += len(chunk)
-      self._db[log_name] = log_state
+      return (log_name, chunk)
 
   def GetEventLog(self, log_name):
     '''Gets the log for given log name.'''

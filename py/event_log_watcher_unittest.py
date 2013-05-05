@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 #
-# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
+# Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -16,8 +16,8 @@ import unittest
 from cros.factory import event_log_watcher
 from cros.factory.event_log_watcher import EventLogWatcher
 
-MOCK_LOG_NAME = 'mylog12345'
-MOCK_PREAMBLE = 'device: 123\nimage: 456\nmd5: abc\n---\n'
+MOCK_LOG_NAME = lambda x: 'mylog12345%d' % x
+MOCK_PREAMBLE = lambda x: 'device: 123%d\nimage: 456\nmd5: abc\n---\n' % x
 MOCK_EVENT = 'seq: 1\nevent: start\n---\n'
 MOCK_PERIOD = 0.01
 
@@ -55,14 +55,14 @@ class EventLogWatcherTest(unittest.TestCase):
       handled = False
       def __init__(self):
         pass
-      def handle_cb(self, path, logs):
+      def handle_cb(self, chunk_infos):
         self.handled = True
     h = Handler()
 
     watcher = EventLogWatcher(MOCK_PERIOD, self.events_dir, self.db,
                               h.handle_cb)
     watcher.StartWatchThread()
-    self.WriteLog(MOCK_PREAMBLE)
+    self.WriteLog(MOCK_PREAMBLE(0))
 
     # Assert handle_cb has ever been called in 2 seconds.
     for _ in range(200):
@@ -78,91 +78,135 @@ class EventLogWatcherTest(unittest.TestCase):
   def testWatch(self):
     watcher = EventLogWatcher(MOCK_PERIOD, self.events_dir, self.db)
 
-    self.WriteLog(MOCK_PREAMBLE, MOCK_LOG_NAME)
+    self.WriteLog(MOCK_PREAMBLE(0), MOCK_LOG_NAME(0))
 
     # Assert nothing stored yet before scan.
-    self.assertEqual(watcher.GetEventLog(MOCK_LOG_NAME), None)
+    self.assertEqual(watcher.GetEventLog(MOCK_LOG_NAME(0)), None)
 
     watcher.ScanEventLogs()
 
-    log = watcher.GetEventLog(MOCK_LOG_NAME)
+    log = watcher.GetEventLog(MOCK_LOG_NAME(0))
     self.assertNotEqual(log[event_log_watcher.KEY_OFFSET], 0)
 
     # Write more logs and flush.
-    self.WriteLog(MOCK_EVENT, MOCK_LOG_NAME)
+    self.WriteLog(MOCK_EVENT, MOCK_LOG_NAME(0))
     watcher.FlushEventLogs()
 
-    log = watcher.GetEventLog(MOCK_LOG_NAME)
+    log = watcher.GetEventLog(MOCK_LOG_NAME(0))
     self.assertEqual(log[event_log_watcher.KEY_OFFSET],
-        len(MOCK_PREAMBLE) + len(MOCK_EVENT))
+        len(MOCK_PREAMBLE(0)) + len(MOCK_EVENT))
+
+    watcher.Close()
+
 
   def testCorruptDb(self):
     watcher = EventLogWatcher(MOCK_PERIOD, self.events_dir, self.db)
 
-    self.WriteLog(MOCK_PREAMBLE, MOCK_LOG_NAME)
+    self.WriteLog(MOCK_PREAMBLE(0), MOCK_LOG_NAME(0))
 
     # Assert nothing stored yet before flush.
     watcher.ScanEventLogs()
-    self.assertNotEqual(watcher.GetEventLog(MOCK_LOG_NAME), 0)
+    self.assertNotEqual(watcher.GetEventLog(MOCK_LOG_NAME(0)), 0)
 
     # Manually truncate db file.
     with open(self.db, 'w') as f:
       os.ftruncate(file.fileno(f), 10)
 
     watcher = EventLogWatcher(MOCK_PERIOD, self.events_dir, self.db)
-    self.assertEqual(watcher.GetEventLog(MOCK_LOG_NAME), None)
+    self.assertEqual(watcher.GetEventLog(MOCK_LOG_NAME(0)), None)
 
   def testHandleEventLogsCallback(self):
     mock = mox.MockAnything()
-    mock.handle_event_log(MOCK_LOG_NAME, MOCK_PREAMBLE)
+    mock.handle_event_log([(MOCK_LOG_NAME(0), MOCK_PREAMBLE(0))])
     mox.Replay(mock)
 
     watcher = EventLogWatcher(MOCK_PERIOD, self.events_dir, self.db,
                               mock.handle_event_log)
 
-    self.WriteLog(MOCK_PREAMBLE, MOCK_LOG_NAME)
+    self.WriteLog(MOCK_PREAMBLE(0), MOCK_LOG_NAME(0))
     watcher.ScanEventLogs()
 
     # Assert that the new log has been marked as handled.
-    log = watcher.GetEventLog(MOCK_LOG_NAME)
+    log = watcher.GetEventLog(MOCK_LOG_NAME(0))
     self.assertEqual(log[event_log_watcher.KEY_OFFSET],
-        len(MOCK_PREAMBLE))
+        len(MOCK_PREAMBLE(0)))
+
+    mox.Verify(mock)
+
+  def testHandleEventLogsCallbackMultiple(self):
+    mock = mox.MockAnything()
+    mock.handle_event_log(mox.IgnoreArg())
+    mock.handle_event_log(mox.IgnoreArg())
+    mox.Replay(mock)
+
+    watcher = EventLogWatcher(MOCK_PERIOD, self.events_dir, self.db,
+                              mock.handle_event_log, num_log_per_callback=2)
+
+    for i in xrange(3):
+      self.WriteLog(MOCK_PREAMBLE(i), MOCK_LOG_NAME(i))
+    watcher.ScanEventLogs()
+
+    # Assert that the new log has been marked as handled.
+    for i in xrange(3):
+      log = watcher.GetEventLog(MOCK_LOG_NAME(i))
+      self.assertEqual(log[event_log_watcher.KEY_OFFSET],
+          len(MOCK_PREAMBLE(i)))
+
+    mox.Verify(mock)
+
+  def testHandleEventLogsCallbackUnlimited(self):
+    mock = mox.MockAnything()
+    mock.handle_event_log(mox.IgnoreArg())
+    mox.Replay(mock)
+
+    watcher = EventLogWatcher(MOCK_PERIOD, self.events_dir, self.db,
+                              mock.handle_event_log, num_log_per_callback=0)
+
+    for i in xrange(3):
+      self.WriteLog(MOCK_PREAMBLE(i), MOCK_LOG_NAME(i))
+    watcher.ScanEventLogs()
+
+    # Assert that the new log has been marked as handled.
+    for i in xrange(3):
+      log = watcher.GetEventLog(MOCK_LOG_NAME(i))
+      self.assertEqual(log[event_log_watcher.KEY_OFFSET],
+          len(MOCK_PREAMBLE(i)))
 
     mox.Verify(mock)
 
   def testHandleEventLogsFail(self):
     mock = mox.MockAnything()
-    mock.handle_event_log(MOCK_LOG_NAME, MOCK_PREAMBLE).AndRaise(
+    mock.handle_event_log([(MOCK_LOG_NAME(0), MOCK_PREAMBLE(0))]).AndRaise(
             Exception("Bar"))
     mox.Replay(mock)
     watcher = EventLogWatcher(MOCK_PERIOD, self.events_dir, self.db,
         mock.handle_event_log)
 
-    self.WriteLog(MOCK_PREAMBLE, MOCK_LOG_NAME)
+    self.WriteLog(MOCK_PREAMBLE(0), MOCK_LOG_NAME(0))
     watcher.ScanEventLogs()
 
     # Assert that watcher did not update the new event as uploaded
     # when handle logs fail.
-    log = watcher.GetEventLog(MOCK_LOG_NAME)
+    log = watcher.GetEventLog(MOCK_LOG_NAME(0))
     self.assertEqual(log[event_log_watcher.KEY_OFFSET], 0)
     mox.Verify(mock)
 
   def testFlushEventLogsFail(self):
     mock = mox.MockAnything()
-    mock.handle_event_log(MOCK_LOG_NAME, MOCK_PREAMBLE).AndRaise(
+    mock.handle_event_log([(MOCK_LOG_NAME(0), MOCK_PREAMBLE(0))]).AndRaise(
             Exception("Foo"))
     mox.Replay(mock)
     watcher = EventLogWatcher(MOCK_PERIOD, self.events_dir, self.db,
         mock.handle_event_log)
 
-    self.WriteLog(MOCK_PREAMBLE, MOCK_LOG_NAME)
+    self.WriteLog(MOCK_PREAMBLE(0), MOCK_LOG_NAME(0))
 
     # Assert exception caught.
     self.assertRaises(event_log_watcher.ScanException, watcher.FlushEventLogs)
 
     # Assert that watcher did not update the new event as uploaded
     # when handle logs fail.
-    log = watcher.GetEventLog(MOCK_LOG_NAME)
+    log = watcher.GetEventLog(MOCK_LOG_NAME(0))
     self.assertEqual(log[event_log_watcher.KEY_OFFSET], 0)
     mox.Verify(mock)
 
@@ -170,17 +214,17 @@ class EventLogWatcherTest(unittest.TestCase):
     watcher = EventLogWatcher(MOCK_PERIOD, self.events_dir, self.db)
 
     # Write the first line of mock preamble as incomplete event log.
-    self.WriteLog(MOCK_PREAMBLE[:12] , MOCK_LOG_NAME)
+    self.WriteLog(MOCK_PREAMBLE(0)[:13] , MOCK_LOG_NAME(0))
     watcher.ScanEventLogs()
 
     # Incomplete preamble should be ignored.
-    log = watcher.GetEventLog(MOCK_LOG_NAME)
+    log = watcher.GetEventLog(MOCK_LOG_NAME(0))
     self.assertEqual(log[event_log_watcher.KEY_OFFSET], 0)
 
-    self.WriteLog(MOCK_PREAMBLE[12:] , MOCK_LOG_NAME)
+    self.WriteLog(MOCK_PREAMBLE(0)[13:] , MOCK_LOG_NAME(0))
     watcher.ScanEventLogs()
 
-    log = watcher.GetEventLog(MOCK_LOG_NAME)
+    log = watcher.GetEventLog(MOCK_LOG_NAME(0))
     self.assertNotEqual(log[event_log_watcher.KEY_OFFSET], 0)
 
 

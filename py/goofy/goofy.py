@@ -1549,20 +1549,41 @@ class Goofy(object):
     self.log_disk_space_stats()
     self.check_core_dump()
 
-  def handle_event_logs(self, log_name, chunk):
+  def handle_event_logs(self, chunk_info):
     '''Callback for event watcher.
 
     Attempts to upload the event logs to the shopfloor server.
+
+    Args:
+      chunk_info: A list of tuple (log_name, chunk)
     '''
-    description = 'event logs (%s, %d bytes)' % (log_name, len(chunk))
-    start_time = time.time()
-    shopfloor_client = shopfloor.get_instance(
-      detect=True,
-      timeout=self.test_list.options.shopfloor_timeout_secs)
-    shopfloor_client.UploadEvent(log_name, Binary(chunk))
-    logging.info(
-      'Successfully synced %s in %.03f s',
-      description, time.time() - start_time)
+    first_exception = None
+    exception_count = 0
+
+    for log_name, chunk in chunk_info:
+      try:
+        description = 'event logs (%s, %d bytes)' % (log_name, len(chunk))
+        start_time = time.time()
+        shopfloor_client = shopfloor.get_instance(
+          detect=True,
+          timeout=self.test_list.options.shopfloor_timeout_secs)
+        shopfloor_client.UploadEvent(log_name, Binary(chunk))
+        logging.info(
+          'Successfully synced %s in %.03f s',
+          description, time.time() - start_time)
+      except: # pylint: disable=W0702
+        first_exception = (first_exception or (log_name + ': ' +
+                                               utils.FormatExceptionOnly()))
+        exception_count += 1
+
+    if exception_count:
+      if exception_count == 1:
+        msg = 'Log upload failed: %s' % first_exception
+      else:
+        msg = '%d log upload failed; first is: %s' % (
+            exception_count, first_exception)
+      raise Exception(msg)
+
 
   def run_tests_with_status(self, statuses_to_run, starting_at=None,
     root=None):

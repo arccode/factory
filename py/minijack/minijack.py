@@ -217,7 +217,8 @@ class Minijack(object):
         options.interval,
         event_log_dir=options.event_log_dir,
         event_log_db_file=options.event_log_db,
-        handle_event_logs_callback=self.HandleEventLogs)
+        handle_event_logs_callback=self.HandleEventLogs,
+        num_log_per_callback=50)
 
     logging.debug('Init event loading workers, jobs = %d', options.jobs)
     self._worker_processes = [multiprocessing.Process(
@@ -268,11 +269,12 @@ class Minijack(object):
       self._database = None
     logging.info('Minijack is shutdown gracefully.')
 
-  def HandleEventLogs(self, log_name, chunk):
+  def HandleEventLogs(self, chunk_info):
     '''Callback for event log watcher.'''
-    logging.info('Get new event logs (%s, %d bytes)', log_name, len(chunk))
-    blob = EventBlob({'log_name': log_name}, chunk)
-    self._event_blob_queue.put(blob)
+    for log_name, chunk in chunk_info:
+      logging.info('Get new event logs (%s, %d bytes)', log_name, len(chunk))
+      blob = EventBlob({'log_name': log_name}, chunk)
+      self._event_blob_queue.put(blob)
 
   def CheckQueuesEmpty(self):
     '''Checks queues empty to info users Minijack is idle.'''
