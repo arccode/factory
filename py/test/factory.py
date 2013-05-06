@@ -363,6 +363,9 @@ class Options(object):
   log_disk_space_period_secs = 120
   _types['log_disk_space_period_secs'] = (type(None), int)
 
+  # The list of log files to remove periodically.
+  clear_log_paths = ['/var/log/connectivity.bak']
+
   # The time interval to rsync system logs.
   sync_log_period_secs = None
   _types['sync_log_period_secs'] = (type(None), int)

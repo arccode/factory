@@ -161,6 +161,8 @@ class Goofy(object):
     event_server_thread: A thread running event_server.
     event_client: A client to the event server.
     connection_manager: The connection_manager object.
+    system_log_manager: The SystemLogManager object.
+    core_dump_manager: The CoreDumpManager object.
     ui_process: The factory ui process object.
     run_queue: A queue of callbacks to invoke from the main thread.
     invocations: A map from FactoryTest objects to the corresponding
@@ -195,6 +197,7 @@ class Goofy(object):
     self.time_synced = False
     self.log_watcher = None
     self.system_log_manager = None
+    self.core_dump_manager = None
     self.event_log = None
     self.prespawner = None
     self.ui_process = None
@@ -1228,8 +1231,9 @@ class Goofy(object):
     # syncing), since we may kick it to sync logs in its
     # thread.
     self.system_log_manager = SystemLogManager(
-      self.test_list.options.sync_log_paths,
-      self.test_list.options.sync_log_period_secs)
+      sync_log_paths=self.test_list.options.sync_log_paths,
+      sync_period_sec=self.test_list.options.sync_log_period_secs,
+      clear_log_paths=self.test_list.options.clear_log_paths)
     self.system_log_manager.StartSyncThread()
 
     self.update_system_info()
