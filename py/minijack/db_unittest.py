@@ -132,14 +132,17 @@ class DatabaseTest(unittest.TestCase):
 
   def testTableExists(self):
     self.database.GetOrCreateTable(FooModel)
-    self.database.GetOrCreateTable(BarModel)
 
     # Verify the tables exist by querying the sqlite_master table.
     executor_factory = self.database.GetExecutorFactory()
     executor = executor_factory.NewExecutor()
     executor.Execute('SELECT name FROM sqlite_master WHERE type = "table"')
     results = executor.FetchAll()
-    self.assertItemsEqual([('FooModel',), ('BarModel',)], results)
+    self.assertItemsEqual([('FooModel',), ], results)
+
+    # Verify the DoesTableExist method.
+    self.assertTrue(self.database.DoesTableExist(FooModel))
+    self.assertFalse(self.database.DoesTableExist(BarModel))
 
   def testTableSchema(self):
     self.database.GetOrCreateTable(FooModel)

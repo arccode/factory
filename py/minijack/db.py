@@ -163,7 +163,7 @@ class Model(object):
     primary_key = cls.GetPrimaryKey()
     if primary_key:
       columns.append('PRIMARY KEY ( %s )' % ', '.join(primary_key))
-    sql_cmd = ('CREATE TABLE IF NOT EXISTS %s ( %s )' %
+    sql_cmd = ('CREATE TABLE %s ( %s )' %
                (cls.GetModelName(),
                 ', '.join(columns)))
     return sql_cmd
@@ -304,12 +304,14 @@ class Table(object):
     self._primary_key = []
 
   def Init(self, model):
-    '''Initializes the table, creating it if not exists.'''
+    '''Initializes the table.'''
     self._model = ToModelSubclass(model)
     self._table_name = model.GetModelName()
     self._primary_key = model.GetPrimaryKey()
 
-    sql_cmd = model.SqlCmdCreateTable()
+  def CreateTable(self):
+    '''Creates the table.'''
+    sql_cmd = self._model.SqlCmdCreateTable()
     executor = self._executor_factory.NewExecutor()
     executor.Execute(sql_cmd, commit=True)
 
@@ -527,6 +529,14 @@ class ExecutorFactory(object):
     '''Generates a new Executor object.'''
     return Executor(self._conn)
 
+class sqlite_master(Model):
+  '''The master table of Sqlite database which contains the info of tables.'''
+  type     = TextField()
+  name     = TextField()
+  tbl_name = TextField()
+  rootpage = IntegerField()
+  sql      = TextField()
+
 class Database(object):
   '''A database to store Minijack results.
 
@@ -534,11 +544,13 @@ class Database(object):
 
   Properties:
     _conn: The connection of the sqlite3 database.
-    _tabels: A dict of the created tables.
+    _master_table: The master table of the database.
+    _tables: A dict of the created tables.
     _executor_factory: A factory of executor objects.
   '''
   def __init__(self):
     self._conn = None
+    self._master_table = None
     self._tables = {}
     self._executor_factory = None
 
@@ -553,6 +565,14 @@ class Database(object):
     executor.Execute('PRAGMA journal_mode = MEMORY')
     # Don't wait OS to write all content to disk before the next action.
     executor.Execute('PRAGMA synchronous = OFF')
+    # Initialize the master table of the database.
+    self._master_table = Table(self._executor_factory)
+    self._master_table.Init(sqlite_master)
+
+  def DoesTableExist(self, model):
+    '''Checks the table with the given model schema exists or not.'''
+    condition = sqlite_master(name=model.GetModelName())
+    return self._master_table.DoesRowExist(condition)
 
   def GetExecutorFactory(self):
     '''Gets the executor factory.'''
@@ -568,6 +588,8 @@ class Database(object):
       if not isinstance(model, str):
         table = Table(self._executor_factory)
         table.Init(model)
+        if not self.DoesTableExist(model):
+          table.CreateTable()
         self._tables[table_name] = table
       else:
         raise DatabaseException('Table %s not initialized.' % table_name)
