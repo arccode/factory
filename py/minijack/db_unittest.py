@@ -161,6 +161,20 @@ class DatabaseTest(unittest.TestCase):
     self.assertItemsEqual(['field_i'],
                           matches.group(2).split(', '))
 
+    # Verify the VerifySchema method.
+    self.assertTrue(self.database.VerifySchema(FooModel))
+    self.assertFalse(self.database.VerifySchema(BarModel))
+
+  # Define the same FooModel but has a different field type for testWrongSchema.
+  class FooModel(db.Model):
+    field_i = db.TextField(primary_key=True)  # Used to be IntegerField
+    field_r = db.RealField()
+    field_t = db.TextField()
+
+  def testWrongSchema(self):
+    self.database.GetOrCreateTable(FooModel)
+    self.assertFalse(self.database.VerifySchema(DatabaseTest.FooModel))
+
   def testInsertRow(self):
     foo_table = self.database.GetOrCreateTable(FooModel)
     foo_table.InsertRow(FooModel(field_i=56, field_t='Five Six'))

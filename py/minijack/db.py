@@ -578,6 +578,12 @@ class Database(object):
     '''Gets the executor factory.'''
     return self._executor_factory
 
+  def VerifySchema(self, model):
+    '''Verifies the table in the database has the same given model schema.'''
+    condition = sqlite_master(name=model.GetModelName())
+    row = self._master_table.GetOneRow(condition)
+    return row.sql == model.SqlCmdCreateTable() if row else False
+
   def GetOrCreateTable(self, model):
     '''Gets or creates a table using the schema of the given model.'''
     if isinstance(model, str):
@@ -588,7 +594,10 @@ class Database(object):
       if not isinstance(model, str):
         table = Table(self._executor_factory)
         table.Init(model)
-        if not self.DoesTableExist(model):
+        if self.DoesTableExist(model):
+          if not self.VerifySchema(model):
+            raise DatabaseException('Different schema in table %s' % table_name)
+        else:
           table.CreateTable()
         self._tables[table_name] = table
       else:
