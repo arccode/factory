@@ -156,6 +156,18 @@ class Model(object):
     '''Get the tuple of all field names.'''
     return tuple(f for f in cls._model.iterkeys())
 
+  @classmethod
+  def SqlCmdCreateTable(cls):
+    '''Gets the SQL command of creating a table using the model schema.'''
+    columns = [k + ' ' + v for k, v in cls.GetDbSchema().iteritems()]
+    primary_key = cls.GetPrimaryKey()
+    if primary_key:
+      columns.append('PRIMARY KEY ( %s )' % ', '.join(primary_key))
+    sql_cmd = ('CREATE TABLE IF NOT EXISTS %s ( %s )' %
+               (cls.GetModelName(),
+                ', '.join(columns)))
+    return sql_cmd
+
   def __init__(self, *args, **kwargs):
     if args:
       if len(args) == 1:
@@ -219,6 +231,44 @@ class Model(object):
         new_model[field_name] = field_value
     return ToModelSubclass(self)(**new_model)
 
+  def SqlCmdInsert(self):
+    '''Gets the SQL command tuple of inserting a row into the table.'''
+    # Insert all fields even they are ''/0, i.e. the default values.
+    field_names = self.GetFieldNames()
+    field_values = self.GetFieldValues()
+    sql_cmd = ('INSERT INTO %s ( %s ) VALUES ( %s )' %
+               (self.GetModelName(),
+                ', '.join(field_names),
+                ', '.join('?' * len(field_names))))
+    return sql_cmd, field_values
+
+  def SqlCmdUpdate(self):
+    '''Gets the SQL command tuple of updating a row into the table.'''
+    # Update the non-empty fields, using the primary key as the condition.
+    field_names = self.GetFieldNames()
+    field_names = self.GetNonEmptyFieldNames()
+    field_values = self.GetNonEmptyFieldValues()
+    conditions = self.CloneOnlyPrimaryKey()
+    condition_names = conditions.GetNonEmptyFieldNames()
+    condition_values = conditions.GetNonEmptyFieldValues()
+    sql_cmd = ('UPDATE %s SET %s WHERE %s' %
+               (self.GetModelName(),
+                ', '.join([f + ' = ?' for f in field_names]),
+                ' AND '.join(f + ' = ?' for f in condition_names)))
+    return sql_cmd, field_values + condition_values
+
+  def SqlCmdSelect(self):
+    '''Gets the SQL command tuple of selecting the matched rows.'''
+    # Use the non-empty fields as the condition.
+    field_names = self.GetNonEmptyFieldNames()
+    field_values = self.GetNonEmptyFieldValues()
+    sql_cmd = ('SELECT %s FROM %s%s%s' %
+               (', '.join(self.GetFieldNames()),
+                self.GetModelName(),
+                ' WHERE ' if field_names else '',
+                ' AND '.join([f + ' = ?' for f in field_names])))
+    return sql_cmd, field_values
+
 def ToModelSubclass(model):
   '''Get the class of a given instance of model subclass.
 
@@ -258,13 +308,8 @@ class Table(object):
     self._model = ToModelSubclass(model)
     self._table_name = model.GetModelName()
     self._primary_key = model.GetPrimaryKey()
-    # Construct the SQL command.
-    columns = [k + ' ' + v for k, v in model.GetDbSchema().iteritems()]
-    if self._primary_key:
-      columns.append('PRIMARY KEY ( %s )' % ', '.join(self._primary_key))
-    sql_cmd = ('CREATE TABLE IF NOT EXISTS %s ( %s )' %
-               (self._table_name,
-                ', '.join(columns)))
+
+    sql_cmd = model.SqlCmdCreateTable()
     executor = self._executor_factory.NewExecutor()
     executor.Execute(sql_cmd, commit=True)
 
@@ -280,14 +325,9 @@ class Table(object):
     if not self._model.IsValid(row):
       raise DatabaseException('Insert a row with a wrong model.')
 
-    field_names = row.GetFieldNames()
-    field_values = row.GetFieldValues()
-    sql_cmd = ('INSERT INTO %s ( %s ) VALUES ( %s )' %
-               (self._table_name,
-                ', '.join(field_names),
-                ', '.join('?' * len(field_names))))
+    sql_cmd, args = row.SqlCmdInsert()
     executor = self._executor_factory.NewExecutor()
-    executor.Execute(sql_cmd, field_values, True)
+    executor.Execute(sql_cmd, args, commit=True)
 
   def InsertRows(self, rows):
     '''Inserts multiple rows into the table.
@@ -304,20 +344,15 @@ class Table(object):
     if not rows:
       return
 
-    # To simplify the design, we assume there is no missing field in all rows.
-    field_names = rows[0].GetFieldNames()
-    sql_cmd = ('INSERT INTO %s ( %s ) VALUES ( %s )' %
-               (self._table_name,
-                ', '.join(field_names),
-                ', '.join('?' * len(field_names))))
-    all_field_values = []
+    args_list = []
     for row in rows:
       if not self._model.IsValid(row):
         raise DatabaseException('Insert a row with a wrong model.')
-      all_field_values.append(row.GetFieldValues())
+      sql_cmd, args = row.SqlCmdInsert()
+      args_list.append(args)
 
     executor = self._executor_factory.NewExecutor()
-    executor.Execute(sql_cmd, all_field_values, True, True)
+    executor.Execute(sql_cmd, args_list, commit=True, many=True)
 
   def UpdateRow(self, row):
     '''Updates the row in the table.
@@ -331,17 +366,9 @@ class Table(object):
     if not self._model.IsValid(row):
       raise DatabaseException('Update a row with a wrong model.')
 
-    field_names = row.GetNonEmptyFieldNames()
-    field_values = row.GetNonEmptyFieldValues()
-    conditions = row.CloneOnlyPrimaryKey()
-    condition_names = conditions.GetNonEmptyFieldNames()
-    condition_values = conditions.GetNonEmptyFieldValues()
-    sql_cmd = ('UPDATE %s SET %s WHERE %s' %
-               (self._table_name,
-                ', '.join([f + ' = ?' for f in field_names]),
-                ' AND '.join(f + ' = ?' for f in condition_names)))
+    sql_cmd, args = row.SqlCmdUpdate()
     executor = self._executor_factory.NewExecutor()
-    executor.Execute(sql_cmd, field_values + condition_values, True)
+    executor.Execute(sql_cmd, args, commit=True)
 
   def DoesRowExist(self, condition):
     '''Checks if a row exists or not.
@@ -381,15 +408,9 @@ class Table(object):
     if not self._model.IsValid(condition):
       raise DatabaseException('The condition is a wrong model.')
 
-    field_names = condition.GetNonEmptyFieldNames()
-    field_values = condition.GetNonEmptyFieldValues()
-    sql_cmd = ('SELECT %s FROM %s%s%s' %
-               (', '.join(condition.GetFieldNames()),
-                self._table_name,
-                ' WHERE ' if field_names else '',
-                ' AND '.join([f + ' = ?' for f in field_names])))
+    sql_cmd, args = condition.SqlCmdSelect()
     executor = self._executor_factory.NewExecutor()
-    executor.Execute(sql_cmd, field_values)
+    executor.Execute(sql_cmd, args)
     if one_row:
       return executor.FetchOne(model=condition)
     else:
