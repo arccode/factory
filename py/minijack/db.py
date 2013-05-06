@@ -280,8 +280,8 @@ class Table(object):
     if not self._model.IsValid(row):
       raise DatabaseException('Insert a row with a wrong model.')
 
-    field_names = row.GetNonEmptyFieldNames()
-    field_values = row.GetNonEmptyFieldValues()
+    field_names = row.GetFieldNames()
+    field_values = row.GetFieldValues()
     sql_cmd = ('INSERT INTO %s ( %s ) VALUES ( %s )' %
                (self._table_name,
                 ', '.join(field_names),

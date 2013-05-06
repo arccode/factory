@@ -167,7 +167,7 @@ class DatabaseTest(unittest.TestCase):
     executor = executor_factory.NewExecutor()
     executor.Execute('SELECT * FROM FooModel')
     result = executor.FetchOne()
-    self.assertItemsEqual((56, None, 'Five Six'), result)
+    self.assertItemsEqual((56, 0.0, 'Five Six'), result)
 
   def testUpdateRow(self):
     foo_table = self.database.GetOrCreateTable(FooModel)
