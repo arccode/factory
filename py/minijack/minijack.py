@@ -232,7 +232,12 @@ class Minijack(object):
     logging.debug('Init event sinking workers')
     self._database = db.Database()
     self._database.Init(options.minijack_db)
-    sinker = EventSinker(self._database)
+    try:
+      sinker = EventSinker(self._database)
+    except db.DatabaseException as e:
+      logging.exception('Error on initializing database: %s', str(e))
+      sys.exit(os.EX_DATAERR)
+
     self._worker_processes.append(multiprocessing.Process(
         target=IdentityWorker(),
         kwargs=dict(
