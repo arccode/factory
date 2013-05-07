@@ -116,8 +116,10 @@ class DUTEnvironment(Environment):
     system_info = system.SystemInfo()
     if system_info.architecture == "armv7l":
       accelerated_flag = "--use-gl=egl"
+      vda_flag='--use-exynos-vda'
     else:
       accelerated_flag = "--enable-accelerated-layers"
+      vda_flag=''
 
     # Auto detect the display modes on DUT
     mode_paths = glob.glob('/sys/class/drm/card*/modes')
@@ -145,6 +147,7 @@ class DUTEnvironment(Environment):
       '--enable-audio-mixer',
       '--enable-renderer-side-mixing',
       accelerated_flag,
+      vda_flag,
       ('--default-device-scale-factor=%d' %
        self.goofy.options.ui_scale_factor),
       '--disable-extensions',
