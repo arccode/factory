@@ -414,7 +414,10 @@ class Wifi_RF(unittest.TestCase):
 
     self.mkdir_p('/home/chronos/wifi')
 
-    with open("/home/chronos/wifi/testing_rsa", "w") as f:
+    with os.fdopen(
+        os.open("/home/chronos/wifi/testing_rsa", os.O_WRONLY | os.O_CREAT,
+                0600),
+        "w") as f:
       f.write(_TESTING_RSA)
 
     with open("/home/chronos/wifi/known_hosts", "w") as f:
