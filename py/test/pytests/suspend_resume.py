@@ -200,4 +200,11 @@ class SuspendResumeTest(unittest2.TestCase):
       logging.info('Resumed %d of %d for %d seconds.',
                    run, self.args.cycles, resume_time)
       time.sleep(resume_time)
+      while self.suspend_started.is_set():
+        logging.warn('powerd_suspend is taking a while to return, waiting 1s.')
+        time.sleep(1)
+        self.assertGreaterEqual(start_time + self.args.suspend_worst_case_secs,
+                                int(open(self.args.time_path).read().strip()),
+                                'powerd_suspend did not return within %d sec.' %
+                                self.args.suspend_worst_case_secs)
     self._ui.Pass()
