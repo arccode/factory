@@ -83,6 +83,17 @@ class DeviceExporter(exporter_base.ExporterBase):
     )
     self._table.UpdateOrInsertRow(row)
 
+  def Handle_start_test(self, packet):
+    '''A handler for a start_test event.'''
+    if self._DoesFieldExist(packet, 'latest_test_time'):
+      return
+    row = model.Device(
+      device_id        = packet.preamble.get('device_id'),
+      latest_test      = packet.event.get('path'),
+      latest_test_time = packet.event.get('TIME'),
+    )
+    self._table.UpdateOrInsertRow(row)
+
   def _DoesFieldExist(self, packet, field, newer=True):
     '''Checks if a given field already in the table and it is newer (older).
 

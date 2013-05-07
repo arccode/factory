@@ -43,16 +43,18 @@ class Test(db.Model):
   dargs          = db.TextField()
 
 class Device(db.Model):
-  device_id       = db.TextField(primary_key=True)
-  goofy_init_time = db.TextField()
-  serial          = db.TextField()
-  serial_time     = db.TextField()
-  mlb_serial      = db.TextField()
-  mlb_serial_time = db.TextField()
-  hwid            = db.TextField()
-  hwid_time       = db.TextField()
-  ips             = db.TextField()
-  ips_time        = db.TextField()
+  device_id        = db.TextField(primary_key=True)
+  goofy_init_time  = db.TextField()
+  serial           = db.TextField()
+  serial_time      = db.TextField()
+  mlb_serial       = db.TextField()
+  mlb_serial_time  = db.TextField()
+  hwid             = db.TextField()
+  hwid_time        = db.TextField()
+  ips              = db.TextField()
+  ips_time         = db.TextField()
+  latest_test      = db.TextField()
+  latest_test_time = db.TextField()
 
 class Component(db.Model):
   device_id = db.TextField(primary_key=True)
