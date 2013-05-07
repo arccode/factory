@@ -260,7 +260,7 @@ class Minijack(object):
         queue.join()
     logging.info('Terminating all worker processes...')
     for process in self._worker_processes:
-      if process:
+      if process and process.is_alive():
         process.terminate()
         process.join()
     if self._database:
