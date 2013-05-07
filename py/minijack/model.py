@@ -51,7 +51,8 @@ class Device(db.Model):
   mlb_serial_time = db.TextField()
   hwid            = db.TextField()
   hwid_time       = db.TextField()
-  ip              = db.TextField()
+  ips             = db.TextField()
+  ips_time        = db.TextField()
 
 class Component(db.Model):
   device_id = db.TextField(primary_key=True)

@@ -72,7 +72,16 @@ class DeviceExporter(exporter_base.ExporterBase):
     '''A handler for a verified_hwid event.'''
     self.Handle_hwid(packet)
 
-  # TODO(waihong): Fill the ip field.
+  def Handle_system_status(self, packet):
+    '''A handler for a system_status event.'''
+    if self._DoesFieldExist(packet, 'ips_time'):
+      return
+    row = model.Device(
+      device_id = packet.preamble.get('device_id'),
+      ips       = packet.event.get('ips'),
+      ips_time  = packet.event.get('TIME'),
+    )
+    self._table.UpdateOrInsertRow(row)
 
   def _DoesFieldExist(self, packet, field, newer=True):
     '''Checks if a given field already in the table and it is newer (older).
