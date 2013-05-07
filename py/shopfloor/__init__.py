@@ -101,25 +101,29 @@ class ShopFloorBase(object):
                    self.data_dir)
       os.makedirs(self.data_dir)
 
-    # Dynamic test directory for holding updates is called "update" in data_dir.
-    self.update_dir = os.path.join(self.data_dir, UPDATE_DIR)
-    utils.TryMakeDirs(self.update_dir)
-    self.update_dir = os.path.realpath(self.update_dir)
     if updater is None:
+      # Dynamic test directory for holding updates is called "update" in
+      # data_dir.
+      self.update_dir = os.path.join(self.data_dir, UPDATE_DIR)
+      utils.TryMakeDirs(self.update_dir)
+      self.update_dir = os.path.realpath(self.update_dir)
       self.update_server = factory_update_server.FactoryUpdateServer(
           self.update_dir,
           on_idle=(self._AutoSaveLogs if self._auto_archive_logs else None))
+      # Create factory log directory
+      self.factory_log_dir = os.path.join(self.data_dir, FACTORY_LOG_DIR)
+      utils.TryMakeDirs(self.factory_log_dir)
+      self.factory_log_dir = os.path.realpath(self.factory_log_dir)
+      self.log_server = factory_log_server.FactoryLogServer(
+          self.factory_log_dir)
     else:
+      # Use external update server and log server
       self.update_server = updater
+      self.log_server = updater
     # Create parameters directory
     self.parameters_dir = os.path.join(self.data_dir, PARAMETERS_DIR)
     utils.TryMakeDirs(self.parameters_dir)
     self.parameters_dir = os.path.realpath(self.parameters_dir)
-    # Create factory log directory
-    self.factory_log_dir = os.path.join(self.data_dir, FACTORY_LOG_DIR)
-    utils.TryMakeDirs(self.factory_log_dir)
-    self.factory_log_dir = os.path.realpath(self.factory_log_dir)
-    self.log_server = factory_log_server.FactoryLogServer(self.factory_log_dir)
 
   def _StartBase(self):
     """Starts the base class."""
