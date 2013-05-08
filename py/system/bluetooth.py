@@ -9,20 +9,30 @@ import factory_common # pylint: disable=W0611
 import gobject
 import logging
 import os
+import re
 import threading
 import uuid
 
 from cros.factory.test.utils import Retry
+from cros.factory.utils.net_utils import PollForCondition
 from dbus.mainloop.glib import DBusGMainLoop
 from dbus import service # pylint: disable=W0611
 from dbus import DBusException
+
+
+BUS_NAME = 'org.bluez'
+SERVICE_NAME = 'org.bluez'
+ADAPTER_INTERFACE = SERVICE_NAME + '.Adapter1'
+DEVICE_INTERFACE = SERVICE_NAME + '.Device1'
+
+_RE_NODE_NAME = re.compile(r'<node name="(.*?)"/>')
 
 
 class BluetoothManagerException(Exception):
   pass
 
 
-# TODO(cychiang) Add unittest for this class.
+#TODO(cychiang) Add unittest for this class.
 class BluetoothManager(object):
   """The class to handle bluetooth adapter and device through dbus interface.
 
@@ -30,8 +40,8 @@ class BluetoothManager(object):
     _main_loop: The object representing the main event loop of a PyGTK
         application. The main loop should be running when calling function with
         callback through dbus interface.
-    _manager: The proxy for the org.bluez.Manager interface on ojbect
-        org.bluez/.
+    _manager: The proxy for the org.freedesktoop.DBus.ObjectManager interface
+        on ojbect path / on bus org.bluez.
 
   Raises:
     Raises BluetoothManagerException if org.bluez.Manager object is not
@@ -43,12 +53,13 @@ class BluetoothManager(object):
     self._manager = None
     bus = dbus.SystemBus()
     try:
-      self._manager = dbus.Interface(bus.get_object('org.bluez', '/'),
-                                    'org.bluez.Manager')
+      self._manager = dbus.Interface(bus.get_object(BUS_NAME, '/'),
+                                     'org.freedesktop.DBus.ObjectManager')
     except DBusException as e:
       raise BluetoothManagerException('DBus Exception in getting Manager'
           'dbus Interface: %s.' % e)
 
+  #TODO(cychiang). Migrate to bluez5.x api. Check crosbug.com/p/19276.
   def SetDeviceConnected(self, adapter, device_address, connect):
     """Switches the device connection.
 
@@ -70,7 +81,7 @@ class BluetoothManager(object):
       raise BluetoothManagerException('SetDeviceConnected: fail to find device'
                                       ' %s: %s' % (device_address, e))
     bus = dbus.SystemBus()
-    input_interface = dbus.Interface(bus.get_object('org.bluez', device),
+    input_interface = dbus.Interface(bus.get_object(BUS_NAME, device),
                                      'org.bluez.Input')
     try:
       if connect:
@@ -83,6 +94,7 @@ class BluetoothManager(object):
     else:
       return True
 
+  #TODO(cychiang). Migrate to bluez5.x api. Check crosbug.com/p/19276.
   def RemovePairedDevice(self, adapter, device_address):
     """Removes the paired device.
 
@@ -106,6 +118,7 @@ class BluetoothManager(object):
       logging.info('succefully removed device.')
       return True
 
+  #TODO(cychiang). Migrate to bluez5.x api. Check crosbug.com/p/19276.
   def CreatePairedDevice(self, adapter, device_address):
     """Create paired device.
 
@@ -155,87 +168,120 @@ class BluetoothManager(object):
       raise BluetoothManagerException('CreatePairedDevice: reply_handler'
           ' did not get called.')
 
-  def _GetAdapterPaths(self, max_retry_times=10, interval=2):
-    """Returns the adapter paths found by bluetooth manager.
-
-    Args:
-      max_retry_times: The max retry times to find adapters.
-      interval: The sleep interval between each trial in seconds.
-
-    Returns:
-      A list of adapters found.
-    """
-    adapter_paths = Retry(max_retry_times, interval, None,
-                          self._manager.ListAdapters)
-    if adapter_paths is None:
-      logging.error('BluetoothManager: Fail to get any adapter path.')
-      return None
-    else:
-      return adapter_paths
-
   def GetFirstAdapter(self):
     """Returns the first adapter object found by bluetooth manager.
 
     An adapter is a proxy object which provides the interface of
-    'org.bluez.Adapter'.
+    'org.bluez.Adapter1'.
 
     Raises:
-      Raises BluetoothManagerException if fail to get any adapter.
+      Raises BluetoothManagerException if fails to get any adapter.
     """
-    adapter_paths = self._GetAdapterPaths()
-    if len(adapter_paths) > 0:
-      return self._GetAdapter(adapter_paths[0])
+    adapters = self.GetAdapters()
+    if len(adapters) > 0:
+      return adapters[0]
     else:
-      raise BluetoothManagerException(
-          'GetFirstAdapter: Fail to find any adapter.')
+      raise BluetoothManagerException('Fail to find any adapter.')
 
-  def _GetAdapter(self, adapter_path):
-    """Gets the adapter interface from adapter path.
-
-    Args:
-      adapter_path: The path of adapter on dbus.
+  def _GetAdapters(self):
+    """Gets a list of available bluetooth adapters.
 
     Returns:
-      Returns the adapter interface, which is a proxy object that provides
-      the interface of 'org.bluez.Adapter'.
+      Returns a list of adapters. An adapter is a proxy object which provides
+      the interface of 'org.bluez.Adapter1'.
 
     Raises:
       Raises BluetoothManagerException if fail to get adapter interface.
     """
-    adapter = None
+    objects = self._manager.GetManagedObjects()
     bus = dbus.SystemBus()
-    try:
-      adapter = dbus.Interface(bus.get_object('org.bluez', adapter_path),
-                               'org.bluez.Adapter')
-    except DBusException as e:
-      raise BluetoothManagerException('DBus Exception in getting adapter from'
-          'path %s: %s.' % (adapter_path, e))
-    return adapter
+    adapters = []
+    for path, interfaces in objects.iteritems():
+      adapter = interfaces.get(ADAPTER_INTERFACE)
+      if adapter is None:
+        continue
+      obj = bus.get_object(BUS_NAME, path)
+      adapters.append(dbus.Interface(obj, ADAPTER_INTERFACE))
+    return adapters
 
-  def GetAdapters(self, max_retry_times, interval):
+  def GetAdapters(self, max_retry_times=10, interval=2):
     """Gets a list of available bluetooth adapters.
 
     Args:
-      max_retry_times: The max retry times to find adapters.
-      interval: The sleep interval between each trial in seconds.
+      max_retry_times: The maximum retry times to find adapters.
+      interval: The sleep interval between two trials in seconds.
 
     Returns:
       A list of adapters found. Each adapter is a proxy object which provides
-      the interface of 'org.bluez.Adapter'.
+      the interface of 'org.bluez.Adapter1'. Returns None if there is no
+      available adapter.
     """
-    adapters = []
-    adapter_paths = self._GetAdapterPaths(max_retry_times,
-                                          interval)
-    for adapter_path in adapter_paths:
-      adapters.append(self._GetAdapter(adapter_path))
-    return adapters
+    adapters = Retry(max_retry_times, interval, None,
+                     self._GetAdapters)
+    if adapters is None:
+      logging.error('BluetoothManager: Fail to get any adapter.')
+      return None
+    else:
+      return adapters
 
+  def _SwitchAdapterPower(self, adapter, on):
+    """Powers on adapter by setting the Powered property.
 
-  def ScanDevices(self, adapter, timeout_secs=5, force_quit=False):
+    This will bring up the adapter like 'hciconfig <DEV> up' does.
+
+    Args:
+      adapter: The adapter proxy object.
+      on: True/False for power on/off.
+    """
+    bus = dbus.SystemBus()
+    device_prop = dbus.Interface(bus.get_object(BUS_NAME, adapter.object_path),
+                                 'org.freedesktop.DBus.Properties')
+    device_prop.Set(ADAPTER_INTERFACE, 'Powered', on)
+
+  def _WaitUntilStartDiscovery(self, adapter, timeout_secs):
+    """Waits until adapter starts discovery mode.
+
+    After calling adapter.StartDiscovery(), there is a delay before the adapter
+    actually start scanning. This function blocks until it sees adapter property
+    "Discovering" is True with a timeout timeout_secs.
+    """
+    bus = dbus.SystemBus()
+    device_prop = dbus.Interface(bus.get_object(BUS_NAME, adapter.object_path),
+                                 'org.freedesktop.DBus.Properties')
+    _Condition = lambda: device_prop.Get(ADAPTER_INTERFACE, 'Discovering') == 1
+    PollForCondition(_Condition, timeout_secs,
+                     condition_name="Wait for Discovering==1")
+
+  def RemoveDevices(self, adapter, paths):
+    """Lets adapter to remove devices in paths.
+
+    Args:
+      adapter: The adapter proxy object.
+      paths: A list of device paths to be removed.
+    """
+    logging.info('Removing devices...')
+    for path in paths:
+      try:
+        adapter.RemoveDevice(path)
+      except DBusException as e:
+        if str(e).find('Does Not Exist'):
+          logging.warning('Can not remove device %s because it is not present',
+                          path)
+
+  def GetAllDevicePaths(self, adapter):
+    """Gets all device paths under the adapter"""
+    introspect = dbus.Interface(adapter, 'org.freedesktop.DBus.Introspectable')
+    node_names = _RE_NODE_NAME.findall(introspect.Introspect())
+    logging.info('node names: %s', node_names)
+    paths = [os.path.join(adapter.object_path, x) for x in node_names]
+    logging.info('paths: %s', paths)
+    return paths
+
+  def ScanDevices(self, adapter, timeout_secs=10, remove_before_scan=True):
     """Scans device around using adapter for timeout_secs.
 
     The returned value devices is a dict containing the properties of
-    scanned devies.  Keys are device mac addresses and values are device
+    scanned devies. Keys are device mac addresses and values are device
     properties.
     For example: devices = {
         dbus.String(u'08:3E:8E:2A:90:24'): dbus.Dictionary(
@@ -271,15 +317,23 @@ class BluetoothManager(object):
     Args:
       adapter: The adapter interface to control.
       timeout_secs: The duration of scan.
-      force_quit: Returns without waiting for Discovery=1.
+      remove_before_scan: Remove devices under adapter before scanning.
 
     Returns:
       A dict containing the information of scanned devices. The dict maps
       devices mac addresses to device properties.
     """
 
+    logging.info('Controlling adapter %s', adapter)
+    if remove_before_scan:
+      logging.info('Remove old devices before scanning...')
+      old_device_paths = self.GetAllDevicePaths(adapter)
+      self.RemoveDevices(adapter, old_device_paths)
+
+    # devices is a mapping from device path to device properties.
     devices = dict()
-    scan_finished = threading.Event()
+    self._SwitchAdapterPower(adapter, True)
+    logging.info('Powered on adapter')
 
     def _ScanTimeout():
       """The callback when scan duration is over.
@@ -291,66 +345,103 @@ class BluetoothManager(object):
         False since we want this to be called at most once.
       """
       logging.info('Device scan timed out.')
-      if not scan_finished.isSet():
-        adapter.StopDiscovery()
-        if force_quit:
-          logging.info('Returns without waiting for Discovery=1.')
-          self._main_loop.quit()
-      else:
-        logging.info('Device scan had already finished.')
+      adapter.StopDiscovery()
+      logging.info('Stop Discovery')
+      logging.info('Quit main loop without waiting for Discovery=1.')
+      self._main_loop.quit()
       return False
 
-    def _CallbackPropertyChanged(name, value):
-      """The callback when adapter property changes.
+    def _CallbackInterfacesAdded(path, interfaces):
+      """The callback when an interface is found.
 
-      Quit self._main_loop if property "Discovering" == 0.
-
-      Args:
-        name: The name of property.
-        value: The value of that property.
-      """
-      logging.info('Property Changed: %s = %s.', name, value)
-      if (name == 'Discovering' and value == 0):
-        logging.info('Finished device scan.')
-        scan_finished.set()
-        self._main_loop.quit()
-
-    def _CallbackDeviceFound(address, properties): # pylint: disable=W0613
-      """The callback when a device is found.
-
-      Add the mapping from device address to properties into
-      devices.
+      When the adapter finds a device, it will assign the device a path and add
+      that device interface to dbus.
+      Reads the properties of device through interfaces and add the mapping
+      from device path to device properties into 'devices'.
 
       Args:
-        address: The device mac address.
-        properties: A dict containing device properties.
+        path: The device path.
+        interfaces: The interface types.
       """
-      logging.info('Bluetooth Device Found: %s.', address)
+      logging.info('InterfacesAdded')
+      if DEVICE_INTERFACE not in interfaces:
+        return
+      properties = interfaces[DEVICE_INTERFACE]
       for key, value in properties.iteritems():
-        logging.info(str(key) + ' : ' + str(value))
-      devices[address] = properties
+        logging.debug(str(key) + ' : ' + str(value))
+
+      if path in devices:
+        logging.info('replace old device properties with new device properties')
+      devices[path] = properties
+
+      address = (properties['Address'] if 'Address' in properties
+                 else '<unknown>')
+      logging.info('Bluetooth Device Found: %s.', address)
+      if 'RSSI' in properties:
+        logging.info('Address: %s, RSSI: %s', address, properties['RSSI'])
+
+    # pylint: disable=W0613
+    def _CallbackDevicePropertiesChanged(interface, changed, invalidated, path):
+      """The callback when device properties changed.
+
+      This is mainly for debug usage since device is scanned when callback for
+      InterfaceAdded is called.
+
+      Args:
+        interface: Interface name.
+        changed: A dict of changed properties.
+        invalidated: A list of properties changed but the value is
+          not provided.
+        path: The path of signal emitter.
+      """
+      logging.debug('Device properties changed %s: %s at path %s',
+                    interface, changed, path)
+      if interface != DEVICE_INTERFACE:
+        logging.error('should not get called with interface %s', interface)
+        return
+
+      address = (devices[path]['Address']
+                 if path in devices and 'Address' in devices[path]
+                 else '<unknown>')
+      if 'RSSI' in changed:
+        logging.info('Address: %s, new RSSI: %s', address, changed['RSSI'])
 
     bus = dbus.SystemBus()
-    bus.add_signal_receiver(_CallbackDeviceFound,
-                            dbus_interface = 'org.bluez.Adapter',
-                            signal_name = 'DeviceFound')
-    bus.add_signal_receiver(_CallbackPropertyChanged,
-                            dbus_interface = 'org.bluez.Adapter',
-                            signal_name = 'PropertyChanged')
-    logging.info('Starting device scan.')
-    adapter.SetProperty('Powered', True)
+
+    bus.add_signal_receiver(_CallbackInterfacesAdded,
+        dbus_interface='org.freedesktop.DBus.ObjectManager',
+        signal_name='InterfacesAdded')
+
+    bus.add_signal_receiver(_CallbackDevicePropertiesChanged,
+        dbus_interface='org.freedesktop.DBus.Properties',
+        signal_name='PropertiesChanged',
+        arg0=DEVICE_INTERFACE,
+        path_keyword="path")
+
     adapter.StartDiscovery()
+    logging.info('Start discovery')
+    # Normally it takes less than a second to start discovery.
+    # Raises TimeoutError if it fails to start discovery within timeout.
+    self._WaitUntilStartDiscovery(adapter, 3)
+    logging.info('Device scan started.')
 
     # Scan for timeout_secs
     gobject.timeout_add(timeout_secs * 1000, _ScanTimeout)
     self._main_loop.run()
 
-    bus.remove_signal_receiver(_CallbackDeviceFound,
-                               dbus_interface = 'org.bluez.Adapter',
-                               signal_name = 'DeviceFound')
-    bus.remove_signal_receiver(_CallbackPropertyChanged,
-                               dbus_interface = 'org.bluez.Adapter',
-                               signal_name = 'PropertyChanged')
-    logging.info('Scanned Devices: %s', devices)
-    return devices
+    bus.remove_signal_receiver(_CallbackInterfacesAdded,
+        dbus_interface='org.freedesktop.DBus.ObjectManager',
+        signal_name='InterfacesAdded')
 
+    bus.remove_signal_receiver(_CallbackDevicePropertiesChanged,
+        dbus_interface='org.freedesktop.DBus.Properties',
+        signal_name='PropertiesChanged',
+        arg0=DEVICE_INTERFACE,
+        path_keyword="path")
+
+    logging.info('Transform the key from path to address...')
+    devices_address_properties = dict(
+        ((value['Address'], value) for value in devices.values()
+         if 'Address' in value))
+
+    return devices_address_properties
