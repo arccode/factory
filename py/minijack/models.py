@@ -3,61 +3,61 @@
 # found in the LICENSE file.
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.minijack import db
+from cros.factory.minijack.db import models
 
-class Event(db.Model):
-  device_id      = db.TextField(primary_key=True)
+class Event(models.Model):
+  device_id      = models.TextField(primary_key=True)
   # We store time in TEXT as sqlite3 does not support milliseconds.
   # Without milliseconds, we can't use time as key when joinning tables.
-  time           = db.TextField(primary_key=True)
-  preamble_time  = db.TextField()
-  event          = db.TextField()
-  event_seq      = db.IntegerField()
-  preamble_seq   = db.IntegerField()
-  boot_id        = db.TextField()
-  boot_sequence  = db.IntegerField()
-  factory_md5sum = db.TextField()
-  filename       = db.TextField()
-  image_id       = db.TextField()
-  log_id         = db.TextField()
+  time           = models.TextField(primary_key=True)
+  preamble_time  = models.TextField()
+  event          = models.TextField()
+  event_seq      = models.IntegerField()
+  preamble_seq   = models.IntegerField()
+  boot_id        = models.TextField()
+  boot_sequence  = models.IntegerField()
+  factory_md5sum = models.TextField()
+  filename       = models.TextField()
+  image_id       = models.TextField()
+  log_id         = models.TextField()
 
-class Attr(db.Model):
+class Attr(models.Model):
   # No primary_key for the Attr table for speed-up. Duplication check is
   # done using the Event table.
-  device_id = db.TextField()
-  time      = db.TextField()
-  attr      = db.TextField()
-  value     = db.TextField()
+  device_id = models.TextField()
+  time      = models.TextField()
+  attr      = models.TextField()
+  value     = models.TextField()
 
-class Test(db.Model):
-  invocation     = db.TextField(primary_key=True)
-  device_id      = db.TextField()
-  factory_md5sum = db.TextField()
-  image_id       = db.TextField()
-  path           = db.TextField()
-  pytest_name    = db.TextField()
-  status         = db.TextField()
-  start_time     = db.TextField()
-  end_time       = db.TextField()
-  duration       = db.RealField()
-  dargs          = db.TextField()
+class Test(models.Model):
+  invocation     = models.TextField(primary_key=True)
+  device_id      = models.TextField()
+  factory_md5sum = models.TextField()
+  image_id       = models.TextField()
+  path           = models.TextField()
+  pytest_name    = models.TextField()
+  status         = models.TextField()
+  start_time     = models.TextField()
+  end_time       = models.TextField()
+  duration       = models.RealField()
+  dargs          = models.TextField()
 
-class Device(db.Model):
-  device_id        = db.TextField(primary_key=True)
-  goofy_init_time  = db.TextField()
-  serial           = db.TextField()
-  serial_time      = db.TextField()
-  mlb_serial       = db.TextField()
-  mlb_serial_time  = db.TextField()
-  hwid             = db.TextField()
-  hwid_time        = db.TextField()
-  ips              = db.TextField()
-  ips_time         = db.TextField()
-  latest_test      = db.TextField()
-  latest_test_time = db.TextField()
+class Device(models.Model):
+  device_id        = models.TextField(primary_key=True)
+  goofy_init_time  = models.TextField()
+  serial           = models.TextField()
+  serial_time      = models.TextField()
+  mlb_serial       = models.TextField()
+  mlb_serial_time  = models.TextField()
+  hwid             = models.TextField()
+  hwid_time        = models.TextField()
+  ips              = models.TextField()
+  ips_time         = models.TextField()
+  latest_test      = models.TextField()
+  latest_test_time = models.TextField()
 
-class Component(db.Model):
-  device_id = db.TextField(primary_key=True)
-  time      = db.TextField(primary_key=True)
-  component = db.TextField(primary_key=True)
-  symbolic  = db.TextField()
+class Component(models.Model):
+  device_id = models.TextField(primary_key=True)
+  time      = models.TextField(primary_key=True)
+  component = models.TextField(primary_key=True)
+  symbolic  = models.TextField()
