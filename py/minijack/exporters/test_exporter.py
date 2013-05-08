@@ -12,14 +12,10 @@ class TestExporter(ExporterBase):
 
   TODO(waihong): Unit tests.
   """
-  def __init__(self, database):
-    super(TestExporter, self).__init__(database)
-    self._table = None
-
   def Setup(self):
     """This method is called on Minijack start-up."""
     super(TestExporter, self).Setup()
-    self._table = self._database.GetOrCreateTable(Test)
+    self._database.GetOrCreateTable(Test)
 
   def Handle_start_test(self, packet):
     """A handler for a start_test event."""
@@ -32,7 +28,7 @@ class TestExporter(ExporterBase):
       pytest_name    = packet.event.get('pytest_name'),
       start_time     = packet.event.get('TIME'),
     )
-    self._table.UpdateOrInsertRow(row)
+    self._database.UpdateOrInsert(row)
 
   def Handle_end_test(self, packet):
     """A handler for an end_test event."""
@@ -48,4 +44,4 @@ class TestExporter(ExporterBase):
       duration       = packet.event.get('duration'),
       dargs          = packet.event.get('dargs'),
     )
-    self._table.UpdateOrInsertRow(row)
+    self._database.UpdateOrInsert(row)

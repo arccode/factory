@@ -13,14 +13,10 @@ class ComponentExporter(ExporterBase):
 
   TODO(waihong): Unit tests.
   """
-  def __init__(self, database):
-    super(ComponentExporter, self).__init__(database)
-    self._table = None
-
   def Setup(self):
     """This method is called on Minijack start-up."""
     super(ComponentExporter, self).Setup()
-    self._table = self._database.GetOrCreateTable(Component)
+    self._database.GetOrCreateTable(Component)
 
   def Handle_probe(self, packet):
     """A handler for a probe event."""
@@ -42,4 +38,4 @@ class ComponentExporter(ExporterBase):
         component = component,
         symbolic  = symbolic,
       )
-      self._table.UpdateOrInsertRow(row)
+      self._database.UpdateOrInsert(row)

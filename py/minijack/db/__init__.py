@@ -393,3 +393,47 @@ class Database(object):
     if self._conn:
       self._conn.close()
       self._conn = None
+
+  # The following methods help accessing tables easily. They automatically
+  # get the proper tables and do the jobs on the tables.
+
+  def Insert(self, model):
+    """Inserts a model into the database."""
+    table = self.GetOrCreateTable(model)
+    table.InsertRow(model)
+
+  def InsertMany(self, model_list):
+    """Inserts multiple models into the database."""
+    if model_list and len(model_list) >= 1:
+      table = self.GetOrCreateTable(model_list[0])
+      table.InsertRows(model_list)
+
+  def Update(self, model):
+    """Updates the model in the database."""
+    table = self.GetOrCreateTable(model)
+    table.UpdateRow(model)
+
+  def CheckExists(self, model):
+    """Checks if the model exists or not."""
+    table = self.GetOrCreateTable(model)
+    return table.DoesRowExist(model)
+
+  def GetOne(self, condition):
+    """Gets the first model which matches the given condition."""
+    table = self.GetOrCreateTable(condition)
+    return table.GetOneRow(condition)
+
+  def GetAll(self, condition):
+    """Gets all the models which match the given condition."""
+    table = self.GetOrCreateTable(condition)
+    return table.GetRows(condition)
+
+  def DeleteAll(self, condition):
+    """Deletes all the models which match the given condition."""
+    table = self.GetOrCreateTable(condition)
+    table.DeleteRows(condition)
+
+  def UpdateOrInsert(self, model):
+    """Updates the model or insert it if not exists."""
+    table = self.GetOrCreateTable(model)
+    table.UpdateOrInsertRow(model)

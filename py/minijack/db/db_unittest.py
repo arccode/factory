@@ -89,9 +89,8 @@ class DatabaseTest(unittest.TestCase):
     self.database.GetOrCreateTable(FooModel)
     self.assertFalse(self.database.VerifySchema(DatabaseTest.FooModel))
 
-  def testInsertRow(self):
-    foo_table = self.database.GetOrCreateTable(FooModel)
-    foo_table.InsertRow(FooModel(field_i=56, field_t='Five Six'))
+  def testInsert(self):
+    self.database.Insert(FooModel(field_i=56, field_t='Five Six'))
 
     # Verify the table content by querying the table.
     executor_factory = self.database.GetExecutorFactory()
@@ -100,10 +99,9 @@ class DatabaseTest(unittest.TestCase):
     result = executor.FetchOne()
     self.assertItemsEqual((56, 0.0, 'Five Six'), result)
 
-  def testUpdateRow(self):
-    foo_table = self.database.GetOrCreateTable(FooModel)
-    foo_table.InsertRow(FooModel(field_i=56, field_t='Five Six'))
-    foo_table.UpdateRow(FooModel(field_i=56, field_r=5.6))
+  def testUpdate(self):
+    self.database.Insert(FooModel(field_i=56, field_t='Five Six'))
+    self.database.Update(FooModel(field_i=56, field_r=5.6))
 
     # Verify the table content by querying the table.
     executor_factory = self.database.GetExecutorFactory()
@@ -112,31 +110,28 @@ class DatabaseTest(unittest.TestCase):
     result = executor.FetchOne()
     self.assertItemsEqual((56, 5.6, 'Five Six'), result)
 
-  def testDoesRowExists(self):
-    foo_table = self.database.GetOrCreateTable(FooModel)
-    foo_table.InsertRow(FooModel(field_i=56, field_t='Five Six'))
-    self.assertTrue(foo_table.DoesRowExist(FooModel(field_i=56)))
-    self.assertFalse(foo_table.DoesRowExist(FooModel(field_i=78)))
+  def testCheckExists(self):
+    self.database.Insert(FooModel(field_i=56, field_t='Five Six'))
+    self.assertTrue(self.database.CheckExists(FooModel(field_i=56)))
+    self.assertFalse(self.database.CheckExists(FooModel(field_i=78)))
 
-  def testGetOneRow(self):
-    foo_table = self.database.GetOrCreateTable(FooModel)
-    foo_table.InsertRow(FooModel(field_i=56, field_t='Five Six'))
-    foo_table.InsertRow(FooModel(field_i=78, field_r=7.8))
-    row = foo_table.GetOneRow(FooModel(field_i=78))
+  def testGetOne(self):
+    self.database.Insert(FooModel(field_i=56, field_t='Five Six'))
+    self.database.Insert(FooModel(field_i=78, field_r=7.8))
+    row = self.database.GetOne(FooModel(field_i=78))
     self.assertDictEqual({
       'field_i': 78,
       'field_r': 7.8,
       'field_t': '',
     }, row.GetFields())
     # Get not-matched.
-    self.assertIs(None, foo_table.GetOneRow(FooModel(field_i=34)))
+    self.assertIs(None, self.database.GetOne(FooModel(field_i=34)))
 
-  def testGetRows(self):
-    foo_table = self.database.GetOrCreateTable(FooModel)
-    foo_table.InsertRow(FooModel(field_i=56, field_t='Five Six'))
-    foo_table.InsertRow(FooModel(field_i=78, field_r=7.8))
+  def testGetAll(self):
+    self.database.Insert(FooModel(field_i=56, field_t='Five Six'))
+    self.database.Insert(FooModel(field_i=78, field_r=7.8))
     # Get all rows.
-    rows = foo_table.GetRows(FooModel())
+    rows = self.database.GetAll(FooModel())
     self.assertEqual(2, len(rows))
     self.assertDictEqual({
       'field_i': 56,
@@ -149,39 +144,37 @@ class DatabaseTest(unittest.TestCase):
       'field_t': '',
     }, rows[1].GetFields())
     # Get one row matched.
-    rows = foo_table.GetRows(FooModel(field_i=78))
+    rows = self.database.GetAll(FooModel(field_i=78))
     self.assertEqual(1, len(rows))
     # Get not-matched.
-    rows = foo_table.GetRows(FooModel(field_i=90))
+    rows = self.database.GetAll(FooModel(field_i=90))
     self.assertEqual(0, len(rows))
 
-  def testDeleteRows(self):
-    foo_table = self.database.GetOrCreateTable(FooModel)
+  def testDeleteAll(self):
     row_a = FooModel(field_i=111, field_t='One')
     row_b = FooModel(field_i=222, field_r=1.23)
     row_c = FooModel(field_i=333, field_r=1.23)
-    foo_table.InsertRows([row_a, row_b, row_c])
-    self.assertTrue(foo_table.DoesRowExist(row_a))
-    self.assertTrue(foo_table.DoesRowExist(row_b))
-    self.assertTrue(foo_table.DoesRowExist(row_c))
+    self.database.InsertMany([row_a, row_b, row_c])
+    self.assertTrue(self.database.CheckExists(row_a))
+    self.assertTrue(self.database.CheckExists(row_b))
+    self.assertTrue(self.database.CheckExists(row_c))
 
     condition = FooModel(field_r=1.23)
-    foo_table.DeleteRows(condition)
-    self.assertTrue(foo_table.DoesRowExist(row_a))
-    self.assertFalse(foo_table.DoesRowExist(row_b))
-    self.assertFalse(foo_table.DoesRowExist(row_c))
+    self.database.DeleteAll(condition)
+    self.assertTrue(self.database.CheckExists(row_a))
+    self.assertFalse(self.database.CheckExists(row_b))
+    self.assertFalse(self.database.CheckExists(row_c))
 
     # Delete all rows, no condition given.
     condition = FooModel()
-    foo_table.DeleteRows(condition)
-    self.assertFalse(foo_table.DoesRowExist(row_a))
+    self.database.DeleteAll(condition)
+    self.assertFalse(self.database.CheckExists(row_a))
 
   def testUpdateOrInsertRow(self):
-    foo_table = self.database.GetOrCreateTable(FooModel)
-    foo_table.UpdateOrInsertRow(FooModel(field_i=56, field_t='Five Six'))
-    foo_table.UpdateOrInsertRow(FooModel(field_i=78, field_r=7.8))
-    foo_table.UpdateOrInsertRow(FooModel(field_i=56, field_r=5.6))
-    rows = foo_table.GetRows(FooModel())
+    self.database.UpdateOrInsert(FooModel(field_i=56, field_t='Five Six'))
+    self.database.UpdateOrInsert(FooModel(field_i=78, field_r=7.8))
+    self.database.UpdateOrInsert(FooModel(field_i=56, field_r=5.6))
+    rows = self.database.GetAll(FooModel())
     self.assertEqual(2, len(rows))
     self.assertDictEqual({
       'field_i': 56,
@@ -195,7 +188,7 @@ class DatabaseTest(unittest.TestCase):
     }, rows[1].GetFields())
     # Update or insert a row without a primary key.
     with self.assertRaises(db.DatabaseException):
-      foo_table.UpdateOrInsertRow(FooModel(field_r=3.4, field_t='Three Four'))
+      self.database.UpdateOrInsert(FooModel(field_r=3.4, field_t='Three Four'))
 
   def testFetchBeforeExecute(self):
     self.database.GetOrCreateTable(FooModel)

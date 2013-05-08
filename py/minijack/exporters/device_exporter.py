@@ -12,14 +12,10 @@ class DeviceExporter(ExporterBase):
 
   TODO(waihong): Unit tests.
   """
-  def __init__(self, database):
-    super(DeviceExporter, self).__init__(database)
-    self._table = None
-
   def Setup(self):
     """This method is called on Minijack start-up."""
     super(DeviceExporter, self).Setup()
-    self._table = self._database.GetOrCreateTable(Device)
+    self._database.GetOrCreateTable(Device)
 
   def Handle_goofy_init(self, packet):
     """A handler for a goofy_init event."""
@@ -31,7 +27,7 @@ class DeviceExporter(ExporterBase):
       device_id       = packet.preamble.get('device_id'),
       goofy_init_time = packet.event.get('TIME'),
     )
-    self._table.UpdateOrInsertRow(row)
+    self._database.UpdateOrInsert(row)
 
   def Handle_update_device_data(self, packet):
     """A handler for a update_device_data event."""
@@ -90,7 +86,7 @@ class DeviceExporter(ExporterBase):
     row = Device(device_id=packet.preamble.get('device_id'))
     setattr(row, field_name, field_value)
     setattr(row, field_name_time, packet.event.get('TIME'))
-    self._table.UpdateOrInsertRow(row)
+    self._database.UpdateOrInsert(row)
 
   def _DoesFieldExist(self, packet, field, newer=True):
     """Checks if a given field already in the table and it is newer (older).
@@ -105,7 +101,7 @@ class DeviceExporter(ExporterBase):
     """
     time = packet.event.get('TIME')
     condition = Device(device_id=packet.preamble.get('device_id'))
-    row = self._table.GetOneRow(condition)
+    row = self._database.GetOne(condition)
     if row:
       return (getattr(row, field) >= time if newer else
               getattr(row, field) <= time)

@@ -16,15 +16,10 @@ class EventAttrExporter(ExporterBase):
 
   TODO(waihong): Unit tests.
   """
-  def __init__(self, database):
-    super(EventAttrExporter, self).__init__(database)
-    self._event_table = None
-    self._attr_table = None
-
   def Setup(self):
     super(EventAttrExporter, self).Setup()
-    self._event_table = self._database.GetOrCreateTable(Event)
-    self._attr_table = self._database.GetOrCreateTable(Attr)
+    self._database.GetOrCreateTable(Event)
+    self._database.GetOrCreateTable(Attr)
 
   def Handle_all(self, packet):
     """A handler for all event types."""
@@ -54,7 +49,7 @@ class EventAttrExporter(ExporterBase):
       image_id       = packet.preamble.get('image_id'),
       log_id         = packet.preamble.get('log_id'),
     )
-    self._event_table.InsertRow(row)
+    self._database.Insert(row)
 
   def _InsertAttr(self, packet):
     """Retrieves attr information and inserts to Attr table"""
@@ -72,7 +67,7 @@ class EventAttrExporter(ExporterBase):
         )
         rows.append(row)
     if rows:
-      self._attr_table.InsertRows(rows)
+      self._database.InsertMany(rows)
 
 
 def _ToAsciiString(value):
