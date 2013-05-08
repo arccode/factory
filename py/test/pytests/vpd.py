@@ -30,6 +30,7 @@ import re
 import unittest
 
 from cros.factory import cros_locale
+from cros.factory.l10n.regions import REGIONS
 from cros.factory.test import factory
 from cros.factory.test import registration_codes
 from cros.factory.test import shopfloor
@@ -372,7 +373,7 @@ class VPDTest(unittest.TestCase):
 
   def _ReadShopFloorDeviceData(self):
     device_data = shopfloor.GetDeviceData()
-    required_keys = set(['serial_number', 'locale',
+    required_keys = set(['serial_number', 'region',
                          'ubind_attribute', 'gbind_attribute'])
     missing_keys = required_keys - set(device_data.keys())
     if missing_keys:
@@ -381,17 +382,12 @@ class VPDTest(unittest.TestCase):
 
     self.vpd['ro']['serial_number'] = device_data['serial_number']
 
-    locale_code = device_data['locale']
-    regions = [entry for entry in cros_locale.DEFAULT_REGION_LIST
-               if entry[0] == locale_code]
-    if not regions:
-      logging.exception('Invalid locale %r', locale_code)
-    dummy_locale, layout, timezone, dummy_description = (
-        cros_locale.BuildRegionInformation(regions[0]))
+    self.assertIn(device_data['region'], REGIONS)
+    region = REGIONS[device_data['region']]
 
-    self.vpd['ro']['initial_locale'] = locale_code
-    self.vpd['ro']['keyboard_layout'] = layout
-    self.vpd['ro']['initial_timezone'] = timezone
+    self.vpd['ro']['initial_locale'] = region.language_code
+    self.vpd['ro']['keyboard_layout'] = region.keyboard
+    self.vpd['ro']['initial_timezone'] = region.time_zone
 
     for k, v in device_data.iteritems():
       match = re.match(r'$vpd\.(ro|rw)\.(.+)^', k)

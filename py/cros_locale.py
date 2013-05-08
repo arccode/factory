@@ -1,17 +1,18 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
+# Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
 # pylint: disable=C0301
 
 # References
-# - Keyboard: http://gerrit.chromium.org/gerrit/gitweb?p=chromium/src.git;a=blob;f=chrome/browser/chromeos/input_method/ibus_input_methods.txt
-# - Locale: http://git.chromium.org/gitweb/?p=chromium.git;a=blob;f=ui/base/l10n/l10n_util.cc
-# - Time Zone: http://git.chromium.org/gitweb/?p=chromium.git;a=blob;f=chrome/browser/chromeos/dom_ui/system_settings_provider.cc
-#              http://google.com/codesearch/p?#uX1GffpyOZk/core/tests/coretests/src/android/util/TimeUtilsTest.java
-#              http://en.wikipedia.org/wiki/List_of_time_zones_by_UTC_offset
+# - Country codes: http://en.wikipedia.org/wiki/ISO_3166-1_alpha-2
+# - Keyboard: http://goo.gl/3aJnl
+# - Locale/language: http://goo.gl/kVkht
+# - Time Zone:
+#    http://goo.gl/IqLVX
+#    http://en.wikipedia.org/wiki/List_of_time_zones_by_UTC_offset
 
 # This is the mapping from locale code to human readable locale name and
 # suggested timezone.
@@ -364,7 +365,7 @@ DEFAULT_REGION_LIST = (
     ('en-GB', 'xkb:us::eng', 'Asia/Kuala_Lumpur', 'English (Singapore)'),
     ('en-GB', 'xkb:us::eng', 'Asia/Calcutta', 'English (India)'),
 )
-
+ALL_KEYBOARDS = set(x[1] for x in DEFAULT_REGION_LIST if len(x) > 1 and x[1])
 
 def BuildRegionInformation(region_data):
   """Completes region information (see DEFAULT_LOCALE_KEYBOARD_MAP)."""
