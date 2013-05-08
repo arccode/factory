@@ -57,6 +57,21 @@ class DeviceExporter(exporter_base.ExporterBase):
     )
     self._table.UpdateOrInsertRow(row)
 
+  def Handle_call_shopfloor(self, packet):
+    '''A handler for a call_shopfloor event.'''
+    # The args[0] is always the MLB serial number for all methods.
+    args = packet.event.get('args')
+    if args and len(args) >= 1:
+      mlb_serial = args[0]
+      if self._DoesFieldExist(packet, 'mlb_serial_time'):
+        return
+      row = model.Device(
+        device_id       = packet.preamble.get('device_id'),
+        mlb_serial      = mlb_serial,
+        mlb_serial_time = packet.event.get('TIME'),
+      )
+      self._table.UpdateOrInsertRow(row)
+
   def Handle_hwid(self, packet):
     '''A handler for a hwid event.'''
     if self._DoesFieldExist(packet, 'hwid_time'):
