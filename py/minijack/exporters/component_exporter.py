@@ -3,11 +3,11 @@
 # found in the LICENSE file.
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.minijack import model
 from cros.factory.minijack.datatypes import EventPacket
-from cros.factory.minijack.exporters import exporter_base
+from cros.factory.minijack.exporters.base import ExporterBase
+from cros.factory.minijack.models import Component
 
-class ComponentExporter(exporter_base.ExporterBase):
+class ComponentExporter(ExporterBase):
   '''The exporter to create the Component table.
 
   TODO(waihong): Unit tests.
@@ -19,7 +19,7 @@ class ComponentExporter(exporter_base.ExporterBase):
   def Setup(self):
     '''This method is called on Minijack start-up.'''
     super(ComponentExporter, self).Setup()
-    self._table = self._database.GetOrCreateTable(model.Component)
+    self._table = self._database.GetOrCreateTable(Component)
 
   def Handle_probe(self, packet):
     '''A handler for a probe event.'''
@@ -35,7 +35,7 @@ class ComponentExporter(exporter_base.ExporterBase):
     keyword = 'cpu'
     parent = packet.FindAttrContainingKey(keyword)
     for component, symbolic in EventPacket.FlattenAttr(parent):
-      row = model.Component(
+      row = Component(
         device_id = packet.preamble.get('device_id'),
         time      = packet.event.get('TIME'),
         component = component,

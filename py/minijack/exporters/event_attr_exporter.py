@@ -6,11 +6,11 @@ import logging
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.minijack import db
-from cros.factory.minijack import model
 from cros.factory.minijack.datatypes import EventPacket
-from cros.factory.minijack.exporters import exporter_base
+from cros.factory.minijack.exporters.base import ExporterBase
+from cros.factory.minijack.models import Event, Attr
 
-class EventAttrExporter(exporter_base.ExporterBase):
+class EventAttrExporter(ExporterBase):
   '''The exporter to create the Event and Attr tables.
 
   TODO(waihong): Unit tests.
@@ -22,8 +22,8 @@ class EventAttrExporter(exporter_base.ExporterBase):
 
   def Setup(self):
     super(EventAttrExporter, self).Setup()
-    self._event_table = self._database.GetOrCreateTable(model.Event)
-    self._attr_table = self._database.GetOrCreateTable(model.Attr)
+    self._event_table = self._database.GetOrCreateTable(Event)
+    self._attr_table = self._database.GetOrCreateTable(Attr)
 
   def Handle_all(self, packet):
     '''A handler for all event types.'''
@@ -39,7 +39,7 @@ class EventAttrExporter(exporter_base.ExporterBase):
 
   def _InsertEvent(self, packet):
     '''Retrieves event information and inserts to Event table'''
-    row = model.Event(
+    row = Event(
       device_id      = packet.preamble.get('device_id'),
       time           = packet.event.get('TIME'),
       preamble_time  = packet.preamble.get('TIME'),
@@ -63,7 +63,7 @@ class EventAttrExporter(exporter_base.ExporterBase):
     # we flatten it first. The hierarchy is recorded in the Attr column.
     for attr, value in EventPacket.FlattenAttr(packet.event):
       if attr not in RESERVED_PATH:
-        row = model.Attr(
+        row = Attr(
           device_id = packet.preamble.get('device_id'),
           time      = packet.event.get('TIME'),
           attr      = _ToAsciiString(attr),

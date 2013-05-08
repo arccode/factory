@@ -3,10 +3,10 @@
 # found in the LICENSE file.
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.minijack import model
-from cros.factory.minijack.exporters import exporter_base
+from cros.factory.minijack.exporters.base import ExporterBase
+from cros.factory.minijack.models import Test
 
-class TestExporter(exporter_base.ExporterBase):
+class TestExporter(ExporterBase):
   '''The exporter to create the Test table.
 
   TODO(waihong): Unit tests.
@@ -18,11 +18,11 @@ class TestExporter(exporter_base.ExporterBase):
   def Setup(self):
     '''This method is called on Minijack start-up.'''
     super(TestExporter, self).Setup()
-    self._table = self._database.GetOrCreateTable(model.Test)
+    self._table = self._database.GetOrCreateTable(Test)
 
   def Handle_start_test(self, packet):
     '''A handler for a start_test event.'''
-    row = model.Test(
+    row = Test(
       invocation     = packet.event.get('invocation'),
       device_id      = packet.preamble.get('device_id'),
       factory_md5sum = packet.preamble.get('factory_md5sum'),
@@ -35,7 +35,7 @@ class TestExporter(exporter_base.ExporterBase):
 
   def Handle_end_test(self, packet):
     '''A handler for an end_test event.'''
-    row = model.Test(
+    row = Test(
       invocation     = packet.event.get('invocation'),
       device_id      = packet.preamble.get('device_id'),
       factory_md5sum = packet.preamble.get('factory_md5sum'),
