@@ -36,26 +36,17 @@ class DeviceExporter(ExporterBase):
     '''A handler for a update_device_data event.'''
     if self._DoesFieldExist(packet, 'serial_time'):
       return
-    row = Device(
-      device_id   = packet.preamble.get('device_id'),
-      serial      = packet.event.get('data').get('serial_number'),
-      serial_time = packet.event.get('TIME'),
-    )
-    self._table.UpdateOrInsertRow(row)
+    data = packet.event.get('data')
+    if data:
+      serial = data.get('serial_number')
+      self._UpdateField(packet, 'serial', serial)
 
   def Handle_scan(self, packet):
     '''A handler for a scan event.'''
     # If not a barcode scan of the MLB serial number, skip it.
     if packet.event.get('key') != 'mlb_serial_number':
       return
-    if self._DoesFieldExist(packet, 'mlb_serial_time'):
-      return
-    row = Device(
-      device_id       = packet.preamble.get('device_id'),
-      mlb_serial      = packet.event.get('value'),
-      mlb_serial_time = packet.event.get('TIME'),
-    )
-    self._table.UpdateOrInsertRow(row)
+    self._UpdateField(packet, 'mlb_serial', packet.event.get('value'))
 
   def Handle_call_shopfloor(self, packet):
     '''A handler for a call_shopfloor event.'''
@@ -63,25 +54,11 @@ class DeviceExporter(ExporterBase):
     args = packet.event.get('args')
     if args and len(args) >= 1:
       mlb_serial = args[0]
-      if self._DoesFieldExist(packet, 'mlb_serial_time'):
-        return
-      row = model.Device(
-        device_id       = packet.preamble.get('device_id'),
-        mlb_serial      = mlb_serial,
-        mlb_serial_time = packet.event.get('TIME'),
-      )
-      self._table.UpdateOrInsertRow(row)
+      self._UpdateField(packet, 'mlb_serial', mlb_serial)
 
   def Handle_hwid(self, packet):
     '''A handler for a hwid event.'''
-    if self._DoesFieldExist(packet, 'hwid_time'):
-      return
-    row = Device(
-      device_id = packet.preamble.get('device_id'),
-      hwid      = packet.event.get('hwid'),
-      hwid_time = packet.event.get('TIME'),
-    )
-    self._table.UpdateOrInsertRow(row)
+    self._UpdateField(packet, 'hwid', packet.event.get('hwid'))
 
   def Handle_verified_hwid(self, packet):
     '''A handler for a verified_hwid event.'''
@@ -89,24 +66,29 @@ class DeviceExporter(ExporterBase):
 
   def Handle_system_status(self, packet):
     '''A handler for a system_status event.'''
-    if self._DoesFieldExist(packet, 'ips_time'):
-      return
-    row = Device(
-      device_id = packet.preamble.get('device_id'),
-      ips       = packet.event.get('ips'),
-      ips_time  = packet.event.get('TIME'),
-    )
-    self._table.UpdateOrInsertRow(row)
+    self._UpdateField(packet, 'ips', packet.event.get('ips'))
 
   def Handle_start_test(self, packet):
     '''A handler for a start_test event.'''
-    if self._DoesFieldExist(packet, 'latest_test_time'):
+    self._UpdateField(packet, 'latest_test', packet.event.get('path'))
+
+  def _UpdateField(self, packet, field_name, field_value):
+    '''Updates the field to the table if the field is newer than the table one.
+
+    Args:
+      packet: An EventPacket object.
+      field_name: The field name. Also, the field "{field_name}_time" should
+                  exist.
+      field_value: The value of field to update.
+    '''
+    if not field_value:
       return
-    row = Device(
-      device_id        = packet.preamble.get('device_id'),
-      latest_test      = packet.event.get('path'),
-      latest_test_time = packet.event.get('TIME'),
-    )
+    field_name_time = field_name + '_time'
+    if self._DoesFieldExist(packet, field_name_time):
+      return
+    row = Device(device_id=packet.preamble.get('device_id'))
+    setattr(row, field_name, field_value)
+    setattr(row, field_name_time, packet.event.get('TIME'))
     self._table.UpdateOrInsertRow(row)
 
   def _DoesFieldExist(self, packet, field, newer=True):
