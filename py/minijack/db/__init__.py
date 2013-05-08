@@ -152,6 +152,22 @@ class Table(object):
     else:
       return executor.FetchAll(model=condition)
 
+  def DeleteRows(self, condition):
+    """Deletes all the rows which match the given condition.
+
+    Args:
+      condition: A model instance describing the checking condition.
+
+    Raises:
+      DatabaseException if not a valid model instance.
+    """
+    if not self._model.IsValid(condition):
+      raise DatabaseException('The condition is a wrong model.')
+
+    sql_cmd, args = condition.SqlCmdDelete()
+    executor = self._executor_factory.NewExecutor()
+    executor.Execute(sql_cmd, args, commit=True)
+
   def UpdateOrInsertRow(self, row):
     """Updates the row or insert it if not exists.
 

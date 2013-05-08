@@ -263,6 +263,17 @@ class Model(object):
                 ' AND '.join([f + ' = ?' for f in field_names])))
     return sql_cmd, field_values
 
+  def SqlCmdDelete(self):
+    """Gets the SQL command tuple of deleting the matched rows."""
+    # Use the non-empty fields as the condition.
+    field_names = self.GetNonEmptyFieldNames()
+    field_values = self.GetNonEmptyFieldValues()
+    sql_cmd = ('DELETE FROM %s%s%s' % (
+                self.GetModelName(),
+                ' WHERE ' if field_names else '',
+                ' AND '.join([f + ' = ?' for f in field_names])))
+    return sql_cmd, field_values
+
 
 def ToModelSubclass(model):
   """Gets the class of a given instance of model subclass.

@@ -155,6 +155,27 @@ class DatabaseTest(unittest.TestCase):
     rows = foo_table.GetRows(FooModel(field_i=90))
     self.assertEqual(0, len(rows))
 
+  def testDeleteRows(self):
+    foo_table = self.database.GetOrCreateTable(FooModel)
+    row_a = FooModel(field_i=111, field_t='One')
+    row_b = FooModel(field_i=222, field_r=1.23)
+    row_c = FooModel(field_i=333, field_r=1.23)
+    foo_table.InsertRows([row_a, row_b, row_c])
+    self.assertTrue(foo_table.DoesRowExist(row_a))
+    self.assertTrue(foo_table.DoesRowExist(row_b))
+    self.assertTrue(foo_table.DoesRowExist(row_c))
+
+    condition = FooModel(field_r=1.23)
+    foo_table.DeleteRows(condition)
+    self.assertTrue(foo_table.DoesRowExist(row_a))
+    self.assertFalse(foo_table.DoesRowExist(row_b))
+    self.assertFalse(foo_table.DoesRowExist(row_c))
+
+    # Delete all rows, no condition given.
+    condition = FooModel()
+    foo_table.DeleteRows(condition)
+    self.assertFalse(foo_table.DoesRowExist(row_a))
+
   def testUpdateOrInsertRow(self):
     foo_table = self.database.GetOrCreateTable(FooModel)
     foo_table.UpdateOrInsertRow(FooModel(field_i=56, field_t='Five Six'))
