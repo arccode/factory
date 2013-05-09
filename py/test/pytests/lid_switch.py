@@ -11,31 +11,31 @@ dargs:
   ok_audio_path: (optional) an audio file's path to notify an operator to open
       the lid.
   audio_volume: (optional) volume to play the ok audio. Default 100%.
-  use_fixture: (optional, bool) True to use fixture to perform automatic lid
-      on/off test. Default False.
-  lid_close: (optional) a char command to fixture MCU to close the lid.
-      Default 0xC2.
-  lid_open: (optional) a char command to fixture MCU to open the lid.
-      Default 0xC3.
-  serial_param: A parameter tuple of the target serial port:
-      (port, baudrate, bytesize, parity, stopbits, timeout_secs).
-      timeout_secs is used for both read and write timeout.
+  bft_fixture: (optional) {class_name: BFTFixture's import path + module name
+                           params: a dict of params for BFTFixture's Init()}.
+      Default None means no BFT fixture is used.
 """
 
 import asyncore
-import evdev
-import serial
 import datetime
+import evdev
 import unittest
 
-from cros.factory.test import test_ui
 from cros.factory.event_log import Log
+
+from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
 from cros.factory.test.countdown_timer import StartCountdownTimer
+
+# The right BFTFixture module is dynamically imported based on args.bft_fixture.
+# See LidSwitchTest.setUp() for more detail.
+from cros.factory.test.fixture.bft_fixture import (BFTFixture,
+                                                   BFTFixtureException,
+                                                   CreateBFTFixture)
+
 from cros.factory.test.ui_templates import OneSection
 from cros.factory.test.utils import StartDaemonThread
 from cros.factory.utils import file_utils
-from cros.factory.utils import serial_utils
 
 _DEFAULT_TIMEOUT = 10
 _SERIAL_TIMEOUT = 1
@@ -87,17 +87,11 @@ class LidSwitchTest(unittest.TestCase):
         default=100),
     Arg('event_id', int, 'Event ID for evdev. None for auto probe.',
         default=None, optional=True),
-    Arg('use_fixture', bool,
-        'True to use fixture to perform automatic lid on/off test.',
-        default=False),
-    Arg('lid_close', str, 'A char command to fixture MCU to close the lid.',
-        default=chr(0xC2)),
-    Arg('lid_open', str, 'A char command to fixture MCU to open the lid.',
-        default=chr(0xC3)),
-    Arg('serial_param', tuple,
-        'The parameter list of a serial connection we want to use.',
-        default=('/dev/ttyUSB0', 19200, serial.EIGHTBITS, serial.PARITY_NONE,
-                 serial.STOPBITS_ONE , _SERIAL_TIMEOUT)),
+    Arg('bft_fixture', dict,
+        '{class_name: BFTFixture\'s import path + module name\n'
+        ' params: a dict of params for BFTFixture\'s Init()}.\n'
+        'Default None means no BFT fixture is used.',
+        default=None, optional=True),
   ]
 
   def setUp(self):
@@ -110,18 +104,18 @@ class LidSwitchTest(unittest.TestCase):
       self.event_dev = self.ProbeLidEventSource()
     self.ui.AppendCSS(_LID_SWITCH_TEST_DEFAULT_CSS)
     self.template.SetState(_HTML_LID_SWITCH)
-    if self.args.use_fixture:
+
+    # Prepare fixture auto test if needed.
+    self.fixture = None
+    if self.args.bft_fixture:
+      self.fixture = CreateBFTFixture(**self.args.bft_fixture)
+
+    if self.fixture:
       self.ui.SetHTML(_MSG_LID_FIXTURE_CLOSE, id=_ID_PROMPT)
+      self.fixture_lid_closed = False
     else:
       self.ui.SetHTML(_MSG_PROMPT_CLOSE, id=_ID_PROMPT)
 
-    # Prepare fixture auto test if needed.
-    self.serial = None
-    if self.args.use_fixture:
-      try:
-        self.serial = serial_utils.OpenSerial(self.args.serial_param)
-      except serial.SerialException as e:
-        self.ui.Fail(e)
 
     # Create a thread to monitor evdev events.
     self.dispatcher = None
@@ -138,19 +132,24 @@ class LidSwitchTest(unittest.TestCase):
     self._closed_sec = 0
     self._opened_sec = 0
 
-    if self.args.use_fixture:
-      self.CloseLid()
+    if self.fixture:
+      try:
+        self.fixture.SetDeviceEngaged(BFTFixture.Device.LID_MAGNET, True)
+        self.fixture_lid_closed = True
+      except BFTFixtureException as e:
+        self.ui.Fail(e)
 
   def tearDown(self):
     self.TerminateLoop()
     file_utils.TryUnlink('/var/run/power_manager/lid_opened')
-    if self.serial:
-      self.serial.write(self.args.lid_open)
-      self.serial.close()
+    if self.fixture:
+      if self.fixture_lid_closed:
+        self.fixture.SetDeviceEngaged(BFTFixture.Device.LID_MAGNET, False)
+      self.fixture.Disconnect()
     Log('lid_wait_sec',
         time_to_close_sec=(self._closed_sec - self._start_waiting_sec),
         time_to_open_sec=(self._opened_sec - self._closed_sec),
-        use_fixture=self.args.use_fixture)
+        use_fixture=bool(self.fixture))
 
   def getCurrentEpochSec(self):
     '''Returns the time since epoch.'''
@@ -182,24 +181,14 @@ class LidSwitchTest(unittest.TestCase):
   def TerminateLoop(self):
     self.dispatcher.close()
 
-  def _CommandFixture(self, command):
-    if self.serial:
-      try:
-        self.serial.write(command)
-        self.serial.read(1)
-      except serial.SerialTimeoutException:
-        self.ui.Fail('Serial write/read timeout')
-
-  def OpenLid(self):
-    self._CommandFixture(self.args.lid_open)
-
-  def CloseLid(self):
-    self._CommandFixture(self.args.lid_close)
-
   def AskForOpenLid(self):
-    if self.args.use_fixture:
+    if self.fixture:
       self.ui.SetHTML(_MSG_LID_FIXTURE_OPEN, id=_ID_PROMPT)
-      self.OpenLid()
+      try:
+        self.fixture.SetDeviceEngaged(BFTFixture.Device.LID_MAGNET, False)
+        self.fixture_lid_closed = False
+      except BFTFixtureException as e:
+        self.ui.Fail(e)
     else:
       self.ui.SetHTML(_MSG_PROMPT_OPEN, id=_ID_PROMPT)
       self.PlayOkAudio()
