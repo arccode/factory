@@ -4,81 +4,100 @@
 
 """Provides an interface for DUT to interact with BFT fixture."""
 
+import factory_common # pylint: disable=W0611
+from cros.factory.test.utils import Enum
+
 class BFTFixtureException(Exception):
   pass
 
-class BFTFixtureBase(object):
+class BFTFixture(object):
   """Base class of BFT (Board Function Test) fixture.
 
   It defines interfaces for DUT (Device Under Test) to interact with
   BFT fixture.
+
+  Methods for this class will raise BFTFixtureException if a failure occurs.
   """
 
-  # Enums for ScanLED's return value.
-  LED_RED = 0
-  LED_GREEN = 1
-  LED_AMBER = 2
+  LEDColor = Enum(['RED', 'GREEN', 'AMBER'])
+  Device = Enum(['AC_ADAPTER', 'AUDIO_JACK', 'EXT_DISPLAY', 'LID_MAGNET',
+                 'USB_0', 'USB_1', 'USB_2'])
 
-  def Handshake(self):
-    """Returns True if BFT can communicate with DUT well."""
+  def Init(self, **kwargs):
+    """Initializes connection with fixture."""
+    raise NotImplementedError
+
+  def Disconnect(self):
+    """Disconnects fixture.
+
+    Closes the connection to the fixture.
+    """
+    raise NotImplementedError
+
+  def SetDeviceEngaged(self, device, engage):
+    """Engage a device.
+
+    If engage, the fixture plugs the device into the DUT; otherwise,
+    it unplugs the device.
+
+    Args:
+      device: BFT controlled device defined in Device.
+      engage: True to engage device; False to disengage.
+    """
+    raise NotImplementedError
+
+  def Ping(self):
+    """Pings the BFT fixture.
+
+    If ping fails, raises BFTFixtureException.
+    """
     raise NotImplementedError
 
   def GetFixtureId(self):
-    """Returns a fixture ID."""
-    raise NotImplementedError
+    """Gets fixture ID.
 
-  def ScanKeyboard(self):
-    """Triggers keyboard keycode scanner."""
-    raise NotImplementedError
+    Each fixture has its identification number. We use it to collect the ID
+    to figure out if a fixture has a higher error rate for certain test case.
 
-  def CloseLid(self):
-    """Activates a electromagnet in BFT to simulate lid close."""
-    raise NotImplementedError
-
-  def OpenLid(self):
-    """Deactivates a electromagnet in BFT to simulate lid open."""
-    raise NotImplementedError
-
-  def PlugAudioLoopback(self):
-    """Plugs a loopback dongle into headphone/mic jack."""
-    raise NotImplementedError
-
-  def UnplugAudioLoopback(self):
-    """Unplugs the loopback dongle from headphone/mic jack."""
-    raise NotImplementedError
-
-  def LightLED(self, color):
-    """Turns on on-board LED with color specified."""
-    raise NotImplementedError
-
-  def ScanLED(self):
-    """Returns the color seen by fixture's LED sensor."""
+    Returns:
+      Fixture ID (integer).
+    """
     raise NotImplementedError
 
   def ScanBarcode(self):
-    """Triggers a barcode scanner in BFT."""
+    """Triggers barcode scanner.
+
+    In BFT fixture it has barcode scanner to scan motherboard ID.
+    Once the barcode scanner is triggered, the barcode will be sent
+    as a keyboard sequence. It is DUT test program's responsibility
+    to process the scanned result.
+    """
     raise NotImplementedError
 
-  def PlugAC(self):
-    """Plugs AC power."""
+  def SimulateKeystrokes(self):
+    """Triggers keyboard scanner.
+
+    In BFT fixture it has a keyboard scanner. Insead of pressing every key
+    in a keyboard, we attach the DUT with a keyboard scanner, which sends
+    a sequence of keystrokes that covers all keyboard scan line. It is
+    DUT test program's responsibility to receive and verify the keystroke
+    sequence.
+    """
     raise NotImplementedError
 
-  def UnplugAC(self):
-    """Unplugs AC power."""
+  def ScanLED(self, color):
+    """Asks fixture to scan on-board LED with color specified.
+
+    Args:
+      color: color defined in LEDColor.
+    """
     raise NotImplementedError
 
-  def PlugUSB(self, port):
-    """Plugs a USB disk into the specified port."""
-    raise NotImplementedError
+  def GetLEDColor(self):
+    """Gets BFT fixture's LED sensor's value.
 
-  def UnplugUSB(self, port):
-    """Unplugs a USB disk from the specified port."""
-    raise NotImplementedError
-
-  def PlugExtDisplay(self):
-    """Plugs in external display."""
-    raise NotImplementedError
-
-  def UnplugExtDisplay(self):
-    """Unplugs external display."""
+    Returns:
+      Color in LEDColor which is seen by fixture's LED sensor.
+      None if the fixture doesn't sense LED color.
+    """
     raise NotImplementedError
