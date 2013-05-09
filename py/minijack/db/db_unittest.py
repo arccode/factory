@@ -176,6 +176,15 @@ class DatabaseTest(unittest.TestCase):
     with self.assertRaises(db.DatabaseException):
       foo_table.UpdateOrInsertRow(FooModel(field_r=3.4, field_t='Three Four'))
 
+  def testFetchBeforeExecute(self):
+    self.database.GetOrCreateTable(FooModel)
+    executor_factory = self.database.GetExecutorFactory()
+    executor = executor_factory.NewExecutor()
+    result = executor.FetchOne()
+    self.assertIs(None, result)
+    results = executor.FetchAll()
+    self.assertEqual([], results)
+
   def tearDown(self):
     self.database.Close()
 

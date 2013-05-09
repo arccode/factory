@@ -194,7 +194,7 @@ class Executor(object):
   """
   def __init__(self, conn):
     self._conn = conn
-    self._cursor = None
+    self._cursor = self._conn.cursor()
 
   def Execute(self, sql_cmd, args=None, commit=False, many=False):
     """Executes an SQL command.
@@ -206,7 +206,6 @@ class Executor(object):
       many: Do multiple execution. If True, the args argument should be a list.
     """
     logging.debug('Execute SQL command: %s, %s;', sql_cmd, args)
-    self._cursor = self._conn.cursor()
     if not args:
       args = tuple()
     if many:
@@ -295,6 +294,9 @@ class Database(object):
     self._tables = {}
     self._executor_factory = None
 
+  def __del__(self):
+    self.Close()
+
   def Init(self, filename):
     """Initializes the database.
 
@@ -372,4 +374,6 @@ class Database(object):
 
   def Close(self):
     """Closes the database."""
-    self._conn.close()
+    if self._conn:
+      self._conn.close()
+      self._conn = None
