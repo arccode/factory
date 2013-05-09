@@ -86,14 +86,12 @@ class ModelType(type):
   """The metaclass of Model.
 
   It initializes the following class attributes on the creation of Model:
-    _name: A string of the name, the same as the Python Model name.
     _model: The model dict, which contains the mapping of field names to
             field objects. It is used as the schema of the data model.
     _primary_key: The primary key list, which contains a list of the primary
                   key field names.
   """
   def __new__(mcs, name, bases, attrs):
-    attrs['_name'] = name
     model = {}
     primary_key = []
     for attr_name, attr_value in attrs.iteritems():
@@ -116,7 +114,6 @@ class Model(object):
   represent database fields, i.e. subclasses of Field.
 
   Properties:
-    _name: A string of the name, the same as the Python Model name.
     _model: The model dict, which contains the mapping of field names to
             field objects. It is used as the schema of the data model.
     _primary_key: The primary key list, which contains a list of the primary
@@ -125,14 +122,13 @@ class Model(object):
   __metaclass__ = ModelType
 
   # The following class attributes are initialized in the metaclass.
-  _name = None
   _model = {}
   _primary_key = []
 
   @classmethod
   def GetModelName(cls):
     """Gets the model name."""
-    return cls._name
+    return cls.__name__
 
   @classmethod
   def GetDbSchema(cls):
