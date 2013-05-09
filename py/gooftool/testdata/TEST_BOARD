@@ -249,11 +249,13 @@ components:
     items:
       keyboard_gb:
         values: NULL
-        labels: [GB]
+        labels:
+          layout: GB
 
       keyboard_us:
         values: NULL
-        labels: [US]
+        labels:
+          layout: US
 
   storage:
     items:
@@ -262,21 +264,27 @@ components:
           type: SSD
           size: 16G
           serial: '#123456'
-        labels: [SSD, 16G]
+        labels:
+          technology: SSD
+          size: 16G
 
       storage_1:
         values:
           type: SSD
           size: 32G
           serial: '#123456'
-        labels: [SSD, 32G]
+        labels:
+          technology: SSD
+          size: 32G
 
       storage_2:
         values:
           type: HDD
           size: 500G
           serial: '#123456'
-        labels: [HDD, 500G]
+        labels:
+          technology: HDD
+          size: 500G
 
   hash_gbb:
     items:

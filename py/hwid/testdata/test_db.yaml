@@ -176,6 +176,8 @@ components:
           idVendor: 89ab
           idProduct: abcd
           name: Cellular Card
+        labels:
+          technology: 3G
 
   chipset:
     items:
@@ -226,10 +228,14 @@ components:
         values:
           vendor: DRAM 0
           size: 4G
+        labels:
+          size: 4G
 
       dram_1:
         values:
           vendor: DRAM 1
+          size: 4G
+        labels:
           size: 4G
 
   ec_flash_chip:
@@ -252,11 +258,13 @@ components:
     items:
       keyboard_gb:
         values: NULL
-        labels: [GB]
+        labels:
+          layout: GB
 
       keyboard_us:
         values: NULL
-        labels: [US]
+        labels:
+          layout: US
 
   storage:
     items:
@@ -265,21 +273,27 @@ components:
           type: SSD
           size: 16G
           serial: !re '^#123\d+$'
-        labels: [SSD, 16G]
+        labels:
+          technology: SSD
+          size: 16G
 
       storage_1:
         values:
           type: SSD
           size: 32G
           serial: !re '^#123\d+$'
-        labels: [SSD, 32G]
+        labels:
+          technology: SSD
+          size: 32G
 
       storage_2:
         values:
           type: HDD
           size: 500G
           serial: !re '^#123\d+$'
-        labels: [HDD, 500G]
+        labels:
+          technology: HDD
+          size: 500G
 
   hash_gbb:
     items:

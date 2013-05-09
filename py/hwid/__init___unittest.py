@@ -105,6 +105,20 @@ class HWIDTest(unittest2.TestCase):
     fake_result = result.replace('xkb:us::eng', 'xkb:gb:extd:eng')
     self.assertEquals(None, hwid.VerifyProbeResult(fake_result))
 
+  def testGetLabels(self):
+    result = self.results[0]
+    bom = self.database.ProbeResultToBOM(result)
+    bom = self.database.UpdateComponentsOfBOM(bom, {
+        'keyboard': 'keyboard_us', 'dram': 'dram_0',
+        'display_panel': 'display_panel_0'})
+    hwid = Encode(self.database, bom)
+    labels_dict = hwid.GetLabels()
+    self.assertEquals({'dram_0': {'size': '4G'}}, labels_dict['dram'])
+    self.assertEquals({'keyboard_us': {'layout': 'US'}},
+                      labels_dict['keyboard'])
+    self.assertEquals({'storage_0': {'size': '16G', 'technology': 'SSD'}},
+                      labels_dict['storage'])
+
 
 class DatabaseTest(unittest2.TestCase):
   def setUp(self):
@@ -551,7 +565,9 @@ class ComponentsTest(unittest2.TestCase):
           'items': {
               'comp_2': {
                   'values': None,
-                  'labels': ['FOO', 'BAR']}}}}
+                  'labels': {
+                    'label1': 'FOO',
+                    'label2': 'BAR'}}}}}
 
   def setUp(self):
     self.components = Components(ComponentsTest.MOCK_COMPONENTS_DICT)
@@ -566,7 +582,7 @@ class ComponentsTest(unittest2.TestCase):
         {'values': {'field1': Value('foo'), 'field2': Value('bar')}},
         self.components.GetComponentAttributes('comp_cls_1', 'comp_1'))
     self.assertEquals(
-        {'values': None, 'labels': ['FOO', 'BAR']},
+        {'values': None, 'labels': {'label1': 'FOO', 'label2': 'BAR'}},
         self.components.GetComponentAttributes('comp_cls_2', 'comp_2'))
 
   def testMatchComponentsFromValues(self):
@@ -581,7 +597,8 @@ class ComponentsTest(unittest2.TestCase):
     self.assertEquals(
         {'comp_2': {
             'values': None,
-            'labels': ['FOO','BAR']}},
+            'labels': {
+                'label1': 'FOO', 'label2': 'BAR'}}},
         self.components.MatchComponentsFromValues('comp_cls_2', None))
     self.assertEquals(
         {'comp_1': {

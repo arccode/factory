@@ -30,7 +30,10 @@ def GetClassAttributesOnBOM(hwid, comp_cls):
     valid_attributes = {
         'name': 'sandisk_16g',
         'value': 'Sandisk 33456',
-        'labels': ['SSD', '16G']
+        'labels': {
+            'technology': 'SSD',
+            'size': '16G'
+        }
     }
 
   Args:
@@ -64,7 +67,7 @@ def GetClassAttributesOnBOM(hwid, comp_cls):
                                                                    comp)
       results.append(comp)
       if 'labels' in comp_attrs:
-        results.extend(MakeList(comp_attrs['labels']))
+        results.extend(MakeList(comp_attrs['labels'].values()))
     except HWIDException:
       continue
   # If the set is empty, add a None element indicating that the component
