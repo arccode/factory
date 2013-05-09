@@ -11,6 +11,7 @@ antenna path from gobi modem module.
 """
 
 import numpy
+import logging
 import re
 import unittest
 
@@ -22,9 +23,11 @@ from cros.factory.rf.utils import CheckPower
 from cros.factory.test import factory
 from cros.factory.test import utils
 from cros.factory.test.args import Arg
+from cros.factory.utils import net_utils
 
 RX_TEST_COMMAND = 'AT$QCAGC="%s",%d,"%s"'
-
+FTM_WAIT_TIMEOUT_SECS = 10  # Timeout for waiting factory mode ready.
+RETRY_INTERVAL_SECS = 1  # Retry interval in secs.
 
 class CellularGobiRSSI(unittest.TestCase):
   ARGS = [
@@ -41,13 +44,24 @@ class CellularGobiRSSI(unittest.TestCase):
     self.modem = None
 
   def GetRSSI(self, antenna_name, band_name, channel_no):
-    self.modem.SendCommand(RX_TEST_COMMAND % (
-      band_name, channel_no, antenna_name))
-    try:
+    def _CheckFTMError():
+      self.modem.SendCommand(RX_TEST_COMMAND % (
+        band_name, channel_no, antenna_name))
       line = self.modem.ReadLine()
-      match = re.match(r'RSSI: ([-+]?\d+)$', line)
+      logging.info("Modem returned %r", line)
+      if 'restricted to FTM' in line:
+        return (False, line)
+      return (True, line)
+
+    modem_response = net_utils.PollForCondition(
+        condition=_CheckFTMError,
+        timeout=FTM_WAIT_TIMEOUT_SECS,
+        poll_interval_secs=RETRY_INTERVAL_SECS,
+        condition_name='Readiness of factory test mode')[1]
+    try:
+      match = re.match(r'RSSI: ([-+]?\d+)$', modem_response)
       if not match:
-        raise RuntimeError('Modem answered unexpected %r' % line)
+        raise RuntimeError('Modem answered unexpected %r' % modem_response)
       rssi = int(match.group(1))
       self.modem.ReadLine()
       self.modem.ExpectLine('OK')

@@ -173,7 +173,10 @@ def PollForCondition(condition, timeout=10,
   or the timeout is reached.
 
   Args:
-    condition: an boolean method without args to be polled
+    condition: an boolean method without args to be polled. The method can
+        return either a boolean or a tuple if additional information need to
+        be passed to caller. If a tuple is returned, first element will be
+        checked as the boolean result.
     timeout: maximum number of seconds to wait, None means forever.
     poll_interval_secs: interval to poll condition.
     condition_name: description of the condition. Used for TimeoutError when
@@ -184,8 +187,10 @@ def PollForCondition(condition, timeout=10,
   """
   start_time = time.time()
   while True:
-    if condition() is True:
-      return
+    ret = condition()
+    boolean_result = ret[0] if type(ret) == tuple else ret
+    if boolean_result is True:
+      return ret
     if timeout and time.time() + poll_interval_secs - start_time > timeout:
       if condition_name:
         condition_name = 'Timed out waiting for condition: %s' % condition_name
