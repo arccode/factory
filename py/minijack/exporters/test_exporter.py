@@ -6,22 +6,23 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.minijack.exporters.base import ExporterBase
 from cros.factory.minijack.models import Test
 
+
 class TestExporter(ExporterBase):
-  '''The exporter to create the Test table.
+  """The exporter to create the Test table.
 
   TODO(waihong): Unit tests.
-  '''
+  """
   def __init__(self, database):
     super(TestExporter, self).__init__(database)
     self._table = None
 
   def Setup(self):
-    '''This method is called on Minijack start-up.'''
+    """This method is called on Minijack start-up."""
     super(TestExporter, self).Setup()
     self._table = self._database.GetOrCreateTable(Test)
 
   def Handle_start_test(self, packet):
-    '''A handler for a start_test event.'''
+    """A handler for a start_test event."""
     row = Test(
       invocation     = packet.event.get('invocation'),
       device_id      = packet.preamble.get('device_id'),
@@ -34,7 +35,7 @@ class TestExporter(ExporterBase):
     self._table.UpdateOrInsertRow(row)
 
   def Handle_end_test(self, packet):
-    '''A handler for an end_test event.'''
+    """A handler for an end_test event."""
     row = Test(
       invocation     = packet.event.get('invocation'),
       device_id      = packet.preamble.get('device_id'),

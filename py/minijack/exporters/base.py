@@ -3,7 +3,7 @@
 # found in the LICENSE file.
 
 class ExporterBase(object):
-  '''The base class of exporters.
+  """The base class of exporters.
 
   An exporter is a customized class which analyses event logs and dumps their
   knowledge into a database.
@@ -32,10 +32,10 @@ class ExporterBase(object):
   Properties:
     _database: The database object of the database.
     _table: The table object.
-  '''
+  """
   def __init__(self, database):
     self._database = database
 
   def Setup(self):
-    '''This method is called on Minijack start-up.'''
+    """This method is called on Minijack start-up."""
     pass

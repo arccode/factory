@@ -7,6 +7,7 @@ import pprint
 import re
 import yaml
 
+
 # The following YAML strings needs further handler. So far we just simply
 # remove them. It works well now, while tuples are treated as lists, unicodes
 # are treated as strings, objects are dropped.
@@ -14,42 +15,44 @@ import yaml
 YAML_STR_BLACKLIST = (
     r'( !!python/tuple| !!python/unicode| !!python/object[A-Za-z_.:/]+)')
 
+
 class EventBlob(object):
-  '''A structure to wrap the information returned from event log watcher.
+  """A structure to wrap the information returned from event log watcher.
 
   Properties:
     metadata: A dict to keep the metadata.
     chunk: A byte-list to store the orignal event data.
-  '''
+  """
   def __init__(self, metadata, chunk):
     self.metadata = metadata
     self.chunk = chunk
 
+
 class EventStream(list):
-  '''Event Stream Structure.
+  """Event Stream Structure.
 
   An EventStream is a list to store multiple non-preamble events, which share
   the same preamble event.
 
   Properties:
     preamble: The dict of the preamble event.
-  '''
+  """
   def __init__(self, yaml_str):
-    '''Initializer.
+    """Initializer.
 
     Args:
       yaml_str: The string contains multiple yaml-formatted events.
-    '''
+    """
     super(EventStream, self).__init__()
     self.preamble = None
     self._LoadFromYaml(yaml_str)
 
   def _LoadFromYaml(self, yaml_str):
-    '''Loads from multiple yaml-formatted events with delimiters.
+    """Loads from multiple yaml-formatted events with delimiters.
 
     Args:
       yaml_str: The string contains multiple yaml-formatted events.
-    '''
+    """
     # Some un-expected patterns appear in the log. Remove them.
     yaml_str = re.sub(YAML_STR_BLACKLIST, '', yaml_str)
     try:
@@ -68,8 +71,9 @@ class EventStream(list):
       logging.exception('Error on parsing the yaml string "%s": %s',
                         yaml_str, e)
 
+
 class EventPacket(object):
-  '''Event Packet Structure.
+  """Event Packet Structure.
 
   An EventPacket is a non-preamble event combined with its preamble. It is
   used as an argument to pass to the exporters.
@@ -77,21 +81,21 @@ class EventPacket(object):
   Properties:
     preamble: The dict of the preamble event.
     event: The dict of the non-preamble event.
-  '''
+  """
   def __init__(self, preamble, event):
     self.preamble = preamble
     self.event = event
 
   @staticmethod
   def FlattenAttr(attr):
-    '''Generator of flattened attributes.
+    """Generator of flattened attributes.
 
     Args:
       attr: The attr dict/list which may contains multi-level dicts/lists.
 
     Yields:
       A tuple (path_str, leaf_value).
-    '''
+    """
     def _FlattenAttr(attr):
       if isinstance(attr, dict):
         for key, val in attr.iteritems():
@@ -109,14 +113,14 @@ class EventPacket(object):
     return (('.'.join(k), v) for k, v in _FlattenAttr(attr))
 
   def FindAttrContainingKey(self, key):
-    '''Finds the attr in the event that contains the given key.
+    """Finds the attr in the event that contains the given key.
 
     Args:
       key: A string of key.
 
     Returns:
       The dict inside the event that contains the given key.
-    '''
+    """
     def _FindContainingDictForKey(deep_dict, key):
       if isinstance(deep_dict, dict):
         if key in deep_dict.iterkeys():

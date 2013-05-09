@@ -11,56 +11,60 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.test import utils
 from cros.factory.minijack.datatypes import EventStream
 
+
 EVENT_DELIMITER = '---\n'
 LOG_DIR_DATE_FORMAT = '%Y%m%d'
 
+
 class WorkerBase(object):
-  '''The base class of callable workers.
+  """The base class of callable workers.
 
   A worker is an elemental units to process data. It will be delivered to
   multiple processes/machines to complete the job. All its subclasses should
   implement the Process() method.
-  '''
+  """
   def __call__(self, input_reader, output_writer):
-    '''Iterates the input_reader and calls output_write to process the values.
+    """Iterates the input_reader and calls output_write to process the values.
 
     Args:
       input_reader: An iterator to get values.
       output_reader: A callable object to process the values.
-    '''
+    """
     for data in input_reader:
       for result in self.Process(data):
         output_writer(result)
 
   def Process(self, dummy_data):
-    '''A generator to output the processed results of the given data.'''
+    """A generator to output the processed results of the given data."""
     raise NotImplementedError
 
+
 class IdentityWorker(WorkerBase):
-  '''A callable worker to simply put the data from input to output.'''
+  """A callable worker to simply put the data from input to output."""
   def Process(self, data):
     yield data
 
+
 class EventLoadingWorker(WorkerBase):
-  '''A callable worker for loading events and converting to Python objects.
+  """A callable worker for loading events and converting to Python objects.
 
   TODO(waihong): Unit tests.
 
   Properties:
     _log_dir: The path of the event log directory.
-  '''
+  """
   def __init__(self, log_dir):
     super(EventLoadingWorker, self).__init__()
     self._log_dir = log_dir
 
   def Process(self, blob):
-    '''Generates an event stream from an given event blob.'''
+    """Generates an event stream from an given event blob."""
     yield self._ConvertToEventStream(blob)
 
   def _GetPreambleFromLogFile(self, log_path):
-    '''Gets the preamble event dict from a given log file path.'''
+    """Gets the preamble event dict from a given log file path."""
     def ReadLinesUntil(lines, delimiter):
-      '''A generator to yield the lines iterator until the delimiter matched.'''
+      """A generator to yield the lines iterator until the delimiter matched."""
       for line in lines:
         if line == delimiter:
           break
@@ -81,7 +85,7 @@ class EventLoadingWorker(WorkerBase):
     return stream.preamble
 
   def _ConvertToEventStream(self, blob):
-    '''Callback for event log watcher.'''
+    """Callback for event log watcher."""
     start_time = time.time()
     log_name = blob.metadata['log_name']
     stream = EventStream(blob.chunk)
@@ -109,8 +113,9 @@ class EventLoadingWorker(WorkerBase):
                    time.time() - start_time)
       return stream
 
+
 def GetYesterdayLogDir(today_dir):
-  '''Get the dir name for one day before.
+  """Gets the dir name for one day before.
 
   Args:
     today_dir: A string of dir name.
@@ -126,7 +131,7 @@ def GetYesterdayLogDir(today_dir):
   'logs.20130228'
   >>> GetYesterdayLogDir('logs.20140101')
   'logs.20131231'
-  '''
+  """
   try:
     today = datetime.strptime(today_dir, 'logs.' + LOG_DIR_DATE_FORMAT)
   except ValueError:

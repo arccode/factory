@@ -3,7 +3,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-'''
+"""
 Minijack is a real-time log converter for on-site factory log analysis.
 
 It runs in the same device of the shopfloor service and keeps monitoring
@@ -14,7 +14,7 @@ these logs using SQL queries.
 This file starts a Minijack process which services forever until an user
 presses Ctrl-C to terminate it. To use it, invoke as a standalone program:
   ./minijack [options]
-'''
+"""
 
 import logging
 import multiprocessing
@@ -31,6 +31,7 @@ from cros.factory.minijack.datatypes import EventBlob, EventPacket
 from cros.factory.minijack.workers import IdentityWorker, EventLoadingWorker
 from cros.factory.test import utils
 
+
 SHOPFLOOR_DATA_DIR = 'shopfloor_data'
 EVENT_LOG_DB_FILE = 'event_log_db'
 MINIJACK_DB_FILE = 'minijack_db'
@@ -39,8 +40,9 @@ DEFAULT_WATCH_INTERVAL = 30  # seconds
 DEFAULT_JOB_NUMBER = 6
 DEFAULT_QUEUE_SIZE = 10
 
+
 class EventSinker(object):
-  '''Event Sinker which invokes the proper exporters to sink events to database.
+  """Event Sinker which invokes the proper exporters to sink events to database.
 
   TODO(waihong): Unit tests.
 
@@ -49,7 +51,7 @@ class EventSinker(object):
     _all_exporters: A list of all registered exporters.
     _event_invokers: A dict of lists, where the event id as key and the list
                      of handler functions as value.
-  '''
+  """
   def __init__(self, database):
     self._database = database
     self._all_exporters = []
@@ -57,7 +59,7 @@ class EventSinker(object):
     self.RegisterDefaultExporters()
 
   def RegisterDefaultExporters(self):
-    '''Registers the default exporters.'''
+    """Registers the default exporters."""
     # Find all exporter modules named xxx_exporter.
     exporter_pkg = __import__('cros.factory.minijack',
                               fromlist=['exporters']).exporters
@@ -72,7 +74,7 @@ class EventSinker(object):
         self.RegisterExporter(exporter)
 
   def RegisterExporter(self, exporter):
-    '''Registers a exporter object.'''
+    """Registers a exporter object."""
     logging.debug('Register the exporter: %s', exporter)
     self._all_exporters.append(exporter)
     # Search all Handle_xxx() methods in the exporter instance.
@@ -90,7 +92,7 @@ class EventSinker(object):
     exporter.Setup()
 
   def SinkEventStream(self, stream):
-    '''Sinks the given event stream.'''
+    """Sinks the given event stream."""
     start_time = time.time()
     for event in stream:
       packet = EventPacket(stream.preamble, event)
@@ -101,7 +103,7 @@ class EventSinker(object):
                  time.time() - start_time)
 
   def SinkEventPacket(self, packet):
-    '''Sink the given event packet.'''
+    """Sinks the given event packet."""
     # Event id 'all' is a special case, which means the handlers accepts
     # all kinds of events.
     for event_id in ('all', packet.event['EVENT']):
@@ -113,8 +115,9 @@ class EventSinker(object):
           logging.exception('Error on invoking the exporter: %s',
                             utils.FormatExceptionOnly())
 
+
 class Minijack(object):
-  '''The main Minijack flow.
+  """The main Minijack flow.
 
   TODO(waihong): Unit tests.
 
@@ -124,7 +127,7 @@ class Minijack(object):
     _worker_processes: A list of worker processes.
     _event_blob_queue: The queue storing event blobs.
     _event_stream_queue: The queue storing event streams.
-  '''
+  """
   def __init__(self):
     self._database = None
     self._log_watcher = None
@@ -133,7 +136,7 @@ class Minijack(object):
     self._event_stream_queue = None
 
   def Init(self):
-    '''Initializes Minijack.'''
+    """Initializes Minijack."""
     # Ignore Ctrl-C for all processes. The main process will be changed later.
     # We don't want Ctrl-C to break the sub-process works. The terminations of
     # sub-processes are controlled by the main process.
@@ -251,7 +254,7 @@ class Minijack(object):
             self.CheckQueuesEmpty()))))
 
   def Destory(self):
-    '''Destorys Minijack.'''
+    """Destorys Minijack."""
     logging.info('Stopping event log watcher...')
     if self._log_watcher and self._log_watcher.IsThreadStarted():
       self._log_watcher.StopWatchThread()
@@ -270,19 +273,19 @@ class Minijack(object):
     logging.info('Minijack is shutdown gracefully.')
 
   def HandleEventLogs(self, chunk_info):
-    '''Callback for event log watcher.'''
+    """Callback for event log watcher."""
     for log_name, chunk in chunk_info:
       logging.info('Get new event logs (%s, %d bytes)', log_name, len(chunk))
       blob = EventBlob({'log_name': log_name}, chunk)
       self._event_blob_queue.put(blob)
 
   def CheckQueuesEmpty(self):
-    '''Checks queues empty to info users Minijack is idle.'''
+    """Checks queues empty to info users Minijack is idle."""
     if all((self._event_blob_queue.empty(), self._event_stream_queue.empty())):
       logging.info('Minijack is idle.')
 
   def Main(self):
-    '''The main Minijack logic.'''
+    """The main Minijack logic."""
     self.Init()
     logging.debug('Start the subprocesses and the event log watcher thread')
     for process in self._worker_processes:
@@ -295,6 +298,7 @@ class Minijack(object):
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
     signal.pause()
+
 
 if __name__ == '__main__':
   minijack = Minijack()

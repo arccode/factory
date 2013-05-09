@@ -7,13 +7,16 @@ import sqlite3
 
 import models
 
+
 IntegrityError = sqlite3.IntegrityError
+
 
 class DatabaseException(Exception):
   pass
 
+
 class Table(object):
-  '''A database table.
+  """A database table.
 
   It abstracts the behaviors of a database table, like table creation,
   row insertion, etc. It controls the database using SQL operators.
@@ -23,7 +26,7 @@ class Table(object):
     _model: The model dict, the schema of the table.
     _table_name: The name of the table.
     _primary_key: A list of the primary key fields.
-  '''
+  """
   def __init__(self, executor_factory):
     self._executor_factory = executor_factory
     self._model = None
@@ -31,26 +34,30 @@ class Table(object):
     self._primary_key = []
 
   def Init(self, model):
-    '''Initializes the table.'''
+    """Initializes the table.
+
+    Args:
+      model: A model class or a model instance.
+    """
     self._model = models.ToModelSubclass(model)
     self._table_name = model.GetModelName()
     self._primary_key = model.GetPrimaryKey()
 
   def CreateTable(self):
-    '''Creates the table.'''
+    """Creates the table."""
     sql_cmd = self._model.SqlCmdCreateTable()
     executor = self._executor_factory.NewExecutor()
     executor.Execute(sql_cmd, commit=True)
 
   def InsertRow(self, row):
-    '''Inserts the row into the table.
+    """Inserts a row into the table.
 
     Args:
       row: A model instance containing the insert content.
 
     Raises:
       DatabaseException if not a valid model instance.
-    '''
+    """
     if not self._model.IsValid(row):
       raise DatabaseException('Insert a row with a wrong model.')
 
@@ -59,14 +66,14 @@ class Table(object):
     executor.Execute(sql_cmd, args, commit=True)
 
   def InsertRows(self, rows):
-    '''Inserts multiple rows into the table.
+    """Inserts multiple rows into the table.
 
     Args:
       rows: A list of model instances containing the insert content.
 
     Raises:
       DatabaseException if not a valid model instance.
-    '''
+    """
     if not isinstance(rows, list):
       raise DatabaseException('The given row is not a list.')
 
@@ -84,14 +91,14 @@ class Table(object):
     executor.Execute(sql_cmd, args_list, commit=True, many=True)
 
   def UpdateRow(self, row):
-    '''Updates the row in the table.
+    """Updates the row in the table.
 
     Args:
       row: A model instance containing the update content.
 
     Raises:
       DatabaseException if not a valid model instance.
-    '''
+    """
     if not self._model.IsValid(row):
       raise DatabaseException('Update a row with a wrong model.')
 
@@ -100,29 +107,29 @@ class Table(object):
     executor.Execute(sql_cmd, args, commit=True)
 
   def DoesRowExist(self, condition):
-    '''Checks if a row exists or not.
+    """Checks if a row exists or not.
 
     Args:
       condition: A model instance describing the checking condition.
 
     Returns:
       True if exists; otherwise, False.
-    '''
+    """
     return bool(self.GetOneRow(condition))
 
   def GetOneRow(self, condition):
-    '''Gets the first row which matches the given condition.
+    """Gets the first row which matches the given condition.
 
     Args:
       condition: A model instance describing the checking condition.
 
     Returns:
       A model instance containing the first matching row.
-    '''
+    """
     return self.GetRows(condition, one_row=True)
 
   def GetRows(self, condition, one_row=False):
-    '''Gets all the rows which match the given condition.
+    """Gets allthe rows which match the given condition.
 
     Args:
       condition: A model instance describing the checking condition.
@@ -133,7 +140,7 @@ class Table(object):
 
     Raises:
       DatabaseException if not a valid model instance.
-    '''
+    """
     if not self._model.IsValid(condition):
       raise DatabaseException('The condition is a wrong model.')
 
@@ -146,18 +153,19 @@ class Table(object):
       return executor.FetchAll(model=condition)
 
   def UpdateOrInsertRow(self, row):
-    '''Updates the row or insert it if not exists.
+    """Updates the row or insert it if not exists.
 
     Args:
       row: A model instance containing the update content.
 
     Raises:
       DatabaseException if not a valid model instance.
-    '''
+    """
     if not self._model.IsValid(row):
       raise DatabaseException('Update/insert a row with a wrong model.')
 
-    # If there is no primary key in the table, just insert it.
+    # We use the primary key as the condition to update the row, If there is no
+    # primary key in the table, just simply insert it. Don't do update.
     if not self._primary_key:
       self.InsertRow(row)
       return
@@ -173,8 +181,9 @@ class Table(object):
     else:
       self.InsertRow(row)
 
+
 class Executor(object):
-  '''A database executor.
+  """A database executor.
 
   It abstracts the underlying database execution behaviors, like executing
   an SQL query, fetching results, etc.
@@ -182,19 +191,20 @@ class Executor(object):
   Properties:
     _conn: The connection of the sqlite3 database.
     _cursor: The cursor of the sqlite3 database.
-  '''
+  """
   def __init__(self, conn):
     self._conn = conn
     self._cursor = None
 
   def Execute(self, sql_cmd, args=None, commit=False, many=False):
-    '''Executes an SQL command.
+    """Executes an SQL command.
 
     Args:
       sql_cmd: The SQL command.
-      args: The arguments passed to the SQL command.
+      args: The arguments passed to the SQL command, a tuple or a dict.
       commit: True to commit the transaction, used when modifying the content.
-    '''
+      many: Do multiple execution. If True, the args argument should be a list.
+    """
     logging.debug('Execute SQL command: %s, %s;', sql_cmd, args)
     self._cursor = self._conn.cursor()
     if not args:
@@ -207,7 +217,7 @@ class Executor(object):
       self._conn.commit()
 
   def FetchOne(self, model=None):
-    '''Fetches one row of the previous query.
+    """Fetches one row of the previous query.
 
     Args:
       model: The model instance or class, describing the schema. The return
@@ -216,7 +226,7 @@ class Executor(object):
 
     Returns:
       A model instance if the argument model is valid; otherwise, a raw tuple.
-    '''
+    """
     result = self._cursor.fetchone()
     if result and model:
       model = models.ToModelSubclass(model)
@@ -225,7 +235,7 @@ class Executor(object):
       return result
 
   def FetchAll(self, model=None):
-    '''Fetches all rows of the previous query.
+    """Fetches all rows of the previous query.
 
     Args:
       model: The model instance or class, describing the schema. The return
@@ -235,7 +245,7 @@ class Executor(object):
     Returns:
       A list of model instances if the argument model is valid; otherwise, a
       list of raw tuples.
-    '''
+    """
     results = self._cursor.fetchall()
     if results and model:
       model = models.ToModelSubclass(model)
@@ -243,29 +253,33 @@ class Executor(object):
     else:
       return results
 
+
 class ExecutorFactory(object):
-  '''A factory to generate Executor objects.
+  """A factory to generate Executor objects.
 
   Properties:
     _conn: The connection of the sqlite3 database.
-  '''
+  """
   def __init__(self, conn):
     self._conn = conn
 
   def NewExecutor(self):
-    '''Generates a new Executor object.'''
+    """Generates a new Executor object."""
     return Executor(self._conn)
 
+
+# Don't change the class name. 'sqlite_master' is the special table in Sqlite.
 class sqlite_master(models.Model):
-  '''The master table of Sqlite database which contains the info of tables.'''
+  """The master table of Sqlite database which contains the info of tables."""
   type     = models.TextField()
   name     = models.TextField()
   tbl_name = models.TextField()
   rootpage = models.IntegerField()
   sql      = models.TextField()
 
+
 class Database(object):
-  '''A database to store Minijack results.
+  """A database to store Minijack results.
 
   It abstracts the underlying database. It uses sqlite3 as an implementation.
 
@@ -274,7 +288,7 @@ class Database(object):
     _master_table: The master table of the database.
     _tables: A dict of the created tables.
     _executor_factory: A factory of executor objects.
-  '''
+  """
   def __init__(self):
     self._conn = None
     self._master_table = None
@@ -282,7 +296,11 @@ class Database(object):
     self._executor_factory = None
 
   def Init(self, filename):
-    '''Initializes the database.'''
+    """Initializes the database.
+
+    Args:
+      filename: The filename of the database.
+    """
     self._conn = sqlite3.connect(filename)
     # Make sqlite3 always return bytestrings for the TEXT data type.
     self._conn.text_factory = str
@@ -297,22 +315,43 @@ class Database(object):
     self._master_table.Init(sqlite_master)
 
   def DoesTableExist(self, model):
-    '''Checks the table with the given model schema exists or not.'''
+    """Checks the table with the given model schema exists or not.
+
+    Args:
+      model: A model class or a model instance.
+
+    Returns:
+      True if exists; otherwise, False.
+    """
     condition = sqlite_master(name=model.GetModelName())
     return self._master_table.DoesRowExist(condition)
 
   def GetExecutorFactory(self):
-    '''Gets the executor factory.'''
+    """Gets the executor factory."""
     return self._executor_factory
 
   def VerifySchema(self, model):
-    '''Verifies the table in the database has the same given model schema.'''
+    """Verifies the table in the database has the same given model schema.
+
+    Args:
+      model: A model class or a model instance.
+
+    Returns:
+      True if the same schema; otherwise, False.
+    """
     condition = sqlite_master(name=model.GetModelName())
     row = self._master_table.GetOneRow(condition)
     return row.sql == model.SqlCmdCreateTable() if row else False
 
   def GetOrCreateTable(self, model):
-    '''Gets or creates a table using the schema of the given model.'''
+    """Gets or creates a table using the schema of the given model.
+
+    Args:
+      model: A string, a model class, or a model instance.
+
+    Returns:
+      The table instance.
+    """
     if isinstance(model, str):
       table_name = model
     else:
@@ -332,5 +371,5 @@ class Database(object):
     return self._tables[table_name]
 
   def Close(self):
-    '''Closes the database.'''
+    """Closes the database."""
     self._conn.close()

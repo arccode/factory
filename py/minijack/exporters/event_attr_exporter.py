@@ -10,11 +10,12 @@ from cros.factory.minijack.datatypes import EventPacket
 from cros.factory.minijack.exporters.base import ExporterBase
 from cros.factory.minijack.models import Event, Attr
 
+
 class EventAttrExporter(ExporterBase):
-  '''The exporter to create the Event and Attr tables.
+  """The exporter to create the Event and Attr tables.
 
   TODO(waihong): Unit tests.
-  '''
+  """
   def __init__(self, database):
     super(EventAttrExporter, self).__init__(database)
     self._event_table = None
@@ -26,7 +27,7 @@ class EventAttrExporter(ExporterBase):
     self._attr_table = self._database.GetOrCreateTable(Attr)
 
   def Handle_all(self, packet):
-    '''A handler for all event types.'''
+    """A handler for all event types."""
     # Just insert the row for speed-up. May raises an exception if the row
     # already exists.
     try:
@@ -38,7 +39,7 @@ class EventAttrExporter(ExporterBase):
                    packet.preamble.get('device_id'), packet.event.get('TIME'))
 
   def _InsertEvent(self, packet):
-    '''Retrieves event information and inserts to Event table'''
+    """Retrieves event information and inserts to Event table"""
     row = Event(
       device_id      = packet.preamble.get('device_id'),
       time           = packet.event.get('TIME'),
@@ -56,7 +57,7 @@ class EventAttrExporter(ExporterBase):
     self._event_table.InsertRow(row)
 
   def _InsertAttr(self, packet):
-    '''Retrieves attr information and inserts to Attr table'''
+    """Retrieves attr information and inserts to Attr table"""
     RESERVED_PATH = ('EVENT', 'SEQ', 'TIME')
     rows = []
     # As the event is a tree struct which contains dicts or lists,
@@ -73,8 +74,9 @@ class EventAttrExporter(ExporterBase):
     if rows:
       self._attr_table.InsertRows(rows)
 
+
 def _ToAsciiString(value):
-  '''Convert any type object to an ascii string.'''
+  """Convert any type object to an ascii string."""
   if isinstance(value, str):
     return value.encode('string_escape')
   elif isinstance(value, unicode):

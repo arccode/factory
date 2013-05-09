@@ -8,11 +8,13 @@ import unittest
 import factory_common  # pylint: disable=W0611
 from cros.factory.minijack.db import models
 
+
 # Example models for test.
 class FooModel(models.Model):
   field_i = models.IntegerField(primary_key=True)
   field_r = models.RealField()
   field_t = models.TextField()
+
 
 class BarModel(models.Model):
   key1 = models.TextField(primary_key=True)
@@ -20,6 +22,7 @@ class BarModel(models.Model):
   val1 = models.TextField()
   val2 = models.IntegerField()
   val3 = models.RealField()
+
 
 class ModelTest(unittest.TestCase):
   def setUp(self):
@@ -110,6 +113,7 @@ class ModelTest(unittest.TestCase):
   def testToModelSubclass(self):
     self.assertIs(models.ToModelSubclass(self.foo_model), FooModel)
     self.assertIs(models.ToModelSubclass(FooModel), FooModel)
+
 
 if __name__ == "__main__":
   unittest.main()

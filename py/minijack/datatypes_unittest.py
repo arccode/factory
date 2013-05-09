@@ -9,7 +9,8 @@ import unittest
 import factory_common  # pylint: disable=W0611
 from cros.factory.minijack.datatypes import EventStream, EventPacket
 
-_YAML_STR_EXAMPLE = '''EVENT: preamble
+
+_YAML_STR_EXAMPLE = """EVENT: preamble
 SEQ: 3622
 TIME: '2013-04-08T03:16:23.250Z'
 boot_id: 855b3e77-730a-4689-bbe5-6e64dbaeb939
@@ -68,7 +69,8 @@ SEQ: 3624
 TIME: '2013-04-08T03:16:39.156Z'
 waived_tests: []
 ---
-'''
+"""
+
 
 class EventStreamTest(unittest.TestCase):
   def setUp(self):
@@ -114,6 +116,7 @@ class EventStreamTest(unittest.TestCase):
     self.assertEqual('d0:xx:xx:xx:xx:df', stream.preamble['device_id'])
     self.assertEqual(0, len(stream))
 
+
 class EventPacketTest(unittest.TestCase):
   def setUp(self):
     yaml_str = _YAML_STR_EXAMPLE
@@ -145,6 +148,7 @@ class EventPacketTest(unittest.TestCase):
     self.assertIn('tag', attr_dict)
     self.assertIn('path', attr_dict)
     self.assertIn('SMT.CheckeMMCFirmwareVersion', attr_dict['path'])
+
 
 if __name__ == "__main__":
   logging.disable(logging.ERROR)

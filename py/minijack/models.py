@@ -5,6 +5,7 @@
 import factory_common  # pylint: disable=W0611
 from cros.factory.minijack.db import models
 
+
 class Event(models.Model):
   device_id      = models.TextField(primary_key=True)
   # We store time in TEXT as sqlite3 does not support milliseconds.
@@ -21,6 +22,7 @@ class Event(models.Model):
   image_id       = models.TextField()
   log_id         = models.TextField()
 
+
 class Attr(models.Model):
   # No primary_key for the Attr table for speed-up. Duplication check is
   # done using the Event table.
@@ -28,6 +30,7 @@ class Attr(models.Model):
   time      = models.TextField()
   attr      = models.TextField()
   value     = models.TextField()
+
 
 class Test(models.Model):
   invocation     = models.TextField(primary_key=True)
@@ -42,6 +45,7 @@ class Test(models.Model):
   duration       = models.RealField()
   dargs          = models.TextField()
 
+
 class Device(models.Model):
   device_id        = models.TextField(primary_key=True)
   goofy_init_time  = models.TextField()
@@ -55,6 +59,7 @@ class Device(models.Model):
   ips_time         = models.TextField()
   latest_test      = models.TextField()
   latest_test_time = models.TextField()
+
 
 class Component(models.Model):
   device_id = models.TextField(primary_key=True)

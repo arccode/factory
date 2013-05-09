@@ -4,8 +4,9 @@
 
 import inspect
 
+
 class Field(object):
-  '''The base class of fields.
+  """The base class of fields.
 
   All the database fields are abstracted in fields, like integer fields
   (IntegerField), text fields (TextField), etc. This is the base class of
@@ -13,29 +14,30 @@ class Field(object):
 
   Properties:
     _primary_key: True if this field is a primary key; otherwise, False.
-  '''
+  """
   def __init__(self, primary_key=False):
     self._primary_key = primary_key
 
   def IsPrimaryKey(self):
-    '''Is this field a primary key?'''
+    """Is this field a primary key?"""
     return self._primary_key
 
   def IsValid(self, value):
-    '''Is the given value a valid field?'''
+    """Is the given value a valid field?"""
     raise NotImplementedError()
 
   def ToPython(self, value):
-    '''Converts the value to a Python type.'''
+    """Converts the value to a Python type."""
     raise NotImplementedError()
 
   def GetDefault(self):
-    '''Gets the default value of this field.'''
+    """Gets the default value of this field."""
     raise NotImplementedError()
 
   def GetDbType(self):
-    '''Gets the database type of this field in a string.'''
+    """Gets the database type of this field in a string."""
     raise NotImplementedError()
+
 
 class IntegerField(Field):
   def IsValid(self, value):
@@ -49,6 +51,7 @@ class IntegerField(Field):
 
   def GetDbType(self):
     return 'INTEGER'
+
 
 class RealField(Field):
   def IsValid(self, value):
@@ -64,6 +67,7 @@ class RealField(Field):
   def GetDbType(self):
     return 'REAL'
 
+
 class TextField(Field):
   def IsValid(self, value):
     return isinstance(value, str)
@@ -77,8 +81,9 @@ class TextField(Field):
   def GetDbType(self):
     return 'TEXT'
 
+
 class ModelType(type):
-  '''The metaclass of Model.
+  """The metaclass of Model.
 
   It initializes the following class attributes on the creation of Model:
     _name: A string of the name, the same as the Python Model name.
@@ -86,7 +91,7 @@ class ModelType(type):
             field objects. It is used as the schema of the data model.
     _primary_key: The primary key list, which contains a list of the primary
                   key field names.
-  '''
+  """
   def __new__(mcs, name, bases, attrs):
     attrs['_name'] = name
     model = {}
@@ -103,12 +108,12 @@ class ModelType(type):
     attrs['_primary_key'] = primary_key
     return super(ModelType, mcs).__new__(mcs, name, bases, attrs)
 
+
 class Model(object):
-  '''The base class of models.
+  """The base class of models.
 
   A model is the data definition of the database table. Its attributes
-  represents database fields, i.e. subclasses of Field. This is the base
-  class of all models.
+  represent database fields, i.e. subclasses of Field.
 
   Properties:
     _name: A string of the name, the same as the Python Model name.
@@ -116,7 +121,7 @@ class Model(object):
             field objects. It is used as the schema of the data model.
     _primary_key: The primary key list, which contains a list of the primary
                   key field names.
-  '''
+  """
   __metaclass__ = ModelType
 
   # The following class attributes are initialized in the metaclass.
@@ -126,32 +131,32 @@ class Model(object):
 
   @classmethod
   def GetModelName(cls):
-    '''Gets the model name.'''
+    """Gets the model name."""
     return cls._name
 
   @classmethod
   def GetDbSchema(cls):
-    '''Gets the schema dict, which maps a field name to a database type.'''
+    """Gets the schema dict, which maps a field name to a database type."""
     return dict((k, v.GetDbType()) for k, v in cls._model.iteritems())
 
   @classmethod
   def GetPrimaryKey(cls):
-    '''Gets the list of primary key field names.'''
+    """Gets the list of primary key field names."""
     return cls._primary_key
 
   @classmethod
   def IsValid(cls, instance):
-    '''Is the given instance a valid model?'''
+    """Is the given instance a valid model?"""
     return isinstance(instance, cls)
 
   @classmethod
   def GetFieldNames(cls):
-    '''Get the tuple of all field names.'''
+    """Gets the tuple of all field names."""
     return tuple(f for f in cls._model.iterkeys())
 
   @classmethod
   def SqlCmdCreateTable(cls):
-    '''Gets the SQL command of creating a table using the model schema.'''
+    """Gets the SQL command of creating a table using the model schema."""
     columns = [k + ' ' + v for k, v in cls.GetDbSchema().iteritems()]
     primary_key = cls.GetPrimaryKey()
     if primary_key:
@@ -171,7 +176,7 @@ class Model(object):
       self._InitFromKwargs(**kwargs)
 
   def _InitFromTuple(self, values):
-    '''Initializes the Model object by giving a tuple.'''
+    """Initializes the Model object by giving a tuple."""
     field_names = self.GetFieldNames()
     if len(field_names) != len(values):
       raise ValueError('The size of given tuple is not matched.')
@@ -179,7 +184,7 @@ class Model(object):
     self._InitFromKwargs(**kwargs)
 
   def _InitFromKwargs(self, **kwargs):
-    '''Initializes the Model object by giving keyword arguments.'''
+    """Initializes the Model object by giving keyword arguments."""
     for field_name, field_value in kwargs.iteritems():
       if field_name not in self._model:
         raise ValueError('Field name %s not exists.' % field_name)
@@ -195,29 +200,29 @@ class Model(object):
       setattr(self, field_name, field_value)
 
   def GetFields(self):
-    '''Get the dict of all fields, which maps a field name to a value.'''
+    """Gets the dict of all fields, which maps a field name to a value."""
     return dict((f, getattr(self, f)) for f in self._model.iterkeys())
 
   def GetFieldValues(self):
-    '''Get the tuple of all field values.'''
+    """Gets the tuple of all field values."""
     return tuple(getattr(self, f) for f in self._model.iterkeys())
 
   def GetNonEmptyFields(self):
-    '''Get the dict of all non-empty fields.'''
+    """Gets the dict of all non-empty fields."""
     return dict((f, getattr(self, f)) for f in self._model.iterkeys()
                 if getattr(self, f))
 
   def GetNonEmptyFieldNames(self):
-    '''Get the tuple of all field names of non-empty fields.'''
+    """Gets the tuple of all field names of non-empty fields."""
     return tuple(f for f in self._model.iterkeys() if getattr(self, f))
 
   def GetNonEmptyFieldValues(self):
-    '''Get the tuple of all field values of non-empty fields.'''
+    """Gets the tuple of all field values of non-empty fields."""
     return tuple(getattr(self, f) for f in self._model.iterkeys()
                  if getattr(self, f))
 
   def CloneOnlyPrimaryKey(self):
-    '''Clone this model object but with the primary key fields.'''
+    """Clones this model object but with the primary key fields."""
     new_model = {}
     for field_name, field_value in self.GetFields().iteritems():
       if field_name in self._primary_key:
@@ -225,7 +230,7 @@ class Model(object):
     return ToModelSubclass(self)(**new_model)
 
   def SqlCmdInsert(self):
-    '''Gets the SQL command tuple of inserting a row into the table.'''
+    """Gets the SQL command tuple of inserting a row into the table."""
     # Insert all fields even they are ''/0, i.e. the default values.
     field_names = self.GetFieldNames()
     field_values = self.GetFieldValues()
@@ -236,7 +241,7 @@ class Model(object):
     return sql_cmd, field_values
 
   def SqlCmdUpdate(self):
-    '''Gets the SQL command tuple of updating a row into the table.'''
+    """Gets the SQL command tuple of updating a row into the table."""
     # Update the non-empty fields, using the primary key as the condition.
     field_names = self.GetFieldNames()
     field_names = self.GetNonEmptyFieldNames()
@@ -251,7 +256,7 @@ class Model(object):
     return sql_cmd, field_values + condition_values
 
   def SqlCmdSelect(self):
-    '''Gets the SQL command tuple of selecting the matched rows.'''
+    """Gets the SQL command tuple of selecting the matched rows."""
     # Use the non-empty fields as the condition.
     field_names = self.GetNonEmptyFieldNames()
     field_values = self.GetNonEmptyFieldValues()
@@ -262,20 +267,19 @@ class Model(object):
                 ' AND '.join([f + ' = ?' for f in field_names])))
     return sql_cmd, field_values
 
+
 def ToModelSubclass(model):
-  '''Get the class of a given instance of model subclass.
+  """Gets the class of a given instance of model subclass.
 
   Args:
     model: An instance of a subclass of Model, or just a subclass of Model.
 
   Raises:
     ValueError() if not a subclass of Model.
-  '''
+  """
   if not inspect.isclass(model):
     model = type(model)
   if issubclass(model, Model):
     return model
   else:
     raise ValueError('Not a valid Model subclass: %s' % model)
-
-
