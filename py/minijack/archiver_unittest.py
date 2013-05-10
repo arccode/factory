@@ -26,7 +26,7 @@ class ArchiverTest(unittest.TestCase):
     self._main_db.Init(self._db_path)
     for i in range(1, 11):
       self._main_db.Insert(Device(
-          device_id=('id:%d' % i),
+          device_id=('did:%d' % i),
           latest_test=('GoogleRequiredTests.Finalize' if i % 2 else 'Other'),
           latest_test_time=('2013-05-%02dT12:34:56.789Z' % i),
           minijack_status=(STATUS_ARCHIVED if i == 3 else '')))
@@ -34,10 +34,11 @@ class ArchiverTest(unittest.TestCase):
       # The archived device, i.e. 3, has no Event/Attr record.
       if i != 3:
         self._main_db.Insert(Event(
-            device_id=('id:%d' % i),
+            event_id=('eid:%d' % i),
+            device_id=('did:%d' % i),
             time=('2013-05-%02dT12:34:56.789Z' % i)))
         self._main_db.Insert(Attr(
-            device_id=('id:%d' % i),
+            device_id=('did:%d' % i),
             time=('2013-05-%02dT12:34:56.789Z' % i)))
 
   def testArchiveBefore(self):
@@ -57,16 +58,16 @@ class ArchiverTest(unittest.TestCase):
         backup_db.Init(backup_db_path)
 
         # Check the Table/Attr rows moved to the backup db.
-        condition = Event(device_id=('id:%d' % i))
+        condition = Event(device_id=('did:%d' % i))
         self.assertFalse(self._main_db.CheckExists(condition))
         self.assertTrue(backup_db.CheckExists(condition))
 
-        condition = Attr(device_id=('id:%d' % i))
+        condition = Attr(device_id=('did:%d' % i))
         self.assertFalse(self._main_db.CheckExists(condition))
         self.assertTrue(backup_db.CheckExists(condition))
 
         # Check the minijack_status field in Device updated.
-        condition = Device(device_id=('id:%d' % i))
+        condition = Device(device_id=('did:%d' % i))
         device = self._main_db.GetOne(condition)
         self.assertEquals(STATUS_ARCHIVED, device.minijack_status)
 
@@ -77,9 +78,9 @@ class ArchiverTest(unittest.TestCase):
         # The archived device, i.e. 3, has no Event/Attr record.
         if (i != 3):
           # Check the Table/Attr rows are still there.
-          condition = Event(device_id=('id:%d' % i))
+          condition = Event(device_id=('did:%d' % i))
           self.assertTrue(self._main_db.CheckExists(condition))
-          condition = Attr(device_id=('id:%d' % i))
+          condition = Attr(device_id=('did:%d' % i))
           self.assertTrue(self._main_db.CheckExists(condition))
 
   def tearDown(self):

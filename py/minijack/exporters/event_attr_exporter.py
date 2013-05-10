@@ -30,12 +30,13 @@ class EventAttrExporter(ExporterBase):
       self._InsertEvent(packet)
       self._InsertAttr(packet)
     except db.IntegrityError:
-      logging.warn('The Event/Attr (%s, %s) already exists in the table',
-                   packet.preamble.get('device_id'), packet.event.get('TIME'))
+      logging.warn('The Event/Attr (%s) already exists in the table',
+                   packet.GetEventId())
 
   def _InsertEvent(self, packet):
     """Retrieves event information and inserts to Event table"""
     row = Event(
+      event_id       = packet.GetEventId(),
       device_id      = packet.preamble.get('device_id'),
       time           = packet.event.get('TIME'),
       preamble_time  = packet.preamble.get('TIME'),

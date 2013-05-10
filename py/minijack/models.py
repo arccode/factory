@@ -7,10 +7,9 @@ from cros.factory.minijack.db import models
 
 
 class Event(models.Model):
-  device_id      = models.TextField(primary_key=True)
-  # We store time in TEXT as sqlite3 does not support milliseconds.
-  # Without milliseconds, we can't use time as key when joinning tables.
-  time           = models.TextField(primary_key=True)
+  event_id       = models.TextField(primary_key=True)
+  device_id      = models.TextField()
+  time           = models.TextField()
   preamble_time  = models.TextField()
   event          = models.TextField()
   event_seq      = models.IntegerField()

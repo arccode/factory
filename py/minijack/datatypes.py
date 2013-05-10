@@ -112,6 +112,12 @@ class EventPacket(object):
     # Join the path list using '.'.
     return (('.'.join(k), v) for k, v in _FlattenAttr(attr))
 
+  def GetEventId(self):
+    """Generates the unique ID for an event, i.e. "{filename}-{SEQ}"."""
+    filename = self.preamble.get('filename', '')
+    seq = str(self.event.get('SEQ', ''))
+    return '-'.join([filename, seq])
+
   def FindAttrContainingKey(self, key):
     """Finds the attr in the event that contains the given key.
 
