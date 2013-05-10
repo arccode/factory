@@ -131,13 +131,15 @@ class EventLogWatcher(object):
 
     chunk_info_list = []
 
-    # Sorts dirs by their creation time. Helps Minijack see results quickly.
-    dir_ctime = lambda w: os.lstat(w[0]).st_ctime
+    # Sorts dirs by their names, as its modification time is changed when
+    # their files inside are changed/added/removed. Their names are more
+    # reliable than the time.
+    dir_name = lambda w: w[0]
     for dir_path, _, file_names in sorted(os.walk(self._event_log_dir),
-                                          key=dir_ctime):
-      # Sorts files by their creation time too.
-      file_ctime = lambda f: os.lstat(os.path.join(dir_path, f)).st_ctime
-      for file_name in sorted(file_names, key=file_ctime):
+                                          key=dir_name):
+      # Sorts files by their modification time.
+      file_mtime = lambda f: os.lstat(os.path.join(dir_path, f)).st_mtime
+      for file_name in sorted(file_names, key=file_mtime):
         file_path = os.path.join(dir_path, file_name)
         if not os.path.isfile(file_path):
           continue
