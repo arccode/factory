@@ -35,11 +35,9 @@ class ArchiverTest(unittest.TestCase):
       if i != 3:
         self._main_db.Insert(Event(
             event_id=('eid:%d' % i),
-            device_id=('did:%d' % i),
-            time=('2013-05-%02dT12:34:56.789Z' % i)))
+            device_id=('did:%d' % i)))
         self._main_db.Insert(Attr(
-            device_id=('did:%d' % i),
-            time=('2013-05-%02dT12:34:56.789Z' % i)))
+            event_id=('eid:%d' % i)))
 
   def testArchiveBefore(self):
     archiver = Archiver(self._db_path)
@@ -58,11 +56,11 @@ class ArchiverTest(unittest.TestCase):
         backup_db.Init(backup_db_path)
 
         # Check the Table/Attr rows moved to the backup db.
-        condition = Event(device_id=('did:%d' % i))
+        condition = Event(event_id=('eid:%d' % i))
         self.assertFalse(self._main_db.CheckExists(condition))
         self.assertTrue(backup_db.CheckExists(condition))
 
-        condition = Attr(device_id=('did:%d' % i))
+        condition = Attr(event_id=('eid:%d' % i))
         self.assertFalse(self._main_db.CheckExists(condition))
         self.assertTrue(backup_db.CheckExists(condition))
 
@@ -78,9 +76,9 @@ class ArchiverTest(unittest.TestCase):
         # The archived device, i.e. 3, has no Event/Attr record.
         if (i != 3):
           # Check the Table/Attr rows are still there.
-          condition = Event(device_id=('did:%d' % i))
+          condition = Event(event_id=('eid:%d' % i))
           self.assertTrue(self._main_db.CheckExists(condition))
-          condition = Attr(device_id=('did:%d' % i))
+          condition = Attr(event_id=('eid:%d' % i))
           self.assertTrue(self._main_db.CheckExists(condition))
 
   def tearDown(self):

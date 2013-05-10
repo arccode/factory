@@ -57,17 +57,25 @@ class Archiver(object):
     Args:
       date: A string of the date.
     """
-    condition = Device(latest_test=FINALIZED_TEST)
-    for row in self._main_db.IterateAll(condition):
+    device_condition = Device(latest_test=FINALIZED_TEST)
+    for row in self._main_db.IterateAll(device_condition):
       if (row and row.latest_test_time < date and
           row.minijack_status != STATUS_ARCHIVED):
         device_id = row.device_id
         logging.info('Archiving a device record (%s)', device_id)
         backup_db = self.GetOrInitDatabase(GetDate(row.latest_test_time))
-        for condition in (Event(device_id=device_id),
-                          Attr(device_id=device_id)):
-          backup_db.InsertMany(self._main_db.GetAll(condition))
-          self._main_db.DeleteAll(condition)
+
+        event_condition = Event(device_id=device_id)
+        # List all events which fits the device_id.
+        for event in self._main_db.GetAll(event_condition):
+          # Move all attrs which fits the event_id.
+          attr_condition = Attr(event_id=event.event_id)
+          backup_db.InsertMany(self._main_db.GetAll(attr_condition))
+          self._main_db.DeleteAll(attr_condition)
+        # Move all events which fits the device_id.
+        backup_db.InsertMany(self._main_db.GetAll(event_condition))
+        self._main_db.DeleteAll(event_condition)
+        # Update the minijack_status of the archvied device.
         update = Device(device_id=device_id, minijack_status=STATUS_ARCHIVED)
         self._main_db.Update(update)
 

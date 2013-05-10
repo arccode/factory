@@ -25,10 +25,9 @@ class Event(models.Model):
 class Attr(models.Model):
   # No primary_key for the Attr table for speed-up. Duplication check is
   # done using the Event table.
-  device_id = models.TextField()
-  time      = models.TextField()
-  attr      = models.TextField()
-  value     = models.TextField()
+  event_id = models.TextField()
+  attr     = models.TextField()
+  value    = models.TextField()
 
 
 class Test(models.Model):

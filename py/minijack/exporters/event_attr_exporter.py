@@ -61,10 +61,9 @@ class EventAttrExporter(ExporterBase):
     for attr, value in EventPacket.FlattenAttr(packet.event):
       if attr not in RESERVED_PATH:
         row = Attr(
-          device_id = packet.preamble.get('device_id'),
-          time      = packet.event.get('TIME'),
-          attr      = _ToAsciiString(attr),
-          value     = _ToAsciiString(value),
+          event_id = packet.GetEventId(),
+          attr     = _ToAsciiString(attr),
+          value    = _ToAsciiString(value),
         )
         rows.append(row)
     if rows:
