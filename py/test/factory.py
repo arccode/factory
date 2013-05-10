@@ -168,6 +168,22 @@ def _init_console_log():
 console = _init_console_log()
 
 
+def get_verbose_log_file():
+  '''
+  Returns an opened log file. Note that this returns a file instead of a
+  logger (so the verbose log is not picked up by root logger.) Therefore,
+  the caller is responsible for flushing and closing this file.
+
+  The log file name will contain test invocation ID and thus this method
+  can only be called from a test.
+  '''
+  invocation = os.environ['CROS_FACTORY_TEST_INVOCATION']
+  log_name = '%s-log-%s' % (get_current_test_path(), invocation)
+  log_path = os.path.join(get_factory_root('log'), log_name)
+  console.info('Raw log stored at %s', log_path)
+  return open(log_path, 'a')
+
+
 def std_repr(obj, extra=None, excluded_keys=None, true_only=False):
   '''
   Returns the representation of an object including its properties.

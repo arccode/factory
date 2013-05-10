@@ -39,13 +39,6 @@ class CountDownTest(unittest.TestCase):
         ' '.join(open('/proc/loadavg').read().split()[0:3]),
         id='cd-system-load')
 
-  def GetVerboseLogFile(self):
-    invocation = os.environ['CROS_FACTORY_TEST_INVOCATION']
-    log_path = os.path.join(factory.get_factory_root('log'),
-                            'Countdown-log-%s' % invocation)
-    factory.console.info('Raw log stored at %s', log_path)
-    return open(log_path, 'a')
-
   def UpdateUILog(self, sys_status):
     log_items = [datetime.datetime.now().isoformat(),
                  'Temperatures: %s' % sys_status.temperatures,
@@ -161,7 +154,7 @@ class CountDownTest(unittest.TestCase):
       self._ui.RunJS('document.getElementById("cd-container").className'
                      ' = "float-right";')
 
-    self._verbose_log = self.GetVerboseLogFile()
+    self._verbose_log = factory.get_verbose_log_file()
     self._start_secs = time.time()
     self._elapsed_secs = 0
     self._remaining_secs = self.args.duration_secs
