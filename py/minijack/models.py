@@ -32,6 +32,7 @@ class Attr(models.Model):
 
 class Test(models.Model):
   invocation     = models.TextField(primary_key=True)
+  event_id       = models.TextField()
   device_id      = models.TextField()
   factory_md5sum = models.TextField()
   image_id       = models.TextField()

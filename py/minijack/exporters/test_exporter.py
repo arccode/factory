@@ -21,6 +21,7 @@ class TestExporter(ExporterBase):
     """A handler for a start_test event."""
     row = Test(
       invocation     = packet.event.get('invocation'),
+      event_id       = packet.GetEventId(),
       device_id      = packet.preamble.get('device_id'),
       factory_md5sum = packet.preamble.get('factory_md5sum'),
       image_id       = packet.preamble.get('image_id'),
@@ -34,6 +35,7 @@ class TestExporter(ExporterBase):
     """A handler for an end_test event."""
     row = Test(
       invocation     = packet.event.get('invocation'),
+      event_id       = packet.GetEventId(),
       device_id      = packet.preamble.get('device_id'),
       factory_md5sum = packet.preamble.get('factory_md5sum'),
       image_id       = packet.preamble.get('image_id'),
