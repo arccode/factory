@@ -38,15 +38,27 @@ class N1914A(AgilentSCPI):
   # Sampling setting related methods.
   def ToNormalMode(self, port):
     '''Sets sampling mode to 20 readings per seconds.'''
-    self.Send('SENSe%d:MRATe NORMal' % port)
+    self.SetMode(port, 'NORMAL')
 
   def ToDoubleMode(self, port):
     '''Sets sampling mode to 40 readings per seconds.'''
-    self.Send('SENSe%d:MRATe DOUBle' % port)
+    self.SetMode(port, 'DOUBLE')
 
   def ToFastMode(self, port):
     '''Sets sampling mode to fast mode, which performance depends on sensor.'''
-    self.Send('SENSe%d:MRATe FAST' % port)
+    self.SetMode(port, 'FAST')
+
+  def SetMode(self, port, mode):
+    '''Wrapper to set sensor's operating mode.
+
+    Args:
+      port: the port to set.
+      mode: the mode, should be one of FAST, DOUBLE or NORMAL.'''
+    mode_mapping = {'FAST': 'FAST',
+                    'DOUBLE': 'DOUBle',
+                    'NORMAL': 'NORMal'}
+    assert mode in mode_mapping.keys()
+    self.Send('SENSe%d:MRATe %s' % (port, mode_mapping[mode]))
 
   # Range related methods.
   def SetRange(self, port, range_setting=None):

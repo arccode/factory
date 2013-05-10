@@ -96,23 +96,24 @@ def FindUsableEthDevice(raise_exception=False):
     raise Error('No Ethernet interface available')
   return good_eth
 
-def SetEthernetIp(ip, interface=None):
+def SetEthernetIp(ip, interface=None, force=False):
   '''Sets the IP address for Ethernet.
 
-  The address is set only if the interface does not already have an
-  assigned IP address. The interface will be automatically assigned by
-  Connection Manager if None is given.
-  '''
+  Args:
+    ip: The ip address want to set.
+    interface: The target interface. The interface will be automatically
+        assigned by Connection Manager if None is given.
+    force: If force is False, the address is set only if the interface
+        does not already have an assigned IP address.'''
   interface = interface or FindUsableEthDevice(raise_exception=True)
   Spawn(['ifconfig', interface, 'up'], call=True)
   current_ip = GetEthernetIp(interface)
-  if current_ip:
+  if force or not current_ip:
+    Spawn(['ifconfig', interface, ip], call=True)
+  else:
     factory.console.info(
         'Not setting IP address for interface %s: already set to %s',
         interface, current_ip)
-    return
-  else:
-    Spawn(['ifconfig', interface, ip], call=True)
 
 def GetEthernetIp(interface=None):
   """Returns the IP of interface.

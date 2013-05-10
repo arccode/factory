@@ -414,7 +414,7 @@ class RfFramework(object):
       if static_ip_pair[0] is None:
         net_utils.SendDhcpRequest()
       else:
-        net_utils.SetEthernetIp(static_ip_pair[0])
+        net_utils.SetEthernetIp(static_ip_pair[0], force=static_ip_pair[1])
       return True if net_utils.GetEthernetIp() else False
 
     if static_ip_pair is None:
