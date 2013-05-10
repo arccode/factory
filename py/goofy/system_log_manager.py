@@ -5,8 +5,10 @@
 import glob
 import logging
 import os
+import sys
 import threading
 import time
+import traceback
 from urlparse import urlparse
 
 import factory_common  # pylint: disable=W0611
@@ -187,4 +189,7 @@ class SystemLogManager(object):
           abort_time = None
         self._SyncLogs(extra_files, callback, abort_time)
       except:  # pylint: disable=W0702
-        logging.exception('Error in SystemLogManager thread')
+        logging.warning(
+          'Unable to sync system logs to shopfloor server: %s',
+          '\n'.join(traceback.format_exception_only(
+              *sys.exc_info()[:2])).strip())
