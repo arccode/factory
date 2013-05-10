@@ -41,7 +41,25 @@ CHERRY_PICK = 'CHERRY-PICK: '
 PRIVATE_OVERLAY_LIST = ['src/private-overlays/overlay-%s-private',
                         'src/private-overlays/overlay-variant-*-%s-private']
 
-REPO_LIST = ['src/platform/factory', 'src/platform/chromeos-hwid']
+# NOTE: 'src/third_party/chromiumos-overlay' does not contain
+# other branches by default. 'git fetch cros' in that folder to
+# fetch all the branches and add the patch into REPO_LIST if you really want
+# to do factory_diff.
+# 'src/third_party/kernel/files' will hang when it tries to do
+# the git log --cherry-pick command because there are too mang patches to handle
+# Use gerrit to search these two repositories instead.
+# e.g.: search this on gerrit
+# status:merged
+# project:^chromiumos/overlays/chromiumos-overlay|chromiumos/third_party/kernel
+# branch:factory-spring-3842.B
+
+FACTORY_REPO_LIST = ['src/platform/factory', 'src/platform/chromeos-hwid']
+
+# Please add the repo if you think it is important in factory.
+OTHER_REPO_LIST = ['src/platform/touch_updater', 'src/platform/mosys',
+                  'src/platform/factory_installer', 'src/platform/ec',
+                  'src/third_party/autotest/files',
+                  'src/third_party/xf86-video-armsoc', 'src/third_party/adhd']
 
 def GetFullRepoPath(repo_path):
   """Returns the full path of the given repo."""
@@ -174,6 +192,8 @@ def main():
                       help='Limit the output to this author only')
   parser.add_argument('--factory_only', '-o', action='store_true',
                       help='Only show commits on factory branch')
+  parser.add_argument('--show_other_repos', '-s', action='store_true',
+                      help='Show commits in OTHER_REPO_LIST as well')
   args = parser.parse_args()
   if not args.branch:
     args.branch = GetBranch(args.board)
@@ -182,10 +202,14 @@ def main():
                   'Specify --branch to continue.')
     sys.exit(1)
 
-  if args.board:
-    REPO_LIST.append(GetPrivateOverlay(args.board))
+  repo_list = FACTORY_REPO_LIST
+  if args.show_other_repos:
+    repo_list += OTHER_REPO_LIST
 
-  for repo in REPO_LIST:
+  if args.board:
+    repo_list.append(GetPrivateOverlay(args.board))
+
+  for repo in repo_list:
     DiffRepo(repo, args.branch, args.author, args.factory_only)
   sys.exit(0)
 
