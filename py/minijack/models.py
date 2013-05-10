@@ -48,11 +48,8 @@ class Device(models.Model):
   device_id        = models.TextField(primary_key=True)
   goofy_init_time  = models.TextField()
   serial           = models.TextField()
-  serial_time      = models.TextField()
   mlb_serial       = models.TextField()
-  mlb_serial_time  = models.TextField()
   hwid             = models.TextField()
-  hwid_time        = models.TextField()
   ips              = models.TextField()
   ips_time         = models.TextField()
   latest_test      = models.TextField()
@@ -62,6 +59,5 @@ class Device(models.Model):
 
 class Component(models.Model):
   device_id = models.TextField(primary_key=True)
-  time      = models.TextField(primary_key=True)
   component = models.TextField(primary_key=True)
   symbolic  = models.TextField()

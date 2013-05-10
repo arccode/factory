@@ -19,20 +19,13 @@ class DeviceExporter(ExporterBase):
 
   def Handle_goofy_init(self, packet):
     """A handler for a goofy_init event."""
-    if self._DoesFieldExist(packet, 'goofy_init_time', newer=False):
-      # Skip updating if the goofy_init_time is already in the table and the
-      # goofy_init_time is older then this one.
+    if self._DoesFieldExist(packet, 'goofy_init_time'):
+      # Skip updating if the goofy_init_time is already in the table.
       return
-    row = Device(
-      device_id       = packet.preamble.get('device_id'),
-      goofy_init_time = packet.event.get('TIME'),
-    )
-    self._database.UpdateOrInsert(row)
+    self._UpdateField(packet, 'goofy_init_time', packet.event.get('TIME'))
 
   def Handle_update_device_data(self, packet):
     """A handler for a update_device_data event."""
-    if self._DoesFieldExist(packet, 'serial_time'):
-      return
     data = packet.event.get('data')
     if data:
       serial = data.get('serial_number')
@@ -64,46 +57,40 @@ class DeviceExporter(ExporterBase):
   def Handle_system_status(self, packet):
     """A handler for a system_status event."""
     self._UpdateField(packet, 'ips', packet.event.get('ips'))
+    self._UpdateField(packet, 'ips_time', packet.preamble.get('TIME'))
 
   def Handle_start_test(self, packet):
     """A handler for a start_test event."""
     self._UpdateField(packet, 'latest_test', packet.event.get('path'))
+    self._UpdateField(packet, 'latest_test_time', packet.preamble.get('TIME'))
 
   def _UpdateField(self, packet, field_name, field_value):
-    """Updates the field to the table if the field is newer than the table one.
+    """Updates the field to the table.
 
     Args:
       packet: An EventPacket object.
-      field_name: The field name. Also, the field "{field_name}_time" should
-                  exist.
+      field_name: The field name.
       field_value: The value of field to update.
     """
     if not field_value:
       return
-    field_name_time = field_name + '_time'
-    if self._DoesFieldExist(packet, field_name_time):
-      return
     row = Device(device_id=packet.preamble.get('device_id'))
     setattr(row, field_name, field_value)
-    setattr(row, field_name_time, packet.event.get('TIME'))
     self._database.UpdateOrInsert(row)
 
-  def _DoesFieldExist(self, packet, field, newer=True):
-    """Checks if a given field already in the table and it is newer (older).
+  def _DoesFieldExist(self, packet, field):
+    """Checks if a given field already in the table.
 
     Args:
       packet: An EventPacket object.
-      field: A string of field name. The field contains timestamps.
-      newer: True to check for newer; otherwise, check for older.
+      field: A string of field name.
 
     Returns:
-      True if the field exists and is newer (older); otherwise, False.
+      True if the field exists.
     """
-    time = packet.event.get('TIME')
     condition = Device(device_id=packet.preamble.get('device_id'))
     row = self._database.GetOne(condition)
     if row:
-      return (getattr(row, field) >= time if newer else
-              getattr(row, field) <= time)
+      return bool(getattr(row, field))
     else:
       return False

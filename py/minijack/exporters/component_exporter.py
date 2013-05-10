@@ -34,7 +34,6 @@ class ComponentExporter(ExporterBase):
     for component, symbolic in EventPacket.FlattenAttr(parent):
       row = Component(
         device_id = packet.preamble.get('device_id'),
-        time      = packet.event.get('TIME'),
         component = component,
         symbolic  = symbolic,
       )
