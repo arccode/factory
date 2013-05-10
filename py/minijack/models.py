@@ -59,6 +59,7 @@ class Device(models.Model):
   ips_time         = models.TextField()
   latest_test      = models.TextField()
   latest_test_time = models.TextField()
+  minijack_status  = models.TextField()
 
 
 class Component(models.Model):
