@@ -69,7 +69,7 @@ class PollForConditionTest(unittest.TestCase):
     self.counter = 1
 
   def testPollForCondition(self):
-    self.assertEqual(None, net_utils.PollForCondition(
+    self.assertEqual(True, net_utils.PollForCondition(
         condition=self._Counter, timeout=5))
 
   def testPollForConditionTimeout(self):
