@@ -39,6 +39,14 @@ class Partition(object):
     """
     self.name = name
 
+  def get(self, key, default=None):
+    """Returns a single item from the VPD, or default if not present.
+
+    This invokes the 'vpd' command each time it is run; for efficiency,
+    use GetAll if more than one value is desired.
+    """
+    return self.GetAll().get(key, default)
+
   def GetAll(self):
     """Returns the contents of the VPD as a dict."""
     ret = {}

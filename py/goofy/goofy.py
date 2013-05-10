@@ -185,6 +185,7 @@ class Goofy(object):
     last_kick_sync_time: The last time to kick system_log_manager to sync
       because of core dump files (to avoid kicking too soon then abort the
       sync.)
+    hooks: A Hooks object containing hooks for various Goofy actions.
   '''
   def __init__(self):
     self.uuid = str(uuid.uuid4())
@@ -211,6 +212,7 @@ class Goofy(object):
     self.tests_to_run = deque()
     self.visible_test = None
     self.chrome = None
+    self.hooks = None
 
     self.options = None
     self.args = None
@@ -1269,6 +1271,16 @@ class Goofy(object):
     # particular UI in use.  TODO(jsalz): Remove this (and all
     # places it is used) when the GTK UI is removed.
     os.environ['CROS_UI'] = self.options.ui
+
+    # Initialize hooks.
+    module, cls = self.test_list.options.hooks_class.rsplit('.', 1)
+    self.hooks = getattr(__import__(module, fromlist=[cls]), cls)()
+    assert isinstance(self.hooks, factory.Hooks), (
+        "hooks should be of type Hooks but is %r" % type(self.hooks))
+    self.hooks.test_list = self.test_list
+
+    # Call startup hook.
+    self.hooks.OnStartup()
 
     if self.options.ui == 'chrome':
       self.env.launch_chrome()

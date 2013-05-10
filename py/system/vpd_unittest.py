@@ -22,14 +22,21 @@ class VPDTest(unittest2.TestCase):
   def tearDown(self):
     self.mox.UnsetStubs()
 
-  def testGetAll(self):
+  def testGet(self):
     process = self.mox.CreateMockAnything()
-    process.stdout_lines(strip=True).AndReturn(['"a"="b"',
-                                                '"foo"="bar"'])
-    vpd.Spawn(['vpd', '-i', 'RW_VPD', '-l'], check_output=True).AndReturn(
-      process)
+    process.stdout_lines(strip=True).MultipleTimes().AndReturn(
+        ['"a"="b"',
+         '"foo"="bar"'])
+
+    # pylint: disable=E1101
+    vpd.Spawn(['vpd', '-i', 'RW_VPD', '-l'], check_output=True
+              ).MultipleTimes().AndReturn(process)
     self.mox.ReplayAll()
     self.assertEquals(dict(a='b', foo='bar'), vpd.rw.GetAll())
+    self.assertEquals('b', vpd.rw.get('a'))
+    self.assertEquals('b', vpd.rw.get('a', 'default'))
+    self.assertEquals(None, vpd.rw.get('nope'))
+    self.assertEquals('default', vpd.rw.get('nope', 'default'))
     self.mox.VerifyAll()
 
   def testGetAllBadVPD(self):

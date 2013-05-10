@@ -313,6 +313,23 @@ def init_logging(prefix=None, verbose=False):
   logging.debug('Initialized logging')
 
 
+class Hooks(object):
+  """
+  Goofy hooks.
+
+  This class is a dummy implementation, but methods may be overridden
+  by the subclass.
+
+  Properties (initialized by Goofy):
+    test_list: The test_list object.
+  """
+  test_list = None
+
+  def OnStartup(self):
+    """Invoked on Goofy startup (before the UI is started)."""
+    pass
+
+
 class Options(object):
   '''Test list options.
 
@@ -453,6 +470,9 @@ class Options(object):
   disable_caps_lock = False
   caps_lock_keycode = 66
 
+  # Hooks class for Goofy initialization.  Defaults to a dummy class.
+  hooks_class = 'cros.factory.test.factory.Hooks'
+
   def check_valid(self):
     '''Throws a TestListError if there are any invalid options.'''
     # Make sure no errant options, or options with weird types,
@@ -467,7 +487,7 @@ class Options(object):
       value = getattr(self, key)
       allowable_types = Options._types.get(
           key, [type(getattr(default_options, key))])
-      if type(value) not in allowable_types:
+      if not any(isinstance(value, x) for x in allowable_types):
         raise TestListError(
             'Option %s has unexpected type %s (should be %s)' % (
                 key, type(value), allowable_types))
@@ -1081,6 +1101,26 @@ class FactoryTest(object):
     '''
     return yaml.dump(self.as_dict(state_map))
 
+  def skip(self):
+    '''
+    Skips this test and any subtests that have not already passed.
+
+    Subtests that have not passed are not modified.  If any subtests were
+    skipped, this node (if not a leaf node) is marked as skipped as well.
+    '''
+    skipped_tests = []
+    for test in self.walk():
+      if not test.subtests and test.get_state().status != TestState.PASSED:
+        test.update_state(status=TestState.PASSED, skip=True,
+                          error_msg=TestState.SKIPPED_MSG)
+        skipped_tests.append(test.path)
+    if skipped_tests:
+      logging.info('Skipped tests %s', skipped_tests)
+      if self.subtests:
+        logging.info('Marking %s as skipped, since subtests were skipped',
+                     self.path)
+        self.update_state(status=TestState.PASSED, skip=True,
+                          error_msg=TestState.SKIPPED_MSG)
 
 class FactoryTestList(FactoryTest):
   '''
