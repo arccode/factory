@@ -35,6 +35,12 @@ SHOPFLOOR_RETRY_INTERVAL_SECS = 10 # Seconds to wait between retries.
 INSERT_ETHERNET_DONGLE_TIMEOUT_SECS = 30 # Timeout for inserting dongle.
 IP_SETUP_TIMEOUT_SECS = 10 # Timeout for setting IP address.
 
+# Common field name shared across CSV and EventLog.
+CONFIG_VERSION = 'config_version'
+CALIBRATION_VERSION = 'calibration_config_version'
+ELAPSED_TIME = 'elapsed_time'
+MODULE_ID = 'module_id'
+
 MSG_START = test_ui.MakeLabel(
     'Please press SPACE key to start.',
     u'请按 "空白键" 开始')
@@ -124,7 +130,8 @@ class RfFramework(object):
     self.config = None
     self.calibration_target = None
     self.calibration_config = None
-    self.field_to_record = dict()
+    self.field_to_csv = dict()
+    self.field_to_eventlog = dict()
     self.aux_logs = list()
     self.unique_identification = None
 
@@ -204,7 +211,10 @@ class RfFramework(object):
       with open(os.path.join(
           self.caches_dir, self.args.config_file), "r") as fd:
         self.config = yaml.load(fd.read())
-      factory.console.info('Loaded config = %r', self.config['annotation'])
+      config_version = self.config['annotation']
+      factory.console.info('Loaded config = %r', config_version)
+      self.field_to_eventlog[CONFIG_VERSION] = config_version
+      self.field_to_csv[CONFIG_VERSION] = config_version
 
     try:
       self.template.SetState(MSG_RUNNING_OUTSIDE_SHIELD_BOX)
@@ -221,9 +231,11 @@ class RfFramework(object):
         with open(os.path.join(
             self.caches_dir, self.args.calibration_config)) as fd:
           self.calibration_config = yaml.load(fd.read())
-        self.LogDetail(event_log_key='calibration_config',
-                       field_to_record=self.calibration_config,
-                       postfix='.cal_data.csv')
+        calibration_config_version = self.calibration_config['annotation']
+        factory.console.info('Loaded calibration_config = %r',
+                             calibration_config_version)
+        self.field_to_eventlog[CALIBRATION_VERSION] = calibration_config_version
+        self.field_to_csv[CALIBRATION_VERSION] = calibration_config_version
 
         self.template.SetState(MSG_CHECKING_SHIELD_BOX)
         self.PreTestInsideShieldBox()
@@ -231,13 +243,16 @@ class RfFramework(object):
         self.Prompt(MSG_SHIELD_BOX_CHECKED, force_prompt=True)
 
       # Primary test
-      # TODO(itspeter): Timing on PrimaryTest().
+      start_time = time.time()
       self.template.SetState(MSG_RUNNING_PRIMARY_TEST)
       with leds.Blinker(self.args.blinking_pattern):
         self.PrimaryTest()
+      self.field_to_eventlog[ELAPSED_TIME] = time.time() - start_time
+
       # Save useful info to the CSV and eventlog.
-      self.LogDetail(event_log_key='measurement_details',
-                     field_to_record=self.field_to_record)
+      self.field_to_eventlog[MODULE_ID] = self.unique_identification
+      Log('measurement_details', **self.field_to_eventlog)
+      self.LogToCsv(self.field_to_csv)
 
       # Light all LEDs to indicates test is completed.
       leds.SetLeds(leds.LED_SCR|leds.LED_NUM|leds.LED_CAP)
@@ -299,21 +314,16 @@ class RfFramework(object):
         'Called without implementing GetUniqueIdentification')
 
   def NormalizeAsFileName(self, token):
-    return re.sub(r'\W+', '', token)
+    return re.sub(r'\W+', '_', token)
 
-  def LogDetail(self, event_log_key, field_to_record, postfix='.csv'):
+  def LogToCsv(self, field_to_record, postfix='.csv'):
     # Column names
     DEVICE_ID = 'device_id'
     DEVICE_SN = 'device_sn'
-    MODULE_ID = 'module_id'
-    PATH = 'path'
-    INVOCATION = 'invocation'
     FAILURES = 'failures'
-    TIME = 'time'
-
-    # log to event log.
-    field_to_record[MODULE_ID] = self.unique_identification
-    Log(event_log_key, **field_to_record)
+    INVOCATION = 'invocation'
+    PATH = 'path'
+    LOG_TIME = 'time'
 
     # additional fields that need to be added becasue they are recorded
     # in event log by default and we need them in csv as well.
@@ -325,17 +335,19 @@ class RfFramework(object):
     field_to_record[DEVICE_ID] = GetDeviceId()
     field_to_record[PATH] = path
     field_to_record[INVOCATION] = os.environ.get('CROS_FACTORY_TEST_INVOCATION')
-    field_to_record[TIME] = time.strftime('%Y%m%dT%H%M%SZ', time.gmtime())
+    field_to_record[LOG_TIME] = time.strftime('%Y%m%dT%H%M%SZ', time.gmtime())
+    field_to_record[MODULE_ID] = self.unique_identification
 
     csv_path = '%s_%s_%s%s' % (
-        field_to_record[TIME],
+        field_to_record[LOG_TIME],
         self.NormalizeAsFileName(device_sn),
         self.NormalizeAsFileName(path), postfix)
     csv_path = os.path.join(factory.get_log_root(), 'aux', csv_path)
     utils.TryMakeDirs(os.path.dirname(csv_path))
     self.aux_logs.append(csv_path)
     WriteCsv(csv_path, [field_to_record],
-             [MODULE_ID, DEVICE_SN, DEVICE_ID, PATH, FAILURES, INVOCATION])
+             [LOG_TIME, MODULE_ID, DEVICE_SN, DEVICE_ID,
+              PATH, FAILURES, INVOCATION])
     factory.console.info('Details saved to %s', csv_path)
 
   def GetShopfloorConnection(

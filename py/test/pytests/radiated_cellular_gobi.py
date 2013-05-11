@@ -98,7 +98,7 @@ class RadiatedCellularGobi(RfFramework, unittest.TestCase):
         else:
           tx_power += self.calibration_config[measurement_name]
 
-        self.field_to_record[measurement_name] = FormattedPower(tx_power)
+        self.field_to_eventlog[measurement_name] = FormattedPower(tx_power)
         avg_power_threshold = measurement['avg_power_threshold']
         CheckPower(measurement_name, tx_power, avg_power_threshold,
                    self.failures)

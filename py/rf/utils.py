@@ -38,6 +38,9 @@ def CheckPower(measurement_name, power, threshold, failures, prefix='Power'):
     threshold: a tuple in (min, max) format.
     failures: a list to append if power is out of spec.
     prefix: additonal annotation for logging.
+
+  Returns:
+    True if power is in range, else False.
   '''
   min_power, max_power = threshold
   if not IsInRange(power, min_power, max_power):
@@ -46,6 +49,8 @@ def CheckPower(measurement_name, power, threshold, failures, prefix='Power'):
         FormattedPower(min_power), FormattedPower(max_power))
     factory.console.info(failure)
     failures.append(failure)
-  else:
-    factory.console.info('%s for %r is %s',
-        prefix, measurement_name, FormattedPower(power))
+    return False
+
+  factory.console.info('%s for %r is %s',
+      prefix, measurement_name, FormattedPower(power))
+  return True
