@@ -64,6 +64,10 @@ FORCE_AUTO_RUN = 'force_auto_run'
 
 RUN_QUEUE_TIMEOUT_SECS = 10
 
+# Sync disks when battery level is higher than this value.
+# Otherwise, power loss during disk sync operation may incur even worse outcome.
+MIN_BATTERY_LEVEL_FOR_DISK_SYNC = 1.0
+
 GOOFY_IN_CHROOT_WARNING = '\n' + ('*' * 70) + '''
 You are running Goofy inside the chroot.  Autotests are not supported.
 
@@ -219,6 +223,8 @@ class Goofy(object):
     self.last_sync_time = None
     self.last_log_disk_space_time = None
     self.last_log_disk_space_message = None
+    self.last_check_battery_time = None
+    self.last_check_battery_message = None
     self.last_kick_sync_time = None
     self.exclusive_items = set()
     self.event_log = None
@@ -1474,6 +1480,69 @@ class Goofy(object):
     except:  # pylint: disable=W0702
       logging.exception('Unable to get disk space used')
 
+  def check_battery(self):
+    '''Checks the current battery status.
+
+    Logs current battery charging level and status to log. If the battery level
+    is lower below warning_low_battery_pct, send warning event to shopfloor.
+    If the battery level is lower below critical_low_battery_pct, flush disks.
+    '''
+    if not self.test_list.options.check_battery_period_secs:
+      return
+
+    now = time.time()
+    if (self.last_check_battery_time and
+        now - self.last_check_battery_time <
+        self.test_list.options.check_battery_period_secs):
+      return
+    self.last_check_battery_time = now
+
+    message = ''
+    log_level = logging.INFO
+    try:
+      power = system.GetBoard().power
+      if not power.CheckBatteryPresent():
+        message = 'Battery is not present'
+      else:
+        ac_present = power.CheckACPresent()
+        charge_pct = power.GetChargePct(get_float=True)
+        message = ('Current battery level %.1f%%, AC charger is %s' %
+                   (charge_pct, 'connected' if ac_present else 'disconnected'))
+
+        if charge_pct > self.test_list.options.critical_low_battery_pct:
+          critical_low_battery = False
+        else:
+          critical_low_battery = True
+          # Only sync disks when battery level is still above minimum
+          # value. This can be used for offline analysis when shopfloor cannot
+          # be connected.
+          if charge_pct > MIN_BATTERY_LEVEL_FOR_DISK_SYNC:
+            logging.warning('disk syncing for critical low battery situation')
+            os.system('sync; sync; sync')
+          else:
+            logging.warning('disk syncing is cancelled '
+                            'because battery level is lower than %.1f',
+                            MIN_BATTERY_LEVEL_FOR_DISK_SYNC)
+
+        # Notify shopfloor server
+        if (critical_low_battery or
+            (not ac_present and
+             charge_pct <= self.test_list.options.warning_low_battery_pct)):
+          log_level = logging.WARNING
+
+          self.event_log.Log('low_battery',
+                             battery_level=charge_pct,
+                             charger_connected=ac_present,
+                             critical=critical_low_battery)
+          self.log_watcher.KickWatchThread()
+          self.system_log_manager.KickSyncThread()
+    except: # pylint: disable=W0702
+      logging.exception('Unable to check battery or notify shopfloor')
+    finally:
+      if message != self.last_check_battery_message:
+        logging.log(log_level, message)
+        self.last_check_battery_message = message
+
   def check_core_dump(self):
     '''Checks if there is any core dumped file.
 
@@ -1547,6 +1616,7 @@ class Goofy(object):
     self.check_for_updates()
     self.sync_time_in_background()
     self.log_disk_space_stats()
+    self.check_battery()
     self.check_core_dump()
 
   def handle_event_logs(self, chunk_info):

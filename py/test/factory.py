@@ -379,6 +379,22 @@ class Options(object):
   log_disk_space_period_secs = 120
   _types['log_disk_space_period_secs'] = (type(None), int)
 
+  # Interval at which to check battery status.
+  check_battery_period_secs = 120
+  _types['check_battery_period_secs'] = (type(None), int)
+
+  # Goofy will log warning event and try to sync with shopfloor server when
+  # battery level is lower than this value and AC charger is disconnected.
+  # (The option is effective only if check_battery_period_secs is not None)
+  warning_low_battery_pct = 10
+  _types['warning_low_battery_pct'] = (type(None), int)
+
+  # Goofy will do low-power emergency handling (such as flushing disks)
+  # when battery level is lower than this value regardless of AC charger.
+  # (The option is effective only if check_battery_period_secs is not None)
+  critical_low_battery_pct = 5
+  _types['critical_low_battery_pct'] = (type(None), int)
+
   # The list of log files to remove periodically.
   clear_log_paths = ['/var/log/connectivity.bak']
 
