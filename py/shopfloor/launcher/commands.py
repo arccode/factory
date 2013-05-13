@@ -96,10 +96,12 @@ class ConnectionDispatcher(LineReceiver):
       self._ReturnError('ERROR: exception %r' % e)
       return
     self.transport.write(response)
+    self.transport.loseConnection()
 
   def _ReturnError(self, msg):
     logging.error(msg)
-    return self.transport.write(msg)
+    self.transport.write(msg)
+    self.transport.loseConnection()
 
 
 class CommandHandler(object):
@@ -108,8 +110,8 @@ class CommandHandler(object):
     raise NotImplementedError('Handle')
 
   def __call__(self, request):
-    args = request['argv'][2:]
-    self.Handle(args, request)
+    args = request['args'][2:]
+    return self.Handle(args, request)
 
 
 class CommandDeploy(CommandHandler):
@@ -240,5 +242,5 @@ class LauncherCommandFactory(ServerFactory):
     self.commands[cmd] = handler
 
   def Dispatch(self, cmd, request):
-    self.commands[cmd](request)
+    return self.commands[cmd](request)
 
