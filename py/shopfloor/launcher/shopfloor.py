@@ -31,6 +31,7 @@ from twisted.internet import error, reactor
 from twisted.internet.protocol import Protocol, ClientFactory
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.hacked_argparse import CmdArg, Command, ParseCmdline
 from cros.factory.shopfloor.launcher import constants
 
 
@@ -51,8 +52,9 @@ class ClientProtocol(Protocol):  # pylint: disable=W0232
     """Passes command line arguments and current working directory to launcher.
     """
     json_cmd = {
-      'args': sys.argv,
-      'cwd': os.getcwd()}
+      'args': self.factory.argv,
+      'cwd': self.factory.cwd}
+    # Launcher commands uses JSON line protocol, add trailing newline.
     self.transport.write(json.dumps(json_cmd, separators=(',', ':')) + '\n')
 
   def dataReceived(self, data):
@@ -61,9 +63,18 @@ class ClientProtocol(Protocol):  # pylint: disable=W0232
     print data
 
 
-# Twisted Factory class can be inherited without __init__().
-class CommandLineFactory(ClientFactory):  # pylint: disable=W0232
+class CommandLineFactory(ClientFactory):
+  """Twisted client factory that generates command line objects.
+
+  Args:
+    argv: sys.argv like argument list
+    cwd: current working directory string
+  """
   protocol = ClientProtocol
+
+  def __init__(self, argv, cwd):
+    self.argv = argv
+    self.cwd = cwd
 
   def clientConnectionFailed(self, connector, reason):
     """Displays error message on client connection failed."""
@@ -77,10 +88,49 @@ class CommandLineFactory(ClientFactory):  # pylint: disable=W0232
     Stop()
 
 
-def main():
-  cmd = CommandLineFactory()
+def CallLauncher():
+  """Proxies command line arguments to launcher."""
+  cmd = CommandLineFactory(sys.argv, os.getcwd())
   reactor.connectTCP('localhost', constants.COMMAND_PORT, cmd)
   reactor.run()
+
+@Command('deploy')
+def Deploy(dummy_args):
+  """Calls launcher to deploy new configuration."""
+  CallLauncher()
+
+
+@Command('list')
+def List(dummy_args):
+  """Calls launcher to list available configurations."""
+  CallLauncher()
+
+
+@Command('import',
+         CmdArg('-b', '--bundle',
+                help='import resources from bundle dir'),
+         CmdArg('-f', '--file', nargs='+',
+                help='import resources from file list'))
+def Import(dummy_args):
+  """Imports shopfloor resources."""
+  raise NotImplementedError('shopofloor import')
+
+
+@Command('info')
+def Info(dummy_args):
+  """Calls launcher to display running configuration."""
+  CallLauncher()
+
+
+@Command('init')
+def Init(dummy_args):
+  """Initializes system folders with proper owner and group."""
+  raise NotImplementedError('shopfloor init')
+
+
+def main():
+  args = ParseCmdline('Shopfloor V2 command line utility.')
+  args.command(args)
 
 if __name__ == '__main__':
   main()
