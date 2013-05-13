@@ -1649,7 +1649,8 @@ class Goofy(object):
         shopfloor_client = shopfloor.get_instance(
           detect=True,
           timeout=self.test_list.options.shopfloor_timeout_secs)
-        shopfloor_client.UploadEvent(log_name, Binary(chunk))
+        shopfloor_client.UploadEvent(log_name + "." + event_log.GetReimageId(),
+                                     Binary(chunk))
         logging.info(
           'Successfully synced %s in %.03f s',
           description, time.time() - start_time)

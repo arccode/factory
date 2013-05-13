@@ -115,7 +115,7 @@ class SystemLogManager(object):
     proxy = shopfloor.get_instance(detect=True, timeout=self._shopfloor_timeout)
     factory_log_port = proxy.GetFactoryLogPort()
     folder_name = ('%s_%s' %
-        (event_log.GetDeviceId().replace(':', ''), event_log.GetImageId()))
+        (event_log.GetDeviceId().replace(':', ''), event_log.GetReimageId()))
     return ['rsync://%s:%s/system_logs/%s' %
             (urlparse(url).hostname, factory_log_port, folder_name)]
 

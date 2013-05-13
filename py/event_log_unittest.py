@@ -6,7 +6,7 @@
 # found in the LICENSE file.
 
 import factory_common  # pylint: disable=W0611
-import mox
+import logging
 import os
 import re
 import shutil
@@ -14,13 +14,24 @@ import tempfile
 import threading
 import time
 import unittest
+import uuid
 import yaml
 
 from cros.factory import event_log
+from cros.factory.utils import file_utils
 
 MAC_RE = re.compile(r'^([a-f0-9]{2}:){5}[a-f0-9]{2}$')
 UUID_RE = re.compile(r'^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-'
                      '[a-f0-9]{4}-[a-f0-9]{12}$')
+
+
+def Reset():
+  # Deletes state files and resets global variables.
+  event_log.device_id = event_log.reimage_id = None
+  shutil.rmtree(event_log.EVENT_LOG_DIR, ignore_errors=True)
+  for f in [event_log.DEVICE_ID_PATH, event_log.SEQUENCE_PATH,
+            event_log.BOOT_SEQUENCE_PATH, event_log.EVENTS_PATH]:
+    file_utils.TryUnlink(f)
 
 
 class BasicTest(unittest.TestCase):
@@ -34,54 +45,55 @@ class BasicTest(unittest.TestCase):
 
 class GlobalSeqTest(unittest.TestCase):
   def setUp(self):
-    self.path = tempfile.NamedTemporaryFile().name
+    Reset()
+    self.tmp = tempfile.mkdtemp(prefix='GlobalSeqTest.')
 
   def tearDown(self):
-    #os.unlink(self.path)
-    #os.unlink(self.path + event_log.GlobalSeq.BACKUP_SUFFIX)
-    pass
+    shutil.rmtree(self.tmp)
 
-  def testSeq(self):
-    def read_seq():
-      return int(open(self.path).read() or '0')
-    def read_seq_backup():
-      return int(open(self.path + event_log.GlobalSeq.BACKUP_SUFFIX).read()
-                 or '0')
-    DELTA = event_log.GlobalSeq.BACKUP_SEQUENCE_INCREMENT
+  def testBasic(self):
+    seq = event_log.GlobalSeq()
+    for i in range(3):
+      self.assertEquals(i, seq.Next())
+    del seq
 
-    seq1 = event_log.GlobalSeq(self.path)
-    self.assertEquals(0, read_seq())
-    self.assertEquals(0, read_seq_backup())
-    self.assertEquals(0, seq1.Next())
-    seq2 = event_log.GlobalSeq(self.path)
-    self.assertEquals(1, seq2.Next())
-    self.assertEquals(2, read_seq())
-    self.assertEquals(2, read_seq_backup())
-    self.assertEquals(2, seq1.Next())
-    self.assertEquals(3, read_seq())
-    self.assertEquals(3, read_seq_backup())
+    # Try again with a new sequence file
+    seq = event_log.GlobalSeq()
+    for i in range(3, 6):
+      self.assertEquals(i, seq.Next())
+    del seq
 
-    # Disaster strikes!
-    os.unlink(seq1.path)
-    self.assertEquals(3 + DELTA, seq1.Next())
-    self.assertEquals(4 + DELTA, read_seq())
-    self.assertEquals(4 + DELTA, read_seq_backup())
-    self.assertEquals(4 + DELTA, seq1.Next())
-    self.assertEquals(5 + DELTA, read_seq())
-    self.assertEquals(5 + DELTA, read_seq_backup())
+  def testMissingSequenceFile(self):
+    # Generate a few sequence numbers.
+    seq = event_log.GlobalSeq()
+    self.assertEquals(0, seq.Next())
+    self.assertEquals(1, seq.Next())
+    # Log an event (preamble will have sequence number 2; main
+    # event will have 3).
+    event_log.EventLog('foo').Log('bar')
+    with open(event_log.EVENTS_PATH) as f:
+      assert 'SEQ: 3\n' in f.readlines()
 
-    # Apocalyse strikes - both files are deleted!
-    os.unlink(seq1.path)
-    os.unlink(seq1.backup_path)
+    # Delete the sequence file to simulate corruption.
+    os.unlink(event_log.SEQUENCE_PATH)
+    # Sequence file should be re-created, starting with 4 plus
+    # SEQ_INCREMENT_ON_BOOT.
+    self.assertEquals(4 + event_log.SEQ_INCREMENT_ON_BOOT,
+                      seq.Next())
 
-    mocker = mox.Mox()
-    seq1._time = mocker.CreateMockAnything()
-    seq1._time.time().AndReturn(1342422945.125)  # pylint: disable=W0212
-    mocker.ReplayAll()
-    self.assertEquals(1342422945125, seq1.Next())
-    mocker.VerifyAll()
-    self.assertEquals(1342422945126, read_seq())
-    self.assertEquals(1342422945126, read_seq_backup())
+    # Delete the sequence file and create a new GlobalSeq object to
+    # simulate a reboot.  We'll do this a few times.
+    for i in range(3):
+      # Log an event to record the new sequence number for "reboot"
+      event_log.EventLog('foo').Log('bar')
+
+      del seq
+      os.unlink(event_log.SEQUENCE_PATH)
+      seq = event_log.GlobalSeq()
+      # Sequence file should be re-created, increasing by 2 for the logged
+      # event, and SEQ_INCREMENT_ON_BOOT for the reboot.
+      self.assertEquals(7 + i*3 + (i+2)*event_log.SEQ_INCREMENT_ON_BOOT,
+                        seq.Next())
 
   def _testThreads(self, after_read=lambda: True):
     '''Tests atomicity by doing operations in 20 threads for 1 sec.
@@ -95,7 +107,7 @@ class GlobalSeqTest(unittest.TestCase):
     end_time = start_time + 1
 
     def target():
-      seq = event_log.GlobalSeq(self.path, _after_read=after_read)
+      seq = event_log.GlobalSeq(_after_read=after_read)
       while time.time() < end_time:
         values.append(seq.Next())
 
@@ -105,7 +117,7 @@ class GlobalSeqTest(unittest.TestCase):
     for t in threads:
       t.join()
 
-    # After we sort, should be numbers [0, len(values)).
+    # After we sort, should be numbers [1, len(values)].
     values.sort()
     self.assertEquals(range(len(values)), values)
     return values
@@ -126,15 +138,8 @@ class GlobalSeqTest(unittest.TestCase):
 
 class EventLogTest(unittest.TestCase):
   def setUp(self):
-    # Remove events directory and reset globals
-    shutil.rmtree(event_log.EVENT_LOG_DIR, ignore_errors=True)
-    if os.path.exists(event_log.DEVICE_ID_PATH):
-      os.unlink(event_log.DEVICE_ID_PATH)
-
-    event_log.device_id = event_log.image_id = None
-
+    Reset()
     self.tmp = tempfile.mkdtemp()
-    self.seq = event_log.GlobalSeq(os.path.join(self.tmp, 'seq'))
 
   def tearDown(self):
     shutil.rmtree(self.tmp)
@@ -152,7 +157,7 @@ class EventLogTest(unittest.TestCase):
     event_log.device_id = None
     self.assertEqual(device_id, event_log.GetDeviceId())
 
-    self.assertNotEqual(device_id, event_log.GetImageId())
+    self.assertNotEqual(device_id, event_log.GetReimageId())
 
   def testGetDeviceIdFromSearchPath(self):
     mock_id = "MOCK_ID"
@@ -172,26 +177,27 @@ class EventLogTest(unittest.TestCase):
     event_log.DEVICE_ID_SEARCH_PATHS = []
     self.assertEqual(mock_id, event_log.GetDeviceId())
 
-  def testGetImageId(self):
-    image_id = event_log.GetImageId()
-    assert UUID_RE.match(image_id), image_id
+  def testGetReimageId(self):
+    reimage_id = event_log.GetReimageId()
+    assert UUID_RE.match(reimage_id), reimage_id
 
-    # Remove image_id and make sure we get the same thing
+    # Remove reimage_id and make sure we get the same thing
     # back again, re-reading it from disk
-    event_log.image_id = None
-    self.assertEqual(image_id, event_log.GetImageId())
+    event_log.reimage_id = None
+    self.assertEqual(reimage_id, event_log.GetReimageId())
 
-    # Remove the image_id file; now we should get something
+    # Remove the reimage_id file; now we should get something
     # *different* back.
-    event_log.image_id = None
-    os.unlink(event_log.IMAGE_ID_PATH)
-    self.assertNotEqual(image_id, event_log.GetImageId())
+    event_log.reimage_id = None
+    os.unlink(event_log.REIMAGE_ID_PATH)
+    self.assertNotEqual(reimage_id, event_log.GetReimageId())
 
   def testSuppress(self):
     for suppress in [False, True]:
+      Reset()
       log = event_log.EventLog('test', suppress=suppress)
       log.Log('test')
-      self.assertEquals(not suppress, os.path.exists(log.path))
+      self.assertEquals(suppress, not os.path.exists(event_log.EVENTS_PATH))
 
   def testEventLogDefer(self):
     self._testEventLog(True)
@@ -200,8 +206,8 @@ class EventLogTest(unittest.TestCase):
     self._testEventLog(False)
 
   def _testEventLog(self, defer):
-    log = event_log.EventLog('test', defer=defer, seq=self.seq)
-    self.assertEqual(os.path.exists(log.path), not defer)
+    log = event_log.EventLog('test', defer=defer)
+    self.assertEqual(os.path.exists(event_log.EVENTS_PATH), not defer)
 
     event0 = dict(a='A',
                   b=1,
@@ -211,6 +217,13 @@ class EventLogTest(unittest.TestCase):
                   f=True,
                   g=u"[[[囧]]]".encode('utf-8'))
     log.Log('event0', **event0)
+
+    # Open and close another logger as well
+    event2 = dict(foo='bar')
+    log2 = event_log.EventLog('test2', defer=defer)
+    log2.Log('event2', **event2)
+    log2.Close()
+
     log.Log('event1')
     log.Close()
 
@@ -220,39 +233,62 @@ class EventLogTest(unittest.TestCase):
     except:  # pylint: disable=W0702
       pass
 
-    log_data = list(yaml.load_all(open(log.path, "r")))
-    self.assertEqual(4, len(log_data))
+    log_data = list(yaml.load_all(open(event_log.EVENTS_PATH, "r")))
+    self.assertEqual(6, len(log_data))
+    # The last one should be empty; remove it
+    self.assertIsNone(None, log_data[-1])
+    log_data = log_data[0:-1]
 
-    for i in log_data[0:3]:
+    for i in log_data:
       # Check and remove times, to make everything else easier to compare
       assert re.match(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$',
                       i['TIME']), i['TIME']
       del i['TIME']
 
     self.assertEqual(
-      ['EVENT', 'SEQ', 'boot_id', 'boot_sequence', 'device_id',
-       'factory_md5sum', 'filename', 'image_id', 'log_id'],
+      ['EVENT', 'LOG_ID', 'PREFIX', 'SEQ',
+       'boot_id', 'boot_sequence', 'device_id',
+       'factory_md5sum', 'reimage_id'],
       sorted(log_data[0].keys()))
     self.assertEqual('preamble', log_data[0]['EVENT'])
+    self.assertEqual('test', log_data[0]['PREFIX'])
     self.assertEqual(0, log_data[0]['SEQ'])
     self.assertEqual(event_log.GetBootId(), log_data[0]['boot_id'])
     self.assertEqual(-1, log_data[0]['boot_sequence'])
     self.assertEqual(event_log.GetDeviceId(), log_data[0]['device_id'])
-    self.assertEqual(event_log.GetImageId(), log_data[0]['image_id'])
-    self.assertEqual(os.path.basename(log.path), log_data[0]['filename'])
-    self.assertEqual('test-' + log_data[0]['log_id'],
-                     log_data[0]['filename'])
+    self.assertEqual(event_log.GetReimageId(), log_data[0]['reimage_id'])
+    log_id = log_data[0]['LOG_ID']
+    uuid.UUID(log_id)  # Make sure UUID is well-formed
 
-    event0.update(dict(EVENT='event0', SEQ=1))
+    # Check all the events
+    event0.update(dict(EVENT='event0', SEQ=1, LOG_ID=log_id, PREFIX='test'))
     self.assertEqual(event0, log_data[1])
-    self.assertEqual(dict(EVENT='event1', SEQ=2), log_data[2])
-    self.assertEqual(None, log_data[3])
+    self.assertEqual(
+        dict(EVENT='preamble',
+             LOG_ID=log2.log_id,
+             PREFIX='test2',
+             SEQ=2,
+             boot_id=event_log.GetBootId(),
+             boot_sequence=-1,
+             device_id=event_log.GetDeviceId(),
+             factory_md5sum=None,
+             reimage_id=event_log.GetReimageId()),
+        log_data[2])
+    # Check the preamble and event from the second logger
+    self.assertEqual(
+        dict(EVENT='event2',
+             LOG_ID=log2.log_id,
+             PREFIX='test2',
+             SEQ=3,
+             foo='bar'),
+        log_data[3])
+    self.assertEqual(dict(EVENT='event1', SEQ=4, LOG_ID=log_id, PREFIX='test'),
+                     log_data[4])
 
   def testDeferWithoutEvents(self):
-    log = event_log.EventLog('test', defer=True, seq=self.seq)
-    path = log.path
+    log = event_log.EventLog('test', defer=True)
     log.Close()
-    self.assertFalse(os.path.exists(path))
+    self.assertFalse(os.path.exists(event_log.EVENTS_PATH))
 
   def testBootSequence(self):
     try:
@@ -325,6 +361,6 @@ class GlobalEventLogTest(unittest.TestCase):
     log2 = event_log.GetGlobalLogger()
     self.assertTrue(log1 is log2)
 
-
 if __name__ == "__main__":
+  logging.basicConfig(level=logging.INFO)
   unittest.main()

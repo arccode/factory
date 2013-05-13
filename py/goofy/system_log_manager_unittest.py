@@ -55,7 +55,7 @@ class TestSystemLogManager(unittest.TestCase):
     self.mox.StubOutWithMock(shopfloor, 'get_server_url')
     self.mox.StubOutWithMock(shopfloor, 'get_instance')
     self.mox.StubOutWithMock(event_log, 'GetDeviceId')
-    self.mox.StubOutWithMock(event_log, 'GetImageId')
+    self.mox.StubOutWithMock(event_log, 'GetReimageId')
     self.mox.StubOutWithMock(system_log_manager, 'Spawn')
     self.mox.StubOutWithMock(system_log_manager, 'TerminateOrKillProcess')
     self.fake_shopfloor = self.mox.CreateMockAnything()
@@ -82,7 +82,7 @@ class TestSystemLogManager(unittest.TestCase):
         timeout=MOCK_SHOPFLOOR_TIMEOUT).AndReturn(self.fake_shopfloor)
     self.fake_shopfloor.GetFactoryLogPort().AndReturn(MOCK_PORT)
     event_log.GetDeviceId().AndReturn(MOCK_DEVICE_ID)
-    event_log.GetImageId().AndReturn(MOCK_IMAGE_ID)
+    event_log.GetReimageId().AndReturn(MOCK_IMAGE_ID)
     if extra_files:
       mock_rsync_command = self.AddExtraFilesToRsync(extra_files)
     else:

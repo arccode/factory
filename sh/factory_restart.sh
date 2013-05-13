@@ -21,6 +21,7 @@ usage_help() {
       -s | state:   clear state files ($FACTORY_BASE/state)
       -l | log:     clear factory log files ($FACTORY_BASE/log)
       -t | tests:   clear test data ($FACTORY_BASE/tests)
+      -r | run:     clear run data (/var/run/factory)
       -a | all:     clear everything
       -h | help:    this help screen
   "
@@ -38,16 +39,20 @@ while [ $# -gt 0 ]; do
   shift
   case "$opt" in
     -l | log )
-      delete="$delete log"
+      delete="$delete $FACTORY_BASE/log"
       ;;
     -s | state )
-      delete="$delete state"
+      delete="$delete $FACTORY_BASE/state"
       ;;
     -t | tests )
-      delete="$delete tests"
+      delete="$delete $FACTORY_BASE/tests"
+      ;;
+    -r | run )
+      delete="$delete /var/run/factory"
       ;;
     -a | all )
-      delete="$delete log state tests"
+      delete="$delete $FACTORY_BASE/log $FACTORY_BASE/state"
+      delete="$delete $FACTORY_BASE/tests /var/run/factory"
       ;;
     -h | help )
       usage_help
@@ -71,8 +76,8 @@ killall -9 /usr/bin/python 2>/dev/null
 echo "done."
 
 for d in $delete; do
-  rm -rf /var/factory/$d
-  mkdir -p /var/factory/$d
+  rm -rf "$d"
+  mkdir -p "$d"
 done
 
 echo "Restarting factory tests..."
