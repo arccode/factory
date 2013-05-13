@@ -57,6 +57,8 @@ class SuspendResumeTest(unittest2.TestCase):
         default='/sys/class/rtc/rtc0/wakealarm'),
     Arg('time_path', str, 'Path to the time (since_epoch) file',
         default='/sys/class/rtc/rtc0/since_epoch'),
+    Arg('wakeup_count_path', str, 'Path to the wakeup_count file',
+        default='/sys/power/wakeup_count'),
   ]
 
   def setUp(self):
@@ -83,6 +85,7 @@ class SuspendResumeTest(unittest2.TestCase):
     # Remove lid-opened, which will prevent suspend.
     file_utils.TryUnlink('/var/run/power_manager/lid_opened')
 
+    self.wakeup_count = ''
     self.start_suspend = threading.Event()
     self.suspend_started = threading.Event()
     StartDaemonThread(target=self._MonitorSuspend)
@@ -93,7 +96,8 @@ class SuspendResumeTest(unittest2.TestCase):
     """
     while self.start_suspend.wait():
       self.suspend_started.set()
-      Spawn('powerd_suspend', check_call=True, log_stderr_on_error=True)
+      Spawn(['powerd_suspend', '-w', self.wakeup_count], check_call=True,
+            log_stderr_on_error=True)
       self.suspend_started.clear()
 
   def _ReadSuspendCount(self):
@@ -164,6 +168,7 @@ class SuspendResumeTest(unittest2.TestCase):
       resume_at = suspend_time + start_time
       logging.info('Suspend %d of %d for %d seconds, starting at %d.',
                    run, self.args.cycles, suspend_time, start_time)
+      self.wakeup_count = open(self.args.wakeup_count_path).read().strip()
       open(self.args.wakealarm_path, 'w').write(str(resume_at))
       self.start_suspend.set()
       self.assertTrue(self.suspend_started.wait(_MIN_SUSPEND_MARGIN_SECS),
