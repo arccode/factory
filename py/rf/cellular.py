@@ -9,6 +9,7 @@ import re
 
 import factory_common  # pylint: disable=W0611
 
+from cros.factory.common import Error
 from cros.factory.rf.modem import Modem
 from cros.factory.test import factory
 from cros.factory.utils.process_utils import Spawn
@@ -30,13 +31,21 @@ def GetIMEI():
   '''Gets the IMEI of current active modem.'''
   stdout = Spawn(MODEM_STATUS, read_stdout=True,
                  log_stderr_on_error=True, check_call=True).stdout_data
-  return re.search(MODEM_IMEI_REG_EX, stdout).group(1)
+  match = re.search(MODEM_IMEI_REG_EX, stdout)
+  if not match:
+    logging.info("Returned stdout %r", stdout)
+    raise Error("Cannot get IMEI from modem")
+  return match.group(1)
 
 def GetModemFirmware():
   '''Returns the firmware info.'''
   stdout = Spawn(MODEM_STATUS, read_stdout=True,
                  log_stderr_on_error=True, check_call=True).stdout_data
-  return re.search(MODEM_FIRMWARE_REG_EX, stdout).group(1)
+  match = re.search(MODEM_FIRMWARE_REG_EX, stdout)
+  if not match:
+    logging.info("Returned stdout %r", stdout)
+    raise Error("Cannot switching firmware")
+  return match.group(1)
 
 def SwitchModemFirmware(target):
   """Switch firmware if different from target.
