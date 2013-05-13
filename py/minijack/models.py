@@ -39,7 +39,7 @@ class Test(models.Model):
   status         = models.TextField()
   start_time     = models.TextField()
   end_time       = models.TextField()
-  duration       = models.RealField()
+  duration       = models.FloatField()
   dargs          = models.TextField()
 
 

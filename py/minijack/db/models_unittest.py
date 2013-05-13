@@ -12,7 +12,7 @@ from cros.factory.minijack.db import models
 # Example models for test.
 class FooModel(models.Model):
   field_i = models.IntegerField(primary_key=True)
-  field_r = models.RealField()
+  field_r = models.FloatField()
   field_t = models.TextField()
 
 
@@ -21,7 +21,7 @@ class BarModel(models.Model):
   key2 = models.TextField(primary_key=True)
   val1 = models.TextField()
   val2 = models.IntegerField()
-  val3 = models.RealField()
+  val3 = models.FloatField()
 
 
 class ModelTest(unittest.TestCase):

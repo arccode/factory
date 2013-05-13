@@ -53,7 +53,7 @@ class IntegerField(Field):
     return 'INTEGER'
 
 
-class RealField(Field):
+class FloatField(Field):
   def IsValid(self, value):
     # Both float and int are acceptable.
     return isinstance(value, float) or isinstance(value, int)
