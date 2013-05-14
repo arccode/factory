@@ -1,0 +1,143 @@
+{% load static %}
+{% get_static_prefix as STATIC %}
+<html>
+<head>
+  <title>Minijack: Live of a Device</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+  <link rel="stylesheet" type="text/css" href="{{ STATIC }}minijack.css">
+  <link rel="icon" type="image/png" href="{{ STATIC }}images/logo32.png">
+</head>
+<body>
+  <h1>Minijack: Life of a Device</h1>
+  <div class="container">
+    <div class="right">
+      <h3>Component Information</h3>
+      <table>
+        <tbody>
+          {% for comp in comps %}
+          <tr>
+            <th>{{ comp.component }}</th>
+            <td>{{ comp.symbolic }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+     </div>
+
+     <div class="left">
+      <h3>Device Information</h3>
+      <table>
+        <tbody>
+          <tr>
+            <th>device_id</th>
+            <td>{{ device.device_id }}</td>
+          </tr>
+          <tr>
+            <th>goofy_init_time</th>
+            <td>{{ device.goofy_init_time }}</td>
+          </tr>
+          <tr>
+            <th>serial</th>
+            <td>{{ device.serial }}</td>
+          </tr>
+          <tr>
+            <th>mlb_serial</th>
+            <td>{{ device.mlb_serial }}</td>
+          </tr>
+          <tr>
+            <th>hwid</th>
+            <td>{{ device.hwid }}</td>
+          </tr>
+          <tr>
+            <th>ips</th>
+            <td>{{ device.ips }}</td>
+          </tr>
+          <tr>
+            <th>ips_time</th>
+            <td>{{ device.ips_time }}</td>
+          </tr>
+          <tr>
+            <th>latest_test</th>
+            <td>{{ device.latest_test }}</td>
+          </tr>
+          <tr>
+            <th>latest_test_time</th>
+            <td>{{ device.latest_test_time }}</td>
+          </tr>
+          <tr>
+            <th>minijack_status</th>
+            <td>{{ device.minijack_status }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Test Statistic</h3>
+      <table>
+        <tbody>
+          <tr>
+            <th class="status">PASSED</th>
+            <th></th>
+            <th></th>
+            <th class="status">FAILED</th>
+          </tr>
+          <tr>
+            <td class="status">{{ stat.cpassed }}</td>
+            <td bgcolor="green"
+                width="{% widthratio stat.cpassed stat.ctotal 200 %}"/></td>
+            <td bgcolor="red"
+                width="{% widthratio stat.cfailed stat.ctotal 200 %}"/></td>
+            <td class="status">{{ stat.cfailed }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <p></p>
+      <table>
+        <tbody>
+          <tr>
+             <th class="status">Top Failed</th>
+             <th class="status">Count</th>
+          </tr>
+          {% for test in stat.top_failed %}
+          <tr>
+            <td>{{ test.path }}</th>
+            <td>{{ test.count }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <h3>Test Information</h3>
+  <table>
+    <tbody>
+      <tr>
+        <th>status</th>
+        <th>path</th>
+        <th>pytest_name</th>
+        <th>start_time</th>
+        <th>end_time</th>
+        <th>duration</th>
+        <th>factory_md5sum</th>
+        <th>image_id</th>
+      </tr>
+      {% for test in tests %}
+      <tr>
+        {% if test.status == "FAILED" %}
+        <td bgcolor="red" class="status">{{ test.status }}</td>
+        {% else %}
+        <td class="status">{{ test.status }}</td>
+        {% endif %}
+        <td>{{ test.path }}</td>
+        <td>{{ test.pytest_name }}</td>
+        <td>{{ test.start_time }}</td>
+        <td>{{ test.end_time }}</td>
+        <td class="duration">{{ test.duration|floatformat:3 }}</td>
+        <td>{{ test.factory_md5sum|truncatechars:18 }}</td>
+        <td>{{ test.image_id|truncatechars:18 }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</body>
+</html>

@@ -1,5 +1,6 @@
 {% load static %}
 {% get_static_prefix as STATIC %}
+{% load url from future %}
 <html>
 <head>
   <title>Minijack: Live of a Build</title>
@@ -29,7 +30,9 @@
       </tr>
       {% for device in group.list %}<tr>
         <td class="short_id">
-          {{ device.device_id|truncatechars:18 }}
+          <a href="{% url 'device' device.device_id %}">
+            {{ device.device_id|truncatechars:18 }}
+          </a>
         </td>
         {% if device.goofy_init_time %}
         <td class="short_time">

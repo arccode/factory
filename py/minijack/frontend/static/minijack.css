@@ -50,6 +50,26 @@ th, td {
   text-align: center;
 }
 
+.duration {
+  text-align: right;
+}
+
+.container {
+ height: auto;
+ overflow: hidden;
+}
+
+.right {
+  width: 50%;
+  float: right;
+}
+
+.left {
+  width: auto;
+  float: none;
+  overflow: hidden;
+}
+
 a {
   text-decoration: none;
 }

@@ -2,13 +2,15 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import operator
+import itertools
 from datetime import datetime
 
 from django.http import HttpResponse
 from django.template import Context, loader
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.minijack.frontend.models import Device
+from cros.factory.minijack.frontend.models import Device, Test, Component
 
 
 DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
@@ -30,5 +32,40 @@ def GetBuildView(dummy_request):
   template = loader.get_template('build_life.html')
   context = Context({
     'device_list': device_list,
+  })
+  return HttpResponse(template.render(context))
+
+
+def GetDeviceView(dummy_request, device_id):
+  device = Device.objects.get(device_id=device_id)
+  tests = Test.objects.filter(device_id=device_id).order_by('-start_time')
+  comps = Component.objects.filter(device_id=device_id).order_by('component')
+
+  # Count the passed and failed tests.
+  count_passed = len([t for t in tests if t.status == 'PASSED'])
+  failed_tests = [t for t in tests if t.status == 'FAILED']
+  count_failed = len(failed_tests)
+
+  # Find the top failed tests.
+  sorted_failed = sorted(failed_tests, key=operator.attrgetter('path'))
+  grouped_failed = [(k, len(list(g))) for k, g in
+                    itertools.groupby(sorted_failed,
+                                      key=operator.attrgetter('path'))]
+  top_failed = sorted(grouped_failed, key=operator.itemgetter(1), reverse=True)
+  top_failed_list = [dict(path=p, count=c) for p, c in top_failed]
+
+  stat_dict = {
+    'cpassed': count_passed,
+    'cfailed': count_failed,
+    'ctotal': count_passed + count_failed,
+    'top_failed': top_failed_list[:5],
+  }
+
+  template = loader.get_template('device_life.html')
+  context = Context({
+    'device': device,
+    'tests': tests,
+    'comps': comps,
+    'stat': stat_dict,
   })
   return HttpResponse(template.render(context))
