@@ -35,8 +35,12 @@ class HackedArgParser(ArgumentParser):
                    else 0)
     def format_item(cmd_name):
       doc = self.subcommands[cmd_name][1]
-      doc = '' if doc is None else ' : ' + doc.split('\n')[0]
-      return (max_cmd_len - len(cmd_name) + 2) * ' ' + cmd_name + doc
+      if doc is None:
+        doc = ''
+      else:
+        doc = (': ' + (max_cmd_len - len(cmd_name)) * ' ' +
+               doc.split('\n')[0])
+      return '  ' + cmd_name + doc
     return '\n'.join(
         format_item(cmd_name) for cmd_name in sorted(self.subcommands))
 
