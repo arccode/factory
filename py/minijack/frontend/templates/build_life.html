@@ -1,0 +1,55 @@
+{% load static %}
+{% get_static_prefix as STATIC %}
+<html>
+<head>
+  <title>Minijack: Live of a Build</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+  <link rel="stylesheet" type="text/css" href="{{ STATIC }}minijack.css">
+  <link rel="icon" type="image/png" href="{{ STATIC }}images/logo32.png">
+</head>
+<body>
+  <h1>Minijack: Life of a Build</h1>
+  {% regroup device_list by latest_test_time|date:"Y-m-d" as device_group %}
+  {% for group in device_group %}
+  <h3>
+    {{ group.grouper }},
+    {{ group.list|length }} device{{ group.list|length|pluralize }}
+  </h3>
+  <table>
+    <tbody>
+      <tr>
+        <th>device_id</th>
+        <th>goofy_init_time</th>
+        <th>latest_test_time</th>
+        <th>latest_test</th>
+        <th>serial</th>
+        <th>mlb_serial</th>
+        <th>hwid</th>
+        <th>mj_status</th>
+      </tr>
+      {% for device in group.list %}<tr>
+        <td class="short_id">
+          {{ device.device_id|truncatechars:18 }}
+        </td>
+        {% if device.goofy_init_time %}
+        <td class="short_time">
+          {{ device.goofy_init_time|date:"(m-d)  H:i:s" }}
+        </td>
+        {% else %}
+        <td class="short_time"></td>
+        {% endif %}
+        <td class="short_time">
+          {{ device.latest_test_time|date:"(m-d)  H:i:s" }}
+        </td>
+        <td class="test_name">{{ device.latest_test }}</td>
+        <td class="short_id">{{ device.serial }}</td>
+        <td class="long_id">{{ device.mlb_serial|truncatechars:30 }}</td>
+        <td class="short_id">{{ device.hwid }}</td>
+        <td class="status">{{ device.minijack_status }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endfor %}
+</body>
+</html>

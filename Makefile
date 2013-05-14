@@ -39,7 +39,7 @@ PYLINT_OPTIONS=\
 	--rcfile=$(PYLINTRC) \
 	--ignored-classes=Event,Obj \
 	--disable=R0921,R0801,R0922 \
-	--generated-members=test_info,AndReturn,AndRaise,args
+	--generated-members=test_info,AndReturn,AndRaise,args,objects
 
 LINT_BLACKLIST=\
 	py/argparse.py \

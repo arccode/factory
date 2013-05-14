@@ -1,0 +1,55 @@
+/*
+ * Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
+ */
+
+body {
+  font-family: 'Open Sans', sans-serif;
+}
+
+table {
+  border: 3px solid gray;
+  table-layout: fixed;
+  font-size: 80%;
+  border-spacing: 0px;
+}
+
+th, td {
+  border: 1px solid silver;
+  overflow: hidden;
+  padding: 5px;
+}
+
+.short_time {
+  width: 110;
+  text-align: center;
+}
+
+.long_time {
+  width: 200;
+  text-align: center;
+}
+
+.short_id {
+  width: 120;
+  text-align: center;
+}
+
+.long_id {
+  width: 200;
+  text-align: center;
+}
+
+.test_name {
+  width: 300;
+}
+
+.status {
+  width: 70;
+  text-align: center;
+}
+
+a {
+  text-decoration: none;
+}
