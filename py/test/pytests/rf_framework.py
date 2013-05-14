@@ -114,14 +114,7 @@ class RfFramework(object):
           'setting will be applied if pair is not None. Using None in IP will '
           'acquire one from DHCP. Using False in override flag will preserve '
           'the IP setting in previous stage', default=None, optional=True),
-      Arg('pre_test_outside_shield_box', bool,
-          'True to execute PreTestOutsideShieldBox.',
-          default=True),
-      Arg('pre_test_inside_shield_box', bool,
-          'True to execute PreTestInsideShieldBox.',
-          default=True),
-      Arg('post_test', bool,
-          'True to execute PostTest.',
+      Arg('use_shopfloor', bool, 'True to communicate with shopfloor.',
           default=True)
       ]
 
@@ -181,66 +174,65 @@ class RfFramework(object):
     self.unique_identification = self.GetUniqueIdentification()
     self.Prompt(MSG_START, force_prompt=True)
 
-    if self.args.pre_test_outside_shield_box:
+    if self.args.use_shopfloor:
       self.PrepareNetwork(self.args.static_ips.pop())
       if len(self.args.parameters) > 0:
         self.template.SetState(MSG_DOWNLOADING_PARAMETERS)
         self.DownloadParameters(self.args.parameters)
 
-      # Prepare additional parameters if we are in calibration mode.
-      if self.args.category == 'calibration':
-        self.calibration_mode = True
-        # Load the calibration_target
-        with open(os.path.join(
-            self.caches_dir, self.args.calibration_target), "r") as fd:
-          self.calibration_target = yaml.load(fd.read())
-
-        # Confirm if this DUT is in the list of targets.
-        if self.unique_identification not in self.calibration_target:
-          failure = 'DUT %r is not in the calibration_target' % (
-              self.unique_identification)
-          factory.console.info(failure)
-          self.ui.Fail(failure)
-          self.ui_thread.join()
-        self.calibration_target = (
-            self.calibration_target[self.unique_identification])
-        factory.console.info('Calibration target=\n%s',
-            self.calibration_target)
-
-      # Load the main configuration.
+    # Prepare additional parameters if we are in calibration mode.
+    if self.args.category == 'calibration':
+      self.calibration_mode = True
+      # Load the calibration_target
       with open(os.path.join(
-          self.caches_dir, self.args.config_file), "r") as fd:
-        self.config = yaml.load(fd.read())
-      config_version = self.config['annotation']
-      factory.console.info('Loaded config = %r', config_version)
-      self.field_to_eventlog[CONFIG_VERSION] = config_version
-      self.field_to_csv[CONFIG_VERSION] = config_version
+          self.caches_dir, self.args.calibration_target), "r") as fd:
+        self.calibration_target = yaml.load(fd.read())
+
+      # Confirm if this DUT is in the list of targets.
+      if self.unique_identification not in self.calibration_target:
+        failure = 'DUT %r is not in the calibration_target' % (
+            self.unique_identification)
+        factory.console.info(failure)
+        self.ui.Fail(failure)
+        self.ui_thread.join()
+      self.calibration_target = (
+          self.calibration_target[self.unique_identification])
+      factory.console.info('Calibration target=\n%s',
+          self.calibration_target)
+
+    # Load the main configuration.
+    with open(os.path.join(
+        self.caches_dir, self.args.config_file), "r") as fd:
+      self.config = yaml.load(fd.read())
+    config_version = self.config['annotation']
+    factory.console.info('Loaded config = %r', config_version)
+    self.field_to_eventlog[CONFIG_VERSION] = config_version
+    self.field_to_csv[CONFIG_VERSION] = config_version
 
     try:
       self.template.SetState(MSG_RUNNING_OUTSIDE_SHIELD_BOX)
       self.PreTestOutsideShieldBox()
       self.Prompt(MSG_OUTSIDE_SHIELD_BOX_COMPLETED, force_prompt=True)
 
-      if self.args.pre_test_inside_shield_box:
-        self.PrepareNetwork(self.args.static_ips.pop())
-        # TODO(itspeter): Ask user to enter shield box information.
-        # TODO(itspeter): Verify the validity of shield-box and determine
-        #                 the corresponding calibration_config.
+      self.PrepareNetwork(self.args.static_ips.pop())
+      # TODO(itspeter): Ask user to enter shield box information.
+      # TODO(itspeter): Verify the validity of shield-box and determine
+      #                 the corresponding calibration_config.
 
-        # Load the calibration_config.
-        with open(os.path.join(
-            self.caches_dir, self.args.calibration_config)) as fd:
-          self.calibration_config = yaml.load(fd.read())
-        calibration_config_version = self.calibration_config['annotation']
-        factory.console.info('Loaded calibration_config = %r',
-                             calibration_config_version)
-        self.field_to_eventlog[CALIBRATION_VERSION] = calibration_config_version
-        self.field_to_csv[CALIBRATION_VERSION] = calibration_config_version
+      # Load the calibration_config.
+      with open(os.path.join(
+          self.caches_dir, self.args.calibration_config)) as fd:
+        self.calibration_config = yaml.load(fd.read())
+      calibration_config_version = self.calibration_config['annotation']
+      factory.console.info('Loaded calibration_config = %r',
+                           calibration_config_version)
+      self.field_to_eventlog[CALIBRATION_VERSION] = calibration_config_version
+      self.field_to_csv[CALIBRATION_VERSION] = calibration_config_version
 
-        self.template.SetState(MSG_CHECKING_SHIELD_BOX)
-        self.PreTestInsideShieldBox()
-        # TODO(itspeter): Support multiple language in prompt.
-        self.Prompt(MSG_SHIELD_BOX_CHECKED, force_prompt=True)
+      self.template.SetState(MSG_CHECKING_SHIELD_BOX)
+      self.PreTestInsideShieldBox()
+      # TODO(itspeter): Support multiple language in prompt.
+      self.Prompt(MSG_SHIELD_BOX_CHECKED, force_prompt=True)
 
       # Primary test
       start_time = time.time()
@@ -260,11 +252,11 @@ class RfFramework(object):
       leds.SetLeds(0)
 
       # Post-test
-      if self.args.post_test:
+      self.template.SetState(MSG_POST_TEST)
+      self.PostTest()
+      # Upload the aux_logs to shopfloor server.
+      if self.args.use_shopfloor:
         self.PrepareNetwork(self.args.static_ips.pop())
-        self.template.SetState(MSG_POST_TEST)
-        self.PostTest()
-        # Upload the aux_logs to shopfloor server.
         self.UploadAuxLogs(self.aux_logs)
     finally:
       self.ExitFactoryMode()
