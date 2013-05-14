@@ -35,15 +35,17 @@ class EventStream(list):
   the same preamble event.
 
   Properties:
+    metadata: A dict to keep the metadata.
     preamble: The dict of the preamble event.
   """
-  def __init__(self, yaml_str):
+  def __init__(self, metadata, yaml_str):
     """Initializer.
 
     Args:
       yaml_str: The string contains multiple yaml-formatted events.
     """
     super(EventStream, self).__init__()
+    self.metadata = metadata
     self.preamble = None
     self._LoadFromYaml(yaml_str)
 
@@ -79,10 +81,12 @@ class EventPacket(object):
   used as an argument to pass to the exporters.
 
   Properties:
+    metadata: A dict to keep the metadata.
     preamble: The dict of the preamble event.
     event: The dict of the non-preamble event.
   """
-  def __init__(self, preamble, event):
+  def __init__(self, metadata, preamble, event):
+    self.metadata = metadata
     self.preamble = preamble
     self.event = event
 

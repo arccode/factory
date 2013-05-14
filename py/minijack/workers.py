@@ -81,14 +81,14 @@ class EventLoadingWorker(WorkerBase):
                         log_path,
                         utils.FormatExceptionOnly())
       return None
-    stream = EventStream(yaml_str)
+    stream = EventStream(None, yaml_str)
     return stream.preamble
 
   def _ConvertToEventStream(self, blob):
     """Callback for event log watcher."""
     start_time = time.time()
     log_name = blob.metadata['log_name']
-    stream = EventStream(blob.chunk)
+    stream = EventStream(blob.metadata, blob.chunk)
 
     # TODO(waihong): Abstract the filesystem access.
     if not stream.preamble:
@@ -109,7 +109,7 @@ class EventLoadingWorker(WorkerBase):
       return None
     else:
       logging.info('YAML to Python obj (%s, %.3f sec)',
-                   stream.preamble.get('filename'),
+                   stream.metadata.get('log_name'),
                    time.time() - start_time)
       return stream
 

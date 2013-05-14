@@ -95,10 +95,10 @@ class EventSinker(object):
     """Sinks the given event stream."""
     start_time = time.time()
     for event in stream:
-      packet = EventPacket(stream.preamble, event)
+      packet = EventPacket(stream.metadata, stream.preamble, event)
       self.SinkEventPacket(packet)
     logging.info('Sinked to database (%s, %d events, %.3f sec)',
-                 stream.preamble.get('filename'),
+                 stream.metadata.get('log_name'),
                  len(stream),
                  time.time() - start_time)
 

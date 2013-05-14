@@ -78,7 +78,7 @@ class EventStreamTest(unittest.TestCase):
 
   def testLoadFromYaml(self):
     yaml_str = '\n'.join(self._yaml_str_list)
-    stream = EventStream(yaml_str)
+    stream = EventStream(None, yaml_str)
     self.assertEqual('d0:xx:xx:xx:xx:df', stream.preamble['device_id'])
     self.assertEqual(2, len(stream))
     self.assertEqual('test_states', stream[0]['EVENT'])
@@ -92,27 +92,27 @@ class EventStreamTest(unittest.TestCase):
   def testMissingEvent(self):
     self._yaml_str_list.remove('EVENT: test_states')
     yaml_str = '\n'.join(self._yaml_str_list)
-    stream = EventStream(yaml_str)
+    stream = EventStream(None, yaml_str)
     self.assertEqual('d0:xx:xx:xx:xx:df', stream.preamble['device_id'])
     self.assertEqual(1, len(stream))
 
   def testMissingPreamble(self):
     yaml_str = '\n'.join(self._yaml_str_list[11:])  # drop the preamble event
-    stream = EventStream(yaml_str)
+    stream = EventStream(None, yaml_str)
     self.assertIs(None, stream.preamble)
     self.assertEqual(2, len(stream))
 
   def testMissingPreambleEvent(self):
     self._yaml_str_list.remove('EVENT: preamble')
     yaml_str = '\n'.join(self._yaml_str_list)
-    stream = EventStream(yaml_str)
+    stream = EventStream(None, yaml_str)
     self.assertIs(None, stream.preamble)
     self.assertEqual(2, len(stream))
 
   def testWrongYAML(self):
     self._yaml_str_list.remove('  - id: SMT')
     yaml_str = '\n'.join(self._yaml_str_list)
-    stream = EventStream(yaml_str)
+    stream = EventStream(None, yaml_str)
     self.assertEqual('d0:xx:xx:xx:xx:df', stream.preamble['device_id'])
     self.assertEqual(0, len(stream))
 
@@ -120,15 +120,15 @@ class EventStreamTest(unittest.TestCase):
 class EventPacketTest(unittest.TestCase):
   def setUp(self):
     yaml_str = _YAML_STR_EXAMPLE
-    self._stream = EventStream(yaml_str)
+    self._stream = EventStream(None, yaml_str)
 
   def testEventPacket(self):
-    packet = EventPacket(self._stream.preamble, self._stream[0])
+    packet = EventPacket(None, self._stream.preamble, self._stream[0])
     self.assertEqual('d0:xx:xx:xx:xx:df', packet.preamble['device_id'])
     self.assertEqual('test_states', packet.event['EVENT'])
 
   def testFlattenAttr(self):
-    packet = EventPacket(self._stream.preamble, self._stream[0])
+    packet = EventPacket(None, self._stream.preamble, self._stream[0])
     generator = EventPacket.FlattenAttr(packet.event)
     flattened = dict((k, v) for k, v in generator)
     self.assertEqual(37, len(flattened))
@@ -142,7 +142,7 @@ class EventPacketTest(unittest.TestCase):
         flattened['test_states.subtests.0.subtests.1.subtests.0.id'])
 
   def testFindAttrContainingKey(self):
-    packet = EventPacket(self._stream.preamble, self._stream[0])
+    packet = EventPacket(None, self._stream.preamble, self._stream[0])
     attr_dict = packet.FindAttrContainingKey('tag')
     self.assertEqual(6, len(attr_dict))
     self.assertIn('tag', attr_dict)
