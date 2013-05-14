@@ -358,6 +358,8 @@ class Database(object):
     Raises:
       HWIDException if there is missing field in the database.
     """
+    if not db_yaml:
+      raise HWIDException('Invalid HWID database')
     for key in ['board', 'encoding_patterns', 'image_id', 'pattern',
                 'encoded_fields', 'components', 'rules']:
       if not db_yaml.get(key):

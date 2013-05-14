@@ -128,6 +128,13 @@ class DatabaseTest(unittest2.TestCase):
         yaml.dump(result) for result in yaml.load_all(open(os.path.join(
             _TEST_DATA_PATH, 'test_probe_result.yaml')).read())]
 
+  def testLoadData(self):
+    self.assertRaisesRegexp(
+        HWIDException, r'Invalid HWID database', Database.LoadData, '')
+    self.assertRaisesRegexp(
+        HWIDException, r"'board' is not specified in component database",
+        Database.LoadData, {'foo': 'bar'})
+
   def testSanityChecks(self):
     mock_db = copy.deepcopy(self.database)
     mock_db.encoded_fields['foo'] = dict()
