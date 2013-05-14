@@ -12,12 +12,12 @@ class Event(models.Model):
   time           = models.TextField()
   event          = models.TextField()
   seq            = models.IntegerField()
+  log_id         = models.TextField()
+  prefix         = models.TextField()
   boot_id        = models.TextField()
   boot_sequence  = models.IntegerField()
   factory_md5sum = models.TextField()
-  filename       = models.TextField()
   image_id       = models.TextField()
-  log_id         = models.TextField()
 
 
 class Attr(models.Model):

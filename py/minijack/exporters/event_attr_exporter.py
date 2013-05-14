@@ -41,12 +41,15 @@ class EventAttrExporter(ExporterBase):
       time           = packet.event.get('TIME'),
       event          = packet.event.get('EVENT'),
       seq            = int(packet.event.get('SEQ')),
+      # Backward compatibile with the old tags, i.e. log_id and filename.
+      log_id         = (packet.preamble.get('LOG_ID') or
+                        packet.preamble.get('log_id')),
+      prefix         = (packet.preamble.get('PREFIX') or
+                        packet.preamble.get('filename', '').split('-')[0]),
       boot_id        = packet.preamble.get('boot_id'),
       boot_sequence  = int(packet.preamble.get('boot_sequence')),
       factory_md5sum = packet.preamble.get('factory_md5sum'),
-      filename       = packet.preamble.get('filename'),
       image_id       = packet.preamble.get('image_id'),
-      log_id         = packet.preamble.get('log_id'),
     )
     self._database.Insert(row)
 
