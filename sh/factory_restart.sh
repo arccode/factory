@@ -22,7 +22,8 @@ usage_help() {
       -l | log:     clear factory log files ($FACTORY_BASE/log)
       -t | tests:   clear test data ($FACTORY_BASE/tests)
       -r | run:     clear run data (/var/run/factory)
-      -a | all:     clear everything
+      -a | all:     clear all of the above
+      -d | vpd:     clear VPD
       -h | help:    this help screen
   "
 }
@@ -33,6 +34,7 @@ clear_files() {
   [ -n "$enabled" ] && echo rm -rf "$FACTORY_BASE/$dir/*"
 }
 
+clear_vpd=false
 delete=""
 while [ $# -gt 0 ]; do
   opt="$1"
@@ -53,6 +55,9 @@ while [ $# -gt 0 ]; do
     -a | all )
       delete="$delete $FACTORY_BASE/log $FACTORY_BASE/state"
       delete="$delete $FACTORY_BASE/tests /var/run/factory"
+      ;;
+    -d | vpd )
+      clear_vpd=true
       ;;
     -h | help )
       usage_help
@@ -79,6 +84,13 @@ for d in $delete; do
   rm -rf "$d"
   mkdir -p "$d"
 done
+
+if $clear_vpd; then
+  echo Clearing RO VPD...
+  vpd -i RO_VPD -O
+  echo Clearing RW VPD...
+  vpd -i RW_VPD -O
+fi
 
 echo "Restarting factory tests..."
 # Ensure full stop, we don't want to have the same factory
