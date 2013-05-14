@@ -54,6 +54,18 @@ th, td {
   text-align: right;
 }
 
+.attr_key {
+  text-align: left;
+}
+
+.attr_value {
+  font-family: 'Courier New', monospace;
+}
+
+.event_name {
+  text-align: center;
+}
+
 .container {
  height: auto;
  overflow: hidden;

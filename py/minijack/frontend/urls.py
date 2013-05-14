@@ -11,5 +11,6 @@ from cros.factory.minijack.frontend import settings, views
 
 urlpatterns = patterns('',
   url(r'^device/(?P<device_id>[^/]*)$', views.GetDeviceView, name='device'),
+  url(r'^event/(?P<event_id>[^/]*)$', views.GetEventView, name='event'),
   url(r'^$', views.GetBuildView, name='build'),
 ) + static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

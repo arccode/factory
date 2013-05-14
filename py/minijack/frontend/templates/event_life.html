@@ -1,0 +1,113 @@
+{% load static %}
+{% get_static_prefix as STATIC %}
+{% load url from future %}
+<html>
+<head>
+  <title>Minijack: Live of an Event</title>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+  <link rel="stylesheet" type="text/css" href="{{ STATIC }}minijack.css">
+  <link rel="icon" type="image/png" href="{{ STATIC }}images/logo32.png">
+</head>
+<body>
+  <h1>Minijack: Life of an Event</h1>
+
+  <div class="container">
+    <div class="right">
+      <h3>Surrounding Events</h3>
+      <table>
+        <tbody>
+          {% for event in events_after %}
+          <tr>
+            <td class="event_name">
+              <a href="{% url 'event' event.event_id %}">
+                {{ event.event }} ({{ event.seq }})
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+          <tr>
+            <th>This Event ({{ event.seq }}) </th>
+          </tr>
+          {% for event in events_before %}
+          <tr>
+            <td class="event_name">
+              <a href="{% url 'event' event.event_id %}">
+                {{ event.event }} ({{ event.seq }})
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="left">
+      <h3>Event Information</h3>
+      <table>
+        <tbody>
+          <tr>
+            <th>event_id</th>
+            <td>{{ event.event_id }}</td>
+          </td>
+          <tr>
+            <th>device_id</th>
+            <td>
+              <a href="{% url 'device' event.device_id %}">
+                {{ event.device_id }}
+              </a>
+            </td>
+          </td>
+          <tr>
+            <th>time</th>
+            <td>{{ event.time }}</td>
+          </td>
+          <tr>
+            <th>event</th>
+            <td>{{ event.event }}</td>
+          </td>
+          <tr>
+            <th>seq</th>
+            <td>{{ event.seq }}</td>
+          </td>
+          <tr>
+            <th>log_id</th>
+            <td>{{ event.log_id }}</td>
+          </td>
+          <tr>
+            <th>prefix</th>
+            <td>{{ event.prefix }}</td>
+          </td>
+          <tr>
+            <th>boot_sequence</th>
+            <td>{{ event.boot_sequence }}</td>
+          </td>
+          <tr>
+            <th>boot_id</th>
+            <td>{{ event.boot_id }}</td>
+          </td>
+          <tr>
+            <th>factory_md5sum</th>
+            <td>{{ event.factory_md5sum }}</td>
+          </td>
+          <tr>
+            <th>image_id</th>
+            <td>{{ event.image_id }}</td>
+          </td>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <h3>Attribute Information</h3>
+  <table>
+    <tbody>
+      {% for attr in attrs %}
+      <tr>
+        <th class="attr_key">{{ attr.attr }}</th>
+        <td class="attr_value">{{ attr.value|linebreaks }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</body>
+</html>

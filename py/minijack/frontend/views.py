@@ -11,6 +11,7 @@ from django.template import Context, loader
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.minijack.frontend.models import Device, Test, Component
+from cros.factory.minijack.frontend.models import Event, Attr
 
 
 DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
@@ -67,5 +68,32 @@ def GetDeviceView(dummy_request, device_id):
     'tests': tests,
     'comps': comps,
     'stat': stat_dict,
+  })
+  return HttpResponse(template.render(context))
+
+
+def GetEventView(dummy_request, event_id):
+  event = Event.objects.get(event_id=event_id)
+  attrs = Attr.objects.filter(event_id=event_id).order_by('attr')
+  for attr in attrs:
+    attr.value = attr.value.decode('string-escape')
+
+  # Find the surrounding events.
+  device_id = event.device_id
+  events = Event.objects.filter(device_id=device_id).order_by('-time')
+  for i in range(len(events)):
+    if events[i].event_id == event_id:
+      events_after = events[max(0, i - 5) : i]
+      events_before = events[i + 1 : min(len(events), i + 6)]
+      break
+  else:
+    events_after = events_before = []
+
+  template = loader.get_template('event_life.html')
+  context = Context({
+    'event': event,
+    'attrs': attrs,
+    'events_before': events_before,
+    'events_after': events_after,
   })
   return HttpResponse(template.render(context))

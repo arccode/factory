@@ -1,5 +1,6 @@
 {% load static %}
 {% get_static_prefix as STATIC %}
+{% load url from future %}
 <html>
 <head>
   <title>Minijack: Live of a Device</title>
@@ -128,7 +129,7 @@
         {% else %}
         <td class="status">{{ test.status }}</td>
         {% endif %}
-        <td>{{ test.path }}</td>
+        <td><a href="{% url 'event' test.event_id %}">{{ test.path }}</a></td>
         <td>{{ test.pytest_name }}</td>
         <td>{{ test.start_time }}</td>
         <td>{{ test.end_time }}</td>
