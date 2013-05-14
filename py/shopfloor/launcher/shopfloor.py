@@ -25,6 +25,7 @@ Examples:
 
 
 import json
+import logging
 import os
 import sys
 from twisted.internet import error, reactor
@@ -32,7 +33,7 @@ from twisted.internet.protocol import Protocol, ClientFactory
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.hacked_argparse import CmdArg, Command, ParseCmdline
-from cros.factory.shopfloor.launcher import constants
+from cros.factory.shopfloor.launcher import constants, importer
 
 
 def Stop():
@@ -111,9 +112,14 @@ def List(dummy_args):
                 help='import resources from bundle dir'),
          CmdArg('-f', '--file', nargs='+',
                 help='import resources from file list'))
-def Import(dummy_args):
+def Import(args):
   """Imports shopfloor resources."""
-  raise NotImplementedError('shopofloor import')
+  if args.bundle:
+    importer.BundleImporter(args.bundle).Import()
+    return
+  if args.file:
+    raise NotImplementedError('shopofloor import --file')
+  raise NotImplementedError('shopfloor import')
 
 
 @Command('info')
@@ -129,6 +135,7 @@ def Init(dummy_args):
 
 
 def main():
+  logging.basicConfig(level=logging.INFO, format='%(message)s')
   args = ParseCmdline('Shopfloor V2 command line utility.')
   args.command(args)
 

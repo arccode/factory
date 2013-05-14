@@ -18,32 +18,33 @@ class LauncherYAMLConfig(dict):
       optional_items={
           # Network installer settings.
           'network_install': FixedDict(
-              'network_install_fields',
+              'Netowkr installer fields',
               items={
-                'port': Scalar('Network download port', int),
-                'board': Dict(
-                    'boards',
-                    Scalar('Board name', str),
-                    FixedDict(
-                        'Resources for the board',
-                        items={
-                            'config': Scalar('download_conf', str),
-                            'efi': Scalar('EFI partition image', str),
-                            'firmware': Scalar('Firmware updater', str),
-                            'hwid': Scalar('HWID resource', str),
-                            'oem': Scalar('OEM partition image', str),
-                            'rootfs-release': Scalar(
-                                'Release rootfs and Kernel',
-                                 str),
-                            'rootfs-test': Scalar(
-                                'Factory test rootfs and Kernel',
-                                str),
-                            'state': Scalar('Stateful partition image', str)},
-                        optional_items={
-                            'complete': Scalar(
-                                'Complete script to run after download',
-                                str)}))},
-                optional_items={
+                  'port': Scalar('Network download port', int),
+                  'board': Dict(
+                      'boards',
+                      Scalar('Board name', str),
+                      FixedDict(
+                          'Resources for the board',
+                          items={
+                              'config': Scalar('download_conf', str),
+                              'efi': Scalar('EFI partition image', str),
+                              'firmware': Scalar('Firmware updater', str),
+                              'hwid': Scalar('HWID resource', str),
+                              'oem': Scalar('OEM partition image', str),
+                              'rootfs-release': Scalar(
+                                  'Release rootfs and Kernel',
+                                   str),
+                              'rootfs-test': Scalar(
+                                  'Factory test rootfs and Kernel',
+                                  str),
+                              'state': Scalar('Stateful partition image',
+                                              str)},
+                          optional_items={
+                              'complete': Scalar(
+                                  'Complete script to run after download',
+                                  str)}))},
+              optional_items={
                   'netboot_kernel': Scalar('Network tftp boot uImage', str),
                   'dhcp': FixedDict(
                       'DHCP server settings',
@@ -53,7 +54,14 @@ class LauncherYAMLConfig(dict):
                           'subnet': Scalar('DHCP subnet', str),
                           'netmask': Scalar('Subnet netmask', str),
                           'range': List('DHCP range, start IP and end IP',
-                                        Scalar('IP address', str))})})},
+                                        Scalar('IP address', str))})}),
+          # Factory updater settings
+          'updater': FixedDict(
+              'Factory updater fields',
+              optional_items={
+                  'port': Scalar('Rsync daemon port', int),
+                  'update_bundle': Scalar('factory.tar.bz2 resource', str),
+                  'hwid_bundle': Scalar('HWID resource', str)})},
       items={
           # Info fields includes version and note. Both fields are human
           # readable one-line strings for command line utility to display.
