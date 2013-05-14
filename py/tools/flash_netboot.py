@@ -7,8 +7,8 @@
 
 import argparse
 from contextlib import nested
+import glob
 import logging
-import os
 import sys
 
 import factory_common  # pylint: disable=W0611
@@ -63,14 +63,18 @@ def main():
   parser = argparse.ArgumentParser(
       description="Flash netboot firmware with VPD preserved.")
   parser.add_argument('--image', '-i', help='Netboot firmware image',
-                      default='/usr/local/factory/custom/netboot.bin',
+                      default='/usr/local/factory/board/nv_image*.bin',
                       required=False)
   parser.add_argument('--yes', '-y', action='store_true',
                       help="Don't ask for confirmation")
   args = parser.parse_args()
 
-  if not os.path.exists(args.image):
+  images = glob.glob(args.image)
+  if not images:
     parser.error('Firmware image %s does not exist' % args.image)
+  if len(images) > 1:
+    parser.error('Multiple firmware images %s exist' % images)
+  image = images[0]
 
   logging.basicConfig(level=logging.INFO)
 
@@ -85,7 +89,7 @@ def main():
        '***\n'
        '*** Once this process starts, aborting it or powering off the\n'
        '*** machine may leave the machine in an unknown state.\n'
-       '***\n') % args.image)
+       '***\n') % image)
 
   if not args.yes:
     sys.stdout.write('*** Continue? [y/N] ')
@@ -97,7 +101,7 @@ def main():
               UnopenedTemporaryFile(prefix='vpd.ro.'),
               UnopenedTemporaryFile(prefix='vpd.rw.')) as files:
     PreserveVPD(*files)
-    FlashFirmware(args.image)
+    FlashFirmware(image)
     RestoreVPD(*files)
 
 
