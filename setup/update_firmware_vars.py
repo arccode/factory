@@ -7,6 +7,7 @@
 """Update environment variables in a legacy_image.bin."""
 
 import copy
+import fmap
 import optparse
 import os
 import shutil
@@ -378,16 +379,16 @@ def _GetEnvVarAddrSize(image_file):
     A tuple of the address and the size of RW_ENVIRONMENT section is returned.
   """
   try:
-    command = ["dump_fmap", "-p", image_file, "RW_ENVIRONMENT"]
-    stream = subprocess.Popen(command, stdout=subprocess.PIPE)
-    result = stream.communicate()[0].split()
-    if len(result) == 0:
-      raise ArgumentError("Cannot find RW_ENVIRONMENT section in FMAP.")
-    addr = int(result[1])
-    size = int(result[2])
-    return (addr, size)
-  except OSError:
-    raise ArgumentError("Error calling dump_fmap.")
+    with open(image_file, 'rb') as f:
+      entries = fmap.fmap_decode(f.read())
+  except:
+    raise ArgumentError("Error decoding FMAP from image file %s." % image_file)
+
+  rw_env = [entry for entry in entries['areas']
+            if entry['name'] == 'RW_ENVIRONMENT']
+  if len(rw_env) != 1:
+    raise ArgumentError("Cannot find RW_ENVIRONMENT section in FMAP.")
+  return (rw_env[0]['offset'], rw_env[0]['size'])
 
 
 def _PutEnvInFile(outfile, addr, env_str, clobber_ok):
