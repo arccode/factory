@@ -2,13 +2,19 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Provides an interface for DUT to interact with BFT fixture."""
+"""Provides an interface for DUT to interact with BFT fixture.
+
+Also provides factory function CreateBFTFixture() to import specific
+BFTFixture module, instantiate it, and connect to the fixture.
+"""
 
 import factory_common # pylint: disable=W0611
 from cros.factory.test.utils import Enum
 
+
 class BFTFixtureException(Exception):
   pass
+
 
 class BFTFixture(object):
   """Base class of BFT (Board Function Test) fixture.
@@ -101,3 +107,23 @@ class BFTFixture(object):
       None if the fixture doesn't sense LED color.
     """
     raise NotImplementedError
+
+
+def CreateBFTFixture(class_name, params):
+  """Initializes a BFT fixture instance.
+
+  Imports a BFT fixture module based on class_name and initializes the
+  instance using params.
+
+  Args:
+    class_name: fixture's import path + module name. For example,
+        "cros.factory.test.fixture.dummy_bft_fixture.DummyBFTFixture".
+    params: a dict of params for Init().
+
+  Returns:
+    An instance of the specified BFT fixture implementation.
+  """
+  module, cls = class_name.rsplit('.', 1)
+  fixture = getattr(__import__(module, fromlist=[cls]), cls)()
+  fixture.Init(**params)
+  return fixture
