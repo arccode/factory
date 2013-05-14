@@ -21,6 +21,8 @@ dargs:
       when discharging.
   battery_check_delay_sec: Delay of checking battery current. This can be
       used to handle slowly settled battery current. Default value is 3 secs.
+  verbose_log_period_secs: Log debug data every x seconds to verbose log file.
+  log_period_secs: Log test data every x seconds to factory log.
   spec_list:
       A list of tuples. Each tuple contains
       (charge_change, timeout_secs, load)
@@ -119,6 +121,10 @@ class ChargerTest(unittest.TestCase):
       Arg('battery_check_delay_sec', int, 'Delay of checking battery current. '
           'This can be used to handle slowly settled battery current.',
           default=3),
+      Arg('verbose_log_period_secs', int, 'Log debug data every x seconds '
+          'to verbose log file.', default=3),
+      Arg('log_period_secs', int, 'Log test data every x seconds.',
+          default=60),
       Arg('use_percentage', bool, 'True if using percentage as charge unit '
           'in spec list. False if using mAh.', default=True),
       Arg('spec_list', list, 'A list of tuples. Each tuple contains\n'
@@ -144,6 +150,7 @@ class ChargerTest(unittest.TestCase):
     self._min_starting_charge = float(self.args.min_starting_charge_pct)
     self._max_starting_charge = float(self.args.max_starting_charge_pct)
     self._unit = '%' if self.args.use_percentage else 'mAh'
+    self._verbose_log = factory.get_verbose_log_file()
 
   def _NormalizeCharge(self, charge_pct):
     if self.args.use_percentage:
@@ -243,6 +250,8 @@ class ChargerTest(unittest.TestCase):
     with LoadManager(duration_secs=spec.timeout_secs,
                      num_threads=spec.load):
       start_time = time.time()
+      last_verbose_log_time = None
+      last_log_time = None
       spec_end_time = start_time + spec.timeout_secs
       while time.time() < spec_end_time:
         elapsed = time.time() - start_time
@@ -251,8 +260,6 @@ class ChargerTest(unittest.TestCase):
             battery_current, self.args.use_percentage))
         time.sleep(1)
         charge = self._GetCharge(self.args.use_percentage)
-        logging.info('Current charge is %.2f%s, target is %.2f%s.',
-                     charge, self._unit, target, self._unit)
         battery_current = self._GetBatteryCurrent()
         if self._Meet(charge, target, moving_up):
           logging.info('Meet difference from %.2f%s to %.2f%s'
@@ -266,35 +273,51 @@ class ChargerTest(unittest.TestCase):
           time.sleep(1)
           return
         elif elapsed >= self.args.battery_check_delay_sec:
+          charger_current = self._GetChargerCurrent()
+          if (not last_verbose_log_time or
+              elapsed - last_verbose_log_time >
+              self.args.verbose_log_period_secs):
+            self._VerboseLog(charge, charger_current, battery_current)
+            last_verbose_log_time = elapsed
+          if (not last_log_time or
+              elapsed - last_log_time >
+              self.args.log_period_secs):
+            self._Log(charge, charger_current, battery_current)
+            last_log_time = elapsed
           if charge < target:
-            self._CheckCharge()
+            self._CheckCharge(charger_current, battery_current)
           else:
-            self._CheckDischarge()
+            self._CheckDischarge(battery_current)
 
       Log('not_meet', load=spec.load, target=target, charge=charge)
       self.fail('Cannot regulate battery to %.2f%s in %d seconds.' %
                 (target, self._unit, spec.timeout_secs))
 
-  def _CheckCharge(self):
-    """Checks current in charging state """
-    charger_current = self._GetChargerCurrent()
-    if charger_current:
+  def _VerboseLog(self, charge, charger_current, battery_current):
+    """Log data to verbose log"""
+    self._verbose_log.write(time.strftime('%Y-%m-%d %H:%M:%S\n', time.gmtime()))
+    self._verbose_log.write('Charge = %.2f%s\n' % (charge, self._unit))
+    if charger_current is not None:
+      self._verbose_log.write('Charger current = %d\n' % charger_current)
+    self._verbose_log.write('Battery current = %d\n' % battery_current)
+    self._verbose_log.flush()
+
+  def _Log(self, charge, charger_current, battery_current):
+    """Log data to factory log"""
+    logging.info('Charge = %.2f%s', charge, self._unit)
+    if charger_current is not None:
       logging.info('Charger current = %d', charger_current)
+    logging.info('Battery current = %d', battery_current)
+
+  def _CheckCharge(self, charger_current, battery_current):
+    """Checks current in charging state"""
+    if charger_current:
       self.assertTrue(charger_current > 0, 'Abnormal charger current')
-    battery_current = self._GetBatteryCurrent()
-    logging.info('Battery current = %d.', battery_current)
-    factory.console.info('battery current %d' % battery_current)
     if self.args.check_battery_current:
       self.assertTrue(battery_current > 0, 'Abnormal battery current')
 
-  def _CheckDischarge(self):
-    """Checks current in discharging state """
-    charger_current = self._GetChargerCurrent()
-    if charger_current:
-      logging.info('Charger current = %d', charger_current)
-    battery_current = self._GetBatteryCurrent()
-    logging.info('Battery current = %d.', battery_current)
-    factory.console.info('battery current %d' % battery_current)
+  def _CheckDischarge(self, battery_current):
+    """Checks current in discharging state"""
     if self.args.check_battery_current:
       self.assertTrue(battery_current < 0, 'Abnormal battery current')
 
