@@ -2,9 +2,12 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import base64
 import logging
 import pprint
 import re
+import struct
+import uuid
 import yaml
 
 
@@ -84,11 +87,13 @@ class EventPacket(object):
     metadata: A dict to keep the metadata.
     preamble: The dict of the preamble event.
     event: The dict of the non-preamble event.
+    _event_id: The event_id string.
   """
   def __init__(self, metadata, preamble, event):
     self.metadata = metadata
     self.preamble = preamble
     self.event = event
+    self._event_id = None
 
   @staticmethod
   def FlattenAttr(attr):
@@ -117,10 +122,13 @@ class EventPacket(object):
     return (('.'.join(k), v) for k, v in _FlattenAttr(attr))
 
   def GetEventId(self):
-    """Generates the unique ID for an event, i.e. "{image_id}-{SEQ}"."""
-    image_id = self.preamble.get('image_id')
-    seq = str(self.event.get('SEQ', ''))
-    return '-'.join([image_id, seq])
+    """Generates the unique ID for an event, the base64 of {image_id}{SEQ}."""
+    if not self._event_id:
+      image_id_bytes = uuid.UUID(self.preamble.get('image_id')).bytes
+      seq_bytes = struct.pack('>L', int(self.event.get('SEQ')))
+      self._event_id = ''.join([base64.urlsafe_b64encode(s).rstrip('=')
+          for s in [image_id_bytes, seq_bytes]])
+    return self._event_id
 
   def FindAttrContainingKey(self, key):
     """Finds the attr in the event that contains the given key.

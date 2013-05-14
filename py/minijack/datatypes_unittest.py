@@ -127,6 +127,10 @@ class EventPacketTest(unittest.TestCase):
     self.assertEqual('d0:xx:xx:xx:xx:df', packet.preamble['device_id'])
     self.assertEqual('test_states', packet.event['EVENT'])
 
+  def testEventId(self):
+    packet = EventPacket(None, self._stream.preamble, self._stream[0])
+    self.assertEqual('GvRnWrTNTx-aTaKNQC7YGwAAAOJw', packet.GetEventId())
+
   def testFlattenAttr(self):
     packet = EventPacket(None, self._stream.preamble, self._stream[0])
     generator = EventPacket.FlattenAttr(packet.event)
