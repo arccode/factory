@@ -72,9 +72,8 @@ verbosity_cmd_arg = CmdArg(
     action=VerbosityAction)
 
 
-# Per-module attribute to contain dict of (sub-command-name : function) pairs.
-SUB_CMD_LIST_ATTR = 'G_subcommands'
-
+# Map the caller frame to subcommands
+_caller_subcommands_map = {}
 
 def Command(cmd_name, *arg_list):
   """Decorator to populate the per-module sub-command list.
@@ -86,12 +85,13 @@ def Command(cmd_name, *arg_list):
   Function doc strings are extracted and shown to users as part of the
   help message for each command.
   """
-  caller_module = inspect.getmodule((inspect.stack()[1])[0])
+  caller = inspect.getouterframes(inspect.currentframe())[1][1]
   def Decorate(fun):
     doc = fun.__doc__ if fun.__doc__ else None
-    subcommands = getattr(caller_module, SUB_CMD_LIST_ATTR, {})
+    subcommands = (_caller_subcommands_map[caller] if caller in
+                   _caller_subcommands_map else {})
     subcommands[cmd_name] = (fun, doc, arg_list)
-    setattr(caller_module, SUB_CMD_LIST_ATTR, subcommands)
+    _caller_subcommands_map[caller] = subcommands
     return fun
   return Decorate
 
@@ -102,8 +102,9 @@ def ParseCmdline(top_level_description, *common_args):
   The list of subcommands is taken from the SUB_CMD_LIST_ATTR
   attribute of the caller module.
   """
-  caller_module = inspect.getmodule((inspect.stack()[1])[0])
-  subcommands = getattr(caller_module, SUB_CMD_LIST_ATTR, {})
+  caller = inspect.getouterframes(inspect.currentframe())[1][1]
+  subcommands = (_caller_subcommands_map[caller] if caller in
+                 _caller_subcommands_map else {})
   parser = HackedArgParser(
       subcommands=subcommands,
       description=top_level_description)
