@@ -117,13 +117,10 @@ class EventPacket(object):
     return (('.'.join(k), v) for k, v in _FlattenAttr(attr))
 
   def GetEventId(self):
-    """Generates the unique ID for an event, i.e. "{PREFIX}-{LOG_ID}-{SEQ}"."""
-    # Backward compatibile with the old tags, i.e. log_id and filename.
-    log_id = self.preamble.get('LOG_ID') or self.preamble.get('log_id')
-    prefix = (self.preamble.get('PREFIX') or
-              self.preamble.get('filename', '').split('-')[0])
+    """Generates the unique ID for an event, i.e. "{image_id}-{SEQ}"."""
+    image_id = self.preamble.get('image_id')
     seq = str(self.event.get('SEQ', ''))
-    return '-'.join([prefix, log_id, seq])
+    return '-'.join([image_id, seq])
 
   def FindAttrContainingKey(self, key):
     """Finds the attr in the event that contains the given key.
