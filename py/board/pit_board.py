@@ -5,6 +5,7 @@
 # found in the LICENSE file.
 
 import factory_common  # pylint: disable=W0611
+import logging
 
 from cros.factory.board.chromeos_board import ChromeOSBoard
 
@@ -20,3 +21,10 @@ class PitBoard(ChromeOSBoard):
 
   def GetTemperatureSensorNames(self):
     return ['CPU']
+
+  def SetChargeState(self, state):
+    #TODO: Add an actual SetChargeState implementation
+    logging.info('SetChargeState: Non-functional. See crosbug.com/p/19417')
+
+  def GetChargerCurrent(self):
+    raise NotImplementedError
