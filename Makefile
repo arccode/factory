@@ -16,7 +16,7 @@ SYMLINK_INSTALL_DIR=/usr/local/bin
 SYMLINK_TARGET_RELPATH=../factory
 # Binaries that should have symlinks.
 SYMLINK_BINS=\
-	edid factory_bug factory_restart \
+	edid factory_bug factory_restart flash_netboot \
 	gooftool goofy goofy_control goofy_remote goofy_rpc \
 	hwid_tool make_par merge_logs minijack mount_partition run_pytest
 
