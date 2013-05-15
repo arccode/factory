@@ -24,7 +24,7 @@ _CSS = '#state {text-align:left;}'
 class UpdateFirmwareTest(unittest.TestCase):
   ARGS = [
     Arg('firmware_updater', str, 'Full path of chromeos-firmwareupdate.',
-        default='/usr/local/factory/custom/chromeos-firmwareupdate'),
+        default='/usr/local/factory/board/chromeos-firmwareupdate'),
     Arg('update_ec', bool, 'Update embedded firmware.', default=True),
     Arg('update_main', bool, 'Update main firmware.', default=True),
   ]
