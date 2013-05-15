@@ -3,6 +3,9 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import time
+import logging
+
 import factory_common  # pylint: disable=W0611
 from cros.factory.rf import cellular
 from cros.factory.rf.utils import CheckPower, FormattedPower
@@ -27,7 +30,6 @@ TX_MODE_POLLING_INTERVAL_SECS = 0.5
 
 class RadiatedCellularGobiImpl(RfFramework):
   measurements = None
-  power_meter_port = None
   modem = None
   n1914a = None
   firmware = None
@@ -39,7 +41,6 @@ class RadiatedCellularGobiImpl(RfFramework):
     factory.console.info('PreTestOutsideShieldBox called')
     # TODO(itspeter): Check all parameters are in expected type.
     self.measurements = self.config['tx_measurements']
-    self.power_meter_port = self.config['fixture_port']
     self.firmware = cellular.GetModemFirmware()
     self.EnterFactoryMode()
 
@@ -51,56 +52,79 @@ class RadiatedCellularGobiImpl(RfFramework):
 
     # Initialize the power_meter.
     self.n1914a = self.RunEquipmentCommand(N1914A, self.config['fixture_ip'])
-    self.RunEquipmentCommand(N1914A.SetRealFormat, self.n1914a)
-    self.RunEquipmentCommand(
-        N1914A.SetAverageFilter, self.n1914a,
-        port=self.power_meter_port, avg_length=None)
-    self.RunEquipmentCommand(
-        N1914A.SetRange, self.n1914a,
-        port=self.power_meter_port, range_setting=self.config['global_range'])
-    self.RunEquipmentCommand(
-        N1914A.SetTriggerToFreeRun, self.n1914a,
-        port=self.power_meter_port)
-    self.RunEquipmentCommand(
-        N1914A.SetContinuousTrigger, self.n1914a,
-        port=self.power_meter_port)
+    for port in self.config['ports']:
+      self.RunEquipmentCommand(N1914A.SetRealFormat, self.n1914a)
+      self.RunEquipmentCommand(
+          N1914A.SetAverageFilter, self.n1914a,
+          port=port, avg_length=None)
+      self.RunEquipmentCommand(
+          N1914A.SetMode, self.n1914a,
+          port=port, mode=self.config['measure_mode'])
+      self.RunEquipmentCommand(
+          N1914A.SetTriggerToFreeRun, self.n1914a,
+          port=port)
+      self.RunEquipmentCommand(
+          N1914A.SetContinuousTrigger, self.n1914a,
+          port=port)
 
   def PrimaryTest(self):
     for measurement in self.measurements:
       measurement_name = measurement['measurement_name']
+      port = measurement['port']
+      range_setting = measurement['range']
+      band_name = measurement['band_name']
+      channel = measurement['channel']
+      delay = measurement['delay']
+
       factory.console.info('Testing %s', measurement_name)
       try:
+        # Set range for every single measurement
+        self.RunEquipmentCommand(
+            N1914A.SetRange, self.n1914a,
+            port=port, range_setting=range_setting)
         self.RunEquipmentCommand(
             N1914A.SetMeasureFrequency, self.n1914a,
-            self.power_meter_port, measurement['frequency'])
+            port, measurement['frequency'])
         # Start continuous transmit
-        self.StartTXTest(measurement['band_name'], measurement['channel'])
+        self.StartTXTest(band_name, channel)
         self.Prompt('Modem is in TX mode for %s<br>'
                     'Press SPACE to continue' % measurement_name)
         self.template.SetState('Measuring %r' % measurement_name)
+        if delay > 0:
+          logging.info('Delay %.2f secs', delay)
+          time.sleep(delay)
 
         # Measure the channel power.
         tx_power = self.RunEquipmentCommand(
             N1914A.MeasureInBinary, self.n1914a,
-            self.power_meter_port, self.config['avg_length'])
+            port, self.config['avg_length'])
 
         # End continuous transmit
-        self.EndTXTest(measurement['band_name'], measurement['channel'])
+        self.EndTXTest(band_name, channel)
+
+        # Record verbose information of this channel.
+        self.field_to_eventlog[measurement_name] = dict()
+        self.field_to_eventlog[measurement_name]["parameters"] = measurement
 
         if self.calibration_mode:
           # Check if the path_loss is in expected range.
-          path_loss_range = measurement['path_loss_range']
+          path_loss_threshold = measurement['path_loss_threshold']
           path_loss = self.calibration_target[measurement_name] - tx_power
-          CheckPower(measurement_name, path_loss, path_loss_range,
-                     self.failures, prefix='Path loss')
+          self.calibration_config[measurement_name] = path_loss
+          meet = CheckPower(measurement_name, path_loss, path_loss_threshold,
+                            self.failures, prefix='Path loss')
+          self.field_to_eventlog[measurement_name]['calibration_target'] = (
+              self.calibration_target[measurement_name])
         else:
           tx_power += self.calibration_config[measurement_name]
+          avg_power_threshold = measurement['avg_power_threshold']
+          meet = CheckPower(measurement_name, tx_power, avg_power_threshold,
+                            self.failures, prefix='TX')
 
-        self.field_to_eventlog[measurement_name] = FormattedPower(tx_power)
-        avg_power_threshold = measurement['avg_power_threshold']
-        CheckPower(measurement_name, tx_power, avg_power_threshold,
-                   self.failures)
-
+        self.field_to_eventlog[measurement_name]['calibration_config'] = (
+            self.calibration_config[measurement_name])
+        self.field_to_eventlog[measurement_name]['tx_power'] = tx_power
+        self.field_to_eventlog[measurement_name]['meet'] = meet
       except:  # pylint: disable=W0702
         # In order to collect more data, finish the whole test even if it fails.
         exception_string = utils.FormatExceptionOnly()
@@ -108,7 +132,26 @@ class RadiatedCellularGobiImpl(RfFramework):
             measurement_name, exception_string)
         factory.console.info(failure)
         self.failures.append(failure)
-    # TODO(itspeter): Generate the calibration_config
+
+    # Explicitly close the connection
+    self.RunEquipmentCommand(N1914A.Close, self.n1914a)
+
+    # Centralized console output of measurements.
+    for measurement in self.config['tx_measurements']:
+      measurement_name = measurement['measurement_name']
+      if measurement_name not in self.field_to_eventlog:
+        # Exception during that channel and thus no power information.
+        continue
+      calibration_config_str = FormattedPower(
+          self.calibration_config.get(measurement_name))
+      tx_power_str = FormattedPower(
+          self.field_to_eventlog[measurement_name].get('tx_power'))
+      factory.console.info('tx_power for %20r = %s [calibration_config: %s]',
+          measurement_name, tx_power_str, calibration_config_str)
+      # Log import information into CSV.
+      self.field_to_csv[measurement_name + '_tx_power'] = tx_power_str
+      self.field_to_csv[measurement_name + '_cal'] = calibration_config_str
+
 
   def PostTest(self):
     # TODO(itspeter): save statistic of measurements to csv file.
@@ -118,12 +161,16 @@ class RadiatedCellularGobiImpl(RfFramework):
     return cellular.GetIMEI()
 
   def EnterFactoryMode(self):
+    factory.console.info('Cellular_gobi: Entering factory test mode')
     self.firmware = cellular.SwitchModemFirmware(cellular.WCDMA_FIRMWARE)
     self.modem = cellular.EnterFactoryMode(self.config['modem_path'])
+    factory.console.info('Cellular_gobi: Entered factory test mode')
 
   def ExitFactoryMode(self):
+    factory.console.info('Cellular_gobi: Exiting factory test mode')
     cellular.ExitFactoryMode(self.modem)
     cellular.SwitchModemFirmware(self.firmware)
+    factory.console.info('Cellular_gobi: Exited factory test mode')
 
   def StartTXTest(self, band_name, channel):
     def SendTXCommand():
