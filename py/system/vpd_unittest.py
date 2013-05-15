@@ -100,6 +100,36 @@ class VPDTest(unittest2.TestCase):
                             vpd.rw.Update, {'a': '\"'}, log=False)
     self.mox.VerifyAll()
 
+  def testDeleteNone(self):
+    self.mox.ReplayAll()
+    vpd.rw.Delete()  # no-op
+    self.mox.VerifyAll()
+
+  def testDeleteOne(self):
+    vpd.Spawn(
+        ['vpd', '-i', 'RW_VPD', '-d', 'a'],
+        check_call=True, log_stderr_on_error=True)
+    self.mox.ReplayAll()
+    vpd.rw.Delete('a')
+    self.mox.VerifyAll()
+
+  def testDeleteTwo(self):
+    for k in ['a', 'b']:
+      vpd.Spawn(
+          ['vpd', '-i', 'RW_VPD', '-d', k],
+          check_call=True, log_stderr_on_error=True)
+    self.mox.ReplayAll()
+    vpd.rw.Delete('a', 'b')
+    self.mox.VerifyAll()
+
+  def testDeleteError(self):
+    vpd.Spawn(
+        ['vpd', '-i', 'RW_VPD', '-d', 'a'],
+        check_call=True, log_stderr_on_error=True).AndRaise(ValueError)
+    self.mox.ReplayAll()
+    self.assertRaises(ValueError, vpd.rw.Delete, 'a')
+    self.mox.VerifyAll()
+
 
 if __name__ == '__main__':
   unittest2.main()

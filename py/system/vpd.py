@@ -47,6 +47,17 @@ class Partition(object):
     """
     return self.GetAll().get(key, default)
 
+  def Delete(self, *keys):
+    """Deletes entries from the VPD.
+
+    Raises:
+      An error if any entries cannot be deleted.  In this case some or
+      all other entries may have been deleted.
+    """
+    for k in keys:
+      Spawn(['vpd', '-i', self.name, '-d', k], check_call=True,
+            log_stderr_on_error=True)
+
   def GetAll(self):
     """Returns the contents of the VPD as a dict."""
     ret = {}

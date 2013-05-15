@@ -4,6 +4,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import logging
 import os
 import re
 
@@ -22,7 +23,9 @@ from cros.factory.gooftool.vpd_data import KNOWN_VPD_FIELD_DATA
 from cros.factory.hwid import Database
 from cros.factory.hwid.decoder import Decode
 from cros.factory.hwid.encoder import Encode
+from cros.factory.privacy import FilterDict
 from cros.factory.rule import Context
+from cros.factory.system import vpd
 
 # A named tuple to store the probed component name and the error if any.
 ProbedComponentResult = namedtuple('ProbedComponentResult',
@@ -633,10 +636,10 @@ class Gooftool(object):
 
     hwid = self._hwid_decode(self.db, encoded_string)
     hwid.VerifyProbeResult(probe_results.Encode())
-    vpd = {'ro': {}, 'rw': {}}
-    vpd['ro'].update(probed_ro_vpd)
-    vpd['rw'].update(probed_rw_vpd)
-    context = Context(hwid=hwid, vpd=vpd)
+    vpd_dict = {'ro': {}, 'rw': {}}
+    vpd_dict['ro'].update(probed_ro_vpd)
+    vpd_dict['rw'].update(probed_rw_vpd)
+    context = Context(hwid=hwid, vpd=vpd_dict)
     self.db.rules.EvaluateRules(context, namespace="verify.*")
 
   def DecodeHwidV3(self, encoded_string):
@@ -677,3 +680,14 @@ class Gooftool(object):
     """
     # TODO(jcliang): Re-implement this after rule language refactoring.
     pass
+
+  def ClearFactoryVPDEntries(self):
+    """Clears factory.* items in the RW VPD.
+
+    Returns:
+      A dict of the removed entries.
+    """
+    entries = dict((k, v) for k, v in vpd.rw.GetAll().items()
+                   if k.startswith('factory.'))
+    logging.info('Removing VPD entries %s', FilterDict(entries))
+    vpd.rw.Delete(*entries.keys())

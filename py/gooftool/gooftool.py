@@ -576,6 +576,13 @@ def ClearGBBFlags(options):  # pylint: disable=W0613
   event_log.Log('clear_gbb_flags')
 
 
+@Command('clear_factory_vpd_entries')
+def ClearFactoryVPDEntries(options):  # pylint: disable=W0613
+  """Clears factory.* items in the RW VPD."""
+  entries = GetGooftool(options).ClearFactoryVPDEntries()
+  event_log.Log('clear_factory_vpd_entries', entries=FilterDict(entries))
+
+
 @Command('prepare_wipe',
          CmdArg('--fast', action='store_true',
                 help='use non-secure but faster wipe method.'))
@@ -705,17 +712,20 @@ def UploadReport(options):
 def Finalize(options):
   """Verify system readiness and trigger transition into release state.
 
-  This routine first verifies system state (see verify command), modifies
-  firmware bitmaps to match locale, and then clears all of the factory-friendly
-  flags from the GBB.  If everything is fine, it enables firmware write
-  protection (cannot rollback after this stage), uploads system logs & reports,
-  and sets the necessary boot flags to cause wipe of the factory image on the
-  next boot.
+  This routine does the following:
+  - Verifies system state (see verify command)
+  - Modifies firmware bitmaps to match locale
+  - Clears all factory-friendly flags from the GBB
+  - Removes factory-specific entries from RW_VPD (factory.*)
+  - Enables firmware write protection (cannot rollback after this)
+  - Uploads system logs & reports
+  - Sets the necessary boot flags to cause wipe of the factory image on the
+    next boot.
   """
-
   Verify(options)
   SetFirmwareBitmapLocale(options)
   ClearGBBFlags(options)
+  ClearFactoryVPDEntries(options)
   if options.no_write_protect:
     logging.warn('WARNING: Firmware Write Protection is SKIPPED.')
     event_log.Log('wp', fw='both', status='skipped')
