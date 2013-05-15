@@ -258,12 +258,15 @@ class CameraTest(unittest.TestCase):
   def CountdownTimer(self):
     """Starts countdown timer and fails the test if timer reaches zero,
     unless in timeout_run mode, than it just passes."""
-    time_remaining = self.args.timeout_secs
-    while time_remaining > 0:
-      self.ui.SetHTML(_MSG_TIME_REMAINING(time_remaining),
+    end_time = time.time() + self.args.timeout_secs
+    while True:
+      remaining_time = end_time - time.time()
+      if remaining_time <= 0:
+        break
+      self.ui.SetHTML(_MSG_TIME_REMAINING(remaining_time),
                       id=_ID_COUNTDOWN_TIMER)
       time.sleep(1)
-      time_remaining -= 1
+
     if self.args.timeout_run:
       self.ui.Pass()
     else:
