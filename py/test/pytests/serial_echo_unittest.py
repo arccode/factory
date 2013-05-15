@@ -29,6 +29,8 @@ class SerialEchoUnittest(unittest.TestCase):
   def SetUpTestCase(self, args, test_case_name='testEcho'):
     self._test_case = serial_echo.SerialEchoTest(test_case_name)
     arg_spec = getattr(self._test_case, 'ARGS', None)
+    if 'serial_param' not in args:
+      args['serial_param'] = {'port': '/dev/ttyUSB0'}
     setattr(self._test_case, 'args', Args(*arg_spec).Parse(args))
 
   def RunTestCase(self):
@@ -67,7 +69,7 @@ class SerialEchoUnittest(unittest.TestCase):
   def testDefault(self):
     self._mox.StubOutWithMock(serial_utils, 'OpenSerial')
     mock_serial = self._mox.CreateMock(serial.Serial)
-    serial_utils.OpenSerial(IgnoreArg()).AndReturn(mock_serial)
+    serial_utils.OpenSerial(port=IgnoreArg()).AndReturn(mock_serial)
 
     mock_serial.write(chr(0xE0)).AndReturn(1)
     mock_serial.read().AndReturn(chr(0xE1))
@@ -82,7 +84,7 @@ class SerialEchoUnittest(unittest.TestCase):
 
   def testOpenSerialFailed(self):
     self._mox.StubOutWithMock(serial_utils, 'OpenSerial')
-    serial_utils.OpenSerial(IgnoreArg()).AndRaise(
+    serial_utils.OpenSerial(port=IgnoreArg()).AndRaise(
         serial.SerialException('Failed to open serial port'))
     self._mox.ReplayAll()
 
@@ -94,7 +96,7 @@ class SerialEchoUnittest(unittest.TestCase):
   def testWriteFail(self):
     self._mox.StubOutWithMock(serial_utils, 'OpenSerial')
     mock_serial = self._mox.CreateMock(serial.Serial)
-    serial_utils.OpenSerial(IgnoreArg()).AndReturn(mock_serial)
+    serial_utils.OpenSerial(port=IgnoreArg()).AndReturn(mock_serial)
 
     mock_serial.write(chr(0xE0)).AndReturn(0)
     mock_serial.close()
@@ -109,7 +111,7 @@ class SerialEchoUnittest(unittest.TestCase):
   def testReadFail(self):
     self._mox.StubOutWithMock(serial_utils, 'OpenSerial')
     mock_serial = self._mox.CreateMock(serial.Serial)
-    serial_utils.OpenSerial(IgnoreArg()).AndReturn(mock_serial)
+    serial_utils.OpenSerial(port=IgnoreArg()).AndReturn(mock_serial)
 
     mock_serial.write(chr(0xE0)).AndReturn(1)
     mock_serial.read().AndReturn('0')
@@ -125,7 +127,7 @@ class SerialEchoUnittest(unittest.TestCase):
   def testWriteTimeout(self):
     self._mox.StubOutWithMock(serial_utils, 'OpenSerial')
     mock_serial = self._mox.CreateMock(serial.Serial)
-    serial_utils.OpenSerial(IgnoreArg()).AndReturn(mock_serial)
+    serial_utils.OpenSerial(port=IgnoreArg()).AndReturn(mock_serial)
 
     mock_serial.write(chr(0xE0)).AndRaise(serial.SerialTimeoutException)
     mock_serial.close()
@@ -140,7 +142,7 @@ class SerialEchoUnittest(unittest.TestCase):
   def testReadTimeout(self):
     self._mox.StubOutWithMock(serial_utils, 'OpenSerial')
     mock_serial = self._mox.CreateMock(serial.Serial)
-    serial_utils.OpenSerial(IgnoreArg()).AndReturn(mock_serial)
+    serial_utils.OpenSerial(port=IgnoreArg()).AndReturn(mock_serial)
 
     mock_serial.write(chr(0xE0)).AndReturn(1)
     mock_serial.read().AndRaise(serial.SerialTimeoutException)

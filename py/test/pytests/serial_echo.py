@@ -12,9 +12,9 @@ This test is to make sure that the serial port works as expected.
 It can also be used to send a command to the fixture before/after a test.
 
 dargs:
-  serial_param: A parameter tuple of the target serial port:
-      (port, baudrate, bytesize, parity, stopbits, timeout_secs).
-      timeout_secs is used for both read and write timeout.
+  serial_param: a dict of parameters for a serial connection. Should contain
+        'port'. For other parameters, like 'baudrate', 'bytesize', 'parity',
+        'stopbits' and 'timeout', please refer pySerial documentation.
   send_recv: A tuple (send, recv). send is a char for the DUT to send to
       a fixture. And recv is the expected one-char response from the fixture.
 """
@@ -28,10 +28,10 @@ _SERIAL_TIMEOUT = 3
 
 class SerialEchoTest(unittest.TestCase):
   ARGS = [
-    Arg('serial_param', tuple,
-        'The parameter list of a serial connection we want to use.',
-        default=('/dev/ttyUSB0', 19200, serial.EIGHTBITS, serial.PARITY_NONE,
-                 serial.STOPBITS_ONE , _SERIAL_TIMEOUT)),
+    Arg('serial_param', dict,
+        'a dict of parameters for a serial connection. Should contain '
+        '"port". For other parameters, like "baudrate", "bytesize", "parity", '
+        '"stopbits" and "timeout", please refer pySerial documentation.'),
     Arg('send_recv', tuple,
         'A tuple (send, recv). send is a char for the DUT to send to a fixture '
         'MCU. And recv is the expected one-char response from the fixture.',
@@ -48,10 +48,8 @@ class SerialEchoTest(unittest.TestCase):
       self.fail('Invalid dargs send_recv: %s' % str(self.args.send_recv))
     self._send, self._recv = self.args.send_recv
 
-    try:
-      self._serial = serial_utils.OpenSerial(self.args.serial_param)
-    except serial.SerialException as e:
-      self.fail(e)
+    # Will raise exception if OpenSerial fails.
+    self._serial = serial_utils.OpenSerial(**self.args.serial_param)
 
   def tearDown(self):
     if self._serial:

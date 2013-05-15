@@ -14,35 +14,35 @@ dungle. We provides FindTtyByDriver() to help finding the right
 import glob
 import os
 import re
-import serial
+from serial import Serial, SerialException
 
-def OpenSerial(param):
+
+def OpenSerial(**params):
   """Tries to open a serial port.
 
   Args:
-    param: Parameter tuple for a serial connection:
-        (port, baudrate, bytesize, parity, stopbits, timeout_secs).
-        timeout_secs is used for both read and write timeout.
+    params: a dict of parameters for a serial connection. Should contain
+        'port'. For other parameters, like 'baudrate', 'bytesize', 'parity',
+        'stopbits' and 'timeout', please refer pySerial documentation.
 
   Returns:
     serial object if successful.
 
   Raises:
-    serial.SerialException if open failed.
+    ValueError if params is invalid; otherwise, serial.SerialException.
   """
-  ser = None
-  (port, baudrate, bytesize, parity, stopbits, timeout) = param
+  if 'port' not in params:
+    raise SerialException('Missing parameter "port".')
   try:
-    ser = serial.Serial(port=port, baudrate=baudrate, bytesize=bytesize,
-                        parity=parity, stopbits=stopbits, timeout=timeout,
-                        writeTimeout=timeout)
+    ser = Serial(**params)
     ser.open()
     return ser
+  except ValueError as e:
+    raise ValueError(
+      'Failed to open serial port. Invalid parameter: %s' % e)
   except Exception as e:
-    param_str = ('(port:%r, baudrate:%d, bytesize:%d, parity:%s, stopbits:%d, '
-                 'timeout:%.2f)' % param)
-    raise serial.SerialException(
-      'Failed to open serial port: %s.\nReason: %s' % (param_str, e))
+    raise SerialException(
+      'Failed to open serial port with params %r. Reason: %s' % (params, e))
 
 
 def FindTtyByDriver(driver_name):
