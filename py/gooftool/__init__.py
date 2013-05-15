@@ -188,6 +188,11 @@ class Util(object):
 class Gooftool(object):
   """A class to perform hardware probing and verification and to implement
   Google required tests.
+
+  Properties:
+    db: The HWID DB.  This is lazily loaded the first time it is used.
+    _db_creator: The function used to create the db object the first time
+      it is used.
   """
   # TODO(andycheng): refactor all other functions in gooftool.py to this.
 
@@ -218,11 +223,11 @@ class Gooftool(object):
       self._hardware_db = (
           hardware_db or
           hwid_tool.HardwareDb(hwid_tool.DEFAULT_HWID_DATA_PATH))
-      self.db = component_db or self._hardware_db.comp_db
+      self._db_creator = lambda: component_db or self._hardware_db.comp_db
     elif hwid_version == 3:
       self._board = board or hwid3.ProbeBoard()
       self._hwdb_path = hwdb_path or hwid3.DEFAULT_HWID_DATA_PATH
-      self.db = Database.LoadFile(
+      self._db_creator = lambda: Database.LoadFile(
           os.path.join(self._hwdb_path, self._board.upper()))
     else:
       raise ValueError("Invalid HWID version: %r" % hwid_version)
@@ -235,6 +240,17 @@ class Gooftool(object):
     self._hwid_decode = Decode
     self._unpack_bmpblock = unpack_bmpblock
     self._named_temporary_file = NamedTemporaryFile
+    self._db = None
+
+  @property
+  def db(self):
+    """Lazy loader for the HWID database."""
+    if not self._db:
+      self._db = self._db_creator()
+      # Hopefully not necessary, but just a safeguard to prevent
+      # accidentally loading the DB multiple times.
+      del self._db_creator
+    return self._db
 
   def VerifyComponents(self, component_list):
     """Verifies the given component list against the component db to ensure
