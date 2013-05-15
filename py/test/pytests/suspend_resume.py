@@ -156,7 +156,7 @@ class SuspendResumeTest(unittest2.TestCase):
       # Log disk usage to find out what cause disk full.
       # Check crosbug.com/p/18518
       disk_usage = CheckOutput(
-          "du -a --exclude=factory/tests /var | sort -n -r",
+          "du -a --exclude=factory/tests /var | sort -n -r | head -n 20",
           shell=True, log=True)
       logging.info(disk_usage)
       self._ui.SetHTML(run, id=_ID_RUN)
