@@ -11,7 +11,7 @@ import unittest
 import factory_common  # pylint: disable=W0611
 from cros.factory.gooftool import Gooftool
 from cros.factory.gooftool import Mismatch
-from cros.factory.gooftool import ProbedComponentResult
+from cros.factory.hwid import ProbedComponentResult
 from cros.factory.test import shopfloor
 from cros.factory.test.pytests import verify_components
 from cros.factory.test.pytests.verify_components import CheckComponentsTask

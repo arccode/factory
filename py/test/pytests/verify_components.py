@@ -67,7 +67,8 @@ class CheckComponentsTask(FactoryTask):
     for class_result in result.values():
       for component_result in class_result:
         # If the component is missing, but it is allowed, ignore the error.
-        if not component_result.probed_string and self._allow_missing:
+        # component_result[1] has the probed values.
+        if not component_result[1] and self._allow_missing:
           continue
         if component_result.error:
           error_msgs.append(component_result.error)
