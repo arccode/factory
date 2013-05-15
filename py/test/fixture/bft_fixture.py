@@ -91,20 +91,14 @@ class BFTFixture(object):
     """
     raise NotImplementedError
 
-  def ScanLED(self, color):
-    """Asks fixture to scan on-board LED with color specified.
+  def IsLEDColor(self, color):
+    """Asks fixture to check DUT board's LED with color specified.
 
     Args:
       color: color defined in LEDColor.
-    """
-    raise NotImplementedError
-
-  def GetLEDColor(self):
-    """Gets BFT fixture's LED sensor's value.
 
     Returns:
-      Color in LEDColor which is seen by fixture's LED sensor.
-      None if the fixture doesn't sense LED color.
+      True if LED's color is correct; False otherwise.
     """
     raise NotImplementedError
 

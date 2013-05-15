@@ -39,18 +39,12 @@ class SpringBFTFixture(BFTFixture):
     Device.USB_1            : (None, None),
     Device.USB_2            : (None, None)}
 
-  # Commands to tell fixture what LED color to probe/scan.
+  # (command, response) pairs for fixture to check LED colors.
   LEDColor = BFTFixture.LEDColor
-  LED_COMMAND = {
-    LEDColor.RED   : chr(0xC4),
-    LEDColor.GREEN : chr(0xC5),
-    LEDColor.AMBER : chr(0xC6)}
-
-  # Maps fixture's LED sensor's value to LEDColor.
-  LED_COLOR_MAP = {
-    chr(0xB4) : LEDColor.RED,
-    chr(0xB5) : LEDColor.GREEN,
-    chr(0xB6) : LEDColor.AMBER}
+  LED_CHECK_COMMAND = {
+    LEDColor.RED   : (chr(0xC4), chr(0xB4)),
+    LEDColor.GREEN : (chr(0xC5), chr(0xB5)),
+    LEDColor.AMBER : (chr(0xC6), chr(0xB6))}
 
   DEFAULT_RESPONSE = chr(0xFA)
   ENGAGE_BARCODE_SCANNER = chr(0xC7)
@@ -165,14 +159,10 @@ class SpringBFTFixture(BFTFixture):
     self._SendRecvDefault(self.ENGAGE_KEYBOARD_SCANNER,
                           'Failed to simulate keystrokes. ')
 
-  def ScanLED(self, color):
-    if color not in self.LED_COMMAND:
-      raise BFTFixtureException('Invalid color: %d', color)
-    self._Send(self.LED_COMMAND[color],
-               'Failed to enable %s LED sensor. ' % color)
+  def IsLEDColor(self, color):
+    if color not in self.LED_CHECK_COMMAND:
+      raise BFTFixtureException('Invalid color: %s', color)
 
-  def GetLEDColor(self):
-    recv = self._Recv('Failed to get LED color. ')
-    if recv not in self.LED_COLOR_MAP:
-      return None
-    return self.LED_COLOR_MAP[recv]
+    (command, response) = self.LED_CHECK_COMMAND[color]
+    self._Send(command, 'Fail to check %s LED. ' % color)
+    return self._Recv('Fail to check %s LED. ' % color) == response

@@ -21,9 +21,6 @@ class DummyBFTFixture(BFTFixture):
   # fixture's action.
   _delay_secs = 3
 
-  # For GetLEDColor, this dummy object returns the color set by ScanLED.
-  _expect_color = None
-
   def Init(self, **kwargs):
     pass
 
@@ -47,11 +44,8 @@ class DummyBFTFixture(BFTFixture):
   def SimulateKeystrokes(self):
     self._DisplayPrompt('Please input keystoke sequence.')
 
-  def ScanLED(self, color):
-    self._expect_color = color
-
-  def GetLEDColor(self):
-    return self._expect_color
+  def IsLEDColor(self, unused_color):  # pylint: disable=W0613
+    return True
 
   @property
   def delay_secs(self):
