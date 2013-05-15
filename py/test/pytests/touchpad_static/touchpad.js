@@ -9,15 +9,18 @@
  * @param {int} xSegments
  * @param {int} ySegments
  * @param {int} countTarget
+ * @param {int} quadCountTarget
  */
-TouchpadTest = function(container, xSegments, ySegments, countTarget) {
+TouchpadTest = function(container, xSegments, ySegments, countTarget, quadCountTarget) {
   this.container = container;
   this.xSegments = xSegments;
   this.ySegments = ySegments;
   this.leftCount = 0;
   this.rightCount = 0;
   this.countTarget = countTarget;
-
+  this.quadCountTarget = quadCountTarget;
+  this.quadrant_count = {};
+  this.quadrant_total_count = 0;
 };
 
 /**
@@ -26,10 +29,11 @@ TouchpadTest = function(container, xSegments, ySegments, countTarget) {
  * @param {int} xSegments
  * @param {int} ySegments
  * @param {int} countTarget
+ * @param {int} quadCountTarget
  */
-function setupTouchpadTest(container, xSegments, ySegments, countTarget) {
+function setupTouchpadTest(container, xSegments, ySegments, countTarget, quadCountTarget) {
   window.touchpadTest = new TouchpadTest(container, xSegments, ySegments,
-                                         countTarget);
+                                         countTarget, quadCountTarget);
   window.touchpadTest.init();
 }
 
@@ -65,6 +69,17 @@ TouchpadTest.prototype.init = function() {
   table.appendChild(tableBody);
   $(this.container).appendChild(table);
   this.updateCircleCountText();
+
+  /* This is for SMT test, operator cannot click for each quadrant */
+  if (this.quadCountTarget == 0) {
+    var element = document.getElementById('quadrant_table');
+    if (element) {
+      element.style.display = "none";
+    }
+    for (i = 1; i <= 4; i++) {
+      window.touchpadTest.markQuadrantSectorTested(i);
+    }
+  }
 };
 
 /**
@@ -87,6 +102,19 @@ TouchpadTest.prototype.markSectorTested = function(x, y) {
  */
 TouchpadTest.prototype.markScrollSectorTested = function(y) {
   var id = "scroll-x-0-y-" + y;
+  var element = document.getElementById(id);
+  if (element) {
+    element.className = "touchpad-test-sector-tested";
+  }
+  this.checkTestComplete();
+};
+
+/**
+ * Marks the given quadrant sector as "tested" on the test ui.
+ * @param {int} quadrant
+ */
+TouchpadTest.prototype.markQuadrantSectorTested = function(quadrant) {
+  var id = "quadrant" + quadrant;
   var element = document.getElementById(id);
   if (element) {
     element.className = "touchpad-test-sector-tested";
@@ -135,6 +163,37 @@ TouchpadTest.prototype.updateRightCount = function() {
 };
 
 /**
+ * Adds a mark to quadrant.
+ * @param {int} quad
+ */
+TouchpadTest.prototype.updateQuadrant = function(quad) {
+  if (!this.quadrant_count[quad]) {
+    this.quadrant_count[quad] = 0;
+  }
+  if (this.quadrant_count[quad] < this.quadCountTarget) {
+    this.quadrant_count[quad] = this.quadrant_count[quad] + 1;
+    this.quadrant_total_count = this.quadrant_total_count + 1;
+  }
+  if (this.quadrant_count[quad] == this.quadCountTarget) {
+    window.touchpadTest.markQuadrantSectorTested(quad);
+  }
+};
+
+/**
+ * Update the number of click for each quadrant
+ * @param {int} quad
+ */
+TouchpadTest.prototype.updateQuadrantCount = function(quad) {
+  var id = "quadrant" + quad + "_count";
+  var element = document.getElementById(id);
+
+  if (element) {
+    element.innerHTML= this.quadrant_count[quad].toString() + " / "
+      + this.quadCountTarget.toString();
+  }
+};
+
+/**
  * Marks the given circle as "down" on the test ui.
  * @param {string} id
  */
@@ -152,7 +211,8 @@ TouchpadTest.prototype.markCircleDown = function(id) {
 TouchpadTest.prototype.checkTestComplete = function() {
   if ((this.getClassArray("touchpad-test-sector-untested").length == 0) &&
       (this.leftCount == this.countTarget) &&
-      (this.rightCount == this.countTarget)) {
+      (this.rightCount == this.countTarget) &&
+      (this.quadrant_total_count == this.quadCountTarget * 4)) {
     window.test.pass();
   }
 };
@@ -244,18 +304,23 @@ function markScrollSectorTested(y) {
 
 /**
  * Marks single click as down.
+ * @param {int} quadrant
  */
-function markSingleClickDown() {
+function markSingleClickDown(quadrant) {
   window.touchpadTest.markCircleDown("left-circle");
 }
 
 /**
  * Marks single click as tested.
+ * @param {int} quadrant
  */
-function markSingleClickUp() {
+function markSingleClickUp(quadrant) {
   window.touchpadTest.updateLeftCount();
   window.touchpadTest.updateCircleCountText();
   window.touchpadTest.markCircleTested("left-circle");
+
+  window.touchpadTest.updateQuadrant(quadrant);
+  window.touchpadTest.updateQuadrantCount(quadrant);
 }
 
 /**

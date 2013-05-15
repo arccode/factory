@@ -99,19 +99,63 @@ _ID_COUNTDOWN_TIMER = 'touchpad-test-timer'
 # The layout contains one div for touchpad touch and scroll,
 # one table for left/right click, and one div for countdown timer.
 _HTML_TOUCHPAD = '''
-<div id="%s" style="position: relative; width: 100%%; height: 80%%;"></div>
-<table style="width: 100%%;">
+<div id="%s" style="position: relative; width: 100%%; height: 60%%;"></div>
+<table style="width: 100%%; height: 30%%;">
   <tbody>
     <tr>
-      <td style="width: 50%%;" id="left-text-cell"></td>
-      <td style="width: 50%%;" id="right-text-cell"></td>
-    </tr>
-    <tr>
-      <td>
-        <div id="left-circle" class="touchpad-test-circle-untested"></div>
+      <td style="width: 65%%;">
+        <table id="quadrant_table" style="width: 100%%;">
+          <tbody>
+            <tr>
+              <td>
+                <div id="quadrant2" class="touchpad-test-sector-untested" align="center">
+                  Click Left-Top Corner
+                  <div id="quadrant2_count" align="center">0/3</div>
+                </div>
+              </td>
+              <td>
+                <div id="quadrant1" class="touchpad-test-sector-untested" align="center">
+                  Click Right-Top Corner
+                  <div id="quadrant1_count" align="center">0/3</div>
+                </div>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <div id="quadrant3" class="touchpad-test-sector-untested" align="center">
+                  Click Left-Bottom Corner
+                  <div id="quadrant3_count" align="center">0/3</div>
+                </div>
+              </td>
+              <td>
+                <div id="quadrant4" class="touchpad-test-sector-untested" align="center">
+                  Click Right-Bottom Corner
+                  <div id="quadrant4_count" align="center">0/3</div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </td>
       <td>
-        <div id="right-circle" class="touchpad-test-circle-untested"></div>
+        <table style="width: 100%%;">
+          <tbody>
+            <tr>
+              <td align="right" valign="center">
+                <div id="left-circle" class="touchpad-test-circle-untested"></div>
+              </td>
+              <td align="left" valign="center">
+                <div id="left-text-cell"></div>
+              </td>
+              <td align="right" valign="center">
+                <div id="right-circle" class="touchpad-test-circle-untested"></div>
+              </td>
+              <td align="left" valign="center">
+                <div id="right-text-cell"></div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </td>
     </tr>
   </tbody>
@@ -138,17 +182,17 @@ _TOUCHPAD_TEST_DEFAULT_CSS = '''
     .touchpad-test-circle-untested {
       border: 3px solid gray;
       border-radius: 50%;
-      width: 30px; height: 30px;
+      width: 20px; height: 20px;
       box-sizing: border-box; }
     .touchpad-test-circle-down {
       border: 3px solid yellow;
       border-radius: 50%;
-      width: 30px; height: 30px;
+      width: 20px; height: 20px;
       box-sizing: border-box; }
     .touchpad-test-circle-tested {
       border: 3px solid green;
       border-radius: 50%;
-      width: 30px; height: 30px;
+      width: 20px; height: 20px;
       box-sizing: border-box; }
 '''
 _X_SEGMENTS = 5
@@ -165,6 +209,27 @@ class UpDown:
   Up = "0"
   Down = "1"
 
+
+class Quadrant:
+  '''
+  The class is to update quadrant information according to x_ratio and y_ratio
+  Quadrant 1 is Right-Top Corner
+  Quadrant 2 is Left-Top Corner
+  Quadrant 3 is Left-Bottom Corner
+  Quadrant 4 is Right-Bottom Corner
+  '''
+  def __init__(self):
+    self.quadrant = 0
+
+  def UpdateQuadrant(self, x_ratio, y_ratio):
+    if x_ratio >= 0.5 and y_ratio < 0.5:
+      self.quadrant = 1
+    elif x_ratio < 0.5 and y_ratio < 0.5:
+      self.quadrant = 2
+    elif x_ratio < 0.5 and y_ratio >= 0.5:
+      self.quadrant = 3
+    elif x_ratio >= 0.5 and y_ratio >= 0.5:
+      self.quadrant = 4
 
 class MoveEvent:
   '''The class to store touchpad move event.'''
@@ -241,12 +306,14 @@ class TouchpadTest(unittest.TestCase):
     self.monitor_process: the evtest process to get touchpad input.
         This should get terminated when test stops.
     self.touchpad_event_path: The path of input device like /dev/input/event1.
+    self.quadrant: This represents the current quadrant of mouse.
   '''
   ARGS = [
     Arg('touchpad_event_id', int, 'Touchpad input event id. The test will probe'
         ' for event id if it is not given.', default=None, optional=True),
     Arg('timeout_secs', int, 'Timeout for the test.', default=20),
-    Arg('number_to_click', int, 'Target number to click.', default=10)
+    Arg('number_to_click', int, 'Target number to click.', default=10),
+    Arg('number_to_quadrant', int, 'Target number to click for each quadrant.', default=3)
   ]
 
   def setUp(self):
@@ -256,7 +323,7 @@ class TouchpadTest(unittest.TestCase):
     self.ui.AppendCSS(_TOUCHPAD_TEST_DEFAULT_CSS)
     self.template.SetState(_HTML_TOUCHPAD)
     self.ui.CallJSFunction('setupTouchpadTest', _ID_CONTAINER,
-        _X_SEGMENTS, _Y_SEGMENTS, self.args.number_to_click)
+        _X_SEGMENTS, _Y_SEGMENTS, self.args.number_to_click, self.args.number_to_quadrant)
 
     # Initialize properties
     self.x_max = None
@@ -266,6 +333,7 @@ class TouchpadTest(unittest.TestCase):
     self.click_event = ClickEvent()
     self.touchpad_has_right_btn = False
     self.monitor_process = None
+    self.quadrant = Quadrant()
     if self.args.touchpad_event_id is None:
       self.touchpad_event_path = self.ProbeEventSource()
     else:
@@ -457,6 +525,10 @@ class TouchpadTest(unittest.TestCase):
       x_ratio = float(self.move_event.x) / float(self.x_max)
     if self.move_event.y:
       y_ratio = float(self.move_event.y) / float(self.y_max)
+
+    if self.move_event.x and self.move_event.y:
+      self.quadrant.UpdateQuadrant(x_ratio, y_ratio)
+
     if self.move_event.scroll and self.move_event.y:
       self.MarkScrollSectorTested(y_ratio)
     elif self.move_event.x and self.move_event.y:
@@ -486,10 +558,10 @@ class TouchpadTest(unittest.TestCase):
     '''
     if up_down == UpDown.Up:
       logging.info('mark single click up')
-      self.ui.CallJSFunction('markSingleClickUp')
+      self.ui.CallJSFunction('markSingleClickUp', self.quadrant.quadrant)
     elif up_down == UpDown.Down:
       logging.info('mark single click down')
-      self.ui.CallJSFunction('markSingleClickDown')
+      self.ui.CallJSFunction('markSingleClickDown', self.quadrant.quadrant)
 
   def DrawDoubleClick(self, up_down):
     '''
