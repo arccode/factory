@@ -913,7 +913,7 @@ def Main():
              help='Write logs to this file.'),
       CmdArg('--suppress-event-logs', action='store_true',
              help='Suppress event logging.'),
-      CmdArg('-i', '--hwid-version', default=2, choices=[2, 3], type=int,
+      CmdArg('-i', '--hwid-version', default=3, choices=[2, 3], type=int,
              help='Version of HWID to operate on.'),
       verbosity_cmd_arg)
   SetupLogging(options.verbosity, options.log)
