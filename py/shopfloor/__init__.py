@@ -497,11 +497,17 @@ class ShopFloorBase(object):
     for key in ('user', 'group'):
       CheckRegistrationCode(registration_code_map[key])
 
+    board = hwid.partition(' ')[0]
+
+    # See http://goto/nkjyr for file format.
     with open(os.path.join(
         self.data_dir, "registration_code_log.csv"), "ab") as f:
       csv.writer(f, dialect=NewlineTerminatedCSVDialect).writerow([
-        hwid, registration_code_map['user'], registration_code_map['group'],
-        time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime())])
+        board,
+        registration_code_map['user'],
+        registration_code_map['group'],
+        time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime()),
+        hwid])
       os.fdatasync(f.fileno())
 
   def GetFactoryLogPort(self):
