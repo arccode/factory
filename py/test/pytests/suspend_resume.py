@@ -23,6 +23,7 @@ import time
 import threading
 import unittest2
 
+from cros.factory.event_log import Log
 from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
 from cros.factory.test.ui_templates import OneSection
@@ -159,6 +160,9 @@ class SuspendResumeTest(unittest2.TestCase):
           "du -a --exclude=factory/tests /var | sort -n -r | head -n 20",
           shell=True, log=True)
       logging.info(disk_usage)
+      attempted_wake_extensions = 0
+      actual_wake_extensions = 0
+      powerd_suspend_delays = 0
       self._ui.SetHTML(run, id=_ID_RUN)
       start_time = int(open(self.args.time_path).read().strip())
       suspend_time = random.randint(self.args.suspend_delay_min_secs,
@@ -178,6 +182,7 @@ class SuspendResumeTest(unittest2.TestCase):
       while self._ReadSuspendCount() < initial_suspend_count + run:
         cur_time = int(open(self.args.time_path).read().strip())
         if cur_time >= resume_at - 1:
+          attempted_wake_extensions += 1
           logging.warn('Late suspend detected, attempting wake extension')
           # As we are attempting to adjust the wake alarm with an existing
           # wake alarm set, we first set to a time before now to effectively
@@ -195,6 +200,7 @@ class SuspendResumeTest(unittest2.TestCase):
             logging.info('Attempted wake time extension, but suspended before.')
             break
           resume_at = resume_at + _MIN_SUSPEND_MARGIN_SECS
+          actual_wake_extensions += 1
           logging.info('Attempted extending the wake timer %ds, resume is now '
                        'at %d.', _MIN_SUSPEND_MARGIN_SECS, resume_at)
         self.assertGreaterEqual(start_time + self.args.suspend_worst_case_secs,
@@ -206,10 +212,19 @@ class SuspendResumeTest(unittest2.TestCase):
                    run, self.args.cycles, resume_time)
       time.sleep(resume_time)
       while self.suspend_started.is_set():
+        powerd_suspend_delays += 1
         logging.warn('powerd_suspend is taking a while to return, waiting 1s.')
         time.sleep(1)
         self.assertGreaterEqual(start_time + self.args.suspend_worst_case_secs,
                                 int(open(self.args.time_path).read().strip()),
                                 'powerd_suspend did not return within %d sec.' %
                                 self.args.suspend_worst_case_secs)
+      Log('suspend_resume_cycle', run=run, start_time=start_time,
+          suspend_time=suspend_time, resume_time=resume_time,
+          resume_at=resume_at, wakeup_count=self.wakeup_count,
+          suspend_count=self._ReadSuspendCount(),
+          initial_suspend_count=initial_suspend_count,
+          attempted_wake_extensions=attempted_wake_extensions,
+          actual_wake_extensions=actual_wake_extensions,
+          powerd_suspend_delays=powerd_suspend_delays)
     self._ui.Pass()
