@@ -109,14 +109,14 @@ class LANSCPI(object):
     self.rfile = self.socket.makefile('rb', -1)  # Default buffering
     self.wfile = self.socket.makefile('wb', 0)   # No buffering
 
-    self.logger.debug('Connected')
+    self.logger.info('Connected')
 
     # Give equipment time to warm up if required so.
     time.sleep(self.delay)
     self.id = self.Query('*IDN?')
 
   def Close(self):
-    self.logger.debug('Destroying')
+    self.logger.info('Destroying')
     if self.rfile:
       self.rfile.close()
     if self.wfile:
