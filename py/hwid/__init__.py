@@ -73,7 +73,6 @@ UNSUPPORTED_COMPONENT_ERROR = lambda comp_cls, probed_value: (
         comp_cls, pprint.pformat(probed_value, indent=2)))
 
 
-
 class HWIDException(Exception):
   pass
 
@@ -155,6 +154,37 @@ class HWID(object):
           (self.binary_string, GetComponentsDifferences(
               self.bom, BinaryStringToBOM(self.database, self.binary_string))))
     # No exception. Everything is good!
+
+  def VerifyComponentStatus(self, rma_mode=False):
+    """Verifies the status of all components.
+
+    Accepts all 'supported' components, rejects all 'unsupported' components,
+    and accepts/rejects 'deprecated' components if rma_mode is True/False.
+
+    Args:
+      rma_mode: Whether to verify components status in RMA mode.
+
+    Raises:
+      HWIDException is verification fails.
+    """
+    for comp_cls, comps in self.bom.components.iteritems():
+      for comp in comps:
+        comp_name = comp.component_name
+        if not comp_name:
+          continue
+
+        status = self.database.components.GetComponentStatus(
+            comp_cls, comp_name)
+        if status == Components.STATUS.supported:
+          continue
+        elif status == Components.STATUS.unsupported:
+          raise HWIDException('Found unsupported component of %r: %r' %
+                              (comp_cls, comp_name))
+        elif status == Components.STATUS.deprecated:
+          if not rma_mode:
+            raise HWIDException(
+                'Not in RMA mode. Found deprecated component of %r: %r' %
+                (comp_cls, comp_name))
 
   def VerifyProbeResult(self, probe_result):
     """Verifies that the probe result matches the settings encoded in the HWID
@@ -276,6 +306,7 @@ class BOM(object):
 
   def __ne__(self, op2):
     return not self.__eq__(op2)
+
 
 class Database(object):
   """A class for reading in, parsing, and obtaining information of the given
@@ -712,6 +743,7 @@ class Database(object):
     return dict((comp_cls, probed_bom.components[comp_cls]) for comp_cls in
                 comp_list)
 
+
 class EncodingPatterns(dict):
   """Class for parsing encoding_patterns in database.
 
@@ -808,8 +840,9 @@ class Components(object):
             'probeable': True,
             'items': {
               'component_name_1': {
-                'values': { probed values dict }
-                'labels': [ labels ]
+                'values': { probed values dict },
+                'labels': [ labels ],
+                'status': status
               },
               ...
             }
@@ -819,7 +852,8 @@ class Components(object):
             'items': {
               'component_name_2': {
                 'values': None,
-                'labels': [ labels ]
+                'labels': [ labels ],
+                'status': status
               },
               ...
             }
@@ -830,6 +864,8 @@ class Components(object):
   Raises:
     HWIDException if the given dict fails sanity checks.
   """
+  STATUS = utils.Enum(['supported', 'unsupported', 'deprecated'])
+
   def __init__(self, components_dict):
     self.schema = Dict(
         'components',
@@ -847,10 +883,12 @@ class Components(object):
                                  value_type=AnyOf([
                                      Scalar('probe value', str),
                                      Scalar('probe value regexp', Value)])))},
-                        optional_items={'labels': Dict(
-                            'dict of labels',
-                            key_type=Scalar('label key', str),
-                            value_type=Scalar('label value', str))}))
+                        optional_items={
+                            'labels': Dict(
+                                'dict of labels',
+                                key_type=Scalar('label key', str),
+                                value_type=Scalar('label value', str)),
+                            'status': Scalar('item status', str)}))
             },
             optional_items={
                 'probeable': Scalar('is component probeable', bool)
@@ -864,9 +902,14 @@ class Components(object):
         # Default 'probeable' to True.
         self.probeable.add(comp_cls)
 
-    # Convert all probe values to Value objects.
     for comp_cls_data in components_dict.itervalues():
       for comp_cls_item_attrs in comp_cls_data['items'].itervalues():
+        # Sanity check for component status.
+        status = comp_cls_item_attrs.get('status', Components.STATUS.supported)
+        if status not in Components.STATUS:
+          raise HWIDException('Invalid component item status: %r' % status)
+
+        # Convert all probe values to Value objects.
         if comp_cls_item_attrs['values'] is None:
           continue
         for key, value in comp_cls_item_attrs['values'].items():
@@ -899,6 +942,20 @@ class Components(object):
       # Missing component.
       return {}
     return copy.deepcopy(self.components_dict[comp_cls]['items'][comp_name])
+
+  def GetComponentStatus(self, comp_cls, comp_name):
+    """Gets the status of the given component.
+
+    Args:
+      comp_cls: The component class to look up for.
+      comp_name: The component name to look up for.
+
+    Returns:
+      One of the status in Components.STATUS indicating the status of the given
+      component.
+    """
+    return self.components_dict[comp_cls]['items'][comp_name].get(
+        'status', Components.STATUS.supported)
 
   def MatchComponentsFromValues(self, comp_cls, values_dict):
     """Matches a list of components whose 'values' attributes match the given

@@ -81,6 +81,31 @@ class HWIDTest(unittest2.TestCase):
         hwid.VerifySelf)
     hwid.bom = original_value
 
+  def testVerifyComponentStatus(self):
+    # Test deprecated component. Deprecated component should fail when not in
+    # RMA mode and pass when in RMA mode.
+    bom = self.database.ProbeResultToBOM(self.results[0])
+    bom = self.database.UpdateComponentsOfBOM(bom, {
+        'keyboard': 'keyboard_us', 'dram': 'dram_0',
+        'display_panel': 'display_panel_0',
+        'ro_main_firmware': 'ro_main_firmware_1'})
+    hwid = Encode(self.database, bom, skip_check=True, rma_mode=True)
+    self.assertRaisesRegexp(
+        HWIDException, r"Not in RMA mode. Found deprecated component of "
+        r"'ro_main_firmware': 'ro_main_firmware_1'",
+        hwid.VerifyComponentStatus)
+    self.assertEquals(None, hwid.VerifyComponentStatus(rma_mode=True))
+
+    # Test unsupported component. Unsupported component should fail at encode.
+    bom = self.database.ProbeResultToBOM(self.results[0])
+    bom = self.database.UpdateComponentsOfBOM(bom, {
+        'keyboard': 'keyboard_us', 'dram': 'dram_0',
+        'display_panel': 'display_panel_0',
+        'ro_ec_firmware': 'ro_ec_firmware_1'})
+    self.assertRaisesRegexp(
+        HWIDException, r"Found unsupported component of 'ro_ec_firmware': "
+        r"'ro_ec_firmware_1'", Encode, self.database, bom)
+
   def testVerifyProbeResult(self):
     result = self.results[0]
     bom = self.database.ProbeResultToBOM(result)

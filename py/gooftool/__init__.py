@@ -575,7 +575,8 @@ class Gooftool(object):
           probe_volatile=False, probe_initial_config=False).Encode()
     return self.db.VerifyComponents(yaml_probe_results, component_list)
 
-  def GenerateHwidV3(self, device_info=None, probe_results=None):
+  def GenerateHwidV3(self, device_info=None, probe_results=None,
+                     rma_mode=False):
     """Generates the version 3 HWID of the DUT.
 
     The HWID is generated based on the given device info and probe result. If
@@ -589,6 +590,7 @@ class Gooftool(object):
         specified in board-specific component database.
       probe_results: A ProbeResults object containing the probe result to be
         used.
+      rma_mode: Whether to verify components status in RMA mode.
     """
     if self._hwid_version != 3:
       raise Error, 'hwid_version needs to be 3 to run GenerateHwidV3'
@@ -606,11 +608,13 @@ class Gooftool(object):
     # Update unprobeable components with rules defined in database.
     context = Context(hwid=hwid, device_info=device_info)
     self.db.rules.EvaluateRules(context, namespace='device_info.*')
+    # Verify status of components base of RMA mode setting.
+    hwid.VerifyComponentStatus(rma_mode)
     return hwid
 
 
   def VerifyHwidV3(self, encoded_string=None, probe_results=None,
-                   probed_ro_vpd=None, probed_rw_vpd=None):
+                   probed_ro_vpd=None, probed_rw_vpd=None, rma_mode=False):
     """Verifies the given encoded version 3 HWID string against the component
     db.
 
@@ -652,6 +656,7 @@ class Gooftool(object):
 
     hwid = self._hwid_decode(self.db, encoded_string)
     hwid.VerifyProbeResult(probe_results.Encode())
+    hwid.VerifyComponentStatus(rma_mode)
     vpd_dict = {'ro': {}, 'rw': {}}
     vpd_dict['ro'].update(probed_ro_vpd)
     vpd_dict['rw'].update(probed_rw_vpd)

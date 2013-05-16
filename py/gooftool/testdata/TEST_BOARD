@@ -311,6 +311,7 @@ components:
       ro_main_firmware_0:
         values: { compact_str: mv2#ro_main_firmware_0 }
       ro_main_firmware_1:
+        status: deprecated
         values: { compact_str: mv2#ro_main_firmware_1 }
 
 rules:

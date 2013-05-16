@@ -115,6 +115,12 @@ encoded_fields:
       key_root: key_root_0
       ro_ec_firmware: ro_ec_firmware_0
       ro_main_firmware: ro_main_firmware_1
+    2:
+      hash_gbb: hash_gbb_0
+      key_recovery: key_recovery_0
+      key_root: key_root_0
+      ro_ec_firmware: ro_ec_firmware_1
+      ro_main_firmware: ro_main_firmware_0
 
 components:
   audio_codec:
@@ -314,12 +320,16 @@ components:
     items:
       ro_ec_firmware_0:
         values: { compact_str: ev2#ro_ec_firmware_0 }
+      ro_ec_firmware_1:
+        status: unsupported
+        values: { compact_str: ev2#ro_ec_firmware_1 }
 
   ro_main_firmware:
     items:
       ro_main_firmware_0:
         values: { compact_str: mv2#ro_main_firmware_0 }
       ro_main_firmware_1:
+        status: deprecated
         values: { compact_str: mv2#ro_main_firmware_1 }
 
 rules:

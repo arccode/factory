@@ -609,6 +609,19 @@ class GooftoolTest(unittest2.TestCase):
         'CHROMEBOOK A5AU-LU',
         hwid_tool.ProbeResults.Decode(yaml.dump(mock_probe_result)),
         mock_ro_vpd, mock_rw_vpd)
+    # Test deprecated component.
+    mock_probe_result = copy.deepcopy(sample_probe_result)
+    mock_probe_result['found_volatile_values']['ro_main_firmware'].update(
+        {'compact_str': 'mv2#ro_main_firmware_1'})
+    mock_ro_vpd = copy.deepcopy(sample_ro_vpd)
+    mock_rw_vpd = copy.deepcopy(sample_rw_vpd)
+    # pylint: disable=E1101
+    self.assertRaisesRegexp(
+        HWIDException, r"Not in RMA mode. Found deprecated component of "
+        r"'ro_main_firmware': 'ro_main_firmware_1'",
+        self._gooftool3.VerifyHwidV3, 'CHROMEBOOK A5A4-F2',
+        hwid_tool.ProbeResults.Decode(yaml.dump(mock_probe_result)),
+        mock_ro_vpd, mock_rw_vpd)
 
   def testDecodeHwidV3(self):
     self.assertEquals(

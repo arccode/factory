@@ -63,7 +63,7 @@ def BinaryStringToEncodedString(database, binary_string):
   return database.board.upper() + ' ' + b32_string
 
 
-def Encode(database, bom, skip_check=False):
+def Encode(database, bom, skip_check=False, rma_mode=False):
   """Encodes all the given BOM object.
 
   Args:
@@ -72,6 +72,7 @@ def Encode(database, bom, skip_check=False):
     bom: A BOM object.
     skip_check: A bool value to skip the verification when constructing the HWID
         object. Needed when creating a HWID skelton to be further processed.
+    rma_mode: If set to True, deprecated components will be allowed.
 
   Returns:
     A HWID object which contains the BOM, the binary string, and the encoded
@@ -104,5 +105,7 @@ def Encode(database, bom, skip_check=False):
 
   binary_string = BOMToBinaryString(database, updated_bom)
   encoded_string = BinaryStringToEncodedString(database, binary_string)
-  return HWID(database, binary_string, encoded_string, updated_bom,
+  hwid = HWID(database, binary_string, encoded_string, updated_bom,
               skip_check=skip_check)
+  hwid.VerifyComponentStatus(rma_mode)
+  return hwid

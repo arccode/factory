@@ -165,6 +165,14 @@ def SetComponent(comp_cls, name):
 @RuleFunction(['hwid'])
 def SetImageId(image_id):
   context = GetContext()
+  if isinstance(image_id, str):
+    # Convert image_id string to its corresponding encoded value.
+    reversed_image_id_dict = dict((value, key) for key, value in
+                                  context.hwid.database.image_id.iteritems())
+    if image_id not in reversed_image_id_dict:
+      raise HWIDException('Invalid image id: %r' % image_id)
+    image_id = reversed_image_id_dict[image_id]
+
   if image_id not in context.hwid.database.image_id:
     raise HWIDException('Invalid image id: %r' % image_id)
   context.hwid.bom.image_id = image_id
