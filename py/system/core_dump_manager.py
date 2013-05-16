@@ -21,11 +21,12 @@ class CoreDumpManager(object):
 
   Properties:
     crash_dir: The directory of core dump files.
-    watchlist: The file patterns to match. E.g. ['*glbench*']
+    watchlist: The file patterns to match. E.g. ['*glbench*']. If it is not set
+      in constructor, use [].
   """
   def __init__(self, watchlist=None, crash_dir=DEFAULT_CRASH_PATH):
     self._crash_dir = crash_dir
-    self._watchlist = watchlist
+    self._watchlist = watchlist if watchlist else []
     self._SetCoreDump()
 
   def _SetCoreDump(self):
@@ -51,8 +52,6 @@ class CoreDumpManager(object):
       CoreDumpManagerException: If CoreDumpManager fails to remove unused
           core dump files.
     """
-    if not self._watchlist:
-      return []
     watched_files = sum([glob.glob(os.path.join(self._crash_dir, x))
         for x in self._watchlist], [])
 

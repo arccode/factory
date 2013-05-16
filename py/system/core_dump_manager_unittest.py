@@ -51,6 +51,21 @@ class CoreDumpManagerTest(unittest.TestCase):
                       [os.path.basename(self.watched_file.name)])
     self.mocker.VerifyAll()
 
+  def testScanNoWatch(self):
+    logging.info('Test ScanFiles()')
+    core_dump_manager.CoreDumpManager._SetCoreDump = \
+        self.mocker.CreateMockAnything()
+    core_dump_manager.CoreDumpManager._SetCoreDump()
+    self.mocker.ReplayAll()
+    manager = core_dump_manager.CoreDumpManager(
+        crash_dir=self.crash_dir)
+    self.CreateFiles()
+    # Should get an empty list.
+    self.assertEquals(manager.ScanFiles(), [])
+    # All files should get deleted in ScanFiles().
+    self.assertEquals(os.listdir(self.crash_dir), [])
+    self.mocker.VerifyAll()
+
   def testClear(self):
     logging.info('Test ClearFiles()')
     core_dump_manager.CoreDumpManager._SetCoreDump = \
