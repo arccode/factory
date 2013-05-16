@@ -61,6 +61,14 @@ OTHER_REPO_LIST = ['src/platform/touch_updater', 'src/platform/mosys',
                   'src/third_party/autotest/files',
                   'src/third_party/xf86-video-armsoc', 'src/third_party/adhd']
 
+SRC = os.path.join(os.environ['CROS_WORKON_SRCROOT'], 'src')
+def GetDefaultBoardOrNone():
+  try:
+    return (open(os.path.join(SRC, 'scripts', '.default_board')).read()
+            .strip().rpartition('_')[2])
+  except IOError:
+    return None
+
 def GetFullRepoPath(repo_path):
   """Returns the full path of the given repo."""
   return os.path.join(os.path.expanduser('~'), 'trunk', repo_path)
@@ -198,6 +206,9 @@ def main():
   parser.add_argument('--show_other_repos', '-s', action='store_true',
                       help='Show commits in OTHER_REPO_LIST as well')
   args = parser.parse_args()
+
+  args.board = args.board or GetDefaultBoardOrNone()
+
   if not args.branch:
     args.branch = GetBranch(args.board)
   if not args.branch:
