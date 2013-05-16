@@ -23,10 +23,11 @@ import glob
 import logging
 import os
 import re
+import subprocess
 import sys
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.utils.process_utils import CheckOutput
+from cros.factory.utils.process_utils import CheckOutput, Spawn
 
 DiffEntry = namedtuple('DiffEntry',
                        ['left_right', 'hash', 'author', 'subject'])
@@ -41,25 +42,28 @@ CHERRY_PICK = 'CHERRY-PICK: '
 PRIVATE_OVERLAY_LIST = ['src/private-overlays/overlay-%s-private',
                         'src/private-overlays/overlay-variant-*-%s-private']
 
-# NOTE: 'src/third_party/chromiumos-overlay' does not contain
-# other branches by default. 'git fetch cros' in that folder to
-# fetch all the branches and add the patch into REPO_LIST if you really want
-# to do factory_diff.
-# 'src/third_party/kernel/files' will hang when it tries to do
-# the git log --cherry-pick command because there are too mang patches to handle
-# Use gerrit to search these two repositories instead.
-# e.g.: search this on gerrit
-# status:merged
-# project:^chromiumos/overlays/chromiumos-overlay|chromiumos/third_party/kernel
-# branch:factory-spring-3842.B
-
 FACTORY_REPO_LIST = ['src/platform/factory', 'src/platform/chromeos-hwid']
 
 # Please add the repo if you think it is important in factory.
 OTHER_REPO_LIST = ['src/platform/touch_updater', 'src/platform/mosys',
-                  'src/platform/factory_installer', 'src/platform/ec',
-                  'src/third_party/autotest/files',
-                  'src/third_party/xf86-video-armsoc', 'src/third_party/adhd']
+                   'src/platform/factory_installer', 'src/platform/ec',
+                   'src/third_party/autotest/files',
+                   'src/third_party/xf86-video-armsoc', 'src/third_party/adhd',
+                   'src/third_party/chromiumos-overlay',
+                   'src/third_party/kernel/files']
+
+# m/master does not point to cros/master in the repo in this list. We can only
+# know where it points to if the tree was inited without -b and has
+# m/master branch.
+DIFFERENT_MASTER_REPO_LIST = ['src/third_party/kernel/files']
+
+# Repo in this list like 'src/third_party/chromiumos-overlay' does not contain
+# other branches by default. 'git fetch cros' can fetch all the branches.
+# 'git fetch cros <factory_branch>' can fetch specified factory branch.
+# However, repo sync will not update those fetched branches for you,
+# so we have to force fetching the branch each time we want to diff.
+FORCE_FETCH_REPO_LIST = ['src/third_party/chromiumos-overlay']
+
 
 SRC = os.path.join(os.environ['CROS_WORKON_SRCROOT'], 'src')
 def GetDefaultBoardOrNone():
@@ -79,7 +83,7 @@ def FindGitPrefix(repo_path):
   os.chdir(GetFullRepoPath(repo_path))
   branch_list = CheckOutput(['git', 'branch', '-av'])
   for line in reversed(branch_list.split('\n')):
-    match = re.search('remotes\/([^/]*)/master', line)
+    match = re.search('remotes\/([^/]*)/[^/]*', line)
     if match and match.group(1) != 'm':
       return match.group(1)
   return None
@@ -155,14 +159,77 @@ def RemoveCherryPick(diff_list):
           not in cherrypicked]
 
 
-def DiffRepo(repo_path, branch, author, branch_only):
+def RefExist(repo_path, full_branch_name):
+  """Checks if there exists a reference named full_branch_name."""
+  os.chdir(GetFullRepoPath(repo_path))
+  cmd = ['git', 'show-ref', '--verify',
+         'refs/remotes/%s' % full_branch_name]
+  try:
+    Spawn(cmd, check_call=True, ignore_stdout=True, ignore_stderr=True)
+  except subprocess.CalledProcessError:
+    logging.warning('ref %s does not exist in %s', full_branch_name, repo_path)
+    return False
+  return True
+
+
+def BranchExist(repo_path, full_branch_name):
+  """Checks if there exists a branch named full_branc_name."""
+  os.chdir(GetFullRepoPath(repo_path))
+  branch_list = CheckOutput(['git', 'branch', '-av'])
+  for line in reversed(branch_list.split('\n')):
+    # Matches for <local_branch_name>
+    match = re.search(r'\s*(\S*)\s*', line)
+    if match and match.group(1) == full_branch_name:
+      return True
+    # Matches for remotes/<prefix>/<branch_name>
+    match = re.search(r'\s*remotes\/(\S*)\s*', line)
+    if match and match.group(1) == full_branch_name:
+      return True
+  logging.warning('branch %s does not exist in %s', full_branch_name, repo_path)
+  return False
+
+
+def FetchBranch(repo_path, prefix, branch, local_branch_name):
+  """Fetches reference prefix/branch to fetched ref named local_branch_name."""
+  logging.warning('Fetching branch %s/%s to %s for repo %s',
+                  prefix, branch, local_branch_name, repo_path)
+  os.chdir(GetFullRepoPath(repo_path))
+  # Removes old branch.
+  if BranchExist(repo_path, local_branch_name):
+    cmd = ['git', 'branch', '-D', local_branch_name]
+    Spawn(cmd, call=True)
+  cmd = ['git', 'fetch', prefix, '%s:%s' % (branch, local_branch_name)]
+  Spawn(cmd, check_call=True)
+
+
+def DiffRepo(repo_path, branch, author, branch_only, init_with_master):
   print '%s*** Diff %s ***%s' % (COLOR_GREEN, repo_path, COLOR_RESET)
   os.chdir(GetFullRepoPath(repo_path))
   prefix = FindGitPrefix(repo_path)
 
+  # If the tree is not init with master branch, we can only guess m/master is
+  # cros/master or cros-internal/master
+  master_branch_prefix = 'm' if init_with_master else prefix
+  master_branch = master_branch_prefix + '/master'
+  compare_branch = prefix + '/' + branch
+
+  # Force fetching for if repo is in FORCE_FETCH_REPO_LIST.
+  # When fetching for the branch, prefix can only be 'cros' or 'cros-internal'.
+  if repo_path in FORCE_FETCH_REPO_LIST:
+    FetchBranch(repo_path, prefix, 'master', 'TEMP_MASTER')
+    FetchBranch(repo_path, prefix, branch, 'TEMP_COMPARE')
+    master_branch, compare_branch = 'TEMP_MASTER', 'TEMP_COMPARE'
+
+  # Repo not in FORCE_FECH_REPO_LIST should contain both branches.
+  elif not (BranchExist(repo_path, master_branch) and
+            BranchExist(repo_path, compare_branch)):
+    logging.error('%s does not contain both %s and %s, you should add this '
+                  'repo to FORCE_FETCH_REPO_LIST', repo_path, master_branch,
+                  compare_branch)
+
   cmd = ['git', 'log', '--cherry-pick', '--oneline', '--left-right',
          '--pretty=format:%m %h (%an) %s',
-         '%s/master...%s/%s' % (prefix, prefix, branch)]
+         '%s...%s' % (master_branch, compare_branch)]
   if author:
     cmd += ['--author', author]
   diff = CheckOutput(cmd)
@@ -223,8 +290,19 @@ def main():
   if args.board:
     repo_list.append(GetPrivateOverlay(args.board))
 
+  if RefExist('src/platform/factory', 'm/master'):
+    init_with_master = True
+  else:
+    logging.warning('This tree was inited with -b <branch_name> so there is '
+                    'no clue where m/master might point to.')
+    logging.warning('Removing repo in %s from repo_list',
+                    DIFFERENT_MASTER_REPO_LIST)
+    repo_list = [x for x in repo_list if x not in DIFFERENT_MASTER_REPO_LIST]
+    init_with_master = False
+
   for repo in repo_list:
-    DiffRepo(repo, args.branch, args.author, args.factory_only)
+    DiffRepo(repo, args.branch, args.author, args.factory_only,
+             init_with_master)
   sys.exit(0)
 
 if __name__ == '__main__':
