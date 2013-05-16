@@ -162,14 +162,17 @@ def DiffRepo(repo_path, branch, author, branch_only):
   diff_list = GetDiffList(diff)
   diff_list = RemoveCherryPick(diff_list)
 
-  # To make [Master] stands out, we only show [------] for commits that
-  # are in factory branch.
+  # Show branch name. (e.g. [4131.B])
+  branch_name = '[%s]' % branch[-6:]
+
+  # To make branch stands out, we only show [------] for commits that
+  # are on ToT.
   for entry in diff_list:
     if branch_only and entry.left_right == '<':
       continue
     print '%s%s %s%s %s %s(%s)%s' % (COLOR_YELLOW,
-                                     '[Master]' if entry.left_right == '<'
-                                     else '[------]',
+                                     '[------]' if entry.left_right == '<'
+                                     else branch_name,
                                      entry.hash,
                                      COLOR_RESET,
                                      entry.subject,
