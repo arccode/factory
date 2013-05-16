@@ -128,15 +128,28 @@ class Table(object):
     """
     return self.GetRows(condition, one_row=True)
 
-  def GetRows(self, condition, one_row=False):
-    """Gets allthe rows which match the given condition.
+  def IterateRows(self, condition):
+    """Iterates all the rows which match the given condition.
+
+    Args:
+      condition: A model instance describing the checking condition.
+
+    Returns:
+      An iterator of all matching rows.
+    """
+    return self.GetRows(condition, iter_all=True)
+
+  def GetRows(self, condition, one_row=False, iter_all=False):
+    """Gets all the rows which match the given condition.
 
     Args:
       condition: A model instance describing the checking condition.
       one_row: True if only returns the first row; otherwise, all the rows.
+      iter_all: True to return a row iterator, instead of a list.
 
     Returns:
-      A list of model instances containing all the matching rows.
+      A list of model instances containing all the matching rows when the
+      argument iter_all == False; or a row iterator when iter_all == True.
 
     Raises:
       DatabaseException if not a valid model instance.
@@ -147,7 +160,9 @@ class Table(object):
     sql_cmd, args = condition.SqlCmdSelect()
     executor = self._executor_factory.NewExecutor()
     executor.Execute(sql_cmd, args)
-    if one_row:
+    if iter_all:
+      return iter(lambda: executor.FetchOne(model=condition), None)
+    elif one_row:
       return executor.FetchOne(model=condition)
     else:
       return executor.FetchAll(model=condition)
@@ -241,6 +256,7 @@ class Executor(object):
 
     Returns:
       A model instance if the argument model is valid; otherwise, a raw tuple.
+      None when no more data is available.
     """
     result = self._cursor.fetchone()
     if result and model:
@@ -427,6 +443,11 @@ class Database(object):
     """Gets all the models which match the given condition."""
     table = self.GetOrCreateTable(condition)
     return table.GetRows(condition)
+
+  def IterateAll(self, condition):
+    """Iterates all the models which match the given condition."""
+    table = self.GetOrCreateTable(condition)
+    return table.IterateRows(condition)
 
   def DeleteAll(self, condition):
     """Deletes all the models which match the given condition."""

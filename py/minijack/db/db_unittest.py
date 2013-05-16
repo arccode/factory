@@ -150,6 +150,26 @@ class DatabaseTest(unittest.TestCase):
     rows = self.database.GetAll(FooModel(field_i=90))
     self.assertEqual(0, len(rows))
 
+  def testIterateAll(self):
+    self.database.Insert(FooModel(field_i=56, field_t='Five Six'))
+    self.database.Insert(FooModel(field_i=78, field_r=7.8))
+    index = 0
+    for row in self.database.IterateAll(FooModel()):
+      if index == 0:
+        self.assertDictEqual({
+          'field_i': 56,
+          'field_r': 0.0,
+          'field_t': 'Five Six',
+        }, row.GetFields())
+      elif index == 1:
+        self.assertDictEqual({
+          'field_i': 78,
+          'field_r': 7.8,
+          'field_t': '',
+        }, row.GetFields())
+      index = index + 1
+    self.assertEqual(2, index)
+
   def testDeleteAll(self):
     row_a = FooModel(field_i=111, field_t='One')
     row_b = FooModel(field_i=222, field_r=1.23)
