@@ -9,13 +9,14 @@ die() {
   exit 1
 }
 
-if [ -z "${ROOT_FS_DIR}" ]; then
-  die "ROOT_FS_DIR not defined. This script should only be used in build_image"
+if [[ $# -ne 1 ]]; then
+  die "Usage: $0 root_fs_dir"
 fi
+root_fs_dir=$1
 echo "Unmerge redundant packages for factory image."
 packages_to_unemerge=( binutils )
 for package in "${packages_to_unemerge[@]}"; do
   echo "Unmerging ${package}"
-  sudo ROOT="${ROOT_FS_DIR}/usr/local" emerge -Cq "${package}" ||
+  sudo ROOT="${root_fs_dir}/usr/local" emerge -Cq "${package}" ||
     die "Failed unmerging ${package}"
 done
