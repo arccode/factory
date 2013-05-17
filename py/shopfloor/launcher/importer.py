@@ -243,9 +243,9 @@ class BundleImporter(object):
 
   def GetChannel(self, base_name):
     """Converts file base name to download channel."""
-    if base_name is 'rootfs-release':
+    if base_name == 'rootfs-release':
       channel = 'release'
-    elif base_name is 'rootfs-test':
+    elif base_name == 'rootfs-test':
       channel = 'factory'
     else:
       channel = base_name
