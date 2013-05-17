@@ -50,6 +50,8 @@ class SuspendResumeTest(unittest2.TestCase):
         default=10),
     Arg('resume_delay_min_secs', int, 'Min time in sec during resume per cycle',
         default=5),
+    Arg('resume_early_margin_secs', int, 'The allowable margin for the '
+        'DUT to wake early', default=0),
     Arg('resume_worst_case_secs', int, 'The worst case time a device is '
         'expected to take to resume', default=20),
     Arg('suspend_worst_case_secs', int, 'The worst case time a device is '
@@ -131,7 +133,7 @@ class SuspendResumeTest(unittest2.TestCase):
     """
     cur_time = int(open(self.args.time_path).read().strip())
     self.assertGreaterEqual(
-        cur_time, resume_at,
+        cur_time, resume_at - self.args.resume_early_margin_secs,
         'Premature wake detected (%d s early), spurious event? (got touched?)'
         % (resume_at - cur_time))
     self.assertLessEqual(
