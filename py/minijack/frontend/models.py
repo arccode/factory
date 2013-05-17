@@ -57,6 +57,7 @@ class Test(models.Model):
 
   invocation     = models.TextField(primary_key=True)
   event_id       = models.TextField()
+  event_seq      = models.IntegerField()
   device_id      = models.TextField()
   factory_md5sum = models.TextField()
   image_id       = models.TextField()
@@ -66,7 +67,6 @@ class Test(models.Model):
   start_time     = models.TextField()
   end_time       = models.TextField()
   duration       = models.FloatField()
-  dargs          = models.TextField()
 
 
 class Device(models.Model):

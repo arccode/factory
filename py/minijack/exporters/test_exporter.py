@@ -22,6 +22,7 @@ class TestExporter(ExporterBase):
     row = Test(
       invocation     = packet.event.get('invocation'),
       event_id       = packet.GetEventId(),
+      event_seq      = int(packet.event.get('SEQ')),
       device_id      = packet.preamble.get('device_id'),
       factory_md5sum = packet.preamble.get('factory_md5sum'),
       image_id       = packet.preamble.get('image_id'),
@@ -36,6 +37,7 @@ class TestExporter(ExporterBase):
     row = Test(
       invocation     = packet.event.get('invocation'),
       event_id       = packet.GetEventId(),
+      event_seq      = int(packet.event.get('SEQ')),
       device_id      = packet.preamble.get('device_id'),
       factory_md5sum = packet.preamble.get('factory_md5sum'),
       image_id       = packet.preamble.get('image_id'),
@@ -44,6 +46,5 @@ class TestExporter(ExporterBase):
       status         = packet.event.get('status'),
       end_time       = packet.event.get('TIME'),
       duration       = packet.event.get('duration'),
-      dargs          = packet.event.get('dargs'),
     )
     self._database.UpdateOrInsert(row)
