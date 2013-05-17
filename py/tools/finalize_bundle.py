@@ -258,7 +258,10 @@ class FinalizeBundle(object):
       # Sigh... workaround install bug
       version = open('/usr/lib/gsutil/VERSION').read()
     else:
-      match = re.search('^gsutil version (.+)', process.stderr_data,
+      # The version output changed from stderr to stdout in later
+      # versions of gsutil.
+      match = re.search('^gsutil version (.+)',
+                        process.stderr_data + '\n' + process.stdout_data,
                         re.MULTILINE)
       assert match, ('Unable to parse "gsutil version" output: %r' %
                      process.stderr_data)
