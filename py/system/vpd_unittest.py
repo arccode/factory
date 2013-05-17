@@ -114,10 +114,9 @@ class VPDTest(unittest2.TestCase):
     self.mox.VerifyAll()
 
   def testDeleteTwo(self):
-    for k in ['a', 'b']:
-      vpd.Spawn(
-          ['vpd', '-i', 'RW_VPD', '-d', k],
-          check_call=True, log_stderr_on_error=True)
+    vpd.Spawn(
+        ['vpd', '-i', 'RW_VPD', '-d', 'a', '-d', 'b'],
+        check_call=True, log_stderr_on_error=True)
     self.mox.ReplayAll()
     vpd.rw.Delete('a', 'b')
     self.mox.VerifyAll()

@@ -54,9 +54,11 @@ class Partition(object):
       An error if any entries cannot be deleted.  In this case some or
       all other entries may have been deleted.
     """
-    for k in keys:
-      Spawn(['vpd', '-i', self.name, '-d', k], check_call=True,
-            log_stderr_on_error=True)
+    if keys:
+      args = ['vpd', '-i', self.name]
+      for k in keys:
+        args += ['-d', k]
+      Spawn(args, check_call=True, log_stderr_on_error=True)
 
   def GetAll(self):
     """Returns the contents of the VPD as a dict."""
