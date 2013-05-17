@@ -7,6 +7,10 @@ from cros.factory.minijack.exporters.base import ExporterBase
 from cros.factory.minijack.models import Device
 
 
+STATUS_RUNNING = 'RUNNING'
+STATUS_FINALIZED = 'FINALIZED'
+
+
 class DeviceExporter(ExporterBase):
   """The exporter to create the Device table.
 
@@ -23,6 +27,7 @@ class DeviceExporter(ExporterBase):
       # Skip updating if the goofy_init_time is already in the table.
       return
     self._UpdateField(packet, 'goofy_init_time', packet.event.get('TIME'))
+    self._UpdateField(packet, 'minijack_status', STATUS_RUNNING)
 
   def Handle_update_device_data(self, packet):
     """A handler for a update_device_data event."""
@@ -82,6 +87,9 @@ class DeviceExporter(ExporterBase):
     elif status == 'FAILED':
       row.count_failed = row.count_failed + 1
     self._database.UpdateOrInsert(row)
+
+  def Handle_test_states(self, packet):
+    self._UpdateField(packet, 'minijack_status', STATUS_FINALIZED)
 
   def _UpdateField(self, packet, field_name, field_value):
     """Updates the field to the table.
