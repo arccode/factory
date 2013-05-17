@@ -6,9 +6,9 @@ BUILD_DEPS=../../../build_deps
 
 CLOSURE_LIB_VERSION=20130212-95c19e7f0f5f
 
-CROS_BINARY = /var/cache/distfiles/target/cros-binary
+DISTFILES_TARGET = /var/cache/distfiles/target/
 CLOSURE_LIB_ARCHIVE := \
-  $(CROS_BINARY)/closure-library-$(CLOSURE_LIB_VERSION).zip
+  $(DISTFILES_TARGET)/closure-library-$(CLOSURE_LIB_VERSION).zip
 CLOSURE_LIB_DIR := $(or $(WORKDIR),/tmp)/closure-library-$(CLOSURE_LIB_VERSION)
 
 ifneq "$(shell test -e $(CLOSURE_LIB_ARCHIVE) && echo yes)" "yes"
