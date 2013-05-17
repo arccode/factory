@@ -133,7 +133,7 @@ class ServiceBase(protocol.ProcessProtocol):
     """Stops background service."""
     self.stopping = True
     self.transport.loseConnection()
-    self.transport.signalProcess('KILL')
+    self.transport.signalProcess('TERM')
 
   def CheckPortPrivilage(self, port):
     """Check binding port number if not run as root."""
