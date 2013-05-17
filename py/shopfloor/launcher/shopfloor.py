@@ -24,16 +24,24 @@ Examples:
 """
 
 
+import glob
 import json
 import logging
 import os
 import sys
-from twisted.internet import error, reactor
-from twisted.internet.protocol import Protocol, ClientFactory
+import yaml
+from twisted.internet import error
+from twisted.internet import reactor
+from twisted.internet.protocol import Protocol
+from twisted.internet.protocol import ClientFactory
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.hacked_argparse import CmdArg, Command, ParseCmdline
-from cros.factory.shopfloor.launcher import constants, importer
+from cros.factory.hacked_argparse import CmdArg
+from cros.factory.hacked_argparse import Command
+from cros.factory.hacked_argparse import ParseCmdline
+from cros.factory.shopfloor.launcher import constants
+from cros.factory.shopfloor.launcher import env
+from cros.factory.shopfloor.launcher import importer
 
 
 def Stop():
@@ -104,7 +112,26 @@ def Deploy(dummy_args):
 @Command('list')
 def List(dummy_args):
   """Calls launcher to list available configurations."""
-  CallLauncher()
+  file_list = glob.glob(os.path.join(env.GetResourcesDir(), 'shopfloor.yaml#*'))
+  config = None
+  version = None
+  note = None
+  count = 0
+  for fn in file_list:
+    try:
+      config = yaml.load(open(fn, 'r'))
+      version = config['info']['version']
+      note = config['info']['note']
+    except:  # pylint: disable=W0702
+      continue
+    logging.info(os.path.basename(fn))
+    logging.info('  - version: %s', version)
+    logging.info('  - note:    %s', note)
+    count += 1
+  if count > 0:
+    logging.info('OK: found %d configuration(s).', count)
+  else:
+    logging.info('ERROR: no configuration found.')
 
 
 @Command('import',
@@ -117,9 +144,7 @@ def Import(args):
   if args.bundle:
     importer.BundleImporter(args.bundle).Import()
     return
-  if args.file:
-    raise NotImplementedError('shopofloor import --file')
-  raise NotImplementedError('shopfloor import')
+  NotImplementedError('shopofloor import --file')
 
 
 @Command('info')
