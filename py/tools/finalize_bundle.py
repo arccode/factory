@@ -6,6 +6,7 @@
 
 
 import argparse
+import fnmatch
 import glob
 import logging
 import os
@@ -30,6 +31,7 @@ GSUTIL_CACHE_DIR = os.path.join(os.environ['HOME'], 'gsutil_cache')
 
 REQUIRED_GSUTIL_VERSION = [3, 18]  # 3.18
 
+DELETION_MARKER_SUFFIX = '_DELETED'
 
 def CheckDictHasOnlyKeys(dict_to_check, keys):
   """Makes sure that a dictionary's keys are valid.
@@ -44,6 +46,46 @@ def CheckDictHasOnlyKeys(dict_to_check, keys):
   extra_keys = set(dict_to_check) - set(keys)
   if extra_keys:
     raise ValueError('Found extra keys: %s' % list(extra_keys))
+
+
+class Glob(object):
+  """A glob containing items to include and exclude.
+
+  Properties:
+    include: A single pattern identifying files to include.
+    exclude: Patterns identifying files to exclude.  This can be
+      None, or a single pattern, or a list of patterns.
+  """
+  def __init__(self, include, exclude=None):
+    self.include = include
+    if exclude is None:
+      self.exclude = []
+    elif isinstance(exclude, list):
+      self.exclude = exclude
+    elif isinstance(exclude, str):
+      self.exclude = [exclude]
+    else:
+      raise TypeError, 'Unexpected exclude type %s' % type(exclude)
+
+  def Match(self, root):
+    """Returns files that match include but not exclude.
+
+    Args:
+      root: Root within which to evaluate the glob.
+    """
+    ret = []
+    for f in glob.glob(os.path.join(root, self.include)):
+      if not any(fnmatch.fnmatch(f, os.path.join(root, pattern))
+                 for pattern in self.exclude):
+        ret.append(f)
+    return ret
+
+  @staticmethod
+  def Construct(loader, node):
+    """YAML constructor."""
+    value = loader.construct_mapping(node)
+    CheckDictHasOnlyKeys(value, ['include', 'exclude'])
+    return Glob(value['include'], value.get('exclude', None))
 
 
 def GSDownload(url):
@@ -218,11 +260,13 @@ class FinalizeBundle(object):
     self.bundle_dir = os.path.realpath(self.args.dir)
 
   def LoadManifest(self):
+    yaml.add_constructor('!glob', Glob.Construct)
     self.manifest = yaml.load(open(
         os.path.join(self.args.dir, 'MANIFEST.yaml')))
     CheckDictHasOnlyKeys(
         self.manifest, ['board', 'bundle_name', 'add_files', 'delete_files',
-                        'add_files_to_image', 'site_tests',
+                        'add_files_to_image', 'delete_files_from_image',
+                        'site_tests',
                         'files', 'mini_omaha_url'])
 
     self.board = self.manifest['board']
@@ -320,7 +364,8 @@ class FinalizeBundle(object):
 
   def ModifyFactoryImage(self):
     add_files_to_image = self.manifest.get('add_files_to_image', [])
-    if add_files_to_image:
+    delete_files_from_image = self.manifest.get('delete_files_from_image', [])
+    if add_files_to_image or delete_files_from_image:
       with MountPartition(self.factory_image_path, 1, rw=True) as mount:
         for f in add_files_to_image:
           dest_dir = os.path.join(mount, 'dev_image', f['install_into'])
@@ -328,16 +373,47 @@ class FinalizeBundle(object):
           Spawn(['cp', '-a', os.path.join(self.bundle_dir, f['source']),
                  dest_dir], log=True, sudo=True, check_call=True)
 
+        to_delete = []
+        for f in delete_files_from_image:
+          if isinstance(f, Glob):
+            to_delete.extend(f.Match(mount))
+          else:
+            path = os.path.join(mount, f)
+            if os.path.exists(path):
+              to_delete.append(path)
+
+        for f in sorted(to_delete):
+          # For every file x we delete, we'll leave a file called
+          # 'x_DELETED' so that it's clear why the file is missing.
+          # But we don't want to delete any of these marker files!
+          if f.endswith(DELETION_MARKER_SUFFIX):
+            continue
+          Spawn('echo Deleted by finalize_bundle > %s' %
+                pipes.quote(f + DELETION_MARKER_SUFFIX),
+                sudo=True, shell=True, log=True,
+                check_call=True)
+          Spawn(['rm', '-rf', f], sudo=True, log=True)
+
+        # Write and delete a giant file full of zeroes to clear
+        # all the blocks that we've just deleted.
+        zero_file = os.path.join(mount, 'ZERO')
+        # This will fail eventually (no space left on device)
+        Spawn(['dd', 'if=/dev/zero', 'of=' + zero_file, 'bs=1M'],
+              sudo=True, call=True, log=True, ignore_stderr=True)
+        Spawn(['rm', zero_file], sudo=True, log=True, check_call=True)
+
     # Removes unused site_tests
     # suite_Factory must be preserved for /usr/local/factory/custom symlink.
-    site_tests = self.manifest.get('site_tests', []) + ['suite_Factory']
-    with MountPartition(self.factory_image_path, 1, rw=True) as mount:
-      site_tests_dir = os.path.join(mount, 'dev_image', 'autotest',
-                                    'site_tests')
-      for name in os.listdir(site_tests_dir):
-        path = os.path.join(site_tests_dir, name)
-        if name not in site_tests:
-          Spawn(['rm', '-rf', path], log=True, sudo=True, check_call=True)
+    site_tests = self.manifest.get('site_tests')
+    if site_tests is not None:
+      site_tests.append('suite_Factory')
+      with MountPartition(self.factory_image_path, 1, rw=True) as mount:
+        site_tests_dir = os.path.join(mount, 'dev_image', 'autotest',
+                                      'site_tests')
+        for name in os.listdir(site_tests_dir):
+          path = os.path.join(site_tests_dir, name)
+          if name not in site_tests:
+            Spawn(['rm', '-rf', path], log=True, sudo=True, check_call=True)
 
   def MakeUpdateBundle(self):
     # Make the factory update bundle
@@ -588,6 +664,18 @@ class FinalizeBundle(object):
     with MountPartition(self.factory_image_path, 1) as f:
       vitals.append(('Factory updater MD5SUM', open(
           os.path.join(f, 'dev_image/factory/MD5SUM')).read().strip()))
+      stat = os.statvfs(f)
+      stateful_free_bytes = stat.f_bfree * stat.f_bsize
+      stateful_total_bytes = stat.f_blocks * stat.f_bsize
+      vitals.append((
+          'Stateful partition size',
+          '%d MiB (%d MiB free = %d%% free)' % (
+              stateful_total_bytes / 1024 / 1024,
+              stateful_free_bytes / 1024 / 1024,
+              int(stateful_free_bytes * 100.0 / stateful_total_bytes))))
+      vitals.append((
+          'Stateful partition inodes',
+          '%d nodes (%d free)' % (stat.f_files, stat.f_ffree)))
     with MountPartition(self.release_image_path, 3) as f:
       vitals.append(('Release (FSI)', GetReleaseVersion(f)))
       bios_version, ec_version = GetFirmwareVersions(
