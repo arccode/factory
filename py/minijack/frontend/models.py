@@ -72,16 +72,20 @@ class Test(models.Model):
 class Device(models.Model):
   __metaclass__ = _NotManagedModelBase
 
-  device_id        = models.TextField(primary_key=True)
-  goofy_init_time  = models.TextField()
-  serial           = models.TextField()
-  mlb_serial       = models.TextField()
-  hwid             = models.TextField()
-  ips              = models.TextField()
-  ips_time         = models.TextField()
-  latest_test      = models.TextField()
-  latest_test_time = models.TextField()
-  minijack_status  = models.TextField()
+  device_id           = models.TextField(primary_key=True)
+  goofy_init_time     = models.TextField()
+  serial              = models.TextField()
+  mlb_serial          = models.TextField()
+  hwid                = models.TextField()
+  ips                 = models.TextField()
+  ips_time            = models.TextField()
+  latest_test         = models.TextField()
+  latest_test_time    = models.TextField()
+  latest_ended_test   = models.TextField()
+  latest_ended_status = models.TextField()
+  count_passed        = models.IntegerField()
+  count_failed        = models.IntegerField()
+  minijack_status     = models.TextField()
 
 
 class Component(models.Model):

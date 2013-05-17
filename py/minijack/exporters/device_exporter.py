@@ -64,6 +64,25 @@ class DeviceExporter(ExporterBase):
     self._UpdateField(packet, 'latest_test', packet.event.get('path'))
     self._UpdateField(packet, 'latest_test_time', packet.preamble.get('TIME'))
 
+  def Handle_end_test(self, packet):
+    """A handler for a end_test event."""
+    condition = Device(device_id=packet.preamble.get('device_id'))
+    row = self._database.GetOne(condition)
+    # Not exist in the table, use the one just created with device_id.
+    if not row:
+      row = condition
+    status = packet.event.get('status')
+    row.latest_ended_test = packet.event.get('path')
+    row.latest_ended_status = status
+    # The count_passed/count_failed may not be the accurate values due to
+    # duplicated log. The accurate values are in the Test table. The values
+    # in the Device table are just approximates to quickly know their status.
+    if status == 'PASSED':
+      row.count_passed = row.count_passed + 1
+    elif status == 'FAILED':
+      row.count_failed = row.count_failed + 1
+    self._database.UpdateOrInsert(row)
+
   def _UpdateField(self, packet, field_name, field_value):
     """Updates the field to the table.
 
