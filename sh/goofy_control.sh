@@ -67,6 +67,10 @@ start_factory() {
       factory_restart -a
   "
 
+  # We disable powerd in factory image, but this folder is needed for some
+  # commands like power_supply_info to work.
+  mkdir -p /var/lib/power_manager
+
   # Preload modules here
   modprobe i2c-dev 2>/dev/null || true
 
