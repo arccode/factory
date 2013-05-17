@@ -35,6 +35,9 @@ class DummyBFTFixture(BFTFixture):
   def Ping(self):
     pass
 
+  def CheckPowerRail(self):
+    pass
+
   def GetFixtureId(self):
     return chr(1)
 

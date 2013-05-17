@@ -59,6 +59,13 @@ class BFTFixture(object):
     """
     raise NotImplementedError
 
+  def CheckPowerRail(self):
+    """Checks if DUT's power rail's voltage is okay.
+
+    Raises BFTFixtureException if power rail is problematic.
+    """
+    raise NotImplementedError
+
   def GetFixtureId(self):
     """Gets fixture ID.
 

@@ -149,6 +149,10 @@ class SpringBFTFixture(BFTFixture):
   def Ping(self):
     self._SendRecv(chr(0xE0), chr(0xE1), 'Failed to ping the fixture. ')
 
+  def CheckPowerRail(self):
+    self._SendRecv(chr(0xD2), chr(0xE2),
+                   'Failed to check DUT\'s power rail voltage. ')
+
   def GetFixtureId(self):
     FAIL_MESSAGE = 'Failed to get fixture ID. '
     self._Send(chr(0xE2), FAIL_MESSAGE)
