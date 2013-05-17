@@ -87,6 +87,7 @@ class SpringBFTFixture(BFTFixture):
     if write_len != 1:
       raise BFTFixtureException('%sSend command %s failed.' %
                                 (fail_message, _CommandStr(command)))
+    logging.info('Successfully sent %s', _CommandStr(command))
 
   def _Recv(self, fail_message):
     """Receives a response from BFT fixture.
@@ -97,7 +98,9 @@ class SpringBFTFixture(BFTFixture):
       The response string.
     """
     try:
-      return self._serial.read()
+      recv = self._serial.read()
+      logging.info('Successfully received %s', _CommandStr(recv))
+      return recv
     except SerialTimeoutException as e:
       raise BFTFixtureException('%sReceive timeout: %s' % (fail_message, e))
 
