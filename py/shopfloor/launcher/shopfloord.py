@@ -21,6 +21,8 @@ Example:
 import logging
 import optparse
 import os
+import signal
+from twisted.internet import error
 from twisted.internet import reactor
 
 import factory_common # pylint: disable=W0611
@@ -35,16 +37,11 @@ from cros.factory.shopfloor.launcher.commands import LauncherCommandFactory
 _RESOURCE_FACTORY_PAR = '/resources/factory.par'
 
 
-def Stop():
-  utils.StopServices()
-
-
 def Run(config_file):
   """ShopFloor daemon loop."""
   utils.UpdateConfig(config_file)
   logging.info('Command port: %d', constants.COMMAND_PORT)
   reactor.listenTCP(constants.COMMAND_PORT, LauncherCommandFactory())
-  reactor.addSystemEventTrigger('before', 'shutdown', Stop)
   reactor.run()
 
 
@@ -92,6 +89,51 @@ def main():
                                      options.yaml_config)
 
 
+def ReactorStop():
+  """Forces reactor to stop."""
+  logging.info('Stopping reactor.')
+  try:
+    reactor.stop()
+  except error.ReactorNotRunning:
+    pass
+
+
+def DelayedStop(count_down):
+  """Waits for services to end and stops the reactor.
+
+  Args:
+    count_down: seconds to wait before force shutdown.
+  """
+  # Forces stop when count to zero
+  if count_down <= 0:
+    ReactorStop()
+
+  for svc in env.launcher_services:
+    if svc.subprocess:
+      logging.info('Wait for %s ... %d', svc.name, count_down)
+      reactor.callLater(1, DelayedStop, count_down - 1)
+  ReactorStop()
+
+
+def SignalHandler(sig, dummy_frame):
+  """Initiates stopping sequence.
+
+  Launcher holds multiple subprocess, runs the event loop in twisted reactor,
+  hence it could not stop gracefully with system before shutdown handler. The
+  correct sequence is:
+    SIG[TERM|INT]
+        --> stop subprocesses (call utils.StopServices())
+        --> wait for subprocesses end (reactor.callLater())
+        --> stop reactor and ignore not running error.
+  """
+  logging.info('Received signal %d', sig)
+  logging.info('Stopping system...')
+  utils.StopServices()
+  reactor.callLater(3, DelayedStop, 60)
+
+
 if __name__ == '__main__':
+  signal.signal(signal.SIGTERM, SignalHandler)
+  signal.signal(signal.SIGINT, SignalHandler)
   main()
 
