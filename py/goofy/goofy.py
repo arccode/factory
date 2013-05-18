@@ -1299,6 +1299,14 @@ class Goofy(object):
         time.sleep(0.1)  # 100 ms
       else:
         logging.warn('Never received test_widget_size from UI')
+
+      # Send Chrome a Tab to get focus to the factory UI
+      # (http://crosbug.com/p/19444).  TODO(jsalz): remove this hack
+      # and figure out the right way to get the focus to Chrome.
+      if not utils.in_chroot():
+        Spawn(
+            [os.path.join(factory.FACTORY_PATH, 'bin', 'send_key'), 'Tab'],
+            check_call=True, log=True)
     elif self.options.ui == 'gtk':
       self.start_ui()
 

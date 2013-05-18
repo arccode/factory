@@ -186,7 +186,8 @@ class DUTEnvironment(Environment):
       logging.info('Launching Chrome; logs in %s', chrome_log)
       process = Spawn(chrome_command,
                       stdout=chrome_log_file,
-                      stderr=subprocess.STDOUT)
+                      stderr=subprocess.STDOUT,
+                      log=True)
 
     logging.info('Chrome has been launched: PID %d', process.pid)
     # Start thread to wait for Chrome to die and log its return

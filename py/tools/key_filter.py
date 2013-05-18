@@ -54,8 +54,11 @@ def InitGrabKeys(grab_keys):
 
   del grab_keys[:]
 
-  # Search.
-  grab_keys.append(Keystroke(X.AnyModifier, 'Super_L'))
+  # Search, tab, and function keys (back, forward, reload, etc.)
+  # with any modifiers.
+  grab_keys.extend([
+      Keystroke(X.AnyModifier, k) for k in (
+          'Super_L Tab F1 F2 F3 F4 F5 F6 F7 F8 F9 F10'.split())])
 
   # Ctrl+?
   grab_keys.extend([
