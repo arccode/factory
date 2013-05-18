@@ -26,13 +26,14 @@ class VPDTest(unittest2.TestCase):
     process = self.mox.CreateMockAnything()
     process.stdout_lines(strip=True).MultipleTimes().AndReturn(
         ['"a"="b"',
-         '"foo"="bar"'])
+         '"foo"="bar"',
+         '"empty"=""'])
 
     # pylint: disable=E1101
     vpd.Spawn(['vpd', '-i', 'RW_VPD', '-l'], check_output=True
               ).MultipleTimes().AndReturn(process)
     self.mox.ReplayAll()
-    self.assertEquals(dict(a='b', foo='bar'), vpd.rw.GetAll())
+    self.assertEquals(dict(a='b', foo='bar', empty=''), vpd.rw.GetAll())
     self.assertEquals('b', vpd.rw.get('a'))
     self.assertEquals('b', vpd.rw.get('a', 'default'))
     self.assertEquals(None, vpd.rw.get('nope'))

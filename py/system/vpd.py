@@ -16,7 +16,7 @@ from cros.factory.utils.process_utils import Spawn
 
 
 # One line in vpd -l output.
-VPD_LIST_PATTERN = re.compile(r'^"([^"]+)"="([^"]+)"$')
+VPD_LIST_PATTERN = re.compile(r'^"([^"]+)"="([^"]*)"$')
 
 # Allowable VPD keys: alphanumeric and _ and .
 VPD_KEY_PATTERN = re.compile(r'^[a-zA-Z0-9_.]+')
