@@ -18,6 +18,9 @@ from cros.factory.test.args import Arg
 from cros.factory.test.event import Event
 from cros.factory.test.factory_task import FactoryTaskManager
 from cros.factory.test.factory_task import InteractiveFactoryTask
+from cros.factory.test.fixture.bft_fixture import (BFTFixture,
+                                                   BFTFixtureException,
+                                                   CreateBFTFixture)
 from cros.factory.test.pytests import audio
 from cros.factory.utils.process_utils import SpawnOutput
 
@@ -150,6 +153,8 @@ class DetectDisplayTask(ExtDisplayTask):
     self._wait_display = WaitDisplayThread(args.display_id, connect,
                                            self.PostSuccessEvent)
     self._pass_event = str(uuid.uuid4())  # used to bind a post event.
+    self._fixture = args.fixture
+    self._connect = connect == self._CONNECT
 
   def PostSuccessEvent(self):
     """Posts an event to trigger self.Pass().
@@ -172,6 +177,18 @@ class DetectDisplayTask(ExtDisplayTask):
     self.Prepare()
     self._ui.AddEventHandler(self._pass_event, lambda _: self.Pass())
     self._wait_display.start()
+
+    if self._fixture:
+      try:
+        if self._connect:
+          # TODO(deanliao): Temporary hack, will remove later.
+          # Before connect, disconnect first.
+          self._fixture.SetDeviceEngaged(BFTFixture.Device.EXT_DISPLAY,
+                                         False)
+        self._fixture.SetDeviceEngaged(BFTFixture.Device.EXT_DISPLAY,
+                                       self._connect)
+      except BFTFixtureException as e:
+        self.Fail('Detect display failed: %s' % e)
 
   def Cleanup(self):
     self._wait_display.Stop()
@@ -226,6 +243,8 @@ class VideoTask(ExtDisplayTask):
     instruction = '%s<br>%s' % (
       _MSG_VIDEO_TEST(args.display_label),
       _MSG_PROMPT_PASS_KEY(self._pass_digit))
+    self._ui = args.ui
+    self._fixture = args.fixture
 
     super(VideoTask, self).__init__(args,
                                     _TITLE_VIDEO_TEST(args.display_label),
@@ -234,7 +253,16 @@ class VideoTask(ExtDisplayTask):
 
   def Run(self):
     self.InitUI()
+
+    if self._fixture:
+      # Show light green background for Fixture's light sensor checking.
+      self._ui.RunJS(
+          'document.getElementById("state").style.backgroundColor = "#00ff00";')
+
+    # TODO(deanliao): for fixture, don't bind digit key once fixture display
+    #     detection is complete.
     self.BindDigitKeys(self._pass_digit)
+
     self.RunCommand(
       ['xrandr', '-d', ':0', '--output', self._args.main_display_id, '--auto',
        '--output', self._args.display_id, '--auto'],
@@ -257,6 +285,7 @@ class ExtDisplayTaskArg(object):
     self.audio_port = None
     self.ui = None
     self.template = None
+    self.fixture = None
 
   def ParseDisplayInfo(self, info):
     """
@@ -289,13 +318,20 @@ class ExtDisplayTest(unittest.TestCase):
          'audio_port: (str, opt) amixer port name for audio test. If set,\n'
          '    the audio playback test is added for the display.'),
         optional=False),
+    Arg('bft_fixture', dict,
+        '{class_name: BFTFixture\'s import path + module name\n'
+        ' params: a dict of params for BFTFixture\'s Init()}.\n'
+        'Default None means no BFT fixture is used.',
+        default=None, optional=True),
   ]
 
-  def __init__(self, *args, **kwargs):
-    super(ExtDisplayTest, self).__init__(*args, **kwargs)
+  def setUp(self):
     self._ui = test_ui.UI()
     self._template = ui_templates.TwoSections(self._ui)
     self._task_manager = None
+    self._fixture = None
+    if self.args.bft_fixture:
+      self._fixture = CreateBFTFixture(**self.args.bft_fixture)
 
   def InitUI(self):
     """Initializes UI.
@@ -323,6 +359,8 @@ class ExtDisplayTest(unittest.TestCase):
       args.main_display_id = self.args.main_display
       args.ui = self._ui
       args.template = self._template
+      args.fixture = self._fixture
+
       tasks.append(ConnectTask(args))
       tasks.append(VideoTask(args))
       if args.audio_port:
