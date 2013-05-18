@@ -25,7 +25,7 @@ class BFTFixture(object):
   Methods for this class will raise BFTFixtureException if a failure occurs.
   """
 
-  LEDColor = Enum(['RED', 'GREEN', 'AMBER'])
+  LEDColor = Enum(['RED', 'GREEN', 'AMBER', 'OFF'])
   Device = Enum(['AC_ADAPTER', 'AUDIO_JACK', 'EXT_DISPLAY', 'LID_MAGNET',
                  'USB_0', 'USB_1', 'USB_2'])
 
