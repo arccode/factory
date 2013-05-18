@@ -9,7 +9,7 @@ import time
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.fixture.bft_fixture import (BFTFixture,
                                                    BFTFixtureException)
-from cros.factory.utils import serial_utils
+from cros.factory.utils.serial_utils import OpenSerial, FindTtyByDriver
 
 
 def _CommandStr(command):
@@ -55,14 +55,25 @@ class SpringBFTFixture(BFTFixture):
   # Defaut value of self._serial.
   _serial = None
 
-  def Init(self, **kwargs):
+  def Init(self, **serial_params):
     """Sets up RS-232 connection.
 
     Args:
-      **kwargs: Parameters of pySerial's Serial(). Must have 'port'.
+      **serial_params: Parameters of pySerial's Serial().
+          'port' should be specified. If port cannot be predetermined,
+          you can specify 'driver' and it'll use FindTtyByDriver() to
+          locate the first /dev/ttyUSB* which uses the driver.
     """
+    if 'driver' in serial_params:
+      serial_params['port'] = FindTtyByDriver(serial_params['driver'])
+      if not serial_params['port']:
+        raise BFTFixtureException('Cannot find TTY with driver %s' %
+                                  serial_params['driver'])
+      # After lookup, remove 'driver' from serial_params as OpenSerial
+      # doesn't accept 'driver' param.
+      del serial_params['driver']
     try:
-      self._serial = serial_utils.OpenSerial(**kwargs)
+      self._serial = OpenSerial(**serial_params)
     except SerialException as e:
       raise BFTFixtureException('Cannot connect to BFT fixture: %s' % e)
 
