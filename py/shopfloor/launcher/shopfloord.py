@@ -42,7 +42,8 @@ def Run(config_file):
   utils.UpdateConfig(config_file)
   logging.info('Command port: %d', constants.COMMAND_PORT)
   reactor.listenTCP(constants.COMMAND_PORT, LauncherCommandFactory())
-  reactor.run()
+  # Start twisted, and prevent reactor from install signal handlers.
+  reactor.run(installSignalHandlers=0)
 
 
 def main():
