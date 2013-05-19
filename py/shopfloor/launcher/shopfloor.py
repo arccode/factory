@@ -28,7 +28,11 @@ import glob
 import json
 import logging
 import os
+import shutil
+import signal
+import subprocess
 import sys
+import time
 import yaml
 from twisted.internet import error
 from twisted.internet import reactor
@@ -42,9 +46,23 @@ from cros.factory.hacked_argparse import ParseCmdline
 from cros.factory.shopfloor.launcher import constants
 from cros.factory.shopfloor.launcher import env
 from cros.factory.shopfloor.launcher import importer
+from cros.factory.shopfloor.launcher import ShopFloorLauncherException
+from cros.factory.shopfloor.launcher import utils
+from cros.factory.shopfloor.launcher import yamlconf
+from cros.factory.utils import file_utils
+from cros.factory.utils.process_utils import OpenDevNull
+from cros.factory.utils.process_utils import SpawnOutput
 
 
-def Stop():
+PID_FILE = 'shopfloord.pid'
+LOG_FILE = 'shopfloord.log'
+FACTORY_SOFTWARE = 'factory.par'
+PREV_FACTORY_SOFTWARE = 'factory.par.prev'
+CONFIG_FILE = 'shopfloor.yaml'
+PREV_CONFIG_FILE = 'shopfloor.yaml.prev'
+
+
+def StopReactor():
   """Stops reactor to exit cleanly."""
   try:
     reactor.stop()
@@ -68,7 +86,8 @@ class ClientProtocol(Protocol):  # pylint: disable=W0232
 
   def dataReceived(self, data):
     """Dumps received command output."""
-    # The connection is controlled by remote peer. No need to call Stop().
+    # The connection is controlled by remote peer. No need to call
+    # StopReactor().
     print data
 
 
@@ -88,13 +107,13 @@ class CommandLineFactory(ClientFactory):
   def clientConnectionFailed(self, connector, reason):
     """Displays error message on client connection failed."""
     print 'ERROR: %s' % reason
-    Stop()
+    StopReactor()
 
   def clientConnectionLost(self, connector, reason):
     """Displays error message when connect lost unexpectly."""
     if not reason.check(error.ConnectionDone):
       print 'ERROR: %s' % reason
-    Stop()
+    StopReactor()
 
 
 def CallLauncher():
@@ -103,15 +122,126 @@ def CallLauncher():
   reactor.connectTCP('localhost', constants.COMMAND_PORT, cmd)
   reactor.run()
 
-@Command('deploy')
-def Deploy(dummy_args):
-  """Calls launcher to deploy new configuration."""
-  CallLauncher()
+
+def GetShopfloordPid():
+  """Calls ps to get shopfloord pid.
+
+  Returns:
+    Shopfloor daemon process ID. None when no running instance.
+  """
+  str_pid = SpawnOutput(['ps', '-C', 'shopfloord', '-o', 'pid=']).strip()
+  if str_pid:
+    return int(str_pid)
+  return None
+
+
+def GetChildProcesses(pid):
+  """Recursively gets a flatten list of child process ID.
+
+  Args:
+    pid: the parent process ID.
+
+  Returns:
+    A list of child process ID in int. Empty list when no child process.
+  """
+  # Use 'ps --ppid' to get child pids.
+  ps_output = SpawnOutput(['ps', '--ppid', str(pid), '-o', 'pid=']).strip()
+  if not ps_output:
+    return []
+  child_pids = map(int, filter(None, ps_output.split('\n')))
+  # And all grand child pids.
+  grand_child_pids = []
+  map((lambda p: grand_child_pids.extend(GetChildProcesses(p))), child_pids)
+  return child_pids + grand_child_pids
+
+
+def StopShopfloord():
+  """Stops shopfloor daemon."""
+  shopfloor_pid = GetShopfloordPid()
+  if shopfloor_pid is None:
+    return
+  logging.info('Stopping shopfloor PID:%d', shopfloor_pid)
+  waiting_pids = GetChildProcesses(shopfloor_pid)
+  os.kill(shopfloor_pid, signal.SIGTERM)
+  # Wait for shopfloord to shutdown and display its progress.
+  while waiting_pids:
+    logging.info('  Waiting processes: %s', waiting_pids)
+    time.sleep(0.5)
+    shopfloor_pid = GetShopfloordPid()
+    if not shopfloor_pid:
+      return
+    waiting_pids = GetChildProcesses(shopfloor_pid)
+
+
+def StartShopfloord(extra_args=None):
+  """Starts shopfloor daemon with default YAML configuration.
+
+  Shopfloor launcher loads YAML configuration that symlinked to a verified
+  resource file.
+
+  Args:
+    extra_args: Extra arguments passed to shopfloord command line.
+  """
+  args = [os.path.join(env.runtime_dir, 'shopfloord')]
+  if isinstance(extra_args, list):
+    args.extend(extra_args)
+  elif extra_args:
+    logging.warning('Shopfloord extra_args should be a list.')
+  log = open(os.path.join(env.runtime_dir, 'log', LOG_FILE), 'w')
+  null = OpenDevNull()
+  logging.info('Starting shopfloord...')
+  pid = subprocess.Popen(args, stdin=null, stdout=log, stderr=log).pid
+  with open(os.path.join(env.runtime_dir, 'run', PID_FILE), 'w') as f:
+    f.write(str(pid))
+  logging.info('Shopfloord started: PID=%d', pid)
+
+
+@Command('deploy',
+         CmdArg('-c', '--config',
+                help='the YAML config file to deploy'))
+def Deploy(args):
+  """Deploys new shopfloor YAML configuration."""
+  res_dir = env.GetResourcesDir()
+  new_config_file = os.path.join(res_dir, args.config)
+  if not os.path.isfile(new_config_file):
+    logging.error('Config file not found: %s', new_config_file)
+    return
+  # Verify listed resources.
+  try:
+    resources = [os.path.join(res_dir, res) for res in
+                 utils.ListResources(new_config_file)]
+    map(utils.VerifyResource, resources)
+  except (IOError, ShopFloorLauncherException) as err:
+    logging.exception('Verify resources failed: %s', err)
+    return
+  # Get new factory.par resource name from YAML config.
+  launcher_config = yamlconf.LauncherYAMLConfig(new_config_file)
+  new_factory_par = os.path.join(
+      res_dir, launcher_config['shopfloor']['factory_software'])
+  # Restart shopfloor daemon.
+  config_file = os.path.join(env.runtime_dir, CONFIG_FILE)
+  factory_par = os.path.join(env.runtime_dir, FACTORY_SOFTWARE)
+  prev_config_file = os.path.join(env.runtime_dir, PREV_CONFIG_FILE)
+  prev_factory_par = os.path.join(env.runtime_dir, PREV_FACTORY_SOFTWARE)
+  StopShopfloord()
+  try:
+    file_utils.TryUnlink(prev_config_file)
+    file_utils.TryUnlink(prev_factory_par)
+    shutil.move(config_file, prev_config_file)
+    shutil.move(factory_par, prev_factory_par)
+    os.symlink(new_factory_par, factory_par)
+    os.symlink(new_config_file, config_file)
+  except (OSError, IOError) as err:
+    logging.exception('Can not deploy new config: %s (%s)',
+                      new_config_file, err)
+    logging.exception('Shopfloor didn\'t restart.')
+    return
+  StartShopfloord()
 
 
 @Command('list')
 def List(dummy_args):
-  """Calls launcher to list available configurations."""
+  """Lists available configurations."""
   file_list = glob.glob(os.path.join(env.GetResourcesDir(), 'shopfloor.yaml#*'))
   config = None
   version = None
@@ -157,6 +287,19 @@ def Info(dummy_args):
 def Init(dummy_args):
   """Initializes system folders with proper owner and group."""
   raise NotImplementedError('shopfloor init')
+
+
+@Command('start')
+def Start(dummy_args):
+  """Starts shopfloor with default configuration."""
+  StopShopfloord()
+  StartShopfloord()
+
+
+@Command('stop')
+def Stop(dummy_args):
+  """Stops running shopfloor instance."""
+  StopShopfloord()
 
 
 def main():
