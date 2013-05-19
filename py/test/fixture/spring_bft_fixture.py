@@ -157,7 +157,10 @@ class SpringBFTFixture(BFTFixture):
   def GetFixtureId(self):
     FAIL_MESSAGE = 'Failed to get fixture ID. '
     self._Send(chr(0xE2), FAIL_MESSAGE)
-    return self._Recv(FAIL_MESSAGE)
+    recv = self._Recv(FAIL_MESSAGE)
+    if not recv:
+      raise BFTFixtureException(FAIL_MESSAGE)
+    return ord(recv[0])
 
   def ScanBarcode(self):
     self._SendRecvDefault(self.ENGAGE_BARCODE_SCANNER,

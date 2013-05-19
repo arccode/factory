@@ -6,8 +6,8 @@
 import logging
 import re
 import socket
+import threading
 import unittest
-
 
 from cros.factory.event_log import Log
 from cros.factory.system import vpd
@@ -18,6 +18,7 @@ from cros.factory.test import ui_templates
 from cros.factory.test import utils
 from cros.factory.test.args import Arg
 from cros.factory.test.event import Event
+from cros.factory.test.fixture.bft_fixture import CreateBFTFixture
 
 
 class Scan(unittest.TestCase):
@@ -44,6 +45,18 @@ class Scan(unittest.TestCase):
     Arg('check_device_data_key', str,
         'Checks that the given value in device data matches the scanned value',
         optional=True),
+    Arg('command_delay_secs', (int, float),
+        'Number of seconds to execute command after ui.Run().',
+        default=0.5),
+    Arg('bft_scan_fixture_id', bool,
+        'True to scan BFT fixture ID.', default=False),
+    Arg('bft_scan_barcode', bool,
+        'True to trigger BFT barcode scanner.', default=False),
+    Arg('bft_fixture', dict,
+        '{class_name: BFTFixture\'s import path + module name\n'
+        ' params: a dict of params for BFTFixture\'s Init()}.\n'
+        'Default None means no BFT fixture is used.',
+        default=None, optional=True),
   ]
 
   def HandleScanValue(self, event):
@@ -137,8 +150,44 @@ class Scan(unittest.TestCase):
     self.ui.event_client.post_event(Event(Event.Type.UPDATE_SYSTEM_INFO))
     self.ui.Pass()
 
+  def AutoScan(self, scan_fixture_id=False):
+    """Commands BFTFixture to scan barcode or get fixture ID.
+
+    BFTFixture can trigger barcode scanner and the scanned result turns to
+    a keystroke sequence, handled by test UI. If scan_fixture_id is True,
+    it gets fixture ID and fill scan_value.
+
+    It waits _command_delay_secs after UI.run() before sending a command.
+
+    Args:
+      scan_fixture_id: True to get fixture ID. False to trigger barcode
+          scanner.
+    """
+    def _AutoScanImpl():
+      if scan_fixture_id:
+        fixture_id = self.fixture.GetFixtureId()
+        self.ui.RunJS(
+          'window.test.sendTestEvent("scan_value","%d")' % fixture_id)
+      else:
+        self.fixture.ScanBarcode()
+
+    self.auto_scan_timer = threading.Timer(self.args.command_delay_secs,
+                                           _AutoScanImpl)
+    self.auto_scan_timer.start()
+
   def setUp(self):
     self.ui = test_ui.UI()
+    self.auto_scan_timer = None
+    self.fixture = None
+    if self.args.bft_fixture:
+      self.fixture = CreateBFTFixture(**self.args.bft_fixture)
+
+  def tearDown(self):
+    if self.fixture:
+      self.fixture.Disconnect()
+
+    if self.auto_scan_timer:
+      self.auto_scan_timer.cancel()
 
   def runTest(self):
     template = ui_templates.OneSection(self.ui)
@@ -164,4 +213,12 @@ class Scan(unittest.TestCase):
         ('window.test.sendTestEvent("scan_value",'
          'document.getElementById("scan-value").value)'))
     self.ui.AddEventHandler('scan_value', self.HandleScanValue)
+
+    if self.args.bft_scan_fixture_id:
+      logging.info('Getting fixture ID...')
+      self.AutoScan(scan_fixture_id=True)
+    elif self.args.bft_scan_barcode:
+      logging.info('Triggering barcode scanner...')
+      self.AutoScan()
+
     self.ui.Run()

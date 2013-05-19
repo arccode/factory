@@ -39,7 +39,7 @@ class DummyBFTFixture(BFTFixture):
     pass
 
   def GetFixtureId(self):
-    return chr(1)
+    return 1
 
   def ScanBarcode(self):
     self._DisplayPrompt('Please type a barcode.')
