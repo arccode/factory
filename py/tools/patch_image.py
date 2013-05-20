@@ -16,6 +16,7 @@ import tempfile
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import utils
+from cros.factory.tools.build_board import BuildBoard
 from cros.factory.tools.mount_partition import MountPartition
 from cros.factory.utils.process_utils import Spawn
 
@@ -78,11 +79,11 @@ PACKAGES = {
            package='chromeos-base/chromeos-factory',
            workon=True),
     'chromeos-factory-board':
-      dict(path='private-overlays/overlay-%(board)s-private',
+      dict(path='%(overlay_relpath)s',
            package='chromeos-base/chromeos-factory-board',
            workon=False),
     'autotest-private-board':
-      dict(path='private-overlays/overlay-%(board)s-private',
+      dict(path='%(overlay_relpath)s',
            package='chromeos-base/autotest-private-board',
            workon=False),
     'autotest':
@@ -117,8 +118,7 @@ def main():
                             'one or more of [%s])' % (
                                 ALL, ','.join(sorted(PACKAGES.keys())))),
                       action='append', required=True)
-  parser.add_argument('--board', help='Board (default: %(default)s)',
-                      default=GetDefaultBoardOrNone())
+  parser.add_argument('--board', help='Board name', default=None)
   parser.add_argument('--no-clean', action='store_false', dest='clean',
                       help="Don't insist on clean repositories (be careful!)")
   parser.add_argument('--no-emerge', action='store_false', dest='emerge',
@@ -131,10 +131,6 @@ def main():
                       help="Don't ask for confirmation")
   args = parser.parse_args()
   logging.basicConfig(level=logging.INFO - 10 * (args.verbose or 0))
-
-  if not args.board:
-    parser.error(
-        'No --board argument was specified and no default is available')
 
   if not os.path.exists(args.input):
     parser.error('Input image %s does not exist' % args.input)
@@ -158,8 +154,11 @@ def main():
     parser.error('Bad packages %s (should be in %s)' % (
         list(bad_packages), sorted(PACKAGES.keys())))
 
-  repo_relpaths = [PACKAGES[k]['path'] % {'board': args.board}
-                   for k in args.packages]
+  board = BuildBoard(args.board)
+
+  repo_relpaths = [
+      PACKAGES[k]['path'] % {'overlay_relpath': board.overlay_relpath}
+      for k in args.packages]
   repo_paths = sorted(set([os.path.join(SRC, x) for x in repo_relpaths]))
   packages = sorted(set(PACKAGES[k]['package'] for k in args.packages))
   workon_packages = sorted(set(PACKAGES[k]['package']
@@ -188,8 +187,8 @@ def main():
 
   # Do workons
   if workon_packages:
-    Spawn(['cros_workon', '--board', args.board, 'start'] + workon_packages,
-          log=True, call=True)
+    Spawn(['cros_workon', '--board', board.full_name, 'start']
+          + workon_packages, log=True, call=True)
 
   # Do repo syncs in parallel (followed by a rebase+sync if it fails)
   if args.sync:
@@ -218,20 +217,20 @@ def main():
     # better way to do this.
     if [x for x in args.packages if x.startswith('autotest')]:
       Spawn('emerge-%s --unmerge $(cros_workon-%s list --all | grep autotest)'
-            % (args.board, args.board),
+            % (board.full_name, board.full_name),
             log=True, shell=True, check_call=True)
 
-    Spawn(['emerge-%s' % args.board, '--buildpkg',
+    Spawn(['emerge-%s' % board.full_name, '--buildpkg',
            '-j', str(multiprocessing.cpu_count())] +
           packages,
           log=True, check_call=True)
 
   for package in packages:
     ebuild = Spawn(
-        ['equery-%s' % args.board, 'w', package],
+        ['equery-%s' % board.full_name, 'w', package],
         check_output=True).stdout_data.strip()
     tarball = os.path.join(
-        '/build', args.board, 'packages',
+        '/build', board.full_name, 'packages',
         os.path.dirname(package),
         os.path.basename(ebuild).replace('.ebuild', '.tbz2'))
     logging.info('%s %s (%d bytes)', 'Built' if args.emerge else 'Reusing',
