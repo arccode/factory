@@ -228,6 +228,7 @@ class FinalizeBundle(object):
     self.DeleteFiles()
     self.UpdateMiniOmahaURL()
     self.ModifyFactoryImage()
+    self.SetWipeOption()
     self.MakeUpdateBundle()
     self.MakeFactoryPackages()
     self.FixFactoryParSymlinks()
@@ -266,8 +267,7 @@ class FinalizeBundle(object):
     CheckDictHasOnlyKeys(
         self.manifest, ['board', 'bundle_name', 'add_files', 'delete_files',
                         'add_files_to_image', 'delete_files_from_image',
-                        'site_tests',
-                        'files', 'mini_omaha_url'])
+                        'site_tests', 'wipe_option', 'files', 'mini_omaha_url'])
 
     self.board = self.manifest['board']
     self.simple_board = self.board.split('_')[-1]
@@ -415,6 +415,29 @@ class FinalizeBundle(object):
           if name not in site_tests:
             Spawn(['rm', '-rf', path], log=True, sudo=True, check_call=True)
 
+  def SetWipeOption(self):
+    wipe_option = self.manifest.get('wipe_option', [])
+    if wipe_option:
+      assert len(wipe_option) == 1, 'There should be one wipe_option.'
+      option = wipe_option[0]
+      assert option in ['shutdown', 'battery_cut_off', 'reboot']
+      # No need to write option if option is reboot.
+      if option == 'reboot':
+        return
+      with MountPartition(self.factory_image_path, 1, rw=True) as mount:
+        wipe_option_path = os.path.join(mount, 'factory_wipe_option')
+        self._WriteWithSudo(wipe_option_path, option)
+
+  def _WriteWithSudo(self, file_path, content):
+    """Writes content to file_path with sudo=True."""
+    # Write with sudo, since only root can write this.
+    process = Spawn('cat > %s' % pipes.quote(file_path),
+                    sudo=True, stdin=subprocess.PIPE, shell=True)
+    process.stdin.write(content)
+    process.stdin.close()
+    if process.wait():
+      sys.exit('Unable to write %s' % file_path)
+
   def MakeUpdateBundle(self):
     # Make the factory update bundle
     if self.args.updater:
@@ -446,14 +469,7 @@ class FinalizeBundle(object):
         sys.exit('Unable to set mini-Omaha server in %s' % lsb_factory_path)
       if lsb_factory == orig_lsb_factory:
         return False  # No changes
-
-      # Write with sudo, since only root can write this.
-      process = Spawn('cat > %s' % pipes.quote(lsb_factory_path),
-                      sudo=True, stdin=subprocess.PIPE, shell=True)
-      process.stdin.write(lsb_factory)
-      process.stdin.close()
-      if process.wait():
-        sys.exit('Unable to write %s' % lsb_factory_path)
+      self._WriteWithSudo(lsb_factory_path, lsb_factory)
       return True
 
     # Patch in the install shim, if present.
