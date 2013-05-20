@@ -18,7 +18,7 @@ class LauncherYAMLConfig(dict):
       optional_items={
           # Network installer settings.
           'network_install': FixedDict(
-              'Netowkr installer fields',
+              'Network installer fields',
               items={
                   'port': Scalar('Network download port', int),
                   'board': Dict(
@@ -45,6 +45,12 @@ class LauncherYAMLConfig(dict):
                                   'Complete script to run after download',
                                   str)}))},
               optional_items={
+                  'reverse_proxies': List(
+                      'HTTP accelerator proxies', FixedDict(
+                          'Remote IP to reverse proxy mapping',
+                          items={
+                              'remoteip': Scalar('Lighty IP/range', str),
+                              'proxy_addr': Scalar('Proxy IP:PORT', str)})),
                   'netboot_kernel': Scalar('Network tftp boot uImage', str),
                   'dhcp': FixedDict(
                       'DHCP server settings',

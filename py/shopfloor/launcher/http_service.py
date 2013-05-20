@@ -41,7 +41,9 @@ class HttpService(ServiceBase):
   def _GenerateConfigFile(self, yaml_conf, conf_file):
     """Generates lighty config from YamlConfig."""
     httpd_port = yaml_conf['shopfloor']['port']
-    lighty_modules = ['mod_access', 'mod_accesslog', 'mod_alias', 'mod_fastcgi']
+    lighty_modules = [
+        'mod_access', 'mod_accesslog', 'mod_alias',
+        'mod_fastcgi', 'mod_rewrite', 'mod_redirect']
     cpu_count = multiprocessing.cpu_count()
     dashboard_dir = os.path.join(env.runtime_dir, 'dashboard')
     pid_file = os.path.join(env.runtime_dir, 'run', 'httpd.pid')
@@ -93,6 +95,18 @@ class HttpService(ServiceBase):
             LightyConditionalType(
                 '$SERVER["socket"] == ":%d"' % download_port): {}}
         self._WriteLightyConf(download_conf, conf_file, append=True)
+      # Generate conditional HTTP accelerator blocks.
+      if 'reverse_proxies' in yaml_conf['network_install']:
+        map((lambda proxy: self._WriteLightyConf(
+            self._ProxyBlock(proxy), conf_file, append=True)),
+            yaml_conf['network_install']['reverse_proxies'])
+
+  def _ProxyBlock(self, proxy):
+    return {
+        LightyConditionalType(
+            '$HTTP["remoteip"] == "%s"' % proxy['remoteip']): {
+                'url.redirect': {
+                    '^/res/(.*)': 'http://%s/res/$1' % proxy['proxy_addr']}}}
 
   def _WriteLightyConf(self, conf, name, append=False):
     """Writes top level key-value pairs to lighty.conf."""
