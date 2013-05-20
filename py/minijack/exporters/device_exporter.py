@@ -89,6 +89,16 @@ class DeviceExporter(ExporterBase):
   def Handle_test_states(self, packet):
     self._UpdateField(packet, 'minijack_status', STATUS_FINALIZED)
 
+  def Handle_note(self, packet):
+    row = Device(
+      device_id         = packet.preamble.get('device_id'),
+      latest_note_level = packet.event.get('level'),
+      latest_note_name  = packet.event.get('name'),
+      latest_note_text  = packet.event.get('text'),
+      latest_note_time  = packet.event.get('TIME'),
+    )
+    self._database.UpdateOrInsert(row)
+
   def _UpdateField(self, packet, field_name, field_value, with_time=False):
     """Updates the field to the table.
 

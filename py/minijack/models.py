@@ -58,6 +58,10 @@ class Device(models.Model):
   count_passed        = models.IntegerField()
   count_failed        = models.IntegerField()
   minijack_status     = models.TextField()
+  latest_note_level   = models.TextField()
+  latest_note_name    = models.TextField()
+  latest_note_text    = models.TextField()
+  latest_note_time    = models.TextField()
 
 
 class Component(models.Model):
