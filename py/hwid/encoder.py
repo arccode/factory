@@ -93,6 +93,15 @@ def Encode(database, bom, skip_check=False):
             raise HWIDException(probed_comp.error)
   updated_bom = database.UpdateComponentsOfBOM(bom, components_to_update)
 
+  for field, index in updated_bom.encoded_fields.iteritems():
+    if index is None:
+      err_msg = ('Unable to determine index for encoded field %r. Probed '
+          'components are:\n') % field
+      for comp_cls in database.encoded_fields[field][0].iterkeys():
+        for probed_comp in bom.components[comp_cls]:
+          err_msg += '  %r: %r\n' % (comp_cls, probed_comp.component_name)
+      raise HWIDException(err_msg)
+
   binary_string = BOMToBinaryString(database, updated_bom)
   encoded_string = BinaryStringToEncodedString(database, binary_string)
   return HWID(database, binary_string, encoded_string, updated_bom,
