@@ -39,6 +39,7 @@ MINIJACK_DB_FILE = 'minijack_db'
 DEFAULT_WATCH_INTERVAL = 30  # seconds
 DEFAULT_JOB_NUMBER = 6
 DEFAULT_QUEUE_SIZE = 10
+DEFAULT_NUM_LOG_PER_CALLBACK = 10
 
 
 class EventSinker(object):
@@ -221,7 +222,7 @@ class Minijack(object):
         event_log_dir=options.event_log_dir,
         event_log_db_file=options.event_log_db,
         handle_event_logs_callback=self.HandleEventLogs,
-        num_log_per_callback=50)
+        num_log_per_callback=DEFAULT_NUM_LOG_PER_CALLBACK)
 
     logging.debug('Init event loading workers, jobs = %d', options.jobs)
     self._worker_processes = [multiprocessing.Process(
