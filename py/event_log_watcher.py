@@ -160,6 +160,10 @@ class EventLogWatcher(object):
             len(chunk_info_list) >= self._num_log_per_callback):
           self._CallEventLogHandler(chunk_info_list, suppress_error)
           chunk_info_list = []
+          # Skip remaining when abort. We don't want to wait too long for the
+          # remaining finished.
+          if self._aborted.isSet():
+            return
 
     if chunk_info_list:
       self._CallEventLogHandler(chunk_info_list, suppress_error)
