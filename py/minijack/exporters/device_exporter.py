@@ -61,13 +61,11 @@ class DeviceExporter(ExporterBase):
 
   def Handle_system_status(self, packet):
     """A handler for a system_status event."""
-    self._UpdateField(packet, 'ips', packet.event.get('ips'))
-    self._UpdateField(packet, 'ips_time', packet.preamble.get('TIME'))
+    self._UpdateField(packet, 'ips', packet.event.get('ips'), with_time=True)
 
   def Handle_start_test(self, packet):
     """A handler for a start_test event."""
-    self._UpdateField(packet, 'latest_test', packet.event.get('path'))
-    self._UpdateField(packet, 'latest_test_time', packet.preamble.get('TIME'))
+    self._UpdateField(packet, 'latest_test', packet.event.get('path'), with_time=True)
 
   def Handle_end_test(self, packet):
     """A handler for a end_test event."""
@@ -91,18 +89,23 @@ class DeviceExporter(ExporterBase):
   def Handle_test_states(self, packet):
     self._UpdateField(packet, 'minijack_status', STATUS_FINALIZED)
 
-  def _UpdateField(self, packet, field_name, field_value):
+  def _UpdateField(self, packet, field_name, field_value, with_time=False):
     """Updates the field to the table.
 
     Args:
       packet: An EventPacket object.
       field_name: The field name.
       field_value: The value of field to update.
+      with_time: True to update the corresponding time field, i.e.
+                 "{field_name}_time".
     """
     if not field_value:
       return
     row = Device(device_id=packet.preamble.get('device_id'))
     setattr(row, field_name, field_value)
+    if with_time:
+      field_name_time = field_name + '_time'
+      setattr(row, field_name_time, packet.event.get('TIME'))
     self._database.UpdateOrInsert(row)
 
   def _DoesFieldExist(self, packet, field):
