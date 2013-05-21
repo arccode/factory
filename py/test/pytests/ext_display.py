@@ -156,6 +156,11 @@ class DetectDisplayTask(ExtDisplayTask):
     self._fixture = args.fixture
     self._connect = connect == self._CONNECT
 
+    # Whether or not to send a BFT command.
+    self._bft_command = self._fixture is not None
+    if self._connect and args.already_connect:
+      self._bft_command = False
+
   def PostSuccessEvent(self):
     """Posts an event to trigger self.Pass().
 
@@ -178,13 +183,8 @@ class DetectDisplayTask(ExtDisplayTask):
     self._ui.AddEventHandler(self._pass_event, lambda _: self.Pass())
     self._wait_display.start()
 
-    if self._fixture:
+    if self._bft_command:
       try:
-        if self._connect:
-          # TODO(deanliao): Temporary hack, will remove later.
-          # Before connect, disconnect first.
-          self._fixture.SetDeviceEngaged(BFTFixture.Device.EXT_DISPLAY,
-                                         False)
         self._fixture.SetDeviceEngaged(BFTFixture.Device.EXT_DISPLAY,
                                        self._connect)
       except BFTFixtureException as e:
@@ -287,6 +287,10 @@ class ExtDisplayTaskArg(object):
     self.template = None
     self.fixture = None
 
+    # This is for a reboot hack which tells DetectDisplayTask
+    # whether to send a display plug command or not.
+    self.already_connect = False
+
   def ParseDisplayInfo(self, info):
     """
     It parses tuple from args.display_info.
@@ -323,6 +327,14 @@ class ExtDisplayTest(unittest.TestCase):
         ' params: a dict of params for BFTFixture\'s Init()}.\n'
         'Default None means no BFT fixture is used.',
         default=None, optional=True),
+    Arg('connect_only', bool,
+        'Just detect ext display connection. This is for a hack that DUT needs '
+        'reboot after connect to prevent X crash.',
+        default=False),
+    Arg('already_connect', bool,
+        'Also for the reboot hack with fixture. With it set to True, DUT does '
+        'not issue plug ext display command.',
+        default=False),
   ]
 
   def setUp(self):
@@ -360,16 +372,19 @@ class ExtDisplayTest(unittest.TestCase):
       args.ui = self._ui
       args.template = self._template
       args.fixture = self._fixture
+      args.already_connect = self.args.already_connect
 
       tasks.append(ConnectTask(args))
-      tasks.append(VideoTask(args))
-      if args.audio_port:
-        audio_label = test_ui.MakeLabel('%s Audio' % args.display_label,
-                                        u' %s 音讯' % args.display_label)
-        tasks.append(audio.AudioDigitPlaybackTask(
-            self._ui, audio_label, args.audio_port,
-            'instruction', 'instruction-center'))
-      tasks.append(DisconnectTask(args))
+      if not self.args.connect_only:
+        tasks.append(ConnectTask(args))
+        tasks.append(VideoTask(args))
+        if args.audio_port:
+          audio_label = test_ui.MakeLabel('%s Audio' % args.display_label,
+                                          u' %s 音讯' % args.display_label)
+          tasks.append(audio.AudioDigitPlaybackTask(
+              self._ui, audio_label, args.audio_port,
+              'instruction', 'instruction-center'))
+        tasks.append(DisconnectTask(args))
     return tasks
 
   def runTest(self):
