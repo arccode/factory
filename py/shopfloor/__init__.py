@@ -37,6 +37,7 @@ PARAMETERS_DIR = 'parameters'
 FACTORY_LOG_DIR = 'system_logs'
 REGISTRATION_CODE_LOG_CSV = 'registration_code_log.csv'
 LOGS_DIR_FORMAT = 'logs.%Y%m%d'
+HOURLY_DIR_FORMAT = 'logs.%Y%m%d-%H'
 
 IN_PROGRESS_SUFFIX = '.INPROGRESS'
 
@@ -258,29 +259,34 @@ class ShopFloorBase(object):
     raise ShopFloorException(error)
 
 
-  def GetLogsDir(self, subdir=None):
+  def GetLogsDir(self, subdir=None, log_format=LOGS_DIR_FORMAT):
     """Returns the active logs directory.
 
-    This is the data directory base plus a path element "logs.YYMMDD",
-    where YYMMDD is today's date in the local time zone.  This creates
-    the directory if it does not exist.
+    This is the data directory base plus a path element 'subdir'. When
+    log_format is not None, it creates one more level of log folder to
+    rotate the logs. Default log_format is "logs.YYMMDD", where YYMMDD
+    is today's date in the local time zone.  This creates the directory
+    if it does not exist.
 
     Args:
       subdir: If not None, this is appended to the path.
+      log_format: strftime log format for log rotation.
     """
-    ret = os.path.join(self.data_dir, time.strftime(LOGS_DIR_FORMAT))
+    ret = self.data_dir
     if subdir:
       ret = os.path.join(ret, subdir)
+    if log_format:
+      ret = os.path.join(self.data_dir, time.strftime(log_format))
     utils.TryMakeDirs(ret)
     return ret
 
   def GetEventsDir(self):
     """Returns the active events directory."""
-    return self.GetLogsDir(EVENTS_DIR)
+    return self.GetLogsDir(EVENTS_DIR, log_format=None)
 
   def GetReportsDir(self):
     """Returns the active reports directory."""
-    return self.GetLogsDir(REPORTS_DIR)
+    return self.GetLogsDir(REPORTS_DIR, log_format=HOURLY_DIR_FORMAT)
 
   def GetAuxLogsDir(self):
     """Returns the active auxiliary logs directory."""
