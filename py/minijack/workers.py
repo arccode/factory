@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import utils
-from cros.factory.minijack.datatypes import EventStream
+from cros.factory.minijack.datatypes import GenerateEventStreamsFromYaml
 
 
 EVENT_DELIMITER = '---\n'
@@ -23,16 +23,18 @@ class WorkerBase(object):
   multiple processes/machines to complete the job. All its subclasses should
   implement the Process() method.
   """
-  def __call__(self, input_reader, output_writer):
+  def __call__(self, input_reader, output_writer, input_done=None):
     """Iterates the input_reader and calls output_write to process the values.
 
     Args:
       input_reader: An iterator to get values.
-      output_reader: A callable object to process the values.
+      output_write: A callable object to process the values.
+      input_done: A callable object which is called when one input is done.
     """
     for data in input_reader:
       for result in self.Process(data):
         output_writer(result)
+      input_done()
 
   def Process(self, dummy_data):
     """A generator to output the processed results of the given data."""
@@ -58,8 +60,31 @@ class EventLoadingWorker(WorkerBase):
     self._log_dir = log_dir
 
   def Process(self, blob):
-    """Generates an event stream from an given event blob."""
-    yield self._ConvertToEventStream(blob)
+    """Generates event streams from an given event blob."""
+    start_time = time.time()
+    log_name = blob.metadata['log_name']
+    for stream in GenerateEventStreamsFromYaml(blob.metadata, blob.chunk):
+      # TODO(waihong): Abstract the filesystem access.
+      if not stream.preamble or not stream.preamble.get('device_id'):
+        log_path = os.path.join(self._log_dir, log_name)
+        stream.preamble = self._GetPreambleFromLogFile(log_path)
+      if not stream.preamble and log_name.startswith('logs.'):
+        # Try to find the preamble from the same file in the yesterday log dir.
+        (today_dir, rest_path) = log_name.split('/', 1)
+        yesterday_dir = GetYesterdayLogDir(today_dir)
+        if yesterday_dir:
+          log_path = os.path.join(self._log_dir, yesterday_dir, rest_path)
+          if os.path.isfile(log_path):
+            stream.preamble = self._GetPreambleFromLogFile(log_path)
+
+      if not stream.preamble:
+        logging.warn('Drop the event stream without preamble, log file: %s',
+                     log_name)
+      else:
+        logging.info('YAML to Python obj (%s, %.3f sec)',
+                     stream.metadata.get('log_name'),
+                     time.time() - start_time)
+        yield stream
 
   def _GetPreambleFromLogFile(self, log_path):
     """Gets the preamble event dict from a given log file path."""
@@ -81,37 +106,8 @@ class EventLoadingWorker(WorkerBase):
                         log_path,
                         utils.FormatExceptionOnly())
       return None
-    stream = EventStream(None, yaml_str)
+    stream = GenerateEventStreamsFromYaml(None, yaml_str).next()
     return stream.preamble
-
-  def _ConvertToEventStream(self, blob):
-    """Callback for event log watcher."""
-    start_time = time.time()
-    log_name = blob.metadata['log_name']
-    stream = EventStream(blob.metadata, blob.chunk)
-
-    # TODO(waihong): Abstract the filesystem access.
-    if not stream.preamble:
-      log_path = os.path.join(self._log_dir, log_name)
-      stream.preamble = self._GetPreambleFromLogFile(log_path)
-    if not stream.preamble and log_name.startswith('logs.'):
-      # Try to find the preamble from the same file in the yesterday log dir.
-      (today_dir, rest_path) = log_name.split('/', 1)
-      yesterday_dir = GetYesterdayLogDir(today_dir)
-      if yesterday_dir:
-        log_path = os.path.join(self._log_dir, yesterday_dir, rest_path)
-        if os.path.isfile(log_path):
-          stream.preamble = self._GetPreambleFromLogFile(log_path)
-
-    if not stream.preamble:
-      logging.warn('Drop the event stream without preamble, log file: %s',
-                   log_name)
-      return None
-    else:
-      logging.info('YAML to Python obj (%s, %.3f sec)',
-                   stream.metadata.get('log_name'),
-                   time.time() - start_time)
-      return stream
 
 
 def GetYesterdayLogDir(today_dir):

@@ -229,9 +229,8 @@ class Minijack(object):
           target=EventLoadingWorker(options.event_log_dir),
           kwargs=dict(
             input_reader=iter(self._event_blob_queue.get, None),
-            output_writer=lambda stream: (
-              self._event_stream_queue.put(stream) if stream else None,
-              self._event_blob_queue.task_done()))
+            output_writer=self._event_stream_queue.put,
+            input_done=self._event_blob_queue.task_done)
         ) for _ in range(options.jobs)]
 
     logging.debug('Init event sinking workers')
@@ -247,8 +246,8 @@ class Minijack(object):
         target=IdentityWorker(),
         kwargs=dict(
           input_reader=iter(self._event_stream_queue.get, None),
-          output_writer=lambda stream: (
-            sinker.SinkEventStream(stream),
+          output_writer=sinker.SinkEventStream,
+          input_done=lambda: (
             self._event_stream_queue.task_done(),
             # TODO(waihong): Move the queue monitoring to the main loop such
             # that it has better controls to create/terminate processes.

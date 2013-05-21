@@ -41,7 +41,7 @@ class EventStream(list):
     metadata: A dict to keep the metadata.
     preamble: The dict of the preamble event.
   """
-  def __init__(self, metadata, yaml_str):
+  def __init__(self, metadata):
     """Initializer.
 
     Args:
@@ -50,31 +50,44 @@ class EventStream(list):
     super(EventStream, self).__init__()
     self.metadata = metadata
     self.preamble = None
-    self._LoadFromYaml(yaml_str)
 
-  def _LoadFromYaml(self, yaml_str):
-    """Loads from multiple yaml-formatted events with delimiters.
 
-    Args:
-      yaml_str: The string contains multiple yaml-formatted events.
-    """
-    # Some un-expected patterns appear in the log. Remove them.
-    yaml_str = re.sub(YAML_STR_BLACKLIST, '', yaml_str)
-    try:
-      for event in yaml.safe_load_all(yaml_str):
-        if not event:
-          continue
-        if 'EVENT' not in event:
-          logging.warn('The event dict is invalid, no EVENT tag:\n%s.',
-                       pprint.pformat(event))
-          continue
-        if event['EVENT'] == 'preamble':
-          self.preamble = event
-        else:
-          self.append(event)
-    except yaml.YAMLError, e:
-      logging.exception('Error on parsing the yaml string "%s": %s',
-                        yaml_str, e)
+def GenerateEventStreamsFromYaml(metadata, yaml_str):
+  """Generates EventStreams from multiple yaml-formatted events with delimiters.
+
+  Args:
+    metadata: A dict to keep the metadata.
+    yaml_str: The string contains multiple yaml-formatted events.
+
+  Yields:
+    EventStream objects.
+  """
+  first = True
+  stream = EventStream(metadata)
+  # Some un-expected patterns appear in the log. Remove them.
+  yaml_str = re.sub(YAML_STR_BLACKLIST, '', yaml_str)
+  try:
+    for event in yaml.safe_load_all(yaml_str):
+      if not event:
+        continue
+      if 'EVENT' not in event:
+        logging.warn('The event dict is invalid, no EVENT tag:\n%s.',
+                     pprint.pformat(event))
+        continue
+      if event['EVENT'] == 'preamble':
+        # Yeild the stream it just created when it meets a new preamble,
+        # except the case of the first one.
+        if not first:
+          yield stream
+          stream = EventStream(metadata)
+        stream.preamble = event
+      else:
+        stream.append(event)
+      first = False
+  except yaml.YAMLError, e:
+    logging.exception('Error on parsing the yaml string "%s": %s',
+                      yaml_str, e)
+  yield stream
 
 
 class EventPacket(object):
