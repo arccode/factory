@@ -100,6 +100,15 @@ class HttpService(ServiceBase):
         map((lambda proxy: self._WriteLightyConf(
             self._ProxyBlock(proxy), conf_file, append=True)),
             yaml_conf['network_install']['reverse_proxies'])
+      # Generate default download conf symlink.
+      for board, resmap in yaml_conf['network_install']['board'].iteritems():
+        link_name = os.path.join(env.GetResourcesDir(), board + '.conf')
+        conf_name = os.path.join(env.GetResourcesDir(), resmap['config'])
+        try:
+          os.unlink(link_name)
+        except os.error:
+          pass
+        os.symlink(conf_name, link_name)
 
   def _ProxyBlock(self, proxy):
     return {
