@@ -11,7 +11,8 @@ import sys
 # TODO(waihong): Make it a command line option.
 PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
 for path in [os.path.join(PROJECT_ROOT, 'minijack_db'),
-             os.path.join(PROJECT_ROOT, '..', 'minijack_db')]:
+             os.path.join(PROJECT_ROOT, '..', 'minijack_db'),
+             '/var/db/factory/minijack_db']:
   if os.path.exists(path):
     minijack_db_path = path
     break
