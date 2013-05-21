@@ -49,7 +49,8 @@ class EventAttrExporter(ExporterBase):
       boot_id        = packet.preamble.get('boot_id'),
       boot_sequence  = int(packet.preamble.get('boot_sequence')),
       factory_md5sum = packet.preamble.get('factory_md5sum'),
-      image_id       = packet.preamble.get('image_id'),
+      reimage_id     = (packet.preamble.get('reimage_id') or
+                        packet.preamble.get('image_id')),
     )
     self._database.Insert(row)
 

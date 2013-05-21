@@ -25,7 +25,8 @@ class TestExporter(ExporterBase):
       event_seq      = int(packet.event.get('SEQ')),
       device_id      = packet.preamble.get('device_id'),
       factory_md5sum = packet.preamble.get('factory_md5sum'),
-      image_id       = packet.preamble.get('image_id'),
+      reimage_id     = (packet.preamble.get('reimage_id') or
+                        packet.preamble.get('image_id')),
       path           = packet.event.get('path'),
       pytest_name    = packet.event.get('pytest_name'),
       start_time     = packet.event.get('TIME'),
@@ -40,7 +41,8 @@ class TestExporter(ExporterBase):
       event_seq      = int(packet.event.get('SEQ')),
       device_id      = packet.preamble.get('device_id'),
       factory_md5sum = packet.preamble.get('factory_md5sum'),
-      image_id       = packet.preamble.get('image_id'),
+      reimage_id     = (packet.preamble.get('reimage_id') or
+                        packet.preamble.get('image_id')),
       path           = packet.event.get('path'),
       pytest_name    = packet.event.get('pytest_name'),
       status         = packet.event.get('status'),

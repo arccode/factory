@@ -17,7 +17,7 @@ class Event(models.Model):
   boot_id        = models.TextField()
   boot_sequence  = models.IntegerField()
   factory_md5sum = models.TextField()
-  image_id       = models.TextField()
+  reimage_id     = models.TextField()
 
 
 class Attr(models.Model):
@@ -34,7 +34,7 @@ class Test(models.Model):
   event_seq      = models.IntegerField()
   device_id      = models.TextField()
   factory_md5sum = models.TextField()
-  image_id       = models.TextField()
+  reimage_id     = models.TextField()
   path           = models.TextField()
   pytest_name    = models.TextField()
   status         = models.TextField()

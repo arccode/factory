@@ -120,7 +120,7 @@
         <th>end_time</th>
         <th>duration</th>
         <th>factory_md5sum</th>
-        <th>image_id</th>
+        <th>reimage_id</th>
       </tr>
       {% for test in tests %}
       <tr>
@@ -135,7 +135,7 @@
         <td>{{ test.end_time }}</td>
         <td class="duration">{{ test.duration|floatformat:3 }}</td>
         <td>{{ test.factory_md5sum|truncatechars:18 }}</td>
-        <td>{{ test.image_id|truncatechars:18 }}</td>
+        <td>{{ test.reimage_id|truncatechars:18 }}</td>
       </tr>
       {% endfor %}
     </tbody>

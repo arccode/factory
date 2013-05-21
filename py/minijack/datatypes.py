@@ -122,12 +122,14 @@ class EventPacket(object):
     return (('.'.join(k), v) for k, v in _FlattenAttr(attr))
 
   def GetEventId(self):
-    """Generates the unique ID for an event, the base64 of {image_id}{SEQ}."""
+    """Generates the unique ID for an event, the base64 of {reimage_id}{SEQ}."""
     if not self._event_id:
-      image_id_bytes = uuid.UUID(self.preamble.get('image_id')).bytes
+      reimage_id = (self.preamble.get('reimage_id') or
+                    self.preamble.get('image_id'))
+      reimage_id_bytes = uuid.UUID(reimage_id).bytes
       seq_bytes = struct.pack('>L', int(self.event.get('SEQ')))
       self._event_id = ''.join([base64.urlsafe_b64encode(s).rstrip('=')
-          for s in [image_id_bytes, seq_bytes]])
+          for s in [reimage_id_bytes, seq_bytes]])
     return self._event_id
 
   def FindAttrContainingKey(self, key):
