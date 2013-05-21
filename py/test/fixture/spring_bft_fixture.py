@@ -4,6 +4,7 @@
 
 import logging
 from serial import SerialException, SerialTimeoutException
+import time
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.fixture.bft_fixture import (BFTFixture,
@@ -31,11 +32,11 @@ class SpringBFTFixture(BFTFixture):
   # None means unsupported.
   Device = BFTFixture.Device
   DEVICE_COMMAND = {
-    Device.AC_ADAPTER       : (chr(0xC8), chr(0xC9)),
+    Device.AC_ADAPTER       : (chr(0xC8), chr(0xD0)),
     Device.AUDIO_JACK       : (chr(0xCC), chr(0xCD)),
-    Device.EXT_DISPLAY      : (chr(0xCB), chr(0xC8)),
+    Device.EXT_DISPLAY      : (chr(0xCB), chr(0xD0)),
     Device.LID_MAGNET       : (chr(0xC2), chr(0xC3)),
-    Device.USB_0            : (chr(0xCA), chr(0xC8)),
+    Device.USB_0            : (chr(0xCA), chr(0xD0)),
     Device.USB_1            : (None, None),
     Device.USB_2            : (None, None)}
 
@@ -145,6 +146,14 @@ class SpringBFTFixture(BFTFixture):
       command = self.DEVICE_COMMAND[device][0 if engage else 1]
     if not command:
       raise BFTFixtureException('Unsupported action: ' + action_str)
+
+    # TODO(deanliao): hack, remove later
+    if command == chr(0xC8):
+      logging.info('HACK, disconnect before connect charger and sleep '
+                   'for one second.')
+      self._SendRecvDefault(chr(0xD0), 'Failed to %s. ' % action_str)
+      time.sleep(1)
+    # end hack
     self._SendRecvDefault(command, 'Failed to %s. ' % action_str)
 
   def Ping(self):
