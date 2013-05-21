@@ -317,6 +317,27 @@ class _TouchpadData():  # pylint: disable=W0232
     return None
 
   @classmethod
+  def Atmel(cls):
+    input_file = '/proc/bus/input/devices'
+    re_device_name = re.compile(r'^N: Name="(Atmel.*Touchpad)"$', re.MULTILINE)
+    re_sysfs = re.compile(r'^S: Sysfs=(.*)$', re.MULTILINE)
+    with open(input_file, 'r') as f:
+      buf = f.read()
+    devices = buf.split('\n\n')
+    for d in devices:
+      match = re_device_name.findall(d)
+      if not match:
+        continue
+      device_name = match[0]
+      sysfs_path = os.path.join('/sys', re_sysfs.findall(d)[0].lstrip('/'))
+      with open(os.path.join(sysfs_path, '..', '..', 'fw_version'), 'r') as f:
+        fw_version = f.read().strip()
+      with open(os.path.join(sysfs_path, '..', '..', 'config_csum'), 'r') as f:
+        config_csum = f.read().strip()
+      return Obj(ident_str=device_name, fw_version=fw_version,
+                 config_csum=config_csum)
+
+  @classmethod
   def Generic(cls):
     # TODO(hungte) add more information from id/*
     # format: N: Name="???_trackpad"
@@ -332,7 +353,7 @@ class _TouchpadData():  # pylint: disable=W0232
   def Get(cls):
     if cls.cached_data is None:
       cls.cached_data = Obj(ident_str=None, fw_version=None)
-      for vendor_fun in [cls.Cypress, cls.Synaptics, cls.Generic]:
+      for vendor_fun in [cls.Cypress, cls.Synaptics, cls.Atmel, cls.Generic]:
         data = vendor_fun()
         if data is not None:
           cls.cached_data = data
@@ -666,9 +687,17 @@ def _ProbeStorage():
 
 @_ComponentProbe('touchpad')
 def _ProbeTouchpad():
-  ident_str = _TouchpadData.Get().ident_str
-  return [{'id': ident_str,
-           COMPACT_PROBE_STR: ident_str}] if ident_str is not None else []
+  data = _TouchpadData.Get()
+  if data.ident_str is None:
+    return []
+
+  results = {'id': data.ident_str}
+  results.update(DictCompactProbeStr(data.ident_str))
+  for key in ('fw_version', 'config_csum'):
+    value = getattr(data, key)
+    if value:
+      results[key] = value
+  return [results]
 
 
 @_ComponentProbe('tpm')
