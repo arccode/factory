@@ -7,7 +7,6 @@
 
 import base64
 import hashlib
-import logging
 import os
 import re
 import shutil
@@ -17,6 +16,7 @@ from cros.factory.shopfloor.launcher import constants
 from cros.factory.shopfloor.launcher import env
 from cros.factory.shopfloor.launcher import ShopFloorLauncherException
 from cros.factory.shopfloor.launcher.yamlconf import LauncherYAMLConfig
+from cros.factory.test.utils import TryMakeDirs
 
 
 def StartServices():
@@ -171,11 +171,7 @@ def GetInfo():
 
 def CreateSystemFolders():
   """Creates folder for Uber ShopFloor installation."""
-  dirs = ['', 'resources', 'updates', 'run', 'log', 'dashboard']
-  for folder in dirs:
-    try:
-      os.makedirs(os.path.join(constants.SHOPFLOOR_INSTALL_DIR, folder))
-    except Exception:
-      logging.warn('Fail to make dir %s', folder)
-
+  dirs = ['', 'resources', 'updates', 'upload_logs', 'run', 'log', 'dashboard']
+  map((lambda folder: TryMakeDirs(os.path.join(constants.SHOPFLOOR_INSTALL_DIR,
+      folder))), dirs)
 

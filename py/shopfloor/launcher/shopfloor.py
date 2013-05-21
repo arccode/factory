@@ -286,7 +286,16 @@ def Info(dummy_args):
 @Command('init')
 def Init(dummy_args):
   """Initializes system folders with proper owner and group."""
-  raise NotImplementedError('shopfloor init')
+  if not os.path.isdir(constants.SHOPFLOOR_INSTALL_DIR):
+    print "Install folder not found!"
+    print "Please create folder: \n\t%s\n" % constants.SHOPFLOOR_INSTALL_DIR
+    print "And change the owner to current user ID."
+    print "Example:"
+    print "  for user 'sfuser' and group 'sf'"
+    print "  sudo mkdir /var/db/factory"
+    print "  sudo chown sfuser.sf /var/db/factory"
+    sys.exit(-1)
+  utils.CreateSystemFolders()
 
 
 @Command('start')
