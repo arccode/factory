@@ -4,6 +4,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import collections
 import logging
 import os
 import shelve
@@ -23,21 +24,38 @@ class ScanException(Exception):
   pass
 
 
+# Chunk scanned by the log watcher.
+#
+# Properties:
+#
+#   log_name: Name of the log
+#   chunk: Value of the chunk
+#   pos: Position of the chunk within the file
+class Chunk(collections.namedtuple('Chunk', 'log_name chunk pos')):
+  # pylint: disable=W0232
+  # pylint: disable=E1101
+  def __str__(self):
+    return 'Chunk(log_name=%r, len=%s, pos=%d)' % (
+        self.log_name, len(self.chunk), self.pos)
+
+
 class EventLogWatcher(object):
   '''An object watches event log and invokes a callback as new logs appear.'''
 
-  def __init__(self, watch_period_sec=30,
-             event_log_dir=event_log.EVENT_LOG_DIR,
-             event_log_db_file=EVENT_LOG_DB_FILE,
-             handle_event_logs_callback=None,
-             num_log_per_callback=0):
+  def __init__(self,
+               watch_period_sec=30,
+               event_log_dir=event_log.EVENT_LOG_DIR,
+               event_log_db_file=EVENT_LOG_DB_FILE,
+               handle_event_logs_callback=None,
+               num_log_per_callback=0):
     '''Constructor.
 
     Args:
       watch_period_sec: The time period in seconds between consecutive
           watches.
-      event_log_db_file: The file in which to store the DB of event logs.
-      handle_event_logs__callback: The callback to trigger after new event logs
+      event_log_db_file: The file in which to store the DB of event logs,
+          or None to use sync markers instead (see event_log.py).
+      handle_event_logs_callback: The callback to trigger after new event logs
           found.
       num_log_per_callback: The maximum number of log files per callback, or 0
           for unlimited number of log files.
@@ -50,8 +68,10 @@ class EventLogWatcher(object):
     self._watch_thread = None
     self._aborted = threading.Event()
     self._kick = threading.Event()
-    self._db = self.GetOrCreateDb()
     self._scan_lock = threading.Lock()
+
+    self._use_sync_markers = event_log_db_file is None
+    self._db = {} if self._use_sync_markers else self.GetOrCreateDb()
 
   def StartWatchThread(self):
     '''Starts a thread to watch event logs.'''
@@ -80,11 +100,11 @@ class EventLogWatcher(object):
     with self._scan_lock:
       self.ScanEventLogs(False)
 
-  def _CallEventLogHandler(self, chunk_info_list, suppress_error):
+  def _CallEventLogHandler(self, chunks, suppress_error):
     '''Invoke event log handler callback.
 
     Args:
-      chunk_info_list: A list of tuple (log_name, chunk).
+      chunks: A list of Chunks.
       suppress_error: if set to true then any exception from handle event
           log callback will be ignored.
 
@@ -93,7 +113,20 @@ class EventLogWatcher(object):
     '''
     try:
       if self._handle_event_logs_callback is not None:
-        self._handle_event_logs_callback(chunk_info_list)
+        self._handle_event_logs_callback(chunks)
+      if self._use_sync_markers:
+        # Update the sync marker in each chunk.
+        for chunk in chunks:
+          last_sync_marker = chunk.chunk.rfind(event_log.SYNC_MARKER_SEARCH)
+          if not last_sync_marker:
+            continue
+          with open(os.path.join(self._event_log_dir, chunk.log_name),
+                    'r+') as f:
+            f.seek(chunk.pos + last_sync_marker)
+            f.write(event_log.SYNC_MARKER_REPLACE)
+            f.flush()
+            os.fdatasync(f)
+
     except: # pylint: disable=W0702
       if suppress_error:
         logging.exception('Upload handler error')
@@ -103,11 +136,12 @@ class EventLogWatcher(object):
 
     try:
       # Update log state to db.
-      for log_name, chunk in chunk_info_list:
-        log_state = self._db.setdefault(log_name, {KEY_OFFSET: 0})
-        log_state[KEY_OFFSET] += len(chunk)
-        self._db[log_name] = log_state
-      self._db.sync()
+      for chunk in chunks:
+        log_state = self._db.setdefault(chunk.log_name, {KEY_OFFSET: 0})
+        log_state[KEY_OFFSET] += len(chunk.chunk)
+        self._db[chunk.log_name] = log_state
+      if not self._use_sync_markers:
+        self._db.sync()
     except: # pylint: disable=W0702
       if suppress_error:
         logging.exception('Upload handler error')
@@ -129,7 +163,7 @@ class EventLogWatcher(object):
                    self._event_log_dir)
       return
 
-    chunk_info_list = []
+    chunks = []
 
     # Sorts dirs by their names, as its modification time is changed when
     # their files inside are changed/added/removed. Their names are more
@@ -149,7 +183,7 @@ class EventLogWatcher(object):
           try:
             chunk_info = self.ScanEventLog(relative_path)
             if chunk_info is not None:
-              chunk_info_list.append(chunk_info)
+              chunks.append(chunk_info)
           except:  # pylint: disable=W0702
             msg = relative_path + ': ' + utils.FormatExceptionOnly()
             if suppress_error:
@@ -157,16 +191,16 @@ class EventLogWatcher(object):
             else:
               raise ScanException(msg)
         if (self._num_log_per_callback and
-            len(chunk_info_list) >= self._num_log_per_callback):
-          self._CallEventLogHandler(chunk_info_list, suppress_error)
-          chunk_info_list = []
+            len(chunks) >= self._num_log_per_callback):
+          self._CallEventLogHandler(chunks, suppress_error)
+          chunks = []
           # Skip remaining when abort. We don't want to wait too long for the
           # remaining finished.
           if self._aborted.isSet():
             return
 
-    if chunk_info_list:
-      self._CallEventLogHandler(chunk_info_list, suppress_error)
+    if chunks:
+      self._CallEventLogHandler(chunks, suppress_error)
 
 
   def StopWatchThread(self):
@@ -201,6 +235,8 @@ class EventLogWatcher(object):
 
   def GetOrCreateDb(self):
     '''Gets the database or recreate one if exception occurs.'''
+    assert not self._use_sync_markers
+
     try:
       db = OpenShelfOrBackup(self._event_log_db_file)
     except:  # pylint: disable=W0702
@@ -218,7 +254,27 @@ class EventLogWatcher(object):
     Args:
       log_name: name of the log file.
     '''
-    log_state = self._db.setdefault(log_name, {KEY_OFFSET: 0})
+    log_state = self._db.get(log_name)
+    if not log_state:
+      # We haven't seen this file yet since starting up.
+      offset = 0
+      if self._use_sync_markers:
+        # Read in the file and set offset from the last sync marker.
+        with open(os.path.join(self._event_log_dir, log_name)) as f:
+          contents = f.read()
+        # Set the offset to just after the last instance of
+        # "\n#S\n---\n".
+        replace_pos = contents.rfind(event_log.SYNC_MARKER_REPLACE)
+        if replace_pos == -1:
+          # Not found; start at the beginning.
+          offset = 0
+        else:
+          offset = replace_pos + len(event_log.SYNC_MARKER_REPLACE)
+      else:
+        # No sync markers; start from the beginning.
+        offset = 0
+      log_state = {KEY_OFFSET: offset}
+      self._db[log_name] = log_state
 
     with open(os.path.join(self._event_log_dir, log_name)) as f:
       f.seek(log_state[KEY_OFFSET])
@@ -227,10 +283,10 @@ class EventLogWatcher(object):
       last_separator = chunk.rfind(EVENT_SEPARATOR)
       # No need to proceed if available chunk is empty.
       if last_separator == -1:
-        return
+        return None
 
       chunk = chunk[0:(last_separator + len(EVENT_SEPARATOR))]
-      return (log_name, chunk)
+      return Chunk(log_name, chunk, log_state[KEY_OFFSET])
 
   def GetEventLog(self, log_name):
     '''Gets the log for given log name.'''

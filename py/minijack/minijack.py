@@ -275,9 +275,9 @@ class Minijack(object):
 
   def HandleEventLogs(self, chunk_info):
     """Callback for event log watcher."""
-    for log_name, chunk in chunk_info:
-      logging.info('Get new event logs (%s, %d bytes)', log_name, len(chunk))
-      blob = EventBlob({'log_name': log_name}, chunk)
+    for chunk in chunk_info:
+      logging.info('Get new event logs (%s)', chunk)
+      blob = EventBlob({'log_name': chunk.log_name}, chunk.chunk)
       self._event_blob_queue.put(blob)
 
   def CheckQueuesEmpty(self):

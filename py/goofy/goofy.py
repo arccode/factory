@@ -1112,7 +1112,9 @@ class Goofy(object):
       sys.exit(0)
 
     event_log.IncrementBootSequence()
-    self.event_log = EventLog('goofy')
+    # Don't defer logging the initial event, so we can make sure
+    # that device_id, reimage_id, etc. are all set up.
+    self.event_log = EventLog('goofy', defer=False)
 
     if (not suppress_chroot_warning and
       factory.in_chroot() and
@@ -1230,6 +1232,7 @@ class Goofy(object):
     # syncing), since we may use it to flush event logs as well.
     self.log_watcher = EventLogWatcher(
       self.test_list.options.sync_event_log_period_secs,
+      event_log_db_file=None,
       handle_event_logs_callback=self.handle_event_logs)
     if self.test_list.options.sync_event_log_period_secs:
       self.log_watcher.StartWatchThread()
@@ -1639,31 +1642,32 @@ class Goofy(object):
     self.check_battery()
     self.check_core_dump()
 
-  def handle_event_logs(self, chunk_info):
+  def handle_event_logs(self, chunks):
     '''Callback for event watcher.
 
     Attempts to upload the event logs to the shopfloor server.
 
     Args:
-      chunk_info: A list of tuple (log_name, chunk)
+      chunks: A list of Chunk objects.
     '''
     first_exception = None
     exception_count = 0
 
-    for log_name, chunk in chunk_info:
+    for chunk in chunks:
       try:
-        description = 'event logs (%s, %d bytes)' % (log_name, len(chunk))
+        description = 'event logs (%s)' % chunk
         start_time = time.time()
         shopfloor_client = shopfloor.get_instance(
           detect=True,
           timeout=self.test_list.options.shopfloor_timeout_secs)
-        shopfloor_client.UploadEvent(log_name + "." + event_log.GetReimageId(),
-                                     Binary(chunk))
+        shopfloor_client.UploadEvent(chunk.log_name + "." +
+                                     event_log.GetReimageId(),
+                                     Binary(chunk.chunk))
         logging.info(
           'Successfully synced %s in %.03f s',
           description, time.time() - start_time)
       except: # pylint: disable=W0702
-        first_exception = (first_exception or (log_name + ': ' +
+        first_exception = (first_exception or (chunk.log_name + ': ' +
                                                utils.FormatExceptionOnly()))
         exception_count += 1
 

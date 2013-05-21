@@ -13,13 +13,31 @@ import tempfile
 import time
 import unittest
 
+from cros.factory import event_log
 from cros.factory import event_log_watcher
-from cros.factory.event_log_watcher import EventLogWatcher
+from cros.factory.event_log_watcher import Chunk, EventLogWatcher
 
 MOCK_LOG_NAME = lambda x: 'mylog12345%d' % x
-MOCK_PREAMBLE = lambda x: 'device: 123%d\nimage: 456\nmd5: abc\n---\n' % x
-MOCK_EVENT = 'seq: 1\nevent: start\n---\n'
+def MOCK_PREAMBLE(x, sync_marker=False):
+  ret = 'device: 123%d\nimage: 456\nmd5: abc\n' % x
+  if sync_marker:
+    ret += event_log.SYNC_MARKER
+  ret += '---\n'
+  return ret
+def MOCK_EVENT(x=0, sync_marker=False):
+  ret = 'seq: %d\nevent: start\n' % x
+  if sync_marker:
+    ret += event_log.SYNC_MARKER
+  ret += '---\n'
+  return ret
 MOCK_PERIOD = 0.01
+
+
+class ChunkTest(unittest.TestCase):
+  def testStr(self):
+    self.assertEquals("Chunk(log_name='a', len=3, pos=10)",
+                      str(Chunk('a', 'foo', 10)))
+
 
 class EventLogWatcherTest(unittest.TestCase):
   def setUp(self):
@@ -89,12 +107,12 @@ class EventLogWatcherTest(unittest.TestCase):
     self.assertNotEqual(log[event_log_watcher.KEY_OFFSET], 0)
 
     # Write more logs and flush.
-    self.WriteLog(MOCK_EVENT, MOCK_LOG_NAME(0))
+    self.WriteLog(MOCK_EVENT(), MOCK_LOG_NAME(0))
     watcher.FlushEventLogs()
 
     log = watcher.GetEventLog(MOCK_LOG_NAME(0))
     self.assertEqual(log[event_log_watcher.KEY_OFFSET],
-        len(MOCK_PREAMBLE(0)) + len(MOCK_EVENT))
+        len(MOCK_PREAMBLE(0)) + len(MOCK_EVENT()))
 
     watcher.Close()
 
@@ -117,7 +135,8 @@ class EventLogWatcherTest(unittest.TestCase):
 
   def testHandleEventLogsCallback(self):
     mock = mox.MockAnything()
-    mock.handle_event_log([(MOCK_LOG_NAME(0), MOCK_PREAMBLE(0))])
+    mock.handle_event_log([
+        Chunk(MOCK_LOG_NAME(0), MOCK_PREAMBLE(0), 0)])
     mox.Replay(mock)
 
     watcher = EventLogWatcher(MOCK_PERIOD, self.events_dir, self.db,
@@ -174,10 +193,72 @@ class EventLogWatcherTest(unittest.TestCase):
 
     mox.Verify(mock)
 
+  def testSyncMarkers_NoRestart(self):
+    self._testSyncMarkers(False)
+
+  def testSyncMarkers_Restart(self):
+    self._testSyncMarkers(True)
+
+  def _testSyncMarkers(self, unexpected_restart):
+    # pylint: disable=E1102
+    m = mox.Mox()
+    mock_callback = m.CreateMockAnything()
+    path = os.path.join(self.events_dir, MOCK_LOG_NAME(0))
+
+    # No DB; use sync markers.
+    watcher = EventLogWatcher(MOCK_PERIOD, self.events_dir, None,
+        mock_callback)
+    self.WriteLog(MOCK_PREAMBLE(0, True), MOCK_LOG_NAME(0))
+
+    mock_callback([
+        Chunk(MOCK_LOG_NAME(0), MOCK_PREAMBLE(0, True), 0)])
+    m.ReplayAll()
+    watcher.ScanEventLogs()
+    m.VerifyAll()
+
+    def ReplaceSyncMarker(s):
+      return s.replace(event_log.SYNC_MARKER_SEARCH,
+                       event_log.SYNC_MARKER_REPLACE)
+
+    # We should have replaced '#s' with '#S' in the preamble.
+    self.assertEqual(ReplaceSyncMarker(MOCK_PREAMBLE(0, True)),
+                     open(path).read())
+
+    if unexpected_restart:
+      # Re-create the event log watcher to zap its state.
+      watcher = EventLogWatcher(MOCK_PERIOD, self.events_dir, None,
+                                mock_callback)
+      # The event log watcher has forgotten about the file.
+      self.assertIsNone(watcher.GetEventLog(MOCK_LOG_NAME(0)))
+    else:
+      # The event log watcher has the correct sync offset for the file.
+      self.assertEquals({
+          event_log_watcher.KEY_OFFSET: len(MOCK_PREAMBLE(0, True))},
+                        watcher.GetEventLog(MOCK_LOG_NAME(0)))
+
+    # Write two events; they (but not the preamble) should be scanned.
+    self.WriteLog(MOCK_EVENT(0, True), MOCK_LOG_NAME(0))
+    self.WriteLog(MOCK_EVENT(1, True), MOCK_LOG_NAME(0))
+    m.ResetAll()
+    mock_callback([
+        Chunk(MOCK_LOG_NAME(0), MOCK_EVENT(0, True) + MOCK_EVENT(1, True),
+              len(MOCK_PREAMBLE(0, True)))])
+    m.ReplayAll()
+    watcher.ScanEventLogs()
+    m.VerifyAll()
+
+    # We should have replaced '#s' with '#S' in the preamble and the
+    # second real event.
+    self.assertEqual(ReplaceSyncMarker(MOCK_PREAMBLE(0, True)) +
+                     MOCK_EVENT(0, True) +
+                     ReplaceSyncMarker(MOCK_EVENT(1, True)),
+                     open(path).read())
+
   def testHandleEventLogsFail(self):
     mock = mox.MockAnything()
-    mock.handle_event_log([(MOCK_LOG_NAME(0), MOCK_PREAMBLE(0))]).AndRaise(
-            Exception("Bar"))
+    mock.handle_event_log(
+        [Chunk(MOCK_LOG_NAME(0), MOCK_PREAMBLE(0), 0)]
+        ).AndRaise(Exception("Bar"))
     mox.Replay(mock)
     watcher = EventLogWatcher(MOCK_PERIOD, self.events_dir, self.db,
         mock.handle_event_log)

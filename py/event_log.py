@@ -81,6 +81,42 @@ PREFIX_RE = re.compile("^[a-zA-Z0-9_\.]+$")
 EVENT_NAME_RE = re.compile(r"^[a-zA-Z_]\w*$")
 EVENT_KEY_RE = EVENT_NAME_RE
 
+# Sync markers.
+#
+# We will add SYNC_MARKER ("#s\n") to the end of each event.  This is
+# a YAML comment so it does not affect the semantic value of the event
+# at all.
+#
+# If sync markers are enabled, the event log watcher will replace the
+# last "#s" with "#S" after sync.  If it then restarts, it will look
+# for the last "#S" and use that sequence to remember where to resume
+# syncing.  This will look like:
+#
+#   ---
+#   SEQ: 1
+#   foo: a
+#   #s
+#   ---
+#   SEQ: 2
+#   foo: b
+#   #S
+#   ---
+#   SEQ: 3
+#   foo: c
+#   #s
+#   ---
+#
+# In this case, events 1 and 2 have been synced (since the last #S entry is
+# in event 2).  Event 3 has not yet been synced.
+SYNC_MARKER = '#s\n'
+SYNC_MARKER_COMPLETE = '#S\n'
+assert len(SYNC_MARKER) == len(SYNC_MARKER_COMPLETE)
+
+# The strings that the event log watcher will search and replace with
+# to mark a portion of the log as synced.
+SYNC_MARKER_SEARCH = '\n' + SYNC_MARKER + '---\n'
+SYNC_MARKER_REPLACE = '\n' + SYNC_MARKER_COMPLETE + '---\n'
+
 # Since gooftool uses this.
 TimeString = utils.TimeString
 
@@ -225,13 +261,15 @@ def GetDeviceId():
   # Always respect the device ID recorded in DEVICE_ID_PATH first.
   if os.path.exists(DEVICE_ID_PATH):
     device_id = open(DEVICE_ID_PATH).read().strip()
-    return device_id
+    if device_id:
+      return device_id
 
   # Find or generate device ID from the search path.
   for path in DEVICE_ID_SEARCH_PATHS:
     if os.path.exists(path):
       device_id = open(path).read().strip()
-      break
+      if device_id:
+        break
   else:
     device_id = str(uuid4())
     logging.warning('No device_id available yet: generated %s', device_id)
@@ -240,6 +278,8 @@ def GetDeviceId():
   utils.TryMakeDirs(os.path.dirname(DEVICE_ID_PATH))
   with open(DEVICE_ID_PATH, "w") as f:
     print >> f, device_id
+    f.flush()
+    os.fdatasync(f)
 
   return device_id
 
@@ -263,6 +303,8 @@ def GetReimageId():
       utils.TryMakeDirs(os.path.dirname(REIMAGE_ID_PATH))
       with open(REIMAGE_ID_PATH, "w") as f:
         print >> f, reimage_id
+        f.flush()
+        os.fdatasync(f)
       logging.info('No reimage_id available yet: generated %s', reimage_id)
   return reimage_id
 
@@ -555,7 +597,7 @@ class EventLog(object):
         "PREFIX": self.prefix,
         }
     data.update(kwargs)
-    yaml_data = YamlDump(data) + "---\n"
+    yaml_data = YamlDump(data) + SYNC_MARKER + "---\n"
     fcntl.flock(self.file.fileno(), fcntl.LOCK_EX)
     try:
       self.file.write(yaml_data)
