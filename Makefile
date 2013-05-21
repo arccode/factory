@@ -18,7 +18,7 @@ SYMLINK_TARGET_RELPATH=../factory
 SYMLINK_BINS=\
 	edid factory_bug factory_restart flash_netboot \
 	gooftool goofy goofy_control goofy_remote goofy_rpc \
-	hwid_tool make_par merge_logs minijack mount_partition run_pytest
+	hwid_tool make_par manage merge_logs minijack mount_partition run_pytest
 
 TEST_RUNNER=py/tools/run_tests.py
 # Maximum number of parallel tests to run.
@@ -117,6 +117,7 @@ install: par
 	mkdir -p $(FACTORY_BUNDLE)/shopfloor
 	cp -a $(PAR_BUILD_DIR)/factory.par $(FACTORY_BUNDLE)/shopfloor
 	ln -s factory.par $(FACTORY_BUNDLE)/shopfloor/shopfloor_server
+	ln -s factory.par $(FACTORY_BUNDLE)/shopfloor/manage
 	ln -s factory.par $(FACTORY_BUNDLE)/shopfloor/minijack
 # Install cgpt, used by factory_setup.  TODO(jsalz/hungte): Find a better way
 # to do this.
