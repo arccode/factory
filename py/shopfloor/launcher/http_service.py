@@ -177,3 +177,5 @@ class HttpService(ServiceBase):
   def _GetIndent(self):
     return ' ' * self._indent
 
+
+Service = HttpService

@@ -76,3 +76,6 @@ class RsyncService(ServiceBase):
       'logpipe': False,
       'auto_restart': True}
     self.SetConfig(svc_conf)
+
+
+Service = RsyncService

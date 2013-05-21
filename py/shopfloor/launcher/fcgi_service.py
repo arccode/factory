@@ -36,3 +36,5 @@ class FcgiService(ServiceBase):
     }
     self.SetConfig(svc_conf)
 
+
+Service = FcgiService

@@ -77,6 +77,12 @@ class LauncherYAMLConfig(dict):
               optional_items={'note': Scalar('One line note for this release',
                                              str)}),
 
+          # ShopFloor services, the external application need to be launched
+          # by shopfloor launcher.
+          'services': List(
+              'List of ShopFloor services',
+              Scalar('Full service module name', str)),
+
           # Base ShopFloor configurations, includes factory.par resource, the
           # module resource for factory integration and the http daemon bind
           # port.

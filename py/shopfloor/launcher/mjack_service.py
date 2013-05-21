@@ -33,3 +33,6 @@ class MinijackService(ServiceBase):
         'logpipe': False,
         'auto_restart': True}
     self.SetConfig(svc_conf)
+
+
+Service = MinijackService
