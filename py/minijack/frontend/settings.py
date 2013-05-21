@@ -32,6 +32,7 @@ DATABASES = {
   }
 }
 
+WSGI_APPLICATION = 'frontend.wsgi.application'
 ROOT_URLCONF = 'frontend.urls'
 
 STATIC_ROOT = os.path.join(PROJECT_ROOT, 'static')
