@@ -28,7 +28,10 @@ class MinijackService(ServiceBase):
     svc_conf = {
         'executable': os.path.join(env.runtime_dir, 'minijack'),
         'name': 'minijacksvc',
-        'args': ['--log', os.path.join(env.runtime_dir, 'log', 'minijack.log')],
+        'args': ['--event_log_dir',
+                 os.path.join(env.runtime_dir, 'shopfloor_data', 'events'),
+                 '--log',
+                 os.path.join(env.runtime_dir, 'log', 'minijack.log')],
         'path': env.runtime_dir,
         'logpipe': False,
         'auto_restart': True}
