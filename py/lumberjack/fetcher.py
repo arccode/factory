@@ -21,7 +21,7 @@ import boto
 from boto.exception import InvalidUriError
 # The oauth2_plugin is needed for operation. Please refer to gsutil.py
 # for more detail.
-from oauth2_plugin import oauth2_plugin  # pylint: disable=W0611
+from oauth2_plugin import oauth2_plugin  # pylint: disable=W0611, F0401
 
 GOOGLE_STORAGE = 'gs'  # Prefix of Google Cloud Storage
 
