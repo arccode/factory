@@ -78,6 +78,7 @@ class ShopFloorBase(object):
     self.update_server = None
     self.factory_log_dir = None
     self.log_server = None
+    self.reports_rotate_hourly = False
     self._auto_archive_logs = None
     self._auto_archive_logs_days = None
     self._auto_archive_logs_dir_exists = None
@@ -121,6 +122,9 @@ class ShopFloorBase(object):
       # Use external update server and log server
       self.update_server = updater
       self.log_server = updater
+      # When using external updater, reports rotate hourly
+      # TODO(rongchang): modify internal auto log archive
+      self.reports_rotate_hourly = True
     # Create parameters directory
     self.parameters_dir = os.path.join(self.data_dir, PARAMETERS_DIR)
     utils.TryMakeDirs(self.parameters_dir)
@@ -172,7 +176,8 @@ class ShopFloorBase(object):
           # We've already done this.
           continue
 
-        past_day_logs_dir = os.path.join(self.data_dir, past_day_logs_dir_name)
+        past_day_logs_dir = os.path.join(self.data_dir, REPORTS_DIR,
+                                         past_day_logs_dir_name)
         if not os.path.exists(past_day_logs_dir):
           # There aren't any logs from past_day.
           continue
@@ -185,7 +190,8 @@ class ShopFloorBase(object):
             ignore_stdout=True, ignore_stderr=True, call=True).returncode == 0
 
         Spawn(['tar', '-I', 'pbzip2' if have_pbzip2 else 'bzip2',
-               '-cf', in_progress_name, '-C', self.data_dir,
+               '-cf', in_progress_name,
+               '-C', os.path.join(self.data_dir, REPORTS_DIR),
                past_day_logs_dir_name],
               check_call=True, log=True, log_stderr_on_error=True)
         shutil.move(in_progress_name, archive_name)
@@ -275,9 +281,10 @@ class ShopFloorBase(object):
     ret = self.data_dir
     if subdir:
       ret = os.path.join(ret, subdir)
+      utils.TryMakeDirs(ret)
     if log_format:
-      ret = os.path.join(self.data_dir, time.strftime(log_format))
-    utils.TryMakeDirs(ret)
+      ret = os.path.join(ret, time.strftime(log_format))
+      utils.TryMakeDirs(ret)
     return ret
 
   def GetEventsDir(self):
@@ -286,7 +293,9 @@ class ShopFloorBase(object):
 
   def GetReportsDir(self):
     """Returns the active reports directory."""
-    return self.GetLogsDir(REPORTS_DIR, log_format=HOURLY_DIR_FORMAT)
+    if self.reports_rotate_hourly:
+      return self.GetLogsDir(REPORTS_DIR, log_format=HOURLY_DIR_FORMAT)
+    return self.GetLogsDir(REPORTS_DIR)
 
   def GetAuxLogsDir(self):
     """Returns the active auxiliary logs directory."""

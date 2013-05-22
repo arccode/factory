@@ -34,6 +34,14 @@ class ShopFloorServerTest(unittest2.TestCase):
     self.data_dir = tempfile.mkdtemp(prefix='shopfloor_data.')
     self.auto_archive_logs = os.path.join(self.data_dir, 'auto-archive-logs')
     self.logs_dir = os.path.join(self.data_dir, time.strftime('logs.%Y%m%d'))
+    self.reports_dir = os.path.join(
+        self.data_dir, shopfloor.REPORTS_DIR,
+        time.strftime(shopfloor.LOGS_DIR_FORMAT))
+    self.aux_logs_dir = os.path.join(
+        self.data_dir, shopfloor.AUX_LOGS_DIR,
+        time.strftime(shopfloor.LOGS_DIR_FORMAT))
+    self.events_dir = os.path.join(
+        self.data_dir, shopfloor.EVENTS_DIR)
     self.parameters_dir = os.path.join(self.data_dir, 'parameters')
     self.registration_code_log = (
         os.path.join(self.data_dir, shopfloor.REGISTRATION_CODE_LOG_CSV))
@@ -218,8 +226,7 @@ class ShopFloorServerTest(unittest2.TestCase):
     self.proxy.SaveAuxLog('foo/bar', shopfloor.Binary('Blob'))
     self.assertEquals(
         'Blob',
-        open(os.path.join(self.logs_dir, shopfloor.AUX_LOGS_DIR,
-                          'foo/bar')).read())
+        open(os.path.join(self.aux_logs_dir, 'foo/bar')).read())
 
   def _MakeTarFile(self, content_path, compress=True):
     """Makes a tar archive containing a single empty file.
@@ -269,8 +276,7 @@ class ShopFloorServerTest(unittest2.TestCase):
     blob = self._MakeTarFile(factory.FACTORY_LOG_PATH_ON_DEVICE)
 
     report_name = 'simple_blob.rpt.bz2'
-    report_path = os.path.join(self.logs_dir, shopfloor.REPORTS_DIR,
-                               report_name)
+    report_path = os.path.join(self.reports_dir, report_name)
     self.proxy.UploadReport('CR001020', shopfloor.Binary(blob),
                             report_name)
     self.assertEquals(blob, open(report_path).read())
@@ -284,8 +290,8 @@ class ShopFloorServerTest(unittest2.TestCase):
     # check that the logs are archived.
     yesterday_localtime = time.localtime(time.time() - 24*60*60)
     yesterday = time.strftime(shopfloor.LOGS_DIR_FORMAT, yesterday_localtime)
-    shutil.move(self.logs_dir,
-                os.path.join(self.data_dir, yesterday))
+    shutil.move(self.reports_dir,
+                os.path.join(self.data_dir, shopfloor.REPORTS_DIR, yesterday))
 
     os.makedirs(self.auto_archive_logs)
     dest_path = os.path.join(
@@ -357,13 +363,10 @@ class ShopFloorServerTest(unittest2.TestCase):
           'MAGICA MADOKA A-A 1214', invalid_map)
 
   def testUploadEvent(self):
-    # Check if events dir is created.
-    events_dir = os.path.join(self.logs_dir, shopfloor.EVENTS_DIR)
-
     # A new event file should be created.
     self.assertTrue(self.proxy.UploadEvent('LOG_C835C718',
                                            'PREAMBLE\n---\nEVENT_1\n'))
-    event_file = os.path.join(events_dir, 'LOG_C835C718')
+    event_file = os.path.join(self.events_dir, 'LOG_C835C718')
     self.assertTrue(os.path.isfile(event_file))
 
     # Additional events should be appended to existing event files.
