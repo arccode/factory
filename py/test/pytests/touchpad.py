@@ -313,7 +313,8 @@ class TouchpadTest(unittest.TestCase):
         ' for event id if it is not given.', default=None, optional=True),
     Arg('timeout_secs', int, 'Timeout for the test.', default=20),
     Arg('number_to_click', int, 'Target number to click.', default=10),
-    Arg('number_to_quadrant', int, 'Target number to click for each quadrant.', default=3)
+    Arg('number_to_quadrant', int, 'Target number to click for each quadrant.',
+        default=3)
   ]
 
   def setUp(self):
@@ -323,7 +324,8 @@ class TouchpadTest(unittest.TestCase):
     self.ui.AppendCSS(_TOUCHPAD_TEST_DEFAULT_CSS)
     self.template.SetState(_HTML_TOUCHPAD)
     self.ui.CallJSFunction('setupTouchpadTest', _ID_CONTAINER,
-        _X_SEGMENTS, _Y_SEGMENTS, self.args.number_to_click, self.args.number_to_quadrant)
+        _X_SEGMENTS, _Y_SEGMENTS, self.args.number_to_click,
+        self.args.number_to_quadrant)
 
     # Initialize properties
     self.x_max = None

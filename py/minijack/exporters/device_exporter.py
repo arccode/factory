@@ -65,7 +65,8 @@ class DeviceExporter(ExporterBase):
 
   def Handle_start_test(self, packet):
     """A handler for a start_test event."""
-    self._UpdateField(packet, 'latest_test', packet.event.get('path'), with_time=True)
+    self._UpdateField(packet, 'latest_test', packet.event.get('path'),
+                      with_time=True)
 
   def Handle_end_test(self, packet):
     """A handler for a end_test event."""
