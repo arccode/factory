@@ -189,16 +189,8 @@ class SuspendResumeTest(unittest2.TestCase):
         if cur_time >= resume_at - 1:
           attempted_wake_extensions += 1
           logging.warn('Late suspend detected, attempting wake extension')
-          # As we are attempting to adjust the wake alarm with an existing
-          # wake alarm set, we first set to a time before now to effectively
-          # disable the prior alarm which should allow us to set the new
-          # alarm. See the kernel function rtc_sysfs_set_wakealarm() in
-          # drivers/rtc/rtc-sysfs.c. These are done as separate open calls to
-          # ensure the writes flush properly. There is a race between the two
-          # write calls and the actual suspend.
-          open(self.args.wakealarm_path, 'w').write('1')
-          open(self.args.wakealarm_path, 'w').write(str(resume_at +
-                                                    _MIN_SUSPEND_MARGIN_SECS))
+          open(self.args.wakealarm_path, 'w').write(
+              '+=' + str(_MIN_SUSPEND_MARGIN_SECS))
           if (self._ReadSuspendCount() >= initial_suspend_count + run and
               int(open(self.args.time_path).read().strip()) < cur_time +
               _MIN_SUSPEND_MARGIN_SECS):
