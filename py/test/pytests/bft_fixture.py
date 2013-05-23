@@ -11,6 +11,8 @@ dargs:
   args: args of the method.
 """
 
+import logging
+import time
 import unittest
 
 from cros.factory.test.args import Arg
@@ -25,17 +27,32 @@ class BFTFixture(unittest.TestCase):
         'Default None means no BFT fixture is used.'),
     Arg('method', str, 'BFTFixture method to call.'),
     Arg('args', (list, tuple), 'args of the method.',
-        default=None, optional=True)]
-
-  def setUp(self):
-    self._fixture = None
-    self._fixture = CreateBFTFixture(**self.args.bft_fixture)
-    self._method = self.args.method
-    self._method_args = self.args.args if self.args.args else ()
-
-  def tearDown(self):
-    if self._fixture:
-      self._fixture.Disconnect()
+        default=(), optional=True),
+    Arg('retry_secs', (int, float),
+        'retry interval in seconds (or None for no retry)',
+        optional=True),
+    ]
 
   def runTest(self):
-    getattr(self._fixture, self._method)(*self._method_args)
+    while True:
+      fixture = None
+      try:
+        logging.info('Creating fixture object')
+        fixture = CreateBFTFixture(**self.args.bft_fixture)
+        logging.info('Invoking method')
+        getattr(fixture, self.args.method)(*self.args.args)
+        break  # Success; we're done
+      except:  # pylint: disable=W0702
+        logging.exception('BFT fixture test failed')
+        if not self.args.retry_secs:
+          # No retry; raise the exception to fail the test
+          raise
+      finally:
+        if fixture:
+          try:
+            fixture.Disconnect()
+          except:  # pylint: disable=W0702
+            logging.exception('Unable to disconnect fixture')
+
+      logging.info('Will retry in %s secs', self.args.retry_secs)
+      time.sleep(self.args.retry_secs)
