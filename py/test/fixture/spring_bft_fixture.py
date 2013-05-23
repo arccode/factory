@@ -163,6 +163,10 @@ class SpringBFTFixture(BFTFixture):
     self._SendRecv(chr(0xD2), chr(0xE2),
                    'Failed to check DUT\'s power rail voltage. ')
 
+  def CheckExtDisplay(self):
+    self._SendRecv(chr(0xD5), chr(0xFD),
+                   'Failed to detect color on external display.')
+
   def GetFixtureId(self):
     FAIL_MESSAGE = 'Failed to get fixture ID. '
     self._Send(chr(0xD3), FAIL_MESSAGE)

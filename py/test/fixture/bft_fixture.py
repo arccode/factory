@@ -66,6 +66,13 @@ class BFTFixture(object):
     """
     raise NotImplementedError
 
+  def CheckExtDisplay(self):
+    """Checks if external display shows screen as expected.
+
+    Raises BFTFixtureException if the fixture didn't see the expected screen.
+    """
+    raise NotImplementedError
+
   def GetFixtureId(self):
     """Gets fixture ID.
 

@@ -38,6 +38,9 @@ class DummyBFTFixture(BFTFixture):
   def CheckPowerRail(self):
     pass
 
+  def CheckExtDisplay(self):
+    pass
+
   def GetFixtureId(self):
     return 1
 

@@ -6,6 +6,7 @@
 
 """Test external display with optional audio playback test."""
 
+import logging
 import random
 import re
 import threading
@@ -46,6 +47,9 @@ _MSG_CONNECT_TEST = lambda d: test_ui.MakeLabel(
 _MSG_VIDEO_TEST = lambda d: test_ui.MakeLabel(
     'Do you see video on %s?' % d,
     u'外接显示屏 %s 是否有画面?' % d)
+_MSG_FIXTURE_VIDEO_TEST = lambda d: test_ui.MakeLabel(
+    'Fixture is checking if video is displayed on %s?' % d,
+    u'治具正在測試外接显示屏 %s 是否有画面?' % d)
 _MSG_DISCONNECT_TEST = lambda d: test_ui.MakeLabel(
     'Disconnect external display: %s' % d,
     u'移除外接显示屏: %s' % d)
@@ -102,7 +106,7 @@ class WaitDisplayThread(threading.Thread):
   """A thread to wait for display connection state.
 
   When expected connection state is observed, it calls on_success and stop.
-  Or the calling thread can stop it using stop().
+  Or the calling thread can stop it using Stop().
   It probes display state every _CONNECTION_CHECK_PERIOD_SECS seconds.
 
   Args:
@@ -228,6 +232,58 @@ class DisconnectTask(DetectDisplayTask):
       'Fail to switch back to main display %s' % self._args.main_display_id)
 
 
+class FixtureCheckDisplayThread(threading.Thread):
+  """A thread to use fixture to check display.
+
+  When expected connection state is observed, it calls on_success and stop.
+  Or the calling thread can stop it using Stop().
+  It probes display state every _CONNECTION_CHECK_PERIOD_SECS seconds.
+
+  Args:
+    fixture: BFTFixture instance.
+    check_interval_secs: Interval between checks in seconds.
+    retry_times: Number of retries before fail.
+    on_success: callback for success.
+    on_failure: callback for failure.
+  """
+  def __init__(self, fixture, check_interval_secs, retry_times, on_success,
+               on_failure):
+    threading.Thread.__init__(self, name='FixtureCheckDisplayThread')
+    self._done = threading.Event()
+    self._fixture = fixture
+    self._check_interval = check_interval_secs
+    self._retry_times = retry_times
+    self._on_success = on_success
+    self._on_failure = on_failure
+
+  def run(self):
+    num_tries = 0
+    while not self._done.is_set():
+      try:
+        self._fixture.CheckExtDisplay()
+        self._on_success()
+        self.Stop()
+        return
+      except BFTFixtureException:
+        num_tries += 1
+        if num_tries < self._retry_times:
+          logging.info(
+            'Cannot see screen on external display. Wait for %.1f seconds.',
+            self._check_interval)
+          self._done.wait(self._check_interval)
+        else:
+          logging.error(
+            'Failed to see screen on external display after %d retries.',
+            self._retry_times)
+          self._on_failure()
+          self.Stop()
+
+  def Stop(self):
+    """Stops the thread.
+    """
+    self._done.set()
+
+
 class VideoTask(ExtDisplayTask):
   """Task to show screen on external display only.
 
@@ -238,18 +294,51 @@ class VideoTask(ExtDisplayTask):
     args: refer base class.
   """
   def __init__(self, args):
-    # Bind a random key (0-9) to pass the task.
-    self._pass_digit = random.randint(0, 9)
-    instruction = '%s<br>%s' % (
-      _MSG_VIDEO_TEST(args.display_label),
-      _MSG_PROMPT_PASS_KEY(self._pass_digit))
-    self._ui = args.ui
     self._fixture = args.fixture
+    self._manual = not self._fixture
+    self._ui = args.ui
+
+    # Bind a random key (0-9) to pass the task.
+    if self._manual:
+      self._pass_digit = random.randint(0, 9)
+      instruction = '%s<br>%s' % (
+        _MSG_VIDEO_TEST(args.display_label),
+        _MSG_PROMPT_PASS_KEY(self._pass_digit))
+
+    if self._fixture:
+      instruction = _MSG_FIXTURE_VIDEO_TEST(args.display_label)
+      self._check_display = FixtureCheckDisplayThread(self._fixture, 1, 10,
+                                                      self.PostSuccessEvent,
+                                                      self.PostFailureEvent)
+      self._pass_event = str(uuid.uuid4())  # used to bind a post event.
+      self._fail_event = str(uuid.uuid4())  # used to bind a post event.
+      self._ui.AddEventHandler(self._pass_event, lambda _: self.Pass())
+      self._ui.AddEventHandler(
+          self._fail_event,
+          lambda _: self.Fail('Fail to check screen on external display'))
 
     super(VideoTask, self).__init__(args,
                                     _TITLE_VIDEO_TEST(args.display_label),
                                     instruction,
                                     pass_key=False)
+
+  def PostSuccessEvent(self):
+    """Posts an event to trigger self.Pass().
+
+    It is called by another thread. It ensures that self.Pass() is called
+    via event queue to prevent race condition.
+    """
+    self._ui.PostEvent(Event(Event.Type.TEST_UI_EVENT,
+                             subtype=self._pass_event))
+
+  def PostFailureEvent(self):
+    """Posts an event to trigger self.Fail().
+
+    It is called by another thread. It ensures that self.Fail() is called
+    via event queue to prevent race condition.
+    """
+    self._ui.PostEvent(Event(Event.Type.TEST_UI_EVENT,
+                             subtype=self._fail_event))
 
   def Run(self):
     self.InitUI()
@@ -259,9 +348,8 @@ class VideoTask(ExtDisplayTask):
       self._ui.RunJS(
           'document.getElementById("state").style.backgroundColor = "#00ff00";')
 
-    # TODO(deanliao): for fixture, don't bind digit key once fixture display
-    #     detection is complete.
-    self.BindDigitKeys(self._pass_digit)
+    if self._manual:
+      self.BindDigitKeys(self._pass_digit)
 
     self.RunCommand(
       ['xrandr', '-d', ':0', '--output', self._args.main_display_id, '--auto',
@@ -271,8 +359,14 @@ class VideoTask(ExtDisplayTask):
       ['xrandr', '-d', ':0', '--output', self._args.main_display_id, '--off'],
       'Fail to turn off main display %s' % self._args.main_display_id)
 
+    if self._fixture:
+      self._check_display.start()
+
   def Cleanup(self):
-    self.UnbindDigitKeys()
+    if self._manual:
+      self.UnbindDigitKeys()
+    if self._fixture:
+      self._check_display.Stop()
 
 
 class ExtDisplayTaskArg(object):
