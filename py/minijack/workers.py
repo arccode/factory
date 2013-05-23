@@ -13,6 +13,7 @@ from cros.factory.minijack.datatypes import GenerateEventStreamsFromYaml
 
 
 EVENT_DELIMITER = '---\n'
+PREAMBLE_PATTERN = 'EVENT: preamble\n'
 LOG_DIR_DATE_FORMAT = '%Y%m%d'
 
 
@@ -50,8 +51,6 @@ class IdentityWorker(WorkerBase):
 class EventLoadingWorker(WorkerBase):
   """A callable worker for loading events and converting to Python objects.
 
-  TODO(waihong): Unit tests.
-
   Properties:
     _log_dir: The path of the event log directory.
   """
@@ -67,15 +66,15 @@ class EventLoadingWorker(WorkerBase):
       # TODO(waihong): Abstract the filesystem access.
       if not stream.preamble or not stream.preamble.get('device_id'):
         log_path = os.path.join(self._log_dir, log_name)
-        stream.preamble = self._GetPreambleFromLogFile(log_path)
+        stream.preamble = self.GetLastPreambleFromFile(log_path)
       if not stream.preamble and log_name.startswith('logs.'):
         # Try to find the preamble from the same file in the yesterday log dir.
         (today_dir, rest_path) = log_name.split('/', 1)
-        yesterday_dir = GetYesterdayLogDir(today_dir)
+        yesterday_dir = self.GetYesterdayLogDir(today_dir)
         if yesterday_dir:
           log_path = os.path.join(self._log_dir, yesterday_dir, rest_path)
           if os.path.isfile(log_path):
-            stream.preamble = self._GetPreambleFromLogFile(log_path)
+            stream.preamble = self.GetLastPreambleFromFile(log_path)
 
       if not stream.preamble:
         logging.warn('Drop the event stream without preamble, log file: %s',
@@ -86,51 +85,51 @@ class EventLoadingWorker(WorkerBase):
                      time.time() - start_time)
         yield stream
 
-  def _GetPreambleFromLogFile(self, log_path):
-    """Gets the preamble event dict from a given log file path."""
-    def ReadLinesUntil(lines, delimiter):
-      """A generator to yield the lines iterator until the delimiter matched."""
-      for line in lines:
-        if line == delimiter:
-          break
-        else:
-          yield line
+  @staticmethod
+  def GetLastPreambleFromFile(file_path):
+    """Gets the last preamble event dict from a given file path.
 
+    Args:
+      file_path: The path of the log file.
+
+    Returns:
+      A dict of the preamble event. None if not found.
+    """
     # TODO(waihong): Optimize it using a cache.
     try:
-      with open(log_path) as lines:
-        # Only read the first event, i.e. the lines until EVENT_DELIMITER.
-        yaml_str = ''.join(ReadLinesUntil(lines, EVENT_DELIMITER))
+      text = open(file_path).read()
     except:  # pylint: disable=W0702
       logging.exception('Error on reading log file %s: %s',
-                        log_path,
+                        file_path,
                         utils.FormatExceptionOnly())
       return None
-    stream = GenerateEventStreamsFromYaml(None, yaml_str).next()
-    return stream.preamble
 
+    preamble_pos = text.rfind(PREAMBLE_PATTERN)
+    if preamble_pos == -1:
+      return None
+    end_pos = text.find(EVENT_DELIMITER, preamble_pos)
+    if end_pos == -1:
+      return None
+    streams = GenerateEventStreamsFromYaml(None, text[preamble_pos:end_pos])
+    stream = next(streams, None)
+    if stream is not None:
+      return stream.preamble
+    else:
+      return None
 
-def GetYesterdayLogDir(today_dir):
-  """Gets the dir name for one day before.
+  @staticmethod
+  def GetYesterdayLogDir(today_dir):
+    """Gets the dir name for one day before.
 
-  Args:
-    today_dir: A string of dir name.
+    Args:
+      today_dir: A string of dir name.
 
-  Returns:
-    A string of dir name for one day before today_dir.
-
-  >>> GetYesterdayLogDir('logs.20130417')
-  'logs.20130416'
-  >>> GetYesterdayLogDir('logs.no_date')
-  >>> GetYesterdayLogDir('invalid')
-  >>> GetYesterdayLogDir('logs.20130301')
-  'logs.20130228'
-  >>> GetYesterdayLogDir('logs.20140101')
-  'logs.20131231'
-  """
-  try:
-    today = datetime.strptime(today_dir, 'logs.' + LOG_DIR_DATE_FORMAT)
-  except ValueError:
-    logging.warn('The path is not a valid format with date: %s', today_dir)
-    return None
-  return 'logs.' + (today - timedelta(days=1)).strftime(LOG_DIR_DATE_FORMAT)
+    Returns:
+      A string of dir name for one day before today_dir. None if not valid.
+    """
+    try:
+      today = datetime.strptime(today_dir, 'logs.' + LOG_DIR_DATE_FORMAT)
+    except ValueError:
+      logging.warn('The path is not a valid format with date: %s', today_dir)
+      return None
+    return 'logs.' + (today - timedelta(days=1)).strftime(LOG_DIR_DATE_FORMAT)
