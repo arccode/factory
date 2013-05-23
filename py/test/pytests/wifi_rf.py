@@ -4,9 +4,18 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+""" A test of the Wifi hardware using RF.
+
+The point of saying RF is to differentiate this test from other
+tests which talk to the WiFi hardware without actually
+transmitting or receiving.
+
+This test has general capabilites and can be used in a
+development environment as well as in MP and RMA factorys.
+"""
+
 import collections
 import errno
-import factory_common  # pylint: disable=W0611
 import logging
 import os
 import serial
@@ -15,6 +24,7 @@ import threading
 import time
 import unittest
 
+import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -37,11 +47,11 @@ _SUBTESTS.append(TestRow(
 _MSG_INSTRUCTION = test_ui.MakeLabel(
    'WiFi RF Chamber Testing.', u'WiFi RF 测试')
 
-_MSG_CH_REMOVE = test_ui.MakeLabel(
+_MSG_CHAMBER_REMOVE = test_ui.MakeLabel(
    'Remove device from chamber. Press SPACE when re-attached to network.',
   u'将装置从测试箱取出，重新连接网路后按下空白键')
 
-_MSG_RDY_CLOSE = test_ui.MakeLabel(
+_MSG_READY_CLOSE = test_ui.MakeLabel(
    'Place device in WiFi chamber. When ready to close chamber, press SPACE.',
   u'将设备放置在WiFi室。当您准备关闭室，按空格键。')
 
@@ -51,10 +61,16 @@ _MSG_RDY_CLOSE = test_ui.MakeLabel(
 
 # NB: The 192.168.x.x series addresses in these next lines are
 # fixed addresses. They are hardcoded into the WAP test device.
+# WAP := industry standard term for Wireless Access Point
 _CMD_IFCONFIG = '/sbin/ifconfig wlan0 192.168.%c.10'
+
+# 'cooper.sh' is the name of a shell script on the computer
+# which hosts the WAP. It's a single line script which runs
+# 'tcpdump'. The name has no significance.
 _CMD_SSH = '/usr/bin/ssh -i /home/chronos/wifi/testing_rsa '\
            '-o UserKnownHostsFile=/home/chronos/wifi/known_hosts '\
            '192.168.10.1 "/usr/local/sbin/cooper.sh mon%c 192.168.%c.254"'
+
 _CMD_PING = '/bin/ping -q -i 0.1 -s 1000 -c120 192.168.%c.254'
 
 # NB: The two keys contained here are meant to be used with the
@@ -97,7 +113,7 @@ gKfKFmI4G7uV3L6G0PfVx57Ex2y8wEu5d8Dmo2CQkTymoY41Zagho0GvyCteuxC9wW\
 kK0yAPBZ9yHOAKZbgJNTn3Tylt2w60spSFKW14QQ==\n'
 
 
-class flashLEDs(threading.Thread):
+class LEDflasher(threading.Thread):
   """Thread for independently blinking Red and Green LEDs.
 
   Red LED connected to RTS.
@@ -107,44 +123,36 @@ class flashLEDs(threading.Thread):
     ser: A file descriptor for serial port controlling the LEDs.
     color: The color LED to control.
     duration: Total runtime of on/off sequence.
-    on=0.4: LED on time.
-    off=0.4: LED off time.
+    on_secs=0.4: LED on time.
+    off_secs=0.4: LED off time.
   """
 
-  def __init__(self, ser, color, duration, on=0.4, off=0.4):
+  def __init__(self, ser, color, duration, on_secs=0.4, off_secs=0.4):
     threading.Thread.__init__(self)
     self._ser = ser
     self._color = color
     self._duration = duration
-    self._on = on
-    self._off = off
-    self.pinmap = { 'red':self.Red, 'green':self.Green }
+    self._on = on_secs
+    self._off = off_secs
+    self.pinmap = { 'red':self.SetRedLED, 'green':self.SetGreenLED }
     self._done = threading.Event()
 
     ser.setRTS(False)
     ser.setDTR(False)
 
-  def Red(self, val):
+  def SetRedLED(self, state):
     """Sets Red LED.
     Args:
-      val: True|False for On|Off.
-    Returns:
-      None.
-    Raises:
-      None.
+      state: True|False for On|Off.
     """
-    self._ser.setRTS(val)
+    self._ser.setRTS(state)
 
-  def Green(self, val):
+  def SetGreenLED(self, state):
     """Sets Green LED.
     Args:
-      val: True|False for On|Off.
-    Returns:
-      None.
-    Raises:
-      None.
+      state: True|False for On|Off.
     """
-    self._ser.setDTR(val)
+    self._ser.setDTR(state)
 
   def run(self):
     timeout = time.time() + self._duration
@@ -159,7 +167,7 @@ class flashLEDs(threading.Thread):
 
 
 
-class factory_Wifi_RF(unittest.TestCase):
+class Wifi_RF(unittest.TestCase):
   """Factory test for Wifi.
     Tests both 2.5 and 5.5 GHz bands. Uses modified WAP with attenuated
     antennas that simulate distance from base station. This test qualifies
@@ -169,8 +177,6 @@ class factory_Wifi_RF(unittest.TestCase):
     is the only one. If run where other WAPs are seen by the DUT, the
     average signal strength measurements won't be as accurate and
     could fail incorrectly.
-
-    Attributes:
   """
   ARGS = [
     Arg('led_serial_port', str,
@@ -184,14 +190,14 @@ class factory_Wifi_RF(unittest.TestCase):
 
 
   def __init__(self, *args, **kwargs):
-    super(factory_Wifi_RF, self).__init__(*args, **kwargs)
+    super(Wifi_RF, self).__init__(*args, **kwargs)
     self._ui = test_ui.UI()
     self._template = ui_templates.OneSection(self._ui)
     self._ser = 0
     self._fail = False
     self._initflag = True
     self._led_testing = 0
-    self._led_result = 0
+    self._led_flasher = 0
 
 
   def mkdir_p(self, path):
@@ -210,10 +216,6 @@ class factory_Wifi_RF(unittest.TestCase):
     Connect to LED control serial port.
 
     Args:
-      None.
-    Returns:
-      None.
-    Raises:
       None.
     """
     # Delay to let operator close RF Chamber door after hitting SPACE key.
@@ -236,7 +238,8 @@ class factory_Wifi_RF(unittest.TestCase):
     self._ser.setDTR(False)
 
     self._template.SetState('')
-    self._led_testing = flashLEDs(self._ser, 'red', 150, on=1.0, off=0.5)
+    self._led_testing = LEDflasher(self._ser, 'red', 150, on_secs=1.0,
+                                   off_secs=0.5)
     self._led_testing.start()
 
 
@@ -249,20 +252,17 @@ class factory_Wifi_RF(unittest.TestCase):
 
     Args:
       None.
-    Returns:
-      None.
-    Raises:
-      None.
     """
     self._led_testing.Stop()
 
     led_color = 'red' if self._fail is True else 'green'
-    self._led_result = flashLEDs(self._ser, led_color, 3600, on=0.1, off=0.1)
-    self._led_result.start()
+    self._led_flasher = LEDflasher(self._ser, led_color, 3600, on_secs=0.1,
+                                   off_secs=0.1)
+    self._led_flasher.start()
 
     # RF Chamber testing is finished. Bring back to test station.
 
-    self._template.SetState(_MSG_CH_REMOVE)
+    self._template.SetState(_MSG_CHAMBER_REMOVE)
     self._ui.BindKey(' ', self.TestEnd)
 
 
@@ -271,12 +271,8 @@ class factory_Wifi_RF(unittest.TestCase):
 
     Args:
       None.
-    Returns:
-      None.
-    Raises:
-      None.
     """
-    self._led_result.Stop()
+    self._led_flasher.Stop()
     if (self._fail == True):
       self._ui.Fail('Problem with WiFi signal testing')
     else:
@@ -284,15 +280,15 @@ class factory_Wifi_RF(unittest.TestCase):
     # Testing Finished.
 
 
-  def db_calc(self, db_val_line):
+  def Calc_Signal_Strength(self, db_val_line):
     """Calculate average, Min, Max signal strength.
 
     Args:
       db_val_line: Text string from Stumpy used to control the testing WAP.
+                   A single line of terxst containing a seriesx  of signal
+                   strength values separated by space charrascters.
     Returns:
       Named Tuple containing 'min', 'max', and 'avg' db values.
-    Raises:
-      None.
     """
     db_max = -1000
     db_min = 0
@@ -319,15 +315,11 @@ class factory_Wifi_RF(unittest.TestCase):
     return results
 
 
-  def NextSubtest(self, dummy_event):
+  def RunSubtests(self, dummy_event):
     """Iterate to next test.
 
     Args:
       dummy_event: ignored.
-    Returns:
-      None.
-    Raises:
-      None.
     """
     for test in _SUBTESTS:
       self.Subtest(test)
@@ -381,7 +373,7 @@ class factory_Wifi_RF(unittest.TestCase):
     subprocess.Popen( _CMD_PING % wap_index, shell=True)
     db_val_line = ssh_proc.communicate()[0]
 
-    db_result = self.db_calc(db_val_line)
+    db_result = self.Calc_Signal_Strength(db_val_line)
 
     factory.console.info(
         '%sGHz. Antenna %s. Run complete. Average signal strength %d db.' %
@@ -414,10 +406,6 @@ class factory_Wifi_RF(unittest.TestCase):
 
     Args:
       None.
-    Returns:
-      None.
-    Raises:
-      None.
     """
 
     self._template.SetTitle(_TEST_TITLE)
@@ -447,6 +435,6 @@ class factory_Wifi_RF(unittest.TestCase):
     subprocess.call(['stop', 'wpasupplicant'])
 
     self._initflag = True
-    self._template.SetState(_MSG_RDY_CLOSE)
-    self._ui.BindKey(' ', self.NextSubtest)
+    self._template.SetState(_MSG_READY_CLOSE)
+    self._ui.BindKey(' ', self.RunSubtests)
     self._ui.Run()
