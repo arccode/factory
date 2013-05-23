@@ -156,7 +156,7 @@ class SpringBFTFixture(BFTFixture):
 
   def GetFixtureId(self):
     FAIL_MESSAGE = 'Failed to get fixture ID. '
-    self._Send(chr(0xE2), FAIL_MESSAGE)
+    self._Send(chr(0xD3), FAIL_MESSAGE)
     recv = self._Recv(FAIL_MESSAGE)
     if not recv:
       raise BFTFixtureException(FAIL_MESSAGE)
