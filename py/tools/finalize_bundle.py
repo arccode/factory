@@ -769,7 +769,7 @@ class FinalizeBundle(object):
         Spawn(['tar', '-cf', output_file,
                '-I', 'pbzip2',
                '-C', os.path.dirname(self.bundle_dir)] +
-              (['--exclude', '*.bin', '--exclude', '*.uimg'] if mini else []) +
+              (['--exclude', '*.bin'] if mini else []) +
               [os.path.basename(self.bundle_dir)],
               log=True, check_call=True)
         logging.info(
