@@ -409,7 +409,8 @@ class RemovableStorageTest(unittest.TestCase):
     pins on the card reader module are intact.'''
     dev_path = self._target_device
     if self.args.media == 'SD':
-      SpawnOutput(['parted', '-s', dev_path, 'rm', '1'])
+      # clear partition table first and create one partition
+      SpawnOutput(['parted', '-s', dev_path, 'mklabel', 'gpt'])
       SpawnOutput(['parted', '-s', dev_path, 'mkpart', 'primary',
                    'ext4', '0', '128'])
 
@@ -419,6 +420,9 @@ class RemovableStorageTest(unittest.TestCase):
     dev_path = self._target_device
     try:
       # Just do a simple ls on the first partition file
+      # Auto detect parition prefix character
+      if 'mmcblk' in dev_path:
+        dev_path = dev_path + 'p'
       CheckOutput(['ls', dev_path + '1'])
     except:   # pylint: disable=W0702
       self._ui.Fail(_ERR_VERIFY_PARTITION_FMT_STR(self.args.media, dev_path))
