@@ -47,6 +47,12 @@ class SpringBFTFixture(BFTFixture):
     LEDColor.AMBER : (chr(0xC6), chr(0xB6)),
     LEDColor.OFF   : (chr(0xD4), chr(0xFC))}
 
+  StatusColor = BFTFixture.StatusColor
+  STATUS_COLOR_COMMAND = {
+    StatusColor.GREEN : chr(0xCE),
+    StatusColor.RED   : chr(0xCF),
+    }
+
   DEFAULT_RESPONSE = chr(0xFA)
   ENGAGE_BARCODE_SCANNER = chr(0xC7)
   ENGAGE_KEYBOARD_SCANNER = chr(0xC1)
@@ -188,8 +194,14 @@ class SpringBFTFixture(BFTFixture):
 
   def IsLEDColor(self, color):
     if color not in self.LED_CHECK_COMMAND:
-      raise BFTFixtureException('Invalid color: %s', color)
+      raise BFTFixtureException('Invalid LED color %r', color)
 
     (command, response) = self.LED_CHECK_COMMAND[color]
     self._Send(command, 'Fail to check %s LED. ' % color)
     return self._Recv('Fail to check %s LED. ' % color) == response
+
+  def SetStatusColor(self, color):
+    if color not in self.STATUS_COLOR_COMMAND:
+      raise BFTFixtureException('Invalid status color %r', color)
+    self._SendRecvDefault(self.STATUS_COLOR_COMMAND[color],
+                          'Unable to set status color to %s' % color)

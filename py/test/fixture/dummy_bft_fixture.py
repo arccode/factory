@@ -54,6 +54,9 @@ class DummyBFTFixture(BFTFixture):
     self._Log('Sees color: %s' % color)
     return True
 
+  def SetStatusColor(self, unused_color):
+    pass
+
   @property
   def delay_secs(self):
     return self._delay_secs
