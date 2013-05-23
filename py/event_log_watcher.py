@@ -217,7 +217,8 @@ class EventLogWatcher(object):
 
   def Close(self):
     '''Closes the database.'''
-    self._db.close()
+    if not self._use_sync_markers:
+      self._db.close()
 
   def WatchForever(self):
     '''Watches event logs forever.'''

@@ -226,6 +226,7 @@ class EventLogWatcherTest(unittest.TestCase):
 
     if unexpected_restart:
       # Re-create the event log watcher to zap its state.
+      watcher.Close()
       watcher = EventLogWatcher(MOCK_PERIOD, self.events_dir, None,
                                 mock_callback)
       # The event log watcher has forgotten about the file.
@@ -271,6 +272,8 @@ class EventLogWatcherTest(unittest.TestCase):
     log = watcher.GetEventLog(MOCK_LOG_NAME(0))
     self.assertEqual(log[event_log_watcher.KEY_OFFSET], 0)
     mox.Verify(mock)
+
+    watcher.Close()
 
   def testFlushEventLogsFail(self):
     mock = mox.MockAnything()

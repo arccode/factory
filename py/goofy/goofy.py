@@ -1655,7 +1655,7 @@ class Goofy(object):
 
     for chunk in chunks:
       try:
-        description = 'event logs (%s)' % chunk
+        description = 'event logs (%s)' % str(chunk)
         start_time = time.time()
         shopfloor_client = shopfloor.get_instance(
           detect=True,
