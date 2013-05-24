@@ -425,9 +425,9 @@ class Wifi_RF(unittest.TestCase):
 
     subprocess.call(['stop', 'shill'])
 
-    ifc_proc = subprocess.Popen(['/sbin/ifconfig','eth1'],
-                                stdout=subprocess.PIPE)
-    if len(ifc_proc.communicate()) != 0:
+    ifc_proc = subprocess.Popen(['/sbin/ifconfig','eth1'])
+    ifc_proc.wait()
+    if ifc_proc.returncode == 0:
       subprocess.call(['/sbin/ifconfig', 'eth1', '192.168.10.2'])
       factory.console.info( 'LTE system, using eth1 for wired network.' )
     else:
