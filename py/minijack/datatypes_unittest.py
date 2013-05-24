@@ -132,6 +132,15 @@ class EventStreamTest(unittest.TestCase):
     stream = next(GenerateEventStreamsFromYaml(None, yaml_str), None)
     self.assertIs(None, stream.preamble)
     self.assertEqual(2, len(stream))
+    self.assertTrue(bool(stream))
+
+  def testOnlyPreamble(self):
+    # Drop the non-preamble events
+    yaml_str = '\n'.join(self._yaml_str_list[:11])
+    stream = next(GenerateEventStreamsFromYaml(None, yaml_str), None)
+    self.assertEqual('d0:xx:xx:xx:xx:df', stream.preamble['device_id'])
+    self.assertEqual(0, len(stream))
+    self.assertTrue(bool(stream))
 
   def testMissingPreambleEvent(self):
     self._yaml_str_list.remove('EVENT: preamble')

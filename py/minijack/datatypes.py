@@ -42,14 +42,13 @@ class EventStream(list):
     preamble: The dict of the preamble event.
   """
   def __init__(self, metadata):
-    """Initializer.
-
-    Args:
-      yaml_str: The string contains multiple yaml-formatted events.
-    """
     super(EventStream, self).__init__()
     self.metadata = metadata
     self.preamble = None
+
+  def __nonzero__(self):
+    # True on a valid preamble or a non-empty list.
+    return (self.preamble is not None) or (len(self) > 0)
 
 
 def GenerateEventStreamsFromYaml(metadata, yaml_str):
