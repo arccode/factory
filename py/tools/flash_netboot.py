@@ -10,6 +10,7 @@ from contextlib import nested
 import glob
 import logging
 import sys
+import time
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.utils.file_utils import UnopenedTemporaryFile
@@ -104,6 +105,10 @@ def main():
     FlashFirmware(image)
     RestoreVPD(*files)
 
+  sys.stdout.write('Rebooting.  See you on the other side!\n')
+  Spawn(['reboot'], check_call=True)
+  time.sleep(60)
+  sys.exit('Unable to reboot.')  # Should never happen
 
 if __name__ == '__main__':
   main()
