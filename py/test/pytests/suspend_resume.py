@@ -25,6 +25,7 @@ import unittest2
 
 from cros.factory.event_log import Log
 from cros.factory.test import test_ui
+from cros.factory.test import utils
 from cros.factory.test.args import Arg
 from cros.factory.test.ui_templates import OneSection
 from cros.factory.test.utils import StartDaemonThread
@@ -87,6 +88,8 @@ class SuspendResumeTest(unittest2.TestCase):
 
     # Remove lid-opened, which will prevent suspend.
     file_utils.TryUnlink('/var/run/power_manager/lid_opened')
+    # Create this directory so powerd_suspend doesn't fail.
+    utils.TryMakeDirs('/var/run/power_manager/root')
 
     self.wakeup_count = ''
     self.start_suspend = threading.Event()
