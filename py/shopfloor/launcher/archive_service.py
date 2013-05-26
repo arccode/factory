@@ -23,11 +23,11 @@ class ArchiveService(ServiceBase):
     ServiceBase.__init__(self)
 
     svc_conf = {
-      'executable': os.path.join(env.runtime_dir, 'archive_report'),
-      'name': 'archive_report',
+      'executable': os.path.join(env.runtime_dir, 'archive_reports'),
+      'name': 'archive_reports',
       'args': ['--period', '10'],
       'path': env.runtime_dir,
-      'logpipe': False,
+      'logpipe': True,
       'auto_restart': True}
     self.SetConfig(svc_conf)
 
