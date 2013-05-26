@@ -133,7 +133,8 @@ def GetShopfloordPid():
   """
   str_pid = SpawnOutput(['ps', '-C', 'shopfloord', '-o', 'pid=']).strip()
   if str_pid:
-    return int(str_pid)
+    # Returns only the first shopfloord found in ps -C output.
+    return int(str_pid.split('\n')[0])
   return None
 
 
@@ -160,6 +161,7 @@ def GetChildProcesses(pid):
 def StopShopfloord():
   """Stops shopfloor daemon."""
   shopfloor_pid = GetShopfloordPid()
+  stored_pid = shopfloor_pid
   if shopfloor_pid is None:
     return
   logging.info('Stopping shopfloor PID:%d', shopfloor_pid)
@@ -172,6 +174,10 @@ def StopShopfloord():
     shopfloor_pid = GetShopfloordPid()
     if not shopfloor_pid:
       return
+    if shopfloor_pid != stored_pid:
+      # Found an extra shopfloord, send SIGTERM.
+      stored_pid = shopfloor_pid
+      os.kill(shopfloor_pid, signal.SIGTERM)
     waiting_pids = GetChildProcesses(shopfloor_pid)
 
 
