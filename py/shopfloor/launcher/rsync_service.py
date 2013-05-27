@@ -111,7 +111,7 @@ class RsyncService(ServiceBase):
       if latest_md5sum[0:8] == bundle[-8:]:
         return
     # Check other deployed bundle
-    bundle_md5sum = Md5sum(bundle)
+    bundle_md5sum = Md5sum(bundle_file)
     dest_dir = os.path.join(bundle_dir, bundle_md5sum)
     if not os.path.isfile(os.path.join(dest_dir, 'factory', 'MD5SUM')):
       if os.path.isdir(dest_dir):
