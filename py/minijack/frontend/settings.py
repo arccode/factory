@@ -7,12 +7,14 @@ import os
 import sys
 
 
+PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
+RELEASE_ROOT = '/var/db/factory'
+
 # Search the default path of Minijack DB.
 # TODO(waihong): Make it a command line option.
-PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
 for path in [os.path.join(PROJECT_ROOT, 'minijack_db'),
              os.path.join(PROJECT_ROOT, '..', 'minijack_db'),
-             '/var/db/factory/minijack_db']:
+             os.path.join(RELEASE_ROOT, 'minijack_db')]:
   if os.path.exists(path):
     minijack_db_path = path
     break
@@ -36,6 +38,16 @@ DATABASES = {
 WSGI_APPLICATION = 'frontend.wsgi.application'
 ROOT_URLCONF = 'frontend.urls'
 
-STATIC_ROOT = os.path.join(PROJECT_ROOT, 'static')
+INSTALLED_APPS = (
+  'django.contrib.staticfiles',
+)
+
+STATIC_ROOT = os.path.join(RELEASE_ROOT, 'frontend', 'static')
+STATICFILES_DIRS = (
+  os.path.join(PROJECT_ROOT, 'static'),
+)
 STATIC_URL = '/static/'
-TEMPLATE_DIRS = os.path.join(PROJECT_ROOT, 'templates')
+TEMPLATE_DIRS = (
+  os.path.join(PROJECT_ROOT, 'templates'),
+  os.path.join(RELEASE_ROOT, 'frontend', 'templates'),
+)
