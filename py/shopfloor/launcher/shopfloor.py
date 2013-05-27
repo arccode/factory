@@ -227,8 +227,10 @@ def Deploy(args):
   try:
     file_utils.TryUnlink(prev_config_file)
     file_utils.TryUnlink(prev_factory_par)
-    shutil.move(config_file, prev_config_file)
-    shutil.move(factory_par, prev_factory_par)
+    if os.path.isfile(config_file):
+      shutil.move(config_file, prev_config_file)
+    if os.path.isfile(factory_par):
+      shutil.move(factory_par, prev_factory_par)
     os.symlink(new_factory_par, factory_par)
     os.symlink(new_config_file, config_file)
   except (OSError, IOError) as err:

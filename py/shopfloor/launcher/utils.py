@@ -171,7 +171,7 @@ def GetInfo():
 
 def CreateSystemFolders():
   """Creates folder for Uber ShopFloor installation."""
-  dirs = ['', 'resources', 'updates', 'upload_logs', 'run', 'log', 'dashboard']
+  dirs = ['', 'resources', 'run', 'log', 'dashboard']
   map((lambda folder: TryMakeDirs(os.path.join(constants.SHOPFLOOR_INSTALL_DIR,
       folder))), dirs)
 
