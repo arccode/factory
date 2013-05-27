@@ -3,7 +3,7 @@
 # found in the LICENSE file.
 
 import os
-from django.core.wsgi import get_wsgi_application
+from django.core.handlers.wsgi import WSGIHandler
 
 import factory_common  # pylint: disable=W0611
 
@@ -11,4 +11,4 @@ import factory_common  # pylint: disable=W0611
 os.environ.setdefault('DJANGO_SETTINGS_MODULE',
                       'cros.factory.minijack.frontend.settings')
 # The application object used by WSGI server.
-application = get_wsgi_application()
+application = WSGIHandler()
