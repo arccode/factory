@@ -19,6 +19,7 @@ import pipes
 import re
 import sys
 import time
+import xmlrpclib
 import yaml
 
 from tempfile import gettempdir
@@ -630,36 +631,44 @@ def LogSystemDetails(options):  # pylint: disable=W0613
       hwid_version=options.hwid_version).GetSystemDetails())
 
 
-_upload_method_cmd_arg = CmdArg(
-    '--upload_method', metavar='METHOD:PARAM',
-    help=('How to perform the upload.  METHOD should be one of '
-          '{ftp, shopfloor, ftps, cpfe}.'))
-_add_file_cmd_arg = CmdArg(
-    '--add_file', metavar='FILE', action='append',
-    help='Extra file to include in report (must be an absolute path)')
+def CreateReportArchiveBlob(*args, **kwargs):
+  """Creates a report archive and returns it as a blob.
 
-@Command('upload_report',
-         _upload_method_cmd_arg,
-         _add_file_cmd_arg)
-def UploadReport(options):
-  """Create and a report containing key device details."""
+  Args:
+    See CreateReportArchive.
 
+  Returns:
+    An xmlrpclib.Binary object containing a .tar.xz file.
+  """
+  with open(CreateReportArchive(*args, **kwargs)) as f:
+    return xmlrpclib.Binary(f.read())
+
+
+def CreateReportArchive(device_sn=None, add_file=None):
+  """Creates a report archive in a temporary directory.
+
+  Args:
+    device_sn: The device serial number (optional).
+    add_file: A list of files to add (optional).
+
+  Returns:
+    Path to the archive.
+  """
   def NormalizeAsFileName(token):
     return re.sub(r'\W+', '', token).strip()
-  ro_vpd = ReadRoVpd(crosfw.LoadMainFirmware().GetFileName())
-  device_sn = ro_vpd.get('serial_number', None)
-  if device_sn is None:
-    logging.warning('RO_VPD missing device serial number')
-    device_sn = 'MISSING_SN_' + event_log.TimedUuid()
-  target_name = '%s_%s.tar.xz' % (time.strftime('%Y%m%dT%H%M%SZ',
-                                  time.gmtime()),
-                                  NormalizeAsFileName(device_sn))
+
+  target_name = '%s%s.tar.xz' % (
+      time.strftime('%Y%m%dT%H%M%SZ',
+                    time.gmtime()),
+      ("" if device_sn is None else
+       "_" + NormalizeAsFileName(device_sn)))
   target_path = os.path.join(gettempdir(), target_name)
+
   # Intentionally ignoring dotfiles in EVENT_LOG_DIR.
   tar_cmd = 'cd %s ; tar cJf %s *' % (event_log.EVENT_LOG_DIR, target_path)
   tar_cmd += ' --add-file %s' % FACTORY_LOG_PATH
-  if options.add_file:
-    for f in options.add_file:
+  if add_file:
+    for f in add_file:
       # Require absolute paths since the tar command may change the
       # directory.
       if not f.startswith('/'):
@@ -680,6 +689,28 @@ def UploadReport(options):
   elif not cmd_result.success:
     raise Error('unable to tar event logs, cmd %r failed, stderr: %r' %
                 (tar_cmd, cmd_result.stderr))
+
+  return target_path
+
+_upload_method_cmd_arg = CmdArg(
+    '--upload_method', metavar='METHOD:PARAM',
+    help=('How to perform the upload.  METHOD should be one of '
+          '{ftp, shopfloor, ftps, cpfe}.'))
+_add_file_cmd_arg = CmdArg(
+    '--add_file', metavar='FILE', action='append',
+    help='Extra file to include in report (must be an absolute path)')
+
+@Command('upload_report',
+         _upload_method_cmd_arg,
+         _add_file_cmd_arg)
+def UploadReport(options):
+  """Create a report containing key device details."""
+  ro_vpd = ReadRoVpd(crosfw.LoadMainFirmware().GetFileName())
+  device_sn = ro_vpd.get('serial_number', None)
+  if device_sn is None:
+    logging.warning('RO_VPD missing device serial number')
+    device_sn = 'MISSING_SN_' + event_log.TimedUuid()
+  target_path = CreateReportArchive(device_sn)
 
   if options.upload_method is None or options.upload_method == 'none':
     logging.warning('REPORT UPLOAD SKIPPED (report left at %s)', target_path)

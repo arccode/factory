@@ -13,7 +13,6 @@ See RETURN_VALUE_ACTIONS for the list of possible actions.
 
 import logging
 import threading
-import types
 import unittest
 
 
@@ -45,8 +44,9 @@ class CallShopfloor(unittest.TestCase):
   ARGS = [
     Arg('method', str,
         'Name of shopfloor method to call'),
-    Arg('args', (list, types.FunctionType),
-        'Method arguments'),
+    Arg('args', list,
+        'Method arguments.  If any argument is a function, it will be '
+        'invoked.'),
     Arg('action', str,
         ('Action to perform with return value; one of %s' %
          sorted(RETURN_VALUE_ACTIONS.keys())),
@@ -87,8 +87,12 @@ class CallShopfloor(unittest.TestCase):
       logging.info(message)
       template.SetState(test_ui.Escape(message))
 
+      # If any arguments are callable, evaluate them.
+      args = [x() if callable(x) else x
+              for x in self.args.args]
+
       try:
-        action_handler(method(*self.args.args))
+        action_handler(method(*args))
         break
       except:  # pylint: disable=W0702
         logging.exception('Exception invoking shop floor method')
