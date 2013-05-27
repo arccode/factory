@@ -60,6 +60,8 @@ FACTORY_SOFTWARE = 'factory.par'
 PREV_FACTORY_SOFTWARE = 'factory.par.prev'
 CONFIG_FILE = 'shopfloor.yaml'
 PREV_CONFIG_FILE = 'shopfloor.yaml.prev'
+SHOPFLOOR_UTIL = 'shopfloor'
+SHOPFLOOR_DAEMON = 'shopfloord'
 
 
 def StopReactor():
@@ -223,6 +225,8 @@ def Deploy(args):
   factory_par = os.path.join(env.runtime_dir, FACTORY_SOFTWARE)
   prev_config_file = os.path.join(env.runtime_dir, PREV_CONFIG_FILE)
   prev_factory_par = os.path.join(env.runtime_dir, PREV_FACTORY_SOFTWARE)
+  shopfloor_util = os.path.join(env.runtime_dir, SHOPFLOOR_UTIL)
+  shopfloor_daemon = os.path.join(env.runtime_dir, SHOPFLOOR_DAEMON)
   StopShopfloord()
   try:
     file_utils.TryUnlink(prev_config_file)
@@ -233,6 +237,10 @@ def Deploy(args):
       shutil.move(factory_par, prev_factory_par)
     os.symlink(new_factory_par, factory_par)
     os.symlink(new_config_file, config_file)
+    if not os.path.isfile(shopfloor_util):
+      os.symlink(factory_par, shopfloor_util)
+    if not os.path.isfile(shopfloor_daemon):
+      os.symlink(factory_par, shopfloor_daemon)
   except (OSError, IOError) as err:
     logging.exception('Can not deploy new config: %s (%s)',
                       new_config_file, err)
