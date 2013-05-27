@@ -16,6 +16,11 @@ SHOPFLOOR_SYMLINK_DIR = '/usr/local/bin'
 FCGI_EXEC = 'shopfloor.fcgi'
 RESOURCES_DIR = 'resources'
 UPDATES_DIR = 'updates'
+LOGS_DIR = 'log'
+
+# Shared shopfloor server constants
+FACTORY_SOFTWARE = 'factory.par'
+SHOPFLOOR_DATA = 'shopfloor_data'
 
 # Maximum number of file descriptors when run as root
 HTTPD_MAX_FDS = 32768

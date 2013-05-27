@@ -15,11 +15,11 @@ from twisted.internet import reactor
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.shopfloor import REPORTS_DIR
+from cros.factory.shopfloor.launcher import constants
 from cros.factory.shopfloor.launcher import env
 from cros.factory.test.utils import TryMakeDirs
 from cros.factory.utils.process_utils import Spawn
 
-SHOPFLOOR_DATA_DIR = 'shopfloor_data'
 ARCHIVE_DIR = 'archive'
 RECYCLE_DIR = 'recycle_bin'
 
@@ -41,9 +41,10 @@ def ArchiveReports(minutes):
     minutes: checking period in minutes.
   """
 
-  reports_dir = os.path.join(env.runtime_dir, SHOPFLOOR_DATA_DIR, REPORTS_DIR)
-  archive_dir = os.path.join(env.runtime_dir, SHOPFLOOR_DATA_DIR, ARCHIVE_DIR)
-  recycle_dir = os.path.join(env.runtime_dir, SHOPFLOOR_DATA_DIR, RECYCLE_DIR)
+  shopfloor_data = os.path.join(env.runtime_dir, constants.SHOPFLOOR_DATA)
+  reports_dir = os.path.join(shopfloor_data, REPORTS_DIR)
+  archive_dir = os.path.join(shopfloor_data, ARCHIVE_DIR)
+  recycle_dir = os.path.join(shopfloor_data, RECYCLE_DIR)
   map(TryMakeDirs, [reports_dir, archive_dir, recycle_dir])
 
   # Get an accending order list of dirs in watching dir.

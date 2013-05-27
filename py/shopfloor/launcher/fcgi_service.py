@@ -7,8 +7,13 @@
 import os
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.shopfloor import AUX_LOGS_DIR
+from cros.factory.shopfloor import EVENTS_DIR
+from cros.factory.shopfloor import REPORTS_DIR
+from cros.factory.shopfloor.launcher import constants
 from cros.factory.shopfloor.launcher import env
 from cros.factory.shopfloor.launcher.service import ServiceBase
+from cros.factory.test.utils import TryMakeDirs
 
 
 class FcgiService(ServiceBase):
@@ -35,6 +40,16 @@ class FcgiService(ServiceBase):
       'logpipe': True
     }
     self.SetConfig(svc_conf)
+
+    # Creates shopfloor xmlrpc server symlink and folders.
+    if not os.path.isfile(shopfloor_server):
+      os.symlink(os.path.join(env.runtime_dir, constants.FACTORY_SOFTWARE),
+                 shopfloor_server)
+    shopfloor_data = os.path.join(env.runtime_dir, constants.SHOPFLOOR_DATA)
+    TryMakeDirs(shopfloor_data)
+    TryMakeDirs(os.path.join(shopfloor_data, REPORTS_DIR))
+    TryMakeDirs(os.path.join(shopfloor_data, EVENTS_DIR))
+    TryMakeDirs(os.path.join(shopfloor_data, AUX_LOGS_DIR))
 
 
 Service = FcgiService
