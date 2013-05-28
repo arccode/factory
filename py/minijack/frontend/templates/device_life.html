@@ -5,19 +5,49 @@
 <head>
   <title>Minijack: Live of a Device</title>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
-  <link rel="stylesheet" type="text/css" href="{{ STATIC }}minijack.css">
   <link rel="icon" type="image/png" href="{{ STATIC }}images/logo32.png">
+  <link rel="stylesheet" type="text/css"
+      href="{{ STATIC }}css/smoothness/jquery-ui-1.8.4.custom.css">
+  <link rel="stylesheet" type="text/css"
+      href="{{ STATIC }}css/jquery.dataTables_themeroller.css">
+  <link rel="stylesheet" type="text/css"
+      href="{{ STATIC }}css/ColVis.css">
+  <link rel="stylesheet" type="text/css"
+      href="{{ STATIC }}css/minijack.css">
+  <script type="text/javascript" language="javascript"
+      src="{{ STATIC }}js/jquery.js"></script>
+  <script type="text/javascript" language="javascript"
+      src="{{ STATIC }}js/jquery.dataTables.min.js"></script>
+  <script type="text/javascript" language="javascript"
+      src="{{ STATIC }}js/jquery.dataTables.plugins.js"></script>
+  <script type="text/javascript" language="javascript"
+      src="{{ STATIC }}js/ColVis.min.js"></script>
+  <script type="text/javascript" language="javascript"
+      src="{{ STATIC }}js/device_life.js"></script>
+  <script type="text/javascript" charset="utf-8">
+  </script>
 </head>
 <body>
+  <div class="right">
+    <table class="screen" align="right">
+      <tbody>
+        <tr>
+          <th><a href="/">HOME</a></th>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
   <h1>Minijack: Life of a Device</h1>
+
   <div class="container">
     <div class="right">
       <h3>Component Information</h3>
-      <table>
+      <table class="screen">
         <tbody>
           {% for comp in comps %}
           <tr>
-            <th>{{ comp.component }}</th>
+            <th align="right">{{ comp.component }}</th>
             <td>{{ comp.symbolic }}</td>
           </tr>
           {% endfor %}
@@ -26,82 +56,73 @@
      </div>
 
      <div class="left">
-      <h3>Device Information</h3>
-      <table>
+     <h3>Device Information</h3>
+      <table class="screen">
         <tbody>
           <tr>
-            <th>device_id</th>
+            <th align="right">device_id</th>
             <td>{{ device.device_id }}</td>
           </tr>
           <tr>
-            <th>goofy_init_time</th>
+            <th align="right">goofy_init_time</th>
             <td>{{ device.goofy_init_time }}</td>
           </tr>
           <tr>
-            <th>serial</th>
+            <th align="right">serial</th>
             <td>{{ device.serial }}</td>
           </tr>
           <tr>
-            <th>mlb_serial</th>
+            <th align="right">mlb_serial</th>
             <td>{{ device.mlb_serial }}</td>
           </tr>
           <tr>
-            <th>hwid</th>
+            <th align="right">hwid</th>
             <td>{{ device.hwid }}</td>
           </tr>
           <tr>
-            <th>ips</th>
+            <th align="right">ips</th>
             <td>{{ device.ips }}</td>
           </tr>
           <tr>
-            <th>ips_time</th>
+            <th align="right">ips_time</th>
             <td>{{ device.ips_time }}</td>
           </tr>
           <tr>
-            <th>latest_test</th>
-            <td>{{ device.latest_test }}</td>
-          </tr>
-          <tr>
-            <th>latest_test_time</th>
-            <td>{{ device.latest_test_time }}</td>
-          </tr>
-          <tr>
-            <th>minijack_status</th>
+            <th align="right">mj_status</th>
             <td>{{ device.minijack_status }}</td>
           </tr>
         </tbody>
       </table>
 
       <h3>Test Statistic</h3>
-      <table>
+      <table class="screen">
         <tbody>
           <tr>
-            <th class="status">PASSED</th>
-            <th></th>
-            <th></th>
-            <th class="status">FAILED</th>
+            <th align="right">PASSED</th>
+            <th colspan="2"></th>
+            <th>FAILED</th>
           </tr>
           <tr>
-            <td class="status">{{ stat.cpassed }}</td>
+            <td align="right">{{ stat.cpassed }}</td>
             <td bgcolor="green"
                 width="{% widthratio stat.cpassed stat.ctotal 200 %}"/></td>
             <td bgcolor="red"
                 width="{% widthratio stat.cfailed stat.ctotal 200 %}"/></td>
-            <td class="status">{{ stat.cfailed }}</td>
+            <td>{{ stat.cfailed }}</td>
           </tr>
         </tbody>
       </table>
       <p></p>
-      <table>
+      <table class="screen">
         <tbody>
           <tr>
-             <th class="status">Top Failed</th>
-             <th class="status">Count</th>
+             <th>Top Failed</th>
+             <th>Count</th>
           </tr>
           {% for test in stat.top_failed %}
           <tr>
             <td>{{ test.path }}</th>
-            <td>{{ test.count }}</td>
+            <td align="right">{{ test.count }}</td>
           </tr>
           {% endfor %}
         </tbody>
@@ -110,9 +131,12 @@
   </div>
 
   <h3>Test Information</h3>
-  <table>
-    <tbody>
+  <table id="test_table">
+    <thead>
       <tr>
+        <th>event_id</th>
+        <th>event_seq</th>
+        <th>invocation</th>
         <th>status</th>
         <th>path</th>
         <th>pytest_name</th>
@@ -122,18 +146,37 @@
         <th>factory_md5sum</th>
         <th>reimage_id</th>
       </tr>
+    </thead>
+    <tfoot>
+      <tr>
+        <th>event_id</th>
+        <th>invocation</th>
+        <th>status</th>
+        <th>path</th>
+        <th>pytest_name</th>
+        <th>start_time</th>
+        <th>end_time</th>
+        <th>duration</th>
+        <th>factory_md5sum</th>
+        <th>reimage_id</th>
+      </tr>
+    </tfoot>
+    <tbody>
       {% for test in tests %}
       <tr>
-        {% if test.status == "FAILED" %}
-        <td bgcolor="red" class="status">{{ test.status }}</td>
-        {% else %}
-        <td class="status">{{ test.status }}</td>
-        {% endif %}
-        <td><a href="{% url 'event' test.event_id %}">{{ test.path }}</a></td>
+        <td>
+          <a href="{% url 'event' test.event_id %}">
+            {{ test.event_id|slice:":5" }}...{{ test.event_id|slice:"-5:" }}
+          </a>
+        </td>
+        <td align="right">{{ test.event_seq }}</td>
+        <td>{{ test.invocation|truncatechars:18 }}</td>
+        <td>{{ test.status }}</td>
+        <td>{{ test.path }}</td>
         <td>{{ test.pytest_name }}</td>
-        <td>{{ test.start_time }}</td>
-        <td>{{ test.end_time }}</td>
-        <td class="duration">{{ test.duration|floatformat:3 }}</td>
+        <td>{{ test.start_time|slice:"5:19" }}</td>
+        <td>{{ test.end_time|slice:"5:19" }}</td>
+        <td align="right">{{ test.duration|floatformat:3 }}</td>
         <td>{{ test.factory_md5sum|truncatechars:18 }}</td>
         <td>{{ test.reimage_id|truncatechars:18 }}</td>
       </tr>
