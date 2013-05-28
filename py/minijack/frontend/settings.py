@@ -35,8 +35,8 @@ DATABASES = {
   }
 }
 
-WSGI_APPLICATION = 'frontend.wsgi.application'
-ROOT_URLCONF = 'frontend.urls'
+WSGI_APPLICATION = 'cros.factory.minijack.frontend.wsgi.application'
+ROOT_URLCONF = 'cros.factory.minijack.frontend.urls'
 
 INSTALLED_APPS = (
   'django.contrib.staticfiles',

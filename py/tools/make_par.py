@@ -180,11 +180,6 @@ def main(argv=None):
     open(os.path.join(cros, '__init__.py'), 'w')
     open(os.path.join(cros, 'factory', '__init__.py'), 'w')
 
-    # Create the symlink for Minijack frontend, as Django library directly
-    # imports the module using the project name, i.e. "frontend".
-    os.symlink('cros/factory/minijack/frontend',
-               os.path.join(par_build, 'frontend'))
-
     # Add an empty factory_common file (since many scripts import
     # factory_common).
     open(os.path.join(par_build, 'factory_common.py'), 'w')

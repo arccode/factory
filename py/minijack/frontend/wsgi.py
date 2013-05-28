@@ -8,6 +8,7 @@ from django.core.wsgi import get_wsgi_application
 import factory_common  # pylint: disable=W0611
 
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'frontend.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE',
+                      'cros.factory.minijack.frontend.settings')
 # The application object used by WSGI server.
 application = get_wsgi_application()
