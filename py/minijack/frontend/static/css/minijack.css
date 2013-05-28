@@ -1,0 +1,57 @@
+/*
+ * Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
+ */
+
+body {
+  font-family: 'Open Sans', sans-serif;
+}
+
+h1, h2, h3, h4 {
+  font-weight: normal;
+}
+
+table {
+  font-size: 80%;
+}
+
+td, th {
+  vertical-align: top;
+}
+
+table.screen {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+table.screen th {
+  background-color: #f5f5f5;
+  color: #555555;
+  font-weight: normal;
+}
+
+table.screen td, table.screen th {
+  border: 1px solid #eee;
+  padding: 4px 12px;
+}
+
+a {
+  text-decoration: none;
+}
+
+.container {
+  height: auto;
+  overflow: hidden;
+}
+
+.right {
+  width: 50%;
+  float: right;
+}
+
+.left {
+  width: auto;
+  float: none;
+  overflow: hidden;
+}

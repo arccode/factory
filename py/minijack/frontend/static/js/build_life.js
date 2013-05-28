@@ -1,0 +1,44 @@
+// Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+$(document).ready(function() {
+  var oTable = $('#device_table').dataTable({
+    "aLengthMenu": [[20, 40, 60, 80, 100, 200, -1],
+                    [20, 40, 60, 80, 100, 200, "All"]],
+    "aaSorting": [[3, "desc"]],
+    "bJQueryUI": true,
+    "bScrollCollapse": true,
+    "iDisplayLength": -1,
+    "oColVis": {
+      "sSize": "css",
+      "sAlign": "right",
+    },
+    "sDom": '<lCfr>t<ip>',
+    "sPaginationType": "full_numbers",
+    "sScrollX": "100%",
+  });
+
+  var aDateColumns = [1, 3, 8, 17];
+  var aSelectableColumns = [1, 2, 3, 6, 8, 9, 10, 13, 14, 15, 17];
+  var aHiddenColumns = [7, 8, 9, 10, 11, 14, 15, 16, 17];
+
+  /* Add a select menu for each TH element in the table header */
+  $("thead th").each(function(i) {
+    if ($.inArray(i, aSelectableColumns) != -1) {
+      if ($.inArray(i, aDateColumns) !== -1)
+        this.innerHTML += fnCreateSelect(oTable.fnGetColumnData(i, fnCutDate));
+      else
+        this.innerHTML += fnCreateSelect(oTable.fnGetColumnData(i));
+
+      $('select', this).change(function() {
+        oTable.fnFilter($(this).val(), i);
+      });
+    }
+  });
+
+  $.each(aHiddenColumns, function(index, value) {
+    oTable.fnSetColumnVis(value, false);
+  });
+
+});

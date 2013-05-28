@@ -26,9 +26,10 @@ def ToDatetime(datetime_str):
 
 def GetBuildView(dummy_request):
   device_list = Device.objects.all().order_by('-latest_test_time')
+  # Filter out the none IP.
   for device in device_list:
-    device.goofy_init_time = ToDatetime(device.goofy_init_time)
-    device.latest_test_time = ToDatetime(device.latest_test_time)
+    ips = [kv for kv in device.ips.split(', ') if not kv.endswith('=none')]
+    device.ips = ', '.join(ips)
 
   template = loader.get_template('build_life.html')
   context = Context({

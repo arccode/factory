@@ -5,54 +5,101 @@
 <head>
   <title>Minijack: Live of a Build</title>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
-  <link rel="stylesheet" type="text/css" href="{{ STATIC }}minijack.css">
   <link rel="icon" type="image/png" href="{{ STATIC }}images/logo32.png">
+  <link rel="stylesheet" type="text/css"
+      href="{{ STATIC }}css/smoothness/jquery-ui-1.8.4.custom.css">
+  <link rel="stylesheet" type="text/css"
+      href="{{ STATIC }}css/jquery.dataTables_themeroller.css">
+  <link rel="stylesheet" type="text/css"
+      href="{{ STATIC }}css/ColVis.css">
+  <link rel="stylesheet" type="text/css"
+      href="{{ STATIC }}css/minijack.css">
+  <script type="text/javascript" language="javascript"
+      src="{{ STATIC }}js/jquery.js"></script>
+  <script type="text/javascript" language="javascript"
+      src="{{ STATIC }}js/jquery.dataTables.min.js"></script>
+  <script type="text/javascript" language="javascript"
+      src="{{ STATIC }}js/jquery.dataTables.plugins.js"></script>
+  <script type="text/javascript" language="javascript"
+      src="{{ STATIC }}js/ColVis.min.js"></script>
+  <script type="text/javascript" language="javascript"
+      src="{{ STATIC }}js/build_life.js"></script>
 </head>
 <body>
   <h1>Minijack: Life of a Build</h1>
-  {% regroup device_list by latest_test_time|date:"Y-m-d" as device_group %}
-  {% for group in device_group %}
-  <h3>
-    {{ group.grouper }},
-    {{ group.list|length }} device{{ group.list|length|pluralize }}
-  </h3>
-  <table>
-    <tbody>
+  <br/>
+  <table id="device_table" width="100%">
+    <thead>
       <tr>
         <th>device_id</th>
         <th>goofy_init_time</th>
-        <th>latest_test_time</th>
         <th>latest_test</th>
+        <th>test_time</th>
         <th>serial</th>
         <th>mlb_serial</th>
         <th>hwid</th>
+        <th>ips</th>
+        <th>ips_time</th>
+        <th>latest_ended_test</th>
+        <th>ended_status</th>
+        <th>c_passed</th>
+        <th>c_failed</th>
         <th>mj_status</th>
+        <th>latest_note_lv</th>
+        <th>note_name</th>
+        <th>note_text</th>
+        <th>note_time</th>
       </tr>
-      {% for device in group.list %}<tr>
-        <td class="short_id">
+    </thead>
+    <tfoot>
+      <tr>
+        <th>device_id</th>
+        <th>goofy_init_time</th>
+        <th>latest_test</th>
+        <th>test_time</th>
+        <th>serial</th>
+        <th>mlb_serial</th>
+        <th>hwid</th>
+        <th>ips</th>
+        <th>ips_time</th>
+        <th>latest_ended_test</th>
+        <th>ended_status</th>
+        <th>c_passed</th>
+        <th>c_failed</th>
+        <th>mj_status</th>
+        <th>latest_note_lv</th>
+        <th>note_name</th>
+        <th>note_text</th>
+        <th>note_time</th>
+      </tr>
+    </tfoot>
+    <tbody>
+      {% for device in device_list %}<tr>
+        <td>
           <a href="{% url 'device' device.device_id %}">
             {{ device.device_id|truncatechars:18 }}
           </a>
         </td>
-        {% if device.goofy_init_time %}
-        <td class="short_time">
-          {{ device.goofy_init_time|date:"(m-d)  H:i:s" }}
-        </td>
-        {% else %}
-        <td class="short_time"></td>
-        {% endif %}
-        <td class="short_time">
-          {{ device.latest_test_time|date:"(m-d)  H:i:s" }}
-        </td>
-        <td class="test_name">{{ device.latest_test }}</td>
-        <td class="short_id">{{ device.serial }}</td>
-        <td class="long_id">{{ device.mlb_serial|truncatechars:30 }}</td>
-        <td class="short_id">{{ device.hwid }}</td>
-        <td class="status">{{ device.minijack_status }}</td>
+        <td>{{ device.goofy_init_time|slice:"5:16" }}</td>
+        <td>{{ device.latest_test }}</td>
+        <td>{{ device.latest_test_time|slice:"5:16" }}</td>
+        <td>{{ device.serial }}</td>
+        <td>{{ device.mlb_serial|truncatechars:24 }}</td>
+        <td>{{ device.hwid }}</td>
+        <td>{{ device.ips }}</td>
+        <td>{{ device.ips_time|slice:"5:16" }}</td>
+        <td>{{ device.latest_ended_test }}</td>
+        <td>{{ device.latest_ended_status }}</td>
+        <td align="right">{{ device.count_passed }}</td>
+        <td align="right">{{ device.count_failed }}</td>
+        <td>{{ device.minijack_status }}</td>
+        <td>{{ device.latest_note_level }}</td>
+        <td>{{ device.latest_note_name }}</td>
+        <td>{{ device.latest_note_text|truncatechars:30 }}</td>
+        <td>{{ device.latest_note_time|slice:"5:16" }}</td>
       </tr>
       {% endfor %}
     </tbody>
   </table>
-  {% endfor %}
 </body>
 </html>
