@@ -71,6 +71,7 @@ class SyncShopfloor(unittest.TestCase):
           # Update necessary.
           if self.args.update_without_prompt:
             ui.RunJS('window.test.updateFactory()')
+            return
           else:
             # Display message and require update.
             template.SetState(test_ui.MakeLabel(
