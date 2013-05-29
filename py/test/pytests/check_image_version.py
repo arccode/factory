@@ -83,9 +83,10 @@ class ImageCheckTask(FactoryTask):
   def Reimage(self, dummy_event):
     self._test.template.SetState(_MSG_REIMAGING)
     try:
-      Spawn(['/usr/local/factory/bin/flash_netboot',
-             '-i', self._test.args.netboot_fw,
-             '-y'], check_call=True, log=True, log_stderr_on_error=True)
+      Spawn(['/usr/local/factory/bin/flash_netboot', '-y'] +
+            (['-i', self._test.args.netboot_fw]
+             if self._test.args.netboot_fw else []),
+            check_call=True, log=True, log_stderr_on_error=True)
       Spawn(['reboot'])
     except: # pylint: disable=W0702
       self._test.template.SetState(_MSG_FLASH_ERROR)
@@ -96,7 +97,7 @@ class ImageCheckTask(FactoryTask):
     if StrictVersion(ver) < StrictVersion(self._test.args.min_version):
       factory.console.error('Current factory image version is incorrect: %s',
                             ver)
-      if self._test.args.netboot_fw:
+      if self._test.args.reimage:
         self.CheckNetwork()
         self.PromptReimage()
       else:
@@ -109,7 +110,9 @@ class CheckImageVersionTest(unittest.TestCase):
   ARGS = [
     Arg('min_version', str, 'Minimum allowed factory image version.'),
     Arg('netboot_fw', str, 'The path to netboot firmware image.',
-        default=None, optional=True)]
+        default=None, optional=True),
+    Arg('reimage', bool, 'True to re-image when image version mismatch.',
+        default=True, optional=True)]
 
   def __init__(self, *args, **kwargs):
     super(CheckImageVersionTest, self).__init__(*args, **kwargs)
