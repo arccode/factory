@@ -40,6 +40,8 @@ class SyncShopfloor(unittest.TestCase):
           1),
       Arg('retry_secs', int, 'Maximum time to wait between retries', 10),
       Arg('timeout_secs', int, 'Timeout for XML/RPC operations', 10),
+      Arg('update_without_prompt', bool, 'Update without prompting when an '
+          'update is available', default=False, optional=True),
       ]
 
   def runTest(self):
@@ -66,17 +68,21 @@ class SyncShopfloor(unittest.TestCase):
             ui.Pass()
             return
 
-          # Update necessary.  Display message and require update.
-          template.SetState(test_ui.MakeLabel(
-              'A software update is available. '
-              'Press SPACE to update.',
+          # Update necessary.
+          if self.args.update_without_prompt:
+            ui.RunJS('window.test.updateFactory()')
+          else:
+            # Display message and require update.
+            template.SetState(test_ui.MakeLabel(
+                'A software update is available. '
+                'Press SPACE to update.',
 
-              u'有可用的更新。'
-              u'安空白键更新。'))
+                u'有可用的更新。'
+                u'安空白键更新。'))
 
-          # Note that updateFactory() will kill this test.
-          ui.BindKeyJS(' ', 'window.test.updateFactory()')
-          return
+            # Note that updateFactory() will kill this test.
+            ui.BindKeyJS(' ', 'window.test.updateFactory()')
+            return
         except:  # pylint: disable=W0702
           exception_string = utils.FormatExceptionOnly()
           # Log only the exception string, not the entire exception,
