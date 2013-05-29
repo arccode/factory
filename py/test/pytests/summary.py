@@ -53,7 +53,10 @@ class Report(unittest.TestCase):
   ARGS = [
     Arg('disable_input_on_fail', bool,
         'Disable user input to pass/fail when the overall status is not PASSED',
-        default=False)]
+        default=False),
+    Arg('pass_without_prompt', bool,
+        'If all tests passed, pass this test without prompting',
+        default=False, optional=True)]
   def runTest(self):
     test_list = self.test_info.ReadTestList()
     test = test_list.lookup_path(self.test_info.path)
@@ -77,6 +80,10 @@ class Report(unittest.TestCase):
       statuses.append(state.status)
 
     overall_status = factory.overall_status(statuses)
+
+    if (overall_status == factory.TestState.PASSED and
+        self.args.pass_without_prompt):
+      return
 
     html = [
         '<div class="test-vcenter-outer"><div class="test-vcenter-inner">',
