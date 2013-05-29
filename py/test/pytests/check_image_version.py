@@ -78,9 +78,9 @@ class ImageCheckTask(FactoryTask):
     self._test.template.SetState(_MSG_NETBOOT)
     self._test.ui.RunJS(_JS_SPACE)
     self._test.ui.CallJSFunction('enableSpaceKeyPressListener')
-    self._test.ui.AddEventHandler('space_pressed', self.Reimage)
+    self._test.ui.AddEventHandler('space_pressed', lambda _: self.Reimage())
 
-  def Reimage(self, dummy_event):
+  def Reimage(self):
     self._test.template.SetState(_MSG_REIMAGING)
     try:
       Spawn(['/usr/local/factory/bin/flash_netboot', '-y'] +
@@ -99,7 +99,10 @@ class ImageCheckTask(FactoryTask):
                             ver)
       if self._test.args.reimage:
         self.CheckNetwork()
-        self.PromptReimage()
+        if self._test.args.require_space:
+          self.PromptReimage()
+        else:
+          self.Reimage()
       else:
         self._test.template.SetState(_MSG_VERSION_MISMATCH)
       return
@@ -112,6 +115,9 @@ class CheckImageVersionTest(unittest.TestCase):
     Arg('netboot_fw', str, 'The path to netboot firmware image.',
         default=None, optional=True),
     Arg('reimage', bool, 'True to re-image when image version mismatch.',
+        default=True, optional=True),
+    Arg('require_space', bool,
+        'True to require a space key press before reimaging.',
         default=True, optional=True)]
 
   def __init__(self, *args, **kwargs):
