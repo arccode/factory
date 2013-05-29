@@ -68,7 +68,7 @@ class WaitSIMCardThread(threading.Thread):
       # modem status will not show IMSI if sim card is removed even without
       # modem reset.
       if self._simcard_event == ProbeSIMCardTask.INSERT_SIM_CARD:
-        Spawn(['modem', 'reset'], call=True, log=True)
+        Spawn(['modem', 'factory-reset', '000000'], call=True, log=True)
       output = SpawnOutput(['modem', 'status'], log=True)
       logging.info(output)
       present = self._re_present.search(output)
@@ -153,7 +153,7 @@ class CheckSIMAbsentTask(FactoryTask):
 
   def Run(self):
     self._template.SetState(_CHECK_SIM_INSTRUCTION)
-    Spawn(['modem', 'reset'], call=True, log=True)
+    Spawn(['modem', 'factory-reset', '000000'], call=True, log=True)
     output = SpawnOutput(['modem', 'status'], log=True)
     logging.info(output)
     if not re.compile(_SIM_NOT_PRESENT_RE, re.MULTILINE).search(output):
