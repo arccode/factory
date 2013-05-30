@@ -9,6 +9,8 @@ import argparse
 from contextlib import nested
 import glob
 import logging
+import os
+import shutil
 import sys
 import time
 
@@ -31,34 +33,23 @@ def PreserveSection(fw_main_file, section_file, section_name):
         log=True, check_call=True)
 
 
-def RestoreSection(fw_main_file, section_file, section_name):
-  """Writes a firmware section.
-
-  Args:
-    fw_main_file: The dummy file served as full firmware image to flashrom.
-    section_file: The file containing the data to write.
-    section_name: The name of the section to write.
-  """
-  logging.info('Restoring %s from %s', section_name, section_file)
-  Spawn(['flashrom', '-w', fw_main_file, '-i',
-         '%s:%s' % (section_name, section_file)],
-        log=True, check_call=True)
-
-
 def PreserveVPD(fw_main, ro_vpd, rw_vpd):
   PreserveSection(fw_main, rw_vpd, 'RW_VPD')
   PreserveSection(fw_main, ro_vpd, 'RO_VPD')
 
-
-def RestoreVPD(fw_main, ro_vpd, rw_vpd):
-  RestoreSection(fw_main, rw_vpd, 'RW_VPD')
-  RestoreSection(fw_main, ro_vpd, 'RO_VPD')
-
+def PackVPD(fw_main, ro_vpd, rw_vpd):
+  logging.info('Packing RO/RW VPD into %s', fw_main)
+  img_size = os.stat(fw_main).st_size
+  Spawn(['flashrom',
+         '-p', 'dummy:image=%s,size=%d,emulate=VARIABLE_SIZE' %
+         (fw_main, img_size),
+         '-w', fw_main,
+         '-i', 'RO_VPD:%s' % ro_vpd,
+         '-i', 'RW_VPD:%s' % rw_vpd], log=True, check_call=True)
 
 def FlashFirmware(fw_image):
   logging.info('Flashing firmware %s...', fw_image)
   Spawn(['flashrom', '-w', fw_image], log=True, check_call=True)
-
 
 def main():
   parser = argparse.ArgumentParser(
@@ -102,8 +93,9 @@ def main():
               UnopenedTemporaryFile(prefix='vpd.ro.'),
               UnopenedTemporaryFile(prefix='vpd.rw.')) as files:
     PreserveVPD(*files)
-    FlashFirmware(image)
-    RestoreVPD(*files)
+    shutil.copyfile(image, files[0])
+    PackVPD(*files)
+    FlashFirmware(files[0])
 
   sys.stdout.write('Rebooting.  See you on the other side!\n')
   Spawn(['reboot'], check_call=True)
