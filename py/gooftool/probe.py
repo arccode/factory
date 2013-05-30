@@ -15,6 +15,7 @@ and a None probe result assumed.
 """
 
 
+import collections
 import hashlib
 import logging
 import os
@@ -276,6 +277,47 @@ class _FlimflamDevices(object):
     # Filter out 'None' results
     return sorted(device for device in ids if device is not None)
 
+class _GobiDevices(object):
+  """Wrapper around Gobi specific utility information."""
+  # TODO(bhthompson): This will need to be rewritten when gobi-fw is
+  # deprecated, see crbug.com/217324
+
+  @classmethod
+  def IsDeviceGobi(cls):
+    """Return true if there is a Gobi modem, false if not."""
+    return any('gobi' in dev.attributes['ModelID'].lower() for dev in
+               _FlimflamDevices.GetDevices('cellular'))
+
+  @classmethod
+  def ReadFirmwareList(cls):
+    """Return a list of firmware tuples from the `gobi-fw list` command"""
+    if not cls.IsDeviceGobi():
+      return None
+    firmwares = []
+    Firmware = collections.namedtuple('Firmware', 'attrs active build_id '
+                                      'carrier')
+    # Split utility output into a list and remove the legend and last newline.
+    # The attrs field consists of some/all of the characters AIPM from the
+    # gobi-fw utility 'Legend: A available I installed P pri M modem * active'
+    # We separate out the * for active as it is an initial configuration,
+    # modifiable by the user or tests to enable different carriers/regions.
+    for l in Shell('gobi-fw list').stdout.splitlines()[1:]:
+      m = re.match('^([A ][I ][P ][M ])([* ]) (\S+)\s+(.+)$', l)
+      if not m:
+        raise ValueError('Unable to parse line %r in gobi-fw output' % l)
+      firmwares.append(Firmware(m.group(1), m.group(2) != ' ', m.group(3),
+                                m.group(4)))
+    return firmwares
+
+  @classmethod
+  def ActiveFirmware(cls):
+    """Return the string of the active firmware (build_id for Gobi)."""
+    if not cls.IsDeviceGobi():
+      return None
+    firmwares = cls.ReadFirmwareList()
+    active_firmwares = [fw.build_id for fw in firmwares if fw.active]
+    active_firmware = active_firmwares[0] if active_firmwares else None
+    return active_firmware
 
 class _TouchpadData():  # pylint: disable=W0232
   """Return Obj with hw_ident and fw_ident string fields."""
@@ -493,6 +535,14 @@ def _ProbeCellular():
         r'^\s*carrier: (.*)$', Shell('modem status').stdout, re.M)
     if carrier:
       data[0]['carrier'] = carrier[0]
+    # For some chipsets we can use custom utilities for more data
+    if _GobiDevices.IsDeviceGobi():
+      full_fw_string = []
+      for fw in _GobiDevices.ReadFirmwareList():
+        fw_string = '%s  %s %s' % (fw.attrs, fw.build_id, fw.carrier)
+        full_fw_string.append(fw_string)
+      data[0]['firmwares'] = ', '.join(full_fw_string)
+      data[0]['active_firmware'] = _GobiDevices.ActiveFirmware()
   return data
 
 
