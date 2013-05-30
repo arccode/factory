@@ -14,7 +14,7 @@ $(document).ready(function() {
       "sSize": "css",
       "sAlign": "right",
     },
-    "sDom": '<lCfr>t<ip>',
+    "sDom": '<lCfr><ip>t<ip>',
     "sPaginationType": "full_numbers",
     "sScrollX": "100%",
   });

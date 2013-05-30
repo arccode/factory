@@ -9,19 +9,18 @@ $(document).ready(function() {
     "aaSorting": [[3, "desc"]],
     "bJQueryUI": true,
     "bScrollCollapse": true,
-    "iDisplayLength": -1,
+    "iDisplayLength": 100,
     "oColVis": {
       "sSize": "css",
       "sAlign": "right",
     },
-    "sDom": '<lCfr>t<ip>',
+    "sDom": '<lCfr><ip>t<ip>',
     "sPaginationType": "full_numbers",
     "sScrollX": "100%",
   });
 
   var aDateColumns = [1, 3, 8, 17];
   var aSelectableColumns = [1, 2, 3, 6, 8, 9, 10, 13, 14, 15, 17];
-  var aHiddenColumns = [7, 8, 9, 10, 11, 14, 15, 16, 17];
 
   /* Add a select menu for each TH element in the table header */
   $("thead th").each(function(i) {
@@ -37,8 +36,48 @@ $(document).ready(function() {
     }
   });
 
-  $.each(aHiddenColumns, function(index, value) {
-    oTable.fnSetColumnVis(value, false);
+  $("#suite_radio").buttonset().change(function(e) {
+    fnSelectSuite(e.target.value);
   });
 
+  fnSelectSuite(0);
 });
+
+
+function fnSelectSuite(iSuite) {
+  /*
+   * Columns:
+   *    0 - device_id
+   *    1 - goofy_init_time
+   *    2 - latest_test
+   *    3 - test_time
+   *    4 - serial
+   *    5 - mlb_serial
+   *    6 - hwid
+   *    7 - ips
+   *    8 - ips_time
+   *    9 - latest_ended_test
+   *   10 - ended_status
+   *   11 - c_passed
+   *   12 - c_failed
+   *   13 - mj_status
+   *   14 - latest_note_lv
+   *   15 - note_name
+   *   16 - note_text
+   *   17 - note_time
+   */
+  var iTotalColumns = 18
+  var aaVisibleColumns = [
+    [0, 2, 3, 4, 5, 6, 7, 13],
+    [0, 1, 2, 3, 9, 10, 11, 12],
+    [0, 2, 3, 14, 15, 16, 17],
+  ];
+  var oTable = $('#device_table').dataTable();
+
+  for (var i = 0; i < iTotalColumns; i++) {
+    if ($.inArray(i, aaVisibleColumns[iSuite]) !== -1)
+      oTable.fnSetColumnVis(i, true);
+    else
+      oTable.fnSetColumnVis(i, false);
+  }
+}

@@ -42,12 +42,12 @@
 
   <div class="container">
     <div class="right">
-      <h3>Component Information</h3>
+      <h2>Component Information</h2>
       <table class="screen">
         <tbody>
           {% for comp in comps %}
           <tr>
-            <th align="right">{{ comp.component }}</th>
+            <th align="left">{{ comp.component }}</th>
             <td>{{ comp.symbolic }}</td>
           </tr>
           {% endfor %}
@@ -56,7 +56,7 @@
      </div>
 
      <div class="left">
-     <h3>Device Information</h3>
+     <h2>Device Information</h2>
       <table class="screen">
         <tbody>
           <tr>
@@ -94,7 +94,7 @@
         </tbody>
       </table>
 
-      <h3>Test Statistic</h3>
+      <h2>Test Statistic</h2>
       <table class="screen">
         <tbody>
           <tr>
@@ -130,7 +130,7 @@
     </div>
   </div>
 
-  <h3>Test Information</h3>
+  <h2>Test Information</h2>
   <table id="test_table">
     <thead>
       <tr>

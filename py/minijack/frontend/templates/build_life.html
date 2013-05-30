@@ -23,10 +23,21 @@
   <script type="text/javascript" language="javascript"
       src="{{ STATIC }}js/ColVis.min.js"></script>
   <script type="text/javascript" language="javascript"
+      src="{{ STATIC }}js/jquery-ui-button.min.js"></script>
+  <script type="text/javascript" language="javascript"
       src="{{ STATIC }}js/build_life.js"></script>
 </head>
 <body>
   <h1>Minijack: Life of a Build</h1>
+  <br/>
+  <div id="suite_radio">
+    <input type="radio" id="radio0" name="radio" value="0" checked="checked" />
+      <label for="radio0">General Info</label>
+    <input type="radio" id="radio1" name="radio" value="1" />
+      <label for="radio1">Recent Tests</label>
+    <input type="radio" id="radio2" name="radio" value="2" />
+      <label for="radio2">Recent Notes</label>
+  </div>
   <br/>
   <table id="device_table" width="100%">
     <thead>
@@ -95,7 +106,7 @@
         <td>{{ device.minijack_status }}</td>
         <td>{{ device.latest_note_level }}</td>
         <td>{{ device.latest_note_name }}</td>
-        <td>{{ device.latest_note_text|truncatechars:30 }}</td>
+        <td>{{ device.latest_note_text|truncatechars:80 }}</td>
         <td>{{ device.latest_note_time|slice:"5:16" }}</td>
       </tr>
       {% endfor %}
