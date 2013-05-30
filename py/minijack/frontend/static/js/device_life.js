@@ -3,7 +3,7 @@
 // found in the LICENSE file.
 
 $(document).ready(function() {
-  var oTable = $('#test_table').dataTable({
+  var oTable = $("#test_table").dataTable({
     "aLengthMenu": [[20, 40, 60, 80, 100, 200, -1],
                     [20, 40, 60, 80, 100, 200, "All"]],
     "aaSorting": [[6, "desc"]],
@@ -40,5 +40,4 @@ $(document).ready(function() {
   $.each(aHiddenColumns, function(index, value) {
     oTable.fnSetColumnVis(value, false);
   });
-
 });

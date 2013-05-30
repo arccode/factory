@@ -6,18 +6,23 @@
   <title>Minijack: Live of an Event</title>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
   <link rel="icon" type="image/png" href="{{ STATIC }}images/logo32.png">
-  <link rel="stylesheet" type="text/css" href="{{ STATIC }}css/minijack.css">
+  <link rel="stylesheet" type="text/css"
+      href="{{ STATIC }}css/smoothness/jquery-ui-1.8.4.custom.css">
+  <link rel="stylesheet" type="text/css"
+      href="{{ STATIC }}css/minijack.css">
+  <script type="text/javascript" language="javascript"
+      src="{{ STATIC }}js/jquery.js"></script>
+  <script type="text/javascript" language="javascript"
+      src="{{ STATIC }}js/jquery-ui-button.min.js"></script>
+  <script type="text/javascript" language="javascript"
+      src="{{ STATIC }}js/minijack_common.js"></script>
 </head>
 <body>
   <div class="right">
-    <table class="screen" align="right">
-      <tbody>
-        <tr>
-          <th><a href="{% url 'device' event.device_id %}">DEVICE</a></th>
-          <th><a href="/">HOME</a></th>
-        </tr>
-      </tbody>
-    </table>
+    <a href="{% url 'build' %}"><button id="home_button">HOME</button></a>
+    <a href="{% url 'query' %}"><button id="query_button">QUERY</button></a>
+    <a href="{% url 'device' event.device_id %}">
+      <button id="device_button">DEVICE</button></a>
   </div>
 
   <h1>Minijack: Life of an Event</h1>

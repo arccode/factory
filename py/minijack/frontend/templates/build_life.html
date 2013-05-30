@@ -25,9 +25,17 @@
   <script type="text/javascript" language="javascript"
       src="{{ STATIC }}js/jquery-ui-button.min.js"></script>
   <script type="text/javascript" language="javascript"
+      src="{{ STATIC }}js/minijack_common.js"></script>
+  <script type="text/javascript" language="javascript"
       src="{{ STATIC }}js/build_life.js"></script>
 </head>
 <body>
+  <div class="right">
+    <a href="{% url 'build' %}">
+      <button id="home_button" disabled>HOME</button></a>
+    <a href="{% url 'query' %}"><button id="query_button">QUERY</button></a>
+  </div>
+
   <h1>Minijack: Life of a Build</h1>
   <br/>
   <div id="suite_radio">

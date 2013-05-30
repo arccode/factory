@@ -23,19 +23,16 @@
   <script type="text/javascript" language="javascript"
       src="{{ STATIC }}js/ColVis.min.js"></script>
   <script type="text/javascript" language="javascript"
+      src="{{ STATIC }}js/jquery-ui-button.min.js"></script>
+  <script type="text/javascript" language="javascript"
+      src="{{ STATIC }}js/minijack_common.js"></script>
+  <script type="text/javascript" language="javascript"
       src="{{ STATIC }}js/device_life.js"></script>
-  <script type="text/javascript" charset="utf-8">
-  </script>
 </head>
 <body>
   <div class="right">
-    <table class="screen" align="right">
-      <tbody>
-        <tr>
-          <th><a href="/">HOME</a></th>
-        </tr>
-      </tbody>
-    </table>
+    <a href="{% url 'build' %}"><button id="home_button">HOME</button></a>
+    <a href="{% url 'query' %}"><button id="query_button">QUERY</button></a>
   </div>
 
   <h1>Minijack: Life of a Device</h1>
