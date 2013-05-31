@@ -14,7 +14,7 @@ $(document).ready(function() {
       "sSize": "css",
       "sAlign": "right",
     },
-    "sDom": '<lCfr><ip>t<ip>',
+    "sDom": "<lCfr><ip>t<ip>",
     "sPaginationType": "full_numbers",
     "sScrollX": "100%",
   });
@@ -31,8 +31,8 @@ $(document).ready(function() {
       else
         this.innerHTML += fnCreateSelect(oTable.fnGetColumnData(i));
 
-      $('select', this).change(function() {
-        oTable.fnFilter($(this).val(), i);
+      $("select", this).change(function() {
+        oTable.fnFilter($(this).val().replace(/ (.*)$/, ""), i);
       });
     }
   });

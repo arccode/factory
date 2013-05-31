@@ -3,7 +3,7 @@
 // found in the LICENSE file.
 
 $(document).ready(function() {
-  var oTable = $('#device_table').dataTable({
+  var oTable = $("#device_table").dataTable({
     "aLengthMenu": [[20, 40, 60, 80, 100, 200, -1],
                     [20, 40, 60, 80, 100, 200, "All"]],
     "aaSorting": [[3, "desc"]],
@@ -14,7 +14,7 @@ $(document).ready(function() {
       "sSize": "css",
       "sAlign": "right",
     },
-    "sDom": '<lCfr><ip>t<ip>',
+    "sDom": "<lCfr><ip>t<ip>",
     "sPaginationType": "full_numbers",
     "sScrollX": "100%",
   });
@@ -30,8 +30,8 @@ $(document).ready(function() {
       else
         this.innerHTML += fnCreateSelect(oTable.fnGetColumnData(i));
 
-      $('select', this).change(function() {
-        oTable.fnFilter($(this).val(), i);
+      $("select", this).change(function() {
+        oTable.fnFilter($(this).val().replace(/ (.*)$/, ""), i);
       });
     }
   });
@@ -72,7 +72,7 @@ function fnSelectSuite(iSuite) {
     [0, 1, 2, 3, 9, 10, 11, 12],
     [0, 2, 3, 14, 15, 16, 17],
   ];
-  var oTable = $('#device_table').dataTable();
+  var oTable = $("#device_table").dataTable();
 
   for (var i = 0; i < iTotalColumns; i++) {
     if ($.inArray(i, aaVisibleColumns[iSuite]) !== -1)
