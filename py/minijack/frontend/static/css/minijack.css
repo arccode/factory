@@ -44,6 +44,11 @@ a {
   text-decoration: none;
 }
 
+.querybox {
+  font-size: 100%;
+  width: 80%;
+}
+
 .container {
   height: auto;
   overflow: hidden;
