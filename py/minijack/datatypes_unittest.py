@@ -152,9 +152,41 @@ class EventStreamTest(unittest.TestCase):
   def testWrongYAML(self):
     self._yaml_str_list.remove('  - id: SMT')
     yaml_str = '\n'.join(self._yaml_str_list)
-    stream = next(GenerateEventStreamsFromYaml(None, yaml_str), None)
+    streams = GenerateEventStreamsFromYaml(None, yaml_str)
+    stream = next(streams, None)
     self.assertEqual('d0:xx:xx:xx:xx:df', stream.preamble['device_id'])
-    self.assertEqual(0, len(stream))
+    self.assertEqual(1, len(stream))
+    stream = next(streams, None)
+    self.assertEqual('d0:xx:xx:xx:xx:df', stream.preamble['device_id'])
+    self.assertEqual(1, len(stream))
+
+  def testNotSupportedYamlDatatype(self):
+    not_supported_str = '\n'.join([
+      "tuple: !!python/tuple [1, 2, 3]",
+      "unicode: !!python/unicode 'ABC'",
+      "name: !!python/name:cros.factory.gooftool.CreateReportArchiveBlob ''",
+      "object: !!python/object/new:cros.factory.hwid.ProbedComponentResult",
+      "  state: !!python/object/apply:collections.OrderedDict",
+      "  - component_name",
+      "  - probed_values",
+    ])
+    self._yaml_str_list.insert(
+        self._yaml_str_list.index('EVENT: waived_tests') + 1,
+        not_supported_str)
+    yaml_str = '\n'.join(self._yaml_str_list)
+    streams = GenerateEventStreamsFromYaml(None, yaml_str)
+    stream = next(streams, None)
+    self.assertEqual('d0:xx:xx:xx:xx:df', stream.preamble['device_id'])
+    self.assertEqual(2, len(stream))
+    self.assertListEqual([1, 2, 3], stream[1]['tuple'])
+    self.assertEqual('ABC', stream[1]['unicode'])
+    self.assertEqual('', stream[1]['name'])
+    self.assertIn('state', stream[1]['object'])
+    self.assertListEqual(['component_name', 'probed_values'],
+                         stream[1]['object']['state'])
+    stream = next(streams, None)
+    self.assertEqual('d0:xx:xx:xx:xx:df', stream.preamble['device_id'])
+    self.assertEqual(1, len(stream))
 
 
 class EventPacketTest(unittest.TestCase):

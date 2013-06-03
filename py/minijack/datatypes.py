@@ -5,18 +5,35 @@
 import base64
 import logging
 import pprint
-import re
 import struct
 import uuid
 import yaml
 
 
-# The following YAML strings needs further handler. So far we just simply
-# remove them. It works well now, while tuples are treated as lists, unicodes
-# are treated as strings, objects are dropped.
-# TODO(waihong): Use yaml.add_multi_constructor to handle them.
-YAML_STR_BLACKLIST = (
-    r'( !!python/tuple| !!python/unicode| !!python/object[A-Za-z_.:/]+)')
+EVENT_SEPARATOR = '\n---\n'
+
+
+def YamlObjectConstructor(loader, dummy_tag_suffix, node):
+  """A custom YAML constructor to construct objects as lists or dicts."""
+  if isinstance(node, yaml.SequenceNode):
+    return loader.construct_yaml_seq(node)
+  elif isinstance(node, yaml.MappingNode):
+    return loader.construct_yaml_map(node)
+  else:
+    return None
+
+
+# Custom YAML loader to accept more datatypes than SafeLoader, e.g. treating
+# tuples as lists, unicodes/names as strings, and objects as lists/dicts.
+CustomLoader = yaml.SafeLoader
+CustomLoader.add_constructor('tag:yaml.org,2002:python/tuple',
+    CustomLoader.construct_yaml_seq)
+CustomLoader.add_constructor('tag:yaml.org,2002:python/unicode',
+    CustomLoader.construct_yaml_str)
+CustomLoader.add_multi_constructor('tag:yaml.org,2002:python/name',
+    lambda loader, _, node: CustomLoader.construct_yaml_str(loader, node))
+CustomLoader.add_multi_constructor('tag:yaml.org,2002:python/object',
+    YamlObjectConstructor)
 
 
 class EventBlob(object):
@@ -63,29 +80,28 @@ def GenerateEventStreamsFromYaml(metadata, yaml_str):
   """
   first = True
   stream = EventStream(metadata)
-  # Some un-expected patterns appear in the log. Remove them.
-  yaml_str = re.sub(YAML_STR_BLACKLIST, '', yaml_str)
-  try:
-    for event in yaml.safe_load_all(yaml_str):
-      if not event:
-        continue
-      if 'EVENT' not in event:
-        logging.warn('The event dict is invalid, no EVENT tag:\n%s.',
-                     pprint.pformat(event))
-        continue
-      if event['EVENT'] == 'preamble':
-        # Yeild the stream it just created when it meets a new preamble,
-        # except the case of the first one.
-        if not first:
-          yield stream
-          stream = EventStream(metadata)
-        stream.preamble = event
-      else:
-        stream.append(event)
-      first = False
-  except yaml.YAMLError, e:
-    logging.exception('Error on parsing the yaml string "%s": %s',
-                      yaml_str, e)
+  for event_str in yaml_str.split(EVENT_SEPARATOR):
+    event = None
+    try:
+      event = yaml.load(event_str, Loader=CustomLoader)
+    except yaml.YAMLError:
+      logging.exception('Error on parsing the yaml string %r', event_str)
+    if not event:
+      continue
+    if 'EVENT' not in event:
+      logging.warn('The event dict is invalid, no EVENT tag:\n%s.',
+                   pprint.pformat(event))
+      continue
+    if event['EVENT'] == 'preamble':
+      # Yeild the stream it just created when it meets a new preamble,
+      # except the case of the first one.
+      if not first:
+        yield stream
+        stream = EventStream(metadata)
+      stream.preamble = event
+    else:
+      stream.append(event)
+    first = False
   yield stream
 
 
