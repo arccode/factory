@@ -10,8 +10,7 @@
 import collections
 import factory_common # pylint: disable=W0611
 
-from cros.factory.hwid import (
-    HWID, BOM, ProbedComponentResult, HWIDException, MISSING_COMPONENT_ERROR)
+from cros.factory.hwid import common
 from cros.factory.hwid.base32 import Base32
 
 
@@ -53,8 +52,8 @@ def BinaryStringToBOM(database, binary_string):
   # Check that all the encoded field indices are valid.
   for field in encoded_fields:
     if encoded_fields[field] not in database.encoded_fields[field]:
-      raise HWIDException('Invalid encoded field index: {%r: %r}' %
-                          (field, encoded_fields[field]))
+      raise common.HWIDException('Invalid encoded field index: {%r: %r}' %
+                                 (field, encoded_fields[field]))
 
   # Construct the components dict.
   components = collections.defaultdict(list)
@@ -63,14 +62,15 @@ def BinaryStringToBOM(database, binary_string):
     attr_dict = database._GetAttributesByIndex(field, index)
     for comp_cls, attr_list in attr_dict.iteritems():
       if attr_list is None:
-        components[comp_cls].append(ProbedComponentResult(
-            None, None, MISSING_COMPONENT_ERROR(comp_cls)))
+        components[comp_cls].append(common.ProbedComponentResult(
+            None, None, common.MISSING_COMPONENT_ERROR(comp_cls)))
       else:
         for attrs in attr_list:
-          components[comp_cls].append(
-              ProbedComponentResult(attrs['name'], attrs['values'], None))
+          components[comp_cls].append(common.ProbedComponentResult(
+              attrs['name'], attrs['values'], None))
 
-  return BOM(board, encoding_pattern, image_id, components, encoded_fields)
+  return common.BOM(board, encoding_pattern, image_id, components,
+                    encoded_fields)
 
 
 def EncodedStringToBinaryString(database, encoded_string):
@@ -106,4 +106,4 @@ def Decode(database, encoded_string):
   """
   binary_string = EncodedStringToBinaryString(database, encoded_string)
   bom = BinaryStringToBOM(database, binary_string)
-  return HWID(database, binary_string, encoded_string, bom)
+  return common.HWID(database, binary_string, encoded_string, bom)

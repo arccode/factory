@@ -8,7 +8,7 @@ import factory_common # pylint: disable=W0611
 
 from cros.factory.common import MakeList, MakeSet
 from cros.factory.gooftool.vpd_data import KNOWN_VPD_FIELD_DATA
-from cros.factory.hwid import HWIDException
+from cros.factory.hwid.common import HWIDException
 from cros.factory.hwid.encoder import (
     BOMToBinaryString, BinaryStringToEncodedString)
 from cros.factory.test import registration_codes

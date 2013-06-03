@@ -10,10 +10,10 @@ import unittest
 
 import factory_common # pylint: disable=W0611
 from cros.factory import gooftool
-from cros.factory import hwid
 from cros.factory.event_log import Log
 from cros.factory.gooftool import Gooftool
 from cros.factory.hwdb.hwid_tool import ProbeResults  # pylint: disable=E0611
+from cros.factory.hwid import common
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
@@ -23,10 +23,10 @@ from cros.factory.test.args import Arg
 # If present,  these files will override the board and probe results
 # (for testing).
 OVERRIDE_BOARD_PATH = os.path.join(
-    hwid.DEFAULT_HWID_DATA_PATH,
+    common.DEFAULT_HWID_DATA_PATH,
     'OVERRIDE_BOARD')
 OVERRIDE_PROBE_RESULTS_PATH = os.path.join(
-    hwid.DEFAULT_HWID_DATA_PATH,
+    common.DEFAULT_HWID_DATA_PATH,
     'OVERRIDE_PROBE_RESULTS')
 
 

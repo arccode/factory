@@ -9,7 +9,7 @@
 
 import factory_common # pylint: disable=W0611
 
-from cros.factory.hwid import HWID, HWIDException
+from cros.factory.hwid import common
 from cros.factory.hwid.base32 import Base32
 
 
@@ -91,7 +91,7 @@ def Encode(database, bom, skip_check=False, rma_mode=False):
             # Only convert unprobeable components.
             components_to_update[comp_cls] = comp_name
           else:
-            raise HWIDException(probed_comp.error)
+            raise common.HWIDException(probed_comp.error)
   updated_bom = database.UpdateComponentsOfBOM(bom, components_to_update)
 
   for field, index in updated_bom.encoded_fields.iteritems():
@@ -101,11 +101,11 @@ def Encode(database, bom, skip_check=False, rma_mode=False):
       for comp_cls in database.encoded_fields[field][0].iterkeys():
         for probed_comp in bom.components[comp_cls]:
           err_msg += '  %r: %r\n' % (comp_cls, probed_comp.component_name)
-      raise HWIDException(err_msg)
+      raise common.HWIDException(err_msg)
 
   binary_string = BOMToBinaryString(database, updated_bom)
   encoded_string = BinaryStringToEncodedString(database, binary_string)
-  hwid = HWID(database, binary_string, encoded_string, updated_bom,
-              skip_check=skip_check)
+  hwid = common.HWID(database, binary_string, encoded_string, updated_bom,
+                     skip_check=skip_check)
   hwid.VerifyComponentStatus(rma_mode)
   return hwid

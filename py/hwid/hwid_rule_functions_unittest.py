@@ -11,9 +11,11 @@ import logging
 import os
 import unittest2
 import yaml
-import factory_common # pylint: disable=W0611
 
-from cros.factory.hwid import Database, HWIDException
+import factory_common   # pylint: disable=W0611
+import cros.factory.common_rule_functions   #pylint: disable=W0611
+from cros.factory.hwid.common import HWIDException
+from cros.factory.hwid.database import Database
 from cros.factory.hwid.encoder import Encode
 from cros.factory.hwid.hwid_rule_functions import (
     GetClassAttributesOnBOM, ComponentEq, ComponentIn,

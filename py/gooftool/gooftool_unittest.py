@@ -25,7 +25,7 @@ from cros.factory.gooftool.bmpblk import unpack_bmpblock
 from cros.factory.gooftool.probe import Probe, ReadRoVpd
 from cros.factory.hwdb import hwid_tool
 from cros.factory.hwdb.hwid_tool import ProbeResults  # pylint: disable=E0611
-from cros.factory.hwid import HWIDException
+from cros.factory.hwid.common import HWIDException
 from cros.factory.gooftool import Mismatch
 from cros.factory.gooftool import ProbedComponentResult
 from cros.factory.rule import RuleException, Value

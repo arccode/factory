@@ -12,7 +12,7 @@ from collections import namedtuple
 from tempfile import NamedTemporaryFile
 
 import factory_common  # pylint: disable=W0611
-import cros.factory.hwid as hwid3
+import cros.factory.hwid.common as hwid3_common
 from cros.factory.common import Error
 from cros.factory.common import Shell
 from cros.factory.hwdb import hwid_tool
@@ -20,7 +20,7 @@ from cros.factory.gooftool import crosfw
 from cros.factory.gooftool.bmpblk import unpack_bmpblock
 from cros.factory.gooftool.probe import Probe, ReadRoVpd, ReadRwVpd
 from cros.factory.gooftool.vpd_data import KNOWN_VPD_FIELD_DATA
-from cros.factory.hwid import Database
+from cros.factory.hwid.database import Database
 from cros.factory.hwid.decoder import Decode
 from cros.factory.hwid.encoder import Encode
 from cros.factory.privacy import FilterDict
@@ -225,8 +225,8 @@ class Gooftool(object):
           hwid_tool.HardwareDb(hwid_tool.DEFAULT_HWID_DATA_PATH))
       self._db_creator = lambda: component_db or self._hardware_db.comp_db
     elif hwid_version == 3:
-      self._board = board or hwid3.ProbeBoard()
-      self._hwdb_path = hwdb_path or hwid3.DEFAULT_HWID_DATA_PATH
+      self._board = board or hwid3_common.ProbeBoard()
+      self._hwdb_path = hwdb_path or hwid3_common.DEFAULT_HWID_DATA_PATH
       self._db_creator = lambda: Database.LoadFile(
           os.path.join(self._hwdb_path, self._board.upper()))
     else:

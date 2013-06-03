@@ -10,7 +10,8 @@ import unittest2
 import yaml
 import factory_common # pylint: disable=W0611
 
-from cros.factory.hwid import Database, HWIDException
+from cros.factory.hwid.common import HWIDException
+from cros.factory.hwid.database import Database
 from cros.factory.hwid.decoder import EncodedStringToBinaryString
 from cros.factory.hwid.decoder import BinaryStringToBOM, Decode
 from cros.factory.rule import Value
