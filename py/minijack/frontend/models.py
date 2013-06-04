@@ -30,10 +30,10 @@ class _NotManagedModelBase(models.base.ModelBase):
 class Event(models.Model):
   __metaclass__ = _NotManagedModelBase
 
-  event_id       = models.TextField(primary_key=True)
-  device_id      = models.TextField()
+  event_id       = models.TextField(primary_key=True, db_index=True)
+  device_id      = models.TextField(db_index=True)
   time           = models.TextField()
-  event          = models.TextField()
+  event          = models.TextField(db_index=True)
   seq            = models.IntegerField()
   log_id         = models.TextField()
   prefix         = models.TextField()
@@ -47,7 +47,7 @@ class Attr(models.Model):
   __metaclass__ = _NotManagedModelBase
 
   # Django needs the primary key for the table. Otherwise, it causes errors.
-  event_id = models.TextField(primary_key=True)
+  event_id = models.TextField(primary_key=True, db_index=True)
   attr     = models.TextField(primary_key=True)
   value    = models.TextField()
 
@@ -58,10 +58,10 @@ class Test(models.Model):
   invocation     = models.TextField(primary_key=True)
   event_id       = models.TextField()
   event_seq      = models.IntegerField()
-  device_id      = models.TextField()
+  device_id      = models.TextField(db_index=True)
   factory_md5sum = models.TextField()
   reimage_id     = models.TextField()
-  path           = models.TextField()
+  path           = models.TextField(db_index=True)
   pytest_name    = models.TextField()
   status         = models.TextField()
   start_time     = models.TextField()
@@ -72,7 +72,7 @@ class Test(models.Model):
 class Device(models.Model):
   __metaclass__ = _NotManagedModelBase
 
-  device_id           = models.TextField(primary_key=True)
+  device_id           = models.TextField(primary_key=True, db_index=True)
   goofy_init_time     = models.TextField()
   serial              = models.TextField()
   mlb_serial          = models.TextField()
@@ -95,6 +95,6 @@ class Device(models.Model):
 class Component(models.Model):
   __metaclass__ = _NotManagedModelBase
 
-  device_id = models.TextField(primary_key=True)
+  device_id = models.TextField(primary_key=True, db_index=True)
   component = models.TextField(primary_key=True)
   symbolic  = models.TextField()

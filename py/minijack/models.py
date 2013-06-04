@@ -7,10 +7,10 @@ from cros.factory.minijack.db import models
 
 
 class Event(models.Model):
-  event_id       = models.TextField(primary_key=True)
-  device_id      = models.TextField()
+  event_id       = models.TextField(primary_key=True, db_index=True)
+  device_id      = models.TextField(db_index=True)
   time           = models.TextField()
-  event          = models.TextField()
+  event          = models.TextField(db_index=True)
   seq            = models.IntegerField()
   log_id         = models.TextField()
   prefix         = models.TextField()
@@ -23,7 +23,7 @@ class Event(models.Model):
 class Attr(models.Model):
   # No primary_key for the Attr table for speed-up. Duplication check is
   # done using the Event table.
-  event_id = models.TextField()
+  event_id = models.TextField(db_index=True)
   attr     = models.TextField()
   value    = models.TextField()
 
@@ -32,10 +32,10 @@ class Test(models.Model):
   invocation     = models.TextField(primary_key=True)
   event_id       = models.TextField()
   event_seq      = models.IntegerField()
-  device_id      = models.TextField()
+  device_id      = models.TextField(db_index=True)
   factory_md5sum = models.TextField()
   reimage_id     = models.TextField()
-  path           = models.TextField()
+  path           = models.TextField(db_index=True)
   pytest_name    = models.TextField()
   status         = models.TextField()
   start_time     = models.TextField()
@@ -44,7 +44,7 @@ class Test(models.Model):
 
 
 class Device(models.Model):
-  device_id           = models.TextField(primary_key=True)
+  device_id           = models.TextField(primary_key=True, db_index=True)
   goofy_init_time     = models.TextField()
   serial              = models.TextField()
   mlb_serial          = models.TextField()
@@ -65,6 +65,6 @@ class Device(models.Model):
 
 
 class Component(models.Model):
-  device_id = models.TextField(primary_key=True)
+  device_id = models.TextField(primary_key=True, db_index=True)
   component = models.TextField(primary_key=True)
   symbolic  = models.TextField()
