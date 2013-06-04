@@ -4,7 +4,9 @@
 
 import factory_common  # pylint: disable=W0611
 from cros.factory import cros_locale
+from cros.factory.test.utils import Enum
 
+KeyboardMechanicalLayout = Enum(['ANSI', 'ISO', 'JIS'])
 
 class Region(object):
   """Comprehensive, standard locale configuration per country/region.
@@ -23,8 +25,11 @@ class Region(object):
       http://goo.gl/IqLVX.
     language code: The standard language code (e.g., 'en-US'); see
       http://goo.gl/kVkht.
+    keyboard_mechanical_layout: The keyboard's mechanical layout (ANSI
+      [US-like], ISO [UK-like], or JIS).
   """
-  def __init__(self, region_code, keyboard, time_zone, language_code):
+  def __init__(self, region_code, keyboard, time_zone, language_code,
+               keyboard_mechanical_layout):
     assert region_code != 'uk'
     assert keyboard in cros_locale.ALL_KEYBOARDS, '%s not in %s' % (
         keyboard, cros_locale.ALL_KEYBOARDS)
@@ -37,24 +42,26 @@ class Region(object):
     self.keyboard = keyboard
     self.time_zone = time_zone
     self.language_code = language_code
+    self.keyboard_mechanical_layout = keyboard_mechanical_layout
 
+_KML = KeyboardMechanicalLayout
 _REGIONS_LIST = [
-    Region('au', 'xkb:us::eng',     'Australia/Sydney',    'en-AU'),
-    Region('ca', 'xkb:us::eng',     'America/New_York',    'en-CA'),
-    Region('de', 'xkb:de::ger',     'Europe/Amsterdam',    'de'),
-    Region('dk', 'xkb:dk::dan',     'Europe/Amsterdam',    'da'),
-    Region('fi', 'xkb:fi::fin',     'Europe/Helsinki',     'fi'),
-    Region('fr', 'xkb:fr::fra',     'Europe/Amsterdam',    'fr'),
-    Region('gb', 'xkb:gb:extd:eng', 'Europe/London',       'en-GB'),
-    Region('ie', 'xkb:gb:extd:eng', 'Europe/London',       'en-GB'),
-    Region('it', 'xkb:it::ita',     'Europe/Amsterdam',    'it'),
-    Region('jp', 'xkb:jp::jpn',     'Asia/Tokyo',          'ja'),
-    Region('my', 'xkb:us::eng',     'Asia/Kuala_Lumpur',   'ms'),
-    Region('nl', 'xkb:us:intl:eng', 'Europe/Amsterdam',    'nl'),
-    Region('nz', 'xkb:us::eng',     'Pacific/Auckland',    'en-NZ'),
-    Region('no', 'xkb:no::nob',     'Europe/Amsterdam',    'no'),
-    Region('se', 'xkb:se::swe',     'Europe/Amsterdam',    'sv'),
-    Region('sg', 'xkb:us::eng',     'Asia/Hong_Kong',      'en-GB'),
-    Region('us', 'xkb:us::eng',     'America/Los_Angeles', 'en-US'),
+    Region('au', 'xkb:us::eng',     'Australia/Sydney',    'en-AU', _KML.ANSI),
+    Region('ca', 'xkb:us::eng',     'America/New_York',    'en-CA', _KML.ANSI),
+    Region('de', 'xkb:de::ger',     'Europe/Amsterdam',    'de',    _KML.ISO),
+    Region('dk', 'xkb:dk::dan',     'Europe/Amsterdam',    'da',    _KML.ISO),
+    Region('fi', 'xkb:fi::fin',     'Europe/Helsinki',     'fi',    _KML.ISO),
+    Region('fr', 'xkb:fr::fra',     'Europe/Amsterdam',    'fr',    _KML.ISO),
+    Region('gb', 'xkb:gb:extd:eng', 'Europe/London',       'en-GB', _KML.ISO),
+    Region('ie', 'xkb:gb:extd:eng', 'Europe/London',       'en-GB', _KML.ISO),
+    Region('it', 'xkb:it::ita',     'Europe/Amsterdam',    'it',    _KML.ISO),
+    Region('jp', 'xkb:jp::jpn',     'Asia/Tokyo',          'ja',    _KML.JIS),
+    Region('my', 'xkb:us::eng',     'Asia/Kuala_Lumpur',   'ms',    _KML.ANSI),
+    Region('nl', 'xkb:us:intl:eng', 'Europe/Amsterdam',    'nl',    _KML.ANSI),
+    Region('nz', 'xkb:us::eng',     'Pacific/Auckland',    'en-NZ', _KML.ANSI),
+    Region('no', 'xkb:no::nob',     'Europe/Amsterdam',    'no',    _KML.ISO),
+    Region('se', 'xkb:se::swe',     'Europe/Amsterdam',    'sv',    _KML.ISO),
+    Region('sg', 'xkb:us::eng',     'Asia/Hong_Kong',      'en-GB', _KML.ANSI),
+    Region('us', 'xkb:us::eng',     'America/Los_Angeles', 'en-US', _KML.ANSI),
 ]
 REGIONS = dict((x.region_code, x) for x in _REGIONS_LIST)
