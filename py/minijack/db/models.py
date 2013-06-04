@@ -14,13 +14,19 @@ class Field(object):
 
   Properties:
     _primary_key: True if this field is a primary key; otherwise, False.
+    _db_index: True if this field is indexed; otherwise, False.
   """
-  def __init__(self, primary_key=False):
+  def __init__(self, primary_key=False, db_index=False):
     self._primary_key = primary_key
+    self._db_index = db_index
 
   def IsPrimaryKey(self):
     """Is this field a primary key?"""
     return self._primary_key
+
+  def IsDbIndex(self):
+    """Is this field indexed?"""
+    return self._db_index
 
   def IsValid(self, value):
     """Is the given value a valid field?"""
@@ -90,10 +96,13 @@ class ModelType(type):
             field objects. It is used as the schema of the data model.
     _primary_key: The primary key list, which contains a list of the primary
                   key field names.
+    _db_indexes: The indexed field list, which contains a list of the indexed
+                 field names.
   """
   def __new__(mcs, name, bases, attrs):
     model = {}
     primary_key = []
+    db_indexes = []
     for attr_name, attr_value in attrs.iteritems():
       # Only pick the Field attributes.
       if issubclass(type(attr_value), Field):
@@ -102,8 +111,11 @@ class ModelType(type):
         attrs[attr_name] = attr_value.GetDefault()
         if attr_value.IsPrimaryKey():
           primary_key.append(attr_name)
+        if attr_value.IsDbIndex():
+          db_indexes.append(attr_name)
     attrs['_model'] = model
     attrs['_primary_key'] = primary_key
+    attrs['_db_indexes'] = db_indexes
     return super(ModelType, mcs).__new__(mcs, name, bases, attrs)
 
 
@@ -118,12 +130,15 @@ class Model(object):
             field objects. It is used as the schema of the data model.
     _primary_key: The primary key list, which contains a list of the primary
                   key field names.
+    _db_indexes: The indexed field list, which contains a list of the indexed
+                 field names.
   """
   __metaclass__ = ModelType
 
   # The following class attributes are initialized in the metaclass.
   _model = {}
   _primary_key = []
+  _db_indexes = []
 
   @classmethod
   def GetModelName(cls):
@@ -139,6 +154,11 @@ class Model(object):
   def GetPrimaryKey(cls):
     """Gets the list of primary key field names."""
     return cls._primary_key
+
+  @classmethod
+  def GetDbIndexes(cls):
+    """Gets the list of indexed field names."""
+    return cls._db_indexes
 
   @classmethod
   def IsValid(cls, instance):
@@ -161,6 +181,17 @@ class Model(object):
                (cls.GetModelName(),
                 ', '.join(columns)))
     return sql_cmd
+
+  @classmethod
+  def SqlCmdCreateIndexes(cls):
+    """Gets the SQL commands of creating indexes using the model schema."""
+    sql_cmds = []
+    for field_name in cls.GetDbIndexes():
+      sql_cmds.append('CREATE INDEX %s ON %s ( %s )' % (
+          '_'.join(['index', cls.GetModelName(), field_name]),
+          cls.GetModelName(),
+          field_name))
+    return sql_cmds
 
   def __init__(self, *args, **kwargs):
     if args:

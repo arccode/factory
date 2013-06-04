@@ -15,12 +15,12 @@ from cros.factory.minijack.db import models
 class FooModel(models.Model):
   field_i = models.IntegerField(primary_key=True)
   field_r = models.FloatField()
-  field_t = models.TextField()
+  field_t = models.TextField(db_index=True)
 
 
 class BarModel(models.Model):
-  key1 = models.TextField(primary_key=True)
-  key2 = models.TextField(primary_key=True)
+  key1 = models.TextField(primary_key=True, db_index=True)
+  key2 = models.TextField(primary_key=True, db_index=True)
   val1 = models.TextField()
   val2 = models.IntegerField()
   val3 = models.FloatField()
@@ -88,6 +88,11 @@ class DatabaseTest(unittest.TestCase):
   def testWrongSchema(self):
     self.database.GetOrCreateTable(FooModel)
     self.assertFalse(self.database.VerifySchema(DatabaseTest.FooModel))
+
+  def testCreateIndexes(self):
+    self.assertFalse(self.database.DoIndexesExist(FooModel))
+    self.database.GetOrCreateTable(FooModel)
+    self.assertTrue(self.database.DoIndexesExist(FooModel))
 
   def testInsert(self):
     self.database.Insert(FooModel(field_i=56, field_t='Five Six'))

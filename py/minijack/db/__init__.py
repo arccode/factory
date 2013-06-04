@@ -49,6 +49,12 @@ class Table(object):
     executor = self._executor_factory.NewExecutor()
     executor.Execute(sql_cmd, commit=True)
 
+  def CreateIndexes(self):
+    """Creates the indexes of the table."""
+    executor = self._executor_factory.NewExecutor()
+    for sql_cmd in self._model.SqlCmdCreateIndexes():
+      executor.Execute(sql_cmd, commit=True)
+
   def InsertRow(self, row):
     """Inserts a row into the table.
 
@@ -357,8 +363,24 @@ class Database(object):
     Returns:
       True if exists; otherwise, False.
     """
-    condition = sqlite_master(name=model.GetModelName())
+    condition = sqlite_master(type='table', name=model.GetModelName())
     return self._master_table.DoesRowExist(condition)
+
+  def DoIndexesExist(self, model):
+    """Checks the indexes with the given model schema exist or not.
+
+    Args:
+      model: A model class or a model instance.
+
+    Returns:
+      True if exist; otherwise, False.
+    """
+    for field_name in model.GetDbIndexes():
+      condition = sqlite_master(type='index',
+          name='_'.join(['index', model.GetModelName(), field_name]))
+      if not self._master_table.DoesRowExist(condition):
+        return False
+    return True
 
   def GetExecutorFactory(self):
     """Gets the executor factory."""
@@ -399,6 +421,11 @@ class Database(object):
             raise DatabaseException('Different schema in table %s' % table_name)
         else:
           table.CreateTable()
+        if not self.DoIndexesExist(model):
+          logging.info(
+              'Indexes of table %s not exist. Please wait to create them...',
+              table_name)
+          table.CreateIndexes()
         self._tables[table_name] = table
       else:
         raise DatabaseException('Table %s not initialized.' % table_name)

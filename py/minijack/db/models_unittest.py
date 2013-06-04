@@ -13,12 +13,12 @@ from cros.factory.minijack.db import models
 class FooModel(models.Model):
   field_i = models.IntegerField(primary_key=True)
   field_r = models.FloatField()
-  field_t = models.TextField()
+  field_t = models.TextField(db_index=True)
 
 
 class BarModel(models.Model):
-  key1 = models.TextField(primary_key=True)
-  key2 = models.TextField(primary_key=True)
+  key1 = models.TextField(primary_key=True, db_index=True)
+  key2 = models.TextField(primary_key=True, db_index=True)
   val1 = models.TextField()
   val2 = models.IntegerField()
   val3 = models.FloatField()
@@ -51,8 +51,13 @@ class ModelTest(unittest.TestCase):
 
   def testGetPrimaryKey(self):
     # GetPrimaryKey() is a class method.
-    self.assertItemsEqual(FooModel.GetPrimaryKey(), ['field_i'])
-    self.assertItemsEqual(self.bar_model.GetPrimaryKey(), ['key1', 'key2'])
+    self.assertItemsEqual(['field_i'], FooModel.GetPrimaryKey())
+    self.assertItemsEqual(['key1', 'key2'], self.bar_model.GetPrimaryKey())
+
+  def testGetDbIndexes(self):
+    # GetDbIndexes() is a class method.
+    self.assertItemsEqual(['field_t'], FooModel.GetDbIndexes())
+    self.assertItemsEqual(['key1', 'key2'], self.bar_model.GetDbIndexes())
 
   def testIsValid(self):
     # IsValid() is a class method.
