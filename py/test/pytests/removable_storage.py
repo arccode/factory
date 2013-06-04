@@ -21,6 +21,9 @@ import time
 import unittest
 
 from cros.factory.event_log import Log
+from cros.factory.test.fixture.bft_fixture import (BFTFixture,
+                                                   BFTFixtureException,
+                                                   CreateBFTFixture)
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -105,6 +108,11 @@ _ERR_VERIFY_PARTITION_FMT_STR = (
     lambda test_type, target_dev:
         'Partition verification failed on %s device %s. Problem with card '
         'reader module maybe?' % (test_type, target_dev))
+_ERR_BFT_ACTION_STR = (
+    lambda action, test_type, target_dev, reason:
+        'BFT fixture failed to %s %s device %s. Reason: %s' % (
+            action, test_type, target_dev, reason))
+
 _TEST_TITLE = test_ui.MakeLabel('Card Reader Test', u'读卡机测试')
 _IMG_HTML_TAG = (
     lambda src: '<img src="%s" style="display:block; margin:0 auto;"/>' % src)
@@ -145,6 +153,8 @@ class RemovableStorageTest(unittest.TestCase):
     self._total_tests = 0
     self._finished_tests = 0
     self._metrics = {}
+    self._bft_fixture = None
+    self._bft_media_device = None
 
   def GetAttrs(self, device, key_set):
     if device is None:
@@ -389,6 +399,12 @@ class RemovableStorageTest(unittest.TestCase):
     self._template.SetInstruction(_REMOVE_FMT_STR(self.args.media))
     self._state = _STATE_RW_TEST_WAIT_REMOVE
     self._template.SetState(_IMG_HTML_TAG(self._removal_image))
+    if self._bft_fixture:
+      try:
+        self._bft_fixture.SetDeviceEngaged(self._bft_media_device, False)
+      except BFTFixtureException as e:
+        self._ui.Fail(_ERR_BFT_ACTION_STR(
+            'remove', self.args.media, self._target_device, e))
 
   def TestLock(self):
     '''SD card write protection test.'''
@@ -527,6 +543,14 @@ class RemovableStorageTest(unittest.TestCase):
         optional=True),
     Arg('extra_prompt_zh', (str, unicode), 'An extra prompt (in Chinese)',
         optional=True),
+    Arg('bft_fixture', dict,
+        '{class_name: BFTFixture\'s import path + module name\n'
+        ' params: a dict of params for BFTFixture\'s Init()}.\n'
+        'Default None means no BFT fixture is used.',
+        default=None, optional=True),
+    Arg('bft_media_device', str,
+        'Device name of BFT used to insert/remove the media.',
+        optional=True)
   ]
 
   def runTest(self):
@@ -578,5 +602,17 @@ class RemovableStorageTest(unittest.TestCase):
                                        device_type='disk')
     self._pyudev_thread.daemon = True
     self._pyudev_thread.start()
+
+    if self.args.bft_fixture:
+      self._bft_fixture = CreateBFTFixture(**self.args.bft_fixture)
+      self._bft_media_device = self.args.bft_media_device
+      if self._bft_media_device not in BFTFixture.Device:
+        self.fail('Invalid args.bft_media_device: ' + self._bft_media_device)
+      else:
+        try:
+          self._bft_fixture.SetDeviceEngaged(self._bft_media_device, True)
+        except BFTFixtureException as e:
+          self.fail(_ERR_BFT_ACTION_STR(
+              'insert', self.args.media, self._target_device, e))
 
     self._ui.Run()
