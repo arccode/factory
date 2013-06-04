@@ -1188,6 +1188,13 @@ class Goofy(object):
     if self.test_list.options.clear_state_on_start:
       self.state_instance.clear_test_state()
 
+    if system.SystemInfo().firmware_version is None:
+      self.state_instance.set_shared_data('startup_error',
+          'Netboot firmware detected\n'
+          'Connect Ethernet and reboot to re-image.\n'
+          u'侦测到网路开机固件\n'
+          u'请连接乙太网并重启')
+
     if not self.state_instance.has_shared_data('ui_lang'):
       self.state_instance.set_shared_data('ui_lang',
                         self.test_list.options.ui_lang)
