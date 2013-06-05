@@ -22,35 +22,36 @@ class DummyBFTFixture(BFTFixture):
   _delay_secs = 3
 
   def Init(self, **kwargs):
-    pass
+    self._Log('connected.')
 
   def Disconnect(self):
-    pass
+    self._Log('disconnected.')
 
   def SetDeviceEngaged(self, device, engage):
-    self._DisplayPrompt('Please %s device: %s' %
-                        ('engage' if engage else 'disengage',
-                         device))
+    self._Prompt(
+      'Please %s device: %s' % ('engage' if engage else 'disengage', device))
 
   def Ping(self):
-    pass
+    self._Log('ping back.')
 
   def CheckPowerRail(self):
-    pass
+    self._Log('power rail okay.')
 
   def CheckExtDisplay(self):
-    pass
+    self._Log('external display okay.')
 
   def GetFixtureId(self):
+    self._Log('fixture ID: 1.')
     return 1
 
   def ScanBarcode(self):
-    self._DisplayPrompt('Please type a barcode.')
+    self._Prompt('Please type a barcode.')
 
   def SimulateKeystrokes(self):
-    self._DisplayPrompt('Please input keystoke sequence.')
+    self._Prompt('Please input keystoke sequence.')
 
-  def IsLEDColor(self, unused_color):  # pylint: disable=W0613
+  def IsLEDColor(self, color):
+    self._Log('Sees color: %s' % color)
     return True
 
   @property
@@ -61,7 +62,10 @@ class DummyBFTFixture(BFTFixture):
   def delay_secs(self, delay_secs):
     self._delay_secs = delay_secs
 
-  def _DisplayPrompt(self, prompt):
+  def _Log(self, message):
+    factory.console.info('Dummy BFT: ' + message)
+
+  def _Prompt(self, prompt):
     """Asks user to do something to ack like a real fixture.
 
     It sleeps for _delay_secs for user to complete the action.
@@ -69,5 +73,5 @@ class DummyBFTFixture(BFTFixture):
     Args:
       prompt: The prompt message.
     """
-    factory.console.info(prompt)
+    self._Log(prompt)
     time.sleep(self._delay_secs)

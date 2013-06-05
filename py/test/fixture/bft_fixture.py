@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 # Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -6,7 +8,15 @@
 
 Also provides factory function CreateBFTFixture() to import specific
 BFTFixture module, instantiate it, and connect to the fixture.
+
+It is also an executable for users to communicate with BFT fixutre
+under DUT shell.
 """
+
+import argparse
+import logging
+import os
+import yaml
 
 import factory_common # pylint: disable=W0611
 from cros.factory.test.utils import Enum
@@ -135,3 +145,70 @@ def CreateBFTFixture(class_name, params):
   fixture = getattr(__import__(module, fromlist=[cls]), cls)()
   fixture.Init(**params)
   return fixture
+
+
+def main():
+  logging.basicConfig(level=logging.INFO)
+  parser = argparse.ArgumentParser(description='BFT command line tool.')
+  parser.add_argument(
+      '--config',
+      default='/usr/local/factory/py/test/fixture/bft.conf',
+      help=('A config file to connect BFT fixture. If default bft.conf is not '
+            'found, a DummyBFTFixture is used.'))
+
+  subparsers = parser.add_subparsers(dest='command')
+  support_devices = sorted(BFTFixture.Device)
+  parser_engage = subparsers.add_parser(
+      'Engage', help='Engage a device. -h for more help.')
+  parser_engage.add_argument('device', choices=support_devices,
+                             help='Device to engage.')
+
+  parser_disengage = subparsers.add_parser(
+      'Disengage', help='Disengage a device. -h for more help.')
+  parser_disengage.add_argument('device', choices=support_devices,
+                                help='Device to disengage.')
+
+  parser_is_led_color = subparsers.add_parser(
+      'IsLEDColor', help='Check LED color. -h for more help.')
+  parser_is_led_color.add_argument('color',
+                                   choices=sorted(BFTFixture.LEDColor),
+                                   help='Color to inspect.')
+
+  subparsers.add_parser('CheckExtDisplay', help='Check external display.')
+  subparsers.add_parser('CheckPowerRail', help='Check power rail.')
+  subparsers.add_parser('GetFixtureId', help='Get fixture ID.')
+  subparsers.add_parser('Ping', help='Ping fixture.')
+  subparsers.add_parser('ScanBarcode', help='Trigger barcode scanner.')
+  subparsers.add_parser('SimulateKeystrokes', help='Trigger keyboard scanner.')
+
+  args = parser.parse_args()
+
+  fixture = None
+
+  fixture_param = {
+      'class_name':
+          'cros.factory.test.fixture.dummy_bft_fixture.DummyBFTFixture',
+      'params': {}
+  }
+  if os.path.exists(args.config):
+    with open(args.config, 'r') as config_file:
+      fixture_param = yaml.load(config_file)
+
+  logging.info('CreateBFTFixture(%r, %r)', fixture_param['class_name'],
+               fixture_param['params'])
+  fixture = CreateBFTFixture(**fixture_param)
+
+  command = args.command
+  if command == 'Engage' or command == 'Disengage':
+    print '%s %s' % (command, args.device)
+    fixture.SetDeviceEngaged(args.device,
+                             True if command == 'Engage' else False)
+  elif command == 'IsLEDColor':
+    color = args.color
+    print 'IsLEDColor(%s): %s' % (color, fixture.IsLEDColor(color))
+  else:
+    getattr(fixture, command)()
+
+
+if __name__ == "__main__":
+  main()
