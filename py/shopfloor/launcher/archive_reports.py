@@ -92,8 +92,8 @@ def ArchiveReports(minutes):
     logging.info('Finishing archiving %s to %s',
                  report_name, archive_name)
 
-    reactor.callLater(minutes * 60,  # pylint: disable=E1101
-                      ArchiveReports, minutes)
+  reactor.callLater(minutes * 60,  # pylint: disable=E1101
+                    ArchiveReports, minutes)
 
 def SignalHandler(dummy_signal, dummy_frame):
   # Call reactor.stop() from reactor instance to make sure no spawned process
@@ -105,14 +105,15 @@ def main():
   logging.basicConfig(level=logging.INFO, format='%(message)s')
   parser = optparse.OptionParser()
   parser.add_option('-p', '--period', dest='period', metavar='PERIOD_MINITES',
-                    default=_DEFAULT_PERIOD_MINUTES,
+                    default=_DEFAULT_PERIOD_MINUTES, type='int',
                     help='run every N minutes (default: %default)')
   (options, args) = parser.parse_args()
   if args:
     parser.error('Invalid args: %s' % ' '.join(args))
 
   # Start the first cycle.
-  reactor.callLater(1, ArchiveReports, options.period)  # pylint: disable=E1101
+  reactor.callLater(1, ArchiveReports,  # pylint: disable=E1101
+                    int(options.period))
 
   signal.signal(signal.SIGTERM, SignalHandler)
   signal.signal(signal.SIGINT, SignalHandler)
