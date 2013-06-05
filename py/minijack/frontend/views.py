@@ -42,6 +42,7 @@ def GetDeviceView(dummy_request, device_id):
   device = Device.objects.get(device_id=device_id)
   tests = Test.objects.filter(device_id=device_id).order_by('-start_time')
   comps = Component.objects.filter(device_id=device_id).order_by('component')
+  events = Event.objects.filter(device_id=device_id).order_by('log_id', 'time')
 
   # Count the passed and failed tests.
   count_passed = len([t for t in tests if t.status == 'PASSED'])
@@ -68,6 +69,7 @@ def GetDeviceView(dummy_request, device_id):
     'device': device,
     'tests': tests,
     'comps': comps,
+    'events': events,
     'stat': stat_dict,
   })
   return HttpResponse(template.render(context))

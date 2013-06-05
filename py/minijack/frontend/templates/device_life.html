@@ -28,6 +28,14 @@
       src="{{ STATIC }}js/minijack_common.js"></script>
   <script type="text/javascript" language="javascript"
       src="{{ STATIC }}js/device_life.js"></script>
+  <script type="text/javascript" language="javascript">
+  {% regroup events by log_id as event_list %}
+  var aaEvents = {{% for test_event in event_list %}
+    "{{ test_event.grouper }}": [{% for event in test_event.list %}
+      ["{{ event.event_id }}", "{{ event.event }}"],{% endfor %}
+    ],{% endfor %}
+  };
+  </script>
 </head>
 <body>
   <div class="right">
@@ -41,13 +49,11 @@
     <div class="right">
       <h2>Component Information</h2>
       <table class="screen">
-        <tbody>
-          {% for comp in comps %}
+        <tbody>{% for comp in comps %}
           <tr>
             <th align="left">{{ comp.component }}</th>
             <td>{{ comp.symbolic }}</td>
-          </tr>
-          {% endfor %}
+          </tr>{% endfor %}
         </tbody>
       </table>
      </div>
@@ -115,13 +121,11 @@
           <tr>
              <th>Top Failed</th>
              <th>Count</th>
-          </tr>
-          {% for test in stat.top_failed %}
+          </tr>{% for test in stat.top_failed %}
           <tr>
             <td>{{ test.path }}</th>
             <td align="right">{{ test.count }}</td>
-          </tr>
-          {% endfor %}
+          </tr>{% endfor %}
         </tbody>
       </table>
     </div>
@@ -131,6 +135,7 @@
   <table id="test_table">
     <thead>
       <tr>
+        <th></th>
         <th>event_id</th>
         <th>event_seq</th>
         <th>invocation</th>
@@ -146,6 +151,7 @@
     </thead>
     <tfoot>
       <tr>
+        <th></th>
         <th>event_id</th>
         <th>invocation</th>
         <th>status</th>
@@ -158,16 +164,20 @@
         <th>reimage_id</th>
       </tr>
     </tfoot>
-    <tbody>
-      {% for test in tests %}
+    <tbody>{% for test in tests %}
       <tr>
+        <td width="20"><script>
+          if ("{{ test.invocation }}" in aaEvents) {
+            document.write('<img src="{{ STATIC }}images/details_open.png"/>');
+          }
+        </script></td>
         <td>
           <a href="{% url 'event' test.event_id %}">
             {{ test.event_id|slice:":5" }}...{{ test.event_id|slice:"-5:" }}
           </a>
         </td>
         <td align="right">{{ test.event_seq }}</td>
-        <td>{{ test.invocation|truncatechars:18 }}</td>
+        <td>{{ test.invocation }}</td>
         <td>{{ test.status }}</td>
         <td>{{ test.path }}</td>
         <td>{{ test.pytest_name }}</td>
@@ -176,8 +186,7 @@
         <td align="right">{{ test.duration|floatformat:3 }}</td>
         <td>{{ test.factory_md5sum|truncatechars:18 }}</td>
         <td>{{ test.reimage_id|truncatechars:18 }}</td>
-      </tr>
-      {% endfor %}
+      </tr>{% endfor %}
     </tbody>
   </table>
 </body>
