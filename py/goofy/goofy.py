@@ -1188,7 +1188,7 @@ class Goofy(object):
     if self.test_list.options.clear_state_on_start:
       self.state_instance.clear_test_state()
 
-    if system.SystemInfo().firmware_version is None:
+    if system.SystemInfo().firmware_version is None and not utils.in_chroot():
       self.state_instance.set_shared_data('startup_error',
           'Netboot firmware detected\n'
           'Connect Ethernet and reboot to re-image.\n'
