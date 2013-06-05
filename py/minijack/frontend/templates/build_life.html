@@ -50,6 +50,7 @@
   <table id="device_table" width="100%">
     <thead>
       <tr>
+        <th></th>
         <th>device_id</th>
         <th>goofy_init_time</th>
         <th>latest_test</th>
@@ -72,6 +73,7 @@
     </thead>
     <tfoot>
       <tr>
+        <th></th>
         <th>device_id</th>
         <th>goofy_init_time</th>
         <th>latest_test</th>
@@ -94,6 +96,7 @@
     </tfoot>
     <tbody>
       {% for device in device_list %}<tr>
+        <td width="20"><img src="{{ STATIC }}images/details_open.png"/></td>
         <td>
           <a href="{% url 'device' device.device_id %}">
             {{ device.device_id|truncatechars:18 }}

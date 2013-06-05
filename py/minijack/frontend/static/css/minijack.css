@@ -20,8 +20,12 @@ table {
   font-size: 100%;
 }
 
-td, th {
+th {
   vertical-align: top;
+}
+
+td {
+  vertical-align: middle;
 }
 
 table.screen {
@@ -38,6 +42,22 @@ table.screen th {
 table.screen td, table.screen th {
   border: 1px solid #eee;
   padding: 4px 12px;
+}
+
+table.detail {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+
+table.detail td, table.detail th {
+  padding-left: 20px;
+  text-align: left;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+td.cell {
+  background-color: #ffffcc;
 }
 
 a {
