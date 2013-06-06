@@ -114,6 +114,8 @@ class Event(object):
       'PENDING_SHUTDOWN': 'goofy:pending_shutdown',
       # Cancels a pending shutdown.
       'CANCEL_SHUTDOWN': 'goofy:cancel_shutdown',
+      # Tells UI to update notes.
+      'UPDATE_NOTES': 'goofy:update_notes',
       })
 
   def __init__(self, type, **kw): # pylint: disable=W0622

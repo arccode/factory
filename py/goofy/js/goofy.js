@@ -2692,6 +2692,9 @@ cros.factory.Goofy.prototype.handleBackendEvent = function(jsonMessage) {
     } else if (message.type == 'goofy:pending_shutdown') {
         this.setPendingShutdown(
             /** @type {cros.factory.PendingShutdownEvent} */(message));
+    } else if (message.type == 'goofy:update_notes') {
+        this.sendRpc('get_shared_data', ['factory_note', true],
+                     this.updateNote);
     }
 };
 

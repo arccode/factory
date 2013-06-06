@@ -108,8 +108,9 @@ class GoofyRPC(object):
                  note['text'])
     if note['level'] == 'CRITICAL':
       self.goofy.run_queue.put(self.goofy.stop)
-    return self.goofy.state_instance.append_shared_data_list(
+    self.goofy.state_instance.append_shared_data_list(
         'factory_note', note)
+    self.PostEvent(Event(Event.Type.UPDATE_NOTES))
 
   def GetVarLogMessages(self, max_length=256*1024):
     '''Returns the last n bytes of /var/log/messages.
