@@ -56,7 +56,7 @@ class EventAttrExporter(ExporterBase):
 
   def _InsertAttr(self, packet):
     """Retrieves attr information and inserts to Attr table"""
-    RESERVED_PATH = ('EVENT', 'SEQ', 'TIME')
+    RESERVED_PATH = ('EVENT', 'SEQ', 'TIME', 'PREFIX', 'LOG_ID')
     rows = []
     # As the event is a tree struct which contains dicts or lists,
     # we flatten it first. The hierarchy is recorded in the Attr column.
