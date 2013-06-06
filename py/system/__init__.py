@@ -60,7 +60,7 @@ class SystemInfo(object):
   def __init__(self):
     self.mlb_serial_number = None
     try:
-      self.mlb_serial_number = factory.get_shared_data('mlb_serial_number')
+      self.mlb_serial_number = shopfloor.GetDeviceData()['mlb_serial_number']
     except:
       pass
 
