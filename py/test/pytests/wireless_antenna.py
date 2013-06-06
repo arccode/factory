@@ -14,7 +14,7 @@ configuration to test signal quality.
 Be sure to set AP correctly.
 1. Select a fixed channel instead of auto.
 2. Disable the power control in AP.
-3. Make sure mac address of AP is unique.
+3. Make sure SSID of AP is unique.
 """
 
 import logging
@@ -202,16 +202,17 @@ class WirelessTest(unittest.TestCase):
   ARGS = [
     Arg('device_name', str, 'wireless device name to test.'
         'Set this correctly if check_antenna is True.', default='wlan0'),
-    Arg('spec_dict', dict, 'Keys: a tuple of (service_macs, freq) tuples like '
-        '((MAC_AP1, FREQ_AP1), (MAC_AP2, FREQ_AP2), (MAC_AP3, FREQ_AP3)). '
+    Arg('spec_dict', dict, 'Keys: a tuple of (service_ssid, freq) tuples like '
+        '((SSID_AP1, FREQ_AP1), (SSID_AP2, FREQ_AP2), (SSID_AP3, FREQ_AP3)). '
         'The test will only check the service whose antenna_all signal strength'
-        ' is the largest. If (MAC_AP1, FREQ_AP1) has the largest signal among '
+        ' is the largest. If (SSID_AP1, FREQ_AP1) has the largest signal among '
         'AP1, AP2, AP3, then its result will be checked against the spec value.'
         ' Values: a dict of minimal signal strength. For example, a dict like '
         '{"main": strength_1, "aux": strength_2, "all": strength_all}. '
         'The test will check signal strength under different antenna config. '
-        'Example of spec_dict: {(MAC_AP1, MAC_AP2, MAC_AP3): {"all": 50}, '
-        '((MAC_AP4, FREQ_AP4)): {"main": 50, "aux": 50, "all": 60)}.',
+        'Example of spec_dict: { '
+        '    ((SSID_AP1, FREQ_AP1), (SSID_AP2, FREQ_AP2)): {"all": 50}, '
+        '    ((SSID_AP3, FREQ_AP3)): {"main": 50, "aux": 50, "all": 60}}.',
         optional=False),
     Arg('scan_count', int, 'number of scanning to get average signal strength',
         default=5),
@@ -270,14 +271,15 @@ class WirelessTest(unittest.TestCase):
         if strength > max_strength:
           max_strength_service, max_strength = service, strength
       else:
-        factory.console.info('Service %s has no signal strength.', service)
+        factory.console.info('Service %s has no valid signal strength.',
+                             service)
 
     if max_strength_service:
       logging.info('Service %s has the highest signal strength %f among %s.',
-                   max_strength_service, max_strength, service_strengths)
+                   max_strength_service, max_strength, services)
       return max_strength_service
     else:
-      logging.warning('Services %s are not available.', services)
+      logging.warning('Services %s are not valid.', services)
 
   def ScanSignal(self, freq):
     """Scans signal on device.
@@ -295,20 +297,20 @@ class WirelessTest(unittest.TestCase):
     logging.info('Scan finished.')
     return scan_output
 
-  def ParseScanOutput(self, scan_output, service_mac):
-    """Parses iw scan output to get ssid, freq and signal strength of service.
+  def ParseScanOutput(self, scan_output, service_ssid):
+    """Parses iw scan output to get mac, freq and signal strength of service.
 
-    This function can not parse two scan results with the same mac_address.
+    This function can not parse two scan results with the same service_ssid.
 
     Args:
       scan_output: iw scan output.
-      service_mac: The service to scan.
+      service_ssid: The ssid of the service to scan.
 
     Returns:
-      (ssid, freq, signal) if there is a unique service mac in the scan output.
+      (mac, freq, signal) if there is a scan result of ssid in the scan_output.
       (None, None, None) otherwise.
     """
-    ssid_freq_signal_list = []
+    mac_freq_signal_list = []
     (mac, ssid, freq, signal) = (None, None, None, None)
     for line in scan_output.splitlines():
       line = line.strip()
@@ -319,21 +321,21 @@ class WirelessTest(unittest.TestCase):
       freq = GetProp(line, _RE_FREQ, freq)
       signal = GetProp(line, _RE_SIGNAL, signal)
       ssid = GetProp(line, _RE_SSID, ssid)
-      if freq and signal and ssid:
-        if mac == service_mac:
-          ssid_freq_signal_list.append((ssid, int(freq), float(signal)))
-        (ssid, freq, signal) = (None, None, None)
-    if len(ssid_freq_signal_list) == 1:
-      return ssid_freq_signal_list[0]
-    elif len(ssid_freq_signal_list) == 0:
-      factory.console.warning('Can not scan service with mac %s.', service_mac)
+      if mac and freq and signal and ssid:
+        if ssid == service_ssid:
+          mac_freq_signal_list.append((mac, int(freq), float(signal)))
+        (mac, ssid, freq, signal) = (None, None, None, None)
+    if len(mac_freq_signal_list) == 1:
+      return mac_freq_signal_list[0]
+    elif len(mac_freq_signal_list) == 0:
+      factory.console.warning('Can not scan service %s.', service_ssid)
       return (None, None, None)
     else:
-      factory.console.warning('There are more than one results for mac %s.',
-                              service_mac)
-      for ssid, freq, signal in ssid_freq_signal_list:
+      factory.console.warning('There are more than one results for ssid %s.',
+                              service_ssid)
+      for mac, freq, signal in mac_freq_signal_list:
         factory.console.warning('mac: %s, ssid: %s, freq: %d, signal %f',
-                                service_mac, ssid, freq, signal)
+                                mac, service_ssid, freq, signal)
       return (None, None, None)
 
   def SwitchAntenna(self, antenna):
@@ -368,7 +370,7 @@ class WirelessTest(unittest.TestCase):
     None.
 
     Args:
-      services: A list of (service_mac, freq) tuples to scan.
+      services: A list of (service_ssid, freq) tuples to scan.
       times: Number of times to scan to get average.
 
     Returns:
@@ -387,16 +389,16 @@ class WirelessTest(unittest.TestCase):
       for _ in xrange(times):
         scan_output = self.ScanSignal(freq)
         for service in services:
-          service_mac = service[0]
-          (ssid, freq_scanned, strength) = self.ParseScanOutput(scan_output,
-                                                                service_mac)
+          service_ssid = service[0]
+          (mac, freq_scanned, strength) = self.ParseScanOutput(scan_output,
+                                                               service_ssid)
           # strength may be 0.
           if strength is not None:
             # iw returns the scan results of other frequencies as well.
             if freq_scanned != freq:
               continue
-            factory.console.info('scan : %s %s %d %f.', service_mac,
-                                 ssid, freq_scanned, strength)
+            factory.console.info('scan : %s %s %d %f.', service_ssid,
+                                 mac, freq_scanned, strength)
             scan_results[service].append(strength)
 
     # keys are services and values are averages
@@ -496,7 +498,7 @@ class WirelessTest(unittest.TestCase):
       test_service = self.ChooseMaxStrengthService(candidate_services,
           self._antenna_service_strength['all'])
       if test_service is None:
-        self.fail('Services %s are not available.' % candidate_services)
+        self.fail('Services %s are not valid.' % candidate_services)
       else:
         self._test_spec[test_service] = spec_strength
 
