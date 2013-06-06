@@ -266,6 +266,13 @@ def read_test_list(path=None, state_instance=None, text=None):
   #   OperatorTest(..., require_run=Passed('a'))
   test_list_locals['Passed'] = lambda name: RequireRun(name, passed=True)
 
+  # Add "LoadTestList(x)" allowing evaluation of another test list.
+  def LoadTestList(name):
+    path = os.path.join(FACTORY_PATH, 'test_lists', name)
+    logging.info('LoadTestList: loading %s', path)
+    execfile(path, test_list_locals)
+  test_list_locals['LoadTestList'] = LoadTestList
+
   options = Options()
   test_list_locals['options'] = options
 
