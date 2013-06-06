@@ -895,6 +895,9 @@ class Components(object):
       component.
     """
     self.CheckComponent(comp_cls, comp_name)
+    if not comp_name:
+      # Missing component.
+      return {}
     return copy.deepcopy(self.components_dict[comp_cls]['items'][comp_name])
 
   def MatchComponentsFromValues(self, comp_cls, values_dict):

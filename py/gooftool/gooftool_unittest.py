@@ -610,6 +610,15 @@ class GooftoolTest(unittest2.TestCase):
         hwid_tool.ProbeResults.Decode(yaml.dump(mock_probe_result)),
         mock_ro_vpd, mock_rw_vpd)
 
+  def testDecodeHwidV3(self):
+    self.assertEquals(
+        {'audio_codec': 1, 'battery': 3, 'ec_flash_chip': 0, 'firmware': 0,
+         'storage': 0, 'flash_chip': 0, 'bluetooth': 0,
+         'embedded_controller': 0, 'camera': 0, 'display_panel': 0,
+         'cellular': 0, 'keyboard': 0, 'dram': 0, 'chipset': 0, 'cpu': 5},
+        self._gooftool3.DecodeHwidV3('CHROMEBOOK A5AU-LU').bom.encoded_fields)
+
+
 if __name__ == '__main__':
   logging.basicConfig(level=logging.INFO)
   unittest2.main()

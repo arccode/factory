@@ -927,7 +927,7 @@ def DecodeHwidV3(options):
       if not probed_values:
         db_components = decoded_hwid_context.database.components
         probed_values = db_components.GetComponentAttributes(
-            comp_cls, comp_name)['values']
+            comp_cls, comp_name).get('values')
       results['components'][comp_cls].append(
           {comp_name: probed_values if probed_values else None})
   # Convert defaultdict to dict.
