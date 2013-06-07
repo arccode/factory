@@ -388,6 +388,7 @@ class VPDTest(unittest.TestCase):
     self.vpd['ro']['initial_locale'] = region.language_code
     self.vpd['ro']['keyboard_layout'] = region.keyboard
     self.vpd['ro']['initial_timezone'] = region.time_zone
+    self.vpd['ro']['region'] = region.region_code
 
     for k, v in device_data.iteritems():
       match = re.match(r'$vpd\.(ro|rw)\.(.+)^', k)
