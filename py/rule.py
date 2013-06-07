@@ -300,7 +300,8 @@ class Rule(object):
         EvaluateAllFunctions(self.evaluate)
     finally:
       if logger.error:
-        raise RuleException(logger.Dump())
+        raise RuleException(logger.Dump() +
+                            '\nEvaluation of rule %r failed' % self.name)
       logging.debug(logger.Dump())
       SetContext(None)
 

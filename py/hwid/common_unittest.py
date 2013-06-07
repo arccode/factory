@@ -91,14 +91,20 @@ class HWIDTest(unittest2.TestCase):
     fake_result = result.replace('HDMI 1', 'HDMI 0')
     self.assertRaisesRegexp(
         HWIDException, r"Component class 'audio_codec' has extra components: "
-        r"\['hdmi_0'\] and missing components: \['hdmi_1'\]. "
+        r"\['hdmi_0'\] and is missing components: \['hdmi_1'\]. "
         r"Expected components are: \['codec_1', 'hdmi_1'\]",
+        hwid.VerifyProbeResult, fake_result)
+    fake_result = result.replace('EC Flash Chip', 'Foo chip')
+    self.assertRaisesRegexp(
+        HWIDException, r"Component class 'ec_flash_chip' is missing "
+        r"components: \['ec_flash_chip_0'\]. Expected components are: "
+        r"\['ec_flash_chip_0'\]",
         hwid.VerifyProbeResult, fake_result)
     fake_result = result.replace('name: CPU @ 2.80GHz',
                                  'name: CPU @ 2.40GHz')
     self.assertRaisesRegexp(
         HWIDException, r"Component class 'cpu' has extra components: "
-        r"\['cpu_3'\] and missing components: \['cpu_5'\]. "
+        r"\['cpu_3'\] and is missing components: \['cpu_5'\]. "
         r"Expected components are: \['cpu_5'\]",
         hwid.VerifyProbeResult, fake_result)
     self.assertEquals(None, hwid.VerifyProbeResult(result))

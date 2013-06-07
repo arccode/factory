@@ -591,9 +591,9 @@ class GooftoolTest(unittest2.TestCase):
         'compact_str': 'HDMI 2'}
     # pylint: disable=E1101
     self.assertRaisesRegexp(
-        HWIDException, r'Component class .* has extra components: .* and '
-        'missing components: .*', self._gooftool3.VerifyHwidV3,
-        'CHROMEBOOK A5AU-LU',
+        HWIDException, r"Component class 'audio_codec' is missing components: "
+        r"\['hdmi_1'\]. Expected components are: \['codec_1', 'hdmi_1'\]",
+        self._gooftool3.VerifyHwidV3, 'CHROMEBOOK A5AU-LU',
         hwid_tool.ProbeResults.Decode(yaml.dump(mock_probe_result)),
         mock_ro_vpd, mock_rw_vpd)
     mock_probe_result = copy.deepcopy(sample_probe_result)
@@ -604,9 +604,9 @@ class GooftoolTest(unittest2.TestCase):
     mock_probe_result['missing_component_classes'].remove('cellular')
     # pylint: disable=E1101
     self.assertRaisesRegexp(
-        HWIDException, r'Component class .* has extra components: .* and '
-        'missing components: .*', self._gooftool3.VerifyHwidV3,
-        'CHROMEBOOK A5AU-LU',
+        HWIDException, r"Component class 'cellular' has extra components: "
+        "\['cellular_0'\]. Expected components are: None",
+        self._gooftool3.VerifyHwidV3, 'CHROMEBOOK A5AU-LU',
         hwid_tool.ProbeResults.Decode(yaml.dump(mock_probe_result)),
         mock_ro_vpd, mock_rw_vpd)
     # Test deprecated component.

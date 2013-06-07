@@ -211,11 +211,16 @@ class HWID(object):
       extra_components = probed_components - expected_components
       missing_components = expected_components - probed_components
       if extra_components or missing_components:
-        raise HWIDException(
-            'Component class %r has extra components: %r and missing '
-            'components: %r. Expected components are: %r' %
-            (comp_cls, sorted(extra_components), sorted(missing_components),
-             sorted(expected_components)))
+        err_msg = 'Component class %r' % comp_cls
+        if extra_components:
+          err_msg += ' has extra components: %r' % sorted(extra_components)
+        if missing_components:
+          if extra_components:
+            err_msg += ' and'
+          err_msg += ' is missing components: %r' % sorted(missing_components)
+        err_msg += '. Expected components are: %r' % (
+            sorted(expected_components) if expected_components else None)
+        raise HWIDException(err_msg)
 
   def GetLabels(self):
     """Gets from the database the labels of all the components encoded in this
