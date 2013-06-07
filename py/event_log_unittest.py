@@ -5,6 +5,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import collections
+import dbus
 import factory_common  # pylint: disable=W0611
 import logging
 import os
@@ -19,6 +21,7 @@ import yaml
 
 from cros.factory import event_log
 from cros.factory.utils import file_utils
+from cros.factory.hwid import ProbedComponentResult
 
 MAC_RE = re.compile(r'^([a-f0-9]{2}:){5}[a-f0-9]{2}$')
 UUID_RE = re.compile(r'^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-'
@@ -62,6 +65,33 @@ class GlobalSeqTest(unittest.TestCase):
     for i in range(3, 6):
       self.assertEquals(i, seq.Next())
     del seq
+
+  def testYamlDump(self):
+    class OtherType(object):
+      def __init__(self, attr_foo):
+        self.attr_foo = attr_foo
+
+    dump = lambda x: event_log.YamlDump(x).strip()
+    # FloatDigit type
+    self.assertEqual('\n'.join(['0.1235', '...']),
+        dump(event_log.FloatDigit(0.12345, 4)))
+    # A subclass of a dict
+    self.assertEqual('\n'.join(['bar: 1', 'foo: 3']),
+        dump(collections.OrderedDict([('bar', 1), ('foo', 3)])))
+    # A subclass of a list
+    self.assertEqual('\n'.join(['- comp_foo', '- value_foo', '- null']),
+        dump(ProbedComponentResult('comp_foo', 'value_foo', None)))
+    # Tuple type
+    self.assertEqual('\n'.join(['- v1', '- v2', '- v3']),
+        dump(('v1', 'v2', 'v3')))
+    # A subclass of an unicode, treating as a str
+    self.assertEqual('\n'.join(['a dbus string', '...']),
+        dump(dbus.String('a dbus string')))
+    # A general object
+    self.assertEqual('\n'.join(['attr_foo: Foo']),
+        dump(OtherType('Foo')))
+    # An object without attribute
+    self.assertEqual('{}', dump(self.testYamlDump))
 
   def testMissingSequenceFile(self):
     # Generate a few sequence numbers.
@@ -215,7 +245,8 @@ class EventLogTest(unittest.TestCase):
                   d={'D1': 3, 'D2': 4},
                   e=['E1', {'E2': 'E3'}],
                   f=True,
-                  g=u"[[[囧]]]".encode('utf-8'))
+                  g=u"[[[囧]]]".encode('utf-8'),
+                  h=u"[[[囧]]]")
     log.Log('event0', **event0)
 
     # Open and close another logger as well
@@ -262,6 +293,8 @@ class EventLogTest(unittest.TestCase):
 
     # Check all the events
     event0.update(dict(EVENT='event0', SEQ=1, LOG_ID=log_id, PREFIX='test'))
+    # Yaml loader converts non-ASCII strings to unicode.
+    event0['g'] = event0['h']
     self.assertEqual(event0, log_data[1])
     self.assertEqual(
         dict(EVENT='preamble',

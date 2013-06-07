@@ -144,13 +144,36 @@ class FloatDigit(object):
     return ("%%.0%df" % self._digit) % self._value
 
 
-def float_repr(dumper, data):
-  """The representer for float type."""
+def YamlFloatDigitRepresenter(dumper, data):
+  """The representer for FloatDigit type."""
   return dumper.represent_scalar(u'tag:yaml.org,2002:float', repr(data))
 
 
+def YamlObjectRepresenter(dumper, data):
+  """The representer for a general object, output its attributes as as dict."""
+  return dumper.represent_dict(data.__dict__)
+
+
+CustomDumper = yaml.SafeDumper
+
 # Add customized representer for type FloatDigit.
-yaml.add_representer(FloatDigit, float_repr)
+CustomDumper.add_representer(FloatDigit, YamlFloatDigitRepresenter)
+# Add customized representers for the subclasses of native classes.
+CustomDumper.add_multi_representer(dict, CustomDumper.represent_dict)
+CustomDumper.add_multi_representer(list, CustomDumper.represent_list)
+CustomDumper.add_multi_representer(str, CustomDumper.represent_str)
+CustomDumper.add_multi_representer(tuple, CustomDumper.represent_list)
+CustomDumper.add_multi_representer(unicode, CustomDumper.represent_unicode)
+# Add customized representer for the rests, output its attributes as a dict.
+CustomDumper.add_multi_representer(object, YamlObjectRepresenter)
+
+
+def YamlDump(structured_data):
+  """Wraps yaml.dump to make calling convention consistent."""
+  return yaml.dump(structured_data,
+                   default_flow_style=False,
+                   allow_unicode=True,
+                   Dumper=CustomDumper)
 
 
 def TimedUuid():
@@ -164,13 +187,6 @@ def TimedUuid():
   """
   return ("%08x" % (int(time.time() * 100) & 0xFFFFFFFF) +
           str(uuid4())[8:])
-
-
-def YamlDump(structured_data):
-  """Wraps yaml.dump to make calling convention consistent."""
-  return yaml.dump(structured_data,
-                   default_flow_style=False,
-                   allow_unicode=True)
 
 
 def Log(event_name, **kwargs):
