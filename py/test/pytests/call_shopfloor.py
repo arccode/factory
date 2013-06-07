@@ -83,7 +83,7 @@ class CallShopfloor(unittest.TestCase):
       args_to_log = FilterDict(self.args.args)
       message = 'Invoking %s(%s)' % (
           self.args.method, ', '.join(repr(x) for x in args_to_log))
-      Log('call_shopfloor', method=self.args.method, args=args_to_log)
+
       logging.info(message)
       template.SetState(test_ui.Escape(message))
 
@@ -91,18 +91,13 @@ class CallShopfloor(unittest.TestCase):
       args = [x() if callable(x) else x
               for x in self.args.args]
 
-      try:
-        action_handler(method(*args))
-        break
-      except:  # pylint: disable=W0702
-        logging.exception('Exception invoking shop floor method')
+      def HandleError(trace):
         template.SetState(
             test_ui.MakeLabel('Shop floor exception:',
                               'Shop floor 错误:',
                               'test-status-failed large') +
             '<p>' +
-            utils.FormatExceptionOnly() +
-
+            test_ui.Escape(trace) +
             '<p><br>' +
             """<button onclick="test.sendTestEvent('retry')">""" +
             test_ui.MakeLabel('Retry', '重试') +
@@ -111,3 +106,24 @@ class CallShopfloor(unittest.TestCase):
         WaitEvent(self.event)
         self.event.clear()
 
+      try:
+        result = method(*args)
+        Log('call_shopfloor',
+            method=self.args.method, args=args_to_log,
+            result=FilterDict(result))
+      except:  # pylint: disable=W0702
+        logging.exception('Exception invoking shop floor method')
+
+        exception_str = utils.FormatExceptionOnly()
+        Log('call_shopfloor',
+            method=self.args.method, args=args_to_log, exception=exception_str)
+        HandleError(exception_str)
+        continue
+
+      try:
+        action_handler(result)
+        break  # All done
+      except:  # pylint: disable=W0702
+        logging.exception('Exception in action handler')
+        HandleError(utils.FormatExceptionOnly())
+        # Fall through and retry
