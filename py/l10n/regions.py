@@ -46,22 +46,16 @@ class Region(object):
 
 _KML = KeyboardMechanicalLayout
 _REGIONS_LIST = [
-    Region('au', 'xkb:us::eng',     'Australia/Sydney',    'en-AU', _KML.ANSI),
-    Region('ca', 'xkb:us::eng',     'America/New_York',    'en-CA', _KML.ANSI),
-    Region('de', 'xkb:de::ger',     'Europe/Amsterdam',    'de',    _KML.ISO),
-    Region('dk', 'xkb:dk::dan',     'Europe/Amsterdam',    'da',    _KML.ISO),
-    Region('fi', 'xkb:fi::fin',     'Europe/Helsinki',     'fi',    _KML.ISO),
-    Region('fr', 'xkb:fr::fra',     'Europe/Amsterdam',    'fr',    _KML.ISO),
-    Region('gb', 'xkb:gb:extd:eng', 'Europe/London',       'en-GB', _KML.ISO),
-    Region('ie', 'xkb:gb:extd:eng', 'Europe/London',       'en-GB', _KML.ISO),
-    Region('it', 'xkb:it::ita',     'Europe/Amsterdam',    'it',    _KML.ISO),
-    Region('jp', 'xkb:jp::jpn',     'Asia/Tokyo',          'ja',    _KML.JIS),
-    Region('my', 'xkb:us::eng',     'Asia/Kuala_Lumpur',   'ms',    _KML.ANSI),
-    Region('nl', 'xkb:us:intl:eng', 'Europe/Amsterdam',    'nl',    _KML.ANSI),
-    Region('nz', 'xkb:us::eng',     'Pacific/Auckland',    'en-NZ', _KML.ANSI),
-    Region('no', 'xkb:no::nob',     'Europe/Amsterdam',    'no',    _KML.ISO),
-    Region('se', 'xkb:se::swe',     'Europe/Amsterdam',    'sv',    _KML.ISO),
-    Region('sg', 'xkb:us::eng',     'Asia/Hong_Kong',      'en-GB', _KML.ANSI),
     Region('us', 'xkb:us::eng',     'America/Los_Angeles', 'en-US', _KML.ANSI),
+    Region('gb', 'xkb:gb:extd:eng', 'Europe/London',       'en-GB', _KML.ISO),
 ]
+
+# Attempt to read regions from the overlay.  No worries if they're not
+# available.
+try:
+  from cros.factory.l10n import regions_overlay
+  _REGIONS_LIST += regions_overlay.REGIONS_LIST
+except ImportError:
+  pass
+
 REGIONS = dict((x.region_code, x) for x in _REGIONS_LIST)
