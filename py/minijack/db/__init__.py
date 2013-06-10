@@ -252,6 +252,17 @@ class Executor(object):
     if commit:
       self._conn.commit()
 
+  def GetDescription(self):
+    """Gets the column names of the last query.
+
+    Returns:
+      A list of the columns names. Empty list if not a valid query.
+    """
+    if self._cursor.description:
+      return [desc[0] for desc in self._cursor.description]
+    else:
+      return []
+
   def FetchOne(self, model=None):
     """Fetches one row of the previous query.
 

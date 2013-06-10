@@ -103,6 +103,8 @@ class DatabaseTest(unittest.TestCase):
     executor.Execute('SELECT * FROM FooModel')
     result = executor.FetchOne()
     self.assertItemsEqual((56, 0.0, 'Five Six'), result)
+    desc = executor.GetDescription()
+    self.assertItemsEqual(['field_i', 'field_r', 'field_t'], desc)
 
   def testUpdate(self):
     self.database.Insert(FooModel(field_i=56, field_t='Five Six'))
@@ -223,6 +225,8 @@ class DatabaseTest(unittest.TestCase):
     self.assertIs(None, result)
     results = executor.FetchAll()
     self.assertEqual([], results)
+    desc = executor.GetDescription()
+    self.assertEqual([], desc)
 
   def tearDown(self):
     self.database.Close()
