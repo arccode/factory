@@ -38,6 +38,7 @@ from cros.factory.goofy.web_socket_manager import WebSocketManager
 from cros.factory.system.board import Board, BoardException
 from cros.factory.system.charge_manager import ChargeManager
 from cros.factory.system.core_dump_manager import CoreDumpManager
+from cros.factory.system.cpufreq_manager import CpufreqManager
 from cros.factory.system import disk_space
 from cros.factory.test import factory
 from cros.factory.test import state
@@ -231,6 +232,7 @@ class Goofy(object):
     self.exclusive_items = set()
     self.event_log = None
     self.key_filter = None
+    self.cpufreq_manager = None
 
     def test_or_root(event, parent_or_group=True):
       '''Returns the test affected by a particular event.
@@ -334,6 +336,8 @@ class Goofy(object):
       self.event_log = None
     if self.key_filter:
       self.key_filter.Stop()
+    if self.cpufreq_manager:
+      self.cpufreq_manager.Stop()
 
     self.check_exceptions()
     logging.info('Done destroying Goofy')
@@ -817,29 +821,38 @@ class Goofy(object):
     invoc.start()
 
   def check_exclusive(self):
+    # alias since this is really long
+    EXCL_OPT = factory.FactoryTest.EXCLUSIVE_OPTIONS
+
     current_exclusive_items = set([
-        item
-        for item in factory.FactoryTest.EXCLUSIVE_OPTIONS
+        item for item in EXCL_OPT
         if any([test.is_exclusive(item) for test in self.invocations])])
 
     new_exclusive_items = current_exclusive_items - self.exclusive_items
-    if factory.FactoryTest.EXCLUSIVE_OPTIONS.NETWORKING in new_exclusive_items:
+    if EXCL_OPT.NETWORKING in new_exclusive_items:
       logging.info('Disabling network')
       self.connection_manager.DisableNetworking()
-    if factory.FactoryTest.EXCLUSIVE_OPTIONS.CHARGER in new_exclusive_items:
+    if EXCL_OPT.CHARGER in new_exclusive_items:
       logging.info('Stop controlling charger')
 
     new_non_exclusive_items = self.exclusive_items - current_exclusive_items
-    if (factory.FactoryTest.EXCLUSIVE_OPTIONS.NETWORKING in
-        new_non_exclusive_items):
+    if EXCL_OPT.NETWORKING in new_non_exclusive_items:
       logging.info('Re-enabling network')
       self.connection_manager.EnableNetworking()
-    if factory.FactoryTest.EXCLUSIVE_OPTIONS.CHARGER in new_non_exclusive_items:
+    if EXCL_OPT.CHARGER in new_non_exclusive_items:
       logging.info('Start controlling charger')
 
+    if self.cpufreq_manager:
+      enabled = EXCL_OPT.CPUFREQ not in current_exclusive_items
+      try:
+        self.cpufreq_manager.SetEnabled(enabled)
+      except:  # pylint: disable=W0702
+        logging.exception('Unable to %s cpufreq services',
+                          'enable' if enabled else 'disable')
+
     # Only adjust charge state if not excluded
-    if (factory.FactoryTest.EXCLUSIVE_OPTIONS.CHARGER not in
-        current_exclusive_items and not utils.in_chroot()):
+    if (EXCL_OPT.CHARGER not in current_exclusive_items and
+        not utils.in_chroot()):
       if self.charge_manager:
         self.charge_manager.AdjustChargeState()
       else:
@@ -1288,6 +1301,9 @@ class Goofy(object):
     assert isinstance(self.hooks, factory.Hooks), (
         "hooks should be of type Hooks but is %r" % type(self.hooks))
     self.hooks.test_list = self.test_list
+
+    if not utils.in_chroot():
+      self.cpufreq_manager = CpufreqManager()
 
     # Call startup hook.
     self.hooks.OnStartup()

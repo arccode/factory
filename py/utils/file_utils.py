@@ -84,3 +84,19 @@ def TryUnlink(path):
   except OSError as e:
     if e.errno != errno.ENOENT:
       raise
+
+
+def WriteFile(path, data, log=False):
+  """Writes a value to a file.
+
+  Args:
+    path: The path to write to.
+    data: The value to write.  This may be any type and is stringified with
+        str().
+    log: Whether to log path and data.
+  """
+  data = str(data)
+  if log:
+    logging.info('Writing %r to %s', data, path)
+  with open(path, 'w') as f:
+    f.write(data)

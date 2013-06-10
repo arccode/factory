@@ -695,7 +695,7 @@ class FactoryTest(object):
           'enable_services', 'disable_services']
 
   # Subsystems that the test may require exclusive access to.
-  EXCLUSIVE_OPTIONS = utils.Enum(['NETWORKING', 'CHARGER'])
+  EXCLUSIVE_OPTIONS = utils.Enum(['NETWORKING', 'CHARGER', 'CPUFREQ'])
 
   RUN_IF_REGEXP = re.compile(r'^(!)?(\w+)\.(.+)$')
 
@@ -891,8 +891,6 @@ class FactoryTest(object):
         # autotest_name is type_NameInCamelCase.
         self.label_en = self.autotest_name.partition('_')[2]
 
-    assert not (backgroundable and exclusive), (
-        'Test %s may not have both backgroundable and exclusive' % self.id)
     bogus_exclusive_items = set(self.exclusive) - self.EXCLUSIVE_OPTIONS
     assert not bogus_exclusive_items, (
         'In test %s, invalid exclusive options: %s (should be in %s)' %
