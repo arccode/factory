@@ -73,13 +73,13 @@ class WirelessTest(unittest.TestCase):
         service_type = FlimGetServiceProperty(service, 'Type')
         service_name = FlimGetServiceProperty(service, 'Name')
         if service_type != 'wifi':
-          continue;
+          continue
         if service_name is None:
-          continue;
+          continue
         found_ssids.add(service_name)
       if not found_ssids:
         self.fail("No SSIDs found.")
-      logging.info('found SSIDs: %s' % ', '.join(found_ssids))
+      logging.info('found SSIDs: %s', ', '.join(found_ssids))
     else:
       # Test Wifi signal strength for each service
       if not isinstance(self.args.services, list):
