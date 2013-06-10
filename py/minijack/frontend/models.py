@@ -67,6 +67,7 @@ class Test(models.Model):
   start_time     = models.TextField()
   end_time       = models.TextField()
   duration       = models.FloatField()
+  error_msg      = models.TextField()
 
 
 class Device(models.Model):

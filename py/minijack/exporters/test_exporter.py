@@ -48,5 +48,7 @@ class TestExporter(ExporterBase):
       status         = packet.event.get('status'),
       end_time       = packet.event.get('TIME'),
       duration       = packet.event.get('duration'),
+      # Only keep the first line of error_msg for a quick look.
+      error_msg      = packet.event.get('error_msg', '').split('\n')[0],
     )
     self._database.UpdateOrInsert(row)

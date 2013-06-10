@@ -147,6 +147,7 @@
         <th>duration</th>
         <th>factory_md5sum</th>
         <th>reimage_id</th>
+        <th>error_msg</th>
       </tr>
     </thead>
     <tfoot>
@@ -162,6 +163,7 @@
         <th>duration</th>
         <th>factory_md5sum</th>
         <th>reimage_id</th>
+        <th>error_msg</th>
       </tr>
     </tfoot>
     <tbody>{% for test in tests %}
@@ -186,6 +188,7 @@
         <td align="right">{{ test.duration|floatformat:3 }}</td>
         <td>{{ test.factory_md5sum|truncatechars:18 }}</td>
         <td>{{ test.reimage_id|truncatechars:18 }}</td>
+        <td>{{ test.error_msg|truncatechars:200 }}</td>
       </tr>{% endfor %}
     </tbody>
   </table>

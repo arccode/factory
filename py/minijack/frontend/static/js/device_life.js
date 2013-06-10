@@ -25,7 +25,7 @@ $(document).ready(function() {
 
   var aDateColumns = [7, 8];
   var aSelectableColumns = [4, 5, 6, 7, 8, 10, 11];
-  var aHiddenColumns = [2, 3, 6];
+  var aHiddenColumns = [2, 3, 6, 12];
 
   /* Add a select menu for each TH element in the table header */
   $("thead th").each(function(i) {
