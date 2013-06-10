@@ -360,6 +360,12 @@ class VPDTest(unittest.TestCase):
         'data dictionary instead of contacting shopfloor server again. '
         'See file-level docs in vpd.py for more information.',
         default=False),
+    Arg('extra_device_data_fields', list,
+        'Extra fields to write to VPD from shopfloor device_data.  Each item '
+        'is a tuple of the form ("ro", key) or ("rw", key) meaning that the '
+        'value from key should be added to the ro or rw VPD.  This option ',
+        'only applies if use_shopfloor_device_data is True.',
+        default=[]),
     Arg('manual_input_fields', list, 'A list of tuples (vpd_region, key, '
         'en_display_name, zh_display_name, VALUE_CHECK) indicating the VPD '
         'fields that need to be manually entered.\n'
@@ -374,7 +380,8 @@ class VPDTest(unittest.TestCase):
   def _ReadShopFloorDeviceData(self):
     device_data = shopfloor.GetDeviceData()
     required_keys = set(['serial_number', 'region',
-                         'ubind_attribute', 'gbind_attribute'])
+                         'ubind_attribute', 'gbind_attribute'] +
+                        [x[1] for x in self.args.extra_device_data_fields])
     missing_keys = required_keys - set(device_data.keys())
     if missing_keys:
       self.fail('Missing keys in shopfloor device data: %r' %
@@ -389,6 +396,9 @@ class VPDTest(unittest.TestCase):
     self.vpd['ro']['keyboard_layout'] = region.keyboard
     self.vpd['ro']['initial_timezone'] = region.time_zone
     self.vpd['ro']['region'] = region.region_code
+
+    for ro_or_rw, key in self.args.extra_device_data_fields:
+      self.vpd[ro_or_rw][key] = device_data[key]
 
     for k, v in device_data.iteritems():
       match = re.match(r'$vpd\.(ro|rw)\.(.+)^', k)
@@ -413,6 +423,12 @@ class VPDTest(unittest.TestCase):
       else:
         self.ui.Fail('override_vpd is allowed only in engineering mode.')
         return
+
+    # Check format of extra_device_data_fields parameter.
+    for i in self.args.extra_device_data_fields:
+      self.assertTrue(isinstance(i, tuple), i)
+      self.assertEquals(2, len(i))
+      self.assertIn(i[0], ['ro', 'rw'])
 
     if not (self.args.override_vpd and self.ui.InEngineeringMode()):
       if shopfloor.is_enabled():
