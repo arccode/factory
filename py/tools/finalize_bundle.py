@@ -18,13 +18,15 @@ import sys
 import time
 import urlparse
 import yaml
+from distutils.version import LooseVersion
+from pkg_resources import parse_version
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import utils
 from cros.factory.tools.make_update_bundle import MakeUpdateBundle
 from cros.factory.tools.mount_partition import MountPartition
 from cros.factory.utils.file_utils import UnopenedTemporaryFile
-from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils.process_utils import Spawn, CheckOutput
 
 
 GSUTIL_CACHE_DIR = os.path.join(os.environ['HOME'], 'gsutil_cache')
@@ -201,6 +203,8 @@ class FinalizeBundle(object):
     readme_path: Path to the README file within the bundle.
     factory_image_base_version: Build of the factory image (e.g., 3004.100.0)
     release_image_path: Path to the release image.
+    install_shim_version: Build of the install shim.
+    netboot_install_shim_version: Build of the netboot install shim.
     mini_omaha_script_path: Path to the script used to start the mini-Omaha
       server.
   """
@@ -215,6 +219,8 @@ class FinalizeBundle(object):
   all_files = None
   readme_path = None
   factory_image_base_version = None
+  install_shim_version = None
+  netboot_install_shim_version = None
   release_image_path = None
   mini_omaha_script_path = None
 
@@ -253,6 +259,10 @@ class FinalizeBundle(object):
         '--no-make-factory-packages', dest='make_factory_package',
         action='store_false',
         help="Don't call make_factory_package (for testing only)")
+    parser.add_argument(
+        '--tip-of-branch', dest='tip_of_branch', action='store_true',
+        help="Use tip version of release image, install shim, and "
+             "netboot install shim on the branch (for testing only)")
     parser.add_argument(
         'dir', metavar='DIR',
         help="Directory containing the bundle")
@@ -329,12 +339,22 @@ class FinalizeBundle(object):
       dest_dir = os.path.join(self.bundle_dir, f['install_into'])
       utils.TryMakeDirs(dest_dir)
 
+      if self.args.tip_of_branch:
+        f['source'] = self._SubstVars(f['source'])
+        self._ChangeTipVersion(f)
+
       source = self._SubstVars(f['source'])
 
       if self.args.download:
         cached_file = GSDownload(source)
 
       if f.get('extract_files'):
+        # Gets netboot install shim version from source url since version
+        # is not stored in the image.
+        if any('vmlinux.uimg' in extract_file
+               for extract_file in f['extract_files']):
+          self.netboot_install_shim_version = str(LooseVersion(
+              os.path.basename(os.path.dirname(source))))
         install_into = os.path.join(self.bundle_dir, f['install_into'])
         if self.args.download:
           if cached_file.endswith('.zip'):
@@ -355,6 +375,86 @@ class FinalizeBundle(object):
         if self.args.download:
           shutil.copyfile(cached_file, dest_path)
         self.expected_files.add(os.path.relpath(dest_path, self.bundle_dir))
+
+  def _ChangeTipVersion(self, add_file):
+    """Changes image to the latest version for testing tip of branch.
+
+    Changes install shim, release image, netboot install shim(vmlinux.uimg) to
+    the latest version of original branch for testing. Check _GSGetLatestVersion
+    for the detail of choosing the tip version on the branch.
+    """
+    if add_file['install_into'] in ['factory_shim', 'release']:
+      latest_source = self._GSGetLatestVersion(add_file['source'])
+      logging.info('Changing %s source from %s to %s for testing tip of branch',
+                   add_file['install_into'], add_file['source'], latest_source)
+      add_file['source'] = latest_source
+    if (add_file.get('extract_files') and
+        any('vmlinux.uimg' in f for f in add_file['extract_files'])):
+      latest_source = self._GSGetLatestVersion(add_file['source'])
+      logging.info('Changing vmlinux.uimg source from %s to %s for testing '
+                   'tip of branch', add_file['source'], latest_source)
+      add_file['source'] = latest_source
+
+  def _GSGetLatestVersion(self, url):
+    """Gets the latest version of image on the branch of url.
+    Finds the latest version of image on the branch specified in url.
+    This function only cares if input image is on master branch or not.
+    If input image has a zero minor version, it is on master branch.
+    For input image on master branch, the function returns the url of the
+    latest image on master branch. For input image not on master branch,
+    this function returns the url of the image with the same major version
+    and the largest minor version. For example, there are these images
+    available:
+
+    4100.0.0 (On master branch)
+      4100.1.0  (Start of 4100.B branch)
+      ...
+      4100.38.0
+        4100.38.1  (Start of 4100.38.B branch)
+        ...
+        4100.38.5
+        4100.38.6
+      4100.39.0
+    4101.0.0
+    ...
+    4120.0.0
+      4120.1.0  (Start of 4120.B branch)
+      4120.2.0
+
+    Example    input       output      Description
+           4100.0.0       4120.0.0    On master branch.
+           4100.1.0       4100.39.0   On 4100.B branch.
+           4100.38.0      4100.39.0   On 4100.B branch.
+           4100.38.5      4100.39.0   On 4100.38.B branch but we decide
+                                      4100.39.0 and 4100.38.6 should be
+                                      compared together as sub-branch of 4100.B.
+           4101.0.0       4120.0.0    On master branch.
+           4120.1.0       4120.2.0    On 4120.B branch.
+    """
+    # Use LooseVersion instead of StrictVersion because we want to preserve the
+    # trailing 0 like 4100.0.0 instead of truncating it to 4100.0.
+    version = LooseVersion(os.path.basename(os.path.dirname(url)))
+    parsed_version = parse_version(str(version))
+    major_version = parsed_version[0]
+    minor_version = parsed_version[1] if len(parsed_version) > 2 else None
+    board_directory = os.path.dirname(os.path.dirname(url))
+    version_url_list = CheckOutput(['gsutil', '-m', 'ls', board_directory],
+                                   check_call=True).splitlines()
+    latest_version = version
+    for version_url in version_url_list:
+      version_url = version_url.rstrip('/')
+      candidate_version = LooseVersion(os.path.basename(version_url))
+      parsed_candidate_version = parse_version(str(candidate_version))
+      major_candidate_version = parsed_candidate_version[0]
+      minor_candidate_version = (parsed_candidate_version[1]
+                                 if len(parsed_candidate_version) > 2 else None)
+      if minor_version and major_candidate_version != major_version:
+        continue
+      if not minor_version and minor_candidate_version:
+        continue
+      if candidate_version > latest_version:
+        latest_version = candidate_version
+    return url.replace(str(version), str(latest_version))
 
   def DeleteFiles(self):
     for f in self.manifest['delete_files']:
@@ -480,6 +580,8 @@ class FinalizeBundle(object):
     elif len(shims) == 1:
       with MountPartition(shims[0], 1, rw=True) as mount:
         PatchLSBFactory(mount)
+      with MountPartition(shims[0], 3) as mount:
+        self.install_shim_version = GetReleaseVersion(mount)
     else:
       logging.warning('There is no install shim in the bundle.')
 
@@ -692,6 +794,11 @@ class FinalizeBundle(object):
       vitals.append((
           'Stateful partition inodes',
           '%d nodes (%d free)' % (stat.f_files, stat.f_ffree)))
+    if self.install_shim_version:
+      vitals.append(('Factory install shim', self.install_shim_version))
+    if self.netboot_install_shim_version:
+      vitals.append(('Netboot install shim (vmlinux.uimg)',
+                     self.netboot_install_shim_version))
     with MountPartition(self.release_image_path, 3) as f:
       vitals.append(('Release (FSI)', GetReleaseVersion(f)))
       bios_version, ec_version = GetFirmwareVersions(
