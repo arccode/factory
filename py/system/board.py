@@ -20,6 +20,8 @@ class Board(object):
   """Basic board specific interface class."""
   ChargeState = Enum(['CHARGE', 'IDLE', 'DISCHARGE'])
 
+  LEDColor = Enum(['AUTO', 'OFF', 'RED', 'GREEN', 'BLUE', 'YELLOW', 'WHITE'])
+
   # Auto fan speed.
   AUTO = 'auto'
 
@@ -185,5 +187,16 @@ class Board(object):
 
     Raises:
       BoardException if battery's design capacity cannot be obtained.
+    """
+    raise NotImplementedError
+
+  def SetLEDColor(self, color, led_index=0, brightness=100):
+    """Sets LED color.
+
+    Args:
+      color: LED color of type LEDColor enum.
+      led_index: target LED index.
+      brightness: LED brightness in percentage [0, 100].
+          If color is 'auto' or 'off', brightness is ignored.
     """
     raise NotImplementedError

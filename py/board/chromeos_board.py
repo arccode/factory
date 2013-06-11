@@ -6,6 +6,7 @@
 
 import ctypes
 import factory_common  # pylint: disable=W0611
+import logging
 import re
 
 from cros.factory.system.board import Board, BoardException
@@ -180,3 +181,28 @@ class ChromeOSBoard(Board):
       return int(m.group(1))
     except Exception as e:
       raise BoardException('Unable to get battery design capacity: %s' % e)
+
+  def SetLEDColor(self, color, led_index=0, brightness=100):
+    if color not in Board.LEDColor:
+      raise ValueError('Invalid color')
+    if not isinstance(led_index, int):
+      raise TypeError('Invalid led_index')
+    if not isinstance(brightness, int):
+      raise TypeError('Invalid brightness')
+    if not (0 <= brightness <= 100):
+      raise ValueError('brightness out-of-range [0, 100]')
+    try:
+      if color == Board.LEDColor.AUTO:
+        color_brightness = color.lower()
+      elif color == Board.LEDColor.OFF:
+        # This is a workaround. Currently ectool does not provide 'off'
+        # command. However, right now setting a color brightness implies
+        # other colors' brightness to zero. So 'red=0' is equivalent to
+        # turning off the LED.
+        color_brightness = 'red=0'
+      else:
+        scaled_brightness = int(round(brightness / 100.0 * 255))
+        color_brightness = '%s=%d' % (color.lower(), scaled_brightness)
+      self._CallECTool(['led', str(led_index), color_brightness])
+    except Exception as e:
+      logging.exception('Unable to set LED color: %s', e)

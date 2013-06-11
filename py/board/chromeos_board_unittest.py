@@ -214,6 +214,59 @@ class ChromeOSBoardTest(unittest.TestCase):
     self.assertRaises(BoardException, self.board.GetBatteryDesignCapacity)
     self.mox.VerifyAll()
 
+  def testSetLEDColor(self):
+    self.board._CallECTool(['led', '0', 'red=255'])
+    self.board._CallECTool(['led', '0', 'yellow=255'])
+    self.board._CallECTool(['led', '0', 'green=255'])
+
+    self.board._CallECTool(['led', '0', 'green=255'])
+    self.board._CallECTool(['led', '0', 'green=128'])
+    self.board._CallECTool(['led', '0', 'green=0'])
+
+    self.board._CallECTool(['led', '1', 'green=255'])
+
+    self.board._CallECTool(['led', '0', 'auto'])
+    # brightness does not take effect.
+    self.board._CallECTool(['led', '0', 'auto'])
+
+    # Turn off LED 0.
+    self.board._CallECTool(['led', '0', 'red=0'])
+    self.board._CallECTool(['led', '0', 'red=0'])
+
+    self.mox.ReplayAll()
+    self.board.SetLEDColor(Board.LEDColor.RED)
+    self.board.SetLEDColor(Board.LEDColor.YELLOW)
+    self.board.SetLEDColor(Board.LEDColor.GREEN)
+
+    self.board.SetLEDColor(Board.LEDColor.GREEN, brightness=100)
+    self.board.SetLEDColor(Board.LEDColor.GREEN, brightness=50)
+    self.board.SetLEDColor(Board.LEDColor.GREEN, brightness=0)
+
+    self.board.SetLEDColor(Board.LEDColor.GREEN, led_index=1)
+
+    self.board.SetLEDColor(Board.LEDColor.AUTO)
+    self.board.SetLEDColor(Board.LEDColor.AUTO, brightness=0)
+
+    self.board.SetLEDColor(Board.LEDColor.OFF)
+    self.board.SetLEDColor(Board.LEDColor.OFF, brightness=100)
+    self.mox.VerifyAll()
+
+  def testSetLEDColorInvalidInput(self):
+    with self.assertRaisesRegexp(ValueError, 'Invalid color'):
+      self.board.SetLEDColor('invalid color')
+    with self.assertRaisesRegexp(TypeError, 'Invalid led_index'):
+      self.board.SetLEDColor(Board.LEDColor.RED, led_index='1')
+    with self.assertRaisesRegexp(TypeError, 'Invalid brightness'):
+      self.board.SetLEDColor(Board.LEDColor.RED, brightness='1')
+    with self.assertRaisesRegexp(ValueError, 'brightness out-of-range'):
+      self.board.SetLEDColor(Board.LEDColor.RED, brightness=255)
+
+  def testSetLEDColorUnsupportedBoard(self):
+    self.board._CallECTool(['led', '0', 'red=255']).AndRaise(
+        BoardException('EC returned error 99'))
+    self.mox.ReplayAll()
+    self.board.SetLEDColor(Board.LEDColor.RED)
+    self.mox.VerifyAll()
 
 if __name__ == '__main__':
   unittest.main()
