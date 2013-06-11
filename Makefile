@@ -119,6 +119,7 @@ install: par
 	ln -s factory.par $(FACTORY_BUNDLE)/shopfloor/shopfloor_server
 	ln -s factory.par $(FACTORY_BUNDLE)/shopfloor/manage
 	ln -s factory.par $(FACTORY_BUNDLE)/shopfloor/minijack
+	ln -s factory.par $(FACTORY_BUNDLE)/shopfloor/shopfloor
 # Install cgpt, used by factory_setup.  TODO(jsalz/hungte): Find a better way
 # to do this.
 	mkdir -p $(FACTORY_BUNDLE)/factory_setup/bin
