@@ -363,7 +363,7 @@ class VPDTest(unittest.TestCase):
     Arg('extra_device_data_fields', list,
         'Extra fields to write to VPD from shopfloor device_data.  Each item '
         'is a tuple of the form ("ro", key) or ("rw", key) meaning that the '
-        'value from key should be added to the ro or rw VPD.  This option ',
+        'value from key should be added to the ro or rw VPD.  This option '
         'only applies if use_shopfloor_device_data is True.',
         default=[]),
     Arg('manual_input_fields', list, 'A list of tuples (vpd_region, key, '
