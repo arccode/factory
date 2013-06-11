@@ -40,9 +40,9 @@ MSG_FINALIZING = MakeLabel(
     "Finalizing, please wait.<br>"
     "Do not restart the device or terminate this test,<br>"
     "or the device may become unusable.",
-    "正在开始最终程序，請稍等.<br>"
-    "不要重啓機器或停止測試，<br>"
-    "不然機器將無法開機。")
+    "正在开始最终程序，请稍等.<br>"
+    "不要重启机器或停止测试，<br>"
+    "不然机器将无法开机。")
 
 class Finalize(unittest.TestCase):
   ARGS = [
