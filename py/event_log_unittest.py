@@ -21,7 +21,7 @@ import yaml
 
 from cros.factory import event_log
 from cros.factory.utils import file_utils
-from cros.factory.hwid import ProbedComponentResult
+from cros.factory.hwid.common import ProbedComponentResult
 
 MAC_RE = re.compile(r'^([a-f0-9]{2}:){5}[a-f0-9]{2}$')
 UUID_RE = re.compile(r'^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-'
