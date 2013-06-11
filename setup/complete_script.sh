@@ -34,5 +34,5 @@ echo "          ##################               ######        ###### " > "$TTY"
 echo "                ######                     ######         ######" > "$TTY"
 echo "" > "$TTY"
 echo "Factory image downloaded." > "$TTY"
-echo -n "Press any key to restart..." > "$TTY"
+echo -n "Press Enter to restart..." > "$TTY"
 head -c 1 < "$TTY" >/dev/null
