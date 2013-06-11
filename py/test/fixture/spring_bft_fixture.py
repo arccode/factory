@@ -42,10 +42,10 @@ class SpringBFTFixture(BFTFixture):
   # (command, response) pairs for fixture to check LED colors.
   LEDColor = BFTFixture.LEDColor
   LED_CHECK_COMMAND = {
-    LEDColor.RED   : (chr(0xC4), chr(0xB4)),
-    LEDColor.GREEN : (chr(0xC5), chr(0xB5)),
-    LEDColor.AMBER : (chr(0xC6), chr(0xB6)),
-    LEDColor.OFF   : (chr(0xD4), chr(0xFC))}
+    LEDColor.RED    : (chr(0xC4), chr(0xB4)),
+    LEDColor.GREEN  : (chr(0xC5), chr(0xB5)),
+    LEDColor.YELLOW : (chr(0xC6), chr(0xB6)),
+    LEDColor.OFF    : (chr(0xD4), chr(0xFC))}
 
   StatusColor = BFTFixture.StatusColor
   STATUS_COLOR_COMMAND = {
