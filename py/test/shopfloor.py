@@ -31,7 +31,7 @@ from xmlrpclib import Binary
 
 import factory_common # pylint: disable=W0611
 from cros.factory import privacy
-from cros.factory.test import factory
+from cros.factory.test import factory, utils
 from cros.factory.test.event import EventClient, Event
 from cros.factory.utils import net_utils
 from cros.factory.utils.process_utils import Spawn
@@ -303,7 +303,7 @@ def get_hwid_updater():
   return hwid_updater
 
 
-def update_local_hwid_data():
+def update_local_hwid_data(target_dir='/usr/local/factory/hwid'):
   """Updates HWID information from shopfloor server.
 
   Executes the HWID updater retrieved from the shopfloor server
@@ -327,9 +327,18 @@ def update_local_hwid_data():
         hashlib.md5(open(hwid_updater_sh.name).read()).hexdigest())
 
     with open(factory.CONSOLE_LOG_PATH, 'a') as log:
-      Spawn([hwid_updater_sh.name],
+      temp_dir = tempfile.mkdtemp(prefix='hwid_updater_',
+                                  dir=os.path.dirname(target_dir))
+      Spawn([hwid_updater_sh.name, temp_dir],
             stdout=log, stderr=log, log=True,
             check_call=True)
+      Spawn(['sync'], check_call=True)
+      for root, _, files in os.walk(temp_dir):
+        dst_dir = os.path.join(temp_dir, os.path.relpath(root, temp_dir))
+        utils.TryMakeDirs(dst_dir)
+        for name in files:
+          os.rename(os.path.join(root, name), os.path.join(dst_dir, name))
+      Spawn(['sync'], check_call=True)
     return True
   else:
     factory.log('No HWID update available from shopfloor server')
