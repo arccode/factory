@@ -76,7 +76,7 @@ class ValidHWIDDBsTest(unittest2.TestCase):
         vpd[match.group(1)][match.group(2)] = v
     device_info = sample_dict.get('device_info')
 
-    def _EncodeFunctions():
+    def _Encode():
       gt = Gooftool(hwid_version=3, board=board_name,
                     hwdb_path=os.path.dirname(db_path))
       # Test HWID Generation.
@@ -89,9 +89,9 @@ class ValidHWIDDBsTest(unittest2.TestCase):
 
     if error:
       self.assertRaisesRegexp(Exception, re.compile(error, re.S),
-                              _EncodeFunctions)
+                              _Encode)
     else:
-      hwid = _EncodeFunctions()
+      hwid = _Encode()
       self.assertEquals(binary_string, hwid.binary_string)
       self.assertEquals(encoded_string, hwid.encoded_string)
 
@@ -111,7 +111,7 @@ class ValidHWIDDBsTest(unittest2.TestCase):
       encoded_fields = sample_dict['encoded_fields']
       logging.info('Testing decoding of %r to BOM', encoded_string)
 
-    def _DecodeFunctions():
+    def _Decode():
       gt = Gooftool(hwid_version=3, board=board_name,
                     hwdb_path=os.path.dirname(db_path))
       # Test HWID decoding.
@@ -119,9 +119,9 @@ class ValidHWIDDBsTest(unittest2.TestCase):
 
     if error:
       self.assertRaisesRegexp(Exception, re.compile(error, re.S),
-                              _DecodeFunctions)
+                              _Decode)
     else:
-      hwid = _DecodeFunctions()
+      hwid = _Decode()
       self.assertEquals(binary_string, hwid.binary_string)
       self.assertEquals(encoded_fields, hwid.bom.encoded_fields)
 

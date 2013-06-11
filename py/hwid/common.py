@@ -301,6 +301,8 @@ class BOM(object):
     return copy.deepcopy(self)
 
   def __eq__(self, op2):
+    if not isinstance(op2, BOM):
+      return False
     return self.__dict__ == op2.__dict__
 
   def __ne__(self, op2):

@@ -903,6 +903,34 @@ def VerifyHwidV3(options):
   print 'Verification SUCCESS!'
 
 
+def ParseDecodedHWID(hwid):
+  """Parse the HWID object into a more compact dict.
+
+  Args:
+    hwid: A decoded HWID object.
+
+  Returns:
+    A dict containing the board name, the binary string, and the list of
+    components.
+  """
+  results = {}
+  results['board'] = hwid.database.board
+  results['binary_string'] = hwid.binary_string
+  results['components'] = collections.defaultdict(list)
+  components = hwid.bom.components
+  for comp_cls in sorted(components):
+    for (comp_name, probed_values, _) in sorted(components[comp_cls]):
+      if not probed_values:
+        db_components = hwid.database.components
+        probed_values = db_components.GetComponentAttributes(
+            comp_cls, comp_name).get('values')
+      results['components'][comp_cls].append(
+          {comp_name: probed_values if probed_values else None})
+  # Convert defaultdict to dict.
+  results['components'] = dict(results['components'])
+  return results
+
+
 @Command('decode_hwid_v3',
          _board_cmd_arg,
          _hwdb_path_cmd_arg,
@@ -916,23 +944,8 @@ def DecodeHwidV3(options):
   decoded_hwid_context = Gooftool(hwid_version=3, board=options.board,
                                   hwdb_path=options.hwdb_path).DecodeHwidV3(
                                       options.hwid)
-
-  results = {}
-  results['board'] = decoded_hwid_context.database.board
-  results['binary_string'] = decoded_hwid_context.binary_string
-  results['components'] = collections.defaultdict(list)
-  components = decoded_hwid_context.bom.components
-  for comp_cls in sorted(components):
-    for (comp_name, probed_values, _) in sorted(components[comp_cls]):
-      if not probed_values:
-        db_components = decoded_hwid_context.database.components
-        probed_values = db_components.GetComponentAttributes(
-            comp_cls, comp_name).get('values')
-      results['components'][comp_cls].append(
-          {comp_name: probed_values if probed_values else None})
-  # Convert defaultdict to dict.
-  results['components'] = dict(results['components'])
-  print yaml.dump(results, default_flow_style=False)
+  print yaml.dump(ParseDecodedHWID(decoded_hwid_context),
+                  default_flow_style=False)
 
 
 def Main():

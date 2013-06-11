@@ -9,8 +9,8 @@ import os
 import unittest
 
 import factory_common # pylint: disable=W0611
-from cros.factory import gooftool
 from cros.factory.event_log import Log
+from cros.factory.gooftool import probe, gooftool
 from cros.factory.gooftool import Gooftool
 from cros.factory.hwdb.hwid_tool import ProbeResults  # pylint: disable=E0611
 from cros.factory.hwid import common
@@ -55,7 +55,7 @@ class HWIDV3Test(unittest.TestCase):
       with open(OVERRIDE_PROBE_RESULTS_PATH) as f:
         probe_results = ProbeResults.Decode(f.read())
     else:
-      probe_results = gooftool.probe.Probe()
+      probe_results = probe.Probe()
     Log('probe', probe_results=probe_results)
 
     gt = Gooftool(hwid_version=3, board=board,
@@ -68,23 +68,24 @@ class HWIDV3Test(unittest.TestCase):
           'Generating HWID (v3)...',
           '正在产生 HWID (v3)...'))
       generated_hwid = gt.GenerateHwidV3(device_info=device_data)
-      encoded_hwid = generated_hwid.encoded_string
-      factory.console.info('Generated HWID: %s', encoded_hwid)
-      Log('hwid', hwid=encoded_hwid)
-      shopfloor.UpdateDeviceData({'hwid': encoded_hwid})
+      hwid = generated_hwid.encoded_string
+      factory.console.info('Generated HWID: %s', hwid)
+      decoded_hwid = gt.DecodeHwidV3(hwid)
+      Log('hwid', hwid=hwid, components=gooftool.ParseDecodedHWID(decoded_hwid))
+      shopfloor.UpdateDeviceData({'hwid': hwid})
     else:
-      encoded_hwid = None
+      hwid = None
 
     template.SetState(test_ui.MakeLabel(
         'Verifying HWID (v3): %s...' % (
-            encoded_hwid or '(unchanged)'),
+            hwid or '(unchanged)'),
         '正在验证 HWID (v3): %s...' % (
-            encoded_hwid or '（不变）')))
-    gt.VerifyHwidV3(encoded_hwid, probe_results)
+            hwid or '（不变）')))
+    gt.VerifyHwidV3(hwid, probe_results)
 
     if self.args.generate:
       template.SetState(test_ui.MakeLabel(
-          'Setting HWID (v3): %s...' % encoded_hwid,
-          '正在写入 HWID (v3): %s...' % encoded_hwid))
-      gt.WriteHWID(encoded_hwid)
+          'Setting HWID (v3): %s...' % hwid,
+          '正在写入 HWID (v3): %s...' % hwid))
+      gt.WriteHWID(hwid)
 
