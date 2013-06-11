@@ -480,6 +480,9 @@ class Options(object):
   # Hooks class for Goofy initialization.  Defaults to a dummy class.
   hooks_class = 'cros.factory.test.factory.Hooks'
 
+  # Strictly require an ID for each test.
+  strict_ids = False
+
   def check_valid(self):
     '''Throws a TestListError if there are any invalid options.'''
     # Make sure no errant options, or options with weird types,
@@ -678,6 +681,8 @@ class FactoryTest(object):
       run_if_table_name: The table_name portion of the run_if ctor arg.
       run_if_col: The column name portion of the run_if ctor arg.
       run_if_not: Whether the sense of the argument is inverted.
+      implicit_id: Whether the ID was determined implicitly (i.e., not
+          explicitly specified in the test list).
   '''
 
   # If True, the test never fails, but only returns to an untested state.
@@ -852,7 +857,10 @@ class FactoryTest(object):
         self.path, self.retries))
     if _root:
       self.id = None
+      self.implicit_id = False
     else:
+      self.implicit_id = not id
+
       if id:
         self.id = id
       elif autotest_name:
@@ -1153,6 +1161,15 @@ class FactoryTestList(FactoryTest):
             "Unknown test %s in %s's require_run argument (note "
             "that full paths are required)"
             % (requirement.path, test.path))
+
+    if self.options.strict_ids:
+      bad_implicit_ids = []
+      for test in self.walk():
+        if test.implicit_id:
+          bad_implicit_ids.append(test.path)
+      if bad_implicit_ids:
+        raise TestListError("options.strict_ids is set, but tests %s lack "
+                            "explicitly specified IDs" % bad_implicit_ids)
 
   def get_all_tests(self):
     '''
