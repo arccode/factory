@@ -96,6 +96,15 @@ class Device(models.Model):
 class Component(models.Model):
   __metaclass__ = _NotManagedModelBase
 
-  device_id = models.TextField(primary_key=True, db_index=True)
-  component = models.TextField(primary_key=True)
-  symbolic  = models.TextField()
+  device_id       = models.TextField(primary_key=True, db_index=True)
+  component_class = models.TextField(primary_key=True, db_index=True)
+  component_name  = models.TextField()
+
+
+class ComponentDetail(models.Model):
+  __metaclass__ = _NotManagedModelBase
+
+  device_id       = models.TextField(primary_key=True, db_index=True)
+  component_class = models.TextField(primary_key=True, db_index=True)
+  field_name      = models.TextField(primary_key=True, db_index=True)
+  field_value     = models.TextField()

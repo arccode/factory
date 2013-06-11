@@ -10,7 +10,8 @@ from django.template import Context, loader
 import factory_common  # pylint: disable=W0611
 from cros.factory.minijack import db
 from cros.factory.minijack.frontend import settings
-from cros.factory.minijack.models import Device, Test, Component, Event, Attr
+from cros.factory.minijack.models import Event, Attr, Test, Device
+from cros.factory.minijack.models import Component, ComponentDetail
 from cros.factory.test import utils
 
 
@@ -46,7 +47,7 @@ def GetQueryView(request):
   else:
     usage_message = ('<p>Type the SQL select statement in the above box. '
         'Table schemas:</p>')
-    for model in (Device, Test, Component, Event, Attr):
+    for model in (Event, Attr, Test, Device, Component, ComponentDetail):
       usage_message += ('<p>' +
           ' '.join([w if w.isupper() else '<b>' + w + '</b>'
             for w in model.SqlCmdCreateTable().split(' ')]) +

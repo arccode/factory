@@ -41,7 +41,8 @@ def GetBuildView(dummy_request):
 def GetDeviceView(dummy_request, device_id):
   device = Device.objects.get(device_id=device_id)
   tests = Test.objects.filter(device_id=device_id).order_by('-start_time')
-  comps = Component.objects.filter(device_id=device_id).order_by('component')
+  comps = Component.objects.filter(device_id=device_id).order_by(
+      'component_class')
   events = Event.objects.filter(device_id=device_id).order_by('log_id', 'time')
 
   # Count the passed and failed tests.
