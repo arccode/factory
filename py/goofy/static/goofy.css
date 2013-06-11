@@ -415,6 +415,13 @@ table + .goofy-history-header {
   overflow: auto;
   display: inline-block;
 }
+.goofy-ul-table th {
+  text-align: left;
+}
+.goofy-ul-archive-key {
+  font-weight: bold;
+  font-size: 150%;
+}
 .goofy-unknown {
   color: darkgray;
   font-style: italic;

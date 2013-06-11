@@ -13,19 +13,24 @@ import inspect
 import logging
 import os
 import Queue
+import random
 import re
+import tempfile
 import threading
 import time
 
 import factory_common  # pylint: disable=W0611
 from cros.factory import factory_bug
 from cros.factory.test import factory
+from cros.factory.test import shopfloor
 from cros.factory.test import utils
 from cros.factory.test.event import Event
 from cros.factory.utils import file_utils, process_utils
 
 
 REBOOT_AFTER_UPDATE_DELAY_SECS = 5
+PING_SHOPFLOOR_TIMEOUT_SECS = 2
+UPLOAD_FACTORY_LOGS_TIMEOUT_SECS = 20
 VAR_LOG_MESSAGES = '/var/log/messages'
 
 
@@ -191,6 +196,41 @@ class GoofyRPC(object):
     except:
       logging.exception('Unable to save logs to USB')
       raise
+
+  def PingShopFloorServer(self):
+    """Pings the shop floor server.
+
+    Raises:
+      Exception if unable to contact shop floor server.
+    """
+    shopfloor.get_instance(
+        detect=True, timeout=PING_SHOPFLOOR_TIMEOUT_SECS).Ping()
+
+  def UploadFactoryLogs(self, name, serial, description):
+    """Uploads logs to the shopfloor server.
+
+    Returns:
+      [archive_name, archive_size, archive_key]
+        archive_name: The uploaded file name.
+        archive_size: The size of the archive.
+        archive_key: A "key" that may later be used to refer to the archive.
+            This is just a randomly-chosen 8-digit number.
+    """
+    archive_key = "%08d" % random.SystemRandom().randint(0, 1e8)
+    archive_id = '.'.join([re.sub('[^A-Za-z0-9.]', '_', x)
+                           for x in (archive_key, name, serial, description)])
+    output_file = factory_bug.SaveLogs(tempfile.gettempdir(), archive_id)
+    try:
+      with open(output_file) as f:
+        data = f.read()
+      shopfloor.get_instance(
+          detect=True, timeout=UPLOAD_FACTORY_LOGS_TIMEOUT_SECS
+          ).SaveAuxLog(os.path.basename(output_file),
+                       shopfloor.Binary(data))
+      return [os.path.basename(output_file), os.path.getsize(output_file),
+              archive_key]
+    finally:
+      file_utils.TryUnlink(output_file)
 
   def UpdateSkippedTests(self):
     '''Updates skipped tests based on run_if.'''

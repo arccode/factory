@@ -1805,6 +1805,146 @@ cros.factory.Goofy.prototype.showNoteDialog = function() {
 };
 
 /**
+ * Uploads factory logs to the shop floor server.
+ * @param {string} name name of the person uploading logs
+ * @param {string} serial serial number of this device
+ * @param {string} description bug description
+ * @param {function()} onSuccess function to execute on success
+ */
+cros.factory.Goofy.prototype.uploadFactoryLogs = function(
+    name, serial, description, onSuccess) {
+    var dialog = new goog.ui.Dialog();
+    this.registerDialog(dialog);
+    var content = cros.factory.Content(
+        'Uploading factory logs...',
+        '正在上载工厂记录...');
+    dialog.setTitle(content);
+    dialog.setContent(
+        cros.factory.Label(
+            'Uploading factory logs.  Please wait...',
+            '正在上载工厂记录 。 请 稍等...') + '<br>');
+
+    dialog.setButtonSet(null);
+    dialog.setVisible(true);
+
+    this.sendRpc('UploadFactoryLogs', [name, serial, description],
+                 function(info) {
+                     var filename = /** @type string */(info[0]);
+                     var size = /** @type number */(info[1]);
+                     var key = /** @type string */(info[2]);
+
+                     dialog.setContent(
+                         'Success! Uploaded factory logs (' +
+                             size + ' bytes).<br><br>' +
+                             'The archive key is ' +
+                             '<span class="goofy-ul-archive-key">' +
+                             goog.string.htmlEscape(key) + '</span>.<br>' +
+                             'Please use this key when filing bugs<br>' +
+                             'or corresponding with the factory team.');
+                     dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
+                     dialog.reposition();
+
+                     onSuccess();
+                 },
+                 function(response) {
+                     dialog.setContent(
+                         'Unable to upload factory logs:<br>' +
+                             goog.string.htmlEscape(response.error.message));
+                     dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
+                     dialog.reposition();
+                 });
+};
+
+/**
+ * Pings the shopfloor server, displayed an alert if it cannot be reached.
+ * @param {function()} onSuccess function to execute on success
+ */
+cros.factory.Goofy.prototype.pingShopFloorServer = function(onSuccess) {
+    this.sendRpc('PingShopFloorServer', [], onSuccess,
+                 function(response) {
+                     this.alert('Unable to contact shopfloor server.<br>' +
+                                goog.string.htmlEscape(response.error.message));
+                 });
+};
+
+/**
+ * Displays a dialog to upload factory logs to shopfloor server.
+ */
+cros.factory.Goofy.prototype.showUploadFactoryLogsDialog = function() {
+    var dialog = new goog.ui.Dialog();
+    this.registerDialog(dialog);
+    dialog.setModal(true);
+
+    var table = [];
+    table.push('<table class="goofy-ul-table">');
+    table.push(
+        '<tr><th>' +
+        cros.factory.Content('Your Name', '你的名字').innerHTML +
+        '</th><td>' +
+        '<input id="goofy-ul-name" size="30">' +
+        '</td></tr>');
+    table.push(
+        '<tr><th>' +
+        cros.factory.Content('Serial Number', '编号').innerHTML +
+        '</th><td>' +
+        '<input id="goofy-ul-serial" size="30" value="' +
+        goog.string.htmlEscape(
+            /** @type string */(this.systemInfo['serial_number']) ||
+            /** @type string */(this.systemInfo['mlb_serial_number']) ||
+                '') +
+        '"></td></tr>');
+    table.push(
+        '<tr><th>' +
+        cros.factory.Content('Bug Description', 'Bug 描述').innerHTML +
+        '</th><td>' +
+        '<input id="goofy-ul-description" size="50">' +
+        '</td></tr>');
+    table.push('</table>');
+
+    dialog.setContent(table.join(''));
+    var buttons = goog.ui.Dialog.ButtonSet.createOkCancel();
+    dialog.setButtonSet(buttons);
+    dialog.setTitle(
+        cros.factory.Content('Upload Factory Logs', '上载工厂记录'));
+    dialog.setVisible(true);
+
+    var nameElt = document.getElementById('goofy-ul-name');
+    var serialElt = document.getElementById('goofy-ul-serial');
+    var descriptionElt = document.getElementById('goofy-ul-description');
+
+    // Enable OK only if all three of these text fields are filled in.
+    var elts = [nameElt, serialElt, descriptionElt];
+    function checkOKEnablement() {
+        buttons.setButtonEnabled(goog.ui.Dialog.DefaultButtonKeys.OK, true);
+        goog.array.forEach(elts, function(elt) {
+            if (goog.string.isEmpty(elt.value)) {
+                buttons.setButtonEnabled(goog.ui.Dialog.DefaultButtonKeys.OK,
+                                         false);
+            }
+        }, this);
+    }
+    goog.array.forEach(elts, function(elt) {
+        goog.events.listen(elt, [goog.events.EventType.CHANGE,
+                                 goog.events.EventType.KEYUP],
+                           checkOKEnablement, false, this);
+    });
+    checkOKEnablement();
+
+    goog.events.listen(
+        dialog, goog.ui.Dialog.EventType.SELECT,
+        function(event) {
+            if (event.key != goog.ui.Dialog.DefaultButtonKeys.OK)
+                return;
+
+            this.uploadFactoryLogs(
+                nameElt.value, serialElt.value, descriptionElt.value,
+                function() { dialog.dispose() });
+
+            event.preventDefault();
+        }, false, this);
+};
+
+/**
  * Saves factory logs to a USB drive.
  */
 cros.factory.Goofy.prototype.saveFactoryLogsToUSB = function() {
@@ -2166,6 +2306,12 @@ cros.factory.Goofy.prototype.setTestList = function(testList) {
                     addExtraItem('Save factory logs to USB drive...',
                                  '保存工厂记录到 U盘',
                                  this.saveFactoryLogsToUSB);
+                    addExtraItem('Upload factory logs...',
+                                 '上载工厂记录',
+                                 function() {
+                                     this.pingShopFloorServer(
+                                         this.showUploadFactoryLogsDialog);
+                                 });
 
                     this.showTestPopup(
                         '', document.getElementById('goofy-logo-text'),
