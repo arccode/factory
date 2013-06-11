@@ -102,6 +102,12 @@ cros.factory.LOG_PANE_MIN_HEIGHT = 170;
 cros.factory.MAX_DIALOG_SIZE_FRACTION = 0.75;
 
 /**
+ * Hover delay for a non-failing test.
+ * @type number
+ */
+cros.factory.NON_FAILING_TEST_HOVER_DELAY_MSEC = 250;
+
+/**
  * Makes a label that displays English (or optionally Chinese).
  * @param {string} en
  * @param {string=} zh
@@ -2002,12 +2008,13 @@ cros.factory.Goofy.prototype.updateTestToolTip =
 
     var errorMsg = test.state['error_msg'];
     if (test.state.status != 'FAILED' || this.contextMenu || !errorMsg) {
-        // Don't bother showing it.
-        event.preventDefault();
+        // Just show the test path, with a very short hover delay.
+        tooltip.setHtml(test.path);
+        tooltip.setHideDelayMs(cros.factory.NON_FAILING_TEST_HOVER_DELAY_MSEC);
     } else {
         // Show the last failure.
         var lines = errorMsg.split('\n');
-        var html = ('Failure in "' + test.label_en + '":' +
+        var html = (test.path + ' failed:' +
                     '<div class="goofy-test-failure">' +
                     goog.string.htmlEscape(lines.shift()) + '</span>');
 
