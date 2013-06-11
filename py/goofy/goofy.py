@@ -1469,7 +1469,8 @@ class Goofy(object):
     return self.time_synced
 
   def log_disk_space_stats(self):
-    if not self.test_list.options.log_disk_space_period_secs:
+    if (utils.in_chroot() or
+        not self.test_list.options.log_disk_space_period_secs):
       return
 
     now = time.time()

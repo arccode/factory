@@ -18,6 +18,7 @@ import tempfile
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import utils
+from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import Spawn
 
 
@@ -138,15 +139,22 @@ def SaveLogs(output_dir, archive_id=None,
 
   output_file = os.path.join(output_dir, filename)
 
+  if utils.in_chroot():
+    # Just save a dummy tarball.
+    with file_utils.TempDirectory() as d:
+      open(os.path.join(os.path.join(d, 'dummy-factory-bug')), 'w').close()
+      Spawn(['tar', 'cfj', output_file, '-C', d, 'dummy-factory-bug'],
+            check_call=True)
+    return output_file
+
   tmp = tempfile.mkdtemp(prefix='factory_bug.')
   try:
     with open(os.path.join(tmp, 'crossystem'), 'w') as f:
       Spawn('crossystem', stdout=f, stderr=f, check_call=True)
 
-      if not utils.in_chroot():
-        print >> f, '\nectool version:'
-        f.flush()
-        Spawn(['ectool', 'version'], stdout=f, check_call=True)
+      print >> f, '\nectool version:'
+      f.flush()
+      Spawn(['ectool', 'version'], stdout=f, check_call=True)
 
     with open(os.path.join(tmp, 'dmesg'), 'w') as f:
       Spawn('dmesg', stdout=f, check_call=True)
