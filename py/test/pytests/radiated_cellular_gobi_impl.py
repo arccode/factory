@@ -89,7 +89,7 @@ class RadiatedCellularGobiImpl(RfFramework):
         self.StartTXTest(band_name, channel)
         self.Prompt('Modem is in TX mode for %s<br>'
                     'Press SPACE to continue' % measurement_name)
-        self.template.SetState('Measuring %r' % measurement_name)
+        self.SetHTML('Measuring %r' % measurement_name)
         if delay > 0:
           logging.info('Delay %.2f secs', delay)
           time.sleep(delay)
@@ -98,6 +98,8 @@ class RadiatedCellularGobiImpl(RfFramework):
         tx_power = self.RunEquipmentCommand(
             N1914A.MeasureInBinary, self.n1914a,
             port, self.config['avg_length'])
+        if tx_power == None: # For 'without equipment' test
+          tx_power = 0
 
         # End continuous transmit
         self.EndTXTest(band_name, channel)

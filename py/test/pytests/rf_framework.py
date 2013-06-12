@@ -13,6 +13,7 @@ import os
 import re
 import threading
 import time
+import unittest
 import yaml
 
 from xmlrpclib import Binary
@@ -27,7 +28,7 @@ from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test import utils
-from cros.factory.test.args import Arg
+from cros.factory.test.args import Arg, Args
 from cros.factory.utils import net_utils
 
 SHOPFLOOR_TIMEOUT_SECS = 10 # Timeout for shopfloor connection.
@@ -40,6 +41,7 @@ CONFIG_VERSION = 'config_version'
 CALIBRATION_VERSION = 'calibration_config_version'
 ELAPSED_TIME = 'elapsed_time'
 MODULE_ID = 'module_id'
+RF_TEST_NAME = 'rf_test_name'
 
 MSG_START = test_ui.MakeLabel(
     'Please press SPACE key to start.',
@@ -82,13 +84,29 @@ MSG_POST_TEST = test_ui.MakeLabel(
     'Running post-test.',
     u'执行剩馀测试中...')
 
+class _RfFrameworkDelegate(object):
+  """UI Delegate for RfFramework."""
 
+  def __init__(self):
+    self.ui = test_ui.UI()
+    self.template = ui_templates.OneSection(self.ui)
+    self._ui_thread = self.ui.Run(blocking=False)
+
+  def JoinUIThread(self):
+    self._ui_thread.join()
+
+
+# TODO: RfFramework can inherit from TestCase with load_tests protocol.
 class RfFramework(object):
   NORMAL_MODE = 'Normal'
   DETAIL_PROMPT = 'Detail prompts'
   DETAIL_PROMPT_WITHOUT_EQUIPMENT = 'Detail prompts without equipment'
 
   ARGS = [
+      Arg('test_name', str,
+          'Optional name to identify this test. '
+          'It must contain valid characters to be used in file name.',
+          default='', optional=True),
       Arg('category', str,
           'Describes what category it is, should be one of calibration,'
           'production, conductive or debug.'),
@@ -128,18 +146,16 @@ class RfFramework(object):
     self.aux_logs = list()
     self.unique_identification = None
 
-  def setUp(self):
+  def setUp(self, delegate=None):
     self.caches_dir = os.path.join(CACHES_DIR, 'parameters')
     self.interactive_mode = False
     self.calibration_mode = False
     self.equipment_enabled = True
     self.mode = self.NORMAL_MODE
     # Initiate an UI
-    self.ui = test_ui.UI()
     # TODO(itspeter): Set proper title and context for initial screen.
-    self.template = ui_templates.OneSection(self.ui)
+    self.delegate = delegate or _RfFrameworkDelegate()
     self.key_pressed = threading.Condition()
-    self.ui_thread = self.ui.Run(blocking=False)
     self.failures = []
     # point all parameters to the correct path.
     self.args.config_file = os.path.join(
@@ -154,9 +170,9 @@ class RfFramework(object):
             in self.args.parameters])
 
     # Allowed user to apply fine controls in engineering_mode
-    if self.ui.InEngineeringMode():
+    if self.delegate.ui.InEngineeringMode():
       factory.console.debug('engineering mode detected.')
-      self.mode = self.SelectMode(
+      self.mode = self._SelectMode(
           'mode',
           [self.NORMAL_MODE, self.DETAIL_PROMPT_WITHOUT_EQUIPMENT,
            self.DETAIL_PROMPT])
@@ -170,15 +186,16 @@ class RfFramework(object):
     factory.console.info('interactive_mode = %s', self.interactive_mode)
     factory.console.info('equipment_enabled = %s', self.equipment_enabled)
 
-  def runTest(self):
     self.unique_identification = self.GetUniqueIdentification()
-    self.Prompt(MSG_START, force_prompt=True)
 
+  def TestStep0_BeforeFactoryMode(self):
+    """Connects shopfloor and downloads parameters. The test has not entered
+    factory mode at this step."""
     if self.args.use_shopfloor:
-      self.PrepareNetwork(self.args.static_ips.pop())
+      self._PrepareNetwork()
       if len(self.args.parameters) > 0:
-        self.template.SetState(MSG_DOWNLOADING_PARAMETERS)
-        self.DownloadParameters(self.args.parameters)
+        self.SetHTML(MSG_DOWNLOADING_PARAMETERS)
+        self._DownloadParameters(self.args.parameters)
 
     # Prepare additional parameters if we are in calibration mode.
     if self.args.category == 'calibration':
@@ -193,8 +210,8 @@ class RfFramework(object):
         failure = 'DUT %r is not in the calibration_target' % (
             self.unique_identification)
         factory.console.info(failure)
-        self.ui.Fail(failure)
-        self.ui_thread.join()
+        self.delegate.Fail(failure)
+        self.delegate.JoinUIThread()
       self.calibration_target = (
           self.calibration_target[self.unique_identification])
       factory.console.info('Calibration target=\n%s',
@@ -209,64 +226,90 @@ class RfFramework(object):
     self.field_to_eventlog[CONFIG_VERSION] = config_version
     self.field_to_csv[CONFIG_VERSION] = config_version
 
+  def TestStep1_PrepareOutsideShieldBox(self):
+    """Brings up test environments on DUT. Typically enters factory mode here.
+    If something goes wrong, operator can handle the error earlier.
+    """
+    self.SetHTML(MSG_RUNNING_OUTSIDE_SHIELD_BOX)
+    self.PreTestOutsideShieldBox()
+
+  def TestStep2_PrepareInsideShieldBox(self):
+    """Set up network connnection to the equipment and optionally tests if the
+    equipment works.
+    """
+    self._PrepareNetwork()
+    # TODO(itspeter): Ask user to enter shield box information.
+    # TODO(itspeter): Verify the validity of shield-box and determine
+    #                 the corresponding calibration_config.
+
+    # Load the calibration_config.
+    with open(os.path.join(
+        self.caches_dir, self.args.calibration_config)) as fd:
+      self.calibration_config = yaml.load(fd.read())
+    calibration_config_version = self.calibration_config['annotation']
+    factory.console.info('Loaded calibration_config = %r',
+                         calibration_config_version)
+    self.field_to_eventlog[CALIBRATION_VERSION] = calibration_config_version
+    self.field_to_csv[CALIBRATION_VERSION] = calibration_config_version
+
+    self.SetHTML(MSG_CHECKING_SHIELD_BOX)
+    self.PreTestInsideShieldBox()
+
+  def TestStep3_PrimaryTestInsideShieldBox(self):
+    """The primary test."""
+    # Primary test
+    start_time = time.time()
+    self.SetHTML(MSG_RUNNING_PRIMARY_TEST)
+    self.PrimaryTest()
+    self.field_to_eventlog[ELAPSED_TIME] = time.time() - start_time
+
+    # Save useful info to the CSV and eventlog.
+    self.field_to_eventlog[MODULE_ID] = self.unique_identification
+    self.field_to_eventlog[RF_TEST_NAME] = self.args.test_name
+    Log('measurement_details', **self.field_to_eventlog)
+    self._LogToCsv(self.field_to_csv)
+
+  def TestStep4_AfterShieldBox(self):
+    """After operator moves DUT outside the shield box, run PostTest() and
+    uploads test results to shopfloor.
+    """
+    # Post-test
+    self.SetHTML(MSG_POST_TEST)
+    self.PostTest()
+    # Upload the aux_logs to shopfloor server.
+    if self.args.use_shopfloor:
+      self._PrepareNetwork()
+      self._UploadAuxLogs(self.aux_logs)
+
+  def runTest(self):
+    self.Prompt(MSG_START, force_prompt=True)
+    self.TestStep0_BeforeFactoryMode()
+
     try:
-      self.template.SetState(MSG_RUNNING_OUTSIDE_SHIELD_BOX)
-      self.PreTestOutsideShieldBox()
+      self.TestStep1_PrepareOutsideShieldBox()
       self.Prompt(MSG_OUTSIDE_SHIELD_BOX_COMPLETED, force_prompt=True)
 
-      self.PrepareNetwork(self.args.static_ips.pop())
-      # TODO(itspeter): Ask user to enter shield box information.
-      # TODO(itspeter): Verify the validity of shield-box and determine
-      #                 the corresponding calibration_config.
-
-      # Load the calibration_config.
-      with open(os.path.join(
-          self.caches_dir, self.args.calibration_config)) as fd:
-        self.calibration_config = yaml.load(fd.read())
-      calibration_config_version = self.calibration_config['annotation']
-      factory.console.info('Loaded calibration_config = %r',
-                           calibration_config_version)
-      self.field_to_eventlog[CALIBRATION_VERSION] = calibration_config_version
-      self.field_to_csv[CALIBRATION_VERSION] = calibration_config_version
-
-      self.template.SetState(MSG_CHECKING_SHIELD_BOX)
-      self.PreTestInsideShieldBox()
-      # TODO(itspeter): Support multiple language in prompt.
+      self.TestStep2_PrepareInsideShieldBox()
       self.Prompt(MSG_SHIELD_BOX_CHECKED, force_prompt=True)
 
-      # Primary test
-      start_time = time.time()
-      self.template.SetState(MSG_RUNNING_PRIMARY_TEST)
       with leds.Blinker(self.args.blinking_pattern):
-        self.PrimaryTest()
-      self.field_to_eventlog[ELAPSED_TIME] = time.time() - start_time
+        self.TestStep3_PrimaryTestInsideShieldBox()
 
-      # Save useful info to the CSV and eventlog.
-      self.field_to_eventlog[MODULE_ID] = self.unique_identification
-      Log('measurement_details', **self.field_to_eventlog)
-      self.LogToCsv(self.field_to_csv)
-
-      # Light all LEDs to indicates test is completed.
+      # Light all LEDs to indicate test is completed.
       leds.SetLeds(leds.LED_SCR|leds.LED_NUM|leds.LED_CAP)
       self.Prompt(MSG_PRIMARY_TEST_COMPLETED, force_prompt=True)
       leds.SetLeds(0)
 
-      # Post-test
-      self.template.SetState(MSG_POST_TEST)
-      self.PostTest()
-      # Upload the aux_logs to shopfloor server.
-      if self.args.use_shopfloor:
-        self.PrepareNetwork(self.args.static_ips.pop())
-        self.UploadAuxLogs(self.aux_logs)
+      self.TestStep4_AfterShieldBox()
     finally:
       self.ExitFactoryMode()
 
     # Fail the test if failure happened.
     if len(self.failures) > 0:
-      self.ui.Fail('\n'.join(self.failures))
+      self.delegate.ui.Fail('\n'.join(self.failures))
     else:
-      self.ui.Pass()
-    self.ui_thread.join()
+      self.delegate.ui.Pass()
+    self.delegate.JoinUIThread()
 
   def PreTestOutsideShieldBox(self):
     """Placeholder for procedures outside the shield-box before primary test."""
@@ -305,10 +348,10 @@ class RfFramework(object):
     raise NotImplementedError(
         'Called without implementing GetUniqueIdentification')
 
-  def NormalizeAsFileName(self, token):
+  def _NormalizeAsFileName(self, token):
     return re.sub(r'\W+', '_', token)
 
-  def LogToCsv(self, field_to_record, postfix='.csv'):
+  def _LogToCsv(self, field_to_record, postfix='.csv'):
     # Column names
     DEVICE_ID = 'device_id'
     DEVICE_SN = 'device_sn'
@@ -332,8 +375,8 @@ class RfFramework(object):
 
     csv_path = '%s_%s_%s%s' % (
         field_to_record[LOG_TIME],
-        self.NormalizeAsFileName(device_sn),
-        self.NormalizeAsFileName(path), postfix)
+        self._NormalizeAsFileName(device_sn),
+        self._NormalizeAsFileName(self.args.test_name or path), postfix)
     csv_path = os.path.join(factory.get_log_root(), 'aux', csv_path)
     utils.TryMakeDirs(os.path.dirname(csv_path))
     self.aux_logs.append(csv_path)
@@ -342,7 +385,7 @@ class RfFramework(object):
               PATH, FAILURES, INVOCATION])
     factory.console.info('Details saved to %s', csv_path)
 
-  def GetShopfloorConnection(
+  def _GetShopfloorConnection(
       self, timeout_secs=SHOPFLOOR_TIMEOUT_SECS,
       retry_interval_secs=SHOPFLOOR_RETRY_INTERVAL_SECS):
     """Returns a shopfloor client object.
@@ -368,10 +411,10 @@ class RfFramework(object):
       time.sleep(retry_interval_secs)
     return shopfloor_client
 
-  def DownloadParameters(self, parameters):
+  def _DownloadParameters(self, parameters):
     """Downloads parameters from shopfloor and saved to state/caches."""
     factory.console.info('Start downloading parameters...')
-    shopfloor_client = self.GetShopfloorConnection()
+    shopfloor_client = self._GetShopfloorConnection()
     logging.info('Syncing time with shopfloor...')
     goofy = factory.get_state_instance()
     goofy.SyncTimeWithShopfloorServer()
@@ -392,9 +435,9 @@ class RfFramework(object):
         fd.write(binary_obj.data)
     # TODO(itspeter): Verify the signature of parameters.
 
-  def UploadAuxLogs(self, file_paths, ignore_on_fail=False):
+  def _UploadAuxLogs(self, file_paths, ignore_on_fail=False):
     """Attempts to upload arbitrary file to the shopfloor server."""
-    shopfloor_client = self.GetShopfloorConnection()
+    shopfloor_client = self._GetShopfloorConnection()
     for file_path in file_paths:
       try:
         chunk = open(file_path, 'r').read()
@@ -412,8 +455,13 @@ class RfFramework(object):
         else:
           raise
 
-  def PrepareNetwork(self, static_ip_pair):
+  def _PrepareNetwork(self):
     """Blocks forever until network is prepared."""
+    # If static_ips is None, disable network setup.
+    if not self.args.static_ips:
+      return
+    static_ip_pair = self.args.static_ips.pop()
+
     def ObtainIp():
       if static_ip_pair[0] is None:
         net_utils.SendDhcpRequest()
@@ -421,11 +469,8 @@ class RfFramework(object):
         net_utils.SetEthernetIp(static_ip_pair[0], force=static_ip_pair[1])
       return True if net_utils.GetEthernetIp() else False
 
-    if static_ip_pair is None:
-      return
-
     while True:
-      self.template.SetState(MSG_WAITING_ETHERNET)
+      self.SetHTML(MSG_WAITING_ETHERNET)
       factory.console.info('Detecting Ethernet device...')
       try:
         net_utils.PollForCondition(condition=(
@@ -436,7 +481,7 @@ class RfFramework(object):
         # Only setup the IP if required so.
         current_ip = net_utils.GetEthernetIp(net_utils.FindUsableEthDevice())
         if not current_ip or static_ip_pair[1] is True:
-          self.template.SetState(MSG_WAITING_IP)
+          self.SetHTML(MSG_WAITING_IP)
           factory.console.info('Setting up IP address...')
           net_utils.PollForCondition(condition=ObtainIp,
               timeout=IP_SETUP_TIMEOUT_SECS,
@@ -451,7 +496,7 @@ class RfFramework(object):
 
     factory.console.info('Network prepared. IP: %r', net_utils.GetEthernetIp())
 
-  def SelectMode(self, title, choices):
+  def _SelectMode(self, title, choices):
     def GetSelectValue(dict_wrapper, event):
       # As python 2.x doesn't have a nonlocal keyword.
       # simulate the nonlocal by using a dict wrapper.
@@ -476,14 +521,14 @@ class RfFramework(object):
       return radio_button_html
 
     dict_wrapper = dict()
-    self.template.SetState(
+    self.SetHTML(
         test_ui.MakeLabel(
             'Please select the %s and press ENTER.<br>' % title) +
         GenerateRadioButtonsHtml(choices) + '<br>&nbsp;'
         '<p id="select-error" class="test-error">&nbsp;')
 
     # Handle selected value when Enter pressed.
-    self.ui.BindKeyJS(
+    self.delegate.ui.BindKeyJS(
         '\r',
         'window.test.sendTestEvent("select_value",'
         'function(){'
@@ -493,12 +538,12 @@ class RfFramework(object):
         '      return choices[i].value;'
         '  return "";'
         '}())')
-    self.ui.AddEventHandler(
+    self.delegate.ui.AddEventHandler(
         'select_value',
         lambda event: GetSelectValue(dict_wrapper, event))
     with self.key_pressed:
       self.key_pressed.wait()
-    self.ui.UnbindKey('\r')
+    self.delegate.ui.UnbindKey('\r')
     return dict_wrapper['select_value']
 
   def Prompt(self, prompt_str, key_to_wait=' ', force_prompt=False):
@@ -518,11 +563,14 @@ class RfFramework(object):
     if not (force_prompt or self.interactive_mode):
       # Ignore the prompt request.
       return
-    self.template.SetState(prompt_str)
-    self.ui.BindKey(key_to_wait, lambda _: KeyPressed())
+    self.SetHTML(prompt_str)
+    self.delegate.ui.BindKey(key_to_wait, lambda _: KeyPressed())
     with self.key_pressed:
       self.key_pressed.wait()
-    self.ui.UnbindKey(key_to_wait)
+    self.delegate.ui.UnbindKey(key_to_wait)
+
+  def SetHTML(self, html, append=False):
+    self.delegate.template.SetState(html=html, append=append)
 
   def RunEquipmentCommand(self, function, *args, **kwargs):
     """Wrapper for controling the equipment command.
@@ -531,3 +579,125 @@ class RfFramework(object):
     """
     if self.equipment_enabled:
       return function(*args, **kwargs)
+
+
+class RfComboTestLoader(unittest.TestCase):
+  """Runs two RfFramework based tests while load/unload DUT on light chamber
+  only once. It provides common ARGS[] and __init__(), setUp(), and runTest()
+  methods.
+  """
+  ARGS = [
+      # The ARGS list is almost identical to RfFramework.ARGS with exception
+      # that some arguments are combo version (argument name ended with
+      # '_combo'). For combo arguments, the values are a pair of the
+      # corresponding argument in RfFramework.
+      #
+      # Please see RfFramework.ARGS[] for detailed help.
+      #
+      # 'calibration_target' is omitted here by purpose because the calibration
+      # should run in standalone mode.
+      Arg('test_name_combo', tuple, 'Combo arguments.'),
+      Arg('category', str, 'Shared argument.'),
+      Arg('base_directory_combo', tuple, 'Combo arguments.'),
+      Arg('config_file_combo', tuple, 'Combo arguments.'),
+      Arg('parameters_combo', tuple, 'Combo arguments.'),
+      Arg('calibration_config_combo', tuple, 'Combo arguments.'),
+      Arg('blinking_pattern_combo', tuple, 'Combo arguments.'),
+      Arg('static_ips_combo', tuple, 'Combo arguments.'),
+      Arg('use_shopfloor', bool, 'Shared argument.', default=True)
+      ]
+
+  def __init__(self, *args, **kwargs):
+    super(RfComboTestLoader, self).__init__(*args, **kwargs)
+    self.rf_tests = None
+    self.delegate = None
+
+  def attachTests(self, rf_tests):
+    """Attaches two RF tests before setUp()."""
+    self.rf_tests = rf_tests
+    if len(rf_tests) != 2:
+      raise ValueError('rf_tests must contain two tests.')
+
+  def setUp(self):
+    def _TranslateArg(k, v, test_index):
+      """Translates args for RfFramework.
+      Returns:
+        Translated (key, value) tuple.
+      """
+      m = re.match(r'^(.*)_combo$', k)
+      if m:
+        return (m.group(1), v[test_index])
+      else:
+        return (k, v)
+
+    logging.info('self.rf_tests=%r', self.rf_tests)
+
+    # Enumerate argument names from ARGS (self.args is not iterable).
+    arg_list = [arg.name for arg in self.ARGS]
+    for test_index in range(2):
+      new_dargs = dict(_TranslateArg(k, getattr(self.args, k), test_index)
+                       for k in arg_list)
+      new_args = Args(*self.rf_tests[test_index].ARGS).Parse(new_dargs)
+      setattr(self.rf_tests[test_index], 'args', new_args)
+      logging.info('args for RF test #%d are %r', test_index + 1,
+                   new_dargs)
+
+    self.delegate = _RfFrameworkDelegate()
+    self.rf_tests[0].setUp(self.delegate)
+    self.rf_tests[1].setUp(self.delegate)
+
+  def runTest(self):
+    # The test sequence cannot be changed arbitrarily.
+    #
+    #  Test_A        Test_B
+    # ---------------------
+    #           ==>
+    #  Step 0  _____Step 0
+    #          ____/
+    #  Step 1 /_____Step 1
+    #          ____/
+    #  Step 2_/     Step 2
+    #    |     ____/  |
+    #  Step 3_/     Step 3
+    #          ____/
+    #  Step 4 /____ Step 4
+    #
+    self.rf_tests[0].Prompt(MSG_START, force_prompt=True)
+    self.rf_tests[0].TestStep0_BeforeFactoryMode()
+    self.rf_tests[1].TestStep0_BeforeFactoryMode()
+
+    try:
+      self.rf_tests[0].TestStep1_PrepareOutsideShieldBox()
+      self.rf_tests[1].TestStep1_PrepareOutsideShieldBox()
+      self.rf_tests[0].Prompt(MSG_OUTSIDE_SHIELD_BOX_COMPLETED,
+                              force_prompt=True)
+
+      # DUT is inside shield box.
+      self.rf_tests[0].TestStep2_PrepareInsideShieldBox()
+      self.rf_tests[0].Prompt(MSG_SHIELD_BOX_CHECKED, force_prompt=True)
+      # Operator closes the door of shield box here.
+      with leds.Blinker(self.args.blinking_pattern_combo[0]):
+        self.rf_tests[0].TestStep3_PrimaryTestInsideShieldBox()
+      with leds.Blinker(self.args.blinking_pattern_combo[1]):
+        self.rf_tests[1].TestStep2_PrepareInsideShieldBox()
+        # No user interaction at this point because the first test has talked to
+        # the equipment earlier.
+        self.rf_tests[1].TestStep3_PrimaryTestInsideShieldBox()
+
+      # Light all LEDs to indicate test is completed.
+      leds.SetLeds(leds.LED_SCR|leds.LED_NUM|leds.LED_CAP)
+      self.rf_tests[0].Prompt(MSG_PRIMARY_TEST_COMPLETED, force_prompt=True)
+      leds.SetLeds(0)
+
+      self.rf_tests[0].TestStep4_AfterShieldBox()
+      self.rf_tests[1].TestStep4_AfterShieldBox()
+    finally:
+      self.rf_tests[0].ExitFactoryMode()
+      self.rf_tests[1].ExitFactoryMode()
+
+    failures = self.rf_tests[0].failures + self.rf_tests[1].failures
+    if len(failures) > 0:
+      self.delegate.ui.Fail('\n'.join(failures))
+    else:
+      self.delegate.ui.Pass()
+    self.delegate.JoinUIThread()
