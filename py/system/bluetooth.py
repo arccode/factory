@@ -368,7 +368,7 @@ class BluetoothManager(object):
         return
       properties = interfaces[DEVICE_INTERFACE]
       for key, value in properties.iteritems():
-        logging.debug(str(key) + ' : ' + str(value))
+        logging.debug('%s : %s', key, value)
 
       if path in devices:
         logging.info('replace old device properties with new device properties')
