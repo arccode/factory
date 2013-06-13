@@ -61,6 +61,19 @@ function updateUI(time_left, hide_options) {
 
   timer_span.innerHTML = time_left;
 }
+
+function registerContextLostHandler() {
+  var webgl_iframe = document.getElementById('webgl-aquarium');
+  var canvas = webgl_iframe.contentDocument.getElementById('canvas');
+  webgl_iframe.contentWindow.onload =
+      webgl_iframe.contentWindow.tdl.webgl.registerContextLostHandler(
+          canvas, function() {
+              window.test.fail(
+                  'Lost WebGL context.' +
+                  ' Did you switch to VT2 for more than 10 seconds?')});
+}
+
+window.onload = registerContextLostHandler;
 """
 
 
