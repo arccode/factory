@@ -21,6 +21,7 @@ DISABLE_FACTORY_TEST_MODE_COMMAND = 'AT+CFUN=1'
 SWITCH_TO_WCDMA_COMMAND = ['modem', 'set-carrier', 'Generic', 'UMTS']
 SWITCH_TO_CDMA_COMMAND = ['modem', 'set-carrier', 'Verizon', 'Wireless']
 START_TX_TEST_COMMAND = 'AT$QCALLUP="%s",%d,"on"'
+START_TX_TEST_COMMAND_WITH_PDM = 'AT$QCALLUP="%s",%d,"on",%d'
 START_TX_TEST_RESPONSE = 'ALLUP: ON'
 END_TX_TEST_COMMAND = 'AT$QCALLUP="%s",%d,"off"'
 END_TX_TEST_RESPONSE = 'ALLUP: OFF'
@@ -75,6 +76,7 @@ class RadiatedCellularGobiImpl(RfFramework):
       band_name = measurement['band_name']
       channel = measurement['channel']
       delay = measurement['delay']
+      pdm = measurement['pdm']
 
       factory.console.info('Testing %s', measurement_name)
       try:
@@ -86,7 +88,7 @@ class RadiatedCellularGobiImpl(RfFramework):
             N1914A.SetMeasureFrequency, self.n1914a,
             port, measurement['frequency'])
         # Start continuous transmit
-        self.StartTXTest(band_name, channel)
+        self.StartTXTest(band_name, channel, pdm)
         self.Prompt('Modem is in TX mode for %s<br>'
                     'Press SPACE to continue' % measurement_name)
         self.SetHTML('Measuring %r' % measurement_name)
@@ -174,9 +176,14 @@ class RadiatedCellularGobiImpl(RfFramework):
     cellular.SwitchModemFirmware(self.firmware)
     factory.console.info('Cellular_gobi: Exited factory test mode')
 
-  def StartTXTest(self, band_name, channel):
+  def StartTXTest(self, band_name, channel, pdm=None):
     def SendTXCommand():
-      self.modem.SendCommand(START_TX_TEST_COMMAND % (band_name, channel))
+      if pdm is None:
+        self.modem.SendCommand(START_TX_TEST_COMMAND % (band_name, channel))
+      else:
+        self.modem.SendCommand(START_TX_TEST_COMMAND_WITH_PDM % (
+            band_name, channel, pdm))
+
       line = self.modem.ReadLine()
       if line == START_TX_TEST_RESPONSE:
         return True
