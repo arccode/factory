@@ -745,7 +745,7 @@ def _ProbeTouchpad():
   results = {'id': data.ident_str}
   results.update(DictCompactProbeStr(data.ident_str))
   for key in ('fw_version', 'config_csum'):
-    value = getattr(data, key)
+    value = getattr(data, key, '')
     if value:
       results[key] = value
   return [results]
