@@ -264,6 +264,10 @@ class FinalizeBundle(object):
         help="Use tip version of release image, install shim, and "
              "netboot install shim on the branch (for testing only)")
     parser.add_argument(
+        '--test_list', metavar='TEST_LIST',
+        help="Set active test_list. e.g. --test_list manual_smt to set active "
+             "test_list to test_list.manual_smt")
+    parser.add_argument(
         'dir', metavar='DIR',
         help="Directory containing the bundle")
     self.args = parser.parse_args()
@@ -387,13 +391,29 @@ class FinalizeBundle(object):
       latest_source = self._GSGetLatestVersion(add_file['source'])
       logging.info('Changing %s source from %s to %s for testing tip of branch',
                    add_file['install_into'], add_file['source'], latest_source)
+      self._CheckFileExistsOrDie(add_file['install_into'], latest_source)
       add_file['source'] = latest_source
     if (add_file.get('extract_files') and
         any('vmlinux.uimg' in f for f in add_file['extract_files'])):
       latest_source = self._GSGetLatestVersion(add_file['source'])
       logging.info('Changing vmlinux.uimg source from %s to %s for testing '
                    'tip of branch', add_file['source'], latest_source)
+      self._CheckFileExistsOrDie('vmlinux.uimg', latest_source)
       add_file['source'] = latest_source
+
+  def _CheckFileExistsOrDie(self, image, url):
+    if not self._GSFileExists(url):
+      sys.exit(('The %s image source on tip of branch is not there, '
+                '%s does not exist. Perhaps buildbot is still building it '
+                'or build failed?' % (image, url)))
+
+  def _GSFileExists(self, url):
+    try:
+      Spawn(['gsutil', '-m', 'ls', url], check_call=True)
+    except subprocess.CalledProcessError:
+      return False
+    else:
+      return True
 
   def _GSGetLatestVersion(self, url):
     """Gets the latest version of image on the branch of url.
@@ -514,6 +534,16 @@ class FinalizeBundle(object):
           path = os.path.join(site_tests_dir, name)
           if name not in site_tests:
             Spawn(['rm', '-rf', path], log=True, sudo=True, check_call=True)
+
+    if self.args.test_list:
+      logging.info('Setting active test_list to test_list.%s',
+                   self.args.test_list)
+      with MountPartition(self.factory_image_path, 1, rw=True) as mount:
+        test_list = 'test_list.%s' % self.args.test_list
+        active = os.path.join(mount, 'dev_image', 'factory', 'test_lists',
+                              'active')
+        Spawn(['ln', '-sf', test_list, active], log=True, sudo=True,
+              check_call=True)
 
   def SetWipeOption(self):
     wipe_option = self.manifest.get('wipe_option', [])
