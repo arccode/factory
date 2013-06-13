@@ -91,6 +91,8 @@ def SetupLookupTable():
   # Range related command
   MockServerHandler.AddLookup(r'SENSe\d:POWer:AC:RANGe:AUTO \d', None)
   MockServerHandler.AddLookup(r'SENSe\d:POWer:AC:RANGe \d', None)
+  # Frequency related command
+  MockServerHandler.AddLookup(r'SENSe\d:FREQuency [\d\.]+', None)
   # Average related command
   MockServerHandler.AddLookup(r'SENSe\d:AVERage:STATe \d', None)
   MockServerHandler.AddLookup(r'SENSe\d:AVERage:COUNt \d', None)
@@ -99,6 +101,8 @@ def SetupLookupTable():
   # point representation of -65.05119874255999
   FETCH_EXPECTED_RESPONSE = str(bytearray([192, 80, 67, 70, 215, 23, 57, 14]))
   MockServerHandler.AddLookup(r'FETCh\d?', FETCH_EXPECTED_RESPONSE + '\n')
+  # Other command
+  MockServerHandler.AddLookup(r'SENSe\d:CORRection:GAIN\d:STATe \d', None)
 
 if __name__ == '__main__':
   logging.basicConfig(level=logging.INFO)
