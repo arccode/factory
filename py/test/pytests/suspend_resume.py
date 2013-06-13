@@ -28,7 +28,6 @@ from cros.factory.test import test_ui
 from cros.factory.test import utils
 from cros.factory.test.args import Arg
 from cros.factory.test.ui_templates import OneSection
-from cros.factory.test.utils import StartDaemonThread
 from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import Spawn, CheckOutput
 
@@ -54,7 +53,7 @@ class SuspendResumeTest(unittest2.TestCase):
     Arg('resume_early_margin_secs', int, 'The allowable margin for the '
         'DUT to wake early', default=0),
     Arg('resume_worst_case_secs', int, 'The worst case time a device is '
-        'expected to take to resume', default=20),
+        'expected to take to resume', default=30),
     Arg('suspend_worst_case_secs', int, 'The worst case time a device is '
         'expected to take to suspend', default=60),
     Arg('wakealarm_path', str, 'Path to the wakealarm file',
@@ -91,20 +90,53 @@ class SuspendResumeTest(unittest2.TestCase):
     # Create this directory so powerd_suspend doesn't fail.
     utils.TryMakeDirs('/var/run/power_manager/root')
 
+    self.done = False
     self.wakeup_count = ''
-    self.start_suspend = threading.Event()
-    self.suspend_started = threading.Event()
-    StartDaemonThread(target=self._MonitorSuspend)
+    self.start_time = 0
+    self.resume_at = 0
+    self.attempted_wake_extensions = 0
+    self.actual_wake_extensions = 0
+    self.initial_suspend_count = 0
+    self.alarm_started = threading.Event()
+    self.alarm_thread = threading.Thread()
 
-  def _MonitorSuspend(self):
-    """Run the powerd_suspend command as needed by the main thread, monitoring
-    the return code.
-    """
-    while self.start_suspend.wait():
-      self.suspend_started.set()
-      Spawn(['powerd_suspend', '-w', self.wakeup_count], check_call=True,
-            log_stderr_on_error=True)
-      self.suspend_started.clear()
+  def tearDown(self):
+    self.done = True
+    self.alarm_thread.join(5)
+    self.assertFalse(self.alarm_thread.isAlive(), 'Alarm thread failed join.')
+    # Clear any active wake alarms
+    open(self.args.wakealarm_path, 'w').write('0')
+
+  def _MonitorWakealarm(self):
+    """Start and extend the wakealarm as needed for the main thread."""
+    open(self.args.wakealarm_path, 'w').write(str(self.resume_at))
+    self.alarm_started.set()
+    # CAUTION: the loop below is subject to race conditions with suspend time.
+    while self._ReadSuspendCount() < self.initial_suspend_count + self.run:
+      time.sleep(0.1)
+      if self.done:
+        break
+      cur_time = self._ReadCurrentTime()
+      if cur_time >= self.resume_at - 1:
+        self.attempted_wake_extensions += 1
+        logging.warn('Late suspend detected, attempting wake extension')
+        open(self.args.wakealarm_path, 'w').write(
+            '+=' + str(_MIN_SUSPEND_MARGIN_SECS))
+        if (self._ReadSuspendCount() >= self.initial_suspend_count + self.run
+            and self._ReadCurrentTime() < cur_time +
+            _MIN_SUSPEND_MARGIN_SECS):
+          logging.info('Attempted wake time extension, but suspended before.')
+          break
+        self.resume_at = self.resume_at + _MIN_SUSPEND_MARGIN_SECS
+        self.actual_wake_extensions += 1
+        logging.info('Attempted extending the wake timer %d s, resume is now '
+                     'at %d.', _MIN_SUSPEND_MARGIN_SECS, self.resume_at)
+      self.assertGreaterEqual(self.start_time +
+                              self.args.suspend_worst_case_secs,
+                              cur_time, 'Suspend timeout, device did not '
+                              'suspend within %d sec.' %
+                              self.args.suspend_worst_case_secs)
+    self.alarm_started.clear()
 
   def _ReadSuspendCount(self):
     """Read the current suspend count from /sys/kernel/debug/suspend_stats.
@@ -124,6 +156,18 @@ class SuspendResumeTest(unittest2.TestCase):
     line_content = open('/sys/kernel/debug/suspend_stats').read().strip()
     return int(re.search(r'[0-9]+', line_content).group(0))
 
+  def _ReadCurrentTime(self):
+    """Read the current time in seconds since_epoch.
+
+    Args:
+      None.
+
+    Returns:
+      Int, the time since_epoch in seconds.
+    """
+    with open(self.args.time_path, 'r') as f:
+      return int(f.read().strip())
+
   def _VerifySuspended(self, count, resume_at):
     """Verify that a reasonable suspend has taken place.
 
@@ -134,7 +178,7 @@ class SuspendResumeTest(unittest2.TestCase):
     Returns:
       Boolean, True if suspend was valid, False if not.
     """
-    cur_time = int(open(self.args.time_path).read().strip())
+    cur_time = self._ReadCurrentTime()
     self.assertGreaterEqual(
         cur_time, resume_at - self.args.resume_early_margin_secs,
         'Premature wake detected (%d s early), spurious event? (got touched?)'
@@ -153,75 +197,59 @@ class SuspendResumeTest(unittest2.TestCase):
   def runTest(self):
     self._ui.Run(blocking=False)
     self._ui.SetHTML(self.args.cycles, id=_ID_CYCLES)
-    initial_suspend_count = self._ReadSuspendCount()
-    logging.info('The initial suspend count is %d.', initial_suspend_count)
+    self.initial_suspend_count = self._ReadSuspendCount()
+    logging.info('The initial suspend count is %d.', self.initial_suspend_count)
 
     random.seed(0)  # Make test deterministic
 
-    for run in range(1, self.args.cycles + 1):
+    for self.run in range(1, self.args.cycles + 1):
       # Log disk usage to find out what cause disk full.
       # Check crosbug.com/p/18518
       disk_usage = CheckOutput(
           "du -a --exclude=factory/tests /var | sort -n -r | head -n 20",
           shell=True, log=True)
       logging.info(disk_usage)
-      attempted_wake_extensions = 0
-      actual_wake_extensions = 0
-      powerd_suspend_delays = 0
-      self._ui.SetHTML(run, id=_ID_RUN)
-      start_time = int(open(self.args.time_path).read().strip())
+      self.attempted_wake_extensions = 0
+      self.actual_wake_extensions = 0
+      alarm_suspend_delays = 0
+      self.alarm_thread = threading.Thread(target=self._MonitorWakealarm)
+      self._ui.SetHTML(self.run, id=_ID_RUN)
+      self.start_time = self._ReadCurrentTime()
       suspend_time = random.randint(self.args.suspend_delay_min_secs,
                                     self.args.suspend_delay_max_secs)
       resume_time = random.randint(self.args.resume_delay_min_secs,
                                    self.args.resume_delay_max_secs)
-      resume_at = suspend_time + start_time
+      self.resume_at = suspend_time + self.start_time
       logging.info('Suspend %d of %d for %d seconds, starting at %d.',
-                   run, self.args.cycles, suspend_time, start_time)
+                   self.run, self.args.cycles, suspend_time, self.start_time)
       self.wakeup_count = open(self.args.wakeup_count_path).read().strip()
-      open(self.args.wakealarm_path, 'w').write(str(resume_at))
-      self.start_suspend.set()
-      self.assertTrue(self.suspend_started.wait(_MIN_SUSPEND_MARGIN_SECS),
-                      'Suspend thread timed out.')
-      self.start_suspend.clear()
-      # CAUTION: the loop below is subject to race conditions with suspend time.
-      while self._ReadSuspendCount() < initial_suspend_count + run:
-        cur_time = int(open(self.args.time_path).read().strip())
-        if cur_time >= resume_at - 1:
-          attempted_wake_extensions += 1
-          logging.warn('Late suspend detected, attempting wake extension')
-          open(self.args.wakealarm_path, 'w').write(
-              '+=' + str(_MIN_SUSPEND_MARGIN_SECS))
-          if (self._ReadSuspendCount() >= initial_suspend_count + run and
-              int(open(self.args.time_path).read().strip()) < cur_time +
-              _MIN_SUSPEND_MARGIN_SECS):
-            logging.info('Attempted wake time extension, but suspended before.')
-            break
-          resume_at = resume_at + _MIN_SUSPEND_MARGIN_SECS
-          actual_wake_extensions += 1
-          logging.info('Attempted extending the wake timer %ds, resume is now '
-                       'at %d.', _MIN_SUSPEND_MARGIN_SECS, resume_at)
-        self.assertGreaterEqual(start_time + self.args.suspend_worst_case_secs,
-                                cur_time, 'Suspend timeout, device did not '
-                                'suspend within %d sec.' %
-                                self.args.suspend_worst_case_secs)
-      self._VerifySuspended(initial_suspend_count + run, resume_at)
+      self.alarm_thread.start()
+      self.assertTrue(self.alarm_started.wait(_MIN_SUSPEND_MARGIN_SECS),
+                      'Alarm thread timed out.')
+      logging.info('Calling powerd_suspend at %d', self._ReadCurrentTime())
+      Spawn(['powerd_suspend', '-w', self.wakeup_count], check_call=True,
+            log_stderr_on_error=True)
+      logging.info('Return from powerd_suspend at %d', self._ReadCurrentTime())
+      self._VerifySuspended(self.initial_suspend_count + self.run,
+                            self.resume_at)
       logging.info('Resumed %d of %d for %d seconds.',
-                   run, self.args.cycles, resume_time)
+                   self.run, self.args.cycles, resume_time)
       time.sleep(resume_time)
-      while self.suspend_started.is_set():
-        powerd_suspend_delays += 1
-        logging.warn('powerd_suspend is taking a while to return, waiting 1s.')
+      while self.alarm_thread.isAlive():
+        alarm_suspend_delays += 1
+        logging.warn('alarm thread is taking a while to return, waiting 1s.')
         time.sleep(1)
-        self.assertGreaterEqual(start_time + self.args.suspend_worst_case_secs,
+        self.assertGreaterEqual(self.start_time +
+                                self.args.suspend_worst_case_secs,
                                 int(open(self.args.time_path).read().strip()),
-                                'powerd_suspend did not return within %d sec.' %
+                                'alarm thread did not return within %d sec.' %
                                 self.args.suspend_worst_case_secs)
-      Log('suspend_resume_cycle', run=run, start_time=start_time,
+      Log('suspend_resume_cycle', run=self.run, start_time=self.start_time,
           suspend_time=suspend_time, resume_time=resume_time,
-          resume_at=resume_at, wakeup_count=self.wakeup_count,
+          resume_at=self.resume_at, wakeup_count=self.wakeup_count,
           suspend_count=self._ReadSuspendCount(),
-          initial_suspend_count=initial_suspend_count,
-          attempted_wake_extensions=attempted_wake_extensions,
-          actual_wake_extensions=actual_wake_extensions,
-          powerd_suspend_delays=powerd_suspend_delays)
+          initial_suspend_count=self.initial_suspend_count,
+          attempted_wake_extensions=self.attempted_wake_extensions,
+          actual_wake_extensions=self.actual_wake_extensions,
+          alarm_suspend_delays=alarm_suspend_delays)
     self._ui.Pass()
