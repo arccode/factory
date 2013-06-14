@@ -32,15 +32,20 @@ OVERRIDE_PROBE_RESULTS_PATH = os.path.join(
 
 class HWIDV3Test(unittest.TestCase):
   ARGS = [
-      Arg('generate', bool,
-          'Generate and write the HWID (if False, only verify it).',
-          True),
+    Arg('generate', bool,
+        'Generate and write the HWID (if False, only verify it).',
+        True),
+    Arg('skip_shopfloor', bool,
+        'Set this value to True to skip updating hwid data from shopfloor '
+        'server.',
+        default=False, optional=True)
   ]
 
   def runTest(self):
     ui = test_ui.UI()
     template = ui_templates.OneSection(ui)
-    shopfloor.update_local_hwid_data()
+    if not self.args.skip_shopfloor:
+      shopfloor.update_local_hwid_data()
 
     if os.path.exists(OVERRIDE_BOARD_PATH):
       with open(OVERRIDE_BOARD_PATH) as f:
