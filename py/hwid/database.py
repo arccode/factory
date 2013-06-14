@@ -162,12 +162,21 @@ class Database(object):
           if matched_comps is None:
             probed_components[comp_cls].append(common.ProbedComponentResult(
                 None, probed_value,
-                common.UNSUPPORTED_COMPONENT_ERROR(comp_cls, probed_value)))
+                common.INVALID_COMPONENT_ERROR(comp_cls, probed_value)))
           elif len(matched_comps) == 1:
             comp_name, comp_data = matched_comps.items()[0]
-            probed_components[comp_cls].append(
-                common.ProbedComponentResult(
-                    comp_name, comp_data['values'], None))
+            comp_status = self.components.GetComponentStatus(
+                comp_cls, comp_name)
+            if comp_status == common.HWID.COMPONENT_STATUS.supported:
+              probed_components[comp_cls].append(
+                  common.ProbedComponentResult(
+                      comp_name, comp_data['values'], None))
+            else:
+              probed_components[comp_cls].append(
+                  common.ProbedComponentResult(
+                      comp_name, comp_data['values'],
+                      common.UNSUPPORTED_COMPONENT_ERROR(comp_cls, comp_name,
+                                                         comp_status)))
           elif len(matched_comps) > 1:
             probed_components[comp_cls].append(common.ProbedComponentResult(
                 None, probed_value,

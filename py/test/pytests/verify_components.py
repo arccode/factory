@@ -53,7 +53,8 @@ class CheckComponentsTask(FactoryTask):
         result = self._test.gooftool.VerifyComponents(self._test.component_list)
       elif self._test.args.hwid_version == 3:
         result = self._test.gooftool.VerifyComponentsV3(
-            self._test.component_list)
+            self._test.component_list,
+            fast_fw_probe=self._test.args.fast_fw_probe)
     except ValueError, e:
       self.Fail(str(e))
       return
@@ -184,7 +185,12 @@ class VerifyComponentsTest(unittest.TestCase):
     Arg('hwid_version', int,
         'The version of HWID functions to call. This should be set to "3" if '
         'the DUT is using HWIDv3.',
-        default=2, optional=True)
+        default=2, optional=True),
+    Arg('fast_fw_probe', bool,
+        'Whether to do a fast firmware probe. The fast firmware probe just '
+        'checks the RO EC and main firmware version and does not compute'
+        'firmware hashes.',
+        default=True, optional=True)
   ]
   def setUp(self):
     self._shopfloor = shopfloor

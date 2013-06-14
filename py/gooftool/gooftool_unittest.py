@@ -442,6 +442,7 @@ class GooftoolTest(unittest2.TestCase):
     '''
 
     self._mock_probe(
+        fast_fw_probe=False,
         probe_initial_config=False,
         probe_volatile=False,
         target_comp_classes=['bluetooth', 'battery', 'cpu', 'audio_codec']
@@ -479,6 +480,7 @@ class GooftoolTest(unittest2.TestCase):
 
   def testVerifyBadComponents3(self):
     self._mock_probe(
+        fast_fw_probe=False,
         probe_initial_config=False,
         probe_volatile=False,
         target_comp_classes='cpu').AndReturn(
@@ -488,6 +490,7 @@ class GooftoolTest(unittest2.TestCase):
                 found_volatile_values={},
                 initial_configs={}))
     self._mock_probe(
+        fast_fw_probe=False,
         probe_initial_config=False,
         probe_volatile=False,
         target_comp_classes=['cpu', 'bad_class_name']).AndReturn(

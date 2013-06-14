@@ -28,6 +28,7 @@ from tempfile import NamedTemporaryFile
 
 import factory_common  # pylint: disable=W0611
 
+from cros.factory import system
 from cros.factory.common import CompactStr, Error, Obj, ParseKeyValueData, Shell
 from cros.factory.gooftool import edid
 from cros.factory.gooftool import crosfw
@@ -945,6 +946,7 @@ def ReadRwVpd(fw_image_file):
 
 
 def Probe(target_comp_classes=None,
+          fast_fw_probe=False,
           probe_volatile=True,
           probe_initial_config=True,
           probe_vpd=False):
@@ -961,6 +963,9 @@ def Probe(target_comp_classes=None,
   Args:
     component_classes: Which component classes to probe for.  A None
       value implies all classes.
+    fast_fw_probe: Do a fast probe for EC and main firmware version. Setting
+      this to True implies probe_volatile = False and probe_initial_config =
+      False.
     probe_volatile: On False, do not probe for volatile data and
       return None for the corresponding field.
     probe_initial_config: On False, do not probe for initial_config
@@ -993,9 +998,22 @@ def Probe(target_comp_classes=None,
     return dict((probe_class, (arch_probes[probe_class]
                                if probe_class in arch_probes
                                else generic_probes[probe_class]))
-                for probe_class in sorted(probe_class_white_list))
+                for probe_class in sorted(probe_class_white_list)
+                if probe_class not in (
+                    'ro_ec_firmware', 'ro_main_firmware', 'hash_gbb',
+                    'key_recovery', 'key_root'))
   arch = Shell('crossystem arch').stdout.strip()
   comp_probes = FilterProbes(_COMPONENT_PROBE_MAP, arch, target_comp_classes)
+
+  initial_configs = {}
+  volatiles = {}
+  if fast_fw_probe:
+    volatiles['ro_ec_firmware'] = {'version': system.GetBoard().GetECVersion()}
+    volatiles['ro_main_firmware'] = {
+        'version': system.GetBoard().GetMainFWVersion()}
+    probe_volatile = False
+    probe_initial_config = False
+
   if probe_initial_config:
     ic_probes = FilterProbes(_INITIAL_CONFIG_PROBE_MAP, arch, None)
   else:
@@ -1010,18 +1028,18 @@ def Probe(target_comp_classes=None,
       found_probe_value_map[comp_class] = probe_values.pop()
     else:
       found_probe_value_map[comp_class] = sorted(probe_values)
-  initial_configs = {}
   for ic_class, probe_fun in ic_probes.items():
     probe_value = RunProbe(probe_fun)
     if probe_value is not None:
       initial_configs[ic_class] = probe_value
-  volatiles = {}
+
   if probe_volatile:
     main_fw_file = crosfw.LoadMainFirmware().GetFileName()
     volatiles.update(CalculateFirmwareHashes(main_fw_file))
     ec_fw_file = crosfw.LoadEcFirmware().GetFileName()
     if ec_fw_file is not None:
       volatiles.update(CalculateFirmwareHashes(ec_fw_file))
+
   if probe_vpd:
     image_file = crosfw.LoadMainFirmware().GetFileName()
     for which, vpd in (('ro', ReadRoVpd(image_file)),

@@ -281,6 +281,9 @@ def BestMatchHwids(options):
 @Command('probe',
          CmdArg('--comps', nargs='*',
                 help='List of keys from the component_db registry.'),
+         CmdArg('--fast_fw_probe', action='store_true',
+                help='Do a fast probe for EC and main firmware versions only. '
+                'This implies --no_vol and --no_ic.'),
          CmdArg('--no_vol', action='store_true',
                 help='Do not probe volatile data.'),
          CmdArg('--no_ic', action='store_true',
@@ -291,6 +294,7 @@ def RunProbe(options):
   """Print yaml-formatted breakdown of probed device properties."""
   print GetGooftool(options).Probe(
       target_comp_classes=options.comps,
+      fast_fw_probe=options.fast_fw_probe,
       probe_volatile=not options.no_vol,
       probe_initial_config=not options.no_ic,
       probe_vpd=options.include_vpd).Encode()

@@ -26,7 +26,8 @@ class VerifyComponentsUnitTest(unittest.TestCase):
     self._mock_test = self._mox.CreateMock(
         verify_components.VerifyComponentsTest)
     setattr(self._mock_test, 'args',
-            type('mock_version', (), {'hwid_version': 2}))
+            type('mock_version', (), {'hwid_version': 2,
+                                      'fast_fw_probe': False}))
     self._mock_test.args.hwid_version = 2
     self._mock_test.gooftool = self._mox.CreateMock(Gooftool)
     self._mock_shopfloor = self._mox.CreateMock(shopfloor)
@@ -80,7 +81,7 @@ class VerifyComponentsUnitTest(unittest.TestCase):
     probed = {'camera':[ProbedComponentResult('camera_1', 'CAMERA_1', None)],
               'cpu': [ProbedComponentResult('cpu_1', 'CPU_1', None)]}
     self._mock_test.gooftool.VerifyComponentsV3(
-        self._mock_test.component_list).AndReturn(probed)
+        self._mock_test.component_list, fast_fw_probe=False).AndReturn(probed)
     verify_components.Log("probed_components", result=probed)
 
     task.Pass()
@@ -126,7 +127,7 @@ class VerifyComponentsUnitTest(unittest.TestCase):
     probed = {'camera':[ProbedComponentResult('camera_1', 'CAMERA_1', None)],
               'cpu': [ProbedComponentResult(None, 'CPU_1', "Fake error")]}
     self._mock_test.gooftool.VerifyComponentsV3(
-        self._mock_test.component_list).AndReturn(probed)
+        self._mock_test.component_list, fast_fw_probe=False).AndReturn(probed)
     verify_components.Log("probed_components", result=probed)
 
     task.Fail(mox.IsA(str))

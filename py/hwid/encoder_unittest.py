@@ -83,7 +83,7 @@ class EncoderTest(unittest.TestCase):
     bom = self.database.UpdateComponentsOfBOM(bom, {
         'keyboard': 'keyboard_us', 'display_panel': 'display_panel_0'})
     self.assertRaisesRegexp(
-        HWIDException, r"Unsupported 'dram' component found with probe result "
+        HWIDException, r"Invalid 'dram' component found with probe result "
         "{ 'size': '4G', 'vendor': 'FOO'} \(no matching name in the component "
         "DB\)", Encode, self.database, bom)
 

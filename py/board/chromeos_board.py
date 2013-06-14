@@ -138,6 +138,10 @@ class ChromeOSBoard(Board):
                            ignore_stderr=True).stdout_data
     return self.EC_VERSION_RE.search(response).group(1)
 
+  def GetMainFWVersion(self):
+    return Spawn(['crossystem', 'ro_fwid'],
+                 check_output=True).stdout_data.strip()
+
   def GetECConsoleLog(self):
     return self._CallECTool(['console'], check=False)
 

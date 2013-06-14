@@ -77,6 +77,17 @@ class Board(object):
     """
     raise NotImplementedError
 
+  def GetMainFWVersion(self):
+    """Gets the main firmware version.
+
+    Returns:
+      A string of the main firmware version.
+
+    Raises:
+      BoardException when fail.
+    """
+    raise NotImplementedError
+
   def GetECConsoleLog(self):
     """Gets the EC console log.
 

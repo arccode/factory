@@ -409,7 +409,7 @@ class Gooftool(object):
         [self._util.GetReleaseRootPartitionPath()],
         ['FACTORY_WIPE_TAGS=fast'] if is_fast else [])
 
-  def Probe(self, target_comp_classes, probe_volatile=True,
+  def Probe(self, target_comp_classes, fast_fw_probe=False, probe_volatile=True,
             probe_initial_config=True, probe_vpd=False):
     """Returns probed results for device components, hash, and initial config
     data.
@@ -432,6 +432,7 @@ class Gooftool(object):
     """
 
     return self._probe(target_comp_classes=target_comp_classes,
+                       fast_fw_probe=fast_fw_probe,
                        probe_volatile=probe_volatile,
                        probe_initial_config=probe_initial_config,
                        probe_vpd=probe_vpd)
@@ -548,7 +549,7 @@ class Gooftool(object):
         'bios_wp_status': self._util.shell(
             'flashrom -p internal:bus=spi --wp-status').stdout}
 
-  def VerifyComponentsV3(self, component_list):
+  def VerifyComponentsV3(self, component_list, fast_fw_probe=False):
     """Verifies the given component list against the component db to ensure
     the installed components are correct. This method uses the HWIDv3 component
     database to verify components.
@@ -571,7 +572,7 @@ class Gooftool(object):
       yaml_probe_results = self._probe().Encode()
     else:
       yaml_probe_results = self._probe(
-          target_comp_classes=component_list,
+          target_comp_classes=component_list, fast_fw_probe=fast_fw_probe,
           probe_volatile=False, probe_initial_config=False).Encode()
     return self.db.VerifyComponents(yaml_probe_results, component_list)
 
