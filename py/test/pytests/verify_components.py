@@ -190,7 +190,11 @@ class VerifyComponentsTest(unittest.TestCase):
         'Whether to do a fast firmware probe. The fast firmware probe just '
         'checks the RO EC and main firmware version and does not compute'
         'firmware hashes.',
-        default=True, optional=True)
+        default=True, optional=True),
+    Arg('skip_shopfloor', bool,
+        'Set this value to True to skip updating hwid data from shopfloor '
+        'server.',
+        default=False, optional=True)
   ]
   def setUp(self):
     self._shopfloor = shopfloor
@@ -210,7 +214,8 @@ class VerifyComponentsTest(unittest.TestCase):
     self.template.SetTitle(_TEST_TITLE)
 
   def runTest(self):
-    shopfloor.update_local_hwid_data()
+    if not self.args.skip_shopfloor:
+      shopfloor.update_local_hwid_data()
 
     self.gooftool = Gooftool(hwid_version=self.args.hwid_version)
     self.component_list = self.args.component_list
