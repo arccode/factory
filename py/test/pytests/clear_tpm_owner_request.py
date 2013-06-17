@@ -10,14 +10,21 @@ Requests that the firmware clear the TPM owner on the next reboot.
 This should generally be followed by a reboot step.
 '''
 
-import factory_common # pylint: disable=W0611
 import unittest
 
-from cros.factory.utils.process_utils import Spawn
+import factory_common # pylint: disable=W0611
+from cros.factory.test.args import Arg
+from cros.factory.utils.process_utils import Spawn, CheckOutput
 
 
 class ClearTPMOwnerRequest(unittest.TestCase):
-  ARGS = []
+  ARGS = [
+    Arg('only_check_clear_done', bool, 'Only check crossystem '
+        'clear_tpm_owner_done=1', default=False)]
   def runTest(self):
-    Spawn(['crossystem', 'clear_tpm_owner_request=1'],
-          check_call=True)
+    if self.args.only_check_clear_done:
+      self.assertEquals(CheckOutput(['crossystem', 'clear_tpm_owner_done']),
+                        '1')
+    else:
+      Spawn(['crossystem', 'clear_tpm_owner_request=1'],
+            check_call=True)
