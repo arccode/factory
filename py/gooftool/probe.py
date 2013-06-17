@@ -285,8 +285,11 @@ class _GobiDevices(object):
   @classmethod
   def IsDeviceGobi(cls):
     """Return true if there is a Gobi modem, false if not."""
-    return any('gobi' in dev.attributes['ModelID'].lower() for dev in
-               _FlimflamDevices.GetDevices('cellular'))
+    for path in glob('/sys/class/net/*/device/uevent'):
+      with open(path) as f:
+        if 'DRIVER=gobi' in [x.strip() for x in f.readlines()]:
+          return True
+    return False
 
   @classmethod
   def ReadFirmwareList(cls):
@@ -531,10 +534,12 @@ def _ProbeCamera():
 def _ProbeCellular():
   data = _FlimflamDevices.ReadSysfsDeviceIds('cellular')
   if data:
-    carrier = re.findall(
-        r'^\s*carrier: (.*)$', Shell('modem status').stdout, re.M)
-    if carrier:
-      data[0]['carrier'] = carrier[0]
+    modem_status = Shell('modem status').stdout
+    for key in ['carrier', 'firmware_revision']:
+      matches = re.findall(
+        r'^\s*' + key + ': (.*)$', modem_status, re.M)
+      if matches:
+        data[0][key] = matches[0]
     # For some chipsets we can use custom utilities for more data
     if _GobiDevices.IsDeviceGobi():
       full_fw_string = []
