@@ -26,6 +26,8 @@ from cros.factory.hwid.encoder import Encode
 from cros.factory.privacy import FilterDict
 from cros.factory.rule import Context
 from cros.factory.system import vpd
+from cros.factory.utils.process_utils import CheckOutput, GetLines
+from cros.factory.utils.string_utils import ParseDict
 
 # A named tuple to store the probed component name and the error if any.
 ProbedComponentResult = namedtuple('ProbedComponentResult',
@@ -387,6 +389,18 @@ class Gooftool(object):
     return self._util.FindAndRunScript(
         'verify_rootfs.sh',
         [self._util.GetReleaseRootPartitionPath()])
+
+  def VerifyTPM(self):
+    """Verify TPM is cleared."""
+    tpm_status = ParseDict(GetLines(
+        CheckOutput(['cryptohome', '--action=tpm_status']),
+        True))
+    tpm_cleared_status = {
+        'TPM Enabled': 'true',
+        'TPM Owned': 'false',
+        'TPM Being Owned': 'false'}
+    if any(tpm_status[k] != v for k, v in tpm_cleared_status.iteritems()):
+      raise Error, 'TPM is not cleared.'
 
   def ClearGBBFlags(self):
     """Zero out the GBB flags, in preparation for transition to release state.

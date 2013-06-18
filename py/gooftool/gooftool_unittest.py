@@ -29,6 +29,7 @@ from cros.factory.hwid.common import HWIDException
 from cros.factory.gooftool import Mismatch
 from cros.factory.gooftool import ProbedComponentResult
 from cros.factory.rule import RuleException, Value
+from cros.factory.utils.process_utils import CheckOutput
 
 _TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
 
@@ -160,6 +161,8 @@ class GooftoolTest(unittest2.TestCase):
     self._gooftool3._read_ro_vpd = self.mox.CreateMock(ReadRoVpd)
     self._gooftool3._named_temporary_file = self.mox.CreateMock(
         NamedTemporaryFile)
+
+    gooftool.CheckOutput = self.mox.CreateMock(CheckOutput)
 
   def tearDown(self):
     self.mox.VerifyAll()
@@ -308,6 +311,17 @@ class GooftoolTest(unittest2.TestCase):
 
     self.mox.ReplayAll()
     self._gooftool.VerifyRootFs()
+
+  def testVerifyTPM(self):
+    gooftool.CheckOutput(
+        ['cryptohome', '--action=tpm_status']).AndReturn(
+             '''TPM Enabled: true
+             TPM Owned: false
+             TPM Being Owned: false
+             TPM Ready: false
+             TPM Password:''')
+    self.mox.ReplayAll()
+    self._gooftool.VerifyTPM()
 
   def testClearGBBFlags(self):
     self._gooftool._util.FindAndRunScript("clear_gbb_flags.sh")

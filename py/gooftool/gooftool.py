@@ -501,6 +501,11 @@ def VerifyRootFs(options):  # pylint: disable=W0613
 
   return GetGooftool(options).VerifyRootFs()
 
+@Command('verify_tpm')
+def VerifyTPM(options):  # pylint: disable=W0613
+  """Verify TPM is cleared."""
+
+  return GetGooftool(options).VerifyTPM()
 
 @Command('verify_switch_wp')
 def VerifyWPSwitch(options):  # pylint: disable=W0613
@@ -625,6 +630,7 @@ def Verify(options):
   VerifySystemTime(options)
   VerifyKeys(options)
   VerifyRootFs(options)
+  VerifyTPM(options)
 
 
 @Command('log_system_details')
