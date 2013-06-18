@@ -18,9 +18,13 @@ def _CommandStr(command):
     One-byte command in 0x%02X format. For non one-byte-str input,
     returns 'invalid command' instead.
   """
-  if isinstance(command, str) and len(command) == 1:
-    return '0x%02X' % ord(command)
-  return 'invalid command %r' % command
+  if isinstance(command, str):
+    if len(command) == 1:
+      return '0x%02X' % ord(command)
+    else:
+      return 'invalid command %r, len:%d != 1' % (command, len(command))
+  else:
+    return 'invalid command %r: not a string.' % command
 
 
 class SpringBFTFixture(BFTFixture):
@@ -135,8 +139,9 @@ class SpringBFTFixture(BFTFixture):
     actual = self._Recv(fail_message)
     if actual != expect:
       raise BFTFixtureException(
-        '%sExpect:%s, actual:%s.' %
-        (fail_message, _CommandStr(expect), _CommandStr(actual)))
+        '%s Sent:%s. Expect response:%s, actual:%s.' %
+        (fail_message, _CommandStr(command), _CommandStr(expect),
+         _CommandStr(actual)))
 
   def _SendRecvDefault(self, command, fail_message):
     """Like _SendRecv, but expecting 0xFA response."""
