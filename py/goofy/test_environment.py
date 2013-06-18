@@ -138,6 +138,7 @@ class DUTEnvironment(Environment):
     chrome_command = [
       '/opt/google/chrome/chrome',
       '--ash-host-window-bounds=%dx%d' % (screen_width, screen_height),
+      '--ash-hide-notifications-for-factory',
       '--user-data-dir=%s' % chrome_data_dir,
       '--disable-translate',
       '--aura-host-window-use-fullscreen',
