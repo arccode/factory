@@ -331,13 +331,13 @@ class Goofy(object):
       logging.info('Closing event client')
       self.event_client.close()
       self.event_client = None
+    if self.cpufreq_manager:
+      self.cpufreq_manager.Stop()
     if self.event_log:
       self.event_log.Close()
       self.event_log = None
     if self.key_filter:
       self.key_filter.Stop()
-    if self.cpufreq_manager:
-      self.cpufreq_manager.Stop()
 
     self.check_exceptions()
     logging.info('Done destroying Goofy')
@@ -1303,7 +1303,7 @@ class Goofy(object):
     self.hooks.test_list = self.test_list
 
     if not utils.in_chroot():
-      self.cpufreq_manager = CpufreqManager()
+      self.cpufreq_manager = CpufreqManager(event_log=self.event_log)
 
     # Call startup hook.
     self.hooks.OnStartup()
