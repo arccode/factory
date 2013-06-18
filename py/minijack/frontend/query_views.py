@@ -2,6 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import json
 import re
 
 from django.http import HttpResponse
@@ -20,6 +21,7 @@ MINIJACK_DB = settings.DATABASES['default']['NAME']
 
 def GetQueryView(request):
   sql_query = request.GET.get('s', '')
+  output = request.GET.get('output')
   columns = []
   results = []
   error_message = None
@@ -53,12 +55,15 @@ def GetQueryView(request):
             for w in model.SqlCmdCreateTable().split(' ')]) +
           '</p>\n')
 
-  template = loader.get_template('query_life.html')
-  context = Context({
-    'sql_query': sql_query,
-    'column_list': columns,
-    'result_list': results,
-    'error_message': error_message,
-    'usage_message': usage_message,
-  })
-  return HttpResponse(template.render(context))
+  if output.lower() == 'json':
+    return HttpResponse(json.dumps(results), content_type="application/json")
+  else:
+    template = loader.get_template('query_life.html')
+    context = Context({
+      'sql_query': sql_query,
+      'column_list': columns,
+      'result_list': results,
+      'error_message': error_message,
+      'usage_message': usage_message,
+    })
+    return HttpResponse(template.render(context))
