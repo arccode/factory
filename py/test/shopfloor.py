@@ -334,7 +334,7 @@ def update_local_hwid_data(target_dir='/usr/local/factory/hwid'):
             check_call=True)
       Spawn(['sync'], check_call=True)
       for root, _, files in os.walk(temp_dir):
-        dst_dir = os.path.join(temp_dir, os.path.relpath(root, temp_dir))
+        dst_dir = os.path.join(target_dir, os.path.relpath(root, temp_dir))
         utils.TryMakeDirs(dst_dir)
         for name in files:
           os.rename(os.path.join(root, name), os.path.join(dst_dir, name))
