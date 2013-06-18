@@ -75,7 +75,11 @@ class Finalize(unittest.TestCase):
           default=[]),
       Arg('hwid_version', int,
           'Version of HWID library to use in gooftool.', default=2,
-          optional=True)
+          optional=True),
+      Arg('enable_shopfloor', bool,
+          'Set this value to True to update hwid data from shopfloor '
+          'server.',
+          default=True)
       ]
 
   def setUp(self):
@@ -97,7 +101,8 @@ class Finalize(unittest.TestCase):
 
   def runTest(self):
     # Check for HWID bundle update from shopfloor.
-    shopfloor.update_local_hwid_data()
+    if self.args.enable_shopfloor:
+      shopfloor.update_local_hwid_data()
 
     # Check waived_tests argument.
     test_list = self.test_info.ReadTestList()
@@ -289,7 +294,8 @@ class Finalize(unittest.TestCase):
       self.Warn('TESTS WERE WAIVED: %s.' % sorted(list(self.waived_tests)))
     Log('waived_tests', waived_tests=sorted(list(self.waived_tests)))
 
-    factory.get_state_instance().FlushEventLogs()
+    if self.args.enable_shopfloor:
+      factory.get_state_instance().FlushEventLogs()
 
     if not self.args.write_protection:
       self.Warn('WRITE PROTECTION IS DISABLED.')
