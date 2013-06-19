@@ -14,6 +14,7 @@ import os
 import Queue
 import signal
 import sys
+import syslog
 import threading
 import time
 import traceback
@@ -1012,6 +1013,8 @@ class Goofy(object):
     self.kill_active_tests(True, reason=reason)
 
   def main(self):
+    syslog.openlog('goofy')
+
     try:
       self.init()
       self.event_log.Log('goofy_init',
@@ -1026,6 +1029,7 @@ class Goofy(object):
           pass
       raise
 
+    syslog.syslog('Goofy (factory test harness) starting')
     self.run()
 
   def update_system_info(self):

@@ -12,6 +12,7 @@ import pipes
 import re
 import shutil
 import signal
+import syslog
 import subprocess
 import sys
 import tempfile
@@ -526,6 +527,10 @@ class TestInvocation(object):
 
     self.update_metadata(start_time=time.time(), **log_args)
     start_time = time.time()
+
+    syslog.syslog('Test %s (%s) starting' % (
+        self.test.path, self.uuid))
+
     try:
       status, error_msg = None, None
       if self.test.autotest_name:
@@ -549,6 +554,10 @@ class TestInvocation(object):
               invocation=self.uuid))
       except:
         logging.exception('Unable to post END_TEST event')
+
+      syslog.syslog('Test %s (%s) completed: %s%s' % (
+          self.test.path, self.uuid, status,
+          (' (%s)' % error_msg if error_msg else '')))
 
       try:
         # Leave all items in log_args; this duplicates
