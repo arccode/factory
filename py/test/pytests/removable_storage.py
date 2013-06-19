@@ -35,6 +35,7 @@ _STATE_RW_TEST_WAIT_INSERT = 1
 _STATE_RW_TEST_WAIT_REMOVE = 2
 _STATE_LOCKTEST_WAIT_INSERT = 3
 _STATE_LOCKTEST_WAIT_REMOVE = 4
+_STATE_ACCESSING = 5
 
 # udev constants
 _UDEV_ACTION_INSERT = 'add'
@@ -232,6 +233,8 @@ class RemovableStorageTest(unittest.TestCase):
     This method executes only random read / write test by default.
     Sequential read / write test can be enabled through dargs.
     '''
+    self._state = _STATE_ACCESSING
+
     self._template.SetInstruction(_TESTING_FMT_STR(self._target_device))
     self._template.SetState(_IMG_HTML_TAG(self._testing_image))
 
@@ -408,6 +411,7 @@ class RemovableStorageTest(unittest.TestCase):
 
   def TestLock(self):
     '''SD card write protection test.'''
+    self._state = _STATE_ACCESSING
     self._template.SetInstruction(_TESTING_FMT_STR(self._target_device))
     self._template.SetState(_IMG_HTML_TAG(self._testing_image))
 
@@ -494,10 +498,16 @@ class RemovableStorageTest(unittest.TestCase):
             self._ui.Pass()
         elif self._state == _STATE_LOCKTEST_WAIT_REMOVE:
           self._ui.Pass()
-        else:
+        elif self._state == _STATE_ACCESSING:
           self._template.SetInstruction(
               _ERR_REMOVE_TOO_EARLY_FMT_STR(self._target_device))
           self._ui.Fail('Device %s removed too early' % self._target_device)
+        else:
+          # Here the state is either _STATE_RW_TEST_WAIT_INSERT or
+          # _STATE_LOCKTEST_WAIT_INSERT. For a device waiting for a media
+          # getting a remove event, it probably receives duplicate media remove
+          # events, ignore.
+          pass
     return True
 
   def AdvanceProgress(self, value=1):
