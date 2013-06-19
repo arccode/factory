@@ -268,6 +268,8 @@ class GoofyRPC(object):
     '''
     ret = []
 
+    # Do this in sorted order to make sure that it's deterministic,
+    # and we see test_list before test_list.generic.
     for f in sorted(
         glob.glob(os.path.join(factory.TEST_LISTS_PATH, 'test_list*'))):
       try:
@@ -304,6 +306,9 @@ class GoofyRPC(object):
       except:  # pylint: disable=W0702
         logging.exception('Unable to process test list %s', f)
         # But keep trucking
+
+    # Sort by name.
+    ret.sort(key=lambda x: x['name'].lower())
 
     return ret
 
