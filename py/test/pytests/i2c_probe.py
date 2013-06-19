@@ -30,20 +30,23 @@ class I2CProbeTest(unittest.TestCase):
     i2c_result = i2c_result[i2c_result.find('\n'):]
     return any(_RE_DEVICE_FOUND.match(f) for f in i2c_result.split())
 
-  def ProbeI2C(self, bus, addr):
-    cmd = 'i2cdetect -y %d 0x%x 0x%x' % (bus, addr, addr)
+  def ProbeI2C(self, bus, addr, r_flag):
+    cmd = 'i2cdetect %s -y %d 0x%x 0x%x' % ('-r ' if r_flag else '',
+                                            bus, addr, addr)
     return self.DeviceExists(SpawnOutput(cmd.split(), log=True))
 
   ARGS = [
     Arg('bus', int, 'I2C bus to probe.'),
     Arg('addr', (int, list), 'I2C address(es) to probe.'),
+    Arg('r_flag', bool, 'Use SMBus "read byte" commands for probing.',
+        default=False),
   ]
 
   def runTest(self):
-    bus, addr_list = self.args.bus, self.args.addr
+    bus, addr_list, r_flag = self.args.bus, self.args.addr, self.args.r_flag
     if type(addr_list) != list:
       addr_list = [addr_list]
-    probed_result = [self.ProbeI2C(bus, addr) for addr in addr_list]
+    probed_result = [self.ProbeI2C(bus, addr, r_flag) for addr in addr_list]
     Log('ic2_probed', result=probed_result, bus=bus, addr_list=addr_list)
     self.assertTrue(any(probed_result),
                     'No I2C device on bus %d addr %s' %
