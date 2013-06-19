@@ -77,8 +77,8 @@ class Finalize(unittest.TestCase):
           'Version of HWID library to use in gooftool.', default=2,
           optional=True),
       Arg('enable_shopfloor', bool,
-          'Set this value to True to update hwid data from shopfloor '
-          'server.',
+          'Perform shopfloor operations: update HWID data and flush event '
+          'logs.',
           default=True)
       ]
 
