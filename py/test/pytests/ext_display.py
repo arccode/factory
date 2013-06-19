@@ -425,6 +425,14 @@ class ExtDisplayTest(unittest.TestCase):
         'Just detect ext display connection. This is for a hack that DUT needs '
         'reboot after connect to prevent X crash.',
         default=False),
+    Arg('start_output_only', bool,
+        'Only start output of external display. This is for bringing up '
+        'the external display for other tests that need it.',
+        default=False),
+    Arg('stop_output_only', bool,
+        'Only stop output of external display. This is for bringing down '
+        'the external display that other tests have finished using.',
+        default=False),
     Arg('already_connect', bool,
         'Also for the reboot hack with fixture. With it set to True, DUT does '
         'not issue plug ext display command.',
@@ -468,18 +476,22 @@ class ExtDisplayTest(unittest.TestCase):
       args.fixture = self._fixture
       args.already_connect = self.args.already_connect
 
-      tasks.append(ConnectTask(args))
-      if not self.args.connect_only:
+      if not self.args.stop_output_only:
         tasks.append(ConnectTask(args))
-        tasks.append(VideoTask(args))
-        if args.audio_port:
-          audio_label = test_ui.MakeLabel('%s Audio' % args.display_label,
-                                          u' %s 音讯' % args.display_label)
-          tasks.append(audio.AudioDigitPlaybackTask(
-              self._ui, audio_label, args.audio_port,
-              'instruction', 'instruction-center'))
+        if not self.args.connect_only:
+          tasks.append(VideoTask(args))
+          if args.audio_port:
+            audio_label = test_ui.MakeLabel('%s Audio' % args.display_label,
+                                            u' %s 音讯' % args.display_label)
+            tasks.append(audio.AudioDigitPlaybackTask(
+                self._ui, audio_label, args.audio_port,
+                'instruction', 'instruction-center'))
+          if not self.args.start_output_only:
+            tasks.append(DisconnectTask(args))
+      else:
         tasks.append(DisconnectTask(args))
-    return tasks
+
+      return tasks
 
   def runTest(self):
     self.InitUI()
