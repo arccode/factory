@@ -276,7 +276,8 @@ class Goofy(object):
         lambda event: self.update_system_info(),
       Event.Type.STOP:
         lambda event: self.stop(root=test_or_root(event, False),
-                                fail=getattr(event, 'fail', False)),
+                                fail=getattr(event, 'fail', False),
+                                reason=getattr(event, 'reason', None)),
       Event.Type.SET_VISIBLE_TEST:
         lambda event: self.set_visible_test(
           self.test_list.lookup_path(event.path)),
@@ -970,7 +971,7 @@ class Goofy(object):
           self.set_visible_test(t)
           break
 
-  def kill_active_tests(self, abort, root=None):
+  def kill_active_tests(self, abort, root=None, reason=None):
     '''
     Kills and waits for all active tests.
 
@@ -985,7 +986,7 @@ class Goofy(object):
         continue
 
       factory.console.info('Killing active test %s...' % test.path)
-      invoc.abort_and_join()
+      invoc.abort_and_join(reason)
       factory.console.info('Killed %s' % test.path)
       test.update_state(**invoc.update_state_on_completion)
       del self.invocations[test]
@@ -994,21 +995,21 @@ class Goofy(object):
         test.update_state(status=TestState.UNTESTED)
     self.reap_completed_tests()
 
-  def stop(self, root=None, fail=False):
-    self.kill_active_tests(fail, root)
+  def stop(self, root=None, fail=False, reason=None):
+    self.kill_active_tests(fail, root, reason)
     # Remove any tests in the run queue under the root.
     self.tests_to_run = deque([x for x in self.tests_to_run
                                if root and not x.has_ancestor(root)])
     self.run_next_test()
 
   def clear_state(self, root=None):
-    self.stop(root)
+    self.stop(root, reason='Clearing test state')
     for f in root.walk():
       if f.is_leaf():
         f.update_state(status=TestState.UNTESTED)
 
-  def abort_active_tests(self):
-    self.kill_active_tests(True)
+  def abort_active_tests(self, reason=None):
+    self.kill_active_tests(True, reason=reason)
 
   def main(self):
     try:
@@ -1047,7 +1048,7 @@ class Goofy(object):
       Never if the update was successful (we just reboot).
       False if the update was unnecessary (no update available).
     '''
-    self.kill_active_tests(False)
+    self.kill_active_tests(False, reason='Factory software update')
     self.cancel_pending_tests()
 
     def pre_update_hook():
@@ -1743,7 +1744,7 @@ class Goofy(object):
       if status in statuses_to_run:
         tests_to_run.append(test)
 
-    self.abort_active_tests()
+    self.abort_active_tests('Operator requested run/re-run of certain tests')
 
     # Reset all statuses of the tests to run (in case any tests were active;
     # we want them to be run again).
@@ -1757,7 +1758,7 @@ class Goofy(object):
     '''Restarts all tests.'''
     root = root or self.test_list
 
-    self.abort_active_tests()
+    self.abort_active_tests('Operator requested restart of certain tests')
     for test in root.walk():
       test.update_state(status=TestState.UNTESTED)
     self.run_tests(root)
@@ -1807,7 +1808,7 @@ class Goofy(object):
       self.set_visible_test(test)
       return
 
-    self.abort_active_tests()
+    self.abort_active_tests('Operator requested abort (switch_test)')
     for t in test.walk():
       t.update_state(status=TestState.UNTESTED)
 

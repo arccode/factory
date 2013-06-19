@@ -137,6 +137,8 @@ class TestInvocation(object):
       **update_state_on_completion).  So update_state_on_completion
       will have at least status and error_msg properties to update
       the test state.
+    aborted_reason: A reason that the test was aborted (e.g.,
+      'Stopped by operator' or 'Factory update')
   '''
   def __init__(self, goofy, test, on_completion=None):
     '''Constructor.
@@ -188,6 +190,7 @@ class TestInvocation(object):
     self._lock = threading.Lock()
     # The following properties are guarded by the lock.
     self._aborted = False
+    self._aborted_reason = None
     self._completed = False
     self._process = None
 
@@ -206,12 +209,13 @@ class TestInvocation(object):
     '''Starts the test thread.'''
     self.thread.start()
 
-  def abort_and_join(self):
+  def abort_and_join(self, reason=None):
     '''
     Aborts a test (must be called from the event controller thread).
     '''
     with self._lock:
       self._aborted = True
+      self._aborted_reason = reason
       process = self._process
     if process:
       utils.kill_process_tree(process, 'autotest')
@@ -226,6 +230,11 @@ class TestInvocation(object):
     Returns true if the test has finished.
     '''
     return self._completed
+
+  def _aborted_message(self):
+    """Returns an error message describing why the test was aborted."""
+    return 'Aborted' + (
+        (': ' + self._aborted_reason) if self._aborted_reason else '')
 
   def _invoke_autotest(self):
     '''
@@ -300,7 +309,7 @@ class TestInvocation(object):
       returncode = self._process.wait()
       with self._lock:
         if self._aborted:
-          error_msg = 'Aborted by operator'
+          error_msg = self._aborted_message()
           return
 
       if returncode:
@@ -386,7 +395,8 @@ class TestInvocation(object):
         env.update(self.env_additions)
         with self._lock:
           if self._aborted:
-            return TestState.FAILED, 'Aborted before starting'
+            return TestState.FAILED, (
+                'Before starting: %s' % self._aborted_message())
 
           self._process = Spawn(
             args,
@@ -407,7 +417,7 @@ class TestInvocation(object):
         self._process.wait()
         with self._lock:
           if self._aborted:
-            return TestState.FAILED, 'Aborted by operator'
+            return TestState.FAILED, self._aborted_message()
         if self._process.returncode:
           return TestState.FAILED, (
             'Test returned code %d' % self._process.returncode)

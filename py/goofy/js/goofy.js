@@ -1500,7 +1500,8 @@ cros.factory.Goofy.prototype.showTestPopup = function(path, labelElement,
     goog.events.listen(
         stopAllItem, goog.ui.Component.EventType.ACTION,
         function(event) {
-            this.sendEvent('goofy:stop', {'fail': true});
+            this.sendEvent('goofy:stop', {
+                'fail': true, 'reason': 'Operator requested abort'});
         }, true, this);
 
     // When there is any active test, enable abort item in menu
@@ -1512,7 +1513,9 @@ cros.factory.Goofy.prototype.showTestPopup = function(path, labelElement,
           'Abort', '取消', 'active', '執行中的',
           numLeavesByStatus['ACTIVE'] || 0,
           test, function(event) {
-              this.sendEvent('goofy:stop', {'path': path, 'fail': true});
+              this.sendEvent('goofy:stop', {
+                  'path': path, 'fail': true,
+                  'reason': 'Operator requested abort'});
           }, false, ' and continue testing', '並繼續'), true);
     }
 
