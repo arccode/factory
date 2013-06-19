@@ -22,6 +22,7 @@ from distutils.version import LooseVersion
 from pkg_resources import parse_version
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.test import factory
 from cros.factory.test import utils
 from cros.factory.tools.make_update_bundle import MakeUpdateBundle
 from cros.factory.tools.mount_partition import MountPartition
@@ -31,7 +32,7 @@ from cros.factory.utils.process_utils import Spawn, CheckOutput
 
 GSUTIL_CACHE_DIR = os.path.join(os.environ['HOME'], 'gsutil_cache')
 
-REQUIRED_GSUTIL_VERSION = [3, 18]  # 3.18
+REQUIRED_GSUTIL_VERSION = [3, 32]  # 3.32
 
 DELETION_MARKER_SUFFIX = '_DELETED'
 
@@ -207,6 +208,7 @@ class FinalizeBundle(object):
     netboot_install_shim_version: Build of the netboot install shim.
     mini_omaha_script_path: Path to the script used to start the mini-Omaha
       server.
+    new_factory_par: Path to a replacement factory.par.
   """
   args = None
   bundle_dir = None
@@ -223,6 +225,7 @@ class FinalizeBundle(object):
   netboot_install_shim_version = None
   release_image_path = None
   mini_omaha_script_path = None
+  new_factory_par = None
 
   def Main(self):
     if not utils.in_chroot():
@@ -233,11 +236,12 @@ class FinalizeBundle(object):
     self.Download()
     self.DeleteFiles()
     self.UpdateMiniOmahaURL()
+    self.PatchImage()
     self.ModifyFactoryImage()
     self.SetWipeOption()
     self.MakeUpdateBundle()
     self.MakeFactoryPackages()
-    self.FixFactoryParSymlinks()
+    self.FixFactoryPar()
     self.CheckFiles()
     self.UpdateReadme()
     self.Archive()
@@ -268,6 +272,14 @@ class FinalizeBundle(object):
         help="Set active test_list. e.g. --test_list manual_smt to set active "
              "test_list to test_list.manual_smt")
     parser.add_argument(
+        '--patch', action='store_true',
+        help=('Invoke patch_image before finalizing (requires '
+              'patch_image_args in MANIFEST.yaml)'))
+    parser.add_argument(
+        '--patch-image-extra-args',
+        help='Extra arguments for patch_image')
+
+    parser.add_argument(
         'dir', metavar='DIR',
         help="Directory containing the bundle")
     self.args = parser.parse_args()
@@ -281,7 +293,8 @@ class FinalizeBundle(object):
     CheckDictHasOnlyKeys(
         self.manifest, ['board', 'bundle_name', 'add_files', 'delete_files',
                         'add_files_to_image', 'delete_files_from_image',
-                        'site_tests', 'wipe_option', 'files', 'mini_omaha_url'])
+                        'site_tests', 'wipe_option', 'files', 'mini_omaha_url',
+                        'patch_image_args'])
 
     self.board = self.manifest['board']
     self.simple_board = self.board.split('_')[-1]
@@ -308,7 +321,7 @@ class FinalizeBundle(object):
     self.readme_path = os.path.join(self.bundle_dir, 'README')
 
   def CheckGSUtilVersion(self):
-    # Check for gsutil >= 3.18.
+    # Check for gsutil >= 3.32.
     process = Spawn(['gsutil', 'version'],
                     read_stderr=True, read_stdout=True)
     if ("No such file or directory: '/usr/lib64/gsutil/CHECKSUM'" in
@@ -325,6 +338,8 @@ class FinalizeBundle(object):
                      process.stderr_data)
       version = match.group(1)
 
+    # Remove 'pre...' string at the end, if any
+    version = re.sub('pre.*', '', version)
     version_split = [int(x) for x in version.split('.')]
     if version_split < REQUIRED_GSUTIL_VERSION:
       sys.exit(
@@ -481,6 +496,34 @@ class FinalizeBundle(object):
       path = os.path.join(self.bundle_dir, f)
       if os.path.exists(path):
         os.unlink(path)
+
+  def PatchImage(self):
+    if not self.args.patch:
+      return
+
+    patch_image_args = self.manifest.get('patch_image_args')
+    if not patch_image_args:
+      sys.exit('--patch flag was specified, but MANIFEST.yaml has no '
+               'patch_image_args')
+
+    factory_par_path = os.path.join(
+        '/build', self.manifest['board'],
+        'usr', 'local', 'factory', 'bundle', 'shopfloor', 'factory.par')
+
+    factory_par_time_old = os.stat(factory_par_path).st_mtime
+
+    patch_command = ([os.path.join(factory.FACTORY_PATH, 'bin', 'patch_image'),
+                      '--input', self.factory_image_path,
+                      '--output', 'IN_PLACE'] +
+                     patch_image_args.split(' ') +
+                     self.args.patch_image_extra_args.split(' '))
+    Spawn(patch_command, log=True, check_call=True)
+
+    factory_par_time_new = os.stat(factory_par_path).st_mtime
+    if factory_par_time_old != factory_par_time_new:
+      logging.info('%s has changed; will replace factory.par in bundle',
+                   factory_par_path)
+      self.new_factory_par = factory_par_path
 
   def ModifyFactoryImage(self):
     add_files_to_image = self.manifest.get('add_files_to_image', [])
@@ -708,10 +751,10 @@ class FinalizeBundle(object):
           ]))
       os.fchmod(f.fileno(), 0555)
 
-  def FixFactoryParSymlinks(self):
-    """Fix symlinks to factory.par.
+  def FixFactoryPar(self):
+    """Fix symlinks to factory.par, and replace factory.par if necessary.
 
-    These may have been turning into real files by the buildbots.
+    (Certain files may have been turned into real files by the buildbots.)
     """
     factory_par_path = os.path.join(self.bundle_dir,
                                     'shopfloor', 'factory.par')
@@ -741,6 +784,10 @@ class FinalizeBundle(object):
         os.symlink(os.path.relpath(factory_par_path,
                                    os.path.dirname(path)),
                    path)
+
+    if self.new_factory_par:
+      logging.info('Copying %s to %s', self.new_factory_par, factory_par_path)
+      shutil.copy2(self.new_factory_par, factory_par_path)
 
   def CheckFiles(self):
     # Check that the set of files is correct

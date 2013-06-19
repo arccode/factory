@@ -137,11 +137,7 @@ def main():
   if args.output != IN_PLACE and os.path.exists(args.output):
     parser.error('Output file %s exists; please remove it first' % args.output)
 
-  args.output_updater = (
-      args.output_updater or
-      os.path.join(os.path.dirname(os.path.realpath(args.output)),
-                   'factory.tar.bz2'))
-  if os.path.exists(args.output):
+  if args.output_updater and os.path.exists(args.output_updater):
     parser.error('Output update file %s exists; please remove it first' %
                  args.output_updater)
 
@@ -387,10 +383,11 @@ def main():
                '*** Created %s (%d bytes)\n'
                '***', args.output, os.path.getsize(args.output))
 
-  Spawn([os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                      'make_update_bundle.py'),
-         '-i', args.output, '-o', args.output_updater],
-        log=True, check_call=True)
+  if args.output_updater:
+    Spawn([os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                        'make_update_bundle.py'),
+           '-i', args.output, '-o', args.output_updater],
+          log=True, check_call=True)
 
 if __name__ == '__main__':
   main()
