@@ -53,7 +53,7 @@ _REGIONS_LIST = [
 # Attempt to read regions from the overlay.  No worries if they're not
 # available.
 try:
-  from cros.factory.l10n import regions_overlay
+  from cros.factory.l10n import regions_overlay   # pylint: disable=E0611
   _REGIONS_LIST += regions_overlay.REGIONS_LIST
 except ImportError:
   pass

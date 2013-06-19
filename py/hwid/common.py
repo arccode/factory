@@ -25,9 +25,15 @@ DEFAULT_HWID_DATA_PATH = (
     else '/usr/local/factory/hwid')
 
 
-def ProbeBoard():
+def ProbeBoard(hwid=None):
   """Probes the board name by looking up the CHROMEOS_RELEASE_BOARD variable
   in /etc/lsb-release.
+
+  If a HWID string is given, this function will try to parse out the board from
+  the given string.
+
+  Args:
+    hwid: A HWID string to parse.
 
   Returns:
     The probed board name as a string.
@@ -35,6 +41,11 @@ def ProbeBoard():
   Raises:
     HWIDException when probe error.
   """
+  if hwid:
+    board = hwid.split(' ')[0].upper()
+    if os.path.exists(os.path.join(DEFAULT_HWID_DATA_PATH, board)):
+      return board
+
   LSB_RELEASE_FILE = '/etc/lsb-release'
   LSB_BOARD_RE = re.compile(r'^CHROMEOS_RELEASE_BOARD=(\w+)$', re.M)
   if utils.in_chroot():

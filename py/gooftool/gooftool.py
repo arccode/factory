@@ -38,6 +38,7 @@ from cros.factory.gooftool.vpd_data import KNOWN_VPD_FIELD_DATA
 from cros.factory.hacked_argparse import CmdArg, Command, ParseCmdline
 from cros.factory.hacked_argparse import verbosity_cmd_arg
 from cros.factory.hwdb import hwid_tool
+from cros.factory.hwid import common
 from cros.factory.test.factory import FACTORY_LOG_PATH
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.privacy import FilterDict
@@ -79,7 +80,7 @@ _board_cmd_arg = CmdArg(
 
 _hwdb_path_cmd_arg = CmdArg(
     '--hwdb_path', metavar='PATH',
-    default=hwid_tool.DEFAULT_HWID_DATA_PATH,
+    default=common.DEFAULT_HWID_DATA_PATH,
     help='Path to the HWID database.')
 
 _hwid_status_list_cmd_arg = CmdArg(
@@ -906,6 +907,8 @@ def VerifyHwidV3(options):
   event_log.Log('vpd', probed_ro_vpd=FilterDict(probed_ro_vpd),
                  probed_rw_vpd=FilterDict(probed_rw_vpd))
 
+  if not options.board:
+    options.board = common.ProbeBoard(hwid_str)
   GetGooftool(options).VerifyHwidV3(
       hwid_str, probe_results, probed_ro_vpd, probed_rw_vpd)
 
@@ -951,6 +954,8 @@ def DecodeHwidV3(options):
   If no HWID is given, the HWID stored on the device will be loaded and used
   instead.
   """
+  if not options.board:
+    options.board = common.ProbeBoard(options.hwid)
   decoded_hwid_context = Gooftool(hwid_version=3, board=options.board,
                                   hwdb_path=options.hwdb_path).DecodeHwidV3(
                                       options.hwid)
