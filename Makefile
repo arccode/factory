@@ -53,7 +53,7 @@ LINT_BLACKLIST=\
 	py/hwdb/convert_to_v2_test_files/components_SAMS_TEST-BETA_2222 \
 	py/hwdb/convert_to_v2_test_files/components_SAMS_TEST-CHARLIE_3333 \
 	py/hwdb/convert_to_v2_test_files/components_SAMS_TEST-DELTA_4444 \
- 	py/hwdb/convert_to_v2_test_files/v15_TEST_FILE \
+	py/hwdb/convert_to_v2_test_files/v15_TEST_FILE \
 	py/shopfloor/shopfloor_standalone_unittest.py \
 	py/shopfloor/template.py \
 	py/system/charge_manager_unittest.py \
@@ -72,7 +72,11 @@ LINT_BLACKLIST=\
 	py/test/unicode_to_string.py \
 	py/test/unicode_to_string_unittest.py \
 	py/test/utils.py \
-	py/test/utils_unittest.py
+	py/test/utils_unittest.py \
+	py/test/fixture/camera/grid_mapper.py \
+	py/test/fixture/camera/mtf_calculator.py \
+	py/test/fixture/camera/perf_tester.py \
+	py/test/fixture/camera/renderer.py
 
 LINT_FILES=$(shell find py -name '*.py' -type f | sort)
 LINT_WHITELIST=$(filter-out $(LINT_BLACKLIST),$(LINT_FILES))
