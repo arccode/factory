@@ -22,6 +22,7 @@ Usage:
 
 
 import struct
+import sys
 
 
 # constants imported from lib/fmap.h
@@ -158,7 +159,12 @@ def fmap_encode(obj):
 
 def main():
   """Unit test."""
-  blob = open('bin/example.bin').read()
+  if len(sys.argv) > 1:
+    filename = sys.argv[1]
+  else:
+    filename = 'bin/example.bin'
+  print "Decoding FMAP from: %s" % filename
+  blob = open(filename).read()
   obj = fmap_decode(blob)
   print obj
   blob2 = fmap_encode(obj)
