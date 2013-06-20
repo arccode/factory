@@ -15,6 +15,7 @@ default assumes a typical /sys/class/rtc/rtc0 entry.
 '''
 
 
+import errno
 import logging
 import os
 import random
@@ -138,6 +139,32 @@ class SuspendResumeTest(unittest2.TestCase):
                               self.args.suspend_worst_case_secs)
     self.alarm_started.clear()
 
+  def _Suspend(self):
+    """Suspend the device by writing to /sys/power/state."""
+    # Explicitly sync the filesystem
+    Spawn(['sync'], check_call=True, log_stderr_on_error=True)
+    # Write out our expected wakeup_count
+    try:
+      with open(self.args.wakeup_count_path, 'w') as f:
+        f.write(self.wakeup_count)
+    except IOError:
+      # This happens if wakeup_count does not match, typically this means
+      # there was an unexpected early wake event.
+      raise IOError('Failed to write to wakeup_count (early wake): %s' %
+                    utils.FormatExceptionOnly())
+    logging.info('Suspending at %d', self._ReadCurrentTime())
+    try:
+      with open('/sys/power/state', 'w') as f:
+        f.write('mem')
+    except IOError as err:
+      if err.errno == errno.EBUSY:
+        raise IOError('EBUSY: Early wake event when attempting suspend: %s' %
+                      utils.FormatExceptionOnly())
+      else:
+        raise IOError('Failed to write to /sys/power/state: %s' %
+                      utils.FormatExceptionOnly())
+    logging.info('Returning from suspend at %d', self._ReadCurrentTime())
+
   def _ReadSuspendCount(self):
     """Read the current suspend count from /sys/kernel/debug/suspend_stats.
     This assumes the first line of suspend_stats contains the number of
@@ -226,10 +253,7 @@ class SuspendResumeTest(unittest2.TestCase):
       self.alarm_thread.start()
       self.assertTrue(self.alarm_started.wait(_MIN_SUSPEND_MARGIN_SECS),
                       'Alarm thread timed out.')
-      logging.info('Calling powerd_suspend at %d', self._ReadCurrentTime())
-      Spawn(['powerd_suspend', '-w', self.wakeup_count], check_call=True,
-            log_stderr_on_error=True)
-      logging.info('Return from powerd_suspend at %d', self._ReadCurrentTime())
+      self._Suspend()
       self._VerifySuspended(self.initial_suspend_count + self.run,
                             self.resume_at)
       logging.info('Resumed %d of %d for %d seconds.',
