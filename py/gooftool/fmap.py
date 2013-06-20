@@ -107,10 +107,19 @@ def fmap_decode(blob, offset=None):
             the blob.
   """
   fmap = {}
-  if offset == None:
+  if offset is None:
     # try search magic in fmap
-    offset = blob.find(FMAP_SIGNATURE)
-  (fmap, size) = _fmap_decode_header(blob, offset)
+    while True:
+      offset = blob.find(FMAP_SIGNATURE, offset)
+      if offset == -1:
+        raise struct.error('No valid FMAP signatures.')
+      try:
+        (fmap, size) = _fmap_decode_header(blob, offset)
+        break
+      except struct.error:
+        offset += 1
+  else:
+    (fmap, size) = _fmap_decode_header(blob, offset)
   fmap['areas'] = []
   offset = offset + size
   for _ in range(fmap['nareas']):
