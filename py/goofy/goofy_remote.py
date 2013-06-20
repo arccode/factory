@@ -87,7 +87,12 @@ def SyncTestList(host, board, test_list,
       else 'test_lists')
 
   Spawn(rsync_command +
-        [test_list, host + ':/usr/local/factory/%s/test_list' % test_list_dir],
+        [test_list, host + ':/usr/local/factory/%s/' % test_list_dir],
+        check_call=True, log=True)
+
+  Spawn(ssh_command +
+        [host, 'ln', '-sf', os.path.basename(test_list),
+         '/usr/local/factory/%s/active' % test_list_dir],
         check_call=True, log=True)
 
   return board
