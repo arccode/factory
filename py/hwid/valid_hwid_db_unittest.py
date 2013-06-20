@@ -16,6 +16,7 @@ import yaml
 import factory_common  # pylint: disable=W0611
 from cros.factory.gooftool import Gooftool
 from cros.factory.hwdb.hwid_tool import ProbeResults  # pylint: disable=E0611
+from cros.factory.hwid import common
 from cros.factory.rule import Context
 
 
@@ -92,7 +93,9 @@ class ValidHWIDDBsTest(unittest2.TestCase):
                               _Encode)
     else:
       hwid = _Encode()
-      self.assertEquals(binary_string, hwid.binary_string)
+      self.assertEquals(binary_string, hwid.binary_string,
+                        common.CompareBinaryString(hwid.database, binary_string,
+                                                   hwid.binary_string))
       self.assertEquals(encoded_string, hwid.encoded_string)
 
   def TestDecode(self, board_name, db_path, sample_dict):

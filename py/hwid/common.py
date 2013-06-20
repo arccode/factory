@@ -14,6 +14,7 @@ import re
 
 import factory_common # pylint: disable=W0611
 from cros.factory import common, schema, rule
+from cros.factory.hwid import base32
 from cros.factory.test import utils
 
 # The expected location of HWID data within a factory image or the
@@ -320,3 +321,35 @@ class BOM(object):
 
   def __ne__(self, op2):
     return not self.__eq__(op2)
+
+
+def CompareBinaryString(database, expected, given):
+  def Header(bit_length):
+    msg = '\n' + '%12s' % 'Bit offset: ' + ' '.join(
+        ['%-5s' % anchor for anchor in xrange(0, bit_length, 5)])
+    msg += '\n' + '%12s' % ' ' + ' '.join(
+        ['%-5s' % '|' for _ in xrange(0, bit_length, 5)])
+    return msg
+
+  def ParseBinaryString(label, string):
+    msg = '\n%12s' % (label + ': ') + ' '.join(
+        [string[i:i+5] for i in xrange(0, len(string), 5)])
+    msg += '\n%12s' % ' ' + ' '.join(
+        ['%5s' % base32.Base32.Encode(string[i:i+5])
+         for i in xrange(0, len(string), 5)])
+    return msg
+
+  def BitMap(database):
+    bitmap = [(key, value.field, value.bit_offset) for key, value in
+              database.pattern.GetBitMapping().iteritems()]
+    msg = '\nField to bit mappings:'
+    msg += '\n%3s: encoding pattern' % '0'
+    msg += '\n' + '\n'.join([
+        '%3s: image_id bit %s' % (idx, idx) for idx in xrange(1, 5)])
+    msg += '\n' + '\n'.join(['%3s: %s bit %s' % entry for entry in bitmap])
+    return msg
+
+  return (Header(len(expected)) +
+          ParseBinaryString('Expected', expected) +
+          ParseBinaryString('Given', given) +
+          BitMap(database))
