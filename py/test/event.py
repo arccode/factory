@@ -29,6 +29,11 @@ CROS_FACTORY_EVENT = 'CROS_FACTORY_EVENT'
 # will be truncated by the seqpacket sockets.
 _MAX_MESSAGE_SIZE = 65535
 
+# Maximum size of logged event data in debug log. Sometimes a test may pass
+# large data to JavaScript functions. If all of it is logged, it can easily take
+# up all disk space.
+_MAX_EVENT_SIZE_FOR_DEBUG_LOG = 512
+
 # Hello message send by the server and expected as the first datagram by
 # the client.
 _HELLO_MESSAGE = '\1'
@@ -385,11 +390,29 @@ class EventClient(object):
       pass
     return False
 
+  def _truncate_event_for_debug_log(self, event):
+    '''
+    Truncates event to a size of _MAX_EVENT_SIZE_FOR_DEBUG_LOG.
+
+    Args:
+      event: The event to be printed.
+
+    Returns:
+      Truncated event string representation.
+    '''
+    event_repr = repr(event)
+    if len(event_repr) > _MAX_EVENT_SIZE_FOR_DEBUG_LOG:
+      return event_repr[:_MAX_EVENT_SIZE_FOR_DEBUG_LOG] + '...'
+    else:
+      return event_repr
+
   def post_event(self, event):
     '''
     Posts an event to the server.
     '''
-    logging.debug('Event client: sending event %s', event)
+    if logging.getLogger().isEnabledFor(logging.DEBUG):
+      logging.debug('Event client: sending event %s',
+                    self._truncate_event_for_debug_log(event))
     message = pickle.dumps(event, protocol=2)
     if len(message) > _MAX_MESSAGE_SIZE:
       # Log it first so we know what event caused the problem.
@@ -467,7 +490,9 @@ class EventClient(object):
 
     try:
       event = pickle.loads(bytes)
-      logging.debug('Event client: dispatching event %s', event)
+      if logging.getLogger().isEnabledFor(logging.DEBUG):
+        logging.debug('Event client: dispatching event %s',
+                      self._truncate_event_for_debug_log(event))
     except:
       logging.warn('Event client: bad message %r', bytes)
       traceback.print_exc(sys.stderr)
