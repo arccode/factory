@@ -451,6 +451,10 @@ class Options(object):
   # The checking period is the same as log_disk_space_period_secs.
   stateful_usage_threshold = None
   _types['stateful_usage_threshold'] = (type(None), int)
+  # The action to do when stateful partition disk usage is above the threshold.
+  # The list will be passed to Spawn() as the first argument.
+  stateful_usage_above_threshold_action = None
+  _types['stateful_usage_above_threshold_action'] = (type(None), list)
 
   # The range in which the charge level should be. If min_charge_pct and
   # max_charge_pct are set, Goofy will use ChargeManager to attempt to keep

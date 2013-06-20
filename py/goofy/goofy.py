@@ -1585,6 +1585,10 @@ class Goofy(object):
                     'inodes_used_pct': FloatDigit(encrypted.inodes_used_pct, 2)}
             })
         self.log_watcher.ScanEventLogs()
+        if (not utils.in_chroot() and
+            self.test_list.options.stateful_usage_above_threshold_action):
+          Spawn(self.test_list.options.stateful_usage_above_threshold_action,
+                call=True)
 
       message = disk_space.FormatSpaceUsedAll(vfs_infos)
       if message != self.last_log_disk_space_message:
