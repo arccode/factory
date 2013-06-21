@@ -336,6 +336,7 @@ DEFAULT_REGION_LIST = (
     ('bg',    'xkb:bg:phonetic:bul', None, '+(Phonetic)'),
     ('en-CA', 'xkb:ca:eng:eng',),
     ('fr-CA', 'xkb:ca::fra',),
+    ('fr-CA', 'xkb:ca:multix:fra', None, '+(Multix)'),
     ('de-CH', 'xkb:ch::ger',),
     ('fr-CH', 'xkb:ch:fr:fra',),
     ('cs',    'xkb:cz::cze',),
