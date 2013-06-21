@@ -169,12 +169,18 @@ class OneScrollableSection(BaseTemplate):
     super(OneScrollableSection, self).__init__(
       ui, 'template_one_scrollable_section')
 
-  def SetState(self, html, append=False):
+  def SetState(self, html, append=False, scroll_down=False):
     '''Sets the state section in the test UI.
 
     Args:
-      html: The html to write.'''
+      html: The html to write.
+      append: Append html at the end.
+      scroll_down: Scroll down if needed.
+    '''
     self._ui.SetHTML(html, append=append, id='state')
+    if scroll_down:
+      self._ui.RunJS("var s = document.getElementById('state');"
+                     "s.scrollTop = s.scrollHeight;")
 
 
 class TwoSections(BaseTemplate):
