@@ -108,7 +108,7 @@ class DUTEnvironment(Environment):
       thread.start()
 
     chrome_data_dir = os.path.join(factory.get_state_root(),
-                                   'chrome-data-dir')
+                                   factory.CHROME_DATA_DIR_NAME)
     # Start with a fresh data directory every time.
     shutil.rmtree(chrome_data_dir, ignore_errors=True)
 

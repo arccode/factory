@@ -17,6 +17,7 @@ import sys
 import tempfile
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.test import factory
 from cros.factory.test import utils
 from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import Spawn
@@ -183,11 +184,11 @@ def SaveLogs(output_dir, archive_id=None,
             '/sys/firmware/log',
             ]], [])
 
-    # Exclude Chrome extension (the Extensions directory) and net logs from
-    # bug reports.
+    # Exclude various items from bug reports.
     exclude_files = list(chain.from_iterable(('--exclude', x) for x in [
         os.path.join(var, 'log', 'connectivity.*'),
         os.path.join(var, 'log', 'net.log'),
+        os.path.join(factory.get_state_root(), factory.CHROME_DATA_DIR_NAME),
         'Extensions',
         ]))
 

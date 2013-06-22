@@ -36,6 +36,9 @@ ACTIVE_TEST_LIST_SYMLINK = os.path.join(TEST_LISTS_PATH, 'active')
 CLIENT_PATH = FACTORY_PATH
 FACTORY_MD5SUM_PATH = os.path.join(FACTORY_PATH, 'MD5SUM')
 
+# Name of Chrome data directory within the state directory.
+CHROME_DATA_DIR_NAME = 'chrome-data-dir'
+
 FACTORY_STATE_VERSION = 2
 
 # Regexp that all IDs should match.  Currently we just warn if it doesn't
