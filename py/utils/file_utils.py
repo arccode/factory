@@ -13,6 +13,9 @@ import os
 import shutil
 import tempfile
 
+import factory_common  # pylint: disable=W0611
+from cros.factory.utils.process_utils import Spawn
+
 
 @contextmanager
 def UnopenedTemporaryFile(**args):
@@ -100,3 +103,8 @@ def WriteFile(path, data, log=False):
     logging.info('Writing %r to %s', data, path)
   with open(path, 'w') as f:
     f.write(data)
+
+
+def Sync(log=True):
+  """Calls 'sync'."""
+  Spawn(['sync'], log=log, check_call=True)
