@@ -106,8 +106,8 @@ class GoofyRPCTest(unittest2.TestCase):
           ACTIVE_TEST_LIST_SYMLINK=os.path.join(tmp, 'active')):
         self.assertEquals(
             [dict(enabled=False, id='', name='Main test list'),
-             dict(enabled=True, id='hello', name='世界你好'),
-             dict(enabled=False, id='unnamed', name='unnamed')],
+             dict(enabled=False, id='unnamed', name='unnamed'),
+             dict(enabled=True, id='hello', name='世界你好')],
             self.goofy_rpc.GetTestLists())
 
         for expected_link_target, test_list_id in (
