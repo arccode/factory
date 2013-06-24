@@ -50,6 +50,7 @@ from cros.factory.test.event import EventClient
 from cros.factory.test.event import EventServer
 from cros.factory.test.factory import TestState
 from cros.factory.tools.key_filter import KeyFilter
+from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import Spawn
 
 
@@ -345,6 +346,11 @@ class Goofy(object):
     logging.info('Done destroying Goofy')
 
   def start_state_server(self):
+    # Before starting state server, remount stateful partitions with
+    # no commit flag.  The default commit time (commit=600) makes corruption
+    # too likely.
+    file_utils.ResetCommitTime()
+
     self.state_instance, self.state_server = (
       state.create_server(bind_address='0.0.0.0'))
     self.goofy_rpc = GoofyRPC(self)
