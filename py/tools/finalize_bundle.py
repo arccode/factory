@@ -26,7 +26,8 @@ from cros.factory.test import factory
 from cros.factory.test import utils
 from cros.factory.tools.make_update_bundle import MakeUpdateBundle
 from cros.factory.tools.mount_partition import MountPartition
-from cros.factory.utils.file_utils import UnopenedTemporaryFile
+from cros.factory.utils.file_utils import (
+    UnopenedTemporaryFile, CopyFileSkipBytes)
 from cros.factory.utils.process_utils import Spawn, CheckOutput
 
 
@@ -679,6 +680,65 @@ class FinalizeBundle(object):
         self.install_shim_version = '%s (%s)' % (GetReleaseVersion(mount),
                                                  GetSigningKey(shim))
 
+    def UpdateNetbootURL():
+      """Updates Omaha & TFTP servers' URL in netboot firmware.
+
+      It takes care of both uboot and depthcharge firmware, if presents.
+      """
+      UpdateUbootNetboot()
+      UpdateDepthchargeNetboot()
+
+    def UpdateUbootNetboot():
+      """Updates Omaha & TFTP servers' URL in uboot netboot firmware."""
+      netboot_firmware_image = os.path.join(
+          self.bundle_dir, 'netboot_firmware',
+          'nv_image-%s.bin' % self.simple_board)
+      if os.path.exists(netboot_firmware_image):
+        update_firmware_vars = os.path.join(
+            self.bundle_dir, 'factory_setup', 'update_firmware_vars.py')
+        new_netboot_firmware_image = netboot_firmware_image + '.INPROGRESS'
+        Spawn([update_firmware_vars,
+               '--force',
+               '-i', netboot_firmware_image,
+               '-o', new_netboot_firmware_image,
+               '--omahaserver=%s' % mini_omaha_url,
+               '--tftpserverip=%s' %
+                 urlparse.urlparse(mini_omaha_url).hostname],
+              check_call=True, log=True)
+        shutil.move(new_netboot_firmware_image, netboot_firmware_image)
+
+    def UpdateDepthchargeNetboot():
+      """Updates Omaha & TFTP servers' URL in depthcharge netboot firmware.
+
+      Also copy 'vmlinux.uimg', skips the first 64 bytes and stored it
+      as 'vmlinux.bin'.
+      """
+      netboot_firmware_image = os.path.join(
+          self.bundle_dir, 'netboot_firmware', 'image.net.bin')
+      if os.path.exists(netboot_firmware_image):
+        update_firmware_settings = os.path.join(
+            self.bundle_dir, 'factory_setup', 'update_firmware_settings.py')
+        new_netboot_firmware_image = netboot_firmware_image + '.INPROGRESS'
+        Spawn([update_firmware_settings,
+               '--clobber',
+               '--input', netboot_firmware_image,
+               '--output', new_netboot_firmware_image,
+               '--omahaserver=%s' % mini_omaha_url,
+               '--tftpserverip=%s' %
+                 urlparse.urlparse(mini_omaha_url).hostname],
+              check_call=True, log=True)
+        shutil.move(new_netboot_firmware_image, netboot_firmware_image)
+
+        # The default name of netboot image is changed to 'vmlinux.bin'.
+        # Also, we need to copy vmlinux.uimg to vmlinux.bin and skip
+        # the first 64 bytes.
+        # Keep both of the files so everyone can be aware of the difference.
+        netboot_image = os.path.join(self.bundle_dir, 'factory_shim',
+                                     'netboot', 'vmlinux.uimg')
+        new_netboot_image = os.path.join(self.bundle_dir, 'factory_shim',
+                                         'netboot', 'vmlinux.bin')
+        CopyFileSkipBytes(netboot_image, new_netboot_image, 64)
+
     # Patch in the install shim, if present.
     has_install_shim = False
     unsigned_shim = os.path.join(self.bundle_dir, 'factory_shim',
@@ -731,21 +791,7 @@ class FinalizeBundle(object):
                   check_call=True, log=True)
             shutil.move(new_netboot_image, netboot_image)
 
-    # Take care of netboot firmware, if present.
-    netboot_firmware_image = os.path.join(self.bundle_dir, 'netboot_firmware',
-        'nv_image-%s.bin' % self.simple_board)
-    if os.path.exists(netboot_firmware_image):
-      update_firmware_vars = os.path.join(self.bundle_dir, 'factory_setup',
-                                         'update_firmware_vars.py')
-      new_netboot_firmware_image = netboot_firmware_image + '.INPROGRESS'
-      Spawn([update_firmware_vars,
-             '--force',
-             '-i', netboot_firmware_image,
-             '-o', new_netboot_firmware_image,
-             '--omahaserver=%s' % mini_omaha_url,
-             '--tftpserverip=%s' % urlparse.urlparse(mini_omaha_url).hostname],
-             check_call=True, log=True)
-      shutil.move(new_netboot_firmware_image, netboot_firmware_image)
+    UpdateNetbootURL()
 
   def MakeFactoryPackages(self):
     release_images = glob.glob(os.path.join(self.bundle_dir, 'release/*.bin'))
