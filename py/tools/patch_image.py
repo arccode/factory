@@ -103,6 +103,19 @@ OLD_IMAGE_MOUNT_POINT = '/tmp/old_image_mount'
 NEW_IMAGE_MOUNT_POINT = '/tmp/new_image_mount'
 ALL = 'ALL'
 
+def HasDeletedComponent(old_image_mount_path, rel_path):
+  """Returns True if rel_path has a deleted component.
+
+  This is true if any directory that is an ancestor of rel_path has been
+  deleted by finalize_bundle and thus has a _DELETED marker.
+  """
+  path = old_image_mount_path
+  for component in rel_path.split(os.sep):
+    path = os.path.join(path, component)
+    if os.path.exists(path + '_DELETED'):
+      return True
+  return False
+
 def main():
   parser = argparse.ArgumentParser(
       description="Patches a factory image according with particular commits.")
@@ -291,6 +304,12 @@ def main():
           dest_path = os.path.join(OLD_IMAGE_MOUNT_POINT, rel_path)
 
           if not os.path.exists(dest_path):
+            if HasDeletedComponent(OLD_IMAGE_MOUNT_POINT, rel_path):
+              # Removed from the image; forget it.
+              if not is_dir:
+                os.unlink(path)
+              continue
+
             diffs.write('*** File %s does not exist in old image\n' % rel_path)
             continue
 
