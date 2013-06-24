@@ -516,7 +516,8 @@ class FinalizeBundle(object):
                       '--input', self.factory_image_path,
                       '--output', 'IN_PLACE'] +
                      patch_image_args.split(' ') +
-                     self.args.patch_image_extra_args.split(' '))
+                     (self.args.patch_image_extra_args.split(' ')
+                      if self.args.patch_image_extra_args else []))
     Spawn(patch_command, log=True, check_call=True)
 
     factory_par_time_new = os.stat(factory_par_path).st_mtime
