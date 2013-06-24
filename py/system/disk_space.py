@@ -5,7 +5,9 @@
 # found in the LICENSE file.
 
 
+import argparse
 import collections
+import logging
 import os
 
 
@@ -115,6 +117,79 @@ def GetPartitionUsage(vfs_info):
              GetUsedPercentage(vfs_info.statvfs.f_favail,
                                vfs_info.statvfs.f_files))
 
+def GetMaxStatefulPartitionUsage():
+  '''Gets the max stateful partition usage.
+
+  Returns:
+    A tuple (max_partition, max_usage_type, max_usage) where
+      max_partition is "stateful" or "encrypted",
+      max_usage_type is "bytes" or "inodes",
+      and max_usage is the usage in percentage.
+  '''
+  vfs_infos = GetAllVFSInfo()
+  stateful_usage = dict()
+  for vfs_info in vfs_infos.values():
+    if '/mnt/stateful_partition' in vfs_info.mount_points:
+      stateful_usage["stateful"] = GetPartitionUsage(vfs_info)
+    if '/mnt/stateful_partition/encrypted' in vfs_info.mount_points:
+      stateful_usage["encrypted"] = GetPartitionUsage(vfs_info)
+
+  logging.debug('stateful usage: %s', stateful_usage)
+
+  max_partition, max_usage_type, max_usage = None, None, 0
+  for partition, usage in stateful_usage.iteritems():
+    larger_usage = max(usage.bytes_used_pct, usage.inodes_used_pct)
+    larger_usage_type = ('bytes'
+        if (usage.bytes_used_pct > usage.inodes_used_pct) else 'inodes')
+    if larger_usage > max_usage:
+      max_partition, max_usage_type, max_usage = (partition, larger_usage_type,
+                                                  larger_usage)
+  return (max_partition, max_usage_type, max_usage)
+
+
+class DiskException(Exception):
+  pass
+
+
+class DiskSpace(object):
+  """Checks disk space usage"""
+  args = None
+  vfs_infos = GetAllVFSInfo()
+
+  def Main(self):
+    self.ParseArgs()
+    self.ShowDiskSpace()
+    self.CheckStatefulThreshold()
+
+  def ParseArgs(self):
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument(
+        '--stateful-partition-threshold', metavar='PCT', default='95',
+        help="Checks if stateful partition disk usage is above threshold")
+    self.args = parser.parse_args()
+    logging.basicConfig(level=logging.INFO)
+
+  def ShowDiskSpace(self):
+    """Shows all disk space usage"""
+    print FormatSpaceUsedAll(GetAllVFSInfo())
+
+  def CheckStatefulThreshold(self):
+    """Raises an exception if stateful usage is greater than threshold.
+
+    Raises:
+      DiskException if stateful partition or encrypted stateful partition
+        usage is larger than threshold.
+    """
+    self.args.stateful_partition_threshold = int(
+        self.args.stateful_partition_threshold)
+    max_partition, max_usage_type, max_usage = GetMaxStatefulPartitionUsage()
+    if max_usage > self.args.stateful_partition_threshold:
+      raise DiskException(
+            ('%s partition %s usage %d%% is above threshold %d%%' %
+             (max_partition, max_usage_type, max_usage,
+              self.args.stateful_partition_threshold)))
+
 
 if __name__ == '__main__':
-  print FormatSpaceUsedAll(GetAllVFSInfo())
+  DiskSpace().Main()

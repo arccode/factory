@@ -50,6 +50,13 @@ load_setup() {
   factory_setup
 }
 
+check_disk_usage() {
+  # Show error in red
+  echo -e "\033[1;31m"
+  "$FACTORY/bin/disk_space" 2>&1 1>/dev/null || exit 1
+  echo -e "\033[0m"
+}
+
 start_factory() {
   # This should already exist, but just in case...
   mkdir -p "$(dirname "$FACTORY_LOG_FILE")"
@@ -73,7 +80,7 @@ start_factory() {
 
   # Preload modules here
   modprobe i2c-dev 2>/dev/null || true
-
+  check_disk_usage
   boot_splash
 
   cd "$FACTORY"/../autotest
