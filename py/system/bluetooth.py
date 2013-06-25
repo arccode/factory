@@ -4,6 +4,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import argparse
 import dbus
 import factory_common # pylint: disable=W0611
 import gobject
@@ -12,6 +13,7 @@ import os
 import re
 import threading
 import uuid
+import yaml
 
 from cros.factory.test.utils import Retry
 from cros.factory.utils.net_utils import PollForCondition
@@ -445,3 +447,54 @@ class BluetoothManager(object):
          if 'Address' in value))
 
     return devices_address_properties
+
+
+USAGE = """
+Controls bluetooth adapter to scan remote devices.
+"""
+
+
+class BluetoothTest(object):
+  """A class to test bluetooth in command line."""
+  args = None
+  manager = None
+  adapter = None
+
+  def Main(self):
+    self.ParseArgs()
+    self.Run()
+
+  def ParseArgs(self):
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description=USAGE)
+    parser.add_argument(
+        '--properties', dest='properties', action='store_true',
+        help="Shows properties in the scanned results")
+    parser.add_argument(
+        '--forever', dest='forever', action='store_true',
+        help="Scans forever")
+    self.args = parser.parse_args()
+    logging.basicConfig(level=logging.INFO)
+
+  def Run(self):
+    """Controls the adapter to scan remote devices."""
+    self.manager = BluetoothManager()
+    self.adapter = self.manager.GetFirstAdapter()
+    logging.info('Using adapter: %s', self.adapter)
+
+    if self.args.forever:
+      while True:
+        self._RunOnce()
+    else:
+      self._RunOnce()
+
+  def _RunOnce(self):
+    """Scans once."""
+    result = self.manager.ScanDevices(self.adapter)
+    if self.args.properties:
+      logging.info(yaml.dump(result, default_flow_style=False))
+
+
+if __name__ == '__main__':
+  BluetoothTest().Main()
