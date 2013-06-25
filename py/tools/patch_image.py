@@ -185,14 +185,20 @@ def main():
                       '( cd %s && git clean -xdf )', path)
         sys.exit(1)
 
-  # Check out the appropriate branch in each repo
-  for path in repo_paths:
-    if args.branch.startswith('factory-'):
-      branch = (('cros-internal/' if path.endswith('-private') else 'cros/')
-                + args.branch)
-    else:
-      branch = args.branch
-    Spawn(['git', 'checkout', branch], cwd=path, log=True, check_call=True)
+  def _CheckoutAppropriateBranchInEachRepo():
+    """Check out the appropriate branch in each repo."""
+    for path in repo_paths:
+      if args.branch.startswith('factory-'):
+        branch = (('cros-internal/' if path.endswith('-private') else 'cros/')
+                  + args.branch)
+      else:
+        branch = args.branch
+      Spawn(['git', 'checkout', branch], cwd=path, log=True, check_call=True)
+
+  # Check out the appropriate branch in each repo.
+  # If HEAD is on a local branch, repo sync will try to rebase on it. We don't
+  # want it to happen here.
+  _CheckoutAppropriateBranchInEachRepo()
 
   # Do workons
   if workon_packages:
@@ -216,6 +222,13 @@ def main():
           pass
         else:
           sys.exit('repo rebase in %s failed' % path)
+
+  # Check out the appropriate branch in each repo.
+  # If this chroot is not inited -b with the factory branch we want,
+  # HEAD will be on the remote tracking branch specified in the manifest.xml
+  # (maybe on master branch or other factory branch). So after repo sync,
+  # we have to checkout to the branch we want.
+  _CheckoutAppropriateBranchInEachRepo()
 
   # Emerge the packages
   tarballs = []
