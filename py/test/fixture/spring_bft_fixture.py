@@ -61,8 +61,40 @@ class SpringBFTFixture(BFTFixture):
   ENGAGE_BARCODE_SCANNER = chr(0xC7)
   ENGAGE_KEYBOARD_SCANNER = chr(0xC1)
 
+  SYSTEM_STATUS_COMMAND = {
+      BFTFixture.SystemStatus.BACKLIGHT: {
+          'code': chr(0xD6),
+          'fail_message': 'Failed to check backlight',
+          'status_map': {
+              chr(0xFA): BFTFixture.Status.ON,
+              chr(0xFE): BFTFixture.Status.OFF,
+              }}}
+
   # Defaut value of self._serial.
   _serial = None
+
+  def GetSystemStatus(self, probe):
+    """Reads internal status of a testing board.
+
+    Args:
+      probe: the probe to read.
+
+    Returns:
+      BFTFixture.Status
+
+    Raises:
+      BFTFixtureException: when the specified probe not supported, or the
+                           returned result was not in status map.
+    """
+    if probe not in self.SYSTEM_STATUS_COMMAND:
+      raise BFTFixtureException('Fixture does not support %s' % probe)
+
+    cmd = self.SYSTEM_STATUS_COMMAND[probe]
+    self._Send(cmd['code'], cmd['fail_message'])
+    fixture_status = self._Recv(cmd['fail_message'])
+    if fixture_status in cmd['status_map']:
+      return cmd['status_map'][fixture_status]
+    raise BFTFixtureException(cmd['fail_message'])
 
   def Init(self, **serial_params):
     """Sets up RS-232 connection.

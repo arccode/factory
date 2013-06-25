@@ -19,6 +19,7 @@ dargs:
 import asyncore
 import datetime
 import evdev
+import time
 import unittest
 
 from cros.factory.event_log import Log
@@ -37,7 +38,7 @@ from cros.factory.test.ui_templates import OneSection
 from cros.factory.test.utils import StartDaemonThread
 from cros.factory.utils import file_utils
 
-_DEFAULT_TIMEOUT = 10
+_DEFAULT_TIMEOUT = 30
 _SERIAL_TIMEOUT = 1
 
 _MSG_PROMPT_CLOSE = test_ui.MakeLabel(
@@ -60,6 +61,11 @@ _HTML_LID_SWITCH = ('<div id="%s"></div>\n'
                     (_ID_PROMPT, _ID_COUNTDOWN_TIMER))
 
 _LID_SWITCH_TEST_DEFAULT_CSS = '.lid-test-info { font-size: 2em; }'
+
+_BACKLIGHT_OFF_TIMEOUT = 12
+_TEST_TOLERANCE = 2
+_TIMESTAMP_BL_ON = _BACKLIGHT_OFF_TIMEOUT - _TEST_TOLERANCE
+_TIMESTAMP_BL_OFF = _BACKLIGHT_OFF_TIMEOUT + _TEST_TOLERANCE
 
 
 class InputDeviceDispatcher(asyncore.file_dispatcher):
@@ -122,7 +128,7 @@ class LidSwitchTest(unittest.TestCase):
     StartDaemonThread(target=self.MonitorEvdevEvent)
     # Create a thread to run countdown timer.
     StartCountdownTimer(
-        self.args.timeout_secs,
+        _DEFAULT_TIMEOUT if self.fixture else self.args.timeout_secs,
         lambda: self.ui.Fail('Lid switch test failed due to timeout.'),
         self.ui,
         _ID_COUNTDOWN_TIMER)
@@ -164,11 +170,61 @@ class LidSwitchTest(unittest.TestCase):
             evdev.ecodes.SW_LID in event_codes):
           return dev
 
+  def CheckDelayedBacklight(self):
+    """Checks delayed backlight off.
+
+    This function calls ui.Fail() on backlight turned off too early, or
+    backlight did not turn off after backlight timeout period. When backlight
+    delayed off works as expected, it calls OpenLid() to test lid_open event.
+
+    Raises: BFTFixtureException on fixture communication error.
+
+    Signals:
+
+      lid     ---+
+      switch     |
+                 +-----------------------------------------------------------
+
+      fixture ---++ ++ ++-------------------+
+      lid        || || ||                   |
+      status     ++ ++ ++                   +--------------------------------
+
+      test        skip        BL_ON                  BL_OFF
+
+    """
+    try:
+      start_time = time.time()
+      timeout_time = (start_time + _TIMESTAMP_BL_OFF)
+      # Ignore leading bouncing signals
+      time.sleep(_TEST_TOLERANCE)
+
+      # Check backlight power falling edge
+      while timeout_time > time.time():
+        test_time = time.time() - start_time
+
+        backlight = self.fixture.GetSystemStatus(
+            BFTFixture.SystemStatus.BACKLIGHT)
+        if backlight == BFTFixture.Status.OFF:
+          if test_time >= _TIMESTAMP_BL_ON:
+            # Test passed, continue to check lid open
+            self.AskForOpenLid()
+          else:
+            self.ui.Fail('Backlight turned off too early.')
+          return
+        time.sleep(0.5)
+
+      self.ui.Fail('Backlight does not turn off.')
+    except Exception as e:
+      self.ui.Fail(e)
+
   def HandleEvent(self, event):
     if event.type == evdev.ecodes.EV_SW and event.code == evdev.ecodes.SW_LID:
       if event.value == 1: # LID_CLOSED
         self._closed_sec = self.getCurrentEpochSec()
-        self.AskForOpenLid()
+        if self.fixture:
+          self.CheckDelayedBacklight()
+        else:
+          self.AskForOpenLid()
       elif event.value == 0: # LID_OPEN
         self._opened_sec = self.getCurrentEpochSec()
         self.ui.Pass()

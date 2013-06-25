@@ -36,6 +36,8 @@ class BFTFixture(object):
   """
 
   # A subset of factory.system.board.Board.LEDColor.
+  SystemStatus = Enum(['BACKLIGHT'])
+  Status = Enum(['OFF', 'ON'])
   LEDColor = Enum(['RED', 'GREEN', 'YELLOW', 'OFF'])
   StatusColor = Enum(['RED', 'GREEN'])
   Device = Enum(['AC_ADAPTER', 'AUDIO_JACK', 'EXT_DISPLAY', 'LID_MAGNET',
@@ -50,6 +52,9 @@ class BFTFixture(object):
 
     Closes the connection to the fixture.
     """
+    raise NotImplementedError
+
+  def GetSystemStatus(self, status):
     raise NotImplementedError
 
   def SetDeviceEngaged(self, device, engage):
