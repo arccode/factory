@@ -9,9 +9,11 @@
 The main factory flow that runs the factory test and finalizes a device.
 '''
 
+import glob
 import logging
 import os
 import Queue
+import shutil
 import signal
 import sys
 import syslog
@@ -70,6 +72,8 @@ RUN_QUEUE_TIMEOUT_SECS = 10
 # Sync disks when battery level is higher than this value.
 # Otherwise, power loss during disk sync operation may incur even worse outcome.
 MIN_BATTERY_LEVEL_FOR_DISK_SYNC = 1.0
+
+MAX_CRASH_FILE_SIZE = 64*1024
 
 GOOFY_IN_CHROOT_WARNING = '\n' + ('*' * 70) + '''
 You are running Goofy inside the chroot.  Autotests are not supported.
@@ -1077,6 +1081,58 @@ class Goofy(object):
     self.run_queue.put(None)
     raise KeyboardInterrupt()
 
+  def find_kcrashes(self):
+    """Finds kcrash files, logs them, and marks them as seen."""
+    seen_crashes = set(
+        self.state_instance.get_shared_data('seen_crashes', optional=True)
+        or [])
+
+    for path in glob.glob('/var/spool/crash/*'):
+      if not os.path.isfile(path):
+        continue
+      if path in seen_crashes:
+        continue
+      try:
+        stat = os.stat(path)
+        mtime = utils.TimeString(stat.st_mtime)
+        logging.info(
+            'Found new crash file %s (%d bytes at %s)',
+            path, stat.st_size, mtime)
+        extra_log_args = {}
+
+        try:
+          _, ext = os.path.splitext(path)
+          if ext in ['.kcrash', '.meta']:
+            ext = ext.replace('.', '')
+            with open(path) as f:
+              data = f.read(MAX_CRASH_FILE_SIZE)
+              tell = f.tell()
+            logging.info(
+                'Contents of %s%s:%s',
+                path,
+                ('' if tell == stat.st_size
+                 else '(truncated to %d bytes)' % MAX_CRASH_FILE_SIZE),
+                ('\n' + data).replace('\n', '\n  ' + ext + '> '))
+            extra_log_args['data'] = data
+
+            # Copy to /var/factory/kcrash for posterity
+            kcrash_dir = factory.get_factory_root('kcrash')
+            utils.TryMakeDirs(kcrash_dir)
+            shutil.copy(path, kcrash_dir)
+            logging.info('Copied to %s',
+                         os.path.join(kcrash_dir, os.path.basename(path)))
+        finally:
+          # Even if something goes wrong with the above, still try to
+          # log to event log
+          self.event_log.Log('crash_file',
+                             path=path, size=stat.st_size, mtime=mtime,
+                             **extra_log_args)
+      except:  # pylint: disable=W0702
+        logging.exception('Unable to handle crash files %s', path)
+      seen_crashes.add(path)
+
+    self.state_instance.set_shared_data('seen_crashes', list(seen_crashes))
+
   def init(self, args=None, env=None):
     '''Initializes Goofy.
 
@@ -1318,6 +1374,8 @@ class Goofy(object):
 
     # Call startup hook.
     self.hooks.OnStartup()
+
+    self.find_kcrashes()
 
     if self.options.ui == 'chrome':
       self.env.launch_chrome()
