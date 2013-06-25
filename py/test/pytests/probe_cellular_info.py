@@ -36,7 +36,7 @@ class ProbeCellularInfoTest(unittest.TestCase):
       if not enabled:
         continue
 
-      match = re.search('^\s*' + name + ': (.+)', output, re.MULTILINE)
+      match = re.search('^\s*' + name + ': (.+)', output, re.M | re.I)
       data[name] = match.group(1) if match else None
 
     Log('cellular_info', modem_status_stdout=output, **data)
