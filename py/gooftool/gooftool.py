@@ -39,6 +39,7 @@ from cros.factory.hacked_argparse import CmdArg, Command, ParseCmdline
 from cros.factory.hacked_argparse import verbosity_cmd_arg
 from cros.factory.hwdb import hwid_tool
 from cros.factory.hwid import common
+from cros.factory.test import shopfloor
 from cros.factory.test.factory import FACTORY_LOG_PATH
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.privacy import FilterDict
@@ -809,18 +810,18 @@ def GenerateHwidV3(options):
   retrieved by probing the DUT. If there are conflits of component information
   between device info and probe result, priority is given to device info.
   """
-  try:
+  if options.device_info:
     with open(options.device_info) as f:
       device_info = yaml.load(f.read())
-  except Exception, e:
-    raise Error, 'Invalid device_info: %s' % e
+  else:
+    device_info = shopfloor.GetDeviceData()
   if options.probe_results:
     with open(options.probe_results) as f:
       probe_results = hwid_tool.ProbeResults.Decode(f.read())
   else:
     probe_results = Probe()
   print 'device_info:'
-  print device_info
+  print yaml.dump(device_info)
   print 'probe results:'
   print probe_results.Encode()
 
