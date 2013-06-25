@@ -268,8 +268,8 @@ class FinalizeBundle(object):
         help="Use tip version of release image, install shim, and "
              "netboot install shim on the branch (for testing only)")
     parser.add_argument(
-        '--test_list', metavar='TEST_LIST',
-        help="Set active test_list. e.g. --test_list manual_smt to set active "
+        '--test-list', dest='test_list', metavar='TEST_LIST',
+        help="Set active test_list. e.g. --test-list manual_smt to set active "
              "test_list to test_list.manual_smt")
     parser.add_argument(
         '--patch', action='store_true',
