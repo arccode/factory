@@ -727,7 +727,7 @@ def _ProbeStorage():
     sectors = (open(size_path).read().strip()
                if os.path.exists(size_path) else '')
     ata_fields = ['vendor', 'model']
-    emmc_fields = ['type', 'name', 'hwrev', 'oemid', 'manfid']
+    emmc_fields = ['type', 'name', 'hwrev', 'oemid', 'cid', 'manfid', 'prv']
     data = (_ReadSysfsFields(dev_path, ata_fields) or
             _ReadSysfsFields(dev_path, emmc_fields) or
             None)
