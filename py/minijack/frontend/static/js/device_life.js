@@ -66,7 +66,7 @@ function fnFormatDetails(aData) {
     var aaTestEvents = aaEvents[sInvocation];
     for (var i = 0; i < aaTestEvents.length; i++) {
       sOut += '<tr>';
-      sOut += '<td>EVENT: <a href="/event/' + aaTestEvents[i][0] + '">';
+      sOut += '<td>EVENT: <a href="../event/' + aaTestEvents[i][0] + '">';
       sOut += aaTestEvents[i][1] + '</a></td>';
       sOut += '</tr>';
     }
