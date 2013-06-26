@@ -22,6 +22,7 @@ import os
 import re
 import unittest
 
+from cros.factory.l10n import regions
 from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
 from cros.factory.test.countdown_timer import StartCountdownTimer
@@ -64,7 +65,8 @@ class InputDeviceDispatcher(asyncore.file_dispatcher):
 class KeyboardTest(unittest.TestCase):
   """Tests if all the keys on a keyboard are functioning. The test checks for
   keydown and keyup events for each key, following certain order if required,
-  and passes if both events of all keys are received."""
+  and passes if both events of all keys are received.
+  """
   ARGS = [
     Arg('layout', (str, unicode), 'Use specified layout other than derived '
         'from VPD.', default=None, optional=True),
@@ -111,21 +113,23 @@ class KeyboardTest(unittest.TestCase):
 
   def tearDown(self):
     """Terminates the running process or we'll have trouble stopping the
-    test."""
+    test.
+    """
     for dispatcher in self.dispatchers:
       dispatcher.close()
     self.EnableXKeyboard(True)
 
   def GetKeyboardLayout(self):
     """Uses the given keyboard layout or auto-detect from VPD."""
+    kml_mapping = dict((x.keyboard, x.keyboard_mechanical_layout)
+                       for x in regions.REGIONS.itervalues())
     if self.args.layout:
       return self.args.layout
     vpd_layout = CheckOutput(['vpd', '-g', 'keyboard_layout']).strip()
     if vpd_layout:
-      # Take US for example, translate 'xkb:us::eng' into 'xkb_us_eng'.
-      return vpd_layout.replace('::','_').replace(':','_')
+      return kml_mapping[vpd_layout]
     else:
-      return 'xkb_us_eng'
+      return 'ANSI'
 
   def ReadBindings(self, layout):
     """Reads in key bindings and their associates figure regions."""
