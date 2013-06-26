@@ -1,0 +1,62 @@
+#!/usr/bin/env python
+#
+# Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+"""Mock the E5071C ENA Series Network Analyzer
+
+This program is mainly for developing software locally without a Network
+Analyzer. A local TCP server that simulate the behavior of a E5071C will
+be started.
+"""
+
+import logging
+import re
+
+from scpi_mock import MockServerHandler, MockTestServer
+
+class E5601CMock(object):
+  # Class level variable to keep current status
+  _sweep_type = None
+
+  # regular expression of SCPI command
+  RE_SET_SWEEP_TYPE = r':SENS:SWE.*:TYPE (SEGM.*)$'
+  RE_GET_SWEEP_TYPE = r':SENS:SWE.*:TYPE\?$'
+  @classmethod
+  def SetSweepType(cls, input_str):
+    match_obj = re.match(cls.RE_SET_SWEEP_TYPE, input_str)
+    cls._sweep_type = match_obj.group(1)
+
+  @classmethod
+  def GetSweepType(cls, input_str): # pylint: disable=W0613
+    return cls._sweep_type + '\n'
+
+  @classmethod
+  def SetupLookupTable(cls):
+    # Abbribation for better readability
+    AddLookup = MockServerHandler.AddLookup
+
+    # Identification
+    MODEL_NAME = 'Agilent Technologies,E5071C,MY46107723,A.09.30\n'
+    AddLookup(r'\*IDN\?$', MODEL_NAME)
+    # Error codes related responses
+    AddLookup(r'\*CLS$', None)
+    NORMAL_ESR_REGISTER = '+0\n'
+    AddLookup(r'\*ESR\?$', NORMAL_ESR_REGISTER)
+    NORMAL_ERR_RESPONSE = '+0,"No error"\n'
+    AddLookup(r'SYST:ERR\?$', NORMAL_ERR_RESPONSE)
+    NORMAL_OPC_RESPONSE = '+1\n'
+    AddLookup(r'\*OPC\?$', NORMAL_OPC_RESPONSE)
+
+    # Sweep type
+    AddLookup(cls.RE_SET_SWEEP_TYPE, cls.SetSweepType)
+    AddLookup(cls.RE_GET_SWEEP_TYPE, cls.GetSweepType)
+
+if __name__ == '__main__':
+  logging.basicConfig(level=logging.INFO)
+  E5601CMock.SetupLookupTable()
+  # Starts the server
+  SERVER_PORT = 5025
+  # pylint: disable=E1101
+  MockTestServer(('0.0.0.0', SERVER_PORT), MockServerHandler).serve_forever()

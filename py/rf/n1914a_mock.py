@@ -12,58 +12,8 @@ will be started.
 """
 
 import logging
-import re
-import types
-import SocketServer
 
-# pylint: disable=W0232
-class MockTestServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
-  allow_reuse_address = True
-
-class MockServerHandler(SocketServer.StreamRequestHandler):
-  """A mocking handler for socket.
-
-  This handler responses client based on its pre-defined lookup table.
-  Lookup table is a list of tuple where the first of each tuple is a regular
-  expression and the second is response. Response could be one of None, string
-  or function.
-
-  Exceptions will be raised if input cannot much any of the regular expression
-  from keys.
-  """
-  responses_lookup = list()
-
-  @classmethod
-  def AddLookup(cls, input_line, response):
-    cls.responses_lookup.append((input_line, response))
-
-  def __init__(self, *args, **kwargs):
-    self.lookup = list(self.responses_lookup)
-    SocketServer.StreamRequestHandler.__init__(self, *args, **kwargs)
-
-  def handle(self):
-    while True:
-      line = self.rfile.readline().rstrip('\n')
-      if not line:
-        break
-      matched = False
-      for regexp, response in self.lookup:
-        if not re.search(regexp, line):
-          continue
-        matched = True
-        logging.info("Input %r matched with regexp %r", line, regexp)
-        if isinstance(response, types.StringType):
-          self.wfile.write(response)
-        elif isinstance(response, types.FunctionType):
-          self.wfile.write(response(line))
-        elif isinstance(response, types.NoneType):
-          pass
-        else:
-          raise TypeError("Response must be one of None, string or function")
-        # Only the first match will be used.
-        break
-      if not matched:
-        raise ValueError("Input %r is not matching any." % line)
+from scpi_mock import MockServerHandler, MockTestServer
 
 def SetupLookupTable():
   # Responses for normal commands
