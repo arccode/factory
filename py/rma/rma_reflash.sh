@@ -4,13 +4,22 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+# TODO(bhthompson): convert this to Python
+
+# Set this value based on your board type.
+# We currently support LINK and SPRING.
+TARGET_BOARD="SPRING"
+
 SCRIPT_DIR="$(dirname "$(readlink "$0")")"
 
-DUT_CONTROL_CMD="/usr/local/bin/python /usr/local/bin/dut-control-2.6"
+# Adjust these paths as appropriate for your flashing station
+DUT_CONTROL_CMD="dut-control"
 EC_FIRMWARE_BINARY="${SCRIPT_DIR}/firmware/ec.bin"
-FLASHROM_CMD="${SCRIPT_DIR}/flashrom"
+SPI_FIRMWARE_BINARY="${SCRIPT_DIR}/firmware/nv-image.bin"
+FLASHROM_CMD="sudo flashrom"
 OPENOCD_CMD="${SCRIPT_DIR}/openocd/openocd"
 OPENOCD_CONFIG_DIR="${SCRIPT_DIR}/openocd"
+EC_SRC_DIR="../platform/ec"
 OUTPUT_DIR="${SCRIPT_DIR}/shopfloor_data"
 RMA_CREATE_CSV_CMD="${SCRIPT_DIR}/rma_save_data.py"
 
@@ -38,22 +47,22 @@ function show_ok() {
 
 function show_fail() {
   printf "\033[1;31m"
-  echo " FFFFFFFFFFFFFFFFFFFFFF         AAA                IIIIIIIIII LLLLLLLLLLL               !!! "
-  echo " F::::::::::::::::::::F        A:::A               I::::::::I L:::::::::L              !!:!!"
-  echo " F::::::::::::::::::::F       A:::::A              I::::::::I L:::::::::L              !:::!"
-  echo " FF::::::FFFFFFFFF::::F      A:::::::A             II::::::II LL:::::::LL              !:::!"
-  echo "   F:::::F       FFFFFF     A:::::::::A              I::::I     L:::::L                !:::!"
-  echo "   F:::::F                 A:::::A:::::A             I::::I     L:::::L                !:::!"
-  echo "   F::::::FFFFFFFFFF      A:::::A A:::::A            I::::I     L:::::L                !:::!"
-  echo "   F:::::::::::::::F     A:::::A   A:::::A           I::::I     L:::::L                !:::!"
-  echo "   F:::::::::::::::F    A:::::A     A:::::A          I::::I     L:::::L                !:::!"
-  echo "   F::::::FFFFFFFFFF   A:::::AAAAAAAAA:::::A         I::::I     L:::::L                !:::!"
-  echo "   F:::::F            A:::::::::::::::::::::A        I::::I     L:::::L                !!:!!"
-  echo "   F:::::F           A:::::AAAAAAAAAAAAA:::::A       I::::I     L:::::L         LLLLLL  !!! "
-  echo " FF:::::::FF        A:::::A             A:::::A    II::::::II LL:::::::LLLLLLLLL:::::L      "
-  echo " F::::::::FF       A:::::A               A:::::A   I::::::::I L::::::::::::::::::::::L  !!! "
-  echo " F::::::::FF      A:::::A                 A:::::A  I::::::::I L::::::::::::::::::::::L !!:!!"
-  echo " FFFFFFFFFFF     AAAAAAA                   AAAAAAA IIIIIIIIII LLLLLLLLLLLLLLLLLLLLLLLL  !!! "
+  echo " FFFFFFFFFFFFFFFFFFFFFF        AAA                IIIIIIIIII LLLLLLLLLLL               !!! "
+  echo " F::::::::::::::::::::F       A:::A               I::::::::I L:::::::::L              !!:!!"
+  echo " F::::::::::::::::::::F      A:::::A              I::::::::I L:::::::::L              !:::!"
+  echo " FF::::::FFFFFFFFF::::F     A:::::::A             II::::::II LL:::::::LL              !:::!"
+  echo "   F:::::F       FFFFFF    A:::::::::A              I::::I     L:::::L                !:::!"
+  echo "   F:::::F                A:::::A:::::A             I::::I     L:::::L                !:::!"
+  echo "   F::::::FFFFFFFFFF     A:::::A A:::::A            I::::I     L:::::L                !:::!"
+  echo "   F:::::::::::::::F    A:::::A   A:::::A           I::::I     L:::::L                !:::!"
+  echo "   F:::::::::::::::F   A:::::A     A:::::A          I::::I     L:::::L                !:::!"
+  echo "   F::::::FFFFFFFFFF  A:::::AAAAAAAAA:::::A         I::::I     L:::::L                !:::!"
+  echo "   F:::::F           A:::::::::::::::::::::A        I::::I     L:::::L                !!:!!"
+  echo "   F:::::F          A:::::AAAAAAAAAAAAA:::::A       I::::I     L:::::L         LLLLLL  !!! "
+  echo " FF:::::::FF       A:::::A             A:::::A    II::::::II LL:::::::LLLLLLLLL:::::L      "
+  echo " F::::::::FF      A:::::A               A:::::A   I::::::::I L::::::::::::::::::::::L  !!! "
+  echo " F::::::::FF     A:::::A                 A:::::A  I::::::::I L::::::::::::::::::::::L !!:!!"
+  echo " FFFFFFFFFFF    AAAAAAA                   AAAAAAA IIIIIIIIII LLLLLLLLLLLLLLLLLLLLLLLL  !!! "
   echo
   printf "\033[0m"
 }
@@ -73,7 +82,40 @@ function fail() {
   continue
 }
 
-function flash_ec() {
+function link_verify_rma_number() {
+  local rma_number="$1"
+  if [[ ! ${rma_number} =~ RMA[0-9]{8} ]] ; then
+    echo "Invalid RMA number."
+    echo "Must be like RMAxxxxxxxx where the x's are numbers"
+    echo "Example: RMA12345678."
+    return 1
+  fi
+  return 0
+}
+
+function spring_verify_rma_number() {
+  local rma_number="$1"
+  # TODO(bhthompson): figure out the Spring RMA number scheme
+  if [[ ! ${rma_number} =~ RMA[0-9]{8} ]] ; then
+    echo "Invalid RMA number."
+    echo "Must be like RMAxxxxxxxx where the x's are numbers"
+    echo "Example: RMA12345678."
+    return 1
+  fi
+  return 0
+}
+
+function board_verify_rma_number() {
+  local rma_number="$1"
+  if [[ "$TARGET_BOARD" = "LINK" ]] ; then
+    link_verify_rma_number ${rma_number}
+  elif [[ "$TARGET_BOARD" = "SPRING" ]] ; then
+    spring_verify_rma_number ${rma_number}
+  fi
+  return $?
+}
+
+function link_flash_ec() {
   #Reset the EC
   ${DUT_CONTROL_CMD} cold_reset:on
   ${DUT_CONTROL_CMD} cold_reset:off
@@ -93,13 +135,59 @@ function flash_ec() {
   return $?
 }
 
+function spring_flash_ec() {
+  ${EC_SRC_DIR}/util/flash_ec --board=spring --image=${EC_FIRMWARE_BINARY}
+  return $?
+}
+
+function board_flash_ec() {
+  if [[ "$TARGET_BOARD" = "LINK" ]] ; then
+    link_flash_ec
+  elif [[ "$TARGET_BOARD" = "SPRING" ]] ; then
+    spring_flash_ec
+  fi
+}
+
+function link_enable_spi_access() {
+  ${DUT_CONTROL_CMD} spi2_vref:pp3300 spi2_buf_en:on spi2_buf_on_flex_en:on \
+                     spi_hold:off cold_reset:on
+}
+
+function spring_enable_spi_access() {
+  ${DUT_CONTROL_CMD} spi2_buf_en:on spi2_buf_on_flex_en:on spi2_vref:pp1800
+}
+
+function board_enable_spi_access() {
+  if [[ "$TARGET_BOARD" = "LINK" ]] ; then
+    link_enable_spi_access
+  elif [[ "$TARGET_BOARD" = "SPRING" ]] ; then
+    spring_enable_spi_access
+  fi
+}
+
+function link_disable_spi_access() {
+  ${DUT_CONTROL_CMD} spi2_vref:off spi2_buf_en:off spi2_buf_on_flex_en:off
+}
+
+function spring_disable_spi_access() {
+  ${DUT_CONTROL_CMD} spi2_buf_en:off spi2_buf_on_flex_en:off spi2_vref:off
+}
+
+function board_disable_spi_access() {
+  if [[ "$TARGET_BOARD" = "LINK" ]] ; then
+    link_disable_spi_access
+  elif [[ "$TARGET_BOARD" = "SPRING" ]] ; then
+    spring_disable_spi_access
+  fi
+}
+
 function write_protect_is_disabled() {
   ${DUT_CONTROL_CMD} fw_wp | grep -q "fw_wp:off"
   return $?
 }
 
 function servod_is_running() {
-  pgrep -f servod-2.6 1>/dev/null
+  pgrep -f servod 1>/dev/null
   return $?
 }
 
@@ -109,12 +197,11 @@ function servo_is_connected() {
 }
 
 function dut_is_alive() {
-  ${DUT_CONTROL_CMD} spi2_vref:pp3300 spi2_buf_en:on spi2_buf_on_flex_en:on \
-                     spi_hold:off cold_reset:on
+  board_enable_spi_access
   ${FLASHROM_CMD} -p ft2232_spi:type=servo-v2 --flash-name | \
       grep -qv "unknown SPI chip"
   local result=$?
-  ${DUT_CONTROL_CMD} spi2_vref:off spi2_buf_en:off spi2_buf_on_flex_en:off
+  board_disable_spi_access
   return ${result}
 }
 
@@ -126,32 +213,32 @@ function save_volitile_data() {
   GBB="${TMPDIR}/gbb.bin"
 
   #Extract VPD and HWID information from original firmware
-  ${DUT_CONTROL_CMD} spi2_vref:pp3300 spi2_buf_en:on spi2_buf_on_flex_en:on \
-                     spi_hold:off cold_reset:on
+  board_enable_spi_access
   ${FLASHROM_CMD} -p ft2232_spi:type=servo-v2 -i RO_VPD:${RO_VPD} -r /dev/null
   ${FLASHROM_CMD} -p ft2232_spi:type=servo-v2 -i RW_VPD:${RW_VPD} -r /dev/null
   ${FLASHROM_CMD} -p ft2232_spi:type=servo-v2 -i GBB:${GBB} -r /dev/null
-  ${DUT_CONTROL_CMD} spi2_vref:off spi2_buf_en:off spi2_buf_on_flex_en:off
+  board_disable_spi_access
 
-  #Generarate csv file
-  ${RMA_CREATE_CSV_CMD} --ro_vpd "${RO_VPD}" \
-                        --rw_vpd "${RW_VPD}" \
-                        --gbb "${GBB}" \
-                        -r "${rma_number}" \
-                        -o "${OUTPUT_DIR}"
-  local result=$?
+  #Send volatile data to shopfloor server using xmlrpc
+#TODO(bhthompson): fix the create csv script and re-enable this
+#  ${RMA_CREATE_CSV_CMD} --ro_vpd "${RO_VPD}" \
+#                        --rw_vpd "${RW_VPD}" \
+#                        --gbb "${GBB}" \
+#                        -r "${rma_number}" \
+#                        -o "${OUTPUT_DIR}"
+#  local result=$?
   rm -rf "${TMPDIR}"
   return ${result}
 }
 
 function flash_firmware() {
   #Flash new system firmware
-  ${DUT_CONTROL_CMD} spi2_vref:pp3300 spi2_buf_en:on spi2_buf_on_flex_en:on \
-                     spi_hold:off cold_reset:on
+  board_enable_spi_access
   ${FLASHROM_CMD} -p ft2232_spi:type=servo-v2 --wp-disable
-  ${FLASHROM_CMD} --noverify -p ft2232_spi:type=servo-v2 \
-                  -w /usr/local/rma/firmware/nv_image-link.bin
-  ${DUT_CONTROL_CMD} spi2_vref:off spi2_buf_en:off spi2_buf_on_flex_en:off
+  #This can be optimized by adding --noverify once flashing is stable
+  ${FLASHROM_CMD} -p ft2232_spi:type=servo-v2 \
+                  -w ${SPI_FIRMWARE_BINARY}
+  board_disable_spi_access
 }
 
 function reflash() {
@@ -170,7 +257,7 @@ function reflash() {
   write_protect_is_disabled || fail \
     "Write protect is enabled. Remove the write protect screw and try again."
 
-  flash_ec || fail "Error while reflashing EC." \
+  board_flash_ec || fail "Error while reflashing EC." \
                    "Please plug in an AC adaptor and try again."
 
   save_volitile_data "${rma_number}" "${TMPDIR}" || fail
@@ -183,12 +270,7 @@ function main() {
   while true; do
     echo
     read -p "Enter RMA number: " rma_number
-    if [[ ! ${rma_number} =~ RMA[0-9]{8} ]] ; then
-      echo "Invalid RMA number."
-      echo "Must be like RMAxxxxxxxx where the x's are numbers"
-      echo "Example: RMA12345678."
-      continue
-    fi
+    board_verify_rma_number "${rma_number}" || continue
     reflash "${rma_number}"
   done
 }
