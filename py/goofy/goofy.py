@@ -1398,6 +1398,8 @@ class Goofy(object):
 
     # Call startup hook.
     self.hooks.OnStartup()
+    # Startup hooks may want to skip some tests.
+    self.update_skipped_tests()
 
     self.find_kcrashes()
 
