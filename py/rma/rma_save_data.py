@@ -25,6 +25,9 @@ from subprocess import Popen, PIPE
 _GBB_UTILITY_LOCATION = '/usr/bin/gbb_utility'
 _SHOPFLOOR_SERVER_URL = 'http://192.168.2.1:8082'
 _VPD_UTILITY_LOCATION = '/usr/sbin/vpd'
+# These are standard required fields, this can be added to as needed
+_REQUIRED_RO_VPD_FIELDS = ('initial_locale', 'initial_timezone',
+                           'keyboard_layout','serial_number')
 
 _options = None
 
@@ -88,7 +91,7 @@ def SaveDeviceData(shopfloor, device_data, overwrite=False):
                 the server.
 
   Returns:
-    dictionary - Contents defined by link RMA shopfloor module.
+    dictionary - Contents defined by RMA shopfloor module.
 
   """
   return shopfloor.SaveDeviceData(device_data, overwrite)
@@ -146,16 +149,15 @@ class DeviceData(object):
       return False
     if not self.vpd.is_valid():
       return False
-    if self.hwid is None or self.hwid == 'X86 LINK TEST 6638':
+    # This checks for default v2 TEST HWIDs, the regex spaces are required to
+    # avoid collision with HWIDv3s which could validly contain 'TEST'.
+    if self.hwid is None or re.search(r' TEST ', self.hwid):
       return False
     return True
 
 
 class VPD(object):
   """Vital Product Data container."""
-
-  _REQUIRED_RO_VPD_FIELDS = ('als_cal_data', 'initial_locale',
-      'initial_timezone', 'keyboard_layout','serial_number')
 
   def __init__(self, ro_vpd, rw_vpd):
     self.ro = ro_vpd
@@ -193,14 +195,17 @@ class VPD(object):
   def is_valid(self):
     if None in self.__dict__.values():
       return False
-    for field in self._REQUIRED_RO_VPD_FIELDS:
+    for field in _REQUIRED_RO_VPD_FIELDS:
       if field not in self.ro:
         return False
     return True
 
 
 def Shell(command, stdin=None):
-  """Convenience wrapper for running a shell command."""
+  """Convenience wrapper for running a shell command.
+  This is defined here instead of using the existing factory common.py
+  implementation to allow portability outside of a factory image.
+  """
 
   process = Popen(command, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=True)
   stdout, stderr = process.communicate(input=stdin)
@@ -306,7 +311,7 @@ def option_parser():
 def main():
   """Main entry when invoked from the command line."""
 
-  global _options
+  global _options # pylint: disable=W0603
 
   parser = option_parser()
   (_options, args) = parser.parse_args()
