@@ -321,9 +321,10 @@ class ChargerTest(unittest.TestCase):
     if self.args.check_battery_current:
       self.assertTrue(battery_current < 0, 'Abnormal battery current')
 
-  def _SetCharge(self):
+  def _SetCharge(self, update_ui=True):
     """Sets charger state to CHARGE"""
-    self._template.SetState(_CHARGE_TEXT)
+    if update_ui:
+      self._template.SetState(_CHARGE_TEXT)
     try:
       self._board.SetChargeState(Board.ChargeState.CHARGE)
     except Exception, e:
@@ -384,5 +385,5 @@ class ChargerTest(unittest.TestCase):
 
   def tearDown(self):
     # Must enable charger to charge or we will drain the battery!
-    self._SetCharge()
+    self._SetCharge(update_ui=False)
     self._thread.join()
