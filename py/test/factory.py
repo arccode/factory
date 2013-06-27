@@ -410,6 +410,10 @@ class Options(object):
   check_battery_period_secs = 120
   _types['check_battery_period_secs'] = (type(None), int)
 
+  # Interval at which to check CPU usage.
+  check_cpu_usage_period_secs = 120
+  _types['check_cpu_usage_period_secs'] = (type(None), int)
+
   # Goofy will log warning event and try to sync with shopfloor server when
   # battery level is lower than this value and AC charger is disconnected.
   # (The option is effective only if check_battery_period_secs is not None)

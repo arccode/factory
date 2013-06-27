@@ -220,6 +220,7 @@ class Goofy(object):
     self.visible_test = None
     self.chrome = None
     self.hooks = None
+    self.cpu_usage_watcher = None
 
     self.options = None
     self.args = None
@@ -345,6 +346,8 @@ class Goofy(object):
       self.event_log = None
     if self.key_filter:
       self.key_filter.Stop()
+    if self.cpu_usage_watcher:
+      self.cpu_usage_watcher.terminate()
 
     self.check_exceptions()
     logging.info('Done destroying Goofy')
@@ -1308,6 +1311,11 @@ class Goofy(object):
           '/usr/local/etc/lsb-factory',
           '/etc/lsb-release'))
       self.time_sanitizer.RunOnce()
+
+    if self.test_list.options.check_cpu_usage_period_secs:
+      self.cpu_usage_watcher = Spawn(['py/tools/cpu_usage_monitor.py',
+          '-p', str(self.test_list.options.check_cpu_usage_period_secs)],
+          cwd=factory.FACTORY_PATH)
 
     self.init_states()
     self.start_event_server()
