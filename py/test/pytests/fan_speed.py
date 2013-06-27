@@ -143,6 +143,8 @@ class FanSpeedTest(unittest.TestCase):
       if self.args.spin_max_then_half:
         logging.info('Spinning fan up to to get max fan speed...')
         target_rpm = self.SetAndGetFanSpeed(self.args.max_rpm) / 2
+        if target_rpm == 0:
+          self._ui.Fail('Fan is not reporting any RPM')
       else:
         target_rpm = self.args.target_rpm
 
