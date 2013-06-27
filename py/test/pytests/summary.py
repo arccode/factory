@@ -67,6 +67,17 @@ class Report(unittest.TestCase):
         optional=True),
     ]
 
+  def _SetFixtureStatusLight(self, all_pass):
+    try:
+      fixture = bft_fixture.CreateBFTFixture(**self.args.bft_fixture)
+      fixture.SetStatusColor(
+          fixture.StatusColor.GREEN
+          if all_pass
+          else fixture.StatusColor.RED)
+      fixture.Disconnect()
+    except bft_fixture.BFTFixtureException:
+      logging.exception('Unable to set status color on BFT fixture')
+
   def runTest(self):
     test_list = self.test_info.ReadTestList()
     test = test_list.lookup_path(self.test_info.path)
@@ -90,9 +101,12 @@ class Report(unittest.TestCase):
       statuses.append(state.status)
 
     overall_status = factory.overall_status(statuses)
+    all_pass = overall_status == factory.TestState.PASSED
 
-    if (overall_status == factory.TestState.PASSED and
-        self.args.pass_without_prompt):
+    if self.args.bft_fixture:
+      self._SetFixtureStatusLight(all_pass)
+
+    if (all_pass and self.args.pass_without_prompt):
       return
 
     html = [
@@ -102,8 +116,7 @@ class Report(unittest.TestCase):
         '<div class="test-status-%s" style="font-size: 300%%">%s</div>' % (
             overall_status, test_ui.MakeStatusLabel(overall_status)),
         '<table>'] + table + ['</table>']
-    if (not self.args.disable_input_on_fail or
-        overall_status == factory.TestState.PASSED):
+    if (not self.args.disable_input_on_fail or all_pass):
       html = html + ['<a onclick="onclick:window.test.pass()" href="#">',
                      test_ui.MakeLabel('Click or press SPACE to continue',
                                        u'点击或按空白键继续'),
@@ -117,19 +130,8 @@ class Report(unittest.TestCase):
       ui.EnablePassFailKeys()
     # If disable_input_on_fail is True, and overall status is PASSED, user
     # can only pass the test.
-    elif overall_status == factory.TestState.PASSED:
+    elif all_pass:
       ui.BindStandardKeys(bind_fail_keys=False)
-
-    if self.args.bft_fixture:
-      try:
-        fixture = bft_fixture.CreateBFTFixture(**self.args.bft_fixture)
-        fixture.SetStatusColor(
-            fixture.StatusColor.GREEN
-            if overall_status == factory.TestState.PASSED
-            else fixture.StatusColor.RED)
-        fixture.Disconnect()
-      except bft_fixture.BFTFixtureException:
-        logging.exception('Unable to set status color on BFT fixture')
 
     ui.SetHTML(''.join(html))
     ui.Run()
