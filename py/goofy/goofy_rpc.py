@@ -25,7 +25,7 @@ from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import utils
 from cros.factory.test.event import Event
-from cros.factory.utils import file_utils, process_utils
+from cros.factory.utils import debug_utils, file_utils, process_utils
 
 
 REBOOT_AFTER_UPDATE_DELAY_SECS = 5
@@ -169,6 +169,10 @@ class GoofyRPC(object):
 
     # (?m) = multiline
     return re.sub(r'(?m)^\[\s*([.\d]+)\]', FormatTime, dmesg)
+
+  def LogStackTraces(self):
+    '''Logs the stack backtraces of all threads.'''
+    logging.info(debug_utils.DumpStackTracebacks())
 
   def IsUSBDriveAvailable(self):
     try:
