@@ -20,12 +20,11 @@ RMA number).
 Example:
 
 !DeviceData
-hwid: LINK WISTERIA ADY-K 7920
+hwid: DEVICE BOMN-SUCH
 serial_number: RMA12341234
 vpd:
-  ro: {als_cal_data: '14', initial_locale: en-US, initial_timezone:
-    America/Los_Angeles, keyboard_layout: 'xkb:us::eng', serial_number:
-    2C063017607000163}
+  ro: {initial_locale: en-US, initial_timezone: America/Los_Angeles,
+       keyboard_layout: 'xkb:us::eng', serial_number: 2C063017607000163}
   rw: {gbind_attribute: <group code>, ubind_attribute: <user code>}
 
 You may also add files named aux_*.csv; they will be parsed and their
@@ -45,7 +44,7 @@ then:
   GetAuxData('mlb', 'MLB002') == {'foo': 456, 'bar': 'qux'}
 
 To use this module, run following command in shopfloor folder:
-  shopfloor_server.sh -m link_rma_shopfloor -d <PATH TO DATA DIR>
+  shopfloor_server.sh -m simple_rma_shopfloor -d <PATH TO DATA DIR>
 
 """
 
@@ -63,6 +62,8 @@ from cros.factory import shopfloor
 
 _REQUIRED_AUX_TABLES = []
 
+# Set the below to a regex for validating your RMA numbers
+_RMA_NUMBER_REGEX = r'^RMA[0-9]{8}$'
 
 def _synchronized(f):
   """
@@ -76,7 +77,7 @@ def _synchronized(f):
 
 class DeviceData(yaml.YAMLObject):
   yaml_tag = u'!DeviceData'
-  def __init__(self, rma_number, vpd, hwid):
+  def __init__(self, rma_number, vpd, hwid): # pylint: disable=W0231
     self.rma_number = rma_number
     self.vpd = vpd
     self.hwid = hwid
@@ -91,7 +92,7 @@ class ShopFloor(shopfloor.ShopFloorBase):
 
   Device data is read from '<serial_number>.yaml' files in the data directory.
   """
-  NAME = "Link RMA shopfloor."
+  NAME = "Simple RMA shopfloor."
   VERSION = 2
 
   def __init__(self):
@@ -153,23 +154,27 @@ class ShopFloor(shopfloor.ShopFloorBase):
 
   @_synchronized
   def CheckSN(self, serial):
-    """Validates whether a serial number is in the correct format.
+    """Validates whether a rma number is in the correct format.
+    Note that for RMA we are using the RMA number as a device specific
+    identifier, this is separate from the device's actual serial number
+    stored in VPD, however to keep in line with the shopfloor server
+    implementation, we call it the serial_number.
 
     Args:
-      serial - Serial number of device.
+      serial - RMA number of device.
 
     Returns:
-      True - If the serial number matches the valid format.
+      True - If the rma number matches the valid format.
 
     Raises:
-      ValueError - If the serial number format is invalid.
+      ValueError - If the rma number format is invalid.
     """
-    if not re.match('^RMA[0-9]{8}$', serial):
-      message = "Invalid serial number: %s" % serial
+    if not re.match(_RMA_NUMBER_REGEX, serial):
+      message = "Invalid RMA number: %s" % serial
       logging.error(message)
       raise ValueError(message)
     else:
-      logging.info('Validated serial number: %s', serial)
+      logging.info('Validated RMA number: %s', serial)
       return True
 
   @_synchronized
