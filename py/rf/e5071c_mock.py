@@ -9,6 +9,10 @@
 This program is mainly for developing software locally without a Network
 Analyzer. A local TCP server that simulate the behavior of a E5071C will
 be started.
+
+For detail format and meaning of the SCPI command, please refer to its
+offical manual or online help:
+  http://ena.tm.agilent.com/e5071c/manuals/webhelp/eng/
 """
 
 import logging
@@ -19,10 +23,20 @@ from scpi_mock import MockServerHandler, MockTestServer
 class E5601CMock(object):
   # Class level variable to keep current status
   _sweep_type = None
+  _sweep_segment = None
 
   # regular expression of SCPI command
   RE_SET_SWEEP_TYPE = r':SENS:SWE.*:TYPE (SEGM.*)$'
   RE_GET_SWEEP_TYPE = r':SENS:SWE.*:TYPE\?$'
+  RE_SET_SWEEP_SEGMENT = r':SENS:SEGM.*:DATA (.*)$'
+  RE_GET_SWEEP_SEGMENT = r':SENS:SEGM.*:DATA\?$'
+
+  # Constants
+  SWEEP_SEGMENT_PREFIX = ['5', '0', '0', '0', '0', '0']
+  SWEEP_SEGMENT_PREFIX_LEN = len(SWEEP_SEGMENT_PREFIX)
+  # A typical tuple is (start_freq, end_freq, num_of_points)
+  SEGMENT_TUPLE_LEN = 3
+
   @classmethod
   def SetSweepType(cls, input_str):
     match_obj = re.match(cls.RE_SET_SWEEP_TYPE, input_str)
@@ -33,8 +47,41 @@ class E5601CMock(object):
     return cls._sweep_type + '\n'
 
   @classmethod
+  def SetSweepSegment(cls, input_str):
+    match_obj = re.match(cls.RE_SET_SWEEP_SEGMENT, input_str)
+    data = match_obj.group(1)
+    parameters = data.split(',')
+    assert (
+        cls.SWEEP_SEGMENT_PREFIX ==
+        parameters[:cls.SWEEP_SEGMENT_PREFIX_LEN]), (
+        "Only specific prefix is support for command SENS:SEGM:DATA")
+    # Parse and store the segments
+    num_of_segments = int(parameters[cls.SWEEP_SEGMENT_PREFIX_LEN])
+    assert len(parameters) == (
+        cls.SEGMENT_TUPLE_LEN*num_of_segments +
+        len(cls.SWEEP_SEGMENT_PREFIX) + 1), (
+        "Length of parameters is %d, not supported") % len(parameters)
+
+    cls._sweep_segment = list()
+    for idx in xrange(cls.SWEEP_SEGMENT_PREFIX_LEN + 1, len(parameters), 3):
+      start_freq = float(parameters[idx])
+      end_freq = float(parameters[idx+1])
+      sample_points = int(parameters[idx+2])
+      cls._sweep_segment.append((start_freq, end_freq, sample_points))
+
+  @classmethod
+  def GetSweepSegment(cls, input_str): # pylint: disable=W0613
+    return_strings = list()
+    return_strings.extend(cls.SWEEP_SEGMENT_PREFIX)
+    return_strings.append(str(len(cls._sweep_segment)))
+    for start_freq, end_freq, sample_points in cls._sweep_segment:
+      return_strings.extend(
+        ['%.1f' % start_freq, '%.1f' % end_freq, str(sample_points)])
+    return ','.join(return_strings) + '\n'
+
+  @classmethod
   def SetupLookupTable(cls):
-    # Abbribation for better readability
+    # Abbreviation for better readability
     AddLookup = MockServerHandler.AddLookup
 
     # Identification
@@ -52,6 +99,10 @@ class E5601CMock(object):
     # Sweep type
     AddLookup(cls.RE_SET_SWEEP_TYPE, cls.SetSweepType)
     AddLookup(cls.RE_GET_SWEEP_TYPE, cls.GetSweepType)
+
+    # Sweep segment
+    AddLookup(cls.RE_SET_SWEEP_SEGMENT, cls.SetSweepSegment)
+    AddLookup(cls.RE_GET_SWEEP_SEGMENT, cls.GetSweepSegment)
 
 if __name__ == '__main__':
   logging.basicConfig(level=logging.INFO)
