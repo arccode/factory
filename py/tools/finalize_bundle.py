@@ -265,6 +265,11 @@ class FinalizeBundle(object):
         action='store_false',
         help="Don't call make_factory_package (for testing only)")
     parser.add_argument(
+        '--complete-script', dest='complete_script',
+        help=('Filename of complete script used for make_factory_package. '
+              'Empty means no complete script is used.'),
+        default='complete_script.sh')
+    parser.add_argument(
         '--tip-of-branch', dest='tip_of_branch', action='store_true',
         help="Use tip version of release image, install shim, and "
              "netboot install shim on the branch (for testing only)")
@@ -803,12 +808,14 @@ class FinalizeBundle(object):
     make_factory_package = [
         './make_factory_package.sh',
         '--board', self.board,
-        '--complete_script', 'complete_script.sh',
         '--release', os.path.relpath(self.release_image_path,
                                      factory_setup_dir),
         '--factory', '../factory_test/chromiumos_factory_image.bin',
         '--hwid_updater', '../hwid/hwid_v3_bundle_%s.sh' %
                           self.simple_board.upper()]
+    if self.args.complete_script:
+      make_factory_package.extend([
+          '--complete_script', self.args.complete_script])
 
     firmware_updater = os.path.join(
         self.bundle_dir, 'firmware', 'chromeos-firmwareupdate')
