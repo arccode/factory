@@ -367,7 +367,7 @@ prepare_img() {
 
   # write_gpt_path may be only readable by user 1001 (chronos).
   sudo cat "${write_gpt_path}" > "${partition_script}"
-  echo 'write_base_table "$1" "${pmbrcode}"' >> "${partition_script}"
+  echo "write_base_table \$1 ${pmbrcode}" >> "${partition_script}"
 
   # Fix path to chromeos-common.sh
   sed -i 's"/usr/sbin/chromeos-common.sh"lib/chromeos-common.sh"g' \
