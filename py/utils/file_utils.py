@@ -106,6 +106,30 @@ def WriteFile(path, data, log=False):
     f.write(data)
 
 
+def CopyFileSkipBytes(in_file_name, out_file_name, skip_size):
+  """Copies a file and skips the first N bytes.
+
+  Args:
+    in_file_name: input file_name.
+    out_file_name: output file_name.
+    skip_size: number of head bytes to skip. Should be smaller than
+        in_file size.
+
+  Raises:
+    ValueError if skip_size >= input file size.
+  """
+  in_file_size = os.path.getsize(in_file_name)
+  if in_file_size <= skip_size:
+    raise ValueError('skip_size: %d should be smaller than input file: %s '
+                     '(size: %d)' % (skip_size, in_file_name, in_file_size))
+
+  _CHUNK_SIZE = 4096
+  with open(in_file_name, 'rb') as in_file:
+    with open(out_file_name, 'wb') as out_file:
+      in_file.seek(skip_size)
+      shutil.copyfileobj(in_file, out_file, _CHUNK_SIZE)
+
+
 def Sync(log=True):
   """Calls 'sync'."""
   Spawn(['sync'], log=log, check_call=True)

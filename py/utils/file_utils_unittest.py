@@ -61,5 +61,64 @@ class TempDirectoryTest(unittest.TestCase):
       self.assertTrue(os.path.isdir(d))
     self.assertFalse(os.path.exists(d))
 
+
+class CopyFileSkipBytesTest(unittest.TestCase):
+  def setUp(self):
+    self.in_file = None
+    self.out_file = None
+
+  def tearDown(self):
+    if self.in_file:
+      os.unlink(self.in_file.name)
+    if self.out_file:
+      os.unlink(self.out_file.name)
+
+  def PrepareFile(self, in_file_content, out_file_content):
+    self.in_file = tempfile.NamedTemporaryFile(delete=False)
+    if in_file_content:
+      self.in_file.write(in_file_content)
+    self.in_file.close()
+    self.out_file = tempfile.NamedTemporaryFile(delete=False)
+    if out_file_content:
+      self.out_file.write(out_file_content)
+    self.out_file.close()
+
+  def testNormal(self):
+    self.PrepareFile('1234567890', '')
+    file_utils.CopyFileSkipBytes(self.in_file.name, self.out_file.name, 3)
+    with open(self.out_file.name, 'r') as o:
+      result = o.read()
+      self.assertEquals(result, '4567890')
+
+  def testSkipTooMany(self):
+    self.PrepareFile('1234567890', '')
+    # Skip too many bytes.
+    self.assertRaises(ValueError, file_utils.CopyFileSkipBytes,
+                      self.in_file.name, self.out_file.name, 100)
+    with open(self.out_file.name, 'r') as o:
+      self.assertEquals(len(o.read()), 0)
+
+  def testNoInput(self):
+    self.PrepareFile('abc', '')
+    self.assertRaises(OSError, file_utils.CopyFileSkipBytes,
+                      'no_input', self.out_file.name, 1)
+
+  def testOverrideOutput(self):
+    self.PrepareFile('1234567890', 'abcde')
+    file_utils.CopyFileSkipBytes(self.in_file.name, self.out_file.name, 3)
+    with open(self.out_file.name, 'r') as o:
+      result = o.read()
+      self.assertEquals(result, '4567890')
+
+  def testSkipLargeFile(self):
+    # 10000 bytes input.
+    self.PrepareFile('1234567890' * 1000, '')
+    file_utils.CopyFileSkipBytes(self.in_file.name, self.out_file.name, 5)
+    with open(self.out_file.name, 'r') as o:
+      result = o.read()
+      self.assertEquals(len(result), 10000 - 5)
+      self.assertTrue(result.startswith('67890'))
+
+
 if __name__ == '__main__':
   unittest.main()
