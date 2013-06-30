@@ -12,6 +12,7 @@ import unittest
 import factory_common  # pylint: disable=W0611
 from cros.factory.goofy import updater
 from cros.factory.test import factory
+from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test import utils
@@ -62,6 +63,9 @@ class SyncShopfloor(unittest.TestCase):
         template.SetState(test_ui.MakeLabel(
             'Contacting shopfloor server...',
             '正在与shopfloor server连线...'))
+        shopfloor_url = shopfloor.get_server_url()
+        if shopfloor_url:
+          template.SetState('<br>'+shopfloor_url, append=True)
 
         try:
           goofy = factory.get_state_instance()
