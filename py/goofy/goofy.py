@@ -1407,7 +1407,7 @@ class Goofy(object):
     # places it is used) when the GTK UI is removed.
     os.environ['CROS_UI'] = self.options.ui
 
-    if not utils.in_chroot():
+    if not utils.in_chroot() and self.test_list.options.use_cpufreq_manager:
       self.cpufreq_manager = CpufreqManager(event_log=self.event_log)
 
     # Startup hooks may want to skip some tests.

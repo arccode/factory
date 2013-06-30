@@ -506,6 +506,9 @@ class Options(object):
   # Strictly require an ID for each test.
   strict_ids = False
 
+  # True to use CpufreqManager.
+  use_cpufreq_manager = True
+
   def check_valid(self):
     '''Throws a TestListError if there are any invalid options.'''
     # Make sure no errant options, or options with weird types,
