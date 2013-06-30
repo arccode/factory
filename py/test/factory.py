@@ -481,6 +481,9 @@ class Options(object):
   shopfloor_server_url = None
   _types['shopfloor_server_url'] = (type(None), str)
 
+  # Test stage to shopfloor URL mapping.
+  shopfloor_server_url_for_stage = {}
+
   # Whether to stop on any failure.
   stop_on_failure = False
 

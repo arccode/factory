@@ -1174,6 +1174,15 @@ class Goofy(object):
 
     self.test_list.state_instance = self.state_instance
 
+  def init_hook(self):
+    """Initializes hooks."""
+    module, cls = self.test_list.options.hooks_class.rsplit('.', 1)
+    self.hooks = getattr(__import__(module, fromlist=[cls]), cls)()
+    assert isinstance(self.hooks, factory.Hooks), (
+        "hooks should be of type Hooks but is %r" % type(self.hooks))
+    self.hooks.test_list = self.test_list
+    self.hooks.OnStartup()
+
   def init(self, args=None, env=None):
     '''Initializes Goofy.
 
@@ -1314,6 +1323,8 @@ class Goofy(object):
 
     self.check_log_rotation()
 
+    self.init_hook()
+
     if self.options.dummy_shopfloor:
       os.environ[shopfloor.SHOPFLOOR_SERVER_ENV_VAR_NAME] = (
           'http://localhost:%d/' % shopfloor.DEFAULT_SERVER_PORT)
@@ -1396,18 +1407,9 @@ class Goofy(object):
     # places it is used) when the GTK UI is removed.
     os.environ['CROS_UI'] = self.options.ui
 
-    # Initialize hooks.
-    module, cls = self.test_list.options.hooks_class.rsplit('.', 1)
-    self.hooks = getattr(__import__(module, fromlist=[cls]), cls)()
-    assert isinstance(self.hooks, factory.Hooks), (
-        "hooks should be of type Hooks but is %r" % type(self.hooks))
-    self.hooks.test_list = self.test_list
-
     if not utils.in_chroot():
       self.cpufreq_manager = CpufreqManager(event_log=self.event_log)
 
-    # Call startup hook.
-    self.hooks.OnStartup()
     # Startup hooks may want to skip some tests.
     self.update_skipped_tests()
 
