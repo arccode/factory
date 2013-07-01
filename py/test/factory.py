@@ -344,7 +344,11 @@ class Hooks(object):
   test_list = None
 
   def OnStartup(self):
-    """Invoked on Goofy startup (before the UI is started)."""
+    """Invoked on Goofy startup (just before the UI is started)."""
+    pass
+
+  def OnCreatedTestList(self):
+    """Invoked right after Goofy creates test_list."""
     pass
 
 
