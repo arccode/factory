@@ -25,6 +25,7 @@ class E5601CMock(object):
   _sweep_type = None
   _sweep_segment = None
   _x_axis = None
+  _trace_config = None
 
   # regular expression of SCPI command
   RE_SET_SWEEP_TYPE = r':SENS:SWE.*:TYPE (SEGM.*)$'
@@ -32,6 +33,8 @@ class E5601CMock(object):
   RE_SET_SWEEP_SEGMENT = r':SENS:SEGM.*:DATA (.*)$'
   RE_GET_SWEEP_SEGMENT = r':SENS:SEGM.*:DATA\?$'
   RE_GET_X_AXIS = r':CALC.*:SEL.*:DATA:XAX.*\?$'
+  RE_SET_TRACE_COUNT = r':CALC:PAR:COUN.* (.*)$'
+  RE_GET_TRACE_COUNT = r':CALC:PAR:COUN.*\?$'
 
   # Constants
   SWEEP_SEGMENT_PREFIX = ['5', '0', '0', '0', '0', '0']
@@ -95,6 +98,18 @@ class E5601CMock(object):
     return ','.join(['%+.11E' % x for x in cls._x_axis]) + '\n'
 
   @classmethod
+  def SetTraceCount(cls, input_str):
+    match_obj = re.match(cls.RE_SET_TRACE_COUNT, input_str)
+    lens = int(match_obj.group(1))
+    # Prepare equal length of list for further trace setting
+    # pylint: disable=W0612
+    cls._trace_config = ['UndefinedTrace' for idx in xrange(lens)]
+
+  @classmethod
+  def GetTraceCount(cls, input_str): # pylint: disable=W0613
+    return str(len(cls._trace_config)) + '\n'
+
+  @classmethod
   def SetupLookupTable(cls):
     # Abbreviation for better readability
     AddLookup = MockServerHandler.AddLookup
@@ -121,6 +136,10 @@ class E5601CMock(object):
 
     # X-axis measure point query
     AddLookup(cls.RE_GET_X_AXIS, cls.GetXAxis)
+
+    # Trace configuration
+    AddLookup(cls.RE_SET_TRACE_COUNT, cls.SetTraceCount)
+    AddLookup(cls.RE_GET_TRACE_COUNT, cls.GetTraceCount)
 
 if __name__ == '__main__':
   logging.basicConfig(level=logging.INFO)
