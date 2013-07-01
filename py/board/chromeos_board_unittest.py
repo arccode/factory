@@ -152,6 +152,20 @@ class ChromeOSBoardTest(unittest.TestCase):
     self.assertEquals(self.board.GetECConsoleLog(), _MOCK_LOG)
     self.mox.VerifyAll()
 
+  def testGetECPanicInfo(self):
+    _MOCK_PANIC = '\n'.join([
+        'Saved panic data: (NEW)',
+        '=== PROCESS EXCEPTION: 06 === xPSR: 21000000 ======',
+        'r0 :00000000 r1 :0800a394 r2 :40013800 r3 :0000cdef',
+        'r4 :00000000 r5 :00000011 r6 :20001aa0 r7 :00000000',
+        'r8 :00000000 r9 :20001ab0 r10:00000000 r11:00000000',
+        'r12:00000000 sp :20000fe0 lr :0800023d pc :08000242'])
+
+    self.board._CallECTool(['panicinfo'], check=False).AndReturn(_MOCK_PANIC)
+    self.mox.ReplayAll()
+    self.assertEquals(self.board.GetECPanicInfo(), _MOCK_PANIC)
+    self.mox.VerifyAll()
+
   def testCharge(self):
     self.board._CallECTool(['chargeforceidle', '0'])
     self.board._CallECTool(['i2cwrite', '16', '0', '0x12', '0x12', '0xf912'])

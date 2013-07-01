@@ -96,6 +96,14 @@ class Board(object):
     """
     raise NotImplementedError
 
+  def GetECPanicInfo(self):
+    """Gets the EC panic info.
+
+    Returns:
+      A string of EC panic info.
+    """
+    raise NotImplementedError
+
   def SetChargeState(self, state):
     """Sets the charge state.
 

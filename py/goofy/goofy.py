@@ -440,6 +440,13 @@ class Goofy(object):
     except:  # pylint: disable=W0702
       logging.exception('Error retrieving EC console log')
 
+    try:
+      board = system.GetBoard()
+      ec_panic_info = board.GetECPanicInfo()
+      logging.info('EC panic info after reboot:\n%s\n', ec_panic_info)
+    except:  # pylint: disable=W0702
+      logging.exception('Error retrieving EC panic info')
+
   def handle_shutdown_complete(self, test, test_state):
     '''
     Handles the case where a shutdown was detected during a shutdown step.
@@ -565,6 +572,7 @@ class Goofy(object):
     var_log_messages = None
     mosys_log = None
     ec_console_log = None
+    ec_panic_info = None
 
     # Any 'active' tests should be marked as failed now.
     for test in self.test_list.walk():
@@ -613,6 +621,14 @@ class Goofy(object):
             logging.info('EC console log after reboot:\n%s\n', ec_console_log)
           except:  # pylint: disable=W0702
             logging.exception('Error retrieving EC console log')
+
+        if ec_panic_info is None:
+          try:
+            board = system.GetBoard()
+            ec_panic_info = board.GetECPanicInfo()
+            logging.info('EC panic info after reboot:\n%s\n', ec_panic_info)
+          except:  # pylint: disable=W0702
+            logging.exception('Error retrieving EC panic info')
 
         error_msg = 'Unexpected shutdown while test was running'
         self.event_log.Log('end_test',

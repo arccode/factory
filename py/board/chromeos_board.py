@@ -145,6 +145,9 @@ class ChromeOSBoard(Board):
   def GetECConsoleLog(self):
     return self._CallECTool(['console'], check=False)
 
+  def GetECPanicInfo(self):
+    return self._CallECTool(['panicinfo'], check=False)
+
   def SetChargeState(self, state):
     try:
       if state == Board.ChargeState.CHARGE:
