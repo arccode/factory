@@ -35,6 +35,8 @@ class E5601CMock(object):
   RE_GET_X_AXIS = r':CALC.*:SEL.*:DATA:XAX.*\?$'
   RE_SET_TRACE_COUNT = r':CALC:PAR:COUN.* (.*)$'
   RE_GET_TRACE_COUNT = r':CALC:PAR:COUN.*\?$'
+  RE_SET_TRACE_CONFIG = r':CALC:PAR.*(\d):DEF.* [Ss](\d)(\d)$'
+  RE_GET_TRACE_CONFIG = r':CALC:PAR.*(\d):DEF.*\?$'
 
   # Constants
   SWEEP_SEGMENT_PREFIX = ['5', '0', '0', '0', '0', '0']
@@ -110,6 +112,24 @@ class E5601CMock(object):
     return str(len(cls._trace_config)) + '\n'
 
   @classmethod
+  def SetTraceConfig(cls, input_str):
+    match_obj = re.match(cls.RE_SET_TRACE_CONFIG, input_str)
+    parameter_idx = int(match_obj.group(1)) - 1  # index starts from 0
+    assert parameter_idx < len(cls._trace_config), (
+        "Index out of predefined trace size %d") % len(cls._trace_config)
+    port_x = int(match_obj.group(2))
+    port_y = int(match_obj.group(3))
+    cls._trace_config[parameter_idx] = 'S%d%d' % (port_x, port_y)
+
+  @classmethod
+  def GetTraceConfig(cls, input_str):
+    match_obj = re.match(cls.RE_GET_TRACE_CONFIG, input_str)
+    parameter_idx = int(match_obj.group(1)) - 1  # index starts from 0
+    assert parameter_idx < len(cls._trace_config), (
+        "Index out of predefined trace size %d") % len(cls._trace_config)
+    return cls._trace_config[parameter_idx] + '\n'
+
+  @classmethod
   def SetupLookupTable(cls):
     # Abbreviation for better readability
     AddLookup = MockServerHandler.AddLookup
@@ -140,6 +160,9 @@ class E5601CMock(object):
     # Trace configuration
     AddLookup(cls.RE_SET_TRACE_COUNT, cls.SetTraceCount)
     AddLookup(cls.RE_GET_TRACE_COUNT, cls.GetTraceCount)
+    AddLookup(cls.RE_SET_TRACE_CONFIG, cls.SetTraceConfig)
+    AddLookup(cls.RE_GET_TRACE_CONFIG, cls.GetTraceConfig)
+
 
 if __name__ == '__main__':
   logging.basicConfig(level=logging.INFO)
