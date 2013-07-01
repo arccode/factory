@@ -107,5 +107,5 @@ class FlashNetboot(object):
         '-i', 'RW_VPD:%s' % self._rw_vpd])
 
   def _FlashFirmware(self):
-    logging.info('Flashing firmware %s...', self._image)
-    self._Flashrom(['-w', self._image])
+    logging.info('Flashing firmware %s...', self._fw_main)
+    self._Flashrom(['-w', self._fw_main])
