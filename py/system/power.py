@@ -17,7 +17,7 @@ class PowerException(Exception):
 
 class Power(object):
   # Power source types
-  PowerSource = Enum(['BATTERY', 'MAINS'])
+  PowerSource = Enum(['BATTERY', 'AC'])
 
   _sys = '/sys'
 
@@ -28,21 +28,32 @@ class Power(object):
   def FindPowerPath(self, power_source):
     '''Find battery path in sysfs.'''
     if power_source == self.PowerSource.BATTERY:
-      power_type = 'Battery'
+      for p in glob.glob(os.path.join(self._sys, 'class/power_supply/*/type')):
+        if ReadOneLine(p) == 'Battery':
+          return os.path.dirname(p)
     else:
-      power_type = 'Mains'
-    for p in glob.glob(os.path.join(self._sys, "class/power_supply/*/type")):
-      if ReadOneLine(p) == power_type:
-        return os.path.dirname(p)
-    raise PowerException("Cannot find %s" % power_type)
+      p = glob.glob(os.path.join(self._sys, 'class/power_supply/*/online'))
+      if len(p) > 1:
+        raise PowerException('Found multiple power with "online" property')
+      elif len(p) == 1:
+        return os.path.dirname(p[0])
+    raise PowerException('Cannot find %s' % power_source)
 
   def CheckACPresent(self):
     '''Check if AC power is present.'''
     try:
-      p = self.FindPowerPath(self.PowerSource.MAINS)
-      return ReadOneLine(os.path.join(p, "online")) == "1"
+      p = self.FindPowerPath(self.PowerSource.AC)
+      return ReadOneLine(os.path.join(p, 'online')) == '1'
     except (PowerException, IOError):
       return False
+
+  def GetACType(self):
+    '''Get AC power type.'''
+    try:
+      p = self.FindPowerPath(self.PowerSource.AC)
+      return ReadOneLine(os.path.join(p, 'type'))
+    except (PowerException, IOError):
+      return 'Unknown'
 
   def CheckBatteryPresent(self):
     '''Check if battery is present and also set battery path.'''
