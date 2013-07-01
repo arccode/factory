@@ -26,6 +26,7 @@ class E5601CMock(object):
   _sweep_segment = None
   _x_axis = None
   _trace_config = None
+  _trace_map = dict()
 
   # regular expression of SCPI command
   RE_SET_SWEEP_TYPE = r':SENS:SWE.*:TYPE (SEGM.*)$'
@@ -37,12 +38,20 @@ class E5601CMock(object):
   RE_GET_TRACE_COUNT = r':CALC:PAR:COUN.*\?$'
   RE_SET_TRACE_CONFIG = r':CALC:PAR.*(\d):DEF.* [Ss](\d)(\d)$'
   RE_GET_TRACE_CONFIG = r':CALC:PAR.*(\d):DEF.*\?$'
+  RE_GET_TRACE = r':CALC:TRACE(\d):DATA:FDAT\?$'
 
   # Constants
   SWEEP_SEGMENT_PREFIX = ['5', '0', '0', '0', '0', '0']
   SWEEP_SEGMENT_PREFIX_LEN = len(SWEEP_SEGMENT_PREFIX)
   # A typical tuple is (start_freq, end_freq, num_of_points)
   SEGMENT_TUPLE_LEN = 3
+  # Value used when no pre-defined trace is found.
+  DEFAULT_SIGNAL = -10.0
+
+  @classmethod
+  def LoadTrace(cls, trace_name, csv_file_path):
+    # TODO(itspeter): Load trace saved from E5071C and replay it.
+    raise NotImplementedError
 
   @classmethod
   def SetSweepType(cls, input_str):
@@ -130,6 +139,32 @@ class E5601CMock(object):
     return cls._trace_config[parameter_idx] + '\n'
 
   @classmethod
+  def GetTrace(cls, input_str):
+    match_obj = re.match(cls.RE_GET_TRACE, input_str)
+    parameter_idx = int(match_obj.group(1)) - 1  # index starts from 0
+    assert parameter_idx < len(cls._trace_config), (
+        "Index out of predefined trace size %d") % len(cls._trace_config)
+
+    trace_info = cls._trace_map.get(cls._trace_config[parameter_idx], None)
+    if not trace_info:
+      logging.info("No existing trace info for %s",
+                   cls._trace_config[parameter_idx])
+      # Set trace_info to an empty dict so DEFAULT_SIGNAL will be returned
+      trace_info = dict()
+
+    values = list()
+    for x_pos in sorted(cls._x_axis):  # pylint: disable=W0612
+      signal = trace_info.get(x_pos, None)
+      if not signal:
+        logging.info("Freq %15.2f is not defined in trace, "
+                     "use default value %15.2f", x_pos, cls.DEFAULT_SIGNAL)
+        signal = cls.DEFAULT_SIGNAL
+      values.append('%+.11E' % signal)
+      # Second is always 0 when the data format is not the Smith chart
+      values.append('%+.11E' % 0)
+    return ','.join(values) + '\n'
+
+  @classmethod
   def SetupLookupTable(cls):
     # Abbreviation for better readability
     AddLookup = MockServerHandler.AddLookup
@@ -163,6 +198,8 @@ class E5601CMock(object):
     AddLookup(cls.RE_SET_TRACE_CONFIG, cls.SetTraceConfig)
     AddLookup(cls.RE_GET_TRACE_CONFIG, cls.GetTraceConfig)
 
+    # Trace measurement
+    AddLookup(cls.RE_GET_TRACE, cls.GetTrace)
 
 if __name__ == '__main__':
   logging.basicConfig(level=logging.INFO)
