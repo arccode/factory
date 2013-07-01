@@ -24,12 +24,14 @@ class E5601CMock(object):
   # Class level variable to keep current status
   _sweep_type = None
   _sweep_segment = None
+  _x_axis = None
 
   # regular expression of SCPI command
   RE_SET_SWEEP_TYPE = r':SENS:SWE.*:TYPE (SEGM.*)$'
   RE_GET_SWEEP_TYPE = r':SENS:SWE.*:TYPE\?$'
   RE_SET_SWEEP_SEGMENT = r':SENS:SEGM.*:DATA (.*)$'
   RE_GET_SWEEP_SEGMENT = r':SENS:SEGM.*:DATA\?$'
+  RE_GET_X_AXIS = r':CALC.*:SEL.*:DATA:XAX.*\?$'
 
   # Constants
   SWEEP_SEGMENT_PREFIX = ['5', '0', '0', '0', '0', '0']
@@ -63,11 +65,20 @@ class E5601CMock(object):
         "Length of parameters is %d, not supported") % len(parameters)
 
     cls._sweep_segment = list()
+    x_axis_points = list()
     for idx in xrange(cls.SWEEP_SEGMENT_PREFIX_LEN + 1, len(parameters), 3):
       start_freq = float(parameters[idx])
       end_freq = float(parameters[idx+1])
       sample_points = int(parameters[idx+2])
+      assert sample_points == 2, (
+          'sample points only support two (start and end)')
+
+      x_axis_points.append(start_freq)
+      x_axis_points.append(end_freq)
       cls._sweep_segment.append((start_freq, end_freq, sample_points))
+
+    # Construct the X-axis
+    cls._x_axis = sorted(x_axis_points)
 
   @classmethod
   def GetSweepSegment(cls, input_str): # pylint: disable=W0613
@@ -78,6 +89,10 @@ class E5601CMock(object):
       return_strings.extend(
         ['%.1f' % start_freq, '%.1f' % end_freq, str(sample_points)])
     return ','.join(return_strings) + '\n'
+
+  @classmethod
+  def GetXAxis(cls, input_str): # pylint: disable=W0613
+    return ','.join(['%+.11E' % x for x in cls._x_axis]) + '\n'
 
   @classmethod
   def SetupLookupTable(cls):
@@ -103,6 +118,9 @@ class E5601CMock(object):
     # Sweep segment
     AddLookup(cls.RE_SET_SWEEP_SEGMENT, cls.SetSweepSegment)
     AddLookup(cls.RE_GET_SWEEP_SEGMENT, cls.GetSweepSegment)
+
+    # X-axis measure point query
+    AddLookup(cls.RE_GET_X_AXIS, cls.GetXAxis)
 
 if __name__ == '__main__':
   logging.basicConfig(level=logging.INFO)
