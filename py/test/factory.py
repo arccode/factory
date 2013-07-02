@@ -289,8 +289,9 @@ def read_test_list(path=None, state_instance=None, text=None):
   options.check_valid()
 
   return FactoryTestList(test_list_locals['TEST_LIST'],
-              state_instance or get_state_instance(),
-              options)
+                         state_instance or get_state_instance(),
+                         options,
+                         test_list_locals.get('TEST_LIST_NAME'))
 
 
 _inited_logging = False
@@ -1157,7 +1158,21 @@ class FactoryTestList(FactoryTest):
   Properties:
     path_map: A map from test paths to FactoryTest objects.
   '''
-  def __init__(self, subtests, state_instance, options):
+  def __init__(self, subtests, state_instance, options, label_en=None,
+               finish_construction=True):
+    """Constructor.
+
+    Args:
+      subtests: A list of subtests (FactoryTest instances).
+      state_instance: The state instance to associate with the list.
+          This may be left empty and set later.
+      options: A TestListOptions object.  This may be left empty
+          and set later (before calling FinishConstruction).
+      label_en: An optional label for the test list.
+      finish_construction: Whether to immediately finalize the test
+          list.  If False, the caller may add modify subtests,
+          state_instance, and options and then call FinishConstruction().
+    """
     super(FactoryTestList, self).__init__(_root=True, subtests=subtests)
     self.state_instance = state_instance
     self.subtests = filter(None, utils.FlattenList(subtests))
@@ -1165,6 +1180,26 @@ class FactoryTestList(FactoryTest):
     self.root = self
     self.state_change_callback = None
     self.options = options
+    self.label_en = label_en
+
+    if finish_construction:
+      self.FinishConstruction()
+
+  def FinishConstruction(self):
+    """Finishes construction of the test list.
+
+    Performs final validity checks on the test list (e.g., making sure
+    there are no nodes with duplicate IDs) and sets up some internal
+    data structures (like path_map).  This must be invoked after all
+    nodes and options have been added to the test list, and before the
+    test list is used.
+
+    If finish_construction=True in the constructor, this is invoked in
+    the constructor and the caller need not invoke it manually.
+
+    Raises:
+      TestListError: If the test list is invalid for any reason.
+    """
     self._init('', self.path_map)
 
     # Resolve require_run paths to the actual test objects.

@@ -297,7 +297,7 @@ class GoofyRPC(object):
                    os.path.realpath(self.goofy.options.test_list))
 
         # Look for the test list name, if specified in the test list.
-        match = re.search(r"^TEST_LIST_NAME\s*=\s*"
+        match = re.search(r"^\s*TEST_LIST_NAME\s*=\s*"
                           r"u?"        # Optional u for unicode
                           r"([\'\"])"  # Single or double quote
                           r"(.+)"      # The actual name
