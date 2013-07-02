@@ -236,7 +236,9 @@ class CameraTest(unittest.TestCase):
       uvc_vid_dirs = glob.glob(
           '/sys/bus/usb/drivers/uvcvideo/*/video4linux/video*')
       dev_index = None
-      if len(uvc_vid_dirs) != 1:
+      if not uvc_vid_dirs:
+        raise IOError('No video capture interface found')
+      if len(uvc_vid_dirs) > 1:
         raise IOError('Multiple video capture interface found')
       for uvc_dir_entry in uvc_vid_dirs:
         dev_index = int(re.search(r'video([0-9]+)$', uvc_dir_entry).group(1))
