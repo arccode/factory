@@ -17,6 +17,7 @@ from cros.factory import rule, schema
 from cros.factory.common import MakeList, MakeSet
 from cros.factory.hwid import common
 from cros.factory.hwid.base32 import Base32
+from cros.factory.hwid.base8192 import Base8192
 
 
 class Database(object):
@@ -32,7 +33,23 @@ class Database(object):
     components: A Components object.
     rules: A Rules object.
   """
-  _HWID_FORMAT = re.compile(r'^([A-Z0-9]+) ((?:[A-Z2-7]{4}-)*[A-Z2-7]{1,4})$')
+  _HWID_FORMAT = {
+      common.HWID.ENCODING_SCHEME.base32: re.compile(
+          r'^([A-Z0-9]+)'                 # group(0): Board
+          r' ('                           # group(1): Entire BOM.
+          r'(?:[A-Z2-7]{4}-)*'            # Zero or more 4-character groups with
+                                          # dash.
+          r'[A-Z2-7]{1,4}'                # Last group with 1 to 4 characters.
+          r')$'                           # End group(1)
+      ),
+      common.HWID.ENCODING_SCHEME.base8192: re.compile(
+          r'^([A-Z0-9]+)'                 # group(0): Board
+          r' ('                           # group(1): Entire BOM
+          r'(?:[A-Z2-7][2-9][A-Z2-7]-)*'  # Zero or more 3-character groups with
+                                          # dash.
+          r'[A-Z2-7][2-9][A-Z2-7]'        # Last group with 3 characters.
+          r')$'                           # End group(1)
+      )}
 
   def __init__(self, board, encoding_patterns, image_id, pattern,
                encoded_fields, components, rules):
@@ -336,20 +353,26 @@ class Database(object):
     # Truncate trailing 0s.
     string_without_paddings = binary_string[:binary_string.rfind('1') + 1]
 
-    if len(string_without_paddings) > self.pattern.GetTotalBitLength():
+    image_id = self.pattern.GetImageIdFromBinaryString(binary_string)
+    if len(string_without_paddings) > self.pattern.GetTotalBitLength(image_id):
       raise common.HWIDException('Invalid bit string length of %r. Expected '
                           'length <= %d, got length %d' %
-                          (binary_string, self.pattern.GetTotalBitLength(),
+                          (binary_string,
+                           self.pattern.GetTotalBitLength(image_id),
                            len(string_without_paddings)))
 
   def VerifyEncodedString(self, encoded_string):
-    """Verifies the encoded string.
+    """Verifies the given encoded string.
 
     Raises:
       HWIDException if verification fails.
     """
     try:
-      board, bom_checksum = Database._HWID_FORMAT.findall(encoded_string)[0]
+      image_id = self.pattern.GetImageIdFromEncodedString(encoded_string)
+      encoding_scheme = self.pattern.GetPatternByImageId(
+        image_id)['encoding_scheme']
+      board, bom_checksum = Database._HWID_FORMAT[encoding_scheme].findall(
+          encoded_string)[0]
     except IndexError:
       raise common.HWIDException(
           'Invalid HWID string format: %r' % encoded_string)
@@ -363,8 +386,11 @@ class Database(object):
     stripped = encoded_string.replace('-', '')
     hwid = stripped[:-2]
     checksum = stripped[-2:]
-    expected_checksum = Base32.Checksum(hwid)
-    if not checksum == Base32.Checksum(hwid):
+    if encoding_scheme == common.HWID.ENCODING_SCHEME.base32:
+      expected_checksum = Base32.Checksum(hwid)
+    elif encoding_scheme == common.HWID.ENCODING_SCHEME.base8192:
+      expected_checksum = Base8192.Checksum(hwid)
+    if not checksum == expected_checksum:
       raise common.HWIDException('Checksum of %r mismatch (expected %r)' % (
           encoded_string, expected_checksum))
 
@@ -752,13 +778,48 @@ class Pattern(object):
   """
   def __init__(self, pattern_list):
     self.schema = schema.List(
-        'pattern', schema.Dict(
-            'pattern field', key_type=schema.Scalar('encoded index', str),
-            value_type=schema.Scalar('bit offset', int)))
+        'pattern', schema.FixedDict(
+            'pattern list', items={
+                'image_ids': schema.List('image ids', schema.Scalar('image id',
+                                                                    int)),
+                'encoding_scheme': schema.Scalar('encoding scheme', str),
+                'fields': schema.List('encoded fields', schema.Dict(
+                    'pattern field', key_type=schema.Scalar(
+                        'encoded index', str),
+                    value_type=schema.Scalar('bit offset', int)))}))
     self.schema.Validate(pattern_list)
     self.pattern = pattern_list
 
-  def GetFieldsBitLength(self):
+  def GetPatternByImageId(self, image_id=None):
+    """Get pattern definition by image id.
+
+    Args:
+      image_id: An integer of the image id to query. If not given, the latest
+          image id would be used.
+
+    Returns:
+      A dict of the pattern definiton.
+    """
+    id_pattern_map = {}
+    for pattern in self.pattern:
+      id_pattern_map.update(dict((image_id, pattern) for image_id in
+                                 pattern['image_ids']))
+    if image_id is None:
+      return id_pattern_map[max(id_pattern_map.keys())]
+
+    if image_id not in id_pattern_map:
+      raise common.HWIDException(
+          'Pattern for image id %r is not defined' % image_id)
+
+    return id_pattern_map[image_id]
+
+  def GetImageIdFromEncodedString(self, encoded_string):
+    return int(Base32.Decode(encoded_string.split(' ')[1][0])[1:5], 2)
+
+  def GetImageIdFromBinaryString(self, binary_string):
+    return int(binary_string[1:5], 2)
+
+  def GetFieldsBitLength(self, image_id=None):
     """Gets a map for the bit length of each encoded fields defined by the
     pattern. Scattered fields with the same field name are aggregated into one.
 
@@ -769,13 +830,13 @@ class Pattern(object):
       raise common.HWIDException(
           'Cannot get encoded field bit length with uninitialized pattern')
     ret = collections.defaultdict(int)
-    for element in self.pattern:
+    for element in self.GetPatternByImageId(image_id)['fields']:
       for cls, length in element.iteritems():
         ret[cls] += length
     return ret
 
-  def GetTotalBitLength(self):
-    """Gets the total bit length of defined by the pattern. Common header and
+  def GetTotalBitLength(self, image_id=None):
+    """Gets the total bit length defined by the pattern. Common header and
     stopper bit are included.
 
     Returns:
@@ -785,9 +846,10 @@ class Pattern(object):
       raise common.HWIDException(
           'Cannot get bit length with uninitialized pattern')
     # 5 bits for header and 1 bit for stop bit
-    return common.HWID.HEADER_BITS + 1 + sum(self.GetFieldsBitLength().values())
+    return (common.HWID.HEADER_BITS + 1 +
+            sum(self.GetFieldsBitLength(image_id).values()))
 
-  def GetBitMapping(self):
+  def GetBitMapping(self, image_id=None):
     """Gets a map indicating the bit offset of certain encoded field a bit in a
     encoded binary string corresponds to.
 
@@ -810,7 +872,7 @@ class Pattern(object):
     ret = {}
     index = common.HWID.HEADER_BITS   # Skips the 5-bit common header.
     field_offset_map = collections.defaultdict(int)
-    for element in self.pattern:
+    for element in self.GetPatternByImageId(image_id)['fields']:
       for field, length in element.iteritems():
         # Reverse bit order.
         field_offset_map[field] += length
@@ -821,7 +883,7 @@ class Pattern(object):
           index += 1
     return ret
 
-  def GetBitMappingSpringEVT(self):
+  def GetBitMappingSpringEVT(self, image_id=None):
     """Gets a map indicating the bit offset of certain encoded field a bit in a
     encoded binary string corresponds to.
 
@@ -843,7 +905,7 @@ class Pattern(object):
     ret = {}
     index = common.HWID.HEADER_BITS   # Skips the 5-bit common header.
     field_offset_map = collections.defaultdict(int)
-    for element in self.pattern:
+    for element in self.GetPatternByImageId(image_id)['fields']:
       for field, length in element.iteritems():
         for _ in xrange(length):
           ret[index] = BitEntry(field, field_offset_map[field])

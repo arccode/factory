@@ -12,6 +12,12 @@ import factory_common # pylint: disable=W0611
 
 from cros.factory.hwid import common
 from cros.factory.hwid.base32 import Base32
+from cros.factory.hwid.base8192 import Base8192
+
+_Decoder = {
+    common.HWID.ENCODING_SCHEME.base32: Base32,
+    common.HWID.ENCODING_SCHEME.base8192: Base8192
+}
 
 
 def BinaryStringToBOM(database, binary_string):
@@ -30,15 +36,15 @@ def BinaryStringToBOM(database, binary_string):
 
   board = database.board
   encoding_pattern = int(stripped_binary_string[0], 2)
-  image_id = int(stripped_binary_string[1:5], 2)
+  image_id = database.pattern.GetImageIdFromBinaryString(binary_string)
 
   # Construct the encoded fields dict.
   encoded_fields = collections.defaultdict(int)
-  bit_mapping = database.pattern.GetBitMapping()
+  bit_mapping = database.pattern.GetBitMapping(image_id)
   # Hack for Spring EVT
   # TODO(jcliang): Remove this hack when we no longer need it.
   if database.board == 'SPRING' and image_id == 0:
-    bit_mapping = database.pattern.GetBitMappingSpringEVT()
+    bit_mapping = database.pattern.GetBitMappingSpringEVT(image_id)
   for i, (field, bit_offset) in bit_mapping.iteritems():
     if i >= len(stripped_binary_string):
       break
@@ -84,12 +90,14 @@ def EncodedStringToBinaryString(database, encoded_string):
   Returns:
     A binary string.
   """
+  image_id = database.pattern.GetImageIdFromEncodedString(encoded_string)
+  encoding_scheme = database.pattern.GetPatternByImageId(
+      image_id)['encoding_scheme']
   database.VerifyEncodedString(encoded_string)
   _, hwid_string = encoded_string.split(' ')
   hwid_string = hwid_string.replace('-', '')
-  # Remove the 10-bit checksum at tail
-  hwid_string = hwid_string[0:-2]
-  return Base32.Decode(hwid_string)
+  return _Decoder[encoding_scheme].Decode(
+      hwid_string)[:-_Decoder[encoding_scheme].CHECKSUM_SIZE].rstrip('0')
 
 
 def Decode(database, encoded_string):

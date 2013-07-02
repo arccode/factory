@@ -531,7 +531,7 @@ class GooftoolTest(unittest2.TestCase):
       # pylint: disable=E1101
       mock_probe_result = hwid_tool.ProbeResults.Decode(f.read())
     self.assertEquals(
-        'CHROMEBOOK A5AU-LU',
+        'CHROMEBOOK D9I-F9U',
         self._gooftool3.GenerateHwidV3(
             mock_device_info, mock_probe_result).encoded_string)
 
@@ -542,7 +542,7 @@ class GooftoolTest(unittest2.TestCase):
         'component.audio_codec': 'set_1'
     }
     self.assertEquals(
-        'CHROMEBOOK A7IU-YS',
+        'CHROMEBOOK D92-F8J',
         self._gooftool3.GenerateHwidV3(
             mock_device_info, mock_probe_result).encoded_string)
 
@@ -553,7 +553,7 @@ class GooftoolTest(unittest2.TestCase):
         'component.audio_codec': 'set_0'
     }
     self.assertEquals(
-        'CHROMEBOOK APIU-VX',
+        'CHROMEBOOK D52-F7N',
         self._gooftool3.GenerateHwidV3(
             mock_device_info, mock_probe_result).encoded_string)
 
@@ -581,6 +581,11 @@ class GooftoolTest(unittest2.TestCase):
             'CHROMEBOOK A5AU-LU',
             hwid_tool.ProbeResults.Decode(yaml.dump(mock_probe_result)),
             mock_ro_vpd, mock_rw_vpd))
+    self.assertEquals(
+        None, self._gooftool3.VerifyHwidV3(
+            'CHROMEBOOK D9I-F9U',
+            hwid_tool.ProbeResults.Decode(yaml.dump(mock_probe_result)),
+            mock_ro_vpd, mock_rw_vpd))
     mock_probe_result = copy.deepcopy(sample_probe_result)
     mock_ro_vpd = copy.deepcopy(sample_ro_vpd)
     mock_rw_vpd = copy.deepcopy(sample_rw_vpd)
@@ -588,7 +593,7 @@ class GooftoolTest(unittest2.TestCase):
     # pylint: disable=E1101
     self.assertRaisesRegexp(
         RuleException, r"KeyError\('serial_number',\)",
-        self._gooftool3.VerifyHwidV3, 'CHROMEBOOK A5AU-LU',
+        self._gooftool3.VerifyHwidV3, 'CHROMEBOOK D9I-F9U',
         hwid_tool.ProbeResults.Decode(yaml.dump(mock_probe_result)),
         mock_ro_vpd, mock_rw_vpd)
     mock_probe_result = copy.deepcopy(sample_probe_result)
@@ -598,7 +603,7 @@ class GooftoolTest(unittest2.TestCase):
     # pylint: disable=E1101
     self.assertRaisesRegexp(
         RuleException, r"KeyError\('gbind_attribute',\)",
-        self._gooftool3.VerifyHwidV3, 'CHROMEBOOK A5AU-LU',
+        self._gooftool3.VerifyHwidV3, 'CHROMEBOOK D9I-F9U',
         hwid_tool.ProbeResults.Decode(yaml.dump(mock_probe_result)),
         mock_ro_vpd, mock_rw_vpd)
     mock_probe_result = copy.deepcopy(sample_probe_result)
@@ -610,7 +615,7 @@ class GooftoolTest(unittest2.TestCase):
     self.assertRaisesRegexp(
         HWIDException, r"Component class 'audio_codec' is missing components: "
         r"\['hdmi_1'\]. Expected components are: \['codec_1', 'hdmi_1'\]",
-        self._gooftool3.VerifyHwidV3, 'CHROMEBOOK A5AU-LU',
+        self._gooftool3.VerifyHwidV3, 'CHROMEBOOK D9I-F9U',
         hwid_tool.ProbeResults.Decode(yaml.dump(mock_probe_result)),
         mock_ro_vpd, mock_rw_vpd)
     mock_probe_result = copy.deepcopy(sample_probe_result)
@@ -623,7 +628,7 @@ class GooftoolTest(unittest2.TestCase):
     self.assertRaisesRegexp(
         HWIDException, r"Component class 'cellular' has extra components: "
         "\['cellular_0'\]. Expected components are: None",
-        self._gooftool3.VerifyHwidV3, 'CHROMEBOOK A5AU-LU',
+        self._gooftool3.VerifyHwidV3, 'CHROMEBOOK D9I-F9U',
         hwid_tool.ProbeResults.Decode(yaml.dump(mock_probe_result)),
         mock_ro_vpd, mock_rw_vpd)
     # Test deprecated component.
@@ -636,7 +641,7 @@ class GooftoolTest(unittest2.TestCase):
     self.assertRaisesRegexp(
         HWIDException, r"Not in RMA mode. Found deprecated component of "
         r"'ro_main_firmware': 'ro_main_firmware_1'",
-        self._gooftool3.VerifyHwidV3, 'CHROMEBOOK A5A4-F2',
+        self._gooftool3.VerifyHwidV3, 'CHROMEBOOK D9I-H9T',
         hwid_tool.ProbeResults.Decode(yaml.dump(mock_probe_result)),
         mock_ro_vpd, mock_rw_vpd)
 
@@ -646,7 +651,7 @@ class GooftoolTest(unittest2.TestCase):
          'storage': 0, 'flash_chip': 0, 'bluetooth': 0,
          'embedded_controller': 0, 'camera': 0, 'display_panel': 0,
          'cellular': 0, 'keyboard': 0, 'dram': 0, 'chipset': 0, 'cpu': 5},
-        self._gooftool3.DecodeHwidV3('CHROMEBOOK A5AU-LU').bom.encoded_fields)
+        self._gooftool3.DecodeHwidV3('CHROMEBOOK D9I-F9U').bom.encoded_fields)
 
 
 if __name__ == '__main__':

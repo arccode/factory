@@ -57,7 +57,7 @@ class HWIDRuleTest(unittest2.TestCase):
     SetContext(self.context)
 
   def testRule(self):
-    # Original binary string: 0000000000111010000011000
+    # Original binary string: 0000000000111010000011
     # Original encoded string: CHROMEBOOK AA5A-Y6L
     rule = Rule(name='foobar1',
                 when="GetDeviceInfo('SKU') == 1",
@@ -67,7 +67,7 @@ class HWIDRuleTest(unittest2.TestCase):
                     "SetComponent('dram', 'dram_1')"],
                 otherwise=None)
     rule.Evaluate(self.context)
-    self.assertEquals(self.hwid.binary_string, r'0000000000111011000011000')
+    self.assertEquals(self.hwid.binary_string, r'0000000000111011000011')
     self.assertEquals(self.hwid.encoded_string, r'CHROMEBOOK AA5Q-YM2')
 
     rule = Rule(name='foobar2',
@@ -115,7 +115,7 @@ class HWIDRuleTest(unittest2.TestCase):
         - SetComponent('dram', 'dram_1')
     """)
     rule.Evaluate(self.context)
-    self.assertEquals(self.hwid.binary_string, r'0000000000111011000011000')
+    self.assertEquals(self.hwid.binary_string, r'0000000000111011000011')
     self.assertEquals(self.hwid.encoded_string, r'CHROMEBOOK AA5Q-YM2')
 
     rule = yaml.load("""
@@ -188,7 +188,7 @@ class HWIDRuleTest(unittest2.TestCase):
         'cpu_3', self.context.hwid.bom.components['cpu'][0].component_name)
     self.assertEquals(
         3, self.context.hwid.bom.encoded_fields['cpu'])
-    self.assertEquals('0000000000111010010001000', self.hwid.binary_string)
+    self.assertEquals('0000000000111010010001', self.hwid.binary_string)
     self.assertEquals('CHROMEBOOK AA5E-IVL', self.hwid.encoded_string)
     SetComponent('cellular', 'cellular_0')
     self.assertEquals(
@@ -196,13 +196,16 @@ class HWIDRuleTest(unittest2.TestCase):
         self.context.hwid.bom.components['cellular'][0].component_name)
     self.assertEquals(
         1, self.context.hwid.bom.encoded_fields['cellular'])
-    self.assertEquals('0000000000111110010001000', self.hwid.binary_string)
+    self.assertEquals('0000000000111110010001', self.hwid.binary_string)
     self.assertEquals('CHROMEBOOK AA7E-IWF', self.hwid.encoded_string)
 
   def testSetImageId(self):
-    SetImageId(5)
-    self.assertEquals('0010100000111010000011000', self.hwid.binary_string)
-    self.assertEquals('CHROMEBOOK FA5A-Y63', self.hwid.encoded_string)
+    SetImageId(1)
+    self.assertEquals('0000100000111010000011', self.hwid.binary_string)
+    self.assertEquals('CHROMEBOOK BA5A-YI3', self.hwid.encoded_string)
+    SetImageId(2)
+    self.assertEquals('0001000000111010000011', self.hwid.binary_string)
+    self.assertEquals('CHROMEBOOK C2H-I3Q-A6Q', self.hwid.encoded_string)
     self.assertRaisesRegexp(
         HWIDException, r'Invalid image id: 7', SetImageId, 7)
 

@@ -32,37 +32,43 @@ class EncoderTest(unittest.TestCase):
     bom = self.database.UpdateComponentsOfBOM(bom, {
         'keyboard': 'keyboard_us', 'display_panel': 'display_panel_0'})
     self.assertEquals(
-        '0000000000111010000011000', BOMToBinaryString(self.database, bom))
+        '0000000000111010000011', BOMToBinaryString(self.database, bom))
     # Change firmware's encoded index to 1.
     mocked_bom = self.database.UpdateComponentsOfBOM(
         bom, {'ro_main_firmware': 'ro_main_firmware_1'})
     self.assertEquals(
-        '0000000001111010000011000', BOMToBinaryString(self.database,
-                                                       mocked_bom))
-    # Change image id to 5.
-    mocked_bom.image_id = 5
+        '0000000001111010000011', BOMToBinaryString(self.database, mocked_bom))
+    # Change image id to 2.
+    mocked_bom.image_id = 2
     self.assertEquals(
-        '0010100001111010000011000', BOMToBinaryString(self.database,
-                                                       mocked_bom))
+        '0001000001111010000011', BOMToBinaryString(self.database, mocked_bom))
     # Change encoding pattern index to 1.
     mocked_bom.encoding_pattern_index = 1
     self.assertEquals(
-        '1010100001111010000011000', BOMToBinaryString(self.database,
-                                                       mocked_bom))
+        '1001000001111010000011', BOMToBinaryString(self.database, mocked_bom))
 
   def testBinaryStringToEncodedString(self):
     self.assertEquals('CHROMEBOOK A5AU-LU',
                       BinaryStringToEncodedString(
-                          self.database, '00000111010000010100'))
+                          self.database, '000001110100000101'))
+    self.assertEquals('CHROMEBOOK C9I-F4N',
+                      BinaryStringToEncodedString(
+                          self.database, '000101110100000101'))
 
   def testEncode(self):
     bom = self.database.ProbeResultToBOM(self.results[0])
     # Manually set unprobeable components.
     bom = self.database.UpdateComponentsOfBOM(bom, {
         'keyboard': 'keyboard_us', 'display_panel': 'display_panel_0'})
+    bom.image_id = 0
     hwid = Encode(self.database, bom)
-    self.assertEquals('0000000000111010000011000', hwid.binary_string)
+    self.assertEquals('0000000000111010000011', hwid.binary_string)
     self.assertEquals('CHROMEBOOK AA5A-Y6L', hwid.encoded_string)
+
+    bom.image_id = 2
+    hwid = Encode(self.database, bom)
+    self.assertEquals('0001000000111010000011', hwid.binary_string)
+    self.assertEquals('CHROMEBOOK C2H-I3Q-A6Q', hwid.encoded_string)
 
   def testEncodeError(self):
     # Missing required component 'dram'.

@@ -7,6 +7,8 @@
 
 """Implementation of base32 utilities."""
 
+import argparse
+
 from zlib import crc32
 
 
@@ -21,6 +23,8 @@ class Base32(object):
   BASE32_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
   BASE32_REVERSED = dict([v, k] for k, v in enumerate(BASE32_ALPHABET))
   BASE32_BIT_WIDTH = 5
+  DASH_INSERTION_WIDTH = 4
+  CHECKSUM_SIZE = 10
 
   @classmethod
   def Encode(cls, binary_string):
@@ -73,3 +77,26 @@ class Base32(object):
     c = crc32(string) & (2 ** 10 - 1)
     return (cls.BASE32_ALPHABET[c >> cls.BASE32_BIT_WIDTH] +
             cls.BASE32_ALPHABET[c & (2 ** cls.BASE32_BIT_WIDTH - 1)])
+
+
+if __name__ == '__main__':
+  option_parser = argparse.ArgumentParser(
+      description='Command-line interface for base32 encoding.')
+  option_parser.add_argument('hwid', metavar='HWID', help='HWID to operate on.')
+  option_parser.add_argument('--checksum', '-c', action='store_true',
+                             help='Calculate checksum of the given HWID.')
+  option_parser.add_argument('--verify-checksum', '-v', action='store_true',
+                             help='Verify checksum of the given HWID.')
+  options = option_parser.parse_args()
+  stripped_hwid = options.hwid.upper().replace('-', '')
+  if options.checksum:
+    print Base32.Checksum(stripped_hwid)
+  elif options.verify_checksum:
+    expected_checksum = Base32.Checksum(stripped_hwid[:-2])
+    given_checksum = stripped_hwid[-2:]
+    if expected_checksum == given_checksum:
+      print 'Success.'
+    else:
+      print 'Checksum should be: %r' % expected_checksum
+  else:
+    option_parser.print_help()

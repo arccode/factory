@@ -7,26 +7,45 @@ encoding_patterns:
 image_id:
   0: EVT
   1: DVT
-  2: MP
-  3: FOO
-  4: BAR
-  5: BUZ
+  2: PVT
+  3: MP
 
 pattern:
-  - audio_codec: 1
-  - battery: 2
-  - bluetooth: 0
-  - camera: 0
-  - cellular: 1
-  - chipset: 0
-  - cpu: 1                  # 5 bits
-  - display_panel: 0
-  - dram: 1
-  - keyboard: 1
-  - cpu: 1
-  - storage: 2              # 10 bits
-  - cpu: 1
-  - firmware: 1             # 12 bits
+  - image_ids: [0, 1]
+    encoding_scheme: base32
+    fields:
+    - audio_codec: 1
+    - battery: 2
+    - bluetooth: 0
+    - camera: 0
+    - cellular: 1
+    - chipset: 0
+    - cpu: 1                  # 5 bits
+    - display_panel: 0
+    - dram: 1
+    - keyboard: 1
+    - cpu: 1
+    - storage: 2              # 10 bits
+    - cpu: 1
+    - firmware: 1             # 12 bits
+
+  - image_ids: [2, 3]
+    encoding_scheme: base8192
+    fields:
+    - audio_codec: 1
+    - battery: 2
+    - bluetooth: 0
+    - camera: 0
+    - cellular: 1
+    - chipset: 0
+    - cpu: 1                  # 5 bits
+    - display_panel: 0
+    - dram: 1
+    - keyboard: 1
+    - cpu: 1
+    - storage: 2              # 10 bits
+    - cpu: 1
+    - firmware: 1             # 12 bits
 
 encoded_fields:
   audio_codec:
@@ -315,6 +334,9 @@ components:
         values: { compact_str: mv2#ro_main_firmware_1 }
 
 rules:
+- name: device_info.set_image_id
+  evaluate: SetImageId('MP')
+
 - name: device_info.component.has_cellular
   when: GetDeviceInfo('component.has_cellular')
   evaluate: SetComponent('cellular', 'cellular_0')

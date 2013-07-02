@@ -11,6 +11,12 @@ import factory_common # pylint: disable=W0611
 
 from cros.factory.hwid import common
 from cros.factory.hwid.base32 import Base32
+from cros.factory.hwid.base8192 import Base8192
+
+_Encoder = {
+    common.HWID.ENCODING_SCHEME.base32: Base32,
+    common.HWID.ENCODING_SCHEME.base8192: Base8192
+}
 
 
 def BOMToBinaryString(database, bom):
@@ -24,17 +30,15 @@ def BOMToBinaryString(database, bom):
     A binary string.
   """
   database.VerifyBOM(bom)
-  bit_length = database.pattern.GetTotalBitLength()
-  size = ((bit_length + Base32.BASE32_BIT_WIDTH - 1) /
-          Base32.BASE32_BIT_WIDTH * Base32.BASE32_BIT_WIDTH)
-  binary_list = size * [0]
+  bit_length = database.pattern.GetTotalBitLength(bom.image_id)
+  binary_list = bit_length * [0]
 
   # Fill in header.
   binary_list[0] = bom.encoding_pattern_index
   for i in xrange(1, 5):
     binary_list[i] = (bom.image_id >> (4 - i)) & 1
   # Fill in each bit.
-  bit_mapping = database.pattern.GetBitMapping()
+  bit_mapping = database.pattern.GetBitMapping(bom.image_id)
   for index, (field, bit_offset) in bit_mapping.iteritems():
     binary_list[index] = (bom.encoded_fields[field] >> bit_offset) & 1
   # Set stop bit.
@@ -54,13 +58,19 @@ def BinaryStringToEncodedString(database, binary_string):
     An encoded string with board name, base32-encoded HWID, and checksum.
   """
   database.VerifyBinaryString(binary_string)
-  b32_string = Base32.Encode(binary_string)
+  image_id = database.pattern.GetImageIdFromBinaryString(binary_string)
+  encoding_scheme = database.pattern.GetPatternByImageId(
+      image_id)['encoding_scheme']
+  encoder = _Encoder[encoding_scheme]
+  encoded_string = encoder.Encode(binary_string)
   # Make board name part of the checksum.
-  b32_string += Base32.Checksum(database.board.upper() + ' ' + b32_string)
+  encoded_string += encoder.Checksum(
+      database.board.upper() + ' ' + encoded_string)
   # Insert dashes to increase readibility.
-  b32_string = (
-      '-'.join([b32_string[i:i + 4] for i in xrange(0, len(b32_string), 4)]))
-  return database.board.upper() + ' ' + b32_string
+  encoded_string = ('-'.join(
+      [encoded_string[i:i + encoder.DASH_INSERTION_WIDTH]
+      for i in xrange(0, len(encoded_string), encoder.DASH_INSERTION_WIDTH)]))
+  return database.board.upper() + ' ' + encoded_string
 
 
 def Encode(database, bom, skip_check=False, rma_mode=False):

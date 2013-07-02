@@ -8,28 +8,49 @@ image_id:
   0: EVT
   1: DVT
   2: MP
-  3: FOO
-  4: BAR
-  5: BUZ
 
 pattern:
-  - firmware: 5             # 5 bits
+  - image_ids: [0, 1]
+    encoding_scheme: base32
+    fields:
+    - firmware: 5             # 5 bits
 
-  - audio_codec: 1
-  - battery: 2
-  - bluetooth: 0
-  - camera: 0
-  - cellular: 1
-  - chipset: 0
-  - cpu: 1                  # 10 bits
+    - audio_codec: 1
+    - battery: 2
+    - bluetooth: 0
+    - camera: 0
+    - cellular: 1
+    - chipset: 0
+    - cpu: 1                  # 10 bits
 
-  - display_panel: 0
-  - dram: 1
-  - keyboard: 1
-  - cpu: 1
-  - storage: 2              # 15 bits
+    - display_panel: 0
+    - dram: 1
+    - keyboard: 1
+    - cpu: 1
+    - storage: 2              # 15 bits
 
-  - cpu: 1                  # 16 bits
+    - cpu: 1                  # 16 bits
+
+  - image_ids: [2]
+    encoding_scheme: base8192
+    fields:
+    - firmware: 5             # 5 bits
+
+    - audio_codec: 1
+    - battery: 2
+    - bluetooth: 0
+    - camera: 0
+    - cellular: 1
+    - chipset: 0
+    - cpu: 1                  # 10 bits
+
+    - display_panel: 0
+    - dram: 1
+    - keyboard: 1
+    - cpu: 1
+    - storage: 2              # 15 bits
+
+    - cpu: 1                  # 16 bits
 
 encoded_fields:
   audio_codec:

@@ -81,13 +81,13 @@ class DecoderTest(unittest2.TestCase):
                      None)]}
 
   def testEncodedStringToBinaryString(self):
-    self.assertEquals('0000000000111010000011000',
+    self.assertEquals('0000000000111010000011',
                       EncodedStringToBinaryString(
                           self.database, 'CHROMEBOOK AA5A-Y6L'))
-    self.assertEquals('0010100000111010000011000',
+    self.assertEquals('0001000000111010000011',
                       EncodedStringToBinaryString(
-                          self.database, 'CHROMEBOOK FA5A-Y63'))
-    self.assertEquals('1000000000111010000011000',
+                          self.database, 'CHROMEBOOK C2H-I3Q-A6Q'))
+    self.assertEquals('1000000000111010000011',
                       EncodedStringToBinaryString(
                           self.database, 'CHROMEBOOK QA5A-YCJ'))
 
@@ -96,22 +96,22 @@ class DecoderTest(unittest2.TestCase):
     reference_bom = self.database.UpdateComponentsOfBOM(reference_bom, {
         'keyboard': 'keyboard_us',
         'display_panel': 'display_panel_0'})
-    bom = BinaryStringToBOM(self.database, '0000000000111010000011000')
+    bom = BinaryStringToBOM(self.database, '0000000000111010000011')
     self.assertEquals(reference_bom.board, bom.board)
     self.assertEquals(reference_bom.encoding_pattern_index,
                       bom.encoding_pattern_index)
     self.assertEquals(reference_bom.image_id, bom.image_id)
     self.assertEquals(reference_bom.encoded_fields, bom.encoded_fields)
     self.assertEquals(self.expected_components_from_db, bom.components)
-    bom = BinaryStringToBOM(self.database, '0000000001111010000011000')
+    bom = BinaryStringToBOM(self.database, '0000000001111010000011')
     self.assertEquals(1, bom.encoded_fields['firmware'])
-    self.assertEquals(5, BinaryStringToBOM(
-        self.database, '0010100000111010000011000').image_id)
+    self.assertEquals(2, BinaryStringToBOM(
+        self.database, '0001000000111010000011').image_id)
     self.assertEquals(1, BinaryStringToBOM(
-        self.database, '1000000000111010000011000').encoding_pattern_index)
+        self.database, '1000000000111010000011').encoding_pattern_index)
     self.assertRaisesRegexp(
         HWIDException, r"Invalid encoded field index: {'cpu': 6}",
-        BinaryStringToBOM, self.database, '0000000000111000010011000')
+        BinaryStringToBOM, self.database, '0000000000111000010011')
 
   def testDecode(self):
     reference_bom = self.database.ProbeResultToBOM(self.results[0])
@@ -119,7 +119,7 @@ class DecoderTest(unittest2.TestCase):
         'keyboard': 'keyboard_us', 'dram': 'dram_0',
         'display_panel': 'display_panel_0'})
     hwid = Decode(self.database, 'CHROMEBOOK AA5A-Y6L')
-    self.assertEquals('0000000000111010000011000', hwid.binary_string)
+    self.assertEquals('0000000000111010000011', hwid.binary_string)
     self.assertEquals('CHROMEBOOK AA5A-Y6L', hwid.encoded_string)
     self.assertEquals(reference_bom.board, hwid.bom.board)
     self.assertEquals(reference_bom.encoding_pattern_index,
@@ -128,11 +128,21 @@ class DecoderTest(unittest2.TestCase):
     self.assertEquals(reference_bom.encoded_fields, hwid.bom.encoded_fields)
     self.assertEquals(self.expected_components_from_db, hwid.bom.components)
 
+    hwid = Decode(self.database, 'CHROMEBOOK C2H-I3Q-A6Q')
+    self.assertEquals('0001000000111010000011', hwid.binary_string)
+    self.assertEquals('CHROMEBOOK C2H-I3Q-A6Q', hwid.encoded_string)
+    self.assertEquals(reference_bom.board, hwid.bom.board)
+    self.assertEquals(reference_bom.encoding_pattern_index,
+                      hwid.bom.encoding_pattern_index)
+    self.assertEquals(2, hwid.bom.image_id)
+    self.assertEquals(reference_bom.encoded_fields, hwid.bom.encoded_fields)
+    self.assertEquals(self.expected_components_from_db, hwid.bom.components)
+
   def testPreviousVersionOfEncodedString(self):
-    bom = BinaryStringToBOM(self.database, '0000000000111010000010000')
+    bom = BinaryStringToBOM(self.database, '000000000011101000001')
     self.assertEquals(1, bom.encoded_fields['cpu'])
     hwid = Decode(self.database, 'CHROMEBOOK AA5A-Q7Z')
-    self.assertEquals('0000000000111010000010000', hwid.binary_string)
+    self.assertEquals('000000000011101000001', hwid.binary_string)
     self.assertEquals('CHROMEBOOK AA5A-Q7Z', hwid.encoded_string)
     self.assertEquals(1, hwid.bom.encoded_fields['cpu'])
 

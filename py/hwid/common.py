@@ -14,7 +14,7 @@ import re
 
 import factory_common # pylint: disable=W0611
 from cros.factory import common, schema, rule
-from cros.factory.hwid import base32
+from cros.factory.hwid import base32, base8192
 from cros.factory.test import utils
 
 # The expected location of HWID data within a factory image or the
@@ -115,6 +115,7 @@ class HWID(object):
   """
   HEADER_BITS = 5
   COMPONENT_STATUS = utils.Enum(['supported', 'deprecated', 'unsupported'])
+  ENCODING_SCHEME = utils.Enum(['base32', 'base8192'])
 
   def __init__(self, database, binary_string, encoded_string, bom,
                skip_check=False):
@@ -160,7 +161,7 @@ class HWID(object):
       raise HWIDException(
           'Binary string %r does not decode to BOM. Differences: %r' %
           (self.binary_string, GetComponentsDifferences(
-              self.bom, BinaryStringToBOM(self.database, self.binary_string))))
+              BinaryStringToBOM(self.database, self.binary_string), self.bom)))
     # No exception. Everything is good!
 
   def VerifyComponentStatus(self, rma_mode=False):
@@ -323,7 +324,7 @@ class BOM(object):
     return not self.__eq__(op2)
 
 
-def CompareBinaryString(database, expected, given):
+def _CompareBase32BinaryString(database, expected, given):
   def Header(bit_length):
     msg = '\n' + '%12s' % 'Bit offset: ' + ' '.join(
         ['%-5s' % anchor for anchor in xrange(0, bit_length, 5)])
@@ -353,3 +354,53 @@ def CompareBinaryString(database, expected, given):
           ParseBinaryString('Expected', expected) +
           ParseBinaryString('Given', given) +
           BitMap(database))
+
+
+def _CompareBase8192BinaryString(database, expected, given):
+  def Header(bit_length):
+    msg = '\n' + '%12s' % 'Bit offset: ' + ' '.join(
+        ['%-15s' % anchor for anchor in xrange(0, bit_length, 13)])
+    msg += '\n' + '%12s' % ' ' + ' '.join(
+        ['%-15s' % '|' for _ in xrange(0, bit_length, 13)])
+    return msg
+
+  def ParseBinaryString(label, string):
+    msg = '\n%12s' % (label + ': ') + ' '.join(
+        ['%-5s %-3s %-5s' % (
+            string[i:i+5], string[i+5:i+8], string[i+8:i+13])
+         for i in xrange(0, len(string), 13)])
+    def _SplitString(s):
+      results = list(base8192.Base8192.Encode(s))
+      if len(results) == 4:
+        results = results[0:3]
+      if len(results) < 3:
+        results.extend([' '] * (3 - len(results)))
+      return tuple(results)
+    msg += '\n%12s' % ' ' + ' '.join(
+        [('%5s %3s %5s' % _SplitString(string[i:i+13]))
+         for i in xrange(0, len(string), 13)])
+    return msg
+
+  def BitMap(database):
+    bitmap = [(key, value.field, value.bit_offset) for key, value in
+              database.pattern.GetBitMapping().iteritems()]
+    msg = '\nField to bit mappings:'
+    msg += '\n%3s: encoding pattern' % '0'
+    msg += '\n' + '\n'.join([
+        '%3s: image_id bit %s' % (idx, idx) for idx in xrange(1, 5)])
+    msg += '\n' + '\n'.join(['%3s: %s bit %s' % entry for entry in bitmap])
+    return msg
+
+  return (Header(len(expected)) +
+          ParseBinaryString('Expected', expected) +
+          ParseBinaryString('Given', given) +
+          BitMap(database))
+
+def CompareBinaryString(database, expected, given):
+  image_id = database.pattern.GetImageIdFromBinaryString(given)
+  encoding_scheme = database.pattern.GetPatternByImageId(
+      image_id)['encoding_scheme']
+  if encoding_scheme == HWID.ENCODING_SCHEME.base32:
+    return _CompareBase32BinaryString(database, expected, given)
+  elif encoding_scheme == HWID.ENCODING_SCHEME.base8192:
+    return _CompareBase8192BinaryString(database, expected, given)

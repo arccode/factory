@@ -45,26 +45,34 @@ class HWIDTest(unittest2.TestCase):
     bom = self.database.UpdateComponentsOfBOM(bom, {
         'keyboard': 'keyboard_us', 'dram': 'dram_0',
         'display_panel': 'display_panel_0'})
+    bom.image_id = 2
     hwid = Encode(self.database, bom)
     self.assertEquals(None, hwid.VerifySelf())
 
-    # The correct binary string: '000000000011101000001100'
+    # The correct binary string: '0000000000111010000011'
     original_value = hwid.binary_string
-    hwid.binary_string = '00000000001110100000101100'
+    hwid.binary_string = '000000000011101000001011'
     self.assertRaisesRegexp(
         HWIDException, r'Invalid bit string length', hwid.VerifySelf)
-    hwid.binary_string = '0000000001111010000011000'
+    hwid.binary_string = '0000000001111010000011'
     self.assertRaisesRegexp(
         HWIDException,
-        r"Encoded string CHROMEBOOK AA5A-Y6L does not decode to binary string "
-        r"'0000000001111010000011000'",
+        r"Encoded string CHROMEBOOK C2H-I3Q-A6Q does not decode to binary "
+        r"string '0000000001111010000011'",
         hwid.VerifySelf)
     hwid.binary_string = original_value
 
     original_value = hwid.encoded_string
-    hwid.encoded_string = 'ASDF QWER-TY'
+    hwid.encoded_string = 'ASDF CWER-TY'
     self.assertRaisesRegexp(
-        HWIDException, r'Invalid board name', hwid.VerifySelf)
+        HWIDException, r"Invalid HWID string format: 'ASDF CWER-TY",
+        hwid.VerifySelf)
+    hwid.encoded_string = original_value
+
+    original_value = hwid.encoded_string
+    hwid.encoded_string = 'ASDF C2W-E3R'
+    self.assertRaisesRegexp(
+        HWIDException, r"Invalid board name: 'ASDF'", hwid.VerifySelf)
     hwid.encoded_string = original_value
 
     original_value = hwid.bom
@@ -75,7 +83,7 @@ class HWIDTest(unittest2.TestCase):
     hwid.bom.encoded_fields['cpu'] = 2
     self.assertRaisesRegexp(
         HWIDException,
-        r"Binary string '0000000000111010000011000' does not decode to BOM",
+        r"Binary string '0001000000111010000011' does not decode to BOM",
         hwid.VerifySelf)
     hwid.bom = original_value
 
@@ -85,6 +93,7 @@ class HWIDTest(unittest2.TestCase):
     bom = self.database.UpdateComponentsOfBOM(bom, {
         'keyboard': 'keyboard_us', 'dram': 'dram_0',
         'display_panel': 'display_panel_0'})
+    bom.image_id = 2
     hwid = Encode(self.database, bom)
     fake_result = result.replace('HDMI 1', 'HDMI 0')
     self.assertRaisesRegexp(
@@ -115,6 +124,7 @@ class HWIDTest(unittest2.TestCase):
     bom = self.database.UpdateComponentsOfBOM(bom, {
         'keyboard': 'keyboard_us', 'dram': 'dram_0',
         'display_panel': 'display_panel_0'})
+    bom.image_id = 2
     hwid = Encode(self.database, bom)
     labels_dict = hwid.GetLabels()
     self.assertEquals({'dram_0': {'size': '4G'}}, labels_dict['dram'])
