@@ -16,43 +16,47 @@ import logging
 from scpi_mock import MockServerHandler, MockTestServer
 
 def SetupLookupTable():
+  # Abbreviation for better readability
+  AddLookup = MockServerHandler.AddLookup
+
   # Responses for normal commands
   NORMAL_ERR_RESPONSE = '+0,"No error"\n'
   NORMAL_ESR_REGISTER = '+0\n'
   NORMAL_OPC_RESPONSE = '+1\n'
-  MockServerHandler.AddLookup(r'\*CLS', None)
-  #MockServerHandler.AddLookup(r'SYST:ERR\?', NORMAL_ERR_RESPONSE)
-  MockServerHandler.AddLookup(r'\*OPC\?', NORMAL_OPC_RESPONSE)
-  MockServerHandler.AddLookup(r'\*ESR\?', NORMAL_ESR_REGISTER)
-  MockServerHandler.AddLookup(r'SYST:ERR\?', NORMAL_ERR_RESPONSE)
+  AddLookup(r'\*CLS', None)
+  AddLookup(r'\*OPC\?', NORMAL_OPC_RESPONSE)
+  AddLookup(r'\*ESR\?', NORMAL_ESR_REGISTER)
+  AddLookup(r'SYST:ERR\?', NORMAL_ERR_RESPONSE)
   # Identification
   MODEL_NAME = 'Agilent Technologies,N1914A,MY50001187,A2.01.06\n'
-  MockServerHandler.AddLookup(r'\*IDN\?', MODEL_NAME)
+  MOCK_MAC_ADDRESS = '"00:30:d3:20:54:64"\n'
+  AddLookup(r'\*IDN\?', MODEL_NAME)
+  AddLookup(r'SYST:COMM:LAN:MAC\?', MOCK_MAC_ADDRESS)
   # Measurement format related command
-  MockServerHandler.AddLookup(r'FORM ASCii', None)
-  MockServerHandler.AddLookup(r'FORM REAL', None)
+  AddLookup(r'FORM ASCii', None)
+  AddLookup(r'FORM REAL', None)
   # Measurement speed related command
-  MockServerHandler.AddLookup(r'SENSe\d:MRATe NORMal', None)
-  MockServerHandler.AddLookup(r'SENSe\d:MRATe DOUBle', None)
-  MockServerHandler.AddLookup(r'SENSe\d:MRATe FAST', None)
+  AddLookup(r'SENSe\d:MRATe NORMal', None)
+  AddLookup(r'SENSe\d:MRATe DOUBle', None)
+  AddLookup(r'SENSe\d:MRATe FAST', None)
   # Trigger related command
-  MockServerHandler.AddLookup(r'TRIGger\d:SOURce IMMediate', None)
-  MockServerHandler.AddLookup(r'INITiate\d:CONTinuous ON', None)
+  AddLookup(r'TRIGger\d:SOURce IMMediate', None)
+  AddLookup(r'INITiate\d:CONTinuous ON', None)
   # Range related command
-  MockServerHandler.AddLookup(r'SENSe\d:POWer:AC:RANGe:AUTO \d', None)
-  MockServerHandler.AddLookup(r'SENSe\d:POWer:AC:RANGe \d', None)
+  AddLookup(r'SENSe\d:POWer:AC:RANGe:AUTO \d', None)
+  AddLookup(r'SENSe\d:POWer:AC:RANGe \d', None)
   # Frequency related command
-  MockServerHandler.AddLookup(r'SENSe\d:FREQuency [\d\.]+', None)
+  AddLookup(r'SENSe\d:FREQuency [\d\.]+', None)
   # Average related command
-  MockServerHandler.AddLookup(r'SENSe\d:AVERage:STATe \d', None)
-  MockServerHandler.AddLookup(r'SENSe\d:AVERage:COUNt \d', None)
+  AddLookup(r'SENSe\d:AVERage:STATe \d', None)
+  AddLookup(r'SENSe\d:AVERage:COUNt \d', None)
   # Fetch command in binary format
   # FETCH_EXPECTED_RESPONSE is the IEEE 754 64 bit floating
   # point representation of -65.05119874255999
   FETCH_EXPECTED_RESPONSE = str(bytearray([192, 80, 67, 70, 215, 23, 57, 14]))
-  MockServerHandler.AddLookup(r'FETCh\d?', FETCH_EXPECTED_RESPONSE + '\n')
+  AddLookup(r'FETCh\d?', FETCH_EXPECTED_RESPONSE + '\n')
   # Other command
-  MockServerHandler.AddLookup(r'SENSe\d:CORRection:GAIN\d:STATe \d', None)
+  AddLookup(r'SENSe\d:CORRection:GAIN\d:STATe \d', None)
 
 if __name__ == '__main__':
   logging.basicConfig(level=logging.INFO)
