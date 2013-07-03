@@ -159,6 +159,13 @@ lint:
 PRESUBMIT_FILES := $(if $(PRESUBMIT_FILES),\
 	             $(shell realpath --relative-to=. $$PRESUBMIT_FILES))
 
+chroot-presubmit:
+	if [ ! -e /etc/debian_chroot ]; then \
+	    echo "This script must be run inside the chroot. Run this first:"; \
+	    echo "    cros_sdk"; \
+	    exit 1; \
+	fi
+
 lint-presubmit:
 	$(MAKE) lint \
 	    LINT_FILES="$(filter %.py,$(PRESUBMIT_FILES))" \
