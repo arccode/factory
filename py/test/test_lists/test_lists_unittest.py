@@ -11,7 +11,7 @@ import unittest
 
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test.test_lists.common import (
+from cros.factory.test.test_lists.test_lists import (
     BuildTestLists,
     FactoryTest,
     TestGroup,

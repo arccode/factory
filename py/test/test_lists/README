@@ -1,0 +1,32 @@
+# Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+This package contains factory test lists.
+
+See: http://goto/cros-factory-test-lists
+
+TEST LISTS
+==========
+On startup, goofy imports all modules in this package (except for
+generic.py) in alphabetical order.  The CreateTestLists() function is
+invoked in each module that has one.
+
+generic.py is loaded *last*, and only if no other module has created
+a test list called "main" (i.e., there is no board-specific test list
+in the overlay).
+
+Old-style test lists are also loaded from
+/usr/local/factory/test_lists.
+
+THE ACTIVE TEST LIST
+====================
+If a file called ACTIVE is present in this directory, it contains the
+ID of the active test list.  So, for example, to activate the "manual_smt"
+test list on a device:
+
+  echo manual_smt > /usr/local/factory/py/test/test_lists/ACTIVE
+
+If no ACTIVE file is present, the "main" test list is used.
+
+(Note that ACTIVE is a file, not a symlink to a file as in the past.)

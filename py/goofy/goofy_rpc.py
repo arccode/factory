@@ -8,7 +8,6 @@
 '''RPC methods exported from Goofy.'''
 
 import argparse
-import glob
 import inspect
 import logging
 import os
@@ -25,6 +24,7 @@ from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import utils
 from cros.factory.test.event import Event
+from cros.factory.test.test_lists.test_lists import SetActiveTestList
 from cros.factory.utils import debug_utils, file_utils, process_utils
 
 
@@ -271,45 +271,10 @@ class GoofyRPC(object):
         enabled: Whether this is the current-enabled test list.
     '''
     ret = []
-
-    # Do this in sorted order to make sure that it's deterministic,
-    # and we see test_list before test_list.generic.
-    for f in sorted(
-        glob.glob(os.path.join(factory.TEST_LISTS_PATH, 'test_list*'))):
-      try:
-        if f.endswith('~') or f.endswith('#'):
-          continue
-
-        # Special case: if we see test_list.generic but we've already seen
-        # test_list, then ignore it (since test_list is provided from
-        # the board overlay and overrides test_list.generic).
-        if (os.path.basename(f) == 'test_list.generic' and
-            any(x['id'] == '' for x in ret)):
-          continue
-
-        match = re.match(r'test_list(?:\.(.+))?$', os.path.basename(f))
-        if not match:
-          continue
-
-        test_list_id = match.group(1) or ''
-        name = match.group(1) or 'Default'
-        enabled = (os.path.realpath(f) ==
-                   os.path.realpath(self.goofy.options.test_list))
-
-        # Look for the test list name, if specified in the test list.
-        match = re.search(r"^\s*TEST_LIST_NAME\s*=\s*"
-                          r"u?"        # Optional u for unicode
-                          r"([\'\"])"  # Single or double quote
-                          r"(.+)"      # The actual name
-                          r"\1",       # The quotation mark
-                          open(f).read(), re.MULTILINE)
-        if match:
-          name = match.group(2)
-
-        ret.append({'id': test_list_id, 'name': name, 'enabled': enabled})
-      except:  # pylint: disable=W0702
-        logging.exception('Unable to process test list %s', f)
-        # But keep trucking
+    for k, v in self.goofy.test_lists.iteritems():
+      ret.append(
+        dict(id=k, name=v.label_en,
+             enabled=(k == self.goofy.test_list.test_list_id)))
 
     # Sort by name.
     ret.sort(key=lambda x: x['name'].lower())
@@ -319,22 +284,15 @@ class GoofyRPC(object):
   def SwitchTestList(self, test_list_id):
     '''Switches test lists.
 
-    This adds a symlink from $FACTORY/test_lists/active to the given
-    test list.
-
     Args:
-      test_list_id: the suffix of the test list in
-          $FACTORY/test_lists, or an empty string for the default test list.
-    '''
-    path = os.path.join(factory.TEST_LISTS_PATH, 'test_list')
-    if test_list_id:
-      path += '.' + test_list_id
-    if not os.path.isfile(path):
-      raise GoofyRPCException('Invalid test list "%s": "%s" does not exist' % (
-          test_list_id, path))
+      test_list_id: The test list ID.
 
-    file_utils.TryUnlink(factory.ACTIVE_TEST_LIST_SYMLINK)
-    os.symlink(os.path.basename(path), factory.ACTIVE_TEST_LIST_SYMLINK)
+    Raises:
+      TestListError: The test list does not exist.
+    '''
+    # Have goofy throw an error if the test list ID is invalid.
+    self.goofy.GetTestList(test_list_id)
+    SetActiveTestList(test_list_id)
 
     if utils.in_chroot():
       raise GoofyRPCException(

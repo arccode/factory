@@ -31,10 +31,11 @@ SCRIPT_PATH = os.path.realpath(__file__)
 CROS_FACTORY_LIB_PATH = os.path.dirname(SCRIPT_PATH)
 FACTORY_PATH = os.path.realpath(os.path.join(CROS_FACTORY_LIB_PATH, '..', '..'))
 FACTORY_PACKAGE_PATH = os.path.join(FACTORY_PATH, 'py_pkg', 'cros', 'factory')
-TEST_LISTS_PATH = os.path.join(FACTORY_PATH, 'test_lists')
-ACTIVE_TEST_LIST_SYMLINK = os.path.join(TEST_LISTS_PATH, 'active')
 CLIENT_PATH = FACTORY_PATH
 FACTORY_MD5SUM_PATH = os.path.join(FACTORY_PATH, 'MD5SUM')
+
+# Path for old-style test lists.
+TEST_LISTS_PATH = os.path.join(FACTORY_PATH, 'test_lists')
 
 # Name of Chrome data directory within the state directory.
 CHROME_DATA_DIR_NAME = 'chrome-data-dir'
@@ -288,10 +289,16 @@ def read_test_list(path=None, state_instance=None, text=None):
 
   options.check_valid()
 
-  return FactoryTestList(test_list_locals['TEST_LIST'],
-                         state_instance or get_state_instance(),
-                         options,
-                         test_list_locals.get('TEST_LIST_NAME'))
+  label_en = test_list_locals.get('TEST_LIST_NAME')
+  if not label_en and path:
+    label_en = os.path.basename(path)
+
+  return FactoryTestList(
+      test_list_locals['TEST_LIST'],
+      state_instance or get_state_instance(),
+      options,
+      None,
+      label_en)
 
 
 _inited_logging = False
@@ -711,9 +718,9 @@ class FactoryTest(object):
   # display the summary of running tests.
   has_ui = False
 
-  REPR_FIELDS = ['id', 'autotest_name', 'pytest_name', 'dargs',
-          'backgroundable', 'exclusive', 'never_fails',
-          'enable_services', 'disable_services']
+  REPR_FIELDS = ['test_list_id', 'id', 'autotest_name', 'pytest_name', 'dargs',
+                 'backgroundable', 'exclusive', 'never_fails',
+                 'enable_services', 'disable_services']
 
   # Subsystems that the test may require exclusive access to.
   EXCLUSIVE_OPTIONS = utils.Enum(['NETWORKING', 'CHARGER', 'CPUFREQ'])
@@ -1158,8 +1165,8 @@ class FactoryTestList(FactoryTest):
   Properties:
     path_map: A map from test paths to FactoryTest objects.
   '''
-  def __init__(self, subtests, state_instance, options, label_en=None,
-               finish_construction=True):
+  def __init__(self, subtests, state_instance, options,
+               test_list_id=None, label_en=None, finish_construction=True):
     """Constructor.
 
     Args:
@@ -1168,6 +1175,11 @@ class FactoryTestList(FactoryTest):
           This may be left empty and set later.
       options: A TestListOptions object.  This may be left empty
           and set later (before calling FinishConstruction).
+      test_list_id: An optional ID for the test list.  Note that this is
+          separate from the FactoryTest object's 'id' member, which is always
+          None for test lists, to preserve the invariant that a test's
+          path is always starts with the concatenation of all 'id's of its
+          ancestors.
       label_en: An optional label for the test list.
       finish_construction: Whether to immediately finalize the test
           list.  If False, the caller may add modify subtests,
@@ -1178,9 +1190,10 @@ class FactoryTestList(FactoryTest):
     self.subtests = filter(None, utils.FlattenList(subtests))
     self.path_map = {}
     self.root = self
+    self.test_list_id = test_list_id
     self.state_change_callback = None
     self.options = options
-    self.label_en = label_en
+    self.label_en = label_en or 'untitled'
 
     if finish_construction:
       self.FinishConstruction()

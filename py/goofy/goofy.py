@@ -47,6 +47,7 @@ from cros.factory.test import factory
 from cros.factory.test import state
 from cros.factory.test import shopfloor
 from cros.factory.test import utils
+from cros.factory.test.test_lists import test_lists
 from cros.factory.test.event import Event
 from cros.factory.test.event import EventClient
 from cros.factory.test.event import EventServer
@@ -56,7 +57,6 @@ from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import Spawn
 
 
-CUSTOM_DIR = os.path.join(factory.FACTORY_PATH, 'custom')
 HWID_CFG_PATH = '/usr/local/share/chromeos-hwid/cfg'
 CACHES_DIR = os.path.join(factory.get_state_root(), "caches")
 
@@ -105,52 +105,6 @@ def get_hwid_cfg():
   return ''
 
 
-def find_test_list():
-  '''
-  Returns the path to the active test list, based on the HWID config tag.
-
-  The algorithm is:
-
-  - Try $FACTORY/test_lists/active (the symlink reflecting the option chosen
-    in the UI).
-  - For each of $FACTORY/custom, $FACTORY/test_lists (and
-    autotest/site_tests/suite_Factory for backward compatibility):
-    - Try test_list_${hwid_cfg} (if hwid_cfg is set)
-    - Try test_list
-    - Try test_list.generic
-  '''
-  # If the 'active' symlink is present, that trumps everything else.
-  if os.path.lexists(factory.ACTIVE_TEST_LIST_SYMLINK):
-    return os.path.realpath(factory.ACTIVE_TEST_LIST_SYMLINK)
-
-  hwid_cfg = get_hwid_cfg()
-
-  search_dirs = [CUSTOM_DIR, factory.TEST_LISTS_PATH]
-  if not utils.in_chroot():
-    # Also look in suite_Factory.  For backward compatibility only;
-    # new boards should just put the test list in the "test_lists"
-    # directory.
-    search_dirs.insert(0, os.path.join(
-        os.path.dirname(factory.FACTORY_PATH),
-        'autotest', 'site_tests', 'suite_Factory'))
-
-
-  search_files = []
-  if hwid_cfg:
-    search_files += [hwid_cfg]
-  search_files += ['test_list', 'test_list.generic']
-
-  for d in search_dirs:
-    for f in search_files:
-      test_list = os.path.join(d, f)
-      if os.path.exists(test_list):
-        return test_list
-
-  logging.warn('Cannot find test lists named any of %s in any of %s',
-         search_files, search_dirs)
-  return None
-
-
 _inited_logging = False
 
 class Goofy(object):
@@ -183,6 +137,7 @@ class Goofy(object):
     options: Command-line options.
     args: Command-line args.
     test_list: The test list.
+    test_lists: All new-style test lists.
     event_handlers: Map of Event.Type to the method used to handle that
       event.  If the method has an 'event' argument, the event is passed
       to the handler.
@@ -225,6 +180,7 @@ class Goofy(object):
     self.options = None
     self.args = None
     self.test_list = None
+    self.test_lists = None
     self.on_ui_startup = []
     self.env = None
     self.last_idle = None
@@ -1152,6 +1108,41 @@ class Goofy(object):
 
     self.state_instance.set_shared_data('seen_crashes', list(seen_crashes))
 
+  def GetTestList(self, test_list_id):
+    """Returns the test list with the given ID.
+
+    Raises:
+      TestListError: The test list ID is not valid.
+    """
+    try:
+      return self.test_lists[test_list_id]
+    except KeyError:
+      raise test_lists.TestListError(
+          '%r is not a valid test list ID (available IDs are [%s])' % (
+              test_list_id, ', '.join(sorted(self.test_lists.keys()))))
+
+  def InitTestLists(self):
+    """Reads in all test lists and sets the active test list."""
+    self.test_lists = test_lists.BuildAllTestLists()
+
+    if not self.options.test_list:
+      self.options.test_list = test_lists.GetActiveTestListId()
+
+    if os.sep in self.options.test_list:
+      # It's a path pointing to an old-style test list; use it.
+      self.test_list = factory.read_test_list(self.options.test_list)
+    else:
+      self.test_list = self.GetTestList(self.options.test_list)
+
+    logging.info('Active test list: %s', self.test_list.test_list_id)
+
+    if isinstance(self.test_list, test_lists.OldStyleTestList):
+      # Actually load it in.  (See OldStyleTestList for an explanation
+      # of why this is necessary.)
+      self.test_list = self.test_list.Load()
+
+    self.test_list.state_instance = self.state_instance
+
   def init(self, args=None, env=None):
     '''Initializes Goofy.
 
@@ -1253,28 +1244,16 @@ class Goofy(object):
     self.last_shutdown_time = (
       self.state_instance.get_shared_data('shutdown_time', optional=True))
     self.state_instance.del_shared_data('shutdown_time', optional=True)
-
     self.state_instance.del_shared_data('startup_error', optional=True)
-    if not self.options.test_list:
-      self.options.test_list = find_test_list()
-    if self.options.test_list:
-      logging.info('Using test list %s', self.options.test_list)
-      try:
-        self.test_list = factory.read_test_list(
-            self.options.test_list,
-            self.state_instance)
-      except:  # pylint: disable=W0702
-        logging.exception('Unable to read test list %r', self.options.test_list)
-        self.state_instance.set_shared_data('startup_error',
-            'Unable to read test list %s\n%s' % (
-                self.options.test_list,
-                traceback.format_exc()))
-    else:
-      logging.error('No test list found.')
-      self.state_instance.set_shared_data('startup_error',
-                                          'No test list found.')
 
-    if not self.test_list:
+    try:
+      self.InitTestLists()
+    except:  # pylint: disable=W0702
+      logging.exception('Unable to initialize test lists')
+      self.state_instance.set_shared_data(
+          'startup_error',
+          'Unable to initialize test lists\n%s' % (
+              traceback.format_exc()))
       if self.options.ui == 'chrome':
         # Create an empty test list with default options so that the rest of
         # startup can proceed.
