@@ -127,6 +127,8 @@ class ChargerTest(unittest.TestCase):
           default=60),
       Arg('use_percentage', bool, 'True if using percentage as charge unit '
           'in spec list. False if using mAh.', default=True),
+      Arg('charger_type', str, 'Type of charger required.', default=None,
+          optional=True),
       Arg('spec_list', list, 'A list of tuples. Each tuple contains\n'
           '(charge_change, timeout_secs, load)\n'
           'Charger needs to achieve charge_change difference within\n'
@@ -162,6 +164,9 @@ class ChargerTest(unittest.TestCase):
     """Checks battery and AC power adapter are present."""
     self.assertTrue(self._power.CheckBatteryPresent(), 'Cannot find battery.')
     self.assertTrue(self._power.CheckACPresent(), 'Cannot find AC power.')
+    if self.args.charger_type:
+      self.assertEqual(self._power.GetACType(), self.args.charger_type,
+                       'Incorrect charger type: %s' % self._power.GetACType())
 
   def _GetCharge(self, use_percentage=True):
     """Gets charge level through power interface"""
@@ -259,6 +264,7 @@ class ChargerTest(unittest.TestCase):
             charge, target, spec.timeout_secs - elapsed, spec.load,
             battery_current, self.args.use_percentage))
         time.sleep(1)
+        self._CheckPower()
         charge = self._GetCharge(self.args.use_percentage)
         battery_current = self._GetBatteryCurrent()
         if self._Meet(charge, target, moving_up):
