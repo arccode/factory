@@ -7,6 +7,7 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.rf import lan_scpi
 from cros.factory.rf.lan_scpi import Error
 
+
 class AgilentSCPI(lan_scpi.LANSCPI):
   '''
   An Agilent device that supports SCPI.
