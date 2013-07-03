@@ -137,7 +137,7 @@ class EventPacket(object):
       if isinstance(attr, dict):
         for key, val in attr.iteritems():
           for path, leaf in _FlattenAttr(val):
-            yield [key] + path, leaf
+            yield [str(key)] + path, leaf
       elif isinstance(attr, list):
         for index, val in enumerate(attr):
           for path, leaf in _FlattenAttr(val):

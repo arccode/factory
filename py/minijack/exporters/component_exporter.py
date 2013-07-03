@@ -44,7 +44,7 @@ class ComponentExporter(ExporterBase):
         component_class = comp_class,
         # Flatten the symbolic names by joining them together.
         # Only one key-value pair in the dict.
-        component_name  = ','.join([c.keys()[0] for c in comps]),
+        component_name  = ','.join([str(c.keys()[0]) for c in comps]),
       )
       self._database.UpdateOrInsert(row)
 
