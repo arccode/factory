@@ -30,7 +30,11 @@ _PLUG_AC = lambda x: test_ui.MakeLabel(
     u'请连接充电器' + (' (%s)' % x if x else ''))
 _UNPLUG_AC = test_ui.MakeLabel('Unplug the charger.', u'请移除充电器')
 
-_POLLING_PERIOD_SECS = 1
+_PROBE_TIMES_ID = 'probed_times'
+_PROBE_TIMES = lambda total: test_ui.MakeLabel(
+    'Probed <span id="%s">1</span> / %d' % (_PROBE_TIMES_ID, total),
+    u'侦测次数 <span id="%s">1</span> / %d' % (_PROBE_TIMES_ID, total))
+
 
 class ACPowerTest(unittest.TestCase):
   """A test to instruct the operator to plug/unplug AC power.
@@ -42,13 +46,15 @@ class ACPowerTest(unittest.TestCase):
 
   ARGS = [
     Arg('power_type', str, 'Type of the power source', optional=True),
-    Arg('online', bool, 'True if expecting AC power',
-        default=True, optional=True),
+    Arg('online', bool, 'True if expecting AC power', default=True),
     Arg('bft_fixture', dict,
         '{class_name: BFTFixture\'s import path + module name\n'
         ' params: a dict of params for BFTFixture\'s Init()}.\n'
-        'Default None means no BFT fixture is used.',
-        default=None, optional=True),
+        'Default None means no BFT fixture is used.', optional=True),
+    Arg('retry', int, 'Number of retries. -1 means retry forever.',
+        default=-1),
+    Arg('polling_period_secs', (int, float),
+        'Polling period in seconds.', default=1),
   ]
 
   def setUp(self):
@@ -56,8 +62,13 @@ class ACPowerTest(unittest.TestCase):
     self._template = ui_templates.OneSection(self._ui)
     self._template.SetTitle(_TEST_TITLE_PLUG if self.args.online
                             else _TEST_TITLE_UNPLUG)
-    self._template.SetState(_PLUG_AC(self.args.power_type)
-                            if self.args.online else _UNPLUG_AC)
+
+    instruction = (_PLUG_AC(self.args.power_type)
+                   if self.args.online else _UNPLUG_AC)
+    if self.args.retry != -1:
+      instruction += '<br>' + _PROBE_TIMES(self.args.retry)
+    self._template.SetState(instruction)
+
     self._power_state = dict()
     self._done = threading.Event()
     self._power = system.GetBoard().power
@@ -89,7 +100,14 @@ class ACPowerTest(unittest.TestCase):
     if self.fixture:
       self.fixture.SetDeviceEngaged(BFTFixture.Device.AC_ADAPTER,
                                     self.args.online)
+    num_probes = 0
+
     while not self._done.is_set():
       if self.CheckCondition():
         return
-      time.sleep(_POLLING_PERIOD_SECS)
+      num_probes += 1
+      if self.args.retry != -1:
+        if self.args.retry < num_probes:
+          self.fail('Failed after probing %d times' % num_probes)
+        self._ui.SetHTML(str(num_probes), id=_PROBE_TIMES_ID)
+      time.sleep(self.args.polling_period_secs)
