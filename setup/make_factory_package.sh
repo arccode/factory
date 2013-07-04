@@ -34,7 +34,9 @@ FLAGS_NONE='none'
 # Flags
 DEFINE_string board "${DEFAULT_BOARD}" "Board for which the image was built"
 DEFINE_string factory "" \
-  "Directory and file containing factory image: /path/chromiumos_test_image.bin"
+  "Directory and file containing factory image:"\
+" /path/chromiumos_test_image.bin"\
+" or '$FLAGES_NONE' to prevent running factroy test."
 DEFINE_string firmware_updater "" \
   "Firmware updater (shellball) into the server configuration,"\
 " or leave empty (default) for the updater in release image (--release), "\
@@ -146,7 +148,6 @@ check_false_param() {
 
 check_parameters() {
   check_file_param FLAGS_release ""
-  check_file_param FLAGS_factory ""
 
   # Pre-parse parameter default values
   case "${FLAGS_firmware_updater}" in
@@ -175,12 +176,14 @@ check_parameters() {
     check_empty_param FLAGS_complete_script "in --usbimg mode"
     check_file_param FLAGS_install_shim "in --usbimg mode"
     check_false_param FLAGS_run_omaha "in --usbimg mode"
+    check_file_param FLAGS_factory "in --usbimg mode"
   elif [ -n "${FLAGS_diskimg}" ]; then
     check_empty_param FLAGS_firmware_updater "in --diskimg mode"
     check_file_param_or_none FLAGS_hwid_updater "in --diskimg mode"
     check_empty_param FLAGS_complete_script "in --diskimg mode"
     check_empty_param FLAGS_install_shim "in --diskimg mode"
     check_false_param FLAGS_run_omaha "in --diskimg mode"
+    check_file_param FLAGS_factory "in --diskimg mode"
     if [ -b "${FLAGS_diskimg}" -a ! -w "${FLAGS_diskimg}" ] &&
        [ -z "$MFP_SUDO" -a "$(id -u)" != "0" ]; then
       # Restart the command with original parameters with sudo for writing to
@@ -193,6 +196,7 @@ check_parameters() {
     check_file_param_or_none FLAGS_hwid_updater "in mini-omaha mode"
     check_optional_file_param FLAGS_complete_script "in mini-omaha mode"
     check_empty_param FLAGS_install_shim "in mini-omaha mode"
+    check_file_param_or_none FLAGS_factory "in mini-omaha mode"
   fi
 }
 
@@ -232,9 +236,12 @@ setup_environment() {
 
   # Use this image as the source image to copy
   RELEASE_DIR="$(dirname "${FLAGS_release}")"
-  FACTORY_DIR="$(dirname "${FLAGS_factory}")"
   RELEASE_IMAGE="$(basename "${FLAGS_release}")"
-  FACTORY_IMAGE="$(basename "${FLAGS_factory}")"
+
+  if [ -n "${FLAGS_factory}" ]; then
+    FACTORY_DIR="$(dirname "${FLAGS_factory}")"
+    FACTORY_IMAGE="$(basename "${FLAGS_factory}")"
+  fi
 
   # Override this with path to modified kernel (for non-SSD images)
   RELEASE_KERNEL=""
@@ -589,18 +596,21 @@ generate_img() {
 }
 
 generate_omaha() {
-  local kernel rootfs
+  local kernel rootfs stateful_efi_source
   [ -n "$FLAGS_board" ] || die "Need --board parameter for mini-omaha server."
   # Clean up stale config and data files.
   prepare_dir "${OMAHA_DATA_DIR}"
 
   echo "Generating omaha release image from ${FLAGS_release}"
-  echo "Generating omaha factory image from ${FLAGS_factory}"
+  if [ -n "${FLAGS_factory}" ]; then
+    echo "Generating omaha factory image from ${FLAGS_factory}"
+  fi
   echo "Output omaha image to ${OMAHA_DATA_DIR}"
   echo "Output omaha config to ${OMAHA_CONF}"
 
   kernel="${RELEASE_KERNEL:-${FLAGS_release}:2}"
   rootfs="${FLAGS_release}:3"
+  stateful_efi_source="${FLAGS_release}"
   release_hash="$(compress_and_hash_memento_image "$kernel" "$rootfs" \
                   "${OMAHA_DATA_DIR}/rootfs-release.gz")"
   echo "release: ${release_hash}"
@@ -609,18 +619,21 @@ generate_omaha() {
               "${OMAHA_DATA_DIR}/oem.gz")"
   echo "oem: ${oem_hash}"
 
-  kernel="${FLAGS_factory}:2"
-  rootfs="${FLAGS_factory}:3"
-  test_hash="$(compress_and_hash_memento_image "$kernel" "$rootfs" \
-               "${OMAHA_DATA_DIR}/rootfs-test.gz")"
-  echo "test: ${test_hash}"
+  if [ -n "${FLAGS_factory}" ]; then
+    kernel="${FLAGS_factory}:2"
+    rootfs="${FLAGS_factory}:3"
+    stateful_efi_source="${FLAGS_factory}"
+    test_hash="$(compress_and_hash_memento_image "$kernel" "$rootfs" \
+                 "${OMAHA_DATA_DIR}/rootfs-test.gz")"
+    echo "test: ${test_hash}"
+  fi
 
-  state_hash="$(compress_and_hash_partition "${FLAGS_factory}" 1 \
+  state_hash="$(compress_and_hash_partition "${stateful_efi_source}" 1 \
                 "${OMAHA_DATA_DIR}/state.gz")"
   echo "state: ${state_hash}"
 
-  efi_hash="$(compress_and_hash_partition "${FLAGS_factory}" 12 \
-              "${OMAHA_DATA_DIR}/efi.gz")"
+  efi_hash="$(compress_and_hash_partition "${stateful_efi_source}" 12 \
+                "${OMAHA_DATA_DIR}/efi.gz")"
   echo "efi: ${efi_hash}"
 
   if [ -n "${FLAGS_firmware_updater}" ]; then
@@ -677,8 +690,6 @@ generate_omaha() {
 
   echo -n "{
    'qual_ids': set([\"${FLAGS_board}\"]),
-   'factory_image': '${subfolder}rootfs-test.gz',
-   'factory_checksum': '${test_hash}',
    'release_image': '${subfolder}rootfs-release.gz',
    'release_checksum': '${release_hash}',
    'oempartitionimg_image': '${subfolder}oem.gz',
@@ -687,6 +698,12 @@ generate_omaha() {
    'efipartitionimg_checksum': '${efi_hash}',
    'stateimg_image': '${subfolder}state.gz',
    'stateimg_checksum': '${state_hash}'," >>"${OMAHA_CONF}"
+
+  if [ -n "${FLAGS_factory}" ]  ; then
+    echo -n "
+   'factory_image': '${subfolder}rootfs-test.gz',
+   'factory_checksum': '${test_hash}'," >>"${OMAHA_CONF}"
+  fi
 
   if [ -n "${FLAGS_firmware_updater}" ]  ; then
     echo -n "
