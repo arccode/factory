@@ -50,8 +50,10 @@ class ACPowerTest(unittest.TestCase):
         '{class_name: BFTFixture\'s import path + module name\n'
         ' params: a dict of params for BFTFixture\'s Init()}.\n'
         'Default None means no BFT fixture is used.', optional=True),
-    Arg('retry', int, 'Number of retries. -1 means retry forever.',
-        default=-1),
+    Arg('retries', int,
+        'Maximum number of retries allowed to pass the test. '
+        '0 means only probe once. Default None means probe forever.',
+        optional=True),
     Arg('polling_period_secs', (int, float),
         'Polling period in seconds.', default=1),
   ]
@@ -64,8 +66,8 @@ class ACPowerTest(unittest.TestCase):
 
     instruction = (_PLUG_AC(self.args.power_type)
                    if self.args.online else _UNPLUG_AC)
-    if self.args.retry != -1:
-      instruction += '<br>' + _PROBE_TIMES(self.args.retry)
+    if self.args.retries is not None:
+      instruction += '<br>' + _PROBE_TIMES(self.args.retries)
     self._template.SetState(instruction)
 
     self._power_state = dict()
@@ -103,10 +105,12 @@ class ACPowerTest(unittest.TestCase):
 
     while not self._done.is_set():
       if self.CheckCondition():
-        return
+        break
+      if self.args.retries is None:
+        continue
+      # retries is set
       num_probes += 1
-      if self.args.retry != -1:
-        if self.args.retry < num_probes:
-          self.fail('Failed after probing %d times' % num_probes)
-        self._ui.SetHTML(str(num_probes), id=_PROBE_TIMES_ID)
+      self._ui.SetHTML(str(num_probes), id=_PROBE_TIMES_ID)
+      if self.args.retries < num_probes:
+        self.fail('Failed after probing %d times' % num_probes)
       time.sleep(self.args.polling_period_secs)
