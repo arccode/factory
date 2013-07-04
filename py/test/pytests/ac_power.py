@@ -18,6 +18,10 @@ from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
 
+from cros.factory.test.fixture.bft_fixture import (BFTFixture,
+                                                   CreateBFTFixture)
+
+
 _TEST_TITLE_PLUG = test_ui.MakeLabel('Connect AC', u'连接充电器')
 _TEST_TITLE_UNPLUG = test_ui.MakeLabel('Remove AC', u'移除充电器')
 
@@ -40,6 +44,11 @@ class ACPowerTest(unittest.TestCase):
     Arg('power_type', str, 'Type of the power source', optional=True),
     Arg('online', bool, 'True if expecting AC power',
         default=True, optional=True),
+    Arg('bft_fixture', dict,
+        '{class_name: BFTFixture\'s import path + module name\n'
+        ' params: a dict of params for BFTFixture\'s Init()}.\n'
+        'Default None means no BFT fixture is used.',
+        default=None, optional=True),
   ]
 
   def setUp(self):
@@ -53,6 +62,11 @@ class ACPowerTest(unittest.TestCase):
     self._done = threading.Event()
     self._power = system.GetBoard().power
     self._last_type = None
+
+    # Prepare fixture auto test if needed.
+    self.fixture = None
+    if self.args.bft_fixture:
+      self.fixture = CreateBFTFixture(**self.args.bft_fixture)
 
   def Done(self):
     self._done.set()
@@ -72,6 +86,9 @@ class ACPowerTest(unittest.TestCase):
 
   def runTest(self):
     self._ui.Run(blocking=False, on_finish=self.Done)
+    if self.fixture:
+      self.fixture.SetDeviceEngaged(BFTFixture.Device.AC_ADAPTER,
+                                    self.args.online)
     while not self._done.is_set():
       if self.CheckCondition():
         return
