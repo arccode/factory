@@ -646,17 +646,34 @@ class FinalizeBundle(object):
       self._WriteWithSudo(lsb_factory_path, lsb_factory)
       return True
 
-    # Patch in the install shim, if present.
-    shims = glob.glob(os.path.join(self.bundle_dir, 'factory_shim',
-                                   'chromeos_*_factory*.bin'))
-    if len(shims) > 1:
-      sys.exit('Expected to find 1 shim but found %d' % len(shims))
-    elif len(shims) == 1:
-      with MountPartition(shims[0], 1, rw=True) as mount:
+    def PatchInstallShim(shim):
+      with MountPartition(shim, 1, rw=True) as mount:
         PatchLSBFactory(mount)
-      with MountPartition(shims[0], 3) as mount:
+
+      with MountPartition(shim, 3) as mount:
         self.install_shim_version = GetReleaseVersion(mount)
-    else:
+
+    # Patch in the install shim, if present.
+    has_install_shim = False
+    unsigned_shim = os.path.join(self.bundle_dir, 'factory_shim',
+                                 'factory_install_shim.bin')
+    if os.path.isfile(unsigned_shim):
+      PatchInstallShim(unsigned_shim)
+      has_install_shim = True
+
+    signed_shims = glob.glob(os.path.join(self.bundle_dir, 'factory_shim',
+                                          'chromeos_*_factory*.bin'))
+    if has_install_shim and signed_shims:
+      sys.exit('Both unsigned and signed install shim exists. '
+               'Please remove unsigned one')
+    if len(signed_shims) > 1:
+      sys.exit('Expected to find 1 signed factory shim but found %d: %r' % (
+          len(signed_shims), signed_shims))
+    elif len(signed_shims) == 1:
+      PatchInstallShim(signed_shims[0])
+      has_install_shim = True
+
+    if not has_install_shim:
       logging.warning('There is no install shim in the bundle.')
 
     # Take care of the netboot initrd as well, if present.
