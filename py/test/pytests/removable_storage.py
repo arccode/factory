@@ -61,6 +61,9 @@ _SKIP_TAIL_BLOCK = 33
 _RW_TEST_MODE_RANDOM = 1
 _RW_TEST_MODE_SEQUENTIAL = 2
 
+# Mininum size required for partition test
+_MIN_PARTITION_SIZE_MB = 1
+
 _MILLION = 1000000
 
 _RW_TEST_INSERT_FMT_STR = (
@@ -105,6 +108,10 @@ _ERR_DEVICE_READ_ONLY_STR = (
 _ERR_SPEED_CHECK_FAILED_FMT_STR = (
     lambda test_type, target_dev:
         '%s_speed of %s does not meet lower bound.' % (test_type, target_dev))
+_ERR_CREATE_PARTITION_FMT_STR = (
+    lambda test_type, target_dev, dev_size:
+        'The size on %s device %s is too small (only %d bytes) for '
+        'partition test.' % (test_type, target_dev, dev_size))
 _ERR_VERIFY_PARTITION_FMT_STR = (
     lambda test_type, target_dev:
         'Partition verification failed on %s device %s. Problem with card '
@@ -144,6 +151,7 @@ class RemovableStorageTest(unittest.TestCase):
     self._template = ui_templates.TwoSections(self._ui)
     self._error = ''
     self._target_device = None
+    self._device_size = None
     self._insertion_image = None
     self._removal_image = None
     self._testing_image = None
@@ -239,7 +247,7 @@ class RemovableStorageTest(unittest.TestCase):
     self._template.SetState(_IMG_HTML_TAG(self._testing_image))
 
     dev_path = self._target_device
-    dev_size = self.GetDeviceSize(dev_path)
+    dev_size = self._device_size
     dev_fd = None
     ok = True
     total_time_read = 0.0
@@ -427,12 +435,19 @@ class RemovableStorageTest(unittest.TestCase):
   def CreatePartition(self):
     '''Creates a small partition for SD card, so that we can check if all the
     pins on the card reader module are intact.'''
+    if self.args.media != 'SD':
+      return
     dev_path = self._target_device
-    if self.args.media == 'SD':
+    # Set partition size to 128 MB or (dev_size / 2) MB
+    partition_size = min(128, (self._device_size/ 2) / (1024 * 1024))
+    if partition_size < _MIN_PARTITION_SIZE_MB:
+      self._ui.Fail(_ERR_CREATE_PARTITION_FMT_STR(
+          self.args.media, dev_path, self._device_size))
+    else:
       # clear partition table first and create one partition
       SpawnOutput(['parted', '-s', dev_path, 'mklabel', 'gpt'])
       SpawnOutput(['parted', '-s', dev_path, 'mkpart', 'primary',
-                   'ext4', '0', '128'])
+                   'ext4', '0', str(partition_size)])
 
   def VerifyPartition(self):
     '''Verifies that there's at least one partition present in the /dev
@@ -474,6 +489,7 @@ class RemovableStorageTest(unittest.TestCase):
         logging.info('%s device inserted : %s',
                      self.args.media, device.device_node)
         self._target_device = device.device_node
+        self._device_size = self.GetDeviceSize(self._target_device)
         if self.args.media == 'SD':
           self.CreatePartition()
         self.TestReadWrite()
