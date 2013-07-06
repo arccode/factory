@@ -39,6 +39,7 @@ class E5601CMock(object):
   RE_SET_TRACE_CONFIG = r':CALC:PAR.*(\d):DEF.* [Ss](\d)(\d)$'
   RE_GET_TRACE_CONFIG = r':CALC:PAR.*(\d):DEF.*\?$'
   RE_GET_TRACE = r':CALC:TRACE(\d):DATA:FDAT\?$'
+  RE_SAVE_SCREENSHOT = r':MMEM.*:STOR.*:IMAG.* (.*)$'
 
   # Constants
   SWEEP_SEGMENT_PREFIX = ['5', '0', '0', '0', '0', '0']
@@ -165,6 +166,12 @@ class E5601CMock(object):
     return ','.join(values) + '\n'
 
   @classmethod
+  def SaveScreenshot(cls, input_str):
+    match_obj = re.match(cls.RE_SAVE_SCREENSHOT, input_str)
+    filename = match_obj.group(1)
+    logging.info("Simulated screenshot saved under %r", filename)
+
+  @classmethod
   def SetupLookupTable(cls):
     # Abbreviation for better readability
     AddLookup = MockServerHandler.AddLookup
@@ -200,6 +207,9 @@ class E5601CMock(object):
 
     # Trace measurement
     AddLookup(cls.RE_GET_TRACE, cls.GetTrace)
+
+    # Screenshot
+    AddLookup(cls.RE_SAVE_SCREENSHOT, cls.SaveScreenshot)
 
 if __name__ == '__main__':
   logging.basicConfig(level=logging.INFO)
