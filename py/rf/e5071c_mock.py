@@ -31,7 +31,7 @@ class E5601CMock(object):
   # regular expression of SCPI command
   RE_SET_TRIGGER_CONTINUOUS = r':INIT.*(\d):CONT.* (ON|OFF)$'
   RE_TRIGGER_IMMEDIATEDLY = r':INIT.*(\d):IMM.*$'
-  RE_SET_SWEEP_TYPE = r':SENS:SWE.*:TYPE (SEGM.*)$'
+  RE_SET_SWEEP_TYPE = r':SENS:SWE.*:TYPE (SEGM.*|LIN.*)$'
   RE_GET_SWEEP_TYPE = r':SENS:SWE.*:TYPE\?$'
   RE_SET_SWEEP_SEGMENT = r':SENS:SEGM.*:DATA (.*)$'
   RE_GET_SWEEP_SEGMENT = r':SENS:SEGM.*:DATA\?$'
