@@ -124,7 +124,12 @@ class ENASCPI(AgilentSCPI):
   PARAMETERS = Enum(['S11', 'S12', 'S21', 'S22'])
 
   def __init__(self, *args, **kwargs):
-    super(ENASCPI, self).__init__('E5071C', *args, **kwargs)
+    # The first few commands need some warm up time in real E5071C based
+    # on experimental result. Pass the timeout arguement so initialization
+    # will be a success.
+    kwargs_copy = dict(kwargs)
+    kwargs_copy.setdefault('timeout', 10)
+    super(ENASCPI, self).__init__('E5071C', *args, **kwargs_copy)
 
   def SaveScreen(self, filename):
     '''Saves the screenshot.
