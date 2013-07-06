@@ -44,6 +44,7 @@ class E5601CMock(object):
   RE_SAVE_SCREENSHOT = r':MMEM.*:STOR.*:IMAG.* (.*)$'
   RE_SET_MARKER = r':CALC.*([\d]+):SEL.*:MARK.*([\d]+):X (.*)$'
   RE_SET_FREQ_START = r':SENS:FREQ:STAR.* (.*)$'
+  RE_SET_FREQ_STOP = r':SENS:FREQ:STOP (.*)$'
 
   # Constants
   SWEEP_SEGMENT_PREFIX = ['5', '0', '0', '0', '0', '0']
@@ -206,6 +207,12 @@ class E5601CMock(object):
     logging.info("Simulated spectrum to start at [%15.2f]", freq)
 
   @classmethod
+  def SetFrequencyStop(cls, input_str):
+    match_obj = re.match(cls.RE_SET_FREQ_STOP, input_str)
+    freq = float(match_obj.group(1))
+    logging.info("Simulated spectrum to stop at [%15.2f]", freq)
+
+  @classmethod
   def SetupLookupTable(cls):
     # Abbreviation for better readability
     AddLookup = MockServerHandler.AddLookup
@@ -254,6 +261,7 @@ class E5601CMock(object):
 
     # Linear sweep related setting
     AddLookup(cls.RE_SET_FREQ_START, cls.SetFrequencyStart)
+    AddLookup(cls.RE_SET_FREQ_STOP, cls.SetFrequencyStop)
 
 
 if __name__ == '__main__':
