@@ -42,6 +42,7 @@ class E5601CMock(object):
   RE_GET_TRACE_CONFIG = r':CALC:PAR.*(\d):DEF.*\?$'
   RE_GET_TRACE = r':CALC:TRACE(\d):DATA:FDAT\?$'
   RE_SAVE_SCREENSHOT = r':MMEM.*:STOR.*:IMAG.* (.*)$'
+  RE_SET_MARKER = r':CALC.*([\d]+):SEL.*:MARK.*([\d]+):X (.*)$'
 
   # Constants
   SWEEP_SEGMENT_PREFIX = ['5', '0', '0', '0', '0', '0']
@@ -188,6 +189,16 @@ class E5601CMock(object):
     logging.info("Simulated screenshot saved under %r", filename)
 
   @classmethod
+  def SetMarker(cls, input_str):
+    match_obj = re.match(cls.RE_SET_MARKER, input_str)
+    active_channel = int(match_obj.group(1))
+    marker_num = int(match_obj.group(2))
+    marker_freq = float(match_obj.group(3))
+    logging.info("Simulated marker setting: channel[%d], "
+                 "marker[%d] to freq[%15.2f]",
+                 active_channel, marker_num, marker_freq)
+
+  @classmethod
   def SetupLookupTable(cls):
     # Abbreviation for better readability
     AddLookup = MockServerHandler.AddLookup
@@ -230,6 +241,9 @@ class E5601CMock(object):
 
     # Screenshot
     AddLookup(cls.RE_SAVE_SCREENSHOT, cls.SaveScreenshot)
+
+    # Marker
+    AddLookup(cls.RE_SET_MARKER, cls.SetMarker)
 
 if __name__ == '__main__':
   logging.basicConfig(level=logging.INFO)
