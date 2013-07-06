@@ -15,8 +15,13 @@ offical manual or online help:
   http://ena.tm.agilent.com/e5071c/manuals/webhelp/eng/
 """
 
+import argparse
 import logging
+import os
 import re
+import threading
+import SimpleHTTPServer
+import SocketServer
 
 from scpi_mock import MockServerHandler, MockTestServer
 
@@ -263,11 +268,43 @@ class E5601CMock(object):
     AddLookup(cls.RE_SET_FREQ_START, cls.SetFrequencyStart)
     AddLookup(cls.RE_SET_FREQ_STOP, cls.SetFrequencyStop)
 
+def ServeHttpScreenshot():
+  """Serves screenshot url requests.
+
+  Only two URL will be handled:
+    /image.asp
+    /disp.png
+
+  They will both return a valid, mocked PNG file.
+  """
+  # Switch current working directory to where PNG exist.
+  os.chdir(os.path.join(
+      os.path.dirname(os.path.realpath(__file__)), 'e5071c_mock_static'))
+
+  # Starts a simple http server to serve for screenshot.
+  httpd = SocketServer.TCPServer(('0.0.0.0', 80),
+                                 SimpleHTTPServer.SimpleHTTPRequestHandler)
+  httpd_thread = threading.Thread(target=httpd.serve_forever)
+  httpd_thread.daemon = True
+  httpd_thread.start()
+  logging.info("Httpd served at port 80 for screenshot request")
 
 if __name__ == '__main__':
+  parser = argparse.ArgumentParser(
+      description='Simulates an Agilent E5071C ENA for developing.')
+  parser.add_argument('--httpd', action='store_true',
+                      help='Mock the http server as well (fixed at port 80)')
+  parser.add_argument('--port', action='store', default='5025',
+                      help='The SCPI port bind in 0.0.0.0.')
   logging.basicConfig(level=logging.INFO)
+  args = parser.parse_args()
   E5601CMock.SetupLookupTable()
-  # Starts the server
-  SERVER_PORT = 5025
+
+  # Starts the servers
+  if args.httpd:
+    ServeHttpScreenshot()
+  server_port = int(args.port)
+  logging.info("Going to start E5071C mock at port %d", server_port)
   # pylint: disable=E1101
-  MockTestServer(('0.0.0.0', SERVER_PORT), MockServerHandler).serve_forever()
+  ena_host = MockTestServer(('0.0.0.0', server_port), MockServerHandler)
+  ena_host.serve_forever()
