@@ -29,6 +29,7 @@ class E5601CMock(object):
   _trace_map = dict()
 
   # regular expression of SCPI command
+  RE_SET_TRIGGER_CONTINUOUS = r':INIT.*(\d):CONT.* (ON|OFF)$'
   RE_SET_SWEEP_TYPE = r':SENS:SWE.*:TYPE (SEGM.*)$'
   RE_GET_SWEEP_TYPE = r':SENS:SWE.*:TYPE\?$'
   RE_SET_SWEEP_SEGMENT = r':SENS:SEGM.*:DATA (.*)$'
@@ -53,6 +54,14 @@ class E5601CMock(object):
   def LoadTrace(cls, trace_name, csv_file_path):
     # TODO(itspeter): Load trace saved from E5071C and replay it.
     raise NotImplementedError
+
+  @classmethod
+  def SetTriggerContinuous(cls, input_str):
+    match_obj = re.match(cls.RE_SET_TRIGGER_CONTINUOUS, input_str)
+    channel = int(match_obj.group(1))
+    state = match_obj.group(2)
+    logging.info("Simulated to set trigger continuous to %s on channel %d",
+                 state, channel)
 
   @classmethod
   def SetSweepType(cls, input_str):
@@ -187,6 +196,9 @@ class E5601CMock(object):
     AddLookup(r'SYST:ERR\?$', NORMAL_ERR_RESPONSE)
     NORMAL_OPC_RESPONSE = '+1\n'
     AddLookup(r'\*OPC\?$', NORMAL_OPC_RESPONSE)
+
+    # Trigger related
+    AddLookup(cls.RE_SET_TRIGGER_CONTINUOUS, cls.SetTriggerContinuous)
 
     # Sweep type
     AddLookup(cls.RE_SET_SWEEP_TYPE, cls.SetSweepType)
