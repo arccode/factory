@@ -97,6 +97,16 @@ class Traces(object):
     self.x_axis = None
     self.traces = dict()
 
+  def __repr__(self):
+    """
+    Returns a representation of the object, including its properties.
+    """
+    return (self.__class__.__name__ + '(' +
+            ', '.join('%s=%s' % (k, repr(getattr(self, k)))
+                      for k in sorted(self.__dict__.keys())
+                      if k[0] != '_')
+            + ')')
+
   def GetFreqResponse(self, freq, parameter):
     '''Returns corresponding frequency response.
 
@@ -140,7 +150,10 @@ class ENASCPI(AgilentSCPI):
     self.Send(':MMEMory:STORe:IMAGe "%s.png"' % filename)
 
   def SetMarker(self, channel, marker_num, marker_freq):
-    '''Saves the marker at channel.
+    '''Sets the marker at channel.
+
+    The marker will only be showed if it is checked on the ENA already.
+    This function is used to set marker position, not to enable markers.
 
     Example usage:
       Set marker 5 to 600MHz on channel 1.
@@ -231,6 +244,9 @@ class ENASCPI(AgilentSCPI):
     ret.parameters = parameters
     ret.x_axis = self.Query(":CALC:SEL:DATA:XAX?", FLOATS)
     ret.traces = {}
+    # Force the FDATA to be updated immediatedly.
+    self.Send(":INITiate1:CONTinuous OFF")
+    self.Send(":INITiate1:IMMediate")
     for i, p in zip(itertools.count(1), parameters):
       ret.traces[p] = (
           self.Query(":CALC:TRACE%d:DATA:FDAT?" % i, FLOATS)[0::2])
@@ -238,4 +254,6 @@ class ENASCPI(AgilentSCPI):
         raise Error("x_axis has %d elements but trace has %d" %
                     (len(ret.x_axis), len(ret.traces[p])))
       CheckTraceValid(ret.x_axis, ret.traces[p])
+    # Unfreeze the trace.
+    self.Send(':INITiate1:CONTinuous ON')
     return ret
