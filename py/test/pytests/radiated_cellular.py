@@ -103,6 +103,9 @@ class RadiatedCellular(RfFramework, unittest.TestCase):
   def GetUniqueIdentification(self):
     return GetIMEI()
 
+  def GetEquipmentIdentification(self):
+    return str(self.RunEquipmentCommand(N1914A.GetMACAddress, self.n1914a))
+
   def EnterFactoryMode(self):
     factory.console.info('Entering factory test mode(FTM)')
     self.modem = Modem(self.modem_path)

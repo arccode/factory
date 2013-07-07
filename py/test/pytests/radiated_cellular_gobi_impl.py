@@ -164,6 +164,9 @@ class RadiatedCellularGobiImpl(RfFramework):
   def GetUniqueIdentification(self):
     return cellular.GetIMEI()
 
+  def GetEquipmentIdentification(self):
+    return str(self.RunEquipmentCommand(N1914A.GetMACAddress, self.n1914a))
+
   def EnterFactoryMode(self):
     factory.console.info('Cellular_gobi: Entering factory test mode')
     self.firmware = cellular.SwitchModemFirmware(cellular.WCDMA_FIRMWARE)

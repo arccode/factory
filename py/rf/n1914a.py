@@ -126,6 +126,11 @@ class N1914A(AgilentSCPI):
     '''Forces to trigger immediately.'''
     self.Send(['INITiate%d:IMMediate' % port])
 
+  def GetMACAddress(self):
+    '''Returns the mac address of N1914A.'''
+    ret = self.Query('SYST:COMM:LAN:MAC?')
+    return ret.rstrip('"').lstrip('"')
+
   def MeasureOnce(self, port):
     '''Performs a single measurement.'''
     ret = self.Query('FETCh%d?' % port, formatter=float)

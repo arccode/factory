@@ -36,7 +36,9 @@ IP_SETUP_TIMEOUT_SECS = 10 # Timeout for setting IP address.
 
 # Common field name shared across CSV and EventLog.
 CONFIG_VERSION = 'config_version'
+TOP_LEVEL_CALIBRATION_VERSION = 'top_level_calibration_config_version'
 CALIBRATION_VERSION = 'calibration_config_version'
+EQUIPMENT_ID = 'equipment_id'
 ELAPSED_TIME = 'elapsed_time'
 MODULE_ID = 'module_id'
 RF_TEST_NAME = 'rf_test_name'
@@ -244,14 +246,36 @@ class RfFramework(object):
     with open(os.path.join(
         self.caches_dir, self.args.calibration_config)) as fd:
       self.calibration_config = yaml.load(fd.read())
-    calibration_config_version = self.calibration_config['annotation']
-    factory.console.info('Loaded calibration_config = %r',
-                         calibration_config_version)
-    self.field_to_eventlog[CALIBRATION_VERSION] = calibration_config_version
-    self.field_to_csv[CALIBRATION_VERSION] = calibration_config_version
+    # The actual calibration config will be decided AFTER equipment is
+    # identified.
+    top_level_calibration_config_version = (
+        self.calibration_config['top_level_annotation'])
+    factory.console.info('Hybrid calibration_config loaded = %r',
+                         top_level_calibration_config_version)
+    self.field_to_eventlog[TOP_LEVEL_CALIBRATION_VERSION] = (
+        top_level_calibration_config_version)
+    self.field_to_csv[TOP_LEVEL_CALIBRATION_VERSION] = (
+        top_level_calibration_config_version)
 
     self.SetHTML(MSG_CHECKING_SHIELD_BOX)
     self.PreTestInsideShieldBox()
+
+    # The connection to the equipment should be establised after
+    # PreTestInsideShieldBox called. We can know try to identify
+    # the shield box and choose calibration_config
+    equipment_id = self.GetEquipmentIdentification()
+    self.field_to_eventlog[EQUIPMENT_ID] = equipment_id
+    self.field_to_csv[EQUIPMENT_ID] = equipment_id
+    if equipment_id not in self.calibration_config:
+      raise ValueError(
+          "Equipment %r is not in the calibraion white list", equipment_id)
+
+    self.calibration_config = self.calibration_config[equipment_id]
+    calibration_config_version = self.calibration_config['annotation']
+    factory.console.info('Actual calibration_config loaded = %r',
+                         calibration_config_version)
+    self.field_to_eventlog[CALIBRATION_VERSION] = calibration_config_version
+    self.field_to_csv[CALIBRATION_VERSION] = calibration_config_version
 
   def TestStep3_PrimaryTestInsideShieldBox(self):
     """The primary test."""
@@ -345,6 +369,16 @@ class RfFramework(object):
     """Gets the unique identification for module to test."""
     raise NotImplementedError(
         'Called without implementing GetUniqueIdentification')
+
+  def GetEquipmentIdentification(self):
+    """Gets the unique identification for equipment.
+
+    We assume the equipment is bind with the shield-box, so use this
+    information as shield-box's identification. Furthermore, use this
+    to decide the actual calibration config to apply.
+    """
+    raise NotImplementedError(
+        'Called without implementing GetEquipmentIdentification')
 
   def _NormalizeAsFileName(self, token):
     return re.sub(r'\W+', '_', token)
