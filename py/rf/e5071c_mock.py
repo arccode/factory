@@ -30,6 +30,7 @@ class E5601CMock(object):
 
   # regular expression of SCPI command
   RE_SET_TRIGGER_CONTINUOUS = r':INIT.*(\d):CONT.* (ON|OFF)$'
+  RE_TRIGGER_IMMEDIATEDLY = r':INIT.*(\d):IMM.*$'
   RE_SET_SWEEP_TYPE = r':SENS:SWE.*:TYPE (SEGM.*)$'
   RE_GET_SWEEP_TYPE = r':SENS:SWE.*:TYPE\?$'
   RE_SET_SWEEP_SEGMENT = r':SENS:SEGM.*:DATA (.*)$'
@@ -62,6 +63,12 @@ class E5601CMock(object):
     state = match_obj.group(2)
     logging.info("Simulated to set trigger continuous to %s on channel %d",
                  state, channel)
+
+  @classmethod
+  def TriggerImmediately(cls, input_str):
+    match_obj = re.match(cls.RE_TRIGGER_IMMEDIATEDLY, input_str)
+    channel = int(match_obj.group(1))
+    logging.info("Simulated to trigger immediately on channel %d", channel)
 
   @classmethod
   def SetSweepType(cls, input_str):
@@ -199,6 +206,7 @@ class E5601CMock(object):
 
     # Trigger related
     AddLookup(cls.RE_SET_TRIGGER_CONTINUOUS, cls.SetTriggerContinuous)
+    AddLookup(cls.RE_TRIGGER_IMMEDIATEDLY, cls.TriggerImmediately)
 
     # Sweep type
     AddLookup(cls.RE_SET_SWEEP_TYPE, cls.SetSweepType)
