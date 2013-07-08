@@ -112,7 +112,7 @@ class Base8192(object):
       A string with one base8-encoded alphabet and one base32-encoded alphabet
       representing the 8-bit checksum.
     """
-    # Get the last 10 bits
+    # Get the last 8 bits
     c = crc32(string) & (2 ** 8 - 1)
     return (cls.BASE8_ALPHABET[c >> cls.BASE32_BIT_WIDTH] +
             cls.BASE32_ALPHABET[c & (2 ** cls.BASE32_BIT_WIDTH - 1)])
