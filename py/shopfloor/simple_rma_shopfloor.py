@@ -60,10 +60,15 @@ import yaml
 import factory_common  # pylint: disable=W0611
 from cros.factory import shopfloor
 
+# Set any required aux tables here
 _REQUIRED_AUX_TABLES = []
 
 # Set the below to a regex for validating your RMA numbers
 _RMA_NUMBER_REGEX = r'^RMA[0-9]{8}$'
+
+# Set the below to True if the RMA number should be accepted only if a
+# corresponding YAML file exists, False bypasses the check.
+_RMA_NUMBER_YAML_MUST_EXIST = True
 
 def _synchronized(f):
   """
@@ -171,11 +176,14 @@ class ShopFloor(shopfloor.ShopFloorBase):
     """
     if not re.match(_RMA_NUMBER_REGEX, serial):
       message = "Invalid RMA number: %s" % serial
-      logging.error(message)
       raise ValueError(message)
-    else:
-      logging.info('Validated RMA number: %s', serial)
-      return True
+    if _RMA_NUMBER_YAML_MUST_EXIST:
+      data_path = os.path.join(self.data_dir, serial + ".yaml")
+      if not os.path.exists(data_path):
+        message = "RMA YAML not found on shopfloor: %s" % serial
+        raise ValueError(message)
+    logging.info('Validated RMA number: %s', serial)
+    return True
 
   @_synchronized
   def GetAuxData(self, table_name, id):  # pylint: disable=W0622
