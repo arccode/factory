@@ -647,11 +647,27 @@ class FinalizeBundle(object):
       return True
 
     def PatchInstallShim(shim):
+      """Updates mini_omaha_url in install shim.
+
+      It also updates self.install_shim_version.
+      """
+      def GetSigningKey(shim):
+        """Derives signing key from factory install shim's file name."""
+        if shim.endswith('factory_install_shim.bin'):
+          return 'unsigned'
+        key_match = re.search('_(\w+)\.bin$', shim)
+        if key_match:
+          return key_match.group(1)
+        else:
+          # Error deriving signing key
+          return 'undefined'
+
       with MountPartition(shim, 1, rw=True) as mount:
         PatchLSBFactory(mount)
 
       with MountPartition(shim, 3) as mount:
-        self.install_shim_version = GetReleaseVersion(mount)
+        self.install_shim_version = '%s (%s)' % (GetReleaseVersion(mount),
+                                                 GetSigningKey(shim))
 
     # Patch in the install shim, if present.
     has_install_shim = False
