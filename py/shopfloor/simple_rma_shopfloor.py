@@ -63,6 +63,12 @@ from cros.factory import shopfloor
 # Set any required aux tables here
 _REQUIRED_AUX_TABLES = []
 
+# Set any required shopfloor device info fields here, this can be left blank
+# for HWIDv2 implementations.
+_DEVICE_INFO_FIELDS = ['component.antenna', 'component.camera',
+                       'component.has_cellular', 'component.keyboard',
+                       'component.pcb_vendor', 'region', 'serial_number', ]
+
 # Set the below to a regex for validating your RMA numbers
 _RMA_NUMBER_REGEX = r'^RMA[0-9]{8}$'
 
@@ -207,6 +213,21 @@ class ShopFloor(shopfloor.ShopFloorBase):
     return value
 
   @_synchronized
+  def GetDeviceInfo(self, serial):
+    """Fetches the device info for a device.
+    Note that this is only used for HWIDv3 implementations.
+
+    Args:
+      serial - Serial number of device.
+
+    Returns:
+      A dictionary containing information about the expected
+      configuration of the device.
+    """
+    return { key: self._GetDataStoreValue(serial, key)
+             for key in _DEVICE_INFO_FIELDS }
+
+  @_synchronized
   def GetHWID(self, serial):
     """Fetches the hardware ID (HWID) for a device.
 
@@ -318,6 +339,7 @@ def LoadDeviceData(filename):
       hwid - string. Device hardware ID
       vpd - dict of dicts containing 'ro' and 'rw' VPD data.
       registration_code_map - dict containing 'user' and 'group' codes.
+      any additional _DEVICE_INFO_FIELDS values
   """
   with open(filename, 'rb') as yaml_file:
     device_data = yaml.load(yaml_file)
@@ -331,6 +353,8 @@ def LoadDeviceData(filename):
   entry = {'hwid': device_data.hwid,
            'vpd': vpd,
            'registration_code_map': registration_code_map}
+  for key in _DEVICE_INFO_FIELDS:
+    entry[key] = getattr(device_data, key)
   return entry
 
 
