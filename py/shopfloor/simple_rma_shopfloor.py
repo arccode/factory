@@ -59,6 +59,7 @@ import yaml
 
 import factory_common  # pylint: disable=W0611
 from cros.factory import shopfloor
+from cros.factory.gooftool import Gooftool
 
 # Set any required aux tables here
 _REQUIRED_AUX_TABLES = []
@@ -67,7 +68,8 @@ _REQUIRED_AUX_TABLES = []
 # for HWIDv2 implementations.
 _DEVICE_INFO_FIELDS = ['component.antenna', 'component.camera',
                        'component.has_cellular', 'component.keyboard',
-                       'component.pcb_vendor', 'region', 'serial_number', ]
+                       'component.pcb_vendor', 'region', 'serial_number',
+                       'gbind_attribute', 'ubind_attribute']
 
 # Set the below to a regex for validating your RMA numbers
 _RMA_NUMBER_REGEX = r'^RMA[0-9]{8}$'
@@ -75,6 +77,9 @@ _RMA_NUMBER_REGEX = r'^RMA[0-9]{8}$'
 # Set the below to True if the RMA number should be accepted only if a
 # corresponding YAML file exists, False bypasses the check.
 _RMA_NUMBER_YAML_MUST_EXIST = True
+
+# Set this to the path to your HWIDv3 component database.
+_HWIDV3_HWDB_PATH = '../../hwid'
 
 def _synchronized(f):
   """
@@ -92,6 +97,10 @@ class DeviceData(yaml.YAMLObject):
     self.rma_number = rma_number
     self.vpd = vpd
     self.hwid = hwid
+    self.region = ''
+    self.serial_number = ''
+    self.gbind_attribute = ''
+    self.ubind_attribute = ''
 
   def __repr__(self):
     return "%s(rma_number=%r, vpd=%r, hwid=%r)" % (
@@ -153,6 +162,9 @@ class ShopFloor(shopfloor.ShopFloorBase):
 
     Does not reload data if it is already in the data store.
     """
+    # TODO(bhthompson): figure a way to avoid cache coherency issues here.
+    # If another process is touching the data files, we may need to reload
+    # anyway, or at least determine if the file was touched.
     if serial in self.data_store:
       return
     data_path = os.path.join(self.data_dir, serial + ".yaml")
@@ -315,6 +327,10 @@ class ShopFloor(shopfloor.ShopFloorBase):
       dict with the following fields:
         status: String with either 'success' or 'conflict'.
         data: (optional) existing device data if there is a conflict.
+
+    Raises:
+      ValueError if a required component is not found in the HWID.
+      ValueError if an unexpected device info field is requested.
     """
     filename = '%s.yaml' % data['serial_number']
     filepath = os.path.join(self.data_dir, filename)
@@ -323,10 +339,64 @@ class ShopFloor(shopfloor.ShopFloorBase):
         existing_device_data = yaml.load(yaml_file)
       return {'status': 'conflict', 'data': existing_device_data}
     device_data = DeviceData(data['serial_number'], data['vpd'], data['hwid'])
+    if _DEVICE_INFO_FIELDS:
+      components = DecodeHWIDv3Components(data['hwid'], _HWIDV3_HWDB_PATH)
+      for key in _DEVICE_INFO_FIELDS:
+        # Any components are determined from the HWID
+        if re.search(r'^component.*', key):
+          (_, _, stripped_key) = key.partition('.')
+          # Cellular is a special case, since it is a meta value in the HWID
+          if stripped_key == 'has_cellular':
+            if components['cellular'][0].component_name:
+              component_name = True
+            else:
+              component_name = False
+          else:
+            component_name = components[stripped_key][0].component_name
+          logging.info('%s: calculated %s as %s', data['serial_number'], key,
+                       component_name)
+          # TODO(bhthompson): in some cases the component_name values may need
+          # translated to match original factory data, we should translate here
+          setattr(device_data, key, component_name)
+        elif key == 'region':
+          locale = device_data.vpd['ro']['initial_locale']
+          # TODO(bhthompson): this can probably be determined somehow with
+          # cros_locale instead of a huge if/else block.
+          if locale == 'en-US':
+            device_data.region = 'us'
+          elif locale == 'en-GB':
+            device_data.region = 'gb'
+          else:
+            raise ValueError('Unsupported region detected: %s' % locale)
+        elif key == 'serial_number':
+          device_data.serial_number = device_data.vpd['ro']['serial_number']
+        elif key == 'gbind_attribute':
+          # This saves the original code, you may want new codes instead
+          device_data.gbind_attribute = device_data.vpd['rw']['gbind_attribute']
+        elif key == 'ubind_attribute':
+          # This saves the original code, you may want new codes instead
+          device_data.ubind_attribute = device_data.vpd['rw']['ubind_attribute']
+        else:
+          raise ValueError('Unexpected device info field: %s' % key)
     with open(filepath, 'w') as yaml_file:
       yaml.dump(device_data, yaml_file)
     return {'status': 'success'}
 
+def DecodeHWIDv3Components(hwid, hwdb_path):
+  """Decodes a HWIDv3 string into components.
+
+  Args:
+    hwid - string of the HWID to decode.
+    hwdb_path - path to the HWIDv3 HWDB
+
+  Returns:
+    dict containing the component objects decoded from the HWID.
+  """
+  (board_name, _, _) = hwid.lower().partition(' ')
+  decoder = Gooftool(hwid_version=3, hwdb_path=hwdb_path,
+                     board=board_name)
+  decoded_hwid = decoder.DecodeHwidV3(hwid)
+  return decoded_hwid.bom.components
 
 def LoadDeviceData(filename):
   """Loads a YAML file and returns structured shop floor system data.
