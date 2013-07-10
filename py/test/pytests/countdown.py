@@ -59,9 +59,19 @@ class CountDownTest(unittest.TestCase):
       self._ui.RunJS('$("cd-legend-panel").style.display = "block";')
 
   def DetectAbnormalStatus(self, status, last_status):
+    def GetTemperature(index):
+      try:
+        return status.temperatures[index]
+      except IndexError:
+        return None
+
     warnings = []
 
     if self.args.temp_max_delta:
+      if len(status.temperatures) != len(last_status.temperatures):
+        warnings.append(
+            'Number of temperature sensors differ (current: %d, last: %d) ' %
+            (len(status.temperatures), len(last_status.temperatures)))
       for index, (current, last) in enumerate(
           zip(status.temperatures, last_status.temperatures)):
         # Ignore the case when both are None since it could just mean the
@@ -79,22 +89,35 @@ class CountDownTest(unittest.TestCase):
               (index, self.args.temp_max_delta, current, last))
 
     for name, index, warning_temp, critical_temp in self.args.temp_criteria:
-      temp = status.temperatures[index]
-      if warning_temp < temp < critical_temp:
-        warnings.append('%s over warning temperature (now: %d, warning: %d)' %
-                        (name, temp, warning_temp))
-      if temp >= critical_temp:
+      temp = GetTemperature(index)
+      if temp is None:
+        warnings.append('%s temperature unavailable' % name)
+      elif temp >= critical_temp:
         warnings.append('%s over critical temperature (now: %d, critical: %d)' %
                         (name, temp, critical_temp))
+      elif temp >= warning_temp:
+        warnings.append('%s over warning temperature (now: %d, warning: %d)' %
+                        (name, temp, warning_temp))
 
     for (relation, first_index, second_index,
         max_diff) in self.args.relative_temp_criteria:
-      first_temp = status.temperatures[first_index]
-      second_temp = status.temperatures[second_index]
-      if abs(first_temp - second_temp) > max_diff:
-        warnings.append('Temperature difference between %s over %d '
-                        '(first: %d, second: %d)' %
-                        (relation, max_diff, first_temp, second_temp))
+      first_temp = GetTemperature(first_index)
+      second_temp = GetTemperature(second_index)
+      if first_temp is None or second_temp is None:
+        unavailable_index = []
+        if first_temp is None:
+          unavailable_index.append(first_index)
+        if second_temp is None:
+          unavailable_index.append(second_index)
+        warnings.append(
+            'Cannot measure temperature difference between %s: '
+            'temperature %s unavailable' %
+            (relation, ', '.join(unavailable_index)))
+      else:
+        if abs(first_temp - second_temp) > max_diff:
+          warnings.append('Temperature difference between %s over %d '
+                          '(first: %d, second: %d)' %
+                          (relation, max_diff, first_temp, second_temp))
 
     if (self.args.fan_min_expected_rpm and
         status.fan_rpm < self.args.fan_min_expected_rpm):
