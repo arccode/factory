@@ -22,6 +22,8 @@ from cros.factory.test.test_lists.test_lists import (
 class CommonTest(unittest.TestCase):
   def testBasic(self):
     class FakeModule(object):
+      __file__ = 'fake.py'
+
       @staticmethod
       def CreateTestLists():
         with TestList('main', 'Main'):
@@ -43,6 +45,8 @@ class CommonTest(unittest.TestCase):
 
   def testNotWithinTestList(self):
     class FakeModule(object):
+      __file__ = 'fake.py'
+
       @staticmethod
       def CreateTestLists():
         FactoryTest(id='x')
@@ -52,6 +56,8 @@ class CommonTest(unittest.TestCase):
 
   def testDuplicateTestList(self):
     class FakeModule(object):
+      __file__ = 'fake.py'
+
       @staticmethod
       def CreateTestLists():
         for _ in range(2):
@@ -63,6 +69,8 @@ class CommonTest(unittest.TestCase):
 
   def testNestedTestList(self):
     class FakeModule(object):
+      __file__ = 'fake.py'
+
       @staticmethod
       def CreateTestLists():
         with TestList('a', 'A'):

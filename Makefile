@@ -16,9 +16,9 @@ SYMLINK_INSTALL_DIR=/usr/local/bin
 SYMLINK_TARGET_RELPATH=../factory
 # Binaries that should have symlinks.
 SYMLINK_BINS=\
-	bft_fixture edid factory_bug factory_restart flash_netboot \
+	bft_fixture edid factory factory_bug factory_restart flash_netboot \
 	gooftool goofy goofy_control goofy_remote goofy_rpc \
-	hwid_tool make_par manage merge_logs minijack mount_partition run_pytest
+	hwid_tool make_par manage merge_logs minijack mount_partition run_pytest \
 
 TEST_RUNNER=py/tools/run_tests.py
 # Maximum number of parallel tests to run.

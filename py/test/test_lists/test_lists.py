@@ -179,6 +179,9 @@ def BuildTestLists(module):
       raise TestListError('No test lists were created by %r' %
                           getattr(module, '__name__', module))
 
+    for v in builder_state.test_lists.values():
+      # Set the source path, replacing .pyc with .py
+      v.source_path = re.sub(r'\.pyc$', '.py', module.__file__)
     return builder_state.test_lists
   finally:
     # Clear out the state, to avoid unnecessary references or
