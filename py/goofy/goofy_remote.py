@@ -11,17 +11,19 @@ import argparse
 import glob
 import logging
 import os
+import pipes
 import re
 import sys
 import tempfile
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
-from cros.factory.test.utils import Retry
+from cros.factory.test.test_lists import test_lists
+from cros.factory.test.utils import Retry, in_chroot
 from cros.factory.utils.process_utils import Spawn
 
 
-SRCROOT = os.environ['CROS_WORKON_SRCROOT']
+SRCROOT = os.environ.get('CROS_WORKON_SRCROOT')
 
 ssh_command = None  # set in main
 rsync_command = None
@@ -50,20 +52,20 @@ def SyncTestList(host, board, test_list,
               ['autotest-private-board', 'files', 'test_list']]:
       test_list_globs.append(
         os.path.join(
-            os.environ['CROS_WORKON_SRCROOT'], 'src',
+            SRCROOT, 'src',
             '*-overlays', 'overlay-%s-*' % board_dash,
             'chromeos-base', *x))
       test_list_globs.append(
         os.path.join(
-            os.environ['CROS_WORKON_SRCROOT'], 'src',
+            SRCROOT, 'src',
             '*-overlays', 'overlay-variant-%s-*' % board_dash,
             'chromeos-base', *x))
 
-    test_lists = sum([glob.glob(x) for x in test_list_globs], [])
-    if not test_lists:
+    test_list_names = sum([glob.glob(x) for x in test_list_globs], [])
+    if not test_list_names:
       logging.warn('Unable to find test list %s', test_list_globs)
       return
-    test_list = test_lists[0]
+    test_list = test_list_names[0]
     logging.info('Using test list %s', test_list)
 
   old_test_list_data = test_list_data = open(test_list).read()
@@ -98,6 +100,58 @@ def SyncTestList(host, board, test_list,
   return board
 
 
+def TweakTestLists(args):
+  """Tweaks new-style test lists as required by the arguments.
+
+  Note that this runs *on the target DUT*, not locally.
+
+  Args:
+    args: The arguments from argparse.
+  """
+  for path in glob.glob(os.path.join(test_lists.TEST_LISTS_PATH, '*.py')):
+    with open(path) as f:
+      data = f.read()
+
+    def SubLine(variable_re, new_value, string):
+      """Replaces certain assignments in the test list with a new value.
+
+      We'll replace any line that begins with the given variable name
+      and an equal sign.
+
+      Args:
+        variable_re: A regular expression matching the names of variables whose
+            value is to be replaced.
+        new_value: The new value of the variable.  We wrap this in repr() before
+            substituting.
+        string: The original contents of the test list.
+      """
+      return re.sub(
+          r'^(\s*' +      # Beginning of line
+          variable_re +   # The name of the variable we're looking for
+          r'\s*=\s*)' +
+          r'.+',          # The old value
+
+          # Keep everything but the value in the original string;
+          # replace that with new_value.
+          r'\1' + repr(new_value),
+          string,
+          flags=re.MULTILINE)
+
+    new_data = data
+    if args.clear_factory_environment:
+      new_data = SubLine('factory_environment', False, new_data)
+    if args.clear_password:
+      new_data = SubLine('engineering_password_sha1', None, new_data)
+    if args.shopfloor_host:
+      new_data = SubLine('shop_floor_host', args.shopfloor_host, new_data)
+
+    # Write out the file if anything has changed.
+    if new_data != data:
+      with open(path, 'w') as f:
+        logging.info('Modified %s', path)
+        f.write(new_data)
+
+
 def main():
   parser = argparse.ArgumentParser(
       description='Rsync and run Goofy on a remote device.')
@@ -126,7 +180,22 @@ def main():
   parser.add_argument('--test_list',
                       help=("test list to use (defaults to the one in "
                             "the board's overlay"))
+  parser.add_argument('--local', action='store_true',
+                      help=('Rather than syncing the source tree, only '
+                            'perform test list modifications locally. '
+                            'This must be run only on the target device.'))
   args = parser.parse_args()
+
+  logging.basicConfig(level=logging.INFO)
+
+  if args.local:
+    if in_chroot():
+      sys.exit('--local must be used only on the target device')
+    TweakTestLists(args)
+    return
+
+  if not SRCROOT:
+    sys.exit('goofy_remote must be run from within the chroot')
 
   # Copy testing_rsa into a private file since otherwise ssh will ignore it
   testing_rsa = tempfile.NamedTemporaryFile(prefix='testing_rsa.')
@@ -142,8 +211,6 @@ def main():
                  '-o', 'User=root',
                  '-o', 'StrictHostKeyChecking=no']
   rsync_command = ['rsync', '-e', ' '.join(ssh_command)]
-
-  logging.basicConfig(level=logging.INFO)
 
   Spawn(['make', '--quiet'], cwd=factory.FACTORY_PATH,
         check_call=True, log=True)
@@ -183,6 +250,12 @@ def main():
   SyncTestList(args.host, board, args.test_list,
                args.clear_factory_environment, args.clear_password,
                args.shopfloor_host)
+
+  # Call goofy_remote on the remote host, allowing it to tweak test lists.
+  Spawn(ssh_command +
+        [args.host, 'goofy_remote', '--local'] +
+        [pipes.quote(x) for x in sys.argv[1:]],
+        check_call=True, log=True)
 
   if args.hwid:
     if not board:
