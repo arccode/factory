@@ -97,8 +97,8 @@ class SetActiveTestListCommand(Subcommand):
   name = 'set-active-test-list'
   help = 'Set the active test list'
 
-  def InitParser(self, subparser):
-    subparser.add_argument(
+  def Init(self):
+    self.subparser.add_argument(
         'id', metavar='ID',
         help=('ID of test list to activate (run '
               '"factory test-lists" to see all available IDs)'))
