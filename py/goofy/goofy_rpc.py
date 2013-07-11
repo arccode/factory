@@ -17,6 +17,7 @@ import re
 import tempfile
 import threading
 import time
+import yaml
 
 import factory_common  # pylint: disable=W0611
 from cros.factory import factory_bug
@@ -39,6 +40,38 @@ class GoofyRPCException(Exception):
 
 
 class GoofyRPC(object):
+  def _InRunQueue(self, func):
+    '''Runs a function in the Goofy run queue.
+
+    Returns:
+      Any value returned by the function.
+
+    Raises:
+      Any exception raised by the function.
+    '''
+    # A queue to store the results of evaluating the function.  This
+    # will contain a two-element tuple (ret, exc), where ret is the
+    # return value or exc is any exception thrown.  Only one will be
+    # set.
+    result = Queue.Queue()
+    def Target():
+      try:
+        # Call the function, and put the the return value on success.
+        result.put((func(), None))
+      except Exception as e:
+        # Failure; put e.
+        logging.exception('Exception in RPC handler')
+        result.put((None, e))
+      except:
+        # Failure (but not an Exception); wrap whatever it is in an exception.
+        result.put((None, GoofyRPCException(utils.FormatExceptionOnly())))
+
+    self.goofy.run_queue.put(Target)
+    ret, exc = result.get()
+    if exc:
+      raise exc
+    return ret
+
   def __init__(self, goofy):
     self.goofy = goofy
 
@@ -256,10 +289,45 @@ class GoofyRPC(object):
     '''Posts an event.'''
     self.goofy.event_client.post_event(event)
 
+  def StopTest(self):
+    '''Stops current tests.'''
+    self._InRunQueue(
+        lambda: self.goofy.stop(reason='RPC call to stop tests',
+                                fail=True))
+
+  def ClearState(self):
+    '''Stops current tests and clear all test state.'''
+    def Target():
+      self.goofy.stop(reason='RPC call to clear test state',
+                      fail=True)
+      self.goofy.clear_state()
+    self._InRunQueue(Target)
+
   def RunTest(self, path):
     '''Runs a test.'''
-    self.PostEvent(Event(Event.Type.RESTART_TESTS,
-                         path=path))
+    test = self.goofy.test_list.lookup_path(path)
+    if not test:
+      raise GoofyRPCException('Unknown test path %r' % path)
+    test = test.get_top_level_parent_or_group()
+
+    self._InRunQueue(lambda: self.goofy.restart_tests(root=test))
+
+  def GetTests(self):
+    '''Returns a list of all tests and their states.'''
+    def Target():
+      paths_to_run = set([t.path for t in self.goofy.tests_to_run])
+
+      ret = []
+      states = self.goofy.state_instance.get_test_states()
+      for t in self.goofy.test_list.walk(in_order=True):
+        state = states.get(t.path)
+        ret.append(dict(path=t.path,
+                        parent=(t.subtests != []),
+                        pending=t.path in paths_to_run,
+                        **state.__dict__))
+      return ret
+
+    return self._InRunQueue(Target)
 
   def GetTestLists(self):
     '''Returns available test lists.
@@ -280,6 +348,19 @@ class GoofyRPC(object):
     ret.sort(key=lambda x: x['name'].lower())
 
     return ret
+
+  def GetGoofyStatus(self):
+    '''Returns a dictionary containing Goofy status information.
+
+    Returns: A dict with the following elements:
+      uuid: A UUID identifying the current goofy run
+      test_list_id: The active test_list ID
+    '''
+    return {'uuid': self.goofy.uuid,
+            'test_list_id': (
+                self.goofy.test_list.test_list_id if self.goofy.test_list
+                else None),
+            'status': self.goofy.status}
 
   def SwitchTestList(self, test_list_id):
     '''Switches test lists.
@@ -328,10 +409,12 @@ def main():
                  '''RunTest('RunIn.Stress.BadBlocks')''')
 
   logging.info('Evaluating expression: %s', args.command)
-  eval(args.command, {},
-       dict((x, getattr(goofy, x))
-            for x in GoofyRPC.__dict__.keys()
-            if not x.startswith('_')))
+  ret = eval(args.command, {},
+             dict((x, getattr(goofy, x))
+                  for x in GoofyRPC.__dict__.keys()
+                  if not x.startswith('_')))
+  if ret is not None:
+    print yaml.safe_dump(ret)
 
 
 if __name__ == '__main__':

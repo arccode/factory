@@ -52,6 +52,7 @@ from cros.factory.test.event import Event
 from cros.factory.test.event import EventClient
 from cros.factory.test.event import EventServer
 from cros.factory.test.factory import TestState
+from cros.factory.test.utils import Enum
 from cros.factory.tools.key_filter import KeyFilter
 from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import Spawn
@@ -92,6 +93,9 @@ To use Goofy in the chroot, first install an Xvnc server:
   env --unset=XAUTHORITY DISPLAY=localhost:10 python goofy.py
 ''' + ('*' * 70)
 suppress_chroot_warning = False
+
+Status = Enum(['UNINITIALIZED', 'INITIALIZING', 'RUNNING',
+               'TERMINATING', 'TERMINATED'])
 
 def get_hwid_cfg():
   '''
@@ -148,6 +152,7 @@ class Goofy(object):
       because of core dump files (to avoid kicking too soon then abort the
       sync.)
     hooks: A Hooks object containing hooks for various Goofy actions.
+    status: The current Goofy status (a member of the Status enum).
   '''
   def __init__(self):
     self.uuid = str(uuid.uuid4())
@@ -196,6 +201,7 @@ class Goofy(object):
     self.event_log = None
     self.key_filter = None
     self.cpufreq_manager = None
+    self.status = Status.UNINITIALIZED
 
     def test_or_root(event, parent_or_group=True):
       '''Returns the test affected by a particular event.
@@ -252,6 +258,7 @@ class Goofy(object):
     self.web_socket_manager = None
 
   def destroy(self):
+    self.status = Status.TERMINATING
     if self.chrome:
       self.chrome.kill()
       self.chrome = None
@@ -307,6 +314,7 @@ class Goofy(object):
 
     self.check_exceptions()
     logging.info('Done destroying Goofy')
+    self.status = Status.TERMINATED
 
   def start_state_server(self):
     # Before starting state server, remount stateful partitions with
@@ -989,6 +997,8 @@ class Goofy(object):
     self.run_next_test()
 
   def clear_state(self, root=None):
+    if root is None:
+      root = self.test_list
     self.stop(root, reason='Clearing test state')
     for f in root.walk():
       if f.is_leaf():
@@ -1001,6 +1011,7 @@ class Goofy(object):
     syslog.openlog('goofy')
 
     try:
+      self.status = Status.INITIALIZING
       self.init()
       self.event_log.Log('goofy_init',
                  success=True)
@@ -1014,6 +1025,7 @@ class Goofy(object):
           pass
       raise
 
+    self.status = Status.RUNNING
     syslog.syslog('Goofy (factory test harness) starting')
     self.run()
 
@@ -1124,6 +1136,8 @@ class Goofy(object):
   def InitTestLists(self):
     """Reads in all test lists and sets the active test list."""
     self.test_lists = test_lists.BuildAllTestLists()
+    logging.info('Loaded test lists: [%s]',
+                 test_lists.DescribeTestLists(self.test_lists))
 
     if not self.options.test_list:
       self.options.test_list = test_lists.GetActiveTestListId()

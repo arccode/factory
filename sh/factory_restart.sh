@@ -71,13 +71,15 @@ while [ $# -gt 0 ]; do
   esac
 done
 
+KILL_REGEXP='^(python|/usr/bin/python|/usr/bin/X|.*pytest)'
+
 echo -n "Stopping factory test programs... "
-(pkill python; pkill X; killall /usr/bin/python) 2>/dev/null
+pkill -f "$KILL_REGEXP" 2>/dev/null
 for sec in 3 2 1; do
   echo -n "${sec} "
   sleep 1
 done
-killall -9 /usr/bin/python 2>/dev/null
+pkill -9 -f "$KILL_REGEXP" 2>/dev/null
 echo "done."
 
 for d in $delete; do

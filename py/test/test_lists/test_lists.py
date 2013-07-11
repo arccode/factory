@@ -12,6 +12,7 @@ import logging
 import os
 import re
 import threading
+import yaml
 from contextlib import contextmanager
 
 from cros.factory.test import factory
@@ -299,14 +300,43 @@ def BuildAllTestLists():
       name = match.group(2) if match else test_list_id
       test_lists[test_list_id] = OldStyleTestList(test_list_id, name, path)
 
-  test_list_descriptions = []
+  return test_lists
+
+
+def DescribeTestLists(test_lists):
+  """Returns a friendly description of a dict of test_lists.
+
+  Args:
+    test_lists: A dict of test_list_id->test_lists (as returned by
+        BuildAllTestLists)
+
+  Returns:
+    A string like "bar, foo (old-style), main".
+  """
+  ret = []
   for k, v in sorted(test_lists.items()):
     if isinstance(v, OldStyleTestList):
-      test_list_descriptions.append('%s (old-style)' % k)
+      ret.append('%s (old-style)' % k)
     else:
-      test_list_descriptions.append(k)
-  logging.info('Loaded test lists: [%s]', ', '.join(test_list_descriptions))
-  return test_lists
+      ret.append(k)
+  return ', '.join(ret)
+
+
+def BuildTestList(id):  # pylint: disable=W0622
+  """Builds only a single test list.
+
+  Args:
+    id: ID of the test list to build.
+
+  Raises:
+    KeyError: If the test list cannot be found.
+  """
+  test_lists = BuildAllTestLists()
+  test_list = test_lists.get(id)
+  if not test_list:
+    raise KeyError('Unknown test list %r; available test lists are: [%s]' % (
+        id, DescribeTestLists(test_lists)))
+  return test_list
 
 
 def GetActiveTestListId():
@@ -349,3 +379,31 @@ def SetActiveTestList(id):  # pylint: disable=W0622
     f.write(id + '\n')
     f.flush()
     os.fdatasync(f)
+
+
+def YamlDumpTestListDestructive(test_list, stream=None):
+  """Dumps a test list in YAML format.
+
+  This modifies the test list in certain ways that makes it useless,
+  hence "Destructive".
+
+  Args:
+    stream: A stream to serialize into, or None to return a string
+        (same as yaml.dump).
+  """
+  del test_list.path_map
+  del test_list.state_instance
+  del test_list.test_list_id
+  for t in test_list.walk():
+    del t.parent
+    del t.root
+    for r in t.require_run:
+      # Delete the test object.  But r.path is still present, so we'll
+      # still verify that.
+      del r.test
+    for k, v in t.dargs.items():
+      if callable(v):
+        # Replace all lambdas with "lambda: None" to make them
+        # consistent
+        t.dargs[k] = lambda: None
+  return yaml.safe_dump(test_list, stream)
