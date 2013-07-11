@@ -70,7 +70,6 @@ def Interpolate(x_values, y_values, x_position):
       (1) x_position is not in the range of x_values.
       (2) Arguments failed to pass CheckTraceValid().
   """
-  # TODO(itspeter): Move the autotest's unittest to factory repository
   CheckTraceValid(x_values, y_values)
 
   # Check if the x_position is inside some interval in the trace
