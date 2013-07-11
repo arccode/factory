@@ -591,6 +591,7 @@ class Gooftool(object):
     return self.db.VerifyComponents(yaml_probe_results, component_list)
 
   def GenerateHwidV3(self, device_info=None, probe_results=None,
+                     probed_ro_vpd=None, probed_rw_vpd=None,
                      rma_mode=False):
     """Generates the version 3 HWID of the DUT.
 
@@ -605,7 +606,12 @@ class Gooftool(object):
         specified in board-specific component database.
       probe_results: A ProbeResults object containing the probe result to be
         used.
+      probed_ro_vpd: A dict of RO VPD values.
+      probed_rw_vpd: A dict of RW VPD values.
       rma_mode: Whether to verify components status in RMA mode.
+
+    Returns:
+      The generated HWID object.
     """
     if self._hwid_version != 3:
       raise Error, 'hwid_version needs to be 3 to run GenerateHwidV3'
@@ -614,19 +620,30 @@ class Gooftool(object):
     # pylint: disable=E1101
     if not isinstance(probe_results, hwid_tool.ProbeResults):
       raise Error, 'probe_results is not a ProbeResults object'
+
     # Construct a base BOM from probe_results.
     device_bom = self.db.ProbeResultToBOM(probe_results.Encode())
     hwid = Encode(self.db, device_bom, skip_check=True)
+
     # Verify the probe result with the generated HWID to make sure nothing is
     # mis-configured after setting default values to unprobeable encoded fields.
     hwid.VerifyProbeResult(probe_results.Encode())
+
+    # Get the VPD on the system if no VPD values are given.
+    if probed_ro_vpd is None:
+      probed_ro_vpd = vpd.ro.GetAll()
+    if probed_rw_vpd is None:
+      probed_rw_vpd = vpd.rw.GetAll()
+    vpd_dict = {'ro': {}, 'rw': {}}
+    vpd_dict['ro'].update(probed_ro_vpd)
+    vpd_dict['rw'].update(probed_rw_vpd)
+
     # Update unprobeable components with rules defined in database.
-    context = Context(hwid=hwid, device_info=device_info)
+    context = Context(hwid=hwid, device_info=device_info, vpd=vpd_dict)
     self.db.rules.EvaluateRules(context, namespace='device_info.*')
     # Verify status of components base of RMA mode setting.
     hwid.VerifyComponentStatus(rma_mode)
     return hwid
-
 
   def VerifyHwidV3(self, encoded_string=None, probe_results=None,
                    probed_ro_vpd=None, probed_rw_vpd=None, rma_mode=False):
@@ -664,9 +681,9 @@ class Gooftool(object):
     # pylint: disable=E1101
     if not isinstance(probe_results, hwid_tool.ProbeResults):
       raise Error, 'probe_results is not a ProbeResults object'
-    if not probed_ro_vpd:
+    if probed_ro_vpd is None:
       probed_ro_vpd = self._read_ro_vpd(main_fw_file)
-    if not probed_rw_vpd:
+    if probed_rw_vpd is None:
       probed_rw_vpd = self._read_rw_vpd(main_fw_file)
 
     hwid = self._hwid_decode(self.db, encoded_string)

@@ -82,7 +82,9 @@ class ValidHWIDDBsTest(unittest2.TestCase):
                     hwdb_path=os.path.dirname(db_path))
       # Test HWID Generation.
       hwid = gt.GenerateHwidV3(probe_results=probe_results,
-                               device_info=device_info)
+                               device_info=device_info,
+                               probed_ro_vpd=vpd['ro'],
+                               probed_rw_vpd=vpd['rw'])
       # Test all rules.
       gt.db.rules.EvaluateRules(Context(hwid=hwid, vpd=vpd,
                                         device_info=device_info))

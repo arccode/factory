@@ -527,13 +527,18 @@ class GooftoolTest(unittest2.TestCase):
         'component.dram': 'foo',
         'component.audio_codec': 'set_1'
     }
+    mock_ro_vpd = {}
+    mock_rw_vpd = {}
     with open(os.path.join(_TEST_DATA_PATH, 'test_probe_result.yaml')) as f:
       # pylint: disable=E1101
       mock_probe_result = hwid_tool.ProbeResults.Decode(f.read())
     self.assertEquals(
         'CHROMEBOOK D9I-F9U',
         self._gooftool3.GenerateHwidV3(
-            mock_device_info, mock_probe_result).encoded_string)
+            device_info=mock_device_info,
+            probe_results=mock_probe_result,
+            probed_ro_vpd=mock_ro_vpd,
+            probed_rw_vpd=mock_rw_vpd).encoded_string)
 
     mock_device_info = {
         'component.has_cellular': True,
@@ -544,7 +549,10 @@ class GooftoolTest(unittest2.TestCase):
     self.assertEquals(
         'CHROMEBOOK D92-F8J',
         self._gooftool3.GenerateHwidV3(
-            mock_device_info, mock_probe_result).encoded_string)
+            device_info=mock_device_info,
+            probe_results=mock_probe_result,
+            probed_ro_vpd=mock_ro_vpd,
+            probed_rw_vpd=mock_rw_vpd).encoded_string)
 
     mock_device_info = {
         'component.has_cellular': True,
@@ -555,7 +563,10 @@ class GooftoolTest(unittest2.TestCase):
     self.assertEquals(
         'CHROMEBOOK D52-F7N',
         self._gooftool3.GenerateHwidV3(
-            mock_device_info, mock_probe_result).encoded_string)
+            device_info=mock_device_info,
+            probe_results=mock_probe_result,
+            probed_ro_vpd=mock_ro_vpd,
+            probed_rw_vpd=mock_rw_vpd).encoded_string)
 
   def testVerifyHwidV3(self):
     sample_probe_result = yaml.load(open(os.path.join(
