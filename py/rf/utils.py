@@ -4,12 +4,14 @@
 
 """Common functions across different RF related tests."""
 
+import logging
 import math
+import os
 
 import factory_common  # pylint: disable=W0611
-
 from cros.factory.test import factory
-
+from cros.factory.test import utils
+from cros.factory.test.shopfloor import GetShopfloorConnection
 
 def IsInRange(observed, threshold_min, threshold_max):
   """Returns True if threshold_min <= observed <= threshold_max.
@@ -54,3 +56,35 @@ def CheckPower(measurement_name, power, threshold, failures, prefix='Power'):
   factory.console.info('%s for %r is %s',
       prefix, measurement_name, FormattedPower(power))
   return True
+
+
+def DownloadParameters(parameters, local_cache_dir):
+  """Downloads parameters from shopfloor and saved to state/caches.
+
+  Args:
+    parameters: A list of regular expressions indicates parameters
+        to download from shopfloor server.
+    local_cache_dir: The path of the root directory to save downloaded
+        parameters.
+  """
+  factory.console.info('Start downloading parameters...')
+  shopfloor_client = GetShopfloorConnection()
+  logging.info('Syncing time with shopfloor...')
+  goofy = factory.get_state_instance()
+  goofy.SyncTimeWithShopfloorServer()
+
+  download_list = []
+  for glob_expression in parameters:
+    logging.info('Listing %s', glob_expression)
+    download_list.extend(
+        shopfloor_client.ListParameters(glob_expression))
+  logging.info('Download list prepared:\n%s', '\n'.join(download_list))
+  assert len(download_list) > 0, 'No parameters found on shopfloor'
+  # Download the list and saved to caches in state directory.
+  for filepath in download_list:
+    utils.TryMakeDirs(os.path.join(
+        local_cache_dir, os.path.dirname(filepath)))
+    binary_obj = shopfloor_client.GetParameter(filepath)
+    with open(os.path.join(local_cache_dir, filepath), 'wb') as fd:
+      fd.write(binary_obj.data)
+  # TODO(itspeter): Verify the signature of parameters.

@@ -16,12 +16,11 @@ import time
 import unittest
 import yaml
 
-from xmlrpclib import Binary
-
 import factory_common  # pylint: disable=W0611
 from cros.factory.event_log import Log, GetDeviceId
 from cros.factory.goofy.goofy import CACHES_DIR
 from cros.factory.rf.tools.csv_writer import WriteCsv
+from cros.factory.rf.utils import DownloadParameters
 from cros.factory.test import factory
 from cros.factory.test import leds
 from cros.factory.test import shopfloor
@@ -29,10 +28,9 @@ from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test import utils
 from cros.factory.test.args import Arg, Args
+from cros.factory.test.shopfloor import UploadAuxLogs
 from cros.factory.utils import net_utils
 
-SHOPFLOOR_TIMEOUT_SECS = 10 # Timeout for shopfloor connection.
-SHOPFLOOR_RETRY_INTERVAL_SECS = 10 # Seconds to wait between retries.
 INSERT_ETHERNET_DONGLE_TIMEOUT_SECS = 30 # Timeout for inserting dongle.
 IP_SETUP_TIMEOUT_SECS = 10 # Timeout for setting IP address.
 
@@ -195,7 +193,7 @@ class RfFramework(object):
       self._PrepareNetwork()
       if len(self.args.parameters) > 0:
         self.SetHTML(MSG_DOWNLOADING_PARAMETERS)
-        self._DownloadParameters(self.args.parameters)
+        DownloadParameters(self.args.parameters, self.caches_dir)
 
     # Prepare additional parameters if we are in calibration mode.
     if self.args.category == 'calibration':
@@ -279,7 +277,7 @@ class RfFramework(object):
     # Upload the aux_logs to shopfloor server.
     if self.args.use_shopfloor:
       self._PrepareNetwork()
-      self._UploadAuxLogs(self.aux_logs)
+      UploadAuxLogs(self.aux_logs)
 
   def runTest(self):
     self.Prompt(MSG_START, force_prompt=True)
@@ -385,75 +383,6 @@ class RfFramework(object):
               PATH, FAILURES, INVOCATION])
     factory.console.info('Details saved to %s', csv_path)
 
-  def _GetShopfloorConnection(
-      self, timeout_secs=SHOPFLOOR_TIMEOUT_SECS,
-      retry_interval_secs=SHOPFLOOR_RETRY_INTERVAL_SECS):
-    """Returns a shopfloor client object.
-
-    Try forever until a connection of shopfloor is established.
-
-    Args:
-      timeout_secs: Timeout for shopfloor connection.
-      retry_interval_secs: Seconds to wait between retries.
-    """
-    factory.console.info('Connecting to shopfloor...')
-    while True:
-      try:
-        shopfloor_client = shopfloor.get_instance(
-            detect=True, timeout=timeout_secs)
-        break
-      except:  # pylint: disable=W0702
-        exception_string = utils.FormatExceptionOnly()
-        # Log only the exception string, not the entire exception,
-        # since this may happen repeatedly.
-        factory.console.info('Unable to sync with shopfloor server: %s',
-                             exception_string)
-      time.sleep(retry_interval_secs)
-    return shopfloor_client
-
-  def _DownloadParameters(self, parameters):
-    """Downloads parameters from shopfloor and saved to state/caches."""
-    factory.console.info('Start downloading parameters...')
-    shopfloor_client = self._GetShopfloorConnection()
-    logging.info('Syncing time with shopfloor...')
-    goofy = factory.get_state_instance()
-    goofy.SyncTimeWithShopfloorServer()
-
-    download_list = []
-    for glob_expression in parameters:
-      logging.info('Listing %s', glob_expression)
-      download_list.extend(
-          shopfloor_client.ListParameters(glob_expression))
-    logging.info('Download list prepared:\n%s', '\n'.join(download_list))
-    assert len(download_list) > 0, 'No parameters found on shopfloor'
-    # Download the list and saved to caches in state directory.
-    for filepath in download_list:
-      utils.TryMakeDirs(os.path.join(
-          self.caches_dir, os.path.dirname(filepath)))
-      binary_obj = shopfloor_client.GetParameter(filepath)
-      with open(os.path.join(self.caches_dir, filepath), 'wb') as fd:
-        fd.write(binary_obj.data)
-    # TODO(itspeter): Verify the signature of parameters.
-
-  def _UploadAuxLogs(self, file_paths, ignore_on_fail=False):
-    """Attempts to upload arbitrary file to the shopfloor server."""
-    shopfloor_client = self._GetShopfloorConnection()
-    for file_path in file_paths:
-      try:
-        chunk = open(file_path, 'r').read()
-        log_name = os.path.basename(file_path)
-        factory.console.info('Uploading %s', log_name)
-        start_time = time.time()
-        shopfloor_client.SaveAuxLog(log_name, Binary(chunk))
-        factory.console.info('Successfully synced %s in %.03f s',
-            log_name, time.time() - start_time)
-      except:  # pylint: disable=W0702
-        if ignore_on_fail:
-          factory.console.info(
-              'Failed to sync with shopfloor for [%s], ignored',
-              log_name)
-        else:
-          raise
 
   def _PrepareNetwork(self):
     """Blocks forever until network is prepared."""

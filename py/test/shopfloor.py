@@ -25,6 +25,7 @@ import hashlib
 import logging
 import os
 import tempfile
+import time
 import urlparse
 import xmlrpclib
 from xmlrpclib import Binary
@@ -71,6 +72,10 @@ SHOPFLOOR_SERVER_ENV_VAR_NAME = 'CROS_SHOPFLOOR_SERVER_URL'
 
 # Exception message when shopfloor server is not configured.
 SHOPFLOOR_NOT_CONFIGURED_STR = "Shop floor server URL is not configured"
+
+# Default timeout and retry interval for getting a valid shopfloor instance.
+SHOPFLOOR_TIMEOUT_SECS = 10 # Timeout for shopfloor connection.
+SHOPFLOOR_RETRY_INTERVAL_SECS = 10 # Seconds to wait between retries.
 
 # Some tests refer to "shopfloor.Fault" so we need to export it from
 # shopfloor.
@@ -434,3 +439,56 @@ def UpdateDeviceData(new_device_data, post_update_event=True):
   if post_update_event:
     EventClient().post_event(Event(Event.Type.UPDATE_SYSTEM_INFO))
   return data
+
+
+def GetShopfloorConnection(
+    timeout_secs=SHOPFLOOR_TIMEOUT_SECS,
+    retry_interval_secs=SHOPFLOOR_RETRY_INTERVAL_SECS):
+  """Returns a shopfloor client object.
+
+  Try forever until a connection of shopfloor is established.
+
+  Args:
+    timeout_secs: Timeout for shopfloor connection.
+    retry_interval_secs: Seconds to wait between retries.
+  """
+  factory.console.info('Connecting to shopfloor...')
+  iteration = 0
+  while True:
+    iteration += 1
+    try:
+      shopfloor_client = get_instance(
+          detect=True, timeout=timeout_secs)
+      check_server_status(shopfloor_client)
+      break
+    except:  # pylint: disable=W0702
+      exception_string = utils.FormatExceptionOnly()
+      # Log only the exception string, not the entire exception,
+      # since this may happen repeatedly.
+      factory.console.info(
+          'Unable to sync with shopfloor server in iteration [%3d], '
+          'retry after [%2dsecs]: %s',
+          iteration, retry_interval_secs, exception_string)
+    time.sleep(retry_interval_secs)
+  return shopfloor_client
+
+
+def UploadAuxLogs(file_paths, ignore_on_fail=False):
+  """Attempts to upload arbitrary file to the shopfloor server."""
+  shopfloor_client = GetShopfloorConnection()
+  for file_path in file_paths:
+    try:
+      chunk = open(file_path, 'r').read()
+      log_name = os.path.basename(file_path)
+      factory.console.info('Uploading %s', log_name)
+      start_time = time.time()
+      shopfloor_client.SaveAuxLog(log_name, Binary(chunk))
+      factory.console.info('Successfully synced %s in %.03f s',
+          log_name, time.time() - start_time)
+    except:  # pylint: disable=W0702
+      if ignore_on_fail:
+        factory.console.info(
+            'Failed to sync with shopfloor for [%s], ignored',
+            log_name)
+      else:
+        raise
