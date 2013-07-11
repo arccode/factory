@@ -43,6 +43,22 @@ then:
   GetAuxData('mlb', 'MLB001') == {'foo': 123, 'bar': 'baz'}
   GetAuxData('mlb', 'MLB002') == {'foo': 456, 'bar': 'qux'}
 
+This module may be configured using an rma_config_board.yaml file placed in
+the same directory as the module, this can be inserted by a separate board
+specific overlay. This yaml file is optional, and if not provided this module
+will use defaults defined below. An example yaml file would look like:
+
+# Define any required aux tables here
+required_aux_tables: []
+# Define any required device info fields from the HWIDv3
+device_info_fields: [component.antenna, component.camera, region]
+# Set this to a regex for your RMA numbering scheme
+rma_number_regex: ^RMA[0-9]{8}$
+# Set this to True if you would like to force an RMA YAML to exist
+rma_number_yaml_must_exist: True
+# Set this to the path to your HWIDv3 HWDB
+hwidv3_hwdb_path: ../../hwid
+
 To use this module, run following command in shopfloor folder:
   shopfloor_server.sh -m simple_rma_shopfloor -d <PATH TO DATA DIR>
 
@@ -61,24 +77,11 @@ import factory_common  # pylint: disable=W0611
 from cros.factory import shopfloor
 from cros.factory.gooftool import Gooftool
 
-# Set any required aux tables here
+# Default shopfloor configuration values
 _REQUIRED_AUX_TABLES = []
-
-# Set any required shopfloor device info fields here, this can be left blank
-# for HWIDv2 implementations.
-_DEVICE_INFO_FIELDS = ['component.antenna', 'component.camera',
-                       'component.has_cellular', 'component.keyboard',
-                       'component.pcb_vendor', 'region', 'serial_number',
-                       'gbind_attribute', 'ubind_attribute']
-
-# Set the below to a regex for validating your RMA numbers
+_DEVICE_INFO_FIELDS = []
 _RMA_NUMBER_REGEX = r'^RMA[0-9]{8}$'
-
-# Set the below to True if the RMA number should be accepted only if a
-# corresponding YAML file exists, False bypasses the check.
 _RMA_NUMBER_YAML_MUST_EXIST = True
-
-# Set this to the path to your HWIDv3 component database.
 _HWIDV3_HWDB_PATH = '../../hwid'
 
 def _synchronized(f):
@@ -121,6 +124,42 @@ class ShopFloor(shopfloor.ShopFloorBase):
     self.data_store = {}
     self._lock = threading.RLock() # Used to serialize shopfloor API calls.
 
+    self.required_aux_tables = _REQUIRED_AUX_TABLES
+    self.device_info_fields = _DEVICE_INFO_FIELDS
+    self.rma_number_regex = _RMA_NUMBER_REGEX
+    self.rma_number_yaml_must_exist = _RMA_NUMBER_YAML_MUST_EXIST
+    self.hwidv3_hwdb_path = _HWIDV3_HWDB_PATH
+    # TODO(bhthompson) put this file in a more proper config directory
+    data_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                             "rma_config_board.yaml")
+    if(os.path.exists(data_path)):
+      logging.info('Found a rma_config_board.yaml file, loading...')
+      with open(data_path, 'rb') as yaml_file:
+        board_config = yaml.load(yaml_file)
+      if 'required_aux_tables' in board_config:
+        logging.info('Using board required_aux_tables: %s',
+                     board_config['required_aux_tables'])
+        self.required_aux_tables = board_config['required_aux_tables']
+      if 'device_info_fields' in board_config:
+        logging.info('Using board device_info_fields: %s',
+                     board_config['device_info_fields'])
+        self.device_info_fields = board_config['device_info_fields']
+      if 'rma_number_regex' in board_config:
+        logging.info('Using board rma_number_regex: %s',
+                     board_config['rma_number_regex'])
+        self.rma_number_regex = board_config['rma_number_regex']
+      if 'rma_number_yaml_must_exist' in board_config:
+        logging.info('Using board rma_number_yaml_must_exist: %s',
+                     board_config['rma_number_yaml_must_exist'])
+        self.rma_number_yaml_must_exist = \
+          board_config['rma_number_yaml_must_exist']
+      if 'hwidv3_hwdb_path' in board_config:
+        logging.info('Using board hwidv3_hwdb_path: %s',
+                     board_config['hwidv3_hwdb_path'])
+        self.hwidv3_hwdb_path = board_config['hwidv3_hwdb_path']
+    else:
+      logging.warning('No rma_config_board.yaml found, using defaults.')
+
   def Init(self):
     # Load AUX data files.
     for f in glob.glob(os.path.join(self.data_dir, '*.csv')):
@@ -136,7 +175,7 @@ class ShopFloor(shopfloor.ShopFloorBase):
                    len(self.aux_data[table_name]), f)
 
     # Verify all required tables were loaded.
-    for required_table in _REQUIRED_AUX_TABLES:
+    for required_table in self.required_aux_tables:
       assert required_table in self.aux_data, (
           "Required AUX table %s not found." % required_table)
 
@@ -169,7 +208,7 @@ class ShopFloor(shopfloor.ShopFloorBase):
       return
     data_path = os.path.join(self.data_dir, serial + ".yaml")
     if(os.path.exists(data_path)):
-      device_data = LoadDeviceData(data_path)
+      device_data = LoadDeviceData(data_path, self.device_info_fields)
       logging.info('%s: Loading device data.', serial)
       self.data_store[serial] = device_data
     else:
@@ -192,10 +231,10 @@ class ShopFloor(shopfloor.ShopFloorBase):
     Raises:
       ValueError - If the rma number format is invalid.
     """
-    if not re.match(_RMA_NUMBER_REGEX, serial):
+    if not re.match(self.rma_number_regex, serial):
       message = "Invalid RMA number: %s" % serial
       raise ValueError(message)
-    if _RMA_NUMBER_YAML_MUST_EXIST:
+    if self.rma_number_yaml_must_exist:
       data_path = os.path.join(self.data_dir, serial + ".yaml")
       if not os.path.exists(data_path):
         message = "RMA YAML not found on shopfloor: %s" % serial
@@ -237,7 +276,7 @@ class ShopFloor(shopfloor.ShopFloorBase):
       configuration of the device.
     """
     return { key: self._GetDataStoreValue(serial, key)
-             for key in _DEVICE_INFO_FIELDS }
+             for key in self.device_info_fields }
 
   @_synchronized
   def GetHWID(self, serial):
@@ -339,9 +378,9 @@ class ShopFloor(shopfloor.ShopFloorBase):
         existing_device_data = yaml.load(yaml_file)
       return {'status': 'conflict', 'data': existing_device_data}
     device_data = DeviceData(data['serial_number'], data['vpd'], data['hwid'])
-    if _DEVICE_INFO_FIELDS:
-      components = DecodeHWIDv3Components(data['hwid'], _HWIDV3_HWDB_PATH)
-      for key in _DEVICE_INFO_FIELDS:
+    if self.device_info_fields:
+      components = DecodeHWIDv3Components(data['hwid'], self.hwidv3_hwdb_path)
+      for key in self.device_info_fields:
         # Any components are determined from the HWID
         if re.search(r'^component.*', key):
           (_, _, stripped_key) = key.partition('.')
@@ -398,18 +437,19 @@ def DecodeHWIDv3Components(hwid, hwdb_path):
   decoded_hwid = decoder.DecodeHwidV3(hwid)
   return decoded_hwid.bom.components
 
-def LoadDeviceData(filename):
+def LoadDeviceData(filename, device_info_fields):
   """Loads a YAML file and returns structured shop floor system data.
 
   Args:
     filename - string. Full path to yaml file to load.
+    device_info_fields - list of device info fields, can be empty
 
   Returns:
     dict with the following fields:
       hwid - string. Device hardware ID
       vpd - dict of dicts containing 'ro' and 'rw' VPD data.
       registration_code_map - dict containing 'user' and 'group' codes.
-      any additional _DEVICE_INFO_FIELDS values
+      any additional device_info_fields values
   """
   with open(filename, 'rb') as yaml_file:
     device_data = yaml.load(yaml_file)
@@ -423,7 +463,7 @@ def LoadDeviceData(filename):
   entry = {'hwid': device_data.hwid,
            'vpd': vpd,
            'registration_code_map': registration_code_map}
-  for key in _DEVICE_INFO_FIELDS:
+  for key in device_info_fields:
     entry[key] = getattr(device_data, key)
   return entry
 
