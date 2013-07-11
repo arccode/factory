@@ -14,7 +14,9 @@ import tempfile
 import unittest
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
+from cros.factory.test.test_ui import UI
 from cros.factory.utils.process_utils import Spawn
 
 DM_DEVICE_NAME = 'verifyroot'
@@ -31,9 +33,14 @@ class VerifyRootPartitionTest(unittest.TestCase):
       ]
 
   def runTest(self):
+    ui = UI()
+    template = ui_templates.TwoSections(ui)
+    template.DrawProgressBar()
+
     # Copy out the KERN-A partition to a file, since vbutil_kernel
     # won't operate on a device, only a file
     # (http://crosbug.com/34176)
+    template.SetState('Verifying KERN-A (%s)...' % self.args.kern_a_device)
     with tempfile.NamedTemporaryFile() as kern_a_bin:
       with open('/dev/%s' % self.args.kern_a_device) as kern_a:
         shutil.copyfileobj(kern_a, kern_a_bin)
@@ -84,8 +91,12 @@ class VerifyRootPartitionTest(unittest.TestCase):
         if not count:
           break
         bytes_read += count
-        logging.info('Read %s bytes (%.1f%%)',
-            bytes_read, bytes_read * 100. / bytes_to_read)
+        pct_done = bytes_read * 100. / bytes_to_read
+        message = 'Read %.1f MiB (%.1f%%) of %s' % (
+            bytes_read / 1024. / 1024., pct_done, self.args.root_device)
+        logging.info(message)
+        template.SetState(message)
+        template.SetProgressBarValue(round(pct_done))
     self.assertEquals(bytes_to_read, bytes_read)
 
   def tearDown(self):
