@@ -130,10 +130,8 @@ class SuspendResumeTest(unittest2.TestCase):
     open(self.args.wakealarm_path, 'w').write(str(self.resume_at))
     self.alarm_started.set()
     # CAUTION: the loop below is subject to race conditions with suspend time.
-    while self._ReadSuspendCount() < self.initial_suspend_count + self.run:
-      time.sleep(0.1)
-      if self.done:
-        break
+    while (self._ReadSuspendCount() < self.initial_suspend_count + self.run
+           and not self.done):
       cur_time = self._ReadCurrentTime()
       if cur_time >= self.resume_at - 1:
         self.attempted_wake_extensions += 1
@@ -154,6 +152,7 @@ class SuspendResumeTest(unittest2.TestCase):
                               cur_time, 'Suspend timeout, device did not '
                               'suspend within %d sec.' %
                               self.args.suspend_worst_case_secs)
+      time.sleep(0.1)
     self.alarm_started.clear()
 
   def _Suspend(self):
