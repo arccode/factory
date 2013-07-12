@@ -40,6 +40,8 @@ _TEST_BODY = ('<font size="20">%s <div id="%s"></div> of \n'
               '<div id="%s"></div></font>') % (_MSG_CYCLE, _ID_RUN, _ID_CYCLES)
 _MIN_SUSPEND_MARGIN_SECS = 5
 
+_MESSAGES = '/var/log/messages'
+
 class SuspendResumeTest(unittest2.TestCase):
   ARGS = [
     Arg('cycles', int, 'Number of cycles to suspend/resume', default=1),
@@ -100,8 +102,23 @@ class SuspendResumeTest(unittest2.TestCase):
     self.initial_suspend_count = 0
     self.alarm_started = threading.Event()
     self.alarm_thread = threading.Thread()
+    self.messages = None
 
   def tearDown(self):
+    # Always log the last suspend/resume block we saw.  This is most
+    # useful for failures, of course, but we log the last block for
+    # successes too to make them easier to compare.
+    if self.messages:
+      # Remove useless lines that have any of these right after the square
+      # bracket:
+      #   call
+      #   G[A-Z]{2}\d? (a register name)
+      #   save
+      messages = re.sub('^.*\] (call|G[A-Z]{2}\d?|save).*$\n?', '',
+                        self.messages, flags=re.MULTILINE)
+      logging.info('Last suspend block:\n' +
+                   re.sub('^', '    ', messages, flags=re.MULTILINE))
+
     self.done = True
     self.alarm_thread.join(5)
     self.assertFalse(self.alarm_thread.isAlive(), 'Alarm thread failed join.')
@@ -195,31 +212,83 @@ class SuspendResumeTest(unittest2.TestCase):
     with open(self.args.time_path, 'r') as f:
       return int(f.read().strip())
 
-  def _VerifySuspended(self, count, resume_at):
+  def _VerifySuspended(self, wake_time, wake_source, count, resume_at):
     """Verify that a reasonable suspend has taken place.
 
     Args:
+      wake_time: the time at which the device resumed
+      wake_source: the wake source, if known
       count: expected number of suspends the system has executed
       resume_at: expected time since epoch to have resumed
 
     Returns:
       Boolean, True if suspend was valid, False if not.
     """
-    cur_time = self._ReadCurrentTime()
     self.assertGreaterEqual(
-        cur_time, resume_at - self.args.resume_early_margin_secs,
-        'Premature wake detected (%d s early), spurious event? (got touched?)'
-        % (resume_at - cur_time))
+        wake_time, resume_at - self.args.resume_early_margin_secs,
+        'Premature wake detected (%d s early, source=%s), spurious event? '
+        '(got touched?)' % (resume_at - wake_time, wake_source or 'unknown'))
     self.assertLessEqual(
-        cur_time, resume_at + self.args.resume_worst_case_secs,
-        'Late wake detected (%ds > %ds delay), timer failure?' % (
-            cur_time - resume_at, self.args.resume_worst_case_secs))
+        wake_time, resume_at + self.args.resume_worst_case_secs,
+        'Late wake detected (%ds > %ds delay, source=%s), timer failure?' % (
+            wake_time - resume_at, self.args.resume_worst_case_secs,
+            wake_source or 'unknown'))
 
     actual_count = self._ReadSuspendCount()
     self.assertEqual(
         count, actual_count,
         'Incorrect suspend count: ' + (
             'no suspend?' if actual_count < count else 'spurious suspend?'))
+
+  def _HandleMessages(self, messages_start):
+    """Finds the suspend/resume chunk in /var/log/messages.
+
+    The contents are saved to self.messages to be logged on failure.
+
+    Returns:
+      The wake source, or none if unknown.
+    """
+    # The last chunk we read.  In a list so it can be written from
+    # ReadMessages.
+    last_messages = ['']
+
+    def ReadMessages(messages_start):
+      try:
+        with open(_MESSAGES) as f:
+          # Read from messages_start to the end of the file.
+          f.seek(messages_start)
+          last_messages[0] = messages = f.read()
+
+          # If we see this, we can consider resume to be done.
+          match = re.search(
+              r'\] Restarting tasks \.\.\.'  # "Restarting tasks" line
+              r'.+'                          # Any number of charcaters
+              r'\] done\.\n',                # "done." line
+              messages, re.DOTALL|re.MULTILINE)
+          if match:
+            messages = messages[:match.end()]
+            return messages
+      except IOError:
+        logging.exception('Unable to read %s', _MESSAGES)
+      return None
+    messages = utils.Retry(10, 0.2, None, ReadMessages, messages_start)
+
+    if not messages:
+      # We never found it. Just use the entire last chunk read
+      messages = last_messages[0]
+
+    logging.info(
+        'To view suspend/resume messages: '
+        'dd if=/var/log/messages skip=%d count=%d '
+        'iflag=skip_bytes,count_bytes', messages_start, len(messages))
+
+    # Find the wake source
+    match = re.search('active wakeup source: (.+)', messages)
+    wake_source = match.group(1) if match else None
+    logging.info('Wakeup source: %s', wake_source or 'unknown')
+
+    self.messages = messages
+    return wake_source
 
   def runTest(self):
     self._ui.Run(blocking=False)
@@ -247,8 +316,13 @@ class SuspendResumeTest(unittest2.TestCase):
       self.alarm_thread.start()
       self.assertTrue(self.alarm_started.wait(_MIN_SUSPEND_MARGIN_SECS),
                       'Alarm thread timed out.')
+      messages_start = os.path.getsize(_MESSAGES)
       self._Suspend()
-      self._VerifySuspended(self.initial_suspend_count + self.run,
+      wake_time = self._ReadCurrentTime()
+      wake_source = self._HandleMessages(messages_start)
+      self._VerifySuspended(wake_time,
+                            wake_source,
+                            self.initial_suspend_count + self.run,
                             self.resume_at)
       logging.info('Resumed %d of %d for %d seconds.',
                    self.run, self.args.cycles, resume_time)
@@ -269,5 +343,5 @@ class SuspendResumeTest(unittest2.TestCase):
           initial_suspend_count=self.initial_suspend_count,
           attempted_wake_extensions=self.attempted_wake_extensions,
           actual_wake_extensions=self.actual_wake_extensions,
-          alarm_suspend_delays=alarm_suspend_delays)
-    self._ui.Pass()
+          alarm_suspend_delays=alarm_suspend_delays,
+          wake_source=wake_source)
