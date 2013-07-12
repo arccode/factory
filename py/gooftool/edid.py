@@ -18,6 +18,7 @@ from time import sleep
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.hwdb import hwid_tool
+from cros.factory.common import Shell
 
 
 # Constants lifted from EDID documentation.
@@ -123,7 +124,12 @@ def _I2cDump(bus, address, size):
 def LoadFromI2c(path):
   """Run Parse against the output of _I2cDump on the specified path."""
   I2C_LVDS_ADDRESS = 0x50
-  blob = _I2cDump(path, I2C_LVDS_ADDRESS, MINIMAL_SIZE)
+  command = 'i2cdetect -y -r %s %d %d' % (
+      path.split('-')[1], I2C_LVDS_ADDRESS, I2C_LVDS_ADDRESS)
+  # Make sure there is a device in I2C_LVDS_ADDRESS
+  blob = None
+  if 'UU' in Shell(command).stdout:
+    blob = _I2cDump(path, I2C_LVDS_ADDRESS, MINIMAL_SIZE)
   return Parse(blob) if blob is not None else None
 
 
