@@ -223,7 +223,7 @@ class E5601CMock(object):
     AddLookup = MockServerHandler.AddLookup
 
     # Identification
-    MODEL_NAME = 'Agilent Technologies,E5071C,MY46107723,A.09.30\n'
+    MODEL_NAME = 'Agilent Technologies,E5071C,MY99999999,A.09.30\n'
     AddLookup(r'\*IDN\?$', MODEL_NAME)
     # Error codes related responses
     AddLookup(r'\*CLS$', None)
