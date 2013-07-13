@@ -262,7 +262,7 @@ def check_server_status(instance=None):
   @return True for success, otherwise raise exception.
   """
   try:
-    if instance is not None:
+    if instance is None:
       instance = get_instance()
     instance.Ping()
   except:
