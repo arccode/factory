@@ -30,6 +30,7 @@ from cros.factory.utils.process_utils import Spawn
 
 
 EVENTS_DIR = 'events'
+INCREMENTAL_EVENTS_DIR = 'events_incremental'
 REPORTS_DIR = 'reports'
 AUX_LOGS_DIR = 'aux_logs'
 UPDATE_DIR = 'update'
@@ -78,6 +79,7 @@ class ShopFloorBase(object):
     self.update_server = None
     self.factory_log_dir = None
     self.log_server = None
+    self.events_rotate_hourly = False
     self.reports_rotate_hourly = False
     self._auto_archive_logs = None
     self._auto_archive_logs_days = None
@@ -122,9 +124,10 @@ class ShopFloorBase(object):
       # Use external update server and log server
       self.update_server = updater
       self.log_server = updater
-      # When using external updater, reports rotate hourly
+      # When using external updater, events and reports rotate hourly
       # TODO(rongchang): modify internal auto log archive
       self.reports_rotate_hourly = True
+      self.events_rotate_hourly = True
     # Create parameters directory
     self.parameters_dir = os.path.join(self.data_dir, PARAMETERS_DIR)
     utils.TryMakeDirs(self.parameters_dir)
@@ -287,9 +290,23 @@ class ShopFloorBase(object):
       utils.TryMakeDirs(ret)
     return ret
 
+  def SetEventHourlyRotation(self, value):
+    """Enables the option for additional hourly rotation of events."""
+    self.events_rotate_hourly = value
+    return self.events_rotate_hourly
+
+  def SetReportHourlyRotation(self, value):
+    """Enables the option for hourly rotation of reports."""
+    self.reports_rotate_hourly = value
+    return self.reports_rotate_hourly
+
   def GetEventsDir(self):
     """Returns the active events directory."""
     return self.GetLogsDir(EVENTS_DIR, log_format=None)
+
+  def GetIncrementalEventsDir(self):
+    """Returns the active incremental events directory."""
+    return self.GetLogsDir(INCREMENTAL_EVENTS_DIR, log_format=HOURLY_DIR_FORMAT)
 
   def GetReportsDir(self):
     """Returns the active reports directory."""
@@ -556,6 +573,10 @@ class ShopFloorBase(object):
   def UploadEvent(self, log_name, chunk):
     """Uploads a chunk of events.
 
+    In addition to append events to a single file, we appends event to a
+    directory that split on an hourly basis in order to fetch events in a timely
+    approach if events_rotate_hourly flag set to True.
+
     Args:
       log_name: A string of the event log filename. Event logging module creates
           event files with an unique identifier (uuid) as part of the filename.
@@ -574,6 +595,13 @@ class ShopFloorBase(object):
     log_file = os.path.join(self.GetEventsDir(), log_name)
     with open(log_file, 'a') as f:
       f.write(chunk)
+
+    # Wrote events split on an hourly basis
+    if self.events_rotate_hourly:
+      log_file = os.path.join(self.GetIncrementalEventsDir(), log_name)
+      with open(log_file, 'a') as f:
+        f.write(chunk)
+
     return True
 
   def GetTime(self):

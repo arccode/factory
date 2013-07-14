@@ -271,6 +271,43 @@ class ShopFloorServerTest(unittest2.TestCase):
         self.proxy.UploadReport, 'CR001020',
         shopfloor.Binary(tbz2), 'foo')
 
+  def testUploadReportWithHourlyRotation(self):
+    # Other things should be well covered by the testUploadReport.
+    # We only test if the hourly rotating directory created as expected.
+    blob = self._MakeTarFile(factory.FACTORY_LOG_PATH_ON_DEVICE)
+
+    report_name = 'hourly_report_blob.rpt.bz2'
+    # Test the SetReportHourlyRotation is working.
+    self.assertFalse(self.proxy.SetReportHourlyRotation(False))
+    self.assertTrue(self.proxy.SetReportHourlyRotation(True))
+    expected_report_path = os.path.join(
+        self.proxy.GetReportsDir(), report_name)
+    # TODO(itspeter): It might be a risk of low possibility that hour of
+    # getting the path are different when the RPC call is actually made.
+    # A re-run of make test should immediate fix that : )
+    self.proxy.UploadReport('CR001020', shopfloor.Binary(blob),
+                            report_name)
+    self.assertEquals(blob, open(expected_report_path).read())
+
+  def testUploadEventWithHourlyRotataion(self):
+    # Other things should be well covered by the testUploadEvent.
+    # We only test if the hourly rotating directory created as expected.
+    # Test the SetEventHourlyRotation is working.
+    self.assertFalse(self.proxy.SetEventHourlyRotation(False))
+    self.assertTrue(self.proxy.SetEventHourlyRotation(True))
+    incremental_event_file = os.path.join(
+        self.proxy.GetIncrementalEventsDir(), 'LOG_tradasai')
+    self.assertTrue(self.proxy.UploadEvent('LOG_tradasai',
+                                           'PREAMBLE\n---\nEVENT_1\n'))
+    # There is a low possibility flaky that hour of getting the path
+    # are different when the RPC call is actually made.
+    # A re-run of make test should immediate fix that : )
+    self.assertTrue(os.path.isfile(incremental_event_file))
+    with open(incremental_event_file, 'r') as f:
+      events = [event.strip() for event in f.read().split('---')]
+      self.assertEqual(events[0], 'PREAMBLE')
+      self.assertEqual(events[1], 'EVENT_1')
+
   def testUploadReport(self):
     # Upload simple blob
     blob = self._MakeTarFile(factory.FACTORY_LOG_PATH_ON_DEVICE)
