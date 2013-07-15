@@ -210,7 +210,7 @@ class RfFramework(object):
         failure = 'DUT %r is not in the calibration_target' % (
             self.unique_identification)
         factory.console.info(failure)
-        self.delegate.Fail(failure)
+        self.delegate.ui.Fail(failure)
         self.delegate.JoinUIThread()
       self.calibration_target = (
           self.calibration_target[self.unique_identification])
