@@ -51,7 +51,7 @@ class CPUUsageMonitor(object):
       # Find up to NUM_TOP_PROCESSES processes with CPU usage >= CPU_THRESHOLD
       for process in top_output[0:self.NUM_TOP_PROCESSES]:
         attr = process.split()
-        if int(attr[cpu_column]) < self.CPU_THRESHOLD:
+        if float(attr[cpu_column]) < self.CPU_THRESHOLD:
           break
         command = ' '.join(attr[command_column:])[0:self.COMMAND_LENGTH]
         msg.append('Process %s using %s%% CPU: %s' %
