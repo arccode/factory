@@ -58,6 +58,12 @@ rma_number_regex: ^RMA[0-9]{8}$
 rma_number_yaml_must_exist: True
 # Set this to the path to your HWIDv3 HWDB
 hwidv3_hwdb_path: ../../hwid
+# Set this to a dict of components of dicts specifying the translation for
+# HWID to factory naming.
+hwid_factory_translation:
+  some_component:
+    our_vend_a: their_vendor_a
+    our_vendor_b: their_vendor_b
 
 To use this module, run following command in shopfloor folder:
   shopfloor_server.sh -m simple_rma_shopfloor -d <PATH TO DATA DIR>
@@ -83,6 +89,7 @@ _DEVICE_INFO_FIELDS = []
 _RMA_NUMBER_REGEX = r'^RMA[0-9]{8}$'
 _RMA_NUMBER_YAML_MUST_EXIST = True
 _HWIDV3_HWDB_PATH = '../../hwid'
+_HWID_FACTORY_TRANSLATION = []
 
 def _synchronized(f):
   """
@@ -129,6 +136,7 @@ class ShopFloor(shopfloor.ShopFloorBase):
     self.rma_number_regex = _RMA_NUMBER_REGEX
     self.rma_number_yaml_must_exist = _RMA_NUMBER_YAML_MUST_EXIST
     self.hwidv3_hwdb_path = _HWIDV3_HWDB_PATH
+    self.hwid_factory_translation = _HWID_FACTORY_TRANSLATION
     # TODO(bhthompson) put this file in a more proper config directory
     data_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                              "rma_config_board.yaml")
@@ -157,6 +165,10 @@ class ShopFloor(shopfloor.ShopFloorBase):
         logging.info('Using board hwidv3_hwdb_path: %s',
                      board_config['hwidv3_hwdb_path'])
         self.hwidv3_hwdb_path = board_config['hwidv3_hwdb_path']
+      if 'hwid_factory_translation' in board_config:
+        logging.info('Using board hwid_factory_translation: %s',
+                     board_config['hwid_factory_translation'])
+        self.hwid_factory_translation = board_config['hwid_factory_translation']
     else:
       logging.warning('No rma_config_board.yaml found, using defaults.')
 
@@ -392,10 +404,14 @@ class ShopFloor(shopfloor.ShopFloorBase):
               component_name = False
           else:
             component_name = components[stripped_key][0].component_name
+          # In some cases the component labeling may not match between the
+          # HWID definition and the factory's definition, so we translate.
+          if stripped_key in self.hwid_factory_translation:
+            if component_name in self.hwid_factory_translation[stripped_key]:
+              component_name = (
+                  self.hwid_factory_translation[stripped_key][component_name])
           logging.info('%s: calculated %s as %s', data['serial_number'], key,
                        component_name)
-          # TODO(bhthompson): in some cases the component_name values may need
-          # translated to match original factory data, we should translate here
           setattr(device_data, key, component_name)
         elif key == 'region':
           locale = device_data.vpd['ro']['initial_locale']
