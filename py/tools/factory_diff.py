@@ -202,7 +202,7 @@ def FetchBranch(repo_path, prefix, branch, local_branch_name):
   Spawn(cmd, check_call=True)
 
 
-def DiffRepo(repo_path, branch, author, branch_only, init_with_master):
+def DiffRepo(repo_path, args, init_with_master):
   print '%s*** Diff %s ***%s' % (COLOR_GREEN, repo_path, COLOR_RESET)
   os.chdir(GetFullRepoPath(repo_path))
   prefix = FindGitPrefix(repo_path)
@@ -211,13 +211,13 @@ def DiffRepo(repo_path, branch, author, branch_only, init_with_master):
   # cros/master or cros-internal/master
   master_branch_prefix = 'm' if init_with_master else prefix
   master_branch = master_branch_prefix + '/master'
-  compare_branch = prefix + '/' + branch
+  compare_branch = prefix + '/' + args.branch
 
   # Force fetching for if repo is in FORCE_FETCH_REPO_LIST.
   # When fetching for the branch, prefix can only be 'cros' or 'cros-internal'.
   if repo_path in FORCE_FETCH_REPO_LIST:
     FetchBranch(repo_path, prefix, 'master', 'TEMP_MASTER')
-    FetchBranch(repo_path, prefix, branch, 'TEMP_COMPARE')
+    FetchBranch(repo_path, prefix, args.branch, 'TEMP_COMPARE')
     master_branch, compare_branch = 'TEMP_MASTER', 'TEMP_COMPARE'
 
   # Repo not in FORCE_FECH_REPO_LIST should contain both branches.
@@ -230,20 +230,22 @@ def DiffRepo(repo_path, branch, author, branch_only, init_with_master):
   cmd = ['git', 'log', '--cherry-pick', '--oneline', '--left-right',
          '--pretty=format:%m %h (%an) %s',
          '%s...%s' % (master_branch, compare_branch)]
-  if author:
-    cmd += ['--author', author]
+  if args.author:
+    cmd += ['--author', args.author]
   diff = CheckOutput(cmd)
 
   diff_list = GetDiffList(diff)
   diff_list = RemoveCherryPick(diff_list)
 
   # Show branch name. (e.g. [4131.B])
-  branch_name = '[%s]' % branch[-6:]
+  branch_name = '[%s]' % args.branch[-6:]
 
   # To make branch stands out, we only show [------] for commits that
   # are on ToT.
   for entry in diff_list:
-    if branch_only and entry.left_right == '<':
+    if args.factory_only and entry.left_right == '<':
+      continue
+    if args.master_only and entry.left_right == '>':
       continue
     print '%s%s %s%s %s %s(%s)%s' % (COLOR_YELLOW,
                                      '[------]' if entry.left_right == '<'
@@ -270,6 +272,8 @@ def main():
                       help='Limit the output to this author only')
   parser.add_argument('--factory_only', '-o', action='store_true',
                       help='Only show commits on factory branch')
+  parser.add_argument('--master_only', '-m', action='store_true',
+                      help='Only show commits on ToT')
   parser.add_argument('--show_other_repos', '-s', action='store_true',
                       help='Show commits in OTHER_REPO_LIST as well')
   args = parser.parse_args()
@@ -300,9 +304,14 @@ def main():
     repo_list = [x for x in repo_list if x not in DIFFERENT_MASTER_REPO_LIST]
     init_with_master = False
 
+  if args.factory_only and args.master_only:
+    logging.warning('Both --factory_only and --master_only specified. '
+                    'Ignoring both.')
+    args.factory_only = False
+    args.master_only = False
+
   for repo in repo_list:
-    DiffRepo(repo, args.branch, args.author, args.factory_only,
-             init_with_master)
+    DiffRepo(repo, args, init_with_master)
   sys.exit(0)
 
 if __name__ == '__main__':
