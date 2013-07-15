@@ -15,9 +15,10 @@ from twisted.internet import reactor
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.shopfloor import REPORTS_DIR
+from cros.factory.test.shopfloor import get_instance
 from cros.factory.shopfloor.launcher import constants
 from cros.factory.shopfloor.launcher import env
-from cros.factory.test.utils import TryMakeDirs
+from cros.factory.test.utils import FormatExceptionOnly, TryMakeDirs
 from cros.factory.utils.process_utils import Spawn
 
 ARCHIVE_DIR = 'archive'
@@ -30,8 +31,11 @@ ARCHIVE_SUFFIX = '.tar.bz2'
 # Check report folder every _DEFAULT_PERIOD_MINUTES
 _DEFAULT_PERIOD_MINUTES = 10
 
+# Default URL for the XMLRPC server
+_DEFAULT_RPC_URL = 'http://localhost:8082/'
 
-def ArchiveReports(minutes):
+
+def ArchiveReports(minutes, rpc_url):
   """Archives reports.
 
   This archiver searches reports directory periodically and archives past logsi
@@ -39,6 +43,7 @@ def ArchiveReports(minutes):
 
   Args:
     minutes: checking period in minutes.
+    rpc_url: the URL to the RPC server.
   """
 
   shopfloor_data = os.path.join(env.runtime_dir, constants.SHOPFLOOR_DATA)
@@ -46,6 +51,18 @@ def ArchiveReports(minutes):
   archive_dir = os.path.join(shopfloor_data, ARCHIVE_DIR)
   recycle_dir = os.path.join(shopfloor_data, RECYCLE_DIR)
   map(TryMakeDirs, [reports_dir, archive_dir, recycle_dir])
+
+  # Trigger to generate the latest report dir, empty directory will be
+  # recycled later.
+  try:
+    get_instance(url=rpc_url, timeout=5).GetReportsDir()
+  except: #pylint: disable=W0702
+    exception_string = FormatExceptionOnly()
+    logging.info('Making RPC call GetReportsDir() to %s', rpc_url)
+    # Continue to archive if the backend even if the backend is down.
+    logging.error(
+        'Failed to make RPC call GetReportsDir() - %s, ignore and continue.',
+        exception_string)
 
   # Get an accending order list of dirs in watching dir.
   dirs = filter((lambda path: os.path.isdir(os.path.join(reports_dir, path)) and
@@ -107,13 +124,17 @@ def main():
   parser.add_option('-p', '--period', dest='period', metavar='PERIOD_MINITES',
                     default=_DEFAULT_PERIOD_MINUTES, type='int',
                     help='run every N minutes (default: %default)')
+  parser.add_option('-u', '--rpc_url', dest='rpc_url', metavar='RPC_URL',
+                    default=_DEFAULT_RPC_URL, type='str',
+                    help="RPC server's URL (default: %default)")
   (options, args) = parser.parse_args()
   if args:
     parser.error('Invalid args: %s' % ' '.join(args))
 
-  # Start the first cycle.
-  reactor.callLater(1, ArchiveReports,  # pylint: disable=E1101
-                    int(options.period))
+  # Start the first cycle, give the httpd (RPC Server) 30 seconds to be up
+  # before making the first RPC call.
+  reactor.callLater(30, ArchiveReports,  # pylint: disable=E1101
+                    int(options.period), options.rpc_url)
 
   signal.signal(signal.SIGTERM, SignalHandler)
   signal.signal(signal.SIGINT, SignalHandler)
