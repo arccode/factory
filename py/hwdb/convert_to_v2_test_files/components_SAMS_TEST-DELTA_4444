@@ -1,0 +1,24 @@
+{
+    'data_bitmap_fv': ['data_x86-alex/bmp_SAMS_ALEX2_ALPHA-ES_0271.bmp'],
+    'data_display_geometry': ['1280x800'],
+    'data_recovery_url': ['http://google.com/chromeos/recovery'],
+    # 01VFA617M
+    'hash_ec_firmware': ['a9f090e7b059e5581ffdf0126375fc0cb371b3f2c5b55d6dc4b71d59ce8c5222'],
+    # Alex.03.61.0735.0056G3-MPSigned.fd
+    'hash_ro_firmware': ['9816afb02d0338bb8981229ce1847d68dcb9b5ade538a7b1eef468f978aa6c83'],
+    'key_recovery': ['data_x86-alex/mpkeys/recovery_key.vbpubk'],
+    'key_root': ['data_x86-alex/mpkeys/root_key.vbpubk'],
+    'target_board': ['x86-alex_he'],
+    'part_id_3g': ['Not Present'],  # Wifi Only
+    'part_id_audio_codec': ['Realtek ALC272'],
+    'part_id_cpu': ['Intel(R) Atom(TM) CPU N570   @ 1.66GHz'],
+    'part_id_dram': ['2048'], # 2GB SKU
+    'part_id_embedded_controller': ['SMSC FDC37M81x (id=0x4d, rev=0x01)'],
+    'part_id_ethernet': ['*'],  # Not Present
+    'part_id_flash_chip': ['Macronix MX25L3205'],
+    'part_id_hwqual': ['SAMS ALEX2 ALPHA-ES 0271'],
+    'part_id_keyboard': ['xkb:es::spa'],
+    'part_id_wireless': ['168c:0030'],  # Atheros AR9300 Wireless
+    'vendor_id_touchpad': ['Synaptics TouchPad V8.0 #877065'],
+    'version_rw_firmware': ['3'],
+}

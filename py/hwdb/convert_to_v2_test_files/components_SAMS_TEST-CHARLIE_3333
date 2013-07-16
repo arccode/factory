@@ -1,0 +1,24 @@
+{
+    'data_bitmap_fv': ['data_x86-alex/bmp_SAMS_ALEX2_DELTA-GB_4059.bmp'],
+    'data_display_geometry': ['1280x800'],
+    'data_recovery_url': ['http://google.com/chromeos/recovery'],
+    # 01VFA617M
+    'hash_ec_firmware': ['a9f090e7b059e5581ffdf0126375fc0cb371b3f2c5b55d6dc4b71d59ce8c5222'],
+    # Alex.03.61.0735.0056G3-MPSigned.fd
+    'hash_ro_firmware': ['c964ee45682c179f888f9b657a0bd28687740634b5bc376e47303c683cc15c3d'],
+    'key_recovery': ['data_x86-alex/mpkeys/recovery_key.vbpubk'],
+    'key_root': ['data_x86-alex/mpkeys/root_key.vbpubk'],
+    'target_board': ['x86-alex_he'],
+    'part_id_3g': ['Not Present'],  # Wifi Only
+    'part_id_audio_codec': ['Realtek ALC272'],
+    'part_id_cpu': ['Intel(R) Atom(TM) CPU N570   @ 1.66GHz'],
+    'part_id_dram': ['2048'], # 2GB SKU
+    'part_id_embedded_controller': ['SMSC FDC37M81x (id=0x4d, rev=0x01)'],
+    'part_id_ethernet': ['*'],  # Not Present
+    'part_id_flash_chip': ['Winbond W25Q32'],
+    'part_id_hwqual': ['SAMS ALEX2 DELTA-GB 4059'],
+    'part_id_keyboard': ['xkb:gb:extd:eng'],
+    'part_id_wireless': ['168c:0030'],  # Atheros AR9300 Wireless
+    'vendor_id_touchpad': ['Synaptics TouchPad V8.0 #877065'],
+    'version_rw_firmware': ['3'],
+}

@@ -9,6 +9,7 @@ Designed to be used to convert ALEX component files to v2.
 """
 import argparse
 import os
+import yaml
 
 from os import listdir
 from os.path import isfile, join
@@ -21,13 +22,49 @@ class Hwid:
     self.components = {}
     self.variants = []
     self.volatiles = []
+    self.missing = []
+    self.dontcare = []
+
+  def GetV2BomDict(self):
+    """Creates a BOM dictionary from the current BOM in the v2 format.
+
+    Returns:
+      Dictionary containing the data from the current BOM.
+    """
+    bom_dict = dict()
+    primary = {'classes_dontcare': sorted(self.dontcare),
+                   'classes_missing': sorted(self.missing),
+                   'components': self.components}
+    bom_dict = {'primary': primary, 'variants': sorted(self.variants)}
+    return bom_dict
+
+
+class InitialConfig:
+  """Initial config"""
+  def __init__(self, num):
+    self.num = num
+    self.constraints = {}
+    self.enforced_boms = []
+
+  def GetV2InitialConfigDict(self):
+    """Creates an initial config dictionary from the current initial config in
+    the v2 format.
+
+    Returns:
+      Dictionary containing the data from the current initial config.
+    """
+    config_dict = {'constraints': self.constraints,
+                   'enforced_for_boms': sorted(self.enforced_boms)}
+    return config_dict
 
 
 class Variant:
   """HWID variant"""
   def __init__(self):
+    self.letter = ''
     self.components = {}
     self.missing = []
+    self.dontcare = []
 
   def Equals(self, var):
     """Checks if this variant is the same as another variant.
@@ -38,26 +75,33 @@ class Variant:
     Returns:
       False if the variants are different, and True otherwise.
     """
-    if not self.components == var.components:
-      return False
-    if not self.missing == var.missing:
-      return False
-    return True
+    return ((self.components == var.components) and
+            (self.missing == var.missing))
+
+  def GetV2VariantDict(self):
+    """Creates an variant dictionary from the current variant in the v2 format.
+
+    Returns:
+      Dictionary containing the data from the current variant.
+    """
+    variant_dict = {'classes_dontcare': sorted(self.dontcare),
+                    'classes_missing': sorted(self.missing),
+                    'components': self.components}
+    return variant_dict
 
 
-class VolatileValue:
+class Volatile:
   """HWID volatile"""
-  def __init__(self, name, value, vol_type):
+  def __init__(self, name):
     self.name = name
-    self.value = value
-    self.vol_type = vol_type
+    self.volatile_values = {}
 
 
 def ConvertV1Dir(directory, outfile):
   """Creates a v2 HWID file using v1 files in directory and saving to outfile.
 
   Args:
-    directory: directory containing v1 component files.
+    directory: Directory containing v1 component files.
     outfile: v2 file that is created with data from the v1 files.
   """
   all_files = [f for f in listdir(directory) if isfile(join(directory, f))]
@@ -186,13 +230,13 @@ def ConvertV1Dir(directory, outfile):
         del hwids[old_hwid.name]
         hwids[old_hwid.name] = old_hwid
     component_file.close()
-  MakeV2File(hwids, outfile)
+  MakeV2FileFromV1(hwids, outfile)
 
-def MakeV2File(hwids, outfile):
+def MakeV2FileFromV1(hwids, outfile):
   """Creates a v2 file from the list of hwids and saves it to outfile.
 
   Args:
-    hwids: list of BOM objects.
+    hwids: List of BOM objects.
     outfile: v2 file that is created with data from the v1 files.
   """
   variants = []
@@ -284,10 +328,10 @@ def GenerateVariantLetterList(hwid, variants):
 
   Args:
     hwid: BOM object.
-    variants: all current variants for the component file.
+    variants: All current variants for the component file.
 
   Returns:
-    list of variant letters.
+    List of variant letters.
   """
   var_letter_list = []
   if len(hwid.variants) == 0:
@@ -313,19 +357,185 @@ def GenerateVariantLetterList(hwid, variants):
         var_letter_list.append('B' + chr(var_num + ord ('A') + 1))
   return var_letter_list
 
+def ConvertV15(infile, outfile):
+  """Converts a v1.5 file to v2.
+
+  Args:
+    infile: Input file.
+    outfile: Output file.
+  """
+  v15_file = open(infile, 'r')
+  v15_yaml = yaml.load(v15_file)
+  v15_file.close()
+
+  SaveYamlToV2File(ConvertV15YamlToV2Yaml(v15_yaml), outfile)
+
+def ConvertV15YamlToV2Yaml(v15_yaml):
+  """Converts a v15 yaml to a v2 yaml.
+
+  Args:
+    v15_yaml: v1.5 yaml dict.
+
+  Returns:
+    A v2 yaml dict.
+  """
+  boms = dict()
+  for hwid in v15_yaml['hwid_map']:
+    bom = Hwid(hwid)
+    for cls, comp in v15_yaml['hwid_map'][hwid]['component_map'].items():
+      if comp == 'NONE':
+        bom.missing.append(cls)
+      elif comp == 'ANY':
+        bom.dontcare.append(cls)
+      else:
+        bom.components[cls] = comp
+    bom.variants = v15_yaml['hwid_map'][hwid]['variant_list']
+    boms[hwid] = bom
+  hwid_status = dict()
+  statuses = ['deprecated', 'eol', 'qualified', 'supported']
+  for status in statuses:
+    hwid_status[status] = list()
+    if status in v15_yaml['hwid_status_map'].keys():
+      for hwid in v15_yaml['hwid_status_map'][status]:
+        hwid_split = hwid.rpartition('-')
+        hwid_status[status].append('{0} *-{1}'.format(hwid_split[0],
+                                                      hwid_split[2]))
+  initial_configs = dict()
+  for conf in v15_yaml['initial_config_map']:
+    config = InitialConfig('{0}'.format(conf))
+    config.constraints = v15_yaml['initial_config_map'][conf]
+    initial_configs[conf] = config
+  for conf in v15_yaml['initial_config_use_map']:
+    if conf in initial_configs:
+      initial_configs[conf].enforced_boms = (
+          v15_yaml['initial_config_use_map'][conf])
+  variants = dict()
+  for var in v15_yaml['variant_map']:
+    new_var = Variant()
+    new_var.letter = var
+    if v15_yaml['variant_map'][var]:
+      new_var.components['keyboard'] = v15_yaml['variant_map'][var][0]
+      if len(v15_yaml['variant_map'][var]) > 1:
+        if not v15_yaml['variant_map'][var][1] == 'none':
+          new_var.components['custom'] = v15_yaml['variant_map'][var][1]
+        else:
+          new_var.missing.append('custom')
+    variants[var] = new_var
+  volatiles = dict()
+  for vol in v15_yaml['volatile_map']:
+    new_vol = Volatile(vol)
+    new_vol.volatile_values = v15_yaml['volatile_map'][vol]
+    volatiles[vol] = new_vol
+  volatile_values = {'hash_gbb': dict(),
+                     'key_recovery': dict(),
+                     'key_root': dict(),
+                     'ro_ec_firmware': dict(),
+                     'ro_main_firmware': dict()}
+  for name, value in v15_yaml['volatile_value_map'].items():
+    new_name = ''
+    vol_type = value[:2] # Type determines the format of the value in v2
+    if vol_type == 'gv':
+      new_name = 'hash_gbb_{0}'.format(len(volatile_values['hash_gbb']))
+      new_value = value
+      volatile_values['hash_gbb'][new_name] = new_value
+    elif vol_type == 'kv':
+      new_value = value
+      if 'recovery' in name:
+        new_name = 'key_recovery_{0}'.format(len(volatile_values[
+            'key_recovery']))
+        volatile_values['key_recovery'][new_name] = new_value
+      elif 'root' in name:
+        new_name = 'key_root_{0}'.format(len(volatile_values['key_root']))
+        volatile_values['key_root'][new_name] = new_value
+      else:
+        raise AttributeError('Unknown key type. Found: {0}'.format(name))
+    elif vol_type == 'ev':
+      new_name = 'ro_ec_firmware_{0}'.format(len(volatile_values[
+          'ro_ec_firmware']))
+      new_value = '{0}#{1}'.format(value, name)
+      volatile_values['ro_ec_firmware'][new_name] = new_value
+    elif vol_type == 'mv':
+      new_name = 'ro_main_firmware_{0}'.format(len(volatile_values[
+          'ro_main_firmware']))
+      new_value = '{0}#{1}'.format(
+          value, name.replace('mpkeys/', '').replace('bios_', ''))
+      volatile_values['ro_main_firmware'][new_name] = new_value
+    else:
+      raise AttributeError('Incorrect volatile type. Found: {0}'.format(
+          vol_type))
+    # Update the variable names for the volatile
+    for vol in volatiles.values():
+      for vol_key, vol_value in vol.volatile_values.items():
+        if vol_value == name:
+          vol.volatile_values[vol_key] = new_name
+  vpd_ro_fields = v15_yaml['vpd_ro_field_list']
+
+  boms_output, hwid_status_output, initial_configs_output, variants_output, \
+      volatile_values_output, volatiles_output = (dict(), dict(), dict(),
+                                                  dict(), dict(), dict())
+  vpd_ro_fields_output = list()
+  all_classes = set()
+  for bom in boms.values():
+    all_classes.update(bom.components.keys())
+  for bom in boms.values():
+    for cls in all_classes:
+      if cls not in bom.components and cls not in bom.missing:
+        bom.missing.append(cls)
+    boms_output[bom.name] = bom.GetV2BomDict()
+  hwid_status_output = hwid_status
+  for conf in initial_configs.values():
+    initial_configs_output[conf.num] = conf.GetV2InitialConfigDict()
+  for var in variants.values():
+    variants_output[var.letter] = var.GetV2VariantDict()
+  for vol_type in volatile_values.values():
+    for vol, value in vol_type.items():
+      volatile_values_output[vol] = value
+  for volatile in volatiles.values():
+    volatiles_output[volatile.name] = volatile.volatile_values
+  vpd_ro_fields_output = vpd_ro_fields
+
+  # Add all of the dictionaries to the yaml_object
+  yaml_output = {'boms': boms_output,
+                 'hwid_status': hwid_status_output,
+                 'initial_configs': initial_configs_output,
+                 'variants': variants_output,
+                 'volatile_values': volatile_values_output,
+                 'volatiles': volatiles_output,
+                 'vpd_ro_fields': vpd_ro_fields_output}
+
+  return yaml_output
+
+def SaveYamlToV2File(yaml_dict, outfile):
+  """Saves a yaml dict to a v2 yaml file.
+
+  Args:
+    yaml_dict: dict that you want to save.
+    outfile: output file.
+  """
+  v2_file = open(outfile, 'w')
+  v2_file.write('# WARNING: This file is AUTOMATICALLY GENERATED, do not edit.'
+                + '\n')
+  v2_file.write('# The proper way to modify this file is using the hwid_tool.'
+                + '\n')
+  v2_file.write(yaml.dump(yaml_dict, indent=2, default_flow_style=False))
+  v2_file.close()
+
 def main():
   """Checks for command line arguments and calls the corresponding function"""
   parser = argparse.ArgumentParser(description='Convert from one HWID version'
                                    + ' to v2.')
   parser.add_argument('command', help='type of conversion to perform',
-                      choices=['convert_v1_dir'])
+                      choices=['convert_v1_dir', 'convert_v15_file'])
   parser.add_argument('-d', '--directory', help='directory of old format')
+  parser.add_argument('-i', '--infile', help='input file')
   parser.add_argument('-o', '--outfile', required=True, help='output file')
   args = parser.parse_args()
   if args.command == 'convert_v1_dir':
     ConvertV1Dir(args.directory, args.outfile)
+  elif args.command == 'convert_v15_file':
+    ConvertV15(args.infile, args.outfile)
   else:
-    raise NotImplementedError("Function <" + args.command + "> does not exist")
+    raise NotImplementedError('Function <' + args.command + '> does not exist')
 
 if __name__ == '__main__':
   main()
