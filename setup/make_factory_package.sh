@@ -48,6 +48,8 @@ DEFINE_string complete_script "" \
   "If set, include the script for the last-step execution of factory install"
 DEFINE_string release "" \
   "Directory and file containing release image: /path/chromiumos_image.bin"
+DEFINE_string omaha_data_dir "" \
+  "Directory to place all generated data"
 DEFINE_string subfolder "" \
   "If set, the name of the subfolder to put the payload items inside"
 DEFINE_string usbimg "" \
@@ -67,7 +69,6 @@ DEFINE_string config "" \
 'config file itself) in config file to use relative path'
 DEFINE_boolean run_omaha ${FLAGS_FALSE} \
   "Run mini-omaha server after factory package setup completed."
-
 # Usage Help
 FLAGS_HELP="Prepares factory resources (mini-omaha server, RMA/usb/disk images)
 
@@ -201,10 +202,15 @@ check_parameters() {
 }
 
 find_omaha() {
-  OMAHA_DIR="$(readlink -f "${SCRIPT_DIR}")"
-  OMAHA_PROGRAM="${OMAHA_DIR}/miniomaha.py"
-  OMAHA_CONF="${OMAHA_DIR}/miniomaha.conf"
+  OMAHA_PROGRAM="${SCRIPT_DIR}/miniomaha.py"
 
+  if [ -n "${FLAGS_omaha_data_dir}" ]; then
+    OMAHA_DATA_DIR="$(readlink -f "${FLAGS_omaha_data_dir}")/"
+  else
+    OMAHA_DATA_DIR="${SCRIPT_DIR}/static/"
+  fi
+
+  OMAHA_CONF="${OMAHA_DATA_DIR}/miniomaha.conf"
   [ -f "${OMAHA_PROGRAM}" ] ||
     die "Cannot find mini-omaha server program: $OMAHA_PROGRAM"
 }
@@ -214,7 +220,6 @@ setup_environment() {
   # chars like ~ are processed; just doing FOO=`readlink -f ${FOO}` won't work.
 
   find_omaha
-  OMAHA_DATA_DIR="${OMAHA_DIR}/static/"
 
   # Note: The subfolder flag can only append configs.  That means you will need
   # to have unique board IDs for every time you run.  If you delete
@@ -728,14 +733,15 @@ generate_omaha() {
 ]
 " >>"${OMAHA_CONF}"
 
-  local program="$(basename "${OMAHA_PROGRAM}")"
-  local config="$(basename "${OMAHA_CONF}")"
-
-  info "The miniomaha server lives in: $OMAHA_DIR
+  local data_dir_param=""
+  if [ -n "${FLAGS_omaha_data_dir}" ]; then
+      data_dir_param="--data_dir ${OMAHA_DATA_DIR}"
+  fi
+  info "The miniomaha server lives in: $OMAHA_DATA_DIR
   To validate the configutarion, run:
-    python2.6 $program --factory_config $config --validate_factory_config
+    python2.6 $OMAHA_PROGRAM $data_dir_param --validate_factory_config
   To run the server:
-    python2.6 $program --factory_config $config"
+    python2.6 $OMAHA_PROGRAM $data_dir_param"
 }
 
 check_cherrypy3() {
@@ -763,14 +769,13 @@ run_omaha() {
 
   find_omaha
 
-  info "Running mini-omaha in $OMAHA_DIR..."
+  info "Running mini-omaha in $SCRIPT_DIR..."
   (set -e
-   cd "$OMAHA_DIR"
    info "Validating factory config..."
-   "$python" "${OMAHA_PROGRAM}" --factory_config "${OMAHA_CONF}" \
+   "$python" "${OMAHA_PROGRAM}" --data_dir "${OMAHA_DATA_DIR}" \
              --validate_factory_config
    info "Starting mini-omaha..."
-   "$python" "${OMAHA_PROGRAM}" --factory_config "${OMAHA_CONF}"
+   "$python" "${OMAHA_PROGRAM}" --data_dir "${OMAHA_DATA_DIR}"
   )
 }
 

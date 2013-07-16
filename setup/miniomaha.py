@@ -130,10 +130,10 @@ if __name__ == '__main__':
   parser = optparse.OptionParser(usage)
   parser.add_option('--data_dir', dest='data_dir',
                     help='Writable directory where static lives',
-                    default=base_path)
+                    default=os.path.join(base_path,'static'))
   parser.add_option('--factory_config', dest='factory_config',
                     help='Config file for serving images from factory floor.',
-                    default=base_path + "/miniomaha.conf")
+                    default=None)
   parser.add_option('--port', default=8080,
                     help='Port for the dev server to use.')
   parser.add_option('--proxy_port', default=None,
@@ -144,7 +144,7 @@ if __name__ == '__main__':
   parser.set_usage(parser.format_help())
   (options, _) = parser.parse_args()
 
-  static_dir = os.path.realpath('%s/static' % options.data_dir)
+  static_dir = os.path.realpath(options.data_dir)
   os.system('mkdir -p %s' % static_dir)
 
   cherrypy.log('Data dir is %s' % options.data_dir, 'DEVSERVER')
@@ -158,8 +158,19 @@ if __name__ == '__main__':
   )
 
   # Sanity-check for use of validate_factory_config.
+  # In previous version, the default configuration file is in base_path,
+  # but now it is in data_dir,
+  # so we want to check both for backward compatibility
   if not options.factory_config:
-    parser.error('factory_config must be assigned.')
+    config_files = (os.path.join(base_path, 'miniomaha.conf'),
+                    os.path.join(options.data_dir, 'miniomaha.conf'))
+    exists = map(os.path.exists, config_files)
+    if all(exists):
+      parser.error('Confusing factory config files')
+    elif any(exists):
+      options.factory_config = config_files[exists.index(True)]
+    else:
+      parser.error('No factory files found')
 
   updater.ImportFactoryConfigFile(options.factory_config,
                                   options.validate_factory_config)
