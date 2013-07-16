@@ -136,8 +136,14 @@ class SuspendResumeTest(unittest2.TestCase):
       if cur_time >= self.resume_at - 1:
         self.attempted_wake_extensions += 1
         logging.warn('Late suspend detected, attempting wake extension')
-        open(self.args.wakealarm_path, 'w').write(
-            '+=' + str(_MIN_SUSPEND_MARGIN_SECS))
+        try:
+          with open(self.args.wakealarm_path, 'w') as f:
+            f.write('+=' + str(_MIN_SUSPEND_MARGIN_SECS))
+        except IOError:
+          # The write to wakealarm returns EINVAL (22) if no alarm is active
+          logging.warn('Write to wakealarm failed, assuming we woke: %s',
+                       utils.FormatExceptionOnly())
+          break
         if (self._ReadSuspendCount() >= self.initial_suspend_count + self.run
             and self._ReadCurrentTime() < cur_time +
             _MIN_SUSPEND_MARGIN_SECS):
