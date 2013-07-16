@@ -13,7 +13,6 @@ import cherrypy
 import optparse
 import os
 import socket
-import subprocess
 import sys
 
 import miniomaha_engine
@@ -21,17 +20,15 @@ import miniomaha_engine
 CACHED_ENTRIES = 12
 
 # Sets up global to share between classes.
-global updater
-updater = None
 
-def _GetConfig(options):
+def _GetConfig(opts):
   """Returns the configuration for the miniomaha."""
   base_config = { 'global':
                   { 'server.log_request_headers': True,
                     'server.protocol_version': 'HTTP/1.1',
                     'server.socket_host':
                       '::' if socket.has_ipv6 else '0.0.0.0',
-                    'server.socket_port': int(options.port),
+                    'server.socket_port': int(opts.port),
                     'server.socket_timeout': 6000,
                     'response.timeout': 6000,
                     'tools.staticdir.root':
