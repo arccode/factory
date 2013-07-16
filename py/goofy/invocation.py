@@ -10,7 +10,6 @@ import os
 import cPickle as pickle
 import pipes
 import re
-import shutil
 import signal
 import syslog
 import subprocess
@@ -37,6 +36,8 @@ from cros.factory.test import utils
 from cros.factory.test.args import Args
 from cros.factory.test.event import Event
 from cros.factory.test.factory import TestState
+from cros.factory.test.test_lists.test_lists import BuildAllTestLists
+from cros.factory.test.test_lists.test_lists import OldStyleTestList
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils.string_utils import DecodeUTF8
 
@@ -125,7 +126,16 @@ class PyTestInfo(object):
 
   def ReadTestList(self):
     '''Reads and returns the test list.'''
-    return factory.read_test_list(self.test_list)
+    if os.sep in self.test_list:
+      # It's a path pointing to an old-style test list; use it.
+      return factory.read_test_list(self.test_list)
+    else:
+      all_test_lists = BuildAllTestLists()
+      test_list = all_test_lists[self.test_list]
+      if isinstance(test_list, OldStyleTestList):
+        return test_list.Load()
+      else:
+        return test_list
 
 
 class TestInvocation(object):
