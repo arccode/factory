@@ -27,10 +27,12 @@ _CMD_CONFIG_AUDIO = ['amixer', '-c', '0', 'cset']
 _SAMPLE_FILE = 'fhorn.wav'
 
 _MSG_AUDIO_INFO = test_ui.MakeLabel(
-    'Press & hold \'R\' to record, Playback will follow<br><br>'
-    'Press & hold \'P\' to play sample',
-    zh='压住 \'R\' 键开始录音，之后会重播录到的声音<br><br>'
-    '压住 \'P\' 键播放范例',
+    'Press & hold \'R\' to record, Playback will follow<br>'
+    'Press & hold \'P\' to play sample<br>'
+    'Press space to mark pass',
+    zh='压住 \'R\' 键开始录音，之后会重播录到的声音<br>'
+    '压住 \'P\' 键播放范例<br>'
+    '压下空白表示成功',
     css_class='audio-test-info')
 
 _HTML_AUDIO = """
@@ -61,6 +63,8 @@ window.onkeydown = function(event) {
     test.sendTestEvent("HandleRecordEvent", 'start');
   } else if (event.keyCode == 80) { // 'P'
     test.sendTestEvent("HandleSampleEvent", 'start');
+  } else if (event.keyCode == 32) { // space
+    test.sendTestEvent("MarkPass", '');
   }
 }
 
@@ -103,6 +107,7 @@ class AudioBasicTest(unittest.TestCase):
 
     self.ui.AddEventHandler('HandleRecordEvent', self.HandleRecordEvent)
     self.ui.AddEventHandler('HandleSampleEvent', self.HandleSampleEvent)
+    self.ui.AddEventHandler('MarkPass', self.MarkPass)
 
   def ConfigAmixerSetting(self, config_list):
     for config in config_list:
@@ -130,6 +135,9 @@ class AudioBasicTest(unittest.TestCase):
       TerminateOrKillProcess(self.current_process)
       logging.info('stop play sample')
       self.key_press = None
+
+  def MarkPass(self, event): # pylint: disable=W0613
+    self.ui.Pass()
 
   def runTest(self):
     self.ui.Run()
