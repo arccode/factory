@@ -1352,11 +1352,12 @@ class Goofy(object):
     # sync_log_period_secs isn't set (no background
     # syncing), since we may kick it to sync logs in its
     # thread.
-    self.system_log_manager = SystemLogManager(
-      sync_log_paths=self.test_list.options.sync_log_paths,
-      sync_period_sec=self.test_list.options.sync_log_period_secs,
-      clear_log_paths=self.test_list.options.clear_log_paths)
-    self.system_log_manager.StartSyncThread()
+    if self.test_list.options.enable_sync_log:
+      self.system_log_manager = SystemLogManager(
+        sync_log_paths=self.test_list.options.sync_log_paths,
+        sync_period_sec=self.test_list.options.sync_log_period_secs,
+        clear_log_paths=self.test_list.options.clear_log_paths)
+      self.system_log_manager.StartSyncThread()
 
     self.update_system_info()
 
@@ -1681,7 +1682,8 @@ class Goofy(object):
                              charger_connected=ac_present,
                              critical=critical_low_battery)
           self.log_watcher.KickWatchThread()
-          self.system_log_manager.KickSyncThread()
+          if self.system_log_manager:
+            self.system_log_manager.KickSyncThread()
     except: # pylint: disable=W0702
       logging.exception('Unable to check battery or notify shopfloor')
     finally:
@@ -1709,8 +1711,9 @@ class Goofy(object):
       self.log_watcher.KickWatchThread()
 
       # Syncs files to server
-      self.system_log_manager.KickSyncThread(
-          core_dump_files, self.core_dump_manager.ClearFiles)
+      if self.system_log_manager:
+        self.system_log_manager.KickSyncThread(
+            core_dump_files, self.core_dump_manager.ClearFiles)
 
   def sync_time_in_background(self):
     '''Writes out current time and tries to sync with shopfloor server.'''

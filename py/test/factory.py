@@ -433,6 +433,7 @@ class Options(object):
   clear_log_paths = ['/var/log/connectivity.bak']
 
   # The time interval to rsync system logs.
+  enable_sync_log = True
   sync_log_period_secs = None
   _types['sync_log_period_secs'] = (type(None), int)
   # The list of log files to rsync periodically.
