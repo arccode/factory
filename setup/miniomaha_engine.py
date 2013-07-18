@@ -37,19 +37,17 @@ class ServerEngine(object):
     factory_config_path: Path to the factory config file if handling factory
       requests.
     static_dir: Path to store installation packages.
-    port: port to host miniomaha
     proxy_port: port of local proxy to tell client to connect to you through.
   """
 
   def __init__(self, static_dir,
                factory_config_path=None,
-               port=8080, proxy_port=None,
-               *args, **kwargs):
+               proxy_port=None):
     self.app_id = '87efface-864d-49a5-9bb3-4b050a7c227a'
     self.static_dir = static_dir
     self.factory_config = factory_config_path
     self.proxy_port = proxy_port
-
+    self.hostname = None
     # Initialize empty host info cache. Used to keep track of various bits of
     # information about a given host.
     self.host_info = {}
@@ -94,7 +92,7 @@ class ServerEngine(object):
     cmd = ("md5sum %s | awk '{print $1}'" % update_path)
     return os.popen(cmd).read().rstrip()
 
-  def GetUpdatePayload(self, hash, sha256, size, url, is_delta_format):
+  def GetUpdatePayload(self, _hash, sha256, size, url, is_delta_format):
     """Returns a payload to the client corresponding to a new update.
 
     Args:
@@ -125,7 +123,7 @@ class ServerEngine(object):
       </gupdate>
     """
     return payload % (self._GetSecondsSinceMidnight(),
-                      self.app_id, url, hash, sha256, size, delta)
+                      self.app_id, url, _hash, sha256, size, delta)
 
   def GetNoUpdatePayload(self):
     """Returns a payload to the client corresponding to no update."""
@@ -233,12 +231,11 @@ class ServerEngine(object):
     # setting sha-256 to an empty string.
     return self.GetUpdatePayload(checksum, '', size, url, is_delta_format)
 
-  def HandleUpdatePing(self, data, label=None):
+  def HandleUpdatePing(self, data):
     """Handles an update ping from an update client.
 
     Args:
       data: xml blob from client.
-      label: optional label for the update.
     Returns:
       Update payload message for client.
     """
@@ -289,11 +286,6 @@ class ServerEngine(object):
 
     # Store version for this host in the cache.
     self.host_info[client_ip]['last_known_version'] = client_version
-
-    # Check if an update has been forced for this client.
-    forced_update = self.host_info[client_ip].pop('forced_update_label', None)
-    if forced_update:
-      label = forced_update
 
     return self.HandleFactoryRequest(board_id, channel)
 

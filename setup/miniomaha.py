@@ -124,11 +124,10 @@ class DevServerRoot(object):
     return 'Welcome to the Dev Server!'
 
   @cherrypy.expose
-  def update(self, *args):
-    label = '/'.join(args)
+  def update(self):
     body_length = int(cherrypy.request.headers['Content-Length'])
     data = cherrypy.request.rfile.read(body_length)
-    return updater.HandleUpdatePing(data, label)
+    return updater.HandleUpdatePing(data)
 
   @cherrypy.expose
   def greetings(self, label):
@@ -202,7 +201,6 @@ if __name__ == '__main__':
   updater = miniomaha_engine.ServerEngine(
       static_dir=static_dir,
       factory_config_path=options.factory_config,
-      port=options.port,
       proxy_port=options.proxy_port,
   )
 
