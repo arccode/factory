@@ -328,6 +328,10 @@ class RfFramework(object):
 
     # Fail the test if failure happened.
     if len(self.failures) > 0:
+      if self.args.use_shopfloor:
+        factory.console.info('Test failed. Force to flush event logs...')
+        goofy = factory.get_state_instance()
+        goofy.FlushEventLogs()
       self.delegate.ui.Fail('\n'.join(self.failures))
     else:
       self.delegate.ui.Pass()
@@ -660,6 +664,10 @@ class RfComboTestLoader(unittest.TestCase):
 
     failures = self.rf_tests[0].failures + self.rf_tests[1].failures
     if len(failures) > 0:
+      if self.args.use_shopfloor:
+        factory.console.info('Test failed. Force to flush event logs...')
+        goofy = factory.get_state_instance()
+        goofy.FlushEventLogs()
       self.delegate.ui.Fail('\n'.join(failures))
     else:
       self.delegate.ui.Pass()
