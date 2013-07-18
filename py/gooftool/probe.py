@@ -988,7 +988,10 @@ def CalculateFirmwareHashes(fw_file_path):
 
 
 def ReadVpd(fw_image_file, kind):
-  raw_vpd_data = Shell('vpd -i %s -l -f %s' % (kind, fw_image_file)).stdout
+  # Do not log command output since this will include private data such as
+  # registration codes.
+  raw_vpd_data = Shell('vpd -i %s -l -f %s' % (
+      kind, fw_image_file), log=False).stdout
   return ParseKeyValueData('"(.*)"="(.*)"$', raw_vpd_data)
 
 
