@@ -10,6 +10,7 @@ from contextlib import contextmanager
 import errno
 import logging
 import os
+import re
 import shutil
 import tempfile
 
@@ -159,3 +160,17 @@ def ResetCommitTime():
       Spawn(['mount', p, '-o', 'commit=0,remount'], log=True)
       for p in sorted(devices)]:
     process.wait()
+
+
+def GetMainStorageDevice():
+  """Returns the path to the main storage device."""
+  with open('/etc/mtab') as f:
+    for line in f.readlines():
+      fields = line.split()
+      if fields[1] == '/usr/local' and fields[0].startswith('/dev/'):
+        device = fields[0]
+        # Remove the partition number (including the letter 'p' if any)
+        # and return.
+        return re.sub(r'p?(\d+)$', '', device)
+
+  raise IOError('Unable to find main storage device in /etc/mtab')
