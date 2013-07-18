@@ -1759,11 +1759,6 @@ class Goofy(object):
     Args:
       chunks: A list of Chunk objects.
     '''
-    if not self.test_list.options.sync_event_log:
-      logging.info('Skipped syncing event logs %s',
-          ', '.join([str(chunk) for chunk in chunks]))
-      return
-
     first_exception = None
     exception_count = 0
 
