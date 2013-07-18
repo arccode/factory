@@ -134,7 +134,7 @@ class FactoryFlow(object):
           check_call=True, log=True, sudo=True)
     self.dhcpd = Spawn(['/usr/sbin/dhcpd', '-f', '--no-pid', '-cf', cfg.name,
                         '-lf', lease.name, self.args.dhcp_iface],
-                       log=True)
+                       log=True, sudo=True)
 
   def StartTFTPServer(self):
     if not self.args.tftp:
@@ -157,7 +157,7 @@ class FactoryFlow(object):
     logging.info('Starting TFTP server serving %s', tftp_dir)
     self.tftpd = Spawn(['/usr/sbin/in.tftpd', '-L', '-s', tftp_dir,
                         '--address', '%s:69' % self.args.host_ip],
-                       log=True)
+                       log=True, sudo=True)
 
   def StartDownloadServer(self):
     if not self.args.download:
@@ -173,7 +173,7 @@ class FactoryFlow(object):
 
     self.shopfloor_server = Spawn(
         [os.path.join(self.bundle_dir, 'shopfloor', 'start_mock_shopfloor')],
-        log=True)
+        log=True, sudo=True)
 
   def StartFactoryInstall(self):
     logging.info('Please flash netboot firmware to DUT to start factory '
