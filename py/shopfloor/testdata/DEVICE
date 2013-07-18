@@ -1,0 +1,448 @@
+# Test DEVICE HWID HWDB file
+board: DEVICE
+
+encoding_patterns:
+  0: default
+
+image_id:
+  0: BUILD0
+  1: BUILD1
+  2: BUILD2
+  3: BUILD3
+  4: BUILD4
+
+pattern:
+  - image_ids: [0, 1, 2, 3]
+    encoding_scheme: base32
+    fields:
+    - keyboard_field: 5
+    - firmware_field: 5
+
+    - antenna_field: 1
+    - camera_field: 2
+    - cellular_field: 1
+    - dram_field: 1
+    - flash_chip_field: 1
+    - pcb_vendor_field: 2
+    - storage_field: 1
+
+    - audio_codec_field: 0
+    - battery_field: 0
+    - bluetooth_field: 0
+    - chipset_field: 0
+    - cpu_field: 0
+    - display_panel_field: 0
+    - embedded_controller_field: 0
+    - pmic_field: 0
+    - touchpad_field: 0
+    - tpm_field: 0
+    - usb_hosts_field: 0
+    - wireless_field: 0
+
+    - storage_field: 1
+    - power_mgmt_chip_field: 1
+
+  - image_ids: [4]
+    encoding_scheme: base8192
+    fields:
+    - firmware_field: 3
+    - keyboard_field: 5
+
+    - antenna_field: 1
+    - cellular_field: 1
+    - dram_field: 1
+    - flash_chip_field: 1
+    - storage_field: 2
+    - power_mgmt_chip_field: 1
+
+    - audio_codec_field: 0
+    - battery_field: 0
+    - bluetooth_field: 0
+    - camera_field: 0
+    - chipset_field: 0
+    - cpu_field: 0
+    - display_panel_field: 0
+    - embedded_controller_field: 0
+    - pmic_field: 0
+    - touchpad_field: 0
+    - tpm_field: 0
+    - usb_hosts_field: 0
+    - wireless_field: 0
+
+encoded_fields:
+  antenna_field:
+    0: { antenna: funky_1 }
+    1: { antenna: funky_2 }
+  audio_codec_field:
+    0: { audio_codec: outrageous_audio }
+  battery_field:
+    0: { battery: mondo_batt }
+  bluetooth_field:
+    0: { bluetooth: bluetooth_groovy }
+  camera_field:
+    0: { camera: gnarly_cam }
+    1: { camera: gnarly_cam1 }
+    2: { camera: gnarly_cam2 }
+    3: { camera: gnarly_cam3 }
+  cellular_field:
+    0: { cellular: NULL }
+    1: { cellular: tubular_modem }
+  chipset_field:
+    0: { chipset: chipset_device }
+  cpu_field:
+    0: { cpu: cpu_device }
+  display_panel_field:
+    0: { display_panel: way_cool_lcd }
+  dram_field:
+    0:
+      dram: [
+        wicked_1gb_dimm0,
+        wicked_1gb_dimm1
+      ]
+    1:
+      dram: [
+        sweet_1gb_dimm0,
+        sweet_1gb_dimm1
+      ]
+  embedded_controller_field:
+    0: { embedded_controller: decisive }
+  firmware_field:
+    0:
+      hash_gbb: hash_gbb_early
+      key_recovery: key_recovery_early
+      key_root: key_root_early
+      ro_ec_firmware: ro_ec_firmware_0_1
+      ro_main_firmware: ro_main_firmware_0_1
+    1:
+      hash_gbb: hash_gbb_early
+      key_recovery: key_recovery_early
+      key_root: key_root_early
+      ro_ec_firmware: ro_ec_firmware_0_2
+      ro_main_firmware: ro_main_firmware_0_2
+    2:
+      hash_gbb: hash_gbb_early
+      key_recovery: key_recovery_early
+      key_root: key_root_early
+      ro_ec_firmware: ro_ec_firmware_0_3
+      ro_main_firmware: ro_main_firmware_0_3
+    3:
+      hash_gbb: hash_gbb_final
+      key_recovery: key_recovery_final
+      key_root: key_root_final
+      ro_ec_firmware: ro_ec_firmware_1_0
+      ro_main_firmware: ro_main_firmware_1_0
+  flash_chip_field:
+    0: { flash_chip: flash_gondola }
+    1: { flash_chip: the_flash }
+  keyboard_field:
+    0: { keyboard: us_clicker }
+    1: { keyboard: gb_clicker }
+    2: { keyboard: fr_clicker }
+    3: { keyboard: de_clicker }
+    4: { keyboard: se_clicker }
+    5: { keyboard: us_intl_clicker }
+  pcb_vendor_field:
+    0: { pcb_vendor: awesome_1 }
+    1: { pcb_vendor: awesome_2 }
+    2: { pcb_vendor: awesome_3 }
+  pmic_field:
+    0: { pmic: volt_man }
+  power_mgmt_chip_field:
+    0: { power_mgmt_chip: amp_man }
+    1: { power_mgmt_chip: watt_man }
+  storage_field:
+    0: { storage: tape_16g }
+    1: { storage: floppy_16g }
+    2: { storage: core_16g }
+  touchpad_field:
+    0: { touchpad: ice_man }
+  tpm_field:
+    0: { tpm: lock_wizard }
+  usb_hosts_field:
+    0:
+      usb_hosts: [
+          usb_host_1,
+          usb_host_2,
+          usb_host_3,
+          usb_host_4
+      ]
+  wireless_field:
+    0: { wireless: tinfoil_hat }
+
+components:
+  antenna:
+    probeable: False
+    items:
+      funky_1: { values: NULL }
+      funky_2: { values: NULL }
+  audio_codec:
+    items:
+      outrageous_audio:
+        values: { compact_str: 'Playback' }
+  battery:
+    items:
+      mondo_batt:
+        values:
+          charge_full_design: '9900000'
+          manufacturer: MONDO-V
+          model_name: BG1
+          technology: Li-ion
+  bluetooth:
+    items:
+      bluetooth_groovy:
+        values:
+          device: '0x912a'
+          vendor: '0x02df'
+  camera:
+    items:
+      gnarly_cam:
+        values:
+          bcdDevice: '0004'
+          idProduct: b009
+          idVendor: 023f
+          product: USB2.0 Camera
+      gnarly_cam1: { values: NULL, status: unsupported }
+      gnarly_cam2: { values: NULL, status: unsupported }
+      gnarly_cam3: { values: NULL, status: unsupported }
+  cellular:
+    items:
+      tubular_modem:
+        values:
+          active_firmware: VER_001
+          bcdDevice: '0004'
+          carrier: Generic UMTS
+          firmware_revision: 0e000001
+          idProduct: a550
+          idVendor: '2012'
+          manufacturer: Tubular Co
+          product: Totally Tubular Modem Plus
+  chipset:
+    items:
+      chipset_device:
+        values: { compact_str: 'google,device chipvendor,chip' }
+  cpu:
+    items:
+      cpu_device:
+        values:
+          model: ARMv7 Processor rev 4 (v7l)
+          cores: '2'
+  display_panel:
+    probeable: False
+    items:
+      way_cool_lcd: { values: NULL }
+  dram:
+    items:
+      wicked_1gb_dimm0:
+        values:
+          part: WKD99-1
+          size: '1024'
+          slot: '0'
+          timing: DDR3-800,DDR3-1066,DDR3-1333,DDR3-1600
+      wicked_1gb_dimm1:
+        values:
+          part: WKD99-1
+          size: '1024'
+          slot: '1'
+          timing: DDR3-800,DDR3-1066,DDR3-1333,DDR3-1600
+      sweet_1gb_dimm0:
+        values:
+          part: SWT76-1
+          size: '1024'
+          slot: '0'
+          timing: DDR3-800,DDR3-1066,DDR3-1333,DDR3-1600
+      sweet_1gb_dimm1:
+        values:
+          part: SWT76-1
+          size: '1024'
+          slot: '1'
+          timing: DDR3-800,DDR3-1066,DDR3-1333,DDR3-1600
+  embedded_controller:
+    items:
+      decisive:
+        values: { compact_str: 'decisive calc64t' }
+  flash_chip:
+    items:
+      flash_gondola:
+        values: { compact_str: 'Gondola 4MBxx' }
+      the_flash:
+        values: { compact_str: 'Flashmaster 500' }
+  keyboard:
+    probeable: False
+    items:
+      us_clicker: { values: NULL }
+      gb_clicker: { values: NULL }
+      fr_clicker: { values: NULL }
+      de_clicker: { values: NULL }
+      se_clicker: { values: NULL }
+      us_intl_clicker: { values: NULL }
+  pcb_vendor:
+    probeable: False
+    items:
+      awesome_1: { values: NULL }
+      awesome_2: { values: NULL }
+      awesome_3: { values: NULL }
+  pmic:
+    items:
+      volt_man:
+        values: { compact_str: 'vm1234-tt' }
+  power_mgmt_chip:
+    probeable: False
+    items:
+      amp_man: { values: NULL }
+      watt_man: { values: NULL }
+  storage:
+    items:
+      tape_16g:
+        values:
+          hwrev: '0x0'
+          manfid: '0x000011'
+          name: TAP16G
+          oemid: '0x0100'
+          sectors: '30777345'
+          type: MMC
+      floppy_16g:
+        values:
+          hwrev: '0x0'
+          manfid: '0x000022'
+          name: FLP16G
+          oemid: '0x0200'
+          sectors: '30777345'
+          type: MMC
+      core_16g:
+        values:
+          hwrev: '0x0'
+          manfid: '0x000033'
+          name: COR16G
+          oemid: '0x0300'
+          sectors: '30777345'
+          type: MMC
+  touchpad:
+    items:
+      ice_man:
+        values:
+          config_csum: 'im3345'
+          fw_version: 1.0.001
+          id: Icytouch Touchpad
+  tpm:
+    items:
+      lock_wizard:
+        values:
+          manufacturer_info: '11112222'
+          version: 1.2.333.44
+  usb_hosts:
+    items:
+      usb_host_1:
+        values:
+          bcdDevice: '0111'
+          idProduct: '0001'
+          idVendor: abcd
+          manufacturer: USB King
+          product: USB King Host Controller
+      usb_host_2:
+        values:
+          bcdDevice: '0222'
+          idProduct: '0002'
+          idVendor: abcd
+          manufacturer: USB King
+          product: USB King Host Controller
+      usb_host_3:
+        values:
+          bcdDevice: '0333'
+          idProduct: '0003'
+          idVendor: abcd
+          manufacturer: USB King
+          product: USB King Host Controller
+      usb_host_4:
+        values:
+          bcdDevice: '0444'
+          idProduct: '0004'
+          idVendor: abcd
+          manufacturer: USB King
+          product: USB King Host Controller
+  wireless:
+    items:
+      tinfoil_hat:
+        values:
+          device: '0xaabb'
+          vendor: '0xccdd'
+  hash_gbb:
+    items:
+      hash_gbb_early:
+        values: { compact_str: 'gv2#hc3a2d55c4aa48ea43a96' }
+      hash_gbb_final:
+        values: { compact_str: 'gv2#hca484ac8a9d8b8092e96' }
+  key_recovery:
+    items:
+      key_recovery_early:
+        values: { compact_str: 'kv3#echsalei8e1470ccb4a1f80f2b1763efb0eb628a' }
+      key_recovery_final:
+        values: { compact_str: 'kv3#540bb135df55fejjklanmc1b7a1f2a52d28asd1b' }
+  key_root:
+    items:
+      key_root_early:
+        values: { compact_str: 'kv3#eef35fe6dd19ac44dafjk32jo21jfmikoa39jld9' }
+      key_root_final:
+        values: { compact_str: 'kv3#ab352144d3b1938asdfjl233z99ck2h9dcnm1k97' }
+  ro_ec_firmware:
+    items:
+      ro_ec_firmware_0_1:
+        status: unsupported
+        values:
+          hash: 51f2245de52435cca2a2976bb72ed7bc58069959efsafjkl12vno38klnchkwnd
+          version: device_v1.0
+      ro_ec_firmware_0_2:
+        status: unsupported
+        values:
+          hash: 6c29c9331000c2b382easdfjkl129900c3jjjd37821093cecada7612a3eb084c
+          version: device_v1.1
+      ro_ec_firmware_0_3:
+        status: unsupported
+        values:
+          hash: ac2cef43f378e730958aafe3njn2kjoh1ndckk11xc00klamd6c09c4d7eb0e69c
+          version: device_v1.2
+      ro_ec_firmware_1_0:
+        values:
+          hash: f23a78d50f4003j8213lklkc56f457c18b16380ea5ed05fa89c8608ff4ddce9b
+          version: device_v1.3
+  ro_main_firmware:
+    items:
+      ro_main_firmware_0_1:
+        status: unsupported
+        values:
+          hash: 3c45853ef454ebf6204807b5b0f00929948791287ab29d23d591f193acc92ec1
+          version: Device.0.1
+      ro_main_firmware_0_2:
+        status: unsupported
+        values:
+          hash: 9715bf6a3c99cfc07c7ce24897712389078c98d9081cb9f3824c8cfec279b276
+          version: Device.0.2
+      ro_main_firmware_0_3:
+        status: unsupported
+        values:
+          hash: 63f644556e8bd27e8db4jk2299v33ls11239989812267b5ef3df5e9bd105a060
+          version: Device.0.3
+      ro_main_firmware_1_0:
+        values:
+          hash: 01bef917982714a2fff5afdsaj1k232kkppimvc833b586195ea01abcd8c537af
+          version: Device.0.4
+
+rules:
+- name: device_info.set_image_id
+  evaluate: SetImageId('BUILD1')
+
+- name: device_info.component.has_cellular
+  when: GetDeviceInfo('component.has_cellular')
+  evaluate: Assert(ComponentEq('cellular', 'tubular_modem'))
+  otherwise: Assert(ComponentEq('cellular', None))
+
+- name: verify.vpd.ro
+  evaluate:
+  - Assert(ValidVPDValue('ro', 'initial_locale'))
+  - Assert(ValidVPDValue('ro', 'initial_timezone'))
+  - Assert(ValidVPDValue('ro', 'keyboard_layout'))
+  - Assert(ValidVPDValue('ro', 'serial_number'))
+
+- name: verify.vpd.rw
+  evaluate:
+  - CheckRegistrationCode(GetVPDValue('rw', 'gbind_attribute'))
+  - CheckRegistrationCode(GetVPDValue('rw', 'ubind_attribute'))
