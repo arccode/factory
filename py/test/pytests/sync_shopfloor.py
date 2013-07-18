@@ -42,6 +42,8 @@ class SyncShopfloor(unittest.TestCase):
       Arg('timeout_secs', int, 'Timeout for XML/RPC operations', 10),
       Arg('update_without_prompt', bool, 'Update without prompting when an '
           'update is available', default=False, optional=True),
+      Arg('sync_event_logs', bool, 'Sync event logs to shopfloor',
+          default=True)
       ]
 
   def runTest(self):
@@ -59,7 +61,8 @@ class SyncShopfloor(unittest.TestCase):
 
         try:
           goofy = factory.get_state_instance()
-          goofy.FlushEventLogs()
+          if self.args.sync_event_logs:
+            goofy.FlushEventLogs()
           goofy.SyncTimeWithShopfloorServer()
           dummy_md5sum, needs_update = updater.CheckForUpdate(
               self.args.timeout_secs)

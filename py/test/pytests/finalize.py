@@ -78,7 +78,8 @@ class Finalize(unittest.TestCase):
           optional=True),
       Arg('enable_shopfloor', bool,
           'Perform shopfloor operations: update HWID data and flush event '
-          'logs.',
+          'logs.', default=True),
+      Arg('sync_event_logs', bool, 'Sync event logs to shopfloor',
           default=True)
       ]
 
@@ -294,7 +295,7 @@ class Finalize(unittest.TestCase):
       self.Warn('TESTS WERE WAIVED: %s.' % sorted(list(self.waived_tests)))
     Log('waived_tests', waived_tests=sorted(list(self.waived_tests)))
 
-    if self.args.enable_shopfloor:
+    if self.args.enable_shopfloor and self.args.sync_event_logs:
       factory.get_state_instance().FlushEventLogs()
 
     if not self.args.write_protection:
