@@ -115,7 +115,7 @@ class DevServerRoot(object):
     cherrypy uses the update method and puts the extra paths in args.
   """
   api = ApiRoot()
-  fail_msg = 'Session from %s, start at %s did not complete'
+  fail_msg = 'Previous session from %s, start at %s did not complete'
   time_string = '%d/%b/%Y %H:%M:%S'
 
   def __init__(self):
@@ -137,6 +137,11 @@ class DevServerRoot(object):
     # This may be changed if we found better session ids
     client_ip = cherrypy.request.remote.ip.split(':')[-1]
 
+    if label != 'hello' and client_ip not in self.client_table:
+      _LogUpdateMessage('Unexpected %s notification from %s' %
+                        (label, client_ip))
+      return 'Wrong notification'
+
     if label == 'hello':
       if client_ip in self.client_table:
         # previous session did not complete, print error to log
@@ -150,15 +155,18 @@ class DevServerRoot(object):
       _LogUpdateMessage('Start a install session for %s' % client_ip)
       return 'hello'
 
+    elif label == 'download_complete':
+      _LogUpdateMessage(
+          'Session from %s successfully downloaded all necessary files' %
+          client_ip)
+      return 'download complete'
+
     elif label == 'goodbye':
-      if client_ip not in self.client_table:
-        _LogUpdateMessage('Unexpected goodbye from %s' % client_ip)
-      else:
-        elapse_time = time.time() - self.client_table[client_ip]['start_time']
-        _LogUpdateMessage(
-            'Session from %s has been completed, elapse time is %s seconds'
-             % (client_ip, elapse_time))
-        self.client_table.pop(client_ip)
+      elapse_time = time.time() - self.client_table[client_ip]['start_time']
+      _LogUpdateMessage(
+          'Session from %s has been completed, elapse time is %s seconds' %
+          (client_ip, elapse_time))
+      self.client_table.pop(client_ip)
       return 'goodbye'
 
   def __del__(self):
