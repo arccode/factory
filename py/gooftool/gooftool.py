@@ -34,6 +34,7 @@ from cros.factory.gooftool import crosfw
 from cros.factory.gooftool import report_upload
 from cros.factory.gooftool.probe import Probe, PROBEABLE_COMPONENT_CLASSES
 from cros.factory.gooftool.probe import ReadRoVpd, ReadRwVpd
+from cros.factory.gooftool.probe import CalculateFirmwareHashes
 from cros.factory.gooftool.vpd_data import KNOWN_VPD_FIELD_DATA
 from cros.factory.hacked_argparse import CmdArg, Command, ParseCmdline
 from cros.factory.hacked_argparse import verbosity_cmd_arg
@@ -963,6 +964,18 @@ def DecodeHwidV3(options):
   print yaml.dump(ParseDecodedHWID(decoded_hwid_context),
                   default_flow_style=False)
 
+
+@Command('get_firmware_hash',
+         CmdArg('--file', metavar='FILE', help='Firmware File.'))
+def GetFirmwareHash(options):
+  if os.path.exists(options.file):
+    hashes = CalculateFirmwareHashes(options.file)
+    for section, value_dict in hashes.iteritems():
+      print "%s:" % section
+      for key, value in value_dict.iteritems():
+        print "  %s: %s" % (key, value)
+  else:
+    raise Error('File does not exist: %s' % options.file)
 
 def Main():
   """Run sub-command specified by the command line args."""
