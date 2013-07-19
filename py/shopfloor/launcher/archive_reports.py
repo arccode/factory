@@ -14,6 +14,7 @@ import signal
 from twisted.internet import reactor
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.shopfloor import INCREMENTAL_EVENTS_DIR
 from cros.factory.shopfloor import REPORTS_DIR
 from cros.factory.test.shopfloor import get_instance
 from cros.factory.shopfloor.launcher import constants
@@ -35,61 +36,95 @@ _DEFAULT_PERIOD_MINUTES = 10
 _DEFAULT_RPC_URL = 'http://localhost:8082/'
 
 
-def ArchiveReports(minutes, rpc_url):
-  """Archives reports.
+def ArchiveLogs(options):
+  """Archives logs.
 
-  This archiver searches reports directory periodically and archives past logsi
-  into archive folder.
+  This archiver searches reports and incremental events directories
+  periodically and archives log folders to destination folder.
 
   Args:
-    minutes: checking period in minutes.
-    rpc_url: the URL to the RPC server.
+    options.period: checking period in minutes.
+    options.recycle: move archived logs into recycle dir.
+    options.rpc_url: the URL to the RPC server.
   """
 
   shopfloor_data = os.path.join(env.runtime_dir, constants.SHOPFLOOR_DATA)
-  reports_dir = os.path.join(shopfloor_data, REPORTS_DIR)
   archive_dir = os.path.join(shopfloor_data, ARCHIVE_DIR)
-  recycle_dir = os.path.join(shopfloor_data, RECYCLE_DIR)
-  map(TryMakeDirs, [reports_dir, archive_dir, recycle_dir])
+  recycle_dir = None
+  map(TryMakeDirs, [archive_dir, recycle_dir] +
+      [os.path.join(shopfloor_data, folder) for folder in options.dirs] +
+      [os.path.join(archive_dir, folder) for folder in options.dirs])
 
-  # Trigger to generate the latest report dir, empty directory will be
-  # recycled later.
+  if options.recycle:
+    recycle_dir = os.path.join(shopfloor_data, RECYCLE_DIR)
+    map(TryMakeDirs, [os.path.join(recycle_dir, folder)
+                      for folder in options.dirs])
+
+  # Trigger to generate all log dirs. Empty directory will be recycled later.
   try:
-    get_instance(url=rpc_url, timeout=5).GetReportsDir()
+    if REPORTS_DIR in options.dirs:
+      get_instance(url=options.rpc_url, timeout=5).GetReportsDir()
+    if INCREMENTAL_EVENTS_DIR in options.dirs:
+      get_instance(url=options.rpc_url, timeout=5).GetIncrementalEventsDir()
   except: #pylint: disable=W0702
     exception_string = FormatExceptionOnly()
-    logging.info('Making RPC call GetReportsDir() to %s', rpc_url)
     # Continue to archive if the backend even if the backend is down.
     logging.error(
-        'Failed to make RPC call GetReportsDir() - %s, ignore and continue.',
+        'Failed to make RPC call - %s, ignore and continue.',
         exception_string)
 
-  # Get an accending order list of dirs in watching dir.
-  dirs = filter((lambda path: os.path.isdir(os.path.join(reports_dir, path)) and
-                path.startswith(LOGS_PREFIX)), os.listdir(reports_dir))
+  for folder in options.dirs:
+    ArchiveFolder(os.path.join(shopfloor_data, folder),
+                  os.path.join(archive_dir, folder),
+                  recycle_dir=recycle_dir)
+
+  # Restart timer
+  reactor.callLater(int(options.period) * 60,  # pylint: disable=E1101
+                    ArchiveLogs, options)
+
+
+def ArchiveFolder(folder, dest_folder, log_prefix=LOGS_PREFIX,
+                  suffix='', skip=-2, recycle_dir=None):
+  """Archives the dirs with prefix inside a folder.
+
+  Parameters:
+    folder: The parent folder contains log dirs.
+    dest_folder: The folder to store archived files.
+    log_prefix: Log dir name prefix.
+    suffix: Generated archive filename suffix.
+    skip: Number of log dirs to skip. Skipping last 2 log dirs by default.
+  """
+  # Get an accending order list of incremental events dirs.
+  dirs = filter((lambda path: os.path.isdir(os.path.join(folder, path)) and
+                path.startswith(log_prefix)), os.listdir(folder))
   dirs.sort()
-  logging.debug('Found %d report dirs.', len(dirs))
   if len(dirs) == 0:
-    logging.debug('reports_dir = %s', reports_dir)
-    logging.debug('os.listdir() = %s', os.listdir(reports_dir))
-  # Archive and remove log dirs except for lastest 2 entries.
-  for report_name in dirs[:-2]:
-    logging.debug('Starting to archive %s', report_name)
-    report_fullpath = os.path.join(reports_dir, report_name)
-    archive_name = report_name + ARCHIVE_SUFFIX
-    archived_log = os.path.join(archive_dir, archive_name)
+    logging.debug('watching dir = %s', folder)
+    logging.debug('os.listdir() = %s', os.listdir(folder))
+
+  dirs = dirs[:skip] if skip < 0 else dirs[skip:]
+
+  for log_name in dirs:
+    logging.debug('Archiving %s', log_name)
+    log_fullpath = os.path.join(folder, log_name)
+    archive_name = log_name + suffix + ARCHIVE_SUFFIX
+    archived_log = os.path.join(dest_folder, archive_name)
     in_progress_name = archived_log + IN_PROGRESS_SUFFIX
 
-    # Ignore and recycle archived reports
+    # Ignore archived reports
     if os.path.isfile(archived_log):
-      logging.debug('Recycle archived report: %s', archive_name)
-      shutil.move(os.path.join(reports_dir, report_name), recycle_dir)
+      if recycle_dir:
+        logging.debug('Recycling archived log: %s', log_name)
+        shutil.move(log_fullpath, os.path.join(recycle_dir, log_name + suffix))
+      else:
+        logging.debug('Removing archived log: %s', log_name)
+        shutil.rmtree(log_fullpath)
       continue
 
-    # Recycle empty report folder
-    if len(os.listdir(report_fullpath)) == 0:
-      logging.debug('Recycle emtpy report folder: %s', report_name)
-      shutil.move(report_fullpath, recycle_dir)
+    # Remove empty report folder
+    if len(os.listdir(log_fullpath)) == 0:
+      logging.debug('Removing emtpy log folder: %s', log_name)
+      shutil.rmtree(log_fullpath)
       continue
 
     # Delete interrupted temp file
@@ -101,16 +136,16 @@ def ArchiveReports(minutes, rpc_url):
         ['which', 'pbzip2'],
         ignore_stdout=True, ignore_stderr=True, call=True).returncode == 0
     Spawn(['tar', '-I', 'pbzip2' if have_pbzip2 else 'bzip2',
-           '-cf', in_progress_name, '-C', reports_dir,
-           report_name],
+           '-cf', in_progress_name, '-C', folder,
+           log_name],
            check_call=True, log=True, log_stderr_on_error=True)
     shutil.move(in_progress_name, archived_log)
-    shutil.move(report_fullpath, recycle_dir)
-    logging.info('Finishing archiving %s to %s',
-                 report_name, archive_name)
-
-  reactor.callLater(minutes * 60,  # pylint: disable=E1101
-                    ArchiveReports, minutes)
+    if recycle_dir:
+      shutil.move(log_fullpath, recycle_dir)
+    else:
+      shutil.rmtree(log_fullpath)
+    logging.info('Finished archive %s to %s',
+                 log_name, archive_name)
 
 def SignalHandler(dummy_signal, dummy_frame):
   # Call reactor.stop() from reactor instance to make sure no spawned process
@@ -124,6 +159,11 @@ def main():
   parser.add_option('-p', '--period', dest='period', metavar='PERIOD_MINITES',
                     default=_DEFAULT_PERIOD_MINUTES, type='int',
                     help='run every N minutes (default: %default)')
+  parser.add_option('-d', '--dir', dest='dirs', metavar='DIR',
+                    action='append', default=['reports'],
+                    help='the folder(s) to watch (default: %default)')
+  parser.add_option('-r', '--recycle', dest='recycle', action='store_true',
+                    help='move archived logs to recycle bin')
   parser.add_option('-u', '--rpc_url', dest='rpc_url', metavar='RPC_URL',
                     default=_DEFAULT_RPC_URL, type='str',
                     help="RPC server's URL (default: %default)")
@@ -133,8 +173,7 @@ def main():
 
   # Start the first cycle, give the httpd (RPC Server) 30 seconds to be up
   # before making the first RPC call.
-  reactor.callLater(30, ArchiveReports,  # pylint: disable=E1101
-                    int(options.period), options.rpc_url)
+  reactor.callLater(30, ArchiveLogs, options)  # pylint: disable=E1101
 
   signal.signal(signal.SIGTERM, SignalHandler)
   signal.signal(signal.SIGINT, SignalHandler)
