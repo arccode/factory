@@ -133,6 +133,9 @@ class ConnectionManager():
     self.wlans = []
     self._ConfigureWifi(wlans)
 
+    logging.info('Created connection manager: wlans=[%s]',
+                 ', '.join([x['SSID'] for x in self.wlans]))
+
     if start_enabled:
       self.EnableNetworking(reset=False)
     else:
