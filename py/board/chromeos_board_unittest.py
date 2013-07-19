@@ -167,22 +167,19 @@ class ChromeOSBoardTest(unittest.TestCase):
     self.mox.VerifyAll()
 
   def testCharge(self):
-    self.board._CallECTool(['chargeforceidle', '0'])
-    self.board._CallECTool(['i2cwrite', '16', '0', '0x12', '0x12', '0xf912'])
+    self.board._CallECTool(['chargecontrol', 'normal'])
     self.mox.ReplayAll()
     self.board.SetChargeState(Board.ChargeState.CHARGE)
     self.mox.VerifyAll()
 
   def testDischarge(self):
-    self.board._CallECTool(['chargeforceidle', '1'])
-    self.board._CallECTool(['i2cwrite', '16', '0', '0x12', '0x12', '0xf952'])
+    self.board._CallECTool(['chargecontrol', 'discharge'])
     self.mox.ReplayAll()
     self.board.SetChargeState(Board.ChargeState.DISCHARGE)
     self.mox.VerifyAll()
 
   def testStopCharge(self):
-    self.board._CallECTool(['chargeforceidle', '1'])
-    self.board._CallECTool(['i2cwrite', '16', '0', '0x12', '0x12', '0xf912'])
+    self.board._CallECTool(['chargecontrol', 'idle'])
     self.mox.ReplayAll()
     self.board.SetChargeState(Board.ChargeState.IDLE)
     self.mox.VerifyAll()

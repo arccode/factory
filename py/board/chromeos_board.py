@@ -25,10 +25,6 @@ class ChromeOSBoard(Board):
   # Expected battery info.
   BATTERY_DESIGN_CAPACITY_RE = re.compile('Design capacity:\s+([1-9]\d*)\s+mAh')
 
-  # Charger option bytes
-  CHARGER_OPTION_NORMAL = "0xf912"
-  CHARGER_OPTION_DISCHARGE = "0xf952"
-
   _Spawn = staticmethod(Spawn)
 
   # Cached main temperature index. Set at the first call to GetTemperature.
@@ -151,17 +147,11 @@ class ChromeOSBoard(Board):
   def SetChargeState(self, state):
     try:
       if state == Board.ChargeState.CHARGE:
-        self._CallECTool(['chargeforceidle', '0'])
-        self._CallECTool(['i2cwrite', '16', '0', '0x12', '0x12',
-                          self.CHARGER_OPTION_NORMAL])
+        self._CallECTool(['chargecontrol', 'normal'])
       elif state == Board.ChargeState.IDLE:
-        self._CallECTool(['chargeforceidle', '1'])
-        self._CallECTool(['i2cwrite', '16', '0', '0x12', '0x12',
-                          self.CHARGER_OPTION_NORMAL])
+        self._CallECTool(['chargecontrol', 'idle'])
       elif state == Board.ChargeState.DISCHARGE:
-        self._CallECTool(['chargeforceidle', '1'])
-        self._CallECTool(['i2cwrite', '16', '0', '0x12', '0x12',
-                          self.CHARGER_OPTION_DISCHARGE])
+        self._CallECTool(['chargecontrol', 'discharge'])
       else:
         raise BoardException('Unknown EC charge state: %s' % state)
     except Exception as e:
