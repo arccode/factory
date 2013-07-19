@@ -20,7 +20,10 @@ import miniomaha_engine
 
 CACHED_ENTRIES = 12
 
-# Sets up global to share between classes.
+
+def _LogUpdateMessage(message):
+  cherrypy.log(message, 'UPDATE')
+
 
 def _GetConfig(opts):
   """Returns the configuration for the miniomaha."""
@@ -112,12 +115,11 @@ class DevServerRoot(object):
     cherrypy uses the update method and puts the extra paths in args.
   """
   api = ApiRoot()
-  fail_msg = 'Session from %s, start at %s did not complete\n'
+  fail_msg = 'Session from %s, start at %s did not complete'
   time_string = '%d/%b/%Y %H:%M:%S'
 
-  def __init__(self, log):
+  def __init__(self):
     self.client_table = {}
-    self.log = log
 
   @cherrypy.expose
   def index(self):
@@ -141,20 +143,20 @@ class DevServerRoot(object):
         start_time = time.strftime(
             self.time_string,
             time.localtime(self.client_table[client_ip]['start_time']))
-        self.log.write(self.fail_msg % (client_ip, start_time))
+        _LogUpdateMessage(self.fail_msg % (client_ip, start_time))
 
       self.client_table[client_ip] = {}
       self.client_table[client_ip]['start_time'] = time.time()
-      self.log.write('Start a install session for %s\n' % client_ip)
+      _LogUpdateMessage('Start a install session for %s' % client_ip)
       return 'hello'
 
     elif label == 'goodbye':
       if client_ip not in self.client_table:
-        print 'Unexpected goodbye from %s' % client_ip
+        _LogUpdateMessage('Unexpected goodbye from %s' % client_ip)
       else:
         elapse_time = time.time() - self.client_table[client_ip]['start_time']
-        self.log.write(
-            'Session from %s has been completed, elapse time is %s seconds\n'
+        _LogUpdateMessage(
+            'Session from %s has been completed, elapse time is %s seconds'
              % (client_ip, elapse_time))
         self.client_table.pop(client_ip)
       return 'goodbye'
@@ -165,7 +167,7 @@ class DevServerRoot(object):
       start_time = time.strftime(
           self.time_string,
           time.localtime(self.client_table[client_ip]['start_time']))
-      self.log.write(self.fail_msg % (client_ip, start_time))
+      _LogUpdateMessage(self.fail_msg % (client_ip, start_time))
 
 
 if __name__ == '__main__':
@@ -197,7 +199,6 @@ if __name__ == '__main__':
   cherrypy.log('Data dir is %s' % options.data_dir, 'DEVSERVER')
   cherrypy.log('Serving from %s' % static_dir, 'DEVSERVER')
 
-  log_file = open(options.log_path)
   updater = miniomaha_engine.ServerEngine(
       static_dir=static_dir,
       factory_config_path=options.factory_config,
@@ -222,6 +223,11 @@ if __name__ == '__main__':
   updater.ImportFactoryConfigFile(options.factory_config,
                                   options.validate_factory_config)
   if not options.validate_factory_config:
-    cherrypy.quickstart(DevServerRoot(log_file), config=_GetConfig(options))
-
-  log_file.close()
+    # Since cheerypy need an existing file to append log,
+    # here we make sure the log file path exist and ready for writing.
+    with open(options.log_path, 'a'):
+      pass
+    cherrypy.log.screen = True
+    cherrypy.log.access_file = options.log_path
+    cherrypy.log.error_file = options.log_path
+    cherrypy.quickstart(DevServerRoot(), config=_GetConfig(options))
