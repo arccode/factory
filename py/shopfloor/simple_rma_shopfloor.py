@@ -44,7 +44,7 @@ then:
   GetAuxData('mlb', 'MLB002') == {'foo': 456, 'bar': 'qux'}
 
 This module may be configured using an rma_config_board.yaml file placed in
-the same directory as the module, this can be inserted by a separate board
+the shopfloor_data directory, this can be inserted by a separate board
 specific overlay. This yaml file is optional, and if not provided this module
 will use defaults defined below. An example yaml file would look like:
 
@@ -137,12 +137,43 @@ class ShopFloor(shopfloor.ShopFloorBase):
     self.rma_number_yaml_must_exist = _RMA_NUMBER_YAML_MUST_EXIST
     self.hwidv3_hwdb_path = _HWIDV3_HWDB_PATH
     self.hwid_factory_translation = _HWID_FACTORY_TRANSLATION
-    # TODO(bhthompson) put this file in a more proper config directory
-    data_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                             "rma_config_board.yaml")
-    if(os.path.exists(data_path)):
+
+  def Init(self):
+    self.LoadConfiguration(self.data_dir)
+    # Load AUX data files.
+    for f in glob.glob(os.path.join(self.data_dir, '*.csv')):
+      match = re.match('^aux_(\w+)\.csv',
+                       os.path.basename(f))
+      if not match:
+        continue
+      table_name = match.group(1)
+      logging.info("Reading table %s from %s...", table_name, f)
+      assert table_name not in self.aux_data
+      self.aux_data[table_name] = LoadAuxCsvData(f)
+      logging.info("Loaded %d entries from %s",
+                   len(self.aux_data[table_name]), f)
+
+    # Verify all required tables were loaded.
+    for required_table in self.required_aux_tables:
+      assert required_table in self.aux_data, (
+          "Required AUX table %s not found." % required_table)
+
+    # Try to touch some files inside directory, to make sure the directory is
+    # writable, and everything I/O system is working fine.
+    stamp_file = os.path.join(self.data_dir, ".touch")
+    with open(stamp_file, "w") as stamp_handle:
+      stamp_handle.write("%s - VERSION %s" % (self.NAME, self.VERSION))
+    os.remove(stamp_file)
+
+  def LoadConfiguration(self, config_path):
+    """Loads a rma_config_board.yaml file from the specified config_path."""
+    if not config_path or not os.path.exists(config_path):
+      logging.warning('Bad path to rma_config_board.yaml, ignoring.')
+      return
+    config = os.path.join(config_path, "rma_config_board.yaml")
+    if(os.path.exists(config)):
       logging.info('Found a rma_config_board.yaml file, loading...')
-      with open(data_path, 'rb') as yaml_file:
+      with open(config, 'rb') as yaml_file:
         board_config = yaml.load(yaml_file)
       if 'required_aux_tables' in board_config:
         logging.info('Using board required_aux_tables: %s',
@@ -171,32 +202,6 @@ class ShopFloor(shopfloor.ShopFloorBase):
         self.hwid_factory_translation = board_config['hwid_factory_translation']
     else:
       logging.warning('No rma_config_board.yaml found, using defaults.')
-
-  def Init(self):
-    # Load AUX data files.
-    for f in glob.glob(os.path.join(self.data_dir, '*.csv')):
-      match = re.match('^aux_(\w+)\.csv',
-                       os.path.basename(f))
-      if not match:
-        continue
-      table_name = match.group(1)
-      logging.info("Reading table %s from %s...", table_name, f)
-      assert table_name not in self.aux_data
-      self.aux_data[table_name] = LoadAuxCsvData(f)
-      logging.info("Loaded %d entries from %s",
-                   len(self.aux_data[table_name]), f)
-
-    # Verify all required tables were loaded.
-    for required_table in self.required_aux_tables:
-      assert required_table in self.aux_data, (
-          "Required AUX table %s not found." % required_table)
-
-    # Try to touch some files inside directory, to make sure the directory is
-    # writable, and everything I/O system is working fine.
-    stamp_file = os.path.join(self.data_dir, ".touch")
-    with open(stamp_file, "w") as stamp_handle:
-      stamp_handle.write("%s - VERSION %s" % (self.NAME, self.VERSION))
-    os.remove(stamp_file)
 
   def _GetDataStoreValue(self, serial, key):
     """Returns data_store value matching key for serial or None."""

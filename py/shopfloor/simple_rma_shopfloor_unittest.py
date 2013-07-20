@@ -14,6 +14,8 @@ from cros.factory.shopfloor.simple_rma_shopfloor import LoadAuxCsvData
 from cros.factory.shopfloor.simple_rma_shopfloor import LoadDeviceData
 from cros.factory.shopfloor.simple_rma_shopfloor import ShopFloor
 
+_RMA00000000_FILE = 'RMA00000000.yaml'
+_RMA11111111_FILE = 'RMA11111111.yaml'
 _RMA_CONFIG_BOARD_YAML_1 = """rma_number_yaml_must_exist: False"""
 _RMA11111111_YAML_1 = """!DeviceData
 gbind_attribute: ''
@@ -145,7 +147,7 @@ class LoadDeviceDataTest(unittest2.TestCase):
         os.path.realpath(__file__)), "testdata")
 
   def testLoadMinimalYAML(self):
-    test_yaml = os.path.join(self.testdata, 'RMA00000000.yaml')
+    test_yaml = os.path.join(self.testdata, _RMA00000000_FILE)
     device_info_fields = []
     device_dict = LoadDeviceData(test_yaml, device_info_fields)
     self.assertEqual(device_dict['hwid'], _TEST_HWID)
@@ -164,7 +166,7 @@ class LoadDeviceDataTest(unittest2.TestCase):
     self.assertEqual(device_dict['vpd']['rw'], {})
 
   def testLoadExpandedYAML(self):
-    test_yaml = os.path.join(self.testdata, 'RMA00000000.yaml')
+    test_yaml = os.path.join(self.testdata, _RMA00000000_FILE)
     device_info_fields = ['component.camera', 'region', 'serial_number',
                           'gbind_attribute', 'ubind_attribute']
     device_dict = LoadDeviceData(test_yaml, device_info_fields)
@@ -192,14 +194,13 @@ class ShopFloorTest(unittest2.TestCase):
   def setUp(self):
     self.testdata = os.path.join(os.path.dirname(
         os.path.realpath(__file__)), "testdata")
-    self.rma_config = os.path.join(os.path.dirname(
-        os.path.realpath(__file__)), "rma_config_board.yaml")
+    self.rma_config = os.path.join(self.testdata, "rma_config_board.yaml")
 
   def tearDown(self):
     if os.path.isfile(self.rma_config):
       os.remove(self.rma_config)
-    if os.path.isfile(os.path.join(self.testdata, 'RMA11111111.yaml')):
-      os.remove(os.path.join(self.testdata, 'RMA11111111.yaml'))
+    if os.path.isfile(os.path.join(self.testdata, _RMA11111111_FILE)):
+      os.remove(os.path.join(self.testdata, _RMA11111111_FILE))
 
   def _WriteRMAConfigYAML(self, file_path, test_config=1):
     self.assertTrue(os.path.exists(os.path.dirname(file_path)))
@@ -211,54 +212,61 @@ class ShopFloorTest(unittest2.TestCase):
       if test_config == 2:
         f.write(_RMA_CONFIG_BOARD_YAML_2)
 
-  def testCheckSN(self):
-    # Test without rma_number_yaml_must_exist
+  def testCheckSNMayExist(self):
     self._WriteRMAConfigYAML(file_path=self.rma_config, test_config=1)
     test_shopfloor = ShopFloor()
-    self.assertTrue(test_shopfloor.CheckSN("RMA00000000"))
+    test_shopfloor.data_dir = self.testdata
+    test_shopfloor.LoadConfiguration(self.testdata)
+    self.assertTrue(test_shopfloor.CheckSN("RMA99999999"))
     self.assertRaisesRegexp(ValueError, r"Invalid RMA number",
                             test_shopfloor.CheckSN, "BLAHBLAH")
-    # Test with rma_number_yaml_must_exist
+
+  def testCheckSNMustExist(self):
     self._WriteRMAConfigYAML(file_path=self.rma_config, test_config=2)
     test_shopfloor = ShopFloor()
     test_shopfloor.data_dir = self.testdata
+    test_shopfloor.LoadConfiguration(self.testdata)
     self.assertTrue(test_shopfloor.CheckSN("RMA00000000"))
     self.assertRaisesRegexp(ValueError, r"RMA YAML not found on shopfloor",
                             test_shopfloor.CheckSN, "RMA12345678")
 
-  def testSaveDeviceData(self):
+  def testSaveDeviceDataSimple(self):
     # Simple data saving test
     self._WriteRMAConfigYAML(file_path=self.rma_config, test_config=1)
     test_shopfloor = ShopFloor()
     test_shopfloor.data_dir = self.testdata
+    test_shopfloor.LoadConfiguration(self.testdata)
     device_data = {'hwid': _TEST_HWID, 'serial_number': 'RMA11111111',
                    'vpd': _TEST_VPD}
     ret = test_shopfloor.SaveDeviceData(device_data, True)
     self.assertEqual(ret['status'], 'success')
-    yaml_file = os.path.join(self.testdata, 'RMA11111111.yaml')
+    yaml_file = os.path.join(self.testdata, _RMA11111111_FILE)
     self.assertTrue(os.path.isfile(yaml_file))
     with open(yaml_file, 'rb') as f:
       yaml_content = f.read()
     self.assertEqual(yaml_content, _RMA11111111_YAML_1)
-    if os.path.isfile(os.path.join(self.testdata, 'RMA11111111.yaml')):
-      os.remove(os.path.join(self.testdata, 'RMA11111111.yaml'))
+    if os.path.isfile(os.path.join(self.testdata, _RMA11111111_FILE)):
+      os.remove(os.path.join(self.testdata, _RMA11111111_FILE))
+
+  def testSaveDeviceDataAdvanced(self):
     # Advanced data saving test with translation
     self._WriteRMAConfigYAML(file_path=self.rma_config, test_config=2)
     with open(self.rma_config, 'a') as f:
       f.write('hwidv3_hwdb_path: %s' % self.testdata)
     test_shopfloor = ShopFloor()
     test_shopfloor.data_dir = self.testdata
+    test_shopfloor.LoadConfiguration(self.testdata)
     device_data = {'hwid': _TEST_HWID, 'serial_number': 'RMA11111111',
                    'vpd': _TEST_VPD}
     ret = test_shopfloor.SaveDeviceData(device_data, True)
     self.assertEqual(ret['status'], 'success')
-    yaml_file = os.path.join(self.testdata, 'RMA11111111.yaml')
+    yaml_file = os.path.join(self.testdata, _RMA11111111_FILE)
     self.assertTrue(os.path.isfile(yaml_file))
     with open(yaml_file, 'rb') as f:
       yaml_content = f.read()
     self.assertEqual(yaml_content, _RMA11111111_YAML_2)
-    if os.path.isfile(os.path.join(self.testdata, 'RMA11111111.yaml')):
-      os.remove(os.path.join(self.testdata, 'RMA11111111.yaml'))
+    if os.path.isfile(os.path.join(self.testdata, _RMA11111111_FILE)):
+      os.remove(os.path.join(self.testdata, _RMA11111111_FILE))
 
 if __name__ == '__main__':
   unittest2.main()
