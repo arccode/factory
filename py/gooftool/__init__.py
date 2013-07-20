@@ -22,6 +22,7 @@ from cros.factory.gooftool.vpd_data import KNOWN_VPD_FIELD_DATA
 from cros.factory.hwid.database import Database
 from cros.factory.hwid.decoder import Decode
 from cros.factory.hwid.encoder import Encode
+from cros.factory.hwid.encoder import BinaryStringToEncodedString
 from cros.factory.privacy import FilterDict
 from cros.factory.rule import Context
 from cros.factory.system import vpd
@@ -754,3 +755,96 @@ class Gooftool(object):
                    if k.startswith('factory.'))
     logging.info('Removing VPD entries %s', FilterDict(entries))
     vpd.rw.Delete(*entries.keys())
+
+  def GetHWIDV3List(self, image_id=None):
+    """Generate all components of HWID with image_id for the board.
+
+    Args:
+      image_id: The image id of the board. If image_id is omitted,
+        The maximum of image id will be used.
+
+    Returns:
+      a dict of HWID and components set.
+    """
+
+    def _RecursivelyGenerate(index=None, hwid_dict=None, binary_string=None,
+                             component_string=None):
+      """Recursive function to generate all combinations.
+
+      Args:
+        index: This parameter means the index of pattern fields
+        hwid_dict: This parameter records HWID and corresponding components.
+        binary_string: This parameter means the binary string of HWID.
+        component_string: This parameter is the set of components of
+                          binary_string
+      """
+      fields = self.db.pattern.GetPatternByImageId(image_id)['fields']
+      if index >= len(fields):
+        #For last step, add ending bit '1' in the end of string
+        encoded_string = BinaryStringToEncodedString(self.db, binary_string+'1')
+        hwid_dict[encoded_string] = component_string
+        return
+
+      key, value = fields[index].items()[0]
+      if value > 0:
+        #If the number of bit of field is greater than 0,
+        #check all sources of this component
+        for i in xrange(0, len(self.db.encoded_fields[key])):
+          new_binary = binary_string + '{:0>{width}b}'.format(i, width=value)
+          new_list = []
+          stop_recursive = False
+          for comp_cls, comp_items in (
+              self.db.encoded_fields[key][i].iteritems()):
+            for item in comp_items:
+              status = self.db.components.GetComponentStatus(comp_cls, item)
+              if (status == hwid3_common.HWID.COMPONENT_STATUS.unsupported or
+                  status == hwid3_common.HWID.COMPONENT_STATUS.deprecated):
+                stop_recursive = True
+                break
+            if stop_recursive:
+              break
+            new_list.append(' '.join(comp_items))
+          if not stop_recursive:
+            new_component = "%s,%s" % (component_string, ' '.join(new_list))
+            _RecursivelyGenerate(index + 1, hwid_dict, new_binary,
+                new_component)
+      else:
+        if key in self.db.encoded_fields.keys():
+          new_list = []
+          for comp_cls, comp_items in (
+              self.db.encoded_fields[key][0].iteritems()):
+            new_list.append(' '.join(comp_items))
+          new_component = "%s,%s" % (component_string, ' '.join(new_list))
+        else:
+          new_component = component_string
+        _RecursivelyGenerate(index + 1, hwid_dict, binary_string, new_component)
+
+    def _GetImageID(_image_id=None):
+      """Image ID from three ways
+      1. number
+      2. Image ID name
+      3. if _image_id is None, return the maximum image id
+      """
+      max_image_id = max(self.db.image_id.keys())
+      if _image_id is None:
+        _image_id = max_image_id
+      else:
+        if _image_id.isdigit():
+          _image_id = int(_image_id)
+          assert _image_id in range(0, max_image_id+1), "Invalid Image ID"
+        else:
+          for k, v in self.db.image_id.iteritems():
+            if _image_id == v:
+              _image_id = k
+          assert isinstance(_image_id, int), "Invalid Image ID"
+      return _image_id
+
+    hwid_dict = {}
+    #The first step is to choose image_id
+    image_id = _GetImageID(image_id)
+
+    binary_string = '{:0>5b}'.format(image_id)
+    #Use recursive to generate all combinations of HWID
+    _RecursivelyGenerate(0, hwid_dict, binary_string,
+        self.db.image_id[image_id])
+    return hwid_dict
