@@ -24,6 +24,11 @@ th {
   vertical-align: middle;
   text-align: center;
 }
+.test-vcenter-accessibility {
+  display: table;
+  height: 100%; width: 100%;
+  background-color: #F77;
+}
 
 /* Colors for test statuses. */
 .test-status-passed {

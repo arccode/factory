@@ -65,6 +65,9 @@ class Report(unittest.TestCase):
          'showing the summary on-screen.  The test does not fail if unable '
          'to connect to the BFT fixture.'),
         optional=True),
+    Arg('accessibility', bool,
+        'Display bright red background when the overall status is not PASSED',
+        default=False, optional=True),
     ]
 
   def _SetFixtureStatusLight(self, all_pass):
@@ -126,6 +129,10 @@ class Report(unittest.TestCase):
           'Unable to proceed, since some previous tests have not passed.',
           u'之前所有的测试必须通过才能通过此项目')]
     html = html + ['</div></div>']
+
+    if self.args.accessibility and not all_pass:
+      html = ['<div class="test-vcenter-accessibility">'] + html + ['</div>']
+
     if not self.args.disable_input_on_fail:
       ui.EnablePassFailKeys()
     # If disable_input_on_fail is True, and overall status is PASSED, user
