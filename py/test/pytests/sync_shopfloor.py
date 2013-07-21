@@ -40,6 +40,8 @@ class SyncShopfloor(unittest.TestCase):
           1),
       Arg('retry_secs', int, 'Maximum time to wait between retries', 10),
       Arg('timeout_secs', int, 'Timeout for XML/RPC operations', 10),
+      Arg('disable_update', bool, 'Whether to check factory update',
+          default=False, optional=True),
       Arg('update_without_prompt', bool, 'Update without prompting when an '
           'update is available', default=False, optional=True),
       Arg('sync_event_logs', bool, 'Sync event logs to shopfloor',
@@ -50,6 +52,8 @@ class SyncShopfloor(unittest.TestCase):
     ui = test_ui.UI()
     template = ui_templates.OneSection(ui)
     ui.AppendCSS(_CSS)
+    if self.args.disable_update:
+      factory.console.info("Update is disabled.")
 
     def target():
       retry_secs = self.args.first_retry_secs
@@ -66,7 +70,7 @@ class SyncShopfloor(unittest.TestCase):
           goofy.SyncTimeWithShopfloorServer()
           dummy_md5sum, needs_update = updater.CheckForUpdate(
               self.args.timeout_secs)
-          if not needs_update:
+          if not needs_update or self.args.disable_update:
             # No update necessary; pass.
             ui.Pass()
             return
