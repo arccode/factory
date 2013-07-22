@@ -82,6 +82,7 @@ import yaml
 import factory_common  # pylint: disable=W0611
 from cros.factory import shopfloor
 from cros.factory.gooftool import Gooftool
+from cros.factory.utils.process_utils import Spawn
 
 # Default shopfloor configuration values
 _REQUIRED_AUX_TABLES = []
@@ -453,6 +454,15 @@ def DecodeHWIDv3Components(hwid, hwdb_path):
     dict containing the component objects decoded from the HWID.
   """
   (board_name, _, _) = hwid.lower().partition(' ')
+  if not os.path.isfile(os.path.join(hwdb_path, board_name.upper())):
+    bundle_script = 'hwid_v3_bundle_' + board_name.upper() + '.sh'
+    if os.path.isfile(os.path.join(hwdb_path, bundle_script)):
+      logging.info('%s HWDB not found, attempting to open bundle %s.',
+                   board_name, bundle_script)
+      Spawn(['sh', os.path.join(hwdb_path, bundle_script), hwdb_path], log=True,
+            check_call=True)
+    else:
+      raise ValueError('HWDB nor HWID bundle for %s found' % board_name)
   decoder = Gooftool(hwid_version=3, hwdb_path=hwdb_path,
                      board=board_name)
   decoded_hwid = decoder.DecodeHwidV3(hwid)
