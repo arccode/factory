@@ -21,7 +21,7 @@ MINIJACK_DB = settings.DATABASES['default']['NAME']
 
 def GetQueryView(request):
   sql_query = request.GET.get('s', '')
-  output = request.GET.get('output')
+  output = request.GET.get('output', '')
   columns = []
   results = []
   error_message = None
