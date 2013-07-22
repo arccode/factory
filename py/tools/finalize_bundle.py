@@ -583,11 +583,21 @@ class FinalizeBundle(object):
       logging.info('Setting active test_list to test_list.%s',
                    self.args.test_list)
       with MountPartition(self.factory_image_path, 1, rw=True) as mount:
-        test_list = 'test_list.%s' % self.args.test_list
-        active = os.path.join(mount, 'dev_image', 'factory', 'test_lists',
-                              'active')
-        Spawn(['ln', '-sf', test_list, active], log=True, sudo=True,
-              check_call=True)
+        test_list_py = os.path.join(mount, 'dev_image', 'factory', 'py', 'test',
+                                    'test_lists', 'test_lists.py')
+        if os.path.isfile(test_list_py):
+          logging.info('Using test_list v2 ACTIVE file')
+          active = os.path.join(mount, 'dev_image', 'factory', 'py', 'test',
+                                'test_lists', 'ACTIVE')
+          with open(active, 'w') as f:
+            f.write(self.args.test_list)
+        else:
+          logging.info('Using test_list v1 active symlink')
+          test_list = 'test_list.%s' % self.args.test_list
+          active = os.path.join(mount, 'dev_image', 'factory', 'test_lists',
+                                'active')
+          Spawn(['ln', '-sf', test_list, active], log=True, sudo=True,
+                check_call=True)
 
   def SetWipeOption(self):
     wipe_option = self.manifest.get('wipe_option', [])
