@@ -25,6 +25,14 @@ class OmahaPreparer(object):
   def __init__(self, script_dir, cache_dir):
     self.script_dir = script_dir
     self.cache_dir = cache_dir
+    self.boards_to_update = None
+    self.version_offset = None
+
+  def set_boards_to_update(self, _boards_to_update):
+    self.boards_to_update = _boards_to_update
+
+  def set_version_offset(self, _version_offset):
+    self.version_offset = _version_offset
 
   def _read_config(self, config_path):
     output = {}
@@ -73,11 +81,14 @@ class OmahaPreparer(object):
       new_config = config[0]
       for keys in new_config:
         if keys.endswith('_image'):
-          new_config[keys] = os.path.join(board_name, new_config[keys])
+          dir_name = board_name
+          if self.version_offset:
+            dir_name = os.path.join(self.version_offset, board_name)
+          new_config[keys] = os.path.join(dir_name, new_config[keys])
 
     return new_config
 
-  def generate_miniomaha_files(self, updated_boards):
+  def generate_miniomaha_files(self):
     """Generate files for the updated boards."""
     config_path = os.path.join(self.cache_dir, self.conf_filename)
     if os.path.exists(config_path):
@@ -86,12 +97,12 @@ class OmahaPreparer(object):
       factory_configs = []
 
     # remove the old information of updated boards from config
-    for board in updated_boards:
+    for board in self.boards_to_update:
       factory_configs[:] = [config for config in factory_configs
           if board not in config['qual_ids']]
 
     # generate the new configs and file for updated boards
-    for board in updated_boards:
+    for board in self.boards_to_update:
       config = self.generate_files_from_image(board)
       if not config:
         sys.exit("Failed to generate config files")
@@ -100,10 +111,14 @@ class OmahaPreparer(object):
     with open(config_path, 'w') as f:
       f.write('config=%s\n' % factory_configs)
 
-  def setup_miniomaha_files(self, updated_boards):
+  def setup_miniomaha_files(self):
     """Move the updated files to mini-omaha static directory."""
     omaha_dir = os.path.join(self.script_dir, 'static')
-    for board in updated_boards:
+    if self.version_offset:
+      omaha_dir = os.path.join(omaha_dir, self.version_offset)
+    if not os.path.isdir(omaha_dir):
+      os.makedirs(omaha_dir)
+    for board in self.boards_to_update:
       target_dir = os.path.join(omaha_dir, board)
       if os.path.isdir(target_dir):
         shutil.rmtree(target_dir)
@@ -173,6 +188,9 @@ def main():
                       help='board name for downloading the new stable image')
   parser.add_argument('--cache', dest='cache_dir', default=None,
                       help='cache directory for downloaded images')
+  parser.add_argument('--restart', action='store_true',
+                      dest='restart', default=False,
+                      help='run make_factory_package for all assigned boards')
 
   options = parser.parse_args()
   boards = options.boards
@@ -185,16 +203,18 @@ def main():
     os.makedirs(cache_dir)
 
   updater = ImageUpdater()
-  updated_boards = []
+  boards_to_update = []
   # TODO(chunyen): add an option to download all images in the config file.
   for board in boards:
     updated = updater.update_image(board, cache_dir)
     if updated:
-      updated_boards.append(board)
-
+      boards_to_update.append(board)
+  if options.restart:
+    boards_to_update = boards
   omaha_preparer = OmahaPreparer(base_path, cache_dir)
-  omaha_preparer.generate_miniomaha_files(updated_boards)
-  omaha_preparer.setup_miniomaha_files(updated_boards)
+  omaha_preparer.set_boards_to_update(boards_to_update)
+  omaha_preparer.generate_miniomaha_files()
+  omaha_preparer.setup_miniomaha_files()
 
 
 if __name__ == '__main__':
