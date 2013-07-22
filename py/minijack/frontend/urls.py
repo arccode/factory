@@ -2,12 +2,13 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-from django.conf.urls.defaults import patterns, url
+from django.conf.urls import patterns, url
 from django.conf.urls.static import static
 from django.views.generic import RedirectView
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.minijack.frontend import settings, views, query_views
+from cros.factory.minijack.frontend import hwid_views
 
 
 urlpatterns = patterns('',
@@ -15,6 +16,7 @@ urlpatterns = patterns('',
   url(r'^event/(?P<event_id>[^/]*)$', views.GetEventView, name='event'),
   url(r'^query$', query_views.GetQueryView, name='query'),
   url(r'^build$', views.GetBuildView, name='build'),
+  url(r'^hwid$', hwid_views.GetHwidView, name='hwid'),
   # RedirectView.as_view uses @classonlymethod, a subclass of @classmethod.
   # Pylint doesn't know the @classonlymethod and complains.
   url(r'^index$', RedirectView.as_view(url='/build')),  # pylint: disable=E1120

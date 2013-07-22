@@ -3,7 +3,7 @@
 {% load url from future %}
 <html>
 <head>
-  <title>Minijack: Live of Everything</title>
+  <title>Minijack: Live of HWIDs</title>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
   <link rel="icon" type="image/png" href="{{ STATIC }}images/logo32.png">
   <link rel="stylesheet" type="text/css"
@@ -26,30 +26,10 @@
       src="{{ STATIC }}js/jquery-ui-button.min.js"></script>
   <script type="text/javascript" language="javascript"
       src="{{ STATIC }}js/minijack_common.js"></script>
+  <script type="text/javascript" language="javascript"
+      src="{{ STATIC }}js/hwid_life.js"></script>
   <script type="text/javascript" language="javascript">
-    $(document).ready(function() {
-      $("#result_table").dataTable({
-        "aLengthMenu": [[20, 40, 60, 80, 100, 200, -1],
-                        [20, 40, 60, 80, 100, 200, "All"]],
-        "aaSorting": [],
-        "bJQueryUI": true,
-        "iDisplayLength": 100,
-        "oColVis": {
-          "sSize": "css",
-          "sAlign": "right",
-        },
-        "sDom": "<lCfr><ip>t<ip>",
-        "sPaginationType": "full_numbers",
-        "aoColumns": [{% for column in column_list %}
-          {"sTitle": "{{ column }}"},{% endfor %}
-        ],
-        "aaData": [{% for result in result_list %}
-          [{% for item in result %}
-            "{{ item|escapejs }}", {% endfor %}
-          ],{% endfor %}
-        ],
-      });
-    });
+    var aaDevices = {{ device_list_json|safe }};
   </script>
 </head>
 <body>
@@ -59,21 +39,34 @@
     <a href="{% url 'hwid' %}"><button id="hwid_button">HWID</button></a>
   </div>
 
-  <h1>Minijack: Life of Everything</h1>
-
-  <h2><form method="get" action="{% url 'query' %}">
-    <label for="serach_input">SQL Query ></label>
-    <input type="text" name="s" value="{{ sql_query }}"
-      class="querybox" autofocus autocomplete="off"/>
-  </form></h2>
-
-  {% if error_message %}
-  <h3 style="color:red">{{ error_message|linebreaks }}</h3>
-  {% elif usage_message %}
-  <h3>{{ usage_message|safe }}</h3>
-  {% else %}
-  <table id="result_table">
+  <h1>Minijack: Life of HWIDs</h1>
+  <table id="hwid_table" width="100%">
+    <thead>
+      <tr>
+        <th></th>
+        <th>hwid</th>
+        {% for comp_class in class_set %}
+        <th>{{ comp_class }}</th>{% endfor %}
+      </tr>
+    </thead>
+    <tfoot>
+      <tr>
+        <th></th>
+        <th>hwid</th>
+        {% for comp_class in class_set %}
+        <th>{{ comp_class }}</th>{% endfor %}
+      </tr>
+    </tfoot>
+    <tbody>
+      {% for hwid, comps in hwid_list %}
+      <tr>
+        <td width="20"><img src="{{ STATIC }}images/details_open.png"/></td>
+        <td class="nowrap">{{ hwid }}</td>
+        {% for comp_name in comps %}
+        <td>{{ comp_name }}</td>{% endfor %}
+      </tr>{% endfor %}
+    </tbody>
   </table>
-  {% endif %}
+
 </body>
 </html>

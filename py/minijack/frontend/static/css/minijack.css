@@ -56,6 +56,11 @@ table.detail td, table.detail th {
   white-space: nowrap;
 }
 
+ul.detail {
+  margin: 0;
+  padding-left: 20px;
+}
+
 table.dataTable {
   border-collapse: separate;
   border-spacing: 0;
@@ -63,6 +68,10 @@ table.dataTable {
 
 td.cell {
   background-color: #ffffcc;
+}
+
+td.nowrap {
+  white-space: nowrap;
 }
 
 a {

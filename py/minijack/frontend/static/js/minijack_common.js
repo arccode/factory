@@ -14,4 +14,8 @@ $(document).ready(function() {
   $("#device_button").button({
     icons: {primary: "ui-icon-info"},
   });
+
+  $("#hwid_button").button({
+    icons: {primary: "ui-icon-disk"},
+  });
 });
