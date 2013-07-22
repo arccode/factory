@@ -56,6 +56,11 @@ table.detail td, table.detail th {
   white-space: nowrap;
 }
 
+table.dataTable {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
 td.cell {
   background-color: #ffffcc;
 }
