@@ -35,7 +35,7 @@ $(document).ready(function() {
         this.innerHTML += fnCreateSelect(oTable.fnGetColumnData(i));
 
       $("select", this).change(function() {
-        oTable.fnFilter($(this).val().replace(/ (.*)$/, ""), i);
+        oTable.fnFilter($(this).val().replace(/ \(.*\)$/, ""), i);
       });
     }
   });
