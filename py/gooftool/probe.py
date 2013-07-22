@@ -547,7 +547,7 @@ def _ProbeCellular():
         fw_string = '%s  %s %s' % (fw.attrs, fw.build_id, fw.carrier)
         full_fw_string.append(fw_string)
       data[0]['firmwares'] = ', '.join(full_fw_string)
-      data[0]['active_firmware'] = _GobiDevices.ActiveFirmware()
+      data[0]['active_firmware'] = str(_GobiDevices.ActiveFirmware())
   return data
 
 
