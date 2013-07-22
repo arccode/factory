@@ -52,6 +52,8 @@ class BatteryCurrentTest(unittest.TestCase):
           'minimum allowed discharging current', optional=True),
       Arg('timeout_secs', int,
           'Test timeout value', default=10, optional=True),
+      Arg('max_battery_level', int,
+          'maximum allowed starting battery level', optional=True),
       ]
 
   def setUp(self):
@@ -85,6 +87,10 @@ class BatteryCurrentTest(unittest.TestCase):
 
   def runTest(self):
     """Main entrance of charger test."""
+    if self.args.max_battery_level:
+      self.assertLessEqual(self._power.GetChargePct(),
+                           self.args.max_battery_level,
+                           'Starting battery level too high')
     self._ui.Run(blocking=False)
     if self.args.min_charging_current:
       self._board.SetChargeState(Board.ChargeState.CHARGE)
