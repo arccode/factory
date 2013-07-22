@@ -11,12 +11,15 @@ from cros.factory.minijack.frontend import settings, views, query_views
 from cros.factory.minijack.frontend import hwid_views
 
 
-urlpatterns = patterns('',
+urlpatterns = patterns(
+  '',
   url(r'^device/(?P<device_id>[^/]*)$', views.GetDeviceView, name='device'),
   url(r'^event/(?P<event_id>[^/]*)$', views.GetEventView, name='event'),
   url(r'^query$', query_views.GetQueryView, name='query'),
   url(r'^build$', views.GetBuildView, name='build'),
   url(r'^hwid$', hwid_views.GetHwidView, name='hwid'),
+  url(r'^screenshot/(?P<ip_address>[^/]*)$',
+      views.GetScreenshotImage, name='screenshot'),
   url(r'^tests$', views.GetTestsView, name='tests'),
   # RedirectView.as_view uses @classonlymethod, a subclass of @classmethod.
   # Pylint doesn't know the @classonlymethod and complains.

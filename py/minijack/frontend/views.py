@@ -4,6 +4,8 @@
 
 import itertools
 import operator
+import subprocess
+import tempfile
 from datetime import datetime
 
 from django.http import HttpResponse
@@ -172,3 +174,25 @@ def GetTestsView(request):
     'device_info_json': simplejson.dumps(device_info),
   })
   return HttpResponse(template.render(context))
+
+
+def GetScreenshotImage(dummy_request, ip_address):
+  remote_url = 'root@' + ip_address
+  remote_filename = '/tmp/screenshot.png'
+  capture_cmd = (
+    'DISPLAY=:0 XAUTHORITY=/home/chronos/.Xauthority '
+    'import -window root -display :0 -screen ' + remote_filename)
+  rc = subprocess.call(['ssh', remote_url, capture_cmd])
+
+  # Check if ssh returns an error.
+  if rc != 0:
+    return HttpResponse(
+      'Failed to ssh ' + ip_address + ', returned ' + str(rc) + '.')
+  else:
+    with tempfile.NamedTemporaryFile() as f:
+      subprocess.call(['scp', remote_url + ':' + remote_filename, f.name])
+      image_content = open(f.name, 'rb').read()
+    # Remove remote image file.
+    rm_cmd = 'rm ' + remote_filename
+    subprocess.call(['ssh', remote_url, rm_cmd])
+    return HttpResponse(image_content, content_type='image/png')

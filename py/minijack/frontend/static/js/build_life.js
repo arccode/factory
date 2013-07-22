@@ -65,14 +65,16 @@ function fnFormatDetails(aData) {
   var aIp = aData[8].split(/, /);
   for (var i = 0; i < aIp.length; i++) {
     if (aIp[i]) {
-      var aKeyValue = aIp[i].split('=')
+      var aKeyValue = aIp[i].split('=');
+      var sScreenshotUrl = "../screenshot/"+ aKeyValue[1];
       sOut += '<tr>';
       sOut += '<th>' + aKeyValue[0] + '</th>'
       sOut += '<td>' + aKeyValue[1] + '</td>';
       sOut += '<td>' + aData[9] + '</td>';
       sOut += '<td><button id="ping" disabled>Ping</button>';
       sOut += '<button id="ssh" disabled>SSH</button>';
-      sOut += '<button id="screenshot" disabled>Screenshot</button></td>';
+      sOut += '<button id="screenshot" onclick="fnOpenNewWindow(\'' +
+              sScreenshotUrl + '\')">Screenshot</button></td>';
       sOut += '</tr>';
     }
   }
@@ -87,6 +89,11 @@ function fnFormatDetails(aData) {
   sOut += '</table>';
 
   return sOut;
+}
+
+
+function fnOpenNewWindow(url) {
+    window.open(url, '_blank');
 }
 
 
