@@ -4,8 +4,9 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import os
+import signal
 import tempfile
+import time
 import unittest
 
 import factory_common # pylint: disable=W0611
@@ -65,9 +66,35 @@ class FlattenListTest(unittest.TestCase):
     self.assertEquals([], utils.FlattenList([]))
     self.assertEquals([], utils.FlattenList([[]]))
     self.assertEquals([1], utils.FlattenList([1]))
-    self.assertEquals([1], utils.FlattenList([1,[]]))
-    self.assertEquals([1,2,3,4,5,6],
-                      utils.FlattenList([1,2,[3,4,[]],5,6]))
+    self.assertEquals([1], utils.FlattenList([1, []]))
+    self.assertEquals([1, 2, 3, 4, 5, 6],
+                      utils.FlattenList([1, 2, [3, 4, []], 5, 6]))
+
+
+class TimeoutTest(unittest.TestCase):
+  def runTest(self):
+    with utils.Timeout(3):
+      time.sleep(1)
+
+    prev_secs = signal.alarm(10)
+    self.assertTrue(prev_secs == 0,
+                    msg='signal.alarm() is in use after "with Timeout()"')
+    try:
+      with utils.Timeout(3):
+        time.sleep(1)
+    except AssertionError:
+      pass
+    else:
+      self.assertTrue(False, msg='No assert raised on previous signal.alarm()')
+    signal.alarm(0)
+
+    try:
+      with utils.Timeout(1):
+        time.sleep(3)
+    except utils.TimeoutError:
+      pass
+    else:
+      self.assertTrue(False, msg='No timeout')
 
 
 if __name__ == "__main__":
