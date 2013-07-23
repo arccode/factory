@@ -164,6 +164,11 @@ def SetComponent(comp_cls, name):
 
 @RuleFunction(['hwid'])
 def SetImageId(image_id):
+  """A function to set the image id of the given HWID context.
+
+  Args:
+    image_id: The image id to set.
+  """
   context = GetContext()
   if isinstance(image_id, str):
     # Convert image_id string to its corresponding encoded value.
@@ -181,6 +186,15 @@ def SetImageId(image_id):
   context.hwid.encoded_string = BinaryStringToEncodedString(
       context.hwid.database, context.hwid.binary_string)
 
+
+@RuleFunction(['hwid'])
+def GetOperationMode():
+  """A function to get the set of operation modes of the HWID context.
+
+  Returns:
+    The set of operations modes currently enabled on the given HWID context.
+  """
+  return GetContext().hwid.mode
 
 @RuleFunction(['device_info'])
 def GetDeviceInfo(key):
