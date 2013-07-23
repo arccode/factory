@@ -245,8 +245,8 @@ class TestListCommand(Subcommand):
       all_test_lists = test_lists.BuildAllTestLists()
 
       if self.args.id not in all_test_lists:
-        sys.exit('Unknown test list ID %r (use "factory test-lists" to see '
-                 'available test lists' % self.args.id)
+        sys.exit('Unknown test list ID %r (use "factory test-list --list" to '
+                 'see available test lists' % self.args.id)
       test_lists.SetActiveTestList(self.args.id)
       print 'Set active test list to %s (wrote %r to %s)' % (
           self.args.id, self.args.id, test_lists.ACTIVE_PATH)
