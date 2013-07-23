@@ -412,10 +412,11 @@ class ShopFloor(shopfloor.ShopFloorBase):
             component_name = components[stripped_key][0].component_name
           # In some cases the component labeling may not match between the
           # HWID definition and the factory's definition, so we translate.
-          if stripped_key in self.hwid_factory_translation:
-            if component_name in self.hwid_factory_translation[stripped_key]:
-              component_name = (
-                  self.hwid_factory_translation[stripped_key][component_name])
+          if self.hwid_factory_translation:
+            if stripped_key in self.hwid_factory_translation:
+              if component_name in self.hwid_factory_translation[stripped_key]:
+                component_name = (
+                    self.hwid_factory_translation[stripped_key][component_name])
           logging.info('%s: calculated %s as %s', data['serial_number'], key,
                        component_name)
           setattr(device_data, key, component_name)
