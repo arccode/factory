@@ -13,8 +13,7 @@ from tempfile import NamedTemporaryFile
 
 import factory_common  # pylint: disable=W0611
 import cros.factory.hwid.common as hwid3_common
-from cros.factory.common import Error
-from cros.factory.common import Shell
+from cros.factory.common import Error, Shell
 from cros.factory.hwdb import hwid_tool
 from cros.factory.gooftool import crosfw
 from cros.factory.gooftool.bmpblk import unpack_bmpblock
@@ -621,9 +620,14 @@ class Gooftool(object):
     if not isinstance(probe_results, hwid_tool.ProbeResults):
       raise Error, 'probe_results is not a ProbeResults object'
 
+    if rma_mode:
+      hwid_mode = hwid3_common.HWID.OPERATION_MODE.rma
+    else:
+      hwid_mode = hwid3_common.HWID.OPERATION_MODE.normal
+
     # Construct a base BOM from probe_results.
     device_bom = self.db.ProbeResultToBOM(probe_results.Encode())
-    hwid = Encode(self.db, device_bom, skip_check=True)
+    hwid = Encode(self.db, device_bom, mode=hwid_mode, skip_check=True)
 
     # Verify the probe result with the generated HWID to make sure nothing is
     # mis-configured after setting default values to unprobeable encoded fields.
@@ -642,7 +646,7 @@ class Gooftool(object):
     context = Context(hwid=hwid, device_info=device_info, vpd=vpd_dict)
     self.db.rules.EvaluateRules(context, namespace='device_info.*')
     # Verify status of components base of RMA mode setting.
-    hwid.VerifyComponentStatus(rma_mode)
+    hwid.VerifyComponentStatus()
     return hwid
 
   def VerifyHwidV3(self, encoded_string=None, probe_results=None,
@@ -667,6 +671,8 @@ class Gooftool(object):
         defaults to the RO VPD stored on DUT.
       probed_rw_vpd: A dict of probed RW VPD keys and values. If not specified,
         defaults to the RW VPD stored on DUT.
+      rma_mode: True for RMA mode to allow deprecated components. Defaults to
+        False.
     """
     if self._hwid_version != 3:
       raise Error, 'hwid_version needs to be 3 to run VerifyHwidV3'
@@ -686,9 +692,13 @@ class Gooftool(object):
     if probed_rw_vpd is None:
       probed_rw_vpd = self._read_rw_vpd(main_fw_file)
 
-    hwid = self._hwid_decode(self.db, encoded_string)
+    if rma_mode:
+      hwid_mode = hwid3_common.HWID.OPERATION_MODE.rma
+    else:
+      hwid_mode = hwid3_common.HWID.OPERATION_MODE.normal
+    hwid = self._hwid_decode(self.db, encoded_string, mode=hwid_mode)
     hwid.VerifyProbeResult(probe_results.Encode())
-    hwid.VerifyComponentStatus(rma_mode)
+    hwid.VerifyComponentStatus()
     vpd_dict = {'ro': {}, 'rw': {}}
     vpd_dict['ro'].update(probed_ro_vpd)
     vpd_dict['rw'].update(probed_rw_vpd)

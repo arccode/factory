@@ -105,8 +105,12 @@ class HWID(object):
         "CHROMEBOOK ASDF-2345", where CHROMEBOOK is the board name and 45 is the
         checksum. Compare to binary_string, it is human-trackable.
     bom: A BOM object.
-    skip_check: Skips HWID self verification. This is needed when we want to
-        create a HWID object skeleton for further processing, e.g. a skeleton
+    mode: The operation mode of the HWID object. 'normal' indicates the normal
+        workflow where all checks applies and deprecated components are not
+        allowed. 'rma' indicates the HWID is goning through RMA process and
+        deprecated components are allowed to present. Defaults to 'normal'.
+    skip_check: True to skip HWID verification checks. This is used when we want
+        to create a HWID object skeleton for further processing, e.g. a skeleton
         HWID object to pass to rule evaluation to generate the final HWID.
         Defaults to False.
 
@@ -114,15 +118,20 @@ class HWID(object):
     HWIDException if an invalid arg is found.
   """
   HEADER_BITS = 5
+  OPERATION_MODE = utils.Enum(['normal', 'rma', 'no_check'])
   COMPONENT_STATUS = utils.Enum(['supported', 'deprecated', 'unsupported'])
   ENCODING_SCHEME = utils.Enum(['base32', 'base8192'])
 
   def __init__(self, database, binary_string, encoded_string, bom,
-               skip_check=False):
+               mode=OPERATION_MODE.normal, skip_check=False):
     self.database = database
     self.binary_string = binary_string
     self.encoded_string = encoded_string
     self.bom = bom
+    if mode not in HWID.OPERATION_MODE:
+      raise HWIDException("Invalid operation mode: %r. Mode must be one of: "
+                          "'normal' or 'rma'" % mode)
+    self.mode = mode
     if not skip_check:
       self.VerifySelf()
 
@@ -164,14 +173,12 @@ class HWID(object):
               BinaryStringToBOM(self.database, self.binary_string), self.bom)))
     # No exception. Everything is good!
 
-  def VerifyComponentStatus(self, rma_mode=False):
+  def VerifyComponentStatus(self):
     """Verifies the status of all components.
 
     Accepts all 'supported' components, rejects all 'unsupported' components,
-    and accepts/rejects 'deprecated' components if rma_mode is True/False.
-
-    Args:
-      rma_mode: Whether to verify components status in RMA mode.
+    and accepts/rejects 'deprecated' components if operation mode is/is not
+    rma.
 
     Raises:
       HWIDException is verification fails.
@@ -190,7 +197,7 @@ class HWID(object):
           raise HWIDException('Found unsupported component of %r: %r' %
                               (comp_cls, comp_name))
         elif status == HWID.COMPONENT_STATUS.deprecated:
-          if not rma_mode:
+          if self.mode != HWID.OPERATION_MODE.rma:
             raise HWIDException(
                 'Not in RMA mode. Found deprecated component of %r: %r' %
                 (comp_cls, comp_name))

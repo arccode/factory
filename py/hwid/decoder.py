@@ -100,13 +100,15 @@ def EncodedStringToBinaryString(database, encoded_string):
       hwid_string)[:-_Decoder[encoding_scheme].CHECKSUM_SIZE].rstrip('0')
 
 
-def Decode(database, encoded_string):
+def Decode(database, encoded_string, mode=common.HWID.OPERATION_MODE.normal):
   """Decodes the given encoded string to a HWID object.
 
   Args:
     database: A Database object that is used to provide device-specific
         information for decoding.
     encoded_string: An encoded string.
+    mode: The operation mode of the generated HWID object. Valid values are:
+        ('normal', 'rma')
 
   Returns:
     A HWID object which contains the BOM, the binary string, and the encoded
@@ -114,4 +116,4 @@ def Decode(database, encoded_string):
   """
   binary_string = EncodedStringToBinaryString(database, encoded_string)
   bom = BinaryStringToBOM(database, binary_string)
-  return common.HWID(database, binary_string, encoded_string, bom)
+  return common.HWID(database, binary_string, encoded_string, bom, mode=mode)
