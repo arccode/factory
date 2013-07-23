@@ -103,6 +103,9 @@ _hwid_cmd_arg = CmdArg(
     '--hwid', metavar='HWID',
     help='HWID to verify (instead of the currently set HWID of this system).')
 
+_rma_mode_cmd_arg = CmdArg(
+    '--rma_mode', action='store_true',
+    help='Enable RMA mode, do not check for deprecated components.')
 
 @Command('best_match_hwids',
          _hwdb_path_cmd_arg,
@@ -803,7 +806,8 @@ def VerifyComponentsV3(options):
          _board_cmd_arg,
          _hwdb_path_cmd_arg,
          _probe_results_cmd_arg,
-         _device_info_cmd_arg)
+         _device_info_cmd_arg,
+         _rma_mode_cmd_arg)
 def GenerateHwidV3(options):
   """Generates the HWID of the DUT.
 
@@ -838,7 +842,7 @@ def GenerateHwidV3(options):
     initial_configs=probe_results.initial_configs)
 
   hwid_object = GetGooftool(options).GenerateHwidV3(
-      device_info, probe_results)
+      device_info, probe_results, rma_mode=options.rma_mode)
 
   final_bom = {}
   for component_class, component_values in (
