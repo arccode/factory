@@ -34,6 +34,7 @@ from cros.factory.goofy import test_environment
 from cros.factory.goofy import time_sanitizer
 from cros.factory.goofy import updater
 from cros.factory.goofy.goofy_rpc import GoofyRPC
+from cros.factory.goofy.invocation import TestArgEnv
 from cros.factory.goofy.invocation import TestInvocation
 from cros.factory.goofy.prespawner import Prespawner
 from cros.factory.goofy.system_log_manager import SystemLogManager
@@ -620,17 +621,31 @@ class Goofy(object):
     '''
     Updates skipped states based on run_if.
     '''
+    env = TestArgEnv()
     for t in self.test_list.walk():
-      if t.is_leaf() and t.run_if_table_name:
-        skip = False
-        try:
-          aux = shopfloor.get_selected_aux_data(t.run_if_table_name)
-          value = aux.get(t.run_if_col)
-          if value is not None:
-            skip = (not value) ^ t.run_if_not
-        except ValueError:
-          # Not available; assume it shouldn't be skipped
-          pass
+      if t.is_leaf() and (t.run_if_table_name or t.run_if_expr):
+        value = None
+
+        if t.run_if_expr:
+          try:
+            value = t.run_if_expr(env)
+          except:  # pylint: disable=W0702
+            logging.exception('Unable to evaluate run_if expression for %s',
+                              t.path)
+            # But keep going; we have no choice.  This will end up
+            # always activating the test.
+        else:
+          try:
+            aux = shopfloor.get_selected_aux_data(t.run_if_table_name)
+            value = aux.get(t.run_if_col)
+          except ValueError:
+            # Not available; assume it shouldn't be skipped
+            pass
+
+        if value is None:
+          skip = False
+        else:
+          skip = (not value) ^ t.run_if_not
 
         test_state = t.get_state()
         if ((not skip) and

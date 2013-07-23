@@ -48,6 +48,29 @@ ERROR_LOG_TAIL_LENGTH = 8*1024
 # pylint: disable=W0702
 
 
+class TestArgEnv(object):
+  '''Environment for resolving test arguments.
+
+  Properties:
+    state: Instance to obtain factory test.
+    device_data: Cached device data from shopfloor.
+  '''
+  def __init__(self):
+    self.state = factory.get_state_instance()
+    self.device_data = None
+
+  def GetMACAddress(self, interface):
+    return open('/sys/class/net/%s/address' % interface).read().strip()
+
+  def GetDeviceData(self, key=None, default_value=None):
+    '''Returns shopfloor.GetDeviceData().
+
+    The value is cached to avoid extra calls to GetDeviceData().'''
+    if self.device_data is None:
+      self.device_data = shopfloor.GetDeviceData()
+    return self.device_data
+
+
 def ResolveTestArgs(dargs):
   '''Resolves an argument dictionary by evaluating any functions.
 
@@ -79,37 +102,14 @@ def ResolveTestArgs(dargs):
   Returns:
     dargs, except that any values that are lambdas are replaced with the
       results of evaluating them with a single argument, 'env',
-      which is an instance of the Env class.
+      which is an instance of the TestArgEnv class.
   '''
-  class Env(object):
-    '''Environment for resolving test arguments.
-
-    Properties:
-      state: Instance to obtain factory test.
-      device_data: Cached device data from shopfloor.
-    '''
-    def __init__(self):
-      self.state = factory.get_state_instance()
-      self.device_data = None
-
-    def GetMACAddress(self, interface):
-      return open('/sys/class/net/%s/address' % interface).read().strip()
-
-    def GetDeviceData(self):
-      '''Returns shopfloor.GetDeviceData().
-
-      The value is cached to avoid extra calls to GetDeviceData().
-      '''
-      if self.device_data is None:
-        self.device_data = shopfloor.GetDeviceData()
-      return self.device_data
-
   def ResolveArg(k, v):
     '''Resolves a single argument.'''
     if not isinstance(v, types.FunctionType):
       return v
 
-    v = v(Env())
+    v = v(TestArgEnv())
     logging.info('Resolved argument %s to %r', k, FilterDict(v))
     return v
 

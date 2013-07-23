@@ -16,6 +16,7 @@ To add a subcommand, just add a new Subcommand subclass to this file.
 import argparse
 import inspect
 import logging
+import re
 import socket
 import sys
 import time
@@ -331,7 +332,61 @@ class DeviceDataCommand(Subcommand):
   name = 'device-data'
   help = 'Show the contents of the device data dictionary'
 
+  def Init(self):
+    self.subparser.add_argument(
+        'set', metavar='KEY=VALUE', nargs='*',
+        help=('(To be used only manually for debugging) '
+              'Sets a device data KEY to VALUE. If VALUE is one of '
+              '["True", "true", "False", "false"], then it is considered '
+              'a bool. If it is "None" then it is considered to be None. '
+              'If it can be coerced to an int, it is considered an int. '
+              'Otherwise, it is considered a string. '
+              'To avoid type ambiguity, if you need to programmatically '
+              'modify device data, don\'t use this; use --set-yaml.'))
+    self.subparser.add_argument(
+        '--set-yaml', metavar='FILE',
+        help=('Read FILE (or stdin if FILE is "-") as a YAML dictionary '
+              'and set device data.'))
+    self.subparser.add_argument(
+        '--del', '-d', metavar='KEY', nargs='+',
+        help='Deletes KEY from device data.')
+
   def Run(self):
+    if self.args.set:
+      update = {}
+      for item in self.args.set:
+        match = re.match('^([^=]+)=(.*)$', item)
+        if not match:
+          sys.exit('--set argument %r should be in the form KEY=VALUE')
+
+        key, value = match.groups()
+        if value in ['True', 'true']:
+          value = True
+        elif value in ['False', 'false']:
+          value = False
+        elif value == 'None':
+          value = None
+        else:
+          try:
+            value = int(value)
+          except ValueError:
+            pass  # No sweat
+
+        update[key] = value
+      shopfloor.UpdateDeviceData(update, post_update_event=False)
+      factory.get_state_instance().UpdateSkippedTests()
+
+    if self.args.set_yaml:
+      if self.args.set_yaml == '-':
+        update = yaml.load(sys.stdin)
+      else:
+        with open(self.args.set_yaml) as f:
+          update = yaml.load(f)
+      if type(update) != dict:
+        sys.exit('Expected a dict but got a %r' % type(update))
+      shopfloor.UpdateDeviceData(update, post_update_event=False)
+      factory.get_state_instance().UpdateSkippedTests()
+
     sys.stdout.write(
         yaml.safe_dump(shopfloor.GetDeviceData(),
                        default_flow_style=False))

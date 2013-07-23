@@ -216,3 +216,20 @@ def PollForCondition(condition, timeout=10,
       logging.error(condition_name)
       raise TimeoutError(condition_name)
     time.sleep(poll_interval_secs)
+
+def GetWLANMACAddress():
+  """Returns the MAC address of the first wireless LAN device.
+
+  Returns:
+    A string like "de:ad:be:ef:11:22".
+
+  Raises:
+    IOError: If unable to determine the MAC address.
+  """
+  for dev in ['wlan0', 'mlan0']:
+    path = '/sys/class/net/%s/address' % dev
+    if os.path.exists(path):
+      with open(path) as f:
+        return f.read().strip()
+
+  raise IOError('Unable to determine WLAN MAC address')

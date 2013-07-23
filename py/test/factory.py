@@ -701,6 +701,9 @@ class FactoryTest(object):
       run_if_table_name: The table_name portion of the run_if ctor arg.
       run_if_col: The column name portion of the run_if ctor arg.
       run_if_not: Whether the sense of the argument is inverted.
+      run_if_expr: A callable function (taking one argument, an
+          invocation.TestArgEnv) that will return True if the test
+          should be run.
       implicit_id: Whether the ID was determined implicitly (i.e., not
           explicitly specified in the test list).
   '''
@@ -802,7 +805,8 @@ class FactoryTest(object):
         require_run=['x', Passed('y')]  # Requires that x has been run
                                         # and y has passed
     @param run_if: Condition under which the test should be run.  This
-      must currently be a string of the format
+      must be either a function taking a single argument (an
+      invocation.TestArgsEnv object), or a string of the format
 
         table_name.col
         !table_name.col
@@ -855,7 +859,10 @@ class FactoryTest(object):
     self.run_if_table_name = None
     self.run_if_col = None
     self.run_if_not = False
-    if run_if:
+    self.run_if_expr = None
+    if callable(run_if):
+      self.run_if_expr = run_if
+    elif run_if:
       match = self.RUN_IF_REGEXP.match(run_if)
       assert match, ('In test %s, run_if value %r does not match %s',
                      self.path, run_if, self.RUN_IF_REGEXP.pattern)
