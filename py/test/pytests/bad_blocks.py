@@ -32,6 +32,7 @@ from cros.factory.test import ui_templates
 from cros.factory.test import utils
 from cros.factory.test.args import Arg
 from cros.factory.test.test_ui import UI, Escape, MakeLabel
+from cros.factory.utils.file_utils import GetMainStorageDevice
 from cros.factory.utils.process_utils import Spawn
 
 HTML = '''
@@ -39,8 +40,6 @@ HTML = '''
 <div id="bb-status" style="font-size: 150%"></div>
 <div id="bb-progress"></div>
 '''
-
-_STORAGE_DEVICE_PATHS = ['/dev/mmcblk0', '/dev/sda']
 
 class BadBlocksTest(unittest.TestCase):
   # SATA link speed, or None if unknown.
@@ -87,7 +86,7 @@ class BadBlocksTest(unittest.TestCase):
     if self.args.device_path is None:
       if self.args.mode == 'raw':
         raise ValueError('In raw mode the device_path must be specified.')
-      self.args.device_path = self._ProbeStorageDevices(_STORAGE_DEVICE_PATHS)
+      self.args.device_path = GetMainStorageDevice()
     if self.args.mode == 'file':
       if self.args.device_path[0:5] == '/dev/':
         # In file mode we want to use the filesystem, not a device node,
@@ -328,36 +327,6 @@ class BadBlocksTest(unittest.TestCase):
     last_line = lines[-1]
     self.assertEquals('Pass completed, 0 bad blocks found. (0/0/0 errors)',
                       last_line)
-
-  def _ProbeStorageDevices(self, storage_device_paths):
-    '''
-    Probe the local storage devices to determine what storage we should use.
-    Check if only a single type of storage device exists, if so we can presume
-    it is the local storage device to use. If multiple devices are found than
-    it is likely an external device was inserted and we should exit the test.
-
-    Args:
-      storage_device_paths: List of strings of storage device dev node paths.
-
-    Returns:
-      String of the storage device dev node path.
-
-    Raises:
-      ValueError if multiple storage device types are found.
-      ValueError if no storage device can be found.
-    '''
-    found_paths = []
-    for path in storage_device_paths:
-      if os.path.exists(path):
-        found_paths.append(path)
-    if len(found_paths) == 1:
-      logging.info('Probed %s to uniquely exist.', found_paths[-1])
-      return found_paths[-1]
-    elif len(found_paths) > 1:
-      raise ValueError('Multiple storage devices found, unable to determine '
-                       'internal storage, external storage device inserted?')
-    else:
-      raise ValueError('Could not locate a proper storage device.')
 
   def _GenerateTestFile(self, file_path, file_bytes):
     '''
