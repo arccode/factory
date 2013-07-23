@@ -62,6 +62,8 @@ from cros.factory.utils.process_utils import Spawn
 HWID_CFG_PATH = '/usr/local/share/chromeos-hwid/cfg'
 CACHES_DIR = os.path.join(factory.get_state_root(), "caches")
 
+CLEANUP_LOGS_PAUSED = '/var/lib/cleanup_logs_paused'
+
 # File that suppresses reboot if present (e.g., for development).
 NO_REBOOT_FILE = '/var/log/factory.noreboot'
 
@@ -1310,12 +1312,7 @@ class Goofy(object):
       self.test_list.options.__dict__)
     self.state_instance.test_list = self.test_list
 
-    if not utils.in_chroot():
-      cleanup_logs_paused_path = '/var/lib/cleanup_logs_paused'
-      if self.test_list.options.disable_log_rotation:
-        open(cleanup_logs_paused_path, 'w').close()
-      else:
-        file_utils.TryUnlink(cleanup_logs_paused_path)
+    self.check_log_rotation()
 
     if self.options.dummy_shopfloor:
       os.environ[shopfloor.SHOPFLOOR_SERVER_ENV_VAR_NAME] = (
@@ -1727,6 +1724,28 @@ class Goofy(object):
         self.system_log_manager.KickSyncThread(
             core_dump_files, self.core_dump_manager.ClearFiles)
 
+  def check_log_rotation(self):
+    '''Checks log rotation file presence/absence according to test_list option.
+
+    Touch /var/lib/cleanup_logs_paused if test_list.options.disable_log_rotation
+    is True, delete it otherwise. This must be done in idle loop because
+    autotest client will touch /var/lib/cleanup_logs_paused each time it runs
+    an autotest.
+    '''
+    if utils.in_chroot():
+      return
+    try:
+      if self.test_list.options.disable_log_rotation:
+        open(CLEANUP_LOGS_PAUSED, 'w').close()
+      else:
+        file_utils.TryUnlink(CLEANUP_LOGS_PAUSED)
+    except:  # pylint: disable=W0702
+      # Oh well.  Logs an error (but no trace)
+      logging.info(
+          'Unable to %s %s: %s',
+          'touch' if self.test_list.options.disable_log_rotation else 'delete',
+          CLEANUP_LOGS_PAUSED, utils.FormatExceptionOnly())
+
   def sync_time_in_background(self):
     '''Writes out current time and tries to sync with shopfloor server.'''
     if not self.time_sanitizer:
@@ -1779,6 +1798,7 @@ class Goofy(object):
     self.log_disk_space_stats()
     self.check_battery()
     self.check_core_dump()
+    self.check_log_rotation()
 
   def handle_event_logs(self, chunks):
     '''Callback for event watcher.
