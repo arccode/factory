@@ -1,42 +1,13 @@
-{% load static %}
-{% get_static_prefix as STATIC %}
-{% load url from future %}
-<html>
-<head>
-  <title>Minijack: Live of a Build</title>
-  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
-  <link rel="icon" type="image/png" href="{{ STATIC }}images/logo32.png">
-  <link rel="stylesheet" type="text/css"
-      href="{{ STATIC }}css/smoothness/jquery-ui-1.8.4.custom.css">
-  <link rel="stylesheet" type="text/css"
-      href="{{ STATIC }}css/jquery.dataTables_themeroller.css">
-  <link rel="stylesheet" type="text/css"
-      href="{{ STATIC }}css/ColVis.css">
-  <link rel="stylesheet" type="text/css"
-      href="{{ STATIC }}css/minijack.css">
-  <script type="text/javascript" language="javascript"
-      src="{{ STATIC }}js/jquery.js"></script>
-  <script type="text/javascript" language="javascript"
-      src="{{ STATIC }}js/jquery.dataTables.min.js"></script>
-  <script type="text/javascript" language="javascript"
-      src="{{ STATIC }}js/jquery.dataTables.plugins.js"></script>
-  <script type="text/javascript" language="javascript"
-      src="{{ STATIC }}js/ColVis.min.js"></script>
-  <script type="text/javascript" language="javascript"
-      src="{{ STATIC }}js/jquery-ui-button.min.js"></script>
-  <script type="text/javascript" language="javascript"
-      src="{{ STATIC }}js/minijack_common.js"></script>
+{% extends "base.html" %}
+
+{% block title %}Minijack: Live of a Build{% endblock %}
+
+{% block javascripts %}
   <script type="text/javascript" language="javascript"
       src="{{ STATIC }}js/build_life.js"></script>
-</head>
-<body>
-  <div class="right">
-    <a href="{% url 'build' %}">
-      <button id="home_button" disabled>HOME</button></a>
-    <a href="{% url 'query' %}"><button id="query_button">QUERY</button></a>
-    <a href="{% url 'hwid' %}"><button id="hwid_button">HWID</button></a>
-  </div>
+{% endblock %}
 
+{% block body %}
   <h1>Minijack: Life of a Build</h1>
   <br/>
   <div id="suite_radio">
@@ -124,5 +95,4 @@
       {% endfor %}
     </tbody>
   </table>
-</body>
-</html>
+{% endblock %}
