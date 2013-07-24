@@ -3,6 +3,9 @@
 // found in the LICENSE file.
 
 $(document).ready(function() {
+  /* Save original headers for later use. */
+  var headers = $("thead th");
+
   var oTable = $("#hwid_table").dataTable({
     "aLengthMenu": [[20, 40, 60, 80, 100, 200, -1],
                     [20, 40, 60, 80, 100, 200, "All"]],
@@ -24,9 +27,13 @@ $(document).ready(function() {
   });
 
   /* Add a select menu for each TH element in the table header */
-  $("thead th").each(function(i) {
-    if (i >= 2 && i <= 27) {
-      this.innerHTML += fnCreateSelect(oTable.fnGetColumnData(i));
+  headers.each(function(i) {
+    if (i >= 2) {
+      var data = oTable.fnGetColumnData(i);
+      if (fnCheckAllEqual(data)) {
+        return;
+      }
+      this.innerHTML += fnCreateSelect(data);
 
       $("select", this).change(function() {
         oTable.fnFilter($(this).val().replace(/ \(.*\)$/, ""), i);
@@ -55,22 +62,33 @@ $(document).ready(function() {
 function fnFormatDetails(aData) {
   var sOut = '';
   var sHwid = aData[1];
-  var aaDeviceList = aaDevices[sHwid];
+  var aDeviceList = aaDevices[sHwid];
 
   sOut += '<table class="detail">';
   sOut += '<tr>';
-  sOut += '<td>Total: ' + aaDeviceList.length.toString() + '</td>';
+  sOut += '<td>Total: ' + aDeviceList.length.toString() + '</td>';
   sOut += '<td>serial</td><td>mlb_serial</td><td>last_test_time</td></tr>';
-  for (var i = 0; i < aaDeviceList.length; i++) {
-    sOut += '<tr><td>DEVICE: <a href="../device/' + aaDeviceList[i][0] + '">';
-    sOut += aaDeviceList[i][0] + '</a>';
-    sOut += '</td><td>' + aaDeviceList[i][1];
-    sOut += '</td><td>' + aaDeviceList[i][2];
-    sOut += '</td><td>' + aaDeviceList[i][3];
+  for (var i = 0; i < aDeviceList.length; i++) {
+    sOut += '<tr><td>DEVICE: <a href="device/' + aDeviceList[i][0] + '">';
+    sOut += aDeviceList[i][0] + '</a>';
+    sOut += '</td><td>' + aDeviceList[i][1];
+    sOut += '</td><td>' + aDeviceList[i][2];
+    sOut += '</td><td>' + aDeviceList[i][3];
     sOut += '</td></tr>';
   }
-  sOut += '</ul>';
+  sOut += '</table>';
 
   return sOut;
 }
 
+function fnCheckAllEqual(data) {
+  if (data.length == 0) {
+    return true;
+  }
+  for (i = 1; i < data.length; i++) {
+    if (data[i] != data[0]) {
+      return false;
+    }
+  }
+  return true;
+}

@@ -20,8 +20,7 @@ def GetHwidView(dummy_request):
   hwid_to_devices = dict()
   for k, g in itertools.groupby(device_list, key=operator.attrgetter('hwid')):
     hwid_to_devices[k] = sorted([(d.device_id, d.serial, d.mlb_serial,
-                                  d.latest_test_time) for d in g],
-                                key=operator.itemgetter(1))
+                                  d.latest_test_time) for d in g])
 
   hwid_names_pair = []
   # Get components for each HWID
