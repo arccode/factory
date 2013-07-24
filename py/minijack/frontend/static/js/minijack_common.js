@@ -18,4 +18,8 @@ $(document).ready(function() {
   $("#hwid_button").button({
     icons: {primary: "ui-icon-disk"},
   });
+
+  $("#tests_button").button({
+    icons: {primary: "ui-icon-clipboard"},
+  });
 });

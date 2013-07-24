@@ -2,14 +2,16 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import operator
 import itertools
+import operator
 from datetime import datetime
 
 from django.http import HttpResponse
 from django.template import Context, loader
+from django.utils import simplejson
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.minijack.frontend import data
 from cros.factory.minijack.frontend.models import Device, Test, Component
 from cros.factory.minijack.frontend.models import Event, Attr
 
@@ -99,5 +101,74 @@ def GetEventView(dummy_request, event_id):
     'attrs': attrs,
     'events_before': events_before,
     'events_after': events_after,
+  })
+  return HttpResponse(template.render(context))
+
+
+def GetGroupOrder(order):
+  if order == 'pytest_name':
+    return operator.itemgetter('pytest_name')
+  elif order == 'short_path':
+    return (lambda x: x['path'].rsplit('.', 1)[-1])
+  else:
+    return operator.itemgetter('path')
+
+
+def GetTestsView(request):
+  order = request.GET.get('order', 'full_path')
+  order_fn = GetGroupOrder(order)
+  tests = Test.objects.exclude(path='').values(
+      'status', 'duration', 'end_time', 'path', 'device_id', 'pytest_name')
+
+  tests = sorted(tests, key=order_fn)
+
+  test_stats = []
+  test_to_devices = dict()
+  all_failed_set = set()
+  for k, g in itertools.groupby(tests, key=order_fn):
+    test_list = list(g)
+
+    # only count devices that always fail on this test
+    failed_set = (set(t['device_id'] for t in test_list
+                      if t['status'] == 'FAILED') -
+                  set(t['device_id'] for t in test_list
+                      if t['status'] == 'PASSED'))
+    test_to_devices[k] = sorted(list(failed_set))
+    all_failed_set |= failed_set
+
+    # Filter out nonexist duration data.
+    duration_list = [float(t['duration']) for t in test_list
+                     if float(t['duration']) != 0.0]
+
+    duration_stats = data.GetStatistic(duration_list)
+
+    try_list = [len(list(g)) for _, g in
+                itertools.groupby(test_list,
+                                  key=operator.itemgetter('device_id'))]
+    try_stats = data.GetStatistic(try_list)
+
+    num_test = len(test_list)
+    num_pass = len([x for x in test_list if x['status'] == 'PASSED'])
+    num_fail = len([x for x in test_list if x['status'] == 'FAILED'])
+
+    test_stats.append({
+      'path': k,
+      'num_test': num_test,
+      'latest_time': max(x['end_time'] for x in test_list),
+      'duration_stats': duration_stats,
+      'try_stats': try_stats,
+      'pass_rate': num_pass / float(num_test),
+      'fail_rate': num_fail / float(num_test),
+    })
+  device_info = dict((d.device_id,
+                      (d.serial, d.mlb_serial, d.latest_test_time)) for d in
+                     Device.objects.filter(device_id__in=all_failed_set))
+
+  template = loader.get_template('tests_life.html')
+  context = Context({
+    'order': order,
+    'test_stats': test_stats,
+    'failed_devices_json': simplejson.dumps(test_to_devices),
+    'device_info_json': simplejson.dumps(device_info),
   })
   return HttpResponse(template.render(context))

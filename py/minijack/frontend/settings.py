@@ -7,6 +7,8 @@ import os
 import sys
 
 
+SECRET_KEY = 'qn5@1t%&%nnq5mtbkm*w&#u@uj4w8unl^2c6iq8e2ke9r=v)ap'
+
 PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
 RELEASE_ROOT = '/var/db/factory'
 
@@ -40,6 +42,7 @@ ROOT_URLCONF = 'cros.factory.minijack.frontend.urls'
 
 INSTALLED_APPS = (
   'django.contrib.staticfiles',
+  'cros.factory.minijack.frontend',
 )
 
 STATIC_ROOT = os.path.join(RELEASE_ROOT, 'frontend', 'static')

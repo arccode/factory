@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% load display %}
+
+{% block title %}Minijack: Live of Tests{% endblock %}
+
+{% block javascripts %}
+  <script type="text/javascript" language="javascript"
+      src="{{ STATIC }}js/tests_life.js"></script>
+  <script type="text/javascript" language="javascript">
+    var aaFailedDevices = {{ failed_devices_json|safe }};
+    var aaDeviceInfo = {{ device_info_json|safe }};
+  </script>
+{% endblock %}
+
+{% block body %}
+  <h1>Minijack: Life of Tests</h1>
+  <br/>
+  <div id="suite_radio">
+    <input type="radio" id="radio0" name="radio" value="full_path"
+      {% if order == 'full_path' %}checked="checked"{% endif %} />
+      <label for="radio0">Full Path</label>
+    <input type="radio" id="radio1" name="radio" value="short_path"
+      {% if order == 'short_path' %}checked="checked"{% endif %} />
+      <label for="radio1">Short Path</label>
+    <input type="radio" id="radio2" name="radio" value="pytest_name"
+      {% if order == 'pytest_name' %}checked="checked"{% endif %} />
+      <label for="radio2">pytest Name</label>
+  </div>
+  <br/>
+  <table id="test_table" width="100%">
+    <thead>
+      <tr>
+        <th></th>
+        <th>name</th>
+        <th>latest_test_time</th>
+        <th>num_tested</th>
+        <th>pass_rate</th>
+        <th>fail_rate</th>
+        <th>duration_average</th>
+        <th>duration_min</th>
+        <th>duration_max</th>
+        <th>duration_median</th>
+        <th>duration_stddev</th>
+        <th>try_average</th>
+        <th>try_min</th>
+        <th>try_max</th>
+        <th>try_median</th>
+        <th>try_stddev</th>
+      </tr>
+    </thead>
+    <tfoot>
+      <tr>
+        <th></th>
+        <th>name</th>
+        <th>latest_test_time</th>
+        <th>num_tested</th>
+        <th>pass_rate</th>
+        <th>fail_rate</th>
+        <th>duration_average</th>
+        <th>duration_min</th>
+        <th>duration_max</th>
+        <th>duration_median</th>
+        <th>duration_stddev</th>
+        <th>try_average</th>
+        <th>try_min</th>
+        <th>try_max</th>
+        <th>try_median</th>
+        <th>try_stddev</th>
+      </tr>
+    </tfoot>
+    <tbody>
+      {% for test in test_stats %}
+      <tr>
+        <td width="20"><img src="{{ STATIC }}images/details_open.png"/></td>
+        <td>{{ test.path }}</td>
+        <td>{{ test.latest_time|slice:"5:16" }}</td>
+        <td>{{ test.num_test }}</td>
+        <td>{{ test.pass_rate|floatformat:4 }}</td>
+        <td>{{ test.fail_rate|floatformat:4 }}</td>
+        <td>{{ test.duration_stats.avg|DisplayFloat }}</td>
+        <td>{{ test.duration_stats.min|DisplayFloat }}</td>
+        <td>{{ test.duration_stats.max|DisplayFloat }}</td>
+        <td>{{ test.duration_stats.median|DisplayFloat }}</td>
+        <td>{{ test.duration_stats.stddev|DisplayFloat }}</td>
+        <td>{{ test.try_stats.avg|DisplayFloat }}</td>
+        <td>{{ test.try_stats.min|DisplayFloat }}</td>
+        <td>{{ test.try_stats.max|DisplayFloat }}</td>
+        <td>{{ test.try_stats.median|DisplayFloat }}</td>
+        <td>{{ test.try_stats.stddev|DisplayFloat }}</td>
+      </tr>{% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

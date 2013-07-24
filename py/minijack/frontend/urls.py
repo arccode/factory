@@ -17,6 +17,7 @@ urlpatterns = patterns('',
   url(r'^query$', query_views.GetQueryView, name='query'),
   url(r'^build$', views.GetBuildView, name='build'),
   url(r'^hwid$', hwid_views.GetHwidView, name='hwid'),
+  url(r'^tests$', views.GetTestsView, name='tests'),
   # RedirectView.as_view uses @classonlymethod, a subclass of @classmethod.
   # Pylint doesn't know the @classonlymethod and complains.
   url(r'^index$', RedirectView.as_view(url='/build')),  # pylint: disable=E1120
