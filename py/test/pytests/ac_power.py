@@ -31,9 +31,8 @@ _PLUG_AC = lambda x: test_ui.MakeLabel(
 _UNPLUG_AC = test_ui.MakeLabel('Unplug the charger.', u'请移除充电器')
 
 _PROBE_TIMES_ID = 'probed_times'
-_PROBE_TIMES = lambda total: test_ui.MakeLabel(
-    'Probed <span id="%s">1</span> / %d' % (_PROBE_TIMES_ID, total),
-    u'侦测次数 <span id="%s">1</span> / %d' % (_PROBE_TIMES_ID, total))
+_PROBE_TIMES = lambda total: '%s <span id="%s">1</span> / %d' % (
+    test_ui.MakeLabel('Probed', u'侦测次数'), _PROBE_TIMES_ID, total)
 
 
 class ACPowerTest(unittest.TestCase):
