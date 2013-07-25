@@ -3,24 +3,24 @@
 // found in the LICENSE file.
 
 $(document).ready(function() {
-  var oTable = $("#test_table").dataTable({
-    "aLengthMenu": [[20, 40, 60, 80, 100, 200, -1],
-                    [20, 40, 60, 80, 100, 200, "All"]],
-    "aaSorting": [[1, "asc"]],
-    "aoColumnDefs": [
-      {"bSortable": false, "aTargets": [0]},
+  var oTable = $('#test_table').dataTable({
+    'aLengthMenu': [[20, 40, 60, 80, 100, 200, -1],
+                    [20, 40, 60, 80, 100, 200, 'All']],
+    'aaSorting': [[1, 'asc']],
+    'aoColumnDefs': [
+      {'bSortable': false, 'aTargets': [0]}
     ],
-    "bJQueryUI": true,
-    "bScrollCollapse": true,
-    "iDisplayLength": 100,
-    "oColVis": {
-      "aiExclude": [0],
-      "sAlign": "right",
-      "sSize": "css",
+    'bJQueryUI': true,
+    'bScrollCollapse': true,
+    'iDisplayLength': 100,
+    'oColVis': {
+      'aiExclude': [0],
+      'sAlign': 'right',
+      'sSize': 'css'
     },
-    "sDom": "<lCfr><ip>t<ip>",
-    "sPaginationType": "full_numbers",
-    "sScrollX": "100%",
+    'sDom': '<lCfr><ip>t<ip>',
+    'sPaginationType': 'full_numbers',
+    'sScrollX': '100%'
   });
 
   /* Hack to get column width of hwid correct in Chrome */
@@ -28,18 +28,18 @@ $(document).ready(function() {
     oTable.fnAdjustColumnSizing(1, true);
   }, 100);
 
-  $("#test_table tbody tr td img").live("click", function() {
-    var nTr = $(this).parents("tr")[0];
+  $('#test_table tbody tr td img').live('click', function() {
+    var nTr = $(this).parents('tr')[0];
     if (oTable.fnIsOpen(nTr)) {
-      this.src = "/static/images/details_open.png";
+      this.src = '/static/images/details_open.png';
       oTable.fnClose(nTr);
     } else {
-      this.src = "/static/images/details_close.png";
-      oTable.fnOpen(nTr, fnFormatDetails(oTable.fnGetData(nTr)), "cell");
+      this.src = '/static/images/details_close.png';
+      oTable.fnOpen(nTr, fnFormatDetails(oTable.fnGetData(nTr)), 'cell');
     }
   });
 
-  $("#suite_radio").buttonset().change(function(e) {
+  $('#suite_radio').buttonset().change(function(e) {
     window.location.href = 'test?order=' + e.target.value;
   });
 
@@ -75,9 +75,9 @@ function fnFormatDetails(aData) {
   var aDeviceList = aaFailedDevices[sPath];
 
   if (aDeviceList.length == 0) {
-    sOut = 'Every device which ran this test has passed.'
+    sOut = 'Every device which ran this test has passed.';
   } else {
-    sOut += 'Devices which ran this test (' + sPath + ') but never passed'
+    sOut += 'Devices which ran this test (' + sPath + ') but never passed';
     sOut += '<br/>';
 
     sOut += '<table class="detail">';

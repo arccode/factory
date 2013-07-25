@@ -3,23 +3,23 @@
 // found in the LICENSE file.
 
 $(document).ready(function() {
-  $("#home_button").button({
-    icons: {primary: "ui-icon-home"},
+  $('#home_button').button({
+    icons: {primary: 'ui-icon-home'}
   });
 
-  $("#query_button").button({
-    icons: {primary: "ui-icon-search"},
+  $('#query_button').button({
+    icons: {primary: 'ui-icon-search'}
   });
 
-  $("#device_button").button({
-    icons: {primary: "ui-icon-info"},
+  $('#device_button').button({
+    icons: {primary: 'ui-icon-info'}
   });
 
-  $("#hwid_button").button({
-    icons: {primary: "ui-icon-disk"},
+  $('#hwid_button').button({
+    icons: {primary: 'ui-icon-disk'}
   });
 
-  $("#tests_button").button({
-    icons: {primary: "ui-icon-clipboard"},
+  $('#tests_button').button({
+    icons: {primary: 'ui-icon-clipboard'}
   });
 });
