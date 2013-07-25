@@ -10,12 +10,16 @@
 # a very limited environment without full CrOS source tree.
 
 import cherrypy
+import glob
 import optparse
 import os
+import shutil
 import socket
 import sys
+import threading
 import time
 
+import get_recovery_image
 import miniomaha_engine
 
 CACHED_ENTRIES = 12
@@ -59,6 +63,111 @@ def _GetConfig(opts):
 
   return base_config
 
+
+class UpdateChecker(object):
+  """Class for doing peridically update check."""
+
+  def __init__(self, opts, script_dir, cache_dir, _updater, lock):
+    self.opts = opts
+    self.script_dir = script_dir
+    self.cache_dir = cache_dir
+    self.updater = _updater
+    self.update_lock = lock
+    self.timer = None
+    self.base_dir = os.path.realpath(self.opts.data_dir)
+    self.next_version = 1
+    self._UpdateCheck()
+
+  def _CleanUpConfig(self):
+    """Put the updated files into initial position"""
+    if self.updater.GetActiveConfigIndex() == 1:
+      # No update
+      return
+    initial_config = self.updater.GetConfig(0)
+    last_config = self.updater.GetConfig(self.updater.GetActiveConfigIndex())
+    # Parse initial dir for initial_dir/board/release_image
+    initial_dir = os.path.dirname(initial_config[0]['release_image'])
+    initial_dir = os.path.dirname(initial_dir)
+    initial_dir = os.path.join(self.base_dir, initial_dir)
+
+    # Move the final version of each board into initial dir
+    for board_conf in last_config:
+      board_dir = os.path.dirname(board_conf['release_image'])
+      board_dir = os.path.join(self.base_dir, board_dir)
+      board_name = os.path.basename(board_dir)
+      target_dir = os.path.join(initial_dir, board_name)
+
+      if os.path.samefile(board_dir, target_dir):
+        continue
+      if os.path.isdir(target_dir):
+        shutil.rmtree(target_dir)
+      shutil.move(board_dir, target_dir)
+
+      # Correct the file path and pop unnecessary keys
+      for key in board_conf.copy().iterkeys():
+        if key.endswith('_image'):
+          board_conf[key] = os.path.join(target_dir,
+                                         os.path.basename(board_conf[key]))
+        elif key.endswith('_size'):
+          board_conf.pop(key)
+
+    # Overwrite the config file
+    with open(self.opts.factory_config, 'w') as file_handle:
+      file_handle.write('config=%s\n' % last_config)
+
+    # Remove _ver*/
+    for version in glob.glob(os.path.join(self.base_dir, '_ver*')):
+      shutil.rmtree(version)
+
+  def _UpdateCheck(self):
+    """Do update check periodically."""
+    # Initialize preparer and updater
+    if not os.path.exists(self.cache_dir):
+      os.makedirs(self.cache_dir)
+    image_updater = get_recovery_image.ImageUpdater()
+    image_preparer = get_recovery_image.OmahaPreparer(self.script_dir,
+                                                      self.cache_dir)
+    # Try to update all boards in config
+    updated_boards = []
+    active_config = self.updater.GetConfig(self.updater.GetActiveConfigIndex())
+    for board_conf in active_config:
+      # The format in config is qual_id: set(['board'])
+      for board in board_conf['qual_ids']:
+        updated = image_updater.update_image(board, self.cache_dir)
+        if updated:
+          updated_boards.append(board)
+          _LogUpdateMessage('Detect update for board %s' % board)
+
+    if not updated_boards:
+      _LogUpdateMessage('Everything up-to-date, update check finished')
+    else:
+      _LogUpdateMessage('Start updating')
+      version_offset = '_ver%s' % self.next_version
+      self.next_version += 1
+
+      # Prepare the files for the newly downloaded boards
+      image_preparer.set_boards_to_update(updated_boards)
+      image_preparer.set_version_offset(version_offset)
+      image_preparer.generate_miniomaha_files()
+      image_preparer.setup_miniomaha_files()
+
+      data_dir = self.base_dir
+      # Change config, critical session
+      with self.update_lock:
+        # Read config
+        config_dir = os.path.join(data_dir, version_offset)
+        config_path = os.path.join(config_dir, 'miniomaha.conf')
+        self.updater.ImportFactoryConfigFile(config_path , False)
+
+    # Restart timers
+    # Time interval between each update check, by seconds
+    self.timer = threading.Timer(self.opts.interval, self._UpdateCheck)
+    self.timer.daemon = True
+    self.timer.start()
+
+  def cleanup(self):
+    self.timer.cancel()
+    self._CleanUpConfig()
 
 class ApiRoot(object):
   """RESTful API for Dev Server information."""
@@ -118,8 +227,21 @@ class DevServerRoot(object):
   fail_msg = 'Previous session from %s, start at %s did not complete'
   time_string = '%d/%b/%Y %H:%M:%S'
 
-  def __init__(self):
+  def __init__(self, lock=None):
     self.client_table = {}
+    self.update_lock = lock
+
+  def GetClientConfigIndex(self, ip):
+    return self.client_table[ip]['config_index']
+
+  def SetClientConfigIndex(self, ip, index):
+    self.client_table[ip]['config_index'] = index
+
+  def GetClientStartTime(self, ip):
+    return self.client_table[ip]['start_time']
+
+  def SetClientStartTime(self, ip, start_time):
+    self.client_table[ip]['start_time'] = start_time
 
   @cherrypy.expose
   def index(self):
@@ -127,9 +249,11 @@ class DevServerRoot(object):
 
   @cherrypy.expose
   def update(self):
+    client_ip = cherrypy.request.remote.ip.split(':')[-1]
     body_length = int(cherrypy.request.headers['Content-Length'])
     data = cherrypy.request.rfile.read(body_length)
-    return updater.HandleUpdatePing(data, updater.GetActiveConfigIndex())
+    return updater.HandleUpdatePing(data,
+                                    self.GetClientConfigIndex(client_ip))
 
   @cherrypy.expose
   def greetings(self, label):
@@ -147,12 +271,16 @@ class DevServerRoot(object):
         # previous session did not complete, print error to log
         start_time = time.strftime(
             self.time_string,
-            time.localtime(self.client_table[client_ip]['start_time']))
+            time.localtime(self.GetClientStartTime(client_ip)))
         _LogUpdateMessage(self.fail_msg % (client_ip, start_time))
 
       self.client_table[client_ip] = {}
-      self.client_table[client_ip]['start_time'] = time.time()
+      self.SetClientStartTime(client_ip, time.time())
       _LogUpdateMessage('Start a install session for %s' % client_ip)
+
+      with self.update_lock:
+        self.SetClientConfigIndex(client_ip, updater.GetActiveConfigIndex())
+
       return 'hello'
 
     elif label == 'download_complete':
@@ -162,19 +290,20 @@ class DevServerRoot(object):
       return 'download complete'
 
     elif label == 'goodbye':
-      elapse_time = time.time() - self.client_table[client_ip]['start_time']
+      elapse_time = time.time() - self.GetClientStartTime(client_ip)
       _LogUpdateMessage(
           'Session from %s has been completed, elapse time is %s seconds' %
           (client_ip, elapse_time))
       self.client_table.pop(client_ip)
       return 'goodbye'
 
+  #TODO(chunyen): move this to cherrypy exit callback
   def __del__(self):
     # Write log for those incomplete session
     for client_ip in self.client_table:
       start_time = time.strftime(
           self.time_string,
-          time.localtime(self.client_table[client_ip]['start_time']))
+          time.localtime(self.GetClientStartTime(client_ip)))
       _LogUpdateMessage(self.fail_msg % (client_ip, start_time))
 
 
@@ -198,6 +327,12 @@ if __name__ == '__main__':
   parser.add_option('--log', dest='log_path',
                     help='Path for server execution log',
                     default=os.path.join(base_path, 'miniomaha.log'))
+  parser.add_option('--auto_update', action='store_true', dest='auto_update',
+                    help='Enable auto updating image from server')
+  parser.add_option('--cache', dest='cache_dir', default=None,
+                    help='Cache_dir for auto update images')
+  parser.add_option('--interval', dest='interval', default=1800, type=int,
+                    help='Interval between each update check')
   parser.set_usage(parser.format_help())
   (options, _) = parser.parse_args()
 
@@ -215,7 +350,7 @@ if __name__ == '__main__':
   # Sanity-check for use of validate_factory_config.
   # In previous version, the default configuration file is in base_path,
   # but now it is in data_dir,
-  # so we want to check both for backward compatibility
+  # so we want to check both for backward compatibility.
   if not options.factory_config:
     config_files = (os.path.join(base_path, 'miniomaha.conf'),
                     os.path.join(options.data_dir, 'miniomaha.conf'))
@@ -227,8 +362,19 @@ if __name__ == '__main__':
     else:
       parser.error('No factory files found')
 
+  updater_lock = threading.Lock()
   updater.ImportFactoryConfigFile(options.factory_config,
                                   options.validate_factory_config)
+  if options.auto_update:
+    # Set up cache directory.
+    options.cache_dir = (options.cache_dir or
+                         os.path.join(base_path, 'cache_dir'))
+    # Ensure that the configure file in cache directory is the same as that
+    # in data directory.
+    shutil.copy(options.factory_config, options.cache_dir)
+    update_checker = UpdateChecker(options, base_path, options.cache_dir,
+                                   updater, updater_lock)
+
   if not options.validate_factory_config:
     # Since cheerypy need an existing file to append log,
     # here we make sure the log file path exist and ready for writing.
@@ -237,4 +383,7 @@ if __name__ == '__main__':
     cherrypy.log.screen = True
     cherrypy.log.access_file = options.log_path
     cherrypy.log.error_file = options.log_path
-    cherrypy.quickstart(DevServerRoot(), config=_GetConfig(options))
+    cherrypy.quickstart(DevServerRoot(updater_lock),
+                        config=_GetConfig(options))
+    if options.auto_update:
+      update_checker.cleanup()
