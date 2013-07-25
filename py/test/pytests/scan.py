@@ -6,7 +6,6 @@
 import logging
 import re
 import socket
-import threading
 import unittest
 
 from cros.factory.event_log import Log
@@ -45,9 +44,6 @@ class Scan(unittest.TestCase):
     Arg('check_device_data_key', str,
         'Checks that the given value in device data matches the scanned value',
         optional=True),
-    Arg('command_delay_secs', (int, float),
-        'Number of seconds to execute command after ui.Run().',
-        default=0.5),
     Arg('bft_scan_fixture_id', bool,
         'True to scan BFT fixture ID.', default=False),
     Arg('bft_scan_barcode', bool,
@@ -150,31 +146,6 @@ class Scan(unittest.TestCase):
     self.ui.event_client.post_event(Event(Event.Type.UPDATE_SYSTEM_INFO))
     self.ui.Pass()
 
-  def AutoScan(self, scan_fixture_id=False):
-    """Commands BFTFixture to scan barcode or get fixture ID.
-
-    BFTFixture can trigger barcode scanner and the scanned result turns to
-    a keystroke sequence, handled by test UI. If scan_fixture_id is True,
-    it gets fixture ID and fill scan_value.
-
-    It waits _command_delay_secs after UI.run() before sending a command.
-
-    Args:
-      scan_fixture_id: True to get fixture ID. False to trigger barcode
-          scanner.
-    """
-    def _AutoScanImpl():
-      if scan_fixture_id:
-        fixture_id = self.fixture.GetFixtureId()
-        self.ui.RunJS(
-          'window.test.sendTestEvent("scan_value","%d")' % fixture_id)
-      else:
-        self.fixture.ScanBarcode()
-
-    self.auto_scan_timer = threading.Timer(self.args.command_delay_secs,
-                                           _AutoScanImpl)
-    self.auto_scan_timer.start()
-
   def setUp(self):
     self.ui = test_ui.UI()
     self.auto_scan_timer = None
@@ -216,9 +187,11 @@ class Scan(unittest.TestCase):
 
     if self.args.bft_scan_fixture_id:
       logging.info('Getting fixture ID...')
-      self.AutoScan(scan_fixture_id=True)
+      fixture_id = self.fixture.GetFixtureId()
+      self.ui.RunJS(
+        'window.test.sendTestEvent("scan_value","%d")' % fixture_id)
     elif self.args.bft_scan_barcode:
       logging.info('Triggering barcode scanner...')
-      self.AutoScan()
+      self.fixture.ScanBarcode()
 
     self.ui.Run()
