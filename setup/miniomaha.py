@@ -129,7 +129,7 @@ class DevServerRoot(object):
   def update(self):
     body_length = int(cherrypy.request.headers['Content-Length'])
     data = cherrypy.request.rfile.read(body_length)
-    return updater.HandleUpdatePing(data)
+    return updater.HandleUpdatePing(data, updater.GetActiveConfigIndex())
 
   @cherrypy.expose
   def greetings(self, label):
@@ -209,8 +209,7 @@ if __name__ == '__main__':
 
   updater = miniomaha_engine.ServerEngine(
       static_dir=static_dir,
-      factory_config_path=options.factory_config,
-      proxy_port=options.proxy_port,
+      proxy_port=options.proxy_port
   )
 
   # Sanity-check for use of validate_factory_config.

@@ -34,19 +34,16 @@ class ServerEngine(object):
   """Class that contains functionality that handles Chrome OS update pings.
 
   Members:
-    factory_config_path: Path to the factory config file if handling factory
-      requests.
     static_dir: Path to store installation packages.
     proxy_port: port of local proxy to tell client to connect to you through.
   """
 
   def __init__(self, static_dir,
-               factory_config_path=None,
                proxy_port=None):
     self.app_id = '87efface-864d-49a5-9bb3-4b050a7c227a'
     self.static_dir = static_dir
-    self.factory_config = factory_config_path
     self.proxy_port = proxy_port
+    self.factory_config = []
     self.hostname = None
     # Initialize empty host info cache. Used to keep track of various bits of
     # information about a given host.
@@ -91,6 +88,14 @@ class ServerEngine(object):
     """Returns the md5 checksum of the file given."""
     cmd = ("md5sum %s | awk '{print $1}'" % update_path)
     return os.popen(cmd).read().rstrip()
+
+  def GetConfig(self, index):
+    """Returns the config with specified index"""
+    return self.factory_config[index]
+
+  def GetActiveConfigIndex(self):
+    """Returns the index of the latest config"""
+    return len(self.factory_config) - 1
 
   def GetUpdatePayload(self, _hash, sha256, size, url, is_delta_format):
     """Returns a payload to the client corresponding to a new update.
@@ -182,9 +187,9 @@ class ServerEngine(object):
     f = open(filename, 'r')
     output = {}
     exec(f.read(), output)
-    self.factory_config = output['config']
+    new_config = output['config']
     success = True
-    for stanza in self.factory_config:
+    for stanza in new_config:
       for key in stanza.copy().iterkeys():
         suffix = '_image'
         if key.endswith(suffix):
@@ -200,6 +205,7 @@ class ServerEngine(object):
                                              stanza[kind + '_checksum'],
                                              factory_checksum))
               success = False
+    self.factory_config.append(new_config)
 
     if validate_checksums:
       if success is False:
@@ -207,9 +213,9 @@ class ServerEngine(object):
 
       print 'Config file looks good.'
 
-  def GetFactoryImage(self, board_id, channel):
+  def GetFactoryImage(self, board_id, channel, config_index):
     kind = channel.rsplit('-', 1)[0]
-    for stanza in self.factory_config:
+    for stanza in self.factory_config[config_index]:
       if board_id not in stanza['qual_ids']:
         continue
       if kind + '_image' not in stanza:
@@ -219,8 +225,9 @@ class ServerEngine(object):
               stanza[kind + '_size'])
     return (None, None, None)
 
-  def HandleFactoryRequest(self, board_id, channel):
-    (filename, checksum, size) = self.GetFactoryImage(board_id, channel)
+  def HandleFactoryRequest(self, board_id, channel, config_index):
+    (filename, checksum, size) = (
+        self.GetFactoryImage(board_id, channel, config_index))
     if filename is None:
       _LogMessage('unable to find image for board %s' % board_id)
       return self.GetNoUpdatePayload()
@@ -231,7 +238,7 @@ class ServerEngine(object):
     # setting sha-256 to an empty string.
     return self.GetUpdatePayload(checksum, '', size, url, is_delta_format)
 
-  def HandleUpdatePing(self, data):
+  def HandleUpdatePing(self, data, config_index):
     """Handles an update ping from an update client.
 
     Args:
@@ -287,7 +294,7 @@ class ServerEngine(object):
     # Store version for this host in the cache.
     self.host_info[client_ip]['last_known_version'] = client_version
 
-    return self.HandleFactoryRequest(board_id, channel)
+    return self.HandleFactoryRequest(board_id, channel, config_index)
 
   def HandleHostInfoPing(self, ip):
     """Returns host info dictionary for the given IP in JSON format."""
