@@ -6,6 +6,7 @@
 import logging
 import re
 import socket
+import time
 import unittest
 
 from cros.factory.event_log import Log
@@ -18,6 +19,7 @@ from cros.factory.test import utils
 from cros.factory.test.args import Arg
 from cros.factory.test.event import Event
 from cros.factory.test.fixture.bft_fixture import CreateBFTFixture
+from cros.factory.test.utils import StartDaemonThread
 
 
 class Scan(unittest.TestCase):
@@ -53,6 +55,9 @@ class Scan(unittest.TestCase):
         ' params: a dict of params for BFTFixture\'s Init()}.\n'
         'Default None means no BFT fixture is used.',
         default=None, optional=True),
+    Arg('barcode_scan_interval_secs', (int, float),
+        'Interval for repeatedly trigger BFT\'s barcode scaner',
+        default=2.0),
   ]
 
   def HandleScanValue(self, event):
@@ -160,6 +165,11 @@ class Scan(unittest.TestCase):
     if self.auto_scan_timer:
       self.auto_scan_timer.cancel()
 
+  def ScanBarcode(self):
+    while True:
+      self.fixture.ScanBarcode()
+      time.sleep(self.args.barcode_scan_interval_secs)
+
   def runTest(self):
     template = ui_templates.OneSection(self.ui)
 
@@ -192,6 +202,6 @@ class Scan(unittest.TestCase):
         'window.test.sendTestEvent("scan_value","%d")' % fixture_id)
     elif self.args.bft_scan_barcode:
       logging.info('Triggering barcode scanner...')
-      self.fixture.ScanBarcode()
+      StartDaemonThread(target=self.ScanBarcode)
 
     self.ui.Run()
