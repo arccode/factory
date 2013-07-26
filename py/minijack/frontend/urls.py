@@ -8,7 +8,6 @@ from django.views.generic import RedirectView
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.minijack.frontend import settings, views, query_views
-from cros.factory.minijack.frontend import hwid_views
 
 
 urlpatterns = patterns(
@@ -17,7 +16,7 @@ urlpatterns = patterns(
   url(r'^event/(?P<event_id>[^/]*)$', views.GetEventView, name='event'),
   url(r'^query$', query_views.GetQueryView, name='query'),
   url(r'^build$', views.GetBuildView, name='build'),
-  url(r'^hwid$', hwid_views.GetHwidView, name='hwid'),
+  url(r'^hwid$', views.GetHwidView, name='hwid'),
   url(r'^screenshot/(?P<ip_address>[^/]*)$',
       views.GetScreenshotImage, name='screenshot'),
   url(r'^tests$', views.GetTestsView, name='tests'),
