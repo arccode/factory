@@ -24,11 +24,12 @@ class OmahaPreparer(object):
   """Class for preparing all the necessary files for mini-omaha server."""
   conf_filename = 'miniomaha.conf'
 
-  def __init__(self, script_dir, cache_dir):
+  def __init__(self, script_dir, cache_dir, config_path=None):
     self.script_dir = script_dir
     self.cache_dir = cache_dir
     self.boards_to_update = None
     self.version_offset = None
+    self.omaha_config_path = config_path
 
   def set_boards_to_update(self, _boards_to_update):
     self.boards_to_update = _boards_to_update
@@ -125,9 +126,10 @@ class OmahaPreparer(object):
       if os.path.isdir(target_dir):
         shutil.rmtree(target_dir)
       os.rename(os.path.join(self.cache_dir, board), target_dir)
-
+    omaha_config_path = (self.omaha_config_path or
+                         os.path.join(omaha_dir, self.conf_filename))
     shutil.copy(os.path.join(self.cache_dir, self.conf_filename),
-                os.path.join(omaha_dir, self.conf_filename))
+                omaha_config_path)
 
 
 class ImageUpdater(object):
