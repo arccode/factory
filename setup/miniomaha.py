@@ -224,12 +224,13 @@ class DevServerRoot(object):
     cherrypy uses the update method and puts the extra paths in args.
   """
   api = ApiRoot()
-  fail_msg = 'Previous session from %s, start at %s did not complete'
+  fail_msg = 'Previous session from %s, uuid: %s, start at %s did not complete'
   time_string = '%d/%b/%Y %H:%M:%S'
 
-  def __init__(self, lock=None):
+  def __init__(self, lock, auto_update):
     self.client_table = {}
     self.update_lock = lock
+    self.auto_update = auto_update
 
   def GetClientConfigIndex(self, ip):
     return self.client_table[ip]['config_index']
@@ -252,18 +253,30 @@ class DevServerRoot(object):
     client_ip = cherrypy.request.remote.ip.split(':')[-1]
     body_length = int(cherrypy.request.headers['Content-Length'])
     data = cherrypy.request.rfile.read(body_length)
+
+    # For backward compatibility of old install shim.
+    # Updater should work anyway.
+    if client_ip not in self.client_table:
+      if self.auto_update:
+        _LogUpdateMessage(
+            'WARNING: Detect unrecorded ip: %s. '
+            'If you are using an old factory install shim, '
+            'there may be unexpected outcome in --auto_update mode' %
+            client_ip)
+      return updater.HandleUpdatePing(data, updater.GetActiveConfigIndex())
+
     return updater.HandleUpdatePing(data,
                                     self.GetClientConfigIndex(client_ip))
 
   @cherrypy.expose
-  def greetings(self, label):
+  def greetings(self, label, uuid):
     # Temporarily use ip as identifier.
     # This may be changed if we found better session ids
     client_ip = cherrypy.request.remote.ip.split(':')[-1]
 
     if label != 'hello' and client_ip not in self.client_table:
-      _LogUpdateMessage('Unexpected %s notification from %s' %
-                        (label, client_ip))
+      _LogUpdateMessage('Unexpected %s notification from %s, uuid: %s' %
+                        (label, client_ip, uuid))
       return 'Wrong notification'
 
     if label == 'hello':
@@ -272,11 +285,12 @@ class DevServerRoot(object):
         start_time = time.strftime(
             self.time_string,
             time.localtime(self.GetClientStartTime(client_ip)))
-        _LogUpdateMessage(self.fail_msg % (client_ip, start_time))
+        _LogUpdateMessage(self.fail_msg % (client_ip, uuid, start_time))
 
       self.client_table[client_ip] = {}
       self.SetClientStartTime(client_ip, time.time())
-      _LogUpdateMessage('Start a install session for %s' % client_ip)
+      _LogUpdateMessage('Start a install session for %s, uuid: %s' %
+                        (client_ip, uuid))
 
       with self.update_lock:
         self.SetClientConfigIndex(client_ip, updater.GetActiveConfigIndex())
@@ -285,15 +299,17 @@ class DevServerRoot(object):
 
     elif label == 'download_complete':
       _LogUpdateMessage(
-          'Session from %s successfully downloaded all necessary files' %
-          client_ip)
+          'Session from %s, uuid: %s, '
+          'successfully downloaded all necessary files' %
+          (client_ip, uuid))
       return 'download complete'
 
     elif label == 'goodbye':
       elapse_time = time.time() - self.GetClientStartTime(client_ip)
       _LogUpdateMessage(
-          'Session from %s has been completed, elapse time is %s seconds' %
-          (client_ip, elapse_time))
+          'Session from %s, uuid: %s, '
+          'has been completed, elapse time is %s seconds' %
+          (client_ip, uuid, elapse_time))
       self.client_table.pop(client_ip)
       return 'goodbye'
 
@@ -384,7 +400,7 @@ if __name__ == '__main__':
     cherrypy.log.screen = True
     cherrypy.log.access_file = options.log_path
     cherrypy.log.error_file = options.log_path
-    cherrypy.quickstart(DevServerRoot(updater_lock),
+    cherrypy.quickstart(DevServerRoot(updater_lock, options.auto_update),
                         config=_GetConfig(options))
     if options.auto_update:
       update_checker.cleanup()
