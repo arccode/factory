@@ -98,6 +98,12 @@ class LidSwitchTest(unittest.TestCase):
         ' params: a dict of params for BFTFixture\'s Init()}.\n'
         'Default None means no BFT fixture is used.',
         default=None, optional=True),
+    Arg('bft_retries', int,
+        'Number of retries for BFT lid open / close.',
+        default=3),
+    Arg('bft_pause_secs', (int, float),
+        'Pause time before issuing BFT command.',
+        default=0.5)
   ]
 
   def setUp(self):
@@ -139,18 +145,13 @@ class LidSwitchTest(unittest.TestCase):
     self._opened_sec = 0
 
     if self.fixture:
-      try:
-        self.fixture.SetDeviceEngaged(BFTFixture.Device.LID_MAGNET, True)
-        self.fixture_lid_closed = True
-      except BFTFixtureException as e:
-        self.ui.Fail(e)
+      self.BFTLid(close=True)
 
   def tearDown(self):
     self.TerminateLoop()
     file_utils.TryUnlink('/var/run/power_manager/lid_opened')
     if self.fixture:
-      if self.fixture_lid_closed:
-        self.fixture.SetDeviceEngaged(BFTFixture.Device.LID_MAGNET, False)
+      self.BFTLid(close=False, fail_test=False)
       self.fixture.Disconnect()
     Log('lid_wait_sec',
         time_to_close_sec=(self._closed_sec - self._start_waiting_sec),
@@ -206,7 +207,6 @@ class LidSwitchTest(unittest.TestCase):
             BFTFixture.SystemStatus.BACKLIGHT)
         if backlight == BFTFixture.Status.OFF:
           if test_time >= _TIMESTAMP_BL_ON:
-            # Test passed, continue to check lid open
             self.AskForOpenLid()
           else:
             self.ui.Fail('Backlight turned off too early.')
@@ -237,14 +237,36 @@ class LidSwitchTest(unittest.TestCase):
   def TerminateLoop(self):
     self.dispatcher.close()
 
+  def BFTLid(self, close, fail_test=True):
+    """Commands BFT to close/open the lid.
+
+    It pauses for args.bft_pause_secs seconds before sending BFT command.
+    Also, it retries args.bft_retries times if BFT response is unexpected.
+    It fails the test if BFT response badly after retries.
+
+    Args:
+      close: True to close the lid. Otherwise, open it.
+      fail_test: True to fail the test after unsuccessful retries.
+    """
+    error = None
+    for _ in range(self.args.bft_retries + 1):
+      try:
+        time.sleep(self.args.bft_pause_secs)
+        self.fixture.SetDeviceEngaged(BFTFixture.Device.LID_MAGNET, close)
+        break
+      except BFTFixtureException as e:
+        error = e
+    if error is None:
+      self.fixture_lid_closed = close
+    elif fail_test:
+      self.ui.Fail('Failed to %s the lid with %d retries. Reason: %s' % (
+          'close' if close else 'open', self.args.bft_retries, error))
+
+
   def AskForOpenLid(self):
     if self.fixture:
       self.ui.SetHTML(_MSG_LID_FIXTURE_OPEN, id=_ID_PROMPT)
-      try:
-        self.fixture.SetDeviceEngaged(BFTFixture.Device.LID_MAGNET, False)
-        self.fixture_lid_closed = False
-      except BFTFixtureException as e:
-        self.ui.Fail(e)
+      self.BFTLid(close=False)
     else:
       self.ui.SetHTML(_MSG_PROMPT_OPEN, id=_ID_PROMPT)
       self.PlayOkAudio()
