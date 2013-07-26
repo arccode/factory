@@ -1,6 +1,5 @@
 {% load static %}
 {% get_static_prefix as STATIC %}
-{% load url from future %}
 <html>
 <head>
   <title>{% block title %}Minijack{% endblock %}</title>
@@ -24,7 +23,7 @@
   <script type="text/javascript" language="javascript"
       src="{{ STATIC }}js/ColVis.min.js"></script>
   <script type="text/javascript" language="javascript"
-      src="{{ STATIC }}js/jquery-ui-button.min.js"></script>
+      src="{{ STATIC }}js/jquery-ui-custom.min.js"></script>
   <script type="text/javascript" language="javascript"
       src="{{ STATIC }}js/minijack_common.js"></script>
   {% block javascripts %}{% endblock %}
