@@ -17,6 +17,8 @@ import sys
 import urllib
 import zipfile
 
+class BoardNotFoundException(Exception):
+  pass
 
 class OmahaPreparer(object):
   """Class for preparing all the necessary files for mini-omaha server."""
@@ -161,7 +163,7 @@ class ImageUpdater(object):
         break
 
     if not update_filename:
-      return False
+      raise BoardNotFoundException
 
     need_update = True
     for cached_file in os.listdir(cache_dir):
@@ -205,8 +207,13 @@ def main():
   updater = ImageUpdater()
   boards_to_update = []
   # TODO(chunyen): add an option to download all images in the config file.
-  for board in boards:
-    updated = updater.update_image(board, cache_dir)
+  for board in list(boards):
+    updated = None
+    try:
+      updated = updater.update_image(board, cache_dir)
+    except BoardNotFoundException:
+      print 'WARNING: No board named %s is found, ignored' % board
+      boards.remove(board)
     if updated:
       boards_to_update.append(board)
   if options.restart:
