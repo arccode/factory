@@ -773,9 +773,11 @@ run_omaha() {
   (set -e
    info "Validating factory config..."
    "$python" "${OMAHA_PROGRAM}" --data_dir "${OMAHA_DATA_DIR}" \
+             --factory_config "${OMAHA_CONF}" \
              --validate_factory_config
    info "Starting mini-omaha..."
-   "$python" "${OMAHA_PROGRAM}" --data_dir "${OMAHA_DATA_DIR}"
+   "$python" "${OMAHA_PROGRAM}" --data_dir "${OMAHA_DATA_DIR}" \
+             --factory_config "${OMAHA_CONF}"
   )
 }
 

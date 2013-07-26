@@ -356,7 +356,8 @@ if __name__ == '__main__':
                     os.path.join(options.data_dir, 'miniomaha.conf'))
     exists = map(os.path.exists, config_files)
     if all(exists):
-      parser.error('Confusing factory config files')
+      parser.error('Confusing factory config files.\n'
+                   'Please remove the old config file in %s' % base_path)
     elif any(exists):
       options.factory_config = config_files[exists.index(True)]
     else:
