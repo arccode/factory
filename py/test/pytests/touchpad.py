@@ -195,8 +195,6 @@ _TOUCHPAD_TEST_DEFAULT_CSS = '''
       width: 20px; height: 20px;
       box-sizing: border-box; }
 '''
-_X_SEGMENTS = 5
-_Y_SEGMENTS = 5
 
 class UpDown:
   '''
@@ -314,7 +312,9 @@ class TouchpadTest(unittest.TestCase):
     Arg('timeout_secs', int, 'Timeout for the test.', default=20),
     Arg('number_to_click', int, 'Target number to click.', default=10),
     Arg('number_to_quadrant', int, 'Target number to click for each quadrant.',
-        default=3)
+        default=3),
+    Arg('x_segments', int, 'Number of X axis segments to test.', default=5),
+    Arg('y_segments', int, 'Number of Y axis segments to test.', default=5)
   ]
 
   def setUp(self):
@@ -324,7 +324,7 @@ class TouchpadTest(unittest.TestCase):
     self.ui.AppendCSS(_TOUCHPAD_TEST_DEFAULT_CSS)
     self.template.SetState(_HTML_TOUCHPAD)
     self.ui.CallJSFunction('setupTouchpadTest', _ID_CONTAINER,
-        _X_SEGMENTS, _Y_SEGMENTS, self.args.number_to_click,
+        self.args.x_segments, self.args.y_segments, self.args.number_to_click,
         self.args.number_to_quadrant)
 
     # Initialize properties
@@ -599,7 +599,7 @@ class TouchpadTest(unittest.TestCase):
     Gets the scroll sector from y_ratio then calls Javascript to mark the sector
     as tested.
     '''
-    y_segment = int(y_ratio * _Y_SEGMENTS)
+    y_segment = int(y_ratio * self.args.y_segments)
     logging.info('mark %d scroll segment tested', y_segment)
     self.ui.CallJSFunction('markScrollSectorTested', y_segment)
 
@@ -609,8 +609,8 @@ class TouchpadTest(unittest.TestCase):
     Gets the segment from x_ratio and y_ratio then calls Javascript to
     mark the sector as tested.
     '''
-    x_segment = int(x_ratio * _X_SEGMENTS)
-    y_segment = int(y_ratio * _Y_SEGMENTS)
+    x_segment = int(x_ratio * self.args.x_segments)
+    y_segment = int(y_ratio * self.args.y_segments)
     logging.info('mark x-%d y-%d sector tested', x_segment, y_segment)
     self.ui.CallJSFunction('markSectorTested', x_segment, y_segment)
 
