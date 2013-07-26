@@ -1,17 +1,29 @@
 {% extends "base.html" %}
+{% load display %}
 
 {% block title %}Minijack: Live of HWIDs{% endblock %}
+
+{% block stylesheets %}
+  <link rel="stylesheet" type="text/css"
+      href="{{ STATIC }}css/filter.css">
+{% endblock %}
 
 {% block javascripts %}
   <script type="text/javascript" language="javascript"
       src="{{ STATIC }}js/hwid_life.js"></script>
+  <script type="text/javascript" language="javascript"
+      src="{{ STATIC }}js/filter.js"></script>
   <script type="text/javascript" language="javascript">
-    var aaDevices = {{ device_list_json|safe }};
+    var aaDevices = {{ device_list|Jsonify }};
+    var aParams = {{ get_params|Jsonify }};
   </script>
 {% endblock %}
 
 {% block body %}
   <h1>Minijack: Life of HWIDs</h1>
+  {% include "filter.html" %}
+  <div class="filter_skip"></div>
+  <br/>
   <table id="hwid_table" width="100%">
     <thead>
       <tr>

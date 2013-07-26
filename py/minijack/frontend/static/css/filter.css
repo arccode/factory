@@ -1,0 +1,110 @@
+/*
+ * Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
+ */
+
+#add_button, .remove_button, #help_button {
+  font-size: 62.5%;
+}
+
+#help_button {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+}
+
+#filter_submit {
+  font-size: 90%;
+  margin: 0.3em 0 0 0;
+  float: right;
+}
+
+#filter_div {
+  display: inline-block;
+  position: absolute;
+  top: 3em;
+  right: 1em;
+  z-index: 999;
+  padding: 1em;
+  border: 1px solid #888;
+  background-color: white;
+}
+
+#filter_div.filter_notice {
+  background-color: #ffd8d8;
+}
+
+#filter_form {
+  margin: 0;
+}
+
+#filter_list {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+}
+
+#filter_list li {
+  margin: 0.3em 0;
+}
+
+#filter_title {
+  text-align: right;
+  margin: 0;
+}
+
+#filter_list li>span, button, select, input {
+  vertical-align: middle;
+}
+
+#filter_list select, input {
+  border: 1px solid #888;
+  -moz-border-radius: 4px;
+  -webkit-border-radius: 4px;
+  border-radius: 4px;
+  margin: 0;
+}
+
+#filter_list select {
+  -moz-appearance: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+#filter_list input[type=text] {
+  width: 200px;
+  text-align: center;
+}
+
+.hidden {
+  display: none;
+}
+
+.container {
+  position: relative;
+}
+
+.container:after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+#help_div {
+  margin: 0.5em 0;
+  border: 1px solid #bbb;
+  background-color: white;
+}
+
+#help_div ul {
+  padding-left: 2em;
+}
+
+.ui-autocomplete {
+  font-size: 80%;
+}
+
+.filter_skip {
+  height: 32px;
+}

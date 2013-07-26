@@ -22,4 +22,5 @@ $(document).ready(function() {
   $('#tests_button').button({
     icons: {primary: 'ui-icon-clipboard'}
   });
+
 });

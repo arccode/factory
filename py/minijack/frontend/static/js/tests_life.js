@@ -40,7 +40,9 @@ $(document).ready(function() {
   });
 
   $('#suite_radio').buttonset().change(function(e) {
-    window.location.href = 'test?order=' + e.target.value;
+    var params = aParams;
+    params['order'] = e.target.value;
+    window.location.href = '?' + $.param(params);
   });
 
   /*
@@ -77,16 +79,17 @@ function fnFormatDetails(aData) {
   if (aDeviceList.length == 0) {
     sOut = 'Every device which ran this test has passed.';
   } else {
-    sOut += 'Devices which ran this test (' + sPath + ') but never passed';
-    sOut += '<br/>';
+    sOut += '<b>Devices (total: ' + aDeviceList.length.toString() + ')</b>';
+    sOut += ' which ran this test (<b>' + sPath + '</b>) but never passed:';
+    sOut += '<a href="build?device_id__in=' + aDeviceList.join(',') + '"';
+    sOut += 'class="detail_button">Show DEVICES</a>';
 
     sOut += '<table class="detail">';
-    sOut += '<tr>';
-    sOut += '<td>Total: ' + aDeviceList.length.toString() + '</td>';
+    sOut += '<tr><td>device_id</td>';
     sOut += '<td>serial</td><td>mlb_serial</td><td>last_test_time</td></tr>';
     for (var i = 0; i < aDeviceList.length; i++) {
       var sId = aDeviceList[i];
-      sOut += '<tr><td>DEVICE: <a href="device/' + sId + '">';
+      sOut += '<tr><td><a href="device/' + sId + '">';
       sOut += sId + '</a>';
       sOut += '</td><td>' + aaDeviceInfo[sId][0];
       sOut += '</td><td>' + aaDeviceInfo[sId][1];

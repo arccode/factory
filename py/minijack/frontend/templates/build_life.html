@@ -1,15 +1,26 @@
 {% extends "base.html" %}
+{% load display %}
 
 {% block title %}Minijack: Live of a Build{% endblock %}
+
+{% block stylesheets %}
+  <link rel="stylesheet" type="text/css"
+      href="{{ STATIC }}css/filter.css">
+{% endblock %}
 
 {% block javascripts %}
   <script type="text/javascript" language="javascript"
       src="{{ STATIC }}js/build_life.js"></script>
+  <script type="text/javascript" language="javascript"
+      src="{{ STATIC }}js/filter.js"></script>
+  <script type="text/javascript" language="javascript">
+    var aParams = {{ get_params|Jsonify }};
+  </script>
 {% endblock %}
 
 {% block body %}
   <h1>Minijack: Life of a Build</h1>
-  <br/>
+  {% include "filter.html" %}
   <div id="suite_radio">
     <input type="radio" id="radio0" name="radio" value="0" checked="checked" />
       <label for="radio0">General Info</label>

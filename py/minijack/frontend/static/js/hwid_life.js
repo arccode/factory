@@ -64,12 +64,19 @@ function fnFormatDetails(aData) {
   var sHwid = aData[1];
   var aDeviceList = aaDevices[sHwid];
 
+  var aDeviceId = $.map(aDeviceList, function(val) {
+    return val[0];
+  });
+  sOut += '<b>Devices (total: ' + aDeviceList.length.toString() + ')</b>';
+  sOut += ' have the HWID (<b>' + sHwid + '</b>): ';
+  sOut += '<a href="build?device_id__in=' + aDeviceId.join(',') + '"';
+  sOut += 'class="detail_button">Show DEVICES</a>';
+
   sOut += '<table class="detail">';
-  sOut += '<tr>';
-  sOut += '<td>Total: ' + aDeviceList.length.toString() + '</td>';
+  sOut += '<tr><td>device_id</td>';
   sOut += '<td>serial</td><td>mlb_serial</td><td>last_test_time</td></tr>';
   for (var i = 0; i < aDeviceList.length; i++) {
-    sOut += '<tr><td>DEVICE: <a href="device/' + aDeviceList[i][0] + '">';
+    sOut += '<tr><td><a href="device/' + aDeviceList[i][0] + '">';
     sOut += aDeviceList[i][0] + '</a>';
     sOut += '</td><td>' + aDeviceList[i][1];
     sOut += '</td><td>' + aDeviceList[i][2];

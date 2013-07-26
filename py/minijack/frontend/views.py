@@ -10,12 +10,12 @@ from datetime import datetime
 
 from django.http import HttpResponse
 from django.template import Context, loader
-from django.utils import simplejson
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.minijack.frontend import data
 from cros.factory.minijack.frontend.models import Device, Test, Component
 from cros.factory.minijack.frontend.models import Event, Attr
+from cros.factory.minijack.models import Device as MJDevice, Test as MJTest
 
 
 DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
@@ -28,16 +28,66 @@ def ToDatetime(datetime_str):
     return datetime_str
 
 
-def GetBuildView(dummy_request):
-  device_list = Device.objects.all().order_by('-latest_test_time')
+def DecodeFilterValue(k, val):
+  if k.endswith('__in'):
+    return val.split(',')
+  else:
+    return val
+
+
+def BuildFilteredQuerySet(params, queryset):
+  for k, v in params.iteritems():
+    if k.endswith('__not'):
+      k = k[:-5]
+      queryset = queryset.exclude(**{k: DecodeFilterValue(k, v)})
+    else:
+      queryset = queryset.filter(**{k: DecodeFilterValue(k, v)})
+  return queryset
+
+
+def BuildFilterList(params, default):
+  result = []
+  for k, v in params.iteritems():
+    is_neg = False
+    if k.endswith('__not'):
+      k = k[:-5]
+      is_neg = True
+    result.append([is_neg] + k.split('__', 1) + [v])
+  if not result:
+    if not default:
+      # By default filter has an empty row.
+      result.append([False, '', '', ''])
+    else:
+      result = default
+  return result
+
+
+def GetBuildView(request):
+  get_params = request.GET.dict()
+  filter_dict = dict((k, v) for k, v in get_params.iteritems() if '__' in k)
+
+  device_list = BuildFilteredQuerySet(filter_dict, Device.objects).order_by(
+      '-latest_test_time')
   # Filter out the none IP.
   for device in device_list:
     ips = [kv for kv in device.ips.split(', ') if not kv.endswith('=none')]
     device.ips = ', '.join(ips)
 
+  filter_keys = sorted(MJDevice.GetFieldNames())
+  default_filter = [[False, 'latest_test_time', 'lt',
+                     datetime.now().strftime(DATETIME_FORMAT)[:10]]]
+  enumerate_keys = dict()
+
   template = loader.get_template('build_life.html')
   context = Context({
     'device_list': device_list,
+    'get_params': get_params,
+    'filter': {
+      'enabled': bool(filter_dict),
+      'keys': filter_keys,
+      'list': BuildFilterList(filter_dict, default_filter),
+      'enumerate_keys': enumerate_keys,
+    },
   })
   return HttpResponse(template.render(context))
 
@@ -117,9 +167,12 @@ def GetGroupOrder(order):
 
 
 def GetTestsView(request):
+  get_params = request.GET.dict()
+  filter_dict = dict((k, v) for k, v in get_params.iteritems() if '__' in k)
+
   order = request.GET.get('order', 'full_path')
   order_fn = GetGroupOrder(order)
-  tests = Test.objects.exclude(path='').values(
+  tests = BuildFilteredQuerySet(filter_dict, Test.objects).values(
       'status', 'duration', 'end_time', 'path', 'device_id', 'pytest_name')
 
   tests = sorted(tests, key=order_fn)
@@ -166,12 +219,28 @@ def GetTestsView(request):
                       (d.serial, d.mlb_serial, d.latest_test_time)) for d in
                      Device.objects.filter(device_id__in=all_failed_set))
 
+  filter_keys = sorted(MJTest.GetFieldNames())
+  default_filter = [[False, 'start_time', 'lt',
+                     datetime.now().strftime(DATETIME_FORMAT)[:10]],
+                    [False, 'factory_md5sum', 'exact', '']]
+  enumerate_keys = dict()
+  enumerate_keys['factory_md5sum'] = sorted(list(set(
+      Test.objects.exclude(factory_md5sum='')
+      .values_list('factory_md5sum', flat=True))))
+
   template = loader.get_template('tests_life.html')
   context = Context({
     'order': order,
     'test_stats': test_stats,
-    'failed_devices_json': simplejson.dumps(test_to_devices),
-    'device_info_json': simplejson.dumps(device_info),
+    'failed_devices': test_to_devices,
+    'device_info': device_info,
+    'get_params': get_params,
+    'filter': {
+      'enabled': bool(filter_dict),
+      'keys': filter_keys,
+      'list': BuildFilterList(filter_dict, default_filter),
+      'enumerate_keys': enumerate_keys,
+    },
   })
   return HttpResponse(template.render(context))
 
@@ -198,8 +267,11 @@ def GetScreenshotImage(dummy_request, ip_address):
     return HttpResponse(image_content, content_type='image/png')
 
 
-def GetHwidView(dummy_request):
-  device_list = Device.objects.exclude(hwid='').order_by('hwid')
+def GetHwidView(request):
+  get_params = request.GET.dict()
+  filter_dict = dict((k, v) for k, v in get_params.iteritems() if '__' in k)
+  device_list = BuildFilteredQuerySet(filter_dict, Device.objects).exclude(
+      hwid='').order_by('hwid')
 
   class_set = set(Component.objects.values_list('component_class', flat=True))
 
@@ -219,10 +291,22 @@ def GetHwidView(dummy_request):
       name_list.append(class_to_name[c] if c in class_to_name else '')
     hwid_names_pair.append((k, name_list))
 
+  filter_keys = sorted(MJDevice.GetFieldNames())
+  default_filter = [[False, 'latest_test_time', 'lt',
+                     datetime.now().strftime(DATETIME_FORMAT)[:10]]]
+  enumerate_keys = dict()
+
   template = loader.get_template('hwid_life.html')
   context = Context({
     'hwid_list': hwid_names_pair,
     'class_set': class_set,
-    'device_list_json': simplejson.dumps(hwid_to_devices),
+    'device_list': hwid_to_devices,
+    'get_params': get_params,
+    'filter': {
+      'enabled': bool(filter_dict),
+      'keys': filter_keys,
+      'list': BuildFilterList(filter_dict, default_filter),
+      'enumerate_keys': enumerate_keys,
+    },
   })
   return HttpResponse(template.render(context))

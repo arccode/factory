@@ -3,8 +3,12 @@
 # found in the LICENSE file.
 
 from django import template
+from django.utils import simplejson
+from django.utils.safestring import mark_safe
+
 
 register = template.Library()
+
 
 @register.filter
 def DisplayFloat(value):
@@ -12,3 +16,7 @@ def DisplayFloat(value):
     return "%.2f" % value
   else:
     return value
+
+@register.filter
+def Jsonify(value):
+  return mark_safe(simplejson.dumps(value))

@@ -1,0 +1,74 @@
+{% load display %}
+<p>
+  <script type="text/javascript" language="javascript">
+    var aaFilterKeys = {{ filter.keys|Jsonify }};
+    var aEnumerateKeys = {{ filter.enumerate_keys|Jsonify }};
+  </script>
+  <div id="filter_div" class="ui-corner-all ui-front
+    {% if filter.enabled %}filter_notice{% endif %}">
+    <p id="filter_title">
+      <a href="#">{% if filter.enabled %}
+        (The following results are filtered.){% endif %}
+        FILTER
+      </a>
+    </p>
+    <div id="filter_form" class="hidden">
+      <div class="container">
+        <ul id="filter_list">
+          <li>
+            <button id="add_button" type="button">Add</button>
+          </li>
+          {% for f in filter.list %}
+          <li class="filter_rule">
+            <button class="remove_button" type="button">Remove</button>
+            <input name="inverse" type="checkbox"
+            {% if f.0 %}checked{% endif %}/>not
+            <select name="target">
+              {% for k in filter.keys %}
+              <option value="{{ k }}"
+              {% if f.1 == k %}selected{% endif %}>{{ k }}</option>{% endfor %}
+            </select>
+            <select name="op">
+              <option value="exact"
+              {% if f.2 == "exact" %}selected{% endif %}>=</option>
+              <option value="in"
+              {% if f.2 == "in" %}selected{% endif %}>in</option>
+              <option value="gt"
+              {% if f.2 == "gt" %}selected{% endif %}>&gt;</option>
+              <option value="gte"
+              {% if f.2 == "gte" %}selected{% endif %}>&gt;=</option>
+              <option value="lt"
+              {% if f.2 == "lt" %}selected{% endif %}>&lt;</option>
+              <option value="lte"
+              {% if f.2 == "lte" %}selected{% endif %}>&lt;=</option>
+              <option value="contains"
+              {% if f.2 == "contains" %}selected{% endif %}>contains</option>
+              <option value="regex"
+              {% if f.2 == "regex" %}selected{% endif %}>regex</option>
+            </select>
+            <input type="text" value="{{ f.3 }}">
+          </li>{% endfor %}
+        </ul>
+        <button id="help_button" type="button">Help</button>
+        <button id="filter_submit" type="button">Filter</button>
+      </div>
+      <div id="help_div" class="ui-corner-all hidden">
+        <ul>
+          <li>Click the [+] button to add a new filter rule.</li>
+          <li>Click the [-] button to remove that filter rule.</li>
+          <li>Click the [Filter] button to show results that match all rules.</li>
+          <li>Each rule has 3 parts: field, relation, and value.<br/>
+            6 relation types are supported:</li>
+          <ul>
+            <li>=, &gt;, &gt;=, &lt;, &lt;=: compare the value.</li>
+            <li>in: in the comma-separated list of value.</li>
+            <li>contains: contains value as substring.</li>
+            <li>regex: match the regular expression in value.</li>
+          </ul>
+          <li>If the [not] checkbox is checked, the rule would be negated,<br/>
+            i.e. showing results that do not match this rule.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</p>
