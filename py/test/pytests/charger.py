@@ -195,6 +195,15 @@ class ChargerTest(unittest.TestCase):
     else:
       return charger_current
 
+  def _GetPowerInfo(self):
+    """Gets power info on this board"""
+    try:
+      power_info = self._board.GetPowerInfo()
+    except NotImplementedError:
+      return None
+    else:
+      return power_info
+
   def _Meet(self, charge, target, moving_up):
     """Checks if charge has meet the target.
 
@@ -306,6 +315,7 @@ class ChargerTest(unittest.TestCase):
     if charger_current is not None:
       self._verbose_log.write('Charger current = %d\n' % charger_current)
     self._verbose_log.write('Battery current = %d\n' % battery_current)
+    self._verbose_log.write('Power info =\n%s\n' % self._GetPowerInfo())
     self._verbose_log.flush()
 
   def _Log(self, charge, charger_current, battery_current):

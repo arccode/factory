@@ -56,3 +56,11 @@ class SpringBoard(ChromeOSBoard):
   def GetChargerCurrent(self):
     """Charger current is not available on spring board."""
     raise NotImplementedError
+
+  def GetPowerInfo(self):
+    """Gets ectool powerinfo on spring board."""
+    try:
+      output = self._CallECTool(['powerinfo'])
+    except Exception as e:
+      raise BoardException('Unable to get powerinfo: %s' % e)
+    return output

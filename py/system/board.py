@@ -219,3 +219,21 @@ class Board(object):
           If color is 'auto' or 'off', brightness is ignored.
     """
     raise NotImplementedError
+
+  def GetPowerInfo(self):
+    """Gets power information.
+
+    Returns:
+      The output of ectool powerinfo like
+      AC Voltage: 5143 mV
+      System Voltage: 11753 mV
+      System Current: 1198 mA
+      System Power: 14080 mW
+      USB Device Type: 0x20010
+      USB Current Limit: 2958 mA
+      It can be further parsed by string_utils.ParseDict into a dict.
+
+    Raises:
+      BoardException if power information cannot be obtained.
+    """
+    raise NotImplementedError
