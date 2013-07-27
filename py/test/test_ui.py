@@ -50,6 +50,9 @@ def Escape(text, preserve_line_breaks=True):
 def MakeLabel(en, zh=None, css_class=None):
   '''Returns a label which will appear in the active language.
 
+  For optional zh, if it is None or empty, the Chinese label will fallback to
+  use English version
+
   Args:
       en: The English-language label.
       zh: The Chinese-language label (or None if unspecified).
@@ -58,7 +61,7 @@ def MakeLabel(en, zh=None, css_class=None):
   return ('<span class="goofy-label-en %s">%s</span>'
           '<span class="goofy-label-zh %s">%s</span>' %
           ('' if css_class is None else css_class, en,
-           '' if css_class is None else css_class, (en if zh is None else zh)))
+           '' if css_class is None else css_class, zh if zh else en))
 
 
 def MakeTestLabel(test):
