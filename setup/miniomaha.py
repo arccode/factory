@@ -404,3 +404,6 @@ if __name__ == '__main__':
                         config=_GetConfig(options))
     if options.auto_update:
       update_checker.cleanup()
+      # Sync the config file again to avoid error if user run
+      # get_recovery_image.py
+      shutil.copy(options.factory_config, options.cache_dir)
