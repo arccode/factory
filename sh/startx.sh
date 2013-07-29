@@ -14,7 +14,11 @@ BOARD_SETUP=("$FACTORY/board/board_setup_x.sh"
              "$FACTORY/custom/board_setup_x.sh")
 
 # Default X server parameters
-X_ARG="-r -s 0 -p 0 -dpms -nolisten tcp vt01 -auth ${XAUTH_FILE}"
+# The '-noreset' keeps the X server from resetting itself when the last
+# client disconnects.  This can happen when there is a race at boot between
+# xinput device setup and the long-lived UI process (e.g. chrome via
+# session_manager or goofy).
+X_ARG="-r -s 0 -p 0 -dpms -noreset -nolisten tcp vt01 -auth ${XAUTH_FILE}"
 
 board_pre_setup() {
   true
