@@ -1,0 +1,101 @@
+{% load display %}
+{% if int_stats %}
+<h3>Integer statistics</h3>
+<table id="int_stats" class="screen">
+  <thead>
+    <th>event</th>
+    <th>attr</th>
+    <th>count</th>
+    <th>min</th>
+    <th>max</th>
+    <th>average</th>
+    <th>median</th>
+    <th>standard deviation</th>
+    <th>frequency list</th>
+  </thead>
+  <tbody>
+    {% for k, v in int_stats %}
+    <tr>
+      <th align="left">{{ k.0 }}</th>
+      <th align="left">{{ k.1 }}</th>
+      <td>{{ v.stats.len }}</td>
+      <td>{{ v.stats.min }}</td>
+      <td>{{ v.stats.max }}</td>
+      <td>{{ v.stats.avg }}</td>
+      <td>{{ v.stats.median }}</td>
+      <td>{{ v.stats.stddev }}</td>
+      <td>
+        <ul>
+          {% for c, val in v.freq_list %}
+          <li>
+            {{ val }}
+            <b>({{ c }})</b> - {{ c|DisplayPercentage:v.stats.len }}
+          </li>{% endfor %}
+        </ul>
+      </td>
+    </tr>{% endfor %}
+  </tbody>
+</table>
+<br/>
+{% endif %}
+{% if float_stats %}
+<h3>Float statistics</h3>
+<table id="float_stats" class="screen">
+  <thead>
+    <th>event</th>
+    <th>attr</th>
+    <th>count</th>
+    <th>min</th>
+    <th>max</th>
+    <th>average</th>
+    <th>median</th>
+    <th>standard deviation</th>
+  </thead>
+  <tbody>
+    {% for k, v in float_stats %}
+    <tr>
+      <th align="left">{{ k.0 }}</th>
+      <th align="left">{{ k.1 }}</th>
+      <td>{{ v.len }}</td>
+      <td>{{ v.min }}</td>
+      <td>{{ v.max }}</td>
+      <td>{{ v.avg }}</td>
+      <td>{{ v.median }}</td>
+      <td>{{ v.stddev }}</td>
+    </tr>{% endfor %}
+  </tbody>
+</table>
+<br/>
+{% endif %}
+{% if str_stats %}
+<h3>String statistics</h3>
+<table id="str_stats" class="screen">
+  <thead>
+    <th>event</th>
+    <th>attr</th>
+    <th>count</th>
+    <th>frequency list</th>
+  </thead>
+  <tbody>
+    {% for k, v in str_stats %}
+    <tr>
+      <th align="left">{{ k.0 }}</th>
+      <th align="left">{{ k.1 }}</th>
+      <td>{{ v.len }}</td>
+      <td>
+        <ul>
+          {% for c, val in v.list %}
+          <li>
+            {{ val|truncatechars:100 }}
+            <b>({{ c }})</b> - {{ c|DisplayPercentage:v.len }}
+          </li>{% endfor %}
+        </ul>
+      </td>
+    </tr>{% endfor %}
+  </tbody>
+</table>
+<br/>
+{% endif %}
+{% if not int_stats and not float_stats and not str_stats %}
+<h3>No data to be shown</h3>
+{% endif %}

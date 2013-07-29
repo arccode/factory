@@ -40,7 +40,6 @@
 }
 
 #filter_list {
-  list-style-type: none;
   margin: 0;
   padding: 0;
 }
@@ -95,10 +94,6 @@
   margin: 0.5em 0;
   border: 1px solid #bbb;
   background-color: white;
-}
-
-#help_div ul {
-  padding-left: 2em;
 }
 
 .ui-autocomplete {

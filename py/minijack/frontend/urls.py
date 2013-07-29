@@ -20,6 +20,7 @@ urlpatterns = patterns(
   url(r'^screenshot/(?P<ip_address>[^/]*)$',
       views.GetScreenshotImage, name='screenshot'),
   url(r'^tests$', views.GetTestsView, name='tests'),
+  url(r'^test$', views.GetTestView, name='test'),
   # RedirectView.as_view uses @classonlymethod, a subclass of @classmethod.
   # Pylint doesn't know the @classonlymethod and complains.
   url(r'^index$', RedirectView.as_view(url='/devices')), # pylint: disable=E1120

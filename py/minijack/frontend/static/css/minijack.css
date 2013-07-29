@@ -20,21 +20,13 @@ table {
   font-size: 100%;
 }
 
-th {
-  vertical-align: top;
-}
-
-td {
-  vertical-align: middle;
-}
-
 table.screen {
   border-collapse: collapse;
   border-spacing: 0;
 }
 
 table.screen th {
-  background-color: #f5f5f5;
+  background-color: #eeeeee;
   color: #555555;
   font-weight: normal;
 }
@@ -118,4 +110,9 @@ a.datatable_link {
 
 a.datatable_link:hover {
   background-color: white;
+}
+
+ul {
+  padding-left: 2em;
+  list-style-type: none;
 }

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load display %}
+
+{% block title %}Minijack: Live of a Test{% endblock %}
+
+{% block stylesheets %}
+  <link rel="stylesheet" type="text/css"
+      href="{{ STATIC }}css/filter.css">
+{% endblock %}
+
+{% block javascripts %}
+  <script type="text/javascript" language="javascript"
+      src="{{ STATIC }}js/test_life.js"></script>
+  <script type="text/javascript" language="javascript"
+      src="{{ STATIC }}js/filter.js"></script>
+  <script type="text/javascript" language="javascript">
+    var aParams = {{ get_params|Jsonify }};
+  </script>
+{% endblock %}
+
+{% block body %}
+  <h1>Minijack: Life of a Test</h1>
+  <h2>Test: {{ test_name }}</h2>
+  {% include "filter.html" %}
+  <div id="buttons_div">
+    <button value="last">Last test per device</button>
+    <button value="all">All test per device</button>
+    <button value="last_passed">Last passed test per device</button>
+  </div>
+  <br/>
+  {{ rendered_result|safe }}
+{% endblock %}

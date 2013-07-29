@@ -8,10 +8,13 @@ import subprocess
 import tempfile
 from datetime import datetime
 
+from django.db.models import Q
+from django.db.models.aggregates import Max
 from django.http import HttpResponse
 from django.template import Context, loader
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.minijack.frontend import test_renderers
 from cros.factory.minijack.frontend import data
 from cros.factory.minijack.frontend.models import Device, Test, Component
 from cros.factory.minijack.frontend.models import Event, Attr
@@ -58,6 +61,52 @@ def BuildFilterList(params, default):
   return result
 
 
+def Grouper(vals, chunk_size):
+  for pos in xrange(0, len(vals), chunk_size):
+    yield vals[pos:pos + chunk_size]
+
+
+def FilterIn(queryset, col, vals):
+  """A custom generator equivalent to queryset.filter(col__in=vals)
+
+  Used to bypass the limit of 999 records per query in sqlite.
+  Query 900 items each loop, and concat the result.
+
+  See https://code.djangoproject.com/ticket/17788 for more detail.
+  """
+  chunk_size = 900
+  for vs in Grouper(list(vals), chunk_size):
+    for v in queryset.filter(**{(col + '__in'): vs}):
+      yield v
+
+
+def GetDeviceFilterContext(filter_dict):
+  default_filter = [[False, 'latest_test_time', 'lt',
+                     datetime.now().strftime(DATETIME_FORMAT)[:10]]]
+  return {
+    'enabled': bool(filter_dict),
+    'keys': sorted(MJDevice.GetFieldNames()),
+    'list': BuildFilterList(filter_dict, default_filter),
+    'enumerate_keys': dict(),
+  }
+
+
+def GetTestFilterContext(filter_dict):
+  default_filter = [[False, 'start_time', 'lt',
+                     datetime.now().strftime(DATETIME_FORMAT)[:10]],
+                    [False, 'factory_md5sum', 'exact', '']]
+  enumerate_keys = dict()
+  enumerate_keys['factory_md5sum'] = sorted(list(set(
+      Test.objects.exclude(factory_md5sum='')
+      .values_list('factory_md5sum', flat=True))))
+  return {
+    'enabled': bool(filter_dict),
+    'keys': sorted(MJTest.GetFieldNames()),
+    'list': BuildFilterList(filter_dict, default_filter),
+    'enumerate_keys': enumerate_keys,
+  }
+
+
 def GetDevicesView(request):
   get_params = request.GET.dict()
   filter_dict = dict((k, v) for k, v in get_params.iteritems() if '__' in k)
@@ -69,21 +118,11 @@ def GetDevicesView(request):
     ips = [kv for kv in device.ips.split(', ') if not kv.endswith('=none')]
     device.ips = ', '.join(ips)
 
-  filter_keys = sorted(MJDevice.GetFieldNames())
-  default_filter = [[False, 'latest_test_time', 'lt',
-                     datetime.now().strftime(DATETIME_FORMAT)[:10]]]
-  enumerate_keys = dict()
-
   template = loader.get_template('devices_life.html')
   context = Context({
     'device_list': device_list,
     'get_params': get_params,
-    'filter': {
-      'enabled': bool(filter_dict),
-      'keys': filter_keys,
-      'list': BuildFilterList(filter_dict, default_filter),
-      'enumerate_keys': enumerate_keys,
-    },
+    'filter': GetDeviceFilterContext(filter_dict),
   })
   return HttpResponse(template.render(context))
 
@@ -219,16 +258,7 @@ def GetTestsView(request):
     })
   device_info = dict((d.device_id,
                       (d.serial, d.mlb_serial, d.latest_test_time)) for d in
-                     Device.objects.filter(device_id__in=all_failed_set))
-
-  filter_keys = sorted(MJTest.GetFieldNames())
-  default_filter = [[False, 'start_time', 'lt',
-                     datetime.now().strftime(DATETIME_FORMAT)[:10]],
-                    [False, 'factory_md5sum', 'exact', '']]
-  enumerate_keys = dict()
-  enumerate_keys['factory_md5sum'] = sorted(list(set(
-      Test.objects.exclude(factory_md5sum='')
-      .values_list('factory_md5sum', flat=True))))
+                     FilterIn(Device.objects, 'device_id', all_failed_set))
 
   template = loader.get_template('tests_life.html')
   context = Context({
@@ -237,12 +267,7 @@ def GetTestsView(request):
     'failed_devices': test_to_devices,
     'device_info': device_info,
     'get_params': get_params,
-    'filter': {
-      'enabled': bool(filter_dict),
-      'keys': filter_keys,
-      'list': BuildFilterList(filter_dict, default_filter),
-      'enumerate_keys': enumerate_keys,
-    },
+    'filter': GetTestFilterContext(filter_dict),
   })
   return HttpResponse(template.render(context))
 
@@ -285,18 +310,13 @@ def GetHwidsView(request):
   hwid_names_pair = []
   # Get components for each HWID
   for k, g in hwid_to_devices.iteritems():
-    id_list = map(operator.itemgetter(0), g)
-    class_to_name = dict(Component.objects.filter(device_id__in=id_list)
-                         .values_list('component_class', 'component_name'))
+    id_list = [v[0] for v in g]
+    class_to_name = dict((c.component_class, c.component_name) for c in
+                         FilterIn(Component.objects, 'device_id', id_list))
     name_list = []
     for c in class_set:
       name_list.append(class_to_name[c] if c in class_to_name else '')
     hwid_names_pair.append((k, name_list))
-
-  filter_keys = sorted(MJDevice.GetFieldNames())
-  default_filter = [[False, 'latest_test_time', 'lt',
-                     datetime.now().strftime(DATETIME_FORMAT)[:10]]]
-  enumerate_keys = dict()
 
   template = loader.get_template('hwids_life.html')
   context = Context({
@@ -304,11 +324,82 @@ def GetHwidsView(request):
     'class_set': class_set,
     'device_list': hwid_to_devices,
     'get_params': get_params,
-    'filter': {
-      'enabled': bool(filter_dict),
-      'keys': filter_keys,
-      'list': BuildFilterList(filter_dict, default_filter),
-      'enumerate_keys': enumerate_keys,
-    },
+    'filter': GetDeviceFilterContext(filter_dict),
+  })
+  return HttpResponse(template.render(context))
+
+
+def BuildTestQuerySetList(test_type, name, order):
+  # Return a list of QuerySet, since sqlite have limit of maximum number of host
+  # parameters in one query.
+  queryset = Test.objects
+  if test_type == 'pytest_name':
+    queryset = queryset.filter(pytest_name=name)
+  elif test_type == 'short_path':
+    queryset = queryset.filter(Q(path=name)|Q(path__endswith='.'+name))
+  else:
+    queryset = queryset.filter(path=name)
+
+  if order == 'last_passed':
+    # Last passed test per device
+    queryset = queryset.filter(status='PASSED')
+
+  if order != 'all':
+    last_tests = queryset.values('device_id').annotate(
+        max_end_time=Max('end_time'))
+    results = []
+    for tests in Grouper(last_tests, 400):
+      query = Q()
+      for t in tests:
+        query |= (Q(device_id=t['device_id']) & Q(end_time=t['max_end_time']))
+      results.append(queryset.filter(query))
+    return results
+  else:
+    return [queryset]
+
+
+def GetTestView(request):
+  get_params = request.GET.dict()
+  filter_dict = dict((k, v) for k, v in get_params.iteritems() if '__' in k)
+
+  test_type = request.GET.get('type', 'full_path')
+  name = request.GET.get('name', '')
+  order = request.GET.get('order', 'last')
+
+  tests_list = BuildTestQuerySetList(test_type, name, order)
+
+  invocation_list = []
+  event_id_list = []
+  for tests in tests_list:
+    filtered_tests = BuildFilteredQuerySet(filter_dict, tests)
+    invocation_list += filtered_tests.values_list('invocation', flat=True)
+    event_id_list += filtered_tests.values_list('event_id', flat=True)
+
+  events = (list(FilterIn(Event.objects, 'log_id', invocation_list)) +
+            list(FilterIn(Event.objects, 'event_id', event_id_list)))
+
+  all_attrs = sorted(list(
+      FilterIn(Attr.objects, 'event_id', [e.event_id for e in events])),
+      key=operator.attrgetter('event_id'))
+  event_id_dict = dict((e.event_id, e) for e in events)
+  event_attr_list = []
+  for e, g in itertools.groupby(all_attrs, key=operator.attrgetter('event_id')):
+    event_attr_list.append(
+        (event_id_dict[e], dict((a.attr, a.value) for a in g)))
+
+  __import__('cros.factory.minijack.frontend.test_renderers', fromlist=['*'])
+  all_renderer = test_renderers.GetRegisteredRenderers()
+
+  renderer_name = name.rsplit('.', 1)[-1]
+  if not renderer_name in all_renderer:
+    renderer_name = 'default'
+  rendered_result = all_renderer[renderer_name](event_attr_list)
+
+  template = loader.get_template('test_life.html')
+  context = Context({
+    'get_params': get_params,
+    'test_name': name,
+    'filter': GetTestFilterContext(filter_dict),
+    'rendered_result': rendered_result,
   })
   return HttpResponse(template.render(context))

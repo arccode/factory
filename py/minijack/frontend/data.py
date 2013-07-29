@@ -12,14 +12,15 @@ def GetStatistic(data):
     data: A list of floating numbers.
 
   Return:
-    A dict with keys ['min', 'max', 'avg', 'median', 'stddev'], which has value
-    of minimum, maximum, average, median, standard deviation of the input,
-    respectively, or 'No Data' if the input list is empty.
+    A dict with keys ['len', 'min', 'max', 'avg', 'median', 'stddev'], which
+    has value of length, minimum, maximum, average, median, standard deviation
+    of the input, respectively, or 'No Data' if the input list is empty.
   """
   if not data:
     return dict((k, 'No Data')
-                for k in ['min', 'max', 'avg', 'median', 'stddev'])
+                for k in ['len', 'min', 'max', 'avg', 'median', 'stddev'])
   return {
+    'len': len(data),
     'min': min(data),
     'max': max(data),
     'avg': numpy.mean(data),

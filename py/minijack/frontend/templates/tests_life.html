@@ -76,7 +76,12 @@
         <td width="20">{% if test.path in failed_devices %}
           <img src="{{ STATIC }}images/details_open.png"/>{% endif %}
         </td>
-        <td>{{ test.path }}</td>
+        <td>
+          <a href="test?type={{ order }}&name={{ test.path }}"
+            class="datatable_link">
+            {{ test.path }}
+          </a>
+        </td>
         <td>{{ test.latest_time|slice:"5:16" }}</td>
         <td>{{ test.num_test }}</td>
         <td>{{ test.pass_rate|floatformat:4 }}</td>

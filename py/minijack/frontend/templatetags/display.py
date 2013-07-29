@@ -17,6 +17,12 @@ def DisplayFloat(value):
   else:
     return value
 
+
 @register.filter
 def Jsonify(value):
   return mark_safe(simplejson.dumps(value))
+
+
+@register.filter
+def DisplayPercentage(value, base):
+  return "%.2f%%" % (value * 100.0 / base)
