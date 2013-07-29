@@ -3,7 +3,7 @@
 // found in the LICENSE file.
 
 $(document).ready(function() {
-  $('#home_button').button({
+  $('#devices_button').button({
     icons: {primary: 'ui-icon-home'}
   });
 
@@ -15,7 +15,7 @@ $(document).ready(function() {
     icons: {primary: 'ui-icon-info'}
   });
 
-  $('#hwid_button').button({
+  $('#hwids_button').button({
     icons: {primary: 'ui-icon-disk'}
   });
 

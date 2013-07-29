@@ -10,7 +10,7 @@
 
 {% block javascripts %}
   <script type="text/javascript" language="javascript"
-      src="{{ STATIC }}js/hwid_life.js"></script>
+      src="{{ STATIC }}js/hwids_life.js"></script>
   <script type="text/javascript" language="javascript"
       src="{{ STATIC }}js/filter.js"></script>
   <script type="text/javascript" language="javascript">
@@ -22,7 +22,12 @@
 {% block body %}
   <h1>Minijack: Life of HWIDs</h1>
   {% include "filter.html" %}
-  <div class="filter_skip"></div>
+  <div id="suite_radio">
+    <input type="radio" id="radio0" name="radio" value="0" checked="checked" />
+      <label for="radio0">Show All</label>
+    <input type="radio" id="radio1" name="radio" value="1" />
+      <label for="radio1">Show Differences</label>
+  </div>
   <br/>
   <table id="hwid_table" width="100%">
     <thead>
@@ -47,7 +52,7 @@
         <td width="20"><img src="{{ STATIC }}images/details_open.png"/></td>
         <td class="nowrap">{{ hwid }}</td>
         {% for comp_name in comps %}
-        <td>{{ comp_name }}</td>{% endfor %}
+        <td class="nowrap">{{ comp_name }}</td>{% endfor %}
       </tr>{% endfor %}
     </tbody>
   </table>

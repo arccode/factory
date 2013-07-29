@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load display %}
 
-{% block title %}Minijack: Live of a Build{% endblock %}
+{% block title %}Minijack: Live of Devices{% endblock %}
 
 {% block stylesheets %}
   <link rel="stylesheet" type="text/css"
@@ -10,7 +10,7 @@
 
 {% block javascripts %}
   <script type="text/javascript" language="javascript"
-      src="{{ STATIC }}js/build_life.js"></script>
+      src="{{ STATIC }}js/devices_life.js"></script>
   <script type="text/javascript" language="javascript"
       src="{{ STATIC }}js/filter.js"></script>
   <script type="text/javascript" language="javascript">
@@ -19,7 +19,7 @@
 {% endblock %}
 
 {% block body %}
-  <h1>Minijack: Life of a Build</h1>
+  <h1>Minijack: Life of Devices</h1>
   {% include "filter.html" %}
   <div id="suite_radio">
     <input type="radio" id="radio0" name="radio" value="0" checked="checked" />
@@ -80,8 +80,8 @@
     <tbody>
       {% for device in device_list %}<tr>
         <td width="20"><img src="{{ STATIC }}images/details_open.png"/></td>
-        <td>
-          <a href="{% url 'device' device.device_id %}">
+        <td align="center">
+          <a href="{% url 'device' device.device_id %}" class="datatable_link">
             {{ device.device_id|truncatechars:18 }}
           </a>
         </td>

@@ -4,8 +4,8 @@
 
 $(document).ready(function() {
   var oTable = $('#test_table').dataTable({
-    'aLengthMenu': [[20, 40, 60, 80, 100, 200, -1],
-                    [20, 40, 60, 80, 100, 200, 'All']],
+    'aLengthMenu': [[10, 20, 40, 60, 80, 100, 200, -1],
+                    [10, 20, 40, 60, 80, 100, 200, 'All']],
     'aaSorting': [[7, 'desc']],
     'aoColumnDefs': [
       {'bSortable': false, 'aTargets': [0]}
@@ -45,7 +45,7 @@ $(document).ready(function() {
     oTable.fnSetColumnVis(value, false);
   });
 
-  $('#test_table tbody tr td img').live('click', function() {
+  $('#test_table tbody tr td img').on('click', function() {
     var nTr = $(this).parents('tr')[0];
     if (oTable.fnIsOpen(nTr)) {
       this.src = '/static/images/details_open.png';

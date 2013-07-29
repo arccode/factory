@@ -7,8 +7,8 @@ $(document).ready(function() {
   var headers = $('thead th');
 
   var oTable = $('#hwid_table').dataTable({
-    'aLengthMenu': [[20, 40, 60, 80, 100, 200, -1],
-                    [20, 40, 60, 80, 100, 200, 'All']],
+    'aLengthMenu': [[10, 20, 40, 60, 80, 100, 200, -1],
+                    [10, 20, 40, 60, 80, 100, 200, 'All']],
     'aaSorting': [[1, 'asc']],
     'aoColumnDefs': [
       {'bSortable': false, 'aTargets': [0]}
@@ -26,6 +26,8 @@ $(document).ready(function() {
     'sScrollX': '100%'
   });
 
+  var aDifferenceColumns = [];
+
   /* Add a select menu for each TH element in the table header */
   headers.each(function(i) {
     if (i >= 2) {
@@ -33,10 +35,28 @@ $(document).ready(function() {
       if (fnCheckAllEqual(data)) {
         return;
       }
+      aDifferenceColumns.push(i);
       this.innerHTML += fnCreateSelect(data);
 
       $('select', this).change(function() {
         oTable.fnFilter($(this).val().replace(/ \(.*\)$/, ''), i);
+      });
+    }
+  });
+
+  $('#suite_radio').buttonset().change(function(e) {
+    if (e.target.value == 0) {
+      /* Show All */
+      headers.each(function(i) {
+        oTable.fnSetColumnVis(i, true);
+      });
+    } else {
+      /* Show Differences */
+      headers.each(function(i) {
+        if (i <= 1 || $.inArray(i, aDifferenceColumns) !== -1)
+          oTable.fnSetColumnVis(i, true);
+        else
+          oTable.fnSetColumnVis(i, false);
       });
     }
   });
@@ -46,7 +66,7 @@ $(document).ready(function() {
     oTable.fnAdjustColumnSizing(1, true);
   }, 100);
 
-  $('#hwid_table tbody tr td img').live('click', function() {
+  $('#hwid_table tbody tr td img').on('click', function() {
     var nTr = $(this).parents('tr')[0];
     if (oTable.fnIsOpen(nTr)) {
       this.src = '/static/images/details_open.png';
@@ -69,7 +89,7 @@ function fnFormatDetails(aData) {
   });
   sOut += '<b>Devices (total: ' + aDeviceList.length.toString() + ')</b>';
   sOut += ' have the HWID (<b>' + sHwid + '</b>): ';
-  sOut += '<a href="build?device_id__in=' + aDeviceId.join(',') + '"';
+  sOut += '<a href="devices?device_id__in=' + aDeviceId.join(',') + '"';
   sOut += 'class="detail_button">Show DEVICES</a>';
 
   sOut += '<table class="detail">';

@@ -23,16 +23,10 @@
 {% block body %}
   <h1>Minijack: Life of Tests</h1>
   {% include "filter.html" %}
-  <div id="suite_radio">
-    <input type="radio" id="radio0" name="radio" value="full_path"
-      {% if order == 'full_path' %}checked="checked"{% endif %} />
-      <label for="radio0">Full Path</label>
-    <input type="radio" id="radio1" name="radio" value="short_path"
-      {% if order == 'short_path' %}checked="checked"{% endif %} />
-      <label for="radio1">Short Path</label>
-    <input type="radio" id="radio2" name="radio" value="pytest_name"
-      {% if order == 'pytest_name' %}checked="checked"{% endif %} />
-      <label for="radio2">pytest Name</label>
+  <div id="buttons_div">
+    <button value="full_path">Group by Path</button>
+    <button value="short_path">Group by Path Suffix</button>
+    <button value="pytest_name">Group by Pytest Name</button>
   </div>
   <br/>
   <table id="test_table" width="100%">
@@ -79,7 +73,9 @@
     <tbody>
       {% for test in test_stats %}
       <tr>
-        <td width="20"><img src="{{ STATIC }}images/details_open.png"/></td>
+        <td width="20">{% if test.path in failed_devices %}
+          <img src="{{ STATIC }}images/details_open.png"/>{% endif %}
+        </td>
         <td>{{ test.path }}</td>
         <td>{{ test.latest_time|slice:"5:16" }}</td>
         <td>{{ test.num_test }}</td>

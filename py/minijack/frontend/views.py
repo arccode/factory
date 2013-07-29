@@ -46,6 +46,7 @@ def BuildFilteredQuerySet(params, queryset):
 
 
 def BuildFilterList(params, default):
+  default = default or [False, '', '', '']
   result = []
   for k, v in params.iteritems():
     is_neg = False
@@ -53,16 +54,11 @@ def BuildFilterList(params, default):
       k = k[:-5]
       is_neg = True
     result.append([is_neg] + k.split('__', 1) + [v])
-  if not result:
-    if not default:
-      # By default filter has an empty row.
-      result.append([False, '', '', ''])
-    else:
-      result = default
+  result = result or default
   return result
 
 
-def GetBuildView(request):
+def GetDevicesView(request):
   get_params = request.GET.dict()
   filter_dict = dict((k, v) for k, v in get_params.iteritems() if '__' in k)
 
@@ -78,7 +74,7 @@ def GetBuildView(request):
                      datetime.now().strftime(DATETIME_FORMAT)[:10]]]
   enumerate_keys = dict()
 
-  template = loader.get_template('build_life.html')
+  template = loader.get_template('devices_life.html')
   context = Context({
     'device_list': device_list,
     'get_params': get_params,
@@ -119,6 +115,10 @@ def GetDeviceView(dummy_request, device_id):
     'top_failed': top_failed_list[:5],
   }
 
+  grouped_event = dict()
+  for k, v in itertools.groupby(events, key=operator.attrgetter('log_id')):
+    grouped_event[k] = [(e.event_id, e.event) for e in v]
+
   template = loader.get_template('device_life.html')
   context = Context({
     'device': device,
@@ -126,6 +126,7 @@ def GetDeviceView(dummy_request, device_id):
     'comps': comps,
     'events': events,
     'stat': stat_dict,
+    'grouped_event': grouped_event,
   })
   return HttpResponse(template.render(context))
 
@@ -188,7 +189,8 @@ def GetTestsView(request):
                       if t['status'] == 'FAILED') -
                   set(t['device_id'] for t in test_list
                       if t['status'] == 'PASSED'))
-    test_to_devices[k] = sorted(list(failed_set))
+    if failed_set:
+      test_to_devices[k] = sorted(list(failed_set))
     all_failed_set |= failed_set
 
     # Filter out nonexist duration data.
@@ -267,7 +269,7 @@ def GetScreenshotImage(dummy_request, ip_address):
     return HttpResponse(image_content, content_type='image/png')
 
 
-def GetHwidView(request):
+def GetHwidsView(request):
   get_params = request.GET.dict()
   filter_dict = dict((k, v) for k, v in get_params.iteritems() if '__' in k)
   device_list = BuildFilteredQuerySet(filter_dict, Device.objects).exclude(
@@ -296,7 +298,7 @@ def GetHwidView(request):
                      datetime.now().strftime(DATETIME_FORMAT)[:10]]]
   enumerate_keys = dict()
 
-  template = loader.get_template('hwid_life.html')
+  template = loader.get_template('hwids_life.html')
   context = Context({
     'hwid_list': hwid_names_pair,
     'class_set': class_set,
