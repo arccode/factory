@@ -128,7 +128,7 @@ def LoadFromI2c(path):
       path.split('-')[1], I2C_LVDS_ADDRESS, I2C_LVDS_ADDRESS)
   # Make sure there is a device in I2C_LVDS_ADDRESS
   blob = None
-  if 'UU' in Shell(command).stdout:
+  if not '--' in Shell(command).stdout:
     blob = _I2cDump(path, I2C_LVDS_ADDRESS, MINIMAL_SIZE)
   return Parse(blob) if blob is not None else None
 
