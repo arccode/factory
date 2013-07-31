@@ -16,9 +16,11 @@ exist.
 dargs:
   vid: (str) optional 4-digit vendor ID.
   pid: (str) optional 4-digit product ID.
+  use_re: (bool) optional flag to treat string as a regular expression.
   search_string: (str) optional manual string to check for in lsusb -v
 """
 
+import re
 import unittest
 
 from cros.factory.event_log import Log
@@ -30,12 +32,17 @@ class USBProbeTest(unittest.TestCase):
   ARGS = [
     Arg('vid', str, '4-digit vendor ID', '', optional=True),
     Arg('pid', str, '4-digit product ID', '', optional=True),
+    Arg('use_re', bool,
+        'true to treat vid, pid, search_string as a regular expression',
+        default=False, optional=True),
     Arg('search_string', str, 'manual string to check for in lsusb -v', None,
         optional=True),
   ]
 
   def _ProbeUSB(self, lsusb_string):
     """Search for a string in lsusb -v.
+
+    If self.args.use_re is enabled, search lsusb via re.search.
 
     Args:
       lsusb_string: string to search for
@@ -44,7 +51,10 @@ class USBProbeTest(unittest.TestCase):
       True if the string is found, false if not.
     """
     response = SpawnOutput(['lsusb', '-v'], log=True)
-    return (lsusb_string) in response
+    if self.args.use_re:
+      return bool(re.search(lsusb_string, response))
+    else:
+      return (lsusb_string) in response
 
   def runTest(self):
     if (self.args.search_string):
