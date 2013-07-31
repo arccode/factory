@@ -75,8 +75,12 @@ class RadiatedCellularGobiImpl(RfFramework):
       range_setting = measurement['range']
       band_name = measurement['band_name']
       channel = measurement['channel']
-      delay = measurement['delay']
       pdm = measurement['pdm']
+      delay = measurement['delay']
+      delay_after_zero = measurement['delay_after_zero']
+      delay_after_off = measurement['delay_after_off']
+      check_background_noise = measurement['check_background_noise']
+      fail_on_background_noise = measurement['fail_on_background_noise']
 
       factory.console.info('Testing %s', measurement_name)
       try:
@@ -103,8 +107,32 @@ class RadiatedCellularGobiImpl(RfFramework):
         if tx_power == None: # For 'without equipment' test
           tx_power = 0
 
+        # Gracefully turn off the channel.
+        factory.console.info(
+            'Gracefully set pdm to 0 for %s', measurement_name)
+        self.StartTXTest(band_name, channel, 0)
+        if delay_after_zero > 0:
+          logging.info('Delay %.2f secs after setting pdm=0', delay_after_zero)
+          time.sleep(delay_after_zero)
+
         # End continuous transmit
         self.EndTXTest(band_name, channel)
+        if delay_after_off > 0:
+          logging.info('Delay %.2f secs after turn TX off', delay_after_off)
+          time.sleep(delay_after_off)
+
+        # If check_background_noise is turned on, check the signal is below
+        # certain level. However, failure or not depends on the flag
+        # fail_on_background_noise
+        if check_background_noise:
+          background_noise = self.RunEquipmentCommand(
+              N1914A.MeasureInBinary, self.n1914a,
+              port, self.config['avg_length'])
+          CheckPower(
+              measurement_name, background_noise,
+              (None, check_background_noise),
+              self.failures if fail_on_background_noise else list(),
+              prefix='Background noise')
 
         # Record verbose information of this channel.
         self.field_to_eventlog[measurement_name] = dict()
