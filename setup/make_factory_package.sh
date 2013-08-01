@@ -392,7 +392,7 @@ prepare_img() {
   # rebasing of lib/chromeos-common.
   local ret=$FLAGS_TRUE
   local outdev_block="$(sudo losetup -f --show "${outdev}")"
-  (cd "$SCRIPT_DIR"; sudo bash "${partition_script}" "${outdev}") ||
+  (cd "$SCRIPT_DIR"; sudo bash "${partition_script}" "${outdev_block}") ||
     ret=$?
   sudo losetup -d "${outdev_block}"
   image_umount_partition "${root_fs_dir}"
