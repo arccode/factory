@@ -141,7 +141,18 @@ class RadiatedCellularGobiImpl(RfFramework):
         if self.calibration_mode:
           # Check if the path_loss is in expected range.
           path_loss_threshold = measurement['path_loss_threshold']
-          path_loss = self.calibration_target[measurement_name] - tx_power
+          path_loss = (self.calibration_target[measurement_name] -
+                       (tx_power + self.calibration_config[measurement_name]))
+          factory.console.info(
+              '%r: [tx_power: %7.2f], '
+              '[Golden calibration target: %7.2f], '
+              '[Chamber calibration config: %7.2f], '
+              '[Calulated path loss: %7.2f]',
+              measurement_name, tx_power,
+              self.calibration_target[measurement_name],
+              self.calibration_config[measurement_name], path_loss)
+          # We overwrite the original calibration_config to have consistent
+          # output for staff in factory understand the shift.
           self.calibration_config[measurement_name] = path_loss
           meet = CheckPower(measurement_name, path_loss, path_loss_threshold,
                             self.failures, prefix='Path loss')
