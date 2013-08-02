@@ -51,9 +51,10 @@ class Finalize(unittest.TestCase):
       Arg('polling_seconds', (int, type(None)),
           'Interval between updating results (None to disable polling).',
           default=5),
-      Arg('allow_force_finalize', bool,
-          'Allow the user to force finalization (even in operator mode).',
-          default=True),
+      Arg('allow_force_finalize', list,
+          'List of users as strings allowed to force finalize, supported '
+          'users are operator or engineer.',
+          default=['operator', 'engineer']),
       Arg('min_charge_pct', int,
           'Minimum battery charge percentage allowed (None to disable '
           'checking charge level)',
@@ -131,8 +132,7 @@ class Finalize(unittest.TestCase):
 
     def Go(force=False):
       with self.go_cond:
-        if (self.args.allow_force_finalize or
-            self.ui.InEngineeringMode()):
+        if self.ForcePermissions():
           self.force = force
         self.go_cond.notify()
     self.ui.BindKey(' ', lambda _: Go(False))
@@ -240,10 +240,8 @@ class Finalize(unittest.TestCase):
       if not all_passed:
         msg = (MSG_NOT_READY_POLLING if self.args.polling_seconds
                else MSG_NOT_READY)
-        if self.args.allow_force_finalize:
+        if self.ForcePermissions():
           msg += '<div>' + MSG_FORCE + '</div>'
-        else:
-          msg += '<div class=test-engineering-mode-only>' + MSG_FORCE + '</div>'
         self.ui.SetHTML(msg, id='finalize-state')
 
       return all_passed
@@ -273,6 +271,17 @@ class Finalize(unittest.TestCase):
           'THIS DEVICE CANNOT BE QUALIFIED. '
           '(will continue in %d seconds)' % (message, i))
       time.sleep(1)
+
+  def ForcePermissions(self):
+    """Return true if there are permissions to force, false if not."""
+    for user in self.args.allow_force_finalize:
+      self.assertTrue(user in ['engineer', 'operator'],
+                      'Invalid user %r in allow_force_finalize.' % user)
+      if user == 'engineer' and self.ui.InEngineeringMode():
+        return True
+      elif user == 'operator' and not self.ui.InEngineeringMode():
+        return True
+    return False
 
   def NormalizeUploadMethod(self, method):
     """Builds the report file name and resolves variables."""
