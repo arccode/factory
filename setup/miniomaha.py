@@ -76,7 +76,7 @@ class UpdateChecker(object):
     self.timer = None
     self.base_dir = os.path.realpath(self.opts.data_dir)
     self.next_version = 1
-    self._UpdateCheck()
+    self._UpdateCheck(opts.boards.split(','))
 
   def _CleanUpConfig(self):
     """Put the updated files into initial position"""
@@ -119,7 +119,7 @@ class UpdateChecker(object):
     for version in glob.glob(os.path.join(self.base_dir, '_ver*')):
       shutil.rmtree(version)
 
-  def _UpdateCheck(self):
+  def _UpdateCheck(self, boards=None):
     """Do update check periodically."""
     # Initialize preparer and updater
     if not os.path.exists(self.cache_dir):
@@ -127,6 +127,23 @@ class UpdateChecker(object):
     image_updater = get_recovery_image.ImageUpdater()
     image_preparer = get_recovery_image.OmahaPreparer(self.script_dir,
                                                       self.cache_dir)
+
+    # If boards is set, do an initial update setup for those boards
+    if boards:
+      init_preparer = get_recovery_image.OmahaPreparer(
+          self.script_dir, self.cache_dir,
+          self.opts.factory_config)
+      for board in list(boards):
+        try:
+          updated = image_updater.update_image(board, self.cache_dir)
+        except get_recovery_image.BoardNotFoundException:
+          _LogUpdateMessage('WARNING: No board named %s is found, ignored' %
+                            board)
+          boards.remove(board)
+      init_preparer.set_boards_to_update(boards)
+      init_preparer.generate_miniomaha_files()
+      init_preparer.setup_miniomaha_files()
+
     # Try to update all boards in config
     updated_boards = []
     active_config = self.updater.GetConfig(self.updater.GetActiveConfigIndex())
@@ -349,6 +366,9 @@ if __name__ == '__main__':
                     help='Cache_dir for auto update images')
   parser.add_option('--interval', dest='interval', default=1800, type=int,
                     help='Interval between each update check')
+  parser.add_option('--boards', dest='boards', default=None,
+                    help='Name of boards to track in auto-update mode, '
+                         'split by comma.')
   parser.set_usage(parser.format_help())
   (options, _) = parser.parse_args()
 
@@ -362,6 +382,18 @@ if __name__ == '__main__':
       static_dir=static_dir,
       proxy_port=options.proxy_port
   )
+  updater_lock = threading.Lock()
+
+  # Auto update is not support in validate factory config mode
+  if options.validate_factory_config and options.auto_update:
+    cherrypy.log('Auto update is not support when validating factory config',
+                 'DEVSERVER')
+    options.auto_update = False
+
+  # --boards only works in auto update mode
+  if options.boards and not options.auto_update:
+    cherrypy.log('--boards only works in auto_update mode')
+    options.boards = None
 
   # Sanity-check for use of validate_factory_config.
   # In previous version, the default configuration file is in base_path,
@@ -371,7 +403,11 @@ if __name__ == '__main__':
     config_files = (os.path.join(base_path, 'miniomaha.conf'),
                     os.path.join(options.data_dir, 'miniomaha.conf'))
     exists = map(os.path.exists, config_files)
-    if all(exists):
+
+    # When boards is set, we always use the current default data dir
+    if options.boards:
+      options.factory_config = config_files[1]
+    elif all(exists):
       parser.error('Confusing factory config files.\n'
                    'Please remove the old config file in %s' % base_path)
     elif any(exists):
@@ -379,9 +415,13 @@ if __name__ == '__main__':
     else:
       parser.error('No factory files found')
 
-  updater_lock = threading.Lock()
   updater.ImportFactoryConfigFile(options.factory_config,
                                   options.validate_factory_config)
+
+  # We've done validating factory config, exit now!
+  if options.validate_factory_config:
+    sys.exit(0)
+
   if options.auto_update:
     # Set up cache directory.
     options.cache_dir = (options.cache_dir or
@@ -392,18 +432,17 @@ if __name__ == '__main__':
     update_checker = UpdateChecker(options, base_path, options.cache_dir,
                                    updater, updater_lock)
 
-  if not options.validate_factory_config:
-    # Since cheerypy need an existing file to append log,
-    # here we make sure the log file path exist and ready for writing.
-    with open(options.log_path, 'a'):
-      pass
-    cherrypy.log.screen = True
-    cherrypy.log.access_file = options.log_path
-    cherrypy.log.error_file = options.log_path
-    cherrypy.quickstart(DevServerRoot(updater_lock, options.auto_update),
-                        config=_GetConfig(options))
-    if options.auto_update:
-      update_checker.cleanup()
-      # Sync the config file again to avoid error if user run
-      # get_recovery_image.py
-      shutil.copy(options.factory_config, options.cache_dir)
+  # Since cheerypy need an existing file to append log,
+  # here we make sure the log file path exist and ready for writing.
+  with open(options.log_path, 'a'):
+    pass
+  cherrypy.log.screen = True
+  cherrypy.log.access_file = options.log_path
+  cherrypy.log.error_file = options.log_path
+  cherrypy.quickstart(DevServerRoot(updater_lock, options.auto_update),
+                      config=_GetConfig(options))
+  if options.auto_update:
+    update_checker.cleanup()
+    # Sync the config file again to avoid error if user run
+    # get_recovery_image.py
+    shutil.copy(options.factory_config, options.cache_dir)
