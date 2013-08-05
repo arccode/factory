@@ -45,7 +45,7 @@ $(document).ready(function() {
     oTable.fnSetColumnVis(value, false);
   });
 
-  $('#test_table tbody tr td img').on('click', function() {
+  $('#test_table tbody').on('click', 'tr td img', function() {
     var nTr = $(this).parents('tr')[0];
     if (oTable.fnIsOpen(nTr)) {
       this.src = '/static/images/details_open.png';

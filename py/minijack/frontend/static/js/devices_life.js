@@ -46,7 +46,7 @@ $(document).ready(function() {
 
   fnSelectSuite(0);
 
-  $('#device_table tbody tr td img').on('click', function() {
+  $('#device_table tbody').on('click', 'tr td img', function() {
     var nTr = $(this).parents('tr')[0];
     if (oTable.fnIsOpen(nTr)) {
       this.src = '/static/images/details_open.png';

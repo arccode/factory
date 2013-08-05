@@ -66,7 +66,7 @@ $(document).ready(function() {
     oTable.fnAdjustColumnSizing(1, true);
   }, 100);
 
-  $('#hwid_table tbody tr td img').on('click', function() {
+  $('#hwid_table tbody').on('click', 'tr td img', function() {
     var nTr = $(this).parents('tr')[0];
     if (oTable.fnIsOpen(nTr)) {
       this.src = '/static/images/details_open.png';
