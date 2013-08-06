@@ -79,11 +79,11 @@ class CountDownTest(unittest.TestCase):
         # is a problem.
         if last is None and current is None:
           continue
-        if last is None or current is None:
+        elif last is None or current is None:
           warnings.append(
               'Cannot read temperature index %d (current: %r, last: %r)' %
               (index, current, last))
-        if abs(current - last) > self.args.temp_max_delta:
+        elif abs(current - last) > self.args.temp_max_delta:
           warnings.append(
               'Temperature index %d delta over %d (current: %d, last: %d)' %
               (index, self.args.temp_max_delta, current, last))
