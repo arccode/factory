@@ -23,12 +23,22 @@ from cros.factory.test.args import Arg
 
 class CallShopfloor(unittest.TestCase):
   ARGS = [
-    Arg('prefix', str,
-        ('Prefix to use when reading keys from the VPD. The prefix is '
-         'stripped; e.g., if there is a VPD entry for '
-         'factory.device_data.foo=bar, then foo=bar is added to device_data.'),
-        default='factory.device_data.'),
+    Arg('device_data_keys', list,
+         ('List of keys for device_data we want to read from RW_VPD.'
+          'Each key is a tuple of (prefix, key) meaning that the '
+          'pair (key, value) should be added into device_data if there is '
+          'a pair (prefix + key, value) in RW_VPD . If key is *, it means '
+          'all keys with the prefix should be added.'),
+        default=[('factory.device_data.', '*')], optional=True)
   ]
+
+  @staticmethod
+  def _MatchKey(matcher, vpd_key):
+    prefix, key = matcher
+    if key == '*':
+      return vpd_key.startswith(prefix)
+    else:
+      return vpd_key == prefix + key
 
   def runTest(self):
     ui = test_ui.UI()
@@ -38,8 +48,13 @@ class CallShopfloor(unittest.TestCase):
         '正在从 RW VPD 读机器资料...'))
 
     vpd_data = vpd.rw.GetAll()
-    shopfloor.UpdateDeviceData(
-        dict((k[len(self.args.prefix):], v)
-             for k, v in vpd_data.iteritems() if k.startswith(
-                 self.args.prefix)))
+    device_data = {}
+    for matcher in self.args.device_data_keys:
+      for key in vpd_data:
+        if self._MatchKey(matcher, key):
+          discarded_prefix = matcher[0]
+          device_data_key = key[len(discarded_prefix):]
+          device_data[device_data_key] = vpd_data[key]
+    shopfloor.UpdateDeviceData(device_data)
+
     factory.get_state_instance().UpdateSkippedTests()

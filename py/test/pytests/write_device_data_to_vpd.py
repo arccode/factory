@@ -22,10 +22,11 @@ from cros.factory.test.args import Arg
 
 class CallShopfloor(unittest.TestCase):
   ARGS = [
-    Arg('keys', (list, tuple), 'Keys to write to the VPD.'),
-    Arg('prefix', str, 'Prefix to use when writing keys to the VPD.',
-        default='factory.device_data.'),
-
+    Arg('device_data_keys', list,
+         ('List of keys for device_data we want to write into RW_VPD.'
+          'Each key is a tuple of (prefix, key) meaning that the pair '
+          '(prefix + key, value) should be added into RW_VPD if there is '
+          'a pair (key, value) in device_data.'))
   ]
 
   def runTest(self):
@@ -36,11 +37,13 @@ class CallShopfloor(unittest.TestCase):
         '机器资料正在写入到 RW VPD...'))
 
     device_data = shopfloor.GetDeviceData()
-    data_to_write = dict((k, device_data.get(k))
-                         for k in self.args.keys)
+    data_to_write = {}
+    for prefix, key in self.args.device_data_keys:
+      data_to_write[prefix + key] = device_data.get(key)
+
     missing_keys = [k for k, v in data_to_write.iteritems() if v is None]
     if missing_keys:
       self.fail('Missing device data keys: %r' % sorted(missing_keys))
 
-    vpd.rw.Update(dict((self.args.prefix + k, str(v))
+    vpd.rw.Update(dict((k, str(v))
                        for k, v in data_to_write.iteritems()))
