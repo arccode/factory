@@ -529,16 +529,34 @@ class ShopFloorBase(object):
     """
     raise NotImplementedError('GetAuxData')
 
-  def LogRegistrationCodeMap(self, hwid, registration_code_map):
-    """Logs that a particular registration code has been used."""
+  def LogRegistrationCodeMap(self, hwid, registration_code_map,
+                             log_filename='registration_code_log.csv',
+                             board=None):
+    """Logs that a particular registration code has been used.
+    Args:
+      hwid: HWID object, could be None.
+      registration_code_map: A dict contains 'user' and 'group' reg code.
+      log_filename: File to append log to.
+      board: Board name. If None, will try to derive it from hwid.
+
+    Raises:
+      ValueError if the registration code is invalid.
+      ValueError if both board and hwid are None.
+    """
     for key in ('user', 'group'):
       CheckRegistrationCode(registration_code_map[key])
 
-    board = hwid.partition(' ')[0]
+    if not board:
+      if hwid:
+        board = hwid.partition(' ')[0]
+      else:
+        raise ValueError('Both board and hwid are missing.')
+
+    if not hwid:
+      hwid = ''
 
     # See http://goto/nkjyr for file format.
-    with open(os.path.join(
-        self.data_dir, "registration_code_log.csv"), "ab") as f:
+    with open(os.path.join(self.data_dir, log_filename), "ab") as f:
       csv.writer(f, dialect=NewlineTerminatedCSVDialect).writerow([
         board,
         registration_code_map['user'],
