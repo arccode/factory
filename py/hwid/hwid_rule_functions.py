@@ -188,6 +188,16 @@ def SetImageId(image_id):
 
 
 @RuleFunction(['hwid'])
+def GetImageId():
+  """A function to get the image id from the given HWID context.
+
+  Returns:
+    The image id of the HWID context.
+  """
+  return GetContext().hwid.bom.image_id
+
+
+@RuleFunction(['hwid'])
 def GetOperationMode():
   """A function to get the set of operation modes of the HWID context.
 
@@ -195,6 +205,7 @@ def GetOperationMode():
     The set of operations modes currently enabled on the given HWID context.
   """
   return GetContext().hwid.mode
+
 
 @RuleFunction(['device_info'])
 def GetDeviceInfo(key):
