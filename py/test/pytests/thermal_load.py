@@ -68,10 +68,12 @@ class ThermalLoadTest(unittest.TestCase):
                      num_threads=load):
       heated_up = False
       max_temperature = 0
+      temperature_list = []
       for elapsed in xrange(self.args.duration_secs):
         time.sleep(1)
         temperature_value = self._GetTemperature(self.args.sensor_index)
         max_temperature = max(max_temperature, temperature_value)
+        temperature_list.append(temperature_value)
 
         if not heated_up and temperature_value >= self.args.lower_threshold:
           heated_up = True
@@ -83,6 +85,7 @@ class ThermalLoadTest(unittest.TestCase):
           Log('slow_temp_slope', temperature_value=temperature_value,
               lower_threshold=self.args.lower_threshold,
               timeout=self.args.heat_up_timeout_secs)
+          logging.info("temperature track: %r", temperature_list)
           self.fail("Temperature didn't go over %d in %s seconds." %
                     (self.args.lower_threshold, self.args.heat_up_timeout_secs))
 
