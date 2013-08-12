@@ -38,6 +38,9 @@ class ValidHWIDDBsTest(unittest2.TestCase):
     for board_info in board_to_test:
       board_name, db_path, test_path = board_info
       logging.info('Checking %s: %s', board_name, db_path)
+      if not os.path.exists(test_path):
+        logging.info('Cannot find %s. Skip test for %s.', test_path, board_name)
+        continue
       with open(test_path) as f:
         test_samples = yaml.load_all(f.read())
       for sample in test_samples:
