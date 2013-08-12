@@ -688,6 +688,17 @@ def _ProbeEmbeddedController():
            COMPACT_PROBE_STR: CompactStr(*ecinfo)}]
 
 
+@_ComponentProbe('power_mgmt_chip')
+def _ProbePowerMgmtChip():
+  tpschrome_ver = re.findall(
+      r'Read from I2C port 0 at 0x90 offset 0x19 = (\w+)',
+      Shell('ectool i2cread 8 0 0x90 0x19').stdout)
+  if not tpschrome_ver:
+    return []
+  return [{'tpschrome_ver': tpschrome_ver[0],
+           COMPACT_PROBE_STR: tpschrome_ver[0]}]
+
+
 @_ComponentProbe('ethernet')
 def _ProbeEthernet():
   # Build-in ethernet devices should not be attached to USB. They are usually

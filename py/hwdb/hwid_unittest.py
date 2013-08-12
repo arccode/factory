@@ -59,6 +59,7 @@ found_probe_value_map:
   ethernet: { compact_str: '0b95:772a ASIX Elec. Corp. AX88x72A 0001' }
   flash_chip: { compact_str: 'Winbond W25Q32' }
   pmic: { compact_str: '99999-pmic' }
+  power_mgmt_chip: { compact_str: '0x7' }
   storage: { compact_str: 'ATA SanDisk SSD P4 1 #31277232' }
   touchpad: { compact_str: 'SynPS/2 Synaptics TouchPad' }
   tpm: { compact_str: '49465800:1.2.3.18' }
