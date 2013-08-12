@@ -260,13 +260,14 @@ def main():
   if args.hwid:
     if not board:
       sys.exit('Cannot update hwid without board')
+    hwid_board = board.split('_')[-1]
     chromeos_hwid_path = os.path.join(
         os.path.dirname(factory.FACTORY_PATH), 'chromeos-hwid')
-    Spawn(['./create_bundle', board.upper()],
+    Spawn(['./create_bundle', '--version', '3', hwid_board.upper()],
           cwd=chromeos_hwid_path, check_call=True, log=True)
     Spawn(ssh_command + [args.host, 'bash'],
           stdin=open(os.path.join(chromeos_hwid_path,
-                                  'hwid_bundle_%s.sh' % board.upper())),
+                                  'hwid_v3_bundle_%s.sh' % hwid_board.upper())),
           check_call=True, log=True)
 
   if args.restart:
