@@ -63,8 +63,9 @@ class VerifyRootPartitionTest(unittest.TestCase):
     table = match.group(1)
     partition_size = int(match.group(2)) * 512
 
-    assert '%U+1' in table
-    table = table.replace('%U+1', '/dev/%s' % self.args.root_device)
+    assert 'PARTUUID=%U/PARTNROFF=1' in table
+    table = table.replace('PARTUUID=%U/PARTNROFF=1',
+                          '/dev/%s' % self.args.root_device)
     # Cause I/O error on invalid bytes
     table += ' error_behavior=eio'
 
