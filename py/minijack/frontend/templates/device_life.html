@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% load display %}
+{% load display static %}
 
 {% block title %}Minijack: Live of a Device{% endblock %}
 
 {% block javascripts %}
   <script type="text/javascript" language="javascript"
-      src="{{ STATIC }}js/device_life.js"></script>
+      src="{% static 'js/device_life.js' %}"></script>
   <script type="text/javascript" language="javascript">
     var aaEvents = {{ grouped_event|Jsonify }}
   </script>
@@ -139,7 +139,7 @@
     <tbody>{% for test in tests %}
       <tr>
         <td width="20">{% if test.invocation in grouped_event %}
-          <img src="{{ STATIC }}images/details_open.png"/>{% endif %}
+          <img src="{% static 'images/details_open.png' %}"/>{% endif %}
         </td>
         <td align="center">
           <a href="{% url 'event' test.event_id %}" class="datatable_link">

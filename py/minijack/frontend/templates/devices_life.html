@@ -1,18 +1,18 @@
 {% extends "base.html" %}
-{% load display %}
+{% load display static %}
 
 {% block title %}Minijack: Live of Devices{% endblock %}
 
 {% block stylesheets %}
   <link rel="stylesheet" type="text/css"
-      href="{{ STATIC }}css/filter.css">
+      href="{% static 'css/filter.css' %}">
 {% endblock %}
 
 {% block javascripts %}
   <script type="text/javascript" language="javascript"
-      src="{{ STATIC }}js/devices_life.js"></script>
+      src="{% static 'js/devices_life.js' %}"></script>
   <script type="text/javascript" language="javascript"
-      src="{{ STATIC }}js/filter.js"></script>
+      src="{% static 'js/filter.js' %}"></script>
   <script type="text/javascript" language="javascript">
     var aParams = {{ get_params|Jsonify }};
   </script>
@@ -79,7 +79,7 @@
     </tfoot>
     <tbody>
       {% for device in device_list %}<tr>
-        <td width="20"><img src="{{ STATIC }}images/details_open.png"/></td>
+        <td width="20"><img src="{% static 'images/details_open.png' %}"/></td>
         <td align="center">
           <a href="{% url 'device' device.device_id %}" class="datatable_link">
             {{ device.device_id|truncatechars:18 }}

@@ -1,18 +1,18 @@
 {% extends "base.html" %}
-{% load display %}
+{% load display static %}
 
 {% block title %}Minijack: Live of a Test{% endblock %}
 
 {% block stylesheets %}
   <link rel="stylesheet" type="text/css"
-      href="{{ STATIC }}css/filter.css">
+      href="{% static 'css/filter.css' %}">
 {% endblock %}
 
 {% block javascripts %}
   <script type="text/javascript" language="javascript"
-      src="{{ STATIC }}js/test_life.js"></script>
+      src="{% static 'js/test_life.js' %}"></script>
   <script type="text/javascript" language="javascript"
-      src="{{ STATIC }}js/filter.js"></script>
+      src="{% static 'js/filter.js' %}"></script>
   <script type="text/javascript" language="javascript">
     var aParams = {{ get_params|Jsonify }};
   </script>

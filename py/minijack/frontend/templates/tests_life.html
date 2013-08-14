@@ -1,18 +1,18 @@
 {% extends "base.html" %}
-{% load display %}
+{% load display static %}
 
 {% block title %}Minijack: Live of Tests{% endblock %}
 
 {% block stylesheets %}
   <link rel="stylesheet" type="text/css"
-      href="{{ STATIC }}css/filter.css">
+      href="{% static 'css/filter.css' %}">
 {% endblock %}
 
 {% block javascripts %}
   <script type="text/javascript" language="javascript"
-      src="{{ STATIC }}js/tests_life.js"></script>
+      src="{% static 'js/tests_life.js' %}"></script>
   <script type="text/javascript" language="javascript"
-      src="{{ STATIC }}js/filter.js"></script>
+      src="{% static 'js/filter.js' %}"></script>
   <script type="text/javascript" language="javascript">
     var aaFailedDevices = {{ failed_devices|Jsonify }};
     var aaDeviceInfo = {{ device_info|Jsonify }};
@@ -74,7 +74,7 @@
       {% for test in test_stats %}
       <tr>
         <td width="20">{% if test.path in failed_devices %}
-          <img src="{{ STATIC }}images/details_open.png"/>{% endif %}
+          <img src="{% static 'images/details_open.png' %}"/>{% endif %}
         </td>
         <td>
           <a href="test?type={{ order }}&name={{ test.path }}"

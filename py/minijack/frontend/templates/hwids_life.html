@@ -1,18 +1,18 @@
 {% extends "base.html" %}
-{% load display %}
+{% load display static %}
 
 {% block title %}Minijack: Live of HWIDs{% endblock %}
 
 {% block stylesheets %}
   <link rel="stylesheet" type="text/css"
-      href="{{ STATIC }}css/filter.css">
+      href="{% static 'css/filter.css' %}">
 {% endblock %}
 
 {% block javascripts %}
   <script type="text/javascript" language="javascript"
-      src="{{ STATIC }}js/hwids_life.js"></script>
+      src="{% static 'js/hwids_life.js' %}"></script>
   <script type="text/javascript" language="javascript"
-      src="{{ STATIC }}js/filter.js"></script>
+      src="{% static 'js/filter.js' %}"></script>
   <script type="text/javascript" language="javascript">
     var aaDevices = {{ device_list|Jsonify }};
     var aParams = {{ get_params|Jsonify }};
@@ -49,7 +49,7 @@
     <tbody>
       {% for hwid, comps in hwid_list %}
       <tr>
-        <td width="20"><img src="{{ STATIC }}images/details_open.png"/></td>
+        <td width="20"><img src="{% static 'images/details_open.png' %}"/></td>
         <td class="nowrap">{{ hwid }}</td>
         {% for comp_name in comps %}
         <td class="nowrap">{{ comp_name }}</td>{% endfor %}

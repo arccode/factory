@@ -1,31 +1,30 @@
 {% load static %}
-{% get_static_prefix as STATIC %}
 <html>
 <head>
   <title>{% block title %}Minijack{% endblock %}</title>
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
-  <link rel="icon" type="image/png" href="{{ STATIC }}images/logo32.png">
+  <link rel="icon" type="image/png" href="{% static 'images/logo32.png' %}">
   <link rel="stylesheet" type="text/css"
-      href="{{ STATIC }}css/smoothness/jquery-ui-1.8.4.custom.css">
+      href="{% static 'css/smoothness/jquery-ui-1.8.4.custom.css' %}">
   <link rel="stylesheet" type="text/css"
-      href="{{ STATIC }}css/jquery.dataTables_themeroller.css">
+      href="{% static 'css/jquery.dataTables_themeroller.css' %}">
   <link rel="stylesheet" type="text/css"
-      href="{{ STATIC }}css/ColVis.css">
+      href="{% static 'css/ColVis.css' %}">
   <link rel="stylesheet" type="text/css"
-      href="{{ STATIC }}css/minijack.css">
+      href="{% static 'css/minijack.css' %}">
   {% block stylesheets %}{% endblock %}
   <script type="text/javascript" language="javascript"
-      src="{{ STATIC }}js/jquery.js"></script>
+      src="{% static 'js/jquery.js' %}"></script>
   <script type="text/javascript" language="javascript"
-      src="{{ STATIC }}js/jquery.dataTables.min.js"></script>
+      src="{% static 'js/jquery.dataTables.min.js' %}"></script>
   <script type="text/javascript" language="javascript"
-      src="{{ STATIC }}js/jquery.dataTables.plugins.js"></script>
+      src="{% static 'js/jquery.dataTables.plugins.js' %}"></script>
   <script type="text/javascript" language="javascript"
-      src="{{ STATIC }}js/ColVis.min.js"></script>
+      src="{% static 'js/ColVis.min.js' %}"></script>
   <script type="text/javascript" language="javascript"
-      src="{{ STATIC }}js/jquery-ui-custom.min.js"></script>
+      src="{% static 'js/jquery-ui-custom.min.js' %}"></script>
   <script type="text/javascript" language="javascript"
-      src="{{ STATIC }}js/minijack_common.js"></script>
+      src="{% static 'js/minijack_common.js' %}"></script>
   {% block javascripts %}{% endblock %}
 </head>
 <body>
