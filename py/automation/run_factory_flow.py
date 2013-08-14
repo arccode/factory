@@ -107,7 +107,7 @@ def ExtractFile(compressed_file, output_dir):
 
 
 def SetupNetboot(board, bundle_dir, recovery_image,
-                 dhcp_iface, host_ip, dut_mac, dut_ip,
+                 dhcp_iface, host_ip, miniomaha_port, dut_mac, dut_ip,
                  firmware_updater='', hwid_updater='',
                  install_method='netboot'):
   script = os.path.join(SRCROOT,
@@ -126,6 +126,7 @@ def SetupNetboot(board, bundle_dir, recovery_image,
          '--miniomaha_dir=%s' % miniomaha_dir,
          '--hwid_updater=%s' % hwid_updater,
          '--host=%s' % host_ip,
+         '--port=%s' % miniomaha_port,
          '--dhcp_iface=%s' % dhcp_iface,
          '--dhcp_subnet=%s' % subnet,
          '--dut_mac=%s' % dut_mac,
@@ -153,8 +154,8 @@ def SetupNetboot(board, bundle_dir, recovery_image,
   return Spawn(cmd, log=True, sudo=True)
 
 
-def UpdateFirmwareVars(bundle_dir, netboot_bios, host_ip):
-  omaha_url = 'http://%s:8080/update' % host_ip
+def UpdateFirmwareVars(bundle_dir, netboot_bios, host_ip, miniomaha_port):
+  omaha_url = 'http://%s:%d/update' % (host_ip, miniomaha_port)
   script = os.path.join(bundle_dir, 'factory_setup', 'update_firmware_vars.py')
   return Spawn([script, '--force',
                 '--input', netboot_bios,
@@ -246,7 +247,8 @@ def RunFactoryFlow(board, dhcp_iface, host_ip, dut_mac, dut_ip, install_method,
                    firmware_updater='', hwid_updater='', bios_bin='', ec_bin='',
                    netboot_bios='', finalize=False, automation_config='',
                    testlist='', serial_number='', servo_serial='',
-                   servo_config='', servo_usb_dev='', devices_csv=''):
+                   servo_config='', servo_usb_dev='', devices_csv='',
+                   servod_port=9999, miniomaha_port=8080):
   start_time = time.time()
   utils.TryMakeDirs(FILE_CACHE_DIR)
   work_dir = tempfile.mkdtemp(prefix='build_')
@@ -369,11 +371,13 @@ def RunFactoryFlow(board, dhcp_iface, host_ip, dut_mac, dut_ip, install_method,
   try:
     logging.debug('Setting up environment...')
     netboot_process = SetupNetboot(board, bundle_dir, recovery_image,
-                                   dhcp_iface, host_ip, dut_mac, dut_ip,
+                                   dhcp_iface, host_ip, miniomaha_port,
+                                   dut_mac, dut_ip,
                                    firmware_updater, hwid_updater,
                                    install_method)
 
-    servo = Servo(board=board, servo_serial=servo_serial)
+    servo = Servo(board=board, servo_serial=servo_serial,
+                  servod_port=servod_port)
     servo.StartServod(config=servo_config)
     time.sleep(3)
     try:
@@ -381,7 +385,7 @@ def RunFactoryFlow(board, dhcp_iface, host_ip, dut_mac, dut_ip, install_method,
       servo.HWInit()
       if install_method == 'netboot':
         logging.debug('Updating netboot firmware vars...')
-        UpdateFirmwareVars(bundle_dir, netboot_bios, host_ip)
+        UpdateFirmwareVars(bundle_dir, netboot_bios, host_ip, miniomaha_port)
         logging.debug('Flashing netboot firmware to DUT...')
         servo.FlashFirmware(netboot_bios)
         servo.ColdReset()
@@ -517,6 +521,10 @@ if __name__ == '__main__':
                     help='Servo serial number.')
   parser.add_option('--servo_config', default='',
                     help='Servo config file.')
+  parser.add_option('--servod_port', type='int', default=9999,
+                    help='Port for servod to listen on.')
+  parser.add_option('--miniomaha_port', type='int', default=8080,
+                    help='Port for miniomaha server to listen on.')
   parser.add_option('--finalize', action='store_true', default=False,
                     help='Finalize DUT after installation.')
   parser.add_option('--automation_config', default='',
@@ -542,4 +550,5 @@ if __name__ == '__main__':
       options.bios_bin, options.ec_bin, options.netboot_bios,
       options.finalize, options.automation_config, options.testlist,
       options.serial_number, options.servo_serial, options.servo_config,
-      options.servo_usb_dev, options.devices_csv)
+      options.servo_usb_dev, options.devices_csv,
+      options.servod_port, options.miniomaha_port)
