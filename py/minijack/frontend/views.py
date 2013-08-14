@@ -4,8 +4,6 @@
 
 import copy
 import operator
-import subprocess
-import tempfile
 import itertools
 from datetime import datetime
 
@@ -16,6 +14,13 @@ import minijack_common  # pylint: disable=W0611
 from models import Device, Test, Component, Event, Attr
 from db import Database
 from frontend import test_renderers, data
+
+import settings
+
+
+if not settings.IS_APPENGINE:
+  import subprocess
+  import tempfile
 
 
 DATETIME_FORMAT = '%Y-%m-%dT%H:%M:%S.%fZ'
@@ -209,6 +214,7 @@ def GetTestsView(request):
     duration_list = [float(t['duration']) for t in test_list
                      if float(t['duration']) != 0.0]
 
+    # TODO(pihsun): Can do statistics in BigQuery.
     duration_stats = data.GetStatistic(duration_list)
 
     try_list = [len(list(g)) for _, g in
@@ -244,6 +250,10 @@ def GetTestsView(request):
 
 
 def GetScreenshotImage(dummy_request, ip_address):
+  if settings.IS_APPENGINE:
+    return HttpResponse(
+        "Screenshot feature is disabled on App Engine" +
+        " (can't create subprocess)")
   remote_url = 'root@' + ip_address
   remote_filename = '/tmp/screenshot.png'
   capture_cmd = (

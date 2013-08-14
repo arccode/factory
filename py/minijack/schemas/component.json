@@ -1,0 +1,1 @@
+[{"name": "device_id", "type": "STRING"}, {"name": "component_class", "type": "STRING"}, {"name": "component_name", "type": "STRING"}, {"fields": [{"name": "field_value", "type": "STRING"}, {"name": "field_name", "type": "STRING"}], "mode": "REPEATED", "name": "attrs", "type": "RECORD"}]

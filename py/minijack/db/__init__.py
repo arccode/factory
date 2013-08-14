@@ -173,7 +173,7 @@ class Table(object):
     executor = self._executor_factory.NewExecutor()
     executor.Execute(sql_cmd, args)
     if iter_all:
-      return iter(lambda: executor.FetchOne(model=condition), None)
+      return executor.IterateAll(model=condition)
     elif one_row:
       return executor.FetchOne(model=condition)
     else:
@@ -559,7 +559,7 @@ class QuerySet(object):
   def GetOne(self):
     """Gets the first model which matches the given condition."""
     sql_query, args = self.BuildQuery()
-    sql_query += 'LIMIT 1'
+    sql_query += ' LIMIT 1'
     executor = self._database.GetExecutorFactory().NewExecutor()
     executor.Execute(sql_query, args)
     if self._return_type == 'model':
@@ -604,4 +604,7 @@ class QuerySet(object):
         yield v
 
 
-from db.sqlite import Executor, ExecutorFactory, Database, IntegrityError
+if settings.IS_APPENGINE:
+  from db.bigquery import Executor, ExecutorFactory, Database
+else:
+  from db.sqlite import Executor, ExecutorFactory, Database

@@ -40,15 +40,34 @@ TEMPLATE_DIRS = (
 
 STATIC_URL = '/static/'
 
-RELEASE_ROOT = '/var/db/factory'
-# Search the default path of Minijack DB.
-# TODO(waihong): Make it a command line option.
-for path in [os.path.join(PROJECT_ROOT, 'minijack_db'),
-             os.path.join(PROJECT_ROOT, '..', 'minijack_db'),
-             os.path.join(RELEASE_ROOT, 'minijack_db')]:
-  if os.path.exists(path):
-    MINIJACK_DB_PATH = path
-    break
+IS_APPENGINE = ('APPENGINE_RUNTIME' in os.environ)
+
+if IS_APPENGINE:
+  # See README on how to obtain this file.
+  try:
+    with file('privatekey.pem', 'r') as f:
+      GOOGLE_API_PRIVATE_KEY = f.read()
+  except IOError:
+    logging.exception('private key for Google API Service Account not found.' +
+                      ' (should be at privatekey.pem)')
+    sys.exit(os.EX_DATAERR)
+
+  # The google api id associated with the private key.
+  from settings_bigquery import GOOGLE_API_ID  # pylint: disable=W0611
+  # The project id and dataset id for data in bigquery.
+  from settings_bigquery import PROJECT_ID  # pylint: disable=W0611
+  from settings_bigquery import DATASET_ID  # pylint: disable=W0611
+
 else:
-  logging.exception('Minijack database not found.')
-  sys.exit(os.EX_DATAERR)
+  RELEASE_ROOT = '/var/db/factory'
+  # Search the default path of Minijack DB.
+  # TODO(waihong): Make it a command line option.
+  for path in [os.path.join(PROJECT_ROOT, 'minijack_db'),
+               os.path.join(PROJECT_ROOT, '..', 'minijack_db'),
+               os.path.join(RELEASE_ROOT, 'minijack_db')]:
+    if os.path.exists(path):
+      MINIJACK_DB_PATH = path
+      break
+  else:
+    logging.exception('Minijack database not found.')
+    sys.exit(os.EX_DATAERR)

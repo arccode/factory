@@ -1,0 +1,4 @@
+*.p12
+*.pem
+settings_bigquery.py
+app.yaml

@@ -1,0 +1,18 @@
+* Instructions for deploying on Google App Engine:
+We need a Google API Service Account's PEM key on GAE.
+
+Generate and download the PKCS12 format private key from API console, and
+execute `openssl pkcs12 -in privatekey.p12 -nodes -nocerts > privatekey.pem`
+to convert the key from PKCS12 to PEM. Then manually delete anything before
+"-----BEGIN PRIVATE KEY-----" from privatekey.pem.
+
+Use dump_db.py to dump all datas to json files, and upload them with schemas
+in the directory schemas/ to Google BigQuery tables. The tables must be named
+Device, Test, Event, Component (case sensitive)
+
+Copy settings_bigquery.py.TEMPLATE to settings_bigquery.py, and set the settings
+accordingly.
+
+Copy app.yaml.TEMPLATE to app.yaml, and change the application name to the real
+application name deploying to.
+

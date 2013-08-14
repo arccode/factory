@@ -1,0 +1,14 @@
+# Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+# The email address for the API Service Account
+# (...@developer.gserviceaccount.com)
+GOOGLE_API_ID = ''
+
+# Used by BigQuery API
+# The project id which the uploaded data is in.
+PROJECT_ID = ''
+
+# The dataset id which the uploaded data is in.
+DATASET_ID = ''
