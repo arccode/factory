@@ -37,9 +37,7 @@ class BFTFixture(unittest.TestCase):
     while True:
       fixture = None
       try:
-        logging.info('Creating fixture object')
         fixture = CreateBFTFixture(**self.args.bft_fixture)
-        logging.info('Invoking method')
         getattr(fixture, self.args.method)(*self.args.args)
         break  # Success; we're done
       except:  # pylint: disable=W0702

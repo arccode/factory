@@ -73,6 +73,9 @@ class SpringBFTFixture(BFTFixture):
   # Defaut value of self._serial.
   _serial = None
 
+  # Fixture ID. Obtained from Init().
+  fixture_id = 0
+
   def GetSystemStatus(self, probe):
     """Reads internal status of a testing board.
 
@@ -118,6 +121,11 @@ class SpringBFTFixture(BFTFixture):
     except SerialException as e:
       raise BFTFixtureException('Cannot connect to BFT fixture: %s' % e)
 
+    # Get fixture each time we establish a BFT connection as operator may
+    # use different fixture to retest a board and we want to know which
+    # fixture actually used.
+    self._ObtainFixtureId()
+
   def Disconnect(self):
     if self._serial:
       self._serial.close()
@@ -135,13 +143,14 @@ class SpringBFTFixture(BFTFixture):
     try:
       write_len = self._serial.write(command)
     except SerialTimeoutException as e:
-      raise BFTFixtureException('%sSend command %s timeout: %s' %
-                                (fail_message, _CommandStr(command), e))
+      raise BFTFixtureException(
+          '%sSend command %s to fixture %d timeout: %s' %
+          (fail_message, self.fixture_id, _CommandStr(command), e))
 
     if write_len != 1:
-      raise BFTFixtureException('%sSend command %s failed.' %
-                                (fail_message, _CommandStr(command)))
-    logging.info('Successfully sent %s', _CommandStr(command))
+      raise BFTFixtureException(
+          '%sSend command %s to fixture %d failed.' %
+          (fail_message, self.fixture_id, _CommandStr(command)))
 
   def _Recv(self, fail_message):
     """Receives a response from BFT fixture.
@@ -152,9 +161,7 @@ class SpringBFTFixture(BFTFixture):
       The response string.
     """
     try:
-      recv = self._serial.read()
-      logging.info('Successfully received %s', _CommandStr(recv))
-      return recv
+      return self._serial.read()
     except SerialTimeoutException as e:
       raise BFTFixtureException('%sReceive timeout: %s' % (fail_message, e))
 
@@ -174,6 +181,10 @@ class SpringBFTFixture(BFTFixture):
         '%s Sent:%s. Expect response:%s, actual:%s.' %
         (fail_message, _CommandStr(command), _CommandStr(expect),
          _CommandStr(actual)))
+
+    logging.info(
+        'Successfully sent %s to fixture %d. Got expected response %s.',
+        _CommandStr(command), self.fixture_id, _CommandStr(expect))
 
   def _SendRecvDefault(self, command, fail_message):
     """Like _SendRecv, but expecting 0xFA response."""
@@ -213,13 +224,21 @@ class SpringBFTFixture(BFTFixture):
     self._SendRecv(chr(0xD5), chr(0xFD),
                    'Failed to detect color on external display.')
 
-  def GetFixtureId(self):
+  def _ObtainFixtureId(self):
+    """Obtains fixture ID.
+
+    It should only be called in Init(). We shall get fixture ID for each
+    fixture connection as we are not sure if an operator retest the board
+    with another fixture.
+    """
     FAIL_MESSAGE = 'Failed to get fixture ID. '
     self._Send(chr(0xD3), FAIL_MESSAGE)
     recv = self._Recv(FAIL_MESSAGE)
-    if not recv:
-      raise BFTFixtureException(FAIL_MESSAGE)
-    return ord(recv[0])
+    self.fixture_id = ord(recv[0])
+    logging.info('Got fixture ID: %d', self.fixture_id)
+
+  def GetFixtureId(self):
+    return self.fixture_id
 
   def ScanBarcode(self):
     self._SendRecvDefault(self.ENGAGE_BARCODE_SCANNER,
@@ -233,9 +252,20 @@ class SpringBFTFixture(BFTFixture):
     if color not in self.LED_CHECK_COMMAND:
       raise BFTFixtureException('Invalid LED color %r', color)
 
-    (command, response) = self.LED_CHECK_COMMAND[color]
+    (command, expect) = self.LED_CHECK_COMMAND[color]
     self._Send(command, 'Fail to check %s LED. ' % color)
-    return self._Recv('Fail to check %s LED. ' % color) == response
+    response = self._Recv('Fail to check %s LED. ' % color)
+    if response == expect:
+      logging.info(
+          'Successfully sent %s to fixture %d. Got matched response %s',
+          _CommandStr(command), self.fixture_id, _CommandStr(response))
+    else:
+      logging.warning(
+          'Successfully sent %s to fixture %d. Response mismatch: '
+          'expected:%s  actual:%s',
+          _CommandStr(command), self.fixture_id, _CommandStr(expect),
+          _CommandStr(response))
+    return response == expect
 
   def SetStatusColor(self, color):
     if color not in self.STATUS_COLOR_COMMAND:
