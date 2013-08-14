@@ -13,7 +13,7 @@ these logs using SQL queries.
 
 This file starts a Minijack process which services forever until an user
 presses Ctrl-C to terminate it. To use it, invoke as a standalone program:
-  ./minijack [options]
+  ./main.py [options]
 """
 
 import logging
@@ -26,10 +26,12 @@ import time
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.event_log_watcher import EventLogWatcher
-from cros.factory.minijack import db
-from cros.factory.minijack.datatypes import EventBlob, EventPacket
-from cros.factory.minijack.workers import IdentityWorker, EventLoadingWorker
 from cros.factory.test import utils
+
+import minijack_common  # pylint: disable=W0611
+import db
+from datatypes import EventBlob, EventPacket
+from workers import IdentityWorker, EventLoadingWorker
 
 
 SHOPFLOOR_DATA_DIR = 'shopfloor_data'
@@ -62,8 +64,7 @@ class EventSinker(object):
   def RegisterDefaultExporters(self):
     """Registers the default exporters."""
     # Find all exporter modules named xxx_exporter.
-    exporter_pkg = __import__('cros.factory.minijack',
-                              fromlist=['exporters']).exporters
+    exporter_pkg = __import__('exporters')
     for exporter_name in dir(exporter_pkg):
       if exporter_name.endswith('_exporter'):
         exporter_module = getattr(exporter_pkg, exporter_name)
@@ -234,8 +235,7 @@ class Minijack(object):
         ) for _ in range(options.jobs)]
 
     logging.debug('Init event sinking workers')
-    self._database = db.Database()
-    self._database.Init(options.minijack_db)
+    self._database = db.Database(options.minijack_db)
     try:
       sinker = EventSinker(self._database)
     except db.DatabaseException as e:

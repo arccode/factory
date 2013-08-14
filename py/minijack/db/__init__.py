@@ -2,17 +2,22 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import logging
-import sqlite3
+import copy
+
+import minijack_common  # pylint: disable=W0611
 
 import models
-
-
-IntegrityError = sqlite3.IntegrityError
+import settings
 
 
 class DatabaseException(Exception):
   pass
+
+
+def _Grouper(vals, chunk_size):
+  """A generator to cut list into chunks and yield one by one."""
+  for pos in xrange(0, len(vals), chunk_size):
+    yield vals[pos:pos + chunk_size]
 
 
 class Table(object):
@@ -112,6 +117,7 @@ class Table(object):
     executor = self._executor_factory.NewExecutor()
     executor.Execute(sql_cmd, args, commit=True)
 
+  # TODO(pihsun): Replace calls of these query functions to QuerySet.
   def DoesRowExist(self, condition):
     """Checks if a row exists or not.
 
@@ -219,280 +225,383 @@ class Table(object):
       self.InsertRow(row)
 
 
-class Executor(object):
-  """A database executor.
-
-  It abstracts the underlying database execution behaviors, like executing
-  an SQL query, fetching results, etc.
+class Q(object):
+  """An expression in WHERE clause of a SQL statement.
 
   Properties:
-    _conn: The connection of the sqlite3 database.
-    _cursor: The cursor of the sqlite3 database.
+    _args: The '?' arguments in SQL statement.
+    _sql: The representing SQL statement.
+    _database: The database connection.
   """
-  def __init__(self, conn):
-    self._conn = conn
-    self._cursor = self._conn.cursor()
 
-  def Execute(self, sql_cmd, args=None, commit=False, many=False):
-    """Executes an SQL command.
+  @staticmethod
+  def _ReprValue(val):
+    """Parses an object to a SQL-compatible representation.
 
     Args:
-      sql_cmd: The SQL command.
-      args: The arguments passed to the SQL command, a tuple or a dict.
-      commit: True to commit the transaction, used when modifying the content.
-      many: Do multiple execution. If True, the args argument should be a list.
-    """
-    logging.debug('Execute SQL command: %s, %s;', sql_cmd, args)
-    if not args:
-      args = tuple()
-    if many:
-      self._cursor.executemany(sql_cmd, args)
-    else:
-      self._cursor.execute(sql_cmd, args)
-    if commit:
-      self._conn.commit()
-
-  def GetDescription(self):
-    """Gets the column names of the last query.
-
+      val: The value to be parsed.
     Returns:
-      A list of the columns names. Empty list if not a valid query.
+      A pair (sql, args), sql is the SQL-compatible representation, which
+      has all arguments that needs ecsaping as '?', and args is a list of
+      arguments that should be substituted into these '?'.
     """
-    if self._cursor.description:
-      return [desc[0] for desc in self._cursor.description]
+    if (isinstance(val, str) or isinstance(val, unicode) or
+        isinstance(val, int) or isinstance(val, float)):
+      return '?', [val]
+    elif isinstance(val, list) or isinstance(val, tuple):
+      sub_list = []
+      arg_list = []
+      for v in val:
+        sub, args = Q._ReprValue(v)
+        sub_list.append(sub)
+        arg_list += args
+      return ('(%s)' % ','.join(sub_list)), arg_list
     else:
-      return []
+      raise ValueError('Unknown type %s used in Query value' % type(val))
 
-  def FetchOne(self, model=None):
-    """Fetches one row of the previous query.
+  @staticmethod
+  def _ParseCondition(kwargs):
+    """Parses the condition options used in initialize of Q object.
 
     Args:
-      model: The model instance or class, describing the schema. The return
-             value is the same type of this model class. None to return a
-             raw tuple.
-
+      kwargs: The options.
     Returns:
-      A model instance if the argument model is valid; otherwise, a raw tuple.
-      None when no more data is available.
+      A list of (column name, sql operator name, value).
     """
-    result = self._cursor.fetchone()
-    if result and model:
-      model = models.ToModelSubclass(model)
-      return model(result)
-    else:
-      return result
+    for k, v in kwargs.iteritems():
+      ks = k.rsplit('__', 1)
+      if len(ks) == 1:
+        ks.append('exact')
+      yield ks + [v]
 
-  def FetchAll(self, model=None):
-    """Fetches all rows of the previous query.
+  def __deepcopy__(self, dummy_memo):
+    ret = Q.__new__(Q)
+    ret._database = self._database
+    ret._sql = self._sql
+    ret._args = copy.copy(self._args)
+    return ret
 
-    Args:
-      model: The model instance or class, describing the schema. The return
-             value is the same type of this model class. None to return a
-             raw tuple.
+  def __init__(self, database, **kwargs):
+    self._args = []
+    self._database = database
+    condition_list = []
+    for key, op, val in Q._ParseCondition(kwargs):
+      op_str = self._database.GetOperator(op)
+      val_repr, cur_args = Q._ReprValue(val)
+      condition_list.append(op_str % {
+          'key': self._database.EscapeColumnName(key),
+          # TODO(pihsun): Fix this for SQL LIKE with % or _ inside.
+          'val_str': str(val),
+          'val': val_repr,
+          })
+      self._args += cur_args * op_str.count('%(val)')
+    self._sql = ' AND '.join('(%s)' % c for c in condition_list)
 
-    Returns:
-      A list of model instances if the argument model is valid; otherwise, a
-      list of raw tuples.
-    """
-    results = self._cursor.fetchall()
-    if results and model:
-      model = models.ToModelSubclass(model)
-      return [model(result) for result in results]
-    else:
-      return results
+  def __nonzero__(self):
+    return bool(self._sql)
+
+  def __and__(self, other):
+    if not (self and other):
+      # one of the operands is empty.
+      return self or other
+    ret = Q(self._database)
+    ret._args = self._args + other.GetArgs()
+    ret._sql = '(%s) AND (%s)' % (self._sql, other.GetSql())
+    return ret
+
+  def __or__(self, other):
+    if not (self and other):
+      # one of the operands is empty.
+      return self or other
+    ret = Q(self._database)
+    ret._args = self._args + other.GetArgs()
+    ret._sql = '%s OR %s' % (self._sql, other.GetSql())
+    return ret
+
+  def __invert__(self):
+    if not self:
+      raise ValueError("Can't invert an empty Q object.")
+    ret = Q(self._database)
+    ret._args = self._args
+    ret._sql = 'NOT (%s)' % self._sql
+    return ret
+
+  def GetSql(self):
+    """Gets the underlying SQL statement of this Q object"""
+    return self._sql
+
+  def GetArgs(self):
+    """Gets the underlying arguments of this Q object"""
+    return self._args
 
 
-class ExecutorFactory(object):
-  """A factory to generate Executor objects.
+class QuerySet(object):
+  """A SELECT statement in SQL.
+
+  It abstract the underlying SQL SELECT statement, and try to mimic what
+  Django's QuerySet does, but only do statements that only needs a select.
+  Unlike what Django does, all methods directly mutate the object. Use
+  copy.deepcopy() when need to duplicate a QuerySet.
+
+  TODO(pihsun): Add unicode support if needed.
 
   Properties:
-    _conn: The connection of the sqlite3 database.
+    _model: The model type to be selected.
+    _database: The database connection.
+    _order: The columns used in 'ORDER BY' clause.
+    _condition: A Q object, which is the condition used in 'WHERE' clause.
+    _column_list: The columns to be selected.
+    _return_type: The type of return value of GetOne/GetAll, which is one of
+                  'model', 'dict', 'tuple', 'tuple_flat', 'tuple_distinct'.
+    _join_select: A QuerySet representing the SELECT statement to be joined,
+                  or None if there's no join.
+    _join_on: A list of pair (table 1 column name, table 2 column name), JOIN
+              ON when these columns are equal.
+    _annotate_dict: A dict of name to (aggregate function, target field name)
+                    that is used to annotate extra fields.
   """
-  def __init__(self, conn):
-    self._conn = conn
+  def __init__(self, database, model):
+    self._model = models.ToModelSubclass(model)
+    self._database = database
+    self._order = None
+    self._column_list = model.GetFieldNames()
+    self._return_type = 'model'
+    self._condition = self._database.Q()
+    self._join_select = None
+    self._join_on = []
+    self._annotate_dict = dict()
 
-  def NewExecutor(self):
-    """Generates a new Executor object."""
-    return Executor(self._conn)
-
-
-# Don't change the class name. 'sqlite_master' is the special table in Sqlite.
-class sqlite_master(models.Model):
-  """The master table of Sqlite database which contains the info of tables."""
-  type     = models.TextField()
-  name     = models.TextField()
-  tbl_name = models.TextField()
-  rootpage = models.IntegerField()
-  sql      = models.TextField()
-
-
-class Database(object):
-  """A database to store Minijack results.
-
-  It abstracts the underlying database. It uses sqlite3 as an implementation.
-
-  Properties:
-    _conn: The connection of the sqlite3 database.
-    _master_table: The master table of the database.
-    _tables: A dict of the created tables.
-    _executor_factory: A factory of executor objects.
-  """
-  def __init__(self):
-    self._conn = None
-    self._master_table = None
-    self._tables = {}
-    self._executor_factory = None
-
-  def __del__(self):
-    self.Close()
-
-  def Init(self, filename):
-    """Initializes the database.
-
-    Args:
-      filename: The filename of the database.
-    """
-    self._conn = sqlite3.connect(filename)
-    # Make sqlite3 always return bytestrings for the TEXT data type.
-    self._conn.text_factory = str
-    self._executor_factory = ExecutorFactory(self._conn)
-    executor = self._executor_factory.NewExecutor()
-    # Use MEMORY journaling mode which saves disk I/O.
-    executor.Execute('PRAGMA journal_mode = MEMORY')
-    # Don't wait OS to write all content to disk before the next action.
-    executor.Execute('PRAGMA synchronous = OFF')
-    # Initialize the master table of the database.
-    self._master_table = Table(self._executor_factory)
-    self._master_table.Init(sqlite_master)
-
-  def DoesTableExist(self, model):
-    """Checks the table with the given model schema exists or not.
-
-    Args:
-      model: A model class or a model instance.
-
-    Returns:
-      True if exists; otherwise, False.
-    """
-    condition = sqlite_master(type='table', name=model.GetModelName())
-    return self._master_table.DoesRowExist(condition)
-
-  def DoIndexesExist(self, model):
-    """Checks the indexes with the given model schema exist or not.
-
-    Args:
-      model: A model class or a model instance.
-
-    Returns:
-      True if exist; otherwise, False.
-    """
-    for field_name in model.GetDbIndexes():
-      condition = sqlite_master(type='index',
-          name='_'.join(['index', model.GetModelName(), field_name]))
-      if not self._master_table.DoesRowExist(condition):
-        return False
-    return True
-
-  def GetExecutorFactory(self):
-    """Gets the executor factory."""
-    return self._executor_factory
-
-  def VerifySchema(self, model):
-    """Verifies the table in the database has the same given model schema.
-
-    Args:
-      model: A model class or a model instance.
-
-    Returns:
-      True if the same schema; otherwise, False.
-    """
-    condition = sqlite_master(name=model.GetModelName())
-    row = self._master_table.GetOneRow(condition)
-    return row.sql == model.SqlCmdCreateTable() if row else False
-
-  def GetOrCreateTable(self, model):
-    """Gets or creates a table using the schema of the given model.
-
-    Args:
-      model: A string, a model class, or a model instance.
-
-    Returns:
-      The table instance.
-    """
-    if isinstance(model, str):
-      table_name = model
-    else:
-      table_name = model.GetModelName()
-    if table_name not in self._tables:
-      if not isinstance(model, str):
-        table = Table(self._executor_factory)
-        table.Init(model)
-        if self.DoesTableExist(model):
-          if not self.VerifySchema(model):
-            raise DatabaseException('Different schema in table %s' % table_name)
-        else:
-          table.CreateTable()
-        if not self.DoIndexesExist(model):
-          logging.info(
-              'Indexes of table %s not exist. Please wait to create them...',
-              table_name)
-          table.CreateIndexes()
-        self._tables[table_name] = table
-      else:
-        raise DatabaseException('Table %s not initialized.' % table_name)
-    return self._tables[table_name]
-
-  def Close(self):
-    """Closes the database."""
-    if self._conn:
-      self._conn.close()
-      self._conn = None
-
-  # The following methods help accessing tables easily. They automatically
-  # get the proper tables and do the jobs on the tables.
-
-  def Insert(self, model):
-    """Inserts a model into the database."""
-    table = self.GetOrCreateTable(model)
-    table.InsertRow(model)
-
-  def InsertMany(self, model_list):
-    """Inserts multiple models into the database."""
-    if model_list and len(model_list) >= 1:
-      table = self.GetOrCreateTable(model_list[0])
-      table.InsertRows(model_list)
-
-  def Update(self, model):
-    """Updates the model in the database."""
-    table = self.GetOrCreateTable(model)
-    table.UpdateRow(model)
-
-  def CheckExists(self, model):
-    """Checks if the model exists or not."""
-    table = self.GetOrCreateTable(model)
-    return table.DoesRowExist(model)
-
-  def GetOne(self, condition):
-    """Gets the first model which matches the given condition."""
-    table = self.GetOrCreateTable(condition)
-    return table.GetOneRow(condition)
-
-  def GetAll(self, condition):
-    """Gets all the models which match the given condition."""
-    table = self.GetOrCreateTable(condition)
-    return table.GetRows(condition)
-
-  def IterateAll(self, condition):
+  def __iter__(self):
     """Iterates all the models which match the given condition."""
-    table = self.GetOrCreateTable(condition)
-    return table.IterateRows(condition)
+    sql_query, args = self.BuildQuery()
+    executor = self._database.GetExecutorFactory().NewExecutor()
+    executor.Execute(sql_query, args)
+    if self._return_type == 'model':
+      return executor.IterateAll(model=self._model)
+    elif self._return_type == 'tuple':
+      return executor.IterateAll()
+    elif self._return_type == 'dict':
+      desc = executor.GetDescription()
+      return (dict(zip(desc, row)) for row in executor.IterateAll())
+    elif (self._return_type == 'tuple_flat' or
+          self._return_type == 'tuple_distinct'):
+      return (row[0] for row in executor.FetchAll())
+    else:
+      raise ValueError('Unknown return type %s in QuerySet' % self._return_type)
 
-  def DeleteAll(self, condition):
-    """Deletes all the models which match the given condition."""
-    table = self.GetOrCreateTable(condition)
-    table.DeleteRows(condition)
+  def __deepcopy__(self, dummy_memo):
+    ret = QuerySet.__new__(QuerySet)
+    for m in ['_database', '_model', '_return_type']:
+      setattr(ret, m, getattr(self, m))
+    for m in ['_order', '_column_list', '_condition', '_join_select',
+              '_join_on', '_annotate_dict']:
+      setattr(ret, m, copy.deepcopy(getattr(self, m)))
+    return ret
 
-  def UpdateOrInsert(self, model):
-    """Updates the model or insert it if not exists."""
-    table = self.GetOrCreateTable(model)
-    table.UpdateOrInsertRow(model)
+  def GetDatabase(self):
+    return self._database
+
+  def GetModel(self):
+    return self._model
+
+  def Values(self, *args):
+    """Only selects columns in args, and make result a dict.
+
+    Args:
+      args: List of column to select. If empty, don't change the columns
+            selected.
+    """
+    if args:
+      self._column_list = args
+    self._return_type = 'dict'
+    return self
+
+  def ValuesList(self, *args, **kwargs):
+    """Only selects columns in args, and make result a tuple.
+
+    Args:
+      args: List of column to select. If empty, don't change the columns
+            selected.
+      kwargs: Options. Currently support two options:
+        flat=True: When only one column selected, returned results would be
+                   single values rather a one-element list.
+                   e.g. return would be [1, 2, 3] instead of [(1,), (2,), (3,)]
+        distinct=True: Imply flat=True, returned result would be distinct values
+                       of selected column.
+    """
+    if args:
+      self._column_list = args
+    self._return_type = 'tuple'
+    for k, v in kwargs.iteritems():
+      if k == 'flat':
+        if v:
+          if len(args) != 1:
+            raise ValueError('Args should contain one item when flat=True')
+          self._return_type = 'tuple_flat'
+      elif k == 'distinct':
+        if v:
+          if len(args) != 1:
+            raise ValueError('Args should contain one item when distinct=True')
+          self._return_type = 'tuple_distinct'
+      else:
+        raise ValueError('Unknown keyword argument %s in ValuesList' % k)
+    return self
+
+  def OrderBy(self, *args):
+    """Orders the result by columns in args"""
+    self._order = args
+    return self
+
+  def Filter(self, *args, **kwargs):
+    """Selects rows that match the conditions"""
+    cond = self._database.Q(**kwargs)
+    for arg in args:
+      cond = cond & arg
+    self._condition = self._condition & cond
+    return self
+
+  def Exclude(self, *args, **kwargs):
+    """Selects rows that don't match the conditions"""
+    cond = self._database.Q(**kwargs)
+    for arg in args:
+      cond = cond & arg
+    self._condition = self._condition & ~cond
+    return self
+
+  def Join(self, queryset, **kwargs):
+    """Joins the result table with the provided QuerySet.
+
+    Args:
+      queryset: A QuerySet representing the SELECT statement to be joined,
+                or None if there's no join.
+      kwargs: A list of pair (table 1 column name, table 2 column name), JOIN
+              ON when these columns are equal.
+    """
+    self._join_select = queryset
+    self._join_on = kwargs.items()
+    return self
+
+  def Annotate(self, **kwargs):
+    """Annotates the result with extra fields, would group all non-annotate
+    field together.
+
+    Args:
+      kwargs: A dict like {'max_count': ('max', 'count_passed')}, indicating the
+              extra annotated field's name, aggregate function, and target name.
+    """
+    self._annotate_dict.update(kwargs)
+    return self
+
+  def BuildQuery(self):
+    """Returns the SQL statement and arguments of this query"""
+    def EscapeColumnName(c):
+      if self._join_select:
+        return self._database.EscapeColumnName(c, 't1')
+      else:
+        return self._database.EscapeColumnName(c)
+    args = []
+    ret = 'SELECT'
+    select_list = ['%s%s' % (EscapeColumnName(c),
+                             ' AS ' + self._database.EscapeColumnName(c)
+                             if self._join_select else '')
+                   for c in self._column_list]
+    if self._annotate_dict and (
+        self._return_type == 'tuple_flat' or
+        self._return_type == 'tuple_distinct'):
+      raise ValueError(
+          'There should be no Annotate() when distinct=True or flat=True')
+    select_list += ['%s(%s) AS %s' % (op.upper(), EscapeColumnName(name),
+                                      self._database.EscapeColumnName(k))
+                    for k, (op, name) in self._annotate_dict.iteritems()]
+    ret += ' ' + ','.join(select_list)
+    ret += ' FROM'
+    ret += ' ' + self._model.GetModelName() + ' AS t1'
+
+    if self._join_select:
+      ret += ' JOIN ('
+      sql, cur_args = self._join_select.BuildQuery()
+      ret += sql
+      args += cur_args
+      ret += ') AS t2 ON '
+      ret += ' AND '.join('%s = %s' %
+                          (EscapeColumnName(c1),
+                           self._database.EscapeColumnName(c2, 't2'))
+                          for c1, c2 in self._join_on)
+
+    if self._condition:
+      ret += ' WHERE ' + self._condition.GetSql()
+      args += self._condition.GetArgs()
+
+    if self._order:
+      ret += ' ORDER BY'
+      order_list = []
+      for order in self._order:
+        if order.startswith('-'):
+          order_list.append(EscapeColumnName(order[1:]) + ' DESC')
+        else:
+          order_list.append(EscapeColumnName(order))
+      ret += ' ' + (','.join(order_list))
+
+    if self._annotate_dict:
+      if self._return_type == 'tuple_distinct':
+        raise ValueError("distinct=True and Annotate() can't be used together")
+      if self._return_type == 'model':
+        raise ValueError(
+            'Should use Values() or ValuesList() when using Annotate()')
+      ret += ' GROUP BY '
+      ret += ','.join('%s' % EscapeColumnName(c) for c in self._column_list)
+    elif self._return_type == 'tuple_distinct':
+      ret += ' GROUP BY '
+      ret += EscapeColumnName(self._column_list[0])
+
+    return ret, tuple(args)
+
+  def GetOne(self):
+    """Gets the first model which matches the given condition."""
+    sql_query, args = self.BuildQuery()
+    sql_query += 'LIMIT 1'
+    executor = self._database.GetExecutorFactory().NewExecutor()
+    executor.Execute(sql_query, args)
+    if self._return_type == 'model':
+      return executor.FetchOne(model=self._model)
+    elif self._return_type == 'tuple':
+      return executor.FetchOne()
+    elif self._return_type == 'dict':
+      return dict(zip(executor.GetDescription(), executor.FetchOne()))
+    elif (self._return_type == 'tuple_flat' or
+          self._return_type == 'tuple_distinct'):
+      return executor.FetchOne()[0]
+    else:
+      raise ValueError('Unknown return type %s in QuerySet' % self._return_type)
+
+  def GetAll(self):
+    """Gets all the models which match the given condition."""
+    sql_query, args = self.BuildQuery()
+    executor = self._database.GetExecutorFactory().NewExecutor()
+    executor.Execute(sql_query, args)
+    if self._return_type == 'model':
+      return executor.FetchAll(model=self._model)
+    elif self._return_type == 'tuple':
+      return executor.FetchAll()
+    elif self._return_type == 'dict':
+      desc = executor.GetDescription()
+      return [dict(zip(desc, row)) for row in executor.FetchAll()]
+    elif (self._return_type == 'tuple_flat' or
+          self._return_type == 'tuple_distinct'):
+      return [row[0] for row in executor.FetchAll()]
+    else:
+      raise ValueError('Unknown return type %s in QuerySet' % self._return_type)
+
+  def IterFilterIn(self, col, vals):
+    """A custom generator equivalent to queryset.filter(col__in=vals)
+    Used to bypass the limit of 999 records per query in sqlite.
+    Query 900 items each loop, and concat the result.
+    See https://code.djangoproject.com/ticket/17788 for more detail.
+    """
+    chunk_size = self._database.GetMaxArguments()
+    for vs in _Grouper(list(vals), chunk_size):
+      for v in copy.deepcopy(self).Filter(**{(col + '__in'): vs}):
+        yield v
+
+
+from db.sqlite import Executor, ExecutorFactory, Database, IntegrityError

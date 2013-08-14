@@ -4,11 +4,11 @@
 
 import logging
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.minijack import db
-from cros.factory.minijack.datatypes import EventPacket
-from cros.factory.minijack.exporters.base import ExporterBase
-from cros.factory.minijack.models import Event, Attr
+import minijack_common  # pylint: disable=W0611
+import db
+from datatypes import EventPacket
+from exporters.base import ExporterBase
+from models import Event, Attr
 
 
 class EventAttrExporter(ExporterBase):

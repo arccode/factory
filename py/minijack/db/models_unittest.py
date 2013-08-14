@@ -5,8 +5,8 @@
 
 import unittest
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.minijack.db import models
+import minijack_common  # pylint: disable=W0611
+from db import models
 
 
 # Example models for test.
@@ -115,9 +115,23 @@ class ModelTest(unittest.TestCase):
     self.assertDictEqual(self.foo_model.GetFields(),
                          new_foo_model.GetFields())
 
+  def testInitFromKwargs(self):
+    new_foo_model = FooModel(**self.foo_model.GetFields())
+    self.assertDictEqual(self.foo_model.GetFields(),
+                         new_foo_model.GetFields())
+
   def testToModelSubclass(self):
     self.assertIs(models.ToModelSubclass(self.foo_model), FooModel)
     self.assertIs(models.ToModelSubclass(FooModel), FooModel)
+
+  def testGetFieldObject(self):
+    # GetFieldObject() is a class method.
+    self.assertIs(self.bar_model.GetFieldObject('val1'),
+                  BarModel.GetFieldObject('val1'))
+    field = BarModel.GetFieldObject('val2')
+    self.assertTrue(field.IsValid(1))
+    self.assertFalse(field.IsValid('a'))
+    self.assertEqual(field.ToPython('1'), 1)
 
 
 if __name__ == "__main__":

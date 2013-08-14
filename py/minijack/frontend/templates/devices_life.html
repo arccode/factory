@@ -14,7 +14,7 @@
   <script type="text/javascript" language="javascript"
       src="{% static 'js/filter.js' %}"></script>
   <script type="text/javascript" language="javascript">
-    var aParams = {{ get_params|Jsonify }};
+    var aParams = {{ request.GET.dict|Jsonify }};
   </script>
 {% endblock %}
 

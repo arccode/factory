@@ -47,7 +47,14 @@ class Field(object):
 
 class IntegerField(Field):
   def IsValid(self, value):
-    return isinstance(value, int)
+    if isinstance(value, int):
+      return True
+    try:
+      int(value)
+    except ValueError:
+      return False
+    else:
+      return True
 
   def ToPython(self, value):
     return int(value)
@@ -62,7 +69,14 @@ class IntegerField(Field):
 class FloatField(Field):
   def IsValid(self, value):
     # Both float and int are acceptable.
-    return isinstance(value, float) or isinstance(value, int)
+    if isinstance(value, float) or isinstance(value, int):
+      return True
+    try:
+      float(value)
+    except ValueError:
+      return False
+    else:
+      return True
 
   def ToPython(self, value):
     return float(value)
@@ -76,7 +90,7 @@ class FloatField(Field):
 
 class TextField(Field):
   def IsValid(self, value):
-    return isinstance(value, str)
+    return isinstance(value, str) or isinstance(value, unicode)
 
   def ToPython(self, value):
     return str(value)
@@ -230,6 +244,11 @@ class Model(object):
     """Gets the dict of all fields, which maps a field name to a value."""
     return dict((f, getattr(self, f)) for f in self._model.iterkeys())
 
+  @classmethod
+  def GetFieldObject(cls, name):
+    """Gets the field object of this field name."""
+    return cls._model[name]
+
   def GetFieldValues(self):
     """Gets the tuple of all field values."""
     return tuple(getattr(self, f) for f in self._model.iterkeys())
@@ -282,16 +301,17 @@ class Model(object):
                 ' AND '.join(f + ' = ?' for f in condition_names)))
     return sql_cmd, field_values + condition_values
 
+  # TODO(pihsun): See if anyone calls this, change to QuerySet, remove this.
   def SqlCmdSelect(self):
     """Gets the SQL command tuple of selecting the matched rows."""
     # Use the non-empty fields as the condition.
     field_names = self.GetNonEmptyFieldNames()
     field_values = self.GetNonEmptyFieldValues()
-    sql_cmd = ('SELECT %s FROM %s%s%s' %
-               (', '.join(self.GetFieldNames()),
+    sql_cmd = ('SELECT %s FROM [%s]%s%s' %
+               (', '.join('[' + f + ']' for f in self.GetFieldNames()),
                 self.GetModelName(),
                 ' WHERE ' if field_names else '',
-                ' AND '.join([f + ' = ?' for f in field_names])))
+                ' AND '.join(['[' + f + '] = ?' for f in field_names])))
     return sql_cmd, field_values
 
   def SqlCmdDelete(self):

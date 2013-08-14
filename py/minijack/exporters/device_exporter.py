@@ -2,9 +2,9 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.minijack.exporters.base import ExporterBase
-from cros.factory.minijack.models import Device
+import minijack_common  # pylint: disable=W0611
+from exporters.base import ExporterBase
+from models import Device
 
 
 STATUS_RUNNING = 'RUNNING'
@@ -129,8 +129,8 @@ class DeviceExporter(ExporterBase):
     Returns:
       True if the field exists.
     """
-    condition = Device(device_id=packet.preamble.get('device_id'))
-    row = self._database.GetOne(condition)
+    row = self._database(Device).Filter(
+        device_id=packet.preamble.get('device_id')).GetOne()
     if row:
       return bool(getattr(row, field))
     else:

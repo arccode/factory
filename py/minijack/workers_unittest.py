@@ -7,8 +7,8 @@ import logging
 import tempfile
 import unittest
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.minijack.workers import EventLoadingWorker
+import minijack_common  # pylint: disable=W0611
+from workers import EventLoadingWorker
 
 
 MOCK_PREAMBLE = lambda x: 'EVENT: preamble\nSEQ: %d\n---\n' % x

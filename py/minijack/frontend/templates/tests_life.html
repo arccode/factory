@@ -16,7 +16,7 @@
   <script type="text/javascript" language="javascript">
     var aaFailedDevices = {{ failed_devices|Jsonify }};
     var aaDeviceInfo = {{ device_info|Jsonify }};
-    var aParams = {{ get_params|Jsonify }};
+    var aParams = {{ request.GET.dict|Jsonify }};
   </script>
 {% endblock %}
 
@@ -77,7 +77,7 @@
           <img src="{% static 'images/details_open.png' %}"/>{% endif %}
         </td>
         <td>
-          <a href="test?type={{ order }}&name={{ test.path }}"
+          <a href="{% url 'test' %}?type={{ order }}&name={{ test.path }}"
             class="datatable_link">
             {{ test.path }}
           </a>

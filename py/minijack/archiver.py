@@ -4,9 +4,9 @@
 
 import logging
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.minijack import db
-from cros.factory.minijack.models import Event, Attr, Device
+import minijack_common  # pylint: disable=W0611
+import db
+from models import Event, Attr, Device
 
 
 FINALIZED_TEST = 'GoogleRequiredTests.Finalize'
@@ -27,8 +27,7 @@ class Archiver(object):
   """
   def __init__(self, minijack_db_path):
     self._db_path = minijack_db_path
-    self._main_db = db.Database()
-    self._main_db.Init(self._db_path)
+    self._main_db = db.Database(self._db_path)
     self._backup_dbs = {}
 
   def __del__(self):
@@ -46,8 +45,7 @@ class Archiver(object):
       A database instance.
     """
     if date not in self._backup_dbs:
-      database = db.Database()
-      database.Init('.'.join([self._db_path, date]))
+      database = db.Database('.'.join([self._db_path, date]))
       self._backup_dbs[date] = database
     return self._backup_dbs[date]
 

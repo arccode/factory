@@ -9,6 +9,6 @@ import factory_common  # pylint: disable=W0611
 
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE',
-                      'cros.factory.minijack.frontend.settings')
+                      'cros.factory.minijack.settings')
 # The application object used by WSGI server.
 application = WSGIHandler()

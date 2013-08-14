@@ -8,10 +8,10 @@ import shutil
 import tempfile
 import unittest
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.minijack.archiver import Archiver, STATUS_ARCHIVED
-from cros.factory.minijack.db import Database
-from cros.factory.minijack.models import Event, Attr, Device
+import minijack_common  # pylint: disable=W0611
+from archiver import Archiver, STATUS_ARCHIVED
+from db import Database
+from models import Event, Attr, Device
 
 
 class ArchiverTest(unittest.TestCase):
@@ -22,8 +22,7 @@ class ArchiverTest(unittest.TestCase):
     # Generate the log on the main database:
     #   finalized: 1, 3, 5, 7, 9
     #   archived: 3
-    self._main_db = Database()
-    self._main_db.Init(self._db_path)
+    self._main_db = Database(self._db_path)
     for i in range(1, 11):
       self._main_db.Insert(Device(
           device_id=('did:%d' % i),
@@ -52,8 +51,7 @@ class ArchiverTest(unittest.TestCase):
       if i in (1, 5):
         # Check the backup database file exists.
         self.assertTrue(os.path.isfile(backup_db_path))
-        backup_db = Database()
-        backup_db.Init(backup_db_path)
+        backup_db = Database(backup_db_path)
 
         # Check the Table/Attr rows moved to the backup db.
         condition = Event(event_id=('eid:%d' % i))

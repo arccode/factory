@@ -151,7 +151,8 @@ lint:
 	out=$$(mktemp); \
 	echo Linting $(shell echo $(LINT_WHITELIST) | wc -w) files...; \
 	if [ -n "$(LINT_WHITELIST)" ] && \
-	    ! env PYTHONPATH=py_pkg:setup pylint $(PYLINT_OPTIONS) $(LINT_WHITELIST) \
+			! env PYTHONPATH=py_pkg:py/minijack:setup \
+			pylint $(PYLINT_OPTIONS) $(LINT_WHITELIST) \
 	    |& tee $$out; then \
 	  echo; \
 	  echo To re-lint failed files, run:; \

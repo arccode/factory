@@ -15,7 +15,7 @@
       src="{% static 'js/filter.js' %}"></script>
   <script type="text/javascript" language="javascript">
     var aaDevices = {{ device_list|Jsonify }};
-    var aParams = {{ get_params|Jsonify }};
+    var aParams = {{ request.GET.dict|Jsonify }};
   </script>
 {% endblock %}
 

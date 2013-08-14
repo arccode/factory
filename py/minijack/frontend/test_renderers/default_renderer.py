@@ -7,8 +7,9 @@ from collections import defaultdict
 
 from django.template import Context, loader
 
-from cros.factory.minijack.frontend import data
-from cros.factory.minijack.frontend.test_renderers import RegisterTestRenderer
+import minijack_common  # pylint: disable=W0611
+from frontend import data
+from frontend.test_renderers import RegisterTestRenderer
 
 
 def IsInt(val):

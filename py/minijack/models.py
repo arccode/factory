@@ -2,8 +2,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.minijack.db import models
+import minijack_common  # pylint: disable=W0611
+from db import models
 
 
 class Event(models.Model):

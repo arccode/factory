@@ -7,9 +7,10 @@ import os
 import time
 from datetime import datetime, timedelta
 
+import minijack_common  # pylint: disable=W0611
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import utils
-from cros.factory.minijack.datatypes import GenerateEventStreamsFromYaml
+from datatypes import GenerateEventStreamsFromYaml
 
 
 EVENT_DELIMITER = '---\n'

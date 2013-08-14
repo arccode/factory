@@ -6,9 +6,9 @@
 import logging
 import unittest
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.minijack.datatypes import EventPacket
-from cros.factory.minijack.datatypes import GenerateEventStreamsFromYaml
+import minijack_common  # pylint: disable=W0611
+from datatypes import EventPacket
+from datatypes import GenerateEventStreamsFromYaml
 
 
 _YAML_STR = """EVENT: preamble

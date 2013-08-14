@@ -6,9 +6,9 @@
 import re
 import unittest
 
-import factory_common  # pylint: disable=W0611
-from cros.factory.minijack import db
-from cros.factory.minijack.db import models
+import minijack_common  # pylint: disable=W0611
+import db
+from db import models
 
 
 # Example models for test.
@@ -28,8 +28,7 @@ class BarModel(models.Model):
 
 class DatabaseTest(unittest.TestCase):
   def setUp(self):
-    self.database = db.Database()
-    self.database.Init(':memory:')
+    self.database = db.Database(':memory:')
 
   def testGetOrCreateTable(self):
     foo_table = self.database.GetOrCreateTable(FooModel)
