@@ -557,11 +557,11 @@ class Gooftool(object):
         'crossystem': self._util.GetCrosSystem(),
         'modem_status': self._util.shell('modem status').stdout.splitlines(),
         'ec_wp_status': self._util.shell(
-            'flashrom -p internal:bus=lpc --get-size 2>/dev/null && '
-            'flashrom -p internal:bus=lpc --wp-status || '
+            'flashrom -p ec --get-size 2>/dev/null && '
+            'flashrom -p ec --wp-status || '
             'echo "EC is not available."').stdout,
         'bios_wp_status': self._util.shell(
-            'flashrom -p internal:bus=spi --wp-status').stdout}
+            'flashrom -p host --wp-status').stdout}
 
   def VerifyComponentsV3(self, component_list, fast_fw_probe=False):
     """Verifies the given component list against the component db to ensure

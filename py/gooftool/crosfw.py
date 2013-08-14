@@ -38,8 +38,8 @@ class Flashrom(object):
 
   # flashrom(8) command line parameters
   _VALID_TARGETS = (TARGET_MAIN, TARGET_EC)
-  _TARGET_MAP = {TARGET_MAIN: "-p internal:bus=spi",
-                 TARGET_EC: "-p internal:bus=lpc"}
+  _TARGET_MAP = {TARGET_MAIN: "-p host",
+                 TARGET_EC: "-p ec"}
   _WRITE_FLAGS = "--fast-verify"
   _READ_FLAGS = ""
 
