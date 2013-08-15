@@ -50,3 +50,17 @@ def LookupMap(key, mapping):
   if not isinstance(mapping, dict):
     raise RuleException('%r is not a dict' % mapping)
   return mapping[key]
+
+
+@RuleFunction([])
+def CallIf(cond, func, *args, **kwargs):
+  """A utility function to conditionally call a function.
+
+  Args:
+    cond: The conditional variable.
+    func: The function to call if cond evaluates to True.
+    *args: Positional arguments to pass to func.
+    **kwargs: Keyword arguments to pass to func.
+  """
+  if cond:
+    func(*args, **kwargs)
