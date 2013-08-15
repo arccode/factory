@@ -161,9 +161,10 @@ def GenerateImage(host, port, tftp_dir, script, vmlinux, initrd=None):
   else:
     td = tftp_dir
   os.chmod(tftp_dir, stat.S_IRWXU | stat.S_IXOTH)
-  uImage = os.path.join(td, 'uImage')
-  shutil.copy(vmlinux, uImage)
-  os.chmod(uImage, mode)
+  for filename in ('uImage', os.path.basename(vmlinux)):
+    uImage = os.path.join(td, filename)
+    shutil.copy(vmlinux, uImage)
+    os.chmod(uImage, mode)
   if initrd:
     rootImg = os.path.join(td, 'rootImg')
     shutil.copy(initrd, rootImg)

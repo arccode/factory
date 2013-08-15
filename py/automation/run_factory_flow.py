@@ -109,7 +109,7 @@ def ExtractFile(compressed_file, output_dir):
 def SetupNetboot(board, bundle_dir, recovery_image,
                  dhcp_iface, host_ip, miniomaha_port, dut_mac, dut_ip,
                  firmware_updater='', hwid_updater='',
-                 install_method='netboot'):
+                 install_method='netboot', vmlinux=''):
   script = os.path.join(SRCROOT,
                         'src/platform/factory/py/automation/setup_netboot.py')
   factory = os.path.join(bundle_dir, 'factory_test',
@@ -136,7 +136,8 @@ def SetupNetboot(board, bundle_dir, recovery_image,
     cmd.append('--firmware_updater=%s' % firmware_updater)
   if install_method == 'netboot':
     netboot_dir = os.path.join(bundle_dir, 'factory_shim', 'netboot')
-    vmlinux = os.path.join(netboot_dir, 'vmlinux.uimg')
+    if not vmlinux:
+      vmlinux = os.path.join(netboot_dir, 'vmlinux.uimg')
     cmd.append('--vmlinux=%s' % vmlinux)
     initrd = os.path.join(netboot_dir, 'initrd.uimg')
     if os.path.exists(initrd):
@@ -248,7 +249,7 @@ def RunFactoryFlow(board, dhcp_iface, host_ip, dut_mac, dut_ip, install_method,
                    netboot_bios='', finalize=False, automation_config='',
                    testlist='', serial_number='', servo_serial='',
                    servo_config='', servo_usb_dev='', devices_csv='',
-                   servod_port=9999, miniomaha_port=8080):
+                   servod_port=9999, miniomaha_port=8080, vmlinux=''):
   start_time = time.time()
   utils.TryMakeDirs(FILE_CACHE_DIR)
   work_dir = tempfile.mkdtemp(prefix='build_')
@@ -374,7 +375,7 @@ def RunFactoryFlow(board, dhcp_iface, host_ip, dut_mac, dut_ip, install_method,
                                    dhcp_iface, host_ip, miniomaha_port,
                                    dut_mac, dut_ip,
                                    firmware_updater, hwid_updater,
-                                   install_method)
+                                   install_method, vmlinux)
 
     servo = Servo(board=board, servo_serial=servo_serial,
                   servod_port=servod_port)
@@ -533,6 +534,8 @@ if __name__ == '__main__':
                     help='Test list used to finalize DUT.')
   parser.add_option('--serial_number', default='',
                     help='Serial number for DUT.')
+  parser.add_option('--vmlinux', default='',
+                    help='Vmlinux image to use.')
   options = parser.parse_args()[0]
 
   if options.install_method not in SUPPORTED_INSTALL_METHODS:
@@ -551,4 +554,4 @@ if __name__ == '__main__':
       options.finalize, options.automation_config, options.testlist,
       options.serial_number, options.servo_serial, options.servo_config,
       options.servo_usb_dev, options.devices_csv,
-      options.servod_port, options.miniomaha_port)
+      options.servod_port, options.miniomaha_port, options.vmlinux)
