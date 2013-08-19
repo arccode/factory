@@ -6,7 +6,7 @@
 
 """A hardware test for checking battery existence.
 
-This checks the existence of battery in sysfs.
+This checks the existence and status of battery in sysfs.
 """
 
 import threading
@@ -54,8 +54,15 @@ class SysfsBatteryTest(unittest.TestCase):
     else:
       success = True
 
+    health = power.GetBatteryAttribute('health')
+    cycleCount = power.GetBatteryAttribute('cycle_count')
+    capacity = power.GetBatteryAttribute('capacity')
+    manufacturer = power.GetBatteryAttribute('manufacturer')
+    temp = power.GetBatteryAttribute('temp')
+
     Log('battery_checked', wearPct=wearPct, allowed=wearAllowedPct,
-        success=success)
+        health=health, cycleCount=cycleCount, capacity=capacity,
+        manufacturer=manufacturer, temp=temp, success=success)
     if success:
       self._ui.Pass()
     else:
