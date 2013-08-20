@@ -76,7 +76,10 @@ class UpdateChecker(object):
     self.timer = None
     self.base_dir = os.path.realpath(self.opts.data_dir)
     self.next_version = 1
-    self._UpdateCheck(opts.boards.split(','))
+    if opts.boards:
+      self._UpdateCheck(opts.boards.split(','))
+    else:
+      self._UpdateCheck()
 
   def _CleanUpConfig(self):
     """Put the updated files into initial position"""
