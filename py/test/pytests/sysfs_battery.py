@@ -23,8 +23,14 @@ _CSS = '#state {text-align:left;}'
 
 class SysfsBatteryTest(unittest.TestCase):
   ARGS = [
+    Arg('maximum_cycle_count', int,
+        'Maximum cycle count allowed to pass test', optional=True,
+        default=None),
     Arg('percent_battery_wear_allowed', int,
-        'Maximum pecent battery wear allowed to pass test', default=100)
+        'Maximum pecent battery wear allowed to pass test', default=100),
+    Arg('verify_battery_health_good', bool,
+        'Boolean to verify that the battery health value is good',
+        default=False),
   ]
 
   def setUp(self):
@@ -55,7 +61,15 @@ class SysfsBatteryTest(unittest.TestCase):
       success = True
 
     health = power.GetBatteryAttribute('health')
+    if success and self.args.verify_battery_health_good:
+      if health.lower() != 'good':
+        msg = 'Battery health is %s, not Good' % health
+        success = False
     cycleCount = power.GetBatteryAttribute('cycle_count')
+    if success and self.args.maximum_cycle_count is not None:
+      if int(cycleCount) > self.args.maximum_cycle_count:
+        msg = 'Battery cycle count is too high: %s' % cycleCount
+        success = False
     capacity = power.GetBatteryAttribute('capacity')
     manufacturer = power.GetBatteryAttribute('manufacturer')
     temp = power.GetBatteryAttribute('temp')
