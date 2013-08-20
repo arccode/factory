@@ -146,6 +146,7 @@ class UpdateChecker(object):
       init_preparer.set_boards_to_update(boards)
       init_preparer.generate_miniomaha_files()
       init_preparer.setup_miniomaha_files()
+      self.updater.ImportFactoryConfigFile(self.opts.factory_config , False)
 
     # Try to update all boards in config
     updated_boards = []
@@ -418,8 +419,10 @@ if __name__ == '__main__':
     else:
       parser.error('No factory files found')
 
-  updater.ImportFactoryConfigFile(options.factory_config,
-                                  options.validate_factory_config)
+  # When boards is set, we should import config after the first update check.
+  if not options.boards:
+    updater.ImportFactoryConfigFile(options.factory_config,
+                                    options.validate_factory_config)
 
   # We've done validating factory config, exit now!
   if options.validate_factory_config:
@@ -431,7 +434,8 @@ if __name__ == '__main__':
                          os.path.join(base_path, 'cache_dir'))
     # Ensure that the configure file in cache directory is the same as that
     # in data directory.
-    shutil.copy(options.factory_config, options.cache_dir)
+    if os.path.exists(options.factory_config):
+      shutil.copy(options.factory_config, options.cache_dir)
     update_checker = UpdateChecker(options, base_path, options.cache_dir,
                                    updater, updater_lock)
 
