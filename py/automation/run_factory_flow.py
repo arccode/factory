@@ -157,12 +157,20 @@ def SetupNetboot(board, bundle_dir, recovery_image,
 
 def UpdateFirmwareVars(bundle_dir, netboot_bios, host_ip, miniomaha_port):
   omaha_url = 'http://%s:%d/update' % (host_ip, miniomaha_port)
-  script = os.path.join(bundle_dir, 'factory_setup', 'update_firmware_vars.py')
-  return Spawn([script, '--force',
-                '--input', netboot_bios,
-                '--tftpserverip', host_ip,
-                '--omahaserver', omaha_url],
-               log=True, check_call=True, sudo=True)
+  params = ['--input', netboot_bios,
+            '--tftpserverip', host_ip,
+            '--omahaserver', omaha_url]
+  try:
+    return Spawn([os.path.join(bundle_dir, 'factory_setup',
+                               'update_firmware_vars.py'),
+                  '--force'] + params,
+                 log=True, check_call=True, sudo=True)
+  except:  # pylint: disable=W0702
+    # Try the new firmware settings update script.
+    return Spawn([os.path.join(bundle_dir, 'factory_setup',
+                               'update_firmware_settings.py'),
+                  '--clobber'] + params,
+                 log=True, check_call=True, sudo=True)
 
 
 def UpdateServerAddress(lsb_factory, host_ip):
