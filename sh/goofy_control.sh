@@ -83,8 +83,11 @@ start_factory() {
   check_disk_usage
   boot_splash
 
+  if [ -z "$(status ui | grep running)" ]; then
+    start ui
+  fi
+
   cd "$FACTORY"/../autotest
-  eval "$("$FACTORY/sh/startx.sh" 2>/var/log/startx.err)"
   "$FACTORY/bin/goofy" $GOOFY_ARGS >>"$FACTORY_LOG_FILE" 2>&1
 }
 
@@ -93,7 +96,7 @@ stop_factory() {
   # Try to kill X, and any other Python scripts, five times.
   echo -n "Stopping factory."
   for i in $(seq 5); do
-    pkill 'X|python' || break
+    pkill 'python' || break
     sleep 1
     echo -n "."
   done

@@ -411,3 +411,14 @@ def Timeout(secs):
     if secs:
       signal.alarm(0)
       signal.signal(signal.SIGALRM, old_handler)
+
+
+def SendKey(key_sequence):
+  """Send the given key sequence through X server.
+
+  Args:
+    key_sequence: A string of key sequence. See the help of xdotool.
+  """
+  os.environ['DISPLAY'] = ':0'
+  os.environ['XAUTHORITY'] = '/home/chronos/.Xauthority'
+  Spawn(['xdotool', 'key', key_sequence])

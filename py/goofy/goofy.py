@@ -1443,9 +1443,7 @@ class Goofy(object):
       # (http://crosbug.com/p/19444).  TODO(jsalz): remove this hack
       # and figure out the right way to get the focus to Chrome.
       if not utils.in_chroot():
-        Spawn(
-            [os.path.join(factory.FACTORY_PATH, 'bin', 'send_key'), 'Tab'],
-            check_call=True, log=True)
+        utils.SendKey('Tab')
     elif self.options.ui == 'gtk':
       self.start_ui()
 

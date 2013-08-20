@@ -5,23 +5,16 @@
 # found in the LICENSE file.
 
 import cPickle as pickle
-import datetime
-import glob
 import hashlib
 import logging
 import os
-import shutil
 import subprocess
 import threading
 import time
 
 import factory_common  # pylint: disable=W0611
-from cros.factory import system
-from cros.factory.test import factory
 from cros.factory.goofy import connection_manager
-from cros.factory.test import state
-from cros.factory.test import utils
-from cros.factory.utils.process_utils import Spawn
+from cros.factory.test import factory, state, utils
 
 
 class Environment(object):
@@ -82,6 +75,13 @@ class DUTEnvironment(Environment):
   '''
   A real environment on a device under test.
   '''
+  BROWSER_TYPE = 'system'
+  EXTENSION_PATH = os.path.join(factory.FACTORY_PATH, 'py', 'goofy',
+                                'factory_test_extension')
+  def __init__(self):
+    self.browser = None
+    self.extension = None
+
   def shutdown(self, operation):
     assert operation in ['reboot', 'halt']
     logging.info('Shutting down: %s', operation)
@@ -94,111 +94,47 @@ class DUTEnvironment(Environment):
     return self.goofy.prespawner.spawn(args, env_additions)
 
   def launch_chrome(self):
-    # The cursor speed needs to be adjusted when running in QEMU
-    # (but after Chrome starts and has fiddled with the settings
-    # itself).
-    if utils.in_qemu():
-      def FixCursor():
-        for _ in xrange(6):  # Every 500ms for 3 seconds
-          time.sleep(.5)
-          subprocess.check_call(['xset','m','200','200'])
+    # Import these modules here because they are not available in chroot.
+    # pylint: disable=F0401
+    from telemetry.core import browser_finder
+    from telemetry.core import browser_options
+    from telemetry.core import extension_to_load
+    from telemetry.core import util as telemetry_util
 
-      thread = threading.Thread(target=FixCursor)
-      thread.daemon = True
-      thread.start()
+    # Telemetry flakiness: Allow one retry when starting up Chrome.
+    # TODO(jcliang): Remove this when we're sure that telemetry is stable
+    # enough.
+    tries_left = 2
+    while tries_left:
+      try:
+        finder_options = browser_options.BrowserFinderOptions()
+        finder_options.browser_type = self.BROWSER_TYPE
+        self.extension = extension_to_load.ExtensionToLoad(
+            self.EXTENSION_PATH, self.BROWSER_TYPE, is_component=True)
+        finder_options.extensions_to_load.append(self.extension)
+        finder_options.AppendExtraBrowserArgs([
+            '--kiosk',
+            '--kiosk-mode-screensaver-path=/dev/null',
+            '--disable-translate',
+            '--ash-hide-notifications-for-factory',
+            ('--default-device-scale-factor=%d' %
+             self.goofy.options.ui_scale_factor)])
+        self.browser = browser_finder.FindBrowser(finder_options).Create()
+        self.browser.Start()
+        break
+      except telemetry_util.TimeoutException:
+        tries_left -= 1
+        if not tries_left:
+          raise
 
-    chrome_data_dir = os.path.join(factory.get_state_root(),
-                                   factory.CHROME_DATA_DIR_NAME)
-    # Start with a fresh data directory every time.
-    shutil.rmtree(chrome_data_dir, ignore_errors=True)
-
-    # Setup GPU & acceleration flags which differ between x86/ARM SoC
-    system_info = system.SystemInfo()
-    if system_info.architecture == "armv7l":
-      accelerated_flag = "--use-gl=egl"
-      vda_flag='--use-exynos-vda'
+    if len(self.browser.tabs):
+      tab = self.browser.tabs[0]
     else:
-      accelerated_flag = "--enable-accelerated-layers"
-      vda_flag=''
-
-    # Auto detect the display modes on DUT
-    mode_paths = glob.glob('/sys/class/drm/card*/modes')
-    available_modes = []
-    for path in mode_paths:
-      with open(path, 'r') as fd:
-        available_modes.extend(
-          line.strip().split('x') for line in open(path).readlines())
-    if not available_modes:
-      raise factory.FactoryTestFailure('No display mode was found')
-    logging.info('Supported display modes: %s', available_modes)
-    screen_width, screen_height = [int(x) for x in available_modes[0]]
-    if self.goofy.options.one_pixel_less:
-      screen_width -= 1
-
-    chrome_command = [
-      '/opt/google/chrome/chrome',
-      '--ash-host-window-bounds=%dx%d' % (screen_width, screen_height),
-      '--ash-hide-notifications-for-factory',
-      '--user-data-dir=%s' % chrome_data_dir,
-      '--disable-translate',
-      '--aura-host-window-use-fullscreen',
-      '--kiosk',
-      '--kiosk-mode-screensaver-path=/dev/null',
-      '--use-cras',
-      '--enable-audio-mixer',
-      '--enable-renderer-side-mixing',
-      accelerated_flag,
-      vda_flag,
-      ('--default-device-scale-factor=%d' %
-       self.goofy.options.ui_scale_factor),
-      '--disable-extensions',
-      # Hard-code localhost IP so Chrome doesn't have to rely on DNS.
-      'http://127.0.0.1:%d/' % state.DEFAULT_FACTORY_STATE_PORT,
-      ]
-
-    if self.goofy.options.automation:
-      # Automation script will be responsible for opening chrome browser
-      # argument order:
-      # chrome_binary_location, option1, option2, ..., factory_url
-      automation_command = [
-          '/usr/local/factory/py/automation/factory_automation.py']
-      automation_command.extend(chrome_command)
-
-      automation_log = os.path.join(factory.get_log_root(),
-                                    'factory_automation.log')
-      automation_log_file = open(automation_log, 'a')
-
-      # Make sure chromedriver is in the system path
-      new_env = os.environ.copy()
-      new_env['PATH'] += ':/usr/local/factory/bin'
-
-      logging.info('Launching factory_automation: log in %s', automation_log)
-      process = Spawn(automation_command,
-                      stdout=automation_log_file,
-                      stderr=subprocess.STDOUT,
-                      # Make other automation logs go to the correct place
-                      cwd=factory.get_log_root(),
-                      env=new_env)
-    else:
-      chrome_log = os.path.join(factory.get_log_root(), 'factory.chrome.log')
-      chrome_log_file = open(chrome_log, 'a', 0)
-      chrome_log_file.write('#\n# %s: Starting chrome\n#\n' %
-                            datetime.datetime.now().isoformat())
-      logging.info('Launching Chrome; logs in %s', chrome_log)
-      process = Spawn(chrome_command,
-                      stdout=chrome_log_file,
-                      stderr=subprocess.STDOUT,
-                      log=True)
-
-    logging.info('Chrome has been launched: PID %d', process.pid)
-    # Start thread to wait for Chrome to die and log its return
-    # status
-    def WaitForChrome():
-      returncode = process.wait()
-      logging.info('Chrome exited with return code %d', returncode)
-      chrome_log_file.write('#\n# %s: Chrome exited with return code %d\n#\n' %
-                            (datetime.datetime.now().isoformat(), returncode))
-    utils.StartDaemonThread(target=WaitForChrome)
+      tab = self.browser.tabs.New()
+    tab.Navigate('http://127.0.0.1:%d/' % state.DEFAULT_FACTORY_STATE_PORT)
+    tab.Activate()
+    # Press the maximize key to maximize the window.
+    utils.SendKey('F4')
 
   def create_connection_manager(self, wlans, scan_wifi_period_secs):
     return connection_manager.ConnectionManager(wlans,
