@@ -513,6 +513,9 @@ class Options(object):
   # True to use CpufreqManager.
   use_cpufreq_manager = True
 
+  # Check if MLB has been changed, and reset all tests if so.
+  check_if_mlb_changed = False
+
   def check_valid(self):
     '''Throws a TestListError if there are any invalid options.'''
     # Make sure no errant options, or options with weird types,
