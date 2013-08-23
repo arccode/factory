@@ -142,7 +142,7 @@ class Scan(unittest.TestCase):
           ' ' + test_ui.SPINNER_HTML_16x16,
           id='scan-status')
       try:
-        vpd.rw.Update({self.args.shared_data_key: scan_value})
+        vpd.rw.Update({self.args.rw_vpd_key: scan_value})
       except:  # pylint: disable=W0702
         logging.exception('Setting VPD failed')
         return SetError(utils.FormatExceptionOnly())
