@@ -15,6 +15,7 @@ import glob
 import hashlib
 import logging
 import os
+import re
 import shutil
 import urllib
 import yaml
@@ -31,10 +32,15 @@ HWID_BUNDLE_PATTERN = 'hwid/hwid_*bundle*.sh'
 FACTORY_SOFTWARE = 'shopfloor/factory.par'
 NETBOOT_IMAGE = 'factory_shim/netboot/vmlinux.uimg'
 SHOPFLOOR_TEMPLATE = 'shopfloor/shopfloor.template'
-
+MANIFEST_YAML = 'MANIFEST.yaml'
 
 class ImporterError(Exception):
   pass
+
+
+def FakeGlobConstruct(dummy_loader, dummy_node):
+  """Fake YAML constructor."""
+  return None
 
 
 class BundleImporter(object):
@@ -62,6 +68,8 @@ class BundleImporter(object):
       factory.par file tuple.
     hwid_bundle:
       HWID updater file tuple.
+    manifest:
+      Parsed MANIFEST.yaml dict.
     netboot_file:
       File tuple of netboot kernel vmlinux.uimg. Or None if it doesn't exist
       in this bundle dir.
@@ -79,9 +87,12 @@ class BundleImporter(object):
 
   def __init__(self, bundle):
     self.bundle = os.path.abspath(bundle)
+    self.mandatory_images = ['release', 'factory_shim']
+    self.manifest = {}
 
     if not os.path.isdir(bundle):
       raise IOError('Bundle dir not found')
+    self.LoadBundleManifest()
 
     self.factory_software = self.GetFactorySoftware()
     if self.factory_software:
@@ -153,6 +164,22 @@ class BundleImporter(object):
     if len(hwid_bundles) > 1:
       raise ImporterError('More than one HWID bundles found.')
     return self.GetFileTuple(hwid_bundles[0])
+
+  def LoadBundleManifest(self):
+    """Loads MANIFEST.yaml.
+
+    Raises:
+      ImporterError: on missing mandatory add_files.
+    """
+    yaml.add_constructor('!glob', FakeGlobConstruct)
+    with open(os.path.join(self.bundle, MANIFEST_YAML)) as f:
+      self.manifest = yaml.load(f)
+    # Check mandatory images (release and factory shim) are in MANIFEST with
+    # version string in source URL.
+    try:
+      map(self.GetVersion, self.mandatory_images)
+    except (AttributeError, TypeError, LookupError) as e:
+      raise ImporterError('Missing MANIFEST field: ' + str(e))
 
   def GetResourceName(self, file_tuple):
     """Converts (path_name, md5sum) tuple to resource name."""
@@ -251,6 +278,20 @@ class BundleImporter(object):
       channel = base_name
     return channel.upper()
 
+  def GetVersion(self, image_type):
+    """Gets image version from MANIFEST add_files field."""
+    for add_file in self.manifest['add_files']:
+      if image_type == add_file['install_into']:
+        # The image version in source URL contains:
+        #   .../MAJOR.MINOR.BUILD/...
+        # Where MAJOR, MINOR and BUILD are decimal digits.
+        m = re.match(r'''.*/(\d+\.\d+\.\d+)/.*''', add_file['source'])
+        if m:
+          return m.group(1)
+        else:
+          raise ImporterError('Image version string not found')
+    raise ImporterError('Image type not found: ' + image_type)
+
   def WriteDownloadConfig(self):
     """Generate download config and writes to resource folder.
 
@@ -324,6 +365,11 @@ class BundleImporter(object):
     if self.factory_software:
       config['shopfloor']['factory_software'] = (
           self.GetResourceName(self.factory_software))
+
+    # Inject image versions
+    config['image_versions'] = {}
+    for image in self.mandatory_images:
+      config['image_versions'][image] = self.GetVersion(image)
 
     yaml_text = yaml.dump(config, default_flow_style=False)
     yaml_md5 = hashlib.md5(yaml_text).hexdigest() # pylint: disable=E1101

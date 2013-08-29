@@ -19,6 +19,9 @@ from cros.factory.shopfloor.launcher.yamlconf import LauncherYAMLConfig
 from cros.factory.test.utils import TryMakeDirs
 
 
+_IMAGE_VERSIONS = 'image_versions'
+
+
 def StartServices():
   """Starts all services."""
   for service in env.launcher_services:
@@ -35,8 +38,21 @@ def UpdateConfig(yaml_config_file):
   """Loads new launcher config file and restarts all services."""
   StopServices()
   env.launcher_config = LauncherYAMLConfig(yaml_config_file)
+  UpdateImageVersions()
   env.launcher_services = GenerateServices()
   StartServices()
+
+def UpdateImageVersions():
+  """Updates image versions stored in <resources_dir>/image_versions."""
+  version_dir = os.path.join(env.GetResourcesDir(), _IMAGE_VERSIONS)
+  if os.path.isdir(version_dir):
+    shutil.rmtree(version_dir)
+
+  if _IMAGE_VERSIONS in env.launcher_config:
+    os.mkdir(version_dir)
+    for image_type, version in env.launcher_config[_IMAGE_VERSIONS].iteritems():
+      with open(os.path.join(version_dir, image_type), 'w') as f:
+        f.write(version)
 
 def GenerateServices():
   """Generates service list."""

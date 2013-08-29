@@ -16,6 +16,11 @@ class LauncherYAMLConfig(dict):
   _SCHEMA = FixedDict(
       'Fixed top level launcher config fields',
       optional_items={
+          # Image versions.
+          'image_versions': Dict(
+              'Map image type to version string',
+              Scalar('Image type', str),
+              Scalar('Image version', str)),
           # Network installer settings.
           'network_install': FixedDict(
               'Network installer fields',
