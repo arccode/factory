@@ -262,7 +262,8 @@ class Database(db.base.BaseDatabase):
       True if exists; otherwise, False.
     """
     if self._table_names is None:
-      result = self._service.tables().list(
+      # .tables() is dynamic generated method, and pylint doesn't recognize it.
+      result = self._service.tables().list(  # pylint: disable=E1101
           projectId=settings.PROJECT_ID,
           datasetId=settings.DATASET_ID).execute()
       self._table_names = set(t['tableReference']['tableId']

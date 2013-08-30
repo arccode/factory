@@ -76,7 +76,13 @@ LINT_BLACKLIST=\
 	py/test/fixture/camera/grid_mapper.py \
 	py/test/fixture/camera/mtf_calculator.py \
 	py/test/fixture/camera/perf_tester.py \
-	py/test/fixture/camera/renderer.py
+	py/test/fixture/camera/renderer.py \
+	py/minijack/apiclient/% \
+	py/minijack/gflags.py \
+	py/minijack/gflags_validators.py \
+	py/minijack/httplib2/% \
+	py/minijack/oauth2client/% \
+	py/minijack/uritemplate/%
 
 LINT_FILES=$(shell find py -name '*.py' -type f | sort)
 LINT_WHITELIST=$(filter-out $(LINT_BLACKLIST),$(LINT_FILES))

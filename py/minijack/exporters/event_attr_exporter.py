@@ -6,6 +6,7 @@ import logging
 
 import minijack_common  # pylint: disable=W0611
 import db
+import db.sqlite
 from datatypes import EventPacket
 from exporters.base import ExporterBase
 from models import Event, Attr
@@ -29,7 +30,7 @@ class EventAttrExporter(ExporterBase):
       # Insert to Event first. If it finds duplication, skips Attr insertion.
       self._InsertEvent(packet)
       self._InsertAttr(packet)
-    except db.IntegrityError:
+    except db.sqlite.IntegrityError:
       logging.warn('The Event/Attr (%s) already exists in the table',
                    packet.GetEventId())
 
