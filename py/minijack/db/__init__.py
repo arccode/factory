@@ -3,6 +3,9 @@
 # found in the LICENSE file.
 
 import copy
+import logging
+import os
+import sys
 
 import minijack_common  # pylint: disable=W0611
 
@@ -31,9 +34,11 @@ class Table(object):
     _model: The model dict, the schema of the table.
     _table_name: The name of the table.
     _primary_key: A list of the primary key fields.
+    _database: The underlying database.
   """
-  def __init__(self, executor_factory):
-    self._executor_factory = executor_factory
+  def __init__(self, database):
+    self._database = database
+    self._executor_factory = database.GetExecutorFactory()
     self._model = None
     self._table_name = None
     self._primary_key = []
@@ -50,14 +55,14 @@ class Table(object):
 
   def CreateTable(self):
     """Creates the table."""
-    sql_cmd = self._model.SqlCmdCreateTable()
+    sql_cmd = self._database.SqlCmdCreateTable(self._model)
     executor = self._executor_factory.NewExecutor()
     executor.Execute(sql_cmd, commit=True)
 
   def CreateIndexes(self):
     """Creates the indexes of the table."""
     executor = self._executor_factory.NewExecutor()
-    for sql_cmd in self._model.SqlCmdCreateIndexes():
+    for sql_cmd in self._database.SqlCmdCreateIndexes(self._model):
       executor.Execute(sql_cmd, commit=True)
 
   def InsertRow(self, row):
@@ -72,7 +77,7 @@ class Table(object):
     if not self._model.IsValid(row):
       raise DatabaseException('Insert a row with a wrong model.')
 
-    sql_cmd, args = row.SqlCmdInsert()
+    sql_cmd, args = self._database.SqlCmdInsert(row)
     executor = self._executor_factory.NewExecutor()
     executor.Execute(sql_cmd, args, commit=True)
 
@@ -95,7 +100,7 @@ class Table(object):
     for row in rows:
       if not self._model.IsValid(row):
         raise DatabaseException('Insert a row with a wrong model.')
-      sql_cmd, args = row.SqlCmdInsert()
+      sql_cmd, args = self._database.SqlCmdInsert(row)
       args_list.append(args)
 
     executor = self._executor_factory.NewExecutor()
@@ -113,7 +118,7 @@ class Table(object):
     if not self._model.IsValid(row):
       raise DatabaseException('Update a row with a wrong model.')
 
-    sql_cmd, args = row.SqlCmdUpdate()
+    sql_cmd, args = self._database.SqlCmdUpdate(row)
     executor = self._executor_factory.NewExecutor()
     executor.Execute(sql_cmd, args, commit=True)
 
@@ -169,7 +174,7 @@ class Table(object):
     if not self._model.IsValid(condition):
       raise DatabaseException('The condition is a wrong model.')
 
-    sql_cmd, args = condition.SqlCmdSelect()
+    sql_cmd, args = self._database.SqlCmdSelect(condition)
     executor = self._executor_factory.NewExecutor()
     executor.Execute(sql_cmd, args)
     if iter_all:
@@ -191,7 +196,7 @@ class Table(object):
     if not self._model.IsValid(condition):
       raise DatabaseException('The condition is a wrong model.')
 
-    sql_cmd, args = condition.SqlCmdDelete()
+    sql_cmd, args = self._database.SqlCmdDelete(condition)
     executor = self._executor_factory.NewExecutor()
     executor.Execute(sql_cmd, args, commit=True)
 
@@ -605,6 +610,12 @@ class QuerySet(object):
 
 
 if settings.IS_APPENGINE:
-  from db.bigquery import Executor, ExecutorFactory, Database
+  if settings.BACKEND_DATABASE == 'bigquery':
+    from db.bigquery import Executor, ExecutorFactory, Database
+  elif settings.BACKEND_DATABASE == 'cloud_sql':
+    from db.cloud_sql import Executor, ExecutorFactory, Database
+  else:
+    logging.exception('Unknown database %s', settings.BACKEND_DATABASE)
+    sys.exit(os.EX_DATAERR)
 else:
   from db.sqlite import Executor, ExecutorFactory, Database

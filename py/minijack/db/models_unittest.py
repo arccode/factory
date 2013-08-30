@@ -7,6 +7,7 @@ import unittest
 
 import minijack_common  # pylint: disable=W0611
 from db import models
+from db import sqlite, bigquery, cloud_sql
 
 
 # Example models for test.
@@ -40,14 +41,26 @@ class ModelTest(unittest.TestCase):
       'field_i': 'INTEGER',
       'field_r': 'REAL',
       'field_t': 'TEXT',
-    }, FooModel.GetDbSchema())
+    }, FooModel.GetDbSchema(sqlite.Database))
     self.assertDictEqual({
       'key1': 'TEXT',
       'key2': 'TEXT',
       'val1': 'TEXT',
       'val2': 'INTEGER',
       'val3': 'REAL',
-    }, self.bar_model.GetDbSchema())
+    }, self.bar_model.GetDbSchema(sqlite.Database))
+    self.assertDictEqual({
+      'field_i': 'INTEGER',
+      'field_r': 'FLOAT',
+      'field_t': 'STRING',
+    }, self.foo_model.GetDbSchema(bigquery.Database))
+    self.assertDictEqual({
+      'key1': 'VARCHAR(255)',
+      'key2': 'VARCHAR(255)',
+      'val1': 'TEXT',
+      'val2': 'INTEGER',
+      'val3': 'REAL',
+    }, BarModel.GetDbSchema(cloud_sql.Database))
 
   def testGetPrimaryKey(self):
     # GetPrimaryKey() is a class method.

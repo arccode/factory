@@ -1,4 +1,5 @@
 *.p12
 *.pem
 settings_bigquery.py
+settings_cloud_sql.py
 app.yaml

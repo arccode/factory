@@ -3,18 +3,14 @@
 # found in the LICENSE file.
 
 import logging
-import sqlite3
-import re
 
 import minijack_common  # pylint: disable=W0611
+
 from db import models
 from db import DatabaseException, Table
 
 import db.base
-import settings
-
-
-IntegrityError = sqlite3.IntegrityError
+import settings_cloud_sql
 
 
 class Executor(db.base.BaseExecutor):
@@ -24,8 +20,8 @@ class Executor(db.base.BaseExecutor):
   an SQL query, fetching results, etc.
 
   Properties:
-    _conn: The connection of the sqlite3 database.
-    _cursor: The cursor of the sqlite3 database.
+    _conn: The connection of the Google Cloud SQL database.
+    _cursor: The cursor of the Google Cloud SQL database.
   """
   def __init__(self, conn):
     super(Executor, self).__init__()
@@ -42,6 +38,7 @@ class Executor(db.base.BaseExecutor):
       many: Do multiple execution. If True, the args argument should be a list.
     """
     logging.debug('Execute SQL command: %s, %s;', sql_cmd, args)
+    sql_cmd = sql_cmd.replace('?', '%s')
     if not args:
       args = tuple()
     if many:
@@ -119,7 +116,7 @@ class ExecutorFactory(db.base.BaseExecutorFactory):
   """A factory to generate Executor objects.
 
   Properties:
-    _conn: The connection of the sqlite3 database.
+    _conn: The connection of the Google Cloud SQL database.
   """
   def __init__(self, conn):
     super(ExecutorFactory, self).__init__()
@@ -130,46 +127,23 @@ class ExecutorFactory(db.base.BaseExecutorFactory):
     return Executor(self._conn)
 
 
-# Don't change the class name. 'sqlite_master' is the special table in Sqlite.
-class sqlite_master(models.Model):
-  """The master table of Sqlite database which contains the info of tables."""
-  type     = models.TextField()
-  name     = models.TextField()
-  tbl_name = models.TextField()
-  rootpage = models.IntegerField()
-  sql      = models.TextField()
-
-
-def _SqliteRegexp(pattern, val):
-  return bool(re.search(pattern, val))
-
-
 class Database(db.base.BaseDatabase):
   """A database to store Minijack results.
 
-  It abstracts the underlying database. It uses sqlite3 as an implementation.
+  It abstracts the underlying database.
+  It uses Google Cloud SQL as an implementation.
 
   Properties:
-    _conn: The connection of the sqlite3 database.
-    _master_table: The master table of the database.
+    _conn: The connection of the Google Cloud SQL database.
     _tables: A dict of the created tables.
     _executor_factory: A factory of executor objects.
   """
-  def __init__(self, filename):
+  def __init__(self, instance_name, database_name):
     super(Database, self).__init__()
-    self._conn = sqlite3.connect(filename)
-    self._conn.create_function("regexp", 2, _SqliteRegexp)
-    # Make sqlite3 always return bytestrings for the TEXT data type.
-    self._conn.text_factory = str
+    # This module only exist on Google App Engine.
+    from google.appengine.api import rdbms  # pylint: disable=E0611, F0401
+    self._conn = rdbms.connect(instance=instance_name, database=database_name)
     self._executor_factory = ExecutorFactory(self._conn)
-    executor = self._executor_factory.NewExecutor()
-    # Use MEMORY journaling mode which saves disk I/O.
-    executor.Execute('PRAGMA journal_mode = MEMORY')
-    # Don't wait OS to write all content to disk before the next action.
-    executor.Execute('PRAGMA synchronous = OFF')
-    # Initialize the master table of the database.
-    self._master_table = Table(self)
-    self._master_table.Init(sqlite_master)
     self._tables = {}
 
   def DoesTableExist(self, model):
@@ -181,8 +155,9 @@ class Database(db.base.BaseDatabase):
     Returns:
       True if exists; otherwise, False.
     """
-    condition = sqlite_master(type='table', name=model.GetModelName())
-    return self._master_table.DoesRowExist(condition)
+    executor = self._executor_factory.NewExecutor()
+    executor.Execute('SHOW tables')
+    return model.GetModelName() in (r[0] for r in executor.FetchAll())
 
   def DoIndexesExist(self, model):
     """Checks the indexes with the given model schema exist or not.
@@ -193,11 +168,8 @@ class Database(db.base.BaseDatabase):
     Returns:
       True if exist; otherwise, False.
     """
-    for field_name in model.GetDbIndexes():
-      condition = sqlite_master(type='index',
-          name='_'.join(['index', model.GetModelName(), field_name]))
-      if not self._master_table.DoesRowExist(condition):
-        return False
+    # TODO(pihsun): Implement this.
+    # Temporary returns True to avoid creating index again.
     return True
 
   def GetExecutorFactory(self):
@@ -213,9 +185,9 @@ class Database(db.base.BaseDatabase):
     Returns:
       True if the same schema; otherwise, False.
     """
-    condition = sqlite_master(name=model.GetModelName())
-    row = self._master_table.GetOneRow(condition)
-    return row.sql == self.SqlCmdCreateTable(model) if row else False
+    # TODO(pihsun): Implement this.
+    # Temporary returns True to avoid verification fail.
+    return True
 
   def GetOrCreateTable(self, model):
     """Gets or creates a table using the schema of the given model.
@@ -263,23 +235,29 @@ class Database(db.base.BaseDatabase):
       ('lte', '%(key)s <= %(val)s'),
       ('regex', '%(key)s REGEXP %(val)s'),
       ('in', '%(key)s IN %(val)s'),
-      ('contains', "%(key)s LIKE '%%%(val_str)s%%' ESCAPE '\\'"),
-      ('startswith', "%(key)s LIKE '%(val_str)s%%' ESCAPE '\\'"),
-      ('endswith', "%(key)s LIKE '%%%(val_str)s' ESCAPE '\\'"),
+      ('contains', "%(key)s LIKE '%%%(val_str)s%%' ESCAPE '\\\\'"),
+      ('startswith', "%(key)s LIKE '%(val_str)s%%' ESCAPE '\\\\'"),
+      ('endswith', "%(key)s LIKE '%%%(val_str)s' ESCAPE '\\\\'"),
       ])
 
   @staticmethod
   def EscapeColumnName(name, table=None):
     """Escapes column name so some keyword can be used as column name"""
+    # TODO(pihsun): MySQL doesn't support escaped column name after AS,
+    #               so "SELECT (c1) as (alias1) from t1" won't work.
+    #               Don't do escape now since there are no MySQL keywords in
+    #               column name now, but should fix this if there are more
+    #               columns later.
     if table:
-      return '%s.[%s]' % (table, name)
+      return '%s.%s' % (table, name)
     else:
-      return '[%s]' % name
+      return '%s' % name
 
   @classmethod
   def Connect(cls):
     """Connects to the database if necessary, and returns a Database."""
-    return Database(settings.MINIJACK_DB_PATH)
+    return Database(settings_cloud_sql.INSTANCE_NAME,
+        settings_cloud_sql.DATABASE_NAME)
 
   # TODO(pihsun): This only works when there is exactly one primary key field
   #               for parent model, so it won't work on ComponentDetail now.
@@ -302,11 +280,3 @@ class Database(db.base.BaseDatabase):
     pk = parents[0].GetPrimaryKey()[0]
     return self(child_type).IterFilterIn(
         pk, [getattr(p, pk) for p in parents])
-
-  @staticmethod
-  def GetMaxArguments():
-    """
-    Sqlite has a limit of 999 host parameters used in a single statement.
-    Be safe and reserve some for other things.
-    """
-    return 900

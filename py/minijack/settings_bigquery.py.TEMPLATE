@@ -2,9 +2,23 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import logging
+import os
+import sys
+
+
 # The email address for the API Service Account
 # (...@developer.gserviceaccount.com)
 GOOGLE_API_ID = ''
+
+# See README on how to obtain this file.
+try:
+  with file('privatekey.pem', 'r') as f:
+    GOOGLE_API_PRIVATE_KEY = f.read()
+except IOError:
+  logging.exception('private key for Google API Service Account not found.'
+      + ' (should be at privatekey.pem)')
+  sys.exit(os.EX_DATAERR)
 
 # Used by BigQuery API
 # The project id which the uploaded data is in.

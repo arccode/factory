@@ -14,7 +14,6 @@ from db import models
 from db import DatabaseException, Table
 
 import db.base
-import settings
 
 
 def _EscapeArgument(arg):
@@ -104,13 +103,14 @@ class Executor(db.base.BaseExecutor):
     else:
       self._page_token = None
       try:
+        import settings_bigquery
         query = _BuildQuery(sql_cmd, args)
         query_result = self._service.jobs().query(
-            projectId=settings.PROJECT_ID,
+            projectId=settings_bigquery.PROJECT_ID,
             body={
               'kind': 'bigquery#queryRequest',
               'defaultDataset': {
-                'datasetId': settings.DATASET_ID,
+                'datasetId': settings_bigquery.DATASET_ID,
               },
               'query': query,
               'maxResults': 1,
@@ -149,8 +149,9 @@ class Executor(db.base.BaseExecutor):
       A model instance if the argument model is valid; otherwise, a raw tuple.
       None when no more data is available.
     """
+    import settings_bigquery
     query_result = self._service.jobs().getQueryResults(
-        projectId=settings.PROJECT_ID,
+        projectId=settings_bigquery.PROJECT_ID,
         jobId=self._job_id,
         pageToken=self._page_token,
         maxResults=1).execute()
@@ -178,8 +179,9 @@ class Executor(db.base.BaseExecutor):
       A list of model instances if the argument model is valid; otherwise, a
       list of raw tuples.
     """
+    import settings_bigquery
     query_result = self._service.jobs().getQueryResults(
-        projectId=settings.PROJECT_ID,
+        projectId=settings_bigquery.PROJECT_ID,
         jobId=self._job_id,
         pageToken=self._page_token).execute()
     if 'pageToken' in query_result:
@@ -238,9 +240,10 @@ class Database(db.base.BaseDatabase):
   """
   def __init__(self):
     super(Database, self).__init__()
+    import settings_bigquery
     credential = SignedJwtAssertionCredentials(
-      settings.GOOGLE_API_ID,
-      settings.GOOGLE_API_PRIVATE_KEY,
+      settings_bigquery.GOOGLE_API_ID,
+      settings_bigquery.GOOGLE_API_PRIVATE_KEY,
       scope=[
         'https://www.googleapis.com/auth/bigquery',
       ])
@@ -262,10 +265,11 @@ class Database(db.base.BaseDatabase):
       True if exists; otherwise, False.
     """
     if self._table_names is None:
+      import settings_bigquery
       # .tables() is dynamic generated method, and pylint doesn't recognize it.
       result = self._service.tables().list(  # pylint: disable=E1101
-          projectId=settings.PROJECT_ID,
-          datasetId=settings.DATASET_ID).execute()
+          projectId=settings_bigquery.PROJECT_ID,
+          datasetId=settings_bigquery.DATASET_ID).execute()
       self._table_names = set(t['tableReference']['tableId']
                               for t in result['tables'])
     return model.GetModelName() in self._table_names
@@ -315,7 +319,7 @@ class Database(db.base.BaseDatabase):
       table_name = model.GetModelName()
     if table_name not in self._tables:
       if not isinstance(model, str):
-        table = Table(self._executor_factory)
+        table = Table(self)
         table.Init(model)
         if self.DoesTableExist(model):
           if not self.VerifySchema(model):

@@ -78,11 +78,7 @@ class BaseExecutor(object):
 
 
 class BaseExecutorFactory(object):
-  """A factory to generate Executor objects.
-
-  Properties:
-    _service: The service object for Google BigQuery API client.
-  """
+  """A factory to generate Executor objects."""
   def NewExecutor(self):
     """Generates a new Executor object."""
     raise NotImplementedError()
@@ -245,3 +241,80 @@ class BaseDatabase(object):
   @staticmethod
   def GetMaxArguments():
     return sys.maxint
+
+  @classmethod
+  def SqlCmdCreateTable(cls, model):
+    """Gets the SQL command of creating a table using the model schema."""
+    columns = [k + ' ' + v for k, v in model.GetDbSchema(cls).iteritems()]
+    primary_key = model.GetPrimaryKey()
+    if primary_key:
+      columns.append('PRIMARY KEY ( %s )' % ', '.join(primary_key))
+    sql_cmd = ('CREATE TABLE %s ( %s )' %
+               (model.GetModelName(),
+                ', '.join(columns)))
+    return sql_cmd
+
+  @classmethod
+  def SqlCmdCreateIndexes(cls, model):
+    """Gets the SQL commands of creating indexes using the model schema."""
+    sql_cmds = []
+    for field_name in model.GetDbIndexes():
+      sql_cmds.append('CREATE INDEX %s ON %s ( %s )' % (
+          '_'.join(['index', model.GetModelName(), field_name]),
+          model.GetModelName(),
+          field_name))
+    return sql_cmds
+
+  @classmethod
+  def SqlCmdInsert(cls, row):
+    """Gets the SQL command tuple of inserting a row into the table."""
+    # Insert all fields even they are ''/0, i.e. the default values.
+    field_names = row.GetFieldNames()
+    field_values = row.GetFieldValues()
+    sql_cmd = ('INSERT INTO %s ( %s ) VALUES ( %s )' %
+               (row.GetModelName(),
+                ', '.join(field_names),
+                ', '.join('?' * len(field_names))))
+    return sql_cmd, field_values
+
+  @classmethod
+  def SqlCmdUpdate(cls, row):
+    """Gets the SQL command tuple of updating a row into the table."""
+    # Update the non-empty fields, using the primary key as the condition.
+    field_names = row.GetFieldNames()
+    field_names = row.GetNonEmptyFieldNames()
+    field_values = row.GetNonEmptyFieldValues()
+    conditions = row.CloneOnlyPrimaryKey()
+    condition_names = conditions.GetNonEmptyFieldNames()
+    condition_values = conditions.GetNonEmptyFieldValues()
+    sql_cmd = ('UPDATE %s SET %s WHERE %s' %
+               (row.GetModelName(),
+                ', '.join([f + ' = ?' for f in field_names]),
+                ' AND '.join(f + ' = ?' for f in condition_names)))
+    return sql_cmd, field_values + condition_values
+
+  # TODO(pihsun): See if anyone calls this, change to QuerySet, remove this.
+  @classmethod
+  def SqlCmdSelect(cls, row):
+    """Gets the SQL command tuple of selecting the matched rows."""
+    # Use the non-empty fields as the condition.
+    field_names = row.GetNonEmptyFieldNames()
+    field_values = row.GetNonEmptyFieldValues()
+    sql_cmd = ('SELECT %s FROM [%s]%s%s' %
+               (', '.join('[' + f + ']' for f in row.GetFieldNames()),
+                row.GetModelName(),
+                ' WHERE ' if field_names else '',
+                ' AND '.join(['[' + f + '] = ?' for f in field_names])))
+    return sql_cmd, field_values
+
+  @classmethod
+  def SqlCmdDelete(cls, row):
+    """Gets the SQL command tuple of deleting the matched rows."""
+    # Use the non-empty fields as the condition.
+    field_names = row.GetNonEmptyFieldNames()
+    field_values = row.GetNonEmptyFieldValues()
+    sql_cmd = ('DELETE FROM %s%s%s' % (
+                row.GetModelName(),
+                ' WHERE ' if field_names else '',
+                ' AND '.join([f + ' = ?' for f in field_names])))
+    return sql_cmd, field_values

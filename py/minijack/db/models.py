@@ -40,7 +40,7 @@ class Field(object):
     """Gets the default value of this field."""
     raise NotImplementedError()
 
-  def GetDbType(self):
+  def GetDbType(self, database_type):
     """Gets the database type of this field in a string."""
     raise NotImplementedError()
 
@@ -62,7 +62,7 @@ class IntegerField(Field):
   def GetDefault(self):
     return 0
 
-  def GetDbType(self):
+  def GetDbType(self, database_type):
     return 'INTEGER'
 
 
@@ -84,8 +84,12 @@ class FloatField(Field):
   def GetDefault(self):
     return 0.0
 
-  def GetDbType(self):
-    return 'REAL'
+  def GetDbType(self, database_type):
+    from db import bigquery
+    if database_type == bigquery.Database:
+      return 'FLOAT'
+    else:
+      return 'REAL'
 
 
 class TextField(Field):
@@ -98,8 +102,17 @@ class TextField(Field):
   def GetDefault(self):
     return ''
 
-  def GetDbType(self):
-    return 'TEXT'
+  def GetDbType(self, database_type):
+    from db import bigquery, cloud_sql
+    if database_type == bigquery.Database:
+      return 'STRING'
+    elif (database_type == cloud_sql.Database and
+        (self._primary_key or self._db_index)):
+      # MySQL can't do index on TEXT, only on VARCHAR, which has maximum length
+      # limit of 255. We just use the maximum length limit here.
+      return 'VARCHAR(255)'
+    else:
+      return 'TEXT'
 
 
 class ModelType(type):
@@ -160,9 +173,15 @@ class Model(object):
     return cls.__name__
 
   @classmethod
-  def GetDbSchema(cls):
-    """Gets the schema dict, which maps a field name to a database type."""
-    return dict((k, v.GetDbType()) for k, v in cls._model.iteritems())
+  def GetDbSchema(cls, database_type):
+    """Gets the schema dict, which maps a field name to a database type.
+
+    Args:
+      database_type: The type of underlying database, one of db.sqlite,
+                     db.bigquery, db.cloud_sql
+    """
+    return dict((k, v.GetDbType(database_type)) for k, v in
+        cls._model.iteritems())
 
   @classmethod
   def GetPrimaryKey(cls):
@@ -183,29 +202,6 @@ class Model(object):
   def GetFieldNames(cls):
     """Gets the tuple of all field names."""
     return tuple(f for f in cls._model.iterkeys())
-
-  @classmethod
-  def SqlCmdCreateTable(cls):
-    """Gets the SQL command of creating a table using the model schema."""
-    columns = [k + ' ' + v for k, v in cls.GetDbSchema().iteritems()]
-    primary_key = cls.GetPrimaryKey()
-    if primary_key:
-      columns.append('PRIMARY KEY ( %s )' % ', '.join(primary_key))
-    sql_cmd = ('CREATE TABLE %s ( %s )' %
-               (cls.GetModelName(),
-                ', '.join(columns)))
-    return sql_cmd
-
-  @classmethod
-  def SqlCmdCreateIndexes(cls):
-    """Gets the SQL commands of creating indexes using the model schema."""
-    sql_cmds = []
-    for field_name in cls.GetDbIndexes():
-      sql_cmds.append('CREATE INDEX %s ON %s ( %s )' % (
-          '_'.join(['index', cls.GetModelName(), field_name]),
-          cls.GetModelName(),
-          field_name))
-    return sql_cmds
 
   def __init__(self, *args, **kwargs):
     if args:
@@ -274,56 +270,6 @@ class Model(object):
       if field_name in self._primary_key:
         new_model[field_name] = field_value
     return ToModelSubclass(self)(**new_model)
-
-  def SqlCmdInsert(self):
-    """Gets the SQL command tuple of inserting a row into the table."""
-    # Insert all fields even they are ''/0, i.e. the default values.
-    field_names = self.GetFieldNames()
-    field_values = self.GetFieldValues()
-    sql_cmd = ('INSERT INTO %s ( %s ) VALUES ( %s )' %
-               (self.GetModelName(),
-                ', '.join(field_names),
-                ', '.join('?' * len(field_names))))
-    return sql_cmd, field_values
-
-  def SqlCmdUpdate(self):
-    """Gets the SQL command tuple of updating a row into the table."""
-    # Update the non-empty fields, using the primary key as the condition.
-    field_names = self.GetFieldNames()
-    field_names = self.GetNonEmptyFieldNames()
-    field_values = self.GetNonEmptyFieldValues()
-    conditions = self.CloneOnlyPrimaryKey()
-    condition_names = conditions.GetNonEmptyFieldNames()
-    condition_values = conditions.GetNonEmptyFieldValues()
-    sql_cmd = ('UPDATE %s SET %s WHERE %s' %
-               (self.GetModelName(),
-                ', '.join([f + ' = ?' for f in field_names]),
-                ' AND '.join(f + ' = ?' for f in condition_names)))
-    return sql_cmd, field_values + condition_values
-
-  # TODO(pihsun): See if anyone calls this, change to QuerySet, remove this.
-  def SqlCmdSelect(self):
-    """Gets the SQL command tuple of selecting the matched rows."""
-    # Use the non-empty fields as the condition.
-    field_names = self.GetNonEmptyFieldNames()
-    field_values = self.GetNonEmptyFieldValues()
-    sql_cmd = ('SELECT %s FROM [%s]%s%s' %
-               (', '.join('[' + f + ']' for f in self.GetFieldNames()),
-                self.GetModelName(),
-                ' WHERE ' if field_names else '',
-                ' AND '.join(['[' + f + '] = ?' for f in field_names])))
-    return sql_cmd, field_values
-
-  def SqlCmdDelete(self):
-    """Gets the SQL command tuple of deleting the matched rows."""
-    # Use the non-empty fields as the condition.
-    field_names = self.GetNonEmptyFieldNames()
-    field_values = self.GetNonEmptyFieldValues()
-    sql_cmd = ('DELETE FROM %s%s%s' % (
-                self.GetModelName(),
-                ' WHERE ' if field_names else '',
-                ' AND '.join([f + ' = ?' for f in field_names])))
-    return sql_cmd, field_values
 
 
 def ToModelSubclass(model):

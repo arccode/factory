@@ -72,7 +72,7 @@ def GetQueryView(request):
     for model in (Event, Attr, Test, Device, Component, ComponentDetail):
       usage_message += ('<p>' +
           ' '.join([w if w.isupper() else '<b>' + w + '</b>'
-            for w in model.SqlCmdCreateTable().split(' ')]) +
+            for w in Database.SqlCmdCreateTable(model).split(' ')]) +
           '</p>\n')
 
   if output.lower() == 'json':
