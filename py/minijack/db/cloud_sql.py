@@ -10,7 +10,6 @@ from db import models
 from db import DatabaseException, Table
 
 import db.base
-import settings_cloud_sql
 
 
 class Executor(db.base.BaseExecutor):
@@ -256,6 +255,7 @@ class Database(db.base.BaseDatabase):
   @classmethod
   def Connect(cls):
     """Connects to the database if necessary, and returns a Database."""
+    import settings_cloud_sql
     return Database(settings_cloud_sql.INSTANCE_NAME,
         settings_cloud_sql.DATABASE_NAME)
 

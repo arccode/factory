@@ -11,7 +11,6 @@ from db import models
 from db import DatabaseException, Table
 
 import db.base
-import settings
 
 
 IntegrityError = sqlite3.IntegrityError
@@ -279,6 +278,7 @@ class Database(db.base.BaseDatabase):
   @classmethod
   def Connect(cls):
     """Connects to the database if necessary, and returns a Database."""
+    import settings
     return Database(settings.MINIJACK_DB_PATH)
 
   # TODO(pihsun): This only works when there is exactly one primary key field
