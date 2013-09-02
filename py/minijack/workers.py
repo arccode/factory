@@ -25,18 +25,21 @@ class WorkerBase(object):
   multiple processes/machines to complete the job. All its subclasses should
   implement the Process() method.
   """
-  def __call__(self, input_reader, output_writer, input_done=None):
-    """Iterates the input_reader and calls output_write to process the values.
+  def __call__(self, output_writer, input_reader=None, input_done=None):
+    """Iterates the input_reader and calls output_writer to process the values.
 
     Args:
-      input_reader: An iterator to get values.
-      output_write: A callable object to process the values.
+      output_writer: A callable object to process the values.
+      input_reader: An iterator to get values; if None, call output_writer once.
       input_done: A callable object which is called when one input is done.
     """
+    if input_reader is None:
+      input_reader = [None]
     for data in input_reader:
       for result in self.Process(data):
         output_writer(result)
-      input_done()
+      if input_done:
+        input_done()
 
   def Process(self, dummy_data):
     """A generator to output the processed results of the given data."""

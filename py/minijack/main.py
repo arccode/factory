@@ -234,8 +234,8 @@ class Minijack(object):
     self._worker_processes = [multiprocessing.Process(
           target=EventLoadingWorker(options.event_log_dir),
           kwargs=dict(
-            input_reader=iter(self._event_blob_queue.get, None),
             output_writer=self._event_stream_queue.put,
+            input_reader=iter(self._event_blob_queue.get, None),
             input_done=self._event_blob_queue.task_done)
         ) for _ in range(options.jobs)]
 
@@ -250,8 +250,8 @@ class Minijack(object):
     self._worker_processes.append(multiprocessing.Process(
         target=IdentityWorker(),
         kwargs=dict(
-          input_reader=iter(self._event_stream_queue.get, None),
           output_writer=sinker.SinkEventStream,
+          input_reader=iter(self._event_stream_queue.get, None),
           input_done=lambda: (
             self._event_stream_queue.task_done(),
             # TODO(waihong): Move the queue monitoring to the main loop such
