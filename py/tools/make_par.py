@@ -205,6 +205,11 @@ def main(argv=None):
       name = module.rpartition('.')[2]
       logging.info('Mapping binary %s to %s', name, module)
       modules[name] = module
+      # Also map the name of symlink to binary.
+      link_name = os.path.basename(f)
+      if link_name != name:
+        logging.info('Mapping binary %s to %s', link_name, module)
+        modules[link_name] = module
 
     # Concatenate the header and the par file.
     with open(args.output, 'wb') as out:
