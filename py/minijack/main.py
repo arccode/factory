@@ -30,13 +30,12 @@ os.environ['MINIJACK_PROCESS'] = ''
 
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.event_log_watcher import EventLogWatcher
 from cros.factory.test import utils
 
 import minijack_common  # pylint: disable=W0611
 import db
-from datatypes import EventBlob, EventPacket
-from workers import IdentityWorker, EventLoadingWorker
+from datatypes import EventPacket
+from workers import FileScanner, IdentityWorker, EventLoadingWorker
 
 
 SHOPFLOOR_DATA_DIR = 'shopfloor_data'
@@ -130,14 +129,14 @@ class Minijack(object):
 
   Properties:
     _database: The database object.
-    _log_watcher: The event log watcher.
+    _file_scanner: The file scanner object.
     _worker_processes: A list of worker processes.
     _event_blob_queue: The queue storing event blobs.
     _event_stream_queue: The queue storing event streams.
   """
   def __init__(self):
     self._database = None
-    self._log_watcher = None
+    self._file_scanner = None
     self._worker_processes = []
     self._event_blob_queue = None
     self._event_stream_queue = None
@@ -173,7 +172,7 @@ class Minijack(object):
                       help='write log to this file instead of stderr')
     parser.add_option('-i', '--interval', dest='interval', type='int',
                       default=DEFAULT_WATCH_INTERVAL,
-                      help='log-watching interval in sec (default: %default)')
+                      help='file scanning interval in sec (default: %default)')
     parser.add_option('-j', '--jobs', dest='jobs', type='int',
                       default=DEFAULT_JOB_NUMBER,
                       help='jobs to load events parallelly (default: %default)')
@@ -222,22 +221,23 @@ class Minijack(object):
     self._event_blob_queue = multiprocessing.JoinableQueue(maxsize)
     self._event_stream_queue = multiprocessing.JoinableQueue(maxsize)
 
-    logging.debug('Init event log watcher, interval = %d', options.interval)
-    self._log_watcher = EventLogWatcher(
-        options.interval,
-        event_log_dir=options.event_log_dir,
-        event_log_db_file=options.event_log_db,
-        handle_event_logs_callback=self.HandleEventLogs,
-        num_log_per_callback=DEFAULT_NUM_LOG_PER_CALLBACK)
+    logging.debug('Init file scanner, interval = %d', options.interval)
+    self._file_scanner = FileScanner(
+        scan_dir=options.event_log_dir,
+        scan_db_file=options.event_log_db,
+        scan_period_sec=options.interval)
+    self._worker_processes.append(multiprocessing.Process(
+        target=self._file_scanner,
+        kwargs=dict(output_writer=self._event_blob_queue.put)))
 
     logging.debug('Init event loading workers, jobs = %d', options.jobs)
-    self._worker_processes = [multiprocessing.Process(
+    self._worker_processes.extend([multiprocessing.Process(
           target=EventLoadingWorker(options.event_log_dir),
           kwargs=dict(
             output_writer=self._event_stream_queue.put,
             input_reader=iter(self._event_blob_queue.get, None),
             input_done=self._event_blob_queue.task_done)
-        ) for _ in range(options.jobs)]
+        ) for _ in range(options.jobs)])
 
     logging.debug('Init event sinking workers')
     self._database = db.Database(options.minijack_db)
@@ -260,9 +260,8 @@ class Minijack(object):
 
   def Destory(self):
     """Destorys Minijack."""
-    logging.info('Stopping event log watcher...')
-    if self._log_watcher and self._log_watcher.IsThreadStarted():
-      self._log_watcher.StopWatchThread()
+    logging.info('Stopping file scanner...')
+    self._file_scanner.Stop()
     logging.info('Emptying all queues...')
     for queue in (self._event_blob_queue, self._event_stream_queue):
       if queue:
@@ -277,13 +276,6 @@ class Minijack(object):
       self._database = None
     logging.info('Minijack is shutdown gracefully.')
 
-  def HandleEventLogs(self, chunk_info):
-    """Callback for event log watcher."""
-    for chunk in chunk_info:
-      logging.info('Get new event logs (%s)', str(chunk))
-      blob = EventBlob({'log_name': chunk.log_name}, chunk.chunk)
-      self._event_blob_queue.put(blob)
-
   def CheckQueuesEmpty(self):
     """Checks queues empty to info users Minijack is idle."""
     if all((self._event_blob_queue.empty(), self._event_stream_queue.empty())):
@@ -292,11 +284,10 @@ class Minijack(object):
   def Main(self):
     """The main Minijack logic."""
     self.Init()
-    logging.debug('Start the subprocesses and the event log watcher thread')
+    logging.debug('Start %d subprocesses.', len(self._worker_processes))
     for process in self._worker_processes:
       process.daemon = True
       process.start()
-    self._log_watcher.StartWatchThread()
 
     # Exit main process when receiving Ctrl-C or a default kill signal.
     signal_handler = lambda signum, frame: sys.exit(0)

@@ -3,19 +3,22 @@
 # found in the LICENSE file.
 
 import logging
+import multiprocessing
 import os
+import shelve
 import time
 from datetime import datetime, timedelta
 
 import minijack_common  # pylint: disable=W0611
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import utils
-from datatypes import GenerateEventStreamsFromYaml
+from cros.factory.utils.shelve_utils import OpenShelfOrBackup
+from datatypes import EventBlob, GenerateEventStreamsFromYaml
 
-
-EVENT_DELIMITER = '---\n'
+EVENT_DELIMITER = '\n---\n'
 PREAMBLE_PATTERN = 'EVENT: preamble\n'
 LOG_DIR_DATE_FORMAT = '%Y%m%d'
+KEY_OFFSET = 'offset'
 
 
 class WorkerBase(object):
@@ -44,6 +47,108 @@ class WorkerBase(object):
   def Process(self, dummy_data):
     """A generator to output the processed results of the given data."""
     raise NotImplementedError
+
+
+class FileScanner(WorkerBase):
+  """A callable worker which scans files and yields valid EventBlob's.
+
+  TODO(waihong): Unit tests.
+
+  Properties:
+    _scan_dir: Path of the directory to scan.
+    _scan_db_file: Path of the scan record db file.
+    _scan_period_sec: Period of scanning interval in sec.
+    _aborted: Is the process aborted?
+    _db: The record db object.
+  """
+  def __init__(self, scan_dir, scan_db_file, scan_period_sec=30):
+    super(FileScanner, self).__init__()
+    self._scan_dir = scan_dir
+    self._scan_db_file = scan_db_file
+    self._scan_period_sec = scan_period_sec
+    self._aborted = multiprocessing.Event()
+    self._db = self._GetOrCreateDb()
+
+  def __call__(self, output_writer, input_reader=None, input_done=None):
+    assert input_reader is None
+    assert input_done is None
+    super(FileScanner, self).__call__(output_writer)
+
+  def Stop(self):
+    """Stops scanning files."""
+    self._aborted.set()
+
+  def Process(self, dummy_data):
+    """A forever loop to generate EventBlob's."""
+    last_scan_time = 0
+    while True:
+      next_scan_time = last_scan_time + self._scan_period_sec
+      current_time = time.time()
+      if current_time < next_scan_time:
+        # Wait the next scan, or return immediately when abort.
+        if self._aborted.wait(next_scan_time - current_time):
+          return
+      last_scan_time = time.time()
+
+      # Sorts dirs by their names, as its modification time is changed when
+      # their files inside are changed/added/removed. Their names are more
+      # reliable than the time.
+      dir_name = lambda w: w[0]
+      for dir_path, _, file_names in sorted(os.walk(self._scan_dir),
+                                            key=dir_name):
+        # Sorts files by their modification time.
+        file_mtime = lambda f: os.lstat(os.path.join(dir_path, f)).st_mtime
+        for file_name in sorted(file_names, key=file_mtime):
+          full_path = os.path.join(dir_path, file_name)
+          short_path = os.path.relpath(full_path, self._scan_dir)
+          # Skip non-valid files.
+          if not os.path.isfile(full_path):
+            continue
+          # The file changes since the last time.
+          if (not self._db.has_key(short_path) or
+              self._db[short_path][KEY_OFFSET] != os.path.getsize(full_path)):
+            try:
+              chunk = self._ScanEventLog(short_path)
+            except:  # pylint: disable=W0702
+              logging.info(short_path + ': ' + utils.FormatExceptionOnly())
+            if chunk:
+              logging.info('Get new event logs (%s, %d bytes)',
+                           short_path, len(chunk))
+              yield EventBlob({'log_name': short_path}, chunk)
+              self._UpdateRecord(short_path, len(chunk))
+          # Skip remaining when abort.
+          if self._aborted.is_set():
+            return
+
+  def _GetOrCreateDb(self):
+    """Gets the database or recreate one if exception occurs."""
+    try:
+      db = OpenShelfOrBackup(self._scan_db_file)
+    except:  # pylint: disable=W0702
+      logging.exception('Corrupted database, recreating')
+      os.unlink(self._scan_db_file)
+      db = shelve.open(self._scan_db_file)
+    return db
+
+  def _UpdateRecord(self, log_name, handled_size):
+    """Updates the DB record by handled_size bytes"""
+    log_state = self._db.setdefault(log_name, {KEY_OFFSET: 0})
+    log_state[KEY_OFFSET] += handled_size
+    self._db[log_name] = log_state
+    self._db.sync()
+
+  def _ScanEventLog(self, log_name):
+    """Scans new generated event log."""
+    log_state = self._db.setdefault(log_name, {KEY_OFFSET: 0})
+    with open(os.path.join(self._scan_dir, log_name)) as f:
+      f.seek(log_state[KEY_OFFSET])
+      chunk = f.read()
+      last_separator = chunk.rfind(EVENT_DELIMITER)
+      # No need to proceed if available chunk is empty.
+      if last_separator == -1:
+        return None
+      chunk = chunk[0:(last_separator + len(EVENT_DELIMITER))]
+      return chunk
 
 
 class IdentityWorker(WorkerBase):
