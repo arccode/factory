@@ -130,10 +130,10 @@ class Scan(unittest.TestCase):
         return SetError(
             'The scanned value "%s" does not match '
             'the expected value'
-            '<span class=goofy-engineering-mode-only> "%s".</span>' % (
+            '<span class=test-engineering-mode-only> "%s".</span>' % (
                 esc_scan_value, esc_expected_value),
             u'所掃描的編號「%s」不搭配所期望的編號'
-            u'<span class=goofy-engineering-mode-only>「%s」</span>。' % (
+            u'<span class=test-engineering-mode-only>「%s」</span>。' % (
                 esc_scan_value, esc_expected_value))
 
     if self.args.rw_vpd_key:
