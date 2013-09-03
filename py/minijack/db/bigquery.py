@@ -103,7 +103,8 @@ class Executor(db.base.BaseExecutor):
     else:
       self._page_token = None
       try:
-        import settings_bigquery
+        # Disable lint error since the file only exist if using BigQuery.
+        import settings_bigquery  # pylint: disable=F0401
         query = _BuildQuery(sql_cmd, args)
         query_result = self._service.jobs().query(
             projectId=settings_bigquery.PROJECT_ID,
@@ -149,7 +150,8 @@ class Executor(db.base.BaseExecutor):
       A model instance if the argument model is valid; otherwise, a raw tuple.
       None when no more data is available.
     """
-    import settings_bigquery
+    # Disable lint error since the file only exist if using BigQuery.
+    import settings_bigquery  # pylint: disable=F0401
     query_result = self._service.jobs().getQueryResults(
         projectId=settings_bigquery.PROJECT_ID,
         jobId=self._job_id,
@@ -179,7 +181,8 @@ class Executor(db.base.BaseExecutor):
       A list of model instances if the argument model is valid; otherwise, a
       list of raw tuples.
     """
-    import settings_bigquery
+    # Disable lint error since the file only exist if using BigQuery.
+    import settings_bigquery  # pylint: disable=F0401
     query_result = self._service.jobs().getQueryResults(
         projectId=settings_bigquery.PROJECT_ID,
         jobId=self._job_id,
@@ -240,7 +243,8 @@ class Database(db.base.BaseDatabase):
   """
   def __init__(self):
     super(Database, self).__init__()
-    import settings_bigquery
+    # Disable lint error since the file only exist if using BigQuery.
+    import settings_bigquery  # pylint: disable=F0401
     credential = SignedJwtAssertionCredentials(
       settings_bigquery.GOOGLE_API_ID,
       settings_bigquery.GOOGLE_API_PRIVATE_KEY,
@@ -265,7 +269,8 @@ class Database(db.base.BaseDatabase):
       True if exists; otherwise, False.
     """
     if self._table_names is None:
-      import settings_bigquery
+      # Disable lint error since the file only exist if using BigQuery.
+      import settings_bigquery  # pylint: disable=F0401
       # .tables() is dynamic generated method, and pylint doesn't recognize it.
       result = self._service.tables().list(  # pylint: disable=E1101
           projectId=settings_bigquery.PROJECT_ID,

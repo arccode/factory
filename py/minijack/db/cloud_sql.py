@@ -255,7 +255,8 @@ class Database(db.base.BaseDatabase):
   @classmethod
   def Connect(cls):
     """Connects to the database if necessary, and returns a Database."""
-    import settings_cloud_sql
+    # Disable lint error since the file only exist if using Cloud SQL.
+    import settings_cloud_sql  # pylint: disable=F0401
     return Database(settings_cloud_sql.INSTANCE_NAME,
         settings_cloud_sql.DATABASE_NAME)
 
