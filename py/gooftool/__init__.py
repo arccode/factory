@@ -8,6 +8,7 @@ import logging
 import os
 import re
 
+import collections
 from collections import namedtuple
 from tempfile import NamedTemporaryFile
 
@@ -15,13 +16,14 @@ import factory_common  # pylint: disable=W0611
 import cros.factory.hwid.common as hwid3_common
 from cros.factory.common import Error, Shell
 from cros.factory.hwdb import hwid_tool
+from cros.factory.hwid import common
 from cros.factory.gooftool import crosfw
 from cros.factory.gooftool.bmpblk import unpack_bmpblock
 from cros.factory.gooftool.probe import Probe, ReadRoVpd, ReadRwVpd
 from cros.factory.gooftool.vpd_data import KNOWN_VPD_FIELD_DATA
 from cros.factory.hwid.database import Database
 from cros.factory.hwid.decoder import Decode
-from cros.factory.hwid.encoder import Encode
+from cros.factory.hwid.encoder import Encode, BOMToBinaryString
 from cros.factory.hwid.encoder import BinaryStringToEncodedString
 from cros.factory.privacy import FilterDict
 from cros.factory.rule import Context
@@ -767,57 +769,65 @@ class Gooftool(object):
       a dict of HWID and components set.
     """
 
-    def _RecursivelyGenerate(index=None, hwid_dict=None, binary_string=None,
-                             component_string=None):
+    def _GenerateEncodedString(encoded_fields):
+      """Generate encoded string by encoded_fields
+
+      Args:
+        encoded_fields: This parameter records indices of encoded fields
+      """
+      encoding_pattern = 0
+      pass_check = True
+      components = collections.defaultdict(list)
+      component_list = []
+      for field, index in encoded_fields.iteritems():
+        # pylint: disable=W0212
+        attr_dict = self.db._GetAttributesByIndex(field, index)
+        comp_items = []
+        for comp_cls, attr_list in attr_dict.iteritems():
+          if attr_list is None:
+            comp_items.append('None')
+            components[comp_cls].append(common.ProbedComponentResult(
+                None, None, common.MISSING_COMPONENT_ERROR(comp_cls)))
+          else:
+            for attrs in attr_list:
+              if attrs.get('status') in (
+                  hwid3_common.HWID.COMPONENT_STATUS.unsupported,
+                  hwid3_common.HWID.COMPONENT_STATUS.deprecated):
+                pass_check = False
+                break
+              comp_items.append(attrs['name'])
+              components[comp_cls].append(common.ProbedComponentResult(
+                  attrs['name'], attrs['values'], None))
+        component_list.append(' '.join(comp_items))
+      if pass_check:
+        bom = common.BOM(self._board, encoding_pattern, image_id, components,
+            encoded_fields)
+        binary_string = BOMToBinaryString(self.db, bom)
+        encoded_string = BinaryStringToEncodedString(self.db, binary_string)
+        hwid_dict[encoded_string] = ','.join(component_list)
+
+    def _RecursivelyGenerate(index=None, encoded_fields=None):
       """Recursive function to generate all combinations.
 
       Args:
         index: This parameter means the index of pattern fields
-        hwid_dict: This parameter records HWID and corresponding components.
-        binary_string: This parameter means the binary string of HWID.
-        component_string: This parameter is the set of components of
-                          binary_string
+        encoded_fields: This parameter records index of components
       """
-      fields = self.db.pattern.GetPatternByImageId(image_id)['fields']
-      if index >= len(fields):
-        #For last step, add ending bit '1' in the end of string
-        encoded_string = BinaryStringToEncodedString(self.db, binary_string+'1')
-        hwid_dict[encoded_string] = component_string
+      if index >= len(fields_list):
+        _GenerateEncodedString(encoded_fields)
         return
 
-      key, value = fields[index].items()[0]
-      if value > 0:
-        #If the number of bit of field is greater than 0,
-        #check all sources of this component
-        for i in xrange(0, len(self.db.encoded_fields[key])):
-          new_binary = binary_string + '{:0>{width}b}'.format(i, width=value)
-          new_list = []
-          stop_recursive = False
-          for comp_cls, comp_items in (
-              self.db.encoded_fields[key][i].iteritems()):
-            for item in comp_items:
-              status = self.db.components.GetComponentStatus(comp_cls, item)
-              if (status == hwid3_common.HWID.COMPONENT_STATUS.unsupported or
-                  status == hwid3_common.HWID.COMPONENT_STATUS.deprecated):
-                stop_recursive = True
-                break
-            if stop_recursive:
-              break
-            new_list.append(' '.join(comp_items))
-          if not stop_recursive:
-            new_component = "%s,%s" % (component_string, ' '.join(new_list))
-            _RecursivelyGenerate(index + 1, hwid_dict, new_binary,
-                new_component)
+      field = fields_list[index]
+      if field not in fields_bits.keys():
+        encoded_fields[field] = 0
+        _RecursivelyGenerate(index + 1, encoded_fields)
       else:
-        if key in self.db.encoded_fields.keys():
-          new_list = []
-          for comp_cls, comp_items in (
-              self.db.encoded_fields[key][0].iteritems()):
-            new_list.append(' '.join(comp_items))
-          new_component = "%s,%s" % (component_string, ' '.join(new_list))
-        else:
-          new_component = component_string
-        _RecursivelyGenerate(index + 1, hwid_dict, binary_string, new_component)
+        for i in xrange(0, len(self.db.encoded_fields[field])):
+          if i >= 2 ** fields_bits[field]:
+            break
+          encoded_fields[field] = i
+          _RecursivelyGenerate(index + 1, encoded_fields)
+
 
     def _GetImageID(_image_id=None):
       """Image ID from three ways
@@ -831,20 +841,26 @@ class Gooftool(object):
       else:
         if _image_id.isdigit():
           _image_id = int(_image_id)
-          assert _image_id in range(0, max_image_id+1), "Invalid Image ID"
         else:
           for k, v in self.db.image_id.iteritems():
             if _image_id == v:
               _image_id = k
-          assert isinstance(_image_id, int), "Invalid Image ID"
+        assert _image_id in range(0, max_image_id+1), "Invalid Image ID"
       return _image_id
 
     hwid_dict = {}
+    encoded_fields = collections.defaultdict(int)
     #The first step is to choose image_id
     image_id = _GetImageID(image_id)
 
-    binary_string = '{:0>5b}'.format(image_id)
+    fields_bits = collections.defaultdict(int)
+    for field in self.db.pattern.GetPatternByImageId(image_id)['fields']:
+      comp, bit_width = field.items()[0]
+      fields_bits[comp] += bit_width
+    fields_list = []
+    for comp_cls in self.db.encoded_fields.keys():
+      fields_list.append(comp_cls)
+
     #Use recursive to generate all combinations of HWID
-    _RecursivelyGenerate(0, hwid_dict, binary_string,
-        self.db.image_id[image_id])
+    _RecursivelyGenerate(0, encoded_fields)
     return hwid_dict
