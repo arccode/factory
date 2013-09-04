@@ -199,6 +199,14 @@ class TerminateOrKillProcessTest(unittest.TestCase):
     TerminateOrKillProcess(process, 2)
     self.m.VerifyAll()
 
+  def testTerminateSudoProcess(self):
+    process = Spawn(['sleep', '10'], sudo=True)
+    logging.info('Stopping process %d', process.pid)
+    logging.info('Running command: "kill %d"' % process.pid)
+    self.m.ReplayAll()
+    TerminateOrKillProcess(process, sudo=True)
+    self.m.VerifyAll()
+
 
 if __name__ == '__main__':
   logging.basicConfig(level=logging.INFO)

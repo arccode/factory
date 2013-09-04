@@ -269,7 +269,7 @@ def Spawn(args, **kwargs):
   return process
 
 
-def TerminateOrKillProcess(process, wait_seconds=1):
+def TerminateOrKillProcess(process, wait_seconds=1, sudo=False):
   '''Terminates a process and waits for it.
 
   The function sends SIGTERM to terminate the process, if it's not terminated
@@ -277,7 +277,10 @@ def TerminateOrKillProcess(process, wait_seconds=1):
   '''
   pid = process.pid
   logging.info('Stopping process %d', pid)
-  process.terminate()
+  if sudo:
+    return Spawn(['kill', str(pid)], sudo=True, check_call=True, log=True)
+  else:
+    process.terminate()
 
   reaped = threading.Event()
   def WaitAndKill():
