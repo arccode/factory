@@ -65,7 +65,7 @@ class Servo(object):
     '''Stops servod.'''
 
     if self._servod:
-      TerminateOrKillProcess(self._servod)
+      TerminateOrKillProcess(self._servod, sudo=True)
       self._servod = None
 
   def ConnectServod(self):

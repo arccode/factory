@@ -244,7 +244,7 @@ def FinalizeDUT(shopfloor_dir, host_ip, dut_ip, logdata_dir,
     cmd.append('--testlist=%s' % testlist)
   if serial_number:
     cmd.append('--serial_number=%s' % serial_number)
-  return Spawn(cmd, log=True, sudo=True)
+  return Spawn(cmd, log=True)
 
 
 def RunFactoryFlow(board, dhcp_iface, host_ip, dut_mac, dut_ip, install_method,
@@ -447,7 +447,7 @@ def RunFactoryFlow(board, dhcp_iface, host_ip, dut_mac, dut_ip, install_method,
     logging.error('Test result: FAIL! %s', test_setup)
   finally:
     if netboot_process:
-      TerminateOrKillProcess(netboot_process)
+      TerminateOrKillProcess(netboot_process, sudo=True)
     if automation_process:
       TerminateOrKillProcess(automation_process)
 

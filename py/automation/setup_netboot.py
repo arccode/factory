@@ -349,9 +349,11 @@ def main():
       if process is not None:
         process.wait()
   finally:
-    for process in (tftpd, dhcpd, miniomaha):
+    for process in (tftpd, dhcpd):
       if process is not None:
-        TerminateOrKillProcess(process)
+        TerminateOrKillProcess(process, sudo=True)
+    if miniomaha is not None:
+      TerminateOrKillProcess(miniomaha)
 
 
 if __name__ == '__main__':
