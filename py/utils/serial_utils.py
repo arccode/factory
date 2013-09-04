@@ -4,17 +4,23 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Utilities for open a serial connection.
+"""Utilities for serial port communication.
 
 For some test cases, DUT needs to communicates with fixuture via USB-Serial
 dungle. We provides FindTtyByDriver() to help finding the right
 /dev/tty* path for the given driver; and OpenSerial() to open a serial port.
+
+Provides an interface to communicate w/ a serial device: SerialDevice. See
+class comment for details.
 """
 
 import glob
+import logging
 import os
 import re
-from serial import Serial, SerialException
+import serial
+from serial import SerialException, SerialTimeoutException
+import time
 
 
 def OpenSerial(**params):
@@ -33,16 +39,9 @@ def OpenSerial(**params):
   """
   if 'port' not in params:
     raise SerialException('Missing parameter "port".')
-  try:
-    ser = Serial(**params)
-    ser.open()
-    return ser
-  except ValueError as e:
-    raise ValueError(
-      'Failed to open serial port. Invalid parameter: %s' % e)
-  except Exception as e:
-    raise SerialException(
-      'Failed to open serial port with params %r. Reason: %s' % (params, e))
+  ser = serial.Serial(**params)
+  ser.open()
+  return ser
 
 
 def FindTtyByDriver(driver_name):
@@ -61,3 +60,216 @@ def FindTtyByDriver(driver_name):
     if re.search(driver_name + '$', driver_path):
       return candidate
   return None
+
+
+class SerialDevice(object):
+  """Interface to communicate with a serial device.
+
+  Instead of giving a fixed port, it can look up port by driver name.
+
+  It has several handy methods, like SendRecv() and SendExpectRecv(),
+  which support fail retry.
+
+  Property:
+    log: True to enable logging.
+
+  Usage:
+    fixture = SerialDevice(driver='pl2303')
+
+    # Send 'P' for ping fixture and expect an 'OK' response.
+    # Allow to retry twice.
+    fixture.SendExpectReceive('P', 'OK', retry=2)
+
+    # Send 'FID' for getting fixture ID. Return received result. No retry.
+    fixture_id = fixture.SendRecv('FID')
+  """
+  def __init__(self, driver=None, retry_interval_secs=0.5,
+               send_receive_interval_secs=0.2, log=False,
+               port=None, baudrate=9600,
+               bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE,
+               stopbits=serial.STOPBITS_ONE, timeout=0.5, write_timeout=0.5):
+    """Opens a serial connection by port or by device driver name.
+
+    Besides parameters for opening a serial port. It can set intervals between
+    send/receive and between retries. Also, setting log to True to emit
+    actions to logging.info.
+
+    Args:
+      driver: driver name of the target serial connection. Used to look up port
+          if port is not specified.
+      retry_interval_secs: interval (seconds) between retrying command.
+      send_receive_interval_secs: interval (seconds) between send-receive.
+      log: True to enable logging.
+      port, baudrate, bytesize, parity, stopbits, timeout, write_timeout: See
+          serial.Serial().
+    """
+    self._serial = None
+    self._retry_interval_secs = retry_interval_secs
+    self._send_receive_interval_secs = send_receive_interval_secs
+    self.log = log
+
+    if driver and not port:
+      port = FindTtyByDriver(driver)
+
+    if not port:
+      raise SerialException('Serial device with driver %r not found' % driver)
+
+    self._serial = OpenSerial(
+        port=port, baudrate=baudrate, bytesize=bytesize, parity=parity,
+        stopbits=stopbits, timeout=timeout, writeTimeout=write_timeout)
+
+    if self.log:
+      logging.info('Open serial port: %s', port)
+
+  def __del__(self):
+    self.Disconnect()
+
+  def Disconnect(self):
+    """Closes the connection if it exists."""
+    if self._serial:
+      self._serial.close()
+
+  def SetTimeout(self, read_timeout, write_timeout):
+    """Overrides read/write timeout.
+
+    Args:
+      read_timeout: read timeout.
+      write_timeout: write timeout.
+    """
+    self._serial.setTimeout(read_timeout)
+    self._serial.setWriteTimeout(write_timeout)
+
+  def GetTimeout(self):
+    """Returns (read timeout, write timeout)."""
+    return (self._serial.getTimeout(), self._serial.getWriteTimeout())
+
+  def Send(self, command):
+    """Sends a command.
+
+    It blocks at most write_timeout seconds.
+
+    Args:
+      command: command to send.
+
+    Raises:
+      SerialTimeoutException if it fails to send the command.
+    """
+    try:
+      self._serial.write(command)
+      self._serial.flush()
+      if self.log:
+        logging.info('Successfully sent %r', command)
+    except SerialTimeoutException:
+      error_message = 'Send %r timeout after %.2f seconds' % (
+          command, self._serial.getWriteTimeout())
+      if self.log:
+        logging.warning(error_message)
+      raise SerialTimeoutException(error_message)
+
+  def Receive(self, size=1):
+    """Receives N bytes.
+
+    It blocks at most timeout seconds.
+
+    Args:
+      size: number of bytes to receive. 0 means receiving what already in the
+          input buffer.
+
+    Returns:
+      Received N bytes.
+
+    Raises:
+      SerialTimeoutException if it fails to receive N bytes.
+    """
+    if size == 0:
+      size = self._serial.inWaiting()
+    response = self._serial.read(size)
+    if len(response) == size:
+      if self.log:
+        logging.info('Successfully received %r', response)
+      return response
+    else:
+      error_message = 'Receive %d bytes timeout after %.2f seconds' % (
+          size, self._serial.getTimeout())
+      if self.log:
+        logging.warning(error_message)
+      raise SerialTimeoutException(error_message)
+
+  def FlushBuffer(self):
+    """Flushes input/output buffer."""
+    self._serial.flushInput()
+    self._serial.flushOutput()
+
+  def SendReceive(self, command, size=1, retry=0, interval_secs=None,
+                  suppress_log=False):
+    """Sends a command and returns a N bytes response.
+
+    Args:
+      command: command to send
+      size: number of bytes to receive. 0 means receiving what already in the
+          input buffer.
+      retry: number of retry.
+      interval_secs: #seconds to wait between send and receive. If specified,
+          overrides self._send_receive_interval_secs.
+      suppress_log: True to disable log regardless of self.log value.
+
+    Returns:
+      Received N bytes.
+
+    Raises:
+      SerialTimeoutException if it fails to receive N bytes.
+    """
+    for nth_run in range(retry + 1):
+      self.FlushBuffer()
+      try:
+        self.Send(command)
+        if interval_secs is None:
+          time.sleep(self._send_receive_interval_secs)
+        else:
+          time.sleep(interval_secs)
+        response = self.Receive(size)
+        if not suppress_log and self.log:
+          logging.info('Successfully sent %r and received %r', command,
+                       response)
+        return response
+      except SerialTimeoutException:
+        if nth_run < retry:
+          time.sleep(self._retry_interval_secs)
+
+    error_message = 'Timeout receiving %d bytes for command %r' % (size,
+                                                                   command)
+    if not suppress_log and self.log:
+      logging.warning(error_message)
+    raise SerialTimeoutException(error_message)
+
+  def SendExpectReceive(self, command, expect_response, retry=0,
+                        interval_secs=None):
+    """Sends a command and expects to receive a response.
+
+    Args:
+      command: command to send
+      expect_response: expected response received
+      retry: number of retry.
+      interval_secs: #seconds to wait between send and receive. If specified,
+          overrides self._send_receive_interval_secs.
+
+    Returns:
+      True if command is sent and expected response received.
+    """
+    try:
+      response = self.SendReceive(command, len(expect_response), retry=retry,
+                                  interval_secs=interval_secs,
+                                  suppress_log=True)
+    except SerialTimeoutException:
+      if self.log:
+        logging.warning('SendReceive timeout for command %r', command)
+      return False
+
+    if self.log:
+      if response == expect_response:
+        logging.info('Successfully sent %r and received expected response %r',
+                     command, expect_response)
+      else:
+        logging.warning('Sent %r but received %r (expected: %r)',
+                        command, response, expect_response)
+    return response == expect_response
