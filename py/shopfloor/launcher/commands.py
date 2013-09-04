@@ -220,6 +220,48 @@ class CommandVerify(CommandHandler):
     return '\n'.join(response)
 
 
+class CommandService(CommandHandler):
+  """Handler for service command."""
+  def Handle(self, args, request):
+    """Starts, stops or lists the services."""
+    def _FindFirstService(name):
+      for svc in env.launcher_services:
+        if svc.name == name:
+          return svc
+      return None
+
+    response = []
+    if args[0] == 'list':
+      response.append('OK: service list')
+      for svc in env.launcher_services:
+        response.append('\t %s - %s' %
+                        (svc.name, 'running' if svc.subprocess else ''))
+    elif args[0] == 'start' and len(args) >= 2:
+      svc = _FindFirstService(args[1])
+      if svc is None:
+        response.append('ERROR: %s not found' % args[1])
+      if not svc.subprocess:
+        svc.Start()
+        response.append('OK: starting %s' % svc.name)
+      else:
+        response.append('OK: service is running')
+    elif args[0] == 'stop' and len(args) >= 2:
+      svc = _FindFirstService(args[1])
+      if svc is None:
+        response.append('ERROR: %s not found' % args[1])
+      if svc.subprocess:
+        svc.Stop()
+        response.append('OK: stopping %s' % svc.name)
+      else:
+        response.append('OK: service is stopped')
+    else:
+      response.append('ERROR: command format')
+      response.append('  service list')
+      response.append('  service start <svc>')
+      response.append('  service stop  <svc>')
+    return '\n'.join(response)
+
+
 class LauncherCommandFactory(ServerFactory):
   """Twisted protocol factory for shopfloor command session."""
   protocol = ConnectionDispatcher
@@ -235,6 +277,7 @@ class LauncherCommandFactory(ServerFactory):
     self.Add('info', CommandInfo())
     self.Add('init', CommandInit())
     self.Add('list', CommandList())
+    self.Add('service', CommandService())
     self.Add('verify', CommandVerify())
 
   def Add(self, cmd, handler):

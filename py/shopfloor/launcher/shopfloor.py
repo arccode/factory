@@ -327,6 +327,16 @@ def Stop(dummy_args):
   StopShopfloord()
 
 
+@Command('service',
+         CmdArg('action',
+                help='service action, start/stop/list'),
+         CmdArg('name', nargs='?',
+                help='service name'))
+def Service(dummy_args):
+  """Calls launcher to start/stop/list runtime service(s)."""
+  CallLauncher()
+
+
 def main():
   logging.basicConfig(level=logging.INFO, format='%(message)s')
   args = ParseCmdline('Shopfloor V2 command line utility.')

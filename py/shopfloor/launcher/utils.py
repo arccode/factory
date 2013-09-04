@@ -25,7 +25,7 @@ _IMAGE_VERSIONS = 'image_versions'
 def StartServices():
   """Starts all services."""
   for service in env.launcher_services:
-    if not service.subprocess:
+    if service.run_on_start and not service.subprocess:
       service.Start()
 
 def StopServices():
@@ -54,10 +54,28 @@ def UpdateImageVersions():
       with open(os.path.join(version_dir, image_type), 'w') as f:
         f.write(version)
 
+def _IterateServices():
+  """Iterates through services in YAML config.
+
+  Yields:
+    2-tuple of service and its initial configuration.
+  """
+  service_config = env.launcher_config['services']
+  if isinstance(service_config, dict):
+    for svc, init in service_config.iteritems():
+      yield (svc, init)
+  else:
+    for svc in service_config:
+      yield (svc, {})
+
 def GenerateServices():
   """Generates service list."""
-  return map((lambda module: __import__(module, fromlist=['Service']).Service(
-             env.launcher_config)), env.launcher_config['services'])
+  services = []
+  for module, init in _IterateServices():
+    svc = __import__(module, fromlist=['Service']).Service(env.launcher_config)
+    svc.SetConfig(init)
+    services.append(svc)
+  return services
 
 def SearchFile(filename, folders):
   """Gets first match of filename in folders.

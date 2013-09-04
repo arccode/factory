@@ -40,6 +40,8 @@ class ServiceBase(protocol.ProcessProtocol):
     logpipe: True to redirect stderr to launcher log.
     auto_restart: True when the service needs to be restarted.
     daemon: True when the executable daemonize itself.
+    ext_args: Extended command line args from YAML config.
+    run_on_start: Run this service on ShopFloor start.
   """
 
   def __init__(self):
@@ -58,6 +60,8 @@ class ServiceBase(protocol.ProcessProtocol):
     self.logpipe = False
     self.auto_restart = False
     self.daemon = False
+    self.ext_args = []
+    self.run_on_start = True
 
   # Twisted process protocol callbacks
   def connectionMade(self):
@@ -89,6 +93,7 @@ class ServiceBase(protocol.ProcessProtocol):
 
   def processEnded(self, status):
     """Subprocess has been ended properly."""
+    logging.info('%s (%d) ended', self.name, self.pid)
     if self.daemon:
       return
     self.subprocess = None
@@ -113,7 +118,8 @@ class ServiceBase(protocol.ProcessProtocol):
     """Sets service configuration."""
 
     attrs = ['name', 'executable', 'path', 'args', 'uid', 'pid',
-             'logpipe', 'auto_restart', 'daemon']
+             'logpipe', 'auto_restart', 'daemon', 'ext_args',
+             'run_on_start']
     for key in attrs:
       if key in conf:
         setattr(self, key, conf[key])
@@ -122,9 +128,13 @@ class ServiceBase(protocol.ProcessProtocol):
     """Starts background service."""
     self.stopping = False
     logging.debug('Starting %s', self.name)
-    self.subprocess = reactor.spawnProcess(self, self.executable,
-                                           [self.executable] + self.args,
-                                           {}, self.path)
+    args = [self.executable] + self.args + self.ext_args
+    self.subprocess = reactor.spawnProcess(
+        self,             # ProcessProtocol
+        self.executable,  # program path
+        args,             # args list
+        {},               # environment vars
+        self.path)        # process cwd
     self.pid = self.subprocess.pid
     logging.debug('%s started: pid = %d', self.name, self.pid)
     self.start_time = time.time()

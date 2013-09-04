@@ -6,7 +6,7 @@
 import yaml
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.schema import FixedDict, Dict, Scalar, List
+from cros.factory.schema import AnyOf, Dict, FixedDict, List, Scalar
 from cros.factory.shopfloor.launcher import constants
 
 
@@ -84,9 +84,20 @@ class LauncherYAMLConfig(dict):
 
           # ShopFloor services, the external application need to be launched
           # by shopfloor launcher.
-          'services': List(
-              'List of ShopFloor services',
-              Scalar('Full service module name', str)),
+          'services': AnyOf([
+              List('List of service module names', Scalar(
+                  'Full module path',
+                  str)),
+              Dict(
+                  'Dict of ShopFloor services',
+                  Scalar('Full service module name', str),
+                  FixedDict(
+                      'Service with parameters',
+                      optional_items={
+                          'ext_args': List(
+                              'Extended command line args',
+                              Scalar('Command line argument', str)),
+                          'run_on_start': Scalar('Run on start', bool)}))]),
 
           # Base ShopFloor configurations, includes factory.par resource, the
           # module resource for factory integration and the http daemon bind
