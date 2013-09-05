@@ -59,7 +59,7 @@ def InitGrabKeys(grab_keys):
   # with any modifiers.
   grab_keys.extend([
       Keystroke(X.AnyModifier, k) for k in (
-          'Super_L Tab F1 F2 F3 F4 F5 F6 F7 F8 F9 F10'.split())])
+          'Super_L Tab F1 F2 F3 F5 F6 F7 F8 F9 F10'.split())])
 
   # Ctrl+?
   grab_keys.extend([

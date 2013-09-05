@@ -97,5 +97,19 @@ class TimeoutTest(unittest.TestCase):
       self.assertTrue(False, msg='No timeout')
 
 
+class WaitForTest(unittest.TestCase):
+  def runTest(self):
+    def _ReturnTrueAfter(t):
+      return time.time() > t
+
+    now = time.time()
+    self.assertEquals(None, utils.WaitFor(lambda: _ReturnTrueAfter(now + 0.5),
+                                          timeout_secs=1))
+
+    now = time.time()
+    self.assertRaises(utils.TimeoutError, utils.WaitFor,
+                      lambda: _ReturnTrueAfter(now + 1), timeout_secs=0.5)
+
+
 if __name__ == "__main__":
   unittest.main()

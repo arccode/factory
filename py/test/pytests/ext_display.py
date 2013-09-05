@@ -6,19 +6,23 @@
 
 """Test external display with optional audio playback test."""
 
+import glob
 import logging
+import os
 import random
 import re
 import threading
 import unittest
 import uuid
 
+from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
+from cros.factory.test import utils
 from cros.factory.test.args import Arg
 from cros.factory.test.event import Event
-from cros.factory.test.factory_task import FactoryTaskManager
-from cros.factory.test.factory_task import InteractiveFactoryTask
+from cros.factory.test.factory_task import (FactoryTaskManager,
+                                            InteractiveFactoryTask)
 from cros.factory.test.fixture.bft_fixture import (BFTFixture,
                                                    BFTFixtureException,
                                                    CreateBFTFixture)
@@ -225,12 +229,6 @@ class DisconnectTask(DetectDisplayTask):
       _MSG_DISCONNECT_TEST(args.display_label),
       DetectDisplayTask._DISCONNECT)
 
-  def Prepare(self):
-    self.RunCommand(
-      ['xrandr', '-d', ':0', '--output', self._args.main_display_id, '--auto',
-       '--output', self._args.display_id, '--off'],
-      'Fail to switch back to main display %s' % self._args.main_display_id)
-
 
 class FixtureCheckDisplayThread(threading.Thread):
   """A thread to use fixture to check display.
@@ -340,7 +338,43 @@ class VideoTask(ExtDisplayTask):
     self._ui.PostEvent(Event(Event.Type.TEST_UI_EVENT,
                              subtype=self._fail_event))
 
+  def SetMirroringMode(self, is_on):
+    """Set display mirroring mode to is_on."""
+    os.environ['DISPLAY'] = ':0'
+    os.environ['XAUTHORITY'] = '/home/chronos/.Xauthority'
+
+    def _IsMirrored():
+      display_info = factory.get_state_instance().GetDisplayInfo()
+      return bool(display_info[0]['mirroringSourceId'])
+
+    def _ToggleMirrorMode():
+      utils.SendKey('Ctrl+F4')
+
+    def _SetMirroringMode():
+      if _IsMirrored() == is_on:
+        return True
+      _ToggleMirrorMode()
+      return _IsMirrored() == is_on
+
+    # Retry for up to 10 senconds until mirroring mode is enabled.
+    utils.WaitFor(_SetMirroringMode, 10, poll_interval=1)
+
+  def SwitchInternalDisplayBacklight(self, is_on):
+    """Set the backlight to is_on."""
+    backlight_syspaths = glob.glob('/sys/class/backlight/*/brightness')
+    assert backlight_syspaths, 'Cannot find backlight in sysfs'
+    backlight_syspath = os.path.dirname(backlight_syspaths[0])
+    if is_on:
+      with open(os.path.join(backlight_syspath, 'max_brightness')) as max_b:
+        with open(os.path.join(backlight_syspath, 'brightness'), 'w') as b:
+          b.write(max_b.read())
+    else:
+      with open(os.path.join(backlight_syspath, 'brightness'), 'w') as b:
+        b.write('0')
+
   def Run(self):
+    self.SetMirroringMode(True)
+    self.SwitchInternalDisplayBacklight(False)
     self.InitUI()
 
     if self._fixture:
@@ -351,18 +385,12 @@ class VideoTask(ExtDisplayTask):
     if self._manual:
       self.BindDigitKeys(self._pass_digit)
 
-    self.RunCommand(
-      ['xrandr', '-d', ':0', '--output', self._args.main_display_id, '--auto',
-       '--output', self._args.display_id, '--auto'],
-      'Fail to set dual display on %s' % self._args.display_id)
-    self.RunCommand(
-      ['xrandr', '-d', ':0', '--output', self._args.main_display_id, '--off'],
-      'Fail to turn off main display %s' % self._args.main_display_id)
-
     if self._fixture:
       self._check_display.start()
 
   def Cleanup(self):
+    self.SwitchInternalDisplayBacklight(True)
+    self.SetMirroringMode(False)
     if self._manual:
       self.UnbindDigitKeys()
     if self._fixture:

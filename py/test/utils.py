@@ -7,6 +7,7 @@
 import array
 import fcntl
 import glob
+import inspect
 import logging
 import multiprocessing
 import os
@@ -18,6 +19,7 @@ import subprocess
 import sys
 import threading
 import time
+import types
 import traceback
 
 from contextlib import contextmanager
@@ -422,3 +424,36 @@ def SendKey(key_sequence):
   os.environ['DISPLAY'] = ':0'
   os.environ['XAUTHORITY'] = '/home/chronos/.Xauthority'
   Spawn(['xdotool', 'key', key_sequence])
+
+
+def WaitFor(condition, timeout_secs, poll_interval=0.1):
+  """Wait for the given condition for at most the specified time.
+
+  Args:
+    condition: A function object.
+    timeout_secs: Timeout value in seconds.
+    poll_interval: Interval to poll condition.
+
+  Raises:
+    ValueError: If condition is not a function.
+    TimeoutError: If cond does not become True after timeout_secs seconds.
+  """
+  if not isinstance(condition, types.FunctionType):
+    raise ValueError('condition must be a function object')
+
+  def _GetConditionString():
+    condition_string = condition.__name__
+    if condition.__name__ == '<lambda>':
+      try:
+        condition_string = inspect.getsource(condition).strip()
+      except IOError:
+        pass
+    return condition_string
+
+  end_time = time.time() + timeout_secs
+  while True:
+    if condition():
+      break
+    if time.time() > end_time:
+      raise TimeoutError('Timeout waititng for %r' % _GetConditionString())
+    time.sleep(poll_interval)

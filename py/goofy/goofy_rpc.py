@@ -5,7 +5,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-'''RPC methods exported from Goofy.'''
+"""RPC methods exported from Goofy."""
 
 import argparse
 import inspect
@@ -41,14 +41,14 @@ class GoofyRPCException(Exception):
 
 class GoofyRPC(object):
   def _InRunQueue(self, func):
-    '''Runs a function in the Goofy run queue.
+    """Runs a function in the Goofy run queue.
 
     Returns:
       Any value returned by the function.
 
     Raises:
       Any exception raised by the function.
-    '''
+    """
     # A queue to store the results of evaluating the function.  This
     # will contain a two-element tuple (ret, exc), where ret is the
     # return value or exc is any exception thrown.  Only one will be
@@ -76,7 +76,7 @@ class GoofyRPC(object):
     self.goofy = goofy
 
   def RegisterMethods(self, state_instance):
-    '''Registers exported RPC methods in a state object.'''
+    """Registers exported RPC methods in a state object."""
     for name, m in inspect.getmembers(self):
       # Find all non-private methods (except this one)
       if ((not inspect.ismethod(m)) or
@@ -94,14 +94,14 @@ class GoofyRPC(object):
       SetEntry(m)
 
   def FlushEventLogs(self):
-    '''Flushes event logs if an event_log_watcher is available.
+    """Flushes event logs if an event_log_watcher is available.
 
     Raises an Exception if syncing fails.
-    '''
+    """
     self.goofy.log_watcher.FlushEventLogs()
 
   def UpdateFactory(self):
-    '''Performs a factory update.
+    """Performs a factory update.
 
     Returns:
       [success, updated, restart_time, error_msg] where:
@@ -109,7 +109,7 @@ class GoofyRPC(object):
         updated: Whether the update was a success and the system will reboot.
         restart_time: The time at which the system will restart (on success).
         error_msg: An error message (on failure).
-    '''
+    """
     ret_value = Queue.Queue()
 
     def PostUpdateHook():
@@ -151,11 +151,11 @@ class GoofyRPC(object):
     self.PostEvent(Event(Event.Type.UPDATE_NOTES))
 
   def GetVarLogMessages(self, max_length=256*1024):
-    '''Returns the last n bytes of /var/log/messages.
+    """Returns the last n bytes of /var/log/messages.
 
     Args:
       max_length: Maximum number of bytes to return.
-    '''
+    """
     offset = max(0, os.path.getsize(VAR_LOG_MESSAGES) - max_length)
     with open(VAR_LOG_MESSAGES, 'r') as f:
       f.seek(offset)
@@ -170,11 +170,11 @@ class GoofyRPC(object):
     return unicode(data, encoding='utf-8', errors='replace')
 
   def GetVarLogMessagesBeforeReboot(self, lines=100, max_length=5*1024*1024):
-    '''Returns the last few lines in /var/log/messages before the current boot.
+    """Returns the last few lines in /var/log/messages before the current boot.
 
     Args:
       See utils.var_log_messages_before_reboot.
-    '''
+    """
     lines = utils.var_log_messages_before_reboot(lines=lines,
                                                  max_length=max_length)
     if lines:
@@ -188,9 +188,9 @@ class GoofyRPC(object):
     return open('/proc/uptime').read()
 
   def GetDmesg(self):
-    '''Returns the contents of dmesg.
+    """Returns the contents of dmesg.
 
-    Approximate timestamps are added to each line.'''
+    Approximate timestamps are added to each line."""
     dmesg = process_utils.Spawn(['dmesg'],
                                 check_call=True, read_stdout=True).stdout_data
     uptime = float(self._ReadUptime().split()[0])
@@ -204,7 +204,7 @@ class GoofyRPC(object):
     return re.sub(r'(?m)^\[\s*([.\d]+)\]', FormatTime, dmesg)
 
   def LogStackTraces(self):
-    '''Logs the stack backtraces of all threads.'''
+    """Logs the stack backtraces of all threads."""
     logging.info(debug_utils.DumpStackTracebacks())
 
   def IsUSBDriveAvailable(self):
@@ -215,7 +215,7 @@ class GoofyRPC(object):
       return False
 
   def SaveLogsToUSB(self, archive_id=None):
-    '''Saves logs to a USB stick.
+    """Saves logs to a USB stick.
 
     Returns:
       [dev, archive_name, archive_size, temporary]:
@@ -223,7 +223,7 @@ class GoofyRPC(object):
         archive_name: The file name of the archive
         archive_size: The size of the archive
         temporary: Whether the USB drive was temporarily mounted
-    '''
+    """
     try:
       with factory_bug.MountUSB() as mount:
         output_file = factory_bug.SaveLogs(mount.mount_point, archive_id)
@@ -270,7 +270,7 @@ class GoofyRPC(object):
       file_utils.TryUnlink(output_file)
 
   def UpdateSkippedTests(self):
-    '''Updates skipped tests based on run_if.'''
+    """Updates skipped tests based on run_if."""
     done = threading.Event()
 
     def Target():
@@ -286,17 +286,17 @@ class GoofyRPC(object):
     self.goofy.sync_time_with_shopfloor_server(True)
 
   def PostEvent(self, event):
-    '''Posts an event.'''
+    """Posts an event."""
     self.goofy.event_client.post_event(event)
 
   def StopTest(self):
-    '''Stops current tests.'''
+    """Stops current tests."""
     self._InRunQueue(
         lambda: self.goofy.stop(reason='RPC call to stop tests',
                                 fail=True))
 
   def ClearState(self):
-    '''Stops current tests and clear all test state.'''
+    """Stops current tests and clear all test state."""
     def Target():
       self.goofy.stop(reason='RPC call to clear test state',
                       fail=True)
@@ -304,7 +304,7 @@ class GoofyRPC(object):
     self._InRunQueue(Target)
 
   def RunTest(self, path):
-    '''Runs a test.'''
+    """Runs a test."""
     test = self.goofy.test_list.lookup_path(path)
     if not test:
       raise GoofyRPCException('Unknown test path %r' % path)
@@ -313,7 +313,7 @@ class GoofyRPC(object):
     self._InRunQueue(lambda: self.goofy.restart_tests(root=test))
 
   def GetTests(self):
-    '''Returns a list of all tests and their states.'''
+    """Returns a list of all tests and their states."""
     def Target():
       paths_to_run = set([t.path for t in self.goofy.tests_to_run])
 
@@ -330,14 +330,14 @@ class GoofyRPC(object):
     return self._InRunQueue(Target)
 
   def GetTestLists(self):
-    '''Returns available test lists.
+    """Returns available test lists.
 
     Returns:
       An array of test lists, each a dict containing:
         id: An identifier for the test list (empty for the default test list).
         name: A human-readable name of the test list.
         enabled: Whether this is the current-enabled test list.
-    '''
+    """
     ret = []
     for k, v in self.goofy.test_lists.iteritems():
       ret.append(
@@ -350,12 +350,12 @@ class GoofyRPC(object):
     return ret
 
   def GetGoofyStatus(self):
-    '''Returns a dictionary containing Goofy status information.
+    """Returns a dictionary containing Goofy status information.
 
     Returns: A dict with the following elements:
       uuid: A UUID identifying the current goofy run
       test_list_id: The active test_list ID
-    '''
+    """
     return {'uuid': self.goofy.uuid,
             'test_list_id': (
                 self.goofy.test_list.test_list_id if self.goofy.test_list
@@ -363,14 +363,14 @@ class GoofyRPC(object):
             'status': self.goofy.status}
 
   def SwitchTestList(self, test_list_id):
-    '''Switches test lists.
+    """Switches test lists.
 
     Args:
       test_list_id: The test list ID.
 
     Raises:
       TestListError: The test list does not exist.
-    '''
+    """
     # Have goofy throw an error if the test list ID is invalid.
     self.goofy.GetTestList(test_list_id)
     SetActiveTestList(test_list_id)
@@ -391,6 +391,35 @@ class GoofyRPC(object):
       # complain to the caller.
       raise GoofyRPCException('Factory did not restart as expected')
 
+  def GetDisplayInfo(self):
+    """Gets display info from the factory test chrome extension page.
+
+    Returns:
+      A dict of display info.
+
+    Raises:
+      GoofyRPCException: If this is called inside chroot, or browser instance is
+          not initialized.
+    """
+    if utils.in_chroot():
+      raise GoofyRPCException('Cannot get display info in chroot')
+    if not self.goofy.env.browser or not self.goofy.env.extension:
+      raise GoofyRPCException('Browser instance is not initialized')
+
+    ext_page = self.goofy.env.browser.extensions[self.goofy.env.extension]
+    ext_page.ExecuteJavaScript(
+        'window.__display_info = null;')
+    ext_page.ExecuteJavaScript(
+        'chrome.system.display.getInfo(function(info) {'
+        '    window.__display_info = info;})')
+
+    def _FetchDisplayInfo():
+      return ext_page.EvaluateJavaScript(
+          'window.__display_info')
+
+    utils.WaitFor(_FetchDisplayInfo, 10)
+    return _FetchDisplayInfo()
+
 
 def main():
   parser = argparse.ArgumentParser(
@@ -398,7 +427,7 @@ def main():
   parser.add_argument(
       'command',
       help=('The command to run (as a Python expression), e.g.: '
-            '''RunTest('RunIn.Stress.BadBlocks')'''))
+            """RunTest('RunIn.Stress.BadBlocks')"""))
   args = parser.parse_args()
 
   goofy = factory.get_state_instance()
@@ -406,7 +435,7 @@ def main():
 
   if '(' not in args.command:
     parser.error('Expected parentheses in command, e.g.: '
-                 '''RunTest('RunIn.Stress.BadBlocks')''')
+                 """RunTest('RunIn.Stress.BadBlocks')""")
 
   logging.info('Evaluating expression: %s', args.command)
   ret = eval(args.command, {},
