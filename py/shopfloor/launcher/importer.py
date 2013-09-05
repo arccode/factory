@@ -33,6 +33,8 @@ FACTORY_SOFTWARE = 'shopfloor/factory.par'
 NETBOOT_IMAGE = 'factory_shim/netboot/vmlinux.uimg'
 SHOPFLOOR_TEMPLATE = 'shopfloor/shopfloor.template'
 MANIFEST_YAML = 'MANIFEST.yaml'
+LATEST_CONFIG = '.latest_config'
+
 
 class ImporterError(Exception):
   pass
@@ -378,7 +380,11 @@ class BundleImporter(object):
         env.GetResourcesDir(),
         self.GetResourceName(('shopfloor.yaml', yaml_md5)))
 
-    open(self.shopfloor_config, 'w').write(yaml_text)
+    with open(self.shopfloor_config, 'w') as f:
+      f.write(yaml_text)
+    # Store latest config file name in .latest_config
+    with open(os.path.join(env.runtime_dir, LATEST_CONFIG), 'w') as f:
+      f.write(self.shopfloor_config)
     logging.info('Shopfloor import from bundle complete.\n\n\tNew config: %s\n',
                  os.path.basename(self.shopfloor_config))
 

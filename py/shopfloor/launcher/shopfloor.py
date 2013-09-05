@@ -205,12 +205,26 @@ def StartShopfloord(extra_args=None):
 
 
 @Command('deploy',
-         CmdArg('-c', '--config',
-                help='the YAML config file to deploy'))
+         CmdArg('-c', '--config', nargs='?',
+                help='the YAML config file to deploy'),
+         CmdArg('-l', '--latest', action='store_true',
+                default=False, required=False,
+                help='deploy latest config file'))
 def Deploy(args):
   """Deploys new shopfloor YAML configuration."""
+  config_file = None
+  if args.config:
+    config_file = args.config
+  elif args.latest:
+    latest_config = os.path.join(env.runtime_dir, importer.LATEST_CONFIG)
+    if not os.path.isfile(latest_config):
+      logging.error('ERROR: file not found %s', latest_config)
+      return
+    with open(latest_config, 'r') as f:
+      config_file = f.read()
+
   res_dir = env.GetResourcesDir()
-  new_config_file = os.path.join(res_dir, args.config)
+  new_config_file = os.path.join(res_dir, config_file)
   if not os.path.isfile(new_config_file):
     logging.error('Config file not found: %s', new_config_file)
     return
