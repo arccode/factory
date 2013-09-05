@@ -284,13 +284,33 @@ def List(dummy_args):
          CmdArg('-b', '--bundle',
                 help='import resources from bundle dir'),
          CmdArg('-f', '--file', nargs='+',
-                help='import resources from file list'))
+                help='import resources from file list'),
+         CmdArg('bundle_path', nargs='?',
+                help='same as -b option'))
 def Import(args):
   """Imports shopfloor resources."""
+  if args.file:
+    NotImplementedError('shopofloor import --file')
+
+  # Search bundle dir in following order:
+  #   args.bundle, args.bundle_path
+  #   ./, ../, ../../, ../../../
+  bundle = None
   if args.bundle:
-    importer.BundleImporter(args.bundle).Import()
-    return
-  NotImplementedError('shopofloor import --file')
+    bundle = args.bundle
+  elif args.bundle_path:
+    bundle = args.bundle_path
+  else:
+    search_paths = ['.', '..', '../..', '../../..']
+    for path in search_paths:
+      bundle_path = os.path.join(os.getcwd(), path)
+      if os.path.isfile(os.path.join(bundle_path, 'MANIFEST.yaml')):
+        bundle = bundle_path
+        break
+  if bundle:
+    importer.BundleImporter(bundle).Import()
+  else:
+    logging.info('ERROR: bundle path not found')
 
 
 @Command('info')
