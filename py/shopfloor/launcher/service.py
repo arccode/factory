@@ -142,7 +142,6 @@ class ServiceBase(protocol.ProcessProtocol):
   def Stop(self):
     """Stops background service."""
     self.stopping = True
-    self.transport.loseConnection()
     self.transport.signalProcess('TERM')
 
   def CheckPortPrivilage(self, port):
