@@ -19,6 +19,21 @@ class VPDTest(unittest2.TestCase):
     self.mox.StubOutWithMock(logging, 'info')
     self.mox.StubOutWithMock(logging, 'error')
 
+  def MockVPDGetAll(self, section, data):
+    """Mocks reading all data in vpd
+
+    This function is used in every vpd Update test cases because
+    we read data from vpd before writing it to avoid duplicate writing.
+    Args:
+      section: 'RW_VPD' or 'RO_VPD'.
+      data: A dict to be read.
+    """
+    process = self.mox.CreateMockAnything()
+    process.stdout_lines(strip=True).AndReturn(
+        ['"%s"="%s"' % (k, v) for k, v in data.iteritems()])
+    vpd.Spawn(['vpd', '-i', section, '-l'], check_output=True).AndReturn(
+      process)
+
   def tearDown(self):
     self.mox.UnsetStubs()
 
@@ -54,6 +69,7 @@ class VPDTest(unittest2.TestCase):
     self.mox.VerifyAll()
 
   def testUpdate(self):
+    self.MockVPDGetAll('RW_VPD', dict())
     vpd.Spawn(
         ['vpd', '-i', 'RW_VPD', '-s', 'a=b', '-s', 'foo=bar', '-s', 'unset='],
         check_call=True)
@@ -63,7 +79,20 @@ class VPDTest(unittest2.TestCase):
     vpd.rw.Update(dict(a='b', foo='bar', unset=None))
     self.mox.VerifyAll()
 
+  def testUpdatePartial(self):
+    # "a"="b" is already in vpd, update will skip it.
+    self.MockVPDGetAll('RW_VPD', dict(a='b'))
+    vpd.Spawn(
+        ['vpd', '-i', 'RW_VPD', '-s', 'foo=bar', '-s', 'unset='],
+        check_call=True)
+    logging.info('Updating %s: %s', 'RW_VPD',
+                 dict(a='b', foo='bar', unset=None))
+    self.mox.ReplayAll()
+    vpd.rw.Update(dict(a='b', foo='bar', unset=None))
+    self.mox.VerifyAll()
+
   def testUpdateRO(self):
+    self.MockVPDGetAll('RO_VPD', dict())
     vpd.Spawn(['vpd', '-i', 'RO_VPD', '-s', 'a=b'], check_call=True)
     logging.info('Updating %s: %s', 'RO_VPD', dict(a='b'))
     self.mox.ReplayAll()
@@ -71,6 +100,7 @@ class VPDTest(unittest2.TestCase):
     self.mox.VerifyAll()
 
   def testUpdateRedacted(self):
+    self.MockVPDGetAll('RW_VPD', dict())
     vpd.Spawn(
         ['vpd', '-i', 'RW_VPD',
          '-s', 'a=b', '-s', 'gbind_attribute=', '-s', 'ubind_attribute=bar'],
@@ -84,18 +114,21 @@ class VPDTest(unittest2.TestCase):
     self.mox.VerifyAll()
 
   def testUpdateNothing(self):
+    self.MockVPDGetAll('RW_VPD', dict())
     logging.info('Updating %s: %s', 'RW_VPD', dict())
     self.mox.ReplayAll()
     vpd.rw.Update({})
     self.mox.VerifyAll()
 
   def testUpdateInvalidKey(self):
+    self.MockVPDGetAll('RW_VPD', dict())
     self.mox.ReplayAll()
     self.assertRaisesRegexp(ValueError, 'Invalid VPD key',
                             vpd.rw.Update, {' ': 'a'}, log=False)
     self.mox.VerifyAll()
 
   def testUpdateInvalidValue(self):
+    self.MockVPDGetAll('RW_VPD', dict())
     self.mox.ReplayAll()
     self.assertRaisesRegexp(ValueError, 'Invalid VPD value',
                             vpd.rw.Update, {'a': '\"'}, log=False)

@@ -87,6 +87,7 @@ class Partition(object):
     if log:
       logging.info('Updating %s: %s', self.name, privacy.FilterDict(items))
 
+    data = self.GetAll()
     command = ['vpd', '-i', self.name]
 
     for k, v in sorted(items.items()):
@@ -98,7 +99,9 @@ class Partition(object):
       if not VPD_VALUE_PATTERN.match(v):
         raise ValueError('Invalid VPD value %r (does not match pattern %s)' % (
             k, VPD_VALUE_PATTERN.pattern))
-      command += ['-s', '%s=%s' % (k, v)]
+      # Only update if needed since reading is fast but writing is slow.
+      if data.get(k) != v:
+        command += ['-s', '%s=%s' % (k, v)]
 
     if not items:
       return
