@@ -202,6 +202,15 @@ def StartShopfloord(extra_args=None):
   with open(os.path.join(env.runtime_dir, 'run', PID_FILE), 'w') as f:
     f.write(str(pid))
   logging.info('Shopfloord started: PID=%d', pid)
+  # Check pstree after 2 seconds
+  if os.path.isfile('/usr/bin/pstree'):
+    time.sleep(2)
+    logging.info('pstree -A %d', pid)
+    pstree_output = SpawnOutput(['pstree', '-A', str(pid)]).strip()
+    logging.info(pstree_output)
+    if len(pstree_output) == 0:
+      logging.error('Shopfloord startup failed. Please check '
+                    '%s/log/shopfloord.log', env.runtime_dir)
 
 
 @Command('deploy',
