@@ -25,10 +25,6 @@ import sys
 import time
 
 
-# Tell db that we're running minijack process, so always use sqlite3.
-os.environ['MINIJACK_PROCESS'] = ''
-
-
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import utils
 

@@ -279,7 +279,10 @@ class Database(db.base.BaseDatabase):
   def Connect(cls):
     """Connects to the database if necessary, and returns a Database."""
     import settings
-    return Database(settings.MINIJACK_DB_PATH)
+    if settings.MINIJACK_DB_PATH:
+      return Database(settings.MINIJACK_DB_PATH)
+    else:
+      raise DatabaseException('Minijack database not found.')
 
   # TODO(pihsun): This only works when there is exactly one primary key field
   #               for parent model, so it won't work on ComponentDetail now.

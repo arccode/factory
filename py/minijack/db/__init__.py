@@ -608,17 +608,14 @@ class QuerySet(object):
         yield v
 
 
-if 'MINIJACK_PROCESS' in os.environ:
-  from db.sqlite import Executor, ExecutorFactory, Database, IntegrityError
-else:
-  import settings
-  if settings.IS_APPENGINE:
-    if settings.BACKEND_DATABASE == 'bigquery':
-      from db.bigquery import Executor, ExecutorFactory, Database
-    elif settings.BACKEND_DATABASE == 'cloud_sql':
-      from db.cloud_sql import Executor, ExecutorFactory, Database
-    else:
-      logging.exception('Unknown database %s', settings.BACKEND_DATABASE)
-      sys.exit(os.EX_DATAERR)
+import settings
+if settings.IS_APPENGINE:
+  if settings.BACKEND_DATABASE == 'bigquery':
+    from db.bigquery import Executor, ExecutorFactory, Database
+  elif settings.BACKEND_DATABASE == 'cloud_sql':
+    from db.cloud_sql import Executor, ExecutorFactory, Database
   else:
-    from db.sqlite import Executor, ExecutorFactory, Database
+    logging.exception('Unknown database %s', settings.BACKEND_DATABASE)
+    sys.exit(os.EX_DATAERR)
+else:
+  from db.sqlite import Executor, ExecutorFactory, Database, IntegrityError

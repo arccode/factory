@@ -2,9 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import logging
 import os
-import sys
 
 
 SECRET_KEY = 'qn5@1t%&%nnq5mtbkm*w&#u@uj4w8unl^2c6iq8e2ke9r=v)ap'
@@ -50,12 +48,10 @@ else:
   RELEASE_ROOT = '/var/db/factory'
   # Search the default path of Minijack DB.
   # TODO(waihong): Make it a command line option.
+  MINIJACK_DB_PATH = None
   for path in [os.path.join(PROJECT_ROOT, 'frontend', 'minijack_db'),
                os.path.join(PROJECT_ROOT, 'minijack_db'),
                os.path.join(RELEASE_ROOT, 'minijack_db')]:
     if os.path.exists(path):
       MINIJACK_DB_PATH = path
       break
-  else:
-    logging.exception('Minijack database not found.')
-    sys.exit(os.EX_DATAERR)
