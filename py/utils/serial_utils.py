@@ -74,7 +74,8 @@ class SerialDevice(object):
     log: True to enable logging.
 
   Usage:
-    fixture = SerialDevice(driver='pl2303')
+    fixture = SerialDevice()
+    fixture.Connect(driver='pl2303')
 
     # Send 'P' for ping fixture and expect an 'OK' response.
     # Allow to retry twice.
@@ -83,46 +84,56 @@ class SerialDevice(object):
     # Send 'FID' for getting fixture ID. Return received result. No retry.
     fixture_id = fixture.SendRecv('FID')
   """
-  def __init__(self, driver=None, retry_interval_secs=0.5,
-               send_receive_interval_secs=0.2, log=False,
-               port=None, baudrate=9600,
-               bytesize=serial.EIGHTBITS, parity=serial.PARITY_NONE,
-               stopbits=serial.STOPBITS_ONE, timeout=0.5, write_timeout=0.5):
-    """Opens a serial connection by port or by device driver name.
+  def __init__(self, send_receive_interval_secs=0.2, retry_interval_secs=0.5,
+               log=False):
+    """Constructor.
 
-    Besides parameters for opening a serial port. It can set intervals between
-    send/receive and between retries. Also, setting log to True to emit
-    actions to logging.info.
+    Sets intervals between send/receive and between retries.
+    Also, setting log to True to emit actions to logging.info.
+
+    Args:
+      send_receive_interval_secs: interval (seconds) between send-receive.
+      retry_interval_secs: interval (seconds) between retrying command.
+      log: True to enable logging.
+    """
+    self._serial = None
+    self._port = ''
+    self.send_receive_interval_secs = send_receive_interval_secs
+    self.retry_interval_secs = retry_interval_secs
+    self.log = log
+
+  def __del__(self):
+    self.Disconnect()
+
+  def Connect(self, driver=None, port=None,
+              baudrate=9600, bytesize=serial.EIGHTBITS,
+              parity=serial.PARITY_NONE, stopbits=serial.STOPBITS_ONE,
+              timeout=0.5, writeTimeout=0.5):
+    """Opens a serial connection by port or by device driver name.
 
     Args:
       driver: driver name of the target serial connection. Used to look up port
           if port is not specified.
-      retry_interval_secs: interval (seconds) between retrying command.
-      send_receive_interval_secs: interval (seconds) between send-receive.
-      log: True to enable logging.
-      port, baudrate, bytesize, parity, stopbits, timeout, write_timeout: See
+      port, baudrate, bytesize, parity, stopbits, timeout, writeTimeout: See
           serial.Serial().
-    """
-    self._serial = None
-    self._retry_interval_secs = retry_interval_secs
-    self._send_receive_interval_secs = send_receive_interval_secs
-    self.log = log
 
+    Raises:
+      SerialException on errors.
+    """
     if driver and not port:
       port = FindTtyByDriver(driver)
 
     if not port:
       raise SerialException('Serial device with driver %r not found' % driver)
 
+    self._port = port
+
     self._serial = OpenSerial(
         port=port, baudrate=baudrate, bytesize=bytesize, parity=parity,
-        stopbits=stopbits, timeout=timeout, writeTimeout=write_timeout)
+        stopbits=stopbits, timeout=timeout, writeTimeout=writeTimeout)
 
     if self.log:
-      logging.info('Open serial port: %s', port)
-
-  def __del__(self):
-    self.Disconnect()
+      logging.info('Serial port %r opened', port)
 
   def Disconnect(self):
     """Closes the connection if it exists."""
@@ -210,7 +221,7 @@ class SerialDevice(object):
           input buffer.
       retry: number of retry.
       interval_secs: #seconds to wait between send and receive. If specified,
-          overrides self._send_receive_interval_secs.
+          overrides self.send_receive_interval_secs.
       suppress_log: True to disable log regardless of self.log value.
 
     Returns:
@@ -224,7 +235,7 @@ class SerialDevice(object):
       try:
         self.Send(command)
         if interval_secs is None:
-          time.sleep(self._send_receive_interval_secs)
+          time.sleep(self.send_receive_interval_secs)
         else:
           time.sleep(interval_secs)
         response = self.Receive(size)
@@ -234,7 +245,7 @@ class SerialDevice(object):
         return response
       except SerialTimeoutException:
         if nth_run < retry:
-          time.sleep(self._retry_interval_secs)
+          time.sleep(self.retry_interval_secs)
 
     error_message = 'Timeout receiving %d bytes for command %r' % (size,
                                                                    command)
@@ -251,7 +262,7 @@ class SerialDevice(object):
       expect_response: expected response received
       retry: number of retry.
       interval_secs: #seconds to wait between send and receive. If specified,
-          overrides self._send_receive_interval_secs.
+          overrides self.send_receive_interval_secs.
 
     Returns:
       True if command is sent and expected response received.
