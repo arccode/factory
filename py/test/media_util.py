@@ -7,8 +7,8 @@ import logging
 import os
 import pyudev
 import pyudev.glib
-
-from autotest_lib.client.common_lib.autotemp import tempdir
+import shutil
+import tempfile
 
 # udev constants
 _UDEV_ACTION_INSERT = 'add'
@@ -31,10 +31,10 @@ class MediaMonitor():
 
   def udev_event_callback(self, _, action, device):
     if action == _UDEV_ACTION_INSERT:
-      logging.info("Device inserted %s" % device.device_node)
+      logging.info("Device inserted %s", device.device_node)
       self.on_insert(device.device_node)
     elif action == _UDEV_ACTION_REMOVE:
-      logging.info('Device removed : %s' % device.device_node)
+      logging.info('Device removed : %s', device.device_node)
       self.on_remove(device.device_node)
 
   def start(self, on_insert, on_remove):
@@ -105,7 +105,7 @@ class MountedMedia():
 
   def __enter__(self):
     self._mount_media()
-    return self.mount_dir.name
+    return self.mount_dir
 
   def __exit__(self, type, value, traceback):
     if self._mounted:
@@ -117,12 +117,12 @@ class MountedMedia():
     Exceptions are throwed if anything goes wrong.
     """
     # Create an temporary mount directory to mount.
-    self.mount_dir = tempdir(unique_id='MountedMedia')
-    logging.info("Media mount directory created: %s" % self.mount_dir.name)
+    self.mount_dir = tempfile.mkdtemp(prefix='MountedMedia')
+    logging.info("Media mount directory created: %s", self.mount_dir)
     exit_code, output = commands.getstatusoutput(
-        'mount %s %s' % (self._dev_path, self.mount_dir.name))
+        'mount %s %s' % (self._dev_path, self.mount_dir))
     if exit_code != 0:
-      self.mount_dir.clean()
+      shutil.rmtree(self.mount_dir)
       raise Exception("Failed to mount. Message-%s" % output)
     self._mounted = True
 
@@ -130,8 +130,8 @@ class MountedMedia():
     """Umounts the partition of the media."""
     # Umount media and delete the temporary directory.
     exit_code, output = commands.getstatusoutput(
-        'umount %s' % self.mount_dir.name)
+        'umount %s' % self.mount_dir)
     if exit_code != 0:
       raise Exception("Failed to umount. Message-%s" % output)
-    self.mount_dir.clean()
+    shutil.rmtree(self.mount_dir)
     self._mounted = False
