@@ -73,12 +73,8 @@ def main():
 
   search_dirs = []
   # Set runtime_dir when running locally.
-  if options.test_run and not server_path.startswith(
-      constants.SHOPFLOOR_INSTALL_DIR):
-    if _RESOURCE_FACTORY_PAR in server_path:
-      env.runtime_dir = server_path[0:server_path.index(_RESOURCE_FACTORY_PAR)]
-    else:
-      env.runtime_dir = os.path.join(os.path.dirname(server_path), 'testdata')
+  if options.local_dir:
+    env.runtime_dir = os.getcwd()
     search_dirs.append(os.path.dirname(server_path))
 
   search_dirs += [env.runtime_dir, env.GetResourcesDir()]

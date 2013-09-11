@@ -181,7 +181,7 @@ def StopShopfloord():
     waiting_pids = GetChildProcesses(shopfloor_pid)
 
 
-def StartShopfloord(extra_args=None):
+def StartShopfloord(extra_args=None, local=False):
   """Starts shopfloor daemon with default YAML configuration.
 
   Shopfloor launcher loads YAML configuration that symlinked to a verified
@@ -189,8 +189,11 @@ def StartShopfloord(extra_args=None):
 
   Args:
     extra_args: Extra arguments passed to shopfloord command line.
+    local: Run shopfloord in current working directory.
   """
   args = [os.path.join(env.runtime_dir, 'shopfloord')]
+  if local:
+    args.append('-l')
   if isinstance(extra_args, list):
     args.extend(extra_args)
   elif extra_args:
@@ -216,7 +219,10 @@ def StartShopfloord(extra_args=None):
 @Command('deploy',
          CmdArg('-c', '--config', nargs='?',
                 help='the YAML config file to deploy'),
-         CmdArg('-l', '--latest', action='store_true',
+         CmdArg('-l', '--local', action='store_true',
+                default=False, required=False,
+                help='deploy config file locally'),
+         CmdArg('--latest', action='store_true',
                 default=False, required=False,
                 help='deploy latest config file'))
 def Deploy(args):
@@ -275,7 +281,7 @@ def Deploy(args):
                       new_config_file, err)
     logging.exception('Shopfloor didn\'t restart.')
     return
-  StartShopfloord()
+  StartShopfloord(local=args.local)
 
 
 @Command('list')
@@ -308,12 +314,18 @@ def List(dummy_args):
                 help='import resources from bundle dir'),
          CmdArg('-f', '--file', nargs='+',
                 help='import resources from file list'),
+         CmdArg('-l', '--local', action='store_true',
+                default=False, required=False,
+                help='import to current working directory'),
          CmdArg('bundle_path', nargs='?',
                 help='same as -b option'))
 def Import(args):
   """Imports shopfloor resources."""
   if args.file:
     NotImplementedError('shopofloor import --file')
+
+  if args.local:
+    env.runtime_dir = os.getcwd()
 
   # Search bundle dir in following order:
   #   args.bundle, args.bundle_path
@@ -342,10 +354,15 @@ def Info(dummy_args):
   CallLauncher()
 
 
-@Command('init')
-def Init(dummy_args):
+@Command('init',
+         CmdArg('-l', '--local', action='store_true',
+                default=False, required=False,
+                help='init a runtime directory in current working directory'))
+def Init(args):
   """Initializes system folders with proper owner and group."""
-  if not os.path.isdir(constants.SHOPFLOOR_INSTALL_DIR):
+  if args.local:
+    env.runtime_dir = os.getcwd()
+  elif not os.path.isdir(constants.SHOPFLOOR_INSTALL_DIR):
     print "Install folder not found!"
     print "Please create folder: \n\t%s\n" % constants.SHOPFLOOR_INSTALL_DIR
     print "And change the owner to current user ID."
@@ -357,11 +374,14 @@ def Init(dummy_args):
   utils.CreateSystemFolders()
 
 
-@Command('start')
-def Start(dummy_args):
+@Command('start',
+         CmdArg('-l', '--local', action='store_true',
+                default=False, required=False,
+                help='start local copy of shopfloord'))
+def Start(args):
   """Starts shopfloor with default configuration."""
   StopShopfloord()
-  StartShopfloord()
+  StartShopfloord(local=args.local)
 
 
 @Command('stop')

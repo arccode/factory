@@ -12,7 +12,6 @@ import re
 import shutil
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.shopfloor.launcher import constants
 from cros.factory.shopfloor.launcher import env
 from cros.factory.shopfloor.launcher import ShopFloorLauncherException
 from cros.factory.shopfloor.launcher.yamlconf import LauncherYAMLConfig
@@ -206,6 +205,6 @@ def GetInfo():
 def CreateSystemFolders():
   """Creates folder for Uber ShopFloor installation."""
   dirs = ['', 'resources', 'run', 'log', 'dashboard']
-  map((lambda folder: TryMakeDirs(os.path.join(constants.SHOPFLOOR_INSTALL_DIR,
+  map((lambda folder: TryMakeDirs(os.path.join(env.runtime_dir,
       folder))), dirs)
 
