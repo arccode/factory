@@ -72,6 +72,10 @@ class Finalize(unittest.TestCase):
           'Minimum battery charge percentage allowed (None to disable '
           'checking charge level)',
           optional=True),
+      Arg('max_charge_pct', int,
+          'Maximum battery charge percentage allowed (None to disable '
+          'checking charge level)',
+          optional=True),
       Arg('secure_wipe', bool,
           'Wipe the stateful partition securely (False for a fast wipe).',
           default=True),
@@ -261,6 +265,13 @@ class Finalize(unittest.TestCase):
                               self.args.min_charge_pct,
                               '充电到%d%%' %
                               self.args.min_charge_pct)))
+    if self.args.max_charge_pct:
+      items.append((lambda: (power.CheckBatteryPresent() and
+                             power.GetChargePct() <= self.args.max_charge_pct),
+                    MakeLabel('Discharge battery to %d%%' %
+                              self.args.max_charge_pct,
+                              '放电到%d%%' %
+                              self.args.max_charge_pct)))
     if self.args.write_protection:
       items += [(lambda: self.gooftool.VerifyWPSwitch() == None,
                  MakeLabel('Enable write protection pin',
