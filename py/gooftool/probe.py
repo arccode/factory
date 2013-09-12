@@ -507,6 +507,13 @@ def _ProbeCamera():
   camera_data = _ReadSysfsNodeId(camera_node)
   if camera_data:
     info.update(camera_data)
+  # Also check camera max packet size
+  camera_max_packet_size = _ReadSysfsFields(
+      os.path.join(camera_node, 'device', 'ep_82'),
+      ['wMaxPacketSize'])
+  # We do not want to override compact_str in info
+  if camera_max_packet_size:
+    info.update({'wMaxPacketSize': camera_max_packet_size['wMaxPacketSize']})
   # For SOC cameras
   camera_data_soc = _ReadSysfsFields(camera_node, ['device/control/name'])
   if camera_data_soc:
