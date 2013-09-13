@@ -15,7 +15,7 @@ _UDEV_ACTION_INSERT = 'add'
 _UDEV_ACTION_REMOVE = 'remove'
 
 
-class MediaMonitor():
+class MediaMonitor(object):
   """A wrapper to monitor media events.
 
   This class offers an easy way to monitor the insertion and removal
@@ -23,13 +23,17 @@ class MediaMonitor():
 
   Usage example:
     monitor = MediaMonitor()
-    monitor.start(on_insert=on_insert, on_remove=on_remove)
-    monitor.stop()
+    monitor.Start(on_insert=on_insert, on_remove=on_remove)
+    monitor.Stop()
   """
   def __init__(self):
+    self._monitor = None
     self._monitoring = False
+    self._observer = None
+    self.on_insert = None
+    self.on_remove = None
 
-  def udev_event_callback(self, _, action, device):
+  def _UdevEventCallback(self, _, action, device):
     if action == _UDEV_ACTION_INSERT:
       logging.info("Device inserted %s", device.device_node)
       self.on_insert(device.device_node)
@@ -37,29 +41,38 @@ class MediaMonitor():
       logging.info('Device removed : %s', device.device_node)
       self.on_remove(device.device_node)
 
-  def start(self, on_insert, on_remove):
+  def Start(self, on_insert, on_remove):
     if self._monitoring:
       raise Exception("Multiple start() call is not allowed")
     self.on_insert = on_insert
     self.on_remove = on_remove
     # Setup the media monitor,
     context = pyudev.Context()
-    self.monitor = pyudev.Monitor.from_netlink(context)
-    self.monitor.filter_by(subsystem='block', device_type='disk')
-    observer = pyudev.glib.GUDevMonitorObserver(self.monitor)
-    observer.connect('device-event', self.udev_event_callback)
+    self._monitor = pyudev.Monitor.from_netlink(context)
+    self._monitor.filter_by(subsystem='block', device_type='disk')
+    self._observer = pyudev.glib.GUDevMonitorObserver(self._monitor)
+    self._observer.connect('device-event', self._UdevEventCallback)
     self._monitoring = True
-    self._observer = observer
-    self.monitor.start()
+    self._monitor.start()
     logging.info("Monitoring media actitivity")
 
-  def stop(self):
+  def Stop(self):
     # TODO(itspeter) : Add stop functionality as soon as
     #                  pyudev.Monitor support it.
     self._monitoring = False
 
+  # TODO(littlecvr): Remove this wrapper as soon as CL:169470 "Change
+  #                  callers to match media_util's new API" got merged.
+  def start(self, on_insert, on_remove):
+    self.Start(on_insert, on_remove)
 
-class MountedMedia():
+  # TODO(littlecvr): Remove this wrapper as soon as CL:169470 "Change
+  #                  callers to match media_util's new API" got merged.
+  def stop(self):
+    self.Stop()
+
+
+class MountedMedia(object):
   """A context manager to automatically mount and unmount specified device.
 
   Usage example:
@@ -85,6 +98,7 @@ class MountedMedia():
         with open(os.path.join(path, 'test'), 'w') as f:
           f.write('test')
     """
+    self._mount_dir = None
     self._mounted = False
     if partition is None:
       self._dev_path = dev_path
@@ -104,34 +118,34 @@ class MountedMedia():
       self._dev_path = dev_path
 
   def __enter__(self):
-    self._mount_media()
-    return self.mount_dir
+    self._MountMedia()
+    return self._mount_dir
 
-  def __exit__(self, type, value, traceback):
+  def __exit__(self, exc_type, exc_value, traceback):
     if self._mounted:
-      self._umount_media()
+      self._UmountMedia()
 
-  def _mount_media(self):
+  def _MountMedia(self):
     """Mount a partition of media at temporary directory.
 
     Exceptions are throwed if anything goes wrong.
     """
     # Create an temporary mount directory to mount.
-    self.mount_dir = tempfile.mkdtemp(prefix='MountedMedia')
-    logging.info("Media mount directory created: %s", self.mount_dir)
+    self._mount_dir = tempfile.mkdtemp(prefix='MountedMedia')
+    logging.info("Media mount directory created: %s", self._mount_dir)
     exit_code, output = commands.getstatusoutput(
-        'mount %s %s' % (self._dev_path, self.mount_dir))
+        'mount %s %s' % (self._dev_path, self._mount_dir))
     if exit_code != 0:
-      shutil.rmtree(self.mount_dir)
+      shutil.rmtree(self._mount_dir)
       raise Exception("Failed to mount. Message-%s" % output)
     self._mounted = True
 
-  def _umount_media(self):
+  def _UmountMedia(self):
     """Umounts the partition of the media."""
     # Umount media and delete the temporary directory.
     exit_code, output = commands.getstatusoutput(
-        'umount %s' % self.mount_dir)
+        'umount %s' % self._mount_dir)
     if exit_code != 0:
       raise Exception("Failed to umount. Message-%s" % output)
-    shutil.rmtree(self.mount_dir)
+    shutil.rmtree(self._mount_dir)
     self._mounted = False

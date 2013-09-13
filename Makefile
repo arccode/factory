@@ -61,7 +61,6 @@ LINT_BLACKLIST=\
 	py/test/gooftools.py \
 	py/test/leds.py \
 	py/test/line_item_check.py \
-	py/test/media_util.py \
 	py/test/media_util_unittest.py \
 	py/test/pytests/execpython.py \
 	py/test/state_machine.py \
