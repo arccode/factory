@@ -63,7 +63,6 @@ LINT_BLACKLIST=\
 	py/test/line_item_check.py \
 	py/test/media_util_unittest.py \
 	py/test/pytests/execpython.py \
-	py/test/pytests/touchscreen_calibration.py \
 	py/test/state_machine.py \
 	py/test/state.py \
 	py/test/state_unittest.py \
