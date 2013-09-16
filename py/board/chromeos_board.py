@@ -179,27 +179,21 @@ class ChromeOSBoard(Board):
     except Exception as e:
       raise BoardException('Unable to get battery design capacity: %s' % e)
 
-  def SetLEDColor(self, color, led_index=0, brightness=100):
+  def SetLEDColor(self, color, led_name='battery', brightness=None):
     if color not in Board.LEDColor:
       raise ValueError('Invalid color')
-    if not isinstance(led_index, int):
-      raise TypeError('Invalid led_index')
-    if not isinstance(brightness, int):
+    if brightness is not None and not isinstance(brightness, int):
       raise TypeError('Invalid brightness')
-    if not (0 <= brightness <= 100):
+    if brightness is not None and not (0 <= brightness <= 100):
       raise ValueError('brightness out-of-range [0, 100]')
     try:
-      if color == Board.LEDColor.AUTO:
+      if color in [Board.LEDColor.AUTO, Board.LEDColor.OFF]:
         color_brightness = color.lower()
-      elif color == Board.LEDColor.OFF:
-        # This is a workaround. Currently ectool does not provide 'off'
-        # command. However, right now setting a color brightness implies
-        # other colors' brightness to zero. So 'red=0' is equivalent to
-        # turning off the LED.
-        color_brightness = 'red=0'
-      else:
+      elif brightness is not None:
         scaled_brightness = int(round(brightness / 100.0 * 255))
         color_brightness = '%s=%d' % (color.lower(), scaled_brightness)
-      self._CallECTool(['led', str(led_index), color_brightness])
+      else:
+        color_brightness = color.lower()
+      self._CallECTool(['led', led_name, color_brightness])
     except Exception as e:
       logging.exception('Unable to set LED color: %s', e)

@@ -209,12 +209,12 @@ class Board(object):
     """
     raise NotImplementedError
 
-  def SetLEDColor(self, color, led_index=0, brightness=100):
+  def SetLEDColor(self, color, led_name='battery', brightness=100):
     """Sets LED color.
 
     Args:
       color: LED color of type LEDColor enum.
-      led_index: target LED index.
+      led_name: target LED name.
       brightness: LED brightness in percentage [0, 100].
           If color is 'auto' or 'off', brightness is ignored.
     """
