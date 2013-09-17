@@ -257,7 +257,8 @@ class Minijack(object):
   def Destory(self):
     """Destorys Minijack."""
     logging.info('Stopping file scanner...')
-    self._file_scanner.Stop()
+    if self._file_scanner:
+      self._file_scanner.Stop()
     logging.info('Emptying all queues...')
     for queue in (self._event_blob_queue, self._event_stream_queue):
       if queue:
