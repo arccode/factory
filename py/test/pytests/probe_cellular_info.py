@@ -23,6 +23,9 @@ class ProbeCellularInfoTest(unittest.TestCase):
   ARGS = [
       Arg('probe_imei', bool, 'Whether to probe IMEI', True),
       Arg('probe_meid', bool, 'Whether to probe MEID', True),
+      Arg('probe_lte_imei', bool, 'Whether to probe IMEI on LTE modem', False),
+      Arg('probe_lte_iccid', bool, 'Whether to probe ICCID on LTE SIM card',
+          False),
       ]
 
   def runTest(self):
@@ -31,12 +34,15 @@ class ProbeCellularInfoTest(unittest.TestCase):
 
     data = {}
 
-    for name, enabled in (('imei', self.args.probe_imei),
-                          ('meid', self.args.probe_meid)):
+    for name, field, enabled in (
+        ('imei', 'imei', self.args.probe_imei),
+        ('meid', 'meid', self.args.probe_meid),
+        ('lte_imei', 'Imei', self.args.probe_lte_imei),
+        ('lte_iccid', 'SimIdentifier', self.args.probe_lte_iccid)):
       if not enabled:
         continue
 
-      match = re.search('^\s*' + name + ': (.+)', output, re.M | re.I)
+      match = re.search('^\s*' + field + ': (.+)', output, re.M | re.I)
       data[name] = match.group(1) if match else None
 
     Log('cellular_info', modem_status_stdout=output, **data)
