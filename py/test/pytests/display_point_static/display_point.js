@@ -204,7 +204,10 @@ function setupDisplayPointTest(container, arrayNumberPoint, pointSize) {
  */
 function judgeSubTest() {
   var text = document.getElementById("input_point_number");
-  window.displayPointTest.judgePoint(parseInt(text.value), 10);
+  // Only judge input we can parseInt properly
+  if (/^[0-9].*/.test(text.value.trim())) {
+    window.displayPointTest.judgePoint(parseInt(text.value), 10);
+  }
   text.value = "";
 }
 
