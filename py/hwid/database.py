@@ -732,16 +732,13 @@ class Components(object):
       if comp_attrs['values'] is None and values_dict is None:
         # Special handling for None values.
         results[comp_name] = copy.deepcopy(comp_attrs)
+      elif comp_attrs['values'] is None:
+        continue
       else:
         match = True
-        for key, value in values_dict.iteritems():
-          if comp_attrs['values'] is None:
-            match = False
-            break
-          elif key not in comp_attrs['values']:
-            # Only match the listed fields in 'values'.
-            continue
-          elif not comp_attrs['values'][key].Matches(value):
+        for key, value in comp_attrs['values'].iteritems():
+          # Only match the listed fields in 'values'.
+          if key not in values_dict or not value.Matches(values_dict[key]):
             match = False
             break
         if match:
