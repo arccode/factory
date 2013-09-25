@@ -119,6 +119,7 @@ class DUTEnvironment(Environment):
             '--ash-hide-notifications-for-factory',
             ('--default-device-scale-factor=%d' %
              self.goofy.options.ui_scale_factor)])
+        finder_options.CreateParser().parse_args(args=[])
         self.browser = browser_finder.FindBrowser(finder_options).Create()
         self.browser.Start()
         break
