@@ -1,5 +1,6 @@
 <h2>Touch screen calibration 觸控螢幕校正</h2>
 <br>
+
 <div id="main" style="width: 50%">
   <div>
     <span class="goofy-label-en">Please scan serial number</span>
@@ -8,58 +9,26 @@
   </div>
   <div id='display-area'>Display Area</div>
 </div>
+
 <div id="debug-panel" style="z-index: 10; position: absolute; right: 30;
     top: 30; border-style: solid; border-color: #555;">
-  <button onClick="test.sendTestEvent('read_debug', {})">
-    <span class="goofy-label-en">Read debug data</span>
-    <span class="goofy-label-zh">讀取除錯信息</span>
+  <button onClick="test.sendTestEvent('ReadTest', {})">
+    <span class="goofy-label-en">Read sensor data</span>
+    <span class="goofy-label-zh">手動讀取待測資料</span>
   </button>
   <br>
 
-  <div>
-    <button onClick="test.sendTestEvent('read_reg', {})">
-      <span class="goofy-label-en">Read register</span>
-      <span class="goofy-label-zh">讀取暫存器</span>
-    </button>
-    <button onClick="test.sendTestEvent('write_reg',
-                                        {'reg_data': getRegWrite()})">
-      <span class="goofy-label-en">Write register</span>
-      <span class="goofy-label-zh">寫入暫存器</span>
-    </button>
-    <input type="text" id="reg_data">
-  </div>
+  <button onClick="test.sendTestEvent('ProbeSelfTest')">
+    <span class="goofy-label-en">Probe self test</span>
+    <span class="goofy-label-zh">手動治具自我測試</span>
+  </button>
 
-  <div>
-    <button onClick="test.sendTestEvent('read_gpio', {})">
-      <span class="goofy-label-en">Read GPIO data</span>
-      <span class="goofy-label-zh">讀取GPIO信息</span>
-    </button>
-    <button onClick="test.sendTestEvent('write_gpio',
-                                        {'to_write': getWriteData()})">
-      <span class="goofy-label-en">Write GPIO data</span>
-      <span class="goofy-label-zh">寫入GPIO信息</span>
-    </button>
-    <input type="text" id="to_write">
-  </div>
-  <br>
-  <button onClick="test.sendTestEvent('probe_in')">
-    <span class="goofy-label-en">Probe in</span>
-    <span class="goofy-label-zh">治具內移</span>
-  </button>
-  <button onClick="test.sendTestEvent('probe_out')">
-    <span class="goofy-label-en">Probe out</span>
-    <span class="goofy-label-zh">治具外移</span>
-  </button>
-  <button onClick="test.sendTestEvent('probe_down')">
-    <span class="goofy-label-en">Probe down</span>
-    <span class="goofy-label-zh">治具下移</span>
-  </button>
   <div>
     <div>
       <span class="goofy-label-en">Controller status</span>
       <span class="goofy-label-zh">治具連結</span>
       <div id="controller-status" style="display:inline">N/A</div>
-      <button onClick="test.sendTestEvent('refresh_controller', {})">
+      <button onClick="test.sendTestEvent('RefreshFixture', {})">
         <span class="goofy-label-en">Refresh</span>
         <span class="goofy-label-zh">刷新</span>
       </button>
@@ -69,7 +38,7 @@
       <span class="goofy-label-en">Touchscreen status</span>
       <span class="goofy-label-zh">待測物連結</span>
       <div id="touchscreen-status" style="display:inline">N/A</div>
-      <button onClick="test.sendTestEvent('refresh_touchscreen', {})">
+      <button onClick="test.sendTestEvent('RefreshTouchscreen', {})">
         <span class="goofy-label-en">Refresh</span>
         <span class="goofy-label-zh">刷新</span>
       </button>

@@ -5,20 +5,19 @@
 
 import json
 import os
-import serial
 import subprocess
 import threading
 import time
 import unittest
 import StringIO
 
-from autotest_lib.client.cros.i2c import usb_to_i2c   # pylint: disable=F0401
+from collections import namedtuple
+
+from cros.factory.utils.serial_utils import FindTtyByDriver, SerialDevice
 from cros.factory.test import factory
 from cros.factory.test.media_util import MountedMedia
 from cros.factory.test.test_ui import UI
 
-
-_CONF_UPDATE_SCRIPT = '/opt/google/touch/config/chromeos-touch-config-update.sh'
 
 # Temporary file to store stdout for commands executed in this test.
 # Note that this file is to be examined only when needed, or just let it
@@ -27,11 +26,52 @@ _CONF_UPDATE_SCRIPT = '/opt/google/touch/config/chromeos-touch-config-update.sh'
 # server for future process and analyze when needed.
 _TMP_STDOUT = '/tmp/stdout.txt'
 
+ARDUINO_DRIVER = 'cdc_acm'
+
+
+ArduinoCommand = namedtuple('ArduinoCommand', ['DOWN', 'UP', 'STATE', 'RESET'])
+COMMAND = ArduinoCommand('d', 'u', 's', 'r')
+
+ArduinoState = namedtuple('ArduinoState', ['INIT', 'STOP_DOWN', 'STOP_UP',
+                                           'GOING_DOWN', 'GOING_UP'])
+STATE = ArduinoState('i', 'D', 'U', 'd', 'u')
+
 
 class DebugDataReader():
   """Communicates with the touchscreen on system."""
   def __init__(self):
     self.sysfs_entry = '/sys/bus/i2c/devices/2-004a/object'
+
+  def PreRead(self):
+    """Initialize some data before reading the raw sensor data.
+
+    The data here are highly platform dependent. The data here are for Link's
+    touchscreen. May need to tune them for distinct platforms.
+    """
+    # Disable passing touch event to upper layer. This is to prevent
+    # undesired action happen on UI when moving or touching the panel
+    # under test.
+    self.WriteSysfs('09000081')
+
+    # Baseline the sensors before lowering the test probes.
+    self.WriteSysfs('06000201')
+
+  def PostRead(self):
+    """Clean up after reading the raw sensor data.
+
+    The data here are highly platform dependent. The data here are for Link's
+    touchscreen. May need to tune them for distinct platforms.
+    """
+    # To indicate units are from DVT build, so config updater chooses
+    # the correct raw file.
+    self.WriteSysfs('26000002')
+
+    # Correct the possibly corrupted 'report interval' value in FW config.
+    self.WriteSysfs('070000FF')
+    self.WriteSysfs('070001FF')
+
+    # Let firmware backup settings to NV storage.
+    self.WriteSysfs('06000155')
 
   def CheckStatus(self):
     """Checks if the touchscreen sysfs object is present.
@@ -81,282 +121,103 @@ class DebugDataReader():
     return out_data
 
 
-class ControllerException(Exception):
-  """A dummy exception class for SafeSerialController."""
+class FixtureException(Exception):
+  """A dummy exception class for FixutreSerialDevice."""
   pass
 
 
-class SafeSerialController:
-  """A wrapper class for I2CControllerSC18IM700.
+class FixutreSerialDevice(SerialDevice):
+  """A serial device to control touchscreen fixture."""
 
-  SafeSerialController handles unexpected exceptions from
-  I2CControllerSC18IM700 with recreate delegate controller and put
-  sleeps in between commands to prevent errors.
-  """
-  def __init__(self):
-    self._delegate = None
-    self.CreateDelegate()
+  def __init__(self, timeout=10):
+    super(FixutreSerialDevice, self).__init__()
+    self.Connect(port=FindTtyByDriver(ARDUINO_DRIVER), timeout=timeout)
 
-  def CreateDelegate(self):
-    """Creates an I2C controller instance."""
-    self._delegate = usb_to_i2c.create_i2c_controller('SC18IM700:pl2303')
-    factory.console.info('tty_path: %s' % self._delegate.device_path)
-    self._delegate.write_register([0x02, 0x03],
-                                  [int('0x96', 16), int('0x55', 16)])
+    factory.console.info('Sleep 2 seconds for arduino initialization.')
+    time.sleep(2)
+    self.AssertState(STATE.INIT)
 
-  def Sleep(self):
-    """Sleeps for a while."""
-    time.sleep(0.2)
+  def QueryState(self):
+    """Queries the state of the arduino board."""
+    try:
+      state = self.SendReceive(COMMAND.STATE)
+    except Exception:
+      raise FixtureException('QueryState failed.')
 
-  def WriteRegister(self, data):
-    """Writes to the registers.
+    return state
 
-    Args:
-      data: the data to be written to the register
-    """
-    # According to SC18IM700 data sheet.
-    #
-    # Register bits
-    # 0x02: GPIO3.1 GPIO3.0 GPIO2.1 GPIO2.0 GPIO1.1 GPIO1.0 GPIO0.1 GPIO0.0
-    # 0x03: GPIO7.1 GPIO7.0 GPIO6.1 GPIO6.0 GPIO5.1 GPIO5.0 GPIO4.1 GPIO4.0
-    #
-    # GPIOx.1 GPIOx.0
-    # 0       0       quasi-bidirectional output conﬁguration
-    # 0       1       input-only conﬁguration
-    # 1       0       push-pull output conﬁguration
-    # 1       1       open-drain output conﬁguration
-    assert len(data) == 2
-    retry = 0
-    while retry < 2:
-      self.Sleep()
-      try:
-        self._delegate.write_register([0x02, 0x03], data)
-        self.Sleep()
-        if data != [ord(ch) for ch in
-              self._delegate.read_register([0x02, 0x03])]:
-          raise serial.serialutil.SerialException()
-        return
-      except serial.serialutil.SerialException as e:
-        factory.console.info(e)
-        self.Sleep()
-        self.CreateDelegate()
-        retry += 1
-    raise ControllerException('Write register fail')
+  def IsStateUp(self):
+    """Checks if the fixture is in the INIT or STOP_UP state."""
+    return (self.QueryState() in [STATE.INIT, STATE.STOP_UP])
 
-  def ReadRegister(self):
-    """Reads the register value.
+  def AssertState(self, expected_state):
+    """Confirms that the arduino is in the specified state."""
+    actual_state = self.QueryState()
+    if actual_state != expected_state:
+      msg = 'AssertState failed: actual state: "%s", expected_state: "%s".'
+      raise FixtureException(msg % (actual_state, expected_state))
 
-    Returns:
-      the register data
-    """
-    retry = 0
-    while retry < 2:
-      self.Sleep()
-      try:
-        data = self._delegate.read_register([0x02, 0x03])
-        if len(data) != 2:
-          raise serial.serialutil.SerialException()
-        return data
-      except serial.serialutil.SerialException as e:
-        factory.console.info(e)
-        self.Sleep()
-        self.CreateDelegate()
-        retry += 1
-    raise ControllerException('Read register fail')
+  def DriveProbeDown(self):
+    """Drives the probe to the 'down' position."""
+    try:
+      response = self.SendReceive(COMMAND.DOWN)
+      factory.console.info('Send COMMAND.DOWN(%s). Receive state(%s).' %
+                           (COMMAND.DOWN, response))
+    except Exception:
+      raise FixtureException('DriveProbeDown failed.')
 
-  def WriteGpio(self, data):
-    """Writes the data to GPIO.
+    self.AssertState(STATE.STOP_DOWN)
 
-    Args:
-      data: the data to be written to GPIO
-    """
-    retry = 0
-    while retry < 2:
-      self.Sleep()
-      try:
-        self._delegate.write_gpio(data)
-        return
-      except serial.serialutil.SerialException as e:
-        factory.console.info(e)
-        self.Sleep()
-        self.CreateDelegate()
-        retry += 1
-    raise ControllerException('Write gpio fail')
+  def DriveProbeUp(self):
+    """Drives the probe to the 'up' position."""
+    try:
+      response = self.SendReceive(COMMAND.UP)
+      factory.console.info('Send COMMAND.UP(%s). Receive state(%s).' %
+                           (COMMAND.UP, response))
+    except Exception:
+      raise FixtureException('DriveProbeUp failed.')
 
-  def ReadGpio(self):
-    """Reads GPIO values.
-
-    Returns:
-      the data read from GPIO
-    """
-    retry = 0
-    while retry < 2:
-      self.Sleep()
-      try:
-        data = self._delegate.read_gpio()
-        if len(data) != 1:
-          raise serial.serialutil.SerialException()
-        return ord(data)
-      except serial.serialutil.SerialException as e:
-        factory.console.info(e)
-        self.Sleep()
-        self.CreateDelegate()
-        retry += 1
-    raise ControllerException('Read gpio fail')
+    self.AssertState(STATE.STOP_UP)
 
 
 class TouchscreenCalibration(unittest.TestCase):
-  """Handles the calibration and the sensing and actuation of the controller."""
+  """Handles the calibration and controls the test fixture."""
   version = 1
 
   def setUp(self):
     """Sets up the object."""
     self._calibration_thread = None
-    self.controller = None
+    self.fixture = None
     self.dev_path = None
     self.dump_frames = None
-    self.log_to_file = None
     self.reader = DebugDataReader()
     self.ui = UI()
 
-  def WriteReg(self, event):
-    """A wrapper for writing to the registers.
+  def _AlertFixtureDisconnected(self):
+    """Alerts that the fixture is disconnected."""
+    self.ui.CallJSFunction('showMessage',
+                           'Disconnected from controller\n'
+                           '与治具失去联系')
+    self.ui.CallJSFunction('setControllerStatus', self.fixture is not None)
 
-    Args:
-      event: the event to be written to the register
-    """
-    reg_data = event.data.get('reg_data', None)
-    assert reg_data is not None
-    reg_data = [int(s, 16) for s in reg_data.split(',')]
-    assert len(reg_data) == 2
+  def _CheckFixtureConnection(self):
+    """Check if the fixture is still connected."""
+    if not self.fixture:
+      self._AlertFixtureDisconnected()
+      raise FixtureException('Fixture disconnected.')
 
-    for i in range(2):
-      factory.console.info('Reg data %d: %s' % (i, bin(reg_data[i])))
-    self.controller.WriteRegister(reg_data)
+  def _CheckFixtureStateUp(self):
+    """Check if the fixture probe is in the UP state."""
+    self._CheckFixtureConnection()
 
-  def ReadReg(self, dummy_event):
-    """A wrapper for reading the registers."""
-    data = self.controller.ReadRegister()
-    data = [ord(char) for char in data]
-    factory.console.info('Get register data: %s' % [bin(d) for d in data])
-
-    self.ui.CallJSFunction('showMessage', json.dumps(data))
-
-  def WriteGpio(self, event):
-    """A wrapper for writing the event data to GPIO.
-
-    Args:
-      event: the event to be written to the register
-    """
-    # GPIO pin definations
-    # IO0 In/out control
-    # IO1 In sensor
-    # IO2 Out sensor
-    # IO3 Up/down control
-    # IO4 Up sensor
-    # IO5 Down sensor
-    to_write = event.data.get('to_write', None)
-    assert to_write is not None
-    to_write = int(to_write, 16)
-    factory.console.info('To write: %d' % to_write)
-    self.controller.WriteGpio(to_write)
-
-  def ReadGpio(self, dummy_event):
-    """A wrapper for reading GPIO values."""
-    if self.controller:
-      data = self.controller.ReadGpio()
-      factory.console.info('Get data %s' % bin(data))
-      self.ui.CallJSFunction('showMessage', data)
-    else:
-      factory.console.info('No controller found')
-
-  def _IsProbeIn(self):
-    """Is the probe at the 'in' position?
-
-    Returns:
-      True if GPIO pin 1 is low
-    """
-    data = self.controller.ReadGpio()
-    return (data & 2 == 0)
-
-  def _IsProbeOut(self):
-    """Is the probe at the 'out' position?
-
-    Returns:
-      True if GPIO pin 2 is low
-    """
-    data = self.controller.ReadGpio()
-    return (data & 4 == 0)
-
-  def _IsProbeUp(self):
-    """Is the probe at the 'up' position?
-
-    Returns:
-      True if GPIO pin 4 is low
-    """
-    data = self.controller.ReadGpio()
-    return (data & 16 == 0)
-
-  def _IsProbeDown(self):
-    """Is the probe at the 'down' position?
-
-    Returns:
-      True if GPIO pin 5 is low
-    """
-    data = self.controller.ReadGpio()
-    return (data & 32 == 0)
-
-  def ProbeIn(self, *dummy_args):
-    """Moves the probe to the 'in' position."""
-    if not self._IsProbeOut():
+    if not self.fixture.IsStateUp():
       self.ui.CallJSFunction('showMessage',
-                             'Probe is not in correct position\n'
-                             '治具未就位')
-      return
-    self.controller.WriteGpio(int('0b000000', 2))
-    counter = 0
-    while not self._IsProbeIn():
-      time.sleep(2)
-      counter += 1
-      if counter > 10:
-        self.ui.CallJSFunction('showMessage',
-                               'Timeout - Probe not in correct position\n'
-                               '超时 - 治具未就位')
-        return
+                             'Probe not in initial position, aborted\n'
+                             '治具未就原位, 捨棄')
+      raise FixtureException('Fixture not in UP position.')
 
-  def ProbeOut(self, *dummy_args):
-    """Moves the probe to the 'out' position."""
-    self.controller.WriteGpio(int('0b000001', 2))
-    counter = 0
-    while (not self._IsProbeOut() or not self._IsProbeUp()):
-      time.sleep(2)
-      counter += 1
-      if counter > 10:
-        self.ui.CallJSFunction('showMessage',
-                               'Timeout - Probe not in correct position\n'
-                               '超时 - 治具未就位')
-        return
-
-  def ProbeDown(self, *dummy_args):
-    """Moves the probe to the 'down' position."""
-    if not self._IsProbeOut():
-      self.ui.CallJSFunction('showMessage',
-                             'Probe is not in correct position\n'
-                             '治具未就位')
-      return
-    self.controller.WriteGpio(int('0b001001', 2))
-    counter = 0
-    while not self._IsProbeDown():
-      time.sleep(2)
-      counter += 1
-      if counter > 10:
-        self.ui.CallJSFunction('showMessage',
-                               'Timeout - Probe not in correct position\n'
-                               '超时 - 置具未就位')
-        return
-
-  def ReadDebug(self, dummy_event):
-    """Reads debug information."""
+  def ReadTest(self, dummy_event):
+    """Reads the raw sensor data.."""
     if self.reader:
       data = self.reader.Read(delta=True)
       factory.console.info('Get data %s' % data)
@@ -365,17 +226,22 @@ class TouchscreenCalibration(unittest.TestCase):
     else:
       factory.console.info('No reader found')
 
-  def RefreshController(self, dummy_event):
-    """Refreshes the controller status."""
+  def ProbeSelfTest(self, dummy_event):
+    """Execute the probe self test to confirm the fixture works properly."""
+    self._CheckFixtureStateUp()
+    self._DriveProbeDown()
+    self._DriveProbeUp()
+
+  def RefreshFixture(self, dummy_event):
+    """Refreshes the fixture."""
     try:
-      self.controller = SafeSerialController()
-      reg_data = self.controller.ReadRegister()
-      if len(reg_data) != 2:
-        raise serial.serialutil.SerialException()
+      self.fixture = FixutreSerialDevice(timeout=10)
+      if not self.fixture:
+        raise FixtureException('Fail to create the fixture serial device.')
     except Exception as e:
-      factory.console.info('Create controller exception, %s' % e)
-      self.controller = None
-    self.ui.CallJSFunction('setControllerStatus', self.controller is not None)
+      factory.console.info('Refresh fixture serial device exception, %s' % e)
+      self.fixture = None
+    self.ui.CallJSFunction('setControllerStatus', self.fixture is not None)
 
   def RefreshTouchscreen(self, dummy_event):
     """Refreshes all possible saved state for the old touchscreen.
@@ -387,10 +253,12 @@ class TouchscreenCalibration(unittest.TestCase):
     """
     os.system('rmmod atmel_mxt_ts')
     os.system('modprobe atmel_mxt_ts')
+    CONF_UPDATE_SCRIPT = ('/opt/google/touch/scripts/'
+                          'chromeos-touch-config-update.sh')
 
     # Update touch-config
     with open(_TMP_STDOUT, 'w') as fd:
-      subprocess.call(_CONF_UPDATE_SCRIPT, stdout=fd)
+      subprocess.call(CONF_UPDATE_SCRIPT, stdout=fd)
 
     try:
       if self.reader.CheckStatus():
@@ -401,19 +269,127 @@ class TouchscreenCalibration(unittest.TestCase):
       factory.console.info('Exception at refreshing touch screen: %s' % e)
     self.ui.CallJSFunction('setTouchscreenStatus', False)
 
-  def _RegisterEvents(self, events):
-    """Adds event handlers for various events.
+  def _DriveProbeDown(self):
+    """A wrapper to drive the probe down."""
+    try:
+      self.fixture.DriveProbeDown()
+    except Exception as e:
+      self.ui.CallJSFunction('showMessage',
+                             'Probe not in the DOWN position, aborted\n'
+                             '治具未就下位, 捨棄')
+      raise e
+
+  def _DriveProbeUp(self):
+    """A wrapper to drive the probe up."""
+    try:
+      self.fixture.DriveProbeUp()
+    except Exception as e:
+      self.ui.CallJSFunction('showMessage',
+                             'Probe not in the UP position, aborted\n'
+                             '治具未就上位, 捨棄')
+      raise e
+
+  def _DumpOneFrameToLog(self, logger):
+    """Dumps one frame to log.
 
     Args:
-      events: the events to be registered in the UI
+      logger: the log object
     """
-    for event in events:
-      assert hasattr(self, event)
-      factory.console.info('Registered event %s' % event)
-      self.ui.AddEventHandler(event, getattr(self, event))
+    data = self.reader.Read(delta=True)
+    logger.write('Dump one frame:\n')
+    for row in data:
+      logger.write(' '.join([str(val) for val in row]))
+      logger.write('\n')
+
+  def _WriteLog(self, filename, content):
+    """Writes the content to the file and display the message in the log.
+
+    Args:
+      filename: the name of the file to write the content to
+      content: the content to be written to the file
+    """
+    with MountedMedia(self.dev_path, 1) as mount_dir:
+      with open(os.path.join(mount_dir, filename), 'a') as f:
+        f.write(content)
+    factory.console.info('Log wrote with filename[ %s ].' % filename)
+
+  def _WriteSensorDataToFile(self, logger, sn, test_pass, data):
+    """Writes the sensor data and the test result to a file."""
+    logger.write('%s %s\n' % (sn, 'Pass' if test_pass else 'Fail'))
+    for row in data:
+      logger.write(' '.join([str(val) for val in row]))
+      logger.write('\n')
+    self._WriteLog(sn, logger.getvalue())
+
+  def _VerifySensorData(self, data):
+    """Determines whether the sensor data is good or not."""
+    # Sensor thresholds are determined by eyes usually from previous build data.
+    DELTA_LOWER_BOUND = 300
+    DELTA_HIGHER_BOUND = 1900
+
+    test_pass = True
+    row_num = 0
+    for row in data:
+      if row_num == 0:
+        m = row[26]
+        row_num = 1
+      else:
+        m = row[25]
+        row_num = 0
+      if (m < DELTA_LOWER_BOUND or m > DELTA_HIGHER_BOUND):
+        factory.console.info('  Fail at row %s value %d' % (row, m))
+        test_pass = False
+
+    return test_pass
+
+  def _Calibrate(self, sn):
+    """The actual calibration method.
+
+    Args:
+      sn: the serial number of the touchscreen under test
+    """
+    self._CheckFixtureStateUp()
+
+    try:
+      factory.console.info('Start calibrating SN %s' % sn)
+      log_to_file = StringIO.StringIO()
+
+      self.reader.PreRead()
+
+      # Dump whole frame a few times before probe touches panel.
+      for f in range(self.dump_frames):           # pylint: disable=W0612
+        self._DumpOneFrameToLog(log_to_file)
+        time.sleep(0.1)
+
+      self._DriveProbeDown()
+
+      data = self.reader.Read(delta=True)
+      factory.console.info('Get data %s' % data)
+
+      # Verifies whether the sensor data is good or not.
+      test_pass = self._VerifySensorData(data)
+
+      # Write the sensor data and the test result to a file and on the UI.
+      self._WriteSensorDataToFile(log_to_file, sn, test_pass, data)
+      self.ui.CallJSFunction('displayDebugData', json.dumps(data))
+
+      self._DriveProbeUp()
+
+      self.reader.PostRead()
+
+      self.ui.CallJSFunction('showMessage',
+                             'OK 測試完成' if test_pass else 'NO GOOD 測試失敗')
+
+    except Exception as e:
+      if not self.fixture:
+        self._AlertFixtureDisconnected()
+      raise e
 
   def StartCalibration(self, event):
     """Starts the calibration thread.
+
+    This method is invoked by snEntered() in touchscreen_calibration.js
+    after the serial number has been entered.
 
     Args:
       event: the event that triggers this callback function
@@ -432,133 +408,20 @@ class TouchscreenCalibration(unittest.TestCase):
       self.ui.CallJSFunction('displayDebugData', '[]')
       return
 
-    self._calibration_thread = threading.Thread(target=self.Calibrate,
+    self._calibration_thread = threading.Thread(target=self._Calibrate,
                                                 args=[sn])
     self._calibration_thread.start()
 
-  def DumpOneFrameToLog(self, logger):
-    """Dumps one frame to log.
+  def _RegisterEvents(self, events):
+    """Adds event handlers for various events.
 
     Args:
-      logger: the log object
+      events: the events to be registered in the UI
     """
-    data = self.reader.Read(delta=True)
-    logger.write('Dump one frame:\n')
-    for row in data:
-      logger.write(' '.join([str(val) for val in row]))
-      logger.write('\n')
-
-  def Calibrate(self, sn):
-    """The actual calibration method.
-
-    Args:
-      sn: the serial number of the touchscreen under test
-    """
-    if self.controller is None:
-      self.AlertControllerDisconnected()
-      return
-
-    if not self._IsProbeIn():
-      self.ui.CallJSFunction('showMessage',
-                             'Probe not in position, aborted\n'
-                             '治具未就位, 捨棄')
-      return
-
-    try:
-      # Disable passing touch event to upper layer. This is to prevent
-      # undesired action happen on UI when moving or touching the panel
-      # under test.
-      self.reader.WriteSysfs('09000081')
-
-      factory.console.info('Start calibrate SN %s' % sn)
-      self.log_to_file = StringIO.StringIO()
-
-      # Baseline the sensors before lowering the test probes.
-      self.reader.WriteSysfs('06000201')
-
-      # Dump whole frame a few times before probe touches panel.
-      for f in range(self.dump_frames):           # pylint: disable=W0612
-        self.DumpOneFrameToLog(self.log_to_file)
-        time.sleep(0.1)
-
-      self.ProbeOut()
-      self.ProbeDown()
-      time.sleep(2)
-
-      data = self.reader.Read(delta=True)
-      factory.console.info('Get data %s' % data)
-
-      # The main logic to determine sensor data is good or not.
-      test_pass = True
-
-      row_num = 0
-      for row in data:
-        if row_num == 0:
-          m = row[26]
-          row_num = 1
-        else:
-          m = row[25]
-          row_num = 0
-        # Sensor threshold is derived from previous build data.
-        if (m < 300 or m > 1900):
-          factory.console.info('Fail at row %s value %d' % (row, m))
-          test_pass = False
-
-
-      # Write log
-      self.log_to_file.write('%s %s\n' % (sn, 'Pass' if test_pass else 'Fail'))
-      for row in data:
-        self.log_to_file.write(' '.join([str(val) for val in row]))
-        self.log_to_file.write('\n')
-      self.WriteLog(sn, self.log_to_file.getvalue())
-
-      data = json.dumps(data)
-      self.ui.CallJSFunction('displayDebugData', data)
-      time.sleep(2)
-
-      self.ProbeOut()
-      self.ProbeIn()
-
-      # To indicate units are from DVT build, so config updater chooses
-      # the correct raw file.
-      self.reader.WriteSysfs('26000002')
-
-      # Correct the possibly corrupted 'report interval' value in
-      # FW config.
-      self.reader.WriteSysfs('070000FF')
-      self.reader.WriteSysfs('070001FF')
-
-      # Let firmware backup settings to NV storage.
-      self.reader.WriteSysfs('06000155')
-
-      if test_pass:
-        self.ui.CallJSFunction('showMessage', 'OK 測試完成')
-      else:
-        self.ui.CallJSFunction('showMessage', 'NO GOOD 測試失敗')
-
-    except Exception as e:
-      self.controller = None
-      self.AlertControllerDisconnected()
-      raise e
-
-  def AlertControllerDisconnected(self):
-    """Alerts that the controller is disconnected."""
-    self.ui.CallJSFunction('showMessage',
-                           'Disconnected from controller\n'
-                           '与治具失去联系')
-    self.ui.CallJSFunction('setControllerStatus', self.controller is not None)
-
-  def WriteLog(self, filename, content):
-    """Writes the content to the file and display the message in the log.
-
-    Args:
-      filename: the name of the file to write the content to
-      content: the content to be written to the file
-    """
-    with MountedMedia(self.dev_path, 1) as mount_dir:
-      with open(os.path.join(mount_dir, filename), 'a') as f:
-        f.write(content)
-    factory.console.info('Log wrote with filename[ %s ].' % filename)
+    for event in events:
+      assert hasattr(self, event)
+      factory.console.info('Registered event %s' % event)
+      self.ui.AddEventHandler(event, getattr(self, event))
 
   def runTest(self, dev_path=None, dump_frames=10):
     """The entry method of the test.
@@ -573,10 +436,13 @@ class TouchscreenCalibration(unittest.TestCase):
 
     self.dev_path = dev_path
     self.dump_frames = dump_frames
-    self.log_to_file = StringIO.StringIO()
 
-    self._RegisterEvents(['ReadDebug', 'ReadGpio', 'WriteGpio',
-                          'ReadReg', 'WriteReg', 'RefreshController',
-                          'RefreshTouchscreen', 'StartCalibration',
-                          'ProbeIn', 'ProbeOut', 'ProbeDown'])
+    self._RegisterEvents([
+      # Events that are emitted from buttons on the factory UI.
+      'ReadTest', 'RefreshFixture', 'RefreshTouchscreen', 'StartCalibration',
+
+      # Events that are emitted from other callback functions.
+      'ProbeSelfTest',
+    ])
+
     self.ui.Run()

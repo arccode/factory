@@ -23,7 +23,7 @@ function snEntered(event) {
   if (event.keyCode == 13) {
     var sn = document.getElementById('sn').value;
     if (sn.length > 0) {
-      test.sendTestEvent('start_calibration',
+      test.sendTestEvent('StartCalibration',
           {'sn': document.getElementById('sn').value});
       document.getElementById('sn').value = "";
       document.getElementById('display-area').innerHTML = "";
@@ -34,8 +34,8 @@ function snEntered(event) {
 }
 
 function init() {
-  test.sendTestEvent('refresh_controller', {});
-  test.sendTestEvent('refresh_touchscreen', {});
+  test.sendTestEvent('RefreshFixture', {});
+  test.sendTestEvent('RefreshTouchscreen', {});
 }
 
 function displayDebugData(data) {
@@ -95,16 +95,6 @@ function heatMap(val) {
 
 function showMessage(data) {
   alert(data);
-}
-
-function getWriteData() {
-  elm = document.getElementById('to_write');
-  return elm.value;
-}
-
-function getRegWrite() {
-  elm = document.getElementById('reg_data');
-  return elm.value;
 }
 
 function setControllerStatus(status) {
