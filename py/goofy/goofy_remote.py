@@ -41,7 +41,8 @@ def GetBoard(host):
 
 
 def SyncTestList(host, board, test_list,
-                 clear_factory_environment, clear_password, shopfloor_host):
+                 clear_factory_environment, clear_password,
+                 shopfloor_host, shopfloor_port):
   # Uses dash in board name for overlay directory name
   board_dash = board.replace('_', '-')
 
@@ -76,8 +77,8 @@ def SyncTestList(host, board, test_list,
   if clear_password:
     test_list_data += '\noptions.engineering_password_sha1 = None\n'
   if shopfloor_host:
-    test_list_data += '\noptions.shopfloor_server_url = "http://%s:8082/"\n' % (
-        shopfloor_host)
+    test_list_data += '\noptions.shopfloor_server_url = "http://%s:%d/"\n' % (
+        shopfloor_host, shopfloor_port)
 
   if old_test_list_data != test_list_data:
     tmp_test_list = tempfile.NamedTemporaryFile(prefix='test_list.', bufsize=0)
@@ -133,7 +134,7 @@ def TweakTestLists(args):
 
           # Keep everything but the value in the original string;
           # replace that with new_value.
-          r'\1' + repr(new_value),
+          lambda match_obj: match_obj.group(1) + repr(new_value),
           string,
           flags=re.MULTILINE)
 
@@ -144,6 +145,8 @@ def TweakTestLists(args):
       new_data = SubLine('engineering_password_sha1', None, new_data)
     if args.shopfloor_host:
       new_data = SubLine('shop_floor_host', args.shopfloor_host, new_data)
+    if args.shopfloor_port:
+      new_data = SubLine('shop_floor_port', args.shopfloor_port, new_data)
 
     # Write out the file if anything has changed.
     if new_data != data:
@@ -167,6 +170,8 @@ def main():
                       help='remove password from test_list')
   parser.add_argument('-s', dest='shopfloor_host',
                       help='set shopfloor host')
+  parser.add_argument('--shopfloor_port', dest='shopfloor_port', type=int,
+                      default=8082, help='set shopfloor port')
   parser.add_argument('--board', '-b', dest='board',
                       help='board to use (default: auto-detect')
   parser.add_argument('--autotest', dest='autotest', action='store_true',
@@ -249,7 +254,7 @@ def main():
 
   SyncTestList(args.host, board, args.test_list,
                args.clear_factory_environment, args.clear_password,
-               args.shopfloor_host)
+               args.shopfloor_host, args.shopfloor_port)
 
   # Call goofy_remote on the remote host, allowing it to tweak test lists.
   Spawn(ssh_command +
