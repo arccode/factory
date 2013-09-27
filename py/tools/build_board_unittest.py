@@ -29,11 +29,6 @@ class BuildBoardTest(unittest.TestCase):
              short_name='link',
              overlay_relpath='private-overlays/overlay-link-private'),
         BuildBoard('link').__dict__)
-    self.assertDictContainsSubset(
-        dict(base='tegra2', variant='seaboard', full_name='tegra2_seaboard',
-             short_name='seaboard',
-             overlay_relpath='overlays/overlay-variant-tegra2-seaboard'),
-        BuildBoard('seaboard').__dict__)
 
     self.assertRaisesRegexp(BuildBoardException, 'Unknown board',
                             BuildBoard, 'notarealboard')
