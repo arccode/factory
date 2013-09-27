@@ -21,6 +21,7 @@ import logging
 import os
 import re
 import sys
+import time
 
 from array import array
 from glob import glob
@@ -36,6 +37,7 @@ from cros.factory.gooftool import crosfw
 from cros.factory.gooftool import vblock
 # pylint: disable=E0611
 from cros.factory.hwdb.hwid_tool import ProbeResults, COMPACT_PROBE_STR
+from cros.factory.test import factory
 
 try:
   sys.path.append('/usr/local/lib/flimflam/test')
@@ -548,6 +550,25 @@ def _ProbeCellular():
         full_fw_string.append(fw_string)
       data[0]['firmwares'] = ', '.join(full_fw_string)
       data[0]['active_firmware'] = str(_GobiDevices.ActiveFirmware())
+
+    modem_utils = os.path.join(factory.FACTORY_PATH, 'py', 'board',
+                               'modem_utils.py')
+    if os.path.exists(modem_utils):
+      try:
+        Shell('stop modemmanager')
+        # Sleep 2 seconds to wait modem shutdown as there's no event we can
+        # watch for.
+        time.sleep(2)
+        version_output = Shell(modem_utils + ' get_version')
+        if not version_output.status:
+          for (key, pattern) in (
+              ('mac_package_version', r'MAC Package Version: (\w+)'),
+              ('hlrd_revision', r'HLRD Revision: (\w+)')):
+            match = re.search(pattern, version_output.stdout)
+            if match:
+              data[0][key] = match.group(1)
+      finally:
+        Shell('start modemmanager')
   return data
 
 
