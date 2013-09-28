@@ -13,6 +13,7 @@ import threading
 import unittest
 
 from cros.factory.test.args import Arg
+from cros.factory.test.event import Event
 from cros.factory.test.test_ui import Escape, MakeLabel, UI
 from cros.factory.test.ui_templates import OneScrollableSection
 from cros.factory.utils.process_utils import Spawn
@@ -65,6 +66,10 @@ class UpdateFirmwareTest(unittest.TestCase):
     for line in iter(p.stdout.readline, ''):
       logging.info(line.strip())
       self._template.SetState(Escape(line), append=True)
+
+    # Updates system info so EC and Firmware version in system info box
+    # are correct.
+    self._ui.event_client.post_event(Event(Event.Type.UPDATE_SYSTEM_INFO))
 
     if p.poll() != 0:
       self._ui.Fail('Firmware update failed: %d.' % p.returncode)
