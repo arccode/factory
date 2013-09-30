@@ -75,3 +75,19 @@ found_probe_value_map:
 found_volatile_values: {}
 initial_configs: {}
 missing_component_classes: []
+---
+# test loose matching for storage
+found_probe_value_map:
+  storage:
+    size: 500G
+found_volatile_values: {}
+initial_configs: {}
+missing_component_classes: []
+---
+# test loose matching with invalid probe results
+found_probe_value_map:
+  storage:
+    foo: bar
+found_volatile_values: {}
+initial_configs: {}
+missing_component_classes: []

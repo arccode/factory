@@ -590,7 +590,8 @@ class Gooftool(object):
       yaml_probe_results = self._probe(
           target_comp_classes=component_list, fast_fw_probe=fast_fw_probe,
           probe_volatile=False, probe_initial_config=False).Encode()
-    return self.db.VerifyComponents(yaml_probe_results, component_list)
+    return self.db.VerifyComponents(yaml_probe_results, component_list,
+                                    loose_matching=True)
 
   def GenerateHwidV3(self, device_info=None, probe_results=None,
                      probed_ro_vpd=None, probed_rw_vpd=None,

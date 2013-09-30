@@ -366,6 +366,20 @@ class DatabaseTest(unittest2.TestCase):
              "{ 'serial': '#1234aa', 'size': '16G', 'type': 'SSD'} "
              "(no matching name in the component DB)")]},
         self.database.VerifyComponents(self.results[2], ['storage']))
+    self.assertEquals({
+        'storage': [
+            ('storage_2', {'type': Value('HDD'), 'size': Value('500G'),
+                           'serial': Value(r'^#123\d+$', is_re=True)},
+             None)]},
+        self.database.VerifyComponents(self.results[3], ['storage'],
+                                       loose_matching=True))
+    self.assertEquals({
+        'storage': [
+            (None, {'foo': 'bar'},
+             "Invalid 'storage' component found with probe result "
+             "{ 'foo': 'bar'} (no matching name in the component DB)")]},
+        self.database.VerifyComponents(self.results[4], ['storage'],
+                                       loose_matching=True))
 
 
 class PatternTest(unittest2.TestCase):

@@ -133,13 +133,19 @@ class Database(object):
                     Components(db_yaml['components']),
                     Rules(db_yaml['rules']))
 
-  def ProbeResultToBOM(self, probe_result):
+  def ProbeResultToBOM(self, probe_result, loose_matching=False):
     """Parses the given probe result into a BOM object. Each component is
     represented by its corresponding encoded index in the database.
 
     Args:
       probe_result: A YAML string of the probe result, which is usually the
           output of the probe command.
+      loose_matching: If set to True, partial match of probed results will be
+          accepted.  For example, if the probed results only contain the
+          firmware version of RO main firmware but not its hash, and we want to
+          know if the firmware version is supported, then we can enable
+          loose_matching to see if the firmware version is supported in the
+          database.
 
     Returns:
       A BOM object.
@@ -175,7 +181,7 @@ class Database(object):
                     common.UNPROBEABLE_COMPONENT_ERROR(comp_cls)))
             continue
           matched_comps = self.components.MatchComponentsFromValues(
-              comp_cls, probed_value)
+              comp_cls, probed_value, loose_matching)
           if matched_comps is None:
             probed_components[comp_cls].append(common.ProbedComponentResult(
                 None, probed_value,
@@ -460,7 +466,8 @@ class Database(object):
       raise common.HWIDException('Encoded fields %r have unknown indices' %
                           ', '.join(sorted(invalid_fields)))
 
-  def VerifyComponents(self, probe_result, comp_list=None):
+  def VerifyComponents(self, probe_result, comp_list=None,
+                       loose_matching=False):
     """Given a list of component classes, verify that the probed components of
     all the component classes in the list are valid components in the database.
 
@@ -470,6 +477,12 @@ class Database(object):
       comp_list: An optional list of component class to be verified. Defaults to
           None, which will then verify all the probeable components defined in
           the database.
+      loose_matching: If set to True, partial match of probed results will be
+          accepted.  For example, if the probed results only contain the
+          firmware version of RO main firmware but not its hash, and we want to
+          know if the firmware version is supported, then we can enable
+          loose_matching to see if the firmware version is supported in the
+          database.
 
     Returns:
       A dict from component class to a list of one or more
@@ -479,7 +492,7 @@ class Database(object):
           probed_values,   # The actual probed string. None if probing failed.
           error)]}         # The error message if there is one; else None.
     """
-    probed_bom = self.ProbeResultToBOM(probe_result)
+    probed_bom = self.ProbeResultToBOM(probe_result, loose_matching)
     if not comp_list:
       comp_list = sorted(self.components.probeable)
     if not isinstance(comp_list, list):
@@ -704,7 +717,8 @@ class Components(object):
     return self.components_dict[comp_cls]['items'][comp_name].get(
         'status', common.HWID.COMPONENT_STATUS.supported)
 
-  def MatchComponentsFromValues(self, comp_cls, values_dict):
+  def MatchComponentsFromValues(self, comp_cls, values_dict,
+                                loose_matching=False):
     """Matches a list of components whose 'values' attributes match the given
     'values_dict'.
 
@@ -717,6 +731,12 @@ class Components(object):
     Args:
       comp_cls: The component class of interest.
       values_dict: A dict of values to be used as look up key.
+      loose_matching: If set to True, partial match of probed results will be
+          accepted.  For example, if the probed results only contain the
+          firmware version of RO main firmware but not its hash, and we want to
+          know if the firmware version is supported, then we can enable
+          loose_matching to see if the firmware version is supported in the
+          database.
 
     Returns:
       A dict with keys being the matched component names and values being the
@@ -736,13 +756,27 @@ class Components(object):
         continue
       else:
         match = True
+        keys_missing = set()
         for key, value in comp_attrs['values'].iteritems():
           # Only match the listed fields in 'values'.
-          if key not in values_dict or not value.Matches(values_dict[key]):
+          if key not in values_dict:
+            if loose_matching:
+              keys_missing.add(key)
+              continue
+            else:
+              match = False
+              break
+          if not value.Matches(values_dict[key]):
             match = False
             break
+
+        if (loose_matching and
+            keys_missing == set(comp_attrs['values'].keys())):
+          match = False
+
         if match:
           results[comp_name] = copy.deepcopy(comp_attrs)
+
     if results:
       return results
     return None
