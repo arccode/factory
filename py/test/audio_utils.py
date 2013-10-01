@@ -19,19 +19,19 @@ LOOPBACK_LATENCY_PATH = 'loopback_latency'
 SOX_PATH = 'sox'
 TEST_TONES_PATH = 'test_tones'
 
-def GetPlaySineArgs(channel, odev='default', freq=1000, duration=10,
+def GetPlaySineArgs(channel, odev='default', freq=1000, duration_secs=10,
                        sample_size=16):
-  '''Gets the command args to generate a sine wav to play to odev.
+  """Gets the command args to generate a sine wav to play to odev.
 
   Args:
     channel: 0 for left, 1 for right; otherwize, mono.
-    odev: alsa output device.
+    odev: ALSA output device.
     freq: frequency of the generated sine tone.
-    duration: duration of the generated sine tone.
+    duration_secs: duration of the generated sine tone.
     sample_size: output audio sample size. Default to 16.
-  '''
+  """
   cmdargs = [SOX_PATH, '-b', str(sample_size), '-n', '-t', 'alsa',
-             odev, 'synth', str(duration)]
+             odev, 'synth', str(duration_secs)]
   if channel == 0:
     cmdargs += ['sine', str(freq), 'sine', '0']
   elif channel == 1:
@@ -40,93 +40,84 @@ def GetPlaySineArgs(channel, odev='default', freq=1000, duration=10,
     cmdargs += ['sine', str(freq)]
   return cmdargs
 
-class AudioUtil(object):
 
+class AudioUtil(object):
+  """This class is used for setting audio related configuration.
+  It reads audio.conf initially to decide how to enable/disable each
+  component by amixer.
+  """
   def __init__(self):
     if os.path.exists(_DEFAULT_CONFIG_PATH_):
       with open(_DEFAULT_CONFIG_PATH_, 'r') as config_file:
         self.audio_config = yaml.load(config_file)
     else:
       self.audio_config = {}
-      logging.info('cannot find configuration file.')
+      logging.info('Cannot find configuration file.')
 
-  def SetMixerControls(self, mixer_settings=None, card='0'):
-    '''Sets all mixer controls listed in the mixer settings on card.
+  def SetMixerControls(self, mixer_settings, card='0'):
+    """Sets all mixer controls listed in the mixer settings on card.
 
     Args:
-      mixer_settings: Mixer settings to set.
+      mixer_settings: A dict of mixer settings to set.
       card: Index of audio card to set mixer settings for.
-    '''
+    """
     logging.info('Setting mixer control values on %s', card)
     for name, value in mixer_settings.items():
       logging.info('Setting %s to %s on card %s', name, value, card)
       command = ['amixer', '-c', card, 'cset', "name='%s'" % name, value]
       Spawn(command, check_call=True)
 
+  def ApplyAudioConfig(self, attribute_name):
+    if attribute_name in self.audio_config:
+      self.SetMixerControls(self.audio_config[attribute_name])
+
   def InitialSetting(self):
-    self.SetMixerControls(self.audio_config['initial'])
+    self.ApplyAudioConfig('initial')
 
   def EnableSpeaker(self):
-    if 'enable_speaker' in self.audio_config:
-      self.SetMixerControls(self.audio_config['enable_speaker'])
+    self.ApplyAudioConfig('enable_speaker')
 
   def MuteLeftSpeaker(self):
-    if 'mute_left_speaker' in self.audio_config:
-      self.SetMixerControls(self.audio_config['mute_left_speaker'])
+    self.ApplyAudioConfig('mute_left_speaker')
 
   def MuteRightSpeaker(self):
-    if 'mute_right_speaker' in self.audio_config:
-      self.SetMixerControls(self.audio_config['mute_right_speaker'])
+    self.ApplyAudioConfig('mute_right_speaker')
 
   def DisableSpeaker(self):
-    if 'disable_speaker' in self.audio_config:
-      self.SetMixerControls(self.audio_config['disable_speaker'])
+    self.ApplyAudioConfig('disable_speaker')
 
   def EnableHeadphone(self):
-    if 'enable_headphone' in self.audio_config:
-      self.SetMixerControls(self.audio_config['enable_headphone'])
+    self.ApplyAudioConfig('enable_headphone')
 
   def MuteLeftHeadphone(self):
-    if 'mute_left_headphone' in self.audio_config:
-      self.SetMixerControls(self.audio_config['mute_left_headphone'])
+    self.ApplyAudioConfig('mute_left_headphone')
 
   def MuteRightHeadphone(self):
-    if 'mute_right_headphone' in self.audio_config:
-      self.SetMixerControls(self.audio_config['mute_right_headphone'])
+    self.ApplyAudioConfig('mute_right_headphone')
 
   def DisableHeadphone(self):
-    if 'disable_headphone' in self.audio_config:
-      self.SetMixerControls(self.audio_config['disable_headphone'])
+    self.ApplyAudioConfig('disable_headphone')
 
   def EnableDmic(self):
-    if 'enable_dmic' in self.audio_config:
-      self.SetMixerControls(self.audio_config['enable_dmic'])
+    self.ApplyAudioConfig('enable_dmic')
 
   def MuteLeftDmic(self):
-    if 'mute_left_dmic' in self.audio_config:
-      self.SetMixerControls(self.audio_config['mute_left_dmic'])
+    self.ApplyAudioConfig('mute_left_dmic')
 
   def MuteRightDmic(self):
-    if 'mute_right_dmic' in self.audio_config:
-      self.SetMixerControls(self.audio_config['mute_right_dmic'])
+    self.ApplyAudioConfig('mute_right_dmic')
 
   def DisableDmic(self):
-    if 'disable_dmic' in self.audio_config:
-      self.SetMixerControls(self.audio_config['disable_dmic'])
+    self.ApplyAudioConfig('disable_dmic')
 
   def EnableExtmic(self):
-    if 'enable_extmic' in self.audio_config:
-      self.SetMixerControls(self.audio_config['enable_extmic'])
+    self.ApplyAudioConfig('enable_extmic')
 
   def MuteLeftExtmic(self):
-    if 'mute_left_extmic' in self.audio_config:
-      self.SetMixerControls(self.audio_config['mute_left_extmic'])
+    self.ApplyAudioConfig('mute_left_extmic')
 
   def MuteRightExtmic(self):
-    if 'mute_right_extmic' in self.audio_config:
-      self.SetMixerControls(self.audio_config['mute_right_extmic'])
+    self.ApplyAudioConfig('mute_right_extmic')
 
   def DisableExtmic(self):
-    if 'disable_extmic' in self.audio_config:
-      self.SetMixerControls(self.audio_config['disable_extmic'])
-
+    self.ApplyAudioConfig('disable_extmic')
