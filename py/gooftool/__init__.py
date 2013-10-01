@@ -587,9 +587,13 @@ class Gooftool(object):
     if not component_list:
       yaml_probe_results = self._probe().Encode()
     else:
+      if set(['ro_ec_firmware', 'ro_main_firmware']) & set(component_list):
+        probe_volatile = True
+      else:
+        probe_volatile = False
       yaml_probe_results = self._probe(
           target_comp_classes=component_list, fast_fw_probe=fast_fw_probe,
-          probe_volatile=False, probe_initial_config=False).Encode()
+          probe_volatile=probe_volatile, probe_initial_config=False).Encode()
     return self.db.VerifyComponents(yaml_probe_results, component_list,
                                     loose_matching=True)
 
