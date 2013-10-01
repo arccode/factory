@@ -29,32 +29,44 @@ _TMP_STDOUT = '/tmp/stdout.txt'
 
 
 class DebugDataReader():
-  """A class communicates with the touchscreen on system"""
+  """Communicates with the touchscreen on system."""
   def __init__(self):
     self.sysfs_entry = '/sys/bus/i2c/devices/2-004a/object'
 
   def CheckStatus(self):
-    """Checks if the touchscreen sysfs object is present"""
+    """Checks if the touchscreen sysfs object is present.
+
+    Returns:
+      True if sysfs_entry exists
+    """
     return os.path.exists(self.sysfs_entry)
 
   def WriteSysfs(self, to_write):
-    """Write to sysfs
+    """Writes to sysfs.
 
-    @param to_write: the contents to be written to sysfs
+    Args:
+      to_write: the contents to be written to sysfs
     """
     with open(self.sysfs_entry, 'w') as f:
       f.write(to_write)
     time.sleep(0.1)
 
   def Read(self, delta=False):
-    """Reads 32 * 52 touchscreen sensors raw data"""
+    """Reads 32 * 52 touchscreen sensors raw data.
+
+    Args:
+      delta: indicating whether to read deltas or refs.
+
+    Returns:
+      the list of raw sensor values
+    """
     debugfs = ('/sys/kernel/debug/atmel_mxt_ts/2-004a/%s' %
                ('deltas' if delta else 'refs'))
     out_data = []
     with open(debugfs) as f:
       # The debug fs content is composed by 32 lines, and each
       # line contains 104 byte of 52 consecutive sensor values.
-      for j in range(32):                         # pylint: disable=W0612
+      for _ in range(32):
         line = f.read(104)
         data = []
         for i in range(52):
@@ -70,12 +82,12 @@ class DebugDataReader():
 
 
 class ControllerException(Exception):
-  """Controller Exception class"""
+  """A dummy exception class for SafeSerialController."""
   pass
 
 
 class SafeSerialController:
-  """A wrapper class for I2CControllerSC18IM700
+  """A wrapper class for I2CControllerSC18IM700.
 
   SafeSerialController handles unexpected exceptions from
   I2CControllerSC18IM700 with recreate delegate controller and put
@@ -86,18 +98,22 @@ class SafeSerialController:
     self.CreateDelegate()
 
   def CreateDelegate(self):
-    """Create an I2C controller instance."""
+    """Creates an I2C controller instance."""
     self._delegate = usb_to_i2c.create_i2c_controller('SC18IM700:pl2303')
     factory.console.info('tty_path: %s' % self._delegate.device_path)
     self._delegate.write_register([0x02, 0x03],
                                   [int('0x96', 16), int('0x55', 16)])
 
   def Sleep(self):
-    """Sleep for a while."""
+    """Sleeps for a while."""
     time.sleep(0.2)
 
   def WriteRegister(self, data):
-    """Write to the registers."""
+    """Writes to the registers.
+
+    Args:
+      data: the data to be written to the register
+    """
     # According to SC18IM700 data sheet.
     #
     # Register bits
@@ -128,7 +144,11 @@ class SafeSerialController:
     raise ControllerException('Write register fail')
 
   def ReadRegister(self):
-    """Read the register value."""
+    """Reads the register value.
+
+    Returns:
+      the register data
+    """
     retry = 0
     while retry < 2:
       self.Sleep()
@@ -145,7 +165,11 @@ class SafeSerialController:
     raise ControllerException('Read register fail')
 
   def WriteGpio(self, data):
-    """Write GPIO."""
+    """Writes the data to GPIO.
+
+    Args:
+      data: the data to be written to GPIO
+    """
     retry = 0
     while retry < 2:
       self.Sleep()
@@ -160,7 +184,11 @@ class SafeSerialController:
     raise ControllerException('Write gpio fail')
 
   def ReadGpio(self):
-    """Read GPIO."""
+    """Reads GPIO values.
+
+    Returns:
+      the data read from GPIO
+    """
     retry = 0
     while retry < 2:
       self.Sleep()
@@ -177,12 +205,12 @@ class SafeSerialController:
     raise ControllerException('Read gpio fail')
 
 
-class factory_TouchscreenCalibration(unittest.TestCase):
-  """factory Touchscreen Calibration class"""
+class TouchscreenCalibration(unittest.TestCase):
+  """Handles the calibration and the sensing and actuation of the controller."""
   version = 1
 
   def setUp(self):
-    """Set up the object."""
+    """Sets up the object."""
     self._calibration_thread = None
     self.controller = None
     self.dev_path = None
@@ -192,7 +220,11 @@ class factory_TouchscreenCalibration(unittest.TestCase):
     self.ui = UI()
 
   def WriteReg(self, event):
-    """A wrapper for writing to the registers."""
+    """A wrapper for writing to the registers.
+
+    Args:
+      event: the event to be written to the register
+    """
     reg_data = event.data.get('reg_data', None)
     assert reg_data is not None
     reg_data = [int(s, 16) for s in reg_data.split(',')]
@@ -202,7 +234,7 @@ class factory_TouchscreenCalibration(unittest.TestCase):
       factory.console.info('Reg data %d: %s' % (i, bin(reg_data[i])))
     self.controller.WriteRegister(reg_data)
 
-  def ReadReg(self, event):                       # pylint: disable=W0613
+  def ReadReg(self, dummy_event):
     """A wrapper for reading the registers."""
     data = self.controller.ReadRegister()
     data = [ord(char) for char in data]
@@ -211,7 +243,11 @@ class factory_TouchscreenCalibration(unittest.TestCase):
     self.ui.CallJSFunction('showMessage', json.dumps(data))
 
   def WriteGpio(self, event):
-    """A wrapper for writing GPIO."""
+    """A wrapper for writing the event data to GPIO.
+
+    Args:
+      event: the event to be written to the register
+    """
     # GPIO pin definations
     # IO0 In/out control
     # IO1 In sensor
@@ -225,8 +261,8 @@ class factory_TouchscreenCalibration(unittest.TestCase):
     factory.console.info('To write: %d' % to_write)
     self.controller.WriteGpio(to_write)
 
-  def ReadGpio(self, event):                      # pylint: disable=W0613
-    """A wrapper for reading GPIO."""
+  def ReadGpio(self, dummy_event):
+    """A wrapper for reading GPIO values."""
     if self.controller:
       data = self.controller.ReadGpio()
       factory.console.info('Get data %s' % bin(data))
@@ -235,27 +271,43 @@ class factory_TouchscreenCalibration(unittest.TestCase):
       factory.console.info('No controller found')
 
   def _IsProbeIn(self):
-    """Is the probe at the 'in' position?"""
+    """Is the probe at the 'in' position?
+
+    Returns:
+      True if GPIO pin 1 is low
+    """
     data = self.controller.ReadGpio()
     return (data & 2 == 0)
 
   def _IsProbeOut(self):
-    """Is the probe at the 'out' position?"""
+    """Is the probe at the 'out' position?
+
+    Returns:
+      True if GPIO pin 2 is low
+    """
     data = self.controller.ReadGpio()
     return (data & 4 == 0)
 
   def _IsProbeUp(self):
-    """Is the probe at the 'up' position?"""
+    """Is the probe at the 'up' position?
+
+    Returns:
+      True if GPIO pin 4 is low
+    """
     data = self.controller.ReadGpio()
     return (data & 16 == 0)
 
   def _IsProbeDown(self):
-    """Is the probe at the 'down' position?"""
+    """Is the probe at the 'down' position?
+
+    Returns:
+      True if GPIO pin 5 is low
+    """
     data = self.controller.ReadGpio()
     return (data & 32 == 0)
 
-  def ProbeIn(self, *args):                       # pylint: disable=W0613
-    """Move the probe to the 'in' position."""
+  def ProbeIn(self, *dummy_args):
+    """Moves the probe to the 'in' position."""
     if not self._IsProbeOut():
       self.ui.CallJSFunction('showMessage',
                              'Probe is not in correct position\n'
@@ -272,8 +324,8 @@ class factory_TouchscreenCalibration(unittest.TestCase):
                                '超时 - 治具未就位')
         return
 
-  def ProbeOut(self, *args):                      # pylint: disable=W0613
-    """Move the probe to the 'out' position."""
+  def ProbeOut(self, *dummy_args):
+    """Moves the probe to the 'out' position."""
     self.controller.WriteGpio(int('0b000001', 2))
     counter = 0
     while (not self._IsProbeOut() or not self._IsProbeUp()):
@@ -285,8 +337,8 @@ class factory_TouchscreenCalibration(unittest.TestCase):
                                '超时 - 治具未就位')
         return
 
-  def ProbeDown(self, *args):                     # pylint: disable=W0613
-    """Move the probe to the 'down' position."""
+  def ProbeDown(self, *dummy_args):
+    """Moves the probe to the 'down' position."""
     if not self._IsProbeOut():
       self.ui.CallJSFunction('showMessage',
                              'Probe is not in correct position\n'
@@ -303,8 +355,8 @@ class factory_TouchscreenCalibration(unittest.TestCase):
                                '超时 - 置具未就位')
         return
 
-  def ReadDebug(self, event):                     # pylint: disable=W0613
-    """Read debug information."""
+  def ReadDebug(self, dummy_event):
+    """Reads debug information."""
     if self.reader:
       data = self.reader.Read(delta=True)
       factory.console.info('Get data %s' % data)
@@ -313,8 +365,8 @@ class factory_TouchscreenCalibration(unittest.TestCase):
     else:
       factory.console.info('No reader found')
 
-  def RefreshController(self, event):             # pylint: disable=W0613
-    """Refresh the controller status."""
+  def RefreshController(self, dummy_event):
+    """Refreshes the controller status."""
     try:
       self.controller = SafeSerialController()
       reg_data = self.controller.ReadRegister()
@@ -325,8 +377,8 @@ class factory_TouchscreenCalibration(unittest.TestCase):
       self.controller = None
     self.ui.CallJSFunction('setControllerStatus', self.controller is not None)
 
-  def RefreshTouchscreen(self, event):            # pylint: disable=W0613
-    """Refresh all possible saved state for old touchscreen
+  def RefreshTouchscreen(self, dummy_event):
+    """Refreshes all possible saved state for the old touchscreen.
 
     This functions is called whenever an old touchscreen panel
     removed and a new one attached and awaiting for testing.
@@ -350,14 +402,22 @@ class factory_TouchscreenCalibration(unittest.TestCase):
     self.ui.CallJSFunction('setTouchscreenStatus', False)
 
   def _RegisterEvents(self, events):
-    """Add event handlers for various events."""
+    """Adds event handlers for various events.
+
+    Args:
+      events: the events to be registered in the UI
+    """
     for event in events:
       assert hasattr(self, event)
       factory.console.info('Registered event %s' % event)
       self.ui.AddEventHandler(event, getattr(self, event))
 
   def StartCalibration(self, event):
-    """Start the calibration thread."""
+    """Starts the calibration thread.
+
+    Args:
+      event: the event that triggers this callback function
+    """
     if self._calibration_thread and self._calibration_thread.isAlive():
       self.ui.CallJSFunction('showMessage',
                              'Current calibration has not completed yet\n'
@@ -377,7 +437,11 @@ class factory_TouchscreenCalibration(unittest.TestCase):
     self._calibration_thread.start()
 
   def DumpOneFrameToLog(self, logger):
-    """Dump one frame to log."""
+    """Dumps one frame to log.
+
+    Args:
+      logger: the log object
+    """
     data = self.reader.Read(delta=True)
     logger.write('Dump one frame:\n')
     for row in data:
@@ -385,7 +449,11 @@ class factory_TouchscreenCalibration(unittest.TestCase):
       logger.write('\n')
 
   def Calibrate(self, sn):
-    """The actual calibration method."""
+    """The actual calibration method.
+
+    Args:
+      sn: the serial number of the touchscreen under test
+    """
     if self.controller is None:
       self.AlertControllerDisconnected()
       return
@@ -474,21 +542,31 @@ class factory_TouchscreenCalibration(unittest.TestCase):
       raise e
 
   def AlertControllerDisconnected(self):
-    """Alert that the controller is disconnected."""
+    """Alerts that the controller is disconnected."""
     self.ui.CallJSFunction('showMessage',
                            'Disconnected from controller\n'
                            '与治具失去联系')
     self.ui.CallJSFunction('setControllerStatus', self.controller is not None)
 
   def WriteLog(self, filename, content):
-    """Write the content to the file and display the message in the log."""
+    """Writes the content to the file and display the message in the log.
+
+    Args:
+      filename: the name of the file to write the content to
+      content: the content to be written to the file
+    """
     with MountedMedia(self.dev_path, 1) as mount_dir:
       with open(os.path.join(mount_dir, filename), 'a') as f:
         f.write(content)
     factory.console.info('Log wrote with filename[ %s ].' % filename)
 
   def runTest(self, dev_path=None, dump_frames=10):
-    """The entry method of the test."""
+    """The entry method of the test.
+
+    Args:
+      dev_path: the path of the mounted media
+      dump_frames: the number of frames to dump before the probe touches panel
+    """
     if dev_path is None:
       # Temp hack to determine it is sdb or sdc
       dev_path = '/dev/sdb' if os.path.exists('/dev/sdb1') else '/dev/sdc'
