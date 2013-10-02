@@ -48,6 +48,10 @@ def GetClassAttributesOnBOM(hwid, comp_cls):
     results = []
     for c in bom.components[comp_cls]:
       if c.probed_values is None:
+        # For non-probeable components, report its component name directly if
+        # there is one.
+        if c.component_name:
+          results.append(c.component_name)
         continue
       matched_component = hwid.database.components.MatchComponentsFromValues(
           comp_cls, c.probed_values)
