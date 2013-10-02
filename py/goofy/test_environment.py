@@ -75,12 +75,17 @@ class DUTEnvironment(Environment):
   '''
   A real environment on a device under test.
   '''
-  BROWSER_TYPE = 'system'
+  BROWSER_TYPE_LOGIN = 'system'
+  BROWSER_TYPE_GUEST = 'system-guest'
   EXTENSION_PATH = os.path.join(factory.FACTORY_PATH, 'py', 'goofy',
                                 'factory_test_extension')
-  def __init__(self):
+  def __init__(self, test_login):
     self.browser = None
     self.extension = None
+    if test_login:
+      self.browser_type = self.BROWSER_TYPE_LOGIN
+    else:
+      self.browser_type = self.BROWSER_TYPE_GUEST
 
   def shutdown(self, operation):
     assert operation in ['reboot', 'halt']
@@ -108,10 +113,11 @@ class DUTEnvironment(Environment):
     while tries_left:
       try:
         finder_options = browser_options.BrowserFinderOptions()
-        finder_options.browser_type = self.BROWSER_TYPE
-        self.extension = extension_to_load.ExtensionToLoad(
-            self.EXTENSION_PATH, self.BROWSER_TYPE, is_component=True)
-        finder_options.extensions_to_load.append(self.extension)
+        finder_options.browser_type = self.browser_type
+        if self.browser_type == self.BROWSER_TYPE_LOGIN:
+          self.extension = extension_to_load.ExtensionToLoad(
+              self.EXTENSION_PATH, self.browser_type, is_component=True)
+          finder_options.extensions_to_load.append(self.extension)
         finder_options.AppendExtraBrowserArgs([
             '--kiosk',
             '--kiosk-mode-screensaver-path=/dev/null',

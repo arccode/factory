@@ -13,7 +13,7 @@ BOARD_SETUP=("$FACTORY/board/board_setup_factory.sh"
 # Default args for Goofy.
 GOOFY_ARGS=""
 
-# If this exits, then start factory with automation
+# If this exists, then start factory with automation.
 AUTOMATION_FILE="/var/factory/state/factory.automation"
 
 # Default implementation for factory_setup (no-op).  May be overriden

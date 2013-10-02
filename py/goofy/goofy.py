@@ -1223,6 +1223,9 @@ class Goofy(object):
     parser.add_option('--automation', dest='automation',
                       action='store_true',
                       help='Enable automation on running factory test')
+    parser.add_option('--test_login', dest='test_login',
+                      action='store_true',
+                      help='Log in with the test user. This will own the TPM.')
     (self.options, self.args) = parser.parse_args(args)
 
     # Make sure factory directories exist.
@@ -1261,7 +1264,8 @@ class Goofy(object):
       logging.warn(
         'Using chroot environment: will not actually run autotests')
     else:
-      self.env = test_environment.DUTEnvironment()
+      self.env = test_environment.DUTEnvironment(
+          test_login=self.options.test_login)
     self.env.goofy = self
 
     if self.options.restart:
