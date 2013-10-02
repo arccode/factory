@@ -7,14 +7,13 @@
 import cPickle as pickle
 import hashlib
 import logging
-import os
 import subprocess
 import threading
 import time
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.goofy import connection_manager
-from cros.factory.test import factory, state, utils
+from cros.factory.test import state, utils
 
 
 class Environment(object):
@@ -77,8 +76,7 @@ class DUTEnvironment(Environment):
   '''
   BROWSER_TYPE_LOGIN = 'system'
   BROWSER_TYPE_GUEST = 'system-guest'
-  EXTENSION_PATH = os.path.join(factory.FACTORY_PATH, 'py', 'goofy',
-                                'factory_test_extension')
+
   def __init__(self, test_login):
     self.browser = None
     self.extension = None
@@ -103,7 +101,6 @@ class DUTEnvironment(Environment):
     # pylint: disable=F0401
     from telemetry.core import browser_finder
     from telemetry.core import browser_options
-    from telemetry.core import extension_to_load
     from telemetry.core import util as telemetry_util
 
     # Telemetry flakiness: Allow one retry when starting up Chrome.
@@ -114,10 +111,6 @@ class DUTEnvironment(Environment):
       try:
         finder_options = browser_options.BrowserFinderOptions()
         finder_options.browser_type = self.browser_type
-        if self.browser_type == self.BROWSER_TYPE_LOGIN:
-          self.extension = extension_to_load.ExtensionToLoad(
-              self.EXTENSION_PATH, self.browser_type, is_component=True)
-          finder_options.extensions_to_load.append(self.extension)
         finder_options.AppendExtraBrowserArgs([
             '--kiosk',
             '--kiosk-mode-screensaver-path=/dev/null',

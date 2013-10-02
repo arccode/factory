@@ -23,6 +23,7 @@ import factory_common  # pylint: disable=W0611
 from cros.factory import factory_bug
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
+from cros.factory.test import state
 from cros.factory.test import utils
 from cros.factory.test.event import Event
 from cros.factory.test.test_lists.test_lists import SetActiveTestList
@@ -320,11 +321,11 @@ class GoofyRPC(object):
       ret = []
       states = self.goofy.state_instance.get_test_states()
       for t in self.goofy.test_list.walk(in_order=True):
-        state = states.get(t.path)
+        test_state = states.get(t.path)
         ret.append(dict(path=t.path,
                         parent=(t.subtests != []),
                         pending=t.path in paths_to_run,
-                        **state.__dict__))
+                        **test_state.__dict__))
       return ret
 
     return self._InRunQueue(Target)
@@ -391,35 +392,24 @@ class GoofyRPC(object):
       # complain to the caller.
       raise GoofyRPCException('Factory did not restart as expected')
 
-  def GetDisplayInfo(self):
-    """Gets display info from the factory test chrome extension page.
-
-    Returns:
-      A dict of display info.
-
-    Raises:
-      GoofyRPCException: If this is called inside chroot, or browser instance is
-          not initialized.
-    """
+  def _GetGoofyTab(self):
     if utils.in_chroot():
-      raise GoofyRPCException('Cannot get display info in chroot')
-    if not self.goofy.env.browser or not self.goofy.env.extension:
+      raise GoofyRPCException(
+          'Cannot evaluate Javascript through telemetry in chroot')
+    if not self.goofy.env.browser:
       raise GoofyRPCException('Browser instance is not initialized')
 
-    ext_page = self.goofy.env.browser.extensions[self.goofy.env.extension]
-    ext_page.ExecuteJavaScript(
-        'window.__display_info = null;')
-    ext_page.ExecuteJavaScript(
-        'chrome.system.display.getInfo(function(info) {'
-        '    window.__display_info = info;})')
+    tabs = self.goofy.env.browser.tabs
+    for i in xrange(0, len(tabs)):
+      if tabs[i].url == ('http://127.0.0.1:%d/' %
+                         state.DEFAULT_FACTORY_STATE_PORT):
+        return tabs[i]
 
-    def _FetchDisplayInfo():
-      return ext_page.EvaluateJavaScript(
-          'window.__display_info')
+  def EvaluateJavaScript(self, script):
+    return self._GetGoofyTab().EvaluateJavaScript(script)
 
-    utils.WaitFor(_FetchDisplayInfo, 10)
-    return _FetchDisplayInfo()
-
+  def ExecuteJavaScript(self, script):
+    self._GetGoofyTab().ExecuteJavaScript(script)
 
 def main():
   parser = argparse.ArgumentParser(

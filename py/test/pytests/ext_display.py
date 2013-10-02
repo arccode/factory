@@ -6,12 +6,12 @@
 
 """Test external display with optional audio playback test."""
 
-import glob
 import logging
 import os
 import random
 import re
 import threading
+import time
 import unittest
 import uuid
 
@@ -295,6 +295,7 @@ class VideoTask(ExtDisplayTask):
     self._fixture = args.fixture
     self._manual = not self._fixture
     self._ui = args.ui
+    self._internal_display_resolution = self._GetScreenResolution()
 
     # Bind a random key (0-9) to pass the task.
     if self._manual:
@@ -320,6 +321,31 @@ class VideoTask(ExtDisplayTask):
                                     instruction,
                                     pass_key=False)
 
+  def _GetScreenResolution(self):
+    return factory.get_state_instance().EvaluateJavaScript(
+        '[window.screen.width, window.screen.height]')
+
+  def SetMainDisplay(self, internal=True):
+    """Sets the main display.
+
+    Args:
+      internal: True to set internal display as main; False to set external
+          display as main.
+    """
+    os.environ['DISPLAY'] = ':0'
+    os.environ['XAUTHORITY'] = '/home/chronos/.Xauthority'
+    while True:
+      # TODO(jcliang): Here we assume that internal and external displays have
+      # different resolutions. We need a better way to tell which display we're
+      # on if the two displays have same resolution.
+      if not (internal ^ (self._GetScreenResolution() ==
+                          self._internal_display_resolution)):
+        # Stop the loop if these two conditions are either both True or
+        # both False.
+        break
+      utils.SendKey('Alt+F4')
+      time.sleep(2)
+
   def PostSuccessEvent(self):
     """Posts an event to trigger self.Pass().
 
@@ -338,43 +364,8 @@ class VideoTask(ExtDisplayTask):
     self._ui.PostEvent(Event(Event.Type.TEST_UI_EVENT,
                              subtype=self._fail_event))
 
-  def SetMirroringMode(self, is_on):
-    """Set display mirroring mode to is_on."""
-    os.environ['DISPLAY'] = ':0'
-    os.environ['XAUTHORITY'] = '/home/chronos/.Xauthority'
-
-    def _IsMirrored():
-      display_info = factory.get_state_instance().GetDisplayInfo()
-      return bool(display_info[0]['mirroringSourceId'])
-
-    def _ToggleMirrorMode():
-      utils.SendKey('Ctrl+F4')
-
-    def _SetMirroringMode():
-      if _IsMirrored() == is_on:
-        return True
-      _ToggleMirrorMode()
-      return _IsMirrored() == is_on
-
-    # Retry for up to 10 senconds until mirroring mode is enabled.
-    utils.WaitFor(_SetMirroringMode, 10, poll_interval=1)
-
-  def SwitchInternalDisplayBacklight(self, is_on):
-    """Set the backlight to is_on."""
-    backlight_syspaths = glob.glob('/sys/class/backlight/*/brightness')
-    assert backlight_syspaths, 'Cannot find backlight in sysfs'
-    backlight_syspath = os.path.dirname(backlight_syspaths[0])
-    if is_on:
-      with open(os.path.join(backlight_syspath, 'max_brightness')) as max_b:
-        with open(os.path.join(backlight_syspath, 'brightness'), 'w') as b:
-          b.write(max_b.read())
-    else:
-      with open(os.path.join(backlight_syspath, 'brightness'), 'w') as b:
-        b.write('0')
-
   def Run(self):
-    self.SetMirroringMode(True)
-    self.SwitchInternalDisplayBacklight(False)
+    self.SetMainDisplay(internal=False)
     self.InitUI()
 
     if self._fixture:
@@ -389,8 +380,7 @@ class VideoTask(ExtDisplayTask):
       self._check_display.start()
 
   def Cleanup(self):
-    self.SwitchInternalDisplayBacklight(True)
-    self.SetMirroringMode(False)
+    self.SetMainDisplay(internal=True)
     if self._manual:
       self.UnbindDigitKeys()
     if self._fixture:
