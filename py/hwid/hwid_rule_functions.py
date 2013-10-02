@@ -212,7 +212,7 @@ def GetOperationMode():
 
 
 @RuleFunction(['device_info'])
-def GetDeviceInfo(key):
+def GetDeviceInfo(key, default=None):
   """A wrapper method to get device info from shopfloor server.
 
   If a dict of device info is provided in the context, return the value of 'key'
@@ -220,11 +220,15 @@ def GetDeviceInfo(key):
 
   Args:
     key: The key of the device info to get.
+    default: default value, only valid when it is not None.
 
   Returns:
     The device info value got.
   """
-  return GetContext().device_info[key]
+  if default is not None:
+    return GetContext().device_info.get(key, default)
+  else:
+    return GetContext().device_info[key]
 
 
 @RuleFunction(['vpd'])

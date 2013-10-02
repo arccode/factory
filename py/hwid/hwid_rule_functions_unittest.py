@@ -272,6 +272,11 @@ class HWIDRuleTest(unittest2.TestCase):
     self.assertEquals(
         False, GetDeviceInfo('has_cellular'))
 
+  def testGetDeviceInfoDefault(self):
+    self.assertEquals(1, GetDeviceInfo('SKU'))
+    self.assertEquals(
+        'Default', GetDeviceInfo('has_something', 'Default'))
+
   def testGetVPDValue(self):
     self.assertEquals(
         'foo', GetVPDValue('ro', 'serial_number'))
