@@ -54,8 +54,12 @@ class FactoryTaskManager(object):
       self._ui.Pass()
 
   def Run(self):
+    ui_thread = self._ui.Run(on_finish=self._on_finish, blocking=False)
     self.RunNextTask()
-    self._ui.Run(on_finish=self._on_finish)
+    while ui_thread.is_alive():
+      # Can't just blocking wait for join here; otherwise it will stuck here if
+      # the test is killed.
+      ui_thread.join(1)
 
   def PassCurrentTask(self):
     """Passes current task.
@@ -88,12 +92,19 @@ class FactoryTask(object):
 
   Subclass should implement Run(), and possibly Cleanup() if the user
   wants to do some cleaning jobs.'''
+  # pylint: disable=E1101
   _execution_status = TaskState.NOT_STARTED
 
   def _Start(self):
     assert self._execution_status == TaskState.NOT_STARTED, \
         'Task %s has been run before.' % self.__class__.__name__
     logging.info('Start ' + self.__class__.__name__)
+
+    # Hook to the test_ui so that the ui can call _Finish when it
+    # receives END_TEST event.
+    assert self._ui.task_hook == None, 'Another task is running.'
+    self._ui.task_hook = self
+
     self._execution_status = TaskState.RUNNING
     self.Run()
 
@@ -109,6 +120,7 @@ class FactoryTask(object):
     assert self._IsRunning(), (
       'Trying to finish %s which is not running.' % (self.__class__.__name__))
     self._execution_status = TaskState.FINISHED
+    self._ui.task_hook = None
     self.Cleanup()
 
   def _IsRunning(self):

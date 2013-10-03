@@ -167,6 +167,7 @@ class UI(object):
     self.test = os.environ['CROS_FACTORY_TEST_PATH']
     self.invocation = os.environ['CROS_FACTORY_TEST_INVOCATION']
     self.event_handlers = {}
+    self.task_hook = None
 
     self._SetupStaticFiles(os.path.realpath(traceback.extract_stack()[-2][0]))
     self.error_msgs = []
@@ -349,6 +350,10 @@ class UI(object):
              event.invocation == self.invocation and
              event.test == self.test))
       logging.info('Received end test event %r', event)
+      if self.task_hook:
+        # Let factory task have a chance to do its clean up work.
+        # pylint: disable=W0212
+        self.task_hook._Finish(getattr(event, 'error_msg', ''))
       self.event_client.close()
 
       try:
