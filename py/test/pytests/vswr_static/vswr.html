@@ -1,0 +1,95 @@
+<link rel="stylesheet" type="text/css" href="vswr.css">
+
+<div class="test-vcenter-outer">
+<div class="test-vcenter-inner">
+
+<div id="state">
+  <div id="state-download-from-shopfloor">
+    <span class="goofy-label-en">Downloading parameters from shopfloor...</span>
+    <span class="goofy-label-zh">从 Shopfloor 下载测试参数中...</span>
+  </div>
+  <div id="state-wait-for-usb-log">
+    <span class="goofy-label-en">Please insert the usb stick to save log.</span>
+    <span class="goofy-label-zh">请插入 USB 以储存测试纪录</span>
+  </div>
+  <div id="state-wait-for-usb-parameters-and-log">
+    <span class="goofy-label-en">
+      Please insert the usb stick to load parameters and save log.</span>
+    <span class="goofy-label-zh">
+      请插入 USB 以读取测试参数及储存测试纪录</span>
+  </div>
+  <div id="state-connect-to-ena">
+    <span class="goofy-label-en">Connecting with the ENA...</span>
+    <span class="goofy-label-zh">与 ENA(E5071C) 连线中</span>
+  </div>
+  <div id="state-check-calibration">
+    <span class="goofy-label-en">Checking its calibration status...</span>
+    <span class="goofy-label-zh">验证仪器矫正状态</span>
+  </div>
+  <div id="state-prepare-panel">
+    <span class="goofy-label-en">
+      Please place the LCD panel into the fixture.<br>
+      Then press ENTER to scan the barcode.</span>
+    <span class="goofy-label-zh">
+      请放置 LCD 本体在治具上<br>
+      完成后按 ENTER</span>
+  </div>
+  <div id="state-enter-sn">
+    <span class="goofy-label-en">Scan barcode on LCD:</span>
+    <span class="goofy-label-zh">扫描 LCD 本体上的 SN:</span>
+    <input type="text" id="sn" size="20">
+  </div>
+  <div id="state-prepare-main-antenna">
+    <span class="goofy-label-en">
+      Make sure the main WWAN antennta is connected to Port 1<br>
+      Make sure the main WLAN antennta is connected to Port 2<br>
+      Then press key "A" to next stage.</span>
+    <span class="goofy-label-zh">
+      连接主 WWAN 天线至 Port 1<br>
+      连接主 WLAN 天线至 Port 2<br>
+      完成后按 A 键</span>
+  </div>
+  <div id="state-test-main-antenna">
+    <span class="goofy-label-en">Testing MAIN antenna...</span>
+    <span class="goofy-label-zh">测试主天线中...</span>
+  </div>
+  <div id="state-prepare-aux-antenna">
+    <span class="goofy-label-en">
+      Make sure the aux WWAN antennta is connected to Port 1<br>
+      Make sure the aux WLAN antennta is connected to Port 2<br>
+      Then press key "K" to next stage.</span>
+    <span class="goofy-label-zh">连接副 WWAN 天线至 Port 1<br>
+        连接副 WLAN 天线至 Port 2<br>
+        完成后按 K 键</span>
+  </div>
+  <div id="state-test-aux-antenna">
+    <span class="goofy-label-en">Testing AUX antenna...</span>
+    <span class="goofy-label-zh">测试副天线中...</span>
+  </div>
+  <div id="state-save-log">
+    <span class="goofy-label-en">Writing log....</span>
+    <span class="goofy-label-zh">记录中...</span>
+  </div>
+  <div id="state-show-result">
+    <span class="goofy-label-en">
+      Results are listed below.<br>
+      Please disconnect the panel and press ENTER to write log.</span>
+    <span class="goofy-label-zh">
+      测试结果显示如下<br>
+      请将 AB Panel 移除, 并按 ENTER 完成测试</span>
+  </div>
+</div>
+
+<div id="result" style="display: none">
+  <table>
+    <tr><td>1</td><td>Serial Number</td><td id="result-sn"></td></tr>
+    <tr><td>2</td><td>Cellular Antenna (MAIN)</td><td id="result-cell-main"></td></tr>
+    <tr><td>3</td><td>Cellular Antenna (AUX)</td><td id="result-cell-aux"></td></tr>
+    <tr><td>4</td><td>WiFi Antenna (MAIN)</td><td id="result-wifi-main"></td></tr>
+    <tr><td>5</td><td>WiFi Antenna (AUX)</td><td id="result-wifi-aux"></td></tr>
+    <tr><td>6</td><td>Test Result</td><td id="result-final-result"></td></tr>
+  </table>
+</div>
+
+</div>
+</div>
