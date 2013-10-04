@@ -348,8 +348,9 @@ class DeviceDataCommand(Subcommand):
         help=('Read FILE (or stdin if FILE is "-") as a YAML dictionary '
               'and set device data.'))
     self.subparser.add_argument(
-        '--del', '-d', metavar='KEY', nargs='+',
-        help='Deletes KEY from device data.')
+        '--delete', '-d', metavar='KEY', nargs='*',
+        help='Deletes KEYs from device data. '
+             '"factory device-data -d A B C" deletes A, B, C from device-data.')
 
   def Run(self):
     if self.args.set:
@@ -374,6 +375,10 @@ class DeviceDataCommand(Subcommand):
 
         update[key] = value
       shopfloor.UpdateDeviceData(update, post_update_event=False)
+      factory.get_state_instance().UpdateSkippedTests()
+
+    if self.args.delete:
+      shopfloor.DeleteDeviceData(self.args.delete, post_update_event=False)
       factory.get_state_instance().UpdateSkippedTests()
 
     if self.args.set_yaml:

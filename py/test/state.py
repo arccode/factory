@@ -326,6 +326,44 @@ class FactoryState(object):
     return data
 
   @_synchronized
+  def delete_shared_data_dict_item(self, shared_data_key,
+                                   delete_keys, optional):
+    '''
+    Deletes items from a shared data item whose value is a dict.
+
+    This is roughly equivalent to
+
+      data = get_shared_data(shared_data_key) or {}
+      for key in delete_keys:
+        try:
+          del data[key]
+        except KeyError:
+          if not optional:
+            raise
+      set_shared_data(shared_data_key, data)
+      return data
+
+    except that it is atomic.
+
+    Args:
+      shared_data_key: The key for the data item to update.
+      delete_keys: A list of keys to delete from the dict.
+      optional: False to raise a KeyError if not found.
+
+    Returns:
+      The updated value.
+    '''
+    data = self._data_shelf.get(shared_data_key, {})
+    for key in delete_keys:
+      try:
+        del data[key]
+      except KeyError:
+        if not optional:
+          raise
+    self._data_shelf[shared_data_key] = data
+    return data
+
+  @_synchronized
   def append_shared_data_list(self, key, new_item):
     '''
     Appends an item to a shared data item whose value is a list.

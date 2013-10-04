@@ -416,6 +416,29 @@ def GetDeviceData():
   return factory.get_shared_data(KEY_DEVICE_DATA, {})
 
 
+def DeleteDeviceData(delete_keys, post_update_event=True, optional=False):
+  """Returns the accumulated dictionary of device data.
+
+  Args:
+    delete_keys: A list of keys to be deleted.
+    post_update_event: If True, posts an UPDATE_SYSTEM_INFO event to
+      update the test list.
+    optional: False to raise a KeyError if not found.
+
+  Returns:
+    The updated dictionary.
+  """
+  logging.info('Deleting device data: %s', delete_keys)
+  data  = factory.get_state_instance().delete_shared_data_dict_item(
+      KEY_DEVICE_DATA, delete_keys, optional)
+  if 'serial_number' in delete_keys:
+    set_serial_number(None)
+  logging.info('Updated device data; complete device data is now %s',
+               privacy.FilterDict(data))
+  if post_update_event:
+    EventClient().post_event(Event(Event.Type.UPDATE_SYSTEM_INFO))
+  return data
+
 def UpdateDeviceData(new_device_data, post_update_event=True):
   """Returns the accumulated dictionary of device data.
 
