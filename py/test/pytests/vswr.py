@@ -2,15 +2,19 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import logging
 import os
 import unittest
+import yaml
 
+from cros.factory.goofy.goofy import CACHES_DIR
+from cros.factory.rf.utils import DownloadParameters
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
 from cros.factory.test.event import Event
 from cros.factory.test.factory import TestState
-from cros.factory.test.media_util import MediaMonitor
+from cros.factory.test.media_util import MediaMonitor, MountedMedia
 
 
 class VSWRState(object):
@@ -50,7 +54,7 @@ class VSWR(unittest.TestCase):
 
   Ideally, the test won't stop after it has been started. But practically, to
   prevent operators from overusing some accessories. It will stop after
-  reaching self.allowed_iterations. Reminding the operator to change those
+  reaching self._allowed_iterations. Reminding the operator to change those
   accessories.
   """
 
@@ -87,7 +91,7 @@ class VSWR(unittest.TestCase):
       if not found:
         raise Exception("Can't find state %s" % old_state.next_state_name)
     self._current_state = self._states[self._current_state_index]
-    factory.console.info('Advance to state %s', self._current_state.name)
+    logging.info('Advance to state %s', self._current_state.name)
     # Update UI.
     self._ui.RunJS('showMessage("%s")' % self._current_state.message_id)
     # Register callback.
@@ -103,44 +107,77 @@ class VSWR(unittest.TestCase):
     # TODO(littlecvr) Implement this.
     self._AdvanceState()
 
-  def _DownloadFromShopfloor(self, dummy_event):
+  def _DownloadParametersFromShopfloor(self, dummy_event):
     """Downloads parameters from shopfloor."""
+    logging.info('Downloading parameters from shopfloor...')
+    caches_dir = os.path.join(CACHES_DIR, 'parameters')
+    DownloadParameters([self.args.config_path], caches_dir)
+    logging.info('Parameters downloaded.')
+    # Parse and load parameters.
+    self._LoadConfig(os.path.join(caches_dir, self.args.config_path))
     self._AdvanceState()
-    # TODO(littlecvr) Implement this.
 
   def _ResetDataForNextTest(self, dummy_event):
     """Resets internal data for the next testing cycle."""
     self._ui.RunJS('$("result").style.display = "none"')
     # TODO(littlecvr) Implement this.
 
-  def _LoadConfigFromUSB(self, dummy_event):
-    """Loads USB parameters when USB inserted."""
+  def _LoadConfig(self, config_path):
+    """Reads the configuration from a file."""
+    logging.info('Loading config from %s...', config_path)
+    self._config = yaml.load(open(config_path).read())
+    # Load shopfloor related settings.
+    self._path_name = self._config.get('path_name', 'UnknownPath')
+    shopfloor_config = self._config.get('shopfloor', {})
+    self._shopfloor_enabled = shopfloor_config.get('enabled', False)
+    self._shopfloor_timeout = shopfloor_config.get('timeout', 15)
+    self._shopfloor_ignore_on_fail = shopfloor_config.get('ignore_on_fail')
+    self._allowed_iteration = self._config.get('allowed_iteration', None)
+    logging.info('Config %s loaded.', self._config.get('annotation'))
+
+  def _SetUSBPath(self, usb_path):
+    """Updates the USB device path."""
+    self._usb_path = usb_path
+    logging.info("Found USB path %s", self._usb_path)
+
+  def _SetUSBPathAndAdvanceState(self, event):
+    """Updates the USB device path and advances to the next state."""
+    self._SetUSBPath(event.usb_path)
     self._AdvanceState()
-    # TODO(littlecvr) Implement this.
+
+  def _LoadConfigFromUSB(self, event):
+    """Loads USB parameters when USB inserted."""
+    self._SetUSBPath(event.usb_path)
+    with MountedMedia(self._usb_path, 1) as config_root:
+      config_path = os.path.join(config_root, self.args.config_path)
+      self._LoadConfig(config_path)
+    self._AdvanceState()
 
   def _RaiseUSBRemovalException(self, dummy_event):
     """Prevents unexpected USB removal."""
-    # TODO(littlecvr) Implement this.
+    msg = "USB removal is not allowed during test."
+    self._ui.Fail(msg)
+    raise Exception(msg)
 
   def _InputSN(self, dummy_event):
     """Callback for sn_input_widget when enter pressed."""
-    self._AdvanceState()
     # TODO(littlecvr) Implement this.
+    self._AdvanceState()
 
   def _TestMainAntennas(self, dummy_event):
     """Tests the main antenna of cellular and wifi."""
-    self._AdvanceState()
     # TODO(littlecvr) Implement this.
+    self._AdvanceState()
 
   def _TestAuxAntennas(self, dummy_event):
     """Tests the aux antenna of cellular and wifi."""
-    self._AdvanceState()
     # TODO(littlecvr) Implement this.
+    self._AdvanceState()
 
   def _SaveLog(self, dummy_event):
     """Saves the logs and writes event log."""
-    self._AdvanceState()
     # TODO(littlecvr) Implement this.
+    self._AdvanceState()
 
   def _ShowResults(self, dummy_event):
     """Displays the final result."""
@@ -175,29 +212,38 @@ class VSWR(unittest.TestCase):
       self._current_state.on_usb_remove(event)
 
   def setUp(self):
-    factory.console.info(
+    logging.info(
         '(config_path: %s, timezone: %s, load_from_shopfloor: %s)',
         self.args.config_path, self.args.timezone,
         self.args.load_from_shopfloor)
 
     # Set timezone.
     os.environ['TZ'] = self.args.timezone
-
+    # The following attributes will be overridden when loading config or USB's
+    # been inserted.
+    self._config = {}
+    self._allowed_iteration = 0
+    self._path_name = ''
+    self._usb_path = ''
+    self._shopfloor_enabled = False
+    self._shopfloor_timeout = 0
+    self._shopfloor_ignore_on_fail = False
+    # Clear results.
     self._results = {name: TestState.UNTESTED for name in self._RESULT_IDS}
 
     # Set callbacks of each state.
     self._states = [
         VSWRState('initial',
-                  next_state_name='download-from-shopfloor'
+                  next_state_name='download-parameters-from-shopfloor'
                       if self.args.load_from_shopfloor
                       else 'wait-for-usb'),
-        VSWRState('download-from-shopfloor',
-                  callback=self._DownloadFromShopfloor),
+        VSWRState('download-parameters-from-shopfloor',
+                  callback=self._DownloadParametersFromShopfloor),
         VSWRState('wait-for-usb',
-                  message_id='wait-for-usb-log'
+                  message_id='wait-for-usb-to-save-log'
                       if self.args.load_from_shopfloor
-                      else 'wait-for-usb-parameters-and-log',
-                  on_usb_insert=self._AdvanceState
+                      else 'wait-for-usb-to-load-parameters-and-save-log',
+                  on_usb_insert=self._SetUSBPathAndAdvanceState
                       if self.args.load_from_shopfloor
                       else self._LoadConfigFromUSB),
         VSWRState('connect-to-ena',
@@ -263,10 +309,10 @@ class VSWR(unittest.TestCase):
     # Set up USB monitor.
     self._monitor = MediaMonitor()
     self._monitor.Start(
-        on_insert=lambda dev_path: self._ui.PostEvent(Event(
-            Event.Type.TEST_UI_EVENT, subtype='usbinsert', dev_path=dev_path)),
-        on_remove=lambda dev_path: self._ui.PostEvent(Event(
-            Event.Type.TEST_UI_EVENT, subtype='usbremove', dev_path=dev_path)))
+        on_insert=lambda usb_path: self._ui.PostEvent(Event(
+            Event.Type.TEST_UI_EVENT, subtype='usbinsert', usb_path=usb_path)),
+        on_remove=lambda usb_path: self._ui.PostEvent(Event(
+            Event.Type.TEST_UI_EVENT, subtype='usbremove', usb_path=usb_path)))
 
   def runTest(self):
     self._AdvanceState()

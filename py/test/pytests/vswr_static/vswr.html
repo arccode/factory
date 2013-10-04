@@ -8,11 +8,11 @@
     <span class="goofy-label-en">Downloading parameters from shopfloor...</span>
     <span class="goofy-label-zh">从 Shopfloor 下载测试参数中...</span>
   </div>
-  <div id="state-wait-for-usb-log">
+  <div id="state-wait-for-usb-to-save-log">
     <span class="goofy-label-en">Please insert the usb stick to save log.</span>
     <span class="goofy-label-zh">请插入 USB 以储存测试纪录</span>
   </div>
-  <div id="state-wait-for-usb-parameters-and-log">
+  <div id="state-wait-for-usb-to-load-parameters-and-save-log">
     <span class="goofy-label-en">
       Please insert the usb stick to load parameters and save log.</span>
     <span class="goofy-label-zh">
@@ -59,8 +59,8 @@
       Make sure the aux WLAN antennta is connected to Port 2<br>
       Then press key "K" to next stage.</span>
     <span class="goofy-label-zh">连接副 WWAN 天线至 Port 1<br>
-        连接副 WLAN 天线至 Port 2<br>
-        完成后按 K 键</span>
+      连接副 WLAN 天线至 Port 2<br>
+      完成后按 K 键</span>
   </div>
   <div id="state-test-aux-antenna">
     <span class="goofy-label-en">Testing AUX antenna...</span>
@@ -82,12 +82,18 @@
 
 <div id="result" style="display: none">
   <table>
-    <tr><td>1</td><td>Serial Number</td><td id="result-sn"></td></tr>
-    <tr><td>2</td><td>Cellular Antenna (MAIN)</td><td id="result-cell-main"></td></tr>
-    <tr><td>3</td><td>Cellular Antenna (AUX)</td><td id="result-cell-aux"></td></tr>
-    <tr><td>4</td><td>WiFi Antenna (MAIN)</td><td id="result-wifi-main"></td></tr>
-    <tr><td>5</td><td>WiFi Antenna (AUX)</td><td id="result-wifi-aux"></td></tr>
-    <tr><td>6</td><td>Test Result</td><td id="result-final-result"></td></tr>
+    <tr><td>1</td><td>Serial Number</td>
+      <td id="result-sn"></td></tr>
+    <tr><td>2</td><td>Cellular Antenna (MAIN)</td>
+      <td id="result-cell-main"></td></tr>
+    <tr><td>3</td><td>Cellular Antenna (AUX)</td>
+      <td id="result-cell-aux"></td></tr>
+    <tr><td>4</td><td>WiFi Antenna (MAIN)</td>
+      <td id="result-wifi-main"></td></tr>
+    <tr><td>5</td><td>WiFi Antenna (AUX)</td>
+      <td id="result-wifi-aux"></td></tr>
+    <tr><td>6</td><td>Test Result</td>
+      <td id="result-final-result"></td></tr>
   </table>
 </div>
 
