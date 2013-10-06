@@ -12,6 +12,7 @@ from Queue import Queue
 
 from cros.factory.goofy.connection_manager import PingHost
 from cros.factory.goofy.goofy import CACHES_DIR
+from cros.factory.rf.e5071c_scpi import ENASCPI
 from cros.factory.rf.utils import DownloadParameters
 from cros.factory.test import factory
 from cros.factory.test import test_ui
@@ -56,8 +57,20 @@ class VSWR(unittest.TestCase):
     # TODO(littlecvr) Implement this.
 
   def _ConnectToENA(self):
-    """Connnects to E5071C(ENA), initialize the SCPI object."""
-    # TODO(littlecvr) Implement this.
+    """Connnects to E5071C (ENA) and initializes the SCPI object."""
+    # Set up the ENA host.
+    logging.info('Connecting to ENA...')
+    self._ena = ENASCPI(self._ena_ip)
+    # Check if this is an expected ENA.
+    ena_sn = self._ena.GetSerialNumber()
+    logging.info('Connected to ENA %s.', ena_sn)
+    # Check if this SN is in the whitelist.
+    ena_whitelist = self._config['network']['ena_mapping'][self._ena_ip]
+    if ena_sn not in ena_whitelist:
+      self._ena.Close()
+      raise ValueError('ENA %s is not in the while list.' % ena_sn)
+    self._ena_name = ena_whitelist[ena_sn]
+    logging.info('The ENA is now identified as %r.', self._ena_name)
 
   def _DownloadParametersFromShopfloor(self):
     """Downloads parameters from shopfloor."""
@@ -252,6 +265,8 @@ class VSWR(unittest.TestCase):
     self._shopfloor_timeout = 0
     self._shopfloor_ignore_on_fail = False
     self._serial_number = ''
+    self._ena = None
+    self._ena_name = None
     self._ena_ip = None
     # Clear results.
     self._results = {name: TestState.UNTESTED for name in self._RESULT_IDS}
