@@ -13,7 +13,7 @@ from Queue import Queue
 from cros.factory.goofy.connection_manager import PingHost
 from cros.factory.goofy.goofy import CACHES_DIR
 from cros.factory.rf.e5071c_scpi import ENASCPI
-from cros.factory.rf.utils import DownloadParameters
+from cros.factory.rf.utils import CheckPower, DownloadParameters
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
@@ -53,8 +53,48 @@ class VSWR(unittest.TestCase):
   ]
 
   def _CheckCalibration(self):
-    """Checks if the Trace are flat as expected."""
-    # TODO(littlecvr) Implement this.
+    """Checks if the trace are as flat as expected.
+
+    The expected flatness is defined in calibration_check config, which is a
+    tuple of:
+
+        ((begin_freqency, end_frequency, sample_points), (min_value, max_value))
+
+    For example:
+
+      ((800*1E6, 6000*1E6, 100), (-0.3, 0.3))
+
+    from 800MHz to 6GHz, sampling 100 points and requires the value to stay
+    with in (-0.3, 0.3).
+    """
+    calibration_check = self._config.get('calibration_check', None)
+    if not calibration_check:
+      raise Exception("No calibration data in config file.")
+    start_freq, stop_freq, sample_points = calibration_check[0]
+    threshold = calibration_check[1]
+    logging.info(
+        'Checking calibration status from %.2f to %.2f '
+        'with threshold (%f, %f)...', start_freq, stop_freq,
+        threshold[0], threshold[1])
+    self._ena.SetSweepSegments([(start_freq, stop_freq, sample_points)])
+    traces_to_check = ['S11', 'S22']
+    traces = self._ena.GetTraces(traces_to_check)
+    calibration_check_passed = True
+    for trace_name in traces_to_check:
+      trace_data = traces.traces[trace_name]
+      for index, freq in enumerate(traces.x_axis):
+        check_point = '%s-%15.2f' % (trace_name, freq)
+        power_check_passed = CheckPower(
+            check_point, trace_data[index], threshold)
+        if not power_check_passed:
+          # Do not stop, continue to find all failing parts.
+          factory.console.info(
+              "Calibration check failed at %s", check_point)
+          calibration_check_passed = False
+    if calibration_check_passed:
+      logging.info('Calibration check passed.')
+    else:
+      raise Exception('Calibration check failed.')
 
   def _ConnectToENA(self):
     """Connnects to E5071C (ENA) and initializes the SCPI object."""

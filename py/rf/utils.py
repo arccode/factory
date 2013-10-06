@@ -31,7 +31,8 @@ def FormattedPower(power, format_str='%7.2f'):
   """Returns a formatted power while allowing power be a None."""
   return 'None' if power is None else (format_str % power)
 
-def CheckPower(measurement_name, power, threshold, failures, prefix='Power'):
+def CheckPower(measurement_name, power, threshold,
+               failures=None, prefix='Power'):
   '''Simple wrapper to check and display related messages.
 
   Args:
@@ -49,11 +50,12 @@ def CheckPower(measurement_name, power, threshold, failures, prefix='Power'):
     failure = '%s for %r is %s, out of range (%s,%s)' % (
         prefix, measurement_name, FormattedPower(power),
         FormattedPower(min_power), FormattedPower(max_power))
-    factory.console.info(failure)
-    failures.append(failure)
+    logging.error(failure)
+    if isinstance(failures, list):
+      failures.append(failure)
     return False
 
-  factory.console.info('%s for %r is %s',
+  logging.info('%s for %r is %s',
       prefix, measurement_name, FormattedPower(power))
   return True
 
