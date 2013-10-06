@@ -82,6 +82,50 @@ class SelectBox(object):
     return '\n'.join(ele_list)
 
 
+class Table(object):
+  '''Utility class for generating HTML table.
+
+  Args:
+    element_id: ID of the table.
+    rows: Number of rows.
+    cols: Number of columns.
+    style: CSS style to apply on the table.
+  '''
+  def __init__(self, element_id=None, rows=1, cols=1, style=None):
+    self._element_id = element_id or ''
+    self._style = style or ''
+    self._rows = rows
+    self._cols = cols
+    self._content = dict()
+
+  def SetNumRows(self, rows):
+    '''Set number the rows.'''
+    self._rows = rows
+
+  def SetNumCols(self, cols):
+    '''Set number the columns.'''
+    self._cols = cols
+
+  def SetContent(self, row, col, content):
+    '''Set HTML content of specified row and column.'''
+    self._content[(row, col)] = content
+
+  def GenerateHTML(self):
+    '''Generate HTML tags.'''
+    html = ['<table id="%s" style="%s">' % (
+            self._element_id, self._style)]
+    for r in xrange(self._rows):
+      html.append('<tr>')
+      for c in xrange(self._cols):
+        html.append('<td>')
+        if (r, c) in self._content:
+          html.append(self._content[(r, c)])
+        html.append('</td>')
+      html.append('</tr>')
+    html.append('</table>')
+    return ''.join(html)
+
+
 class BaseTemplate(object):
   '''Base class for test UI template.'''
   def __init__(self, ui, template_name):
