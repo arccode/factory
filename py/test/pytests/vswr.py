@@ -10,6 +10,7 @@ import yaml
 
 from Queue import Queue
 
+from cros.factory.goofy.connection_manager import PingHost
 from cros.factory.goofy.goofy import CACHES_DIR
 from cros.factory.rf.utils import DownloadParameters
 from cros.factory.test import factory
@@ -18,6 +19,8 @@ from cros.factory.test.args import Arg
 from cros.factory.test.event import Event
 from cros.factory.test.factory import TestState
 from cros.factory.test.media_util import MediaMonitor, MountedMedia
+from cros.factory.utils.net_utils import FindUsableEthDevice
+from cros.factory.utils.process_utils import Spawn
 
 
 class VSWR(unittest.TestCase):
@@ -113,6 +116,88 @@ class VSWR(unittest.TestCase):
     """Saves the logs and writes event log."""
     # TODO(littlecvr) Implement this.
 
+  def _SetUpNetwork(self):
+    """Sets up the local network.
+
+    The network config should look like the example below:
+
+      network:
+        local_ip: !!python/tuple
+        - interface:1
+        - 192.168.100.20
+        - 255.255.255.0
+        ena_mapping:
+          192.168.100.1:
+            MY99999999: Taipei E5071C-mock
+          192.168.132.55:
+            MY46107723: Line C VSWR 1
+            MY46108580: Line C VSWR 2(tds)
+            MY46417768: Line A VSWR 3
+
+    About local_ip: use 'eth1' for a specific interface; or 'interface:1' for
+    alias, in which 'interface' will be automatically replaced by the default
+    interface. And the ':1' part is just a postfix number to distinguish from
+    the original interface. You can choose whatever you like. It means the same
+    thing as the ifconfig alias. Please refer to ifconfig's manual for more
+    detail.
+    """
+    logging.info('Setting up network...')
+    network_config = self._config['network']
+
+    # Flush route cache just in case.
+    Spawn(['ip', 'route', 'flush', 'cache'], check_call=True)
+    default_interface = FindUsableEthDevice(raise_exception=True)
+    logging.info('Default interface is %s.', default_interface)
+    # Use the default interface if local_ip is not given.
+    local_ip = network_config['local_ip']
+    if local_ip is None:
+      interface = default_interface
+    else:
+      interface, address, netmask = local_ip
+      # Try to replace the string to default interface.
+      interface = interface.replace('interface', default_interface)
+      self._SetLocalIP(interface, address, netmask)
+    self._FindENA(interface, network_config['ena_mapping'])
+
+  def _SetLocalIP(self, interface, address, netmask):
+    """Sets the interface with specific IP address."""
+    logging.info(
+        'Set interface %s as %s/%s.', interface, address, netmask)
+    Spawn(['ifconfig', interface, address, 'netmask', netmask], check_call=True)
+    # Make sure the underlying interface is up.
+    Spawn(['ifconfig', interface.split(':')[0], 'up'], check_call=True)
+
+  def _FindENA(self, interface, ena_mapping):
+    """Tries to find the available ENA.
+
+    This function adds the route information for each of the possible ENA in
+    the mapping list. In addition, check if there's only one ENA in the visible
+    scope.
+
+    Args:
+      interface: The network interface used. E.g. eth0, eth1:2.
+      ena_mapping: ENA config, see doc of self._SetUpNetwork for more info.
+    """
+    valid_ping_count = 0
+    for ena_ip in ena_mapping.iterkeys():
+      # Manually add route information for all possible ENAs. Might be
+      # duplicated, so ignore the exit code.
+      Spawn(['route', 'add', ena_ip, interface], call=True)
+      # Flush route cache just in case.
+      Spawn(['ip', 'route', 'flush', 'cache'], check_call=True)
+      # Ping the host
+      logging.info('Searching for ENA at %s...', ena_ip)
+      if PingHost(ena_ip, 2) != 0:
+        logging.info('Not found at %s.', ena_ip)
+      else:
+        logging.info('Found ENA at %s.', ena_ip)
+        valid_ping_count += 1
+        self._ena_ip = ena_ip
+    if valid_ping_count != 1:
+      raise Exception(
+          "Found %d ENAs which should be only 1." % valid_ping_count)
+    logging.info('IP of ENA automatic detected as %s', self._ena_ip)
+
   def _ShowResults(self):
     """Displays the final result."""
     for name in self._RESULT_IDS:
@@ -167,6 +252,7 @@ class VSWR(unittest.TestCase):
     self._shopfloor_timeout = 0
     self._shopfloor_ignore_on_fail = False
     self._serial_number = ''
+    self._ena_ip = None
     # Clear results.
     self._results = {name: TestState.UNTESTED for name in self._RESULT_IDS}
 
@@ -215,6 +301,9 @@ class VSWR(unittest.TestCase):
     else:
       self._ShowMessageBlock('load-parameters-from-usb')
       self._LoadParametersFromUSB()
+
+    self._ShowMessageBlock('set-up-network')
+    self._SetUpNetwork()
 
     self._ShowMessageBlock('connect-to-ena')
     self._ConnectToENA()
