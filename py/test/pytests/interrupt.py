@@ -73,7 +73,7 @@ class InterruptTest(unittest.TestCase):
   """Tests if an interrupt's count is larger than expected."""
 
   ARGS = [
-    Arg('interrupt', str, 'Interrupt number or name.'),
+    Arg('interrupt', (int, str), 'Interrupt number or name.'),
     Arg('reload_module', str,
         'Kernel module name. If set, rmmod and modprobe it.', optional=True),
     Arg('min_count', int, 'Minimum #interrupts to pass.', default=1),
