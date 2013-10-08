@@ -1,0 +1,30 @@
+/*
+ * Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
+ */
+
+.touchscreen-prompt {
+  text-align: center;
+  font-size: 32;
+  position: absolute;
+  top: 20;
+  left: 0;
+  right: 0; }
+.touchscreen-full-screen {
+  background-color: white;
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  top: 0;
+  visibility: visible; }
+.touchscreen-test-table {
+  height: 100%;
+  width: 100%; }
+.touchscreen-test-block-untested {
+  background-color: lightgray; }
+.touchscreen-test-block-tested {
+  background-color: lightgreen; }
+.touchscreen-test-block-failed {
+  background-color: lightcoral; }
