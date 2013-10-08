@@ -9,6 +9,10 @@
   font-size: 30px;
 }
 
+#sn-format-error {
+  color: red;
+}
+
 table {
   margin: 0 auto;
   font-size: 24px;

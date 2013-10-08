@@ -4,6 +4,7 @@
 
 import logging
 import os
+import re
 import unittest
 import uuid
 import yaml
@@ -77,10 +78,10 @@ class VSWR(unittest.TestCase):
         'with threshold (%f, %f)...', start_freq, stop_freq,
         threshold[0], threshold[1])
     self._ena.SetSweepSegments([(start_freq, stop_freq, sample_points)])
-    traces_to_check = ['S11', 'S22']
-    traces = self._ena.GetTraces(traces_to_check)
+    TRACES_TO_CHECK = ['S11', 'S22']
+    traces = self._ena.GetTraces(TRACES_TO_CHECK)
     calibration_check_passed = True
-    for trace_name in traces_to_check:
+    for trace_name in TRACES_TO_CHECK:
       trace_data = traces.traces[trace_name]
       for index, freq in enumerate(traces.x_axis):
         check_point = '%s-%15.2f' % (trace_name, freq)
@@ -89,7 +90,7 @@ class VSWR(unittest.TestCase):
         if not power_check_passed:
           # Do not stop, continue to find all failing parts.
           factory.console.info(
-              "Calibration check failed at %s", check_point)
+              'Calibration check failed at %s', check_point)
           calibration_check_passed = False
     if calibration_check_passed:
       logging.info('Calibration check passed.')
@@ -153,9 +154,80 @@ class VSWR(unittest.TestCase):
     """Prevents unexpected USB removal."""
     raise Exception("USB removal is not allowed during test.")
 
-  def _InputSN(self):
-    """Callback for sn_input_widget when enter pressed."""
-    # TODO(littlecvr) Implement this.
+  def _LoadSNSpecificParameters(self):
+    """Loads parameters for a specific serial number from the matched config."""
+    self._sn_config_name = self._sn_config.get('config_name')
+    self._auto_screenshot = self._sn_config.get('auto_screenshot', False)
+    self._reference_info = self._sn_config.get('reference_info', False)
+    self._marker_info = self._sn_config.get('set_marker', None)
+    self._sweep_restore = self._sn_config.get('sweep_restore', None)
+    self._vswr_threshold = {
+        'cell': self._sn_config['cell_vswr_threshold'],
+        'wifi': self._sn_config['wifi_vswr_threshold']}
+
+  def _WaitForValidSN(self):
+    """Waits for the operator to enter/scan a valid serial number.
+
+    This function essentially does the following things:
+      1. Asks the operator to enter/scan a serial number.
+      2. Checks if the serial number is valid.
+      3. If yes, returns.
+      4. If not, shows an error message and goes to step 1.
+
+    After the function's called. self._serial_number would contain the serial
+    number entered/scaned by the operator. And self._sn_config would contain
+    the config corresponding to that serial number. See description of the
+    _GetConfigForSerialNumber() function for more info about 'corresponding
+    config.'
+    """
+    def _GetConfigForSerialNumber():
+      """Searches the suitable config for this serial number.
+
+      TODO(littlecvr): Move the following description to the module level
+                       comment block, where it should state the structure of
+                       config file briefly.
+
+      In order to utilize a single VSWR fixture as multiple stations, the
+      config file was designed to hold different configs at the same time.
+      Thus, this function searches through all the configs and returns the
+      first config that matches the serial number, or None if no match.
+
+      For example: the fixture can be configured such that if the serial number
+      is between 001 to 100, the threshold is -30 to 0.5; if the serial number
+      is between 101 to 200, the threshold is -40 to 0.5; and so forth.
+
+      Returns:
+        The first config that matches the serial number, or None if no match.
+      """
+      for sn_config in self._config['serial_specific_configuration']:
+        sn_config_name = sn_config.get('config_name')
+        if not sn_config_name:
+          raise Exception('Config name does not exist.')
+        sn_regex = sn_config.get('sn_regex')
+        if not sn_regex:
+          raise Exception("Regexp doesn't exist in config %s." % sn_config_name)
+        if re.search(sn_regex, self._serial_number):
+          logging.info('SN matched config %s.', sn_config_name)
+          return sn_config
+      return None
+
+    # Reset SN input box and hide error message.
+    self._ui.RunJS('$("sn").value = ""')
+    self._ui.RunJS('$("sn-format-error").style.display = "none"')
+    self._ShowMessageBlock('enter-sn')
+    # Loop until the right serial number has been entered.
+    while True:
+      # Focus and select the text for convenience.
+      self._ui.RunJS('$("sn").select()')
+      self._WaitForKey(test_ui.ENTER_KEY)
+      self._serial_number = self._GetSN()
+      self._sn_config = _GetConfigForSerialNumber()
+      if self._sn_config:
+        return
+      else:
+        self._ui.RunJS('$("sn-format-error-value").innerHTML = "%s"' %
+                       self._serial_number)
+        self._ui.RunJS('$("sn-format-error").style.display = ""')
 
   def _TestMainAntennas(self):
     """Tests the main antenna of cellular and wifi."""
@@ -308,6 +380,14 @@ class VSWR(unittest.TestCase):
     self._ena = None
     self._ena_name = None
     self._ena_ip = None
+    # Serial specific config attributes.
+    self._sn_config = None
+    self._sn_config_name = None
+    self._auto_screenshot = False
+    self._reference_info = False
+    self._marker_info = None
+    self._sweep_restore = None
+    self._vswr_threshold = {}
     # Clear results.
     self._results = {name: TestState.UNTESTED for name in self._RESULT_IDS}
 
@@ -379,10 +459,8 @@ class VSWR(unittest.TestCase):
       self._ResetDataForNextTest()
       self._WaitForKey(test_ui.ENTER_KEY)
 
-      self._ShowMessageBlock('enter-sn')
-      self._ui.RunJS('resetSNAndGetFocus()')
-      self._WaitForKey(test_ui.ENTER_KEY)
-      self._serial_number = self._GetSN()
+      self._WaitForValidSN()
+      self._LoadSNSpecificParameters()
 
       self._ShowMessageBlock('prepare-main-antenna')
       self._WaitForKey('A')

@@ -7,12 +7,6 @@ function emitSNEnterEvent() {
   window.test.sendTestEvent("snenter", sn.value);
 }
 
-function resetSNAndGetFocus() {
-  sn = document.getElementById("sn");
-  sn.value = "";
-  sn.focus();
-}
-
 function showMessageBlock(id) {
   // Hide all message blocks under div#state.
   var state_block = document.getElementById("state");
