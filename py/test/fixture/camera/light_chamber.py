@@ -62,20 +62,20 @@ class LightChamber(object):
     return os.path.join(os.path.dirname(__file__), 'static',
                         _TEST_CHART_FILE % self.test_chart_version)
 
-  def _GetMockImage(self):
+  def _ReadMockImage(self):
     fpath = os.path.join(os.path.dirname(__file__), 'static',
-                        _MOCK_IMAGE_FILE % self.test_chart_version)
-    img = cv2.imread(fpath)
-    assert img is not None, 'Failed to read mock image'
-    return img
+                         _MOCK_IMAGE_FILE % self.test_chart_version)
+    return cv2.imread(fpath)
 
   def EnableCamera(self):
     """Open camera device."""
+    if self.mock_mode:
+      return
+
     device = cv2.VideoCapture(self.device_index)
     if not device.isOpened():
       raise LightChamberError('Cannot open video interface #%d' %
                               self.device_index)
-
     width, height = self.image_resolution
     device.set(cv.CV_CAP_PROP_FRAME_WIDTH, width)
     device.set(cv.CV_CAP_PROP_FRAME_HEIGHT, height)
@@ -88,17 +88,26 @@ class LightChamber(object):
 
   def DisableCamera(self):
     """Releases camera device."""
+    if self.mock_mode:
+      return
+
     if self._camera_device:
       self._camera_device.release()
       self._camera_device = None
 
   def ReadSingleFrame(self):
-    """Read a single frame from camera device."""
-    assert self._camera_device, 'Camera device is not opened'
+    """Read a single frame from camera device.
+
+    Returns:
+      Returns color image, grayscale image.
+    """
     if self.mock_mode:
-      return self._GetMockImage()
+      ret, img = True, self._ReadMockImage()
     else:
+      assert self._camera_device, 'Camera device is not opened'
       ret, img = self._camera_device.read()
-      if not ret:
-        raise LightChamberError('Error while capturing. Camera disconnected?')
-      return img
+
+    if not ret or img is None:
+      raise LightChamberError('Error while capturing. Camera disconnected?')
+
+    return (img, cv2.cvtColor(img, cv.CV_BGR2GRAY))

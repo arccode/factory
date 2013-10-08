@@ -24,29 +24,21 @@ from multiprocessing import Pool
 
 _CORNER_MAX_NUM = 1000000
 _CORNER_QUALITY_RATIO = 0.05
-_CORNER_MIN_DISTANCE_RATIO = 0.016
+_CORNER_MIN_DISTANCE_RATIO = 0.010
 
 _EDGE_LINK_THRESHOLD = 2000
 _EDGE_DETECT_THRESHOLD = 4000
-_EDGE_MIN_SQUARE_SIZE_RATIO = 0.024
+_EDGE_MIN_SQUARE_SIZE_RATIO = 0.022
 
 _POINT_MATCHING_MAX_TOLERANCE_RATIO = 0.020
 
-_IMAGE_DEFAULT_MAX_SHIFT = 0.025
-_IMAGE_DEFAULT_MAX_TILT = 1
-
-_MTF_DEFAULT_MAX_CHECK_NUM = 308
-_MTF_DEFAULT_PATCH_WIDTH = 20
 _MTF_DEFAULT_CROP_RATIO = 0.25
-_MTF_DEFAULT_CHECK_PASS_VALUE = 0.45
-_MTF_DEFAULT_CHECK_PASS_VALUE_LOWEST = 0.10
 _MTF_DEFAULT_THREAD_COUNT = 4
 
 _SHADING_DOWNSAMPLE_RATIO = 0.20
 _SHADING_BILATERAL_SPATIAL_SIGMA = 20
 _SHADING_BILATERAL_RANGE_SIGMA = 0.15
 _SHADING_DEFAULT_MAX_RESPONSE = 0.01
-_SHADING_DEFAULT_MAX_TOLERANCE_RATIO = 0.15
 
 
 class ReturnValue(Pod):
@@ -272,19 +264,18 @@ def PrepareTest(pat_file):
     return ret
 
 
-def CheckLensShading(sample, check_low_freq=True,
-                     max_response=_SHADING_DEFAULT_MAX_RESPONSE,
-                     max_shading_ratio=_SHADING_DEFAULT_MAX_TOLERANCE_RATIO):
+def CheckLensShading(sample, max_shading_ratio, check_low_freq,
+                     max_response=_SHADING_DEFAULT_MAX_RESPONSE):
     '''Check if lens shading is present.
 
     Args:
         sample: The test target image. It needs to be single-channel.
+        max_shading_ratio: Maximum acceptable shading ratio value of boundary
+                           pixels.
         check_low_freq: Check low frequency variation or not. The low frequency
                         is very sensitive to uneven illumination so one may want
                         to turn it off when a fixture is not available.
         max_response: Maximum acceptable response of low frequency variation.
-        max_shading_ratio: Maximum acceptable shading ratio value of boundary
-                           pixels.
 
     Returns:
         1: Pass or Fail.
@@ -324,7 +315,7 @@ def CheckLensShading(sample, check_low_freq=True,
             return False, ret
 
     # Method 2 - Boundary scan:
-    # Get the mean of top 5 percent pixels.
+    # Get the mean of top 90 to 95 percent pixels.
     ihsorted = np.sort(img, axis=None)
     mtop = np.mean(ihsorted[int(0.90 * ihsorted.shape[0]):
                             int(0.95 * ihsorted.shape[0])])
@@ -352,18 +343,20 @@ def CheckLensShading(sample, check_low_freq=True,
 
 
 def CheckVisualCorrectness(
-    sample, ref_data, register_grid=False, corner_only=False,
+    sample, ref_data, max_image_shift, max_image_tilt,
+    register_grid=False, corner_only=False,
     min_corner_quality_ratio=_CORNER_QUALITY_RATIO,
     min_square_size_ratio=_EDGE_MIN_SQUARE_SIZE_RATIO,
-    min_corner_distance_ratio=_CORNER_MIN_DISTANCE_RATIO,
-    max_image_shift=_IMAGE_DEFAULT_MAX_SHIFT,
-    max_image_tilt=_IMAGE_DEFAULT_MAX_TILT):
+    min_corner_distance_ratio=_CORNER_MIN_DISTANCE_RATIO):
     '''Check if the test pattern is present.
 
     Args:
         sample: The test target image. It needs to be single-channel.
         ref_data: A struct that contains information extracted from the
                   reference pattern using PrepareTest.
+        max_image_shift: Maximum allowed image center shift in relative to the
+                         image diagonal length.
+        max_image_tilt: Maximum allowed image tilt amount in degrees.
         register_grid: Check if the point grid can be matched to the reference
                        one, i.e. whether they are of the same type.
         corner_only: Check only the corners (skip the edges).
@@ -373,9 +366,6 @@ def CheckVisualCorrectness(
                                to the image diagonal length.
         min_corner_distance_ratio: Minimum allowed corner distance in relative
                                    to the image diagonal length.
-        max_image_shift: Maximum allowed image center shift in relative to the
-                         image diagonal length.
-        max_image_tilt: Maximum allowed image tilt amount in degrees.
 
     Returns:
         1: Pass or Fail.
@@ -473,29 +463,28 @@ def CheckVisualCorrectness(
     return True, ret
 
 
-def CheckSharpness(sample, edges,
-                   min_pass_mtf=_MTF_DEFAULT_CHECK_PASS_VALUE,
-                   min_pass_lowest_mtf=_MTF_DEFAULT_CHECK_PASS_VALUE_LOWEST,
-                   mtf_sample_count=_MTF_DEFAULT_MAX_CHECK_NUM,
-                   mtf_patch_width=_MTF_DEFAULT_PATCH_WIDTH,
+def CheckSharpness(sample, edges, min_pass_mtf, min_pass_lowest_mtf,
+                   use_50p, mtf_sample_count, mtf_patch_width,
                    mtf_crop_ratio=_MTF_DEFAULT_CROP_RATIO,
-                   use_50p=True,
                    n_thread=_MTF_DEFAULT_THREAD_COUNT):
     '''Check if the captured image is sharp.
 
     Args:
         sample: The test target image. It needs to be single-channel.
         edges: A list of edges on the test image. Should be extracted with
-               CheckVisualCorrectness.
+               CheckVisualCorrectness().
         min_pass_mtf: Minimum acceptable (median) MTF value.
         min_pass_lowest_mtf: Minimum acceptable lowest MTF value.
+        use_50p: Compute whether the MTF50P value or the MTF50 value.
         mtf_sample_count: How many edges we are going to compute MTF values.
         mtf_patch_width: The desired margin on the both side of an edge. Larger
                          margins provides more precise MTF values.
+                         (But too large margins may overlap with other edges.
+                          This value depends on image resolution and pattern
+                          size.)
         mtf_crop_ratio: How much we want to truncate at the beginning and the
                         end of the edge. Lower value (less truncation) better
                         reduces the MTF value variations between each test.
-        use_50p: Compute whether the MTF50P value or the MTF50 value.
         n_thread: Number of threads to use to compute MTF values.
 
     Returns:

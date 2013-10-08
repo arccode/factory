@@ -11,7 +11,6 @@ functionality are implemented in factory_CameraPerformanceAls.py.
 
 import base64
 try:
-  import cv   # pylint: disable=F0401
   import cv2  # pylint: disable=F0401
 except ImportError:
   pass
@@ -32,14 +31,6 @@ from cros.factory.test.utils import Enum
 
 # Delay between each frame during calibration.
 CALIBRATION_FPS = 15
-
-# Calibration configuration for CheckVisualCorrectness().
-CALIBRATION_DEFAULT_CONFIG = {
-    'register_grid': False,
-    'min_corner_quality_ratio': 0.05,
-    'min_square_size_ratio': 0.022,
-    'min_corner_distance_ratio': 0.010
-    }
 
 # TODO(jchuang): import from event.py
 MAX_MESSAGE_SIZE = 60000
@@ -89,9 +80,11 @@ class CameraFixture(unittest.TestCase):
                           self.test_info.pytest_name)) # pylint: disable=E1101
 
     self.test_type = CameraFixture.TEST_TYPES[self.args.test_type]
-    self.chamber = LightChamber(self.test_type, self.args.test_chart_version,
-                                self.args.mock_mode, self.args.device_index,
-                                self.args.capture_resolution)
+    self.chamber = LightChamber(test_type=self.test_type,
+                                test_chart_version=self.args.test_chart_version,
+                                mock_mode=self.args.mock_mode,
+                                device_index=self.args.device_index,
+                                image_resolution=self.args.capture_resolution)
     self.ui = test_ui.UI()
     self.ui.AddEventHandler('exit_test_button_clicked',
         lambda _: self.PostInternalQueue(self.Event.EXIT_TEST))
@@ -107,17 +100,17 @@ class CameraFixture(unittest.TestCase):
     self.ui.CallJSFunction('InitForCalibration')
 
     ref_data = camperf.PrepareTest(self.chamber.GetTestChartFile())
-    CALIBRATION_DEFAULT_CONFIG['max_image_shift'] = self.args.calibration_shift
-    CALIBRATION_DEFAULT_CONFIG['max_image_tilt'] = self.args.calibration_tilt
     frame_delay = 1.0 / CALIBRATION_FPS
 
     self.chamber.EnableCamera()
     try:
       while True:
-        img = self.chamber.ReadSingleFrame()
-        gray_img = cv2.cvtColor(img, cv.CV_BGR2GRAY)
+        img, gray_img = self.chamber.ReadSingleFrame()
         success, tar_data = camperf.CheckVisualCorrectness(
-            gray_img, ref_data, corner_only=True, **CALIBRATION_DEFAULT_CONFIG)
+            sample=gray_img, ref_data=ref_data,
+            max_image_shift=self.args.calibration_shift,
+            max_image_tilt=self.args.calibration_tilt,
+            corner_only=True)
 
         renderer.DrawVC(img, success, tar_data)
         self.UpdateDisplayedImage(img, 'calibration_image')
