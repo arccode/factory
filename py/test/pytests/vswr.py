@@ -5,7 +5,10 @@
 import logging
 import os
 import unittest
+import uuid
 import yaml
+
+from Queue import Queue
 
 from cros.factory.goofy.goofy import CACHES_DIR
 from cros.factory.rf.utils import DownloadParameters
@@ -17,34 +20,6 @@ from cros.factory.test.factory import TestState
 from cros.factory.test.media_util import MediaMonitor, MountedMedia
 
 
-class VSWRState(object):
-  """VSWR state and its relative callbacks.
-
-  Attributes:
-    name: String that represent this state.
-    message_id: HTML block ID to display on the screen. If not given, use name.
-    callback: Function to invoke in this state.
-    on_usb_insert: Function to invoke if any USB's been inserted in this state.
-    on_usb_remove: Function to invoke if any USB's been removed in this state.
-    on_key_press: Function to invoke if key_to_contine's been pressed.
-    key_to_continue: The key to trigger on_key_press callback.
-    next_state_name: String to specify the next state.
-  """
-
-  def __init__(self, name, message_id=None, callback=None,
-               on_usb_insert=None, on_usb_remove=None,
-               on_key_press=None, key_to_continue=None,
-               next_state_name=None):
-    self.name = name
-    self.message_id = message_id if message_id is not None else name
-    self.callback = callback
-    self.on_usb_insert = on_usb_insert
-    self.on_usb_remove = on_usb_remove
-    self.on_key_press = on_key_press
-    self.key_to_continue = key_to_continue
-    self.next_state_name = next_state_name
-
-
 class VSWR(unittest.TestCase):
   """A test for antenna modules using fixture Agilent E5017C (ENA).
 
@@ -54,7 +29,7 @@ class VSWR(unittest.TestCase):
 
   Ideally, the test won't stop after it has been started. But practically, to
   prevent operators from overusing some accessories. It will stop after
-  reaching self._allowed_iterations. Reminding the operator to change those
+  reaching self._max_iterations. Reminding the operator to change those
   accessories.
   """
 
@@ -73,41 +48,15 @@ class VSWR(unittest.TestCase):
         'shopfloor or not.', default=True),
   ]
 
-  def _AdvanceState(self, dummy_event=None):
-    """Advances to the next state."""
-    old_state = self._states[self._current_state_index]
-    # If next_state_name is not specified, default to advance to the next state
-    # in self._state array relative to the current state.
-    if not old_state.next_state_name:
-      self._current_state_index += 1
-    else:
-      # Find the state that next_state_name specified.
-      found = False
-      for index, state in enumerate(self._states):
-        if state.name == old_state.next_state_name:
-          found = True
-          self._current_state_index = index
-          break
-      if not found:
-        raise Exception("Can't find state %s" % old_state.next_state_name)
-    self._current_state = self._states[self._current_state_index]
-    logging.info('Advance to state %s', self._current_state.name)
-    # Update UI.
-    self._ui.RunJS('showMessage("%s")' % self._current_state.message_id)
-    # Register callback.
-    self._ui.PostEvent(Event(Event.Type.TEST_UI_EVENT, subtype='callback'))
-
-  def _CheckCalibration(self, dummy_event):
+  def _CheckCalibration(self):
     """Checks if the Trace are flat as expected."""
     # TODO(littlecvr) Implement this.
-    self._AdvanceState()
 
-  def _ConnectEna(self, dummy_event):
+  def _ConnectToENA(self):
     """Connnects to E5071C(ENA), initialize the SCPI object."""
     # TODO(littlecvr) Implement this.
-    self._AdvanceState()
 
-  def _DownloadParametersFromShopfloor(self, dummy_event):
+  def _DownloadParametersFromShopfloor(self):
     """Downloads parameters from shopfloor."""
     logging.info('Downloading parameters from shopfloor...')
     caches_dir = os.path.join(CACHES_DIR, 'parameters')
@@ -115,11 +64,9 @@ class VSWR(unittest.TestCase):
     logging.info('Parameters downloaded.')
     # Parse and load parameters.
     self._LoadConfig(os.path.join(caches_dir, self.args.config_path))
-    self._AdvanceState()
 
-  def _ResetDataForNextTest(self, dummy_event):
+  def _ResetDataForNextTest(self):
     """Resets internal data for the next testing cycle."""
-    self._ui.RunJS('$("result").style.display = "none"')
     # TODO(littlecvr) Implement this.
 
   def _LoadConfig(self, config_path):
@@ -132,7 +79,7 @@ class VSWR(unittest.TestCase):
     self._shopfloor_enabled = shopfloor_config.get('enabled', False)
     self._shopfloor_timeout = shopfloor_config.get('timeout', 15)
     self._shopfloor_ignore_on_fail = shopfloor_config.get('ignore_on_fail')
-    self._allowed_iteration = self._config.get('allowed_iteration', None)
+    self._max_iterations = self._config.get('max_iterations', None)
     logging.info('Config %s loaded.', self._config.get('annotation'))
 
   def _SetUSBPath(self, usb_path):
@@ -140,76 +87,67 @@ class VSWR(unittest.TestCase):
     self._usb_path = usb_path
     logging.info("Found USB path %s", self._usb_path)
 
-  def _SetUSBPathAndAdvanceState(self, event):
-    """Updates the USB device path and advances to the next state."""
-    self._SetUSBPath(event.usb_path)
-    self._AdvanceState()
-
-  def _LoadConfigFromUSB(self, event):
-    """Loads USB parameters when USB inserted."""
-    self._SetUSBPath(event.usb_path)
+  def _LoadParametersFromUSB(self):
+    """Loads parameters from USB."""
     with MountedMedia(self._usb_path, 1) as config_root:
       config_path = os.path.join(config_root, self.args.config_path)
       self._LoadConfig(config_path)
-    self._AdvanceState()
 
   def _RaiseUSBRemovalException(self, dummy_event):
     """Prevents unexpected USB removal."""
-    msg = "USB removal is not allowed during test."
-    self._ui.Fail(msg)
-    raise Exception(msg)
+    raise Exception("USB removal is not allowed during test.")
 
-  def _InputSN(self, dummy_event):
+  def _InputSN(self):
     """Callback for sn_input_widget when enter pressed."""
     # TODO(littlecvr) Implement this.
-    self._AdvanceState()
 
-  def _TestMainAntennas(self, dummy_event):
+  def _TestMainAntennas(self):
     """Tests the main antenna of cellular and wifi."""
     # TODO(littlecvr) Implement this.
-    self._AdvanceState()
 
-  def _TestAuxAntennas(self, dummy_event):
+  def _TestAuxAntennas(self):
     """Tests the aux antenna of cellular and wifi."""
     # TODO(littlecvr) Implement this.
-    self._AdvanceState()
 
-  def _SaveLog(self, dummy_event):
+  def _SaveLog(self):
     """Saves the logs and writes event log."""
     # TODO(littlecvr) Implement this.
-    self._AdvanceState()
 
-  def _ShowResults(self, dummy_event):
+  def _ShowResults(self):
     """Displays the final result."""
     for name in self._RESULT_IDS:
       self._ui.SetHTML(self._results[name], id='result-%s' % name)
-    self._ui.RunJS('$("result").style.display = ""')
 
-  def _HandleCallbackEvent(self, event):
-    """Handler of the "callback" event that triggers the corresponding callback
-       if necessary."""
-    if self._current_state.callback:
-      self._current_state.callback(event)
+  def _WaitForEvent(self, subtype):
+    """Waits until a specific event subtype has been sent."""
+    while True:
+      event = self._event_queue.get()
+      if hasattr(event, 'subtype') and event.subtype == subtype:
+        return event
 
-  def _HandleKeyPressEvent(self, event):
-    """Handler of the "keypress" event that triggers the corresponding callback
-       if necessary."""
-    event.key = str(event.data['key'])
-    if self._current_state.on_key_press:
-      if event.key == str(self._current_state.key_to_continue):
-        self._current_state.on_key_press(event)
+  def _WaitForKey(self, key):
+    """Waits until a specific key has been pressed."""
+    # Create a unique event_name for the key and bind it.
+    event_name = uuid.uuid4()
+    self._ui.BindKey(key, lambda _: self._event_queue.put(
+        Event(Event.Type.TEST_UI_EVENT, subtype=event_name)))
+    self._WaitForEvent(event_name)
+    # Unbind the key and delete the event_name's handler.
+    self._ui.UnbindKey(key)
 
-  def _HandleUSBInsertEvent(self, event):
-    """Handler of the "usbinsert" event that triggers the corresponding callback
-       if necessary."""
-    if self._current_state.on_usb_insert:
-      self._current_state.on_usb_insert(event)
+  def _GetSN(self):
+    """Gets serial number from HTML input box."""
+    self._ui.RunJS('emitSNEnterEvent()')
+    event = self._WaitForEvent('snenter')
+    return event.data
 
-  def _HandleUSBRemoveEvent(self, event):
-    """Handler of the "usbremove" event that triggers the corresponding callback
-       if necessary."""
-    if self._current_state.on_usb_remove:
-      self._current_state.on_usb_remove(event)
+  def _ShowMessageBlock(self, html_id):
+    """Helper function to display HTML message block.
+
+    This function also hides other message blocks as well. Leaving html_id the
+    only block to display.
+    """
+    self._ui.RunJS('showMessageBlock("%s")' % html_id)
 
   def setUp(self):
     logging.info(
@@ -222,89 +160,23 @@ class VSWR(unittest.TestCase):
     # The following attributes will be overridden when loading config or USB's
     # been inserted.
     self._config = {}
-    self._allowed_iteration = 0
+    self._max_iterations = 0
     self._path_name = ''
     self._usb_path = ''
     self._shopfloor_enabled = False
     self._shopfloor_timeout = 0
     self._shopfloor_ignore_on_fail = False
+    self._serial_number = ''
     # Clear results.
     self._results = {name: TestState.UNTESTED for name in self._RESULT_IDS}
 
-    # Set callbacks of each state.
-    self._states = [
-        VSWRState('initial',
-                  next_state_name='download-parameters-from-shopfloor'
-                      if self.args.load_from_shopfloor
-                      else 'wait-for-usb'),
-        VSWRState('download-parameters-from-shopfloor',
-                  callback=self._DownloadParametersFromShopfloor),
-        VSWRState('wait-for-usb',
-                  message_id='wait-for-usb-to-save-log'
-                      if self.args.load_from_shopfloor
-                      else 'wait-for-usb-to-load-parameters-and-save-log',
-                  on_usb_insert=self._SetUSBPathAndAdvanceState
-                      if self.args.load_from_shopfloor
-                      else self._LoadConfigFromUSB),
-        VSWRState('connect-to-ena',
-                  callback=self._ConnectEna,
-                  on_usb_remove=self._RaiseUSBRemovalException),
-        VSWRState('check-calibration',
-                  callback=self._CheckCalibration,
-                  on_usb_remove=self._RaiseUSBRemovalException),
-        VSWRState('prepare-panel',
-                  callback=self._ResetDataForNextTest,
-                  on_usb_remove=self._RaiseUSBRemovalException,
-                  on_key_press=self._AdvanceState,
-                  key_to_continue=test_ui.ENTER_KEY),
-        VSWRState('enter-sn',
-                  callback=lambda _: self._ui.RunJS('resetSNAndGetFocus()'),
-                  on_usb_remove=self._RaiseUSBRemovalException,
-                  on_key_press=self._InputSN,
-                  key_to_continue=test_ui.ENTER_KEY),
-        VSWRState('prepare-main-antenna',
-                  on_usb_remove=self._RaiseUSBRemovalException,
-                  on_key_press=self._AdvanceState,
-                  key_to_continue='A'),
-        VSWRState('test-main-antenna',
-                  callback=self._TestMainAntennas,
-                  on_usb_remove=self._RaiseUSBRemovalException),
-        VSWRState('prepare-aux-antenna',
-                  on_usb_remove=self._RaiseUSBRemovalException,
-                  on_key_press=self._AdvanceState,
-                  key_to_continue='K'),
-        VSWRState('test-aux-antenna',
-                  callback=self._TestAuxAntennas,
-                  on_usb_remove=self._RaiseUSBRemovalException),
-        VSWRState('save-log',
-                  callback=self._SaveLog,
-                  on_usb_remove=self._RaiseUSBRemovalException),
-        VSWRState('show-result',
-                  callback=self._ShowResults,
-                  on_usb_remove=self._RaiseUSBRemovalException,
-                  on_key_press=self._AdvanceState,
-                  key_to_continue=test_ui.ENTER_KEY,
-                  next_state_name='prepare-panel')]
-    # Set initial state.
-    self._current_state_index = 0
-    self._current_state = self._states[self._current_state_index]
-
-    # Set up UI and register event handlers.
+    # Set up UI.
+    self._event_queue = Queue()
     self._ui = test_ui.UI()
-    self._ui.AddEventHandler('callback', self._HandleCallbackEvent)
-    self._ui.AddEventHandler('keypress', self._HandleKeyPressEvent)
-    self._ui.AddEventHandler('usbinsert', self._HandleUSBInsertEvent)
-    self._ui.AddEventHandler('usbremove', self._HandleUSBRemoveEvent)
-
-    # Find every key_to_continue and bind them. Note that the keypress event
-    # must be emitted from JS or it won't be able to get the value of input
-    # box.
-    self._bound_keys = set()
-    for state in self._states:
-      if state.key_to_continue:
-        self._bound_keys.add(state.key_to_continue)
-    for key in self._bound_keys:
-      self._ui.BindKeyJS(key, 'emitKeyPressEvent("%s")' % key)
+    self._ui.AddEventHandler('keypress', self._event_queue.put)
+    self._ui.AddEventHandler('snenter', self._event_queue.put)
+    self._ui.AddEventHandler('usbinsert', self._event_queue.put)
+    self._ui.AddEventHandler('usbremove', self._event_queue.put)
 
     # Set up USB monitor.
     self._monitor = MediaMonitor()
@@ -315,5 +187,74 @@ class VSWR(unittest.TestCase):
             Event.Type.TEST_UI_EVENT, subtype='usbremove', usb_path=usb_path)))
 
   def runTest(self):
-    self._AdvanceState()
-    self._ui.Run()
+    """Runs the test forever or until max_iterations reached.
+
+    At each step, we first call self._ShowMessageBlock(BLOCK_ID) to display the
+    message we want. (See the HTML file for all message IDs.) Then we do
+    whatever we want at that step, e.g. calling
+    self._DownloadParametersFromShopfloor(). Then maybe we wait for some
+    specific user's action like pressing the ENTER key to continue, e.g.
+    self._WaitForKey(test_ui.ENTER_KEY).
+    """
+    self._ui.Run(blocking=False)
+
+    # Wait for USB.
+    if self.args.load_from_shopfloor:
+      self._ShowMessageBlock('wait-for-usb-to-save-log')
+    else:
+      self._ShowMessageBlock('wait-for-usb-to-load-parameters-and-save-log')
+    usb_insert_event = self._WaitForEvent('usbinsert')
+    self._SetUSBPath(usb_insert_event.usb_path)
+    # Prevent USB from being removed from now on.
+    self._ui.AddEventHandler('usbremove', self._RaiseUSBRemovalException)
+
+    # Load config.
+    if self.args.load_from_shopfloor:
+      self._ShowMessageBlock('download-parameters-from-shopfloor')
+      self._DownloadParametersFromShopfloor()
+    else:
+      self._ShowMessageBlock('load-parameters-from-usb')
+      self._LoadParametersFromUSB()
+
+    self._ShowMessageBlock('connect-to-ena')
+    self._ConnectToENA()
+
+    self._ShowMessageBlock('check-calibration')
+    self._CheckCalibration()
+
+    current_iteration = 0
+    while True:
+      # Force to quit if max iterations reached.
+      current_iteration += 1
+      if self._max_iterations and current_iteration > self._max_iterations:
+        factory.console.info('Max iterations reached, please restart.')
+        break
+      logging.info("Starting iteration %s...", current_iteration)
+
+      self._ShowMessageBlock('prepare-panel')
+      self._ResetDataForNextTest()
+      self._WaitForKey(test_ui.ENTER_KEY)
+
+      self._ShowMessageBlock('enter-sn')
+      self._ui.RunJS('resetSNAndGetFocus()')
+      self._WaitForKey(test_ui.ENTER_KEY)
+      self._serial_number = self._GetSN()
+
+      self._ShowMessageBlock('prepare-main-antenna')
+      self._WaitForKey('A')
+
+      self._ShowMessageBlock('test-main-antenna')
+      self._TestMainAntennas()
+
+      self._ShowMessageBlock('prepare-aux-antenna')
+      self._WaitForKey('K')
+
+      self._ShowMessageBlock('test-aux-antenna')
+      self._TestAuxAntennas()
+
+      self._ShowMessageBlock('save-log')
+      self._SaveLog()
+
+      self._ShowMessageBlock('show-result')
+      self._ShowResults()
+      self._WaitForKey(test_ui.ENTER_KEY)

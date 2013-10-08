@@ -4,10 +4,6 @@
 <div class="test-vcenter-inner">
 
 <div id="state">
-  <div id="state-download-from-shopfloor">
-    <span class="goofy-label-en">Downloading parameters from shopfloor...</span>
-    <span class="goofy-label-zh">从 Shopfloor 下载测试参数中...</span>
-  </div>
   <div id="state-wait-for-usb-to-save-log">
     <span class="goofy-label-en">Please insert the usb stick to save log.</span>
     <span class="goofy-label-zh">请插入 USB 以储存测试纪录</span>
@@ -17,6 +13,10 @@
       Please insert the usb stick to load parameters and save log.</span>
     <span class="goofy-label-zh">
       请插入 USB 以读取测试参数及储存测试纪录</span>
+  </div>
+  <div id="state-download-parameters-from-shopfloor">
+    <span class="goofy-label-en">Downloading parameters from shopfloor...</span>
+    <span class="goofy-label-zh">从 Shopfloor 下载测试参数中...</span>
   </div>
   <div id="state-connect-to-ena">
     <span class="goofy-label-en">Connecting with the ENA...</span>
@@ -77,24 +77,23 @@
     <span class="goofy-label-zh">
       测试结果显示如下<br>
       请将 AB Panel 移除, 并按 ENTER 完成测试</span>
+    <div id="result">
+      <table>
+        <tr><td>1</td><td>Serial Number</td>
+          <td id="result-sn"></td></tr>
+        <tr><td>2</td><td>Cellular Antenna (MAIN)</td>
+          <td id="result-cell-main"></td></tr>
+        <tr><td>3</td><td>Cellular Antenna (AUX)</td>
+          <td id="result-cell-aux"></td></tr>
+        <tr><td>4</td><td>WiFi Antenna (MAIN)</td>
+          <td id="result-wifi-main"></td></tr>
+        <tr><td>5</td><td>WiFi Antenna (AUX)</td>
+          <td id="result-wifi-aux"></td></tr>
+        <tr><td>6</td><td>Test Result</td>
+          <td id="result-final-result"></td></tr>
+      </table>
+    </div>
   </div>
-</div>
-
-<div id="result" style="display: none">
-  <table>
-    <tr><td>1</td><td>Serial Number</td>
-      <td id="result-sn"></td></tr>
-    <tr><td>2</td><td>Cellular Antenna (MAIN)</td>
-      <td id="result-cell-main"></td></tr>
-    <tr><td>3</td><td>Cellular Antenna (AUX)</td>
-      <td id="result-cell-aux"></td></tr>
-    <tr><td>4</td><td>WiFi Antenna (MAIN)</td>
-      <td id="result-wifi-main"></td></tr>
-    <tr><td>5</td><td>WiFi Antenna (AUX)</td>
-      <td id="result-wifi-aux"></td></tr>
-    <tr><td>6</td><td>Test Result</td>
-      <td id="result-final-result"></td></tr>
-  </table>
 </div>
 
 </div>
