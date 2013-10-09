@@ -12,6 +12,7 @@ import re
 import yaml
 
 import factory_common # pylint: disable=W0611
+from cros.factory import common as factory_common_utils
 from cros.factory import rule
 from cros.factory.gooftool import crosfw, probe
 from cros.factory.hwid import common, database, decoder, encoder
@@ -170,6 +171,33 @@ def VerifyHWID(db, encoded_string, probed_results, vpd, rma_mode):
   db.rules.EvaluateRules(context, namespace="verify.*")
 
 
+def ListComponents(db, comp_class=None):
+  """Lists the components of the given component class.
+
+  Args:
+    db: A Database object to be used.
+    comp_class: An optional list of component classes to look up. If not given,
+        the function will list all the components of all component classes in
+        the database.
+
+  Returns:
+    A dict of component classes to the component items of that class.
+  """
+  if not comp_class:
+    comp_class_to_lookup = db.components.components_dict.keys()
+  else:
+    comp_class_to_lookup = factory_common_utils.MakeList(comp_class)
+
+  output_components = collections.defaultdict(list)
+  for comp_cls in comp_class_to_lookup:
+    if comp_cls not in db.components.components_dict:
+      raise ValueError('Invalid component class %r' % comp_cls)
+    output_components[comp_cls].extend(
+        db.components.components_dict[comp_cls]['items'].keys())
+
+  # Convert defaultdict to dict.
+  return dict(output_components)
+
 def GetProbedResults(infile=None):
   """Get probed results either from the given file or by probing the DUT.
 
@@ -300,6 +328,14 @@ def VerifyHWIDWrapper(options):
              options.rma_mode)
   # No exception raised. Verification was successful.
   print 'Verification passed.'
+
+
+@Command('list_components', help='List components of the given class', args=[
+    Arg('comp_class', nargs='*', default=None,
+        help='The component classes to look up.')])
+def ListComponentsWrapper(options):
+  components_list = ListComponents(options.database, options.comp_class)
+  print yaml.safe_dump(components_list, default_flow_style=False)
 
 
 def ParseOptions():
