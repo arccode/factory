@@ -37,10 +37,12 @@ def OpenSerial(**params):
   Raises:
     ValueError if params is invalid; otherwise, serial.SerialException.
   """
-  if 'port' not in params:
-    raise SerialException('Missing parameter "port".')
+  port = params.get('port')
+  if not port:
+    raise ValueError('Missing parameter "port".')
   ser = serial.Serial(**params)
-  ser.open()
+  if not ser.isOpen():
+    raise SerialException('Failed to open serial: %r'  % port)
   return ser
 
 

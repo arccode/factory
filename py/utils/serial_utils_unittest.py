@@ -40,13 +40,15 @@ class OpenSerialTest(unittest.TestCase):
     mock_serial = self.mox.CreateMock(serial.Serial)
     self.mox.StubOutWithMock(serial, 'Serial')
     serial.Serial(port=_DEFAULT_PORT, baudrate=19200).AndReturn(mock_serial)
-    mock_serial.open()
+    # Mocks out isOpen()
+    self.mox.StubOutWithMock(mock_serial.__class__, 'isOpen')
+    mock_serial.isOpen = lambda: True
 
     self.mox.ReplayAll()
     serial_utils.OpenSerial(port=_DEFAULT_PORT, baudrate=19200)
 
   def testOpenSerialNoPort(self):
-    self.assertRaises(SerialException, serial_utils.OpenSerial)
+    self.assertRaises(ValueError, serial_utils.OpenSerial)
 
 
 class FindTtyByDriverTest(unittest.TestCase):
