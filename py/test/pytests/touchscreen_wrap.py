@@ -55,7 +55,10 @@ class TouchscreenTest(unittest.TestCase):
           default=5),
       Arg('y_segments', int, 'Number of segments in y-axis.',
           default=5),
-      Arg('retries', int, 'Number of retries.', default=5)]
+      Arg('retries', int, 'Number of retries.', default=5),
+      Arg('demo_interval_ms', int,
+          'Interval (ms) to show drawing pattern. <= 0 means no demo.',
+          default=150),]
 
   def setUp(self):
     # Initialize frontend presentation
@@ -63,7 +66,7 @@ class TouchscreenTest(unittest.TestCase):
     self.ui.AppendHTML(_HTML_TOUCHSCREEN)
     self.ui.CallJSFunction('setupTouchscreenTest', _ID_CONTAINER,
                            self.args.x_segments, self.args.y_segments,
-                           self.args.retries)
+                           self.args.retries, self.args.demo_interval_ms)
 
   def OnFailPressed(self):
     """Fails the test."""

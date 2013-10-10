@@ -9,9 +9,11 @@
  * @param {number} numColumns Number of columns.
  * @param {number} numRows Number of rows.
  * @param {number} maxRetries Number of retries.
+ * @param {number} demoIntervalMsecs Interval (ms) to show drawing pattern.
+ *     Negative value means no demo.
  */
 TouchscreenTest = function(container, numColumns, numRows,
-                           maxRetries) {
+                           maxRetries, demoIntervalMsecs) {
   this.container = container;
   this.numColumns = numColumns;
   this.numRows = numRows;
@@ -23,6 +25,10 @@ TouchscreenTest = function(container, numColumns, numRows,
   this.previousBlockIndex = -1;
   this.expectBlockIndex = 0;
   this.tryFailed = false;
+
+  this.indicatorLength = 4;
+  this.demoIntervalMsecs = demoIntervalMsecs;
+  console.log('demo interval: ' + demoIntervalMsecs);
 
   this.MSG_INSTRUCTION = {
     en: 'Draw blocks from upper-left corner in sequence; Esc to fail.',
@@ -47,11 +53,13 @@ TouchscreenTest = function(container, numColumns, numRows,
  * @param {number} numColumns Number of columns.
  * @param {number} numRows Number of rows.
  * @param {number} maxRetries Number of retries.
+ * @param {number} demoIntervalMsecs Interval (ms) to show drawing pattern.
+ *     Negative value means no demo.
  */
 function setupTouchscreenTest(container, numColumns, numRows,
-                              maxRetries) {
-  window.touchscreenTest = new TouchscreenTest(container, numColumns,
-                                               numRows, maxRetries);
+                              maxRetries, demoIntervalMsecs) {
+  window.touchscreenTest = new TouchscreenTest(
+      container, numColumns, numRows, maxRetries, demoIntervalMsecs);
   window.touchscreenTest.init();
 }
 
@@ -67,6 +75,10 @@ TouchscreenTest.prototype.init = function() {
     alert('generateTouchSequence() is buggy. The number of sequences ' +
           'is not equal to the number of blocks.');
     this.failTest();
+  }
+
+  if (this.demoIntervalMsecs > 0) {
+    this.startDemo();
   }
 };
 
@@ -277,6 +289,57 @@ TouchscreenTest.prototype.restartTest = function() {
   this.previousBlockIndex = -1;
   this.expectBlockIndex = 0;
   this.tryFailed = false;
+};
+
+/**
+ * Starts an animation for drawing pattern.
+ */
+TouchscreenTest.prototype.startDemo = function() {
+  this.indicatorHead = this.expectBlockIndex;
+  this.showDemoIndicator();
+};
+
+/**
+ * Shows a hungry snake animation to guide operator to draw test pattern on the
+ * touchscreen.
+ *
+ * It starts at the expected blocks (index 0). It changes the target block's CSS
+ * to demo-0 (head indicator). Then the indicator block moves forward to next
+ * expected block after demoIntervalMsecs. As indicator moving forward, it had
+ * a tail with lighter color. And the block just behind the tail will be reset
+ * to untested CSS.
+ */
+TouchscreenTest.prototype.showDemoIndicator = function() {
+  // Last indicatorHead is ahead of expectSequence length by indicatorLength
+  // because we want to sink the snake.
+  if (this.indicatorHead >= this.expectSequence.length + this.indicatorLength) {
+    clearTimeout(this.demoTimer);
+    return;
+  }
+
+  for (var indicatorSegment = 0; indicatorSegment < this.indicatorLength;
+       indicatorSegment++) {
+    var index = this.indicatorHead - indicatorSegment;
+    // Hide behind start point.
+    if (index < this.expectBlockIndex) {
+      break;
+    }
+    // Discard sink part.
+    if (index >= this.expectSequence.length) {
+      continue;
+    }
+    var block = $('touch-' + this.expectSequence[index]);
+    block.className = 'touchscreen-test-block-demo-' + indicatorSegment;
+  }
+  var cleanupIndex = this.indicatorHead - this.indicatorLength;
+  if (cleanupIndex >= this.expectBlockIndex) {
+    var untestedBlock = $('touch-' + this.expectSequence[cleanupIndex]);
+    untestedBlock.className = 'touchscreen-test-block-untested';
+  }
+
+  this.indicatorHead++;
+  this.demoTimer = setTimeout(this.showDemoIndicator.bind(this),
+                              this.demoIntervalMsecs);
 };
 
 /**
