@@ -85,6 +85,14 @@ class SelectBox(object):
 class Table(object):
   '''Utility class for generating HTML table.
 
+  This class allows us to easily set the content of each cell. For example:
+
+    table = Table(element_id='example_table', rows=2, cols=2)
+    for r in xrange(2):
+      for c in xrange(2):
+        table.SetContent(r, c, 'row %d col %d' % (r, c))
+    return table.GenerateHTML()
+
   Args:
     element_id: ID of the table.
     rows: Number of rows.
@@ -94,29 +102,21 @@ class Table(object):
   def __init__(self, element_id=None, rows=1, cols=1, style=None):
     self._element_id = element_id or ''
     self._style = style or ''
-    self._rows = rows
-    self._cols = cols
     self._content = dict()
-
-  def SetNumRows(self, rows):
-    '''Set number the rows.'''
-    self._rows = rows
-
-  def SetNumCols(self, cols):
-    '''Set number the columns.'''
-    self._cols = cols
+    self.rows = rows
+    self.cols = cols
 
   def SetContent(self, row, col, content):
-    '''Set HTML content of specified row and column.'''
+    '''Sets HTML content of specified row and column.'''
     self._content[(row, col)] = content
 
   def GenerateHTML(self):
-    '''Generate HTML tags.'''
+    '''Generates HTML tags.'''
     html = ['<table id="%s" style="%s">' % (
             self._element_id, self._style)]
-    for r in xrange(self._rows):
+    for r in xrange(self.rows):
       html.append('<tr>')
-      for c in xrange(self._cols):
+      for c in xrange(self.cols):
         html.append('<td>')
         if (r, c) in self._content:
           html.append(self._content[(r, c)])
