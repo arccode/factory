@@ -359,6 +359,9 @@ class FinalizeBundle(object):
     # Make sure gsutil is up to date; older versions are pretty broken.
     self.CheckGSUtilVersion()
 
+    if not 'add_files' in self.manifest:
+      return
+
     for f in self.manifest['add_files']:
       CheckDictHasOnlyKeys(f, ['install_into', 'source', 'extract_files'])
       dest_dir = os.path.join(self.bundle_dir, f['install_into'])
@@ -498,6 +501,8 @@ class FinalizeBundle(object):
     return url.replace(str(version), str(latest_version))
 
   def DeleteFiles(self):
+    if not 'delete_files' in self.manifest:
+      return
     for f in self.manifest['delete_files']:
       path = os.path.join(self.bundle_dir, f)
       if os.path.exists(path):
