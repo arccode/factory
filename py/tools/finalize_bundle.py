@@ -981,8 +981,13 @@ class FinalizeBundle(object):
                      self.netboot_install_shim_version))
     with MountPartition(self.release_image_path, 3) as f:
       vitals.append(('Release (FSI)', GetReleaseVersion(f)))
-      bios_version, ec_version = GetFirmwareVersions(
-          os.path.join(f, 'usr/sbin/chromeos-firmwareupdate'))
+      firmware_updater = os.path.join(
+          self.bundle_dir, 'firmware', 'chromeos-firmwareupdate')
+      if os.path.exists(firmware_updater):
+        fw_updater_file = firmware_updater
+      else:
+        fw_updater_file = os.path.join(f, 'usr/sbin/chromeos-firmwareupdate')
+      bios_version, ec_version = GetFirmwareVersions(fw_updater_file)
       vitals.append(('Release (FSI) BIOS', bios_version))
       vitals.append(('Release (FSI) EC', ec_version))
 
