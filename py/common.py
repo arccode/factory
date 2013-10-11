@@ -129,7 +129,8 @@ def MakeList(value):
     A list of elements from "value" if it is iterable (except string);
     otherwise, a list contains only one element.
   """
-  if isinstance(value, collections.Iterable) and not isinstance(value, str):
+  if (isinstance(value, collections.Iterable) and
+      not isinstance(value, basestring)):
     return list(value)
   return [value]
 
@@ -141,6 +142,7 @@ def MakeSet(value):
     A set of elements from "value" if it is iterable (except string);
     otherwise, a set contains only one element.
   """
-  if isinstance(value, collections.Iterable) and not isinstance(value, str):
+  if (isinstance(value, collections.Iterable) and
+      not isinstance(value, basestring)):
     return set(value)
   return set([value])
