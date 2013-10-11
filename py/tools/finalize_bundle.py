@@ -268,7 +268,7 @@ class FinalizeBundle(object):
         '--complete-script', dest='complete_script',
         help=('Filename of complete script used for make_factory_package. '
               'Empty means no complete script is used.'),
-        default='complete_script.sh')
+        default='complete_script_sample.sh')
     parser.add_argument(
         '--tip-of-branch', dest='tip_of_branch', action='store_true',
         help="Use tip version of release image, install shim, and "
@@ -838,8 +838,9 @@ class FinalizeBundle(object):
           '#!/bin/bash',
           'set -e',  # Fail on error
           'cd $(dirname $(readlink -f "$0"))/factory_setup',
-          'cat miniomaha.conf',
-          'echo Miniomaha configuration MD5SUM: $(md5sum miniomaha.conf)',
+          'cat static/miniomaha.conf',
+          ('echo Miniomaha configuration MD5SUM: '
+           '$(md5sum static/miniomaha.conf)'),
           'echo Validating configuration...',
           ('python miniomaha.py --validate_factory_config'),
           'echo Starting download server.',
