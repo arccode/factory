@@ -17,6 +17,7 @@ from cros.factory.test.fixture.camera.light_chamber import (
     TestType, LightChamber)
 import cros.factory.test.fixture.camera.perf_tester as camperf
 
+
 class CameraFixtureTest(unittest.TestCase):
   def runTest(self):
     try:
@@ -24,6 +25,7 @@ class CameraFixtureTest(unittest.TestCase):
       import cv2     # pylint: disable=W0612
       import numpy   # pylint: disable=W0612
     except ImportError:
+      print('Camera fixture unit test is skipped for missing OpenCV/numpy.')
       return
 
     #######################
@@ -93,7 +95,6 @@ class CameraFixtureTest(unittest.TestCase):
     success, tar_ls = camperf.CheckLensShading(
         sample=gray_img, max_shading_ratio=0.40, check_low_freq=False)
     self.assertEqual(success, True)
-    print tar_ls.lowest_ratio
     self.assertAlmostEqual(tar_ls.lowest_ratio, 0.7612925, delta=0.00001)
 
     success, tar_mtf = camperf.CheckSharpness(
@@ -104,6 +105,9 @@ class CameraFixtureTest(unittest.TestCase):
     self.assertEqual(success, True)
     self.assertAlmostEqual(tar_mtf.mtf, 0.2961126, delta=0.00001)
     self.assertAlmostEqual(tar_mtf.min_mtf, 0.2250828, delta=0.00001)
+
+    print('Camera fixture unittest completes successfully.')
+
 
 if __name__ == "__main__":
   unittest.main()

@@ -73,9 +73,6 @@ LINT_BLACKLIST=\
 	py/test/utils.py \
 	py/test/utils_unittest.py \
 	py/test/fixture/camera/grid_mapper.py \
-	py/test/fixture/camera/mtf_calculator.py \
-	py/test/fixture/camera/perf_tester.py \
-	py/test/fixture/camera/renderer.py \
 	py/minijack/apiclient/% \
 	py/minijack/gflags.py \
 	py/minijack/gflags_validators.py \
