@@ -13,7 +13,6 @@ except ImportError:
   pass
 import os
 
-from cros.factory.test.utils import Enum
 
 # Reference test chart image file.
 _TEST_CHART_FILE = 'test_chart_%s.png'
@@ -21,28 +20,24 @@ _TEST_CHART_FILE = 'test_chart_%s.png'
 # Default mock image.
 _MOCK_IMAGE_FILE = 'mock_%s.jpg'
 
-TestType = Enum(['CALI', 'MODULE', 'AB', 'FULL'])
-
 
 class LightChamberError(Exception):
   pass
 
 
 class LightChamber(object):
-  def __init__(self, test_type, test_chart_version, mock_mode, device_index,
+  def __init__(self, test_chart_version, mock_mode, device_index,
                image_resolution):
     """
     Args:
-      test_type: Current light chamber test type (TestType).
       test_chart_version: Version of the test chart.
       mock_mode: Run in mock mode.
       device_index: Video device index (-1 to auto pick device by OpenCV).
       image_resolution: A tuple (x-res, y-res) for image resolution.
     """
-    assert test_chart_version in ('A', 'B')
+    assert test_chart_version in ('A', 'B', 'White')
     assert mock_mode in (True, False)
 
-    self.test_type = test_type
     self.test_chart_version = test_chart_version
     self.mock_mode = mock_mode
     self.device_index = device_index

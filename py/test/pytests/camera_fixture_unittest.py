@@ -13,8 +13,7 @@ import unittest
 
 import factory_common # pylint: disable=W0611
 
-from cros.factory.test.fixture.camera.light_chamber import (
-    TestType, LightChamber)
+from cros.factory.test.fixture.camera.light_chamber import LightChamber
 import cros.factory.test.fixture.camera.perf_tester as camperf
 
 
@@ -31,9 +30,8 @@ class CameraFixtureTest(unittest.TestCase):
     #######################
     # Test chart version A
     #######################
-    chamber = LightChamber(test_type=TestType.CALI, test_chart_version='A',
-                           mock_mode=True, device_index=-1,
-                           image_resolution=(1280, 720))
+    chamber = LightChamber(test_chart_version='A', mock_mode=True,
+                           device_index=-1, image_resolution=(1280, 720))
     ref_data = camperf.PrepareTest(chamber.GetTestChartFile())
 
     self.assertEqual(ref_data.corners.shape[0], 308)
@@ -71,9 +69,8 @@ class CameraFixtureTest(unittest.TestCase):
     #######################
     # Test chart version B
     #######################
-    chamber = LightChamber(test_type=TestType.CALI, test_chart_version='B',
-                           mock_mode=True, device_index=-1,
-                           image_resolution=(640, 480))
+    chamber = LightChamber(test_chart_version='B', mock_mode=True,
+                           device_index=-1, image_resolution=(640, 480))
     ref_data = camperf.PrepareTest(chamber.GetTestChartFile())
 
     self.assertEqual(ref_data.corners.shape[0], 252)

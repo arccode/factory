@@ -9,13 +9,23 @@ var image_data;
 ////////////////////////////////////////////////////////////
 
 /**
- * Init entry for camera calibration mode.
+ * Init entry for calibration of camera test fixture.
  */
 function InitForCalibration() {
   document.getElementById("main_screen").hidden = false;
   button_style = document.getElementById("button_run_test").style.visibility =
       'hidden';
-  document.getElementById("calibration_image").hidden = false;
+  document.getElementById("preview_image").hidden = false;
+}
+
+/**
+ * Init entry for standalone camera lens shading test.
+ */
+function InitForLensShading() {
+  document.getElementById("main_screen").hidden = false;
+  button_style = document.getElementById("button_run_test").style.visibility =
+      'hidden';
+  document.getElementById("preview_image").hidden = false;
 }
 
 /**
