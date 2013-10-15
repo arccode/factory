@@ -19,8 +19,8 @@ from cros.factory.utils.process_utils import Spawn
 from cros.factory.test import factory
 from cros.factory.test.args import Arg
 
-FIRMWARE_UPDATER = '/opt/google/touch/firmware/chromeos-touch-firmwareupdate.sh'
-CONFIG_UPDATER = '/opt/google/touch/config/chromeos-touch-config-update.sh'
+FIRMWARE_UPDATER = '/opt/google/touch/scripts/chromeos-touch-firmware-update.sh'
+CONFIG_UPDATER = '/opt/google/touch/scripts/chromeos-touch-config-update.sh'
 
 
 class UpdateTouchDeviceFWTest(unittest.TestCase):
