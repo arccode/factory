@@ -272,3 +272,16 @@ def GetWLANMACAddress():
         return f.read().strip()
 
   raise IOError('Unable to determine WLAN MAC address')
+
+def GetWLANInterface():
+  """Returns the interface for wireless LAN device.
+
+  Returns:
+    'mlan0' or 'wlan0' depends on the interface name.
+    None if there is no wireless interface.
+  """
+  for dev in ['wlan0', 'mlan0']:
+    path = '/sys/class/net/%s/address' % dev
+    if os.path.exists(path):
+      return dev
+  return None
