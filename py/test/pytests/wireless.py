@@ -18,14 +18,23 @@ import time
 import unittest
 import urllib2
 
+from cros.factory.goofy.service_manager import GetServiceStatus
+from cros.factory.goofy.service_manager import SetServiceStatus
+from cros.factory.goofy.service_manager import Status
 from cros.factory.test import factory
 from cros.factory.test.args import Arg
+from cros.factory.utils.net_utils import GetWLANInterface
+from cros.factory.utils.process_utils import Spawn
 
 try:
   sys.path.append('/usr/local/lib/flimflam/test')
   import flimflam  # pylint: disable=F0401
 except:  # pylint: disable=W0702
   pass
+
+
+_SERVICE_LIST = ['shill', 'shill_respawn', 'wpasupplicant',
+                 'modemmanager']
 
 
 def FlimGetService(flim, name):
@@ -49,11 +58,24 @@ def FlimGetServiceProperty(service, prop):
       return properties[prop]
   raise e
 
+def FlimConfigureService(flim, name, password):
+  wlan_dict = {
+      'Type': 'wifi',
+      'Mode': 'managed',
+      'AutoConnect': False,
+      'SSID': name}
+  if password:
+    wlan_dict['Security'] = 'psk'
+    wlan_dict['Passphrase'] = password
+
+  flim.manager.ConfigureService(wlan_dict)
 
 class WirelessTest(unittest.TestCase):
   ARGS = [
-    Arg('services', (list, str),
-        'A list of Wifi or LTE service names to test.'
+    Arg('services', (list, tuple),
+        'A list of Wifi or LTE service (name, password) tuple to test.'
+        ' e.g. [("ssid1", "password1"), ("ssid2", "password2")].'
+        ' Set password to None or "" if it is open network.'
         'If services are not specified, this test will check for any AP',
         optional=True),
     Arg('min_signal_quality', int,
@@ -62,6 +84,17 @@ class WirelessTest(unittest.TestCase):
     Arg('test_url', str, 'URL for testing data transmission.',
         optional=True),
   ]
+
+  def setUp(self):
+    for service in _SERVICE_LIST:
+      if GetServiceStatus(service) == Status.STOP:
+        SetServiceStatus(service, Status.START)
+    dev = GetWLANInterface()
+    if not dev:
+      self.fail('No wireless interface')
+    else:
+      logging.info('ifconfig %s up', dev)
+      Spawn(['ifconfig', dev, 'up'], check_call=True, log=True)
 
   def runTest(self):
     flim = flimflam.FlimFlam(dbus.SystemBus())
@@ -84,7 +117,7 @@ class WirelessTest(unittest.TestCase):
       # Test Wifi signal strength for each service
       if not isinstance(self.args.services, list):
         self.args.services = [self.args.services]
-      for name in self.args.services:
+      for name, password in self.args.services:
         service = FlimGetService(flim, name)
         if service is None:
           self.fail('Unable to find service %s' % name)
@@ -97,16 +130,19 @@ class WirelessTest(unittest.TestCase):
                       (name, strength, self.args.min_signal_quality))
 
         if FlimGetServiceProperty(service, 'IsActive'):
-          logging.debug('Already connected to %s', name)
+          logging.warning('Already connected to %s', name)
         else:
-          logging.debug('Connecting to %s', name)
+          logging.info('Connecting to %s', name)
+          FlimConfigureService(flim, name, password)
           success, diagnostics = flim.ConnectService(service=service)
           if not success:
             self.fail('Unable to connect to %s, diagnostics %s' % (name,
                                                                    diagnostics))
+          else:
+            factory.console.info('Successfully connected to service %s' % name)
 
         if self.args.test_url is not None:
-          logging.debug('Try connecting to %s', self.args.test_url)
+          logging.info('Try connecting to %s', self.args.test_url)
           for i in range(5): # pylint: disable=W0612
             try:
               urllib2.urlopen(self.args.test_url, timeout=2)
@@ -121,5 +157,5 @@ class WirelessTest(unittest.TestCase):
                                    self.args.test_url)
               break
 
-        logging.debug('Disconnecting %s', name)
+        logging.info('Disconnecting %s', name)
         flim.DisconnectService(service)
