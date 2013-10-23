@@ -419,11 +419,20 @@ def SendKey(key_sequence):
   """Send the given key sequence through X server.
 
   Args:
-    key_sequence: A string of key sequence. See the help of xdotool.
+    key_sequence: This can be a list of keys to send or a string of key
+        sequence.  For example:
+          - list: ['f', 'o', 'o'] sends the string 'foo' through xdotool.
+          - string: 'Alt+F4' sends the F4 key wth modifier Alt through xdotool.
+        For more details, see the help of xdotool.
   """
   os.environ['DISPLAY'] = ':0'
   os.environ['XAUTHORITY'] = '/home/chronos/.Xauthority'
-  Spawn(['xdotool', 'key', key_sequence])
+  if isinstance(key_sequence, list):
+    Spawn(['xdotool', 'key'] + key_sequence)
+  elif isinstance(key_sequence, basestring):
+    Spawn(['xdotool', 'key', key_sequence])
+  else:
+    raise ValueError('key_sequence must be a list or a string')
 
 
 def WaitFor(condition, timeout_secs, poll_interval=0.1):
