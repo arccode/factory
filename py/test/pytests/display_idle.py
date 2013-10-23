@@ -37,6 +37,8 @@ class DisplayIdleTest(unittest.TestCase):
 
   ARGS = [
     Arg('timeout_secs', int, 'Timeout for the test.', default=20),
+    Arg('start_without_prompt', int, 'Start the test without prompt',
+        default=False),
   ]
   def setUp(self):
     '''Initializes frontend presentation and properties.'''
@@ -62,6 +64,8 @@ class DisplayIdleTest(unittest.TestCase):
     '''Sets the callback function of keys and run the test.'''
     self.ui.BindKey(' ', lambda _: self.OnSpacePressed())
     self.ui.BindKey(test_ui.ESCAPE_KEY, lambda _: self.OnFailPressed())
+    if self.args.start_without_prompt:
+      self.OnSpacePressed()
     self.ui.Run()
 
   def OnSpacePressed(self):
