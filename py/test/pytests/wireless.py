@@ -13,6 +13,7 @@ URL.
 
 import dbus
 import logging
+import os
 import sys
 import time
 import unittest
@@ -23,8 +24,9 @@ from cros.factory.goofy.service_manager import SetServiceStatus
 from cros.factory.goofy.service_manager import Status
 from cros.factory.test import factory
 from cros.factory.test.args import Arg
+from cros.factory.utils.file_utils import TryUnlink
 from cros.factory.utils.net_utils import GetWLANInterface
-from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils.process_utils import Spawn, CheckOutput
 
 try:
   sys.path.append('/usr/local/lib/flimflam/test')
@@ -35,6 +37,7 @@ except:  # pylint: disable=W0702
 
 _SERVICE_LIST = ['shill', 'shill_respawn', 'wpasupplicant',
                  'modemmanager']
+_LOCAL_FILE_PATH = '/tmp/test'
 
 
 def FlimGetService(flim, name):
@@ -82,6 +85,8 @@ class WirelessTest(unittest.TestCase):
         'Minimun signal strength required. (range from 0 to 100)',
         optional=True),
     Arg('test_url', str, 'URL for testing data transmission.',
+        optional=True),
+    Arg('md5sum', str, 'md5sum of the test file in test_url',
         optional=True),
   ]
 
@@ -141,21 +146,38 @@ class WirelessTest(unittest.TestCase):
           else:
             factory.console.info('Successfully connected to service %s' % name)
 
+        Spawn(['ifconfig'], check_call=True, log=True)
+        success_url_test = False
+        TryUnlink(_LOCAL_FILE_PATH)
         if self.args.test_url is not None:
           logging.info('Try connecting to %s', self.args.test_url)
           for i in range(5): # pylint: disable=W0612
             try:
-              urllib2.urlopen(self.args.test_url, timeout=2)
+              remote_file = urllib2.urlopen(self.args.test_url, timeout=2)
             except urllib2.HTTPError as e:
               factory.console.info('Connected to %s but got status code %d',
                                    self.args.test_url, e.code)
+              continue
             except urllib2.URLError as e:
               factory.console.info('Failed to connect to %s, status code %d',
                                    self.args.test_url, e.code)
+              continue
             else:
-              factory.console.info('Successfully connected to %s',
-                                   self.args.test_url)
-              break
+              with open(_LOCAL_FILE_PATH, "w") as local_file:
+                local_file.write(remote_file.read())
+                local_file.flush()
+                os.fdatasync(local_file)
+              md5sum_output = CheckOutput(['md5sum', _LOCAL_FILE_PATH],
+                                          log=True).strip().split()[0]
+              logging.info('Got local file md5sum %s', md5sum_output)
+              logging.info('Golden file md5sum %s', self.args.md5sum)
+              if md5sum_output == self.args.md5sum:
+                success_url_test = True
+                factory.console.info('Successfully connected to %s',
+                                     self.args.test_url)
+                break
 
+        if not success_url_test:
+          self.fail('Failed to connect to url %s' % self.args.test_url)
         logging.info('Disconnecting %s', name)
         flim.DisconnectService(service)
