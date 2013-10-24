@@ -126,6 +126,10 @@
   background: -webkit-gradient(linear, left top, left bottom, from(#222), to(#444));
 }
 
+.black:disabled {
+  color: #666;
+}
+
 /* gray */
 .gray {
   color: #e9e9e9;
@@ -146,10 +150,15 @@
 
 /* CSS for image within container */
 .popup_img img.original_img{
-  position: relative;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  margin-top: 0px;
+  margin-left: 0px;
   z-index: 3;
   opacity: 1;
   -webkit-transition: all 0.5s ease-in-out;
+  display: block;
 }
 
 /* CSS for image when mouse hovers over main container */
@@ -197,9 +206,11 @@
 }
 
 .popup_img img.analyzed_img{
-  position:absolute;
-  margin: auto;
-  top:0%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  margin-top: 0px;
+  margin-left: 0px;
   z-index: 2;
   opacity: 1;
   -webkit-transition: all 0.5s ease-in-out;
@@ -295,38 +306,46 @@
 
 <div id="Title" class="title_box" style="height:5%;">
 <table class="text_shadow_white font_title" style="margin:auto;height:100%;"><tr><td class="test-vcenter-inner">
+<div id="main_screen_title">
 <span class="goofy-label-en">Camera Performance Test and ALS Calibration</span><span class="goofy-label-zh">相机效能与ALS校正</span>
+</div>
 </td></tr></table>
 </div>
 
 <!-- Main Screen - Left Pane. -->
 
 <div id="menu" class="panel_box" style="height:75%;width:20%;float:left;">
-<!-- USB status panel -->
+
+<!-- USB Status Panel -->
 <div id="usb_status_panel" hidden>
+
 <div class="panel_box text_shadow_small font_label" style="height:5%;padding-left:3%">
 <span class="goofy-label-en">USB Stick:</span><span class="goofy-label-zh">测试参数U盘:</span>
 </div>
-<div id="test_param" class="panel_bad" style="height:10%;text-align:center">
+
+<div id="usb_status" class="panel_bad" style="height:10%;text-align:center">
+
 <table class="font_input" style="margin:auto;height:100%;"><tr><td class="test-vcenter-inner">
-<div id="usb_status">
+<div id="usb_status_text">
 <span class="goofy-label-en">UNLOADED</span><span class="goofy-label-zh">未载入</span>
 </div>
 </td></tr></table>
+
 </div>
+
 </div>
 
 <!-- Serial Number Panel. -->
-<div id="serial_number_panel" hidden>
-<div id="test_sn_label" class="panel_box text_shadow_small font_label" style="height:5%;padding-left:3%">
+<div id="sn_status_panel" hidden>
+
+<div class="panel_box text_shadow_small font_label" style="height:5%;padding-left:3%">
 <span class="goofy-label-en">Serial Number:</span><span class="goofy-label-zh">待测物序号:</span>
 </div>
-<div id="test_sn" class="panel_good" style="height:10%;text-align:center;">
-<table class="font_input" style="margin:auto;height:100%;border:0;border-spacing:0" cellpadding="0" cellspacing="0">
-<tr><td class="test-vcenter-inner">
-<input id="serial_number" class="input_box" disabled type="text" value="" required pattern="TEST_SN_NUMBER" onclick="OnSnInputBoxClick();" oninput="UpdateTestBottonStatus();">
-</td></tr></table>
+
+<div style="height:10%;text-align:center;">
+<input id="sn_input_box" class="input_box" disabled type="text" value="" required pattern="TEST_SN_NUMBER" onclick="OnSnInputBoxClick();" oninput="OnCheckButtonState();">
 </div>
+
 </div>
 
 <!-- Fixture Status Panel. -->
@@ -346,10 +365,10 @@
 <div id="menu_placeholder" style="height:15%">
 </div>
 
-<!-- Run Test Button. -->
+<!-- Start Test Button. -->
 <div style="height:20%;text-align:center">
-<button id="button_run_test" class="button black" disabled type="button" onclick="OnButtonRunTestClick();" style="width:100%;height:97%;font-size:140%">
-<span class="goofy-label-en">Run Test</span><span class="goofy-label-zh">开始测试</span>
+<button id="button_start_test" class="button black" type="button" onclick="OnButtonStartTestClick();" style="width:100%;height:97%;font-size:140%">
+<span class="goofy-label-en">Start Test</span><span class="goofy-label-zh">开始测试</span>
 </button>
 </div>
 
@@ -366,13 +385,13 @@
 
 <div id="content" class="white" style="height:75%;width:80%;float:right;">
 <table style="margin:auto;height:100%;"><tr><td style="vertical-align:middle">
+
 <div class="popup_img" style="">
 <img id="preview_image" hidden src="" alt="Preview Image"></img>
-<img id="camera_image" class="original_img" hidden src="" alt="Camera Image"></img>
-<div class="desc rightslide" hidden>
-</div>
+<img id="camera_image" class="original_img" hidden src=""></img>
 <img id="analyzed_image" class="analyzed_img" hidden src=""></img>
 </div>
+
 </td></tr></table>
 </div>
 

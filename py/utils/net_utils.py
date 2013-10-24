@@ -18,10 +18,11 @@ import xmlrpclib
 import factory_common  # pylint: disable=W0611
 from cros.factory.common import Error, TimeoutError
 from cros.factory.test import factory
+from cros.factory.test.utils import FormatExceptionOnly
 from cros.factory.utils.process_utils import Spawn, SpawnOutput
 
 DEFAULT_TIMEOUT = 10
-
+INSERT_ETHERNET_DONGLE_TIMEOUT = 30
 
 class TimeoutHTTPConnection(httplib.HTTPConnection):
   def connect(self):
@@ -216,6 +217,44 @@ def PollForCondition(condition, timeout=10,
       logging.error(condition_name)
       raise TimeoutError(condition_name)
     time.sleep(poll_interval_secs)
+
+
+def PrepareNetwork(ip, force_new_ip=False):
+  """High-level API to prepare networking.
+
+  1. Wait for presence of ethernet connection (e.g., plug-in ethernet dongle).
+  2. Setup IP.
+
+  The operation may block for a long time. Do not run it in UI thread.
+
+  Args:
+    ip: The ip address to set. (Set to None if DHCP is used.)
+    force_new_ip: Force to set new IP addr regardless of existing IP addr.
+  """
+  def _obtain_IP():
+    if ip is None:
+      SendDhcpRequest()
+    else:
+      SetEthernetIp(ip, force=force_new_ip)
+    return True if GetEthernetIp() else False
+
+  factory.console.info('Detecting Ethernet device...')
+  try:
+    PollForCondition(
+        condition=lambda: True if FindUsableEthDevice() else False,
+        timeout=INSERT_ETHERNET_DONGLE_TIMEOUT,
+        condition_name='Detect Ethernet device')
+
+    current_ip = GetEthernetIp(FindUsableEthDevice())
+    if not current_ip or force_new_ip:
+      factory.console.info('Setting up IP address...')
+      PollForCondition(condition=_obtain_IP, timeout=DEFAULT_TIMEOUT,
+                       condition_name='Setup IP address')
+  except:  # pylint: disable=W0702
+    exception_string = FormatExceptionOnly()
+    factory.console.error('Unable to setup network: %s', exception_string)
+  factory.console.info('Network prepared. IP: %r', GetEthernetIp())
+
 
 def GetWLANMACAddress():
   """Returns the MAC address of the first wireless LAN device.

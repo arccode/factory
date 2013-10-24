@@ -1,0 +1,118 @@
+# -*- mode: python -*-
+{
+  # Version of this test parameter file.
+  'version': 'v0.01',
+
+  'ui': {
+    # Lowest and upper bounds for visualization of good and bad MTF values.
+    'mtf_color_map_range': [0.1, 0.4],
+
+    # Ignore enter key in serial number input.  (Some barcode readers
+    # automatically input enter key, but we may prefer not to start the test
+    # immediately after scanning barcode.)
+    # This flag does not change the behavior of Space key.
+    'ignore_enter_key': False
+    },
+
+  'cam_sn': {
+    # Regular expression format for serial number.
+    'sn_format': r'^[a-zA-Z0-9]{4}$',
+
+    # Whether to auto read serial number from sysfs.
+    'sn_auto_read': False,
+
+    # Pathname of serial number in sysfs.
+    'sn_sysfs_path': ''
+    },
+
+  'cam_fw': {
+    # Whether to check firmware version.
+    'fw_check': True,
+
+    # Pathname of firmware version in sysfs.
+    'fw_sysfs_path': '/sys/devices/exynos-dwc3/dwc3.0/xhci-hcd/usb3/3-1/bcdDevice',
+
+    # Expected firmware version.
+    'fw_version': '0009'
+    },
+
+  'cam_img': {
+    # Buffer time for AWB and AE.
+    'buf_time': 3.0,
+
+    # Number of samples to average to produce low-noises image.
+    'n_samples': 45
+    },
+
+  'cam_vc': {
+    # Corner quality threshold when detecting corners.
+    'min_corner_quality_ratio': 0.01,
+
+    # Minimum allowed square edge length compared to image diagonal length when
+    # detecting square blocks.
+    'min_square_size_ratio': 0.022,
+
+    # Minimum allowed corner distance compared to image diagonal length when
+    # detecting corners.
+    'min_corner_distance_ratio': 0.010,
+
+    # Maximum allowed image position shift compared to image diagonal length.
+    'max_image_shift': 0.08,
+
+    # Maximum allowed image rotation in degrees.
+    'max_image_tilt': 2.0
+    },
+
+  'cam_ls': {
+    # Low-frequency variation check (sensitive to light uniformity).
+    'check_low_freq': False,
+
+    # Maximum acceptable response of low frequency variation.
+    'max_response': 0.01,
+
+    # Maximum acceptable shading ratio of boundary pixels.
+    'max_shading_ratio': 0.30
+    },
+
+  'cam_mtf': {
+    # Minimum acceptable median MTF value of all edge samples.
+    # For example, it compares with the 154th value out of 308 samples.
+    'min_pass_mtf': 0.21,
+
+    # Minimum acceptable lowest MTF value of all edge samples.
+    # For example, it compares with the lowest 308th value of 308 samples.
+    'min_pass_lowest_mtf': 0.105,
+
+    # Maximum number of edges to compute MTF values.
+    # Test chart A: 7 x 11 x 4 = 308
+    # Test chart B: 7 x 9 x 4 = 252
+    'mtf_sample_count': 308,
+
+    # Patch width for MTF calculation (typical values: 10 for VGA, 20 for 720p).
+    'mtf_patch_width': 20,
+
+    # How much to crop at the beginning and the end of an edge.
+    'mtf_crop_ratio': 0.25,
+
+    # Use MTF50P (True) or MTF50 (False) algorithms.
+    'use_50p': False,
+
+    # Number of threads running concurrently (depends on CPU core count).
+    'n_thread': 4
+    },
+
+  # Expected time duration of each test stage (used for progress bar).
+  'chk_point': [
+    ('cam_start', 0.1),
+    ('cam_sn', 0.1),
+    ('cam_fw', 0.1),
+    ('cam_init', 0.1),
+    ('cam_awb', 3.0),
+    ('cam_img', 2.5),
+    ('cam_vc', 0.25),
+    ('cam_ls', 0.05),
+    ('cam_mtf', 0.75),
+    ('cam_end', 1.0),
+    ('cam_data_saved', 0)
+    ]
+}

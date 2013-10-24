@@ -11,6 +11,8 @@ try:
   import cv2  # pylint: disable=F0401
 except ImportError:
   pass
+
+import numpy as np
 import os
 
 
@@ -90,8 +92,11 @@ class LightChamber(object):
       self._camera_device.release()
       self._camera_device = None
 
-  def ReadSingleFrame(self):
-    """Read a single frame from camera device.
+  def ReadSingleFrame(self, return_gray_image=True):
+    """Reads a single frame from camera device.
+
+    Args:
+      return_gray_image: Whether to return grayscale image.
 
     Returns:
       Returns color image, grayscale image.
@@ -105,4 +110,27 @@ class LightChamber(object):
     if not ret or img is None:
       raise LightChamberError('Error while capturing. Camera disconnected?')
 
-    return (img, cv2.cvtColor(img, cv.CV_BGR2GRAY))
+    return (img,
+            cv2.cvtColor(img, cv.CV_BGR2GRAY) if return_gray_image else None)
+
+  def ReadLowNoisesFrame(self, sample_count, return_gray_image=True):
+    """Reads multiple frames and average them into a single image to reduce
+    noises.
+
+    Args:
+      sample_count: The number of frames to take.
+      return_gray_image: Whether to return grayscale image.
+
+    Returns:
+      Returns averaged color image, grayscale image.
+    """
+    assert sample_count >= 1
+    img, _ = self.ReadSingleFrame(return_gray_image=False)
+    img = img.astype(np.float64)
+    for dummy in xrange(sample_count - 1):
+      t, _ = self.ReadSingleFrame(return_gray_image=False)
+      img += t.astype(np.float64)
+    img /= sample_count
+    img = img.round().astype(np.uint8)
+    return (img,
+            cv2.cvtColor(img, cv.CV_BGR2GRAY) if return_gray_image else None)
