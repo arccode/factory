@@ -79,7 +79,10 @@ class FanSpeedTest(unittest.TestCase):
         default=0.2),
     Arg('num_samples_to_use', int,
         'Number of lastest samples to count average as stablized speed.',
-        default=5)
+        default=5),
+    Arg('use_percentage', bool,
+        'Use percentage to set fan speed',
+        default=False, optional=True)
   ]
 
   def setUp(self):
@@ -116,7 +119,10 @@ class FanSpeedTest(unittest.TestCase):
     self._ui.SetHTML(observed_rpm, id=_ID_RPM)
     logging.info(status)
 
-    self._board.SetFanRPM(int(target_rpm))
+    if self.args.use_percentage:
+      self._board.SetFanRPM(int(target_rpm * 100 / self.args.max_rpm))
+    else:
+      self._board.SetFanRPM(int(target_rpm))
     # Probe fan speed for duration_secs seconds with sampling interval
     # probe_interval_secs.
     end_time = time.time() + self.args.duration_secs
