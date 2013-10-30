@@ -9,7 +9,8 @@
 # match what's provided in the test argument, flash netboot firmware if it is
 # provided.
 
-from distutils.version import StrictVersion
+from distutils.version import StrictVersion, LooseVersion
+import logging
 import time
 import unittest
 
@@ -94,7 +95,12 @@ class ImageCheckTask(FactoryTask):
   def Run(self):
     ver = SystemInfo().factory_image_version
     Log('image_version', version=ver)
-    if StrictVersion(ver) < StrictVersion(self._test.args.min_version):
+    version_format = (LooseVersion if self._test.args.loose_version
+                      else StrictVersion)
+    logging.info('Using version format: %r', version_format.__name__)
+    logging.info('current version: %r', ver)
+    logging.info('expected version: %r', self._test.args.min_version)
+    if version_format(ver) < version_format(self._test.args.min_version):
       factory.console.error('Current factory image version is incorrect: %s',
                             ver)
       if self._test.args.reimage:
@@ -112,6 +118,8 @@ class ImageCheckTask(FactoryTask):
 class CheckImageVersionTest(unittest.TestCase):
   ARGS = [
     Arg('min_version', str, 'Minimum allowed factory image version.'),
+    Arg('loose_version', bool, 'Allow any version number representation.',
+        default=False),
     Arg('netboot_fw', str, 'The path to netboot firmware image.',
         default=None, optional=True),
     Arg('reimage', bool, 'True to re-image when image version mismatch.',
