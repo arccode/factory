@@ -542,6 +542,13 @@ class TestInvocation(object):
         self.test.path, self.uuid))
 
     try:
+      if self.test.prepare:
+        self.test.prepare()
+    except:
+      logging.exception('Exception while invoking before_callback %s',
+          traceback.format_exc())
+
+    try:
       status, error_msg = None, None
       if self.test.autotest_name:
         status, error_msg = self._invoke_autotest()
@@ -608,6 +615,13 @@ class TestInvocation(object):
       decrement_retries_left = 1
     elif status == TestState.PASSED:
       decrement_iterations_left = 1
+
+    try:
+      if self.test.finish:
+        self.test.finish(status)
+    except:
+      logging.exception('Exception while invoking finish_callback %s',
+          traceback.format_exc())
 
     with self._lock:
       self.update_state_on_completion = dict(

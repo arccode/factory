@@ -761,6 +761,8 @@ class FactoryTest(object):
                run_if=None,
                iterations=1,
                retries=0,
+               prepare=None,
+               finish=None,
                _root=None,
                _default_id=None):
     '''
@@ -831,6 +833,10 @@ class FactoryTest(object):
       If it's 0, then no retries are allowed (the usual case). If, for example,
       iterations=60 and retries=2, then the test would be run up to 62 times
       and could fail up to twice.
+    @param prepare: A callback function before test starts to run.
+    @param finish: A callback function when test case completed.
+      This function has one parameter indicated test result: TestState.PASSED
+      or TestState.FAILED.
     @param _root: True only if this is the root node (for internal use
       only).
     '''
@@ -840,6 +846,10 @@ class FactoryTest(object):
     self.autotest_name = autotest_name
     self.pytest_name = pytest_name
     self.invocation_target = invocation_target
+    # TODO(henryhsu): prepare and finish should support TestGroup also
+    #    instead of test case only
+    self.prepare = prepare
+    self.finish = finish
     self.kbd_shortcut = kbd_shortcut.lower() if kbd_shortcut else None
     self.dargs = dargs or {}
     self.backgroundable = backgroundable
