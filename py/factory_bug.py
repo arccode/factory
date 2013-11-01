@@ -131,6 +131,7 @@ def SaveLogs(output_dir, archive_id=None,
     var, usr_local, etc: Paths to the relavant directories.
   '''
   output_dir = os.path.realpath(output_dir)
+  files = []
 
   filename = 'factory_bug.'
   if archive_id:
@@ -149,13 +150,16 @@ def SaveLogs(output_dir, archive_id=None,
     return output_file
 
   tmp = tempfile.mkdtemp(prefix='factory_bug.')
+  # SuperIO-based platform has no EC chip, check ectool exists or not.
+  has_ectool = Spawn(['whereis', 'ectool'], read_stdout=True,
+      log=True).stdout_data.split(':')[1].strip()
   try:
     with open(os.path.join(tmp, 'crossystem'), 'w') as f:
       Spawn('crossystem', stdout=f, stderr=f, check_call=True)
-
-      print >> f, '\nectool version:'
-      f.flush()
-      Spawn(['ectool', 'version'], stdout=f, check_call=True)
+      if has_ectool:
+        print >> f, '\nectool version:'
+        f.flush()
+        Spawn(['ectool', 'version'], stdout=f, check_call=True)
 
     with open(os.path.join(tmp, 'dmesg'), 'w') as f:
       Spawn('dmesg', stdout=f, check_call=True)
@@ -164,11 +168,13 @@ def SaveLogs(output_dir, archive_id=None,
       Spawn(['mosys', 'eventlog', 'list'],
             stdout=f, stderr=f, call=True)
 
-    with open(os.path.join(tmp, 'ec_console'), 'w') as f:
-      Spawn(['ectool', 'console'],
-            stdout=f, stderr=f, call=True)
+    if has_ectool:
+      with open(os.path.join(tmp, 'ec_console'), 'w') as f:
+        Spawn(['ectool', 'console'],
+              stdout=f, stderr=f, call=True)
+      files += ['ec_console']
 
-    files = ['crossystem', 'dmesg', 'mosys_eventlog', 'ec_console'] + sum(
+    files += ['crossystem', 'dmesg', 'mosys_eventlog'] + sum(
         [glob(x) for x in [
             os.path.join(var, 'log'),
             os.path.join(var, 'factory'),
