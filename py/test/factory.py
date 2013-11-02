@@ -1331,7 +1331,7 @@ class ShutdownStep(AutomatedSubTest):
   REBOOT = 'reboot'
   HALT = 'halt'
 
-  def __init__(self, operation, delay_secs=5, **kw):
+  def __init__(self, operation, delay_secs=5, enable_guest_mode=False, **kw):
     super(ShutdownStep, self).__init__(**kw)
     assert not self.autotest_name, (
         'Reboot/halt steps may not have an autotest')
@@ -1343,6 +1343,7 @@ class ShutdownStep(AutomatedSubTest):
     self.operation = operation
     assert delay_secs >= 0
     self.delay_secs = delay_secs
+    self.enable_guest_mode = enable_guest_mode
 
 
 class HaltStep(ShutdownStep):

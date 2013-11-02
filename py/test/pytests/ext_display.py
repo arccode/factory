@@ -295,7 +295,7 @@ class VideoTask(ExtDisplayTask):
     self._fixture = args.fixture
     self._manual = not self._fixture
     self._ui = args.ui
-    self._internal_display_resolution = self._GetScreenResolution()
+    self._original_primary_display = self._GetPrimayScreenId()
 
     # Bind a random key (0-9) to pass the task.
     if self._manual:
@@ -321,30 +321,43 @@ class VideoTask(ExtDisplayTask):
                                     instruction,
                                     pass_key=False)
 
-  def _GetScreenResolution(self):
-    return factory.get_state_instance().EvaluateJavaScript(
-        '[window.screen.width, window.screen.height]')
+  def _GetPrimayScreenId(self):
+    for info in factory.get_state_instance().GetDisplayInfo():
+      if info['isPrimary']:
+        return info['id']
+    self.Fail('Fail to get primary display ID')
 
-  def SetMainDisplay(self, internal=True):
+  def SetMainDisplay(self, recover_original=True):
     """Sets the main display.
 
     Args:
-      internal: True to set internal display as main; False to set external
-          display as main.
+      recover_original: True to set the original display as main;  False to
+          set the other (external) display as main.
     """
+    display_info = factory.get_state_instance().GetDisplayInfo()
+    if len(display_info) == 1:
+      # Fail the test if we see only one display and it's the internal one.
+      if display_info[0]['isInternal']:
+        self.Fail('Fail to detect external display')
+      else:
+        return
+
     os.environ['DISPLAY'] = ':0'
     os.environ['XAUTHORITY'] = '/home/chronos/.Xauthority'
-    while True:
-      # TODO(jcliang): Here we assume that internal and external displays have
-      # different resolutions. We need a better way to tell which display we're
-      # on if the two displays have same resolution.
-      if not (internal ^ (self._GetScreenResolution() ==
-                          self._internal_display_resolution)):
+    # Try to switch main display for at most 5 times.
+    tries_left = 5
+    while tries_left:
+      if not (recover_original ^ (self._GetPrimayScreenId() ==
+                                  self._original_primary_display)):
         # Stop the loop if these two conditions are either both True or
         # both False.
         break
       utils.SendKey('Alt+F4')
+      tries_left -= 1
       time.sleep(2)
+
+    if tries_left == 0:
+      self.Fail('Fail to switch main display')
 
   def PostSuccessEvent(self):
     """Posts an event to trigger self.Pass().
@@ -365,7 +378,7 @@ class VideoTask(ExtDisplayTask):
                              subtype=self._fail_event))
 
   def Run(self):
-    self.SetMainDisplay(internal=False)
+    self.SetMainDisplay(recover_original=False)
     self.InitUI()
 
     if self._fixture:
@@ -380,7 +393,7 @@ class VideoTask(ExtDisplayTask):
       self._check_display.start()
 
   def Cleanup(self):
-    self.SetMainDisplay(internal=True)
+    self.SetMainDisplay(recover_original=True)
     if self._manual:
       self.UnbindDigitKeys()
     if self._fixture:

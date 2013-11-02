@@ -411,6 +411,36 @@ class GoofyRPC(object):
   def ExecuteJavaScript(self, script):
     self._GetGoofyTab().ExecuteJavaScript(script)
 
+  def GetDisplayInfo(self):
+    """Gets display info from the factory test chrome extension page.
+
+    Returns:
+      A dict of display info.
+
+    Raises:
+      GoofyRPCException: If this is called inside chroot, or browser instance is
+          not initialized.
+    """
+    if utils.in_chroot():
+      raise GoofyRPCException('Cannot get display info in chroot')
+    if not self.goofy.env.browser or not self.goofy.env.extension:
+      raise GoofyRPCException('Browser instance is not initialized')
+
+    ext_page = self.goofy.env.browser.extensions[self.goofy.env.extension]
+    ext_page.ExecuteJavaScript(
+        'window.__display_info = null;')
+    ext_page.ExecuteJavaScript(
+        'chrome.system.display.getInfo(function(info) {'
+        '    window.__display_info = info;})')
+
+    def _FetchDisplayInfo():
+      return ext_page.EvaluateJavaScript(
+          'window.__display_info')
+
+    utils.WaitFor(_FetchDisplayInfo, 10)
+    return _FetchDisplayInfo()
+
+
 def main():
   parser = argparse.ArgumentParser(
       description="Sends an RPC to Goofy.")

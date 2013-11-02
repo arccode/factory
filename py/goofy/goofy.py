@@ -509,6 +509,7 @@ class Goofy(object):
 
     pending_shutdown_data = {
       'delay_secs': test.delay_secs,
+      'enable_guest_mode': test.enable_guest_mode,
       'time': time.time() + test.delay_secs,
       'operation': test.operation,
       'iteration': iteration,
@@ -799,6 +800,12 @@ class Goofy(object):
 
         with self.env.lock:
           self.event_log.Log('shutdown', operation=test.operation)
+          if (test.enable_guest_mode and
+              not os.path.exists(
+                  test_environment.DUTEnvironment.GUEST_MODE_TAG_FILE)):
+            # Create a temporary file GUEST_MODE_TAG_FILE to enable guest mode
+            # on next boot.
+            os.mknod(test_environment.DUTEnvironment.GUEST_MODE_TAG_FILE)
           shutdown_result = self.env.shutdown(test.operation)
         if shutdown_result:
           # That's all, folks!
@@ -1223,9 +1230,9 @@ class Goofy(object):
     parser.add_option('--automation', dest='automation',
                       action='store_true',
                       help='Enable automation on running factory test')
-    parser.add_option('--test_login', dest='test_login',
+    parser.add_option('--guest_login', dest='guest_login', default=False,
                       action='store_true',
-                      help='Log in with the test user. This will own the TPM.')
+                      help='Log in as guest. This will not own the TPM.')
     (self.options, self.args) = parser.parse_args(args)
 
     # Make sure factory directories exist.
@@ -1264,8 +1271,9 @@ class Goofy(object):
       logging.warn(
         'Using chroot environment: will not actually run autotests')
     else:
-      self.env = test_environment.DUTEnvironment(
-          test_login=self.options.test_login)
+      if self.options.guest_login:
+        os.mknod(test_environment.DUTEnvironment.GUEST_MODE_TAG_FILE)
+      self.env = test_environment.DUTEnvironment()
     self.env.goofy = self
 
     if self.options.restart:
