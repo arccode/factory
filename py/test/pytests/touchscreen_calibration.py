@@ -32,9 +32,10 @@ ARDUINO_DRIVER = 'cdc_acm'
 ArduinoCommand = namedtuple('ArduinoCommand', ['DOWN', 'UP', 'STATE', 'RESET'])
 COMMAND = ArduinoCommand('d', 'u', 's', 'r')
 
-ArduinoState = namedtuple('ArduinoState', ['INIT', 'STOP_DOWN', 'STOP_UP',
-                                           'GOING_DOWN', 'GOING_UP'])
-STATE = ArduinoState('i', 'D', 'U', 'd', 'u')
+ArduinoState = namedtuple('ArduinoState',
+                          ['INIT', 'STOP_DOWN', 'STOP_UP', 'GOING_DOWN',
+                           'GOING_UP', 'EMERGENCY_STOP'])
+STATE = ArduinoState('i', 'D', 'U', 'd', 'u', 'e')
 
 
 class DebugDataReader():
@@ -135,7 +136,7 @@ class FixutreSerialDevice(SerialDevice):
 
     factory.console.info('Sleep 2 seconds for arduino initialization.')
     time.sleep(2)
-    self.AssertState(STATE.INIT)
+    self.AssertState([STATE.INIT, STATE.STOP_UP, STATE.EMERGENCY_STOP])
 
   def QueryState(self):
     """Queries the state of the arduino board."""
@@ -150,12 +151,18 @@ class FixutreSerialDevice(SerialDevice):
     """Checks if the fixture is in the INIT or STOP_UP state."""
     return (self.QueryState() in [STATE.INIT, STATE.STOP_UP])
 
-  def AssertState(self, expected_state):
+  def IsEmergencyStop(self):
+    """Checks if the fixture is in the EMERGENCY_STOP state."""
+    return (self.QueryState() == STATE.EMERGENCY_STOP)
+
+  def AssertState(self, expected_states):
     """Confirms that the arduino is in the specified state."""
+    if not isinstance(expected_states, list):
+      expected_states = [expected_states]
     actual_state = self.QueryState()
-    if actual_state != expected_state:
-      msg = 'AssertState failed: actual state: "%s", expected_state: "%s".'
-      raise FixtureException(msg % (actual_state, expected_state))
+    if actual_state not in expected_states:
+      msg = 'AssertState failed: actual state: "%s", expected_states: "%s".'
+      raise FixtureException(msg % (actual_state, str(expected_states)))
 
   def DriveProbeDown(self):
     """Drives the probe to the 'down' position."""
@@ -241,7 +248,25 @@ class TouchscreenCalibration(unittest.TestCase):
     except Exception as e:
       factory.console.info('Refresh fixture serial device exception, %s' % e)
       self.fixture = None
-    self.ui.CallJSFunction('setControllerStatus', self.fixture is not None)
+
+    fixture_ready = bool(self.fixture) and not self.fixture.IsEmergencyStop()
+    self.ui.CallJSFunction('setControllerStatus', fixture_ready)
+
+    if self.fixture and self.fixture.IsEmergencyStop():
+      self.ui.CallJSFunction(
+          'showMessage',
+          'The test fixture is not ready.\n'
+          '(1) It is possible that the test fixure is not powered on yet.\n'
+          '    Turn on the power and click "RefreshFixture" button on screen.\n'
+          '(2) The test fixture is already powered on. '
+          'The fixture may be in the emergency stop state.\n'
+          '    Press debug button on the test fixture and '
+          'click "RefreshFixture" button on screen.\n\n'
+          '治具尚未就位，可能原因如下：\n'
+          '(1) 治具电源尚未开启。请开启电源，并点击萤幕上治具连结的刷新按钮。\n'
+          '(2) 治具电源已经开启，但是处於紧急停止状态。'
+          '请按治具左侧的debug按钮一次。\n'
+          )
 
   def RefreshTouchscreen(self, dummy_event):
     """Refreshes all possible saved state for the old touchscreen.
