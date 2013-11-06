@@ -213,7 +213,7 @@ class TouchscreenCalibration(unittest.TestCase):
     if not self.fixture.IsStateUp():
       self.ui.CallJSFunction('showMessage',
                              'Probe not in initial position, aborted\n'
-                             '治具未就原位, 捨棄')
+                             '治具未就原位, 舍弃')
       raise FixtureException('Fixture not in UP position.')
 
   def ReadTest(self, dummy_event):
@@ -276,7 +276,7 @@ class TouchscreenCalibration(unittest.TestCase):
     except Exception as e:
       self.ui.CallJSFunction('showMessage',
                              'Probe not in the DOWN position, aborted\n'
-                             '治具未就下位, 捨棄')
+                             '治具未就下位, 舍弃')
       raise e
 
   def _DriveProbeUp(self):
@@ -286,7 +286,7 @@ class TouchscreenCalibration(unittest.TestCase):
     except Exception as e:
       self.ui.CallJSFunction('showMessage',
                              'Probe not in the UP position, aborted\n'
-                             '治具未就上位, 捨棄')
+                             '治具未就上位, 舍弃')
       raise e
 
   def _DumpOneFrameToLog(self, logger):
@@ -378,7 +378,7 @@ class TouchscreenCalibration(unittest.TestCase):
       self.reader.PostRead()
 
       self.ui.CallJSFunction('showMessage',
-                             'OK 測試完成' if test_pass else 'NO GOOD 測試失敗')
+                             'OK 测试完成' if test_pass else 'NO GOOD 测试失败')
 
     except Exception as e:
       if not self.fixture:
@@ -397,14 +397,14 @@ class TouchscreenCalibration(unittest.TestCase):
     if self._calibration_thread and self._calibration_thread.isAlive():
       self.ui.CallJSFunction('showMessage',
                              'Current calibration has not completed yet\n'
-                             '目前校正尚未結束')
+                             '目前校正尚未结束')
       return
 
     sn = event.data.get('sn', '')
     if len(sn) == 0:
       self.ui.CallJSFunction('showMessage',
                              'Please enter SN first\n'
-                             '請先輸入序號')
+                             '请先输入序号')
       self.ui.CallJSFunction('displayDebugData', '[]')
       return
 
@@ -439,10 +439,10 @@ class TouchscreenCalibration(unittest.TestCase):
 
     self._RegisterEvents([
       # Events that are emitted from buttons on the factory UI.
-      'ReadTest', 'RefreshFixture', 'RefreshTouchscreen', 'StartCalibration',
+      'ReadTest', 'RefreshFixture', 'RefreshTouchscreen', 'ProbeSelfTest',
 
       # Events that are emitted from other callback functions.
-      'ProbeSelfTest',
+      'StartCalibration',
     ])
 
     self.ui.Run()

@@ -1,10 +1,10 @@
-<h2>Touch screen calibration 觸控螢幕校正</h2>
+<h2>Touch screen calibration 触控萤幕校正</h2>
 <br>
 
 <div id="main" style="width: 50%">
   <div>
     <span class="goofy-label-en">Please scan serial number</span>
-    <span class="goofy-label-zh">請掃描面板序號</span>
+    <span class="goofy-label-zh">请扫描面板序号</span>
     <input id="sn" type="text" onkeydown="snEntered(event)">
   </div>
   <div id='display-area'>Display Area</div>
@@ -14,19 +14,19 @@
     top: 30; border-style: solid; border-color: #555;">
   <button onClick="test.sendTestEvent('ReadTest', {})">
     <span class="goofy-label-en">Read sensor data</span>
-    <span class="goofy-label-zh">手動讀取待測資料</span>
+    <span class="goofy-label-zh">手动读取待测资料</span>
   </button>
   <br>
 
   <button onClick="test.sendTestEvent('ProbeSelfTest')">
     <span class="goofy-label-en">Probe self test</span>
-    <span class="goofy-label-zh">手動治具自我測試</span>
+    <span class="goofy-label-zh">手动治具自我测试</span>
   </button>
 
   <div>
     <div>
       <span class="goofy-label-en">Controller status</span>
-      <span class="goofy-label-zh">治具連結</span>
+      <span class="goofy-label-zh">治具连结</span>
       <div id="controller-status" style="display:inline">N/A</div>
       <button onClick="test.sendTestEvent('RefreshFixture', {})">
         <span class="goofy-label-en">Refresh</span>
@@ -36,7 +36,7 @@
 
     <div>
       <span class="goofy-label-en">Touchscreen status</span>
-      <span class="goofy-label-zh">待測物連結</span>
+      <span class="goofy-label-zh">待测物连结</span>
       <div id="touchscreen-status" style="display:inline">N/A</div>
       <button onClick="test.sendTestEvent('RefreshTouchscreen', {})">
         <span class="goofy-label-en">Refresh</span>
