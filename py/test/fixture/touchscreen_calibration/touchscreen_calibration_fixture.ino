@@ -7,9 +7,7 @@
  */
 
 
-// debug pins
-// TODO(josephsih): add logic about jump later for the manual debug mode.
-const int jump = 2;
+const int jumper = 2;
 const int debug = 3;
 
 // sensor pins
@@ -30,6 +28,7 @@ const boolean SENSOR_UP_ACTIVE_VALUE = HIGH;
 const boolean SENSOR_DOWN_ACTIVE_VALUE = HIGH;
 const boolean SENSOR_SAFETY_TRIGGERED_VALUE = LOW;
 const boolean DEBUG_PRESSED_ACTIVE_VALUE = HIGH;
+const boolean JUMPER_ACTIVE_VALUE = HIGH;
 
 // Fixture states
 // Initial state. This state is only possible when the arduino board
@@ -68,6 +67,7 @@ const int SERIAL_BAUD_RATE = 9600;
 
 char state = stateInit;
 char command = NULL;
+boolean flagJumper = false;
 
 
 /**
@@ -78,7 +78,7 @@ void setup() {
   Serial.begin(SERIAL_BAUD_RATE);
 
   // Initialize the input debug pins and sensor pins
-  pinMode(jump, INPUT);
+  pinMode(jumper, INPUT);
   pinMode(debug, INPUT);
   pinMode(sensorExtremeUp, INPUT);
   pinMode(sensorUp, INPUT);
@@ -103,6 +103,10 @@ void setup() {
     state = stateGoingUp;
     setMotorDirectionUp();
   }
+
+  // If the jumper is set, an operator can press debug button to control the
+  // probe to go up/down.
+  flagJumper = isJumperSet();
 
   // Unlock the motor so that it could rotate.
   unlockMotor();
@@ -130,39 +134,58 @@ void stateControl(char command) {
     gotoUpPosition();
   } else {
     // Responds to the host command.
-    if ((command == cmdDown) &&
+    if ((command == cmdDown || (flagJumper && isDebugPressed())) &&
         (state == stateInit || state == stateStopUp)) {
       // Takes the go Down command only when the probe is in its Up position.
       state = stateGoingDown;
       setMotorDirectionDown();
-    } else if ((command == cmdUp) && (state == stateStopDown)) {
+    } else if ((command == cmdUp || (flagJumper && isDebugPressed())) &&
+               (state == stateStopDown)) {
       // Takes the go Up command only when the probe is in its Down position.
       state = stateGoingUp;
       setMotorDirectionUp();
     } else if (command != cmdState && command != NULL) {
       sendResponse(ERROR);
     }
-
-    // Responds to the status of sensors.
-    if (state == stateGoingDown) {
-      if (isSensorDown()) {
-        state = stateStopDown;
-        sendResponse(state);
-      } else {
-        driveMotorOneStep();
-      }
-    } else if (state == stateGoingUp) {
-      if (isSensorUp()) {
-        state = stateStopUp;
-        sendResponse(state);
-      } else {
-        driveMotorOneStep();
-      }
-    }
+    driveMotorOneStepTowardEndPosition();
   }
+
+  // Check the jumper only in a stop state as the operator is not supposed
+  // to change the jumper when the motor is moving.
+  // Detecting the jumper condition here in addition to when the arduino is
+  // booted up is useful so that the operator does not need to unplug the
+  // USB calbe from the host to reset the arduino.
+  if (isInStopState())
+    flagJumper = isJumperSet();
 
   if (command == cmdState)
     sendResponse(state);
+}
+
+/**
+ * Keep driving the motor one step each time toward the end in its direction
+ * until it is stopped at the target UP or DOWN position.
+
+ * Keep driving the motor one step each time in its direction toward
+ * the UP/DOWN end position.
+ */
+void driveMotorOneStepTowardEndPosition() {
+  // Drive the motor according to its direction.
+  if (state == stateGoingDown) {
+    if (isSensorDown()) {
+      state = stateStopDown;
+      sendResponse(state);
+    } else {
+      driveMotorOneStep();
+    }
+  } else if (state == stateGoingUp) {
+    if (isSensorUp()) {
+      state = stateStopUp;
+      sendResponse(state);
+    } else {
+      driveMotorOneStep();
+    }
+  }
 }
 
 /**
@@ -214,10 +237,25 @@ boolean isSensorSafety() {
 }
 
 /**
- * Is the debug pin pressed?
+ * Is the debug button pressed?
  */
 boolean isDebugPressed() {
   return checkSensorValueTwice(debug, DEBUG_PRESSED_ACTIVE_VALUE);
+}
+
+/**
+ * Is the jumper set?
+ */
+boolean isJumperSet() {
+  return checkSensorValueTwice(jumper, JUMPER_ACTIVE_VALUE);
+}
+
+/**
+ * Is the probe in one of the stop states?
+ */
+boolean isInStopState() {
+  return (state == stateStopUp || state == stateStopDown ||
+          state == stateEmergencyStop);
 }
 
 /**
