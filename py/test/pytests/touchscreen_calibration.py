@@ -130,13 +130,13 @@ class FixtureException(Exception):
 class FixutreSerialDevice(SerialDevice):
   """A serial device to control touchscreen fixture."""
 
-  def __init__(self, timeout=10):
+  def __init__(self, timeout=20):
     super(FixutreSerialDevice, self).__init__()
     self.Connect(port=FindTtyByDriver(ARDUINO_DRIVER), timeout=timeout)
-
-    factory.console.info('Sleep 2 seconds for arduino initialization.')
-    time.sleep(2)
-    self.AssertState([STATE.INIT, STATE.STOP_UP, STATE.EMERGENCY_STOP])
+    factory.console.info('Wait up to %d seconds for arduino initialization.' %
+                         timeout)
+    self.AssertStateWithTimeout([STATE.INIT, STATE.STOP_UP,
+                                 STATE.EMERGENCY_STOP], timeout)
 
   def QueryState(self):
     """Queries the state of the arduino board."""
@@ -155,14 +155,38 @@ class FixutreSerialDevice(SerialDevice):
     """Checks if the fixture is in the EMERGENCY_STOP state."""
     return (self.QueryState() == STATE.EMERGENCY_STOP)
 
-  def AssertState(self, expected_states):
-    """Confirms that the arduino is in the specified state."""
+  def AssertStateWithTimeout(self, expected_states, timeout):
+    """Assert the state with timeout."""
+    while True:
+      result, state = self._AssertState(expected_states)
+      if result is True:
+        factory.console.info('state: %s (expected)', state)
+        return
+      factory.console.info('state: %s (transient, probe still moving)', state)
+      time.sleep(1)
+      timeout -= 1
+      if timeout == 0:
+        break
+
+    msg = 'AssertState failed: actual state: "%s", expected_states: "%s".'
+    raise FixtureException(msg % (state, str(expected_states)))
+
+  def _AssertState(self, expected_states):
+    """Confirms that the arduino is in the specified state.
+
+    It returns True if the actual state is in the expected states;
+    otherwise, it returns the actual state.
+    """
     if not isinstance(expected_states, list):
       expected_states = [expected_states]
     actual_state = self.QueryState()
-    if actual_state not in expected_states:
+    return (actual_state in expected_states, actual_state)
+
+  def AssertState(self, expected_states):
+    result, _ = self._AssertState(expected_states)
+    if result is not True:
       msg = 'AssertState failed: actual state: "%s", expected_states: "%s".'
-      raise FixtureException(msg % (actual_state, str(expected_states)))
+      raise FixtureException(msg % (result, str(expected_states)))
 
   def DriveProbeDown(self):
     """Drives the probe to the 'down' position."""
@@ -242,7 +266,7 @@ class TouchscreenCalibration(unittest.TestCase):
   def RefreshFixture(self, dummy_event):
     """Refreshes the fixture."""
     try:
-      self.fixture = FixutreSerialDevice(timeout=10)
+      self.fixture = FixutreSerialDevice()
       if not self.fixture:
         raise FixtureException('Fail to create the fixture serial device.')
     except Exception as e:
