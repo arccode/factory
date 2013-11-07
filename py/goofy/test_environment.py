@@ -125,12 +125,13 @@ class DUTEnvironment(Environment):
               self.EXTENSION_PATH, self.browser_type, is_component=True)
           finder_options.extensions_to_load.append(self.extension)
         finder_options.AppendExtraBrowserArgs([
-            '--kiosk',
-            '--kiosk-mode-screensaver-path=/dev/null',
-            '--disable-translate',
             '--ash-hide-notifications-for-factory',
             ('--default-device-scale-factor=%d' %
-             self.goofy.options.ui_scale_factor)])
+             self.goofy.options.ui_scale_factor),
+            '--disable-translate',
+            '--enable-gpu-benchmarking',
+            '--kiosk',
+            '--kiosk-mode-screensaver-path=/dev/null'])
         finder_options.CreateParser().parse_args(args=[])
         self.browser = browser_finder.FindBrowser(finder_options).Create()
         self.browser.Start()

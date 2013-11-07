@@ -397,6 +397,20 @@ class DeviceDataCommand(Subcommand):
                        default_flow_style=False))
 
 
+class ScreenshotCommand(Subcommand):
+  name = 'screenshot'
+  help = 'Take a screenshot of the Goofy tab that runs the factory test UI'
+
+  def Init(self):
+    self.subparser.add_argument(
+        'output_file', metavar='OUTPUT_FILE', nargs='?',
+        help=('The output filepath to save the captured screen as a PNG file.  '
+              'If not provided, defaults to /var/log/screenshot_<TIME>.png.'))
+
+  def Run(self):
+    factory.get_state_instance().TakeScreenshot(self.args.output_file)
+
+
 def main():
   factory.init_logging()
   parser = argparse.ArgumentParser(

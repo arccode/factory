@@ -440,6 +440,19 @@ class GoofyRPC(object):
     utils.WaitFor(_FetchDisplayInfo, 10)
     return _FetchDisplayInfo()
 
+  def TakeScreenshot(self, output_file=None):
+    """Takes a screenshot through Telemetry tab.Screenshot API.
+
+    Args:
+      output_file: The output file path to store the captured PNG file.  If not
+          given the screenshot is saved to /var/log/screenshot_<TIME>.png.
+    """
+    screenshot = self._GetGoofyTab().Screenshot(timeout=5)
+    if not output_file:
+      output_file = (
+          '/var/log/screenshot_%s.png' % time.ctime().replace(' ', '_'))
+    screenshot.WriteFile(output_file)
+
 
 def main():
   parser = argparse.ArgumentParser(
