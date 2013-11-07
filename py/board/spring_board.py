@@ -64,3 +64,20 @@ class SpringBoard(ChromeOSBoard):
     except Exception as e:
       raise BoardException('Unable to get powerinfo: %s' % e)
     return output
+
+  def GetBatteryRegisters(self):
+    """Gets battery registers on spring board.
+
+    Returns:
+      A dict with register offset as key and register value as value.
+      Both key and value are integers.
+
+    Raises:
+      BoardException if any register is not available.
+    """
+    regs = range(0, 0x1d) + range(0x20, 0x24) + [0x2f] + range(0x3c, 0x40)
+    try:
+      ret = dict((reg, self.I2CRead(0, 0x16, reg)) for reg in regs)
+    except Exception as e:
+      raise BoardException('Unable to get battery registers: %s' % e)
+    return ret

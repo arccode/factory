@@ -186,6 +186,17 @@ class ChargerTest(unittest.TestCase):
     else:
       return battery_current
 
+  def _DumpBatteryRegisters(self):
+    """Dumps battery registers through board"""
+    try:
+      battery_registers = self._board.GetBatteryRegisters()
+    except Exception, e:
+      logging.exception('Can not get battery registers. %s', e)
+    else:
+      logging.info('Dump battery registers:')
+      for offset, value in battery_registers.iteritems():
+        logging.info('offset: 0x%x, value: 0x%x', offset, value)
+
   def _GetChargerCurrent(self):
     """Gets current that charger wants to drive through board"""
     try:
@@ -305,6 +316,7 @@ class ChargerTest(unittest.TestCase):
             self._CheckDischarge(battery_current)
 
       Log('not_meet', load=spec.load, target=target, charge=charge)
+      self._DumpBatteryRegisters()
       self.fail('Cannot regulate battery to %.2f%s in %d seconds.' %
                 (target, self._unit, spec.timeout_secs))
 
