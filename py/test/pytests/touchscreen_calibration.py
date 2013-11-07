@@ -448,6 +448,21 @@ class TouchscreenCalibration(unittest.TestCase):
       factory.console.info('Registered event %s' % event)
       self.ui.AddEventHandler(event, getattr(self, event))
 
+  def _CheckMountedMedia(self):
+    """Checks the existence of the mounted media."""
+    try:
+      # Write the test launch time.
+      self._WriteLog('touchscreen_calibration_launch.txt',
+                     '%s\n' % time.ctime())
+    except Exception:
+      self.ui.CallJSFunction('showMessage',
+                             'Insert a USB dongle to store the test results.\n'
+                             'And then click 触控面板 on the left side of '
+                             'the screen to restart the test.\n\n'
+                             '请插入USB硬碟以储存测试结果\n'
+                             '完成後，点击左方触控面板连结以重跑测试')
+      raise FixtureException('Mounted media does not exist.')
+
   def runTest(self, dev_path=None, dump_frames=10):
     """The entry method of the test.
 
@@ -461,6 +476,7 @@ class TouchscreenCalibration(unittest.TestCase):
 
     self.dev_path = dev_path
     self.dump_frames = dump_frames
+    self._CheckMountedMedia()
 
     self._RegisterEvents([
       # Events that are emitted from buttons on the factory UI.
