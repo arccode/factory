@@ -12,6 +12,18 @@
 
 <div id="debug-panel" style="z-index: 10; position: absolute; right: 30;
     top: 30; border-style: solid; border-color: #555;">
+  <button onClick="test.sendTestEvent('DriveProbeDown', {})">
+    <span class="goofy-label-en">Probe goes down</span>
+    <span class="goofy-label-zh">关机前治具下位停俥</span>
+  </button>
+  <br>
+
+  <button onClick="test.sendTestEvent('DriveProbeUp', {})">
+    <span class="goofy-label-en">Probe goes up</span>
+    <span class="goofy-label-zh">测试前治具上位预备</span>
+  </button>
+  <br><br>
+
   <button onClick="test.sendTestEvent('ReadTest', {})">
     <span class="goofy-label-en">Read sensor data</span>
     <span class="goofy-label-zh">手动读取待测资料</span>

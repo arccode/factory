@@ -236,8 +236,8 @@ class TouchscreenCalibration(unittest.TestCase):
   def ProbeSelfTest(self, dummy_event):
     """Execute the probe self test to confirm the fixture works properly."""
     self._CheckFixtureStateUp()
-    self._DriveProbeDown()
-    self._DriveProbeUp()
+    self.DriveProbeDown()
+    self.DriveProbeUp()
 
   def RefreshFixture(self, dummy_event):
     """Refreshes the fixture."""
@@ -294,7 +294,7 @@ class TouchscreenCalibration(unittest.TestCase):
       factory.console.info('Exception at refreshing touch screen: %s' % e)
     self.ui.CallJSFunction('setTouchscreenStatus', False)
 
-  def _DriveProbeDown(self):
+  def DriveProbeDown(self, dummy_event=None):
     """A wrapper to drive the probe down."""
     try:
       self.fixture.DriveProbeDown()
@@ -304,7 +304,7 @@ class TouchscreenCalibration(unittest.TestCase):
                              '治具未就下位, 舍弃')
       raise e
 
-  def _DriveProbeUp(self):
+  def DriveProbeUp(self, dummy_event=None):
     """A wrapper to drive the probe up."""
     try:
       self.fixture.DriveProbeUp()
@@ -386,7 +386,7 @@ class TouchscreenCalibration(unittest.TestCase):
         self._DumpOneFrameToLog(log_to_file)
         time.sleep(0.1)
 
-      self._DriveProbeDown()
+      self.DriveProbeDown()
 
       data = self.reader.Read(delta=True)
       factory.console.info('Get data %s' % data)
@@ -398,7 +398,7 @@ class TouchscreenCalibration(unittest.TestCase):
       self._WriteSensorDataToFile(log_to_file, sn, test_pass, data)
       self.ui.CallJSFunction('displayDebugData', json.dumps(data))
 
-      self._DriveProbeUp()
+      self.DriveProbeUp()
 
       self.reader.PostRead()
 
@@ -481,6 +481,7 @@ class TouchscreenCalibration(unittest.TestCase):
     self._RegisterEvents([
       # Events that are emitted from buttons on the factory UI.
       'ReadTest', 'RefreshFixture', 'RefreshTouchscreen', 'ProbeSelfTest',
+      'DriveProbeDown', 'DriveProbeUp',
 
       # Events that are emitted from other callback functions.
       'StartCalibration',
