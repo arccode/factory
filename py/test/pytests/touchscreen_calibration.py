@@ -271,6 +271,15 @@ class TouchscreenCalibration(unittest.TestCase):
         raise FixtureException('Fail to create the fixture serial device.')
     except Exception as e:
       factory.console.info('Refresh fixture serial device exception, %s' % e)
+      self.ui.CallJSFunction(
+          'showMessage',
+          'Please check if the USB cable has been connected '
+          'between the test fixture and the control host.\n'
+          'Click "RefreshFixture" button on screen after connecting '
+          'the USB calbe.\n\n'
+          '请确认USB缆线是否已连结制具与控制电脑\n'
+          '请连结USB缆线,并点击萤幕上治具连结的刷新按钮。'
+          )
       self.fixture = None
 
     fixture_ready = bool(self.fixture) and not self.fixture.IsEmergencyStop()
