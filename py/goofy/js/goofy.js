@@ -611,6 +611,15 @@ cros.factory.Goofy.setDialogTitleHTML = function(dialog, titleHTML) {
  * @param {goog.events.KeyEvent} event
  */
 cros.factory.Goofy.prototype.keyListener = function(event) {
+    // Prevent backspace, alt+left, or alt+right to do page navigation.
+    if ((event.keyCode === goog.events.KeyCodes.BACKSPACE &&
+         event.target.nodeName === "BODY") ||
+        ((event.keyCode === goog.events.KeyCodes.LEFT ||
+          event.keyCode === goog.events.KeyCodes.RIGHT) &&
+         event.altKey)) {
+      event.preventDefault();
+    }
+
     if (event.altKey && event.ctrlKey) {
         switch (String.fromCharCode(event.keyCode)) {
         case '0':
