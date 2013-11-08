@@ -131,6 +131,9 @@ install: par
 	ln -s factory.par $(FACTORY_BUNDLE)/shopfloor/manage
 	ln -s factory.par $(FACTORY_BUNDLE)/shopfloor/minijack
 	ln -s factory.par $(FACTORY_BUNDLE)/shopfloor/shopfloor
+# Archive docs into bundle
+	$(MAKE) doc
+	cp build/doc.tar.bz2 $(FACTORY_BUNDLE)
 # Install cgpt, used by factory_setup.  TODO(jsalz/hungte): Find a better way
 # to do this.
 	mkdir -p $(FACTORY_BUNDLE)/factory_setup/bin
@@ -188,7 +191,8 @@ test-presubmit:
 	    echo 'Unit tests have not passed.  Please run "make test".'; \
 	    exit 1; \
 	fi
-	changed=$$(find $(PRESUBMIT_FILES) -newer .tests-passed); \
+	changed=$$(find $(filter-out doc/%,$(PRESUBMIT_FILES)) \
+	    -newer .tests-passed); \
 	if [ -n "$$changed" ]; then \
 	    echo "Files have changed since last time unit tests passed:"; \
 	    echo "$$changed" | sed -e 's/^/  /'; \
@@ -228,3 +232,13 @@ lint-overlay-%: overlay-%
 
 testall:
 	@make --no-print-directory test EXTRA_TEST_FLAGS=--nofilter
+
+# Creates build/doc and build/doc.tar.bz2, containing the factory SDK
+# docs.
+doc: .phony
+	make -C doc clean
+	make -C doc html
+	rm -rf $(BUILD_DIR)/doc
+	mkdir -p $(BUILD_DIR)/doc
+	rsync -a doc/_build/ $(BUILD_DIR)/doc/
+	cd $(BUILD_DIR) && tar cfj doc.tar.bz2 doc
