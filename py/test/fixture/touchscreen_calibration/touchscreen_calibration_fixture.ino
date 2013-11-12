@@ -60,7 +60,10 @@ const char ERROR = '1';
 const int SENSOR_DELAY_INTERVAL = 10;
 
 // The higher the value, the slower the motor speed.
-const int HALF_PULSE_WIDTH = 80;
+const int SLOW_HALF_PULSE_WIDTH = 80;
+const int FAST_HALF_PULSE_WIDTH = 50;
+
+const unsigned int DISTANCE_TO_SLOW_DOWN = 26412 * 2 / 3;
 
 const int WARM_UP_WAIT = 2000;
 const int SERIAL_BAUD_RATE = 9600;
@@ -68,6 +71,8 @@ const int SERIAL_BAUD_RATE = 9600;
 char state = stateInit;
 char command = NULL;
 boolean flagJumper = false;
+unsigned int count = 0;
+unsigned int pulse_width = SLOW_HALF_PULSE_WIDTH;
 
 
 /**
@@ -147,6 +152,7 @@ void stateControl(char command) {
     } else if (command != cmdState && command != NULL) {
       sendResponse(ERROR);
     }
+    adjustSpeed();
     driveMotorOneStepTowardEndPosition();
   }
 
@@ -163,9 +169,16 @@ void stateControl(char command) {
 }
 
 /**
- * Keep driving the motor one step each time toward the end in its direction
- * until it is stopped at the target UP or DOWN position.
+ * Adjust speed according to the probe position.
+ */
+void adjustSpeed() {
+  if (state == stateGoingDown || state == stateGoingUp) {
+    pulse_width = (count <= DISTANCE_TO_SLOW_DOWN ? FAST_HALF_PULSE_WIDTH :
+                                                    SLOW_HALF_PULSE_WIDTH);
+  }
+}
 
+/**
  * Keep driving the motor one step each time in its direction toward
  * the UP/DOWN end position.
  */
@@ -175,14 +188,18 @@ void driveMotorOneStepTowardEndPosition() {
     if (isSensorDown()) {
       state = stateStopDown;
       sendResponse(state);
+      count = 0;
     } else {
+      count++;
       driveMotorOneStep();
     }
   } else if (state == stateGoingUp) {
     if (isSensorUp()) {
       state = stateStopUp;
       sendResponse(state);
+      count = 0;
     } else {
+      count++;
       driveMotorOneStep();
     }
   }
@@ -263,9 +280,9 @@ boolean isInStopState() {
  */
 void driveMotorOneStep() {
   digitalWrite(motorStep, LOW);
-  delayMicroseconds(HALF_PULSE_WIDTH);
+  delayMicroseconds(pulse_width);
   digitalWrite(motorStep, HIGH);
-  delayMicroseconds(HALF_PULSE_WIDTH);
+  delayMicroseconds(pulse_width);
 }
 
 /**
@@ -302,6 +319,7 @@ void handleEmergencyStop() {
   } else {
     state = stateEmergencyStop;
     setMotorDirectionUp();
+    pulse_width = SLOW_HALF_PULSE_WIDTH;
   }
 }
 
@@ -320,6 +338,7 @@ void handleDebugPressed() {
 void gotoUpPosition() {
   if (isSensorUp()) {
     state = stateStopUp;
+    count = 0;
   } else {
     driveMotorOneStep();
   }
