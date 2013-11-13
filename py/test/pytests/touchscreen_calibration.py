@@ -349,6 +349,13 @@ class TouchscreenCalibration(unittest.TestCase):
                              '治具未就上位, 舍弃')
       raise e
 
+  def ShutDown(self, dummy_event=None):
+    """Shut down the host."""
+    try:
+      os.system('shutdown -H 0')
+    except Exception as e:
+      factory.console.info('Failed to shutdown the host: %s' % e)
+
   def _DumpOneFrameToLog(self, logger):
     """Dumps one frame to log.
 
@@ -540,7 +547,7 @@ class TouchscreenCalibration(unittest.TestCase):
     self._RegisterEvents([
       # Events that are emitted from buttons on the factory UI.
       'ReadTest', 'RefreshFixture', 'RefreshTouchscreen', 'ProbeSelfTest',
-      'DriveProbeDown', 'DriveProbeUp',
+      'DriveProbeDown', 'DriveProbeUp', 'ShutDown',
 
       # Events that are emitted from other callback functions.
       'StartCalibration',
