@@ -381,7 +381,7 @@ class TouchscreenCalibration(unittest.TestCase):
       logger.write('\n')
     self._WriteLog(sn, logger.getvalue())
 
-  def _VerifySensorData(self, data):
+  def _VerifySensorDataOld(self, data):
     """Determines whether the sensor data is good or not."""
     # Sensor thresholds are determined by eyes usually from previous build data.
     DELTA_LOWER_BOUND = 300
@@ -399,6 +399,26 @@ class TouchscreenCalibration(unittest.TestCase):
       if (m < DELTA_LOWER_BOUND or m > DELTA_HIGHER_BOUND):
         factory.console.info('  Fail at row %s value %d' % (row, m))
         test_pass = False
+
+    return test_pass
+
+  def _VerifySensorData(self, data):
+    """Determines whether the sensor data is good or not."""
+    # Sensor thresholds are determined by eyes usually from previous build data.
+    DELTA_LOWER_BOUND = 300
+    DELTA_HIGHER_BOUND = 1900
+
+    # There are 3 columns of metal fingers on the probe. The touched_cols are
+    # derived through experiments. The values may vary from board to board.
+    touched_cols = [1, 35, 69]
+    test_pass = True
+    for row, row_data in enumerate(data):
+      for col in touched_cols:
+        value = row_data[col]
+        if (value < DELTA_LOWER_BOUND or value > DELTA_HIGHER_BOUND):
+          factory.console.info('  Failed at (row, col) (%d, %d) value %d' %
+                               (row, col, value))
+          test_pass = False
 
     return test_pass
 
