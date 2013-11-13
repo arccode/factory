@@ -443,8 +443,12 @@ class TouchscreenCalibration(unittest.TestCase):
 
       self.DriveProbeDown()
 
+      # Wait a while to let the probe touch the panel stably.
+      time.sleep(1)
+
       data = self.reader.Read(delta=True)
       factory.console.info('Get data %s' % data)
+      time.sleep(1)
 
       # Verifies whether the sensor data is good or not.
       test_pass = self._VerifySensorData(data)
