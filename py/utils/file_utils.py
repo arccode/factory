@@ -174,3 +174,43 @@ def GetMainStorageDevice():
         return re.sub(r'p?(\d+)$', '', device)
 
   raise IOError('Unable to find main storage device in /etc/mtab')
+
+
+def MountDeviceAndReadFile(device, path):
+  """Mounts a device and reads a file on it.
+
+  Args:
+    device: The device like '/dev/mmcblk0p5'.
+    path: The file path like '/etc/lsb-release'. The file to read is then
+      'mount_point/etc/lsb-release'.
+
+  Returns:
+    The content of the file. None if the file can not be read.
+  """
+  # Remove the starting / of the path.
+  path = re.sub('^/', '', path)
+  mount_point = tempfile.mkdtemp(prefix='mount_device_and_get_file.')
+  content = None
+  try:
+    if Spawn(['mount', '-o', 'ro', device, mount_point],
+             ignore_stdout=True, ignore_stderr=True, sudo=True,
+             call=True, log=True).returncode == 0:
+      # Success
+      logging.info('Mounted %s on %s', device, mount_point)
+      content = open(
+          os.path.join(mount_point, path)).read()
+    else:
+      logging.error('Fail to mount device %r', device)
+  except IOError:
+    logging.exception('Can not read file %r on device %r', path, device)
+  finally:
+    # Always try to unmount, even if we think the mount failed.
+    if Spawn(['umount', '-l', mount_point],
+             ignore_stdout=True, ignore_stderr=True, sudo=True,
+             call=True, log=True).returncode == 0:
+      logging.info('Unmounted %s', device)
+    try:
+      os.rmdir(mount_point)
+    except OSError:
+      logging.exception('Unable to remove %s', mount_point)
+  return content

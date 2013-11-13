@@ -15,6 +15,7 @@ import factory_common  # pylint: disable=W0611
 from cros.factory import system
 from cros.factory.event_log import Log
 from cros.factory.gooftool import Gooftool
+from cros.factory.system import SystemInfo
 from cros.factory.test import factory
 from cros.factory.test import gooftools
 from cros.factory.test import shopfloor
@@ -22,6 +23,7 @@ from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
 from cros.factory.test.test_ui import MakeLabel
+from cros.factory.utils.file_utils import MountDeviceAndReadFile
 
 
 MSG_CHECKING = MakeLabel("Checking system status for finalization...",
@@ -147,12 +149,34 @@ class Finalize(unittest.TestCase):
 
   def Run(self):
     try:
+      self.LogImageVersion()
       self.RunPreflight()
       self.template.SetState(MSG_FINALIZING)
       self.DoFinalize()
       self.ui.Fail('Should never be reached')
     except Exception, e:  # pylint: disable=W0703
       self.ui.Fail('Exception during finalization: %s' % e)
+
+  def LogImageVersion(self):
+    release_rootfs = ('/dev/mmcblk0p5' if os.path.exists('/dev/mmcblk0')
+                      else '/dev/sda5')
+    lsb_release = MountDeviceAndReadFile(release_rootfs, '/etc/lsb-release')
+
+    if lsb_release:
+      match = re.search('^GOOGLE_RELEASE=(.+)$', lsb_release, re.MULTILINE)
+    else:
+      self.ui.Fail('Can not read lsb-release in release partition')
+
+    if match:
+      release_image_version = match.group(1)
+      logging.info('release image version: %s', release_image_version)
+      factory_image_version = SystemInfo().factory_image_version
+      logging.info('factory image version: %s', factory_image_version)
+      Log('finalize_image_version',
+          factory_image_version=factory_image_version,
+          release_image_version=release_image_version)
+    else:
+      self.ui.Fail('Can not find release image version')
 
   def RunPreflight(self):
     power = system.GetBoard().power
