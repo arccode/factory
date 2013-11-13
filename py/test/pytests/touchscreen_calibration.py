@@ -90,14 +90,17 @@ class DebugDataReader():
     """
     return os.path.exists(self.sysfs_entry)
 
-  def WriteSysfs(self, to_write):
+  def WriteSysfs(self, content):
     """Writes to sysfs.
 
     Args:
-      to_write: the contents to be written to sysfs
+      content: the content to be written to sysfs
     """
-    with open(self.sysfs_entry, 'w') as f:
-      f.write(to_write)
+    try:
+      with open(self.sysfs_entry, 'w') as f:
+        f.write(content)
+    except Exception as e:
+      factory.console.info('WriteSysfs failed to write %s: %s' % (content, e))
     time.sleep(0.1)
 
   def Read(self, delta=False):
