@@ -655,6 +655,11 @@ class GooftoolTest(unittest2.TestCase):
         self._gooftool3.VerifyHwidV3, 'CHROMEBOOK D9I-H9T',
         hwid_tool.ProbeResults.Decode(yaml.dump(mock_probe_result)),
         mock_ro_vpd, mock_rw_vpd)
+    # Test deprecated component is allowed in rma mode.
+    self.assertEquals(
+        None, self._gooftool3.VerifyHwidV3('CHROMEBOOK D9I-H9T',
+            hwid_tool.ProbeResults.Decode(yaml.dump(mock_probe_result)),
+            mock_ro_vpd, mock_rw_vpd, rma_mode=True))
 
   def testDecodeHwidV3(self):
     self.assertEquals(
