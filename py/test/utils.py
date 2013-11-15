@@ -1,4 +1,5 @@
 #!/usr/bin/python -u
+# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
@@ -24,7 +25,7 @@ import traceback
 
 from contextlib import contextmanager
 
-from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils.process_utils import CheckOutput, Spawn
 
 
 def TimeString(unix_time=None, time_separator=':', milliseconds=True):
@@ -466,3 +467,39 @@ def WaitFor(condition, timeout_secs, poll_interval=0.1):
     if time.time() > end_time:
       raise TimeoutError('Timeout waititng for %r' % _GetConditionString())
     time.sleep(poll_interval)
+
+def SetTouchpadTwoFingerScrollingX(enabled):
+  """Enables / disables two-finger scrolling.
+
+  Currently this function only disables X-axis two-finger scrolling, as it can
+  accidentally trigger 'last page'.
+
+  Args:
+    enabled: True or False indicating the state of two-finger scrolling to set.
+  """
+  TPSCONTROL_XINPUT = '/opt/google/touchpad/tpcontrol_xinput'
+  def GetPropIdValue(prop_name):
+    # Example 'xinput list-props <id>' output format:
+    #        ...
+    #        Scroll X Out Scale (379):       2.500000
+    #        Scroll Y Out Scale (380):       2.500000
+    #        ...
+    prop_id_re = re.compile(
+        r'^\s*(?:%s).*'       # Match property name.
+        r'\((\d+)\):\s*'      # Get property ID.
+        r'(.*)$' % prop_name, # Get property value.
+        flags=re.M)
+    xinput_list_props = CheckOutput([TPSCONTROL_XINPUT, 'status'])
+    return prop_id_re.search(xinput_list_props).groups()
+
+  os.environ['DISPLAY'] = ':0'
+  os.environ['XAUTHORITY'] = '/home/chronos/.Xauthority'
+  property_name = 'Scroll X Out Scale'    # We only disable X-axis scrolling.
+  default_scale = '2.5'
+
+  prop_id = GetPropIdValue(property_name)[0]
+  if bool(enabled):
+    prop_value = default_scale
+  else:
+    prop_value = '0'
+  Spawn([TPSCONTROL_XINPUT, 'set', prop_id, prop_value])

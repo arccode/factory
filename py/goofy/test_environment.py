@@ -15,6 +15,7 @@ import time
 import factory_common  # pylint: disable=W0611
 from cros.factory.goofy import connection_manager
 from cros.factory.test import factory, state, utils
+from cros.factory.utils import process_utils
 
 
 class Environment(object):
@@ -149,6 +150,8 @@ class DUTEnvironment(Environment):
     tab.Activate()
     # Press the maximize key to maximize the window.
     utils.SendKey('F4')
+    # Disable X-axis two-finger scrolling on touchpad.
+    utils.SetTouchpadTwoFingerScrollingX(False)
 
   def create_connection_manager(self, wlans, scan_wifi_period_secs):
     return connection_manager.ConnectionManager(wlans,
