@@ -64,7 +64,7 @@ function displayDebugData(data) {
       value = Math.floor(255 * (value - min) / (max - min));
       cell.innerHTML = "__";
       cell.style.backgroundColor = heatMap(value);
-      cell.style.fontSize = "0.8em";
+      cell.style.fontSize = "0.7em";
       row.appendChild(cell);
     }
     displayArea.insertBefore(row, displayArea.childNodes[0]);
