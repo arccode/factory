@@ -81,7 +81,10 @@ class Finalize(unittest.TestCase):
           'Perform shopfloor operations: update HWID data and flush event '
           'logs.', default=True),
       Arg('sync_event_logs', bool, 'Sync event logs to shopfloor',
-          default=True)
+          default=True),
+      Arg('rma_mode', bool,
+          'Enable rma_mode, do not check for deprecated components.',
+          default=False, optional=True),
       ]
 
   def setUp(self):
@@ -314,6 +317,9 @@ class Finalize(unittest.TestCase):
       command += ' --fast'
     command += ' --upload_method "%s"' % upload_method
     command += ' --add_file "%s"' % self.test_states_path
+    if self.args.rma_mode:
+      command += ' --rma_mode'
+      logging.info('Using RMA mode. Accept deprecated components')
 
     gooftools.run(command)
 

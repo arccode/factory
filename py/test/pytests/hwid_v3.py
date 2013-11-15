@@ -90,7 +90,7 @@ class HWIDV3Test(unittest.TestCase):
             hwid or '(unchanged)'),
         '正在验证 HWID (v3): %s...' % (
             hwid or '（不变）')))
-    gt.VerifyHwidV3(hwid, probe_results)
+    gt.VerifyHwidV3(hwid, probe_results, rma_mode=self.args.rma_mode)
 
     if self.args.generate:
       template.SetState(test_ui.MakeLabel(
