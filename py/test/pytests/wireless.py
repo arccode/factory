@@ -88,6 +88,9 @@ class WirelessTest(unittest.TestCase):
         optional=True),
     Arg('md5sum', str, 'md5sum of the test file in test_url',
         optional=True),
+    Arg('msecs_before_retries', int,
+        'Milliseconds before next retry when downloading the file.',
+        optional=True, default=1000),
   ]
 
   def setUp(self):
@@ -155,13 +158,12 @@ class WirelessTest(unittest.TestCase):
             try:
               remote_file = urllib2.urlopen(self.args.test_url, timeout=2)
             except urllib2.HTTPError as e:
-              factory.console.info('Connected to %s but got status code %d',
-                                   self.args.test_url, e.code)
-              continue
+              factory.console.info(
+                  'Connected to %s but got status code %d: %s.',
+                  self.args.test_url, e.code, e.reason)
             except urllib2.URLError as e:
-              factory.console.info('Failed to connect to %s, status code %d',
-                                   self.args.test_url, e.code)
-              continue
+              factory.console.info(
+                  'Failed to connect to %s: %s.', self.args.test_url, e.reason)
             else:
               with open(_LOCAL_FILE_PATH, "w") as local_file:
                 local_file.write(remote_file.read())
@@ -176,6 +178,7 @@ class WirelessTest(unittest.TestCase):
                 factory.console.info('Successfully connected to %s',
                                      self.args.test_url)
                 break
+            time.sleep(self.args.msecs_before_retries / 1000.0)
 
         if not success_url_test:
           self.fail('Failed to connect to url %s' % self.args.test_url)
