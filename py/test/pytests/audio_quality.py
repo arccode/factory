@@ -644,7 +644,7 @@ class AudioQualityTest(unittest.TestCase):
     factory.console.info('Download list prepared:\n%s',
         '\n'.join(download_list))
     if len(download_list) < len(self._parameters):
-      factory.console.info('Parameters cannot be found on shopfloor:\n%s',
+      factory.console.error('Parameters cannot be found on shopfloor:\n%s',
           self._parameters)
       self._ui.Fail('Parameters cannot be found on shopfloor')
     #Download the list and saved to caches in state directory.
