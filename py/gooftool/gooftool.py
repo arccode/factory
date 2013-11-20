@@ -986,7 +986,10 @@ def GetFirmwareHash(options):
 @Command('get_hwid_v3_list',
          _board_cmd_arg,
          _hwdb_path_cmd_arg,
-         CmdArg('--image_id', metavar='IMAGE_ID', help='Image ID.'))
+         CmdArg('--image_id', metavar='IMAGE_ID', help='Image ID.'),
+         CmdArg('--status', metavar='STATUS', default='supported',
+                help='Components status. The value should be '
+                     '"supported" or "all"'))
 def GetHWIDV3List(options):
   """Generate HWID with all components combination of specified
   image_id, and output as CSV format.
@@ -996,9 +999,15 @@ def GetHWIDV3List(options):
     image_id: Which image stage should be generated. If this parameter
               is omitted, The maximum of image_id will be used.
               This parameter is integer.
+    status: Default value is 'supported'. If you want to generate all
+            combinations include unsupported and deprecated, you can set
+            status to 'all'.
   """
   if options.board:
-    hwid_dict = GetGooftool(options).GetHWIDV3List(options.image_id)
+    if options.status not in ('supported', 'all'):
+      raise Error("Status should be 'supported' or 'all'")
+    hwid_dict = GetGooftool(options).GetHWIDV3List(options.image_id,
+        options.status)
     for key, value in iter(sorted(hwid_dict.iteritems())):
       print "%s,%s" % (key, value)
   else:

@@ -763,12 +763,15 @@ class Gooftool(object):
     logging.info('Removing VPD entries %s', FilterDict(entries))
     vpd.rw.Delete(*entries.keys())
 
-  def GetHWIDV3List(self, image_id=None):
+  def GetHWIDV3List(self, image_id=None, status='supported'):
     """Generate all components of HWID with image_id for the board.
 
     Args:
       image_id: The image id of the board. If image_id is omitted,
-        The maximum of image id will be used.
+                The maximum of image id will be used.
+      status: Default value is 'supported'. If you want to generate all
+              combinations include unsupported and deprecated, you can set
+              status to 'all'.
 
     Returns:
       a dict of HWID and components set.
@@ -795,7 +798,7 @@ class Gooftool(object):
                 None, None, common.MISSING_COMPONENT_ERROR(comp_cls)))
           else:
             for attrs in attr_list:
-              if attrs.get('status') in (
+              if status == 'supported' and attrs.get('status') in (
                   hwid3_common.HWID.COMPONENT_STATUS.unsupported,
                   hwid3_common.HWID.COMPONENT_STATUS.deprecated):
                 pass_check = False
