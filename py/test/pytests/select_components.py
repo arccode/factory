@@ -18,6 +18,7 @@ from cros.factory.hwid import database
 from cros.factory.hwid import hwid
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
+from cros.factory.test import factory
 from cros.factory.test.args import Arg
 from cros.factory.test.ui_templates import OneSection, SelectBox, Table
 
@@ -37,7 +38,15 @@ _TEST_TITLE = test_ui.MakeLabel('Select Components', u'选择元件')
 
 class SelectComponentTest(unittest.TestCase):
   ARGS = [
-    Arg('comps', list, 'List of components to select.', optional=False),
+    Arg('comps', dict,
+        """A dict from components in hwid database to
+        (device_data_field, choices). If choices is not None, user selects
+        value from choices. If it is None, user selects valid component
+        from hwid database. That value will be stored as device_data_field
+        in device_data.
+        E.g. comps={"cpu": ("component.cpu",
+                            ["choice_1", "choice_2])}""",
+        optional=False),
   ]
 
   def setUp(self):
@@ -46,7 +55,12 @@ class SelectComponentTest(unittest.TestCase):
     self.ui.AppendCSS(_TEST_DEFAULT_CSS)
     self.template.SetTitle(_TEST_TITLE)
     self.device_data = shopfloor.GetDeviceData()
-    self.fields = self.args.comps
+    # The component names.
+    self.fields = self.args.comps.keys()
+    self.component_device_data = dict((k, self.args.comps[k][0])
+        for k in self.fields)
+    self.component_choices = dict((k, self.args.comps[k][1])
+        for k in self.fields)
 
   def SelectComponent(self, event):
     """Handle component selection RPC call from Javascript.
@@ -59,8 +73,9 @@ class SelectComponentTest(unittest.TestCase):
     """
     logging.info('Component selection: %r', event.data)
     for comp in event.data:
-      key_name = 'component.' + self.fields[comp[0]]
+      key_name = self.component_device_data[self.fields[comp[0]]]
       self.device_data[key_name] = comp[1]
+      factory.console.info('Update device data %r: %r' % (key_name, comp[1]))
     shopfloor.UpdateDeviceData(self.device_data)
 
   def runTest(self):
@@ -68,6 +83,11 @@ class SelectComponentTest(unittest.TestCase):
     db = database.Database.LoadFile(os.path.join(
         common.DEFAULT_HWID_DATA_PATH, common.ProbeBoard().upper()))
     comp_values = hwid.ListComponents(db, self.fields)
+    # Updates comp_values with choices from test list.
+    for field in self.fields:
+      if self.component_choices[field] is not None:
+        comp_values[field] = self.component_choices[field]
+
     for field_index, field in enumerate(self.fields):
       self.ui.RunJS('addComponentField("%s");' % field)
 
@@ -77,7 +97,10 @@ class SelectComponentTest(unittest.TestCase):
       selected = None
       for index, comp_value in enumerate(comp_values[field]):
         select_box.InsertOption(comp_value, comp_value)
-        if comp_value == self.device_data['component.' + field]:
+        # Let user choose component even if device data field is not present
+        # in device_data.
+        if comp_value == self.device_data.get(
+            self.component_device_data[field], None):
           selected = index
       if selected is not None:
         select_box.SetSelectedIndex(selected)
