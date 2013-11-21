@@ -18,6 +18,7 @@ dargs:
 
 import asyncore
 import evdev
+import logging
 import os
 import re
 import unittest
@@ -177,6 +178,7 @@ class KeyboardTest(unittest.TestCase):
     if not keycode in self.bindings:
       return True
     self.ui.CallJSFunction('markKeydown', keycode)
+    logging.info('Mark key down %d', keycode)
 
   def MarkKeyup(self, keycode):
     """Calls Javascript to mark the given keycode as keyup."""
