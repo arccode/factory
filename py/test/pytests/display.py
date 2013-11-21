@@ -10,6 +10,7 @@ A factory test to test the function of display.
 import unittest
 
 from cros.factory.test import test_ui
+from cros.factory.test.args import Arg
 from cros.factory.test.ui_templates import OneSection
 
 _ID_CONTAINER = 'display-test-container'
@@ -30,13 +31,36 @@ class DisplayTest(unittest.TestCase):
     self.checked: user has check the display of current subtest.
     self.fullscreen: the test ui is in fullscreen or not.
   '''
+  ARGS = [
+    Arg('colors', list,
+        """Set colors. Available colors are
+        "solid-gray-170",
+        "solid-gray-127",
+        "solid-gray-63",
+        "solid-red",
+        "solid-green",
+        "solid-blue",
+        "solid-white",
+        "solid-gray",
+        "solid-black",
+        "grid",
+        "rectangle",
+        "gradient-red",
+        "gradient-green",
+        "gradient-blue",
+        "gradient-white"
+        """,
+        default= ["solid-gray-170", "solid-gray-127", "solid-gray-63",
+                  "solid-red", "solid-green", "solid-blue"],
+        optional=True),
+  ]
 
   def setUp(self):
     '''Initializes frontend presentation and properties.'''
     self.ui = test_ui.UI()
     self.template = OneSection(self.ui)
     self.ui.AppendHTML(_HTML_DISPLAY)
-    self.ui.CallJSFunction('setupDisplayTest', _ID_CONTAINER)
+    self.ui.CallJSFunction('setupDisplayTest', _ID_CONTAINER, self.args.colors)
     self.checked = False
     self.fullscreen = False
 

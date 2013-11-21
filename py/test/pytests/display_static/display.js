@@ -6,15 +6,18 @@
  * API for display test.
  * @constructor
  * @param {string} container
+ * @param {Array.<string>} colors
  */
-DisplayTest = function(container) {
+DisplayTest = function(container, colors) {
   this.container = container;
   this.display = false;
   this.focusItem = 0;
-  this.itemNumber = 12;
   this.styleDiv = null;
   this.fullScreenElement = null;
-  this.styleList = [
+  this.allStyleList = [
+    "display-subtest-solid-gray-170",
+    "display-subtest-solid-gray-127",
+    "display-subtest-solid-gray-63",
     "display-subtest-solid-red",
     "display-subtest-solid-green",
     "display-subtest-solid-blue",
@@ -28,7 +31,10 @@ DisplayTest = function(container) {
     "display-subtest-gradient-blue",
     "display-subtest-gradient-white",
   ];
-  this.enItemList = [
+  this.allEnItemList = [
+    "solid-gray-170",
+    "solid-gray-127",
+    "solid-gray-63",
     "solid-red",
     "solid-green",
     "solid-blue",
@@ -42,7 +48,10 @@ DisplayTest = function(container) {
     "gradient-blue",
     "gradient-white",
   ];
-  this.zhItemList = [
+  this.allZhItemList = [
+    "灰色170",
+    "灰色127",
+    "灰色63",
     "红色",
     "绿色",
     "蓝色",
@@ -54,7 +63,7 @@ DisplayTest = function(container) {
     "渐红",
     "渐绿",
     "渐蓝",
-    "渐白",
+    "渐白"
   ];
   this.enPassed = "Passed";
   this.zhPassed = "通过";
@@ -75,14 +84,28 @@ DisplayTest = function(container) {
     + "{background-color: black; width: " + this.gridWidth + ";"
     + " height: " + this.gridHeight +";"
     + " border: 5px solid; }";
+  this.enItemList = [];
+  this.zhItemList = [];
+  this.styleList = [];
+  //Puts the selected colors into enItemList, zhItemList, and styleList.
+  for (var item = 0; item < colors.length; ++item) {
+    index = this.allEnItemList.indexOf(colors[item])
+    if (index >= 0) {
+      this.enItemList.push(this.allEnItemList[index]);
+      this.zhItemList.push(this.allZhItemList[index]);
+      this.styleList.push(this.allStyleList[index]);
+    }
+  }
+  this.itemNumber = this.enItemList.length;
 };
 
 /**
  * Creates a display test and runs it.
  * @param {string} container
+ * @param {Array.<string>} colors
  */
-function setupDisplayTest(container) {
-  window.displayTest = new DisplayTest(container);
+function setupDisplayTest(container, colors) {
+  window.displayTest = new DisplayTest(container, colors);
   window.displayTest.init();
   window.displayTest.setupFullScreenElement();
   window.displayTest.setupGridStyle();
