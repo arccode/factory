@@ -353,99 +353,133 @@ class Hooks(object):
 
 
 class Options(object):
-  '''Test list options.
+  """Test list options.
 
-  These may be set by assigning to the options variable in a test list (e.g.,
-  'options.auto_run_on_start = False').
-  '''
+  These may be set by assigning to the options variable in a test list,
+  e.g.::
+
+    test_list.options.auto_run_on_start = False
+  """
   # Allowable types for an option (defaults to the type of the default
   # value).
   _types = {}
 
-  # Perform an implicit auto-run when the test driver starts up?
+  #:If set to True, then the test list is automatically started when the
+  # test harness starts.  If False, then the operator will have to manually
+  # start a test."""
   auto_run_on_start = True
 
-  # Whether to clear state on start.
+  #:If set to True, the state of all tests is cleared each time the test
+  # harness starts.
   clear_state_on_start = False
 
-  # Perform an implicit auto-run when the user switches to any test?
+  #:If set to True, the test harness will perform an auto-run whenever
+  # the operator switches to any test.
   auto_run_on_keypress = False
 
-  # Default UI language
+  #:The default UI language (must be ``'en'`` for English or ``'zh'``
+  # for Chinese).
   ui_lang = 'en'
 
-  # Preserve only autotest results matching these globs.
+  #:Discard all autotest results that do not match these globs.
   preserve_autotest_results = ['*.DEBUG', '*.INFO']
 
-  # Maximum amount of time allowed between reboots. If this threshold is
-  # exceeded, the reboot is considered failed.
+  #:Maximum amount of time allowed between reboots. If this threshold
+  # is exceeded, the reboot is considered failed.
   max_reboot_time_secs = 180
 
-  # SHA1 hash for a eng password in UI. Use None to always
-  # enable eng mode. To generate, run `echo -n '<password>'
-  # | sha1sum`. For example, for 'test0000', the hash is
-  # 266abb9bec3aff5c37bd025463ee5c14ac18bfca.
+  #:SHA1 hash for a engineering password in the UI.  Use None to
+  # always enable engingeering mode.
+  #
+  # To enter engineering mode, an operator may press Ctrl-Alt-0 and
+  # enter this password.  Certain special functions in the UI (such as
+  # being able to arbitrarily run any test) will be enabled.  Pressing
+  # Ctrl-Alt-0 will exit engineering mode.
+  #
+  # In order to keep the password hidden from operator (even if they
+  # happen to see the test list file), the actual password is not stored
+  # in the test list; rather, a hash is.  To generate the hash, run:
+  #
+  # .. parsed-literal::
+  #
+  #   echo -n `password` | sha1sum
+  #
+  # For example, for a password of ``test0000``, run::
+  #
+  #   echo -n test0000 | sha1sum
+  #
+  # This will display a hash of ``266abb9bec3aff5c37bd025463ee5c14ac18bfca``,
+  # so you should set::
+  #
+  #   test.list.options.engineering_password_sha1 = \
+  #       '266abb9bec3aff5c37bd025463ee5c14ac18bfca'
   engineering_password_sha1 = None
   _types['engineering_password_sha1'] = (type(None), str)
 
-  # WLANs that the connection manager may connect to.
+  #:WLANs that the connection manager may connect to.
   wlans = []
 
-  # Automatically send events to the shopfloor server when
-  # it is reachable.
+  #:Send events to the shopfloor server when it is reachable at this
+  # interval.  Set to ``None`` to disable.
   sync_event_log_period_secs = None
   _types['sync_event_log_period_secs'] = (type(None), int)
 
-  # Interval to use when checking for factory software updates.
+  #:Automatically check for updates at the given interval.  Set to
+  # ``None`` to disable.
   update_period_secs = None
   _types['update_period_secs'] = (type(None), int)
 
-  # Interval to use for periodic wireless networks scanning.
+  #:Scan wireless networks at the given interval.
   scan_wifi_period_secs = 10
 
-  # Timeout talking to shopfloor server for background operations.
+  #:Timeout when talking to shopfloor server for background operations.
   shopfloor_timeout_secs = 10
 
-  # Whether to use the time sanitizer.
+  #:Whether to enable the time sanitizer.
   time_sanitizer = True
 
-  # Interval to use when syncing time with the shopfloor server.
+  #:Interval to use when syncing time with the shopfloor server.
   # Requires the time sanitizer.
   sync_time_period_secs = None
   _types['sync_time_period_secs'] = (type(None), int)
 
-  # Interval at which to log disk usage stats.
+  #:Interval at which to log disk usage stats.
   log_disk_space_period_secs = 120
   _types['log_disk_space_period_secs'] = (type(None), int)
 
-  # Interval at which to check battery status.
+  #:Interval at which to check battery status.
   check_battery_period_secs = 120
   _types['check_battery_period_secs'] = (type(None), int)
 
-  # Interval at which to check CPU usage.
+  #:Interval at which to check CPU usage.
   check_cpu_usage_period_secs = 120
   _types['check_cpu_usage_period_secs'] = (type(None), int)
 
-  # Goofy will log warning event and try to sync with shopfloor server when
-  # battery level is lower than this value and AC charger is disconnected.
-  # (The option is effective only if check_battery_period_secs is not None)
+  #:Log warning event and try to sync with shopfloor server when
+  # battery level is lower than this value and AC charger is
+  # disconnected.  The option is effective only if
+  # :py:attr:`cros.factory.test.factory.Options.check_battery_period_secs`
+  # is not ``None``.
   warning_low_battery_pct = 10
   _types['warning_low_battery_pct'] = (type(None), int)
 
-  # Goofy will do low-power emergency handling (such as flushing disks)
-  # when battery level is lower than this value regardless of AC charger.
-  # (The option is effective only if check_battery_period_secs is not None)
+  #:Do low-power emergency handling (such as flushing disks) when
+  # battery level is lower than this value, regardless of AC charger
+  # status.  (The option is effective only if
+  # :py:attr:`cros.factory.test.factory.Options.check_battery_period_secs`
+  # is not ``None``)."""
   critical_low_battery_pct = 5
   _types['critical_low_battery_pct'] = (type(None), int)
 
-  # The list of log files to remove periodically.
+  #:A list of log files to remove periodically.
   clear_log_paths = ['/var/log/connectivity.bak']
 
-  # The time interval to rsync system logs.
+  #:rsync system logs to the shopfloor server.
   enable_sync_log = True
+  #:Time interval to rsync system logs.
   sync_log_period_secs = None
   _types['sync_log_period_secs'] = (type(None), int)
-  # The list of log files to rsync periodically.
+  #:The list of log files to rsync periodically.
   sync_log_paths = [
       '/var/factory/log/',
       '/var/log/messages',
@@ -453,71 +487,80 @@ class Options(object):
       '/var/log/bios_info.txt',
       '/var/log/ec_info.txt']
 
-  # The list of core dump pattern to watch
+  #:The list of core dump pattern to watch for.
   core_dump_watchlist = None
   _types['core_dump_watchlist'] = (type(None), list)
 
-  # The minimum interval between two kick syncs due to core dump files.
+  #:The minimum interval between two kick syncs due to core dump files.
   kick_sync_min_interval_secs = 120
   _types[kick_sync_min_interval_secs] = int
 
-  # Goofy uploads stateful partition disk usage stats to shopfloor server
-  # if stateful partition disk usage is above threshold.
-  # Goofy checks bytes usage and inodes usage of /dev/mmcblk0p1 (or /dev/sda1)
-  # and /dev/mapper/encstateful.
-  # The checking period is the same as log_disk_space_period_secs.
+  #:Upload stateful partition disk usage stats to shopfloor server if
+  # stateful partition disk usage is above threshold.  Checks bytes
+  # usage and inodes usage of /dev/mmcblk0p1 (or /dev/sda1) and
+  # /dev/mapper/encstateful.  The checking period is the same as
+  # :py:attr:`cros.factory.test.factory.Options.log_disk_space_period_secs`.
   stateful_usage_threshold = None
   _types['stateful_usage_threshold'] = (type(None), int)
-  # The action to do when stateful partition disk usage is above the threshold.
-  # The list will be passed to Spawn() as the first argument.
+
+  #:The action to perform when stateful partition disk usage is above
+  # the threshold specified by
+  # :py:attr:`cros.factory.test.factory.Options.stateful_usage_threshold`.
+  # The list will be passed to ``Spawn()`` as the first argument.
   stateful_usage_above_threshold_action = None
   _types['stateful_usage_above_threshold_action'] = (type(None), list)
 
-  # The range in which the charge level should be. If min_charge_pct and
-  # max_charge_pct are set, Goofy will use ChargeManager to attempt to keep
-  # the battery charge within these thresholds.
+  #:The target range for the device's charge level. If
+  # :py:attr:`cros.factory.test.factory.Options.min_charge_pct` and
+  # :py:attr:`cros.factory.test.factory.Options.max_charge_pct` are set,
+  # Goofy will use ``ChargeManager`` to attempt to keep the battery
+  # charge within these thresholds.
   min_charge_pct = None
   _types['min_charge_pct'] = (type(None), int)
+  #:See :py:attr:`cros.factory.test.factory.Options.min_charge_pct`.
   max_charge_pct = None
   _types['max_charge_pct'] = (type(None), int)
 
-  # The shopfloor server URL.
+  #:The shopfloor server URL.
   shopfloor_server_url = None
   _types['shopfloor_server_url'] = (type(None), str)
 
-  # Test stage to shopfloor URL mapping.
+  #:Test stage to shopfloor URL mapping.
   shopfloor_server_url_for_stage = {}
 
-  # Whether to stop on any failure.
+  #:Whether to stop on any failure.
   stop_on_failure = False
 
-  # Disables log rotation by writing /var/lib/cleanup_logs_paused (see
-  # /usr/sbin/chromeos-cleanup-logs).  Note that setting this to False
-  # does not delete any existing cleanup_logs_paused file; it merely
-  # prevents its creation on future Goofy runs.
+  #:Disables log rotation by writing ``/var/lib/cleanup_logs_paused``
+  # (see ``/usr/sbin/chromeos-cleanup-logs``).  Note that setting this
+  # to ``False`` does not delete any existing ``cleanup_logs_paused``
+  # file; it merely prevents its creation on future Goofy runs.
   disable_log_rotation = True
 
-  # Used to disable ChromeOS shortcut keys (see factory/tools/key_filter.py)
-  # For some models with CapsLock, you may set disable_caps_lock to True
-  # to disable it.
+  #:Used to disable ChromeOS shortcut keys (see
+  # ``factory/tools/key_filter.py``).
   disable_cros_shortcut_keys = False
+  #:Disables the CapsLock key.
   disable_caps_lock = False
+  #:The CapsLock key code (used in conjunction with
+  # :py:attr:`cros.factory.test.factory.Options.disable_caps_lock`).
   caps_lock_keycode = 66
 
-  # Hooks class for Goofy initialization.  Defaults to a dummy class.
+  #:Hooks class for the factory test harness.  Defaults to a dummy
+  # class.
   hooks_class = 'cros.factory.test.factory.Hooks'
 
-  # Strictly require an ID for each test.
+  #:Strictly require an ID for each test.
   strict_ids = False
 
-  # True to use CpufreqManager.
+  #:Enable ``CpufreqManager`` to manage CPU frequency.
   use_cpufreq_manager = True
 
-  # Check if MLB has been changed, and reset all tests if so.
+  #:Check if MLB has been changed, and reset all tests if so.
   check_if_mlb_changed = False
 
   def check_valid(self):
-    '''Throws a TestListError if there are any invalid options.'''
+    """Throws a TestListError if there are any invalid options."""
     # Make sure no errant options, or options with weird types,
     # were set.
     default_options = Options()
@@ -768,77 +811,8 @@ class FactoryTest(object):
     '''
     Constructor.
 
-    @param label_en: An English label.
-    @param label_zh: A Chinese label.
-    @param autotest_name: The name of the autotest to run.
-    @param pytest_name: The name of the pytest to run (relative to
-      autotest_lib.client.cros.factory.tests).
-    @param invocation_target: The function to execute to run the test
-      (within the Goofy process).
-    @param kbd_shortcut: The keyboard shortcut for the test.
-    @param dargs: Autotest arguments.
-    @param backgroundable: Whether the test may run in the background.
-    @param subtests: A list of tests to run inside this test.  In order
-      to make conditional construction easier, this may contain None items
-      (which are removed) or nested arrays (which are flattened).
-    @param id: A unique ID for the test (defaults to the autotest name).
-    @param has_ui: True if the test has a UI. (This defaults to True for
-      OperatorTest.) If has_ui is not True, then when the test is
-      running, the statuses of the test and its siblings will be shown in
-      the test UI area instead.
-    @param never_fails: True if the test never fails, but only returns to an
-      untested state.
-    @param disable_abort: True if the test can not be aborted
-      while it is running.
-    @param exclusive: Items that the test may require exclusive access to.
-      May be a list or a single string. Items must all be in
-      EXCLUSIVE_OPTIONS. Tests may not be backgroundable.
-    @param enable_services: Services to enable for the test to run correctly.
-    @param disable_services: Services to disable for the test to run correctly.
-    @param _default_id: A default ID to use if no ID is specified.
-    @param require_run: A list of RequireRun objects indicating which
-      tests must have been run (and optionally passed) before this
-      test may be run.  If the specified path includes this test, then
-      all tests up to (but not including) this test must have been run
-      already. For instance, if this test is SMT.FlushEventLogs, and
-      require_run is "SMT", then all tests in SMT before
-      FlushEventLogs must have already been run. ALL may be used to
-      refer to the root (i.e., all tests in the whole test list before
-      this one must already have been run).
-
-      Examples:
-        require_run='x'                 # These three are equivalent;
-        require_run=RequireRun('x')     # requires that X has been run
-        require_run=[RequireRun('x')]   # (but not necessarily passed)
-
-        require_run=Passed('x')         # These are equivalent;
-        require_run=[Passed('x')]       # requires that X has passed
-
-        require_run=Passed(ALL)         # Requires that all previous tests
-                                        # have passed
-
-        require_run=['x', Passed('y')]  # Requires that x has been run
-                                        # and y has passed
-    @param run_if: Condition under which the test should be run.  This
-      must be either a function taking a single argument (an
-      invocation.TestArgsEnv object), or a string of the format
-
-        table_name.col
-        !table_name.col
-
-      If the auxiliary table 'table_name' is available, then its column 'col'
-      is used to determine whether the test should be run.
-    @param iterations: Number of times to run the test.
-    @param retries: Maximum number of retries allowed to pass the test.
-      If it's 0, then no retries are allowed (the usual case). If, for example,
-      iterations=60 and retries=2, then the test would be run up to 62 times
-      and could fail up to twice.
-    @param prepare: A callback function before test starts to run.
-    @param finish: A callback function when test case completed.
-      This function has one parameter indicated test result: TestState.PASSED
-      or TestState.FAILED.
-    @param _root: True only if this is the root node (for internal use
-      only).
+    See cros.factory.test.test_lists.FactoryTest for argument
+    documentation.
     '''
     self.label_en = label_en
     self.label_zh = (label_zh if isinstance(label_zh, unicode)

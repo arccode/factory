@@ -1,5 +1,5 @@
-Introduction to Working With the Factory SDK
-============================================
+Introduction to working with the Factory SDK (TODO)
+===================================================
 
 Coding Style
 ------------

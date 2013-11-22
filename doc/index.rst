@@ -25,6 +25,17 @@ APIs:
    test_api
    test_list_api
 
+About this documentation
+========================
+
+This documentation is generated with the `Sphinx documentation builder
+<http://sphinx-doc.org/>`_ from reStructuredText source files in the
+doc directory in the factory software repository.
+
+To build HTML documentation, run ``make doc`` in the factory
+repository.  This will generate HTML documentation in the
+``build/doc/html`` directory.  A documentation tarball is also
+available as ``doc.tar.bz2`` in factory bundles.
 
 Indices and tables
 ==================

@@ -86,6 +86,81 @@ def Add(test):
 #####
 
 def FactoryTest(*args, **kwargs):
+  """Adds a factory test to the test list.
+
+  Args:
+    label_en: An English label.
+    label_zh: A Chinese label.
+    autotest_name: The name of the autotest to run.
+    pytest_name: The name of the pytest to run (relative to
+      autotest_lib.client.cros.factory.tests).
+    invocation_target: The function to execute to run the test
+      (within the Goofy process).
+    kbd_shortcut: The keyboard shortcut for the test.
+    dargs: Autotest arguments.
+    backgroundable: Whether the test may run in the background.
+    subtests: A list of tests to run inside this test.  In order
+      to make conditional construction easier, this may contain None items
+      (which are removed) or nested arrays (which are flattened).
+    id: A unique ID for the test (defaults to the autotest name).
+    has_ui: True if the test has a UI. (This defaults to True for
+      OperatorTest.) If has_ui is not True, then when the test is
+      running, the statuses of the test and its siblings will be shown in
+      the test UI area instead.
+    never_fails: True if the test never fails, but only returns to an
+      untested state.
+    disable_abort: True if the test can not be aborted
+      while it is running.
+    exclusive: Items that the test may require exclusive access to.
+      May be a list or a single string. Items must all be in
+      EXCLUSIVE_OPTIONS. Tests may not be backgroundable.
+    enable_services: Services to enable for the test to run correctly.
+    disable_services: Services to disable for the test to run correctly.
+    _default_id: A default ID to use if no ID is specified.
+    require_run: A list of RequireRun objects indicating which
+      tests must have been run (and optionally passed) before this
+      test may be run.  If the specified path includes this test, then
+      all tests up to (but not including) this test must have been run
+      already. For instance, if this test is SMT.FlushEventLogs, and
+      require_run is "SMT", then all tests in SMT before
+      FlushEventLogs must have already been run. ALL may be used to
+      refer to the root (i.e., all tests in the whole test list before
+      this one must already have been run).
+
+      Examples:
+        require_run='x'                 # These three are equivalent;
+        require_run=RequireRun('x')     # requires that X has been run
+        require_run=[RequireRun('x')]   # (but not necessarily passed)
+
+        require_run=Passed('x')         # These are equivalent;
+        require_run=[Passed('x')]       # requires that X has passed
+
+        require_run=Passed(ALL)         # Requires that all previous tests
+                                        # have passed
+
+        require_run=['x', Passed('y')]  # Requires that x has been run
+                                        # and y has passed
+    run_if: Condition under which the test should be run.  This
+      must be either a function taking a single argument (an
+      invocation.TestArgsEnv object), or a string of the format
+
+        table_name.col
+        !table_name.col
+
+      If the auxiliary table 'table_name' is available, then its column 'col'
+      is used to determine whether the test should be run.
+    iterations: Number of times to run the test.
+    retries: Maximum number of retries allowed to pass the test.
+      If it's 0, then no retries are allowed (the usual case). If, for example,
+      iterations=60 and retries=2, then the test would be run up to 62 times
+      and could fail up to twice.
+    prepare: A callback function before test starts to run.
+    finish: A callback function when test case completed.
+      This function has one parameter indicated test result: TestState.PASSED
+      or TestState.FAILED.
+    _root: True only if this is the root node (for internal use
+      only).
+  """
   return Add(factory.FactoryTest(*args, **kwargs))
 
 
@@ -93,11 +168,42 @@ def AutomatedSequence(*args, **kwargs):
   return Add(factory.AutomatedSequence(*args, **kwargs))
 
 
-def TestGroup(*args, **kwargs):
-  return Add(factory.TestGroup(*args, **kwargs))
+def TestGroup(id, label_en='', label_zh=''):  # pylint: disable=W0622
+  """Adds a test group to the current test list.
+
+  This should always be used inside a ``with`` keyword, and tests
+  to be included in that test group should be placed inside the
+  contained block, e.g.::
+
+    with TestGroup(id='some_test_group'):
+      FactoryTest(id='foo', ...)
+      OperatorTest(id='bar', ...)
+
+  This creates a test group ``some_test_group`` containing the ``foo``
+  and ``bar`` tests.  The top-level nodes ``foo`` and ``bar`` can be
+  independently run.
+
+  Args:
+    id: The ID of the test (see :ref:`test-paths`).
+    label_en: The label of the group, in English.  This defaults
+      to the value of ``id`` if none is specified.
+    label_zh: The label of the group, in Chinese.  This defaults
+      to the value of ``label_en`` if none is specified.
+  """
+  return Add(factory.TestGroup(id=id, label_en=label_en, label_zh=label_zh))
 
 
 def OperatorTest(*args, **kwargs):
+  """Adds an operator test (a test with a UI) to the test list.
+
+  This is simply a synonym for
+  :py:func:`cros.factory.test.test_lists.test_lists.FactoryTest`, with
+  ``has_ui=True``.  It should be used instead of ``FactoryTest`` for
+  tests that have a UI to be displayed to the operator.
+
+  See :py:func:`cros.factory.test.test_lists.FactoryTest` for a
+  description of all arguments.
+  """
   return Add(factory.OperatorTest(*args, **kwargs))
 
 
@@ -119,7 +225,23 @@ def Passed(name):
 
 @contextmanager
 def TestList(id, label_en):  # pylint: disable=W0622
-  """Creates a test list.
+  """Context manager to create a test list.
+
+  This should be used inside a ``CreateTestLists`` function,
+  as the target of a ``with`` statement::
+
+    def CreateTestLists():
+      with TestList('main', 'Main Test List') as test_list:
+        # First set test list options.
+        test_list.options.auto_run_on_start = False
+        # Now start creating tests.
+        FactoryTest(...)
+        OperatorTest(...)
+
+  If you wish to modify the test list options (see
+  :ref:`test-list-options`), you can use the ``as`` keyword to capture
+  the test list into an object (here, ``test_list``).  You can then
+  use ``test_list.options`` to refer to the test list options.
 
   Args:
     id: The ID of the test list.  By convention, the default test list
