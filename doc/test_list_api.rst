@@ -77,6 +77,8 @@ Logs and error messages generally contain the full path when referring
 to a test, so you can easily identify which test the message is
 referring to.
 
+.. _declaring-test-lists:
+
 Declaring test lists
 --------------------
 .. note::
