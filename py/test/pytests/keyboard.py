@@ -24,6 +24,7 @@ import re
 import unittest
 
 from cros.factory.l10n import regions
+from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
 from cros.factory.test.countdown_timer import StartCountdownTimer
@@ -99,6 +100,7 @@ class KeyboardTest(unittest.TestCase):
     if self.args.sequential_press:
       self.key_order_list = self.ReadKeyOrder(self.layout)
 
+    self.key_down = set()
     # Initialize frontend presentation
     self.template.SetState(_HTML_KEYBOARD)
     self.ui.CallJSFunction('setUpKeyboardTest', self.layout, self.bindings,
@@ -177,13 +179,27 @@ class KeyboardTest(unittest.TestCase):
     """Calls Javascript to mark the given keycode as keydown."""
     if not keycode in self.bindings:
       return True
+    # Fails the test if got two key pressed at the same time.
+    if len(self.key_down):
+      factory.console.error(
+          'Got key down event on keycode %r but there is other key pressed: %r',
+          keycode, self.key_down)
+      self.ui.CallJSFunction('failTest')
     self.ui.CallJSFunction('markKeydown', keycode)
+    self.key_down.add(keycode)
     logging.info('Mark key down %d', keycode)
 
   def MarkKeyup(self, keycode):
     """Calls Javascript to mark the given keycode as keyup."""
     if not keycode in self.bindings:
       return True
+    if keycode not in self.key_down:
+      factory.console.error(
+          'Got key up event for keycode %r but did not get key down event',
+          keycode)
+      self.ui.CallJSFunction('failTest')
+    else:
+      self.key_down.remove(keycode)
     self.ui.CallJSFunction('markKeyup', keycode)
 
   def runTest(self):
