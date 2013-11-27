@@ -53,20 +53,17 @@ class ShopFloorException(Exception):
 class ShopFloorBase(object):
   """Base class for shopfloor servers.
 
-  Properties:
-    config: The configuration data provided by the '-c' argument to
-      shopfloor_server.
-    data_dir: The top-level directory for shopfloor data.
-    update_server: An FactoryUpdateServer for factory environment update.
-    log_server: An FactoryLogServer for factory log files to be uploaded
-      from dut.
-    _auto_archive_logs: An optional path to use for auto-archiving
-      logs (see the --auto-archive-logs command-line argument).  This
-      must contain the string 'DATE'.
-    _auto_archive_logs_days: Number of days of logs to save.
-    _auto_archive_logs_dir_exists: True if the parent of _auto_archive_logs
-      existed the last time we checked, False if not, or None if we've
-      never checked.
+  :ivar data_dir: The top-level directory for shopfloor data.
+  :ivar update_server: An FactoryUpdateServer for factory environment update.
+  :ivar log_server: An FactoryLogServer for factory log files to be uploaded
+   from DUT.
+  :ivar _auto_archive_logs: An optional path to use for auto-archiving
+   logs (see the --auto-archive-logs command-line argument).  This
+   must contain the string 'DATE'.
+  :ivar _auto_archive_logs_days: Number of days of logs to save.
+  :ivar _auto_archive_logs_dir_exists: True if the parent of _auto_archive_logs
+   existed the last time we checked, False if not, or None if we've
+   never checked.
   """
 
   NAME = 'ShopFloorBase'
