@@ -285,3 +285,23 @@ def GetWLANInterface():
     if os.path.exists(path):
       return dev
   return None
+
+def GetEthernetInterfaces():
+  """Returns the interfaces for Ethernet.
+
+  Returns:
+    A list like ['eth0', 'eth1'] if those Ethernet interfaces are available.
+    Or return [] if there is no Ethernet interface.
+  """
+  return [os.path.basename(path) for path in glob.glob('/sys/class/net/eth*')]
+
+def SwitchEthernetInterfaces(enable):
+  """Switches on/off all Ethernet interfaces.
+
+  Args:
+    enable: True to turn up, False to turn down.
+  """
+  devs = GetEthernetInterfaces()
+  for dev in devs:
+    Spawn(['ifconfig', dev, 'up' if enable else 'down'],
+          check_call=True, log=True)
