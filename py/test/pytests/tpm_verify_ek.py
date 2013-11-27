@@ -4,8 +4,7 @@
 
 """Verifies the TPM endorsement key.
 
-This test (whether it succeeds or fails) always requests a TPM clear
-on reboot.  It works even if run multiple times without rebooting.
+This test works even if run multiple times without rebooting.
 
 If the TPM is somehow owned but no password is available, the test
 will fail but emit a reasonable error message (and it will pass on the
@@ -21,6 +20,7 @@ from cros.factory.utils.process_utils import Spawn, CheckOutput
 from cros.factory.utils.string_utils import ParseDict
 
 class TPMVerifyEK(unittest.TestCase):
+  """Factory test to verify TPM endorsement key."""
   def _TPMStatus(self):
     """Returns TPM status as a dictionary.
 
@@ -36,10 +36,6 @@ class TPMVerifyEK(unittest.TestCase):
     return status
 
   def runTest(self):
-    # Always clear TPM on next boot, in case any problems arise.
-    Spawn(['crossystem', 'clear_tpm_owner_request=1'],
-          log=True, check_call=True)
-
     status = self._TPMStatus()
     self.assertEquals('true', status['TPM Enabled'])
 
