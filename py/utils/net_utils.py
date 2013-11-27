@@ -128,7 +128,9 @@ def GetEthernetIp(interface=None):
     IP is not assigned.
   """
   ip_address = None
-  interface = interface or FindUsableEthDevice(raise_exception=True)
+  interface = interface or FindUsableEthDevice(raise_exception=False)
+  if interface is None:
+    return None
   ip_output = SpawnOutput(['ip', 'addr', 'show', 'dev', interface])
   match = re.search('^\s+inet ([.0-9]+)', ip_output, re.MULTILINE)
   if match:
