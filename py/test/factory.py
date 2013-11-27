@@ -364,200 +364,202 @@ class Options(object):
   # value).
   _types = {}
 
-  #:If set to True, then the test list is automatically started when the
-  # test harness starts.  If False, then the operator will have to manually
-  # start a test."""
   auto_run_on_start = True
+  """If set to True, then the test list is automatically started when
+  the test harness starts.  If False, then the operator will have to
+  manually start a test."""
 
-  #:If set to True, the state of all tests is cleared each time the test
-  # harness starts.
   clear_state_on_start = False
+  """If set to True, the state of all tests is cleared each time the
+  test harness starts."""
 
-  #:If set to True, the test harness will perform an auto-run whenever
-  # the operator switches to any test.
   auto_run_on_keypress = False
+  """If set to True, the test harness will perform an auto-run whenever
+  the operator switches to any test."""
 
-  #:The default UI language (must be ``'en'`` for English or ``'zh'``
-  # for Chinese).
   ui_lang = 'en'
+  """The default UI language (must be ``'en'`` for English or ``'zh'``
+  for Chinese."""
 
-  #:Discard all autotest results that do not match these globs.
   preserve_autotest_results = ['*.DEBUG', '*.INFO']
+  """Discard all autotest results that do not match these globs."""
 
-  #:Maximum amount of time allowed between reboots. If this threshold
-  # is exceeded, the reboot is considered failed.
   max_reboot_time_secs = 180
+  """Maximum amount of time allowed between reboots. If this threshold
+  is exceeded, the reboot is considered failed."""
 
-  #:SHA1 hash for a engineering password in the UI.  Use None to
-  # always enable engingeering mode.
-  #
-  # To enter engineering mode, an operator may press Ctrl-Alt-0 and
-  # enter this password.  Certain special functions in the UI (such as
-  # being able to arbitrarily run any test) will be enabled.  Pressing
-  # Ctrl-Alt-0 will exit engineering mode.
-  #
-  # In order to keep the password hidden from operator (even if they
-  # happen to see the test list file), the actual password is not stored
-  # in the test list; rather, a hash is.  To generate the hash, run:
-  #
-  # .. parsed-literal::
-  #
-  #   echo -n `password` | sha1sum
-  #
-  # For example, for a password of ``test0000``, run::
-  #
-  #   echo -n test0000 | sha1sum
-  #
-  # This will display a hash of ``266abb9bec3aff5c37bd025463ee5c14ac18bfca``,
-  # so you should set::
-  #
-  #   test.list.options.engineering_password_sha1 = \
-  #       '266abb9bec3aff5c37bd025463ee5c14ac18bfca'
   engineering_password_sha1 = None
+  """SHA1 hash for a engineering password in the UI.  Use None to
+  always enable engingeering mode.
+
+  To enter engineering mode, an operator may press Ctrl-Alt-0 and
+  enter this password.  Certain special functions in the UI (such as
+  being able to arbitrarily run any test) will be enabled.  Pressing
+  Ctrl-Alt-0 will exit engineering mode.
+
+  In order to keep the password hidden from operator (even if they
+  happen to see the test list file), the actual password is not stored
+  in the test list; rather, a hash is.  To generate the hash, run:
+
+  .. parsed-literal::
+
+    echo -n `password` | sha1sum
+
+  For example, for a password of ``test0000``, run::
+
+    echo -n test0000 | sha1sum
+
+  This will display a hash of ``266abb9bec3aff5c37bd025463ee5c14ac18bfca``,
+  so you should set::
+
+    test.list.options.engineering_password_sha1 = \
+        '266abb9bec3aff5c37bd025463ee5c14ac18bfca'
+  """
   _types['engineering_password_sha1'] = (type(None), str)
 
-  #:WLANs that the connection manager may connect to.
-  wlans = []
 
-  #:Send events to the shopfloor server when it is reachable at this
-  # interval.  Set to ``None`` to disable.
+  wlans = []
+  """WLANs that the connection manager may connect to."""
+
   sync_event_log_period_secs = None
+  """Send events to the shopfloor server when it is reachable at this
+  interval.  Set to ``None`` to disable."""
   _types['sync_event_log_period_secs'] = (type(None), int)
 
-  #:Automatically check for updates at the given interval.  Set to
-  # ``None`` to disable.
   update_period_secs = None
+  """Automatically check for updates at the given interval.  Set to
+  ``None`` to disable."""
   _types['update_period_secs'] = (type(None), int)
 
-  #:Scan wireless networks at the given interval.
   scan_wifi_period_secs = 10
+  """Scan wireless networks at the given interval."""
 
-  #:Timeout when talking to shopfloor server for background operations.
   shopfloor_timeout_secs = 10
+  """Timeout when talking to shopfloor server for background
+  operations."""
 
-  #:Whether to enable the time sanitizer.
   time_sanitizer = True
+  """Whether to enable the time sanitizer."""
 
-  #:Interval to use when syncing time with the shopfloor server.
-  # Requires the time sanitizer.
   sync_time_period_secs = None
+  """Interval to use when syncing time with the shopfloor server.
+  Requires the time sanitizer."""
   _types['sync_time_period_secs'] = (type(None), int)
 
-  #:Interval at which to log disk usage stats.
   log_disk_space_period_secs = 120
+  """Interval at which to log disk usage stats."""
   _types['log_disk_space_period_secs'] = (type(None), int)
 
-  #:Interval at which to check battery status.
   check_battery_period_secs = 120
+  """Interval at which to check battery status."""
   _types['check_battery_period_secs'] = (type(None), int)
 
-  #:Interval at which to check CPU usage.
   check_cpu_usage_period_secs = 120
+  """Interval at which to check CPU usage."""
   _types['check_cpu_usage_period_secs'] = (type(None), int)
 
-  #:Log warning event and try to sync with shopfloor server when
-  # battery level is lower than this value and AC charger is
-  # disconnected.  The option is effective only if
-  # :py:attr:`cros.factory.test.factory.Options.check_battery_period_secs`
-  # is not ``None``.
   warning_low_battery_pct = 10
+  """Log warning event and try to sync with shopfloor server when
+  battery level is lower than this value and AC charger is
+  disconnected.  The option is effective only if
+  :py:attr:`cros.factory.test.factory.Options.check_battery_period_secs`
+  is not ``None``."""
   _types['warning_low_battery_pct'] = (type(None), int)
 
-  #:Do low-power emergency handling (such as flushing disks) when
-  # battery level is lower than this value, regardless of AC charger
-  # status.  (The option is effective only if
-  # :py:attr:`cros.factory.test.factory.Options.check_battery_period_secs`
-  # is not ``None``)."""
   critical_low_battery_pct = 5
+  """Do low-power emergency handling (such as flushing disks) when
+  battery level is lower than this value, regardless of AC charger
+  status.  (The option is effective only if
+  :py:attr:`cros.factory.test.factory.Options.check_battery_period_secs`
+  is not ``None``)."""
   _types['critical_low_battery_pct'] = (type(None), int)
 
-  #:A list of log files to remove periodically.
   clear_log_paths = ['/var/log/connectivity.bak']
+  """A list of log files to remove periodically."""
 
-  #:rsync system logs to the shopfloor server.
   enable_sync_log = True
-  #:Time interval to rsync system logs.
+  """rsync system logs to the shopfloor server."""
   sync_log_period_secs = None
+  """Time interval to rsync system logs."""
   _types['sync_log_period_secs'] = (type(None), int)
-  #:The list of log files to rsync periodically.
   sync_log_paths = [
       '/var/factory/log/',
       '/var/log/messages',
       '/var/log/Xorg.0.log',
       '/var/log/bios_info.txt',
       '/var/log/ec_info.txt']
+  """The list of log files to rsync periodically."""
 
-  #:The list of core dump pattern to watch for.
   core_dump_watchlist = None
+  """The list of core dump pattern to watch for."""
   _types['core_dump_watchlist'] = (type(None), list)
 
-  #:The minimum interval between two kick syncs due to core dump files.
   kick_sync_min_interval_secs = 120
+  """The minimum interval between two kick syncs due to core dump files."""
   _types[kick_sync_min_interval_secs] = int
 
-  #:Upload stateful partition disk usage stats to shopfloor server if
-  # stateful partition disk usage is above threshold.  Checks bytes
-  # usage and inodes usage of /dev/mmcblk0p1 (or /dev/sda1) and
-  # /dev/mapper/encstateful.  The checking period is the same as
-  # :py:attr:`cros.factory.test.factory.Options.log_disk_space_period_secs`.
   stateful_usage_threshold = None
+  """Upload stateful partition disk usage stats to shopfloor server if
+  stateful partition disk usage is above threshold.  Checks bytes
+  usage and inodes usage of /dev/mmcblk0p1 (or /dev/sda1) and
+  /dev/mapper/encstateful.  The checking period is the same as
+  :py:attr:`cros.factory.test.factory.Options.log_disk_space_period_secs`."""
   _types['stateful_usage_threshold'] = (type(None), int)
 
-  #:The action to perform when stateful partition disk usage is above
-  # the threshold specified by
-  # :py:attr:`cros.factory.test.factory.Options.stateful_usage_threshold`.
-  # The list will be passed to ``Spawn()`` as the first argument.
   stateful_usage_above_threshold_action = None
+  """The action to perform when stateful partition disk usage is above
+  the threshold specified by
+  :py:attr:`cros.factory.test.factory.Options.stateful_usage_threshold`.
+  The list will be passed to ``Spawn()`` as the first argument."""
   _types['stateful_usage_above_threshold_action'] = (type(None), list)
 
-  #:The target range for the device's charge level. If
-  # :py:attr:`cros.factory.test.factory.Options.min_charge_pct` and
-  # :py:attr:`cros.factory.test.factory.Options.max_charge_pct` are set,
-  # Goofy will use ``ChargeManager`` to attempt to keep the battery
-  # charge within these thresholds.
   min_charge_pct = None
+  """The target range for the device's charge level. If
+  :py:attr:`cros.factory.test.factory.Options.min_charge_pct` and
+  :py:attr:`cros.factory.test.factory.Options.max_charge_pct` are set,
+  Goofy will use ``ChargeManager`` to attempt to keep the battery
+  charge within these thresholds."""
   _types['min_charge_pct'] = (type(None), int)
-  #:See :py:attr:`cros.factory.test.factory.Options.min_charge_pct`.
   max_charge_pct = None
+  """See :py:attr:`cros.factory.test.factory.Options.min_charge_pct`."""
   _types['max_charge_pct'] = (type(None), int)
 
-  #:The shopfloor server URL.
   shopfloor_server_url = None
+  """The shopfloor server URL."""
   _types['shopfloor_server_url'] = (type(None), str)
 
-  #:Test stage to shopfloor URL mapping.
   shopfloor_server_url_for_stage = {}
+  """Test stage to shopfloor URL mapping."""
 
-  #:Whether to stop on any failure.
   stop_on_failure = False
+  """Whether to stop on any failure."""
 
-  #:Disables log rotation by writing ``/var/lib/cleanup_logs_paused``
-  # (see ``/usr/sbin/chromeos-cleanup-logs``).  Note that setting this
-  # to ``False`` does not delete any existing ``cleanup_logs_paused``
-  # file; it merely prevents its creation on future Goofy runs.
   disable_log_rotation = True
+  """Disables log rotation by writing ``/var/lib/cleanup_logs_paused``
+  (see ``/usr/sbin/chromeos-cleanup-logs``).  Note that setting this
+  to ``False`` does not delete any existing ``cleanup_logs_paused``
+  file; it merely prevents its creation on future Goofy runs."""
 
-  #:Used to disable ChromeOS shortcut keys (see
-  # ``factory/tools/key_filter.py``).
   disable_cros_shortcut_keys = False
-  #:Disables the CapsLock key.
+  """Disable ChromeOS shortcut keys (see ``factory/tools/key_filter.py``)."""
   disable_caps_lock = False
-  #:The CapsLock key code (used in conjunction with
-  # :py:attr:`cros.factory.test.factory.Options.disable_caps_lock`).
+  """Disable the CapsLock key."""
   caps_lock_keycode = 66
+  """The CapsLock key code (used in conjunction with
+  :py:attr:`cros.factory.test.factory.Options.disable_caps_lock`)."""
 
-  #:Hooks class for the factory test harness.  Defaults to a dummy
-  # class.
   hooks_class = 'cros.factory.test.factory.Hooks'
+  """Hooks class for the factory test harness.  Defaults to a dummy
+  class."""
 
-  #:Strictly require an ID for each test.
   strict_ids = False
+  """Strictly require an ID for each test."""
 
-  #:Enable ``CpufreqManager`` to manage CPU frequency.
   use_cpufreq_manager = True
+  """Enable ``CpufreqManager`` to manage CPU frequency."""
 
-  #:Check if MLB has been changed, and reset all tests if so.
   check_if_mlb_changed = False
+  """Check if MLB has been changed, and reset all tests if so."""
 
   def check_valid(self):
     """Throws a TestListError if there are any invalid options."""

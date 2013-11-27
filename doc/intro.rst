@@ -37,14 +37,14 @@ Make targets include:
 * ``lint``: Checks the source for style violations.
 * ``test``: Runs unit tests.
 * :samp:`overlay-{board}`: Creates a directory called `overlay-{board}`
-  containing the contains of the factory source, overlayed with contents
+  containing the contents of the factory source, overlayed with contents
   from the board overlay (e.g., in
-  :samp:third_party/private-overlays/overlay-{board}-private/chromeos-board/chromeos-factory-board/files`).
+  :samp:`third_party/private-overlays/overlay-{board}-private/chromeos-board/chromeos-factory-board/files`).
   This is useful to pull in board-specific files such as test lists.
 * :samp:`overlay-{board}-lint`: Runs the :samp:`overlay-{board}-lint`
   target, and further runs ``make lint`` within the overlay directory.
 * :samp:`overlay-{board}-test`: Runs the :samp:`overlay-{board}-test`
-  target, and further runs ``make lint`` within the overlay directory.
+  target, and further runs ``make test`` within the overlay directory.
 
 In general, it is advisable to run ``make lint`` and ``make test`` before submitting
 code. There are presubmit checks to enforce this.
