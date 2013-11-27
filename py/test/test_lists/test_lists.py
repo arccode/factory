@@ -13,6 +13,7 @@ import os
 import re
 import threading
 import yaml
+from collections import namedtuple
 from contextlib import contextmanager
 
 from cros.factory.test import factory
@@ -47,8 +48,15 @@ CUSTOM_DIR = os.path.join(factory.FACTORY_PATH, 'custom')
 #       that have been built or are being built.
 builder_state = threading.local()
 
+# Sampling is the helper class to control sampling of tests in test list.
+# key: The key used in device_data which will be evaluated in run_if argument.
+# rate:
+#   0.0: 0% sampling rate
+#   1.0: 100% sampling rate
+SamplingRate = namedtuple('SamplingRate', ['key', 'rate'])
 
 class TestListError(Exception):
+  """TestList exception"""
   pass
 
 
@@ -70,7 +78,8 @@ def Context(test):
 def Add(test):
   """Adds a test to the current item on the state.
 
-  Returns a context that can be used to add subtests."""
+  Returns a context that can be used to add subtests.
+  """
   if not builder_state.stack:
     raise TestListError('Cannot add test %r: not within a test list' % test.id)
   builder_state.stack[-1].subtests.append(test)
@@ -329,7 +338,8 @@ class OldStyleTestList(object):
   def Load(self, state_instance=None):
     """Loads the test list referred to by this object.
 
-    Returns: A FactoryTestList object.
+    Returns:
+      A FactoryTestList object.
     """
     logging.info('Loading old-style test list %s', self.path)
     test_list = factory.read_test_list(self.path, state_instance)
@@ -510,6 +520,7 @@ def YamlDumpTestListDestructive(test_list, stream=None):
   hence "Destructive".
 
   Args:
+    test_list: The test list to be dumped.
     stream: A stream to serialize into, or None to return a string
         (same as yaml.dump).
   """
