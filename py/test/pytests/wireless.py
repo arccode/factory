@@ -26,6 +26,7 @@ from cros.factory.test import factory
 from cros.factory.test.args import Arg
 from cros.factory.utils.file_utils import TryUnlink
 from cros.factory.utils.net_utils import GetWLANInterface
+from cros.factory.utils.net_utils import GetEthernetIp
 from cros.factory.utils.process_utils import Spawn, CheckOutput
 
 try:
@@ -148,6 +149,10 @@ class WirelessTest(unittest.TestCase):
                                                                    diagnostics))
           else:
             factory.console.info('Successfully connected to service %s' % name)
+
+        ethernet_ip = GetEthernetIp()
+        if ethernet_ip:
+          self.fail('Still got ethernet ip %r' % ethernet_ip)
 
         Spawn(['ifconfig'], check_call=True, log=True)
         success_url_test = False
