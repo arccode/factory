@@ -20,9 +20,9 @@ import cros.factory.test.fixture.camera.perf_tester as camperf
 class CameraFixtureTest(unittest.TestCase):
   def runTest(self):
     try:
-      import cv      # pylint: disable=W0612
-      import cv2     # pylint: disable=W0612
-      import numpy   # pylint: disable=W0612
+      import cv      # pylint: disable=W0612,F0401
+      import cv2     # pylint: disable=W0612,F0401
+      import numpy   # pylint: disable=W0612,F0401
     except ImportError:
       print('Camera fixture unit test is skipped for missing OpenCV/numpy.')
       return

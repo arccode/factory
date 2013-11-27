@@ -4,8 +4,8 @@
 
 # Import guard for OpenCV.
 try:
-  import cv
-  import cv2
+  import cv   # pylint: disable=F0401
+  import cv2  # pylint: disable=F0401
 except ImportError:
   pass
 
