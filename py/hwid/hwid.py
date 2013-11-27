@@ -21,6 +21,20 @@ from cros.factory.utils import process_utils
 
 
 _OPTION_PARSER = argparse.ArgumentParser(description='HWID tools')
+_OPTION_PARSER.add_argument(
+    '-p', '--hwid-db-path', default=None,
+    help='path to the HWID database directory.')
+_OPTION_PARSER.add_argument(
+    '-b', '--board', default=None,
+    help='board name of the HWID database to load. '
+         'required if not running on DUT')
+_OPTION_PARSER.add_argument(
+    '-v', '--verbose', default=False, action='store_true',
+    help='enable verbose output.')
+_OPTION_PARSER.add_argument(
+    '--no-verify-checksum', default=False, action='store_true',
+    help='do not check database checksum')
+
 _SUBPARSERS = _OPTION_PARSER.add_subparsers(
     title='subcommands', help='Valid subcommands.', dest='subcommand')
 _SUBCOMMANDS = {}
@@ -280,13 +294,18 @@ def GetVPD(probed_results):
   return vpd
 
 
-@Command('generate', help='Generate HWID.', args=[
-    Arg('--probed_results_file', default=None,
-        help='A file with probed results. Required if not running on DUT.'),
-    Arg('--device_info_file', default=None,
-        help='A file with device info. Required if not running on DUT.'),
-    Arg('--rma_mode', default=False, action='store_true',
-        help='Whether to enable RMA mode.')])
+def ComputeDatabaseChecksum(file_name):
+  """Computes the checksum of the give database."""
+  return database.Database.Checksum(file_name)
+
+
+@Command('generate', help='generate HWID.', args=[
+    Arg('--probed-results-file', default=None,
+        help='a file with probed results. Required if not running on DUT.'),
+    Arg('--device-info-file', default=None,
+        help='a file with device info. Required if not running on DUT.'),
+    Arg('--rma-mode', default=False, action='store_true',
+        help='whether to enable RMA mode.')])
 def GenerateHWIDWrapper(options):
   probed_results = GetProbedResults(options.probed_results_file)
   device_info = GetDeviceInfo(options.device_info_file)
@@ -304,22 +323,22 @@ def GenerateHWIDWrapper(options):
   print 'Binary HWID string: %s' % hwid.binary_string
 
 
-@Command('decode', help='Decode HWID.', args=[
+@Command('decode', help='decode HWID.', args=[
     Arg('hwid', nargs='?', default=None,
-        help='The HWID to decode. Required if not running on DUT.')])
+        help='the HWID to decode. Required if not running on DUT.')])
 def DecodeHWIDWrapper(options):
   encoded_string = options.hwid if options.hwid else GetHWIDString()
   decoded_hwid = DecodeHWID(options.database, encoded_string)
   print yaml.dump(ParseDecodedHWID(decoded_hwid), default_flow_style=False)
 
 
-@Command('verify', help='Verify HWID.', args=[
+@Command('verify', help='verify HWID.', args=[
     Arg('hwid', nargs='?', default=None,
-        help='The HWID to decode. Required if not running on DUT.'),
-    Arg('--probed_results_file', default=None,
-        help='A file with probed results. Required if not running on DUT.'),
-    Arg('--rma_mode', default=False, action='store_true',
-        help='Whether to enable RMA mode.')])
+        help='the HWID to decode. Required if not running on DUT.'),
+    Arg('--probed-results-file', default=None,
+        help='a file with probed results. Required if not running on DUT.'),
+    Arg('--rma-mode', default=False, action='store_true',
+        help='whether to enable RMA mode.')])
 def VerifyHWIDWrapper(options):
   encoded_string = options.hwid if options.hwid else GetHWIDString()
   probed_results = GetProbedResults(options.probed_results_file)
@@ -330,28 +349,34 @@ def VerifyHWIDWrapper(options):
   print 'Verification passed.'
 
 
-@Command('list_components', help='List components of the given class', args=[
+@Command('list-components', help='list components of the given class', args=[
     Arg('comp_class', nargs='*', default=None,
-        help='The component classes to look up.')])
+        help='the component classes to look up.')])
 def ListComponentsWrapper(options):
   components_list = ListComponents(options.database, options.comp_class)
   print yaml.safe_dump(components_list, default_flow_style=False)
 
 
+# pylint: disable=C0322
+@Command('database-checksum', help='compute SHA-1 checksum of a database',
+         args=[Arg('filename', help='the HWID database file')])
+def ComputeDatabaseChecksumWrapper(options):
+  print ComputeDatabaseChecksum(options.filename)
+
+
+@Command('verify-database', help='verify the given HWID database')
+def VerifyHWIDDatabase(options):
+  # Do nothing here since all the verifications are done when loading the
+  # database with HWID library.
+  print 'Database %s verified' % options.board
+
+
 def ParseOptions():
   """Parse arguments and generate necessary options."""
-  _OPTION_PARSER.add_argument(
-      '-p', '--hwid_db_path', default=None,
-      help='Path to the HWID database directory.')
-  _OPTION_PARSER.add_argument(
-      '-b', '--board', default=None,
-      help='Board name of the HWID database to load. '
-           'Required if not running on DUT')
-  _OPTION_PARSER.add_argument(
-      '-v', '--verbose', default=False, action='store_true',
-      help='Enable verbose output.')
+  return _OPTION_PARSER.parse_args()
 
-  options = _OPTION_PARSER.parse_args()
+
+def InitializeDefaultOptions(options):
   if not options.hwid_db_path:
     options.hwid_db_path = common.DEFAULT_HWID_DATA_PATH
   if not options.board:
@@ -359,8 +384,8 @@ def ParseOptions():
 
   # Create the Database object here since it's common to all functions.
   options.database = database.Database.LoadFile(
-      os.path.join(options.hwid_db_path, options.board.upper()))
-  return options
+      os.path.join(options.hwid_db_path, options.board.upper()),
+      verify_checksum=(not options.no_verify_checksum))
 
 
 def Main():
@@ -368,6 +393,9 @@ def Main():
   options = ParseOptions()
   if options.verbose:
     logging.basicConfig(level=logging.DEBUG)
+
+  if options.subcommand not in ['database-checksum']:
+    InitializeDefaultOptions(options)
 
   _SUBCOMMANDS[options.subcommand](options)
 

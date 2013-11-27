@@ -14,9 +14,9 @@ import unittest2
 import yaml
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.gooftool import Gooftool
 from cros.factory.hwdb.hwid_tool import ProbeResults  # pylint: disable=E0611
-from cros.factory.hwid import common
+from cros.factory.hwid import common, database
+from cros.factory.hwid import hwid as hwid_v3_tool
 from cros.factory.rule import Context
 
 
@@ -38,6 +38,15 @@ class ValidHWIDDBsTest(unittest2.TestCase):
     for board_info in board_to_test:
       board_name, db_path, test_path = board_info
       logging.info('Checking %s: %s', board_name, db_path)
+      if os.path.exists(db_path):
+        # Make sure the checksum is correct.
+        db = database.Database.LoadFile(db_path, verify_checksum=True)
+      else:
+        logging.info(
+            'Cannot find database %r. It is probably in another branch.',
+            board_name)
+        continue
+
       if not os.path.exists(test_path):
         logging.info('Cannot find %s. Skip test for %s.', test_path, board_name)
         continue
@@ -45,13 +54,13 @@ class ValidHWIDDBsTest(unittest2.TestCase):
         test_samples = yaml.load_all(f.read())
       for sample in test_samples:
         if sample['test'] == 'encode':
-          self.TestEncode(board_name, db_path, sample)
+          self.TestEncode(db, sample)
         elif sample['test'] == 'decode':
-          self.TestDecode(board_name, db_path, sample)
+          self.TestDecode(db, sample)
         else:
           raise ValueError('Invalid test type: %r' % sample['test'])
 
-  def TestEncode(self, board_name, db_path, sample_dict):
+  def TestEncode(self, db, sample_dict):
     # Set up test variables.
     error = None
     binary_string = None
@@ -81,16 +90,11 @@ class ValidHWIDDBsTest(unittest2.TestCase):
     device_info = sample_dict.get('device_info')
 
     def _Encode():
-      gt = Gooftool(hwid_version=3, board=board_name,
-                    hwdb_path=os.path.dirname(db_path))
-      # Test HWID Generation.
-      hwid = gt.GenerateHwidV3(probe_results=probe_results,
-                               device_info=device_info,
-                               probed_ro_vpd=vpd['ro'],
-                               probed_rw_vpd=vpd['rw'])
+      hwid = hwid_v3_tool.GenerateHWID(db, probe_results, device_info, vpd,
+                                       False)
       # Test all rules.
-      gt.db.rules.EvaluateRules(Context(hwid=hwid, vpd=vpd,
-                                        device_info=device_info))
+      db.rules.EvaluateRules(Context(hwid=hwid, vpd=vpd,
+                                     device_info=device_info))
       return hwid
 
     if error:
@@ -103,7 +107,7 @@ class ValidHWIDDBsTest(unittest2.TestCase):
                                                    hwid.binary_string))
       self.assertEquals(encoded_string, hwid.encoded_string)
 
-  def TestDecode(self, board_name, db_path, sample_dict):
+  def TestDecode(self, db, sample_dict):
     error = None
     binary_string = None
     encoded_fields = None
@@ -120,10 +124,8 @@ class ValidHWIDDBsTest(unittest2.TestCase):
       logging.info('Testing decoding of %r to BOM', encoded_string)
 
     def _Decode():
-      gt = Gooftool(hwid_version=3, board=board_name,
-                    hwdb_path=os.path.dirname(db_path))
-      # Test HWID decoding.
-      return gt.DecodeHwidV3(encoded_string)
+      # Test decoding.
+      return hwid_v3_tool.DecodeHWID(db, encoded_string)
 
     if error:
       self.assertRaisesRegexp(Exception, re.compile(error, re.S),

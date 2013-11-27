@@ -28,6 +28,24 @@ class DatabaseTest(unittest2.TestCase):
         yaml.dump(result) for result in yaml.load_all(open(os.path.join(
             _TEST_DATA_PATH, 'test_probe_result.yaml')).read())]
 
+  def testLoadFile(self):
+    self.assertIsInstance(Database.LoadFile(os.path.join(
+        _TEST_DATA_PATH, 'test_db.yaml'), verify_checksum=True), Database)
+    self.assertRaisesRegexp(
+        HWIDException, r'HWID database .* checksum verification failed',
+        Database.LoadFile,
+        os.path.join(_TEST_DATA_PATH, 'test_db_wrong_checksum_field.yaml'),
+        verify_checksum=True)
+
+  def testDatabaseChecksum(self):
+    self.assertEquals(
+        '779cedeadfd10651bc05218ad1c12d6f42f4413e',
+        Database.Checksum(os.path.join(_TEST_DATA_PATH, 'test_db.yaml')))
+    self.assertEquals(
+        '779cedeadfd10651bc05218ad1c12d6f42f4413e',
+        Database.Checksum(os.path.join(
+            _TEST_DATA_PATH, 'test_db_wrong_checksum_field.yaml')))
+
   def testLoadData(self):
     self.assertRaisesRegexp(
         HWIDException, r'Invalid HWID database', Database.LoadData, '')

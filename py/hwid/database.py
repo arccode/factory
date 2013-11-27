@@ -8,6 +8,7 @@
 
 import collections
 import copy
+import hashlib
 import pprint
 import re
 import yaml
@@ -85,12 +86,13 @@ class Database(object):
 
 
   @classmethod
-  def LoadFile(cls, file_name):
+  def LoadFile(cls, file_name, verify_checksum=False):
     """Loads a device-specific component database from the given file and
     parses it to a Database object.
 
     Args:
       file_name: A path to a device-specific component database.
+      verify_checksum: Whether to verify the checksum of the database.
 
     Returns:
       A Database object containing all the settings in the database file.
@@ -102,28 +104,55 @@ class Database(object):
     with open(file_name, 'r') as f:
       db_yaml = yaml.load(f)
 
-    return cls.LoadData(db_yaml)
+    return cls.LoadData(
+        db_yaml,
+        expected_checksum=cls.Checksum(file_name) if verify_checksum else None)
+
+  @staticmethod
+  def Checksum(file_name):
+    """Computes a SHA1 digest as the checksum of the given database file.
+
+    Args:
+      file_name: A path to a device-specific component database.
+
+    Returns:
+      The computed checksum as a string.
+    """
+    with open(file_name, 'r') as f:
+      db_text = f.read()
+    # Ignore the 'checksum: <hash value>\n' line when calculating checksum.
+    db_text = re.sub(r'^checksum:.*\n$', '', db_text, flags=re.MULTILINE)
+    return hashlib.sha1(db_text).hexdigest()    # pylint: disable=E1101
 
   @classmethod
-  def LoadData(cls, db_yaml):
+  def LoadData(cls, db_yaml, expected_checksum=None):
     """Loads a device-specific component database from the given database data.
 
     Args:
       db_yaml: The database in parsed dict form.
+      expected_checksum: The checksum value to verify the loaded data with.
+          A value of None disables checksum verification.
 
     Returns:
       A Database object containing all the settings in the database file.
 
     Raises:
-      HWIDException if there is missing field in the database.
+      HWIDException if there is missing field in the database, or database
+      integrity veification fails.
     """
     if not db_yaml:
       raise common.HWIDException('Invalid HWID database')
     for key in ['board', 'encoding_patterns', 'image_id', 'pattern',
-                'encoded_fields', 'components', 'rules']:
+                'encoded_fields', 'components', 'rules', 'checksum']:
       if not db_yaml.get(key):
         raise common.HWIDException(
             '%r is not specified in component database' % key)
+
+    # Verify database integrity.
+    if (expected_checksum is not None and
+        db_yaml['checksum'] != expected_checksum):
+      raise common.HWIDException(
+          'HWID database %r checksum verification failed' % db_yaml['board'])
 
     return Database(db_yaml['board'],
                     EncodingPatterns(db_yaml['encoding_patterns']),

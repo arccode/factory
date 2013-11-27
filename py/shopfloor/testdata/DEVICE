@@ -1,4 +1,6 @@
 # Test DEVICE HWID HWDB file
+checksum: e06cc0b062e61aa42df82ecafbba6ed6a62db306
+
 board: DEVICE
 
 encoding_patterns:
