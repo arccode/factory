@@ -13,7 +13,6 @@ import argparse
 import sys
 
 import factory_common  # pylint: disable=W0611
-from cros.factory import cros_locale
 from cros.factory.test.utils import Enum
 
 
@@ -45,13 +44,8 @@ class Region(object):
 
   def __init__(self, region_code, keyboard, time_zone, language_code,
                keyboard_mechanical_layout):
+    # Quick check: should be 'gb', not 'uk'
     assert region_code != 'uk'
-    assert keyboard in cros_locale.ALL_KEYBOARDS, '%s not in %s' % (
-        keyboard, cros_locale.ALL_KEYBOARDS)
-    assert time_zone in cros_locale.CHROMEOS_TIMEZONE_LIST, '%s not in %s' % (
-        time_zone, cros_locale.CHROMEOS_TIMEZONE_LIST)
-    assert language_code in cros_locale.CHROMEOS_LOCALE_DATABASE, (
-        '%s not in %s' % (language_code, cros_locale.CHROMEOS_LOCALE_DATABASE))
 
     self.region_code = region_code
     self.keyboard = keyboard

@@ -6,6 +6,9 @@
 
 # pylint: disable=C0301
 
+# Note: These databases have been deprecated; use l10n/regions.py
+# (and l10n/regions_overlay.py in overlays) instead.
+
 # References
 # - Country codes: http://en.wikipedia.org/wiki/ISO_3166-1_alpha-2
 # - Keyboard: http://goo.gl/3aJnl
@@ -16,7 +19,7 @@
 
 # This is the mapping from locale code to human readable locale name and
 # suggested timezone.
-# TODO(hungte) Some locales do not have default time zone yet.
+
 
 CHROMEOS_LOCALE_DATABASE = {
     'af': ('Afrikaans', ''),
