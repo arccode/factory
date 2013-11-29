@@ -55,7 +55,7 @@ To uniquely identify a node within a test list, each node has a
 :index:`path` that is constructed by starting at the root and
 concatenating all the node's IDs with periods.  Conceptually this is
 very similar to how paths are formed in a UNIX file system (except
-that UNIX file systems use slashes instead of paths) or in a Java
+that UNIX file systems use slashes instead of periods) or in a Java
 class hierarchy.  For example, if the ``LTEModem`` test in is a test
 group called ``Connectivity``, then its path would be
 ``Connectivity.LTEModem``.
@@ -100,7 +100,7 @@ declares a test with with the ID ``main``.
 In general, you will want to create the test list for your board by
 copying the generic test list into your board overlay: use a file name
 like
-``private-overlays/overlay-foo/chromeos-base/chromeos-factory-board/file/py/test/test_lists/main.py``
+``private-overlays/overlay-foo/chromeos-base/chromeos-factory-board/files/py/test/test_lists/main.py``
 to create a :py:mod:`cros.factory.test.test_lists.main` module there.
 
 In order to declare test lists, your module must provide a
