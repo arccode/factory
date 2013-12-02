@@ -1,0 +1,236 @@
+// Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+/**
+ * Tone generator used to examine DUT's audio quality
+ * at different frequencies.
+ */
+var toneGen = {};
+
+/**
+ * Initializes tone generator.
+ * @param {int} freq the default frequency in Hz
+ * @param {int} freq_max the default max frequency in Hz
+ */
+toneGen.init = function(freq, freq_max) {
+  this.freq_bar = document.getElementById('freq_bar');
+  this.setFreqBarVal(this.freq_bar.max * freq / freq_max);
+  this.setFreq(freq);
+  this.setFreqMax(freq_max);
+  this.setToneType('sine');
+  this.audioContext = new webkitAudioContext();
+}
+
+/**
+ * Sets frequency to tone generator and UI.
+ * @param {int} freq in Hz
+ */
+toneGen.setFreq = function(freq) {
+  this.freq = freq;
+  document.getElementById('freq_curr').innerText = freq;
+  if (this.osc) {
+    this.osc.frequency.value = freq;
+  }
+}
+
+/**
+ * Sets the value for frequency bar on UI.
+ * @param {int} value
+ */
+toneGen.setFreqBarVal = function(value) {
+  if (value < 1)
+    value = 1;
+  this.freq_bar.value = value;
+}
+
+/**
+ * Sets the max frequency to tone generator and UI.
+ * @param {int} freq_max in Hz
+ */
+toneGen.setFreqMax = function(freq_max) {
+  this.freq_max = freq_max;
+  document.getElementById('freq_max_label').innerText = freq_max;
+  document.getElementById('freq_max_edit').value = freq_max;
+  if (freq_max < this.freq) {
+    this.setFreq(freq_max);
+    this.setFreqBarVal(this.freq_bar.max);
+  }
+}
+
+/**
+ * Sets the tone type to tone generator.
+ * @param {string} type of 'sine', 'square' or 'triangle'
+ */
+toneGen.setToneType = function(type) {
+  toneGen.tone_type = type;
+  if (this.osc) {
+    this.osc.type = type;
+  }
+}
+
+/**
+ * Plays tone with given frequency, type and delay.
+ * @param {int} freq in Hz
+ * @param {string} type of 'sine', 'square' or 'triangle'
+ * @param {int} delay in seconds
+ */
+toneGen.playTone = function(freq, type, delay) {
+  this.osc = this.audioContext.createOscillator();
+  this.osc.type = type;
+  this.osc.frequency.value = freq;
+  this.osc.connect(this.audioContext.destination);
+  this.osc.start(delay);
+}
+
+/**
+ * Returns if the tone generator is playing.
+ */
+toneGen.isPlaying = function() {
+  return this.osc
+      && this.osc.playbackState == this.osc.PLAYING_STATE;
+}
+
+/**
+ * Stops the tone generator
+ * @param {int} delay in seconds.
+ */
+toneGen.stopTone = function(delay) {
+  this.osc.stop(delay);
+}
+
+/* Audio loopback used to examine audio capture quality. */
+var loopback = {};
+
+/**
+ * Initializes audio loopback.
+ * @param {Object} stream the input media stream
+ */
+loopback.init = function(stream) {
+  this.audioContext = new webkitAudioContext();
+  this.src = this.audioContext.createMediaStreamSource(stream);
+}
+
+/**
+ * Starts audio loopback.
+ */
+loopback.start = function() {
+  this.src.connect(this.audioContext.destination);
+  this.started = true;
+}
+
+/**
+ * Stops audio loopback.
+ */
+loopback.stop = function() {
+  this.src.disconnect();
+  this.started = false;
+}
+
+/* Callback functions from UI */
+
+/**
+ * Initializes client code and UI.
+ */
+function init() {
+  // Init tone generator
+  toneGen.init(1000, 10000);
+
+  // Init audio loopback
+  var onErr = function() {
+    alert('Loopback failed to initialize');
+  }
+  navigator.webkitGetUserMedia({audio:true}, gotStream, onErr);
+}
+
+/**
+ * Handles the event when a media stream is acquired by
+ * navigator.webkitGetUserMedia().
+ * @param {Object} stream the input media stream
+ */
+function gotStream(stream) {
+  loopback.init(stream);
+}
+
+/**
+ * Handles the event tone generator type is changed on UI.
+ */
+function toneTypeChanged() {
+  var toneTypeSelector = document.getElementById('tone_type');
+  toneGen.setToneType(
+      toneTypeSelector.options[toneTypeSelector.selectedIndex].value);
+}
+
+/**
+ * Handles the event value of frequency bar is changed.
+ * @param {int} value the value of the frequency bar
+ */
+function freqBarChanged(value) {
+  toneGen.setFreq(toneGen.freq_max * value / toneGen.freq_bar.max);
+}
+
+/**
+ * Handles the event when tone generator button is clicked.
+ */
+function toneButtonClicked() {
+  var btn = document.getElementById('tone_btn');
+  if (toneGen.isPlaying()) {
+    toneGen.stopTone(0);
+    btn.className = 'btn-off';
+  } else {
+    toneGen.playTone(toneGen.freq, toneGen.tone_type, 0);
+    btn.className = 'btn-on';
+  }
+}
+
+/**
+ * Handles the event when loopback button is clicked.
+ */
+function loopbackButtonClicked() {
+  var btn = document.getElementById('loopback_btn');
+  if (!loopback.started) {
+    loopback.start();
+    btn.className = 'btn-on';
+  } else {
+    loopback.stop();
+    btn.className = 'btn-off';
+  }
+}
+
+/**
+ * Handles the event when max frequency label enters or
+ * leaves edit mode.
+ * @param {boolean} edit_mode if frequency label is in edit mode
+ */
+function editMax(edit_mode) {
+  console.info('Calling edit max with ' + edit_mode);
+  // Display the label or edit text.
+  var freq = document.getElementById('freq');
+  var freq_max_edit = document.getElementById('freq_max_edit');
+  freq.className = edit_mode ? 'edit-on' : 'edit-off';
+  if (edit_mode)
+    freq_max_edit.focus();
+
+  var fm = parseInt(freq_max_edit.value);
+  if (edit_mode || isNaN(fm)) {
+    // Restore the current max frequency and show on UI right before
+    // user tries to modify it or an invalid value is found.
+    fm = toneGen.freq_max;
+    freq_max_edit.value = toneGen.freq_max;
+  }
+  toneGen.setFreqMax(fm);
+}
+
+/**
+ * Handles the event when fail button is clicked.
+ */
+function fail() {
+  test.sendTestEvent('fail', {});
+}
+
+/**
+ * Handles the event when pass button is clicked.
+ */
+function pass() {
+  test.sendTestEvent('pass', {});
+}
