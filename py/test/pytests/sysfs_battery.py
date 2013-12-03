@@ -62,7 +62,7 @@ class SysfsBatteryTest(unittest.TestCase):
 
     health = power.GetBatteryAttribute('health')
     if success and self.args.verify_battery_health_good:
-      if health.lower() != 'good':
+      if health is None or health.lower() != 'good':
         msg = 'Battery health is %s, not Good' % health
         success = False
     cycleCount = power.GetBatteryAttribute('cycle_count')
