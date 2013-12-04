@@ -87,6 +87,7 @@ class BatteryCurrentTest(unittest.TestCase):
 
   def runTest(self):
     """Main entrance of charger test."""
+    self.assertTrue(self._power.CheckBatteryPresent())
     if self.args.max_battery_level:
       self.assertLessEqual(self._power.GetChargePct(),
                            self.args.max_battery_level,
