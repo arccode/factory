@@ -10,6 +10,7 @@ Run this module to display all known regions (use --help to see options).
 
 
 import argparse
+import collections
 import sys
 
 import factory_common  # pylint: disable=W0611
@@ -31,9 +32,9 @@ class Region(object):
       (e.g., add "ch.fr-CH" for a Swiss French configuration, or
       "xx-south-america" for a South American configuration).
     keyboard: The standard keyboard layout (e.g., 'xkb:us:intl:eng'); see
-      http://goo.gl/3aJnl.
+      http://goo.gl/3aJnl and http://goo.gl/xWNrUP.
     time_zone: The standard time zone (e.g., 'America/Los_Angeles'); see
-      http://goo.gl/IqLVX.
+      http://goo.gl/WSVUeE.
     language code: The standard language code (e.g., 'en-US'); see
       http://goo.gl/kVkht.
     keyboard_mechanical_layout: The keyboard's mechanical layout (ANSI
@@ -55,21 +56,69 @@ class Region(object):
 
 
 _KML = KeyboardMechanicalLayout
-_REGIONS_LIST = [
+REGIONS_LIST = [
     Region('us', 'xkb:us::eng',     'America/Los_Angeles', 'en-US', _KML.ANSI),
     Region('gb', 'xkb:gb:extd:eng', 'Europe/London',       'en-GB', _KML.ISO),
 ]
 
+# These are believed to be correct but unconfirmed, and all fields
+# should be verified (and the row moved into REGIONS_LIST) before
+# launch.  See <http://goto/vpdsettings>.
+#
+# Note that currently non-Latin keyboards must use underlying Latin
+# keyboard for VPD.  (This assumption should be revisited when moving
+# items from UNCONFIRMED_REGIONS to REGIONS.)  This is currently being
+# discussed on <http://crbug.com/325389>.
+#
+# Note that some timezones may be missing from timezone_settings.cc
+# (see http://crosbug.com/p/23902).
+UNCONFIRMED_REGIONS_LIST = []
 
-# Attempt to read regions from the overlay.  No worries if they're not
-# available.
-try:
-  from cros.factory.l10n import regions_overlay   # pylint: disable=E0611
-  _REGIONS_LIST += regions_overlay.REGIONS_LIST
-except ImportError:
-  pass
+# The following regions may contain incorrect information, and all
+# fields must be reviewed before launch.  See <http://goto/vpdsettings>.
+INCOMPLETE_REGIONS_LIST = []
 
-REGIONS = dict((x.region_code, x) for x in _REGIONS_LIST)
+
+def BuildRegionsDict(include_all=False):
+  """Builds a dictionary of region code to
+  :py:class:py.l10n.regions.Region: object.
+
+  The regions include:
+
+  - :py:data:`cros.factory.l10n.regions.REGIONS_LIST`
+  - :py:data:`cros.factory.l10n.regions_overlay.REGIONS_LIST`
+  - Only if ``include_all`` is true:
+    - :py:data:`cros.factory.l10n.regions.UNCONFIRMED_REGIONS_LIST`
+    - :py:data:`cros.factory.l10n.regions_overlay.UNCONFIRMED_REGIONS_LIST`
+    - :py:data:`cros.factory.l10n.regions.INCOMPLETE_REGIONS_LIST`
+    - :py:data:`cros.factory.l10n.regions_overlay.INCOMPLETE_REGIONS_LIST`
+
+  A region may only appear in one of the above lists, or this function
+  will (deliberately) fail.
+  """
+  regions = list(REGIONS_LIST)
+  if include_all:
+    regions += UNCONFIRMED_REGIONS_LIST + INCOMPLETE_REGIONS_LIST
+
+  try:
+    from cros.factory.l10n import regions_overlay   # pylint: disable=E0611
+    # REGIONS_LIST must be present
+    regions += regions_overlay.REGIONS_LIST
+    if include_all:
+      for name in ('UNCONFIRMED_REGIONS_LIST', 'INCOMPLETE_REGIONS_LIST'):
+        regions += getattr(regions_overlay, name, [])
+  except ImportError:
+    pass
+
+  region_codes = [r.region_code for r in regions]
+  dups = sorted([
+      k for k, v in collections.Counter(region_codes).iteritems() if v > 1])
+  assert not dups, 'Duplicate region codes: %s' % dups
+
+  return dict((x.region_code, x) for x in regions)
+
+
+REGIONS = BuildRegionsDict()
 
 
 def main():
@@ -81,11 +130,14 @@ def main():
   parser.add_argument('--format', choices=('human-readable', 'csv'),
                       default='human-readable',
                       help='Output format (default=%(default)s)')
+  parser.add_argument('--all', action='store_true',
+                      help='Include unconfirmed and incomplete regions')
   args = parser.parse_args()
 
   # List of list of lines to print.
   lines = [Region.FIELDS]
-  for region in sorted(REGIONS.values(), key=lambda v: v.region_code):
+  for region in sorted(BuildRegionsDict(args.all).values(),
+                       key=lambda v: v.region_code):
     lines.append([getattr(region, field) for field in Region.FIELDS])
 
   if args.format == 'csv':
