@@ -474,6 +474,7 @@ class RemovableStorageTest(unittest.TestCase):
         action = _UDEV_ACTION_REMOVE
 
     if action == _UDEV_ACTION_INSERT:
+      logging.info('sys path from callback = %s', device.sys_path)
       if self._state == _STATE_RW_TEST_WAIT_INSERT:
         if self.args.vidpid:
           device_vidpid = self.GetVidpid(device)
