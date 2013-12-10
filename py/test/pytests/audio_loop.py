@@ -146,6 +146,12 @@ class AudioLoopTest(unittest.TestCase):
     Stop play tone
     Stop capturing data
     """
+    if (self._audio_util.GetHeadphoneJackStatus() or
+        self._audio_util.GetMicJackStatus()):
+      self._ui.Fail('Audiofuntest is not recommanded to '
+                    'run with HP/Mic jack plugged')
+      return
+
     for channel in xrange(audio_utils.DEFAULT_NUM_CHANNELS):
       test_result = None
       factory.console.info('Run audiofuntest from %r to %r' % (

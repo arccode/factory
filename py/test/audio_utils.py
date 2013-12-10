@@ -10,7 +10,8 @@ import re
 import tempfile
 import yaml
 
-from cros.factory.utils.process_utils import Spawn
+from glob import glob
+from cros.factory.utils.process_utils import PIPE, Spawn
 
 # Configuration file is put under overlay directory and it can be customized
 # for each board.
@@ -39,6 +40,10 @@ SOX_PATH = 'sox'
 DEFAULT_NUM_CHANNELS = 2
 
 _DEFAULT_SOX_FORMAT = '-t raw -b 16 -e signed -r 48000 -L'
+
+# Strings for key in audio.conf
+HP_JACK_NAME = 'headphone_jack'
+MIC_JACK_NAME = 'mic_jack'
 
 
 # SOX related utilities
@@ -192,6 +197,38 @@ class AudioUtil(object):
       self.audio_config = {}
       logging.info('Cannot find configuration file.')
 
+  def GetMixerControls(self, name, card='0'):
+    """Gets the value for mixer control.
+
+    Args:
+      name: The name of mixer control
+      card: The index of audio card
+    """
+    list_controls = Spawn(['amixer', '-c%d' % int(card), 'controls'],
+                          stdout=PIPE)
+    _CONTROL_RE = re.compile('numid=(\d+).*?name=\'%s\'' % name)
+    numid = 0
+    for ctl in list_controls.stdout:
+      m = _CONTROL_RE.match(ctl)
+      if m:
+        numid = int(m.group(1))
+        break
+    if numid == 0:
+      logging.info('Unable to find mixer control %s', name)
+      return None
+
+    output = Spawn(['amixer', '-c%d' % int(card), 'cget', 'numid=%d' % numid],
+                   stdout=PIPE)
+    # Check control value on the last line of output
+    line = output.stdout.readlines()[-1]
+    m = re.match(r'.*values=(.*)', line)
+    if m:
+      return m.group(1)
+    else:
+      logging.info('Unable to get value for mixer control %s, numid=%d',
+                   name, numid)
+      return None
+
   def SetMixerControls(self, mixer_settings, card='0'):
     """Sets all mixer controls listed in the mixer settings on card.
 
@@ -203,6 +240,83 @@ class AudioUtil(object):
       logging.info('Setting %s to %s on card %s', name, value, card)
       command = ['amixer', '-c', card, 'cset', 'name=%r' % name, value]
       Spawn(command, check_call=True)
+
+  def FindEventDeviceByName(self, name):
+    """Finds the event device by matching name.
+
+    Args:
+      name: The name to look up event device by substring matching.
+
+    Returns:
+      The full name of the found event device of form /dev/input/event*
+    """
+    for evdev in glob('/dev/input/event*'):
+      f = open(os.path.join('/sys/class/input/',
+                            os.path.basename(evdev),
+                           'device/name'),
+               'r')
+      evdev_name = f.read()
+      if evdev_name.find(name) != -1:
+        return evdev
+    return None
+
+  def GetHeadphoneJackStatus(self, card='0'):
+    """Gets the plug/unplug status of headphone jack.
+
+    Args:
+      card: The index of audio card.
+
+    Returns:
+      True if headphone jack is plugged, False otherwise.
+
+    Raise:
+      ValueError: When unable to get headphone jack status.
+    """
+    if HP_JACK_NAME in self.audio_config:
+      hp_jack_name = self.audio_config[HP_JACK_NAME]
+    else:
+      hp_jack_name = 'Headphone Jack'
+    values = self.GetMixerControls(hp_jack_name, card)
+    if values:
+      return True if values == 'on' else False
+
+    # Check input device for headphone
+    evdev = self.FindEventDeviceByName(hp_jack_name)
+    if evdev:
+      query = Spawn(['evtest', '--query', evdev, 'EV_SW',
+                     'SW_HEADPHONE_INSERT'],
+                    call=True)
+      return query.returncode != 0
+    raise ValueError('Fail to get headphone status')
+
+  def GetMicJackStatus(self, card='0'):
+    """Gets the plug/unplug status of mic jack.
+
+    Args:
+      card: The index of audio card.
+
+    Returns:
+      True if mic jack is plugged, False otherwise.
+
+    Raise:
+      ValueError: When unable to get mic jack status.
+    """
+    if MIC_JACK_NAME in self.audio_config:
+      mic_jack_name = self.audio_config[MIC_JACK_NAME]
+    else:
+      mic_jack_name = 'Mic Jack'
+    values = self.GetMixerControls(mic_jack_name, card)
+    if values:
+      return True if values == 'on' else False
+
+    # Check input device for headphone
+    evdev = self.FindEventDeviceByName(mic_jack_name)
+    if evdev:
+      query = Spawn(['evtest', '--query', evdev, 'EV_SW',
+                     'SW_MICROPHONE_INSERT'],
+                    call=True)
+      return query.returncode != 0
+    raise ValueError('Fail to get mic jack status')
 
   def ApplyAudioConfig(self, action, card='0'):
     if card in self.audio_config:
