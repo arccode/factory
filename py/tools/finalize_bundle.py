@@ -130,20 +130,25 @@ def GetReleaseVersion(mount_point):
   return match.group(1)
 
 
-def GetFirmwareVersions(updater):
+def GetFirmwareVersions(updater, has_ec):
   """Returns the firmware versions in an updater.
 
   Args:
     updater: Path to a firmware updater.
+    has_ec: True if updater has EC.
 
   Returns:
     A tuple (bios_version, ec_version)
+    If has_ec is False, ec_version is set to None
   """
   stdout = Spawn(
       [updater, '-V'], log=True, check_output=True).stdout_data
 
   versions = []
-  for label in ['BIOS version', 'EC version']:
+  versions_list = ['BIOS version']
+  if has_ec:
+    versions_list += ['EC version']
+  for label in versions_list:
     match = re.search(
         '^' + label + ':\s+(.+)$', stdout, re.MULTILINE)
     if not match:
@@ -151,6 +156,8 @@ def GetFirmwareVersions(updater):
         'Unable to read %s from chromeos-firmwareupdater output %r' % (
             label, stdout))
     versions.append(match.group(1))
+  if not has_ec:
+    versions.append(None)
   return tuple(versions)
 
 
@@ -300,7 +307,7 @@ class FinalizeBundle(object):
         self.manifest, ['board', 'bundle_name', 'add_files', 'delete_files',
                         'add_files_to_image', 'delete_files_from_image',
                         'site_tests', 'wipe_option', 'files', 'mini_omaha_url',
-                        'patch_image_args'])
+                        'patch_image_args', 'has_ec'])
 
     self.board = self.manifest['board']
     self.simple_board = self.board.split('_')[-1]
@@ -987,9 +994,11 @@ class FinalizeBundle(object):
         fw_updater_file = firmware_updater
       else:
         fw_updater_file = os.path.join(f, 'usr/sbin/chromeos-firmwareupdate')
-      bios_version, ec_version = GetFirmwareVersions(fw_updater_file)
+      bios_version, ec_version = GetFirmwareVersions(fw_updater_file,
+          self.manifest.get('has_ec', True))
       vitals.append(('Release (FSI) BIOS', bios_version))
-      vitals.append(('Release (FSI) EC', ec_version))
+      if ec_version is not None:
+        vitals.append(('Release (FSI) EC', ec_version))
 
     # If we have any firmware in the tree, add them to the vitals.
     firmwareupdates = []
@@ -997,9 +1006,11 @@ class FinalizeBundle(object):
       path = os.path.join(self.bundle_dir, f)
       if os.path.basename(f) == 'chromeos-firmwareupdate':
         firmwareupdates.append(path)
-        bios_version, ec_version = GetFirmwareVersions(path)
+        bios_version, ec_version = GetFirmwareVersions(path,
+            self.manifest.get('has_ec', True))
         vitals.append(('%s BIOS' % f, bios_version))
-        vitals.append(('%s EC' % f, ec_version))
+        if ec_version is not None:
+          vitals.append(('%s EC' % f, ec_version))
       elif os.path.basename(f) == 'ec.bin':
         # This is tricky, but it's the best we can do for now.  Look for a
         # line like "link_v1.2.34-56789a 2012-10-01 12:34:56 @build70-m2"
