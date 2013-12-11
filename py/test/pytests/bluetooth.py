@@ -251,7 +251,7 @@ class ScanDevicesTask(FactoryTask):
                             max_average_rssi, self._average_rssi_threshold)
       self.Fail('ScanDeviceTask: The largest average RSSI %f of device %s does'
                 ' not meet threshold %f.' % (
-                    max_average_rssi, max_average_rssi_mac,
+                    max_average_rssi, str(max_average_rssi_mac),
                     self._average_rssi_threshold))
     else:
       factory.console.info('The largest average RSSI %f meets threshold %f.',
