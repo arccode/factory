@@ -70,6 +70,7 @@ class PlaySineThread(threading.Thread):
 class AudioLoopTest(unittest.TestCase):
   ARGS = [
     # Common arguments
+    Arg('initial_actions', list, 'List of tuple (card, actions)', []),
     Arg('input_dev', str, 'Input ALSA device', 'hw:0,0'),
     Arg('output_dev', str, 'Output ALSA device', 'hw:0,0'),
     Arg('output_volume', int, 'Output Volume', 10),
@@ -109,6 +110,9 @@ class AudioLoopTest(unittest.TestCase):
     self._out_card = self.GetCardIndex(self._output_device)
 
     self._audio_util = audio_utils.AudioUtil()
+    for card, action in self.args.initial_actions:
+      self._audio_util.ApplyAudioConfig(action, card)
+
     # Setup HTML UI, and event handler
     self._ui = test_ui.UI()
     self._ui.AddEventHandler('start_run_test', self.StartRunTest)

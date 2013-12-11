@@ -208,6 +208,10 @@ class AudioUtil(object):
     if card in self.audio_config:
       if action in self.audio_config[card]:
         self.SetMixerControls(self.audio_config[card][action], card)
+      else:
+        logging.info('Action %s cannot be found in card %s', action, card)
+    else:
+      logging.info('Card %s does not exist', card)
 
   def InitialSetting(self, card='0'):
     self.ApplyAudioConfig('initial', card)
