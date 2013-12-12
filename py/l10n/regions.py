@@ -95,10 +95,42 @@ class Region(object):
 
 _KML = KeyboardMechanicalLayout
 REGIONS_LIST = [
+    Region('au', 'xkb:us::eng', 'Australia/Sydney', 'en-AU', _KML.ANSI,
+           'Australia'),
+    Region('ca.ansi', 'xkb:us::eng', 'America/Toronto', 'en-CA', _KML.ANSI,
+           'Canada (US keyboard)',
+           'Canada with US (ANSI) keyboard; see http://goto/cros-canada'),
+    Region('ca.fr', 'xkb:ca::fra', 'America/Toronto', 'fr-CA', _KML.ISO,
+           'Canada (French keyboard)',
+           ('Device shipping to Canada with a purely Canadian French (ISO) '
+            'keyboard; see http://goto/cros-canada')),
+    Region('ca.hybrid', 'xkb:ca:eng:eng', 'America/Toronto', 'en-CA', _KML.ISO,
+           'Canada (hybrid)',
+           ('Canada with hybrid xkb:ca:eng:eng + xkb:ca::fra keyboard (ISO), '
+            'defaulting to English language and keyboard; see '
+            'http://goto/cros-canada')),
+    Region('ca.multix', 'xkb:ca:multix:fra', 'America/Toronto', 'fr-CA',
+           _KML.ISO, 'Canada (multilingual)',
+           ('Device shipping to Canada with a Canadian Multilingual keyboard; '
+            'see http://goto/cros-canada')),
+    Region('de', 'xkb:de::ger', 'Europe/Berlin', 'de', _KML.ISO, 'Germany'),
+    Region('fi', 'xkb:fi::fin', 'Europe/Helsinki', 'fi', _KML.ISO, 'Finland'),
+    Region('fr', 'xkb:fr::fra', 'Europe/Paris', 'fr', _KML.ISO, 'France'),
+    Region('gb', 'xkb:gb:extd:eng', 'Europe/London', 'en-GB', _KML.ISO, 'UK'),
+    Region('ie', 'xkb:gb:extd:eng', 'Europe/Dublin', 'en-GB', _KML.ISO,
+           'Ireland'),
+    Region('in', 'xkb:us::eng', 'Asia/Calcutta', 'en-US', _KML.ANSI, 'India'),
+    Region('my', 'xkb:us::eng', 'Asia/Kuala_Lumpur', 'ms', _KML.ANSI,
+           'Malaysia'),
+    Region('nl', 'xkb:us:intl:eng', 'Europe/Amsterdam', 'nl', _KML.ANSI,
+           'Netherlands'),
+    Region('nordic', 'xkb:se::swe', 'Europe/Stockholm', 'en-US', _KML.ISO,
+           'Nordics', 'Unified keyboard for Sweden, Norway, and Denmark'),
+    Region('se', 'xkb:se::swe', 'Europe/Stockholm', 'sv', _KML.ISO, 'Sweden'),
+    Region('sg', 'xkb:us::eng', 'Asia/Singapore', 'en-GB', _KML.ANSI,
+           'Singapore'),
     Region('us', 'xkb:us::eng', 'America/Los_Angeles', 'en-US', _KML.ANSI,
            'United States'),
-    Region('gb', 'xkb:gb:extd:eng', 'Europe/London', 'en-GB', _KML.ISO,
-           'UK'),
 ]
 """A list of :py:class:`cros.factory.l10n.regions.Region` objects for
 all **confirmed** regions.  A confirmed region is a region whose
