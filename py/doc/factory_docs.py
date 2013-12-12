@@ -6,7 +6,85 @@
 
 import re
 
+from docutils import nodes
+from sphinx.util.compat import Directive
+
 import factory_common  # pylint: disable=W0611
+from cros.factory.l10n import regions
+
+
+class regionslist(nodes.General, nodes.Element):
+  # pylint: disable=W0232
+  pass
+
+
+class RegionsList(Directive):
+  """List of regions from the regions and regions_overlay modules."""
+  has_content = True
+  required_arguments = 0
+  optional_arguments = 0
+  option_spec = {}
+
+  def run(self):
+    # Create the header row.
+    thead_row = nodes.row('')
+    column_names = (
+      'Description', 'Region Code', 'Keyboard', 'Time Zone', 'Lang.',
+      'Layout', 'Notes')
+    # Make the "Notes" field a bit wider.
+    column_widths = (1, 1, 1, 1, 1, 1, 2)
+    for column in column_names:
+      thead_row += nodes.entry('', nodes.paragraph('', column))
+
+    # Create the body.
+    tbody = nodes.tbody('')
+
+    # Import the regions_overlay if available.
+    try:
+      from cros.factory.l10n import regions_overlay  # pylint: disable=E0611
+      overlay = regions_overlay
+    except ImportError:
+      overlay = None
+
+    # For each of the possible names of an attribute containing the
+    # region information... (we add a '?' to fields for unconfirmed regions,
+    # '??' for incomplete regions)
+    for name, confirmed, suffix in (
+      ('REGIONS_LIST', True, ''),
+      ('UNCONFIRMED_REGIONS_LIST', False, '?'),
+      ('INCOMPLETE_REGIONS_LIST', False, '??')):
+      # For both the public repo and the overlay...
+      for module in filter(None, [regions, overlay]):
+        # For each of the elements in the list...
+        for r in getattr(module, name):
+          # Build a row.
+          row = nodes.row('')
+          # For each of the columns...
+          for value in [r.description,
+                        r.region_code,
+                        r.keyboard,
+                        r.time_zone,
+                        r.language_code,
+                        str(r.keyboard_mechanical_layout),
+                        r.notes or '']:
+            if value:
+              value += suffix
+
+            if confirmed:
+              text = nodes.paragraph('', value)
+            else:
+              # Italic (since it's not confirmed).
+              text = nodes.emphasis('', value)
+            row += nodes.entry('', text)
+          tbody += row
+
+    tgroup = nodes.tgroup('')
+    tgroup += [nodes.colspec(colwidth=x) for x in column_widths]
+    tgroup += nodes.thead('', thead_row)
+    tgroup += tbody
+
+    return [nodes.table('', tgroup, classes=['factory-small'])]
+
 
 def ProcessDocstring(dummy_app, what, dummy_name, dummy_obj,
                      dummy_options, lines):
@@ -49,4 +127,7 @@ def ProcessDocstring(dummy_app, what, dummy_name, dummy_obj,
 
 def setup(app):
   app.connect('autodoc-process-docstring', ProcessDocstring)
+
+  app.add_node(regionslist)
+  app.add_directive('regionslist', RegionsList)
 
