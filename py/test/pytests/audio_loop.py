@@ -70,6 +70,8 @@ class PlaySineThread(threading.Thread):
 class AudioLoopTest(unittest.TestCase):
   ARGS = [
     # Common arguments
+    Arg('freq_threshold', int, 'Acceptable frequency margin',
+        _DEFAULT_FREQ_THRESHOLD_HZ),
     Arg('initial_actions', list, 'List of tuple (card, actions)', []),
     Arg('input_dev', str, 'Input ALSA device', 'hw:0,0'),
     Arg('output_dev', str, 'Output ALSA device', 'hw:0,0'),
@@ -99,6 +101,7 @@ class AudioLoopTest(unittest.TestCase):
     self._sine_duration_secs = self.args.sine_duration_secs
     self._audiofun = self.args.enable_audiofun
     self._audiofun_duration_secs = self.args.audiofun_duration_secs
+    self._freq_threshold = self.args.freq_threshold
 
     self._freq = _DEFAULT_FREQ_HZ
     # Used in RunAudioFunTest() or AudioLoopBack() for test result.
@@ -252,7 +255,7 @@ class AudioLoopTest(unittest.TestCase):
   def CheckRecordedAudio(self, sox_output):
     freq = audio_utils.GetRoughFreq(sox_output)
     if freq is None or (
-        abs(freq - self._freq) > _DEFAULT_FREQ_THRESHOLD_HZ):
+        abs(freq - self._freq) > self._freq_threshold):
       self._test_result = False
       self._test_message = 'Test Fail at frequency %r' % freq
       factory.console.info(self._test_message)
