@@ -146,17 +146,14 @@ class AudioLoopTest(unittest.TestCase):
     Stop play tone
     Stop capturing data
     """
-    settings = {'left': self._audio_util.MuteLeftSpeaker,
-                'right': self._audio_util.MuteRightSpeaker}
-    for channel, func_ptr in settings.items():
+    for channel in xrange(audio_utils.DEFAULT_NUM_CHANNELS):
       test_result = None
-      func_ptr(self._out_card)
-
       factory.console.info('Run audiofuntest from %r to %r' % (
           self._output_device, self._input_device))
       process = Spawn([audio_utils.AUDIOFUNTEST_PATH,
           '-r', '48000', '-i', self._input_device, '-o', self._output_device,
-          '-l', '%d' % self._audiofun_duration_secs], stderr=PIPE)
+          '-l', '%d' % self._audiofun_duration_secs, '-a', '%d' % channel],
+          stderr=PIPE)
       last_success_rate = None
 
       while True:
@@ -173,9 +170,6 @@ class AudioLoopTest(unittest.TestCase):
           test_result = (last_success_rate > _AUDIOFUNTEST_THRESHOLD)
           break
 
-      # Unmute channels
-      self._audio_util.EnableSpeaker(self._out_card)
-
       # Show instant message and wait for a while
       if not test_result:
         self._test_result = False
@@ -185,10 +179,11 @@ class AudioLoopTest(unittest.TestCase):
           self._test_message = (
               'For channel %s, The success rate is %.1f, too low!' %
               (channel, last_success_rate))
-          factory.console.log(self._test_message)
+          factory.console.info(self._test_message)
         else:
           self._test_message = 'audiofuntest terminated unexpectedly'
-          factory.console.log(self._test_message)
+          factory.console.info(self._test_message)
+      time.sleep(0.5)
     self.EndTest()
 
   def TestLoopbackChannel(self, output_device, noise_file_name, record_command,
@@ -268,11 +263,11 @@ class AudioLoopTest(unittest.TestCase):
 
   def StartRunTest(self, event): # pylint: disable=W0613
     if self._audiofun:
+      self._audio_util.DisableHeadphone(self._out_card)
+      self._audio_util.DisableExtmic(self._in_card)
       self._audio_util.EnableSpeaker(self._out_card)
       self._audio_util.EnableDmic(self._in_card)
       self._audio_util.SetSpeakerVolume(self._output_volume, self._out_card)
-      self._audio_util.DisableHeadphone(self._out_card)
-      self._audio_util.DisableExtmic(self._in_card)
       self.AudioFunTest()
     else:
       self._audio_util.DisableSpeaker(self._out_card)
