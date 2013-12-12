@@ -21,30 +21,64 @@ KeyboardMechanicalLayout = Enum(['ANSI', 'ISO', 'JIS'])
 
 
 class Region(object):
-  """Comprehensive, standard locale configuration per country/region.
+  """Comprehensive, standard locale configuration per country/region."""
 
-  Properties:
-    code: The lowercase alpha-2 country/region code (from ISO
-      3166-1). Note that this is "gb", not "uk", for the United
-      Kingdom. If in the future we need to handle groups of countries,
-      or country subdivisions (e.g., sub-country SKUs), we could
-      loosen the requirement that this is strictly an alpha-2 code
-      (e.g., add "ch.fr-CH" for a Swiss French configuration, or
-      "xx-south-america" for a South American configuration).
-    keyboard: The standard keyboard layout (e.g., 'xkb:us:intl:eng'); see
-      http://goo.gl/3aJnl and http://goo.gl/xWNrUP.
-    time_zone: The standard time zone (e.g., 'America/Los_Angeles'); see
-      http://goo.gl/WSVUeE.
-    language code: The standard language code (e.g., 'en-US'); see
-      http://goo.gl/kVkht.
-    keyboard_mechanical_layout: The keyboard's mechanical layout (ANSI
-      [US-like], ISO [UK-like], or JIS).
+  # pylint gets confused by some of the docstrings.
+  # pylint: disable=C0322
+
+  region_code = None
+  """A unique identifier for the region.  This may be a lower-case
+  `ISO 3166-1 alpha-2 code
+  <http://en.wikipedia.org/wiki/ISO_3166-1_alpha-2>`_ (e.g., ``us``),
+  a variant within an alpha-2 entity (e.g., ``ca.fr``), or an
+  identifier for a collection of countries or entities (e.g.,
+  ``latam-es-419`` or ``nordic``).  See :ref:`region-codes`.
+
+  Note that ``uk`` is not a valid identifier; ``gb`` is used as it is
+  the real alpha-2 code for the UK.
   """
+
+  keyboard = None
+  """An XKB keyboard layout identifier (e.g., ``xkb:us:intl:eng``);
+  see `input_method_util.cc <http://goo.gl/3aJnl>`_ and
+  `input_methods.txt <http://goo.gl/xWNrUP>`_ for supported keyboards.
+  Note that the keyboard must be whitelisted for login, i.e.,
+  the respective line in `input_methods.txt <http://goo.gl/xWNrUP>`_ must
+  contain the ``login`` keyword.
+
+  This is used to set the VPD ``keyboard_layout`` value."""
+
+  time_zone = None
+  """A `tz database time zone
+  <http://en.wikipedia.org/wiki/List_of_tz_database_time_zones>`_
+  identifier (e.g., ``America/Los_Angeles``). See
+  `timezone_settings.cc <http://goo.gl/WSVUeE>`_ for supported time
+  zones.
+
+  This is used to set the VPD ``initial_timezone`` value."""
+
+  language_code = None
+  """The default language code (e.g., ``en-US``); see
+  `l10n_util.cc <http://goo.gl/kVkht>`_ for supported languages.
+
+  This is used to set the VPD ``initial_locale`` language."""
+
+  keyboard_mechanical_layout = None
+  """The keyboard's mechanical layout (``ANSI`` [US-like], ``ISO``
+  [UK-like], or ``JIS``)."""
+
+  description = None
+  """A human-readable description of the region.
+  This defaults to :py:attr:`region_code` if not set."""
+
+  notes = None
+  """Notes about the region.  This may be None."""
+
   FIELDS = ['region_code', 'keyboard', 'time_zone', 'language_code',
             'keyboard_mechanical_layout']
 
   def __init__(self, region_code, keyboard, time_zone, language_code,
-               keyboard_mechanical_layout):
+               keyboard_mechanical_layout, description=None, notes=None):
     # Quick check: should be 'gb', not 'uk'
     assert region_code != 'uk'
 
@@ -53,45 +87,62 @@ class Region(object):
     self.time_zone = time_zone
     self.language_code = language_code
     self.keyboard_mechanical_layout = keyboard_mechanical_layout
+    self.description = description or region_code
+    self.notes = notes
 
+  def __repr__(self):
+    return 'Region(%s)' % (', '.join([getattr(self, x) for x in self.FIELDS]))
 
 _KML = KeyboardMechanicalLayout
 REGIONS_LIST = [
-    Region('us', 'xkb:us::eng',     'America/Los_Angeles', 'en-US', _KML.ANSI),
-    Region('gb', 'xkb:gb:extd:eng', 'Europe/London',       'en-GB', _KML.ISO),
+    Region('us', 'xkb:us::eng', 'America/Los_Angeles', 'en-US', _KML.ANSI,
+           'United States'),
+    Region('gb', 'xkb:gb:extd:eng', 'Europe/London', 'en-GB', _KML.ISO,
+           'UK'),
 ]
+"""A list of :py:class:`cros.factory.l10n.regions.Region` objects for
+all **confirmed** regions.  A confirmed region is a region whose
+properties are known to be correct and may be used to launch a device."""
 
-# These are believed to be correct but unconfirmed, and all fields
-# should be verified (and the row moved into REGIONS_LIST) before
-# launch.  See <http://goto/vpdsettings>.
-#
-# Note that currently non-Latin keyboards must use underlying Latin
-# keyboard for VPD.  (This assumption should be revisited when moving
-# items from UNCONFIRMED_REGIONS to REGIONS.)  This is currently being
-# discussed on <http://crbug.com/325389>.
-#
-# Note that some timezones may be missing from timezone_settings.cc
-# (see http://crosbug.com/p/23902).
+
 UNCONFIRMED_REGIONS_LIST = []
+"""A list of :py:class:`cros.factory.l10n.regions.Region` objects for
+**unconfirmed** regions. These are believed to be correct but
+unconfirmed, and all fields should be verified (and the row moved into
+:py:data:`cros.factory.l10n.regions.Region.REGIONS_LIST`) before
+launch. See <http://goto/vpdsettings>.
 
-# The following regions may contain incorrect information, and all
-# fields must be reviewed before launch.  See <http://goto/vpdsettings>.
+Currently, non-Latin keyboards must use an underlying Latin keyboard
+for VPD. (This assumption should be revisited when moving items to
+:py:data:`cros.factory.l10n.regions.Region.REGIONS_LIST`.)  This is
+currently being discussed on <http://crbug.com/325389>.
+
+Some timezones may be missing from ``timezone_settings.cc`` (see
+http://crosbug.com/p/23902).  This must be rectified before moving
+items to :py:data:`cros.factory.l10n.regions.Region.REGIONS_LIST`.
+"""
+
 INCOMPLETE_REGIONS_LIST = []
+"""A list of :py:class:`cros.factory.l10n.regions.Region` objects for
+**incomplete** regions.  These may contain incorrect information, and all
+fields must be reviewed before launch. See http://goto/vpdsettings.
+"""
 
 
 def BuildRegionsDict(include_all=False):
-  """Builds a dictionary of region code to
-  :py:class:py.l10n.regions.Region: object.
+  """Builds a dictionary mapping region code to
+  :py:class:`py.l10n.regions.Region` object.
 
   The regions include:
 
-  - :py:data:`cros.factory.l10n.regions.REGIONS_LIST`
-  - :py:data:`cros.factory.l10n.regions_overlay.REGIONS_LIST`
-  - Only if ``include_all`` is true:
-    - :py:data:`cros.factory.l10n.regions.UNCONFIRMED_REGIONS_LIST`
-    - :py:data:`cros.factory.l10n.regions_overlay.UNCONFIRMED_REGIONS_LIST`
-    - :py:data:`cros.factory.l10n.regions.INCOMPLETE_REGIONS_LIST`
-    - :py:data:`cros.factory.l10n.regions_overlay.INCOMPLETE_REGIONS_LIST`
+  * :py:data:`cros.factory.l10n.regions.REGIONS_LIST`
+  * :py:data:`cros.factory.l10n.regions_overlay.REGIONS_LIST`
+  * Only if ``include_all`` is true:
+
+    * :py:data:`cros.factory.l10n.regions.UNCONFIRMED_REGIONS_LIST`
+    * :py:data:`cros.factory.l10n.regions_overlay.UNCONFIRMED_REGIONS_LIST`
+    * :py:data:`cros.factory.l10n.regions.INCOMPLETE_REGIONS_LIST`
+    * :py:data:`cros.factory.l10n.regions_overlay.INCOMPLETE_REGIONS_LIST`
 
   A region may only appear in one of the above lists, or this function
   will (deliberately) fail.
