@@ -55,10 +55,10 @@ class AudioLoopTest(unittest.TestCase):
   ARGS = [
     # Common arguments
     Arg('init_commands', list, 'Setup buzzer commands', []),
-    Arg('start_command', str, 'Start beep command', None),
-    Arg('stop_command', str, 'Stop beep command', None),
-    Arg('beep_duration', float, 'How long for one beep', 0.3),
-    Arg('beep_interval', float, 'How long between beeps', 0.5),
+    Arg('start_command', list, 'Start beep command', []),
+    Arg('stop_command', list, 'Stop beep command', []),
+    Arg('beep_duration_secs', float, 'How long for one beep', 0.3),
+    Arg('mute_duration_secs', float, 'Mute duration between two beeps', 0.5),
   ]
 
   def setUp(self):
@@ -75,18 +75,18 @@ class AudioLoopTest(unittest.TestCase):
 
   def InitialBuzzer(self, commands):
     for command in commands:
-      Spawn(command.split(' '), check_call=True)
+      Spawn(command, check_call=True)
 
   def BeepOne(self, start, stop):
-    Spawn(start.split(' '), check_call=True)
-    time.sleep(self.args.beep_duration)
-    Spawn(stop.split(' '), check_call=True)
+    Spawn(start, check_call=True)
+    time.sleep(self.args.beep_duration_secs)
+    Spawn(stop, check_call=True)
 
-  def StartTest(self, event): # pylint: disable=W0613
+  def StartTest(self, event):  # pylint: disable=W0613
     self.ui.SetHTML(_MSG_BUZZER_TEST, id='buzzer_title')
-    for i in xrange(self._pass_digit): # pylint: disable=W0612
+    for i in xrange(self._pass_digit):  # pylint: disable=W0612
       self.BeepOne(self.args.start_command, self.args.stop_command)
-      time.sleep(self.args.beep_interval)
+      time.sleep(self.args.mute_duration_secs)
 
   def CheckResult(self, event):
     if event.data != self._pass_digit:
