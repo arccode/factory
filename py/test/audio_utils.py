@@ -399,3 +399,88 @@ class AudioUtil(object):
                 self.audio_config[card]['set_headphone_volume'], card)
             break
 
+class CRAS(object):
+  """Class used to access CRAS information by
+  executing commnad cras_test_clinet.
+  """
+  OUTPUT = 0
+  INPUT = 1
+
+  class Node(object):
+    """Class to represent a input or output node in CRAS."""
+    def __init__(self, node_id, plugged, name):
+      self.node_id = node_id
+      self.plugged = plugged
+      self.name = name
+
+    def __str__(self):
+      return 'Cras node %s, id=%s, plugged=%s' % (self.name, self.node_id,
+                                                  self.plugged)
+
+  def __init__(self):
+    self.CRAS_TEST_CLIENT = 'cras_test_client'
+    self._RE_INPUT_NODES_SECTION = re.compile('Input Nodes:.*')
+    self._RE_OUTPUT_NOTES_SECTION = re.compile('Output Nodes:.*')
+    self._RE_END_SECTION = re.compile('^[A-Z].*')
+    self._RE_IO_NODE_LINE = re.compile('\t(\d+:\d+).*')
+
+    self.input_nodes = []
+    self.output_nodes = []
+
+  def DumpServerInfo(self):
+    """Gets the server info of CRAS"""
+    command = [self.CRAS_TEST_CLIENT, '--dump_server_info']
+    return Spawn(command, read_stdout=True).stdout_data
+
+  def UpdateIONodes(self):
+    """Updates the input and output nodes of CRAS"""
+    server_info = self.DumpServerInfo()
+    node_section = 0
+    self.input_nodes = []
+    self.output_nodes = []
+
+    for line in server_info.split('\n'):
+      if self._RE_END_SECTION.match(line):
+        node_section = 0
+      if self._RE_INPUT_NODES_SECTION.match(line):
+        node_section = 1
+      if self._RE_OUTPUT_NOTES_SECTION.match(line):
+        node_section = 2
+
+      if self._RE_IO_NODE_LINE.match(line):
+        # ID Prio Vol Plugged Time Type Name
+        args = line.split()
+        if node_section == 1:
+          self.input_nodes.append(self.Node(args[0], args[3],
+                                            ' '.join(args[5:])))
+        elif node_section == 2:
+          self.output_nodes.append(self.Node(args[0], args[3],
+                                             ' '.join(args[5:])))
+
+  def _SelectNode(self, node, direction):
+    """Selects node.
+
+    Args:
+      node: The node to select to
+      direction: Input or output of the node
+    """
+    command = [self.CRAS_TEST_CLIENT,
+               '--select_input' if direction == CRAS.INPUT
+                                else '--select_output',
+               node.node_id]
+    Spawn(command, call=True)
+
+  def SelectNodeById(self, node_id):
+    """Selects node by given id.
+
+    Args:
+      node_id: The id of input/output node
+    """
+    for node in self.input_nodes:
+      if node_id == node.node_id:
+        self._SelectNode(node, CRAS.INPUT)
+        return
+    for node in self.output_nodes:
+      if node_id == node.node_id:
+        self._SelectNode(node, CRAS.OUTPUT)
+        return
