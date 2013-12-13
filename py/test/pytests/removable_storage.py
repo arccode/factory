@@ -189,8 +189,6 @@ class RemovableStorageTest(unittest.TestCase):
     if device.device_node.find(_UDEV_MMCBLK_PATH) == 0:
       return True
     attr_str = self.GetAttrs(device, set(_CARD_READER_ATTRS)).lower()
-    if 'usb' in attr_str:
-      return False
     for desc in _CARD_READER_DESCS:
       if desc in attr_str:
         return True
