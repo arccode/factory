@@ -372,3 +372,40 @@ function fail() {
 function pass() {
   test.sendTestEvent('pass', {});
 }
+
+/**
+ * Selects to certain cras node.
+ */
+function selectCrasNode(node_div) {
+  test.sendTestEvent('select_cras_node', {'id': node_div.id});
+}
+
+/**
+ * Shows cras nodes on UI.
+ */
+function showCrasNodes(dir, nodes_json) {
+  console.info(nodes_json);
+  nodes = eval(nodes_json);
+
+  var panel = document.getElementById(dir + '-nodes');
+  panel.innerHTML = '';
+
+  for (var i = 0; i < nodes.length; i++) {
+    var div = document.createElement('div');
+    div.id = nodes[i]['node_id'];
+    div.innerText = nodes[i]['name'];
+    panel.appendChild(div);
+  }
+
+  for (var i = 0; i < nodes.length; i++) {
+    var n = document.getElementById(nodes[i]['node_id']);
+    n.className = 'cras-node';
+    if (nodes[i]['name'].indexOf('*') == -1) {
+      n.onclick = function() {
+        selectCrasNode(this);
+      }
+    } else {
+      n.style.fontWeight = 'bold';
+    }
+  }
+}
