@@ -4,7 +4,7 @@
   <body onload="init()">
     <table>
     <tr>
-      <td>
+      <td colspan="2">
         <div id="tone_gen" class="ctl-panel">
           <h2>
             <span class="goofy-label-en">Tone generator</span>
@@ -61,6 +61,35 @@
       </td>
     </tr>
     <tr>
+      <td>
+        <div id="recorder" class="ctl-panel">
+          <h2>
+            <span class="goofy-label-en">Manual record</span>
+            <span class="goofy-label-zh">手动录音</span>
+          </h2>
+          <button id="record_btn" class="btn-off" onclick="recordButtonClicked()">
+            <div class="goofy-label-en">
+              <span class="btn-on-text">Stop record</span>
+              <span class="btn-off-text">Start record</span>
+            </div>
+            <div class="goofy-label-zh">
+              <span class="btn-on-text">停止录音</span>
+              <span class="btn-off-text">开始录音</span>
+            </div>
+          </button>
+          <button id="record_playback_btn" class="btn-off"
+              onclick="recordPlaybackButtonClicked()">
+            <div class="goofy-label-en">
+              <span class="btn-on-text">Stop playback</span>
+              <span class="btn-off-text">Start playback</span>
+            </div>
+            <div class="goofy-label-zh">
+              <span class="btn-on-text">停止放音</span>
+              <span class="btn-off-text">开始放音</span>
+            </div>
+          </button>
+        </div>
+      </td>
       <td>
         <div id="loopback" class="ctl-panel">
           <h2>

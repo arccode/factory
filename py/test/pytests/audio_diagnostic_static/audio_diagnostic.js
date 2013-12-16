@@ -127,6 +127,101 @@ loopback.stop = function() {
   this.started = false;
 }
 
+/* Recorder for manual record and playback */
+var recorder = {};
+
+
+/**
+ * Initializes recorder.
+ * @param {Object} stream the input media stream
+ */
+recorder.init = function(stream) {
+  this.audioContext = new webkitAudioContext();
+  this.src = this.audioContext.createMediaStreamSource(stream);
+  this.processor = this.audioContext.createJavaScriptNode(1024, 1, 1);
+  this.buffers = [];
+  this.recording = false;
+  this.playing = false;
+  this.play_buf_index = 0;
+  this.play_buf_offset = 0;
+
+  var self = this;
+  this.processor.onaudioprocess = function(e) {
+    self.process(e);
+  };
+
+  this.src.connect(this.processor);
+  this.processor.connect(this.audioContext.destination);
+}
+
+/**
+ * Processes data to buffer when asked for recording, or plays the
+ * stored data. This is the main callback of audio process event.
+ * @param {Object} e the audio process event.
+ */
+recorder.process = function(e) {
+  if (this.recording) {
+    var in_buf = e.inputBuffer.getChannelData(0);
+    var tmp = new Float32Array(in_buf.length);
+    tmp.set(in_buf, 0);
+    this.buffers.push(tmp);
+  } else if (this.playing) {
+    var out_buf = e.outputBuffer.getChannelData(0);
+    var play_buf = this.buffers[this.play_buf_index];
+
+    for (var i = 0; i < out_buf.length; i++) {
+      out_buf[i] = play_buf[this.play_buf_offset++];
+      if (this.play_buf_offset >= play_buf.length) {
+        this.play_buf_index++;
+        this.play_buf_offset = 0;
+        if (this.play_buf_index >= this.buffers.length) {
+          this.play_buf_index = 0;
+          this.play(false);
+          document.getElementById('record_playback_btn').className ='btn-off';
+          break;
+        } else {
+          play_buf = this.buffers[this.play_buf_index];
+        }
+      }
+    }
+  }
+
+  // Clean up buffer when not playing, to prevent short loop of audio.
+  if (!this.playing) {
+    var out_buf = e.outputBuffer.getChannelData(0);
+    for (var i = 0; i < out_buf.length; i++) {
+      out_buf[i] = 0;
+    }
+  }
+}
+
+/**
+ * Configrues the recording function on or off.
+ * @param {boolean} on true to start recording, off otherwise.
+ */
+recorder.record = function(on) {
+  if (on) {
+    this.buffers = [];
+    this.recording = true;
+  } else {
+    this.recording = false;
+  }
+}
+
+/**
+ * Configrues the playback function on or off.
+ * @param {boolean} on true to start playback, off otherwise.
+ */
+recorder.play = function(on) {
+  this.play_buf_index = 0;
+  this.play_buf_offset = 0;
+  if (on) {
+    this.playing = true;
+  } else {
+    this.playing = false;
+  }
+}
+
 /* Callback functions from UI */
 
 /**
@@ -150,6 +245,7 @@ function init() {
  */
 function gotStream(stream) {
   loopback.init(stream);
+  recorder.init(stream);
 }
 
 /**
@@ -193,6 +289,48 @@ function loopbackButtonClicked() {
     btn.className = 'btn-on';
   } else {
     loopback.stop();
+    btn.className = 'btn-off';
+  }
+}
+
+/**
+ * Handles the event when record button is clicked.
+ */
+function recordButtonClicked() {
+  var btn;
+
+  if (recorder.playing) {
+    recorder.play(false);
+    btn = document.getElementById('record_playback_btn');
+    btn.className = 'btn-off';
+  }
+  btn = document.getElementById('record_btn');
+  if (!recorder.recording) {
+    recorder.record(true);
+    btn.className = 'btn-on';
+  } else {
+    recorder.record(false);
+    btn.className = 'btn-off';
+  }
+}
+
+/**
+ * Handles the event when playback button is clicked.
+ */
+function recordPlaybackButtonClicked() {
+  var btn;
+
+  if (recorder.recording) {
+    recorder.record(false);
+    btn = document.getElementById('record_btn');
+    btn.className = 'btn-off';
+  }
+  btn = document.getElementById('record_playback_btn');
+  if (!recorder.playing) {
+    recorder.play(true);
+    btn.className = 'btn-on';
+  } else {
+    recorder.play(false);
     btn.className = 'btn-off';
   }
 }
