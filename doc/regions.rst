@@ -183,6 +183,10 @@ the following attributes:
 * ``cros.factory.l10n.regions_overlay.UNCONFIRMED_REGIONS_LIST``
 * ``cros.factory.l10n.regions_overlay.INCOMPLETE_REGIONS_LIST``
 
+There is a reference list of "private" regions, suitable for addition
+to board overlays, in the ``factory-private`` repository
+(http://goto/private-regions).
+
 .. rubric:: Footnotes
 
 .. [#l10n] "l10n" is a common abbreviation for "localization": "l",
