@@ -214,13 +214,19 @@ test:
 # Trick to make sure that overlays are rebuilt every time overlay-xxx is run.
 .PHONY: .phony
 
-# Builds an overlay of the given board.
+# Builds an overlay of the given board.  Use "private" to overlay
+# factory-private (e.g., to build private API docs).
 overlay-%: .phony
 	rm -rf $@
 	mkdir $@
 	rsync -a --exclude build --exclude overlay-\* ./ $@/
-	rsync -a ../../private-overlays/overlay*-$(subst overlay-,,$@)-private/\
-chromeos-base/chromeos-factory-board/files/ $@/
+	if [ "$@" = overlay-private ]; then \
+	  rsync -a ../factory-private/ $@/; \
+	else \
+	  rsync -a ../../private-overlays/\
+overlay*-$(subst overlay-,,$@)-private/chromeos-base/chromeos-factory-board/\
+files/ $@/; \
+	fi
 
 # Tests the overlay of the given board.
 test-overlay-%: overlay-%

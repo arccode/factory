@@ -102,17 +102,18 @@ REGIONS_LIST = [
            'Canada with US (ANSI) keyboard; see http://goto/cros-canada'),
     Region('ca.fr', 'xkb:ca::fra', 'America/Toronto', 'fr-CA', _KML.ISO,
            'Canada (French keyboard)',
-           ('Device shipping to Canada with a purely Canadian French (ISO) '
-            'keyboard; see http://goto/cros-canada')),
+           ('Canadian French (ISO) keyboard. The most common configuration for '
+            'Canadian French SKUs.  See http://goto/cros-canada')),
     Region('ca.hybrid', 'xkb:ca:eng:eng', 'America/Toronto', 'en-CA', _KML.ISO,
            'Canada (hybrid)',
            ('Canada with hybrid xkb:ca:eng:eng + xkb:ca::fra keyboard (ISO), '
-            'defaulting to English language and keyboard; see '
+            'defaulting to English language and keyboard.  Used only if there '
+            'needs to be a single SKU for all of Canada.  See '
             'http://goto/cros-canada')),
     Region('ca.multix', 'xkb:ca:multix:fra', 'America/Toronto', 'fr-CA',
            _KML.ISO, 'Canada (multilingual)',
-           ('Device shipping to Canada with a Canadian Multilingual keyboard; '
-            'see http://goto/cros-canada')),
+           ("Canadian Multilingual keyboard; you probably don't want this. See "
+            "http://goto/cros-canada")),
     Region('de', 'xkb:de::ger', 'Europe/Berlin', 'de', _KML.ISO, 'Germany'),
     Region('fi', 'xkb:fi::fin', 'Europe/Helsinki', 'fi', _KML.ISO, 'Finland'),
     Region('fr', 'xkb:fr::fra', 'Europe/Paris', 'fr', _KML.ISO, 'France'),
@@ -125,8 +126,15 @@ REGIONS_LIST = [
     Region('nl', 'xkb:us:intl:eng', 'Europe/Amsterdam', 'nl', _KML.ANSI,
            'Netherlands'),
     Region('nordic', 'xkb:se::swe', 'Europe/Stockholm', 'en-US', _KML.ISO,
-           'Nordics', 'Unified keyboard for Sweden, Norway, and Denmark'),
-    Region('se', 'xkb:se::swe', 'Europe/Stockholm', 'sv', _KML.ISO, 'Sweden'),
+           'Nordics',
+           ('Unified SKU for Sweden, Norway, and Denmark.  This defaults '
+            'to Swedish keyboard layout, but starts with US English language '
+            'for neutrality.  Use if there is a single combined SKU for Nordic '
+            'countries.')),
+    Region('se', 'xkb:se::swe', 'Europe/Stockholm', 'sv', _KML.ISO, 'Sweden',
+           ("Use this if there separate SKUs for Nordic countries (Sweden, "
+            "Norway, and Denmark), or the device is only shipping to Sweden. "
+            "If there is a single unified SKU, use 'nordic' instead.")),
     Region('sg', 'xkb:us::eng', 'Asia/Singapore', 'en-GB', _KML.ANSI,
            'Singapore'),
     Region('us', 'xkb:us::eng', 'America/Los_Angeles', 'en-US', _KML.ANSI,
