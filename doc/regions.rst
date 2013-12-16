@@ -67,6 +67,11 @@ regions (not ready for use in shipping products) are italicized and
 marked with question marks; if you need to use one of these please see
 http://goto/vpdsettings for review.
 
+Regions not yet in the public repository are marked with asterisks (\*).
+These are in the `private repository <http://goto/private-regions>`_,
+and to use one of these you will need to create a
+``regions_overlay.py`` in your board overlay.
+
 For more information on what each field means and what the valid
 values are, see :py:class:`cros.factory.l10n.regions.Region`.
 
