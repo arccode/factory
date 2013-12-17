@@ -87,7 +87,6 @@ start_factory() {
     start ui
   fi
 
-  cd "$FACTORY"/../autotest
   "$FACTORY/bin/goofy" $GOOFY_ARGS >>"$FACTORY_LOG_FILE" 2>&1
 }
 
