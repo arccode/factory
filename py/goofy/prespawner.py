@@ -20,7 +20,7 @@ from cros.factory.utils.process_utils import Spawn
 
 
 NUM_PRESPAWNED_PROCESSES = 1
-PRESPAWNER_PATH = '/usr/local/autotest/client/bin/prespawner.py'
+PRESPAWNER_PATH = '/usr/local/autotest/bin/prespawner.py'
 
 
 class Prespawner():
