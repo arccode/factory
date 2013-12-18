@@ -1,103 +1,85 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
-    <style type="text/css">
-      .btn-on-text {
-        display: none;
-      }
-      .btn-off-text {
-        display: none;
-      }
-      .btn-on .btn-on-text {
-        display: block;
-      }
-      .btn-off .btn-off-text {
-        display: block;
-      }
-      .freq-max-label {
-        display: none;
-      }
-      .freq-max-edit {
-        display: none;
-      }
-      .edit-on .freq-max-edit {
-        display: inline;
-      }
-      .edit-off .freq-max-label {
-        display: inline;
-      }
-    </style>
-    <script src="audio_diagnostic.js" type="text/javascript">
-    </script>
-  </head>
+  <link rel="stylesheet" type="text/css" href="audio_diagnostic.css">
   <body onload="init()">
-    <div id="tone_gen" style="width: 500px; height: 100px">
-      <h2>
-        <span class="goofy-label-en">Tone generator</span>
-        <span class="goofy-label-zh">音频信号发生器</span>
-      </h2>
-      <button id="tone_btn" class="btn-off" onclick="toneButtonClicked()">
-        <div class="goofy-label-en">
-          <span class="btn-on-text">Tone off</span>
-          <span class="btn-off-text">Tone On</span>
+    <table>
+    <tr>
+      <td>
+        <div id="tone_gen" class="ctl-panel">
+          <h2>
+            <span class="goofy-label-en">Tone generator</span>
+            <span class="goofy-label-zh">音频信号发生器</span>
+          </h2>
+          <button id="tone_btn" class="btn-off" onclick="toneButtonClicked()">
+            <div class="goofy-label-en">
+              <span class="btn-on-text">Tone off</span>
+              <span class="btn-off-text">Tone On</span>
+            </div>
+            <div class="goofy-label-zh">
+              <span class="btn-on-text">关闭音频</span>
+              <span class="btn-off-text">播放音频</span>
+            </div>
+          </button>
+          <select id="tone_type" onchange="toneTypeChanged()">
+            <option value="sine">Sine / 弦波</option>
+            <option value="square">Square / 方波</option>
+            <option value="triangle">Triangle / 三角波</option>
+          </select>
+          <div style="width: 350px">
+            <input id="freq_bar" type="range" min="1" max="500"
+              style="width: 350px" onchange="freqBarChanged(this.value)"/>
+            <div id='freq' align="center" class='edit-off'>
+              <span id="freq_curr">ff</span>
+              /
+              <span id="freq_max_label" class='freq-max-label' onclick="editMax(true)">mm</span>
+              <input id="freq_max_edit" class='freq-max-edit' onblur="editMax(false)"
+                  onkeydown="if (event.keyCode == 13) editMax(false);"/>
+              Hz
+            </div>
+          </div>
         </div>
-        <div class="goofy-label-zh">
-          <span class="btn-on-text">关闭音频</span>
-          <span class="btn-off-text">播放音频</span>
+      </td>
+      <td rowspan="2">
+        <div id="test_result" class="ctl-panel">
+          <button onclick="test.sendTestEvent('pass')">
+            <div class="goofy-label-en">
+              Pass
+            </div>
+            <div class="goofy-label-zh">
+              通过
+            </div>
+          </button>
+          <button onclick="test.sendTestEvent('fail')">
+            <div class="goofy-label-en">
+              Fail
+            </div>
+            <div class="goofy-label-zh">
+              失败
+            </div>
+          </button>
         </div>
-      </button>
-      <select id="tone_type" onchange="toneTypeChanged()">
-        <option value="sine">Sine / 弦波</option>
-        <option value="square">Square / 方波</option>
-        <option value="triangle">Triangle / 三角波</option>
-      </select>
-      <div style="width: 350px">
-        <input id="freq_bar" type="range" min="1" max="500"
-          style="width: 350px" onchange="freqBarChanged(this.value)"/>
-        <div id='freq' align="center" class='edit-off'>
-          <span id="freq_curr">ff</span>
-          /
-          <span id="freq_max_label" class='freq-max-label' onclick="editMax(true)">mm</span>
-          <input id="freq_max_edit" class='freq-max-edit' onblur="editMax(false)"
-	      onkeydown="if (event.keyCode == 13) editMax(false);"/>
-          Hz
+      </td>
+    </tr>
+    <tr>
+      <td>
+        <div id="loopback" class="ctl-panel">
+          <h2>
+            <span class="goofy-label-en">Audio loopback</span>
+            <span class="goofy-label-zh">音频回放</span>
+          </h2>
+          <button id="loopback_btn" class="btn-off" onclick="loopbackButtonClicked()">
+            <div class="goofy-label-en">
+              <span class="btn-on-text">Loopback off</span>
+              <span class="btn-off-text">Loopback On</span>
+            </div>
+            <div class="goofy-label-zh">
+              <span class="btn-on-text">停止回放</span>
+              <span class="btn-off-text">开始回放</span>
+            </div>
+          </button>
         </div>
-      </div>
-    </div>
-    <div id="loopback" style="width: 500px; height: 100px">
-      <h2>
-        <span class="goofy-label-en">Audio loopback</span>
-        <span class="goofy-label-zh">音频回放</span>
-      </h2>
-      <button id="loopback_btn" class="btn-off" onclick="loopbackButtonClicked()">
-        <div class="goofy-label-en">
-          <span class="btn-on-text">Loopback off</span>
-          <span class="btn-off-text">Loopback On</span>
-        </div>
-        <div class="goofy-label-zh">
-          <span class="btn-on-text">停止回放</span>
-          <span class="btn-off-text">开始回放</span>
-        </div>
-      </button>
-    </div>
-    <div id="test_result">
-      <button onclick="test.sendTestEvent('pass')">
-        <div class="goofy-label-en">
-          Pass
-        </div>
-        <div class="goofy-label-zh">
-          通过
-        </div>
-      </button>
-      <button onclick="test.sendTestEvent('fail')">
-        <div class="goofy-label-en">
-          Fail
-        </div>
-        <div class="goofy-label-zh">
-          失败
-        </div>
-      </button>
-    </div>
+      </td>
+    </tr>
+    </table>
   </body>
 </html>

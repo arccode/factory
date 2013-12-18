@@ -1,0 +1,37 @@
+/*
+ * Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
+ */
+
+.btn-on-text {
+  display: none;
+}
+.btn-off-text {
+  display: none;
+}
+.btn-on .btn-on-text {
+  display: block;
+}
+.btn-off .btn-off-text {
+  display: block;
+}
+.freq-max-label {
+  display: none;
+}
+.freq-max-edit {
+  display: none;
+}
+.edit-on .freq-max-edit {
+  display: inline;
+}
+.edit-off .freq-max-label {
+  display: inline;
+}
+.ctl-panel {
+  padding: 1em;
+}
+.ctl-panel h2 {
+  margin: 0.5em;
+  text-align: center;
+}
