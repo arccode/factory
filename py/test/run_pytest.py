@@ -33,8 +33,12 @@ def RunPyTest(name, args):
     True if the test passed.
   '''
   with file_utils.UnopenedTemporaryFile(prefix='results') as results:
-    info = invocation.PyTestInfo(None, None, name, args, results)
-    invocation.run_pytest(info)
+    # Set test case id to PyTestInfo.NO_SUBPROCESS to directly invoke the
+    # pytest.
+    info = invocation.PyTestInfo(
+        None, None, name, args, results,
+        test_case_id=invocation.PyTestInfo.NO_SUBPROCESS)
+    invocation.RunPytest(info)
     return pickle.load(open(results))[0] == factory.TestState.PASSED
 
 def main():

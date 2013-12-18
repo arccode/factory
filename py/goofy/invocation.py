@@ -4,10 +4,9 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-
 """Classes and Methods related to invoking a pytest or autotest."""
 
-
+import copy
 import fnmatch
 import logging
 import os
@@ -33,7 +32,6 @@ from cros.factory import event_log
 from cros.factory.goofy.service_manager import ServiceManager
 from cros.factory.privacy import FilterDict
 from cros.factory.test import factory
-from cros.factory.test import pytests
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import utils
@@ -42,6 +40,7 @@ from cros.factory.test.event import Event
 from cros.factory.test.factory import TestState
 from cros.factory.test.test_lists.test_lists import BuildAllTestLists
 from cros.factory.test.test_lists.test_lists import OldStyleTestList
+from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils.string_utils import DecodeUTF8
 
@@ -53,12 +52,12 @@ ERROR_LOG_TAIL_LENGTH = 8*1024
 
 
 class TestArgEnv(object):
-  '''Environment for resolving test arguments.
+  """Environment for resolving test arguments.
 
   Properties:
     state: Instance to obtain factory test.
     device_data: Cached device data from shopfloor.
-  '''
+  """
   def __init__(self):
     self.state = factory.get_state_instance()
     self.device_data = None
@@ -67,10 +66,10 @@ class TestArgEnv(object):
     return open('/sys/class/net/%s/address' % interface).read().strip()
 
   def GetDeviceData(self):
-    '''Returns shopfloor.GetDeviceData().
+    """Returns shopfloor.GetDeviceData().
 
     The value is cached to avoid extra calls to GetDeviceData().
-    '''
+    """
     if self.device_data is None:
       self.device_data = shopfloor.GetDeviceData()
     return self.device_data
@@ -81,7 +80,7 @@ class TestArgEnv(object):
 
 
 def ResolveTestArgs(dargs):
-  '''Resolves an argument dictionary by evaluating any functions.
+  """Resolves an argument dictionary by evaluating any functions.
 
   For instance, in a test list:
 
@@ -112,9 +111,9 @@ def ResolveTestArgs(dargs):
     dargs, except that any values that are lambdas are replaced with the
       results of evaluating them with a single argument, 'env',
       which is an instance of the TestArgEnv class.
-  '''
+  """
   def ResolveArg(k, v):
-    '''Resolves a single argument.'''
+    """Resolves a single argument."""
     if not isinstance(v, types.FunctionType):
       return v
 
@@ -126,16 +125,23 @@ def ResolveTestArgs(dargs):
 
 
 class PyTestInfo(object):
-  """The class containing the info that will be passed to a pytest."""
-  def __init__(self, test_list, path, pytest_name, args, results_path):
+  """A class to hold all the data needed when invoking a test."""
+
+  # A special test case ID to tell RunPytest to run the pytest directly instead
+  # of invoking it in a subprocess.
+  NO_SUBPROCESS = '__NO_SUBPROCESS__'
+
+  def __init__(self, test_list, path, pytest_name, args, results_path,
+               test_case_id=None):
     self.test_list = test_list
     self.path = path
     self.pytest_name = pytest_name
     self.args = args
     self.results_path = results_path
+    self.test_case_id = test_case_id
 
   def ReadTestList(self):
-    '''Reads and returns the test list.'''
+    """Reads and returns the test list."""
     if os.sep in self.test_list:
       # It's a path pointing to an old-style test list; use it.
       return factory.read_test_list(self.test_list)
@@ -149,7 +155,7 @@ class PyTestInfo(object):
 
 
 class TestInvocation(object):
-  '''State for an active test.
+  """State for an active test.
 
   Properties:
     update_state_on_completion: State for Goofy to update on
@@ -159,16 +165,16 @@ class TestInvocation(object):
       the test state.
     aborted_reason: A reason that the test was aborted (e.g.,
       'Stopped by operator' or 'Factory update')
-  '''
+  """
   def __init__(self, goofy, test, on_completion=None):
-    '''Constructor.
+    """Constructor.
 
     Args:
       goofy: The controlling Goofy object.
       test: The FactoryTest object to test.
       on_completion: Callback to invoke in the goofy event queue
         on completion.
-    '''
+    """
     self.goofy = goofy
     self.test = test
     self.thread = threading.Thread(target=self._run,
@@ -226,11 +232,11 @@ class TestInvocation(object):
     os.rename(tmp, self.metadata_file)
 
   def start(self):
-    '''Starts the test thread.'''
+    """Starts the test thread."""
     self.thread.start()
 
   def abort_and_join(self, reason=None):
-    '''Aborts a test (must be called from the event controller thread).'''
+    """Aborts a test (must be called from the event controller thread)."""
     with self._lock:
       self._aborted = True
       self._aborted_reason = reason
@@ -244,7 +250,7 @@ class TestInvocation(object):
       self._completed = True
 
   def is_completed(self):
-    '''Returns true if the test has finished.'''
+    """Returns true if the test has finished."""
     return self._completed
 
   def _aborted_message(self):
@@ -253,7 +259,7 @@ class TestInvocation(object):
         (': ' + self._aborted_reason) if self._aborted_reason else '')
 
   def _invoke_autotest(self):
-    '''Invokes an autotest test.
+    """Invokes an autotest test.
 
     This method encapsulates all the magic necessary to run a single
     autotest test using the 'autotest' command-line tool and get a
@@ -265,7 +271,7 @@ class TestInvocation(object):
     @param dargs: the argument map
     @return: tuple of status (TestState.PASSED or TestState.FAILED) and
       error message, if any
-    '''
+    """
     assert self.test.autotest_name
 
     test_tag = '%s_%s' % (self.test.path, self.count)
@@ -355,7 +361,7 @@ class TestInvocation(object):
       return status, error_msg  # pylint: disable=W0150
 
   def _invoke_pytest(self):
-    '''Invokes a pyunittest-based test.'''
+    """Invokes a pyunittest-based test."""
     assert self.test.pytest_name
 
     files_to_delete = []
@@ -453,7 +459,7 @@ class TestInvocation(object):
                     f)
 
   def _invoke_target(self):
-    '''Invokes a target directly within Goofy.'''
+    """Invokes a target directly within Goofy."""
     try:
       self.test.invocation_target(self)
       return TestState.PASSED, ''
@@ -635,58 +641,236 @@ class TestInvocation(object):
       self.goofy.run_queue.put(self.on_completion)
 
 
-def run_pytest(test_info):
-  '''Runs a pytest, saving a pickled (status, error_msg) tuple to the
+def _RecursiveApply(func, suite):
+  """Recursively applies a function to all the test cases in a test suite.
+
+  Args:
+    suite: A TestSuite object.
+    func: A callable object to map.
+  """
+  for test in suite:
+    if isinstance(test, unittest.TestSuite):
+      _RecursiveApply(func, test)
+    elif isinstance(test, unittest.TestCase):
+      func(test)
+    else:
+      raise ValueError('Expect only TestSuite and TestCase: %r' % type(test))
+
+
+def GetTestCases(suite):
+  """Gets the list of test case IDs in the given suite.
+
+  Args:
+    suite: A TestSuite instance.
+
+  Retuns:
+    A list of strings of test case IDs.
+  """
+  test_cases = []
+  _RecursiveApply(lambda t: test_cases.append(t.id()), suite)
+  return test_cases
+
+
+def InvokeTestCase(suite, test_case_id, test_info):
+  """Invokes a test case in another process.
+
+  This function is called in the top level of invocation.py.  It recursively
+  searches for the given test case in the given test suite.  A new TestInfo
+  instance with new test_case_id and results_path is prepared along with a new
+  test invocation.  All the new info is passed to a subprocess which actually
+  runs the test case with RunTestCase.
+
+  Args:
+    suite: A TestSuite object.
+    test_case_id: The ID of the test case to invoke.
+    test_info: A PyTestInfo object containing information about what to
+      run.
+
+  Returns:
+    The test result of the test case.
+  """
+  results = []
+
+  def _InvokeByID(test_case):
+    if test_case.id() == test_case_id:
+      logging.debug('[%s] Really invoke test case: %s',
+                   os.getpid(), test_case_id)
+      with file_utils.UnopenedTemporaryFile() as info_path, \
+          file_utils.UnopenedTemporaryFile() as results_path:
+        # Update test_info attributes for the test case.
+        new_info = copy.deepcopy(test_info)
+        new_info.test_case_id = test_case_id
+        new_info.results_path = results_path
+        with open(info_path, 'w') as f:
+          pickle.dump(new_info, f)
+
+        # Set up subprocess args.
+        this_file = os.path.realpath(__file__)
+        this_file = re.sub(r'\.pyc$', '.py', this_file)
+        args = [this_file, '--pytest', info_path]
+
+        # Generate an invocation and set it in the env of subprocess.
+        pytest_invoc = event_log.TimedUuid()
+        subenv = dict(os.environ)
+        subenv.update({'CROS_FACTORY_TEST_INVOCATION': pytest_invoc})
+
+        # Wait for the subprocess to end and load the results.
+        process = Spawn(args, env=subenv)
+        process.wait()
+        with open(results_path) as f:
+          results.append(pickle.load(f))
+
+  _RecursiveApply(_InvokeByID, suite)
+  assert len(results) == 1, 'Should have exactly one test result'
+  return results[0]
+
+
+def RunTestCase(suite, test_case_id):
+  """Runs the given test case.
+
+  This is the actual test case runner.  It recursively searches for the given
+  test case in the given test suite, runs the test case if found, and returns
+  the test results.
+
+  Args:
+    suite: A TestSuite object.
+    test_case_id: The ID of the test case to run.
+
+  Returns:
+    The test result of the test case.
+  """
+  results = []
+
+  def _RunByID(test_case):
+    if (test_case.id() == test_case_id or
+        test_case_id == PyTestInfo.NO_SUBPROCESS):
+      logging.debug('[%s] Really run test case: %s', os.getpid(), test_case_id)
+      result = unittest.TestResult()
+      test_case.run(result)
+      results.append(result)
+
+  _RecursiveApply(_RunByID, suite)
+  assert len(results) == 1, 'Should have exactly one test result'
+  return results[0]
+
+
+def LoadPytestModule(pytest_name):
+  """Loads the given pytest module.
+
+  This function tries to load the module with
+
+      cros.factory.test.pytests.<pytest_base_name>.<pytest_name>
+
+  first and falls back to
+
+      cros.factory.test.pytests.<pytest_name>
+
+  for backward compatibility.
+
+  Args:
+    pytest_name: The name of the pytest module.
+
+  Returns:
+    The loaded pytest module object.
+  """
+  from cros.factory.test import pytests
+  try:
+    base_pytest_name = re.sub(r'_e2etest', r'', pytest_name)
+    __import__('cros.factory.test.pytests.%s.%s' %
+               (base_pytest_name, pytest_name))
+    return getattr(getattr(pytests, base_pytest_name), pytest_name)
+  except ImportError:
+    __import__('cros.factory.test.pytests.%s' % pytest_name)
+    return getattr(pytests, pytest_name)
+
+
+def RunPytest(test_info):
+  """Runs a pytest, saving a pickled (status, error_msg) tuple to the
   appropriate results file.
 
   Args:
     test_info: A PyTestInfo object containing information about what to
       run.
-  '''
+  """
   try:
-    __import__('cros.factory.test.pytests.%s' % test_info.pytest_name)
-    module = getattr(pytests, test_info.pytest_name)
+    module = LoadPytestModule(test_info.pytest_name)
     suite = unittest.TestLoader().loadTestsFromModule(module)
-
-    # Recursively set
-    def set_test_info(test):
-      if isinstance(test, unittest.TestCase):
-        test.test_info = test_info
-        arg_spec = getattr(test, 'ARGS', None)
-        if arg_spec:
-          setattr(test, 'args', Args(*arg_spec).Parse(test_info.args))
-      elif isinstance(test, unittest.TestSuite):
-        for x in test:
-          set_test_info(x)
-    set_test_info(suite)
 
     # Register a handler for SIGTERM, so that Python interpreter has
     # a chance to do clean up procedures when SIGTERM is received.
     def _SIGTERMHandler(signum, frame):  # pylint: disable=W0613
       logging.error('SIGTERM received')
       raise factory.FactoryTestFailure('SIGTERM received')
+
     signal.signal(signal.SIGTERM, _SIGTERMHandler)
-    runner = unittest.TextTestRunner()
-    result = runner.run(suite)
 
-    def format_error_msg(trace):
-      '''Formats a trace so that the actual error message is in the last
-      line.
-      '''
-      # The actual error is in the last line.
-      trace, _, error_msg = trace.strip().rpartition('\n')
-      error_msg = error_msg.replace('FactoryTestFailure: ', '')
-      return error_msg + '\n' + trace
+    error_msg = ''
+    if test_info.test_case_id is None:
+      # Top-level test suite: Invoke each TestCase in a separate subprocess.
+      results = []
+      for test in GetTestCases(suite):
+        logging.debug('[%s] Invoke test case: %s', os.getpid(), test)
+        results.append(InvokeTestCase(suite, test, test_info))
 
-    all_failures = result.failures + result.errors + test_ui.exception_list
-    if all_failures:
+      # The results will be a list of tuples (status, error_msg) for each
+      # test case.
+      error_msgs = []
+      for status, msg in results:
+        if status == TestState.PASSED:
+          continue
+        error_msgs.append(msg)
+
+      if error_msgs:
+        error_msg = '; '.join(error_msgs)
+    else:
+      # Invoked by InvokeTestCase: Run the specified TestCase.
+      logging.debug('[%s] Start test case: %s',
+                    os.getpid(), test_info.test_case_id)
+
+      # Recursively set
+      def SetTestInfo(test):
+        if isinstance(test, unittest.TestCase):
+          test.test_info = test_info
+          arg_spec = getattr(test, 'ARGS', None)
+          if arg_spec:
+            try:
+              setattr(test, 'args', Args(*arg_spec).Parse(test_info.args))
+            except ValueError as e:
+              # Do not raise exceptions for E2ETest, as 'dargs' is optional
+              # to it.
+              from cros.factory.test import e2e_test
+              if (re.match(r'^Required argument .* not specified$', str(e)) and
+                  isinstance(test, e2e_test.E2ETest)):
+                pass
+              else:
+                raise e
+        elif isinstance(test, unittest.TestSuite):
+          for x in test:
+            SetTestInfo(x)
+
+      SetTestInfo(suite)
+      result = RunTestCase(suite, test_info.test_case_id)
+
+      def FormatErrorMessage(trace):
+        """Formats a trace so that the actual error message is in the last
+        line.
+        """
+        # The actual error is in the last line.
+        trace, _, error_msg = trace.strip().rpartition('\n')
+        error_msg = error_msg.replace('FactoryTestFailure: ', '')
+        return error_msg + '\n' + trace
+
+      all_failures = result.failures + result.errors + test_ui.exception_list
+      if all_failures:
+        error_msg = '\n'.join(FormatErrorMessage(trace)
+                              for test_name, trace in all_failures)
+
+    if error_msg:
       status = TestState.FAILED
-      error_msg = '; '.join(format_error_msg(trace)
-                  for test_name, trace in all_failures)
-      logging.info('pytest failure: %s', error_msg)
+      if test_info.test_case_id:
+        logging.info('pytest failure: %s', error_msg)
     else:
       status = TestState.PASSED
-      error_msg = ''
   except:
     logging.exception('Unable to run pytest')
     status = TestState.FAILED
@@ -694,6 +878,7 @@ def run_pytest(test_info):
 
   with open(test_info.results_path, 'w') as results:
     pickle.dump((status, error_msg), results)
+
 
 def main():
   parser = OptionParser()
@@ -710,7 +895,7 @@ def main():
   proc_title = os.environ.get('CROS_PROC_TITLE')
   if proc_title:
     setproctitle(proc_title)
-  run_pytest(info)
+  RunPytest(info)
 
 if __name__ == '__main__':
   main()
