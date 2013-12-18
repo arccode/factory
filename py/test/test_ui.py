@@ -5,6 +5,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+"""A module for creating and interacting with factory test UI."""
+
 import cgi
 import logging
 import os
@@ -35,12 +37,12 @@ exception_list = []
 SPINNER_HTML_16x16 = '<img src="/images/active.gif" width=16 height=16>'
 
 def Escape(text, preserve_line_breaks=True):
-  '''Escapes HTML.
+  """Escapes HTML.
 
   Args:
     text: The text to escape.
     preserve_line_breaks: True to preserve line breaks.
-  '''
+  """
   html = cgi.escape(text)
   if preserve_line_breaks:
     html = html.replace('\n', '<br>')
@@ -48,7 +50,7 @@ def Escape(text, preserve_line_breaks=True):
 
 
 def MakeLabel(en, zh=None, css_class=None):
-  '''Returns a label which will appear in the active language.
+  """Returns a label which will appear in the active language.
 
   For optional zh, if it is None or empty, the Chinese label will fallback to
   use English version
@@ -57,7 +59,7 @@ def MakeLabel(en, zh=None, css_class=None):
       en: The English-language label.
       zh: The Chinese-language label (or None if unspecified).
       css_class: The CSS class to decorate the label (or None if unspecified).
-  '''
+  """
   return ('<span class="goofy-label-en %s">%s</span>'
           '<span class="goofy-label-zh %s">%s</span>' %
           ('' if css_class is None else css_class, en,
@@ -65,19 +67,18 @@ def MakeLabel(en, zh=None, css_class=None):
 
 
 def MakeTestLabel(test):
-  '''Returns label for a test name in the active language.
+  """Returns label for a test name in the active language.
 
   Args:
      test: A test object from the test list.
-  '''
+  """
   return MakeLabel(Escape(test.label_en), Escape(test.label_zh))
 
 
 def MakePassFailKeyLabel(pass_key=True, fail_key=True):
-  '''
-  Returns label for an instruction of pressing pass key in the active
+  """Returns label for an instruction of pressing pass key in the active
   language.
-  '''
+  """
   if not pass_key and not fail_key:
     return ''
   en, zh = '', ''
@@ -91,11 +92,11 @@ def MakePassFailKeyLabel(pass_key=True, fail_key=True):
 
 
 def MakeStatusLabel(status):
-  '''Returns label for a test status in the active language.
+  """Returns label for a test status in the active language.
 
   Args:
       status: One of [PASSED, FAILED, ACTIVE, UNTESTED]
-  '''
+  """
   STATUS_ZH = {
     TestState.PASSED: u'良好',
     TestState.FAILED: u'不良',
@@ -107,7 +108,7 @@ def MakeStatusLabel(status):
 
 
 class UI(object):
-  '''Web UI for a Goofy test.
+  """Web UI for a Goofy test.
 
   You can set your test up in the following ways:
 
@@ -156,11 +157,10 @@ class UI(object):
       - ui_templates.OneSection
       - ui_templates.TwoSections
 
-
   Note that if you rename .html or .js files during development, you
   may need to restart the server for your changes to take effect.
-  '''
-  def __init__(self, css=None):
+  """
+  def __init__(self, css=None, setup_static_files=True):
     self.lock = threading.RLock()
     self.event_client = EventClient(callback=self._HandleEvent,
                                     event_loop=EventClient.EVENT_LOOP_WAIT)
@@ -169,10 +169,11 @@ class UI(object):
     self.event_handlers = {}
     self.task_hook = None
 
-    self._SetupStaticFiles(os.path.realpath(traceback.extract_stack()[-2][0]))
+    if setup_static_files:
+      self._SetupStaticFiles(os.path.realpath(traceback.extract_stack()[-2][0]))
+      if css:
+        self.AppendCSS(css)
     self.error_msgs = []
-    if css:
-      self.AppendCSS(css)
 
   def _SetupStaticFiles(self, py_script):
     # Get path to caller and register static files/directories.
@@ -224,28 +225,30 @@ class UI(object):
       self.RunJS(js)
 
   def SetHTML(self, html, append=False, id=None):  # pylint: disable=W0622
-    '''Sets the UI in the test pane.
+    """Sets a HTML snippet to the UI in the test pane.
 
     Note that <script> tags are not allowed in SetHTML() and
     AppendHTML(), since the scripts will not be executed. Use RunJS()
     or CallJSFunction() instead.
 
     Args:
+      html: The HTML snippet to set.
+      append: Whether to append the HTML snippet.
       id: If given, writes html to the element identified by id.
-    '''
+    """
     self.PostEvent(Event(Event.Type.SET_HTML, html=html, append=append, id=id))
 
   def AppendHTML(self, html, **kwargs):
-    '''Append to the UI in the test pane.'''
+    """Append to the UI in the test pane."""
     self.SetHTML(html, True, **kwargs)
 
   def AppendCSS(self, css):
-    '''Append CSS in the test pane.'''
+    """Append CSS in the test pane."""
     self.AppendHTML('<style type="text/css">%s</style>' % css,
                     id="head")
 
   def RunJS(self, js, **kwargs):
-    '''Runs JavaScript code in the UI.
+    """Runs JavaScript code in the UI.
 
     Args:
       js: The JavaScript code to execute.
@@ -255,11 +258,11 @@ class UI(object):
 
     Example:
       ui.RunJS('alert(args.msg)', msg='The British are coming')
-    '''
+    """
     self.PostEvent(Event(Event.Type.RUN_JS, js=js, args=kwargs))
 
   def CallJSFunction(self, name, *args):
-    '''Calls a JavaScript function in the test pane.
+    """Calls a JavaScript function in the test pane.
 
     This will be run within window scope (i.e., 'this' will be the
     test pane window).
@@ -267,74 +270,75 @@ class UI(object):
     Args:
       name: The name of the function to execute.
       args: Arguments to the function.
-    '''
+    """
     self.PostEvent(Event(Event.Type.CALL_JS_FUNCTION, name=name, args=args))
 
   def AddEventHandler(self, subtype, handler):
-    '''Adds an event handler.
+    """Adds an event handler.
 
     Args:
       subtype: The test-specific type of event to be handled.
       handler: The handler to invoke with a single argument (the event
         object).
-    '''
+    """
     self.event_handlers.setdefault(subtype, []).append(handler)
 
   def PostEvent(self, event):
-    '''Posts an event to the event queue.
+    """Posts an event to the event queue.
 
     Adds the test and invocation properties.
 
-    Tests should use this instead of invoking post_event directly.'''
+    Tests should use this instead of invoking post_event directly.
+    """
     event.test = self.test
     event.invocation = self.invocation
     self.event_client.post_event(event)
 
   def URLForFile(self, path):
-    '''Returns a URL that can be used to serve a local file.
+    """Returns a URL that can be used to serve a local file.
 
     Args:
       path: path to the local file
 
     Returns:
       url: A (possibly relative) URL that refers to the file
-    '''
+    """
     return factory.get_state_instance().URLForFile(path)
 
   def URLForData(self, mime_type, data, expiration=None):
-    '''Returns a URL that can be used to serve a static collection
+    """Returns a URL that can be used to serve a static collection
     of bytes.
 
     Args:
       mime_type: MIME type for the data
       data: Data to serve
-      expiration_secs: If not None, the number of seconds in which
-      the data will expire.
-    '''
+      expiration: If not None, the number of seconds in which the data will
+        expire.
+    """
     return factory.get_state_instance().URLForData(
         mime_type, data, expiration)
 
   def Pass(self):
-    '''Passes the test.'''
+    """Passes the test."""
     self.PostEvent(Event(Event.Type.END_TEST, status=TestState.PASSED))
 
   def Fail(self, error_msg):
-    '''Fails the test immediately.'''
+    """Fails the test immediately."""
     self.PostEvent(Event(Event.Type.END_TEST, status=TestState.FAILED,
                          error_msg=error_msg))
 
   def FailLater(self, error_msg):
-    '''Appends a error message to the error message list, which causes
+    """Appends a error message to the error message list, which causes
     the test to fail later.
-    '''
+    """
     self.error_msgs.append(error_msg)
 
   def EnablePassFailKeys(self):
-    '''Allows space/enter to pass the test, and escape to fail it.'''
+    """Allows space/enter to pass the test, and escape to fail it."""
     self.BindStandardKeys()
 
   def Run(self, blocking=True, on_finish=None):
-    '''Runs the test UI, waiting until the test completes.
+    """Runs the test UI, waiting until the test completes.
 
     Args:
       blocking: True if running UI in the same thread. False if creating a
@@ -342,7 +346,7 @@ class UI(object):
         autotest.
       on_finish: Callback function when UI ends. This can be used to notify
         the test for necessary clean-up (e.g. terminate an event loop.)
-    '''
+    """
     def _RunImpl(self, blocking, on_finish):
       event = self.event_client.wait(
           lambda event:
@@ -383,13 +387,13 @@ class UI(object):
       _RunImpl(self, blocking=True, on_finish=on_finish)
 
   def BindStandardKeys(self, bind_pass_keys=True, bind_fail_keys=True):
-    '''Binds standard pass and/or fail keys.
+    """Binds standard pass and/or fail keys.
 
     Args:
       bind_pass_keys: True if binding pass keys, including enter, space,
         'p', and 'P'.
       bind_fail_keys: True if binding fail keys, including ESC, 'f', and 'F'.
-    '''
+    """
     items = []
     if bind_pass_keys:
       items.extend([(key, 'window.test.pass()') for key in '\r pP'])
@@ -398,13 +402,13 @@ class UI(object):
     self.BindKeysJS(items)
 
   def BindKeysJS(self, items):
-    '''Binds keys to JavaScript code.
+    """Binds keys to JavaScript code.
 
     Args:
       items: A list of tuples (key, js), where
         key: The key to bind (if a string), or an integer character code.
         js: The JavaScript to execute when pressed.
-    '''
+    """
     js_list = []
     for key, js in items:
       key_code = key if isinstance(key, int) else ord(key)
@@ -413,41 +417,41 @@ class UI(object):
     self.RunJS(''.join(js_list))
 
   def BindKeyJS(self, key, js):
-    '''Sets a JavaScript function to invoke if a key is pressed.
+    """Sets a JavaScript function to invoke if a key is pressed.
 
     Args:
       key: The key to bind (if a string), or an integer character code.
       js: The JavaScript to execute when pressed.
-    '''
+    """
     self.BindKeysJS([(key, js)])
 
   def BindKey(self, key, handler):
-    '''Sets a key binding to invoke the handler if the key is pressed.
+    """Sets a key binding to invoke the handler if the key is pressed.
 
     Args:
       key: The key to bind.
       handler: The handler to invoke with a single argument (the event
           object).
-    '''
+    """
     uuid_str = str(uuid.uuid4())
     self.BindKeyJS(key, 'test.sendTestEvent("%s", {});' % uuid_str)
     self.AddEventHandler(uuid_str, handler)
 
   def UnbindKey(self, key):
-    '''Removes a key binding in frontend Javascript.
+    """Removes a key binding in frontend Javascript.
 
     Args:
       key: The key to unbind.
-    '''
+    """
     key_code = key if isinstance(key, int) else ord(key)
     self.RunJS('window.test.unbindKey(%d);' % key_code)
 
   def InEngineeringMode(self):
-    '''Returns True if in engineering mode.'''
+    """Returns True if in engineering mode."""
     return factory.get_shared_data('engineering_mode')
 
   def _HandleEvent(self, event):
-    '''Handles an event sent by a test UI.'''
+    """Handles an event sent by a test UI."""
     if (event.type == Event.Type.TEST_UI_EVENT and
         event.test == self.test and
         event.invocation == self.invocation):
@@ -456,25 +460,25 @@ class UI(object):
           handler(event)
 
   def GetUILanguage(self):
-    '''Returns current enabled language in UI.'''
+    """Returns current enabled language in UI."""
     return factory.get_shared_data('ui_lang')
 
   def PlayAudioFile(self, audio_file):
-    '''Plays an audio file in the given path.'''
-    js = '''
+    """Plays an audio file in the given path."""
+    js = """
         var audio_element = new Audio("%s");
         audio_element.addEventListener(
             "canplaythrough",
             function () {
               audio_element.play();
             });
-    ''' % os.path.join('/sounds', audio_file)
+    """ % os.path.join('/sounds', audio_file)
     self.RunJS(js)
 
   def SetFocus(self, element_id):
-    '''Set focus to the element specified by element_id'''
+    """Set focus to the element specified by element_id"""
     self.RunJS('$("%s").focus()' % element_id)
 
   def SetSelected(self, element_id):
-    '''Set the specified element as selected'''
+    """Set the specified element as selected"""
     self.RunJS('$("%s").select()' % element_id)

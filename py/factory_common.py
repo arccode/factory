@@ -4,6 +4,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+"""A helper module to set up sys.path so that cros.factory.* can be located."""
+
 import os, sys
 sys.path.append(
     os.path.join(

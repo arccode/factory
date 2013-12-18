@@ -838,7 +838,7 @@ def RunPytest(test_info):
             except ValueError as e:
               # Do not raise exceptions for E2ETest, as 'dargs' is optional
               # to it.
-              from cros.factory.test import e2e_test
+              from cros.factory.test.e2e_test import e2e_test
               if (re.match(r'^Required argument .* not specified$', str(e)) and
                   isinstance(test, e2e_test.E2ETest)):
                 pass

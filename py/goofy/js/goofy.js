@@ -2836,7 +2836,9 @@ cros.factory.Goofy.prototype.handleBackendEvent = function(jsonMessage) {
             invocation.iframe.contentWindow.eval(
                 'var args = window.__goofy_args;' +
                 /** @type string */ (message['js']));
-            delete invocation.iframe.contentWindow.__goofy_args;
+            if (invocation && invocation.iframe) {
+                delete invocation.iframe.contentWindow.__goofy_args;
+            }
         }
     } else if (message.type == 'goofy:call_js_function') {
         var invocation = this.getOrCreateInvocation(

@@ -34,17 +34,8 @@ TYPE = type
 
 
 class Arg(object):
+  """A class to hold the spec for an argument."""
   # pylint: disable=W0622
-  def ValueMatchesType(self, value):
-    """Returns True if value matches the type for this argument."""
-    for t in self.type:
-      if isinstance(t, TYPE) and isinstance(value, t):
-        return True
-      if isinstance(t, Enum) and value in t:
-        return True
-
-    return False
-
   def __init__(self, name, type, help, default=None, optional=False):
     """Constructor.
 
@@ -89,8 +80,30 @@ class Arg(object):
       raise ValueError('Default value %s should have type %r, not %r' % (
                        default, type, TYPE(default)))
 
+  def ValueMatchesType(self, value):
+    """Returns True if value matches the type for this argument."""
+    for t in self.type:
+      if isinstance(t, TYPE) and isinstance(value, t):
+        return True
+      if isinstance(t, Enum) and value in t:
+        return True
+
+    return False
+
+
+class Dargs(object):
+  """A class to hold all the parsed arguments for a factory test."""
+  def __init__(self, **kwargs):
+    for key, value in kwargs.iteritems():
+      setattr(self, key, value)
+
+  def ToDict(self):
+    return dict(filter(lambda kv: not kv[0].startswith('__'),
+                       self.__dict__.items()))
+
 
 class Args(object):
+  """A class to hold a list of argument specs for an argument parser."""
   def __init__(self, *args):
     """Constructs an argument parser.
 
@@ -140,4 +153,4 @@ class Args(object):
     if errors:
       raise ValueError('; '.join(errors))
 
-    return type('Dargs', (), attributes)
+    return Dargs(**attributes)
