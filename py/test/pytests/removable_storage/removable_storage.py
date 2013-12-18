@@ -4,13 +4,12 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+"""This is a factory test to test removable storage devices.
 
-# DESCRIPTION :
-#
-# This is a factory test to test removable storage devices.
-# We implement the following tests:
-#   * Random and sequential read / write test
-#   * Lock (write protection) test
+The following test functions are supported:
+   * Random and sequential read / write test
+   * Lock (write protection) test
+"""
 
 import os
 import logging
@@ -28,6 +27,7 @@ from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
+from cros.factory.utils import sys_utils
 from cros.factory.utils.process_utils import CheckOutput, SpawnOutput
 
 
@@ -126,24 +126,53 @@ _IMG_HTML_TAG = (
     lambda src: '<img src="%s" style="display:block; margin:0 auto;"/>' % src)
 
 
-class PyudevThread(threading.Thread):
-  '''A thread class for monitoring udev events in the background.'''
-
-  def __init__(self, callback, **udev_filters):
-    threading.Thread.__init__(self)
-    self._callback = callback
-    self._udev_filters = dict(udev_filters)
-
-  def run(self):
-    '''Create a loop to monitor udev events and invoke callback function.'''
-    context = pyudev.Context()
-    monitor = pyudev.Monitor.from_netlink(context)
-    monitor.filter_by(**self._udev_filters)
-    for action, device in monitor:
-      self._callback(action, device)
-
-
 class RemovableStorageTest(unittest.TestCase):
+  """The removable storage factory test."""
+  ARGS = [
+    Arg('media', str, 'Media type'),
+    Arg('vidpid', (str, list),
+        'Vendor ID and Product ID of the target testing device', None,
+        optional=True),
+    Arg('sysfs_path', str, 'The expected sysfs path that udev events should'
+        'come from, ex: /sys/devices/pci0000:00/0000:00:1a.0/usb1/1-1/1-1.2',
+        None, optional=True),
+    Arg('block_size', int,
+        'Size of each block in bytes used in read / write test', 1024),
+    Arg('perform_random_test', bool,
+        'Whether to run random read / write test', True),
+    Arg('random_read_threshold', (int, float),
+        'The lowest random read rate the device should achieve', None,
+        optional=True),
+    Arg('random_write_threshold', (int, float),
+        'The lowest random write rate the device should achieve', None,
+        optional=True),
+    Arg('random_block_count', int,
+        'Number of blocks to test during random read / write test', 3),
+    Arg('perform_sequential_test', bool,
+        'Whether to run sequential read / write tes', False),
+    Arg('sequential_read_threshold', (int, float),
+        'The lowest sequential read rate the device should achieve',
+        None, optional=True),
+    Arg('sequential_write_threshold', (int, float),
+        'The lowest sequential write rate the device should achieve',
+        None, optional=True),
+    Arg('sequential_block_count', int,
+        'Number of blocks to test in sequential read / write test', 1024),
+    Arg('perform_locktest', bool, 'Whether to run lock test', False),
+    Arg('extra_prompt_en', (str, unicode),
+        'An extra prompt (in English), e.g., to specify which USB port to use',
+        optional=True),
+    Arg('extra_prompt_zh', (str, unicode), 'An extra prompt (in Chinese)',
+        optional=True),
+    Arg('bft_fixture', dict,
+        '{class_name: BFTFixture\'s import path + module name\n'
+        ' params: a dict of params for BFTFixture\'s Init()}.\n'
+        'Default None means no BFT fixture is used.',
+        default=None, optional=True),
+    Arg('bft_media_device', str,
+        'Device name of BFT used to insert/remove the media.',
+        optional=True)
+  ]
   # pylint: disable=E1101
 
   def setUp(self):
@@ -164,8 +193,18 @@ class RemovableStorageTest(unittest.TestCase):
     self._metrics = {}
     self._bft_fixture = None
     self._bft_media_device = None
+    self._stop_test = threading.Event()
 
   def GetAttrs(self, device, key_set):
+    """Gets attributes of a device.
+
+    Args:
+      device: A device object.
+      key_set: The attribute keys to look up.
+
+    Returns:
+      A string consisting of the specified attributes.
+    """
     if device is None:
       return ''
     attrs = [device.attributes[key] for key in
@@ -176,6 +215,14 @@ class RemovableStorageTest(unittest.TestCase):
     return self.GetAttrs(device.parent, key_set) + attr_str
 
   def GetVidpid(self, device):
+    """Get idVendor and idProduct of a device.
+
+    Args:
+      device: A device object.
+
+    Returns:
+      A string consisting of idVendor and idProduct of the device.
+    """
     if device is None:
       return None
     if device.device_type == 'usb_device':
@@ -185,33 +232,47 @@ class RemovableStorageTest(unittest.TestCase):
         return vidpid.strip()
     return self.GetVidpid(device.parent)
 
-  def IsSD(self, device):
-    if device.device_node.find(_UDEV_MMCBLK_PATH) == 0:
-      return True
-    attr_str = self.GetAttrs(device, set(_CARD_READER_ATTRS)).lower()
-    for desc in _CARD_READER_DESCS:
-      if desc in attr_str:
-        return True
-    return False
-
   def GetDeviceType(self, device):
-    if self.IsSD(device):
-      return 'SD'
-    return 'USB'
+    """Gets device type.
+
+    Args:
+      device: A device object.
+
+    Returns:
+      'SD' or 'USB' as deivce type.
+    """
+    def IsSD():
+      """Checks whether the given device is SD.
+
+      Returns:
+        A bool indicating whether the device is SD device.
+      """
+      if device.device_node.find(_UDEV_MMCBLK_PATH) == 0:
+        return True
+      attr_str = self.GetAttrs(device, set(_CARD_READER_ATTRS)).lower()
+      for desc in _CARD_READER_DESCS:
+        if desc in attr_str:
+          return True
+      return False
+
+    return 'SD' if IsSD() else 'USB'
 
   def GetDeviceSize(self, dev_path):
-    '''Get device size in bytes.
+    """Gets device size in bytes.
 
     Args:
       dev_path: path to device file.
-    '''
+
+    Returns:
+      The device size in bytes.
+    """
     try:
       dev_size = CheckOutput(['blockdev', '--getsize64', dev_path])
     except:  # pylint: disable=W0702
-      self._ui.Fail(_ERR_GET_DEV_SIZE_FAILED_FMT_STR(dev_path))
+      self.Fail(_ERR_GET_DEV_SIZE_FAILED_FMT_STR(dev_path))
 
     if not dev_size:
-      self._ui.Fail(_ERR_GET_DEV_SIZE_FAILED_FMT_STR(dev_path))
+      self.Fail(_ERR_GET_DEV_SIZE_FAILED_FMT_STR(dev_path))
 
     dev_size = int(dev_size)
     gb = dev_size / 1000000000.0
@@ -220,15 +281,18 @@ class RemovableStorageTest(unittest.TestCase):
     return dev_size
 
   def GetDeviceRo(self, dev_path):
-    '''Get device read-only flag.
+    """Gets device read-only flag.
 
     Args:
       dev_path: path to device file.
-    '''
+
+    Returns:
+      A bool indicating whether RO is enabled.
+    """
     try:
       ro = CheckOutput(['blockdev', '--getro', dev_path])
     except:  # pylint: disable=W0702
-      self._ui.Fail(_ERR_RO_TEST_FAILED_FMT_STR(dev_path))
+      self.Fail(_ERR_RO_TEST_FAILED_FMT_STR(dev_path))
 
     ro = int(ro)
     logging.info('%s RO : %d', dev_path, ro)
@@ -236,11 +300,11 @@ class RemovableStorageTest(unittest.TestCase):
     return ro == 1
 
   def TestReadWrite(self):
-    '''Random and sequential read / write tests.
+    """Random and sequential read / write tests.
 
     This method executes only random read / write test by default.
     Sequential read / write test can be enabled through dargs.
-    '''
+    """
     self._state = _STATE_ACCESSING
 
     self._template.SetInstruction(_TESTING_FMT_STR(self._target_device))
@@ -309,7 +373,7 @@ class RemovableStorageTest(unittest.TestCase):
             logging.info('No large file support')
 
         if random_tail < random_head:
-          self._ui.Fail('Block size too large for r/w test.')
+          self.Fail('Block size too large for r/w test.')
 
         for x in range(loop): # pylint: disable=W0612
           # Select one random block as starting point.
@@ -405,8 +469,7 @@ class RemovableStorageTest(unittest.TestCase):
 
         self._metrics.update(update_bin)
 
-    Log(('%s_rw_speed' % self.args.media),
-                               **self._metrics)
+    Log(('%s_rw_speed' % self.args.media), **self._metrics)
     self._template.SetInstruction(_REMOVE_FMT_STR(self.args.media))
     self._state = _STATE_RW_TEST_WAIT_REMOVE
     self._template.SetState(_IMG_HTML_TAG(self._removal_image))
@@ -414,11 +477,11 @@ class RemovableStorageTest(unittest.TestCase):
       try:
         self._bft_fixture.SetDeviceEngaged(self._bft_media_device, False)
       except BFTFixtureException as e:
-        self._ui.Fail(_ERR_BFT_ACTION_STR(
+        self.Fail(_ERR_BFT_ACTION_STR(
             'remove', self.args.media, self._target_device, e))
 
   def TestLock(self):
-    '''SD card write protection test.'''
+    """SD card write protection test."""
     self._state = _STATE_ACCESSING
     self._template.SetInstruction(_TESTING_FMT_STR(self._target_device))
     self._template.SetState(_IMG_HTML_TAG(self._testing_image))
@@ -433,15 +496,17 @@ class RemovableStorageTest(unittest.TestCase):
     self.AdvanceProgress()
 
   def CreatePartition(self):
-    '''Creates a small partition for SD card, so that we can check if all the
-    pins on the card reader module are intact.'''
+    """Creates a small partition for SD card.
+
+    This is to check if all the pins on the card reader module are intact.
+    """
     if self.args.media != 'SD':
       return
     dev_path = self._target_device
     # Set partition size to 128 MB or (dev_size / 2) MB
     partition_size = min(128, (self._device_size/ 2) / (1024 * 1024))
     if partition_size < _MIN_PARTITION_SIZE_MB:
-      self._ui.Fail(_ERR_CREATE_PARTITION_FMT_STR(
+      self.Fail(_ERR_CREATE_PARTITION_FMT_STR(
           self.args.media, dev_path, self._device_size))
     else:
       # clear partition table first and create one partition
@@ -450,8 +515,11 @@ class RemovableStorageTest(unittest.TestCase):
                    'ext4', '0', str(partition_size)])
 
   def VerifyPartition(self):
-    '''Verifies that there's at least one partition present in the /dev
-    directory for the device under test.'''
+    """Verifies the partition on target device.
+
+    This is to verify that there is at least one partition present in the
+    '/dev' directory for the device under test.
+    """
     dev_path = self._target_device
     try:
       # Just do a simple ls on the first partition file
@@ -460,33 +528,43 @@ class RemovableStorageTest(unittest.TestCase):
         dev_path = dev_path + 'p'
       CheckOutput(['ls', dev_path + '1'])
     except:   # pylint: disable=W0702
-      self._ui.Fail(_ERR_VERIFY_PARTITION_FMT_STR(self.args.media, dev_path))
+      self.Fail(_ERR_VERIFY_PARTITION_FMT_STR(self.args.media, dev_path))
 
-  def UdevEventCallback(self, action, device):
+  def HandleUdevEvent(self, action, device):
+    """The udev event handler.
+
+    Args:
+      action: The udev action to handle.
+      device: A device object.
+    """
+    # Try to determine the change event is an insert or remove.
     if action == _UDEV_ACTION_CHANGE:
       node = os.path.basename(device.device_node)
-      if any(len(x) > 3 and x[3] == node for x in
-             [l.strip().split() for l in open('/proc/partitions').readlines()]):
+      if any(p.name == node for p in sys_utils.GetPartitions()):
         action = _UDEV_ACTION_INSERT
       else:
         action = _UDEV_ACTION_REMOVE
 
     if action == _UDEV_ACTION_INSERT:
       logging.info('sys path from callback = %s', device.sys_path)
+
       if self._state == _STATE_RW_TEST_WAIT_INSERT:
+        # Check if the give device is what we are interested in.
+        # Simply returns to ignore unknown devices.
         if self.args.vidpid:
           device_vidpid = self.GetVidpid(device)
           if device_vidpid not in self.args.vidpid:
-            return True
+            return
           logging.info('VID:PID == %s', self.args.vidpid)
         elif self.args.sysfs_path:
           if (not os.path.exists(self.args.sysfs_path) or
               not self.args.sysfs_path in device.sys_path):
-            return True
+            return
           logging.info('sys path = %s', self.args.sysfs_path)
         else:
           if self.args.media != self.GetDeviceType(device):
-            return True
+            return
+
         logging.info('%s device inserted : %s',
                      self.args.media, device.device_node)
         self._target_device = device.device_node
@@ -494,6 +572,7 @@ class RemovableStorageTest(unittest.TestCase):
         if self.args.media == 'SD':
           self.CreatePartition()
         self.TestReadWrite()
+
       elif self._state == _STATE_LOCKTEST_WAIT_INSERT:
         logging.info('%s device inserted : %s',
                      self.args.media, device.device_node)
@@ -501,6 +580,7 @@ class RemovableStorageTest(unittest.TestCase):
           if self.args.media == 'SD':
             self.VerifyPartition()
           self.TestLock()
+
     elif action == _UDEV_ACTION_REMOVE:
       if self._target_device == device.device_node:
         logging.info('Device removed : %s', device.device_node)
@@ -512,79 +592,44 @@ class RemovableStorageTest(unittest.TestCase):
             self._template.SetState(
                 _IMG_HTML_TAG(self._locktest_insertion_image))
           else:
-            self._ui.Pass()
+            self.Pass()
         elif self._state == _STATE_LOCKTEST_WAIT_REMOVE:
-          self._ui.Pass()
+          self.Pass()
         elif self._state == _STATE_ACCESSING:
           self._template.SetInstruction(
               _ERR_REMOVE_TOO_EARLY_FMT_STR(self._target_device))
-          self._ui.Fail('Device %s removed too early' % self._target_device)
+          self.Fail('Device %s removed too early' % self._target_device)
         else:
           # Here the state is either _STATE_RW_TEST_WAIT_INSERT or
           # _STATE_LOCKTEST_WAIT_INSERT. For a device waiting for a media
           # getting a remove event, it probably receives duplicate media remove
           # events, ignore.
           pass
-    return True
 
   def AdvanceProgress(self, value=1):
+    """Advanced the progess bar.
+
+    Args:
+      value: The amount of progress to advance.
+    """
     self._finished_tests += value
     if self._finished_tests > self._total_tests:
       self._finished_tests = self._total_tests
     self._template.SetProgressBarValue(
         100 * self._finished_tests / self._total_tests)
 
-  ARGS = [
-    Arg('media', str, 'Media type'),
-    Arg('vidpid', (str, list),
-        'Vendor ID and Product ID of the target testing device', None,
-        optional=True),
-    Arg('sysfs_path', str, 'The expected sysfs path that udev events should'
-        'come from, ex: /sys/devices/pci0000:00/0000:00:1a.0/usb1/1-1/1-1.2',
-        None, optional=True),
-    Arg('block_size', int,
-        'Size of each block in bytes used in read / write test', 1024),
-    Arg('perform_random_test', bool,
-        'Whether to run random read / write test', True),
-    Arg('random_read_threshold', (int, float),
-        'The lowest random read rate the device should achieve', None,
-        optional=True),
-    Arg('random_write_threshold', (int, float),
-        'The lowest random write rate the device should achieve', None,
-        optional=True),
-    Arg('random_block_count', int,
-        'Number of blocks to test during random read / write test', 3),
-    Arg('perform_sequential_test', bool,
-        'Whether to run sequential read / write tes', False),
-    Arg('sequential_read_threshold', (int, float),
-        'The lowest sequential read rate the device should achieve',
-        None, optional=True),
-    Arg('sequential_write_threshold', (int, float),
-        'The lowest sequential write rate the device should achieve',
-        None, optional=True),
-    Arg('sequential_block_count', int,
-        'Number of blocks to test in sequential read / write test', 1024),
-    Arg('perform_locktest', bool, 'Whether to run lock test', False),
-    Arg('extra_prompt_en', (str, unicode),
-        'An extra prompt (in English), e.g., to specify which USB port to use',
-        optional=True),
-    Arg('extra_prompt_zh', (str, unicode), 'An extra prompt (in Chinese)',
-        optional=True),
-    Arg('bft_fixture', dict,
-        '{class_name: BFTFixture\'s import path + module name\n'
-        ' params: a dict of params for BFTFixture\'s Init()}.\n'
-        'Default None means no BFT fixture is used.',
-        default=None, optional=True),
-    Arg('bft_media_device', str,
-        'Device name of BFT used to insert/remove the media.',
-        optional=True)
-  ]
+  def Fail(self, msg):
+    """Fails the test."""
+    self._stop_test.set()
+    self._ui.Fail(msg)
+
+  def Pass(self):
+    """Passes the test."""
+    self._stop_test.set()
+    self._ui.Pass()
 
   def runTest(self):
-    '''Main entrance of removable storage test.'''
-    os.chdir(os.path.join(os.path.dirname(__file__), '%s_static' %
-                          self.test_info.pytest_name)) # pylint: disable=E1101
-
+    """Main entrance of removable storage test."""
     random.seed(0)
 
     if self.args.vidpid and type(self.args.vidpid) != type(list()):
@@ -623,13 +668,6 @@ class RemovableStorageTest(unittest.TestCase):
     self._finished_tests = 0
     self._template.SetProgressBarValue(0)
 
-    # Create a daemon pyudev thread to listen to device events
-    self._pyudev_thread = PyudevThread(self.UdevEventCallback,
-                                       subsystem='block',
-                                       device_type='disk')
-    self._pyudev_thread.daemon = True
-    self._pyudev_thread.start()
-
     if self.args.bft_fixture:
       self._bft_fixture = CreateBFTFixture(**self.args.bft_fixture)
       self._bft_media_device = self.args.bft_media_device
@@ -642,4 +680,13 @@ class RemovableStorageTest(unittest.TestCase):
           self.fail(_ERR_BFT_ACTION_STR(
               'insert', self.args.media, self._target_device, e))
 
-    self._ui.Run()
+    self._ui.Run(blocking=False)
+
+    # Start to monitor udev events.
+    context = pyudev.Context()
+    monitor = pyudev.Monitor.from_netlink(context)
+    monitor.filter_by(subsystem='block', device_type='disk')
+    for action, device in monitor:
+      self.HandleUdevEvent(action, device)
+      if self._stop_test.isSet():
+        break

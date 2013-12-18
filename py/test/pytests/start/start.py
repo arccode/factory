@@ -4,15 +4,17 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-# DESCRIPTION :
-# This factory test runs at the start of a test sequence to verify the DUT has
-# been setup correctly.
-#
-# The start provides several settings (set via darg):
-# 'require_external_power': Prompts and waits for external power to be applied.
-# 'require_shop_floor': Prompts and waits for serial number as input.
-# 'check_factory_install_complete': Check factory install process was complete.
-# 'press_to_continue': Prompts and waits for a key press (SPACE) to continue.
+"""The 'start' factory test.
+
+This factory test runs at the start of a test sequence to verify the DUT has
+been setup correctly.
+
+The start provides several settings (set via darg):
+  'require_external_power': Prompts and waits for external power to be applied.
+  'require_shop_floor': Prompts and waits for serial number as input.
+  'check_factory_install_complete': Check factory install process was complete.
+  'press_to_continue': Prompts and waits for a key press (SPACE) to continue.
+"""
 
 import logging
 import os
@@ -95,7 +97,7 @@ _MSG_CONTACTING_SERVER = test_ui.MakeLabel(
     r'start-contacting-server')
 
 # Javascripts and HTML for tasks
-_JS_SPACE = '''
+_JS_SPACE = """
     function enableSpaceKeyPressListener() {
       window.addEventListener(
           "keypress",
@@ -105,12 +107,12 @@ _JS_SPACE = '''
             }
           });
       window.focus();
-    }'''
+    }"""
 _EVENT_SUBTYPE_SHOP_FLOOR = 'Start-Serial'
-_HTML_SHOP_FLOOR = '''
+_HTML_SHOP_FLOOR = """
     <input type="text" id="serial" style="height: 2.5em; width: 20em"/>
-    <div id="errormsg" class="test-error"></div>'''
-_JS_SHOP_FLOOR = '''
+    <div id="errormsg" class="test-error"></div>"""
+_JS_SHOP_FLOOR = """
     function submit() {
       var text = document.getElementById("serial");
       window.test.sendTestEvent("%s", text.value);
@@ -125,10 +127,11 @@ _JS_SHOP_FLOOR = '''
         submit();
       }
     })
-    element.focus();''' % _EVENT_SUBTYPE_SHOP_FLOOR
+    element.focus();""" % _EVENT_SUBTYPE_SHOP_FLOOR
 _LSB_FACTORY_PATH = '/usr/local/etc/lsb-factory'
 
 class PressSpaceTask(FactoryTask):
+  """A factory task to wait for space press event."""
   def __init__(self, test): # pylint: disable=W0231
     self._test = test
 
@@ -139,6 +142,7 @@ class PressSpaceTask(FactoryTask):
 
 
 class ExternalPowerTask(FactoryTask):
+  """A factory task to wait for external power."""
   AC_CONNECTED = 1
   AC_DISCONNECTED = 2
   AC_CHECK_PERIOD = 0.5
@@ -167,6 +171,7 @@ class ExternalPowerTask(FactoryTask):
       return self.AC_DISCONNECTED
 
 class FactoryInstallCompleteTask(FactoryTask):
+  """A factory task to check if factory install is complete."""
   def __init__(self, test): # pylint: disable=W0231
     self._test = test
 
@@ -196,6 +201,7 @@ class FactoryInstallCompleteTask(FactoryTask):
 
 
 class ShopFloorTask(FactoryTask):
+  """A factory task to connect to shopfloor server."""
   def __init__(self, test): # pylint: disable=W0231
     self._test = test
 
@@ -253,7 +259,7 @@ class ShopFloorTask(FactoryTask):
 
 
 class ReadVPDSerialTask(FactoryTask):
-  '''If the serial number is already stored in VPD, we can just read it.'''
+  """If the serial number is already stored in VPD, we can just read it."""
   def __init__(self, test): # pylint: disable=W0231
     self._test = test
 
@@ -291,6 +297,7 @@ class ReadVPDSerialTask(FactoryTask):
 
 
 class StartTest(unittest.TestCase):
+  """The factory test to start the whole factory test process."""
   ARGS = [
     Arg('press_to_continue', bool, 'Need to press space to continue',
         default=True, optional=True),

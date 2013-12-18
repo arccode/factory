@@ -3,9 +3,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-
 """A pytest for operator to input a string of data."""
-
 
 import logging
 import re

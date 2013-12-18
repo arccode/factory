@@ -12,7 +12,6 @@
 import collections
 
 import factory_common # pylint: disable=W0611
-
 from cros.factory.system.power import Power
 from cros.factory.test.utils import Enum
 
