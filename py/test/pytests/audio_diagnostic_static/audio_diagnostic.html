@@ -10,33 +10,50 @@
             <span class="goofy-label-en">Tone generator</span>
             <span class="goofy-label-zh">音频信号发生器</span>
           </h2>
-          <button id="tone_btn" class="btn-off" onclick="toneButtonClicked()">
-            <div class="goofy-label-en">
-              <span class="btn-on-text">Tone off</span>
-              <span class="btn-off-text">Tone On</span>
-            </div>
-            <div class="goofy-label-zh">
-              <span class="btn-on-text">关闭音频</span>
-              <span class="btn-off-text">播放音频</span>
-            </div>
-          </button>
-          <select id="tone_type" onchange="toneTypeChanged()">
-            <option value="sine">Sine / 弦波</option>
-            <option value="square">Square / 方波</option>
-            <option value="triangle">Triangle / 三角波</option>
-          </select>
-          <div style="width: 350px">
-            <input id="freq_bar" type="range" min="1" max="500"
-              style="width: 350px" onchange="freqBarChanged(this.value)"/>
-            <div id='freq' align="center" class='edit-off'>
-              <span id="freq_curr">ff</span>
-              /
-              <span id="freq_max_label" class='freq-max-label' onclick="editMax(true)">mm</span>
-              <input id="freq_max_edit" class='freq-max-edit' onblur="editMax(false)"
-                  onkeydown="if (event.keyCode == 13) editMax(false);"/>
-              Hz
-            </div>
-          </div>
+          <table style="width: 100%">
+            <tr>
+              <td class="tonegen-main-cell">
+                <button id="tone_btn" class="btn-off"
+                    onclick="toneButtonClicked()">
+                  <div class="goofy-label-en">
+                    <span class="btn-on-text">Tone off</span>
+                    <span class="btn-off-text">Tone On</span>
+                  </div>
+                  <div class="goofy-label-zh">
+                    <span class="btn-on-text">关闭音频</span>
+                    <span class="btn-off-text">播放音频</span>
+                  </div>
+                </button>
+                <select id="tone_type" onchange="toneTypeChanged()">
+                  <option value="sine">Sine / 弦波</option>
+                  <option value="square">Square / 方波</option>
+                  <option value="triangle">Triangle / 三角波</option>
+                </select>
+                <div>
+                  <input id="freq_bar" type="range" min="1" max="500"
+                    style="width: 100%" onchange="freqBarChanged(this.value)"/>
+                  <div id='freq' align="center" class='edit-off'>
+                    <span id="freq_curr">ff</span>
+                    /
+                    <span id="freq_max_label" class='freq-max-label'
+                        onclick="editMax(true)">mm</span>
+                    <input id="freq_max_edit" class='freq-max-edit'
+                        onblur="editMax(false)"
+                        onkeydown="if (event.keyCode == 13) editMax(false);"/>
+                    Hz
+                  </div>
+                </div>
+              </td>
+              <td class="tonegen-vol-cell">
+                <input type="range" min="1" max="20" value="10"
+                    onchange="leftGain(this.value);"/>
+                <input type="range" min="1" max="20" value="10"
+                    onchange="rightGain(this.value);"/>
+                <br>
+                L  /  R
+              </td>
+            </tr>
+          </table>
         </div>
       </td>
       <td rowspan="2">

@@ -20,6 +20,33 @@ toneGen.init = function(freq, freq_max) {
   this.setFreqMax(freq_max);
   this.setToneType('sine');
   this.audioContext = new webkitAudioContext();
+  this.gainLeft = this.audioContext.createGainNode();
+  this.gainRight = this.audioContext.createGainNode();
+  this.splitter = this.audioContext.createChannelSplitter(2);
+  this.merger = this.audioContext.createChannelMerger(2);
+  this.splitter.connect(this.gainLeft);
+  this.splitter.connect(this.gainRight);
+  this.gainLeft.connect(this.merger, 0, 0);
+  this.gainRight.connect(this.merger, 0, 1);
+  this.gainLeft.gain.value = 0.5;
+  this.gainRight.gain.value = 0.5;
+  this.merger.connect(this.audioContext.destination);
+}
+
+/**
+ * Sets value to the left gain of tonegen.
+ * @param {int} value of the gain slider, max 20.
+ */
+function leftGain(val) {
+  toneGen.gainLeft.gain.value = val / 20;
+}
+
+/**
+ * Sets value to the right gain of tonegen.
+ * @param {int} value of the gain slider, max 20.
+ */
+function rightGain(val) {
+  toneGen.gainRight.gain.value = val / 20;
 }
 
 /**
@@ -79,7 +106,7 @@ toneGen.playTone = function(freq, type, delay) {
   this.osc = this.audioContext.createOscillator();
   this.osc.type = type;
   this.osc.frequency.value = freq;
-  this.osc.connect(this.audioContext.destination);
+  this.osc.connect(this.splitter);
   this.osc.start(delay);
 }
 
