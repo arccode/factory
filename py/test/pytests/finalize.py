@@ -3,6 +3,15 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+
+"""The finalize test is the last step before DUT switching to release image.
+
+The test checks if all tests are passed, and checks the hardware
+write-protection, charge percentage. Then it invoke gooftool finalize with
+specified arguments to switch the machine to release image.
+"""
+
+
 import logging
 import os
 import re
@@ -47,6 +56,7 @@ MSG_FINALIZING = MakeLabel(
     "不然机器将无法开机。")
 
 class Finalize(unittest.TestCase):
+  """The main class for finalize pytest."""
   ARGS = [
       Arg('write_protection', bool,
           'Check write protection.', default=True),
@@ -69,9 +79,14 @@ class Finalize(unittest.TestCase):
           optional=True),
       Arg('waive_tests', list,
           'Do not require certain tests to pass.  This is a list of elements; '
-          'each element must either be a test path, or a tuple of test path '
-          'and a regular expression that must match the error message in '
-          'order to waive the test, e.g.: [("FATP.FooBar", r"Timeout")].  '
+          'each element must either be a regular expression of test path, '
+          'or a tuple of regular expression of test path and a regular '
+          'expression that must match the error message in order to waive the '
+          'test. If regular expression of error message is empty, the test '
+          'can be waived if it is either UNTESTED or FAILED. '
+          'e.g.: [(r"^FATP\.FooBar$", r"Timeout"), (r"Diagnostic\..*")] will '
+          'waive FATP.FooBar test if error message starts with Timeout. It '
+          'will also waive all Diagnostic.* tests, either UNTESTED or FAILED. '
           'Error messages may be multiline (e.g., stack traces) so this is a '
           'multiline match.  This is a Python re.match operation, so it will '
           'match from the beginning of the error string.',
@@ -115,17 +130,16 @@ class Finalize(unittest.TestCase):
     test_list = self.test_info.ReadTestList()
 
     # Preprocess waive_tests: turn it into a list of tuples where the
-    # first element is the test name and the second is the regular
-    # expression.
+    # first element is the regular expression of test id and the second
+    # is the regular expression of error messages.
     for i, w in enumerate(self.args.waive_tests):
       if isinstance(w, str):
         w = (w, '')  # '' matches anything
       self.assertTrue(isinstance(w, tuple) and
                       len(w) == 2,
                       'Invalid waive_tests element %r' % (w,))
-      self.assertTrue(test_list.lookup_path(w[0]),
-                      'Test %r does not exist' % w[0])
-      self.args.waive_tests[i] = (w[0], re.compile(w[1], re.MULTILINE))
+      self.args.waive_tests[i] = (re.compile(w[0]),
+                                  re.compile(w[1], re.MULTILINE))
 
     test_states = test_list.as_dict(
       factory.get_state_instance().get_test_states())
@@ -199,14 +213,28 @@ class Finalize(unittest.TestCase):
           continue
 
         if v.status == factory.TestState.UNTESTED:
-          return False
+          # See if it's been waived. The regular expression of error messages
+          # must be empty string.
+          waived = False
+          for regex_path, regex_error_msg in self.args.waive_tests:
+            if regex_path.match(k) and not regex_error_msg.pattern:
+              self.waived_tests.add(k)
+              waived = True
+              logging.info('Waived UNTESTED test %r', k)
+              break
+
+          if not waived:
+            # It has not been waived.
+            return False
+
         if v.status == factory.TestState.FAILED:
           # See if it's been waived.
           waived = False
-          for path, regex in self.args.waive_tests:
-            if path == k and regex.match(v.error_msg):
+          for regex_path, regex_error_msg in self.args.waive_tests:
+            if regex_path.match(k) and regex_error_msg.match(v.error_msg):
               self.waived_tests.add(k)
               waived = True
+              logging.info('Waived FAILED test %r', k)
               break
 
           if not waived:
