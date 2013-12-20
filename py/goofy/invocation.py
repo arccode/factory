@@ -4,6 +4,10 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+
+"""Classes and Methods related to invoking a pytest or autotest."""
+
+
 import fnmatch
 import logging
 import os
@@ -62,13 +66,18 @@ class TestArgEnv(object):
   def GetMACAddress(self, interface):
     return open('/sys/class/net/%s/address' % interface).read().strip()
 
-  def GetDeviceData(self, key=None, default_value=None):
+  def GetDeviceData(self):
     '''Returns shopfloor.GetDeviceData().
 
-    The value is cached to avoid extra calls to GetDeviceData().'''
+    The value is cached to avoid extra calls to GetDeviceData().
+    '''
     if self.device_data is None:
       self.device_data = shopfloor.GetDeviceData()
     return self.device_data
+
+  def InEngineeringMode(self):
+    """Returns if goofy is in engineering mode."""
+    return factory.get_shared_data('engineering_mode')
 
 
 def ResolveTestArgs(dargs):
@@ -117,6 +126,7 @@ def ResolveTestArgs(dargs):
 
 
 class PyTestInfo(object):
+  """The class containing the info that will be passed to a pytest."""
   def __init__(self, test_list, path, pytest_name, args, results_path):
     self.test_list = test_list
     self.path = path
@@ -139,8 +149,7 @@ class PyTestInfo(object):
 
 
 class TestInvocation(object):
-  '''
-  State for an active test.
+  '''State for an active test.
 
   Properties:
     update_state_on_completion: State for Goofy to update on
@@ -221,9 +230,7 @@ class TestInvocation(object):
     self.thread.start()
 
   def abort_and_join(self, reason=None):
-    '''
-    Aborts a test (must be called from the event controller thread).
-    '''
+    '''Aborts a test (must be called from the event controller thread).'''
     with self._lock:
       self._aborted = True
       self._aborted_reason = reason
@@ -237,9 +244,7 @@ class TestInvocation(object):
       self._completed = True
 
   def is_completed(self):
-    '''
-    Returns true if the test has finished.
-    '''
+    '''Returns true if the test has finished.'''
     return self._completed
 
   def _aborted_message(self):
@@ -248,8 +253,7 @@ class TestInvocation(object):
         (': ' + self._aborted_reason) if self._aborted_reason else '')
 
   def _invoke_autotest(self):
-    '''
-    Invokes an autotest test.
+    '''Invokes an autotest test.
 
     This method encapsulates all the magic necessary to run a single
     autotest test using the 'autotest' command-line tool and get a
@@ -351,9 +355,7 @@ class TestInvocation(object):
       return status, error_msg  # pylint: disable=W0150
 
   def _invoke_pytest(self):
-    '''
-    Invokes a pyunittest-based test.
-    '''
+    '''Invokes a pyunittest-based test.'''
     assert self.test.pytest_name
 
     files_to_delete = []
@@ -451,9 +453,7 @@ class TestInvocation(object):
                     f)
 
   def _invoke_target(self):
-    '''
-    Invokes a target directly within Goofy.
-    '''
+    '''Invokes a target directly within Goofy.'''
     try:
       self.test.invocation_target(self)
       return TestState.PASSED, ''
@@ -662,7 +662,7 @@ def run_pytest(test_info):
 
     # Register a handler for SIGTERM, so that Python interpreter has
     # a chance to do clean up procedures when SIGTERM is received.
-    def _SIGTERMHandler(signum, frame):
+    def _SIGTERMHandler(signum, frame):  # pylint: disable=W0613
       logging.error('SIGTERM received')
       raise factory.FactoryTestFailure('SIGTERM received')
     signal.signal(signal.SIGTERM, _SIGTERMHandler)

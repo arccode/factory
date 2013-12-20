@@ -21,6 +21,7 @@ import glob
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import utils
 from cros.factory.test.test_lists import generic_control_run
+from cros.factory.test.test_lists import generic_diagnostic
 from cros.factory.test.test_lists import generic_experiment
 from cros.factory.test.test_lists import generic_fatp
 from cros.factory.test.test_lists import generic_grt
@@ -296,6 +297,9 @@ class TestListArgs(object):
   # Set the user that can force finalize.
   # The possible values in the list are 'engineer' and 'operator'.
   grt_allow_force_finalize = []
+
+  # Set the waive tests in finalize. Waive all tests in Diagnostic test group.
+  grt_waive_tests = [(r'^Diagnostic\..*')]
 
   #####
   #
@@ -611,6 +615,7 @@ def CreateGenericTestList():
     generic_run_in.RunIn(args)
     generic_fatp.FATP(args)
     generic_grt.GRT(args)
+    generic_diagnostic.Diagnostic(args)
 
 
 def CreateExperimentTestList():
@@ -631,7 +636,7 @@ def CreateExperimentTestList():
     SetOptions(test_list.options, args)
     test_list.options.auto_run_on_start = False
     test_list.options.stop_on_failure = True
-    test_list.options.engineering_password_sha1 = ''
+    test_list.options.engineering_password_sha1 = None
     test_list.options.ui_lang = 'zh'
     generic_experiment.Experiment(args)
     generic_run_in.RunIn(args)
