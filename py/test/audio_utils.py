@@ -4,6 +4,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+"""This is audio utility module to setup amixer related options."""
+
 import logging
 import os
 import re
@@ -234,6 +236,7 @@ class AudioUtil(object):
 
     Args:
       mixer_settings: A dict of mixer settings to set.
+      card: The index of audio card
     """
     logging.info('Setting mixer control values on %s', card)
     for name, value in mixer_settings.items():
@@ -268,9 +271,6 @@ class AudioUtil(object):
 
     Returns:
       True if headphone jack is plugged, False otherwise.
-
-    Raise:
-      ValueError: When unable to get headphone jack status.
     """
     if HP_JACK_NAME in self.audio_config:
       hp_jack_name = self.audio_config[HP_JACK_NAME]
@@ -287,7 +287,7 @@ class AudioUtil(object):
                      'SW_HEADPHONE_INSERT'],
                     call=True)
       return query.returncode != 0
-    raise ValueError('Fail to get headphone status')
+    return False
 
   def GetMicJackStatus(self, card='0'):
     """Gets the plug/unplug status of mic jack.
@@ -297,9 +297,6 @@ class AudioUtil(object):
 
     Returns:
       True if mic jack is plugged, False otherwise.
-
-    Raise:
-      ValueError: When unable to get mic jack status.
     """
     if MIC_JACK_NAME in self.audio_config:
       mic_jack_name = self.audio_config[MIC_JACK_NAME]
@@ -316,7 +313,7 @@ class AudioUtil(object):
                      'SW_MICROPHONE_INSERT'],
                     call=True)
       return query.returncode != 0
-    raise ValueError('Fail to get mic jack status')
+    return False
 
   def ApplyAudioConfig(self, action, card='0'):
     if card in self.audio_config:

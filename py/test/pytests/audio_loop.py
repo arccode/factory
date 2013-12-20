@@ -68,6 +68,10 @@ class PlaySineThread(threading.Thread):
 
 
 class AudioLoopTest(unittest.TestCase):
+  """Audio Loop test to test two kind of situations.
+  1. Speaker to digital microphone.
+  2. Headphone out to headphone in.
+  """
   ARGS = [
     # Common arguments
     Arg('freq_threshold', int, 'Acceptable frequency margin',
@@ -155,10 +159,11 @@ class AudioLoopTest(unittest.TestCase):
                     'run with HP/Mic jack plugged')
       return
 
+    factory.console.info('Run audiofuntest from %r to %r' % (
+        self._output_device, self._input_device))
     for channel in xrange(audio_utils.DEFAULT_NUM_CHANNELS):
+      factory.console.info('Test channel %d' % channel)
       test_result = None
-      factory.console.info('Run audiofuntest from %r to %r' % (
-          self._output_device, self._input_device))
       process = Spawn([audio_utils.AUDIOFUNTEST_PATH,
           '-r', '48000', '-i', self._input_device, '-o', self._output_device,
           '-l', '%d' % self._audiofun_duration_secs, '-a', '%d' % channel],
@@ -206,8 +211,8 @@ class AudioLoopTest(unittest.TestCase):
       num_channels: Number of channels to test
     """
     for channel in xrange(num_channels):
-      reduced_file_name = "reduced-%d-%s.wav" % (channel, time.time())
-      record_file_name = "record-%d-%s.wav" % (channel, time.time())
+      reduced_file_name = "/tmp/reduced-%d-%s.wav" % (channel, time.time())
+      record_file_name = "/tmp/record-%d-%s.wav" % (channel, time.time())
 
       # Play thread has one more second to ensure record process can record
       # entire sine tone
