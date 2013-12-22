@@ -6,6 +6,7 @@
 
 """Please run in chroot:
 $ sudo USE='jpeg png' emerge opencv
+$ sudo USE='jpeg python' emerge zbar
 Otherwise the unittest will be skipped automatically.
 """
 
@@ -15,18 +16,13 @@ import factory_common # pylint: disable=W0611
 
 from cros.factory.test.fixture.camera.light_chamber import LightChamber
 import cros.factory.test.fixture.camera.perf_tester as camperf
+import cros.factory.test.fixture.camera.barcode as barcode
 
 
 class CameraFixtureTest(unittest.TestCase):
-  def runTest(self):
-    try:
-      import cv      # pylint: disable=W0612,F0401
-      import cv2     # pylint: disable=W0612,F0401
-      import numpy   # pylint: disable=W0612,F0401
-    except ImportError:
-      print('Camera fixture unit test is skipped for missing OpenCV/numpy.')
-      return
-
+  """Unit test for CameraFixture class."""
+  def TestIQ(self):
+    """Test Image Quality."""
     #######################
     # Test chart version A
     #######################
@@ -103,7 +99,27 @@ class CameraFixtureTest(unittest.TestCase):
     self.assertAlmostEqual(tar_mtf.mtf, 0.2961126, delta=0.00001)
     self.assertAlmostEqual(tar_mtf.min_mtf, 0.2250828, delta=0.00001)
 
-    print('Camera fixture unittest completes successfully.')
+  def TestQR(self):
+    """Test QR Code."""
+    chamber = LightChamber(test_chart_version='QR', mock_mode=True,
+                           device_index=-1, image_resolution=(720, 540))
+    img, _ = chamber.ReadSingleFrame(return_gray_image=False)
+    self.assertEqual(barcode.ScanQRCode(img)[0], 'Hello ChromeOS!')
+
+  def runTest(self):
+    try:
+      import cv      # pylint: disable=W0612,F0401
+      import cv2     # pylint: disable=W0612,F0401
+      import numpy   # pylint: disable=W0612,F0401
+      import zbar    # pylint: disable=W0612,F0401
+    except ImportError:
+      print('Camera fixture unit test is skipped for missing OpenCV/numpy.')
+      return
+
+    self.TestIQ()
+    print('IQ unit test has completed successfully.')
+    self.TestQR()
+    print('QR unit test has completed successfully.')
 
 
 if __name__ == "__main__":

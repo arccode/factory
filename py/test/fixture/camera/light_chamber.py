@@ -2,9 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""
-Implementation for light chamber connection.
-"""
+"""Implementation for light chamber connection."""
 
 try:
   import cv   # pylint: disable=F0401
@@ -24,20 +22,23 @@ _MOCK_IMAGE_FILE = 'mock_%s.jpg'
 
 
 class LightChamberError(Exception):
+  """Light chamber exception class."""
   pass
 
 
 class LightChamber(object):
+  """Light chamber interface."""
   def __init__(self, test_chart_version, mock_mode, device_index,
                image_resolution):
-    """
+    """Initializes LightChamber.
+
     Args:
       test_chart_version: Version of the test chart.
       mock_mode: Run in mock mode.
       device_index: Video device index (-1 to auto pick device by OpenCV).
       image_resolution: A tuple (x-res, y-res) for image resolution.
     """
-    assert test_chart_version in ('A', 'B', 'White')
+    assert test_chart_version in ('A', 'B', 'White', 'QR')
     assert mock_mode in (True, False)
 
     self.test_chart_version = test_chart_version

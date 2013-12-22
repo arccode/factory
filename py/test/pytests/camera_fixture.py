@@ -10,25 +10,36 @@ Fixture types:
   - ABChamber: light chamber for AB sub-assembly line (after A and B panels are
                assembled).
   - ModuleChamber: light chamber for module-level OQC, IQC, production QC.
-  - LightPanel: light panel for standalone lens shading test.
+  - Panel: a simple test chart panel for standalone lens shading and QR test.
 
 Test types:
   - When fixture_type == {Full|AB|Module}Chamber:
     - Calibration: calibrates light chamber and test chart to align with the
                    golden sample (only checking image shift and tilt).
-    - IQ: checks IQ factors such as MTF (sharpness), lens shading, image shift,
-          and image tilt in one test.
+    - IQ (Image Quality): checks IQ factors such as MTF (sharpness), lens
+                          shading, image shift, and image tilt in one test.
 
-  - When fixture_type == LightPanel
+  - When fixture_type == Panel
     - LensShading: checks lens shading ratio (usually fails when camera module
                    is not precisely aligned with the view hole on bezel).
+    - QR: scans QR code. QR bar code test is intended for a fixtureless camera
+          test. We only need a piece of paper to verify if camera is functional
+          without human judgement. But the test coverage is not as complete
+          as IQ test.
 
 Test chart versions:
   - A: 7x11 blocks. Used for 720p camera or similar aspect ratio.
   - B: 7x9 blocks. Used for VGA camera or similar aspect ratio.
   - White: All white. Used for standalone lens shading test.
+  - QR: QR code.
 
-Data methods for IQ tests:
+Hot keys:
+  - Press Enter or Space keys to start the IQ test
+  - Press ESC to leave the test.
+
+[IQ Test Only]
+
+Data methods for IQ test:
   - Simple: read parameters from 'IQ_param_dict' argument, but skips saving
             test results.
   - USB: read parameter file from USB drive, and saves test results in USB drive
@@ -37,17 +48,43 @@ Data methods for IQ tests:
                shopfloor aux_logs. This is recommended over USB when there is
                Shopfloor environment because USB drive is not reliable.
 
-Hot keys:
-  - Press Enter or Space keys to start the IQ test
-  - Press ESC to leave the test.
-
 Test parameters for IQ test:
   - Please check camera_fixture_static/camera.params.sample
 
 Analysis of saved test data from IQ test:
   - Use py/test/fixture/camera/analysis/analyze_camera_fixture_data.py
 
-Usage Examples:
+[Usage Examples]
+
+# Without light chamber:
+
+  # Standalone lens shading check.
+  OperatorTest(
+    id='LensShading',
+    pytest_name='camera_fixture',
+    dargs={
+      'mock_mode': False,
+      'test_type': 'LensShading',
+      'fixture_type': 'Panel',
+      'test_chart_version': 'White',
+      'capture_resolution': (640, 480),
+      'resize_ratio': 0.7,
+      'lens_shading_ratio': 0.30})
+
+  # Standalone QR code scan.
+  OperatorTest(
+    id='QRScan',
+    pytest_name='camera_fixture',
+    dargs={
+      'mock_mode': False,
+      'test_type': 'QR',
+      'fixture_type': 'Panel',
+      'test_chart_version': 'QR',
+      'capture_resolution': (640, 480),
+      'resize_ratio': 0.5,
+      'QR_string': 'Hello ChromeOS!'})
+
+# With light chamber:
 
   # Fixture calibration for FATP line.
   OperatorTest(
@@ -62,19 +99,6 @@ Usage Examples:
       'resize_ratio': 0.7,
       'calibration_shift': 0.003,
       'calibration_tilt': 0.25})
-
-  # Standalone lens shading check.
-  OperatorTest(
-    id='LensShading',
-    pytest_name='camera_fixture',
-    dargs={
-      'mock_mode': False,
-      'test_type': 'LensShading',
-      'fixture_type': 'LightPanel',
-      'test_chart_version': 'White',
-      'capture_resolution': (640, 480),
-      'resize_ratio': 0.7,
-      'lens_shading_ratio': 0.30})
 
   # IQ (Image Quality) test with shopfloor.
   OperatorTest(
@@ -126,6 +150,7 @@ from cros.factory.test import leds
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
+import cros.factory.test.fixture.camera.barcode as barcode
 from cros.factory.test.fixture.camera.camera_utils import EncodeCVImage
 from cros.factory.test.fixture.camera.light_chamber import (
     LightChamber, LightChamberError)
@@ -140,6 +165,9 @@ from cros.factory.utils import net_utils
 CALIBRATION_FPS = 15
 # Delay between each frame during lens shading test.
 LENS_SHADING_FPS = 5
+# Delay between each frame during QR Code scanning.
+QR_CODE_FPS = 10
+
 # TODO(jchuang): import from event.py
 # Upper limit of message size in JavaScript RPC.
 MAX_MESSAGE_SIZE = 60000
@@ -181,6 +209,8 @@ MSG_TITLE_CALIBRATION = test_ui.MakeLabel(
     'Camera Fixture Calibration', u'相机制具校正')
 MSG_TITLE_LENS_SHADING_TEST = test_ui.MakeLabel(
     'Camera Lens Shading Test', u'相机镜头黑点测试')
+MSG_TITLE_QR_CODE_TEST = test_ui.MakeLabel(
+    'Scan QR Code', u'扫描QR码')
 MSG_TITLE_IQ_TEST = test_ui.MakeLabel(
     'Camera Image Quality Test', u'相机影像品质测试')
 
@@ -206,7 +236,7 @@ LED_PATTERN = ((leds.LED_NUM|leds.LED_CAP, 0.05), (0, 0.05))
 
 
 # Data structures.
-TestType = Enum(['CALI', 'LS', 'IQ'])
+TestType = Enum(['CALI', 'LS', 'QR', 'IQ'])
 Fixture = Enum(['FULL', 'AB', 'MODULE', 'PANEL'])
 DataMethod = Enum(['SIMPLE', 'USB', 'SF'])
 EventType = Enum(['START_TEST', 'EXIT_TEST'])
@@ -283,7 +313,8 @@ class _IQTestDelegate(object):
 
   def __init__(self, delegator, chamber, fixture_type, data_method, local_ip,
                param_pathname, param_dict, save_good_image, save_bad_image):
-    """
+    """Initalizes _IQTestDelegate.
+
     Args:
       delegator: Instance of CameraFixture.
       chamber: Instance of LightChamber.
@@ -744,17 +775,18 @@ class _IQTestDelegate(object):
     self.delegator.ui.CallJSFunction('UpdateUSBStatus', False)
 
 class CameraFixture(unittest.TestCase):
+  """Camera fixture main class."""
   ARGS = [
     # main test type
     Arg('test_type', str, 'What to test. '
-        'Supported types: Calibration, LensShading, and IQ.'),
+        'Supported types: Calibration, LensShading, QR, and IQ.'),
 
     # test environment
     Arg('fixture_type', str, 'Type of the light chamber/panel. '
         'Supported types: FullChamber, ABChamber, ModuleChamber, '
-        'LightPanel.'),
+        'Panel.'),
     Arg('test_chart_version', str, 'Version of the test chart. '
-        'Supported types: A, B, White'),
+        'Supported types: A, B, White, QR'),
     Arg('mock_mode', bool, 'Mock mode allows testing without a fixture.',
         default=False),
     Arg('device_index', int, 'Index of camera video device. '
@@ -772,6 +804,11 @@ class CameraFixture(unittest.TestCase):
     Arg('lens_shading_ratio', float, 'Max len shading ratio allowed.',
         default=0.20),
     Arg('lens_shading_timeout_secs', int, 'Timeout in seconds.', default=20),
+
+    # when test_type = QR
+    Arg('QR_string', str, 'Encoded string in QR code.', default=None,
+        optional=True),
+    Arg('QR_timeout_secs', int, 'Timeout in seconds.', default=20),
 
     # when test_type = IQ
     Arg('IQ_data_method', str, 'How to read parameters and save test results. '
@@ -794,6 +831,7 @@ class CameraFixture(unittest.TestCase):
   TEST_TYPES = {
     'Calibration': TestType.CALI,
     'LensShading': TestType.LS,
+    'QR': TestType.QR,
     'IQ': TestType.IQ,
   }
 
@@ -802,7 +840,7 @@ class CameraFixture(unittest.TestCase):
     'FullChamber': Fixture.FULL,
     'ABChamber': Fixture.AB,
     'ModuleChamber': Fixture.MODULE,
-    'LightPanel': Fixture.PANEL
+    'Panel': Fixture.PANEL
   }
 
   # self.args.IQ_data_method => DataMethod
@@ -828,9 +866,11 @@ class CameraFixture(unittest.TestCase):
     self.fixture_type = CameraFixture.FIXTURE_TYPES[self.args.fixture_type]
 
     # Check test type and fixture type.
-    # Light panel only supports TestType.LS.
-    assert self.fixture_type != Fixture.PANEL or self.test_type == TestType.LS
-    assert (self.args.test_chart_version != 'White' or
+    assert bool(self.fixture_type == Fixture.PANEL) == bool(
+        self.test_type in [TestType.LS, TestType.QR])
+    assert bool(self.args.test_chart_version == 'QR') == bool(
+            self.test_type == TestType.QR)
+    assert bool(self.args.test_chart_version == 'White') == bool(
             self.test_type == TestType.LS)
     assert (self.args.IQ_data_method != 'Simple' or
             self.args.IQ_param_dict is not None)
@@ -857,6 +897,8 @@ class CameraFixture(unittest.TestCase):
       self._RunCalibration()
     elif self.test_type == TestType.LS:
       self._RunLensShadingTest()
+    elif self.test_type == TestType.QR:
+      self._RunQRCodeTest()
     elif self.test_type == TestType.IQ:
       self._RunIQTest()
     else:
@@ -973,6 +1015,57 @@ class CameraFixture(unittest.TestCase):
             self.ui.Fail(
                 'Failed to meet the lens shading criteria with '
                 'ratio=%f (> %f).' % (ls_ratio, self.args.lens_shading_ratio))
+          break
+
+        time.sleep(frame_delay)
+    finally:
+      self.chamber.DisableCamera()
+
+  def _RunQRCodeTest(self):
+    """Main routine for standalone QR Code test.
+
+    The test keeps reading images from camera and updating preview on screen. If
+    it scans QR code correctly on a single frame, it will exit the test
+    successfully. Otherwise, it will prompt FAIL. If the test doesn't pass
+    before timeout, it will also fail.
+
+    """
+    self.ui.CallJSFunction('InitForQRCodeTest')
+    self.ui.CallJSFunction('UpdateTextLabel', MSG_TITLE_QR_CODE_TEST,
+                           ID_MAIN_SCREEN_TITLE)
+
+    frame_delay = 1.0 / QR_CODE_FPS
+    end_time = time.time() + self.args.QR_timeout_secs
+    success = False
+
+    self.chamber.EnableCamera()
+    try:
+      while True:
+        remaining_time = end_time - time.time()
+        img, _ = self.chamber.ReadSingleFrame(return_gray_image=False)
+        self.ShowImage(img, ID_PREVIEW_IMAGE)
+
+        scan_results = barcode.ScanQRCode(img)
+        if len(scan_results) > 0:
+          scanned_text = scan_results[0]
+        else:
+          scanned_text = None
+        if scanned_text == self.args.QR_string:
+          success = True
+
+        log_msg = 'PASS: ' if success else 'FAIL: '
+        log_msg += "Remaining %d s. Scanned %r, expecting %r" % (
+            remaining_time, scanned_text, self.args.QR_string)
+        self.ShowTestStatus(msg=log_msg, style=(
+            STYLE_PASS if success else STYLE_FAIL))
+
+        event = self._PopInternalQueue(wait=False)
+        if (remaining_time <= 0 or success or
+            (event and event.event_type == EventType.EXIT_TEST)):
+          if success:
+            self.ui.Pass()
+          else:
+            self.ui.Fail('Failed to scan QR code')
           break
 
         time.sleep(frame_delay)

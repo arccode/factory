@@ -57,6 +57,17 @@ function InitForLensShadingTest() {
 
 
 /**
+ * Init layout for standalone QR Code test.
+ */
+function InitForQRCodeTest() {
+  document.getElementById("main_screen").hidden = false;
+  button_style = GetStartTestButton().style.visibility =
+      'hidden';
+  document.getElementById("preview_image").hidden = false;
+}
+
+
+/**
  * Init layout for IQ test on light chamber.
  *
  * @param {string} data_method Data method defined in CameraFixture.ARGS[]
