@@ -1,70 +1,27 @@
 #!/bin/env python
 #
-# Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
+# Copyright (c) 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import argparse
+"""HWID v3 utility functions."""
+
 import collections
-import logging
-import os
 import re
 import yaml
 
 import factory_common # pylint: disable=W0611
 from cros.factory import common as factory_common_utils
 from cros.factory import rule
-from cros.factory.gooftool import crosfw, probe
-from cros.factory.hwid import common, database, decoder, encoder
-from cros.factory.test import shopfloor, utils
+from cros.factory.gooftool import crosfw
+from cros.factory.gooftool import probe
+from cros.factory.hwid import common
+from cros.factory.hwid import database
+from cros.factory.hwid import decoder
+from cros.factory.hwid import encoder
+from cros.factory.test import shopfloor
+from cros.factory.test import utils
 from cros.factory.utils import process_utils
-
-
-_OPTION_PARSER = argparse.ArgumentParser(description='HWID tools')
-_OPTION_PARSER.add_argument(
-    '-p', '--hwid-db-path', default=None,
-    help='path to the HWID database directory.')
-_OPTION_PARSER.add_argument(
-    '-b', '--board', default=None,
-    help='board name of the HWID database to load. '
-         'required if not running on DUT')
-_OPTION_PARSER.add_argument(
-    '-v', '--verbose', default=False, action='store_true',
-    help='enable verbose output.')
-_OPTION_PARSER.add_argument(
-    '--no-verify-checksum', default=False, action='store_true',
-    help='do not check database checksum')
-
-_SUBPARSERS = _OPTION_PARSER.add_subparsers(
-    title='subcommands', help='Valid subcommands.', dest='subcommand')
-_SUBCOMMANDS = {}
-
-
-class Arg(object):
-  """A simple class to store arguments passed to the add_argument method of
-  argparse module.
-  """
-  def __init__(self, *args, **kwargs):
-    self.args = args
-    self.kwargs = kwargs
-
-
-def Command(name, help, args=None): # pylint: disable=W0622
-  """A decorator to set up args and register a subcommand.
-
-  Args:
-    name: The subcommand name.
-    help: Help message of the subcommand.
-    args: An optional list of Arg objects listing the arguments of the
-        subcommand.
-  """
-  def Wrapped(fn):
-    subparser = _SUBPARSERS.add_parser(name, help=help)
-    if args:
-      for arg in args:
-        subparser.add_argument(*arg.args, **arg.kwargs)
-    _SUBCOMMANDS[name] = fn
-  return Wrapped
 
 
 def _HWIDMode(rma_mode):
@@ -74,7 +31,7 @@ def _HWIDMode(rma_mode):
 
 
 def GenerateHWID(db, probed_results, device_info, vpd, rma_mode):
-  """Generates a version 3 HWID from the given data.
+  """Generates a HWID v3 from the given data.
 
   The HWID is generated based on the given device info and probed results. If
   there are conflits of component information between device_info and
@@ -82,7 +39,7 @@ def GenerateHWID(db, probed_results, device_info, vpd, rma_mode):
 
   Args:
     db: A Database object to be used.
-    probed_results: A dict containing the probe results to be used.
+    probed_results: A dict containing the probed results to be used.
     device_info: A dict of component infomation keys to their corresponding
         values. The format is device-specific and the meanings of each key and
         value vary from device to device. The valid keys and values should be
@@ -111,13 +68,11 @@ def GenerateHWID(db, probed_results, device_info, vpd, rma_mode):
 
 
 def DecodeHWID(db, encoded_string):
-  """Decodes the given version 3 HWID encoded string and returns the decoded
-  info.
+  """Decodes the given HWID v3 encoded string and returns the decoded info.
 
   Args:
     db: A Database object to be used.
-    encoded_string: A encoded HWID string to test. If not specified,
-        use gbb_utility to get HWID.
+    encoded_string: An encoded HWID string to test.
 
   Returns:
     The decoded HWIDv3 context object.
@@ -126,7 +81,7 @@ def DecodeHWID(db, encoded_string):
 
 
 def ParseDecodedHWID(hwid):
-  """Parse the HWID object into a more compact dict.
+  """Parses the HWID object into a more compact dict.
 
   This function returns the board name and binary string from the HWID object,
   along with a generated dict of components to their probed values decoded in
@@ -155,8 +110,7 @@ def ParseDecodedHWID(hwid):
 
 
 def VerifyHWID(db, encoded_string, probed_results, vpd, rma_mode):
-  """Verifies the given encoded version 3 HWID string against the component
-  db.
+  """Verifies the given encoded HWID v3 string against the component db.
 
   A HWID context is built with the encoded HWID string and the board-specific
   component database. The HWID context is used to verify that the probed
@@ -167,9 +121,8 @@ def VerifyHWID(db, encoded_string, probed_results, vpd, rma_mode):
 
   Args:
     db: A Database object to be used.
-    encoded_string: A encoded HWID string to test. If not specified,
-        defaults to the HWID read from GBB on DUT.
-    probed_results: A dict containing the probe results to be used.
+    encoded_string: An encoded HWID string to test.
+    probed_results: A dict containing the probed results to be used.
     vpd: A dict of RO and RW VPD values.
     rma_mode: True for RMA mode to allow deprecated components. Defaults to
         False.
@@ -183,6 +136,41 @@ def VerifyHWID(db, encoded_string, probed_results, vpd, rma_mode):
   hwid.VerifyComponentStatus()
   context = rule.Context(hwid=hwid, vpd=vpd)
   db.rules.EvaluateRules(context, namespace="verify.*")
+
+
+def VerifyComponents(db, probed_results, component_list):
+  """Verifies the given component list against the given HWID database.
+
+  This function is to ensure the installed components are correct.  This method
+  uses the HWID v3 component database to verify components.
+
+  Args:
+    db: A Database object to be used.
+    probed_results: A dict containing the probed results to be verified.
+    component_list: A list of components to verify. (e.g., ['camera', 'cpu'])
+
+  Returns:
+    A dict from component class to a list of one or more
+    ProbedComponentResult tuples.
+    {component class: [ProbedComponentResult(
+        component_name,  # The component name if found in the db, else None.
+        probed_string,   # The actual probed string. None if probing failed.
+        error)]}         # The error message if there is one.
+  """
+  return db.VerifyComponents(probed_results, component_list,
+                             loose_matching=True)
+
+
+def WriteHWID(encoded_string):
+  """Writes the given encoded version 3 HWID string to firmware GBB section.
+
+  Args:
+    encoded_string: An encoded HWID string to write.
+  """
+  main_fw = crosfw.LoadMainFirmware()
+  process_utils.Spawn(['gbb_utility', '--set', '--hwid=%s' % encoded_string,
+                       '%s' % main_fw.GetFileName()], check_call=True, log=True)
+  main_fw.Write(sections=['GBB'])
 
 
 def ListComponents(db, comp_class=None):
@@ -212,8 +200,127 @@ def ListComponents(db, comp_class=None):
   # Convert defaultdict to dict.
   return dict(output_components)
 
-def GetProbedResults(infile=None):
+
+def EnumerateHWID(db, image_id=None, status='supported'):
+  """Enumerates all the possible HWIDs.
+
+  Args:
+    db: A Database object to be used.
+    image_id: The image ID to use.  Defaults to the latest image ID.
+    status: By default only 'supported' components are enumerated.  Set this to
+        'all' if you want to include 'deprecated' and 'unsupported' components.
+
+  Returns:
+    A dict of all enumetated HWIDs to their list of components.
+  """
+  def _GenerateEncodedString(encoded_fields):
+    """Generates encoded string by encoded_fields
+
+    Args:
+      encoded_fields: This parameter records indices of encoded fields
+    """
+    encoding_pattern = 0
+    pass_check = True
+    components = collections.defaultdict(list)
+    component_list = []
+    for field, index in encoded_fields.iteritems():
+      # pylint: disable=W0212
+      attr_dict = db._GetAttributesByIndex(field, index)
+      comp_items = []
+      for comp_cls, attr_list in attr_dict.iteritems():
+        if attr_list is None:
+          comp_items.append('None')
+          components[comp_cls].append(common.ProbedComponentResult(
+              None, None, common.MISSING_COMPONENT_ERROR(comp_cls)))
+        else:
+          for attrs in attr_list:
+            if status == 'supported' and attrs.get('status') in (
+                common.HWID.COMPONENT_STATUS.unsupported,
+                common.HWID.COMPONENT_STATUS.deprecated):
+              pass_check = False
+              break
+            comp_items.append(attrs['name'])
+            components[comp_cls].append(common.ProbedComponentResult(
+                attrs['name'], attrs['values'], None))
+      component_list.append(' '.join(comp_items))
+    if pass_check:
+      bom = common.BOM(db.board, encoding_pattern, image_id, components,
+          encoded_fields)
+      binary_string = encoder.BOMToBinaryString(db, bom)
+      encoded_string = encoder.BinaryStringToEncodedString(db, binary_string)
+      hwid_dict[encoded_string] = ','.join(component_list)
+
+  def _RecursivelyGenerate(index=None, encoded_fields=None):
+    """Recursive function to generate all combinations.
+
+    Args:
+      index: This parameter means the index of pattern fields
+      encoded_fields: This parameter records index of components
+    """
+    if index >= len(fields_list):
+      _GenerateEncodedString(encoded_fields)
+      return
+
+    field = fields_list[index]
+    if field not in fields_bits.keys():
+      encoded_fields[field] = 0
+      _RecursivelyGenerate(index + 1, encoded_fields)
+    else:
+      for i in xrange(0, len(db.encoded_fields[field])):
+        if i >= 2 ** fields_bits[field]:
+          break
+        encoded_fields[field] = i
+        _RecursivelyGenerate(index + 1, encoded_fields)
+
+
+  def _ConvertImageID(image_id=None):
+    """Gets image ID.
+
+    Args:
+      image_id: The image ID.  It can be a number, a string, or None:
+        1. If it's a number then return the number.
+        2. If it's a string then look up the image ID in the database with it.
+        3. If it's None, return the latest image ID.
+
+    Returns:
+      An integer of the image ID as defined in the database.
+    """
+    max_image_id = max(db.image_id.keys())
+    if not isinstance(image_id, int):
+      if image_id is None:
+        image_id = max_image_id
+      else:
+        if image_id.isdigit():
+          image_id = int(image_id)
+        else:
+          for k, v in db.image_id.iteritems():
+            if image_id == v:
+              image_id = k
+              break
+    assert image_id in range(0, max_image_id+1), "Invalid Image ID"
+    return image_id
+
+  hwid_dict = {}
+  encoded_fields = collections.defaultdict(int)
+  image_id = _ConvertImageID(image_id)
+
+  fields_bits = collections.defaultdict(int)
+  for field in db.pattern.GetPatternByImageId(image_id)['fields']:
+    comp, bit_width = field.items()[0]
+    fields_bits[comp] += bit_width
+  fields_list = []
+  for comp_cls in db.encoded_fields.keys():
+    fields_list.append(comp_cls)
+
+  # Recursively generate all combinations of HWID.
+  _RecursivelyGenerate(0, encoded_fields)
+  return hwid_dict
+
+
+def GetProbedResults(infile=None, *args, **kwargs):
   """Get probed results either from the given file or by probing the DUT.
+
+  *args and **kwargs are passed down to the Probe() function.
 
   Args:
     infile: A file containing the probed results in YAML format.
@@ -227,8 +334,10 @@ def GetProbedResults(infile=None):
   else:
     if utils.in_chroot():
       raise ValueError('Cannot probe components in chroot. Please specify '
-                       'probed results with --probed_results_file')
-    probed_results = yaml.load(probe.Probe(probe_vpd=True).Encode())
+                       'probed results with an input file. If you are running '
+                       'with command-line, use --probed_results_file')
+    kwargs['probe_vpd'] = True
+    probed_results = yaml.load(probe.Probe(*args, **kwargs).Encode())
   return probed_results
 
 
@@ -251,7 +360,8 @@ def GetDeviceInfo(infile=None):
   else:
     if utils.in_chroot():
       raise ValueError('Cannot get device info from shopfloor in chroot. '
-                       'Please specify device info with --device_info_file')
+                       'Please specify device info with an input file. If you '
+                       'are running with command-line, use --device_info_file')
     device_info = shopfloor.GetDeviceData()
   return device_info
 
@@ -259,8 +369,7 @@ def GetDeviceInfo(infile=None):
 def GetHWIDString():
   """Get HWID string from GBB on a DUT."""
   if utils.in_chroot():
-    raise ValueError('Cannot read HWID from GBB in chroot. Please specify '
-                     'a HWID encoded string to decode.')
+    raise ValueError('Cannot read HWID from GBB in chroot')
   main_fw_file = crosfw.LoadMainFirmware().GetFileName()
   gbb_result = process_utils.CheckOutput(
       ['gbb_utility', '-g', '--hwid', '%s' % main_fw_file])
@@ -297,108 +406,3 @@ def GetVPD(probed_results):
 def ComputeDatabaseChecksum(file_name):
   """Computes the checksum of the give database."""
   return database.Database.Checksum(file_name)
-
-
-@Command('generate', help='generate HWID.', args=[
-    Arg('--probed-results-file', default=None,
-        help='a file with probed results. Required if not running on DUT.'),
-    Arg('--device-info-file', default=None,
-        help='a file with device info. Required if not running on DUT.'),
-    Arg('--rma-mode', default=False, action='store_true',
-        help='whether to enable RMA mode.')])
-def GenerateHWIDWrapper(options):
-  probed_results = GetProbedResults(options.probed_results_file)
-  device_info = GetDeviceInfo(options.device_info_file)
-  vpd = GetVPD(probed_results)
-
-  verbose_output = {
-      'device_info': device_info,
-      'probed_results': probed_results,
-      'vpd': vpd
-  }
-  logging.debug(yaml.dump(verbose_output, default_flow_style=False))
-  hwid = GenerateHWID(options.database, probed_results, device_info, vpd,
-                      options.rma_mode)
-  print 'Encoded HWID string: %s' % hwid.encoded_string
-  print 'Binary HWID string: %s' % hwid.binary_string
-
-
-@Command('decode', help='decode HWID.', args=[
-    Arg('hwid', nargs='?', default=None,
-        help='the HWID to decode. Required if not running on DUT.')])
-def DecodeHWIDWrapper(options):
-  encoded_string = options.hwid if options.hwid else GetHWIDString()
-  decoded_hwid = DecodeHWID(options.database, encoded_string)
-  print yaml.dump(ParseDecodedHWID(decoded_hwid), default_flow_style=False)
-
-
-@Command('verify', help='verify HWID.', args=[
-    Arg('hwid', nargs='?', default=None,
-        help='the HWID to decode. Required if not running on DUT.'),
-    Arg('--probed-results-file', default=None,
-        help='a file with probed results. Required if not running on DUT.'),
-    Arg('--rma-mode', default=False, action='store_true',
-        help='whether to enable RMA mode.')])
-def VerifyHWIDWrapper(options):
-  encoded_string = options.hwid if options.hwid else GetHWIDString()
-  probed_results = GetProbedResults(options.probed_results_file)
-  vpd = GetVPD(probed_results)
-  VerifyHWID(options.database, encoded_string, probed_results, vpd,
-             options.rma_mode)
-  # No exception raised. Verification was successful.
-  print 'Verification passed.'
-
-
-@Command('list-components', help='list components of the given class', args=[
-    Arg('comp_class', nargs='*', default=None,
-        help='the component classes to look up.')])
-def ListComponentsWrapper(options):
-  components_list = ListComponents(options.database, options.comp_class)
-  print yaml.safe_dump(components_list, default_flow_style=False)
-
-
-# pylint: disable=C0322
-@Command('database-checksum', help='compute SHA-1 checksum of a database',
-         args=[Arg('filename', help='the HWID database file')])
-def ComputeDatabaseChecksumWrapper(options):
-  print ComputeDatabaseChecksum(options.filename)
-
-
-@Command('verify-database', help='verify the given HWID database')
-def VerifyHWIDDatabase(options):
-  # Do nothing here since all the verifications are done when loading the
-  # database with HWID library.
-  print 'Database %s verified' % options.board
-
-
-def ParseOptions():
-  """Parse arguments and generate necessary options."""
-  return _OPTION_PARSER.parse_args()
-
-
-def InitializeDefaultOptions(options):
-  if not options.hwid_db_path:
-    options.hwid_db_path = common.DEFAULT_HWID_DATA_PATH
-  if not options.board:
-    options.board = common.ProbeBoard()
-
-  # Create the Database object here since it's common to all functions.
-  options.database = database.Database.LoadFile(
-      os.path.join(options.hwid_db_path, options.board.upper()),
-      verify_checksum=(not options.no_verify_checksum))
-
-
-def Main():
-  """Parses options, sets up logging, and runs the given subcommand."""
-  options = ParseOptions()
-  if options.verbose:
-    logging.basicConfig(level=logging.DEBUG)
-
-  if options.subcommand not in ['database-checksum']:
-    InitializeDefaultOptions(options)
-
-  _SUBCOMMANDS[options.subcommand](options)
-
-
-if __name__ == '__main__':
-  Main()

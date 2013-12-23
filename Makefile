@@ -18,7 +18,8 @@ SYMLINK_TARGET_RELPATH=../factory
 SYMLINK_BINS=\
 	bft_fixture edid factory factory_bug factory_restart flash_netboot \
 	gooftool goofy goofy_control goofy_remote goofy_rpc \
-	hwid_tool make_par manage merge_logs minijack mount_partition run_pytest
+	hwid_tool make_par manage merge_logs minijack mount_partition \
+	run_pytest hwid
 
 TEST_RUNNER=py/tools/run_tests.py
 # Maximum number of parallel tests to run.
