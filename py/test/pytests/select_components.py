@@ -14,10 +14,8 @@
 
 import factory_common # pylint: disable=W0611
 import logging
-import os
 import unittest
 
-from cros.factory.hwid import common
 from cros.factory.hwid import database
 from cros.factory.hwid import hwid
 from cros.factory.test import shopfloor
@@ -93,8 +91,7 @@ class SelectComponentTest(unittest.TestCase):
 
   def runTest(self):
     table = Table(element_id=None, rows=2, cols=len(self.fields))
-    db = database.Database.LoadFile(os.path.join(
-        common.DEFAULT_HWID_DATA_PATH, common.ProbeBoard().upper()))
+    db = database.Database.Load()
     fields_in_db = [x for x in self.fields
                     if x in db.components.GetRequiredComponents()]
     logging.info('Fields in database are %r', fields_in_db)

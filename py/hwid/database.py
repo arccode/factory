@@ -9,6 +9,7 @@
 import collections
 import copy
 import hashlib
+import os
 import pprint
 import re
 import yaml
@@ -85,8 +86,23 @@ class Database(object):
                              'encoded_fields[%r][%r]' % (field, index))
 
 
-  @classmethod
-  def LoadFile(cls, file_name, verify_checksum=False):
+  @staticmethod
+  def Load(verify_checksum=False):
+    """Trys to locate the HWID database at pre-defined locations and load it.
+
+    Returns:
+      The loaded HWID database.
+
+    Raises:
+      HWIDException if no database is found.
+    """
+    return Database.LoadFile(os.path.join(common.DEFAULT_HWID_DATA_PATH,
+                                          common.ProbeBoard().upper()),
+                             verify_checksum=verify_checksum)
+
+
+  @staticmethod
+  def LoadFile(file_name, verify_checksum=False):
     """Loads a device-specific component database from the given file and
     parses it to a Database object.
 
@@ -104,9 +120,9 @@ class Database(object):
     with open(file_name, 'r') as f:
       db_yaml = yaml.load(f)
 
-    return cls.LoadData(
-        db_yaml,
-        expected_checksum=cls.Checksum(file_name) if verify_checksum else None)
+    return Database.LoadData(db_yaml,
+                             expected_checksum=Database.Checksum(file_name)
+                             if verify_checksum else None)
 
   @staticmethod
   def Checksum(file_name):
@@ -124,8 +140,8 @@ class Database(object):
     db_text = re.sub(r'^checksum:.*\n$', '', db_text, flags=re.MULTILINE)
     return hashlib.sha1(db_text).hexdigest()    # pylint: disable=E1101
 
-  @classmethod
-  def LoadData(cls, db_yaml, expected_checksum=None):
+  @staticmethod
+  def LoadData(db_yaml, expected_checksum=None):
     """Loads a device-specific component database from the given database data.
 
     Args:
@@ -337,7 +353,7 @@ class Database(object):
     Args:
       encoded_field: The encoded field of interest.
 
-    Return:
+    Returns:
       A list of ints of the encoded indices.
     """
     return [key for key in self.encoded_fields[encoded_field]

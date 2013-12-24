@@ -40,7 +40,7 @@ from cros.factory.hacked_argparse import CmdArg, Command, ParseCmdline
 from cros.factory.hacked_argparse import verbosity_cmd_arg
 from cros.factory.hwdb import hwid_tool
 from cros.factory.hwid import common
-from cros.factory.test import shopfloor
+from cros.factory.hwid import hwid_utils
 from cros.factory.test.factory import FACTORY_LOG_PATH
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.privacy import FilterDict
@@ -91,7 +91,7 @@ _hwid_status_list_cmd_arg = CmdArg(
 
 _probe_results_cmd_arg = CmdArg(
     '--probe_results', metavar='RESULTS.yaml',
-    help=('Output from "gooftool probe" (used instead of '
+    help=('Output from "gooftool probe --include_vpd" (used instead of '
           'probing this system).'))
 
 _device_info_cmd_arg = CmdArg(
@@ -123,7 +123,7 @@ _rma_mode_cmd_arg = CmdArg(
          CmdArg('--status', nargs='*', default=['supported'],
                 help='consider only HWIDs within this list of status values'))
 def BestMatchHwids(options):
-  """Determine a list of possible HWIDs using provided args and probeing.
+  """Determine a list of possible HWIDs using provided args and probing.
 
   VOLATILE can always be determined by probing.  To get a unique
   result, VARIANT must be specified for all cases where the matching
@@ -631,7 +631,7 @@ def Verify(options):
   if options.hwid_version == 2:
     VerifyHwid(options)
   elif options.hwid_version == 3:
-    VerifyHwidV3(options)
+    VerifyHWIDv3(options)
   else:
     raise Error, 'Invalid HWID version: %r' % options.hwid_version
   VerifySystemTime(options)
@@ -785,145 +785,27 @@ def Finalize(options):
   PrepareWipe(options)
 
 
-@Command('verify_components_v3',
-         _board_cmd_arg,
-         _hwdb_path_cmd_arg,
-         CmdArg('target_comps', nargs='*'))
-def VerifyComponentsV3(options):
-  """Verify that probeable components all match entries in the component_db.
+def VerifyHWIDv3(options):
+  """A simple wrapper that calls out to HWID utils to verify version 3 HWID.
 
-  This method uses the HWIDv3 component database to verify components.
-
-  Probe for each component class in the target_comps and verify
-  that a corresponding match exists in the component_db -- make sure
-  that these components are present, that they have been approved, but
-  do not check against any specific BOM/HWID configurations.
+  This is mainly for Gooftool to verify v3 HWID during finalize.  For testing
+  and development purposes, please use `hwid` command.
   """
-
-  result = GetGooftool(options).VerifyComponentsV3(options.target_comps)
-  PrintVerifyComponentsResults(result)
-
-
-@Command('generate_hwid_v3',
-         _board_cmd_arg,
-         _hwdb_path_cmd_arg,
-         _probe_results_cmd_arg,
-         _device_info_cmd_arg,
-         _rma_mode_cmd_arg)
-def GenerateHwidV3(options):
-  """Generates the HWID of the DUT.
-
-  The HWID is generated based on the given device info and the probe results
-  retrieved by probing the DUT. If there are conflits of component information
-  between device info and probe result, priority is given to device info.
-  """
-  if options.device_info:
-    with open(options.device_info) as f:
-      device_info = yaml.load(f.read())
-  else:
-    device_info = shopfloor.GetDeviceData()
+  db = GetGooftool(options).db
+  encoded_string = options.hwid or hwid_utils.GetHWIDString()
   if options.probe_results:
-    with open(options.probe_results) as f:
-      probe_results = hwid_tool.ProbeResults.Decode(f.read())
+    probed_results = yaml.load(open(options.probe_results).read())
   else:
-    probe_results = Probe()
-  print 'device_info:'
-  print yaml.dump(device_info)
-  print 'probe results:'
-  print probe_results.Encode()
+    probed_results = yaml.load(Probe(probe_vpd=True).Encode())
+  vpd = hwid_utils.GetVPD(probed_results)
 
-  # Do not log device_info for now until we're sure that it does not contain
-  # any sensitive infomation.
-  # TODO(jcliang): Add logging for device_info when appropriate.
+  event_log.Log('probed_results', probed_results=probed_results)
+  event_log.Log('vpd', vpd=vpd)
 
-  event_log.Log(
-    'probe',
-    found_components=probe_results.found_probe_value_map,
-    missing_component_classes=probe_results.missing_component_classes,
-    volatiles=probe_results.found_volatile_values,
-    initial_configs=probe_results.initial_configs)
+  hwid_utils.VerifyHWID(db, encoded_string, probed_results, vpd,
+                    rma_mode=options.rma_mode)
 
-  hwid_object = GetGooftool(options).GenerateHwidV3(
-      device_info, probe_results, rma_mode=options.rma_mode)
-
-  final_bom = {}
-  for component_class, component_values in (
-      hwid_object.bom.components.iteritems()):
-    final_bom[component_class] = [v.probed_values for v in component_values]
-  event_log.Log(
-    'final_bom',
-    final_bom=final_bom)
-  event_log.Log(
-    'generated_hwid',
-    encoded_string=hwid_object.encoded_string,
-    binary_string=hwid_object.binary_string)
-  print 'Encoded HWID string:', hwid_object.encoded_string
-  print 'Binary HWID string:', hwid_object.binary_string
-
-
-@Command('verify_hwid_v3',
-         _board_cmd_arg,
-         _hwdb_path_cmd_arg,
-         _probe_results_cmd_arg,
-         _hwid_cmd_arg,
-         _rma_mode_cmd_arg)
-def VerifyHwidV3(options):
-  """Verify system HWID properties match probed device properties.
-
-  First probe components, volatile and initial_config parameters for
-  the DUT.  Then use the available device data to produce a list of
-  candidate HWIDs.  Then verify the HWID from the DUT is present in
-  that list.  Then verify that the DUT initial config values match
-  those specified for its HWID.  Finally, verify that VPD contains all
-  the necessary fields as specified by the board data, and when
-  possible verify that values are legitimate.
-  """
-  if not options.probe_results:
-    main_fw_file = crosfw.LoadMainFirmware().GetFileName()
-  if options.hwid:
-    hwid_str = options.hwid
-  else:
-    gbb_result = Shell('gbb_utility -g --hwid %s' % main_fw_file).stdout
-    hwid_str = re.findall(r'hardware_id:(.*)', gbb_result)[0].strip()
-  print 'Verifying HWID: %r\n' % hwid_str
-  if options.probe_results:
-    # Pull in probe results (including VPD data) from the given file
-    # rather than probing the current system.
-    with open(options.probe_results) as f:
-      probe_results = hwid_tool.ProbeResults.Decode(f.read())
-    probed_ro_vpd = {}
-    probed_rw_vpd = {}
-    for k, v in probe_results.found_volatile_values.items():
-      # Use items(), not iteritems(), since we will be modifying the dict in the
-      # loop.
-      match = re.match('^vpd\.(ro|rw)\.(\w+)$', k)
-      if match:
-        del probe_results.found_volatile_values[k]
-        (probed_ro_vpd if match.group(1) == 'ro'
-            else probed_rw_vpd)[match.group(2)] = v
-  else:
-    probe_results = Probe()
-    probed_ro_vpd = ReadRoVpd(main_fw_file)
-    probed_rw_vpd = ReadRwVpd(main_fw_file)
-  print 'probe result:'
-  print probe_results.Encode()
-  event_log.Log(
-    'probe',
-    found_components=probe_results.found_probe_value_map,
-    missing_component_classes=probe_results.missing_component_classes,
-    volatiles=probe_results.found_volatile_values,
-    initial_configs=probe_results.initial_configs)
-  event_log.Log('vpd', probed_ro_vpd=FilterDict(probed_ro_vpd),
-                 probed_rw_vpd=FilterDict(probed_rw_vpd))
-
-  if not options.board:
-    options.board = common.ProbeBoard(hwid_str)
-  GetGooftool(options).VerifyHwidV3(
-      hwid_str, probe_results, probed_ro_vpd, probed_rw_vpd,
-      rma_mode=options.rma_mode)
-
-  event_log.Log('verified_hwid', hwid=hwid_str)
-  print 'Verification SUCCESS!'
+  event_log.Log('verified_hwid', hwid=encoded_string)
 
 
 def ParseDecodedHWID(hwid):
@@ -954,25 +836,6 @@ def ParseDecodedHWID(hwid):
   return results
 
 
-@Command('decode_hwid_v3',
-         _board_cmd_arg,
-         _hwdb_path_cmd_arg,
-         _hwid_cmd_arg)
-def DecodeHwidV3(options):
-  """Decodes the given v3 HWID and prints out decoded information.
-
-  If no HWID is given, the HWID stored on the device will be loaded and used
-  instead.
-  """
-  if not options.board:
-    options.board = common.ProbeBoard(options.hwid)
-  decoded_hwid_context = Gooftool(hwid_version=3, board=options.board,
-                                  hwdb_path=options.hwdb_path).DecodeHwidV3(
-                                      options.hwid)
-  print yaml.dump(ParseDecodedHWID(decoded_hwid_context),
-                  default_flow_style=False)
-
-
 @Command('get_firmware_hash',
          CmdArg('--file', metavar='FILE', help='Firmware File.'))
 def GetFirmwareHash(options):
@@ -987,42 +850,13 @@ def GetFirmwareHash(options):
     raise Error('File does not exist: %s' % options.file)
 
 
-@Command('get_hwid_v3_list',
-         _board_cmd_arg,
-         _hwdb_path_cmd_arg,
-         CmdArg('--image_id', metavar='IMAGE_ID', help='Image ID.'),
-         CmdArg('--status', metavar='STATUS', default='supported',
-                help='Components status. The value should be '
-                     '"supported" or "all"'))
-def GetHWIDV3List(options):
-  """Generate HWID with all components combination of specified
-  image_id, and output as CSV format.
-
-  Args:
-    board: HWID generated by which board. This parameter is required.
-    image_id: Which image stage should be generated. If this parameter
-              is omitted, The maximum of image_id will be used.
-              This parameter is integer.
-    status: Default value is 'supported'. If you want to generate all
-            combinations include unsupported and deprecated, you can set
-            status to 'all'.
-  """
-  if options.board:
-    if options.status not in ('supported', 'all'):
-      raise Error("Status should be 'supported' or 'all'")
-    hwid_dict = GetGooftool(options).GetHWIDV3List(options.image_id,
-        options.status)
-    for key, value in iter(sorted(hwid_dict.iteritems())):
-      print "%s,%s" % (key, value)
-  else:
-    raise Error('Board should be speficied')
-
-
 def Main():
   """Run sub-command specified by the command line args."""
 
   options = ParseCmdline(
-      'Perform Google required factory tests.',
+      ('Perform Google required factory tests. All the HWID-related functions '
+       'provided here are mainly for the deprecated HWID v2. To access HWID '
+       'v3-related utilities, please use `hwid` command.'),
       CmdArg('-l', '--log', metavar='PATH',
              help='Write logs to this file.'),
       CmdArg('--suppress-event-logs', action='store_true',

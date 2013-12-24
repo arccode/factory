@@ -81,7 +81,8 @@ import yaml
 
 import factory_common  # pylint: disable=W0611
 from cros.factory import shopfloor
-from cros.factory.gooftool import Gooftool
+from cros.factory.hwid import database
+from cros.factory.hwid import hwid_utils
 from cros.factory.utils.process_utils import Spawn
 
 # Default shopfloor configuration values
@@ -93,9 +94,7 @@ _HWIDV3_HWDB_PATH = '../../hwid'
 _HWID_FACTORY_TRANSLATION = []
 
 def _synchronized(f):
-  """
-  Decorates a function to grab a lock.
-  """
+  """Decorates a function to grab a lock."""
   def wrapped(self, *args, **kw):
     with self._lock: # pylint: disable=W0212
       return f(self, *args, **kw)
@@ -103,6 +102,7 @@ def _synchronized(f):
 
 
 class DeviceData(yaml.YAMLObject):
+  """Class to keep the device data of a machine."""
   yaml_tag = u'!DeviceData'
   def __init__(self, rma_number, vpd, hwid): # pylint: disable=W0231
     self.rma_number = rma_number
@@ -163,7 +163,7 @@ class ShopFloor(shopfloor.ShopFloorBase):
     # writable, and everything I/O system is working fine.
     stamp_file = os.path.join(self.data_dir, ".touch")
     with open(stamp_file, "w") as stamp_handle:
-      stamp_handle.write("%s - VERSION %s" % (self.NAME, self.VERSION))
+      stamp_handle.write("%s: VERSION %s" % (self.NAME, self.VERSION))
     os.remove(stamp_file)
 
   def LoadConfiguration(self, config_path):
@@ -235,19 +235,20 @@ class ShopFloor(shopfloor.ShopFloorBase):
   @_synchronized
   def CheckSN(self, serial):
     """Validates whether a rma number is in the correct format.
+
     Note that for RMA we are using the RMA number as a device specific
     identifier, this is separate from the device's actual serial number
     stored in VPD, however to keep in line with the shopfloor server
     implementation, we call it the serial_number.
 
     Args:
-      serial - RMA number of device.
+      serial: RMA number of device.
 
     Returns:
-      True - If the rma number matches the valid format.
+      True if the rma number matches the valid format.
 
     Raises:
-      ValueError - If the rma number format is invalid.
+      ValueError: If the rma number format is invalid.
     """
     if not re.match(self.rma_number_regex, serial):
       message = "Invalid RMA number: %s" % serial
@@ -265,14 +266,14 @@ class ShopFloor(shopfloor.ShopFloorBase):
     """Fetches auxillary data table value for a given id.
 
     Args:
-      table_name - Name of the auxillary table to fetch from.
-      id - identifying string value to fetch value for.
+      table_name: Name of the auxillary table to fetch from.
+      id: identifying string value to fetch value for.
 
     Returns:
       Value matching provided table and ID if found.
 
     Raises:
-      KeyError - If either table_name or id are invalid.
+      KeyError: If either table_name or id are invalid.
     """
     try:
       value = self.aux_data[table_name][id]
@@ -287,7 +288,7 @@ class ShopFloor(shopfloor.ShopFloorBase):
     Note that this is only used for HWIDv3 implementations.
 
     Args:
-      serial - Serial number of device.
+      serial: Serial number of device.
 
     Returns:
       A dictionary containing information about the expected
@@ -301,7 +302,7 @@ class ShopFloor(shopfloor.ShopFloorBase):
     """Fetches the hardware ID (HWID) for a device.
 
     Args:
-      serial - Serial number of device.
+      serial: Serial number of device.
 
     Returns:
       HWID or None if data for the device can't be found.
@@ -313,7 +314,7 @@ class ShopFloor(shopfloor.ShopFloorBase):
     """Fetches registration codes for a device.
 
     Args:
-      serial - Serial number of device.
+      serial: Serial number of device.
 
     Returns:
       Registration code dictionary or {} if data for the device can't be found.
@@ -327,7 +328,7 @@ class ShopFloor(shopfloor.ShopFloorBase):
     """Fetches VPD dict for a device.
 
     Args:
-      serial - Serial number of device.
+      serial: Serial number of device.
 
     Returns:
       vpd dictionary or None if data for the device can't be found.
@@ -339,10 +340,10 @@ class ShopFloor(shopfloor.ShopFloorBase):
     """Saves the factory log for a device.
 
     Args:
-      serial - Serial number of device.
-      report_blob - Report binary data. May be a shopfloor.Binary
+      serial: Serial number of device.
+      report_blob: Report binary data. May be a shopfloor.Binary
                     or a gziped file.
-      report_name - (optional) basename of the report file to save.
+      report_name: (optional) basename of the report file to save.
     """
     def is_gzip_blob(blob):
       """Check (not 100% accurate) if input blob is gzipped."""
@@ -364,7 +365,7 @@ class ShopFloor(shopfloor.ShopFloorBase):
     """Removes the data store entry and yaml file for a device.
 
     Args:
-      serial - Serial number of device.
+      serial: Serial number of device.
     """
     data_path = os.path.join(self.data_dir, serial + ".yaml")
     if(os.path.exists(data_path)):
@@ -377,8 +378,8 @@ class ShopFloor(shopfloor.ShopFloorBase):
     """Save device data in YAML format.
 
     Args:
-      data - DeviceData. Device data to save.
-      overwrite - Bool. Whether to replace any existing device data.
+      data: DeviceData. Device data to save.
+      overwrite: Bool. Whether to replace any existing device data.
 
     Returns:
       dict with the following fields:
@@ -448,8 +449,8 @@ def DecodeHWIDv3Components(hwid, hwdb_path):
   """Decodes a HWIDv3 string into components.
 
   Args:
-    hwid - string of the HWID to decode.
-    hwdb_path - path to the HWIDv3 HWDB
+    hwid: string of the HWID to decode.
+    hwdb_path: path to the HWIDv3 HWDB
 
   Returns:
     dict containing the component objects decoded from the HWID.
@@ -464,23 +465,24 @@ def DecodeHWIDv3Components(hwid, hwdb_path):
             check_call=True)
     else:
       raise ValueError('HWDB nor HWID bundle for %s found' % board_name)
-  decoder = Gooftool(hwid_version=3, hwdb_path=hwdb_path,
-                     board=board_name)
-  decoded_hwid = decoder.DecodeHwidV3(hwid)
+  hwdb = database.Database.LoadFile(
+      os.path.join(hwdb_path, board_name.upper()),
+      verify_checksum=True)
+  decoded_hwid = hwid_utils.DecodeHWID(hwdb, hwid)
   return decoded_hwid.bom.components
 
 def LoadDeviceData(filename, device_info_fields):
   """Loads a YAML file and returns structured shop floor system data.
 
   Args:
-    filename - string. Full path to yaml file to load.
-    device_info_fields - list of device info fields, can be empty
+    filename: string. Full path to yaml file to load.
+    device_info_fields: list of device info fields, can be empty
 
   Returns:
     dict with the following fields:
-      hwid - string. Device hardware ID
-      vpd - dict of dicts containing 'ro' and 'rw' VPD data.
-      registration_code_map - dict containing 'user' and 'group' codes.
+      hwid: string. Device hardware ID
+      vpd: dict of dicts containing 'ro' and 'rw' VPD data.
+      registration_code_map: dict containing 'user' and 'group' codes.
       any additional device_info_fields values
   """
   with open(filename, 'rb') as yaml_file:

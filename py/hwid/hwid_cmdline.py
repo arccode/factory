@@ -181,8 +181,7 @@ def ParseOptions(args=None):
   """Parse arguments and generate necessary options."""
   if not args:
     args = sys.argv[1:]
-  #return _OPTION_PARSER.parse_args(args)
-  return ParseCmdline('foo', *_COMMON_ARGS)
+  return ParseCmdline('HWID command-line utilities', *_COMMON_ARGS)
 
 
 def InitializeDefaultOptions(options):

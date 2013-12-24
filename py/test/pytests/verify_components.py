@@ -7,19 +7,22 @@
 # DESCRIPTION :
 # This is a test that verifies only expected components are installed in the
 # DUT.
+"""Factory test to verify components."""
 
 import logging
 import unittest
 
 import factory_common # pylint: disable=W0611
 from cros.factory.event_log import Log
+from cros.factory.gooftool import Gooftool
+from cros.factory.hwid import database
+from cros.factory.hwid import hwid_utils
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
 from cros.factory.test.factory import FactoryTestFailure
 from cros.factory.test.factory_task import FactoryTask, FactoryTaskManager
-from cros.factory.gooftool import Gooftool
 
 _TEST_TITLE = test_ui.MakeLabel('Components Verification Test',
                                 u'元件验证测试')
@@ -34,7 +37,7 @@ _MSG_NO_SHOP_FLOOR_SERVER_URL = test_ui.MakeLabel(
 
 
 class CheckComponentsTask(FactoryTask):
-  '''Checks the given components are in the components db.'''
+  """Checks the given components are in the components db."""
 
   def __init__(self, test, allow_missing=False):
     super(CheckComponentsTask, self).__init__()
@@ -50,22 +53,24 @@ class CheckComponentsTask(FactoryTask):
     self._test.template.SetState(_MESSAGE_CHECKING_COMPONENTS)
     try:
       if self._test.args.hwid_version == 2:
-        result = self._test.gooftool.VerifyComponents(self._test.component_list)
+        results = self._test.gooftool.VerifyComponents(
+            self._test.component_list)
       elif self._test.args.hwid_version == 3:
-        result = self._test.gooftool.VerifyComponentsV3(
-            self._test.component_list,
+        probed_results = hwid_utils.GetProbedResults(
             fast_fw_probe=self._test.args.fast_fw_probe)
+        results = hwid_utils.VerifyComponents(
+            self._test.hwid_db, probed_results, self._test.component_list)
     except ValueError, e:
       self.Fail(str(e))
       return
 
-    logging.info("Probed components: %s", result)
-    Log("probed_components", result=result)
-    self._test.probed_results = result
+    logging.info("Probed components: %s", results)
+    Log("probed_components", results=results)
+    self._test.probed_results = results
 
     # extract all errors out
     error_msgs = []
-    for class_result in result.values():
+    for class_result in results.values():
       for component_result in class_result:
         # If the component is missing, but it is allowed, ignore the error.
         # component_result[1] has the probed values.
@@ -80,7 +85,7 @@ class CheckComponentsTask(FactoryTask):
       self.Pass()
 
 class VerifyAnyBOMTask(FactoryTask):
-  '''Verifies the given probed_results matches any of the given BOMs.'''
+  """Verifies the given probed_results matches any of the given BOMs."""
 
   def __init__(self, test, bom_whitelist):
     """Constructor.
@@ -124,7 +129,7 @@ def LookupBOMList(shopfloor_wrapper, aux_table, aux_field, bom_mapping):
 
   Args:
     shopfloor_wrapper: A shopfloor wrapper for accessing the aux data.
-    aux_table_name: The name of the aux table that will be used for lookup.
+    aux_table: The name of the aux table that will be used for lookup.
     aux_field: The name of the aux field that will be used for lookup.
     bom_mapping: The mapping from the aux field value to a list of BOM names.
         e.g. {True: ['BLUE', 'RED'], False: ['YELLOW']}
@@ -159,6 +164,7 @@ def LookupBOMList(shopfloor_wrapper, aux_table, aux_field, bom_mapping):
 
 
 class VerifyComponentsTest(unittest.TestCase):
+  """Factory test to verify components."""
   ARGS = [
     Arg('component_list', list,
         'A list of components to be verified'),
@@ -185,7 +191,7 @@ class VerifyComponentsTest(unittest.TestCase):
     Arg('hwid_version', int,
         'The version of HWID functions to call. This should be set to "3" if '
         'the DUT is using HWIDv3.',
-        default=2, optional=True),
+        default=3, optional=True),
     Arg('fast_fw_probe', bool,
         'Whether to do a fast firmware probe. The fast firmware probe just '
         'checks the RO EC and main firmware version and does not compute'
@@ -208,6 +214,7 @@ class VerifyComponentsTest(unittest.TestCase):
 
     # Don't initialize yet; let update_local_hwid_data run first.
     self.gooftool = None
+    self.hwid_db = None
 
     self.probed_results = None
     self.template = ui_templates.OneSection(self._ui)
@@ -217,14 +224,16 @@ class VerifyComponentsTest(unittest.TestCase):
     if not self.args.skip_shopfloor:
       shopfloor.update_local_hwid_data()
 
-    self.gooftool = Gooftool(hwid_version=self.args.hwid_version)
+    if self.args.hwid_version == 2:
+      self.gooftool = Gooftool(hwid_version=self.args.hwid_version)
+    self.hwid_db = database.Database.Load()
+
     self.component_list = self.args.component_list
     self.board = self.args.board
 
     allow_missing = (self.args.bom_whitelist != None)
     task_list = [CheckComponentsTask(self, allow_missing)]
 
-    # TODO(jcliang): Remove this after we support BOM verification in HWIDv3.
     if ((self.args.hwid_version == 3) and
         (self.args.bom_whitelist or self.args.bom_mapping)):
       raise FactoryTestFailure('BOM verifications is not supported in HWIDv3')

@@ -157,7 +157,7 @@ def VerifyComponents(db, probed_results, component_list):
         probed_string,   # The actual probed string. None if probing failed.
         error)]}         # The error message if there is one.
   """
-  return db.VerifyComponents(probed_results, component_list,
+  return db.VerifyComponents(yaml.dump(probed_results), component_list,
                              loose_matching=True)
 
 

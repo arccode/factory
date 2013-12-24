@@ -4,6 +4,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+"""Unit tests for verify_components factory test."""
+
 import logging
 import mox
 import unittest
@@ -11,6 +13,8 @@ import unittest
 import factory_common  # pylint: disable=W0611
 from cros.factory.gooftool import Gooftool
 from cros.factory.gooftool import Mismatch
+from cros.factory.hwid import database
+from cros.factory.hwid import hwid_utils
 from cros.factory.hwid.common import ProbedComponentResult
 from cros.factory.test import shopfloor
 from cros.factory.test.pytests import verify_components
@@ -19,6 +23,7 @@ from cros.factory.test.pytests.verify_components import VerifyAnyBOMTask
 from cros.factory.test.ui_templates import OneSection
 
 class VerifyComponentsUnitTest(unittest.TestCase):
+  """Unit tests for verify_components factory test."""
   def setUp(self):
     self._mox = mox.Mox()
 
@@ -30,9 +35,11 @@ class VerifyComponentsUnitTest(unittest.TestCase):
                                       'fast_fw_probe': False}))
     self._mock_test.args.hwid_version = 2
     self._mock_test.gooftool = self._mox.CreateMock(Gooftool)
+    self._mock_test.hwid_db = self._mox.CreateMock(database.Database)
     self._mock_shopfloor = self._mox.CreateMock(shopfloor)
     self._mock_test.template = self._mox.CreateMock(OneSection)
     self._mock_test.board = "BENDER"
+    verify_components.hwid_utils = self._mox.CreateMock(hwid_utils)
 
     self._mox.StubOutWithMock(verify_components, 'Log')
 
@@ -60,7 +67,7 @@ class VerifyComponentsUnitTest(unittest.TestCase):
               'cpu': [ProbedComponentResult('cpu_1', 'CPU_1', None)]}
     self._mock_test.gooftool.VerifyComponents(
         self._mock_test.component_list).AndReturn(probed)
-    verify_components.Log("probed_components", result=probed)
+    verify_components.Log("probed_components", results=probed)
 
     task.Pass()
 
@@ -80,9 +87,12 @@ class VerifyComponentsUnitTest(unittest.TestCase):
     # good probed results
     probed = {'camera':[ProbedComponentResult('camera_1', 'CAMERA_1', None)],
               'cpu': [ProbedComponentResult('cpu_1', 'CPU_1', None)]}
-    self._mock_test.gooftool.VerifyComponentsV3(
-        self._mock_test.component_list, fast_fw_probe=False).AndReturn(probed)
-    verify_components.Log("probed_components", result=probed)
+    verify_components.hwid_utils.GetProbedResults(
+        fast_fw_probe=False).AndReturn('fake probed results')
+    verify_components.hwid_utils.VerifyComponents(
+        self._mock_test.hwid_db, 'fake probed results',
+        self._mock_test.component_list).AndReturn(probed)
+    verify_components.Log("probed_components", results=probed)
 
     task.Pass()
 
@@ -104,7 +114,7 @@ class VerifyComponentsUnitTest(unittest.TestCase):
               'cpu': [ProbedComponentResult(None, 'CPU_1', "Fake error")]}
     self._mock_test.gooftool.VerifyComponents(
         self._mock_test.component_list).AndReturn(probed)
-    verify_components.Log("probed_components", result=probed)
+    verify_components.Log("probed_components", results=probed)
 
     task.Fail(mox.IsA(str))
 
@@ -126,9 +136,12 @@ class VerifyComponentsUnitTest(unittest.TestCase):
     # bad probed results
     probed = {'camera':[ProbedComponentResult('camera_1', 'CAMERA_1', None)],
               'cpu': [ProbedComponentResult(None, 'CPU_1', "Fake error")]}
-    self._mock_test.gooftool.VerifyComponentsV3(
-        self._mock_test.component_list, fast_fw_probe=False).AndReturn(probed)
-    verify_components.Log("probed_components", result=probed)
+    verify_components.hwid_utils.GetProbedResults(
+        fast_fw_probe=False).AndReturn('fake probed results')
+    verify_components.hwid_utils.VerifyComponents(
+        self._mock_test.hwid_db, 'fake probed results',
+        self._mock_test.component_list).AndReturn(probed)
+    verify_components.Log("probed_components", results=probed)
 
     task.Fail(mox.IsA(str))
 
@@ -151,7 +164,7 @@ class VerifyComponentsUnitTest(unittest.TestCase):
               'cpu': [ProbedComponentResult(None, None, "Fake missing error")]}
     self._mock_test.gooftool.VerifyComponents(
         self._mock_test.component_list).AndReturn(probed)
-    verify_components.Log("probed_components", result=probed)
+    verify_components.Log("probed_components", results=probed)
 
     task.Pass()
 
@@ -174,7 +187,7 @@ class VerifyComponentsUnitTest(unittest.TestCase):
               'cpu': [ProbedComponentResult(None, None, "Fake missing error")]}
     self._mock_test.gooftool.VerifyComponents(
         self._mock_test.component_list).AndReturn(probed)
-    verify_components.Log("probed_components", result=probed)
+    verify_components.Log("probed_components", results=probed)
 
     task.Fail(mox.IsA(str))
 
@@ -295,4 +308,3 @@ class VerifyComponentsUnitTest(unittest.TestCase):
 if __name__ == '__main__':
   logging.basicConfig(level=logging.INFO)
   unittest.main()
-

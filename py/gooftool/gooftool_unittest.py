@@ -5,12 +5,12 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import copy
+"""Unit tests for gooftool module."""
+
 import logging
 import mox
 import os
 import unittest
-import yaml
 
 from collections import namedtuple
 from tempfile import NamedTemporaryFile
@@ -25,10 +25,8 @@ from cros.factory.gooftool.bmpblk import unpack_bmpblock
 from cros.factory.gooftool.probe import Probe, ReadRoVpd
 from cros.factory.hwdb import hwid_tool
 from cros.factory.hwdb.hwid_tool import ProbeResults  # pylint: disable=E0611
-from cros.factory.hwid.common import HWIDException
 from cros.factory.gooftool import Mismatch
 from cros.factory.gooftool import ProbedComponentResult
-from cros.factory.rule import RuleException, Value
 from cros.factory.utils.process_utils import CheckOutput
 
 _TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
@@ -37,11 +35,13 @@ _TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
 StubStdout = namedtuple('StubStdout', ['stdout'])
 
 class MockMainFirmware(object):
+  """Mock main firmware object."""
   def __init__(self):
     self.GetFileName = lambda: "firmware"
     self.Write = lambda sections: sections == ['GBB']
 
 class MockFile(object):
+  """Mock file object."""
   def __init__(self):
     self.name = 'filename'
     self.read = lambda: "read_results"
@@ -51,6 +51,7 @@ class MockFile(object):
     pass
 
 class UtilTest(unittest.TestCase):
+  """Unit test for Util."""
   def setUp(self):
     self.mox = mox.Mox()
 
@@ -133,6 +134,7 @@ class UtilTest(unittest.TestCase):
 
 
 class GooftoolTest(unittest.TestCase):
+  """Unit test for Gooftool."""
   def setUp(self):
     self.mox = mox.Mox()
 
@@ -149,17 +151,6 @@ class GooftoolTest(unittest.TestCase):
     self._gooftool._unpack_bmpblock = self.mox.CreateMock(unpack_bmpblock)
     self._gooftool._read_ro_vpd = self.mox.CreateMock(ReadRoVpd)
     self._gooftool._named_temporary_file = self.mox.CreateMock(
-        NamedTemporaryFile)
-
-    self._gooftool3 = Gooftool(probe=self._mock_probe, hwid_version=3,
-                              board='TEST_BOARD', hwdb_path=_TEST_DATA_PATH)
-    self._gooftool3._util = self.mox.CreateMock(gooftool.Util)
-    self._gooftool3._util.shell = self.mox.CreateMock(Shell)
-
-    self._gooftool3._crosfw = self.mox.CreateMock(crosfw)
-    self._gooftool3._unpack_bmpblock = self.mox.CreateMock(unpack_bmpblock)
-    self._gooftool3._read_ro_vpd = self.mox.CreateMock(ReadRoVpd)
-    self._gooftool3._named_temporary_file = self.mox.CreateMock(
         NamedTemporaryFile)
 
     gooftool.CheckOutput = self.mox.CreateMock(CheckOutput)
@@ -443,231 +434,6 @@ class GooftoolTest(unittest.TestCase):
         set(['platform_name', 'crossystem', 'modem_status', 'ec_wp_status',
          'bios_wp_status']),
         set(self._gooftool.GetSystemDetails().keys()))
-
-  def testVerifyComponentsV3(self):
-    '''Test if the Gooftool.VerifyComponent() works properly.
-
-    This test tries to probe four components [bluetooth, battery, cpu,
-    audio_codec], where
-      'bluetooth' returns a valid result.
-      'battery' returns a false result.
-      'cpu' does not return any result.
-      'audio_codec' returns multiple results.
-    '''
-
-    self._mock_probe(
-        fast_fw_probe=False,
-        probe_initial_config=False,
-        probe_volatile=False,
-        target_comp_classes=['bluetooth', 'battery', 'cpu', 'audio_codec']
-        ).AndReturn(
-            ProbeResults(
-                found_probe_value_map={
-                    'bluetooth': {
-                        'idVendor': '0123',
-                        'idProduct': 'abcd',
-                        'bcd': '0001'},
-                    'battery': {
-                        'compact_str': 'fake value'},
-                    'audio_codec': [
-                        {'compact_str': 'Codec 1'},
-                        {'compact_str': 'HDMI 1'},
-                        {'compact_str': 'fake value'}]},
-                missing_component_classes=[],
-                found_volatile_values={},
-                initial_configs={}))
-
-    self.mox.ReplayAll()
-
-    self.assertEquals(
-        {'bluetooth': [('bluetooth_0',
-                        {'idVendor': Value('0123'), 'idProduct': Value('abcd'),
-                         'bcd': Value('0001')},
-                        None)],
-         'battery': [(None, {'compact_str': 'fake value'}, mox.IsA(str))],
-         'cpu': [(None, None, mox.IsA(str))],
-         'audio_codec': [('codec_1', {'compact_str': Value('Codec 1')}, None),
-                         ('hdmi_1', {'compact_str': Value('HDMI 1')}, None),
-                         (None, {'compact_str': 'fake value'}, mox.IsA(str))]},
-        self._gooftool3.VerifyComponentsV3(
-            ['bluetooth', 'battery', 'cpu', 'audio_codec']))
-
-  def testVerifyBadComponents3(self):
-    self._mock_probe(
-        fast_fw_probe=False,
-        probe_initial_config=False,
-        probe_volatile=False,
-        target_comp_classes='cpu').AndReturn(
-            ProbeResults(
-                found_probe_value_map={},
-                missing_component_classes=[],
-                found_volatile_values={},
-                initial_configs={}))
-    self._mock_probe(
-        fast_fw_probe=False,
-        probe_initial_config=False,
-        probe_volatile=False,
-        target_comp_classes=['cpu', 'bad_class_name']).AndReturn(
-            ProbeResults(
-                found_probe_value_map={},
-                missing_component_classes=[],
-                found_volatile_values={},
-                initial_configs={}))
-
-    self.mox.ReplayAll()
-
-    self.assertRaises(HWIDException, self._gooftool3.VerifyComponentsV3, 'cpu')
-    self.assertRaises(HWIDException, self._gooftool3.VerifyComponentsV3,
-                      ['cpu', 'bad_class_name'])
-
-  def testGenerateHwidV3(self):
-    mock_device_info = {
-        'component.has_cellular': False,
-        'component.keyboard': 'us',
-        'component.dram': 'foo',
-        'component.audio_codec': 'set_1'
-    }
-    mock_ro_vpd = {}
-    mock_rw_vpd = {}
-    with open(os.path.join(_TEST_DATA_PATH, 'test_probe_result.yaml')) as f:
-      # pylint: disable=E1101
-      mock_probe_result = hwid_tool.ProbeResults.Decode(f.read())
-    self.assertEquals(
-        'CHROMEBOOK D9I-F9U',
-        self._gooftool3.GenerateHwidV3(
-            device_info=mock_device_info,
-            probe_results=mock_probe_result,
-            probed_ro_vpd=mock_ro_vpd,
-            probed_rw_vpd=mock_rw_vpd).encoded_string)
-
-    mock_device_info = {
-        'component.has_cellular': True,
-        'component.keyboard': 'gb',
-        'component.dram': 'foo',
-        'component.audio_codec': 'set_1'
-    }
-    self.assertEquals(
-        'CHROMEBOOK D92-F8J',
-        self._gooftool3.GenerateHwidV3(
-            device_info=mock_device_info,
-            probe_results=mock_probe_result,
-            probed_ro_vpd=mock_ro_vpd,
-            probed_rw_vpd=mock_rw_vpd).encoded_string)
-
-    mock_device_info = {
-        'component.has_cellular': True,
-        'component.keyboard': 'gb',
-        'component.dram': 'foo',
-        'component.audio_codec': 'set_0'
-    }
-    self.assertEquals(
-        'CHROMEBOOK D52-F7N',
-        self._gooftool3.GenerateHwidV3(
-            device_info=mock_device_info,
-            probe_results=mock_probe_result,
-            probed_ro_vpd=mock_ro_vpd,
-            probed_rw_vpd=mock_rw_vpd).encoded_string)
-
-  def testVerifyHwidV3(self):
-    sample_probe_result = yaml.load(open(os.path.join(
-        _TEST_DATA_PATH, 'test_probe_result.yaml')).read())
-    sample_ro_vpd = {
-        'initial_locale': 'en-US',
-        'initial_timezone': 'America/Los_Angeles',
-        'keyboard_layout': 'xkb:us::eng',
-        'serial_number': 'foo'
-    }
-    sample_rw_vpd = {
-        'gbind_attribute': '333333333333333333333'
-        '33333333333333333333333333333333333333333332dbecc73',
-        'ubind_attribute': '323232323232323232323'
-        '232323232323232323232323232323232323232323256850612'
-    }
-    mock_probe_result = copy.deepcopy(sample_probe_result)
-    mock_ro_vpd = copy.deepcopy(sample_ro_vpd)
-    mock_rw_vpd = copy.deepcopy(sample_rw_vpd)
-    # pylint: disable=E1101
-    self.assertEquals(
-        None, self._gooftool3.VerifyHwidV3(
-            'CHROMEBOOK A5AU-LU',
-            hwid_tool.ProbeResults.Decode(yaml.dump(mock_probe_result)),
-            mock_ro_vpd, mock_rw_vpd))
-    self.assertEquals(
-        None, self._gooftool3.VerifyHwidV3(
-            'CHROMEBOOK D9I-F9U',
-            hwid_tool.ProbeResults.Decode(yaml.dump(mock_probe_result)),
-            mock_ro_vpd, mock_rw_vpd))
-    mock_probe_result = copy.deepcopy(sample_probe_result)
-    mock_ro_vpd = copy.deepcopy(sample_ro_vpd)
-    mock_rw_vpd = copy.deepcopy(sample_rw_vpd)
-    del mock_ro_vpd['serial_number']
-    # pylint: disable=E1101
-    self.assertRaisesRegexp(
-        RuleException, r"KeyError\('serial_number',\)",
-        self._gooftool3.VerifyHwidV3, 'CHROMEBOOK D9I-F9U',
-        hwid_tool.ProbeResults.Decode(yaml.dump(mock_probe_result)),
-        mock_ro_vpd, mock_rw_vpd)
-    mock_probe_result = copy.deepcopy(sample_probe_result)
-    mock_ro_vpd = copy.deepcopy(sample_ro_vpd)
-    mock_rw_vpd = copy.deepcopy(sample_rw_vpd)
-    del mock_rw_vpd['gbind_attribute']
-    # pylint: disable=E1101
-    self.assertRaisesRegexp(
-        RuleException, r"KeyError\('gbind_attribute',\)",
-        self._gooftool3.VerifyHwidV3, 'CHROMEBOOK D9I-F9U',
-        hwid_tool.ProbeResults.Decode(yaml.dump(mock_probe_result)),
-        mock_ro_vpd, mock_rw_vpd)
-    mock_probe_result = copy.deepcopy(sample_probe_result)
-    mock_ro_vpd = copy.deepcopy(sample_ro_vpd)
-    mock_rw_vpd = copy.deepcopy(sample_rw_vpd)
-    mock_probe_result['found_probe_value_map']['audio_codec'][1] = {
-        'compact_str': 'HDMI 2'}
-    # pylint: disable=E1101
-    self.assertRaisesRegexp(
-        HWIDException, r"Component class 'audio_codec' is missing components: "
-        r"\['hdmi_1'\]. Expected components are: \['codec_1', 'hdmi_1'\]",
-        self._gooftool3.VerifyHwidV3, 'CHROMEBOOK D9I-F9U',
-        hwid_tool.ProbeResults.Decode(yaml.dump(mock_probe_result)),
-        mock_ro_vpd, mock_rw_vpd)
-    mock_probe_result = copy.deepcopy(sample_probe_result)
-    mock_ro_vpd = copy.deepcopy(sample_ro_vpd)
-    mock_rw_vpd = copy.deepcopy(sample_rw_vpd)
-    mock_probe_result['found_probe_value_map']['cellular'] = {
-        'idVendor': '89ab', 'idProduct': 'abcd', 'name': 'Cellular Card'}
-    mock_probe_result['missing_component_classes'].remove('cellular')
-    # pylint: disable=E1101
-    self.assertRaisesRegexp(
-        HWIDException, r"Component class 'cellular' has extra components: "
-        "\['cellular_0'\]. Expected components are: None",
-        self._gooftool3.VerifyHwidV3, 'CHROMEBOOK D9I-F9U',
-        hwid_tool.ProbeResults.Decode(yaml.dump(mock_probe_result)),
-        mock_ro_vpd, mock_rw_vpd)
-    # Test deprecated component.
-    mock_probe_result = copy.deepcopy(sample_probe_result)
-    mock_probe_result['found_volatile_values']['ro_main_firmware'].update(
-        {'compact_str': 'mv2#ro_main_firmware_1'})
-    mock_ro_vpd = copy.deepcopy(sample_ro_vpd)
-    mock_rw_vpd = copy.deepcopy(sample_rw_vpd)
-    # pylint: disable=E1101
-    self.assertRaisesRegexp(
-        HWIDException, r"Not in RMA mode. Found deprecated component of "
-        r"'ro_main_firmware': 'ro_main_firmware_1'",
-        self._gooftool3.VerifyHwidV3, 'CHROMEBOOK D9I-H9T',
-        hwid_tool.ProbeResults.Decode(yaml.dump(mock_probe_result)),
-        mock_ro_vpd, mock_rw_vpd)
-    # Test deprecated component is allowed in rma mode.
-    self.assertEquals(
-        None, self._gooftool3.VerifyHwidV3('CHROMEBOOK D9I-H9T',
-            hwid_tool.ProbeResults.Decode(yaml.dump(mock_probe_result)),
-            mock_ro_vpd, mock_rw_vpd, rma_mode=True))
-
-  def testDecodeHwidV3(self):
-    self.assertEquals(
-        {'audio_codec': 1, 'battery': 3, 'ec_flash_chip': 0, 'firmware': 0,
-         'storage': 0, 'flash_chip': 0, 'bluetooth': 0,
-         'embedded_controller': 0, 'camera': 0, 'display_panel': 0,
-         'cellular': 0, 'keyboard': 0, 'dram': 0, 'chipset': 0, 'cpu': 5},
-        self._gooftool3.DecodeHwidV3('CHROMEBOOK D9I-F9U').bom.encoded_fields)
 
 
 if __name__ == '__main__':
