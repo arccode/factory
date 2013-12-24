@@ -5,9 +5,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-'''
-The main factory flow that runs the factory test and finalizes a device.
-'''
+"""The main factory flow that runs the factory test and finalizes a device."""
 
 import glob
 import logging
@@ -101,9 +99,7 @@ Status = Enum(['UNINITIALIZED', 'INITIALIZING', 'RUNNING',
                'TERMINATING', 'TERMINATED'])
 
 def get_hwid_cfg():
-  '''
-  Returns the HWID config tag, or an empty string if none can be found.
-  '''
+  """Returns the HWID config tag, or an empty string if none can be found."""
   if 'CROS_HWID' in os.environ:
     return os.environ['CROS_HWID']
   if os.path.exists(HWID_CFG_PATH):
@@ -115,8 +111,7 @@ def get_hwid_cfg():
 _inited_logging = False
 
 class Goofy(object):
-  '''
-  The main factory flow.
+  """The main factory flow.
 
   Note that all methods in this class must be invoked from the main
   (event) thread.  Other threads, such as callbacks and TestInvocation
@@ -156,7 +151,7 @@ class Goofy(object):
       sync.)
     hooks: A Hooks object containing hooks for various Goofy actions.
     status: The current Goofy status (a member of the Status enum).
-  '''
+  """
   def __init__(self):
     self.uuid = str(uuid.uuid4())
     self.state_instance = None
@@ -207,14 +202,14 @@ class Goofy(object):
     self.status = Status.UNINITIALIZED
 
     def test_or_root(event, parent_or_group=True):
-      '''Returns the test affected by a particular event.
+      """Returns the test affected by a particular event.
 
       Args:
         event: The event containing an optional 'path' attribute.
-        parent_on_group: If True, returns the top-level parent for a test (the
+        parent_or_group: If True, returns the top-level parent for a test (the
           root node of the tests that need to be run together if the given test
           path is to be run).
-      '''
+      """
       try:
         path = event.path
       except AttributeError:
@@ -376,7 +371,7 @@ class Goofy(object):
     self.visible_test = test
 
   def _log_startup_messages(self):
-    '''Logs the tail of var/log/messages and mosys and EC console logs.'''
+    """Logs the tail of var/log/messages and mosys and EC console logs."""
     # TODO(jsalz): This is mostly a copy-and-paste of code in init_states,
     # for factory-3004.B only.  Consolidate and merge back to ToT.
     if utils.in_chroot():
@@ -415,12 +410,11 @@ class Goofy(object):
       logging.exception('Error retrieving EC panic info')
 
   def handle_shutdown_complete(self, test, test_state):
-    '''
-    Handles the case where a shutdown was detected during a shutdown step.
+    """Handles the case where a shutdown was detected during a shutdown step.
 
     @param test: The ShutdownStep.
     @param test_state: The test state.
-    '''
+    """
     test_state = test.update_state(increment_shutdown_count=1)
     logging.info('Detected shutdown (%d of %d)',
            test_state.shutdown_count, test.iterations)
@@ -529,9 +523,7 @@ class Goofy(object):
       return aborted
 
   def init_states(self):
-    '''
-    Initializes all states on startup.
-    '''
+    """Initializes all states on startup."""
     for test in self.test_list.get_all_tests():
       # Make sure the state server knows about all the tests,
       # defaulting to an untested state.
@@ -621,49 +613,90 @@ class Goofy(object):
     self.update_skipped_tests()
 
   def update_skipped_tests(self):
-    '''
-    Updates skipped states based on run_if.
-    '''
+    """Updates skipped states based on run_if."""
     env = TestArgEnv()
+    def _evaluate_skip_from_run_if(test):
+      """Returns the run_if evaluation of the test.
+
+      Args:
+        test: A FactoryTest object.
+
+      Returns:
+        The run_if evaluation result. Returns False if the test has no
+        run_if argument.
+      """
+      value = None
+      if test.run_if_expr:
+        try:
+          value = test.run_if_expr(env)
+        except:  # pylint: disable=W0702
+          logging.exception('Unable to evaluate run_if expression for %s',
+                            test.path)
+          # But keep going; we have no choice.  This will end up
+          # always activating the test.
+      elif test.run_if_table_name:
+        try:
+          aux = shopfloor.get_selected_aux_data(test.run_if_table_name)
+          value = aux.get(test.run_if_col)
+        except ValueError:
+          # Not available; assume it shouldn't be skipped
+          pass
+
+      if value is None:
+        skip = False
+      else:
+        skip = (not value) ^ t.run_if_not
+      return skip
+
+    # Gets all run_if evaluation, and stores results in skip_map.
+    skip_map = dict()
     for t in self.test_list.walk():
-      if t.is_leaf() and (t.run_if_table_name or t.run_if_expr):
-        value = None
+      skip_map[t.path] = _evaluate_skip_from_run_if(t)
 
-        if t.run_if_expr:
-          try:
-            value = t.run_if_expr(env)
-          except:  # pylint: disable=W0702
-            logging.exception('Unable to evaluate run_if expression for %s',
-                              t.path)
-            # But keep going; we have no choice.  This will end up
-            # always activating the test.
-        else:
-          try:
-            aux = shopfloor.get_selected_aux_data(t.run_if_table_name)
-            value = aux.get(t.run_if_col)
-          except ValueError:
-            # Not available; assume it shouldn't be skipped
-            pass
+    # Propagates the skip value from root of tree and updates skip_map.
+    def _update_skip_map_from_node(test, skip_from_parent):
+      """Updates skip_map from a given node.
 
-        if value is None:
-          skip = False
-        else:
-          skip = (not value) ^ t.run_if_not
+      Given a FactoryTest node and the skip value from parent, updates the
+      skip value of current node in the skip_map if skip value from parent is
+      True. If this node has children, recursively propagate this value to all
+      its children, that is, all its subtests.
+      Note that this function only updates value in skip_map, not the actual
+      test_list tree.
 
-        test_state = t.get_state()
-        if ((not skip) and
-            (test_state.status == TestState.PASSED) and
-            (test_state.error_msg == TestState.SKIPPED_MSG)):
-          # It was marked as skipped before, but now we need to run it.
-          # Mark as untested.
-          t.update_state(skip=skip, status=TestState.UNTESTED, error_msg='')
-        else:
-          t.update_state(skip=skip)
+      Args:
+        test: The given FactoryTest object. It is a node in the test_list tree.
+        skip_from_parent: The skip value which propagates from the parent of
+          input node.
+      """
+      skip_this_tree = skip_from_parent or skip_map[test.path]
+      if skip_this_tree:
+        logging.info('Skip from node %r', test.path)
+        skip_map[test.path] = True
+      if test.is_leaf():
+        return
+      # Propagates skip value to its subtests
+      for subtest in test.subtests:
+        _update_skip_map_from_node(subtest, skip_this_tree)
+
+    _update_skip_map_from_node(self.test_list, False)
+
+    # Updates the skip value from skip_map to test_list tree. Also, updates test
+    # status if needed.
+    for t in self.test_list.walk():
+      skip = skip_map[t.path]
+      test_state = t.get_state()
+      if ((not skip) and
+          (test_state.status == TestState.PASSED) and
+          (test_state.error_msg == TestState.SKIPPED_MSG)):
+        # It was marked as skipped before, but now we need to run it.
+        # Mark as untested.
+        t.update_state(skip=skip, status=TestState.UNTESTED, error_msg='')
+      else:
+        t.update_state(skip=skip)
 
   def show_next_active_test(self):
-    '''
-    Rotates to the next visible active test.
-    '''
+    """Rotates to the next visible active test."""
     self.reap_completed_tests()
     active_tests = [
       t for t in self.test_list.walk()
@@ -680,9 +713,7 @@ class Goofy(object):
     self.set_visible_test(next_test)
 
   def handle_event(self, event):
-    '''
-    Handles an event from the event server.
-    '''
+    """Handles an event from the event server."""
     handler = self.event_handlers.get(event.type)
     if handler:
       handler(event)
@@ -692,16 +723,12 @@ class Goofy(object):
       logging.debug('Unbound event type %s', event.type)
 
   def check_critical_factory_note(self):
-    '''
-    Returns True if the last factory note is critical.
-    '''
+    """Returns True if the last factory note is critical."""
     notes = self.state_instance.get_shared_data('factory_note', True)
     return notes and notes[-1]['level'] == 'CRITICAL'
 
   def run_next_test(self):
-    '''
-    Runs the next eligible test (or tests) in self.tests_to_run.
-    '''
+    """Runs the next eligible test (or tests) in self.tests_to_run."""
     self.reap_completed_tests()
     if self.tests_to_run and self.check_critical_factory_note():
       self.tests_to_run.clear()
@@ -883,9 +910,7 @@ class Goofy(object):
     self.exclusive_items = current_exclusive_items
 
   def check_for_updates(self):
-    '''
-    Schedules an asynchronous check for updates if necessary.
-    '''
+    """Schedules an asynchronous check for updates if necessary."""
     if not self.test_list.options.update_period_secs:
       # Not enabled.
       return
@@ -912,12 +937,11 @@ class Goofy(object):
       self.test_list.options.shopfloor_timeout_secs)
 
   def cancel_pending_tests(self):
-    '''Cancels any tests in the run queue.'''
+    """Cancels any tests in the run queue."""
     self.run_tests([])
 
   def run_tests(self, subtrees, untested_only=False):
-    '''
-    Runs tests under subtree.
+    """Runs tests under subtree.
 
     The tests are run in order unless one fails (then stops).
     Backgroundable tests are run simultaneously; when a foreground test is
@@ -925,7 +949,7 @@ class Goofy(object):
 
     @param subtrees: Node or nodes containing tests to run (may either be
       a single test or a list).  Duplicates will be ignored.
-    '''
+    """
     if type(subtrees) != list:
       subtrees = [subtrees]
 
@@ -948,11 +972,10 @@ class Goofy(object):
     self.run_next_test()
 
   def reap_completed_tests(self):
-    '''
-    Removes completed tests from the set of active tests.
+    """Removes completed tests from the set of active tests.
 
     Also updates the visible test if it was reaped.
-    '''
+    """
     test_completed = False
     for t, v in dict(self.invocations).iteritems():
       if v.is_completed():
@@ -990,14 +1013,14 @@ class Goofy(object):
           break
 
   def kill_active_tests(self, abort, root=None, reason=None):
-    '''
-    Kills and waits for all active tests.
+    """Kills and waits for all active tests.
 
     Args:
       abort: True to change state of killed tests to FAILED, False for
         UNTESTED.
       root: If set, only kills tests with root as an ancestor.
-    '''
+      reason: If set, the abort reason.
+    """
     self.reap_completed_tests()
     for test, invoc in self.invocations.items():
       if root and not test.has_ancestor(root):
@@ -1054,7 +1077,7 @@ class Goofy(object):
     self.run()
 
   def update_system_info(self):
-    '''Updates system info.'''
+    """Updates system info."""
     system_info = system.SystemInfo()
     self.state_instance.set_shared_data('system_info', system_info.__dict__)
     self.event_client.post_event(Event(Event.Type.SYSTEM_INFO,
@@ -1062,7 +1085,7 @@ class Goofy(object):
     logging.info('System info: %r', system_info.__dict__)
 
   def update_factory(self, auto_run_on_restart=False, post_update_hook=None):
-    '''Commences updating factory software.
+    """Commences updating factory software.
 
     Args:
       auto_run_on_restart: Auto-run when the machine comes back up.
@@ -1072,7 +1095,7 @@ class Goofy(object):
     Returns:
       Never if the update was successful (we just reboot).
       False if the update was unnecessary (no update available).
-    '''
+    """
     self.kill_active_tests(False, reason='Factory software update')
     self.cancel_pending_tests()
 
@@ -1194,14 +1217,14 @@ class Goofy(object):
     self.hooks.OnCreatedTestList()
 
   def init(self, args=None, env=None):
-    '''Initializes Goofy.
+    """Initializes Goofy.
 
     Args:
       args: A list of command-line arguments.  Uses sys.argv if
         args is None.
       env: An Environment instance to use (or None to choose
         FakeChrootEnvironment or DUTEnvironment as appropriate).
-    '''
+    """
     signal.signal(signal.SIGINT, self.handle_sigint)
 
     parser = OptionParser()
@@ -1502,20 +1525,20 @@ class Goofy(object):
       self.key_filter.Start()
 
   def run(self):
-    '''Runs Goofy.'''
+    """Runs Goofy."""
     # Process events forever.
     while self.run_once(True):
       pass
 
   def run_once(self, block=False):
-    '''Runs all items pending in the event loop.
+    """Runs all items pending in the event loop.
 
     Args:
       block: If true, block until at least one event is processed.
 
     Returns:
       True to keep going or False to shut down.
-    '''
+    """
     events = utils.DrainQueue(self.run_queue)
     while not events:
       # Nothing on the run queue.
@@ -1552,13 +1575,13 @@ class Goofy(object):
     return True
 
   def _should_sync_time(self, foreground=False):
-    '''Returns True if we should attempt syncing time with shopfloor.
+    """Returns True if we should attempt syncing time with shopfloor.
 
     Args:
       foreground: If True, synchronizes even if background syncing
         is disabled (e.g., in explicit sync requests from the
         SyncShopfloor test).
-    '''
+    """
     return ((foreground or
              self.test_list.options.sync_time_period_secs) and
             self.time_sanitizer and
@@ -1566,7 +1589,7 @@ class Goofy(object):
             (not factory.in_chroot()))
 
   def sync_time_with_shopfloor_server(self, foreground=False):
-    '''Syncs time with shopfloor server, if not yet synced.
+    """Syncs time with shopfloor server, if not yet synced.
 
     Args:
       foreground: If True, synchronizes even if background syncing
@@ -1579,7 +1602,7 @@ class Goofy(object):
 
     Raises:
       Exception if unable to contact the shopfloor server.
-    '''
+    """
     if self._should_sync_time(foreground):
       self.time_sanitizer.SyncWithShopfloor()
       self.time_synced = True
@@ -1649,12 +1672,12 @@ class Goofy(object):
       logging.exception('Unable to get disk space used')
 
   def check_battery(self):
-    '''Checks the current battery status.
+    """Checks the current battery status.
 
     Logs current battery charging level and status to log. If the battery level
     is lower below warning_low_battery_pct, send warning event to shopfloor.
     If the battery level is lower below critical_low_battery_pct, flush disks.
-    '''
+    """
     if not self.test_list.options.check_battery_period_secs:
       return
 
@@ -1713,12 +1736,12 @@ class Goofy(object):
         self.last_check_battery_message = message
 
   def check_core_dump(self):
-    '''Checks if there is any core dumped file.
+    """Checks if there is any core dumped file.
 
     Removes unwanted core dump files immediately.
     Syncs those files matching watch list to server with a delay between
     each sync. After the files have been synced to server, deletes the files.
-    '''
+    """
     core_dump_files = self.core_dump_manager.ScanFiles()
     if core_dump_files:
       now = time.time()
@@ -1737,13 +1760,13 @@ class Goofy(object):
             core_dump_files, self.core_dump_manager.ClearFiles)
 
   def check_log_rotation(self):
-    '''Checks log rotation file presence/absence according to test_list option.
+    """Checks log rotation file presence/absence according to test_list option.
 
     Touch /var/lib/cleanup_logs_paused if test_list.options.disable_log_rotation
     is True, delete it otherwise. This must be done in idle loop because
     autotest client will touch /var/lib/cleanup_logs_paused each time it runs
     an autotest.
-    '''
+    """
     if utils.in_chroot():
       return
     try:
@@ -1759,7 +1782,7 @@ class Goofy(object):
           CLEANUP_LOGS_PAUSED, utils.FormatExceptionOnly())
 
   def sync_time_in_background(self):
-    '''Writes out current time and tries to sync with shopfloor server.'''
+    """Writes out current time and tries to sync with shopfloor server."""
     if not self.time_sanitizer:
       return
 
@@ -1791,10 +1814,10 @@ class Goofy(object):
     thread.start()
 
   def _run_queue_idle(self):
-    '''Invoked when the run queue has no events.
+    """Invoked when the run queue has no events.
 
     This method must not raise exception.
-    '''
+    """
     now = time.time()
     if (self.last_idle and
         now < (self.last_idle + RUN_QUEUE_TIMEOUT_SECS - 1)):
@@ -1813,13 +1836,13 @@ class Goofy(object):
     self.check_log_rotation()
 
   def handle_event_logs(self, chunks):
-    '''Callback for event watcher.
+    """Callback for event watcher.
 
     Attempts to upload the event logs to the shopfloor server.
 
     Args:
       chunks: A list of Chunk objects.
-    '''
+    """
     first_exception = None
     exception_count = 0
 
@@ -1852,14 +1875,17 @@ class Goofy(object):
 
   def run_tests_with_status(self, statuses_to_run, starting_at=None,
     root=None):
-    '''Runs all top-level tests with a particular status.
+    """Runs all top-level tests with a particular status.
 
     All active tests, plus any tests to re-run, are reset.
 
     Args:
+      statuses_to_run: The particular status that caller wants to run.
       starting_at: If provided, only auto-runs tests beginning with
         this test.
-    '''
+      root: The root of tests to run. If not provided, it will be
+        the root of all tests.
+    """
     root = root or self.test_list
 
     if starting_at:
@@ -1900,7 +1926,7 @@ class Goofy(object):
     self.run_tests(tests_to_run, untested_only=True)
 
   def restart_tests(self, root=None):
-    '''Restarts all tests.'''
+    """Restarts all tests."""
     root = root or self.test_list
 
     self.abort_active_tests('Operator requested restart of certain tests')
@@ -1909,37 +1935,39 @@ class Goofy(object):
     self.run_tests(root)
 
   def auto_run(self, starting_at=None, root=None):
-    '''"Auto-runs" tests that have not been run yet.
+    """"Auto-runs" tests that have not been run yet.
 
     Args:
       starting_at: If provide, only auto-runs tests beginning with
         this test.
-    '''
+      root: If provided, the root of tests to run. If not provided, the root
+        will be test_list (root of all tests).
+    """
     root = root or self.test_list
     self.run_tests_with_status([TestState.UNTESTED, TestState.ACTIVE],
                    starting_at=starting_at,
                    root=root)
 
   def re_run_failed(self, root=None):
-    '''Re-runs failed tests.'''
+    """Re-runs failed tests."""
     root = root or self.test_list
     self.run_tests_with_status([TestState.FAILED], root=root)
 
   def show_review_information(self):
-    '''Event handler for showing review information screen.
+    """Event handler for showing review information screen.
 
     The information screene is rendered by main UI program (ui.py), so in
     goofy we only need to kill all active tests, set them as untested, and
     clear remaining tests.
-    '''
+    """
     self.kill_active_tests(False)
     self.cancel_pending_tests()
 
   def handle_switch_test(self, event):
-    '''Switches to a particular test.
+    """Switches to a particular test.
 
     @param event: The SWITCH_TEST event.
-    '''
+    """
     test = self.test_list.lookup_path(event.path)
     if not test:
       logging.error('Unknown test %r', event.key)
@@ -1963,10 +1991,10 @@ class Goofy(object):
       self.run_tests(test)
 
   def wait(self):
-    '''Waits for all pending invocations.
+    """Waits for all pending invocations.
 
     Useful for testing.
-    '''
+    """
     while self.invocations:
       for k, v in self.invocations.iteritems():
         logging.info('Waiting for %s to complete...', k)
@@ -1974,17 +2002,19 @@ class Goofy(object):
       self.reap_completed_tests()
 
   def check_exceptions(self):
-    '''Raises an error if any exceptions have occurred in
-    invocation threads.'''
+    """Raises an error if any exceptions have occurred in
+    invocation threads.
+    """
     if self.exceptions:
       raise RuntimeError('Exception in invocation thread: %r' %
                  self.exceptions)
 
   def record_exception(self, msg):
-    '''Records an exception in an invocation thread.
+    """Records an exception in an invocation thread.
 
     An exception with the given message will be rethrown when
-    Goofy is destroyed.'''
+    Goofy is destroyed.
+    """
     self.exceptions.append(msg)
 
 

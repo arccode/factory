@@ -176,8 +176,8 @@ def FactoryTest(*args, **kwargs):
 def AutomatedSequence(*args, **kwargs):
   return Add(factory.AutomatedSequence(*args, **kwargs))
 
-
-def TestGroup(id, label_en='', label_zh=''):  # pylint: disable=W0622
+def TestGroup(id, label_en='', label_zh='', run_if=None):
+  # pylint: disable=W0622
   """Adds a test group to the current test list.
 
   This should always be used inside a ``with`` keyword, and tests
@@ -198,8 +198,11 @@ def TestGroup(id, label_en='', label_zh=''):  # pylint: disable=W0622
       to the value of ``id`` if none is specified.
     label_zh: The label of the group, in Chinese.  This defaults
       to the value of ``label_en`` if none is specified.
+    run_if: Condition under which the test should be run. Checks the docstring
+      of FactoryTest.
   """
-  return Add(factory.TestGroup(id=id, label_en=label_en, label_zh=label_zh))
+  return Add(factory.TestGroup(id=id, label_en=label_en, label_zh=label_zh,
+                               run_if=run_if))
 
 
 def OperatorTest(*args, **kwargs):

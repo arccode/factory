@@ -6,6 +6,10 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+
+'''The unittest for the main factory flow that runs the factory test.'''
+
+
 import factory_common  # pylint: disable=W0611
 
 import logging
@@ -57,6 +61,7 @@ def mock_autotest(env, name, passed, error_msg):
   '''Adds a side effect that a mock autotest will be executed.
 
   Args:
+    env: The mock Environment object.
     name: The name of the autotest to be mocked.
     passed: Whether the test should pass.
     error_msg: The error message.
@@ -113,8 +118,11 @@ class GoofyTest(unittest.TestCase):
     self.assertEqual([], extra_threads)
 
   def _wait(self):
-    '''Waits for any pending invocations in Goofy to complete,
-    and verifies and resets all mocks.'''
+    '''Waits for any pending invocations in Goofy to complete.
+
+    Waits for any pending invocations in Goofy to complete,
+    and verifies and resets all mocks.
+    '''
     self.goofy.wait()
     self.mocker.VerifyAll()
     self.mocker.ResetAll()
@@ -164,8 +172,7 @@ ABC_TEST_LIST = '''
 
 
 class BasicTest(GoofyTest):
-  '''A simple test case that checks that tests are run in the correct
-  order.'''
+  '''A simple test case that checks that tests are run in the correct order.'''
   test_list = ABC_TEST_LIST
   def runTest(self):
     self.check_one_test('a', 'a_A', True, '')
@@ -199,6 +206,7 @@ class WebSocketTest(GoofyTest):
     self.ws_done = threading.Event()
 
     class MyClient(WebSocketBaseClient):
+      '''The web socket client class.'''
       # pylint: disable=E0213
       def handshake_ok(socket_self):
         pass
@@ -263,6 +271,7 @@ class WebSocketTest(GoofyTest):
 
 
 class ShutdownTest(GoofyTest):
+  '''A test case that checks the behavior of shutdown.'''
   test_list = '''
     RebootStep(id='shutdown', iterations=3),
     OperatorTest(id='a', autotest_name='a_A')
@@ -300,6 +309,7 @@ class ShutdownTest(GoofyTest):
 
 
 class RebootFailureTest(GoofyTest):
+  '''A test case that checks the behavior of reboot failure.'''
   test_list = '''
     RebootStep(id='shutdown'),
   '''
@@ -347,6 +357,7 @@ class RebootFailureTest(GoofyTest):
 
 
 class NoAutoRunTest(GoofyTest):
+  '''A test case that checks the behavior when auto_run_on_start is False.'''
   test_list = ABC_TEST_LIST
   options = 'options.auto_run_on_start = False'
 
@@ -373,6 +384,7 @@ class NoAutoRunTest(GoofyTest):
 
 
 class AutoRunKeypressTest(NoAutoRunTest):
+  '''A test case that checks the behavior of auto_run_on_keypress.'''
   test_list = ABC_TEST_LIST
   options = '''
     options.auto_run_on_start = False
@@ -419,6 +431,7 @@ class PyTestTest(GoofyTest):
 
 
 class PyLambdaTest(GoofyTest):
+  '''A test case that checks the behavior of execpython.'''
   test_list = '''
     OperatorTest(id='a', pytest_name='execpython',
            dargs={'script': lambda env: 'raise ValueError("It"+"Failed")'})
@@ -460,6 +473,7 @@ class MultipleIterationsTest(GoofyTest):
 
 
 class ConnectionManagerTest(GoofyTest):
+  '''Tests connection manager.'''
   options = '''
     options.wlans = [WLAN('foo', 'psk', 'bar')]
   '''
@@ -488,6 +502,7 @@ class ConnectionManagerTest(GoofyTest):
 
 
 class RequireRunTest(GoofyTest):
+  '''Tests FactoryTest require_run argument.'''
   options = '''
     options.auto_run_on_start = False
   '''
@@ -508,6 +523,7 @@ class RequireRunTest(GoofyTest):
 
 
 class RequireRunPassedTest(GoofyTest):
+  '''Tests FactoryTest require_run argument with Passed syntax.'''
   options = '''
     options.auto_run_on_start = True
   '''
@@ -527,6 +543,7 @@ class RequireRunPassedTest(GoofyTest):
 
 
 class RunIfTest(GoofyTest):
+  '''Tests FactoryTest run_if argument.'''
   options = '''
     options.auto_run_on_start = True
   '''
@@ -564,6 +581,87 @@ class RunIfTest(GoofyTest):
     b_state = state_instance.get_test_state('b')
     self.assertEquals(TestState.UNTESTED, b_state.status)
     self.assertEquals('', b_state.error_msg)
+
+
+class GroupRunIfTest(GoofyTest):
+  '''Tests TestGroup run_if argument.'''
+  options = '''
+    options.auto_run_on_start = True
+  '''
+  test_list = '''
+    TestGroup(id='G1', run_if='foo.g1', subtests=[
+      OperatorTest(id='T1', autotest_name='a_A', run_if='foo.t1'),
+      OperatorTest(id='T2', autotest_name='a_A', run_if='foo.t2'),
+      OperatorTest(id='T3', autotest_name='a_A', run_if='foo.t3'),
+      OperatorTest(id='T4', autotest_name='a_A'),
+    ])
+  '''
+  def runTest(self):
+    state_instance = factory.get_state_instance()
+
+    def _check_state(id_state_dict):
+      for test_id, skip_status_msg in id_state_dict.iteritems():
+        test_state = state_instance.get_test_state(test_id)
+        skip, status, msg = skip_status_msg
+        self.assertEquals(skip, test_state.skip)
+        self.assertEquals(status, test_state.status)
+        self.assertEquals(msg, test_state.error_msg)
+
+    # Keeps group G1 but skips G1.T1.
+    # G1.T1 should be the only test to skip.
+    shopfloor.save_aux_data('foo', 'MLB00001',
+        {'g1': True,
+         't1': False,
+         't2': True,
+         't3': True})
+    self.goofy.update_skipped_tests()
+    _check_state(
+      {'G1': (False, TestState.UNTESTED, None),
+       'G1.T1': (True, TestState.UNTESTED,None),
+       'G1.T2': (False, TestState.UNTESTED,None),
+       'G1.T3': (False, TestState.UNTESTED,None),
+       'G1.T4': (False, TestState.UNTESTED,None)})
+
+    # Disables group G1. All tests are skipped.
+    shopfloor.save_aux_data('foo', 'MLB00001',
+        {'g1' : False,
+         't1' : False,
+         't2' : True,
+         't3' : True})
+    self.goofy.update_skipped_tests()
+    _check_state(
+      {'G1': (True, TestState.UNTESTED, None),
+       'G1.T1': (True, TestState.UNTESTED, None),
+       'G1.T2': (True, TestState.UNTESTED, None),
+       'G1.T3': (True, TestState.UNTESTED, None ),
+       'G1.T4': (True, TestState.UNTESTED, None)})
+
+    # Runs group G1. All tests are skipped and passed.
+    for _ in range(4):
+      self.assertTrue(self.goofy.run_once())
+      self.goofy.wait()
+    _check_state(
+      {'G1': (True, TestState.PASSED, None),
+       'G1.T1': (True, TestState.PASSED, TestState.SKIPPED_MSG),
+       'G1.T2': (True, TestState.PASSED, TestState.SKIPPED_MSG),
+       'G1.T3': (True, TestState.PASSED, TestState.SKIPPED_MSG),
+       'G1.T4': (True, TestState.PASSED, TestState.SKIPPED_MSG)})
+
+    # Re-enable group G1, but skips G1.T1.
+    # G1, G1.T2, G1.T3, G1.T4 should not be skipped now. Also, they
+    # should be untested.
+    shopfloor.save_aux_data('foo', 'MLB00001',
+        {'g1' : True,
+         't1' : False,
+         't2' : True,
+         't3' : True})
+    self.goofy.update_skipped_tests()
+    _check_state(
+      {'G1': (False, TestState.UNTESTED, None),
+       'G1.T1': (True, TestState.PASSED, TestState.SKIPPED_MSG),
+       'G1.T2': (False, TestState.UNTESTED, ''),
+       'G1.T3': (False, TestState.UNTESTED, ''),
+       'G1.T4': (False, TestState.UNTESTED, '')})
 
 
 class StopOnFailureTest(GoofyTest):
