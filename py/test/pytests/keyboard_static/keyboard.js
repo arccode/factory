@@ -9,14 +9,21 @@
  * @param {Object} bindings
  * @param {string} container
  * @param {Array} keyOrderList
+ * @param {boolean} allowMultiKeys
  */
-keyboardTest = function(layout, bindings, container, keyOrderList) {
+keyboardTest = function(layout, bindings, container, keyOrderList,
+                        allowMultiKeys) {
   this.layout = layout;
   this.bindings = bindings;
   this.container = container;
   this.keyOrderList = keyOrderList;
-  this.enInstruct = "Press one key at a time.";
-  this.zhInstruct = "一次只能按一个键";
+  if (allowMultiKeys) {
+    this.enInstruct = "";
+    this.zhInstruct = "";
+  } else {
+    this.enInstruct = "Press one key at a time.";
+    this.zhInstruct = "一次只能按一个键";
+  }
 };
 
 /**
@@ -180,10 +187,12 @@ keyboardTest.prototype.getClassArray = function(className) {
  * @param {Object} bindings
  * @param {string} container
  * @param {Array} keyOrderList
+ * @param {boolean} allowMultiKeys
  */
-function setUpKeyboardTest(layout, bindings, container, keyOrderList) {
+function setUpKeyboardTest(layout, bindings, container, keyOrderList,
+                           allowMultiKeys) {
   window.keyboardTest = new keyboardTest(layout, bindings, container,
-                                         keyOrderList);
+                                         keyOrderList, allowMultiKeys);
   window.keyboardTest.init();
 }
 

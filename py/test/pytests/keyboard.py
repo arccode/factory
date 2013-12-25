@@ -3,8 +3,7 @@
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
-"""
-A factory test to test the functionality of keyboard.
+"""A factory test to test the functionality of keyboard.
 
 dargs:
   layout: Use specified layout other than derived from VPD. (default: get from
@@ -52,6 +51,7 @@ _POWER_KEY_CODE = 116
 
 
 class InputDeviceDispatcher(asyncore.file_dispatcher):
+  """Extends asyncore.file_dispatcher to read input device."""
   def __init__(self, device, event_handler):
     self.device = device
     self.event_handler = event_handler
@@ -70,6 +70,8 @@ class KeyboardTest(unittest.TestCase):
   and passes if both events of all keys are received.
   """
   ARGS = [
+    Arg('allow_multi_keys', bool, 'Allow multiple keys pressed simultaneously. '
+        '(Less strictly checking with shorter cycle time)', default=False),
     Arg('layout', (str, unicode), 'Use specified layout other than derived '
         'from VPD.', default=None, optional=True),
     Arg('keyboard_device_name', (str, unicode), 'Device name of keyboard.',
@@ -84,6 +86,10 @@ class KeyboardTest(unittest.TestCase):
   ]
 
   def setUp(self):
+    self.assertTrue(not (self.args.allow_multi_keys and
+                         self.args.sequential_press),
+                    'Sequential press requires one key one time.')
+
     self.ui = test_ui.UI()
     self.template = OneSection(self.ui)
     self.ui.AppendCSS(_KEYBOARD_TEST_DEFAULT_CSS)
@@ -104,7 +110,8 @@ class KeyboardTest(unittest.TestCase):
     # Initialize frontend presentation
     self.template.SetState(_HTML_KEYBOARD)
     self.ui.CallJSFunction('setUpKeyboardTest', self.layout, self.bindings,
-                           _ID_IMAGE, self.key_order_list)
+                           _ID_IMAGE, self.key_order_list,
+                           self.args.allow_multi_keys)
 
     self.dispatchers = []
     self.EnableXKeyboard(False)
@@ -180,7 +187,7 @@ class KeyboardTest(unittest.TestCase):
     if not keycode in self.bindings:
       return True
     # Fails the test if got two key pressed at the same time.
-    if len(self.key_down):
+    if not self.args.allow_multi_keys and len(self.key_down):
       factory.console.error(
           'Got key down event on keycode %r but there is other key pressed: %r',
           keycode, self.key_down)
