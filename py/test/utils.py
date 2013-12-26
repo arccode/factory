@@ -490,7 +490,11 @@ def SetTouchpadTwoFingerScrollingX(enabled):
         r'(.*)$' % prop_name, # Get property value.
         flags=re.M)
     xinput_list_props = CheckOutput([TPSCONTROL_XINPUT, 'status'])
-    return prop_id_re.search(xinput_list_props).groups()
+    matched_obj = prop_id_re.search(xinput_list_props)
+    if matched_obj:
+      return matched_obj.groups()
+    else:
+      return (None, None)
 
   os.environ['DISPLAY'] = ':0'
   os.environ['XAUTHORITY'] = '/home/chronos/.Xauthority'
@@ -498,6 +502,11 @@ def SetTouchpadTwoFingerScrollingX(enabled):
   default_scale = '2.5'
 
   prop_id = GetPropIdValue(property_name)[0]
+  if not prop_id:
+    # Cannot find the requested property ID.  This can happen during early
+    # development stages if touchpad driver is not in place.
+    return
+
   if bool(enabled):
     prop_value = default_scale
   else:
