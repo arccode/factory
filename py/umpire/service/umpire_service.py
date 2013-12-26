@@ -194,3 +194,8 @@ class UmpireService(protocol.ProcessProtocol):
     """Stops background service."""
     self.stopping = True
     self.transport.signalProcess('TERM')
+
+
+def GetServiceSchemata():
+  """Gets a dictionary of service configuration schemata."""
+  return {name: module.CONFIG_SCHEMA for name, module in _SERVICE_MAP.items()}
