@@ -15,6 +15,8 @@ for all service module.
 # pylint: disable=E1101
 
 
+import copy
+import importlib
 import logging
 import os
 import sys
@@ -23,13 +25,19 @@ import uuid
 from twisted.internet import protocol, reactor
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.schema import FixedDict, Scalar
 from cros.factory.umpire.common import UmpireError
 
 
+# Service package path
+_SERVICE_PACKAGE = 'cros.factory.umpire.service'
 # Service restart within _TIME_RESTART_FAST seconds is considered abnormal.
 _TIME_RESTART_FAST = 5
 # The maximum retries before cancel restarting external service.
 _MAX_RESTART_COUNT = 5
+# Optional service config schema
+_OPTIONAL_SERVICE_SCHEMA = {
+    'active': Scalar('Default service state on start', bool)}
 
 
 # Map service name to sys.modules.
@@ -197,5 +205,37 @@ class UmpireService(protocol.ProcessProtocol):
 
 
 def GetServiceSchemata():
-  """Gets a dictionary of service configuration schemata."""
-  return {name: module.CONFIG_SCHEMA for name, module in _SERVICE_MAP.items()}
+  """Gets a dictionary of service configuration schemata.
+
+  Returns:
+    A schema.FixedDict items parameter for validating service schemata.
+  """
+  schemata = {}
+  for name, module in _SERVICE_MAP.iteritems():
+    if hasattr(module, 'CONFIG_SCHEMA'):
+      items = module.CONFIG_SCHEMA
+      optional_items = copy.deepcopy(_OPTIONAL_SERVICE_SCHEMA)
+      for key in items:
+        if key in optional_items:
+          del optional_items[key]
+      schemata[name] = FixedDict(
+          'Service schema:' + name,
+          items=items,
+          optional_items=optional_items)
+    else:
+      schemata[name] = FixedDict(
+          'Service schema:' + name,
+          optional_items=copy.deepcopy(_OPTIONAL_SERVICE_SCHEMA))
+  return FixedDict('Service schemata', items=schemata)
+
+
+def LoadServiceModule(module_name):
+  """Imports service python module.
+
+  Returns:
+    Module object.
+
+  Raises:
+    ImportError: when fails to find a name.
+  """
+  return importlib.import_module(module_name, _SERVICE_PACKAGE)
