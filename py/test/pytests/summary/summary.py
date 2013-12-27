@@ -5,9 +5,9 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-'''
-Displays a status summary for all tests in the current section
-(up to, but not including, this test).
+"""Displays a status summary for all tests in the current section.
+
+The summary includes tests up to, but not including, this test).
 
 For example, if the test tree is
 
@@ -29,7 +29,7 @@ dargs:
     space. If this argument is True and overall status is not PASSED,
     the test will hang there while the control menu can still work to
     stop/abort the test.
-'''
+"""
 
 import logging
 import unittest
@@ -40,7 +40,7 @@ from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test.fixture import bft_fixture
 
-CSS = '''
+CSS = """
 table {
   margin-left: auto;
   margin-right: auto;
@@ -49,9 +49,10 @@ table {
 th, td {
   padding: 0 1em;
 }
-'''
+"""
 
 class Report(unittest.TestCase):
+  """A factory test to report test status."""
   ARGS = [
     Arg('disable_input_on_fail', bool,
         'Disable user input to pass/fail when the overall status is not PASSED',

@@ -121,7 +121,7 @@ _ERR_BFT_ACTION_STR = (
         'BFT fixture failed to %s %s device %s. Reason: %s' % (
             action, test_type, target_dev, reason))
 
-_TEST_TITLE = test_ui.MakeLabel('Card Reader Test', u'读卡机测试')
+_TEST_TITLE = test_ui.MakeLabel('Removable Storage Test', u'可移除储存装置测试')
 _IMG_HTML_TAG = (
     lambda src: '<img src="%s" style="display:block; margin:0 auto;"/>' % src)
 

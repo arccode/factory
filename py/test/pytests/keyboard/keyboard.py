@@ -144,7 +144,8 @@ class KeyboardTest(unittest.TestCase):
   def ReadBindings(self, layout):
     """Reads in key bindings and their associates figure regions."""
     bindings = None
-    base = os.path.splitext(os.path.realpath(__file__))[0] + '_static'
+    base = os.path.join(
+        os.path.dirname(os.path.realpath(__file__)), 'static')
     bindings_filename = os.path.join(base, layout + '.bindings')
     with open(bindings_filename, 'r') as f:
       bindings = eval(f.read())
@@ -157,7 +158,8 @@ class KeyboardTest(unittest.TestCase):
   def ReadKeyOrder(self, layout):
     """Reads in key order that must be followed when press key."""
     key_order_list = None
-    base = os.path.splitext(os.path.realpath(__file__))[0] + '_static'
+    base = os.path.join(
+        os.path.dirname(os.path.realpath(__file__)), 'static')
     key_order_list_filename = os.path.join(base, layout + '.key_order')
     with open(key_order_list_filename, 'r') as f:
       key_order_list = eval(f.read())

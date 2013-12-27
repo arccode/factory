@@ -69,8 +69,8 @@ class RemovableStorageE2ETest(e2e_test.E2ETest):
       rs.sys_utils, 'GetPartitions', side_effect=[
           [sys_utils.PartitionInfo(0, 0, 1000, 'fake_usb_node')], []])
   @mock.patch.object(
-      rs, 'CheckOutput', side_effect=[str(4*1024*1024*1024), str(0)])
-  @mock.patch.object(rs.os, 'open', return_value='mock_fd')
+      rs, 'CheckOutput', side_effect=[str(4*1024*1024*1024)])
+  @mock.patch.object(rs.os, 'open', side_effect=['mock_fd'])
   @mock.patch.object(rs.os, 'close')
   @mock.patch.object(rs.os, 'read')
   @mock.patch.object(rs.os, 'write')

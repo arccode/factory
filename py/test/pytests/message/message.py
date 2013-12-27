@@ -25,6 +25,7 @@ CSS_TEMPLATE = """
 
 
 class MessageTest(unittest.TestCase):
+  """A factory test to display a message."""
   ARGS = [
     Arg('html_en', str, 'Message (HTML in English).'),
     Arg('html_zh', str,' Message (HTML, in Chinese).', optional=True),

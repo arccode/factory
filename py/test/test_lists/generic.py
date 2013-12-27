@@ -472,7 +472,7 @@ class TestListArgs(object):
       flush_event_logs = self.enable_flush_event_logs
 
     suffix_str = str(id_suffix) if id_suffix else ''
-    return OperatorTest(
+    OperatorTest(
         id='SyncShopFloor' + suffix_str,
         pytest_name='flush_event_logs',
         label_zh=u'同步事件记录 ' + suffix_str,
@@ -493,9 +493,10 @@ class TestListArgs(object):
       run_if: run_if argument passed to OperatorTest.
     """
     if self.enable_barriers:
-      return OperatorTest(
+      OperatorTest(
           id='Barrier' + str(id_suffix),
           label_zh=u'检查关卡' + str(id_suffix),
+          has_automator=True,
           pytest_name='summary',
           run_if=run_if,
           never_fails=True,
@@ -505,8 +506,6 @@ class TestListArgs(object):
               disable_input_on_fail=True,
               pass_without_prompt=pass_without_prompt,
               accessibility=accessibility))
-    else:
-      return None
 
 
 def SetWLANs(options):

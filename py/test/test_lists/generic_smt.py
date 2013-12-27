@@ -15,13 +15,13 @@ This file implements SMT method to create SMT test list.
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.gooftool import gooftool
-from cros.factory.test.test_lists.test_lists import  AutomatedSequence
-from cros.factory.test.test_lists.test_lists import  FactoryTest
-from cros.factory.test.test_lists.test_lists import  HaltStep
-from cros.factory.test.test_lists.test_lists import  OperatorTest
-from cros.factory.test.test_lists.test_lists import  Passed
-from cros.factory.test.test_lists.test_lists import  RebootStep
-from cros.factory.test.test_lists.test_lists import  TestGroup
+from cros.factory.test.test_lists.test_lists import AutomatedSequence
+from cros.factory.test.test_lists.test_lists import FactoryTest
+from cros.factory.test.test_lists.test_lists import HaltStep
+from cros.factory.test.test_lists.test_lists import OperatorTest
+from cros.factory.test.test_lists.test_lists import Passed
+from cros.factory.test.test_lists.test_lists import RebootStep
+from cros.factory.test.test_lists.test_lists import TestGroup
 
 
 # SMT test items.
@@ -76,6 +76,7 @@ def ManualExtDisplay(args):
   OperatorTest(
       id='ExtDisplay',
       label_zh=u'外接显示(人工測試)',
+      has_automator=True,
       pytest_name='ext_display',
       dargs=dict(
           main_display='eDP-1',
@@ -91,6 +92,7 @@ def ManualSMTStart(args):
   OperatorTest(
       id='Start',
       label_zh=u'开始',
+      has_automator=True,
       pytest_name='start',
       never_fails=True,
       dargs=dict(
@@ -133,6 +135,7 @@ def ScanMLB(args):
   OperatorTest(
       id='ScanMLB',
       label_zh=u'扫描母板编号',
+      has_automator=True,
       pytest_name='scan',
       run_if='!device_data.smt_complete',
       dargs=dargs)
@@ -149,6 +152,7 @@ def ScanOperatorID(args):
   OperatorTest(
       id='ScanOperatorID',
       label_zh=u'扫描作业员 ID',
+      has_automator=True,
       pytest_name='scan',
       run_if='!device_data.smt_complete',
       dargs=dict(
@@ -471,6 +475,7 @@ def SMTLed(args):
   OperatorTest(
       id='LED',
       label_zh=u'LED',
+      has_automator=True,
       pytest_name='led')
 
 def Keyboard(args):
@@ -482,6 +487,7 @@ def Keyboard(args):
   OperatorTest(
       id='Keyboard',
       label_zh=u'键盘',
+      has_automator=True,
       pytest_name='keyboard',
       dargs=dict(
           layout='ANSI',
@@ -499,6 +505,7 @@ def SMTAudioJack(args, retries=None):
   OperatorTest(
       id='AudioJack',
       label_zh=u'音源孔',
+      has_automator=True,
       pytest_name='audio_loop',
       disable_services=['cras'],
       dargs={'enable_audiofun': False,
@@ -515,6 +522,7 @@ def SpeakerDMic(args):
   OperatorTest(
       id='SpeakerDMic',
       label_zh=u'喇叭/麦克风',
+      has_automator=True,
       pytest_name='audio_loop',
       disable_services=['cras'],
       dargs={'enable_audiofun': True,
@@ -531,6 +539,7 @@ def LidSwitch(args, retries=3):
   OperatorTest(
       id='LidSwitch',
       label_zh=u'上盖开关',
+      has_automator=True,
       pytest_name='lid_switch',
       retries=retries)
 
@@ -543,11 +552,12 @@ def MicroUSBPerformance(args):
   OperatorTest(
       id='MicroUSBPerformance',
       label_zh=u'微型 USB 效能测试',
+      has_automator=True,
       pytest_name='removable_storage',
       retries=1,
       dargs=dict(
           media='USB',
-          sysfs_path='/sys/devices/s5p-ehci/usb1/1-1/1-1:1.0',
+          #sysfs_path='/sys/devices/s5p-ehci/usb1/1-1/1-1:1.0',
           block_size=512 * 1024,
           perform_random_test=False,
           perform_sequential_test=True,
@@ -604,6 +614,7 @@ def SMTFinish(args):
   OperatorTest(
       id='Finish',
       label_zh=u'结束',
+      has_automator=True,
       pytest_name='message',
       require_run=(Passed(args.smt_test_group_id + '.BarrierSMT')
                    if args.smt_require_run_for_finish else None),
@@ -635,10 +646,19 @@ def TPM(args):
   """
   # Checks the endorsement key in TPM. This might not be enabled in earlier
   # build.
-  FactoryTest(
-      id='TPMVerifyEK',
-      label_zh=u'TPM 证书',
-      pytest_name='tpm_verify_ek')
+  with TestGroup(id='TPMVerifyEK', label_zh=u'TPM 证书'):
+    FactoryTest(
+        id='RequestClearTPM',
+        label_zh=u'请求清除 TPM',
+        pytest_name='clear_tpm_owner_request')
+    RebootStep(
+        id='RebootToClearTPM',
+        label_zh=u'重新开机',
+        iterations=1)
+    FactoryTest(
+        id='VerifyEK',
+        label_zh=u'TPM 证书',
+        pytest_name='tpm_verify_ek')
 
 
 def ManualSMTTests(args):

@@ -69,6 +69,7 @@ _TIMESTAMP_BL_OFF = _BACKLIGHT_OFF_TIMEOUT + _TEST_TOLERANCE
 
 
 class InputDeviceDispatcher(asyncore.file_dispatcher):
+  """A class to monitor input events asynchronously."""
   def __init__(self, device, event_handler):
     self.device = device
     self.event_handler = event_handler
@@ -82,6 +83,7 @@ class InputDeviceDispatcher(asyncore.file_dispatcher):
       self.event_handler(event)
 
 class LidSwitchTest(unittest.TestCase):
+  """Lid switch factory test."""
   ARGS = [
     Arg('timeout_secs', int, 'Timeout value for the test.',
         default=_DEFAULT_TIMEOUT),
@@ -178,8 +180,6 @@ class LidSwitchTest(unittest.TestCase):
     backlight did not turn off after backlight timeout period. When backlight
     delayed off works as expected, it calls OpenLid() to test lid_open event.
 
-    Raises: BFTFixtureException on fixture communication error.
-
     Signals:
 
       lid     ---+
@@ -192,6 +192,8 @@ class LidSwitchTest(unittest.TestCase):
 
       test        skip        BL_ON                  BL_OFF
 
+    Raises:
+      BFTFixtureException on fixture communication error.
     """
     try:
       start_time = time.time()
