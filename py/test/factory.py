@@ -2,8 +2,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+"""Common types and routines for factory test infrastructure.
 
-'''
 This library provides common types and routines for the factory test
 infrastructure. This library explicitly does not import gtk, to
 allow its use by the autotest control process.
@@ -12,8 +12,9 @@ To log to the factory console, use:
 
  from cros.factory.test import factory
  factory.console.info('...') # Or warn, or error
-'''
+"""
 
+# pylint: disable=W0105
 
 import getpass
 import logging
@@ -59,7 +60,7 @@ in_chroot = utils.in_chroot
 
 
 def get_factory_root(subdir=None):
-  '''Returns the root for logging and state.
+  """Returns the root for logging and state.
 
   This is usually /var/log, or /tmp/factory.$USER if in the chroot, but may be
   overridden by the CROS_FACTORY_ROOT environment variable.
@@ -68,7 +69,7 @@ def get_factory_root(subdir=None):
 
   Args:
    subdir: If not None, returns that subdirectory.
-  '''
+  """
   ret = (os.environ.get('CROS_FACTORY_ROOT') or
       (('/tmp/factory.%s' % getpass.getuser())
       if utils.in_chroot() else '/var/factory'))
@@ -79,17 +80,17 @@ def get_factory_root(subdir=None):
 
 
 def get_log_root():
-  '''Returns the root for logs'''
+  """Returns the root for logs"""
   return get_factory_root('log')
 
 
 def get_state_root():
-  '''Returns the root for all factory state.'''
+  """Returns the root for all factory state."""
   return get_factory_root('state')
 
 
 def get_test_data_root():
-  '''Returns the root for all test logs/state.'''
+  """Returns the root for all test logs/state."""
   return get_factory_root('tests')
 
 
@@ -108,7 +109,7 @@ def get_current_test_path():
 
 
 def get_current_test_metadata():
-  '''Returns metadata for the currently executing test, if any.'''
+  """Returns metadata for the currently executing test, if any."""
   path = os.environ.get("CROS_FACTORY_TEST_METADATA")
   if not path or not os.path.exists(path):
     return {}
@@ -118,7 +119,7 @@ def get_current_test_metadata():
 
 
 def get_lsb_data():
-  '''Reads all key-value pairs from system lsb-* configuration files.'''
+  """Reads all key-value pairs from system lsb-* configuration files."""
   # TODO(hungte) Re-implement using regex.
   # lsb-* file format:
   # [#]KEY="VALUE DATA"
@@ -147,11 +148,11 @@ def get_lsb_data():
 
 
 def get_current_md5sum():
-  '''Returns MD5SUM of the current autotest directory.
+  """Returns MD5SUM of the current autotest directory.
 
   Returns None if there has been no update (i.e., unable to read
   the MD5SUM file).
-  '''
+  """
   if os.path.exists(FACTORY_MD5SUM_PATH):
     return open(FACTORY_MD5SUM_PATH, 'r').read().strip()
   else:
@@ -176,14 +177,15 @@ console = _init_console_log()
 
 
 def get_verbose_log_file():
-  '''
-  Returns an opened log file. Note that this returns a file instead of a
-  logger (so the verbose log is not picked up by root logger.) Therefore,
-  the caller is responsible for flushing and closing this file.
+  """Returns an opened log file.
+
+  Note that this returns a file instead of a logger (so the verbose log is not
+  picked up by root logger.) Therefore, the caller is responsible for flushing
+  and closing this file.
 
   The log file name will contain test invocation ID and thus this method
   can only be called from a test.
-  '''
+  """
   invocation = os.environ['CROS_FACTORY_TEST_INVOCATION']
   log_name = '%s-log-%s' % (get_current_test_path(), invocation)
   log_path = os.path.join(get_factory_root('log'), log_name)
@@ -192,14 +194,15 @@ def get_verbose_log_file():
 
 
 def std_repr(obj, extra=None, excluded_keys=None, true_only=False):
-  '''
-  Returns the representation of an object including its properties.
+  """Returns the representation of an object including its properties.
 
-  @param extra: Extra items to include in the representation.
-  @param excluded_keys: Keys not to include in the representation.
-  @param true_only: Whether to include only values that evaluate to
-    true.
-  '''
+  Args:
+    obj: The object to get properties from.
+    extra: Extra items to include in the representation.
+    excluded_keys: Keys not to include in the representation.
+    true_only: Whether to include only values that evaluate to
+      true.
+  """
   extra = extra or []
   excluded_keys = excluded_keys or []
   return (obj.__class__.__name__ + '('
@@ -213,19 +216,17 @@ def std_repr(obj, extra=None, excluded_keys=None, true_only=False):
 
 
 def log(message):
-  '''
-  Logs a message to the console. Deprecated; use the 'console'
-  property instead.
+  """Logs a message to the console.
+
+  Deprecated; use the 'console' property instead.
 
   TODO(jsalz): Remove references throughout factory tests.
-  '''
+  """
   console.info(message)
 
 
 def get_state_instance():
-  '''
-  Returns a cached factory state client instance.
-  '''
+  """Returns a cached factory state client instance."""
   # Delay loading modules to prevent circular dependency.
   from cros.factory.test import state  # pylint: disable=W0404
   global _state_instance  # pylint: disable=W0603
@@ -306,13 +307,13 @@ def read_test_list(path=None, state_instance=None, text=None):
 
 _inited_logging = False
 def init_logging(prefix=None, verbose=False):
-  '''
-  Initializes logging.
+  """Initializes logging.
 
-  @param prefix: A prefix to display for each log line, e.g., the program
-    name.
-  @param verbose: True for debug logging, false for info logging.
-  '''
+  Args:
+    prefix: A prefix to display for each log line, e.g., the program
+      name.
+    verbose: True for debug logging, false for info logging.
+  """
   global _inited_logging  # pylint: disable=W0603
   assert not _inited_logging, "May only call init_logging once"
   _inited_logging = True
@@ -335,8 +336,7 @@ def init_logging(prefix=None, verbose=False):
 
 
 class Hooks(object):
-  """
-  Goofy hooks.
+  """Goofy hooks.
 
   This class is a dummy implementation, but methods may be overridden
   by the subclass.
@@ -607,8 +607,7 @@ class Options(object):
 
 
 class TestState(object):
-  '''
-  The complete state of a test.
+  """The complete state of a test.
 
   Properties:
     status: The status of the test (one of ACTIVE, PASSED,
@@ -621,7 +620,7 @@ class TestState(object):
     iterations_left: For an active test, the number of remaining
       iterations after the current one.
     retries_left: Maximum number of retries allowed to pass the test.
-  '''
+  """
   ACTIVE = 'ACTIVE'
   PASSED = 'PASSED'
   FAILED = 'FAILED'
@@ -653,29 +652,30 @@ class TestState(object):
              decrement_iterations_left=0, iterations_left=None,
              decrement_retries_left=0, retries_left=None,
              skip=None):
-    '''
-    Updates the state of a test.
+    """Updates the state of a test.
 
-    @param status: The new status of the test.
-    @param increment_count: An amount by which to increment count.
-    @param error_msg: If non-None, the new error message for the test.
-    @param shutdown_count: If non-None, the new shutdown count.
-    @param increment_shutdown_count: An amount by which to increment
-      shutdown_count.
-    @param visible: If non-None, whether the test should become visible.
-    @param invocation: The currently executing or last invocation, if any.
-    @param iterations_left: If non-None, the new iterations_left.
-    @param decrement_iterations_left: An amount by which to decrement
-      iterations_left.
-    @param retries_left: If non-None, the new retries_left.
-      The case retries_left = -1 means the test had already used the first try
-      and all the retries.
-    @param decrement_retries_left: An amount by which to decrement
-      retries_left.
-    @param skip: Whether the test should be skipped.
+    Args:
+      status: The new status of the test.
+      increment_count: An amount by which to increment count.
+      error_msg: If non-None, the new error message for the test.
+      shutdown_count: If non-None, the new shutdown count.
+      increment_shutdown_count: An amount by which to increment
+        shutdown_count.
+      visible: If non-None, whether the test should become visible.
+      invocation: The currently executing or last invocation, if any.
+      iterations_left: If non-None, the new iterations_left.
+      decrement_iterations_left: An amount by which to decrement
+        iterations_left.
+      retries_left: If non-None, the new retries_left.
+        The case retries_left = -1 means the test had already used the first try
+        and all the retries.
+      decrement_retries_left: An amount by which to decrement
+        retries_left.
+      skip: Whether the test should be skipped.
 
-    Returns True if anything was changed.
-    '''
+    Returns:
+      True if anything was changed.
+    """
     old_dict = dict(self.__dict__)
 
     if status:
@@ -718,12 +718,11 @@ class TestState(object):
 
 
 def overall_status(statuses):
-  '''
-  Returns the "overall status" given a list of statuses.
+  """Returns the "overall status" given a list of statuses.
 
   This is the first element of [ACTIVE, FAILED, UNTESTED, PASSED]
   (in that order) that is present in the status list.
-  '''
+  """
   status_set = set(statuses)
   for status in [TestState.ACTIVE, TestState.FAILED,
                  TestState.UNTESTED, TestState.PASSED]:
@@ -735,33 +734,33 @@ def overall_status(statuses):
 
 
 class TestListError(Exception):
+  """Test list error."""
   pass
 
 
 class FactoryTestFailure(Exception):
-  '''
-  Failure of a factory test.
+  """Failure of a factory test.
 
   Args:
     message: The exception message.
     status: The status to report for the failure (usually FAILED
       but possibly UNTESTED).
-  '''
+  """
   def __init__(self, message=None, status=TestState.FAILED):
     super(FactoryTestFailure, self).__init__(message)
     self.status = status
 
 
 class RequireRun(object):
-  '''Requirement that a test has run (and optionally passed).'''
+  """Requirement that a test has run (and optionally passed)."""
   def __init__(self, path, passed=True):
-    '''Constructor.
+    """Constructor.
 
     Args:
       path: Path to the test that must have been run.  "ALL" is
         a valid value and refers to the root (all tests).
       passed: Whether the test is required to have passed.
-    '''
+    """
     # '' is the key of the root and will resolve to the root node.
     self.path = ('' if path == ALL else path)
     self.passed = passed
@@ -771,8 +770,7 @@ class RequireRun(object):
 
 
 class FactoryTest(object):
-  '''
-  A factory test object.
+  """A factory test object.
 
   Factory tests are stored in a tree. Each node has an id (unique
   among its siblings). Each node also has a path (unique throughout the
@@ -789,7 +787,7 @@ class FactoryTest(object):
           should be run.
       implicit_id: Whether the ID was determined implicitly (i.e., not
           explicitly specified in the test list).
-  '''
+  """
 
   # If True, the test never fails, but only returns to an untested state.
   never_fails = False
@@ -813,6 +811,7 @@ class FactoryTest(object):
   def __init__(self,
                label_en='',
                label_zh='',
+               has_automator=False,
                autotest_name=None,
                pytest_name=None,
                invocation_target=None,
@@ -835,15 +834,15 @@ class FactoryTest(object):
                finish=None,
                _root=None,
                _default_id=None):
-    '''
-    Constructor.
+    """Constructor.
 
     See cros.factory.test.test_lists.FactoryTest for argument
     documentation.
-    '''
+    """
     self.label_en = label_en
     self.label_zh = (label_zh if isinstance(label_zh, unicode)
                      else label_zh.decode('utf-8'))
+    self.has_automator = has_automator
     self.autotest_name = autotest_name
     self.pytest_name = pytest_name
     self.invocation_target = invocation_target
@@ -960,18 +959,18 @@ class FactoryTest(object):
 
   @staticmethod
   def pytest_name_to_id(pytest_name):
-    '''Converts a pytest name to an ID.
+    """Converts a pytest name to an ID.
 
     Removes all but the rightmost dot-separated component, removes
     underscores, and converts to CamelCase.
-    '''
+    """
     name = pytest_name.rpartition('.')[2]
     return re.sub('(?:^|_)([a-z])',
                   lambda match: match.group(1).upper(),
                   name)
 
   def to_struct(self):
-    '''Returns the node as a struct suitable for JSONification.'''
+    """Returns the node as a struct suitable for JSONification."""
     ret = dict(
         (k, getattr(self, k))
         for k in ['id', 'path', 'label_en', 'label_zh',
@@ -997,11 +996,10 @@ class FactoryTest(object):
     return '%s(%s)' % (self.__class__.__name__, ', '.join(attrs))
 
   def _init(self, prefix, path_map):
-    '''
-    Recursively assigns paths to this node and its children.
+    """Recursively assigns paths to this node and its children.
 
     Also adds this node to the root's path_map.
-    '''
+    """
     if self.parent:
       self.root = self.parent.root
 
@@ -1015,69 +1013,56 @@ class FactoryTest(object):
       subtest._init((self.path + '.' if len(self.path) else ''), path_map)
 
   def depth(self):
-    '''
-    Returns the depth of the node (0 for the root).
-    '''
+    """Returns the depth of the node (0 for the root)."""
     return self.path.count('.') + (self.parent is not None)
 
   def is_leaf(self):
-    '''
-    Returns true if this is a leaf node.
-    '''
+    """Returns true if this is a leaf node."""
     return not self.subtests
 
   def has_ancestor(self, other):
-    '''
-    Returns True if other is an ancestor of this test (or is that test
+    """Returns True if other is an ancestor of this test (or is that test
     itself).
-    '''
+    """
     return (self == other) or (self.parent and self.parent.has_ancestor(other))
 
   def get_ancestors(self):
-    '''
-    Returns list of ancestors, ordered by seniority.
-    '''
+    """Returns list of ancestors, ordered by seniority."""
     if self.parent is not None:
       return self.parent.get_ancestors() + [self.parent]
     return []
 
   def get_ancestor_groups(self):
-    '''
-    Returns list of ancestors that are groups, ordered by seniority.
-    '''
+    """Returns list of ancestors that are groups, ordered by seniority."""
     return [node for node in self.get_ancestors() if node.is_group()]
 
   def get_state(self):
-    '''
-    Returns the current test state from the state instance.
-    '''
+    """Returns the current test state from the state instance."""
     return TestState.from_dict_or_object(
       self.root.state_instance.get_test_state(self.path))
 
-  def update_state(self, update_parent=True, status=None, **kw):
-    '''
-    Updates the test state.
+  def update_state(self, update_parent=True, status=None, **kwargs):
+    """Updates the test state.
 
-    See TestState.update for allowable kw arguments.
-    '''
+    See TestState.update for allowable kwargs arguments.
+    """
     if self.never_fails and status == TestState.FAILED:
       status = TestState.UNTESTED
 
     ret = TestState.from_dict_or_object(
       self.root._update_test_state(  # pylint: disable=W0212
-        self.path, status=status, **kw))
+        self.path, status=status, **kwargs))
     if update_parent and self.parent:
       self.parent.update_status_from_children()
     return ret
 
   def update_status_from_children(self):
-    '''
-    Updates the status based on children's status.
+    """Updates the status based on children's status.
 
     A test is active if any children are active; else failed if
     any children are failed; else untested if any children are
     untested; else passed.
-    '''
+    """
     if not self.subtests:
       return
 
@@ -1088,11 +1073,11 @@ class FactoryTest(object):
       self.update_state(status=status)
 
   def walk(self, in_order=False):
-    '''
-    Yields this test and each sub-test.
+    """Yields this test and each sub-test.
 
-    @param in_order: Whether to walk in-order. If False, walks depth-first.
-    '''
+    Args:
+      in_order: Whether to walk in-order. If False, walks depth-first.
+    """
     if in_order:
       # Walking in order - yield self first.
       yield self
@@ -1104,19 +1089,16 @@ class FactoryTest(object):
       yield self
 
   def is_group(self):
-    '''
-    Returns true if this node is a test group.
-    '''
+    """Returns true if this node is a test group."""
     return isinstance(self, TestGroup)
 
   def is_top_level_test(self):
-    '''
-    Returns true if this node is a top-level test.
+    """Returns true if this node is a top-level test.
 
     A 'top-level test' is a test directly underneath the root or a
     TestGroup, e.g., a node under which all tests must be run
     together to be meaningful.
-    '''
+    """
     return ((not self.is_group()) and
             self.parent and
             (self.parent == self.root or self.parent.is_group()))
@@ -1127,26 +1109,23 @@ class FactoryTest(object):
     return self.parent.get_top_level_parent_or_group()
 
   def get_top_level_tests(self):
-    '''
-    Returns a list of top-level tests.
-    '''
+    """Returns a list of top-level tests."""
     return [node for node in self.walk() if node.is_top_level_test()]
 
   def is_exclusive(self, option):
-    '''
-    Returns true if the test or any parent is exclusive w.r.t. option.
+    """Returns true if the test or any parent is exclusive w.r.t. option.
 
     Args:
      option: A member of EXCLUSIVE_OPTIONS.
-    '''
+    """
     assert option in self.EXCLUSIVE_OPTIONS
     return option in self.exclusive or (
         self.parent and self.parent.is_exclusive(option))
 
   def as_dict(self, state_map=None):
-    '''
-    Returns this node and children in a dictionary suitable for YAMLification.
-    '''
+    """Returns this node and children in a dictionary suitable for
+    YAMLification.
+    """
     node = {'id': self.id or None, 'path': self.path or None}
     if not self.subtests and state_map:
       state = state_map[self.path]
@@ -1160,14 +1139,11 @@ class FactoryTest(object):
     return node
 
   def as_yaml(self, state_map=None):
-    '''
-    Returns this node and children in YAML format.
-    '''
+    """Returns this node and children in YAML format."""
     return yaml.dump(self.as_dict(state_map))
 
   def disable_by_run_if(self):
-    """
-    Overwrites properties related to run_if to disable a test.
+    """Overwrites properties related to run_if to disable a test.
 
     Modifies run_if_expr, run_if_not, run_if_table_name so the run_if evaluation
     will always skip the test.
@@ -1177,12 +1153,11 @@ class FactoryTest(object):
     self.run_if_table_name = None
 
   def skip(self):
-    '''
-    Skips and passes this test and any subtests that have not passed yet.
+    """Skips this test and any subtests that have not already passed.
 
     Subtests that have passed are not modified.  If any subtests were
     skipped, this node (if not a leaf node) is marked as skipped as well.
-    '''
+    """
     # Modifies run_if argument of this test so it will not be enabled again
     # when its run_if is evaluated.
     self.disable_by_run_if()
@@ -1201,14 +1176,13 @@ class FactoryTest(object):
                           error_msg=TestState.SKIPPED_MSG)
 
 class FactoryTestList(FactoryTest):
-  '''
-  The root node for factory tests.
+  """The root node for factory tests.
 
   Properties:
     path_map: A map from test paths to FactoryTest objects.
     source_path: The path to the file in which the test list was defined,
         if known.  For new-style test lists only.
-  '''
+  """
   def __init__(self, subtests, state_instance, options,
                test_list_id=None, label_en=None, finish_construction=True):
     """Constructor.
@@ -1280,15 +1254,11 @@ class FactoryTestList(FactoryTest):
                             "explicitly specified IDs" % bad_implicit_ids)
 
   def get_all_tests(self):
-    '''
-    Returns all FactoryTest objects.
-    '''
+    """Returns all FactoryTest objects."""
     return self.path_map.values()
 
   def get_state_map(self):
-    '''
-    Returns a map of all FactoryTest objects to their TestStates.
-    '''
+    """Returns a map of all FactoryTest objects to their TestStates."""
     # The state instance may return a dict (for the XML/RPC proxy)
     # or the TestState object itself. Convert accordingly.
     return dict(
@@ -1296,19 +1266,16 @@ class FactoryTestList(FactoryTest):
       for k, v in self.state_instance.get_test_states().iteritems())
 
   def lookup_path(self, path):
-    '''
-    Looks up a test from its path.
-    '''
+    """Looks up a test from its path."""
     return self.path_map.get(path, None)
 
-  def _update_test_state(self, path, **kw):
-    '''
-    Updates a test state, invoking the state_change_callback if any.
+  def _update_test_state(self, path, **kwargs):
+    """Updates a test state, invoking the state_change_callback if any.
 
     Internal-only; clients should call update_state directly on the
     appropriate TestState object.
-    '''
-    ret, changed = self.state_instance.update_test_state(path, **kw)
+    """
+    ret, changed = self.state_instance.update_test_state(path, **kwargs)
     if changed and self.state_change_callback:
       self.state_change_callback(  # pylint: disable=E1102
           self.lookup_path(path), ret)
@@ -1316,17 +1283,19 @@ class FactoryTestList(FactoryTest):
 
 
 class TestGroup(FactoryTest):
-  '''
-  A collection of related tests, shown together in RHS panel if one is active.
-  '''
+  """A collection of related tests, shown together in RHS panel if one is
+  active.
+  """
   pass
 
 
 class FactoryAutotestTest(FactoryTest):
+  """Autotest-based factory test."""
   pass
 
 
 class OperatorTest(FactoryAutotestTest):
+  """Factory test with UI to interact with operators."""
   has_ui = True
 
 
@@ -1335,14 +1304,14 @@ AutomatedSubTest = FactoryAutotestTest
 
 
 class ShutdownStep(AutomatedSubTest):
-  '''A shutdown (halt or reboot) step.
+  """A shutdown (halt or reboot) step.
 
   Properties:
     iterations: The number of times to reboot.
     operation: The command to run to perform the shutdown
       (REBOOT or HALT).
     delay_secs: Number of seconds the operator has to abort the shutdown.
-  '''
+  """
   REBOOT = 'reboot'
   HALT = 'halt'
 
@@ -1362,14 +1331,14 @@ class ShutdownStep(AutomatedSubTest):
 
 
 class HaltStep(ShutdownStep):
-  '''Halts the machine.'''
+  """Halts the machine."""
   def __init__(self, **kw):
     kw.setdefault('id', 'Halt')
     super(HaltStep, self).__init__(operation=ShutdownStep.HALT, **kw)
 
 
 class RebootStep(ShutdownStep):
-  '''Reboots the machine.'''
+  """Reboots the machine."""
   def __init__(self, **kw):
     kw.setdefault('id', 'Reboot')
     super(RebootStep, self).__init__(operation=ShutdownStep.REBOOT, **kw)

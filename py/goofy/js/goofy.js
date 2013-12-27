@@ -594,6 +594,12 @@ cros.factory.Goofy = function() {
      */
     this.testLists = [];
 
+    /**
+     * Whether any automation mode is enabled.
+     * @type {boolean}
+     */
+    this.automationEnabled = false;
+
     // Set up magic keyboard shortcuts.
     goog.events.listen(
         window, goog.events.EventType.KEYDOWN, this.keyListener, true, this);
@@ -659,7 +665,8 @@ cros.factory.Goofy.prototype.initSplitPanes = function() {
     mainAndConsole.setInitialSize(
         viewportSize.height -
         Math.max(cros.factory.LOG_PANE_MIN_HEIGHT,
-                 1 - cros.factory.LOG_PANE_HEIGHT_FRACTION));
+                 viewportSize.height *
+                 cros.factory.LOG_PANE_HEIGHT_FRACTION));
 
     goog.debug.catchErrors(goog.bind(function(info) {
         try {
@@ -732,10 +739,14 @@ cros.factory.Goofy.prototype.initSplitPanes = function() {
     goog.events.listen(
         window, goog.events.EventType.RESIZE,
         function(event) {
-            topSplitPane.setSize(
-                goog.dom.getViewportSize(goog.dom.getWindow(document) ||
-                                         window));
-        });
+            var viewportSize = goog.dom.getViewportSize(
+                goog.dom.getWindow(document) || window);
+            if (this.automationEnabled) {
+                var indicator = document.getElementById('goofy-automation-div');
+                viewportSize.height -= indicator.offsetHeight;
+            }
+            topSplitPane.setSize(viewportSize);
+        }, false, this);
 
     // Whenever we get focus, try to focus any visible iframe (if no modal
     // dialog is visible).
@@ -854,6 +865,11 @@ cros.factory.Goofy.prototype.init = function() {
         function() {
             // Unable to retrieve the key; that's fine, no startup error!
         });
+    this.sendRpc(
+        'get_shared_data', ['automation_mode'],
+        function(mode) {
+            this.setAutomationMode(mode);
+        });
 
     var timer = new goog.Timer(1000);
     goog.events.listen(timer, goog.Timer.TICK, this.updateTime, false, this);
@@ -880,6 +896,26 @@ cros.factory.Goofy.prototype.initLanguageSelector = function() {
             this.zhMode = lang == 'zh';
             this.updateCSSClasses();
         });
+};
+
+/**
+ * Sets up the automation mode indicator bar.
+ *
+ * @param {string} mode
+ */
+cros.factory.Goofy.prototype.setAutomationMode = function(mode) {
+    if (mode != 'NONE') {
+        this.automationEnabled = true;
+        this.sendRpc(
+            'get_shared_data', ['automation_mode_prompt'],
+            function(prompt) {
+                document.getElementById(
+                    'goofy-automation-div').innerHTML = prompt;
+            });
+    }
+    this.updateCSSClasses();
+    goog.events.fireListeners(
+        window, goog.events.EventType.RESIZE, false, null);
 };
 
 /**
@@ -913,6 +949,8 @@ cros.factory.Goofy.prototype.updateCSSClassesInDocument = function(doc) {
                                 this.engineeringMode);
         goog.dom.classes.enable(doc.body, 'goofy-operator-mode',
                                 !this.engineeringMode);
+        goog.dom.classes.enable(doc.body, 'goofy-enable-automation',
+                                this.automationEnabled);
     }
 };
 

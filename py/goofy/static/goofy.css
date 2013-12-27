@@ -175,6 +175,23 @@ body {
   width: 21; height: 21;
 }
 
+.goofy-automation-indicator {
+  color: white;
+  display: none;
+  font-size: 150%;
+  font-weight: bold;
+  height: 0px;
+  text-align: center;
+}
+.goofy-enable-automation #goofy-automation-div {
+  background-color: navy;
+  display: block;
+  height: 36px;
+}
+.goofy-enable-automation #goofy-splitpane {
+  top: 36px;
+}
+
 #goofy-eth-indicator {
   background-image: url('images/eth_off.png');
   background-repeat: no-repeat;

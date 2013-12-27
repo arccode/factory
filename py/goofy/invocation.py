@@ -36,6 +36,7 @@ from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import utils
 from cros.factory.test.args import Args
+from cros.factory.test.e2e_test.common import AutomationMode
 from cros.factory.test.event import Event
 from cros.factory.test.factory import TestState
 from cros.factory.test.test_lists.test_lists import BuildAllTestLists
@@ -49,6 +50,11 @@ from cros.factory.utils.string_utils import DecodeUTF8
 ERROR_LOG_TAIL_LENGTH = 8*1024
 
 # pylint: disable=W0702
+
+
+class InvocationError(Exception):
+  """Invocation error."""
+  pass
 
 
 class TestArgEnv(object):
@@ -125,20 +131,31 @@ def ResolveTestArgs(dargs):
 
 
 class PyTestInfo(object):
-  """A class to hold all the data needed when invoking a test."""
+  """A class to hold all the data needed when invoking a test.
+
+  Properties:
+    test_list: The test list name or ID to get the factory test info from.
+    path: The path of the test in the test list.
+    pytest_name: The name of the factory test to run.
+    args: Arguments passing down to the factory test.
+    results_path: The path to the result file.
+    test_case_id: The ID of the test case to run.
+    automation_mode: The enabled automation mode.
+  """
 
   # A special test case ID to tell RunPytest to run the pytest directly instead
   # of invoking it in a subprocess.
   NO_SUBPROCESS = '__NO_SUBPROCESS__'
 
   def __init__(self, test_list, path, pytest_name, args, results_path,
-               test_case_id=None):
+               test_case_id=None, automation_mode=None):
     self.test_list = test_list
     self.path = path
     self.pytest_name = pytest_name
     self.args = args
     self.results_path = results_path
     self.test_case_id = test_case_id
+    self.automation_mode = automation_mode
 
   def ReadTestList(self):
     """Reads and returns the test list."""
@@ -177,8 +194,8 @@ class TestInvocation(object):
     """
     self.goofy = goofy
     self.test = test
-    self.thread = threading.Thread(target=self._run,
-                     name='TestInvocation-%s' % test.path)
+    self.thread = threading.Thread(
+        target=self._run, name='TestInvocation-%s' % test.path)
     self.on_completion = on_completion
     self.uuid = event_log.TimedUuid()
     self.output_dir = os.path.join(factory.get_test_data_root(),
@@ -267,17 +284,18 @@ class TestInvocation(object):
     to just write our own command-line wrapper for job.run_test
     instead.
 
-    @param test: the autotest to run
-    @param dargs: the argument map
-    @return: tuple of status (TestState.PASSED or TestState.FAILED) and
-      error message, if any
+    Returns:
+      tuple of status (TestState.PASSED or TestState.FAILED) and error message,
+      if any
     """
     assert self.test.autotest_name
 
     test_tag = '%s_%s' % (self.test.path, self.count)
     dargs = dict(self.test.dargs)
-    dargs.update({'tag': test_tag,
-            'test_list_path': self.goofy.options.test_list})
+    dargs.update({
+        'tag': test_tag,
+        'test_list_path': self.goofy.options.test_list
+    })
 
     status = TestState.FAILED
     error_msg = 'Unknown'
@@ -385,14 +403,29 @@ class TestInvocation(object):
         logging.exception('Unable to resolve test arguments')
         return TestState.FAILED, 'Unable to resolve test arguments: %s' % e
 
+      pytest_name = self.test.pytest_name
+      if (self.test.has_automator and
+          self.goofy.options.automation_mode != AutomationMode.NONE):
+        logging.info('Enable factory test automator for %r', pytest_name)
+        if os.path.exists(os.path.join(
+            factory.FACTORY_PATH, 'py', 'test', 'pytests', pytest_name,
+            pytest_name + '_automator_private.py')):
+          pytest_name += '_automator_private'
+        elif os.path.exists(os.path.join(
+            factory.FACTORY_PATH, 'py', 'test', 'pytests', pytest_name,
+            pytest_name + '_automator.py')):
+          pytest_name += '_automator'
+        else:
+          raise InvocationError('Cannot find automator for %r' % pytest_name)
+
       with open(info_path, 'w') as info:
         pickle.dump(PyTestInfo(
             test_list=self.goofy.options.test_list,
             path=self.test.path,
-            pytest_name=self.test.pytest_name,
+            pytest_name=pytest_name,
             args=args,
-            results_path=results_path),
-              info)
+            results_path=results_path,
+            automation_mode=self.goofy.options.automation_mode), info)
 
       # Invoke the unittest driver in a separate process.
       with open(self.log_path, 'wb', 0) as log:
@@ -407,8 +440,7 @@ class TestInvocation(object):
                       cmd_line, self.log_path)
 
         self.env_additions['CROS_PROC_TITLE'] = (
-            '%s.py (factory pytest %s)' % (
-                self.test.pytest_name, self.output_dir))
+            '%s.py (factory pytest %s)' % (pytest_name, self.output_dir))
 
         env = dict(os.environ)
         env.update(self.env_additions)
@@ -667,7 +699,13 @@ def GetTestCases(suite):
     A list of strings of test case IDs.
   """
   test_cases = []
-  _RecursiveApply(lambda t: test_cases.append(t.id()), suite)
+  def FilterTestCase(test):
+    # Filter out the test case from base Automator class.
+    if test.id() == 'cros.factory.test.e2e_test.automator.Automator.runTest':
+      return
+    test_cases.append(test.id())
+
+  _RecursiveApply(FilterTestCase, suite)
   return test_cases
 
 
@@ -774,12 +812,19 @@ def LoadPytestModule(pytest_name):
     The loaded pytest module object.
   """
   from cros.factory.test import pytests
+  base_pytest_name = pytest_name
+  for suffix in ('_e2etest', '_automator', '_automator_private'):
+    base_pytest_name = re.sub(suffix, '', base_pytest_name)
+
   try:
-    base_pytest_name = re.sub(r'_e2etest', r'', pytest_name)
     __import__('cros.factory.test.pytests.%s.%s' %
                (base_pytest_name, pytest_name))
     return getattr(getattr(pytests, base_pytest_name), pytest_name)
   except ImportError:
+    logging.info(
+        ('Cannot import cros.factory.test.pytests.%s.%s. '
+         'Fall back to cros.factory.test.pytests.%s'),
+        base_pytest_name, pytest_name, pytest_name)
     __import__('cros.factory.test.pytests.%s' % pytest_name)
     return getattr(pytests, pytest_name)
 

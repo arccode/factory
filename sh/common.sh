@@ -12,6 +12,12 @@
 CGPT_DEVICE=""
 CGPT_CONFIG=""
 
+# base factory state and log directory
+FACTORY_BASE="/var/factory"
+
+# factory test automation tag file
+AUTOMATION_MODE_TAG_FILE="${FACTORY_BASE}/state/factory.automation_mode"
+
 # ======================================================================
 # message and error handling
 

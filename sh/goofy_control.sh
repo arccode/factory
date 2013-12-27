@@ -4,6 +4,9 @@
 # found in the LICENSE file.
 
 set -e
+
+. /usr/local/factory/sh/common.sh
+
 FACTORY="$(dirname "$(dirname "$(readlink -f "$0")")")"
 FACTORY_LOG_FILE=/var/factory/log/factory.log
 
@@ -12,9 +15,6 @@ BOARD_SETUP=("$FACTORY/board/board_setup_factory.sh"
 
 # Default args for Goofy.
 GOOFY_ARGS=""
-
-# If this exists, then start factory with automation.
-AUTOMATION_FILE="/var/factory/state/factory.automation"
 
 # Default implementation for factory_setup (no-op).  May be overriden
 # by board_setup_factory.sh.
@@ -32,9 +32,12 @@ load_setup() {
     fi
   done
 
-  if [ -f $AUTOMATION_FILE ]; then
-    echo "Automation is enabled" 1>&2
-    GOOFY_ARGS="$GOOFY_ARGS --automation"
+  if [[ -f ${AUTOMATION_MODE_TAG_FILE} ]]; then
+    local mode="$(cat ${AUTOMATION_MODE_TAG_FILE})"
+    if [[ -n "${mode}" ]]; then
+      echo "Enable factory test automation with mode: ${mode}" 1>&2
+      GOOFY_ARGS="${GOOFY_ARGS} --automation-mode=${mode}"
+    fi
   fi
 
   factory_setup

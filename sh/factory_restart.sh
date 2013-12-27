@@ -5,8 +5,9 @@
 
 # This script restarts factory test program.
 
-FACTORY_BASE=/var/factory
 SCRIPT="$0"
+
+. /usr/local/factory/sh/common.sh
 
 # Restart without session ID, the parent process may be one of the
 # processes we plan to kill.
@@ -25,6 +26,9 @@ usage_help() {
       -a | all:     clear all of the above
       -d | vpd:     clear VPD
       -h | help:    this help screen
+      --automation-mode MODE:
+                    set factory automation mode (none, partial, full);
+                    default: none
   "
 }
 
@@ -35,6 +39,7 @@ clear_files() {
 }
 
 clear_vpd=false
+automation_mode=
 delete=""
 while [ $# -gt 0 ]; do
   opt="$1"
@@ -62,6 +67,19 @@ while [ $# -gt 0 ]; do
     -h | help )
       usage_help
       exit 0
+      ;;
+    --automation-mode )
+      mode="$1"
+      shift
+      case "${mode}" in
+        none | partial | full )
+          automation_mode="${mode}"
+          ;;
+        * )
+          usage_help
+          exit 1
+          ;;
+      esac
       ;;
     * )
       echo "Unknown option: $opt"
@@ -92,6 +110,12 @@ if $clear_vpd; then
   vpd -i RO_VPD -O
   echo Clearing RW VPD...
   vpd -i RW_VPD -O
+fi
+
+find ${FACTORY_BASE} -wholename "${AUTOMATION_MODE_TAG_FILE}" -delete
+if [ "${mode}" != "none" ]; then
+  echo Enable factory test automation with mode: ${mode}
+  echo "${mode}" > ${AUTOMATION_MODE_TAG_FILE}
 fi
 
 echo "Restarting factory tests..."

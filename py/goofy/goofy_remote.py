@@ -5,7 +5,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-'''rsyncs goofy and runs on a remote device.'''
+"""rsyncs goofy and runs on a remote device."""
 
 import argparse
 import glob
@@ -18,6 +18,7 @@ import tempfile
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
+from cros.factory.test.e2e_test.common import AutomationMode
 from cros.factory.test.test_lists import test_lists
 from cros.factory.test.utils import Retry, in_chroot
 from cros.factory.utils import file_utils
@@ -28,6 +29,11 @@ SRCROOT = os.environ.get('CROS_WORKON_SRCROOT')
 
 ssh_command = None  # set in main
 rsync_command = None
+
+
+class GoofyRemoteException(Exception):
+  """Goofy remote exception."""
+  pass
 
 
 def GetBoard(host):
@@ -115,6 +121,9 @@ def main():
                       help='remove password from test_list')
   parser.add_argument('-s', dest='shopfloor_host',
                       help='set shopfloor host')
+  parser.add_argument('--automation-mode',
+                      choices=[m.lower() for m in AutomationMode],
+                      default='none', help="Factory test automation mode.")
   parser.add_argument('--shopfloor_port', dest='shopfloor_port', type=int,
                       default=8082, help='set shopfloor port')
   parser.add_argument('--board', '-b', dest='board',
@@ -219,7 +228,8 @@ def main():
   if args.restart:
     Spawn(ssh_command +
           [args.host, '/usr/local/factory/bin/factory_restart'] +
-          (['-a'] if args.clear_state else []),
+          (['-a'] if args.clear_state else []) +
+          ['--automation-mode', '%s' % args.automation_mode],
           check_call=True, log=True)
 
   if args.run_test:

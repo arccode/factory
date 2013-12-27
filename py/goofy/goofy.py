@@ -47,6 +47,8 @@ from cros.factory.test import state
 from cros.factory.test import shopfloor
 from cros.factory.test import utils
 from cros.factory.test.test_lists import test_lists
+from cros.factory.test.e2e_test.common import (
+    AutomationMode, AutomationModePrompt, ParseAutomationMode)
 from cros.factory.test.event import Event
 from cros.factory.test.event import EventClient
 from cros.factory.test.event import EventServer
@@ -412,8 +414,9 @@ class Goofy(object):
   def handle_shutdown_complete(self, test, test_state):
     """Handles the case where a shutdown was detected during a shutdown step.
 
-    @param test: The ShutdownStep.
-    @param test_state: The test state.
+    Args:
+      test: The ShutdownStep.
+      test_state: The test state.
     """
     test_state = test.update_state(increment_shutdown_count=1)
     logging.info('Detected shutdown (%d of %d)',
@@ -734,8 +737,7 @@ class Goofy(object):
       self.tests_to_run.clear()
       return
     while self.tests_to_run:
-      logging.debug('Tests to run: %s',
-              [x.path for x in self.tests_to_run])
+      logging.debug('Tests to run: %s', [x.path for x in self.tests_to_run])
 
       test = self.tests_to_run[0]
 
@@ -754,7 +756,7 @@ class Goofy(object):
       if self.invocations and not (test.backgroundable and all(
         [x.backgroundable for x in self.invocations])):
         logging.debug('Waiting for non-backgroundable tests to '
-                'complete before running %s', test.path)
+                      'complete before running %s', test.path)
         return
 
       if test.get_state().skip:
@@ -802,28 +804,33 @@ class Goofy(object):
       if isinstance(test, factory.ShutdownStep):
         if os.path.exists(NO_REBOOT_FILE):
           test.update_state(
-            status=TestState.FAILED, increment_count=1,
-            error_msg=('Skipped shutdown since %s is present' %
-                       NO_REBOOT_FILE))
+              status=TestState.FAILED, increment_count=1,
+              error_msg=('Skipped shutdown since %s is present' %
+                         NO_REBOOT_FILE))
+          continue
+
+        if (test.operation == factory.ShutdownStep.HALT and
+            self.options.automation_mode == AutomationMode.FULL):
+          logging.info('Skip halt in full automation mode.')
+          test.update_state(status=TestState.PASSED)
           continue
 
         test.update_state(status=TestState.ACTIVE, increment_count=1,
-                  error_msg='', shutdown_count=0)
+                          error_msg='', shutdown_count=0)
         if self._prompt_cancel_shutdown(test, 1):
           self.event_log.Log('reboot_cancelled')
           test.update_state(
-            status=TestState.FAILED, increment_count=1,
-            error_msg='Shutdown aborted by operator',
-            shutdown_count=0)
+              status=TestState.FAILED, increment_count=1,
+              error_msg='Shutdown aborted by operator',
+              shutdown_count=0)
           continue
 
         # Save pending test list in the state server
         self.state_instance.set_shared_data(
-          'tests_after_shutdown',
-          [t.path for t in self.tests_to_run])
+            'tests_after_shutdown',
+            [t.path for t in self.tests_to_run])
         # Save shutdown time
-        self.state_instance.set_shared_data('shutdown_time',
-                          time.time())
+        self.state_instance.set_shared_data('shutdown_time', time.time())
 
         with self.env.lock:
           self.event_log.Log('shutdown', operation=test.operation)
@@ -841,12 +848,10 @@ class Goofy(object):
         else:
           # Just pass (e.g., in the chroot).
           test.update_state(status=TestState.PASSED)
-          self.state_instance.set_shared_data(
-            'tests_after_shutdown', None)
+          self.state_instance.set_shared_data('tests_after_shutdown', None)
           # Send event with no fields to indicate that there is no
           # longer a pending shutdown.
-          self.event_client.post_event(Event(
-              Event.Type.PENDING_SHUTDOWN))
+          self.event_client.post_event(Event(Event.Type.PENDING_SHUTDOWN))
           continue
 
       self._run_test(test, test.iterations, test.retries)
@@ -947,8 +952,10 @@ class Goofy(object):
     Backgroundable tests are run simultaneously; when a foreground test is
     encountered, we wait for all active tests to finish before continuing.
 
-    @param subtrees: Node or nodes containing tests to run (may either be
-      a single test or a list).  Duplicates will be ignored.
+    Args:
+      subtrees: Node or nodes containing tests to run (may either be
+        a single test or a list).  Duplicates will be ignored.
+      untested_only: True to run untested tests only.
     """
     if type(subtrees) != list:
       subtrees = [subtrees]
@@ -1250,9 +1257,9 @@ class Goofy(object):
                       help='Use FILE as test list')
     parser.add_option('--dummy_shopfloor', action='store_true',
                       help='Use a dummy shopfloor server')
-    parser.add_option('--automation', dest='automation',
-                      action='store_true',
-                      help='Enable automation on running factory test')
+    parser.add_option('--automation-mode',
+                      choices=[m.lower() for m in AutomationMode],
+                      default='none', help="Factory test automation mode.")
     parser.add_option('--guest_login', dest='guest_login', default=False,
                       action='store_true',
                       help='Log in as guest. This will not own the TPM.')
@@ -1317,6 +1324,14 @@ class Goofy(object):
       self.state_instance.get_shared_data('shutdown_time', optional=True))
     self.state_instance.del_shared_data('shutdown_time', optional=True)
     self.state_instance.del_shared_data('startup_error', optional=True)
+
+    self.options.automation_mode = ParseAutomationMode(
+        self.options.automation_mode)
+    self.state_instance.set_shared_data('automation_mode',
+                                        self.options.automation_mode)
+    self.state_instance.set_shared_data(
+        'automation_mode_prompt',
+        AutomationModePrompt[self.options.automation_mode])
 
     try:
       self.InitTestLists()
@@ -1966,7 +1981,8 @@ class Goofy(object):
   def handle_switch_test(self, event):
     """Switches to a particular test.
 
-    @param event: The SWITCH_TEST event.
+    Args:
+      event: The SWITCH_TEST event.
     """
     test = self.test_list.lookup_path(event.path)
     if not test:
