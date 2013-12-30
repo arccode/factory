@@ -363,11 +363,11 @@ class FinalizeBundle(object):
               '.'.join(str(x) for x in REQUIRED_GSUTIL_VERSION), version))
 
   def Download(self):
-    # Make sure gsutil is up to date; older versions are pretty broken.
-    self.CheckGSUtilVersion()
-
     if not 'add_files' in self.manifest:
       return
+
+    # Make sure gsutil is up to date; older versions are pretty broken.
+    self.CheckGSUtilVersion()
 
     for f in self.manifest['add_files']:
       CheckDictHasOnlyKeys(f, ['install_into', 'source', 'extract_files'])
