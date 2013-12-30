@@ -4,7 +4,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Verifies the integrity of the root partition."""
+'''Verifies the integrity of the root partition.'''
 
 import logging
 import os
@@ -24,7 +24,6 @@ DM_DEVICE_PATH = os.path.join('/dev/mapper', DM_DEVICE_NAME)
 BLOCK_SIZE = 8*1024*1024
 
 class VerifyRootPartitionTest(unittest.TestCase):
-  """A factory test to verify root partition."""
   ARGS = [
       Arg('kern_a_device', str, 'Device containing KERN-A partition',
           default='sda4'),
@@ -64,8 +63,9 @@ class VerifyRootPartitionTest(unittest.TestCase):
     table = match.group(1)
     partition_size = int(match.group(2)) * 512
 
-    assert 'payload=%U+1 hashtree=%U+1' in table
-    table = table.replace(r'%U+1', r'/dev/%s' % self.args.root_device)
+    assert 'PARTUUID=%U/PARTNROFF=1' in table
+    table = table.replace('PARTUUID=%U/PARTNROFF=1',
+                          '/dev/%s' % self.args.root_device)
     # Cause I/O error on invalid bytes
     table += ' error_behavior=eio'
 
