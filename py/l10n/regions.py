@@ -17,7 +17,12 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.test.utils import Enum
 
 
-KeyboardMechanicalLayout = Enum(['ANSI', 'ISO', 'JIS'])
+# ANSI = US-like
+# ISO = UK-like
+# JIS = Japanese
+# ABNT2 = Brazilian (like ISO but with an extra key to the left of the
+#   right shift key)
+KeyboardMechanicalLayout = Enum(['ANSI', 'ISO', 'JIS', 'ABNT2'])
 
 
 class Region(object):
@@ -65,7 +70,7 @@ class Region(object):
 
   keyboard_mechanical_layout = None
   """The keyboard's mechanical layout (``ANSI`` [US-like], ``ISO``
-  [UK-like], or ``JIS``)."""
+  [UK-like], ``JIS`` [Japanese], or ``ABNT2`` [Brazilian])."""
 
   description = None
   """A human-readable description of the region.
