@@ -83,6 +83,8 @@ class AudioLoopTest(unittest.TestCase):
     Arg('autostart', bool, 'Auto start option', False),
     Arg('require_dongle', bool, 'Require dongle option', False),
     Arg('enable_audiofun', bool, 'Enable audio function test'),
+    Arg('check_dongle', bool,
+        'Check dongle status whether match require_dongle', False),
     # Only used for speaker and dmic
     Arg('audiofun_duration_secs', int, 'Duration of audio function test',
         10),
@@ -92,12 +94,6 @@ class AudioLoopTest(unittest.TestCase):
   ]
 
   def setUp(self):
-    # We've encountered false positive running audiofuntest tool against
-    # audio fun-plug on a few platforms; so it is suggested not to enable
-    # both at the same time.
-    if (self.args.require_dongle is True and
-        self.args.enable_audiofun is True):
-      raise ValueError('Audiofuntest does not require dongle.')
     # Initialize frontend parameters
     self._input_device = self.args.input_dev
     self._output_device = self.args.output_dev
@@ -123,6 +119,21 @@ class AudioLoopTest(unittest.TestCase):
     # Setup HTML UI, and event handler
     self._ui = test_ui.UI()
     self._ui.AddEventHandler('start_run_test', self.StartRunTest)
+
+    # We've encountered false positive running audiofuntest tool against
+    # audio fun-plug on a few platforms; so it is suggested not to run
+    # audiofuntest with HP/MIC jack
+    jack_status = self._audio_util.GetAudioJackStatus()
+    if jack_status is True and self.args.enable_audiofun is True:
+      factory.console.info('Audiofuntest does not require dongle.')
+      raise ValueError('Audiofuntest does not require dongle.')
+
+    # When audio jack detection feature is ready on a platform, we can
+    # enable check_dongle option to check jack status matches we expected.
+    if self.args.check_dongle:
+      if jack_status != self.args.require_dongle:
+        factory.console.info('Dongle Status is wrong.')
+        raise ValueError('Dongle Status is wrong.')
 
   def runTest(self):
     # If autostart, JS triggers start_run_test event.
@@ -153,12 +164,6 @@ class AudioLoopTest(unittest.TestCase):
     Stop play tone
     Stop capturing data
     """
-    if (self._audio_util.GetHeadphoneJackStatus() or
-        self._audio_util.GetMicJackStatus()):
-      self._ui.Fail('Audiofuntest is not recommanded to '
-                    'run with HP/Mic jack plugged')
-      return
-
     factory.console.info('Run audiofuntest from %r to %r' % (
         self._output_device, self._input_device))
     for channel in xrange(audio_utils.DEFAULT_NUM_CHANNELS):

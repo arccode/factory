@@ -263,6 +263,25 @@ class AudioUtil(object):
         return evdev
     return None
 
+  def GetAudioJackStatus(self, card='0'):
+    """Gets the plug/unplug status of audio jack.
+    Check audio jack status by two ways:
+    1. Check audio jack detection command
+    2. Get headphone jack and mic jack status
+
+    Args:
+      card: The index of audio card.
+
+    Returns:
+      True if headphone jack is plugged, False otherwise.
+    """
+    if card in self.audio_config and 'jack_detect' in self.audio_config[card]:
+      jack_status = Spawn(self.audio_config[card]['jack_detect'],
+          read_stdout=True).stdout_data.strip()
+      return True if jack_status == '1' else False
+
+    return self.GetHeadphoneJackStatus(card) or self.GetMicJackStatus(card)
+
   def GetHeadphoneJackStatus(self, card='0'):
     """Gets the plug/unplug status of headphone jack.
 
@@ -272,8 +291,8 @@ class AudioUtil(object):
     Returns:
       True if headphone jack is plugged, False otherwise.
     """
-    if HP_JACK_NAME in self.audio_config:
-      hp_jack_name = self.audio_config[HP_JACK_NAME]
+    if card in self.audio_config and HP_JACK_NAME in self.audio_config[card]:
+      hp_jack_name = self.audio_config[card][HP_JACK_NAME]
     else:
       hp_jack_name = 'Headphone Jack'
     values = self.GetMixerControls(hp_jack_name, card)
@@ -298,8 +317,8 @@ class AudioUtil(object):
     Returns:
       True if mic jack is plugged, False otherwise.
     """
-    if MIC_JACK_NAME in self.audio_config:
-      mic_jack_name = self.audio_config[MIC_JACK_NAME]
+    if card in self.audio_config and MIC_JACK_NAME in self.audio_config[card]:
+      mic_jack_name = self.audio_config[card][MIC_JACK_NAME]
     else:
       mic_jack_name = 'Mic Jack'
     values = self.GetMixerControls(mic_jack_name, card)
