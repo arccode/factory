@@ -3,6 +3,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+"""A hacked argparse module."""
 
 import inspect
 import logging
@@ -47,20 +48,22 @@ class HackedArgParser(ArgumentParser):
   def format_help(self):
     s = ArgumentParser.format_help(self)
     s = re.sub(r'(?ms)\].*{.*}.*\.\.\.', r'] <sub-command>', s)
-    s = re.sub(r'(?ms)(positional.*)(optional arguments:)',
-               r'sub-commands:\n%s\n\n\2' % self.format_sub_cmd_menu(), s)
+    if self.subcommands:
+      s = re.sub(r'(?ms)(positional.*)(optional arguments:)',
+                 r'sub-commands:\n%s\n\n\2' % self.format_sub_cmd_menu(), s)
     return s
 
   def format_usage(self):
     return self.format_help() + '\n'
 
 
-def CmdArg(*tags, **kvargs):
+def CmdArg(*args, **kwargs):
   """Allow decorator arg specification using real argparse syntax."""
-  return (tags, kvargs)
+  return (args, kwargs)
 
 
 class VerbosityAction(Action):
+  """A function to set logging verbosity."""
   def __call__(self, parser, namespace, values, option_string=None):
     logging_level = {4: logging.DEBUG, 3: logging.INFO, 2: logging.WARNING,
                      1: logging.ERROR, 0: logging.CRITICAL}[int(values)]
@@ -75,7 +78,7 @@ verbosity_cmd_arg = CmdArg(
 # Map the caller frame to subcommands
 _caller_subcommands_map = {}
 
-def Command(cmd_name, *arg_list):
+def Command(cmd_name, *args):
   """Decorator to populate the per-module sub-command list.
 
   If not already present, a SUB_CMD_LIST_ATTR attribute is created in
@@ -90,29 +93,34 @@ def Command(cmd_name, *arg_list):
     doc = fun.__doc__ if fun.__doc__ else None
     subcommands = (_caller_subcommands_map[caller] if caller in
                    _caller_subcommands_map else {})
-    subcommands[cmd_name] = (fun, doc, arg_list)
+    subcommands[cmd_name] = (fun, doc, args)
     _caller_subcommands_map[caller] = subcommands
     return fun
   return Decorate
 
 
-def ParseCmdline(top_level_description, *common_args):
+def ParseCmdline(top_level_description, *common_args):  # pylint: disable=C9011
   """Return object containing all argparse-processed command line data.
 
   The list of subcommands is taken from the SUB_CMD_LIST_ATTR
   attribute of the caller module.
   """
+  common_parser = HackedArgParser(add_help=False)
+  for (tags, kvargs) in common_args:
+    common_parser.add_argument(*tags, **kvargs)
+
   caller = inspect.getouterframes(inspect.currentframe())[1][1]
   subcommands = (_caller_subcommands_map[caller] if caller in
                  _caller_subcommands_map else {})
   parser = HackedArgParser(
       subcommands=subcommands,
-      description=top_level_description)
-  for (tags, kvargs) in common_args:
-    parser.add_argument(*tags, **kvargs)
+      description=top_level_description,
+      parents=[common_parser])
   subparsers = parser.add_subparsers(dest='command_name')
   for cmd_name, (fun, doc, arg_list) in subcommands.items():
-    subparser = subparsers.add_parser(cmd_name, description=doc)
+    subparser = subparsers.add_parser(cmd_name, description=doc,
+                                      parents=[common_parser],
+                                      conflict_handler='resolve')
     subparser.set_defaults(command_name=cmd_name, command=fun)
     for (tags, kvargs) in arg_list:
       subparser.add_argument(*tags, **kvargs)
