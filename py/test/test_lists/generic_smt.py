@@ -485,7 +485,7 @@ def Keyboard(args):
       pytest_name='keyboard',
       dargs=dict(
           layout='ANSI',
-          keyboard_device_name='chromeos-ec-i2c',
+          keyboard_device_name='cros-ec-i2c',
           skip_power_key=False))
 
 # Can use it directly for manual SMT test.

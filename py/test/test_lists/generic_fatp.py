@@ -172,7 +172,7 @@ def FATP(args):
         label_zh=u'键盘',
         pytest_name='keyboard',
         dargs=dict(
-            keyboard_device_name='chromeos-ec-i2c',
+            keyboard_device_name='cros-ec-i2c',
             sequential_press=True,
             skip_power_key=False))
 
