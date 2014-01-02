@@ -5,11 +5,15 @@
 # found in the LICENSE file.
 
 
+"""Unittest for string_utils.py."""
+
+
 import logging
 import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.utils.string_utils import ParseDict
+from cros.factory.utils.string_utils import ParseString
 
 
 _LINES = ['TPM Enabled: true',
@@ -25,9 +29,21 @@ _DICT_RESULT = {'TPM Being Owned': 'false',
 
 
 class ParseDictTest(unittest.TestCase):
+  """Unittest for ParseDict."""
   def testParseDict(self):
     self.assertEquals(_DICT_RESULT, ParseDict(_LINES, ':'))
 
+
+class ParseStringTest(unittest.TestCase):
+  """Unittest for ParseString."""
+  def testPaseString(self):
+    self.assertEquals('abc', ParseString('abc'))
+    self.assertEquals(True, ParseString('true'))
+    self.assertEquals(True, ParseString('True'))
+    self.assertEquals(False, ParseString('false'))
+    self.assertEquals(False, ParseString('False'))
+    self.assertEquals(None, ParseString('None'))
+    self.assertEquals(123, ParseString('123'))
 
 if __name__ == '__main__':
   logging.basicConfig(level=logging.INFO)

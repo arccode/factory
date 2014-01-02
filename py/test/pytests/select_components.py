@@ -8,6 +8,10 @@
 # This is a test for selecting non-probable components and update the selected
 # results in device data.
 
+
+"""A pytest for operator to select components and update device_data."""
+
+
 import factory_common # pylint: disable=W0611
 import logging
 import os
@@ -21,6 +25,7 @@ from cros.factory.test import test_ui
 from cros.factory.test import factory
 from cros.factory.test.args import Arg
 from cros.factory.test.ui_templates import OneSection, SelectBox, Table
+from cros.factory.utils.string_utils import ParseString
 
 _MESSAGE_SELECT = test_ui.MakeLabel('Select Components:', u'选择元件：',
                                     'msg-font-size')
@@ -37,15 +42,21 @@ _TEST_TITLE = test_ui.MakeLabel('Select Components', u'选择元件')
 
 
 class SelectComponentTest(unittest.TestCase):
+  """The main class for this pytest."""
   ARGS = [
     Arg('comps', dict,
-        """A dict from components in hwid database to
-        (device_data_field, choices). If choices is not None, user selects
-        value from choices. If it is None, user selects valid component
-        from hwid database. That value will be stored as device_data_field
+        """A dict from components to (device_data_field, choices). If component
+        can be found in hwid database, the default choices will be available
+        components in hwid database. If choices is not None, user selects
+        value from choices. That value will be stored as device_data_field
         in device_data.
-        E.g. comps={"cpu": ("component.cpu",
-                            ["choice_1", "choice_2])}""",
+        E.g. comps={"comp_a": ("component.comp_a", ["choice_a_1", "choice_a_2]),
+                    "comp_b": ("component.comp_b", None),
+                    "comp_c": ("component.comp_c", ["choice_c_1", "choice_c_2")
+                   }
+        Where comp_a is in hwid database, but we set the available choices.
+        comp_b is in hwid database, and we use the choices in database.
+        comp_c is not in hwid database, so we provide the choices.""",
         optional=False),
   ]
 
@@ -74,19 +85,28 @@ class SelectComponentTest(unittest.TestCase):
     logging.info('Component selection: %r', event.data)
     for comp in event.data:
       key_name = self.component_device_data[self.fields[comp[0]]]
-      self.device_data[key_name] = comp[1]
-      factory.console.info('Update device data %r: %r' % (key_name, comp[1]))
+      value = ParseString(comp[1])
+      self.device_data[key_name] = value
+      factory.console.info('Update device data %r: %r' % (key_name, value))
     shopfloor.UpdateDeviceData(self.device_data)
+    factory.get_state_instance().UpdateSkippedTests()
 
   def runTest(self):
     table = Table(element_id=None, rows=2, cols=len(self.fields))
     db = database.Database.LoadFile(os.path.join(
         common.DEFAULT_HWID_DATA_PATH, common.ProbeBoard().upper()))
-    comp_values = hwid.ListComponents(db, self.fields)
+    fields_in_db = [x for x in self.fields
+                    if x in db.components.GetRequiredComponents()]
+    logging.info('Fields in database are %r', fields_in_db)
+    # Checks those fields not in hwid database have choices from test list.
+    for field in set(self.fields) - set(fields_in_db):
+      self.assertTrue(self.component_choices[field],
+          'Field %r is not in hwid database, user should provide'
+          ' choices' % field)
+    comp_values = hwid.ListComponents(db, fields_in_db)
     # Updates comp_values with choices from test list.
-    for field in self.fields:
-      if self.component_choices[field] is not None:
-        comp_values[field] = self.component_choices[field]
+    comp_values.update(dict((field, self.component_choices[field])
+        for field in self.fields if self.component_choices[field]))
 
     for field_index, field in enumerate(self.fields):
       self.ui.RunJS('addComponentField("%s");' % field)

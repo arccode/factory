@@ -5,19 +5,22 @@
 # found in the LICENSE file.
 
 
+"""This module provides utility functions for string processing."""
+
+
 import logging
 
 
 def DecodeUTF8(data):
-  '''Decodes data as UTF-8, replacing any bad characters.'''
+  """Decodes data as UTF-8, replacing any bad characters."""
   return unicode(data, encoding='utf-8', errors='replace')
 
 def CleanUTF8(data):
-  '''Returns a UTF-8-clean string.'''
+  """Returns a UTF-8-clean string."""
   return DecodeUTF8(data).encode('utf-8')
 
 def ParseDict(lines, delimeter=':'):
-  '''Parses list of lines into a dict. Each line is a string containing
+  """Parses list of lines into a dict. Each line is a string containing
   key, value pair, where key and value are separated by delimeter, and are
   stripped. If key, value pair can not be found in the line, that line will be
   skipped.
@@ -28,7 +31,7 @@ def ParseDict(lines, delimeter=':'):
 
   Returns:
     A dict, where both keys and values are string.
-  '''
+  """
   ret = dict()
   for line in lines:
     try:
@@ -38,3 +41,28 @@ def ParseDict(lines, delimeter=':'):
     else:
       ret[key.strip()] = value.strip()
   return ret
+
+def ParseString(value):
+  """Parses a string if it is actually a True/False/None/Int value.
+
+  Args:
+    value: A string.
+
+  Returns:
+    True if the string matches one of 'True' and 'true. False if the string
+    matches one of 'False' and 'false'. None if the string matches 'None'.
+    An int if the string can be casted to an integer. Returns a string if
+    nothing matched.
+  """
+  if value in ['True', 'true']:
+    value = True
+  elif value in ['False', 'false']:
+    value = False
+  elif value == 'None':
+    value = None
+  else:
+    try:
+      value = int(value)
+    except ValueError:
+      pass  # No sweat
+  return value
