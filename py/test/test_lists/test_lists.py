@@ -369,7 +369,7 @@ def BuildAllTestLists():
     if f.endswith('_unittest.py') or os.path.basename(f) == '__init__.py':
       continue
     # Skip generic test list if there is already a main test list loaded.
-    if IsGenericTestList(f) and 'main' not in test_lists:
+    if IsGenericTestList(f) and 'main' in test_lists:
       continue
 
     module_name = ('cros.factory.test.test_lists.' +
