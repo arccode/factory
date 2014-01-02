@@ -5,6 +5,10 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+
+"""Unittest for event_log.py."""
+
+
 import collections
 import dbus
 import factory_common  # pylint: disable=W0611
@@ -38,6 +42,7 @@ def Reset():
 
 
 class BasicTest(unittest.TestCase):
+  """Tests basic elements in event_log.py."""
   def testEventNameRE(self):
     for i in ('a', '_', 'azAZ09_', 'a0'):
       self.assertTrue(event_log.EVENT_NAME_RE.match(i))
@@ -47,6 +52,7 @@ class BasicTest(unittest.TestCase):
 
 
 class GlobalSeqTest(unittest.TestCase):
+  """Unittests for GlobalSeq."""
   def setUp(self):
     Reset()
     self.tmp = tempfile.mkdtemp(prefix='GlobalSeqTest.')
@@ -68,6 +74,7 @@ class GlobalSeqTest(unittest.TestCase):
 
   def testYamlDump(self):
     class OtherType(object):
+      """A generic class."""
       def __init__(self, attr_foo):
         self.attr_foo = attr_foo
 
@@ -126,7 +133,7 @@ class GlobalSeqTest(unittest.TestCase):
                         seq.Next())
 
   def _testThreads(self, after_read=lambda: True):
-    '''Tests atomicity by doing operations in 20 threads for 1 sec.
+    '''Tests atomicity by doing operations in 10 threads for 1 sec.
 
     Args:
       after_read: See GlobalSeq._after_read.
@@ -141,7 +148,7 @@ class GlobalSeqTest(unittest.TestCase):
       while time.time() < end_time:
         values.append(seq.Next())
 
-    threads = [threading.Thread(target=target) for _ in xrange(20)]
+    threads = [threading.Thread(target=target) for _ in xrange(10)]
     for t in threads:
       t.start()
     for t in threads:
@@ -153,20 +160,22 @@ class GlobalSeqTest(unittest.TestCase):
     return values
 
   def testThreadsWithSleep(self):
-    values = self._testThreads(after_read=lambda: time.sleep(.1))
-    # There should be about 20 values (1 every 50 ms for 1 s).
+    values = self._testThreads(after_read=lambda: time.sleep(.05))
+    # There should be about 20 to 30 values (1 every 50 ms for 1 s, plus
+    # a number less than the number of threads).
     # Significantly more or less than that and something went wrong.
     self.assertTrue(len(values) > 10, values)
-    self.assertTrue(len(values) < 50, values)
+    self.assertTrue(len(values) < 30, values)
 
   def testThreadsWithoutSleep(self):
     values = self._testThreads()
-    # There should be lots of values (I get 2500 on my laptop); we'll
-    # just make sure there are >100.
-    self.assertTrue(len(values) > 100, values)
+    # There should be lots of values (I get over 35000 on my desktop); we'll
+    # just make sure there are >1000.
+    self.assertTrue(len(values) > 1000, values)
 
 
 class EventLogTest(unittest.TestCase):
+  """Unittests for EventLog."""
   def setUp(self):
     Reset()
     self.tmp = tempfile.mkdtemp()
@@ -337,6 +346,7 @@ class EventLogTest(unittest.TestCase):
 
 
 class GlobalEventLogTest(unittest.TestCase):
+  """Unittests for GetGlobalLogger."""
   def setUp(self):
     # reset the global event logger
     event_log._global_event_logger = None  # pylint: disable=W0212
