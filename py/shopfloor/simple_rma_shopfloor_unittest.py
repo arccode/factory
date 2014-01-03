@@ -6,7 +6,7 @@
 
 import os
 import tempfile
-import unittest2
+import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.shopfloor.simple_rma_shopfloor import DecodeHWIDv3Components
@@ -51,7 +51,7 @@ _TEST_HWID = 'DEVICE CADT-QQOP'
 _TEST_VPD = {'ro': {'initial_locale': 'en-US', 'timezone': 'some_when'},
              'rw': {'attribute1': '1value', 'attribute2': '2value'}}
 
-class DecodeHWIDv3ComponentsTest(unittest2.TestCase):
+class DecodeHWIDv3ComponentsTest(unittest.TestCase):
   def setUp(self):
     self.testdata = os.path.join(os.path.dirname(
         os.path.realpath(__file__)), "testdata")
@@ -63,7 +63,7 @@ class DecodeHWIDv3ComponentsTest(unittest2.TestCase):
     self.assertEqual(ret['keyboard'][0].component_name, 'us_clicker')
     self.assertEqual(ret['pcb_vendor'][0].component_name, 'awesome_1')
 
-class LoadAuxCsvDataTest(unittest2.TestCase):
+class LoadAuxCsvDataTest(unittest.TestCase):
   def setUp(self):
     self.tmp = tempfile.NamedTemporaryFile()
 
@@ -141,7 +141,7 @@ class LoadAuxCsvDataTest(unittest2.TestCase):
                              r"\['bool', 'float', 'int', 'str'\]\)"),
                             self._ReadData)
 
-class LoadDeviceDataTest(unittest2.TestCase):
+class LoadDeviceDataTest(unittest.TestCase):
   def setUp(self):
     self.testdata = os.path.join(os.path.dirname(
         os.path.realpath(__file__)), "testdata")
@@ -190,7 +190,7 @@ class LoadDeviceDataTest(unittest2.TestCase):
     self.assertEqual(device_dict['gbind_attribute'], '<group_code>')
     self.assertEqual(device_dict['ubind_attribute'], '<user_code>')
 
-class ShopFloorTest(unittest2.TestCase):
+class ShopFloorTest(unittest.TestCase):
   def setUp(self):
     self.testdata = os.path.join(os.path.dirname(
         os.path.realpath(__file__)), "testdata")
@@ -269,4 +269,4 @@ class ShopFloorTest(unittest2.TestCase):
       os.remove(os.path.join(self.testdata, _RMA11111111_FILE))
 
 if __name__ == '__main__':
-  unittest2.main()
+  unittest.main()

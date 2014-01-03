@@ -4,14 +4,14 @@
 # found in the LICENSE file.
 
 import logging
-import unittest2
+import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.rf.tools.csv_writer import WriteCsv
 from cros.factory.utils.file_utils import UnopenedTemporaryFile
 
 
-class CsvWriterTest(unittest2.TestCase):
+class CsvWriterTest(unittest.TestCase):
   def testReadSingleCell(self):
     with UnopenedTemporaryFile() as tmp_file:
       WriteCsv(tmp_file,
@@ -25,4 +25,4 @@ class CsvWriterTest(unittest2.TestCase):
 
 if __name__ == '__main__':
   logging.basicConfig(level=logging.INFO)
-  unittest2.main()
+  unittest.main()

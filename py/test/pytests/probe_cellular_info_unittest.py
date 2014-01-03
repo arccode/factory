@@ -11,14 +11,14 @@ Requested data are probed, written to the event log, and saved to device data.
 """
 
 import mox
-import unittest2
+import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.pytests import probe_cellular_info
 from cros.factory.test.args import Args
 
 
-class ProbeCellularInfoTestTest(unittest2.TestCase):
+class ProbeCellularInfoTestTest(unittest.TestCase):
   def setUp(self):
     self.test = probe_cellular_info.ProbeCellularInfoTest()
     self.mox = mox.Mox()
@@ -155,4 +155,4 @@ Modem /org/chromium/ModemManager/Gobi/1:
 
 
 if __name__ == '__main__':
-  unittest2.main()
+  unittest.main()

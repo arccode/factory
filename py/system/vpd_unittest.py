@@ -6,13 +6,13 @@
 
 import logging
 import mox
-import unittest2
+import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.system import vpd
 
 
-class VPDTest(unittest2.TestCase):
+class VPDTest(unittest.TestCase):
   def setUp(self):
     self.mox = mox.Mox()
     self.mox.StubOutWithMock(vpd, 'Spawn')
@@ -165,4 +165,4 @@ class VPDTest(unittest2.TestCase):
 
 
 if __name__ == '__main__':
-  unittest2.main()
+  unittest.main()

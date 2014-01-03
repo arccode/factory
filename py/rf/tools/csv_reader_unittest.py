@@ -5,7 +5,7 @@
 
 import logging
 import os
-import unittest2
+import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.rf.tools.csv_reader import ReadSingleCell
@@ -14,7 +14,7 @@ from cros.factory.rf.tools.csv_reader import ReadCsvAsDict
 from cros.factory.rf.tools.csv_reader import ReadCsvAsListOfDict
 
 
-class CsvReaderTest(unittest2.TestCase):
+class CsvReaderTest(unittest.TestCase):
   def setUp(self):
     self.testdata_path = os.path.join(
         os.path.dirname(os.path.realpath(__file__)), "testdata")
@@ -74,4 +74,4 @@ class CsvReaderTest(unittest2.TestCase):
 
 if __name__ == '__main__':
   logging.basicConfig(level=logging.INFO)
-  unittest2.main()
+  unittest.main()

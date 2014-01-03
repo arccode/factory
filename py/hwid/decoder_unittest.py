@@ -6,7 +6,7 @@
 # found in the LICENSE file.
 
 import os
-import unittest2
+import unittest
 import yaml
 import factory_common # pylint: disable=W0611
 
@@ -19,7 +19,7 @@ from cros.factory.rule import Value
 _TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
 
 
-class DecoderTest(unittest2.TestCase):
+class DecoderTest(unittest.TestCase):
   def setUp(self):
     self.database = Database.LoadFile(os.path.join(_TEST_DATA_PATH,
                                                    'test_db.yaml'))
@@ -148,4 +148,4 @@ class DecoderTest(unittest2.TestCase):
 
 
 if __name__ == '__main__':
-  unittest2.main()
+  unittest.main()

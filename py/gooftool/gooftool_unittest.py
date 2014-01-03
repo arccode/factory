@@ -9,7 +9,7 @@ import copy
 import logging
 import mox
 import os
-import unittest2
+import unittest
 import yaml
 
 from collections import namedtuple
@@ -50,7 +50,7 @@ class MockFile(object):
   def __exit__(self, filetype, value, traceback):
     pass
 
-class UtilTest(unittest2.TestCase):
+class UtilTest(unittest.TestCase):
   def setUp(self):
     self.mox = mox.Mox()
 
@@ -132,7 +132,7 @@ class UtilTest(unittest2.TestCase):
                      self._util.GetCrosSystem())
 
 
-class GooftoolTest(unittest2.TestCase):
+class GooftoolTest(unittest.TestCase):
   def setUp(self):
     self.mox = mox.Mox()
 
@@ -672,4 +672,4 @@ class GooftoolTest(unittest2.TestCase):
 
 if __name__ == '__main__':
   logging.basicConfig(level=logging.INFO)
-  unittest2.main()
+  unittest.main()

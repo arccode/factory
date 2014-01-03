@@ -10,7 +10,7 @@
 import logging
 import os
 import re
-import unittest2
+import unittest
 import yaml
 
 import factory_common  # pylint: disable=W0611
@@ -20,7 +20,7 @@ from cros.factory.hwid import hwid as hwid_v3_tool
 from cros.factory.rule import Context
 
 
-class ValidHWIDDBsTest(unittest2.TestCase):
+class ValidHWIDDBsTest(unittest.TestCase):
   def runTest(self):
     hwid_dir = os.path.join(
         os.environ['CROS_WORKON_SRCROOT'],
@@ -138,4 +138,4 @@ class ValidHWIDDBsTest(unittest2.TestCase):
 
 if __name__ == '__main__':
   logging.basicConfig(level=logging.INFO)
-  unittest2.main()
+  unittest.main()

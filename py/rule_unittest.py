@@ -5,7 +5,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import unittest2
+import unittest
 import yaml
 import factory_common # pylint: disable=W0611
 
@@ -25,7 +25,7 @@ def AssertStrLen(length):
     logger.Error('Assertion error')
 
 
-class HWIDRuleTest(unittest2.TestCase):
+class HWIDRuleTest(unittest.TestCase):
   def setUp(self):
     self.context = Context(string='12345')
 
@@ -96,4 +96,4 @@ class HWIDRuleTest(unittest2.TestCase):
         Rule.EvaluateOnce, 'AssertStrLen(6)', self.context)
 
 if __name__ == '__main__':
-  unittest2.main()
+  unittest.main()

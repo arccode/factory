@@ -9,7 +9,7 @@
 
 import copy
 import os
-import unittest2
+import unittest
 import yaml
 import factory_common # pylint: disable=W0611
 
@@ -20,7 +20,7 @@ from cros.factory.rule import Value
 _TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
 
 
-class DatabaseTest(unittest2.TestCase):
+class DatabaseTest(unittest.TestCase):
   def setUp(self):
     self.database = Database.LoadFile(os.path.join(_TEST_DATA_PATH,
                                                    'test_db.yaml'))
@@ -400,7 +400,7 @@ class DatabaseTest(unittest2.TestCase):
                                        loose_matching=True))
 
 
-class PatternTest(unittest2.TestCase):
+class PatternTest(unittest.TestCase):
   def setUp(self):
     self.database = Database.LoadFile(os.path.join(_TEST_DATA_PATH,
                                                    'test_db.yaml'))
@@ -486,7 +486,7 @@ class PatternTest(unittest2.TestCase):
     self.pattern.pattern = original_value
 
 
-class ComponentsTest(unittest2.TestCase):
+class ComponentsTest(unittest.TestCase):
   MOCK_COMPONENTS_DICT = {
       'comp_cls_1': {
           'items': {
@@ -556,4 +556,4 @@ class ComponentsTest(unittest2.TestCase):
 
 
 if __name__ == '__main__':
-  unittest2.main()
+  unittest.main()

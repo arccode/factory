@@ -9,7 +9,7 @@ from contextlib import contextmanager
 import mox
 import tempfile
 import time
-import unittest2
+import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.goofy import goofy_rpc
@@ -26,7 +26,7 @@ def ReplaceAttribute(obj, name, value):
     setattr(obj, name, old_value)
 
 
-class GoofyRPCTest(unittest2.TestCase):
+class GoofyRPCTest(unittest.TestCase):
   def setUp(self):
     self.mox = mox.Mox()
     self.goofy_rpc = goofy_rpc.GoofyRPC(None)
@@ -80,4 +80,4 @@ class GoofyRPCTest(unittest2.TestCase):
 
 
 if __name__ == '__main__':
-  unittest2.main()
+  unittest.main()

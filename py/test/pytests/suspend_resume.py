@@ -22,7 +22,7 @@ import random
 import re
 import time
 import threading
-import unittest2
+import unittest
 
 from cros.factory.event_log import Log
 from cros.factory.test import test_ui
@@ -42,7 +42,7 @@ _MIN_SUSPEND_MARGIN_SECS = 5
 
 _MESSAGES = '/var/log/messages'
 
-class SuspendResumeTest(unittest2.TestCase):
+class SuspendResumeTest(unittest.TestCase):
   ARGS = [
     Arg('cycles', int, 'Number of cycles to suspend/resume', default=1),
     Arg('suspend_delay_max_secs', int, 'Max time in sec during suspend per '

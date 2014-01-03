@@ -11,7 +11,7 @@ It starts a local server to mock the test equipment.
 
 import logging
 import threading
-import unittest2
+import unittest
 import SocketServer
 
 import factory_common  # pylint: disable=W0611
@@ -59,7 +59,7 @@ class MockServerHandler(SocketServer.StreamRequestHandler):
         raise ValueError("Expecting [%s] but got [%s]" % (
             expected_input, line))
 
-class LanScpiTest(unittest2.TestCase):
+class LanScpiTest(unittest.TestCase):
   EXPECTED_MODEL = 'Agilent Technologies,N1914A,MY50001187,A2.01.06'
   NORMAL_ERR_RESPONSE = '+0,"No error"\n'
   NORMAL_ESR_REGISTER = '+0\n'
@@ -154,4 +154,4 @@ class LanScpiTest(unittest2.TestCase):
 
 if __name__ == '__main__':
   logging.basicConfig(level=logging.INFO)
-  unittest2.main()
+  unittest.main()

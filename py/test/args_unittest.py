@@ -4,14 +4,14 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import unittest2
+import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.args import Arg, Args
 from cros.factory.test.utils import Enum
 
 
-class ArgsTest(unittest2.TestCase):
+class ArgsTest(unittest.TestCase):
   def setUp(self):
     self.parser = Args(
         Arg('required', str, 'X'),
@@ -109,4 +109,4 @@ class ArgsTest(unittest2.TestCase):
 
 
 if __name__ == '__main__':
-  unittest2.main()
+  unittest.main()

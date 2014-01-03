@@ -5,12 +5,12 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import unittest2
+import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory import privacy
 
-class PrivacyTest(unittest2.TestCase):
+class PrivacyTest(unittest.TestCase):
   def testList(self):
     self.assertEquals(
         ['element1', {u'gbind_attribute': '<redacted 1 chars>'}],
@@ -47,4 +47,4 @@ class PrivacyTest(unittest2.TestCase):
         test_attribute_2=[dict(ubind_attribute='3'), 'hi']))
 
 if __name__ == '__main__':
-  unittest2.main()
+  unittest.main()

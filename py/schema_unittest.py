@@ -6,13 +6,13 @@
 # found in the LICENSE file.
 
 import factory_common # pylint: disable=W0611
-import unittest2
+import unittest
 
 from cros.factory.schema import (AnyOf, Dict, FixedDict, List, Optional, Scalar,
                                  SchemaException, Tuple)
 
 
-class SchemaTest(unittest2.TestCase):
+class SchemaTest(unittest.TestCase):
   def testScalar(self):
     self.assertRaisesRegexp(
         SchemaException,
@@ -278,4 +278,4 @@ class SchemaTest(unittest2.TestCase):
 
 
 if __name__ == '__main__':
-  unittest2.main()
+  unittest.main()

@@ -13,7 +13,7 @@ explicit annotation is given.
 
 import logging
 import threading
-import unittest2
+import unittest
 import SocketServer
 
 import factory_common  # pylint: disable=W0611
@@ -84,7 +84,7 @@ class MockServerHandler(SocketServer.StreamRequestHandler):
         raise ValueError("Expecting [%s] but got [%s]" % (
             expected_input, line))
 
-class N1914ATest(unittest2.TestCase):
+class N1914ATest(unittest.TestCase):
   EXPECTED_MODEL = 'Agilent Technologies,N1914A,MY50001187,A2.01.06'
   HOST = 'localhost'
 
@@ -253,4 +253,4 @@ class N1914ATest(unittest2.TestCase):
 
 if __name__ == '__main__':
   logging.basicConfig(level=logging.INFO)
-  unittest2.main()
+  unittest.main()

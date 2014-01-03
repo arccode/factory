@@ -5,13 +5,13 @@
 # found in the LICENSE file.
 
 import tempfile
-import unittest2
+import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.shopfloor.simple_shopfloor import LoadAuxCsvData
 
 
-class LoadAuxCsvDataTest(unittest2.TestCase):
+class LoadAuxCsvDataTest(unittest.TestCase):
   def setUp(self):
     self.tmp = tempfile.NamedTemporaryFile()
 
@@ -90,4 +90,4 @@ class LoadAuxCsvDataTest(unittest2.TestCase):
                             self._ReadData)
 
 if __name__ == '__main__':
-  unittest2.main()
+  unittest.main()
