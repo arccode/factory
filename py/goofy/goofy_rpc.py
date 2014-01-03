@@ -451,7 +451,7 @@ class GoofyRPC(object):
     if not output_file:
       output_file = (
           '/var/log/screenshot_%s.png' % time.ctime().replace(' ', '_'))
-    screenshot.WriteFile(output_file)
+    screenshot.WritePngFile(output_file)
 
 
 def main():
