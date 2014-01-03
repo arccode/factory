@@ -160,38 +160,109 @@ def RunIn(args, group_suffix=''):
         #     line to decide which AP to associate with.
         # Note that it is not required these items being fetched from
         # shopfloor. If user wants to input these items by hand, he can use
-        # select_components pytest, check crosbug.com/p/24356.
-        OperatorTest(
-            id='GetDeviceInfo',
-            pytest_name='call_shopfloor',
-            dargs=dict(
-                method='GetDeviceInfo',
-                args=lambda env: [
-                    env.GetDeviceData()['mlb_serial_number'],
-                    ],
-                action='update_device_data'))
+        # select_components pytest for selection.
+        # For items that is not selectable, like gbind_attribute,
+        # ubind_attribute, golden_iccid, golden_imei, serial number, user can
+        # use scan pytest.
+        if args.run_in_set_device_info_from_shopfloor:
+          OperatorTest(
+              id='GetDeviceInfo',
+              pytest_name='call_shopfloor',
+              dargs=dict(
+                  method='GetDeviceInfo',
+                  args=lambda env: [
+                      env.GetDeviceData()['mlb_serial_number'],
+                      ],
+                  action='update_device_data'))
 
-        # This test has two meaning:
-        # 1. For normal flow, MLB serial number is correct, serial number
-        # fetched from shopfloor using MLB serial number as key is correct.
-        # This test can check if serial number sticker on the machine is
-        # correct.
-        # 2. When a DUT is finalized, factory related device data in RW VPD like
-        # 'mlb_serial_number' and 'smt_complete' are deleted. Operator needs to
-        # type MLB serial number and and add smt_complete, since MLB serial
-        # number sticker is no longer available. We should check if MLB serial
-        # number is correct. We scan serial number on the sticker of the machine
-        # and see if it matches serial number fetched from shopfloor server
-        # using MLB serial number as key.
-        OperatorTest(
-            id='Scan',
-            label_zh=u'扫描机器编号',
-            pytest_name='scan',
-            dargs=dict(
-                label_en='Device Serial Number',
+          # This test has two meaning:
+          # 1. For normal flow, MLB serial number is correct, serial number
+          # fetched from shopfloor using MLB serial number as key is correct.
+          # This test can check if serial number sticker on the machine is
+          # correct.
+          # 2. When a DUT is finalized, factory related device data in RW VPD
+          # like 'mlb_serial_number' and 'smt_complete' are deleted. Operator
+          # needs to type MLB serial number and and add smt_complete, since
+          # MLB serial number sticker is no longer available. We should check if
+          # MLB serial number is correct. We scan serial number on the sticker
+          # of the machine and see if it matches serial number fetched from
+          # shopfloor server using MLB serial number as key.
+          OperatorTest(
+              id='Scan',
+              label_zh=u'扫描机器编号',
+              pytest_name='scan',
+              dargs=dict(
+                  label_en='Device Serial Number',
+                  label_zh='机器编号',
+                  check_device_data_key='serial_number',
+                  regexp=args.grt_serial_number_format))
+
+        else:
+          OperatorTest(
+              id='SetDeviceInfo',
+              label_en='Set DeviceInfo',
+              label_zh='设定机器资讯',
+              pytest_name='select_components',
+              dargs=dict(
+                  comps=dict(
+                      has_cellular=('component.has_cellular',
+                          ['true', 'false']),
+                      has_lte=('component.has_lte', ['true', 'false']),
+                      color=('color',
+                          ['red', 'green', 'blue', 'yellow', 'black']),
+                      line=('line', ['A', 'B', 'C', 'D']),
+                      region=('region', ['us', 'gb']))))
+
+          OperatorTest(
+              id='ScanSerialNumber',
+              label_zh=u'扫描机器编号',
+              pytest_name='scan',
+              dargs = dict(
+                device_data_key='serial_number',
+                event_log_key='serial_number',
+                label_en='Serial Number',
                 label_zh='机器编号',
-                check_device_data_key='serial_number',
                 regexp=args.grt_serial_number_format))
+
+          OperatorTest(
+              id='ScanGoldenICCID',
+              label_zh=u'扫描 GoldenICCID',
+              pytest_name='scan',
+              run_if=args.HasLTE,
+              dargs = dict(
+                device_data_key='golden_iccid',
+                label_en='golden_iccid',
+                label_zh='机器编号',
+                regexp=args.run_in_golden_iccid_format))
+
+          OperatorTest(
+              id='ScanGoldenIMEI',
+              label_zh=u'扫描 GoldenIMEI',
+              pytest_name='scan',
+              run_if=args.HasLTE,
+              dargs = dict(
+                device_data_key='golden_imei',
+                label_en='golden_imei',
+                label_zh='机器编号',
+                regexp=args.run_in_golden_imei_format))
+
+          OperatorTest(
+              id='ScanGbindAttribute',
+              label_zh=u'扫描 gbind_attribute',
+              pytest_name='scan',
+              dargs = dict(
+                device_data_key='gbind_attribute',
+                label_en='Group code',
+                label_zh='Group 编号'))
+
+          OperatorTest(
+              id='ScanUbindAttribute',
+              label_zh=u'扫描 ubind_attribute',
+              pytest_name='scan',
+              dargs = dict(
+                device_data_key='ubind_attribute',
+                label_en='User code',
+                label_zh='User 编号'))
 
 
         # For LTE model only. Note that different factory can have different

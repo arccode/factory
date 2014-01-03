@@ -155,6 +155,15 @@ class TestListArgs(object):
   # will be executed to update firmware in RunIn.
   run_in_update_firmware = False
 
+  # Set device info from shopfloor or let operator select/input.
+  run_in_set_device_info_from_shopfloor = False
+
+  # Golden ICCID format for LTE SIM card.
+  run_in_golden_iccid_format = r'^(\d{20})$'
+
+  # Golden IMEI format for LTE module.
+  run_in_golden_imei_format = r'^(\d{15})$'
+
   # We can set control run units to update image or update firmware.
 
   # Use SelectedForControlRunImageUpdate to control the range of
