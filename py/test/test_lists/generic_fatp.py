@@ -368,6 +368,12 @@ def FATP(args):
         label_zh=u'触控板',
         pytest_name='touchpad')
 
+    # Checks touchscreen using one finger moving.
+    OperatorTest(
+        id='Touchscreen',
+        label_zh=u'触控面板',
+        pytest_name='touchscreen')
+
     # Checks external display. Note that the reboot might not be needed if
     # driver can support. This may be different on different boards and
     # monitors. Run ext_display test alone and checks the screen indeed
