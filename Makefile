@@ -18,7 +18,7 @@ SYMLINK_TARGET_RELPATH=../factory
 SYMLINK_BINS=\
 	bft_fixture edid factory factory_bug factory_restart flash_netboot \
 	gooftool goofy goofy_control goofy_remote goofy_rpc \
-	hwid_tool make_par manage merge_logs minijack mount_partition run_pytest \
+	hwid_tool make_par manage merge_logs minijack mount_partition run_pytest
 
 TEST_RUNNER=py/tools/run_tests.py
 # Maximum number of parallel tests to run.
@@ -101,14 +101,15 @@ default:
 	        $(if $(CLOSURE_LIB_ARCHIVE), \
                   CLOSURE_LIB_ARCHIVE="$(CLOSURE_LIB_ARCHIVE)",)
 
+# Build par (Python archive) file containing all py and pyc files.
 par:
-## Build par (Python archive) file containing all py and pyc files.
 	rm -rf $(PAR_BUILD_DIR)
 	mkdir -p $(PAR_BUILD_DIR)
 	bin/make_par -v \
 	  -o $(PAR_BUILD_DIR)/factory.par \
 	  $(MAKE_PAR_ARGS)
-# Sanity check: make sure we can import event_log using only the par file.
+	# Sanity check: make sure we can import event_log using only the
+	# par file.
 	PYTHONPATH=$(PAR_BUILD_DIR)/factory.par $(PYTHON) -c \
 	  'import cros.factory.test.state'
 	$(if $(PAR_DEST_DIR),cp $(PAR_BUILD_DIR)/factory.par $(PAR_DEST_DIR))
@@ -120,7 +121,8 @@ install:
 	ln -sf bin/gooftool bin/edid bin/hwid_tool ${FACTORY}
 	mkdir -m755 -p ${DESTDIR}/var/log
 	mkdir -m755 -p $(addprefix ${DESTDIR}/var/factory/,log state tests)
-	ln -sf $(addprefix ../factory/log/,factory.log console.log) ${DESTDIR}/var/log
+	ln -sf $(addprefix ../factory/log/,factory.log console.log) \
+	    ${DESTDIR}/var/log
 	# Add symlinks to certain binaries from /usr/local/bin to
 	# /usr/local/factory/bin.
 	mkdir -p "$(DESTDIR)$(SYMLINK_INSTALL_DIR)"
