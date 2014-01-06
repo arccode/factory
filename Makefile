@@ -113,7 +113,7 @@ par:
 	  'import cros.factory.test.state'
 	$(if $(PAR_DEST_DIR),cp $(PAR_BUILD_DIR)/factory.par $(PAR_DEST_DIR))
 
-install: par
+install:
 	mkdir -p $(FACTORY)
 	rsync -a --chmod=go=rX --exclude '*.pyc' \
 	  bin misc py py_pkg sh test_lists $(FACTORY)
@@ -121,7 +121,16 @@ install: par
 	mkdir -m755 -p ${DESTDIR}/var/log
 	mkdir -m755 -p $(addprefix ${DESTDIR}/var/factory/,log state tests)
 	ln -sf $(addprefix ../factory/log/,factory.log console.log) ${DESTDIR}/var/log
-# Make factory bundle overlay
+	# Add symlinks to certain binaries from /usr/local/bin to
+	# /usr/local/factory/bin.
+	mkdir -p "$(DESTDIR)$(SYMLINK_INSTALL_DIR)"
+	cd "$(DESTDIR)$(SYMLINK_INSTALL_DIR)" && \
+	    ln -sf $(addprefix $(SYMLINK_TARGET_RELPATH)/bin/,$(SYMLINK_BINS)) .
+	# Make sure all the symlinked binaries actually exist.
+	stat -L "$(DESTDIR)$(SYMLINK_INSTALL_DIR)"/* > /dev/null
+
+bundle: par
+	# Make factory bundle overlay
 	mkdir -p $(FACTORY_BUNDLE)/factory_setup/
 	rsync -a --exclude testdata --exclude README.txt \
 	  setup/ $(FACTORY_BUNDLE)/factory_setup/
@@ -131,25 +140,18 @@ install: par
 	ln -s factory.par $(FACTORY_BUNDLE)/shopfloor/manage
 	ln -s factory.par $(FACTORY_BUNDLE)/shopfloor/minijack
 	ln -s factory.par $(FACTORY_BUNDLE)/shopfloor/shopfloor
-# Archive docs into bundle
+	# Archive docs into bundle
 	$(MAKE) doc
 	cp build/doc.tar.bz2 $(FACTORY_BUNDLE)
-# Install cgpt, used by factory_setup.  TODO(jsalz/hungte): Find a better way
-# to do this.
+	# Install cgpt, used by factory_setup.
+	# TODO(jsalz/hungte): Find a better way to do this.
 	mkdir -p $(FACTORY_BUNDLE)/factory_setup/bin
 	cp /usr/bin/cgpt $(FACTORY_BUNDLE)/factory_setup/bin
 	cp /usr/bin/futility $(FACTORY_BUNDLE)/factory_setup/bin
-# Install actual implementation of cgpt. TODO(wfrichar/victoryang): Remove this
-# once futility implements cgpt.
+	# Install actual implementation of cgpt.
+	# TODO(wfrichar/victoryang): Remove this once futility implements cgpt.
 	mkdir -p $(FACTORY_BUNDLE)/factory_setup/bin/old_bins
 	cp /usr/bin/old_bins/cgpt $(FACTORY_BUNDLE)/factory_setup/bin/old_bins
-# Add symlinks to certain binaries from /usr/local/bin to
-# /usr/local/factory/bin.
-	mkdir -p "$(DESTDIR)$(SYMLINK_INSTALL_DIR)"
-	cd "$(DESTDIR)$(SYMLINK_INSTALL_DIR)" && \
-	    ln -sf $(addprefix $(SYMLINK_TARGET_RELPATH)/bin/,$(SYMLINK_BINS)) .
-# Make sure all the symlinked binaries actually exist.
-	stat -L "$(DESTDIR)$(SYMLINK_INSTALL_DIR)"/* > /dev/null
 
 lint:
 	@set -e -o pipefail; \
