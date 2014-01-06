@@ -3,6 +3,10 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+
+"""A pytest for operator to input a string of data."""
+
+
 import logging
 import re
 import socket
@@ -23,6 +27,7 @@ from cros.factory.test.utils import StartDaemonThread
 
 
 class Scan(unittest.TestCase):
+  """The main class for this pytest."""
   ARGS = [
     Arg('aux_table_name', str,
         'Name of the auxiliary table containing the device',
@@ -116,6 +121,7 @@ class Scan(unittest.TestCase):
 
     if self.args.device_data_key:
       shopfloor.UpdateDeviceData({self.args.device_data_key: scan_value})
+      factory.get_state_instance().UpdateSkippedTests()
 
     if self.args.check_device_data_key:
       expected_value = shopfloor.GetDeviceData().get(
