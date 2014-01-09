@@ -474,21 +474,35 @@ class Options(object):
   is not ``None``)."""
   _types['critical_low_battery_pct'] = (type(None), int)
 
+  scan_log_period_secs = 120
+  """Time interval to scan system logs. A scan includes clearing logs
+  in clear_log_paths and optionally syncing logs in sync_log_paths
+  to shopfloor server if enable_sync_log is True and the time difference
+  between this scan and last syncing event is greater than
+  sync_log_period_secs.
+  """
+  _types['scan_log_period_secs'] = (int)
+
   clear_log_paths = ['/var/log/connectivity.bak']
   """A list of log files to remove periodically."""
 
-  enable_sync_log = True
-  """rsync system logs to the shopfloor server."""
   sync_log_period_secs = None
-  """Time interval to rsync system logs."""
+  """Time interval to sync system logs in background. Set it to None to disable
+  log syncing in background.
+  """
   _types['sync_log_period_secs'] = (type(None), int)
+
+  enable_sync_log = False
+  """Sync system logs to the shopfloor server in foreground."""
+
   sync_log_paths = [
       '/var/factory/log/',
       '/var/log/messages',
       '/var/log/Xorg.0.log',
       '/var/log/bios_info.txt',
       '/var/log/ec_info.txt']
-  """The list of log files to rsync periodically."""
+  """The list of log files to sync periodically."""
+  _types['sync_log_paths'] = list
 
   core_dump_watchlist = None
   """The list of core dump pattern to watch for."""

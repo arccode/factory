@@ -2,6 +2,10 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+
+"""Debug utilities."""
+
+
 import logging
 import os
 import sys
@@ -57,7 +61,8 @@ class DebugRequestHandler(SocketServer.StreamRequestHandler):
 def StartDebugServer(address='localhost', port=5339):
   """Opens a TCP server to print debug information.
 
-  Returns the server and thread."""
+  Returns the server and thread.
+  """
   SocketServer.ThreadingTCPServer.allow_reuse_address = True
   server = SocketServer.ThreadingTCPServer(
       (address, port), DebugRequestHandler)
@@ -75,6 +80,46 @@ def MaybeStartDebugServer():
     return StartDebugServer(port=int(port))
   else:
     return None
+
+
+def CatchException(name, enable=True):
+  """Returns a decorator who catches exception and print certain name.
+
+  This is useful in functions of goofy managers where we want to catch
+  the exception happened in managers and make sure the error will not
+  break its user(goofy).
+
+  Args:
+    name: The name of function or class that should be printed in
+      warning message.
+    enable: True to enable this decorator. This is useful in unittest
+      of the user where we really want to verify the function of decorated
+      functions.
+
+  Returns:
+    A decorater method that will catch exceptions and only logs reduced
+    trace with name.
+  """
+  def _CatchExceptionDecorator(method):
+    """A decorator who catches exception from method.
+
+    Args:
+      method: The method that needs to be decorated.
+
+    Returns:
+      A decorated method that will catch exceptions and only logs reduced
+      trace.
+    """
+    def Wrap(*args, **kwargs):
+      try:
+        method(*args, **kwargs)
+      except:  # pylint: disable=W0702
+        logging.warning(
+          '%s Exception: %s.', name,
+          '\n'.join(traceback.format_exception_only(
+              *sys.exc_info()[:2])).strip())
+    return Wrap if enable else method
+  return _CatchExceptionDecorator
 
 
 if __name__ == '__main__':

@@ -290,7 +290,7 @@ class Goofy(object):
       self.log_watcher = None
     if self.system_log_manager:
       if self.system_log_manager.IsThreadRunning():
-        self.system_log_manager.StopSyncThread()
+        self.system_log_manager.Stop()
       self.system_log_manager = None
     if self.prespawner:
       logging.info('Stopping prespawner')
@@ -1400,16 +1400,15 @@ class Goofy(object):
     if self.test_list.options.sync_event_log_period_secs:
       self.log_watcher.StartWatchThread()
 
-    # Note that we create a system log manager even if
-    # sync_log_period_secs isn't set (no background
-    # syncing), since we may kick it to sync logs in its
-    # thread.
-    if self.test_list.options.enable_sync_log:
-      self.system_log_manager = SystemLogManager(
-        sync_log_paths=self.test_list.options.sync_log_paths,
-        sync_period_sec=self.test_list.options.sync_log_period_secs,
-        clear_log_paths=self.test_list.options.clear_log_paths)
-      self.system_log_manager.StartSyncThread()
+    # Creates a system log manager to scan logs periocially.
+    # A scan includes clearing logs and optionally syncing logs if
+    # enable_syng_log is True. We kick it to sync logs.
+    self.system_log_manager = SystemLogManager(
+      sync_log_paths=self.test_list.options.sync_log_paths,
+      sync_log_period_secs=self.test_list.options.sync_log_period_secs,
+      scan_log_period_secs=self.test_list.options.scan_log_period_secs,
+      clear_log_paths=self.test_list.options.clear_log_paths)
+    self.system_log_manager.Start()
 
     self.update_system_info()
 
@@ -1726,8 +1725,8 @@ class Goofy(object):
                              charger_connected=ac_present,
                              critical=critical_low_battery)
           self.log_watcher.KickWatchThread()
-          if self.system_log_manager:
-            self.system_log_manager.KickSyncThread()
+          if self.test_list.options.enable_sync_log:
+            self.system_log_manager.KickToSync()
     except: # pylint: disable=W0702
       logging.exception('Unable to check battery or notify shopfloor')
     finally:
@@ -1755,8 +1754,8 @@ class Goofy(object):
       self.log_watcher.KickWatchThread()
 
       # Syncs files to server
-      if self.system_log_manager:
-        self.system_log_manager.KickSyncThread(
+      if self.test_list.options.enable_sync_log:
+        self.system_log_manager.KickToSync(
             core_dump_files, self.core_dump_manager.ClearFiles)
 
   def check_log_rotation(self):

@@ -4,7 +4,12 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+
+"""Unittest for system_log_manager.py."""
+
+
 import glob
+import logging
 import mox
 import os
 import tempfile
@@ -14,15 +19,38 @@ from urlparse import urlparse
 
 import factory_common  # pylint: disable=W0611
 from cros.factory import event_log
-from cros.factory.goofy import system_log_manager
 from cros.factory.test import shopfloor
+
+from cros.factory.utils import debug_utils
+
+# Mocks CatchException decorator since it will suppress exception in
+# SystemLogManager.
+CatchExceptionImpl = debug_utils.CatchException
+def CatchExceptionDisabled(*args, **kwargs):
+  kwargs['enable'] = False
+  return CatchExceptionImpl(*args, **kwargs)
+debug_utils.CatchException = CatchExceptionDisabled
+
+from cros.factory.goofy import system_log_manager
 
 MOCK_FILE_PREFIX = 'system_log_manager_unittest'
 MOCK_SYNC_LOG_PATHS = [os.path.join('/tmp', MOCK_FILE_PREFIX + '*')]
-MOCK_SYNC_PERIOD_SEC = 0.3
+MOCK_SYNC_PERIOD_SEC = 0.6
+MOCK_MIN_SYNC_PERIOD_SEC = 0.5
+MOCK_SCAN_PERIOD_SEC = 0.2
 MOCK_RSYNC_IO_TIMEOUT = 0
 MOCK_SHOPFLOOR_TIMEOUT = 0
 MOCK_POLLING_PERIOD = 0.05
+MOCK_POLLING_FAIL_TRIES = 3
+MOCK_POLLING_DURATION = 3.8 * MOCK_POLLING_PERIOD
+# MOCK_POLLING_PERIOD * 3.8 is long enough to poll for 4 times.
+#
+#        poll(N)  poll(N)  poll(N)  poll(Y)
+#          |        |        |       |
+# ---------------------------------------------->
+# |      |                             |
+# start first sync                    stop
+
 MOCK_SERVER_URL = 'http://0.0.0.0:1234'
 MOCK_PORT = '8084'
 MOCK_DEVICE_ID = 'ab:cd:ef:12:34:56'
@@ -34,6 +62,7 @@ MOCK_RSYNC_COMMAND_ARG = ['rsync', '-azR', '--stats', '--chmod=o-t',
                           '--timeout=%s' % MOCK_RSYNC_IO_TIMEOUT]
 
 class TestSystemLogManager(unittest.TestCase):
+  """Unittest for SystemLogManager."""
   def setUp(self):
     self.mox = mox.Mox()
     self.manager = None
@@ -44,6 +73,9 @@ class TestSystemLogManager(unittest.TestCase):
     self.base_rsync_command = (MOCK_RSYNC_COMMAND_ARG +
         sum([glob.glob(x) for x in MOCK_SYNC_LOG_PATHS], []) +
         MOCK_RSYNC_DESTINATION)
+    # Modifies the minimum sync log period secs in system_log_manager for
+    # unittest.
+    system_log_manager.MIN_SYNC_LOG_PERIOD_SECS = MOCK_MIN_SYNC_PERIOD_SEC
 
   def tearDown(self):
     self.mox.UnsetStubs()
@@ -67,12 +99,12 @@ class TestSystemLogManager(unittest.TestCase):
             [self.base_rsync_command[-1]])
 
   def MockSyncOnce(self, extra_files=None, callback=None,
-                   times=3, code=0, terminated=False):
+                   times=MOCK_POLLING_FAIL_TRIES, code=0, terminated=False):
     """Mock rsync once with optional arguments to MockPollToFinish.
 
     Args:
-      extra_files: extra_files argument to from KickSyncThread.
-      callback: extra_files argument to from KickSyncThread.
+      extra_files: extra_files argument to KickToSync.
+      callback: extra_files argument to KickToSync.
       times: times argument to MockPollToFinish.
       code: times argument to MockPollToFinish.
       terminated: times argument to MockPollToFinish.
@@ -84,6 +116,7 @@ class TestSystemLogManager(unittest.TestCase):
     event_log.GetDeviceId().AndReturn(MOCK_DEVICE_ID)
     event_log.GetReimageId().AndReturn(MOCK_IMAGE_ID)
     if extra_files:
+      logging.debug('Mocks getting extra_files %r', extra_files)
       mock_rsync_command = self.AddExtraFilesToRsync(extra_files)
     else:
       mock_rsync_command = self.base_rsync_command
@@ -112,27 +145,20 @@ class TestSystemLogManager(unittest.TestCase):
     self.fake_process.returncode = code
 
   def testSyncOnce(self):
-    """Syncs onces but and gets a zero returecode."""
+    """Syncs onces and gets a zero returecode."""
     self.SetMock()
     self.MockSyncOnce()
 
     self.mox.ReplayAll()
 
     self.manager = system_log_manager.SystemLogManager(
-        MOCK_SYNC_LOG_PATHS, MOCK_SYNC_PERIOD_SEC,
+        MOCK_SYNC_LOG_PATHS, MOCK_SYNC_PERIOD_SEC, MOCK_SCAN_PERIOD_SEC,
         MOCK_SHOPFLOOR_TIMEOUT, MOCK_RSYNC_IO_TIMEOUT,
         MOCK_POLLING_PERIOD)
-    self.manager.StartSyncThread()
+    self.manager.Start()
 
-    #                  poll(N)  poll(N)  poll(N)  poll(Y)
-    #                       |        |        |       |
-    # -------- ... ------------------------------------------->
-    # |                    |                             |
-    # start             first sync period              stop
-
-    # MOCK_POLLING_PERIOD * 3.8 is long enough to poll for 4 times.
-    time.sleep(MOCK_SYNC_PERIOD_SEC + MOCK_POLLING_PERIOD * 3.8)
-    self.manager.StopSyncThread()
+    time.sleep(MOCK_SCAN_PERIOD_SEC + MOCK_POLLING_DURATION)
+    self.manager.Stop()
 
     self.mox.VerifyAll()
 
@@ -144,12 +170,42 @@ class TestSystemLogManager(unittest.TestCase):
     self.mox.ReplayAll()
 
     self.manager = system_log_manager.SystemLogManager(
-        MOCK_SYNC_LOG_PATHS, MOCK_SYNC_PERIOD_SEC,
+        MOCK_SYNC_LOG_PATHS, MOCK_SYNC_PERIOD_SEC, MOCK_SCAN_PERIOD_SEC,
         MOCK_SHOPFLOOR_TIMEOUT, MOCK_RSYNC_IO_TIMEOUT,
         MOCK_POLLING_PERIOD)
-    self.manager.StartSyncThread()
-    time.sleep(MOCK_SYNC_PERIOD_SEC + MOCK_POLLING_PERIOD * 3.8)
-    self.manager.StopSyncThread()
+    self.manager.Start()
+    time.sleep(MOCK_SCAN_PERIOD_SEC + MOCK_POLLING_DURATION)
+    self.manager.Stop()
+
+    self.mox.VerifyAll()
+
+  def testSyncOnceStopped(self):
+    """Syncs once but rsync takes too long and manager got stopped."""
+    self.SetMock()
+    self.MockSyncOnce(times=2, terminated=True)
+
+    # Setting polling period to 1/5 of scan period, and let poll
+    # returns None for 2 times. There will be two polls before it aborts by
+    # Stop().
+    # See the time diagram below.
+    #
+    #       poll(N)    poll(N)   aborted before the 3rd poll
+    #       |          |         x
+    #--...--------------------------------------------->
+    #|      |                    |
+    #      1st
+    #start _SyncLogs()         stop
+
+    self.mox.ReplayAll()
+
+    mock_polling_period = MOCK_SCAN_PERIOD_SEC * 1 / 5
+    self.manager = system_log_manager.SystemLogManager(
+        MOCK_SYNC_LOG_PATHS, MOCK_SYNC_PERIOD_SEC, MOCK_SCAN_PERIOD_SEC,
+        MOCK_SHOPFLOOR_TIMEOUT, MOCK_RSYNC_IO_TIMEOUT,
+        mock_polling_period)
+    self.manager.Start()
+    time.sleep(MOCK_SCAN_PERIOD_SEC + mock_polling_period * 2)
+    self.manager.Stop()
 
     self.mox.VerifyAll()
 
@@ -158,7 +214,7 @@ class TestSystemLogManager(unittest.TestCase):
     self.SetMock()
     self.MockSyncOnce(times=2, terminated=True)
 
-    # Setting polling period to 2/3 of sync period, and let poll
+    # Setting polling period to 2/3 of scan period, and let poll
     # returns None for 2 times. There will be two polls before it aborts.
     # See the time diagram below.
     #
@@ -166,19 +222,19 @@ class TestSystemLogManager(unittest.TestCase):
     #               |        |        x
     #---------------------------------------------->
     #|             |             |             |
-    #          1 period      2 period
+    #             1st scan     2nd scan
     #start       _SyncLogs()                  stop
 
     self.mox.ReplayAll()
 
-    mock_polling_period = MOCK_SYNC_PERIOD_SEC * 2 / 3
+    mock_polling_period = MOCK_SCAN_PERIOD_SEC * 2 / 3
     self.manager = system_log_manager.SystemLogManager(
-        MOCK_SYNC_LOG_PATHS, MOCK_SYNC_PERIOD_SEC,
+        MOCK_SYNC_LOG_PATHS, MOCK_SYNC_PERIOD_SEC, MOCK_SCAN_PERIOD_SEC,
         MOCK_SHOPFLOOR_TIMEOUT, MOCK_RSYNC_IO_TIMEOUT,
         mock_polling_period)
-    self.manager.StartSyncThread()
-    time.sleep(MOCK_SYNC_PERIOD_SEC + mock_polling_period * 3)
-    self.manager.StopSyncThread()
+    self.manager.Start()
+    time.sleep(MOCK_SCAN_PERIOD_SEC + mock_polling_period * 3)
+    self.manager.Stop()
 
     self.mox.VerifyAll()
 
@@ -192,13 +248,14 @@ class TestSystemLogManager(unittest.TestCase):
     self.mox.ReplayAll()
 
     self.manager = system_log_manager.SystemLogManager(
-        MOCK_SYNC_LOG_PATHS, MOCK_SYNC_PERIOD_SEC,
+        MOCK_SYNC_LOG_PATHS, MOCK_SYNC_PERIOD_SEC, MOCK_SCAN_PERIOD_SEC,
         MOCK_SHOPFLOOR_TIMEOUT, MOCK_RSYNC_IO_TIMEOUT,
         MOCK_POLLING_PERIOD)
-    self.manager.StartSyncThread()
-    time.sleep((MOCK_SYNC_PERIOD_SEC + MOCK_POLLING_PERIOD * 3.8) *
-               number_of_period)
-    self.manager.StopSyncThread()
+    self.manager.Start()
+    time.sleep(MOCK_SCAN_PERIOD_SEC +
+               ((MOCK_SYNC_PERIOD_SEC + MOCK_POLLING_DURATION) *
+                (number_of_period - 1)) + MOCK_POLLING_DURATION)
+    self.manager.Stop()
 
     self.mox.VerifyAll()
 
@@ -213,14 +270,14 @@ class TestSystemLogManager(unittest.TestCase):
     self.mox.ReplayAll()
 
     self.manager = system_log_manager.SystemLogManager(
-        MOCK_SYNC_LOG_PATHS, None,
+        MOCK_SYNC_LOG_PATHS, None, MOCK_SCAN_PERIOD_SEC,
         MOCK_SHOPFLOOR_TIMEOUT, MOCK_RSYNC_IO_TIMEOUT,
-        MOCK_POLLING_PERIOD)
-    self.manager.StartSyncThread()
+        MOCK_POLLING_PERIOD, [])
+    self.manager.Start()
     # manager should only sync once, which is kicked by the test.
-    self.manager.KickSyncThread(mock_extra_files, mock_callback)
-    time.sleep(MOCK_POLLING_PERIOD * 3.8)
-    self.manager.StopSyncThread()
+    self.manager.KickToSync(mock_extra_files, mock_callback)
+    time.sleep(MOCK_POLLING_DURATION)
+    self.manager.Stop()
 
     self.mox.VerifyAll()
 
@@ -235,14 +292,42 @@ class TestSystemLogManager(unittest.TestCase):
     self.mox.ReplayAll()
 
     self.manager = system_log_manager.SystemLogManager(
-        MOCK_SYNC_LOG_PATHS, MOCK_SYNC_PERIOD_SEC,
+        MOCK_SYNC_LOG_PATHS, MOCK_SYNC_PERIOD_SEC, MOCK_SCAN_PERIOD_SEC,
         MOCK_SHOPFLOOR_TIMEOUT, MOCK_RSYNC_IO_TIMEOUT,
         MOCK_POLLING_PERIOD)
-    self.manager.StartSyncThread()
+    self.manager.Start()
     # manager should only sync once, which is kicked by the test.
-    self.manager.KickSyncThread(mock_extra_files, mock_callback)
-    time.sleep(MOCK_POLLING_PERIOD * 3.8)
-    self.manager.StopSyncThread()
+    self.manager.KickToSync(mock_extra_files, mock_callback)
+    time.sleep(MOCK_POLLING_DURATION)
+    self.manager.Stop()
+
+    self.mox.VerifyAll()
+
+  def testSyncKickMultipleTimes(self):
+    """Syncs by multiple kicks."""
+    self.SetMock()
+
+    times = 5
+    mock_extra_files = [['mock_extra_files_%d' % x] for x in xrange(times)]
+    mock_callback = self.mox.CreateMockAnything()
+
+    for kick_number in xrange(times):
+      self.MockSyncOnce(mock_extra_files[kick_number], mock_callback)
+
+    self.mox.ReplayAll()
+
+    self.manager = system_log_manager.SystemLogManager(
+        MOCK_SYNC_LOG_PATHS, None, MOCK_SCAN_PERIOD_SEC,
+        MOCK_SHOPFLOOR_TIMEOUT, MOCK_RSYNC_IO_TIMEOUT,
+        MOCK_POLLING_PERIOD, [])
+    self.manager.Start()
+    # manager should process each sync requests by the test.
+
+    for kick_number in xrange(times):
+      self.manager.KickToSync(mock_extra_files[kick_number], mock_callback)
+
+    time.sleep(MOCK_POLLING_DURATION * times)
+    self.manager.Stop()
 
     self.mox.VerifyAll()
 
@@ -267,26 +352,28 @@ class TestSystemLogManager(unittest.TestCase):
     self.mox.ReplayAll()
 
     self.manager = system_log_manager.SystemLogManager(
-        MOCK_SYNC_LOG_PATHS, MOCK_SYNC_PERIOD_SEC,
+        MOCK_SYNC_LOG_PATHS, MOCK_SYNC_PERIOD_SEC, MOCK_SCAN_PERIOD_SEC,
         MOCK_SHOPFLOOR_TIMEOUT, MOCK_RSYNC_IO_TIMEOUT,
         MOCK_POLLING_PERIOD)
-    self.manager.StartSyncThread()
+    self.manager.Start()
     # manager should sync twice in this time
-    time.sleep((MOCK_SYNC_PERIOD_SEC + MOCK_POLLING_PERIOD * 3.8) * 2)
+    time.sleep((MOCK_SCAN_PERIOD_SEC + MOCK_POLLING_DURATION +
+                MOCK_SYNC_PERIOD_SEC + MOCK_POLLING_DURATION))
     # manager is kiced by the test to sync once.
-    self.manager.KickSyncThread(mock_extra_files, mock_callback)
-    time.sleep(MOCK_POLLING_PERIOD * 3.8)
+    self.manager.KickToSync(mock_extra_files, mock_callback)
+    time.sleep(MOCK_POLLING_DURATION)
     # manager should sync twice in this time
-    time.sleep((MOCK_SYNC_PERIOD_SEC + MOCK_POLLING_PERIOD * 3.8) * 2)
-    self.manager.StopSyncThread()
+    time.sleep((MOCK_SYNC_PERIOD_SEC + MOCK_POLLING_DURATION +
+                MOCK_SYNC_PERIOD_SEC + MOCK_POLLING_DURATION))
+    self.manager.Stop()
 
     self.mox.VerifyAll()
 
-  def testSyncPeriodAndKickToTerminate(self):
-    """Gets kicked during periodic sync, then terminate periodic sync."""
+  def testSyncPeriodAndKickToSync(self):
+    """Gets kicked during periodic sync, then it put request to queue."""
     self.SetMock()
     # This sync will get terminated by kick event.
-    self.MockSyncOnce(terminated=True)
+    self.MockSyncOnce()
 
     mock_extra_files = ['mock_extra_files']
     mock_callback = self.mox.CreateMockAnything()
@@ -299,29 +386,30 @@ class TestSystemLogManager(unittest.TestCase):
     self.mox.ReplayAll()
 
     self.manager = system_log_manager.SystemLogManager(
-        MOCK_SYNC_LOG_PATHS, MOCK_SYNC_PERIOD_SEC,
+        MOCK_SYNC_LOG_PATHS, MOCK_SYNC_PERIOD_SEC, MOCK_SCAN_PERIOD_SEC,
         MOCK_SHOPFLOOR_TIMEOUT, MOCK_RSYNC_IO_TIMEOUT,
         MOCK_POLLING_PERIOD)
-    self.manager.StartSyncThread()
+    self.manager.Start()
     # manager should fire a sync after this time.
-    time.sleep(MOCK_SYNC_PERIOD_SEC * 1)
-    # manager thread should poll three times.
-    time.sleep(MOCK_POLLING_PERIOD * 2.8)
-    # manager is kiced by the test to terminate previous sync and
-    # starts a new sync.
-    self.manager.KickSyncThread(mock_extra_files, mock_callback)
-    # manager thread should poll four times to succeed.
-    time.sleep(MOCK_POLLING_PERIOD * 3.8)
+    time.sleep(MOCK_SCAN_PERIOD_SEC * 1)
+    # manager thread should poll MOCK_POLLING_FAIL_TRIES times.
+    time.sleep(MOCK_POLLING_PERIOD * MOCK_POLLING_FAIL_TRIES)
+    # manager is kiced by the test and put a request to queue.
+    self.manager.KickToSync(mock_extra_files, mock_callback)
+    # manager thread should poll onces and finish the first sync.
+    time.sleep(MOCK_POLLING_PERIOD)
+    # manager then does the sync request in the queue.
+    time.sleep(MOCK_POLLING_DURATION)
 
     # manager should sync periodically for two times in this time
     # after the sync of kick.
-    time.sleep((MOCK_SYNC_PERIOD_SEC + MOCK_POLLING_PERIOD * 3.8) * 2)
-    self.manager.StopSyncThread()
+    time.sleep((MOCK_SYNC_PERIOD_SEC + MOCK_POLLING_DURATION) * 2)
+    self.manager.Stop()
 
     self.mox.VerifyAll()
 
   def testClearOnce(self):
-    """Clears log files once."""
+    """Clears log files once by periodic scan including syncing."""
     self.SetMock()
     clear_file_prefix = 'clear_' + MOCK_FILE_PREFIX
     for _ in xrange(3):
@@ -332,15 +420,91 @@ class TestSystemLogManager(unittest.TestCase):
     self.mox.ReplayAll()
 
     self.manager = system_log_manager.SystemLogManager(
-        MOCK_SYNC_LOG_PATHS, MOCK_SYNC_PERIOD_SEC,
+        MOCK_SYNC_LOG_PATHS, MOCK_SYNC_PERIOD_SEC, MOCK_SCAN_PERIOD_SEC,
         MOCK_SHOPFLOOR_TIMEOUT, MOCK_RSYNC_IO_TIMEOUT,
         MOCK_POLLING_PERIOD, clear_file_lists)
-    self.manager.StartSyncThread()
-    time.sleep(MOCK_SYNC_PERIOD_SEC + MOCK_POLLING_PERIOD * 3.8)
-    self.manager.StopSyncThread()
+    self.manager.Start()
+    time.sleep(MOCK_SCAN_PERIOD_SEC + MOCK_POLLING_DURATION)
+    self.manager.Stop()
 
     self.mox.VerifyAll()
     self.assertEqual(sum([glob.glob(x) for x in clear_file_lists], []), [])
 
+  def testClearOnceWithoutSync(self):
+    """Clears log files once by periodic scan without syncing."""
+    self.SetMock()
+    clear_file_prefix = 'clear_' + MOCK_FILE_PREFIX
+    for _ in xrange(3):
+      tempfile.mkstemp(prefix=clear_file_prefix, dir='/tmp')
+    clear_file_lists = [os.path.join('/tmp', clear_file_prefix + '*')]
+
+    self.mox.ReplayAll()
+
+    self.manager = system_log_manager.SystemLogManager(
+        MOCK_SYNC_LOG_PATHS, None, MOCK_SCAN_PERIOD_SEC,
+        MOCK_SHOPFLOOR_TIMEOUT, MOCK_RSYNC_IO_TIMEOUT,
+        MOCK_POLLING_PERIOD, clear_file_lists)
+    self.manager.Start()
+    # Clears the log at MOCK_SCAN_PERIOD_SEC, plus some time
+    # (reuse MOCK_POLLING_PERIOD) to clear them.
+    time.sleep(MOCK_SCAN_PERIOD_SEC + MOCK_POLLING_PERIOD)
+    self.manager.Stop()
+
+    self.mox.VerifyAll()
+    self.assertEqual(sum([glob.glob(x) for x in clear_file_lists], []), [])
+
+  def testClearOnceByKickWithoutSync(self):
+    """Clears log files once by KickToClear without syncing."""
+    self.SetMock()
+    clear_file_prefix = 'clear_' + MOCK_FILE_PREFIX
+    for _ in xrange(3):
+      tempfile.mkstemp(prefix=clear_file_prefix, dir='/tmp')
+    clear_file_lists = [os.path.join('/tmp', clear_file_prefix + '*')]
+
+    self.mox.ReplayAll()
+
+    self.manager = system_log_manager.SystemLogManager(
+        MOCK_SYNC_LOG_PATHS, None, MOCK_SCAN_PERIOD_SEC,
+        MOCK_SHOPFLOOR_TIMEOUT, MOCK_RSYNC_IO_TIMEOUT,
+        MOCK_POLLING_PERIOD, clear_file_lists)
+    self.manager.Start()
+    self.manager.KickToClear()
+    # Needs some time to clear them.
+    time.sleep(MOCK_POLLING_PERIOD)
+    self.manager.Stop()
+
+    self.mox.VerifyAll()
+    self.assertEqual(sum([glob.glob(x) for x in clear_file_lists], []), [])
+
+  def testCheckSetting(self):
+    """Unittest for _CheckSettings method."""
+    self.SetMock()
+
+    # sync_log_period_secs is less than MIN_SYNC_LOG_PERIOD_SECS.
+    with self.assertRaises(system_log_manager.SystemLogManagerException):
+      self.manager = system_log_manager.SystemLogManager(
+          MOCK_SYNC_LOG_PATHS, 0.5 * MOCK_MIN_SYNC_PERIOD_SEC ,
+          MOCK_SCAN_PERIOD_SEC,
+          MOCK_SHOPFLOOR_TIMEOUT, MOCK_RSYNC_IO_TIMEOUT,
+          MOCK_POLLING_PERIOD, [])
+
+    # scan_log_period_secs is greater than sync_log_period_secs.
+    with self.assertRaises(system_log_manager.SystemLogManagerException):
+      self.manager = system_log_manager.SystemLogManager(
+          MOCK_SYNC_LOG_PATHS, MOCK_SYNC_PERIOD_SEC ,
+          1.5 * MOCK_SYNC_PERIOD_SEC,
+          MOCK_SHOPFLOOR_TIMEOUT, MOCK_RSYNC_IO_TIMEOUT,
+          MOCK_POLLING_PERIOD, [])
+
+    # clear_log_paths and sync_log_paths have paths in common.
+    with self.assertRaises(system_log_manager.SystemLogManagerException):
+      self.manager = system_log_manager.SystemLogManager(
+          ['/foo/bar1', '/foo/bar2'], MOCK_SYNC_PERIOD_SEC ,
+          MOCK_SCAN_PERIOD_SEC,
+          MOCK_SHOPFLOOR_TIMEOUT, MOCK_RSYNC_IO_TIMEOUT,
+          MOCK_POLLING_PERIOD, ['/foo/bar1', '/foo/bar3'])
+
 if __name__ == "__main__":
+  logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s',
+      level=logging.DEBUG)
   unittest.main()

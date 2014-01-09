@@ -603,8 +603,11 @@ def SetOptions(options, args):
     options.disable_cros_shortcut_keys = True
 
     # Enable/Disable system log syncing
-    options.enable_sync_log = False
-    options.sync_log_period_secs = 5 * MINUTES
+    options.enable_sync_log = True
+    options.clear_log_paths += ['/var/log/connectivity.log',
+                                '/var/log/net.log']
+    options.sync_log_period_secs = 10 * MINUTES
+    options.scan_log_period_secs = 2 * MINUTES
     options.core_dump_watchlist = []
     options.log_disk_space_period_secs = 2 * MINUTES
     options.check_battery_period_secs = 2 * MINUTES
