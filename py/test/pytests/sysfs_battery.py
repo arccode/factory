@@ -22,6 +22,7 @@ _TEST_TITLE = MakeLabel('Battery Self-diagnosis', u'电池自我诊断')
 _CSS = '#state {text-align:left;}'
 
 class SysfsBatteryTest(unittest.TestCase):
+  """Checks battery status."""
   ARGS = [
     Arg('maximum_cycle_count', int,
         'Maximum cycle count allowed to pass test', optional=True,
@@ -45,7 +46,8 @@ class SysfsBatteryTest(unittest.TestCase):
     wearPct = None
 
     power = system.GetBoard().power
-    if not power.CheckBatteryPresent():
+    battery_present = power.CheckBatteryPresent()
+    if not battery_present:
       msg = 'Cannot find battery path'
     elif power.GetChargePct() is None:
       msg = 'Cannot get charge percentage'
@@ -60,23 +62,27 @@ class SysfsBatteryTest(unittest.TestCase):
     else:
       success = True
 
-    health = power.GetBatteryAttribute('health')
-    if success and self.args.verify_battery_health_good:
-      if health is None or health.lower() != 'good':
-        msg = 'Battery health is %s, not Good' % health
-        success = False
-    cycleCount = power.GetBatteryAttribute('cycle_count')
-    if success and self.args.maximum_cycle_count is not None:
-      if int(cycleCount) > self.args.maximum_cycle_count:
-        msg = 'Battery cycle count is too high: %s' % cycleCount
-        success = False
-    capacity = power.GetBatteryAttribute('capacity')
-    manufacturer = power.GetBatteryAttribute('manufacturer')
-    temp = power.GetBatteryAttribute('temp')
+    if battery_present:
+      health = power.GetBatteryAttribute('health')
+      if success and self.args.verify_battery_health_good:
+        if health is None or health.lower() != 'good':
+          msg = 'Battery health is %s, not Good' % health
+          success = False
 
-    Log('battery_checked', wearPct=wearPct, allowed=wearAllowedPct,
-        health=health, cycleCount=cycleCount, capacity=capacity,
-        manufacturer=manufacturer, temp=temp, success=success)
+      cycleCount = power.GetBatteryAttribute('cycle_count')
+      if success and self.args.maximum_cycle_count is not None:
+        if int(cycleCount) > self.args.maximum_cycle_count:
+          msg = 'Battery cycle count is too high: %s' % cycleCount
+          success = False
+
+      capacity = power.GetBatteryAttribute('capacity')
+      manufacturer = power.GetBatteryAttribute('manufacturer')
+      temp = power.GetBatteryAttribute('temp')
+
+      Log('battery_checked', wearPct=wearPct, allowed=wearAllowedPct,
+          health=health, cycleCount=cycleCount, capacity=capacity,
+          manufacturer=manufacturer, temp=temp, success=success)
+
     if success:
       self._ui.Pass()
     else:
