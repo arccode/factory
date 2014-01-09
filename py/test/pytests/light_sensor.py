@@ -4,13 +4,15 @@
 # found in the LICENSE file.
 
 
-# DESCRIPTION : factory test of ambient light sensor.  Test that ALS reacts to
-# both darkening by covering w/ finger as well as brightening.
-# Roughly speaking:
-# indoor ambient lighting: 20-100
-# sunlight direct: 30k-60k
-# flashlight direct: 5k-10k
+"""Factory test of ambient light sensor.
 
+Test that ALS reacts to both darkening by covering w/ finger
+as well as brightening.
+Roughly speaking:
+  indoor ambient lighting: 20-100
+  sunlight direct: 30k-60k
+  flashlight direct: 5k-10k
+"""
 
 import logging
 import math
@@ -62,32 +64,42 @@ window.onkeydown = function(event) {
 """
 
 class iio_generic():
-  """
-  Object to interface to ambient light sensor over iio.
+  """Object to interface to ambient light sensor over iio.
 
   Properties:
     self._rd : the device file path
-    self._init : command to initial device file
+    self._init_cmd : command to initial device file
     self._min : minimum value of device output
     self._max : maximum value of device output
     self._mindelay : delay between each read action
-    self._ui : UI object
   """
 
-  def __init__(self, device_path, device_input, range_value, ui):
+  def __init__(self, device_path, device_input, range_value, init_cmd):
+    """Initial light sensor object.
+
+    Args:
+      device_path: light sensor device path
+      device_input: file exports light sensor value
+      range_value: reference device_path/range_available file to
+                   set one of valid value (1000, 4000, 16000, 64000).
+                   None means no value is set.
+      init_cmd: initial command to setup light sensor device
+    """
     # initial values
     self._rd = device_path + device_input
     self._range_setting = device_path + 'range'
-    self._init = ''
+    self._init_cmd = init_cmd
     self._min = 0
     self._max = math.pow(2, 16)
     self._mindelay = 0.178
-    self._ui = ui
 
     if not os.path.isfile(self._rd):
       self.Config()
 
     if range_value is not None:
+      if range_value not in (1000, 4000, 16000, 64000):
+        raise ValueError('Range value is invalid: %d' % range_value)
+
       with open(self._range_setting, 'w') as f:
         f.write('%d\n' % range_value)
 
@@ -95,27 +107,22 @@ class iio_generic():
     logging.info('ambient light sensor = %d', ambient)
 
   def Config(self):
-    """
-    Creates device node if device does not exist
-    """
-    if self._init:
-      Spawn([self._init], check_call=True)
+    """Creates device node if device does not exist."""
+    if self._init_cmd:
+      Spawn(self._init_cmd, check_call=True)
     if not os.path.isfile(self._rd):
-      self._ui.Fail(self._init + ' did not create ' + self._rd)
+      raise ValueError('Cannot create %s' % self._rd)
     val = self.Read('first', samples=1)
     if val <= self._min or val >= self._max:
-      self._ui.Fail('Failed initial read\n')
+      raise ValueError('Failed initial read')
 
   def Read(self, param, delay=None, samples=1):
-    """
-    Reads the light sensor and return value based on param
+    """Reads the light sensor and return value based on param
 
     Args:
       param: string describing type of value to return.  Valid
               strings are 'mean' | 'min' | 'max' | 'raw' | 'first'
-
       delay: delay between samples in seconds.  0 means as fast as possible
-
       samples: total samples to read.  O means infinite
 
     Returns:
@@ -156,26 +163,32 @@ class iio_generic():
 
 
 class LightSensorTest(unittest.TestCase):
+  """Tests light sensor."""
   ARGS = [
-    Arg('device_path', str, 'device path', _DEFAULT_DEVICE_PATH, optional=True),
-    Arg('device_input', str, 'device input file', _DEFAULT_DEVICE_INPUT,
-      optional=True),
-    Arg('timeout_per_subtest', int, 'timeout for each subtest', 10,
-      optional=True),
-    Arg('subtest_list', list, 'subtest list', None, optional=True),
-    Arg('subtest_cfg', dict, 'subtest configuration', None, optional=True),
-    Arg('subtest_instruction', dict, 'subtest instruction', None,
-      optional=True),
-    Arg('range_value', int, 'subtest configuration', None, optional=True),
-    Arg('check_per_subtest', int, 'check times for each subtest', 3,
-      optional=True),
+    Arg('device_path', str, 'device path', _DEFAULT_DEVICE_PATH),
+    Arg('device_input', str, 'device input file', _DEFAULT_DEVICE_INPUT),
+    Arg('timeout_per_subtest', int, 'timeout for each subtest', 10),
+    Arg('subtest_list', list, 'subtest list', optional=True),
+    Arg('subtest_cfg', dict, 'subtest configuration', optional=True),
+    Arg('subtest_instruction', dict, 'subtest instruction', optional=True),
+    Arg('check_per_subtest', int, 'check times for each subtest', 3),
+    Arg('init_command', list, 'Setup device command', optional=True),
+
+    # Special parameter for ISL 29018 light sensor
+    Arg('range_value', int, 'one of value (1000, 4000, 16000, 64000)',
+        optional=True),
   ]
 
   def setUp(self):
     # Initialize frontend presentation
     self.ui = test_ui.UI()
-    self._als = iio_generic(self.args.device_path, self.args.device_input,
-        self.args.range_value, self.ui)
+
+    try:
+      self._als = iio_generic(self.args.device_path, self.args.device_input,
+          self.args.range_value, self.args.init_command)
+    except ValueError as e:
+      self.ui.Fail(e)
+      return
     StartDaemonThread(target=self.MonitorSensor)
 
     self.ui.AppendCSS(_CSS_LIGHT_SENSOR_TEST)
