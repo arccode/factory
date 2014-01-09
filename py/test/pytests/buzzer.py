@@ -4,6 +4,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+"""This is a buzzer test."""
+
 import random
 import time
 import unittest
@@ -51,7 +53,8 @@ window.onkeydown = function(event) {
 }
 """
 
-class AudioLoopTest(unittest.TestCase):
+class BuzzerTest(unittest.TestCase):
+  """Tests buzzer."""
   ARGS = [
     # Common arguments
     Arg('init_commands', list, 'Setup buzzer commands', []),
@@ -78,9 +81,11 @@ class AudioLoopTest(unittest.TestCase):
       Spawn(command, check_call=True)
 
   def BeepOne(self, start, stop):
-    Spawn(start, check_call=True)
+    if len(start) > 0:
+      Spawn(start, check_call=True)
     time.sleep(self.args.beep_duration_secs)
-    Spawn(stop, check_call=True)
+    if len(stop) > 0:
+      Spawn(stop, check_call=True)
 
   def StartTest(self, event):  # pylint: disable=W0613
     self.ui.SetHTML(_MSG_BUZZER_TEST, id='buzzer_title')
