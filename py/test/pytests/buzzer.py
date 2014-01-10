@@ -57,9 +57,9 @@ class BuzzerTest(unittest.TestCase):
   """Tests buzzer."""
   ARGS = [
     # Common arguments
-    Arg('init_commands', list, 'Setup buzzer commands', []),
-    Arg('start_command', list, 'Start beep command', []),
-    Arg('stop_command', list, 'Stop beep command', []),
+    Arg('init_commands', list, 'Setup buzzer commands', optional=True),
+    Arg('start_command', list, 'Start beep command', optional=True),
+    Arg('stop_command', list, 'Stop beep command', optional=True),
     Arg('beep_duration_secs', float, 'How long for one beep', 0.3),
     Arg('mute_duration_secs', float, 'Mute duration between two beeps', 0.5),
   ]
@@ -72,7 +72,8 @@ class BuzzerTest(unittest.TestCase):
     self.template.SetState(_HTML_BUZZER)
     self.ui.RunJS(_JS_BUZZER)
     self.ui.SetHTML(_MSG_BUZZER_INFO, id='buzzer_title')
-    self.InitialBuzzer(self.args.init_commands)
+    if self.args.init_commands:
+      self.InitialBuzzer(self.args.init_commands)
     self.ui.AddEventHandler('StartTest', self.StartTest)
     self.ui.AddEventHandler('CheckResult', self.CheckResult)
 
@@ -80,12 +81,12 @@ class BuzzerTest(unittest.TestCase):
     for command in commands:
       Spawn(command, check_call=True)
 
-  def BeepOne(self, start, stop):
-    if len(start) > 0:
-      Spawn(start, check_call=True)
+  def BeepOne(self, start_cmd, stop_cmd):
+    if start_cmd:
+      Spawn(start_cmd, check_call=True)
     time.sleep(self.args.beep_duration_secs)
-    if len(stop) > 0:
-      Spawn(stop, check_call=True)
+    if stop_cmd:
+      Spawn(stop_cmd, check_call=True)
 
   def StartTest(self, event):  # pylint: disable=W0613
     self.ui.SetHTML(_MSG_BUZZER_TEST, id='buzzer_title')
