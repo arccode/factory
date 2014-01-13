@@ -4,6 +4,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+"""Enviroment objects that handles external test operations."""
+
 import cPickle as pickle
 import hashlib
 import logging
@@ -15,24 +17,21 @@ import time
 import factory_common  # pylint: disable=W0611
 from cros.factory.goofy import connection_manager
 from cros.factory.test import factory, state, utils
-from cros.factory.utils import process_utils
 
 
 class Environment(object):
-  '''
-  Abstract base class for external test operations, e.g., run an autotest,
+  """Abstract base class for external test operations, e.g., run an autotest,
   shutdown, or reboot.
 
   The Environment is assumed not to be thread-safe: callers must grab the lock
   before calling any methods.  This is primarily necessary because we mock out
   this Environment with mox, and unfortunately mox is not thread-safe.
   TODO(jsalz): Try to write a thread-safe wrapper for mox.
-  '''
+  """
   lock = threading.Lock()
 
   def shutdown(self, operation):
-    '''
-    Shuts the machine down (from a ShutdownStep).
+    """Shuts the machine down (from a ShutdownStep).
 
     Args:
       operation: 'reboot' or 'halt'.
@@ -41,41 +40,35 @@ class Environment(object):
       True if Goofy should gracefully exit, or False if Goofy
         should just consider the shutdown to have suceeded (e.g.,
         in the chroot).
-    '''
+    """
     raise NotImplementedError()
 
   def launch_chrome(self):
-    '''
-    Launches Chrome.
+    """Launches Chrome.
 
     Returns:
       The Chrome subprocess (or None if none).
-    '''
+    """
     raise NotImplementedError()
 
   def spawn_autotest(self, name, args, env_additions, result_file):
-    '''
-    Spawns a process to run an autotest.
+    """Spawns a process to run an autotest.
 
     Args:
       name: Name of the autotest to spawn.
       args: Command-line arguments.
       env_additions: Additions to the environment.
       result_file: Expected location of the result file.
-    '''
+    """
     raise NotImplementedError()
 
   def create_connection_manager(self, wlans, scan_wifi_period_secs):
-    '''
-    Creates a ConnectionManager.
-    '''
+    """Creates a ConnectionManager."""
     raise NotImplementedError()
 
 
 class DUTEnvironment(Environment):
-  '''
-  A real environment on a device under test.
-  '''
+  """A real environment on a device under test."""
   BROWSER_TYPE_LOGIN = 'system'
   BROWSER_TYPE_GUEST = 'system-guest'
   EXTENSION_PATH = os.path.join(factory.FACTORY_PATH, 'py', 'goofy',
@@ -84,6 +77,7 @@ class DUTEnvironment(Environment):
                                      'enable_guest_mode')
 
   def __init__(self):
+    super(DUTEnvironment, self).__init__()
     self.browser = None
     self.extension = None
     if os.path.exists(self.GUEST_MODE_TAG_FILE):
@@ -133,7 +127,10 @@ class DUTEnvironment(Environment):
             '--enable-gpu-benchmarking',
             '--kiosk',
             '--kiosk-mode-screensaver-path=/dev/null'])
-        finder_options.CreateParser().parse_args(args=[])
+        # Telemetry alters logging verbosity level.  Use '-v' to set
+        # logging level to INFO and '-vv' to set to DEBUG.
+        finder_options.CreateParser().parse_args(args=[
+            '-vv' if self.goofy.options.verbose else '-v'])
         self.browser = browser_finder.FindBrowser(finder_options).Create()
         self.browser.Start()
         break
@@ -159,9 +156,7 @@ class DUTEnvironment(Environment):
 
 
 class FakeChrootEnvironment(Environment):
-  '''
-  A chroot environment that doesn't actually shutdown or run autotests.
-  '''
+  """A chroot environment that doesn't actually shutdown or run autotests."""
   def shutdown(self, operation):
     assert operation in ['reboot', 'halt']
     logging.warn('In chroot: skipping %s', operation)
