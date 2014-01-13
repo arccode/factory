@@ -56,7 +56,8 @@ class RegionsList(Directive):
       # For both the public repo and the overlay...
       for module in filter(None, [regions, overlay]):
         # For each of the elements in the list...
-        for r in getattr(module, name):
+        for r in sorted(getattr(module, name),
+                        key=lambda x: x.description):
           # Build a row.
           row = nodes.row('')
           # For each of the columns...
