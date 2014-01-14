@@ -120,21 +120,6 @@ class AudioLoopTest(unittest.TestCase):
     self._ui = test_ui.UI()
     self._ui.AddEventHandler('start_run_test', self.StartRunTest)
 
-    # We've encountered false positive running audiofuntest tool against
-    # audio fun-plug on a few platforms; so it is suggested not to run
-    # audiofuntest with HP/MIC jack
-    jack_status = self._audio_util.GetAudioJackStatus()
-    if jack_status is True and self.args.enable_audiofun is True:
-      factory.console.info('Audiofuntest does not require dongle.')
-      raise ValueError('Audiofuntest does not require dongle.')
-
-    # When audio jack detection feature is ready on a platform, we can
-    # enable check_dongle option to check jack status matches we expected.
-    if self.args.check_dongle:
-      if jack_status != self.args.require_dongle:
-        factory.console.info('Dongle Status is wrong.')
-        raise ValueError('Dongle Status is wrong.')
-
   def runTest(self):
     # If autostart, JS triggers start_run_test event.
     # Otherwise, it binds start_run_test with 's' key pressed.
@@ -281,6 +266,21 @@ class AudioLoopTest(unittest.TestCase):
       self._ui.Fail(self._test_message)
 
   def StartRunTest(self, event): # pylint: disable=W0613
+    # We've encountered false positive running audiofuntest tool against
+    # audio fun-plug on a few platforms; so it is suggested not to run
+    # audiofuntest with HP/MIC jack
+    jack_status = self._audio_util.GetAudioJackStatus()
+    if jack_status is True and self.args.enable_audiofun is True:
+      factory.console.info('Audiofuntest does not require dongle.')
+      raise ValueError('Audiofuntest does not require dongle.')
+
+    # When audio jack detection feature is ready on a platform, we can
+    # enable check_dongle option to check jack status matches we expected.
+    if self.args.check_dongle:
+      if jack_status != self.args.require_dongle:
+        factory.console.info('Dongle Status is wrong.')
+        raise ValueError('Dongle Status is wrong.')
+
     if self._audiofun:
       self._audio_util.DisableHeadphone(self._out_card)
       self._audio_util.DisableExtmic(self._in_card)
