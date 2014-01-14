@@ -130,15 +130,23 @@ class WaitDisplayThread(threading.Thread):
 
   def run(self):
     while not self._done.is_set():
+      # First checks the xrandr output pattern matches the expected status
+      # of the specified external display.
       if self._xrandr_expect.search(SpawnOutput(['xrandr', '-d', ':0'])):
         display_info = factory.get_state_instance().GetDisplayInfo()
-        if ((len(display_info) > 1 and self._connect) or
-            (len(display_info) == 1 and not self._connect)):
+        # In the case of connecting an external display, make sure there
+        # is an item in display_info with 'isInternal' False.
+        # On the other hand, in the case of disconnecting an external display,
+        # we can not check display info has no display with 'isInternal' False
+        # because any display for chromebox has 'isInternal' False.
+        if ((self._connect and
+             any([x['isInternal'] == False for x in display_info])) or
+            not self._connect):
           logging.info('Get display info %r', display_info)
           self._on_success()
           self.Stop()
-      else:
-        self._done.wait(_CONNECTION_CHECK_PERIOD_SECS)
+
+      self._done.wait(_CONNECTION_CHECK_PERIOD_SECS)
 
   def Stop(self):
     """Stops the thread."""
@@ -333,6 +341,10 @@ class VideoTask(ExtDisplayTask):
 
   def SetMainDisplay(self, recover_original=True):
     """Sets the main display.
+
+    If there are two displays, this method can switch main display based on
+    recover_original. If there is only one display, it returns if the only
+    display is an external display (e.g. on a chromebox).
 
     Args:
       recover_original: True to set the original display as main;  False to
