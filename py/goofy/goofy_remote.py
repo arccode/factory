@@ -40,67 +40,6 @@ def GetBoard(host):
   return match.group(1)
 
 
-def SyncTestList(host, board, test_list,
-                 clear_factory_environment, clear_password,
-                 shopfloor_host, shopfloor_port):
-  # Uses dash in board name for overlay directory name
-  board_dash = board.replace('_', '-')
-
-  if test_list is None:
-    test_list_globs = []
-    for x in [['chromeos-factory-board', 'files', 'test_lists',
-               'test_list'],
-              ['autotest-private-board', 'files', 'test_list']]:
-      test_list_globs.append(
-        os.path.join(
-            SRCROOT, 'src',
-            '*-overlays', 'overlay-%s-*' % board_dash,
-            'chromeos-base', *x))
-      test_list_globs.append(
-        os.path.join(
-            SRCROOT, 'src',
-            '*-overlays', 'overlay-variant-%s-*' % board_dash,
-            'chromeos-base', *x))
-
-    test_list_names = sum([glob.glob(x) for x in test_list_globs], [])
-    if not test_list_names:
-      logging.warn('Unable to find test list %s', test_list_globs)
-      return
-    test_list = test_list_names[0]
-    logging.info('Using test list %s', test_list)
-
-  old_test_list_data = test_list_data = open(test_list).read()
-  if clear_factory_environment:
-    test_list_data = test_list_data.replace(
-        '_FACTORY_ENVIRONMENT = True',
-        '_FACTORY_ENVIRONMENT = False')
-  if clear_password:
-    test_list_data += '\noptions.engineering_password_sha1 = None\n'
-  if shopfloor_host:
-    test_list_data += '\noptions.shopfloor_server_url = "http://%s:%d/"\n' % (
-        shopfloor_host, shopfloor_port)
-
-  if old_test_list_data != test_list_data:
-    tmp_test_list = tempfile.NamedTemporaryFile(prefix='test_list.', bufsize=0)
-    tmp_test_list.write(test_list_data)
-    test_list = tmp_test_list.name
-
-  test_list_dir = (
-      'custom' if 'autotest-private-board' in test_list
-      else 'test_lists')
-
-  Spawn(rsync_command +
-        [test_list, host + ':/usr/local/factory/%s/' % test_list_dir],
-        check_call=True, log=True)
-
-  Spawn(ssh_command +
-        [host, 'ln', '-sf', os.path.basename(test_list),
-         '/usr/local/factory/%s/active' % test_list_dir],
-        check_call=True, log=True)
-
-  return board
-
-
 def TweakTestLists(args):
   """Tweaks new-style test lists as required by the arguments.
 
@@ -142,7 +81,7 @@ def TweakTestLists(args):
     if args.clear_factory_environment:
       new_data = SubLine('factory_environment', False, new_data)
     if args.clear_password:
-      new_data = SubLine('engineering_password_sha1', None, new_data)
+      new_data = SubLine('options.engineering_password_sha1', None, new_data)
     if args.shopfloor_host:
       new_data = SubLine('shop_floor_host', args.shopfloor_host, new_data)
     if args.shopfloor_port:
@@ -153,6 +92,12 @@ def TweakTestLists(args):
       with open(path, 'w') as f:
         logging.info('Modified %s', path)
         f.write(new_data)
+
+  if args.test_list:
+    with open(test_lists.ACTIVE_PATH, 'w') as f:
+      f.write(args.test_list)
+  else:
+    os.remove(test_lists.ACTIVE_PATH)
 
 
 def main():
@@ -183,8 +128,8 @@ def main():
   parser.add_argument('--run', '-r', dest='run_test',
                       help="the test to run on device")
   parser.add_argument('--test_list',
-                      help=("test list to use (defaults to the one in "
-                            "the board's overlay"))
+                      help=("test list to activate (defaults to the main test "
+                            "list)"))
   parser.add_argument('--local', action='store_true',
                       help=('Rather than syncing the source tree, only '
                             'perform test list modifications locally. '
@@ -251,10 +196,6 @@ def main():
          for x in ('bin', 'py', 'py_pkg', 'sh', 'test_lists', 'third_party')] +
         ['%s:/usr/local/factory' % args.host],
         check_call=True, log=True)
-
-  SyncTestList(args.host, board, args.test_list,
-               args.clear_factory_environment, args.clear_password,
-               args.shopfloor_host, args.shopfloor_port)
 
   # Call goofy_remote on the remote host, allowing it to tweak test lists.
   Spawn(ssh_command +
