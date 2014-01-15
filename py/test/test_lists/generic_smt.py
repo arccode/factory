@@ -627,38 +627,18 @@ def ParallelTestGroup(args):
     BadBlocks(args)
     SpeakerDMic(args)
 
-def TPMAndReboot(args):
-  """Creates a test group to test TPM.
+def TPM(args):
+  """Creates a test for testing TPM endorsement key.
 
   Args:
     args: A TestListArgs object.
   """
-  with AutomatedSequence(id='TPM'):
-    # In general, the TPM should already be clear at this point (it is
-    # cleared by the install shim, and TPMVerifyEK requests a clear
-    # too).  However it is possible that it is not clear at this
-    # point, e.g., at some point we ran TPMVerifyEK and then
-    # immediately used flash_netboot to reimage.  We need a reboot
-    # test anyway, so we use that reboot step to clear the TPM just in
-    # case.
-    FactoryTest(
-        id='RequestClearTPM',
-        label_zh=u'请求清除 TPM',
-        pytest_name='clear_tpm_owner_request')
-
-    # Reboots to guest mode so we do not touch TPM.
-    RebootStep(
-        id='RebootToGuestMode',
-        label_zh=u'重新开机',
-        enable_guest_mode=True,
-        iterations=1)
-
-    # Checks the endorsement key in TPM. This might not be enabled in earlier
-    # build.
-    FactoryTest(
-        id='TPMVerifyEK',
-        label_zh=u'TPM 证书',
-        pytest_name='tpm_verify_ek')
+  # Checks the endorsement key in TPM. This might not be enabled in earlier
+  # build.
+  FactoryTest(
+      id='TPMVerifyEK',
+      label_zh=u'TPM 证书',
+      pytest_name='tpm_verify_ek')
 
 
 def ManualSMTTests(args):
@@ -679,7 +659,7 @@ def ManualSMTTests(args):
   Keyboard(args)
   MicroUSBPerformance(args)
   ManualExtDisplay(args)
-  TPMAndReboot(args)
+  TPM(args)
 
   # Uploads test status and events to Shopfloor.
   args.SyncShopFloor()
