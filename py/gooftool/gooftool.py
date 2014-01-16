@@ -41,7 +41,8 @@ from cros.factory.hacked_argparse import verbosity_cmd_arg
 from cros.factory.hwdb import hwid_tool
 from cros.factory.hwid import common
 from cros.factory.hwid import hwid_utils
-from cros.factory.test.factory import FACTORY_LOG_PATH
+from cros.factory.test import shopfloor
+from cros.factory.test.factory import FACTORY_LOG_PATH, DEVICE_STATEFUL_PATH
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.privacy import FilterDict
 
@@ -639,6 +640,19 @@ def Verify(options):
   VerifyRootFs(options)
   VerifyTPM(options)
 
+@Command('untar_stateful_files')
+def UntarStatefulFiles(dummy_options):
+  """Untars stateful files from stateful_files.tar.xz on stateful partition.
+
+  If that file does not exist (which should only be R30 and earlier),
+  this is a no-op.
+  """
+  tar_file = os.path.join(DEVICE_STATEFUL_PATH, 'stateful_files.tar.xz')
+  if os.path.exists(tar_file):
+    Spawn(['tar', 'xf', tar_file], cwd=DEVICE_STATEFUL_PATH,
+          log=True, check_call=True)
+  else:
+    logging.warning('No stateful files at %s', tar_file)
 
 @Command('log_system_details')
 def LogSystemDetails(options):  # pylint: disable=W0613
@@ -763,6 +777,8 @@ def Finalize(options):
 
   This routine does the following:
   - Verifies system state (see verify command)
+  - Untars stateful_files.tar.xz, if it exists, in the stateful partition, to
+    initialize files such as the CRX cache
   - Modifies firmware bitmaps to match locale
   - Clears all factory-friendly flags from the GBB
   - Removes factory-specific entries from RW_VPD (factory.*)
@@ -772,6 +788,7 @@ def Finalize(options):
     next boot.
   """
   Verify(options)
+  UntarStatefulFiles(options)
   SetFirmwareBitmapLocale(options)
   ClearGBBFlags(options)
   ClearFactoryVPDEntries(options)

@@ -34,6 +34,9 @@ FACTORY_PACKAGE_PATH = os.path.join(FACTORY_PATH, 'py_pkg', 'cros', 'factory')
 CLIENT_PATH = FACTORY_PATH
 FACTORY_MD5SUM_PATH = os.path.join(FACTORY_PATH, 'MD5SUM')
 
+# Path to stateful partition on device.
+DEVICE_STATEFUL_PATH = '/mnt/stateful_partition'
+
 # Path for old-style test lists.
 TEST_LISTS_PATH = os.path.join(FACTORY_PATH, 'test_lists')
 
