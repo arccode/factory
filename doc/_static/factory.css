@@ -1,6 +1,16 @@
 
 @import url("default.css");
 
+.factory-copyright {
+    margin-top: 12px;
+    font-size: 60%;
+    color: white;
+}
+
+.factory-copyright a, .factory-copyright a:visited, .factory-copyright a:hover {
+    color: white;
+}
+
 .factory-small {
     font-size: 75%;
 }

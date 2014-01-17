@@ -1,4 +1,4 @@
-# Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
+# Copyright (c) 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -18,6 +18,14 @@ PAPEROPT_letter = -D latex_paper_size=letter
 ALLSPHINXOPTS   = -d $(BUILDDIR)/doctrees $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .
 # the i18n builder cannot share the environment and doctrees with the others
 I18NSPHINXOPTS  = $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .
+COPYRIGHT_HTML = \
+  <a rel="license" \
+  href="http://creativecommons.org/licenses/by/3.0/us/"><img alt="Creative \
+  Commons License" style="border-width:0" \
+  src="http://i.creativecommons.org/l/by/3.0/us/88x31.png" /> \
+  </a><br />This work is licensed under a <a rel="license" \
+  href="http://creativecommons.org/licenses/by/3.0/us/">Creative Commons \
+  Attribution 3.0 United States License</a>.
 
 .PHONY: help clean html dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck doctest gettext
 
@@ -48,6 +56,10 @@ clean:
 
 html:
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
+	# Add copyright in postprocessing, so we can override this if necessary.
+	COPYRIGHT_HTML='$(COPYRIGHT_HTML)' perl -pi -e \
+	    's/<!--COPYRIGHT_HTML-->/$$ENV{COPYRIGHT_HTML}/g' \
+	    $(BUILDDIR)/html/*.html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
 
