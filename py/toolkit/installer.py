@@ -52,6 +52,8 @@ class FactoryToolkitInstaller():
     self._dest = args.dest
     self._usr_local_src = os.path.join(src, 'usr', 'local')
     self._var_src = os.path.join(src, 'var')
+    self._no_enable = args.no_enable
+    self._tag_file = os.path.join(self._usr_local_dest, 'factory', 'enabled')
 
     if (not os.path.exists(self._usr_local_src) or
         not os.path.exists(self._var_src)):
@@ -66,13 +68,20 @@ class FactoryToolkitInstaller():
         '***   %s\n'
         '***' % self._dest)
     if self._dest == '/':
-      ret += ('\n'
-        '*** After this process is done, your device will start factory tests\n'
-        '*** on the next reboot.\n'
-        '***\n'
-        '*** Factory tests can be disabled by deleting factory enabled tag:\n'
-        '***   /usr/local/factory/enabled\n'
-        '***')
+      if self._no_enable:
+        ret += ('\n'
+          '*** Factory tests will be disabled after this process is done, but\n'
+          '*** you can enable them by creating factory enabled tag:\n'
+          '***   %s\n'
+          '***' % self._tag_file)
+      else:
+        ret += ('\n'
+          '*** After this process is done, your device will start factory\n'
+          '*** tests on the next reboot.\n'
+          '***\n'
+          '*** Factory tests can be disabled by deleting factory enabled tag:\n'
+          '***   %s\n'
+          '***' % self._tag_file)
     return ret
 
   def _Rsync(self, src, dest):
@@ -84,8 +93,15 @@ class FactoryToolkitInstaller():
     self._Rsync(self._usr_local_src, self._usr_local_dest)
     self._Rsync(self._var_src, self._var_dest)
 
-    print '*** Installing factory enabled tag...'
-    open(os.path.join(self._usr_local_dest, 'factory', 'enabled'), 'w').close()
+    if self._no_enable:
+      print '*** Removing factory enabled tag...'
+      try:
+        os.unlink(self._tag_file)
+      except OSError:
+        pass
+    else:
+      print '*** Installing factory enabled tag...'
+      open(self._tag_file, 'w').close()
 
     print '*** Installation completed.'
 
@@ -98,6 +114,8 @@ def main():
            'a test image.')
   parser.add_argument('--patch-test-image', '-p', action='store_true',
       help='Patching a test image instead of installing to live system.')
+  parser.add_argument('--no-enable', '-n', action='store_true',
+      help="Don't enable factory tests after installing")
   parser.add_argument('--yes', '-y', action='store_true',
       help="Don't ask for confirmation")
   args = parser.parse_args()
