@@ -22,6 +22,7 @@ from cros.factory import event_log
 from cros.factory.test import shopfloor
 
 from cros.factory.utils import debug_utils
+from cros.factory.utils import file_utils
 
 # Mocks CatchException decorator since it will suppress exception in
 # SystemLogManager.
@@ -33,7 +34,7 @@ debug_utils.CatchException = CatchExceptionDisabled
 
 from cros.factory.goofy import system_log_manager
 
-MOCK_FILE_PREFIX = 'system_log_manager_unittest'
+MOCK_FILE_PREFIX = 'system_log_manager_unittest_'
 MOCK_SYNC_LOG_PATHS = [os.path.join('/tmp', MOCK_FILE_PREFIX + '*')]
 MOCK_SYNC_PERIOD_SEC = 0.6
 MOCK_MIN_SYNC_PERIOD_SEC = 0.5
@@ -64,6 +65,7 @@ MOCK_RSYNC_COMMAND_ARG = ['rsync', '-azR', '--stats', '--chmod=o-t',
 class TestSystemLogManager(unittest.TestCase):
   """Unittest for SystemLogManager."""
   def setUp(self):
+    self.ClearFiles()
     self.mox = mox.Mox()
     self.manager = None
     self.fake_shopfloor = None
@@ -77,10 +79,16 @@ class TestSystemLogManager(unittest.TestCase):
     # unittest.
     system_log_manager.MIN_SYNC_LOG_PERIOD_SECS = MOCK_MIN_SYNC_PERIOD_SEC
 
+  def ClearFiles(self):
+    clear_files = glob.glob(os.path.join('/tmp', MOCK_FILE_PREFIX + '*'))
+    logging.debug('Clearing %r', clear_files)
+    for x in clear_files:
+      file_utils.TryUnlink(x)
+
   def tearDown(self):
+    logging.debug('tearDown')
     self.mox.UnsetStubs()
-    for x in self._tempfiles:
-      os.unlink(x[1])
+    self.ClearFiles()
 
   def SetMock(self):
     """Sets mocked methods and objects."""
@@ -411,10 +419,10 @@ class TestSystemLogManager(unittest.TestCase):
   def testClearOnce(self):
     """Clears log files once by periodic scan including syncing."""
     self.SetMock()
-    clear_file_prefix = 'clear_' + MOCK_FILE_PREFIX
+    clear_file_prefix = MOCK_FILE_PREFIX + 'clear_'
     for _ in xrange(3):
       tempfile.mkstemp(prefix=clear_file_prefix, dir='/tmp')
-    clear_file_lists = [os.path.join('/tmp', clear_file_prefix + '*')]
+    clear_file_paths = [os.path.join('/tmp', clear_file_prefix + '*')]
     self.MockSyncOnce()
 
     self.mox.ReplayAll()
@@ -422,28 +430,28 @@ class TestSystemLogManager(unittest.TestCase):
     self.manager = system_log_manager.SystemLogManager(
         MOCK_SYNC_LOG_PATHS, MOCK_SYNC_PERIOD_SEC, MOCK_SCAN_PERIOD_SEC,
         MOCK_SHOPFLOOR_TIMEOUT, MOCK_RSYNC_IO_TIMEOUT,
-        MOCK_POLLING_PERIOD, clear_file_lists)
+        MOCK_POLLING_PERIOD, clear_file_paths)
     self.manager.Start()
     time.sleep(MOCK_SCAN_PERIOD_SEC + MOCK_POLLING_DURATION)
     self.manager.Stop()
 
     self.mox.VerifyAll()
-    self.assertEqual(sum([glob.glob(x) for x in clear_file_lists], []), [])
+    self.assertEqual(sum([glob.glob(x) for x in clear_file_paths], []), [])
 
   def testClearOnceWithoutSync(self):
     """Clears log files once by periodic scan without syncing."""
     self.SetMock()
-    clear_file_prefix = 'clear_' + MOCK_FILE_PREFIX
+    clear_file_prefix = MOCK_FILE_PREFIX + 'clear_'
     for _ in xrange(3):
       tempfile.mkstemp(prefix=clear_file_prefix, dir='/tmp')
-    clear_file_lists = [os.path.join('/tmp', clear_file_prefix + '*')]
+    clear_file_paths = [os.path.join('/tmp', clear_file_prefix + '*')]
 
     self.mox.ReplayAll()
 
     self.manager = system_log_manager.SystemLogManager(
         MOCK_SYNC_LOG_PATHS, None, MOCK_SCAN_PERIOD_SEC,
         MOCK_SHOPFLOOR_TIMEOUT, MOCK_RSYNC_IO_TIMEOUT,
-        MOCK_POLLING_PERIOD, clear_file_lists)
+        MOCK_POLLING_PERIOD, clear_file_paths)
     self.manager.Start()
     # Clears the log at MOCK_SCAN_PERIOD_SEC, plus some time
     # (reuse MOCK_POLLING_PERIOD) to clear them.
@@ -451,22 +459,22 @@ class TestSystemLogManager(unittest.TestCase):
     self.manager.Stop()
 
     self.mox.VerifyAll()
-    self.assertEqual(sum([glob.glob(x) for x in clear_file_lists], []), [])
+    self.assertEqual(sum([glob.glob(x) for x in clear_file_paths], []), [])
 
   def testClearOnceByKickWithoutSync(self):
     """Clears log files once by KickToClear without syncing."""
     self.SetMock()
-    clear_file_prefix = 'clear_' + MOCK_FILE_PREFIX
+    clear_file_prefix = MOCK_FILE_PREFIX + 'clear_'
     for _ in xrange(3):
       tempfile.mkstemp(prefix=clear_file_prefix, dir='/tmp')
-    clear_file_lists = [os.path.join('/tmp', clear_file_prefix + '*')]
+    clear_file_paths = [os.path.join('/tmp', clear_file_prefix + '*')]
 
     self.mox.ReplayAll()
 
     self.manager = system_log_manager.SystemLogManager(
         MOCK_SYNC_LOG_PATHS, None, MOCK_SCAN_PERIOD_SEC,
         MOCK_SHOPFLOOR_TIMEOUT, MOCK_RSYNC_IO_TIMEOUT,
-        MOCK_POLLING_PERIOD, clear_file_lists)
+        MOCK_POLLING_PERIOD, clear_file_paths)
     self.manager.Start()
     self.manager.KickToClear()
     # Needs some time to clear them.
@@ -474,7 +482,39 @@ class TestSystemLogManager(unittest.TestCase):
     self.manager.Stop()
 
     self.mox.VerifyAll()
-    self.assertEqual(sum([glob.glob(x) for x in clear_file_lists], []), [])
+    self.assertEqual(sum([glob.glob(x) for x in clear_file_paths], []), [])
+
+  def testClearOnceExclusiveByKickWithoutSync(self):
+    """Clears log files once by KickToClear without syncing."""
+    self.SetMock()
+    clear_file_prefix = MOCK_FILE_PREFIX + 'clear_'
+    for _ in xrange(3):
+      tempfile.mkstemp(prefix=clear_file_prefix, dir='/tmp')
+    preserve_file_prefix = clear_file_prefix + 'preserve_'
+    for _ in xrange(3):
+      tempfile.mkstemp(prefix=preserve_file_prefix, dir='/tmp')
+    clear_file_paths = [os.path.join('/tmp', clear_file_prefix + '*')]
+    clear_file_excluded_paths = [
+        os.path.join('/tmp', preserve_file_prefix + '*')]
+
+    self.mox.ReplayAll()
+
+    self.manager = system_log_manager.SystemLogManager(
+        MOCK_SYNC_LOG_PATHS, None, MOCK_SCAN_PERIOD_SEC,
+        MOCK_SHOPFLOOR_TIMEOUT, MOCK_RSYNC_IO_TIMEOUT,
+        MOCK_POLLING_PERIOD, clear_file_paths, clear_file_excluded_paths)
+    self.manager.Start()
+    self.manager.KickToClear()
+    # Needs some time to clear them.
+    time.sleep(MOCK_POLLING_PERIOD)
+    self.manager.Stop()
+
+    self.mox.VerifyAll()
+    self.assertEqual(
+        sum([glob.glob(os.path.join('/tmp', clear_file_prefix + '*'))], []),
+        sum([glob.glob(os.path.join('/tmp', preserve_file_prefix + '*'))], []))
+    self.assertEqual(len(sum([glob.glob(
+        os.path.join('/tmp', preserve_file_prefix + '*'))], [])), 3)
 
   def testCheckSetting(self):
     """Unittest for _CheckSettings method."""
@@ -483,7 +523,7 @@ class TestSystemLogManager(unittest.TestCase):
     # sync_log_period_secs is less than MIN_SYNC_LOG_PERIOD_SECS.
     with self.assertRaises(system_log_manager.SystemLogManagerException):
       self.manager = system_log_manager.SystemLogManager(
-          MOCK_SYNC_LOG_PATHS, 0.5 * MOCK_MIN_SYNC_PERIOD_SEC ,
+          MOCK_SYNC_LOG_PATHS, 0.5 * MOCK_MIN_SYNC_PERIOD_SEC,
           MOCK_SCAN_PERIOD_SEC,
           MOCK_SHOPFLOOR_TIMEOUT, MOCK_RSYNC_IO_TIMEOUT,
           MOCK_POLLING_PERIOD, [])
@@ -496,13 +536,39 @@ class TestSystemLogManager(unittest.TestCase):
           MOCK_SHOPFLOOR_TIMEOUT, MOCK_RSYNC_IO_TIMEOUT,
           MOCK_POLLING_PERIOD, [])
 
+    # clear_log_paths should be a list.
+    with self.assertRaises(system_log_manager.SystemLogManagerException):
+      self.manager = system_log_manager.SystemLogManager(
+          ['/foo/bar1', '/foo/bar2'], MOCK_SYNC_PERIOD_SEC,
+          MOCK_SCAN_PERIOD_SEC,
+          MOCK_SHOPFLOOR_TIMEOUT, MOCK_RSYNC_IO_TIMEOUT,
+          MOCK_POLLING_PERIOD, '/foo/bar1')
+
+    # clear_log_excluded_paths should be a list.
+    with self.assertRaises(system_log_manager.SystemLogManagerException):
+      self.manager = system_log_manager.SystemLogManager(
+          ['/foo/bar1', '/foo/bar2'], MOCK_SYNC_PERIOD_SEC,
+          MOCK_SCAN_PERIOD_SEC,
+          MOCK_SHOPFLOOR_TIMEOUT, MOCK_RSYNC_IO_TIMEOUT,
+          MOCK_POLLING_PERIOD, ['/foo/bar3'], '/foo/bar4')
+
     # clear_log_paths and sync_log_paths have paths in common.
     with self.assertRaises(system_log_manager.SystemLogManagerException):
       self.manager = system_log_manager.SystemLogManager(
-          ['/foo/bar1', '/foo/bar2'], MOCK_SYNC_PERIOD_SEC ,
+          ['/foo/bar1', '/foo/bar2'], MOCK_SYNC_PERIOD_SEC,
           MOCK_SCAN_PERIOD_SEC,
           MOCK_SHOPFLOOR_TIMEOUT, MOCK_RSYNC_IO_TIMEOUT,
           MOCK_POLLING_PERIOD, ['/foo/bar1', '/foo/bar3'])
+
+    # clear_log_paths and clear_log_excluded_paths have paths in common.
+    with self.assertRaises(system_log_manager.SystemLogManagerException):
+      self.manager = system_log_manager.SystemLogManager(
+          ['/foo/bar1', '/foo/bar2'], MOCK_SYNC_PERIOD_SEC,
+          MOCK_SCAN_PERIOD_SEC,
+          MOCK_SHOPFLOOR_TIMEOUT, MOCK_RSYNC_IO_TIMEOUT,
+          MOCK_POLLING_PERIOD, ['/foo/bar1', '/foo/bar2'],
+          ['/foo/bar1', '/foo/bar3'])
+
 
 if __name__ == "__main__":
   logging.basicConfig(format='%(asctime)s:%(levelname)s:%(message)s',

@@ -48,7 +48,14 @@ class SystemLogManager(object):
       large, system needs more time to compute the difference. Sets it to
       20 seconds which is enough to compute the difference on a 300M file.
     polling_period: The period to poll rsync subprocess.
-    clear_log_paths: A list of log paths to clear.
+    clear_log_paths: A list of log paths to clear. Each item in the list can be
+      a pattern. E.g. ['/var/log/messages*', '/var/log/net.log',
+                       '/var/log/connectivity.log'].
+    clear_log_excluded_paths: A list of log path patterns to be excluded from
+      clearing. E.g. ['/var/log/messages', '/var/log/messages.1',
+                     '/var/log/messages.2'], then SystemLogManager will
+      preserve these files while they match '/var/log/messages*' in
+      clear_log_paths.
 
   Other properties:
     main_thread: The thread that scans logs periodically.
@@ -57,7 +64,8 @@ class SystemLogManager(object):
   """
   def __init__(self, sync_log_paths, sync_log_period_secs=300,
                scan_log_period_secs=120, shopfloor_timeout=5,
-               rsync_io_timeout=20, polling_period=1, clear_log_paths=None):
+               rsync_io_timeout=20, polling_period=1, clear_log_paths=None,
+               clear_log_excluded_paths=None):
     self._sync_log_paths = sync_log_paths
     self._sync_log_period_secs = sync_log_period_secs
     self._scan_log_period_secs = scan_log_period_secs
@@ -65,6 +73,8 @@ class SystemLogManager(object):
     self._rsync_io_timeout = rsync_io_timeout
     self._polling_period = polling_period
     self._clear_log_paths = clear_log_paths if clear_log_paths else []
+    self._clear_log_excluded_paths = (
+        clear_log_excluded_paths if clear_log_excluded_paths else [])
 
     self._main_thread = None
     self._aborted = threading.Event()
@@ -81,10 +91,18 @@ class SystemLogManager(object):
       if self._scan_log_period_secs > self._sync_log_period_secs:
         raise SystemLogManagerException('scan_log_period_secs should not'
             ' be greater than sync_log_period_seconds.')
+    for list_name in ['_clear_log_paths', '_clear_log_excluded_paths']:
+      list_attribute = getattr(self, list_name)
+      if list_attribute and not isinstance(list_attribute, list):
+        raise SystemLogManagerException('%r should be a list.', list_name)
     if self._clear_log_paths and self._sync_log_paths:
-      if set(self._clear_log_paths) & set(self._sync_log_paths):
+      if (set(self._clear_log_paths) & set(self._sync_log_paths)):
         raise SystemLogManagerException('clear_log_paths should not be '
             'overlapped with sync_log_paths.')
+    if self._clear_log_paths and self._clear_log_excluded_paths:
+      if set(self._clear_log_paths) & set(self._clear_log_excluded_paths):
+        raise SystemLogManagerException('clear_log_paths should not be '
+            'overlapped with clear_log_excluded_paths.')
 
   def IsThreadRunning(self):
     """Returns True if _main_thread is running."""
@@ -160,8 +178,16 @@ class SystemLogManager(object):
 
   @CatchException('SystemLogManager')
   def _ClearLogs(self):
-    """Clears system logs listed in _clear_log_paths."""
-    file_list = sum([glob.glob(x) for x in self._clear_log_paths], [])
+    """Clears system logs.
+
+    Clear logs listed in _clear_log_paths, excluding files in
+    _clear_log_excluded_paths.
+    """
+    clear_files = sum([glob.glob(x) for x in self._clear_log_paths], [])
+    exclusive_files = sum(
+        [glob.glob(x) for x in self._clear_log_excluded_paths], [])
+    file_list = list(set(clear_files) - set(exclusive_files))
+    logging.debug('Clearing %r', file_list)
     for f in file_list:
       try:
         os.unlink(f)

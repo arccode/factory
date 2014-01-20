@@ -604,8 +604,6 @@ def SetOptions(options, args):
 
     # Enable/Disable system log syncing
     options.enable_sync_log = True
-    options.clear_log_paths += ['/var/log/connectivity.log',
-                                '/var/log/net.log']
     options.sync_log_period_secs = 10 * MINUTES
     options.scan_log_period_secs = 2 * MINUTES
     options.core_dump_watchlist = []

@@ -483,8 +483,16 @@ class Options(object):
   """
   _types['scan_log_period_secs'] = (int)
 
-  clear_log_paths = ['/var/log/connectivity.bak']
+  clear_log_paths = [
+      '/var/log/connectivity.log',
+      '/var/log/connectivity.bak',
+      '/var/log/net.log',
+      '/var/log/net.*.log',
+      '/var/log/messages*']
   """A list of log files to remove periodically."""
+
+  clear_log_excluded_paths = ['/var/log/messages', '/var/log/messages.[12]']
+  """A list of log files which will be excluded from clearing periodically."""
 
   sync_log_period_secs = None
   """Time interval to sync system logs in background. Set it to None to disable

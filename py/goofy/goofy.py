@@ -1407,7 +1407,8 @@ class Goofy(object):
       sync_log_paths=self.test_list.options.sync_log_paths,
       sync_log_period_secs=self.test_list.options.sync_log_period_secs,
       scan_log_period_secs=self.test_list.options.scan_log_period_secs,
-      clear_log_paths=self.test_list.options.clear_log_paths)
+      clear_log_paths=self.test_list.options.clear_log_paths,
+      clear_log_excluded_paths=self.test_list.options.clear_log_excluded_paths)
     self.system_log_manager.Start()
 
     self.update_system_info()
