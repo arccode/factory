@@ -6,6 +6,10 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+
+"""Unittest for factory.py."""
+
+
 import factory_common # pylint: disable=W0611
 
 import glob
@@ -21,14 +25,14 @@ SRCROOT = os.environ.get('CROS_WORKON_SRCROOT')
 
 
 class FactoryModuleTest(unittest.TestCase):
+  """Unittest for Factory module."""
   def test_parse_test_lists(self):
     '''Checks that all known test lists are parseable.'''
     # This test is located in a full source checkout (e.g.,
     # src/third_party/autotest/files/client/cros/factory/
-    # factory_unittest.py). Construct the paths to the reference test list
-    # and any test lists in private overlays.
-    test_lists = [os.path.join(factory.FACTORY_PATH, 'test_lists',
-                               'test_list.generic')]
+    # factory_unittest.py). Construct the paths to any test lists in
+    # private overlays.
+    test_lists = []
 
     test_lists.extend(os.path.realpath(x) for x in glob.glob(
         os.path.join(SRCROOT, 'src/private-overlays/*/'

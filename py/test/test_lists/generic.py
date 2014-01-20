@@ -617,7 +617,7 @@ def SetOptions(options, args):
 def CreateGenericTestList():
   """Creates a generic test list with smt, run_in, fatp and grt."""
   args = TestListArgs()
-  with TestList('generic', 'All Generic Tests') as test_list:
+  with TestList('main', 'All Generic Tests') as test_list:
     SetOptions(test_list.options, args)
 
     if args.smt_test_enabled:

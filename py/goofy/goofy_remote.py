@@ -194,7 +194,7 @@ def main():
   Spawn(rsync_command +
         ['-aC', '--exclude', '*.pyc'] +
         [os.path.join(factory.FACTORY_PATH, x)
-         for x in ('bin', 'py', 'py_pkg', 'sh', 'test_lists', 'third_party')] +
+         for x in ('bin', 'py', 'py_pkg', 'sh', 'third_party')] +
         ['%s:/usr/local/factory' % args.host],
         check_call=True, log=True)
 
