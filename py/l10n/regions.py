@@ -110,6 +110,21 @@ _KML = KeyboardMechanicalLayout
 REGIONS_LIST = [
     Region('au', 'xkb:us::eng', 'Australia/Sydney', 'en-AU', _KML.ANSI,
            'Australia'),
+    Region('br', 'xkb:br::por', 'America/Sao_Paulo', 'pt-BR', _KML.ABNT2,
+           'Brazil (ABNT2)',
+           ('ABNT2 = ABNT NBR 10346 variant 2. This is the preferred layout '
+            'for Brazil. ABNT2 is mostly an ISO layout, but it has an extra '
+            'key to the left of the right shift key; see '
+            'http://goo.gl/twA5tq')),
+    Region('br.abnt', 'xkb:br::por', 'America/Sao_Paulo', 'pt-BR', _KML.ISO,
+           'Brazil (ABNT)',
+           ('Like ABNT2, but lacking the extra key to the left of the right '
+            'shift key found in that layout. ABNT2 (the "br" region) is '
+            'preferred to this layout')),
+    Region('br.usintl', 'xkb:us:intl:eng', 'America/Sao_Paulo', 'pt-BR',
+           _KML.ANSI, 'Brazil (US Intl)',
+           'Brazil with US International keyboard layout. ABNT2 ("br") and '
+           'ABNT1 ("br.abnt1 ") are both preferred to this.'),
     Region('ca.ansi', 'xkb:us::eng', 'America/Toronto', 'en-CA', _KML.ANSI,
            'Canada (US keyboard)',
            'Canada with US (ANSI) keyboard; see http://goto/cros-canada'),
@@ -127,13 +142,20 @@ REGIONS_LIST = [
            _KML.ISO, 'Canada (multilingual)',
            ("Canadian Multilingual keyboard; you probably don't want this. See "
             "http://goto/cros-canada")),
+    Region('ch', 'xkb:ch::ger', 'Europe/Zurich', 'en-US', _KML.ISO,
+           'Switzerland',
+           'German keyboard, but US English to be language-neutral; used in '
+           'the common case that there is only a single Swiss SKU.'),
     Region('de', 'xkb:de::ger', 'Europe/Berlin', 'de', _KML.ISO, 'Germany'),
+    Region('es', 'xkb:es::spa', 'Europe/Madrid', 'es', _KML.ISO, 'Spain'),
     Region('fi', 'xkb:fi::fin', 'Europe/Helsinki', 'fi', _KML.ISO, 'Finland'),
     Region('fr', 'xkb:fr::fra', 'Europe/Paris', 'fr', _KML.ISO, 'France'),
     Region('gb', 'xkb:gb:extd:eng', 'Europe/London', 'en-GB', _KML.ISO, 'UK'),
     Region('ie', 'xkb:gb:extd:eng', 'Europe/Dublin', 'en-GB', _KML.ISO,
            'Ireland'),
     Region('in', 'xkb:us::eng', 'Asia/Calcutta', 'en-US', _KML.ANSI, 'India'),
+    Region('it', 'xkb:it::ita', 'Europe/Rome', 'it', _KML.ISO, 'Italy'),
+
     Region('my', 'xkb:us::eng', 'Asia/Kuala_Lumpur', 'ms', _KML.ANSI,
            'Malaysia'),
     Region('nl', 'xkb:us:intl:eng', 'Europe/Amsterdam', 'nl', _KML.ANSI,
@@ -158,7 +180,10 @@ all **confirmed** regions.  A confirmed region is a region whose
 properties are known to be correct and may be used to launch a device."""
 
 
-UNCONFIRMED_REGIONS_LIST = []
+UNCONFIRMED_REGIONS_LIST = [
+    Region('ru', 'xkb:us::eng', 'Europe/Moscow', 'ru', _KML.ANSI, 'Russia',
+           'Russia with US keyboard layout'),
+]
 """A list of :py:class:`cros.factory.l10n.regions.Region` objects for
 **unconfirmed** regions. These are believed to be correct but
 unconfirmed, and all fields should be verified (and the row moved into
