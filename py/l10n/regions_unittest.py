@@ -4,10 +4,14 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+"""Tests for regions.py."""
+
 import logging
 import os
 import re
+import StringIO
 import unittest
+import yaml
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.l10n import regions, regions_unittest_data
@@ -21,6 +25,7 @@ def _FindAllStrings(c_source):
 
 
 class RegionTest(unittest.TestCase):
+  """Tests for the Region class."""
   def testZoneInfo(self):
     all_regions = regions.BuildRegionsDict(include_all=True)
 
@@ -82,6 +87,30 @@ class RegionTest(unittest.TestCase):
       self.assertTrue(
         len(method) > 3 and method[3] == 'login',
         'Keyboard layout %r is not white-listed for login' % r.keyboard)
+
+  def testVPDSettings(self):
+    self.assertEquals(
+      {'initial_locale': 'en-US',
+       'initial_timezone': 'America/Los_Angeles',
+       'keyboard': 'xkb:us::eng',
+       'region': 'us'},
+      regions.BuildRegionsDict()['us'].GetVPDSettings())
+
+  def testYAMLOutput(self):
+    output = StringIO.StringIO()
+    regions.main(['--format', 'yaml'], output)
+    data = yaml.load(output.getvalue())
+    self.assertEquals(
+      {'keyboard': 'xkb:us::eng',
+       'keyboard_mechanical_layout': 'ANSI',
+       'language_code': 'en-US',
+       'region_code': 'us',
+       'time_zone': 'America/Los_Angeles',
+       'vpd_settings': {'initial_locale': 'en-US',
+                        'initial_timezone': 'America/Los_Angeles',
+                        'keyboard': 'xkb:us::eng',
+                        'region': 'us'}},
+      data['us'])
 
 if __name__ == '__main__':
   unittest.main()

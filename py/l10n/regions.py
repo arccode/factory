@@ -12,6 +12,7 @@ Run this module to display all known regions (use --help to see options).
 import argparse
 import collections
 import sys
+import yaml
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.utils import Enum
@@ -97,6 +98,13 @@ class Region(object):
 
   def __repr__(self):
     return 'Region(%s)' % (', '.join([getattr(self, x) for x in self.FIELDS]))
+
+  def GetVPDSettings(self):
+    """Returns a dictionary of VPD settings for the locale."""
+    return dict(initial_locale=self.language_code,
+                keyboard=self.keyboard,
+                initial_timezone=self.time_zone,
+                region=self.region_code)
 
 _KML = KeyboardMechanicalLayout
 REGIONS_LIST = [
@@ -217,23 +225,35 @@ def BuildRegionsDict(include_all=False):
 REGIONS = BuildRegionsDict()
 
 
-def main():
+def main(args=sys.argv[1:], out=sys.stdout):
   parser = argparse.ArgumentParser(description=(
       'Display all known regions and their parameters. '
       'To include any regions in the board overlay, run '
       '"make overlay-$BOARD && overlay-$BOARD/py/l10n/regions.py" '
       'from the platform/factory directory.'))
-  parser.add_argument('--format', choices=('human-readable', 'csv'),
+  parser.add_argument('--format', choices=('human-readable', 'csv', 'yaml'),
                       default='human-readable',
                       help='Output format (default=%(default)s)')
   parser.add_argument('--all', action='store_true',
                       help='Include unconfirmed and incomplete regions')
-  args = parser.parse_args()
+  args = parser.parse_args(args)
 
-  # List of list of lines to print.
+  regions_dict = BuildRegionsDict(args.all)
+
+  # Handle YAML output.
+  if args.format == 'yaml':
+    data = {}
+    for region in regions_dict.values():
+      item = dict(vpd_settings=region.GetVPDSettings())
+      for field in Region.FIELDS:
+        item[field] = getattr(region, field)
+      data[region.region_code] = item
+    yaml.dump(data, out)
+    return
+
+  # Handle CSV or plain-text output: build a list of lines to print.
   lines = [Region.FIELDS]
-  for region in sorted(BuildRegionsDict(args.all).values(),
-                       key=lambda v: v.region_code):
+  for region in sorted(regions_dict.values(), key=lambda v: v.region_code):
     lines.append([getattr(region, field) for field in Region.FIELDS])
 
   if args.format == 'csv':
@@ -251,8 +271,8 @@ def main():
     # Print each line, padding as necessary to the max column length.
     for line in lines:
       for column_no in xrange(num_columns):
-        sys.stdout.write(line[column_no].ljust(max_lengths[column_no] + 2))
-      sys.stdout.write('\n')
+        out.write(line[column_no].ljust(max_lengths[column_no] + 2))
+      out.write('\n')
 
 
 if __name__ == '__main__':
