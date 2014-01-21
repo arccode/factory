@@ -20,6 +20,7 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
 from cros.factory.test.test_lists import test_lists
 from cros.factory.test.utils import Retry, in_chroot
+from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import Spawn
 
 
@@ -97,7 +98,7 @@ def TweakTestLists(args):
     with open(test_lists.ACTIVE_PATH, 'w') as f:
       f.write(args.test_list)
   else:
-    os.remove(test_lists.ACTIVE_PATH)
+    file_utils.TryUnlink(test_lists.ACTIVE_PATH)
 
 
 def main():
