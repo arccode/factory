@@ -16,11 +16,12 @@ import tempfile
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import utils
+from cros.factory.tools import mount_partition
 from cros.factory.utils.process_utils import Spawn
 
 
 @contextmanager
-def UnopenedTemporaryFile(**args):
+def UnopenedTemporaryFile(**kwargs):
   '''Yields an unopened temporary file.
 
   The file is not opened, and it is deleted when the context manager
@@ -30,7 +31,7 @@ def UnopenedTemporaryFile(**args):
     Any allowable arguments to tempfile.mkstemp (e.g., prefix,
       suffix, dir).
   '''
-  f, path = tempfile.mkstemp(**args)
+  f, path = tempfile.mkstemp(**kwargs)
   os.close(f)
   try:
     yield path
@@ -39,7 +40,7 @@ def UnopenedTemporaryFile(**args):
 
 
 @contextmanager
-def TempDirectory(**args):
+def TempDirectory(**kwargs):
   '''Yields an temporary directory.
 
   The directory is deleted when the context manager is closed.
@@ -48,7 +49,7 @@ def TempDirectory(**args):
     Any allowable arguments to tempfile.mkdtemp (e.g., prefix,
       suffix, dir).
   '''
-  path = tempfile.mkdtemp(**args)
+  path = tempfile.mkdtemp(**kwargs)
   try:
     yield path
   finally:
@@ -185,32 +186,16 @@ def MountDeviceAndReadFile(device, path):
       'mount_point/etc/lsb-release'.
 
   Returns:
-    The content of the file. None if the file can not be read.
+    The content of the file.
+
+  Raises:
+    Exception if mount or umount fails.
+    IOError if the file can not be read.
   """
   # Remove the starting / of the path.
   path = re.sub('^/', '', path)
-  mount_point = tempfile.mkdtemp(prefix='mount_device_and_get_file.')
-  content = None
-  try:
-    if Spawn(['mount', '-o', 'ro', device, mount_point],
-             ignore_stdout=True, ignore_stderr=True, sudo=True,
-             call=True, log=True).returncode == 0:
-      # Success
-      logging.info('Mounted %s on %s', device, mount_point)
-      content = open(
-          os.path.join(mount_point, path)).read()
-    else:
-      logging.error('Fail to mount device %r', device)
-  except IOError:
-    logging.exception('Can not read file %r on device %r', path, device)
-  finally:
-    # Always try to unmount, even if we think the mount failed.
-    if Spawn(['umount', '-l', mount_point],
-             ignore_stdout=True, ignore_stderr=True, sudo=True,
-             call=True, log=True).returncode == 0:
-      logging.info('Unmounted %s', device)
-    try:
-      os.rmdir(mount_point)
-    except OSError:
-      logging.exception('Unable to remove %s', mount_point)
+  with mount_partition.MountPartition(device) as mount_point:
+    logging.debug('Mounted at %s.', mount_point)
+    content = open(
+        os.path.join(mount_point, path)).read()
   return content

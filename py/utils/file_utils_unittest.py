@@ -4,6 +4,9 @@
 # found in the LICENSE file.
 
 
+"""Unittest for file_utils.py."""
+
+
 import os
 import re
 import tempfile
@@ -15,6 +18,7 @@ from cros.factory.utils.process_utils import Spawn
 
 
 class MountDeviceAndReadFileTest(unittest.TestCase):
+  """Unittest for MountDeviceAndReadFile."""
   def setUp(self):
     # Creates a temp file and create file system on it as a mock device.
     self.device = tempfile.NamedTemporaryFile(prefix='MountDeviceAndReadFile')
@@ -40,15 +44,16 @@ class MountDeviceAndReadFileTest(unittest.TestCase):
         file_utils.MountDeviceAndReadFile(self.device.name, self.file_name))
 
   def testMountDeviceAndReadFileWrongFile(self):
-    self.assertEqual(None,
-        file_utils.MountDeviceAndReadFile(self.device.name, 'no_file'))
+    with self.assertRaises(IOError):
+      file_utils.MountDeviceAndReadFile(self.device.name, 'no_file')
 
   def testMountDeviceAndReadFileWrongDevice(self):
-    self.assertEqual(None,
-        file_utils.MountDeviceAndReadFile('no_device', self.file_name))
+    with self.assertRaises(Exception):
+      file_utils.MountDeviceAndReadFile('no_device', self.file_name)
 
 
 class UnopenedTemporaryFileTest(unittest.TestCase):
+  """Unittest for UnopenedTemporaryFile."""
   def testUnopenedTemporaryFile(self):
     with file_utils.UnopenedTemporaryFile(
         prefix='prefix', suffix='suffix') as x:
@@ -59,6 +64,7 @@ class UnopenedTemporaryFileTest(unittest.TestCase):
     self.assertFalse(os.path.exists(x))
 
 class ReadLinesTest(unittest.TestCase):
+  """Unittest for ReadLines."""
   def testNormalFile(self):
     tmp = tempfile.NamedTemporaryFile(delete=False)
     tmp.write('line 1\nline 2\n')
@@ -90,6 +96,7 @@ class ReadLinesTest(unittest.TestCase):
     self.assertTrue(lines is None)
 
 class TempDirectoryTest(unittest.TestCase):
+  """Unittest for TempDirectory."""
   def runTest(self):
     with file_utils.TempDirectory(prefix='abc') as d:
       self.assertTrue(os.path.basename(d).startswith('abc'))
@@ -98,6 +105,7 @@ class TempDirectoryTest(unittest.TestCase):
 
 
 class CopyFileSkipBytesTest(unittest.TestCase):
+  """Unittest for CopyFileSkipBytes."""
   def setUp(self):
     self.in_file = None
     self.out_file = None

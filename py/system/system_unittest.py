@@ -4,6 +4,11 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+
+"""Unittest for system module."""
+
+
+import logging
 import mox
 import unittest
 
@@ -11,8 +16,10 @@ import factory_common  # pylint: disable=W0611
 from cros.factory import system
 from cros.factory.system.board import Board
 
+MOCK_RELEASE_IMAGE_LSB_RELEASE = "GOOGLE_RELEASE=5264.0.0"
 
 class SystemStatusTest(unittest.TestCase):
+  """Unittest for SystemStatus."""
   def setUp(self):
     self.mox = mox.Mox()
 
@@ -59,5 +66,36 @@ class SystemStatusTest(unittest.TestCase):
     self.mox.VerifyAll()
 
 
+class SystemInfoTest(unittest.TestCase):
+  """Unittest for SystemInfo."""
+  def setUp(self):
+    self.mox = mox.Mox()
+
+  def tearDown(self):
+    self.mox.UnsetStubs()
+
+  def runTest(self):
+    mock_board = self.mox.CreateMock(Board)
+    self.mox.StubOutWithMock(system, 'GetBoard')
+    system.GetBoard().AndReturn(mock_board)
+    mock_board.GetPartition(
+        Board.Partition.RELEASE_ROOTFS).AndReturn('/dev/sda5')
+    self.mox.StubOutWithMock(system, 'MountDeviceAndReadFile')
+    system.MountDeviceAndReadFile('/dev/sda5', '/etc/lsb-release').AndReturn(
+        MOCK_RELEASE_IMAGE_LSB_RELEASE)
+
+    self.mox.ReplayAll()
+
+    info = system.SystemInfo()
+    self.assertEquals('5264.0.0', info.release_image_version)
+    # The cached release image version will be used in the second time.
+    info = system.SystemInfo()
+    self.assertEquals('5264.0.0', info.release_image_version)
+
+    self.mox.VerifyAll()
+
 if __name__ == "__main__":
+  logging.basicConfig(
+      format='%(asctime)s:%(filename)s:%(lineno)d:%(levelname)s:%(message)s',
+      level=logging.DEBUG)
   unittest.main()

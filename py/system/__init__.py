@@ -4,6 +4,10 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+
+"""Interfaces to set and get system status and system information."""
+
+
 import glob
 import logging
 import netifaces
@@ -17,6 +21,7 @@ from cros.factory.system.board import Board
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test.utils import ReadOneLine
+from cros.factory.utils.file_utils import MountDeviceAndReadFile
 from cros.factory.utils.process_utils import Spawn
 
 # pylint: disable=W0702
@@ -26,7 +31,7 @@ from cros.factory.utils.process_utils import Spawn
 _board = None
 _lock = threading.Lock()
 def GetBoard():
-  '''Initializes a board instance from environment variable
+  """Initializes a board instance from environment variable
   CROS_FACTORY_BOARD_CLASS, or use the default board class ChromeOSBoard
   if the variable is empty.
 
@@ -34,7 +39,8 @@ def GetBoard():
   board_setup_factory.sh.
 
   Returns:
-    An instance of the specified Board class implementation.'''
+    An instance of the specified Board class implementation.
+  """
   # pylint: disable=W0603
   with _lock:
     global _board
@@ -49,13 +55,16 @@ def GetBoard():
 
 
 class SystemInfo(object):
-  '''Static information about the system.
+  """Static information about the system.
 
   This is mostly static information that changes rarely if ever
   (e.g., version numbers, serial numbers, etc.).
-  '''
+  """
   # If not None, an update that is available from the update server.
   update_md5sum = None
+
+  # The cached release image version.
+  release_image_version = None
 
   def __init__(self):
     self.mlb_serial_number = None
@@ -79,6 +88,31 @@ class SystemInfo(object):
                 re.MULTILINE)
       if match:
         self.factory_image_version = match.group(1)
+    except:
+      pass
+
+    self.release_image_version = None
+    try:
+      if SystemInfo.release_image_version:
+        self.release_image_version = SystemInfo.release_image_version
+        logging.debug('Obtained release image version from SystemInfo: %r',
+                      self.release_image_version)
+      else:
+        release_rootfs = GetBoard().GetPartition(Board.Partition.RELEASE_ROOTFS)
+        lsb_release = MountDeviceAndReadFile(release_rootfs, '/etc/lsb-release')
+        logging.debug('Release image version does not exist in SystemInfo. '
+                      'Try to get it from lsb-release from release partition.')
+
+        match = re.search('^GOOGLE_RELEASE=(.+)$', lsb_release, re.MULTILINE)
+        if match:
+          self.release_image_version = match.group(1)
+          logging.debug('release image version: %s',
+                        self.release_image_version)
+          logging.debug('Cache release image version to SystemInfo.')
+          SystemInfo.release_image_version = self.release_image_version
+        else:
+          logging.debug('Can not read release image version from lsb-release.')
+
     except:
       pass
 
@@ -138,12 +172,12 @@ class SystemInfo(object):
     self.update_md5sum = SystemInfo.update_md5sum
 
 def GetIPv4Interfaces():
-  '''Returns a list of IPv4 interfaces.'''
+  """Returns a list of IPv4 interfaces."""
   interfaces = sorted(netifaces.interfaces())
   return [x for x in interfaces if not x.startswith('lo')]
 
 def GetIPv4InterfaceAddresses(interface):
-  '''Returns a list of ips of an interface'''
+  """Returns a list of ips of an interface"""
   try:
     addresses = netifaces.ifaddresses(interface).get(netifaces.AF_INET, [])
   except ValueError:
@@ -153,7 +187,7 @@ def GetIPv4InterfaceAddresses(interface):
   return ips
 
 def IsInterfaceConnected(prefix):
-  '''Returns whether any interface starting with prefix is connected'''
+  """Returns whether any interface starting with prefix is connected"""
   ips = []
   for interface in GetIPv4Interfaces():
     if interface.startswith(prefix):
@@ -162,12 +196,12 @@ def IsInterfaceConnected(prefix):
   return ips != []
 
 def GetIPv4Addresses():
-  '''Returns a string describing interfaces' IPv4 addresses.
+  """Returns a string describing interfaces' IPv4 addresses.
 
   The returned string is of the format
 
     eth0=192.168.1.10, wlan0=192.168.16.14
-  '''
+  """
   ret = []
   interfaces = GetIPv4Interfaces()
   for interface in interfaces:
@@ -178,13 +212,13 @@ def GetIPv4Addresses():
 
 
 class SystemStatus(object):
-  '''Information about the current system status.
+  """Information about the current system status.
 
   This is information that changes frequently, e.g., load average
   or battery information.
 
   We log a bunch of system status here.
-  '''
+  """
   # Class variable: a charge_manager instance for checking force
   # charge status.
   charge_manager = None
@@ -288,14 +322,15 @@ if __name__ == '__main__':
 
 
 def SetBacklightBrightness(level):
-  '''Sets the backlight brightness level.
+  """Sets the backlight brightness level.
 
   Args:
     level: A floating-point value in [0.0, 1.0] indicating the backlight
         brightness level.
+
   Raises:
     ValueError if the specified value is invalid.
-  '''
+  """
   if not (level >= 0.0 and level <= 1.0):
     raise ValueError('Invalid brightness level.')
   interfaces = glob.glob('/sys/class/backlight/*')
