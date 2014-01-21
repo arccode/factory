@@ -2,15 +2,18 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+"""Tools to get variaous representations of a board name."""
 
 import os
 import re
 
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.test import utils
 
 
 class BuildBoardException(Exception):
+  """Build board exception."""
   pass
 
 
@@ -24,9 +27,12 @@ class BuildBoard(object):
       the name used for build directories, like "/build/daisy_spring").
     short_name: The variant if set; else the base.  This is the
       name used in branches (like "spring" in factory-spring-1234.B).
-    overlay: Relative patch the overlay within the source root
+    gsutil_name: The base name, plus '-'+variant if set.  GSUtil uses
+      'base-variant' as bucket names.
+    overlay_relpath: Relative patch the overlay within the source root
       (like "overlays/overlay-variant-tegra2-dev-board" for
-      "tegra2_dev-board").
+      "tegra2_dev-board").  This is available only when this module is
+      invoked in chroot.
   """
   def __init__(self, board_name=None):
     """Constructor.
@@ -34,75 +40,107 @@ class BuildBoard(object):
     Args:
       board_name: The name of a board.  This may be one of:
 
-        "None" or "default": Uses the user's default board in
-          $HOME/src/scripts/.default_board (or fails if there is
-          none).
-        "foo": Uses the foo board.  Can also handle the case
-          where "foo" is a variant (e.g., use "spring" to mean
+        "None" or "default": If runs in chroot, uses the user's default
+          board in $HOME/src/scripts/.default_board (or fails if there is
+          none).  Otherwise tries to find out the board name from
+          /etc/lsb-release (or fails if the file does not exist).
+
+        "foo": Uses the foo board.  If runs in chroot, it can also handle
+          the case where "foo" is a variant (e.g., use "spring" to mean
           "daisy_spring").
-        "base_foo".  Uses the "foo" variant of the "base" board.
+
+        "base_foo": Uses the "foo" variant of the "base" board.
+
+    Raises:
+      BuildBoardException if unable to determine board or overlay name.
     """
-    src = os.path.join(os.environ['CROS_WORKON_SRCROOT'], 'src')
-    if board_name in [None, 'default']:
-      default_path = os.path.join(src, 'scripts', '.default_board')
-      if not os.path.exists(default_path):
-        raise BuildBoardException('Unable to read default board from %s' %
-                                  default_path)
-      board_name = open(default_path).read().strip()
+    if utils.in_chroot():
+      # The following sanity checks are feasible only in chroot.
+      src = os.path.join(os.environ['CROS_WORKON_SRCROOT'], 'src')
+      if board_name in [None, 'default']:
+        default_path = os.path.join(src, 'scripts', '.default_board')
+        if not os.path.exists(default_path):
+          raise BuildBoardException('Unable to read default board from %s' %
+                                    default_path)
+        board_name = open(default_path).read().strip()
 
-    # Grok cros-board.eclass to find the set of all boards.
-    # May the gods forgive me.
-    eclass_path = os.path.join(
-        src, 'third_party', 'chromiumos-overlay', 'eclass', 'cros-board.eclass')
-    eclass_contents = open(eclass_path).read()
-    pattern = "(?s)ALL_BOARDS=\((.+?)\)"
-    match = re.search(pattern, eclass_contents)
-    if not match:
-      raise BuildBoardException('Unable to read pattern %s in %s',
-                                pattern, eclass_path)
-    boards = match.group(1).split()
+      # Grok cros-board.eclass to find the set of all boards.
+      # May the gods forgive me.
+      eclass_path = os.path.join(
+          src, 'third_party', 'chromiumos-overlay', 'eclass',
+          'cros-board.eclass')
+      eclass_contents = open(eclass_path).read()
+      pattern = "(?s)ALL_BOARDS=\((.+?)\)"
+      match = re.search(pattern, eclass_contents)
+      if not match:
+        raise BuildBoardException('Unable to read pattern %s in %s',
+                                  pattern, eclass_path)
+      boards = match.group(1).split()
 
-    self.full_name = None
-    if board_name in boards:
-      self.full_name = board_name
+      self.full_name = None
+      board_name = board_name.lower()
+      if board_name in boards:
+        self.full_name = board_name
 
-    # User said "daisy-spring" but means "daisy_spring"?
-    if not self.full_name:
-      try_board_name = board_name.replace('-', '_')
-      if try_board_name in boards:
-        self.full_name = try_board_name
+      # User said "daisy-spring" but means "daisy_spring"?
+      if not self.full_name:
+        try_board_name = board_name.replace('-', '_')
+        if try_board_name in boards:
+          self.full_name = try_board_name
 
-    # User said "spring" but means "daisy_spring"?
-    if not self.full_name:
-      try_board_names = [x for x in boards
-                         if x.endswith('_' + board_name)]
-      if len(try_board_names) > 1:
-        raise BuildBoardException('Multiple board names %s match %r' %
-                                  (try_board_names, board_name))
-      if try_board_names:
-        self.full_name = try_board_names[0]
+      # User said "spring" but means "daisy_spring"?
+      if not self.full_name:
+        try_board_names = [x for x in boards
+                           if x.endswith('_' + board_name)]
+        if len(try_board_names) > 1:
+          raise BuildBoardException('Multiple board names %s match %r' %
+                                    (try_board_names, board_name))
+        if try_board_names:
+          self.full_name = try_board_names[0]
 
-    if not self.full_name:
-      # Oh well, we tried
-      raise BuildBoardException('Unknown board %r' % board_name)
+      if not self.full_name:
+        # Oh well, we tried
+        raise BuildBoardException('Unknown board %r' % board_name)
+    else:
+      if board_name in [None, 'default']:
+        # See if we can get the board name from /etc/lsb-release.
+        LSB_RELEASE_FILE = '/etc/lsb-release'
+        LSB_BOARD_RE = re.compile(r'^CHROMEOS_RELEASE_BOARD=(\w+)$', re.M)
+        if not os.path.exists(LSB_RELEASE_FILE):
+          raise BuildBoardException(
+              'Not in chroot and %r does not exist, unable to determine board' %
+              LSB_RELEASE_FILE)
+        try:
+          with open(LSB_RELEASE_FILE) as f:
+            self.full_name = LSB_BOARD_RE.findall(f.read())[0].lower()
+        except IndexError:
+          raise BuildBoardException(
+              'Cannot determine board from %r' % LSB_RELEASE_FILE)
+      else:
+        self.full_name = re.sub('-', '_', board_name).lower()
 
     self.base, _, self.variant = self.full_name.partition('_')
     self.variant = self.variant or None  # Use None, not ''
     self.short_name = self.variant or self.base  # Ick
+    self.gsutil_name = re.sub('_', '-', self.full_name)
 
-    if self.variant:
-      overlay = 'overlay-variant-%s-%s' % (self.base, self.variant)
+    if utils.in_chroot():
+      # Only get overlay relative path in chroot.
+      if self.variant:
+        overlay = 'overlay-variant-%s-%s' % (self.base, self.variant)
+      else:
+        overlay = 'overlay-%s' % self.base
+
+      try_overlays = ['private-overlays/%s-private' % overlay,
+                      'overlays/%s' % overlay]
+      overlay_paths = [os.path.join(src, d) for d in try_overlays]
+      existing_overlays = filter(os.path.exists, overlay_paths)
+      if not existing_overlays:
+        raise BuildBoardException('Unable to find overlay for board %s at %s' %
+                                  (self.full_name, overlay_paths))
+      self.overlay_relpath = os.path.relpath(existing_overlays[0], src)
     else:
-      overlay = 'overlay-%s' % self.base
-
-    try_overlays = ['private-overlays/%s-private' % overlay,
-                    'overlays/%s' % overlay]
-    overlay_paths = [os.path.join(src, d) for d in try_overlays]
-    existing_overlays = filter(os.path.exists, overlay_paths)
-    if not existing_overlays:
-      raise BuildBoardException('Unable to find overlay for board %s at %s' %
-                                (self.full_name, overlay_paths))
-    self.overlay_relpath = os.path.relpath(existing_overlays[0], src)
+      self.overlay_relpath = None
 
 
 if __name__ == '__main__':

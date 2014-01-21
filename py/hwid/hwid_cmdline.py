@@ -16,6 +16,7 @@ from cros.factory.hacked_argparse import Command, CmdArg, ParseCmdline
 from cros.factory.hwid import common
 from cros.factory.hwid import database
 from cros.factory.hwid import hwid_utils
+from cros.factory.tools import build_board
 
 
 _COMMON_ARGS = [
@@ -189,6 +190,8 @@ def InitializeDefaultOptions(options):
     options.hwid_db_path = common.DEFAULT_HWID_DATA_PATH
   if not options.board:
     options.board = common.ProbeBoard()
+  else:
+    options.board = build_board.BuildBoard(options.board).short_name
 
   # Create the Database object here since it's common to all functions.
   options.database = database.Database.LoadFile(

@@ -10,12 +10,12 @@ import collections
 import copy
 import os
 import pprint
-import re
 
 import factory_common # pylint: disable=W0611
 from cros.factory import common, schema, rule
 from cros.factory.hwid import base32, base8192
 from cros.factory.test import utils
+from cros.factory.tools import build_board
 
 # The expected location of HWID data within a factory image or the
 # chroot.
@@ -47,19 +47,7 @@ def ProbeBoard(hwid=None):
     if os.path.exists(os.path.join(DEFAULT_HWID_DATA_PATH, board)):
       return board
 
-  LSB_RELEASE_FILE = '/etc/lsb-release'
-  LSB_BOARD_RE = re.compile(r'^CHROMEOS_RELEASE_BOARD=(\w+)$', re.M)
-  if utils.in_chroot():
-    raise HWIDException('Unable to determine board in chroot')
-  if not os.path.exists(LSB_RELEASE_FILE):
-    raise HWIDException('%r does not exist, unable to determine board' %
-                        LSB_RELEASE_FILE)
-  try:
-    with open(LSB_RELEASE_FILE) as f:
-      board = LSB_BOARD_RE.findall(f.read())[0].rpartition('_')[-1]
-  except IndexError:
-    raise HWIDException('Cannot determine board from %r' % LSB_RELEASE_FILE)
-  return board
+  return build_board.BuildBoard().short_name
 
 
 # A named tuple to store the probed component name and the error if any.
@@ -81,6 +69,7 @@ UNSUPPORTED_COMPONENT_ERROR = lambda comp_cls, comp_name, comp_status: (
 
 
 class HWIDException(Exception):
+  """HWID-related exception."""
   pass
 
 

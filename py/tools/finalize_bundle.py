@@ -4,6 +4,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+"""Tools to finalize a factory bundle."""
 
 import argparse
 import fnmatch
@@ -24,6 +25,7 @@ from pkg_resources import parse_version
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
 from cros.factory.test import utils
+from cros.factory.tools import build_board
 from cros.factory.tools.make_update_bundle import MakeUpdateBundle
 from cros.factory.tools.mount_partition import MountPartition
 from cros.factory.utils.file_utils import (
@@ -309,8 +311,9 @@ class FinalizeBundle(object):
                         'site_tests', 'wipe_option', 'files', 'mini_omaha_url',
                         'patch_image_args', 'has_ec'])
 
-    self.board = self.manifest['board']
-    self.simple_board = self.board.split('_')[-1]
+    board_name = build_board.BuildBoard(self.manifest['board'])
+    self.board = board_name.full_name
+    self.simple_board = board_name.short_name
 
     self.bundle_name = self.manifest['bundle_name']
     if not re.match(r'^\d{8}_', self.bundle_name):
