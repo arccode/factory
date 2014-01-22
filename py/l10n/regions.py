@@ -178,6 +178,8 @@ REGIONS_LIST = [
             'to Swedish keyboard layout, but starts with US English language '
             'for neutrality.  Use if there is a single combined SKU for Nordic '
             'countries.')),
+    Region('ru', 'xkb:ru::rus', 'Europe/Moscow', 'ru', _KML.ANSI, 'Russia'
+           'For R31+ only; R30 and earlier must use US keyboard for login'),
     Region('se', 'xkb:se::swe', 'Europe/Stockholm', 'sv', _KML.ISO, 'Sweden',
            ("Use this if there separate SKUs for Nordic countries (Sweden, "
             "Norway, and Denmark), or the device is only shipping to Sweden. "
@@ -193,8 +195,6 @@ properties are known to be correct and may be used to launch a device."""
 
 
 UNCONFIRMED_REGIONS_LIST = [
-    Region('ru', 'xkb:us::eng', 'Europe/Moscow', 'ru', _KML.ANSI, 'Russia',
-           'Russia with US keyboard layout'),
 ]
 """A list of :py:class:`cros.factory.l10n.regions.Region` objects for
 **unconfirmed** regions. These are believed to be correct but

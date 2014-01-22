@@ -82,11 +82,6 @@ class RegionTest(unittest.TestCase):
       method = methods_dict.get(r.keyboard)
       # Make sure the keyboard method is present.
       self.assertTrue(method, 'Missing keyboard layout %r' % r.keyboard)
-      # Make sure the layout is white-listed for login (i.e.,
-      # there are >3 fields and the fourth field is 'login').
-      self.assertTrue(
-        len(method) > 3 and method[3] == 'login',
-        'Keyboard layout %r is not white-listed for login' % r.keyboard)
 
   def testVPDSettings(self):
     self.assertEquals(
