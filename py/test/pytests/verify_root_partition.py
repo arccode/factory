@@ -63,9 +63,14 @@ class VerifyRootPartitionTest(unittest.TestCase):
     table = match.group(1)
     partition_size = int(match.group(2)) * 512
 
-    assert 'PARTUUID=%U/PARTNROFF=1' in table
-    table = table.replace('PARTUUID=%U/PARTNROFF=1',
-                          '/dev/%s' % self.args.root_device)
+    DEV_REGEXP = re.compile(r'payload=\S* hashtree=\S*')
+    (table_new, nsubs) = DEV_REGEXP.subn(
+        'payload=/dev/%s hashtree=/dev/%s' % (
+            self.args.root_device, self.args.root_device), table)
+    assert nsubs == 1, ("Expected to find %r in %r once, "
+        "but found %d matches." % (DEV_REGEXP.pattern, table, nsubs))
+    table = table_new
+    del table_new
     # Cause I/O error on invalid bytes
     table += ' error_behavior=eio'
 
