@@ -10,7 +10,6 @@ Run this module to display all known regions (use --help to see options).
 
 
 import argparse
-import collections
 import sys
 import yaml
 
@@ -24,6 +23,11 @@ from cros.factory.test.utils import Enum
 # ABNT2 = Brazilian (like ISO but with an extra key to the left of the
 #   right shift key)
 KeyboardMechanicalLayout = Enum(['ANSI', 'ISO', 'JIS', 'ABNT2'])
+
+
+class RegionException(Exception):
+  """Exception in Region handling."""
+  pass
 
 
 class Region(object):
@@ -86,7 +90,8 @@ class Region(object):
   def __init__(self, region_code, keyboard, time_zone, language_code,
                keyboard_mechanical_layout, description=None, notes=None):
     # Quick check: should be 'gb', not 'uk'
-    assert region_code != 'uk'
+    if region_code == 'uk':
+      raise RegionException("'uk' is not a valid region code (use 'gb')")
 
     self.region_code = region_code
     self.keyboard = keyboard
@@ -98,6 +103,13 @@ class Region(object):
 
   def __repr__(self):
     return 'Region(%s)' % (', '.join([getattr(self, x) for x in self.FIELDS]))
+
+  def GetFieldsDict(self):
+    """Returns a dict of all substantive fields.
+
+    notes and description are excluded.
+    """
+    return dict((k, getattr(self, k)) for k in self.FIELDS)
 
   def GetVPDSettings(self):
     """Returns a dictionary of VPD settings for the locale."""
@@ -207,6 +219,37 @@ fields must be reviewed before launch. See http://goto/vpdsettings.
 """
 
 
+def _ConsolidateRegions(regions):
+  """Consolidates a list of regions into a dict.
+
+  Args:
+    regions: A list of Region objects.  All objects for any given
+      region code must be identical or we will throw an exception.
+      (We allow duplicates in case identical region objects are
+      defined in both regions.py and the overlay, e.g., when moving
+      items to the public overlay.)
+
+  Returns:
+    A dict from region code to Region.
+
+  Raises:
+    RegionException: If there are multiple regions defined for a given
+      region, and the values for those regions differ.
+  """
+  # Build a dict from region_code to the first Region with that code.
+  region_dict = {}
+  for r in regions:
+    existing_region = region_dict.get(r.region_code)
+    if existing_region:
+      if existing_region.GetFieldsDict() != r.GetFieldsDict():
+        raise RegionException(
+          "Conflicting definitions for region %r: %r, %r" % (
+            r.region_code, existing_region.GetFieldsDict(), r.GetFieldsDict()))
+    else:
+      region_dict[r.region_code] = r
+
+  return region_dict
+
 def BuildRegionsDict(include_all=False):
   """Builds a dictionary mapping region code to
   :py:class:`py.l10n.regions.Region` object.
@@ -239,12 +282,10 @@ def BuildRegionsDict(include_all=False):
   except ImportError:
     pass
 
-  region_codes = [r.region_code for r in regions]
-  dups = sorted([
-      k for k, v in collections.Counter(region_codes).iteritems() if v > 1])
-  assert not dups, 'Duplicate region codes: %s' % dups
-
-  return dict((x.region_code, x) for x in regions)
+  # Build dictionary of region code to list of regions with that
+  # region code.  Check manually for duplicates, since the region may
+  # be present both in the overlay and the public repo.
+  return _ConsolidateRegions(regions)
 
 
 REGIONS = BuildRegionsDict()

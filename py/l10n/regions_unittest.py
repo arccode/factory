@@ -112,5 +112,31 @@ class RegionTest(unittest.TestCase):
                         'region': 'us'}},
       data['us'])
 
+  def testFieldsDict(self):
+    # 'description' and 'notes' should be missing.
+    self.assertEquals(
+      {'keyboard': 'b',
+       'keyboard_mechanical_layout': 'e',
+       'language_code': 'd',
+       'region_code': 'a',
+       'time_zone': 'c'},
+      (regions.Region('a', 'b', 'c', 'd', 'e', 'description', 'notes').
+       GetFieldsDict()))
+
+  def testConsolidateRegionsDups(self):
+    """Test duplicate handling.  Two identical Regions are OK."""
+    # Make two copies of the same region.
+    region_list = [regions.Region('a', 'b', 'c', 'd', 'e') for _ in range(2)]
+    # It's OK.
+    self.assertEquals(
+      {'a': region_list[0]}, regions._ConsolidateRegions(region_list))
+
+    # Modify the second copy.
+    region_list[1].keyboard = 'f'
+    # Not OK anymore!
+    self.assertRaisesRegexp(
+      regions.RegionException, "Conflicting definitions for region 'a':",
+      regions._ConsolidateRegions, region_list)
+
 if __name__ == '__main__':
   unittest.main()
