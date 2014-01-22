@@ -195,6 +195,7 @@ properties are known to be correct and may be used to launch a device."""
 
 
 UNCONFIRMED_REGIONS_LIST = [
+    Region('jp', 'xkb:jp::jpn', 'Asia/Tokyo', 'ja', _KML.JIS, 'Japan'),
 ]
 """A list of :py:class:`cros.factory.l10n.regions.Region` objects for
 **unconfirmed** regions. These are believed to be correct but
