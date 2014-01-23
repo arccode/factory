@@ -69,6 +69,12 @@ DEFINE_string config "" \
 'config file itself) in config file to use relative path'
 DEFINE_boolean run_omaha ${FLAGS_FALSE} \
   "Run mini-omaha server after factory package setup completed."
+DEFINE_string test "" \
+  "If set, path to a test image to use to create a factory test image. "\
+"Must be used with --factory_toolkit. Mutually exclusive with --factory."
+DEFINE_string factory_toolkit "" \
+  "If set, path to a factory toolkit to use to create a factory test image. "\
+"Must be used with --test. Mutually exclusive with --factory."
 # Usage Help
 FLAGS_HELP="Prepares factory resources (mini-omaha server, RMA/usb/disk images)
 
@@ -169,6 +175,16 @@ check_parameters() {
   # All remaining parameters must be checked:
   # install_shim, firmware, hwid_updater, complete_script.
 
+  # Check that incompatible combinations of --factory, --test, and
+  # --factory_toolkit are not provided.
+  if [ -n "${FLAGS_test}" -o -n "${FLAGS_factory_toolkit}" ]; then
+    [ -n "${FLAGS_test}" -a -n "${FLAGS_factory_toolkit}" ] || \
+      die "--test and --factory_toolkit must be used together."
+    [ -z "${FLAGS_factory}" ] || \
+      die "If --test and --factory_toolkit are used, --factory may not be used."
+    build_factory=1
+  fi
+
   if [ -n "${FLAGS_usbimg}" ]; then
     [ -z "${FLAGS_diskimg}" ] ||
       die "--usbimg and --diskimg cannot be used at the same time."
@@ -177,14 +193,24 @@ check_parameters() {
     check_empty_param FLAGS_complete_script "in --usbimg mode"
     check_file_param FLAGS_install_shim "in --usbimg mode"
     check_false_param FLAGS_run_omaha "in --usbimg mode"
-    check_file_param FLAGS_factory "in --usbimg mode"
+    if [ -n "$build_factory" ]; then
+      check_file_param FLAGS_test "in --usbimg mode"
+      check_file_param FLAGS_factory_toolkit "in --usbimg mode"
+    else
+      check_file_param FLAGS_factory "in --usbimg mode"
+    fi
   elif [ -n "${FLAGS_diskimg}" ]; then
     check_empty_param FLAGS_firmware_updater "in --diskimg mode"
     check_file_param_or_none FLAGS_hwid_updater "in --diskimg mode"
     check_empty_param FLAGS_complete_script "in --diskimg mode"
     check_empty_param FLAGS_install_shim "in --diskimg mode"
     check_false_param FLAGS_run_omaha "in --diskimg mode"
-    check_file_param FLAGS_factory "in --diskimg mode"
+    if [ -n "$build_factory" ]; then
+      check_file_param FLAGS_test "in --diskimg mode"
+      check_file_param FLAGS_factory_toolkit "in --diskimg mode"
+    else
+      check_file_param FLAGS_factory "in --diskimg mode"
+    fi
     if [ -b "${FLAGS_diskimg}" -a ! -w "${FLAGS_diskimg}" ] &&
        [ -z "$MFP_SUDO" -a "$(id -u)" != "0" ]; then
       # Restart the command with original parameters with sudo for writing to
@@ -197,7 +223,12 @@ check_parameters() {
     check_file_param_or_none FLAGS_hwid_updater "in mini-omaha mode"
     check_optional_file_param FLAGS_complete_script "in mini-omaha mode"
     check_empty_param FLAGS_install_shim "in mini-omaha mode"
-    check_file_param_or_none FLAGS_factory "in mini-omaha mode"
+    if [ -n "$build_factory" ]; then
+      check_file_param FLAGS_test "in mini-omaha mode"
+      check_file_param FLAGS_factory_toolkit "in mini-omaha mode"
+    else
+      check_file_param_or_none FLAGS_factory "in mini-omaha mode"
+    fi
   fi
 }
 
@@ -244,8 +275,21 @@ setup_environment() {
   RELEASE_IMAGE="$(basename "${FLAGS_release}")"
 
   if [ -n "${FLAGS_factory}" ]; then
-    FACTORY_DIR="$(dirname "${FLAGS_factory}")"
-    FACTORY_IMAGE="$(basename "${FLAGS_factory}")"
+    FACTORY_IMAGE="${FLAGS_factory}"
+  elif [ -n "$build_factory" ]; then
+    FACTORY_IMAGE="$(mktemp --tmpdir)"
+    image_add_temp "${FACTORY_IMAGE}"
+    local toolkit_output=$(mktemp --tmpdir)
+    echo "Creating factory test image from test image and toolkit" \
+        "(output in $toolkit_output)..."
+    local temp_mount="$(mktemp -d --tmpdir)"
+    image_add_temp "$temp_mount"
+    cp "${FLAGS_test}" "${FACTORY_IMAGE}"
+    image_mount_partition "${FACTORY_IMAGE}" "1" "$temp_mount" "rw" ||
+      die "Unable to mount ${FACTORY_IMAGE}."
+    sudo "${FLAGS_factory_toolkit}" -- \
+      --dest "${temp_mount}" --patch-test-image --yes >& "${toolkit_output}"
+    image_umount_partition "$temp_mount"
   fi
 
   # Override this with path to modified kernel (for non-SSD images)
@@ -463,13 +507,14 @@ compress_and_hash_partition() {
 apply_hwid_updater() {
   local hwid_updater="$1"
   local outdev="$2"
-  local hwid_result="0"
 
   if [ -n "$hwid_updater" ]; then
-    local state_dev="$(image_map_partition "${outdev}" 1)"
-    sudo sh "$hwid_updater" "$state_dev" || hwid_result="$?"
-    image_unmap_partition "$state_dev" || true
-    [ $hwid_result = "0" ] || die "Failed to update HWID ($hwid_result). abort."
+    local stateful_dir="$(mktemp -d --tmpdir)"
+    image_add_temp "${stateful_dir}"
+    image_mount_partition "${outdev}" 1 "${stateful_dir}" "rw"
+    sudo sh "$hwid_updater" "${stateful_dir}" || \
+        die "Failed to update HWID ($hwid_result). abort."
+    image_umount_partition "${stateful_dir}"
   fi
 }
 
@@ -528,8 +573,8 @@ generate_usbimg() {
     image_partition_copy_from_file "${RELEASE_KERNEL}" "${release_file}" 2
   fi
 
-  "$builder" -m "${FLAGS_factory}" -f "${FLAGS_usbimg}" \
-    "${FLAGS_install_shim}" "${FLAGS_factory}" "${release_file}"
+  "$builder" -m "${FACTORY_IMAGE}" -f "${FLAGS_usbimg}" \
+    "${FLAGS_install_shim}" "${FACTORY_IMAGE}" "${release_file}"
   apply_hwid_updater "${FLAGS_hwid_updater}" "${FLAGS_usbimg}"
   tar_unencrypted "${FLAGS_release}" "${FLAGS_usbimg}"
 
@@ -597,15 +642,14 @@ generate_img() {
   image_partition_overwrite "${release_image}" 8 "${outdev}" 8
 
   # Go to retrieve the factory test image.
-  local factory_image="${FACTORY_DIR}/${FACTORY_IMAGE}"
   echo "Factory Kernel"
-  image_partition_copy "${factory_image}" 2 "${outdev}" 2
+  image_partition_copy "${FACTORY_IMAGE}" 2 "${outdev}" 2
   echo "Factory Rootfs"
-  image_partition_overwrite "${factory_image}" 3 "${outdev}" 3
+  image_partition_overwrite "${FACTORY_IMAGE}" 3 "${outdev}" 3
   echo "Factory Stateful"
-  image_partition_overwrite "${factory_image}" 1 "${outdev}" 1
+  image_partition_overwrite "${FACTORY_IMAGE}" 1 "${outdev}" 1
   echo "EFI Partition"
-  image_partition_copy "${factory_image}" 12 "${outdev}" 12
+  image_partition_copy "${FACTORY_IMAGE}" 12 "${outdev}" 12
   apply_hwid_updater "${hwid_updater}" "${outdev}"
   tar_unencrypted "${release_image}" "${outdev}"
 
@@ -643,21 +687,21 @@ generate_omaha() {
   prepare_dir "${OMAHA_DATA_DIR}"
 
   echo "Generating omaha release image from ${FLAGS_release}"
-  if [ -n "${FLAGS_factory}" ]; then
-    echo "Generating omaha factory image from ${FLAGS_factory}"
+  if [ -n "${FACTORY_IMAGE}" ]; then
+    echo "Generating omaha factory image from ${FACTORY_IMAGE}"
   fi
   echo "Output omaha image to ${OMAHA_DATA_DIR}"
   echo "Output omaha config to ${OMAHA_CONF}"
 
-  local test_image
-  if [ -n "${FLAGS_factory}" ]; then
+  local final_factory_image
+  if [ -n "${FACTORY_IMAGE}" ]; then
     # Make a copy of the image
-    test_image="$(mktemp --tmpdir)"
-    image_add_temp "${test_image}"
+    final_factory_image="$(mktemp --tmpdir)"
+    image_add_temp "${final_factory_image}"
     echo "Creating temporary test image..."
-    cp "${FLAGS_factory}" "${test_image}"
+    cp "${FACTORY_IMAGE}" "${final_factory_image}"
     # Add the unencrypted bits from the release stateful partition
-    tar_unencrypted "${FLAGS_release}" "${test_image}"
+    tar_unencrypted "${FLAGS_release}" "${final_factory_image}"
   fi
 
   kernel="${RELEASE_KERNEL:-${FLAGS_release}:2}"
@@ -671,10 +715,10 @@ generate_omaha() {
               "${OMAHA_DATA_DIR}/oem.gz")"
   echo "oem: ${oem_hash}"
 
-  if [ -n "${test_image}" ]; then
-    kernel="${test_image}:2"
-    rootfs="${test_image}:3"
-    stateful_efi_source="${test_image}"
+  if [ -n "${final_factory_image}" ]; then
+    kernel="${final_factory_image}:2"
+    rootfs="${final_factory_image}:3"
+    stateful_efi_source="${final_factory_image}"
     test_hash="$(compress_and_hash_memento_image "$kernel" "$rootfs" \
                  "${OMAHA_DATA_DIR}/rootfs-test.gz")"
     echo "test: ${test_hash}"
@@ -752,7 +796,7 @@ generate_omaha() {
    'stateimg_image': '${subfolder}state.gz',
    'stateimg_checksum': '${state_hash}'," >>"${OMAHA_CONF}"
 
-  if [ -n "${FLAGS_factory}" ]  ; then
+  if [ -n "${FACTORY_IMAGE}" ]  ; then
     echo -n "
    'factory_image': '${subfolder}rootfs-test.gz',
    'factory_checksum': '${test_hash}'," >>"${OMAHA_CONF}"

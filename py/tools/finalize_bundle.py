@@ -174,6 +174,9 @@ like the following:
   board: link
   self.bundle_name: 20121115_pvt
   mini_omaha_ip: 192.168.4.1
+  # True to build a factory image based on the test image and a
+  # factory toolkit
+  use_factory_toolkit: true
   # Files to download and add to the bundle.
   add_files:
   - install_into: release
@@ -204,6 +207,7 @@ class FinalizeBundle(object):
     bundle_dir: Path to the bundle directory.
     bundle_name: Name of the bundle (e.g., 20121115_proto).
     factory_image_path: Path to the factory image in the bundle.
+    build_board: The BuildBoard object for the board.
     board: Board name (e.g., link).
     simple_board: For board name like "base_variant", simple_board is "variant".
       simple_board == board if board is not a variant board.
@@ -219,11 +223,14 @@ class FinalizeBundle(object):
     mini_omaha_script_path: Path to the script used to start the mini-Omaha
       server.
     new_factory_par: Path to a replacement factory.par.
+    test_image_path: Path to the test image.
+    factory_toolkit_path: Path to the factory toolkit.
   """
   args = None
   bundle_dir = None
   bundle_name = None
   factory_image_path = None
+  build_board = None
   board = None
   simple_board = None
   manifest = None
@@ -236,6 +243,8 @@ class FinalizeBundle(object):
   release_image_path = None
   mini_omaha_script_path = None
   new_factory_par = None
+  test_image_path = None
+  factory_toolkit_path = None
 
   def Main(self):
     if not utils.in_chroot():
@@ -246,6 +255,7 @@ class FinalizeBundle(object):
     self.Download()
     self.DeleteFiles()
     self.UpdateMiniOmahaURL()
+    self.BuildFactoryImage()
     self.PatchImage()
     self.ModifyFactoryImage()
     self.SetWipeOption()
@@ -273,11 +283,6 @@ class FinalizeBundle(object):
         '--no-make-factory-packages', dest='make_factory_package',
         action='store_false',
         help="Don't call make_factory_package (for testing only)")
-    parser.add_argument(
-        '--complete-script', dest='complete_script',
-        help=('Filename of complete script used for make_factory_package. '
-              'Empty means no complete script is used.'),
-        default='complete_script_sample.sh')
     parser.add_argument(
         '--tip-of-branch', dest='tip_of_branch', action='store_true',
         help="Use tip version of release image, install shim, and "
@@ -309,11 +314,12 @@ class FinalizeBundle(object):
         self.manifest, ['board', 'bundle_name', 'add_files', 'delete_files',
                         'add_files_to_image', 'delete_files_from_image',
                         'site_tests', 'wipe_option', 'files', 'mini_omaha_url',
-                        'patch_image_args', 'has_ec'])
+                        'patch_image_args', 'has_ec',
+                        'use_factory_toolkit', 'complete_script'])
 
-    board_name = build_board.BuildBoard(self.manifest['board'])
-    self.board = board_name.full_name
-    self.simple_board = board_name.short_name
+    self.build_board = build_board.BuildBoard(self.manifest['board'])
+    self.board = self.build_board.full_name
+    self.simple_board = self.build_board.short_name
 
     self.bundle_name = self.manifest['bundle_name']
     if not re.match(r'^\d{8}_', self.bundle_name):
@@ -332,8 +338,20 @@ class FinalizeBundle(object):
     self.expected_files = set(map(self._SubstVars, self.manifest['files']))
     self.factory_image_path = os.path.join(
         self.bundle_dir, 'factory_test', 'chromiumos_factory_image.bin')
-    with MountPartition(self.factory_image_path, 3) as mount:
+    self.test_image_path = os.path.join(
+      self.bundle_dir, 'factory_test', 'chromiumos_test_image.bin')
+    self.factory_toolkit_path = os.path.join(
+      self.bundle_dir, 'factory_test', 'install_factory_toolkit.sh')
+
+    # Get the version from the factory test image, or from the test image
+    # if we will use that to build the factory test image.
+    if self.manifest.get('use_factory_toolkit', False):
+      version_source = self.test_image_path
+    else:
+      version_source = self.factory_image_path
+    with MountPartition(version_source, 3) as mount:
       self.factory_image_base_version = GetReleaseVersion(mount)
+
     self.readme_path = os.path.join(self.bundle_dir, 'README')
 
   def CheckGSUtilVersion(self):
@@ -517,6 +535,20 @@ class FinalizeBundle(object):
       path = os.path.join(self.bundle_dir, f)
       if os.path.exists(path):
         os.unlink(path)
+
+  def BuildFactoryImage(self):
+    if not self.manifest.get('use_factory_toolkit', False):
+      return
+
+    logging.info('Creating %s image from %s...',
+                 os.path.basename(self.factory_image_path),
+                 os.path.basename(self.test_image_path))
+    shutil.copyfile(self.test_image_path, self.factory_image_path)
+    with MountPartition(self.factory_image_path, 1, rw=True) as mount:
+      logging.info('Overlaying toolkit from %s...',
+                   os.path.basename(self.factory_toolkit_path))
+      Spawn([self.factory_toolkit_path, '--', '--patch-test-image',
+             '--dest', mount, '--yes'], check_call=True, sudo=True)
 
   def PatchImage(self):
     if not self.args.patch:
@@ -828,9 +860,21 @@ class FinalizeBundle(object):
         '--factory', '../factory_test/chromiumos_factory_image.bin',
         '--hwid_updater', '../hwid/hwid_v3_bundle_%s.sh' %
                           self.simple_board.upper()]
-    if self.args.complete_script:
-      make_factory_package.extend([
-          '--complete_script', self.args.complete_script])
+
+    if 'complete_script' in self.manifest:
+      complete_script = os.path.join(
+        self.bundle_dir, self.manifest['complete_script'])
+      if not os.path.exists(complete_script):
+        raise OSError('Complete script %s does not exist' % complete_script)
+    else:
+      # Use factory_setup/complete_script.sh, if it exists
+      complete_script = os.path.join(
+        self.bundle_dir, 'factory_setup/complete_script.sh')
+      if not os.path.exists(complete_script):
+        complete_script = None
+
+    if complete_script:
+      make_factory_package.extend(['--complete_script', complete_script])
 
     firmware_updater = os.path.join(
         self.bundle_dir, 'firmware', 'chromeos-firmwareupdate')
@@ -1088,7 +1132,7 @@ class FinalizeBundle(object):
         "IMPORTANT: If you modified the README or MANIFEST.yaml, don't forget "
         "to check your changes into %s.",
         os.path.join(os.environ['CROS_WORKON_SRCROOT'],
-                     'src', 'private-overlays', 'overlay-link-private',
+                     'src', self.build_board.overlay_relpath,
                      'chromeos-base', 'chromeos-factory-board',
                      'files', 'bundle'))
 
