@@ -4,7 +4,12 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+
+"""Basic board specific interface."""
+
+
 # pylint: disable=R0922
+import collections
 
 import factory_common # pylint: disable=W0611
 
@@ -13,6 +18,7 @@ from cros.factory.test.utils import Enum
 
 
 class BoardException(Exception):
+  """Exception for Board class."""
   pass
 
 
@@ -24,6 +30,14 @@ class Board(object):
 
   # Auto fan speed.
   AUTO = 'auto'
+
+  # Partitions that factory cares on a factory-installed device.
+  Partition = collections.namedtuple('Partition', ['name', 'index'])
+  Partition.STATEFUL = Partition('STATEFUL', 1)
+  Partition.FACTORY_KERNEL = Partition('FACTORY_KERNEL', 2)
+  Partition.FACTORY_ROOTFS = Partition('FACTORY_ROOTFS', 3)
+  Partition.RELEASE_KERNEL = Partition('RELEASE_KERNEL', 4)
+  Partition.RELEASE_ROOTFS = Partition('RELEASE_ROOTFS', 5)
 
   # Functions that are used in Goofy. Must be implemented.
   def __init__(self):
@@ -149,6 +163,7 @@ class Board(object):
 
     Returns:
       Integer value read from slave.
+
     Raises:
       BoardException when fail.
     """
@@ -236,4 +251,12 @@ class Board(object):
     Raises:
       BoardException if power information cannot be obtained.
     """
+    raise NotImplementedError
+
+  def GetRootDev(self):
+    """Gets root block device."""
+    raise NotImplementedError
+
+  def GetPartition(self, partition):
+    """Gets partition path for given Board.Partition."""
     raise NotImplementedError

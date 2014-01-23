@@ -4,6 +4,10 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+
+"""Board interface for ChromeOS board."""
+
+
 import ctypes
 import factory_common  # pylint: disable=W0611
 import logging
@@ -200,3 +204,22 @@ class ChromeOSBoard(Board):
       self._CallECTool(['led', led_name, color_brightness])
     except Exception as e:
       logging.exception('Unable to set LED color: %s', e)
+
+  def GetRootDev(self):
+    """Gets root block device."""
+    return self._Spawn(['rootdev', '-d'], check_output=True).stdout_data.strip()
+
+  def GetPartition(self, partition):
+    """Gets partition path like /dev/mmcblk0p1 for given Board.Partition.
+
+    Args:
+      partition: A Board.Partition.
+
+    Returns:
+      The partition path.
+    """
+    root_dev = self.GetRootDev()
+    if 'mmcblk' in root_dev:
+      return root_dev + 'p' + str(partition.index)
+    else:
+      return root_dev + str(partition.index)
