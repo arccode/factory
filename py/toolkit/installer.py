@@ -33,7 +33,7 @@ class FactoryToolkitInstaller():
   """
   def __init__(self, src, args):
     if args.patch_test_image:
-      self._usr_local_dest = os.path.join(args.dest, 'dev_image', 'local')
+      self._usr_local_dest = os.path.join(args.dest, 'dev_image')
       self._var_dest = os.path.join(args.dest, 'var_overlay')
       if (not os.path.exists(self._usr_local_dest) or
           not os.path.exists(self._var_dest)):

@@ -46,7 +46,7 @@ class ToolkitInstallerTest(unittest.TestCase):
     shutil.rmtree(self.dest)
 
   def makeStatefulPartition(self):
-    os.makedirs(os.path.join(self.dest, 'dev_image/local'))
+    os.makedirs(os.path.join(self.dest, 'dev_image'))
     os.makedirs(os.path.join(self.dest, 'var_overlay'))
 
   def makeLiveDevice(self):
@@ -95,12 +95,12 @@ class ToolkitInstallerTest(unittest.TestCase):
     self._lsb_release_exists = None
     self.createInstaller(patch_test_image=True)
     self._installer.Install()
-    with open(os.path.join(self.dest, 'dev_image/local', 'file1'), 'r') as f:
+    with open(os.path.join(self.dest, 'dev_image', 'file1'), 'r') as f:
       self.assertEqual(f.read(), 'install me!')
     with open(os.path.join(self.dest, 'var_overlay', 'log1'), 'r') as f:
       self.assertEqual(f.read(), 'I am a log file!')
     self.assertTrue(os.path.exists(
-        os.path.join(self.dest, 'dev_image/local/factory/enabled')))
+        os.path.join(self.dest, 'dev_image/factory/enabled')))
 
   def testNoEnable(self):
     self.makeLiveDevice()
