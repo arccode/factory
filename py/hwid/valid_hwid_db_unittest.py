@@ -16,11 +16,12 @@ import yaml
 import factory_common  # pylint: disable=W0611
 from cros.factory.hwdb.hwid_tool import ProbeResults  # pylint: disable=E0611
 from cros.factory.hwid import common, database
-from cros.factory.hwid import hwid as hwid_v3_tool
+from cros.factory.hwid import hwid_utils
 from cros.factory.rule import Context
 
 
 class ValidHWIDDBsTest(unittest.TestCase):
+  """Unit test for HWID database."""
   def runTest(self):
     hwid_dir = os.path.join(
         os.environ['CROS_WORKON_SRCROOT'],
@@ -90,7 +91,7 @@ class ValidHWIDDBsTest(unittest.TestCase):
     device_info = sample_dict.get('device_info')
 
     def _Encode():
-      hwid = hwid_v3_tool.GenerateHWID(db, probe_results, device_info, vpd,
+      hwid = hwid_utils.GenerateHWID(db, probe_results, device_info, vpd,
                                        False)
       # Test all rules.
       db.rules.EvaluateRules(Context(hwid=hwid, vpd=vpd,
@@ -125,7 +126,7 @@ class ValidHWIDDBsTest(unittest.TestCase):
 
     def _Decode():
       # Test decoding.
-      return hwid_v3_tool.DecodeHWID(db, encoded_string)
+      return hwid_utils.DecodeHWID(db, encoded_string)
 
     if error:
       self.assertRaisesRegexp(Exception, re.compile(error, re.S),
