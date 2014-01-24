@@ -170,11 +170,18 @@ def _ReadSysfsNodeId(path):
   the DeviceID data if present, but otherwise falls back to just
   reading the name file data.
   """
+  device_id = _ReadSysfsDeviceId(os.path.join(path, 'device'))
+  if device_id:
+    return device_id
+
   name_path = os.path.join(path, 'name')
-  return (_ReadSysfsDeviceId(os.path.join(path, 'device')) or
-          (os.path.exists(name_path) and
-           open(name_path).read().strip()) or
-          None)
+  if os.path.exists(name_path):
+    with open(name_path) as f:
+      device_id = f.read().strip()
+    if device_id:
+      return DictCompactProbeStr(device_id.strip(chr(0)).split(chr(0)))
+
+  return None
 
 
 def _RecursiveProbe(path, read_method):
@@ -409,7 +416,7 @@ class _TouchpadData():  # pylint: disable=W0232
     return cls.cached_data
 
 
-def _ProbeFun(probe_map, probe_class, *arch_targets):
+def _ProbeFun(probe_map, probe_class, *arch_targets):   # pylint: disable=C9011
   """Decorator that populates probe_map.
 
   There can only be one probe function for each arch for each
@@ -419,7 +426,7 @@ def _ProbeFun(probe_map, probe_class, *arch_targets):
 
   Args:
     probe_map: Map to update.
-    comp_class: Probe class for which the probe fun produces results.
+    probe_class: Probe class for which the probe fun produces results.
     arch_targets: List of arches for which the probe is relevant.
   """
   def Decorate(f):
@@ -1059,7 +1066,7 @@ def Probe(target_comp_classes=None,
   can be done afterwards.
 
   Args:
-    component_classes: Which component classes to probe for.  A None
+    target_comp_classes: Which component classes to probe for.  A None
       value implies all classes.
     fast_fw_probe: Do a fast probe for EC and main firmware version. Setting
       this to True implies probe_volatile = False and probe_initial_config =
@@ -1070,6 +1077,7 @@ def Probe(target_comp_classes=None,
       data and return None for the corresponding field.
     probe_vpd: On True, include vpd data in the volatiles (handy for use with
       'gooftool verify_hwid --probe_results=...').
+
   Returns:
     Obj with components, volatile, and initial_config fields, each
     containing the corresponding dict of probe results.
