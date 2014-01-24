@@ -450,8 +450,22 @@ def _InitialConfigProbe(probe_class, *arch_targets):
   return _ProbeFun(_INITIAL_CONFIG_PROBE_MAP, probe_class, *arch_targets)
 
 
-@_ComponentProbe('audio_codec')
-def _ProbeAudioCodec():
+@_ComponentProbe('audio_codec', 'arm')
+def _ProbeAudioCodecArm():
+  """Looks for codec strings in /sys/kernel/debug/asoc/codecs.
+
+  There is a set of known invalid codec names that are not included in the
+  return value.
+  """
+  KNOWN_INVALID_CODEC_NAMES = set(['snd-soc-dummy'])
+  with open('/sys/kernel/debug/asoc/codecs') as f:
+    return [DictCompactProbeStr(codec) for codec in
+            filter(lambda value: value not in KNOWN_INVALID_CODEC_NAMES,
+                   f.read().splitlines())]
+
+
+@_ComponentProbe('audio_codec', 'x86')
+def _ProbeAudioCodecX86():
   """Looks for codec strings in /proc/asound then at PCM details."""
   grep_result = Shell('grep -R "Codec:" /proc/asound/*')
   match_set = set()
