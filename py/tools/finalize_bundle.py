@@ -29,7 +29,7 @@ from cros.factory.tools import build_board
 from cros.factory.tools.make_update_bundle import MakeUpdateBundle
 from cros.factory.tools.mount_partition import MountPartition
 from cros.factory.utils.file_utils import (
-    UnopenedTemporaryFile, CopyFileSkipBytes)
+    UnopenedTemporaryFile, CopyFileSkipBytes, TryUnlink)
 from cros.factory.utils.process_utils import Spawn, CheckOutput
 
 
@@ -38,6 +38,10 @@ GSUTIL_CACHE_DIR = os.path.join(os.environ['HOME'], 'gsutil_cache')
 REQUIRED_GSUTIL_VERSION = [3, 32]  # 3.32
 
 DELETION_MARKER_SUFFIX = '_DELETED'
+
+# Special string to use a local file instead of downloading one
+# (see test_image_version).
+LOCAL = 'local'
 
 def CheckDictHasOnlyKeys(dict_to_check, keys):
   """Makes sure that a dictionary's keys are valid.
@@ -174,9 +178,19 @@ like the following:
   board: link
   self.bundle_name: 20121115_pvt
   mini_omaha_ip: 192.168.4.1
+
   # True to build a factory image based on the test image and a
-  # factory toolkit
+  # factory toolkit.  (If false, the prebuilt factory image is used.)
   use_factory_toolkit: true
+
+  # Use a particular test image version to build the factory image
+  # (applies only if use_factory_toolkit is true).  If not specified,
+  # we'll use the same version as the factory toolkit.  This may also
+  # be a GS URL (to a .tar.xz tarball) to use that particular test image,
+  # or the string 'local' to use the chromiumos_test_image.bin file
+  # already present in the image.
+  test_image_version: 5123.0.0
+
   # Files to download and add to the bundle.
   add_files:
   - install_into: release
@@ -223,7 +237,6 @@ class FinalizeBundle(object):
     mini_omaha_script_path: Path to the script used to start the mini-Omaha
       server.
     new_factory_par: Path to a replacement factory.par.
-    test_image_path: Path to the test image.
     factory_toolkit_path: Path to the factory toolkit.
   """
   args = None
@@ -243,8 +256,10 @@ class FinalizeBundle(object):
   release_image_path = None
   mini_omaha_script_path = None
   new_factory_par = None
-  test_image_path = None
   factory_toolkit_path = None
+  test_image_path = None
+  test_image_version = None
+  toolkit_version = None
 
   def Main(self):
     if not utils.in_chroot():
@@ -315,7 +330,8 @@ class FinalizeBundle(object):
                         'add_files_to_image', 'delete_files_from_image',
                         'site_tests', 'wipe_option', 'files', 'mini_omaha_url',
                         'patch_image_args', 'has_ec',
-                        'use_factory_toolkit', 'complete_script'])
+                        'use_factory_toolkit', 'test_image_version',
+                        'complete_script'])
 
     self.build_board = build_board.BuildBoard(self.manifest['board'])
     self.board = self.build_board.full_name
@@ -338,19 +354,43 @@ class FinalizeBundle(object):
     self.expected_files = set(map(self._SubstVars, self.manifest['files']))
     self.factory_image_path = os.path.join(
         self.bundle_dir, 'factory_test', 'chromiumos_factory_image.bin')
-    self.test_image_path = os.path.join(
-      self.bundle_dir, 'factory_test', 'chromiumos_test_image.bin')
-    self.factory_toolkit_path = os.path.join(
-      self.bundle_dir, 'factory_test', 'install_factory_toolkit.sh')
 
-    # Get the version from the factory test image, or from the test image
-    # if we will use that to build the factory test image.
-    if self.manifest.get('use_factory_toolkit', False):
-      version_source = self.test_image_path
+    # Get the version from the factory test image, or from the factory toolkit
+    # and test image if we will be using those
+    if self.manifest.get('use_factory_toolkit'):
+      self.factory_toolkit_path = os.path.join(
+        self.bundle_dir, 'factory_test', 'install_factory_toolkit.run')
+      output = Spawn([self.factory_toolkit_path, '--info'],
+                     check_output=True).stdout_data
+      match = re.match(
+        r'^Identification: .+ Factory Toolkit(?: (\d+\.\d+.\d+))?$',
+        output, re.MULTILINE)
+      assert match, 'Unable to parse toolkit info: %r' % output
+
+      self.toolkit_version = match.group(1)  # May be None if locally built
+      logging.info('Toolkit version: %s', self.toolkit_version)
+
+      # Use test image version in the MANIFEST if specified; otherwise use
+      # the same one as the toolkit
+      self.test_image_version = self.manifest.get('test_image_version')
+      if self.test_image_version:
+        logging.info('Test image version: %s, as specified in manifest',
+                     self.test_image_version)
+      else:
+        if not self.toolkit_version:
+          raise Exception(
+            'Toolkit version was locally built; unable to automatically '
+            'determine which test image to download')
+        self.test_image_version = self.toolkit_version
+        logging.info('Test image version: %s, same as the toolkit, since '
+                     'no version was specified in the manifest')
+      self.test_image_path = os.path.join(
+        self.bundle_dir, 'factory_test', 'chromiumos_test_image.bin')
     else:
-      version_source = self.factory_image_path
-    with MountPartition(version_source, 3) as mount:
-      self.factory_image_base_version = GetReleaseVersion(mount)
+      with MountPartition(self.factory_image_path, 3) as mount:
+        self.factory_image_base_version = GetReleaseVersion(mount)
+        logging.info('Factory image version: %s',
+                     self.factory_image_base_version)
 
     self.readme_path = os.path.join(self.bundle_dir, 'README')
 
@@ -384,11 +424,61 @@ class FinalizeBundle(object):
               '.'.join(str(x) for x in REQUIRED_GSUTIL_VERSION), version))
 
   def Download(self):
-    if not 'add_files' in self.manifest:
+    need_test_image = (
+      self.test_image_version and self.test_image_version != LOCAL)
+
+    if (not 'add_files' in self.manifest and not need_test_image):
       return
 
     # Make sure gsutil is up to date; older versions are pretty broken.
     self.CheckGSUtilVersion()
+
+    if self.args.download and need_test_image:
+      # We need to download the test image, since it is not included in the
+      # bundle.
+      channels = ['stable', 'beta', 'canary', 'dev']
+
+      if self.test_image_version.startswith('gs://'):
+        try_urls = [self.test_image_version]
+      else:
+        try_urls = []
+        for channel in channels:
+          url = (
+            'gs://chromeos-releases/%(channel)s-channel/%(board)s/'
+            '%(version)s/ChromeOS-test-*-%(version)s-%(board)s.tar.xz' %
+            dict(channel=channel,
+                 board=self.build_board.gsutil_name,
+                 version=self.test_image_version))
+          try_urls.append(url)
+
+      for url in try_urls:
+        try:
+          logging.info('Looking for test image at %s', url)
+          output = Spawn(['gsutil', 'ls', url], log=False, check_output=True,
+                         ignore_stderr=True).stdout_lines()
+        except subprocess.CalledProcessError:
+          # Not found; try next channel
+          continue
+
+        assert len(output) == 1, (
+          'Expected %r to matched 1 files, but it matched %r',
+          url, output)
+
+        # Found.  Download it!
+        cached_file = GSDownload(output[0].strip())
+        break
+      else:
+        raise Exception('Unable to download test image from %r' % try_urls)
+
+      # Untar the test image into place
+      TryUnlink(self.test_image_path)
+      test_image_dir = os.path.dirname(self.test_image_path)
+      logging.info('Extracting test image into %s...', test_image_dir)
+      Spawn(['tar', '-xvvf', cached_file, '-C', test_image_dir],
+            check_call=True)
+
+    if not os.path.exists(self.test_image_path):
+      raise Exception('No test image at %s' % self.test_image_path)
 
     for f in self.manifest['add_files']:
       CheckDictHasOnlyKeys(f, ['install_into', 'source', 'extract_files'])
@@ -1012,7 +1102,12 @@ class FinalizeBundle(object):
         ('Bundle', '%s (created by %s, %s)' % (
             self.bundle_name, os.environ['USER'],
             time.strftime('%a %Y-%m-%d %H:%M:%S %z')))]
-    vitals.append(('Factory image base', self.factory_image_base_version))
+    if self.factory_image_base_version:
+      vitals.append(('Factory image base', self.factory_image_base_version))
+    if self.toolkit_version:
+      vitals.append(('Factory toolkit', self.toolkit_version))
+    if self.test_image_version:
+      vitals.append(('Test image', self.test_image_version))
     with MountPartition(self.factory_image_path, 1) as f:
       vitals.append(('Factory updater MD5SUM', open(
           os.path.join(f, 'dev_image/factory/MD5SUM')).read().strip()))
