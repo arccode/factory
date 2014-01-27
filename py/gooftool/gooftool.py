@@ -18,6 +18,7 @@ import os
 import pipes
 import re
 import sys
+import threading
 import time
 import xmlrpclib
 import yaml
@@ -41,7 +42,6 @@ from cros.factory.hacked_argparse import verbosity_cmd_arg
 from cros.factory.hwdb import hwid_tool
 from cros.factory.hwid import common
 from cros.factory.hwid import hwid_utils
-from cros.factory.test import shopfloor
 from cros.factory.test.factory import FACTORY_LOG_PATH, DEVICE_STATEFUL_PATH
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.privacy import FilterDict
@@ -51,20 +51,29 @@ from cros.factory.privacy import FilterDict
 # treat that specially (as a smoot exit, as opposed to the more
 # verbose output for generic Error).
 
+_global_gooftool = None
+_gooftool_lock = threading.Lock()
 
 def GetGooftool(options):
-  if options.hwid_version == 2:
-    hwdb_path = getattr(options, 'hwdb_path', None)
-    component_db = (
-        hwid_tool.HardwareDb(options.hwdb_path).comp_db if hwdb_path else None)
-    return Gooftool(hwid_version=2, component_db=component_db)
-  elif options.hwid_version == 3:
-    board = getattr(options, 'board', None)
-    hwdb_path = getattr(options, 'hwdb_path', None)
-    return Gooftool(hwid_version=3, board=board, hwdb_path=hwdb_path)
-  else:
-    raise Error, 'Invalid HWID version: %r' % options.hwid_version
+  global _global_gooftool  # pylint: disable=W0603
 
+  if _global_gooftool is None:
+    with _gooftool_lock:
+      if options.hwid_version == 2:
+        hwdb_path = getattr(options, 'hwdb_path', None)
+        component_db = (
+            hwid_tool.HardwareDb(options.hwdb_path).comp_db if hwdb_path
+            else None)
+        _global_gooftool = Gooftool(hwid_version=2, component_db=component_db)
+      elif options.hwid_version == 3:
+        board = getattr(options, 'board', None)
+        hwdb_path = getattr(options, 'hwdb_path', None)
+        _global_gooftool = Gooftool(hwid_version=3, board=board,
+                                    hwdb_path=hwdb_path)
+      else:
+        raise Error, 'Invalid HWID version: %r' % options.hwid_version
+
+  return _global_gooftool
 
 @Command('write_hwid',
          CmdArg('hwid', metavar='HWID', help='HWID string'))
