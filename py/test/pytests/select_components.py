@@ -17,7 +17,7 @@ import logging
 import unittest
 
 from cros.factory.hwid import database
-from cros.factory.hwid import hwid
+from cros.factory.hwid import hwid_utils
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import factory
@@ -100,7 +100,7 @@ class SelectComponentTest(unittest.TestCase):
       self.assertTrue(self.component_choices[field],
           'Field %r is not in hwid database, user should provide'
           ' choices' % field)
-    comp_values = hwid.ListComponents(db, fields_in_db)
+    comp_values = hwid_utils.ListComponents(db, fields_in_db)
     # Updates comp_values with choices from test list.
     comp_values.update(dict((field, self.component_choices[field])
         for field in self.fields if self.component_choices[field]))
