@@ -178,7 +178,7 @@ REGIONS_LIST = [
             'to Swedish keyboard layout, but starts with US English language '
             'for neutrality.  Use if there is a single combined SKU for Nordic '
             'countries.')),
-    Region('ru', 'xkb:ru::rus', 'Europe/Moscow', 'ru', _KML.ANSI, 'Russia'
+    Region('ru', 'xkb:ru::rus', 'Europe/Moscow', 'ru', _KML.ANSI, 'Russia',
            'For R31+ only; R30 and earlier must use US keyboard for login'),
     Region('se', 'xkb:se::swe', 'Europe/Stockholm', 'sv', _KML.ISO, 'Sweden',
            ("Use this if there separate SKUs for Nordic countries (Sweden, "
