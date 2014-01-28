@@ -283,49 +283,5 @@ class ChromeOSBoardTest(unittest.TestCase):
     self.board.SetLEDColor(Board.LEDColor.RED)
     self.mox.VerifyAll()
 
-  def testGetPartition(self):
-    class Dummy(object):
-      """A dummy class to mock Spawn output."""
-      def __init__(self):
-        self.stdout_data = None
-
-    dummy_mmcblk0 = Dummy()
-    dummy_mmcblk0.stdout_data = '/dev/mmcblk0'
-    for _ in xrange(5):
-      self.board._Spawn(
-          ['rootdev', '-d'], check_output=True).AndReturn(dummy_mmcblk0)
-
-    dummy_sda = Dummy()
-    dummy_sda.stdout_data = '/dev/sda'
-    for _ in xrange(5):
-      self.board._Spawn(
-          ['rootdev', '-d'], check_output=True).AndReturn(dummy_sda)
-
-    self.mox.ReplayAll()
-
-    self.assertEquals(self.board.GetPartition(Board.Partition.STATEFUL),
-                      '/dev/mmcblk0p1')
-    self.assertEquals(self.board.GetPartition(Board.Partition.FACTORY_KERNEL),
-                      '/dev/mmcblk0p2')
-    self.assertEquals(self.board.GetPartition(Board.Partition.FACTORY_ROOTFS),
-                      '/dev/mmcblk0p3')
-    self.assertEquals(self.board.GetPartition(Board.Partition.RELEASE_KERNEL),
-                      '/dev/mmcblk0p4')
-    self.assertEquals(self.board.GetPartition(Board.Partition.RELEASE_ROOTFS),
-                      '/dev/mmcblk0p5')
-
-    self.assertEquals(self.board.GetPartition(Board.Partition.STATEFUL),
-                      '/dev/sda1')
-    self.assertEquals(self.board.GetPartition(Board.Partition.FACTORY_KERNEL),
-                      '/dev/sda2')
-    self.assertEquals(self.board.GetPartition(Board.Partition.FACTORY_ROOTFS),
-                      '/dev/sda3')
-    self.assertEquals(self.board.GetPartition(Board.Partition.RELEASE_KERNEL),
-                      '/dev/sda4')
-    self.assertEquals(self.board.GetPartition(Board.Partition.RELEASE_ROOTFS),
-                      '/dev/sda5')
-
-    self.mox.VerifyAll()
-
 if __name__ == '__main__':
   unittest.main()

@@ -9,7 +9,6 @@
 
 
 # pylint: disable=R0922
-import collections
 
 import factory_common # pylint: disable=W0611
 from cros.factory.system.power import Power
@@ -22,21 +21,55 @@ class BoardException(Exception):
 
 
 class Board(object):
-  """Basic board specific interface class."""
+  """Abstract interface for board-specific functionality.
+
+  This class provides an interface for board-specific functionality,
+  such as forcing device charge state, forcing fan speeds, and
+  observing on-board temperature sensors.  In general, these behaviors
+  are implemented with low-level commands such as ``ectool``, so
+  there may be no standard interface to them (e.g., via the ``/sys``
+  filesystem).
+
+  To obtain a :py:class:`cros.factory.system.board.Board` object for
+  the device under test, use the
+  :py:func:`cros.factory.system.GetBoard` function.
+
+  Implementations of this interface should be in the
+  :py:mod:`cros.factory.board` package.  One such implementation,
+  :py:class:`cros.factory.board.chromeos_board.ChromeOSBoard`, mostly
+  implements these behaviors using ``ectool``.  It is mostly concrete
+  but may be further subclassed as necessary.
+
+  In general, this class is only for functionality that may need to be
+  implemented separately on a board-by-board basis.  If there is a
+  standard system-level interface available for certain functionality
+  (e.g., using a Python API, a binary available on all boards, or
+  ``/sys``) then it should not be in this class, but rather wrapped in
+  a class in the :py:mod:`cros.factory.system` module, or in a utility
+  method in :py:mod:`cros.factory.utils`.  See
+  :ref:`board-api-extending`.
+
+  All methods may raise a :py:class:`BoardException` on failure, or a
+  :py:class:`NotImplementedException` if not implemented for this board.
+  """
   ChargeState = Enum(['CHARGE', 'IDLE', 'DISCHARGE'])
+  """An enumeration of possible charge states.
+
+  - ``CHARGE``: Charge the device as usual.
+  - ``IDLE``: Do not charge the device, even if connected to mains.
+  - ``DISCHARGE``: Force the device to discharge.
+  """
 
   LEDColor = Enum(['AUTO', 'OFF', 'RED', 'GREEN', 'BLUE', 'YELLOW', 'WHITE'])
+  """Charger LED colors.
 
-  # Auto fan speed.
+  - ``AUTO``: Use the default logic to select the LED color.
+  - ``OFF``: Turn the LED off.
+  - others: The respective colors.
+  """
+
   AUTO = 'auto'
-
-  # Partitions that factory cares on a factory-installed device.
-  Partition = collections.namedtuple('Partition', ['name', 'index'])
-  Partition.STATEFUL = Partition('STATEFUL', 1)
-  Partition.FACTORY_KERNEL = Partition('FACTORY_KERNEL', 2)
-  Partition.FACTORY_ROOTFS = Partition('FACTORY_ROOTFS', 3)
-  Partition.RELEASE_KERNEL = Partition('RELEASE_KERNEL', 4)
-  Partition.RELEASE_ROOTFS = Partition('RELEASE_ROOTFS', 5)
+  """Constant representing automatic fan speed."""
 
   # Functions that are used in Goofy. Must be implemented.
   def __init__(self):
@@ -49,9 +82,6 @@ class Board(object):
     Returns:
       A list of int indicating the temperatures in Celsius.
       For those sensors which don't have readings, fill None instead.
-
-    Raises:
-      BoardException when fail.
     """
     raise NotImplementedError
 
@@ -62,9 +92,6 @@ class Board(object):
 
     Returns:
       A int indicating the main temperature index.
-
-    Raises:
-      BoardException when fail.
     """
     raise NotImplementedError
 
@@ -73,9 +100,6 @@ class Board(object):
 
     Returns:
       A int indicating the fan RPM.
-
-    Raises:
-      BoardException when fail.
     """
     raise NotImplementedError
 
@@ -84,9 +108,6 @@ class Board(object):
 
     Returns:
       A string of the EC firmware version.
-
-    Raises:
-      BoardException when fail.
     """
     raise NotImplementedError
 
@@ -95,9 +116,6 @@ class Board(object):
 
     Returns:
       A string of the main firmware version.
-
-    Raises:
-      BoardException when fail.
     """
     raise NotImplementedError
 
@@ -122,9 +140,6 @@ class Board(object):
 
     Args:
       state: One of the three states in ChargeState.
-
-    Raises:
-       BoardException when fail.
     """
     raise NotImplementedError
 
@@ -135,9 +150,6 @@ class Board(object):
     Returns:
       A list of str containing the names of all temperature sensors.
       The order must be the same as the returned list from GetTemperatures().
-
-    Raises:
-      BoardException when fail.
     """
     raise NotImplementedError
 
@@ -146,9 +158,6 @@ class Board(object):
 
     Args:
       rpm: Target fan RPM, or Board.AUTO for auto fan control.
-
-    Raises:
-      BoardException when fail.
     """
     raise NotImplementedError
 
@@ -162,9 +171,6 @@ class Board(object):
 
     Returns:
       Integer value read from slave.
-
-    Raises:
-      BoardException when fail.
     """
     raise NotImplementedError
 
@@ -176,9 +182,6 @@ class Board(object):
       addr: I2C slave address.
       reg: Slave register address.
       value: 16-bit value to write.
-
-    Raises:
-       BoardException when fail.
     """
     raise NotImplementedError
 
@@ -187,9 +190,6 @@ class Board(object):
 
     Returns:
       Interger value in mA.
-
-    Raises:
-      BoardException when fail.
     """
     raise NotImplementedError
 
@@ -198,17 +198,11 @@ class Board(object):
 
     Returns:
       Integer value in mA.
-
-    Raises:
-      BoardException when fail.
     """
     raise NotImplementedError
 
   def ProbeEC(self):
     """Says hello to EC.
-
-    Raises:
-      BoardException if EC does not respond correctly.
     """
     raise NotImplementedError
 
@@ -238,24 +232,20 @@ class Board(object):
     """Gets power information.
 
     Returns:
-      The output of ectool powerinfo like
-      AC Voltage: 5143 mV
-      System Voltage: 11753 mV
-      System Current: 1198 mA
-      System Power: 14080 mW
-      USB Device Type: 0x20010
-      USB Current Limit: 2958 mA
-      It can be further parsed by string_utils.ParseDict into a dict.
+      The output of ectool powerinfo, like::
+
+        AC Voltage: 5143 mV
+        System Voltage: 11753 mV
+        System Current: 1198 mA
+        System Power: 14080 mW
+        USB Device Type: 0x20010
+        USB Current Limit: 2958 mA
+
+      It can be further parsed by
+      :py:func:`cros.factory.utils.string_utils.ParseDict` into a
+      dict.
 
     Raises:
       BoardException if power information cannot be obtained.
     """
-    raise NotImplementedError
-
-  def GetRootDev(self):
-    """Gets root block device."""
-    raise NotImplementedError
-
-  def GetPartition(self, partition):
-    """Gets partition path for given Board.Partition."""
     raise NotImplementedError

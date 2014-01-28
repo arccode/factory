@@ -17,6 +17,7 @@ import subprocess
 import threading
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.system import partitions
 from cros.factory.system.board import Board
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
@@ -31,12 +32,13 @@ from cros.factory.utils.process_utils import Spawn
 _board = None
 _lock = threading.Lock()
 def GetBoard():
-  """Initializes a board instance from environment variable
-  CROS_FACTORY_BOARD_CLASS, or use the default board class ChromeOSBoard
-  if the variable is empty.
+  """Returns a board instance for the device under test.
 
-  The board-specific CROS_FACTORY_BOARD_CLASS environment variable is set in
-  board_setup_factory.sh.
+  By default, a
+  :py:class:`cros.factory.board.chromeos_board.ChromeOSBoard` object
+  is returned, but this may be overridden by setting the
+  ``CROS_FACTORY_BOARD_CLASS`` environment variable in
+  ``board_setup_factory.sh``.  See :ref:`board-api-extending`.
 
   Returns:
     An instance of the specified Board class implementation.
@@ -98,7 +100,7 @@ class SystemInfo(object):
         logging.debug('Obtained release image version from SystemInfo: %r',
                       self.release_image_version)
       else:
-        release_rootfs = GetBoard().GetPartition(Board.Partition.RELEASE_ROOTFS)
+        release_rootfs = partitions.RELEASE_ROOTFS.path
         lsb_release = MountDeviceAndReadFile(release_rootfs, '/etc/lsb-release')
         logging.debug('Release image version does not exist in SystemInfo. '
                       'Try to get it from lsb-release from release partition.')

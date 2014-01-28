@@ -15,6 +15,7 @@ import unittest
 import factory_common  # pylint: disable=W0611
 from cros.factory import system
 from cros.factory.system.board import Board
+from cros.factory.system import partitions
 
 MOCK_RELEASE_IMAGE_LSB_RELEASE = "GOOGLE_RELEASE=5264.0.0"
 
@@ -75,11 +76,8 @@ class SystemInfoTest(unittest.TestCase):
     self.mox.UnsetStubs()
 
   def runTest(self):
-    mock_board = self.mox.CreateMock(Board)
-    self.mox.StubOutWithMock(system, 'GetBoard')
-    system.GetBoard().AndReturn(mock_board)
-    mock_board.GetPartition(
-        Board.Partition.RELEASE_ROOTFS).AndReturn('/dev/sda5')
+    self.mox.StubOutWithMock(partitions, 'GetRootDev')
+    partitions.GetRootDev().AndReturn('/dev/sda')
     self.mox.StubOutWithMock(system, 'MountDeviceAndReadFile')
     system.MountDeviceAndReadFile('/dev/sda5', '/etc/lsb-release').AndReturn(
         MOCK_RELEASE_IMAGE_LSB_RELEASE)

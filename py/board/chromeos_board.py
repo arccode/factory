@@ -18,7 +18,14 @@ from cros.factory.utils.process_utils import Spawn
 
 
 class ChromeOSBoard(Board):
-  """Board interface for ChromeOS EC. Uses ectool to access board info."""
+  """Default implementation of the :py:class:`cros.factory.system.board.Board`
+  interface.
+
+  Uses standard CrOS tools (such as ``ectool``) to perform operations.
+
+  This should not be instantiated directly; instead use
+  :py:func:`cros.factory.system.GetBoard`.
+  """
   # pylint: disable=W0223
   GET_FAN_SPEED_RE = re.compile('Current fan RPM: ([0-9]*)')
   TEMPERATURE_RE = re.compile('^(\d+): (\d+)$', re.MULTILINE)
@@ -204,22 +211,3 @@ class ChromeOSBoard(Board):
       self._CallECTool(['led', led_name, color_brightness])
     except Exception as e:
       logging.exception('Unable to set LED color: %s', e)
-
-  def GetRootDev(self):
-    """Gets root block device."""
-    return self._Spawn(['rootdev', '-d'], check_output=True).stdout_data.strip()
-
-  def GetPartition(self, partition):
-    """Gets partition path like /dev/mmcblk0p1 for given Board.Partition.
-
-    Args:
-      partition: A Board.Partition.
-
-    Returns:
-      The partition path.
-    """
-    root_dev = self.GetRootDev()
-    if 'mmcblk' in root_dev:
-      return root_dev + 'p' + str(partition.index)
-    else:
-      return root_dev + str(partition.index)
