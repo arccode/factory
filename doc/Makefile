@@ -26,6 +26,7 @@ COPYRIGHT_HTML = \
   </a><br />This work is licensed under a <a rel="license" \
   href="http://creativecommons.org/licenses/by/3.0/us/">Creative Commons \
   Attribution 3.0 United States License</a>.
+DOC_TITLE_SUFFIX =
 
 .PHONY: help clean html dirhtml singlehtml pickle json htmlhelp qthelp devhelp epub latex latexpdf text man changes linkcheck doctest gettext
 
@@ -55,7 +56,8 @@ clean:
 	-rm -rf $(BUILDDIR)/*
 
 html:
-	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
+	env DOC_TITLE_SUFFIX="$(DOC_TITLE_SUFFIX)" \
+	    $(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	# Add copyright in postprocessing, so we can override this if necessary.
 	COPYRIGHT_HTML='$(COPYRIGHT_HTML)' perl -pi -e \
 	    's/<!--COPYRIGHT_HTML-->/$$ENV{COPYRIGHT_HTML}/g' \
