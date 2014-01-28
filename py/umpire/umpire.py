@@ -11,12 +11,12 @@ Umpire daemon (umpired). "init" command is an exception as umpired is not
 running at that time.
 """
 
-
 import factory_common  # pylint: disable=W0611
 from cros.factory.common import SetupLogging
 from cros.factory.hacked_argparse import (CmdArg, Command, ParseCmdline,
                                           verbosity_cmd_arg)
-from cros.factory.umpire.common import UmpireEnv, UPDATEABLE_RESOURCES
+from cros.factory.umpire.common import (UmpireEnv, UmpireError,
+                                        UPDATEABLE_RESOURCES)
 
 
 @Command('init',
@@ -129,12 +129,50 @@ def Stop(dummy_args, dummy_env):
   raise NotImplementedError
 
 
+@Command('stage')
+def Stage(dummy_args, env):
+  """Stages an Umpire Config file for edit."""
+  env.StageConfigFile(env.config_path)
+
+
+@Command('unstage')
+def Unstage(dummy_args, env):
+  """Unstages staging Umpire Config file."""
+  env.UnstageConfigFile()
+
+
 @Command('import-resource',
          CmdArg('resources', nargs='+',
                 help='Path to resource file(s).'))
 def ImportResource(dummy_args, dummy_env):
   """Imports file(s) to resources folder."""
   raise NotImplementedError
+
+
+def _LoadConfig(args, env):
+  """Loads Umpire config file.
+
+  It loads Umpire config file and stores in UmpireEnv object.
+
+  Args:
+    args: command line arguments
+    env: UmpireEnv object
+
+  Raises:
+    UmpireError if config fails to load.
+  """
+  if args.command_name in ['import-bundle', 'update', 'stage']:
+    # For import-bundle, update and stage command, it writes modified
+    # config file and makes it staging. So no staging config should exist
+    # when running the commands.
+    if env.HasStagingConfigFile():
+      raise UmpireError('A staging config file exists. Please unstage it '
+                        'before import-bundle, update or stage.')
+    env.LoadConfig(custom_path=args.config)
+  elif args.command_name in ['start', 'stop']:
+    env.LoadConfig(custom_path=args.config)
+  elif args.command_name in ['edit', 'deploy']:
+    env.LoadConfig(staging=True, custom_path=args.config)
 
 
 def main():
@@ -145,6 +183,7 @@ def main():
       verbosity_cmd_arg)
   SetupLogging(level=args.verbosity)
   env = UmpireEnv()
+  _LoadConfig(args, env)
   args.command(args, env)
 
 
