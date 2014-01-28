@@ -36,10 +36,13 @@ MAKE_PAR_ARGS=
 
 # TODO(shik): Re-enable R0801 once flash_firmware.py and
 # setup_netboot.py are fixed.
+PYLINT_DISABLE := R0921,R0801,R0922,W0105
+PYLINT_DISABLE := $(PYLINT_DISABLE),C9001,C9002,C9003,C9005,C9006
+PYLINT_DISABLE := $(PYLINT_DISABLE),C9007,C9009,C9010,C9011
 PYLINT_OPTIONS=\
 	--rcfile=$(PYLINTRC) \
 	--ignored-classes=Event,Obj \
-	--disable=R0921,R0801,R0922,W0105 \
+	--disable=$(PYLINT_DISABLE) \
 	--generated-members=test_info,AndReturn,AndRaise,args,objects
 
 LINT_BLACKLIST=\
