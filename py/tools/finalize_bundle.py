@@ -184,11 +184,13 @@ like the following:
   use_factory_toolkit: true
 
   # Use a particular test image version to build the factory image
-  # (applies only if use_factory_toolkit is true).  If not specified,
-  # we'll use the same version as the factory toolkit.  This may also
-  # be a GS URL (to a .tar.xz tarball) to use that particular test image,
-  # or the string 'local' to use the chromiumos_test_image.bin file
-  # already present in the image.
+  # (applies only if use_factory_toolkit is true).  This may be:
+  #
+  #   - unspecified to use the same version as the factory toolkit
+  #   - a particular version (e.g., 5123.0.0)
+  #   - a GS URL (to a .tar.xz tarball)
+  #   - the string 'local' to use the chromiumos_test_image.bin file
+  #     already present in the bundle
   test_image_version: 5123.0.0
 
   # Files to download and add to the bundle.
@@ -379,11 +381,12 @@ class FinalizeBundle(object):
       else:
         if not self.toolkit_version:
           raise Exception(
-            'Toolkit version was locally built; unable to automatically '
+            'Toolkit was built locally or by a tryjob; unable to automatically '
             'determine which test image to download')
         self.test_image_version = self.toolkit_version
         logging.info('Test image version: %s, same as the toolkit, since '
-                     'no version was specified in the manifest')
+                     'no version was specified in the manifest',
+                     self.test_image_version)
       self.test_image_path = os.path.join(
         self.bundle_dir, 'factory_test', 'chromiumos_test_image.bin')
     else:
