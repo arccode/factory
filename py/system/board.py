@@ -68,6 +68,14 @@ class Board(object):
   - others: The respective colors.
   """
 
+  LEDIndex = Enum(['POWER', 'BATTERY', 'ADAPTER'])
+  """LED names.
+
+  - ``POWER``: Power LED.
+  - ``BATTERY``: Battery LED.
+  - ``ADAPTER``: Adapter LED.
+  """
+
   AUTO = 'auto'
   """Constant representing automatic fan speed."""
 
