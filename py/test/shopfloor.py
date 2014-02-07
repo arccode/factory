@@ -214,9 +214,7 @@ def get_instance(url=None, detect=False, timeout=None):
     An object with all public functions from shopfloor.ShopFloorBase.
   """
   if not url:
-    url = get_server_url()
-  if not url and detect:
-    url = detect_default_server_url()
+    url = get_server_url(detect=detect)
   if not url:
     raise Exception(SHOPFLOOR_NOT_CONFIGURED_STR)
   return net_utils.TimeoutXMLRPCServerProxy(
