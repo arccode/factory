@@ -94,7 +94,7 @@ class HWIDV3Test(unittest.TestCase):
           components=hwid_utils.ParseDecodedHWID(decoded_hwid))
       shopfloor.UpdateDeviceData({'hwid': encoded_string})
     else:
-      encoded_string = None
+      encoded_string = hwid_utils.GetHWIDString()
 
     template.SetState(test_ui.MakeLabel(
         'Verifying HWID (v3): %s...' % (
