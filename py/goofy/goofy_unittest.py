@@ -664,6 +664,84 @@ class GroupRunIfTest(GoofyTest):
        'G1.T4': (False, TestState.UNTESTED, '')})
 
 
+class GroupRunIfSkipTest(GoofyTest):
+  '''Tests TestGroup run_if argument and skip method.'''
+  options = '''
+    options.auto_run_on_start = False
+  '''
+  test_list = '''
+    TestGroup(id='G1', run_if='foo.g1', subtests=[
+      OperatorTest(id='T1', autotest_name='a_A', run_if='foo.t1'),
+      OperatorTest(id='T2', autotest_name='a_A', run_if='foo.t2'),
+      OperatorTest(id='T3', autotest_name='a_A', run_if='foo.t3'),
+      OperatorTest(id='T4', autotest_name='a_A'),
+    ])
+  '''
+  def runTest(self):
+    state_instance = factory.get_state_instance()
+
+    def _check_state(id_state_dict):
+      for test_id, skip_status_msg in id_state_dict.iteritems():
+        test_state = state_instance.get_test_state(test_id)
+        skip, status, msg = skip_status_msg
+        self.assertEquals(skip, test_state.skip)
+        self.assertEquals(status, test_state.status)
+        self.assertEquals(msg, test_state.error_msg)
+
+    # Enables group G1, but skips G1.T1.
+    # G1, G1.T2, G1.T3, G1.T4 should not be skipped. Also, they
+    # should be untested.
+    shopfloor.save_aux_data('foo', 'MLB00001',
+        {'g1' : True,
+         't1' : False,
+         't2' : True,
+         't3' : True})
+    self.goofy.update_skipped_tests()
+    _check_state(
+      {'G1': (False, TestState.UNTESTED, None),
+       'G1.T1': (True, TestState.UNTESTED, None),
+       'G1.T2': (False, TestState.UNTESTED, None),
+       'G1.T3': (False, TestState.UNTESTED, None),
+       'G1.T4': (False, TestState.UNTESTED, None)})
+
+    # Runs and Fails G1.T3 test.
+    self.check_one_test('G1.T3', 'a_A', False, 'Uh-oh',
+        trigger=lambda: self.goofy.handle_switch_test(
+        Event(Event.Type.SWITCH_TEST, path='G1.T3')))
+    # Runs and Passes G1.T4 test.
+    self.check_one_test('G1.T4', 'a_A', True, '',
+        trigger=lambda: self.goofy.handle_switch_test(
+        Event(Event.Type.SWITCH_TEST, path='G1.T4')))
+    # Now G1.T3 status is FAILED, and G1.T4 status is PASSED.
+    # Now G1 status is FAILED because G1.T3 status is FAILED.
+    _check_state(
+      {'G1': (False, TestState.FAILED, None),
+       'G1.T1': (True, TestState.UNTESTED, None),
+       'G1.T2': (False, TestState.UNTESTED, None),
+       'G1.T3': (False, TestState.FAILED, 'Uh-oh'),
+       'G1.T4': (False, TestState.PASSED, '')})
+
+    # Skips G1 on purpose. Then all tests should be skipped.
+    # G1.T4 has already passed, so its error_msg should not be modified.
+    self.goofy.test_list.lookup_path('G1').skip()
+    _check_state(
+      {'G1': (True, TestState.PASSED, TestState.SKIPPED_MSG),
+       'G1.T1': (True, TestState.PASSED, TestState.SKIPPED_MSG),
+       'G1.T2': (True, TestState.PASSED, TestState.SKIPPED_MSG),
+       'G1.T3': (True, TestState.PASSED, TestState.SKIPPED_MSG),
+       'G1.T4': (False, TestState.PASSED, '')})
+
+    # update_skipped_tests should not re-enable G1 test group.
+    # It only modifies the skip status of G1.T4 from False to True.
+    self.goofy.update_skipped_tests()
+    _check_state(
+      {'G1': (True, TestState.PASSED, TestState.SKIPPED_MSG),
+       'G1.T1': (True, TestState.PASSED, TestState.SKIPPED_MSG),
+       'G1.T2': (True, TestState.PASSED, TestState.SKIPPED_MSG),
+       'G1.T3': (True, TestState.PASSED, TestState.SKIPPED_MSG),
+       'G1.T4': (True, TestState.PASSED, '')})
+
+
 class StopOnFailureTest(GoofyTest):
   '''A unittest that checks if the goofy will stop after a test fails.'''
   test_list = ABC_TEST_LIST

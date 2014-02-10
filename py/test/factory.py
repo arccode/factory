@@ -1165,13 +1165,27 @@ class FactoryTest(object):
     '''
     return yaml.dump(self.as_dict(state_map))
 
+  def disable_by_run_if(self):
+    """
+    Overwrites properties related to run_if to disable a test.
+
+    Modifies run_if_expr, run_if_not, run_if_table_name so the run_if evaluation
+    will always skip the test.
+    """
+    self.run_if_expr = lambda _: False
+    self.run_if_not = False
+    self.run_if_table_name = None
+
   def skip(self):
     '''
-    Skips this test and any subtests that have not already passed.
+    Skips and passes this test and any subtests that have not passed yet.
 
-    Subtests that have not passed are not modified.  If any subtests were
+    Subtests that have passed are not modified.  If any subtests were
     skipped, this node (if not a leaf node) is marked as skipped as well.
     '''
+    # Modifies run_if argument of this test so it will not be enabled again
+    # when its run_if is evaluated.
+    self.disable_by_run_if()
     skipped_tests = []
     for test in self.walk():
       if not test.subtests and test.get_state().status != TestState.PASSED:
