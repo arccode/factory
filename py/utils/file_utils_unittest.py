@@ -8,6 +8,7 @@
 
 
 import mock
+import mox
 import os
 import re
 import shutil
@@ -66,6 +67,7 @@ class UnopenedTemporaryFileTest(unittest.TestCase):
       self.assertEquals(tempfile.gettempdir(), os.path.dirname(x))
     self.assertFalse(os.path.exists(x))
 
+
 class ReadLinesTest(unittest.TestCase):
   """Unittest for ReadLines."""
   def testNormalFile(self):
@@ -97,6 +99,7 @@ class ReadLinesTest(unittest.TestCase):
 
     lines = file_utils.ReadLines(tmp.name)
     self.assertTrue(lines is None)
+
 
 class TempDirectoryTest(unittest.TestCase):
   """Unittest for TempDirectory."""
@@ -216,6 +219,106 @@ class ExtractFileTest(unittest.TestCase):
                                    'foo.tar.xz', '-C', 'foo_dir', 'bar'],
                                   log=True, check_call=True)
 
+class ForceSymlinkTest(unittest.TestCase):
+  def setUp(self):
+    self.temp_dir = tempfile.mkdtemp()
+
+  def tearDown(self):
+    shutil.rmtree(self.temp_dir)
+
+  def testNoTarget(self):
+    self.assertRaisesRegexp(Exception, 'Missing symlink target',
+                            file_utils.ForceSymlink, '/foo/non_exist_target',
+                            '/foo/non_exist_link')
+  def testNormal(self):
+    target_path = os.path.join(self.temp_dir, 'target')
+    link_path = os.path.join(self.temp_dir, 'link_to_target')
+    file_utils.WriteFile(target_path, 'target')
+
+    file_utils.ForceSymlink(target_path, link_path)
+
+    self.assertTrue(target_path, os.path.realpath(link_path))
+    self.assertTrue('target', file_utils.ReadLines(link_path)[0])
+
+  def testForceOverwrite(self):
+    target_path = os.path.join(self.temp_dir, 'target')
+    link_path = os.path.join(self.temp_dir, 'link_to_target')
+    file_utils.WriteFile(target_path, 'target')
+    file_utils.WriteFile(link_path, 'something else')
+
+    file_utils.ForceSymlink(target_path, link_path)
+
+    self.assertTrue(target_path, os.path.realpath(link_path))
+    self.assertTrue('target', file_utils.ReadLines(link_path)[0])
+
+
+class AtomicCopyTest(unittest.TestCase):
+  def setUp(self):
+    self.temp_dir = tempfile.mkdtemp()
+
+  def tearDown(self):
+    shutil.rmtree(self.temp_dir)
+
+  def testNoSource(self):
+    self.assertRaisesRegexp(IOError, 'Missing source',
+                            file_utils.AtomicCopy,
+                            '/foo/non_exist_source', '/foo/non_exist_dest')
+    self.assertFalse(os.path.exists('/foo/non_exist_source'))
+    self.assertFalse(os.path.exists('/foo/non_exist_dest'))
+
+  def testNormal(self):
+    source_path = os.path.join(self.temp_dir, 'source')
+    dest_path = os.path.join(self.temp_dir, 'dest')
+    file_utils.WriteFile(source_path, 'source')
+    self.assertFalse(os.path.exists(dest_path))
+
+    file_utils.AtomicCopy(source_path, dest_path)
+
+    self.assertTrue(os.path.exists(dest_path))
+    self.assertEqual('source', file_utils.ReadLines(dest_path)[0])
+
+  def testOverwrite(self):
+    source_path = os.path.join(self.temp_dir, 'source')
+    dest_path = os.path.join(self.temp_dir, 'dest')
+    file_utils.WriteFile(source_path, 'source')
+    file_utils.WriteFile(dest_path, 'dest')
+
+    file_utils.AtomicCopy(source_path, dest_path)
+
+    # dest is overwritten.
+    self.assertEqual('source', file_utils.ReadLines(dest_path)[0])
+
+
+  def testCopyFailed(self):
+    m = mox.Mox()
+    m.StubOutWithMock(shutil, 'copy2')
+
+    source_path = os.path.join(self.temp_dir, 'source')
+    dest_path = os.path.join(self.temp_dir, 'dest')
+
+    file_utils.WriteFile(source_path, 'source')
+    file_utils.WriteFile(dest_path, 'dest')
+
+    shutil.copy2(source_path, mox.IgnoreArg()).AndRaise(IOError)
+    m.ReplayAll()
+
+    self.assertRaises(IOError, file_utils.AtomicCopy, source_path,
+                      dest_path)
+    # Verify that dest file is unchanged after a failed copy.
+    self.assertEqual('dest', file_utils.ReadLines(dest_path)[0])
+
+    m.UnsetStubs()
+    m.VerifyAll()
+
+
+class Md5sumInHexTest(unittest.TestCase):
+  def runTest(self):
+    temp_file = tempfile.NamedTemporaryFile(delete=False)
+    temp_file.write('Md5sumInHex test')
+    temp_file.close()
+    self.assertEqual('a7edf9375e036698a408c9777de1ebd1',
+                     file_utils.Md5sumInHex(temp_file.name))
+    os.unlink(temp_file.name)
 
 
 if __name__ == '__main__':

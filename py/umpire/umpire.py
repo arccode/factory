@@ -10,13 +10,20 @@ It parses command line arguments, packs them and makes JSON RPC call to
 Umpire daemon (umpired). "init" command is an exception as umpired is not
 running at that time.
 """
+import os
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.common import SetupLogging
 from cros.factory.hacked_argparse import (CmdArg, Command, ParseCmdline,
                                           verbosity_cmd_arg)
-from cros.factory.umpire.common import (UmpireEnv, UmpireError,
-                                        UPDATEABLE_RESOURCES)
+from cros.factory.umpire.commands import init
+from cros.factory.umpire import common
+from cros.factory.umpire.umpire_env import UmpireEnv
+from cros.factory.utils import file_utils
+
+
+# Default Umpire base directory relative to root dir.
+_DEFAULT_BASE_DIR = os.path.join('var', 'db', 'factory', 'umpire')
 
 
 @Command('init',
@@ -33,8 +40,10 @@ from cros.factory.umpire.common import (UmpireEnv, UmpireError,
          CmdArg('--user', default='umpire',
                 help='the user to run Umpire daemon'),
          CmdArg('--group', default='umpire',
-                help='the group to run Umpire daemon'))
-def Init(dummy_args, dummy_env):
+                help='the group to run Umpire daemon'),
+         CmdArg('bundle_path', default='.',
+                help='Bundle path. If not specified, use local path.'))
+def Init(args, env, root_dir='/'):
   """Initializes or updates an Umpire working environment.
 
   It creates base directory, installs Umpire executables and sets up daemon
@@ -44,14 +53,44 @@ def Init(dummy_args, dummy_env):
 
   If an Umpire environment is already set, running it again will only update
   Umpire executables.
+
+  Args:
+    env: UmpireEnv object.
+    root_dir: Root directory. Used for testing purpose.
   """
-  raise NotImplementedError
+  def GetBoard():
+    """Gets board name.
+
+    It derives board name from bundle's MANIFEST.yaml.
+    """
+    manifest_path = os.path.join(args.bundle_path, common.BUNDLE_MANIFEST)
+    manifest = common.LoadBundleManifest(manifest_path)
+    try:
+      return manifest['board']
+    except:
+      raise common.UmpireError(
+          'Unable to resolve board name from bundle manifest: ' +
+          manifest_path)
+
+  board = args.board if args.board else GetBoard()
+
+  # Sanity check: make sure factory toolkit exists.
+  factory_toolkit_path = os.path.join(args.bundle_path,
+                                      common.BUNDLE_FACTORY_TOOLKIT_PATH)
+  file_utils.CheckPath(factory_toolkit_path, description='factory toolkit')
+
+  base_dir = (args.base_dir if args.base_dir else
+              os.path.join(root_dir, _DEFAULT_BASE_DIR, board))
+  env.base_dir = base_dir
+
+  init.Init(env, args.bundle_path, board, args.default, args.local, args.user,
+            args.group)
 
 
 @Command('import-bundle',
          CmdArg('--id',
-                help=('the target bundle id. If not specified, use bundle_name '
-                      'in bundle\'s MANIFEST.yaml')),
+                help=('the target bundle id. If not specified, use '
+                      'bundle_name in bundle\'s MANIFEST.yaml')),
          CmdArg('bundle_path', default='.',
                 help='Bundle path. If not specified, use local path.'))
 def ImportBundle(dummy_args, dummy_env):
@@ -75,7 +114,7 @@ def ImportBundle(dummy_args, dummy_env):
          CmdArg('resources', nargs='+',
                 help=('resource(s) to update. Format: '
                       '<resource_type>=/path/to/resource where resource_type '
-                      'is one of %s' % ', '.join(UPDATEABLE_RESOURCES))))
+                      'is one of ' + ', '.join(common.UPDATEABLE_RESOURCES))))
 def Update(dummy_args, dummy_env):
   """Updates a specific resource of a bundle.
 
@@ -100,8 +139,8 @@ def Edit(dummy_args, dummy_env):
 def Deploy(dummy_args, dummy_env):
   """Deploys an Umpire service.
 
-  It runs an Umpire service based on the staging Umpire Config (unless specified
-  by --config).
+  It runs an Umpire service based on the staging Umpire Config (unless
+  specified by --config).
   """
   raise NotImplementedError
 
@@ -166,8 +205,9 @@ def _LoadConfig(args, env):
     # config file and makes it staging. So no staging config should exist
     # when running the commands.
     if env.HasStagingConfigFile():
-      raise UmpireError('A staging config file exists. Please unstage it '
-                        'before import-bundle, update or stage.')
+      raise common.UmpireError(
+          'A staging config file exists. Please unstage it before '
+          'import-bundle, update or stage.')
     env.LoadConfig(custom_path=args.config)
   elif args.command_name in ['start', 'stop']:
     env.LoadConfig(custom_path=args.config)

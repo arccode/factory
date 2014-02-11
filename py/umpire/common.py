@@ -8,26 +8,18 @@
 This module provides constants and common Umpire classes.
 """
 
-from errno import ENOENT
 import logging
 import os
+import re
 import yaml
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.utils.file_utils import CheckPath, Md5sumInHex
 from cros.factory.tools.finalize_bundle import Glob
 
 
 UMPIRE_CLI = 'umpire'
 UMPIRE_DAEMON = 'umpired'
-
-# File name under base_dir
-UMPIRE_CONFIG = 'umpire.yaml'
-ACTIVE_UMPIRE_CONFIG = 'active_umpire.yaml'
-STAGING_UMPIRE_CONFIG = 'staging_umpire.yaml'
-UMPIRED_PID_FILE = 'run/umpired.pid'
-UMPIRED_LOG_FILE = 'log/umpired.log'
-
-FACTORY_SOFTWARE_PACK = 'factory.par'
 
 # Resource types which can use "umpire update" to update.
 UPDATEABLE_RESOURCES = ['factory_toolkit', 'firmware', 'fsi', 'hwid']
@@ -45,115 +37,61 @@ RANGE_MATCHERS = set(['sn_range', 'mlb_sn_range'])
 # A set of scalar matchers. It checks DUT value which's key's prefix matches.
 SCALAR_PREFIX_MATCHERS = set(['mac'])
 
+# Length of a resource file's hash, which is the leftmost N digit of
+# the file's MD5SUM in hex format.
+RESOURCE_HASH_DIGITS = 8
+
+# Resource filename format:
+#     <original_filename>#<optional_version>#<n_hex_digit_hash>
+RESOURCE_FILE_PATTERN = re.compile(
+    r'.+#(.*)#([0-9a-f]{%d})$' % RESOURCE_HASH_DIGITS)
+
+# Relative path of factory toolkit in a factory bundle.
+BUNDLE_FACTORY_TOOLKIT_PATH = os.path.join('factory_test',
+                                            'install_factory_toolkit.run')
+BUNDLE_MANIFEST = 'MANIFEST.yaml'
+
 
 class UmpireError(Exception):
   """General umpire exception class."""
   pass
 
 
-class UmpireEnv(object):
-  """Provides accessors of Umpire resources.
+def VerifyResource(res_file):
+  """Verifies a resource file.
 
-  The base directory is obtained in constructor. If a user wants to run
-  locally (e.g. --local is used), just modify self.base_dir to local
-  directory and the accessors will reflect the change.
+  It verifies a file by calculating its md5sum and its leading N-digit
+  should be the same as the filename's hash section.
 
-  Properties:
-    base_dir: Umpire base directory
-    config_path: Path of the Umpire Config file
-    config: Umpire Config object
+  Args:
+    res_file: path to a resource file
+
+  Returns:
+    True if the file's checksum is verified.
   """
-  def __init__(self):
-    self.base_dir = self._GetUmpireBaseDir(os.path.realpath(__file__))
-    if not self.base_dir:
-      logging.info('Umpire base dir not found, use current directory.')
-      self.base_dir = os.getcwd()
-    self.config_path = None
-    self.config = None
+  if not os.path.isfile(res_file):
+    logging.error('VerifyResource: file missing: ' + res_file)
+    return False
+  hashsum = GetHashFromResourceName(res_file)
+  if not hashsum:
+    logging.error('Ill-formed resource filename: ' +  res_file)
+    return False
+  calculated_hashsum = Md5sumInHex(res_file)
+  return calculated_hashsum.startswith(hashsum)
 
-  @staticmethod
-  def _GetUmpireBaseDir(path):
-    """Gets Umpire base directory.
 
-    It resolves Umpire base directory (ended by "umpire") based on the
-    given path.
+def GetHashFromResourceName(res_file):
+  """Gets hash from resource file name.
 
-    Args:
-      path: a path rooted at Umpire base dir.
+  Args:
+    res_file: path to a resource file
 
-    Returns:
-      Umpire base directory; None if "umpire" is not found in path.
-    """
-    while path and path != '/':
-      path, tail = os.path.split(path)
-      if tail == 'umpire':
-        return os.path.join(path, tail)
-    return None
-
-  def GetPidFile(self):
-    return os.path.join(self.base_dir, UMPIRED_PID_FILE)
-
-  def GetLogFile(self):
-    return os.path.join(self.base_dir, UMPIRED_LOG_FILE)
-
-  def GetActiveConfigFile(self):
-    return os.path.join(self.base_dir, ACTIVE_UMPIRE_CONFIG)
-
-  def GetStagingConfigFile(self):
-    return os.path.join(self.base_dir, STAGING_UMPIRE_CONFIG)
-
-  def LoadConfig(self, staging=False, custom_path=None):
-    """Loads Umpire config file.
-
-    It loads user specific file if custom_path is given. Otherwise, it loads
-    staging/active config depending on staging flag.
-    Once the config is loaded, .config and .port is updated accordingly.
-
-    Args:
-      staging: True to load staging config file. Default to load active config
-          file. Unused if custom_path is specified.
-      custom_path: If specified, load the config file custom_path pointing to.
-
-    Raises:
-      UmpireError if it fails to load the config file.
-    """
-    if custom_path:
-      self.config_path = custom_path
-    else:
-      self.config_path = (self.GetStagingConfigFile() if staging else
-                          self.GetActiveConfigFile())
-    # Waiting for UmpireConfig CL.
-    # self.config = UmpireConfig(self.config_path)
-    # self.port = self.config.port
-
-  def HasStagingConfigFile(self):
-    """Checks if a staging config file exists.
-
-    Returns:
-      True if a staging config file exists.
-    """
-    return os.path.isfile(self.GetStagingConfigFile())
-
-  def StageConfigFile(self, config_path):
-    """Staging a config file.
-
-    Args:
-      config_path: a config file to mark as staging.
-    """
-    if self.HasStagingConfigFile():
-      raise UmpireError('Unable to stage a config file as another config is '
-                        'already staged.')
-    source = os.path.realpath(config_path)
-    if not os.path.isfile(source):
-      raise UmpireError('Unable to stage config %s as it doesn\'t exist.' %
-                        source)
-    os.symlink(source, self.GetStagingConfigFile())
-
-  def UnstageConfigFile(self):
-    """Unstage the current staging config file."""
-    if not self.HasStagingConfigFile():
-      raise UmpireError("Unable to unstage as there's no staging config file.")
-    os.unlink(self.GetStagingConfigFile())
+  Returns:
+    hash value in resource file name's tail.
+    None if res_file is ill-formed.
+  """
+  match = RESOURCE_FILE_PATTERN.match(res_file)
+  return None if not match else match.group(2)
 
 
 # pylint: disable=R0901
@@ -192,8 +130,7 @@ def LoadBundleManifest(path, ignore_glob=False):
     IOError if file not found.
     UmpireError if the manifest fail to load and parse.
   """
-  if not os.path.isfile(path):
-    raise IOError(ENOENT, 'Missing factory bundle manifest', path)
+  CheckPath(path, description='factory bundle manifest')
   try:
     loader = (BundleManifestIgnoreGlobLoader if ignore_glob else
               BundleManifestLoader)

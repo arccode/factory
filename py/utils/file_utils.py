@@ -8,6 +8,7 @@
 from contextlib import contextmanager
 
 import errno
+import hashlib
 import logging
 import os
 import re
@@ -135,6 +136,16 @@ def WriteFile(path, data, log=False):
     logging.info('Writing %r to %s', data, path)
   with open(path, 'w') as f:
     f.write(data)
+
+
+def TouchFile(path):
+  """Touches a file.
+
+  Args:
+    path: The path to touch.
+  """
+  with file(path, 'a'):
+    os.utime(path, None)
 
 
 def CopyFileSkipBytes(in_file_name, out_file_name, skip_size):
@@ -269,3 +280,64 @@ def ExtractFile(compressed_file, output_dir, only_extracts=None,
     raise ExtractFileError('Unsupported compressed file: %s' % compressed_file)
 
   return Spawn(cmd, log=True, check_call=True)
+
+
+def ForceSymlink(target, link_name):
+  """Makes a symlink to target even if link_name already exists.
+
+  Args:
+    target: target file path
+    link_name: symlink name.
+
+  Raises:
+    Exception: target is missing
+    OSError: failed to make symlink
+  """
+  if not os.path.exists(target):
+    raise Exception('Missing symlink target: ' + target)
+  TryUnlink(link_name)
+  os.symlink(target, link_name)
+
+
+def CheckPath(path, description=None):
+  """Checks if the path exists.
+
+  It raises IOError with default message "No such file or directory" if
+  path not found. If file_type is given, the error message becomes:
+  "Missing file_type".
+
+  Args:
+    path: path to check
+    description: the description of the path to check, e.g. "factory bundle".
+
+  Raises:
+    IOError
+  """
+  if not os.path.exists(path):
+    message = ('Missing ' + description if description else
+               'No such file or directory')
+    raise IOError(errno.ENOENT, message, path)
+
+
+def AtomicCopy(source, dest):
+  """Copies source file to dest in an atomic manner.
+
+  It copies source to a temporary file first. Then renames the temp file to
+  dest. It avoids interrupting others reading the dest file while copying.
+
+  Args:
+    source: source filename
+    dest: destination filename
+  """
+  CheckPath(source, description='source')
+  with UnopenedTemporaryFile() as temp_path:
+    shutil.copy2(source, temp_path)
+    os.rename(temp_path, dest)
+
+
+def Md5sumInHex(filename):
+  """Gets hex coded md5sum of input file."""
+  # pylint: disable=E1101
+  return hashlib.md5(
+      open(filename, 'rb').read()).hexdigest()
+
