@@ -146,3 +146,18 @@ def MakeSet(value):
       not isinstance(value, basestring)):
     return set(value)
   return set([value])
+
+
+def CheckDictKeys(dict_to_check, allowed_keys):
+  """Makes sure that a dictionary's keys are valid.
+
+  Args:
+    dict_to_check: A dictionary.
+    allowed_keys: The set of allowed keys in the dictionary.
+  """
+  if not isinstance(dict_to_check, dict):
+    raise TypeError('Expected dict but found %s' % type(dict_to_check))
+
+  extra_keys = set(dict_to_check) - set(allowed_keys)
+  if extra_keys:
+    raise ValueError('Found extra keys: %s' % list(extra_keys))

@@ -8,7 +8,6 @@
 
 import logging
 import os
-import sys
 import yaml
 
 import factory_common # pylint: disable=W0611
@@ -180,9 +179,8 @@ def VerifyHWIDDatabase(options):
 
 def ParseOptions(args=None):
   """Parse arguments and generate necessary options."""
-  if not args:
-    args = sys.argv[1:]
-  return ParseCmdline('HWID command-line utilities', *_COMMON_ARGS)
+  return ParseCmdline('HWID command-line utilities', *_COMMON_ARGS,
+                      args_to_parse=args)
 
 
 def InitializeDefaultOptions(options):

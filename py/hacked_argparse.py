@@ -8,8 +8,12 @@
 import inspect
 import logging
 import re
+import sys
 
 from argparse import ArgumentParser, Action
+
+import factory_common   # pylint: disable=W0611
+from cros.factory.common import CheckDictKeys
 
 
 class HackedArgParser(ArgumentParser):
@@ -99,12 +103,15 @@ def Command(cmd_name, *args):
   return Decorate
 
 
-def ParseCmdline(top_level_description, *common_args):  # pylint: disable=C9011
+def ParseCmdline(top_level_description, *common_args, **kwargs):
   """Return object containing all argparse-processed command line data.
 
   The list of subcommands is taken from the SUB_CMD_LIST_ATTR
   attribute of the caller module.
   """
+  # pylint: disable=C9011
+  CheckDictKeys(kwargs, ['args_to_parse'])
+
   common_parser = HackedArgParser(add_help=False)
   for (tags, kvargs) in common_args:
     common_parser.add_argument(*tags, **kvargs)
@@ -124,4 +131,4 @@ def ParseCmdline(top_level_description, *common_args):  # pylint: disable=C9011
     subparser.set_defaults(command_name=cmd_name, command=fun)
     for (tags, kvargs) in arg_list:
       subparser.add_argument(*tags, **kvargs)
-  return parser.parse_args()
+  return parser.parse_args(kwargs.get('args_to_parse', sys.argv[1:]))

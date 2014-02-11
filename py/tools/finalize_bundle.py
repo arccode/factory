@@ -23,6 +23,7 @@ from distutils.version import LooseVersion
 from pkg_resources import parse_version
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.common import CheckDictKeys
 from cros.factory.test import factory
 from cros.factory.test import utils
 from cros.factory.tools import build_board
@@ -42,20 +43,6 @@ DELETION_MARKER_SUFFIX = '_DELETED'
 # Special string to use a local file instead of downloading one
 # (see test_image_version).
 LOCAL = 'local'
-
-def CheckDictHasOnlyKeys(dict_to_check, keys):
-  """Makes sure that a dictionary's keys are valid.
-
-  Args:
-    dict_to_check: A dictionary.
-    keys: The set of allowed keys in the dictionary.
-  """
-  if not isinstance(dict_to_check, dict):
-    raise TypeError('Expected dict but found %s' % type(dict_to_check))
-
-  extra_keys = set(dict_to_check) - set(keys)
-  if extra_keys:
-    raise ValueError('Found extra keys: %s' % list(extra_keys))
 
 
 class Glob(object):
@@ -94,7 +81,7 @@ class Glob(object):
   def Construct(loader, node):
     """YAML constructor."""
     value = loader.construct_mapping(node)
-    CheckDictHasOnlyKeys(value, ['include', 'exclude'])
+    CheckDictKeys(value, ['include', 'exclude'])
     return Glob(value['include'], value.get('exclude', None))
 
 
@@ -327,7 +314,7 @@ class FinalizeBundle(object):
     yaml.add_constructor('!glob', Glob.Construct)
     self.manifest = yaml.load(open(
         os.path.join(self.args.dir, 'MANIFEST.yaml')))
-    CheckDictHasOnlyKeys(
+    CheckDictKeys(
         self.manifest, ['board', 'bundle_name', 'add_files', 'delete_files',
                         'add_files_to_image', 'delete_files_from_image',
                         'site_tests', 'wipe_option', 'files', 'mini_omaha_url',
@@ -484,7 +471,7 @@ class FinalizeBundle(object):
       raise Exception('No test image at %s' % self.test_image_path)
 
     for f in self.manifest['add_files']:
-      CheckDictHasOnlyKeys(f, ['install_into', 'source', 'extract_files'])
+      CheckDictKeys(f, ['install_into', 'source', 'extract_files'])
       dest_dir = os.path.join(self.bundle_dir, f['install_into'])
       utils.TryMakeDirs(dest_dir)
 
