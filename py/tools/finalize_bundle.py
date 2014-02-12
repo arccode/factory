@@ -27,14 +27,13 @@ from cros.factory.common import CheckDictKeys
 from cros.factory.test import factory
 from cros.factory.test import utils
 from cros.factory.tools import build_board
+from cros.factory.tools.gsutil import GSUtil
 from cros.factory.tools.make_update_bundle import MakeUpdateBundle
 from cros.factory.tools.mount_partition import MountPartition
 from cros.factory.utils.file_utils import (
     UnopenedTemporaryFile, CopyFileSkipBytes, TryUnlink)
 from cros.factory.utils.process_utils import Spawn, CheckOutput
 
-
-GSUTIL_CACHE_DIR = os.path.join(os.environ['HOME'], 'gsutil_cache')
 
 REQUIRED_GSUTIL_VERSION = [3, 32]  # 3.32
 
@@ -83,33 +82,6 @@ class Glob(object):
     value = loader.construct_mapping(node)
     CheckDictKeys(value, ['include', 'exclude'])
     return Glob(value['include'], value.get('exclude', None))
-
-
-def GSDownload(url):
-  """Downloads a file from Google storage, returning the path to the file.
-
-  Downloads are cached in GSUTIL_CACHE_DIR.
-
-  Args:
-    url: URL to download.
-
-  Returns:
-    Path to the downloaded file.  The returned path may have an arbitrary
-    filename.
-  """
-  utils.TryMakeDirs(os.path.dirname(GSUTIL_CACHE_DIR))
-
-  cached_path = os.path.join(GSUTIL_CACHE_DIR, url.replace('/', '!'))
-  if os.path.exists(cached_path):
-    logging.info('Using cached %s (%.1f MiB)',
-                 url, os.path.getsize(cached_path) / (1024.*1024.))
-    return cached_path
-
-  in_progress_path = cached_path + '.INPROGRESS'
-  Spawn(['gsutil', '-m', 'cp', url, 'file://' + in_progress_path],
-        check_call=True, log=True)
-  shutil.move(in_progress_path, cached_path)
-  return cached_path
 
 
 def GetReleaseVersion(mount_point):
@@ -455,7 +427,7 @@ class FinalizeBundle(object):
           url, output)
 
         # Found.  Download it!
-        cached_file = GSDownload(output[0].strip())
+        cached_file = GSUtil.GSDownload(output[0].strip())
         break
       else:
         raise Exception('Unable to download test image from %r' % try_urls)
@@ -467,8 +439,8 @@ class FinalizeBundle(object):
       Spawn(['tar', '-xvvf', cached_file, '-C', test_image_dir],
             check_call=True)
 
-    if not os.path.exists(self.test_image_path):
-      raise Exception('No test image at %s' % self.test_image_path)
+      if not os.path.exists(self.test_image_path):
+        raise Exception('No test image at %s' % self.test_image_path)
 
     for f in self.manifest['add_files']:
       CheckDictKeys(f, ['install_into', 'source', 'extract_files'])
@@ -482,7 +454,7 @@ class FinalizeBundle(object):
       source = self._SubstVars(f['source'])
 
       if self.args.download:
-        cached_file = GSDownload(source)
+        cached_file = GSUtil.GSDownload(source)
 
       if f.get('extract_files'):
         # Gets netboot install shim version from source url since version
