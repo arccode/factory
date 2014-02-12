@@ -50,7 +50,7 @@ class Region(object):
 
   keyboard = None
   """An XKB keyboard layout identifier (e.g., ``xkb:us:intl:eng``);
-  see `input_method_util.cc <http://goo.gl/3aJnl>`_ and
+  see `input_method_util.cc <http://goo.gl/cDO53r>`_ and
   `input_methods.txt <http://goo.gl/xWNrUP>`_ for supported keyboards.
   Note that the keyboard must be whitelisted for login, i.e.,
   the respective line in `input_methods.txt <http://goo.gl/xWNrUP>`_ must
