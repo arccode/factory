@@ -7,6 +7,7 @@
 """Unittest for file_utils.py."""
 
 
+import mock
 import os
 import re
 import tempfile
@@ -161,6 +162,41 @@ class CopyFileSkipBytesTest(unittest.TestCase):
       result = o.read()
       self.assertEquals(len(result), 10000 - 5)
       self.assertTrue(result.startswith('67890'))
+
+
+class ExtractFileTest(unittest.TestCase):
+  """Unit tests for ExtractFile."""
+  @mock.patch.object(file_utils, 'Spawn', return_value=True)
+  def testExtractZip(self, mock_spawn):
+    file_utils.ExtractFile('foo.zip', 'foo_dir')
+    mock_spawn.assert_called_with(['unzip', '-o', 'foo.zip', '-d', 'foo_dir'],
+                                  log=True, check_call=True)
+
+    file_utils.ExtractFile('foo.zip', 'foo_dir', only_extracts=['bar', 'buz'])
+    mock_spawn.assert_called_with(['unzip', '-o', 'foo.zip', '-d', 'foo_dir',
+                                   'bar', 'buz'], log=True, check_call=True)
+
+    file_utils.ExtractFile('foo.zip', 'foo_dir', only_extracts=['bar', 'buz'],
+                           overwrite=False)
+    mock_spawn.assert_called_with(['unzip', 'foo.zip', '-d', 'foo_dir',
+                                   'bar', 'buz'], log=True, check_call=True)
+
+  @mock.patch.object(file_utils, 'Spawn', return_value=True)
+  def testExtractTar(self, mock_spawn):
+    file_utils.ExtractFile('foo.tar.gz', 'foo_dir')
+    mock_spawn.assert_called_with(['tar', '-xvvf', 'foo.tar.gz', '-C',
+                                   'foo_dir'], log=True, check_call=True)
+
+    file_utils.ExtractFile('foo.tbz2', 'foo_dir', only_extracts=['bar', 'buz'])
+    mock_spawn.assert_called_with(['tar', '-xvvf', 'foo.tbz2', '-C', 'foo_dir',
+                                   'bar', 'buz'], log=True, check_call=True)
+
+    file_utils.ExtractFile('foo.tar.xz', 'foo_dir', only_extracts='bar',
+                           overwrite=False)
+    mock_spawn.assert_called_with(['tar', '-xvvf', '--keep-old-files',
+                                   'foo.tar.xz', '-C', 'foo_dir', 'bar'],
+                                  log=True, check_call=True)
+
 
 
 if __name__ == '__main__':

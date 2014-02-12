@@ -15,6 +15,7 @@ import shutil
 import tempfile
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.common import MakeList
 from cros.factory.test import utils
 from cros.factory.tools import mount_partition
 from cros.factory.utils.process_utils import Spawn
@@ -199,3 +200,44 @@ def MountDeviceAndReadFile(device, path):
     content = open(
         os.path.join(mount_point, path)).read()
   return content
+
+
+class ExtractFileError(Exception):
+  """Failure of extracting compressed file."""
+  pass
+
+
+def ExtractFile(compressed_file, output_dir, only_extracts=None,
+                overwrite=True):
+  """Extracts compressed file to output folder.
+
+  Args:
+    compressed_file: Path to a compressed file.
+    output_dir: The path to the output directory.
+    only_extracts: An optional list of files to extract from the given
+      compressed file.
+    overwrite: Whether to overwrite existing files without prompt.  Defaults to
+      True.
+
+  Raises:
+    ExtractFileError if the method fails to extract the file.
+  """
+  utils.TryMakeDirs(output_dir)
+  logging.info('Extracting %s to %s', compressed_file, output_dir)
+  only_extracts = MakeList(only_extracts) if only_extracts else []
+  if only_extracts:
+    logging.info('Extracts only file(s): %s', only_extracts)
+
+  if compressed_file.endswith('.zip'):
+    overwrite_opt = ['-o'] if overwrite else []
+    cmd = (['unzip'] + overwrite_opt + [compressed_file] +
+           ['-d', output_dir] + only_extracts)
+  elif (any(compressed_file.endswith(suffix) for suffix in
+            ('.tar.bz2', '.tbz2', '.tar.gz', '.tgz', 'tar.xz', '.txz'))):
+    overwrite_opt = [] if overwrite else ['--keep-old-files']
+    cmd = (['tar', '-xvvf'] + overwrite_opt + [compressed_file] +
+           ['-C', output_dir] + only_extracts)
+  else:
+    raise ExtractFileError('Unsupported compressed file: %s' % compressed_file)
+
+  return Spawn(cmd, log=True, check_call=True)
