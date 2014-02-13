@@ -26,6 +26,19 @@ FACTORY_SOFTWARE_PACK = 'factory.par'
 # Resource types which can use "umpire update" to update.
 UPDATEABLE_RESOURCES = ['factory_toolkit', 'firmware', 'fsi', 'hwid']
 
+# Valid keys in DUT info.
+DUT_INFO_KEYS = set(['sn', 'mlb_sn', 'board', 'firmware', 'ec'])
+
+# List of valid key prefix in DUT info. For example, a DUT may have several
+# MACs, like mac.eth0, mac.wlan0. It accepts those keys with prefix 'mac'.
+DUT_INFO_KEY_PREFIX = ['mac']
+
+# Valid matchers for ruleset.
+SCALAR_MATCHERS = set(['sn', 'mlb_sn'])
+RANGE_MATCHERS = set(['sn_range', 'mlb_sn_range'])
+# A set of scalar matchers. It checks DUT value which's key's prefix matches.
+SCALAR_PREFIX_MATCHERS = set(['mac'])
+
 
 class UmpireError(Exception):
   """General umpire exception class."""
