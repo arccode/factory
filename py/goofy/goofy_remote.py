@@ -14,7 +14,6 @@ import os
 import pipes
 import re
 import sys
-import tempfile
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
@@ -22,13 +21,11 @@ from cros.factory.test.e2e_test.common import AutomationMode
 from cros.factory.test.test_lists import test_lists
 from cros.factory.test.utils import Retry, in_chroot
 from cros.factory.utils import file_utils
+from cros.factory.utils.ssh_utils import SpawnSSHToDUT, SpawnRsyncToDUT
 from cros.factory.utils.process_utils import Spawn
 
 
 SRCROOT = os.environ.get('CROS_WORKON_SRCROOT')
-
-ssh_command = None  # set in main
-rsync_command = None
 
 
 class GoofyRemoteException(Exception):
@@ -38,8 +35,8 @@ class GoofyRemoteException(Exception):
 
 def GetBoard(host):
   logging.info('Checking release board on %s...', host)
-  release = Spawn(ssh_command + [host, 'cat /etc/lsb-release'],
-                  check_output=True, log=True).stdout_data
+  release = SpawnSSHToDUT([host, 'cat /etc/lsb-release'],
+                          check_output=True, log=True).stdout_data
   match = re.search(r'^CHROMEOS_RELEASE_BOARD=(.+)', release, re.MULTILINE)
   if not match:
     logging.warn('Unable to determine release board')
@@ -156,27 +153,12 @@ def main():
   if not SRCROOT:
     sys.exit('goofy_remote must be run from within the chroot')
 
-  # Copy testing_rsa into a private file since otherwise ssh will ignore it
-  testing_rsa = tempfile.NamedTemporaryFile(prefix='testing_rsa.')
-  testing_rsa.write(open(os.path.join(
-      SRCROOT, 'src/scripts/mod_for_test_scripts/ssh_keys/testing_rsa')).read())
-  testing_rsa.flush()
-  os.fchmod(testing_rsa.fileno(), 0400)
-
-  global ssh_command, rsync_command  # pylint: disable=W0603
-  ssh_command = ['ssh',
-                 '-o', 'IdentityFile=%s' % testing_rsa.name,
-                 '-o', 'UserKnownHostsFile=/dev/null',
-                 '-o', 'User=root',
-                 '-o', 'StrictHostKeyChecking=no']
-  rsync_command = ['rsync', '-e', ' '.join(ssh_command)]
-
   Spawn(['make', '--quiet'], cwd=factory.FACTORY_PATH,
         check_call=True, log=True)
   board = args.board or GetBoard(args.host)
 
   if args.autotest:
-    Spawn(rsync_command +
+    SpawnRsyncToDUT(
           ['-aC', '--exclude', 'tests'] +
           [os.path.join(SRCROOT, 'src/third_party/autotest/files/client/'),
            '%s:/usr/local/autotest/' % args.host],
@@ -194,12 +176,12 @@ def main():
 
   for private_path in private_paths:
     if os.path.isdir(private_path):
-      Spawn(rsync_command +
+      SpawnRsyncToDUT(
             ['-aC', '--exclude', 'bundle'] +
             [private_path + '/', '%s:/usr/local/factory/' % args.host],
             check_call=True, log=True)
 
-  Spawn(rsync_command +
+  SpawnRsyncToDUT(
         ['-aC', '--exclude', '*.pyc'] +
         [os.path.join(factory.FACTORY_PATH, x)
          for x in ('bin', 'py', 'py_pkg', 'sh', 'third_party')] +
@@ -207,10 +189,9 @@ def main():
         check_call=True, log=True)
 
   # Call goofy_remote on the remote host, allowing it to tweak test lists.
-  Spawn(ssh_command +
-        [args.host, 'goofy_remote', '--local'] +
-        [pipes.quote(x) for x in sys.argv[1:]],
-        check_call=True, log=True)
+  SpawnSSHToDUT([args.host, 'goofy_remote', '--local'] +
+                [pipes.quote(x) for x in sys.argv[1:]],
+                check_call=True, log=True)
 
   if args.hwid:
     if not board:
@@ -220,21 +201,21 @@ def main():
         os.path.dirname(factory.FACTORY_PATH), 'chromeos-hwid')
     Spawn(['./create_bundle', '--version', '3', hwid_board.upper()],
           cwd=chromeos_hwid_path, check_call=True, log=True)
-    Spawn(ssh_command + [args.host, 'bash'],
-          stdin=open(os.path.join(chromeos_hwid_path,
-                                  'hwid_v3_bundle_%s.sh' % hwid_board.upper())),
-          check_call=True, log=True)
+    SpawnSSHToDUT([args.host, 'bash'],
+                  stdin=open(os.path.join(
+                      chromeos_hwid_path,
+                      'hwid_v3_bundle_%s.sh' % hwid_board.upper())),
+                  check_call=True, log=True)
 
   if args.restart:
-    Spawn(ssh_command +
-          [args.host, '/usr/local/factory/bin/factory_restart'] +
-          (['-a'] if args.clear_state else []) +
-          ['--automation-mode', '%s' % args.automation_mode],
-          check_call=True, log=True)
+    SpawnSSHToDUT([args.host, '/usr/local/factory/bin/factory_restart'] +
+                  (['-a'] if args.clear_state else []) +
+                  ['--automation-mode', '%s' % args.automation_mode],
+                  check_call=True, log=True)
 
   if args.run_test:
     def GoofyRpcRunTest():
-      return Spawn(ssh_command +
+      return SpawnSSHToDUT(
           [args.host, 'goofy_rpc', r'RunTest\(\"%s\"\)' % args.run_test],
           check_call=True, log=True)
     Retry(max_retry_times=10, interval=5, callback=None, target=GoofyRpcRunTest)
