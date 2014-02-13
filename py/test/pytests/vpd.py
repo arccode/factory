@@ -351,6 +351,13 @@ class VPDTest(unittest.TestCase):
         'useable only in engineering mode. The dict should be of the format: '
         '{"ro": { RO_VPD key-value pairs }, "rw": { RW_VPD key-value pairs }}',
         default=None, optional=True),
+    Arg('override_vpd_entries', dict,
+        'A dict of override VPD entries. Unlike override_vpd, it only '
+        'overrides some key-value pairs instead of the whole VPD section.'
+        'It does not require engineering mode. The dict should be of the '
+        'format: {"ro": { RO_VPD key-value pairs }, "rw": { RW_VPD key-value '
+        'pairs }}',
+        default=None, optional=True),
     Arg('store_registration_codes', bool,
         'Whether to store registration codes onto the machine.', default=False),
     Arg('task_list', list, 'A list of tasks to execute.',
@@ -424,6 +431,12 @@ class VPDTest(unittest.TestCase):
         self.ui.Fail('override_vpd is allowed only in engineering mode.')
         return
 
+    if self.args.override_vpd and self.args.override_vpd_entries:
+      self.ui.Fail(
+          'override_vpd and override_vpd_entries cannot be enabled at the '
+          'same time.')
+      return
+
     # Check format of extra_device_data_fields parameter.
     for i in self.args.extra_device_data_fields:
       self.assertTrue(isinstance(i, tuple), i)
@@ -449,6 +462,10 @@ class VPDTest(unittest.TestCase):
               self, VPDInfo(v[0], v[1], v[2], v[3], v[4]))]
         if self.VPDTasks.region in self.args.task_list:
           self.tasks += [SelectRegionTask(self)]
+      if self.args.override_vpd_entries:
+        for vpd_section, key_value_dict in (
+            self.args.override_vpd_entries.iteritems()):
+          self.vpd[vpd_section].update(key_value_dict)
     self.tasks += [WriteVPDTask(self)]
 
   def runTest(self):
