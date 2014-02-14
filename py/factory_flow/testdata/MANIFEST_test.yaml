@@ -1,0 +1,131 @@
+board: daisy_spring
+bundle_name: 20130604_dvt
+mini_omaha_url: http://10.3.0.11:8080/update
+
+# Files to add into the bundle. You can use ${FACTORY_IMAGE_BASE_VERSION} here
+# to refer to the factory_image.zip version you are using.
+add_files:
+- install_into: factory_shim
+  source: 'gs://chromeos-releases/canary-channel/daisy-spring/4131.73.0/chromeos_4131.73.0_daisy-spring_factory_canary-channel_premp.bin'
+- install_into: release
+  source: 'gs://chromeos-releases/beta-channel/daisy-spring/4100.20.0/chromeos_4100.20.0_daisy-spring_recovery_beta-channel_premp.bin'
+- install_into: netboot_firmware
+  extract_files: [ec.bin, nv_image-spring.bin]
+  source: 'gs://chromeos-releases/canary-channel/daisy-spring/3824.42.0/ChromeOS-firmware-R27-3824.42.0-daisy-spring.tar.bz2'
+- install_into: .
+  extract_files: [factory_shim/netboot/vmlinux.uimg]
+  source: 'gs://chromeos-releases/canary-channel/daisy-spring/4131.73.0/ChromeOS-factory-R29-4131.73.0-daisy-spring.zip'
+
+# install_into is the relative path under /mnt/dev_image/
+add_files_to_image:
+- install_into: factory/board
+  source: netboot_firmware/nv_image-spring.bin
+
+delete_files:
+- factory_shim/factory_install_shim.bin
+- factory_shim/netboot/nv_image-daisy.bin
+- factory_shim/netboot/nv_image-smdk5250.bin
+- factory_shim/netboot/nv_image-snow.bin
+- factory_shim/netboot/nv_image-spring.bin
+- hwid/hwid_bundle_SPRING_all.sh
+- hwid/hwid_v3_bundle_DAISY_SPRING.sh
+
+delete_files_from_image:
+- var_overlay/db/pkg
+- !glob
+  include: dev_image/autotest/deps/*
+  exclude:
+  - dev_image/autotest/deps/audioloop
+  - dev_image/autotest/deps/sox
+  - dev_image/autotest/deps/test_tones
+- dev_image/autotest/deps/sox/src
+- dev_image/autotest/deps/test_tones/fftw
+- !glob
+  include: dev_image/autotest/site_tests/*
+  exclude:
+  - dev_image/autotest/site_tests/factory_AudioLoop
+  - dev_image/autotest/site_tests/factory_AudioQuality
+  - dev_image/autotest/site_tests/factory_BasicWifi
+  - dev_image/autotest/site_tests/factory_CameraPerformanceAls
+  - dev_image/autotest/site_tests/factory_Finalize
+  - dev_image/autotest/site_tests/hardware_SAT
+  - dev_image/autotest/site_tests/suite_Factory
+- dev_image/telemetry
+- dev_image/lib/portage
+- dev_image/lib/debug/usr/lib/gconv
+- !glob { include: dev_image/*-cros-linux-gnueabi }
+- !glob { include: dev_image/lib/python2.*/lib2to3 }
+- !glob { include: dev_image/lib/python2.*/test }
+
+# Wipe option must be one of 'shutdown', 'battery_cut_off', 'reboot'.
+wipe_option:
+- battery_cut_off
+
+# Files that are expected in the bundle.  You can use ${BOARD} here to
+# refer to the simple board name (in uppercase).  Files in 'add_files' need
+# not be listed here.
+files:
+- MANIFEST.yaml
+- README
+- factory_setup/bin/cgpt
+- factory_setup/bin/futility
+- factory_setup/bin/old_bins/cgpt
+- factory_setup/complete_script.sh
+- factory_setup/extract_firmware_updater.sh
+- factory_setup/factory_common.sh
+- factory_setup/fmap.py
+- factory_setup/lib/chromeos-common.sh
+- factory_setup/lib/cros_image_common.sh
+- factory_setup/lib/shflags
+- factory_setup/make_factory_package.sh
+- factory_setup/make_universal_factory_shim.sh
+- factory_setup/miniomaha.py
+- factory_setup/miniomaha_engine.py
+- factory_setup/miniomaha_test.py
+- factory_setup/mk_memento_images.sh
+- factory_setup/modify_netboot_ip.sh
+- factory_setup/mount_partition.sh
+- factory_setup/update_firmware_vars.py
+- factory_setup/update_firmware_settings.py
+- factory_shim/netboot/vmlinux.uimg
+- factory_shim/pack_partitions.sh
+- factory_shim/unpack_partitions.sh
+- factory_test/chromiumos_factory_image.bin
+- factory_test/pack_partitions.sh
+- factory_test/unpack_partitions.sh
+# Fixture parameters
+- fixtures/README
+- fixtures/camera/camera.params.RMA
+- fixtures/camera/camera.params.FATP
+- fixtures/camera/camera.params.IQC
+- fixtures/camera/camera.params.OQC
+- fixtures/camera/camera.params.Production
+# These are netboot firmwares.
+- netboot_firmware/nv_image-spring.bin
+- netboot_firmware/ec.bin
+# HWID bundle.
+- hwid/hwid_v3_bundle_SPRING.sh
+# Shopfloor files.
+- shopfloor/README
+- shopfloor/factory.par
+- shopfloor/manage
+- shopfloor/minijack
+- shopfloor/overlay.zip
+- shopfloor/shopfloor_data/mlbs.csv
+- shopfloor/shopfloor_data/update/factory.tar.bz2
+- shopfloor/shopfloor_module.txt
+- shopfloor/shopfloor_server
+- shopfloor/spring_mock_shopfloor_backend
+- shopfloor/start_mock_shopfloor
+- shopfloor/shopfloor.template
+# Generated mini-Omaha data files.
+- factory_setup/miniomaha.conf
+- factory_setup/static/complete.gz
+- factory_setup/static/efi.gz
+- factory_setup/static/firmware.gz
+- factory_setup/static/hwid.gz
+- factory_setup/static/oem.gz
+- factory_setup/static/rootfs-release.gz
+- factory_setup/static/rootfs-test.gz
+- factory_setup/static/state.gz
+- start_download_server.sh

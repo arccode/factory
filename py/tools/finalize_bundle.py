@@ -83,6 +83,12 @@ class Glob(object):
     CheckDictKeys(value, ['include', 'exclude'])
     return Glob(value['include'], value.get('exclude', None))
 
+  @staticmethod
+  def Represent(representer, node):
+    """YAML representer."""
+    return representer.represent_mapping('!glob', dict(
+        include=node.include, exclude=node.exclude))
+
 
 def GetReleaseVersion(mount_point):
   """Returns the release version of an image mounted at mount_point."""
@@ -259,6 +265,11 @@ class FinalizeBundle(object):
         '--no-make-factory-packages', dest='make_factory_package',
         action='store_false',
         help="Don't call make_factory_package (for testing only)")
+    parser.add_argument(
+        '--no-check-files', dest='check_files',
+        action='store_false',
+        help=("Don't check for missing or extra files in the bundle "
+              "(for testing only)"))
     parser.add_argument(
         '--tip-of-branch', dest='tip_of_branch', action='store_true',
         help="Use tip version of release image, install shim, and "
@@ -1010,6 +1021,10 @@ class FinalizeBundle(object):
           os.rmdir(d)
         except OSError:
           pass
+
+    if not self.args.check_files:
+      logging.info('Skip files checking')
+      return
 
     missing_files = self.expected_files - self.all_files
     extra_files = self.all_files - self.expected_files
