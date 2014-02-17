@@ -41,6 +41,33 @@ def GetInterrupts():
   return interrupt_count
 
 
+def GetI2CBus(device_names):
+  """Lookup I2C Bus by device name(s).
+
+  Args:
+    device_names: List of allowed device name.
+                  (Ex: we can list second-source components here)
+
+  Returns:
+    I2C bus index. None if not found
+  """
+  blankline = re.compile(r'\n\n', flags=re.MULTILINE)
+  blocks = blankline.split(file_utils.Read('/proc/bus/input/devices'))
+  matched_blocks = [b for b in blocks if any(d in b for d in device_names)]
+  if len(matched_blocks) == 0:
+    logging.error('GetI2CBus(%r): Device is not found', device_names)
+    return None
+  elif len(matched_blocks) > 1:
+    logging.error('GetI2CBus(%r): Multiple devices are found', device_names)
+    return None
+  found = re.search(r'^P: *Phys=i2c-([0-9]+)-', matched_blocks[0],
+                    flags=re.MULTILINE)
+  if not found:
+    logging.error('GetI2CBus(%r): Invalid format', device_names)
+    return None
+  return int(found.group(1))
+
+
 class PartitionInfo(object):
   """A class that holds the info of a partition."""
   def __init__(self, major, minor, blocks, name):

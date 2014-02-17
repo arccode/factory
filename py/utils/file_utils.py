@@ -57,6 +57,25 @@ def TempDirectory(**kwargs):
     shutil.rmtree(path)
 
 
+def Read(filename):
+  """Returns the content of a file.
+
+  It is used to facilitate unittest.
+
+  Args:
+    filename: file name.
+
+  Returns:
+    File content. None if IOError.
+  """
+  try:
+    with open(filename) as f:
+      return f.read()
+  except IOError as e:
+    logging.error('Cannot read file "%s": %s', filename, e)
+    return None
+
+
 def ReadLines(filename):
   """Returns a file as list of lines.
 

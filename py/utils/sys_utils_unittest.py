@@ -55,6 +55,127 @@ class GetInterruptsTest(unittest.TestCase):
         sys_utils.GetInterrupts)
 
 
+SAMPLE_INPUT_DEVICES = """I: Bus=0019 Vendor=0000 Product=0005 Version=0000
+N: Name="Lid Switch"
+P: Phys=PNP0C0D/button/input0
+S: Sysfs=/devices/LNXSYSTM:00/device:00/PNP0C0D:00/input/input0
+U: Uniq=
+H: Handlers=lid_event_handler lid_event_handler event0
+B: PROP=0
+B: EV=21
+B: SW=1
+
+I: Bus=0019 Vendor=0000 Product=0001 Version=0000
+N: Name="Power Button"
+P: Phys=PNP0C0C/button/input0
+S: Sysfs=/devices/LNXSYSTM:00/device:00/PNP0C0C:00/input/input1
+U: Uniq=
+H: Handlers=kbd event1
+B: PROP=0
+B: EV=3
+B: KEY=10000000000000 0
+
+I: Bus=0019 Vendor=0000 Product=0001 Version=0000
+N: Name="Power Button"
+P: Phys=LNXPWRBN/button/input0
+S: Sysfs=/devices/LNXSYSTM:00/LNXPWRBN:00/input/input2
+U: Uniq=
+H: Handlers=kbd event2
+B: PROP=0
+B: EV=3
+B: KEY=10000000000000 0
+
+I: Bus=0011 Vendor=0001 Product=0001 Version=ab83
+N: Name="AT Translated Set 2 keyboard"
+P: Phys=isa0060/serio0/input0
+S: Sysfs=/devices/platform/i8042/serio0/input/input3
+U: Uniq=
+H: Handlers=sysrq kbd event3
+B: PROP=0
+B: EV=120013
+B: KEY=400402000000 3803078f800d001 feffffdfffefffff fffffffffffffffe
+B: MSC=10
+B: LED=7
+
+I: Bus=0018 Vendor=0000 Product=0000 Version=0000
+N: Name="Atmel maXTouch Touchscreen"
+P: Phys=i2c-3-004a/input0
+S: Sysfs=/devices/platform/80860F41:03/i2c-3/3-004a/input/input4
+U: Uniq=
+H: Handlers=event4
+B: PROP=0
+B: EV=b
+B: KEY=400 0 0 0 0 0
+B: ABS=661800001000003
+
+I: Bus=0018 Vendor=0000 Product=0000 Version=0000
+N: Name="Atmel maXTouch Touchpad"
+P: Phys=i2c-0-004b/input0
+S: Sysfs=/devices/platform/80860F41:00/i2c-0/0-004b/input/input5
+U: Uniq=
+H: Handlers=event5
+B: PROP=5
+B: EV=b
+B: KEY=e520 10000 0 0 0 0
+B: ABS=661800001000003
+
+I: Bus=0000 Vendor=0000 Product=0000 Version=0000
+N: Name="HDA Intel HDMI"
+P: Phys=ALSA
+S: Sysfs=/devices/pci0000:00/0000:00:1b.0/sound/card1/input6
+U: Uniq=
+H: Handlers=event6
+B: PROP=0
+B: EV=21
+B: SW=140
+
+I: Bus=0000 Vendor=0000 Product=0000 Version=0000
+N: Name="HDA Intel HDMI"
+P: Phys=ALSA
+S: Sysfs=/devices/pci0000:00/0000:00:1b.0/sound/card1/input7
+U: Uniq=
+H: Handlers=event7
+B: PROP=0
+B: EV=21
+B: SW=140
+"""
+
+
+class GetI2CBusTest(unittest.TestCase):
+  """Unit tests for GetI2CBus."""
+  def setUp(self):
+    self.mox = mox.Mox()
+
+  def tearDown(self):
+    self.mox.VerifyAll()
+    self.mox.UnsetStubs()
+
+  def testTouchpad(self):
+    self.mox.StubOutWithMock(file_utils, 'Read')
+    file_utils.Read('/proc/bus/input/devices').AndReturn(SAMPLE_INPUT_DEVICES)
+    self.mox.ReplayAll()
+    self.assertEqual(sys_utils.GetI2CBus(['Dummy device name',
+                                          'Atmel maXTouch Touchpad']), 0)
+
+  def testTouchscreen(self):
+    self.mox.StubOutWithMock(file_utils, 'Read')
+    file_utils.Read('/proc/bus/input/devices').AndReturn(SAMPLE_INPUT_DEVICES)
+    self.mox.ReplayAll()
+    self.assertEqual(sys_utils.GetI2CBus(['Atmel maXTouch Touchscreen']), 3)
+
+  def testNoMatch(self):
+    self.mox.StubOutWithMock(file_utils, 'Read')
+    file_utils.Read('/proc/bus/input/devices').AndReturn(SAMPLE_INPUT_DEVICES)
+    self.mox.ReplayAll()
+    self.assertEqual(sys_utils.GetI2CBus(['Unknown Device']), None)
+
+  def testNonI2CDevice(self):
+    self.mox.StubOutWithMock(file_utils, 'Read')
+    file_utils.Read('/proc/bus/input/devices').AndReturn(SAMPLE_INPUT_DEVICES)
+    self.mox.ReplayAll()
+    self.assertEqual(sys_utils.GetI2CBus(['Lid Switch']), None)
+
+
 SAMPLE_PARTITIONS = """major minor  #blocks  name
 
    7        0     313564 loop0
