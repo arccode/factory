@@ -914,14 +914,17 @@ class FinalizeBundle(object):
                           self.simple_board.upper()]
 
     if 'complete_script' in self.manifest:
-      complete_script = os.path.join(
-        self.bundle_dir, self.manifest['complete_script'])
-      if not os.path.exists(complete_script):
-        raise OSError('Complete script %s does not exist' % complete_script)
+      script_base_name = self.manifest['complete_script']
+      if script_base_name is None:
+        complete_script = None
+      else:
+        complete_script = os.path.join(self.bundle_dir, script_base_name)
+        if not os.path.exists(complete_script):
+          raise OSError('Complete script %s does not exist' % complete_script)
     else:
-      # Use factory_setup/complete_script.sh, if it exists
+      # Use factory_setup/complete_script_sample.sh, if it exists
       complete_script = os.path.join(
-        self.bundle_dir, 'factory_setup/complete_script.sh')
+        self.bundle_dir, 'factory_setup/complete_script_sample.sh')
       if not os.path.exists(complete_script):
         complete_script = None
 
