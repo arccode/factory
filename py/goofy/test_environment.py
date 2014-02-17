@@ -104,7 +104,6 @@ class DUTEnvironment(Environment):
     from telemetry.core import browser_finder
     from telemetry.core import browser_options
     from telemetry.core import extension_to_load
-    from telemetry.core import util as telemetry_util
 
     # Telemetry flakiness: Allow one retry when starting up Chrome.
     # TODO(jcliang): Remove this when we're sure that telemetry is stable
@@ -134,7 +133,7 @@ class DUTEnvironment(Environment):
         self.browser = browser_finder.FindBrowser(finder_options).Create()
         self.browser.Start()
         break
-      except telemetry_util.TimeoutException:
+      except Exception:
         tries_left -= 1
         if not tries_left:
           raise
