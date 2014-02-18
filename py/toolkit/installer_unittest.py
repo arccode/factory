@@ -8,7 +8,6 @@
 """Unittest for installer.py."""
 
 
-import argparse
 import factory_common  # pylint: disable=W0611
 import logging
 import os
@@ -53,30 +52,27 @@ class ToolkitInstallerTest(unittest.TestCase):
     os.makedirs(os.path.join(self.dest, 'usr/local'))
     os.makedirs(os.path.join(self.dest, 'var'))
 
-  def createInstaller(self, patch_test_image=False, enabled_tag=True):
-    args = argparse.Namespace()
-    args.dest = self.dest
-    args.patch_test_image = patch_test_image
-    args.no_enable = not enabled_tag
-    self._installer = installer.FactoryToolkitInstaller(self.src, args)
+  def createInstaller(self, enabled_tag=True, system_root='/'):
+    self._installer = installer.FactoryToolkitInstaller(
+        self.src, self.dest, not enabled_tag, system_root=system_root)
 
   def testNonRoot(self):
     self.makeLiveDevice()
     os.getuid = lambda: 9999 # Not root
     self._lsb_release_exists = None
-    self.assertRaises(Exception, self.createInstaller)
+    self.assertRaises(Exception, self.createInstaller, (True, self.dest))
 
   def testInChroot(self):
     self.makeLiveDevice()
     os.getuid = lambda: 0 # root
     self._lsb_release_exists = False
-    self.assertRaises(Exception, self.createInstaller)
+    self.assertRaises(Exception, self.createInstaller, (True, self.dest))
 
   def testInstall(self):
     self.makeLiveDevice()
     os.getuid = lambda: 0 # root
     self._lsb_release_exists = True
-    self.createInstaller()
+    self.createInstaller(system_root=self.dest)
     self._installer.Install()
     with open(os.path.join(self.dest, 'usr/local', 'file1'), 'r') as f:
       self.assertEqual(f.read(), 'install me!')
@@ -88,12 +84,12 @@ class ToolkitInstallerTest(unittest.TestCase):
   def testIncorrectPatch(self):
     self._lsb_release_exists = None
     with self.assertRaises(Exception):
-      self.createInstaller(patch_test_image=True)
+      self.createInstaller()
 
   def testPatch(self):
     self.makeStatefulPartition()
     self._lsb_release_exists = None
-    self.createInstaller(patch_test_image=True)
+    self.createInstaller()
     self._installer.Install()
     with open(os.path.join(self.dest, 'dev_image', 'file1'), 'r') as f:
       self.assertEqual(f.read(), 'install me!')
@@ -109,7 +105,7 @@ class ToolkitInstallerTest(unittest.TestCase):
       pass
     os.getuid = lambda: 0 # root
     self._lsb_release_exists = True
-    self.createInstaller(enabled_tag=False)
+    self.createInstaller(enabled_tag=False, system_root=self.dest)
     self._installer.Install()
     with open(os.path.join(self.dest, 'usr/local', 'file1'), 'r') as f:
       self.assertEqual(f.read(), 'install me!')
