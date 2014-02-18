@@ -125,6 +125,15 @@ def DummyContext(arg):
   yield arg
 
 
+def PrintBuildInfo(src_root):
+  """Print build information."""
+  info_file = os.path.join(src_root, 'REPO_STATUS')
+  if not os.path.exists(info_file):
+    raise OSError('Build info file not found!')
+  with open(info_file, 'r') as f:
+    print f.read()
+
+
 def main():
   parser = argparse.ArgumentParser(
       description='Factory toolkit installer.')
@@ -135,7 +144,17 @@ def main():
       help="Don't enable factory tests after installing")
   parser.add_argument('--yes', '-y', action='store_true',
       help="Don't ask for confirmation")
+  parser.add_argument('--build-info', action='store_true',
+      help="Print build information and exit")
   args = parser.parse_args()
+
+  src_root = factory.FACTORY_PATH
+  for _ in xrange(3):
+    src_root = os.path.dirname(src_root)
+
+  if args.build_info:
+    PrintBuildInfo(src_root)
+    return
 
   # Change to original working directory in case the user specifies
   # a relative path.
@@ -149,9 +168,6 @@ def main():
 
   with (MountPartition(args.dest, 1, rw=True) if patch_test_image
         else DummyContext(args.dest)) as dest:
-    src_root = factory.FACTORY_PATH
-    for _ in xrange(3):
-      src_root = os.path.dirname(src_root)
     installer = FactoryToolkitInstaller(src_root, dest, args.no_enable)
 
     print installer.WarningMessage(args.dest if patch_test_image else None)
