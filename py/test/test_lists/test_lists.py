@@ -366,13 +366,17 @@ def BuildAllTestLists():
   def IsGenericTestList(f):
     return os.path.basename(f) == 'generic.py'
 
+  def MainTestListExists():
+    return ('main' in test_lists or
+            os.path.exists(os.path.join(TEST_LISTS_PATH, 'main.py')))
+
   test_list_files = glob.glob(os.path.join(TEST_LISTS_PATH, '*.py'))
   test_list_files.sort(key=lambda f: (IsGenericTestList(f), f))
   for f in test_list_files:
     if f.endswith('_unittest.py') or os.path.basename(f) == '__init__.py':
       continue
     # Skip generic test list if there is already a main test list loaded.
-    if IsGenericTestList(f) and 'main' in test_lists:
+    if IsGenericTestList(f) and MainTestListExists():
       continue
 
     module_name = ('cros.factory.test.test_lists.' +
