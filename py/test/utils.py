@@ -5,6 +5,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+"""Utility functions that are useful to factory tests."""
+
 import array
 import fcntl
 import glob
@@ -25,7 +27,11 @@ import traceback
 
 from contextlib import contextmanager
 
-from cros.factory.utils.process_utils import CheckOutput, Spawn
+from cros.factory.utils import process_utils
+
+
+# For backward compatibility.
+CheckOutput = process_utils.CheckOutput
 
 
 def TimeString(unix_time=None, time_separator=':', milliseconds=True):
@@ -52,19 +58,17 @@ def TimeString(unix_time=None, time_separator=':', milliseconds=True):
 
 
 def in_chroot():
-  '''Returns True if currently in the chroot.'''
+  """Returns True if currently in the chroot."""
   return 'CROS_WORKON_SRCROOT' in os.environ
 
 
 def in_qemu():
-  '''Returns True if running within QEMU.'''
+  """Returns True if running within QEMU."""
   return 'QEMU' in open('/proc/cpuinfo').read()
 
 
 def is_process_alive(pid):
-  '''
-  Returns true if the named process is alive and not a zombie.
-  '''
+  """Returns true if the named process is alive and not a zombie."""
   try:
     with open("/proc/%d/stat" % pid) as f:
       return f.readline().split()[2] != 'Z'
@@ -73,20 +77,20 @@ def is_process_alive(pid):
 
 
 def kill_process_tree(process, caption):
-  '''
-  Kills a process and all its subprocesses.
+  """Kills a process and all its subprocesses.
 
-  @param process: The process to kill (opened with the subprocess module).
-  @param caption: A caption describing the process.
-  '''
+  Args:
+    process: The process to kill (opened with the subprocess module).
+    caption: A caption describing the process.
+  """
   # os.kill does not kill child processes. os.killpg kills all processes
   # sharing same group (and is usually used for killing process tree). But in
   # our case, to preserve PGID for autotest and upstart service, we need to
   # iterate through each level until leaf of the tree.
 
   def get_all_pids(root):
-    ps_output = Spawn(['ps','--no-headers','-eo','pid,ppid'],
-                      stdout=subprocess.PIPE)
+    ps_output = process_utils.Spawn(['ps', '--no-headers', '-eo', 'pid,ppid'],
+                                    stdout=subprocess.PIPE)
     children = {}
     for line in ps_output.stdout:
       match = re.findall('\d+', line)
@@ -106,7 +110,7 @@ def kill_process_tree(process, caption):
   for sig in [signal.SIGTERM, signal.SIGKILL]:
     logging.info('Stopping %s (pid=%s)...', caption, sorted(pids))
 
-    for i in range(25): # Try 25 times (200 ms between tries)
+    for _ in range(25): # Try 25 times (200 ms between tries)
       for pid in pids:
         try:
           logging.info("Sending signal %s to %d", sig, pid)
@@ -122,7 +126,7 @@ def kill_process_tree(process, caption):
 
 
 def are_shift_keys_depressed():
-  '''Returns True if both shift keys are depressed.'''
+  """Returns True if both shift keys are depressed."""
   # From #include <linux/input.h>
   KEY_LEFTSHIFT = 42
   KEY_RIGHTSHIFT = 54
@@ -130,7 +134,7 @@ def are_shift_keys_depressed():
   for kbd in glob.glob("/dev/input/by-path/*kbd"):
     try:
       f = os.open(kbd, os.O_RDONLY)
-    except OSError as e:
+    except OSError:
       if in_chroot():
         # That's OK; we're just not root
         continue
@@ -153,18 +157,17 @@ def are_shift_keys_depressed():
 def var_log_messages_before_reboot(lines=100,
                                    max_length=5*1024*1024,
                                    path='/var/log/messages'):
-  '''Returns the last few lines in /var/log/messages
-  before the current boot.
-
-  Returns:
-    An array of lines. Empty if the marker indicating kernel boot
-    could not be found.
+  """Returns the last few lines in /var/log/messages before the current boot.
 
   Args:
     lines: number of lines to return.
     max_length: maximum amount of data at end of file to read.
     path: path to /var/log/messages.
-  '''
+
+  Returns:
+    An array of lines. Empty if the marker indicating kernel boot
+    could not be found.
+  """
   offset = max(0, os.path.getsize(path) - max_length)
   with open(path) as f:
     f.seek(offset)
@@ -195,12 +198,10 @@ def var_log_messages_before_reboot(lines=100,
 
 
 def DrainQueue(queue):
-  '''
-  Returns as many elements as can be obtained from a queue
-  without blocking.
+  """Returns as many elements as can be obtained from a queue without blocking.
 
   (This may be no elements at all.)
-  '''
+  """
   ret = []
   while True:
     try:
@@ -211,45 +212,31 @@ def DrainQueue(queue):
 
 
 def TryMakeDirs(path):
-  '''
-  Tries to create a directory and its parents.
+  """Tries to create a directory and its parents.
 
   Doesn't ever raise an exception if it can't create the directory.
-  '''
+  """
   try:
     if not os.path.exists(path):
       os.makedirs(path)
-  except:
+  except Exception:
     pass
 
 
-def CheckOutput(*args, **kwargs):
-  '''Calls a process and returns its output.
-
-  (Emulates subprocess.check_output from Python 2.7.)
-  '''
-  process = subprocess.Popen(stdout=subprocess.PIPE, *args, **kwargs)
-  stdout, dummy_stderr = process.communicate()
-  retcode = process.poll()
-  if retcode:
-    raise subprocess.CalledProcessError(retcode, kwargs.get('args') or args[0])
-  return stdout
-
-
 def LogAndCheckCall(*args, **kwargs):
-  '''Logs a command and invokes subprocess.check_call.'''
+  """Logs a command and invokes subprocess.check_call."""
   logging.info('Running: %s', ' '.join(pipes.quote(arg) for arg in args[0]))
   return subprocess.check_call(*args, **kwargs)
 
 
 def LogAndCheckOutput(*args, **kwargs):
-  '''Logs a command and invokes subprocess.check_output.'''
+  """Logs a command and invokes subprocess.check_output."""
   logging.info('Running: %s', ' '.join(pipes.quote(arg) for arg in args[0]))
   return CheckOutput(*args, **kwargs)
 
 
 class Enum(frozenset):
-  '''An enumeration type.
+  """An enumeration type.
 
   Usage:
     To create a enum object:
@@ -257,7 +244,8 @@ class Enum(frozenset):
 
     To access a enum object, use:
       dummy_enum.A
-      dummy_enum.B'''
+      dummy_enum.B
+  """
   def __getattr__(self, name):
     if name in self:
       return name
@@ -265,27 +253,28 @@ class Enum(frozenset):
 
 
 def ReadOneLine(filename):
-  '''Returns the first line as a string from the given file.'''
+  """Returns the first line as a string from the given file."""
   return open(filename, 'r').readline().rstrip('\n')
 
 
 def FormatExceptionOnly():
-  '''Formats the current exception string.
+  """Formats the current exception string.
 
   Must only be called from inside an exception handler.
 
   Returns:
-    A string.'''
+    A string.
+  """
   return '\n'.join(
     traceback.format_exception_only(*sys.exc_info()[:2])).strip()
 
 
 def StartDaemonThread(*args, **kwargs):
-  '''Creates, starts, and returns a daemon thread.
+  """Creates, starts, and returns a daemon thread.
 
   Args:
     See threading.Thread().
-  '''
+  """
   thread = threading.Thread(*args, **kwargs)
   thread.daemon = True
   thread.start()
@@ -293,19 +282,19 @@ def StartDaemonThread(*args, **kwargs):
 
 
 def FlattenList(lst):
-  '''Flattens a list, recursively including all items in contained arrays.
+  """Flattens a list, recursively including all items in contained arrays.
 
   For example:
 
     FlattenList([1,2,[3,4,[]],5,6]) == [1,2,3,4,5,6]
-  '''
+  """
   return sum((FlattenList(x) if isinstance(x, list) else [x]
               for x in lst),
              [])
 
 
 class LoadManager(object):
-  '''A class to manage cpu load using stressapptest.
+  """A class to manage cpu load using stressapptest.
   This manager runs stressapptest with 20% memory and specified num_threads
   and duration.
   Usage:
@@ -315,9 +304,10 @@ class LoadManager(object):
     _process: The process to run stressapptest
     _num_threads: The number of threads in running stressapptest.
     _memory_ratio: The memory ratio in running stressapptest.
-  '''
+  """
   def __init__(self, duration_secs, num_threads=None, memory_ratio=0.2, ):
     """Initialize LoadManager.
+
     Args:
       duration_secs: The duration of stressapptest.
       num_threads: Number of threads for stressapptest. Default value
@@ -340,9 +330,9 @@ class LoadManager(object):
     self._memory_ratio = min(0.9, memory_ratio)
     mem = open('/proc/meminfo').readline().split()[1]
     mem_usage = int(int(mem) * self._memory_ratio / 1024)
-    self._process = Spawn(['stressapptest', '-m', '%d' % self._num_threads,
-                           '-M', '%d' %  mem_usage,
-                           '-s',  '%d' % duration_secs])
+    self._process = process_utils.Spawn(
+        ['stressapptest', '-m', '%d' % self._num_threads,
+         '-M', '%d' %  mem_usage, '-s',  '%d' % duration_secs])
     logging.info('LoadManager: Start LoadManager with %d processes'
                  ' %d M memory %d seconds.',
                  self._num_threads, mem_usage, duration_secs)
@@ -382,7 +372,7 @@ def Retry(max_retry_times, interval, callback, target, *args, **kwargs):
   for retry_time in xrange(max_retry_times):
     try:
       result = target(*args, **kwargs)
-    except Exception as e: # pylint: disable=W0703
+    except Exception: # pylint: disable=W0703
       logging.exception('Retry...')
     if(callback):
       callback(retry_time, max_retry_times)
@@ -392,8 +382,11 @@ def Retry(max_retry_times, interval, callback, target, *args, **kwargs):
     time.sleep(interval)
   return result
 
+
 class TimeoutError(Exception):
+  """Timeout error."""
   pass
+
 
 @contextmanager
 def Timeout(secs):
@@ -429,9 +422,9 @@ def SendKey(key_sequence):
   os.environ['DISPLAY'] = ':0'
   os.environ['XAUTHORITY'] = '/home/chronos/.Xauthority'
   if isinstance(key_sequence, list):
-    Spawn(['xdotool', 'key'] + key_sequence)
+    process_utils.Spawn(['xdotool', 'key'] + key_sequence)
   elif isinstance(key_sequence, basestring):
-    Spawn(['xdotool', 'key', key_sequence])
+    process_utils.Spawn(['xdotool', 'key', key_sequence])
   else:
     raise ValueError('key_sequence must be a list or a string')
 
@@ -467,6 +460,7 @@ def WaitFor(condition, timeout_secs, poll_interval=0.1):
     if time.time() > end_time:
       raise TimeoutError('Timeout waititng for %r' % _GetConditionString())
     time.sleep(poll_interval)
+
 
 def SetTouchpadTwoFingerScrollingX(enabled):
   """Enables / disables two-finger scrolling.
@@ -511,4 +505,4 @@ def SetTouchpadTwoFingerScrollingX(enabled):
     prop_value = default_scale
   else:
     prop_value = '0'
-  Spawn([TPSCONTROL_XINPUT, 'set', prop_id, prop_value])
+  process_utils.Spawn([TPSCONTROL_XINPUT, 'set', prop_id, prop_value])

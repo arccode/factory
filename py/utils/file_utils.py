@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-'''File-related utilities...'''
+"""File-related utilities..."""
 
 
 from contextlib import contextmanager
@@ -21,9 +21,15 @@ from cros.factory.tools import mount_partition
 from cros.factory.utils.process_utils import Spawn
 
 
+# This should really be in this module rather than in test.utils.
+# TODO: Move TryMakeDirs method to this module and update existing files
+# accordingly.
+TryMakeDirs = utils.TryMakeDirs
+
+
 @contextmanager
 def UnopenedTemporaryFile(**kwargs):
-  '''Yields an unopened temporary file.
+  """Yields an unopened temporary file.
 
   The file is not opened, and it is deleted when the context manager
   is closed.
@@ -31,7 +37,7 @@ def UnopenedTemporaryFile(**kwargs):
   Args:
     Any allowable arguments to tempfile.mkstemp (e.g., prefix,
       suffix, dir).
-  '''
+  """
   f, path = tempfile.mkstemp(**kwargs)
   os.close(f)
   try:
@@ -42,14 +48,14 @@ def UnopenedTemporaryFile(**kwargs):
 
 @contextmanager
 def TempDirectory(**kwargs):
-  '''Yields an temporary directory.
+  """Yields an temporary directory.
 
   The directory is deleted when the context manager is closed.
 
   Args:
     Any allowable arguments to tempfile.mkdtemp (e.g., prefix,
       suffix, dir).
-  '''
+  """
   path = tempfile.mkdtemp(**kwargs)
   try:
     yield path
@@ -96,7 +102,7 @@ def ReadLines(filename):
 
 
 def TryUnlink(path):
-  '''Unlinks a file only if it exists.
+  """Unlinks a file only if it exists.
 
   Args:
     path: File to attempt to unlink.
@@ -104,7 +110,7 @@ def TryUnlink(path):
   Raises:
     Any OSError thrown by unlink (except ENOENT, which means that the file
     simply didn't exist).
-  '''
+  """
   try:
     os.unlink(path)
   except OSError as e:
@@ -241,7 +247,7 @@ def ExtractFile(compressed_file, output_dir, only_extracts=None,
   Raises:
     ExtractFileError if the method fails to extract the file.
   """
-  utils.TryMakeDirs(output_dir)
+  TryMakeDirs(output_dir)
   logging.info('Extracting %s to %s', compressed_file, output_dir)
   only_extracts = MakeList(only_extracts) if only_extracts else []
   if only_extracts:

@@ -33,10 +33,10 @@ def GetLines(data, strip=False):
 
 
 def OpenDevNull():
-  '''Opens and returns a readable/writable file pointing to /dev/null.
+  """Opens and returns a readable/writable file pointing to /dev/null.
 
   The file object may be reused.
-  '''
+  """
   global dev_null  # pylint: disable=W0603
   if not dev_null:
     # There is a possible race condition here, but it is extremely
@@ -48,7 +48,7 @@ def OpenDevNull():
 
 
 def CheckOutput(*args, **kwargs):
-  '''Runs command and returns its output.
+  """Runs command and returns its output.
 
   It is like subprocess.check_output but with the extra flexibility of Spawn.
 
@@ -60,13 +60,13 @@ def CheckOutput(*args, **kwargs):
 
   Raises:
     subprocess.CalledProcessError if returncode != 0.
-  '''
+  """
   kwargs['check_output'] = True
   return Spawn(*args, **kwargs).stdout_data
 
 
 def SpawnOutput(*args, **kwargs):
-  '''Runs command and returns its output.
+  """Runs command and returns its output.
 
   Like CheckOutput. But it won't raise exception unless you set
   check_output=True.
@@ -76,7 +76,7 @@ def SpawnOutput(*args, **kwargs):
 
   Returns:
     stdout
-  '''
+  """
   kwargs['read_stdout'] = True
   return Spawn(*args, **kwargs).stdout_data
 
@@ -115,7 +115,7 @@ class _ExtendedPopen(subprocess.Popen):
 
 
 def Spawn(args, **kwargs):
-  '''
+  """
   Popen wrapper with extra functionality:
 
     - Sets close_fds to True by default.  (You may still set
@@ -167,7 +167,7 @@ def Spawn(args, **kwargs):
 
   Returns/Raises:
     Same as Popen.
-  '''
+  """
   kwargs.setdefault('close_fds', True)
 
   logger = logging
@@ -270,11 +270,11 @@ def Spawn(args, **kwargs):
 
 
 def TerminateOrKillProcess(process, wait_seconds=1, sudo=False):
-  '''Terminates a process and waits for it.
+  """Terminates a process and waits for it.
 
   The function sends SIGTERM to terminate the process, if it's not terminated
   in wait_seconds, then sends a SIGKILL.
-  '''
+  """
   pid = process.pid
   logging.info('Stopping process %d', pid)
   if sudo:
