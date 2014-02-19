@@ -1,0 +1,9 @@
+board: daisy_spring
+bundle_name: 20130604_dvt
+mini_omaha_url: http://10.3.0.11:8080/update
+
+# Files to add into the bundle. You can use ${FACTORY_IMAGE_BASE_VERSION} here
+# to refer to the factory_image.zip version you are using.
+add_files:
+- install_into: factory_shim
+  source: 'gs://chromeos-releases/canary-channel/daisy-spring/4131.73.0/chromeos_4131.73.0_daisy-spring_factory_canary-channel_premp.bin'

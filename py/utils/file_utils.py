@@ -4,9 +4,8 @@
 
 """File-related utilities..."""
 
-
+import base64
 from contextlib import contextmanager
-
 import errno
 import hashlib
 import logging
@@ -341,3 +340,9 @@ def Md5sumInHex(filename):
   return hashlib.md5(
       open(filename, 'rb').read()).hexdigest()
 
+
+def B64Sha1(filename):
+  """Gets standard base64 coded sha1 sum of input file."""
+  # pylint: disable=E1101
+  return base64.standard_b64encode(hashlib.sha1(
+      open(filename, 'rb').read()).digest())

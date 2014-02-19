@@ -44,7 +44,7 @@ RESOURCE_HASH_DIGITS = 8
 # Resource filename format:
 #     <original_filename>#<optional_version>#<n_hex_digit_hash>
 RESOURCE_FILE_PATTERN = re.compile(
-    r'.+#(.*)#([0-9a-f]{%d})$' % RESOURCE_HASH_DIGITS)
+    r'(.+)#(.*)#([0-9a-f]{%d})$' % RESOURCE_HASH_DIGITS)
 
 # Relative path of factory toolkit in a factory bundle.
 BUNDLE_FACTORY_TOOLKIT_PATH = os.path.join('factory_test',
@@ -80,6 +80,20 @@ def VerifyResource(res_file):
   return calculated_hashsum.startswith(hashsum)
 
 
+def ParseResourceName(res_file):
+  """Parses resource file name.
+
+  Args:
+    res_file: path to a resource file
+
+  Returns:
+    (base_name, version, hash).
+    None if res_file is ill-formed.
+  """
+  match = RESOURCE_FILE_PATTERN.match(res_file)
+  return match.groups() if match else None
+
+
 def GetHashFromResourceName(res_file):
   """Gets hash from resource file name.
 
@@ -91,7 +105,7 @@ def GetHashFromResourceName(res_file):
     None if res_file is ill-formed.
   """
   match = RESOURCE_FILE_PATTERN.match(res_file)
-  return None if not match else match.group(2)
+  return match.group(3) if match else None
 
 
 # pylint: disable=R0901
@@ -138,3 +152,4 @@ def LoadBundleManifest(path, ignore_glob=False):
       return yaml.load(f, Loader=loader)
   except Exception as e:
     raise UmpireError('Failed to load MANIFEST.yaml: ' + str(e))
+
