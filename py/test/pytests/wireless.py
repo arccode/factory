@@ -185,7 +185,7 @@ class WirelessTest(unittest.TestCase):
                 break
             time.sleep(self.args.msecs_before_retries / 1000.0)
 
-        if not success_url_test:
-          self.fail('Failed to connect to url %s' % self.args.test_url)
+          if not success_url_test:
+            self.fail('Failed to connect to url %s' % self.args.test_url)
         logging.info('Disconnecting %s', name)
         flim.DisconnectService(service)
