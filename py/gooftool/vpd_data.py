@@ -13,8 +13,10 @@
 from cros.factory.l10n import regions
 
 
-KEYBOARD_LAYOUT = set(x.keyboard for x in regions.REGIONS.itervalues())
-INITIAL_LOCALE = set(x.language_code for x in regions.REGIONS.itervalues())
+KEYBOARD_LAYOUT = set(','.join(x.keyboards)
+                      for x in regions.REGIONS.itervalues())
+INITIAL_LOCALE = set(','.join(x.language_codes)
+                     for x in regions.REGIONS.itervalues())
 INITIAL_TIMEZONE = set(x.time_zone for x in regions.REGIONS.itervalues())
 
 KNOWN_VPD_FIELD_DATA = {

@@ -135,7 +135,17 @@ For example::
 
     OperatorTest(
         id='VPD',
-        dargs=dict(use_shopfloor_device_data=True))
+        dargs=dict(use_shopfloor_device_data=True,
+                   allow_multiple_l10n=False))
+
+.. warning::
+
+   Multiple keyboards and initial locales are only supported in M34+.
+   For this reason, the VPD test defaults to
+   ``allow_multiple_l10n=False``, in which case only the first
+   keyboard and initial locale will be used for OOBE.  To allow
+   multiple localizations once M34 is being shipped on device, set
+   ``allow_multiple_l10n=True``.
 
 .. warning::
 

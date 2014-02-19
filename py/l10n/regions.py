@@ -10,10 +10,12 @@ Run this module to display all known regions (use --help to see options).
 
 
 import argparse
+import re
 import sys
 import yaml
 
 import factory_common  # pylint: disable=W0611
+from cros.factory import common
 from cros.factory.test.utils import Enum
 
 
@@ -23,6 +25,10 @@ from cros.factory.test.utils import Enum
 # ABNT2 = Brazilian (like ISO but with an extra key to the left of the
 #   right shift key)
 KeyboardMechanicalLayout = Enum(['ANSI', 'ISO', 'JIS', 'ABNT2'])
+
+
+KEYBOARD_PATTERN = re.compile(r'^xkb:\w+:\w*:\w+$')
+LANGUAGE_CODE_PATTERN = re.compile(r'^(\w+)(-[A-Z0-9]+)?$')
 
 
 class RegionException(Exception):
@@ -48,15 +54,24 @@ class Region(object):
   the real alpha-2 code for the UK.
   """
 
-  keyboard = None
-  """An XKB keyboard layout identifier (e.g., ``xkb:us:intl:eng``);
-  see `input_method_util.cc <http://goo.gl/cDO53r>`_ and
-  `input_methods.txt <http://goo.gl/xWNrUP>`_ for supported keyboards.
-  Note that the keyboard must be whitelisted for login, i.e.,
-  the respective line in `input_methods.txt <http://goo.gl/xWNrUP>`_ must
-  contain the ``login`` keyword.
+  keyboards = None
+  """A list of XKB keyboard layout identifiers (e.g.,
+  ``xkb:us:intl:eng``); see `input_method_util.cc
+  <http://goo.gl/cDO53r>`_ and `input_methods.txt
+  <http://goo.gl/xWNrUP>`_ for supported keyboards.  Note that the
+  keyboard must be whitelisted for login, i.e., the respective line in
+  `input_methods.txt <http://goo.gl/xWNrUP>`_ must contain the
+  ``login`` keyword.
 
   This is used to set the VPD ``keyboard_layout`` value."""
+
+  @property
+  def keyboard(self):
+    """The first item in the 'keyboards' array, for backward compatibility.
+
+    Deprecated; use :py:attr:`keyboards` instead.
+    """
+    return self.keyboards[0]
 
   time_zone = None
   """A `tz database time zone
@@ -67,11 +82,19 @@ class Region(object):
 
   This is used to set the VPD ``initial_timezone`` value."""
 
-  language_code = None
-  """The default language code (e.g., ``en-US``); see
+  language_codes = None
+  """A list of default language codes (e.g., ``en-US``); see
   `l10n_util.cc <http://goo.gl/kVkht>`_ for supported languages.
 
   This is used to set the VPD ``initial_locale`` language."""
+
+  @property
+  def language_code(self):
+    """The first item in the language_codes list, for backward compatibility.
+
+    Deprecated; use :py:attr:`language_codes` instead.
+    """
+    return self.language_codes[0]
 
   keyboard_mechanical_layout = None
   """The keyboard's mechanical layout (``ANSI`` [US-like], ``ISO``
@@ -84,22 +107,45 @@ class Region(object):
   notes = None
   """Notes about the region.  This may be None."""
 
-  FIELDS = ['region_code', 'keyboard', 'time_zone', 'language_code',
+  FIELDS = ['region_code', 'keyboards', 'time_zone', 'language_codes',
             'keyboard_mechanical_layout']
+  """Names of fields that define the region."""
 
-  def __init__(self, region_code, keyboard, time_zone, language_code,
+  """Constructor.
+
+  Args:
+    region_code: See :py:attr:`region_code`.
+    keyboards: See :py:attr:`keyboards`.  A single string is accepted for
+      backward compatibility.
+    time_zone: See :py:attr:`time_zone`.
+    language_codes: See :py:attr:`language_codes`.  A single string is accepted
+      for backward compatibility.
+  """
+  def __init__(self, region_code, keyboards, time_zone, language_codes,
                keyboard_mechanical_layout, description=None, notes=None):
     # Quick check: should be 'gb', not 'uk'
     if region_code == 'uk':
       raise RegionException("'uk' is not a valid region code (use 'gb')")
 
     self.region_code = region_code
-    self.keyboard = keyboard
+    self.keyboards = common.MakeList(keyboards)
     self.time_zone = time_zone
-    self.language_code = language_code
+    self.language_codes = common.MakeList(language_codes)
     self.keyboard_mechanical_layout = keyboard_mechanical_layout
     self.description = description or region_code
     self.notes = notes
+
+    for f in (self.keyboards, self.language_codes):
+      assert all(isinstance(x, str) for x in f), (
+          'Expected a list of strings, not %r' % f)
+    for f in self.keyboards:
+      assert KEYBOARD_PATTERN.match(f), (
+          'Keyboard pattern %r does not match %r' % (
+              f, KEYBOARD_PATTERN.pattern))
+    for f in self.language_codes:
+      assert LANGUAGE_CODE_PATTERN.match(f), (
+          'Language code %r does not match %r' % (
+              f, LANGUAGE_CODE_PATTERN.pattern))
 
   def __repr__(self):
     return 'Region(%s)' % (', '.join([getattr(self, x) for x in self.FIELDS]))
@@ -111,10 +157,22 @@ class Region(object):
     """
     return dict((k, getattr(self, k)) for k in self.FIELDS)
 
-  def GetVPDSettings(self):
-    """Returns a dictionary of VPD settings for the locale."""
-    return dict(initial_locale=self.language_code,
-                keyboard=self.keyboard,
+  def GetVPDSettings(self, allow_multiple=True):
+    """Returns a dictionary of VPD settings for the locale.
+
+    Args:
+      allow_multiple: Allow multiple initial_locale and initial_timezone values
+        (supported only in M34+).
+    """
+    if allow_multiple:
+      initial_locale = ','.join(self.language_codes)
+      keyboard = ','.join(self.keyboards)
+    else:
+      initial_locale = self.language_codes[0]
+      keyboard = self.keyboards[0]
+
+    return dict(initial_locale=initial_locale,
+                keyboard=keyboard,
                 initial_timezone=self.time_zone,
                 region=self.region_code)
 
@@ -320,8 +378,17 @@ def main(args=sys.argv[1:], out=sys.stdout):
 
   # Handle CSV or plain-text output: build a list of lines to print.
   lines = [Region.FIELDS]
+  def CoerceToString(value):
+    """If value is a list, concatenate its values with commas.
+    Otherwise, just return value.
+    """
+    if isinstance(value, list):
+      return ','.join(value)
+    else:
+      return str(value)
   for region in sorted(regions_dict.values(), key=lambda v: v.region_code):
-    lines.append([getattr(region, field) for field in Region.FIELDS])
+    lines.append([CoerceToString(getattr(region, field))
+                  for field in Region.FIELDS])
 
   if args.format == 'csv':
     # Just print the lines in CSV format.

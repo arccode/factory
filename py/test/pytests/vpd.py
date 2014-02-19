@@ -381,7 +381,10 @@ class VPDTest(unittest.TestCase):
         'show up to let user input value. The entered value will be validated '
         'if VALUE_CHECK is a regexp string. Otherwise a select box containing '
         'all the possible values will be used to let user select a value from '
-        'it.', default=[], optional=True)
+        'it.', default=[], optional=True),
+    Arg('allow_multiple_l10n', bool, 'True to allow multiple locales and '
+        'keyboards.  Only supported only in M34+ FSIs, so this is disabled '
+        'by default', default=False, optional=True),
   ]
 
   def _ReadShopFloorDeviceData(self):
@@ -399,10 +402,7 @@ class VPDTest(unittest.TestCase):
     self.assertIn(device_data['region'], REGIONS)
     region = REGIONS[device_data['region']]
 
-    self.vpd['ro']['initial_locale'] = region.language_code
-    self.vpd['ro']['keyboard_layout'] = region.keyboard
-    self.vpd['ro']['initial_timezone'] = region.time_zone
-    self.vpd['ro']['region'] = region.region_code
+    self.vpd['ro'].update(region.GetVPDSettings(self.args.allow_multiple_l10n))
 
     for ro_or_rw, key in self.args.extra_device_data_fields:
       self.vpd[ro_or_rw][key] = device_data[key]

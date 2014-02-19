@@ -37,6 +37,17 @@ class RegionTest(unittest.TestCase):
                      ('Missing zoneinfo files; are timezones misspelled?: %r' %
                       missing))
 
+  def testBadLanguage(self):
+    self.assertRaisesRegexp(
+        AssertionError, "Language code 'en-us' does not match", regions.Region,
+        'us', 'xkb:us::eng', 'America/Los_Angeles', 'en-us', 'ANSI')
+
+  def testBadKeyboard(self):
+    self.assertRaisesRegexp(
+        AssertionError, "Keyboard pattern 'xkb:us::' does not match",
+        regions.Region, 'us', 'xkb:us::', 'America/Los_Angeles', 'en-US',
+        'ANSI')
+
   def testTimeZones(self):
     zones = _FindAllStrings(regions_unittest_data.CROS_TIME_ZONES)
 
@@ -45,7 +56,7 @@ class RegionTest(unittest.TestCase):
         if r.region_code in regions.REGIONS:
           self.fail(
             'Missing time zone %r; does a new time zone need to be added '
-            'to CrOS, or does regions_unittest_data need to be updated?',
+            'to CrOS, or does regions_unittest_data need to be updated?' %
             r.time_zone)
         else:
           # This is an unconfirmed region; just print a warning.
@@ -57,10 +68,11 @@ class RegionTest(unittest.TestCase):
 
   def testLanguages(self):
     languages = _FindAllStrings(regions_unittest_data.CROS_ACCEPT_LANGUAGE_LIST)
-    missing = [
-      r.language_code
-      for r in regions.BuildRegionsDict(include_all=True).values()
-      if r.language_code not in languages]
+    missing = []
+    for r in regions.BuildRegionsDict(include_all=True).values():
+      for l in r.language_codes:
+        if l not in languages:
+          missing.append(l)
     self.assertFalse(
       missing,
       ('Missing languages; does regions_unittest_data need to be updated?: %r' %
@@ -79,26 +91,46 @@ class RegionTest(unittest.TestCase):
 
     # Verify that every region is present in the dict.
     for r in regions.BuildRegionsDict(include_all=True).values():
-      method = methods_dict.get(r.keyboard)
-      # Make sure the keyboard method is present.
-      self.assertTrue(method, 'Missing keyboard layout %r' % r.keyboard)
+      for k in r.keyboards:
+        method = methods_dict.get(k)
+        # Make sure the keyboard method is present.
+        self.assertTrue(method, 'Missing keyboard layout %r' % r.keyboard)
 
   def testVPDSettings(self):
+    # US has only a single VPD setting, so this should be the same
+    # regardless of allow_multiple.
+    for allow_multiple in [True, False]:
+      self.assertEquals(
+        {'initial_locale': 'en-US',
+         'initial_timezone': 'America/Los_Angeles',
+         'keyboard': 'xkb:us::eng',
+         'region': 'us'},
+        regions.BuildRegionsDict()['us'].GetVPDSettings(allow_multiple))
+
+    region = regions.Region(
+      'a', ['xkb:b::b1', 'xkb:b::b2'], 'c', ['d1', 'd2'], 'e')
     self.assertEquals(
-      {'initial_locale': 'en-US',
-       'initial_timezone': 'America/Los_Angeles',
-       'keyboard': 'xkb:us::eng',
-       'region': 'us'},
-      regions.BuildRegionsDict()['us'].GetVPDSettings())
+      {'initial_locale': 'd1',
+       'initial_timezone': 'c',
+       'keyboard': 'xkb:b::b1',
+       'region': 'a'},
+      region.GetVPDSettings(False))
+    self.assertEquals(
+      {'initial_locale': 'd1,d2',
+       'initial_timezone': 'c',
+       'keyboard': 'xkb:b::b1,xkb:b::b2',
+       'region': 'a'},
+      region.GetVPDSettings(True))
+
 
   def testYAMLOutput(self):
     output = StringIO.StringIO()
     regions.main(['--format', 'yaml'], output)
     data = yaml.load(output.getvalue())
     self.assertEquals(
-      {'keyboard': 'xkb:us::eng',
+      {'keyboards': ['xkb:us::eng'],
        'keyboard_mechanical_layout': 'ANSI',
-       'language_code': 'en-US',
+       'language_codes': ['en-US'],
        'region_code': 'us',
        'time_zone': 'America/Los_Angeles',
        'vpd_settings': {'initial_locale': 'en-US',
@@ -110,24 +142,25 @@ class RegionTest(unittest.TestCase):
   def testFieldsDict(self):
     # 'description' and 'notes' should be missing.
     self.assertEquals(
-      {'keyboard': 'b',
+      {'keyboards': ['xkb:b::b'],
        'keyboard_mechanical_layout': 'e',
-       'language_code': 'd',
+       'language_codes': ['d'],
        'region_code': 'a',
        'time_zone': 'c'},
-      (regions.Region('a', 'b', 'c', 'd', 'e', 'description', 'notes').
+      (regions.Region('a', 'xkb:b::b', 'c', 'd', 'e', 'description', 'notes').
        GetFieldsDict()))
 
   def testConsolidateRegionsDups(self):
     """Test duplicate handling.  Two identical Regions are OK."""
     # Make two copies of the same region.
-    region_list = [regions.Region('a', 'b', 'c', 'd', 'e') for _ in range(2)]
+    region_list = [regions.Region('a', 'xkb:b::b', 'c', 'd', 'e')
+                   for _ in range(2)]
     # It's OK.
     self.assertEquals(
       {'a': region_list[0]}, regions._ConsolidateRegions(region_list))
 
     # Modify the second copy.
-    region_list[1].keyboard = 'f'
+    region_list[1].keyboards = ['f']
     # Not OK anymore!
     self.assertRaisesRegexp(
       regions.RegionException, "Conflicting definitions for region 'a':",

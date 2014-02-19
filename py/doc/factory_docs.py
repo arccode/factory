@@ -69,9 +69,9 @@ class RegionsList(Directive):
           # For each of the columns...
           for value in [r.description + overlay_suffix,
                         r.region_code + overlay_suffix,
-                        r.keyboard,
+                        ', '.join(r.keyboards),
                         r.time_zone,
-                        r.language_code,
+                        ', '.join(r.language_codes),
                         str(r.keyboard_mechanical_layout),
                         r.notes or '']:
             if value:
