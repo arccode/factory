@@ -60,7 +60,7 @@ def GetI2CBus(device_names):
   elif len(matched_blocks) > 1:
     logging.error('GetI2CBus(%r): Multiple devices are found', device_names)
     return None
-  found = re.search(r'^P: *Phys=i2c-([0-9]+)-', matched_blocks[0],
+  found = re.search(r'^S: *Sysfs=.*/i2c-([0-9]+)/', matched_blocks[0],
                     flags=re.MULTILINE)
   if not found:
     logging.error('GetI2CBus(%r): Invalid format', device_names)
