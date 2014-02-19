@@ -23,6 +23,8 @@ from cros.factory.tools.mount_partition import MountPartition
 from cros.factory.utils.process_utils import Spawn
 
 
+INSTALLER_PATH = 'usr/local/factory/py/toolkit/installer.py'
+
 class FactoryToolkitInstaller():
   """Factory toolkit installer.
 
@@ -134,6 +136,25 @@ def PrintBuildInfo(src_root):
     print f.read()
 
 
+def PackFactoryToolkit(src_root, output_path):
+  """Packs the files containing this script into a factory toolkit."""
+  with open(os.path.join(src_root, 'VERSION'), 'r') as f:
+    version = f.read().strip()
+  Spawn([os.path.join(src_root, 'makeself.sh'), '--bzip2', '--nox11',
+         src_root, output_path, version, INSTALLER_PATH],
+         check_call=True, log=True)
+  print ('\n'
+      '  Factory toolkit generated at %s.\n'
+      '\n'
+      '  To install factory toolkit on a live device running a test image,\n'
+      '  copy this to the device and execute it as root.\n'
+      '\n'
+      '  Alternatively, the factory toolkit can be used to patch a test\n'
+      '  image. For more information, run:\n'
+      '    %s -- --help\n'
+      '\n' % (output_path, output_path))
+
+
 def main():
   parser = argparse.ArgumentParser(
       description='Factory toolkit installer.')
@@ -146,20 +167,37 @@ def main():
       help="Don't ask for confirmation")
   parser.add_argument('--build-info', action='store_true',
       help="Print build information and exit")
+  parser.add_argument('--pack-into', metavar='NEW_TOOLKIT',
+      help="Pack the files into a new factory toolkit")
+  parser.add_argument('--repack', metavar='UNPACKED_TOOLKIT',
+      help="Repack from previously unpacked toolkit")
   args = parser.parse_args()
 
   src_root = factory.FACTORY_PATH
   for _ in xrange(3):
     src_root = os.path.dirname(src_root)
 
-  if args.build_info:
-    PrintBuildInfo(src_root)
+  # --pack-into may be called directly so this must be done before changing
+  # working directory to OLDPWD.
+  if args.pack_into and args.repack is None:
+    PackFactoryToolkit(src_root, args.pack_into)
     return
 
   # Change to original working directory in case the user specifies
   # a relative path.
   # TODO: Use USER_PWD instead when makeself is upgraded
   os.chdir(os.environ['OLDPWD'])
+
+  if args.repack:
+    if args.pack_into is None:
+      parser.error('Must specify --pack-into when using --repack.')
+    Spawn([os.path.join(args.repack, INSTALLER_PATH),
+           '--pack-into', args.pack_into], check_call=True, log=True)
+    return
+
+  if args.build_info:
+    PrintBuildInfo(src_root)
+    return
 
   if not os.path.exists(args.dest):
     parser.error('Destination %s does not exist!' % args.dest)
