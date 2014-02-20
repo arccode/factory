@@ -70,6 +70,7 @@ def main():
     repo_full_path = os.path.join(SRC, repo_path)
 
     if not os.path.exists(repo_full_path):
+      print '  >>> Repository does not exist'
       continue
 
     uncommitted = GetUncommittedFiles(repo_full_path)
