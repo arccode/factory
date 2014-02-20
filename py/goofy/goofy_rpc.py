@@ -34,13 +34,18 @@ REBOOT_AFTER_UPDATE_DELAY_SECS = 5
 PING_SHOPFLOOR_TIMEOUT_SECS = 2
 UPLOAD_FACTORY_LOGS_TIMEOUT_SECS = 20
 VAR_LOG_MESSAGES = '/var/log/messages'
+RunState = utils.Enum(['UNINITIALIZED', 'STARTING', 'NOT_ACTIVE_RUN', 'RUNNING',
+                       'FINISHED'])
 
 
 class GoofyRPCException(Exception):
+  """Goofy RPC exception."""
   pass
 
 
 class GoofyRPC(object):
+  """Goofy RPC main class."""
+
   def _InRunQueue(self, func):
     """Runs a function in the Goofy run queue.
 
@@ -191,7 +196,8 @@ class GoofyRPC(object):
   def GetDmesg(self):
     """Returns the contents of dmesg.
 
-    Approximate timestamps are added to each line."""
+    Approximate timestamps are added to each line.
+    """
     dmesg = process_utils.Spawn(['dmesg'],
                                 check_call=True, read_stdout=True).stdout_data
     uptime = float(self._ReadUptime().split()[0])
@@ -312,6 +318,7 @@ class GoofyRPC(object):
     test = test.get_top_level_parent_or_group()
 
     self._InRunQueue(lambda: self.goofy.restart_tests(root=test))
+    return self.goofy.run_id
 
   def GetTests(self):
     """Returns a list of all tests and their states."""
@@ -353,21 +360,86 @@ class GoofyRPC(object):
   def GetGoofyStatus(self):
     """Returns a dictionary containing Goofy status information.
 
-    Returns: A dict with the following elements:
-      uuid: A UUID identifying the current goofy run
-      test_list_id: The active test_list ID
+    Returns:
+      A dict with the following elements:
+        uuid: A UUID identifying the current goofy run.
+        test_list_id: The active test_list ID.
+        status: The current status of Goofy.
     """
     return {'uuid': self.goofy.uuid,
             'test_list_id': (
                 self.goofy.test_list.test_list_id if self.goofy.test_list
                 else None),
+            'run_id': self.goofy.run_id,
             'status': self.goofy.status}
 
-  def SwitchTestList(self, test_list_id):
+  def GetActiveRunID(self):
+    """Gets the id of the current active test run."""
+    return self.goofy.run_id
+
+  def GetTestRunStatus(self, run_id):
+    """Returns the status of a given test run.
+
+    The given run id must match the last run id stored in Goofy to get the
+    status.
+
+    Args:
+      run_id: The id of a test run or None to get current test run status in
+        Goofy.
+
+    Returns:
+      A dict with the following elements:
+        status: The status of the given run of factory tests.
+
+          - UNINITIALIZED: No run has been scheduled yet.
+          - STARTING: Goofy just went through a reboot and the latest test run
+                      state has not been restored.
+          - NOT_ACTIVE_RUN: If the given run is not the current active one.
+          - RUNNING: Goofy is running the scheduled tests of the given run.
+          - FINISHED: Goofy has finished running the scheduled tests of the
+                      given run.
+
+        If status is RUNNING or FINISHED, the following elements are also
+        included:
+
+        run_id: The id of the current active run.
+        scheduled_tests: A dict of factory tests that were scheduled for
+          the active run and their status.
+    """
+    def Target(run_id):
+      if not run_id:
+        run_id = self.goofy.run_id
+
+      if self.goofy.run_id is None:
+        if self.goofy.state_instance.get_shared_data('run_id', optional=True):
+          # A run ID is present in shared data but hasn't been restored.
+          return {'status': RunState.STARTING}
+        else:
+          # No test run has ever been scheduled.
+          return {'status': RunState.UNINITIALIZED}
+      elif run_id != self.goofy.run_id:
+        return {'status': RunState.NOT_ACTIVE_RUN}
+      else:
+        test_states = self.goofy.state_instance.get_test_states()
+        scheduled_tests_status = dict((path, test_states.get(path)) for path in
+                                      self.goofy.scheduled_run_tests)
+        ret_val = {
+            'run_id': self.goofy.run_id,
+            'scheduled_tests': scheduled_tests_status
+        }
+        ret_val['status'] = (RunState.RUNNING if self.goofy.tests_to_run
+                             else RunState.FINISHED)
+        return ret_val
+
+    return self._InRunQueue(lambda: Target(run_id))
+
+  def SwitchTestList(self, test_list_id, automation_mode='none'):
     """Switches test lists.
 
     Args:
       test_list_id: The test list ID.
+      automation_mode: The automation mode to enable.  Valid values are:
+        ('none', 'partial', 'full').
 
     Raises:
       TestListError: The test list does not exist.
@@ -384,7 +456,8 @@ class GoofyRPC(object):
       process_utils.Spawn(
           ['nohup ' +
            os.path.join(factory.FACTORY_PATH, 'bin', 'factory_restart') +
-           ' -a &'], shell=True, check_call=True)
+           ' --automation-mode %s -a &' % automation_mode],
+          shell=True, check_call=True)
       # Wait for a while.  This process should be killed long before
       # 60 seconds have passed.
       time.sleep(60)

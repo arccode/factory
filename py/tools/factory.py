@@ -95,8 +95,9 @@ class RunCommand(Subcommand):
         help='ID of the test to run')
 
   def Run(self):
-    factory.get_state_instance().RunTest(self.args.id)
+    run_id = factory.get_state_instance().RunTest(self.args.id)
     print 'Running test %s' % self.args.id
+    print 'Active test run ID: %s' % run_id
 
 
 class WaitCommand(Subcommand):
@@ -145,6 +146,28 @@ class WaitCommand(Subcommand):
       time.sleep(1)
 
 
+class RunStatusCommand(Subcommand):
+  name = 'run-status'
+  help = 'Show information about a test run'
+
+  def Init(self):
+    self.subparser.add_argument(
+        '--id', default=None, help='ID of the test run')
+
+  def Run(self):
+    goofy = factory.get_state_instance()
+    run_status = goofy.GetTestRunStatus(self.args.id)
+    print 'status: %s' % run_status['status']
+    if 'run_id' in run_status:
+      print 'run_id: %s' % run_status['run_id']
+      print 'scheduled_tests:'
+      # Simply call 'tests' subcommand to print out information about the
+      # scheduled tests.
+      args = self.parser.parse_args(['tests', '--this-run', '--status'])
+      args.subcommand.args = args
+      args.subcommand.Run()
+
+
 class TestsCommand(Subcommand):
   name = 'tests'
   help = 'Show information about tests'
@@ -152,7 +175,7 @@ class TestsCommand(Subcommand):
   def Init(self):
     self.subparser.add_argument(
         '--interesting', '-i', action='store_true',
-        help=('Show only information "interesting" tests '
+        help=('Show only information about "interesting" tests '
               '(tests that are not untested or passed'))
     self.subparser.add_argument(
         '--status', '-s', action='store_true',
@@ -160,6 +183,9 @@ class TestsCommand(Subcommand):
     self.subparser.add_argument(
         '--yaml', action='store_true',
         help='Show lots of information in YAML format')
+    self.subparser.add_argument(
+        '--this-run', action='store_true',
+        help='Show only information about current active run')
 
   def Run(self):
     goofy = factory.get_state_instance()
@@ -172,6 +198,12 @@ class TestsCommand(Subcommand):
       tests = [
           x for x in tests if x['status'] in [
               TestState.ACTIVE, TestState.FAILED]]
+
+    if self.args.this_run:
+      scheduled_tests = (
+          goofy.GetTestRunStatus(None).get('scheduled_tests') or [])
+      tests = [
+          x for x in tests if x['path'] in scheduled_tests]
 
     if self.args.yaml:
       print yaml.safe_dump(tests)

@@ -142,6 +142,8 @@ class Goofy(object):
     args: Command-line args.
     test_list: The test list.
     test_lists: All new-style test lists.
+    run_id: The identifier for latest test run.
+    scheduled_run_tests: The list of tests scheduled for latest test run.
     event_handlers: Map of Event.Type to the method used to handle that
       event.  If the method has an 'event' argument, the event is passed
       to the handler.
@@ -186,6 +188,8 @@ class Goofy(object):
     self.args = None
     self.test_list = None
     self.test_lists = None
+    self.run_id = None
+    self.scheduled_run_tests = None
     self.on_ui_startup = []
     self.env = None
     self.last_idle = None
@@ -945,6 +949,20 @@ class Goofy(object):
     """Cancels any tests in the run queue."""
     self.run_tests([])
 
+  def restore_active_run_state(self):
+    """Restores active run id and the list of scheduled tests."""
+    self.run_id = self.state_instance.get_shared_data('run_id', optional=True)
+    self.scheduled_run_tests = self.state_instance.get_shared_data(
+        'scheduled_run_tests', optional=True)
+
+  def set_active_run_state(self):
+    """Sets active run id and the list of scheduled tests."""
+    self.run_id = str(uuid.uuid4())
+    self.scheduled_run_tests = [test.path for test in self.tests_to_run]
+    self.state_instance.set_shared_data('run_id', self.run_id)
+    self.state_instance.set_shared_data('scheduled_run_tests',
+                                        self.scheduled_run_tests)
+
   def run_tests(self, subtrees, untested_only=False):
     """Runs tests under subtree.
 
@@ -972,10 +990,11 @@ class Goofy(object):
 
         if not test.is_leaf():
           continue
-        if (untested_only and
-          test.get_state().status != TestState.UNTESTED):
+        if (untested_only and test.get_state().status != TestState.UNTESTED):
           continue
         self.tests_to_run.append(test)
+    if subtrees:
+      self.set_active_run_state()
     self.run_next_test()
 
   def reap_completed_tests(self):
@@ -1499,8 +1518,7 @@ class Goofy(object):
 
     def state_change_callback(test, test_state):
       self.event_client.post_event(
-        Event(Event.Type.STATE_CHANGE,
-            path=test.path, state=test_state))
+          Event(Event.Type.STATE_CHANGE, path=test.path, state=test_state))
     self.test_list.state_change_callback = state_change_callback
 
     for handler in self.on_ui_startup:
@@ -1520,13 +1538,14 @@ class Goofy(object):
       logging.info('Resuming tests after shutdown: %s',
              tests_after_shutdown)
       self.tests_to_run.extend(
-        self.test_list.lookup_path(t) for t in tests_after_shutdown)
+          self.test_list.lookup_path(t) for t in tests_after_shutdown)
       self.run_queue.put(self.run_next_test)
     else:
       if force_auto_run or self.test_list.options.auto_run_on_start:
         self.run_queue.put(
-          lambda: self.run_tests(self.test_list, untested_only=True))
+            lambda: self.run_tests(self.test_list, untested_only=True))
     self.state_instance.set_shared_data('tests_after_shutdown', None)
+    self.restore_active_run_state()
 
     self.may_disable_cros_shortcut_keys()
 
