@@ -32,13 +32,11 @@ class ToolkitInstallerTest(unittest.TestCase):
     self.dest = tempfile.mkdtemp(prefix='ToolkitInstallerTest.')
     self._installer = None
 
-    self._lsb_release_exists = None
-    old_path_exists = os.path.exists
-    def patchedExists(x):
-      if self._lsb_release_exists is not None and x == '/etc/lsb-release':
-        return self._lsb_release_exists
-      return old_path_exists(x)
-    os.path.exists = patchedExists
+    # True if we are pretending to be running inside CrOS.  This will
+    # cause a fake /etc/lsb-release file to be returned.
+    self._in_cros = None
+    installer.FactoryToolkitInstaller._ReadLSBRelease = (
+      lambda _: 'CHROMEOS_RELEASE' if self._in_cros else None)
 
   def tearDown(self):
     shutil.rmtree(self.src)
@@ -59,19 +57,18 @@ class ToolkitInstallerTest(unittest.TestCase):
   def testNonRoot(self):
     self.makeLiveDevice()
     os.getuid = lambda: 9999 # Not root
-    self._lsb_release_exists = None
-    self.assertRaises(Exception, self.createInstaller, (True, self.dest))
+    self._in_cros = True
+    self.assertRaises(Exception, self.createInstaller, True, self.dest)
 
   def testInChroot(self):
     self.makeLiveDevice()
     os.getuid = lambda: 0 # root
-    self._lsb_release_exists = False
-    self.assertRaises(Exception, self.createInstaller, (True, self.dest))
+    self.assertRaises(SystemExit, self.createInstaller, True, self.dest)
 
   def testInstall(self):
     self.makeLiveDevice()
     os.getuid = lambda: 0 # root
-    self._lsb_release_exists = True
+    self._in_cros = True
     self.createInstaller(system_root=self.dest)
     self._installer.Install()
     with open(os.path.join(self.dest, 'usr/local', 'file1'), 'r') as f:
@@ -82,13 +79,11 @@ class ToolkitInstallerTest(unittest.TestCase):
         os.path.join(self.dest, 'usr/local/factory/enabled')))
 
   def testIncorrectPatch(self):
-    self._lsb_release_exists = None
     with self.assertRaises(Exception):
       self.createInstaller()
 
   def testPatch(self):
     self.makeStatefulPartition()
-    self._lsb_release_exists = None
     self.createInstaller()
     self._installer.Install()
     with open(os.path.join(self.dest, 'dev_image', 'file1'), 'r') as f:
@@ -104,7 +99,7 @@ class ToolkitInstallerTest(unittest.TestCase):
     with open(os.path.join(self.dest, 'usr/local/factory/enabled'), 'w') as f:
       pass
     os.getuid = lambda: 0 # root
-    self._lsb_release_exists = True
+    self._in_cros = True
     self.createInstaller(enabled_tag=False, system_root=self.dest)
     self._installer.Install()
     with open(os.path.join(self.dest, 'usr/local', 'file1'), 'r') as f:
