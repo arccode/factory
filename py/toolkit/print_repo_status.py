@@ -69,6 +69,9 @@ def main():
     print 'Repository %s' % repo_path
     repo_full_path = os.path.join(SRC, repo_path)
 
+    if not os.path.exists(repo_full_path):
+      continue
+
     uncommitted = GetUncommittedFiles(repo_full_path)
     if uncommitted:
       print '  >>> Repository contains uncommited changes:'
