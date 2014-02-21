@@ -95,8 +95,7 @@ def TweakTestLists(args):
         f.write(new_data)
 
   if args.test_list:
-    with open(test_lists.ACTIVE_PATH, 'w') as f:
-      f.write(args.test_list)
+    test_lists.SetActiveTestList(args.test_list)
   else:
     file_utils.TryUnlink(test_lists.ACTIVE_PATH)
 
