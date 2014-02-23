@@ -27,11 +27,17 @@ UMPIRE_COMMAND_PORT = 8032
 # Base serving path for ShopFloorHander.
 HANDLER_BASE = '/shop_floor'
 
+# "version" in Ping method return value to indicate server is Umpire server.
+UMPIRE_VERSION = 3
+
 # Resource types which can use "umpire update" to update.
 UPDATEABLE_RESOURCES = ['factory_toolkit', 'firmware', 'fsi', 'hwid']
 
 # Valid keys in DUT info.
 DUT_INFO_KEYS = set(['sn', 'mlb_sn', 'board', 'firmware', 'ec'])
+
+# Required fields in resource map.
+REQUIRED_RESOURCE_MAP_FIELDS = set(['__token__', 'shop_floor_handler'])
 
 # List of valid key prefix in DUT info. For example, a DUT may have several
 # MACs, like mac.eth0, mac.wlan0. It accepts those keys with prefix 'mac'.
