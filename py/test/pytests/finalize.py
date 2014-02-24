@@ -91,7 +91,7 @@ class Finalize(unittest.TestCase):
           'match from the beginning of the error string.',
           default=[]),
       Arg('hwid_version', int,
-          'Version of HWID library to use in gooftool.', default=2,
+          'Version of HWID library to use in gooftool.', default=3,
           optional=True),
       Arg('enable_shopfloor', bool,
           'Perform shopfloor operations: update HWID data and flush event '

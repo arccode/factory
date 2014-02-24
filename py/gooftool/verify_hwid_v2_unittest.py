@@ -3,6 +3,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+"""Unit tests for --verify_hwid_v2 command of gooftool."""
 
 import logging
 import os
@@ -21,7 +22,8 @@ def Indent(data):
   return re.sub('(?m)^', '    ', data)
 
 
-class VerifyHWIDTest(unittest.TestCase):
+class VerifyHWIDv2Test(unittest.TestCase):
+  """Unit test for --verify_hwid_v2 command of gooftool."""
   def testHWIDRepo(self):
     self._RunTest(
         os.path.join(os.environ['CROS_WORKON_SRCROOT'],
@@ -54,7 +56,7 @@ class VerifyHWIDTest(unittest.TestCase):
 
         process = Spawn([os.path.join(factory.FACTORY_PATH, 'bin', 'gooftool'),
                          '--v=4',
-                         'verify_hwid',
+                         'verify_hwid_v2',
                          '--hwid=%s' % hwid,
                          '--hwdb_path=%s' % test_data_path,
                          '--probe_results=%s' % f.name,

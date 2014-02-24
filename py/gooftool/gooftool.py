@@ -59,13 +59,14 @@ def GetGooftool(options):
 
   if _global_gooftool is None:
     with _gooftool_lock:
-      if options.hwid_version == 2:
+      hwid_version = getattr(options, 'hwid_version', 3)
+      if hwid_version == 2:
         hwdb_path = getattr(options, 'hwdb_path', None)
         component_db = (
             hwid_tool.HardwareDb(options.hwdb_path).comp_db if hwdb_path
             else None)
         _global_gooftool = Gooftool(hwid_version=2, component_db=component_db)
-      elif options.hwid_version == 3:
+      elif hwid_version == 3:
         board = getattr(options, 'board', None)
         hwdb_path = getattr(options, 'hwdb_path', None)
         _global_gooftool = Gooftool(hwid_version=3, board=board,
@@ -116,6 +117,11 @@ _hwid_cmd_arg = CmdArg(
 _rma_mode_cmd_arg = CmdArg(
     '--rma_mode', action='store_true',
     help='Enable RMA mode, do not check for deprecated components.')
+
+_hwid_version_cmd_arg = CmdArg(
+    '-i', '--hwid-version', default=3, choices=(2, 3), type=int,
+    help='Version of HWID to operate on. (default: %(default)s)')
+
 
 @Command('best_match_hwids',
          _hwdb_path_cmd_arg,
@@ -362,12 +368,12 @@ def PrintVerifyComponentsResults(result):
     print "\ncomponent verification SUCCESS"
 
 
-@Command('verify_hwid',
+@Command('verify_hwid_v2',
          _hwid_status_list_cmd_arg,
          _hwdb_path_cmd_arg,
          _probe_results_cmd_arg,
          _hwid_cmd_arg)
-def VerifyHwid(options):
+def VerifyHWIDv2(options):
   """Verify system HWID properties match probed device properties.
 
   First probe components, volatile and initial_config parameters for
@@ -378,7 +384,6 @@ def VerifyHwid(options):
   the necessary fields as specified by the board data, and when
   possible verify that values are legitimate.
   """
-
   def VerifyVpd(ro_vpd_keys, rw_vpd_keys):
     for key in ro_vpd_keys:
       if key not in ro_vpd:
@@ -620,6 +625,7 @@ def PrepareWipe(options):
 @Command('verify',
          CmdArg('--no_write_protect', action='store_true',
                 help='Do not check write protection switch state.'),
+         _hwid_version_cmd_arg,
          _hwid_status_list_cmd_arg,
          _hwdb_path_cmd_arg,
          _board_cmd_arg,
@@ -639,7 +645,7 @@ def Verify(options):
     VerifyWPSwitch(options)
   VerifyDevSwitch(options)
   if options.hwid_version == 2:
-    VerifyHwid(options)
+    VerifyHWIDv2(options)
   elif options.hwid_version == 3:
     VerifyHWIDv3(options)
   else:
@@ -667,8 +673,7 @@ def UntarStatefulFiles(dummy_options):
 def LogSystemDetails(options):  # pylint: disable=W0613
   """Write miscellaneous system details to the event log."""
 
-  event_log.Log('system_details', **Gooftool(
-      hwid_version=options.hwid_version).GetSystemDetails())
+  event_log.Log('system_details', **GetGooftool(options).GetSystemDetails())
 
 
 def CreateReportArchiveBlob(*args, **kwargs):
@@ -773,6 +778,7 @@ def UploadReport(options):
                 help='Do not enable firmware write protection.'),
          CmdArg('--fast', action='store_true',
                 help='use non-secure but faster wipe method.'),
+         _hwid_version_cmd_arg,
          _hwdb_path_cmd_arg,
          _hwid_status_list_cmd_arg,
          _upload_method_cmd_arg,
@@ -887,8 +893,6 @@ def Main():
              help='Write logs to this file.'),
       CmdArg('--suppress-event-logs', action='store_true',
              help='Suppress event logging.'),
-      CmdArg('-i', '--hwid-version', default=3, choices=[2, 3], type=int,
-             help='Version of HWID to operate on.'),
       verbosity_cmd_arg)
   SetupLogging(options.verbosity, options.log)
   event_log.SetGlobalLoggerDefaultPrefix('gooftool')
