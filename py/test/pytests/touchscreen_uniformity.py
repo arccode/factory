@@ -77,13 +77,15 @@ class AtmelTouchController(object):
     i2c_bus_id: String. I2C device identifier. Ex: '10-004a'
   """
 
-  def __init__(self, i2c_bus_id):
+  def __init__(self, i2c_bus_id, matrix_size):
     i2c_device_path = os.path.join(_I2C_DEVICES_PATH, i2c_bus_id)
     self.object_path = os.path.join(i2c_device_path, 'object')
     self.kernel_device_path = os.path.join(_KERNEL_DRIVER_PATH, i2c_bus_id)
     self.rows = None
     self.cols = None
-    if self.IsPresent():
+    if matrix_size is not None:
+      self.rows, self.cols = matrix_size
+    elif self.IsPresent():
       matrix_path = os.path.join(i2c_device_path, 'matrix_size')
       with open(matrix_path, 'r') as f:
         self.rows, self.cols = [
@@ -322,12 +324,18 @@ class TouchscreenUniformity(unittest.TestCase):
       default=_DEFAULT_DELTAS_MIN, optional=True),
     Arg('i2c_bus_id', str, 'i2c bus address of controller',
       default=_DEFAULT_I2C_BUS_ID, optional=True),
+    Arg('matrix_size', tuple,
+        'The size of touchscreen sensor row data in the form of (rows, cols).'
+        'This is used to override the matrix size read from kernel i2c '
+        'device path.',
+        optional=True),
   ]
 
   def setUp(self):
     self.ui = test_ui.UI()
     self.template = ui_templates.OneSection(self.ui)
-    self.touch_controller = AtmelTouchController(self.args.i2c_bus_id)
+    self.touch_controller = AtmelTouchController(
+        self.args.i2c_bus_id, self.args.matrix_size)
     self.ui.AppendCSS(_CSS)
     self._task_manager = None
 
