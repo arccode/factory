@@ -102,7 +102,7 @@ def FactoryTest(*args, **kwargs):
     label_zh: A Chinese label.
     autotest_name: The name of the autotest to run.
     pytest_name: The name of the pytest to run (relative to
-      autotest_lib.client.cros.factory.tests).
+      cros.factory.test.pytests).
     invocation_target: The function to execute to run the test
       (within the Goofy process).
     kbd_shortcut: The keyboard shortcut for the test.
