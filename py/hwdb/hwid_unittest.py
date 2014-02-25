@@ -81,6 +81,7 @@ initial_configs:
   rw_firmware: '9999'
 missing_component_classes:
 - wimax
+- touchscreen
 '''
 
 g_dummy_volatiles_results_str = '''
