@@ -320,6 +320,28 @@ class GoofyRPC(object):
     self._InRunQueue(lambda: self.goofy.restart_tests(root=test))
     return self.goofy.run_id
 
+  def CancelPendingTests(self):
+    """Cancels all pending tests."""
+    self._InRunQueue(self.goofy.cancel_pending_tests)
+
+  def LogStartupMessages(self):
+    """Logs the tail of var/log/messages and mosys and EC console logs."""
+    self._InRunQueue(self.goofy.log_startup_messages)
+
+  def Shutdown(self, operation):
+    """Starts a shutdown operation through Goofy.
+
+    Args:
+      operation: The shutdown operation to run ('halt' or 'reboot').
+    """
+    if operation not in ['halt', 'reboot']:
+      raise GoofyRPCException('Invalid shutdown operation %r' % operation)
+    self._InRunQueue(lambda: self.goofy.shutdown(operation))
+
+  def GetLastShutdownTime(self):
+    """Gets last shutdown time detected by Goofy."""
+    return self.goofy.last_shutdown_time
+
   def GetTests(self):
     """Returns a list of all tests and their states."""
     def Target():

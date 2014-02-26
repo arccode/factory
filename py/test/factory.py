@@ -387,10 +387,6 @@ class Options(object):
   preserve_autotest_results = ['*.DEBUG', '*.INFO']
   """Discard all autotest results that do not match these globs."""
 
-  max_reboot_time_secs = 180
-  """Maximum amount of time allowed between reboots. If this threshold
-  is exceeded, the reboot is considered failed."""
-
   engineering_password_sha1 = None
   """SHA1 hash for a engineering password in the UI.  Use None to
   always enable engingeering mode.
@@ -614,7 +610,7 @@ class TestState(object):
       FAILED, or UNTESTED).
     count: The number of times the test has been run.
     error_msg: The last error message that caused a test failure.
-    shutdown_count: The next of times the test has caused a shutdown.
+    shutdown_count: The number of times the test has caused a shutdown.
     visible: Whether the test is the currently visible test.
     invocation: The currently executing invocation.
     iterations_left: For an active test, the number of remaining
@@ -1308,26 +1304,28 @@ class ShutdownStep(AutomatedSubTest):
 
   Properties:
     iterations: The number of times to reboot.
-    operation: The command to run to perform the shutdown
-      (REBOOT or HALT).
+    operation: The command to run to perform the shutdown (REBOOT or HALT).
     delay_secs: Number of seconds the operator has to abort the shutdown.
   """
   REBOOT = 'reboot'
   HALT = 'halt'
 
-  def __init__(self, operation, delay_secs=5, enable_guest_mode=False, **kw):
-    super(ShutdownStep, self).__init__(**kw)
-    assert not self.autotest_name, (
-        'Reboot/halt steps may not have an autotest')
+  def __init__(self, operation, delay_secs=5, enable_guest_mode=False,
+               **kwargs):
+    super(ShutdownStep, self).__init__(**kwargs)
+    assert not (self.autotest_name or self.pytest_name), (
+        'Reboot/halt steps may not have an autotest/pytest')
     assert not self.subtests, 'Reboot/halt steps may not have subtests'
     assert not self.backgroundable, (
         'Reboot/halt steps may not be backgroundable')
-
     assert operation in [self.REBOOT, self.HALT]
-    self.operation = operation
     assert delay_secs >= 0
-    self.delay_secs = delay_secs
-    self.enable_guest_mode = enable_guest_mode
+    self.pytest_name = 'shutdown'
+    self.dargs = kwargs.get('dargs', {})
+    self.dargs.update(dict(
+        operation=operation,
+        delay_secs=delay_secs,
+        enable_guest_mode=enable_guest_mode))
 
 
 class HaltStep(ShutdownStep):

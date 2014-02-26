@@ -64,9 +64,6 @@ CACHES_DIR = os.path.join(factory.get_state_root(), "caches")
 
 CLEANUP_LOGS_PAUSED = '/var/lib/cleanup_logs_paused'
 
-# File that suppresses reboot if present (e.g., for development).
-NO_REBOOT_FILE = '/var/log/factory.noreboot'
-
 # Value for tests_after_shutdown that forces auto-run (e.g., after
 # a factory update, when the available set of tests might change).
 FORCE_AUTO_RUN = 'force_auto_run'
@@ -376,7 +373,7 @@ class Goofy(object):
       self.visible_test.update_state(visible=False)
     self.visible_test = test
 
-  def _log_startup_messages(self):
+  def log_startup_messages(self):
     """Logs the tail of var/log/messages and mosys and EC console logs."""
     # TODO(jsalz): This is mostly a copy-and-paste of code in init_states,
     # for factory-3004.B only.  Consolidate and merge back to ToT.
@@ -415,119 +412,72 @@ class Goofy(object):
     except:  # pylint: disable=W0702
       logging.exception('Error retrieving EC panic info')
 
-  def handle_shutdown_complete(self, test, test_state):
+  def shutdown(self, operation):
+    """Starts shutdown procedure.
+
+    Args:
+      operation: The shutdown operation (reboot or halt).
+    """
+    active_tests = []
+    for test in self.test_list.walk():
+      if not test.is_leaf():
+        continue
+
+      test_state = test.get_state()
+      if test_state.status == TestState.ACTIVE:
+        active_tests.append(test)
+
+
+    if not (len(active_tests) == 1 and
+            isinstance(active_tests[0], factory.ShutdownStep)):
+      logging.error(
+          'Calling Goofy shutdown outside of the shutdown factory test')
+      return
+
+    logging.info('Start Goofy shutdown (%s)', operation)
+    # Save pending test list in the state server
+    self.state_instance.set_shared_data(
+        'tests_after_shutdown',
+        [t.path for t in self.tests_to_run])
+    # Save shutdown time
+    self.state_instance.set_shared_data('shutdown_time', time.time())
+
+    with self.env.lock:
+      self.event_log.Log('shutdown', operation=operation)
+      shutdown_result = self.env.shutdown(operation)
+    if shutdown_result:
+      # That's all, folks!
+      self.run_queue.put(None)
+    else:
+      # Just pass (e.g., in the chroot).
+      self.state_instance.set_shared_data('tests_after_shutdown', None)
+      # Send event with no fields to indicate that there is no
+      # longer a pending shutdown.
+      self.event_client.post_event(Event(Event.Type.PENDING_SHUTDOWN))
+
+  def handle_shutdown_complete(self, test):
     """Handles the case where a shutdown was detected during a shutdown step.
 
     Args:
       test: The ShutdownStep.
-      test_state: The test state.
     """
     test_state = test.update_state(increment_shutdown_count=1)
     logging.info('Detected shutdown (%d of %d)',
-           test_state.shutdown_count, test.iterations)
+                 test_state.shutdown_count, test.iterations)
 
-    def log_and_update_state(status, error_msg, **kw):
-      self.event_log.Log('rebooted',
-                 status=status, error_msg=error_msg, **kw)
-      logging.info('Rebooted: status=%s, %s', status,
-                   (('error_msg=%s' % error_msg) if error_msg else None))
-      test.update_state(status=status, error_msg=error_msg)
+    # Insert current shutdown test at the front of the list of tests to run
+    # after shutdown.  This is to continue on post-shutdown verification in the
+    # shutdown step.
+    tests_after_shutdown = self.state_instance.get_shared_data(
+        'tests_after_shutdown', optional=True)
+    if not tests_after_shutdown:
+      self.state_instance.set_shared_data('tests_after_shutdown', [test.path])
+    elif isinstance(tests_after_shutdown, list):
+      self.state_instance.set_shared_data(
+          'tests_after_shutdown', [test.path] + tests_after_shutdown)
 
-    if not self.last_shutdown_time:
-      log_and_update_state(status=TestState.FAILED,
-                 error_msg='Unable to read shutdown_time')
-      return
-
-    now = time.time()
-    logging.info('%.03f s passed since reboot',
-           now - self.last_shutdown_time)
-
-    if self.last_shutdown_time > now:
-      test.update_state(status=TestState.FAILED,
-                error_msg='Time moved backward during reboot')
-    elif (isinstance(test, factory.RebootStep) and
-        self.test_list.options.max_reboot_time_secs and
-        (now - self.last_shutdown_time >
-         self.test_list.options.max_reboot_time_secs)):
-      # A reboot took too long; fail.  (We don't check this for
-      # HaltSteps, because the machine could be halted for a
-      # very long time, and even unplugged with battery backup,
-      # thus hosing the clock.)
-      log_and_update_state(
-        status=TestState.FAILED,
-        error_msg=('More than %d s elapsed during reboot '
-               '(%.03f s, from %s to %s)' % (
-            self.test_list.options.max_reboot_time_secs,
-            now - self.last_shutdown_time,
-            utils.TimeString(self.last_shutdown_time),
-            utils.TimeString(now))),
-        duration=(now-self.last_shutdown_time))
-      self._log_startup_messages()
-    elif test_state.shutdown_count == test.iterations:
-      # Good!
-      log_and_update_state(status=TestState.PASSED,
-                 duration=(now - self.last_shutdown_time),
-                 error_msg='')
-    elif test_state.shutdown_count > test.iterations:
-      # Shut down too many times
-      log_and_update_state(status=TestState.FAILED,
-                 error_msg='Too many shutdowns')
-      self._log_startup_messages()
-    elif utils.are_shift_keys_depressed():
-      logging.info('Shift keys are depressed; cancelling restarts')
-      # Abort shutdown
-      log_and_update_state(
-        status=TestState.FAILED,
-        error_msg='Shutdown aborted with double shift keys')
-      self.cancel_pending_tests()
-    else:
-      def handler():
-        if self._prompt_cancel_shutdown(
-          test, test_state.shutdown_count + 1):
-          factory.console.info('Shutdown aborted by operator')
-          log_and_update_state(
-            status=TestState.FAILED,
-            error_msg='Shutdown aborted by operator')
-          self.cancel_pending_tests()
-          return
-
-        # Time to shutdown again
-        log_and_update_state(
-          status=TestState.ACTIVE,
-          error_msg='',
-          iteration=test_state.shutdown_count)
-
-        self.event_log.Log('shutdown', operation='reboot')
-        self.state_instance.set_shared_data('shutdown_time',
-                        time.time())
-        self.env.shutdown('reboot')
-
-      self.on_ui_startup.append(handler)
-
-  def _prompt_cancel_shutdown(self, test, iteration):
-    if self.options.ui != 'chrome':
-      return False
-
-    pending_shutdown_data = {
-      'delay_secs': test.delay_secs,
-      'enable_guest_mode': test.enable_guest_mode,
-      'time': time.time() + test.delay_secs,
-      'operation': test.operation,
-      'iteration': iteration,
-      'iterations': test.iterations,
-      }
-
-    # Create a new (threaded) event client since we
-    # don't want to use the event loop for this.
-    with EventClient() as event_client:
-      event_client.post_event(Event(Event.Type.PENDING_SHUTDOWN,
-                      **pending_shutdown_data))
-      aborted = event_client.wait(
-        lambda event: event.type == Event.Type.CANCEL_SHUTDOWN,
-        timeout=test.delay_secs) is not None
-      if aborted:
-        event_client.post_event(Event(Event.Type.PENDING_SHUTDOWN))
-      return aborted
+    # Set 'post_shutdown' to inform shutdown test that a shutdown just occurred.
+    self.state_instance.set_shared_data('post_shutdown', True)
 
   def init_states(self):
     """Initializes all states on startup."""
@@ -553,7 +503,7 @@ class Goofy(object):
         continue
       if isinstance(test, factory.ShutdownStep):
         # Shutdown while the test was active - that's good.
-        self.handle_shutdown_complete(test, test_state)
+        self.handle_shutdown_complete(test)
       else:
         # Unexpected shutdown.  Grab /var/log/messages for context.
         if var_log_messages is None:
@@ -805,68 +755,24 @@ class Goofy(object):
                             error_msg=error_msg)
           continue
 
-      if isinstance(test, factory.ShutdownStep):
-        if os.path.exists(NO_REBOOT_FILE):
-          test.update_state(
-              status=TestState.FAILED, increment_count=1,
-              error_msg=('Skipped shutdown since %s is present' %
-                         NO_REBOOT_FILE))
-          continue
-
-        if (test.operation == factory.ShutdownStep.HALT and
-            self.options.automation_mode == AutomationMode.FULL):
-          logging.info('Skip halt in full automation mode.')
-          test.update_state(status=TestState.PASSED)
-          continue
-
-        test.update_state(status=TestState.ACTIVE, increment_count=1,
-                          error_msg='', shutdown_count=0)
-        if self._prompt_cancel_shutdown(test, 1):
-          self.event_log.Log('reboot_cancelled')
-          test.update_state(
-              status=TestState.FAILED, increment_count=1,
-              error_msg='Shutdown aborted by operator',
-              shutdown_count=0)
-          continue
-
-        # Save pending test list in the state server
-        self.state_instance.set_shared_data(
-            'tests_after_shutdown',
-            [t.path for t in self.tests_to_run])
-        # Save shutdown time
-        self.state_instance.set_shared_data('shutdown_time', time.time())
-
-        with self.env.lock:
-          self.event_log.Log('shutdown', operation=test.operation)
-          if (test.enable_guest_mode and
-              not os.path.exists(
-                  test_environment.DUTEnvironment.GUEST_MODE_TAG_FILE)):
-            # Create a temporary file GUEST_MODE_TAG_FILE to enable guest mode
-            # on next boot.
-            os.mknod(test_environment.DUTEnvironment.GUEST_MODE_TAG_FILE)
-          shutdown_result = self.env.shutdown(test.operation)
-        if shutdown_result:
-          # That's all, folks!
-          self.run_queue.put(None)
-          return
-        else:
-          # Just pass (e.g., in the chroot).
-          test.update_state(status=TestState.PASSED)
-          self.state_instance.set_shared_data('tests_after_shutdown', None)
-          # Send event with no fields to indicate that there is no
-          # longer a pending shutdown.
-          self.event_client.post_event(Event(Event.Type.PENDING_SHUTDOWN))
-          continue
-
-      self._run_test(test, test.iterations, test.retries)
+      if (isinstance(test, factory.ShutdownStep) and
+          self.state_instance.get_shared_data('post_shutdown', optional=True)):
+        # Invoking post shutdown method of shutdown test. We should retain the
+        # iterations_left and retries_left of the original test state.
+        test_state = self.state_instance.get_test_state(test.path)
+        self._run_test(test, test_state.iterations_left,
+                       test_state.retries_left)
+      else:
+        # Starts a new test run; reset iterations and retries.
+        self._run_test(test, test.iterations, test.retries)
 
   def _run_test(self, test, iterations_left=None, retries_left=None):
     invoc = TestInvocation(self, test, on_completion=self.run_next_test)
     new_state = test.update_state(
-      status=TestState.ACTIVE, increment_count=1, error_msg='',
-      invocation=invoc.uuid, iterations_left=iterations_left,
-      retries_left=retries_left,
-      visible=(self.visible_test == test))
+        status=TestState.ACTIVE, increment_count=1, error_msg='',
+        invocation=invoc.uuid, iterations_left=iterations_left,
+        retries_left=retries_left,
+        visible=(self.visible_test == test))
     invoc.count = new_state.count
 
     self.invocations[test] = invoc
@@ -1527,16 +1433,12 @@ class Goofy(object):
     self.prespawner = Prespawner()
     self.prespawner.start()
 
-    try:
-      tests_after_shutdown = self.state_instance.get_shared_data(
-        'tests_after_shutdown')
-    except KeyError:
-      tests_after_shutdown = None
+    tests_after_shutdown = self.state_instance.get_shared_data(
+        'tests_after_shutdown', optional=True)
 
     force_auto_run = (tests_after_shutdown == FORCE_AUTO_RUN)
     if not force_auto_run and tests_after_shutdown is not None:
-      logging.info('Resuming tests after shutdown: %s',
-             tests_after_shutdown)
+      logging.info('Resuming tests after shutdown: %s', tests_after_shutdown)
       self.tests_to_run.extend(
           self.test_list.lookup_path(t) for t in tests_after_shutdown)
       self.run_queue.put(self.run_next_test)
@@ -1965,7 +1867,7 @@ class Goofy(object):
 
     self.abort_active_tests('Operator requested restart of certain tests')
     for test in root.walk():
-      test.update_state(status=TestState.UNTESTED)
+      test.update_state(status=TestState.UNTESTED, shutdown_count=0)
     self.run_tests(root)
 
   def auto_run(self, starting_at=None, root=None):

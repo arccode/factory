@@ -690,7 +690,7 @@ def ManualSMTTests(args):
     SMTShopFloor2(args)
   args.Barrier('SMT')
   SMTFinish(args)
-  HaltStep(id='Shutdown', label_zh=u'关机')
+  HaltStep(id='Shutdown', label_zh=u'关机', has_automator=True)
 
 
 def SMT(args):

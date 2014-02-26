@@ -450,11 +450,11 @@ class TestInvocation(object):
                 'Before starting: %s' % self._aborted_message())
 
           self._process = Spawn(
-            args,
-            env=env,
-            stdin=open(os.devnull, "w"),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT)
+              args,
+              env=env,
+              stdin=open(os.devnull, "w"),
+              stdout=subprocess.PIPE,
+              stderr=subprocess.STDOUT)
 
         # Tee process's stderr to both the log and our stderr; this
         # will end when the process dies.
