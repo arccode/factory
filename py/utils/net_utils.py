@@ -23,6 +23,19 @@ from cros.factory.utils.process_utils import Spawn, SpawnOutput
 DEFAULT_TIMEOUT = 10
 INSERT_ETHERNET_DONGLE_TIMEOUT = 30
 
+def Ifconfig(devname, enable, sleep_time_secs=1):
+  """Brings up/down interface.
+
+  Args:
+    devname: Device name.
+    enable: True is to bring up interface. False is down.
+    sleep_time_secs: The sleeping time after ifconfig up.
+  """
+  Spawn(['ifconfig', devname, 'up' if enable else 'down'],
+      check_call=True, log=True)
+  # Wait for device to settle down.
+  time.sleep(sleep_time_secs)
+
 class TimeoutXMLRPCTransport(xmlrpclib.Transport):
   """Transport subclass supporting timeout."""
   def __init__(self, timeout=DEFAULT_TIMEOUT, *args, **kwargs):
@@ -89,7 +102,7 @@ def SetEthernetIp(ip, interface=None, force=False):
         does not already have an assigned IP address.
   """
   interface = interface or FindUsableEthDevice(raise_exception=True)
-  Spawn(['ifconfig', interface, 'up'], call=True)
+  Ifconfig(interface, True)
   current_ip = GetEthernetIp(interface)
   if force or not current_ip:
     Spawn(['ifconfig', interface, ip], call=True)
@@ -152,7 +165,7 @@ def SendDhcpRequest(interface=None):
     specific interface.
   """
   interface = interface or FindUsableEthDevice(raise_exception=True)
-  Spawn(['ifconfig', interface, 'up'], call=True)
+  Ifconfig(interface, True)
   _SendDhclientCommand([], interface,
                        expect_str=r"bound to (\d+\.\d+\.\d+\.\d+)")
 
@@ -164,7 +177,7 @@ def ReleaseDhcp(interface=None):
     specific interface.
   """
   interface = interface or FindUsableEthDevice(raise_exception=True)
-  Spawn(['ifconfig', interface, 'up'], call=True)
+  Ifconfig(interface, True)
   _SendDhclientCommand(['-r'], interface)
 
 def PollForCondition(condition, timeout=10,
@@ -287,5 +300,4 @@ def SwitchEthernetInterfaces(enable):
   """
   devs = GetEthernetInterfaces()
   for dev in devs:
-    Spawn(['ifconfig', dev, 'up' if enable else 'down'],
-          check_call=True, log=True)
+    Ifconfig(dev, enable)
