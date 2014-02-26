@@ -556,10 +556,10 @@ class Options(object):
   """Whether to stop on any failure."""
 
   disable_log_rotation = True
-  """Disables log rotation by writing ``/var/lib/cleanup_logs_paused``
-  (see ``/usr/sbin/chromeos-cleanup-logs``).  Note that setting this
-  to ``False`` does not delete any existing ``cleanup_logs_paused``
-  file; it merely prevents its creation on future Goofy runs."""
+  """Disables (or Enables) log rotation by writing (or deleting)
+  ``/var/lib/cleanup_logs_paused`` (see ``/usr/sbin/chromeos-cleanup-logs``).
+  in goofy idle loops. Note that autotest harness disables log rotation.
+  """
 
   disable_cros_shortcut_keys = False
   """Disable ChromeOS shortcut keys (see ``factory/tools/key_filter.py``)."""
