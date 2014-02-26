@@ -29,12 +29,13 @@ class PartitionsTest(unittest.TestCase):
 
     for _ in xrange(5):
       partitions.Spawn(
-          ['rootdev', '-d'], check_output=True).AndReturn(
+          ['rootdev', '-s', '-d'], check_output=True).AndReturn(
         Stdout('/dev/mmcblk0'))
 
     for _ in xrange(5):
       partitions.Spawn(
-          ['rootdev', '-d'], check_output=True).AndReturn(Stdout('/dev/sda'))
+          ['rootdev', '-s', '-d'], check_output=True).AndReturn(
+        Stdout('/dev/sda'))
 
     self.mox.ReplayAll()
 

@@ -8,13 +8,14 @@
 
 import factory_common  # pylint: disable=W0611
 
-
 from cros.factory.utils.process_utils import Spawn
 
 
 def GetRootDev():
   """Gets root block device."""
-  return Spawn(['rootdev', '-d'], check_output=True).stdout_data.strip()
+  # rootdev may return /dev/dm-\d+ when LVM is enabled.  'rootdev -s -d' can
+  # return simple format like /dev/sd[a-z] or /dev/mmcblk\d+.
+  return Spawn(['rootdev', '-s', '-d'], check_output=True).stdout_data.strip()
 
 
 class Partition(object):
