@@ -106,6 +106,51 @@ def ValidateConfig(config):
   schema.Validate(config)
 
 
+class UmpireOrderedDict(dict):
+  """Used to output UmpireConfig with desired key order."""
+  def Omap(self):
+    result = [(k, self[k]) for k in ['board', 'ip', 'port']]
+    result.append(('rulesets',
+                   [RulesetOrderedDict(r) for r in self['rulesets']]))
+    result.append(('services', ServicesOrderedDict(self['services'])))
+    result.append(('bundles',
+                   [BundleOrderedDict(b) for b in self['bundles']]))
+    return result
+
+
+class RulesetOrderedDict(dict):
+  """Used to output an UmpireConfig's ruleset with desired key order."""
+  _KEY_ORDER = ['bundle_id', 'note', 'active', 'update', 'match']
+  def Omap(self):
+    return [(k, self[k]) for k in self._KEY_ORDER if k in self]
+
+
+class ServicesOrderedDict(dict):
+  """Used to output an UmpireConfig's services with desired key order."""
+  _KEY_ORDER = ['archiver', 'http', 'shop_floor_handler', 'minijack',
+                'mock_shop_floor_backend', 'rsync', 'dhcp', 'tftp']
+  def Omap(self):
+    return [(k, self[k]) for k in self._KEY_ORDER if k in self]
+
+
+class BundleOrderedDict(dict):
+  """Used to output an UmpireConfig's bundle with desired key order."""
+  _KEY_ORDER = ['id', 'note', 'shop_floor', 'auto_update', 'resources']
+  def Omap(self):
+    return [(k, self[k]) for k in self._KEY_ORDER if k in self]
+
+
+def RepresentOmap(dumper, data):
+  """A YAML representer for ordered map with dict look."""
+  return dumper.represent_mapping(u'tag:yaml.org,2002:map', data.Omap())
+
+
+yaml.add_representer(UmpireOrderedDict, RepresentOmap)
+yaml.add_representer(RulesetOrderedDict, RepresentOmap)
+yaml.add_representer(ServicesOrderedDict, RepresentOmap)
+yaml.add_representer(BundleOrderedDict, RepresentOmap)
+
+
 class UmpireConfig(dict):
   """Container of Umpire configuration.
 
@@ -121,8 +166,25 @@ class UmpireConfig(dict):
     umpire_config = UmpireConfig(config_file)
     logging.info('Reads Umpire config for boards: %s', umpire_config['board']
   """
-  def __init__(self, config_file):
+  def __init__(self, config_file, validate=True):
+    """Loads an UmpireConfig.
+
+    Args:
+      config_path: path to an Umpire config file.
+      validate: True to validate. Note that it would be removed once
+          all UmpireConfig components are implemented.
+    """
     with open(config_file, 'r') as f:
       config = yaml.load(f)
-      ValidateConfig(config)
+      if validate:
+        ValidateConfig(config)
       super(UmpireConfig, self).__init__(config)
+
+  def WriteFile(self, config_file):
+    """Writes UmpireConfig to a file in YAML format.
+
+    Args:
+      config_file: path to write.
+    """
+    with open(config_file, 'w') as f:
+      yaml.dump(UmpireOrderedDict(self), f, default_flow_style=False)
