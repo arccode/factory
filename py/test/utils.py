@@ -441,8 +441,8 @@ def WaitFor(condition, timeout_secs, poll_interval=0.1):
     ValueError: If condition is not a function.
     TimeoutError: If cond does not become True after timeout_secs seconds.
   """
-  if not isinstance(condition, types.FunctionType):
-    raise ValueError('condition must be a function object')
+  if not callable(condition):
+    raise ValueError('condition must be a callable object')
 
   def _GetConditionString():
     condition_string = condition.__name__

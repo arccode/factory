@@ -99,55 +99,77 @@ class DUTEnvironment(Environment):
     return self.goofy.prespawner.spawn(args, env_additions)
 
   def launch_chrome(self):
+    # Telemetry flakiness: Allow retries when starting up Chrome.
+    # TODO(jcliang): Remove this when we're sure that telemetry is stable
+    # enough.
+    for try_num in xrange(
+        1, self.goofy.test_list.options.chrome_startup_tries + 1):
+      try:
+        if try_num > 1:
+          logging.info('Retry loading UI through telemetry (try_num = %d)',
+                       try_num)
+        # Telemetry UI login may fail with an exception, or just stuck at
+        # login screen with no error. Retry telemetry login in another thread
+        # so it will not block current thread in the latter case. A new call
+        # to _start_telemetry should cause all previous calls to the same
+        # method to fail with exception since ui process will be restarted.
+        utils.StartDaemonThread(target=self._start_telemetry)
+        logging.info('Waiting for UI to load (try_num = %d)', try_num)
+        utils.WaitFor(self.goofy.web_socket_manager.has_sockets, 30)
+        logging.info('UI loaded')
+        break
+      except utils.TimeoutError:
+        logging.exception('Failed to load UI (try_num = %d)', try_num)
+
+    if not self.goofy.web_socket_manager.has_sockets():
+      logging.error('UI did not load after %d tries; giving up',
+                    self.goofy.test_list.options.chrome_startup_tries)
+
+  def _start_telemetry(self):
+    """Starts UI through telemetry."""
     # Import these modules here because they are not available in chroot.
     # pylint: disable=F0401
     from telemetry.core import browser_finder
     from telemetry.core import browser_options
     from telemetry.core import extension_to_load
 
-    # Telemetry flakiness: Allow one retry when starting up Chrome.
-    # TODO(jcliang): Remove this when we're sure that telemetry is stable
-    # enough.
-    tries_left = 2
-    while tries_left:
-      try:
-        finder_options = browser_options.BrowserFinderOptions()
-        finder_options.browser_type = self.browser_type
-        if self.browser_type == self.BROWSER_TYPE_LOGIN:
-          # Extension is not supported in guest mode.
-          self.extension = extension_to_load.ExtensionToLoad(
-              self.EXTENSION_PATH, self.browser_type, is_component=True)
-          finder_options.extensions_to_load.append(self.extension)
-        finder_options.AppendExtraBrowserArgs([
-            '--ash-hide-notifications-for-factory',
-            ('--default-device-scale-factor=%d' %
-             self.goofy.options.ui_scale_factor),
-            '--disable-translate',
-            '--enable-gpu-benchmarking',
-            '--kiosk',
-            '--kiosk-mode-screensaver-path=/dev/null'])
-        # Telemetry alters logging verbosity level.  Use '-v' to set
-        # logging level to INFO and '-vv' to set to DEBUG.
-        finder_options.CreateParser().parse_args(args=[
-            '-vv' if self.goofy.options.verbose else '-v'])
-        self.browser = browser_finder.FindBrowser(finder_options).Create()
-        self.browser.Start()
-        break
-      except Exception:
-        tries_left -= 1
-        if not tries_left:
-          raise
+    try:
+      finder_options = browser_options.BrowserFinderOptions()
+      finder_options.browser_type = self.browser_type
+      if self.browser_type == self.BROWSER_TYPE_LOGIN:
+        # Extension is not supported in guest mode.
+        self.extension = extension_to_load.ExtensionToLoad(
+            self.EXTENSION_PATH, self.browser_type, is_component=True)
+        finder_options.extensions_to_load.append(self.extension)
+      finder_options.AppendExtraBrowserArgs([
+          '--ash-hide-notifications-for-factory',
+          ('--default-device-scale-factor=%d' %
+           self.goofy.options.ui_scale_factor),
+          '--disable-translate',
+          '--enable-gpu-benchmarking',
+          '--kiosk',
+          '--kiosk-mode-screensaver-path=/dev/null'])
+      # Telemetry alters logging verbosity level.  Use '-v' to set
+      # logging level to INFO and '-vv' to set to DEBUG.
+      finder_options.CreateParser().parse_args(args=[
+          '-vv' if self.goofy.options.verbose else '-v'])
+      self.browser = browser_finder.FindBrowser(finder_options).Create()
+      self.browser.Start()
 
-    if len(self.browser.tabs):
-      tab = self.browser.tabs[0]
-    else:
-      tab = self.browser.tabs.New()
-    tab.Navigate('http://127.0.0.1:%d/' % state.DEFAULT_FACTORY_STATE_PORT)
-    tab.Activate()
-    # Press the maximize key to maximize the window.
-    utils.SendKey('F4')
-    # Disable X-axis two-finger scrolling on touchpad.
-    utils.SetTouchpadTwoFingerScrollingX(False)
+      if len(self.browser.tabs):
+        tab = self.browser.tabs[0]
+      else:
+        tab = self.browser.tabs.New()
+      tab.Navigate('http://127.0.0.1:%d/' % state.DEFAULT_FACTORY_STATE_PORT)
+      tab.Activate()
+      # Press the maximize key to maximize the window.
+      utils.SendKey('F4')
+      # Disable X-axis two-finger scrolling on touchpad.
+      utils.SetTouchpadTwoFingerScrollingX(False)
+    except Exception:
+      # Do not fail on exception here as we have a retry loop in
+      # launch_chrome().
+      logging.exception('Telemetry login failed')
 
   def create_connection_manager(self, wlans, scan_wifi_period_secs):
     return connection_manager.ConnectionManager(wlans,

@@ -145,6 +145,7 @@ class SystemLogManager(object):
   def Start(self):
     """Starts SystemLogManager _main_thread with _RunForever method."""
     logging.info('Start SystemLogManager thread.')
+    self._ClearLogs()
     self._main_thread = threading.Thread(target=self._RunForever,
                                          name='SystemLogManager')
     self._main_thread.start()
