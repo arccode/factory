@@ -11,6 +11,8 @@ import logging
 import factory_common  # pylint: disable=W0611
 from cros.factory.common import Error
 
+_COMMAND_RETRY_TIMES = 5
+_RECEIVE_RETRY_TIMES = 10
 
 class Modem(object):
   def __init__(self, port, timeout=2,
@@ -27,36 +29,90 @@ class Modem(object):
     self.ser = serial.Serial('/dev/%s' % port, timeout=timeout)
 
     if cancel_echo:
-      self.SendLine('ATE0')
+      self.SendCommandWithCheck('ATE0')
 
     if disable_operation:
-      self.SendLine('AT+CFUN=0')
-
-    # Send few AT commands to
-    # 1) make sure the modem is still responsing.
-    # 2) Clean previous left messages.
-    self.SendLine('AT')
-    logging.info('Clean current buffer data %r', self.ser.readlines())
+      self.SendCommandWithCheck('AT+CFUN=0')
 
     # Send an AT command and expect 'OK'
-    self.SendCommand('AT')
-    self.ExpectLine('OK')
+    self.SendCommandWithCheck('AT')
 
   def ReadLine(self):
-    '''Reads a line from the modem.'''
+    """Reads a line from the modem."""
     line = self.ser.readline()
     logging.info('modem[ %r', line)
     return line.rstrip('\r\n')
 
   def SendLine(self, line):
-    '''Sends a line to the modem.'''
+    """Sends a line to the modem."""
     logging.info('modem] %r', line)
     self.ser.write(line + '\r')
 
   def SendCommand(self, command):
-    '''Sends a line to the modem and discards the echo.'''
+    """Sends a line to the modem and discards the echo."""
     self.SendLine(command)
     self.ReadLine()
+
+  def SendCommandWithCheck(self, command, retry_times=_COMMAND_RETRY_TIMES):
+    """Sends a command to the modem.
+
+    SendCommand function allow retry when response is not OK.
+
+    Returns:
+      response: A list contains all success responses from modem.
+    """
+    retries = 0
+    while retries < retry_times:
+      self.SendLine(command)
+      response = self.GetResponse()
+      if response[-1] == 'OK':
+        break
+      else:
+        retries += 1
+    return response
+
+  def GetResponse(self, retry_times=_RECEIVE_RETRY_TIMES):
+    """Gets response from modem.
+
+    A formal response should be OK or ERROR at the end of response.
+
+    Returns:
+      response: A list contains all response from modem.
+
+    Raises:
+      Error when getting response exceeds time limit
+      (serial timeout * retry_times).
+    """
+    response = []
+    retries = 0
+    while retries < retry_times:
+      line = self.ReadLine()
+      if len(line):
+        response.append(line)
+        # TODO (henryhsu): The response may have "+CME ERROR: <errno>".
+        # If we will use ME command in the future, we will need handle this
+        # error type.
+        if line in ['OK', 'ERROR']:
+          return response
+      else:
+        retries += 1
+    raise Error('Cannot get entire response: %r' % (response))
+
+  def ExpectResponse(self, expected_msg, modem_response):
+    """Checks expected messages from modem.
+
+    Args:
+      expected_msg: expected messages can be list or string.
+      modem_response: A list contains all responses from modem.
+
+    Raises:
+      Error when results mismatch.
+    """
+    if isinstance(expected_msg, str):
+      expected_msg = [expected_msg]
+    for msg in expected_msg:
+      if msg not in modem_response:
+        raise Error('Expected %r but got %r' % (expected_msg, modem_response))
 
   def ExpectLine(self, expected_line):
     '''Expects a line from the modem.'''
