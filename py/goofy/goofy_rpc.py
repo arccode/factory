@@ -342,22 +342,22 @@ class GoofyRPC(object):
     """Gets last shutdown time detected by Goofy."""
     return self.goofy.last_shutdown_time
 
+  def _GetTests(self):
+    """Helper method to get a list of all tests and their states."""
+    paths_to_run = set([t.path for t in self.goofy.tests_to_run])
+    ret = []
+    states = self.goofy.state_instance.get_test_states()
+    for t in self.goofy.test_list.walk(in_order=True):
+      test_state = states.get(t.path)
+      ret.append(dict(path=t.path,
+                      parent=(t.subtests != []),
+                      pending=t.path in paths_to_run,
+                      **test_state.__dict__))
+    return ret
+
   def GetTests(self):
     """Returns a list of all tests and their states."""
-    def Target():
-      paths_to_run = set([t.path for t in self.goofy.tests_to_run])
-
-      ret = []
-      states = self.goofy.state_instance.get_test_states()
-      for t in self.goofy.test_list.walk(in_order=True):
-        test_state = states.get(t.path)
-        ret.append(dict(path=t.path,
-                        parent=(t.subtests != []),
-                        pending=t.path in paths_to_run,
-                        **test_state.__dict__))
-      return ret
-
-    return self._InRunQueue(Target)
+    return self._InRunQueue(self._GetTests)
 
   def GetTestLists(self):
     """Returns available test lists.
@@ -425,33 +425,37 @@ class GoofyRPC(object):
         included:
 
         run_id: The id of the current active run.
-        scheduled_tests: A dict of factory tests that were scheduled for
+        scheduled_tests: A list of factory tests that were scheduled for
           the active run and their status.
     """
     def Target(run_id):
       if not run_id:
         run_id = self.goofy.run_id
 
+      ret_val = {}
       if self.goofy.run_id is None:
         if self.goofy.state_instance.get_shared_data('run_id', optional=True):
           # A run ID is present in shared data but hasn't been restored.
-          return {'status': RunState.STARTING}
+          ret_val['status'] = RunState.STARTING
         else:
           # No test run has ever been scheduled.
-          return {'status': RunState.UNINITIALIZED}
+          ret_val['status'] = RunState.UNINITIALIZED
       elif run_id != self.goofy.run_id:
-        return {'status': RunState.NOT_ACTIVE_RUN}
+        ret_val['status'] = RunState.NOT_ACTIVE_RUN
       else:
-        test_states = self.goofy.state_instance.get_test_states()
-        scheduled_tests_status = dict((path, test_states.get(path)) for path in
-                                      self.goofy.scheduled_run_tests)
-        ret_val = {
-            'run_id': self.goofy.run_id,
-            'scheduled_tests': scheduled_tests_status
-        }
-        ret_val['status'] = (RunState.RUNNING if self.goofy.tests_to_run
-                             else RunState.FINISHED)
-        return ret_val
+        tests = self._GetTests()
+        scheduled_tests_status = [t for t in tests if t['path'] in
+                                  self.goofy.scheduled_run_tests]
+        ret_val['run_id'] = self.goofy.run_id,
+        ret_val['scheduled_tests'] = scheduled_tests_status
+
+        if (self.goofy.tests_to_run or
+            any(t['status'] == factory.TestState.ACTIVE
+                for t in scheduled_tests_status)):
+          ret_val['status'] = RunState.RUNNING
+        else:
+          ret_val['status'] = RunState.FINISHED
+      return ret_val
 
     return self._InRunQueue(lambda: Target(run_id))
 
