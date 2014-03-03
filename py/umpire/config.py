@@ -10,11 +10,12 @@ To validate a YAML file 'abc.yaml':
   umpire_config = UmpireConfig('abc.yaml')
 """
 
-
+import os
 import yaml
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.schema import FixedDict, List, Scalar
+from cros.factory.umpire.common import UmpireError
 from cros.factory.umpire.service.umpire_service import LoadServiceModule
 from cros.factory.umpire.service.umpire_service import GetServiceSchemata
 
@@ -154,7 +155,8 @@ yaml.add_representer(BundleOrderedDict, RepresentOmap)
 class UmpireConfig(dict):
   """Container of Umpire configuration.
 
-  It reads an Umpire config file in YAML format and validates it.
+  It reads an Umpire config file in YAML format or a dict. Then validates it.
+
   Once validated, the UmpireConfig object is a dict for users to access config.
 
   Raises:
@@ -166,19 +168,27 @@ class UmpireConfig(dict):
     umpire_config = UmpireConfig(config_file)
     logging.info('Reads Umpire config for boards: %s', umpire_config['board']
   """
-  def __init__(self, config_file, validate=True):
-    """Loads an UmpireConfig.
+  def __init__(self, config, validate=True):
+    """Loads an UmpireConfig and validates it.
+
+    If validate is set, it validates config with ValidateConfig() and checks
+    default bundle's existance.
 
     Args:
-      config_path: path to an Umpire config file.
+      config_path: path to an Umpire config file or an UmpireConfig dict.
       validate: True to validate. Note that it would be removed once
           all UmpireConfig components are implemented.
     """
-    with open(config_file, 'r') as f:
-      config = yaml.load(f)
-      if validate:
-        ValidateConfig(config)
-      super(UmpireConfig, self).__init__(config)
+    if isinstance(config, str) and os.path.isfile(config):
+      with open(config, 'r') as f:
+        config = yaml.load(f)
+
+    super(UmpireConfig, self).__init__(config)
+
+    if validate:
+      ValidateConfig(config)
+      if not self.GetDefaultBundle():
+        raise UmpireError('Missing default bundle')
 
   def WriteFile(self, config_file):
     """Writes UmpireConfig to a file in YAML format.
@@ -188,3 +198,28 @@ class UmpireConfig(dict):
     """
     with open(config_file, 'w') as f:
       yaml.dump(UmpireOrderedDict(self), f, default_flow_style=False)
+
+  def GetDefaultBundle(self):
+    """Gets the default bundle.
+
+    Returns:
+      The default bundle's ID. None if not found.
+    """
+    for rule in reversed(self.get('rulesets', [])):
+      if rule['active']:
+        return rule['bundle_id']
+    return None
+
+  def GetBundle(self, bundle_id):
+    """Gets a bundle object with specific bundle ID.
+
+    Args:
+      bundle_id: bundle ID to get
+
+    Returns:
+      The bundle object. None if not found.
+    """
+    for bundle in self.get('bundles', []):
+      if bundle['id'] == bundle_id:
+        return bundle
+    return None
