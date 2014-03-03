@@ -19,6 +19,7 @@ Before running this test, modem carrier should be set to Generic UMTS.
 import logging
 import re
 import threading
+import time
 import unittest
 import uuid
 
@@ -31,7 +32,7 @@ from cros.factory.test.factory_task import FactoryTask, FactoryTaskManager
 from cros.factory.utils.process_utils import Spawn, SpawnOutput
 
 _SIM_PRESENT_RE = r'IMSI: (\d{14,15})'
-_SIM_NOT_PRESENT_RE = r'IMSI:[\s]*$'
+_SIM_NOT_PRESENT_RE = r'SIM: /$'
 
 _TEST_TITLE = test_ui.MakeLabel('SIM Card Test', u'SIM卡测试')
 _INSERT_SIM_INSTRUCTION = test_ui.MakeLabel(
@@ -39,9 +40,10 @@ _INSERT_SIM_INSTRUCTION = test_ui.MakeLabel(
 _REMOVE_SIM_INSTRUCTION = test_ui.MakeLabel(
     'Detected! Please remove the SIM card', u'已經偵测SIM卡, 請移除SIM卡')
 _CHECK_SIM_INSTRUCTION = test_ui.MakeLabel(
-    'Checking SIM card is present or not...', u'检查SIM卡是否不存在')
+    'Checking SIM card is present or not...', u'检查SIM卡是否存在')
 
 _INSERT_CHECK_PERIOD_SECS = 1
+_INSERT_CHECK_MAX_WAIT = 60
 
 
 class WaitSIMCardThread(threading.Thread):
@@ -57,8 +59,9 @@ class WaitSIMCardThread(threading.Thread):
     self._done = threading.Event()
     self._simcard_event = simcard_event
     self._on_success = on_success
-    self._re_present = re.compile(_SIM_PRESENT_RE, re.MULTILINE)
-    self._re_not_present = re.compile(_SIM_NOT_PRESENT_RE, re.MULTILINE)
+    self._re_present = re.compile(_SIM_PRESENT_RE, re.MULTILINE | re.IGNORECASE)
+    self._re_not_present = re.compile(_SIM_NOT_PRESENT_RE,
+                                      re.MULTILINE | re.IGNORECASE)
     self._force_stop = force_stop
     self._force_stop.clear()
 
@@ -68,7 +71,7 @@ class WaitSIMCardThread(threading.Thread):
       # modem status will not show IMSI if sim card is removed even without
       # modem reset.
       if self._simcard_event == ProbeSIMCardTask.INSERT_SIM_CARD:
-        Spawn(['modem', 'factory-reset', '000000'], call=True, log=True)
+        Spawn(['modem', 'reset'], call=True, log=True)
       output = SpawnOutput(['modem', 'status'], log=True)
       logging.info(output)
       present = self._re_present.search(output)
@@ -145,27 +148,50 @@ class RemoveSIMTask(ProbeSIMCardTask):
           ProbeSIMCardTask.REMOVE_SIM_CARD)
 
 
-class CheckSIMAbsentTask(FactoryTask):
-  """Task to check SIM card not present"""
+class CheckSIMTask(FactoryTask):
+  """Task to check SIM card state"""
   def __init__(self, test):
-    super(CheckSIMAbsentTask, self).__init__()
+    super(CheckSIMTask, self).__init__()
     self._template = test.template
+    self._args = test.args
 
-  def Run(self):
+  def CheckSIMCardState(self, sim_re, fail_string):
     self._template.SetState(_CHECK_SIM_INSTRUCTION)
-    Spawn(['modem', 'factory-reset', '000000'], call=True, log=True)
+    Spawn(['modem', 'reset'], call=True, log=True)
     output = SpawnOutput(['modem', 'status'], log=True)
+    if self._args.poll_modem_status:
+      total_delay = 0
+      while not output:
+        time.sleep(_INSERT_CHECK_PERIOD_SECS)
+        output = SpawnOutput(['modem', 'status'], log=True)
+        total_delay += _INSERT_CHECK_PERIOD_SECS
+        if total_delay >= _INSERT_CHECK_MAX_WAIT:
+          self.Fail('Failed to detect sim in ' +
+                    str(_INSERT_CHECK_MAX_WAIT) + ' seconds')
+          return
     logging.info(output)
-    if not re.compile(_SIM_NOT_PRESENT_RE, re.MULTILINE).search(output):
-      self.Fail('Fail to make sure sim card is not present')
+    if not re.compile(sim_re, re.MULTILINE | re.IGNORECASE).search(output):
+      self.Fail(fail_string)
     else:
       self.Pass()
+
+  def Run(self):
+    if self._args.only_check_simcard_present:
+      self.CheckSIMCardState(_SIM_PRESENT_RE,
+                             'Fail to make sure sim card is present')
+    elif self._args.only_check_simcard_not_present:
+      self.CheckSIMCardState(_SIM_NOT_PRESENT_RE,
+                             'Fail to make sure sim card is not present')
 
 
 class ProbeSIMCardTest(unittest.TestCase):
   ARGS = [
       Arg('only_check_simcard_not_present', bool,
-          'Only checks sim card is not present', default=False)]
+          'Only checks sim card is not present', default=False),
+      Arg('only_check_simcard_present', bool,
+          'Only checks sim card is present', default=False),
+      Arg('poll_modem_status', bool,
+          'Polls modem status until the status is available', default=False)]
 
   def setUp(self):
     self.force_stop = threading.Event()
@@ -180,8 +206,9 @@ class ProbeSIMCardTest(unittest.TestCase):
     def Done():
       self.force_stop.set()
 
-    if self.args.only_check_simcard_not_present:
-      task_list = [CheckSIMAbsentTask(self)]
+    if (self.args.only_check_simcard_not_present or
+        self.args.only_check_simcard_present):
+      task_list = [CheckSIMTask(self)]
     else:
       task_list = [InsertSIMTask(self), RemoveSIMTask(self)]
 
