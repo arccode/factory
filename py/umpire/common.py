@@ -8,8 +8,14 @@
 This module provides constants and common Umpire classes.
 """
 
+from errno import ENOENT
 import logging
 import os
+import yaml
+
+import factory_common  # pylint: disable=W0611
+from cros.factory.tools.finalize_bundle import Glob
+
 
 UMPIRE_CLI = 'umpire'
 UMPIRE_DAEMON = 'umpired'
@@ -146,5 +152,52 @@ class UmpireEnv(object):
   def UnstageConfigFile(self):
     """Unstage the current staging config file."""
     if not self.HasStagingConfigFile():
-      raise UmpireError('Unable to unstage as there\'s no staging config file.')
+      raise UmpireError("Unable to unstage as there's no staging config file.")
     os.unlink(self.GetStagingConfigFile())
+
+
+# pylint: disable=R0901
+class BundleManifestIgnoreGlobLoader(yaml.Loader):
+  """A YAML loader that loads factory bundle manifest with !glob ignored."""
+  def __init__(self, *args, **kwargs):
+    def FakeGlobConstruct(dummy_loader, dummy_node):
+      return None
+
+    yaml.Loader.__init__(self, *args, **kwargs)
+    self.add_constructor('!glob', FakeGlobConstruct)
+
+
+# pylint: disable=R0901
+class BundleManifestLoader(yaml.Loader):
+  """A YAML loader that loads factory bundle manifest with !glob ignored."""
+  def __init__(self, *args, **kwargs):
+    yaml.Loader.__init__(self, *args, **kwargs)
+    # TODO(deanliao): refactor out Glob from py/tools/finalize_bundle.py
+    #     to py/utils/bundle_manifest.py and move the LoadBundleManifest
+    #     related methods to that module.
+    self.add_constructor('!glob', Glob.Construct)
+
+
+def LoadBundleManifest(path, ignore_glob=False):
+  """Loads factory bundle's MANIFEST.yaml (with !glob ignored).
+
+  Args:
+    path: path to factory bundle's MANIFEST.yaml
+    ignore_glob: True to ignore glob.
+
+  Returns:
+    A Python object the manifest file represents.
+
+  Raises:
+    IOError if file not found.
+    UmpireError if the manifest fail to load and parse.
+  """
+  if not os.path.isfile(path):
+    raise IOError(ENOENT, 'Missing factory bundle manifest', path)
+  try:
+    loader = (BundleManifestIgnoreGlobLoader if ignore_glob else
+              BundleManifestLoader)
+    with open(path) as f:
+      return yaml.load(f, Loader=loader)
+  except Exception as e:
+    raise UmpireError('Failed to load MANIFEST.yaml: ' + str(e))
