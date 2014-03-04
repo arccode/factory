@@ -1299,7 +1299,7 @@ AutomatedSequence = FactoryTest
 AutomatedSubTest = FactoryAutotestTest
 
 
-class ShutdownStep(AutomatedSubTest):
+class ShutdownStep(OperatorTest):
   """A shutdown (halt or reboot) step.
 
   Properties:
