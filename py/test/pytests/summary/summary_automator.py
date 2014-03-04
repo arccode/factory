@@ -19,6 +19,7 @@ class SummaryAutomator(Automator):
       automation_mode=AutomationMode.FULL)
   def automateSkipSummary(self):
     # Simply pass the test.
-    self.uictl.WaitForContent(
-        search_text='Click or press SPACE to continue')
-    self.uictl.PressKey(self.uictl.KEY_SPACE)
+    if not self.args.pass_without_prompt:
+      self.uictl.WaitForContent(
+          search_text='Click or press SPACE to continue')
+      self.uictl.PressKey(self.uictl.KEY_SPACE)
