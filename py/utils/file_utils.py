@@ -32,7 +32,7 @@ def UnopenedTemporaryFile(**kwargs):
   """Yields an unopened temporary file.
 
   The file is not opened, and it is deleted when the context manager
-  is closed.
+  is closed if it still exists at that moment.
 
   Args:
     Any allowable arguments to tempfile.mkstemp (e.g., prefix,
@@ -43,14 +43,16 @@ def UnopenedTemporaryFile(**kwargs):
   try:
     yield path
   finally:
-    os.unlink(path)
+    if os.path.exists(path):
+      os.unlink(path)
 
 
 @contextmanager
 def TempDirectory(**kwargs):
   """Yields an temporary directory.
 
-  The directory is deleted when the context manager is closed.
+  The temp directory is deleted when the context manager is closed if it still
+  exists at that moment.
 
   Args:
     Any allowable arguments to tempfile.mkdtemp (e.g., prefix,
@@ -60,7 +62,8 @@ def TempDirectory(**kwargs):
   try:
     yield path
   finally:
-    shutil.rmtree(path)
+    if os.path.exists(path):
+      shutil.rmtree(path)
 
 
 def Read(filename):

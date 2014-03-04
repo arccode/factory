@@ -10,6 +10,7 @@
 import mock
 import os
 import re
+import shutil
 import tempfile
 import unittest
 
@@ -23,7 +24,8 @@ class MountDeviceAndReadFileTest(unittest.TestCase):
   def setUp(self):
     # Creates a temp file and create file system on it as a mock device.
     self.device = tempfile.NamedTemporaryFile(prefix='MountDeviceAndReadFile')
-    Spawn(['truncate', '-s', '1M', self.device.name], log=True, check_call=True)
+    Spawn(['truncate', '-s', '1M', self.device.name], log=True,
+          check_call=True)
     Spawn(['/sbin/mkfs', '-F', '-t', 'ext3', self.device.name],
           log=True, check_call=True)
 
@@ -98,11 +100,28 @@ class ReadLinesTest(unittest.TestCase):
 
 class TempDirectoryTest(unittest.TestCase):
   """Unittest for TempDirectory."""
-  def runTest(self):
+  def testNormal(self):
     with file_utils.TempDirectory(prefix='abc') as d:
       self.assertTrue(os.path.basename(d).startswith('abc'))
       self.assertTrue(os.path.isdir(d))
     self.assertFalse(os.path.exists(d))
+
+  def testRemoveBeforeExit(self):
+    with file_utils.TempDirectory() as d:
+      self.assertTrue(os.path.isdir(d))
+      shutil.rmtree(d)
+      self.assertFalse(os.path.exists(d))
+    self.assertFalse(os.path.exists(d))
+
+  def testRenameBeforeExit(self):
+    with file_utils.TempDirectory() as d:
+      self.assertTrue(os.path.isdir(d))
+      new_name = d + '.another'
+      os.rename(d, new_name)
+    self.assertFalse(os.path.exists(d))
+    self.assertTrue(os.path.exists(new_name))
+    shutil.rmtree(new_name)
+
 
 
 class CopyFileSkipBytesTest(unittest.TestCase):
