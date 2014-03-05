@@ -197,14 +197,22 @@ REGIONS_LIST = [
            'ABNT1 ("br.abnt1 ") are both preferred to this.'),
     Region('ca.ansi', 'xkb:us::eng', 'America/Toronto', 'en-CA', _KML.ANSI,
            'Canada (US keyboard)',
-           'Canada with US (ANSI) keyboard; see http://goto/cros-canada'),
+           'Canada with US (ANSI) keyboard. Not for en/fr hybrid ANSI '
+           'keyboards; for that you would want ca.hybridansi. See '
+           'http://goto/cros-canada'),
     Region('ca.fr', 'xkb:ca::fra', 'America/Toronto', 'fr-CA', _KML.ISO,
            'Canada (French keyboard)',
            ('Canadian French (ISO) keyboard. The most common configuration for '
             'Canadian French SKUs.  See http://goto/cros-canada')),
     Region('ca.hybrid', 'xkb:ca:eng:eng', 'America/Toronto', 'en-CA', _KML.ISO,
-           'Canada (hybrid)',
-           ('Canada with hybrid xkb:ca:eng:eng + xkb:ca::fra keyboard (ISO), '
+           'Canada (hybrid ISO)',
+           ('Canada with hybrid (ISO) xkb:ca:eng:eng + xkb:ca::fra keyboard, '
+            'defaulting to English language and keyboard.  Used only if there '
+            'needs to be a single SKU for all of Canada.  See '
+            'http://goto/cros-canada')),
+    Region('ca.hybridansi', 'xkb:ca:eng:eng', 'America/Toronto', 'en-CA',
+           _KML.ANSI, 'Canada (hybrid ANSI)',
+           ('Canada with hybrid (ANSI) xkb:ca:eng:eng + xkb:ca::fra keyboard, '
             'defaulting to English language and keyboard.  Used only if there '
             'needs to be a single SKU for all of Canada.  See '
             'http://goto/cros-canada')),
