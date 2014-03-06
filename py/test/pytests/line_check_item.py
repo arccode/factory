@@ -44,14 +44,18 @@ class LineCheckItemTest(unittest.TestCase):
     Arg('title_en', (str, unicode), 'English test title.', optional=False),
     Arg('title_zh', (str, unicode), 'Chinese test title.', optional=False),
     Arg('items', list,
-        ('A list of tuple:\n'
-         '(instruction_en, instruction_zh, command, judge_to_pass).\n'
-         'Each tuple represents an item to check.\n'
-         'instruction_en: (str, unicode) instruction in English.\n'
-         'instruction_zh: (str, unicode) instruction in Chinese.\n'
-         'command: (list) commands to be passed to Spawn.\n'
-         'judge_to_pass: (bool) require user to judge pass/fail\n'
-         'even if command is successful.'),
+        ('A list of tuples, each representing an item to check.  Each tuple\n'
+         'is of the format:\n'
+         '\n'
+         '  (instruction_en, instruction_zh, command, judge_to_pass)\n'
+         '\n'
+         'The fields are:\n'
+         '\n'
+         '- instruction_en: (str or unicode) instruction in English.\n'
+         '- instruction_zh: (str or unicode) instruction in Chinese.\n'
+         '- command: (list) commands to be passed to Spawn.\n'
+         '- judge_to_pass: (bool) require user to judge pass/fail\n'
+         '  even if command is successful.'),
         optional=False),
   ]
 

@@ -1,8 +1,3 @@
-.. Chromium OS Factory documentation master file, created by
-   sphinx-quickstart on Fri Nov  8 12:09:16 2013.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
 Chromium OS Factory SDK
 =======================
 
@@ -17,6 +12,7 @@ Contents:
 
    intro
    regions
+   pytests/index.rst
 
 APIs:
 
@@ -26,6 +22,7 @@ APIs:
    test_api
    test_list_api
    shopfloor_api
+
 
 About this documentation
 ========================

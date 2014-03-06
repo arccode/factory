@@ -88,7 +88,7 @@ class BatteryCycleTest(unittest.TestCase):
       Arg('charge_threshold_secs', int,
           'Amount of time the charge must remain above or below the '
           'specified threshold to have considered to have finished '
-          'part of a cycle', 30),
+          'part of a cycle.', 30),
       Arg('idle_time_secs', int, 'Time to idle between battery checks.', 1),
       Arg('log_interval_secs', int, 'Interval at which to log system status',
           30),

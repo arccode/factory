@@ -250,9 +250,16 @@ testall:
 # Creates build/doc and build/doc.tar.bz2, containing the factory SDK
 # docs.
 doc: .phony
-	make -C doc clean
-	make -C doc html
+	# Do the actual build in the "build/docsrc" directory, since we need to
+	# munge the docs a bit.
+	rm -rf $(BUILD_DIR)/docsrc
+	mkdir -p $(BUILD_DIR)/docsrc
+	rsync -av doc/ $(BUILD_DIR)/docsrc/
+	# Generate rst sources for test cases
+	bin/generate_rsts -o $(BUILD_DIR)/docsrc
+
+	make -C $(BUILD_DIR)/docsrc html
 	rm -rf $(BUILD_DIR)/doc
 	mkdir -p $(BUILD_DIR)/doc
-	rsync -a doc/_build/ $(BUILD_DIR)/doc/
+	rsync -a $(BUILD_DIR)/docsrc/_build/ $(BUILD_DIR)/doc/
 	cd $(BUILD_DIR) && tar cfj doc.tar.bz2 doc

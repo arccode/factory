@@ -3,6 +3,7 @@ Introduction to working with the Factory SDK
 
 Layout
 ------
+
 The factory repository contains the following important
 files and directories:
 
