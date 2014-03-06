@@ -141,13 +141,16 @@ class Database(object):
     return hashlib.sha1(db_text).hexdigest()    # pylint: disable=E1101
 
   @staticmethod
-  def LoadData(db_yaml, expected_checksum=None):
+  def LoadData(db_yaml, expected_checksum=None, strict=True):
     """Loads a device-specific component database from the given database data.
 
     Args:
       db_yaml: The database in parsed dict form.
       expected_checksum: The checksum value to verify the loaded data with.
           A value of None disables checksum verification.
+      strict: Whether to insist on fully-formed databases. This should always be
+          true in production use, but may be set to False to accept slightly
+          older formats, e.g., missing checksum field.
 
     Returns:
       A Database object containing all the settings in the database file.
@@ -161,7 +164,11 @@ class Database(object):
     for key in ['board', 'encoding_patterns', 'image_id', 'pattern',
                 'encoded_fields', 'components', 'rules', 'checksum']:
       if not db_yaml.get(key):
-        raise common.HWIDException(
+        if (not strict) and key == 'checksum':
+          # That's OK, let it go
+          pass
+        else:
+          raise common.HWIDException(
             '%r is not specified in component database' % key)
 
     # Verify database integrity.

@@ -53,6 +53,19 @@ class DatabaseTest(unittest.TestCase):
         HWIDException, r"'board' is not specified in component database",
         Database.LoadData, {'foo': 'bar'})
 
+  def testStrict(self):
+    with open(os.path.join(_TEST_DATA_PATH, 'test_db.yaml')) as f:
+      data = yaml.load(f)
+
+    # No problem in strict (default) mode
+    Database.LoadData(data)
+    del data['checksum']
+    # Missing checksum: fails in strict mode
+    self.assertRaisesRegexp(HWIDException, "'checksum' is not specified",
+                            Database.LoadData, data)
+    # Missing checksum: passes in non-strict mode
+    Database.LoadData(data, strict=False)
+
   def testSanityChecks(self):
     mock_db = copy.deepcopy(self.database)
     mock_db.encoded_fields['foo'] = dict()
