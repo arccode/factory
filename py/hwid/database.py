@@ -399,6 +399,9 @@ class Database(object):
   def VerifyBinaryString(self, binary_string):
     """Verifies the binary string.
 
+    Args:
+      binary_string: The binary string to verify.
+
     Raises:
       HWIDException if verification fails.
     """
@@ -419,8 +422,28 @@ class Database(object):
                            self.pattern.GetTotalBitLength(image_id),
                            len(string_without_paddings)))
 
+  def VerifyEncodedStringFormat(self, encoded_string):
+    """Verifies that the format of the given encoded string.
+
+    Checks that the string matches either base32 or base8192 format.
+
+    Args:
+      encoded_string: The encoded string to verify.
+
+    Raises:
+      HWIDException if verification fails.
+    """
+    if not any(hwid_format.match(encoded_string) for hwid_format in
+               self._HWID_FORMAT.itervalues()):
+      raise common.HWIDException(
+          'HWID string %r is neither base32 nor base8192 encoded' %
+          encoded_string)
+
   def VerifyEncodedString(self, encoded_string):
     """Verifies the given encoded string.
+
+    Args:
+      encoded_string: The encoded string to verify.
 
     Raises:
       HWIDException if verification fails.
@@ -455,6 +478,9 @@ class Database(object):
   def VerifyBOM(self, bom):
     """Verifies the data contained in the given BOM object matches the settings
     and definitions in the database.
+
+    Args:
+      bom: The BOM object to verify.
 
     Raises:
       HWIDException if verification fails.

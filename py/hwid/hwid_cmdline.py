@@ -23,7 +23,7 @@ _COMMON_ARGS = [
            help='path to the HWID database directory'),
     CmdArg('-b', '--board', default=None,
            help=('board name of the HWID database to load.\n'
-                 '(required if not running on DUT)')),
+                 '(required if not running on a DUT)')),
     CmdArg('-v', '--verbose', default=False, action='store_true',
            help='enable verbose output'),
     CmdArg('--no-verify-checksum', default=False, action='store_true',
@@ -44,9 +44,10 @@ class Arg(object):
     'generate',
     CmdArg('--probed-results-file', default=None,
            help=('a file with probed results.\n'
-                 '(required if not running on DUT)')),
+                 '(required if not running on a DUT)')),
     CmdArg('--device-info-file', default=None,
-           help=('a file with device info.\n(required if not running on DUT.)\n'
+           help=('a file with device info.\n'
+                 '(required if not running on a DUT.)\n'
                  'example content of this file:\n'
                  '    component.antenna: ACN\n'
                  '    component.has_cellular: True\n'
@@ -74,7 +75,7 @@ def GenerateHWIDWrapper(options):
 @Command(
     'decode',
     CmdArg('hwid', nargs='?', default=None,
-           help='the HWID to decode.\n(required if not running on DUT)'))
+           help='the HWID to decode.\n(required if not running on a DUT)'))
 def DecodeHWIDWrapper(options):
   """Decodes HWID."""
   encoded_string = options.hwid if options.hwid else hwid_utils.GetHWIDString()
@@ -86,10 +87,10 @@ def DecodeHWIDWrapper(options):
 @Command(
     'verify',
     CmdArg('hwid', nargs='?', default=None,
-           help='the HWID to decode.\n(required if not running on DUT)'),
+           help='the HWID to verify.\n(required if not running on a DUT)'),
     CmdArg('--probed-results-file', default=None,
            help=('a file with probed results.\n'
-                 '(required if not running on DUT)')),
+                 '(required if not running on a DUT)')),
     CmdArg('--rma-mode', default=False, action='store_true',
            help='whether to enable RMA mode.'))
 def VerifyHWIDWrapper(options):

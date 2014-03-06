@@ -90,6 +90,7 @@ def EncodedStringToBinaryString(database, encoded_string):
   Returns:
     A binary string.
   """
+  database.VerifyEncodedStringFormat(encoded_string)
   image_id = database.pattern.GetImageIdFromEncodedString(encoded_string)
   encoding_scheme = database.pattern.GetPatternByImageId(
       image_id)['encoding_scheme']
