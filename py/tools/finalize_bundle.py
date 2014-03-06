@@ -135,8 +135,8 @@ The bundle directory (the DIR argument) must have a MANIFEST.yaml file
 like the following:
 
   board: link
-  self.bundle_name: 20121115_pvt
-  mini_omaha_ip: 192.168.4.1
+  bundle_name: 20121115_pvt
+  mini_omaha_url: http://192.168.4.1:8080/update
 
   # True to build a factory image based on the test image and a
   # factory toolkit.  (If false, the prebuilt factory image is used.)
@@ -588,11 +588,8 @@ class FinalizeBundle(object):
                  os.path.basename(self.factory_image_path),
                  os.path.basename(self.test_image_path))
     shutil.copyfile(self.test_image_path, self.factory_image_path)
-    with MountPartition(self.factory_image_path, 1, rw=True) as mount:
-      logging.info('Overlaying toolkit from %s...',
-                   os.path.basename(self.factory_toolkit_path))
-      Spawn([self.factory_toolkit_path, '--', '--patch-test-image',
-             '--dest', mount, '--yes'], check_call=True, sudo=True)
+    Spawn([self.factory_toolkit_path, self.factory_image_path, '--yes'],
+          check_call=True)
 
   def PatchImage(self):
     if not self.args.patch:
