@@ -8,6 +8,7 @@
 This module provides constants and common Umpire classes.
 """
 
+import errno
 import filecmp
 import logging
 import os
@@ -181,3 +182,21 @@ class UmpireEnv(object):
       file_utils.AtomicCopy(filename, res_filename)
       logging.info('Resource added: ' + res_filename)
       return res_filename
+
+  def GetResourcePath(self, resource_name, check=True):
+    """Gets a resource's full path.
+
+    Args:
+      resource_name: resource name.
+      check: True to check if the resource exists.
+
+    Returns:
+      Full path of the resource.
+
+    Raises:
+      IOError if the resource does not exist.
+    """
+    path = os.path.join(self.resources_dir, resource_name)
+    if check and not os.path.exists(path):
+      raise IOError(errno.ENOENT, 'Resource does not exist', path)
+    return path
