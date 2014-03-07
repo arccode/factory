@@ -161,3 +161,39 @@ def CheckDictKeys(dict_to_check, allowed_keys):
   extra_keys = set(dict_to_check) - set(allowed_keys)
   if extra_keys:
     raise ValueError('Found extra keys: %s' % list(extra_keys))
+
+
+class AttrDict(dict):
+  """Attribute dictionary.
+
+  Use subclassed dict to store attributes.
+
+  Example:
+    foo = AttrDict()
+    foo['xyz'] = 'abc'
+    assertEqual(foo.xyz,'abc')
+  """
+  def __init__(self, *args, **kwargs):
+    super(AttrDict, self).__init__(*args, **kwargs)
+    self.__dict__ = self
+
+
+class Singleton(type):
+  """Singleton metaclass.
+
+  Set __metaclass__ to Singleton to make it a singleton class. The instances
+  are stored in:
+    Singleton._instances[CLASSNAME]
+
+  Example:
+    class C(object):
+      __metaclass__ = Singleton
+
+    foo = C()
+    bar = C()  # foo == bar
+  """
+  _instances = {}
+  def __call__(mcs, *args, **kwargs):
+    if mcs not in mcs._instances:
+      mcs._instances[mcs] = super(Singleton, mcs).__call__(*args, **kwargs)
+    return mcs._instances[mcs]
