@@ -59,9 +59,8 @@ class LineCheckItemTest(unittest.TestCase):
         optional=False),
   ]
 
-  def __init__(self, *args, **kwargs):
+  def setUp(self):
     """Initializes _ui, _template, _current, and _items"""
-    super(LineCheckItemTest, self).__init__(*args, **kwargs)
     self._ui = test_ui.UI()
     self._template = ui_templates.OneSection(self._ui)
     self._items = []

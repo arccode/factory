@@ -166,6 +166,18 @@ class UI(object):
                                     event_loop=EventClient.EVENT_LOOP_WAIT)
     self.test = os.environ['CROS_FACTORY_TEST_PATH']
     self.invocation = os.environ['CROS_FACTORY_TEST_INVOCATION']
+    try:
+      self.parent_invocation = os.environ['CROS_FACTORY_TEST_PARENT_INVOCATION']
+    except KeyError as e:
+      # Parent invocation UUID is set upon the process of each test case is
+      # spawned. If we can't find the parent invocation UUID here, most likely
+      # the UI object was created in cstor instead of setUp in the TestCase
+      # sub-class, which caused the top-level invocation to create the UI object
+      # while it was loading the test cases. This is tricky so make the error
+      # message more verbose here.
+      raise KeyError(
+          ('%s. Note that UI object must not be created in unittest.TestCase '
+           'cstor; create the UI object in setUp instead') % e)
     self.event_handlers = {}
     self.task_hook = None
 
@@ -292,6 +304,7 @@ class UI(object):
     """
     event.test = self.test
     event.invocation = self.invocation
+    event.parent_invocation = self.parent_invocation
     self.event_client.post_event(event)
 
   def URLForFile(self, path):

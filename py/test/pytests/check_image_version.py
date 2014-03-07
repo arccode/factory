@@ -128,8 +128,7 @@ class CheckImageVersionTest(unittest.TestCase):
         'True to require a space key press before reimaging.',
         default=True, optional=True)]
 
-  def __init__(self, *args, **kwargs):
-    super(CheckImageVersionTest, self).__init__(*args, **kwargs)
+  def setUp(self):
     self._task_list = [ImageCheckTask(self)]
     self.ui = test_ui.UI()
     self.template = ui_templates.OneSection(self.ui)

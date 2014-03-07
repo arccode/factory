@@ -319,8 +319,10 @@ cros.factory.Test.prototype.setFullScreen = function(enable) {
  * @constructor
  * @param {cros.factory.Goofy} goofy
  * @param {string} path
+ * @param {string} uuid
+ * @param {string|null} parentUuid
  */
-cros.factory.Invocation = function(goofy, path, uuid) {
+cros.factory.Invocation = function(goofy, path, uuid, parentUuid) {
     /**
      * Reference to the Goofy object.
      * @type cros.factory.Goofy
@@ -339,25 +341,40 @@ cros.factory.Invocation = function(goofy, path, uuid) {
     this.uuid = uuid;
 
     /**
+     * UUID of the parent invocation; null if this is a top-level invocation.
+     * @type (string|null)
+     */
+    this.parentUuid = parentUuid;
+
+    /**
+     * Sub-invocations of this invocation.
+     * @type Object.<string, cros.factory.Invocation>
+     */
+    this.subInvocations = {};
+
+    /**
      * Test API for the invocation.
      */
     this.test = new cros.factory.Test(this);
 
-    /**
-     * The iframe containing the test.
-     * @type HTMLIFrameElement
-     */
-    this.iframe = goog.dom.iframe.createBlank(new goog.dom.DomHelper(document));
-    goog.dom.classes.add(this.iframe, 'goofy-test-iframe');
-    goog.dom.classes.enable(this.iframe, 'goofy-test-visible',
-                            /** @type boolean */(
-                                goofy.pathTestMap[path].state.visible));
-    document.getElementById('goofy-main').appendChild(this.iframe);
-    this.iframe.contentWindow.$ = goog.bind(function(id) {
-        return this.iframe.contentDocument.getElementById(id);
-    }, this);
-    this.iframe.contentWindow.test = this.test;
-    this.iframe.contentWindow.focus();
+    if (parentUuid) {
+        /**
+         * The iframe containing the test.
+         * @type HTMLIFrameElement
+         */
+        this.iframe = goog.dom.iframe.createBlank(
+                new goog.dom.DomHelper(document));
+        goog.dom.classes.add(this.iframe, 'goofy-test-iframe');
+        goog.dom.classes.enable(this.iframe, 'goofy-test-visible',
+                                /** @type boolean */(
+                                    goofy.pathTestMap[path].state.visible));
+        document.getElementById('goofy-main').appendChild(this.iframe);
+        this.iframe.contentWindow.$ = goog.bind(function(id) {
+            return this.iframe.contentDocument.getElementById(id);
+        }, this);
+        this.iframe.contentWindow.test = this.test;
+        this.iframe.contentWindow.focus();
+    }
 };
 
 /**
@@ -372,10 +389,19 @@ cros.factory.Invocation.prototype.getState = function() {
  * Disposes of the invocation (and destroys the iframe).
  */
 cros.factory.Invocation.prototype.dispose = function() {
+    for (var i in this.subInvocations) {
+        this.subInvocations[i].dispose();
+        this.subInvocations[i] = null;
+    }
     if (this.iframe) {
+        cros.factory.logger.info('Cleaning up invocation ' + this.uuid);
         goog.dom.removeNode(this.iframe);
-        this.goofy.invocations[this.uuid] = null;
         this.iframe = null;
+    }
+    if (!this.parentUuid) {
+        this.goofy.invocations[this.uuid] = null;
+        cros.factory.logger.info(
+            'Top-level invocation ' + this.uuid + ' disposed');
     }
 };
 
@@ -923,18 +949,32 @@ cros.factory.Goofy.prototype.setAutomationMode = function(mode) {
  *
  * @param {string} path
  * @param {string} invocationUuid
+ * @param {string} parentUuid
  * @return the invocation, or null if the invocation has already been created
  *     and deleted.
  */
 cros.factory.Goofy.prototype.getOrCreateInvocation = function(
-    path, invocationUuid) {
-    if (!(invocationUuid in this.invocations)) {
-        cros.factory.logger.info('Creating UI for test ' + path +
-                                 ' (invocation ' + invocationUuid);
-        this.invocations[invocationUuid] =
-            new cros.factory.Invocation(this, path, invocationUuid);
+    path, invocationUuid, parentUuid) {
+    if (invocationUuid in this.invocations) {
+        return this.invocations[invocationUuid];
     }
-    return this.invocations[invocationUuid];
+
+    if (!(parentUuid in this.invocations)) {
+        cros.factory.logger.info('Creating top-level invocation ' +
+                                 '(invocation ' + parentUuid + ')');
+        this.invocations[parentUuid] =
+            new cros.factory.Invocation(this, path, parentUuid, null);
+    }
+
+    var subInvocations = this.invocations[parentUuid].subInvocations;
+    if (!(invocationUuid in subInvocations)) {
+        cros.factory.logger.info('Creating UI for test ' + path +
+                                 ' (invocation ' + invocationUuid + ')');
+        subInvocations[invocationUuid] =
+            new cros.factory.Invocation(
+                    this, path, invocationUuid, parentUuid);
+    }
+    return subInvocations[invocationUuid];
 };
 
 /**
@@ -2801,11 +2841,12 @@ cros.factory.Goofy.prototype.logInternal = function(message) {
 
 /**
  * Handles an event sends from the backend.
+ * @suppress {missingProperties}
  * @param {string} jsonMessage the message as a JSON string.
  */
 cros.factory.Goofy.prototype.handleBackendEvent = function(jsonMessage) {
     cros.factory.logger.info('Got message: ' + jsonMessage);
-    var message = /** @type Object.<string, Object> */ (
+    var message = /** @type {Object.<string, Object>} */ (
         goog.json.unsafeParse(jsonMessage));
 
     if (message.type == 'goofy:hello') {
@@ -2826,7 +2867,7 @@ cros.factory.Goofy.prototype.handleBackendEvent = function(jsonMessage) {
         this.setTestState(message.path, message.state);
     } else if (message.type == 'goofy:init_test_ui') {
         var invocation = this.getOrCreateInvocation(
-            message.test, message.invocation);
+            message.test, message.invocation, message.parent_invocation);
         if (invocation) {
             goog.dom.iframe.writeContent(
                 invocation.iframe,
@@ -2841,8 +2882,8 @@ cros.factory.Goofy.prototype.handleBackendEvent = function(jsonMessage) {
             'window.test.invocation.goofy.boundKeyListener)');
     } else if (message.type == 'goofy:set_html') {
         var invocation = this.getOrCreateInvocation(
-            message.test, message.invocation);
-        if (invocation) {
+            message.test, message.invocation, message.parent_invocation);
+        if (invocation && invocation.iframe) {
             if (message.id) {
                 var element = invocation.iframe.contentDocument.getElementById(
                                                                     message.id);
@@ -2865,8 +2906,8 @@ cros.factory.Goofy.prototype.handleBackendEvent = function(jsonMessage) {
         }
     } else if (message.type == 'goofy:run_js') {
         var invocation = this.getOrCreateInvocation(
-            message.test, message.invocation);
-        if (invocation) {
+            message.test, message.invocation, message.parent_invocation);
+        if (invocation && invocation.iframe) {
             // We need to evaluate the code in the context of the content
             // window, but we also need to give it a variable.  Stash it
             // in the window and load it directly in the eval command.
@@ -2880,8 +2921,8 @@ cros.factory.Goofy.prototype.handleBackendEvent = function(jsonMessage) {
         }
     } else if (message.type == 'goofy:call_js_function') {
         var invocation = this.getOrCreateInvocation(
-            message.test, message.invocation);
-        if (invocation) {
+            message.test, message.invocation, message.parent_invocation);
+        if (invocation && invocation.iframe) {
             var func = invocation.iframe.contentWindow.eval(message['name']);
             if (func) {
                 func.apply(invocation.iframe.contentWindow, message['args']);
@@ -2891,6 +2932,11 @@ cros.factory.Goofy.prototype.handleBackendEvent = function(jsonMessage) {
             }
         }
     } else if (message.type == 'goofy:destroy_test') {
+        // We send destroy_test event only in the top-level invocation from
+        // Goofy backend.
+        cros.factory.logger.info(
+                'Received destroy_test event for top-level invocation ' +
+                message.invocation);
         var invocation = this.invocations[message.invocation];
         if (invocation) {
             invocation.dispose();

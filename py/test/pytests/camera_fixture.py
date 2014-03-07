@@ -850,15 +850,9 @@ class CameraFixture(unittest.TestCase):
     'Shopfloor': DataMethod.SF
   }
 
-  def __init__(self, *args, **kwargs):
-    super(CameraFixture, self).__init__(*args, **kwargs)
-    self.test_type = None
-    self.fixture_type = None
-    self.chamber = None
-    self.ui = None
+  def setUp(self):
     self.internal_queue = Queue.Queue()
 
-  def setUp(self):
     os.chdir(os.path.join(os.path.dirname(__file__), '%s_static' %
                           self.test_info.pytest_name)) # pylint: disable=E1101
 

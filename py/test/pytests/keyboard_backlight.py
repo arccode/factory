@@ -24,8 +24,7 @@ _INSTRUCTION_ZH = u'檢查鍵盤背光是否%s，是請按ENTER。'
 
 class KeyboardBacklightTest(unittest.TestCase):
 
-  def __init__(self, *args, **kwargs):
-    super(KeyboardBacklightTest, self).__init__(*args, **kwargs)
+  def setUp(self):
     self._ui = test_ui.UI()
     self._template = ui_templates.OneSection(self._ui)
     self._current = 0

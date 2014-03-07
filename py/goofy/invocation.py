@@ -604,11 +604,11 @@ class TestInvocation(object):
 
       try:
         self.goofy.event_client.post_event(
-          Event(Event.Type.DESTROY_TEST,
-              test=self.test.path,
-              invocation=self.uuid))
+            Event(Event.Type.DESTROY_TEST,
+                  test=self.test.path,
+                  invocation=self.uuid))
       except:
-        logging.exception('Unable to post END_TEST event')
+        logging.exception('Unable to post DESTROY_TEST event')
 
       syslog.syslog('Test %s (%s) completed: %s%s' % (
           self.test.path, self.uuid, status,
@@ -748,9 +748,16 @@ def InvokeTestCase(suite, test_case_id, test_info):
         args = [this_file, '--pytest', info_path]
 
         # Generate an invocation and set it in the env of subprocess.
-        pytest_invoc = event_log.TimedUuid()
+        # We need a new invocation uuid here to have a new UI context. We
+        # propagate down the original invocation uuid as the parent of the new
+        # uuid, so we can properly clean up all associated invocations later.
         subenv = dict(os.environ)
-        subenv.update({'CROS_FACTORY_TEST_INVOCATION': pytest_invoc})
+        pytest_invoc = event_log.TimedUuid()
+        parent_invoc = os.environ['CROS_FACTORY_TEST_INVOCATION']
+        subenv.update({
+            'CROS_FACTORY_TEST_INVOCATION': pytest_invoc,
+            'CROS_FACTORY_TEST_PARENT_INVOCATION': parent_invoc
+        })
 
         # Wait for the subprocess to end and load the results.
         process = Spawn(args, env=subenv)

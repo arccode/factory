@@ -233,8 +233,7 @@ class HWIDTest(unittest.TestCase):
         default='supported', optional=True)
   ]
 
-  def __init__(self, *args, **kwargs):
-    super(HWIDTest, self).__init__(*args, **kwargs)
+  def setUp(self):
     self.hwid = None
     self.hwid_list = None
     self.task_list = []

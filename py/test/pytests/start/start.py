@@ -324,8 +324,7 @@ class StartTest(unittest.TestCase):
     Arg('has_ectool', bool, 'Has ectool utility or not.',
         default=True, optional=True)]
 
-  def __init__(self, *args, **kwargs):
-    super(StartTest, self).__init__(*args, **kwargs)
+  def setUp(self):
     self._task_list = []
     self.ui = test_ui.UI()
     self.template = ui_templates.OneSection(self.ui)

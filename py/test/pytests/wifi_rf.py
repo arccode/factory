@@ -189,8 +189,7 @@ class Wifi_RF(unittest.TestCase):
   ]
 
 
-  def __init__(self, *args, **kwargs):
-    super(Wifi_RF, self).__init__(*args, **kwargs)
+  def setUp(self):
     self._ui = test_ui.UI()
     self._template = ui_templates.OneSection(self._ui)
     self._ser = 0

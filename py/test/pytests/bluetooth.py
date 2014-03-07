@@ -441,8 +441,8 @@ class BluetoothTest(unittest.TestCase):
     Arg('input_device_mac', str, 'The mac address of bluetooth input device',
         default=None, optional=True),
   ]
-  def __init__(self, *args, **kwargs):
-    super(BluetoothTest, self).__init__(*args, **kwargs)
+
+  def setUp(self):
     self.ui = test_ui.UI()
     self.template = ui_templates.TwoSections(self.ui)
     self.template.SetTitle(_TEST_TITLE)
