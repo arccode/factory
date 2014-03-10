@@ -77,7 +77,8 @@ class _TestProc(object):
     self.returncode = None
 
   def __del__(self):
-    shutil.rmtree(self.cros_factory_root)
+    if os.path.isdir(self.cros_factory_root):
+      shutil.rmtree(self.cros_factory_root)
 
 
 class RunTests(object):
@@ -174,7 +175,11 @@ class RunTests(object):
       max_jobs: maximum number of tests to run in parallel.
     """
     for test_name in tests:
-      p = _TestProc(test_name, self._GetLogFilename(test_name))
+      try:
+        p = _TestProc(test_name, self._GetLogFilename(test_name))
+      except Exception as e:
+        self._FailMessage('Error running test %r' % test_name)
+        raise e
       self._running_proc[p.pid] = p
       self._WaitRunningProcessesFewerThan(max_jobs)
     # Wait for all running test.
