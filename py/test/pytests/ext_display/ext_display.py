@@ -25,7 +25,8 @@ from cros.factory.test.factory_task import (FactoryTaskManager,
                                             InteractiveFactoryTask)
 from cros.factory.test.fixture.bft_fixture import (BFTFixture,
                                                    BFTFixtureException,
-                                                   CreateBFTFixture)
+                                                   CreateBFTFixture,
+                                                   TEST_ARG_HELP)
 from cros.factory.test.pytests import audio
 from cros.factory.utils.process_utils import SpawnOutput
 
@@ -455,18 +456,19 @@ class ExtDisplayTest(unittest.TestCase):
     Arg('main_display', str, 'xrandr ID for ChromeBook\'s main display.',
         optional=False),
     Arg('display_info', list,
-        ('A list of tuple: (display_label, display_id, audio_port).\n'
+        ('A list of tuples:\n'
+         '\n'
+         '  (display_label, display_id, audio_port)\n'
+         '\n'
          'Each tuple represents an external port.\n'
-         'display_label: (str) display name seen by operator, e.g. VGA.\n'
-         'display_id: (str) ID used to identify display in xrandr. e.g. VGA1.\n'
-         'audio_port: (str, opt) amixer port name for audio test. If set,\n'
-         '    the audio playback test is added for the display.'),
+         '\n'
+         '- display_label: (str) display name seen by operator, e.g. VGA.\n'
+         '- display_id: (str) ID used to identify display in xrandr.\n'
+         '  e.g. VGA1.\n'
+         '- audio_port: (str, opt) amixer port name for audio test. If set,\n'
+         '  the audio playback test is added for the display.'),
         optional=False),
-    Arg('bft_fixture', dict,
-        '{class_name: BFTFixture\'s import path + module name\n'
-        ' params: a dict of params for BFTFixture\'s Init()}.\n'
-        'Default None means no BFT fixture is used.',
-        default=None, optional=True),
+    Arg('bft_fixture', dict, TEST_ARG_HELP, default=None, optional=True),
     Arg('connect_only', bool,
         'Just detect ext display connection. This is for a hack that DUT needs '
         'reboot after connect to prevent X crash.',

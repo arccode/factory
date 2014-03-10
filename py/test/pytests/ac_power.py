@@ -17,7 +17,8 @@ from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
 
 from cros.factory.test.fixture.bft_fixture import (BFTFixture,
-                                                   CreateBFTFixture)
+                                                   CreateBFTFixture,
+                                                   TEST_ARG_HELP)
 
 
 _TEST_TITLE_PLUG = test_ui.MakeLabel('Connect AC', u'连接充电器')
@@ -55,10 +56,7 @@ class ACPowerTest(unittest.TestCase):
   ARGS = [
     Arg('power_type', str, 'Type of the power source', optional=True),
     Arg('online', bool, 'True if expecting AC power', default=True),
-    Arg('bft_fixture', dict,
-        '{class_name: BFTFixture\'s import path + module name\n'
-        ' params: a dict of params for BFTFixture\'s Init()}.\n'
-        'Default None means no BFT fixture is used.', optional=True),
+    Arg('bft_fixture', dict, TEST_ARG_HELP, optional=True),
     Arg('retries', int,
         'Maximum number of retries allowed to pass the test. '
         '0 means only probe once. Default None means probe forever.',

@@ -21,19 +21,6 @@ from cros.factory.utils.process_utils import Spawn
 
 # Files allowed to have errors now.  TODO: Clean these up.
 BLACKLIST = [
-  'ac_power.rst',
-  'audio_loop.rst',
-  'bft_fixture.rst',
-  'camera_fixture.rst',
-  'charger.rst',
-  'check_wifi_calibration.rst',
-  'ec_temp_sensors.rst',
-  'ectool_i2c_dev_id.rst',
-  'ext_display.rst',
-  'fan_speed.rst',
-  'hwmon_probe.rst',
-  'i2c_probe.rst',
-  'index.rst',
   'keyboard.rst',
   'led.rst',
   'lid_switch.rst',

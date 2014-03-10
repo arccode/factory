@@ -5,25 +5,13 @@
 # found in the LICENSE file.
 
 
-"""This is a factory test to test thermal response under load.
-Tests that under given load:
-  - Temperatures don't go over temperature_limit before heat up.
-  - Temperatures go over lower_threshold within heat_up_timeout_secs.
-  - Temperatures don't go over temperature_limit throughout the entire test.
+"""Tests thermal response under load.
 
-dargs:
-  load: Number of threads stressapptest uses to stress the system. Default
-      value is the number of processors.
-  heat_up_timeout_secs: Timeout interval in seconds for temperature to go over
-      lower_threshold.
-  duration_secs: Time in seconds for the test to run.
-  lower_threshold: Minimum temperature value required within
-      heat_up_timeout_secs.
-  temperature_limit: Maximum temperature value allowed throughout the entire
-      test.
-  sensor_index: The index of temperature sensor to use.
-  temperatures_difference: The difference of temperatures should be under a
-      specified limit.
+Tests that under given load:
+
+- Temperatures don't go over temperature_limit before heat up.
+- Temperatures go over lower_threshold within heat_up_timeout_secs.
+- Temperatures don't go over temperature_limit throughout the entire test.
 """
 
 import logging
@@ -39,7 +27,10 @@ from cros.factory.test.utils import LoadManager
 
 class ThermalLoadTest(unittest.TestCase):
   ARGS = [
-      Arg('load', int, 'Number of threads stressapptest uses',
+      Arg('load', int,
+          ('Number of threads stressapptest uses.  If None is '
+           'used, this will default to the number of processors in the '
+           'system.'),
           optional=True, default=None),
       Arg('heat_up_timeout_secs', int, 'Timeout interval in seconds for '
           'tepmerature to go over lower_threshold', optional=True, default=40),
@@ -47,7 +38,8 @@ class ThermalLoadTest(unittest.TestCase):
           optional=True, default=80),
       Arg('lower_threshold', (int, list), 'Minimum temperature value required '
           'within heat_up_timeout_secs', optional=True, default=45),
-      Arg('temperature_limit', (int, list), 'Maximum temperature value allowed',
+      Arg('temperature_limit', (int, list),
+          'Maximum temperature value allowed throughout the entire test.',
           optional=True, default=75),
       Arg('sensor_index', (int, list), 'The index of temperature sensor to use',
           optional=True, default=0),

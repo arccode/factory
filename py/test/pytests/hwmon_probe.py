@@ -4,17 +4,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""
-A factory test to test the functionality of hwmon temp sensors.
-
-dargs:
-  hwmon_count: Number of hwmon temp sensors the system is supposed to have.
-  max_temp_delta_celsius: Max allowed delta between temp sensor and an average
-      temp. (default: 5 celsius)
-  min_temp_celsius: Min allowed temperature recorded by hwmon. (default: 15
-      celsius)
-  max_temp_celsius: Max allowed temperature recorded by hwmon. (default: 140
-      celsius)
+"""Tests the functionality of hwmon temp sensors.
 """
 
 import glob

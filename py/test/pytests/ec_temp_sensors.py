@@ -8,12 +8,6 @@
 
 The test uses factory.system.Board to probe temperature sensors.
 Ported from third_party/autotest/files/client/site_tests/hardware_EC.
-
-dargs:
-  num_temp_sensor: Number of temperature sensor(s). Only used when
-     temp_sensor_to_test is unset. Default: 0.
-  temp_range: A tuple of (min_temp, max_temp) in Celsius. Default (0, 100).
-  temp_sensor_to_test: List of temperature sensor(s) to test. Default None.
 """
 
 import logging
@@ -25,7 +19,10 @@ from cros.factory.test.args import Arg
 class BoardTempSensorsTest(unittest.TestCase):
   """Tests communication with temperature sensors."""
   ARGS = [
-    Arg('num_temp_sensor', int, 'Number of temperature sensor(s).', default=0),
+    Arg('num_temp_sensor', int,
+        'Number of temperature sensor(s). '
+        'Only used when temp_sensor_to_test is unset.',
+        default=0),
     Arg('temp_sensor_to_test', list,
         'List of temperature sensor(s) to test. '
         'If None, it tests all sensors in [0, ..., num_temp_sensor - 1].',

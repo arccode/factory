@@ -6,124 +6,133 @@
 """Camera fixture test.
 
 Fixture types:
-  - FullChamber: light chamber for full-assembly line in FATP and RMA.
-  - ABChamber: light chamber for AB sub-assembly line (after A and B panels are
-               assembled).
-  - ModuleChamber: light chamber for module-level OQC, IQC, production QC.
-  - Panel: a simple test chart panel for standalone lens shading and QR test.
+
+- FullChamber: light chamber for full-assembly line in FATP and RMA.
+- ABChamber: light chamber for AB sub-assembly line (after A and B panels are
+  assembled).
+- ModuleChamber: light chamber for module-level OQC, IQC, production QC.
+- Panel: a simple test chart panel for standalone lens shading and QR test.
 
 Test types:
-  - When fixture_type == {Full|AB|Module}Chamber:
-    - Calibration: calibrates light chamber and test chart to align with the
-                   golden sample (only checking image shift and tilt).
-    - IQ (Image Quality): checks IQ factors such as MTF (sharpness), lens
-                          shading, image shift, and image tilt in one test.
 
-  - When fixture_type == Panel
-    - LensShading: checks lens shading ratio (usually fails when camera module
-                   is not precisely aligned with the view hole on bezel).
-    - QR: scans QR code. QR bar code test is intended for a fixtureless camera
-          test. We only need a piece of paper to verify if camera is functional
-          without human judgement. But the test coverage is not as complete
-          as IQ test.
+- When fixture_type == {Full|AB|Module}Chamber:
+
+  - Calibration: calibrates light chamber and test chart to align with the
+    golden sample (only checking image shift and tilt).
+  - IQ (Image Quality): checks IQ factors such as MTF (sharpness), lens
+    shading, image shift, and image tilt in one test.
+
+- When fixture_type == Panel:
+
+  - LensShading: checks lens shading ratio (usually fails when camera module
+    is not precisely aligned with the view hole on bezel).
+  - QR: scans QR code. QR bar code test is intended for a fixtureless camera
+    test. We only need a piece of paper to verify if camera is functional
+    without human judgement. But the test coverage is not as complete
+    as IQ test.
 
 Test chart versions:
-  - A: 7x11 blocks. Used for 720p camera or similar aspect ratio.
-  - B: 7x9 blocks. Used for VGA camera or similar aspect ratio.
-  - White: All white. Used for standalone lens shading test.
-  - QR: QR code.
+
+- A: 7x11 blocks. Used for 720p camera or similar aspect ratio.
+- B: 7x9 blocks. Used for VGA camera or similar aspect ratio.
+- White: All white. Used for standalone lens shading test.
+- QR: QR code.
 
 Hot keys:
-  - Press Enter or Space keys to start the IQ test
-  - Press ESC to leave the test.
+
+- Press Enter or Space keys to start the IQ test
+- Press ESC to leave the test.
 
 [IQ Test Only]
 
 Data methods for IQ test:
-  - Simple: read parameters from 'IQ_param_dict' argument, but skips saving
-            test results.
-  - USB: read parameter file from USB drive, and saves test results in USB drive
-         in subfolders ordered by date.
-  - Shopfloor: read param file from shopfloor, and saves test results in
-               shopfloor aux_logs. This is recommended over USB when there is
-               Shopfloor environment because USB drive is not reliable.
+
+- Simple: read parameters from 'IQ_param_dict' argument, but skips saving
+  test results.
+- USB: read parameter file from USB drive, and saves test results in USB drive
+  in subfolders ordered by date.
+- Shopfloor: read param file from shopfloor, and saves test results in
+  shopfloor aux_logs. This is recommended over USB when there is
+  Shopfloor environment because USB drive is not reliable.
 
 Test parameters for IQ test:
-  - Please check camera_fixture_static/camera.params.sample
+
+- Please check camera_fixture_static/camera.params.sample
 
 Analysis of saved test data from IQ test:
-  - Use py/test/fixture/camera/analysis/analyze_camera_fixture_data.py
 
-[Usage Examples]
+- Use py/test/fixture/camera/analysis/analyze_camera_fixture_data.py
 
-# Without light chamber:
+Usage examples::
 
-  # Standalone lens shading check.
-  OperatorTest(
-    id='LensShading',
-    pytest_name='camera_fixture',
-    dargs={
-      'mock_mode': False,
-      'test_type': 'LensShading',
-      'fixture_type': 'Panel',
-      'test_chart_version': 'White',
-      'capture_resolution': (640, 480),
-      'resize_ratio': 0.7,
-      'lens_shading_ratio': 0.30})
+  # Without light chamber:
 
-  # Standalone QR code scan.
-  OperatorTest(
-    id='QRScan',
-    pytest_name='camera_fixture',
-    dargs={
-      'mock_mode': False,
-      'test_type': 'QR',
-      'fixture_type': 'Panel',
-      'test_chart_version': 'QR',
-      'capture_resolution': (640, 480),
-      'resize_ratio': 0.5,
-      'QR_string': 'Hello ChromeOS!'})
+    # Standalone lens shading check.
+    OperatorTest(
+      id='LensShading',
+      pytest_name='camera_fixture',
+      dargs={
+        'mock_mode': False,
+        'test_type': 'LensShading',
+        'fixture_type': 'Panel',
+        'test_chart_version': 'White',
+        'capture_resolution': (640, 480),
+        'resize_ratio': 0.7,
+        'lens_shading_ratio': 0.30})
 
-# With light chamber:
+    # Standalone QR code scan.
+    OperatorTest(
+      id='QRScan',
+      pytest_name='camera_fixture',
+      dargs={
+        'mock_mode': False,
+        'test_type': 'QR',
+        'fixture_type': 'Panel',
+        'test_chart_version': 'QR',
+        'capture_resolution': (640, 480),
+        'resize_ratio': 0.5,
+        'QR_string': 'Hello ChromeOS!'})
 
-  # Fixture calibration for FATP line.
-  OperatorTest(
-    id='CameraFixtureCalibration',
-    pytest_name='camera_fixture',
-    dargs={
-      'mock_mode': False,
-      'test_type': 'Calibration',
-      'fixture_type': 'FullChamber',
-      'test_chart_version': 'B',
-      'capture_resolution': (640, 480),
-      'resize_ratio': 0.7,
-      'calibration_shift': 0.003,
-      'calibration_tilt': 0.25})
+  # With light chamber:
 
-  # IQ (Image Quality) test with shopfloor.
-  OperatorTest(
-    id='ImageQuality',
-    pytest_name='camera_fixture',
-    dargs={'mock_mode': False,
-           'test_type': 'IQ',
-           'fixture_type': 'FullChamber',
-           'test_chart_version': 'A',
-           'capture_resolution': (1280, 720),
-           'IQ_data_method': 'Shopfloor',
-           'IQ_param_pathname': 'camera/camera.params.FATP',
-           'IQ_local_ip': None})
+    # Fixture calibration for FATP line.
+    OperatorTest(
+      id='CameraFixtureCalibration',
+      pytest_name='camera_fixture',
+      dargs={
+        'mock_mode': False,
+        'test_type': 'Calibration',
+        'fixture_type': 'FullChamber',
+        'test_chart_version': 'B',
+        'capture_resolution': (640, 480),
+        'resize_ratio': 0.7,
+        'calibration_shift': 0.003,
+        'calibration_tilt': 0.25})
 
-  # IQ (Image Quality) test with USB drive.
-  OperatorTest(
-    id='ImageQualityUSB',
-    pytest_name='camera_fixture',
-    dargs={'mock_mode': False,
-           'test_type': 'IQ',
-           'fixture_type': 'ModuleChamber',
-           'test_chart_version': 'A',
-           'capture_resolution': (1280, 720),
-           'IQ_data_method': 'USB',
-           'IQ_param_pathname': 'camera.params'}),
+    # IQ (Image Quality) test with shopfloor.
+    OperatorTest(
+      id='ImageQuality',
+      pytest_name='camera_fixture',
+      dargs={'mock_mode': False,
+             'test_type': 'IQ',
+             'fixture_type': 'FullChamber',
+             'test_chart_version': 'A',
+             'capture_resolution': (1280, 720),
+             'IQ_data_method': 'Shopfloor',
+             'IQ_param_pathname': 'camera/camera.params.FATP',
+             'IQ_local_ip': None})
+
+    # IQ (Image Quality) test with USB drive.
+    OperatorTest(
+      id='ImageQualityUSB',
+      pytest_name='camera_fixture',
+      dargs={'mock_mode': False,
+             'test_type': 'IQ',
+             'fixture_type': 'ModuleChamber',
+             'test_chart_version': 'A',
+             'capture_resolution': (1280, 720),
+             'IQ_data_method': 'USB',
+             'IQ_param_pathname': 'camera.params'}),
 
 """
 

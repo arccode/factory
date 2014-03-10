@@ -22,6 +22,20 @@ import factory_common # pylint: disable=W0611
 from cros.factory.test.utils import Enum
 
 
+TEST_ARG_HELP = """A dictionary with the following items:
+
+  ``class_name``
+    Fully-qualified class name of the BFTFixture implementation
+    to use.
+
+  ``params``
+    A dictionary of parameters for the BFTFixture class's ``Init()``
+    method.
+
+The default value of ``None`` means that no BFT fixture is used.
+"""
+
+
 class BFTFixtureException(Exception):
   pass
 

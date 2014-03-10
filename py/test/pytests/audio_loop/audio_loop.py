@@ -11,24 +11,25 @@ This test supports two test scenarios:
 1. Loop from headphone out to headphone in
 2. Loop from speaker to digital microphone
 
-Here are two test list examples for two test cases:
-OperatorTest(
-    id='AudioJack',
-    label_zh=u'音源孔',
-    pytest_name='audio_loop',
-    disable_services=['cras'],
-    dargs={'enable_audiofun': False,
-           'output_volume': 20,
-           'require_dongle': True})
+Here are two test list examples for two test cases::
 
-OperatorTest(
-    id='SpeakerDMic',
-    label_zh=u'喇叭/麦克风',
-    pytest_name='audio_loop',
-    disable_services=['cras'],
-    dargs={'enable_audiofun': True,
-           'audiofun_duration_secs': 4,
-           'output_volume': 10})
+  OperatorTest(
+      id='AudioJack',
+      label_zh=u'音源孔',
+      pytest_name='audio_loop',
+      disable_services=['cras'],
+      dargs={'enable_audiofun': False,
+             'output_volume': 20,
+             'require_dongle': True})
+
+  OperatorTest(
+      id='SpeakerDMic',
+      label_zh=u'喇叭/麦克风',
+      pytest_name='audio_loop',
+      disable_services=['cras'],
+      dargs={'enable_audiofun': True,
+             'audiofun_duration_secs': 4,
+             'output_volume': 10})
 """
 import os
 import re

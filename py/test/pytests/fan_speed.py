@@ -7,33 +7,21 @@
 """A factory test to ensure the functionality of CPU fan.
 
 It provides two types of test:
+
 A. target_rpm mode
 B. spin_max_then_half mode.
+
 For mode B, it first spins fan up to a max_rpm to get an empirical maximum
 fan rpm; then it runs mode A with half of the empirical max rpm as target_rpm.
 
 In mode A, the steps are:
+
 1. Sets the fan speed to a target RPM.
 2. Monitors the fan speed for a given period (duration_secs) with sampling
    interval (probe_interval_secs). Then it takes average of the latest
    #num_samples_to_use samples as the stablized fan speed reading.
 3. Checks that the averaged reading is within range
    [target_rpm - error_margin, target_rpm + error_margin].
-
-dargs:
-  duration_secs: Duration of monitoring fan speed in seconds.
-  error_margin: Fail the test if actual fan speed is off the target by the
-      margin.
-  max_rpm: A relatively high RPM for probing maximum fan speed. It is used
-      when spin_max_then_half=True.
-  num_samples_to_use: Number of lastest samples to count average as stablized
-      speed.
-  probe_interval_secs: Interval of probing fan speed in seconds.
-  spin_max_then_half: If True, spin the fan to max_rpm, measure the empirical
-      reading, and set fan speed to half of the empirical reading. Note that
-      if True, target_rpm is invalid.
-  target_rpm: Target RPM to set during test. Unused if spin_max_then_half
-      is set.
 """
 
 import factory_common # pylint: disable=W0611

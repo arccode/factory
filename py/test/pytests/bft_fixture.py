@@ -2,29 +2,20 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""An interface to command BFT fixture.
-
-dargs:
-  bft_fixture: {class_name: BFTFixture's import path + module name
-                params: a dict of params for BFTFixture's Init()}.
-  method: BFTFixture method to call.
-  args: args of the method.
-"""
+"""A generic interface to control the BFT fixture."""
 
 import logging
 import time
 import unittest
 
 from cros.factory.test.args import Arg
+from cros.factory.test.fixture import bft_fixture
 from cros.factory.test.fixture.bft_fixture import CreateBFTFixture
 
 
 class BFTFixture(unittest.TestCase):
   ARGS = [
-    Arg('bft_fixture', dict,
-        '{class_name: BFTFixture\'s import path + module name\n'
-        ' params: a dict of params for BFTFixture\'s Init()}.\n'
-        'Default None means no BFT fixture is used.'),
+    Arg('bft_fixture', dict, bft_fixture.TEST_ARG_HELP),
     Arg('method', str, 'BFTFixture method to call.'),
     Arg('args', (list, tuple), 'args of the method.',
         default=(), optional=True),

@@ -2,15 +2,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""A hardware test for probing I2C devices.
-
-It uses i2cdetect utility to check if there's an device on specific bus.
-
-dargs:
-  bus: (int) I2C bus to probe.
-  addr: (int, list) I2C addr to probe. Can be a list containing multiple
-    I2C addresses. If multiple addresses are specified, the test passes
-    when *any* of those exists.
+"""Uses i2cdetect utility to probe for I2C devices on a specific bus.
 """
 
 import re
@@ -39,7 +31,9 @@ class I2CProbeTest(unittest.TestCase):
 
   ARGS = [
     Arg('bus', int, 'I2C bus to probe.', optional=True),
-    Arg('addr', (int, list), 'I2C address(es) to probe.'),
+    Arg('addr', (int, list), 'I2C address(es) to probe. Can be a list '
+        'containing multiple I2C addresses, in which case the test passes '
+        'when *any* of those exists.'),
     Arg('r_flag', bool, 'Use SMBus "read byte" commands for probing.',
         default=False),
     Arg('auto_detect_device', (str, list),

@@ -4,10 +4,11 @@
 # found in the LICENSE file.
 
 
-'''Checks Wifi calibration table from
-/sys/kernel/debug/ieee80211/phy*/ath9k/dump_eep_power
+"""Checks Wifi calibration table from
+/sys/kernel/debug/ieee80211/phy*/ath9k/dump_eep_power.
 
-If the test fails, then the test displays tables and hangs forever.'''
+If the test fails, then the test displays tables and hangs forever.
+"""
 
 
 import glob
@@ -73,8 +74,11 @@ class CheckWifiCalibrationTest(unittest.TestCase):
     Arg('expected_low_band_ref_power_range', dict,
         'Expected range (min, max) for each chain in 2.4G.\n'
         'Chain is the key of the dict.\n'
-        'For example, {0: (-20, None),\n'
-        '              1: (None, -10)}\n'
+        'For example::\n'
+        '\n'
+        '  {0: (-20, None),\n'
+        '   1: (None, -10)}\n'
+        '\n'
         'will check all refPower for chain 0 is greater than -20\n'
         'and all refPower for chain 1 is less than -10.\n'
         ),

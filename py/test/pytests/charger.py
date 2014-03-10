@@ -5,35 +5,9 @@
 # found in the LICENSE file.
 
 
-'''This is a factory test to test charger.
-Test that charger can charge/discharge battery for certain
-amount of change within certain time under certain load.
-
-dargs:
-  starting_charge_pct: Starting charge level when testing.
-      This value should be close to options.min_charge_pct and
-      options.max_charge_pct in the test_list. Default value is 85.0.
-  starting_timeout_secs: Maximum allowed time to regulate battery to
-      starting_charge_pct. Default value is 300 secs.
-  use_percentage: True if using percentage as charge unit in spec list.
-      False if using mAh. Default value is True.
-  check_battery_current: Check battery current > 0 when charging and < 0
-      when discharging.
-  battery_check_delay_sec: Delay of checking battery current. This can be
-      used to handle slowly settled battery current. Default value is 3 secs.
-  verbose_log_period_secs: Log debug data every x seconds to verbose log file.
-  log_period_secs: Log test data every x seconds to factory log.
-  spec_list:
-      A list of tuples. Each tuple contains
-      (charge_change, timeout_secs, load)
-      Charger needs to achieve charge_change difference within
-      timeout_secs seconds under load.
-      Positive charge_change is for charging and negative one is
-      for discharging.
-      One unit of load is one thread doing memory copy in stressapptest.
-      The default value for load is the number of processor,
-      Default spec_list=[(2, 300, ), (-2, 300, )])
-'''
+"""Test that charger can charge/discharge battery for certain amount
+of change within certain time under certain load.
+"""
 
 import logging
 import multiprocessing
