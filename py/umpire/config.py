@@ -203,11 +203,11 @@ class UmpireConfig(dict):
     """Gets the default bundle.
 
     Returns:
-      The default bundle's ID. None if not found.
+      The default bundle object. None if not found.
     """
     for rule in reversed(self.get('rulesets', [])):
       if rule['active']:
-        return rule['bundle_id']
+        return self.GetBundle(rule['bundle_id'])
     return None
 
   def GetBundle(self, bundle_id):

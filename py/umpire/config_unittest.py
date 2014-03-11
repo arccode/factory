@@ -75,18 +75,27 @@ class TestUmpireConfig(unittest.TestCase):
 
   def testGetDefaultBundle(self):
     conf = config.UmpireConfig(EMPTY_SERVICES_CONFIG)
-    self.assertEqual('test', conf.GetDefaultBundle())
+    self.assertEqual('test', conf.GetDefaultBundle()['id'])
 
     conf['rulesets'].append({'bundle_id': 'new_bundle',
                              'active': True})
-    self.assertEqual('new_bundle', conf.GetDefaultBundle())
+    new_bundle = copy.deepcopy(conf['bundles'][0])
+    new_bundle['id'] = 'new_bundle'
+    conf['bundles'].append(new_bundle)
+    self.assertEqual('new_bundle', conf.GetDefaultBundle()['id'])
 
     # Last ruleset is inactive, use the upper one.
     conf['rulesets'][1]['active'] = False
-    self.assertEqual('test', conf.GetDefaultBundle())
+    self.assertEqual('test', conf.GetDefaultBundle()['id'])
 
   def testGetDefaultBundleNotFound(self):
     conf = config.UmpireConfig(EMPTY_SERVICES_CONFIG)
+
+    # A default bundle ID derived from rulesets doesn't exist in bundles
+    # section.
+    conf['rulesets'].append({'bundle_id': 'new_bundle',
+                             'active': True})
+    self.assertIsNone(conf.GetDefaultBundle())
 
     # no active ruleset.
     conf['rulesets'][0]['active'] = False
