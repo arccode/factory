@@ -111,7 +111,8 @@ class testImportBundle(unittest.TestCase):
         self.env.GetResourcePath(resources['download_conf']))
     # Skip first two as bundle path might change based on the path
     # running the unittest.
-    self.assertListEqual(expect_download_conf[2:], download_conf[2:])
+    self.assertListEqual(sorted(expect_download_conf[2:]),
+                         sorted(download_conf[2:]))
 
   def testImportHashCollision(self):
     # Create hash collision files (same hash but different content).
