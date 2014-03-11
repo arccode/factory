@@ -31,7 +31,7 @@ class CallShopfloor(unittest.TestCase):
          ('List of keys for device_data we want to read from RW_VPD.'
           'Each key is a tuple of (prefix, key) meaning that the '
           'pair (key, value) should be added into device_data if there is '
-          'a pair (prefix + key, value) in RW_VPD . If key is *, it means '
+          'a pair (prefix + key, value) in RW_VPD. If key is \\*, it means '
           'all keys with the prefix should be added.'),
         default=[('factory.device_data.', '*')], optional=True),
     Arg('vpd_section', str,

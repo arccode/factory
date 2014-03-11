@@ -3,7 +3,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""A pytest for operator to input a string of data."""
+"""Prompts the operator to input a string of data."""
 
 import logging
 import re
@@ -20,7 +20,8 @@ from cros.factory.test import ui_templates
 from cros.factory.test import utils
 from cros.factory.test.args import Arg
 from cros.factory.test.event import Event
-from cros.factory.test.fixture.bft_fixture import CreateBFTFixture
+from cros.factory.test.fixture.bft_fixture import (CreateBFTFixture,
+                                                   TEST_ARG_HELP)
 from cros.factory.test.utils import StartDaemonThread
 
 
@@ -53,11 +54,7 @@ class Scan(unittest.TestCase):
         'True to scan BFT fixture ID.', default=False),
     Arg('bft_scan_barcode', bool,
         'True to trigger BFT barcode scanner.', default=False),
-    Arg('bft_fixture', dict,
-        '{class_name: BFTFixture\'s import path + module name\n'
-        ' params: a dict of params for BFTFixture\'s Init()}.\n'
-        'Default None means no BFT fixture is used.',
-        default=None, optional=True),
+    Arg('bft_fixture', dict, TEST_ARG_HELP, default=None, optional=True),
     Arg('barcode_scan_interval_secs', (int, float),
         'Interval for repeatedly trigger BFT\'s barcode scaner',
         default=2.0),

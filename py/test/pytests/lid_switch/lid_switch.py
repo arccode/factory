@@ -4,16 +4,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""This is a factory test to check the functionality of the lid switch.
-
-dargs:
-  timeout: the test runs at most #seconds (default: 30 seconds).
-  ok_audio_path: (optional) an audio file's path to notify an operator to open
-      the lid.
-  audio_volume: (optional) volume to play the ok audio. Default 100%.
-  bft_fixture: (optional) {class_name: BFTFixture's import path + module name
-                           params: a dict of params for BFTFixture's Init()}.
-      Default None means no BFT fixture is used.
+"""Tests lid switch functionality.
 """
 
 import asyncore
@@ -32,7 +23,8 @@ from cros.factory.test.countdown_timer import StartCountdownTimer
 # See LidSwitchTest.setUp() for more detail.
 from cros.factory.test.fixture.bft_fixture import (BFTFixture,
                                                    BFTFixtureException,
-                                                   CreateBFTFixture)
+                                                   CreateBFTFixture,
+                                                   TEST_ARG_HELP)
 
 from cros.factory.test.ui_templates import OneSection
 from cros.factory.test.utils import StartDaemonThread
@@ -91,14 +83,12 @@ class LidSwitchTest(unittest.TestCase):
         'Path to the OK audio file which is played after detecting lid close'
         'signal. Defaults to play ok_*.ogg in /sounds.',
         default=None, optional=True),
-    Arg('audio_volume', int, 'Audio volume to use when playing OK audio file.',
+    Arg('audio_volume', int,
+        'Percentage of audio volume to use when playing OK audio file.',
         default=100),
     Arg('event_id', int, 'Event ID for evdev. None for auto probe.',
         default=None, optional=True),
-    Arg('bft_fixture', dict,
-        '{class_name: BFTFixture\'s import path + module name\n'
-        ' params: a dict of params for BFTFixture\'s Init()}.\n'
-        'Default None means no BFT fixture is used.',
+    Arg('bft_fixture', dict, TEST_ARG_HELP,
         default=None, optional=True),
     Arg('bft_retries', int,
         'Number of retries for BFT lid open / close.',

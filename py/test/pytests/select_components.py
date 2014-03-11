@@ -3,13 +3,9 @@
 # Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
-#
-# DESCRIPTION :
-# This is a test for selecting non-probable components and update the selected
-# results in device data.
 
 
-"""A pytest for operator to select components and update device_data."""
+"""Prompts operator to select components, and updates device_data."""
 
 
 import factory_common # pylint: disable=W0611
@@ -42,20 +38,24 @@ _TEST_TITLE = test_ui.MakeLabel('Select Components', u'选择元件')
 class SelectComponentTest(unittest.TestCase):
   """The main class for this pytest."""
   ARGS = [
-    Arg('comps', dict,
-        """A dict from components to (device_data_field, choices). If component
-        can be found in hwid database, the default choices will be available
-        components in hwid database. If choices is not None, user selects
-        value from choices. That value will be stored as device_data_field
-        in device_data.
-        E.g. comps={"comp_a": ("component.comp_a", ["choice_a_1", "choice_a_2]),
-                    "comp_b": ("component.comp_b", None),
-                    "comp_c": ("component.comp_c", ["choice_c_1", "choice_c_2")
-                   }
-        Where comp_a is in hwid database, but we set the available choices.
-        comp_b is in hwid database, and we use the choices in database.
-        comp_c is not in hwid database, so we provide the choices.""",
-        optional=False),
+    Arg(
+      'comps', dict,
+      ('A dict from components to (device_data_field, choices). If component\n'
+       'can be found in hwid database, the default choices will be available\n'
+       'components in hwid database. If choices is not None, user selects\n'
+       'value from choices. That value will be stored as device_data_field\n'
+       'in device_data. E.g.::\n'
+       '\n'
+       '  comps={\n'
+       '    "comp_a": ("component.comp_a", ["choice_a1", "choice_a2"]),\n'
+       '    "comp_b": ("component.comp_b", None),\n'
+       '    "comp_c": ("component.comp_c", ["choice_c1", "choice_c2"]),\n'
+       '    }\n'
+       '\n'
+       'where comp_a is in hwid database, but we set the available choices.\n'
+       'comp_b is in hwid database, and we use the choices in database.\n'
+       'comp_c is not in hwid database, so we provide the choices.\n'),
+      optional=False),
   ]
 
   def setUp(self):

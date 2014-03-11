@@ -11,18 +11,18 @@ The test recalibrates the touchscreen then reads raw reference (baseline) data.
 Each value must fall within a specified max and min range. Delta values (the
 baseline - current reading) are also checked.
 
-Sample test_list entry:
+Sample test_list entry::
 
-TOUCHSCREEN_UNIFORMITY = OperatorTest(
-  id='TouchscreenUniformity',
-  label_zh=u'触屏均一性测试',
-  run_if='device_data.component.has_touchscreen',
-  pytest_name='touchscreen_uniformity',
-  dargs={'deltas_max_val': 40,
-         'deltas_min_val': -30,
-         'refs_max_val': 25100,
-         'refs_min_val': 23400,
-         'i2c_bus_id': '10-004a'})
+  OperatorTest(
+    id='TouchscreenUniformity',
+    label_zh=u'触屏均一性测试',
+    run_if='device_data.component.has_touchscreen',
+    pytest_name='touchscreen_uniformity',
+    dargs={'deltas_max_val': 40,
+           'deltas_min_val': -30,
+           'refs_max_val': 25100,
+           'refs_min_val': 23400,
+           'i2c_bus_id': '10-004a'})
 
 The args thresholds in need to be experimentally determined by checking
 a set of machines. The test logs the actual max and min values found.

@@ -4,14 +4,14 @@
 # found in the LICENSE file.
 
 
-"""Factory test of ambient light sensor.
+"""Tests that ambient light sensor reacts to both darkening by
+covering w/finger as well as brightening.
 
-Test that ALS reacts to both darkening by covering w/ finger
-as well as brightening.
 Roughly speaking:
-  indoor ambient lighting: 20-100
-  sunlight direct: 30k-60k
-  flashlight direct: 5k-10k
+
+- indoor ambient lighting: 20-100
+- sunlight direct: 30k-60k
+- flashlight direct: 5k-10k
 """
 
 import logging

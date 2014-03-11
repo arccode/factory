@@ -3,16 +3,8 @@
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
-"""A factory test to test the functionality of keyboard.
 
-dargs:
-  layout: Use specified layout other than derived from VPD. (default: get from
-      VPD)
-  keyboard_device_name: Device name of keyboard. (default: 'AT Translated Set 2
-      keyboard')
-  timeout_secs: Timeout for the test. (default: 30 seconds)
-  sequential_press (optional): Indicate whether keycodes need to be
-      pressed sequentially or not.
+"""Tests keyboard functionality.
 """
 
 import asyncore
@@ -72,8 +64,10 @@ class KeyboardTest(unittest.TestCase):
   ARGS = [
     Arg('allow_multi_keys', bool, 'Allow multiple keys pressed simultaneously. '
         '(Less strictly checking with shorter cycle time)', default=False),
-    Arg('layout', (str, unicode), 'Use specified layout other than derived '
-        'from VPD.', default=None, optional=True),
+    Arg('layout', (str, unicode),
+        ('Use specified layout other than derived from VPD. '
+         'If None, the layout from the VPD is used.'),
+        default=None, optional=True),
     Arg('keyboard_device_name', (str, unicode), 'Device name of keyboard.',
         default='AT Translated Set 2 keyboard'),
     Arg('timeout_secs', int, 'Timeout for the test.', default=30),

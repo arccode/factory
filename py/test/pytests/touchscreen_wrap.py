@@ -8,25 +8,26 @@
 
 In this test, we split the screen in C x R blocks. We ask operators to
 draw blocks in sequence. Right now the drawing pattern is:
-  1. Starting from upper-left block, move to rightmost block.
-  2. Then move down, left, up, to draw a outer retangular circle.
-  3. Move to the inner upper-left block (1, 1), repeat 1-2.
-  4. Until the center block is reached.
 
-The index of block (x, y) is defined as:
+1. Starting from upper-left block, move to rightmost block.
+2. Then move down, left, up, to draw a outer retangular circle.
+3. Move to the inner upper-left block (1, 1), repeat 1-2.
+4. Until the center block is reached.
+
+The index of block (x, y) is defined as::
+
   index =  x + y * xSegment (number of blocks in x-axis).
-For, example, a 3x3 grid:
+
+For, example, a 3x3 grid::
+
   0 1 2
   3 4 5
   6 7 8
+
 The drawing sequence is: 0, 1, 2, 5, 8, 7, 6, 3, 4.
 
 It uses Chrome event API to get touch events. Hence test logic is in
 touchscreen.js.
-
-dargs:
-  x_segments: Number of segments in x-axis. (default: 5)
-  y_segments: Number of segments in y-axis. (default: 5)
 """
 
 import unittest

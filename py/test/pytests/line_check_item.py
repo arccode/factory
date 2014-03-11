@@ -3,20 +3,8 @@
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
-"""
-A factory test to check a list of commands.
 
-dargs:
-  title_en: English test title.
-  title_zh: Chinese test title.
-  items: A list of tuple
-      (instruction_en, instruction_zh, command, judge_to_pass).
-      Each tuple represents an item to check.
-      instruction_en: (str, unicode) instruction in English.
-      instruction_zh: (str, unicode) instruction in Chinese.
-      command: (list) commands to be passed to Spawn.
-      judge_to_pass: (bool) require user to judge pass/fail even if
-          command is successful.
+"""A factory test to check a list of commands.
 """
 
 import unittest

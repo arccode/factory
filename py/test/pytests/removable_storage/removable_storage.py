@@ -4,11 +4,12 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""This is a factory test to test removable storage devices.
+"""Tests removable storage devices.
 
 The following test functions are supported:
-   * Random and sequential read / write test
-   * Lock (write protection) test
+
+- Random and sequential read / write test
+- Lock (write protection) test
 """
 
 import os
@@ -22,7 +23,8 @@ import unittest
 from cros.factory.event_log import Log
 from cros.factory.test.fixture.bft_fixture import (BFTFixture,
                                                    BFTFixtureException,
-                                                   CreateBFTFixture)
+                                                   CreateBFTFixture,
+                                                   TEST_ARG_HELP)
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -164,11 +166,7 @@ class RemovableStorageTest(unittest.TestCase):
         optional=True),
     Arg('extra_prompt_zh', (str, unicode), 'An extra prompt (in Chinese)',
         optional=True),
-    Arg('bft_fixture', dict,
-        '{class_name: BFTFixture\'s import path + module name\n'
-        ' params: a dict of params for BFTFixture\'s Init()}.\n'
-        'Default None means no BFT fixture is used.',
-        default=None, optional=True),
+    Arg('bft_fixture', dict, TEST_ARG_HELP, default=None, optional=True),
     Arg('bft_media_device', str,
         'Device name of BFT used to insert/remove the media.',
         optional=True)

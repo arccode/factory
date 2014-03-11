@@ -4,10 +4,7 @@
 # found in the LICENSE file.
 
 
-"""Update touch device firmware.
-
-This test checks and updates touch device firmware.
-"""
+"""Checks and updates touch device firmware."""
 
 
 import glob
@@ -26,7 +23,7 @@ CONFIG_UPDATER = '/opt/google/touch/scripts/chromeos-touch-config-update.sh'
 class UpdateTouchDeviceFWTest(unittest.TestCase):
   ARGS = [
     Arg('device_name', str, 'Name of the touch device as in'
-        '/sys/bus/i2c/devices/*/name)'),
+        '/sys/bus/i2c/devices/\\*/name)'),
     Arg('fw_name', str, 'Expected firmware file name (in /lib/firmware)'),
     Arg('fw_version', str, 'Expected firmware version'),
   ]

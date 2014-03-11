@@ -4,15 +4,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Tests onboard LED.
-
-It uses ectool to control onboard LED light and let either operator
-or SMT fixture to determine if the LED functions well.
-
-dargs:
-  bft_fixture: (optional) {class_name: BFTFixture's import path + module name
-                           params: a dict of params for BFTFixture's Init()}.
-      Default None means no BFT fixture is used.
+"""Uses ectool to control the onboard LED light, and lets either operator
+or SMT fixture confirm LED functionality.
 """
 
 from collections import namedtuple
@@ -30,7 +23,8 @@ from cros.factory.test.factory_task import (FactoryTask, FactoryTaskManager,
 # The right BFTFixture module is dynamically imported based on args.bft_fixture.
 # See setUp() for more detail.
 from cros.factory.test.fixture.bft_fixture import (BFTFixtureException,
-                                                   CreateBFTFixture)
+                                                   CreateBFTFixture,
+                                                   TEST_ARG_HELP)
 
 
 _TEST_TITLE = test_ui.MakeLabel('LED Test', u'LED 测试')
@@ -142,11 +136,7 @@ class FixtureCheckLEDTask(FactoryTask):
 class LEDTest(unittest.TestCase):
   """Tests if the onboard LED can light yellow/green/red colors."""
   ARGS = [
-    Arg('bft_fixture', dict,
-        '{class_name: BFTFixture\'s import path + module name\n'
-        ' params: a dict of params for BFTFixture\'s Init()}.\n'
-        'Default None means no BFT fixture is used.',
-        optional=True),
+    Arg('bft_fixture', dict, TEST_ARG_HELP, optional=True),
     Arg('colors', (list, tuple),
         'List of colors or (index, color) to test. color must be in '
         'Board.LEDColor or OFF, and index, if specified, must be in '
