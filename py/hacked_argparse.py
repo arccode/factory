@@ -123,12 +123,13 @@ def ParseCmdline(top_level_description, *common_args, **kwargs):
       subcommands=subcommands,
       description=top_level_description,
       parents=[common_parser])
-  subparsers = parser.add_subparsers(dest='command_name')
-  for cmd_name, (fun, doc, arg_list) in subcommands.items():
-    subparser = subparsers.add_parser(cmd_name, description=doc,
-                                      parents=[common_parser],
-                                      conflict_handler='resolve')
-    subparser.set_defaults(command_name=cmd_name, command=fun)
-    for (tags, kvargs) in arg_list:
-      subparser.add_argument(*tags, **kvargs)
+  if subcommands:
+    subparsers = parser.add_subparsers(dest='command_name')
+    for cmd_name, (fun, doc, arg_list) in subcommands.items():
+      subparser = subparsers.add_parser(cmd_name, description=doc,
+                                        parents=[common_parser],
+                                        conflict_handler='resolve')
+      subparser.set_defaults(command_name=cmd_name, command=fun)
+      for (tags, kvargs) in arg_list:
+        subparser.add_argument(*tags, **kvargs)
   return parser.parse_args(kwargs.get('args_to_parse', sys.argv[1:]))
