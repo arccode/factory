@@ -45,6 +45,18 @@ _CHECK_SIM_INSTRUCTION = test_ui.MakeLabel(
 _INSERT_CHECK_PERIOD_SECS = 1
 _INSERT_CHECK_MAX_WAIT = 60
 
+def ResetModem(reset_commands):
+  """Resets modem.
+
+  Args:
+    reset_commands: a list of commands to reset modem
+  """
+  if not reset_commands:
+    Spawn(['modem', 'reset'], call=True, log=True)
+  else:
+    for command in reset_commands:
+      Spawn(command, call=True, log=True)
+    time.sleep(_INSERT_CHECK_PERIOD_SECS)
 
 class WaitSIMCardThread(threading.Thread):
   """The thread to wait for SIM card state.
@@ -54,7 +66,7 @@ class WaitSIMCardThread(threading.Thread):
         ProbeSIMCardTask.REMOVE_SIM_CARD
     on_success: The callback function to call upon success.
   """
-  def __init__(self, simcard_event, on_success, force_stop):
+  def __init__(self, simcard_event, on_success, force_stop, reset_commands):
     threading.Thread.__init__(self, name='WaitSIMCardThread')
     self._done = threading.Event()
     self._simcard_event = simcard_event
@@ -64,6 +76,7 @@ class WaitSIMCardThread(threading.Thread):
                                       re.MULTILINE | re.IGNORECASE)
     self._force_stop = force_stop
     self._force_stop.clear()
+    self._reset_commands = reset_commands
 
   def run(self):
     while not self._done.is_set() and not self._force_stop.is_set():
@@ -71,7 +84,7 @@ class WaitSIMCardThread(threading.Thread):
       # modem status will not show IMSI if sim card is removed even without
       # modem reset.
       if self._simcard_event == ProbeSIMCardTask.INSERT_SIM_CARD:
-        Spawn(['modem', 'reset'], call=True, log=True)
+        ResetModem(self._reset_commands)
       output = SpawnOutput(['modem', 'status'], log=True)
       logging.info(output)
       present = self._re_present.search(output)
@@ -117,7 +130,8 @@ class ProbeSIMCardTask(FactoryTask):
     self._force_stop = test.force_stop
     self._instruction = instruction
     self._wait_sim = WaitSIMCardThread(simcard_event,
-        self.PostSuccessEvent, self._force_stop)
+        self.PostSuccessEvent, self._force_stop,
+        test.args.modem_reset_commands)
     self._pass_event = str(uuid.uuid4())
 
   def PostSuccessEvent(self):
@@ -157,7 +171,7 @@ class CheckSIMTask(FactoryTask):
 
   def CheckSIMCardState(self, sim_re, fail_string):
     self._template.SetState(_CHECK_SIM_INSTRUCTION)
-    Spawn(['modem', 'reset'], call=True, log=True)
+    ResetModem(self._args.modem_reset_commands)
     output = SpawnOutput(['modem', 'status'], log=True)
     if self._args.poll_modem_status:
       total_delay = 0
@@ -191,7 +205,9 @@ class ProbeSIMCardTest(unittest.TestCase):
       Arg('only_check_simcard_present', bool,
           'Only checks sim card is present', default=False),
       Arg('poll_modem_status', bool,
-          'Polls modem status until the status is available', default=False)]
+          'Polls modem status until the status is available', default=False),
+      Arg('modem_reset_commands', list,
+          'A list of commands to reset modem', optional=True)]
 
   def setUp(self):
     self.force_stop = threading.Event()
