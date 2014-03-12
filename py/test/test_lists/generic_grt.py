@@ -59,6 +59,7 @@ def GRT(args):
         OperatorTest(
             id='Scan',
             label_zh=u'扫描机器编号',
+            has_automator=True,
             pytest_name='scan',
             dargs=dict(
                 label_en='Device Serial Number',
@@ -72,13 +73,6 @@ def GRT(args):
             id='WriteHWID',
             label_zh=u'硬体代号',
             pytest_name='hwid_v3')
-
-        # Verify HWID matches the probe results.
-        OperatorTest(
-            id='VerifyHWID',
-            label_zh=u'验证硬体代号',
-            pytest_name='hwid_v3',
-            dargs=dict(generate=False))
 
         args.Barrier('GRTVerifyHWID', pass_without_prompt=True)
 
@@ -130,6 +124,7 @@ def GRT(args):
       OperatorTest(
           id='Finish',
           label_zh=u'结束',
+          has_automator=True,
           pytest_name='message',
           require_run=(Passed('GoogleRequiredTests.BarrierGRTReadyToFinalize')
                        if args.grt_require_run_for_finish else None),
@@ -143,6 +138,7 @@ def GRT(args):
       OperatorTest(
           id='Finalize',
           label_zh=u'最终程序',
+          has_automator=True,
           pytest_name='finalize',
           dargs=dict(
               allow_force_finalize=args.grt_allow_force_finalize,

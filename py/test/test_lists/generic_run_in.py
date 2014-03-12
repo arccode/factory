@@ -35,6 +35,7 @@ def RunIn(args, group_suffix=''):
     OperatorTest(
         id='Start',
         label_zh=u'开始',
+        has_automator=True,
         pytest_name='start',
         never_fails=True,
         dargs=dict(
@@ -190,6 +191,7 @@ def RunIn(args, group_suffix=''):
           OperatorTest(
               id='Scan',
               label_zh=u'扫描机器编号',
+              has_automator=True,
               pytest_name='scan',
               dargs=dict(
                   label_en='Device Serial Number',

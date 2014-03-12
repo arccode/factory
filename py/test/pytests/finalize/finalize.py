@@ -348,7 +348,7 @@ class Finalize(unittest.TestCase):
   def DoFinalize(self):
     upload_method = self.NormalizeUploadMethod(self.args.upload_method)
 
-    command = 'gooftool -v 4 -i %d finalize' % self.args.hwid_version
+    command = 'gooftool -v 4 finalize -i %d' % self.args.hwid_version
     if self.waived_tests:
       self.Warn('TESTS WERE WAIVED: %s.' % sorted(list(self.waived_tests)))
     Log('waived_tests', waived_tests=sorted(list(self.waived_tests)))

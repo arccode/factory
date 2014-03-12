@@ -53,7 +53,7 @@ class TestListArgs(object):
 
   # Enable shopfloor. Note that some factory environment might
   # not need a shopfloor.
-  enable_shopfloor = False
+  enable_shopfloor = True
 
   # Enable fixute tests if fixtures are available.
   enable_fixture_tests = True
@@ -156,7 +156,7 @@ class TestListArgs(object):
   run_in_update_firmware = False
 
   # Set device info from shopfloor or let operator select/input.
-  run_in_set_device_info_from_shopfloor = False
+  run_in_set_device_info_from_shopfloor = True
 
   # Golden ICCID format for LTE SIM card.
   run_in_golden_iccid_format = r'^(\d{20})$'
@@ -616,7 +616,7 @@ def SetOptions(options, args):
 def CreateGenericTestList():
   """Creates a generic test list with smt, run_in, fatp and grt."""
   args = TestListArgs()
-  with TestList('main', 'All Generic Tests') as test_list:
+  with TestList('generic', 'All Generic Tests') as test_list:
     SetOptions(test_list.options, args)
 
     if args.smt_test_enabled:
