@@ -125,7 +125,7 @@ class GSUtil(object):
         ['gsutil', 'ls', gs_dir]).splitlines()
     logging.debug('Output of `gsutil ls %s`\n: %s', gs_dir, gs_builds_output)
 
-    logging.debug('Looking for filespec %s', filespec_re)
+    logging.debug('Looking for filespec %s', filespec_re.pattern)
     result = [path for path in gs_builds_output if filespec_re.search(path)]
 
     if not result:
