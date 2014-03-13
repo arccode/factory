@@ -10,7 +10,7 @@ import logging
 import re
 import sys
 
-from argparse import ArgumentParser, Action
+from argparse import ArgumentParser, Action, RawDescriptionHelpFormatter
 
 import factory_common   # pylint: disable=W0611
 from cros.factory.common import CheckDictKeys
@@ -82,7 +82,7 @@ verbosity_cmd_arg = CmdArg(
 # Map the caller frame to subcommands
 _caller_subcommands_map = {}
 
-def Command(cmd_name, *args):
+def Command(cmd_name, *args, **kwargs):
   """Decorator to populate the per-module sub-command list.
 
   If not already present, a SUB_CMD_LIST_ATTR attribute is created in
@@ -92,9 +92,12 @@ def Command(cmd_name, *args):
   Function doc strings are extracted and shown to users as part of the
   help message for each command.
   """
+  CheckDictKeys(kwargs, ['doc'])
   caller = inspect.getouterframes(inspect.currentframe())[1][1]
   def Decorate(fun):
     doc = fun.__doc__ if fun.__doc__ else None
+    # Use the provided doc if any.
+    doc = kwargs.get('doc') or doc
     subcommands = (_caller_subcommands_map[caller] if caller in
                    _caller_subcommands_map else {})
     subcommands[cmd_name] = (fun, doc, args)
@@ -126,9 +129,10 @@ def ParseCmdline(top_level_description, *common_args, **kwargs):
   if subcommands:
     subparsers = parser.add_subparsers(dest='command_name')
     for cmd_name, (fun, doc, arg_list) in subcommands.items():
-      subparser = subparsers.add_parser(cmd_name, description=doc,
-                                        parents=[common_parser],
-                                        conflict_handler='resolve')
+      subparser = subparsers.add_parser(
+          cmd_name, description=doc,
+          formatter_class=RawDescriptionHelpFormatter,
+          parents=[common_parser], conflict_handler='resolve')
       subparser.set_defaults(command_name=cmd_name, command=fun)
       for (tags, kvargs) in arg_list:
         subparser.add_argument(*tags, **kvargs)
