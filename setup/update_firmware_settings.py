@@ -15,21 +15,25 @@ parser.add_option("--input", "-i", dest="input", default=None,
 parser.add_option("--output", "-o", dest="output", default=None,
                   help="Path to store output; if not specified we will "
                        "directly modify the input file")
-parser.add_option("--clobber", "-c", dest="clobber", default=False,
-                  action="store_true",
-                  help="Clobber any settings already present in the image")
 
 parser.add_option("--tftpserverip", default=None,
-                  help="Set the TFTP server IP address")
-parser.add_option("--bootfile", default="vmlinux.bin",
-                  help="Set the TFTP boot file")
+                  help="Set the TFTP server IP address (defaults to DHCP-"
+                       "provided address)")
+parser.add_option("--bootfile", default=None,
+                  help="Set the path of the TFTP boot file (defaults to "
+                       "DHCP-provided file name)")
+parser.add_option("--argsfile", default=None,
+                  help="Set the path of the TFTP file that provides the kernel "
+                       "command line (overrides default and --arg)")
+
 parser.add_option("--board", default=None,
                   help="Set the cros_board to be passed into the kernel")
 parser.add_option("--omahaserver", default=None,
                   help="Set the Omaha server IP address")
 parser.add_option("--arg", "--kernel_arg", default=[], dest='kernel_args',
                   metavar='kernel_args', action='append',
-                  help="Set any arbitrary kernel command line arg")
+                  help="Set extra kernel command line parameters (appended "
+                       "to default string for factory)")
 
 
 class Image(object):
@@ -150,6 +154,7 @@ class Settings(object):
         "tftp_server_ip": self.Attribute(1, None),
         "kernel_args": self.Attribute(2, None),
         "bootfile": self.Attribute(3, None),
+        "argsfile": self.Attribute(4, None),
     }
     self.__dict__["attributes"] = attributes
 
@@ -218,11 +223,6 @@ def main():
   with open(options.input, 'r') as f:
     image = Image(f.read())
 
-  shared_data = image["SHARED_DATA"]
-  sig = shared_data[:len(Settings.signature)]
-  if sig == Settings.signature and not options.clobber:
-    raise RuntimeError("Existing settings but --clobber wasn't set")
-
   settings = Settings()
   if options.tftpserverip:
     settings["tftp_server_ip"] = IpAddress(options.tftpserverip)
@@ -236,6 +236,8 @@ def main():
   settings["kernel_args"] = Setting(kernel_args)
   if options.bootfile:
     settings["bootfile"] = Setting(options.bootfile + "\0")
+  if options.argsfile:
+    settings["argsfile"] = Setting(options.argsfile + "\0")
 
   image["SHARED_DATA"] = settings.pack()
 
