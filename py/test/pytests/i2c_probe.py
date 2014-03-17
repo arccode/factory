@@ -49,7 +49,7 @@ class I2CProbeTest(unittest.TestCase):
   ]
 
   def runTest(self):
-    self.assertTrue(self.args.bus or self.args.auto_detect_device,
+    self.assertTrue(self.args.bus is not None or self.args.auto_detect_device,
         'You should assign bus or enable auto detect')
     bus, addr_list, r_flag = self.args.bus, self.args.addr, self.args.r_flag
     if self.args.auto_detect_device:
