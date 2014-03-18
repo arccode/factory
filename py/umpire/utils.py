@@ -5,6 +5,7 @@
 
 """Umpire utility classes."""
 
+from twisted.internet import defer
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.common import AttrDict, Singleton
@@ -22,3 +23,22 @@ class Registry(AttrDict):
     assertEqual(Registry().abc, 123)
   """
   __metaclass__ = Singleton
+
+
+def ConcentrateDeferreds(deferred_list):
+  """Collects results from list of deferreds.
+
+  CollectDeferreds() returns a deferred object that fires error callback
+  on first error. And the original failure won't propagate back to original
+  deferred object's next error callback.
+
+  Args:
+    deferred_list: Iterable of deferred objects.
+
+  Returns:
+    Deferred object that fires error on any deferred_list's errback been
+    called. Its callback will be trigged when all callback results are
+    collected. The gathered result is a list of deferred object callback
+    results.
+  """
+  return defer.gatherResults(deferred_list, consumeErrors=True)

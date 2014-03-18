@@ -11,8 +11,8 @@ for all service module.
 """
 
 
-# Twisted module dynamically creates definitions at run time.
-# pylint: disable=E1101
+# The attributes of Twisted reactor and AttrDict object are changing
+# dynamically at run time. To supress warnings, pylint: disable=E1101
 
 
 import copy
@@ -22,186 +22,469 @@ import os
 import sys
 import time
 import uuid
-from twisted.internet import protocol, reactor
+from twisted.internet import protocol, reactor, defer
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.schema import FixedDict, Scalar
 from cros.factory.umpire.common import UmpireError
+from cros.factory.umpire.utils import AttrDict, ConcentrateDeferreds
 
 
 # Service package path
 _SERVICE_PACKAGE = 'cros.factory.umpire.service'
-# Service restart within _TIME_RESTART_FAST seconds is considered abnormal.
-_TIME_RESTART_FAST = 5
+# Service restart within _STARTTIME_LIMIT seconds is considered abnormal.
+_STARTTIME_LIMIT = 1.2
 # The maximum retries before cancel restarting external service.
-_MAX_RESTART_COUNT = 5
+_MAX_RESTART_COUNT = 3
 # Optional service config schema
 _OPTIONAL_SERVICE_SCHEMA = {
     'active': Scalar('Default service state on start', bool)}
-
-
 # Map service name to sys.modules.
 _SERVICE_MAP = {}
+# Map service name to object.
+_INSTANCE_MAP = {}
 
 
-class UmpireService(protocol.ProcessProtocol):
-  """Umpire service base class.
+# Process and service state
+class State:  # pylint: disable=W0232
+  INIT = 'init'
+  STARTING = 'starting'
+  RESTARTING = 'restarting'
+  STARTED = 'started'
+  STOPPING = 'stopping'
+  STOPPED = 'stopped'
+  ERROR = 'error'
 
-  Umpire daemon launches external executables and hooks their standard input,
-  output and error. Since twisted protocol is an old-style Python class, hence
-  the derived service class should call UmpireService.__init__() to initialize.
 
-  On UmpireService.__init__(), the Python module contains the derived class is
-  stored in a global map, with module name as key.
+class ServiceProcess(protocol.ProcessProtocol):
+  """Service process holds one twisted process protocol.
 
-  UmpireService provides SetConfig(param_dict) to set up attributes.
+  Twisted process protocol is a controller class of external process. It
+  converts standard input/output and error into callbacks. All interface
+  functions are async and the callbacks can be assigned in the returned
+  Deferred objects.
+
+  Args:
+    service: Umpire service object that this process belong to.
 
   Attributes:
-    start_time: Record external executable start up time.
-    restart_count: Counts the service restarting within _TIME_RESTART_FAST.
-    connection: Boolean flag, true if spawned process didn't close its stdin.
+    config: Process configuration, check SetConfig() for detail.
+    pid: System process ID.
+    restart_count: Counts the service restarting within _STARTTIME_LIMIT.
+    start_time: Record external executable's start time.
     subprocess: Twisted transport object to control spawned process.
-    pid: Numeric process ID.
-    stopping: Boolean flag indicates the subprocess is stopping and should not
-              restart.
+    deferred_stop: Deferred object that notifiies on process end.
+    state: Process state text string defined in State class.
+    process_name: Process name shortcut.
+  """
+  def __init__(self, service):
+    self.config = AttrDict({
+        'executable': '',
+        'name': str(uuid.uuid1()),
+        'args': [],
+        'path': os.getcwd(),
+        'uid': os.getuid(),
+        'gid': os.getgid(),
+        'ext_args': [],
+        'restart': False,
+        'daemon': False})
+    self.pid = None
+    self.restart_count = 0
+    self.service = service
+    self.start_time = 0
+    self.subprocess = None
+    self.state = State.INIT
+    self.deferred_stop = None
+    self.process_name = None
 
-  SetConfig() required attributes:
-    executable: Full pathname of external executable.
-    name: Service name for logging.
-    args: List of arguments, executable pathname excluded.
-    path: Startup path.
+  def __hash__(self):
+    """Define hash and eq operator to make this class usable in hashed
+    collections.
+    """
+    # Cannot use frozenset as config's value has list, which is not hashable.
+    return hash(repr(sorted(self.config.items())))
 
-  SetConfig() optional attributes:
-    log: File handle to store stderr log output
-    restart: True to restart service after exit.
-    daemon: True if the executable daemonize itself.
+  def __eq__(self, other):
+    if isinstance(other, ServiceProcess):
+      return self.config == other.config
+    return False
+
+  def SetConfig(self, config_dict):
+    """Sets process configuration.
+
+    Sets process executable pathname, printable name, arguments, start
+    up path and optional configurations.
+
+    Args:
+      config: Dict, process configuration.
+        required fields:
+          executable - pathname to external executable file
+          name - printable name for logging
+          args - list of command line arguments, without executalbe pathname
+          path - process CWD
+        optional fields:
+          uid - process user id
+          gid - process group id
+          ext_args - extra command line arguments
+          restart - boolean flag for restart on process end
+          daemon - boolean flag indicating the process will detach itself
+
+    Raises:
+      ValueError() on required key not found, unknown keys or value type
+      mismatch.
+    """
+    required_keys = {'executable', 'name', 'args', 'path'}
+    all_keys = set(self.config)
+    config_keys = set(config_dict)
+
+    if not required_keys.issubset(config_keys):
+      raise ValueError('Required config keys not found: %s' %
+                       ','.join(required_keys - config_keys))
+
+    if not config_keys.issubset(all_keys):
+      raise ValueError('Found unknown config keys: %s' %
+                       ','.join(config_keys - all_keys))
+
+    for key, value in config_dict.iteritems():
+      if isinstance(self.config[key], list):
+        if not isinstance(value, list):
+          raise ValueError('Config %s should be a list' % key)
+      self.config[key] = value
+
+    self.process_name = self.service.name + ':' + self.config.name
+
+  def Start(self, restart=False):
+    """Starts process.
+
+    Args:
+      restart: Indicates the process is started in a restart session.
+               No need to generate new deferred object.
+
+    Returns:
+      Twisted Deferred object. If no error found, the success callback
+      will be fired after short period of time. Error callback is called
+      when process creating failed.
+
+      Deferred's callback result can be any value or objects other than
+      Exception instance. The start deferred returns process pid as result.
+
+      Note that if restart is set to True, returns None instead of Deferred
+      object.
+    """
+    def Monitor(deferred):
+      """Monitors process start up.
+
+      This timer callback checks process state. When the state looks
+      good, it calls success callback and changes process state.
+
+      Args:
+        deferred: The deferred object to track process start.
+
+      Scoped var:
+        self: The process protocol object.
+      """
+      # Stop monitor if the process daemonized, or ended early.
+      if deferred.called:
+        logging.debug('%s deferred was called', self.process_name)
+      elif self.state == State.RESTARTING:
+        # Check the newly restart process after _STARTTIME_LIMIT.
+        self._ChangeState(State.STARTING)
+        reactor.callLater(_STARTTIME_LIMIT, Monitor, deferred)
+      elif self.state == State.STARTING:
+        self._ChangeState(State.STARTED)
+        deferred.callback(self.pid)
+      elif self.state == State.STOPPED:
+        # When starting a daemon, the process double forks itself and exit
+        deferred.callback(self.pid)
+      else:
+        # The process is in unexpected state, call error handler.
+        deferred.errback(self._Error(
+            '%s failed to start: unexpected state %s' %
+            (self.process_name, self.state)))
+      # End of nested function
+
+    if self.state not in [State.INIT, State.RESTARTING, State.STOPPED,
+                          State.ERROR]:
+      return defer.fail(self._Error(
+          'Can not start process %s in state %s' %
+          (self.process_name, self.state)))
+
+    logging.info('%s starting', self.process_name)
+    args = [self.config.executable] + self.config.args + self.config.ext_args
+    self.start_time = time.time()
+    self.subprocess = reactor.spawnProcess(
+        self,                    # processProtocol
+        self.config.executable,  # Full program pathname
+        args,                    # Args list, including executable
+        {},                      # Env vars
+        self.config.path)        # Process CWD
+    if not (self.subprocess and self.subprocess.pid):
+      if restart:
+        return None
+      return defer.fail(self._Error('%s creation failed' % self.process_name))
+    self.pid = self.subprocess.pid
+
+    if not restart:
+      self._ChangeState(State.STARTING)
+      deferred_start = defer.Deferred()
+      reactor.callLater(_STARTTIME_LIMIT, Monitor, deferred_start)
+      return deferred_start
+    # Restart is triggered in processEnded event. Hence caller will not get
+    # a new deferred. Return None here.
+    return None
+
+  def Stop(self):
+    """Stops background service.
+
+    Returns:
+      Deferred object notifying if the stopping process ends successfully or
+      not.
+    """
+    def HandleStopResult(result):
+      self._Info(str(result))
+      self._ChangeState(State.STOPPED)
+      return result
+
+    def HandleStopFailure(failure):
+      self._Error(repr(failure))
+      return failure
+
+    self._Info('stopping')
+    self._ChangeState(State.STOPPING)
+
+    if not self.subprocess:
+      self._Info('stopped')
+      self._ChangeState(State.STOPPED)
+      return defer.succeed(-1)
+
+    self._Debug('SIGTERM')
+    self.transport.signalProcess('TERM')
+    self.deferred_stop = defer.Deferred()
+    self.deferred_stop.addCallbacks(HandleStopResult, HandleStopFailure)
+    return self.deferred_stop
+
+  # Twisted process protocol callbacks
+  def connectionMade(self):
+    """On process start."""
+    self._Debug('connection made')
+
+  def outReceived(self, data):
+    """On stdout receive."""
+    self._Log(data)
+
+  def errReceived(self, data):
+    """On stderr receive."""
+    self._Log(data)
+
+  def inConnectionLost(self):
+    """On stdin close."""
+    self._Debug('stdin lost')
+
+  def outConnectionLost(self):
+    """On stdout close."""
+    self._Debug('stdout lost')
+
+  def errConnectionLost(self):
+    """On stderr close."""
+    self._Debug('stderr lost')
+
+  def processEnded(self, status):
+    """Subprocess has been ended"""
+    self.subprocess = None
+
+    self._Info('ended')
+    # If the external process daemonize itself, it detaches from parent
+    # Umpire process. We can ignore the process ended event.
+    if self.config.daemon:
+      if isinstance(status.value, protocol.ProcessDone):
+        self._Info('daemonized')
+        self._ChangeState(State.STOPPED)
+      else:
+        if isinstance(status.value, protocol.ProcessTerminated):
+          terminated = status.value
+          if terminated.exitCode:
+            self._Info('terminated error code %d' % terminated.exitCode)
+          if terminated.signal:
+            self._Info('terminated on signal %s' % terminated.signal)
+        self._Error(repr(terminated))
+      return
+
+    if self.state == State.STOPPING:
+      self._Info('stopped successfully')
+      self._ChangeState(State.STOPPED)
+      if self.deferred_stop:
+        deferred_stop, self.deferred_stop = self.deferred_stop, None
+        deferred_stop.callback(self.pid)
+      return
+
+    if self.config.restart:
+      # Allows _MAX_RESTART_COUNT restarts within _STARTTIME_LIMIT seconds.
+      self._Info('restarting')
+
+      if time.time() - self.start_time < _STARTTIME_LIMIT:
+        self.restart_count += 1
+      else:
+        self.restart_count = 0
+
+      if self.restart_count >= _MAX_RESTART_COUNT:
+        self._Error('respawn too fast')
+      else:
+        self._Info('restart count %d' % self.restart_count)
+        self._ChangeState(State.RESTARTING)
+        self.Start(restart=True)
+      return
+    # For process stoped unexpectedly (state != STOPPING) and is not allow
+    # to restart. Change process state to ERROR and log the message.
+    error = self._Error('ended unexpectedly')
+    if self.deferred_stop:
+      deferred_stop = self.deferred_stop
+      self.deferred_stop = None
+      deferred_stop.errback(error)
+
+  # Local helper functions.
+  def _ChangeState(self, state):
+    if state == self.state:
+      return
+    message = ('%s state change: %s --> %s' % (self.process_name,
+               self.state, state))
+    if self.state == State.ERROR:
+      logging.error(message)
+    else:
+      logging.debug(message)
+    self.state = state
+
+  def _Log(self, msg):
+    """Writes log messages to service handler.
+
+    _Log() calls parent_service.log.write(). The child processes' stdout
+    and stderr will be redirected to here.
+
+    Args:
+      msg: String message to write.
+    """
+    if self.service.log:
+      self.service.log.write(msg)
+
+  def _Debug(self, message):
+    """Shortcut to logging.debug."""
+    logging.debug('%s(%s) %s', self.process_name, self.pid, message)
+
+  def _Info(self, message):
+    """Shortcut to logging.info."""
+    logging.info('%s(%s) %s', self.process_name, self.pid, message)
+
+  def _Error(self, message):
+    """Shortcut to logging.error.
+
+    Returns:
+      UmpireError object.
+    """
+    logging.error('%s(%s) %s', self.process_name, self.pid, message)
+    self._ChangeState(State.ERROR)
+    return UmpireError(message)
+
+
+class UmpireService(object):
+  """Umpire service base class.
+
+  Umpire service can configure and launch external executables. The derived
+  class names, module names and instances are exported through functions.
+
+  Attributes:
+    processes: Set of running process.
+    log: File handle to store stderr log output.
     ext_args: Extended command line args.
     enable: False to disable the service on Umpire start.
+    name: Service name. The default value is service module name. When
+          running unittests, default service name changed to class name.
+
+  Example:
+    svc = SimpleService()
+    procs = svc.CreateProcesses(umpire_config_dict)
+    svc.Start(procs)
   """
   def __init__(self):
-    self.start_time = 0
-    self.restart_count = 0
-    self.connection = False
-    self.subprocess = None
-    self.pid = None
-    self.stopping = False
-    # Spawn parameters
-    self.executable = None
-    self.name = str(uuid.uuid1())
-    self.args = []
-    self.path = os.getcwd()
-    self.uid = os.getuid()
-    self.gid = os.getgid()
+    self.processes = set()
     self.log = None
-    self.restart = False
-    self.daemon = False
-    self.ext_args = []
     self.enable = True
     # Update module map
     self.classname = self.__class__.__name__
     self.modulename = self.__class__.__module__
     self.module = sys.modules[self.modulename]
     _SERVICE_MAP[self.modulename] = self.module
+    _INSTANCE_MAP[self.modulename] = self
+    if not hasattr(self, 'name'):
+      self.name = self.modulename
+      if '_unittest' in self.modulename or 'test_' in self.modulename:
+        self.name = self.classname
 
-  # Twisted process protocol callbacks
-  def connectionMade(self):
-    """On process start."""
-    self.connection = True
-
-  def outReceived(self, data):
-    """On stdout receive."""
-    logging.info('%s: %s', self.name, data)
-
-  def errReceived(self, data):
-    """On stderr receive."""
-    if self.log:
-      self.log.write(data)
-
-  def inConnectionLost(self):
-    """On stdin close."""
-    self._ConnectionLost('stdin')
-    self.connection = False
-
-  def outConnectionLost(self):
-    """On stdout close."""
-    self._ConnectionLost('stdout')
-
-  def errConnectionLost(self):
-    """On stderr close."""
-    self._ConnectionLost('stderr')
-
-  def processEnded(self, status):
-    """Subprocess has been ended."""
-    # Daemon detach itself from parent process.
-    if self.daemon:
-      logging.info('%s (%d) daemonized itself.', self.name, self.pid)
-      return
-    logging.info('%s (%d) ended: %s', self.name, self.pid, status)
-    self.subprocess = None
-    if self.stopping:
-      logging.info('%s stopped successfully.', self.name)
-      return
-    if self.restart:
-      logging.info('%s restarting.', self.name)
-      if time.time() - self.start_time < _TIME_RESTART_FAST:
-        self.restart_count += 1
-      else:
-        self.restart_count = 0
-
-      if self.restart_count >= _MAX_RESTART_COUNT:
-        logging.error('%s respawn too fast, restart failed.', self.name)
-      else:
-        self.Start()
-
-  # Local helper functions.
-  def _ConnectionLost(self, msg):
-    """Handles broken pipe."""
-    logging.info('%s : pipe was closed - %s.', self.name, msg)
-
-  # Interfaces.
-  def SetConfig(self, conf_dict):
-    """Sets service startup configuration.
+  def CreateProcesses(self, dummy_config):
+    """Creates list of processes via config.
 
     Params:
-      conf_dict: Service attributes map. Please see class comments for required
-                 and optional attributes SetConfig sets.
+      dummy_config: Umpire config dict.
 
-    Riases:
-      UmpireError: When required attributes are missing.
+    Returns:
+      A list of ServiceProcess.
     """
-    req_attrs = ['executable', 'name', 'args', 'path']
-    opt_attrs = ['uid', 'pid', 'log', 'restart', 'daemon', 'ext_args',
-                 'enable']
+    raise NotImplementedError
 
-    set_req = set(req_attrs)
-    set_conf = set(conf_dict.keys())
+  def Start(self, processes):
+    """Starts a list of ServiceProcess.
 
-    if not set_req.issubset(set_conf):
-      set_diff = set_req.difference(set_conf)
-      raise UmpireError('Missing service attribute(s): ' + str(set_diff))
+    This function also stops running processes which are not needed.
 
-    attrs = req_attrs + opt_attrs
-    for key, value in conf_dict.iteritems():
-      if key in attrs:
-        setattr(self, key, value)
+    Params:
+      processes: list of ServiceProcess objects.
 
-  def Start(self):
-    """Starts background service."""
-    self.stopping = False
-    logging.debug('%s starting.', self.name)
-    args = [self.exectable] + self.args + self.ext_args
-    self.subprocess = reactor.spawnProcess(
-        self,             # processProtocol
-        self.exectuable,  # Full program pathname
-        args,             # Args list, including executable
-        {},               # Env vars
-        self.path)        # Process CWD
-    self.pid = self.subprocess.pid
+    Returns:
+      Deferred object.
+    """
+    def HandleStartResult(results):
+      logging.info('Service %s started: %s', self.name, results)
+      return results
+
+    def HandleStartFailure(failure):
+      if isinstance(failure.value, defer.FirstError):
+        failure = failure.value.subFailure
+      logging.error('Service %s failed to start: %s',
+                    self.name, failure.value)
+      return failure
+
+    # Use set() to remove duplicate processes.
+    processes = set(processes)
+    deferreds = [p.Start() for p in processes]
+    deferreds.extend([p.Stop() for p in self.processes - processes])
+    self.processes = processes
+
+    if deferreds:
+      deferred = ConcentrateDeferreds(deferreds)
+      deferred.addCallbacks(HandleStartResult, HandleStartFailure)
+      return deferred
+
+    return defer.succeed(-1)
+
 
   def Stop(self):
-    """Stops background service."""
-    self.stopping = True
-    self.transport.signalProcess('TERM')
+    """Stops all active processes."""
+    def HandleStopResult(results):
+      logging.info('Service %s stopped', self.name)
+      return results
+
+    def HandleStopFailure(failure):
+      if isinstance(failure.value, defer.FirstError):
+        failure = failure.value.subFailure
+      logging.error('Service %s failed to stop: %s',
+                    self.name, failure.value)
+      return failure
+
+    deferreds = [p.Stop() for p in self.processes]
+    if deferreds:
+      deferred = ConcentrateDeferreds(deferreds)
+      deferred.addCallbacks(HandleStopResult, HandleStopFailure)
+      return deferred
+
+    return HandleStopResult(defer.succeed(-1))
 
 
 def GetServiceSchemata():
@@ -239,3 +522,15 @@ def LoadServiceModule(module_name):
     ImportError: when fails to find a name.
   """
   return importlib.import_module(module_name, _SERVICE_PACKAGE)
+
+
+def GetServiceInstance(module_name):
+  """Gets service object.
+
+  Returns:
+    Service instance.
+
+  Raises:
+    KeyError: when module name does not exist.
+  """
+  return _INSTANCE_MAP[module_name]
