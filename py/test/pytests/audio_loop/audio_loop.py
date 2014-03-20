@@ -55,6 +55,8 @@ _AUDIOFUNTEST_THRESHOLD = 50.0
 _AUDIOFUNTEST_STOP_RE = re.compile('^Stop')
 _AUDIOFUNTEST_SUCCESS_RATE_RE = re.compile('.*rate\s*=\s*(.*)$')
 
+# Minimum RMS value to pass when checking recorded file.
+_DEFAULT_SOX_RMS_THRESHOLD = 0.08
 
 class PlaySineThread(threading.Thread):
   """Wraps the execution of arecord in a thread."""
@@ -91,6 +93,8 @@ class AudioLoopTest(unittest.TestCase):
     # Only used for audiojack
     Arg('sine_duration_secs', int, 'Play sine tone duration',
         _DEFAULT_SINE_DURATION_SEC),
+    Arg('rms_threshold', float, 'RMS value threshold',
+        _DEFAULT_SOX_RMS_THRESHOLD),
   ]
 
   def setUp(self):
@@ -102,7 +106,7 @@ class AudioLoopTest(unittest.TestCase):
     self._audiofun = self.args.enable_audiofun
     self._audiofun_duration_secs = self.args.audiofun_duration_secs
     self._freq_threshold = self.args.freq_threshold
-
+    self._rms_threshold = self.args.rms_threshold
     self._freq = _DEFAULT_FREQ_HZ
     # Used in RunAudioFunTest() or AudioLoopBack() for test result.
     self._test_result = True
@@ -214,10 +218,6 @@ class AudioLoopTest(unittest.TestCase):
       Spawn(record_command + [record_file_name], check_call=True)
 
       playsine_thread.join()
-      sox_output_record = audio_utils.SoxStatOutput(record_file_name, channel)
-      rms_val_record = audio_utils.GetAudioRms(sox_output_record)
-      factory.console.info('Got recorded audio RMS value of %f.',
-          rms_val_record)
 
       audio_utils.NoiseReduceFile(record_file_name, noise_file_name,
           reduced_file_name)
@@ -225,10 +225,13 @@ class AudioLoopTest(unittest.TestCase):
       sox_output_reduced = audio_utils.SoxStatOutput(reduced_file_name,
           channel)
 
+      rms_value = audio_utils.GetAudioRms(sox_output_reduced)
+      factory.console.info('Got audio RMS value of %f.', rms_value)
+
       os.unlink(reduced_file_name)
       os.unlink(record_file_name)
 
-      self.CheckRecordedAudio(sox_output_reduced)
+      self.CheckRecordedAudio(sox_output_reduced, rms_value)
 
   def AudioLoopback(self):
     rec_cmd = ['arecord', '-D', self._input_device, '-f', 'dat', '-d',
@@ -247,7 +250,13 @@ class AudioLoopTest(unittest.TestCase):
 
     self.EndTest()
 
-  def CheckRecordedAudio(self, sox_output):
+  def CheckRecordedAudio(self, sox_output, rms_value):
+    if rms_value < self._rms_threshold:
+      self._test_result = False
+      self._test_message = ('Audio RMS value %f too low. Minimum pass is %f.'
+          % (rms_value, self._rms_threshold))
+      factory.console.info(self._test_message)
+
     freq = audio_utils.GetRoughFreq(sox_output)
     if freq is None or (
         abs(freq - self._freq) > self._freq_threshold):
