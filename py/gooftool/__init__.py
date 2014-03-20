@@ -533,9 +533,10 @@ class Gooftool(object):
 
     # Some locale values are just a language code and others are a
     # hyphen-separated language code and country code pair.  We care
-    # only about the language code part for some cases. We need to
-    # replace hyphen with underscore for some cases.
-    for language_code in [locale.replace('-','_'), locale.partition('-')[0]]:
+    # only about the language code part for some cases. Note some old firmware
+    # bitmaps use underscore instead hyphen.
+    for language_code in [locale, locale.replace('-','_'),
+                          locale.partition('-')[0]]:
       if language_code in bitmap_locales:
         locale_index = bitmap_locales.index(language_code)
         self._util.shell('crossystem loc_idx=%d' % locale_index)
