@@ -100,28 +100,11 @@ class E2ETest(unittest.TestCase):
       runner = unittest.TextTestRunner()
       suite = unittest.TestLoader().loadTestsFromModule(self.pytest_module)
 
-      if not getattr(self, 'args', None):
-        args_dict = {}
-      else:
-        # Convert 'Dargs' object to dict. 'Dargs' object is created by
-        # Args.Parse(). It is what we get if the the args object were created
-        # through the 'ARGS' attribute of E2ETest class.
-        args_dict = self.args.ToDict()
-
-      # Set the dargs values of the E2E test as the default args.
-      e2e_default_args = getattr(self, 'dargs', {})
-      args_dict.update(e2e_default_args)
-
-      # Override args with the dargs argumnet passed in.
-      override_args = dargs or {}
-      args_dict.update(override_args)
-
-      new_dargs = Args(*self.ARGS).Parse(args_dict)
       # Recursively set test info and dargs.
       def SetTestInfo(test):
         if isinstance(test, unittest.TestCase):
           test.test_info = self.test_info
-          test.args = new_dargs
+          test.args = self.args
         elif isinstance(test, unittest.TestSuite):
           for x in test:
             SetTestInfo(x)
@@ -136,6 +119,24 @@ class E2ETest(unittest.TestCase):
         self.pytest_state = factory.TestState.FAILED
       else:
         self.pytest_state = factory.TestState.PASSED
+
+    # Update dargs with override dargs.
+    if not getattr(self, 'args', None):
+      args_dict = {}
+    else:
+      # Convert 'Dargs' object to dict. 'Dargs' object is created by
+      # Args.Parse(). It is what we get if the the args object were created
+      # through the 'ARGS' attribute of E2ETest class.
+      args_dict = self.args.ToDict()    # pylint: disable=E0203
+
+    # Set the dargs values of the E2E test as the default args.
+    e2e_default_args = getattr(self, 'dargs', {})
+    args_dict.update(e2e_default_args)
+
+    # Override args with the dargs argumnet passed in.
+    override_args = dargs or {}
+    args_dict.update(override_args)
+    self.args = Args(*self.ARGS).Parse(args_dict)   # pylint: disable=W0201
 
     self.pytest_thread = threading.Thread(target=FactoryTestThreadInit)
     self.pytest_thread.daemon = True
