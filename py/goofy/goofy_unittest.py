@@ -242,7 +242,7 @@ class WebSocketTest(GoofyTest):
                                  uuid=event.uuid).to_json())
 
     ws = MyClient(
-      'http://localhost:%d/event' % state.DEFAULT_FACTORY_STATE_PORT,
+      'ws://localhost:%d/event' % state.DEFAULT_FACTORY_STATE_PORT,
       protocols=None, extensions=None)
 
     def open_web_socket():
