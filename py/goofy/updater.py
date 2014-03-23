@@ -29,7 +29,7 @@ def CheckCriticalFiles(new_path):
     os.path.join(new_path, f)
     for f in ['factory/MD5SUM',
           'factory/py_pkg/cros/factory/goofy/goofy.py',
-          'factory/py/test/pytests/finalize.py']]
+          'factory/py/test/pytests/finalize/finalize.py']]
   missing_files = [f for f in critical_files
            if not os.path.exists(f)]
   if missing_files:
