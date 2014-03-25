@@ -137,6 +137,33 @@ def WriteFile(path, data, log=False):
     f.write(data)
 
 
+def PrependFile(path, data, log=False):
+  """Prepends a value to a file.
+
+  Note that it is suitable for small file as it reads file content first,
+  then writes data and original content back.
+
+  Args:
+    path: The path to write to.
+    data: The value to write.  This may be any type and is stringified with
+        str().
+    log: Whether to log path and data.
+  """
+  data = str(data)
+  if log:
+    logging.info('Prepend %r to %s', data, path)
+
+  original = None
+  if os.path.isfile(path):
+    original = Read(path)
+
+  with open(path, 'w') as f:
+    f.seek(0)
+    f.write(data)
+    if original:
+      f.write(original)
+
+
 def TouchFile(path):
   """Touches a file.
 

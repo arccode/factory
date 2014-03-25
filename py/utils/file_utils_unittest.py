@@ -127,6 +127,29 @@ class TempDirectoryTest(unittest.TestCase):
 
 
 
+class PrependFileTest(unittest.TestCase):
+  def setUp(self):
+    self.temp_dir = tempfile.mkdtemp()
+
+  def tearDown(self):
+    shutil.rmtree(self.temp_dir)
+
+  def testPrependFile(self):
+    test_file = os.path.join(self.temp_dir, 'test')
+    file_utils.WriteFile(test_file, 'line 1\nline 2')
+
+    file_utils.PrependFile(test_file, 'header 1\nheader 2\n')
+    self.assertEqual('header 1\nheader 2\nline 1\nline 2',
+                     file_utils.Read(test_file))
+
+  def testPrependEmptyFile(self):
+    test_file = os.path.join(self.temp_dir, 'test')
+
+    file_utils.PrependFile(test_file, 'header 1\nheader 2\n')
+    self.assertEqual('header 1\nheader 2\n',
+                     file_utils.Read(test_file))
+
+
 class CopyFileSkipBytesTest(unittest.TestCase):
   """Unittest for CopyFileSkipBytes."""
   def setUp(self):
