@@ -131,13 +131,14 @@ class UmpireEnv(object):
     """
     return os.path.isfile(self.staging_config_file)
 
-  def StageConfigFile(self, config_path):
+  def StageConfigFile(self, config_path, force=False):
     """Stages a config file.
 
     Args:
       config_path: a config file to mark as staging.
+      force: True to stage the file even if it already has staging file.
     """
-    if self.HasStagingConfigFile():
+    if not force and self.HasStagingConfigFile():
       raise UmpireError(
           'Unable to stage a config file as another config is already staged. '
           'Check %r to decide if it should be deployed (use "umpire deploy"), '
@@ -148,12 +149,18 @@ class UmpireEnv(object):
     if not os.path.isfile(source):
       raise UmpireError("Unable to stage config %s as it doesn't exist." %
                         source)
+    if force and self.HasStagingConfigFile():
+      logging.info('Force staging, unstage existing one first.')
+      self.UnstageConfigFile()
+    logging.info('Stage config: ' + source)
     os.symlink(source, self.staging_config_file)
 
   def UnstageConfigFile(self):
     """Unstage the current staging config file."""
     if not self.HasStagingConfigFile():
       raise UmpireError("Unable to unstage as there's no staging config file.")
+    logging.info('Unstage config: ' +
+                 os.path.realpath(self.staging_config_file))
     os.unlink(self.staging_config_file)
 
   def AddResource(self, filename):

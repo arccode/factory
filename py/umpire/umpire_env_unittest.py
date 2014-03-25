@@ -74,7 +74,7 @@ class UmpireEnvTest(unittest.TestCase):
       self.env.StageConfigFile(config_to_stage)
       self.assertTrue(os.path.exists(self.env.staging_config_file))
 
-  def testStageConfigFile_ConfigAlreadyExist(self):
+  def testStageConfigFileConfigAlreadyExist(self):
     with file_utils.TempDirectory() as temp_dir:
       self.env.base_dir = temp_dir
       # Staging config already exists.
@@ -85,7 +85,20 @@ class UmpireEnvTest(unittest.TestCase):
       self.assertRaisesRegexp(UmpireError, 'already staged',
                               self.env.StageConfigFile, config_to_stage)
 
-  def testStageConfigFile_SourceNotFound(self):
+  def testStageConfigFileForceStaging(self):
+    with file_utils.TempDirectory() as temp_dir:
+      self.env.base_dir = temp_dir
+      # Staging config already exists.
+      file_utils.TouchFile(self.env.staging_config_file)
+      config_to_stage = os.path.join(temp_dir, 'to_stage.yaml')
+      file_utils.WriteFile(config_to_stage, 'new stage file')
+
+      self.env.StageConfigFile(config_to_stage, force=True)
+      self.assertTrue(os.path.exists(self.env.staging_config_file))
+      self.assertEqual('new stage file',
+                       file_utils.Read(self.env.staging_config_file))
+
+  def testStageConfigFileSourceNotFound(self):
     with file_utils.TempDirectory() as temp_dir:
       self.env.base_dir = temp_dir
       config_to_stage = os.path.join(temp_dir, 'to_stage.yaml')
@@ -102,7 +115,7 @@ class UmpireEnvTest(unittest.TestCase):
       self.env.UnstageConfigFile()
       self.assertFalse(os.path.exists(self.env.staging_config_file))
 
-  def testUnstageConfigFile_NoStagingConfig(self):
+  def testUnstageConfigFileNoStagingConfig(self):
     with file_utils.TempDirectory() as temp_dir:
       self.env.base_dir = temp_dir
 
