@@ -79,8 +79,12 @@ class AudioLoopTest(unittest.TestCase):
     Arg('freq_threshold', int, 'Acceptable frequency margin',
         _DEFAULT_FREQ_THRESHOLD_HZ),
     Arg('initial_actions', list, 'List of tuple (card, actions)', []),
-    Arg('input_dev', str, 'Input ALSA device', 'hw:0,0'),
-    Arg('output_dev', str, 'Output ALSA device', 'hw:0,0'),
+    Arg('input_dev', (str, tuple),
+        'Input ALSA device for string. (card_name, sub_device) for tuple.'
+        'For example: "hw:0,0" or ("audio_card", "0").', 'hw:0,0'),
+    Arg('output_dev', (str, tuple),
+        'Onput ALSA device for string. (card_name, sub_device) for tuple.',
+        'For example: "hw:0,0" or ("audio_card", "0").', 'hw:0,0'),
     Arg('output_volume', int, 'Output Volume', 10),
     Arg('autostart', bool, 'Auto start option', False),
     Arg('require_dongle', bool, 'Require dongle option', False),
@@ -99,8 +103,24 @@ class AudioLoopTest(unittest.TestCase):
 
   def setUp(self):
     # Initialize frontend parameters
-    self._input_device = self.args.input_dev
-    self._output_device = self.args.output_dev
+
+    # Tansfer input and output device format
+    if type(self.args.input_dev) is tuple:
+      self._in_card = audio_utils.GetCardIndexByName(self.args.input_dev[0])
+      self._input_device = "hw:%s,%s" % (
+          self._in_card, self.args.input_dev[1])
+    else:
+      self._input_device = self.args.input_dev
+      self._in_card = self.GetCardIndex(self._input_device)
+
+    if type(self.args.output_dev) is tuple:
+      self._out_card = audio_utils.GetCardIndexByName(self.args.output_dev[0])
+      self._output_device = "hw:%s,%s" % (
+          self._out_card, self.args.output_dev[1])
+    else:
+      self._output_device = self.args.output_dev
+      self._out_card = self.GetCardIndex(self._output_device)
+
     self._output_volume = self.args.output_volume
     self._sine_duration_secs = self.args.sine_duration_secs
     self._audiofun = self.args.enable_audiofun
@@ -112,12 +132,10 @@ class AudioLoopTest(unittest.TestCase):
     self._test_result = True
     self._test_message = None
 
-    # Get the card index from given I/O device names.
-    self._in_card = self.GetCardIndex(self._input_device)
-    self._out_card = self.GetCardIndex(self._output_device)
-
     self._audio_util = audio_utils.AudioUtil()
     for card, action in self.args.initial_actions:
+      if card.isdigit() is False:
+        card = audio_utils.GetCardIndexByName(card)
       self._audio_util.ApplyAudioConfig(action, card)
 
     # Setup HTML UI, and event handler

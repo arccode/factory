@@ -186,6 +186,26 @@ def NoiseReduceFile(in_file, noise_file, out_file,
   os.unlink(f.name)
 
 
+def GetCardIndexByName(card_name):
+  """Get audio card index by card name.
+
+  Args:
+    card_name: Audio card name.
+
+  Returns:
+    Card index of the card name.
+
+  Raises:
+    ValueError when card name does not exist.
+  """
+  _RE_CARD_INDEX = re.compile(r'^card (\d+):.*?\[(.+?)\]')
+  output = Spawn(['aplay', '-l'], read_stdout=True).stdout_data
+  for line in output.split('\n'):
+    m = _RE_CARD_INDEX.match(line)
+    if m is not None and m.group(2) == card_name:
+      return m.group(1)
+  raise ValueError('device name %s is incorrect' % card_name)
+
 class AudioUtil(object):
   """This class is used for setting audio related configuration.
   It reads audio.conf initially to decide how to enable/disable each
@@ -195,6 +215,10 @@ class AudioUtil(object):
     if os.path.exists(config_path):
       with open(config_path, 'r') as config_file:
         self.audio_config = yaml.load(config_file)
+      for index in self.audio_config.keys():
+        if index.isdigit() is False:
+          new_index = GetCardIndexByName(index)
+          self.audio_config[new_index] = self.audio_config[index]
     else:
       self.audio_config = {}
       logging.info('Cannot find configuration file.')
