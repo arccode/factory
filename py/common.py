@@ -166,15 +166,48 @@ def CheckDictKeys(dict_to_check, allowed_keys):
 class AttrDict(dict):
   """Attribute dictionary.
 
-  Use subclassed dict to store attributes.
+  Use subclassed dict to store attributes. On __init__, the values inside
+  initial iterable will be converted to AttrDict if its type is a builtin
+  dict or builtin list.
 
   Example:
     foo = AttrDict()
     foo['xyz'] = 'abc'
-    assertEqual(foo.xyz,'abc')
+    assertEqual(foo.xyz, 'abc')
+
+    bar = AttrDict({'x': {'y': 'value_x_y'},
+                    'z': [{'m': 'value_z_0_m'}]})
+    assertEqual(bar.x.y, 'value_x_y')
+    assertEqual(bar.z[0].m, 'value_z_0_m')
   """
+  def _IsBuiltinDict(self, item):
+    return (isinstance(item, dict) and
+            item.__class__.__module__ == '__builtin__' and
+            item.__class__.__name__ == 'dict')
+
+  def _IsBuiltinList(self, item):
+    return (isinstance(item, list) and
+            item.__class__.__module__ == '__builtin__' and
+            item.__class__.__name__ == 'list')
+
+  def _ConvertList(self, itemlist):
+    converted = []
+    for item in itemlist:
+      if self._IsBuiltinDict(item):
+        converted.append(AttrDict(item))
+      elif self._IsBuiltinList(item):
+        converted.append(self._ConvertList(item))
+      else:
+        converted.append(item)
+    return converted
+
   def __init__(self, *args, **kwargs):
     super(AttrDict, self).__init__(*args, **kwargs)
+    for key, value in self.iteritems():
+      if self._IsBuiltinDict(value):
+        self[key] = AttrDict(value)
+      elif self._IsBuiltinList(value):
+        self[key] = self._ConvertList(value)
     self.__dict__ = self
 
 
