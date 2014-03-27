@@ -96,6 +96,29 @@ class RegionTest(unittest.TestCase):
         # Make sure the keyboard method is present.
         self.assertTrue(method, 'Missing keyboard layout %r' % r.keyboard)
 
+  def testFirmwareLanguages(self):
+    bmpblk_dir = os.path.join(
+      os.environ.get('CROS_WORKON_SRCROOT'), 'src', 'platform', 'bmpblk')
+    if not os.path.exists(bmpblk_dir):
+      logging.warn('Skipping testFirmwareLanguages, since %r is missing',
+                   bmpblk_dir)
+      return
+
+    bmp_locale_dir = os.path.join(bmpblk_dir, 'strings', 'locale')
+    for r in regions.BuildRegionsDict(include_all=True).values():
+      for l in r.language_codes:
+        paths = [os.path.join(bmp_locale_dir, l)]
+        if '-' in l:
+          paths.append(os.path.join(bmp_locale_dir, l.partition('-')[0]))
+        if not any([os.path.exists(x) for x in paths]):
+          if r.region_code in regions.REGIONS:
+            self.fail(
+              'For region %r, none of %r exists' % (r.region_code, paths))
+          else:
+            logging.warn('For region %r, none of %r exists; '
+                         'just a warning since this region is not confirmed',
+                         r.region_code, paths)
+
   def testVPDSettings(self):
     # US has only a single VPD setting, so this should be the same
     # regardless of allow_multiple.
@@ -165,6 +188,7 @@ class RegionTest(unittest.TestCase):
     self.assertRaisesRegexp(
       regions.RegionException, "Conflicting definitions for region 'a':",
       regions._ConsolidateRegions, region_list)
+
 
 if __name__ == '__main__':
   unittest.main()
