@@ -525,6 +525,8 @@ class Gooftool(object):
     locale = self._read_ro_vpd(image_file).get('initial_locale', None)
     if locale is None:
       raise Error, 'Missing initial_locale VPD.'
+    # Use the primary initial locale for the firmware bitmap.
+    locale = locale.partition(',')[0]
     bitmap_locales = []
     with self._named_temporary_file() as f:
       self._util.shell('gbb_utility -g --bmpfv=%s %s' % (f.name, image_file))
