@@ -58,6 +58,12 @@ class Scan(unittest.TestCase):
     Arg('barcode_scan_interval_secs', (int, float),
         'Interval for repeatedly trigger BFT\'s barcode scaner',
         default=2.0),
+    Arg('match_the_last_few_chars', int,
+        'This is for OP to manually input last few SN chars based on the\n'
+        'sticker on machine to make sure SN in VPD matches sticker SN.',
+        default=0),
+    Arg('ignore_case', bool,
+        'True to ignore case from input.', default=False),
   ]
 
   def HandleScanValue(self, event):
@@ -74,6 +80,8 @@ class Scan(unittest.TestCase):
     self.ui.RunJS('$("scan-value").disabled = true')
 
     scan_value = event.data.strip()
+    if self.args.ignore_case:
+      scan_value = scan_value.upper()
     esc_scan_value = test_ui.Escape(scan_value)
     if not scan_value:
       return SetError('The scanned value is empty.',
@@ -121,6 +129,10 @@ class Scan(unittest.TestCase):
     if self.args.check_device_data_key:
       expected_value = shopfloor.GetDeviceData().get(
           self.args.check_device_data_key)
+
+      if self.args.match_the_last_few_chars != 0:
+        expected_value = expected_value[-self.args.match_the_last_few_chars:]
+
       if expected_value != scan_value:
         logging.error("Expected %r but got %r", expected_value, scan_value)
 
