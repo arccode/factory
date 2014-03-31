@@ -315,12 +315,15 @@ class FinalizeBundle(object):
     self.expected_files = set(map(self._SubstVars, self.manifest['files']))
     self.factory_image_path = os.path.join(
         self.bundle_dir, 'factory_test', 'chromiumos_factory_image.bin')
+    # Try make directory here since 'factory_test' is removed due to deprecation
+    # of factory test image.
+    utils.TryMakeDirs(os.path.dirname(self.factory_image_path))
 
     # Get the version from the factory test image, or from the factory toolkit
     # and test image if we will be using those
     if self.manifest.get('use_factory_toolkit'):
       self.factory_toolkit_path = os.path.join(
-        self.bundle_dir, 'factory_test', 'install_factory_toolkit.run')
+        self.bundle_dir, 'factory_toolkit', 'install_factory_toolkit.run')
       output = Spawn([self.factory_toolkit_path, '--info'],
                      check_output=True).stdout_data
       match = re.match(
