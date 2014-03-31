@@ -93,7 +93,10 @@ class ImageCheckTask(FactoryTask):
       self._test.template.SetState(_MSG_FLASH_ERROR)
 
   def Run(self):
-    ver = SystemInfo().factory_image_version
+    if self._test.args.check_release_image:
+      ver = SystemInfo().release_image_version
+    else:
+      ver = SystemInfo().factory_image_version
     Log('image_version', version=ver)
     version_format = (LooseVersion if self._test.args.loose_version
                       else StrictVersion)
@@ -126,7 +129,10 @@ class CheckImageVersionTest(unittest.TestCase):
         default=True, optional=True),
     Arg('require_space', bool,
         'True to require a space key press before reimaging.',
-        default=True, optional=True)]
+        default=True, optional=True),
+    Arg('check_release_image', bool,
+        'True to check release image instead of factory image.',
+        default=False, optional=True)]
 
   def setUp(self):
     self._task_list = [ImageCheckTask(self)]
