@@ -12,28 +12,45 @@ import os
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.common import UmpireError, UPDATEABLE_RESOURCES
+from cros.factory.utils import file_utils
 
 
 class ResourceUpdater(object):
-  """Updates a resource in a bundle.
+  """Updates a resource in a bundle from active config.
 
-  It copies the given resources to Umpire repository and updates the specified
-  bundle's resource mapping.
+  It copies the given resources to Umpire repository. Then updates the
+  specified bundle's resource mapping. Finally, it adds the updated config
+  to resources and marks it as staging.
 
   Usage:
     resource_updater = ResourceUpdater(env)
-    resources_to_update = ResourceUpdater.ParseResourceStr(resource_str)
     ResourceUpdater.Update(resources_to_update, source_id='old_bundle_id',
                            dest_id='new_bundle_id')
   """
   def __init__(self, env):
     """Constructor.
 
+    It copies active config (env.config) to be modified.
+    It checks env.HasStagingConfigFile(). If True, raises exception.
+
     Args:
       env: UmpireEnv object.
+
+    Raises:
+      UmpireError if staging config exists.
     """
+    if env.HasStagingConfigFile():
+      raise UmpireError(
+          'Cannot update resources as staging config exists. '
+          'Please run "umpire unstage" to unstage or "umpire deploy" to '
+          'deploy the config first.')
+
     self._env = env
-    self._config = self._env.config
+
+    # Copy current config for editing.
+    self._config = copy.deepcopy(env.config)
+
+    self._config_basename = os.path.basename(env.config_path)
     self._target_bundle = None
 
   def Update(self, resources_to_update, source_id=None, dest_id=None):
@@ -45,6 +62,9 @@ class ResourceUpdater(object):
       dest_id: If specified, it copies source bundle with ID dest_id and
           replaces the specified resource(s). Otherwise, it replaces
           resource(s) in place.
+
+    Returns:
+      Path to updated config file in resources.
     """
     if not source_id:
       source_id = self._config.GetDefaultBundle()['id']
@@ -52,6 +72,9 @@ class ResourceUpdater(object):
     self._SanityCheck(resources_to_update)
     self._PrepareTargetBundle(source_id, dest_id)
     self._UpdateResourceMap(resources_to_update)
+    updated_config_path = self._WriteConfig()
+    self._env.StageConfigFile(updated_config_path)
+    return updated_config_path
 
   def _PrepareTargetBundle(self, source_id,  dest_id):
     target_bundle = self._config.GetBundle(source_id)
@@ -85,3 +108,14 @@ class ResourceUpdater(object):
         resource_map['rootfs_release'] = resource_name
       else:
         resource_map[resource_type] = resource_name
+
+  def _WriteConfig(self):
+    """Writes self._config to resources.
+
+    Returns:
+      config path in resources.
+    """
+    with file_utils.TempDirectory() as temp_dir:
+      temp_config_path = os.path.join(temp_dir, self._config_basename)
+      self._config.WriteFile(temp_config_path)
+      return self._env.AddResource(temp_config_path)

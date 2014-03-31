@@ -13,6 +13,7 @@ import unittest
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.commands.update import ResourceUpdater
 from cros.factory.umpire.common import UmpireError
+from cros.factory.umpire.config import UmpireConfig
 from cros.factory.umpire.umpire_env import UmpireEnv
 from cros.factory.utils import file_utils
 
@@ -42,17 +43,16 @@ class ResourceUpdaterTest(unittest.TestCase):
       shutil.rmtree(self.temp_dir)
 
   def testUpdateInPlace(self):
-    bundles = self.env.config['bundles']
-    original_num_bundles = len(bundles)
-
     updater = ResourceUpdater(self.env)
     # No source_id: edit from default bundle.
     # No dest_id: in-place edit the source bundle.
-    updater.Update([('factory_toolkit', self.fake_factory_toolkit_path)])
+    updated_config_path = updater.Update(
+        [('factory_toolkit', self.fake_factory_toolkit_path)])
+    updated_bundles = UmpireConfig(updated_config_path)['bundles']
 
     # In-place bundle modification.
-    self.assertEqual(2, original_num_bundles)
-    default_bundle = bundles[1]
+    self.assertEqual(len(self.env.config['bundles']), len(updated_bundles))
+    default_bundle = updated_bundles[1]
 
     self.assertEqual('default_test', default_bundle['id'])
     self.assertEqual(self.new_factory_toolkit_resource,
@@ -61,26 +61,25 @@ class ResourceUpdaterTest(unittest.TestCase):
                      default_bundle['resources']['server_factory_toolkit'])
 
   def testUpdateDestId(self):
-    bundles = self.env.config['bundles']
-    original_num_bundles = len(bundles)
-
     updater = ResourceUpdater(self.env)
     # No source_id: edit from default bundle.
     # dest_id: update source bundle and store in new bundle dest_id.
-    updater.Update([('factory_toolkit', self.fake_factory_toolkit_path)],
-                   dest_id='update_test')
+    updated_config_path = updater.Update(
+        [('factory_toolkit', self.fake_factory_toolkit_path)],
+        dest_id='update_test')
+    updated_bundles = UmpireConfig(updated_config_path)['bundles']
 
     # Add a new bundle with updated component.
-    self.assertEqual(original_num_bundles + 1, len(bundles))
+    self.assertEqual(len(self.env.config['bundles']) + 1, len(updated_bundles))
 
-    new_bundle = bundles[0]
+    new_bundle = updated_bundles[0]
     self.assertEqual('update_test', new_bundle['id'])
     self.assertEqual(self.new_factory_toolkit_resource,
                      new_bundle['resources']['device_factory_toolkit'])
     self.assertEqual(self.new_factory_toolkit_resource,
                      new_bundle['resources']['server_factory_toolkit'])
 
-    default_bundle = bundles[2]
+    default_bundle = updated_bundles[2]
     self.assertEqual('default_test', default_bundle['id'])
     self.assertEqual('install_factory_toolkit.run##00000000',
                      default_bundle['resources']['device_factory_toolkit'])
@@ -88,19 +87,18 @@ class ResourceUpdaterTest(unittest.TestCase):
                      default_bundle['resources']['server_factory_toolkit'])
 
   def testUpdateSourceId(self):
-    bundles = self.env.config['bundles']
-    original_num_bundles = len(bundles)
-
     updater = ResourceUpdater(self.env)
     # source_id: edit from specified bundle.
     # No dest_id: in-place edit the source bundle.
-    updater.Update([('factory_toolkit', self.fake_factory_toolkit_path)],
-                   source_id='non_default_test')
+    updated_config_path = updater.Update(
+        [('factory_toolkit', self.fake_factory_toolkit_path)],
+        source_id='non_default_test')
+    updated_bundles = UmpireConfig(updated_config_path)['bundles']
 
     # In-place bundle modification.
-    self.assertEqual(original_num_bundles, len(bundles))
+    self.assertEqual(len(self.env.config['bundles']), len(updated_bundles))
 
-    target_bundle = bundles[0]
+    target_bundle = updated_bundles[0]
     self.assertEqual('non_default_test', target_bundle['id'])
     self.assertEqual(self.new_factory_toolkit_resource,
                      target_bundle['resources']['device_factory_toolkit'])
@@ -108,30 +106,35 @@ class ResourceUpdaterTest(unittest.TestCase):
                      target_bundle['resources']['server_factory_toolkit'])
 
   def testUpdateSourceIdDestId(self):
-    bundles = self.env.config['bundles']
-    original_num_bundles = len(bundles)
-
     updater = ResourceUpdater(self.env)
     # source_id: edit from specified bundle.
     # dest_id: update source bundle and store in new bundle dest_id.
-    updater.Update([('factory_toolkit', self.fake_factory_toolkit_path)],
-                   source_id='non_default_test',  dest_id='update_test')
+    updated_config_path = updater.Update(
+        [('factory_toolkit', self.fake_factory_toolkit_path)],
+        source_id='non_default_test',  dest_id='update_test')
+    updated_bundles = UmpireConfig(updated_config_path)['bundles']
 
     # Add a new bundle with updated component.
-    self.assertEqual(original_num_bundles + 1, len(bundles))
+    self.assertEqual(len(self.env.config['bundles']) + 1, len(updated_bundles))
 
-    update_bundle = bundles[0]
+    update_bundle = updated_bundles[0]
     self.assertEqual('update_test', update_bundle['id'])
     self.assertEqual(self.new_factory_toolkit_resource,
                      update_bundle['resources']['device_factory_toolkit'])
     self.assertEqual(self.new_factory_toolkit_resource,
                      update_bundle['resources']['server_factory_toolkit'])
 
-    source_bundle = bundles[1]
+    source_bundle = updated_bundles[1]
     self.assertEqual('non_default_test', source_bundle['id'])
 
-    default_bundle = bundles[2]
+    default_bundle = updated_bundles[2]
     self.assertEqual('default_test', default_bundle['id'])
+
+  def testUpdateStagingFileExists(self):
+    self.env.StageConfigFile(self.env.config_path)
+    self.assertRaisesRegexp(
+        UmpireError, 'Cannot update resources as staging config exists.',
+        ResourceUpdater, self.env)
 
   def testUpdateBadSourceIdDestId(self):
     updater = ResourceUpdater(self.env)
@@ -169,15 +172,15 @@ class ResourceUpdaterTest(unittest.TestCase):
     new_hwid_resource = 'hwid.gz##8c8fe9fe'
 
     updater = ResourceUpdater(self.env)
-    updater.Update([
+    updated_config_path = updater.Update([
         ('factory_toolkit', self.fake_factory_toolkit_path),
         ('firmware', firmware_path),
         ('fsi', fsi_path),
         ('hwid', hwid_path)])
+    updated_bundle = UmpireConfig(updated_config_path).GetDefaultBundle()
 
-    bundle = self.env.config.GetDefaultBundle()
-    self.assertEqual('default_test', bundle['id'])
-    resources = bundle['resources']
+    self.assertEqual('default_test', updated_bundle['id'])
+    resources = updated_bundle['resources']
     self.assertEqual(self.new_factory_toolkit_resource,
                      resources['device_factory_toolkit'])
     self.assertEqual(self.new_factory_toolkit_resource,
@@ -185,7 +188,6 @@ class ResourceUpdaterTest(unittest.TestCase):
     self.assertEqual(new_firmware_resource, resources['firmware'])
     self.assertEqual(new_fsi_resource, resources['rootfs_release'])
     self.assertEqual(new_hwid_resource, resources['hwid'])
-
 
 
 if __name__ == '__main__':
