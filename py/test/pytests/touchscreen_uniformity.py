@@ -83,13 +83,18 @@ class AtmelTouchController(object):
     self.kernel_device_path = os.path.join(_KERNEL_DRIVER_PATH, i2c_bus_id)
     self.rows = None
     self.cols = None
-    if matrix_size is not None:
-      self.rows, self.cols = matrix_size
-    elif self.IsPresent():
+    self.rows_enabled = None
+    self.cols_enabled = None
+    if self.IsPresent():
       matrix_path = os.path.join(i2c_device_path, 'matrix_size')
       with open(matrix_path, 'r') as f:
         self.rows, self.cols = [
             int(val) for val in f.readline().strip().split()]
+    if matrix_size is not None:
+      self.rows_enabled, self.cols_enabled = matrix_size
+    else:
+      self.rows_enabled = self.rows
+      self.cols_enabled = self.cols
 
   def IsPresent(self):
     """Checks that the touch controller is present.
@@ -111,10 +116,15 @@ class AtmelTouchController(object):
     file_path = os.path.join(self.kernel_device_path, filename)
     raw_data = []
     with open(file_path) as f:
-      for dummy_row in range(self.rows):
+    # Per chrome-os-partner:27424, for each row of data self.cols long read
+    # from controller, we will only use the first self.cols_enabled of data
+    # since the rest is garbage. And we’ll only read self.rows_enabled rows
+    # instead of self.rows since the rest is also garbage. Note that
+    # (rows_enabled, cols_enabled) is a subset of (rows, cols).
+      for dummy_row in range(self.rows_enabled):
         row_data = []
         line = f.read(self.cols * 2)
-        for col_pos in range(0, self.cols * 2, 2):
+        for col_pos in range(0, self.cols_enabled * 2, 2):
           # Correct endianness
           s = line[col_pos + 1] + line[col_pos]
           val = int(s.encode('hex'), 16)
@@ -325,9 +335,10 @@ class TouchscreenUniformity(unittest.TestCase):
     Arg('i2c_bus_id', str, 'i2c bus address of controller',
       default=_DEFAULT_I2C_BUS_ID, optional=True),
     Arg('matrix_size', tuple,
-        'The size of touchscreen sensor row data in the form of (rows, cols).'
-        'This is used to override the matrix size read from kernel i2c '
-        'device path.',
+        'The size of touchscreen sensor row data for enabled sensors in the '
+        'form of (rows, cols). This is used when the matrix size read from '
+        'kernel i2c device path is different from the matrix size of enabled '
+        'sensors.',
         optional=True),
   ]
 
