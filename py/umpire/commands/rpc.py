@@ -13,35 +13,30 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.utils import Registry
 
 
-DEFAULT_COMMAND_PORT = 8032
-
 # Specification for Fault Code Interoperability, version 20010516
 SERVER_ERROR_INTERNAL_XMLRPC_ERROR = -32603
 
-def _AddCallbacks(deferred):
-  """Adds return messages to callback results.
+def _HandleRPCResult(deferred):
+  """Handles RPC result by appending a callback pair.
+
+  For successful RPC call, the callback just returns 'SUCCESS'.
+  For failed RPC call, the errback packs error message to a Fault object
+  and returns it.
 
   Args:
-    deferred: a delegation object. Callbacks and error callbacks are chained in
+    deferred: a delegation object. Callbacks and errbacks are chained in
     the object. So the actual action can be added after triggering the async
-    function.
+    function. Refer:
+        http://twistedmatrix.com/documents/13.0.0/core/howto/defer.html
 
-  Example:
-    def OnDataReceived(data):
-      pass
-
-    def OnReadError(error):
-      pass
-
-    d = ReadFile(f, len)
-    d.addErrback(OnReadError)
-    d.addCallback(OnDataReceived)
-    d.addCallback(BackupData)
+  Returns:
+    The deferred object passed in.
   """
-  deferred.addCallback(lambda _: 'SUCCESS')
-  deferred.addErrback(lambda f: xmlrpc.Fault(
-      SERVER_ERROR_INTERNAL_XMLRPC_ERROR,
-      '%s\n%s' % (repr(f.value), f.getTraceback())))
+  deferred.addCallbacks(
+      lambda _: 'SUCCESS',
+      lambda f: xmlrpc.Fault(
+          SERVER_ERROR_INTERNAL_XMLRPC_ERROR,
+          '%s\n%s' % (repr(f.value), f.getTraceback())))
   return deferred
 
 
@@ -73,7 +68,7 @@ class UmpireCommand(xmlrpc.XMLRPC):
   """
   def xmlrpc_deploy(self, config_file):
     """Deploy Umpire config file."""
-    return _AddCallbacks(_Umpired().Deploy(config_file))
+    return _HandleRPCResult(_Umpired().Deploy(config_file))
 
   def xmlrpc_stop(self):
-    return _AddCallbacks(_Umpired().Stop())
+    return _HandleRPCResult(_Umpired().Stop())

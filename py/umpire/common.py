@@ -21,6 +21,9 @@ from cros.factory.tools.finalize_bundle import Glob
 UMPIRE_CLI = 'umpire'
 UMPIRE_DAEMON = 'umpired'
 
+# Umpire command RPC port.
+UMPIRE_COMMAND_PORT = 8032
+
 # Resource types which can use "umpire update" to update.
 UPDATEABLE_RESOURCES = ['factory_toolkit', 'firmware', 'fsi', 'hwid']
 
