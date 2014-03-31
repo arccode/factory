@@ -127,11 +127,19 @@ class DUTEnvironment(Environment):
 
   def _start_telemetry(self):
     """Starts UI through telemetry."""
+    # Telemetry sets up several signal handlers, which requires running the
+    # telemetry module in the main thread or an exception will be raised.
+    # Our retry logic here starts telemetry in a separate daemon thread so we
+    # fake signal.signal when importing telemetry modules.
+    import signal
+    original_signal = signal.signal
+    signal.signal = lambda sig, action: True
     # Import these modules here because they are not available in chroot.
     # pylint: disable=F0401
     from telemetry.core import browser_finder
     from telemetry.core import browser_options
     from telemetry.core import extension_to_load
+    signal.signal = original_signal
 
     try:
       finder_options = browser_options.BrowserFinderOptions()
