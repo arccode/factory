@@ -6,7 +6,7 @@
 
 # pylint: disable=E1101
 
-
+import mox
 from twisted.internet import defer, reactor
 from twisted.python import failure
 from twisted.trial import unittest
@@ -15,7 +15,9 @@ from twisted.web import server, xmlrpc
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire import utils
 from cros.factory.umpire.commands import rpc
+from cros.factory.umpire.commands import update
 from cros.factory.umpire.common import UMPIRE_COMMAND_PORT, UmpireError
+from cros.factory.umpire.umpire_env import UmpireEnv
 
 
 class MockUmpireDaemon(object):
@@ -28,6 +30,7 @@ class MockUmpireDaemon(object):
 
 class CommandTest(unittest.TestCase):
   def setUp(self):
+    self.mox = mox.Mox()
     reg = utils.Registry()
     reg.umpired = MockUmpireDaemon()
     self.proxy = xmlrpc.Proxy('http://localhost:%d' % UMPIRE_COMMAND_PORT)
@@ -36,6 +39,8 @@ class CommandTest(unittest.TestCase):
                                   server.Site(self.rpc_command))
 
   def tearDown(self):
+    self.mox.UnsetStubs()
+    self.mox.VerifyAll()
     return self.port.stopListening()
 
   def Call(self, function, *args):
@@ -75,3 +80,36 @@ class CommandTest(unittest.TestCase):
     reg = utils.Registry()
     reg.umpired.Stop = lambda: defer.fail(UmpireError('ERROR'))
     return self.AssertFailure(self.Call('stop'))
+
+  def testUpdate(self):
+    utils.Registry().env = UmpireEnv()
+
+    # TODO(deanliao): figure out why proxy.callRemote converts [(a, b)] to
+    #     [[a, b]].
+    # resource_to_update = [['factory_toolkit', '/tmp/factory_toolkit.tar.bz']]
+    resource_to_update = [['factory_toolkit', '/tmp/factory_toolkit.tar.bz']]
+    updated_config = '/umpire/resources/config.yaml#12345678'
+
+    self.mox.StubOutClassWithMocks(update, 'ResourceUpdater')
+    mock_updater = update.ResourceUpdater(mox.IsA(UmpireEnv))
+    mock_updater.Update(resource_to_update, 'sid', 'did').AndReturn(
+        updated_config)
+    self.mox.ReplayAll()
+
+    d = self.Call('update', resource_to_update, 'sid', 'did')
+    d.addCallback(lambda r: self.assertEqual(updated_config, r))
+    return self.AssertSuccess(d)
+
+  def testUpdateFailure(self):
+    utils.Registry().env = UmpireEnv()
+
+    resource_to_update = [['factory_toolkit', '/tmp/factory_toolkit.tar.bz']]
+
+    self.mox.StubOutClassWithMocks(update, 'ResourceUpdater')
+    mock_updater = update.ResourceUpdater(mox.IsA(UmpireEnv))
+    mock_updater.Update(resource_to_update, 'sid', 'did').AndRaise(
+        UmpireError('mock error'))
+    self.mox.ReplayAll()
+
+    return self.AssertFailure(self.Call('update', resource_to_update, 'sid',
+                                        'did'))
