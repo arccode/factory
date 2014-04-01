@@ -41,7 +41,7 @@ PYLINT_DISABLE := $(PYLINT_DISABLE),C9001,C9002,C9003,C9005,C9006
 PYLINT_DISABLE := $(PYLINT_DISABLE),C9007,C9009,C9010,C9011
 PYLINT_OPTIONS=\
 	--rcfile=$(PYLINTRC) \
-	--ignored-classes=Event,Obj \
+	--ignored-classes=Event,Obj,RegCode \
 	--disable=$(PYLINT_DISABLE) \
 	--generated-members=test_info,AndReturn,AndRaise,args,objects
 
@@ -82,7 +82,8 @@ LINT_BLACKLIST=\
 	py/minijack/gflags_validators.py \
 	py/minijack/httplib2/% \
 	py/minijack/oauth2client/% \
-	py/minijack/uritemplate/%
+	py/minijack/uritemplate/% \
+	py/proto/%_pb2.py
 
 LINT_FILES=$(shell find py -name '*.py' -type f | sort)
 LINT_WHITELIST=$(filter-out $(LINT_BLACKLIST),$(LINT_FILES))
@@ -246,6 +247,13 @@ lint-overlay-%: overlay-%
 
 testall:
 	@make --no-print-directory test EXTRA_TEST_FLAGS=--nofilter
+
+# Regenerates the reg code proto.  TODO(jsalz): Integrate this as a
+# "real" part of the build, rather than relying on regenerating it
+# only if/when it changes.  This is OK for now since this proto should
+# change infrequently or never.
+proto:
+	protoc proto/reg_code.proto --python_out=py
 
 # Creates build/doc and build/doc.tar.bz2, containing the factory SDK
 # docs.
