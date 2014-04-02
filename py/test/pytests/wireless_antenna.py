@@ -52,7 +52,12 @@ _MSG_SPACE = test_ui.MakeLabel(
 _RE_FREQ = re.compile(r'^freq: ([\d]*?)$')
 _RE_SIGNAL = re.compile(r'^signal: ([-\d.]*?) dBm')
 _RE_SSID = re.compile(r'^SSID: ([-\w]*)$')
+_RE_LAST_SEEN = re.compile(r'^last seen: ([\d]+) ms ago$')
 _RE_WIPHY = re.compile(r'wiphy (\d+)')
+
+# The scanned result with last_seen value greater than this value
+# will be neglected.
+_THRESHOLD_LAST_SEEN_MS = 1000
 
 def GetProp(message, pattern, default):
   """Gets the property from searching pattern in message.
@@ -307,36 +312,41 @@ class WirelessTest(unittest.TestCase):
       service_ssid: The ssid of the service to scan.
 
     Returns:
-      (mac, freq, signal) if there is a scan result of ssid in the scan_output.
-      (None, None, None) otherwise.
+      (mac, freq, signal, last_seen) if there is a scan result of ssid in
+        the scan_output. last_seen is in ms.
+      (None, None, None, None) otherwise.
     """
-    mac_freq_signal_list = []
-    (mac, ssid, freq, signal) = (None, None, None, None)
+    parsed_tuples = []
+    (mac, ssid, freq, signal, last_seen) = (None, None, None, None, None)
     for line in scan_output.splitlines():
       line = line.strip()
       # a line starts with BSS should look like
-      # BSS d8:c7:c8:b6:6b:50 (on wlan0)
+      # BSS d8:c7:c8:b6:6b:50(on wlan0)
       if line.startswith('BSS'):
-        (mac, ssid, freq, signal) = (line.split()[1], None, None, None)
+        bss_format_line = re.sub(r'[ ()]', ' ', line)
+        (mac, ssid, freq, signal, last_seen) = (
+            bss_format_line.split()[1], None, None, None, None)
       freq = GetProp(line, _RE_FREQ, freq)
       signal = GetProp(line, _RE_SIGNAL, signal)
       ssid = GetProp(line, _RE_SSID, ssid)
-      if mac and freq and signal and ssid:
+      last_seen = GetProp(line, _RE_LAST_SEEN, last_seen)
+      if mac and freq and signal and ssid and last_seen:
         if ssid == service_ssid:
-          mac_freq_signal_list.append((mac, int(freq), float(signal)))
-        (mac, ssid, freq, signal) = (None, None, None, None)
-    if len(mac_freq_signal_list) == 1:
-      return mac_freq_signal_list[0]
-    elif len(mac_freq_signal_list) == 0:
+          parsed_tuples.append(
+              (mac, int(freq), float(signal), int(last_seen)))
+        (mac, ssid, freq, signal, last_seen) = (None, None, None, None, None)
+    if len(parsed_tuples) == 1:
+      return parsed_tuples[0]
+    elif len(parsed_tuples) == 0:
       factory.console.warning('Can not scan service %s.', service_ssid)
-      return (None, None, None)
+      return (None, None, None, None)
     else:
       factory.console.warning('There are more than one results for ssid %s.',
                               service_ssid)
-      for mac, freq, signal in mac_freq_signal_list:
-        factory.console.warning('mac: %s, ssid: %s, freq: %d, signal %f',
-                                mac, service_ssid, freq, signal)
-      return (None, None, None)
+      for mac, freq, signal, last_seen in parsed_tuples:
+        factory.console.warning('mac: %s, ssid: %s, freq: %d, signal %f, '
+            'last_seen %d ms', mac, service_ssid, freq, signal, last_seen)
+      return (None, None, None, None)
 
   def SwitchAntenna(self, antenna):
     """Switches antenna.
@@ -390,15 +400,19 @@ class WirelessTest(unittest.TestCase):
         scan_output = self.ScanSignal(freq)
         for service in services:
           service_ssid = service[0]
-          (mac, freq_scanned, strength) = self.ParseScanOutput(scan_output,
-                                                               service_ssid)
+          (mac, freq_scanned, strength, last_seen) = self.ParseScanOutput(
+              scan_output, service_ssid)
+          if last_seen > _THRESHOLD_LAST_SEEN_MS:
+            logging.warning('Neglect cached scan : %s %d ms ago.',
+                service_ssid, last_seen)
+            continue
           # strength may be 0.
           if strength is not None:
             # iw returns the scan results of other frequencies as well.
             if freq_scanned != freq:
               continue
-            factory.console.info('scan : %s %s %d %f.', service_ssid,
-                                 mac, freq_scanned, strength)
+            factory.console.info('scan : %s %s %d %f %d ms.',
+                service_ssid, mac, freq_scanned, strength, last_seen)
             scan_results[service].append(strength)
 
     # keys are services and values are averages
@@ -429,7 +443,7 @@ class WirelessTest(unittest.TestCase):
     Args:
       antenna: The antenna config to check.
     """
-    factory.console.info('Checking antenna %s', antenna)
+    factory.console.info('Checking antenna %s spec', antenna)
     scanned_service_strength = self._antenna_service_strength[antenna]
     for test_service, spec_antenna_strength in self._test_spec.iteritems():
       scanned_strength = scanned_service_strength[test_service]
