@@ -23,6 +23,7 @@ from cros.factory.hwid.hwid_rule_functions import (
     CheckRegistrationCode)
 from cros.factory.rule import (
     Rule, Context, RuleException, SetContext, GetLogger)
+from cros.factory.test.registration_codes import RegistrationCodeException
 
 _TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
 
@@ -255,7 +256,7 @@ class HWIDRuleTest(unittest.TestCase):
                       GetLogger().error[0].message)
 
 
-  def testCheckRegistrationCode(self):
+  def testCheckRegistrationCode_Legacy(self):
     mock_gbind_attribute = ('3333333333333333333333333333333333333'
                             '3333333333333333333333333332dbecc73')
     mock_ubind_attribute = ('3232323232323232323232323232323232323'
@@ -264,8 +265,38 @@ class HWIDRuleTest(unittest.TestCase):
     self.assertEquals(None, CheckRegistrationCode(mock_ubind_attribute))
     mock_gbind_attribute = 'foo'
     self.assertRaisesRegexp(
-        ValueError, r"Registration code 'foo' is not 72 characters long",
+        RegistrationCodeException, r"Invalid registration code 'foo'",
         CheckRegistrationCode, mock_gbind_attribute)
+
+  def testCheckRegistrationCode(self):
+    mock_ubind_attribute = (
+        '=CjAKIAABAgMEBQYHCAkKCwwNDg8QERITFBUWFxgZGhscHR4fEAEaCmNocm9tZWJvb2sQg'
+        'dSQ+AI=')
+    self.assertEquals(None, CheckRegistrationCode(mock_ubind_attribute))
+    self.assertEquals(None, CheckRegistrationCode(mock_ubind_attribute,
+                                                  type='unique'))
+    self.assertRaisesRegexp(
+        RegistrationCodeException,
+        "expected type 'GROUP_CODE' but got 'UNIQUE_CODE'",
+        CheckRegistrationCode, mock_ubind_attribute, type='group')
+
+    mock_gbind_attribute = (
+        '=CjAKIAABAgMEBQYHCAkKCwwNDg8QERITFBUWFxgZGhscHR4fEAAaCmNocm9tZWJvb2sQh'
+        'OfLlA8=')
+    self.assertEquals(None, CheckRegistrationCode(mock_gbind_attribute))
+    self.assertEquals(None, CheckRegistrationCode(mock_gbind_attribute,
+                                                  type='group'))
+    self.assertRaisesRegexp(
+        RegistrationCodeException,
+        "expected type 'UNIQUE_CODE' but got 'GROUP_CODE'",
+        CheckRegistrationCode, mock_gbind_attribute, type='unique')
+
+    self.assertRaisesRegexp(
+        RegistrationCodeException,
+        "expected device 'chromebook' but got 'foobar'",
+        CheckRegistrationCode,
+        '=CiwKIAABAgMEBQYHCAkKCwwNDg8QERITFBUWFxgZGhscHR4fEAEaBmZvb2JhchC7i6PaD'
+        'w==')
 
   def testGetDeviceInfo(self):
     self.assertEquals(1, GetDeviceInfo('SKU'))

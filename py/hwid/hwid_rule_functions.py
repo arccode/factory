@@ -12,6 +12,7 @@ from cros.factory.hwid.common import HWIDException
 from cros.factory.hwid.encoder import (
     BOMToBinaryString, BinaryStringToEncodedString)
 from cros.factory.test import registration_codes
+from cros.factory.test.registration_codes import RegistrationCode
 from cros.factory.rule import RuleFunction, Value, GetContext, GetLogger
 
 
@@ -267,14 +268,30 @@ def ValidVPDValue(section, key):
   return True
 
 
-@RuleFunction([])
-def CheckRegistrationCode(code):
+# pylint: disable=W0622
+@RuleFunction(['hwid'])
+def CheckRegistrationCode(code, type=None):
   """A wrapper method to verify registration code.
 
   Args:
     code: The registration code to verify.
+    type: The type of code required.  This may be a member of the
+        RegistrationCodes.Type enum; the strings 'unique' or
+        'user' are synonyms for UNIQUE_CODE, and 'group' is a synonym for
+        GROUP_CODE.
 
   Raises:
-    ValueError if the code is invalid.
+    RegistrationCodeException if the code is invalid.
   """
-  registration_codes.CheckRegistrationCode(code)
+  if type and type not in RegistrationCode.Type:
+    if type in ['user', 'unique']:
+      type = RegistrationCode.Type.UNIQUE_CODE
+    elif type == 'group':
+      type = RegistrationCode.Type.GROUP_CODE
+    else:
+      raise ValueError('Unknown reg code type %r' % type)
+
+  # Board name is exactly the same as in the HWID, except lowercase (e.g.,
+  # "spring", not "daisy_spring").
+  board = GetContext().hwid.database.board.lower()
+  registration_codes.CheckRegistrationCode(code, type=type, device=board)
