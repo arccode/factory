@@ -97,8 +97,10 @@ def _ParseBinaryBlob(blob):
     the blob is not a valid EDID record, and also log warning messages
     indicating the reason for parsing failure.
   """
-  def read_short(offset):
+  def read_short_be(offset):
     return ((ord(blob[offset]) << 8) | ord(blob[offset + 1]))
+  def read_short_le(offset):
+    return ((ord(blob[offset + 1]) << 8) | ord(blob[offset]))
   # Check size, magic, and version
   if len(blob) < MINIMAL_SIZE:
     logging.warning("EDID parsing error: length too small.")
@@ -115,20 +117,20 @@ def _ParseBinaryBlob(blob):
     logging.warning("EDID parse error: checksum error.")
     return None
   # Currently we don't support EDID not using pixel clock
-  pixel_clock = read_short(PIXEL_CLOCK_OFFSET)
+  pixel_clock = read_short_le(PIXEL_CLOCK_OFFSET)
   if not pixel_clock:
     logging.warning("EDID parse error: "
                     "non-pixel clock format is not supported yet.")
     return None
   # Extract manufactuer
   vendor_name = ''
-  vendor_code = read_short(MANUFACTURER_ID_OFFSET)
+  vendor_code = read_short_be(MANUFACTURER_ID_OFFSET)
   # vendor_code: [0 | char1 | char2 | char3]
   for i in range(2, -1, -1):
     vendor_char = (vendor_code >> (i * MANUFACTURER_ID_BITS)) & 0x1F
     vendor_char = chr(vendor_char + ord('@'))
     vendor_name += vendor_char
-  product_id = read_short(PRODUCT_ID_OFFSET)
+  product_id = read_short_le(PRODUCT_ID_OFFSET)
   width = (ord(blob[HORIZONTAL_OFFSET]) |
            ((ord(blob[HORIZONTAL_HIGH_OFFSET]) >> 4) << 8))
   height = (ord(blob[VERTICAL_OFFSET]) |
@@ -182,8 +184,12 @@ def LoadFromI2c(path):
 
 
 if __name__ == '__main__':
-  # For debugging, print parse result for specified i2c bus.
+  # For debugging, print parse result for specified i2c bus or raw file.
   import sys
   if len(sys.argv) != 2:
-    sys.exit('You must provide the i2c bus number as an argument.')
-  print repr(LoadFromI2c(int(sys.argv[1])))
+    sys.exit('Usage: %s [i2c_bus_number | EDID_file]' % sys.argv[0])
+  source = sys.argv[1]
+  if os.path.exists(source):
+    print repr(Parse(open(source).read()))
+  else:
+    print repr(LoadFromI2c(int(source)))
