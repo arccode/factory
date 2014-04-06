@@ -1,0 +1,3 @@
+data_types:
+  regcode:
+    archived_dir: py/lumberjack/testdata/raw/not_exist/

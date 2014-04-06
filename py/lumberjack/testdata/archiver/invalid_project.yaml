@@ -1,0 +1,3 @@
+data_types:
+  regcode:
+    project: fakeProduct/evt  # Sould be fakeProduct-evt or fakeProduct_evt

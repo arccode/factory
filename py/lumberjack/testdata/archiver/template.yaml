@@ -1,0 +1,17 @@
+common:
+    archived_dir: archives/
+    project: spring
+    duration: daily
+data_types:
+  eventlog:
+    notes: Configuration sample for event log
+    source_dir: raw/eventlog/
+    duration: hourly
+  reports:
+    notes: Configuration sample for reports
+    source_dir: raw/report/
+    compress_format: .zip
+  regcode:
+    notes: Configuration sample for registration code
+    source_dir: raw/regcode/
+    #encrypt_key: test_public_key
