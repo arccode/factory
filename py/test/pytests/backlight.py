@@ -52,6 +52,8 @@ class BacklightTest(unittest.TestCase):
         optional=False),
     Arg('brightness', tuple, 'Brightness value (lowest, normal, highest)',
         optional=True, default=(10, 100, 250)),
+    Arg('adjust_step', int, 'How much the brightness value should be adjusted',
+        optional=True, default=_ADJUST_STEP),
   ]
 
   def AdjustBrightness(self, value):
@@ -130,16 +132,16 @@ class BacklightTest(unittest.TestCase):
         logging.info('New brightness_setting: %r', self.brightness_setting)
 
   def OnAdjustBrightness(self):
-    """Adjusts the brightness value by _ADJUST_STEP."""
+    """Adjusts the brightness value by self.args.adjust_step."""
     target_brightness = self.current_brightness
     if (self.sequence[self.index] == 'high' and
-        (self.current_brightness + _ADJUST_STEP <
+        (self.current_brightness + self.args.adjust_step <
          self.brightness_setting.highest)):
-      target_brightness = self.current_brightness + _ADJUST_STEP
+      target_brightness = self.current_brightness + self.args.adjust_step
     elif (self.sequence[self.index] == 'low' and
-          (self.current_brightness - _ADJUST_STEP >
+          (self.current_brightness - self.args.adjust_step >
            self.brightness_setting.lowest)):
-      target_brightness = self.current_brightness - _ADJUST_STEP
+      target_brightness = self.current_brightness - self.args.adjust_step
     self.AdjustBrightness(target_brightness)
     logging.info('Adjust brightness to %r', target_brightness)
 
