@@ -711,17 +711,32 @@ def _ProbeCpuX86():
 @_ComponentProbe('cpu', 'arm')
 def _ProbeCpuArm():
   """Reformat /proc/cpuinfo data."""
-  # For platforms like arm, it gives the name only in 'Processor'
-  # and then a numeric ID for each cores 'processor', so delta is 1.
-  # Sample output for dual-core:
-  #   Processor : ARM???
-  #   processor : 0
-  #   processor : 1
-  cmd = r'sed -nr "s/^[Pp]rocessor\s*: (.*)/\1/p" /proc/cpuinfo'
-  stdout = Shell(cmd).stdout.splitlines()
-  return [{'model': stdout[0], 'cores': str(len(stdout) - 1),
+  # For platforms like arm, it sometimes gives the model name in 'Processor',
+  # and sometimes in 'model name'. But they all give something like 'ARMv7
+  # Processor rev 4 (v71)' only. So to uniquely identify an ARM CPU, we should
+  # use the 'Hardware' field.
+  with open('/proc/cpuinfo') as f:
+    cpuinfo = f.read()
+    try:
+      model = re.search(r'^(?:Processor|model name)\s*: (.*)$',
+                        cpuinfo, re.MULTILINE).group(1)
+    except AttributeError:
+      model = 'unknown'
+      logging.error("Unable to find 'Processor' or 'model name' field in "
+                    "/proc/cpuinfo, can't determine CPU model.")
+    try:
+      hardware = re.search(r'^Hardware\s*: (.*)$',
+                           cpuinfo, re.MULTILINE).group(1)
+    except AttributeError:
+      hardware = 'unknown'
+      logging.error("Unable to find 'Hardware' field in /proc/cpuinfo, "
+                    "can't determine CPU hardware.")
+  cores = 0
+  while os.path.exists('/sys/devices/system/cpu/cpu%s' % cores):
+    cores += 1
+  return [{'model': model, 'cores': str(cores), 'hardware': hardware,
            COMPACT_PROBE_STR: CompactStr(
-               stdout[0] + ' [%d cores]' % (len(stdout) - 1))}]
+               '%s [%d cores] %s' % (model, cores, hardware))}]
 
 
 @_ComponentProbe('display_panel')
