@@ -1,0 +1,6 @@
+common:
+    archived_dir: archives/
+data_types:
+  eventlog:
+    duration: hourly
+    source_dir: raw/eventlog/

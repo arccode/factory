@@ -1,0 +1,6 @@
+common:
+    archived_dir: archives/
+    project: spring
+data_types:
+  eventlog:
+    duration: hourly

@@ -98,5 +98,24 @@ class ArchiverUnittest(unittest.TestCase):
     argv = ['dry-run', os.path.join(TEST_DATA_PATH, 'template.yaml')]
     archiver.main(argv)
 
+  def testMissingSource(self):
+    argv = ['dry-run', os.path.join(TEST_DATA_PATH, 'missing_source.yaml')]
+    self.assertRaisesRegexp(
+        ArchiverFieldError, 'One of source_dir or source_file must be assigned',
+        archiver.main, argv)
+
+  def testMissingProject(self):
+    argv = ['dry-run', os.path.join(TEST_DATA_PATH, 'missing_project.yaml')]
+    self.assertRaisesRegexp(
+        ArchiverFieldError, 'project must be assigned', archiver.main, argv)
+
+  def testMissingArchivedDir(self):
+    argv = ['dry-run',
+            os.path.join(TEST_DATA_PATH, 'missing_archived_dir.yaml')]
+    self.assertRaisesRegexp(
+        ArchiverFieldError, 'archived_dir must be assigned',
+        archiver.main, argv)
+
+
 if __name__ == '__main__':
   unittest.main()

@@ -1,0 +1,5 @@
+data_types:
+  eventlog:
+    project: mocked_project
+    duration: hourly
+    source_dir: raw/eventlog/

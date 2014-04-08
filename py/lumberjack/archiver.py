@@ -226,8 +226,21 @@ class ArchiverConfig(object):
 
   def CheckPropertiesSufficient(self):
     """Checks if current properties are sufficient for an archiving cycle."""
-    # TODO(itspeter):  Implement it.
-    # TODO(itspeter):  Raise exception to Indicate where is possibly missing.
+    # One of source_dir or source_file must assigned.
+    if not self.source_dir and not self.source_file:
+      raise ArchiverFieldError(
+          'data_type[%r]: One of source_dir or source_file must be assigned.' %
+          self.data_type)
+    if not self.project:
+      raise ArchiverFieldError('data_type[%r]: project must be assigned.' %
+          self.data_type)
+    if not self.archived_dir:
+      raise ArchiverFieldError('data_type[%r]: archived_dir must be assigned.' %
+          self.data_type)
+
+    # TODO(itspeter): remove once encryption is ready.
+    if self.encrypt_key:
+      raise NotImplementedError('Encryption is not implemented yet')
 
 
 def GenerateConfig(config):
