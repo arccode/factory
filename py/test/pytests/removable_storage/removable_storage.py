@@ -678,7 +678,7 @@ class RemovableStorageTest(unittest.TestCase):
           self.fail(_ERR_BFT_ACTION_STR(
               'insert', self.args.media, self._target_device, e))
 
-    self._ui.Run(blocking=False)
+    ui_thread = self._ui.Run(blocking=False)
 
     # Start to monitor udev events.
     context = pyudev.Context()
@@ -688,3 +688,5 @@ class RemovableStorageTest(unittest.TestCase):
       self.HandleUdevEvent(action, device)
       if self._stop_test.isSet():
         break
+
+    ui_thread.join()
