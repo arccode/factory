@@ -418,11 +418,12 @@ class UmpireService(object):
       if '_unittest' in self.modulename or 'test_' in self.modulename:
         self.name = self.classname
 
-  def CreateProcesses(self, dummy_config):
+  def CreateProcesses(self, dummy_config, dummy_env):
     """Creates list of processes via config.
 
     Params:
       dummy_config: Umpire config dict.
+      dummy_env: UmpireEnv.
 
     Returns:
       A list of ServiceProcess.

@@ -23,11 +23,14 @@ from cros.factory.umpire import config
 _UMPIRE_CONFIG = 'umpire.yaml'
 _ACTIVE_UMPIRE_CONFIG = 'active_umpire.yaml'
 _STAGING_UMPIRE_CONFIG = 'staging_umpire.yaml'
-_UMPIRED_PID_FILE = os.path.join('run', 'umpired.pid')
-_UMPIRED_LOG_FILE = os.path.join('log', 'umpired.log')
+_UMPIRED_PID_FILE = 'umpired.pid'
+_UMPIRED_LOG_FILE = 'umpired.log'
 _CLIENT_TOOLKITS_DIR = os.path.join('toolkits', 'client')
 _SERVER_TOOLKITS_DIR = os.path.join('toolkits', 'server')
 _RESOURCES_DIR = 'resources'
+_CONFIG_DIR = 'conf'
+_LOG_DIR = 'log'
+_PID_DIR = 'run'
 
 class UmpireEnv(object):
   """Provides accessors of Umpire resources.
@@ -82,12 +85,24 @@ class UmpireEnv(object):
     return os.path.join(self.base_dir, _RESOURCES_DIR)
 
   @property
+  def config_dir(self):
+    return os.path.join(self.base_dir, _CONFIG_DIR)
+
+  @property
+  def log_dir(self):
+    return os.path.join(self.base_dir, _LOG_DIR)
+
+  @property
+  def pid_dir(self):
+    return os.path.join(self.base_dir, _PID_DIR)
+
+  @property
   def umpired_pid_file(self):
-    return os.path.join(self.base_dir, _UMPIRED_PID_FILE)
+    return os.path.join(self.pid_dir, _UMPIRED_PID_FILE)
 
   @property
   def umpired_log_file(self):
-    return os.path.join(self.base_dir, _UMPIRED_LOG_FILE)
+    return os.path.join(self.log_dir, _UMPIRED_LOG_FILE)
 
   @property
   def active_config_file(self):

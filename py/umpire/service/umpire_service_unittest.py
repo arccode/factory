@@ -14,12 +14,13 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.common import UmpireError
 from cros.factory.umpire.service.umpire_service import UmpireService
 from cros.factory.umpire.service.umpire_service import ServiceProcess
+from cros.factory.umpire.umpire_env import UmpireEnv
 from cros.factory.umpire.utils import ConcentrateDeferreds
 
 
 class SimpleService(UmpireService):
   """Test service that launches /bin/sh ."""
-  def CreateProcesses(self, dummy_umpire_config):
+  def CreateProcesses(self, dummy_umpire_config, dummy_env):
     proc = ServiceProcess(self)
     proc.SetConfig({
         'executable': '/bin/sh',
@@ -31,7 +32,7 @@ class SimpleService(UmpireService):
 
 class MultiProcService(UmpireService):
   """Multiple process service."""
-  def CreateProcesses(self, dummy_umpire_config):
+  def CreateProcesses(self, dummy_umpire_config, dummy_env):
     for p in xrange(0, 7):
       config_dict = {
           'executable': '/bin/sh',
@@ -45,7 +46,7 @@ class MultiProcService(UmpireService):
 
 class RestartService(UmpireService):
   """A process that restarts fast."""
-  def CreateProcesses(self, dummy_umpire_config):
+  def CreateProcesses(self, dummy_umpire_config, dummy_env):
     config_dict = {
         'executable': '/bin/sh',
         'name': 'P_restart',
@@ -59,7 +60,7 @@ class RestartService(UmpireService):
 
 class DupProcService(UmpireService):
   """Service contains duplicate processes."""
-  def CreateProcesses(self, dummy_umpire_config):
+  def CreateProcesses(self, dummy_umpire_config, dummy_env):
     config_dict = {
         'executable': '/bin/sh',
         'name': 'P_dup',
@@ -76,6 +77,7 @@ class ServiceTest(unittest.TestCase):
   def setUp(self):
     self.umpire_config = {}
     self.services = []
+    self.env = UmpireEnv()
 
   def tearDown(self):
     deferreds = []
@@ -87,7 +89,7 @@ class ServiceTest(unittest.TestCase):
   def testDuplicate(self):
     svc = DupProcService()
     self.services.append(svc)
-    processes = svc.CreateProcesses(self.umpire_config)
+    processes = svc.CreateProcesses(self.umpire_config, self.env)
     deferred = svc.Start(processes)
 
     def HandleStartResult(result):
@@ -112,17 +114,17 @@ class ServiceTest(unittest.TestCase):
   def testServiceStart(self):
     svc = SimpleService()
     self.services.append(svc)
-    return svc.Start(svc.CreateProcesses(self.umpire_config))
+    return svc.Start(svc.CreateProcesses(self.umpire_config, self.env))
 
   def testServiceMulti(self):
     svc = MultiProcService()
     self.services.append(svc)
-    return svc.Start(svc.CreateProcesses(self.umpire_config))
+    return svc.Start(svc.CreateProcesses(self.umpire_config, self.env))
 
   def testRestart(self):
     svc = RestartService()
     self.services.append(svc)
-    deferred = svc.Start(svc.CreateProcesses(self.umpire_config))
+    deferred = svc.Start(svc.CreateProcesses(self.umpire_config, self.env))
 
     def HandleRestartResult(dummy_result):
       raise UmpireError('testRestart expects failure callback')
