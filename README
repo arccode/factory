@@ -8,8 +8,6 @@ this repository, and follow this repository's directory structure.
   board/            Board-specific files:
     board_setup_factory.sh    A script to add board-specific arguments when
                                 starting the Goofy, the factory test harness.
-    board_setup_x.sh          A script to add board-specific arguments
-                                when starting X.
     *                         Other files needed by board-specific tests.
   misc/             miscellaneous resources used outside of Goofy
   py/               Python source code in the cros.factory module and
