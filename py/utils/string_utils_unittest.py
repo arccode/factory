@@ -1,4 +1,5 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 #
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
@@ -12,6 +13,7 @@ import logging
 import unittest
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.utils.string_utils import DecodeUTF8
 from cros.factory.utils.string_utils import ParseDict
 from cros.factory.utils.string_utils import ParseString
 
@@ -26,6 +28,14 @@ _DICT_RESULT = {'TPM Being Owned': 'false',
                 'TPM Password': '',
                 'TPM Enabled': 'true',
                 'TPM Owned': 'false'}
+
+
+class DecodeUTF8Test(unittest.TestCase):
+  """Unittest for DecodeUTF8."""
+  def testDecodeUTF8(self):
+    self.assertEquals(u'abc', DecodeUTF8('abc'))
+    self.assertEquals(u'abc', DecodeUTF8(u'abc'))
+    self.assertEquals(u'TEST 測試', DecodeUTF8(u'TEST 測試'))
 
 
 class ParseDictTest(unittest.TestCase):

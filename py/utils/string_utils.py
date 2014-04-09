@@ -13,7 +13,10 @@ import logging
 
 def DecodeUTF8(data):
   """Decodes data as UTF-8, replacing any bad characters."""
-  return unicode(data, encoding='utf-8', errors='replace')
+  if isinstance(data, unicode):
+    return data
+  else:
+    return unicode(data, encoding='utf-8', errors='replace')
 
 def CleanUTF8(data):
   """Returns a UTF-8-clean string."""
