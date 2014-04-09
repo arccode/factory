@@ -10,6 +10,7 @@
 #   rolled-out.
 import argparse
 import copy
+import fcntl
 import logging
 import os
 import pprint
@@ -32,6 +33,9 @@ DEFAULT_DELIMITER = {
   'eventlog': r'---\n',
   'regcode': r'\n'
 }
+
+# Global variable to keep locked file open during process life-cycle
+locks = []
 
 
 class ArchiverFieldError(Exception):
@@ -231,6 +235,11 @@ class ArchiverConfig(object):
       raise ArchiverFieldError(
           'data_type[%r]: One of source_dir or source_file must be assigned.' %
           self.data_type)
+    if self.source_dir and self.source_file:
+      raise ArchiverFieldError(
+          'data_type[%r]: Should only One of source_dir or source_file '
+          'be assigned.' % self.data_type)
+
     if not self.project:
       raise ArchiverFieldError('data_type[%r]: project must be assigned.' %
           self.data_type)
@@ -328,6 +337,66 @@ def GenerateConfig(config):
   return archive_configs
 
 
+def LockSource(config):
+  """Marks a source as been monitored by this archiver.
+
+  Args:
+    config: An ArchiverConfig that alrady pass CheckPropertiesSufficient
+
+  Returns:
+    The path of the lock file.
+
+  Raises:
+    ArchiverFieldError if fails to mark that source.
+  """
+  LOCK_FILE_SUFFIX = '.archiver.lock'
+  if config.source_dir:
+    lock_file_path = os.path.join(config.source_dir, LOCK_FILE_SUFFIX)
+  else:
+    lock_file_path = os.path.join(
+        os.path.dirname(config.source_file),
+        '.' + os.path.basename(config.source_file) + LOCK_FILE_SUFFIX)
+  # Check if the file is already locked ?
+  fd = os.fdopen(os.open(lock_file_path, os.O_RDWR | os.O_CREAT), 'r+')
+  try:
+    fcntl.lockf(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+  except IOError:
+    running_pid = open(lock_file_path, 'r').read()
+    error_msg = (
+        "data_type[%r] is already monitored by another archiver."
+        "Lock %r cannot be accquired. Another archiver's PID "
+        "might be %s" % (config.data_type, lock_file_path, running_pid))
+    logging.error(error_msg)
+    raise ArchiverFieldError(error_msg)
+
+  # Write the owner's process ID.
+  fd.seek(0)
+  fd.write(str(os.getpid()))
+  fd.truncate()
+  fd.flush()
+  os.fsync(fd.fileno())
+  # Add to global variable to live until this process ends.
+  locks.append((fd, lock_file_path))
+  logging.info('Successfully accquire advisory lock on %r, PID[%d]',
+               lock_file_path, os.getpid())
+  return lock_file_path
+
+def UnlockSources(func):
+  """Decorator to delete the markers in normal flow."""
+  def wrapper(*args, **kwargs):
+    global locks  # pylint: disable=W0603
+    ret = func(*args, **kwargs)
+    for _, lock_file_path in locks:
+      logging.info('Trying to delete advisory lock on %r', lock_file_path)
+      try:
+        os.unlink(lock_file_path)
+      except OSError:
+        logging.error('Lock file %s is already deleted.', lock_file_path)
+    locks = []
+    return ret
+  return wrapper
+
+@UnlockSources
 def main(argv):
   def IsValidYAMLFile(arg):
     """Help function to reject invalid YAML syntax"""
@@ -371,13 +440,20 @@ def main(argv):
   args = top_parser.parse_args(argv)
 
   # Check fields.
-  if args.sub_command == 'run' or args.sub_command == 'dry-run':
+  if args.sub_command in ['run', 'dry-run']:
     with open(args.yaml_config) as f:
       logging.debug('Validating fields in %r', args.yaml_config)
       # TODO(itspeter): Complete the remaining logic for archiver.
       # pylint: disable=W0612
       configs = GenerateConfig(yaml.load(f.read()))
 
+    # Try to accquire locks for each config
+    for config in configs:
+      LockSource(config)
+
+    if args.sub_command == 'dry-run':
+      # TODO(itspeter): Additional action for dry-run checking
+      return
 
 if __name__ == '__main__':
   # TODO(itspeter): Consider expose the logging level as an argument.

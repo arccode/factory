@@ -7,10 +7,12 @@
 import archiver
 import logging
 import os
+import time
 import unittest
 import yaml
 
 from archiver import ArchiverFieldError
+from multiprocessing import Process
 
 TEST_DATA_PATH = os.path.abspath(os.path.join(
     os.path.dirname(__file__), 'testdata/archiver'))
@@ -104,6 +106,13 @@ class ArchiverUnittest(unittest.TestCase):
         ArchiverFieldError, 'One of source_dir or source_file must be assigned',
         archiver.main, argv)
 
+  def testMultipleSources(self):
+    argv = ['dry-run', os.path.join(TEST_DATA_PATH, 'multiple_sources.yaml')]
+    self.assertRaisesRegexp(
+        ArchiverFieldError,
+        'Should only One of source_dir or source_file be assigned',
+        archiver.main, argv)
+
   def testMissingProject(self):
     argv = ['dry-run', os.path.join(TEST_DATA_PATH, 'missing_project.yaml')]
     self.assertRaisesRegexp(
@@ -115,6 +124,30 @@ class ArchiverUnittest(unittest.TestCase):
     self.assertRaisesRegexp(
         ArchiverFieldError, 'archived_dir must be assigned',
         archiver.main, argv)
+
+  def testLockSource(self):
+    with open(os.path.join(TEST_DATA_PATH, 'template.yaml')) as f:
+      content = f.read()
+    configs = archiver.GenerateConfig(yaml.load(content))
+
+    def _Delayed():
+      archiver.LockSource(configs[0])
+      time.sleep(10)
+
+    # Lock the first config in another process
+    p = Process(target=_Delayed)
+    p.start()
+    time.sleep(0.5)  # Give some time for process to start up
+    self.assertRaisesRegexp(
+        ArchiverFieldError, 'already monitored by another archiver',
+        archiver.LockSource, configs[0])
+
+    # Test if the lock released while process terminated
+    p.terminate()
+    time.sleep(0.5)  # Give some time for process to terminate
+    lock_path = archiver.LockSource(configs[0])
+    # Delete the temporary lock file.
+    os.unlink(lock_path)
 
 
 if __name__ == '__main__':
