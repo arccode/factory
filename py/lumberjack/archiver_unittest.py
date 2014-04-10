@@ -11,8 +11,11 @@ import time
 import unittest
 import yaml
 
+import factory_common  # pylint: disable=W0611
+
 from archiver import ArchiverFieldError
 from multiprocessing import Process
+from cros.factory.test import utils
 
 TEST_DATA_PATH = os.path.abspath(os.path.join(
     os.path.dirname(__file__), 'testdata/archiver'))
@@ -26,6 +29,11 @@ class ArchiverUnittest(unittest.TestCase):
         format=('[%(levelname)s] archiver:%(lineno)d %(asctime)s %(message)s'),
         level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S')
     self.pwd = os.getcwd()
+    # Create empty directory
+    utils.TryMakeDirs(os.path.join(TEST_DATA_PATH, 'archives'))
+    utils.TryMakeDirs(os.path.join(TEST_DATA_PATH, 'raw/report'))
+    utils.TryMakeDirs(os.path.join(TEST_DATA_PATH, 'raw/eventlog'))
+    utils.TryMakeDirs(os.path.join(TEST_DATA_PATH, 'raw/regcode'))
     os.chdir(TEST_DATA_PATH)
 
   def tearDown(self):
