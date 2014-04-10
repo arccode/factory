@@ -1,0 +1,37 @@
+board: test_board
+ip: 10.0.0.1
+port: 8080
+rulesets:
+- bundle_id: test1
+  note: ruleset for test 1
+  active: true
+- bundle_id: test2
+  note: ruleset for test 2
+  active: false
+- bundle_id: test3
+  note: ruleset for test 3
+  active: true
+services: {}
+bundles:
+- id: test1
+  note: bundle for test
+  shop_floor:
+    handler: cros.factory.shopfloor.test_board_shopfloor
+  resources:
+    hwid: hwid.gz##9c7de5c7
+    efi: efi.gz##0498ba96
+- id: test2
+  note: bundle for test
+  shop_floor:
+    handler: cros.factory.shopfloor.test_board_shopfloor
+  resources:
+    hwid: hwid.gz##00000000
+    efi: efi.gz##00000000
+- id: test3
+  note: bundle for test
+  shop_floor:
+    handler: cros.factory.shopfloor.test_board_shopfloor
+  resources:
+    hwid: hwid.gz##aa686306
+    efi: efi.gz##a20a13b9
+

@@ -15,7 +15,7 @@ import yaml
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.schema import FixedDict, List, Scalar
-from cros.factory.umpire.common import UmpireError
+from cros.factory.umpire.common import UmpireError, VerifyResource
 from cros.factory.umpire.service.umpire_service import LoadServiceModule
 from cros.factory.umpire.service.umpire_service import GetServiceSchemata
 
@@ -105,6 +105,38 @@ def ValidateConfig(config):
           'ip': Scalar('IP address to bind', str),
           'port': Scalar('Base port', int)})
   schema.Validate(config)
+
+
+def ValidateResources(config, env):
+  """Validates resources in each active bundle.
+
+  Args:
+    config: Umpire config dict.
+    env: UmpireEnv.
+
+  Returns:
+    True if all resources in each active bundle exist in resources directory.
+  """
+  active_bundles = set(r['bundle_id']
+                       for r in config['rulesets'] if r.get('active'))
+
+  # Used to store missing or checksum mismatch resource(s).
+  error = []
+  for bundle in config['bundles']:
+    if bundle['id'] not in active_bundles:
+      continue
+    for resource_name, resource_filename in bundle['resources'].items():
+      try:
+        resource_path = env.GetResourcePath(resource_filename)
+      except IOError as e:
+        error.append('[NOT FOUND] resource %s:%s for bundle %r' % (
+            resource_name, e.filename, bundle['id']))
+      else:
+        if not VerifyResource(resource_path):
+          error.append('[CHECKSUM MISMATCH] resource %s:%s for bundle %r' % (
+              resource_name, resource_path, bundle['id']))
+  if error:
+    raise UmpireError('\n'.join(error))
 
 
 class UmpireOrderedDict(dict):

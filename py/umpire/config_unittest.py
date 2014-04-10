@@ -7,12 +7,16 @@
 import copy
 import os
 import re
+import shutil
 import sys
+import tempfile
 import unittest
 import yaml
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire import config
+from cros.factory.umpire.common import UmpireError
+from cros.factory.umpire.umpire_env import UmpireEnv
 from cros.factory.utils import file_utils
 
 TESTDATA_DIR = os.path.join(os.path.dirname(sys.modules[__name__].__file__),
@@ -20,6 +24,9 @@ TESTDATA_DIR = os.path.join(os.path.dirname(sys.modules[__name__].__file__),
 MINIMAL_CONFIG = os.path.join(TESTDATA_DIR, 'minimal_umpire.yaml')
 EMPTY_SERVICES_CONFIG = os.path.join(TESTDATA_DIR,
                                      'minimal_empty_services_umpire.yaml')
+RESOURCE_CHECK_CONFIG = os.path.join(TESTDATA_DIR,
+                                     'umpire_resource_check.yaml')
+
 _RE_COMMENT = re.compile(r'\s*# .+')
 
 
@@ -126,6 +133,57 @@ class TestUmpireConfig(unittest.TestCase):
                      bundle['resources']['complete_script'])
 
     self.assertIsNone(conf.GetBundle('nonexist_bundle'))
+
+
+class TestValidateResources(unittest.TestCase):
+  def setUp(self):
+    self.env = UmpireEnv()
+    self.temp_dir = tempfile.mkdtemp()
+    self.env.base_dir = self.temp_dir
+    os.makedirs(self.env.resources_dir)
+    self.conf = config.UmpireConfig(RESOURCE_CHECK_CONFIG, validate=False)
+
+    self.hwid1 = self.MakeResourceFile('hwid.gz', 'hwid1')
+    self.hwid2 = self.MakeResourceFile('hwid.gz', 'hwid2')
+    self.MakeResourceFile('efi.gz', 'efi1')
+    self.MakeResourceFile('efi.gz', 'efi2')
+
+  def tearDown(self):
+    if os.path.isdir(self.temp_dir):
+      shutil.rmtree(self.temp_dir)
+
+  def MakeResourceFile(self, filename, content):
+    path = os.path.join(self.temp_dir, filename)
+    file_utils.WriteFile(path, content)
+    return self.env.AddResource(path)
+
+  def testNormal(self):
+    config.ValidateResources(self.conf, self.env)
+
+  def testFileNotFound(self):
+    # Resources in the second ruleset's bundle are not presented.
+    self.conf['rulesets'][1]['active'] = True
+    self.assertRaisesRegexp(UmpireError, 'NOT FOUND.+efi.gz##00000000',
+                            config.ValidateResources, self.conf, self.env)
+
+  def testFileNotFound2(self):
+    def RenameResourceThenTest(resource_path):
+      filename = os.path.basename(resource_path)
+      temp_path = os.path.join(self.temp_dir, filename)
+      os.rename(resource_path, temp_path)
+      self.assertRaisesRegexp(UmpireError, 'NOT FOUND.+' + filename,
+                              config.ValidateResources, self.conf, self.env)
+      os.rename(temp_path, resource_path)
+
+    # Remove hwid in the first and second active bundle, respectively.
+    RenameResourceThenTest(self.hwid1)
+    RenameResourceThenTest(self.hwid2)
+
+  def testFileChechsumMismatch(self):
+    file_utils.WriteFile(self.hwid1, 'content changed')
+    self.assertRaisesRegexp(
+        UmpireError, 'CHECKSUM MISMATCH.+hwid.gz##9c7de5c7',
+        config.ValidateResources, self.conf, self.env)
 
 
 if __name__ == '__main__':
