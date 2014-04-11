@@ -1,0 +1,7 @@
+data_types:
+  eventlog:
+    archived_dir: archives/
+    project: mocked_project
+    notes: template that contains only eventlog for unittest
+    source_dir: raw/eventlog/
+    duration: hourly
