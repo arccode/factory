@@ -25,19 +25,6 @@ def GRT(args):
     args: A TestListArgs object.
   """
   with AutomatedSequence(id='GoogleRequiredTests'):
-    # LTE model only. Checks the parameters of LTE module.
-    with AutomatedSequence(id='VerifyLTEModemLocked', label_zh=u'检验 LTE 数据机'):
-      OperatorTest(
-          exclusive=['NETWORKING'],
-          id='VerifyLTEChromebookSpecificParameters',
-          label_zh=u'检验 LTE Chromebook 特有参数',
-          pytest_name='lte_smt',
-          run_if=args.HasLTE,
-          dargs=dict(verify_chromebook_specific_parameters=True))
-      # Re-use SyncShopFloor to make sure the connection is back since last
-      # exclusive=['NETWORKING'].
-      args.SyncShopFloor(flush_event_logs=False, run_if=args.HasLTE)
-
     # Checks release image root partition.
     if args.fully_imaged:
       OperatorTest(
@@ -76,34 +63,35 @@ def GRT(args):
 
         args.Barrier('GRTVerifyHWID', pass_without_prompt=True)
 
-    # 3G model only. Checks there is no sim card tray.
-    OperatorTest(
-        id='CheckNoSIMCardTray',
-        label_zh=u'检查是否无 SIM 卡盘',
-        pytest_name='probe_sim_card_tray',
-        dargs=dict(tray_already_present=False),
-        run_if=args.HasCellular)
+    if args.detailed_cellular_tests:
+      # 3G model only. Checks there is no sim card tray.
+      OperatorTest(
+          id='CheckNoSIMCardTray',
+          label_zh=u'检查是否无 SIM 卡盘',
+          pytest_name='probe_sim_card_tray',
+          dargs=dict(tray_already_present=False),
+          run_if=args.HasCellular)
 
-    # 3G model only. Checks there is no sim card.
-    OperatorTest(
-        id='CheckSIMCardNotPresent',
-        label_zh=u'检查 SIM 卡不存在',
-        pytest_name='probe_sim',
-        run_if=args.HasCellular,
-        dargs=dict(only_check_simcard_not_present=True))
+      # 3G model only. Checks there is no sim card.
+      OperatorTest(
+          id='CheckSIMCardNotPresent',
+          label_zh=u'检查 SIM 卡不存在',
+          pytest_name='probe_sim',
+          run_if=args.HasCellular,
+          dargs=dict(only_check_simcard_not_present=True))
 
-    # LTE model only. Gets the IMEI and ICCID the last time in case
-    # LTE sim card or module was replaced before finalize.
-    OperatorTest(
-        id='ProbeLTEIMEIICCID',
-        label_zh=u'提取 LTE IMEI ICCID',
-        pytest_name='probe_cellular_info',
-        run_if=args.HasLTE,
-        dargs=dict(
-            probe_meid=False,
-            probe_imei=False,
-            probe_lte_imei=True,
-            probe_lte_iccid=True))
+      # LTE model only. Gets the IMEI and ICCID the last time in case
+      # LTE sim card or module was replaced before finalize.
+      OperatorTest(
+          id='ProbeLTEIMEIICCID',
+          label_zh=u'提取 LTE IMEI ICCID',
+          pytest_name='probe_cellular_info',
+          run_if=args.HasLTE,
+          dargs=dict(
+              probe_meid=False,
+              probe_imei=False,
+              probe_lte_imei=True,
+              probe_lte_iccid=True))
 
     # Requests to clear TPM at next boot.
     FactoryTest(

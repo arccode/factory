@@ -38,6 +38,10 @@ load_setup() {
       echo "Enable factory test automation with mode: ${mode}" 1>&2
       GOOFY_ARGS="${GOOFY_ARGS} --automation-mode=${mode}"
     fi
+    if [[ -f ${STOP_AUTO_RUN_ON_START_TAG_FILE} ]]; then
+      echo "Suppress test list auto-run on start" 1>&2
+      GOOFY_ARGS="${GOOFY_ARGS} --no-auto-run-on-start"
+    fi
   fi
 
   factory_setup

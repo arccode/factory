@@ -320,6 +320,11 @@ class GoofyRPC(object):
     self._InRunQueue(lambda: self.goofy.restart_tests(root=test))
     return self.goofy.run_id
 
+  def RestartAllTests(self):
+    """Restarts all tests."""
+    self._InRunQueue(self.goofy.restart_tests)
+    return self.goofy.run_id
+
   def CancelPendingTests(self):
     """Cancels all pending tests."""
     self._InRunQueue(self.goofy.cancel_pending_tests)

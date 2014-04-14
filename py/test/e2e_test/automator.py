@@ -5,13 +5,20 @@
 """Factory test automation module."""
 
 import logging
+import os
+import yaml
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.common import MakeList
 from cros.factory.hwid import common
+from cros.factory.test import factory
 from cros.factory.test import utils
 from cros.factory.test.e2e_test import e2e_test
 from cros.factory.test.e2e_test.common import AutomationMode, DEFAULT, CHROOT
+
+
+AUTOMATION_FUNCTION_KWARGS_FILE = os.path.join(
+    factory.get_state_root(), 'automation_function_kwargs.yaml')
 
 
 class AutomationError(Exception):
@@ -75,6 +82,7 @@ class Automator(e2e_test.E2ETest):
       board = common.ProbeBoard()
 
     automator_setting = None
+    path = self.test_info.path
     mode = self.test_info.automation_mode
 
     for b in (board, DEFAULT):
@@ -92,7 +100,15 @@ class Automator(e2e_test.E2ETest):
     if automator_setting:
       logging.info('Start %s automation function for factory test %r.',
                    mode, self.test_info.pytest_name)
-      automator_setting.function(self)
+      # If AUTOMATION_FUNCTION_KWARGS_FILE exists, try to load kwargs for the
+      # automation function.
+      kwargs = {}
+      if os.path.exists(AUTOMATION_FUNCTION_KWARGS_FILE):
+        with open(AUTOMATION_FUNCTION_KWARGS_FILE) as f:
+          automation_function_kwargs = yaml.safe_load(f.read())
+          kwargs.update(automation_function_kwargs.get(path, {}))
+
+      automator_setting.function(self, **kwargs)
       if automator_setting.wait_for_factory_test:
         self.pytest_thread.join()
         self.WaitForPass()

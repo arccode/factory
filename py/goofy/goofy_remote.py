@@ -121,6 +121,11 @@ def main():
   parser.add_argument('--automation-mode',
                       choices=[m.lower() for m in AutomationMode],
                       default='none', help="Factory test automation mode.")
+  parser.add_argument('--no-auto-run-on-start', dest='auto_run_on_start',
+                      action='store_false', default=True,
+                      help=('do not automatically run the test list on goofy '
+                            'start; this is only valid when factory test '
+                            'automation is enabled'))
   parser.add_argument('--shopfloor_port', dest='shopfloor_port', type=int,
                       default=8082, help='set shopfloor port')
   parser.add_argument('--board', '-b', dest='board',
@@ -152,6 +157,10 @@ def main():
 
   if not SRCROOT:
     sys.exit('goofy_remote must be run from within the chroot')
+
+  if not args.auto_run_on_start and args.automation_mode == 'none':
+    sys.exit('--no-auto-run-on-start must be used only when factory test '
+             'automation is enabled')
 
   Spawn(['make', '--quiet'], cwd=factory.FACTORY_PATH,
         check_call=True, log=True)
@@ -210,7 +219,9 @@ def main():
   if args.restart:
     SpawnSSHToDUT([args.host, '/usr/local/factory/bin/factory_restart'] +
                   (['-a'] if args.clear_state else []) +
-                  ['--automation-mode', '%s' % args.automation_mode],
+                  ['--automation-mode', '%s' % args.automation_mode] +
+                  ([] if args.auto_run_on_start
+                   else ['--no-auto-run-on-start']),
                   check_call=True, log=True)
 
   if args.run_test:

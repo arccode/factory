@@ -272,6 +272,10 @@ class TestListArgs(object):
   #
   #####
 
+  # Whether to enable detailed cellular tests. These tests may not apply to all
+  # boards.
+  detailed_cellular_tests = False
+
   # Enable requirement for GRT finish test.
   @property
   def grt_require_run_for_finish(self):

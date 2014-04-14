@@ -391,7 +391,7 @@ class Goofy(object):
       logging.exception('Unable to grok /var/log/messages')
 
     try:
-      mosys_log = utils.Spawn(
+      mosys_log = Spawn(
           ['mosys', 'eventlog', 'list'],
           read_stdout=True, log_stderr_on_error=True).stdout_data
       logging.info('System eventlog from mosys:\n%s\n', mosys_log)
@@ -523,7 +523,7 @@ class Goofy(object):
 
         if mosys_log is None and not utils.in_chroot():
           try:
-            mosys_log = utils.Spawn(
+            mosys_log = Spawn(
                 ['mosys', 'eventlog', 'list'],
                 read_stdout=True, log_stderr_on_error=True).stdout_data
             # Write it to the log also.
@@ -1185,6 +1185,11 @@ class Goofy(object):
     parser.add_option('--automation-mode',
                       choices=[m.lower() for m in AutomationMode],
                       default='none', help="Factory test automation mode.")
+    parser.add_option('--no-auto-run-on-start', dest='auto_run_on_start',
+                      action='store_false', default=True,
+                      help=('do not automatically run the test list on goofy '
+                            'start; this is only valid when factory test '
+                            'automation is enabled'))
     parser.add_option('--guest_login', dest='guest_login', default=False,
                       action='store_true',
                       help='Log in as guest. This will not own the TPM.')
@@ -1444,8 +1449,11 @@ class Goofy(object):
       self.run_queue.put(self.run_next_test)
     else:
       if force_auto_run or self.test_list.options.auto_run_on_start:
-        self.run_queue.put(
-            lambda: self.run_tests(self.test_list, untested_only=True))
+        # If automation mode is enabled, allow suppress auto_run_on_start.
+        if (self.options.automation_mode == 'NONE' or
+            self.options.auto_run_on_start):
+          self.run_queue.put(
+              lambda: self.run_tests(self.test_list, untested_only=True))
     self.state_instance.set_shared_data('tests_after_shutdown', None)
     self.restore_active_run_state()
 

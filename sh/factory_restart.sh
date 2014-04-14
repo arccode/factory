@@ -29,6 +29,8 @@ usage_help() {
       --automation-mode MODE:
                     set factory automation mode (none, partial, full);
                     default: none
+      --no-auto-run-on-start:
+                    do not automatically run test list when Goofy starts
   "
 }
 
@@ -40,6 +42,7 @@ clear_files() {
 
 clear_vpd=false
 automation_mode=
+stop_auto_run_on_start=false
 delete=""
 while [ $# -gt 0 ]; do
   opt="$1"
@@ -81,6 +84,9 @@ while [ $# -gt 0 ]; do
           ;;
       esac
       ;;
+    --no-auto-run-on-start )
+      stop_auto_run_on_start=true
+      ;;
     * )
       echo "Unknown option: $opt"
       usage_help
@@ -116,6 +122,11 @@ find ${FACTORY_BASE} -wholename "${AUTOMATION_MODE_TAG_FILE}" -delete
 if [ "${mode}" != "none" ]; then
   echo Enable factory test automation with mode: ${mode}
   echo "${mode}" > ${AUTOMATION_MODE_TAG_FILE}
+  if ${stop_auto_run_on_start}; then
+    touch ${STOP_AUTO_RUN_ON_START_TAG_FILE}
+  else
+    rm -f ${STOP_AUTO_RUN_ON_START_TAG_FILE}
+  fi
 fi
 
 echo "Restarting factory tests..."

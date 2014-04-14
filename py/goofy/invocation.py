@@ -51,6 +51,10 @@ ERROR_LOG_TAIL_LENGTH = 8*1024
 
 # pylint: disable=W0702
 
+# A file that stores override test list dargs for factory test automation.
+OVERRIDE_TEST_LIST_DARGS_FILE = os.path.join(
+    factory.get_state_root(), 'override_test_list_dargs.yaml')
+
 
 class InvocationError(Exception):
   """Invocation error."""
@@ -404,19 +408,26 @@ class TestInvocation(object):
         return TestState.FAILED, 'Unable to resolve test arguments: %s' % e
 
       pytest_name = self.test.pytest_name
-      if (self.test.has_automator and
-          self.goofy.options.automation_mode != AutomationMode.NONE):
-        logging.info('Enable factory test automator for %r', pytest_name)
-        if os.path.exists(os.path.join(
-            factory.FACTORY_PATH, 'py', 'test', 'pytests', pytest_name,
-            pytest_name + '_automator_private.py')):
-          pytest_name += '_automator_private'
-        elif os.path.exists(os.path.join(
-            factory.FACTORY_PATH, 'py', 'test', 'pytests', pytest_name,
-            pytest_name + '_automator.py')):
-          pytest_name += '_automator'
-        else:
-          raise InvocationError('Cannot find automator for %r' % pytest_name)
+      if self.goofy.options.automation_mode != AutomationMode.NONE:
+        # Load override test list dargs if OVERRIDE_TEST_LIST_DARGS_FILE exists.
+        if os.path.exists(OVERRIDE_TEST_LIST_DARGS_FILE):
+          with open(OVERRIDE_TEST_LIST_DARGS_FILE) as f:
+            override_dargs_from_file = yaml.safe_load(f.read())
+          args.update(override_dargs_from_file.get(self.test.path, {}))
+        logging.warn(args)
+
+        if self.test.has_automator:
+          logging.info('Enable factory test automator for %r', pytest_name)
+          if os.path.exists(os.path.join(
+              factory.FACTORY_PATH, 'py', 'test', 'pytests', pytest_name,
+              pytest_name + '_automator_private.py')):
+            pytest_name += '_automator_private'
+          elif os.path.exists(os.path.join(
+              factory.FACTORY_PATH, 'py', 'test', 'pytests', pytest_name,
+              pytest_name + '_automator.py')):
+            pytest_name += '_automator'
+          else:
+            raise InvocationError('Cannot find automator for %r' % pytest_name)
 
       with open(info_path, 'w') as info:
         pickle.dump(PyTestInfo(
