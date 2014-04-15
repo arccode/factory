@@ -14,6 +14,7 @@ from cros.factory.factory_flow.common import (
     board_cmd_arg, bundle_dir_cmd_arg, dut_hostname_cmd_arg, FactoryFlowCommand)
 from cros.factory.hacked_argparse import CmdArg
 from cros.factory.test import utils
+from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 
 # pylint: disable=W0612, F0401
@@ -64,6 +65,7 @@ class USBInstall(FactoryFlowCommand):
 
   def Run(self):
     self.PrepareImage()
+    self.FlashFirmware()
     self.InstallWithServo()
     if self.options.wait:
       self.WaitForInstallToFinish()
@@ -142,6 +144,34 @@ class USBInstall(FactoryFlowCommand):
                    firmware_updater_path)
       process_utils.Spawn(make_factory_package, check_call=True, log=True)
       self.usb_image_path = usb_image_path
+
+  def FlashFirmware(self):
+    """Flashes the firmware and EC extracted from release image onto DUT."""
+    release_image_path = self.LocateUniquePath(
+        'release image',
+        [os.path.join(self.options.bundle, 'release', '*.bin')])
+    firmware_extractor = os.path.join(
+        self.options.bundle, 'factory_setup', 'extract_firmware_updater.sh')
+    logging.info('Extracting firmware and EC from release image %s',
+                 release_image_path)
+    with file_utils.TempDirectory(prefix='firmware_updater') as temp_dir:
+      # Extract firmware updater from release image.
+      process_utils.Spawn([firmware_extractor, '-i', release_image_path,
+                           '-o', temp_dir], log=True, check_call=True)
+      # Extract bios.bin and ec.bin from the firmawre updater.
+      firmware_updater = os.path.join(temp_dir, 'chromeos-firmwareupdate')
+      process_utils.Spawn([firmware_updater, '--sb_extract', temp_dir],
+                          log=True, check_call=True)
+      # Flash the firmware and EC with servo.
+      servo_version = self.servo.get_version()
+      bios_path = os.path.join(temp_dir, 'bios.bin')
+      logging.info('Flashing firmware %s on DUT %s with servo %s',
+                   bios_path, self.options.dut, servo_version)
+      self.servo.program_bios(bios_path)
+      ec_path = os.path.join(temp_dir, 'ec.bin')
+      logging.info('Flashing EC %s on DUT %s with servo %s',
+                   ec_path, self.options.dut, servo_version)
+      self.servo.program_ec(ec_path)
 
   def InstallWithServo(self):
     """Loads the image to USB disk and reboots the DUT into recovery mode."""
