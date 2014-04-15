@@ -121,6 +121,30 @@ class UmpireEnvTest(unittest.TestCase):
 
       self.assertRaises(UmpireError, self.env.UnstageConfigFile)
 
+  def testActivateConfigFile(self):
+    with file_utils.TempDirectory() as temp_dir:
+      self.env.base_dir = temp_dir
+      config_to_activate = os.path.join(temp_dir, 'to_activate.yaml')
+      file_utils.TouchFile(config_to_activate)
+
+      self.env.ActivateConfigFile(config_path=config_to_activate)
+      self.assertTrue(os.path.exists(self.env.active_config_file))
+      self.assertEqual(config_to_activate,
+                       os.path.realpath(self.env.active_config_file))
+
+  def testActivateConfigFileDefaultStaging(self):
+    with file_utils.TempDirectory() as temp_dir:
+      self.env.base_dir = temp_dir
+      config_to_activate = os.path.join(temp_dir, 'to_activate.yaml')
+      file_utils.TouchFile(config_to_activate)
+      # First prepare a staging config file.
+      self.env.StageConfigFile(config_to_activate)
+
+      self.env.ActivateConfigFile()
+      self.assertTrue(os.path.exists(self.env.active_config_file))
+      self.assertEqual(config_to_activate,
+                       os.path.realpath(self.env.active_config_file))
+
   def testAddResource(self):
     with file_utils.TempDirectory() as temp_dir:
       self.env.base_dir = temp_dir

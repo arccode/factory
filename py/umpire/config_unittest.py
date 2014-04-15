@@ -26,6 +26,7 @@ EMPTY_SERVICES_CONFIG = os.path.join(TESTDATA_DIR,
                                      'minimal_empty_services_umpire.yaml')
 RESOURCE_CHECK_CONFIG = os.path.join(TESTDATA_DIR,
                                      'umpire_resource_check.yaml')
+RULESET_CONFIG = os.path.join(TESTDATA_DIR, 'rulesets_umpire.yaml')
 
 _RE_COMMENT = re.compile(r'\s*# .+')
 
@@ -62,6 +63,30 @@ class TestUmpireConfig(unittest.TestCase):
     bundle = conf['bundles'][0]
     self.assertEqual('test', bundle['id'])
     self.assertEqual('bundle for test', bundle['note'])
+
+  def testLoadConfigRuleMatcher(self):
+    conf = config.UmpireConfig(RULESET_CONFIG)
+    self.assertEqual(2, len(conf['rulesets']))
+    ruleset = conf['rulesets'][0]
+    self.assertDictEqual(
+        {'bundle_id': 'test',
+         'note': 'ruleset with matchers',
+         'active': True,
+         'match': {
+             'mac': ['aa:bb:cc:dd:ee:ff'],
+             'mlb_sn': ['SN001'],
+             'mlb_sn_range': ['-', 'SN005'],
+             'sn': ['OC1234567890'],
+             'sn_range': ['OC1234567890', '-']}},
+        ruleset)
+
+    default_ruleset = conf['rulesets'][1]
+    self.assertDictEqual(
+        {'bundle_id': 'test',
+         'note': 'ruleset for test',
+         'active': True},
+        default_ruleset)
+
 
   def testWriteConfig(self):
     def RemoveComments(lines):
@@ -184,6 +209,85 @@ class TestValidateResources(unittest.TestCase):
     self.assertRaisesRegexp(
         UmpireError, 'CHECKSUM MISMATCH.+hwid.gz##9c7de5c7',
         config.ValidateResources, self.conf, self.env)
+
+
+class testShowDiff(unittest.TestCase):
+  def testChangeBundle(self):
+    original = {
+        'rulesets': [
+            {'bundle_id': 'original_bundle',
+             'note': 'ruleset 1',
+             'active': True}]}
+    new = {
+        'rulesets': [
+            {'bundle_id': 'new_bundle',
+             'note': 'ruleset 1',
+             'active': True}]}
+    self.assertListEqual(
+        ['Newly added rulesets:',
+         '  bundle_id: new_bundle',
+         '  note: ruleset 1',
+         '  active: true',
+         '  ',
+         'Deleted rulesets:',
+         '  bundle_id: original_bundle',
+         '  note: ruleset 1',
+         '  active: true',
+         '  '],
+        config.ShowDiff(original, new))
+
+  def testInactive(self):
+    original = {
+        'rulesets': [
+            {'bundle_id': 'bundle_1',
+             'note': 'ruleset 1',
+             'active': True},
+            {'bundle_id': 'bundle_2',
+             'note': 'ruleset 2',
+             'active': True}]}
+    new = {
+        'rulesets': [
+            {'bundle_id': 'bundle_1',
+             'note': 'ruleset 1',
+             'active': False},
+            {'bundle_id': 'bundle_2',
+             'note': 'ruleset 2',
+             'active': True}]}
+
+    self.assertListEqual(
+        ['Deleted rulesets:',
+         '  bundle_id: bundle_1',
+         '  note: ruleset 1',
+         '  active: true',
+         '  '],
+        config.ShowDiff(original, new))
+
+  def testActive(self):
+    original = {
+        'rulesets': [
+            {'bundle_id': 'bundle_1',
+             'note': 'ruleset 1 to active',
+             'active': False},
+            {'bundle_id': 'bundle_2',
+             'note': 'ruleset 2',
+             'active': True}]}
+    new = {
+        'rulesets': [
+            {'bundle_id': 'bundle_1',
+             'note': 'ruleset 1 active',
+             'active': True},
+            {'bundle_id': 'bundle_2',
+             'note': 'ruleset 2',
+             'active': True}]}
+
+    self.assertListEqual(
+        ['Newly added rulesets:',
+         '  bundle_id: bundle_1',
+         '  note: ruleset 1 active',
+         '  active: true',
+         '  '],
+        config.ShowDiff(original, new))
+
 
 
 if __name__ == '__main__':

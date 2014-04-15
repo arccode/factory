@@ -18,6 +18,7 @@ from cros.factory.hacked_argparse import (CmdArg, Command, ParseCmdline,
                                           verbosity_cmd_arg)
 from cros.factory.umpire.commands import init
 from cros.factory.umpire import common
+from cros.factory.umpire.config import ShowDiff, ValidateResources
 from cros.factory.umpire.umpire_env import UmpireEnv
 from cros.factory.utils import file_utils
 
@@ -136,13 +137,26 @@ def Edit(dummy_args, dummy_env):
 
 
 @Command('deploy')
-def Deploy(dummy_args, dummy_env):
+def Deploy(dummy_args, env):
   """Deploys an Umpire service.
 
   It runs an Umpire service based on the staging Umpire Config (unless
   specified by --config).
   """
-  raise NotImplementedError
+  # The config to deploy is already loaded and its path is stored in
+  # env.config_path.
+  config_to_deploy = env.config_path
+  ValidateResources(config_to_deploy, env)
+
+  ok_to_deploy = True
+  if env.active_config_file:
+    print 'Changes for this deploy: '
+    print ''.join(ShowDiff(env.active_config_file, config_to_deploy))
+    if raw_input('Ok to deploy [y/n]? ') not in ['y', 'Y']:
+      ok_to_deploy = False
+  if ok_to_deploy:
+    # Ask umpired to deploy config_to_deploy
+    pass
 
 
 @Command('status')

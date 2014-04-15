@@ -20,6 +20,22 @@ from cros.factory.umpire.service.umpire_service import LoadServiceModule
 from cros.factory.umpire.service.umpire_service import GetServiceSchemata
 
 
+# Ruleset matcher validator.
+_RULE_MATCHER_SCHEMA = FixedDict(
+    'Matcher of a rule',
+    optional_items={
+        'mac': List('MAC address list',
+                    Scalar('Network interface MAC address', str)),
+        'sn': List('Serial number list',
+                   Scalar('Serial number', str)),
+        'mlb_sn': List('MLB serial number list',
+                       Scalar('MLB serial number', str)),
+        'sn_range': List(
+            'Inclusive serial number start/end pair',
+            Scalar('Serial number or "-" as open end', str)),
+        'mlb_sn_range': List(
+            'Inclusive MLB serial number start/end pair',
+            Scalar('MLB serial number or "-" as open end', str))})
 # Rulesets validator.
 _RULESETS_SCHEMA = List(
     'Rule sets for selecting configuration',
@@ -30,18 +46,7 @@ _RULESETS_SCHEMA = List(
             'note': Scalar('Brief summary of this rule', str),
             'active': Scalar('Initial state of this rule', bool)},
         optional_items={
-            'mac': List('MAC address list',
-                        Scalar('Network interface MAC address', str)),
-            'sn': List('Serial number list',
-                       Scalar('Serial number', str)),
-            'mlb_sn': List('MLB serial number list',
-                           Scalar('MLB serial number', str)),
-            'sn_range': List(
-                'Inclusive serial number start/end pair',
-                Scalar('Serial number or "-" as open end', str)),
-            'mlb_sn_range': List(
-                'Inclusive MLB serial number start/end pair',
-                Scalar('MLB serial number or "-" as open end', str))}))
+            'match': _RULE_MATCHER_SCHEMA}))
 # Resources validator.
 _RESOURCES_SCHEMA = FixedDict(
     'Resource files in a bundle',
@@ -114,8 +119,8 @@ def ValidateResources(config, env):
     config: Umpire config dict.
     env: UmpireEnv.
 
-  Returns:
-    True if all resources in each active bundle exist in resources directory.
+  Raises:
+    UmpireError if there's any resources for active bundles missing.
   """
   active_bundles = set(r['bundle_id']
                        for r in config['rulesets'] if r.get('active'))
@@ -138,6 +143,44 @@ def ValidateResources(config, env):
   if error:
     raise UmpireError('\n'.join(error))
 
+
+def ShowDiff(original, new):
+  """Shows difference between original and new UmpireConfig.
+
+  Note that it only compares active bundles, i.e. bundles which are used by
+  active rulesets.
+
+  Args:
+    original: Original UmpireConfig object.
+    new: New UmpireConfig object.
+
+  Returns:
+    List of string showing the difference.
+  """
+  def DumpRulesets(rulesets):
+    INDENT_SPACE = '  '
+    for r in rulesets:
+      rule_yaml = yaml.dump(RulesetOrderedDict(r), default_flow_style=False)
+      result.extend((INDENT_SPACE + line) for line in rule_yaml.split('\n'))
+
+  result = []
+  original_active_rulesets = [r for r in original['rulesets'] if r['active']]
+  new_active_rulesets = [r for r in new['rulesets'] if r['active']]
+  newly_added_rulesets = [r for r in new_active_rulesets
+                          if r not in original_active_rulesets]
+  deleted_rulesets = [r for r in original_active_rulesets
+                      if r not in new_active_rulesets]
+
+
+  if newly_added_rulesets:
+    result.append('Newly added rulesets:')
+    DumpRulesets(newly_added_rulesets)
+
+  if deleted_rulesets:
+    result.append('Deleted rulesets:')
+    DumpRulesets(deleted_rulesets)
+
+  return result
 
 class UmpireOrderedDict(dict):
   """Used to output UmpireConfig with desired key order."""

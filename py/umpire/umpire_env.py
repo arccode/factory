@@ -178,6 +178,26 @@ class UmpireEnv(object):
                  os.path.realpath(self.staging_config_file))
     os.unlink(self.staging_config_file)
 
+  def ActivateConfigFile(self, config_path=None):
+    """Activates a config file.
+
+    Args:
+      config_path: a config file to mark as active. Default: use staging file.
+    """
+    if not config_path:
+      config_path = self.staging_config_file
+
+    if not os.path.isfile(config_path):
+      raise UmpireError('Unable to activate missing config: ' + config_path)
+
+    config_to_activate = os.path.realpath(config_path)
+    if os.path.isfile(self.active_config_file):
+      logging.info('Deactivate config: ' +
+                   os.path.realpath(self.active_config_file))
+      os.unlink(self.active_config_file)
+    logging.info('Activate config: ' + config_to_activate)
+    os.symlink(config_to_activate, self.active_config_file)
+
   def AddResource(self, filename):
     """Adds a file into base_dir/resources.
 
