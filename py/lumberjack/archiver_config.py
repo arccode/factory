@@ -53,7 +53,8 @@ class ArchiverConfig(object):
     notes: Human readable annotation about current configuration.
     duration: Interval between active archiving cycle in seconds.
     delimiter: A multiline regular expression that help us to identify a
-      complete chunk in a file.
+      complete chunk in a file. It is a RegexObject (i.e. compiled regular
+      expression during its assignment.)
     compress_format: Format of the archives, could be .tar.xz or .zip.
     encrypt_key: Path to the public key. GnuPG (gpg) is used when transmitting
       sensitive data. A public key must be provided.
@@ -76,11 +77,14 @@ class ArchiverConfig(object):
     if data_type in DEFAULT_DELIMITER:
       logging.info('Using default delimiter %r fields for %r',
                    DEFAULT_DELIMITER[data_type], data_type)
-      self.delimiter = DEFAULT_DELIMITER[data_type]
+      self.delimiter = re.compile(DEFAULT_DELIMITER[data_type])
 
   def __str__(self):
     # Print properties for debugging purpose.
-    return pprint.pformat({
+    return pprint.pformat(self.ToDictionary())
+
+  def ToDictionary(self):
+    return {
         'source_dir': self.source_dir,
         'source_file': self.source_file,
         'archived_dir': self.archived_dir,
@@ -89,10 +93,10 @@ class ArchiverConfig(object):
         'data_type': self.data_type,
         'notes': self.notes,
         'duration': self.duration,
-        'delimiter': self.delimiter,
+        'delimiter': (self.delimiter if not self.delimiter else
+                      self.delimiter.pattern),
         'compress_format': self.compress_format,
-        'encrypt_key': self.encrypt_key
-        })
+        'encrypt_key': self.encrypt_key}
 
   def _CheckDirOrCreate(self, dir_path, create=False):
     """Checks the existence of a directory.
@@ -198,8 +202,12 @@ class ArchiverConfig(object):
       self.duration = duration
 
   def SetDelimiter(self, delimiter):
-    """Sets the delimiter property."""
-    self.delimiter = delimiter
+    """Sets the delimiter property.
+
+    Args:
+      delimiter: A regular expression string or None.
+    """
+    self.delimiter = re.compile(delimiter) if delimiter else None
 
   def SetCompressFormat(self, compress_format):
     """Sets the compress_format property.

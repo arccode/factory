@@ -1,0 +1,19 @@
+# Copyright (c) 2014 The Chromium OS Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+EVENT: preamble
+SEQ: 94
+TIME: '2012-12-19T15:26:52.412Z'
+boot_id: 71e988f3-a810-4f65-8897-e1dbe00b3440
+boot_sequence: 2
+device_id: 9c:2a:70:55:64:a9
+factory_md5sum: b6d4de0b98c159c8b9063e487334a341
+filename: goofy-91fa3982-f983-4a4e-afa5-178e57a6c2ee
+image_id: 4a293b5d-93d7-4b58-8ed7-7434d0c2c30e
+log_id: 91fa3982-f983-4a4e-afa5-178e57a6c2ee
+---
+EVENT: rebooted
+SEQ: 95
+TIME: '2012-12-19T15:26:52.422Z'
+duration: 13.171360969543457
+# Cut on purpose and omitted the '---' delimiter

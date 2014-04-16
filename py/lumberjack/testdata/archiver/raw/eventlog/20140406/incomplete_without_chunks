@@ -1,0 +1,8 @@
+# Copyright (c) 2014 The Chromium OS Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+# Incomplete chunk at the end and no chunks to archive.
+EVENT: rebooted
+SEQ: 95
+TIME: '2012-12-19T15:26:52.422Z'
+duration: 13.171360969543457

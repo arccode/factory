@@ -7,9 +7,8 @@
 import archiver
 import logging
 import os
-import random
 import shutil
-import string  # pylint: disable=W0402
+import tempfile
 import time
 import unittest
 import yaml
@@ -39,7 +38,6 @@ class ArchiverUnittest(unittest.TestCase):
     # Create empty directory
     utils.TryMakeDirs(os.path.join(TEST_DATA_PATH, 'archives'))
     utils.TryMakeDirs(os.path.join(TEST_DATA_PATH, 'raw/report'))
-    utils.TryMakeDirs(os.path.join(TEST_DATA_PATH, 'raw/eventlog'))
     utils.TryMakeDirs(os.path.join(TEST_DATA_PATH, 'raw/regcode'))
     os.chdir(TEST_DATA_PATH)
 
@@ -48,7 +46,6 @@ class ArchiverUnittest(unittest.TestCase):
     try:
       shutil.rmtree(os.path.join(TEST_DATA_PATH, 'archives'))
       shutil.rmtree(os.path.join(TEST_DATA_PATH, 'raw/report'))
-      shutil.rmtree(os.path.join(TEST_DATA_PATH, 'raw/eventlog'))
       shutil.rmtree(os.path.join(TEST_DATA_PATH, 'raw/regcode'))
     except: # pylint: disable=W0702
       pass
@@ -171,6 +168,51 @@ class ArchiverUnittest(unittest.TestCase):
     # Delete the temporary lock file.
     os.unlink(lock_path)
 
+  def _resetCopyCompleteChunksMetadata(self, completed_bytes=None):
+    """Resets the metadata that solely used for CopyCompleteChunks testing.
+
+    The metadata will be marked as all archived so other test will not be
+    affected.
+    """
+    EVENT_LOG_PATH = os.path.join(TEST_DATA_PATH, 'raw/eventlog/20140406')
+    files = ['incomplete_with_chunks',
+             'incomplete_without_chunks',
+             'normal_chunks']
+    utils.TryMakeDirs(
+        os.path.join(EVENT_LOG_PATH, '.archiver'))
+    for filename in files:
+      filename = os.path.join(EVENT_LOG_PATH, filename)
+      filesize = (os.path.getsize(filename) if completed_bytes is None else
+                  completed_bytes)
+      with open(archiver.GetMetadataPath(filename), 'w') as fd:
+        WriteAndTruncateFd(
+            fd, archiver.GenerateArchiverMetadata(
+                completed_bytes=filesize))
+
+  def _resetListEligibleFilesMetadata(self):
+    """Resets the metadata that solely used for ListEligibleFiles testing.
+
+    The metadata will be marked as all archived so other test will not be
+    affected.
+    """
+    files = ['20140419/some_incomplete_bytes_appeneded',
+             '20140419/no_bytes_appended',
+             '20140420/corrupted_metadata_1',
+             '20140420/corrupted_metadata_2',
+             '20140420/corrupted_metadata_3',
+             '20140421/new_created_file']
+
+    EVENT_LOG_PATH = os.path.join(TEST_DATA_PATH, 'raw/eventlog/')
+    for filename in files:
+      utils.TryMakeDirs(
+          os.path.join(EVENT_LOG_PATH,
+                       os.path.dirname(filename), '.archiver'))
+      filename = os.path.join(EVENT_LOG_PATH, filename)
+      with open(archiver.GetMetadataPath(filename), 'w') as fd:
+        WriteAndTruncateFd(
+            fd, archiver.GenerateArchiverMetadata(
+                completed_bytes=os.path.getsize(filename)))
+
   def testListEligibleFiles(self):
     with open(os.path.join(TEST_DATA_PATH, 'template_eventlog.yaml')) as f:
       content = f.read()
@@ -185,23 +227,22 @@ class ArchiverUnittest(unittest.TestCase):
     #   raw/eventlog/20140419/.archiver/some_bytes_appeneded.metadata
     utils.TryMakeDirs(
         os.path.join(EVENT_LOG_PATH, '20140419/.archiver'))
-    filename = os.path.join(EVENT_LOG_PATH, '20140419/some_bytes_appeneded')
-    with open(filename, 'w') as fd:
-      fd.write(''.join(random.sample(string.letters, 20)))
+    filename = os.path.join(
+        EVENT_LOG_PATH, '20140419/some_incomplete_bytes_appeneded')
     with open(archiver.GetMetadataPath(filename), 'w') as fd:
       WriteAndTruncateFd(
           fd, archiver.GenerateArchiverMetadata(completed_bytes=10))
-    expected_list.append((10, 20, filename))
+    expected_list.append((10, os.path.getsize(filename), filename))
+
 
     # Test if taken out from the returned list.
     #   raw/eventlog/20140419/no_bytes_appended
     #   raw/eventlog/20140419/.archiver/no_bytes_appeneded.metadata
     filename = os.path.join(EVENT_LOG_PATH, '20140419/no_bytes_appended')
-    with open(filename, 'w') as fd:
-      fd.write(''.join(random.sample(string.letters, 20)))
     with open(archiver.GetMetadataPath(filename), 'w') as fd:
       WriteAndTruncateFd(
-          fd, archiver.GenerateArchiverMetadata(completed_bytes=20))
+          fd, archiver.GenerateArchiverMetadata(
+              completed_bytes=os.path.getsize(filename)))
 
 
     utils.TryMakeDirs(
@@ -211,55 +252,106 @@ class ArchiverUnittest(unittest.TestCase):
     #   raw/eventlog/20140420/corrupted_metadata_1
     #   raw/eventlog/20140420/.archiver/corrupted_metadata_1.metadata
     filename = os.path.join(EVENT_LOG_PATH, '20140420/corrupted_metadata_1')
-    with open(filename, 'w') as fd:
-      fd.write(''.join(random.sample(string.letters, 20)))
     with open(archiver.GetMetadataPath(filename), 'w') as fd:
       WriteAndTruncateFd(fd, ' - where_is_my_bracket: ][')
-    expected_list.append((0, 20, filename))
+    expected_list.append((0, os.path.getsize(filename), filename))
 
     #   2) valid YAML but incorrect format:
     #   raw/eventlog/20140420/corrupted_metadata_2
     #   raw/eventlog/20140420/.archiver/corrupted_metadata_2.metadata
     filename = os.path.join(EVENT_LOG_PATH, '20140420/corrupted_metadata_2')
-    with open(filename, 'w') as fd:
-      fd.write(''.join(random.sample(string.letters, 20)))
     with open(archiver.GetMetadataPath(filename), 'w') as fd:
       WriteAndTruncateFd(fd, '- a\n- b\n- c\n')
-    expected_list.append((0, 20, filename))
+    expected_list.append((0, os.path.getsize(filename), filename))
 
     #   3) valid metadata, but unreasonable completed_bytes:
     #   raw/eventlog/20140420/corrupted_metadata_3
     #   raw/eventlog/20140420/.archiver/corrupted_metadata_3.metadata
     filename = os.path.join(EVENT_LOG_PATH, '20140420/corrupted_metadata_3')
-    with open(filename, 'w') as fd:
-      fd.write(''.join(random.sample(string.letters, 20)))
     with open(archiver.GetMetadataPath(filename), 'w') as fd:
       WriteAndTruncateFd(
-          fd, archiver.GenerateArchiverMetadata(completed_bytes=40))
-    expected_list.append((0, 20, filename))
+          fd, archiver.GenerateArchiverMetadata(
+              completed_bytes=os.path.getsize(filename) + 1))
+    expected_list.append((0, os.path.getsize(filename), filename))
 
 
-    utils.TryMakeDirs(
-        os.path.join(EVENT_LOG_PATH, '20140421'))
     # Test if metadata created automatically.
     #   raw/eventlog/20140421/new_created_file
     filename = os.path.join(EVENT_LOG_PATH, '20140421/new_created_file')
-    with open(filename, 'w') as fd:
-      fd.write(''.join(random.sample(string.letters, 20)))
-    expected_list.append((0, 20, filename))
+    try:
+      # Make sure no metadata for this file.
+      os.unlink(archiver.GetMetadataPath(filename))
+    except Exception:  # pylint=disable,W0702
+      pass
+    expected_list.append((0, os.path.getsize(filename), filename))
 
     # Test if those files are skipped.
     #   raw/eventlog/20140421/creating.inprogress
     #   raw/eventlog/20140421/creating.part
-    filename = os.path.join(EVENT_LOG_PATH, '20140421/creating.inprogress')
-    with open(filename, 'w') as fd:
-      fd.write(''.join(random.sample(string.letters, 20)))
-    filename = os.path.join(EVENT_LOG_PATH, '20140421/creating.part')
-    with open(filename, 'w') as fd:
-      fd.write(''.join(random.sample(string.letters, 20)))
 
+    self._resetCopyCompleteChunksMetadata()
     ret_list = archiver.ListEligibleFiles(configs[0].source_dir)
     self.assertItemsEqual(expected_list, ret_list)
+
+
+  def testCopyCompleteChunks(self):
+    # In complete chunk at the end but still have chunks to archive.
+    #    20140406/incomplete_with_chunks
+    # In complete chunk at the end and no chunks to archive.
+    #    20140406/incomplete_without_chunks
+    # Complete chunks
+    #    20140406/normal_chunks
+
+    with open(os.path.join(TEST_DATA_PATH, 'template_eventlog.yaml')) as f:
+      content = f.read()
+    configs = GenerateConfig(yaml.load(content))
+    config = configs[0]
+
+    tmp_dir = tempfile.mkdtemp(prefix='FactoryArchiver',
+                               suffix=config.data_type)
+    logging.info('%r created for archiving data_type[%s]',
+                 tmp_dir, config.data_type)
+    self._resetCopyCompleteChunksMetadata(completed_bytes=0)
+    self._resetListEligibleFilesMetadata()
+    eligible_files = archiver.ListEligibleFiles(config.source_dir)
+    archive_metadata = archiver.CopyCompleteChunks(
+        eligible_files, tmp_dir, config)
+    expected_return = {
+        '20140406/incomplete_with_chunks': {'start': 0, 'end': 352},
+        '20140406/normal_chunks': {'start': 0, 'end': 666}
+        }
+    self.assertDictContainsSubset(expected_return, archive_metadata['files'])
+    self.assertDictContainsSubset(archive_metadata['files'], expected_return)
+    shutil.rmtree(tmp_dir)
+    logging.info('%r deleted', tmp_dir)
+
+  def testCopyCompleteChunksWithoutDelimiter(self):
+    # All testdata under 20140406 should be directly copied.
+
+    with open(os.path.join(TEST_DATA_PATH, 'template_eventlog.yaml')) as f:
+      content = f.read()
+    configs = GenerateConfig(yaml.load(content))
+    config = configs[0]
+    config.SetDelimiter(None)
+
+    tmp_dir = tempfile.mkdtemp(prefix='FactoryArchiver',
+                               suffix=config.data_type)
+    logging.info('%r created for archiving data_type[%s]',
+                 tmp_dir, config.data_type)
+    self._resetCopyCompleteChunksMetadata(completed_bytes=0)
+    self._resetListEligibleFilesMetadata()
+    eligible_files = archiver.ListEligibleFiles(config.source_dir)
+    archive_metadata = archiver.CopyCompleteChunks(
+        eligible_files, tmp_dir, config)
+    expected_return = {
+        '20140406/incomplete_without_chunks': {'start': 0, 'end': 311},
+        '20140406/incomplete_with_chunks': {'start': 0, 'end': 411},
+        '20140406/normal_chunks': {'start': 0, 'end': 666}
+        }
+    self.assertDictContainsSubset(expected_return, archive_metadata['files'])
+    self.assertDictContainsSubset(archive_metadata['files'], expected_return)
+    shutil.rmtree(tmp_dir)
+    logging.info('%r deleted', tmp_dir)
 
 
 if __name__ == '__main__':

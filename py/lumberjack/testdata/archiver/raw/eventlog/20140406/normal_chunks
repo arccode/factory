@@ -1,0 +1,21 @@
+# Copyright (c) 2014 The Chromium OS Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+EVENT: start_test
+SEQ: 18
+TIME: '2012-12-19T15:27:18.581Z'
+dargs: '{''fail_on_update'': True}'
+invocation: 91fa43c5-7f9c-46ee-96af-3e2dc2473bc3
+path: SMT.UpdateSSDPhyParameters.Verify
+pytest_name: update_ssd_phy_parameters
+---
+EVENT: end_test
+SEQ: 21
+TIME: '2012-12-19T15:27:18.904Z'
+dargs: '{''fail_on_update'': True}'
+duration: 0.27646684646606445
+invocation: 91fa43c5-7f9c-46ee-96af-3e2dc2473bc3
+path: SMT.UpdateSSDPhyParameters.Verify
+pytest_name: update_ssd_phy_parameters
+status: PASSED
+---
