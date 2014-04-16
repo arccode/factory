@@ -47,10 +47,19 @@ const char stateEmergencyStop = 'e';
 // Motor is going back to the original up position after an emergency stop.
 const char stateGoingUpAfterEmergency = 'b';
 
+// PWM frequency speed, either fast or slow
+const char PWMFast = 'f';
+const char PWMSlow = 's';
+
 // commands from the host
 const char cmdDown = 'd';
 const char cmdUp = 'u';
+// Query the fixture state
 const char cmdState = 's';
+// Query current count
+const char cmdCount = 'c';
+// Query PWM speed
+const char cmdPwm = 'p';
 
 // Define SUCCESS and ERROR codes.
 const char SUCCESS = '0';
@@ -74,9 +83,11 @@ const int WARM_UP_WAIT = 2000;
 const int SERIAL_BAUD_RATE = 9600;
 
 char state = stateInit;
+char lastState = state;
 char command = NULL;
 boolean flagJumper = false;
 unsigned int count = 0;
+unsigned int lastCount = 0;
 unsigned int pwm_frequency = SLOW_PWM_FREQUENCY;
 
 
@@ -84,8 +95,10 @@ unsigned int pwm_frequency = SLOW_PWM_FREQUENCY;
  * The setup routine runs once on power on or reset.
  */
 void setup() {
-  // Set the baud rate
+  // Set the baud rate for Programming Port
   Serial.begin(SERIAL_BAUD_RATE);
+  // Set the baud rate for Native USB Port
+  SerialUSB.begin(SERIAL_BAUD_RATE);
 
   // Initialize the input debug pins and sensor pins
   pinMode(jumper, INPUT);
@@ -128,6 +141,29 @@ void loop() {
   // Responds to the host command.
   command = Serial.available() ? Serial.read() : NULL;
   stateControl(command);
+
+  processNativeUSB();
+}
+
+/**
+ * Process commands from native usb port and send responses.
+ */
+void processNativeUSB() {
+  // Send the latest state to the host whenever the state changes.
+  if (state != lastState) {
+    lastState = state;
+    SerialUSB.print(state);
+  }
+
+  // Take commands from the host and send responses.
+  if (SerialUSB.available()) {
+    char native_usb_command = SerialUSB.read();
+    if (native_usb_command == cmdCount) {
+      SerialUSB.print(lastCount);
+    } else if (native_usb_command == cmdPwm) {
+      SerialUSB.print(pwm_frequency == FAST_PWM_FREQUENCY ? PWMFast : PWMSlow);
+    }
+  }
 }
 
 /**
@@ -174,7 +210,7 @@ void stateControl(char command) {
  */
 void driveMotorTowardEndPosition() {
   if (state == stateGoingDown || state == stateGoingUp) {
-    count++;
+    lastCount = count++;
     if (state == stateGoingDown && isSensorDown()) {
       StopProbe(stateStopDown);
       sendResponse(state);
@@ -354,6 +390,7 @@ void driveProbe(char new_state, const int new_pwm_frequency,
  */
 void StopProbe(char newState) {
   state = newState;
+  lastCount = count;
   count = 0;
   lockMotor();
 }
