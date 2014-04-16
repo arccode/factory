@@ -46,21 +46,48 @@ def OpenSerial(**params):
   return ser
 
 
-def FindTtyByDriver(driver_name):
-  """Finds the tty terminal matched to the given driver_name.
+def FindTtyByDriver(driver_name, interface_protocol=None):
+  """Finds the tty terminal matched to the given driver_name and an optional
+  interface protocol.
+
+  Checks the interface protocol if specified. In some situations where there
+  may exist multiple ports with the same driver, use the interface_protocol
+  to distinguish between them. An example is Arduino DUE board with a
+  Programming Port and a Native USB Port.
 
   Args:
     driver_name: driver name for the target TTY device.
+    interface_protocol: the interface protocol for the target TTY device.
 
   Returns:
     /dev/tty path if driver_name is matched; None if not found.
   """
+
+  def _DeviceInterfaceProtocol(device_path):
+    """ Extracts the interface protocol of the specified device path.
+
+    Args:
+      device_path: the tty device path in the sysfs.
+
+    Returns:
+      the interface protocol if found else ''
+    """
+    interface_protocol_path = os.path.join(device_path, 'bInterfaceProtocol')
+    try:
+      with open(interface_protocol_path) as f:
+        return f.read().strip()
+    except IOError:
+      return ''
+
   for candidate in glob.glob('/dev/tty*'):
-    driver_path = os.path.realpath('/sys/class/tty/%s/device/driver' %
-                                   os.path.basename(candidate))
+    device_path = '/sys/class/tty/%s/device' % os.path.basename(candidate)
+    driver_path = os.path.realpath(os.path.join(device_path, 'driver'))
+
     # Check if driver_name exist at the tail of driver_path.
     if re.search(driver_name + '$', driver_path):
-      return candidate
+      if (interface_protocol is None or
+          interface_protocol == _DeviceInterfaceProtocol(device_path)):
+        return candidate
   return None
 
 
