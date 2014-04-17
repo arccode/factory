@@ -49,9 +49,6 @@ _DEFAULT_FREQ_HZ = 1000
 _DEFAULT_FREQ_THRESHOLD_HZ = 50
 _DEFAULT_SINE_DURATION_SEC = 1
 
-# Pass threshold for audiofuntest
-_AUDIOFUNTEST_THRESHOLD = 50.0
-
 # Regular expressions to match audiofuntest message.
 _AUDIOFUNTEST_STOP_RE = re.compile('^Stop')
 _AUDIOFUNTEST_SUCCESS_RATE_RE = re.compile('.*rate\s*=\s*(.*)$')
@@ -90,6 +87,8 @@ class AudioLoopTest(unittest.TestCase):
     Arg('autostart', bool, 'Auto start option', False),
     Arg('require_dongle', bool, 'Require dongle option', False),
     Arg('enable_audiofun', bool, 'Enable audio function test'),
+    Arg('audiofun_threshold', int, 'Minimum success rate to pass the test',
+        default=50),
     Arg('check_dongle', bool,
         'Check dongle status whether match require_dongle', False),
     # Only used for speaker and dmic
@@ -194,7 +193,7 @@ class AudioLoopTest(unittest.TestCase):
 
         m = _AUDIOFUNTEST_STOP_RE.match(proc_output)
         if m is not None:
-          test_result = (last_success_rate > _AUDIOFUNTEST_THRESHOLD)
+          test_result = (last_success_rate > self.args.audiofun_threshold)
           break
 
       # Show instant message and wait for a while
