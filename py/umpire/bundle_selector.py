@@ -11,9 +11,9 @@ chooses the right bundle for the DUT and returns the resource map of the bundle.
 import Cookie
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.umpire.common import (DUT_INFO_KEYS, DUT_INFO_KEY_PREFIX,
-                                        SCALAR_MATCHERS, RANGE_MATCHERS,
-                                        SCALAR_PREFIX_MATCHERS)
+from cros.factory.umpire.common import (
+    DUT_INFO_KEYS, DUT_INFO_KEY_PREFIX, HANDLER_BASE, SCALAR_MATCHERS,
+    RANGE_MATCHERS, SCALAR_PREFIX_MATCHERS)
 
 
 def ParseDUTHeader(header):
@@ -133,3 +133,37 @@ def SelectRuleset(config, dut_info):
            for name, value in ruleset['match'].iteritems()):
       return ruleset['bundle_id']
   return None
+
+
+def GetResourceMap(dut_info, env):
+  """Gets resource map for the DUT.
+
+  It is used for twisted to call when receiving "GET /resourcemap" request.
+
+  Args:
+    dut_info: value of request header X-Umpire-DUT.
+    env: an UmpireEnv object.
+
+  Returns:
+    String for response text.
+  """
+  result = []
+
+  bundle_id = SelectRuleset(env.config, dut_info)
+  if not bundle_id:
+    return None
+
+  bundle = env.config['bundles'].get(bundle_id)
+  if not bundle:
+    return None
+
+  handler_port, handler_token = env.shop_floor_manager.GetHandler(bundle_id)
+
+  result = ['id: %s' % bundle['id'],
+            'note: %s' % bundle['note'],
+            '__token__: %s' % handler_token,
+            'shop_floor_handler: %s/%d/%s' % (HANDLER_BASE, handler_port,
+                                              handler_token)]
+  result.extend('%s: %s' % (k, v) for k, v in bundle['resources'].items())
+
+  return '\n'.join(result)

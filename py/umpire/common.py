@@ -24,6 +24,9 @@ UMPIRE_DAEMON = 'umpired'
 # Umpire command RPC port.
 UMPIRE_COMMAND_PORT = 8032
 
+# Base serving path for ShopFloorHander.
+HANDLER_BASE = '/shop_floor'
+
 # Resource types which can use "umpire update" to update.
 UPDATEABLE_RESOURCES = ['factory_toolkit', 'firmware', 'fsi', 'hwid']
 
