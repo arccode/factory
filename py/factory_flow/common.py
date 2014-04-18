@@ -131,9 +131,12 @@ class FactoryFlowCommand(object):
   def Main(self, options):
     """Main entry point of the command."""
     self.options = options
-    self.InitProperties()
-    self.Init()
-    self.Run()
+    try:
+      self.InitProperties()
+      self.Init()
+      self.Run()
+    finally:
+      self.TearDown()
 
   def Init(self):
     """Optional init function."""
@@ -142,3 +145,7 @@ class FactoryFlowCommand(object):
   def Run(self):
     """Runs the command."""
     raise NotImplementedError
+
+  def TearDown(self):
+    """Optional clean-up function."""
+    pass

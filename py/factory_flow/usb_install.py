@@ -10,6 +10,7 @@ import socket
 import time
 
 import factory_common   # pylint: disable=W0611
+from cros.factory.factory_flow import servo
 from cros.factory.factory_flow.common import (
     board_cmd_arg, bundle_dir_cmd_arg, dut_hostname_cmd_arg, FactoryFlowCommand)
 from cros.factory.hacked_argparse import CmdArg
@@ -40,13 +41,19 @@ class USBInstall(FactoryFlowCommand):
                    '(default: %(default)s)')),
       CmdArg('--servo-host', default='localhost',
              help='IP of the servo host (default: %(default)s)'),
+      CmdArg('--servo-port', type=int, default=9999,
+             help='port of servod (default: %(default)s)'),
+      CmdArg('--servo-serial', help='serial number of the servo board'),
+      CmdArg('--flash-ec', action='store_true', default=False,
+             help=('also flashes EC using servo; note that this does not work '
+                   'when multiple servo boards are attached to the servo host '
+                   '(default: %(default)s)')),
       CmdArg('--no-wait', dest='wait', action='store_false',
              help='do not wait for factory install to complete'),
-      CmdArg('--wait-timeout-secs', type=int, default=600,
+      CmdArg('--wait-timeout-secs', type=int, default=1200,
              help='the duration in seconds to wait before failing the command'),
   ]
 
-  board = None
   servo = None
   ec = None
   # Path to the image binary to load onto USB disk.
@@ -56,12 +63,15 @@ class USBInstall(FactoryFlowCommand):
     # Do autotest imports here to stop it from messing around with logging
     # settings.
     import autotest_common
-    from autotest_lib.server import hosts
     from autotest_lib.server.cros.servo import chrome_ec
-    from autotest_lib.server.cros.servo import servo
     self.servo = servo.Servo(
-        hosts.ServoHost(servo_host=self.options.servo_host))
+        self.options.board.short_name, self.options.servo_host,
+        port=self.options.servo_port, serial=self.options.servo_serial)
     self.ec = chrome_ec.ChromeEC(self.servo)
+
+  def TearDown(self):
+    if self.servo:
+      self.servo.TearDown()
 
   def Run(self):
     self.PrepareImage()
@@ -167,11 +177,14 @@ class USBInstall(FactoryFlowCommand):
       bios_path = os.path.join(temp_dir, 'bios.bin')
       logging.info('Flashing firmware %s on DUT %s with servo %s',
                    bios_path, self.options.dut, servo_version)
-      self.servo.program_bios(bios_path)
-      ec_path = os.path.join(temp_dir, 'ec.bin')
-      logging.info('Flashing EC %s on DUT %s with servo %s',
-                   ec_path, self.options.dut, servo_version)
-      self.servo.program_ec(ec_path)
+      with file_utils.FileLock(servo.FLASHROM_LOCK_FILE,
+                               timeout_secs=servo.FLASHROM_LOCK_TIMEOUT):
+        self.servo.program_bios(bios_path)
+      if self.options.flash_ec:
+        ec_path = os.path.join(temp_dir, 'ec.bin')
+        logging.info('Flashing EC %s on DUT %s with servo %s',
+                     ec_path, self.options.dut, servo_version)
+        self.servo.program_ec(ec_path)
 
   def InstallWithServo(self):
     """Loads the image to USB disk and reboots the DUT into recovery mode."""

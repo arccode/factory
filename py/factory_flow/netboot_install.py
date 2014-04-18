@@ -10,10 +10,12 @@ import re
 import socket
 
 import factory_common   # pylint: disable=W0611
+from cros.factory.factory_flow import servo
 from cros.factory.factory_flow.common import (
     board_cmd_arg, bundle_dir_cmd_arg, dut_hostname_cmd_arg, FactoryFlowCommand)
 from cros.factory.hacked_argparse import CmdArg
 from cros.factory.test import utils
+from cros.factory.utils import file_utils
 from cros.factory.utils import ssh_utils
 
 
@@ -33,13 +35,19 @@ class NetbootInstall(FactoryFlowCommand):
                    '(default: %(default)s)')),
       CmdArg('--servo-host', default='localhost',
              help='IP of the servo host (default: %(default)s)'),
+      CmdArg('--servo-port', type=int, default=9999,
+             help='port of servod (default: %(default)s)'),
+      CmdArg('--servo-serial', help='serial number of the servo board'),
+      CmdArg('--flash-ec', action='store_true', default=False,
+             help=('also flashes EC using servo; note that this does not work '
+                   'when multiple servo boards are attached to the servo host '
+                   '(default: %(default)s)')),
       CmdArg('--no-wait', dest='wait', action='store_false',
              help='do not wait for factory install to complete'),
-      CmdArg('--wait-timeout-secs', type=int, default=600,
+      CmdArg('--wait-timeout-secs', type=int, default=1200,
              help='the duration in seconds to wait before failing the command'),
   ]
 
-  board = None
   servo = None
   netboot_firmware_path = None
   netboot_ec_path = None
@@ -51,14 +59,9 @@ class NetbootInstall(FactoryFlowCommand):
       NetbootInstallError if netboot firmware or EC cannot be located.
     """
     if self.options.flash_method == 'servo':
-      # Do autotest imports here to stop it from messing around with logging
-      # settings.
-      # pylint: disable=W0612, F0401
-      import autotest_common
-      from autotest_lib.server import hosts
-      from autotest_lib.server.cros.servo import servo
       self.servo = servo.Servo(
-          hosts.ServoHost(servo_host=self.options.servo_host))
+          self.options.board.short_name, self.options.servo_host,
+        port=self.options.servo_port, serial=self.options.servo_serial)
 
     self.netboot_firmware_path = self.LocateUniquePath(
         'netboot firmware',
@@ -75,6 +78,10 @@ class NetbootInstall(FactoryFlowCommand):
                  self.options.board.full_name, self.netboot_firmware_path,
                  self.netboot_ec_path)
 
+  def TearDown(self):
+    if self.servo:
+      self.servo.TearDown()
+
   def Run(self):
     if self.options.flash_method == 'ssh':
       self.FlashFirmwareWithSSH()
@@ -85,15 +92,19 @@ class NetbootInstall(FactoryFlowCommand):
 
   def FlashFirmwareWithServo(self):
     """Flashes netboot firmware and EC with servo board."""
+    # pylint: disable=E1101
     servo_version = self.servo.get_version()
 
     logging.info('Flashing netboot firmware %s on DUT %s with servo %s',
                  self.netboot_firmware_path, self.options.dut, servo_version)
-    self.servo.program_bios(self.netboot_firmware_path)
+    with file_utils.FileLock(servo.FLASHROM_LOCK_FILE,
+                             timeout_secs=servo.FLASHROM_LOCK_TIMEOUT):
+      self.servo.program_bios(self.netboot_firmware_path)
 
-    logging.info('Flashing EC %s on DUT %s with servo %s',
-                 self.netboot_ec_path, self.options.dut, servo_version)
-    self.servo.program_ec(self.netboot_ec_path)
+    if self.options.flash_ec:
+      logging.info('Flashing EC %s on DUT %s with servo %s',
+                   self.netboot_ec_path, self.options.dut, servo_version)
+      self.servo.program_ec(self.netboot_ec_path)
 
   def _CheckSSHPort(self):
     """A helper method to check if the SSH port on DUT is alive.
