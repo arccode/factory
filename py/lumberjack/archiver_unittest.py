@@ -4,7 +4,6 @@
 # found in the LICENSE file.
 """Unit tests for archiver"""
 
-import archiver
 import logging
 import os
 import shutil
@@ -13,15 +12,13 @@ import time
 import unittest
 import yaml
 
+import archiver
 import archiver_config
-
-import factory_common  # pylint: disable=W0611
 
 from archiver_cli import main
 from archiver_exception import ArchiverFieldError
 from archiver_config import GenerateConfig, LockSource, WriteAndTruncateFd
 from multiprocessing import Process
-from cros.factory.test import utils
 
 TEST_DATA_PATH = os.path.abspath(os.path.join(
     os.path.dirname(__file__), 'testdata/archiver'))
@@ -36,9 +33,9 @@ class ArchiverUnittest(unittest.TestCase):
         level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S')
     self.pwd = os.getcwd()
     # Create empty directory
-    utils.TryMakeDirs(os.path.join(TEST_DATA_PATH, 'archives'))
-    utils.TryMakeDirs(os.path.join(TEST_DATA_PATH, 'raw/report'))
-    utils.TryMakeDirs(os.path.join(TEST_DATA_PATH, 'raw/regcode'))
+    archiver.TryMakeDirs(os.path.join(TEST_DATA_PATH, 'archives'))
+    archiver.TryMakeDirs(os.path.join(TEST_DATA_PATH, 'raw/report'))
+    archiver.TryMakeDirs(os.path.join(TEST_DATA_PATH, 'raw/regcode'))
     os.chdir(TEST_DATA_PATH)
 
   def tearDown(self):
@@ -47,6 +44,12 @@ class ArchiverUnittest(unittest.TestCase):
       shutil.rmtree(os.path.join(TEST_DATA_PATH, 'archives'))
       shutil.rmtree(os.path.join(TEST_DATA_PATH, 'raw/report'))
       shutil.rmtree(os.path.join(TEST_DATA_PATH, 'raw/regcode'))
+      # Clean-up to make git status cleaner
+      shutil.rmtree('raw/eventlog/20140406/.archiver')
+      shutil.rmtree('raw/eventlog/20140419/.archiver')
+      shutil.rmtree('raw/eventlog/20140420/.archiver')
+      shutil.rmtree('raw/eventlog/20140421/.archiver')
+      os.unlink('raw/eventlog/.archiver.lock')
     except: # pylint: disable=W0702
       pass
 
@@ -108,7 +111,7 @@ class ArchiverUnittest(unittest.TestCase):
   def testSetDurationInternally(self):
     config = archiver_config.ArchiverConfig('unittest')
     # We should pass an integer instead.
-    self.assertRaises(ArchiverFieldError, config.SetDuration, "86400")
+    self.assertRaises(ArchiverFieldError, config.SetDuration, '86400')
 
   def testSetCompressFormat(self):
     argv = ['dry-run',
@@ -178,7 +181,7 @@ class ArchiverUnittest(unittest.TestCase):
     files = ['incomplete_with_chunks',
              'incomplete_without_chunks',
              'normal_chunks']
-    utils.TryMakeDirs(
+    archiver.TryMakeDirs(
         os.path.join(EVENT_LOG_PATH, '.archiver'))
     for filename in files:
       filename = os.path.join(EVENT_LOG_PATH, filename)
@@ -204,7 +207,7 @@ class ArchiverUnittest(unittest.TestCase):
 
     EVENT_LOG_PATH = os.path.join(TEST_DATA_PATH, 'raw/eventlog/')
     for filename in files:
-      utils.TryMakeDirs(
+      archiver.TryMakeDirs(
           os.path.join(EVENT_LOG_PATH,
                        os.path.dirname(filename), '.archiver'))
       filename = os.path.join(EVENT_LOG_PATH, filename)
@@ -225,7 +228,7 @@ class ArchiverUnittest(unittest.TestCase):
     # Test if appended bytes can be detected.
     #   raw/eventlog/20140419/some_bytes_appeneded
     #   raw/eventlog/20140419/.archiver/some_bytes_appeneded.metadata
-    utils.TryMakeDirs(
+    archiver.TryMakeDirs(
         os.path.join(EVENT_LOG_PATH, '20140419/.archiver'))
     filename = os.path.join(
         EVENT_LOG_PATH, '20140419/some_incomplete_bytes_appeneded')
@@ -245,7 +248,7 @@ class ArchiverUnittest(unittest.TestCase):
               completed_bytes=os.path.getsize(filename)))
 
 
-    utils.TryMakeDirs(
+    archiver.TryMakeDirs(
         os.path.join(EVENT_LOG_PATH, '20140420/.archiver'))
     # Test if metadata re-generated.
     #   1) incorrect YAML:
@@ -353,6 +356,23 @@ class ArchiverUnittest(unittest.TestCase):
     shutil.rmtree(tmp_dir)
     logging.info('%r deleted', tmp_dir)
 
+  def testArchive(self):
+    with open(os.path.join(TEST_DATA_PATH, 'template_eventlog.yaml')) as f:
+      content = f.read()
+    configs = GenerateConfig(yaml.load(content))
+    config = configs[0]
+
+    self._resetCopyCompleteChunksMetadata(completed_bytes=0)
+    self._resetListEligibleFilesMetadata()
+
+    archiver.Archive(config, next_cycle=False)
+
+  def testCheckExecutableExistNormal(self):
+    self.assertEqual(True, archiver_config.CheckExecutableExist('ls'))
+
+  def testCheckExecutableExistFalse(self):
+    self.assertEqual(
+        False, archiver_config.CheckExecutableExist('DemocracyAt4AM'))
 
 if __name__ == '__main__':
   unittest.main()

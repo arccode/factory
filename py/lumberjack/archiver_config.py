@@ -11,6 +11,7 @@ import logging
 import os
 import pprint
 import re
+import subprocess
 
 from archiver import locks
 from archiver_exception import ArchiverFieldError
@@ -23,13 +24,28 @@ ALLOWED_DURATION = {
     'weekly': 60*60*24*7,
     'monthly': 60*60*24*7*30  # Assuming 30 days for a month.
 }
-ALLOWED_FORMAT = set(['.tar.xz', '.zip'])
+ALLOWED_FORMAT = {
+  '.tar.xz': 'tar',
+  '.zip': 'zip'}
+
 DEFAULT_DURATION = ALLOWED_DURATION['daily']
 DEFAULT_FORMAT = '.tar.xz'
 DEFAULT_DELIMITER = {
   'eventlog': r'---\n',
   'regcode': r'\n'
 }
+
+
+# TODO(itspeter):
+#   Move to cros.factory.test.utils once migration to Umpire is fully
+#   rolled-out.
+def CheckExecutableExist(executable_name):
+  """Returns a boolean if a executable is callable."""
+  try:
+    subprocess.check_call(['which', executable_name])
+    return True
+  except subprocess.CalledProcessError:
+    return False
 
 
 class ArchiverConfig(object):
@@ -116,7 +132,7 @@ class ArchiverConfig(object):
       OSError: An error while accessing or creating the directory.
     """
     if not os.path.isdir(dir_path):
-      logging.info("Path %r doesn't exist", dir_path)
+      logging.info('Path %r doesn\'t exist', dir_path)
       if create:
         try:
           # TODO(itspeter):
@@ -124,8 +140,8 @@ class ArchiverConfig(object):
           #   Chromecast factory integrated with current factory framework.
           os.makedirs(dir_path)
         except OSError:
-          logging.error("Exception found during the creation of %r. "
-                        "Might be a racing or permission issue")
+          logging.error('Exception found during the creation of %r. '
+                        'Might be a racing or permission issue')
     return os.path.isdir(dir_path)
 
   def SetDir(self, dir_path, dir_type, create=False):
@@ -142,10 +158,10 @@ class ArchiverConfig(object):
     dir_path = os.path.abspath(dir_path)
     if not hasattr(self, dir_type):
       raise ArchiverFieldError(
-          "%r is not in the properties of ArchiverConfig" % dir_type)
+          '%r is not in the properties of ArchiverConfig' % dir_type)
 
     if not self._CheckDirOrCreate(dir_path, create):
-      raise ArchiverFieldError("Can't access directory %r" % dir_path)
+      raise ArchiverFieldError('Can\'t access directory %r' % dir_path)
     setattr(self, dir_type, dir_path)
 
   def SetSourceFile(self, file_path):
@@ -159,7 +175,7 @@ class ArchiverConfig(object):
     """
     file_path = os.path.abspath(file_path)
     if not os.path.isfile(file_path):
-      raise ArchiverFieldError("Cant's access %r" % file_path)
+      raise ArchiverFieldError('Cant\'s access %r' % file_path)
     self.source_file = file_path
 
   def SetProject(self, project):
@@ -174,7 +190,8 @@ class ArchiverConfig(object):
     VALID_REGEXP = r'^[A-Za-z0-9_-]+$'
     if not re.match(VALID_REGEXP, project):
       raise ArchiverFieldError(
-          "Project field doesn't meet the regular expression %r" % VALID_REGEXP)
+          'Project field doesn\'t meet the regular expression %r' %
+          VALID_REGEXP)
     self.project = project
 
   def SetNotes(self, notes):
@@ -212,13 +229,24 @@ class ArchiverConfig(object):
   def SetCompressFormat(self, compress_format):
     """Sets the compress_format property.
 
+    Args:
+      compress_format:
+        A string indicates what format will archive be compressed to.
+        Currently, we support '.tar.xz' and '.zip'.
+
     Raises:
       ArchiverFieldError if format is not supported.
     """
-    if compress_format not in ALLOWED_FORMAT:
+    if compress_format not in ALLOWED_FORMAT.iterkeys():
       raise ArchiverFieldError(
           'compress_format %r is not supported. We support the following:'
           '%s' % (compress_format, pprint.pformat(ALLOWED_FORMAT)))
+
+    # Check related executables
+    if not CheckExecutableExist(ALLOWED_FORMAT[compress_format]):
+      raise ArchiverFieldError(
+          'command %r must be callable for compress_format %r' %
+          ALLOWED_FORMAT[compress_format], compress_format)
 
   def SetEncryptKey(self, path_to_key):
     # TODO(itspeter):  Check GnuPG is installed.
@@ -264,7 +292,7 @@ def GenerateConfig(config):
   Raises:
     ArchiverConfig if any invalid fields found.
   """
-  logging.debug("GenerateConfig got config: %s\n", pprint.pformat(config))
+  logging.debug('GenerateConfig got config: %s\n', pprint.pformat(config))
   archive_configs = []
 
   def _CheckAndSetFields(archive_config, fields):
@@ -327,7 +355,7 @@ def GenerateConfig(config):
     _CheckAndSetFields(archive_config, common_fields)
     _CheckAndSetFields(archive_config, fields)
 
-    logging.debug("data_type[%s] and its final configuration:\n%s\n",
+    logging.debug('data_type[%s] and its final configuration:\n%s\n',
                   data_type, archive_config)
     # Check if the properties are sufficient
     archive_config.CheckPropertiesSufficient()
@@ -370,9 +398,9 @@ def LockSource(config):
   except IOError:
     running_pid = open(lock_file_path, 'r').read()
     error_msg = (
-        "data_type[%r] is already monitored by another archiver."
-        "Lock %r cannot be accquired. Another archiver's PID "
-        "might be %s" % (config.data_type, lock_file_path, running_pid))
+        'data_type[%r] is already monitored by another archiver.'
+        'Lock %r cannot be acquired. Another archiver\'s PID '
+        'might be %s' % (config.data_type, lock_file_path, running_pid))
     logging.error(error_msg)
     raise ArchiverFieldError(error_msg)
 
@@ -380,6 +408,6 @@ def LockSource(config):
   WriteAndTruncateFd(fd, str(os.getpid()))
   # Add to global variable to live until this process ends.
   locks.append((fd, lock_file_path))
-  logging.info('Successfully accquire advisory lock on %r, PID[%d]',
+  logging.info('Successfully acquire advisory lock on %r, PID[%d]',
                lock_file_path, os.getpid())
   return lock_file_path

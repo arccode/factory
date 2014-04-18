@@ -101,7 +101,7 @@ def main(argv):
       # pylint: disable=W0612
       configs = GenerateConfig(yaml.load(f.read()))
 
-    # Try to accquire locks for each config
+    # Try to acquire locks for each config
     for config in configs:
       LockSource(config)
 
@@ -110,6 +110,7 @@ def main(argv):
       return
     # Start the first cycle for each configs in few secs.
     for config in configs:
+      # TODO(itspeter): Special clean-up for first cycle.
       reactor.callLater(5, Archive, config)  # pylint: disable=E1101
 
     # Register signal handler

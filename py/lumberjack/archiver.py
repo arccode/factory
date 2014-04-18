@@ -5,22 +5,88 @@
 
 """Main logics for archiving raw logs into unified archives."""
 
+import hashlib
 import logging
 import os
 import re
+import shutil
 import tempfile
+import time
+import uuid
 import yaml
 
 from archiver_exception import ArchiverFieldError
+from subprocess import PIPE, Popen
 from twisted.internet import reactor
 
 
 METADATA_DIRECTORY = '.archiver'  # For storing metadata.
 # These suffix indicate another process is using.
 SKIP_SUFFIX = ['.part', '.inprogress', '.lock', '.swp']
-
+ARCHIVER_SOURCE_FILES = ['archiver.py', 'archiver_exception.py',
+                         'archiver_cli.py', 'archiver_config.py']
 # Global variable to keep locked file open during process life-cycle
 locks = []
+
+def TryMakeDirs(path, raise_exception=False):
+  """Tries to create a directory and its parents."""
+  # TODO(itspeter):
+  #   switch to cros.factory.test.utils.TryMakeDirs once migration to
+  #   Umpire is fully rolled-out.
+  try:
+    if not os.path.exists(path):
+      os.makedirs(path)
+  except Exception:
+    if raise_exception:
+      raise
+
+# TODO(itspeter):
+#   TimeString function is copy paste directly from /py/test/utils.py
+#   switch to cros.factory.test.utils.TimeString once migration to
+#   Umpire is fully rolled-out.
+def TimeString(unix_time=None, time_separator=':', milliseconds=True):
+  """Returns a time (using UTC) as a string.
+
+  The format is like ISO8601 but with milliseconds:
+
+   2012-05-22T14:15:08.123Z
+
+  Args:
+    unix_time: Time in seconds since the epoch.
+    time_separator: Separator for time components.
+    milliseconds: Whether to include milliseconds.
+  """
+
+  t = unix_time or time.time()
+  ret = time.strftime(
+      '%Y-%m-%dT%H' + time_separator + '%M' + time_separator + '%S',
+      time.gmtime(t))
+  if milliseconds:
+    ret += '.%03d' % int((t - int(t)) * 1000)
+  ret += 'Z'
+  return ret
+
+
+# TODO(itspeter):
+#   Move to cros.factory.test.utils once migration to Umpire is fully
+#   rolled-out.
+def GetMD5ForFiles(files, base_dir=None):
+  """Returns a md5 for listed files.
+
+  Args:
+    files: List of files that will be hashed.
+    base_dir: Base directory.
+
+  Returns:
+    A MD5 sum in hexadecimal digits.
+  """
+  md5_hash = hashlib.md5()  # pylint: disable=E1101
+  for filename in files:
+    full_path = (os.path.join(base_dir, filename) if base_dir else
+                 filename)
+    with open(os.path.join(full_path), 'r') as fd:
+      md5_hash.update(fd.read())
+  return md5_hash.hexdigest()
 
 
 def ListEligibleFiles(dir_path):
@@ -98,7 +164,7 @@ def _RegenerateArchiverMetadataFile(metadata_path):
   Returns:
     Retrns the string it writes into the metadata_path
   """
-  logging.info("Re-generate metadata at %r", metadata_path)
+  logging.info('Re-generate metadata at %r', metadata_path)
   ret_str = GenerateArchiverMetadata()
   with open(metadata_path, 'w') as fd:
     fd.write(ret_str)
@@ -141,19 +207,6 @@ def _GetRangeOfAppendedBytes(file_path, dir_path=None):
   return (completed_bytes, current_size)
 
 
-def _TryMakeDirs(path, raise_exception=False):
-  """Tries to create a directory and its parents."""
-  # TODO(itspeter):
-  #   switch to cros.factory.test.utils.TryMakeDirs once migration to
-  #   Umpire is fully rolled-out.
-  try:
-    if not os.path.exists(path):
-      os.makedirs(path)
-  except Exception:
-    if raise_exception:
-      raise
-
-
 def _GetOrCreateArchiverMetadata(metadata_path):
   """Returns a dictionary based on the metadata of file.
 
@@ -169,7 +222,7 @@ def _GetOrCreateArchiverMetadata(metadata_path):
   # Check if metadata directory is created.
   metadata_dir = os.path.dirname(metadata_path)
   try:
-    _TryMakeDirs(metadata_dir, raise_exception=True)
+    TryMakeDirs(metadata_dir, raise_exception=True)
   except Exception:
     logging.error('Failed to create metadata directory %r for archiver',
                   metadata_dir)
@@ -251,7 +304,7 @@ def CopyCompleteChunks(files, tmp_dir, config):
     # Create related sub-directories
     tmp_full_path = os.path.join(tmp_dir, relative_path)
     try:
-      _TryMakeDirs(os.path.dirname(tmp_full_path), raise_exception=True)
+      TryMakeDirs(os.path.dirname(tmp_full_path), raise_exception=True)
     except Exception:
       logging.error(
           'Failed to create sub-directory for %r in temporary folder %r',
@@ -264,6 +317,30 @@ def CopyCompleteChunks(files, tmp_dir, config):
     logging.debug('%r for archiving prepared.', filename)
   return archive_metadata
 
+def GenerateArchiveName(config):
+  """Returns an archive name based on the ArchiverConfig.
+
+  The name follows the format:
+    <project>,<data_types>,<formatted_time>,<hash>.<compress_format>
+
+  For example:
+    spring,report,20130205T1415Z,c7c62ea462.zip
+    spring,regcode,20130307T1932Z,c7a462a462.tar.xz.pgp
+    spring,eventlog,20130307T1945Z,c7a462c5a4.tar.xz
+
+  The hash has 10 hex digits. The 10 digits will separate into two parts,
+  first 2 digits for identifying host (Umpire) and following 8 digits are
+  generated randomly.
+  """
+  # pylint: disable=E1101
+  prefix = ','.join(
+      [config.project, config.data_type,
+       time.strftime('%Y%m%dT%H%MZ', time.gmtime(time.time())),
+       (hashlib.sha256(str(uuid.getnode())).hexdigest()[:2] +
+        str(uuid.uuid4())[:8])])
+  # TODO(itspeter): If config.encrypt_key put additional string to suffix.
+  suffix = config.compress_format
+  return prefix + suffix
 
 def Archive(config, next_cycle=True):
   """Archives the files based on the ArchiverConfig.
@@ -276,21 +353,48 @@ def Archive(config, next_cycle=True):
     next_cycle:
       True to follow the config.duration and False to make this a one-time
       execution, usually used in run-once mode or unittest.
+
+  Returns:
+    Full path of generated archive.
   """
   # TODO(itspeter): Special treat for zip (prepare file list instead of chunks)
+  started_time = TimeString()
+  generated_archive = None
 
   try:
-    tmp_dir = tempfile.mkdtemp(prefix='FactoryArchiver',
-                               suffix=config.data_type)
+    tmp_dir = tempfile.mkdtemp(prefix='FactoryArchiver_',
+                               suffix='_' + config.data_type)
     logging.info('%r created for archiving data_type[%s]',
                  tmp_dir, config.data_type)
     if config.source_dir:
       eligible_files = ListEligibleFiles(config.source_dir)
-      # pylint: disable=W0612
       archive_metadata = CopyCompleteChunks(eligible_files, tmp_dir, config)
-      # TODO(itspeter): Complete the logic:
-      #   Create metadata for the archive
-      #   Compress it.
+      # Write other information about current archiver and its enviornment
+      archive_metadata['archiver']['started'] = started_time
+      archive_metadata['archiver']['version_md5'] = (
+          GetMD5ForFiles(ARCHIVER_SOURCE_FILES, os.path.dirname(__file__)))
+      archive_metadata['archiver']['host'] = hex(uuid.getnode())
+      # TODO(itspeter): Write Umpire related information if available
+      with open(os.path.join(tmp_dir, 'archive.metadata'), 'w') as fd:
+        fd.write(yaml.dump(archive_metadata, default_flow_style=False))
+
+      # Compress it.
+      generated_archive = os.path.join(
+          config.archived_dir, GenerateArchiveName(config))
+      tmp_archive = generated_archive + '.part'
+      logging.info('Compressing %r into %r', tmp_dir, tmp_archive)
+
+      # TODO(itspeter): Handle the .zip compress_format.
+      # TODO(itspeter): Handle the failure cases.
+      output_tuple = Popen(  # pylint: disable=W0612
+          ['tar', '-cvJf', tmp_archive, '-C', tmp_dir, '.'],
+          stdout=PIPE, stderr=PIPE).communicate()
+
+      # Remove .part suffix.
+      os.rename(tmp_archive, generated_archive)
+
+      # TODO(itspeter): Update metadata data
+      # TODO(itspeter): Create screenshot
     else:  # Single file archiving.
       appended_range = _GetRangeOfAppendedBytes(config.source_file)
       if (appended_range[1] - appended_range[0]) <= 0:
@@ -301,10 +405,13 @@ def Archive(config, next_cycle=True):
         # TODO(itspeter): complete the logic
         pass
   finally:
-    # TODO(itspeter): enable after debugging completed.
-    #shutil.rmtree(tmp_dir)
-    #logging.info('%r deleted', tmp_dir)
-    pass
+    shutil.rmtree(tmp_dir)
+    logging.info('%r deleted', tmp_dir)
 
   if next_cycle:
     reactor.callLater(config.duration, Archive, config)  # pylint: disable=E1101
+
+
+  logging.info('%r created for archiving data_type[%s]',
+               generated_archive, config.data_type)
+  return generated_archive
