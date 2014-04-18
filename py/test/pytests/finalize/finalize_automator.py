@@ -19,7 +19,6 @@ class FinalizeAutomator(Automator):
       allow_force_finalize=['engineer', 'operator'], write_protection=False),
       automation_mode=AutomationMode.FULL)
   def automateFinalize(self):
-    # Simply pass the test.
     self.uictl.WaitForContent(
-        search_text='Press “f” to force starting finalization procedure.')
+        search_regexp=r'Press .*f.* to force starting finalization procedure\.')
     self.uictl.PressKey('F')
