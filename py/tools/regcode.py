@@ -9,14 +9,18 @@
 
 
 import binascii
+import logging
 import random
 import sys
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.hacked_argparse import CmdArg, Command, ParseCmdline
 from cros.factory.proto import reg_code_pb2
+from cros.factory.system import vpd
 from cros.factory.test import registration_codes
+from cros.factory.test import utils
 from cros.factory.test.registration_codes import RegistrationCode
+from cros.factory.tools.build_board import BuildBoard
 
 
 @Command('decode',
@@ -78,7 +82,56 @@ def GenerateDummy(options):
   print encoded_string
 
 
+@Command(
+  'check',
+  CmdArg(
+    '--unique-code', '-u', metavar='UNIQUE_CODE',
+    help='Unique/user code to check (default: ubind_attribute RW VPD value)'),
+  CmdArg(
+    '--group-code', '-g', metavar='GROUP_CODE',
+    help='Group code to check (default: gbind_attribute RW VPD value)'),
+  CmdArg(
+    '--board', '-b', metavar='BOARD',
+    help='Board to check (default: from .default_board or lsb-release)'))
+def Check(options):
+  if not options.board:
+    options.board = BuildBoard().short_name
+  logging.info('Device name: %s', options.board)
+
+  rw_vpd = None
+  success = True
+
+  for code_type, vpd_attribute, code in (
+      (RegistrationCode.Type.UNIQUE_CODE,
+       'ubind_attribute', options.unique_code),
+      (RegistrationCode.Type.GROUP_CODE,
+       'gbind_attribute', options.group_code)):
+
+    if not code:
+      if rw_vpd is None:
+        if utils.in_chroot():
+          sys.stderr.write('error: cannot read VPD from chroot; use -u/-g\n')
+          sys.exit(1)
+
+        rw_vpd = vpd.rw.GetAll()
+        code = rw_vpd.get(vpd_attribute)
+      if not code:
+        sys.stderr.write('error: %s is not present in RW VPD\n' %
+                         vpd_attribute)
+        sys.exit(1)
+
+    try:
+      registration_codes.CheckRegistrationCode(code, code_type, options.board)
+      logging.info('%s: success', code_type)
+    except registration_codes.RegistrationCodeException as e:
+      success = False
+      logging.error('%s: failed: %s', code_type, str(e))
+
+  sys.exit(0 if success else 1)
+
+
 def main():
+  logging.basicConfig(level=logging.INFO)
   options = ParseCmdline('Registration code tool.')
   options.command(options)
 
