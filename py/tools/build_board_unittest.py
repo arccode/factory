@@ -37,6 +37,12 @@ class BuildBoardTest(unittest.TestCase):
     self.assertRaisesRegexp(BuildBoardException, 'Multiple board names',
                             BuildBoard, 'he')
 
+  def testBoardArch(self):
+    self.assertEquals('arm', BuildBoard('beaglebone').arch)
+    self.assertEquals('arm', BuildBoard('big').arch)
+    self.assertEquals('arm', BuildBoard('spring').arch)
+    self.assertEquals('amd64', BuildBoard('rambi').arch)
+    self.assertEquals('amd64', BuildBoard('link').arch)
 
 if __name__ == '__main__':
   unittest.main()
