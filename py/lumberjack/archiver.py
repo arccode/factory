@@ -133,7 +133,7 @@ def _GetRangeOfAppendedBytes(file_path, dir_path=None):
     how to cope with these tuple.
   """
   metadata_path = GetMetadataPath(file_path, dir_path)
-  metadata = _GetOrCreateArchiverMetadata(metadata_path)
+  metadata = GetOrCreateArchiverMetadata(metadata_path)
 
   current_size = os.path.getsize(file_path)
   # current_size+1 to trigger if completed_bytes is not in the dictionary.
@@ -148,7 +148,7 @@ def _GetRangeOfAppendedBytes(file_path, dir_path=None):
   return (completed_bytes, current_size)
 
 
-def _GetOrCreateArchiverMetadata(metadata_path):
+def GetOrCreateArchiverMetadata(metadata_path):
   """Returns a dictionary based on the metadata of file.
 
   Regenerate metadata if it is not a valid YAML format
@@ -185,6 +185,37 @@ def _GetOrCreateArchiverMetadata(metadata_path):
           'dictionary. Reconstruct it.', metadata_path)
   return yaml.load(_RegenerateArchiverMetadataFile(metadata_path))
 
+
+def _UpdateArchiverMetadata(new_metadatas, config):
+  """Updates the metadata of files.
+
+  This function should not used for single file archiving because it has
+  no valid value in config.source_dir.
+
+  Args:
+    new_metadatas:
+      A dictionary from the archive's metadata under key 'files', which
+      indicated the successful archvied files. The value of 'files' is in
+      format like below:
+      {
+        'filename1: {'start': start position, 'end': end position},
+        'filename2: {'start': start position, 'end': end position},
+      }
+      filename is the relative path from config.source_dir. end and
+      start position are archived range of filename.
+  Raises:
+    ArchiverFieldError if config.source_dir is not valid.
+  """
+  if not config.source_dir:
+    raise ArchiverFieldError(
+        '_UpdateArchiverMetadata cannot find valid config.source_dir')
+
+  for filename, archived_range in new_metadatas.iteritems():
+    full_path = os.path.join(config.source_dir, filename)
+    metadata_path = GetMetadataPath(full_path)
+    logging.info('Updating %s', metadata_path)
+    with open(metadata_path, 'w') as fd:
+      fd.write(GenerateArchiverMetadata(completed_bytes=archived_range['end']))
 
 def CopyCompleteChunks(files, tmp_dir, config):
   """Identifies chunks and copies them into tmp_dir.
@@ -283,6 +314,7 @@ def GenerateArchiveName(config):
   suffix = config.compress_format
   return prefix + suffix
 
+
 def Archive(config, next_cycle=True):
   """Archives the files based on the ArchiverConfig.
 
@@ -334,8 +366,10 @@ def Archive(config, next_cycle=True):
       # Remove .part suffix.
       os.rename(tmp_archive, generated_archive)
 
-      # TODO(itspeter): Update metadata data
+      # Update metadata data for archived files.
+      _UpdateArchiverMetadata(archive_metadata['files'], config)
       # TODO(itspeter): Create screenshot
+
     else:  # Single file archiving.
       appended_range = _GetRangeOfAppendedBytes(config.source_file)
       if (appended_range[1] - appended_range[0]) <= 0:
@@ -351,7 +385,6 @@ def Archive(config, next_cycle=True):
 
   if next_cycle:
     reactor.callLater(config.duration, Archive, config)  # pylint: disable=E1101
-
 
   logging.info('%r created for archiving data_type[%s]',
                generated_archive, config.data_type)

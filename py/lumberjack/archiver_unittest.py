@@ -378,6 +378,15 @@ class ArchiverUnittest(unittest.TestCase):
     self._resetListEligibleFilesMetadata()
 
     archiver.Archive(config, next_cycle=False)
+    # Check if the metadata updated as expected.
+    expected_completed_bytes = [('20140406/incomplete_without_chunks', 0),
+                                ('20140406/incomplete_with_chunks', 352),
+                                ('20140406/normal_chunks', 666)]
+    for filename, completed_bytes in expected_completed_bytes:
+      metadata_path = archiver.GetMetadataPath(
+          os.path.join(config.source_dir, filename))
+      metadata = archiver.GetOrCreateArchiverMetadata(metadata_path)
+      self.assertEqual(completed_bytes, metadata['completed_bytes'])
 
   def testCheckExecutableExistNormal(self):
     self.assertEqual(True, archiver_config.CheckExecutableExist('ls'))
