@@ -43,6 +43,8 @@ class RunAutomatedTests(FactoryFlowCommand):
                  'mode of factory test automation to enable '
                  '(default: %(default)s)')),
       CmdArg('--test-list', default=None, help='test list to run'),
+      CmdArg('--shopfloor-ip', help='IP of shop floor server'),
+      CmdArg('--shopfloor-port', type=int, help='port of shop floor server'),
       CmdArg('--no-clear-states', dest='clear_states', action='store_false',
              default=True, help='do not clear factory test states and VPD'),
       CmdArg('--no-wait', dest='wait', action='store_false',
@@ -156,11 +158,15 @@ class RunAutomatedTests(FactoryFlowCommand):
     FACTORY_RESTART = '/usr/local/factory/bin/factory_restart'
 
     logging.info('Runing automated tests on %s', self.options.dut)
+    goofy_remote_args = [self.options.dut, GOOFY_REMOTE, self.options.dut,
+                         '--local']
     if self.options.test_list:
-      ssh_utils.SpawnSSHToDUT(
-          [self.options.dut, GOOFY_REMOTE, self.options.dut,
-           '--test_list=%s' % self.options.test_list, '--local'], log=True,
-          check_call=True)
+      goofy_remote_args += ['--test_list=%s' % self.options.test_list]
+    if self.options.shopfloor_ip:
+      goofy_remote_args += ['-s', self.options.shopfloor_ip]
+    if self.options.shopfloor_port:
+      goofy_remote_args += ['--shopfloor_port=%s', self.options.shopfloor_port]
+    ssh_utils.SpawnSSHToDUT(goofy_remote_args, log=True, check_call=True)
     ssh_utils.SpawnSSHToDUT(
         [self.options.dut, FACTORY_RESTART, '--automation-mode',
          '%s' % self.options.automation_mode, '--no-auto-run-on-start'] +
