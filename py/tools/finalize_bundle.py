@@ -836,15 +836,23 @@ class FinalizeBundle(object):
               check_call=True, log=True)
         shutil.move(new_netboot_firmware_image, netboot_firmware_image)
 
-        # The default name of netboot image is changed to 'vmlinux.bin'.
-        # Also, we need to copy vmlinux.uimg to vmlinux.bin and skip
-        # the first 64 bytes.
-        # Keep both of the files so everyone can be aware of the difference.
-        netboot_image = os.path.join(self.bundle_dir, 'factory_shim',
-                                     'netboot', 'vmlinux.uimg')
-        new_netboot_image = os.path.join(self.bundle_dir, 'factory_shim',
-                                         'netboot', 'vmlinux.bin')
-        CopyFileSkipBytes(netboot_image, new_netboot_image, 64)
+        target_netboot_image = os.path.join(self.bundle_dir, 'factory_shim',
+                                            'netboot', 'vmlinux.bin')
+        if not os.path.exists(target_netboot_image):
+          # Only generate 'vmlinux.bin' manually if it does not exist. If
+          # 'vmlinux.bin' is present (as changed by CL:195554), we will simply
+          # use it since it is already processed by make_netboot.sh.
+          netboot_image = os.path.join(self.bundle_dir, 'factory_shim',
+                                       'netboot', 'vmlinux.uimg')
+          if self.board.arch == 'arm':
+            # No special process needed for ARM-based boards; simply copy the
+            # file.
+            shutil.copyfile(netboot_image, target_netboot_image)
+          else:
+            # If the board is not ARM-based, we need to copy 'vmlinux.uimg' to
+            # 'vmlinux.bin' and skip the first 64 bytes to strip uboot header.
+            # Keep both of the files so everyone can be aware of the difference.
+            CopyFileSkipBytes(netboot_image, new_netboot_image, 64)
 
     # Patch in the install shim, if present.
     has_install_shim = False
