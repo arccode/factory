@@ -465,6 +465,11 @@ class PyTestTest(GoofyTest):
                              "'Let\\\\\'s call the whole thing off'")})
   """
   def runTest(self):
+    # Some other test cases might stub out invocation.Spawn, ex: ShutdownTest.
+    # To run the 'real' test (execpython), we need to re-assign it to the
+    # 'real' process_utils.Spawn.
+    invocation.Spawn = Spawn
+
     self.goofy.run_once()
     self.assertEquals(['a'],
               [test.id for test in self.goofy.invocations])
@@ -491,6 +496,11 @@ class PyLambdaTest(GoofyTest):
            dargs={'script': lambda env: 'raise ValueError("It"+"Failed")'})
   """
   def runTest(self):
+    # Some other test cases might stub out invocation.Spawn, ex: ShutdownTest.
+    # To run the 'real' test (execpython), we need to re-assign it to the
+    # 'real' process_utils.Spawn.
+    invocation.Spawn = Spawn
+
     self.goofy.run_once()
     self.goofy.wait()
     failed_state = factory.get_state_instance().get_test_state('a')
@@ -817,6 +827,78 @@ class StopOnFailureTest(GoofyTest):
         [TestState.PASSED, TestState.FAILED, TestState.UNTESTED],
         [state_instance.get_test_state(x).status for x in ['a', 'b', 'c']])
     self._wait()
+
+
+class ForceBackgroundTest(GoofyTest):
+  """Tests force_background parameter in test list.
+
+  We have three kinds of the next eligible test:
+    1. normal
+    2. backgroundable
+    3. force_background
+
+  And we have four situations of the ongoing invocations:
+    a. only a running normal test
+    b. all running tests are backgroundable
+    c. all running tests are force_background
+    d. all running tests are any combination of backgroundable and
+       force_background
+
+  When a test would like to be run, it must follow the rules:
+    [1] cannot run with [abd]
+    [2] cannot run with [a]
+    All the other combinations are allowed
+  """
+  test_list = """
+    FactoryTest(id='aA', pytest_name='a_A'),
+    FactoryTest(id='bB', pytest_name='b_B'),
+    FactoryTest(id='cC', pytest_name='c_C', backgroundable=True),
+    FactoryTest(id='dD', pytest_name='d_D', force_background=True),
+    FactoryTest(id='eE', pytest_name='e_E'),
+    FactoryTest(id='fF', pytest_name='f_F', force_background=True),
+    FactoryTest(id='gG', pytest_name='g_G', backgroundable=True),
+  """
+  def runTest(self):
+    # Stub out invocation.Spawn to mock pytest invocation.
+    invocation.Spawn = self.mocker.CreateMock(Spawn)
+    mock_pytest(invocation.Spawn, 'a_A', TestState.PASSED, '')
+    mock_pytest(invocation.Spawn, 'b_B', TestState.PASSED, '')
+    mock_pytest(invocation.Spawn, 'c_C', TestState.PASSED, '')
+    mock_pytest(invocation.Spawn, 'd_D', TestState.PASSED, '')
+    mock_pytest(invocation.Spawn, 'e_E', TestState.PASSED, '')
+    mock_pytest(invocation.Spawn, 'f_F', TestState.PASSED, '')
+    mock_pytest(invocation.Spawn, 'g_G', TestState.PASSED, '')
+    self.mocker.ReplayAll()
+
+    # [1] cannot run with [abd].
+    # Normal test 'aA' cannot run with normal test 'bB'.
+    self.goofy.run_once()
+    self.assertEquals(['aA'], [test.id for test in self.goofy.invocations])
+    self.goofy.wait()
+    # Normal test 'bB' cannot run with backgroundable test 'cC'.
+    self.goofy.run_once()
+    self.assertEquals(['bB'], [test.id for test in self.goofy.invocations])
+    self.goofy.wait()
+    # Normal test 'eE' cannot run with the combination of backgroundable
+    # test 'cC' and force_background test 'dD'.
+    self.goofy.run_once()
+    self.assertEquals(
+        set(['cC', 'dD']), set([test.id for test in self.goofy.invocations]))
+    self.goofy.wait()
+
+    # [2] cannot run with [a]
+    # Backgroundable test 'gG' cannot run with the normal test 'eE'.
+    self.goofy.run_once()
+    self.assertEquals(
+        set(['eE', 'fF']), set([test.id for test in self.goofy.invocations]))
+    self.goofy.wait()
+    self.goofy.run_once()
+    self.assertEquals(['gG'], [test.id for test in self.goofy.invocations])
+    self.goofy.wait()
+
+    self.mocker.VerifyAll()
+    self.mocker.ResetAll()
+
 
 if __name__ == "__main__":
   factory.init_logging('goofy_unittest')

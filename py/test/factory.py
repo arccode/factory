@@ -850,6 +850,7 @@ class FactoryTest(object):
                retries=0,
                prepare=None,
                finish=None,
+               force_background=False,
                _root=None,
                _default_id=None):
     """Constructor.
@@ -871,6 +872,7 @@ class FactoryTest(object):
     self.kbd_shortcut = kbd_shortcut.lower() if kbd_shortcut else None
     self.dargs = dargs or {}
     self.backgroundable = backgroundable
+    self.force_background = force_background
     if isinstance(exclusive, str):
       self.exclusive = [exclusive]
     else:
@@ -971,9 +973,15 @@ class FactoryTest(object):
     assert not bogus_exclusive_items, (
         'In test %s, invalid exclusive options: %s (should be in %s)' %
         (self.id, bogus_exclusive_items, self.EXCLUSIVE_OPTIONS))
-    assert not (backgroundable and (enable_services or disable_services)), (
+    assert not ((backgroundable or force_background) and (
+        enable_services or disable_services)), (
         'Test %s may not be backgroundable with enable_services or '
         'disable_services specified.' % self.id)
+    assert not (force_background and self.has_ui), (
+        'Test %s may not have UI with force background.' % self.id)
+    assert not (force_background and backgroundable), (
+        'Test %s may not set backgroundable and force_background at '
+        'the same time.' % self.id)
 
   @staticmethod
   def pytest_name_to_id(pytest_name):

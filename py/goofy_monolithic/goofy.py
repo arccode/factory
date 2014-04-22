@@ -687,7 +687,25 @@ class Goofy(object):
     return notes and notes[-1]['level'] == 'CRITICAL'
 
   def run_next_test(self):
-    """Runs the next eligible test (or tests) in self.tests_to_run."""
+    """Runs the next eligible test (or tests) in self.tests_to_run.
+
+    We have three kinds of the next eligible test:
+      1. normal
+      2. backgroundable
+      3. force_background
+
+    And we have four situations of the ongoing invocations:
+      a. only a running normal test
+      b. all running tests are backgroundable
+      c. all running tests are force_background
+      d. all running tests are any combination of backgroundable and
+         force_background
+
+    When a test would like to be run, it must follow the rules:
+      [1] cannot run with [abd]
+      [2] cannot run with [a]
+      All the other combinations are allowed
+    """
     self.reap_completed_tests()
     if self.tests_to_run and self.check_critical_factory_note():
       self.tests_to_run.clear()
@@ -709,10 +727,21 @@ class Goofy(object):
                          'before running %s', i.path, test.path)
             return
 
-      if self.invocations and not (test.backgroundable and all(
-        [x.backgroundable for x in self.invocations])):
-        logging.debug('Waiting for non-backgroundable tests to '
-                      'complete before running %s', test.path)
+      def is_normal_test(test):
+        return not (test.backgroundable or test.force_background)
+
+      # [1] cannot run with [abd].
+      if self.invocations and is_normal_test(test) and any(
+          [not x.force_background for x in self.invocations]):
+        logging.info('Waiting for non-force_background tests to '
+                     'complete before running %s', test.path)
+        return
+
+      # [2] cannot run with [a].
+      if self.invocations and test.backgroundable and any(
+          [is_normal_test(x) for x in self.invocations]):
+        logging.info('Waiting for normal tests to '
+                     'complete before running %s', test.path)
         return
 
       if test.get_state().skip:
