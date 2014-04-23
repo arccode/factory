@@ -4,6 +4,11 @@
 # found in the LICENSE file.
 """Unit tests for archiver"""
 
+# TODO(itspeter):
+#  When running the test, move the whole testdata into a temporary directory
+#  and dynamic inject that path into the YAML configuration to avoid affecting
+#  other workflow.
+
 import logging
 import os
 import shutil
@@ -40,16 +45,23 @@ class ArchiverUnittest(unittest.TestCase):
 
   def tearDown(self):
     os.chdir(self.pwd)
-    try:
-      shutil.rmtree(os.path.join(TEST_DATA_PATH, 'archives'))
-      shutil.rmtree(os.path.join(TEST_DATA_PATH, 'raw/report'))
-      shutil.rmtree(os.path.join(TEST_DATA_PATH, 'raw/regcode'))
+    directories_to_delete = [
+      os.path.join(TEST_DATA_PATH, 'archives'),
+      os.path.join(TEST_DATA_PATH, 'raw/report'),
+      os.path.join(TEST_DATA_PATH, 'raw/regcode'),
       # Clean-up to make git status cleaner
-      shutil.rmtree('raw/eventlog/20140406/.archiver')
-      shutil.rmtree('raw/eventlog/20140419/.archiver')
-      shutil.rmtree('raw/eventlog/20140420/.archiver')
-      shutil.rmtree('raw/eventlog/20140421/.archiver')
-      os.unlink('raw/eventlog/.archiver.lock')
+      os.path.join(TEST_DATA_PATH, 'raw/eventlog/20140406/.archiver'),
+      os.path.join(TEST_DATA_PATH, 'raw/eventlog/20140419/.archiver'),
+      os.path.join(TEST_DATA_PATH, 'raw/eventlog/20140420/.archiver'),
+      os.path.join(TEST_DATA_PATH, 'raw/eventlog/20140421/.archiver')]
+    for directory in directories_to_delete:
+      try:
+        shutil.rmtree(directory)
+      except: # pylint: disable=W0702
+        pass
+    # Delete lock file
+    try:
+      os.unlink(os.path.join(TEST_DATA_PATH, 'raw/eventlog/.archiver.lock'))
     except: # pylint: disable=W0702
       pass
 
