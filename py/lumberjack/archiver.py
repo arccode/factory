@@ -22,6 +22,7 @@ from twisted.internet import reactor
 
 
 METADATA_DIRECTORY = '.archiver'  # For storing metadata.
+SNAPSHOT = '.snapshot'
 # These suffix indicate another process is using.
 SKIP_SUFFIX = ['.part', '.inprogress', '.lock', '.swp']
 ARCHIVER_SOURCE_FILES = ['archiver.py', 'archiver_exception.py',
@@ -314,6 +315,123 @@ def GenerateArchiveName(config):
   suffix = config.compress_format
   return prefix + suffix
 
+def Recycle(config):
+  """Recycles directory from raw source if possible.
+
+  A directory under config.source_dir will be identified as recyclable if
+  time criteria and snapshot criteria are both met.
+
+  1) Time criteria:
+    The directory name can be recognized by _ConvertToTimestamp() and the
+    time difference between current time are larger than
+    config.save_to_recycle_duration.
+  2) Snapshop criteria:
+    The .archiver/.snapshot has identical content as the one we are going to
+    create.
+
+  Although it shouldn't happen logically (unless the system time is drifted
+  a lot), we still have a rule to deal with recycle failure. When recycle
+  failed (i.e. a directory with same name exists), a 4 digits random hash
+  will be added as a suffix with one retry.
+  """
+  def _ConvertToTimestamp(dir_name):
+    """Converts to time in seconds since the epoch.
+
+    The following format are supported:
+      Format                 Example
+      YYYYMMDD/              20130929/
+      logs.YYYYMMDD/         logs.20140220/
+      logs.YYYYMMDD-hh/      logs.20140220-14/
+
+    Returns:
+      If dir_name can be converted, a time in seconds as a floating point will
+      be returned. Otherwise, return None.
+    """
+    ret = None
+    support_formats = ['logs.%Y%m%d-%H', 'logs.%Y%m%d', '%Y%m%d']
+    for format_str in support_formats:
+      try:
+        ret = time.strptime(dir_name, format_str)
+        break
+      except ValueError:
+        pass  # Not able to parse the string
+    if ret is not None:
+      ret = time.mktime(ret)
+    return ret
+
+  def _WriteSnapshot(file_path, snapshot_to_write):
+    with open(file_path, 'w') as fd:
+      fd.write(yaml.dump(snapshot_to_write, default_flow_style=False))
+    logging.debug('Snapshot %r created.', file_path)
+
+  for current_dir, sub_dirs, filenames in os.walk(config.source_dir):
+    if os.path.basename(current_dir) == METADATA_DIRECTORY:
+      logging.debug('Metadata directory %r found, skipped.', current_dir)
+      continue
+    # Check if the directory format are recognizable.
+    dir_time_in_secs = _ConvertToTimestamp(os.path.basename(current_dir))
+    if dir_time_in_secs is None:
+      logging.debug('Cannot recognized the timestamp of %r. Will be skipped.',
+                    dir_time_in_secs)
+      continue
+    # Make sure the directory is the deepest (i.e. not more sub_dirs)
+    if not (len(sub_dirs) == 1 and sub_dirs[0] == METADATA_DIRECTORY):
+      logging.debug('Directory %r still have sub-directories %r, not suitable'
+                    ' for screenshot creating. Will be skipped.',
+                    current_dir, sub_dirs)
+      continue
+
+    # Establish new snpahost.
+    new_snapshot = []
+    for filename in filenames:
+      full_path = os.path.join(current_dir, filename)
+      mtime = os.path.getmtime(full_path)
+      size = os.path.getsize(full_path)
+      new_snapshot.append({'path': filename, 'mtime': mtime, 'size': size})
+    # Sort the new_snapshot by filename
+    new_snapshot.sort(key=lambda _dict: _dict['path'])
+    snapshot_path = os.path.join(current_dir, METADATA_DIRECTORY, SNAPSHOT)
+    # Check if the time criteria is already matched.
+    if time.time() - dir_time_in_secs < config.save_to_recycle_duration:
+      logging.debug(
+          'Directory %r still immature for recycling. %.2f secs left.',
+          current_dir,
+          config.save_to_recycle_duration - (time.time() - dir_time_in_secs))
+      # Update snapshot
+      _WriteSnapshot(snapshot_path, new_snapshot)
+      continue
+
+    # Read the current snapshot to check if we meet snapshot criteria.
+    current_snapshot = []
+    if os.path.isfile(snapshot_path):
+      with open(snapshot_path) as fd:
+        current_snapshot = yaml.load(fd.read())
+    _WriteSnapshot(snapshot_path, new_snapshot)  # Override the current.
+
+    # Compare the snapshot.
+    if current_snapshot != new_snapshot:
+      continue
+
+    # Move to recycle_dir. Example of the moving path:
+    # raw-logs/eventlog/20130307/* -> recycle/raw-logs/eventlog/20130307/*
+    target_dir = os.path.join(config.recycle_dir,
+                              os.path.relpath(current_dir, config.source_dir))
+    logging.info('Both time and snapshot criteria meet, moving %r '
+                 'to %r', current_dir, target_dir)
+    try:
+      os.rename(current_dir, target_dir)
+    except OSError:  # Might already have a directory with same name
+      target_dir = target_dir.rstrip('/') + '_' + str(uuid.uuid4())[-4:]
+      logging.info('A directory with same name might already existed. Retry'
+                   'to move %r to %r instead.', current_dir, target_dir)
+      try:
+        os.rename(current_dir, target_dir)
+      except OSError:  # Fail again.
+        logging.error('Fail to recycle directory %r, will try again in next '
+                      'archiving cycle.', current_dir)
+        continue
+    logging.info('Successfully recycled %r to %r', current_dir, target_dir)
+
 
 def Archive(config, next_cycle=True):
   """Archives the files based on the ArchiverConfig.
@@ -368,8 +486,8 @@ def Archive(config, next_cycle=True):
 
       # Update metadata data for archived files.
       _UpdateArchiverMetadata(archive_metadata['files'], config)
-      # TODO(itspeter): Create screenshot
-
+      # Create snapshot and recycle direcotry in source_dir
+      Recycle(config)
     else:  # Single file archiving.
       appended_range = _GetRangeOfAppendedBytes(config.source_file)
       if (appended_range[1] - appended_range[0]) <= 0:

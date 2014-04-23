@@ -48,6 +48,9 @@ class ArchiverConfig(object):
     recycle_dir: The directory where we move archived data from source to
       recycle_dir. Data stored inside this directory means it is deletable at
       anytime.
+    save_to_recycle_duration: The interval in secs after a directory being
+      considered for a recycle action. Currently, not exposing as a setting
+      and having default value to 172800 secs (2 days)
     project: Board name, usually the software code name of a project.
       Additional phase is ecouraged to add (ex: EVT, DVT, MP). The string
       itself must meet regular expression [A-Za-z0-9_-].
@@ -67,6 +70,7 @@ class ArchiverConfig(object):
   source_file = None
   archived_dir = None
   recycle_dir = None
+  save_to_recycle_duration = 172800
   project = None
   data_type = None
   notes = None
@@ -93,6 +97,7 @@ class ArchiverConfig(object):
         'source_file': self.source_file,
         'archived_dir': self.archived_dir,
         'recycle_dir': self.recycle_dir,
+        'save_to_recycle_duration': self.save_to_recycle_duration,
         'project': self.project,
         'data_type': self.data_type,
         'notes': self.notes,

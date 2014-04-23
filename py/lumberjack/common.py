@@ -56,7 +56,6 @@ def CheckAndLockFile(lock_file_path):
   Args:
     lock_file_path: The path to the file needs to be locked.
 
-
   Returns:
     If lock acquired successfully, a file descriptor will be returned. The
     caller has the responsibility to keep the file descriptor away from garbage

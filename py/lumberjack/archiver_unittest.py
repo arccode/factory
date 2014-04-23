@@ -395,5 +395,54 @@ class ArchiverUnittest(unittest.TestCase):
     self.assertEqual(
         False, archiver_config.CheckExecutableExist('DemocracyAt4AM'))
 
+  def testRecycle(self):
+    # This unittest can only be ran after 20140406 + 2 days.
+    with open(os.path.join(TEST_DATA_PATH, 'template_eventlog.yaml')) as f:
+      content = f.read()
+    configs = GenerateConfig(yaml.load(content))
+    config = configs[0]
+
+    # Prepare diectory
+    self._resetCopyCompleteChunksMetadata(completed_bytes=0)
+    tmp_dir = tempfile.mkdtemp(
+        prefix='FactoryArchiver_', suffix='_unittest')
+    logging.info('%r created for Recycle() unittest', tmp_dir)
+    #shutil.copytree(TEST_DATA_PATH, os.path.join(tmp_dir, 'unittest'))
+    # Inject temporary path into configuration
+    #TEMP_TEST_DATA_PATH = os.path.join(tmp_dir, 'unittest')
+    config.SetDir(
+        os.path.join(tmp_dir, 'raw/eventlog'), 'source_dir', create=True)
+    config.SetDir(
+        os.path.join(tmp_dir, 'archives'), 'archived_dir', create=True)
+    config.SetDir(
+        os.path.join(tmp_dir, 'recycle/raw/eventlog'),
+        'recycle_dir', create=True)
+    shutil.copytree(
+      os.path.join(TEST_DATA_PATH, 'raw/eventlog/20140406'),
+      os.path.join(tmp_dir, 'raw/eventlog/20140406'))
+
+    # Check if the snapshot created ?
+    archiver.Recycle(config)  # Trigger snapshot creation
+    self.assertTrue(
+        os.path.isfile(os.path.join(tmp_dir,
+                       'raw/eventlog/20140406/.archiver', '.snapshot')))
+    # Check if it recycled ?
+    archiver.Recycle(config)
+    self.assertFalse(
+        os.path.isdir(os.path.join(tmp_dir, 'raw/eventlog/20140406')))
+    self.assertTrue(
+        os.path.isdir(os.path.join(tmp_dir, 'recycle/raw/eventlog/20140406')))
+    # Copy the 20140406 directory again to test recycle in conflict.
+    shutil.copytree(
+      os.path.join(TEST_DATA_PATH, 'raw/eventlog/20140406'),
+      os.path.join(tmp_dir, 'raw/eventlog/20140406'))
+    archiver.Recycle(config)  # Trigger snapshot creation
+    archiver.Recycle(config)  # Trigger conflict
+    self.assertEqual(
+        2, len(os.listdir(os.path.join(tmp_dir, 'recycle/raw/eventlog/'))))
+    shutil.rmtree(tmp_dir)
+    logging.info('%r deleted', tmp_dir)
+
+
 if __name__ == '__main__':
   unittest.main()
