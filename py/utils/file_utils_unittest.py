@@ -6,13 +6,15 @@
 
 """Unittest for file_utils.py."""
 
-
+import logging
 import mock
 import mox
+import multiprocessing
 import os
 import re
 import shutil
 import tempfile
+import time
 import unittest
 
 import factory_common  # pylint: disable=W0611
@@ -344,5 +346,79 @@ class Md5sumInHexTest(unittest.TestCase):
     os.unlink(temp_file.name)
 
 
+class FileLockTest(unittest.TestCase):
+  def setUp(self):
+    self.temp_file = tempfile.mkstemp()[1]
+
+  def tearDown(self):
+    os.unlink(self.temp_file)
+
+  def testFileLockMultiProcess(self):
+    def Target():
+      file_utils.FileLock(self.temp_file).Acquire()
+      time.sleep(2)
+
+    p = multiprocessing.Process(target=Target)
+    p.start()
+    time.sleep(0.5)
+    self.assertRaisesRegexp(
+        IOError, r'Resource temporarily unavailable',
+        file_utils.FileLock(self.temp_file).Acquire)
+    p.terminate()
+
+  def testFileLockMultiProcessWithTimeout(self):
+    def Target(idle_secs):
+      lock = file_utils.FileLock(self.temp_file)
+      lock.Acquire()
+      time.sleep(idle_secs)
+      lock.Release()
+
+    # One process hold lock for 1 second, and another wait for the lock for at
+    # most 3 seconds.
+    p = multiprocessing.Process(target=lambda: Target(1))
+    p.start()
+    time.sleep(0.5)
+    lock = file_utils.FileLock(self.temp_file, timeout_secs=3)
+    # These two Acquire() and Release() calls should not raise exception.
+    lock.Acquire()
+    lock.Release()
+    p.terminate()
+
+    # One process hold lock for 3 seconds, and another wait for the lock for at
+    # most 1 second.
+    p = multiprocessing.Process(target=lambda: Target(3))
+    p.start()
+    time.sleep(0.5)
+    lock = file_utils.FileLock(self.temp_file, timeout_secs=1)
+    self.assertRaisesRegexp(
+        file_utils.FileLockTimeoutError,
+        r'Could not acquire file lock of .* in 1 second\(s\)',
+        lock.Acquire)
+    p.terminate()
+
+  def testFileLockSingleProcess(self):
+    # Lock and unlock a file twice.
+    with file_utils.FileLock(self.temp_file):
+      pass
+    lock = file_utils.FileLock(self.temp_file)
+    # These two Acquire() and Release() calls should not raise exception.
+    lock.Acquire()
+    lock.Release()
+
+    # Try to grab lock on a locked file.
+    file_utils.FileLock(self.temp_file).Acquire()
+    self.assertRaisesRegexp(
+        IOError, r'Resource temporarily unavailable',
+        file_utils.FileLock(self.temp_file).Acquire)
+
+  def testFileLockSingleProcessWithTimeout(self):
+    file_utils.FileLock(self.temp_file).Acquire()
+    self.assertRaisesRegexp(
+        file_utils.FileLockTimeoutError,
+        r'Could not acquire file lock of .* in 1 second\(s\)',
+        file_utils.FileLock(self.temp_file, timeout_secs=1).Acquire)
+
+
 if __name__ == '__main__':
+  logging.basicConfig(level=logging.DEBUG)
   unittest.main()

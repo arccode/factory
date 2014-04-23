@@ -7,17 +7,20 @@
 import base64
 from contextlib import contextmanager
 import errno
+import fcntl
 import hashlib
 import logging
 import os
 import re
 import shutil
+import time
 import tempfile
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.common import MakeList
 from cros.factory.test import utils
 from cros.factory.tools import mount_partition
+from cros.factory.utils import time_utils
 from cros.factory.utils.process_utils import Spawn
 
 
@@ -373,3 +376,59 @@ def B64Sha1(filename):
   # pylint: disable=E1101
   return base64.standard_b64encode(hashlib.sha1(
       open(filename, 'rb').read()).digest())
+
+
+class FileLockTimeoutError(Exception):
+  """Timeout error for FileLock."""
+  pass
+
+
+class FileLock(object):
+  """An exclusive lock implemented with file lock.
+
+  The lock is designed to work either in one process or across multiple
+  processes. Call Acquire() to acquire the file lock. The file lock is release
+  either by calling Release() manually, or when the process is terminated.
+
+  Args:
+    lockfile: The path to the file used as lock.
+    timeout_secs: The maximum duration in seconds to wait for the lock, or None
+      to fail immediately if unable to acquire lock.
+  """
+  def __init__(self, lockfile, timeout_secs=None):
+    self._lockfile = lockfile
+    self._timeout_secs = timeout_secs
+    self._fd = os.open(lockfile, os.O_RDWR | os.O_CREAT)
+    self._locked = False
+
+  def Acquire(self):
+    if self._timeout_secs:
+      end_time = time_utils.MonotonicTime() + self._timeout_secs
+
+    while True:
+      try:
+        fcntl.flock(self._fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        self._locked = True
+        logging.debug('%s locked by %s', self._lockfile, os.getpid())
+        break
+      except IOError:
+        if self._timeout_secs:
+          time.sleep(0.1)
+          if time_utils.MonotonicTime() > end_time:
+            raise FileLockTimeoutError(
+                'Could not acquire file lock of %s in %s second(s)' %
+                (self._lockfile, self._timeout_secs))
+        else:
+          raise
+
+  def Release(self):
+    if self._locked:
+      fcntl.flock(self._fd, fcntl.LOCK_UN)
+      self._locked = False
+      logging.debug('%s unlocked by %s', self._lockfile, os.getpid())
+
+  def __enter__(self):
+    return self.Acquire()
+
+  def __exit__(self, *args, **kwargs):
+    self.Release()
