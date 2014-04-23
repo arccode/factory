@@ -4,6 +4,37 @@
 
 """Time-related utilities."""
 
+import ctypes
+import os
+
+
+def MonotonicTime():
+  """Gets the raw monotonic time.
+
+  This function opens librt.so with ctypes and call:
+
+    int clock_gettime(clockid_t clk_id, struct timespec *tp);
+
+  to get raw monotonic time.
+  """
+  CLOCK_MONOTONIC_RAW = 4
+
+  class TimeSpec(ctypes.Structure):
+    """A representation of struct timespec in C."""
+    _fields_ = [
+        ('tv_sec', ctypes.c_long),
+        ('tv_nsec', ctypes.c_long),
+    ]
+
+  librt = ctypes.CDLL('librt.so.1', use_errno=True)
+  clock_gettime = librt.clock_gettime
+  clock_gettime.argtypes = [ctypes.c_int, ctypes.POINTER(TimeSpec)]
+  t = TimeSpec()
+  if clock_gettime(CLOCK_MONOTONIC_RAW, ctypes.pointer(t)) != 0:
+    errno = ctypes.get_errno()
+    raise OSError(errno, os.strerror(errno))
+  return t.tv_sec + 1e-9 * t.tv_nsec
+
 
 def FormatElapsedTime(elapsed_secs):
   """Formats an elapsed time.
