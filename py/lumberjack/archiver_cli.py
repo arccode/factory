@@ -17,6 +17,7 @@ import yaml
 
 from archiver import locks, Archive
 from archiver_config import GenerateConfig, LockSource
+from common import IsValidYAMLFile
 from twisted.internet import reactor
 
 
@@ -52,25 +53,6 @@ def _SignalHandler(dummy_signal, dummy_frame):
 
 @CleanUpDecorator
 def main(argv):
-  def IsValidYAMLFile(arg):
-    """Help function to reject invalid YAML syntax"""
-    if not os.path.exists(arg):
-      error_str = 'The YAML config file %s does not exist!' % arg
-      logging.error(error_str)
-      raise IOError(error_str)
-    else:
-      logging.info('Verifying the YAML syntax for %r...', arg)
-      try:
-        with open(arg) as f:
-          content = f.read()
-        logging.debug('Raw YAML content:\n%r\n', content)
-        yaml.load(content)
-      except yaml.YAMLError as e:
-        if hasattr(e, 'problem_mark'):
-          logging.error('Possible syntax error is around: (line:%d, column:%d)',
-                        e.problem_mark.line + 1, e.problem_mark.column + 1)
-        raise e
-    return arg
 
   top_parser = argparse.ArgumentParser(description='Log Archiver')
   sub_parsers = top_parser.add_subparsers(

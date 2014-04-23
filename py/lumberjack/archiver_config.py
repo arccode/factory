@@ -6,15 +6,15 @@
 """Everything about constructing and verifing the config of Archiver."""
 
 import copy
-import fcntl
 import logging
 import os
 import pprint
 import re
-import subprocess
+
 
 from archiver import locks
 from archiver_exception import ArchiverFieldError
+from common import CheckAndLockFile, CheckExecutableExist
 
 
 ALLOWED_DATA_TYPE = set(['eventlog', 'reports', 'regcode'])
@@ -34,18 +34,6 @@ DEFAULT_DELIMITER = {
   'eventlog': r'---\n',
   'regcode': r'\n'
 }
-
-
-# TODO(itspeter):
-#   Move to cros.factory.test.utils once migration to Umpire is fully
-#   rolled-out.
-def CheckExecutableExist(executable_name):
-  """Returns a boolean if a executable is callable."""
-  try:
-    subprocess.check_call(['which', executable_name])
-    return True
-  except subprocess.CalledProcessError:
-    return False
 
 
 class ArchiverConfig(object):
@@ -363,15 +351,6 @@ def GenerateConfig(config):
   return archive_configs
 
 
-def WriteAndTruncateFd(fd, string):
-  """Helper function that will write string from beginning of the file."""
-  fd.seek(0)
-  fd.write(string)
-  fd.truncate()
-  fd.flush()
-  os.fsync(fd.fileno())
-
-
 def LockSource(config):
   """Marks a source as being monitored by this archiver.
 
@@ -391,12 +370,9 @@ def LockSource(config):
     lock_file_path = os.path.join(
         os.path.dirname(config.source_file),
         '.' + os.path.basename(config.source_file) + LOCK_FILE_SUFFIX)
-  # Check if the file is already locked ?
-  fd = os.fdopen(os.open(lock_file_path, os.O_RDWR | os.O_CREAT), 'r+')
-  try:
-    fcntl.lockf(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-  except IOError:
-    running_pid = open(lock_file_path, 'r').read()
+  lock_ret = CheckAndLockFile(lock_file_path)
+  if not isinstance(lock_ret, file):
+    running_pid = lock_ret
     error_msg = (
         'data_type[%r] is already monitored by another archiver.'
         'Lock %r cannot be acquired. Another archiver\'s PID '
@@ -404,10 +380,8 @@ def LockSource(config):
     logging.error(error_msg)
     raise ArchiverFieldError(error_msg)
 
-  # Write the owner's process ID.
-  WriteAndTruncateFd(fd, str(os.getpid()))
   # Add to global variable to live until this process ends.
-  locks.append((fd, lock_file_path))
+  locks.append((lock_ret, lock_file_path))
   logging.info('Successfully acquire advisory lock on %r, PID[%d]',
                lock_file_path, os.getpid())
   return lock_file_path

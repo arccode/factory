@@ -22,7 +22,8 @@ import archiver_config
 
 from archiver_cli import main
 from archiver_exception import ArchiverFieldError
-from archiver_config import GenerateConfig, LockSource, WriteAndTruncateFd
+from archiver_config import GenerateConfig, LockSource
+from common import TryMakeDirs, WriteAndTruncateFd
 from multiprocessing import Process
 
 TEST_DATA_PATH = os.path.abspath(os.path.join(
@@ -38,9 +39,9 @@ class ArchiverUnittest(unittest.TestCase):
         level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S')
     self.pwd = os.getcwd()
     # Create empty directory
-    archiver.TryMakeDirs(os.path.join(TEST_DATA_PATH, 'archives'))
-    archiver.TryMakeDirs(os.path.join(TEST_DATA_PATH, 'raw/report'))
-    archiver.TryMakeDirs(os.path.join(TEST_DATA_PATH, 'raw/regcode'))
+    TryMakeDirs(os.path.join(TEST_DATA_PATH, 'archives'))
+    TryMakeDirs(os.path.join(TEST_DATA_PATH, 'raw/report'))
+    TryMakeDirs(os.path.join(TEST_DATA_PATH, 'raw/regcode'))
     os.chdir(TEST_DATA_PATH)
 
   def tearDown(self):
@@ -193,8 +194,7 @@ class ArchiverUnittest(unittest.TestCase):
     files = ['incomplete_with_chunks',
              'incomplete_without_chunks',
              'normal_chunks']
-    archiver.TryMakeDirs(
-        os.path.join(EVENT_LOG_PATH, '.archiver'))
+    TryMakeDirs(os.path.join(EVENT_LOG_PATH, '.archiver'))
     for filename in files:
       filename = os.path.join(EVENT_LOG_PATH, filename)
       filesize = (os.path.getsize(filename) if completed_bytes is None else
@@ -219,7 +219,7 @@ class ArchiverUnittest(unittest.TestCase):
 
     EVENT_LOG_PATH = os.path.join(TEST_DATA_PATH, 'raw/eventlog/')
     for filename in files:
-      archiver.TryMakeDirs(
+      TryMakeDirs(
           os.path.join(EVENT_LOG_PATH,
                        os.path.dirname(filename), '.archiver'))
       filename = os.path.join(EVENT_LOG_PATH, filename)
@@ -240,7 +240,7 @@ class ArchiverUnittest(unittest.TestCase):
     # Test if appended bytes can be detected.
     #   raw/eventlog/20140419/some_bytes_appeneded
     #   raw/eventlog/20140419/.archiver/some_bytes_appeneded.metadata
-    archiver.TryMakeDirs(
+    TryMakeDirs(
         os.path.join(EVENT_LOG_PATH, '20140419/.archiver'))
     filename = os.path.join(
         EVENT_LOG_PATH, '20140419/some_incomplete_bytes_appeneded')
@@ -260,7 +260,7 @@ class ArchiverUnittest(unittest.TestCase):
               completed_bytes=os.path.getsize(filename)))
 
 
-    archiver.TryMakeDirs(
+    TryMakeDirs(
         os.path.join(EVENT_LOG_PATH, '20140420/.archiver'))
     # Test if metadata re-generated.
     #   1) incorrect YAML:

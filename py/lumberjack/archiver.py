@@ -16,6 +16,7 @@ import uuid
 import yaml
 
 from archiver_exception import ArchiverFieldError
+from common import GetMD5ForFiles, TimeString, TryMakeDirs
 from subprocess import PIPE, Popen
 from twisted.internet import reactor
 
@@ -27,66 +28,6 @@ ARCHIVER_SOURCE_FILES = ['archiver.py', 'archiver_exception.py',
                          'archiver_cli.py', 'archiver_config.py']
 # Global variable to keep locked file open during process life-cycle
 locks = []
-
-def TryMakeDirs(path, raise_exception=False):
-  """Tries to create a directory and its parents."""
-  # TODO(itspeter):
-  #   switch to cros.factory.test.utils.TryMakeDirs once migration to
-  #   Umpire is fully rolled-out.
-  try:
-    if not os.path.exists(path):
-      os.makedirs(path)
-  except Exception:
-    if raise_exception:
-      raise
-
-# TODO(itspeter):
-#   TimeString function is copy paste directly from /py/test/utils.py
-#   switch to cros.factory.test.utils.TimeString once migration to
-#   Umpire is fully rolled-out.
-def TimeString(unix_time=None, time_separator=':', milliseconds=True):
-  """Returns a time (using UTC) as a string.
-
-  The format is like ISO8601 but with milliseconds:
-
-   2012-05-22T14:15:08.123Z
-
-  Args:
-    unix_time: Time in seconds since the epoch.
-    time_separator: Separator for time components.
-    milliseconds: Whether to include milliseconds.
-  """
-
-  t = unix_time or time.time()
-  ret = time.strftime(
-      '%Y-%m-%dT%H' + time_separator + '%M' + time_separator + '%S',
-      time.gmtime(t))
-  if milliseconds:
-    ret += '.%03d' % int((t - int(t)) * 1000)
-  ret += 'Z'
-  return ret
-
-
-# TODO(itspeter):
-#   Move to cros.factory.test.utils once migration to Umpire is fully
-#   rolled-out.
-def GetMD5ForFiles(files, base_dir=None):
-  """Returns a md5 for listed files.
-
-  Args:
-    files: List of files that will be hashed.
-    base_dir: Base directory.
-
-  Returns:
-    A MD5 sum in hexadecimal digits.
-  """
-  md5_hash = hashlib.md5()  # pylint: disable=E1101
-  for filename in files:
-    full_path = (os.path.join(base_dir, filename) if base_dir else
-                 filename)
-    with open(os.path.join(full_path), 'r') as fd:
-      md5_hash.update(fd.read())
-  return md5_hash.hexdigest()
 
 
 def ListEligibleFiles(dir_path):
