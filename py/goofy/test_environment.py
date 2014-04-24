@@ -9,6 +9,7 @@
 import cPickle as pickle
 import hashlib
 import logging
+import multiprocessing
 import os
 import subprocess
 import threading
@@ -80,6 +81,7 @@ class DUTEnvironment(Environment):
     super(DUTEnvironment, self).__init__()
     self.browser = None
     self.extension = None
+    self.start_process = True
     if os.path.exists(self.GUEST_MODE_TAG_FILE):
       # Only enable guest mode for this boot.
       os.unlink(self.GUEST_MODE_TAG_FILE)
@@ -109,16 +111,28 @@ class DUTEnvironment(Environment):
           logging.info('Retry loading UI through telemetry (try_num = %d)',
                        try_num)
         # Telemetry UI login may fail with an exception, or just stuck at
-        # login screen with no error. Retry telemetry login in another thread
-        # so it will not block current thread in the latter case. A new call
-        # to _start_telemetry should cause all previous calls to the same
-        # method to fail with exception since ui process will be restarted.
-        utils.StartDaemonThread(target=self._start_telemetry)
+        # login screen with no error. We provide two retry logic here:
+        # thread-based or process-based.
+        if self.start_process:
+          # Retry telemetry login in another process. This is more robust as
+          # telemetry is isolated in another process and does not affects goofy
+          # process. The drawback is that we will not be able to access
+          # telemetry-based features such as screen capture or remote debugging.
+          process = multiprocessing.Process(target=self._start_telemetry)
+          process.start()
+        else:
+          # Retry telemetry login in another thread so it will not block current
+          # thread in the latter case. A new call to _start_telemetry should
+          # cause all previous calls to the same method to fail with exception
+          # since ui process will be restarted.
+          utils.StartDaemonThread(target=self._start_telemetry)
         logging.info('Waiting for UI to load (try_num = %d)', try_num)
         utils.WaitFor(self.goofy.web_socket_manager.has_sockets, 30)
         logging.info('UI loaded')
         break
       except utils.TimeoutError:
+        if self.start_process:
+          utils.kill_process_tree(process, 'telemetry')
         logging.exception('Failed to load UI (try_num = %d)', try_num)
 
     if not self.goofy.web_socket_manager.has_sockets():
@@ -132,14 +146,16 @@ class DUTEnvironment(Environment):
     # Our retry logic here starts telemetry in a separate daemon thread so we
     # fake signal.signal when importing telemetry modules.
     import signal
-    original_signal = signal.signal
-    signal.signal = lambda sig, action: True
+    if not self.start_process:
+      original_signal = signal.signal
+      signal.signal = lambda sig, action: True
     # Import these modules here because they are not available in chroot.
     # pylint: disable=F0401
     from telemetry.core import browser_finder
     from telemetry.core import browser_options
     from telemetry.core import extension_to_load
-    signal.signal = original_signal
+    if not self.start_process:
+      signal.signal = original_signal
 
     try:
       finder_options = browser_options.BrowserFinderOptions()
@@ -174,6 +190,10 @@ class DUTEnvironment(Environment):
       utils.SendKey('F4')
       # Disable X-axis two-finger scrolling on touchpad.
       utils.SetTouchpadTwoFingerScrollingX(False)
+      if self.start_process:
+        # Just loop forever if this is in a separate process.
+        while True:
+          time.sleep(10)
     except Exception:
       # Do not fail on exception here as we have a retry loop in
       # launch_chrome().
