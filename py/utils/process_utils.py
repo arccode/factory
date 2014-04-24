@@ -3,11 +3,14 @@
 # found in the LICENSE file.
 
 
+import copy
 import getpass
 import logging
 import os
 import pipes
+import Queue
 import subprocess
+import sys
 import threading
 import types
 from StringIO import StringIO
@@ -313,3 +316,65 @@ def WaitEvent(event):
   while not event.is_set():
     event.wait(0.1)
   return True
+
+
+def SpawnTee(args, **kwargs):
+  """Spawns a process and emulates tee.
+
+  Starts a process with Spawn, redirects stderr of the process to its stdout,
+  and writes stdout of the process to both sys.stdout and the specified file.
+
+  Args:
+    args: Same as Spawn.
+    output_file: The file to write to in addition to stdout.
+
+  Returns:
+    The created process object.
+  """
+  output_file = kwargs.get('output_file')
+  if not output_file:
+    raise ValueError('output_file must be specified')
+  stdout = kwargs.get('stdout', sys.stdout)
+
+  message_queue = Queue.Queue()
+
+  def Tee(out_fd):
+    """Writes available data from message queue to stdout and output file."""
+    try:
+      while True:
+        line = message_queue.get(timeout=0.1)
+        stdout.write(line)
+        stdout.flush()
+        out_fd.write(line)
+        out_fd.flush()
+    except Queue.Empty:
+      return
+
+  def EnqueueOutput(in_fd):
+    """Keeps enqueue messages read."""
+    for line in iter(in_fd.readline, ''):
+      message_queue.put(line)
+
+  tee_kwargs = copy.deepcopy(kwargs)
+  del tee_kwargs['output_file']
+  tee_kwargs['stdout'] = subprocess.PIPE
+  tee_kwargs['stderr'] = subprocess.STDOUT
+  # Do not block waiting for process to end in Spawn, as we want to have live
+  # message output.
+  tee_kwargs['check_call'] = False
+  tee_kwargs['check_output'] = False
+  tee_kwargs['call'] = False
+
+  proc = Spawn(args, **tee_kwargs)
+  enqueue_thread = threading.Thread(target=EnqueueOutput, args=(proc.stdout,))
+  enqueue_thread.daemon = True
+  enqueue_thread.start()
+
+  with open(output_file, 'w') as f:
+    while proc.poll() is None:
+      Tee(f)
+    proc.wait()
+    Tee(f)
+    if proc.returncode != 0 and kwargs.get('check_call'):
+      raise subprocess.CalledProcessError(proc.returncode, args)
+    return proc

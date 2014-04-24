@@ -14,6 +14,7 @@ import unittest
 from logging import handlers
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils.process_utils import CheckOutput, PIPE, Spawn
 from cros.factory.utils.process_utils import SpawnOutput
@@ -207,6 +208,21 @@ class TerminateOrKillProcessTest(unittest.TestCase):
     self.m.ReplayAll()
     TerminateOrKillProcess(process, sudo=True)
     self.m.VerifyAll()
+
+
+class TestSpawnTee(unittest.TestCase):
+  def runTest(self):
+    with file_utils.UnopenedTemporaryFile() as stdout, \
+         file_utils.UnopenedTemporaryFile() as tee_file:
+      # Call SpawnTee which should write to both stdout and tee_file.
+      with open(stdout, 'w') as f:
+        process_utils.SpawnTee(['ls', '/bin/sh'], stdout=f,
+                               output_file=tee_file, check_call=True)
+      # Make sure the contents in stdout and tee_file are correct.
+      with open(stdout) as f:
+        self.assertEquals('/bin/sh\n', f.read())
+      with open(tee_file) as f:
+        self.assertEquals('/bin/sh\n', f.read())
 
 
 if __name__ == '__main__':
