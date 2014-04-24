@@ -1,0 +1,378 @@
+// Copyright (c) 2014 The Chromium OS Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+/*
+ * The fixture class which maintains its internal states and performs
+ * basic actions.
+ */
+
+#include "Arduino.h"
+#include "Fixture.h"
+
+// pins for jumper and debug button
+const int pinJumper = 2;
+const int pinButtonDebug = 3;
+
+// sensor pins
+const int pinSensorExtremeUp = 4;
+const int pinSensorUp = 5;
+const int pinSensorDown = 6;
+const int pinSensorSafety = 7;
+
+// pins to control the motor
+const int pinMotorStep = 8;
+const int pinMotorDir = 9;
+const int pinMotorEn = 10;
+const int pinMotorLock = 11;
+
+// Actual test fixture active values
+const bool SENSOR_EXTREME_UP_ACTIVE_VALUE = HIGH;
+const bool SENSOR_UP_ACTIVE_VALUE = HIGH;
+const bool SENSOR_DOWN_ACTIVE_VALUE = HIGH;
+const bool SENSOR_SAFETY_TRIGGERED_VALUE = LOW;
+const bool DEBUG_PRESSED_ACTIVE_VALUE = HIGH;
+const bool JUMPER_ACTIVE_VALUE = HIGH;
+
+// The serial baud rate used by the programming port and the native USB port.
+const int SERIAL_BAUD_RATE = 9600;
+
+// Fixture states
+// Initial state. This state is only possible when the arduino board
+// is powered on or is reset.
+const char stateInit = 'i';
+// Motor is enabled and is going down.
+const char stateGoingDown = 'd';
+// Motor is enabled and is going up.
+const char stateGoingUp = 'u';
+// The probe stops at its Down position.
+const char stateStopDown = 'D';
+// The probe stops at its initial Up position.
+const char stateStopUp = 'U';
+// Motor is stopped as an emergency.
+const char stateEmergencyStop = 'e';
+// Motor is going back to the original up position after an emergency stop.
+const char stateGoingUpAfterEmergency = 'b';
+
+// The delay interval between two consecutive sensing.
+const int SENSOR_DELAY_INTERVAL = 10;
+
+// The higher the value, the faster the motor speed.
+const int FAST_PWM_FREQUENCY = 6000;
+const int SLOW_PWM_FREQUENCY = 2000;
+
+// PWM frequency speed corresponding to FAST/SLOW_PWM_FREQUENCY above.
+const char PWMFast = 'f';
+const char PWMSlow = 's';
+
+// The values set on the pinMotorDir digital pin to control the motor direction.
+const bool MOTOR_DIR_UP = LOW;
+const bool MOTOR_DIR_DOWN = HIGH;
+
+// The motor is supposed to rotate up to this count and then slows down.
+// Unfortunately, the magic value 256000 below is derived with experiments.
+const unsigned int DISTANCE_TO_SLOW_DOWN = 256000 * 5 / 6;
+
+
+// Need to wait up to 2 seconds for all sensors and the motor to get ready.
+const int WARM_UP_WAIT = 2000;
+
+
+/**
+ * Initialize some values and configure the pins.
+ */
+Fixture::Fixture() {
+  state_ = stateInit;
+  reset_count();
+  pwmFrequency_ = SLOW_PWM_FREQUENCY;
+
+  jumper_ = true;
+  buttonDebug_ = false;
+  sensorExtremeUp_ = false;
+  sensorUp_ = false;
+  sensorDown_ = false;
+  sensorSafety_ = false;
+
+  motorDir_ = MOTOR_DIR_UP;
+  motorEn_ = LOW;
+  motorLock_ = LOW;
+  motorDutyCycle_ = false;
+
+  // Initialize the input debug pin and sensor pins
+  pinMode(pinJumper, INPUT);
+  pinMode(pinButtonDebug, INPUT);
+  pinMode(pinSensorExtremeUp, INPUT);
+  pinMode(pinSensorUp, INPUT);
+  pinMode(pinSensorDown, INPUT);
+  pinMode(pinSensorSafety, INPUT);
+
+  // Initialize the output pins for the motor control
+  // Note: there is no need to configure pinMotorStep as OUTPUT
+  //       when driving it with PWM.
+  pinMode(pinMotorDir, OUTPUT);
+  pinMode(pinMotorEn, OUTPUT);
+  pinMode(pinMotorLock, OUTPUT);
+}
+
+/**
+ * Overloading the assignment operator
+ */
+Fixture& Fixture::operator=(const Fixture &fixture) {
+  state_ = fixture.state_;
+  count_ = fixture.count_;
+  pwmFrequency_ = fixture.pwmFrequency_;
+  jumper_ = fixture.jumper_;
+  buttonDebug_ = fixture.buttonDebug_;
+  sensorExtremeUp_ = fixture.sensorExtremeUp_;
+  sensorUp_ = fixture.sensorUp_;
+  sensorDown_ = fixture.sensorDown_;
+  sensorSafety_ = fixture.sensorSafety_;
+  motorDir_ = fixture.motorDir_;
+  motorEn_ = fixture.motorEn_;
+  motorLock_ = fixture.motorLock_;
+  motorDutyCycle_ = fixture.motorDutyCycle_;
+  return *this;
+}
+
+/**
+ * Overloading the equal operator
+ */
+bool Fixture::operator==(const Fixture &fixture) const {
+  return (state_ == fixture.state_ &&
+          pwmFrequency_ == fixture.pwmFrequency_ &&
+          jumper_ == fixture.jumper_ &&
+          buttonDebug_ == fixture.buttonDebug_ &&
+          sensorExtremeUp_ == fixture.sensorExtremeUp_ &&
+          sensorUp_ == fixture.sensorUp_ &&
+          sensorDown_ == fixture.sensorDown_ &&
+          sensorSafety_ == fixture.sensorSafety_ &&
+          motorDir_ == fixture.motorDir_ &&
+          motorEn_ == fixture.motorEn_ &&
+          motorLock_ == fixture.motorLock_ &&
+          motorDutyCycle_ == fixture.motorDutyCycle_);
+}
+
+/**
+ * Overloading the not equal operator
+ */
+bool Fixture::operator!=(const Fixture &fixture) const {
+  return !this->operator==(fixture);
+}
+
+/**
+ *  Enable the motor and wait for the hardware to become stable.
+ */
+void Fixture::start() {
+  // Set the baud rate for Programming Port and Native USB Port.
+  Serial.begin(SERIAL_BAUD_RATE);
+  SerialUSB.begin(SERIAL_BAUD_RATE);
+
+  // For safety, the motor should always be enabled to prevent from falling down
+  enableMotor();
+
+  // Delay for a while so that the sensors could begin functioning.
+  delay(WARM_UP_WAIT);
+}
+
+/**
+ * Enables the motor.
+ *
+ * Note: if the motor is disabled, the probe will fall to the ground as a
+ *       free-falling object. This is rather dangerous since the probe is
+ *       very heavy. Hence, the counter-function disableMotor() is not provided.
+ */
+void Fixture::enableMotor() {
+  digitalWrite(pinMotorEn, LOW);
+  motorEn_ = LOW;
+}
+
+/**
+ * Is the sensor value detected twice? (Check twice to prevent any noise.)
+ */
+bool Fixture::checkSensorValue(const int sensor, int value) {
+  if (digitalRead(sensor) != value) {
+    return false;
+  } else {
+    delay(SENSOR_DELAY_INTERVAL);
+    return (digitalRead(sensor) == value);
+  }
+}
+
+/**
+ * Is the pinSensorExtremeUp detected?
+ */
+bool Fixture::isSensorExtremeUp() {
+  return (sensorExtremeUp_ = checkSensorValue(pinSensorExtremeUp,
+                                              SENSOR_EXTREME_UP_ACTIVE_VALUE));
+}
+
+/**
+ * Is the pinSensorUp or pinSensorExtremeUp detected?
+ */
+bool Fixture::isSensorUp() {
+  sensorUp_ = checkSensorValue(pinSensorUp, SENSOR_UP_ACTIVE_VALUE);
+  return (sensorUp_ || isSensorExtremeUp());
+}
+
+/**
+ * Is the pinSensorDown detected?
+ */
+bool Fixture::isSensorDown() {
+  return (sensorDown_ = checkSensorValue(pinSensorDown,
+                                         SENSOR_DOWN_ACTIVE_VALUE));
+}
+
+/**
+ * Is the pinSensorSafety triggered? (which indicates an emergency)
+ */
+bool Fixture::isSensorSafety() {
+  return (sensorSafety_ = checkSensorValue(pinSensorSafety,
+                                           SENSOR_SAFETY_TRIGGERED_VALUE));
+}
+
+/**
+ * Is the debug button pressed?
+ */
+bool Fixture::isDebugPressed() {
+  return (buttonDebug_ = checkSensorValue(pinButtonDebug,
+                                          DEBUG_PRESSED_ACTIVE_VALUE));
+}
+
+/**
+ * Check if the jumper is set.
+ */
+void Fixture::checkJumper() {
+  // In the factory, we would like to use the debug button anyway.
+  // It might be a hassle for a tester if s/he needs to check the jumper
+  // to determine if the debug button is enabled.
+  bool CHECK_JUMPER = false;
+  jumper_ = CHECK_JUMPER ?
+      checkSensorValue(pinJumper, JUMPER_ACTIVE_VALUE) : true;
+}
+
+/**
+ * Is the probe in one of the stop states?
+ */
+bool Fixture::isInStopState() const {
+  return (state_ == stateStopUp || state_ == stateStopDown ||
+          state_ == stateEmergencyStop);
+}
+
+/**
+ * Adjust speed according to the probe position.
+ */
+void Fixture::adjustSpeed() {
+  if (isFast() && (count_ >= DISTANCE_TO_SLOW_DOWN)) {
+    setSpeed(SLOW_PWM_FREQUENCY);
+  }
+}
+
+/**
+ * Is the motor in fast speed?
+ */
+bool Fixture::isFast() const {
+  return (pwmFrequency_ == FAST_PWM_FREQUENCY);
+}
+
+/**
+ * Set the motor to the new speed.
+ */
+void Fixture::setSpeed(unsigned int newPwmFrequency) {
+  if (pwmFrequency_ != newPwmFrequency) {
+    pwmFrequency_ = newPwmFrequency;
+    PWMC_ConfigureClocks(pwmFrequency_ * PWM_MAX_DUTY_CYCLE, 0, VARIANT_MCK);
+  }
+}
+
+/**
+ * Locks the motor.
+ * Set PWM duty cycle on pinMotorStep to 0. The motor stops rotating this way.
+ */
+void Fixture::lockMotor() {
+  analogWrite(pinMotorStep, 0);
+  motorDutyCycle_ = false;
+}
+
+/**
+ * Unlocks the motor.
+ * The motor must be unlocked before it can rotate.
+ * Set PWM duty cycle on pinMotorStep to 128 (half duty).
+ */
+void Fixture::unlockMotor() {
+  analogWrite(pinMotorStep, 128);
+  motorDutyCycle_ = true;
+  digitalWrite(pinMotorLock, HIGH);
+  motorLock_ = HIGH;
+}
+
+/**
+ * Drive the probe.
+ */
+void Fixture::driveProbe(char newState, const int newPwmFrequency,
+                         const bool newDirection) {
+  state_ = newState;
+  setSpeed(newPwmFrequency);
+  setMotorDirection(newDirection);
+  unlockMotor();
+}
+
+/**
+ * Perform some actions when the motor reaches the UP/DOWN end position.
+ */
+void Fixture::StopProbe(char newState) {
+  state_ = newState;
+  reset_count();
+  lockMotor();
+}
+
+/**
+ * Sets the motor direction.
+ */
+void Fixture::setMotorDirection(bool direction) {
+  digitalWrite(pinMotorDir, direction);
+  motorDir_ = direction;
+}
+
+/**
+ * Get the host operation command from the programming port.
+ */
+char Fixture::getCmdByProgrammingPort() const {
+  return (Serial.available() ? Serial.read() : NULL);
+}
+
+/**
+ * Send the returned code to the host in response to the host operation command.
+ */
+void Fixture::sendResponseByProgrammingPort(char ret_code) const {
+  Serial.write(ret_code);
+}
+
+/**
+ * Get a debug command from the native USB port.
+ */
+char Fixture::getCmdByNativeUSBPort() const {
+  return (SerialUSB.available() ? SerialUSB.read() : NULL);
+}
+
+/**
+ * Send the fixture's state vector through the native USB port.
+ * This information is for debugging purpose.
+ */
+void Fixture::sendStateVectorByNativeUSBPort(Fixture &fixture) const {
+  SerialUSB.print("<");
+  SerialUSB.print(state_);
+  SerialUSB.print(pwmFrequency_ == FAST_PWM_FREQUENCY ? PWMFast : PWMSlow);
+  SerialUSB.print(jumper_);
+  SerialUSB.print(buttonDebug_);
+  SerialUSB.print(sensorExtremeUp_);
+  SerialUSB.print(sensorUp_);
+  SerialUSB.print(sensorDown_);
+  SerialUSB.print(sensorSafety_);
+  SerialUSB.print(motorDir_);
+  SerialUSB.print(motorEn_);
+  SerialUSB.print(motorLock_);
+  SerialUSB.print(motorDutyCycle_);
+  SerialUSB.print('.');
+  SerialUSB.print(count_);
+  SerialUSB.print(">");
+}
