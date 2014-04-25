@@ -30,6 +30,7 @@ from cros.factory.test.test_lists.test_lists import SetActiveTestList
 from cros.factory.utils import debug_utils, file_utils, process_utils
 
 
+DEFAULT_GOOFY_RPC_TIMEOUT_SECS = 10
 REBOOT_AFTER_UPDATE_DELAY_SECS = 5
 PING_SHOPFLOOR_TIMEOUT_SECS = 2
 UPLOAD_FACTORY_LOGS_TIMEOUT_SECS = 20
@@ -46,8 +47,13 @@ class GoofyRPCException(Exception):
 class GoofyRPC(object):
   """Goofy RPC main class."""
 
-  def _InRunQueue(self, func):
+  def _InRunQueue(self, func, timeout_secs=None):
     """Runs a function in the Goofy run queue.
+
+    Args:
+      func: A callable to evaluate in Goofy run queue.
+      timeout_secs: The duration in seconds after which to abort the call.  None
+        to block until the call is done.
 
     Returns:
       Any value returned by the function.
@@ -72,8 +78,21 @@ class GoofyRPC(object):
         # Failure (but not an Exception); wrap whatever it is in an exception.
         result.put((None, GoofyRPCException(utils.FormatExceptionOnly())))
 
+    def _GetFuncString():
+      func_string = func.__name__
+      if func.__name__ == '<lambda>':
+        try:
+          func_string = inspect.getsource(func).strip()
+        except IOError:
+          pass
+      return func_string
+
     self.goofy.run_queue.put(Target)
-    ret, exc = result.get()
+    try:
+      ret, exc = result.get(block=True, timeout=timeout_secs)
+    except Queue.Empty:
+      raise GoofyRPCException('Time out waiting for %s to complete' %
+                              _GetFuncString())
     if exc:
       raise exc
     return ret
@@ -296,42 +315,50 @@ class GoofyRPC(object):
     """Posts an event."""
     self.goofy.event_client.post_event(event)
 
-  def StopTest(self):
+  def StopTest(self, timeout_secs=DEFAULT_GOOFY_RPC_TIMEOUT_SECS):
     """Stops current tests."""
     self._InRunQueue(
         lambda: self.goofy.stop(reason='RPC call to stop tests',
-                                fail=True))
+                                fail=True),
+        timeout_secs=timeout_secs)
 
-  def ClearState(self):
+  def ClearState(self, timeout_secs=DEFAULT_GOOFY_RPC_TIMEOUT_SECS):
     """Stops current tests and clear all test state."""
     def Target():
       self.goofy.stop(reason='RPC call to clear test state',
                       fail=True)
       self.goofy.clear_state()
-    self._InRunQueue(Target)
+    self._InRunQueue(Target, timeout_secs=timeout_secs)
 
-  def RunTest(self, path):
+  def RunTest(self, path, timeout_secs=DEFAULT_GOOFY_RPC_TIMEOUT_SECS):
     """Runs a test."""
     test = self.goofy.test_list.lookup_path(path)
     if not test:
       raise GoofyRPCException('Unknown test path %r' % path)
     test = test.get_top_level_parent_or_group()
 
-    self._InRunQueue(lambda: self.goofy.restart_tests(root=test))
+    self._InRunQueue(lambda: self.goofy.restart_tests(root=test),
+                     timeout_secs=timeout_secs)
     return self.goofy.run_id
 
-  def RestartAllTests(self):
-    """Restarts all tests."""
-    self._InRunQueue(self.goofy.restart_tests)
+  def RestartAllTests(self, timeout_secs=DEFAULT_GOOFY_RPC_TIMEOUT_SECS):
+    """Restarts all tests.
+
+    Args:
+      timeout_secs: The duration in seconds after which to abort the call.
+    """
+    self._InRunQueue(self.goofy.restart_tests, timeout_secs=timeout_secs)
     return self.goofy.run_id
 
-  def CancelPendingTests(self):
+  def CancelPendingTests(self, timeout_secs=DEFAULT_GOOFY_RPC_TIMEOUT_SECS):
     """Cancels all pending tests."""
-    self._InRunQueue(self.goofy.cancel_pending_tests)
+    self._InRunQueue(self.goofy.cancel_pending_tests,
+                     timeout_secs=timeout_secs)
 
-  def LogStartupMessages(self):
+  def LogStartupMessages(self, timeout_secs=DEFAULT_GOOFY_RPC_TIMEOUT_SECS):
     """Logs the tail of var/log/messages and mosys and EC console logs."""
-    self._InRunQueue(self.goofy.log_startup_messages)
+    self._InRunQueue(self.goofy.log_startup_messages,
+                     timeout_secs=timeout_secs)
 
   def Shutdown(self, operation):
     """Starts a shutdown operation through Goofy.
@@ -342,6 +369,8 @@ class GoofyRPC(object):
     """
     if operation not in ['halt', 'reboot', 'full_reboot']:
       raise GoofyRPCException('Invalid shutdown operation %r' % operation)
+    # No timeout for shutdown as the operation can be delayed for arbitrary
+    # duration by the factory test.
     self._InRunQueue(lambda: self.goofy.shutdown(operation))
 
   def GetLastShutdownTime(self):
@@ -361,9 +390,13 @@ class GoofyRPC(object):
                       **test_state.__dict__))
     return ret
 
-  def GetTests(self):
-    """Returns a list of all tests and their states."""
-    return self._InRunQueue(self._GetTests)
+  def GetTests(self, timeout_secs=DEFAULT_GOOFY_RPC_TIMEOUT_SECS):
+    """Returns a list of all tests and their states.
+
+    Args:
+      timeout_secs: The duration in seconds after which to abort the call.
+    """
+    return self._InRunQueue(self._GetTests, timeout_secs=timeout_secs)
 
   def GetTestLists(self):
     """Returns available test lists.
@@ -405,7 +438,8 @@ class GoofyRPC(object):
     """Gets the id of the current active test run."""
     return self.goofy.run_id
 
-  def GetTestRunStatus(self, run_id):
+  def GetTestRunStatus(self, run_id,
+                       timeout_secs=DEFAULT_GOOFY_RPC_TIMEOUT_SECS):
     """Returns the status of a given test run.
 
     The given run id must match the last run id stored in Goofy to get the
@@ -414,6 +448,7 @@ class GoofyRPC(object):
     Args:
       run_id: The id of a test run or None to get current test run status in
         Goofy.
+      timeout_secs: The duration in seconds after which to abort the call.
 
     Returns:
       A dict with the following elements:
@@ -463,7 +498,7 @@ class GoofyRPC(object):
           ret_val['status'] = RunState.FINISHED
       return ret_val
 
-    return self._InRunQueue(lambda: Target(run_id))
+    return self._InRunQueue(lambda: Target(run_id), timeout_secs=timeout_secs)
 
   def SwitchTestList(self, test_list_id, automation_mode='none'):
     """Switches test lists.
