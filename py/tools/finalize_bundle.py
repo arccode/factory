@@ -844,7 +844,7 @@ class FinalizeBundle(object):
           # use it since it is already processed by make_netboot.sh.
           netboot_image = os.path.join(self.bundle_dir, 'factory_shim',
                                        'netboot', 'vmlinux.uimg')
-          if self.board.arch == 'arm':
+          if self.build_board.arch == 'arm':
             # No special process needed for ARM-based boards; simply copy the
             # file.
             shutil.copyfile(netboot_image, target_netboot_image)
@@ -852,7 +852,7 @@ class FinalizeBundle(object):
             # If the board is not ARM-based, we need to copy 'vmlinux.uimg' to
             # 'vmlinux.bin' and skip the first 64 bytes to strip uboot header.
             # Keep both of the files so everyone can be aware of the difference.
-            CopyFileSkipBytes(netboot_image, new_netboot_image, 64)
+            CopyFileSkipBytes(netboot_image, target_netboot_image, 64)
 
     # Patch in the install shim, if present.
     has_install_shim = False
