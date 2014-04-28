@@ -856,11 +856,13 @@ cros.factory.Goofy.prototype.init = function() {
             }
         }, false, this);
 
-    this.initWebSocket();
     this.sendRpc('GetTestLists', [], function(testLists) {
         this.testLists = testLists;
     });
-    this.sendRpc('get_test_list', [], this.setTestList);
+    this.sendRpc('get_test_list', [], function(testList) {
+        this.setTestList(testList);
+        this.initWebSocket();
+    });
     this.sendRpc('get_shared_data', ['system_info'], this.setSystemInfo);
     this.sendRpc('get_shared_data', ['factory_note', true], this.updateNote);
     this.sendRpc(
