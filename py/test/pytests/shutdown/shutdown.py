@@ -39,7 +39,7 @@ class ShutdownError(Exception):
 
 
 class ShutdownTest(unittest.TestCase):
-  """Factory test for shutdown operations (reboot or halt).
+  """Factory test for shutdown operations (reboot, full_reboot, or halt).
 
   This test has two stages.  The Shutdown() method is the first stage which
   happens before the system actually shuts down; the PostShutdown() method
@@ -53,7 +53,8 @@ class ShutdownTest(unittest.TestCase):
   """
   ARGS = [
       Arg('operation', str,
-          "The command to run to perform the shutdown ('reboot' or 'halt')."),
+          ("The command to run to perform the shutdown ('reboot', "
+           "'full_reboot', or 'halt').")),
       Arg('delay_secs', int,
           'Number of seconds the operator has to abort the shutdown.',
           default=5),
@@ -69,6 +70,7 @@ class ShutdownTest(unittest.TestCase):
 
   def setUp(self):
     assert self.args.operation in (factory.ShutdownStep.REBOOT,
+                                   factory.ShutdownStep.FULL_REBOOT,
                                    factory.ShutdownStep.HALT)
     self.ui = test_ui.UI()
     self.template = ui_templates.OneSection(self.ui)

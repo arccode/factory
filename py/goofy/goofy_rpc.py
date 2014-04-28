@@ -337,9 +337,10 @@ class GoofyRPC(object):
     """Starts a shutdown operation through Goofy.
 
     Args:
-      operation: The shutdown operation to run ('halt' or 'reboot').
+      operation: The shutdown operation to run ('halt', 'reboot',
+        or 'full_reboot').
     """
-    if operation not in ['halt', 'reboot']:
+    if operation not in ['halt', 'reboot', 'full_reboot']:
       raise GoofyRPCException('Invalid shutdown operation %r' % operation)
     self._InRunQueue(lambda: self.goofy.shutdown(operation))
 

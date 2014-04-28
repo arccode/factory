@@ -35,7 +35,7 @@ class Environment(object):
     """Shuts the machine down (from a ShutdownStep).
 
     Args:
-      operation: 'reboot' or 'halt'.
+      operation: 'reboot', 'full_reboot', or 'halt'.
 
     Returns:
       True if Goofy should gracefully exit, or False if Goofy
@@ -90,10 +90,14 @@ class DUTEnvironment(Environment):
       self.browser_type = self.BROWSER_TYPE_LOGIN
 
   def shutdown(self, operation):
-    assert operation in ['reboot', 'halt']
+    assert operation in ['reboot', 'full_reboot', 'halt']
     logging.info('Shutting down: %s', operation)
     subprocess.check_call('sync')
-    subprocess.check_call(operation)
+    if operation == 'full_reboot':
+      subprocess.check_call(['ectool', 'reboot_ec', 'cold', 'at-shutdown'])
+      subprocess.check_call('halt')
+    else:
+      subprocess.check_call(operation)
     time.sleep(30)
     assert False, 'Never reached (should %s)' % operation
 
@@ -207,7 +211,7 @@ class DUTEnvironment(Environment):
 class FakeChrootEnvironment(Environment):
   """A chroot environment that doesn't actually shutdown or run autotests."""
   def shutdown(self, operation):
-    assert operation in ['reboot', 'halt']
+    assert operation in ['reboot', 'full_reboot', 'halt']
     logging.warn('In chroot: skipping %s', operation)
     return False
 

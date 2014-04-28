@@ -231,6 +231,10 @@ def RebootStep(*args, **kwargs):
   return Add(factory.RebootStep(*args, **kwargs))
 
 
+def FullRebootStep(*args, **kwargs):
+  return Add(factory.FullRebootStep(*args, **kwargs))
+
+
 def Passed(name):
   return RequireRun(name, passed=True)
 

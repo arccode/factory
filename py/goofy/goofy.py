@@ -416,7 +416,7 @@ class Goofy(object):
     """Starts shutdown procedure.
 
     Args:
-      operation: The shutdown operation (reboot or halt).
+      operation: The shutdown operation (reboot, full_reboot, or halt).
     """
     active_tests = []
     for test in self.test_list.walk():

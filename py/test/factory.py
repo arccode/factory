@@ -1304,13 +1304,15 @@ AutomatedSubTest = FactoryAutotestTest
 
 
 class ShutdownStep(OperatorTest):
-  """A shutdown (halt or reboot) step.
+  """A shutdown (halt, reboot, or full_reboot) step.
 
   Properties:
     iterations: The number of times to reboot.
-    operation: The command to run to perform the shutdown (REBOOT or HALT).
+    operation: The command to run to perform the shutdown (FULL_REBOOT,
+      REBOOT, or HALT).
     delay_secs: Number of seconds the operator has to abort the shutdown.
   """
+  FULL_REBOOT = 'full_reboot'
   REBOOT = 'reboot'
   HALT = 'halt'
 
@@ -1322,7 +1324,7 @@ class ShutdownStep(OperatorTest):
     assert not self.subtests, 'Reboot/halt steps may not have subtests'
     assert not self.backgroundable, (
         'Reboot/halt steps may not be backgroundable')
-    assert operation in [self.REBOOT, self.HALT]
+    assert operation in [self.REBOOT, self.HALT, self.FULL_REBOOT]
     assert delay_secs >= 0
     self.pytest_name = 'shutdown'
     self.dargs = kwargs.get('dargs', {})
@@ -1344,6 +1346,14 @@ class RebootStep(ShutdownStep):
   def __init__(self, **kw):
     kw.setdefault('id', 'Reboot')
     super(RebootStep, self).__init__(operation=ShutdownStep.REBOOT, **kw)
+
+
+class FullRebootStep(ShutdownStep):
+  """Fully reboots the machine."""
+  def __init__(self, **kw):
+    kw.setdefault('id', 'FullReboot')
+    super(FullRebootStep, self).__init__(
+        operation=ShutdownStep.FULL_REBOOT, **kw)
 
 
 AutomatedRebootSubTest = RebootStep
