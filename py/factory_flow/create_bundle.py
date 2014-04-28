@@ -74,7 +74,7 @@ class CreateBundle(FactoryFlowCommand):
                    'rely on DHCP server to provide the IP address '
                    '(default: %(default)s)')),
       CmdArg('--mini-omaha-port', type=int,
-             help='Port of the mini omaha server (default: %(default)s)',
+             help='port of the mini omaha server (default: %(default)s)',
              default=8080),
   ]
 

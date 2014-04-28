@@ -15,6 +15,7 @@ from cros.factory.utils.server_utils import (RsyncModule, StartRsyncServer,
                                              StopRsyncServer)
 
 
+DEFAULT_RSYNCD_FACTORY_LOG_ADDR = '0.0.0.0'
 DEFAULT_RSYNCD_FACTORY_LOG_PORT = 8084
 
 
@@ -26,11 +27,15 @@ class FactoryLogServer(object):
   Properties:
     _rsyncd = The rsyncd process.
     _state_dir: Logs state directory (generally shopfloor_data/system_logs)
+    rsyncd_addr: Address on which to open rsyncd.
     rsyncd_port: Port on which to open rsyncd.
   """
-  def __init__(self, state_dir, rsyncd_port=DEFAULT_RSYNCD_FACTORY_LOG_PORT):
+  def __init__(self, state_dir,
+               rsyncd_addr=DEFAULT_RSYNCD_FACTORY_LOG_ADDR,
+               rsyncd_port=DEFAULT_RSYNCD_FACTORY_LOG_PORT):
     self._rsyncd = None
     self._state_dir = state_dir
+    self.rsyncd_addr = rsyncd_addr
     self.rsyncd_port = rsyncd_port
 
   def Start(self):
@@ -39,9 +44,11 @@ class FactoryLogServer(object):
     if not os.path.exists(factory_log_dir):
       os.mkdir(factory_log_dir)
 
-    self._rsyncd = StartRsyncServer(self.rsyncd_port, self._state_dir,
+    self._rsyncd = StartRsyncServer(
+        self.rsyncd_port, self._state_dir,
         [RsyncModule(module='system_logs', path=factory_log_dir,
-                     read_only=False)])
+                     read_only=False)],
+        address=self.rsyncd_addr)
 
   def Stop(self):
     if self._rsyncd:

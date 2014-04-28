@@ -36,6 +36,7 @@ LATEST_SYMLINK = 'latest'
 LATEST_MD5SUM = 'latest.md5sum'
 DEFAULT_UPDATE_DIR = '/var/db/factory/updates/'
 MD5SUM = 'MD5SUM'
+DEFAULT_RSYNCD_ADDR = '0.0.0.0'
 DEFAULT_RSYNCD_PORT = 8083
 def CalculateMd5sum(filename):
   p = subprocess.Popen(('md5sum', filename), stdout=subprocess.PIPE)
@@ -94,6 +95,7 @@ class FactoryUpdateServer():
     state_dir: Update state directory (generally shopfloor_data/update)
     factory_dir: Updater bundle directory to hold previous and current contents
         or factory bundles.
+    rsyncd_addr: Address on which to open rsyncd.
     rsyncd_port: Port on which to open rsyncd.
     hwid_path: The path of hwid bundle.
     on_idle: If non-None, a function to call on idle (generally every second).
@@ -113,17 +115,20 @@ class FactoryUpdateServer():
   """
   poll_interval_sec = 1
 
-  def __init__(self, state_dir, rsyncd_port=DEFAULT_RSYNCD_PORT, on_idle=None):
+  def __init__(self, state_dir, rsyncd_addr=DEFAULT_RSYNCD_ADDR,
+               rsyncd_port=DEFAULT_RSYNCD_PORT, on_idle=None):
     """Constructor.
 
     Args:
       state_dir: Update state directory (generally shopfloor_data/update).
+      rsyncd_addr: Address on which to open rsyncd.
       rsyncd_port: Port on which to open rsyncd.
       on_idle: If non-None, a function to call on idle (generally every
         second).
     """
     self.state_dir = state_dir
     self.factory_dir = os.path.join(state_dir, FACTORY_DIR)
+    self.rsyncd_addr = rsyncd_addr
     self.rsyncd_port = rsyncd_port
     if not os.path.exists(self.factory_dir):
       os.mkdir(self.factory_dir)
@@ -131,8 +136,10 @@ class FactoryUpdateServer():
     self.on_idle = on_idle
 
     self._stop_event = threading.Event()
-    self._rsyncd = StartRsyncServer(rsyncd_port, state_dir,
-        [RsyncModule(module='factory', path=self.factory_dir, read_only=True)])
+    self._rsyncd = StartRsyncServer(
+        rsyncd_port, state_dir,
+        [RsyncModule(module='factory', path=self.factory_dir, read_only=True)],
+        address=self.rsyncd_addr)
     self._tarball_path = os.path.join(self.state_dir, TARBALL_NAME)
     self._blacklist_path = os.path.join(state_dir, BLACKLIST_NAME)
     self._blacklist = []

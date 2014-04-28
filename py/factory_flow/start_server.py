@@ -37,7 +37,8 @@ DOWNLOAD_SERVER_MESSAGE = """
 """
 
 SHOPFLOOR_SERVER_MESSAGE = """
-*** Shopfloor server %(shopfloor_server_path)s started.
+*** Shopfloor server %(shopfloor_server_path)s started on
+*** %(shopfloor_server_addr)s.
 *** Shopfloor server logs are stored in: %(shopfloor_server_log_file)s.
 """
 
@@ -50,6 +51,7 @@ host dut {
   fixed-address %(dut_ip)s;
 }
 """
+
 
 class StartServerError(Exception):
   """Start server error."""
@@ -95,10 +97,12 @@ class StartServer(FactoryFlowCommand):
 
     The command executes start_mock_shopfloor in the bundle, which will set up
     shopfloor server and, if needed, a mock backend server.
+
+  Note that with the current design of factory flow, to support multiple boards
+  on the same host one needs to allocate a dedicated LAN for each board. This is
+  mainly due to the hard-coded port 69 for TFTP server in netboot firmware.
   """
   # TODO(jcliang): Update this class when Umpire is ready.
-  # TODO(jcliang): Support running servers for multiple boards at the same time
-  #                on one host.
   args = [
       board_cmd_arg,
       bundle_dir_cmd_arg,
@@ -111,23 +115,29 @@ class StartServer(FactoryFlowCommand):
       CmdArg('--dhcp-iface',
              help='Network interface on which to run DHCP server'),
       CmdArg('--host-ip',
-             help='The IP address to assign to the DHCP network interface'),
+             help=('the IP address to assign to the DHCP network interface; '
+                   'also used as the bound IP address of shop floor server')),
       CmdArg('--dut-mac',
-             help='The MAC address of DUT or ethernet dongle.'),
+             help='the MAC address of DUT or ethernet dongle.'),
       CmdArg('--dut-ip',
-             help='The IP address to assign to DUT'),
+             help='the IP address to assign to DUT'),
       CmdArg('--subnet',
-             help='The subnet of the testing LAN'),
+             help='the subnet of the testing LAN'),
       CmdArg('--netmask', default='255.255.255.0',
-             help='The netmask of the testing LAN'),
+             help='the netmask of the testing LAN'),
+      CmdArg('--shopfloor-server-exe',
+             help=('the path to the executable, relative to base bundle '
+                   'directory, for starting shop floor server (e.g. '
+                   'shopfloor/start_mock_shopfloor); defaults to None to '
+                   'start dummy shop floor server')),
       CmdArg('--no-dhcp', dest='dhcp', action='store_false',
-             help='Do not start DHCP server'),
+             help='do not start DHCP server'),
       CmdArg('--no-tftp', dest='tftp', action='store_false',
-             help='Do not start TFTP server'),
+             help='do not start TFTP server'),
       CmdArg('--no-download', dest='download', action='store_false',
-             help='Do not start download (mini-Omaha) server'),
+             help='do not start download (mini-Omaha) server'),
       CmdArg('--no-shopfloor', dest='shopfloor', action='store_false',
-             help='Do not start shopfloor server'),
+             help='do not start shopfloor server'),
   ]
 
   required_packages = ('net-ftp/tftp-hpa', 'net-misc/dhcp')
@@ -374,19 +384,38 @@ class StartServer(FactoryFlowCommand):
       return
 
     logging.info('Starting shopfloor server for testing')
-    shopfloor_server_path = os.path.join(
-        self.options.bundle, 'shopfloor', 'start_mock_shopfloor')
+    if self.options.shopfloor_server_exe:
+      # If a shop floor server executable is given, then use it.
+      shopfloor_server_path = os.path.join(
+          self.options.bundle, self.options.shopfloor_server_exe)
+      shopfloor_cmd = [shopfloor_server_path]
+    else:
+      # Use dummy shop floor server as default, and set shopfloor data directory
+      # to the shopfloor/shopfloor_data in the bundle.
+      shopfloor_server_path = os.path.join(
+          self.options.bundle, 'shopfloor', 'shopfloor_server')
+      shopfloor_cmd = [shopfloor_server_path, '--dummy', '--data-dir',
+                       os.path.join(self.options.bundle, 'shopfloor',
+                                    'shopfloor_data')]
+
+    # Set the bound address of the shop floor server with env var.
+    shopfloor_server_addr = self.options.host_ip or '0.0.0.0'
+    subenv = os.environ.copy()
+    subenv['CROS_SHOPFLOOR_ADDR'] = shopfloor_server_addr
     if os.path.exists(shopfloor_server_path):
       with open(self.shopfloor_server_log_file, 'w') as f:
         self.shopfloor_server = process_utils.Spawn(
-            [shopfloor_server_path],
-            stderr=subprocess.STDOUT, stdout=f, log=True)
+            shopfloor_cmd, env=subenv, stderr=subprocess.STDOUT,
+            stdout=f, log=True)
       with open(self.shopfloor_server_pid_file, 'w') as f:
         f.write(str(self.shopfloor_server.pid))
 
-    print SHOPFLOOR_SERVER_MESSAGE % dict(
-        shopfloor_server_path=shopfloor_server_path,
-        shopfloor_server_log_file=self.shopfloor_server_log_file)
+      print SHOPFLOOR_SERVER_MESSAGE % dict(
+          shopfloor_server_path=' '.join(shopfloor_cmd),
+          shopfloor_server_addr=shopfloor_server_addr,
+          shopfloor_server_log_file=self.shopfloor_server_log_file)
+    else:
+      logging.warn('Cannot find shopfloor server executable')
 
   def WaitForUserToInterrupt(self):
     """Waits until user to interrupt the command and then stops all servers."""

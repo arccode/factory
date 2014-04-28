@@ -14,7 +14,8 @@ from cros.factory.utils.process_utils import Spawn, TerminateOrKillProcess
 
 
 
-RSYNCD_CONFIG_TEMPLATE = '''port = %(port)d
+RSYNCD_CONFIG_TEMPLATE = '''address = %(address)s
+port = %(port)d
 pid file = %(pidfile)s
 log file = %(logfile)s
 use chroot = no
@@ -39,13 +40,14 @@ RsyncModule = namedtuple('RsyncModule', ['module', 'path', 'read_only'])
 """
 
 
-def StartRsyncServer(port, state_dir, modules):
+def StartRsyncServer(port, state_dir, modules, address='0.0.0.0'):
   """Starts rsync server.
 
   Args:
     port: Port to run rsyncd.
     state_dir: Directory of conf, pid, log file.
     modules: A list of RsyncModule to specify the modules to serve.
+    address: The address to bind the rsync server on.
   """
   configfile = os.path.join(state_dir, 'rsyncd.conf')
   pidfile = os.path.join(state_dir, 'rsyncd.pid')
@@ -55,7 +57,8 @@ def StartRsyncServer(port, state_dir, modules):
   logfile = os.path.join(state_dir, 'rsyncd.log')
   data = RSYNCD_CONFIG_TEMPLATE % dict(port=port,
                                        pidfile=pidfile,
-                                       logfile=logfile)
+                                       logfile=logfile,
+                                       address=address)
   for (module, path, read_only) in modules:
     read_only = 'yes' if read_only else 'no'
     data += RSYNCD_CONFIG_MODULE_PATH_TEMPLATE % dict(module=module,
@@ -66,7 +69,7 @@ def StartRsyncServer(port, state_dir, modules):
 
   p = Spawn(['rsync', '--daemon', '--no-detach', '--config=%s' % configfile],
             log=True)
-  logging.info('Rsync server (pid %d) started on port %d', p.pid, port)
+  logging.info('Rsync server (pid %d) started on %s:%d', p.pid, address, port)
   return p
 
 

@@ -46,6 +46,11 @@ _DEFAULT_SERVER_ADDRESS = '0.0.0.0'
 # File containing name of default shopfloor module
 SHOPFLOOR_MODULE_TXT = 'shopfloor_module.txt'
 
+# Environment variables that can be used to set shop floor sever address and
+# port.
+SHOPFLOOR_ADDR_ENV_VAR = 'CROS_SHOPFLOOR_ADDR'
+SHOPFLOOR_PORT_ENV_VAR = 'CROS_SHOPFLOOR_PORT'
+
 # pylint: disable=W0212
 
 
@@ -238,6 +243,12 @@ def main():
   if options.quiet:
     logging.disable(logging.INFO)
 
+  # If address and/or port are set in env variables, use them.
+  if os.environ.get(SHOPFLOOR_ADDR_ENV_VAR):
+    options.address = os.environ.get(SHOPFLOOR_ADDR_ENV_VAR)
+  if os.environ.get(SHOPFLOOR_PORT_ENV_VAR):
+    options.port = int(os.environ.get(SHOPFLOOR_PORT_ENV_VAR))
+
   debug_utils.MaybeStartDebugServer()
 
   # Disable all DNS lookups, since otherwise the logging code may try to
@@ -273,6 +284,8 @@ def main():
 
     instance.data_dir = options.data_dir
     instance.config = options.config
+    instance.address = options.address
+    instance.port = options.port
 
     # Shopfloor module contains update server in its base class. When it is
     # configured to FastCGI mode, update server will be started by launcher.

@@ -9,9 +9,11 @@
 import glob
 import logging
 import os
+import shutil
 import smtplib
 import subprocess
 import tempfile
+import time
 import yaml
 from email import encoders
 from email.mime.base import MIMEBase
@@ -286,7 +288,7 @@ class FactoryFlowRunner(object):
           test_result.SetTestItemResult(d, item_under_test, TestStatus.FAILED)
         finally:
           try:
-            self.GetLogsFromDUT(plan, d, log_dir)
+            self.GetDUTFactoryLogs(plan, d, log_dir)
           except subprocess.CalledProcessError:
             logging.exception('Unable to get factory logs from DUT')
 
@@ -306,7 +308,6 @@ class FactoryFlowRunner(object):
               logging.exception('Clean-up item failed')
               test_result.SetTestItemResult(d, item_under_test,
                                             TestStatus.FAILED)
-
       test_result.NotifyOwners()
 
   def CreateTestItems(self, dut):
@@ -378,14 +379,42 @@ class FactoryFlowRunner(object):
 
       self.test_items[dut][key] = command_args
 
-  def GetLogsFromDUT(self, plan, dut, output_path):
-    """Gets factory logs from the DUT.
+  def GetDUTFactoryLogs(self, plan, dut, output_path):
+    """Gets factory logs of the DUT.
 
     Args:
       plan: The ID of the test plan; used to name the log archive.
       dut: The ID of the DUT to get factory logs from.
       output_path: The output path of the log archive.
     """
+    bundle_dir = glob.glob(os.path.join(
+        self.output_dir,
+        ('factory_bundle_%s_*_testing' %
+         build_board.BuildBoard(self.board).full_name)))
+    if not bundle_dir:
+      raise FactoryFlowTestError(
+          ('Unable to locate the testing bundle directory; expect to find one '
+           'bundle in %r') % self.output_dir)
+    if len(bundle_dir) > 1:
+      raise FactoryFlowTestError(
+          'Found %d bundles in %r; expect to find only one.' %
+          (len(bundle_dir), self.output_dir))
+
+    finalize_report_spec = glob.glob(
+        os.path.join(bundle_dir[0], 'shopfloor', 'shopfloor_data',
+                     'reports', time.strftime('logs.%Y%m%d'), '*.tar.xz'))
+    if finalize_report_spec:
+      # If we find a finalize report, then we assume the DUT has been finalized.
+      # Use the finalize report as factory logs of DUT, and do not try to run
+      # factory_bug on DUT as SSH is not available in release image.
+      if len(finalize_report_spec) > 1:
+        logging.warn('Expect to find at most one finalize report but found %d',
+                     len(finalize_report_spec))
+      for report in finalize_report_spec:
+        logging.info('Found finalize report %s', report)
+        shutil.move(report, output_path)
+      return
+
     FACTORY_BUG = '/usr/local/factory/bin/factory_bug'
     FACTORY_BUG_ID = '%s-%s' % (plan, dut)
 

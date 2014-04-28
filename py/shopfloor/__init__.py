@@ -54,6 +54,8 @@ class ShopFloorBase(object):
   """Base class for shopfloor servers.
 
   :ivar data_dir: The top-level directory for shopfloor data.
+  :ivar address: The IP address for the shopfloor server to bind on.
+  :ivar port: The port for the shopfloor server to bind on.
   :ivar update_server: An FactoryUpdateServer for factory environment update.
   :ivar log_server: An FactoryLogServer for factory log files to be uploaded
    from DUT.
@@ -71,6 +73,8 @@ class ShopFloorBase(object):
 
   def __init__(self):
     self.data_dir = None  # Set by shopfloor_server
+    self.address = None   # Set by shopfloor_server
+    self.port = None      # Set by shopfloor_server
     self.update_dir = None
     self.parameters_dir = None
     self.update_server = None
@@ -110,13 +114,17 @@ class ShopFloorBase(object):
       self.update_dir = os.path.realpath(self.update_dir)
       self.update_server = factory_update_server.FactoryUpdateServer(
           self.update_dir,
+          rsyncd_addr=self.address,
+          rsyncd_port=(self.port + 1),
           on_idle=(self._AutoSaveLogs if self._auto_archive_logs else None))
       # Create factory log directory
       self.factory_log_dir = os.path.join(self.data_dir, FACTORY_LOG_DIR)
       utils.TryMakeDirs(self.factory_log_dir)
       self.factory_log_dir = os.path.realpath(self.factory_log_dir)
       self.log_server = factory_log_server.FactoryLogServer(
-          self.factory_log_dir)
+          self.factory_log_dir,
+          rsyncd_addr=self.address,
+          rsyncd_port=(self.port + 2))
     else:
       # Use external update server and log server
       self.update_server = updater
