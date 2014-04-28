@@ -4,19 +4,27 @@
 
 """A module for running automated factory tests on a DUT."""
 
+import glob
+import httplib
+import jsonrpclib
 import logging
 import os
+import socket
 import subprocess
+import time
 import yaml
 
 import factory_common   # pylint: disable=W0611
 from cros.factory.factory_flow.common import (
-    board_cmd_arg, dut_hostname_cmd_arg, FactoryFlowCommand)
+    board_cmd_arg, bundle_dir_cmd_arg, dut_hostname_cmd_arg, FactoryFlowCommand)
+from cros.factory.goofy import connection_manager
 from cros.factory.goofy.goofy_rpc import RunState
 from cros.factory.goofy.invocation import OVERRIDE_TEST_LIST_DARGS_FILE
 from cros.factory.hacked_argparse import CmdArg
+from cros.factory.test import state
 from cros.factory.test import utils
 from cros.factory.test.e2e_test.automator import AUTOMATION_FUNCTION_KWARGS_FILE
+from cros.factory.utils import net_utils
 from cros.factory.utils import ssh_utils
 
 
@@ -37,6 +45,7 @@ class RunAutomatedTests(FactoryFlowCommand):
   """Runs automated factory tests on DUT."""
   args = [
       board_cmd_arg,
+      bundle_dir_cmd_arg,
       dut_hostname_cmd_arg,
       CmdArg('--automation-mode', choices=['none', 'partial', 'full'],
              default='partial', help=(
@@ -66,9 +75,10 @@ class RunAutomatedTests(FactoryFlowCommand):
                    'their kwargs for their automation functions')),
   ]
 
-  WAIT_FOR_GOOFY_TIMEOUT_SECS = 60
-  SSH_CONNECT_TIMEOUT = 3
+  WAIT_FOR_GOOFY_TIMEOUT_SECS = 120
   GOOFY_POLLING_INTERVAL = 5
+
+  ssh_tunnel = None
 
   def Run(self):
     self.EnableFactoryTestAutomation()
@@ -77,6 +87,10 @@ class RunAutomatedTests(FactoryFlowCommand):
     self.StartAutomatedTests()
     if self.options.wait:
       self.WaitForTestsToFinish()
+
+  def TearDown(self):
+    if self.ssh_tunnel:
+      self.ssh_tunnel.Close()
 
   def PrepareAutomationEnvironment(self):
     """Prepares settings for factory test automation on the DUT."""
@@ -173,55 +187,73 @@ class RunAutomatedTests(FactoryFlowCommand):
         (['-a', '-d'] if self.options.clear_states else []),
         log=True, check_call=True)
 
+  def GetGoofyProxy(self):
+    """Creates a Goofy RPC proxy.
+
+    A SSH tunnel to DUT is created each time this function is called. This is to
+    ensure that the tunnel is alive, since DUT can go through reboot test and
+    make established tunnel unreachable. If a SSH tunnel has been established
+    then the tunnel will be closed before a new one is established.
+
+    Returns:
+      A Goofy RPC proxy instance, or None if the method fails to create a proxy.
+    """
+    try:
+      if self.ssh_tunnel:
+        self.ssh_tunnel.Close()
+      # Ping the host first to make sure it is up.
+      utils.WaitFor(
+          lambda: connection_manager.PingHost(self.options.dut, timeout=1) == 0,
+          timeout_secs=30)
+      # Create a SSH tunnel to connect to the JSON RPC server on DUT.
+      local_port = net_utils.GetUnusedPort()
+      self.ssh_tunnel = ssh_utils.SSHTunnelToDUT(
+          self.options.dut, local_port, state.DEFAULT_FACTORY_STATE_PORT)
+      self.ssh_tunnel.Establish()
+      goofy_proxy = state.get_instance(address='localhost', port=local_port)
+      goofy_proxy.GetGoofyStatus()  # Make sure the proxy works.
+      return goofy_proxy
+    except (utils.TimeoutError,             # Cannot ping DUT.
+            subprocess.CalledProcessError,  # Cannot create SSH tunnel.
+            socket.error,                   # Cannot connect to Goofy on DUT.
+            httplib.BadStatusLine):         # Goofy RPC on DUT is not ready.
+      return None
+
   def WaitForGoofy(self):
     """Waits for Goofy to come up."""
     def PollGoofy():
-      try:
-        goofy_status = yaml.safe_load(ssh_utils.SpawnSSHToDUT(
-            ['-o', 'ConnectTimeout=%d' % self.SSH_CONNECT_TIMEOUT,
-             self.options.dut, 'goofy_rpc', '"GetGoofyStatus()"'],
-            check_output=True, ignore_stderr=True).stdout_data)
-        return goofy_status['status'] == 'RUNNING'
-      except Exception:
+      goofy_proxy = self.GetGoofyProxy()
+      if goofy_proxy is None:
         return False
+      return goofy_proxy.GetGoofyStatus()['status'] == 'RUNNING'
 
-    # Wait for Goofy to come up.
     logging.info('Waiting for Goofy to come up')
     utils.WaitFor(PollGoofy, timeout_secs=self.WAIT_FOR_GOOFY_TIMEOUT_SECS,
                   poll_interval=self.GOOFY_POLLING_INTERVAL)
 
   def StartAutomatedTests(self):
     """Starts automated factory tests."""
+    goofy_proxy = self.GetGoofyProxy()
+    if goofy_proxy is None:
+      raise RunAutomatedTestsError('Unable to connect to Goofy on DUT')
     if self.options.run:
-      ssh_utils.SpawnSSHToDUT(
-          [self.options.dut, 'goofy_rpc "RunTest(\'%s\')"' % self.options.run])
+      goofy_proxy.RunTest(self.options.run)
     else:
-      ssh_utils.SpawnSSHToDUT(
-          [self.options.dut, 'goofy_rpc "RestartAllTests()"'],
-          log=True, check_call=True)
+      goofy_proxy.RestartAllTests()
 
   def WaitForTestsToFinish(self):
     """Waits for the automated test run to finish."""
-    # TODO(jcliang): Convert SSH + goofy_rpc to pure JSON RPC by creating a
-    #                SSH tunnel to the DUT.
     finished_tests = []
+    goofy_proxy = self.GetGoofyProxy()
+    if goofy_proxy is None:
+      raise RunAutomatedTestsError('Unable to connect to Goofy on DUT')
+    test_list = goofy_proxy.GetGoofyStatus()['test_list_id']
 
-    test_list = ssh_utils.SpawnSSHToDUT(
-        [self.options.dut, 'factory', 'test-list'],
-        check_output=True).stdout_data.strip()
     print TEST_AUTOMATION_MESSAGE % dict(
         dut=self.options.dut,
         automation_mode=self.options.automation_mode,
         test_list=test_list,
         clear_states=self.options.clear_states)
-
-    def FetchRunStatus():
-      """Fetches run status on the DUT through Goofy RPC."""
-      run_status = ssh_utils.SpawnSSHToDUT(
-          ['-o', 'ConnectTimeout=%d' % self.SSH_CONNECT_TIMEOUT,
-           self.options.dut, 'goofy_rpc', '"GetTestRunStatus(None)"'],
-          check_output=True, ignore_stderr=True).stdout_data
-      return yaml.safe_load(run_status)
 
     def ParseFinishedTests(run_status):
       """Parses finish tests."""
@@ -235,13 +267,28 @@ class RunAutomatedTests(FactoryFlowCommand):
 
     def WaitForRun():
       """Waits for test run to finish."""
-      try:
-        run_status = FetchRunStatus()
-        ParseFinishedTests(run_status)
-        return run_status['status'] == RunState.FINISHED
-      except subprocess.CalledProcessError:
-        # Cannot SSH into the DUT; probably a reboot test is running.
+      goofy_proxy = self.GetGoofyProxy()
+      if goofy_proxy is None:
+        # Cannot connect to DUT; probably a reboot/suspend test is running,
+        # or DUT is finalized.
+        finalize_report_spec = glob.glob(
+            os.path.join(self.options.bundle, 'shopfloor', 'shopfloor_data',
+                         'reports', time.strftime('logs.%Y%m%d'), '*.tar.xz'))
+        if finalize_report_spec:
+          logging.info(('Found finalize report %s; assuming DUT has been '
+                        'finalized'), finalize_report_spec[0])
+          return True
         return False
+      try:
+        # Fetch run status on the DUT through Goofy RPC.
+        run_status = goofy_proxy.GetTestRunStatus(None)
+      except (jsonrpclib.jsonrpc.ProtocolError, socket.error):
+        # Time out waiting for response from Goofy RPC, or the SSH connection is
+        # gone.
+        return False
+      ParseFinishedTests(run_status)
+      return run_status['status'] in (RunState.FINISHED,
+                                      RunState.NOT_ACTIVE_RUN)
 
     logging.info('Waiting for automated test run to finish')
     utils.WaitFor(WaitForRun, timeout_secs=self.options.timeout_mins * 60,
@@ -253,4 +300,4 @@ class RunAutomatedTests(FactoryFlowCommand):
     failed_tests = [t[0] for t in finished_tests if t[1] == 'FAILED']
     if failed_tests:
       raise RunAutomatedTestsError(
-          'The following tests failed:' + '\n'.join(failed_tests))
+          'The following test(s) failed:' + '\n'.join(failed_tests))

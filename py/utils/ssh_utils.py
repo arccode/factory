@@ -8,6 +8,7 @@ This module is intended to work with Chrome OS DUTs only as it uses Chrome OS
 testing_rsa identity.
 """
 
+import logging
 import os
 import shutil
 import tempfile
@@ -57,7 +58,13 @@ def BuildSSHCommand():
           '-o', 'IdentityFile=%s' % testing_rsa,
           '-o', 'UserKnownHostsFile=/dev/null',
           '-o', 'User=root',
-          '-o', 'StrictHostKeyChecking=no']
+          '-o', 'StrictHostKeyChecking=no',
+          '-o', 'Protocol=2',
+          '-o', 'BatchMode=yes',
+          '-o', 'ConnectTimeout=30',
+          '-o', 'ServerAliveInterval=180',
+          '-o', 'ServerAliveCountMax=3',
+          '-o', 'ConnectionAttempts=4']
 
 
 def BuildRsyncCommand():
@@ -84,3 +91,64 @@ def SpawnRsyncToDUT(args, **kwargs):
     kwargs: See docstring of Spawn.
   """
   return process_utils.Spawn(BuildRsyncCommand() + args, **kwargs)
+
+
+class SSHTunnelToDUT(object):
+  """A class to establish and close SSH tunnel to a DUT.
+
+  Usage:
+    >> # Create a SSH tunnel from localhost:8888 on 10.3.0.23 to localhost:9999
+    >> # on current machine.
+    >> with SSHTunnel('10.3.0.23', 9999, 8888):
+    >>   [do something while the tunnel is established]
+
+    or
+
+    >> tunnel = SSHTunnel('10.3.0.23', 9999, 8888)
+    >> tunnel.Establish()
+    >> [do something while the tunnel is established]
+    >> tunnel.Close()
+
+  Args:
+    remote: The hostname or IP address of the remote host.
+    bind_port: The local port to bind to.
+    host_port: The remote port to bind to.
+    bind_address: The local address to bind to; default to 'localhost'.
+    host: The remote address to bind to; default to 'localhost'.
+  """
+  def __init__(self, remote, bind_port, host_port,
+               bind_address='localhost', host='localhost'):
+    self._remote = remote
+    self._bind_address = bind_address
+    self._bind_port = bind_port
+    self._host = host
+    self._host_port = host_port
+    self._ssh_process = None
+
+  def Establish(self):
+    logging.debug('Establishing SSH tunnel to %s with spec %s:%s:%s:%s',
+                  self._remote, self._bind_address, self._bind_port, self._host,
+                  self._host_port)
+    if self._ssh_process:
+      self.Close()
+    self._ssh_process = SpawnSSHToDUT(
+        [self._remote, '-N', '-f', '-L', '%s:%s:%s:%s' %
+         (self._bind_address, self._bind_port, self._host, self._host_port)],
+        stderr=process_utils.OpenDevNull(), check_call=True)
+
+  def Close(self):
+    logging.debug('Closing SSH tunnel to %s', self._remote)
+    if self._ssh_process:
+      try:
+        self._ssh_process.terminate()
+      except OSError as e:
+        if e.errno == 3:
+          # The process has already been terminated.
+          pass
+      self._ssh_process = None
+
+  def __enter__(self):
+    self.Establish()
+
+  def __exit__(self, *args, **kwargs):
+    self.Close()

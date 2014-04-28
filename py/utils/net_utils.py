@@ -10,6 +10,7 @@ import logging
 import os
 import pexpect
 import re
+import socket
 import subprocess
 import time
 import xmlrpclib
@@ -20,8 +21,10 @@ from cros.factory.test import factory
 from cros.factory.test.utils import FormatExceptionOnly
 from cros.factory.utils.process_utils import Spawn, SpawnOutput
 
+
 DEFAULT_TIMEOUT = 10
 INSERT_ETHERNET_DONGLE_TIMEOUT = 30
+
 
 def Ifconfig(devname, enable, sleep_time_secs=1):
   """Brings up/down interface.
@@ -36,6 +39,7 @@ def Ifconfig(devname, enable, sleep_time_secs=1):
   # Wait for device to settle down.
   time.sleep(sleep_time_secs)
 
+
 class TimeoutXMLRPCTransport(xmlrpclib.Transport):
   """Transport subclass supporting timeout."""
   def __init__(self, timeout=DEFAULT_TIMEOUT, *args, **kwargs):
@@ -46,6 +50,7 @@ class TimeoutXMLRPCTransport(xmlrpclib.Transport):
     conn = httplib.HTTPConnection(host, timeout=self.timeout)
     return conn
 
+
 class TimeoutXMLRPCServerProxy(xmlrpclib.ServerProxy):
   """XML/RPC ServerProxy supporting timeout."""
   def __init__(self, uri, timeout=10, *args, **kwargs):
@@ -53,6 +58,7 @@ class TimeoutXMLRPCServerProxy(xmlrpclib.ServerProxy):
       kwargs['transport'] = TimeoutXMLRPCTransport(
         timeout=timeout)
     xmlrpclib.ServerProxy.__init__(self, uri, *args, **kwargs)
+
 
 def FindUsableEthDevice(raise_exception=False):
   """Find the real ethernet interface when the flimflam is unavailable.
@@ -91,6 +97,7 @@ def FindUsableEthDevice(raise_exception=False):
     raise Error('No Ethernet interface available')
   return good_eth
 
+
 def SetEthernetIp(ip, interface=None, force=False):
   """Sets the IP address for Ethernet.
 
@@ -110,6 +117,7 @@ def SetEthernetIp(ip, interface=None, force=False):
     factory.console.info(
         'Not setting IP address for interface %s: already set to %s',
         interface, current_ip)
+
 
 def GetEthernetIp(interface=None):
   """Returns the IP of interface.
@@ -131,6 +139,7 @@ def GetEthernetIp(interface=None):
   if match:
     ip_address = match.group(1)
   return ip_address
+
 
 def _SendDhclientCommand(arguments, interface,
                          timeout=5, expect_str=pexpect.EOF):
@@ -157,6 +166,7 @@ def _SendDhclientCommand(arguments, interface,
   finally:
     dhcp_process.close()
 
+
 def SendDhcpRequest(interface=None):
   """Sends dhcp request via dhclient.
 
@@ -169,6 +179,7 @@ def SendDhcpRequest(interface=None):
   _SendDhclientCommand([], interface,
                        expect_str=r"bound to (\d+\.\d+\.\d+\.\d+)")
 
+
 def ReleaseDhcp(interface=None):
   """Releases a dhcp lease via dhclient.
 
@@ -179,6 +190,7 @@ def ReleaseDhcp(interface=None):
   interface = interface or FindUsableEthDevice(raise_exception=True)
   Ifconfig(interface, True)
   _SendDhclientCommand(['-r'], interface)
+
 
 def PollForCondition(condition, timeout=10,
                      poll_interval_secs=0.1, condition_name=None):
@@ -270,6 +282,7 @@ def GetWLANMACAddress():
 
   raise IOError('Unable to determine WLAN MAC address')
 
+
 def GetWLANInterface():
   """Returns the interface for wireless LAN device.
 
@@ -283,6 +296,7 @@ def GetWLANInterface():
       return dev
   return None
 
+
 def GetEthernetInterfaces():
   """Returns the interfaces for Ethernet.
 
@@ -291,6 +305,7 @@ def GetEthernetInterfaces():
     Or return [] if there is no Ethernet interface.
   """
   return [os.path.basename(path) for path in glob.glob('/sys/class/net/eth*')]
+
 
 def SwitchEthernetInterfaces(enable):
   """Switches on/off all Ethernet interfaces.
@@ -301,3 +316,37 @@ def SwitchEthernetInterfaces(enable):
   devs = GetEthernetInterfaces()
   for dev in devs:
     Ifconfig(dev, enable)
+
+
+def GetUnusedPort():
+  """Finds a semi-random available port.
+
+  A race condition is still possible after the port number is returned, if
+  another process happens to bind it.
+
+  This is ported from autotest repo.
+
+  Returns:
+    A port number that is unused on both TCP and UDP.
+  """
+
+  def TryBind(port, socket_type, socket_proto):
+    s = socket.socket(socket.AF_INET, socket_type, socket_proto)
+    try:
+      try:
+        s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        s.bind(('', port))
+        return s.getsockname()[1]
+      except socket.error:
+        return None
+    finally:
+      s.close()
+
+  # On the 2.6 kernel, calling TryBind() on UDP socket returns the
+  # same port over and over. So always try TCP first.
+  while True:
+    # Ask the OS for an unused port.
+    port = TryBind(0, socket.SOCK_STREAM, socket.IPPROTO_TCP)
+    # Check if this port is unused on the other protocol.
+    if port and TryBind(port, socket.SOCK_DGRAM, socket.IPPROTO_UDP):
+      return port
