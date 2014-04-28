@@ -95,7 +95,12 @@ class LidSwitchTest(unittest.TestCase):
         default=3),
     Arg('bft_pause_secs', (int, float),
         'Pause time before issuing BFT command.',
-        default=0.5)
+        default=0.5),
+    Arg('brightness_path', str, 'Path to control brightness level.',
+        default=None, optional=True),
+    Arg('brightness_when_closed', int,
+        'Value to brightness when lid switch closed.',
+        default=None, optional=True)
   ]
 
   def setUp(self):
@@ -135,6 +140,8 @@ class LidSwitchTest(unittest.TestCase):
     self._start_waiting_sec = self.getCurrentEpochSec()
     self._closed_sec = 0
     self._opened_sec = 0
+
+    self._restore_brightness = 0
 
     if self.fixture:
       self.BFTLid(close=True)
@@ -209,6 +216,27 @@ class LidSwitchTest(unittest.TestCase):
     except Exception as e:
       self.ui.Fail(e)
 
+  def AdjustBrightness(self, value):
+    """Adjusts the intensity by writing targeting value to sysfs.
+
+    Args:
+      value: The targeted brightness value.
+    """
+    with open(self.args.brightness_path, 'w') as f:
+      try:
+        f.write('%d' % value)
+      except IOError:
+        self.ui.Fail('Can not write %r into brightness. '
+                     'Maybe the limit is wrong' % value)
+
+  def GetBrightness(self):
+    """Gets the brightness value from sysfs."""
+    with open(self.args.brightness_path, 'r') as f:
+      try:
+        return int(f.read())
+      except IOError:
+        self.ui.Fail('Can not read brightness.')
+
   def HandleEvent(self, event):
     if event.type == evdev.ecodes.EV_SW and event.code == evdev.ecodes.SW_LID:
       if event.value == 1: # LID_CLOSED
@@ -217,8 +245,15 @@ class LidSwitchTest(unittest.TestCase):
           self.CheckDelayedBacklight()
         else:
           self.AskForOpenLid()
+          if self.args.brightness_path is not None:
+            self._restore_brightness = self.GetBrightness()
+            # Close backlight
+            self.AdjustBrightness(self.args.brightness_when_closed)
       elif event.value == 0: # LID_OPEN
         self._opened_sec = self.getCurrentEpochSec()
+        # Restore brightness
+        if self.args.brightness_path is not None:
+          self.AdjustBrightness(self._restore_brightness)
         self.ui.Pass()
 
   def MonitorEvdevEvent(self):
