@@ -93,6 +93,13 @@ class SystemInfo(object):
     except:
       pass
 
+    self.toolkit_version = None
+    try:
+      with open('/usr/local/factory/TOOLKIT_VERSION') as f:
+        self.toolkit_version = f.read().strip()
+    except:
+      pass
+
     self.release_image_version = None
     try:
       if SystemInfo.release_image_version:
