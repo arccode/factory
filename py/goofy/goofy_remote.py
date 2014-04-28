@@ -87,9 +87,11 @@ def TweakTestLists(args):
     if args.clear_password:
       new_data = SubLine('options.engineering_password_sha1', None, new_data)
     if args.shopfloor_host:
-      new_data = SubLine('shop_floor_host', args.shopfloor_host, new_data)
+      new_data = SubLine('(?:shop_floor_host|shopfloor_host)',
+                         args.shopfloor_host, new_data)
     if args.shopfloor_port:
-      new_data = SubLine('shop_floor_port', args.shopfloor_port, new_data)
+      new_data = SubLine('(?:shop_floor_port|shopfloor_port)',
+                         args.shopfloor_port, new_data)
 
     # Write out the file if anything has changed.
     if new_data != data:
