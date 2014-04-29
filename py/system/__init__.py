@@ -245,9 +245,12 @@ class SystemStatus(object):
     self.battery_sysfs_path = None
     path_list = glob.glob('/sys/class/power_supply/*/type')
     for p in path_list:
-      if open(p).read().strip() == 'Battery':
-        self.battery_sysfs_path = os.path.dirname(p)
-        break
+      try:
+        if open(p).read().strip() == 'Battery':
+          self.battery_sysfs_path = os.path.dirname(p)
+          break
+      except:
+        logging.warning('sysfs path %s is unavailable', p)
 
     for k, item_type in [('charge_full', int),
                          ('charge_full_design', int),
@@ -260,11 +263,14 @@ class SystemStatus(object):
                          ('energy_full', int),
                          ('energy_full_design', int),
                          ('energy_now', int)]:
+      self.battery[k] = None
       try:
-        self.battery[k] = item_type(
-          open(os.path.join(self.battery_sysfs_path, k)).read().strip())
+        if self.battery_sysfs_path:
+          self.battery[k] = item_type(
+            open(os.path.join(self.battery_sysfs_path, k)).read().strip())
       except:
-        self.battery[k] = None
+        logging.warning('sysfs path %s is unavailable',
+                        os.path.join(self.battery_sysfs_path, k))
 
     self.battery['fraction_full'] = _CalculateBatteryFractionFull(self.battery)
 
