@@ -17,14 +17,16 @@ import time
 import unittest
 import yaml
 
-import archiver
-import archiver_config
-
+from archiver import Archive, _CopyCompleteChunks, _ListEligibleFiles, _Recycle
 from archiver_cli import main
+from archiver_config import (ArchiverConfig, CheckExecutableExist,
+                             GenerateConfig, LockSource)
 from archiver_exception import ArchiverFieldError
-from archiver_config import GenerateConfig, LockSource
-from common import TryMakeDirs, WriteAndTruncateFd
+from common import (GenerateArchiverMetadata, GetMetadataPath,
+                    GetOrCreateArchiverMetadata, TryMakeDirs,
+                    WriteAndTruncateFd)
 from multiprocessing import Process
+
 
 TEST_DATA_PATH = os.path.abspath(os.path.join(
     os.path.dirname(__file__), 'testdata/archiver'))
@@ -122,7 +124,7 @@ class ArchiverUnittest(unittest.TestCase):
     self.assertRaises(ArchiverFieldError, main, argv)
 
   def testSetDurationInternally(self):
-    config = archiver_config.ArchiverConfig('unittest')
+    config = ArchiverConfig('unittest')
     # We should pass an integer instead.
     self.assertRaises(ArchiverFieldError, config.SetDuration, '86400')
 
@@ -185,7 +187,7 @@ class ArchiverUnittest(unittest.TestCase):
     os.unlink(lock_path)
 
   def _resetCopyCompleteChunksMetadata(self, completed_bytes=None):
-    """Resets the metadata that solely used for CopyCompleteChunks testing.
+    """Resets the metadata that solely used for _CopyCompleteChunks testing.
 
     The metadata will be marked as all archived so other test will not be
     affected.
@@ -199,13 +201,13 @@ class ArchiverUnittest(unittest.TestCase):
       filename = os.path.join(EVENT_LOG_PATH, filename)
       filesize = (os.path.getsize(filename) if completed_bytes is None else
                   completed_bytes)
-      with open(archiver.GetMetadataPath(filename), 'w') as fd:
+      with open(GetMetadataPath(filename), 'w') as fd:
         WriteAndTruncateFd(
-            fd, archiver.GenerateArchiverMetadata(
+            fd, GenerateArchiverMetadata(
                 completed_bytes=filesize))
 
   def _resetListEligibleFilesMetadata(self):
-    """Resets the metadata that solely used for ListEligibleFiles testing.
+    """Resets the metadata that solely used for _ListEligibleFiles testing.
 
     The metadata will be marked as all archived so other test will not be
     affected.
@@ -223,9 +225,9 @@ class ArchiverUnittest(unittest.TestCase):
           os.path.join(EVENT_LOG_PATH,
                        os.path.dirname(filename), '.archiver'))
       filename = os.path.join(EVENT_LOG_PATH, filename)
-      with open(archiver.GetMetadataPath(filename), 'w') as fd:
+      with open(GetMetadataPath(filename), 'w') as fd:
         WriteAndTruncateFd(
-            fd, archiver.GenerateArchiverMetadata(
+            fd, GenerateArchiverMetadata(
                 completed_bytes=os.path.getsize(filename)))
 
   def testListEligibleFiles(self):
@@ -244,9 +246,9 @@ class ArchiverUnittest(unittest.TestCase):
         os.path.join(EVENT_LOG_PATH, '20140419/.archiver'))
     filename = os.path.join(
         EVENT_LOG_PATH, '20140419/some_incomplete_bytes_appeneded')
-    with open(archiver.GetMetadataPath(filename), 'w') as fd:
+    with open(GetMetadataPath(filename), 'w') as fd:
       WriteAndTruncateFd(
-          fd, archiver.GenerateArchiverMetadata(completed_bytes=10))
+          fd, GenerateArchiverMetadata(completed_bytes=10))
     expected_list.append((10, os.path.getsize(filename), filename))
 
 
@@ -254,9 +256,9 @@ class ArchiverUnittest(unittest.TestCase):
     #   raw/eventlog/20140419/no_bytes_appended
     #   raw/eventlog/20140419/.archiver/no_bytes_appeneded.metadata
     filename = os.path.join(EVENT_LOG_PATH, '20140419/no_bytes_appended')
-    with open(archiver.GetMetadataPath(filename), 'w') as fd:
+    with open(GetMetadataPath(filename), 'w') as fd:
       WriteAndTruncateFd(
-          fd, archiver.GenerateArchiverMetadata(
+          fd, GenerateArchiverMetadata(
               completed_bytes=os.path.getsize(filename)))
 
 
@@ -267,7 +269,7 @@ class ArchiverUnittest(unittest.TestCase):
     #   raw/eventlog/20140420/corrupted_metadata_1
     #   raw/eventlog/20140420/.archiver/corrupted_metadata_1.metadata
     filename = os.path.join(EVENT_LOG_PATH, '20140420/corrupted_metadata_1')
-    with open(archiver.GetMetadataPath(filename), 'w') as fd:
+    with open(GetMetadataPath(filename), 'w') as fd:
       WriteAndTruncateFd(fd, ' - where_is_my_bracket: ][')
     expected_list.append((0, os.path.getsize(filename), filename))
 
@@ -275,7 +277,7 @@ class ArchiverUnittest(unittest.TestCase):
     #   raw/eventlog/20140420/corrupted_metadata_2
     #   raw/eventlog/20140420/.archiver/corrupted_metadata_2.metadata
     filename = os.path.join(EVENT_LOG_PATH, '20140420/corrupted_metadata_2')
-    with open(archiver.GetMetadataPath(filename), 'w') as fd:
+    with open(GetMetadataPath(filename), 'w') as fd:
       WriteAndTruncateFd(fd, '- a\n- b\n- c\n')
     expected_list.append((0, os.path.getsize(filename), filename))
 
@@ -283,9 +285,9 @@ class ArchiverUnittest(unittest.TestCase):
     #   raw/eventlog/20140420/corrupted_metadata_3
     #   raw/eventlog/20140420/.archiver/corrupted_metadata_3.metadata
     filename = os.path.join(EVENT_LOG_PATH, '20140420/corrupted_metadata_3')
-    with open(archiver.GetMetadataPath(filename), 'w') as fd:
+    with open(GetMetadataPath(filename), 'w') as fd:
       WriteAndTruncateFd(
-          fd, archiver.GenerateArchiverMetadata(
+          fd, GenerateArchiverMetadata(
               completed_bytes=os.path.getsize(filename) + 1))
     expected_list.append((0, os.path.getsize(filename), filename))
 
@@ -295,7 +297,7 @@ class ArchiverUnittest(unittest.TestCase):
     filename = os.path.join(EVENT_LOG_PATH, '20140421/new_created_file')
     try:
       # Make sure no metadata for this file.
-      os.unlink(archiver.GetMetadataPath(filename))
+      os.unlink(GetMetadataPath(filename))
     except Exception:  # pylint=disable,W0702
       pass
     expected_list.append((0, os.path.getsize(filename), filename))
@@ -305,7 +307,7 @@ class ArchiverUnittest(unittest.TestCase):
     #   raw/eventlog/20140421/creating.part
 
     self._resetCopyCompleteChunksMetadata()
-    ret_list = archiver.ListEligibleFiles(configs[0].source_dir)
+    ret_list = _ListEligibleFiles(configs[0].source_dir)
     self.assertItemsEqual(expected_list, ret_list)
 
 
@@ -328,9 +330,8 @@ class ArchiverUnittest(unittest.TestCase):
                  tmp_dir, config.data_type)
     self._resetCopyCompleteChunksMetadata(completed_bytes=0)
     self._resetListEligibleFilesMetadata()
-    eligible_files = archiver.ListEligibleFiles(config.source_dir)
-    archive_metadata = archiver.CopyCompleteChunks(
-        eligible_files, tmp_dir, config)
+    eligible_files = _ListEligibleFiles(config.source_dir)
+    archive_metadata = _CopyCompleteChunks(eligible_files, tmp_dir, config)
     expected_return = {
         '20140406/incomplete_with_chunks': {'start': 0, 'end': 352},
         '20140406/normal_chunks': {'start': 0, 'end': 666}
@@ -355,9 +356,8 @@ class ArchiverUnittest(unittest.TestCase):
                  tmp_dir, config.data_type)
     self._resetCopyCompleteChunksMetadata(completed_bytes=0)
     self._resetListEligibleFilesMetadata()
-    eligible_files = archiver.ListEligibleFiles(config.source_dir)
-    archive_metadata = archiver.CopyCompleteChunks(
-        eligible_files, tmp_dir, config)
+    eligible_files = _ListEligibleFiles(config.source_dir)
+    archive_metadata = _CopyCompleteChunks(eligible_files, tmp_dir, config)
     expected_return = {
         '20140406/incomplete_without_chunks': {'start': 0, 'end': 311},
         '20140406/incomplete_with_chunks': {'start': 0, 'end': 411},
@@ -377,23 +377,23 @@ class ArchiverUnittest(unittest.TestCase):
     self._resetCopyCompleteChunksMetadata(completed_bytes=0)
     self._resetListEligibleFilesMetadata()
 
-    archiver.Archive(config, next_cycle=False)
+    Archive(config, next_cycle=False)
     # Check if the metadata updated as expected.
     expected_completed_bytes = [('20140406/incomplete_without_chunks', 0),
                                 ('20140406/incomplete_with_chunks', 352),
                                 ('20140406/normal_chunks', 666)]
     for filename, completed_bytes in expected_completed_bytes:
-      metadata_path = archiver.GetMetadataPath(
+      metadata_path = GetMetadataPath(
           os.path.join(config.source_dir, filename))
-      metadata = archiver.GetOrCreateArchiverMetadata(metadata_path)
+      metadata = GetOrCreateArchiverMetadata(metadata_path)
       self.assertEqual(completed_bytes, metadata['completed_bytes'])
 
   def testCheckExecutableExistNormal(self):
-    self.assertEqual(True, archiver_config.CheckExecutableExist('ls'))
+    self.assertEqual(True, CheckExecutableExist('ls'))
 
   def testCheckExecutableExistFalse(self):
     self.assertEqual(
-        False, archiver_config.CheckExecutableExist('DemocracyAt4AM'))
+        False, CheckExecutableExist('DemocracyAt4AM'))
 
   def testRecycle(self):
     # This unittest can only be ran after 20140406 + 2 days.
@@ -407,7 +407,6 @@ class ArchiverUnittest(unittest.TestCase):
     tmp_dir = tempfile.mkdtemp(
         prefix='FactoryArchiver_', suffix='_unittest')
     logging.info('%r created for Recycle() unittest', tmp_dir)
-    #shutil.copytree(TEST_DATA_PATH, os.path.join(tmp_dir, 'unittest'))
     # Inject temporary path into configuration
     #TEMP_TEST_DATA_PATH = os.path.join(tmp_dir, 'unittest')
     config.SetDir(
@@ -422,12 +421,12 @@ class ArchiverUnittest(unittest.TestCase):
       os.path.join(tmp_dir, 'raw/eventlog/20140406'))
 
     # Check if the snapshot created ?
-    archiver.Recycle(config)  # Trigger snapshot creation
+    self.assertTrue(_Recycle(config))  # Trigger snapshot creation
     self.assertTrue(
         os.path.isfile(os.path.join(tmp_dir,
                        'raw/eventlog/20140406/.archiver', '.snapshot')))
     # Check if it recycled ?
-    archiver.Recycle(config)
+    self.assertTrue(_Recycle(config))
     self.assertFalse(
         os.path.isdir(os.path.join(tmp_dir, 'raw/eventlog/20140406')))
     self.assertTrue(
@@ -436,13 +435,56 @@ class ArchiverUnittest(unittest.TestCase):
     shutil.copytree(
       os.path.join(TEST_DATA_PATH, 'raw/eventlog/20140406'),
       os.path.join(tmp_dir, 'raw/eventlog/20140406'))
-    archiver.Recycle(config)  # Trigger snapshot creation
-    archiver.Recycle(config)  # Trigger conflict
+    self.assertTrue(_Recycle(config))  # Trigger snapshot creation
+    self.assertTrue(_Recycle(config))  # Trigger conflict
     self.assertEqual(
         2, len(os.listdir(os.path.join(tmp_dir, 'recycle/raw/eventlog/'))))
     shutil.rmtree(tmp_dir)
     logging.info('%r deleted', tmp_dir)
 
+  def testRecycleTerminatePrematurely(self):
+    with open(os.path.join(TEST_DATA_PATH, 'template_regcode.yaml')) as f:
+      content = f.read()
+    configs = GenerateConfig(yaml.load(content))
+    config = configs[0]
+
+    self.assertFalse(_Recycle(config))
+
+  def testArchiveRegcode(self):
+    with open(os.path.join(TEST_DATA_PATH, 'template_regcode.yaml')) as f:
+      content = f.read()
+    configs = GenerateConfig(yaml.load(content))
+    config = configs[0]
+
+    # Prepare diectory
+    tmp_dir = tempfile.mkdtemp(
+        prefix='FactoryArchiver_', suffix='_unittest')
+    logging.info('%r created for archiving regcode unittest', tmp_dir)
+    # Create mock regcode.
+    TryMakeDirs(os.path.join(tmp_dir, 'raw'))
+    regcode_path = os.path.join(tmp_dir, 'raw', 'mocked_regcode.csv')
+    with open(regcode_path, 'w') as fd:
+      fd.write('CompletedRegCodeLine\n'
+               'InCompletedLine')
+    # Inject temporary path into configuration
+    config.SetSourceFile(regcode_path)
+    config.SetDir(
+        os.path.join(tmp_dir, 'archives'), 'archived_dir', create=True)
+
+    Archive(config, next_cycle=False)
+    # Check if the metadata updated as expected.
+    metadata = GetOrCreateArchiverMetadata(
+        GetMetadataPath(regcode_path))
+    self.assertEqual(21, metadata['completed_bytes'])
+    with open(regcode_path, 'a') as fd:  # Complete the delimiter
+      fd.write('\n')
+    Archive(config, next_cycle=False)
+    metadata = GetOrCreateArchiverMetadata(
+        GetMetadataPath(regcode_path))
+    self.assertEqual(37, metadata['completed_bytes'])
+
+    shutil.rmtree(tmp_dir)
+    logging.info('%r deleted', tmp_dir)
 
 if __name__ == '__main__':
   unittest.main()

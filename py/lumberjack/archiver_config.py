@@ -11,7 +11,6 @@ import os
 import pprint
 import re
 
-
 from archiver import locks
 from archiver_exception import ArchiverFieldError
 from common import CheckAndLockFile, CheckExecutableExist

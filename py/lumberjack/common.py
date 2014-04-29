@@ -13,6 +13,10 @@ import time
 import yaml
 import logging
 
+from archiver_exception import ArchiverFieldError
+
+METADATA_DIRECTORY = '.archiver'  # For storing metadata.
+
 
 def IsValidYAMLFile(arg):
   """Help function to reject invalid YAML syntax"""
@@ -125,6 +129,11 @@ def TimeString(unix_time=None, time_separator=':', milliseconds=True):
   return ret
 
 
+def GenerateArchiverMetadata(completed_bytes=0):
+  """Returns a string that can be written directly into the metadata file."""
+  return yaml.dump({'completed_bytes': completed_bytes})
+
+
 # TODO(itspeter):
 #   Move to cros.factory.test.utils once migration to Umpire is fully
 #   rolled-out.
@@ -145,3 +154,78 @@ def GetMD5ForFiles(files, base_dir=None):
     with open(os.path.join(full_path), 'r') as fd:
       md5_hash.update(fd.read())
   return md5_hash.hexdigest()
+
+
+def GetMetadataPath(file_path, dir_path=None):
+  """Returns the metadata path of file_path.
+
+  Args:
+    file_path: The path to the file that we want its metadata's path.
+    dir_path:
+      The directory path of the file_path. If the caller has the infomation
+      of its directory name in place, we can save a call of calling
+      os.path.dirname() by assigning this.
+
+  Returns:
+    The path to the metadata.
+  """
+  if not dir_path:
+    dir_path = os.path.dirname(file_path)
+
+  return os.path.join(
+      dir_path, METADATA_DIRECTORY,
+      os.path.basename(file_path) + '.metadata')
+
+
+def GetOrCreateArchiverMetadata(metadata_path):
+  """Returns a dictionary based on the metadata of file.
+
+  Regenerate metadata if it is not a valid YAML format
+  (syntax error or non-dictionary).
+
+  Args:
+    metadata_path: The path to the metadata.
+
+  Returns:
+    A dictionary of the parsed YAML from metadata file.
+  """
+  # Check if metadata directory is created.
+  metadata_dir = os.path.dirname(metadata_path)
+  try:
+    TryMakeDirs(metadata_dir, raise_exception=True)
+  except Exception:
+    logging.error('Failed to create metadata directory %r for archiver',
+                  metadata_dir)
+
+  fd = os.fdopen(os.open(metadata_path, os.O_RDWR | os.O_CREAT), 'r+')
+  content = fd.read()
+  fd.close()
+  if content:
+    try:
+      metadata = yaml.load(content)
+      # Check if it is a dictionary
+      if not isinstance(metadata, dict):
+        raise ArchiverFieldError(
+            'Unexpected metadata format, should be a dictionary')
+      return metadata
+    except (yaml.YAMLError, ArchiverFieldError):
+      logging.info(
+          'Metadata %r seems corrupted. YAML syntax error or not a '
+          'dictionary. Reconstruct it.', metadata_path)
+  return yaml.load(RegenerateArchiverMetadataFile(metadata_path))
+
+
+def RegenerateArchiverMetadataFile(metadata_path):
+  """Regenerates the metadata file such completed_bytes is 0.
+
+  Args:
+    metadata_path: The path to the metadata.
+
+  Returns:
+    Retrns the string it writes into the metadata_path
+  """
+  logging.info('Re-generate metadata at %r', metadata_path)
+  ret_str = GenerateArchiverMetadata()
+  with open(metadata_path, 'w') as fd:
+    fd.write(ret_str)
+  return ret_str

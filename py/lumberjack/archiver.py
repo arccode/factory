@@ -15,13 +15,12 @@ import time
 import uuid
 import yaml
 
-from archiver_exception import ArchiverFieldError
-from common import GetMD5ForFiles, TimeString, TryMakeDirs
 from subprocess import PIPE, Popen
 from twisted.internet import reactor
 
+import common
+from common import GetMetadataPath, METADATA_DIRECTORY
 
-METADATA_DIRECTORY = '.archiver'  # For storing metadata.
 SNAPSHOT = '.snapshot'
 # These suffix indicate another process is using.
 SKIP_SUFFIX = ['.part', '.inprogress', '.lock', '.swp']
@@ -31,7 +30,7 @@ ARCHIVER_SOURCE_FILES = ['archiver.py', 'archiver_exception.py',
 locks = []
 
 
-def ListEligibleFiles(dir_path):
+def _ListEligibleFiles(dir_path):
   """Returns a list of files consider to be archived.
 
   Corrupted or missing metadata will be fixed during the travesal process.
@@ -71,47 +70,6 @@ def ListEligibleFiles(dir_path):
   return ret
 
 
-def GetMetadataPath(file_path, dir_path=None):
-  """Returns the metadata path of file_path.
-
-  Args:
-    file_path: The path to the file that we want its metadata's path.
-    dir_path:
-      The directory path of the file_path. If the caller has the infomation
-      of its directory name in place, we can save a call of calling
-      os.path.dirname() by assigning this.
-
-  Returns:
-    The path to the metadata.
-  """
-  if not dir_path:
-    dir_path = os.path.dirname(file_path)
-
-  return os.path.join(
-      dir_path, METADATA_DIRECTORY,
-      os.path.basename(file_path) + '.metadata')
-
-
-def GenerateArchiverMetadata(completed_bytes=0):
-  """Returns a string that can be written directly into the metadata file."""
-  return yaml.dump({'completed_bytes': completed_bytes})
-
-
-def _RegenerateArchiverMetadataFile(metadata_path):
-  """Regenerates the metadata file such completed_bytes is 0.
-
-  Args:
-    metadata_path: The path to the metadata.
-
-  Returns:
-    Retrns the string it writes into the metadata_path
-  """
-  logging.info('Re-generate metadata at %r', metadata_path)
-  ret_str = GenerateArchiverMetadata()
-  with open(metadata_path, 'w') as fd:
-    fd.write(ret_str)
-  return ret_str
-
 
 def _GetRangeOfAppendedBytes(file_path, dir_path=None):
   """Returns a tuple indicating range of appended bytes.
@@ -134,7 +92,7 @@ def _GetRangeOfAppendedBytes(file_path, dir_path=None):
     how to cope with these tuple.
   """
   metadata_path = GetMetadataPath(file_path, dir_path)
-  metadata = GetOrCreateArchiverMetadata(metadata_path)
+  metadata = common.GetOrCreateArchiverMetadata(metadata_path)
 
   current_size = os.path.getsize(file_path)
   # current_size+1 to trigger if completed_bytes is not in the dictionary.
@@ -144,54 +102,13 @@ def _GetRangeOfAppendedBytes(file_path, dir_path=None):
         'Metadata %r seems corrupted. Either completed_bytes cannot '
         'be found or is larger than current file size. Reconstruct it.',
         metadata_path)
-    _RegenerateArchiverMetadataFile(metadata_path)
+    common.RegenerateArchiverMetadataFile(metadata_path)
     completed_bytes = 0
   return (completed_bytes, current_size)
 
 
-def GetOrCreateArchiverMetadata(metadata_path):
-  """Returns a dictionary based on the metadata of file.
-
-  Regenerate metadata if it is not a valid YAML format
-  (syntax error or non-dictionary).
-
-  Args:
-    metadata_path: The path to the metadata.
-
-  Returns:
-    A dictionary of the parsed YAML from metadata file.
-  """
-  # Check if metadata directory is created.
-  metadata_dir = os.path.dirname(metadata_path)
-  try:
-    TryMakeDirs(metadata_dir, raise_exception=True)
-  except Exception:
-    logging.error('Failed to create metadata directory %r for archiver',
-                  metadata_dir)
-
-  fd = os.fdopen(os.open(metadata_path, os.O_RDWR | os.O_CREAT), 'r+')
-  content = fd.read()
-  fd.close()
-  if content:
-    try:
-      metadata = yaml.load(content)
-      # Check if it is a dictionary
-      if not isinstance(metadata, dict):
-        raise ArchiverFieldError(
-            'Unexpected metadata format, should be a dictionary')
-      return metadata
-    except (yaml.YAMLError, ArchiverFieldError):
-      logging.info(
-          'Metadata %r seems corrupted. YAML syntax error or not a '
-          'dictionary. Reconstruct it.', metadata_path)
-  return yaml.load(_RegenerateArchiverMetadataFile(metadata_path))
-
-
 def _UpdateArchiverMetadata(new_metadatas, config):
   """Updates the metadata of files.
-
-  This function should not used for single file archiving because it has
-  no valid value in config.source_dir.
 
   Args:
     new_metadatas:
@@ -202,23 +119,22 @@ def _UpdateArchiverMetadata(new_metadatas, config):
         'filename1: {'start': start position, 'end': end position},
         'filename2: {'start': start position, 'end': end position},
       }
-      filename is the relative path from config.source_dir. end and
-      start position are archived range of filename.
-  Raises:
-    ArchiverFieldError if config.source_dir is not valid.
+      filename is the relative path from config.source_dir or
+      dirname(config.source_file). End and start position are archived range
+      of filename.
   """
-  if not config.source_dir:
-    raise ArchiverFieldError(
-        '_UpdateArchiverMetadata cannot find valid config.source_dir')
+  root_dir = (os.path.dirname(config.source_file) if
+      config.source_file else config.source_dir)
 
   for filename, archived_range in new_metadatas.iteritems():
-    full_path = os.path.join(config.source_dir, filename)
+    full_path = os.path.join(root_dir, filename)
     metadata_path = GetMetadataPath(full_path)
     logging.info('Updating %s', metadata_path)
     with open(metadata_path, 'w') as fd:
-      fd.write(GenerateArchiverMetadata(completed_bytes=archived_range['end']))
+      fd.write(common.GenerateArchiverMetadata(
+          completed_bytes=archived_range['end']))
 
-def CopyCompleteChunks(files, tmp_dir, config):
+def _CopyCompleteChunks(files, tmp_dir, config):
   """Identifies chunks and copies them into tmp_dir.
 
   This function will copy the non archived, completed chunks into temporary
@@ -277,7 +193,7 @@ def CopyCompleteChunks(files, tmp_dir, config):
     # Create related sub-directories
     tmp_full_path = os.path.join(tmp_dir, relative_path)
     try:
-      TryMakeDirs(os.path.dirname(tmp_full_path), raise_exception=True)
+      common.TryMakeDirs(os.path.dirname(tmp_full_path), raise_exception=True)
     except Exception:
       logging.error(
           'Failed to create sub-directory for %r in temporary folder %r',
@@ -290,7 +206,7 @@ def CopyCompleteChunks(files, tmp_dir, config):
     logging.debug('%r for archiving prepared.', filename)
   return archive_metadata
 
-def GenerateArchiveName(config):
+def _GenerateArchiveName(config):
   """Returns an archive name based on the ArchiverConfig.
 
   The name follows the format:
@@ -315,11 +231,13 @@ def GenerateArchiveName(config):
   suffix = config.compress_format
   return prefix + suffix
 
-def Recycle(config):
+def _Recycle(config):
   """Recycles directory from raw source if possible.
 
   A directory under config.source_dir will be identified as recyclable if
   time criteria and snapshot criteria are both met.
+
+  config.source_file will not be recycled because of potential racing writing.
 
   1) Time criteria:
     The directory name can be recognized by _ConvertToTimestamp() and the
@@ -333,6 +251,9 @@ def Recycle(config):
   a lot), we still have a rule to deal with recycle failure. When recycle
   failed (i.e. a directory with same name exists), a 4 digits random hash
   will be added as a suffix with one retry.
+
+  Returns:
+    True if recycle run until the end, False if terminate prematurely.
   """
   def _ConvertToTimestamp(dir_name):
     """Converts to time in seconds since the epoch.
@@ -363,6 +284,15 @@ def Recycle(config):
     with open(file_path, 'w') as fd:
       fd.write(yaml.dump(snapshot_to_write, default_flow_style=False))
     logging.debug('Snapshot %r created.', file_path)
+
+  if not config.recycle_dir:
+    logging.debug('No recycle_dir assigned, skipped.')
+    return False
+
+  if config.source_file:
+    logging.debug('config.source_file %r will not be recycled because of'
+                  'potential racing writing, skipped', config.source_file)
+    return False
 
   for current_dir, sub_dirs, filenames in os.walk(config.source_dir):
     if os.path.basename(current_dir) == METADATA_DIRECTORY:
@@ -431,6 +361,7 @@ def Recycle(config):
                       'archiving cycle.', current_dir)
         continue
     logging.info('Successfully recycled %r to %r', current_dir, target_dir)
+  return True
 
 
 def Archive(config, next_cycle=True):
@@ -449,8 +380,34 @@ def Archive(config, next_cycle=True):
     Full path of generated archive.
   """
   # TODO(itspeter): Special treat for zip (prepare file list instead of chunks)
-  started_time = TimeString()
+  started_time = common.TimeString()
   generated_archive = None
+
+  def _UpdateMetadata(archive_metadata, started_time):
+    """Writes other information about current archiver and its enviornment."""
+    archive_metadata['archiver']['started'] = started_time
+    archive_metadata['archiver']['version_md5'] = (
+        common.GetMD5ForFiles(ARCHIVER_SOURCE_FILES, os.path.dirname(__file__)))
+    archive_metadata['archiver']['host'] = hex(uuid.getnode())
+    # TODO(itspeter): Write Umpire related information if available
+
+  def _CompressIntoTarXz(tmp_dir, archive_metadata, config):
+    """Writes metadata into tmp_dir and compresses it into archived_dir."""
+    with open(os.path.join(tmp_dir, 'archive.metadata'), 'w') as fd:
+      fd.write(yaml.dump(archive_metadata, default_flow_style=False))
+
+    # Compress it.
+    generated_archive = os.path.join(
+        config.archived_dir, _GenerateArchiveName(config))
+    tmp_archive = generated_archive + '.part'
+    logging.info('Compressing %r into %r', tmp_dir, tmp_archive)
+    # TODO(itspeter): Handle the failure cases.
+    output_tuple = Popen(  # pylint: disable=W0612
+        ['tar', '-cvJf', tmp_archive, '-C', tmp_dir, '.'],
+        stdout=PIPE, stderr=PIPE).communicate()
+    # Remove .part suffix.
+    os.rename(tmp_archive, generated_archive)
+    return generated_archive
 
   try:
     tmp_dir = tempfile.mkdtemp(prefix='FactoryArchiver_',
@@ -458,48 +415,34 @@ def Archive(config, next_cycle=True):
     logging.info('%r created for archiving data_type[%s]',
                  tmp_dir, config.data_type)
     if config.source_dir:
-      eligible_files = ListEligibleFiles(config.source_dir)
-      archive_metadata = CopyCompleteChunks(eligible_files, tmp_dir, config)
-      # Write other information about current archiver and its enviornment
-      archive_metadata['archiver']['started'] = started_time
-      archive_metadata['archiver']['version_md5'] = (
-          GetMD5ForFiles(ARCHIVER_SOURCE_FILES, os.path.dirname(__file__)))
-      archive_metadata['archiver']['host'] = hex(uuid.getnode())
-      # TODO(itspeter): Write Umpire related information if available
-      with open(os.path.join(tmp_dir, 'archive.metadata'), 'w') as fd:
-        fd.write(yaml.dump(archive_metadata, default_flow_style=False))
-
-      # Compress it.
-      generated_archive = os.path.join(
-          config.archived_dir, GenerateArchiveName(config))
-      tmp_archive = generated_archive + '.part'
-      logging.info('Compressing %r into %r', tmp_dir, tmp_archive)
-
-      # TODO(itspeter): Handle the .zip compress_format.
-      # TODO(itspeter): Handle the failure cases.
-      output_tuple = Popen(  # pylint: disable=W0612
-          ['tar', '-cvJf', tmp_archive, '-C', tmp_dir, '.'],
-          stdout=PIPE, stderr=PIPE).communicate()
-
-      # Remove .part suffix.
-      os.rename(tmp_archive, generated_archive)
-
-      # Update metadata data for archived files.
-      _UpdateArchiverMetadata(archive_metadata['files'], config)
-      # Create snapshot and recycle direcotry in source_dir
-      Recycle(config)
+      eligible_files = _ListEligibleFiles(config.source_dir)
     else:  # Single file archiving.
       appended_range = _GetRangeOfAppendedBytes(config.source_file)
       if (appended_range[1] - appended_range[0]) <= 0:
         logging.debug(
             'No bytes appended to file %r since last archiving. Skipped.',
             config.source_file)
+        eligible_files = []
       else:
-        # TODO(itspeter): complete the logic
-        pass
+        eligible_files = [
+            (appended_range[0], appended_range[1], config.source_file)]
+
+    archive_metadata = _CopyCompleteChunks(eligible_files, tmp_dir, config)
+    if len(archive_metadata['files']) > 0:
+      _UpdateMetadata(archive_metadata, started_time)  # Write other info
+      # TODO(itspeter): Handle the .zip compress_format.
+      generated_archive = _CompressIntoTarXz(tmp_dir, archive_metadata, config)
+      # Update metadata data for archived files.
+      _UpdateArchiverMetadata(archive_metadata['files'], config)
+    else:
+      logging.info('No data available for archiving for %r', config.data_type)
+
   finally:
     shutil.rmtree(tmp_dir)
     logging.info('%r deleted', tmp_dir)
+
+  # Create snapshot and recycle direcotry in source_dir
+  _Recycle(config)
 
   if next_cycle:
     reactor.callLater(config.duration, Archive, config)  # pylint: disable=E1101
