@@ -13,6 +13,7 @@ import os
 import unittest
 
 from collections import namedtuple
+from contextlib import contextmanager
 from tempfile import NamedTemporaryFile
 
 import factory_common  # pylint: disable=W0611
@@ -27,6 +28,9 @@ from cros.factory.hwdb import hwid_tool
 from cros.factory.hwdb.hwid_tool import ProbeResults  # pylint: disable=E0611
 from cros.factory.gooftool import Mismatch
 from cros.factory.gooftool import ProbedComponentResult
+from cros.factory.system import vpd
+from cros.factory.test import branding
+from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import CheckOutput
 
 _TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
@@ -355,6 +359,79 @@ class GooftoolTest(unittest.TestCase):
 
     self._gooftool.VerifyWPSwitch()
     self.assertRaises(Error, self._gooftool.VerifyWPSwitch)
+
+  def _SetupBrandingMocks(self, ro_vpd, fake_rootfs_path):
+    """Set up mocks for VerifyBranding tests.
+
+    Args:
+      ro_vpd: The dictionary to use for the RO VPD.
+      fake_rootfs_path: A path at which we pretend to mount the release rootfs.
+    """
+
+    # Fake partition to return from MountPartition mock.
+    @contextmanager
+    def MockPartition(path):
+      yield path
+
+    self.mox.StubOutWithMock(vpd.ro, "GetAll")
+    self.mox.StubOutWithMock(gooftool, "MountPartition")
+
+    vpd.ro.GetAll().AndReturn(ro_vpd)
+    if fake_rootfs_path:
+      # Pretend that '/dev/rel' is the release rootfs path.
+      self._gooftool._util.GetReleaseRootPartitionPath().AndReturn('/dev/rel')
+      # When '/dev/rel' is mounted, return a context manager yielding
+      # fake_rootfs_path.
+      gooftool.MountPartition('/dev/rel').AndReturn(
+          MockPartition(fake_rootfs_path))
+
+  def testVerifyBranding_NoBrandCode(self):
+    self._SetupBrandingMocks({}, '/doesntexist')
+    self.mox.ReplayAll()
+    # Should fail, since rlz_brand_code isn't present anywhere
+    self.assertRaisesRegexp(ValueError, 'rlz_brand_code is not present',
+                            self._gooftool.VerifyBranding)
+
+  def testVerifyBranding_AllInVPD(self):
+    self._SetupBrandingMocks(
+        dict(rlz_brand_code='ABCD', customization_id='FOO'), None)
+    self.mox.ReplayAll()
+    self.assertEquals(dict(rlz_brand_code='ABCD', customization_id='FOO'),
+                      self._gooftool.VerifyBranding())
+
+  def testVerifyBranding_BrandCodeInVPD(self):
+    self._SetupBrandingMocks(dict(rlz_brand_code='ABCD'), None)
+    self.mox.ReplayAll()
+    self.assertEquals(dict(rlz_brand_code='ABCD', customization_id=None),
+                      self._gooftool.VerifyBranding())
+
+  def testVerifyBranding_BrandCodeInRootFS(self):
+    with file_utils.TempDirectory() as tmp:
+      # Create a /opt/oem/etc/BRAND_CODE file within the fake mounted rootfs.
+      rlz_brand_code_path = os.path.join(
+          tmp, branding.BRAND_CODE_PATH.lstrip('/'))
+      file_utils.TryMakeDirs(os.path.dirname(rlz_brand_code_path))
+      with open(rlz_brand_code_path, 'w') as f:
+        f.write('ABCD')
+
+      self._SetupBrandingMocks({}, tmp)
+      self.mox.ReplayAll()
+      self.assertEquals(dict(rlz_brand_code='ABCD', customization_id=None),
+                        self._gooftool.VerifyBranding())
+
+  def testVerifyBranding_BadBrandCode(self):
+    self._SetupBrandingMocks(dict(rlz_brand_code='ABCDx',
+                                  customization_id='FOO'), None)
+    self.mox.ReplayAll()
+    self.assertRaisesRegexp(ValueError, 'Bad format for rlz_brand_code',
+                            self._gooftool.VerifyBranding)
+
+  def testVerifyBranding_BadConfigurationId(self):
+    self._SetupBrandingMocks(dict(rlz_brand_code='ABCD',
+                                  customization_id='FOOx'), None)
+    self.mox.ReplayAll()
+    self.assertRaisesRegexp(ValueError, 'Bad format for customization_id',
+                            self._gooftool.VerifyBranding)
 
   def testCheckDevSwitchForDisabling(self):
     # 1st call: virtual switch

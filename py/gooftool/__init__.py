@@ -28,6 +28,8 @@ from cros.factory.hwid.encoder import BinaryStringToEncodedString
 from cros.factory.privacy import FilterDict
 from cros.factory.rule import Context
 from cros.factory.system import vpd
+from cros.factory.test import branding
+from cros.factory.tools.mount_partition import MountPartition
 from cros.factory.utils.process_utils import CheckOutput, GetLines
 from cros.factory.utils.string_utils import ParseDict
 
@@ -403,6 +405,51 @@ class Gooftool(object):
         'TPM Being Owned': 'false'}
     if any(tpm_status[k] != v for k, v in tpm_cleared_status.iteritems()):
       raise Error, 'TPM is not cleared.'
+
+  def VerifyBranding(self):
+    """Verify that branding fields are properly set.
+
+    Returns:
+      A dictionary containing rlz_brand_code and customization_id fields,
+      for testing.
+    """
+    ro_vpd = vpd.ro.GetAll()
+
+    customization_id = ro_vpd.get('customization_id')
+    logging.info('RO VPD customization_id: %r', customization_id)
+    if customization_id is not None:
+      if not branding.CUSTOMIZATION_ID_REGEXP.match(customization_id):
+        raise ValueError('Bad format for customization_id %r in RO VPD '
+                         '(expected it to match regexp %r)' % (
+            customization_id, branding.CUSTOMIZATION_ID_REGEXP.pattern))
+
+    rlz_brand_code = ro_vpd.get('rlz_brand_code')
+
+    logging.info('RO VPD rlz_brand_code: %r', rlz_brand_code)
+    if rlz_brand_code is None:
+      # It must be present as BRAND_CODE_PATH in rootfs.
+      with MountPartition(
+          self._util.GetReleaseRootPartitionPath()) as mount_path:
+        path = os.path.join(mount_path, branding.BRAND_CODE_PATH.lstrip('/'))
+        if not os.path.exists(path):
+          raise ValueError('rlz_brand_code is not present in RO VPD, and %s '
+                           'does not exist in release rootfs' % (
+              branding.BRAND_CODE_PATH))
+        with open(path) as f:
+          rlz_brand_code = f.read().strip()
+          logging.info('rlz_brand_code from rootfs: %r', rlz_brand_code)
+      rlz_brand_code_source = 'release_rootfs'
+    else:
+      rlz_brand_code_source = 'RO VPD'
+
+    if not branding.RLZ_BRAND_CODE_REGEXP.match(rlz_brand_code):
+      raise ValueError('Bad format for rlz_brand_code %r in %s '
+                       '(expected it to match regexp %r)' % (
+          rlz_brand_code, rlz_brand_code_source,
+          branding.CUSTOMIZATION_ID_REGEXP.pattern))
+
+    return dict(rlz_brand_code=rlz_brand_code,
+                customization_id=customization_id)
 
   def ClearGBBFlags(self):
     """Zero out the GBB flags, in preparation for transition to release state.

@@ -544,6 +544,18 @@ def VerifyDevSwitch(options):  # pylint: disable=W0613
     event_log.Log('switch_dev', type='virtual switch')
 
 
+@Command('verify_branding')
+def VerifyBranding(options):  # pylint: disable=W0613
+  """Verify that branding fields are properly set.
+
+  customization_id, if set in the RO VPD, must be of the correct format.
+
+  rlz_brand_code must be set either in the RO VPD or OEM partition, and must
+  be of the correct format.
+  """
+  return GetGooftool(options).VerifyBranding()
+
+
 @Command('write_protect')
 def EnableFwWp(options):  # pylint: disable=W0613
   """Enable then verify firmware write protection."""
@@ -654,6 +666,7 @@ def Verify(options):
   VerifyKeys(options)
   VerifyRootFs(options)
   VerifyTPM(options)
+  VerifyBranding(options)
 
 @Command('untar_stateful_files')
 def UntarStatefulFiles(dummy_options):

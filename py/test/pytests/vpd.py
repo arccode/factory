@@ -31,6 +31,7 @@ import unittest
 
 from cros.factory import cros_locale
 from cros.factory.l10n.regions import REGIONS
+from cros.factory.test import branding
 from cros.factory.test import factory
 from cros.factory.test import registration_codes
 from cros.factory.test import shopfloor
@@ -98,6 +99,10 @@ _JS_SELECT_BOX = lambda ele_id, event_subtype: """
 _VPD_SECTIONS = {'ro': 'RO_VPD', 'rw': 'RW_VPD'}
 
 _REGEX_TYPE = type(re.compile(''))
+
+# String to indicate that rlz_brand_code and customization_id should
+# come from device data.
+FROM_DEVICE_DATA = 'FROM_DEVICE_DATA'
 
 class WriteVPDTask(FactoryTask):
   """A task to write VPD.
@@ -383,8 +388,24 @@ class VPDTest(unittest.TestCase):
         'all the possible values will be used to let user select a value from '
         'it.', default=[], optional=True),
     Arg('allow_multiple_l10n', bool, 'True to allow multiple locales and '
-        'keyboards.  Only supported only in M34+ FSIs, so this is disabled '
+        'keyboards.  Fully supported only in M35+ FSIs, so this is disabled '
         'by default', default=False, optional=True),
+    Arg('rlz_brand_code', str,
+        'RLZ brand code to write to RO VPD.  This may be any of:\n'
+        '\n'
+        '- A fixed string\n'
+        '- None, to not set any value at all\n'
+        '- The string `"FROM_DEVICE_DATA"`, to use a value obtained from\n'
+        '  device data.',
+        default=None, optional=True),
+    Arg('customization_id', str,
+        'Customization ID to write to RO VPD.  This may be any of:\n'
+        '\n'
+        '- A fixed string\n'
+        '- None, to not set any value at all\n'
+        '- The string `"FROM_DEVICE_DATA"`, to use a value obtained from\n'
+        '  device data.',
+        default=None, optional=True),
   ]
 
   def _ReadShopFloorDeviceData(self):
@@ -466,7 +487,40 @@ class VPDTest(unittest.TestCase):
         for vpd_section, key_value_dict in (
             self.args.override_vpd_entries.iteritems()):
           self.vpd[vpd_section].update(key_value_dict)
+
+    self.ReadBrandingFields()
+
     self.tasks += [WriteVPDTask(self)]
+
+  def ReadBrandingFields(self):
+    cached_device_data = None
+
+    for attr, regexp in (
+      ('rlz_brand_code', branding.RLZ_BRAND_CODE_REGEXP),
+      ('customization_id', branding.CUSTOMIZATION_ID_REGEXP)):
+      arg_value = getattr(self.args, attr)
+
+      if arg_value is None:
+        continue
+
+      if arg_value == FROM_DEVICE_DATA:
+        if cached_device_data is None:
+          cached_device_data = shopfloor.GetDeviceData()
+        value = cached_device_data.get(attr)
+        if value is None:
+          raise ValueError('%s not present in device data' % attr)
+      else:
+        # Fixed string; just use the value directly.
+        value = arg_value
+
+      # Check the format.
+      if not regexp.match(value):
+        raise ValueError('Bad format for %s %r '
+                         '(expected it to match regexp %r)' % (
+            attr, value, regexp.pattern))
+
+      # We're good to go!
+      self.vpd['ro'][attr] = value
 
   def runTest(self):
     FactoryTaskManager(self.ui, self.tasks).Run()

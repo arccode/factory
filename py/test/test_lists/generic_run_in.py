@@ -304,6 +304,8 @@ def RunIn(args, group_suffix=''):
             pytest_name='vpd',
             dargs=dict(
                 use_shopfloor_device_data=True,
+                rlz_brand_code=args.rlz_brand_code,
+                customization_id=args.customization_id,
                 extra_device_data_fields=[('ro', 'color')]))
 
         # For 3G model only. Some modem can only do testing in Generic UMTS

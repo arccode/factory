@@ -12,6 +12,7 @@ Contents:
 
    intro
    regions
+   branding
    pytests/index.rst
 
 APIs:

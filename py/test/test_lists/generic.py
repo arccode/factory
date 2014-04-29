@@ -82,6 +82,18 @@ class TestListArgs(object):
   min_charge_pct = 87
   max_charge_pct = 88
 
+  # A value that may be used for rlz_brand_code or customization_id to indicate
+  # that these values should be read from device data.
+  FROM_DEVICE_DATA = 'FROM_DEVICE_DATA'
+
+  # How to obtain the rlz_brand_code and customization_id VPD values.
+  # See the "Branding" page in the documentation bundle for more
+  # information.  For testing, you can use rlz_brand_code = 'ZZCR' and
+  # customization_id = None.  Note that this is only supported in M35
+  # and above.
+  rlz_brand_code = None
+  customization_id = None
+
   #####
   #
   # Parameters for SMT (surface-mount technology) tests.
