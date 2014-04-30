@@ -10,10 +10,13 @@ import logging
 import os
 import pprint
 import re
+import shutil
+import tempfile
 
 from archiver import locks
 from archiver_exception import ArchiverFieldError
-from common import CheckAndLockFile, CheckExecutableExist
+from common import CheckAndLockFile, CheckExecutableExist, TryMakeDirs
+from subprocess import PIPE, Popen
 
 
 ALLOWED_DATA_TYPE = set(['eventlog', 'reports', 'regcode'])
@@ -62,8 +65,9 @@ class ArchiverConfig(object):
       complete chunk in a file. It is a RegexObject (i.e. compiled regular
       expression during its assignment.)
     compress_format: Format of the archives, could be .tar.xz or .zip.
-    encrypt_key: Path to the public key. GnuPG (gpg) is used when transmitting
-      sensitive data. A public key must be provided.
+    encrypt_key_pair: A tuple of (path to the public key, recipient).
+      Assign this implies using GnuPG (gpg) to generate archive that contains
+      sensitive data.
   """
   source_dir = None
   source_file = None
@@ -76,7 +80,7 @@ class ArchiverConfig(object):
   duration = DEFAULT_DURATION
   delimiter = None
   compress_format = DEFAULT_FORMAT
-  encrypt_key = None
+  encrypt_key_pair = None
 
   def __init__(self, data_type):
     self.data_type = data_type
@@ -104,7 +108,7 @@ class ArchiverConfig(object):
         'delimiter': (self.delimiter if not self.delimiter else
                       self.delimiter.pattern),
         'compress_format': self.compress_format,
-        'encrypt_key': self.encrypt_key}
+        'encrypt_key_pair': self.encrypt_key_pair}
 
   def _CheckDirOrCreate(self, dir_path, create=False):
     """Checks the existence of a directory.
@@ -127,10 +131,7 @@ class ArchiverConfig(object):
       logging.info('Path %r doesn\'t exist', dir_path)
       if create:
         try:
-          # TODO(itspeter):
-          #   Consider to use cros.factory.utils.file_utils.TryMakeDirs once
-          #   Chromecast factory integrated with current factory framework.
-          os.makedirs(dir_path)
+          TryMakeDirs(dir_path, raise_exception=True)
         except OSError:
           logging.error('Exception found during the creation of %r. '
                         'Might be a racing or permission issue')
@@ -240,11 +241,64 @@ class ArchiverConfig(object):
           'command %r must be callable for compress_format %r' %
           ALLOWED_FORMAT[compress_format], compress_format)
 
-  def SetEncryptKey(self, path_to_key):
-    # TODO(itspeter):  Check GnuPG is installed.
-    # TODO(itspeter):  Check public key file is exist and valid.
-    # TODO(itspeter):  Write an unit test.
-    pass
+  def SetEncryptKeyPair(self, encrypt_key_pair):
+    """Sets the encrypt_key_pair property.
+
+    The encrypt_key_pair consists of two fields (path to public key, recipient).
+    The function will create a temp direcotry and do a dry-run to see if the
+    key and recipient pair is actually working.
+
+    It is possible that the recipient is omitted. In such case,
+    'google-crosreg-key' will be assigned automatically and use the
+    --default-recipient flag of gpg.
+
+    Raises:
+      ArchiverFieldError if public key cannot be accessed.
+      ArchiverFieldError if any error on the dry-run.
+    """
+    # Check GnuPG is installed.
+    if not CheckExecutableExist('gpg'):
+      raise ArchiverFieldError(
+          'GnuPG(gpg) is not callable. It is required for encryption.')
+    # Check if the public key's format and recipient are valid.
+    # Since we don't have the private key, we can only verify if the public
+    # key is working properly with gpg.
+    path_to_key, recipient = encrypt_key_pair
+    path_to_key = os.path.abspath(path_to_key)
+
+    if not os.path.isfile(path_to_key):
+      raise ArchiverFieldError(
+          'Public key %r doesn\'t exist or not having enough permission'
+          'to load.' % path_to_key)
+    # Do a dry-run of encryption to see if gpg returned any error.
+    tmp_dir = tempfile.mkdtemp(prefix='FactoryArchiver_',
+                               suffix='_PublicKeyFormatTest')
+
+    logging.debug('Create %r for unittest', tmp_dir)
+    test_file_path = os.path.join(tmp_dir, 'content')
+    with open(test_file_path, 'w') as fd:
+      fd.write(test_file_path)
+    cmd_line = ['gpg', '--no-default-keyring', '--keyring', path_to_key,
+                '--trust-model', 'always', '--encrypt']
+    if recipient:
+      cmd_line += ['--recipient', recipient]
+    else:
+      recipient = 'google'
+      cmd_line += ['--default-recipient', recipient]
+
+    cmd_line.append(test_file_path)
+    p = Popen(cmd_line, stdout=PIPE, stderr=PIPE)
+    stdout, stderr = p.communicate()
+    if p.returncode != 0:
+      logging.error('Command %r failed. retcode[%r]\nstdout:\n%s\n\n'
+                    'stderr:\n%s\n', cmd_line, p.returncode, stdout, stderr)
+      raise ArchiverFieldError(
+          'Failed to encrypt with the public key %r and recipient %r' % (
+          path_to_key, recipient))
+
+    shutil.rmtree(tmp_dir)
+    logging.debug('%r deleted', tmp_dir)
+    self.encrypt_key_pair = encrypt_key_pair
 
   def CheckPropertiesSufficient(self):
     """Checks if current properties are sufficient for an archiving cycle."""
@@ -264,10 +318,6 @@ class ArchiverConfig(object):
     if not self.archived_dir:
       raise ArchiverFieldError('data_type[%r]: archived_dir must be assigned.' %
           self.data_type)
-
-    # TODO(itspeter): remove once encryption is ready.
-    if self.encrypt_key:
-      raise NotImplementedError('Encryption is not implemented yet')
 
 
 def GenerateConfig(config):
@@ -314,7 +364,7 @@ def GenerateConfig(config):
       'duration': archive_config.SetDuration,
       'delimiter': lambda value: _SetDelimiter(archive_config, value),
       'compress_format': archive_config.SetCompressFormat,
-      'encrypt_key': archive_config.SetEncryptKey
+      'encrypt_key_pair': archive_config.SetEncryptKeyPair
       }
 
     for field, value in fields.iteritems():

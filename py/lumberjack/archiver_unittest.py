@@ -133,6 +133,32 @@ class ArchiverUnittest(unittest.TestCase):
             os.path.join(TEST_DATA_PATH, 'invalid_compress_format.yaml')]
     self.assertRaises(ArchiverFieldError, main, argv)
 
+  def testSetEncryptKeyPair(self):
+    argv = ['dry-run',
+            os.path.join(TEST_DATA_PATH, 'template_regcode.yaml')]
+    main(argv)
+
+  def testSetEncryptKeyPairInvalidPublicKey(self):
+    argv = ['dry-run',
+            os.path.join(TEST_DATA_PATH, 'invalid_publickey.yaml')]
+    self.assertRaisesRegexp(
+        ArchiverFieldError,
+        r'Failed to encrypt with the public key .*unittest_crosreg.pub.*',
+        main, argv)
+
+  def testSetEncryptKeyPairInvalidRecipient(self):
+    argv = ['dry-run',
+            os.path.join(TEST_DATA_PATH, 'invalid_recipient.yaml')]
+    self.assertRaisesRegexp(
+        ArchiverFieldError,
+        r'Failed to encrypt.* recipient.*do-evil.*',
+        main, argv)
+
+  def testSetEncryptKeyPairNoRecipient(self):
+    argv = ['dry-run',
+            os.path.join(TEST_DATA_PATH, 'missing_recipient.yaml')]
+    main(argv)
+
   def testCorrectConfig(self):
     argv = ['dry-run', os.path.join(TEST_DATA_PATH, 'template.yaml')]
     main(argv)

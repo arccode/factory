@@ -5,4 +5,5 @@ data_types:
     notes: template that contains only regcode for unittest
     duration: hourly
     source_file: raw/mocked_regcode.csv
-    encrypt_key_pair: [keys/unittest_crosreg.pub.binary, Test Key]
+    # The recipient is not correct.
+    encrypt_key_pair: [keys/unittest_crosreg.pub, do-evil]
