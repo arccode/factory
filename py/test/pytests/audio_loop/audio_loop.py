@@ -5,7 +5,8 @@
 # found in the LICENSE file.
 
 """This is a factory test for the audio function. An external loopback dongle
-is required to automatically capture and detect the playback tones.
+is required to automatically capture and detect the playback tones for audio
+jack test. For speaker/dmic, the loopback dongle is not required.
 
 This test supports two test scenarios:
 1. Loop from headphone out to headphone in
@@ -42,7 +43,7 @@ from cros.factory.test.args import Arg
 from cros.factory.test import audio_utils
 from cros.factory.test import factory
 from cros.factory.test import test_ui
-from cros.factory.utils.process_utils import Spawn, PIPE
+from cros.factory.utils.process_utils import Spawn, SpawnOutput, PIPE
 
 # Default setting
 _DEFAULT_FREQ_HZ = 1000
@@ -99,6 +100,8 @@ class AudioLoopTest(unittest.TestCase):
         _DEFAULT_SINE_DURATION_SEC),
     Arg('rms_threshold', float, 'RMS value threshold',
         _DEFAULT_SOX_RMS_THRESHOLD),
+    Arg('cras_enabled', bool, 'Whether cras should be running or not',
+        False),
   ]
 
   def setUp(self):
@@ -141,6 +144,17 @@ class AudioLoopTest(unittest.TestCase):
     # Setup HTML UI, and event handler
     self._ui = test_ui.UI()
     self._ui.AddEventHandler('start_run_test', self.StartRunTest)
+
+    # Check cras status
+    if self.args.cras_enabled:
+      cras_status = 'start/running'
+    else:
+      cras_status = 'stop/waiting'
+    if cras_status not in SpawnOutput(['status', 'cras']):
+      self._ui.Fail('cras status is wrong (expected status: %s). '
+                    'Please make sure that you have appropriate setting for '
+                    '"disable_services=[\'cras\']" in the test item.' %
+          cras_status)
 
   def tearDown(self):
     self._audio_util.RestoreMixerControls()
