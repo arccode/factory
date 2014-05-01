@@ -58,8 +58,8 @@ class CreateBundle(FactoryFlowCommand):
              help=('the version of netboot firmware image to use '
                    '(default: %(default)s)'),
              default='from_manifest'),
-      CmdArg('--netboot-kernel-version',
-             help=('the version of netboot kernel image to use '
+      CmdArg('--netboot-shim-version',
+             help=('the version of netboot shim image to use '
                    '(default: %(default)s)'),
              default='from_manifest'),
       CmdArg('--factory-shim-version',
@@ -108,7 +108,7 @@ class CreateBundle(FactoryFlowCommand):
       # Netboot firmware; unsigned.
       'netboot_firmware': (GSUtil.IMAGE_TYPES.firmware, (None,)),
       # Netboot kernel; unsigned.
-      'netboot_kernel': (GSUtil.IMAGE_TYPES.factory, (None,)),
+      'netboot_shim': (GSUtil.IMAGE_TYPES.factory, (None,)),
   }
 
   def Init(self):
@@ -158,7 +158,7 @@ class CreateBundle(FactoryFlowCommand):
     Args:
       file_type: The file type to parse.  Choices are: ('factory',
         'factory_shim', 'release', 'test', 'netboot_firmware',
-        'netboot_kernel').
+        'netboot_shim').
       version_str: The version argument string.
       manifest: A manifest dict.  Used for 'from_manifest'.
 
@@ -213,14 +213,15 @@ class CreateBundle(FactoryFlowCommand):
               manifest.get('add_files', {}),
               dict(install_into=r'netboot_firmware',
                    source=r'^.*firmware.*\.tar\.bz2$'))
-        elif file_type == 'netboot_kernel':
+        elif file_type == 'netboot_shim':
           url = GetSourceFromMatchedDict(
               manifest.get('add_files', {}),
               dict(install_into=r'\.',
                    source=r'^.*\.zip$'),
               extra_check=lambda file_spec: (
-                  'factory_shim/netboot/vmlinux.uimg' in
-                  file_spec.get('extract_files', [])))
+                  any(shim in file_spec.get('extract_files', []) for shim in
+                      ('factory_shim/netboot/vmlinux.uimg',
+                       'factory_shim/netboot/vmlinux.bin'))))
         else:
           raise CreateBundleError(
               'Manifest does not have source for %s image' % file_type)
@@ -332,14 +333,14 @@ class CreateBundle(FactoryFlowCommand):
         dict(install_into='factory/board',
              source='netboot_firmware/%s' % netboot_firmware))
 
-    # Add netboot kernel.
-    netboot_kernel_url = self._ParseImageVersionToURL(
-        'netboot_kernel', self.options.netboot_kernel_version,
+    # Add netboot shim.
+    netboot_shim_url = self._ParseImageVersionToURL(
+        'netboot_shim', self.options.netboot_shim_version,
         manifest=manifest_in_zip)
     manifest['add_files'].append(
         dict(install_into='.',
              extract_files=['factory_shim/netboot/vmlinux.uimg'],
-             source=netboot_kernel_url))
+             source=netboot_shim_url))
 
     # Add factory install shim.
     try:

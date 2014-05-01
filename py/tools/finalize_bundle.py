@@ -43,6 +43,8 @@ DELETION_MARKER_SUFFIX = '_DELETED'
 # (see test_image_version).
 LOCAL = 'local'
 
+# Netboot install shims that we are using at the moment.
+NETBOOT_SHIMS = ('vmlinux.uimg', 'vmlinux.bin')
 
 class Glob(object):
   """A glob containing items to include and exclude.
@@ -474,11 +476,19 @@ class FinalizeBundle(object):
       if f.get('extract_files'):
         # Gets netboot install shim version from source url since version
         # is not stored in the image.
-        if any('vmlinux.uimg' in extract_file
-               for extract_file in f['extract_files']):
+        install_into = os.path.join(self.bundle_dir, f['install_into'])
+        shims_to_extract = filter(
+            lambda f: any(shim in f for shim in NETBOOT_SHIMS),
+            f['extract_files'])
+        if shims_to_extract:
           self.netboot_install_shim_version = str(LooseVersion(
               os.path.basename(os.path.dirname(source))))
-        install_into = os.path.join(self.bundle_dir, f['install_into'])
+          # Delete any existing vmlinux.uimg or vmlinux.bin to make sure we will
+          # not put any wrong file into the bundle, i.e. if we extract only
+          # vmlinux.uimg we should delete existing vmlinux.bin, and vice versa.
+          for path in shims_to_extract:
+            for shim in NETBOOT_SHIMS:
+              TryUnlink(os.path.join(install_into, os.path.dirname(path), shim))
         if self.args.download:
           ExtractFile(cached_file, install_into,
                       only_extracts=f['extract_files'])
@@ -494,9 +504,10 @@ class FinalizeBundle(object):
   def _ChangeTipVersion(self, add_file):
     """Changes image to the latest version for testing tip of branch.
 
-    Changes install shim, release image, netboot install shim(vmlinux.uimg) to
-    the latest version of original branch for testing. Check _GSGetLatestVersion
-    for the detail of choosing the tip version on the branch.
+    Changes install shim, release image, netboot install shim (vmlinux.uimg or
+    vmlinux.bin) to the latest version of original branch for testing. Check
+    _GSGetLatestVersion for the detail of choosing the tip version on the
+    branch.
     """
     if add_file['install_into'] in ['factory_shim', 'release']:
       latest_source = self._GSGetLatestVersion(add_file['source'])
@@ -505,11 +516,12 @@ class FinalizeBundle(object):
       self._CheckFileExistsOrDie(add_file['install_into'], latest_source)
       add_file['source'] = latest_source
     if (add_file.get('extract_files') and
-        any('vmlinux.uimg' in f for f in add_file['extract_files'])):
+        any(any(shim in f for shim in NETBOOT_SHIMS)
+            for f in add_file['extract_files'])):
       latest_source = self._GSGetLatestVersion(add_file['source'])
-      logging.info('Changing vmlinux.uimg source from %s to %s for testing '
-                   'tip of branch', add_file['source'], latest_source)
-      self._CheckFileExistsOrDie('vmlinux.uimg', latest_source)
+      logging.info('Changing netboot install shim source from %s to %s for '
+                   'testing tip of branch', add_file['source'], latest_source)
+      self._CheckFileExistsOrDie('netboot install shim', latest_source)
       add_file['source'] = latest_source
 
   def _CheckFileExistsOrDie(self, image, url):
@@ -819,7 +831,7 @@ class FinalizeBundle(object):
       """Updates Omaha & TFTP servers' URL in depthcharge netboot firmware.
 
       Also copy 'vmlinux.uimg', skips the first 64 bytes and stored it
-      as 'vmlinux.bin'.
+      as 'vmlinux.bin' if there's no existing 'vmlinux.bin' found.
       """
       netboot_firmware_image = os.path.join(
           self.bundle_dir, 'netboot_firmware', 'image.net.bin')
@@ -1107,7 +1119,7 @@ class FinalizeBundle(object):
     if self.install_shim_version:
       vitals.append(('Factory install shim', self.install_shim_version))
     if self.netboot_install_shim_version:
-      vitals.append(('Netboot install shim (vmlinux.uimg)',
+      vitals.append(('Netboot install shim (vmlinux.uimg/vmlinux.bin)',
                      self.netboot_install_shim_version))
     with MountPartition(self.release_image_path, 3) as f:
       vitals.append(('Release (FSI)', GetReleaseVersion(f)))

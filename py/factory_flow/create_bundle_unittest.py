@@ -149,7 +149,7 @@ class CreateBundleUnittest(unittest.TestCase):
         ('gs://chromeos-releases/canary-channel/daisy-spring/4131.73.0/'
          'ChromeOS-factory-R29-4131.73.0-daisy-spring.zip'),
         self.create_bundle._ParseImageVersionToURL(
-            'netboot_kernel', 'from_manifest', manifest=self.test_manifest))
+            'netboot_shim', 'from_manifest', manifest=self.test_manifest))
 
   def testParseImageVersionToURLFromVersionString(self):
     self.create_bundle._GetImageURL = mock.Mock()
