@@ -840,7 +840,7 @@ class FinalizeBundle(object):
             self.bundle_dir, 'factory_setup', 'update_firmware_settings.py')
         new_netboot_firmware_image = netboot_firmware_image + '.INPROGRESS'
         Spawn([update_firmware_settings,
-               '--clobber',
+               '--bootfile', 'vmlinux.bin',
                '--input', netboot_firmware_image,
                '--output', new_netboot_firmware_image,
                '--omahaserver=%s' % mini_omaha_url,
