@@ -323,16 +323,16 @@ class FinalizeBundle(object):
             self.bundle_name, expected_dir_name,
             os.path.basename(self.bundle_dir)))
 
-    self.expected_files = set(map(self._SubstVars, self.manifest['files']))
     self.factory_image_path = os.path.join(
         self.bundle_dir, 'factory_test', 'chromiumos_factory_image.bin')
-    # Try make directory here since 'factory_test' is removed due to deprecation
-    # of factory test image.
-    utils.TryMakeDirs(os.path.dirname(self.factory_image_path))
 
     # Get the version from the factory test image, or from the factory toolkit
     # and test image if we will be using those
     if self.manifest.get('use_factory_toolkit'):
+      # Try make directory here since 'factory_test' is removed due to
+      # deprecation of factory test image.
+      utils.TryMakeDirs(os.path.dirname(self.factory_image_path))
+
       self.factory_toolkit_path = os.path.join(
         self.bundle_dir, 'factory_toolkit', 'install_factory_toolkit.run')
       output = Spawn([self.factory_toolkit_path, '--info'],
@@ -368,6 +368,7 @@ class FinalizeBundle(object):
         logging.info('Factory image version: %s',
                      self.factory_image_base_version)
 
+    self.expected_files = set(map(self._SubstVars, self.manifest['files']))
     self.readme_path = os.path.join(self.bundle_dir, 'README')
 
   def CheckGSUtilVersion(self):
@@ -1220,7 +1221,8 @@ class FinalizeBundle(object):
     """
     subst_vars = {
         'BOARD': self.simple_board.upper(),
-        'FACTORY_IMAGE_BASE_VERSION': self.factory_image_base_version
+        'FACTORY_IMAGE_BASE_VERSION': (self.factory_image_base_version or
+                                       self.toolkit_version)
         }
     return re.sub(r'\$\{(\w+)\}', lambda match: subst_vars[match.group(1)],
                   input_str)

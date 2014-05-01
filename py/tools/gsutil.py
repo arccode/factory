@@ -72,7 +72,14 @@ class GSUtil(object):
       gs_url_pattern += branch
 
     def GetVersion(gs_path):
-      return version.StrictVersion(gs_path.rstrip('/').rpartition('/')[2])
+      version_str = gs_path.rstrip('/').rpartition('/')[2]
+      try:
+        return version.StrictVersion(version_str)
+      except ValueError:
+        logging.warn('Bogus version string: %s', version_str)
+        # Try to handle version number like 3674.0.2013_02_07_1033.
+        version_str = version_str.replace('_', '')
+        return version.StrictVersion(version_str)
 
     return sorted([p for p in gs_path_list if p.startswith(gs_url_pattern)],
                   key=GetVersion)[-1]
