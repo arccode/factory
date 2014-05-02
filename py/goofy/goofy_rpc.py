@@ -23,7 +23,6 @@ import factory_common  # pylint: disable=W0611
 from cros.factory import factory_bug
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
-from cros.factory.test import state
 from cros.factory.test import utils
 from cros.factory.test.event import Event
 from cros.factory.test.test_lists.test_lists import SetActiveTestList
@@ -37,6 +36,14 @@ UPLOAD_FACTORY_LOGS_TIMEOUT_SECS = 20
 VAR_LOG_MESSAGES = '/var/log/messages'
 RunState = utils.Enum(['UNINITIALIZED', 'STARTING', 'NOT_ACTIVE_RUN', 'RUNNING',
                        'FINISHED'])
+
+
+class UIRPCMethods(object):
+  """Supported UI RPC methods."""
+  EVALUATE_JAVASCRIPT = 'EvaluateJavaScript'
+  EXECUTE_JAVASCRIPT = 'ExecuteJavaScript'
+  GET_DISPLAY_INFO = 'GetDispleyInfo'
+  TAKE_SCREENSHOT = 'TakeScreenshot'
 
 
 class GoofyRPCException(Exception):
@@ -532,24 +539,54 @@ class GoofyRPC(object):
       # complain to the caller.
       raise GoofyRPCException('Factory did not restart as expected')
 
-  def _GetGoofyTab(self):
+  def _UIRPC(self, event_type, args=None):
+    """Sends events to the Telemetry UI process and waits for response.
+
+    Args:
+      event_type: The type of UI RPC to invoke.
+      args: Optional args to pass along with the RPC.
+
+    Returns:
+      The returned value of the RPC.
+
+    Raises:
+      GoofyRPCException if RPC returned an exception object.
+    """
     if utils.in_chroot():
       raise GoofyRPCException(
           'Cannot evaluate Javascript through telemetry in chroot')
-    if not self.goofy.env.browser:
-      raise GoofyRPCException('Browser instance is not initialized')
 
-    tabs = self.goofy.env.browser.tabs
-    for i in xrange(0, len(tabs)):
-      if tabs[i].url == ('http://127.0.0.1:%d/' %
-                         state.DEFAULT_FACTORY_STATE_PORT):
-        return tabs[i]
+    if self.goofy.env.telemetry_proc_pipe is None:
+      raise GoofyRPCException('UI is not ready yet')
+
+    event = {
+        'type': event_type,
+        'args': args,
+    }
+    self.goofy.env.telemetry_proc_pipe.send(event)
+    ret = self.goofy.env.telemetry_proc_pipe.recv()
+    if isinstance(ret, Exception):
+      raise GoofyRPCException(ret)
+    return ret
 
   def EvaluateJavaScript(self, script):
-    return self._GetGoofyTab().EvaluateJavaScript(script)
+    """Evaluates JavaScript through Telemetry.
+
+    Args:
+      script: The script to evaluate.
+
+    Returns:
+      The returned value from Telemetry.
+    """
+    return self._UIRPC(UIRPCMethods.EVALUATE_JAVASCRIPT, args=script)
 
   def ExecuteJavaScript(self, script):
-    self._GetGoofyTab().ExecuteJavaScript(script)
+    """Executes JavaScript through Telemetry.
+
+    Args:
+      script: The script to execute.
+    """
+    self._UIRPC(UIRPCMethods.EXECUTE_JAVASCRIPT, args=script)
 
   def GetDisplayInfo(self):
     """Gets display info from the factory test chrome extension page.
@@ -563,22 +600,8 @@ class GoofyRPC(object):
     """
     if utils.in_chroot():
       raise GoofyRPCException('Cannot get display info in chroot')
-    if not self.goofy.env.browser or not self.goofy.env.extension:
-      raise GoofyRPCException('Browser instance is not initialized')
 
-    ext_page = self.goofy.env.browser.extensions[self.goofy.env.extension]
-    ext_page.ExecuteJavaScript(
-        'window.__display_info = null;')
-    ext_page.ExecuteJavaScript(
-        'chrome.system.display.getInfo(function(info) {'
-        '    window.__display_info = info;})')
-
-    def _FetchDisplayInfo():
-      return ext_page.EvaluateJavaScript(
-          'window.__display_info')
-
-    utils.WaitFor(_FetchDisplayInfo, 10)
-    return _FetchDisplayInfo()
+    return self._UIRPC(UIRPCMethods.GET_DISPLAY_INFO)
 
   def TakeScreenshot(self, output_file=None):
     """Takes a screenshot through Telemetry tab.Screenshot API.
@@ -587,11 +610,7 @@ class GoofyRPC(object):
       output_file: The output file path to store the captured PNG file.  If not
           given the screenshot is saved to /var/log/screenshot_<TIME>.png.
     """
-    screenshot = self._GetGoofyTab().Screenshot(timeout=5)
-    if not output_file:
-      output_file = (
-          '/var/log/screenshot_%s.png' % time.ctime().replace(' ', '_'))
-    screenshot.WritePngFile(output_file)
+    self._UIRPC(UIRPCMethods.TAKE_SCREENSHOT, args=output_file)
 
 
 def main():

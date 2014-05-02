@@ -17,6 +17,7 @@ import time
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.goofy import connection_manager
+from cros.factory.goofy import goofy_rpc
 from cros.factory.test import factory, state, utils
 
 
@@ -81,7 +82,7 @@ class DUTEnvironment(Environment):
     super(DUTEnvironment, self).__init__()
     self.browser = None
     self.extension = None
-    self.start_process = True
+    self.telemetry_proc_pipe = None
     if os.path.exists(self.GUEST_MODE_TAG_FILE):
       # Only enable guest mode for this boot.
       os.unlink(self.GUEST_MODE_TAG_FILE)
@@ -115,51 +116,36 @@ class DUTEnvironment(Environment):
           logging.info('Retry loading UI through telemetry (try_num = %d)',
                        try_num)
         # Telemetry UI login may fail with an exception, or just stuck at
-        # login screen with no error. We provide two retry logic here:
-        # thread-based or process-based.
-        if self.start_process:
-          # Retry telemetry login in another process. This is more robust as
-          # telemetry is isolated in another process and does not affects goofy
-          # process. The drawback is that we will not be able to access
-          # telemetry-based features such as screen capture or remote debugging.
-          process = multiprocessing.Process(target=self._start_telemetry)
-          process.start()
-        else:
-          # Retry telemetry login in another thread so it will not block current
-          # thread in the latter case. A new call to _start_telemetry should
-          # cause all previous calls to the same method to fail with exception
-          # since ui process will be restarted.
-          utils.StartDaemonThread(target=self._start_telemetry)
+        # login screen with no error.
+        #
+        # Retry telemetry login in another process. This is more robust as
+        # telemetry is isolated in another process and does not affects goofy
+        # process. The drawback is that we will not be able to access
+        # telemetry-based features such as screen capture or remote debugging.
+        parent_conn, child_conn = multiprocessing.Pipe()
+        process = multiprocessing.Process(target=self._start_telemetry,
+                                          args=(child_conn,))
+        process.start()
         logging.info('Waiting for UI to load (try_num = %d)', try_num)
         utils.WaitFor(self.goofy.web_socket_manager.has_sockets, 30)
         logging.info('UI loaded')
+        self.telemetry_proc_pipe = parent_conn
         break
       except utils.TimeoutError:
-        if self.start_process:
-          utils.kill_process_tree(process, 'telemetry')
+        utils.kill_process_tree(process, 'telemetry')
         logging.exception('Failed to load UI (try_num = %d)', try_num)
 
     if not self.goofy.web_socket_manager.has_sockets():
       logging.error('UI did not load after %d tries; giving up',
                     self.goofy.test_list.options.chrome_startup_tries)
 
-  def _start_telemetry(self):
+  def _start_telemetry(self, pipe=None):
     """Starts UI through telemetry."""
-    # Telemetry sets up several signal handlers, which requires running the
-    # telemetry module in the main thread or an exception will be raised.
-    # Our retry logic here starts telemetry in a separate daemon thread so we
-    # fake signal.signal when importing telemetry modules.
-    import signal
-    if not self.start_process:
-      original_signal = signal.signal
-      signal.signal = lambda sig, action: True
     # Import these modules here because they are not available in chroot.
     # pylint: disable=F0401
     from telemetry.core import browser_finder
     from telemetry.core import browser_options
     from telemetry.core import extension_to_load
-    if not self.start_process:
-      signal.signal = original_signal
 
     try:
       finder_options = browser_options.BrowserFinderOptions()
@@ -194,14 +180,69 @@ class DUTEnvironment(Environment):
       utils.SendKey('F4')
       # Disable X-axis two-finger scrolling on touchpad.
       utils.SetTouchpadTwoFingerScrollingX(False)
-      if self.start_process:
-        # Just loop forever if this is in a separate process.
-        while True:
-          time.sleep(10)
+
+      # Serve events forever.
+      while True:
+        event = pipe.recv()
+        logging.info('[UI Process] received event %s', event)
+        pipe.send(self._ui_rpc_event_handler(event))
+
     except Exception:
       # Do not fail on exception here as we have a retry loop in
       # launch_chrome().
       logging.exception('Telemetry login failed')
+
+  def _ui_rpc_event_handler(self, event):
+    """Event handler for UI RPC.
+
+    Args:
+      event: The UI RPC event to handle.
+
+    Returns:
+      The return value of the corresponding function call to Telemetry, or a
+      Exception object if anything goes wrong.
+    """
+    if not self.browser or not self.extension:
+      return Exception('Browser instance is not initialized')
+
+    def _GetGoofyTab():
+      tabs = self.browser.tabs
+      for i in xrange(0, len(tabs)):
+        if tabs[i].url == ('http://127.0.0.1:%d/' %
+                           state.DEFAULT_FACTORY_STATE_PORT):
+          return tabs[i]
+
+    try:
+      if event['type'] == goofy_rpc.UIRPCMethods.EVALUATE_JAVASCRIPT:
+        return _GetGoofyTab().EvaluateJavaScript(event['args'])
+
+      elif event['type'] == goofy_rpc.UIRPCMethods.EXECUTE_JAVASCRIPT:
+        _GetGoofyTab().ExecuteJavaScript(event['args'])
+
+      elif event['type'] == goofy_rpc.UIRPCMethods.GET_DISPLAY_INFO:
+        ext_page = self.browser.extensions[self.extension]
+        ext_page.ExecuteJavaScript(
+            'window.__display_info = null;')
+        ext_page.ExecuteJavaScript(
+            'chrome.system.display.getInfo(function(info) {'
+            '    window.__display_info = info;})')
+
+        def _FetchDisplayInfo():
+          return ext_page.EvaluateJavaScript(
+              'window.__display_info')
+
+        utils.WaitFor(_FetchDisplayInfo, 10)
+        return _FetchDisplayInfo()
+
+      elif event['type'] == goofy_rpc.UIRPCMethods.TAKE_SCREENSHOT:
+        screenshot = _GetGoofyTab().Screenshot(timeout=5)
+        output_file = event['args']
+        if not output_file:
+          output_file = (
+              '/var/log/screenshot_%s.png' % time.ctime().replace(' ', '_'))
+        screenshot.WritePngFile(output_file)
+    except Exception as e:
+      return e
 
   def create_connection_manager(self, wlans, scan_wifi_period_secs):
     return connection_manager.ConnectionManager(wlans,
