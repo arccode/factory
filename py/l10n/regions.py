@@ -172,7 +172,7 @@ class Region(object):
       keyboard = self.keyboards[0]
 
     return dict(initial_locale=initial_locale,
-                keyboard=keyboard,
+                keyboard_layout=keyboard,
                 initial_timezone=self.time_zone,
                 region=self.region_code)
 
