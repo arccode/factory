@@ -119,6 +119,8 @@ def VerifyHWID(db, encoded_string, probed_results, vpd, rma_mode):
   RO and RW VPD are also loaded and checked against the required values stored
   in the board-specific component database.
 
+  A set of mandatory rules for VPD are also forced here.
+
   Args:
     db: A Database object to be used.
     encoded_string: An encoded HWID string to test.
@@ -136,6 +138,18 @@ def VerifyHWID(db, encoded_string, probed_results, vpd, rma_mode):
   hwid.VerifyComponentStatus()
   context = rule.Context(hwid=hwid, vpd=vpd)
   db.rules.EvaluateRules(context, namespace="verify.*")
+
+  mandatory_rules = [
+    # VPD
+    {'name': 'verify.vpd.ro',
+     'evaluate': ['Assert(ValidVPDValue("ro", "%s"))' % field for field in
+                  ('initial_locale', 'initial_timezone', 'keyboard_layout',
+                   'serial_number')]},
+    {'name': 'verify.vpd.rw',
+     'evaluate': ['CheckRegistrationCode(GetVPDValue("rw", "%s"))' % field
+                  for field in ('gbind_attribute', 'ubind_attribute')]},
+    ]
+  database.Rules(mandatory_rules).EvaluateRules(context)
 
 
 def VerifyComponents(db, probed_results, component_list):

@@ -156,6 +156,7 @@ class HWIDv3UtilsTest(unittest2.TestCase):
     self.assertEquals(None, hwid_utils.VerifyHWID(
         self.db, 'CHROMEBOOK D9I-F9U', self.probed_results, self.vpd, False))
 
+    # Check for missing RO VPD.
     vpd = copy.deepcopy(self.vpd)
     del vpd['ro']['serial_number']
     self.assertRaisesRegexp(
@@ -163,10 +164,29 @@ class HWIDv3UtilsTest(unittest2.TestCase):
         hwid_utils.VerifyHWID, self.db, 'CHROMEBOOK D9I-F9U',
         self.probed_results, vpd, False)
 
+    # Check for invalid RO VPD.
+    vpd = copy.deepcopy(self.vpd)
+    vpd['ro']['keyboard_layout'] = 'invalid_layout'
+    self.assertRaisesRegexp(
+        rule.RuleException,
+        r"Invalid VPD value 'invalid_layout' of 'keyboard_layout'",
+        hwid_utils.VerifyHWID, self.db, 'CHROMEBOOK D9I-F9U',
+        self.probed_results, vpd, False)
+
+    # Check for missing RW VPD.
     vpd = copy.deepcopy(self.vpd)
     del vpd['rw']['gbind_attribute']
     self.assertRaisesRegexp(
         rule.RuleException, r"KeyError\('gbind_attribute',\)",
+        hwid_utils.VerifyHWID, self.db, 'CHROMEBOOK D9I-F9U',
+        self.probed_results, vpd, False)
+
+    # Check for invalid RW VPD.
+    vpd = copy.deepcopy(self.vpd)
+    vpd['rw']['gbind_attribute'] = 'invalid_gbind_attribute'
+    self.assertRaisesRegexp(
+        rule.RuleException,
+        r"Invalid registration code 'invalid_gbind_attribute'",
         hwid_utils.VerifyHWID, self.db, 'CHROMEBOOK D9I-F9U',
         self.probed_results, vpd, False)
 

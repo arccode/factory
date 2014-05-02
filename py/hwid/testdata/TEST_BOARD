@@ -368,18 +368,6 @@ rules:
               'set_1': ['codec_1', 'hdmi_1']
           }))
 
-- name: verify.vpd.ro
-  evaluate:
-  - Assert(ValidVPDValue('ro', 'initial_locale'))
-  - Assert(ValidVPDValue('ro', 'initial_timezone'))
-  - Assert(ValidVPDValue('ro', 'keyboard_layout'))
-  - Assert(ValidVPDValue('ro', 'serial_number'))
-
-- name: verify.vpd.rw
-  evaluate:
-  - CheckRegistrationCode(GetVPDValue('rw', 'gbind_attribute'))
-  - CheckRegistrationCode(GetVPDValue('rw', 'ubind_attribute'))
-
 - name: verify.components.rule_1
   when: ComponentEq('audio_codec', 'Codec 1') and
         ComponentEq('audio_codec', 'HDMI 1')
