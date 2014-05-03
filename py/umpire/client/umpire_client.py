@@ -64,11 +64,12 @@ class UmpireClientInfo(object):
     new_info['mlb_serial_number'] = system_info.mlb_serial_number
     new_info['firmware_version'] = system_info.firmware_version
     new_info['ec_version'] = system_info.ec_version
-    # TODO(cychiang) Add eth_macs = {'eth0': 'xxxx', 'eth1': 'xxxx'} to
-    # SystemStatus so it can be used in new_info['macs']
-    # system_status = system.SystemStatus()
-    # new_info['macs'] = system_status.eth_macs.update(
-    #    dict(wlan0=system_info.wlan0_mac))
+    # new_info['macs'] is a dict like
+    # {'eth0': 'xx:xx:xx:xx:xx:xx', 'eth1': 'xx:xx:xx:xx:xx:xx',
+    #  'wlan0': 'xx:xx:xx:xx:xx:xx'}
+    macs = dict(system_info.eth_macs)
+    macs['wlan0'] = system_info.wlan0_mac
+    new_info['macs'] = macs
 
     changed = False
     for key in UmpireClientInfo.VARIANT_FIELDS:

@@ -135,6 +135,17 @@ class SystemInfo(object):
     except:
       pass
 
+    self.eth_macs = dict()
+    try:
+      eth_paths = glob.glob('/sys/class/net/eth*')
+      for eth_path in eth_paths:
+        address_path = os.path.join(eth_path, 'address')
+        if os.path.exists(address_path):
+          self.eth_macs[os.path.basename(eth_path)] = open(
+              address_path).read().strip()
+    except:
+      self.eth_macs = None
+
     self.kernel_version = None
     try:
       uname = subprocess.Popen(['uname', '-r'], stdout=subprocess.PIPE)
