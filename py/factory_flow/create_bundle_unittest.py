@@ -134,6 +134,12 @@ class CreateBundleUnittest(unittest.TestCase):
             'factory_shim', 'from_manifest', manifest=self.test_manifest))
 
     self.assertEquals(
+        ('gs://chromeos-releases/canary-channel/daisy-spring/4262.123.0/'
+         'ChromeOS-factory-R30-4262.123.0-daisy-spring.zip'),
+        self.create_bundle._ParseImageVersionToURL(
+            'hwid_bundle', 'from_manifest', manifest=self.test_manifest))
+
+    self.assertEquals(
         ('gs://chromeos-releases/beta-channel/daisy-spring/4100.20.0/'
          'chromeos_4100.20.0_daisy-spring_recovery_beta-channel_premp.bin'),
         self.create_bundle._ParseImageVersionToURL(

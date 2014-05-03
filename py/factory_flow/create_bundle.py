@@ -16,6 +16,7 @@ import factory_common   # pylint: disable=W0611
 from cros.factory.factory_flow.common import board_cmd_arg, FactoryFlowCommand
 from cros.factory.hacked_argparse import CmdArg
 from cros.factory.test import factory
+from cros.factory.test import utils
 from cros.factory.tools.gsutil import GSUtil
 from cros.factory.umpire.common import LoadBundleManifest
 from cros.factory.utils import file_utils
@@ -66,6 +67,10 @@ class CreateBundle(FactoryFlowCommand):
              help=('the version of factory shim image to use '
                    '(default: %(default)s)'),
              default='from_manifest'),
+      CmdArg('--hwid-bundle-version',
+             help=('the version of HWID bundle to use '
+                   '(default: %(default)s)'),
+             default='from_manifest'),
       CmdArg('--no-use-toolkit', dest='use_toolkit',
              action='store_false', default=True,
              help='do not use factory toolkit in finalize bundle'),
@@ -93,22 +98,28 @@ class CreateBundle(FactoryFlowCommand):
           r'^(stable|beta|dev|canary)?/?(\d+(?:\.\d+){0,2})?$'),
   }
 
+  FILE_TYPE = utils.Enum(['factory', 'hwid_bundle', 'factory_shim',
+                          'release', 'test', 'netboot_firmware',
+                          'netboot_shim'])
+
   # A dict of the file types we are using in this module to the associated
   # image types and their signed version (if applicable).
-  FILETYPE_MAP = {
+  FILETYPE_TO_IMAGE_MAP = {
       # Factory zip; unsigned.
-      'factory': (GSUtil.IMAGE_TYPES.factory, (None,)),
+      FILE_TYPE.factory: (GSUtil.IMAGE_TYPES.factory, (None,)),
+      # HWID bundle; unsigned.
+      FILE_TYPE.hwid_bundle: (GSUtil.IMAGE_TYPES.factory, (None,)),
       # Factory shim; only look for signed one since the unsigned one is in
       # factory zip.
-      'factory_shim': (GSUtil.IMAGE_TYPES.factory, ('.*',)),
+      FILE_TYPE.factory_shim: (GSUtil.IMAGE_TYPES.factory, ('.*',)),
       # Release image; look for signed one first and fall back to unsigned one.
-      'release': (GSUtil.IMAGE_TYPES.recovery, ('.*', None)),
+      FILE_TYPE.release: (GSUtil.IMAGE_TYPES.recovery, ('.*', None)),
       # Test image; unsigned.
-      'test': (GSUtil.IMAGE_TYPES.test, (None,)),
+      FILE_TYPE.test: (GSUtil.IMAGE_TYPES.test, (None,)),
       # Netboot firmware; unsigned.
-      'netboot_firmware': (GSUtil.IMAGE_TYPES.firmware, (None,)),
+      FILE_TYPE.netboot_firmware: (GSUtil.IMAGE_TYPES.firmware, (None,)),
       # Netboot kernel; unsigned.
-      'netboot_shim': (GSUtil.IMAGE_TYPES.factory, (None,)),
+      FILE_TYPE.netboot_shim: (GSUtil.IMAGE_TYPES.factory, (None,)),
   }
 
   def Init(self):
@@ -137,7 +148,7 @@ class CreateBundle(FactoryFlowCommand):
     Raises:
       CreateBundleError if unable to find a matched image.
     """
-    image_type, keys = self.FILETYPE_MAP[file_type]
+    image_type, keys = self.FILETYPE_TO_IMAGE_MAP[file_type]
     channels_to_search = (
         (channel,) if channel else ('stable', 'beta', 'dev', 'canary'))
     for channel in channels_to_search:
@@ -156,9 +167,8 @@ class CreateBundle(FactoryFlowCommand):
     """Parses the version arg of the given file type and returns its GS URL.
 
     Args:
-      file_type: The file type to parse.  Choices are: ('factory',
-        'factory_shim', 'release', 'test', 'netboot_firmware',
-        'netboot_shim').
+      file_type: The file type to parse.  Choices are the values in
+        FILE_TYPE.
       version_str: The version argument string.
       manifest: A manifest dict.  Used for 'from_manifest'.
 
@@ -196,32 +206,41 @@ class CreateBundle(FactoryFlowCommand):
               return d['source']
           return None
 
-        if file_type == 'factory_shim':
+        if file_type == self.FILE_TYPE.factory_shim:
           url = GetSourceFromMatchedDict(
-              manifest.get('add_files', {}),
+              manifest.get('add_files', []),
               dict(install_into=r'factory_shim',
                    source=r'^.*factory.*\.bin$'))
-        elif file_type == 'release':
+        elif file_type == self.FILE_TYPE.release:
           url = GetSourceFromMatchedDict(
-              manifest.get('add_files', {}),
+              manifest.get('add_files', []),
               dict(install_into=r'release',
                    source=r'^.*recovery.*\.bin$|^.*recovery.*\.tar\.xz$'))
-        elif file_type == 'test':
+        elif file_type == self.FILE_TYPE.test:
           url = manifest.get('test_image_version')
-        elif file_type == 'netboot_firmware':
+        elif file_type == self.FILE_TYPE.netboot_firmware:
           url = GetSourceFromMatchedDict(
-              manifest.get('add_files', {}),
+              manifest.get('add_files', []),
               dict(install_into=r'netboot_firmware',
                    source=r'^.*firmware.*\.tar\.bz2$'))
-        elif file_type == 'netboot_shim':
+        elif file_type == self.FILE_TYPE.netboot_shim:
           url = GetSourceFromMatchedDict(
-              manifest.get('add_files', {}),
+              manifest.get('add_files', []),
               dict(install_into=r'\.',
                    source=r'^.*\.zip$'),
               extra_check=lambda file_spec: (
                   any(shim in file_spec.get('extract_files', []) for shim in
                       ('factory_shim/netboot/vmlinux.uimg',
                        'factory_shim/netboot/vmlinux.bin'))))
+        elif file_type == self.FILE_TYPE.hwid_bundle:
+          url = GetSourceFromMatchedDict(
+              manifest.get('add_files', []),
+              dict(install_into=r'\.',
+                   source=r'^.*\.zip$'),
+              extra_check=lambda file_spec: (
+                  ('hwid/hwid_v3_bundle_%s.sh' %
+                   self.options.board.short_name.upper())
+                  in file_spec.get('extract_files', [])))
         else:
           raise CreateBundleError(
               'Manifest does not have source for %s image' % file_type)
@@ -229,6 +248,11 @@ class CreateBundle(FactoryFlowCommand):
         if url:
           return url
         else:
+          if file_type == self.FILE_TYPE.hwid_bundle:
+            # Specifying HWID bundle is optional as we usually use the one
+            # in the factory zip file directly.
+            return None
+
           logging.info(
               ('Unable to find source URL for %s in manifest; '
                'fall back to stablest'), file_type)
@@ -251,7 +275,7 @@ class CreateBundle(FactoryFlowCommand):
     Raises:
       CreateBundleError if output bundle directory exists.
     """
-    factory_url = self._ParseImageVersionToURL('factory',
+    factory_url = self._ParseImageVersionToURL(self.FILE_TYPE.factory,
                                                self.options.factory_version)
     logging.info('Fetching and extracting %s', factory_url)
     factory_zip_path = self.gsutil.GSDownload(factory_url)
@@ -297,7 +321,8 @@ class CreateBundle(FactoryFlowCommand):
 
     # Add release image.
     release_url = self._ParseImageVersionToURL(
-        'release', self.options.release_version, manifest=manifest_in_zip)
+        self.FILE_TYPE.release, self.options.release_version,
+        manifest=manifest_in_zip)
     file_spec = dict(install_into='release', source=release_url)
     if not release_url.endswith('.bin'):
       file_spec['extract_files'] = ['recovery_image.bin']
@@ -305,7 +330,7 @@ class CreateBundle(FactoryFlowCommand):
 
     # Add netboot firmware.
     netboot_firmware_url = self._ParseImageVersionToURL(
-        'netboot_firmware', self.options.netboot_firmware_version,
+        self.FILE_TYPE.netboot_firmware, self.options.netboot_firmware_version,
         manifest=manifest_in_zip)
     # We need to see the content of the firmware tarball to determine what
     # firmware binary we are going to extract. The file names we are looking for
@@ -335,7 +360,7 @@ class CreateBundle(FactoryFlowCommand):
 
     # Add netboot shim.
     netboot_shim_url = self._ParseImageVersionToURL(
-        'netboot_shim', self.options.netboot_shim_version,
+        self.FILE_TYPE.netboot_shim, self.options.netboot_shim_version,
         manifest=manifest_in_zip)
     manifest['add_files'].append(
         dict(install_into='.',
@@ -345,7 +370,7 @@ class CreateBundle(FactoryFlowCommand):
     # Add factory install shim.
     try:
       factory_shim_url = self._ParseImageVersionToURL(
-          'factory_shim', self.options.factory_shim_version,
+          self.FILE_TYPE.factory_shim, self.options.factory_shim_version,
           manifest=manifest_in_zip)
       if factory_shim_url.endswith('.bin'):
         # Found a signed factory install shim; remove the unsigned one.
@@ -363,8 +388,20 @@ class CreateBundle(FactoryFlowCommand):
 
     # Add test image.
     test_url = self._ParseImageVersionToURL(
-        'test', self.options.test_version, manifest=manifest_in_zip)
+        self.FILE_TYPE.test, self.options.test_version,
+        manifest=manifest_in_zip)
     manifest['test_image_version'] = test_url
+
+    # Add optional HWID bundle.
+    hwid_bundle_url = self._ParseImageVersionToURL(
+        self.FILE_TYPE.hwid_bundle, self.options.hwid_bundle_version,
+        manifest=manifest_in_zip)
+    if hwid_bundle_url:
+      manifest['add_files'].append(
+          dict(install_into='.',
+               extract_files=['hwid/hwid_v3_bundle_%s.sh' %
+                              self.options.board.short_name.upper()],
+               source=hwid_bundle_url,))
 
     # Remove complete script to unblock the DUT after installation is done.
     manifest['complete_script'] = None

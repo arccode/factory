@@ -15,6 +15,9 @@ add_files:
 - install_into: .
   extract_files: [factory_shim/netboot/vmlinux.uimg]
   source: 'gs://chromeos-releases/canary-channel/daisy-spring/4131.73.0/ChromeOS-factory-R29-4131.73.0-daisy-spring.zip'
+- install_into: .
+  extract_files: [hwid/hwid_v3_bundle_SPRING.sh]
+  source: 'gs://chromeos-releases/canary-channel/daisy-spring/4262.123.0/ChromeOS-factory-R30-4262.123.0-daisy-spring.zip'
 
 # install_into is the relative path under /mnt/dev_image/
 add_files_to_image:
