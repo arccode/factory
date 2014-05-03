@@ -15,17 +15,34 @@ from cros.factory import system
 from cros.factory.tools import build_board
 
 
+class UmpireClientInfoInterface(object):
+  """The interface that provide client info for Umpire server proxy."""
+  def Update(self):
+    """Updates client info.
+
+    Returns:
+      True if client info is changed.
+    """
+    raise NotImplementedError
+
+  def OutputXUmpireDUT(self):
+    """Outputs client info for request header X-Umpire-DUT.
+
+    Returns:
+      Umpire client info in X-Umpire-DUT format: 'key=value; key=value ...'.
+    """
+    raise NotImplementedError
+
+
 class UmpireClientInfoException(Exception):
   pass
 
 
-class UmpireClientInfo(object):
-  """Class to maintain client side info that is related to Umpire.
-
-  For each DUT, an UmpireClientInfo object is maintained by UmpireServerProxy.
-  """
+class UmpireClientInfo(UmpireClientInfoInterface):
+  # pylint: disable=R0923
+  """This class maintains client side info on DUT that is related to Umpire."""
   # Translated keys in DUT_INFO_KEYS to attributes used in UmpireClientInfo.
-  # DUT_INFO_KEYS are used in Output() for X-Umpire-DUT.
+  # DUT_INFO_KEYS are used in OutputXUmpireDUT() for X-Umpire-DUT.
   KEY_TRANSLATION = {
       'sn': 'serial_number',
       'mlb_sn': 'mlb_serial_number',
@@ -40,6 +57,7 @@ class UmpireClientInfo(object):
       'ec_version', 'macs']
 
   def __init__(self):
+    super(UmpireClientInfo, self).__init__()
     # serial_number, mlb_serial_number, firmware, ec and wireless mac address
     # are detected in system.SystemInfo module.
     self.serial_number = None
@@ -83,7 +101,7 @@ class UmpireClientInfo(object):
     # TODO(cychiang)
     raise NotImplementedError
 
-  def Output(self):
+  def OutputXUmpireDUT(self):
     """Outputs client info for request header X-Umpire-DUT.
 
     Returns:

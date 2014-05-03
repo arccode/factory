@@ -1,0 +1,27 @@
+duts:
+  - name: dut1
+    X-Umpire-DUT:
+      sn: 'TESTDEV001'
+      mlb_sn: 'TESTMLB001'
+      board: 'daisy_spring'
+      firmware: '3000.0.0'
+      ec: '3000.0.0'
+      mac.eth0: 'FF:FF:FF:FF:FF:FF'
+      mac.wlan0: 'EE:EE:EE:EE:EE:EE'
+  - name: dut2
+    X-Umpire-DUT:
+      sn: 'TESTDEV002'
+      mlb_sn: 'TESTMLB002'
+      board: 'daisy_spring'
+      firmware: '3000.0.0'
+      ec: '3000.0.0'
+      mac.eth0: 'FF:FF:FF:FF:FF:FF'
+      mac.wlan0: 'EE:EE:EE:EE:EE:EE'
+methods:
+  - name: MethodWithOutArgs
+  - name: MethodWithArgs
+    args: 'argument 1'
+  - name: NeedsUpdate
+    args:
+      - '12345678'
+

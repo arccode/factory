@@ -387,7 +387,7 @@ class UmpireServerProxyTest(unittest.TestCase):
     """Inits an UmpireServerProxy and connects to Umpire xmlrpc handler."""
     umpire_server_proxy.UmpireClientInfo().AndReturn(
         self.fake_umpire_client_info)
-    self.fake_umpire_client_info.Output().AndReturn('MOCK_DUT_INFO')
+    self.fake_umpire_client_info.OutputXUmpireDUT().AndReturn('MOCK_DUT_INFO')
     self.fake_umpire_client_info.Update().AndReturn(False)
 
     self.mox.ReplayAll()
@@ -410,7 +410,7 @@ class UmpireServerProxyTest(unittest.TestCase):
     """Inits an UmpireServerProxy and connects to shopfloor handler 1."""
     umpire_server_proxy.UmpireClientInfo().AndReturn(
         self.fake_umpire_client_info)
-    self.fake_umpire_client_info.Output().AndReturn('MOCK_DUT_INFO')
+    self.fake_umpire_client_info.OutputXUmpireDUT().AndReturn('MOCK_DUT_INFO')
     self.fake_umpire_client_info.Update().AndReturn(False)
 
     self.mox.ReplayAll()
@@ -433,11 +433,11 @@ class UmpireServerProxyTest(unittest.TestCase):
     """Proxy tries to make a call but client info is updated."""
     umpire_server_proxy.UmpireClientInfo().AndReturn(
         self.fake_umpire_client_info)
-    self.fake_umpire_client_info.Output().AndReturn('MOCK_DUT_INFO1')
+    self.fake_umpire_client_info.OutputXUmpireDUT().AndReturn('MOCK_DUT_INFO1')
     # When proxy tries to call method, Umpire_client_info.Update() returns
     # True, so proxy needs to request resourse map again.
     self.fake_umpire_client_info.Update().AndReturn(True)
-    self.fake_umpire_client_info.Output().AndReturn('MOCK_DUT_INFO2')
+    self.fake_umpire_client_info.OutputXUmpireDUT().AndReturn('MOCK_DUT_INFO2')
 
 
     self.mox.ReplayAll()
@@ -466,9 +466,9 @@ class UmpireServerProxyTest(unittest.TestCase):
     """Proxy tries to make a call but server says token is invalid."""
     umpire_server_proxy.UmpireClientInfo().AndReturn(
         self.fake_umpire_client_info)
-    self.fake_umpire_client_info.Output().AndReturn('MOCK_DUT_INFO')
+    self.fake_umpire_client_info.OutputXUmpireDUT().AndReturn('MOCK_DUT_INFO')
     self.fake_umpire_client_info.Update().AndReturn(False)
-    self.fake_umpire_client_info.Output().AndReturn('MOCK_DUT_INFO')
+    self.fake_umpire_client_info.OutputXUmpireDUT().AndReturn('MOCK_DUT_INFO')
 
     self.mox.ReplayAll()
 
