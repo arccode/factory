@@ -276,7 +276,9 @@ class DumpTestListCommand(Subcommand):
 
 class TestListCommand(Subcommand):
   name = 'test-list'
-  help = 'Set or get the active test list, and/or list all test lists'
+  help = ('Set or get the active test list, and/or list all test lists. '
+          'Note that generic test list is allowed only when there is no '
+          'main test list or when factory test automation is enabled.')
 
   TIMEOUT_SECS = 60
   POLL_INTERVAL_SECS = 0.5
@@ -298,7 +300,7 @@ class TestListCommand(Subcommand):
 
   def Run(self):
     if self.args.id:
-      all_test_lists = test_lists.BuildAllTestLists()
+      all_test_lists = test_lists.BuildAllTestLists(force_generic=True)
 
       if self.args.id not in all_test_lists:
         sys.exit('Unknown test list ID %r (use "factory test-list --list" to '
@@ -311,7 +313,7 @@ class TestListCommand(Subcommand):
       print test_lists.GetActiveTestListId()
 
     if self.args.list:
-      all_test_lists = test_lists.BuildAllTestLists()
+      all_test_lists = test_lists.BuildAllTestLists(force_generic=True)
       active_id = test_lists.GetActiveTestListId()
 
       line_format = '%-8s %-20s %s'

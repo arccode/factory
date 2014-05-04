@@ -355,10 +355,15 @@ class OldStyleTestList(object):
     return test_list
 
 
-def BuildAllTestLists():
+def BuildAllTestLists(force_generic=False):
   """Builds all test lists in this package.
 
   See README for an explanation of the test-list loading process.
+
+  Args:
+    force_generic: Whether to force loading generic test list.  Defaults to
+      False so that generic test list is loaded only when there is no main test
+      list.
 
   Returns:
     A dict mapping test list IDs to test list objects.  Values are either
@@ -379,8 +384,10 @@ def BuildAllTestLists():
   for f in test_list_files:
     if f.endswith('_unittest.py') or os.path.basename(f) == '__init__.py':
       continue
-    # Skip generic test list if there is already a main test list loaded.
-    if IsGenericTestList(f) and MainTestListExists():
+    # Skip generic test list if there is already a main test list loaded
+    # and generic test list is not forced.
+    if (IsGenericTestList(f) and MainTestListExists() and
+        not force_generic):
       continue
 
     module_name = ('cros.factory.test.test_lists.' +

@@ -1114,7 +1114,8 @@ class Goofy(object):
 
   def InitTestLists(self):
     """Reads in all test lists and sets the active test list."""
-    self.test_lists = test_lists.BuildAllTestLists()
+    self.test_lists = test_lists.BuildAllTestLists(
+        force_generic=(self.options.automation_mode is not None))
     logging.info('Loaded test lists: [%s]',
                  test_lists.DescribeTestLists(self.test_lists))
 

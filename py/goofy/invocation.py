@@ -167,7 +167,8 @@ class PyTestInfo(object):
       # It's a path pointing to an old-style test list; use it.
       return factory.read_test_list(self.test_list)
     else:
-      all_test_lists = BuildAllTestLists()
+      all_test_lists = BuildAllTestLists(
+          force_generic=(self.automation_mode is not None))
       test_list = all_test_lists[self.test_list]
       if isinstance(test_list, OldStyleTestList):
         return test_list.Load()
