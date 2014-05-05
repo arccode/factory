@@ -281,6 +281,9 @@ def SetOptions(options, args):
     # - Disable ChromeOS keys.
     options.disable_cros_shortcut_keys = True
 
+    # - Disable CPU frequency manager.
+    options.use_cpufreq_manager = False
+
     # Enable/Disable system log syncing
     options.enable_sync_log = True
     options.sync_log_period_secs = 10 * MINUTES
