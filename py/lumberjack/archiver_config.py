@@ -16,7 +16,7 @@ import tempfile
 from archiver import locks
 from archiver_exception import ArchiverFieldError
 from common import CheckAndLockFile, CheckExecutableExist, TryMakeDirs
-from subprocess import PIPE, Popen
+from subprocess import check_call, PIPE, Popen
 
 
 ALLOWED_DATA_TYPE = set(['eventlog', 'reports', 'regcode'])
@@ -260,6 +260,11 @@ class ArchiverConfig(object):
     if not CheckExecutableExist('gpg'):
       raise ArchiverFieldError(
           'GnuPG(gpg) is not callable. It is required for encryption.')
+    # List the existing keys via "gpg -k". This step is to make sure local
+    # gpg initializes its database so following commands can be run wihtout
+    # issues.
+    check_call(['gpg', '-k'])
+
     # Check if the public key's format and recipient are valid.
     # Since we don't have the private key, we can only verify if the public
     # key is working properly with gpg.

@@ -49,24 +49,25 @@ class ArchiverUnittest(unittest.TestCase):
   def tearDown(self):
     os.chdir(self.pwd)
     directories_to_delete = [
-      os.path.join(TEST_DATA_PATH, 'archives'),
-      os.path.join(TEST_DATA_PATH, 'raw/report'),
-      os.path.join(TEST_DATA_PATH, 'raw/regcode'),
+      'archives', 'raw/report', 'raw/regcode',
       # Clean-up to make git status cleaner
-      os.path.join(TEST_DATA_PATH, 'raw/eventlog/20140406/.archiver'),
-      os.path.join(TEST_DATA_PATH, 'raw/eventlog/20140419/.archiver'),
-      os.path.join(TEST_DATA_PATH, 'raw/eventlog/20140420/.archiver'),
-      os.path.join(TEST_DATA_PATH, 'raw/eventlog/20140421/.archiver')]
+      'raw/eventlog/20140406/.archiver', 'raw/eventlog/20140419/.archiver',
+      'raw/eventlog/20140420/.archiver', 'raw/eventlog/20140421/.archiver']
     for directory in directories_to_delete:
       try:
-        shutil.rmtree(directory)
+        shutil.rmtree(os.path.join(TEST_DATA_PATH, directory))
       except: # pylint: disable=W0702
         pass
+
     # Delete lock file
-    try:
-      os.unlink(os.path.join(TEST_DATA_PATH, 'raw/eventlog/.archiver.lock'))
-    except: # pylint: disable=W0702
-      pass
+    lock_file_to_delete = [
+        'raw/eventlog/.archiver.lock',
+        'raw/.mocked_regcode.csv.archiver.lock']
+    for lock_file in lock_file_to_delete:
+      try:
+        os.unlink(os.path.join(TEST_DATA_PATH, lock_file))
+      except: # pylint: disable=W0702
+        pass
 
   def testYAMLConfigNonExist(self):
     argv = ['dry-run', 'nonexist.yaml']

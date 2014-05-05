@@ -8,6 +8,7 @@
 import hashlib
 import logging
 import os
+import pprint
 import re
 import shutil
 import tempfile
@@ -15,6 +16,7 @@ import time
 import uuid
 import yaml
 
+from archiver_exception import ArchiverFieldError
 from subprocess import PIPE, Popen
 from twisted.internet import reactor
 
@@ -28,6 +30,10 @@ ARCHIVER_SOURCE_FILES = ['archiver.py', 'archiver_exception.py',
                          'archiver_cli.py', 'archiver_config.py']
 # Global variable to keep locked file open during process life-cycle
 locks = []
+# Global variable to postpone the time (i.e. give few more archiving cycle
+# a chance to recover automatically) of raising exception
+archive_failures = []
+MAX_ALOOWED_FAILURES = 5
 
 
 def _ListEligibleFiles(dir_path):
@@ -401,10 +407,16 @@ def Archive(config, next_cycle=True):
         config.archived_dir, _GenerateArchiveName(config))
     tmp_archive = generated_archive + '.part'
     logging.info('Compressing %r into %r', tmp_dir, tmp_archive)
-    # TODO(itspeter): Handle the failure cases.
-    output_tuple = Popen(  # pylint: disable=W0612
-        ['tar', '-cvJf', tmp_archive, '-C', tmp_dir, '.'],
-        stdout=PIPE, stderr=PIPE).communicate()
+    cmd_line = ['tar', '-cvJf', tmp_archive, '-C', tmp_dir, '.']
+    p = Popen(cmd_line, stdout=PIPE, stderr=PIPE)
+    stdout, stderr = p.communicate()
+    if p.returncode != 0:
+      error_msg = ('Command %r failed. retcode[%r]\nstdout:\n%s\n\n'
+                   'stderr:\n%s\n' % (cmd_line, p.returncode, stdout, stderr))
+      logging.error(error_msg)
+      archive_failures.append(error_msg)
+      raise ArchiverFieldError(error_msg)
+
     # Remove .part suffix.
     os.rename(tmp_archive, generated_archive)
     return generated_archive
@@ -431,9 +443,19 @@ def Archive(config, next_cycle=True):
     if len(archive_metadata['files']) > 0:
       _UpdateMetadata(archive_metadata, started_time)  # Write other info
       # TODO(itspeter): Handle the .zip compress_format.
-      generated_archive = _CompressIntoTarXz(tmp_dir, archive_metadata, config)
-      # Update metadata data for archived files.
-      _UpdateArchiverMetadata(archive_metadata['files'], config)
+      try:
+        generated_archive = _CompressIntoTarXz(tmp_dir,
+                                               archive_metadata, config)
+        # Update metadata data for archived files only when compression
+        # succeed.
+        _UpdateArchiverMetadata(archive_metadata['files'], config)
+      except ArchiverFieldError:
+        # Do not raise error since it will stop the archiver. We would like to
+        # give few more retires in coming cycle.
+        if len(archive_failures) > MAX_ALOOWED_FAILURES:
+          raise ArchiverFieldError(
+              'Archiver failed %d times. The error messages are\n%s\n' %
+              pprint.pformat(archive_failures))
     else:
       logging.info('No data available for archiving for %r', config.data_type)
 
