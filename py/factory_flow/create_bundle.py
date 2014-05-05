@@ -89,6 +89,7 @@ class CreateBundle(FactoryFlowCommand):
   # The followings are set after factory zip is extracted.
   bundle_dir = None
   bundle_name = None
+  manifest_urls = {}
 
   VERSION_ARG_RE = {
       'from_manifest': re.compile(r'^from_manifest$'),
@@ -277,6 +278,7 @@ class CreateBundle(FactoryFlowCommand):
     """
     factory_url = self._ParseImageVersionToURL(self.FILE_TYPE.factory,
                                                self.options.factory_version)
+    self.manifest_urls['factory'] = factory_url
     logging.info('Fetching and extracting %s', factory_url)
     factory_zip_path = self.gsutil.GSDownload(factory_url)
     temp_bundle_dir = os.path.join(self.output_dir, 'temp_factory_zip')
@@ -323,6 +325,7 @@ class CreateBundle(FactoryFlowCommand):
     release_url = self._ParseImageVersionToURL(
         self.FILE_TYPE.release, self.options.release_version,
         manifest=manifest_in_zip)
+    self.manifest_urls['release'] = release_url
     file_spec = dict(install_into='release', source=release_url)
     if not release_url.endswith('.bin'):
       file_spec['extract_files'] = ['recovery_image.bin']
@@ -332,6 +335,7 @@ class CreateBundle(FactoryFlowCommand):
     netboot_firmware_url = self._ParseImageVersionToURL(
         self.FILE_TYPE.netboot_firmware, self.options.netboot_firmware_version,
         manifest=manifest_in_zip)
+    self.manifest_urls['netboot_firmware'] = netboot_firmware_url
     # We need to see the content of the firmware tarball to determine what
     # firmware binary we are going to extract. The file names we are looking for
     # in the tarball are:
@@ -362,12 +366,14 @@ class CreateBundle(FactoryFlowCommand):
     netboot_shim_url = self._ParseImageVersionToURL(
         self.FILE_TYPE.netboot_shim, self.options.netboot_shim_version,
         manifest=manifest_in_zip)
+    self.manifest_urls['netboot_shim'] = netboot_shim_url
     manifest['add_files'].append(
         dict(install_into='.',
              extract_files=['factory_shim/netboot/vmlinux.uimg'],
              source=netboot_shim_url))
 
     # Add factory install shim.
+    factory_shim_url = None
     try:
       factory_shim_url = self._ParseImageVersionToURL(
           self.FILE_TYPE.factory_shim, self.options.factory_shim_version,
@@ -385,17 +391,20 @@ class CreateBundle(FactoryFlowCommand):
            'if you want to test signed factory shim, specify --factory-version '
            'to %s factory branch to locate it'),
           self.options.board.full_name, self.options.board.full_name)
+    self.manifest_urls['factory_shim'] = factory_shim_url
 
     # Add test image.
     test_url = self._ParseImageVersionToURL(
         self.FILE_TYPE.test, self.options.test_version,
         manifest=manifest_in_zip)
+    self.manifest_urls['test'] = test_url
     manifest['test_image_version'] = test_url
 
     # Add optional HWID bundle.
     hwid_bundle_url = self._ParseImageVersionToURL(
         self.FILE_TYPE.hwid_bundle, self.options.hwid_bundle_version,
         manifest=manifest_in_zip)
+    self.manifest_urls['hwid_bundle'] = hwid_bundle_url
     if hwid_bundle_url:
       manifest['add_files'].append(
           dict(install_into='.',
@@ -428,12 +437,15 @@ class CreateBundle(FactoryFlowCommand):
     readme = None
     with open(input_readme_path) as f:
       readme = f.read()
-    readme += '\n'.join([
-        '',
-        '%s changes:' % self.bundle_name,
-        '  Testing bundle generated with the following command: ',
-        '    %s' % ' '.join(sys.argv),
-        ''])
+    readme += '\n'.join(
+        ['',
+         '%s changes:' % self.bundle_name,
+         '  Testing bundle generated with the following command: ',
+         '    %s' % ' '.join(sys.argv),
+         '  ---',
+         '  Google Storage URLs of each file:'] +
+        ['    %s: %s' % (k, v) for k, v in self.manifest_urls.iteritems()] +
+        ['  ---'])
 
     output_readme_path = os.path.join(
         self.bundle_dir, 'README')
