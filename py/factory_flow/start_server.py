@@ -93,10 +93,12 @@ class StartServer(FactoryFlowCommand):
     The command starts a download server based on the mini-omaha URL set in the
     manifest file.
 
-  - Google factory server (shopfloor server)
+  - Google factory server (shop floor server)
 
-    The command executes start_mock_shopfloor in the bundle, which will set up
-    shopfloor server and, if needed, a mock backend server.
+    By default the command starts a dummy shop floor server for testing. A shop
+    floor server executable can also be specified to start a custom shop floor
+    server. Usually there is a start_mock_shopfloor in the bundle, which can be
+    used to mimic actual shop floor communication in the factory.
 
   Note that with the current design of factory flow, to support multiple boards
   on the same host one needs to allocate a dedicated LAN for each board. This is
