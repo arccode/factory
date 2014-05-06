@@ -14,9 +14,10 @@ import logging
 import os
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.utils import file_utils
-from cros.factory.umpire.common import RESOURCE_HASH_DIGITS, UmpireError
+from cros.factory.umpire.common import (GetHashFromResourceName,
+                                        RESOURCE_HASH_DIGITS, UmpireError)
 from cros.factory.umpire import config
+from cros.factory.utils import file_utils
 
 
 # File name under base_dir
@@ -242,3 +243,28 @@ class UmpireEnv(object):
     if check and not os.path.exists(path):
       raise IOError(errno.ENOENT, 'Resource does not exist', path)
     return path
+
+  def GetBundleDeviceToolkit(self, bundle_id):
+    """Gets a bundle's device toolkit path.
+
+    Args:
+      bundle_id: bundle ID.
+
+    Returns:
+      Full path of extracted device toolkit path.
+      None if bundle_id is invalid.
+    """
+    bundle = self.config.GetBundle(bundle_id)
+    if not bundle:
+      return None
+    resources = bundle.get('resources')
+    if not resources:
+      return None
+    toolkit_resource = resources.get('device_factory_toolkit')
+    if not toolkit_resource:
+      return None
+    toolkit_hash = GetHashFromResourceName(toolkit_resource)
+    toolkit_path = os.path.join(self.client_toolkits_dir, toolkit_hash)
+    if not os.path.isdir(toolkit_path):
+      return None
+    return toolkit_path

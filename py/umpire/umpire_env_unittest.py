@@ -6,15 +6,24 @@
 
 import mox
 import os
+import sys
 import unittest
 
 import factory_common  # pylint: disable=W0611
 
 from cros.factory.umpire import config
-from cros.factory.umpire.common import UmpireError, RESOURCE_HASH_DIGITS
+from cros.factory.umpire.commands.update import ResourceUpdater
+from cros.factory.umpire.common import (GetHashFromResourceName, UmpireError,
+                                        RESOURCE_HASH_DIGITS)
 from cros.factory.umpire.umpire_env import UmpireEnv
 from cros.factory.utils import file_utils
 
+
+TESTDATA_DIR = os.path.join(os.path.dirname(sys.modules[__name__].__file__),
+                            'testdata')
+TEST_CONFIG = os.path.join(TESTDATA_DIR,
+                           'minimal_empty_services_umpire.yaml')
+TOOLKIT_DIR = os.path.join(TESTDATA_DIR, 'install_factory_toolkit.run')
 
 class UmpireEnvTest(unittest.TestCase):
   def setUp(self):
@@ -220,6 +229,77 @@ class UmpireEnvTest(unittest.TestCase):
       # Without check, just output resource_dir/resource_name
       self.assertEqual(os.path.join(self.env.resources_dir, 'foobar'),
                        self.env.GetResourcePath('foobar', check=False))
+
+  def testGetBundleDeviceToolkit(self):
+    with file_utils.TempDirectory() as temp_dir:
+      self.env.base_dir = temp_dir
+      os.makedirs(self.env.client_toolkits_dir)
+      os.makedirs(self.env.resources_dir)
+      self.env.LoadConfig(custom_path=TEST_CONFIG)
+
+      # Add the toolkit to resources and get hash value.
+      updater = ResourceUpdater(self.env)
+      updater.Update([('factory_toolkit', TOOLKIT_DIR)])
+      # After updating resources, we need to reload the staging config.
+      self.env.LoadConfig(staging=True)
+
+      # Get hash value to compose expected toolkit dir.
+      bundle = self.env.config.GetDefaultBundle()
+      toolkit_resource = bundle['resources']['device_factory_toolkit']
+      toolkit_hash = GetHashFromResourceName(toolkit_resource)
+      expected_toolkit_dir = os.path.join(self.env.client_toolkits_dir,
+                                          toolkit_hash)
+
+      # Create the expected toolkit dir.
+      os.makedirs(expected_toolkit_dir)
+
+      self.assertEqual(expected_toolkit_dir,
+                       self.env.GetBundleDeviceToolkit(bundle['id']))
+
+  def testGetBundleDeviceToolkitInvalidBundleID(self):
+    # Same environment, but looking up an invalid bundle ID.
+    with file_utils.TempDirectory() as temp_dir:
+      self.env.base_dir = temp_dir
+      os.makedirs(self.env.client_toolkits_dir)
+      os.makedirs(self.env.resources_dir)
+      self.env.LoadConfig(custom_path=TEST_CONFIG)
+
+      # Add the toolkit to resources.
+      updater = ResourceUpdater(self.env)
+      updater.Update([('factory_toolkit', TOOLKIT_DIR)])
+      # After updating resources, we need to reload the staging config.
+      self.env.LoadConfig(staging=True)
+
+      # Get hash value to compose expected toolkit dir.
+      bundle = self.env.config.GetDefaultBundle()
+      toolkit_resource = bundle['resources']['device_factory_toolkit']
+      toolkit_hash = GetHashFromResourceName(toolkit_resource)
+      expected_toolkit_dir = os.path.join(self.env.client_toolkits_dir,
+                                          toolkit_hash)
+
+      # Create the expected toolkit dir.
+      os.makedirs(expected_toolkit_dir)
+
+      self.assertIsNone(self.env.GetBundleDeviceToolkit('invalid_bundle'))
+
+
+  def testGetBundleDeviceToolkitMissingToolkitPath(self):
+    # Same environment, but don't create toolkit dir.
+    with file_utils.TempDirectory() as temp_dir:
+      self.env.base_dir = temp_dir
+      os.makedirs(self.env.client_toolkits_dir)
+      os.makedirs(self.env.resources_dir)
+      self.env.LoadConfig(custom_path=TEST_CONFIG)
+
+      # Add the toolkit to resources.
+      updater = ResourceUpdater(self.env)
+      updater.Update([('factory_toolkit', TOOLKIT_DIR)])
+      # After updating resources, we need to reload the staging config.
+      self.env.LoadConfig(staging=True)
+
+      bundle = self.env.config.GetDefaultBundle()
+      self.assertIsNone(self.env.GetBundleDeviceToolkit(bundle['id']))
+
 
 
 if __name__ == '__main__':
