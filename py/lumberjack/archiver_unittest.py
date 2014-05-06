@@ -29,6 +29,7 @@ from common import (GenerateArchiverMetadata, GetMetadataPath,
                     GetOrCreateArchiverMetadata, TryMakeDirs,
                     WriteAndTruncateFd)
 from multiprocessing import Process
+from subprocess import PIPE, Popen
 
 
 TEST_DATA_PATH = os.path.abspath(os.path.join(
@@ -516,7 +517,15 @@ class ArchiverUnittest(unittest.TestCase):
     shutil.rmtree(tmp_dir)
     logging.info('%r deleted', tmp_dir)
 
-  def testArchiveReports(self):
+  def _PrepareReportsInTemporaryDir(self):
+    """Prepares reports into temporary directory for unittest.
+
+    One of the report will be marked as archived on purpose.
+
+    Returns:
+      A tuple of (temporary directory, an injected ArchiverConfig,
+      a list of expected filename in archive)
+    """
     with open(os.path.join(TEST_DATA_PATH, 'template_reports.yaml')) as f:
       content = f.read()
     configs = GenerateConfig(yaml.load(content))
@@ -542,30 +551,63 @@ class ArchiverUnittest(unittest.TestCase):
         'SMT-SEL0C150GNSSC380800037-20130812T235651Z.rpt.xz',
         'SMT-SEL0C150GNSSC380800037-20130812T235651Z.rpt.xz.md5']
     for archived in mock_archived_reports:
-      print "archived = %r" % archived
       file_path = os.path.join(tmp_dir, 'raw/report/20140406', archived)
-      print "file_path = %r" % file_path
-      print "metadata_path = %r" % GetMetadataPath(file_path)
       # Create metadata directory
       GetOrCreateArchiverMetadata(GetMetadataPath(file_path))
       with open(GetMetadataPath(file_path), 'w') as fd:
         fd.write(GenerateArchiverMetadata(
             completed_bytes=os.path.getsize(file_path)))
-    # Run Archive
-    Archive(config, next_cycle=False)
-
-    # Compare the content of the archive
-    zip_file_path = glob.glob(os.path.join(config.archived_dir,'*'))[0]
-    archived_files = zipfile.ZipFile(zip_file_path, 'r').namelist()
     expected_files = [
         '20140406/SMT-SEL0C150GNSSC380800037-20130812T235710Z.rpt.xz',
         '20140406/SMT-SEL0C150GNSSC380800037-20130812T235710Z.rpt.xz.md5',
         '20140406/FA-3812000001-20130814T022522Z.rpt.xz',
         '20140406/FA-3812000001-20130814T022522Z.rpt.xz.md5',
         'archive.metadata']
+    return (tmp_dir, config, expected_files)
+
+  def testArchiveReports(self):
+    tmp_dir, config, expected_files = self._PrepareReportsInTemporaryDir()
+    # Run Archive
+    Archive(config, next_cycle=False)
+
+    # Compare the content of the archive
+    zip_file_path = glob.glob(os.path.join(config.archived_dir,'*'))[0]
+    archived_files = zipfile.ZipFile(zip_file_path, 'r').namelist()
     self.assertItemsEqual(expected_files, archived_files)
     shutil.rmtree(tmp_dir)
     logging.info('%r deleted', tmp_dir)
+
+  def testArchiveReportsEncrypted(self):
+    tmp_dir, config, expected_files = self._PrepareReportsInTemporaryDir()
+    public_key_path = os.path.join(
+        TEST_DATA_PATH, 'keys/unittest_crosreg.pub.binary')
+    private_key_path = os.path.join(
+        TEST_DATA_PATH, 'keys/unittest_crosreg.priv')
+
+    config.SetEncryptKeyPair([public_key_path, 'Test Key'])
+    # Run Archive
+    Archive(config, next_cycle=False)
+
+    # Try to decrypt it and verify the content
+    encrypted_file_path = glob.glob(os.path.join(config.archived_dir,'*'))[0]
+    cmd_line = [
+        'gpg', '--output', encrypted_file_path[:-4], '--no-default-keyring',
+        '--keyring', public_key_path, '--secret-keyring', private_key_path,
+        '--trust-model', 'always', '--passphrase', 'testkey', '--decrypt',
+        encrypted_file_path]
+
+    p = Popen(cmd_line, stdout=PIPE, stderr=PIPE)
+    stdout, stderr = p.communicate()
+    if p.returncode != 0:
+      logging.error('Command %r failed. retcode[%r]\nstdout:\n%s\n\n'
+                    'stderr:\n%s\n', cmd_line, p.returncode, stdout, stderr)
+
+    # Compare the content of the archive
+    archived_files = zipfile.ZipFile(encrypted_file_path[:-4], 'r').namelist()
+    self.assertItemsEqual(expected_files, archived_files)
+    shutil.rmtree(tmp_dir)
+    logging.info('%r deleted', tmp_dir)
+
 
 if __name__ == '__main__':
   unittest.main()

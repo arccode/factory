@@ -21,7 +21,7 @@ from subprocess import PIPE, Popen
 from twisted.internet import reactor
 
 import common
-from common import GetMetadataPath, METADATA_DIRECTORY
+from common import EncryptFile, GetMetadataPath, METADATA_DIRECTORY
 
 SNAPSHOT = '.snapshot'
 # These suffix indicate another process is using.
@@ -249,20 +249,18 @@ def _GenerateArchiveName(config):
 
   For example:
     spring,report,20130205T1415Z,c7c62ea462.zip
-    spring,regcode,20130307T1932Z,c7a462a462.tar.xz.pgp
     spring,eventlog,20130307T1945Z,c7a462c5a4.tar.xz
 
   The hash has 10 hex digits. The 10 digits will separate into two parts,
   first 2 digits for identifying host (Umpire) and following 8 digits are
   generated randomly.
   """
-  # pylint: disable=E1101
+  # For hashlib, pylint: disable=E1101
   prefix = ','.join(
       [config.project, config.data_type,
        time.strftime('%Y%m%dT%H%MZ', time.gmtime(time.time())),
        (hashlib.sha256(str(uuid.getnode())).hexdigest()[:2] +
         str(uuid.uuid4())[:8])])
-  # TODO(itspeter): If config.encrypt_key put additional string to suffix.
   suffix = config.compress_format
   return prefix + suffix
 
@@ -521,7 +519,9 @@ def Archive(config, next_cycle=True):
         else:  #  .zip format.
           generated_archive = _CompressIntoZip(
               tmp_dir, archive_metadata, config)
-        # TODO(itspeter): Encrypt if required.
+        if config.encrypt_key_pair:
+          EncryptFile(generated_archive, config.encrypt_key_pair, delete=True)
+
         # Update metadata data for archived files only when compression
         # succeed.
         _UpdateArchiverMetadata(archive_metadata['files'], config)

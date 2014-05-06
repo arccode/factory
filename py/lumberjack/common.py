@@ -14,6 +14,7 @@ import yaml
 import logging
 
 from archiver_exception import ArchiverFieldError
+from subprocess import check_call, PIPE, Popen
 
 METADATA_DIRECTORY = '.archiver'  # For storing metadata.
 
@@ -229,3 +230,76 @@ def RegenerateArchiverMetadataFile(metadata_path):
   with open(metadata_path, 'w') as fd:
     fd.write(ret_str)
   return ret_str
+
+
+def EncryptFile(file_path, encrypt_key_pair, delete=False):
+  """Encrypts the file_path with encrypt_key_pair and GnuPG.
+
+  Args:
+    file_path: The path to the file to encrypt.
+    encrypt_key_pair:
+      A tuple of (path to the public key, recipient).
+      It is possible that the recipient is omitted. In such case,
+      'google-crosreg-key' will be assigned automatically and use the
+      --default-recipient flag of gpg.
+    delete:
+      True to delete the original file after encryption.
+
+  Returns:
+    Encrypted file name.
+
+  Raises:
+    ArchiverFieldError if gpg is not installed.
+    ArchiverFieldError if public key cannot be accessed.
+    ArchiverFieldError if any error on the dry-run.
+    OSError if failed to rename intermediate or delete original.
+  """
+  # Check GnuPG is installed.
+  if not CheckExecutableExist('gpg'):
+    raise ArchiverFieldError(
+        'GnuPG(gpg) is not callable. It is required for encryption.')
+  # List the existing keys via "gpg -k". This step is to make sure local
+  # gpg initializes its database so following commands can be run wihtout
+  # issues.
+  check_call(['gpg', '-k'])
+
+  # Check if the public key's format and recipient are valid.
+  # Since we don't have the private key, we can only verify if the public
+  # key is working properly with gpg.
+
+  # Check if the public key exists.
+  path_to_key, recipient = encrypt_key_pair
+  path_to_key = os.path.abspath(path_to_key)
+  if not os.path.isfile(path_to_key):
+    raise ArchiverFieldError(
+        'Public key %r doesn\'t exist or not having enough permission'
+        'to load.' % path_to_key)
+
+  cmd_line = ['gpg', '--no-default-keyring', '--keyring', path_to_key,
+              '--trust-model', 'always', '--encrypt']
+  if recipient:
+    cmd_line += ['--recipient', recipient]
+  else:
+    recipient = 'google'
+    cmd_line += ['--default-recipient', recipient]
+
+  # Add .part indicate it is inprogress
+  cmd_line += ['--output', file_path + '.gpg.part', file_path]
+  p = Popen(cmd_line, stdout=PIPE, stderr=PIPE)
+  stdout, stderr = p.communicate()
+  if p.returncode != 0:
+    logging.error('Command %r failed. retcode[%r]\nstdout:\n%s\n\n'
+                  'stderr:\n%s\n', cmd_line, p.returncode, stdout, stderr)
+    raise ArchiverFieldError(
+        'Failed to encrypt with the public key %r and recipient %r' % (
+        path_to_key, recipient))
+
+  # Remove .part suffix.
+  os.rename(file_path + '.gpg.part', file_path + '.gpg')
+  if delete:
+    os.unlink(file_path)
+    logging.debug('%r encrypted and removed.')
+  else:
+    logging.debug('%r encrypted.')
+
+  return file_path + '.gpg'

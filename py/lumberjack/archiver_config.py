@@ -15,8 +15,8 @@ import tempfile
 
 from archiver import locks
 from archiver_exception import ArchiverFieldError
-from common import CheckAndLockFile, CheckExecutableExist, TryMakeDirs
-from subprocess import check_call, PIPE, Popen
+from common import (CheckAndLockFile, CheckExecutableExist,
+                    EncryptFile, TryMakeDirs)
 
 
 ALLOWED_DATA_TYPE = set(['eventlog', 'reports', 'regcode'])
@@ -264,56 +264,25 @@ class ArchiverConfig(object):
     --default-recipient flag of gpg.
 
     Raises:
+      ArchiverFieldError if gpg is not installed.
       ArchiverFieldError if public key cannot be accessed.
       ArchiverFieldError if any error on the dry-run.
     """
-    # Check GnuPG is installed.
-    if not CheckExecutableExist('gpg'):
-      raise ArchiverFieldError(
-          'GnuPG(gpg) is not callable. It is required for encryption.')
-    # List the existing keys via "gpg -k". This step is to make sure local
-    # gpg initializes its database so following commands can be run wihtout
-    # issues.
-    check_call(['gpg', '-k'])
-
     # Check if the public key's format and recipient are valid.
     # Since we don't have the private key, we can only verify if the public
-    # key is working properly with gpg.
-    path_to_key, recipient = encrypt_key_pair
-    path_to_key = os.path.abspath(path_to_key)
-
-    if not os.path.isfile(path_to_key):
-      raise ArchiverFieldError(
-          'Public key %r doesn\'t exist or not having enough permission'
-          'to load.' % path_to_key)
-    # Do a dry-run of encryption to see if gpg returned any error.
-    tmp_dir = tempfile.mkdtemp(prefix='FactoryArchiver_',
-                               suffix='_PublicKeyFormatTest')
-
-    logging.debug('Create %r for unittest', tmp_dir)
-    test_file_path = os.path.join(tmp_dir, 'content')
-    with open(test_file_path, 'w') as fd:
-      fd.write(test_file_path)
-    cmd_line = ['gpg', '--no-default-keyring', '--keyring', path_to_key,
-                '--trust-model', 'always', '--encrypt']
-    if recipient:
-      cmd_line += ['--recipient', recipient]
-    else:
-      recipient = 'google'
-      cmd_line += ['--default-recipient', recipient]
-
-    cmd_line.append(test_file_path)
-    p = Popen(cmd_line, stdout=PIPE, stderr=PIPE)
-    stdout, stderr = p.communicate()
-    if p.returncode != 0:
-      logging.error('Command %r failed. retcode[%r]\nstdout:\n%s\n\n'
-                    'stderr:\n%s\n', cmd_line, p.returncode, stdout, stderr)
-      raise ArchiverFieldError(
-          'Failed to encrypt with the public key %r and recipient %r' % (
-          path_to_key, recipient))
-
-    shutil.rmtree(tmp_dir)
-    logging.debug('%r deleted', tmp_dir)
+    # key is working properly with gpg. Hence, we do a dry-run of encryption
+    # to see if any exception raised.
+    try:
+      tmp_dir = tempfile.mkdtemp(prefix='FactoryArchiver_',
+                                 suffix='_PublicKeyFormatTest')
+      logging.debug('Create %r for unittest', tmp_dir)
+      test_file_path = os.path.join(tmp_dir, 'content')
+      with open(test_file_path, 'w') as fd:
+        fd.write(test_file_path)
+      EncryptFile(test_file_path, encrypt_key_pair)
+    finally:
+      shutil.rmtree(tmp_dir)
+      logging.debug('%r deleted', tmp_dir)
     self.encrypt_key_pair = encrypt_key_pair
 
   def CheckPropertiesSufficient(self):
