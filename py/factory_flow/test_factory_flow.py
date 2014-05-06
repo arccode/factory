@@ -232,6 +232,9 @@ class FactoryFlowRunner(object):
     self.log_dir = os.path.join(self.output_dir, 'logs')
     file_utils.TryMakeDirs(self.log_dir)
 
+  def CleanUp(self):
+    shutil.rmtree(self.output_dir)
+
   def RunTests(self, plan=None, dut=None):
     """Runs the given test plan.
 
@@ -471,6 +474,8 @@ def main():
       CmdArg('--plan', metavar='TEST_PLAN', help='the test plan to run'),
       CmdArg('--output-dir',
              help='output dir of the created bundle and test logs'),
+      CmdArg('--clean-up', action='store_true',
+             help='delete generated files and directories after test'),
       verbosity_cmd_arg
   ]
   args = ParseCmdline('Factory flow runner', *arguments)
@@ -480,9 +485,10 @@ def main():
       level=args.verbosity, datefmt='%Y-%m-%d %H:%M:%S')
 
   config = LoadConfig(board=args.board, filepath=args.file)
-  FactoryFlowRunner(config, output_dir=args.output_dir).RunTests(
-      plan=args.plan, dut=args.dut)
-
+  runner = FactoryFlowRunner(config, output_dir=args.output_dir)
+  runner.RunTests(plan=args.plan, dut=args.dut)
+  if args.clean_up:
+    runner.CleanUp()
 
 if __name__ == '__main__':
   main()

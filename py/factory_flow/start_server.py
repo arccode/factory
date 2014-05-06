@@ -141,6 +141,8 @@ class StartServer(FactoryFlowCommand):
   ]
 
   required_packages = ('net-ftp/tftp-hpa', 'net-misc/dhcp')
+  # Temporary directory to store generate files and server configs.
+  files_dir = None
 
   dhcp_server = None
   dhcp_server_log_file = None
@@ -158,20 +160,24 @@ class StartServer(FactoryFlowCommand):
   shopfloor_server_pid_file = None
 
   def Init(self):
+    self.files_dir = os.path.join(self.options.bundle, os.path.pardir,
+                                  'start_server')
+    file_utils.TryMakeDirs(self.files_dir)
+
     self.dhcp_server_log_file = os.path.join(
-        self.options.bundle, 'dhcpd.log')
+        self.files_dir, 'dhcpd.log')
     self.dhcp_server_pid_file = os.path.join(
-        self.options.bundle, 'dhcpd.pid')
+        self.files_dir, 'dhcpd.pid')
     self.tftp_server_pid_file = os.path.join(
-        self.options.bundle, 'tftpd.pid')
+        self.files_dir, 'tftpd.pid')
     self.download_server_log_file = os.path.join(
-        self.options.bundle, 'download_server.log')
+        self.files_dir, 'download_server.log')
     self.download_server_pid_file = os.path.join(
-        self.options.bundle, 'download_server.pid')
+        self.files_dir, 'download_server.pid')
     self.shopfloor_server_log_file = os.path.join(
-        self.options.bundle, 'shopfloor_server.log')
+        self.files_dir, 'shopfloor_server.log')
     self.shopfloor_server_pid_file = os.path.join(
-        self.options.bundle, 'shopfloor_server.pid')
+        self.files_dir, 'shopfloor_server.pid')
 
   def Run(self):
     self.StopAllServers()
@@ -202,8 +208,8 @@ class StartServer(FactoryFlowCommand):
         logging.info('PID file of %s found; shut down existing %s (PID=%d)',
                      name, name, pid)
         if process_utils.SpawnOutput(['pgrep', '-F', pid_file]):
-          # Send SIGINT to the process to gracefully stop it.
-          process_utils.Spawn(['kill', '-2', '%d' % pid],
+          # Send SIGKILL to the process to stop it.
+          process_utils.Spawn(['kill', '-SIGKILL', '%d' % pid],
                               log=True, check_call=True, sudo=True)
         else:
           logging.info(('Process with PID=%d not found; '
@@ -256,21 +262,22 @@ class StartServer(FactoryFlowCommand):
 
       if not self.options.subnet:
         self.options.subnet = self.options.host_ip.rsplit('.', 1)[0] + '.0'
-      cfg = tempfile.NamedTemporaryFile(prefix='dhcpd_', suffix='.conf',
-                                        delete=False)
-      logging.info('Generating temporary DHCPD config file %s', cfg.name)
-      cfg.write(DHCPD_CONF_TEMPLATE % dict(host_ip=self.options.host_ip,
-                                           dut_mac=self.options.dut_mac,
-                                           dut_ip=self.options.dut_ip,
-                                           subnet=self.options.subnet,
-                                           netmask=self.options.netmask))
-      cfg.flush()
-      dhcpd_conf = cfg.name
+      with tempfile.NamedTemporaryFile(
+          prefix='dhcpd_', suffix='.conf', delete=False,
+          dir=self.files_dir) as cfg:
+        logging.info('Generating temporary DHCPD config file %s', cfg.name)
+        cfg.write(DHCPD_CONF_TEMPLATE % dict(host_ip=self.options.host_ip,
+                                             dut_mac=self.options.dut_mac,
+                                             dut_ip=self.options.dut_ip,
+                                             subnet=self.options.subnet,
+                                             netmask=self.options.netmask))
+        cfg.flush()
+        dhcpd_conf = cfg.name
     else:
       # The default dhcpd config file.
       dhcpd_conf = '/etc/dhcp/dhcpd.conf'
-    lease = tempfile.NamedTemporaryFile(prefix='dhcpd_', suffix='.leases',
-                                        delete=False)
+    lease = tempfile.NamedTemporaryFile(
+        prefix='dhcpd_', suffix='.leases', delete=False, dir=self.files_dir)
     process_utils.Spawn(['touch', lease.name], check_call=True, log=True)
 
     logging.info('Starting DHCP server using config %s', dhcpd_conf)
@@ -317,7 +324,7 @@ class StartServer(FactoryFlowCommand):
       raise StartServerError('Expected netboot kernel %r not found' %
                              netboot_kernel_path)
 
-    tftpd_dir = tempfile.mkdtemp(prefix='tftp_')
+    tftpd_dir = tempfile.mkdtemp(prefix='tftp_', dir=self.files_dir)
     os.chmod(tftpd_dir, stat.S_IRWXU | stat.S_IXOTH)
     if netboot_kernel_path.endswith('vmlinux.bin'):
       tftpboot = tftpd_dir
@@ -373,10 +380,7 @@ class StartServer(FactoryFlowCommand):
 
     print DOWNLOAD_SERVER_MESSAGE % dict(
         download_server_port=port,
-        pid=self.download_server.pid,
-        download_server_log_file=self.download_server_log_file,
-        board=self.options.board.short_name,
-        bundle_dir=self.options.bundle)
+        download_server_log_file=self.download_server_log_file)
 
   def StartShopfloorServer(self):
     """Starts shopfloor server."""
