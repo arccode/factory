@@ -65,6 +65,9 @@ class ArchiverConfig(object):
       complete chunk in a file. It is a RegexObject (i.e. compiled regular
       expression during its assignment.)
     compress_format: Format of the archives, could be .tar.xz or .zip.
+    compress_in_place: False to copy content into a temporary directory before
+      compress it. Currently, only datatype of "reports" will need to be
+      in-place. Might consider exposing as an option in the future.
     encrypt_key_pair: A tuple of (path to the public key, recipient).
       Assign this implies using GnuPG (gpg) to generate archive that contains
       sensitive data.
@@ -73,22 +76,28 @@ class ArchiverConfig(object):
   source_file = None
   archived_dir = None
   recycle_dir = None
-  save_to_recycle_duration = 172800
+  save_to_recycle_duration = 172800  # Not being exposed to set
   project = None
   data_type = None
   notes = None
   duration = DEFAULT_DURATION
   delimiter = None
   compress_format = DEFAULT_FORMAT
+  compress_in_place = False  # Not being exposed to set
   encrypt_key_pair = None
 
   def __init__(self, data_type):
     self.data_type = data_type
     # Automatically infer properties for specific data_type.
-    if data_type in DEFAULT_DELIMITER:
-      logging.info('Using default delimiter %r fields for %r',
-                   DEFAULT_DELIMITER[data_type], data_type)
-      self.delimiter = re.compile(DEFAULT_DELIMITER[data_type])
+    if data_type in ALLOWED_DATA_TYPE:
+      # Infer the default value of delimiter
+      if data_type in DEFAULT_DELIMITER:
+        logging.info('Using default delimiter %r fields for %r',
+                     DEFAULT_DELIMITER[data_type], data_type)
+        self.delimiter = re.compile(DEFAULT_DELIMITER[data_type])
+      # Infer the default value of compress_in_place
+      if data_type == 'reports':
+        self.compress_in_place = True
 
   def __str__(self):
     # Print properties for debugging purpose.
@@ -108,6 +117,7 @@ class ArchiverConfig(object):
         'delimiter': (self.delimiter if not self.delimiter else
                       self.delimiter.pattern),
         'compress_format': self.compress_format,
+        'compress_in_place': self.compress_in_place,
         'encrypt_key_pair': self.encrypt_key_pair}
 
   def _CheckDirOrCreate(self, dir_path, create=False):
@@ -240,6 +250,7 @@ class ArchiverConfig(object):
       raise ArchiverFieldError(
           'command %r must be callable for compress_format %r' %
           ALLOWED_FORMAT[compress_format], compress_format)
+    self.compress_format = compress_format
 
   def SetEncryptKeyPair(self, encrypt_key_pair):
     """Sets the encrypt_key_pair property.

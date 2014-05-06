@@ -9,6 +9,7 @@
 #  and dynamic inject that path into the YAML configuration to avoid affecting
 #  other workflow.
 
+import glob
 import logging
 import os
 import shutil
@@ -16,8 +17,10 @@ import tempfile
 import time
 import unittest
 import yaml
+import zipfile
 
-from archiver import Archive, _CopyCompleteChunks, _ListEligibleFiles, _Recycle
+from archiver import (Archive, _IdentifyContentForArchiving,
+                      _ListEligibleFiles, _Recycle)
 from archiver_cli import main
 from archiver_config import (ArchiverConfig, CheckExecutableExist,
                              GenerateConfig, LockSource)
@@ -42,14 +45,13 @@ class ArchiverUnittest(unittest.TestCase):
     self.pwd = os.getcwd()
     # Create empty directory
     TryMakeDirs(os.path.join(TEST_DATA_PATH, 'archives'))
-    TryMakeDirs(os.path.join(TEST_DATA_PATH, 'raw/report'))
     TryMakeDirs(os.path.join(TEST_DATA_PATH, 'raw/regcode'))
     os.chdir(TEST_DATA_PATH)
 
   def tearDown(self):
     os.chdir(self.pwd)
     directories_to_delete = [
-      'archives', 'raw/report', 'raw/regcode',
+      'archives', 'raw/regcode',
       # Clean-up to make git status cleaner
       'raw/eventlog/20140406/.archiver', 'raw/eventlog/20140419/.archiver',
       'raw/eventlog/20140420/.archiver', 'raw/eventlog/20140421/.archiver']
@@ -213,8 +215,8 @@ class ArchiverUnittest(unittest.TestCase):
     # Delete the temporary lock file.
     os.unlink(lock_path)
 
-  def _resetCopyCompleteChunksMetadata(self, completed_bytes=None):
-    """Resets the metadata that solely used for _CopyCompleteChunks testing.
+  def _resetIdentifyContentForArchivingMetadata(self, completed_bytes=None):
+    """Resets the metadata that used for _IdentifyContentForArchiving testing.
 
     The metadata will be marked as all archived so other test will not be
     affected.
@@ -333,12 +335,12 @@ class ArchiverUnittest(unittest.TestCase):
     #   raw/eventlog/20140421/creating.inprogress
     #   raw/eventlog/20140421/creating.part
 
-    self._resetCopyCompleteChunksMetadata()
+    self._resetIdentifyContentForArchivingMetadata()
     ret_list = _ListEligibleFiles(configs[0].source_dir)
     self.assertItemsEqual(expected_list, ret_list)
 
 
-  def testCopyCompleteChunks(self):
+  def testIdentifyContentForArchiving(self):
     # In complete chunk at the end but still have chunks to archive.
     #    20140406/incomplete_with_chunks
     # In complete chunk at the end and no chunks to archive.
@@ -355,10 +357,11 @@ class ArchiverUnittest(unittest.TestCase):
                                suffix=config.data_type)
     logging.info('%r created for archiving data_type[%s]',
                  tmp_dir, config.data_type)
-    self._resetCopyCompleteChunksMetadata(completed_bytes=0)
+    self._resetIdentifyContentForArchivingMetadata(completed_bytes=0)
     self._resetListEligibleFilesMetadata()
     eligible_files = _ListEligibleFiles(config.source_dir)
-    archive_metadata = _CopyCompleteChunks(eligible_files, tmp_dir, config)
+    archive_metadata = _IdentifyContentForArchiving(
+        eligible_files, tmp_dir, config)
     expected_return = {
         '20140406/incomplete_with_chunks': {'start': 0, 'end': 352},
         '20140406/normal_chunks': {'start': 0, 'end': 666}
@@ -381,10 +384,11 @@ class ArchiverUnittest(unittest.TestCase):
                                suffix=config.data_type)
     logging.info('%r created for archiving data_type[%s]',
                  tmp_dir, config.data_type)
-    self._resetCopyCompleteChunksMetadata(completed_bytes=0)
+    self._resetIdentifyContentForArchivingMetadata(completed_bytes=0)
     self._resetListEligibleFilesMetadata()
     eligible_files = _ListEligibleFiles(config.source_dir)
-    archive_metadata = _CopyCompleteChunks(eligible_files, tmp_dir, config)
+    archive_metadata = _IdentifyContentForArchiving(
+        eligible_files, tmp_dir, config)
     expected_return = {
         '20140406/incomplete_without_chunks': {'start': 0, 'end': 311},
         '20140406/incomplete_with_chunks': {'start': 0, 'end': 411},
@@ -401,7 +405,7 @@ class ArchiverUnittest(unittest.TestCase):
     configs = GenerateConfig(yaml.load(content))
     config = configs[0]
 
-    self._resetCopyCompleteChunksMetadata(completed_bytes=0)
+    self._resetIdentifyContentForArchivingMetadata(completed_bytes=0)
     self._resetListEligibleFilesMetadata()
 
     Archive(config, next_cycle=False)
@@ -430,12 +434,11 @@ class ArchiverUnittest(unittest.TestCase):
     config = configs[0]
 
     # Prepare diectory
-    self._resetCopyCompleteChunksMetadata(completed_bytes=0)
+    self._resetIdentifyContentForArchivingMetadata(completed_bytes=0)
     tmp_dir = tempfile.mkdtemp(
         prefix='FactoryArchiver_', suffix='_unittest')
     logging.info('%r created for Recycle() unittest', tmp_dir)
     # Inject temporary path into configuration
-    #TEMP_TEST_DATA_PATH = os.path.join(tmp_dir, 'unittest')
     config.SetDir(
         os.path.join(tmp_dir, 'raw/eventlog'), 'source_dir', create=True)
     config.SetDir(
@@ -510,6 +513,57 @@ class ArchiverUnittest(unittest.TestCase):
         GetMetadataPath(regcode_path))
     self.assertEqual(37, metadata['completed_bytes'])
 
+    shutil.rmtree(tmp_dir)
+    logging.info('%r deleted', tmp_dir)
+
+  def testArchiveReports(self):
+    with open(os.path.join(TEST_DATA_PATH, 'template_reports.yaml')) as f:
+      content = f.read()
+    configs = GenerateConfig(yaml.load(content))
+    config = configs[0]
+    # Verify the compress_in_place flag is turned on.
+    self.assertTrue(config.compress_in_place)
+
+    # Prepare diectory
+    tmp_dir = tempfile.mkdtemp(
+        prefix='FactoryArchiver_', suffix='_unittest')
+    logging.info('%r created for Archive() reports unittest', tmp_dir)
+    # Inject temporary path into configuration
+    config.SetDir(
+        os.path.join(tmp_dir, 'raw/report'), 'source_dir', create=True)
+    config.SetDir(
+        os.path.join(tmp_dir, 'archives'), 'archived_dir', create=True)
+    shutil.copytree(
+      os.path.join(TEST_DATA_PATH, 'raw/report/20140406'),
+      os.path.join(tmp_dir, 'raw/report/20140406'))
+
+    # Make one of the reports as archived.
+    mock_archived_reports = [
+        'SMT-SEL0C150GNSSC380800037-20130812T235651Z.rpt.xz',
+        'SMT-SEL0C150GNSSC380800037-20130812T235651Z.rpt.xz.md5']
+    for archived in mock_archived_reports:
+      print "archived = %r" % archived
+      file_path = os.path.join(tmp_dir, 'raw/report/20140406', archived)
+      print "file_path = %r" % file_path
+      print "metadata_path = %r" % GetMetadataPath(file_path)
+      # Create metadata directory
+      GetOrCreateArchiverMetadata(GetMetadataPath(file_path))
+      with open(GetMetadataPath(file_path), 'w') as fd:
+        fd.write(GenerateArchiverMetadata(
+            completed_bytes=os.path.getsize(file_path)))
+    # Run Archive
+    Archive(config, next_cycle=False)
+
+    # Compare the content of the archive
+    zip_file_path = glob.glob(os.path.join(config.archived_dir,'*'))[0]
+    archived_files = zipfile.ZipFile(zip_file_path, 'r').namelist()
+    expected_files = [
+        '20140406/SMT-SEL0C150GNSSC380800037-20130812T235710Z.rpt.xz',
+        '20140406/SMT-SEL0C150GNSSC380800037-20130812T235710Z.rpt.xz.md5',
+        '20140406/FA-3812000001-20130814T022522Z.rpt.xz',
+        '20140406/FA-3812000001-20130814T022522Z.rpt.xz.md5',
+        'archive.metadata']
+    self.assertItemsEqual(expected_files, archived_files)
     shutil.rmtree(tmp_dir)
     logging.info('%r deleted', tmp_dir)
 

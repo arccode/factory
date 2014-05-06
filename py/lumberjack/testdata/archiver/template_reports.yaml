@@ -1,0 +1,7 @@
+data_types:
+  reports:
+    archived_dir: archives/
+    project: mocked_project
+    notes: template that contains only reports for unittest
+    source_dir: raw/report/
+    compress_format: .zip

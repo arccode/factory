@@ -76,7 +76,6 @@ def _ListEligibleFiles(dir_path):
   return ret
 
 
-
 def _GetRangeOfAppendedBytes(file_path, dir_path=None):
   """Returns a tuple indicating range of appended bytes.
 
@@ -140,10 +139,14 @@ def _UpdateArchiverMetadata(new_metadatas, config):
       fd.write(common.GenerateArchiverMetadata(
           completed_bytes=archived_range['end']))
 
-def _CopyCompleteChunks(files, tmp_dir, config):
-  """Identifies chunks and copies them into tmp_dir.
+def _IdentifyContentForArchiving(files, tmp_dir, config):
+  """Identifies chunks and prepare them into tmp_dir if necessary.
 
-  This function will copy the non archived, completed chunks into temporary
+  For in-place compression (config.compress_in_place is True), this will
+  generates the proper metdata for zip compression.
+
+  While config.compress_in_place is False, it will prepare content into
+  tmp_dir, copying the non archived, completed chunks into temporary
   directory for later processing. If no delimiter assigned in config, all
   non archived bytes will be treated as a complete chunk.
 
@@ -154,8 +157,12 @@ def _CopyCompleteChunks(files, tmp_dir, config):
     files:
       A list of tuple about non archived bytes in the form (start position,
       end position, full path of the file).
-    tmp_dir: Path to the temporary directory where new files are created.
-    config: An ArchiverConfig to indicate delimiter information.
+    tmp_dir:
+      Path to the temporary directory where new files are created. Will be
+      ignored if config.compress_in_place is True.
+    config:
+      An ArchiverConfig to indicate delimiter and compress_in_place
+      information.
 
   Returns:
     The metadata contains the copied bytes. In the form of a dictionary
@@ -174,42 +181,64 @@ def _CopyCompleteChunks(files, tmp_dir, config):
       os.path.dirname(config.source_file) if config.source_file else
       config.source_dir)
 
-  for start, end, filename in files:
-    logging.debug(
-        'Identifying appended bytes of %r into temporary directory %r',
-        filename, tmp_dir)
-    last_complete_chunk_pos = appended_length = end - start
-    with open(filename, 'r') as fd:
-      fd.seek(start)
-      appended = fd.read(appended_length)
-      # Search for the complete chunk
-      if config.delimiter:
-        matches = list(config.delimiter.finditer(appended, re.MULTILINE))
-        if not len(matches):
-          logging.debug('No complete chunk in appended bytes for %r', filename)
-          continue
-        last_complete_chunk_pos = matches[-1].end()
-        if (start + last_complete_chunk_pos) < end:
-          logging.debug('One incomplete chunk will be skipped: %r',
-                        appended[last_complete_chunk_pos:])
-        end = start + last_complete_chunk_pos
+  if config.compress_in_place:
+    logging.debug('Start propagate the list for compressing')
+    for start, end, filename in files:
+      # Every range for compress_in_place should be a complete file.
+      if start != 0 or end != os.path.getsize(filename):
+        error_msg = ('File %r got appended bytes detected as start:%d, '
+                     'end:%d. We expect start:0 end:%d as a completed file' %
+                     (filename, start, end, os.path.getsize(filename)))
+        logging.error(error_msg)
+        archive_failures.append(error_msg)
+        raise ArchiverFieldError(error_msg)
 
-    relative_path = os.path.relpath(filename, source_dir)
+      relative_path = os.path.relpath(filename, source_dir)
+      # Add to the metadata
+      archive_metadata['files'][relative_path] = {'start': start, 'end': end}
+      logging.debug('%r for archiving prepared.', filename)
 
-    # Create related sub-directories
-    tmp_full_path = os.path.join(tmp_dir, relative_path)
-    try:
-      common.TryMakeDirs(os.path.dirname(tmp_full_path), raise_exception=True)
-    except Exception:
-      logging.error(
-          'Failed to create sub-directory for %r in temporary folder %r',
-          tmp_full_path, tmp_dir)
+  else:  # Data for compression need to prepare into temporary directory
+    for start, end, filename in files:
+      logging.debug(
+          'Identifying appended bytes of %r into temporary directory %r',
+          filename, tmp_dir)
+      last_complete_chunk_pos = appended_length = end - start
+      with open(filename, 'r') as fd:
+        fd.seek(start)
+        appended = fd.read(appended_length)
+        # Search for the complete chunk
+        if config.delimiter:
+          matches = list(config.delimiter.finditer(appended, re.MULTILINE))
+          if not len(matches):
+            logging.debug(
+                'No complete chunk in appended bytes for %r', filename)
+            continue
+          last_complete_chunk_pos = matches[-1].end()
+          if (start + last_complete_chunk_pos) < end:
+            logging.debug('One incomplete chunk will be skipped: %r',
+                          appended[last_complete_chunk_pos:])
+          end = start + last_complete_chunk_pos
 
-    with open(tmp_full_path, 'w') as output_fd:
-      output_fd.write(appended[:last_complete_chunk_pos])
-    # Add to the metadata
-    archive_metadata['files'][relative_path] = {'start': start, 'end': end}
-    logging.debug('%r for archiving prepared.', filename)
+      relative_path = os.path.relpath(filename, source_dir)
+
+      # Create related sub-directories
+      tmp_full_path = os.path.join(tmp_dir, relative_path)
+      try:
+        common.TryMakeDirs(os.path.dirname(tmp_full_path),
+                           raise_exception=True)
+      except Exception:
+        error_msg = ('Failed to create sub-directory for %r in temporary'
+                     'folder %r' % (tmp_full_path, tmp_dir))
+        logging.error(error_msg)
+        archive_failures.append(error_msg)
+        raise ArchiverFieldError(error_msg)
+
+      with open(tmp_full_path, 'w') as output_fd:
+        output_fd.write(appended[:last_complete_chunk_pos])
+      # Add to the metadata
+      archive_metadata['files'][relative_path] = {'start': start, 'end': end}
+      logging.debug('%r for archiving prepared.', filename)
   return archive_metadata
 
 def _GenerateArchiveName(config):
@@ -389,7 +418,7 @@ def Archive(config, next_cycle=True):
   started_time = common.TimeString()
   generated_archive = None
 
-  def _UpdateMetadata(archive_metadata, started_time):
+  def _UpdateMetadataInArchive(archive_metadata, started_time):
     """Writes other information about current archiver and its enviornment."""
     archive_metadata['archiver']['started'] = started_time
     archive_metadata['archiver']['version_md5'] = (
@@ -421,6 +450,47 @@ def Archive(config, next_cycle=True):
     os.rename(tmp_archive, generated_archive)
     return generated_archive
 
+  def _CompressIntoZip(tmp_dir, archive_metadata, config):
+    """Writes metadata into tmp_dir and generates the zip archive."""
+    root_dir = (os.path.dirname(config.source_file) if
+        config.source_file else config.source_dir)
+    with open(os.path.join(tmp_dir, 'archive.metadata'), 'w') as fd:
+      fd.write(yaml.dump(archive_metadata, default_flow_style=False))
+    # Compress it.
+    generated_archive = os.path.join(
+        config.archived_dir, _GenerateArchiveName(config))
+    tmp_archive = generated_archive + '.part'
+    logging.info('Compressing %r into %r', tmp_dir, tmp_archive)
+    # Prepare the compress list
+    with open(os.path.join(tmp_dir, 'zip_list'), 'w') as fd:
+      fd.write('\n'.join(archive_metadata['files']))
+    cmd_line = ['zip', tmp_archive, '-@']
+    with open(os.path.join(tmp_dir, 'zip_list'), 'r') as fd:
+      # In order to keep correct relative path, we need to specify the cwd.
+      p = Popen(cmd_line, cwd=root_dir, stdin=fd, stdout=PIPE, stderr=PIPE)
+      stdout, stderr = p.communicate()
+    if p.returncode != 0:
+      error_msg = ('Command %r failed. retcode[%r]\nstdout:\n%s\n\n'
+                   'stderr:\n%s\n' % (cmd_line, p.returncode, stdout, stderr))
+      logging.error(error_msg)
+      archive_failures.append(error_msg)
+      raise ArchiverFieldError(error_msg)
+    # Append metadata into archive
+    cmd_line = ['zip', tmp_archive, 'archive.metadata']
+    p = Popen(cmd_line, cwd=tmp_dir, stdout=PIPE, stderr=PIPE)
+    stdout, stderr = p.communicate()
+    if p.returncode != 0:
+      error_msg = ('Command %r failed. retcode[%r]\nstdout:\n%s\n\n'
+                   'stderr:\n%s\n' % (cmd_line, p.returncode, stdout, stderr))
+      logging.error(error_msg)
+      archive_failures.append(error_msg)
+      raise ArchiverFieldError(error_msg)
+
+    # Remove .part suffix.
+    os.rename(tmp_archive, generated_archive)
+    return generated_archive
+
+
   try:
     tmp_dir = tempfile.mkdtemp(prefix='FactoryArchiver_',
                                suffix='_' + config.data_type)
@@ -439,26 +509,31 @@ def Archive(config, next_cycle=True):
         eligible_files = [
             (appended_range[0], appended_range[1], config.source_file)]
 
-    archive_metadata = _CopyCompleteChunks(eligible_files, tmp_dir, config)
-    if len(archive_metadata['files']) > 0:
-      _UpdateMetadata(archive_metadata, started_time)  # Write other info
-      # TODO(itspeter): Handle the .zip compress_format.
-      try:
-        generated_archive = _CompressIntoTarXz(tmp_dir,
-                                               archive_metadata, config)
+    try:  # If any of the steps fail, we don't want to proceed further.
+      archive_metadata = _IdentifyContentForArchiving(
+          eligible_files, tmp_dir, config)
+      if len(archive_metadata['files']) > 0:
+        _UpdateMetadataInArchive(archive_metadata, started_time)
+        # Generate the archive
+        if config.compress_format == '.tar.xz':
+          generated_archive = _CompressIntoTarXz(
+              tmp_dir, archive_metadata, config)
+        else:  #  .zip format.
+          generated_archive = _CompressIntoZip(
+              tmp_dir, archive_metadata, config)
+        # TODO(itspeter): Encrypt if required.
         # Update metadata data for archived files only when compression
         # succeed.
         _UpdateArchiverMetadata(archive_metadata['files'], config)
-      except ArchiverFieldError:
-        # Do not raise error since it will stop the archiver. We would like to
-        # give few more retires in coming cycle.
-        if len(archive_failures) > MAX_ALOOWED_FAILURES:
-          raise ArchiverFieldError(
-              'Archiver failed %d times. The error messages are\n%s\n' %
-              pprint.pformat(archive_failures))
-    else:
-      logging.info('No data available for archiving for %r', config.data_type)
-
+      else:
+        logging.info('No data available for archiving for %r', config.data_type)
+    except ArchiverFieldError:
+      # Do not raise error since it will stop the archiver. We would like to
+      # give few more retires in coming cycle.
+      if len(archive_failures) > MAX_ALOOWED_FAILURES:
+        raise ArchiverFieldError(
+            'Archiver failed %d times. The error messages are\n%s\n' %
+            pprint.pformat(archive_failures))
   finally:
     shutil.rmtree(tmp_dir)
     logging.info('%r deleted', tmp_dir)
