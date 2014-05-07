@@ -25,7 +25,7 @@ class FetchSourceInterface(object):
     raise NotImplementedError('Need the implementation in sub-class')
 
   def ListFiles(self):
-    """Returns a list of files exist in the source.
+    """Returns a list of files exist in the source recursively.
 
     Returns:
       A list containing tuples of (relative path from monitored
@@ -35,7 +35,7 @@ class FetchSourceInterface(object):
 
   def FetchFile(self, source_path, target_path,
                 metadata_path=None, resume=True):
-    """Fetches a file on remote’s source_path into local target_path.
+    """Fetches a file on remote's source_path into local target_path.
 
     This is a blocking function and progress will be updated in the
     metadata_path accordingly.
@@ -118,7 +118,7 @@ class UploadTargetInterface(object):
 
   def UploadFile(self, local_path, target_path,
                  metadata_path=None, resume=True):
-    """Uploads a file to Google’s storage.
+    """Uploads a file to Google's storage.
 
     This is a blocking function and progress will be updated in the
     metadata_path accordingly.
@@ -187,6 +187,7 @@ def main(argv):
 if __name__ == '__main__':
   # TODO(itspeter): Consider expose the logging level as an argument.
   logging.basicConfig(
-      format=('[%(levelname)s] archiver:%(lineno)d %(asctime)s %(message)s'),
+      format=('[%(levelname)s] %(filename)s:'
+              '%(lineno)d %(asctime)s %(message)s'),
       level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S')
   main(sys.argv[1:])
