@@ -89,6 +89,9 @@ class FactoryToolkitInstaller():
                  as its default value except for unit testing.
   """
 
+  # Whether to sudo when rsyncing; set to False for testing.
+  _sudo = True
+
   def __init__(self, src, dest, no_enable, system_root='/'):
     self._src = src
     self._system_root = system_root
@@ -179,25 +182,29 @@ class FactoryToolkitInstaller():
           '***' % self._tag_file)
     return ret
 
-  def _Rsync(self, src, dest):
-    print '***   %s -> %s' % (src, dest)
-    Spawn(['rsync', '-a', src + '/', dest],
-          sudo=True, log=True, check_output=True)
-
   def Install(self):
     print '*** Installing factory toolkit...'
-    self._Rsync(self._usr_local_src, self._usr_local_dest)
-    self._Rsync(self._var_src, self._var_dest)
+    for src, dest in ((self._usr_local_src, self._usr_local_dest),
+                      (self._var_src, self._var_dest)):
+      # Change the source directory to root, and add group/world read
+      # permissions.  This is necessary because when the toolkit was
+      # unpacked, the user may not have been root so the permessions
+      # may be hosed.  This is skipped for testing.
+      if self._sudo:
+        Spawn(['chown', '-R', 'root', src],
+              sudo=True, log=True, check_call=True)
+        Spawn(['chmod', '-R', 'go+rX', src],
+              sudo=True, log=True, check_call=True)
+      print '***   %s -> %s' % (src, dest)
+      Spawn(['rsync', '-a', src + '/', dest],
+            sudo=self._sudo, log=True, check_output=True)
 
     if self._no_enable:
       print '*** Removing factory enabled tag...'
-      try:
-        os.unlink(self._tag_file)
-      except OSError:
-        pass
+      Spawn(['rm', '-f', self._tag_file], sudo=True, log=True, check_call=True)
     else:
       print '*** Installing factory enabled tag...'
-      open(self._tag_file, 'w').close()
+      Spawn(['touch', self._tag_file], sudo=True, log=True, check_call=True)
 
     print '*** Installation completed.'
 

@@ -53,6 +53,7 @@ class ToolkitInstallerTest(unittest.TestCase):
   def createInstaller(self, enabled_tag=True, system_root='/'):
     self._installer = installer.FactoryToolkitInstaller(
         self.src, self.dest, not enabled_tag, system_root=system_root)
+    self._installer._sudo = False
 
   def testNonRoot(self):
     self.makeLiveDevice()
