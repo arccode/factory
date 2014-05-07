@@ -114,6 +114,20 @@ def GetHashFromResourceName(res_file):
   return match.group(3) if match else None
 
 
+def GetVersionFromResourceName(res_file):
+  """Gets version from resource file name.
+
+  Args:
+    res_file: path to a resource file
+
+  Returns:
+    Version in resource file name's second latest segment (# delimited).
+    None if res_file is ill-formed.
+  """
+  match = RESOURCE_FILE_PATTERN.match(res_file)
+  return match.group(2) if match else None
+
+
 # pylint: disable=R0901
 class BundleManifestIgnoreGlobLoader(yaml.Loader):
   """A YAML loader that loads factory bundle manifest with !glob ignored."""

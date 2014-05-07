@@ -28,6 +28,24 @@ class TestGetHashFromResourceName(unittest.TestCase):
         common.GetHashFromResourceName('/foo/bar/resources/buz#12345678'))
 
 
+class TestGetVersionFromResourceName(unittest.TestCase):
+  def testNormal(self):
+    self.assertEqual(
+        'ver1.1.1',
+        common.GetVersionFromResourceName(
+            '/foo/bar/resources/buz#ver1.1.1#12345678'))
+    self.assertEqual(
+        '',
+        common.GetVersionFromResourceName(
+            '/foo/bar/resources/buz##12345678'))
+
+  def testNoMatch(self):
+    self.assertIsNone(
+        common.GetVersionFromResourceName('/foo/bar/resources/buz'))
+    self.assertIsNone(
+        common.GetVersionFromResourceName('/foo/bar/resources/buz#12345678'))
+
+
 class TestVerifyResource(unittest.TestCase):
   def testNormal(self):
     with file_utils.TempDirectory() as temp_dir:
@@ -75,6 +93,10 @@ class TestParseResourceName(unittest.TestCase):
     self.assertTupleEqual(
         ('/foo/bar/resources/buz', '', '12345678'),
         common.ParseResourceName('/foo/bar/resources/buz##12345678'))
+
+    self.assertTupleEqual(
+        ('/foo/bar/resources/buz', 'ver1.1.1', '12345678'),
+        common.ParseResourceName('/foo/bar/resources/buz#ver1.1.1#12345678'))
 
   def testNoMatch(self):
     self.assertIsNone(common.ParseResourceName('/foo/bar/resources/buz'))
