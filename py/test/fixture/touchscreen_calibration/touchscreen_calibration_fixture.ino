@@ -269,7 +269,12 @@ boolean isDebugPressed() {
  * Is the jumper set?
  */
 boolean isJumperSet() {
-  return checkSensorValueTwice(jumper, JUMPER_ACTIVE_VALUE);
+  // In the factory, we would like to use the debug button anyway.
+  // It might be an hassle if check the jumper to determine if the debug
+  // button is enabled.
+  // Unmark the following statement if we determine to check it later.
+  // return checkSensorValueTwice(jumper, JUMPER_ACTIVE_VALUE);
+  return true;
 }
 
 /**
