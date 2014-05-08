@@ -3,14 +3,23 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import copy
 import getpass
 import logging
 import os
 import paramiko
+import pprint
+import stat
+import yaml
 
 import uploader
 
+from common import (GetMetadataPath, GetOrCreateMetadata,
+                    RegenerateUploaderMetadataFile,
+                    TimeString, UPLOADER_METADATA_DIRECTORY)
 from uploader_exception import UploaderConnectionError, UploaderFieldError
+
+BLOCK_SIZE = 32768  # 2^15, take paramiko's source as reference.
 
 
 class FetchSource(object):
@@ -69,7 +78,7 @@ class FetchSource(object):
       t = paramiko.Transport((self.host, self.port))
       t.connect(username=self.username, pkey=self.private_key)
       self._sftp = paramiko.SFTPClient.from_transport(t)
-      self._sftp.listdir('.')
+      self._sftp.chdir('.')
       return True
     except Exception as e:
       logging.debug('Failed to create SFTP channel. Reasons:\n%r\n', e)
@@ -92,7 +101,7 @@ class FetchSource(object):
 
     if self._sftp: # Verify if the sftp session is still valid.
       try:
-        self._sftp.listdir('.')
+        self._sftp.chdir('.')
       except:  # pylint: disable=W0702
         logging.info('SFTP session no longer valid, reconnect.')
         _ConnectWithRetries(retries)
@@ -123,18 +132,98 @@ class FetchSource(object):
   def _ListDirRecursively(self, dir_path, files):
     """Appends files recursively under dir_path into files.
 
-    The appended tuple will be in the form
+    The appended tuple will be in the form:
       A list containing tuples of (absolute path, file size,
       last modification timestamp - mtime)
     """
-    raise NotImplementedError()
+    self._Connect()
+    filenames = self._sftp.listdir(dir_path)
+    dirs = []
+    for filename in filenames:
+      full_path = os.path.join(dir_path, filename)
+      sftp_attr = self._sftp.lstat(full_path)
+      if stat.S_ISDIR(sftp_attr.st_mode):
+        dirs.append(full_path)
+      else:
+        files.append((full_path, sftp_attr.st_size, sftp_attr.st_mtime))
+    # Recursively on the dirs
+    for dir_full_path in dirs:
+      self._ListDirRecursively(dir_full_path, files)
 
-  def ListFiles(self):
-    raise NotImplementedError()
+  def ListFiles(self, file_pool=None):
+    files = []
+    self._ListDirRecursively(self.archive_path, files)
+    self._last_recursively_walk = files
+    logging.debug("Getting full list of files from source:\n%s\n",
+                  pprint.pformat(files))
+    if file_pool:
+      for full_path, file_size, mtime in files:
+        source_rel_path = os.path.relpath(full_path, self.archive_path)
+        metadata_path = GetMetadataPath(
+          os.path.join(file_pool, source_rel_path),
+          UPLOADER_METADATA_DIRECTORY)
+        metadata = GetOrCreateMetadata(
+            metadata_path, RegenerateUploaderMetadataFile)
+        file_metadata = metadata.setdefault('file', {})
+        file_metadata.update({'name': source_rel_path,
+                              'size': file_size,
+                              'last_modified': TimeString(mtime)})
+        with open(metadata_path, 'w') as metadata_fd:
+          metadata_fd.write(yaml.dump(metadata, default_flow_style=False))
+
+    return copy.copy(files)
 
   def FetchFile(self, source_path, target_path,
                 metadata_path=None, resume=True):
-    raise NotImplementedError()
+    def _UpdateDownloadMetadata():
+      metadata = GetOrCreateMetadata(
+          metadata_path, RegenerateUploaderMetadataFile)
+      download_metadata = metadata.setdefault('download', {})
+      download_metadata.update({'protocol': 'SFTP',
+                                'host': self.host,
+                                'port': self.port,
+                                'path': source_path,
+                                'downloaded_bytes': local_size,
+                                'percentage': local_size / float(remote_size)})
+      with open(metadata_path, 'w') as metadata_fd:
+        metadata_fd.write(yaml.dump(metadata, default_flow_style=False))
+
+    if metadata_path is None:
+      metadata_path = GetMetadataPath(
+          target_path, UPLOADER_METADATA_DIRECTORY)
+
+    self._Connect()
+    remote_size = self._sftp.stat(source_path).st_size
+    local_size = (os.path.getsize(target_path) if
+                  os.path.isfile(target_path) else 0)
+
+    if remote_size < local_size and resume:
+      logging.error('Size on source %r = %15d\nSize on local %r = %15d\n'
+                    'Not able to resume, will override it.',
+                    source_path, remote_size, target_path, local_size)
+      local_size = 0
+      resume = False
+
+    file_flag = 'ab' if resume else 'wb'
+    # Open a file on the remote.
+    with self._sftp.open(source_path, 'rb') as remote_fd:
+      if resume:  # Seek depends on resume flag
+        remote_fd.seek(local_size)
+        logging.info('Resume fetching %r on source at %15dn',
+                     source_path, local_size)
+      remote_fd.prefetch()
+      with open(target_path, file_flag) as local_fd:
+        while True:
+          buf = remote_fd.read(BLOCK_SIZE)
+          local_fd.write(buf)
+          local_fd.flush()
+          os.fsync(local_fd.fileno())
+          local_size += len(buf)
+          # Update metadta_path
+          _UpdateDownloadMetadata()
+          if len(buf) == 0:
+            break
+    return True
 
   def CalculateDigest(self, source_path):
     raise NotImplementedError()

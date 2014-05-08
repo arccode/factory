@@ -16,8 +16,12 @@ import logging
 from archiver_exception import ArchiverFieldError
 from subprocess import check_call, PIPE, Popen
 
-METADATA_DIRECTORY = '.archiver'  # For storing metadata.
+# For storing metadata.
+ARCHIVER_METADATA_DIRECTORY = '.archiver'
+UPLOADER_METADATA_DIRECTORY = '.uploader'
 
+class MetadataFieldError(Exception):
+  pass
 
 def IsValidYAMLFile(arg):
   """Help function to reject invalid YAML syntax"""
@@ -131,8 +135,20 @@ def TimeString(unix_time=None, time_separator=':', milliseconds=True):
 
 
 def GenerateArchiverMetadata(completed_bytes=0):
-  """Returns a string that can be written directly into the metadata file."""
+  """Returns a string of default metadata of archiver.
+
+  Args:
+    completed_bytes:
+      An interger that replace the default value of metadata.
+  """
   return yaml.dump({'completed_bytes': completed_bytes})
+
+
+def GenerateUploaderMetadata():
+  """Returns a string of default metadata of uploader."""
+  return yaml.dump({'files': {}, 'download': {}, 'upload': {}},
+                   default_flow_style=False)
+
 
 
 # TODO(itspeter):
@@ -157,11 +173,12 @@ def GetMD5ForFiles(files, base_dir=None):
   return md5_hash.hexdigest()
 
 
-def GetMetadataPath(file_path, dir_path=None):
+def GetMetadataPath(file_path, metadata_dirname, dir_path=None):
   """Returns the metadata path of file_path.
 
   Args:
     file_path: The path to the file that we want its metadata's path.
+    metadata_dirname: The directory name of the metadata
     dir_path:
       The directory path of the file_path. If the caller has the infomation
       of its directory name in place, we can save a call of calling
@@ -174,11 +191,11 @@ def GetMetadataPath(file_path, dir_path=None):
     dir_path = os.path.dirname(file_path)
 
   return os.path.join(
-      dir_path, METADATA_DIRECTORY,
+      dir_path, metadata_dirname,
       os.path.basename(file_path) + '.metadata')
 
 
-def GetOrCreateArchiverMetadata(metadata_path):
+def GetOrCreateMetadata(metadata_path, default_metadata_func):
   """Returns a dictionary based on the metadata of file.
 
   Regenerate metadata if it is not a valid YAML format
@@ -186,6 +203,9 @@ def GetOrCreateArchiverMetadata(metadata_path):
 
   Args:
     metadata_path: The path to the metadata.
+    default_metadata_func:
+      Function to call when invalid metadata found. The metadata_path will be
+      passed as its argument.
 
   Returns:
     A dictionary of the parsed YAML from metadata file.
@@ -195,8 +215,7 @@ def GetOrCreateArchiverMetadata(metadata_path):
   try:
     TryMakeDirs(metadata_dir, raise_exception=True)
   except Exception:
-    logging.error('Failed to create metadata directory %r for archiver',
-                  metadata_dir)
+    logging.exception('Failed to create metadata directory %r', metadata_dir)
 
   fd = os.fdopen(os.open(metadata_path, os.O_RDWR | os.O_CREAT), 'r+')
   content = fd.read()
@@ -206,14 +225,32 @@ def GetOrCreateArchiverMetadata(metadata_path):
       metadata = yaml.load(content)
       # Check if it is a dictionary
       if not isinstance(metadata, dict):
-        raise ArchiverFieldError(
+        raise MetadataFieldError(
             'Unexpected metadata format, should be a dictionary')
       return metadata
-    except (yaml.YAMLError, ArchiverFieldError):
-      logging.info(
-          'Metadata %r seems corrupted. YAML syntax error or not a '
-          'dictionary. Reconstruct it.', metadata_path)
-  return yaml.load(RegenerateArchiverMetadataFile(metadata_path))
+    except yaml.YAMLError:
+      logging.exception('Metadata %r seems corrupted. YAML syntax error.'
+                        'Reconstruct it.', metadata_path)
+    except MetadataFieldError:
+      logging.exception('Metadata %r seems corrupted. It is not a '
+                        'dictionary. Reconstruct it.', metadata_path)
+  return yaml.load(default_metadata_func(metadata_path))
+
+
+def RegenerateUploaderMetadataFile(metadata_path):
+  """Regenerates the metadata file for uploader.
+
+  Args:
+    metadata_path: The path to the metadata.metadata
+
+  Returns:
+    Retrns the string it writes into the metadata_path
+  """
+  logging.info('Re-generate metadata at %r', metadata_path)
+  ret_str = GenerateUploaderMetadata()
+  with open(metadata_path, 'w') as fd:
+    fd.write(ret_str)
+  return ret_str
 
 
 def RegenerateArchiverMetadataFile(metadata_path):
@@ -261,7 +298,7 @@ def EncryptFile(file_path, encrypt_key_pair, delete=False):
   # List the existing keys via "gpg -k". This step is to make sure local
   # gpg initializes its database so following commands can be run wihtout
   # issues.
-  check_call(['gpg', '-k'])
+  check_call(['gpg', '--no-tty', '-k']) # Disable the tty output side effect
 
   # Check if the public key's format and recipient are valid.
   # Since we don't have the private key, we can only verify if the public
@@ -275,7 +312,8 @@ def EncryptFile(file_path, encrypt_key_pair, delete=False):
         'Public key %r doesn\'t exist or not having enough permission'
         'to load.' % path_to_key)
 
-  cmd_line = ['gpg', '--no-default-keyring', '--keyring', path_to_key,
+  cmd_line = ['gpg', '--batch', '--no-tty',  # Disable the tty output
+              '--no-default-keyring', '--keyring', path_to_key,
               '--trust-model', 'always', '--encrypt']
   if recipient:
     cmd_line += ['--recipient', recipient]

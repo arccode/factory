@@ -25,8 +25,9 @@ from archiver_cli import main
 from archiver_config import (ArchiverConfig, CheckExecutableExist,
                              GenerateConfig, LockSource)
 from archiver_exception import ArchiverFieldError
-from common import (GenerateArchiverMetadata, GetMetadataPath,
-                    GetOrCreateArchiverMetadata, TryMakeDirs,
+from common import (ARCHIVER_METADATA_DIRECTORY, GenerateArchiverMetadata,
+                    GetMetadataPath, GetOrCreateMetadata,
+                    RegenerateArchiverMetadataFile, TryMakeDirs,
                     WriteAndTruncateFd)
 from multiprocessing import Process
 from subprocess import PIPE, Popen
@@ -65,6 +66,7 @@ class ArchiverUnittest(unittest.TestCase):
     # Delete lock file
     lock_file_to_delete = [
         'raw/eventlog/.archiver.lock',
+        'raw/report/.archiver.lock',
         'raw/.mocked_regcode.csv.archiver.lock']
     for lock_file in lock_file_to_delete:
       try:
@@ -231,7 +233,8 @@ class ArchiverUnittest(unittest.TestCase):
       filename = os.path.join(EVENT_LOG_PATH, filename)
       filesize = (os.path.getsize(filename) if completed_bytes is None else
                   completed_bytes)
-      with open(GetMetadataPath(filename), 'w') as fd:
+      with open(
+          GetMetadataPath(filename, ARCHIVER_METADATA_DIRECTORY), 'w') as fd:
         WriteAndTruncateFd(
             fd, GenerateArchiverMetadata(
                 completed_bytes=filesize))
@@ -255,7 +258,8 @@ class ArchiverUnittest(unittest.TestCase):
           os.path.join(EVENT_LOG_PATH,
                        os.path.dirname(filename), '.archiver'))
       filename = os.path.join(EVENT_LOG_PATH, filename)
-      with open(GetMetadataPath(filename), 'w') as fd:
+      with open(
+          GetMetadataPath(filename, ARCHIVER_METADATA_DIRECTORY), 'w') as fd:
         WriteAndTruncateFd(
             fd, GenerateArchiverMetadata(
                 completed_bytes=os.path.getsize(filename)))
@@ -276,7 +280,8 @@ class ArchiverUnittest(unittest.TestCase):
         os.path.join(EVENT_LOG_PATH, '20140419/.archiver'))
     filename = os.path.join(
         EVENT_LOG_PATH, '20140419/some_incomplete_bytes_appeneded')
-    with open(GetMetadataPath(filename), 'w') as fd:
+    with open(
+        GetMetadataPath(filename, ARCHIVER_METADATA_DIRECTORY), 'w') as fd:
       WriteAndTruncateFd(
           fd, GenerateArchiverMetadata(completed_bytes=10))
     expected_list.append((10, os.path.getsize(filename), filename))
@@ -286,7 +291,8 @@ class ArchiverUnittest(unittest.TestCase):
     #   raw/eventlog/20140419/no_bytes_appended
     #   raw/eventlog/20140419/.archiver/no_bytes_appeneded.metadata
     filename = os.path.join(EVENT_LOG_PATH, '20140419/no_bytes_appended')
-    with open(GetMetadataPath(filename), 'w') as fd:
+    with open(
+        GetMetadataPath(filename, ARCHIVER_METADATA_DIRECTORY), 'w') as fd:
       WriteAndTruncateFd(
           fd, GenerateArchiverMetadata(
               completed_bytes=os.path.getsize(filename)))
@@ -299,7 +305,8 @@ class ArchiverUnittest(unittest.TestCase):
     #   raw/eventlog/20140420/corrupted_metadata_1
     #   raw/eventlog/20140420/.archiver/corrupted_metadata_1.metadata
     filename = os.path.join(EVENT_LOG_PATH, '20140420/corrupted_metadata_1')
-    with open(GetMetadataPath(filename), 'w') as fd:
+    with open(
+        GetMetadataPath(filename, ARCHIVER_METADATA_DIRECTORY), 'w') as fd:
       WriteAndTruncateFd(fd, ' - where_is_my_bracket: ][')
     expected_list.append((0, os.path.getsize(filename), filename))
 
@@ -307,7 +314,8 @@ class ArchiverUnittest(unittest.TestCase):
     #   raw/eventlog/20140420/corrupted_metadata_2
     #   raw/eventlog/20140420/.archiver/corrupted_metadata_2.metadata
     filename = os.path.join(EVENT_LOG_PATH, '20140420/corrupted_metadata_2')
-    with open(GetMetadataPath(filename), 'w') as fd:
+    with open(
+       GetMetadataPath(filename, ARCHIVER_METADATA_DIRECTORY), 'w') as fd:
       WriteAndTruncateFd(fd, '- a\n- b\n- c\n')
     expected_list.append((0, os.path.getsize(filename), filename))
 
@@ -315,7 +323,8 @@ class ArchiverUnittest(unittest.TestCase):
     #   raw/eventlog/20140420/corrupted_metadata_3
     #   raw/eventlog/20140420/.archiver/corrupted_metadata_3.metadata
     filename = os.path.join(EVENT_LOG_PATH, '20140420/corrupted_metadata_3')
-    with open(GetMetadataPath(filename), 'w') as fd:
+    with open(
+      GetMetadataPath(filename, ARCHIVER_METADATA_DIRECTORY), 'w') as fd:
       WriteAndTruncateFd(
           fd, GenerateArchiverMetadata(
               completed_bytes=os.path.getsize(filename) + 1))
@@ -327,7 +336,7 @@ class ArchiverUnittest(unittest.TestCase):
     filename = os.path.join(EVENT_LOG_PATH, '20140421/new_created_file')
     try:
       # Make sure no metadata for this file.
-      os.unlink(GetMetadataPath(filename))
+      os.unlink(GetMetadataPath(filename, ARCHIVER_METADATA_DIRECTORY))
     except Exception:  # pylint=disable,W0702
       pass
     expected_list.append((0, os.path.getsize(filename), filename))
@@ -416,8 +425,10 @@ class ArchiverUnittest(unittest.TestCase):
                                 ('20140406/normal_chunks', 666)]
     for filename, completed_bytes in expected_completed_bytes:
       metadata_path = GetMetadataPath(
-          os.path.join(config.source_dir, filename))
-      metadata = GetOrCreateArchiverMetadata(metadata_path)
+          os.path.join(config.source_dir, filename),
+          ARCHIVER_METADATA_DIRECTORY)
+      metadata = GetOrCreateMetadata(
+          metadata_path, RegenerateArchiverMetadataFile)
       self.assertEqual(completed_bytes, metadata['completed_bytes'])
 
   def testCheckExecutableExistNormal(self):
@@ -504,14 +515,16 @@ class ArchiverUnittest(unittest.TestCase):
 
     Archive(config, next_cycle=False)
     # Check if the metadata updated as expected.
-    metadata = GetOrCreateArchiverMetadata(
-        GetMetadataPath(regcode_path))
+    metadata = GetOrCreateMetadata(
+        GetMetadataPath(regcode_path, ARCHIVER_METADATA_DIRECTORY),
+        RegenerateArchiverMetadataFile)
     self.assertEqual(21, metadata['completed_bytes'])
     with open(regcode_path, 'a') as fd:  # Complete the delimiter
       fd.write('\n')
     Archive(config, next_cycle=False)
-    metadata = GetOrCreateArchiverMetadata(
-        GetMetadataPath(regcode_path))
+    metadata = GetOrCreateMetadata(
+        GetMetadataPath(regcode_path, ARCHIVER_METADATA_DIRECTORY),
+        RegenerateArchiverMetadataFile)
     self.assertEqual(37, metadata['completed_bytes'])
 
     shutil.rmtree(tmp_dir)
@@ -553,8 +566,9 @@ class ArchiverUnittest(unittest.TestCase):
     for archived in mock_archived_reports:
       file_path = os.path.join(tmp_dir, 'raw/report/20140406', archived)
       # Create metadata directory
-      GetOrCreateArchiverMetadata(GetMetadataPath(file_path))
-      with open(GetMetadataPath(file_path), 'w') as fd:
+      metadata_path = GetMetadataPath(file_path, ARCHIVER_METADATA_DIRECTORY)
+      GetOrCreateMetadata(metadata_path, RegenerateArchiverMetadataFile)
+      with open(metadata_path, 'w') as fd:
         fd.write(GenerateArchiverMetadata(
             completed_bytes=os.path.getsize(file_path)))
     expected_files = [
@@ -591,7 +605,8 @@ class ArchiverUnittest(unittest.TestCase):
     # Try to decrypt it and verify the content
     encrypted_file_path = glob.glob(os.path.join(config.archived_dir,'*'))[0]
     cmd_line = [
-        'gpg', '--output', encrypted_file_path[:-4], '--no-default-keyring',
+        'gpg', '--batch', '--no-tty',  # Disable the tty output side effect
+        '--output', encrypted_file_path[:-4], '--no-default-keyring',
         '--keyring', public_key_path, '--secret-keyring', private_key_path,
         '--trust-model', 'always', '--passphrase', 'testkey', '--decrypt',
         encrypted_file_path]

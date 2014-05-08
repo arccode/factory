@@ -21,7 +21,7 @@ from subprocess import PIPE, Popen
 from twisted.internet import reactor
 
 import common
-from common import EncryptFile, GetMetadataPath, METADATA_DIRECTORY
+from common import EncryptFile, GetMetadataPath, ARCHIVER_METADATA_DIRECTORY
 
 SNAPSHOT = '.snapshot'
 # These suffix indicate another process is using.
@@ -53,7 +53,7 @@ def _ListEligibleFiles(dir_path):
   for current_dir, _, filenames in os.walk(dir_path):
     # The second arguments is sub-directories that we don't care because
     # we focus on files and os.walk will traverse all of them eventually.
-    if os.path.basename(current_dir) == METADATA_DIRECTORY:
+    if os.path.basename(current_dir) == ARCHIVER_METADATA_DIRECTORY:
       logging.debug('Metadata directory %r found, skipped.', current_dir)
       continue
     logging.debug('Scanning directory %r...', current_dir)
@@ -96,8 +96,10 @@ def _GetRangeOfAppendedBytes(file_path, dir_path=None):
     reasonable (i.e. end_pos > start_pos). It levaes to caller to decide
     how to cope with these tuple.
   """
-  metadata_path = GetMetadataPath(file_path, dir_path)
-  metadata = common.GetOrCreateArchiverMetadata(metadata_path)
+  metadata_path = GetMetadataPath(
+      file_path, ARCHIVER_METADATA_DIRECTORY, dir_path)
+  metadata = common.GetOrCreateMetadata(
+      metadata_path, common.RegenerateArchiverMetadataFile)
 
   current_size = os.path.getsize(file_path)
   # current_size+1 to trigger if completed_bytes is not in the dictionary.
@@ -133,7 +135,7 @@ def _UpdateArchiverMetadata(new_metadatas, config):
 
   for filename, archived_range in new_metadatas.iteritems():
     full_path = os.path.join(root_dir, filename)
-    metadata_path = GetMetadataPath(full_path)
+    metadata_path = GetMetadataPath(full_path, ARCHIVER_METADATA_DIRECTORY)
     logging.info('Updating %s', metadata_path)
     with open(metadata_path, 'w') as fd:
       fd.write(common.GenerateArchiverMetadata(
@@ -328,7 +330,7 @@ def _Recycle(config):
     return False
 
   for current_dir, sub_dirs, filenames in os.walk(config.source_dir):
-    if os.path.basename(current_dir) == METADATA_DIRECTORY:
+    if os.path.basename(current_dir) == ARCHIVER_METADATA_DIRECTORY:
       logging.debug('Metadata directory %r found, skipped.', current_dir)
       continue
     # Check if the directory format are recognizable.
@@ -338,7 +340,7 @@ def _Recycle(config):
                     dir_time_in_secs)
       continue
     # Make sure the directory is the deepest (i.e. not more sub_dirs)
-    if not (len(sub_dirs) == 1 and sub_dirs[0] == METADATA_DIRECTORY):
+    if not (len(sub_dirs) == 1 and sub_dirs[0] == ARCHIVER_METADATA_DIRECTORY):
       logging.debug('Directory %r still have sub-directories %r, not suitable'
                     ' for screenshot creating. Will be skipped.',
                     current_dir, sub_dirs)
@@ -353,7 +355,8 @@ def _Recycle(config):
       new_snapshot.append({'path': filename, 'mtime': mtime, 'size': size})
     # Sort the new_snapshot by filename
     new_snapshot.sort(key=lambda _dict: _dict['path'])
-    snapshot_path = os.path.join(current_dir, METADATA_DIRECTORY, SNAPSHOT)
+    snapshot_path = os.path.join(
+        current_dir, ARCHIVER_METADATA_DIRECTORY, SNAPSHOT)
     # Check if the time criteria is already matched.
     if time.time() - dir_time_in_secs < config.save_to_recycle_duration:
       logging.debug(

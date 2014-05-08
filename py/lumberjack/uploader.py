@@ -24,8 +24,17 @@ class FetchSourceInterface(object):
     """
     raise NotImplementedError('Need the implementation in sub-class')
 
-  def ListFiles(self):
+  def ListFiles(self, file_pool):
     """Returns a list of files exist in the source recursively.
+
+    Args:
+      file_pool:
+        A local path that we anticipate to store those files, usually
+        provided by the uploader's main logic (the path should be
+        assigned in uploader's configuration and created before
+        calling this funtion).
+        If assigned, this function will update the metadata of listed
+        files as well.
 
     Returns:
       A list containing tuples of (relative path from monitored
@@ -50,6 +59,9 @@ class FetchSourceInterface(object):
         given, the path will be automatically inferred.
       resume:
         Whether to resume the transmission if possible.
+
+    Returns:
+      True if fetching completed.
     """
     raise NotImplementedError('Need the implementation in sub-class')
 
