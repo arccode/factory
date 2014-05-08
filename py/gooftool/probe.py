@@ -743,7 +743,14 @@ def _ProbeCpuArm():
 def _ProbeDisplayPanel():
   """Combine all available edid data, from sysfs and directly from the i2c."""
   edid_list = []
-  for path in glob('/sys/class/drm/*LVDS*/edid'):
+  glob_list = [
+      '/sys/class/drm/*LVDS*/edid',
+      '/sys/kernel/debug/edid*',
+      ]
+  path_list = []
+  for path in glob_list:
+    path_list += glob(path)
+  for path in path_list:
     with open(path) as f:
       parsed_edid = edid.Parse(f.read())
       if parsed_edid:

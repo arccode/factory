@@ -10,8 +10,10 @@
 """
 
 
+import binascii
 import logging
 import os
+import re
 
 from fcntl import ioctl
 from time import sleep
@@ -38,9 +40,46 @@ CHECKSUM_OFFSET = 127
 MINIMAL_SIZE = 128
 MANUFACTURER_ID_BITS = 5
 
+PREFIX_TEGRA = 'edid[000]'
 
-def Parse(blob):
-  """EDID Parser (light-weight parse-edid replacement).
+
+def Parse(content):
+  """Public interface of EDID parser.
+
+  Args:
+    content: EDID data retrieved from device.
+  """
+  # Check if it's from Tegra.
+  if content.startswith(PREFIX_TEGRA):
+    return _ParseTegra(content)
+  else:
+    return _ParseBinaryBlob(content)
+
+def _ParseTegra(content):
+  """Parser for EDID data exported by tegra_edid driver.
+
+  When tegra_edid driver is used, the exported EDID is in text format, ex:
+
+    edid[000] = 00 ff ff ff ff ff ff 00 06 af 2c 13 00 00 00 00
+    edid[010] = 00 18 01 03 80 1d 10 78 0a bb f5 94 55 54 90 27
+    edid[020] = 23 50 54 00 00 00 01 01 01 01 01 01 01 01 01 01
+    edid[030] = 01 01 01 01 01 01 26 1b 56 64 50 00 16 30 30 20
+    edid[040] = 36 00 25 a4 10 00 00 18 00 00 00 0f 00 00 00 00
+    edid[050] = 00 00 00 00 00 00 00 00 00 20 00 00 00 fe 00 41
+    edid[060] = 55 4f 0a 20 20 20 20 20 20 20 20 20 00 00 00 fe
+    edid[070] = 00 42 31 33 33 58 54 4e 30 31 2e 33 20 0a 00 4b
+
+  Thus, we have to strip the first 12 characters, all white spaces, and all
+  newline characters, then transform the rest from hex code into a binary blob.
+
+  Args:
+    content: EDID file content from a Tegra device.
+  """
+  return _ParseBinaryBlob(binascii.unhexlify(
+      re.sub(r'\s|(edid\[\d{3}\] = )', '', content)))
+
+def _ParseBinaryBlob(blob):
+  """Binary EDID Parser (light-weight parse-edid replacement).
 
   Simple parsing of EDID.  The full-feature parser (parse-edid) has
   many more dependencies, and so is too heavy-weight for use here.
