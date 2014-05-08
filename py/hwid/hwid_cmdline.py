@@ -106,16 +106,17 @@ def VerifyHWIDWrapper(options):
 
 @Command(
     'verify-components',
-    CmdArg('-c', '--components', default=[],
+    CmdArg('-c', '--components', default=None,
            help='the list of component classes to verify'),
-    CmdArg('--fast-fw-probe', default=True,
-           help='probe only firmware and EC version strings'))
+    CmdArg('--no-fast-fw-probe', dest='fast_fw_probe', action='store_false',
+           default=True, help='probe only firmware and EC version strings'))
 def VerifyComponentsWrapper(options):
   """Verifies components."""
   if not options.components:
     probed_results = hwid_utils.GetProbedResults(
         fast_fw_probe=options.fast_fw_probe)
   else:
+    options.components = [v.strip() for v in options.components.split(',')]
     if set(['ro_ec_firmware', 'ro_main_firmware']) & set(options.components):
       probe_volatile = True
     else:
@@ -124,8 +125,18 @@ def VerifyComponentsWrapper(options):
         target_comp_classes=options.components,
         fast_fw_probe=options.fast_fw_probe,
         probe_volatile=probe_volatile, probe_initial_config=False)
-  hwid_utils.VerifyComponents(options.database, probed_results,
-                              options.components)
+  result = hwid_utils.VerifyComponents(options.database, probed_results,
+                                       options.components)
+  failed = []
+  for comp_cls, comps in result.iteritems():
+    for comp_result in comps:
+      if comp_result.error:
+        failed.append('%s: %s' % (comp_cls, comp_result.error))
+  if failed:
+    print 'Verification failed for the following components:'
+    print '\n'.join(failed)
+  else:
+    print 'Verification passed.'
 
 
 @Command(
