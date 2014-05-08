@@ -8,10 +8,9 @@ import logging
 import os
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.umpire.common import (BUNDLE_FACTORY_TOOLKIT_PATH,
-                                        GetHashFromResourceName)
+from cros.factory.umpire.common import BUNDLE_FACTORY_TOOLKIT_PATH
+from cros.factory.umpire.utils import UnpackFactoryToolkit
 from cros.factory.utils import file_utils
-from cros.factory.utils import process_utils
 from cros.factory.utils import sys_utils
 
 
@@ -21,6 +20,7 @@ _SUB_DIRS = ['bin', 'dashboard', 'log', 'resources', 'run', 'toolkits',
 # Relative path of Umpire CLI in toolkit directory.
 _UMPIRE_CLI_IN_TOOLKIT_PATH = os.path.join('usr', 'local', 'factory', 'bin',
                                            'umpire')
+
 
 def Init(env, bundle_dir, board, make_default, local, user, group,
          root_dir='/'):
@@ -70,23 +70,10 @@ def Init(env, bundle_dir, board, make_default, local, user, group,
     # If it fails to add resource, it raises an exception and not
     # going forward.
     toolkit_resource = env.AddResource(toolkit_path)
-    toolkit_hash = GetHashFromResourceName(toolkit_resource)
-
-    for toolkit_dir in [os.path.join(d, toolkit_hash) for d in [
-        env.server_toolkits_dir, env.client_toolkits_dir]]:
-      # Extract to temp directory first then move the directory to prevent
-      # keeping a broken toolkit.
-      with file_utils.TempDirectory() as temp_dir:
-        process_utils.Spawn([toolkit_path, '--noexec', '--target', temp_dir],
-                            check_call=True)
-        # Create toolkit directory's base directory first.
-        toolkit_dir_base = os.path.split(toolkit_dir)[0]
-        if not os.path.isdir(toolkit_dir_base):
-          os.makedirs(toolkit_dir_base)
-
-        os.rename(temp_dir, toolkit_dir)
-        logging.info('Factory toolkit extracted to %s', toolkit_dir)
-    return os.path.join(env.server_toolkits_dir, toolkit_hash)
+    unpack_dir = UnpackFactoryToolkit(env, toolkit_resource,
+                                      device_toolkit=False)
+    logging.info('Factory toolkit extracted to %s', unpack_dir)
+    return unpack_dir
 
   def SymlinkBinary(toolkit_base):
     """Creates /usr/local/bin/umpire-board symlink.

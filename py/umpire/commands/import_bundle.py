@@ -21,6 +21,7 @@ import yaml
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.common import ParseResourceName, UmpireError
+from cros.factory.umpire.utils import UnpackFactoryToolkit
 from cros.factory.utils import file_utils
 
 
@@ -328,6 +329,10 @@ class BundleImporter(object):
     resources['server_factory_toolkit'] = AddResource(
         self._factory_bundle.factory_toolkit)
     resources['device_factory_toolkit'] = resources['server_factory_toolkit']
+
+    # Unpack device_factory_toolkit.
+    UnpackFactoryToolkit(self._env, resources['device_factory_toolkit'])
+
     resources['netboot_kernel'] = AddResource(
         self._factory_bundle.netboot_image)
     resources['update_bundle'] = AddResource(
@@ -363,7 +368,3 @@ class BundleImporter(object):
         'note': 'Please update match rule in ruleset',
         'active': False}
     rulesets.insert(0, ruleset)
-
-
-
-

@@ -56,8 +56,6 @@ class InitTest(unittest.TestCase):
   def VerifyToolkitExtracted(self):
     self.assertTrue(os.path.exists(os.path.join(
         self.env.server_toolkits_dir, TOOLKIT_MD5, UMPIRE_RELATIVE_PATH)))
-    self.assertTrue(os.path.exists(os.path.join(
-        self.env.client_toolkits_dir, TOOLKIT_MD5, UMPIRE_RELATIVE_PATH)))
 
   def testDefault(self):
     self.MockOsModule()

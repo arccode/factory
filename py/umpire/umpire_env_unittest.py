@@ -233,7 +233,7 @@ class UmpireEnvTest(unittest.TestCase):
   def testGetBundleDeviceToolkit(self):
     with file_utils.TempDirectory() as temp_dir:
       self.env.base_dir = temp_dir
-      os.makedirs(self.env.client_toolkits_dir)
+      os.makedirs(self.env.device_toolkits_dir)
       os.makedirs(self.env.resources_dir)
       self.env.LoadConfig(custom_path=TEST_CONFIG)
 
@@ -247,7 +247,7 @@ class UmpireEnvTest(unittest.TestCase):
       bundle = self.env.config.GetDefaultBundle()
       toolkit_resource = bundle['resources']['device_factory_toolkit']
       toolkit_hash = GetHashFromResourceName(toolkit_resource)
-      expected_toolkit_dir = os.path.join(self.env.client_toolkits_dir,
+      expected_toolkit_dir = os.path.join(self.env.device_toolkits_dir,
                                           toolkit_hash)
 
       # Create the expected toolkit dir.
@@ -260,7 +260,7 @@ class UmpireEnvTest(unittest.TestCase):
     # Same environment, but looking up an invalid bundle ID.
     with file_utils.TempDirectory() as temp_dir:
       self.env.base_dir = temp_dir
-      os.makedirs(self.env.client_toolkits_dir)
+      os.makedirs(self.env.device_toolkits_dir)
       os.makedirs(self.env.resources_dir)
       self.env.LoadConfig(custom_path=TEST_CONFIG)
 
@@ -274,7 +274,7 @@ class UmpireEnvTest(unittest.TestCase):
       bundle = self.env.config.GetDefaultBundle()
       toolkit_resource = bundle['resources']['device_factory_toolkit']
       toolkit_hash = GetHashFromResourceName(toolkit_resource)
-      expected_toolkit_dir = os.path.join(self.env.client_toolkits_dir,
+      expected_toolkit_dir = os.path.join(self.env.device_toolkits_dir,
                                           toolkit_hash)
 
       # Create the expected toolkit dir.
@@ -287,7 +287,7 @@ class UmpireEnvTest(unittest.TestCase):
     # Same environment, but don't create toolkit dir.
     with file_utils.TempDirectory() as temp_dir:
       self.env.base_dir = temp_dir
-      os.makedirs(self.env.client_toolkits_dir)
+      os.makedirs(self.env.device_toolkits_dir)
       os.makedirs(self.env.resources_dir)
       self.env.LoadConfig(custom_path=TEST_CONFIG)
 

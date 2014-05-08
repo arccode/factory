@@ -25,6 +25,11 @@ TEST_BUNDLE_MISSING_RELEASE_DIR = os.path.join(TESTDATA_DIR,
                                                'bundle_missing_release_image')
 DOWNLOAD_CONFIG_PATH = os.path.join(TESTDATA_DIR, 'download_for_import.conf')
 
+# MD5 and unpacked content of factory_toolkit:
+#   TEST_BUNDLE_DIR/factory_test/install_factory_toolkit.run
+TOOLKIT_MD5 = '7509337e'
+UMPIRE_RELATIVE_PATH = os.path.join('usr', 'local', 'factory', 'bin', 'umpire')
+
 
 class LoadBundleManifestTest(unittest.TestCase):
   def setUp(self):
@@ -89,8 +94,8 @@ class testImportBundle(unittest.TestCase):
     # Note that download_conf's filename starts with "daisy_spring",
     # which is board name specified in UmpireEnv.
     expect_resources = {
-        'server_factory_toolkit': 'install_factory_toolkit.run##',
-        'device_factory_toolkit': 'install_factory_toolkit.run##',
+        'server_factory_toolkit': 'install_factory_toolkit.run##' + TOOLKIT_MD5,
+        'device_factory_toolkit': 'install_factory_toolkit.run##' + TOOLKIT_MD5,
         'netboot_kernel': 'vmlinux.uimg##d41d8cd9',
         'complete_script': 'complete.gz##d41d8cd9',
         'efi_partition': 'efi.gz##d41d8cd9',
@@ -105,6 +110,13 @@ class testImportBundle(unittest.TestCase):
     for key, value in expect_resources.items():
       self.assertTrue(resources[key].startswith(value))
 
+    # Verify that device toolkit is unpacked.
+    expected_device_toolkit = os.path.join(self.env.device_toolkits_dir,
+                                           TOOLKIT_MD5)
+    self.assertTrue(os.path.isdir(expected_device_toolkit))
+    self.assertTrue(os.path.exists(os.path.join(expected_device_toolkit,
+                                                UMPIRE_RELATIVE_PATH)))
+
     # Verify download config.
     expect_download_conf = file_utils.ReadLines(DOWNLOAD_CONFIG_PATH)
     download_conf = file_utils.ReadLines(
@@ -113,6 +125,19 @@ class testImportBundle(unittest.TestCase):
     # running the unittest.
     self.assertListEqual(sorted(expect_download_conf[2:]),
                          sorted(download_conf[2:]))
+
+  def testImportSkipUnpackExistingToolkitDir(self):
+    importer = BundleImporter(self.env)
+
+    # Create unpacked device toolkit directory first.
+    device_toolkit_dir = os.path.join(self.env.device_toolkits_dir,
+                                      TOOLKIT_MD5)
+    os.makedirs(device_toolkit_dir)
+    importer.Import(TEST_BUNDLE_DIR, 'test_bundle')
+
+    # Verify that toolkit is not unpacked.
+    self.assertFalse(os.path.exists(os.path.join(device_toolkit_dir,
+                                                 UMPIRE_RELATIVE_PATH)))
 
   def testImportHashCollision(self):
     # Create hash collision files (same hash but different content).
@@ -126,6 +151,7 @@ class testImportBundle(unittest.TestCase):
     importer = BundleImporter(self.env)
     self.assertRaisesRegexp(UmpireError, 'Found 2 hash collision',
                             importer.Import, TEST_BUNDLE_DIR, 'test_bundle')
+
 
   def testImportBundleIdCollision(self):
     self.env.config['bundles'] = [{'id': 'bundleA'}]

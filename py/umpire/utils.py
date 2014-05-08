@@ -5,10 +5,15 @@
 
 """Umpire utility classes."""
 
+import logging
+import os
 from twisted.internet import defer
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.common import AttrDict, Singleton
+from cros.factory.umpire.common import GetHashFromResourceName
+from cros.factory.utils import file_utils
+from cros.factory.utils import process_utils
 
 
 class Registry(AttrDict):
@@ -42,3 +47,47 @@ def ConcentrateDeferreds(deferred_list):
     results.
   """
   return defer.gatherResults(deferred_list, consumeErrors=True)
+
+
+def UnpackFactoryToolkit(env, toolkit_resource, device_toolkit=True):
+  """Unpacks factory toolkit in resources to toolkits/hash directory.
+
+  Note that if the destination directory already exists, it doesn't unpack.
+
+  Args:
+    env: UmpireEnv object.
+    toolkit_resource: Path to factory toolkit resources.
+    device_toolkit: True to unpack to env.device_toolkits_dir; otherwise,
+      env.server_toolkits_dir.
+
+  Returns:
+    Directory to unpack. None if toolkit_resource is invalid.
+  """
+  if not isinstance(toolkit_resource, str) or not toolkit_resource:
+    logging.error('Invalid toolkit_resource %r', toolkit_resource)
+    return None
+
+  toolkit_path = env.GetResourcePath(toolkit_resource)
+  toolkit_hash = GetHashFromResourceName(toolkit_resource)
+  unpack_dir = os.path.join(
+      env.device_toolkits_dir if device_toolkit else env.server_toolkits_dir,
+      toolkit_hash)
+  if os.path.isdir(unpack_dir):
+    logging.info('UnpackFactoryToolkit destination dir already exists: %s',
+                 unpack_dir)
+    return unpack_dir
+
+  # Extract to temp directory first then move the directory to prevent
+  # keeping a broken toolkit.
+  with file_utils.TempDirectory() as temp_dir:
+    process_utils.Spawn([toolkit_path, '--noexec', '--target', temp_dir],
+                        check_call=True)
+    # Create toolkit directory's base directory first.
+    unpack_dir_base = os.path.split(unpack_dir)[0]
+    if not os.path.isdir(unpack_dir_base):
+      os.makedirs(unpack_dir_base)
+
+    os.rename(temp_dir, unpack_dir)
+    logging.debug('Factory toolkit extracted to %s', unpack_dir)
+
+  return unpack_dir

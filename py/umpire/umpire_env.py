@@ -26,7 +26,7 @@ _ACTIVE_UMPIRE_CONFIG = 'active_umpire.yaml'
 _STAGING_UMPIRE_CONFIG = 'staging_umpire.yaml'
 _UMPIRED_PID_FILE = 'umpired.pid'
 _UMPIRED_LOG_FILE = 'umpired.log'
-_CLIENT_TOOLKITS_DIR = os.path.join('toolkits', 'client')
+_DEVICE_TOOLKITS_DIR = os.path.join('toolkits', 'device')
 _SERVER_TOOLKITS_DIR = os.path.join('toolkits', 'server')
 _RESOURCES_DIR = 'resources'
 _CONFIG_DIR = 'conf'
@@ -78,8 +78,8 @@ class UmpireEnv(object):
     return os.path.join(self.base_dir, _SERVER_TOOLKITS_DIR)
 
   @property
-  def client_toolkits_dir(self):
-    return os.path.join(self.base_dir, _CLIENT_TOOLKITS_DIR)
+  def device_toolkits_dir(self):
+    return os.path.join(self.base_dir, _DEVICE_TOOLKITS_DIR)
 
   @property
   def resources_dir(self):
@@ -264,7 +264,7 @@ class UmpireEnv(object):
     if not toolkit_resource:
       return None
     toolkit_hash = GetHashFromResourceName(toolkit_resource)
-    toolkit_path = os.path.join(self.client_toolkits_dir, toolkit_hash)
+    toolkit_path = os.path.join(self.device_toolkits_dir, toolkit_hash)
     if not os.path.isdir(toolkit_path):
       return None
     return toolkit_path
