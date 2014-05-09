@@ -288,10 +288,8 @@ class CreateBundle(FactoryFlowCommand):
     file_utils.ExtractFile(factory_zip_path, temp_bundle_dir)
 
     # Rename bundle directory to the correct name.
-    manifest = LoadBundleManifest(
-        os.path.join(temp_bundle_dir, 'MANIFEST.yaml'))
     self.bundle_dir = os.path.join(self.output_dir, 'factory_bundle_%s_%s' % (
-        manifest['board'], self.bundle_name))
+        self.options.board.full_name, self.bundle_name))
     if os.path.exists(self.bundle_dir):
       raise CreateBundleError(
           'Target bundle directory %r exists' % self.bundle_dir)
