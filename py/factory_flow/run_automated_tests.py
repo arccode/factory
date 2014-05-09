@@ -11,6 +11,7 @@ import logging
 import os
 import socket
 import subprocess
+import threading
 import time
 import yaml
 
@@ -24,7 +25,9 @@ from cros.factory.hacked_argparse import CmdArg
 from cros.factory.test import state
 from cros.factory.test import utils
 from cros.factory.test.e2e_test.automator import AUTOMATION_FUNCTION_KWARGS_FILE
+from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
+from cros.factory.utils import process_utils
 from cros.factory.utils import ssh_utils
 
 
@@ -62,6 +65,9 @@ class RunAutomatedTests(FactoryFlowCommand):
              help='run only the specified factory test'),
       CmdArg('--timeout-mins', type=float, default=60,
              help='minutes to wait before marking the test run as failed'),
+      CmdArg('--log-dir',
+             help=('path to the directory to store factory logs from DUT; '
+                   'defaults to <output_dir>/logs/factory_logs')),
       CmdArg('--device-data-yaml',
              help=('a YAML file containing a dict of device data '
                    'key-value pairs to set on the DUT')),
@@ -80,6 +86,12 @@ class RunAutomatedTests(FactoryFlowCommand):
   GOOFY_POLLING_INTERVAL = 5
 
   ssh_tunnel = None
+
+  def Init(self):
+    if not self.options.log_dir:
+      self.options.log_dir = os.path.join(self.options.bundle, os.path.pardir,
+                             'logs', 'factory_logs')
+    file_utils.TryMakeDirs(self.options.log_dir)
 
   def Run(self):
     self.EnableFactoryTestAutomation()
@@ -249,6 +261,25 @@ class RunAutomatedTests(FactoryFlowCommand):
     if goofy_proxy is None:
       raise RunAutomatedTestsError('Unable to connect to Goofy on DUT')
     test_list = goofy_proxy.GetGoofyStatus()['test_list_id']
+    stop_event = threading.Event()
+
+    def KeepSyncingFactoryLogs(stop_event):
+      """Keeps syncing factory logs from the DUT to the host."""
+      per_test_list_log_dir = os.path.join(self.options.log_dir, test_list)
+      file_utils.TryMakeDirs(per_test_list_log_dir)
+      while not stop_event.is_set():
+        ssh_utils.SpawnRsyncToDUT(
+            ['-aP', '%s:/var/factory' % self.options.dut,
+             per_test_list_log_dir],
+            stdout=process_utils.OpenDevNull(),
+            stderr=process_utils.OpenDevNull(),
+            call=True)
+        time.sleep(1)
+
+    # Start a thread to keep syncing factory logs from the DUT.
+    sync_log_thread = threading.Thread(target=KeepSyncingFactoryLogs,
+                                       args=(stop_event,))
+    sync_log_thread.start()
 
     print TEST_AUTOMATION_MESSAGE % dict(
         dut=self.options.dut,
@@ -294,6 +325,9 @@ class RunAutomatedTests(FactoryFlowCommand):
     logging.info('Waiting for automated test run to finish')
     utils.WaitFor(WaitForRun, timeout_secs=self.options.timeout_mins * 60,
                   poll_interval=self.GOOFY_POLLING_INTERVAL)
+
+    stop_event.set()
+    sync_log_thread.join()
 
     if not finished_tests:
       raise RunAutomatedTestsError('No test was run')

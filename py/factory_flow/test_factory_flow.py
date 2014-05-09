@@ -145,7 +145,8 @@ class TestResult(object):
     log_file_name = '%s.tar.bz2' % self.test_plan_name
     log_archive_path = os.path.join(self.base_log_dir, log_file_name)
     process_utils.Spawn(['tar', 'cJvf', log_file_name, self.test_plan_name],
-                        cwd=self.base_log_dir, log=True, check_call=True)
+                        cwd=self.base_log_dir, log=True, check_call=True,
+                        stdout=process_utils.OpenDevNull())
 
     logging.info('Preparing notification E-mail...')
     report = []
@@ -267,10 +268,10 @@ class FactoryFlowRunner(object):
         dut_to_test = config['dut']
 
       for d in dut_to_test:
-        self.CreateTestItems(d)
         dut_info = self.config['dut_info'][d]
         log_dir = os.path.join(self.log_dir, plan, d)
         file_utils.TryMakeDirs(log_dir)
+        self.CreateTestItems(d, log_dir)
 
         test_env = os.environ.copy()
         test_env[common.BUNDLE_DIR_ENVVAR] = self.output_dir
@@ -313,12 +314,13 @@ class FactoryFlowRunner(object):
                                             TestStatus.FAILED)
       test_result.NotifyOwners()
 
-  def CreateTestItems(self, dut):
+  def CreateTestItems(self, dut, base_log_dir):
     """Creates test items for the given DUT using its DUT info in the config.
 
     Args:
       dut: The DUT to create test items for; this should be specified by the DUT
         ID in the config file.
+      base_log_dir: The base logs directory.
     """
     self.test_items[dut] = {}
     dut_info = self.config['dut_info'][dut]
@@ -353,6 +355,7 @@ class FactoryFlowRunner(object):
       elif cmd_name == 'run-automated-tests':
         args['shopfloor-ip'] = dut_info.get('host_ip')
         args['shopfloor-port'] = dut_info.get('shopfloor_port')
+        args['log-dir'] = os.path.join(base_log_dir, 'factory_logs')
         if args['test-list'] in dut_info.get('test_list_customization', []):
           # Generate YAML files and set up automation environment on the DUT.
           def CreateTempYAMLFile(suffix, data):
@@ -480,7 +483,7 @@ def main():
   ]
   args = ParseCmdline('Factory flow runner', *arguments)
   logging.basicConfig(
-      format=('[%(levelname)s] factory_flow ' +
+      format=('[%(levelname)s] test_factory_flow ' +
               '%(filename)s:%(lineno)d %(asctime)s.%(msecs)03d %(message)s'),
       level=args.verbosity, datefmt='%Y-%m-%d %H:%M:%S')
 
