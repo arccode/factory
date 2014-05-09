@@ -15,6 +15,7 @@ from cros.factory.factory_flow.common import (
     board_cmd_arg, bundle_dir_cmd_arg, dut_hostname_cmd_arg, FactoryFlowCommand)
 from cros.factory.hacked_argparse import CmdArg
 from cros.factory.test import utils
+from cros.factory.tools import mount_partition
 from cros.factory.utils import file_utils
 from cros.factory.utils import ssh_utils
 
@@ -175,3 +176,27 @@ class NetbootInstall(FactoryFlowCommand):
                   timeout_secs=self.options.wait_timeout_secs,
                   poll_interval=5)
     logging.info('SSH port (22) on DUT %s is up', self.options.dut)
+
+    def GetImageVersion(lsb_release, label):
+      match = re.search(
+          '^CHROMEOS_RELEASE_VERSION=(.+)$', lsb_release, re.MULTILINE)
+      if not match:
+        raise NetbootInstallError('Unable to get image veriosn from %s' % label)
+      return match.group(1)
+
+    factory_image_path = os.path.join(self.options.bundle, 'factory_test',
+                                      'chromiumos_factory_image.bin')
+    with mount_partition.MountPartition(factory_image_path, 3) as mount_point:
+      image_version_in_bundle = GetImageVersion(
+          open(os.path.join(mount_point, 'etc', 'lsb-release')).read(),
+          'bundle')
+    lsb_release_on_dut = ssh_utils.SpawnSSHToDUT(
+        [self.options.dut, 'cat', '/etc/lsb-release'],
+        log=True, check_output=True).stdout_data
+    image_version_on_dut = GetImageVersion(lsb_release_on_dut, 'DUT')
+    if image_version_on_dut != image_version_in_bundle:
+      raise NetbootInstallError(
+          'Expect image version to be %s on DUT but found %s' %
+          (image_version_in_bundle, image_version_on_dut))
+    else:
+      print 'Netboot install completed on DUT %s' % self.options.dut
