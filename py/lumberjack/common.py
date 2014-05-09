@@ -269,6 +269,22 @@ def RegenerateArchiverMetadataFile(metadata_path):
   return ret_str
 
 
+def ComputePercentage(numerator, denominator):
+  """Returns the percentage.
+
+  Handle gracefully on the case where denominator is zero.
+
+  Args:
+    numerator: An interger.
+    denominator: An interger.
+
+  Returns:
+    The percentage of numerator / denominator in float.
+    100.0 will be returned if denominator is zero.
+  """
+  return 100.0 if denominator == 0 else 100 * (numerator / float(denominator))
+
+
 def EncryptFile(file_path, encrypt_key_pair, delete=False):
   """Encrypts the file_path with encrypt_key_pair and GnuPG.
 

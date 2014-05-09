@@ -3,6 +3,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+"""SFTP implementation for FetchSource and UploadTarget."""
+
 import copy
 import getpass
 import logging
@@ -14,26 +16,29 @@ import yaml
 
 import uploader
 
-from common import (GetMetadataPath, GetOrCreateMetadata,
+from common import (ComputePercentage, GetMetadataPath, GetOrCreateMetadata,
                     RegenerateUploaderMetadataFile,
                     TimeString, UPLOADER_METADATA_DIRECTORY)
 from uploader_exception import UploaderConnectionError, UploaderFieldError
 
 BLOCK_SIZE = 32768  # 2^15, take paramiko's source as reference.
+DISCONNECTED_RETRY = 3
 
 
-class FetchSource(object):
-  __implements__ = (uploader.FetchSourceInterface, )  # For pylint
+def _MakeConnected(func):
+  """Decorator to check and establish SFTP channel if necessary."""
+  def _Wrapper(self, *args, **kwargs):
+    self._Connect()  # pylint: disable=W0212
+    func(self, *args, **kwargs)  # pylint: disable=E1102
+  return _Wrapper
 
+class SFTPBase(object):
   host = None
   port = None
   username = None
   private_key = None
-  archive_path = None
 
   _sftp = None  # SFTP channel
-  _last_dirs = None  # Last time we list the archive_path
-  _last_recursively_walk = None
 
   def _LoadPrivateKey(self, path_to_private_key):
     """Loads the private key.
@@ -84,8 +89,8 @@ class FetchSource(object):
       logging.debug('Failed to create SFTP channel. Reasons:\n%r\n', e)
       return False
 
-  def _Connect(self, retries=3):
-    """Tries to connect to source.
+  def _Connect(self, retries=DISCONNECTED_RETRY):
+    """Tries to connect SFTP.
 
     Raises:
       UploaderConnectionError if all retries failed.
@@ -109,6 +114,16 @@ class FetchSource(object):
       logging.info('Try to establish SFTP session the first time')
       _ConnectWithRetries(retries)
 
+
+class FetchSource(SFTPBase):
+  __implements__ = (uploader.FetchSourceInterface, )  # For pylint
+
+  archive_path = None
+
+  _last_dirs = None  # Last time we list the archive_path
+  _last_recursively_walk = None
+
+
   def LoadConfiguration(self, config):
     # Check if the private key exist.
     self._LoadPrivateKey(config['private_key'])
@@ -129,6 +144,7 @@ class FetchSource(object):
     logging.info('Configuration loaded. Found %d entries under %r.',
         len(self._last_dirs), self.archive_path)
 
+  @_MakeConnected
   def _ListDirRecursively(self, dir_path, files):
     """Appends files recursively under dir_path into files.
 
@@ -136,7 +152,6 @@ class FetchSource(object):
       A list containing tuples of (absolute path, file size,
       last modification timestamp - mtime)
     """
-    self._Connect()
     filenames = self._sftp.listdir(dir_path)
     dirs = []
     for filename in filenames:
@@ -173,18 +188,22 @@ class FetchSource(object):
 
     return copy.copy(files)
 
+  @_MakeConnected
   def FetchFile(self, source_path, target_path,
                 metadata_path=None, resume=True):
     def _UpdateDownloadMetadata():
+      logging.debug(
+          "Downloading...%9.6f%%", ComputePercentage(local_size, remote_size))
       metadata = GetOrCreateMetadata(
           metadata_path, RegenerateUploaderMetadataFile)
       download_metadata = metadata.setdefault('download', {})
-      download_metadata.update({'protocol': 'SFTP',
-                                'host': self.host,
-                                'port': self.port,
-                                'path': source_path,
-                                'downloaded_bytes': local_size,
-                                'percentage': local_size / float(remote_size)})
+      download_metadata.update(
+          {'protocol': 'SFTP',
+           'host': self.host,
+           'port': self.port,
+           'path': source_path,
+           'downloaded_bytes': local_size,
+           'percentage': ComputePercentage(local_size, remote_size)})
       with open(metadata_path, 'w') as metadata_fd:
         metadata_fd.write(yaml.dump(metadata, default_flow_style=False))
 
@@ -192,47 +211,173 @@ class FetchSource(object):
       metadata_path = GetMetadataPath(
           target_path, UPLOADER_METADATA_DIRECTORY)
 
-    self._Connect()
-    remote_size = self._sftp.stat(source_path).st_size
+    try:
+      remote_size = self._sftp.stat(source_path).st_size
+    except IOError:
+      logging.exception('No %r exists on remote', source_path)
+      return False
+
     local_size = (os.path.getsize(target_path) if
                   os.path.isfile(target_path) else 0)
 
-    if remote_size < local_size and resume:
-      logging.error('Size on source %r = %15d\nSize on local %r = %15d\n'
-                    'Not able to resume, will override it.',
-                    source_path, remote_size, target_path, local_size)
+    if remote_size < local_size:
+      logging.error(
+          'Size on source %r = %15d\nSize on local %r = %15d. Abnormal.',
+          source_path, remote_size, target_path, local_size)
       local_size = 0
-      resume = False
+      if resume:
+        logging.error('Not able to resume, will override it.')
+        resume = False
 
     file_flag = 'ab' if resume else 'wb'
+    local_size = 0 if not resume else local_size
     # Open a file on the remote.
     with self._sftp.open(source_path, 'rb') as remote_fd:
       if resume:  # Seek depends on resume flag
         remote_fd.seek(local_size)
-        logging.info('Resume fetching %r on source at %15dn',
-                     source_path, local_size)
+        logging.info('Resume fetching %r [size %15d] from remote at %15d.',
+                     source_path, remote_size, local_size)
+      else:
+        logging.info('Fetching %r [size %15d] from remote.',
+                     source_path, remote_size)
+
       remote_fd.prefetch()
       with open(target_path, file_flag) as local_fd:
         while True:
+          _UpdateDownloadMetadata()  # Update metadata
           buf = remote_fd.read(BLOCK_SIZE)
           local_fd.write(buf)
           local_fd.flush()
           os.fsync(local_fd.fileno())
           local_size += len(buf)
-          # Update metadta_path
-          _UpdateDownloadMetadata()
-          if len(buf) == 0:
+          if len(buf) == 0 or local_size == remote_size:
             break
+
+    # We move the last metadata update outside the main loop because putting
+    # on the bottom of loop might causing false recognition by other threads
+    # in uploader.
+    _UpdateDownloadMetadata()  # Update metadata
+
     return True
 
   def CalculateDigest(self, source_path):
-    raise NotImplementedError()
+    # SFTP doesn't guarantee to support checksum by standard.
+    raise NotImplementedError
 
+  @_MakeConnected
   def MoveFile(self, from_path, to_path):
-    raise NotImplementedError()
+    self._sftp.rename(from_path, to_path)
+    logging.info('Moved %r -> %r', from_path, to_path)
 
+  @_MakeConnected
   def CheckDirectory(self, dir_path):
-    raise NotImplementedError()
+    try:
+      self._sftp.chdir(dir_path)
+    except IOError:
+      return False
+    return True
 
   def CreateDirectory(self, dir_path):
-    raise NotImplementedError()
+    raise NotImplementedError
+
+
+class UploadTarget(SFTPBase):
+  __implements__ = (uploader.UploadTargetInterface, )  # For pylint
+
+  def LoadConfiguration(self, config):
+    # Check if the private key exist.
+    self._LoadPrivateKey(config['private_key'])
+    # Parsing the config
+    self.host = config['host']
+    self.port = config['port']
+    self.username = config['username']
+    self._Connect()
+
+  @_MakeConnected
+  def UploadFile(self, local_path, target_path,
+                 metadata_path=None, resume=True):
+    def _UpdateUploadMetadata():
+      metadata = GetOrCreateMetadata(
+          metadata_path, RegenerateUploaderMetadataFile)
+      logging.debug(
+          "Uploading...%9.6f%%", ComputePercentage(remote_size, local_size))
+      upload_metadata = metadata.setdefault('upload', {})
+      upload_metadata.update(
+          {'protocol': 'SFTP',
+           'host': self.host,
+           'port': self.port,
+           'path': target_path,
+           'uploaded_bytes': remote_size,
+           'percentage': ComputePercentage(remote_size, local_size)})
+      with open(metadata_path, 'w') as metadata_fd:
+        metadata_fd.write(yaml.dump(metadata, default_flow_style=False))
+
+    # Check if file to upload exists.
+    if not os.path.isfile(local_path):
+      raise UploaderFieldError(
+          '%r doesn\'t exist on local file system', local_path)
+
+    if metadata_path is None:
+      metadata_path = GetMetadataPath(
+          local_path, UPLOADER_METADATA_DIRECTORY)
+
+    try:
+      remote_size = self._sftp.stat(target_path).st_size
+    except IOError:
+      logging.info(
+        '%r doesn\'t exist on remote, no resuming will be conducted',
+        target_path)
+      remote_size = 0
+      resume = False
+
+    local_size = os.path.getsize(local_path)
+
+    if remote_size > local_size:
+      logging.error(
+          'Size on remote %r = %15d\nSize on local %r = %15d. Abnormal.',
+          target_path, remote_size, local_path, local_size)
+      remote_size = 0
+      if resume:
+        resume = False
+        logging.error('Not able to resume, will override it.')
+
+    file_flag = 'ab' if resume else 'wb'
+    remote_size = 0 if not resume else remote_size
+    with open(local_path, 'rb') as local_fd:
+      # Open a file on the remote.
+      with self._sftp.open(target_path, file_flag) as remote_fd:
+        # Speed up and defer the exception until close() called.
+        remote_fd.set_pipelined(True)
+        if resume:  # Seek depends on resume flag
+          local_fd.seek(remote_size)
+          logging.info('Resume uploading %r on target at %15dn',
+                       target_path, remote_size)
+        while True:
+          _UpdateUploadMetadata()  # Update metadata
+          buf = local_fd.read(BLOCK_SIZE)
+          remote_fd.write(buf)
+          remote_fd.flush()
+          remote_size += len(buf)
+          if len(buf) == 0 or remote_size == local_size:
+            break
+      # Double confirm if the transfer succeed.
+      confirmed_size = self._sftp.stat(target_path).st_size
+      if confirmed_size != remote_size:
+        logging.error('Size mismatch after a put action. remote_size = %d, '
+                      'confirmed_size = %d. Resize the remote file to zero '
+                      'so uploader can resume next time.',
+                      remote_size, confirmed_size)
+        remote_fd = self._sftp.open(target_path, 'w')
+        remote_fd.close()
+        remote_size = 0
+
+    # We move the last metadata update outside the main loop because it is
+    # possible that an exception throws at remote_fd.close(). In addition,
+    # putting on the bottom of loop might causing false recognition by other
+    # threads in uploader.
+    _UpdateUploadMetadata()
+
+    return True if remote_size == local_size else False
+
+  def CalculateDigest(self, target_path):
+    raise NotImplementedError

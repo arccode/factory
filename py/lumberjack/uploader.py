@@ -61,7 +61,7 @@ class FetchSourceInterface(object):
         Whether to resume the transmission if possible.
 
     Returns:
-      True if fetching completed.
+      True if fetching completed. False otherwise.
     """
     raise NotImplementedError('Need the implementation in sub-class')
 
@@ -88,6 +88,9 @@ class FetchSourceInterface(object):
     Args:
       from_path: Path on the source side.
       to_path: Path on the source side.
+
+    Raises:
+      IOError if failed.
     """
     raise NotImplementedError('Need the implementation in sub-class')
 
@@ -145,6 +148,9 @@ class UploadTargetInterface(object):
         given, the path will be automatically inferred.
       resume:
         Whether to resume the transmission if possible.
+
+    Returns:
+      True if uploading completed. False otherwise.
     """
     raise NotImplementedError('Need the implementation in sub-class')
 
