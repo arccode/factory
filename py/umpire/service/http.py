@@ -7,29 +7,39 @@
 
 import multiprocessing
 import os
+import shutil
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.schema import FixedDict, List, Scalar
 from cros.factory.umpire.common import RESOURCE_HASH_DIGITS
+from cros.factory.umpire.config import NUMBER_SHOP_FLOOR_HANDLERS
 from cros.factory.umpire.service.indent_text_writer import IndentTextWriter
 from cros.factory.umpire.service import umpire_service
 from cros.factory.utils import file_utils
 
 
+CONFIG_SCHEMA = {
+    'optional_items': {
+        'reverse_proxies': List(
+            'Reverse proxy list',
+            FixedDict('Proxy IP range',
+                      items={'proxy_addr': Scalar('IP address', str),
+                             'remoteip': Scalar('DUT ip range', str)}))}}
+
 HTTP_BIN = '/usr/sbin/lighttpd'
 HTTP_SERVICE_NAME = 'httpsvc'
 LIGHTY_MODULES = ['mod_access', 'mod_accesslog', 'mod_alias', 'mod_fastcgi',
-                  'mod_rewrite', 'mod_redirect']
+                  'mod_proxy', 'mod_rewrite', 'mod_redirect']
 
 # Lighty config filename with hash of the file.
 LIGHTY_CONFIG_FILENAME = 'lighttpd_#%s#.conf'
 
-# String template for shop floor handler path.
+# String template for handlers.
 # %d is the binding port of its corresponding shop floor handler FastCGI
 # running locally.
 SHOP_FLOOR_HANDLER_PATH = '/shopfloor/%d'
-
-# TODO(deanliao): may define in UmpireConfig.
-NUMBER_SHOP_FLOOR_HANDLERS = 50
+UMPIRE_HANDLER_PATH = '/umpire'
+RESOURCEMAP_APP = '/resourcemap'
 
 # Maximum number of file descriptors when run as root
 HTTPD_MAX_FDS = 32768
@@ -40,6 +50,7 @@ DOWNLOAD_PORT = 8080
 
 
 class LightyConditional(str):
+
   """A str wrapper to tag the string as a Lighty conditional.
 
   For ordinary (key, value), its output is "key = value".
@@ -51,6 +62,7 @@ class LightyConditional(str):
 
 
 class HTTPService(umpire_service.UmpireService):
+
   """HTTP service.
 
   Example:
@@ -58,6 +70,7 @@ class HTTPService(umpire_service.UmpireService):
     procs = svc.CreateProcesses(umpire_config_dict)
     svc.Start(procs)
   """
+
   def __init__(self):
     super(HTTPService, self).__init__()
 
@@ -106,7 +119,11 @@ class HTTPService(umpire_service.UmpireService):
       config_path = os.path.join(
           env.config_dir,
           LIGHTY_CONFIG_FILENAME % md5[:RESOURCE_HASH_DIGITS])
-      os.rename(temp_path, config_path)
+      # Use shutil.move() instead of os.rename(). os.rename calls OS
+      # rename() function. And under Linux-like OSes, this system call
+      # creates and removes hardlink, that only works when source path and
+      # destination path are both on same filesystem.
+      shutil.move(temp_path, config_path)
     return config_path
 
   @staticmethod
@@ -125,6 +142,7 @@ class HTTPService(umpire_service.UmpireService):
     http_config = umpire_config['services']['http']
     httpd_bind_address = umpire_config['ip']
     httpd_port = int(umpire_config['port'])
+    fcgi_port = env.fastcgi_start_port
     cpu_count = multiprocessing.cpu_count()
 
     # A minimal lighty config
@@ -158,20 +176,31 @@ class HTTPService(umpire_service.UmpireService):
         'server.max-connections': HTTPD_MAX_CONN,
         'connection.kbytes-per-second': 0,
         'server.kbytes-per-second': 0,
-        }
+    }
 
     config_writer.Write(lighty_conf)
 
     # FastCGI bindings.
     fastcgi_conf = {}
-    for port in xrange(httpd_port, httpd_port + NUMBER_SHOP_FLOOR_HANDLERS):
+    for port in xrange(fcgi_port, fcgi_port + NUMBER_SHOP_FLOOR_HANDLERS):
       match_path = SHOP_FLOOR_HANDLER_PATH % port
       fastcgi_conf[match_path] = [{
           'host': '127.0.0.1',
           'port': port,
           'check-local': 'disable'}]
+    # Umpire common RPCs
+    fastcgi_conf[UMPIRE_HANDLER_PATH] = [{
+        'host': '127.0.0.1',
+        'port': env.umpire_rpc_port,
+        'check-local': 'disable'}]
     config_writer.Write({'fastcgi.server': fastcgi_conf})
 
+    # Web applications
+    web_applications = {}
+    web_applications[RESOURCEMAP_APP] = [{
+        'host': '127.0.0.1',
+        'port': env.umpire_webapp_port}]
+    config_writer.Write({'proxy.server': web_applications})
 
     # Generate conditional HTTP accelerator blocks.
     if 'reverse_proxies' in http_config:
@@ -194,6 +223,7 @@ dummy_http_service = HTTPService()
 
 
 class LightyConfigWriter(object):
+
   """Writer for Lighty httpd config.
 
   It opens a file for write (or append) in constructor, and uses Write() to
@@ -292,8 +322,8 @@ class LightyConfigWriter(object):
       # Sort key for determininistic output.
       for key in sorted(input_value):
         writer.Write('"%s" => %s,' % (
-          key,
-          LightyConfigWriter.LightyAuto(input_value[key], writer)))
+            key,
+            LightyConfigWriter.LightyAuto(input_value[key], writer)))
       writer.ExitBlock()
       return writer.Flush()
 

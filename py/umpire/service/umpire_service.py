@@ -563,6 +563,7 @@ def GetServiceSchemata():
       schemata[name] = FixedDict(
           'Service schema:' + name,
           optional_items=copy.deepcopy(_OPTIONAL_SERVICE_SCHEMA))
+  logging.info('%s', str(schemata))
   return FixedDict('Service schemata', items=schemata)
 
 

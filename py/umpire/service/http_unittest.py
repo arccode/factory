@@ -11,6 +11,7 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.common import RESOURCE_HASH_DIGITS
+from cros.factory.umpire.config import UmpireConfig
 from cros.factory.umpire.service import http
 from cros.factory.umpire.service.http import (HTTPService,
                                               LightyConditional,
@@ -112,14 +113,30 @@ class TestHTTPService(unittest.TestCase):
     umpire_port = 9001
     umpire_config = {
         'ip': umpire_ip,
-        'port': '%d' % umpire_port,
+        'port': umpire_port,
         'services': {'http': {
             'reverse_proxies': [
                 {'remoteip': '192.168.51.0/24',
                  'proxy_addr': '192.168.51.1:8080'},
                 {'remoteip': '192.168.52.0/24',
-                 'proxy_addr': '192.168.52.1:8080'},]}}}
-    config_path = HTTPService.GenerateLightyConfig(umpire_config, self.env)
+                 'proxy_addr': '192.168.52.1:8080'},]}},
+        'bundles': [{
+            'id': 'default',
+            'note': '',
+            'shop_floor': {'handler': ''},
+            'resources': {
+                'device_factory_toolkit': '',
+                'stateful_partition': '',
+                'oem_partition':'',
+                'rootfs_release':'',
+                'rootfs_test': ''}}],
+        'rulesets': [{
+            'bundle_id': 'default',
+            'note': '',
+            'active': True}],
+        'board': 'test'}
+    self.env.config = UmpireConfig(umpire_config)
+    config_path = HTTPService.GenerateLightyConfig(self.env.config, self.env)
 
     self.assertRegexpMatches(
         config_path,
@@ -160,8 +177,9 @@ class TestHTTPService(unittest.TestCase):
     ExpectLine('server.pid-file = "%s/run/httpd.pid"' % base_dir)
 
     expect_fastcgi_conf = ['fastcgi.server = (']
-    for p in xrange(umpire_port,
-                    umpire_port + http.NUMBER_SHOP_FLOOR_HANDLERS):
+    fcgi_port = self.env.fastcgi_start_port
+    for p in xrange(fcgi_port,
+                    fcgi_port + http.NUMBER_SHOP_FLOOR_HANDLERS):
       expect_fastcgi_conf.extend([
           '  "/shopfloor/%d" => (' % p,
           '    (',
@@ -170,6 +188,14 @@ class TestHTTPService(unittest.TestCase):
           '      "port" => %d,' % p,
           '    ),',
           '  ),',])
+    expect_fastcgi_conf.extend([
+        '  "/umpire" => (',
+        '    (',
+        '      "check-local" => "disable",',
+        '      "host" => "127.0.0.1",',
+        '      "port" => %d,' % self.env.umpire_rpc_port,
+        '    ),',
+        '  ),'])
     expect_fastcgi_conf.append(')')
     ExpectLines(expect_fastcgi_conf)
 
