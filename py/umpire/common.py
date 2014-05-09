@@ -22,9 +22,6 @@ from cros.factory.tools.finalize_bundle import Glob
 UMPIRE_CLI = 'umpire'
 UMPIRE_DAEMON = 'umpired'
 
-# Umpire command RPC port.
-UMPIRE_COMMAND_PORT = 8032
-
 # Base serving path for ShopFloorHander.
 HANDLER_BASE = '/shop_floor'
 
@@ -66,11 +63,12 @@ RESOURCE_FILE_PATTERN = re.compile(
 
 # Relative path of factory toolkit in a factory bundle.
 BUNDLE_FACTORY_TOOLKIT_PATH = os.path.join('factory_test',
-                                            'install_factory_toolkit.run')
+                                           'install_factory_toolkit.run')
 BUNDLE_MANIFEST = 'MANIFEST.yaml'
 
 
 class UmpireError(Exception):
+
   """General umpire exception class."""
   pass
 
@@ -92,7 +90,7 @@ def VerifyResource(res_file):
     return False
   hashsum = GetHashFromResourceName(res_file)
   if not hashsum:
-    logging.error('Ill-formed resource filename: ' +  res_file)
+    logging.error('Ill-formed resource filename: ' + res_file)
     return False
   calculated_hashsum = Md5sumInHex(res_file)
   return calculated_hashsum.startswith(hashsum)
@@ -142,7 +140,9 @@ def GetVersionFromResourceName(res_file):
 
 # pylint: disable=R0901
 class BundleManifestIgnoreGlobLoader(yaml.Loader):
+
   """A YAML loader that loads factory bundle manifest with !glob ignored."""
+
   def __init__(self, *args, **kwargs):
     def FakeGlobConstruct(dummy_loader, dummy_node):
       return None
@@ -153,7 +153,9 @@ class BundleManifestIgnoreGlobLoader(yaml.Loader):
 
 # pylint: disable=R0901
 class BundleManifestLoader(yaml.Loader):
+
   """A YAML loader that loads factory bundle manifest with !glob ignored."""
+
   def __init__(self, *args, **kwargs):
     yaml.Loader.__init__(self, *args, **kwargs)
     # TODO(deanliao): refactor out Glob from py/tools/finalize_bundle.py
@@ -184,4 +186,3 @@ def LoadBundleManifest(path, ignore_glob=False):
       return yaml.load(f, Loader=loader)
   except Exception as e:
     raise UmpireError('Failed to load MANIFEST.yaml: ' + str(e))
-
