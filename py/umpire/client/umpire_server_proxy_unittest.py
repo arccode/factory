@@ -22,20 +22,15 @@ from SimpleXMLRPCServer import SimpleXMLRPCServer, SimpleXMLRPCRequestHandler
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.client import umpire_server_proxy
 from cros.factory.utils.file_utils import ForceSymlink, Read
+from cros.factory.utils.net_utils import FindConsecutiveUnusedPorts
 
 MOCK_UMPIRE_ADDR = 'http://localhost'
-UMPIRE_BASE_HANDLER_PORT = 49998
-UMPIRE_HTTP_SERVER_PORT = 49999
-UMPIRE_HANDLER_PORT = 50000
-SHOPFLOOR_1_PORT = 50001
-SHOPFLOOR_2_PORT = 50002
+SEARCH_STARTING_PORT = 49998
 TESTDATA_DIRECTORY = os.path.join(
     os.path.dirname(os.path.realpath(__file__)), 'test_data')
 UMPIRE_HANDLER_METHOD = 'umpire_handler_method'
 UMPIRE_HANDLER_METHODS = [UMPIRE_HANDLER_METHOD]
 SHOPFLOOR_HANDLER_METHOD = 'shopfloor_handler_method'
-UMPIRE_SERVER_URI = '%s:%d' % (MOCK_UMPIRE_ADDR, UMPIRE_BASE_HANDLER_PORT)
-SHOPFLOOR_SERVER_URI = '%s:%d' % (MOCK_UMPIRE_ADDR, SHOPFLOOR_1_PORT)
 
 # Allow reuse address to prevent "[Errno 98] Address already in use."
 SocketServer.TCPServer.allow_reuse_address = True
@@ -204,11 +199,37 @@ class UmpireServerProxyTest(unittest.TestCase):
   shopfloor_handler_1_process = None
   shopfloor_handler_2_process = None
 
+  UMPIRE_BASE_HANDLER_PORT = None
+  UMPIRE_HTTP_SERVER_PORT = None
+  UMPIRE_HANDLER_PORT = None
+  SHOPFLOOR_1_PORT = None
+  SHOPFLOOR_2_PORT = None
+  NUMBER_OF_PORTS = 5
+  UMPIRE_SERVER_URI = None
+  SHOPFLOOR_SERVER_URI = None
+
   mock_resourcemap = ResourceMapWrapper()
+
   @classmethod
   def setUpClass(cls):
     """Starts servers before running any test of this class."""
+    port = FindConsecutiveUnusedPorts(SEARCH_STARTING_PORT, cls.NUMBER_OF_PORTS)
+    logging.debug('Set starting testing port to %r', port)
+    cls.SetTestingPort(port)
     cls.SetupServers()
+
+  @classmethod
+  def SetTestingPort(cls, umpire_base_handler_port):
+    """Sets testing port based on umpire_base_handler_port"""
+    cls.UMPIRE_BASE_HANDLER_PORT = umpire_base_handler_port
+    cls.UMPIRE_HTTP_SERVER_PORT = umpire_base_handler_port + 1
+    cls.UMPIRE_HANDLER_PORT = umpire_base_handler_port + 2
+    cls.SHOPFLOOR_1_PORT = umpire_base_handler_port + 3
+    cls.SHOPFLOOR_2_PORT = umpire_base_handler_port + 4
+    cls.UMPIRE_SERVER_URI = '%s:%d' % (MOCK_UMPIRE_ADDR,
+                                       cls.UMPIRE_BASE_HANDLER_PORT)
+    cls.SHOPFLOOR_SERVER_URI = '%s:%d' % (MOCK_UMPIRE_ADDR,
+                                          cls.SHOPFLOOR_1_PORT)
 
   @classmethod
   def tearDownClass(cls):
@@ -245,8 +266,10 @@ class UmpireServerProxyTest(unittest.TestCase):
   def SetupHTTPServer(cls):
     """Setups http server in its own process."""
     os.chdir(TESTDATA_DIRECTORY)
+    logging.debug('Using UMPIRE_HTTP_SERVER_PORT: %r',
+                  cls.UMPIRE_HTTP_SERVER_PORT)
     cls.umpire_http_server = SocketServer.TCPServer(
-        ("", UMPIRE_HTTP_SERVER_PORT), MockUmpireHTTPHandler)
+        ("", cls.UMPIRE_HTTP_SERVER_PORT), MockUmpireHTTPHandler)
     cls.umpire_http_server_process = multiprocessing.Process(
         target=RunServer, args=(cls.umpire_http_server,))
     cls.umpire_http_server_process.start()
@@ -254,14 +277,15 @@ class UmpireServerProxyTest(unittest.TestCase):
   @classmethod
   def SetupHandlers(cls):
     """Setups xmlrpc servers and handlers in their own processes."""
-    cls.umpire_base_handler = SimpleXMLRPCServer(("", UMPIRE_BASE_HANDLER_PORT))
+    cls.umpire_base_handler = SimpleXMLRPCServer(
+        ("", cls.UMPIRE_BASE_HANDLER_PORT))
     cls.umpire_base_handler.register_function(
         PingOfUmpire, 'Ping')
     cls.umpire_base_handler_process = multiprocessing.Process(
         target=RunServer, args=(cls.umpire_base_handler,))
     cls.umpire_base_handler_process.start()
 
-    cls.umpire_handler = SimpleXMLRPCServer(("", UMPIRE_HANDLER_PORT))
+    cls.umpire_handler = SimpleXMLRPCServer(("", cls.UMPIRE_HANDLER_PORT))
     cls.umpire_handler.register_function(
         HandlerFunctionWrapper('umpire_handler', use_umpire=True),
         UMPIRE_HANDLER_METHOD)
@@ -271,7 +295,7 @@ class UmpireServerProxyTest(unittest.TestCase):
     cls.umpire_handler_process.start()
 
     cls.shopfloor_handler_1 = SimpleXMLRPCServer(
-        addr=("", SHOPFLOOR_1_PORT),
+        addr=("", cls.SHOPFLOOR_1_PORT),
         requestHandler=MyXMLRPCRequestHandlerWrapper('shopfloor_handler1'))
     cls.shopfloor_handler_1.register_function(
         HandlerFunctionWrapper('shopfloor_handler1'), SHOPFLOOR_HANDLER_METHOD)
@@ -282,7 +306,7 @@ class UmpireServerProxyTest(unittest.TestCase):
     cls.shopfloor_handler_1_process.start()
 
     cls.shopfloor_handler_2 = SimpleXMLRPCServer(
-        ("", SHOPFLOOR_2_PORT),
+        ("", cls.SHOPFLOOR_2_PORT),
         requestHandler=MyXMLRPCRequestHandlerWrapper('shopfloor_handler2'))
     cls.shopfloor_handler_2.register_function(
         PingOfShopFloor, 'Ping')
@@ -321,7 +345,7 @@ class UmpireServerProxyTest(unittest.TestCase):
     UmpireServerProxyTest.mock_resourcemap.SetPath('resourcemap1')
 
     proxy = umpire_server_proxy.UmpireServerProxy(
-        server_uri=UMPIRE_SERVER_URI,
+        server_uri=self.UMPIRE_SERVER_URI,
         test_mode=True)
 
     result = proxy.__getattr__(UMPIRE_HANDLER_METHOD)('hi Umpire')
@@ -344,7 +368,7 @@ class UmpireServerProxyTest(unittest.TestCase):
     UmpireServerProxyTest.mock_resourcemap.SetPath('resourcemap1')
 
     proxy = umpire_server_proxy.UmpireServerProxy(
-        server_uri=UMPIRE_SERVER_URI,
+        server_uri=self.UMPIRE_SERVER_URI,
         test_mode=True)
 
     result = proxy.__getattr__(SHOPFLOOR_HANDLER_METHOD)('hi shopfloor 1')
@@ -372,7 +396,7 @@ class UmpireServerProxyTest(unittest.TestCase):
     UmpireServerProxyTest.mock_resourcemap.SetPath('resourcemap1')
 
     proxy = umpire_server_proxy.UmpireServerProxy(
-        server_uri=UMPIRE_SERVER_URI,
+        server_uri=self.UMPIRE_SERVER_URI,
         test_mode=True)
 
     # After proxy init, http server serves resourcemap2 to DUT.
@@ -401,7 +425,7 @@ class UmpireServerProxyTest(unittest.TestCase):
     UmpireServerProxyTest.mock_resourcemap.SetPath('resourcemap1')
 
     proxy = umpire_server_proxy.UmpireServerProxy(
-        server_uri=UMPIRE_SERVER_URI,
+        server_uri=self.UMPIRE_SERVER_URI,
         test_mode=True)
 
     UmpireServerProxyTest.mock_resourcemap.SetPath('resourcemap2')
@@ -428,7 +452,7 @@ class UmpireServerProxyTest(unittest.TestCase):
     # Using test_mode=False so proxy will set handler port as the same port
     # it gets in __init__.
     proxy = umpire_server_proxy.UmpireServerProxy(
-        server_uri=SHOPFLOOR_SERVER_URI,
+        server_uri=self.SHOPFLOOR_SERVER_URI,
         test_mode=False)
 
     result = proxy.__getattr__(SHOPFLOOR_HANDLER_METHOD)('hi shopfloor')

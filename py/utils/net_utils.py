@@ -24,6 +24,7 @@ from cros.factory.utils.process_utils import Spawn, SpawnOutput
 
 DEFAULT_TIMEOUT = 10
 INSERT_ETHERNET_DONGLE_TIMEOUT = 30
+MAX_PORT = 65535
 
 
 def Ifconfig(devname, enable, sleep_time_secs=1):
@@ -316,6 +317,47 @@ def SwitchEthernetInterfaces(enable):
   devs = GetEthernetInterfaces()
   for dev in devs:
     Ifconfig(dev, enable)
+
+
+def IsPortBeingUsed(port):
+  """Checks if a port is being used.
+
+  Args:
+    port: A port number to check.
+
+  Returns:
+    True if the port is being used.
+  """
+  ret = Spawn(['lsof' , '-i', ':%d' % port], call=True).returncode
+  return True if ret == 0 else False
+
+
+def FindConsecutiveUnusedPorts(port, length):
+  """Finds a range of ports that are all available.
+
+  Args:
+    port: The port number of starting port to search.
+    length: The length of the range.
+
+  Returns:
+    A port number such that [port, port + 1,..., port+length-1] are all
+    available.
+  """
+  success_count = 0
+  current_port = port
+  while current_port < MAX_PORT:
+    if not IsPortBeingUsed(current_port):
+      success_count = success_count + 1
+      if success_count == length:
+        starting_port = current_port - length + 1
+        logging.info('Found valid port %r ~ %r', starting_port, current_port)
+        return starting_port
+    else:
+      success_count = 0
+    current_port = current_port + 1
+  raise Exception(
+      'Can not find a range of valid ports from %s to %s' % (
+          current_port, MAX_PORT))
 
 
 def GetUnusedPort():
