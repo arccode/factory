@@ -16,6 +16,7 @@ import factory_common   # pylint: disable=W0611
 from cros.factory.factory_flow.common import (
     board_cmd_arg, bundle_dir_cmd_arg, FactoryFlowCommand)
 from cros.factory.hacked_argparse import CmdArg
+from cros.factory.test import utils
 from cros.factory.umpire.common import LoadBundleManifest
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
@@ -210,9 +211,16 @@ class StartServer(FactoryFlowCommand):
         logging.info('PID file of %s found; shut down existing %s (PID=%d)',
                      name, name, pid)
         if process_utils.SpawnOutput(['pgrep', '-F', pid_file]):
-          # Send SIGKILL to the process to stop it.
-          process_utils.Spawn(['kill', '-SIGKILL', '%d' % pid],
+          # Send SIGINT to the process to gracefully stop it.
+          process_utils.Spawn(['kill', '-SIGINT', '%d' % pid],
                               log=True, check_call=True, sudo=True)
+          # Wait at most 5 seconds for process to stop.
+          try:
+            utils.WaitFor(lambda: not utils.is_process_alive(pid), 5)
+          except utils.TimeoutError:
+            # Send SIGKILL to the process to kill it.
+            process_utils.Spawn(['kill', '-SIGKILL', '%d' % pid],
+                                log=True, check_call=True, sudo=True)
         else:
           logging.info(('Process with PID=%d not found; '
                         'assume it is already dead'),
