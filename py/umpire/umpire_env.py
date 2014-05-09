@@ -14,9 +14,12 @@ import logging
 import os
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.umpire import config
 from cros.factory.umpire.common import (GetHashFromResourceName,
                                         RESOURCE_HASH_DIGITS, UmpireError)
-from cros.factory.umpire import config
+from cros.factory.umpire.shop_floor_manager import ShopFloorManager
+from cros.factory.umpire.version import (UMPIRE_VERSION_MAJOR,
+                                         UMPIRE_VERSION_MINOR)
 from cros.factory.utils import file_utils
 
 
@@ -32,8 +35,15 @@ _RESOURCES_DIR = 'resources'
 _CONFIG_DIR = 'conf'
 _LOG_DIR = 'log'
 _PID_DIR = 'run'
+_WEBAPP_PORT_OFFSET = 1
+_CLI_PORT_OFFSET = 2
+_RPC_PORT_OFFSET = 3
+# FastCGI port ranges starts at base_port + FCGI_PORTS_OFFSET.
+_FCGI_PORTS_OFFSET = 10
+
 
 class UmpireEnv(object):
+
   """Provides accessors of Umpire resources.
 
   The base directory is obtained in constructor. If a user wants to run
@@ -44,6 +54,7 @@ class UmpireEnv(object):
     base_dir: Umpire base directory
     config_path: Path of the Umpire Config file
     config: Umpire Config object
+    shop_floor_manager: ShopFloorManager instance
   """
 
   def __init__(self):
@@ -53,6 +64,7 @@ class UmpireEnv(object):
       self.base_dir = os.getcwd()
     self.config_path = None
     self.config = None
+    self.shop_floor_manager = None
 
   @staticmethod
   def _GetUmpireBaseDir(path):
@@ -113,6 +125,30 @@ class UmpireEnv(object):
   def staging_config_file(self):
     return os.path.join(self.base_dir, _STAGING_UMPIRE_CONFIG)
 
+  @property
+  def umpire_webapp_port(self):
+    return (self.config['port'] + _WEBAPP_PORT_OFFSET)
+
+  @property
+  def umpire_cli_port(self):
+    return (self.config['port'] + _CLI_PORT_OFFSET)
+
+  @property
+  def umpire_rpc_port(self):
+    return (self.config['port'] + _RPC_PORT_OFFSET)
+
+  @property
+  def fastcgi_start_port(self):
+    return (self.config.get('port') + _FCGI_PORTS_OFFSET)
+
+  @property
+  def umpire_version_major(self):
+    return UMPIRE_VERSION_MAJOR
+
+  @property
+  def umpire_version_minor(self):
+    return UMPIRE_VERSION_MINOR
+
   def LoadConfig(self, staging=False, custom_path=None):
     """Loads Umpire config file.
 
@@ -138,6 +174,10 @@ class UmpireEnv(object):
     # Update config & config_path after the config is loaded successfully.
     self.config = config.UmpireConfig(config_path)
     self.config_path = config_path
+    port_start = self.fastcgi_start_port
+    if port_start:
+      self.shop_floor_manager = ShopFloorManager(
+          port_start, port_start + config.NUMBER_SHOP_FLOOR_HANDLERS)
 
   def HasStagingConfigFile(self):
     """Checks if a staging config file exists.
