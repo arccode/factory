@@ -12,6 +12,7 @@ import argparse
 import logging
 import os
 import stat
+import struct
 import tempfile
 import time
 from contextlib import contextmanager
@@ -25,15 +26,20 @@ class MountPartitionException(Exception):
   pass
 
 
-def MountPartition(source_path, index=None, mount_point=None, rw=False):
+def MountPartition(source_path, index=None, mount_point=None, rw=False,
+                   is_omaha_channel=False):
   '''Mounts a partition in an image or a block device.
 
   Args:
     source_path: The image file or a block device.
     index: The index of the partition, or None to mount as a single
       partition. If source_path is a block device, index must be None.
+      Note that if is_omaha_channel is set, it is ignored.
     mount_point: The mount point.  If None, a temporary directory is used.
     rw: Whether to mount as read/write.
+    is_omaha_channel: if it is True and source_path is a file, treats
+      source_path as a mini-Omaha channel file (kernel+rootfs) and mounts the
+      rootfs. rootfs offset bytes: 8 + BigEndian(first-8-bytes).
 
   Raises:
     OSError: if image file or mount point doesn't exist.
@@ -56,15 +62,24 @@ def MountPartition(source_path, index=None, mount_point=None, rw=False):
     if line.split()[1] == mount_point:
       raise OSError('Mount point %s is already mounted' % mount_point)
 
-  options = '%s' % ('rw' if rw else 'ro')
+  options = ['rw' if rw else 'ro']
   # source_path is a block device.
   if stat.S_ISBLK(os.stat(source_path).st_mode):
     if index:
       raise MountPartitionException('index must be None for a block device.')
+    if is_omaha_channel:
+      raise MountPartitionException(
+          'is_omaha_channel must be False for a block device.')
   else:
     # Use loop option on image file.
-    options += ',loop'
-  if index:
+    options.append('loop')
+
+  if is_omaha_channel:
+    with open(source_path, 'rb') as f:
+      first_8_bytes = f.read(8)
+      offset = struct.unpack('>Q', first_8_bytes)[0] + 8
+    options.append('offset=%d' % offset)
+  elif index:
     def RunCGPT(option):
       '''Runs cgpt and returns the integer result.'''
       return int(
@@ -72,9 +87,11 @@ def MountPartition(source_path, index=None, mount_point=None, rw=False):
                  option, source_path],
                 read_stdout=True, check_call=True).stdout_data)
     offset = RunCGPT('-b') * 512
-    size = RunCGPT('-s') * 512
-    options += ',offset=%d,sizelimit=%d' % (offset, size)
-  Spawn(['mount', '-o', options, source_path, mount_point],
+    options.append('offset=%d' % offset)
+    sizelimit = RunCGPT('-s') * 512
+    options.append('sizelimit=%d' % sizelimit)
+
+  Spawn(['mount', '-o', ','.join(options), source_path, mount_point],
         log=True, check_call=True, sudo=True)
 
   @contextmanager
