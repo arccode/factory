@@ -19,7 +19,9 @@ from cros.factory.umpire.utils import ConcentrateDeferreds
 
 
 class SimpleService(UmpireService):
+
   """Test service that launches /bin/sh ."""
+
   def CreateProcesses(self, dummy_umpire_config, dummy_env):
     proc = ServiceProcess(self)
     proc.SetConfig({
@@ -31,7 +33,9 @@ class SimpleService(UmpireService):
 
 
 class MultiProcService(UmpireService):
+
   """Multiple process service."""
+
   def CreateProcesses(self, dummy_umpire_config, dummy_env):
     for p in xrange(0, 7):
       config_dict = {
@@ -45,7 +49,9 @@ class MultiProcService(UmpireService):
 
 
 class RestartService(UmpireService):
+
   """A process that restarts fast."""
+
   def CreateProcesses(self, dummy_umpire_config, dummy_env):
     config_dict = {
         'executable': '/bin/sh',
@@ -59,7 +65,9 @@ class RestartService(UmpireService):
 
 
 class DupProcService(UmpireService):
+
   """Service contains duplicate processes."""
+
   def CreateProcesses(self, dummy_umpire_config, dummy_env):
     config_dict = {
         'executable': '/bin/sh',
@@ -74,6 +82,7 @@ class DupProcService(UmpireService):
 
 
 class ServiceTest(unittest.TestCase):
+
   def setUp(self):
     self.umpire_config = {}
     self.services = []
@@ -109,7 +118,7 @@ class ServiceTest(unittest.TestCase):
     # Config contains unknown fields
     self.assertRaises(ValueError, proc.SetConfig,
                       {'executable': 'foo', 'name': 'bar', 'args': [],
-                       'path': '/', 'not_a_config_field': 'some_value' })
+                       'path': '/', 'not_a_config_field': 'some_value'})
 
   def testServiceStart(self):
     svc = SimpleService()
@@ -148,4 +157,3 @@ if os.environ.get('LOG_LEVEL'):
 else:
   # Disable logging for unittest
   logging.disable(logging.CRITICAL)
-
