@@ -77,7 +77,13 @@ class TestUmpireConfig(unittest.TestCase):
              'mlb_sn': ['SN001'],
              'mlb_sn_range': ['-', 'SN005'],
              'sn': ['OC1234567890'],
-             'sn_range': ['OC1234567890', '-']}},
+             'sn_range': ['OC1234567890', '-']},
+          'enable_update': {
+              'device_factory_toolkit': ['RUNIN', 'RUNIN'],
+              'rootfs_release': ['SMT', 'SMT'],
+              'rootfs_test': ['FA', 'FA'],
+              'firmware_ec': ['GRT', 'GRT'],
+              'firmware_bios': [None, None]}},
         ruleset)
 
     default_ruleset = conf['rulesets'][1]
@@ -114,6 +120,7 @@ class TestUmpireConfig(unittest.TestCase):
     new_bundle = copy.deepcopy(conf['bundles'][0])
     new_bundle['id'] = 'new_bundle'
     conf['bundles'].append(new_bundle)
+    conf.BuildBundleMap()
     self.assertEqual('new_bundle', conf.GetDefaultBundle()['id'])
 
     # Last ruleset is inactive, use the upper one.
@@ -144,6 +151,7 @@ class TestUmpireConfig(unittest.TestCase):
     new_bundle['note'] = 'new bundle for test'
     new_bundle['resources']['complete_script'] = 'complete.gz##00000001'
     conf['bundles'].append(new_bundle)
+    conf.BuildBundleMap()
 
     bundle = conf.GetBundle('test')
     self.assertEqual('test', bundle['id'])
@@ -158,6 +166,22 @@ class TestUmpireConfig(unittest.TestCase):
                      bundle['resources']['complete_script'])
 
     self.assertIsNone(conf.GetBundle('nonexist_bundle'))
+
+  def testGetActiveBundles(self):
+    conf = config.UmpireConfig(EMPTY_SERVICES_CONFIG)
+    conf['rulesets'] = [
+        {'bundle_id': 'id_1', 'active': True},
+        {'bundle_id': 'id_2', 'active': False},
+        {'bundle_id': 'id_3', 'active': True},
+        {'bundle_id': 'id_5', 'active': True}]
+    conf['bundles'] = [
+        {'id': 'id_1', 'test_pass': True},
+        {'id': 'id_2', 'test_pass': False},
+        {'id': 'id_3', 'test_pass': True},
+        {'id': 'id_4', 'test_pass': False}]
+    conf.BuildBundleMap()
+    for bundle in conf.GetActiveBundles():
+      self.assertTrue(bundle['test_pass'])
 
 
 class TestValidateResources(unittest.TestCase):

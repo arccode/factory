@@ -18,6 +18,12 @@ rulesets:
     mlb_sn_range:
     - "-"
     - SN005
+  enable_update:
+    device_factory_toolkit: [RUNIN, RUNIN]
+    rootfs_release: [SMT, SMT]
+    rootfs_test: [FA, FA]
+    firmware_ec: [GRT, GRT]
+    firmware_bios: [~, ~]
 - bundle_id: test
   note: ruleset for test
   active: true
