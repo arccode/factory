@@ -17,6 +17,7 @@ from cros.factory.utils import process_utils
 
 
 class Registry(AttrDict):
+
   """Registry is a singleton class that inherits from AttrDict.
 
   Example:
@@ -91,3 +92,17 @@ def UnpackFactoryToolkit(env, toolkit_resource, device_toolkit=True):
     logging.debug('Factory toolkit extracted to %s', unpack_dir)
 
   return unpack_dir
+
+
+def Deprecate(method):
+  """Logs error of calling deprecated function.
+
+  Args:
+    method: the deprecated function.
+  """
+  def _Wrapper(*args, **kwargs):
+    logging.error('%s is deprecated', method.__name__)
+    return method(*args, **kwargs)
+
+  _Wrapper.__name__ = method.__name__
+  return _Wrapper
