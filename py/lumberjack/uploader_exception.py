@@ -6,9 +6,13 @@
 """Uploader related exceptions."""
 
 
-class UploaderFieldError(Exception):
+class UploaderError(Exception):
   pass
 
 
-class UploaderConnectionError(Exception):
+class UploaderFieldError(UploaderError):
+  pass
+
+
+class UploaderConnectionError(UploaderError):
   pass

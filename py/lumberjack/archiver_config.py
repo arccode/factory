@@ -13,11 +13,12 @@ import re
 import shutil
 import tempfile
 
-from archiver import locks
 from archiver_exception import ArchiverFieldError
 from common import (CheckAndLockFile, CheckExecutableExist,
                     EncryptFile, TryMakeDirs)
 
+# Global variable to keep locked file open during process life-cycle
+locks = []
 
 ALLOWED_DATA_TYPE = set(['eventlog', 'reports', 'regcode'])
 ALLOWED_DURATION = {

@@ -1,0 +1,31 @@
+# Copyright (c) 2014 The Chromium OS Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+#
+# This template is not for unittest nor running on production.
+# It provides solely as a reference of what a configuration looks like.
+#
+source:
+  umpire_eventlog:
+    protocol: SFTP
+    host: 172.30.210.177
+    port: 22
+    username: root
+    archive_path: /var/db/factory/umpire/logs/eventlog
+    private_key: testing_rsa
+  umpire_reports:
+    protocol: SFTP
+    host: 172.30.210.177
+    port: 22
+    username: root
+    archive_path: /var/db/factory/umpire/logs/reports
+    private_key: testing_rsa
+target:
+  protocol: SFTP
+  host: 172.30.210.177
+  port: 22
+  username: root
+  archive_path: /var/db/factory/remote_simulation
+  private_key: testing_rsa
+uploader:
+  file_pool: pool/

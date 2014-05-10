@@ -5,7 +5,6 @@
 
 """SFTP implementation for FetchSource and UploadTarget."""
 
-import copy
 import getpass
 import logging
 import os
@@ -14,12 +13,10 @@ import pprint
 import stat
 import yaml
 
-import uploader
-
 from common import (ComputePercentage, GetMetadataPath, GetOrCreateMetadata,
-                    RegenerateUploaderMetadataFile,
-                    TimeString, UPLOADER_METADATA_DIRECTORY)
+                    RegenerateUploaderMetadataFile, UPLOADER_METADATA_DIRECTORY)
 from uploader_exception import UploaderConnectionError, UploaderFieldError
+from uploader_interface import FetchSourceInterface, UploadTargetInterface
 
 BLOCK_SIZE = 32768  # 2^15, take paramiko's source as reference.
 DISCONNECTED_RETRY = 3
@@ -29,14 +26,32 @@ def _MakeConnected(func):
   """Decorator to check and establish SFTP channel if necessary."""
   def _Wrapper(self, *args, **kwargs):
     self._Connect()  # pylint: disable=W0212
-    func(self, *args, **kwargs)  # pylint: disable=E1102
+    return func(self, *args, **kwargs)  # pylint: disable=E1102
   return _Wrapper
 
 class SFTPBase(object):
+  """Common function shared across FetchSource and UploadTarget on SFTP.
+
+  The SFTPBase class is inherited by FetchSource and UploadTarget, designed
+  for SFTP protocol and key exchange authentication.
+
+  Properties:
+    host: the remote host name or IP address of the SFTP.
+    port: the remote port of the SFTP. Default to port 22.
+    username: the username to login the SFTP.
+    private_key: the private key used to login.
+    archive_path: the starting path of the SFTP. Most function takes path
+        relative to archive_path as its arguments.
+    config_name: name for a SFTP connection.
+    _sftp: internal maintained variable, representing a channel of SFTP.
+  """
   host = None
-  port = None
+  port = 22
   username = None
   private_key = None
+
+  archive_path = None
+  config_name = None
 
   _sftp = None  # SFTP channel
 
@@ -114,20 +129,44 @@ class SFTPBase(object):
       logging.info('Try to establish SFTP session the first time')
       _ConnectWithRetries(retries)
 
+  @_MakeConnected
+  def CheckDirectory(self, dir_path):
+    try:
+      self._sftp.chdir(dir_path)
+    except IOError:
+      return False
+    return True
 
-class FetchSource(SFTPBase):
-  __implements__ = (uploader.FetchSourceInterface, )  # For pylint
+  @_MakeConnected
+  def CalculateDigest(self, relative_path):
+    # SFTP doesn't guarantee to support checksum by standard.
+    raise NotImplementedError
 
-  archive_path = None
+  @_MakeConnected
+  def MoveFile(self, from_path, to_path):
+    # Construct the complete path.
+    from_path = os.path.join(self.archive_path, from_path)
+    to_path = os.path.join(self.archive_path, to_path)
+    self._sftp.rename(from_path, to_path)
+    logging.info('Moved %r -> %r', from_path, to_path)
+
+  def CreateDirectory(self, dir_path):
+    raise NotImplementedError
+
+
+class FetchSource(SFTPBase):  # pylint: disable=W0223
+  """A SFTP implementation of FetchSourceInterface."""
+  __implements__ = (FetchSourceInterface, )  # For pylint
 
   _last_dirs = None  # Last time we list the archive_path
   _last_recursively_walk = None
 
 
-  def LoadConfiguration(self, config):
+  def LoadConfiguration(self, config, config_name=None):
     # Check if the private key exist.
     self._LoadPrivateKey(config['private_key'])
     # Parsing the config
+    self.config_name = config_name
     self.host = config['host']
     self.port = config['port']
     self.username = config['username']
@@ -135,14 +174,11 @@ class FetchSource(SFTPBase):
     self.archive_path = config['archive_path']
     self._Connect()
 
-    try:
-      self._last_dirs = self._sftp.listdir(self.archive_path)
-    except IOError:
+    if not self.CheckDirectory(self.archive_path):
       error_msg = 'Source directory %r doesn\'t exist' % self.archive_path
       raise UploaderFieldError(error_msg)
 
-    logging.info('Configuration loaded. Found %d entries under %r.',
-        len(self._last_dirs), self.archive_path)
+    logging.info('Source configuration %r loaded.', config_name)
 
   @_MakeConnected
   def _ListDirRecursively(self, dir_path, files):
@@ -165,28 +201,19 @@ class FetchSource(SFTPBase):
     for dir_full_path in dirs:
       self._ListDirRecursively(dir_full_path, files)
 
-  def ListFiles(self, file_pool=None):
+  def ListFiles(self):
     files = []
     self._ListDirRecursively(self.archive_path, files)
     self._last_recursively_walk = files
-    logging.debug("Getting full list of files from source:\n%s\n",
-                  pprint.pformat(files))
-    if file_pool:
-      for full_path, file_size, mtime in files:
-        source_rel_path = os.path.relpath(full_path, self.archive_path)
-        metadata_path = GetMetadataPath(
-          os.path.join(file_pool, source_rel_path),
-          UPLOADER_METADATA_DIRECTORY)
-        metadata = GetOrCreateMetadata(
-            metadata_path, RegenerateUploaderMetadataFile)
-        file_metadata = metadata.setdefault('file', {})
-        file_metadata.update({'name': source_rel_path,
-                              'size': file_size,
-                              'last_modified': TimeString(mtime)})
-        with open(metadata_path, 'w') as metadata_fd:
-          metadata_fd.write(yaml.dump(metadata, default_flow_style=False))
+    logging.debug("Getting full list of files from source %r:\n%s\n",
+                  self.config_name, pprint.pformat(files))
+    ret = []
+    # Based on the interface. Change it to relative path.
+    for full_path, file_size, mtime in files:
+      source_rel_path = os.path.relpath(full_path, self.archive_path)
+      ret.append((source_rel_path, file_size, mtime))
 
-    return copy.copy(files)
+    return ret
 
   @_MakeConnected
   def FetchFile(self, source_path, target_path,
@@ -210,6 +237,9 @@ class FetchSource(SFTPBase):
     if metadata_path is None:
       metadata_path = GetMetadataPath(
           target_path, UPLOADER_METADATA_DIRECTORY)
+
+    # Convert source_path into full_path on the SFTP side.
+    source_path = os.path.join(self.archive_path, source_path)
 
     try:
       remote_size = self._sftp.stat(source_path).st_size
@@ -260,38 +290,28 @@ class FetchSource(SFTPBase):
 
     return True
 
-  def CalculateDigest(self, source_path):
-    # SFTP doesn't guarantee to support checksum by standard.
-    raise NotImplementedError
 
-  @_MakeConnected
-  def MoveFile(self, from_path, to_path):
-    self._sftp.rename(from_path, to_path)
-    logging.info('Moved %r -> %r', from_path, to_path)
+class UploadTarget(SFTPBase):  # pylint: disable=W0223
+  """A SFTP implementation of UploadTargetInterface."""
+  __implements__ = (UploadTargetInterface, )  # For pylint
 
-  @_MakeConnected
-  def CheckDirectory(self, dir_path):
-    try:
-      self._sftp.chdir(dir_path)
-    except IOError:
-      return False
-    return True
-
-  def CreateDirectory(self, dir_path):
-    raise NotImplementedError
-
-
-class UploadTarget(SFTPBase):
-  __implements__ = (uploader.UploadTargetInterface, )  # For pylint
-
-  def LoadConfiguration(self, config):
+  def LoadConfiguration(self, config, config_name=None):
     # Check if the private key exist.
     self._LoadPrivateKey(config['private_key'])
     # Parsing the config
+    self.config_name = config_name
     self.host = config['host']
     self.port = config['port']
     self.username = config['username']
+    # Try to connect and check the existence of archive_path
+    self.archive_path = config['archive_path']
     self._Connect()
+
+    if not self.CheckDirectory(self.archive_path):
+      error_msg = 'Source directory %r doesn\'t exist' % self.archive_path
+      raise UploaderFieldError(error_msg)
+
+    logging.info('Target configuration %r loaded.', config_name)
 
   @_MakeConnected
   def UploadFile(self, local_path, target_path,
@@ -320,6 +340,9 @@ class UploadTarget(SFTPBase):
     if metadata_path is None:
       metadata_path = GetMetadataPath(
           local_path, UPLOADER_METADATA_DIRECTORY)
+
+    # Convert target_path into full_path on the SFTP side.
+    target_path = os.path.join(self.archive_path, target_path)
 
     try:
       remote_size = self._sftp.stat(target_path).st_size

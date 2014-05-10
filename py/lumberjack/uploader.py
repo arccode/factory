@@ -7,168 +7,323 @@
 
 import argparse
 import logging
+import os
 import sys
+import threading
+import time
+import yaml
 
-from common import IsValidYAMLFile
+from common import (CheckAndLockFile, GetMetadataPath, GetOrCreateMetadata,
+                    IsValidYAMLFile, RegenerateUploaderMetadataFile,
+                    TimeString, UPLOADER_METADATA_DIRECTORY)
+from importlib import import_module
+from uploader_exception import UploaderError, UploaderFieldError
 
+# Global variable to keep locked file open during process life-cycle
+lock = None
+# Supported protocol
+PROTOCOL_MAPPING = {'SFTP': 'uploader_sftp'}
 
-class FetchSourceInterface(object):
-  def LoadConfiguration(self, config):
-    """Loads a configuration from a dictionary.
-
-    The config can be either passed during object instantiation or
-    re-configure on the fly.
-
-    Args:
-      config: A dictionary parsed from YAML configuration.
-    """
-    raise NotImplementedError('Need the implementation in sub-class')
-
-  def ListFiles(self, file_pool):
-    """Returns a list of files exist in the source recursively.
-
-    Args:
-      file_pool:
-        A local path that we anticipate to store those files, usually
-        provided by the uploader's main logic (the path should be
-        assigned in uploader's configuration and created before
-        calling this funtion).
-        If assigned, this function will update the metadata of listed
-        files as well.
-
-    Returns:
-      A list containing tuples of (relative path from monitored
-      directory, file size, last modification timestamp - mtime)
-    """
-    raise NotImplementedError('Need the implementation in sub-class')
-
-  def FetchFile(self, source_path, target_path,
-                metadata_path=None, resume=True):
-    """Fetches a file on remote's source_path into local target_path.
-
-    This is a blocking function and progress will be updated in the
-    metadata_path accordingly.
-
-    Args:
-      source_path:
-        The path on the file we want to fetch on source side.
-      target_path:
-        The path we want to save locally.
-      metadata_path:
-        The metadata path that information will be updated to. If None is
-        given, the path will be automatically inferred.
-      resume:
-        Whether to resume the transmission if possible.
-
-    Returns:
-      True if fetching completed. False otherwise.
-    """
-    raise NotImplementedError('Need the implementation in sub-class')
-
-  def CalculateDigest(self, source_path):
-    """Returns digest of source_path.
-
-    The digest type can be one of md5, sha1, sha224, sha256, sha512. Based on
-    the best availability on the support of source side.
-
-    Args:
-      source_path: The file we want to calculate the digest.
-
-    Returns:
-      A tuple in format (digest type, digest in hex). If the file doesn't
-      exist, None for both fields.
-    """
-    raise NotImplementedError('Need the implementation in sub-class')
-
-  def MoveFile(self, from_path, to_path):
-    """Moves a file on the source side.
-
-    Usually called by recycling step after confirming an upload is success.
-
-    Args:
-      from_path: Path on the source side.
-      to_path: Path on the source side.
-
-    Raises:
-      IOError if failed.
-    """
-    raise NotImplementedError('Need the implementation in sub-class')
-
-  def CheckDirectory(self, dir_path):
-    """Checks if the directory exists in source side.
-
-    This serves for preventing us from misconfiguration in configuration.
-
-    Args:
-      dir_path: Direcotry path on the source side.
-
-    Returns:
-      Whether that directory exists.
-    """
-    raise NotImplementedError('Need the implementation in sub-class')
-
-  def CreateDirectory(self, dir_path):
-    """Creates the directory on the source side.
-
-    Based on the need, the user might want to create the recycle directory
-    automatically.
-
-    Args:
-      dir_path: Direcotry path on the source side.
-    """
-    raise NotImplementedError('Need the implementation in sub-class')
+UPLOADER_LOCK_FILE = '.uploader.lock'
+PARSING_ERROR_REST_SECS = 0.2
+LOOP_DELAY = 1
 
 
-class UploadTargetInterface(object):
-  def LoadConfiguration(self, config):
-    """Loads a configuration from a dictionary.
+class _Status(object):
+  """Represents the status returned by _DetermineMetadataStatus."""
+  RACING = 'Racing'
+  UPLOADED_GREATER_THAN_EXPECTED = (
+      'Uploaded bytes are greater than expected')
+  DOWNLOADED_GREATER_THAN_EXPECTED = (
+      'Downloaded bytes are greater than expected')
+  UNKNOWN = 'Unknown'
+  DOWNLOADING = 'Downloading'
+  UPLOADING = 'Uploading'
+  UPLOADED = 'Uploaded'
 
-    The config can be either passed during object instantiation or
-    re-configure on the fly.
 
-    Args:
-      config: A dictionary parsed from YAML configuration.
-    """
-    raise NotImplementedError('Need the implementation in sub-class')
+def _Uploader(config_path):
+  """The starter of the uploader.
 
-  def UploadFile(self, local_path, target_path,
-                 metadata_path=None, resume=True):
-    """Uploads a file to Google's storage.
+  config_path: The path to the uploader configuration.
+  """
+  global lock  # pylint: disable=W0603
+  with open(config_path, 'r') as fd:
+    uploader_config = yaml.load(fd.read())
 
-    This is a blocking function and progress will be updated in the
-    metadata_path accordingly.
+  # Making sure we are the only one looking over file_pool.
+  if 'uploader' not in uploader_config:
+    raise UploaderFieldError(
+        'No uploader information found in %r' % config_path)
+  if 'file_pool' not in uploader_config['uploader']:
+    raise UploaderFieldError(
+        'No file_pool location under uploader section in configuration.' %
+        config_path)
+  file_pool = uploader_config['uploader']['file_pool']
+  if not os.path.isdir(file_pool):
+    raise UploaderFieldError(
+        'file_pool %r is not a directory or does not exist.' % file_pool)
+  # Try to lock the file_pool directory
+  lock_file_path = os.path.join(file_pool, UPLOADER_LOCK_FILE)
+  lock_ret = CheckAndLockFile(lock_file_path)
+  if not isinstance(lock_ret, file):
+    running_pid = lock_ret
+    error_msg = (
+        'file_pool[%r] is already monitored by another uploader.'
+        'Lock %r cannot be acquired. Another uploader\'s PID '
+        'might be %s' % (file_pool, lock_file_path, running_pid))
+    logging.error(error_msg)
+    raise UploaderFieldError(error_msg)
+  # Add to global variable to live until this process ends.
+  lock = (lock_ret, lock_file_path)
+  logging.info('Successfully acquire advisory lock on %r, PID[%d]',
+               lock_file_path, os.getpid())
+  # TODO(itspeter): Clean up the locks when exiting process.
 
-    Args:
-      local_path:
-        The path of the local file we want to upload.
-      target_path:
-        The path we want to save on the Google side.
-      metadata_path:
-        The metadata path that information will be updated to. If None is
-        given, the path will be automatically inferred.
-      resume:
-        Whether to resume the transmission if possible.
+  # Load and establish sources and target.
+  sources = []
+  target = None
+  # Validate each fields.
+  if 'source' not in uploader_config:
+    raise UploaderFieldError('No source information found in %r' % config_path)
+  if 'target' not in uploader_config:
+    raise UploaderFieldError('No target information found in %r' % config_path)
 
-    Returns:
-      True if uploading completed. False otherwise.
-    """
-    raise NotImplementedError('Need the implementation in sub-class')
+  # Establish sources
+  for source_name, source_config in uploader_config['source'].iteritems():
+    logging.info('Parsing source config [%r]', source_name)
+    # Check its protocol.
+    protocol = source_config.get('protocol', None)
+    if protocol not in PROTOCOL_MAPPING:
+      raise UploaderFieldError(
+          'Protocol [%r] not supported at this time.' % protocol)
+    source_module = import_module(PROTOCOL_MAPPING[protocol])
+    source_obj = source_module.FetchSource()
+    source_obj.LoadConfiguration(source_config, config_name=source_name)
+    sources.append(source_obj)
+    logging.info('Source config [%r] added', source_name)
+  if len(sources) == 0:
+    raise UploaderFieldError('source field contains zero sub-source config.')
 
-  def CalculateDigest(self, target_path):
-    """Returns digest of target_path.
+  # Establish target
+  logging.info('Parsing target config.')
+  target_config = uploader_config['target']
+  # Check its protocol.
+  protocol = target_config.get('protocol', None)
+  if protocol not in PROTOCOL_MAPPING:
+    raise UploaderFieldError(
+        'Protocol [%r] not supported at this time.' % protocol)
+  target_module = import_module(PROTOCOL_MAPPING[protocol])
+  target = target_module.UploadTarget()
+  target.LoadConfiguration(target_config)
+  logging.info('Target config loaded')
 
-    The digest type can be one of md5, sha1, sha224, sha256, sha512. Based on
-    the best availability on the support of target side.
+  # Start threads
+  for source in sources:
+    t = threading.Thread(target=_FetchSourceThread, args=(source, file_pool))
+    t.daemon = True
+    t.start()
+  t = threading.Thread(target=_UploadTargetThread, args=(target, file_pool))
+  t.daemon = True
+  t.start()
+  t.join()
 
-    Args:
-      target_path: The file we want to calculate the digest.
 
-    Returns:
-      A tuple in format (digest type, digest in hex). If the file doesn't
-      exist, None for both fields.
+def _DetermineMetadataStatus(file_pool, path_from_pool):
+  """Determines a status in file_pool.
 
-    """
-    raise NotImplementedError('Need the implementation in sub-class')
+  Args:
+    file_pool: The path of file_pool in local file system.
+    path_from_pool:
+      The path where the file we want to determine relative to file_pool. If
+      the file doesn't exist, _Status.UNKNOWN will be returned.
+
+  Returns:
+    Returns the status listed in the class _Status.
+  """
+  local_full_path = os.path.join(file_pool, path_from_pool)
+  metadata_path = GetMetadataPath(local_full_path, UPLOADER_METADATA_DIRECTORY)
+  logging.debug('Determine status of %r.', local_full_path)
+
+  if os.path.isfile(metadata_path):
+    # Determine the file's status
+    metadata = None
+    metadata_last_modified = os.lstat(metadata_path).st_mtime
+    with open(metadata_path, 'r') as fd:
+      raw_metadata = fd.read()
+      logging.debug('Raw content of %r=\n%s\n', metadata_path, raw_metadata)
+    try:
+      metadata = yaml.load(raw_metadata)
+      if not isinstance(metadata, dict):
+        raise UploaderError('Metadata %r is not a dict' % metadata_path)
+      if not isinstance(metadata.get('file', None), dict):
+        raise UploaderError(
+            'Metadata %r does not contain file or file is not a dict' %
+            metadata_path)
+      expected_file_size = metadata['file'].get('size')
+      if not expected_file_size:
+        raise UploaderError(
+            'Metadata %r does not contain size in file field' % metadata_path)
+
+      # Check if file is downloaded.
+      download_metadata = metadata.get('download', {})
+      downloaded_bytes = download_metadata.get('downloaded_bytes', 0)
+
+      if downloaded_bytes < expected_file_size:
+        logging.debug('File %r is downloading.', local_full_path)
+        return _Status.DOWNLOADING
+      elif downloaded_bytes == expected_file_size:
+        # Check if file is uploaded
+        upload_metadata = metadata.get('upload', {})
+        uploaded_bytes = upload_metadata.get('uploaded_bytes', 0)
+
+        if uploaded_bytes < expected_file_size:
+          logging.debug('File %r is uploading.', local_full_path)
+          return _Status.UPLOADING
+        elif uploaded_bytes == expected_file_size:
+          logging.debug('File %r is uploaded.', local_full_path)
+          return _Status.UPLOADED
+        else:
+          logging.debug(
+              'File %r is abnormal. Uploaded %d bytes.'
+              'More than expected %d bytes.',
+              local_full_path, uploaded_bytes, expected_file_size)
+          return _Status.UPLOADED_GREATER_THAN_EXPECTED
+
+        # Will not actually able to determine precisely between a file
+        # is downloaded or uploading solely on the metadata.
+      else:
+        logging.debug(
+            'File %r is abnormal. Downloaded %d bytes.'
+            'More than expected %d bytes.',
+            local_full_path, downloaded_bytes, expected_file_size)
+        return _Status.DOWNLOADED_GREATER_THAN_EXPECTED
+
+    except UploaderError:
+      logging.exception(
+          'File %r\'s metadata is unlikely valid.', local_full_path)
+      return _Status.UNKNOWN
+
+    except yaml.YAMLError:
+      # There are two possibility. One is the metadata is really a
+      # corrupted one. Another is the reading racing with another
+      # writing. To tackle the later one, we will look into the mtime
+      # to see if this parsing error is a false alarm.
+      time.sleep(PARSING_ERROR_REST_SECS)
+      if metadata_last_modified == os.lstat(metadata_path).st_mtime:
+        logging.exception(
+            'File %r\'s metadata is unlikely valid.', local_full_path)
+        return _Status.UNKNOWN
+      else:
+        # Leave the caller to determine further action.
+        return _Status.RACING
+  else:
+    logging.debug('File %r\'s metadata doesn\'t exist.', local_full_path)
+    return _Status.UNKNOWN
+
+
+def _FetchSourceThread(source, file_pool):
+  def _UpdateFileInMetadata(metadata_path, file_name, file_size, file_mtime):
+    # Overwrite whatever metadata.
+    metadata = GetOrCreateMetadata(
+        metadata_path, RegenerateUploaderMetadataFile)
+    file_metadata = metadata.setdefault('file', {})
+    file_metadata.update({'name': file_name,
+                          'size': file_size,
+                          'last_modified': TimeString(file_mtime)})
+    with open(metadata_path, 'w') as metadata_fd:
+      metadata_fd.write(yaml.dump(metadata, default_flow_style=False))
+    logging.debug('Metadata %r is re-generated.', metadata_path)
+
+  while True:  # Run forever.
+    time.sleep(LOOP_DELAY)
+    # Getting basic data of files from the source.
+    files = source.ListFiles()
+    for source_rel_path, file_size, mtime in files:
+      start_download = False
+      resume = True
+
+      local_full_path = os.path.join(file_pool, source_rel_path)
+      status = _DetermineMetadataStatus(file_pool, source_rel_path)
+      if status == _Status.UNKNOWN:
+        # Re-generate the metadata and re-download. One of the common case
+        # is the metadata is not existed and created the first time.
+        _UpdateFileInMetadata(
+            GetMetadataPath(local_full_path, UPLOADER_METADATA_DIRECTORY),
+            source_rel_path, file_size, mtime)
+        start_download = True
+        resume = False
+      elif status == _Status.DOWNLOADING:
+        # According to the design, at any time, only one thread will be
+        # responsible for downloading a file. This might be closed
+        # unexpectedly in last session.
+        start_download = True
+        resume = True
+      elif status == _Status.UPLOADING:
+        pass  # Action only when upload is completed.
+      elif status == _Status.UPLOADED:
+        pass  # TODO(itspeter): Move the file into recycle bin.
+      elif status == _Status.RACING:
+        pass  # The file is uploading.
+      else:
+        logging.error('Unexpected status in FetchSourceThread: %d.', status)
+
+      # Download the file based on the flag.
+      if start_download:
+        logging.info(
+            'Start fetching %r with resume flag [%s].', source_rel_path, resume)
+        source.FetchFile(source_rel_path, local_full_path, resume=resume)
+
+
+def _UploadTargetThread(target, file_pool):
+  """Traverse over the file_pool and find stuff to upload."""
+  while True:  # Run forever.
+    time.sleep(LOOP_DELAY)
+    # Scanning the file_pool
+    for current_dir, _, filenames in os.walk(file_pool):
+      if os.path.basename(current_dir) == UPLOADER_METADATA_DIRECTORY:
+        logging.debug(
+            'Metadata directory %r found, skipped for uploading.', current_dir)
+        continue
+      for filename in filenames:
+        if filename == UPLOADER_LOCK_FILE:
+          continue  # Skip the lock file.
+
+        start_upload = False
+        resume = False
+        local_full_path = os.path.join(current_dir, filename)
+        local_rel_path = os.path.relpath(local_full_path, file_pool)
+
+        status = _DetermineMetadataStatus(file_pool, local_rel_path)
+        if status == _Status.UNKNOWN:
+          pass  # Do nothing because FetchSource thread should fix it.
+        elif status == _Status.DOWNLOADING:
+          pass  # Action only when download is completed.
+        elif status == _Status.UPLOADING:
+          # Action when upload is not completed yet.
+          start_upload = True
+          resume = True
+        elif status == _Status.UPLOADED_GREATER_THAN_EXPECTED:
+          # Upload will start over from beginning.
+          start_upload = True
+          resume = False
+        elif status == _Status.UPLOADED:
+          pass  # FetchSource threading should take care of recycling.
+        elif status == _Status.RACING:
+          pass  # The file is downloading.
+        else:
+          logging.error('Unexpected status in UploadTargetThread: %d.', status)
+
+        # Upload the file based on the flag.
+        if start_upload:
+          # TODO(itspeter):
+          #   We should determine if a resume is feasible based on the
+          #   checksum on remote side. Should add so after checksum is
+          #   implemented.
+          logging.info(
+              'Start uploading %r with resume flag [%s].',
+              local_full_path, resume)
+          target.UploadFile(local_full_path, local_rel_path, resume=resume)
 
 
 def main(argv):
@@ -192,8 +347,7 @@ def main(argv):
 
   # Check fields.
   if args.sub_command == 'start':
-    # TODO(itspeter): Implement the logic as design in docs.
-    pass
+    _Uploader(args.yaml_config)
   elif args.sub_command == 'status':
     # TODO(itspeter): Implement the logic as design in docs.
     pass

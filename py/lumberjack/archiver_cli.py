@@ -15,8 +15,9 @@ import signal
 import sys
 import yaml
 
-from archiver import locks, Archive
-from archiver_config import GenerateConfig, LockSource
+import archiver
+
+from archiver_config import GenerateConfig, LockSource, locks
 from common import IsValidYAMLFile
 from twisted.internet import reactor
 
@@ -93,7 +94,7 @@ def main(argv):
     # Start the first cycle for each configs in few secs.
     for config in configs:
       # TODO(itspeter): Special clean-up for first cycle.
-      reactor.callLater(5, Archive, config)  # pylint: disable=E1101
+      reactor.callLater(5, archiver.Archive, config)  # pylint: disable=E1101
 
     # Register signal handler
     signal.signal(signal.SIGTERM, _SignalHandler)

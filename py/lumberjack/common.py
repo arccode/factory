@@ -146,7 +146,7 @@ def GenerateArchiverMetadata(completed_bytes=0):
 
 def GenerateUploaderMetadata():
   """Returns a string of default metadata of uploader."""
-  return yaml.dump({'files': {}, 'download': {}, 'upload': {}},
+  return yaml.dump({'file': {}, 'download': {}, 'upload': {}},
                    default_flow_style=False)
 
 

@@ -28,8 +28,6 @@ SNAPSHOT = '.snapshot'
 SKIP_SUFFIX = ['.part', '.inprogress', '.lock', '.swp']
 ARCHIVER_SOURCE_FILES = ['archiver.py', 'archiver_exception.py',
                          'archiver_cli.py', 'archiver_config.py']
-# Global variable to keep locked file open during process life-cycle
-locks = []
 # Global variable to postpone the time (i.e. give few more archiving cycle
 # a chance to recover automatically) of raising exception
 archive_failures = []
