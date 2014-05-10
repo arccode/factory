@@ -8,11 +8,13 @@ import base64
 from contextlib import contextmanager
 import errno
 import fcntl
+import gzip
 import hashlib
 import logging
 import os
 import re
 import shutil
+import stat
 import time
 import tempfile
 
@@ -177,6 +179,16 @@ def TouchFile(path):
     os.utime(path, None)
 
 
+def SetFileExecutable(path):
+  """Sets the file's executable bit.
+
+  Args:
+    path: The file path.
+  """
+  st = os.stat(path)
+  os.chmod(path, st.st_mode | stat.S_IXUSR)
+
+
 def CopyFileSkipBytes(in_file_name, out_file_name, skip_size):
   """Copies a file and skips the first N bytes.
 
@@ -268,6 +280,40 @@ def MountDeviceAndReadFile(device, path):
     content = open(
         os.path.join(mount_point, path)).read()
   return content
+
+
+@contextmanager
+def GunzipSingleFile(gzip_path, output_path=None):
+  """Extracts a gzip file which contains only one file.
+
+  Args:
+    gzip_path: Path to gzipped file.
+    output_path: Path to extract. None to use a temporary output file.
+
+  Yields:
+    Path to extracted file. If output_path is omitted, yields a temporary file
+    path. Note that it deletes the temporary file after leaving the context.
+  """
+  MAX_CHUNK_SIZE = 10 * 1024 * 1024
+
+  is_temp_file = not output_path
+  if not output_path:
+    f, output_path = tempfile.mkstemp()
+    os.close(f)
+
+  with open(output_path, 'w') as output_file:
+    with gzip.open(gzip_path, 'rb') as input_file:
+      while True:
+        chunk = input_file.read(MAX_CHUNK_SIZE)
+        if not chunk:
+          break
+        output_file.write(chunk)
+
+  try:
+    yield output_path
+  finally:
+    if is_temp_file and os.path.exists(output_path):
+      os.unlink(output_path)
 
 
 class ExtractFileError(Exception):

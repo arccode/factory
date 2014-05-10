@@ -32,6 +32,7 @@ from cros.factory.tools.make_update_bundle import MakeUpdateBundle
 from cros.factory.tools.mount_partition import MountPartition
 from cros.factory.utils.file_utils import (
     UnopenedTemporaryFile, CopyFileSkipBytes, TryUnlink, ExtractFile)
+from cros.factory.utils import get_version
 from cros.factory.utils.process_utils import Spawn, CheckOutput
 
 
@@ -94,13 +95,10 @@ class Glob(object):
 
 def GetReleaseVersion(mount_point):
   """Returns the release version of an image mounted at mount_point."""
-  match = re.search(
-      '^CHROMEOS_RELEASE_VERSION=(.+)$',
-      open(os.path.join(mount_point, 'etc', 'lsb-release')).read(),
-      re.MULTILINE)
-  if not match:
+  result = get_version.GetReleaseVersion(mount_point)
+  if not result:
     sys.exit('Unable to read lsb-release from %s' % mount_point)
-  return match.group(1)
+  return result
 
 
 def GetFirmwareVersions(updater, has_ec):
@@ -114,24 +112,16 @@ def GetFirmwareVersions(updater, has_ec):
     A tuple (bios_version, ec_version)
     If has_ec is False, ec_version is set to None
   """
-  stdout = Spawn(
-      [updater, '-V'], log=True, check_output=True).stdout_data
+  bios, ec = get_version.GetFirmwareVersions(updater)
 
-  versions = []
-  versions_list = ['BIOS version']
+  if bios is None:
+    sys.exit('Unable to read BIOS version from chromeos-firmwareupdater')
   if has_ec:
-    versions_list += ['EC version']
-  for label in versions_list:
-    match = re.search(
-        '^' + label + ':\s+(.+)$', stdout, re.MULTILINE)
-    if not match:
-      sys.exit(
-        'Unable to read %s from chromeos-firmwareupdater output %r' % (
-            label, stdout))
-    versions.append(match.group(1))
-  if not has_ec:
-    versions.append(None)
-  return tuple(versions)
+    if ec is None:
+      sys.exit('Unable to read EC version from chromeos-firmwareupdater')
+  else:
+    ec = None
+  return (bios, ec)
 
 
 USAGE = """
