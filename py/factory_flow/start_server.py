@@ -4,6 +4,7 @@
 
 """A module for starting factory server for testing."""
 
+import glob
 import logging
 import os
 import re
@@ -168,9 +169,9 @@ class StartServer(FactoryFlowCommand):
     file_utils.TryMakeDirs(self.files_dir)
 
     self.dhcp_server_log_file = os.path.join(
-        self.files_dir, 'dhcpd.log')
+        self.files_dir, 'dhcpd.%s.log')
     self.dhcp_server_pid_file = os.path.join(
-        self.files_dir, 'dhcpd.pid')
+        self.files_dir, 'dhcpd.%s.pid')
     self.tftp_server_pid_file = os.path.join(
         self.files_dir, 'tftpd.pid')
     self.download_server_log_file = os.path.join(
@@ -183,8 +184,8 @@ class StartServer(FactoryFlowCommand):
         self.files_dir, 'shopfloor_server.pid')
 
   def Run(self):
-    self.StopAllServers()
     if self.options.stop:
+      self.StopAllServers()
       return
     self.InstallRequiredPackages()
     self.StartDHCPServer()
@@ -203,8 +204,8 @@ class StartServer(FactoryFlowCommand):
         ('download server', self.download_server_pid_file),
         ('shop floor server', self.shopfloor_server_pid_file),
     )
-    for name, pid_file in servers:
-      logging.info('Stopping %s', name)
+
+    def KillProcess(name, pid_file):
       if os.path.exists(pid_file):
         with open(pid_file) as f:
           pid = int(f.read())
@@ -226,6 +227,15 @@ class StartServer(FactoryFlowCommand):
                         'assume it is already dead'),
                        pid)
         file_utils.TryUnlink(pid_file)
+
+    for name, pid_file in servers:
+      logging.info('Stopping %s', name)
+      if name == 'DHCP server':
+        pid_files = glob.glob(pid_file.replace('%s', '*'))
+        for pid_file in pid_files:
+          KillProcess(name, pid_file)
+      else:
+        KillProcess(name, pid_file)
 
   def InstallRequiredPackages(self):
     """Installs required packages."""
@@ -291,18 +301,22 @@ class StartServer(FactoryFlowCommand):
     process_utils.Spawn(['touch', lease.name], check_call=True, log=True)
 
     logging.info('Starting DHCP server using config %s', dhcpd_conf)
-    with open(self.dhcp_server_log_file, 'w') as f:
+    if self.options.dut_ip:
+      file_suffix = self.options.dut_ip.replace('.', '-')
+    else:
+      file_suffix = 'default'
+    with open(self.dhcp_server_log_file % file_suffix, 'w') as f:
       self.dhcp_server = process_utils.Spawn(
           ['/usr/sbin/dhcpd', '-f', '--no-pid', '-cf', dhcpd_conf,
            '-lf', lease.name] +
           ([self.options.dhcp_iface] if self.options.dhcp_iface else []),
           stderr=subprocess.STDOUT, stdout=f, log=True, sudo=True)
-    with open(self.dhcp_server_pid_file, 'w') as f:
+    with open(self.dhcp_server_pid_file % file_suffix, 'w') as f:
       f.write(str(self.dhcp_server.pid))
 
     print DHCPD_MESSAGE % dict(
         dhcpd_conf=dhcpd_conf,
-        dhcp_server_log_file=self.dhcp_server_log_file)
+        dhcp_server_log_file=self.dhcp_server_log_file % file_suffix)
 
   def StartTFTPServer(self):
     """Starts TFTP server.

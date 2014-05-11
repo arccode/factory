@@ -23,6 +23,7 @@ from email.mime.text import MIMEText
 import factory_common   # pylint: disable=W0611
 from cros.factory.common import MakeList
 from cros.factory.factory_flow import common
+from cros.factory.factory_flow import test_runner_common
 from cros.factory.hacked_argparse import CmdArg, ParseCmdline, verbosity_cmd_arg
 from cros.factory.test import utils
 from cros.factory.tools import build_board
@@ -83,7 +84,7 @@ class TestResult(object):
     """
     if not dut in self.test_plan_config['dut']:
       raise FactoryFlowTestError('DUT %r is not planned for %r' %
-                                   (dut, self.test_plan_name))
+                                 (dut, self.test_plan_name))
     if not item in (self.test_plan_config['test_sequence'] +
                     self.test_plan_config['clean_up']):
       raise FactoryFlowTestError('Test item %r is not planned for %r' %
@@ -219,12 +220,14 @@ class FactoryFlowRunner(object):
 
   SUBCOMMANDS = ('create-bundle', 'start-server', 'usb-install',
                  'netboot-install', 'run-automated-tests')
-  FACTORY_FLOW = os.path.join(os.environ['CROS_WORKON_SRCROOT'], 'src',
-                              'platform', 'factory', 'bin', 'factory_flow')
 
   def __init__(self, config, output_dir=None):
     self.config = config
-    self.test_items = {}
+    for name, item in config['test_items'].iteritems():
+      subcommand = item['command']
+      if subcommand not in self.SUBCOMMANDS:
+        raise FactoryFlowTestError(
+            'Invalid subcommand %r in test item %s' % (subcommand, name))
     self.board = config['board']
     self.output_dir = output_dir or tempfile.mkdtemp(
         prefix='factory_flow_runner.')
@@ -244,6 +247,13 @@ class FactoryFlowRunner(object):
       dut: The DUT to run factory flow tests on; this should be specified by the
         DUT ID in the config file.  None to test all DUT.
     """
+    runner_info = test_runner_common.RunnerInfo({
+        'board': self.board,
+        'output_dir': self.output_dir,
+        })
+
+    host_info = test_runner_common.HostInfo(self.config['host_info'])
+
     if not plan:
       test_plans_to_run = self.config['test_plans'].keys()
     else:
@@ -267,123 +277,74 @@ class FactoryFlowRunner(object):
       else:
         dut_to_test = config['dut']
 
-      for d in dut_to_test:
-        dut_info = self.config['dut_info'][d]
-        log_dir = os.path.join(self.log_dir, plan, d)
+      dut_info_dict = {}
+      for dut in dut_to_test:
+        log_dir = os.path.join(self.log_dir, plan, dut)
         file_utils.TryMakeDirs(log_dir)
-        self.CreateTestItems(d, log_dir)
+        dut_info = test_runner_common.DUTInfo(self.config['dut_info'][dut])
+        dut_info['dut_id'] = dut
+        dut_info['log_dir'] = log_dir
+        dut_info_dict[dut] = dut_info
 
-        test_env = os.environ.copy()
-        test_env[common.BUNDLE_DIR_ENVVAR] = self.output_dir
-        test_env[common.DUT_ENVVAR] = dut_info['ip']
+      test_env = os.environ.copy()
+      test_env[common.BUNDLE_DIR_ENVVAR] = self.output_dir
+
+      def RunTestItem(item):
+        # Build per-DUT commands.
+        test_item = self.config['test_items'][item]
+        dut_commands = test_runner_common.CommandBuilder[
+            test_item['command']].BuildCommand(
+                test_item, runner_info, host_info, dut_info_dict.values())
+
+        # Run all commands concurrently.
+        log_file_spec = os.path.join(self.log_dir, plan, item + '.%d.log')
+        procs = []
+        for x in xrange(len(dut_commands)):
+          dut_command = dut_commands[x]
+          logging.info('Running test item %s for DUT %s...', item,
+                       dut_command.duts)
+          with open(log_file_spec % x, 'w') as f:
+            proc = process_utils.Spawn(
+                dut_command.args, log=True, env=test_env, stdout=f, stderr=f)
+          procs.append((dut_command.duts, proc))
+
+        # Wait for all commands to finish and set test results.
+        for x in xrange(len(procs)):
+          duts, proc = procs[x]
+          proc.wait()
+          if proc.returncode != 0:
+            for dut in duts:
+              test_result.SetTestItemResult(dut, item, TestStatus.FAILED)
+            logging.error(
+                'Test item %s for DUT %s failed; check %s for detailed logs',
+                item, duts, log_file_spec % x)
+          else:
+            for dut in duts:
+              test_result.SetTestItemResult(dut, item, TestStatus.PASSED)
+
+      try:
+        # Run through each test item; abort if any test item fails.
+        for item in config['test_sequence']:
+          logging.info('Running test item %r...', item)
+          RunTestItem(item)
+      except Exception:
+        logging.exception('Error when running test item %s', item)
+      finally:
         try:
-          # Run through each test item; abort if any test item fails.
-          item_under_test = None
-          for item in config['test_sequence']:
-            logging.info('Running test item %r on %r...', item, d)
-            item_under_test = item
-            command = self.test_items[d][item]
-            process_utils.SpawnTee(
-                command, log=True, env=test_env, check_call=True,
-                output_file=os.path.join(log_dir, item + '.log'))
-            test_result.SetTestItemResult(d, item_under_test, TestStatus.PASSED)
-        except Exception:
-          logging.exception('Test item failed')
-          test_result.SetTestItemResult(d, item_under_test, TestStatus.FAILED)
-        finally:
+          for dut in dut_to_test:
+            self.GetDUTFactoryLogs(plan, dut, log_dir)
+        except subprocess.CalledProcessError:
+          logging.exception('Unable to get factory logs from DUT')
+
+        # Run through each clean-up item; continue even if one fails.
+        for item in config['clean_up']:
+          logging.info('Running clean-up item %r...', item)
           try:
-            self.GetDUTFactoryLogs(plan, d, log_dir)
-          except subprocess.CalledProcessError:
-            logging.exception('Unable to get factory logs from DUT')
+            RunTestItem(item)
+          except Exception:
+            logging.exception('Error when running clean-up item %s', item)
 
-          item_under_test = None
-          # Run through each clean-up item; continue even if one fails.
-          for item in config['clean_up']:
-            try:
-              logging.info('Running clean-up item %r on %r...', item, d)
-              item_under_test = item
-              command = self.test_items[d][item]
-              process_utils.SpawnTee(
-                  command, log=True, env=test_env, check_call=True,
-                  output_file=os.path.join(log_dir, item + '.log'))
-              test_result.SetTestItemResult(
-                  d, item_under_test, TestStatus.PASSED)
-            except Exception:
-              logging.exception('Clean-up item failed')
-              test_result.SetTestItemResult(d, item_under_test,
-                                            TestStatus.FAILED)
       test_result.NotifyOwners()
-
-  def CreateTestItems(self, dut, base_log_dir):
-    """Creates test items for the given DUT using its DUT info in the config.
-
-    Args:
-      dut: The DUT to create test items for; this should be specified by the DUT
-        ID in the config file.
-      base_log_dir: The base logs directory.
-    """
-    self.test_items[dut] = {}
-    dut_info = self.config['dut_info'][dut]
-    test_items = self.config['test_items']
-    for key, args in test_items.iteritems():
-      cmd_name = args['command']
-      if cmd_name not in self.SUBCOMMANDS:
-        raise FactoryFlowTestError('Invalid subcommand %r' % args['command'])
-
-      args['board'] = self.board
-      if cmd_name == 'create-bundle':
-        args['output-dir'] = self.output_dir
-        args['mini-omaha-ip'] = dut_info.get('host_ip')
-
-      elif cmd_name == 'start-server':
-        # Start a temporary DHCP server for the DUT.
-        args['dhcp-iface'] = dut_info.get('dhcp_iface')
-        args['host-ip'] = dut_info.get('host_ip')
-        args['dut-mac'] = dut_info.get('eth_mac')
-        args['dut-ip'] = dut_info.get('ip')
-
-      elif cmd_name == 'usb-install':
-        args['servo-host'] = dut_info.get('servo_host')
-        args['servo-port'] = dut_info.get('servo_port')
-        args['servo-serial'] = dut_info.get('servo_serial')
-
-      elif cmd_name == 'netboot-install':
-        args['servo-host'] = dut_info.get('servo_host')
-        args['servo-port'] = dut_info.get('servo_port')
-        args['servo-serial'] = dut_info.get('servo_serial')
-
-      elif cmd_name == 'run-automated-tests':
-        args['shopfloor-ip'] = dut_info.get('host_ip')
-        args['shopfloor-port'] = dut_info.get('shopfloor_port')
-        args['log-dir'] = os.path.join(base_log_dir, 'factory_logs')
-        if args['test-list'] in dut_info.get('test_list_customization', []):
-          # Generate YAML files and set up automation environment on the DUT.
-          def CreateTempYAMLFile(suffix, data):
-            filename = os.path.join(
-                self.output_dir,
-                '%s-%s-%s.yaml' % (dut, args['test-list'], suffix))
-            with open(filename, 'w') as f:
-              f.write(yaml.safe_dump(data))
-            return filename
-
-          settings = dut_info['test_list_customization'][args['test-list']]
-          for item in ('device_data', 'vpd', 'test_list_dargs',
-                       'automation_function_kwargs'):
-            data = settings.get(item)
-            if data:
-              args[item.replace('_', '-') + '-yaml'] = CreateTempYAMLFile(
-                  item, data)
-
-      command_args = [self.FACTORY_FLOW, cmd_name]
-      for name, value in args.iteritems():
-        if name == 'command' or value is None:
-          continue
-        if isinstance(value, bool) and value:
-          command_args += ['--%s' % name]
-        else:
-          command_args += ['--%s=%s' % (name, value)]
-
-      self.test_items[dut][key] = command_args
 
   def GetDUTFactoryLogs(self, plan, dut, output_path):
     """Gets factory logs of the DUT.

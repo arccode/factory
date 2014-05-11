@@ -21,6 +21,11 @@ FLASHROM_LOCK_TIMEOUT = 600
 class Servo(object):
   """A wrapper class for servo.Servo in autotest repo."""
 
+  # A board name map to translate board variants to base board.
+  BoardMap = {
+      'expresso': 'rambi',
+      }
+
   def __init__(self, board, host, port=9999, serial=None):
     self._InstallRequiredPackages()
 
@@ -31,6 +36,8 @@ class Servo(object):
     from autotest_lib.server import hosts
     from autotest_lib.server.cros.servo import servo
     if host in ('localhost', '127.0.0.1'):
+      if board in self.BoardMap:
+        board = self.BoardMap[board]
       self._servod = process_utils.Spawn(
           ['servod', '--board', board, '--port', str(port)] +
           (['--serialname', serial] if serial else []),
