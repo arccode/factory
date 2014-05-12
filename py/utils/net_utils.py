@@ -328,7 +328,7 @@ def IsPortBeingUsed(port):
   Returns:
     True if the port is being used.
   """
-  ret = Spawn(['lsof' , '-i', ':%d' % port], call=True).returncode
+  ret = Spawn(['lsof' , '-i', ':%d' % port], call=True, sudo=True).returncode
   return True if ret == 0 else False
 
 
