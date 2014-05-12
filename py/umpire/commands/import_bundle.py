@@ -20,7 +20,8 @@ import urllib
 import yaml
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.umpire.common import ParseResourceName, UmpireError
+from cros.factory.umpire.common import (
+    ParseResourceName, ResourceType, UmpireError)
 from cros.factory.umpire.utils import UnpackFactoryToolkit
 from cros.factory.utils import file_utils
 
@@ -231,13 +232,14 @@ class BundleImporter(object):
     hash_collision_files = []
     resources = {}
 
-    def AddResource(path):
+    def AddResource(path, res_type=None):
       """Adds a file to Umpire resource repository.
 
       If hash collision is observed, append hash_collision_files.
 
       Args:
         path: file to add.
+        res_type: (optional) resource type (enum of ResourceType.)
 
       Result:
         Basename of just added resource file. None if path does not exist or
@@ -246,7 +248,7 @@ class BundleImporter(object):
       if not os.path.exists(path):
         return None
       try:
-        resource_path = self._env.AddResource(path)
+        resource_path = self._env.AddResource(path, res_type=res_type)
         return os.path.basename(resource_path)
       except UmpireError as e:
         if e.message.startswith('Hash collision'):
@@ -262,16 +264,16 @@ class BundleImporter(object):
       Returns:
         List of added resources' filename.
       """
-      # Mapping for download filename to resource key.
+      # Mapping for download filename to (resource key, resource type).
       _RESOURCE_KEY_MAP = {
-          'complete': 'complete_script',
-          'efi': 'efi_partition',
-          'firmware': 'firmware',
-          'hwid': 'hwid',
-          'oem': 'oem_partition',
-          'rootfs-release': 'rootfs_release',
-          'rootfs-test': 'rootfs_test',
-          'state': 'stateful_partition'}
+          'complete': ('complete_script', None),
+          'efi': ('efi_partition', None),
+          'firmware': ('firmware', ResourceType.FIRMWARE),
+          'hwid': ('hwid', ResourceType.HWID),
+          'oem': ('oem_partition', None),
+          'rootfs-release': ('rootfs_release', ResourceType.ROOTFS_RELEASE),
+          'rootfs-test': ('rootfs_test', ResourceType.ROOTFS_TEST),
+          'state': ('stateful_partition', None)}
 
       download_files = []
       for path in glob.glob(self._factory_bundle.download_files_pattern):
@@ -280,10 +282,11 @@ class BundleImporter(object):
           continue
         # Remove '.gz' suffix.
         base_path = os.path.basename(path)[:-3]
-        resource_key =  _RESOURCE_KEY_MAP.get(base_path)
+        resource_key, resource_type =  _RESOURCE_KEY_MAP.get(base_path,
+                                                             (None, None))
         if not resource_key:
           continue
-        resource_name = AddResource(path)
+        resource_name = AddResource(path, res_type=resource_type)
         resources[resource_key] = resource_name
         download_files.append(resource_name)
       return download_files
@@ -327,14 +330,17 @@ class BundleImporter(object):
                            '\n'.join(config) + '\n')
 
     resources['server_factory_toolkit'] = AddResource(
-        self._factory_bundle.factory_toolkit)
+        self._factory_bundle.factory_toolkit,
+        res_type=ResourceType.FACTORY_TOOLKIT)
     resources['device_factory_toolkit'] = resources['server_factory_toolkit']
 
     # Unpack device_factory_toolkit.
     UnpackFactoryToolkit(self._env, resources['device_factory_toolkit'])
 
+    # TODO(deanliao): rename netboot_kernel to netboot_shim in next CL.
     resources['netboot_kernel'] = AddResource(
-        self._factory_bundle.netboot_image)
+        self._factory_bundle.netboot_image,
+        res_type=ResourceType.NETBOOT_SHIM)
     resources['update_bundle'] = AddResource(
         self._factory_bundle.update_bundle)
 

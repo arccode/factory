@@ -13,10 +13,11 @@ import factory_common  # pylint: disable=W0611
 
 from cros.factory.umpire import config
 from cros.factory.umpire.commands.update import ResourceUpdater
-from cros.factory.umpire.common import (GetHashFromResourceName, UmpireError,
-                                        RESOURCE_HASH_DIGITS)
+from cros.factory.umpire.common import (
+    GetHashFromResourceName, ResourceType, RESOURCE_HASH_DIGITS, UmpireError)
 from cros.factory.umpire.umpire_env import UmpireEnv
 from cros.factory.utils import file_utils
+from cros.factory.utils import get_version
 
 
 TESTDATA_DIR = os.path.join(os.path.dirname(sys.modules[__name__].__file__),
@@ -207,6 +208,82 @@ class UmpireEnvTest(unittest.TestCase):
 
       self.assertRaisesRegexp(UmpireError, 'Hash collision',
                               self.env.AddResource, resource_to_add)
+
+  def testAddResourceFirmware(self):
+    with file_utils.TempDirectory() as temp_dir:
+      self.env.base_dir = temp_dir
+      os.mkdir(self.env.resources_dir)
+
+      file_name = 'firmware.gz'
+      resource_to_add = os.path.join(temp_dir, file_name)
+      file_utils.WriteFile(resource_to_add, 'firmware')
+      resource_md5 = file_utils.Md5sumInHex(resource_to_add)[
+          :RESOURCE_HASH_DIGITS]
+
+      # TODO(deanliao): use real firmware.gz in which Umpire can extract
+      #     version from.
+      self.mox.StubOutWithMock(
+          get_version, 'GetFirmwareVersionsFromOmahaChannelFile')
+      BIOS_VERSION = 'bios_0.0.1'
+      EC_VERSION = 'ec_0.0.2'
+      get_version.GetFirmwareVersionsFromOmahaChannelFile(
+          resource_to_add).AndReturn((BIOS_VERSION, EC_VERSION))
+      self.mox.ReplayAll()
+
+      resource_path = self.env.AddResource(resource_to_add,
+                                           res_type=ResourceType.FIRMWARE)
+      expected_version = ':'.join([BIOS_VERSION, EC_VERSION])
+      self.assertTrue(resource_path.endswith(
+          'resources/%s#%s#%.8s' % (file_name, expected_version,
+                                    resource_md5)))
+      self.assertTrue(os.path.exists(resource_path))
+
+  def testAddResourceRootfsRelease(self):
+    with file_utils.TempDirectory() as temp_dir:
+      self.env.base_dir = temp_dir
+      os.mkdir(self.env.resources_dir)
+
+      file_name = 'rootfs-test.gz'
+      resource_to_add = os.path.join(temp_dir, file_name)
+      file_utils.WriteFile(resource_to_add, 'rootfs-test')
+      resource_md5 = file_utils.Md5sumInHex(resource_to_add)[
+          :RESOURCE_HASH_DIGITS]
+
+      # TODO(deanliao): use real rootfs-test.gz in which Umpire can extract
+      #     version from.
+      self.mox.StubOutWithMock(
+          get_version, 'GetReleaseVersionFromOmahaChannelFile')
+      TEST_IMAGE_VERSION = '0.0.1'
+      get_version.GetReleaseVersionFromOmahaChannelFile(
+          resource_to_add).AndReturn(TEST_IMAGE_VERSION)
+      self.mox.ReplayAll()
+
+      resource_path = self.env.AddResource(resource_to_add,
+                                           res_type=ResourceType.ROOTFS_TEST)
+      self.assertTrue(resource_path.endswith(
+          'resources/%s#%s#%.8s' % (file_name, TEST_IMAGE_VERSION,
+                                    resource_md5)))
+      self.assertTrue(os.path.exists(resource_path))
+
+  def testAddResourceToolkitNoVersion(self):
+    with file_utils.TempDirectory() as temp_dir:
+      self.env.base_dir = temp_dir
+      os.mkdir(self.env.resources_dir)
+
+      file_name = 'install_factory_toolkit.run'
+      resource_to_add = os.path.join(temp_dir, file_name)
+      file_utils.WriteFile(resource_to_add, 'factory_toolkit')
+      resource_md5 = file_utils.Md5sumInHex(resource_to_add)[
+          :RESOURCE_HASH_DIGITS]
+
+      resource_path = self.env.AddResource(
+          resource_to_add, res_type=ResourceType.FACTORY_TOOLKIT)
+
+      expected_version = ''
+      self.assertTrue(resource_path.endswith(
+          'resources/%s#%s#%.8s' % (file_name, expected_version,
+                                    resource_md5)))
+      self.assertTrue(os.path.exists(resource_path))
 
   def testGetResourcePath(self):
     with file_utils.TempDirectory() as temp_dir:

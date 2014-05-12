@@ -5,6 +5,7 @@
 # found in the LICENSE file.
 
 import datetime
+import mox
 import os
 import shutil
 import sys
@@ -17,6 +18,7 @@ from cros.factory.umpire.commands.import_bundle import (BundleImporter,
 from cros.factory.umpire.common import UmpireError
 from cros.factory.umpire.umpire_env import UmpireEnv
 from cros.factory.utils import file_utils
+from cros.factory.utils import get_version
 
 TESTDATA_DIR = os.path.join(os.path.dirname(sys.modules[__name__].__file__),
                             'testdata')
@@ -51,8 +53,15 @@ class LoadBundleManifestTest(unittest.TestCase):
                               self.bundle.Load, bundle_dir)
 
 
+BIOS_VERSION = 'bios_0.0.1'
+EC_VERSION = 'ec_0.0.2'
+FSI_VERSION = '0.0.3'
+TEST_IMAGE_VERSION = '0.0.4'
+
+
 class testImportBundle(unittest.TestCase):
   def setUp(self):
+    self.mox = mox.Mox()
     self.temp_dir = tempfile.mkdtemp()
     self.env = UmpireEnv()
     self.env.base_dir = self.temp_dir
@@ -63,11 +72,35 @@ class testImportBundle(unittest.TestCase):
 
   def tearDown(self):
     shutil.rmtree(self.temp_dir)
+    self.mox.UnsetStubs()
+    self.mox.VerifyAll()
+
+  def MockOutGetVersion(self):
+    # TODO(deanliao): use real firmware.gz/rootfs-release.gz in which
+    #     Umpire can extract version from.
+    self.mox.StubOutWithMock(
+        get_version, 'GetFirmwareVersionsFromOmahaChannelFile')
+    self.mox.StubOutWithMock(
+          get_version, 'GetReleaseVersionFromOmahaChannelFile')
+
+    # pylint: disable=E1101
+    get_version.GetFirmwareVersionsFromOmahaChannelFile(
+        mox.StrContains('firmware.gz')).MultipleTimes().AndReturn(
+            (BIOS_VERSION, EC_VERSION))
+    get_version.GetReleaseVersionFromOmahaChannelFile(
+        mox.StrContains('rootfs-release.gz')).MultipleTimes().AndReturn(
+            FSI_VERSION)
+    get_version.GetReleaseVersionFromOmahaChannelFile(
+        mox.StrContains('rootfs-test.gz')).MultipleTimes().AndReturn(
+            TEST_IMAGE_VERSION)
 
   def testImport(self):
     importer = BundleImporter(self.env)
     # Inject timestamp so that download conf can be compared easily.
     importer._timestamp = datetime.datetime(2014, 1, 1, 0, 0)
+
+    self.MockOutGetVersion()
+    self.mox.ReplayAll()
 
     importer.Import(TEST_BUNDLE_DIR, 'test_bundle')
 
@@ -99,11 +132,11 @@ class testImportBundle(unittest.TestCase):
         'netboot_kernel': 'vmlinux.uimg##d41d8cd9',
         'complete_script': 'complete.gz##d41d8cd9',
         'efi_partition': 'efi.gz##d41d8cd9',
-        'firmware': 'firmware.gz##d41d8cd9',
+        'firmware': 'firmware.gz#%s:%s#d41d8cd9' % (BIOS_VERSION, EC_VERSION),
         'hwid': 'hwid.gz##d41d8cd9',
         'oem_partition': 'oem.gz##d41d8cd9',
-        'rootfs_release': 'rootfs-release.gz##d41d8cd9',
-        'rootfs_test': 'rootfs-test.gz##d41d8cd9',
+        'rootfs_release': 'rootfs-release.gz#%s#d41d8cd9' % FSI_VERSION,
+        'rootfs_test': 'rootfs-test.gz#%s#d41d8cd9' % TEST_IMAGE_VERSION,
         'stateful_partition': 'state.gz##d41d8cd9',
         'download_conf': 'daisy_spring.conf##'}
     self.assertSetEqual(set(expect_resources), set(resources))
@@ -133,6 +166,10 @@ class testImportBundle(unittest.TestCase):
     device_toolkit_dir = os.path.join(self.env.device_toolkits_dir,
                                       TOOLKIT_MD5)
     os.makedirs(device_toolkit_dir)
+
+    self.MockOutGetVersion()
+    self.mox.ReplayAll()
+
     importer.Import(TEST_BUNDLE_DIR, 'test_bundle')
 
     # Verify that toolkit is not unpacked.
@@ -147,6 +184,9 @@ class testImportBundle(unittest.TestCase):
     dup_netboot_image = self.env.GetResourcePath('vmlinux.uimg##d41d8cd9',
                                                  check=False)
     file_utils.WriteFile(dup_netboot_image, 'not a netboot image')
+
+    self.MockOutGetVersion()
+    self.mox.ReplayAll()
 
     importer = BundleImporter(self.env)
     self.assertRaisesRegexp(UmpireError, 'Found 2 hash collision',

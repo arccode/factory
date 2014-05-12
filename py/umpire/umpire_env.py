@@ -14,13 +14,14 @@ import logging
 import os
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.umpire.common import (
+    GetHashFromResourceName, ResourceType, RESOURCE_HASH_DIGITS, UmpireError)
 from cros.factory.umpire import config
-from cros.factory.umpire.common import (GetHashFromResourceName,
-                                        RESOURCE_HASH_DIGITS, UmpireError)
 from cros.factory.umpire.shop_floor_manager import ShopFloorManager
 from cros.factory.umpire.version import (UMPIRE_VERSION_MAJOR,
                                          UMPIRE_VERSION_MINOR)
 from cros.factory.utils import file_utils
+from cros.factory.utils import get_version
 
 
 # File name under base_dir
@@ -239,32 +240,60 @@ class UmpireEnv(object):
     logging.info('Activate config: ' + config_to_activate)
     os.symlink(config_to_activate, self.active_config_file)
 
-  def AddResource(self, filename):
+  def AddResource(self, file_name, res_type=None):
     """Adds a file into base_dir/resources.
 
     Args:
-      filename: file to be added
+      file_name: file to be added.
+      res_type: (optional) resource type. If specified, it is one of the enum
+        ResourceType. It tries to get version and fills in resource file name
+        <base_name>#<version>#<hash>.
 
     Returns:
-      resource filename
+      Resource file name (full path).
     """
-    file_utils.CheckPath(filename, 'source')
-    md5 = file_utils.Md5sumInHex(filename)
-    res_filename = os.path.join(
+    def TryGetVersion():
+      """Tries to get version of the given file with res_type.
+
+      Now it can retrive version only from file of FIRMWARE, ROOTFS_RELEASE
+      and ROOTFS_TEST resource type.
+
+      Returns:
+        version string if found. '' if type is not supported or version
+        failed to obtain.
+      """
+      if res_type is None:
+        return ''
+      if res_type == ResourceType.FIRMWARE:
+        bios, ec = get_version.GetFirmwareVersionsFromOmahaChannelFile(
+            file_name)
+        return '%s:%s' % (bios if bios else '', ec if ec else '')
+      elif (res_type == ResourceType.ROOTFS_RELEASE or
+            res_type == ResourceType.ROOTFS_TEST):
+        version = get_version.GetReleaseVersionFromOmahaChannelFile(file_name)
+        return version if version else ''
+      return ''
+
+    file_utils.CheckPath(file_name, 'source')
+    basename = os.path.basename(file_name)
+    version = TryGetVersion()
+    md5 = file_utils.Md5sumInHex(file_name)[:RESOURCE_HASH_DIGITS]
+    res_file_name = os.path.join(
         self.resources_dir,
-        '%s##%s' % (os.path.basename(filename), md5[:RESOURCE_HASH_DIGITS]))
-    if os.path.isfile(res_filename):
-      if filecmp.cmp(filename, res_filename, shallow=False):
-        logging.warning('Skip copying as file already exists: ' + res_filename)
-        return res_filename
+        '#'.join([basename, version, md5]))
+
+    if os.path.isfile(res_file_name):
+      if filecmp.cmp(file_name, res_file_name, shallow=False):
+        logging.warning('Skip copying as file already exists: ' + res_file_name)
+        return res_file_name
       else:
         raise UmpireError(
-            'Hash collision: file %r != resource file %r' % (filename,
-                                                             res_filename))
+            'Hash collision: file %r != resource file %r' % (file_name,
+                                                             res_file_name))
     else:
-      file_utils.AtomicCopy(filename, res_filename)
-      logging.info('Resource added: ' + res_filename)
-      return res_filename
+      file_utils.AtomicCopy(file_name, res_file_name)
+      logging.info('Resource added: ' + res_file_name)
+      return res_file_name
 
   def GetResourcePath(self, resource_name, check=True):
     """Gets a resource's full path.

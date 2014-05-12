@@ -15,6 +15,7 @@ import yaml
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.utils.file_utils import CheckPath, Md5sumInHex
+from cros.factory.test.utils import Enum
 from cros.factory.tools.finalize_bundle import Glob
 
 
@@ -32,6 +33,11 @@ UMPIRE_VERSION = 3
 
 # Resource types which can use "umpire update" to update.
 UPDATEABLE_RESOURCES = ['factory_toolkit', 'firmware', 'fsi', 'hwid']
+
+# Supported resource types.
+ResourceType = Enum([
+    'FACTORY_TOOLKIT', 'FIRMWARE', 'HWID', 'NETBOOT_SHIM', 'ROOTFS_RELEASE',
+    'ROOTFS_TEST'])
 
 # Valid keys in DUT info.
 DUT_INFO_KEYS = set(['sn', 'mlb_sn', 'board', 'firmware', 'ec'])

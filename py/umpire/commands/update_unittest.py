@@ -4,6 +4,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import mox
 import os
 import shutil
 import sys
@@ -16,6 +17,7 @@ from cros.factory.umpire.common import UmpireError
 from cros.factory.umpire.config import UmpireConfig
 from cros.factory.umpire.umpire_env import UmpireEnv
 from cros.factory.utils import file_utils
+from cros.factory.utils import get_version
 
 
 TEST_DIR = os.path.dirname(sys.modules[__name__].__file__)
@@ -159,17 +161,37 @@ class ResourceUpdaterTest(unittest.TestCase):
         [('factory_toolkit', os.path.join(self.temp_dir, 'not_exist'))])
 
   def testAllUpdatableResource(self):
+    mox_obj = mox.Mox()
+    BIOS_VERSION = 'bios_0.0.1'
+    EC_VERSION = 'ec_0.0.2'
+    FSI_VERSION = '0.0.1'
+
     firmware_path = os.path.join(self.temp_dir, 'firmware.gz')
     file_utils.WriteFile(firmware_path, 'new firmware')
-    new_firmware_resource = 'firmware.gz##f56ca36e'
+    new_firmware_resource = 'firmware.gz#%s:%s#f56ca36e' % (
+        BIOS_VERSION, EC_VERSION)
 
     fsi_path = os.path.join(self.temp_dir, 'rootfs-release.gz')
     file_utils.WriteFile(fsi_path, 'new fsi')
-    new_fsi_resource = 'rootfs-release.gz##932ecf09'
+    new_fsi_resource = 'rootfs-release.gz#%s#932ecf09' % FSI_VERSION
 
     hwid_path = os.path.join(self.temp_dir, 'hwid.gz')
     file_utils.WriteFile(hwid_path, 'new hwid')
     new_hwid_resource = 'hwid.gz##8c8fe9fe'
+
+    # TODO(deanliao): use real firmware.gz/rootfs-release.gz in which
+    #     Umpire can extract version from.
+    mox_obj.StubOutWithMock(
+        get_version, 'GetFirmwareVersionsFromOmahaChannelFile')
+    mox_obj.StubOutWithMock(
+          get_version, 'GetReleaseVersionFromOmahaChannelFile')
+
+    get_version.GetFirmwareVersionsFromOmahaChannelFile(
+        firmware_path).AndReturn((BIOS_VERSION, EC_VERSION))
+    get_version.GetReleaseVersionFromOmahaChannelFile(
+          fsi_path).AndReturn(FSI_VERSION)
+
+    mox_obj.ReplayAll()
 
     updater = ResourceUpdater(self.env)
     updated_config_path = updater.Update([
@@ -188,6 +210,9 @@ class ResourceUpdaterTest(unittest.TestCase):
     self.assertEqual(new_firmware_resource, resources['firmware'])
     self.assertEqual(new_fsi_resource, resources['rootfs_release'])
     self.assertEqual(new_hwid_resource, resources['hwid'])
+
+    mox_obj.UnsetStubs()
+    mox_obj.VerifyAll()
 
 
 if __name__ == '__main__':

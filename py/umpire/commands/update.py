@@ -11,8 +11,17 @@ import copy
 import os
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.umpire.common import UmpireError, UPDATEABLE_RESOURCES
+from cros.factory.umpire.common import (
+    ResourceType, UmpireError, UPDATEABLE_RESOURCES)
 from cros.factory.utils import file_utils
+
+
+# Mapping of updateable resource type (command string) to ResourceType enum.
+_RESOURCE_TYPE_MAP = {
+    'factory_toolkit': ResourceType.FACTORY_TOOLKIT,
+    'firmware': ResourceType.FIRMWARE,
+    'fsi': ResourceType.ROOTFS_RELEASE,
+    'hwid': ResourceType.HWID}
 
 
 class ResourceUpdater(object):
@@ -100,7 +109,9 @@ class ResourceUpdater(object):
   def _UpdateResourceMap(self, resources):
     resource_map = self._target_bundle['resources']
     for resource_type, resource_path in resources:
-      resource_name = os.path.basename(self._env.AddResource(resource_path))
+      resource_name = os.path.basename(
+          self._env.AddResource(resource_path,
+                                res_type=_RESOURCE_TYPE_MAP.get(resource_type)))
       if resource_type == 'factory_toolkit':
         resource_map['device_factory_toolkit'] = resource_name
         resource_map['server_factory_toolkit'] = resource_name
