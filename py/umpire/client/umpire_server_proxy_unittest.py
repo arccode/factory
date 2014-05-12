@@ -13,8 +13,11 @@ import logging
 import mox
 import multiprocessing
 import os
+import re
+import shutil
 import signal
 import SocketServer
+import tempfile
 import unittest
 from SimpleHTTPServer import SimpleHTTPRequestHandler
 from SimpleXMLRPCServer import SimpleXMLRPCServer, SimpleXMLRPCRequestHandler
@@ -186,6 +189,8 @@ class UmpireServerProxyTest(unittest.TestCase):
     shopfloor_handler_2_process: Process for shopfloor handler 2.
     mock_resourcemap: A ResourceMapWrapper object to control which resourcemap
       Umpire http server should serve.
+    modified_files: A list of file paths that have been modified. They need
+      to be restored from .backup files in the end of the test.
   """
   umpire_http_server = None
   umpire_base_handler = None
@@ -209,6 +214,7 @@ class UmpireServerProxyTest(unittest.TestCase):
   SHOPFLOOR_SERVER_URI = None
 
   mock_resourcemap = ResourceMapWrapper()
+  modified_files = []
 
   @classmethod
   def setUpClass(cls):
@@ -217,6 +223,38 @@ class UmpireServerProxyTest(unittest.TestCase):
     logging.debug('Set starting testing port to %r', port)
     cls.SetTestingPort(port)
     cls.SetupServers()
+
+  @classmethod
+  def ModifyShopFloorPortInResourceMap(cls, file_name, port):
+    """Modify shop_floor_handler port in resourcemap.
+
+    Args:
+      file_name: Name of the resource map
+      port: The port that should be overwritten to resourcemap.
+    """
+    file_path = os.path.join(TESTDATA_DIRECTORY, file_name)
+    backup_file_path = file_path + '.backup'
+    shutil.copyfile(file_path, backup_file_path)
+    lines_to_write = []
+    for line in open(file_path).readlines():
+      line = re.sub(
+          'shop_floor_handler: /shop_floor/(\d+)',
+          'shop_floor_handler: /shop_floor/%d' % port,
+          line)
+      lines_to_write.append(line)
+    _, temp_path = tempfile.mkstemp(prefix='umpire_server_proxy', dir='/tmp')
+    with open(temp_path, 'w') as f:
+      f.write(''.join(lines_to_write))
+    shutil.move(temp_path, file_path)
+    logging.debug('Modified content: %r in %r',
+                  ''.join(lines_to_write), file_path)
+    cls.modified_files.append(file_path)
+
+  @classmethod
+  def RestoreBackupFile(cls):
+    """Restores backup files."""
+    for file_path in cls.modified_files:
+      shutil.move(file_path + '.backup', file_path)
 
   @classmethod
   def SetTestingPort(cls, umpire_base_handler_port):
@@ -230,11 +268,14 @@ class UmpireServerProxyTest(unittest.TestCase):
                                        cls.UMPIRE_BASE_HANDLER_PORT)
     cls.SHOPFLOOR_SERVER_URI = '%s:%d' % (MOCK_UMPIRE_ADDR,
                                           cls.SHOPFLOOR_1_PORT)
+    cls.ModifyShopFloorPortInResourceMap('resourcemap1', cls.SHOPFLOOR_1_PORT)
+    cls.ModifyShopFloorPortInResourceMap('resourcemap2', cls.SHOPFLOOR_2_PORT)
 
   @classmethod
   def tearDownClass(cls):
     """Stops servers in after running all test in this class."""
     cls.StopAllServers()
+    cls.RestoreBackupFile()
 
   @classmethod
   def SetupServers(cls):
@@ -278,14 +319,19 @@ class UmpireServerProxyTest(unittest.TestCase):
   def SetupHandlers(cls):
     """Setups xmlrpc servers and handlers in their own processes."""
     cls.umpire_base_handler = SimpleXMLRPCServer(
-        ("", cls.UMPIRE_BASE_HANDLER_PORT))
+        ("", cls.UMPIRE_BASE_HANDLER_PORT),
+        allow_none=True,
+        logRequests=True)
     cls.umpire_base_handler.register_function(
         PingOfUmpire, 'Ping')
     cls.umpire_base_handler_process = multiprocessing.Process(
         target=RunServer, args=(cls.umpire_base_handler,))
     cls.umpire_base_handler_process.start()
 
-    cls.umpire_handler = SimpleXMLRPCServer(("", cls.UMPIRE_HANDLER_PORT))
+    cls.umpire_handler = SimpleXMLRPCServer(
+        ("", cls.UMPIRE_HANDLER_PORT),
+        allow_none=True,
+        logRequests=True)
     cls.umpire_handler.register_function(
         HandlerFunctionWrapper('umpire_handler', use_umpire=True),
         UMPIRE_HANDLER_METHOD)
@@ -296,7 +342,9 @@ class UmpireServerProxyTest(unittest.TestCase):
 
     cls.shopfloor_handler_1 = SimpleXMLRPCServer(
         addr=("", cls.SHOPFLOOR_1_PORT),
-        requestHandler=MyXMLRPCRequestHandlerWrapper('shopfloor_handler1'))
+        requestHandler=MyXMLRPCRequestHandlerWrapper('shopfloor_handler1'),
+        allow_none=True,
+        logRequests=True)
     cls.shopfloor_handler_1.register_function(
         HandlerFunctionWrapper('shopfloor_handler1'), SHOPFLOOR_HANDLER_METHOD)
     cls.shopfloor_handler_1.register_function(
@@ -307,7 +355,9 @@ class UmpireServerProxyTest(unittest.TestCase):
 
     cls.shopfloor_handler_2 = SimpleXMLRPCServer(
         ("", cls.SHOPFLOOR_2_PORT),
-        requestHandler=MyXMLRPCRequestHandlerWrapper('shopfloor_handler2'))
+        requestHandler=MyXMLRPCRequestHandlerWrapper('shopfloor_handler2'),
+        allow_none=True,
+        logRequests=True)
     cls.shopfloor_handler_2.register_function(
         PingOfShopFloor, 'Ping')
     cls.shopfloor_handler_2.register_function(
@@ -465,6 +515,6 @@ class UmpireServerProxyTest(unittest.TestCase):
 
 if __name__ == '__main__':
   logging.basicConfig(
-      format='%(asctime)s:%(levelname)s:%(lineno)d:%(message)s',
+      format='%(asctime)s:%(levelname)s:%(filename)s:%(lineno)d:%(message)s',
       level=logging.DEBUG)
   unittest.main()
