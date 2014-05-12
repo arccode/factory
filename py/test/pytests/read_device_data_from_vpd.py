@@ -63,7 +63,10 @@ class CallShopfloor(unittest.TestCase):
         if self._MatchKey(matcher, key):
           discarded_prefix = matcher[0]
           device_data_key = key[len(discarded_prefix):]
-          device_data[device_data_key] = vpd_data[key]
+          if vpd_data[key].upper() in ['TRUE', 'FALSE']:
+            device_data[device_data_key] = (vpd_data[key].upper() == 'TRUE')
+          else:
+            device_data[device_data_key] = vpd_data[key]
     shopfloor.UpdateDeviceData(device_data)
 
     factory.get_state_instance().UpdateSkippedTests()
