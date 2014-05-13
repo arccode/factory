@@ -48,7 +48,7 @@ def ParseDUTHeader(header):
 
 
 def SelectRuleset(config, dut_info):
-  """Gets bundle ID for the DUT based on rulesets defined in UmpireConfig.
+  """Gets ruleset for the DUT based on rulesets defined in UmpireConfig.
 
   Args:
     config: an UmpireConfig object
@@ -56,7 +56,7 @@ def SelectRuleset(config, dut_info):
         from X-Umpire-DUT header by ParseDUTHeader().
 
   Returns:
-    Bundle ID; None if no ruleset is matched.
+    ruleset; None if no ruleset is matched.
   """
 
   def TryScalarMatcher(name, expect_values):
@@ -125,14 +125,29 @@ def SelectRuleset(config, dut_info):
       continue
     # If no matcher is provided, it matches all.
     if 'match' not in ruleset:
-      return ruleset['bundle_id']
+      return ruleset
     # Rules in a ruleset are ANDed, i.e. the DUT needs to match all of them.
     if all(TryScalarMatcher(name, value) and
            TryScalarPrefixMatcher(name, value) and
            TryRangeMatcher(name, value)
            for name, value in ruleset['match'].iteritems()):
-      return ruleset['bundle_id']
+      return ruleset
   return None
+
+
+def SelectBundle(config, dut_info):
+  """Gets bundle ID for the DUT based on rulesets defined in UmpireConfig.
+
+  Args:
+    config: an UmpireConfig object
+    dut_info: a DUT info represented in key-value dict. It should be parsed
+        from X-Umpire-DUT header by ParseDUTHeader().
+
+  Returns:
+    Bundle ID; None if no ruleset is matched.
+  """
+  ruleset = SelectRuleset(config, dut_info)
+  return ruleset['bundle_id'] if ruleset else None
 
 
 def GetResourceMap(dut_info, env):
@@ -149,11 +164,11 @@ def GetResourceMap(dut_info, env):
   """
   result = []
 
-  bundle_id = SelectRuleset(env.config, dut_info)
+  bundle_id = SelectBundle(env.config, dut_info)
   if not bundle_id:
     return None
 
-  bundle = env.config['bundles'].get(bundle_id)
+  bundle = env.config.bundle_map.get(bundle_id)
   if not bundle:
     return None
 
