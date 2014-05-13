@@ -147,11 +147,7 @@ class LogParser(object):
           ], 'Duration'),
       },
       optional_items={
-          'vpd': Dict('VPD', Scalar('key', str), AnyOf([
-              Scalar('Value', str),
-              Scalar('Value', int),
-              Scalar('Value', float),
-          ], 'Value')),
+          'vpd': Dict('VPD', Scalar('key', str), Scalar('Value', str)),
           'rawdata': List('Rawdata', Scalar('Files', str)),
       })
 

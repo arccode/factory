@@ -110,9 +110,9 @@ events:
   'result': {'frequency': 100, 'response': 30}
   'test': [123, 456, 789]
 vpd:
-  'calibration': asdfbcd123
-  'gg': 123456
-  'kk': True
+  'calibration': 'asdfbcd123'
+  'gg': '123456'
+  'kk': 'True'
 rawdata: ['abc.png', 'def.wav']
   """
 
@@ -358,7 +358,7 @@ rawdata: ['abc.png', 'def.wav']
     config['vpd']['test'] = ['a', 'b', 'c']
     ret = check_Description(config, False, file_desc)
     self.assertTrue(
-        ret.startswith('%r does not match any type' % config['vpd']['test']))
+        ret.startswith('Type mismatch on %r:' % config['vpd']['test']))
 
     # Check rawdata
     del config['vpd']['test']
