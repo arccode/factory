@@ -43,7 +43,11 @@ void setup() {
   if (fixture.isSensorUp()) {
     fixture.StopProbe(stateInit);
   } else {
-    fixture.driveProbe(stateGoingUp, FAST_PWM_FREQUENCY, MOTOR_DIR_UP);
+    // If the probe does not park at the DOWN position, use a slow speed.
+    // Otherwise, there is no way to know when to slow down.
+    const int pwmFrequency = (fixture.isSensorDown() ?
+                              FAST_PWM_FREQUENCY : SLOW_PWM_FREQUENCY);
+    fixture.driveProbe(stateGoingUp, pwmFrequency, MOTOR_DIR_UP);
   }
 
   // If the jumper is set, an operator can press debug button to control the
