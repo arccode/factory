@@ -29,6 +29,9 @@ import traceback
 
 from flup.server import fcgi_fork
 
+import factory_common  # pylint: disable=W0611
+from cros.factory.umpire import shop_floor_handler
+
 
 def FastCGIServer(address, port, instance, min_spare=2, max_spare=None,
                   max_children=None, max_requests=16):
@@ -73,31 +76,6 @@ def FastCGIServer(address, port, instance, min_spare=2, max_spare=None,
                address, port, instance.__class__.__name__)
   logging.info('flup fork args: %r', fork_args)
   server.run()
-
-
-def RPCCall(method):
-  """Decorator that enables the method to be XML RPC method.
-
-  Example:
-    class FooServer(object):
-      def NonRPCFunction():
-        ...
-
-      @RPCCall
-      def RPCFunction(parameter, ...):
-        ...
-
-    Then RPCFunction becomes XMLRPC method for:
-      FastCGIServer(ip, port, FooServer())
-
-  Args:
-    method: a class method.
-
-  Returns:
-    decorated method with is_rpc_method attrubute set to True.
-  """
-  method.is_rpc_method = True
-  return method
 
 
 class WSGISession(dict):
@@ -269,7 +247,7 @@ class MyXMLRPCApp(object):
     """
     for method_name in SimpleXMLRPCServer.list_public_methods(instance):
       method = getattr(instance, method_name)
-      if hasattr(method, 'is_rpc_method') and method.is_rpc_method:
+      if getattr(method, shop_floor_handler.RPC_METHOD_ATTRIBUTE, False):
         self.dispatcher.register_function(method)
 
   def _XMLRPCCall(self, session):
