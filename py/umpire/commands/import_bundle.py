@@ -337,8 +337,7 @@ class BundleImporter(object):
     # Unpack device_factory_toolkit.
     UnpackFactoryToolkit(self._env, resources['device_factory_toolkit'])
 
-    # TODO(deanliao): rename netboot_kernel to netboot_shim in next CL.
-    resources['netboot_kernel'] = AddResource(
+    resources['netboot_shim'] = AddResource(
         self._factory_bundle.netboot_image,
         res_type=ResourceType.NETBOOT_SHIM)
     resources['update_bundle'] = AddResource(

@@ -129,7 +129,7 @@ class testImportBundle(unittest.TestCase):
     expect_resources = {
         'server_factory_toolkit': 'install_factory_toolkit.run##' + TOOLKIT_MD5,
         'device_factory_toolkit': 'install_factory_toolkit.run##' + TOOLKIT_MD5,
-        'netboot_kernel': 'vmlinux.uimg##d41d8cd9',
+        'netboot_shim': 'vmlinux.uimg##d41d8cd9',
         'complete_script': 'complete.gz##d41d8cd9',
         'efi_partition': 'efi.gz##d41d8cd9',
         'firmware': 'firmware.gz#%s:%s#d41d8cd9' % (BIOS_VERSION, EC_VERSION),
