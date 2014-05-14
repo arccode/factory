@@ -6,6 +6,7 @@
  * The arduino firmware which controls the touchscreen test fixture.
  */
 
+#include <DueTimer.h>
 #include "Fixture.h"
 
 
@@ -25,11 +26,33 @@ const char cmdPwm = 'p';
 const char SUCCESS = '0';
 const char ERROR = '1';
 
+// The pwm frequency: the higher the value, the faster the motor speed.
+const int FAST_PWM_FREQUENCY = 6000;
+const int SLOW_PWM_FREQUENCY = 2000;
+
+// When either of the following two conditions is met, the probe slows down.
+// (1) count is greater than DISTANCE_TO_SLOW_DOWN, or
+// (2) the elapsed time is greater than TIME_TO_SLOW_DOWN.
+//
+// The two parameters are derived with experiments.
+// DISTANCE_TO_SLOW_DOWN: this value is affected by FAST_PWM_FREQUENCY and
+//                        how much time is consumed per iteration in loop().
+// TIME_TO_SLOW_DOWN : this value is affected by FAST_PWM_FREQUENCY only.
+const unsigned int DISTANCE_TO_SLOW_DOWN = 256000 * 5 / 6; // in loop count
+const unsigned int TIME_TO_SLOW_DOWN = 3300000;            // in micro-seconds
+
+// the pwm frequency, either fast or slow
+volatile unsigned int pwmFrequency = SLOW_PWM_FREQUENCY;
+
+// Get a timer interrupt to slow down the probe.
+DueTimer speedTimer = Timer.getAvailable().attachInterrupt(speedTimerISR);
+
+// The command delivered by the host.
 char command = NULL;
 
 // Maintain current and last fixture properties.
 Fixture fixture = Fixture();
-Fixture lastFixture = fixture;
+Fixture lastFixture = Fixture(fixture);
 
 
 /**
@@ -41,13 +64,14 @@ void setup() {
 
   // Ensure that the probe parks at the UP position initially.
   if (fixture.isSensorUp()) {
-    fixture.StopProbe(stateInit);
+    stopProbe(stateInit);
+    setSpeed(FAST_PWM_FREQUENCY);
   } else {
     // If the probe does not park at the DOWN position, use a slow speed.
     // Otherwise, there is no way to know when to slow down.
-    const int pwmFrequency = (fixture.isSensorDown() ?
-                              FAST_PWM_FREQUENCY : SLOW_PWM_FREQUENCY);
-    fixture.driveProbe(stateGoingUp, pwmFrequency, MOTOR_DIR_UP);
+    driveProbe(stateGoingUp,
+               fixture.isSensorDown() ? FAST_PWM_FREQUENCY : SLOW_PWM_FREQUENCY,
+               MOTOR_DIR_UP);
   }
 
   // If the jumper is set, an operator can press debug button to control the
@@ -98,12 +122,12 @@ void stateControl(char command) {
          (fixture.jumper() && fixture.isDebugPressed())) &&
         (fixture.state() == stateInit || fixture.state() == stateStopUp)) {
       // Takes the go Down command only when the probe is in its Up position.
-      fixture.driveProbe(stateGoingDown, FAST_PWM_FREQUENCY, MOTOR_DIR_DOWN);
+      driveProbe(stateGoingDown, FAST_PWM_FREQUENCY, MOTOR_DIR_DOWN);
     } else if ((command == cmdUp ||
                 (fixture.jumper() && fixture.isDebugPressed())) &&
                (fixture.state() == stateStopDown)) {
       // Takes the go Up command only when the probe is in its Down position.
-      fixture.driveProbe(stateGoingUp, FAST_PWM_FREQUENCY, MOTOR_DIR_UP);
+      driveProbe(stateGoingUp, FAST_PWM_FREQUENCY, MOTOR_DIR_UP);
     } else if (command != cmdState && command != NULL) {
       fixture.sendResponseByProgrammingPort(ERROR);
     }
@@ -129,13 +153,13 @@ void driveMotorTowardEndPosition() {
   if (fixture.state() == stateGoingDown || fixture.state() == stateGoingUp) {
     fixture.inc_count();
     if (fixture.state() == stateGoingDown && fixture.isSensorDown()) {
-      fixture.StopProbe(stateStopDown);
+      stopProbe(stateStopDown);
       fixture.sendResponseByProgrammingPort(fixture.state());
     } else if (fixture.state() == stateGoingUp && fixture.isSensorUp()) {
-      fixture.StopProbe(stateStopUp);
+      stopProbe(stateStopUp);
       fixture.sendResponseByProgrammingPort(fixture.state());
     } else {
-      fixture.adjustSpeed();
+      adjustSpeedByCount();
     }
   }
 }
@@ -147,7 +171,7 @@ void handleEmergencyStop() {
   if (fixture.isSensorUp()) {
     fixture.set_state(stateStopUp);
   } else {
-    fixture.StopProbe(stateEmergencyStop);
+    stopProbe(stateEmergencyStop);
   }
 }
 
@@ -157,8 +181,7 @@ void handleEmergencyStop() {
  */
 void handleDebugPressed() {
   if (fixture.isDebugPressed()) {
-    fixture.driveProbe(stateGoingUpAfterEmergency, SLOW_PWM_FREQUENCY,
-                       MOTOR_DIR_UP);
+    driveProbe(stateGoingUpAfterEmergency, SLOW_PWM_FREQUENCY, MOTOR_DIR_UP);
   }
 }
 
@@ -167,5 +190,50 @@ void handleDebugPressed() {
  */
 void gotoUpPosition() {
   if (fixture.isSensorUp())
-    fixture.StopProbe(stateStopUp);
+    stopProbe(stateStopUp);
+}
+
+/**
+ * A wraper of Fixutre::driveProbe with timer start.
+ */
+void driveProbe(const char state, const int newPwmFrequency,
+                const bool direction) {
+  speedTimer.start(TIME_TO_SLOW_DOWN);
+  pwmFrequency = newPwmFrequency,
+  fixture.driveProbe(state, pwmFrequency, direction);
+}
+
+/**
+ * A wraper of Fixutre::stopProbe with timer stop.
+ */
+void stopProbe(const char state) {
+  fixture.stopProbe(state);
+  speedTimer.stop();
+}
+
+
+/**
+ * Adjust the pwm frequency speed according to count, i.e., the probe position.
+ */
+void adjustSpeedByCount() {
+  if ((pwmFrequency == FAST_PWM_FREQUENCY) &&
+      (fixture.count() >= DISTANCE_TO_SLOW_DOWN)) {
+    setSpeed(SLOW_PWM_FREQUENCY);
+  }
+}
+
+/**
+ * The ISR to slow down the probe when the timer goes off.
+ */
+void speedTimerISR() {
+  setSpeed(SLOW_PWM_FREQUENCY);
+  speedTimer.stop();
+}
+
+/**
+ * A simple wrapper of Fixture::setSpeed and pwmFrequency.
+ */
+void setSpeed(unsigned int newPwmFrequency) {
+    pwmFrequency = newPwmFrequency;
+    fixture.setSpeed(pwmFrequency);
 }

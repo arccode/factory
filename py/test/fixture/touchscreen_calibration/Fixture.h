@@ -30,7 +30,12 @@ extern const bool MOTOR_DIR_DOWN;
 
 class Fixture {
   public:
+    // A default constructor which configures pins in addition to initializing
+    // its data members.
     Fixture();
+    // A constructor which initializes its data members only.
+    Fixture(const Fixture &fixture) { this->operator=(fixture); };
+
     Fixture& operator=(const Fixture &fixture);
     bool operator==(const Fixture &fixture) const;
     bool operator!=(const Fixture &fixture) const;
@@ -43,14 +48,12 @@ class Fixture {
     bool isDebugPressed();
     void checkJumper();
     bool isInStopState() const;
-    void adjustSpeed();
-    bool isFast() const;
-    void setSpeed(unsigned int newPwmFrequency);
+    void setSpeed(unsigned int pwmFrequency);
     void lockMotor();
     void unlockMotor();
-    void driveProbe(char newState, const int newPwmFrequency,
-                    const bool newDirection);
-    void StopProbe(char newState);
+    void driveProbe(const char state, const int pwmFrequency,
+                    const bool direction);
+    void stopProbe(char state);
     void setMotorDirection(bool direction);
 
     // Accessors and mutator below

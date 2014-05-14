@@ -57,22 +57,9 @@ const char stateGoingUpAfterEmergency = 'b';
 // The delay interval between two consecutive sensing.
 const int SENSOR_DELAY_INTERVAL = 10;
 
-// The higher the value, the faster the motor speed.
-const int FAST_PWM_FREQUENCY = 6000;
-const int SLOW_PWM_FREQUENCY = 2000;
-
-// PWM frequency speed corresponding to FAST/SLOW_PWM_FREQUENCY above.
-const char PWMFast = 'f';
-const char PWMSlow = 's';
-
 // The values set on the pinMotorDir digital pin to control the motor direction.
 const bool MOTOR_DIR_UP = LOW;
 const bool MOTOR_DIR_DOWN = HIGH;
-
-// The motor is supposed to rotate up to this count and then slows down.
-// Unfortunately, the magic value 256000 below is derived with experiments.
-const unsigned int DISTANCE_TO_SLOW_DOWN = 256000 * 5 / 6;
-
 
 // Need to wait up to 2 seconds for all sensors and the motor to get ready.
 const int WARM_UP_WAIT = 2000;
@@ -84,7 +71,7 @@ const int WARM_UP_WAIT = 2000;
 Fixture::Fixture() {
   state_ = stateInit;
   reset_count();
-  pwmFrequency_ = SLOW_PWM_FREQUENCY;
+  pwmFrequency_ = 0;
 
   jumper_ = true;
   buttonDebug_ = false;
@@ -259,27 +246,11 @@ bool Fixture::isInStopState() const {
 }
 
 /**
- * Adjust speed according to the probe position.
+ * Set the motor to the new pwm frequency.
  */
-void Fixture::adjustSpeed() {
-  if (isFast() && (count_ >= DISTANCE_TO_SLOW_DOWN)) {
-    setSpeed(SLOW_PWM_FREQUENCY);
-  }
-}
-
-/**
- * Is the motor in fast speed?
- */
-bool Fixture::isFast() const {
-  return (pwmFrequency_ == FAST_PWM_FREQUENCY);
-}
-
-/**
- * Set the motor to the new speed.
- */
-void Fixture::setSpeed(unsigned int newPwmFrequency) {
-  if (pwmFrequency_ != newPwmFrequency) {
-    pwmFrequency_ = newPwmFrequency;
+void Fixture::setSpeed(unsigned int pwmFrequency) {
+  if (pwmFrequency_ != pwmFrequency) {
+    pwmFrequency_ = pwmFrequency;
     PWMC_ConfigureClocks(pwmFrequency_ * PWM_MAX_DUTY_CYCLE, 0, VARIANT_MCK);
   }
 }
@@ -308,19 +279,19 @@ void Fixture::unlockMotor() {
 /**
  * Drive the probe.
  */
-void Fixture::driveProbe(char newState, const int newPwmFrequency,
-                         const bool newDirection) {
-  state_ = newState;
-  setSpeed(newPwmFrequency);
-  setMotorDirection(newDirection);
+void Fixture::driveProbe(const char state, const int pwmFrequency,
+                         const bool direction) {
+  state_ = state;
+  setSpeed(pwmFrequency);
+  setMotorDirection(direction);
   unlockMotor();
 }
 
 /**
  * Perform some actions when the motor reaches the UP/DOWN end position.
  */
-void Fixture::StopProbe(char newState) {
-  state_ = newState;
+void Fixture::stopProbe(char state) {
+  state_ = state;
   reset_count();
   lockMotor();
 }
@@ -361,7 +332,6 @@ char Fixture::getCmdByNativeUSBPort() const {
 void Fixture::sendStateVectorByNativeUSBPort(Fixture &fixture) const {
   SerialUSB.print("<");
   SerialUSB.print(state_);
-  SerialUSB.print(pwmFrequency_ == FAST_PWM_FREQUENCY ? PWMFast : PWMSlow);
   SerialUSB.print(jumper_);
   SerialUSB.print(buttonDebug_);
   SerialUSB.print(sensorExtremeUp_);
@@ -372,6 +342,8 @@ void Fixture::sendStateVectorByNativeUSBPort(Fixture &fixture) const {
   SerialUSB.print(motorEn_);
   SerialUSB.print(motorLock_);
   SerialUSB.print(motorDutyCycle_);
+  SerialUSB.print('.');
+  SerialUSB.print(pwmFrequency_);
   SerialUSB.print('.');
   SerialUSB.print(count_);
   SerialUSB.print(">");
