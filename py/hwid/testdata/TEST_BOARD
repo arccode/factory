@@ -1,4 +1,4 @@
-checksum: b3e644f0c684202eac9a701fa31da829a09410f7
+checksum: 71343da7919352cbc255e2c232aca27c1fadbd6d
 
 board: CHROMEBOOK
 
@@ -401,7 +401,7 @@ rules:
   evaluate: Assert(ComponentEq('storage', 'SSD') or
                    ComponentEq('storage', '16G'))
 
-- name: sku.us
+- name: verify.sku.us
   evaluate: >
       ComponentEq('audio_codec', ['hdmi_1', 'codec_1']) and
       ComponentEq('cpu', 'cpu_5') and
@@ -409,7 +409,7 @@ rules:
       ComponentEq('keyboard', 'US') and
       ComponentEq('storage', ['SSD', '16G'])
 
-- name: sku.gb
+- name: verify.sku.gb
   evaluate: >
       ComponentEq('audio_codec', ['hdmi_1', 'codec_1']) and
       ComponentEq('cpu', 'cpu_4') and

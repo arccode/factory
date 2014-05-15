@@ -39,10 +39,10 @@ class DatabaseTest(unittest.TestCase):
 
   def testDatabaseChecksum(self):
     self.assertEquals(
-        '779cedeadfd10651bc05218ad1c12d6f42f4413e',
+        '4e0c00102b6b828c00d1d23c759fd76aa688d0f6',
         Database.Checksum(os.path.join(_TEST_DATA_PATH, 'test_db.yaml')))
     self.assertEquals(
-        '779cedeadfd10651bc05218ad1c12d6f42f4413e',
+        '4e0c00102b6b828c00d1d23c759fd76aa688d0f6',
         Database.Checksum(os.path.join(
             _TEST_DATA_PATH, 'test_db_wrong_checksum_field.yaml')))
 

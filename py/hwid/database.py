@@ -1047,6 +1047,12 @@ class Rules(object):
     self.schema.Validate(rule_list)
     self.initialized = False
     self.rule_list = [rule.Rule.CreateFromDict(r) for r in rule_list]
+    for r in self.rule_list:
+      if not any([r.name.startswith(x) for x in ('device_info.', 'verify.')]):
+        raise common.HWIDException(
+            'Invalid rule name %r; rule name must be prefixed with '
+            '"device_info." (evaluated when generating HWID) '
+            'or "verify." (evaluated when verifying HWID)' % r.name)
 
   def _Initialize(self):
     # Lazy import to avoid circular import problems. This also avoids import

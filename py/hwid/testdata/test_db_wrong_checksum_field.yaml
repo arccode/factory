@@ -397,7 +397,7 @@ rules:
   - CheckRegistrationCode(GetVPDValue('rw', 'gbind_attribute'))
   - CheckRegistrationCode(GetVPDValue('rw', 'ubind_attribute'))
 
-- name: test.rule_1
+- name: verify.test.rule_1
   when: ComponentEq('audio_codec', 'Codec 1') and
         ComponentEq('audio_codec', 'HDMI 1')
   evaluate:
@@ -408,7 +408,7 @@ rules:
   - Assert(ComponentEq('ro_ec_firmware', 'ro_ec_firmware_0'))
   - Assert(ComponentEq('ro_main_firmware', 'ro_main_firmware_0'))
 
-- name: test.rule_2
+- name: verify.test.rule_2
   when: ComponentEq('dram', 'dram_0')
   evaluate:
   - Assert(ComponentEq('battery', 'battery_huge'))
@@ -419,29 +419,29 @@ rules:
   - Assert(ComponentEq('ro_main_firmware', 'ro_main_firmware_0'))
   - Assert(ComponentIn('cpu', ['cpu_1', 'cpu_2']))
 
-- name: test.rule_3
+- name: verify.test.rule_3
   when: ComponentEq('dram', 'dram_0') and ComponentEq('cellular', 'cellular_0')
   evaluate:
   - Assert(ComponentEq('battery', 'huge_battery'))
   - Assert(ComponentIn('cpu', ['cpu_1', 'cpu_2']))
 
-- name: test.rule_4
+- name: verify.test.rule_4
   when: not ComponentEq('cpu', None)
   evaluate:
   - Assert(ComponentEq('storage', ['SSD', '16G']))
   - Assert((not ComponentEq('battery', 'battery_small')) or
            (ComponentIn('cpu', ['cpu_1', 'cpu_2', 'cpu_3'])))
 
-- name: test.rule_5
+- name: verify.test.rule_5
   when: not ComponentEq('cpu', None)
   evaluate: Assert(ComponentEq('storage', 'SSD') or
                    ComponentEq('storage', '16G'))
 
-- name: test.rule_6
+- name: verify.test.rule_6
   evaluate: Assert(ComponentEq('storage', 'SSD') or
                    ComponentEq('storage', '16G'))
 
-- name: sku.us
+- name: verify.sku.us
   evaluate: >
       ComponentEq('audio_codec', ['hdmi_1', 'codec_1']) and
       ComponentEq('cpu', 'cpu_5') and
@@ -449,7 +449,7 @@ rules:
       ComponentEq('keyboard', 'US') and
       ComponentEq('storage', ['SSD', '16G'])
 
-- name: sku.gb
+- name: verify.sku.gb
   evaluate: >
       ComponentEq('audio_codec', ['hdmi_1', 'codec_1']) and
       ComponentEq('cpu', 'cpu_4') and
