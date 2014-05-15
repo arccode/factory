@@ -1,9 +1,11 @@
+#! /usr/bin/env python
 # Copyright (c) 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
 """A wrapper of the servo module from autotest repo."""
 
+import argparse
 import logging
 import os
 import re
@@ -88,3 +90,25 @@ class Servo(object):
     """Cleans up servod process if we started one."""
     if self._servod:
       process_utils.TerminateOrKillProcess(self._servod, sudo=True)
+
+
+def Main():
+  parser = argparse.ArgumentParser()
+  parser.add_argument('--board', help='the board name used to start servod')
+  parser.add_argument('--host', help='the servo host')
+  parser.add_argument('--port', type=int, default=9999,
+                      help='the port servod listens to')
+  parser.add_argument('--serial', help='the serial number of the servo board')
+  parser.add_argument('method_call', help='the method and its args to call')
+  args = parser.parse_args()
+
+  servo = None
+  try:
+    servo = Servo(args.board, args.host, port=args.port, serial=args.serial)
+    print eval('servo.%s' % args.method_call, dict(servo=servo), {})
+  finally:
+    if servo:
+      servo.TearDown()
+
+if __name__ == '__main__':
+  Main()

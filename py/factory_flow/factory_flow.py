@@ -12,6 +12,7 @@ import factory_common   # pylint: disable=W0611
 from cros.factory.factory_flow import run_automated_tests
 from cros.factory.factory_flow import create_bundle
 from cros.factory.factory_flow import netboot_install
+from cros.factory.factory_flow import run_host_command
 from cros.factory.factory_flow import start_server
 from cros.factory.factory_flow import usb_install
 from cros.factory.hacked_argparse import (Command, ParseCmdline,
@@ -59,6 +60,13 @@ def NetbootInstall(options):
 def USBInstall(options):
   """Runs factory install on a given DUT with a USB disk on a servo."""
   usb_install.USBInstall().Main(options)
+
+
+@Command('run-host-command', *run_host_command.RunHostCommand.args,
+         doc=run_host_command.RunHostCommand.__doc__)
+def RunHostCommand(options):
+  """Runs the given command on the host."""
+  run_host_command.RunHostCommand().Main(options)
 
 
 # TODO(jcliang): Add disk-image-install subcommand, which creates a disk image

@@ -218,14 +218,11 @@ class TestResult(object):
 class FactoryFlowRunner(object):
   """A class for running factory flow tests."""
 
-  SUBCOMMANDS = ('create-bundle', 'start-server', 'usb-install',
-                 'netboot-install', 'run-automated-tests')
-
   def __init__(self, config, output_dir=None):
     self.config = config
     for name, item in config['test_items'].iteritems():
       subcommand = item['command']
-      if subcommand not in self.SUBCOMMANDS:
+      if subcommand not in test_runner_common.CommandBuilder.iterkeys():
         raise FactoryFlowTestError(
             'Invalid subcommand %r in test item %s' % (subcommand, name))
     self.board = config['board']

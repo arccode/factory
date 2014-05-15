@@ -10,6 +10,7 @@
 import collections
 import copy
 import os
+import re
 import yaml
 
 
@@ -314,10 +315,55 @@ class RunAutomatedTestsCommandBuilder(FactoryFlowCommandBuilder):
     return result
 
 
+class RunHostCommandCommandBuilder(FactoryFlowCommandBuilder):
+  """Subcommand builder for run-host-command."""
+  subcommand = 'run-host-command'
+  module = 'run_host_command'
+  classname = 'RunHostCommand'
+
+  def BuildArgs(self, base_args, runner_info, host_info, dut_info_list):
+    REPLACE_ARG_RE = re.compile(r'\$\{(?P<arg_name>.+?)\}')
+    def ReplaceArg(matchobj, dut_info):
+      """Replaces '${<arg_name>}' with appropriate string.
+
+      If arg_name is a string without ':', then replace it with the
+      corresponding value in os.environ. If arg_name is of format
+      'info_name:arg_name', then replace it with the value get from the info
+      object specified by info_name using arg_name as key.
+
+      Args:
+        matchobj: The python regexp match object.
+        dut_info: A DUTInfo instance.
+
+      Returns:
+        The replaced string.
+      """
+      arg_name = matchobj.group('arg_name')
+      if ':' in arg_name:
+        info_name, arg_name = arg_name.split(':', 1)
+        return str({
+            'runner_info': runner_info,
+            'host_info': host_info,
+            'dut_info': dut_info,
+            }[info_name][arg_name])
+      else:
+        return os.environ[arg_name]
+
+    result = []
+    for dut_info in dut_info_list:
+      args = copy.deepcopy(base_args)
+      args['cmd'] = REPLACE_ARG_RE.sub(
+          lambda matchobj: ReplaceArg(matchobj, dut_info),
+          args['cmd'])
+      result.append(CommandArguments([dut_info['dut_id']], args))
+    return result
+
+
 CommandBuilder = {
     'create-bundle': CreateBundleCommandBuilder(),
     'start-server': StartServerCommandBuilder(),
     'netboot-install': NetbootInstallCommandBuilder(),
     'usb-install': USBInstallCommandBuilder(),
     'run-automated-tests': RunAutomatedTestsCommandBuilder(),
+    'run-host-command': RunHostCommandCommandBuilder(),
     }
