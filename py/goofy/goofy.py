@@ -43,6 +43,7 @@ from cros.factory.system.core_dump_manager import CoreDumpManager
 from cros.factory.system.cpufreq_manager import CpufreqManager
 from cros.factory.system import disk_space
 from cros.factory.test import factory
+from cros.factory.test import phase
 from cros.factory.test import state
 from cros.factory.test import shopfloor
 from cros.factory.test import utils
@@ -1285,6 +1286,9 @@ class Goofy(object):
 
     if self.test_list.options.clear_state_on_start:
       self.state_instance.clear_test_state()
+
+    # If the phase is invalid, this will raise a ValueError.
+    phase.SetPersistentPhase(self.test_list.options.phase)
 
     if system.SystemInfo().firmware_version is None and not utils.in_chroot():
       self.state_instance.set_shared_data('startup_error',

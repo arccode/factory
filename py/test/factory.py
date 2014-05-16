@@ -586,6 +586,11 @@ class Options(object):
   """Number of tries allowed to run telemetry login procedure. Setting this
   value greater than 1 enables retry for telemetry if login fails."""
 
+  phase = None
+  """Name of a phase to set.  If None, the phase is unset and the
+  strictest (PVT) checks are applied."""
+  _types['phase'] = (type(None), str)
+
   def check_valid(self):
     """Throws a TestListError if there are any invalid options."""
     # Make sure no errant options, or options with weird types,

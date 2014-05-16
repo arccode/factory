@@ -26,6 +26,7 @@ from setproctitle import setproctitle
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
+from cros.factory.test import phase
 from cros.factory.test import shopfloor
 from cros.factory.test.factory import TestState
 from cros.factory.test.test_lists import test_lists
@@ -467,6 +468,23 @@ class ScreenshotCommand(Subcommand):
 
   def Run(self):
     factory.get_state_instance().TakeScreenshot(self.args.output_file)
+
+
+class PhaseCommand(Subcommand):
+  name = 'phase'
+  help = 'Query or set the current phase'
+
+  def Init(self):
+    self.subparser.add_argument(
+      '--set', metavar='PHASE',
+      help='Sets the current phase (one of %(choices)s)',
+      choices=phase.PHASE_NAMES + ['None'])
+
+  def Run(self):
+    if self.args.set:
+      phase.SetPersistentPhase(None if self.args.set in ['None', '']
+                               else self.args.set)
+    print phase.GetPhase()
 
 
 def main():

@@ -29,6 +29,7 @@ from cros.factory.privacy import FilterDict
 from cros.factory.rule import Context
 from cros.factory.system import vpd
 from cros.factory.test import branding
+from cros.factory.test import phase
 from cros.factory.tools.mount_partition import MountPartition
 from cros.factory.utils.process_utils import CheckOutput, GetLines
 from cros.factory.utils.string_utils import ParseDict
@@ -447,6 +448,12 @@ class Gooftool(object):
                        '(expected it to match regexp %r)' % (
           rlz_brand_code, rlz_brand_code_source,
           branding.CUSTOMIZATION_ID_REGEXP.pattern))
+
+    phase.AssertStartingAtPhase(
+      phase.DVT,
+      rlz_brand_code not in branding.TEST_BRAND_CODES,
+      "Brand code is %r, but test brand codes are not allowed" %
+      rlz_brand_code)
 
     return dict(rlz_brand_code=rlz_brand_code,
                 customization_id=customization_id)

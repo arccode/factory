@@ -15,3 +15,7 @@ RLZ_BRAND_CODE_REGEXP = re.compile('^[A-Z]{4}$')
 CUSTOMIZATION_ID_REGEXP = re.compile('^[A-Z0-9]+(-[A-Z0-9]+)?$')
 
 BRAND_CODE_PATH = '/opt/oem/etc/BRAND_CODE'
+
+# Test brand codes.  In DVT and beyond, we check in gooftool that the
+# brand code is "real" and not one of these.
+TEST_BRAND_CODES = ['ZZCR']

@@ -48,6 +48,21 @@ class TestListArgs(object):
   Nothing in this class is used by the test harness directly, rather
   only used by this file when constructing the test list.
   """
+  # Current build phase.  Various properties such as write protection
+  # are double-checked in certain tests based on the value of this
+  # argument; search throughout the repo for "AssertStartingAtPhase"
+  # for details.
+  #
+  # - PROTO = prototype build (most forgiving; can be used for testing)
+  # - EVT = first build with plastics
+  # - DVT = second build with plastics
+  # - PVT_DOGFOOD = production of salable units, except that write protection
+  #   may be disabled.  These are suitable for internal "dogfood" testing
+  #   (http://goo.gl/iU8vlW), but non-write-protected devices may not actually
+  #   be sold.
+  # - PVT = production of salable units
+  phase = 'PROTO'
+
   # Enable options that apply only in a real factory environment.
   factory_environment = True
 
@@ -593,6 +608,8 @@ def SetOptions(options, args):
 
   options.min_charge_pct = args.min_charge_pct
   options.max_charge_pct = args.max_charge_pct
+
+  options.phase = args.phase
 
   if args.factory_environment:
     # echo -n 'passwordgoeshere' | sha1sum
