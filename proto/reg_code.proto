@@ -1,0 +1,28 @@
+// Copyright (c) 2014 The Chromium OS Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file.
+
+// From <http://goto/reg-code-proto>.
+//
+// Use "make proto" to regenerate the Python support for this proto.
+
+syntax = "proto2";
+
+enum CodeType {
+  GROUP_CODE = 0;
+  UNIQUE_CODE = 1;
+  ONE_TIME_CODE = 2;
+}
+
+message Content {
+  required bytes code = 1;
+  required CodeType code_type = 2;
+  // A string representation of device type, e.g. “snow”.
+  // It won't be set if the code type is ONE_TIME_CODE.
+  optional string device = 3;
+}
+
+message RegCode {
+  required Content content = 1; // Code content without checksum.
+  required int64 checksum = 2; // CRC32 checksum.
+}
