@@ -82,6 +82,7 @@ class DUTEnvironment(Environment):
     super(DUTEnvironment, self).__init__()
     self.browser = None
     self.extension = None
+    self.telemetry_proc = None
     self.telemetry_proc_pipe = None
     if os.path.exists(self.GUEST_MODE_TAG_FILE):
       # Only enable guest mode for this boot.
@@ -93,6 +94,9 @@ class DUTEnvironment(Environment):
   def shutdown(self, operation):
     assert operation in ['reboot', 'full_reboot', 'halt']
     logging.info('Shutting down: %s', operation)
+    if self.telemetry_proc_pipe:
+      self.telemetry_proc_pipe.send(None)
+      self.telemetry_proc.join()
     subprocess.check_call('sync')
     if operation == 'full_reboot':
       subprocess.check_call(['ectool', 'reboot_ec', 'cold', 'at-shutdown'])
@@ -123,16 +127,16 @@ class DUTEnvironment(Environment):
         # process. The drawback is that we will not be able to access
         # telemetry-based features such as screen capture or remote debugging.
         parent_conn, child_conn = multiprocessing.Pipe()
-        process = multiprocessing.Process(target=self._start_telemetry,
-                                          args=(child_conn,))
-        process.start()
+        self.telemetry_proc = multiprocessing.Process(
+            target=self._start_telemetry, args=(child_conn,))
+        self.telemetry_proc.start()
         logging.info('Waiting for UI to load (try_num = %d)', try_num)
         utils.WaitFor(self.goofy.web_socket_manager.has_sockets, 30)
         logging.info('UI loaded')
         self.telemetry_proc_pipe = parent_conn
         break
       except utils.TimeoutError:
-        utils.kill_process_tree(process, 'telemetry')
+        utils.kill_process_tree(self.telemetry_proc, 'telemetry')
         logging.exception('Failed to load UI (try_num = %d)', try_num)
 
     if not self.goofy.web_socket_manager.has_sockets():
@@ -184,6 +188,9 @@ class DUTEnvironment(Environment):
       # Serve events forever.
       while True:
         event = pipe.recv()
+        if event is None:
+          logging.info('[UI process] received None, shutting down UI process')
+          break
         logging.info('[UI Process] received event %s', event)
         pipe.send(self._ui_rpc_event_handler(event))
 
