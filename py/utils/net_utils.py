@@ -8,6 +8,7 @@ import glob
 import httplib
 import jsonrpclib
 import logging
+import netifaces
 import os
 import pexpect
 import re
@@ -114,6 +115,7 @@ class JSONRPCServer(object):
     except: # pylint: disable=W0702
       pass
     self._server_thread.join()
+    self._server.server_close()
 
 
 def FindUsableEthDevice(raise_exception=False):
@@ -195,6 +197,17 @@ def GetEthernetIp(interface=None):
   if match:
     ip_address = match.group(1)
   return ip_address
+
+
+def GetAllIPs():
+  """Returns all available IP addresses of all interfaces."""
+  ret = []
+  for iface in netifaces.interfaces():
+    ifaddr = netifaces.ifaddresses(iface)
+    if netifaces.AF_INET not in ifaddr:
+      continue
+    ret.extend([link['addr'] for link in ifaddr[netifaces.AF_INET]])
+  return ret
 
 
 def _SendDhclientCommand(arguments, interface,
