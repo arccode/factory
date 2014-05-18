@@ -316,6 +316,9 @@ class FactoryFlowRunner(object):
                 'Test item %s for DUT %s failed; check %s for detailed logs',
                 item, duts, log_file_spec % x)
           else:
+            logging.info(
+                'Test item %s for DUT %s passed; check %s for detailed logs',
+                item, duts, log_file_spec % x)
             for dut in duts:
               test_result.SetTestItemResult(dut, item, TestStatus.PASSED)
 
