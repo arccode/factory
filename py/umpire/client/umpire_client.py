@@ -25,11 +25,20 @@ class UmpireClientInfoInterface(object):
     """
     raise NotImplementedError
 
-  def OutputXUmpireDUT(self):
+  def GetXUmpireDUT(self):
     """Outputs client info for request header X-Umpire-DUT.
 
     Returns:
       Umpire client info in X-Umpire-DUT format: 'key=value; key=value ...'.
+    """
+    raise NotImplementedError
+
+  def GetDUTInfoComponents(self):
+    """Gets DUT info and components for Umpire GetUpdate call.
+
+    Returns:
+      {'x_umpire_dut': X-Umpire-DUT header in dict form,
+       'components': components' version/hash for update lookup.}
     """
     raise NotImplementedError
 
@@ -38,16 +47,16 @@ class UmpireClientInfoException(Exception):
   pass
 
 
-class UmpireClientInfo(UmpireClientInfoInterface):
-  # pylint: disable=R0923
+class UmpireClientInfo(object):
   """This class maintains client side info on DUT that is related to Umpire."""
+  __implements__ = (UmpireClientInfoInterface)
   # Translated keys in DUT_INFO_KEYS to attributes used in UmpireClientInfo.
-  # DUT_INFO_KEYS are used in OutputXUmpireDUT() for X-Umpire-DUT.
+  # DUT_INFO_KEYS are used in GetXUmpireDUT() for X-Umpire-DUT.
   KEY_TRANSLATION = {
       'sn': 'serial_number',
       'mlb_sn': 'mlb_serial_number',
       'board': 'board',
-      'firmware': 'firmwave_version',
+      'firmware': 'firmware_version',
       'ec': 'ec_version',
       'mac': 'macs'
   }
@@ -94,24 +103,39 @@ class UmpireClientInfo(UmpireClientInfoInterface):
       if getattr(self, key) != new_info[key]:
         changed = True
         setattr(self, key, new_info[key])
+    logging.debug('DUT info changed for X-Umpire-DUT = %r', changed)
     return changed
 
-  def GetInfoDictForGetUpdate(self):
-    """Gets infomation for Umpire XMLRPC GetUpdate call."""
-    # TODO(cychiang)
-    raise NotImplementedError
-
-  def OutputXUmpireDUT(self):
-    """Outputs client info for request header X-Umpire-DUT.
+  def _GetComponentsDict(self):
+    """Gets infomation needed for Umpire GetUpdate call.
 
     Returns:
-      Umpire client info in X-Umpire-DUT format: 'key=value; key=value ...'.
+      A component dict:
+        ‘rootfs_test’: version_string,
+        ‘rootfs_release’: version_string,
+        ‘firmware_ec’: version_string,
+        ‘firmware_bios’: version_string,
+        ‘hwid’: version_string (checksum in hwid db)
+        ‘device_factory_toolkit’: md5sum_hash_string.
     """
-    info = []
+    components = dict()
+    system_info = system.SystemInfo()
+    components['rootfs_test'] = system_info.factory_image_version
+    components['rootfs_release'] = system_info.release_image_version
+    components['firmware_ec'] = system_info.ec_version
+    components['firmware_bios'] = system_info.firmware_version
+    components['hwid'] = system_info.hwid_database_version
+    components['device_factory_toolkit'] = system_info.factory_md5sum
+
+    return components
+
+  def _GetXUmpireDUTDict(self):
+    """Gets X-Umpire-DUT dict by translating keys."""
+    info_dict = dict()
     try:
       for key in DUT_INFO_KEYS:
         value = getattr(self, UmpireClientInfo.KEY_TRANSLATION[key])
-        info.append('%s=%s' % (key, value))
+        info_dict[key] = value
       for key_prefix in DUT_INFO_KEY_PREFIX:
         # Dict of {subkey: value} for the prefix key group.
         # E.g. self.macs is a dict {'eth0': 'xxxx', 'wlan0': 'xxxx'}
@@ -119,7 +143,7 @@ class UmpireClientInfo(UmpireClientInfoInterface):
         # 'mac.eth0='xxxx', 'mac.wlan0=xxxx'.
         values = getattr(self, UmpireClientInfo.KEY_TRANSLATION[key_prefix])
         for subkey, value in values.iteritems():
-          info.append('%s.%s=%s' % (key_prefix, subkey, value))
+          info_dict['%s.%s' % (key_prefix, subkey)] = value
     except KeyError as e:
       raise UmpireClientInfoException(
           'DUT info key not found in KEY_TRANSLATION: %s.' % e)
@@ -127,6 +151,29 @@ class UmpireClientInfo(UmpireClientInfoInterface):
       raise UmpireClientInfoException(
           'Property not found in UmpireClientInfo: %s.' % e)
 
-    logging.debug('Client info : %s', info)
-    output = '; '.join(info)
+    logging.debug('Client info_dict: %r', info_dict)
+    return info_dict
+
+  def GetDUTInfoComponents(self):
+    """Gets DUT info and components for Umpire GetUpdate call.
+
+    Returns:
+      {'x_umpire_dut': X-Umpire-DUT header in dict form,
+       'components': components' version/hash for update lookup.}
+    """
+    dut_info = dict()
+    dut_info['x_umpire_dut'] = self._GetXUmpireDUTDict()
+    dut_info['components'] = self._GetComponentsDict()
+    return dut_info
+
+  def GetXUmpireDUT(self):
+    """Outputs client info for request header X-Umpire-DUT.
+
+    Returns:
+      Umpire client info in X-Umpire-DUT format: 'key=value; key=value ...'.
+    """
+    info_dict = self._GetXUmpireDUTDict()
+    output = '; '.join(
+        ['%s=%s' % (key, info_dict[key]) for key in sorted(info_dict)])
+    logging.debug('Client X-Umpire-DUT : %r', output)
     return output

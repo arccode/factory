@@ -86,7 +86,8 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
   The base class connects to Base Umpire XMLRPC handler at init time. This is
   to determine the server version. After that, base class will connect to
   Umpire XMLRPC handler.
-  This class maintains an UmpireClientInfoInterface object and a token.
+  This class maintains an object which implements UmpireClientInfoInterface
+  and a token.
   If client info is updated, or token is invalid, it will fetch resource map and
   update the properties accordingly.
   This class dispatches method calls to Umpire XMLRPC handler, or a shopfloor
@@ -103,7 +104,7 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
      Check _test_mode for how this property is determined.
     _use_umpire: True if the object should work with an Umpire server; False if
       object should work with simple XMLRPC handler.
-    _umpire_client_info: An UmpireClientInfoInterface object.
+    _umpire_client_info: An object which implements UmpireClientInfoInterface.
     _resources: A dict containing parsed results in resource map.
     _token: A string used to identify if a cached shopfloor handler URI is
       valid.
@@ -134,9 +135,9 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
       test_mode: True for testing. The difference is in _SetUmpireUri.
       max_retries: Maximum number of retries for a shopfloor call that needs to
         get a new resource map.
-      umpire_client_info: An UmpireClientInfoInterface object if user want to
-        use implementation other than UmpireClientInfo. This is useful when
-        UmpireServerProxy is used in chroot.
+      umpire_client_info: An object which implements UmpireClientInfoInterface.
+        This is useful when user wants to use implementation other than
+        UmpireClientInfo, e.g. when UmpireServerProxy is used in chroot.
       Other args are for base class.
     """
     self._server_uri = server_uri
@@ -232,7 +233,7 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
     logging.info('Getting resource map from Umpire server')
     request = urllib2.Request(
         '%s/resourcemap' % self._umpire_http_server_uri,
-        headers={"X-Umpire-DUT" : self._umpire_client_info.OutputXUmpireDUT()})
+        headers={"X-Umpire-DUT" : self._umpire_client_info.GetXUmpireDUT()})
     content = urllib2.urlopen(request).read()
     logging.info('Got resource map: %r', content)
     return content

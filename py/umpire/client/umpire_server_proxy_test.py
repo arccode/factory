@@ -22,9 +22,9 @@ DEFAULT_TEST_DATA = 'test_data/umpire_test_data.yaml'
 DEFAULT_SERVER_URI = 'http://10.3.0.1:9090'
 
 
-class FakeClientInfo(UmpireClientInfoInterface):
-  # pylint: disable=R0923
+class FakeClientInfo(object):
   """Fake client info which implements UmpireClientInfoInterface."""
+  __implements__ = (UmpireClientInfoInterface)
   def __init__(self, dut):
     """Initializes a fake client info.
 
@@ -52,7 +52,7 @@ class FakeClientInfo(UmpireClientInfoInterface):
     """
     return False
 
-  def OutputXUmpireDUT(self):
+  def GetXUmpireDUT(self):
     """Returns client info in the format of X-Umpire-DUT.
 
     Returns:
@@ -61,8 +61,18 @@ class FakeClientInfo(UmpireClientInfoInterface):
     """
     info = ['%s=%s' % i for i in self.dut['X-Umpire-DUT']]
     ret = '; '.join(info)
-    logging.debug('OutputXUmpireDUT returns %r', ret)
+    logging.debug('GetXUmpireDUT returns %r', ret)
     return ret
+
+  def GetDUTInfoComponents(self):
+    """Gets dut_info argument for GetUpdate method.
+
+    Returns:
+      A dict containing x_umpire_dut and components.
+    """
+    # TODO(cychiang) Implement this method so we can test GetUpdate method.
+    raise NotImplementedError
+
 
 
 class UmpireServerProxyCLI(object):
