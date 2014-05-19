@@ -17,6 +17,7 @@ import subprocess
 import threading
 
 import factory_common  # pylint: disable=W0611
+from cros.factory import hwid
 from cros.factory.system import partitions
 from cros.factory.system.board import Board
 from cros.factory.test import factory
@@ -186,6 +187,17 @@ class SystemInfo(object):
       pass
 
     self.factory_md5sum = factory.get_current_md5sum()
+
+    # Uses checksum of hwid file as hwid database version.
+    self.hwid_database_version = None
+    try:
+      hwid_file_path = os.path.join(hwid.common.DEFAULT_HWID_DATA_PATH,
+                                    hwid.common.ProbeBoard().upper())
+      if os.path.exists(hwid_file_path):
+        self.hwid_database_version = hwid.hwid_utils.ComputeDatabaseChecksum(
+            hwid_file_path)
+    except:
+      pass
 
     # update_md5sum is currently in SystemInfo's __dict__ but not this
     # object's.  Copy it from SystemInfo into this object's __dict__.

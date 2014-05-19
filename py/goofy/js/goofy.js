@@ -157,7 +157,9 @@ cros.factory.SYSTEM_INFO_LABELS = [
     {key: 'factory_md5sum', label: cros.factory.Label('Factory MD5SUM'),
      transform: function(value) {
             return value || cros.factory.Label('(no update)');
-        }}
+        }},
+    {key: 'hwid_database_version',
+     label: cros.factory.Label('HWID Database Version')}
                                    ];
 
 cros.factory.UNKNOWN_LABEL = '<span class="goofy-unknown">' +
