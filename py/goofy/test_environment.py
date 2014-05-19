@@ -184,6 +184,10 @@ class DUTEnvironment(Environment):
       utils.SendKey('F4')
       # Disable X-axis two-finger scrolling on touchpad.
       utils.SetTouchpadTwoFingerScrollingX(False)
+      # Disable touchscreen so that operators won't accidentally roll back to
+      # previous webpage.
+      for device_id in utils.GetTouchscreenDeviceIds():
+        utils.SetXinputDeviceEnabled(device_id, False)
 
       # Serve events forever.
       while True:

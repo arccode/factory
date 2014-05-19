@@ -20,9 +20,9 @@ import re
 import signal
 import subprocess
 import sys
+import tempfile
 import threading
 import time
-import types
 import traceback
 
 from contextlib import contextmanager
@@ -506,3 +506,54 @@ def SetTouchpadTwoFingerScrollingX(enabled):
   else:
     prop_value = '0'
   process_utils.Spawn([TPSCONTROL_XINPUT, 'set', prop_id, prop_value])
+
+
+def _CrOSTouchXInput(args):
+  """Helper method to invoke shell functions defined in xinput.sh
+
+  Args:
+    args: The code snippet to run in the context of xinput.sh.
+
+  Returns:
+    The evaluated result.
+  """
+  DUMMY_SCRIPT = '. /opt/google/input/xinput.sh\n%s'
+  with tempfile.NamedTemporaryFile(prefix='cros_touch_xinput.') as f:
+    f.write(DUMMY_SCRIPT % args)
+    f.flush()
+    return process_utils.CheckOutput(['sh', f.name], log=True)
+
+
+def GetTouchscreenDeviceIds():
+  """Gets xinput device ids of touchscreen.
+
+  Returns:
+    The xinput device ids of touchscreen as a list of integers.
+  """
+  return [int(x.strip()) for x in _CrOSTouchXInput('list_touchscreens').split()]
+
+
+def IsXinputDeviceEnabled(device_id):
+  """Reports current enabled state of the given xinput device.
+
+  Args:
+    device_id: The id of the xinput device.
+
+  Returns:
+    True if the device is enabled; False otherwise.
+  """
+  return _CrOSTouchXInput(
+      'device_get_prop %d "Device Enabled"' % device_id).strip() == '1'
+
+
+def SetXinputDeviceEnabled(device_id, enabled):
+  """Enables / disables the given xinput device.
+
+  Args:
+    device_id: The id of the xinput device.
+    enabled: True or False indicating the state of the device.
+  """
+  _CrOSTouchXInput(
+      'device_set_prop %d "Device Enabled" %d' %
+      (device_id, 1 if enabled else 0))
+  assert IsXinputDeviceEnabled(device_id) == enabled

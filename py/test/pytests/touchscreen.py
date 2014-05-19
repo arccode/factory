@@ -3,8 +3,8 @@
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
-"""
-A factory test to test the functionality of touchscreen.
+
+"""A factory test to test the functionality of touchscreen.
 
 dargs:
   touchscreen_event_id: Touchscreen input event id. (default: 7)
@@ -16,6 +16,7 @@ import subprocess
 import unittest
 
 from cros.factory.test import test_ui
+from cros.factory.test import utils
 from cros.factory.test.args import Arg
 from cros.factory.test.ui_templates import OneSection
 from cros.factory.test.utils import StartDaemonThread
@@ -92,7 +93,7 @@ _Y_SEGMENTS = 8
 
 
 class TouchEvent:
-  '''The class to store touchscreen touch event.'''
+  """The class to store touchscreen touch event."""
   def __init__(self):
     self.x = None
     self.y = None
@@ -104,27 +105,30 @@ class TouchEvent:
 
 
 def GetProp(message, pattern):
-  '''
-  Gets the property from searching pattern in message.
+  """Gets the property from searching pattern in message.
+
   Args:
     message: A string to search for pattern.
     pattern: A regular expression object which will capture a value if pattern
              can be found.
-  '''
+  """
   val = None
   obj = pattern.search(message)
   if obj:
     val = obj.group(1)
   return val
 
+
 def CheckUpdate(new_value, old_value):
-  '''Returns new_value if new_value is not None, return old_value otherwise.'''
+  """Returns new_value if new_value is not None, return old_value otherwise."""
   return new_value if new_value else old_value
 
+
 class TouchscreenTest(unittest.TestCase):
-  '''
-  Tests the function of touchscreen. The test detects that finger
-  has left on every sector of touchscreen.
+  """Tests the function of touchscreen.
+
+  The test detects that finger has left on every sector of touchscreen.
+
   Properties:
     self.ui: test ui.
     self.template: ui template handling html layout.
@@ -137,7 +141,7 @@ class TouchscreenTest(unittest.TestCase):
     self.monitor_process: the evtest process to get touchscreen input.
         This should get terminated when test stops.
     self.checked: user has already pressed spacebar to check touchscreen.
-  '''
+  """
   ARGS = [
     Arg('touchscreen_event_id', int, 'Touchscreen input event id.',
         default=7)
@@ -158,24 +162,29 @@ class TouchscreenTest(unittest.TestCase):
     self.touch_event = TouchEvent()
     self.monitor_process = None
     self.checked = False
+    # Record the state of touchscreen before test starts so we can restore it
+    # after the test.
+    self.touchscreen_device_id = utils.GetTouchscreenDeviceIds()[0]
+    self.touchscreen_enabled = utils.IsXinputDeviceEnabled(
+        self.touchscreen_device_id)
 
     logging.info('start monitor daemon thread')
     StartDaemonThread(target=self.MonitorEvtest)
 
   def tearDown(self):
-    '''
-    Terminates the running process or we'll have trouble stopping the
-    test. Enable the touchscreen at X to enable touchscreen function in test ui.
-    '''
+    """Terminates the running process or we'll have trouble stopping the test.
+
+    Also restores the touchscreen at X.
+    """
     self.TerminateProcess()
-    self.EnableTouchscreenX(True)
+    self.EnableTouchscreenX(self.touchscreen_enabled)
 
   def MonitorEvtest(self):
-    '''
-    Starts evtest process, gets the spec of touchscreen,
-    disables touchscreen at X, and monitors touchscreen events
-    from output of evtest.
-    '''
+    """Monitors evtest events.
+
+    Starts evtest process, gets the spec of touchscreen, disables touchscreen
+    at X, and monitors touchscreen events from output of evtest.
+    """
     self.monitor_process = Spawn(['evtest', '/dev/input/event%d' % (
                                   self.args.touchscreen_event_id)],
                                   stdout=subprocess.PIPE)
@@ -184,8 +193,8 @@ class TouchscreenTest(unittest.TestCase):
     self.MonitorEvent()
 
   def GetSpecMessages(self):
-    '''
-    Gets spec messages from evtest output before testing starts.
+    """Gets spec messages from evtest output before testing starts.
+
     Messages are like:
 
       Input driver version is 1.0.1
@@ -221,7 +230,7 @@ class TouchscreenTest(unittest.TestCase):
           Event code 58 (ABS_MT_PRESSURE)
             ...
       Testing ... (interrupt to exit)
-    '''
+    """
     logging.info('getting spec message..')
     spec_message_lines = []
     spec_messages = None
@@ -235,7 +244,7 @@ class TouchscreenTest(unittest.TestCase):
     return spec_messages
 
   def GetSpec(self):
-    '''Gets device name, x_max and y_max from evtest output'''
+    """Gets device name, x_max and y_max from evtest output"""
     spec_messages = self.GetSpecMessages()
     logging.info('parsing spec message...\n %s', spec_messages)
     self.x_max = int(GetProp(spec_messages, _RE_EVTEST_X_MAX))
@@ -246,43 +255,42 @@ class TouchscreenTest(unittest.TestCase):
                  self.touchscreen_device_name, self.x_max, self.y_max)
 
   def EnableTouchscreenX(self, enable):
-    '''Enables/Disables touchscreen at the X server.'''
-    Spawn(['xinput', 'set-prop', self.touchscreen_device_name,
-           'Device Enabled', '1' if enable else '0'], check_call=True)
+    """Enables/Disables touchscreen at the X server."""
+    utils.SetXinputDeviceEnabled(self.touchscreen_device_id, enable)
 
   def MonitorEvent(self):
-    '''Gets event message from evtest and process it'''
+    """Gets event message from evtest and process it"""
     while True:
       event_message = self.monitor_process.stdout.readline()
       self.ProcessTouchEvent(event_message)
 
   def ProcessTouchEvent(self, event_message):
-    '''
+    """Processes touch events.
+
     Parses event_message, update touch_event and draws it upon receving
-    sync event AND leave event.
+    sync event or leave event.
+
     Args:
       event_message: one line of event message from evtest.
-    '''
+    """
     self.ParseMessageAndUpdateTouchEvent(event_message)
-    if self.touch_event.sync and self.touch_event.leave:
+    if self.touch_event.sync or self.touch_event.leave:
       self.DrawTouchEvent()
       self.touch_event.Clear()
 
   def DrawTouchEvent(self):
-    '''
-    Marks a scroll sector as tested or a move sector as tested.
-    '''
+    """Marks a scroll sector as tested or a move sector as tested."""
     if self.touch_event.x and self.touch_event.y:
       x_ratio = float(self.touch_event.x) / float(self.x_max + 1)
       y_ratio = float(self.touch_event.y) / float(self.y_max + 1)
       self.MarkSectorTested(x_ratio, y_ratio)
 
   def ParseMessageAndUpdateTouchEvent(self, event_message):
-    '''
-    Parses event_message and updates touch_event.
+    """Parses event_message and updates touch_event.
+
     Args:
       event_message: one line of event message from evtest.
-    '''
+    """
     self.touch_event.x = CheckUpdate(
         GetProp(event_message, _RE_EVTEST_X_MOVE_EVENT), self.touch_event.x)
     self.touch_event.y = CheckUpdate(
@@ -299,27 +307,28 @@ class TouchscreenTest(unittest.TestCase):
       self.ui.CallJSFunction('twoFingersException')
 
   def TerminateProcess(self):
-    '''terminate the process if it is running.'''
+    """Terminates the process if it is running."""
     if self.monitor_process.poll() is None:
       self.monitor_process.terminate()
 
   def MarkSectorTested(self, x_ratio, y_ratio):
-    '''
+    """Marks a sector as tested.
+
     Gets the segment from x_ratio and y_ratio then calls Javascript to
     mark the sector as tested.
-    '''
+    """
     x_segment = int(x_ratio * _X_SEGMENTS)
     y_segment = int(y_ratio * _Y_SEGMENTS)
     logging.info('mark x-%d y-%d sector tested', x_segment, y_segment)
     self.ui.CallJSFunction('markSectorTested', x_segment, y_segment)
 
   def OnSpacePressed(self):
-    '''Calls JS function to switch display on/off.'''
+    """Calls JS function to switch display on/off."""
     self.checked = True
     self.ui.CallJSFunction('switchDisplayOnOff')
 
   def OnFailPressed(self):
-    '''Fails the test only if self.checked is True.'''
+    """Fails the test only if self.checked is True."""
     if self.checked:
       self.ui.CallJSFunction('failTest')
       self.checked = False
