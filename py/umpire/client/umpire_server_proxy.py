@@ -192,6 +192,15 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
           self._shop_floor_handler_uri,
           *args, **kwargs)
 
+  @property
+  def use_umpire(self):
+    """Checks if this object is talking to an Umpire server.
+
+    Returns:
+      True if this object is talking to an Umpire server. False otherwise.
+    """
+    return self._use_umpire
+
   def __request(self, methodname, params):
     """Wrapper for base class __request method.
 

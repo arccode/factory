@@ -397,6 +397,7 @@ class UmpireServerProxyTest(unittest.TestCase):
     proxy = umpire_server_proxy.UmpireServerProxy(
         server_uri=self.UMPIRE_SERVER_URI,
         test_mode=True)
+    self.assertTrue(proxy.use_umpire)
 
     result = proxy.__getattr__(UMPIRE_HANDLER_METHOD)('hi Umpire')
     self.assertEqual(
@@ -504,6 +505,7 @@ class UmpireServerProxyTest(unittest.TestCase):
     proxy = umpire_server_proxy.UmpireServerProxy(
         server_uri=self.SHOPFLOOR_SERVER_URI,
         test_mode=False)
+    self.assertFalse(proxy.use_umpire)
 
     result = proxy.__getattr__(SHOPFLOOR_HANDLER_METHOD)('hi shopfloor')
     self.assertEqual(
