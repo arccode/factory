@@ -11,7 +11,7 @@ import os
 import time
 import unittest
 
-import factory_common # pylint: disable=W0611
+import factory_common  # pylint: disable=W0611
 from cros.factory import event_log
 from cros.factory.goofy.test_environment import DUTEnvironment
 from cros.factory.test import factory
@@ -25,13 +25,23 @@ from cros.factory.test.factory import TestState
 
 # File that suppresses reboot if present (e.g., for development).
 NO_REBOOT_FILE = '/var/log/factory.noreboot'
-
-_SHUTDOWN_MSG = lambda operation, delay: test_ui.MakeLabel(
+_DICT_OPERATION = {
+    'reboot': u'重新启动',
+    'full_reboot': u'深度重启',
+    'halt': u'关机'
+}
+_SHUTDOWN_COMMENCING_MSG = lambda operation, delay: test_ui.MakeLabel(
     'System is going to %s in %d seconds.' % (operation, delay),
-    u'系統將在 %d 秒後 %s.' % (delay, operation))
+    u'系统将在 %d 秒后%s.' %
+    (delay, _DICT_OPERATION.get(operation, operation)))
+_SHUTDOWN_COMPLETE_MSG = lambda operation: test_ui.MakeLabel(
+    'Verifying system state after %s' % operation,
+    u'%s后验证系统状态' % _DICT_OPERATION.get(operation, operation))
 _TEST_TITLE = lambda operation: test_ui.MakeLabel(
     'Shutdown Test (%s)' % operation,
-    u'關機測試 (%s)' % operation)
+    u'关机测试 (%s)' % _DICT_OPERATION.get(operation, operation))
+_CSS = 'body { font-size: 2em; }'
+
 
 class ShutdownError(Exception):
   """Shutdown operation error."""
@@ -72,11 +82,9 @@ class ShutdownTest(unittest.TestCase):
     assert self.args.operation in (factory.ShutdownStep.REBOOT,
                                    factory.ShutdownStep.FULL_REBOOT,
                                    factory.ShutdownStep.HALT)
-    self.ui = test_ui.UI()
+    self.ui = test_ui.UI(css=_CSS)
     self.template = ui_templates.OneSection(self.ui)
     self.template.SetTitle(_TEST_TITLE(self.args.operation))
-    self.template.SetState(
-        _SHUTDOWN_MSG(self.args.operation, self.args.delay_secs))
     self.goofy = factory.get_state_instance()
     self.test = self.test_info.ReadTestList().lookup_path(self.test_info.path)
     self.test_state = self.goofy.get_test_state(self.test_info.path)
@@ -173,10 +181,10 @@ class ShutdownTest(unittest.TestCase):
           status=TestState.FAILED,
           error_msg=('More than %d s elapsed during reboot '
                      '(%.03f s, from %s to %s)' % (
-              self.args.max_reboot_time_secs,
-              now - last_shutdown_time,
-              utils.TimeString(last_shutdown_time),
-              utils.TimeString(now))),
+                         self.args.max_reboot_time_secs,
+                         now - last_shutdown_time,
+                         utils.TimeString(last_shutdown_time),
+                         utils.TimeString(now))),
           duration=(now - last_shutdown_time))
       self.goofy.LogStartupMessages()
     elif self.test_state.shutdown_count > self.test.iterations:
@@ -192,7 +200,10 @@ class ShutdownTest(unittest.TestCase):
   def runTest(self):
     if self.goofy.get_shared_data('post_shutdown', True):
       # Only do post shutdown verification once.
+      self.template.SetState(_SHUTDOWN_COMPLETE_MSG(self.args.operation))
       self.goofy.set_shared_data('post_shutdown', False)
       self.PostShutdown()
     else:
+      self.template.SetState(
+          _SHUTDOWN_COMMENCING_MSG(self.args.operation, self.args.delay_secs))
       self.Shutdown()
