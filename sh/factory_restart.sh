@@ -95,7 +95,7 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-KILL_REGEXP='^(python|/usr/bin/python|.*pytest)'
+KILL_REGEXP='^(python|/usr/bin/python|.*pytest|.*stressapptest)'
 
 echo -n "Stopping factory test programs... "
 pkill -f "$KILL_REGEXP" 2>/dev/null
