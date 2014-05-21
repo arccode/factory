@@ -5,6 +5,7 @@
 """Time-related utilities."""
 
 import ctypes
+import ctypes.util
 import os
 
 
@@ -16,6 +17,9 @@ def MonotonicTime():
     int clock_gettime(clockid_t clk_id, struct timespec *tp);
 
   to get raw monotonic time.
+
+  Returns:
+    The system monotonic time in seconds.
   """
   CLOCK_MONOTONIC_RAW = 4
 
@@ -26,7 +30,8 @@ def MonotonicTime():
         ('tv_nsec', ctypes.c_long),
     ]
 
-  librt = ctypes.CDLL('librt.so.1', use_errno=True)
+  librt_name = ctypes.util.find_library('rt')
+  librt = ctypes.cdll.LoadLibrary(librt_name)
   clock_gettime = librt.clock_gettime
   clock_gettime.argtypes = [ctypes.c_int, ctypes.POINTER(TimeSpec)]
   t = TimeSpec()
@@ -55,5 +60,5 @@ def FormatElapsedTime(elapsed_secs):
   elapsed_secs /= 60
   hours = elapsed_secs
 
-  return "%s%02d:%02d:%02d" % ('-' if negative else '',
+  return '%s%02d:%02d:%02d' % ('-' if negative else '',
                                hours, mins, secs)

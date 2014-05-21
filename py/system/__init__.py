@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -8,6 +6,7 @@
 """Interfaces to set and get system status and system information."""
 
 
+import collections
 import glob
 import logging
 import netifaces
@@ -32,6 +31,8 @@ from cros.factory.utils.process_utils import Spawn
 
 _board = None
 _lock = threading.Lock()
+
+
 def GetBoard():
   """Returns a board instance for the device under test.
 
@@ -51,7 +52,7 @@ def GetBoard():
       return _board
 
     board = os.environ.get('CROS_FACTORY_BOARD_CLASS',
-                        'cros.factory.board.chromeos_board.ChromeOSBoard')
+                           'cros.factory.board.chromeos_board.ChromeOSBoard')
     module, cls = board.rsplit('.', 1)
     _board = getattr(__import__(module, fromlist=[cls]), cls)()
     return _board
@@ -88,7 +89,7 @@ class SystemInfo(object):
     try:
       lsb_release = open('/etc/lsb-release').read()
       match = re.search('^GOOGLE_RELEASE=(.+)$', lsb_release,
-                re.MULTILINE)
+                        re.MULTILINE)
       if match:
         self.factory_image_version = match.group(1)
     except:
@@ -171,7 +172,7 @@ class SystemInfo(object):
     self.firmware_version = None
     try:
       crossystem = subprocess.Popen(['crossystem', 'fwid'],
-                      stdout=subprocess.PIPE)
+                                    stdout=subprocess.PIPE)
       stdout, _ = crossystem.communicate()
       self.firmware_version = stdout.strip() or None
     except:
@@ -203,10 +204,12 @@ class SystemInfo(object):
     # object's.  Copy it from SystemInfo into this object's __dict__.
     self.update_md5sum = SystemInfo.update_md5sum
 
+
 def GetIPv4Interfaces():
   """Returns a list of IPv4 interfaces."""
   interfaces = sorted(netifaces.interfaces())
   return [x for x in interfaces if not x.startswith('lo')]
+
 
 def GetIPv4InterfaceAddresses(interface):
   """Returns a list of ips of an interface"""
@@ -218,6 +221,7 @@ def GetIPv4InterfaceAddresses(interface):
          if 'addr' in x] or ['none']
   return ips
 
+
 def IsInterfaceConnected(prefix):
   """Returns whether any interface starting with prefix is connected"""
   ips = []
@@ -226,6 +230,7 @@ def IsInterfaceConnected(prefix):
       ips += [x for x in GetIPv4InterfaceAddresses(interface) if x != 'none']
 
   return ips != []
+
 
 def GetIPv4Addresses():
   """Returns a string describing interfaces' IPv4 addresses.
@@ -241,6 +246,23 @@ def GetIPv4Addresses():
     ret.append('%s=%s' % (interface, '+'.join(ips)))
 
   return ', '.join(ret)
+
+
+_SysfsAttribute = collections.namedtuple('SysfsAttribute',
+                                         ['name', 'type', 'optional'])
+_SysfsBatteryAttributes = [
+    _SysfsAttribute('charge_full', int, False),
+    _SysfsAttribute('charge_full_design', int, False),
+    _SysfsAttribute('charge_now', int, False),
+    _SysfsAttribute('current_now', int, False),
+    _SysfsAttribute('present', bool, False),
+    _SysfsAttribute('status', str, False),
+    _SysfsAttribute('voltage_min_design', int, False),
+    _SysfsAttribute('voltage_now', int, False),
+    _SysfsAttribute('energy_full', int, True),
+    _SysfsAttribute('energy_full_design', int, True),
+    _SysfsAttribute('energy_now', int, True),
+]
 
 
 class SystemStatus(object):
@@ -275,25 +297,18 @@ class SystemStatus(object):
       except:
         logging.warning('sysfs path %s is unavailable', p)
 
-    for k, item_type in [('charge_full', int),
-                         ('charge_full_design', int),
-                         ('charge_now', int),
-                         ('current_now', int),
-                         ('present', bool),
-                         ('status', str),
-                         ('voltage_min_design', int),
-                         ('voltage_now', int),
-                         ('energy_full', int),
-                         ('energy_full_design', int),
-                         ('energy_now', int)]:
+    for k, item_type, optional in _SysfsBatteryAttributes:
       self.battery[k] = None
       try:
         if self.battery_sysfs_path:
           self.battery[k] = item_type(
-            open(os.path.join(self.battery_sysfs_path, k)).read().strip())
+              open(os.path.join(self.battery_sysfs_path, k)).read().strip())
       except:
-        logging.warning('sysfs path %s is unavailable',
-                        os.path.join(self.battery_sysfs_path, k))
+        log_func = logging.error
+        if optional:
+          log_func = logging.debug
+        log_func('sysfs path %s is unavailable',
+                 os.path.join(self.battery_sysfs_path, k))
 
     self.battery['fraction_full'] = _CalculateBatteryFractionFull(self.battery)
 
@@ -327,7 +342,7 @@ class SystemStatus(object):
 
     try:
       self.load_avg = map(
-        float, open('/proc/loadavg').read().split()[0:3])
+          float, open('/proc/loadavg').read().split()[0:3])
     except:
       self.load_avg = None
 
@@ -355,8 +370,8 @@ class SystemStatus(object):
 if __name__ == '__main__':
   import yaml
   print yaml.dump(dict(system_info=SystemInfo(None, None).__dict__,
-             system_status=SystemStatus().__dict__),
-          default_flow_style=False)
+                       system_status=SystemStatus().__dict__),
+                  default_flow_style=False)
 
 
 def SetBacklightBrightness(level):
