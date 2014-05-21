@@ -213,6 +213,7 @@ clean:
 	rm -rf $(BUILD_DIR)
 
 test:
+	find . -name '*.pyc' -delete
 	@logdir=/tmp/test.logs.$$(date +%Y%m%d_%H%M%S); \
 	mkdir $$logdir; \
 	echo "Test logs will be written to $$logdir"; \
