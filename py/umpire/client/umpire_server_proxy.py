@@ -10,6 +10,8 @@
 
 import logging
 import re
+import sys
+import traceback
 import urllib2
 import xmlrpclib
 
@@ -85,7 +87,9 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
 
   The base class connects to Base Umpire XMLRPC handler at init time. This is
   to determine the server version. After that, base class will connect to
-  Umpire XMLRPC handler.
+  Umpire XMLRPC handler. If server version can not be determined at init time,
+  It should be determined when user calls methods (through _Request method
+  implicitely).
   This class maintains an object which implements UmpireClientInfoInterface
   and a token.
   If client info is updated, or token is invalid, it will fetch resource map and
@@ -155,14 +159,12 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
     self._test_mode = test_mode
     self._max_retries = max_retries
 
-    if self._test_mode:
-      logging.warning('Using UmpireServerProxy in test mode.')
-
     if umpire_client_info:
       logging.warning('Using injected Umpire client info.')
       self._umpire_client_info = umpire_client_info
-    else:
-      self._umpire_client_info = UmpireClientInfo()
+
+    if self._test_mode:
+      logging.warning('Using UmpireServerProxy in test mode.')
 
     # Connect to server URI first. If the server is not an Umpire server,
     # keep the connection. Otherwise, reconnect it to Umpire handler URI.
@@ -170,34 +172,67 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
     xmlrpclib.ServerProxy.__init__(self, self._server_uri,
                                    *args, **kwargs)
 
+    self._Init(raise_exception=False)
+
+  def _Init(self, raise_exception=True):
+    """Checks server version and initializes Umpire server proxy.
+
+    Checks if server is an Umpire server. If it is an Umpire server, then
+    initialize the proxies for Umpire server.
+
+    Args:
+      raise_exception: Raises exception if server version can not be decided.
+
+    Raises:
+      UmpireServerProxyException: If server version can not be decided,
+        and raise_exception is True.
+    """
     # Determine if server is an Umpire server or a v1 shopfloor server.
     self._use_umpire = self._CheckUsingUmpire()
     logging.debug('Using Umpire: %r', self._use_umpire)
+    if self._use_umpire is None and raise_exception:
+      raise UmpireServerProxyException(
+          'Can not decide using Umpire or not.')
 
     if self._use_umpire:
-      # Sets Umpire Handler URI depending on test mode.
-      self._SetUmpireUri()
+      self._InitForUmpireProxy()
 
-      # Initializes the object itself connecting to Umpire XMLRPC handler.
-      logging.debug('Connecting to Umpire handler at %r',
-                    self._umpire_handler_uri)
-      xmlrpclib.ServerProxy.__init__(self, self._umpire_handler_uri,
-                                     *args, **kwargs)
+  def _InitForUmpireProxy(self):
+    """Initializes properties to work with Umpire server.
 
-      # Gets resource map and sets shopfloor handler URI.
-      self._RequestUmpireForResourceMapAndSetHandler()
+    Initializes Umpire client info as an UmpireClientInfo object if it is
+    not given from class init argument.
+    Sets Umpire handler URI depending on test mode.
+    Initializes the object itself connecting to Umpire XMLRPC handler.
+    Gets resource map and initializes proxy to shopfloor handler.
+    """
+    if not self._use_umpire:
+      raise UmpireServerProxyException(
+          'Initializes Umpire proxies when not using Umpire.')
 
-      # Initializes a proxy to shopfloor handler.
-      self._shop_floor_handler_server_proxy = xmlrpclib.ServerProxy(
-          self._shop_floor_handler_uri,
-          *args, **kwargs)
+    if not self._umpire_client_info:
+      self._umpire_client_info = UmpireClientInfo()
+
+    # Sets Umpire Handler URI depending on test mode.
+    self._SetUmpireUri()
+
+    # Initializes the object itself connecting to Umpire XMLRPC handler.
+    logging.debug('Connecting to Umpire handler at %r',
+                  self._umpire_handler_uri)
+    xmlrpclib.ServerProxy.__init__(self, self._umpire_handler_uri,
+                                   *self._args, **self._kwargs)
+
+    # Gets resource map and sets shopfloor handler URI.
+    self._RequestUmpireForResourceMapAndSetHandler()
 
   @property
   def use_umpire(self):
     """Checks if this object is talking to an Umpire server.
 
     Returns:
-      True if this object is talking to an Umpire server. False otherwise.
+      True if this object is talking to an Umpire server.
+      False if it talks to ShopFloor v1 or v2 server. None if it cannot decide
+      as it fails to get response for 'Ping'.
     """
     return self._use_umpire
 
@@ -226,11 +261,20 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
     Returns:
       True if the server is an Umpire server.
     """
-    result = self.__request('Ping', ())
+    try:
+      result = self.__request('Ping', ())
+    except Exception:
+      # This is pretty common and not necessarily an error because by the time
+      # when proxy instance is initiated, connection might not be ready.
+      logging.warning(
+        'Unable to contact shopfloor server to decide using Umpire or not: %s',
+        '\n'.join(traceback.format_exception_only(*sys.exc_info()[:2])).strip())
+      return None
     if isinstance(result, dict) and result.get('version') == UMPIRE_VERSION:
       logging.debug('Got Umpire server version %r', result.get('version'))
       return True
     else:
+      logging.debug('Got shopfloor server response %r', result)
       return False
 
   def _GetResourceMap(self):
@@ -424,6 +468,12 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
     logging.debug(
         'Using UmpireServerProxy _Request method with methodname: %r,'
         ' params: %r', methodname, params)
+
+    # Using Umpire or not is not decided yet. Tries to decide it and initializes
+    # proxies if needed. Raises exception if it still can not be decided.
+    if self._use_umpire is None:
+      logging.warning('Need to decide using Umpire or not')
+      self._Init(raise_exception=True)
 
     # Not using Umpire. Uses __request in base class.
     if not self._use_umpire:

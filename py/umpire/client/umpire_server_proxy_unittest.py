@@ -100,11 +100,14 @@ class MyXMLRPCRequestHandler(SimpleXMLRPCRequestHandler):
     os.chdir(TESTDATA_DIRECTORY)
     error_file = 'error_%s' % self.handler_name
     if os.path.exists(error_file):
-      error_code, error_message = Read(error_file).split()
+      error_code, error_message = Read(error_file).split(' ', 1)
       logging.info('Generate an error %s, %s for handler %s',
                    error_code, error_message, self.handler_name)
       if int(error_code) == 410 and error_message == 'Gone':
         self.report_410()
+        return
+      if int(error_code) == 111 and error_message == 'Connectin refused':
+        self.report_111()
         return
       else:
         raise Exception('Unknown error: %d, %s' % (
@@ -116,6 +119,15 @@ class MyXMLRPCRequestHandler(SimpleXMLRPCRequestHandler):
     """Responses with a 410 error."""
     self.send_response(410)
     response = 'Gone'
+    self.send_header("Content-type", "text/plain")
+    self.send_header("Content-length", str(len(response)))
+    self.end_headers()
+    self.wfile.write(response)
+
+  def report_111(self):
+    """Responses with a 410 error."""
+    self.send_response(111)
+    response = 'Connection refused'
     self.send_header("Content-type", "text/plain")
     self.send_header("Content-length", str(len(response)))
     self.end_headers()
@@ -319,7 +331,8 @@ class UmpireServerProxyTest(unittest.TestCase):
   def SetupHandlers(cls):
     """Setups xmlrpc servers and handlers in their own processes."""
     cls.umpire_base_handler = SimpleXMLRPCServer(
-        ("", cls.UMPIRE_BASE_HANDLER_PORT),
+        addr=("", cls.UMPIRE_BASE_HANDLER_PORT),
+        requestHandler=MyXMLRPCRequestHandlerWrapper('base_handler'),
         allow_none=True,
         logRequests=True)
     cls.umpire_base_handler.register_function(
@@ -463,7 +476,7 @@ class UmpireServerProxyTest(unittest.TestCase):
     self.mox.VerifyAll()
     logging.debug('Done')
 
-  def testHandleServerErrorMessage(self):
+  def testHandleServerErrorMessageGone(self):
     """Proxy tries to make a call but server says token is invalid."""
     umpire_server_proxy.UmpireClientInfo().AndReturn(
         self.fake_umpire_client_info)
@@ -493,11 +506,49 @@ class UmpireServerProxyTest(unittest.TestCase):
     self.mox.VerifyAll()
     logging.debug('Done')
 
-  def testNotUsingUmpire(self):
-    """Proxy is working with ordinary shopfloor handler."""
+  def testHandleServerErrorMessageConnectionRefused(self):
+    """Inits proxy but server is unavailable.
+
+    Server version detection will be deferred to the time when method is
+    invoked through proxy.
+    """
     umpire_server_proxy.UmpireClientInfo().AndReturn(
         self.fake_umpire_client_info)
+    self.fake_umpire_client_info.GetXUmpireDUT().AndReturn('MOCK_DUT_INFO')
+    self.fake_umpire_client_info.Update().AndReturn(False)
 
+    self.mox.ReplayAll()
+
+    UmpireServerProxyTest.mock_resourcemap.SetPath('resourcemap1')
+    # Lets base handler generates 111 Connection refused error.
+    # Proxy can not decide server version at its init time.
+    SetHandlerError('base_handler', 111, 'Connection refused')
+
+    # It is OK if server is not available at proxy init time.
+    proxy = umpire_server_proxy.UmpireServerProxy(
+        server_uri=self.UMPIRE_SERVER_URI,
+        test_mode=True)
+
+    # It is not OK if server is not available when method is called though
+    # proxy.
+    with self.assertRaises(umpire_server_proxy.UmpireServerProxyException):
+      proxy.__getattr__(SHOPFLOOR_HANDLER_METHOD)('hi shopfloor 1')
+
+    # Clear error files so base handler will not return 111 error.
+    self.ClearErrorFiles()
+
+    # to shopfloor 1 after requesing resource map.
+    result = proxy.__getattr__(SHOPFLOOR_HANDLER_METHOD)('hi shopfloor 1')
+    # It talks to shopfloor_handler2 actually.
+    self.assertEqual(
+        result,
+        'Handler: %s; message: %s' % ('shopfloor_handler1', 'hi shopfloor 1'))
+
+    self.mox.VerifyAll()
+    logging.debug('Done')
+
+  def testNotUsingUmpire(self):
+    """Proxy is working with ordinary shopfloor handler."""
     self.mox.ReplayAll()
 
     # Using test_mode=False so proxy will set handler port as the same port
