@@ -16,13 +16,16 @@ import os
 import re
 import shutil
 import signal
+import socket
 import SocketServer
 import tempfile
+import time
 import unittest
 from SimpleHTTPServer import SimpleHTTPRequestHandler
 from SimpleXMLRPCServer import SimpleXMLRPCServer, SimpleXMLRPCRequestHandler
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.test.utils import kill_process_tree
 from cros.factory.umpire.client import umpire_server_proxy
 from cros.factory.utils.file_utils import ForceSymlink, Read
 from cros.factory.utils.net_utils import FindConsecutiveUnusedPorts
@@ -159,6 +162,13 @@ def PingOfUmpire():
 
 def PingOfShopFloor():
   """Ping method served on shop floor XMLRPC handler."""
+  return True
+
+def LongBusyMethod():
+  """A long busy method"""
+  logging.debug('Starting busy work')
+  time.sleep(10)
+  logging.warning('Ended busy work')
   return True
 
 def SetHandlerError(handler_name, code, message):
@@ -299,15 +309,15 @@ class UmpireServerProxyTest(unittest.TestCase):
   def StopAllServers(cls):
     """Terminates processes for servers if they are still alive."""
     if cls.umpire_http_server_process.is_alive():
-      cls.umpire_http_server_process.terminate()
+      kill_process_tree(cls.umpire_http_server_process, 'umpire_http_server')
     if cls.umpire_handler_process.is_alive():
-      cls.umpire_handler_process.terminate()
+      kill_process_tree(cls.umpire_handler_process, 'umpire_handler')
     if cls.umpire_base_handler_process.is_alive():
-      cls.umpire_base_handler_process.terminate()
+      kill_process_tree(cls.umpire_base_handler_process, 'base_handler')
     if cls.shopfloor_handler_1_process.is_alive():
-      cls.shopfloor_handler_1_process.terminate()
+      kill_process_tree(cls.shopfloor_handler_1_process, 'shopfloor_handler_1')
     if cls.shopfloor_handler_2_process.is_alive():
-      cls.shopfloor_handler_2_process.terminate()
+      kill_process_tree(cls.shopfloor_handler_2_process, 'shopfloor_handler_1')
     cls.umpire_http_server_process.join()
     cls.umpire_handler_process.join()
     cls.umpire_base_handler_process.join()
@@ -362,6 +372,8 @@ class UmpireServerProxyTest(unittest.TestCase):
         HandlerFunctionWrapper('shopfloor_handler1'), SHOPFLOOR_HANDLER_METHOD)
     cls.shopfloor_handler_1.register_function(
         PingOfShopFloor, 'Ping')
+    cls.shopfloor_handler_1.register_function(
+        LongBusyMethod, 'LongBusyMethod')
     cls.shopfloor_handler_1_process = multiprocessing.Process(
         target=RunServer, args=(cls.shopfloor_handler_1,))
     cls.shopfloor_handler_1_process.start()
@@ -562,6 +574,31 @@ class UmpireServerProxyTest(unittest.TestCase):
     self.assertEqual(
         result,
         'Handler: %s; message: %s' % ('shopfloor_handler1', 'hi shopfloor'))
+
+    self.mox.VerifyAll()
+    logging.debug('Done')
+
+  def testTimeoutUmpireServerProxy(self):
+    """Proxy is working with ordinary shopfloor handler."""
+    umpire_server_proxy.UmpireClientInfo().AndReturn(
+        self.fake_umpire_client_info)
+    self.fake_umpire_client_info.GetXUmpireDUT().AndReturn('MOCK_DUT_INFO')
+    self.fake_umpire_client_info.Update().AndReturn(False)
+
+    self.mox.ReplayAll()
+
+    UmpireServerProxyTest.mock_resourcemap.SetPath('resourcemap1')
+
+    # Uses TimeoutUmpireServerProxy with timeout set to 1.
+    proxy = umpire_server_proxy.TimeoutUmpireServerProxy(
+        server_uri=self.UMPIRE_SERVER_URI,
+        timeout=1,
+        test_mode=True)
+
+    # Calls a long busy method will trigger a socket.error exception.
+    # This is supported by TimeoutUmpireServerProxy.
+    with self.assertRaises(socket.error):
+      result = proxy.LongBusyMethod()
 
     self.mox.VerifyAll()
     logging.debug('Done')

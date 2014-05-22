@@ -20,6 +20,7 @@ from cros.factory.umpire.client.umpire_client import UmpireClientInfo
 from cros.factory.umpire.common import REQUIRED_RESOURCE_MAP_FIELDS
 from cros.factory.umpire.common import UMPIRE_VERSION
 from cros.factory.utils.string_utils import ParseDict
+from cros.factory.utils import net_utils
 
 class UmpireServerError(object):
   """Class to hold error code and message."""
@@ -537,3 +538,26 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
     # Same magic dispatcher as that in xmpliclib.ServerProxybase but using
     # self._Request instead of  _request in the base class.
     return xmlrpclib._Method(self._Request, name)  # pylint: disable=W0212
+
+
+class TimeoutUmpireServerProxy(UmpireServerProxy):
+  """UmpireServerProxy supporting timeout."""
+  def __init__(self, server_uri, timeout=10, *args, **kwargs):
+    """Initializes UmpireServerProxy with its transport supporting timeout.
+
+    Args:
+      server_uri: server_uri passed to UmpireServerProxy. Checks the docstrings
+        in UmpireServerProxy.
+      timeout: Timeout in seconds for a method called through this proxy.
+      *args: The arguments passed to UmpireServerProxy.
+      **kwargs: The keyword arguments passed to UmpireServerProxy.
+
+    Raises:
+      socket.error: If timeout is reached before the call is finished.
+    """
+    if timeout:
+      logging.debug('Using TimeoutUmpireServerProxy with timeout %r seconds',
+                    timeout)
+      kwargs['transport'] = net_utils.TimeoutXMLRPCTransport(
+        timeout=timeout)
+    UmpireServerProxy.__init__(self, server_uri, *args, **kwargs)
