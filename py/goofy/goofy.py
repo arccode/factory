@@ -1043,10 +1043,17 @@ class Goofy(object):
         post_update_hook()
       self.env.shutdown('reboot')
 
-  def handle_sigint(self, dummy_signum, dummy_frame):
+  def handle_sigint(self, dummy_signum, dummy_frame):   # pylint: disable=W0613
     logging.error('Received SIGINT')
     self.run_queue.put(None)
     raise KeyboardInterrupt()
+
+  def handle_sigterm(self, dummy_signum, dummy_frame):  # pylint: disable=W0613
+    logging.error('Received SIGTERM')
+    if not utils.in_chroot():
+      self.goofy_rpc.CloseGoofyTab()
+    self.run_queue.put(None)
+    raise RuntimeError('Received SIGTERM')
 
   def find_kcrashes(self):
     """Finds kcrash files, logs them, and marks them as seen."""
@@ -1160,6 +1167,7 @@ class Goofy(object):
         FakeChrootEnvironment or DUTEnvironment as appropriate).
     """
     signal.signal(signal.SIGINT, self.handle_sigint)
+    signal.signal(signal.SIGTERM, self.handle_sigterm)
 
     parser = OptionParser()
     parser.add_option('-v', '--verbose', dest='verbose',

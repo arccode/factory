@@ -40,6 +40,7 @@ RunState = utils.Enum(['UNINITIALIZED', 'STARTING', 'NOT_ACTIVE_RUN', 'RUNNING',
 
 class UIRPCMethods(object):
   """Supported UI RPC methods."""
+  CLOSE_GOOFY_TAB = 'CloseGoofyTab'
   EVALUATE_JAVASCRIPT = 'EvaluateJavaScript'
   EXECUTE_JAVASCRIPT = 'ExecuteJavaScript'
   GET_DISPLAY_INFO = 'GetDispleyInfo'
@@ -568,6 +569,10 @@ class GoofyRPC(object):
     if isinstance(ret, Exception):
       raise GoofyRPCException(ret)
     return ret
+
+  def CloseGoofyTab(self):
+    """Closes the Chrome tab running Goofy frontend."""
+    return self._UIRPC(UIRPCMethods.CLOSE_GOOFY_TAB)
 
   def EvaluateJavaScript(self, script):
     """Evaluates JavaScript through Telemetry.

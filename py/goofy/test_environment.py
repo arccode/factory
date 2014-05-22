@@ -224,7 +224,10 @@ class DUTEnvironment(Environment):
           return tabs[i]
 
     try:
-      if event['type'] == goofy_rpc.UIRPCMethods.EVALUATE_JAVASCRIPT:
+      if event['type'] == goofy_rpc.UIRPCMethods.CLOSE_GOOFY_TAB:
+        _GetGoofyTab().Close()
+
+      elif event['type'] == goofy_rpc.UIRPCMethods.EVALUATE_JAVASCRIPT:
         return _GetGoofyTab().EvaluateJavaScript(event['args'])
 
       elif event['type'] == goofy_rpc.UIRPCMethods.EXECUTE_JAVASCRIPT:
