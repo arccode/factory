@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -14,7 +12,9 @@ It is ported from third_party/autotest/files/client/site_tests/hardware_EC.
 import re
 import unittest
 
+import factory_common   # pylint: disable=W0611
 from cros.factory.utils.process_utils import CheckOutput
+
 
 class ECLightbarTest(unittest.TestCase):
   """Tests EC communication with Lightbar."""
