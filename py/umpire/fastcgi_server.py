@@ -22,6 +22,7 @@ Example:
 
 import logging
 import multiprocessing
+import re
 import SimpleXMLRPCServer
 import sys
 import time
@@ -34,7 +35,8 @@ from cros.factory.umpire import shop_floor_handler
 
 
 def FastCGIServer(address, port, instance, min_spare=2, max_spare=None,
-                  max_children=None, max_requests=16):
+                  max_children=None, max_requests=16, script_name=None,
+                  path_info=None):
   """Starts an FastCGI service that handles XML-RPC at given address:port.
 
   It scans methods in the given instance and registers the ones with
@@ -54,8 +56,13 @@ def FastCGIServer(address, port, instance, min_spare=2, max_spare=None,
         specified, use cpu_count * 100.
     max_requests: How many requests does a child server before being killed
         and a new one forked.
+    script_name: If specified, only accept requests in which their
+        SCRIPT_NAME environ matches the regular expression.
+    path_info: If specified, only accept requests in which their
+        PATH_INFO environ matches the regular expression.
   """
-  application = MyXMLRPCApp(instance=instance)
+  application = MyXMLRPCApp(instance, script_name=script_name,
+                            path_info=path_info)
   bind_address = (address, port)
   cpu_count = multiprocessing.cpu_count()
   if not max_spare:
@@ -131,23 +138,23 @@ class WSGISession(dict):
     self.start_response('200 OK', headers)
     return [data]
 
-  def BadRequest(self):
-    """Generates '400 Bad Request' HTTP response.
-
-    Returns:
-      WSGI return body list (empty).
+  def _RespondStatus(self, status):
+    """Generates HTTP response with empty WSGI body list.
     """
-    self.start_response('400 Bad Request', [self.TEXT_PLAIN])
+    self.start_response(status, [self.TEXT_PLAIN])
     return ['']
+
+  def BadRequest(self):
+    """Generates '400 Bad Request' HTTP response."""
+    return self._RespondStatus('400 Bad Request')
+
+  def Gone(self):
+    """Generates '410 Gone' HTTP response."""
+    return self._RespondStatus('410 Gone')
 
   def ServerError(self):
-    """Generates '500 Server Error' HTTP response.
-
-    Returns:
-      WSGI return body list (empty).
-    """
-    self.start_response('500 Server Error', [self.TEXT_PLAIN])
-    return ['']
+    """Generates '500 Server Error' HTTP response."""
+    return self._RespondStatus('500 Server Error')
 
 
 class SessionMediator(object):
@@ -208,24 +215,36 @@ class MyXMLRPCApp(object):
 
   Used to register class instance's methods into XMLRPC dispatcher and
   provides __call__ interface for WSGI server to call.
+
+  It also checks incoming WSGI environ's SCRIPT_NAME and PATH_INFO if
+  script_name or path_info parameters are assigned in constructor.
   """
   _MAX_CHUNK_SIZE = 10 * 1024 * 1024
 
-  def __init__(self, instance):
+  def __init__(self, instance, script_name=None, path_info=None):
     """Creates XML RPC dispatcher and registers methods.
 
     Args:
-    instance: An instance of XMLRPC module. Only registers methods decorated
-      by RPCCall.
+      instance: An instance of XMLRPC module. Only registers methods decorated
+          by RPCCall.
+      script_name: If specified, only accept requests in which their
+          SCRIPT_NAME environ matches the regular expression.
+      path_info: If specified, only accept requests in which their
+          PATH_INFO environ matches the regular expression.
     """
     self.dispatcher = SimpleXMLRPCServer.SimpleXMLRPCDispatcher(
         allow_none=True, encoding=None)
     self.dispatcher.register_introspection_functions()
     if instance is not None:
       self.RegisterInstance(instance)
+    self._script_name = script_name
+    self._path_info = path_info
 
   def __call__(self, environ, start_response):
     """Invokes XMLRPC method and returns response.
+
+    If request is not a POST, returns '400 Bad Request'.
+    If request's SCRIPT_NAME or PATH_INFO mismatch, returns '410 Gone'.
 
     Args:
       environ: WSGI environment dictionary.
@@ -234,7 +253,26 @@ class MyXMLRPCApp(object):
     session = WSGISession(environ, start_response)
     if session.Method() != 'POST':
       return session.BadRequest()
+
+    if not self.MatchPath(environ):
+      return session.Gone()
+
     return self._XMLRPCCall(session)
+
+  def MatchPath(self, environ):
+    """Checks if environ's SCRIPT_NAME and PATH_INFO matches.
+
+    Args:
+      environ: WSGI environment dictionary.
+
+    Returns:
+      True if environ's SCRIPT_NAME and PATH_INFO matches the regular expression
+      specified in constructor.
+    """
+    return ((not self._script_name or
+             re.match(self._script_name, environ['SCRIPT_NAME'])) and
+            (not self._path_info or
+             re.match(self._path_info, environ['PATH_INFO'])))
 
   def RegisterInstance(self, instance):
     """Registers methods in given class instance.
