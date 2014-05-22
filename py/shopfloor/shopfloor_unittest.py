@@ -21,6 +21,7 @@ from cros.factory import shopfloor
 from cros.factory.shopfloor import factory_update_server
 from cros.factory.test import factory
 from cros.factory.test import utils
+from cros.factory.umpire.client import umpire_server_proxy
 from cros.factory.utils import test_utils
 from cros.factory.utils.process_utils import Spawn
 
@@ -70,8 +71,8 @@ class ShopFloorServerTest(unittest.TestCase):
         '--auto-archive-logs', os.path.join(self.auto_archive_logs,
                                             'logs.DATE.tar.bz2')])
     self.process = Spawn(cmd, log=True)
-    self.proxy = xmlrpclib.ServerProxy('http://localhost:%s' % self.server_port,
-                                       allow_none=True)
+    self.proxy = umpire_server_proxy.TimeoutUmpireServerProxy(
+        'http://localhost:%s' % self.server_port, allow_none=True)
     # Waits the server to be ready, up to 1 second.
     for _ in xrange(10):
       try:

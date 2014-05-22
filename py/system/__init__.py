@@ -19,8 +19,8 @@ import factory_common  # pylint: disable=W0611
 from cros.factory import hwid
 from cros.factory.system import partitions
 from cros.factory.system.board import Board
+from cros.factory import test
 from cros.factory.test import factory
-from cros.factory.test import shopfloor
 from cros.factory.test.utils import ReadOneLine
 from cros.factory.utils.file_utils import MountDeviceAndReadFile
 from cros.factory.utils.process_utils import Spawn
@@ -73,13 +73,14 @@ class SystemInfo(object):
   def __init__(self):
     self.mlb_serial_number = None
     try:
-      self.mlb_serial_number = shopfloor.GetDeviceData()['mlb_serial_number']
+      self.mlb_serial_number = test.shopfloor.GetDeviceData()[
+          'mlb_serial_number']
     except:
       pass
 
     self.serial_number = None
     try:
-      self.serial_number = shopfloor.get_serial_number()
+      self.serial_number = test.shopfloor.get_serial_number()
       if self.serial_number is not None:
         self.serial_number = str(self.serial_number)
     except:

@@ -37,6 +37,7 @@ from cros.factory.test import factory, utils
 from cros.factory.test.event import EventClient, Event
 from cros.factory.utils import net_utils
 from cros.factory.utils.process_utils import Spawn
+from cros.factory.umpire.client import umpire_server_proxy
 
 
 # Name of the factory shared data key that maps to session info.
@@ -211,13 +212,14 @@ def get_instance(url=None, detect=False, timeout=None):
       calls on the proxy, not for get_instance() itself.
 
   Returns:
-    An object with all public functions from shopfloor.ShopFloorBase.
+    A TimeoutUmpireServerProxy object that can work with either
+    simple XMLRPC server or Umpire server.
   """
   if not url:
     url = get_server_url(detect=detect)
   if not url:
     raise Exception(SHOPFLOOR_NOT_CONFIGURED_STR)
-  return net_utils.TimeoutXMLRPCServerProxy(
+  return umpire_server_proxy.TimeoutUmpireServerProxy(
     url, allow_none=True, verbose=False, timeout=timeout)
 
 
