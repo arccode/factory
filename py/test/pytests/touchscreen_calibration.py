@@ -309,8 +309,6 @@ class TouchscreenCalibration(unittest.TestCase):
     After old states of previous touchscreen panel are cleared and
     new panel detected, show the sign on UI.
     """
-    os.system('rmmod atmel_mxt_ts')
-    os.system('modprobe atmel_mxt_ts')
     CONF_UPDATE_SCRIPT = ('/opt/google/touch/scripts/'
                           'chromeos-touch-config-update.sh')
 
