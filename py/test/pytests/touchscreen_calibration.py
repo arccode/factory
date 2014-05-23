@@ -5,7 +5,6 @@
 
 import json
 import os
-import subprocess
 import threading
 import time
 import unittest
@@ -41,7 +40,8 @@ STATE = ArduinoState('i', 'D', 'U', 'd', 'u', 'e')
 class DebugDataReader():
   """Communicates with the touchscreen on system."""
   def __init__(self):
-    self.sysfs_entry = '/sys/bus/i2c/devices/2-004a/object'
+    self.sysfs_entry = '/sys/bus/i2c/devices/9-004b/object'
+    self.debugfs = '/sys/kernel/debug/atmel_mxt_ts/9-004b'
 
   def PreRead(self):
     """Initialize some data before reading the raw sensor data.
@@ -52,7 +52,13 @@ class DebugDataReader():
     # Disable passing touch event to upper layer. This is to prevent
     # undesired action happen on UI when moving or touching the panel
     # under test.
-    self.WriteSysfs('09000081')
+    self.WriteSysfs('64000081')
+
+    # YSIZE should be 72
+    self.WriteSysfs('64001448')
+
+    # Touch gain
+    self.WriteSysfs('64001C14')
 
     # Baseline the sensors before lowering the test probes.
     self.WriteSysfs('06000201')
@@ -63,15 +69,15 @@ class DebugDataReader():
     The data here are highly platform dependent. The data here are for Link's
     touchscreen. May need to tune them for distinct platforms.
     """
-    # To indicate units are from DVT build, so config updater chooses
-    # the correct raw file.
-    self.WriteSysfs('26000002')
+    # Enable passing touch event to upper layer.
+    self.WriteSysfs('64000083')
 
-    # Correct the possibly corrupted 'report interval' value in FW config.
-    self.WriteSysfs('070000FF')
-    self.WriteSysfs('070001FF')
+    # Adjust the following movement filters for touchscreen tests later.
+    self.WriteSysfs('64002C80')
+    self.WriteSysfs('64002F00')
+    self.WriteSysfs('64003100')
 
-    # Let firmware backup settings to NV storage.
+    # The following line is to backup the settings in NV storage.
     self.WriteSysfs('06000155')
 
   def CheckStatus(self):
@@ -309,13 +315,6 @@ class TouchscreenCalibration(unittest.TestCase):
     After old states of previous touchscreen panel are cleared and
     new panel detected, show the sign on UI.
     """
-    CONF_UPDATE_SCRIPT = ('/opt/google/touch/scripts/'
-                          'chromeos-touch-config-update.sh')
-
-    # Update touch-config
-    with open(_TMP_STDOUT, 'w') as fd:
-      subprocess.call(CONF_UPDATE_SCRIPT, stdout=fd)
-
     try:
       if self.reader.CheckStatus():
         factory.console.info('touchscreen exist')
