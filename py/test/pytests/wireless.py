@@ -15,16 +15,17 @@ import dbus
 import logging
 import os
 import sys
+import tempfile
 import time
 import unittest
 import urllib2
 
+from cros.factory.event_log import Log
 from cros.factory.goofy.service_manager import GetServiceStatus
 from cros.factory.goofy.service_manager import SetServiceStatus
 from cros.factory.goofy.service_manager import Status
 from cros.factory.test import factory
 from cros.factory.test.args import Arg
-from cros.factory.utils.file_utils import TryUnlink
 from cros.factory.utils.net_utils import GetWLANInterface
 from cros.factory.utils.net_utils import GetEthernetIp
 from cros.factory.utils.process_utils import Spawn, CheckOutput
@@ -38,7 +39,6 @@ except:  # pylint: disable=W0702
 
 _SERVICE_LIST = ['shill', 'shill_respawn', 'wpasupplicant',
                  'modemmanager']
-_LOCAL_FILE_PATH = '/tmp/test'
 
 
 def FlimGetService(flim, name):
@@ -87,12 +87,76 @@ class WirelessTest(unittest.TestCase):
         optional=True),
     Arg('test_url', str, 'URL for testing data transmission.',
         optional=True),
+    Arg('throughput_threshold', (int, float),
+        'Required minimum throughput in bytes/sec.',
+        optional=True, default=None),
     Arg('md5sum', str, 'md5sum of the test file in test_url',
         optional=True),
     Arg('msecs_before_retries', int,
         'Milliseconds before next retry when downloading the file.',
         optional=True, default=1000),
   ]
+
+  def _DownloadFileAndMeasureThroughput(self):
+    '''Tries to download a file, checks its md5sum, and measures throughput.
+
+    This function uses the following data members:
+      self.args.test_url: the URL to download.
+      self.args.md5sum: the expected md5sum of the file.
+      self.args.msecs_before_retries: delay before next retry.
+
+    Returns:
+      A dict containing:
+        result: True if the function successfully downloaded the file and
+            verified its md5sum, False otherwise.
+        file_size: file size in bytes.
+        time_spent: time spent in seconds.
+        throughput: throughput in bytes/seccond.
+      file_size, time_spent, and throughput are valid only if result is True.
+    '''
+    logging.info('Try connecting to %s', self.args.test_url)
+    for i in range(5): # pylint: disable=W0612
+      try:
+        remote_file = urllib2.urlopen(self.args.test_url, timeout=2)
+      except urllib2.HTTPError as e:
+        factory.console.info(
+            'Connected to %s but got status code %d: %s.',
+            self.args.test_url, e.code, e.reason)
+      except urllib2.URLError as e:
+        factory.console.info(
+            'Failed to connect to %s: %s.', self.args.test_url, e.reason)
+      else:
+        with tempfile.NamedTemporaryFile() as local_file:
+          # Download file and measure time.
+          start = time.time()
+          local_file.write(remote_file.read())
+          time_spent = time.time() - start
+          local_file.flush()
+          os.fdatasync(local_file)
+          # Calculate size and throughput.
+          file_size = os.path.getsize(local_file.name)
+          throughput = file_size / time_spent
+          # Calculate md5sum.
+          md5sum_output = CheckOutput(['md5sum', local_file.name],
+                                      log=True).strip().split()[0]
+        logging.info('Got local file md5sum %s', md5sum_output)
+        logging.info('Golden file md5sum %s', self.args.md5sum)
+        if md5sum_output == self.args.md5sum:
+          factory.console.info(
+              'Successfully connected to %s, file size: %d bytes, '
+              'time spent: %f sec, throughput: %d bytes/sec',
+              self.args.test_url, file_size, time_spent, throughput)
+          return {'result': True,
+                  'file_size': file_size,
+                  'time_spent': time_spent,
+                  'throughput': throughput}
+      # If failed, delay before retry.
+      time.sleep(self.args.msecs_before_retries / 1000.0)
+
+    return {'result': False,
+            'file_size': 0,
+            'time_spent': 0,
+            'throughput': 0}
 
   def setUp(self):
     for service in _SERVICE_LIST:
@@ -155,37 +219,22 @@ class WirelessTest(unittest.TestCase):
           self.fail('Still got ethernet ip %r' % ethernet_ip)
 
         Spawn(['ifconfig'], check_call=True, log=True)
-        success_url_test = False
-        TryUnlink(_LOCAL_FILE_PATH)
-        if self.args.test_url is not None:
-          logging.info('Try connecting to %s', self.args.test_url)
-          for i in range(5): # pylint: disable=W0612
-            try:
-              remote_file = urllib2.urlopen(self.args.test_url, timeout=2)
-            except urllib2.HTTPError as e:
-              factory.console.info(
-                  'Connected to %s but got status code %d: %s.',
-                  self.args.test_url, e.code, e.reason)
-            except urllib2.URLError as e:
-              factory.console.info(
-                  'Failed to connect to %s: %s.', self.args.test_url, e.reason)
-            else:
-              with open(_LOCAL_FILE_PATH, "w") as local_file:
-                local_file.write(remote_file.read())
-                local_file.flush()
-                os.fdatasync(local_file)
-              md5sum_output = CheckOutput(['md5sum', _LOCAL_FILE_PATH],
-                                          log=True).strip().split()[0]
-              logging.info('Got local file md5sum %s', md5sum_output)
-              logging.info('Golden file md5sum %s', self.args.md5sum)
-              if md5sum_output == self.args.md5sum:
-                success_url_test = True
-                factory.console.info('Successfully connected to %s',
-                                     self.args.test_url)
-                break
-            time.sleep(self.args.msecs_before_retries / 1000.0)
 
-          if not success_url_test:
+        # Try to download file if needed.
+        if self.args.test_url is not None:
+          ret = self._DownloadFileAndMeasureThroughput()
+          Log('downloading_file',
+              result=ret['result'],
+              file_size=ret['file_size'],
+              time_spent=ret['time_spent'],
+              throughput=ret['throughput'])
+          if not ret['result']:
             self.fail('Failed to connect to url %s' % self.args.test_url)
+          if (self.args.throughput_threshold is not None and
+              ret['throughput'] < self.args.throughput_threshold):
+            self.fail(
+                "Throughput: %f < %f bytes/sec didn't meet the requirement." % (
+                    ret['throughput'], self.args.throughput_threshold))
+
         logging.info('Disconnecting %s', name)
         flim.DisconnectService(service)
