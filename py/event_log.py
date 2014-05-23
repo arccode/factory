@@ -194,7 +194,7 @@ def Log(event_name, **kwargs):
 
   This function is essentially a wrapper around EventLog.Log(). It
   creates or reuses the global event logger and calls the EventLog.Log()
-  function. Note that this should only be used in unit tests, which are
+  function. Note that this should only be used in pytests, which are
   spawned as separate processes.
   """
 
