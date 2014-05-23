@@ -42,6 +42,8 @@ class DebugDataReader():
   def __init__(self):
     self.sysfs_entry = '/sys/bus/i2c/devices/9-004b/object'
     self.debugfs = '/sys/kernel/debug/atmel_mxt_ts/9-004b'
+    self.num_rows = 41
+    self.num_cols = 72
 
   def PreRead(self):
     """Initialize some data before reading the raw sensor data.
@@ -107,24 +109,24 @@ class DebugDataReader():
     Returns:
       the list of raw sensor values
     """
-    debugfs = ('/sys/kernel/debug/atmel_mxt_ts/2-004a/%s' %
-               ('deltas' if delta else 'refs'))
-    out_data = []
+    debugfs = '%s/%s' % (self.debugfs, ('deltas' if delta else 'refs'))
     with open(debugfs) as f:
-      # The debug fs content is composed by 32 lines, and each
-      # line contains 104 byte of 52 consecutive sensor values.
-      for _ in range(32):
-        line = f.read(104)
-        data = []
-        for i in range(52):
+      # The debug fs content is composed of num_rows, where each row
+      # contains (num_cols * 2) bytes of num_cols consecutive sensor values.
+      num_bytes_per_row = self.num_cols * 2
+      out_data = []
+      for _ in range(self.num_rows):
+        row_data = f.read(num_bytes_per_row)
+        values = []
+        for i in range(self.num_cols):
           # Correct endianness
-          s = line[i * 2 + 1] + line[i * 2]
+          s = row_data[i * 2 + 1] + row_data[i * 2]
           val = int(s.encode('hex'), 16)
-          # Correct signed values
+          # Correct signed value
           if val > 32768:
             val = val - 65535
-          data.append(val)
-        out_data.append(data)
+          values.append(val)
+        out_data.append(values)
     return out_data
 
 
