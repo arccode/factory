@@ -11,9 +11,16 @@
 import os
 import sys
 
-CROS_WORKON_SRCROOT = os.environ['CROS_WORKON_SRCROOT']
-autotest_dir = os.path.join(
-    CROS_WORKON_SRCROOT, 'src', 'third_party', 'autotest', 'files')
+import factory_common   # pylint:disable=W0611
+from cros.factory.factory_flow import common
+
+if common.OnMoblab():
+  autotest_dir = '/usr/local/autotest'
+else:
+  CROS_WORKON_SRCROOT = os.environ['CROS_WORKON_SRCROOT']
+  autotest_dir = os.path.join(
+      CROS_WORKON_SRCROOT, 'src', 'third_party', 'autotest', 'files')
+
 sys.path.insert(0, os.path.join(autotest_dir, 'client'))
 import setup_modules
 sys.path.pop(0)
