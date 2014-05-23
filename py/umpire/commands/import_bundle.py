@@ -337,9 +337,9 @@ class BundleImporter(object):
     # Unpack device_factory_toolkit.
     UnpackFactoryToolkit(self._env, resources['device_factory_toolkit'])
 
-    resources['netboot_shim'] = AddResource(
+    resources['netboot_vmlinux'] = AddResource(
         self._factory_bundle.netboot_image,
-        res_type=ResourceType.NETBOOT_SHIM)
+        res_type=ResourceType.NETBOOT_VMLINUX)
     resources['update_bundle'] = AddResource(
         self._factory_bundle.update_bundle)
 

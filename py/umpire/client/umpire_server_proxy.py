@@ -357,7 +357,7 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
     shop_floor_handler: /shop_floor/9001
     server_factory_toolkit: factory.tar.bz2#[version]#[hash]
     device_factory_toolkit: factory.tar.bz2#[version]#[hash]
-    netboot_shim: 'vmlinux#[version]#[hash]'
+    netboot_vmlinux: 'vmlinux#[version]#[hash]'
     complete_script: 'complete.gz##[hash]'
 
     Args:

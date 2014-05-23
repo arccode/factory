@@ -76,7 +76,7 @@ _RESOURCES_SCHEMA = FixedDict(
         'stateful_partition': Scalar('STATE channel', str)},
     optional_items={
         'server_factory_toolkit': Scalar('Server package', str),
-        'netboot_shim': Scalar('Netboot install shim', str),
+        'netboot_vmlinux': Scalar('Netboot install vmlinux', str),
         'complete_script': Scalar('COMPLETE channel', str),
         'efi_partition': Scalar('EFI channel', str),
         'firmware': Scalar('FIRMWARE channel', str),

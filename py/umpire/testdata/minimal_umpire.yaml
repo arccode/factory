@@ -26,7 +26,7 @@ services:
     - 10.3.50.254
     subnet: 10.3.0.0
   tftp:
-    netboot_shim: vmlinux##00000000
+    netboot_vmlinux: vmlinux##00000000
 bundles:
 - id: test
   note: bundle for test
@@ -38,7 +38,7 @@ bundles:
     efi_partition: efi.gz##00000000
     firmware: firmware.gz##00000000
     hwid: hwid.gz##00000000
-    netboot_shim: vmlinux##00000000
+    netboot_vmlinux: vmlinux##00000000
     oem_partition: oem.gz##00000000
     rootfs_release: rootfs-release.gz##00000000
     rootfs_test: rootfs-test.gz##00000000
