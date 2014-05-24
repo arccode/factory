@@ -7,7 +7,6 @@
 """Tools to finalize a factory bundle."""
 
 import argparse
-import fnmatch
 import glob
 import logging
 import os
@@ -31,7 +30,7 @@ from cros.factory.tools.gsutil import GSUtil
 from cros.factory.tools.make_update_bundle import MakeUpdateBundle
 from cros.factory.tools.mount_partition import MountPartition
 from cros.factory.utils.file_utils import (
-    UnopenedTemporaryFile, CopyFileSkipBytes, TryUnlink, ExtractFile)
+    UnopenedTemporaryFile, CopyFileSkipBytes, TryUnlink, ExtractFile, Glob)
 from cros.factory.utils import get_version
 from cros.factory.utils.process_utils import Spawn, CheckOutput
 
@@ -46,51 +45,6 @@ LOCAL = 'local'
 
 # Netboot install shims that we are using at the moment.
 NETBOOT_SHIMS = ('vmlinux.uimg', 'vmlinux.bin')
-
-class Glob(object):
-  """A glob containing items to include and exclude.
-
-  Properties:
-    include: A single pattern identifying files to include.
-    exclude: Patterns identifying files to exclude.  This can be
-      None, or a single pattern, or a list of patterns.
-  """
-  def __init__(self, include, exclude=None):
-    self.include = include
-    if exclude is None:
-      self.exclude = []
-    elif isinstance(exclude, list):
-      self.exclude = exclude
-    elif isinstance(exclude, str):
-      self.exclude = [exclude]
-    else:
-      raise TypeError, 'Unexpected exclude type %s' % type(exclude)
-
-  def Match(self, root):
-    """Returns files that match include but not exclude.
-
-    Args:
-      root: Root within which to evaluate the glob.
-    """
-    ret = []
-    for f in glob.glob(os.path.join(root, self.include)):
-      if not any(fnmatch.fnmatch(f, os.path.join(root, pattern))
-                 for pattern in self.exclude):
-        ret.append(f)
-    return ret
-
-  @staticmethod
-  def Construct(loader, node):
-    """YAML constructor."""
-    value = loader.construct_mapping(node)
-    CheckDictKeys(value, ['include', 'exclude'])
-    return Glob(value['include'], value.get('exclude', None))
-
-  @staticmethod
-  def Represent(representer, node):
-    """YAML representer."""
-    return representer.represent_mapping('!glob', dict(
-        include=node.include, exclude=node.exclude))
 
 
 def GetReleaseVersion(mount_point):

@@ -8,6 +8,8 @@ import base64
 from contextlib import contextmanager
 import errno
 import fcntl
+import fnmatch
+import glob
 import gzip
 import hashlib
 import logging
@@ -19,7 +21,7 @@ import time
 import tempfile
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.common import MakeList
+from cros.factory.common import CheckDictKeys, MakeList
 from cros.factory.test import utils
 from cros.factory.tools import mount_partition
 from cros.factory.utils import time_utils
@@ -30,6 +32,52 @@ from cros.factory.utils.process_utils import Spawn
 # TODO: Move TryMakeDirs method to this module and update existing files
 # accordingly.
 TryMakeDirs = utils.TryMakeDirs
+
+
+class Glob(object):
+  """A glob containing items to include and exclude.
+
+  Properties:
+    include: A single pattern identifying files to include.
+    exclude: Patterns identifying files to exclude.  This can be
+      None, or a single pattern, or a list of patterns.
+  """
+  def __init__(self, include, exclude=None):
+    self.include = include
+    if exclude is None:
+      self.exclude = []
+    elif isinstance(exclude, list):
+      self.exclude = exclude
+    elif isinstance(exclude, str):
+      self.exclude = [exclude]
+    else:
+      raise TypeError, 'Unexpected exclude type %s' % type(exclude)
+
+  def Match(self, root):
+    """Returns files that match include but not exclude.
+
+    Args:
+      root: Root within which to evaluate the glob.
+    """
+    ret = []
+    for f in glob.glob(os.path.join(root, self.include)):
+      if not any(fnmatch.fnmatch(f, os.path.join(root, pattern))
+                 for pattern in self.exclude):
+        ret.append(f)
+    return ret
+
+  @staticmethod
+  def Construct(loader, node):
+    """YAML constructor."""
+    value = loader.construct_mapping(node)
+    CheckDictKeys(value, ['include', 'exclude'])
+    return Glob(value['include'], value.get('exclude', None))
+
+  @staticmethod
+  def Represent(representer, node):
+    """YAML representer."""
+    return representer.represent_mapping('!glob', dict(
+        include=node.include, exclude=node.exclude))
 
 
 @contextmanager

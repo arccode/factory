@@ -14,9 +14,8 @@ import re
 import yaml
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.utils.file_utils import CheckPath, Md5sumInHex
+from cros.factory.utils.file_utils import CheckPath, Md5sumInHex, Glob
 from cros.factory.test.utils import Enum
-from cros.factory.tools.finalize_bundle import Glob
 
 
 UMPIRE_CLI = 'umpire'
