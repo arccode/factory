@@ -15,27 +15,26 @@ from twisted.trial import unittest
 from twisted.web import server, xmlrpc
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.umpire.commands import import_bundle
 from cros.factory.umpire.commands import update
 from cros.factory.umpire.common import UmpireError
 from cros.factory.umpire.rpc_cli import CLICommand
 from cros.factory.umpire.umpire_env import UmpireEnv
 from cros.factory.umpire.web.xmlrpc import XMLRPCContainer
-
-
-TEST_COMMAND_PORT = 8087
+from cros.factory.utils import net_utils
 
 
 class CommandTest(unittest.TestCase):
 
   def setUp(self):
+    test_port = net_utils.GetUnusedPort()
     self.env = UmpireEnv()
     self.mox = mox.Mox()
-    self.proxy = xmlrpc.Proxy('http://localhost:%d' % TEST_COMMAND_PORT)
+    self.proxy = xmlrpc.Proxy('http://localhost:%d' % test_port)
     xmlrpc_resource = XMLRPCContainer()
     umpire_cli = CLICommand(self.env)
     xmlrpc_resource.AddHandler(umpire_cli)
-    self.port = reactor.listenTCP(TEST_COMMAND_PORT,
-                                  server.Site(xmlrpc_resource))
+    self.port = reactor.listenTCP(test_port, server.Site(xmlrpc_resource))
 
   def tearDown(self):
     self.port.stopListening()
@@ -87,6 +86,32 @@ class CommandTest(unittest.TestCase):
 
     return self.AssertFailure(self.Call('Update', resource_to_update, 'sid',
                                         'did'))
+
+  def testImportBundle(self):
+    bundle_path = '/path/to/bundle'
+    bundle_id = 'test'
+    note = 'test note'
+    self.mox.StubOutClassWithMocks(import_bundle, 'BundleImporter')
+    mock_importer = import_bundle.BundleImporter(mox.IsA(UmpireEnv))
+    mock_importer.Import(bundle_path, bundle_id, note)
+    self.mox.ReplayAll()
+
+    return self.AssertSuccess(self.Call('ImportBundle', bundle_path, bundle_id,
+                                        note))
+
+  def testImportBundleFailure(self):
+    bundle_path = '/path/to/bundle'
+    bundle_id = 'test'
+    note = 'test note'
+    self.mox.StubOutClassWithMocks(import_bundle, 'BundleImporter')
+    mock_importer = import_bundle.BundleImporter(mox.IsA(UmpireEnv))
+    mock_importer.Import(bundle_path, bundle_id, note).AndRaise(
+        UmpireError('mock error'))
+    self.mox.ReplayAll()
+
+    return self.AssertFailure(self.Call('ImportBundle', bundle_path, bundle_id,
+                                        note))
+
 
 if os.environ.get('LOG_LEVEL'):
   logging.basicConfig(
