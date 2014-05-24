@@ -16,6 +16,7 @@ import unittest
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.umpire_env import UmpireEnv
 from cros.factory.umpire import utils
+from cros.factory.utils import file_utils
 
 
 TEST_DIR = os.path.dirname(sys.modules[__name__].__file__)
@@ -68,6 +69,12 @@ class UnpackFactoryToolkitTest(unittest.TestCase):
                                                 device_toolkit=False))
     self.assertTrue(os.path.exists(os.path.join(expected_toolkit_dir,
                                                 UMPIRE_RELATIVE_PATH)))
+
+    # Exam MD5SUM file.
+    expected_md5sum_path = os.path.join(expected_toolkit_dir, 'usr', 'local',
+                                        'factory', 'MD5SUM')
+    self.assertTrue(os.path.exists(expected_md5sum_path))
+    self.assertEqual(TOOLKIT_MD5, file_utils.Read(expected_md5sum_path))
 
   def testNoUnpackDestExist(self):
     expected_toolkit_dir = os.path.join(self.env.device_toolkits_dir,

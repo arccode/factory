@@ -91,6 +91,11 @@ def UnpackFactoryToolkit(env, toolkit_resource, device_toolkit=True):
     os.rename(temp_dir, unpack_dir)
     logging.debug('Factory toolkit extracted to %s', unpack_dir)
 
+  # Inject MD5SUM in extracted toolkit.
+  md5sum_path = os.path.join(unpack_dir, 'usr', 'local', 'factory', 'MD5SUM')
+  with open(md5sum_path, 'w') as f:
+    f.write(toolkit_hash)
+
   return unpack_dir
 
 
