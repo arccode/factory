@@ -39,14 +39,14 @@ def Fault(message, reason=xmlrpclib.INVALID_METHOD_PARAMS):
 
 
 
-class BasicDUTCommands(UmpireRPC):
+class RootDUTCommands(UmpireRPC):
 
-  """Basic DUT (Device Under Test) remote procedures.
+  """Root DUT (Device Under Test) remote procedures.
 
-  Basic commands for v1 and v2 compatiblilities.
+  Root commands for v1 and v2 compatiblilities.
 
   RPC URL:
-    http://umpire_server_address:umpire_port/
+    http://umpire_server_address:umpire_port/RPC2
   """
 
   @RPCCall
@@ -54,9 +54,9 @@ class BasicDUTCommands(UmpireRPC):
     return {'version': self.env.umpire_version_major}
 
 
-class CommonDUTCommands(UmpireRPC):
+class UmpireDUTCommands(UmpireRPC):
 
-  """Common DUT remote procedures.
+  """Umpire DUT remote procedures.
 
   RPC URL:
     http://umpire_server_address:umpire_port/umpire

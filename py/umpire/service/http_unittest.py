@@ -136,7 +136,7 @@ class TestHTTPService(unittest.TestCase):
             'active': True}],
         'board': 'test'}
     self.env.config = UmpireConfig(umpire_config)
-    config_path = HTTPService.GenerateLightyConfig(self.env.config, self.env)
+    config_path = HTTPService.GenerateLightyConfig(umpire_config, self.env)
 
     self.assertRegexpMatches(
         config_path,
@@ -188,14 +188,6 @@ class TestHTTPService(unittest.TestCase):
           '      "port" => %d,' % p,
           '    ),',
           '  ),',])
-    expect_fastcgi_conf.extend([
-        '  "/umpire" => (',
-        '    (',
-        '      "check-local" => "disable",',
-        '      "host" => "127.0.0.1",',
-        '      "port" => %d,' % self.env.umpire_rpc_port,
-        '    ),',
-        '  ),'])
     expect_fastcgi_conf.append(')')
     ExpectLines(expect_fastcgi_conf)
 

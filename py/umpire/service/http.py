@@ -18,6 +18,8 @@ from cros.factory.umpire.service import umpire_service
 from cros.factory.utils import file_utils
 
 
+_LOCALHOST = '127.0.0.1'
+
 CONFIG_SCHEMA = {
     'optional_items': {
         'reverse_proxies': List(
@@ -38,8 +40,14 @@ LIGHTY_CONFIG_FILENAME = 'lighttpd_#%s#.conf'
 # %d is the binding port of its corresponding shop floor handler FastCGI
 # running locally.
 SHOP_FLOOR_HANDLER_PATH = '/shopfloor/%d'
-UMPIRE_HANDLER_PATH = '/umpire'
-RESOURCEMAP_APP = '/resourcemap'
+
+# Prefixes use in lighty proxy config:
+# Handles RPC requests to / and /RPC2.
+ROOT_RPC_PREFIX = '/RPC2'
+# Handles Umpire RPC.
+UMPIRE_RPC_PREFIX = '/umpire'
+# Handles /resourcemap request
+RESOURCEMAP_APP_PREFIX = '/resourcemap'
 
 # Maximum number of file descriptors when run as root
 HTTPD_MAX_FDS = 32768
@@ -185,22 +193,23 @@ class HTTPService(umpire_service.UmpireService):
     for port in xrange(fcgi_port, fcgi_port + NUMBER_SHOP_FLOOR_HANDLERS):
       match_path = SHOP_FLOOR_HANDLER_PATH % port
       fastcgi_conf[match_path] = [{
-          'host': '127.0.0.1',
+          'host': _LOCALHOST,
           'port': port,
           'check-local': 'disable'}]
-    # Umpire common RPCs
-    fastcgi_conf[UMPIRE_HANDLER_PATH] = [{
-        'host': '127.0.0.1',
-        'port': env.umpire_rpc_port,
-        'check-local': 'disable'}]
     config_writer.Write({'fastcgi.server': fastcgi_conf})
-
+    # Umpire common RPCs
+    umpire_proxy_handlers = {}
+    umpire_proxy_handlers[ROOT_RPC_PREFIX] = [{
+        'host': _LOCALHOST,
+        'port': env.umpire_rpc_port}]
+    umpire_proxy_handlers[UMPIRE_RPC_PREFIX] = [{
+        'host': _LOCALHOST,
+        'port': env.umpire_rpc_port}]
     # Web applications
-    web_applications = {}
-    web_applications[RESOURCEMAP_APP] = [{
-        'host': '127.0.0.1',
+    umpire_proxy_handlers[RESOURCEMAP_APP_PREFIX] = [{
+        'host': _LOCALHOST,
         'port': env.umpire_webapp_port}]
-    config_writer.Write({'proxy.server': web_applications})
+    config_writer.Write({'proxy.server': umpire_proxy_handlers})
 
     # Generate conditional HTTP accelerator blocks.
     if 'reverse_proxies' in http_config:

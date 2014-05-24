@@ -16,8 +16,8 @@ from twisted.web import server, xmlrpc
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.bundle_selector import SelectRuleset
 from cros.factory.umpire.rpc_dut import (
-    BasicDUTCommands,
-    CommonDUTCommands,
+    RootDUTCommands,
+    UmpireDUTCommands,
     FACTORY_STAGES)
 from cros.factory.umpire.umpire_env import UmpireEnv
 from cros.factory.umpire.utils import ConcentrateDeferreds
@@ -39,11 +39,11 @@ class DUTRPCTest(unittest.TestCase):
     self.mox = mox.Mox()
     self.proxy = xmlrpc.Proxy('http://localhost:%d' % TEST_RPC_PORT,
                               allowNone=True)
-    basic_commands = BasicDUTCommands(self.env)
-    common_commands = CommonDUTCommands(self.env)
+    root_commands = RootDUTCommands(self.env)
+    umpire_dut_commands = UmpireDUTCommands(self.env)
     xmlrpc_resource = XMLRPCContainer()
-    xmlrpc_resource.AddHandler(basic_commands)
-    xmlrpc_resource.AddHandler(common_commands)
+    xmlrpc_resource.AddHandler(root_commands)
+    xmlrpc_resource.AddHandler(umpire_dut_commands)
     self.twisted_port = reactor.listenTCP(  # pylint: disable=E1101
         TEST_RPC_PORT, server.Site(xmlrpc_resource))
     # The device info that matches TESTCONFIG
