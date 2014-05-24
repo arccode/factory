@@ -21,7 +21,21 @@ methods:
   - name: MethodWithOutArgs
   - name: MethodWithArgs
     args: 'argument 1'
-  - name: NeedsUpdate
+  - name: GetUpdate
     args:
-      - '12345678'
-
+      - x_umpire_dut:
+          sn: 'DEV001'
+          mlb_sn: 'MLB001'
+          board: 'test'
+          firmware: 'fw_001'
+          ec: 'ec_001'
+          mac.eth0: 'EE:EE:EE:EE:EE:00'
+          mac.eth1: 'EE:EE:EE:EE:EE:01'
+          mac.wlan0: 'FF:FF:FF:FF:FF:00'
+        components:
+          rootfs_test: 'factory_001'
+          rootfs_release: 'release_001'
+          firmware_ec: 'ec_001'
+          firmware_bios: 'fw_001'
+          hwid: 'hwid_001'
+          device_factory_toolkit: 'md5_001'
