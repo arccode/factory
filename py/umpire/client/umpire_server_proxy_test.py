@@ -59,7 +59,7 @@ class FakeClientInfo(object):
       A string containing X-Umpire-DUT in the format of
       'sn=TESTDEV002; mlb_sn=TESTMLB002;...'.
     """
-    info = ['%s=%s' % i for i in self.dut['X-Umpire-DUT']]
+    info = ['%s=%s' % (k, v) for k, v in self.dut['X-Umpire-DUT'].iteritems()]
     ret = '; '.join(info)
     logging.debug('GetXUmpireDUT returns %r', ret)
     return ret
