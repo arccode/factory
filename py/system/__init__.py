@@ -86,6 +86,12 @@ class SystemInfo(object):
     except:
       pass
 
+    self.stage = None
+    try:
+      self.stage = test.shopfloor.GetDeviceData()['stage']
+    except:
+      pass
+
     self.factory_image_version = None
     try:
       lsb_release = open('/etc/lsb-release').read()

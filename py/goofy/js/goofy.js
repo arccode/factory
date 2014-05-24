@@ -141,6 +141,7 @@ cros.factory.Content = function(en, zh) {
 cros.factory.SYSTEM_INFO_LABELS = [
     {key: 'mlb_serial_number', label: cros.factory.Label('MLB Serial Number')},
     {key: 'serial_number', label: cros.factory.Label('Serial Number')},
+    {key: 'stage', label: cros.factory.Label('Stage')},
     {key: 'factory_image_version',
      label: cros.factory.Label('Factory Image Version')},
     {key: 'toolkit_version',
