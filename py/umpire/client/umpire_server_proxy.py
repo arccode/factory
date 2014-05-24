@@ -234,7 +234,15 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
       True if this object is talking to an Umpire server.
       False if it talks to ShopFloor v1 or v2 server. None if it cannot decide
       as it fails to get response for 'Ping'.
+
+    Raises:
+      UmpireServerProxyException: If server version can not be determined.
     """
+    # Try to contact server to decide using Umpire or not.
+    if self._use_umpire is None:
+      self._use_umpire = self._CheckUsingUmpire()
+    if self._use_umpire is None:
+      raise UmpireServerProxyException('Can not decide server version')
     return self._use_umpire
 
   def __request(self, methodname, params):

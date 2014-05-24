@@ -603,6 +603,36 @@ class UmpireServerProxyTest(unittest.TestCase):
     self.mox.VerifyAll()
     logging.debug('Done')
 
+  def testUseUmpireProperty(self):
+    """Checks use_umpire property.
+
+    Server version detection will be deferred to the time when method is
+    invoked through proxy, or when use_umpire property is accessed by user.
+    """
+    # Lets base handler generates 111 Connection refused error.
+    # Proxy can not decide server version at its init time.
+    SetHandlerError('base_handler', 111, 'Connection refused')
+
+    # It is OK if server is not available at proxy init time.
+    proxy = umpire_server_proxy.UmpireServerProxy(
+        server_uri=self.UMPIRE_SERVER_URI,
+        test_mode=True)
+
+    # It is not OK if server is not available when user wants to check
+    # use_umpire property.
+    with self.assertRaises(umpire_server_proxy.UmpireServerProxyException):
+      _ = proxy.use_umpire
+
+    # Clear error files so base handler will not return 111 error.
+    self.ClearErrorFiles()
+
+    # Server is reachable, so use_umpire is determined when this property is
+    # accessed by user.
+    self.assertTrue(proxy.use_umpire)
+
+    logging.debug('Done')
+
+
 if __name__ == '__main__':
   logging.basicConfig(
       format='%(asctime)s:%(levelname)s:%(filename)s:%(lineno)d:%(message)s',
