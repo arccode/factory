@@ -16,11 +16,34 @@ import uuid
 
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
+from cros.factory.umpire.client import umpire_client
 from cros.factory.utils.process_utils import Spawn
 
 
 class UpdaterException(Exception):
   pass
+
+
+def _GetUpdateFromUmpire(proxy):
+  """Gets device factory toolkit update information from Umpire server.
+
+  Args:
+    proxy: An UmpireServerProxy that connects to Umpire server.
+
+  Returns:
+    A tuple containing (needs_update, md5sum, update_url) where
+      needs_update: True if an update is needed, False otherwise.
+      md5sum: The new md5sum of device factory toolkit on the server.
+      update_url: The base url of device factory toolkit on the server.
+        Note this is the root directory of device.
+  """
+  update_dict = proxy.GetUpdate(
+      umpire_client.UmpireClientInfo().GetDUTInfoComponents())
+  device_factory_toolkit_update = update_dict['device_factory_toolkit']
+  needs_update = device_factory_toolkit_update['need_update']
+  md5sum = device_factory_toolkit_update['md5sum']
+  update_url = device_factory_toolkit_update['url']
+  return (needs_update, md5sum, update_url)
 
 
 def CheckCriticalFiles(new_path):
@@ -82,18 +105,45 @@ def TryUpdate(pre_update_hook=None, timeout=15):
     'Checking for updates at <%s>... (current MD5SUM is %s)',
     url, current_md5sum)
 
+  new_md5sum = None
+  autotest_src_path = None
+  factory_src_path = None
+
+  # Calls shopfloor method to get new_md5sum and determines if an update
+  # is needed, then sets autotest_src_path, factory_src_path.
   shopfloor_client = shopfloor.get_instance(detect=True, timeout=timeout)
-  new_md5sum = shopfloor_client.GetTestMd5sum()
-  factory.console.info('MD5SUM from server is %s', new_md5sum)
-  if current_md5sum == new_md5sum or new_md5sum is None:
-    factory.console.info('Factory software is up to date')
-    return False
+  # Uses GetUpdate API provided by Umpire server.
+  if shopfloor_client.use_umpire:
+    needs_update, new_md5sum, update_url = _GetUpdateFromUmpire(
+        shopfloor_client)
+
+    factory.console.info('MD5SUM from server is %s', new_md5sum)
+    if not needs_update:
+      factory.console.info('Factory software is up to date')
+      return False
+    autotest_src_path = '%s/usr/local/autotest' % update_url
+    factory_src_path = '%s/usr/local/factory' % update_url
+
+  # Uses GetTestMd5sum API provided by v1 or v2 shopfloor.
+  else:
+    new_md5sum = shopfloor_client.GetTestMd5sum()
+    factory.console.info('MD5SUM from server is %s', new_md5sum)
+    if current_md5sum == new_md5sum or new_md5sum is None:
+      factory.console.info('Factory software is up to date')
+      return False
+    # An update is necessary.  Construct the rsync command.
+    update_port = shopfloor_client.GetUpdatePort()
+    autotest_src_path = 'rsync://%s:%d/factory/%s/autotest' % (
+      urlparse(url).hostname,
+      update_port,
+      new_md5sum),
+    factory_src_path = 'rsync://%s:%d/factory/%s/factory' % (
+      urlparse(url).hostname,
+      update_port,
+      new_md5sum),
 
   # /usr/local on the device (parent to both factory and autotest)
   parent_dir = os.path.dirname(factory.FACTORY_PATH)
-
-  # An update is necessary.  Construct the rsync command.
-  update_port = shopfloor_client.GetUpdatePort()
 
   # For autotest, do not use hard links and new directory. Since the
   # files in autotests are too big. Also, they will be different
@@ -104,10 +154,7 @@ def TryUpdate(pre_update_hook=None, timeout=15):
     'rsync',
     '-a', '--delete', '--stats',
     '--timeout=%s' % timeout,
-    'rsync://%s:%d/factory/%s/autotest/' % (
-      urlparse(url).hostname,
-      update_port,
-      new_md5sum),
+    autotest_src_path,
     '%s/' % autotest_path)
 
 
@@ -124,10 +171,7 @@ def TryUpdate(pre_update_hook=None, timeout=15):
     # Use hard links of identical files from the old directories to
     # save network bandwidth and temporary space on disk.
     '--link-dest=%s' % parent_dir,
-    'rsync://%s:%d/factory/%s/factory' % (
-      urlparse(url).hostname,
-      update_port,
-      new_md5sum),
+    factory_src_path,
     '%s/' % new_path)
 
   hwid_path = os.path.join(factory.FACTORY_PATH, 'hwid')
@@ -168,9 +212,6 @@ def TryUpdate(pre_update_hook=None, timeout=15):
 def CheckForUpdate(timeout):
   '''Checks for an update synchronously.
 
-  Raises:
-    An exception if unable to contact the shopfloor server.
-
   Returns:
     A tuple (md5sum, needs_update):
       md5sum: the MD5SUM returned by shopfloor server, or None if it is not
@@ -179,11 +220,18 @@ def CheckForUpdate(timeout):
       needs_update: is True if an update is necessary (i.e., md5sum is not None,
         and md5sum isn't the same as the MD5SUM in the current autotest
         directory).
+
+  Raises:
+    An exception if unable to contact the shopfloor server.
   '''
   shopfloor_client = shopfloor.get_instance(detect=True, timeout=timeout)
-  new_md5sum = shopfloor_client.GetTestMd5sum()
-  current_md5sum = factory.get_current_md5sum()
-  needs_update = shopfloor_client.NeedsUpdate(current_md5sum)
+  # Use GetUpdate API provided by Umpire server.
+  if shopfloor_client.use_umpire:
+    needs_update, new_md5sum, _ = _GetUpdateFromUmpire(shopfloor_client)
+  else:
+    new_md5sum = shopfloor_client.GetTestMd5sum()
+    current_md5sum = factory.get_current_md5sum()
+    needs_update = shopfloor_client.NeedsUpdate(current_md5sum)
   return (new_md5sum, needs_update)
 
 

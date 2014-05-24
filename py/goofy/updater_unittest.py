@@ -25,6 +25,7 @@ class CheckForUpdateTest(unittest.TestCase):
     self.mox.StubOutWithMock(shopfloor, 'get_instance')
     self.mox.StubOutWithMock(factory, 'get_current_md5sum')
     fake_shopfloor = self.mox.CreateMockAnything()
+    fake_shopfloor.use_umpire = False
     shopfloor.get_instance(detect=True, timeout=3).AndReturn(fake_shopfloor)
     fake_shopfloor.GetTestMd5sum().AndReturn('11111')
     factory.get_current_md5sum().AndReturn('00000')
@@ -36,6 +37,7 @@ class CheckForUpdateTest(unittest.TestCase):
   def testNotUpdate(self):
     self.mox.StubOutWithMock(shopfloor, 'get_instance')
     fake_shopfloor = self.mox.CreateMockAnything()
+    fake_shopfloor.use_umpire = False
     shopfloor.get_instance(detect=True, timeout=3).AndReturn(fake_shopfloor)
     fake_shopfloor.GetTestMd5sum().AndReturn('11111')
     self.mox.StubOutWithMock(factory, 'get_current_md5sum')
