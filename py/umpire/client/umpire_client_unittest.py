@@ -28,12 +28,13 @@ mock_build_board = MockBuildBoard()
 class MockSystemInfo(object):
   """Mocked SystemInfo class."""
   def __init__(self, serial_number, mlb_serial_number, firmware_version,
-               ec_version, eth_macs, wlan0_mac, factory_image_version,
+               ec_version, stage, eth_macs, wlan0_mac, factory_image_version,
                release_image_version, hwid_database_version, factory_md5sum):
     self.serial_number = serial_number
     self.mlb_serial_number = mlb_serial_number
     self.firmware_version = firmware_version
     self.ec_version = ec_version
+    self.stage = stage
     self.eth_macs = eth_macs
     self.wlan0_mac = wlan0_mac
     self.factory_image_version = factory_image_version
@@ -46,6 +47,7 @@ mock_system_info_1 = MockSystemInfo(
     mlb_serial_number='MLB001',
     firmware_version='fw_001',
     ec_version='ec_001',
+    stage='SMT',
     eth_macs={'eth0': 'EE:EE:EE:EE:EE:00', 'eth1': 'EE:EE:EE:EE:EE:01'},
     wlan0_mac='FF:FF:FF:FF:FF:00',
     factory_image_version='factory_001',
@@ -59,8 +61,8 @@ mock_system_info_2 = MockSystemInfo(
     mlb_serial_number='MLB001',
     firmware_version='fw_001',
     ec_version='ec_001',
+    stage='SMT',
     eth_macs={'eth0': 'EE:EE:EE:EE:EE:00', 'eth1': 'EE:EE:EE:EE:EE:01'},
-
     wlan0_mac='FF:FF:FF:FF:FF:00',
     factory_image_version='factory_001',
     release_image_version='release_001',
@@ -73,8 +75,8 @@ mock_system_info_3 = MockSystemInfo(
     mlb_serial_number='MLB001',
     firmware_version='fw_001',
     ec_version='ec_001',
+    stage='SMT',
     eth_macs={'eth0': 'EE:EE:EE:EE:EE:02', 'eth1': 'EE:EE:EE:EE:EE:01'},
-
     wlan0_mac='FF:FF:FF:FF:FF:00',
     factory_image_version='factory_001',
     release_image_version='release_001',
@@ -87,8 +89,8 @@ mock_system_info_4 = MockSystemInfo(
     mlb_serial_number='MLB001',
     firmware_version='fw_001',
     ec_version='ec_001',
+    stage='SMT',
     eth_macs={'eth0': 'EE:EE:EE:EE:EE:02', 'eth1': 'EE:EE:EE:EE:EE:01'},
-
     wlan0_mac='FF:FF:FF:FF:FF:00',
     factory_image_version='factory_002',
     release_image_version='release_001',
@@ -101,7 +103,7 @@ mock_system_info_4 = MockSystemInfo(
 OUTPUT_X_UMPIRE_DUT = (
     'board=test; ec=ec_001; firmware=fw_001; '
     'mac.eth0=EE:EE:EE:EE:EE:00; mac.eth1=EE:EE:EE:EE:EE:01; '
-    'mac.wlan0=FF:FF:FF:FF:FF:00; mlb_sn=MLB001; sn=DEV001')
+    'mac.wlan0=FF:FF:FF:FF:FF:00; mlb_sn=MLB001; sn=DEV001; stage=SMT')
 
 
 # The return value of GetDUTInfoComponents.
@@ -114,7 +116,8 @@ OUTPUT_GET_UPDATE_DUT_INFO = {
         'ec': 'ec_001',
         'mac.eth0': 'EE:EE:EE:EE:EE:00',
         'mac.eth1': 'EE:EE:EE:EE:EE:01',
-        'mac.wlan0': 'FF:FF:FF:FF:FF:00'},
+        'mac.wlan0': 'FF:FF:FF:FF:FF:00',
+        'stage': 'SMT'},
     'components': {
         'rootfs_test': 'factory_001',
         'rootfs_release': 'release_001',

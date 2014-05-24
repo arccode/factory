@@ -32,6 +32,7 @@ methods:
           mac.eth0: 'EE:EE:EE:EE:EE:00'
           mac.eth1: 'EE:EE:EE:EE:EE:01'
           mac.wlan0: 'FF:FF:FF:FF:FF:00'
+          stage: 'SMT'
         components:
           rootfs_test: 'factory_001'
           rootfs_release: 'release_001'
