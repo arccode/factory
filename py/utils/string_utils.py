@@ -38,7 +38,7 @@ def ParseDict(lines, delimeter=':'):
   ret = dict()
   for line in lines:
     try:
-      key, value = line.split(delimeter)
+      key, value = line.split(delimeter, 1)
     except ValueError:
       logging.warning('Can not extract key, value pair in %s', line)
     else:

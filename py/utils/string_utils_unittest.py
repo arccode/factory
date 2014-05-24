@@ -22,12 +22,14 @@ _LINES = ['TPM Enabled: true',
           'TPM Owned: false',
           'TPM Being Owned: false',
           'TPM Ready: false',
-          'TPM Password:']
+          'TPM Password:',
+          'Test: something1:something2']
 _DICT_RESULT = {'TPM Being Owned': 'false',
                 'TPM Ready': 'false',
                 'TPM Password': '',
                 'TPM Enabled': 'true',
-                'TPM Owned': 'false'}
+                'TPM Owned': 'false',
+                'Test': 'something1:something2'}
 
 
 class DecodeUTF8Test(unittest.TestCase):
