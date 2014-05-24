@@ -39,6 +39,7 @@ _PID_DIR = 'run'
 _WEBAPP_PORT_OFFSET = 1
 _CLI_PORT_OFFSET = 2
 _RPC_PORT_OFFSET = 3
+_RSYNC_PORT_OFFSET = 4
 # FastCGI port ranges starts at base_port + FCGI_PORTS_OFFSET.
 _FCGI_PORTS_OFFSET = 10
 
@@ -137,6 +138,10 @@ class UmpireEnv(object):
   @property
   def umpire_rpc_port(self):
     return (self.config['port'] + _RPC_PORT_OFFSET)
+
+  @property
+  def umpire_rsync_port(self):
+    return (self.config['port'] + _RSYNC_PORT_OFFSET)
 
   @property
   def fastcgi_start_port(self):
