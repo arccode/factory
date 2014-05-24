@@ -598,7 +598,7 @@ class UmpireServerProxyTest(unittest.TestCase):
     # Calls a long busy method will trigger a socket.error exception.
     # This is supported by TimeoutUmpireServerProxy.
     with self.assertRaises(socket.error):
-      result = proxy.LongBusyMethod()
+      proxy.LongBusyMethod()
 
     self.mox.VerifyAll()
     logging.debug('Done')
