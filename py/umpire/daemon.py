@@ -141,10 +141,10 @@ class UmpireDaemon(object):
   def Run(self):
     """Starts the daemon and event loop."""
     self.BuildWebAppSite()
-    self.BuildRPCSite(self.env.umpire_cli_port, self.methods_for_cli,
-                      interface=self.env.config['ip'])
-    self.BuildRPCSite(self.env.umpire_rpc_port, self.methods_for_dut,
-                      interface=self.env.config['ip'])
+    # Umpire CLI and DUT RPCs are called by web server, which is running on the
+    # same host. Hence keep interface=LOCALHOST default value.
+    self.BuildRPCSite(self.env.umpire_cli_port, self.methods_for_cli)
+    self.BuildRPCSite(self.env.umpire_rpc_port, self.methods_for_dut)
     # Install signal handler.
     signal(SIGTERM, self._HandleStopSignal)
     signal(SIGINT, self._HandleStopSignal)
