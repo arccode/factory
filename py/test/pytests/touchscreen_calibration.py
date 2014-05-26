@@ -12,6 +12,7 @@ import StringIO
 
 from collections import namedtuple
 
+from cros.factory.event_log import Log
 from cros.factory.utils.serial_utils import FindTtyByDriver, SerialDevice
 from cros.factory.test import factory
 from cros.factory.test.media_util import MountedMedia
@@ -356,7 +357,7 @@ class TouchscreenCalibration(unittest.TestCase):
     except Exception as e:
       factory.console.info('Failed to shutdown the host: %s' % e)
 
-  def _DumpOneFrameToLog(self, logger):
+  def _DumpOneFrameToLog(self, logger, sn, frame_no):
     """Dumps one frame to log.
 
     Args:
@@ -367,6 +368,9 @@ class TouchscreenCalibration(unittest.TestCase):
     for row in data:
       logger.write(' '.join([str(val) for val in row]))
       logger.write('\n')
+
+    Log('touchscreen_calibration_before_touched_%d' % frame_no,
+        sn=sn, sensor_data=str(data))
 
   def _WriteLog(self, filename, content):
     """Writes the content to the file and display the message in the log.
@@ -445,7 +449,7 @@ class TouchscreenCalibration(unittest.TestCase):
 
       # Dump whole frame a few times before probe touches panel.
       for f in range(self.dump_frames):           # pylint: disable=W0612
-        self._DumpOneFrameToLog(log_to_file)
+        self._DumpOneFrameToLog(log_to_file, sn, f)
         time.sleep(0.1)
 
       self.DriveProbeDown()
@@ -460,9 +464,12 @@ class TouchscreenCalibration(unittest.TestCase):
       # Verifies whether the sensor data is good or not.
       test_pass = self._VerifySensorData(data)
 
-      # Write the sensor data and the test result to a file and on the UI.
+      # Write the sensor data and the test result to USB stick, the UI,
+      # and also to the shop floor.
       self._WriteSensorDataToFile(log_to_file, sn, test_pass, data)
       self.ui.CallJSFunction('displayDebugData', json.dumps(data))
+      Log('touchscreen_calibration',
+          sn=sn, test_pass=test_pass, sensor_data=str(data))
 
       self.DriveProbeUp()
 
@@ -470,6 +477,8 @@ class TouchscreenCalibration(unittest.TestCase):
 
       self.ui.CallJSFunction('showMessage',
                              'OK 测试完成' if test_pass else 'NO GOOD 测试失败')
+
+      self.ui.Pass()
 
     except Exception as e:
       if not self.fixture:
