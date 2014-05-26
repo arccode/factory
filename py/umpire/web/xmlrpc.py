@@ -52,6 +52,13 @@ class XMLRPCContainer(XMLRPC):
       Callable when function name is in the map. Or
       NoSuchFunction(xmlrpc_code, message) when procedure not found.
     """
+    # Let base class process sub-handlers.
+    try:
+      # XMLRPC is old-style Python class. Cannot use super().
+      return XMLRPC.lookupProcedure(self, procedure_path)
+    except NoSuchFunction:
+      pass
+
     try:
       rpc_obj = self.handlers[procedure_path]
 
