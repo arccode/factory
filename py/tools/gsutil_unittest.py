@@ -21,7 +21,7 @@ FAKE_GS_LS_OUTPUT = (
 gs://chromeos-releases/canary-channel/daisy-spring/4262.10.0/
 gs://chromeos-releases/canary-channel/daisy-spring/4262.2.0/
 gs://chromeos-releases/canary-channel/daisy-spring/5457.0.0/
-gs://chromeos-releases/canary-channel/daisy-spring/5460.0.0/""")
+gs://chromeos-releases/canary-channel/daisy-spring/5460.0.0/""").splitlines()
 
 FAKE_GS_BUILDS_OUTPUT_FACTORY_BRANCH = (
 """gs://chromeos-releases/canary-channel/daisy-spring/4262.140.0/ChromeOS-R29-4262.140.0-daisy-spring.zip
@@ -49,7 +49,8 @@ gs://chromeos-releases/canary-channel/daisy-spring/4262.140.0/chromeos_4262.140.
 gs://chromeos-releases/canary-channel/daisy-spring/4262.140.0/chromeos_4262.140.0_daisy-spring_recovery_canary-channel_mp.bin
 gs://chromeos-releases/canary-channel/daisy-spring/4262.140.0/chromeos_4262.140.0_daisy-spring_recovery_canary-channel_mp.bin.json
 gs://chromeos-releases/canary-channel/daisy-spring/4262.140.0/chromeos_4262.140.0_daisy-spring_recovery_canary-channel_mp.bin.md5
-gs://chromeos-releases/canary-channel/daisy-spring/4262.140.0/debug-daisy-spring.tgz""")
+gs://chromeos-releases/canary-channel/daisy-spring/4262.140.0/debug-daisy-spring.tgz"""
+).splitlines()
 
 FAKE_GS_BUILDS_OUTPUT_FIRMWARE_BRANCH = (
 """
@@ -106,7 +107,9 @@ gs://chromeos-releases/canary-channel/daisy-spring/3824.120.0/chromeos_3824.120.
 gs://chromeos-releases/canary-channel/daisy-spring/3824.120.0/chromeos_3824.120.0_daisy-spring_firmware-spring_canary-channel_premp.bin
 gs://chromeos-releases/canary-channel/daisy-spring/3824.120.0/chromeos_3824.120.0_daisy-spring_firmware-spring_canary-channel_premp.bin.json
 gs://chromeos-releases/canary-channel/daisy-spring/3824.120.0/chromeos_3824.120.0_daisy-spring_firmware-spring_canary-channel_premp.bin.md5
-gs://chromeos-releases/canary-channel/daisy-spring/3824.120.0/debug-daisy-spring.tgz""")
+gs://chromeos-releases/canary-channel/daisy-spring/3824.120.0/debug-daisy-spring.tgz"""
+).splitlines()
+
 
 class GsutilUnittest(unittest.TestCase):
   """Unit tests for gsutil module."""
@@ -116,28 +119,28 @@ class GsutilUnittest(unittest.TestCase):
     self.gsutil = gsutil.GSUtil('spring')
     self.gs_url_pattern = self.gsutil.GetGSPrefix('canary')
 
-  @mock.patch.object(gsutil.process_utils, 'CheckOutput',
+  @mock.patch.object(gsutil.gs.GSContext, 'LS',
                      return_value=FAKE_GS_LS_OUTPUT)
-  def testGetLatestBuildPath(self, mock_checkoutput):
+  def testGetLatestBuildPath(self, mock_ls):
     self.assertEquals(
         'gs://chromeos-releases/canary-channel/daisy-spring/5460.0.0/',
         self.gsutil.GetLatestBuildPath('canary'))
-    mock_checkoutput.assert_called_with(['gsutil', 'ls', self.gs_url_pattern])
+    mock_ls.assert_called_with(self.gs_url_pattern)
 
     self.assertEquals(
         'gs://chromeos-releases/canary-channel/daisy-spring/4262.10.0/',
         self.gsutil.GetLatestBuildPath('canary', '4262'))
-    mock_checkoutput.assert_called_with(['gsutil', 'ls', self.gs_url_pattern])
+    mock_ls.assert_called_with(self.gs_url_pattern)
 
-  @mock.patch.object(gsutil.process_utils, 'CheckOutput',
+  @mock.patch.object(gsutil.gs.GSContext, 'LS',
                      return_value=FAKE_GS_BUILDS_OUTPUT_FACTORY_BRANCH)
-  def testGetBinaryURI(self, mock_checkoutput):
+  def testGetBinaryURI(self, mock_ls):
     gs_dir = 'gs://chromeos-releases/canary-channel/daisy-spring/4262.140.0/'
 
     self.assertEquals(
         gs_dir + 'ChromeOS-factory-R29-4262.140.0-daisy-spring.zip',
         self.gsutil.GetBinaryURI(gs_dir, self.gsutil.IMAGE_TYPES.factory))
-    mock_checkoutput.assert_called_with(['gsutil', 'ls', gs_dir])
+    mock_ls.assert_called_with(gs_dir)
 
     self.assertEquals(
         gs_dir + 'ChromeOS-firmware-R29-4262.140.0-daisy-spring.tar.bz2',
@@ -146,30 +149,30 @@ class GsutilUnittest(unittest.TestCase):
     self.assertEquals(
         gs_dir + 'ChromeOS-recovery-R29-4262.140.0-daisy-spring.tar.xz',
         self.gsutil.GetBinaryURI(gs_dir, self.gsutil.IMAGE_TYPES.recovery))
-    mock_checkoutput.assert_called_with(['gsutil', 'ls', gs_dir])
+    mock_ls.assert_called_with(gs_dir)
 
     self.assertEquals(
         gs_dir + 'chromeos_4262.140.0_daisy-spring_' +
         'factory_canary-channel_mp.bin',
         self.gsutil.GetBinaryURI(gs_dir, self.gsutil.IMAGE_TYPES.factory,
                                  key='mp'))
-    mock_checkoutput.assert_called_with(['gsutil', 'ls', gs_dir])
+    mock_ls.assert_called_with(gs_dir)
 
     self.assertEquals(
         gs_dir + 'chromeos_4262.140.0_daisy-spring_' +
         'recovery_canary-channel_mp.bin',
         self.gsutil.GetBinaryURI(gs_dir, self.gsutil.IMAGE_TYPES.recovery,
                                  key='mp'))
-    mock_checkoutput.assert_called_with(['gsutil', 'ls', gs_dir])
+    mock_ls.assert_called_with(gs_dir)
 
     self.assertEquals(
         gs_dir + 'ChromeOS-test-R29-4262.140.0-daisy-spring.tar.xz',
         self.gsutil.GetBinaryURI(gs_dir, self.gsutil.IMAGE_TYPES.test))
-    mock_checkoutput.assert_called_with(['gsutil', 'ls', gs_dir])
+    mock_ls.assert_called_with(gs_dir)
 
-  @mock.patch.object(gsutil.process_utils, 'CheckOutput',
+  @mock.patch.object(gsutil.gs.GSContext, 'LS',
                      return_value=FAKE_GS_BUILDS_OUTPUT_FIRMWARE_BRANCH)
-  def testGetBinaryURIForFirmware(self, mock_checkoutput):
+  def testGetBinaryURIForFirmware(self, mock_ls):
     gs_dir = 'gs://chromeos-releases/canary-channel/daisy-spring/3824.120.0/'
 
     self.assertEquals(
@@ -177,7 +180,7 @@ class GsutilUnittest(unittest.TestCase):
         'firmware-spring_canary-channel_mp.bin',
         self.gsutil.GetBinaryURI(gs_dir, self.gsutil.IMAGE_TYPES.firmware,
                                  key='mp'))
-    mock_checkoutput.assert_called_with(['gsutil', 'ls', gs_dir])
+    mock_ls.assert_called_with(gs_dir)
 
   def testParseURI(self):
     obj = self.gsutil.ParseURI(
@@ -193,6 +196,7 @@ class GsutilUnittest(unittest.TestCase):
     self.assertEquals(
         ('canary', 'daisy_spring', '4262.453.0', 'factory', 'mp-v2'),
         (obj.channel, obj.board, obj.image_version, obj.image_type, obj.key))
+
 
 if __name__ == '__main__':
   logging.basicConfig(level=logging.DEBUG)

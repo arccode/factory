@@ -12,9 +12,10 @@ import shutil
 from distutils import version
 
 import factory_common   # pylint: disable=W0611
+from chromite.lib import gs
+from cros.factory.test import factory
 from cros.factory.test import utils
 from cros.factory.tools import build_board
-from cros.factory.utils import process_utils
 
 
 class GSUtilError(Exception):
@@ -24,11 +25,11 @@ class GSUtilError(Exception):
 
 class GSUtil(object):
   """A class that wraps gsutil."""
-  DEFAULT_GSUTIL_CACHE_DIR = os.path.join(os.environ['HOME'], 'gsutil_cache')
   CHANNELS = utils.Enum(['beta', 'canary', 'dev', 'stable'])
   IMAGE_TYPES = utils.Enum(['factory', 'firmware', 'recovery', 'test'])
 
   def __init__(self, board):
+    self.gs_context = gs.GSContext()
     self.board = build_board.BuildBoard(board)
     self.gs_output_cache = {}
 
@@ -64,8 +65,7 @@ class GSUtil(object):
         raise GSUtilError('branch must be a string of format: %s' % branch_re)
     gs_url_pattern = self.GetGSPrefix(channel)
     if gs_url_pattern not in self.gs_output_cache:
-      self.gs_output_cache[gs_url_pattern] = process_utils.CheckOutput(
-          ['gsutil', 'ls', gs_url_pattern]).splitlines()
+      self.gs_output_cache[gs_url_pattern] = self.gs_context.LS(gs_url_pattern)
     gs_path_list = self.gs_output_cache[gs_url_pattern]
 
     if branch:
@@ -128,8 +128,7 @@ class GSUtil(object):
               filetype=filetype, board=self.board.gsutil_name,
               fileext=fileext[filetype]))
 
-    gs_builds_output = process_utils.CheckOutput(
-        ['gsutil', 'ls', gs_dir]).splitlines()
+    gs_builds_output = self.gs_context.LS(gs_dir)
     logging.debug('Output of `gsutil ls %s`\n: %s', gs_dir, gs_builds_output)
 
     logging.debug('Looking for filespec %s', filespec_re.pattern)
@@ -199,8 +198,7 @@ class GSUtil(object):
 
     raise GSUtilError('Unable to parse URI: %r' % uri)
 
-  @staticmethod
-  def GSDownload(uri, cache_dir=DEFAULT_GSUTIL_CACHE_DIR):
+  def GSDownload(self, uri, cache_dir=None):
     """Downloads a file from Google storage, returning the path to the file.
 
     Downloads are cached in cache_dir.
@@ -208,13 +206,24 @@ class GSUtil(object):
     Args:
       uri: URI to download.
       cache_dir: Path to the cache directory.  Defaults to
-        DEFAULT_GSUTIL_CACHE_DIR.
+        /usr/local/gsutil_cache on CROS DUT, or ${HOME}/gsutil_cache otherwise.
 
     Returns:
       Path to the downloaded file.  The returned path may have an arbitrary
       filename.
     """
-    utils.TryMakeDirs(os.path.dirname(cache_dir))
+    def GetDefaultGSUtilCacheDir():
+      if factory.get_lsb_data():
+        # On CROS DUT, set gsutil cache to stateful partition.
+        base_cache_dir = '/usr/local'
+      else:
+        # Otherwise set it to user's home directory.
+        base_cache_dir = os.environ.get('HOME')
+      return os.path.join(base_cache_dir, 'gsutil_cache')
+
+    if not cache_dir:
+      cache_dir = GetDefaultGSUtilCacheDir()
+    utils.TryMakeDirs(cache_dir)
 
     cached_path = os.path.join(cache_dir, uri.replace('/', '!'))
     if os.path.exists(cached_path):
@@ -223,8 +232,6 @@ class GSUtil(object):
       return cached_path
 
     in_progress_path = cached_path + '.INPROGRESS'
-    process_utils.Spawn(
-        ['gsutil', '-m', 'cp', uri, 'file://' + in_progress_path],
-        check_call=True, log=True)
+    self.gs_context.Copy(uri, 'file://' + in_progress_path)
     shutil.move(in_progress_path, cached_path)
     return cached_path

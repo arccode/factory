@@ -22,17 +22,18 @@ from distutils.version import LooseVersion
 from pkg_resources import parse_version
 
 import factory_common  # pylint: disable=W0611
+from chromite.lib import gs
 from cros.factory.common import CheckDictKeys
 from cros.factory.test import factory
 from cros.factory.test import utils
 from cros.factory.tools import build_board
-from cros.factory.tools.gsutil import GSUtil
+from cros.factory.tools import gsutil
 from cros.factory.tools.make_update_bundle import MakeUpdateBundle
 from cros.factory.tools.mount_partition import MountPartition
 from cros.factory.utils.file_utils import (
     UnopenedTemporaryFile, CopyFileSkipBytes, TryUnlink, ExtractFile, Glob)
 from cros.factory.utils import get_version
-from cros.factory.utils.process_utils import Spawn, CheckOutput
+from cros.factory.utils.process_utils import Spawn
 
 
 REQUIRED_GSUTIL_VERSION = [3, 32]  # 3.32
@@ -151,6 +152,10 @@ class FinalizeBundle(object):
       server.
     new_factory_par: Path to a replacement factory.par.
     factory_toolkit_path: Path to the factory toolkit.
+    test_image_path: Path to the test image.
+    test_image_version: Version of the test image.
+    toolkit_version: Version of the factory toolkit.
+    gsutil: A GSUtil object.
   """
   args = None
   bundle_dir = None
@@ -173,6 +178,7 @@ class FinalizeBundle(object):
   test_image_path = None
   test_image_version = None
   toolkit_version = None
+  gsutil = None
 
   def Main(self):
     if not utils.in_chroot():
@@ -254,6 +260,7 @@ class FinalizeBundle(object):
     self.build_board = build_board.BuildBoard(self.manifest['board'])
     self.board = self.build_board.full_name
     self.simple_board = self.build_board.short_name
+    self.gsutil = gsutil.GSUtil(self.board)
 
     self.bundle_name = self.manifest['bundle_name']
     if not re.match(r'^\d{8}_', self.bundle_name):
@@ -319,22 +326,7 @@ class FinalizeBundle(object):
 
   def CheckGSUtilVersion(self):
     # Check for gsutil >= 3.32.
-    process = Spawn(['gsutil', 'version'],
-                    read_stderr=True, read_stdout=True)
-    if ("No such file or directory: '/usr/lib64/gsutil/CHECKSUM'" in
-        process.stderr_data):
-      # Sigh... workaround install bug
-      version = open('/usr/lib/gsutil/VERSION').read()
-    else:
-      # The version output changed from stderr to stdout in later
-      # versions of gsutil.
-      match = re.search('^gsutil version (.+)',
-                        process.stderr_data + '\n' + process.stdout_data,
-                        re.MULTILINE)
-      assert match, ('Unable to parse "gsutil version" output: %r' %
-                     process.stderr_data)
-      version = match.group(1)
-
+    version = self.gsutil.gs_context.gsutil_version
     # Remove 'pre...' string at the end, if any
     version = re.sub('pre.*', '', version)
     version_split = [int(x) for x in version.split('.')]
@@ -377,9 +369,8 @@ class FinalizeBundle(object):
       for url in try_urls:
         try:
           logging.info('Looking for test image at %s', url)
-          output = Spawn(['gsutil', 'ls', url], log=False, check_output=True,
-                         ignore_stderr=True).stdout_lines()
-        except subprocess.CalledProcessError:
+          output = self.gsutil.gs_context.LS(url)
+        except gs.GSNoSuchKey:
           # Not found; try next channel
           continue
 
@@ -388,7 +379,7 @@ class FinalizeBundle(object):
           url, output)
 
         # Found.  Download it!
-        cached_file = GSUtil.GSDownload(output[0].strip())
+        cached_file = self.gsutil.GSDownload(output[0].strip())
         break
       else:
         raise Exception('Unable to download test image from %r' % try_urls)
@@ -415,7 +406,7 @@ class FinalizeBundle(object):
       source = self._SubstVars(f['source'])
 
       if self.args.download:
-        cached_file = GSUtil.GSDownload(source)
+        cached_file = self.gsutil.GSDownload(source)
 
       if f.get('extract_files'):
         # Gets netboot install shim version from source url since version
@@ -476,8 +467,8 @@ class FinalizeBundle(object):
 
   def _GSFileExists(self, url):
     try:
-      Spawn(['gsutil', '-m', 'ls', url], check_call=True)
-    except subprocess.CalledProcessError:
+      self.gsutil.gs_context.LS(url)
+    except gs.GSNoSuchKey:
       return False
     else:
       return True
@@ -525,8 +516,7 @@ class FinalizeBundle(object):
     major_version = parsed_version[0]
     minor_version = parsed_version[1] if len(parsed_version) > 2 else None
     board_directory = os.path.dirname(os.path.dirname(url))
-    version_url_list = CheckOutput(['gsutil', '-m', 'ls', board_directory],
-                                   check_call=True).splitlines()
+    version_url_list = self.gsutil.gs_context.LS(board_directory)
     latest_version = version
     for version_url in version_url_list:
       version_url = version_url.rstrip('/')
@@ -942,7 +932,7 @@ class FinalizeBundle(object):
       factory_par_data = f.read()
 
     # Look for files that are identical copies of factory.par.
-    for root, dummy_dirs, files in os.walk(self.bundle_dir):
+    for root, _, files in os.walk(self.bundle_dir):
       for f in files:
         path = os.path.join(root, f)
         if path == factory_par_path:

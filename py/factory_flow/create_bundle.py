@@ -344,7 +344,8 @@ class CreateBundle(FactoryFlowCommand):
     #   - depthcharge: image.net.bin
     #
     # There is only one of the above binary in the tarball.
-    netboot_firmware_tarball_cache = GSUtil.GSDownload(netboot_firmware_url)
+    netboot_firmware_tarball_cache = self.gsutil.GSDownload(
+        netboot_firmware_url)
     tarball_files = process_utils.CheckOutput(
         ['tar', '-tf', netboot_firmware_tarball_cache])
     if 'image.net.bin' in tarball_files:
