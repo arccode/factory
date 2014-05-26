@@ -36,7 +36,7 @@ class ResourceMapApp(object):
     logging.debug('resourcemap app: %s', str(session))
     if session.REQUEST_METHOD == 'GET':
       dut_info = ParseDUTHeader(session.HTTP_X_UMPIRE_DUT)
-      return session.Response(GetResourceMap(dut_info, self.env))
+      return session.Respond(GetResourceMap(dut_info, self.env))
     return session.BadRequest400()
 
   def GetPathInfo(self):
