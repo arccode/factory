@@ -89,7 +89,7 @@ def CreateTestLists():
 
     with TestGroup(id='OfflineDebug', label_zh='非产线除错用'):
       OperatorTest(
-          id='VSWRDebug',
+          id='VSWRDebugWiFi',
           label_en='VSWR WiFi Antenna Debug',
           label_zh=u'VSWR WiFi 天线非产线除错用',
           pytest_name='vswr',
@@ -97,7 +97,7 @@ def CreateTestLists():
                  'timezone': _DEFAULT_TIMEZONE,
                  'load_from_shopfloor': False})
       OperatorTest(
-          id='VSWRDebug',
+          id='VSWRDebugCellular',
           label_en='VSWR Cellular Antenna Debug',
           label_zh=u'VSWR Cellular 天线非产线除错用',
           pytest_name='vswr',
@@ -105,7 +105,7 @@ def CreateTestLists():
                  'timezone': _DEFAULT_TIMEZONE,
                  'load_from_shopfloor': False})
       OperatorTest(
-          id='VSWRDebug',
+          id='VSWRDebugLTE',
           label_en='VSWR LTE Antenna Debug',
           label_zh=u'VSWR LTE 天线非产线除错用',
           pytest_name='vswr',
