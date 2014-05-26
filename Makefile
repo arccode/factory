@@ -147,6 +147,12 @@ bundle: par
 	ln -s factory.par $(FACTORY_BUNDLE)/shopfloor/manage
 	ln -s factory.par $(FACTORY_BUNDLE)/shopfloor/minijack
 	ln -s factory.par $(FACTORY_BUNDLE)/shopfloor/shopfloor
+	mkdir -p $(FACTORY_BUNDLE)/factory_flow
+	# Create a dedicated directory for factory flow tools.
+	cp -a $(PAR_BUILD_DIR)/factory.par $(FACTORY_BUNDLE)/factory_flow
+	ln -s factory.par $(FACTORY_BUNDLE)/factory_flow/factory_flow
+	ln -s factory.par $(FACTORY_BUNDLE)/factory_flow/finalize_bundle
+	ln -s factory.par $(FACTORY_BUNDLE)/factory_flow/test_factory_flow
 	# Archive docs into bundle
 	$(MAKE) doc
 	cp build/doc.tar.bz2 $(FACTORY_BUNDLE)
