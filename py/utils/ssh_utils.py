@@ -33,14 +33,15 @@ def _Init():
   We do not use generated temp files because we do not want to leave dangling
   temp files around.
   """
+  # Import chromite here so that importing this module on a DUT does not raise
+  # exception.
+  from chromite.lib import remote_access
   global testing_rsa    # pylint: disable=W0603
   if not testing_rsa:
     temp_fd, temp_file_name = tempfile.mkstemp()
 
     # Copy testing_rsa into a private file since otherwise ssh will ignore it
-    os.write(temp_fd, open(os.path.join(
-        os.environ.get('CROS_WORKON_SRCROOT'),
-        'src/scripts/mod_for_test_scripts/ssh_keys/testing_rsa')).read())
+    os.write(temp_fd, open(remote_access.TEST_PRIVATE_KEY).read())
     os.fsync(temp_fd)
     os.fchmod(temp_fd, 0400)
     os.close(temp_fd)
