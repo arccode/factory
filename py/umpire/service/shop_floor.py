@@ -12,7 +12,8 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.service import umpire_service
 
 
-SHOP_FLOOR_FCGI = 'usr/local/factory/bin/shop_floor_launcher'
+# TODO(rongchang): Check why symlink doesn't work.
+SHOP_FLOOR_FCGI = 'usr/local/factory/py/umpire/shop_floor_launcher.py'
 PROCESS_NAME_PREFIX = 'shop_floor_'
 
 
