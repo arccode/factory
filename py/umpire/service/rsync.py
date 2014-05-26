@@ -55,13 +55,13 @@ class RsyncService(umpire_service.UmpireService):
 
     """
     self.properties['update_url'] = RSYNC_URL_TEMPLATE % dict(
-        ip=umpire_config.ip, port=env.rsync_port, module=TOOLKIT_MODULE)
+        ip=umpire_config.ip, port=env.umpire_rsync_port, module=TOOLKIT_MODULE)
     config_path = os.path.join(env.config_dir, RSYNCD_CONFIG_FILENAME)
     log_path = os.path.join(env.log_dir, RSYNCD_LOG_FILENAME)
     pid_path = os.path.join(env.pid_dir, RSYNCD_PID_FILENAME)
     rsyncd_config = RSYNCD_CONFIG_TEMPLATE % dict(
-        port=env.rsync_port, pidfile=pid_path, logfile=log_path)
-    # Add default module for toolkit download.
+        port=env.umpire_rsync_port, pidfile=pid_path, logfile=log_path)
+    # Add toolkit modules.
     rsyncd_config += RSYNCD_CONFIG_MODULE_PATH_TEMPLATE % dict(
         module=TOOLKIT_MODULE, path=env.device_toolkits_dir, readonly='yes')
     # Add deprecated auxiliary log support.
