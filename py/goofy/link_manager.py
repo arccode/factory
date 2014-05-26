@@ -14,11 +14,11 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.goofy.discoverer import DUTDiscoverer
 from cros.factory.goofy.discoverer import HostDiscoverer
 from cros.factory.test import utils
+from cros.factory.utils.jsonrpc_utils import JSONRPCServer
+from cros.factory.utils.jsonrpc_utils import TimeoutJSONRPCTransport
 from cros.factory.utils.net_utils import GetAllIPs
 from cros.factory.utils.net_utils import GetEthernetInterfaces
 from cros.factory.utils.net_utils import GetEthernetIp
-from cros.factory.utils.net_utils import JSONRPCServer
-from cros.factory.utils.net_utils import TimeoutJSONRPCTransport
 
 HOST_LINK_RPC_PORT = 4020
 DUT_LINK_RPC_PORT = 4021
