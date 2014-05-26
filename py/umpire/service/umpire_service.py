@@ -598,3 +598,19 @@ def GetAllServiceNames():
     List of service name strings.
   """
   return _INSTANCE_MAP.keys()
+
+
+def FindServicesWithProperty(config, prop):
+  """Yields service instance that has specified property.
+
+  Args:
+    config: UmpireConfig object, or config dict.
+    prop: the property string to search.
+
+  Yields:
+    Service instance.
+  """
+  for service in config['services']:
+    instance = GetServiceInstance(service)
+    if instance.properties.get(prop, None):
+      yield instance

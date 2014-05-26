@@ -16,6 +16,7 @@ import xmlrpclib
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.bundle_selector import SelectRuleset
 from cros.factory.umpire.common import ParseResourceName, UmpireError
+from cros.factory.umpire.service.umpire_service import FindServicesWithProperty
 from cros.factory.umpire.umpire_rpc import RPCCall, UmpireRPC
 from cros.factory.umpire.utils import Deprecate
 
@@ -148,6 +149,8 @@ class UmpireDUTCommands(UmpireRPC):
   @staticmethod
   def _IsTagEqual(component, component_tag, resource_tag):
     """Compares component tag and resouce tag."""
+    if component_tag is None:
+      return False
     if component in HASH_COMPONENTS:
       return component_tag.startswith(resource_tag)
     return component_tag == resource_tag
@@ -231,14 +234,11 @@ class UmpireDUTCommands(UmpireRPC):
       resource_url = None
       if component == 'device_factory_toolkit':
         # Select first service provides 'toolkit_update' property.
-        update_services = filter(
-            lambda s: s.properties.get('toolkit_update', False),
-            self.env.config['services'])
-        if update_services:
-          service = update_services[0]
-          resource_scheme = service.properties.get('update_scheme', None)
-          resource_url = service.properties.get('update_url', None)
-          # Concatenate device toolkit hash.
+        iterable = FindServicesWithProperty(self.env.config, 'toolkit_update')
+        instance = next(iterable, None)
+        if instance:
+          resource_scheme = instance.properties.get('update_scheme', None)
+          resource_url = instance.properties.get('update_url', None)
           if resource_url:
             resource_url = os.path.join(resource_url, resource_hash)
       else:
