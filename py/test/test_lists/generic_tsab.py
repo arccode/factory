@@ -9,7 +9,9 @@
 
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test.test_lists.test_lists import OperatorTest, TestList
+from cros.factory.test.test_lists.test_lists import AutomatedSequence
+from cros.factory.test.test_lists.test_lists import OperatorTest
+from cros.factory.test.test_lists.test_lists import TestList
 
 
 def CreateTestLists():
@@ -20,7 +22,15 @@ def CreateTestLists():
   be changed.
   """
   with TestList('tsab_station', 'Touchscreen calibration on AB panel'):
-    OperatorTest(
-        id='Touchscreen_Calibration',
-        label_zh=u'触控面板',
-        pytest_name='touchscreen_calibration')
+    with AutomatedSequence(id='TouchscreenCalibrationSequence',
+                           label_zh=u'触控面板校正程序'):
+      OperatorTest(
+          id='TouchscreenCalibration',
+          label_zh=u'触控面板校正',
+          pytest_name='touchscreen_calibration')
+
+      OperatorTest(
+          id='SyncShopfloor',
+          label_zh=u'测试结果上传',
+          pytest_name='flush_event_logs',
+          dargs={'disable_update': True})
