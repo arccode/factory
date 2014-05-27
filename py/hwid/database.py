@@ -137,7 +137,7 @@ class Database(object):
     with open(file_name, 'r') as f:
       db_text = f.read()
     # Ignore the 'checksum: <hash value>\n' line when calculating checksum.
-    db_text = re.sub(r'^checksum:.*\n$', '', db_text, flags=re.MULTILINE)
+    db_text = re.sub(r'^checksum:.*$\n?', '', db_text, flags=re.MULTILINE)
     return hashlib.sha1(db_text).hexdigest()    # pylint: disable=E1101
 
   @staticmethod
