@@ -378,7 +378,8 @@ class UmpireEnvForTest(UmpireEnv):
         self.log_dir,
         self.pid_dir,
         self.resources_dir,
-        self.server_toolkits_dir):
+        self.server_toolkits_dir,
+        self.umpire_data_dir):
       os.makedirs(fundamental_subdir)
 
   def __del__(self):
