@@ -10,7 +10,6 @@ To validate a YAML file 'abc.yaml':
   umpire_config = UmpireConfig('abc.yaml')
 """
 
-import os
 import yaml
 
 import factory_common  # pylint: disable=W0611
@@ -281,12 +280,12 @@ class UmpireConfig(dict):
     default bundle's existance.
 
     Args:
-      config_path: path to an Umpire config file or an UmpireConfig dict.
+      config: path to an Umpire config file or an UmpireConfig dict.
       validate: True to validate. Note that it would be removed once
           all UmpireConfig components are implemented.
     """
     self.bundle_map = {}
-    if isinstance(config, str) and os.path.isfile(config):
+    if isinstance(config, str):
       with open(config, 'r') as f:
         config = yaml.load(f)
 

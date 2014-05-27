@@ -47,6 +47,9 @@ class TestUmpireConfig(unittest.TestCase):
     self.assertEqual('test', bundle['id'])
     self.assertEqual('bundle for test', bundle['note'])
 
+  def testLoadConfigNotFound(self):
+    self.assertRaises(IOError, config.UmpireConfig, '/path/to/no/where')
+
   def testLoadConfigFromDict(self):
     with open(EMPTY_SERVICES_CONFIG) as f:
       config_dict = yaml.load(f)
