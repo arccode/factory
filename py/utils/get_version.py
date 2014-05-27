@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Copyright (c) 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -11,6 +9,7 @@ import os
 import re
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.hwid import hwid_utils
 from cros.factory.tools.mount_partition import MountPartition
 from cros.factory.utils.file_utils import GunzipSingleFile, SetFileExecutable
 from cros.factory.utils.process_utils import Spawn
@@ -95,3 +94,37 @@ def GetReleaseVersionFromOmahaChannelFile(path):
   with GunzipSingleFile(path) as unzip_path:
     with MountPartition(unzip_path, is_omaha_channel=True) as mount_point:
       return GetReleaseVersion(mount_point)
+
+
+def GetHWIDVersion(path):
+  """Gets HWID version from HWID v3 bundle file.
+
+  It also verifies checksum.
+
+  Args:
+    path: HWID v3 bundle file path ('.gz' supported).
+
+  Returns:
+    HWID checksum as version. None if file is not found or checksum failed.
+  """
+  def _GetHWIDVersion(hwid_path):
+    with open(hwid_path) as f:
+      hwid = f.read()
+      match = re.search(r'^checksum: (.*)$\n?', hwid, flags=re.MULTILINE)
+      if match:
+        expected_checksum = match.group(1)
+        actual_checksum = hwid_utils.ComputeDatabaseChecksum(hwid_path)
+        if expected_checksum == actual_checksum:
+          return expected_checksum
+        else:
+          logging.warning('HWID verification failed: expected: %s actual: %s',
+                          expected_checksum, actual_checksum)
+      else:
+        logging.warning('Cannot extract checksum from HWID: %s', path)
+    return None
+
+  if path.endswith('.gz'):
+    with GunzipSingleFile(path) as unzip_path:
+      return _GetHWIDVersion(unzip_path)
+  else:
+    return _GetHWIDVersion(path)
