@@ -269,14 +269,25 @@ class UmpireEnv(object):
       """
       if res_type is None:
         return ''
+
       if res_type == ResourceType.FIRMWARE:
-        bios, ec = get_version.GetFirmwareVersionsFromOmahaChannelFile(
-            file_name)
+        bios, ec = None, None
+        if file_name.endswith('.gz'):
+          bios, ec = get_version.GetFirmwareVersionsFromOmahaChannelFile(
+              file_name)
+        else:
+          bios, ec = get_version.GetFirmwareVersions(file_name)
         return '%s:%s' % (bios if bios else '', ec if ec else '')
-      elif (res_type == ResourceType.ROOTFS_RELEASE or
-            res_type == ResourceType.ROOTFS_TEST):
+
+      if (res_type == ResourceType.ROOTFS_RELEASE or
+          res_type == ResourceType.ROOTFS_TEST):
         version = get_version.GetReleaseVersionFromOmahaChannelFile(file_name)
         return version if version else ''
+
+      if res_type == ResourceType.HWID:
+        version = get_version.GetHWIDVersion(file_name)
+        return version if version else ''
+
       return ''
 
     file_utils.CheckPath(file_name, 'source')

@@ -26,6 +26,7 @@ TEST_CONFIG = os.path.join(TESTDATA_DIR,
                            'minimal_empty_services_umpire.yaml')
 TOOLKIT_DIR = os.path.join(TESTDATA_DIR, 'install_factory_toolkit.run')
 
+
 class UmpireEnvTest(unittest.TestCase):
 
   def setUp(self):
@@ -209,7 +210,7 @@ class UmpireEnvTest(unittest.TestCase):
       self.assertRaisesRegexp(UmpireError, 'Hash collision',
                               self.env.AddResource, resource_to_add)
 
-  def testAddResourceFirmware(self):
+  def testAddResourceFirmwareOmahaChannel(self):
     with file_utils.TempDirectory() as temp_dir:
       self.env.base_dir = temp_dir
       os.mkdir(self.env.resources_dir)
@@ -228,6 +229,34 @@ class UmpireEnvTest(unittest.TestCase):
       EC_VERSION = 'ec_0.0.2'
       get_version.GetFirmwareVersionsFromOmahaChannelFile(
           resource_to_add).AndReturn((BIOS_VERSION, EC_VERSION))
+      self.mox.ReplayAll()
+
+      resource_path = self.env.AddResource(resource_to_add,
+                                           res_type=ResourceType.FIRMWARE)
+      expected_version = ':'.join([BIOS_VERSION, EC_VERSION])
+      self.assertTrue(resource_path.endswith(
+          'resources/%s#%s#%.8s' % (file_name, expected_version,
+                                    resource_md5)))
+      self.assertTrue(os.path.exists(resource_path))
+
+  def testAddResourceFirmware(self):
+    with file_utils.TempDirectory() as temp_dir:
+      self.env.base_dir = temp_dir
+      os.mkdir(self.env.resources_dir)
+
+      file_name = 'chromeos-firmwareupdate'
+      resource_to_add = os.path.join(temp_dir, file_name)
+      file_utils.WriteFile(resource_to_add, 'firmware')
+      resource_md5 = file_utils.Md5sumInHex(resource_to_add)[
+          :RESOURCE_HASH_DIGITS]
+
+      # TODO(deanliao): use real chromeos-firmwareupdate in which Umpire can
+      # extract version from.
+      self.mox.StubOutWithMock(get_version, 'GetFirmwareVersions')
+      BIOS_VERSION = 'bios_0.0.1'
+      EC_VERSION = 'ec_0.0.2'
+      get_version.GetFirmwareVersions(resource_to_add).AndReturn(
+          (BIOS_VERSION, EC_VERSION))
       self.mox.ReplayAll()
 
       resource_path = self.env.AddResource(resource_to_add,
@@ -263,6 +292,44 @@ class UmpireEnvTest(unittest.TestCase):
       self.assertTrue(resource_path.endswith(
           'resources/%s#%s#%.8s' % (file_name, TEST_IMAGE_VERSION,
                                     resource_md5)))
+      self.assertTrue(os.path.exists(resource_path))
+
+  def testAddResourceHWID(self):
+    with file_utils.TempDirectory() as temp_dir:
+      self.env.base_dir = temp_dir
+      os.mkdir(self.env.resources_dir)
+
+      # HWID version extracted from testdata/hwid_v3_bundle.sh checksum field.
+      file_name = 'hwid_v3_bundle.sh'
+      hwid_version = 'a95cd8def470df2e7a8d549af887897e2d095bb0'
+      resource_to_add = os.path.join(TESTDATA_DIR, file_name)
+      resource_md5 = file_utils.Md5sumInHex(resource_to_add)[
+          :RESOURCE_HASH_DIGITS]
+
+      resource_path = self.env.AddResource(resource_to_add,
+                                           res_type=ResourceType.HWID)
+      print resource_path
+      self.assertTrue(resource_path.endswith(
+          'resources/%s#%s#%.8s' % (file_name, hwid_version, resource_md5)))
+      self.assertTrue(os.path.exists(resource_path))
+
+  def testAddResourceHWIDGzipped(self):
+    with file_utils.TempDirectory() as temp_dir:
+      self.env.base_dir = temp_dir
+      os.mkdir(self.env.resources_dir)
+
+      # HWID version extracted from testdata/hwid.gz checksum field.
+      file_name = 'hwid.gz'
+      hwid_version = 'a95cd8def470df2e7a8d549af887897e2d095bb0'
+      resource_to_add = os.path.join(TESTDATA_DIR, file_name)
+
+      resource_md5 = file_utils.Md5sumInHex(resource_to_add)[
+          :RESOURCE_HASH_DIGITS]
+
+      resource_path = self.env.AddResource(resource_to_add,
+                                           res_type=ResourceType.HWID)
+      self.assertTrue(resource_path.endswith(
+          'resources/%s#%s#%.8s' % (file_name, hwid_version, resource_md5)))
       self.assertTrue(os.path.exists(resource_path))
 
   def testAddResourceToolkitNoVersion(self):

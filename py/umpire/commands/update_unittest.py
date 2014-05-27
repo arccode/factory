@@ -21,7 +21,8 @@ from cros.factory.utils import get_version
 
 
 TEST_DIR = os.path.dirname(sys.modules[__name__].__file__)
-MINIMAL_UMPIRE_CONFIG = os.path.join(TEST_DIR, 'testdata',
+TESTDATA_DIR = os.path.join(TEST_DIR, 'testdata')
+MINIMAL_UMPIRE_CONFIG = os.path.join(TESTDATA_DIR,
                                      'minimal_empty_services_umpire.yaml')
 
 
@@ -175,9 +176,10 @@ class ResourceUpdaterTest(unittest.TestCase):
     file_utils.WriteFile(fsi_path, 'new fsi')
     new_fsi_resource = 'rootfs-release.gz#%s#932ecf09' % FSI_VERSION
 
-    hwid_path = os.path.join(self.temp_dir, 'hwid.gz')
-    file_utils.WriteFile(hwid_path, 'new hwid')
-    new_hwid_resource = 'hwid.gz##8c8fe9fe'
+    # HWID version extracted from hwid.gz's checksum field.
+    hwid_path = os.path.join(TESTDATA_DIR, 'hwid.gz')
+    new_hwid_resource = ('hwid.gz#a95cd8def470df2e7a8d549af887897e2d095bb0'
+                         '#061d5528')
 
     # TODO(deanliao): use real firmware.gz/rootfs-release.gz in which
     #     Umpire can extract version from.
