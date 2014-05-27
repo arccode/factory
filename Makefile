@@ -180,15 +180,15 @@ lint:
 	echo ...no lint errors! You are awesome!; \
 	rm -f $$out
 
-PRESUBMIT_FILES := $(if $(PRESUBMIT_FILES),\
-	             $(shell realpath --relative-to=. $$PRESUBMIT_FILES))
+# Substitute PRESUBMIT_FILES to relative path (similar to
+# GNU realpath "--relative-to=.", but works on non-GNU realpath).
+PRESUBMIT_FILES := $(if $(PRESUBMIT_FILES), \
+	             $(shell realpath $$PRESUBMIT_FILES | \
+		       sed "s'^$$(realpath $$(pwd))/''g"))
 
 chroot-presubmit:
-	if [ ! -e /etc/debian_chroot ]; then \
-	    echo "This script must be run inside the chroot. Run this first:"; \
-	    echo "    cros_sdk"; \
-	    exit 1; \
-	fi
+	$(MAKE) -s lint-presubmit
+	$(MAKE) -s test-presubmit
 
 lint-presubmit:
 	$(MAKE) lint \
@@ -205,8 +205,17 @@ test-presubmit:
 	if [ -n "$$changed" ]; then \
 	    echo "Files have changed since last time unit tests passed:"; \
 	    echo "$$changed" | sed -e 's/^/  /'; \
-	    echo 'Please run "make test".'; \
+	    echo 'Please run "make test" inside chroot.'; \
 	    exit 1; \
+	fi
+
+presubmit:
+	@if [ ! -e /etc/debian_chroot ]; then \
+		echo "Running presubmit checks inside chroot..."; \
+		cros_sdk PRESUBMIT_FILES="$(PRESUBMIT_FILES)" -- \
+		make -C ../platform/factory -s chroot-presubmit; \
+	else \
+		$(MAKE) -s chroot-presubmit; \
 	fi
 
 clean:
