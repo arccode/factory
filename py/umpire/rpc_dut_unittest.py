@@ -5,17 +5,22 @@
 # found in the LICENSE file.
 
 import copy
+import glob
 import logging
 import mox
 import os
+import shutil
+import tempfile
 import time
 from twisted.internet import reactor
 from twisted.trial import unittest
 from twisted.web import server, xmlrpc
+import xmlrpclib
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.bundle_selector import SelectRuleset
 from cros.factory.umpire.rpc_dut import (
+    LogDUTCommands,
     RootDUTCommands,
     UmpireDUTCommands,
     FACTORY_STAGES)
@@ -23,7 +28,7 @@ from cros.factory.umpire.umpire_env import UmpireEnv
 from cros.factory.umpire.utils import ConcentrateDeferreds
 from cros.factory.umpire.version import UMPIRE_VERSION_MAJOR
 from cros.factory.umpire.web.xmlrpc import XMLRPCContainer
-
+from cros.factory.utils import file_utils
 
 TEST_RPC_PORT = 8088
 TESTDIR = os.path.abspath(os.path.join(os.path.split(__file__)[0], 'testdata'))
@@ -33,6 +38,7 @@ TESTCONFIG = os.path.join(TESTDIR, 'enable_update.yaml')
 class DUTRPCTest(unittest.TestCase):
 
   def setUp(self):
+    self.temp_dir = tempfile.mkdtemp()
     self.env = UmpireEnv()
     self.env.base_dir = TESTDIR
     self.env.LoadConfig(custom_path=TESTCONFIG)
@@ -41,9 +47,11 @@ class DUTRPCTest(unittest.TestCase):
                               allowNone=True)
     root_commands = RootDUTCommands(self.env)
     umpire_dut_commands = UmpireDUTCommands(self.env)
+    log_dut_commands = LogDUTCommands(self.env)
     xmlrpc_resource = XMLRPCContainer()
     xmlrpc_resource.AddHandler(root_commands)
     xmlrpc_resource.AddHandler(umpire_dut_commands)
+    xmlrpc_resource.AddHandler(log_dut_commands)
     self.twisted_port = reactor.listenTCP(  # pylint: disable=E1101
         TEST_RPC_PORT, server.Site(xmlrpc_resource))
     # The device info that matches TESTCONFIG
@@ -60,11 +68,11 @@ class DUTRPCTest(unittest.TestCase):
           'firmware_ec': 'ec_v0.2',
           'firmware_bios': 'bios_v0.3'}}
 
-
   def tearDown(self):
     self.twisted_port.stopListening()
     self.mox.UnsetStubs()
     self.mox.VerifyAll()
+    shutil.rmtree(self.temp_dir)
 
   def Call(self, function, *args):
     return self.proxy.callRemote(function, *args)
@@ -136,6 +144,60 @@ class DUTRPCTest(unittest.TestCase):
       deferred.addCallback(CheckSingleComponentUpdate)
       deferreds.append(deferred)
     return ConcentrateDeferreds(deferreds)
+
+  def testUploadReport(self):
+    def CheckTrue(result):
+      self.assertEqual(result, True)
+      return result
+
+    def CheckReport(content, namestrings=None):
+      if namestrings is None:
+        namestrings = []
+      report_files = glob.glob(os.path.join(
+          self.env.umpire_data_dir, 'report', '*', '*'))
+      logging.debug('report files: %r', report_files)
+      self.assertTrue(report_files)
+      report_path = report_files[0]
+      with open(report_path, 'rb') as f:
+        self.assertEqual(f.read(), content)
+      for name in namestrings:
+        self.assertIn(name, report_path)
+      return True
+
+    self.env.base_dir = self.temp_dir
+    file_utils.TryMakeDirs(self.env.umpire_data_dir)
+    d = self.Call('UploadReport', 'serial1234', xmlrpclib.Binary('content'),
+                  'rpt_name5678', 'stage90')
+    d.addCallback(CheckTrue)
+    d.addCallback(lambda _: CheckReport(
+        'content', namestrings=['serial1234', 'rpt_name5678', 'stage90',
+                                'report', 'rpt.xz']))
+    return d
+
+  def testUploadEvent(self):
+    def CheckTrue(result):
+      self.assertEqual(result, True)
+      return result
+
+    def CheckEvent(content):
+      event_files = glob.glob(os.path.join(
+          self.env.umpire_data_dir, 'eventlog', '*', '*'))
+      logging.debug('event files: %r', event_files)
+      self.assertTrue(event_files)
+      event_path = event_files[0]
+      with open(event_path, 'r') as f:
+        self.assertEqual(f.read(), content)
+      return True
+
+    self.env.base_dir = self.temp_dir
+    file_utils.TryMakeDirs(self.env.umpire_data_dir)
+    d = self.Call('UploadEvent', 'event_log_name', '123')
+    d.addCallback(CheckTrue)
+    d.addCallback(lambda _: CheckEvent('123'))
+    d.addCallback(lambda _: self.Call('UploadEvent', 'event_log_name', '456'))
+    d.addCallback(CheckTrue)
+    d.addCallback(lambda _: CheckEvent('123456'))
+    return d
 
 
 if os.environ.get('LOG_LEVEL'):

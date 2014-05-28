@@ -9,9 +9,11 @@
 import glob
 import logging
 import os
+import shutil
 import time
-from twisted.web import xmlrpc
 import xmlrpclib
+from twisted.internet import threads
+from twisted.web import xmlrpc
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.bundle_selector import SelectRuleset
@@ -19,6 +21,7 @@ from cros.factory.umpire.common import ParseResourceName, UmpireError
 from cros.factory.umpire.service.umpire_service import FindServicesWithProperty
 from cros.factory.umpire.umpire_rpc import RPCCall, UmpireRPC
 from cros.factory.umpire.utils import Deprecate
+from cros.factory.utils import file_utils
 
 
 VERSION_COMPONENTS = ['firmware_bios', 'firmware_ec', 'hwid', 'rootfs_test',
@@ -37,7 +40,6 @@ def Fault(message, reason=xmlrpclib.INVALID_METHOD_PARAMS):
   incorrectly.
   """
   return xmlrpc.Fault(reason, UmpireError(message))
-
 
 
 class RootDUTCommands(UmpireRPC):
@@ -255,3 +257,145 @@ class UmpireDUTCommands(UmpireRPC):
           'url': resource_url}
 
     return update_matrix
+
+
+class LogDUTCommands(UmpireRPC):
+
+  """DUT log upload procedures.
+
+  RPC URL:
+    http://umpire_server_address:umpire_port/umpire
+  """
+
+  def _ReturnTrue(self, dummy_result):
+    """Returns true."""
+    return True
+
+  def _UnwrapBlob(self, blob):
+    """Umwraps a blob object."""
+    return blob.data if isinstance(blob, xmlrpclib.Binary) else blob
+
+  def _Now(self):
+    """Gets current time."""
+    return time.gmtime(time.time())
+
+  def _SaveUpload(self, upload_type, file_name, content, mode='wb'):
+    """Saves log file.
+
+    This function saves DUT data. Since file saving is a blocking call,
+    _SaveUpload() should be called in a separate thread context.
+
+    Example:
+      @RPCCall
+      def DUTUpload(...)
+        d = threads.deferToThread(lambda: self.SaveUpload(type, name, data))
+        return d
+
+    Args:
+      upload_type: one of LogRPCCommand.LOG_TYPES.
+      file_name: full basename of log file.
+      content: binary data.
+      mode: open file mode. 'wb' to write binary file, 'a' to append file.
+    """
+    with file_utils.UnopenedTemporaryFile() as temp_path:
+      # To support pathes in file_name, the save_dir will be splitted after
+      # concatenate to full save_path.
+      save_path = os.path.join(self.env.umpire_data_dir, upload_type,
+                               time.strftime('%Y%m%d', self._Now()),
+                               file_name)
+      save_dir = os.path.dirname(os.path.abspath(save_path))
+      file_utils.TryMakeDirs(save_dir)
+      if mode == 'a' and os.path.isfile(save_path):
+        shutil.copy2(save_path, temp_path)
+      open(temp_path, mode).write(content)
+      # Do not use os.rename() to move file. os.rename() behavior is OS
+      # depandent.
+      shutil.move(temp_path, save_path)
+
+  @RPCCall
+  @Deprecate
+  def UploadReport(self, serial, report_blob, report_name=None, stage='FA'):
+    """Uploads a report file.
+
+    Args:
+      serial: A string of device serial number.
+      report_blob: Blob of compressed report to be stored (must be prepared by
+          shopfloor.Binary)
+      report_name: (Optional) Suggested report file name. This is uslally
+          assigned by factory test client programs (ex, gooftool); however
+          server implementations still may use other names to store the report.
+      stage: Current testing stage, SMT, RUNIN, FA, or GRT.
+
+    Returns:
+      Deferred object that waits for log saving thread to complete.
+
+    RPC returns:
+      True on success.
+
+    Raises:
+      ValueError if serial is invalid, or other exceptions defined by individual
+      modules. Note this will be converted to xmlrpclib.Fault when being used as
+      a XML-RPC server module.
+    """
+    opt_name = ('-' + report_name) if report_name else ''
+    file_name = '{stage}{opt_name}-{serial}-{gmtime}.rpt.xz'.format(
+        stage=stage, opt_name=opt_name, serial=serial,
+        gmtime=time.strftime('%Y%m%dT%H%M%SZ', self._Now()))
+    d = threads.deferToThread(lambda: self._SaveUpload(
+        'report', file_name, self._UnwrapBlob(report_blob)))
+    d.addCallback(self._ReturnTrue)
+    return d
+
+  @RPCCall
+  @Deprecate
+  def UploadEvent(self, log_name, chunk):
+    """Uploads a chunk of events.
+
+    In addition to append events to a single file, we appends event to a
+    directory that split on an daily basis.
+
+    Args:
+      log_name: A string of the event log filename. Event logging module creates
+          event files with an unique identifier (uuid) as part of the filename.
+      chunk: A string containing one or more events. Events are in YAML format
+          and separated by a "---" as specified by YAML. A chunk contains one or
+          more events with separator.
+
+    Returns:
+      Deferred object that waits for log saving thread to complete.
+
+    RPC returns:
+      True on success.
+
+    Raises:
+      IOError if unable to save the chunk of events.
+    """
+    d = threads.deferToThread(lambda: self._SaveUpload(
+        'eventlog', log_name, self._UnwrapBlob(chunk), mode='a'))
+    d.addCallback(self._ReturnTrue)
+    return d
+
+  @RPCCall
+  def SaveAuxLog(self, name, contents):
+    """Saves an auxiliary log into the umpire_data/aux_logs directory.
+
+    In general, this should probably be compressed to save space.
+
+    Args:
+      name: Name of the report.  Any existing log with the same name will be
+        overwritten.  Subdirectories are allowed.
+      contents: Contents of the report.  If this is binary, it should be
+        wrapped in a shopfloor.Binary object.
+    """
+    contents = self.UnwrapBlob(contents)
+
+    # Disallow absolute paths and paths with '..'.
+    if os.path.isabs(name):
+      raise ValueError('Disallow absolute pathes')
+    if '..' in os.path.split(name):
+      raise ValueError('Disallow ".." in pathes')
+
+    d = threads.deferToThread(lambda: self._SaveUpload(
+        'aux_log', name, self._UnwrapBlob(contents)))
+    d.addCallback(self._ReturnTrue)
+    return d

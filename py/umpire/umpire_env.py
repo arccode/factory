@@ -32,6 +32,7 @@ _UMPIRED_PID_FILE = 'umpired.pid'
 _UMPIRED_LOG_FILE = 'umpired.log'
 _DEVICE_TOOLKITS_DIR = os.path.join('toolkits', 'device')
 _SERVER_TOOLKITS_DIR = os.path.join('toolkits', 'server')
+_UMPIRE_DATA_DIR = 'umpire_data'
 _RESOURCES_DIR = 'resources'
 _CONFIG_DIR = 'conf'
 _LOG_DIR = 'log'
@@ -154,6 +155,10 @@ class UmpireEnv(object):
   @property
   def umpire_version_minor(self):
     return UMPIRE_VERSION_MINOR
+
+  @property
+  def umpire_data_dir(self):
+    return os.path.join(self.base_dir, _UMPIRE_DATA_DIR)
 
   def LoadConfig(self, staging=False, custom_path=None):
     """Loads Umpire config file.
