@@ -10,7 +10,10 @@ It parses command line arguments, packs them and makes JSON RPC call to
 Umpire daemon (umpired). "init" command is an exception as umpired is not
 running at that time.
 """
+
+import logging
 import os
+import xmlrpclib
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.common import SetupLogging
@@ -25,6 +28,20 @@ from cros.factory.utils import file_utils
 
 # Default Umpire base directory relative to root dir.
 _DEFAULT_BASE_DIR = os.path.join('var', 'db', 'factory', 'umpire')
+
+
+def UmpireCLI(env):
+  """Gets connection to Umpire CLI XMLRPC server.
+
+  Args:
+    env: UmpireEnv object to get umpire_cli_port.
+
+  Returns:
+    A logical connection to an XML-RPC server
+  """
+  uri = 'http://127.0.0.1:%d' % env.umpire_cli_port
+  logging.debug('UmpireCLI uri: %s', uri)
+  return xmlrpclib.Server(uri)
 
 
 @Command('init',
@@ -94,7 +111,7 @@ def Init(args, env, root_dir='/'):
                       'bundle_name in bundle\'s MANIFEST.yaml')),
          CmdArg('bundle_path', default='.',
                 help='Bundle path. If not specified, use local path.'))
-def ImportBundle(dummy_args, dummy_env):
+def ImportBundle(args, env):
   """Imports a factory bundle to Umpire.
 
   It does the following: 1) sanity check for Umpire Config; 2) copy bundle
@@ -102,28 +119,46 @@ def ImportBundle(dummy_args, dummy_env):
   4) prepend a ruleset for the new bundle; 5) mark the updated config as
   staging and prompt user to edit it.
   """
-  raise NotImplementedError
+  cli = UmpireCLI(env)
+  cli.ImportBundle(os.path.realpath(args.bundle_path),
+                   bundle_id=args.bundle_id, note=args.note)
 
 
 @Command('update',
-         CmdArg('--from',
+         CmdArg('--from', dest='source_id',
                 help=('the bundle id to update. If not specified, update the '
                       'last one in rulesets')),
-         CmdArg('--to',
+         CmdArg('--to', dest='dest_id',
                 help=('bundle id for the new updated bundle. If omitted, the '
                       'bundle is updated in place')),
          CmdArg('resources', nargs='+',
                 help=('resource(s) to update. Format: '
                       '<resource_type>=/path/to/resource where resource_type '
                       'is one of ' + ', '.join(common.UPDATEABLE_RESOURCES))))
-def Update(dummy_args, dummy_env):
+def Update(args, env):
   """Updates a specific resource of a bundle.
 
   It imports the specified resource(s) and updates the bundle's resource
   section. It can update the bundle in place, or copy the target bundle to a
   new one to update the resource.
   """
-  raise NotImplementedError
+  cli = UmpireCLI(env)
+
+  resources_to_update = []
+  for resource in args.resources:
+    resource_type, resource_path = resource.split('=', 1)
+    if resource_type not in common.UPDATEABLE_RESOURCES:
+      raise common.UmpireError('Unsupported resource type: ' + resource_type)
+    if not os.path.isfile(resource_path):
+      raise common.UmpireError('Resource file not found: ' + resource_path)
+    resources_to_update.append((resource_type,
+                                os.path.realpath(resource_path)))
+
+  logging.debug('Invoke CLI Update(%r, source_id=%r,  dest_id=%r',
+                resources_to_update, args.source_id, args.dest_id)
+  cli.Update(resources_to_update, source_id=args.source_id,
+             dest_id=args.dest_id)
+
 
 
 @Command('edit')

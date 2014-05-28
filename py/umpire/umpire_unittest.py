@@ -19,9 +19,10 @@ from cros.factory.umpire.common import UmpireError
 from cros.factory.umpire import umpire
 from cros.factory.umpire.umpire_env import UmpireEnv
 
-TESTDATA_DIR = os.path.join(os.path.dirname(sys.modules[__name__].__file__),
-                            'testdata')
+TESTDATA_DIR = os.path.realpath(os.path.join(
+    os.path.dirname(sys.modules[__name__].__file__), 'testdata'))
 DEFAULT_BUNDLE = os.path.join(TESTDATA_DIR, 'init_bundle')
+
 
 class InitTest(unittest.TestCase):
   def setUp(self):
@@ -89,7 +90,6 @@ class InitTest(unittest.TestCase):
       self.assertRaisesRegexp(IOError, 'Missing factory toolkit',
                               umpire.Init, self.args, self.env)
 
-
   def testSpecifyBaseDir(self):
     self.mox.StubOutWithMock(init, 'Init')
     init.Init(IsA(UmpireEnv), DEFAULT_BUNDLE, 'test_board', False, False,
@@ -99,6 +99,99 @@ class InitTest(unittest.TestCase):
     self.args.base_dir = '/tmp/base_dir'
     umpire.Init(self.args, self.env)
     self.assertEqual('/tmp/base_dir', self.env.base_dir)
+
+
+class UpdateTest(unittest.TestCase):
+  FIRMWARE_PATH = os.path.join(TESTDATA_DIR, 'firmware.gz')
+  TOOLKIT_PATH = os.path.join(TESTDATA_DIR, 'install_factory_toolkit.run')
+
+  def setUp(self):
+    self.env = UmpireEnv()
+    self.args = Obj(source_id=None, dest_id=None, resources=list())
+    self.mox = mox.Mox()
+
+    # Mock UmpireCLI XMLRPC connection.
+    self.mox.StubOutWithMock(umpire, 'UmpireCLI')
+    self.mock_cli = self.mox.CreateMockAnything()
+    umpire.UmpireCLI(self.env).AndReturn(self.mock_cli)
+
+  def tearDown(self):
+    self.mox.UnsetStubs()
+    self.mox.VerifyAll()
+
+  def testUpdateSingleResource(self):
+    # Expect XMLRPC call.
+    self.mock_cli.Update([('factory_toolkit', self.TOOLKIT_PATH)],
+                         source_id=None, dest_id=None)
+    self.mox.ReplayAll()
+
+    self.args.resources.append('factory_toolkit=%s' % self.TOOLKIT_PATH)
+    umpire.Update(self.args, self.env)
+
+  def testUpdateSingleResourceWithSourceDestId(self):
+    # Expect XMLRPC call.
+    self.mock_cli.Update([('factory_toolkit', self.TOOLKIT_PATH)],
+                         source_id='bundle1', dest_id='bundle2')
+    self.mox.ReplayAll()
+
+    self.args.resources.append('factory_toolkit=%s' % self.TOOLKIT_PATH)
+    self.args.source_id = 'bundle1'
+    self.args.dest_id = 'bundle2'
+    umpire.Update(self.args, self.env)
+
+  def testUpdateMultipleResources(self):
+    # Expect XMLRPC call.
+    self.mock_cli.Update([('factory_toolkit', self.TOOLKIT_PATH),
+                          ('firmware', self.FIRMWARE_PATH)],
+                         source_id=None, dest_id=None)
+    self.mox.ReplayAll()
+
+    self.args.resources.append('factory_toolkit=%s' % self.TOOLKIT_PATH)
+    self.args.resources.append('firmware=%s' % self.FIRMWARE_PATH)
+    umpire.Update(self.args, self.env)
+
+  def testUpdateInvalidResourceType(self):
+    self.mox.ReplayAll()
+
+    self.args.resources.append('wrong_res_type=%s' % self.TOOLKIT_PATH)
+    self.assertRaisesRegexp(UmpireError, 'Unsupported resource type',
+                            umpire.Update, self.args, self.env)
+
+  def testUpdateInvalidResourceFile(self):
+    self.mox.ReplayAll()
+
+    self.args.resources.append('fsi=/path/to/nowhere')
+    self.assertRaisesRegexp(UmpireError, 'Resource file not found',
+                            umpire.Update, self.args, self.env)
+
+
+class ImportBundleTest(unittest.TestCase):
+  BUNDLE_PATH = os.path.join(TESTDATA_DIR, 'init_bundle')
+
+  def setUp(self):
+    self.env = UmpireEnv()
+    self.args = Obj(id=None, bundle_path='.', note=None)
+    self.mox = mox.Mox()
+
+    # Mock UmpireCLI XMLRPC connection.
+    self.mox.StubOutWithMock(umpire, 'UmpireCLI')
+    self.mock_cli = self.mox.CreateMockAnything()
+    umpire.UmpireCLI(self.env).AndReturn(self.mock_cli)
+
+  def tearDown(self):
+    self.mox.UnsetStubs()
+    self.mox.VerifyAll()
+
+  def testImportBundle(self):
+    # Expect XMLRPC call.
+    self.mock_cli.ImportBundle(
+        self.BUNDLE_PATH, bundle_id='new_bundle', note='new bundle')
+    self.mox.ReplayAll()
+
+    self.args.bundle_path = self.BUNDLE_PATH
+    self.args.bundle_id = 'new_bundle'
+    self.args.note = 'new bundle'
+    umpire.ImportBundle(self.args, self.env)
 
 
 if __name__ == '__main__':
