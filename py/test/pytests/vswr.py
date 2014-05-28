@@ -32,7 +32,6 @@ import Queue
 import re
 import shutil
 import StringIO
-import tempfile
 import time
 import unittest
 import urllib
@@ -40,7 +39,7 @@ import uuid
 import xmlrpclib
 import yaml
 
-import factory_common # pylint: disable=W0611
+import factory_common  # pylint: disable=W0611
 
 from cros.factory.event_log import Log
 from cros.factory.goofy.connection_manager import PingHost
@@ -55,6 +54,7 @@ from cros.factory.test.event import Event
 from cros.factory.test.factory import TestState
 from cros.factory.test.media_util import MediaMonitor, MountedMedia
 from cros.factory.test.utils import TimeString, TryMakeDirs
+from cros.factory.utils import file_utils
 from cros.factory.utils.net_utils import FindUsableEthDevice
 from cros.factory.utils.process_utils import Spawn
 
@@ -74,17 +74,17 @@ class VSWR(unittest.TestCase):
 
   # Items in the final result table.
   _RESULT_IDS = [
-      'sn', 'cell-main', 'cell-aux', 'wifi-main', 'wifi-aux', 'final-result']
+      'cell-main', 'cell-aux', 'wifi-main', 'wifi-aux', 'final-result']
   _RESULTS_TO_CHECK = [
-      'sn', 'cell-main', 'cell-aux', 'wifi-main', 'wifi-aux']
+      'cell-main', 'cell-aux', 'wifi-main', 'wifi-aux']
 
   ARGS = [
-    Arg('config_path', str, 'Configuration path relative to the root of USB '
-        'disk or shopfloor parameters. E.g. path/to/config_file_name.',
-        optional=True),
-    Arg('timezone', str, 'Timezone of shopfloor.', default='Asia/Taipei'),
-    Arg('load_from_shopfloor', bool, 'Whether to load parameters from '
-        'shopfloor or not.', default=True),
+      Arg('config_path', str, 'Configuration path relative to the root of USB '
+          'disk or shopfloor parameters. E.g. path/to/config_file_name.',
+          optional=True),
+      Arg('timezone', str, 'Timezone of shopfloor.', default='Asia/Taipei'),
+      Arg('load_from_shopfloor', bool, 'Whether to load parameters from '
+          'shopfloor or not.', default=True),
   ]
 
   def _CheckCalibration(self):
@@ -104,7 +104,7 @@ class VSWR(unittest.TestCase):
     """
     calibration_check = self._config.get('calibration_check', None)
     if not calibration_check:
-      raise Exception("No calibration data in config file.")
+      raise Exception('No calibration data in config file.')
     start_freq, stop_freq, sample_points = calibration_check[0]
     threshold = calibration_check[1]
     logging.info(
@@ -189,9 +189,9 @@ class VSWR(unittest.TestCase):
       config_path = os.path.join(config_root, self.args.config_path)
       self._LoadConfig(config_path)
 
-  def _RaiseUSBRemovalException(self, dummy_event):
+  def _RaiseUSBRemovalException(self, unused_event):
     """Prevents unexpected USB removal."""
-    raise Exception("USB removal is not allowed during test.")
+    raise Exception('USB removal is not allowed during test.')
 
   def _LoadSNSpecificParameters(self):
     """Loads parameters for a specific serial number from the matched config."""
@@ -268,7 +268,7 @@ class VSWR(unittest.TestCase):
                        self._serial_number)
         self._ui.RunJS('$("sn-format-error").style.display = ""')
 
-  def _GetTraces(self, freqs_in_mhz, parameters, purpose="unspecified"):
+  def _GetTraces(self, freqs_in_mhz, parameters, purpose='unspecified'):
     """Wrapper for GetTraces in order to log details.
 
     Args:
@@ -311,24 +311,25 @@ class VSWR(unittest.TestCase):
     # service (image.asp) which always puts the file publicly available as
     # "disp.png".
     logging.info('Requesting ENA to generate screenshot')
-    urllib.urlopen("http://%s/image.asp" % self._ena_ip).read()
-    png_content = urllib.urlopen("http://%s/disp.png" % self._ena_ip).read()
+    urllib.urlopen('http://%s/image.asp' % self._ena_ip).read()
+    png_content = urllib.urlopen('http://%s/disp.png' % self._ena_ip).read()
     Log('vswr_screenshot',
         ab_serial_number=self._serial_number,
         path=self._path_name,
         filename=filename)
 
-    with tempfile.NamedTemporaryFile() as png_temp_file:
-      png_temp_file.write(png_content)
+    with file_utils.UnopenedTemporaryFile() as temp_png_path:
+      with open(temp_png_path, 'w') as f:
+        f.write(png_content)
 
       # Save screenshot to USB disk.
-      formatted_date = time.strftime("%Y%m%d", time.localtime())
+      formatted_date = time.strftime('%Y%m%d', time.localtime())
       logging.info('Saving screenshot to USB under dates %s', formatted_date)
       with MountedMedia(self._usb_path, 1) as mount_dir:
         target_dir = os.path.join(mount_dir, formatted_date, 'screenshot')
         TryMakeDirs(target_dir)
         filename_in_abspath = os.path.join(target_dir, filename)
-        shutil.copyfile(png_temp_file.name, filename_in_abspath)
+        shutil.copyfile(temp_png_path, filename_in_abspath)
         logging.info('Screenshot %s saved in USB.', filename)
 
       # Save screenshot to shopfloor if needed.
@@ -336,7 +337,7 @@ class VSWR(unittest.TestCase):
         logging.info('Sending screenshot to shopfloor')
         log_name = os.path.join(self._path_name, 'screenshot', filename)
         self._UploadToShopfloor(
-            png_temp_file, log_name,
+            temp_png_path, log_name,
             ignore_on_fail=self._shopfloor_ignore_on_fail,
             timeout=self._shopfloor_timeout)
         logging.info('Screenshot %s uploaded.', filename)
@@ -367,8 +368,8 @@ class VSWR(unittest.TestCase):
     if (not check_pass) and print_on_failure:
       # Highlight the failed freqs in console.
       factory.console.info(
-          "%10s failed at %.0f MHz[%9.3f dB], %9.3f dB "
-          "away from threshold[%s, %s]",
+          '%10s failed at %.0f MHz[%9.3f dB], %9.3f dB '
+          'away from threshold[%s, %s]',
           title, freq / 1000000.0, float(extracted_value),
           float(difference), min_value, max_value)
     # Record the detail for event_log.
@@ -399,7 +400,7 @@ class VSWR(unittest.TestCase):
     """
     log_title = '%s_%s' % (cell_or_wifi, main_or_aux)
     self._log_to_file.write(
-        "Start measurement [%s], with profile[%s,col %s], from ENA-%s\n" %
+        'Start measurement [%s], with profile[%s,col %s], from ENA-%s\n' %
         (log_title, cell_or_wifi, main_or_aux, ena_parameter))
 
     # Generate sweep tuples.
@@ -420,7 +421,7 @@ class VSWR(unittest.TestCase):
       all_passed = all_passed and passed
 
     self._log_to_file.write(
-        "%s results:\n%s\n" % (log_title, pprint.pformat(logs)))
+        '%s results:\n%s\n' % (log_title, pprint.pformat(logs)))
     Log('vswr_%s' % log_title,
         ab_serial_number=self._serial_number,
         iterations=self._current_iteration,
@@ -451,8 +452,8 @@ class VSWR(unittest.TestCase):
       shopfloor_client = shopfloor.get_instance(detect=True, timeout=timeout)
       shopfloor_client.SaveAuxLog(log_name, xmlrpclib.Binary(chunk))
       logging.info(
-        'Successfully synced %s in %.03f s',
-        description, time.time() - start_time)
+          'Successfully synced %s in %.03f s',
+          description, time.time() - start_time)
     except Exception as e:
       if ignore_on_fail:
         factory.console.info(
@@ -495,9 +496,49 @@ class VSWR(unittest.TestCase):
         if self._CompareTraces(traces, 'wifi', main_or_aux, 'S22') else
         TestState.FAILED)
 
+  def _GenerateFinalResult(self):
+    """Generates the final result."""
+    self._results['final-result'] = (
+        TestState.PASSED
+        if all(self._results[f] for f in self._RESULTS_TO_CHECK) else
+        TestState.FAILED)
+    self._log_to_file.write('Result in summary:\n%s\n' %
+                            pprint.pformat(self._results))
+    Log('vswr_result',
+        ab_serial_number=self._serial_number,
+        path=self._path_name,
+        results=self._results)
+
   def _SaveLog(self):
     """Saves the logs and writes event log."""
-    # TODO(littlecvr) Implement this.
+    self._log_to_file.write('\n\nRaw traces:\n%s\n' %
+                            pprint.pformat(self._raw_traces))
+    Log('vswr_detail',
+        ab_serial_number=self._serial_number,
+        path=self._path_name,
+        raw_trace=self._raw_traces)
+
+    logging.info('Writing log with SN: %s.', self._serial_number)
+    with file_utils.UnopenedTemporaryFile() as temp_log_path:
+      with open(temp_log_path, 'w') as f:
+        f.write(self._log_to_file.getvalue())
+      filename = self._serial_number + '.txt'
+
+      # Write log file to USB.
+      with MountedMedia(self._usb_path, 1) as mount_dir:
+        formatted_date = time.strftime('%Y%m%d', time.localtime())
+        target_dir = os.path.join(mount_dir, formatted_date, 'usb')
+        TryMakeDirs(target_dir)
+        full_path = os.path.join(target_dir, filename)
+        shutil.copyfile(temp_log_path, full_path)
+
+      # Upload to shopfloor.
+      log_name = os.path.join(self._path_name, 'usb', filename)
+      if self._shopfloor_enabled:
+        self._UploadToShopfloor(
+            temp_log_path, log_name,
+            ignore_on_fail=self._shopfloor_ignore_on_fail,
+            timeout=self._shopfloor_timeout)
 
   def _SetUpNetwork(self):
     """Sets up the local network.
@@ -578,15 +619,12 @@ class VSWR(unittest.TestCase):
         self._ena_ip = ena_ip
     if valid_ping_count != 1:
       raise Exception(
-          "Found %d ENAs which should be only 1." % valid_ping_count)
+          'Found %d ENAs which should be only 1.' % valid_ping_count)
     logging.info('IP of ENA automatic detected as %s', self._ena_ip)
 
   def _ShowResults(self):
     """Displays the final result."""
-    self._results['final-result'] = (
-        TestState.PASSED
-        if all([self._results[f] for f in self._RESULTS_TO_CHECK]) else
-        TestState.FAILED)
+    self._ui.SetHTML(self._serial_number, id='result-serial-number')
     for name in self._RESULT_IDS:
       self._ui.SetHTML(self._results[name], id='result-%s' % name)
 
@@ -742,6 +780,8 @@ class VSWR(unittest.TestCase):
 
       self._ShowMessageBlock('test-aux-antenna')
       self._TestAntennas('aux')
+
+      self._GenerateFinalResult()
 
       self._ShowMessageBlock('save-log')
       self._SaveLog()
