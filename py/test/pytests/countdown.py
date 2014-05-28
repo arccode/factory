@@ -3,11 +3,11 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-'''A count down UI for run-in test.
+"""A count down UI for run-in test.
 
 It shows count down and system loads for run-in period. It also alarms if
 there's any abnormal status detected during run-in.
-'''
+"""
 
 import datetime
 import os
@@ -22,6 +22,37 @@ from cros.factory.test.args import Arg
 
 
 class CountDownTest(unittest.TestCase):
+  """A countdown test that monitors and logs various system status."""
+
+  ARGS = [
+      Arg('title_en', (str, unicode), 'English title.', 'Countdown'),
+      Arg('title_zh', (str, unicode), 'Chinese title.', u'倒數計時'),
+      Arg('position_top_right', bool,
+          'A workaround for some machines on which graphics test would overlay '
+          'countdown info.', False),
+      Arg('duration_secs', int, 'Duration of time to countdown.'),
+      Arg('log_interval', int,
+          'Interval of time in seconds to log system status.', 120),
+      Arg('ui_update_interval', int,
+          'Interval of time in seconds to update system status on UI.', 10),
+      Arg('grace_secs', int,
+          'Grace period before starting abnormal status detection.', 120,
+          optional=True),
+      Arg('temp_max_delta', int,
+          'Allowed difference between current and last temperature of a '
+          'sensor.', None, optional=True),
+      Arg('temp_criteria', (list, tuple),
+          'A list of rules to check that temperature is under the given range, '
+          'rule format: (name, temp_index, warning_temp, critical_temp)', [],
+          optional=True),
+      Arg('relative_temp_criteria', (list, tuple),
+          'A list of rules to check the difference between two temp sensors, '
+          'rule format: (relation, first_index, second_index, max_diff). '
+          'relation is a text output with warning messages to describe the two '
+          'temp sensors in the rule', [], optional=True),
+      Arg('fan_min_expected_rpm', int, 'Minimum fan rpm expected', None,
+          optional=True)]
+
   def FormatSeconds(self, secs):
     hours = int(secs / 3600)
     minutes = int((secs / 60) % 60)
@@ -100,7 +131,7 @@ class CountDownTest(unittest.TestCase):
                         (name, temp, warning_temp))
 
     for (relation, first_index, second_index,
-        max_diff) in self.args.relative_temp_criteria:
+         max_diff) in self.args.relative_temp_criteria:
       first_temp = GetTemperature(first_index)
       second_temp = GetTemperature(second_index)
       if first_temp is None or second_temp is None:
@@ -119,10 +150,11 @@ class CountDownTest(unittest.TestCase):
                           '(first: %d, second: %d)' %
                           (relation, max_diff, first_temp, second_temp))
 
-    if (self.args.fan_min_expected_rpm and
-        status.fan_rpm < self.args.fan_min_expected_rpm):
-      warnings.append('Fan rpm %d less than min expected %d' %
-                      (status.fan_rpm, self.args.fan_min_expected_rpm))
+    if self.args.fan_min_expected_rpm:
+      for i, ith_fan_rpm in enumerate(status.fan_rpm):
+        if ith_fan_rpm < self.args.fan_min_expected_rpm:
+          warnings.append('Fan %d rpm %d less than min expected %d' %
+                          (i, ith_fan_rpm, self.args.fan_min_expected_rpm))
 
     in_grace_period = self._elapsed_secs < self.args.grace_secs
     if warnings:
@@ -131,36 +163,6 @@ class CountDownTest(unittest.TestCase):
       if not in_grace_period:
         for w in warnings:
           factory.console.warn(w)
-
-  ARGS = [
-    Arg('title_en', (str, unicode), 'English title.', 'Countdown'),
-    Arg('title_zh', (str, unicode), 'Chinese title.', u'倒數計時'),
-    Arg('position_top_right', bool,
-        'A workaround for some machines on which graphics test would overlay '
-        'countdown info.', False),
-    Arg('duration_secs', int, 'Duration of time to countdown.'),
-    Arg('log_interval', int,
-        'Interval of time in seconds to log system status.', 120),
-    Arg('ui_update_interval', int,
-        'Interval of time in seconds to update system status on UI.', 10),
-    Arg('grace_secs', int,
-        'Grace period before starting abnormal status detection.', 120,
-        optional=True),
-    Arg('temp_max_delta', int,
-        'Allowed difference between current and last temperature of a sensor.',
-        None, optional=True),
-    Arg('temp_criteria', (list, tuple),
-        'A list of rules to check that temperature is under the given range, '
-        'rule format: (name, temp_index, warning_temp, critical_temp)', [],
-        optional=True),
-    Arg('relative_temp_criteria', (list, tuple),
-        'A list of rules to check the difference between two temp sensors, '
-        'rule format: (relation, first_index, second_index, max_diff). '
-        'relation is a text output with warning messages to describe the two '
-        'temp sensors in the rule', [], optional=True),
-    Arg('fan_min_expected_rpm', int, 'Minimum fan rpm expected', None,
-        optional=True),
-  ]
 
   def runTest(self):
     # Allow attributes to be defined outside __init__

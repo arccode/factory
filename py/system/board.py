@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -10,7 +8,7 @@
 
 # pylint: disable=R0922
 
-import factory_common # pylint: disable=W0611
+import factory_common  # pylint: disable=W0611
 from cros.factory.system.power import Power
 from cros.factory.test.utils import Enum
 
@@ -80,6 +78,7 @@ class Board(object):
   """Constant representing automatic fan speed."""
 
   # Functions that are used in Goofy. Must be implemented.
+
   def __init__(self):
     # Overrides methods in Power using board-specific Power class
     self.power = Power()
@@ -107,7 +106,7 @@ class Board(object):
     """Gets the fan RPM.
 
     Returns:
-      A int indicating the fan RPM.
+      A list of int indicating the RPM of each fan.
     """
     raise NotImplementedError
 

@@ -20,6 +20,7 @@ from cros.factory.system.board import Board, BoardException
 
 class ChromeOSBoardTest(unittest.TestCase):
   """Unittest for ChromeOSBoard."""
+
   def setUp(self):
     self.mox = mox.Mox()
     self.board = ChromeOSBoard()
@@ -75,11 +76,11 @@ class ChromeOSBoardTest(unittest.TestCase):
     self.mox.VerifyAll()
 
   def testGetFanRPM(self):
-    _MOCK_FAN_RPM = 'Current fan RPM: 2974\n'
+    _MOCK_FAN_RPM = 'Fan 0 RPM: 2974\n'
     self.board._CallECTool(['pwmgetfanrpm'],
                            check=False).AndReturn(_MOCK_FAN_RPM)
     self.mox.ReplayAll()
-    self.assertEquals(self.board.GetFanRPM(), 2974)
+    self.assertEquals(self.board.GetFanRPM(), [2974])
     self.mox.VerifyAll()
 
   def testSetFanRPM(self):
@@ -101,7 +102,7 @@ class ChromeOSBoardTest(unittest.TestCase):
   def testI2CRead(self):
     _MOCK_I2C_READ = 'Read from I2C port 0 at 0x12 offset 0x12 = 0xf912'
     self.board._CallECTool(['i2cread', '16', '0', '18',
-                           '18']).AndReturn(_MOCK_I2C_READ)
+                            '18']).AndReturn(_MOCK_I2C_READ)
     self.mox.ReplayAll()
     self.assertEquals(self.board.I2CRead(0, 0x12, 0x12), 0xf912)
     self.mox.VerifyAll()
@@ -136,6 +137,7 @@ class ChromeOSBoardTest(unittest.TestCase):
 
     class Dummy(object):
       """A dummy class to mock Spawn output."""
+
       def __init__(self):
         self.stdout_data = None
     dummy = Dummy()

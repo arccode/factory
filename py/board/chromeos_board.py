@@ -1,5 +1,3 @@
-#!/usr/bin/python
-#
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -27,11 +25,11 @@ class ChromeOSBoard(Board):
   :py:func:`cros.factory.system.GetBoard`.
   """
   # pylint: disable=W0223
-  GET_FAN_SPEED_RE = re.compile('Current fan RPM: ([0-9]*)')
-  TEMPERATURE_RE = re.compile('^(\d+): (\d+)$', re.MULTILINE)
-  TEMPERATURE_INFO_RE = re.compile('^(\d+): \d+ (.+)$', re.MULTILINE)
-  EC_VERSION_RE = re.compile('^fw_version\s+\|\s+(.+)$', re.MULTILINE)
-  I2C_READ_RE = re.compile('I2C port \d+ at \S+ offset \S+ = (0x[0-9a-f]+)')
+  GET_FAN_SPEED_RE = re.compile(r'Fan (\d+) RPM: (\d+)')
+  TEMPERATURE_RE = re.compile(r'^(\d+): (\d+)$', re.MULTILINE)
+  TEMPERATURE_INFO_RE = re.compile(r'^(\d+): \d+ (.+)$', re.MULTILINE)
+  EC_VERSION_RE = re.compile(r'^fw_version\s+\|\s+(.+)$', re.MULTILINE)
+  I2C_READ_RE = re.compile(r'I2C port \d+ at \S+ offset \S+ = (0x[0-9a-f]+)')
 
   # Expected battery info.
   BATTERY_DESIGN_CAPACITY_RE = re.compile('Design capacity:\s+([1-9]\d*)\s+mAh')
@@ -68,14 +66,14 @@ class ChromeOSBoard(Board):
       ectool_output = self._CallECTool(['i2cread', '16', str(port), str(addr),
                                         str(reg)])
       return int(self.I2C_READ_RE.findall(ectool_output)[0], 16)
-    except Exception as e: # pylint: disable=W0703
+    except Exception as e:  # pylint: disable=W0703
       raise BoardException('Unable to read from I2C: %s' % e)
 
   def I2CWrite(self, port, addr, reg, value):
     try:
       self._CallECTool(['i2cwrite', '16', str(port), str(addr),
-                       str(reg), str(value)])
-    except Exception as e: # pylint: disable=W0703
+                        str(reg), str(value)])
+    except Exception as e:  # pylint: disable=W0703
       raise BoardException('Unable to write to I2C: %s' % e)
 
   def GetTemperatures(self):
@@ -89,7 +87,7 @@ class ChromeOSBoard(Board):
         # Convert Kelvin to Celsius and add
         temps[sensor] = int(match.group(2)) - 273 if match.group(2) else None
       return temps
-    except Exception as e: # pylint: disable=W0703
+    except Exception as e:  # pylint: disable=W0703
       raise BoardException('Unable to get temperatures: %s' % e)
 
   def GetMainTemperatureIndex(self):
@@ -100,7 +98,7 @@ class ChromeOSBoard(Board):
           return names.index('PECI')
         except ValueError:
           raise BoardException('The expected index of PECI cannot be found')
-      except Exception as e: # pylint: disable=W0703
+      except Exception as e:  # pylint: disable=W0703
         raise BoardException('Unable to get main temperature index: %s' % e)
     return self._main_temperature_index
 
@@ -114,18 +112,21 @@ class ChromeOSBoard(Board):
           names.append(None)
         names[sensor] = match.group(2)
       return names
-    except Exception as e: # pylint: disable=W0703
+    except Exception as e:  # pylint: disable=W0703
       raise BoardException('Unable to get temperature sensor names: %s' % e)
 
   def GetFanRPM(self):
     try:
       ectool_output = self._CallECTool(['pwmgetfanrpm'], check=False)
-      return int(self.GET_FAN_SPEED_RE.findall(ectool_output)[0])
-    except Exception as e: # pylint: disable=W0703
+      return [int(rpm[1])
+              for rpm in self.GET_FAN_SPEED_RE.findall(ectool_output)]
+    except Exception as e:  # pylint: disable=W0703
       raise BoardException('Unable to get fan speed: %s' % e)
 
   def SetFanRPM(self, rpm):
     try:
+      # For system with multiple fans, ectool controls all the fans
+      # simultaneously in one command.
       self._Spawn(
           ['ectool'] +
           (['autofanctrl', 'on'] if rpm == self.AUTO else
@@ -133,7 +134,7 @@ class ChromeOSBoard(Board):
           check_call=True,
           ignore_stdout=True,
           log_stderr_on_error=True)
-    except Exception as e: # pylint: disable=W0703
+    except Exception as e:  # pylint: disable=W0703
       if rpm == self.AUTO:
         raise BoardException('Unable to set auto fan control: %s' % e)
       else:
