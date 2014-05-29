@@ -20,6 +20,7 @@ from cros.factory.common import SetupLogging
 from cros.factory.hacked_argparse import (CmdArg, Command, ParseCmdline,
                                           verbosity_cmd_arg)
 from cros.factory.umpire.commands import init
+from cros.factory.umpire.commands import edit
 from cros.factory.umpire import common
 from cros.factory.umpire.config import ShowDiff, ValidateResources
 from cros.factory.umpire.umpire_env import UmpireEnv
@@ -162,13 +163,14 @@ def Update(args, env):
 
 
 @Command('edit')
-def Edit(dummy_args, dummy_env):
+def Edit(args, env):
   """Edits the Umpire Config file.
 
   It calls user's default EDITOR to edit the config file and verifies the
   modified result afterward.
   """
-  raise NotImplementedError
+  editor = edit.ConfigEditor(env, umpire_cli=UmpireCLI(env))
+  editor.Edit(config_file=args.config)
 
 
 @Command('deploy')

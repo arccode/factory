@@ -6,6 +6,7 @@
 
 """Umpired RPC command class."""
 
+import os
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.umpire_rpc import RPCCall, UmpireRPC
@@ -62,3 +63,30 @@ class CLICommand(UmpireRPC):
     """
     importer = import_bundle.BundleImporter(self.env)
     importer.Import(bundle_path, bundle_id, note)
+
+  @RPCCall
+  def AddResource(self, file_name, res_type=None):
+    """Adds a file into base_dir/resources.
+
+    Args:
+      file_name: file to be added.
+      res_type: (optional) resource type. If specified, it is one of the enum
+        ResourceType. It tries to get version and fills in resource file name
+        <base_name>#<version>#<hash>.
+
+    Returns:
+      Resource file name (base name).
+    """
+    return os.path.basename(self.env.AddResource(file_name, res_type=res_type))
+
+  @RPCCall
+  def StageConfigFile(self, config_res, force=False):
+    """Stages a config file.
+
+    Args:
+      config_res: a config file (base name, in resource folder) to mark as
+          staging.
+      force: True to stage the file even if it already has staging file.
+    """
+    config_path = self.env.GetResourcePath(config_res)
+    self.env.StageConfigFile(config_path, force=force)

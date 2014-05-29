@@ -6,16 +6,15 @@
 
 from mox import In, Mox
 import os
-import shutil
 import subprocess
 import sys
-import tempfile
 import unittest
+import xmlrpclib
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.commands.edit import ConfigEditor
 from cros.factory.umpire.common import UmpireError
-from cros.factory.umpire.umpire_env import UmpireEnv
+from cros.factory.umpire.umpire_env import UmpireEnvForTest
 from cros.factory.utils import file_utils
 
 
@@ -29,21 +28,17 @@ class ConfigEditorTest(unittest.TestCase):
     self.mox = Mox()
     self.editor = os.environ.get('EDITOR', 'vi').split()[0]
 
-    # Prepare environment: create base and resources dir, add a staging
-    # config file.
-    self.env = UmpireEnv()
-    self.temp_dir = tempfile.mkdtemp()
-    self.env.base_dir = self.temp_dir
-    os.makedirs(self.env.resources_dir)
+    # Prepare environment: add a staging config file.
+    self.env = UmpireEnvForTest()
     config_in_resources = self.env.AddResource(MINIMAL_UMPIRE_CONFIG)
     self.env.StageConfigFile(config_in_resources)
+
+    self.temp_dir = os.path.join(self.env.base_dir, 'tmp')
+    os.makedirs(self.temp_dir)
 
   def tearDown(self):
     self.mox.UnsetStubs()
     self.mox.VerifyAll()
-
-    if os.path.isdir(self.temp_dir):
-      shutil.rmtree(self.temp_dir)
 
   def testEdit(self):
     self.mox.StubOutWithMock(subprocess, 'call')
@@ -77,12 +72,11 @@ class ConfigEditorTest(unittest.TestCase):
         lambda args: file_utils.PrependFile(args[-1], '# edited\n'))
     self.mox.ReplayAll()
 
-    editor = ConfigEditor(self.env)
-    editor.Edit(temp_dir=self.temp_dir)
+    editor = ConfigEditor(self.env, temp_dir=self.temp_dir)
+    editor.Edit()
     self.assertEqual(self.temp_dir, editor.temp_dir)
     self.assertTrue(file_utils.Read(self.env.staging_config_file).startswith(
         '# edited'))
-
 
   def testEditFailToEdit(self):
     self.mox.StubOutWithMock(subprocess, 'call')
@@ -107,6 +101,48 @@ class ConfigEditorTest(unittest.TestCase):
     config_lines = file_utils.ReadLines(editor.config_file_to_edit)
     self.assertTrue(config_lines[0].startswith(
         '# Failed to validate Umpire config'))
+
+  def testEditAskUmpiredValidateConfig(self):
+    self.mox.StubOutWithMock(subprocess, 'call')
+    subprocess.call(In(self.editor))
+
+    mock_cli = self.mox.CreateMockAnything()
+    config_file_basename = os.path.basename(self.env.staging_config_file)
+    expected_config_file_to_edit = os.path.join(self.temp_dir,
+                                                config_file_basename)
+
+    mock_cli.ValidateConfig(expected_config_file_to_edit)
+    res_name = config_file_basename + '##abcd1234'
+    mock_cli.AddResource(expected_config_file_to_edit).AndReturn(res_name)
+    mock_cli.StageConfigFile(res_name, force=True)
+
+    self.mox.ReplayAll()
+
+    editor = ConfigEditor(self.env, umpire_cli=mock_cli, temp_dir=self.temp_dir)
+    editor.Edit()
+
+  def testEditUmpiredValidateConfigFail(self):
+    self.mox.StubOutWithMock(subprocess, 'call')
+    subprocess.call(In(self.editor))
+
+    mock_cli = self.mox.CreateMockAnything()
+    expected_config_file_to_test = os.path.join(
+        self.temp_dir,
+        os.path.basename(self.env.staging_config_file))
+    mock_cli.ValidateConfig(expected_config_file_to_test).AndRaise(
+        xmlrpclib.Fault(1, 'resource not found'))
+
+    self.mox.ReplayAll()
+
+    editor = ConfigEditor(self.env, umpire_cli=mock_cli, temp_dir=self.temp_dir)
+    editor.max_retry = 1
+    self.assertRaisesRegexp(UmpireError, 'Failed to validate config',
+                            editor.Edit)
+    config_lines = file_utils.ReadLines(editor.config_file_to_edit)
+    self.assertRegexpMatches(config_lines[0],
+                             '^# Failed to validate Umpire config')
+    self.assertRegexpMatches(config_lines[1], 'resource not found')
+
 
 
 if __name__ == '__main__':

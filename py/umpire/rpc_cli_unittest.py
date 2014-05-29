@@ -19,7 +19,7 @@ from cros.factory.umpire.commands import import_bundle
 from cros.factory.umpire.commands import update
 from cros.factory.umpire.common import UmpireError
 from cros.factory.umpire.rpc_cli import CLICommand
-from cros.factory.umpire.umpire_env import UmpireEnv
+from cros.factory.umpire.umpire_env import UmpireEnv, UmpireEnvForTest
 from cros.factory.umpire.web.xmlrpc import XMLRPCContainer
 from cros.factory.utils import net_utils
 
@@ -28,7 +28,7 @@ class CommandTest(unittest.TestCase):
 
   def setUp(self):
     test_port = net_utils.GetUnusedPort()
-    self.env = UmpireEnv()
+    self.env = UmpireEnvForTest()
     self.mox = mox.Mox()
     self.proxy = xmlrpc.Proxy('http://localhost:%d' % test_port)
     xmlrpc_resource = XMLRPCContainer()
@@ -111,6 +111,94 @@ class CommandTest(unittest.TestCase):
 
     return self.AssertFailure(self.Call('ImportBundle', bundle_path, bundle_id,
                                         note))
+
+  def testAddResource(self):
+    temp_path = self.env.base_dir
+    file_to_add = os.path.join(temp_path, 'file_to_add')
+    with file(file_to_add, 'w') as f:
+      f.write('...')
+    expected_resource_name = 'file_to_add##2f43b42f'
+
+    d = self.Call('AddResource', file_to_add)
+    d.addCallback(lambda result: self.assertEqual(expected_resource_name,
+                                                  result))
+    return self.AssertSuccess(d)
+
+  def testAddResourceResType(self):
+    temp_path = self.env.base_dir
+    checksum_for_empty = 'da39a3ee5e6b4b0d3255bfef95601890afd80709'
+    res_hash = '1f78df50'
+
+    file_to_add = os.path.join(temp_path, 'hwid')
+    with file(file_to_add, 'w') as f:
+      f.write('checksum: %s' % checksum_for_empty)
+
+    expected_resource_name = 'hwid#%s#%s' % (checksum_for_empty, res_hash)
+
+    d = self.Call('AddResource', file_to_add, 'HWID')
+    d.addCallback(lambda result: self.assertEqual(expected_resource_name,
+                                                  result))
+    return self.AssertSuccess(d)
+
+  def testAddResourceFail(self):
+    return self.AssertFailure(self.Call('AddResource', '/path/to/nowhere'))
+
+  def testStageConfigFile(self):
+    # Prepare a file in resource to stage.
+    temp_path = self.env.base_dir
+    config_to_stage = os.path.join(temp_path, 'config_to_stage')
+    with file(config_to_stage, 'w') as f:
+      f.write('...')
+    config_to_stage_res_full_path = self.env.AddResource(config_to_stage)
+    config_to_stage_res_name = os.path.basename(config_to_stage_res_full_path)
+
+    d = self.Call('StageConfigFile', config_to_stage_res_name)
+    d.addCallback(
+        lambda _: self.assertEqual(
+            config_to_stage_res_full_path,
+            os.path.realpath(self.env.staging_config_file)))
+    return self.AssertSuccess(d)
+
+  def testStageConfigFileFailFileAlreadyExists(self):
+    # Prepare a file in resource to stage.
+    temp_path = self.env.base_dir
+    config_to_stage = os.path.join(temp_path, 'config_to_stage')
+    with file(config_to_stage, 'w') as f:
+      f.write('...')
+    config_to_stage_res_full_path = self.env.AddResource(config_to_stage)
+    config_to_stage_res_name = os.path.basename(config_to_stage_res_full_path)
+
+    # Set a stage config first.
+    staged_config = os.path.join(temp_path, 'staged_config')
+    with file(staged_config, 'w') as f:
+      f.write('staged...')
+    self.env.StageConfigFile(staged_config)
+
+    return self.AssertFailure(self.Call('StageConfigFile',
+                                        config_to_stage_res_name))
+
+  def testStageConfigFileForce(self):
+    # Prepare a file in resource to stage.
+    temp_path = self.env.base_dir
+    config_to_stage = os.path.join(temp_path, 'config_to_stage')
+    with file(config_to_stage, 'w') as f:
+      f.write('...')
+    config_to_stage_res_full_path = self.env.AddResource(config_to_stage)
+    config_to_stage_res_name = os.path.basename(config_to_stage_res_full_path)
+
+    # Set a stage config first.
+    staged_config = os.path.join(temp_path, 'staged_config')
+    with file(staged_config, 'w') as f:
+      f.write('staged...')
+    self.env.StageConfigFile(staged_config)
+
+    # Force override current staging config file.
+    d = self.Call('StageConfigFile', config_to_stage_res_name, True)
+    d.addCallback(
+        lambda _: self.assertEqual(
+            config_to_stage_res_full_path,
+            os.path.realpath(self.env.staging_config_file)))
+    return self.AssertSuccess(d)
 
 
 if os.environ.get('LOG_LEVEL'):

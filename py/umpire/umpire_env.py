@@ -12,6 +12,8 @@ import errno
 import filecmp
 import logging
 import os
+import shutil
+import tempfile
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.common import (
@@ -358,3 +360,27 @@ class UmpireEnv(object):
     if not os.path.isdir(toolkit_path):
       return None
     return toolkit_path
+
+
+class UmpireEnvForTest(UmpireEnv):
+  """An UmpireEnv for other unittests.
+
+  It creates a temp directory as its base directory and creates fundamenta
+  subdirectories (those which define property). The temp directory is removed
+  once it is deleted.
+  """
+  def __init__(self):
+    super(UmpireEnvForTest, self).__init__()
+    self.base_dir = tempfile.mkdtemp()
+    for fundamental_subdir in (
+        self.config_dir,
+        self.device_toolkits_dir,
+        self.log_dir,
+        self.pid_dir,
+        self.resources_dir,
+        self.server_toolkits_dir):
+      os.makedirs(fundamental_subdir)
+
+  def __del__(self):
+    if os.path.isdir(self.base_dir):
+      shutil.rmtree(self.base_dir)

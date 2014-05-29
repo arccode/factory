@@ -33,21 +33,31 @@ class ConfigEditor(object):
      staging;
   6. finally, prompts to run "umpire deploy".
 
+  Note that in step 3, it needs to call Umpire to validate and once pass
+  validation, Umpire needs to stage the config.
+
   Usage:
-    config_editor = ConfigEditor(env)
+    config_editor = ConfigEditor(env, umpire_cli)
     config_editor.Edit(config_file="/path/to/config_file")
   """
-  def __init__(self, env):
+  def __init__(self, env, umpire_cli=None, temp_dir=None):
     """Constructor.
 
     Args:
       env: UmpireEnv object.
+      umpire_cli: A logical connection to Umpire XML-RPC server.
+      temp_dir: temporary directory. If omitted, uses tempfile.mkdtemp()
+          to created one.
     """
     self._env = env
+    self._umpire_cli = umpire_cli
+    self._temp_dir = temp_dir if temp_dir else tempfile.mkdtemp()
+    self._temp_dir = os.path.abspath(self._temp_dir)
+    self._should_rm_temp_dir = not temp_dir
+
     self._config_file = None
     self._config_file_to_edit = None
-    self._temp_dir = None
-    self._should_rm_temp_dir = False
+
     self._max_retry = 3
 
   def __del__(self):
@@ -75,47 +85,44 @@ class ConfigEditor(object):
     """Only for unittest."""
     self._max_retry = value
 
-  def Edit(self, config_file=None, temp_dir=None):
+  def Edit(self, config_file=None):
     """Edits an Umpire config file.
 
     Args:
       config_file: path to config file. If omitted, uses staging config.
-      temp_dir: temporary directory. If omitted, uses tempfile.mkdtemp()
-      created one.
     """
-    # TODO(deanliao): retrieve staging file from umpired and store it locally
-    #     (self._config_file_to_edit).
-    self._Prepare(config_file, temp_dir)
-    file_utils.AtomicCopy(self._config_file, self._config_file_to_edit)
-    logging.info('Copy target %s to %s for edit.', self._config_file,
-                 self._config_file_to_edit)
+    self._PrepareConfigToEdit(config_file)
 
-    # TODO(deanliao): ask umpired to validate edited file as umpired
-    #     can validate resources.
     self._EditValidate()
 
-    # TODO(deanliao): ask umpired to staging the validated config file.
     logging.info('Edited config validated. Staging it...')
-    self._StagingEditedConfig()
+    self._StageEditedConfig()
 
-  def _Prepare(self, config_file, temp_dir):
-    """Sets up members _config_file, _temp_file and _config_file_to_edit."""
+  def _PrepareConfigToEdit(self, config_file):
+    """Prepares a config file to edit.
+
+    It copies the config file to edit (default is staging config file) to
+    a temporary file.
+    """
     if config_file:
       self._config_file = config_file
     else:
+      # For now, we assume Umpire daemon and CLI share the same file access
+      # permission. It should be no longer true in the near future (we don't
+      # plan to let Umpired user have login permission.)
+      # TODO(deanliao): retrieve staging file from Umpire daemon.
       self._config_file = self._env.staging_config_file
 
     if not os.path.isfile(self._config_file):
       raise IOError(errno.ENOENT, 'Missing config file', self._config_file)
 
-    if temp_dir:
-      self._temp_dir = temp_dir
-    else:
-      self._temp_dir = tempfile.mkdtemp()
-      self._should_rm_temp_dir = True
-
     self._config_file_to_edit = os.path.join(
         self._temp_dir, os.path.basename(self._config_file))
+
+    file_utils.AtomicCopy(self._config_file, self._config_file_to_edit)
+    logging.info('Copied target %s to %s for edit.', self._config_file,
+                 self._config_file_to_edit)
+
 
   def _EditValidate(self):
     """Calls editor to edit config file and validates it after edit.
@@ -127,40 +134,40 @@ class ConfigEditor(object):
       UmpireError: failed to invoke editor or validate edited result.
       IOError: missing config file to edit.
     """
-
     if not os.path.isfile(self._config_file_to_edit):
       raise IOError(errno.ENOENT, 'Missing cloned config file',
-                    self._config_file)
+                    self._config_file_to_edit)
 
     for _ in xrange(self._max_retry):
-      self._InvokeEditor(self._config_file_to_edit)
-      if self._Validate(self._config_file_to_edit):
+      self._InvokeEditor()
+      if self._Validate():
         return
     raise UmpireError('Failed to validate config after %d retry.' %
                       self._max_retry)
 
-  def _StagingEditedConfig(self):
+  def _StageEditedConfig(self):
     """Copies config file to resources, stages it, and prompts user to deploy.
     """
-    new_config_file = self._env.AddResource(self._config_file_to_edit)
-    self._env.StageConfigFile(new_config_file, force=True)
+    if self._umpire_cli:
+      res_name = self._umpire_cli.AddResource(self._config_file_to_edit)
+      self._umpire_cli.StageConfigFile(res_name, force=True)
+    else:
+      new_config_file = self._env.AddResource(self._config_file_to_edit)
+      self._env.StageConfigFile(new_config_file, force=True)
     print 'Successful editing %s.' % self._config_file
     print 'You may deploy it using "umpire deploy".'
 
-  @staticmethod
-  def _InvokeEditor(file_to_edit):
-    """Invokes default editor to edit a config file.
+  def _InvokeEditor(self):
+    """Invokes an editor to edit a config file to edit.
 
+    It uses EDITOR defined in shell environment. If not specified, uses 'vi'.
     It is a blocking call.
-
-    Args:
-      file_to_edit: path to the config file to edit.
 
     Raises:
       UmpireError: failed to invoke editor.
     """
     edit_command = os.environ.get('EDITOR', 'vi').split()
-    edit_command.append(file_to_edit)
+    edit_command.append(self._config_file_to_edit)
     try:
       # Use subprocess.call to avoid redirect stdin/stdout from terminal
       # to pipe. vim needs stdin/stdout as terminal.
@@ -169,25 +176,27 @@ class ConfigEditor(object):
       raise UmpireError('Unable to invoke editor: %s\nReason: %s' %
                         (' '.join(edit_command), str(e)))
 
-  @staticmethod
-  def _Validate(config_file):
-    """Validates a config file.
+  def _Validate(self):
+    """Validates a config file to edit.
+
+    It tries to load the config file to edit. Also, if self._umpire_cli is
+    given, it asks Umpire daemon to validate the config file, too.
 
     If validation failed, prepends reason to the config file.
-
-    Args:
-      config_file: path to the config file to validate.
 
     Returns:
       True if the config is validated; False otherwise.
     """
+    target = self._config_file_to_edit
     try:
-      config.UmpireConfig(config_file)
+      config.UmpireConfig(target)
+      if self._umpire_cli:
+        self._umpire_cli.ValidateConfig(target)
       return True
     except Exception as e:
       header = ('Failed to validate Umpire config: %s. Reason:\n%s\n'
-                'Please fix it.') % (config_file, str(e))
+                'Please fix it.') % (target, str(e))
       header = ''.join('# %s\n' % line for line in header.split('\n'))
-      file_utils.PrependFile(config_file, header)
+      file_utils.PrependFile(target, header)
       return False
 
