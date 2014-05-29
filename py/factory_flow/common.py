@@ -7,11 +7,13 @@
 import glob
 import logging
 import os
+import sys
 
 import factory_common   # pylint: disable=W0611
 from cros.factory.hacked_argparse import CmdArg
 from cros.factory.test import utils
 from cros.factory.tools import build_board
+from cros.factory.umpire import common as umpire_common
 
 
 # Arguments that are commonly used in commands.
@@ -38,6 +40,33 @@ def OnMoblab():
   return False
 
 
+def GetEnclosingFactoryBundle():
+  """Checks if we are running using factory.par inside a factory bundle.
+
+  In a standard factory bundle the factory.par for factory flow tools is at
+
+    <factory bundle dir>/factory_flow/factory.par
+
+  This function checks if path to factory.par is in sys.path and if
+  MANIFEST.yaml exists in upper-level directory of factory.par to determine if
+  we are running factory.par inside a factory bundle.
+
+  Returns:
+    Base factory bundle path if runs with factory.par inside a factory bundle;
+    False otherwise.
+  """
+  # Check if path to factory.par is in sys.path.
+  par_file = filter(lambda p: p.endswith('factory.par'), sys.path)
+  if not par_file:
+    return False
+  # Check if MANIFEST.yaml exists one level above the directory where
+  # factory.par sits.
+  bundle_dir = os.path.dirname(os.path.dirname(par_file[0]))
+  if os.path.exists(os.path.join(bundle_dir, 'MANIFEST.yaml')):
+    return bundle_dir
+  return False
+
+
 class FactoryFlowError(Exception):
   """Factory flow error."""
   pass
@@ -57,10 +86,15 @@ class FactoryFlowCommand(object):
   def _ParseBoard(self):
     """Parses board name if args has --board argument."""
     if board_cmd_arg in self.args:
+      par_bundle_dir = GetEnclosingFactoryBundle()
       if self.options.board:
         self.options.board = build_board.BuildBoard(self.options.board)
       elif os.environ.get(BOARD_ENVVAR):
         self.options.board = build_board.BuildBoard(os.environ[BOARD_ENVVAR])
+      elif par_bundle_dir:
+        self.options.board = build_board.BuildBoard(
+            umpire_common.LoadBundleManifest(
+                os.path.join(par_bundle_dir, 'MANIFEST.yaml'))['board'])
       else:
         # Use the value in src/scripts/.default_board.
         self.options.board = build_board.BuildBoard(None)
@@ -74,12 +108,16 @@ class FactoryFlowCommand(object):
     """
     if bundle_dir_cmd_arg in self.args:
       if not self.options.bundle:
+        par_bundle_dir = GetEnclosingFactoryBundle()
         if os.environ.get(BUNDLE_DIR_ENVVAR):
           self.options.bundle = os.environ[BUNDLE_DIR_ENVVAR]
+        elif par_bundle_dir:
+          self.options.bundle = par_bundle_dir
         else:
           raise ValueError(
               'Unable to determine bundle directory; please specify with '
               '--bundle or set environment variable %r' % BUNDLE_DIR_ENVVAR)
+      # Verify if the bundle directory is valid.
       if not os.path.exists(os.path.join(self.options.bundle, 'MANIFEST.yaml')):
         bundle_glob = glob.glob(os.path.join(self.options.bundle,
                                              'factory_bundle_*'))
