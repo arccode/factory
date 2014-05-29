@@ -14,6 +14,16 @@ from cros.factory.umpire.common import DUT_INFO_KEYS, DUT_INFO_KEY_PREFIX
 from cros.factory import system
 from cros.factory.tools import build_board
 
+# The component keys in the return value of GetUpdate RPC call.
+COMPONENT_KEYS = {
+  'rootfs_test',
+  'rootfs_release',
+  'firmware_ec',
+  'firmware_bios',
+  'hwid',
+  'device_factory_toolkit'
+}
+
 
 class UmpireClientInfoInterface(object):
   """The interface that provide client info for Umpire server proxy."""
