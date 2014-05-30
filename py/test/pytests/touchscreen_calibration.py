@@ -223,6 +223,109 @@ class FixutreSerialDevice(SerialDevice):
     self.AssertState(STATE.STOP_UP)
 
 
+class FixutreNativeUSB(SerialDevice):
+  """A native usb port used to monitor the internal state of the fixture."""
+
+  def __init__(self, driver, interface_protocol, ui, timeout=86400):
+    super(FixutreNativeUSB, self).__init__()
+    self.driver = driver
+    self.interface_protocol = interface_protocol
+    self.ui = ui
+    self.timeout = timeout
+
+    self.port = self._GetPort()
+    self._Connect(self.port)
+    self.state_string = None
+    self.last_state_string = None
+
+    # The ordering of the state names should match that in
+    # touchscreen_calibration.ino
+    self.state_name_dict = [
+        'state',
+        'jumper',
+        'button debug',
+        'sensor extreme up',
+        'sensor up',
+        'sensor down',
+        'sensor safety',
+        'motor direction',
+        'motor enabled',
+        'motor locked',
+        'motor duty cycle',
+        'pwm frequency',
+        'count',
+    ]
+
+  def _GetPort(self):
+    return FindTtyByDriver(self.driver, self.interface_protocol)
+
+  def _Connect(self, port):
+    try:
+      self.Connect(port=port, timeout=self.timeout)
+      msg = 'Connect to native USB port "%s" for monitoring internal state.'
+      factory.console.info(msg % port)
+    except Exception:
+      msg = 'FixtureNativeUSB: failed to connect to native usb port: %s'
+      factory.console.warn(msg, port)
+
+  def _CheckReconnection(self):
+    """Reconnect the native usb port if it has been refreshed."""
+    curr_port = self._GetPort()
+    if curr_port != self.port:
+      self.Disconnect()
+      self._Connect(curr_port)
+      self.port = curr_port
+      factory.console.info('Reconnect to new port: %s', curr_port)
+
+  def GetState(self):
+    """Get the fixture state from the native usb port.
+
+    The complete state_string looks like: <i1001000000.6000.0>
+    Its format is defined in self.state_name_dict in __init__() above.
+    The first character describes the main state.
+
+    This call is blocked until a complete fixture state has been received.
+    Call this method with a new thread if needed.
+    """
+    self._CheckReconnection()
+    reply = []
+    while True:
+      ch = self.Receive()
+      reply.append(ch)
+      if ch == '>':
+        self.last_state_string = self.state_string
+        self.state_string = ''.join(reply)
+        return self.state_string
+
+  def QueryFixtureState(self):
+    """Query fixture internal state."""
+    self._CheckReconnection()
+    self.Send('s')
+
+  def _ExtractStateList(self, state_string):
+    if state_string:
+      state, pwm_freq, count = state_string.strip().strip('<>').split('.')
+      state_list = [s for s in state]
+      state_list.extend([pwm_freq, count])
+    else:
+      state_list = []
+    return state_list
+
+  def DiffState(self):
+    """Get the difference of between this state and the last state."""
+    old_state_list = self._ExtractStateList(self.last_state_string)
+    new_state_list = self._ExtractStateList(self.state_string)
+    return [(self.state_name_dict[i], new_state_list[i])
+            for i in xrange(len(new_state_list))
+            if old_state_list == [] or new_state_list[i] != old_state_list[i]]
+
+  def CompleteState(self):
+    """Get the complete state snap shot."""
+    state_list = self._ExtractStateList(self.state_string)
+    return [(self.state_name_dict[i], state_list[i])
+            for i in xrange(len(state_list))]
+
+
 class TouchscreenCalibration(unittest.TestCase):
   """Handles the calibration and controls the test fixture."""
   version = 1
@@ -484,6 +587,7 @@ class TouchscreenCalibration(unittest.TestCase):
       if not self.fixture:
         self._AlertFixtureDisconnected()
       raise e
+
 
   def StartCalibration(self, event):
     """Starts the calibration thread.
