@@ -355,6 +355,7 @@ class TouchscreenCalibration(unittest.TestCase):
     self.ui = UI()
     self._monitor_thread = None
     self.native_usb = None
+    self.query_fixture_state_flag = False
 
   def _AlertFixtureDisconnected(self):
     """Alerts that the fixture is disconnected."""
@@ -663,13 +664,27 @@ class TouchscreenCalibration(unittest.TestCase):
                              '完成後，点击左方触控面板连结以重跑测试')
       raise FixtureException('Mounted media does not exist.')
 
+  def QueryFixtureState(self, dummy_event=None):
+    """Query the fixture internal state including all sensor values."""
+    try:
+      self.native_usb.QueryFixtureState()
+      self.query_fixture_state_flag = True
+    except Exception as e:
+      factory.console.warn('Failed to query fixture state: %s' % e)
+
   def _MonitorNativeUsb(self, native_usb):
     """Get the complete state and show the values that are changed."""
     self.ui.CallJSFunction('showProbeState', 'N/A')
+    self.QueryFixtureState()
     time.sleep(0.5)
     while True:
       native_usb.GetState()
-      state_list = native_usb.DiffState()
+
+      if self.query_fixture_state_flag:
+        state_list = native_usb.CompleteState()
+        self.query_fixture_state_flag = False
+      else:
+        state_list = native_usb.DiffState()
       if state_list:
         factory.console.info('Internal state:')
         for name, value in state_list:
@@ -714,7 +729,7 @@ class TouchscreenCalibration(unittest.TestCase):
     self._RegisterEvents([
       # Events that are emitted from buttons on the factory UI.
       'ReadTest', 'RefreshFixture', 'RefreshTouchscreen', 'ProbeSelfTest',
-      'DriveProbeDown', 'DriveProbeUp', 'ShutDown',
+      'DriveProbeDown', 'DriveProbeUp', 'ShutDown', 'QueryFixtureState',
 
       # Events that are emitted from other callback functions.
       'StartCalibration',

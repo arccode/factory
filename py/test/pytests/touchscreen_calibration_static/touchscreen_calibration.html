@@ -55,6 +55,17 @@
         <span class="goofy-label-zh">刷新</span>
       </button>
     </div>
+
+    <div>
+      <span class="goofy-label-en">Probe state</span>
+      <span class="goofy-label-zh">治具内部状态</span>
+      <div id="probe-state" style="display:inline">N/A</div>
+      <button onClick="test.sendTestEvent('QueryFixtureState', {})">
+        <span class="goofy-label-en">FixtureState</span>
+        <span class="goofy-label-zh">治具状态查询</span>
+      </button>
+    </div>
+
   </div>
 
   <br> <br> <br>
