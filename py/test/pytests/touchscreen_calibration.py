@@ -26,7 +26,15 @@ from cros.factory.test.test_ui import UI
 # server for future process and analyze when needed.
 _TMP_STDOUT = '/tmp/stdout.txt'
 
+
+# Define the driver name and the interface protocols to find the arduino ports.
+# NATIVE_USB_PORT:  used to monitor the internal state of test fixture.
+# PROGRAMMING_PORT: used to upload the firmware from host to the arduino and
+#                   issue calibration commands to control the test fixture.
+NATIVE_USB_PORT = 0
+PROGRAMMING_PORT = 1
 ARDUINO_DRIVER = 'cdc_acm'
+interface_protocol_dict = {NATIVE_USB_PORT: '00', PROGRAMMING_PORT: '01'}
 
 
 ArduinoCommand = namedtuple('ArduinoCommand', ['DOWN', 'UP', 'STATE', 'RESET'])
@@ -142,11 +150,18 @@ class FixtureException(Exception):
 class FixutreSerialDevice(SerialDevice):
   """A serial device to control touchscreen fixture."""
 
-  def __init__(self, timeout=20):
+  def __init__(self, driver, interface_protocol=None, timeout=20):
     super(FixutreSerialDevice, self).__init__()
-    self.Connect(port=FindTtyByDriver(ARDUINO_DRIVER), timeout=timeout)
-    factory.console.info('Wait up to %d seconds for arduino initialization.' %
-                         timeout)
+    try:
+      port = FindTtyByDriver(driver, interface_protocol)
+      self.Connect(port=port, timeout=timeout)
+      msg = 'Connect to programming port "%s" for issuing commands.'
+      factory.console.info(msg % port)
+      factory.console.info('Wait up to %d seconds for arduino initialization.' %
+                           timeout)
+    except:
+      raise FixtureException('Failed to connect the test fixture.')
+
     self.AssertStateWithTimeout([STATE.INIT, STATE.STOP_UP,
                                  STATE.EMERGENCY_STOP], timeout)
 
@@ -335,9 +350,11 @@ class TouchscreenCalibration(unittest.TestCase):
     self._calibration_thread = None
     self.fixture = None
     self.dev_path = None
-    self.dump_frames = None
+    self.dump_frames = 0
     self.reader = DebugDataReader()
     self.ui = UI()
+    self._monitor_thread = None
+    self.native_usb = None
 
   def _AlertFixtureDisconnected(self):
     """Alerts that the fixture is disconnected."""
@@ -381,9 +398,11 @@ class TouchscreenCalibration(unittest.TestCase):
   def RefreshFixture(self, unused_event):
     """Refreshes the fixture."""
     try:
-      self.fixture = FixutreSerialDevice()
+      self.fixture = FixutreSerialDevice(
+          ARDUINO_DRIVER, interface_protocol_dict[PROGRAMMING_PORT])
       if not self.fixture:
         raise FixtureException('Fail to create the fixture serial device.')
+
     except Exception as e:
       factory.console.info('Refresh fixture serial device exception, %s' % e)
       self.ui.CallJSFunction(
@@ -415,6 +434,7 @@ class TouchscreenCalibration(unittest.TestCase):
           '(2) 治具电源已经开启，但是处於紧急停止状态。'
           '请按治具左侧的debug按钮一次。\n'
           )
+    self._CreateMonitorPort()
 
   def RefreshTouchscreen(self, unused_event):
     """Refreshes all possible saved state for the old touchscreen.
@@ -552,6 +572,7 @@ class TouchscreenCalibration(unittest.TestCase):
 
       # Dump whole frame a few times before probe touches panel.
       for f in range(self.dump_frames):           # pylint: disable=W0612
+        factory.console.info('... dump_frames: %d', f)
         self._DumpOneFrameToLog(log_to_file, sn, f)
         time.sleep(0.1)
 
@@ -642,7 +663,40 @@ class TouchscreenCalibration(unittest.TestCase):
                              '完成後，点击左方触控面板连结以重跑测试')
       raise FixtureException('Mounted media does not exist.')
 
-  def runTest(self, dev_path=None, dump_frames=10):
+  def _MonitorNativeUsb(self, native_usb):
+    """Get the complete state and show the values that are changed."""
+    self.ui.CallJSFunction('showProbeState', 'N/A')
+    time.sleep(0.5)
+    while True:
+      native_usb.GetState()
+      state_list = native_usb.DiffState()
+      if state_list:
+        factory.console.info('Internal state:')
+        for name, value in state_list:
+          if name == 'state':
+            try:
+              self.ui.CallJSFunction('showProbeState', value)
+            except Exception:
+              msg = 'Not able to invoke CallJSFunction to show probe state.'
+              factory.console.warn(msg)
+          factory.console.info('      %s: %s' % (name, value))
+
+  def _CreateMonitorPort(self):
+    """Create a thread to monitor the native USB port."""
+    self.native_usb = FixutreNativeUSB(
+        ARDUINO_DRIVER, interface_protocol_dict[NATIVE_USB_PORT], self.ui)
+
+    if not self.native_usb:
+      raise FixtureException('Fail to connect the native usb port.')
+
+    try:
+      self._monitor_thread = threading.Thread(target=self._MonitorNativeUsb,
+                                              args=[self.native_usb])
+      self._monitor_thread.start()
+    except threading.ThreadError:
+      factory.console.warn('Cannot start thread for _MonitorNativeUsb()')
+
+  def runTest(self, dev_path=None, dump_frames=3):
     """The entry method of the test.
 
     Args:

@@ -108,3 +108,9 @@ function setTouchscreenStatus(status) {
   elm.innerText = status ? 'Detected' : 'Undetected';
   elm.style.backgroundColor = status ? '#5F5' : '#F55';
 }
+
+function showProbeState(state) {
+  var elm = document.getElementById('probe-state');
+  elm.innerText = state;
+  elm.style.backgroundColor = '#5F5';
+}
