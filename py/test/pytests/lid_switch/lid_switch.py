@@ -103,6 +103,27 @@ class LidSwitchTest(unittest.TestCase):
         default=None, optional=True)
   ]
 
+  def AdjustBrightness(self, value):
+    """Adjusts the intensity by writing targeting value to sysfs.
+
+    Args:
+      value: The targeted brightness value.
+    """
+    with open(self.args.brightness_path, 'w') as f:
+      try:
+        f.write('%d' % value)
+      except IOError:
+        self.ui.Fail('Can not write %r into brightness. '
+                     'Maybe the limit is wrong' % value)
+
+  def GetBrightness(self):
+    """Gets the brightness value from sysfs."""
+    with open(self.args.brightness_path, 'r') as f:
+      try:
+        return int(f.read())
+      except IOError:
+        self.ui.Fail('Can not read brightness.')
+
   def setUp(self):
     self.ui = test_ui.UI()
     self.template = OneSection(self.ui)
@@ -141,7 +162,7 @@ class LidSwitchTest(unittest.TestCase):
     self._closed_sec = 0
     self._opened_sec = 0
 
-    self._restore_brightness = 0
+    self._restore_brightness = None
 
     if self.fixture:
       self.BFTLid(close=True)
@@ -156,6 +177,11 @@ class LidSwitchTest(unittest.TestCase):
         time_to_close_sec=(self._closed_sec - self._start_waiting_sec),
         time_to_open_sec=(self._opened_sec - self._closed_sec),
         use_fixture=bool(self.fixture))
+
+    # Restore brightness
+    if self.args.brightness_path is not None:
+      if self._restore_brightness is not None:
+        self.AdjustBrightness(self._restore_brightness)
 
   def getCurrentEpochSec(self):
     '''Returns the time since epoch.'''
@@ -215,27 +241,6 @@ class LidSwitchTest(unittest.TestCase):
       self.ui.Fail('Backlight does not turn off.')
     except Exception as e:
       self.ui.Fail(e)
-
-  def AdjustBrightness(self, value):
-    """Adjusts the intensity by writing targeting value to sysfs.
-
-    Args:
-      value: The targeted brightness value.
-    """
-    with open(self.args.brightness_path, 'w') as f:
-      try:
-        f.write('%d' % value)
-      except IOError:
-        self.ui.Fail('Can not write %r into brightness. '
-                     'Maybe the limit is wrong' % value)
-
-  def GetBrightness(self):
-    """Gets the brightness value from sysfs."""
-    with open(self.args.brightness_path, 'r') as f:
-      try:
-        return int(f.read())
-      except IOError:
-        self.ui.Fail('Can not read brightness.')
 
   def HandleEvent(self, event):
     if event.type == evdev.ecodes.EV_SW and event.code == evdev.ecodes.SW_LID:
