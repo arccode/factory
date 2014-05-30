@@ -123,34 +123,18 @@ class AccelerometerController(object):
   """
 
   def __init__(self, iio_bus_id, spec_offset, spec_ideal_values, sample_rate):
-    """Setup IIO interface to capture raw data.
+    """Cleans up previous calibration values and stores the scan order.
 
     We can get raw data from below sysfs:
       /sys/bus/iio/devices/iio:deviceX/in_accel_(x|y|z)_(base|lid)_raw.
 
     However, there is no guarantee that the data will have been sampled
-    at the same time. We can set up triggers to capture data taken in
-    the same snapshot. To do this, select a trigger number (ex: 0) first.
-    Then set below sysfs:
-      echo 0 > /sys/bus/iio/devices/iio_sysfs_trigger/add_trigger
-      echo "sysfstrig0" >
-        /sys/bus/iio/devices/iio:device0/trigger/current_trigger
-      echo 1 >
-        /sys/bus/iio/devices/iio:device0/scan_elements/in_accel_x_base_en
-      echo 1 >
-        /sys/bus/iio/devices/iio:device0/scan_elements/in_accel_y_base_en
-      echo 1 >
-        /sys/bus/iio/devices/iio:device0/scan_elements/in_accel_z_base_en
-      echo 1 >
-        /sys/bus/iio/devices/iio:device0/scan_elements/in_accel_x_lid_en
-      echo 1 >
-        /sys/bus/iio/devices/iio:device0/scan_elements/in_accel_y_lid_en
-      echo 1 >
-        /sys/bus/iio/devices/iio:device0/scan_elements/in_accel_z_lid_en
+    at the same time. We can use existing triggers (see below CL) to get
+    simultaneous raw data from /dev/iio:deviceX ordered by
+    in_accel_(x|y|z)_(base|lid)_index.
+
+    https://chromium-review.googlesource.com/#/c/190471/.
     """
-    # TODO(bowgotsai): use the existing trigger and share it with chrome.
-    # https://chromium-review.googlesource.com/#/c/190471/.
-    self.trigger_name = '0'
     self.trigger_number = '0'
     self.num_signals = 2 * 3 # Two sensors * (x, y, z).
     self.iio_bus_id = iio_bus_id
@@ -158,30 +142,10 @@ class AccelerometerController(object):
     self.spec_ideal_values = spec_ideal_values
     self.sample_rate = sample_rate
 
-    add_trigger_path = os.path.join(
-        _IIO_DEVICES_PATH, 'iio_sysfs_trigger/add_trigger')
-    current_trigger_path = os.path.join(
-        _IIO_DEVICES_PATH, self.iio_bus_id, 'trigger/current_trigger')
     scan_elements_path = os.path.join(
         _IIO_DEVICES_PATH, self.iio_bus_id, 'scan_elements')
 
     self._CleanUpCalibrationValues()
-
-    sysfs_init = [
-        # Choose a number and add it into add_trigger.
-        SYSFS_VALUE(add_trigger_path, self.trigger_name),
-        # Link the trigger we created to our accelerometer device.
-        SYSFS_VALUE(
-            current_trigger_path, 'sysfstrig' + self.trigger_name)]
-
-    # Enable capturing of digital output (x, y, z) of two accelerometers.
-    # Set 'in_accel_(x|y|z)_(base|lid)_en' to 1.
-    for signal_en in self._GenSignalNames('_en'):
-      sysfs_init += [
-          SYSFS_VALUE(os.path.join(scan_elements_path, signal_en), '1')]
-
-    # Initialize sysfs values.
-    self._SetSysfsValues(sysfs_init)
 
     # 'in_accel_(x|y|z)_(base|lid)_index' contains a fixed value which
     # represents the so called scan order. After a capture is triggered,
@@ -193,18 +157,6 @@ class AccelerometerController(object):
           ['cat', os.path.join(scan_elements_path, signal_name + '_index')],
           log=True))
       self.index_to_signal_name[index] = signal_name
-
-  def CleanUpCapture(self):
-    """Clean up settings of raw data capture."""
-    logging.info('Clean up capture settings.')
-    buffer_enable_path = os.path.join(
-        _IIO_DEVICES_PATH, self.iio_bus_id, 'buffer/enable')
-    remove_trigger_path = os.path.join(
-        _IIO_DEVICES_PATH, 'iio_sysfs_trigger/remove_trigger')
-    self._SetSysfsValues(
-        [SYSFS_VALUE(buffer_enable_path, '0'),
-         SYSFS_VALUE(remove_trigger_path, self.trigger_name)],
-        check_call=False)
 
   def _SetSysfsValues(self, sysfs_values, check_call=True):
     """Assigns corresponding values to a list of sysfs.
@@ -248,13 +200,10 @@ class AccelerometerController(object):
   def GetRawDataAverage(self, capture_count=1):
     """Reads several records of raw data and returns the average.
 
-    To setup a capture, it needs to setup the capture buffer first:
-      echo 1 > /sys/bus/iio/devices/iio:device0/buffer/enable
-
-    Then trigger the capture:
+    First, trigger the capture:
       echo 1 > /sys/bus/iio/devices/trigger0/trigger_now
 
-    Finally, get the captured raw data from /dev/iio:deviceX.
+    Then get the captured raw data from /dev/iio:deviceX.
 
     Args:
       capture_count: how many records to read to compute the average.
@@ -268,23 +217,17 @@ class AccelerometerController(object):
            'in_accel_y_lid': 32,
            'in_accel_z_lid': -999}
     """
-    # The accelerometer raw data is 2 bytes and the timestamp is 8 bytes.
-    # The timestamp is always last and is 8-byte aligned. We enable
-    # 2 bytes * 6 signals, so the buffer lenght of one record is 24 bytes.
-    # The default order is in_accel_(x|y|z)_base, in_accel_(x|y|z)_lid,
-    # padding and timestampe.
-    #  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3
-    # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    # | x | y | z | x | y | z |padding|   timestamp   |
-    # +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-    buffer_length_per_record = 24
-    FORMAT_RAW_DATA = '<6h4xq'
-    buffer_enable_path = os.path.join(
-        _IIO_DEVICES_PATH, self.iio_bus_id, 'buffer/enable')
+    # Each accelerometer raw data is 2 bytes and there are
+    # 6 signals, so the buffer lenght of one record is 12 bytes.
+    # The default order is in_accel_(x|y|z)_base, in_accel_(x|y|z)_lid.
+    #  0 1 2 3 4 5 6 7 8 9 0 1
+    # +-+-+-+-+-+-+-+-+-+-+-+-+
+    # | x | y | z | x | y | z |
+    # +-+-+-+-+-+-+-+-+-+-+-+-+
+    buffer_length_per_record = 12
+    FORMAT_RAW_DATA = '<6h'
     trigger_now_path = os.path.join(
         _IIO_DEVICES_PATH, 'trigger' + self.trigger_number, 'trigger_now')
-
-    self._SetSysfsValues([SYSFS_VALUE(buffer_enable_path, '1')])
 
     # Initializes the returned dict.
     ret = dict((signal_name, 0.0) for signal_name in self._GenSignalNames())
@@ -306,8 +249,6 @@ class AccelerometerController(object):
     # Calculates the average
     for signal_name in ret:
       ret[signal_name] = int(round(ret[signal_name] / capture_count))
-    # Disables 'buffer/enable'.
-    self._SetSysfsValues([SYSFS_VALUE(buffer_enable_path, '0')])
     logging.info('Average of %d raw data: %s', capture_count, ret)
     return ret
 
@@ -552,9 +493,6 @@ class AccelerometersCalibration(unittest.TestCase):
           self, self.args.orientation)]
     self._task_manager = FactoryTaskManager(self.ui, task_list)
     self._task_manager.Run()
-
-  def tearDown(self):
-    self.accelerometer_controller.CleanUpCapture()
 
   def _ProbeIIOBus(self):
     """Auto probing the iio bus of accelerometers.
