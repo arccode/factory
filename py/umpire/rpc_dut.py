@@ -11,6 +11,7 @@ import logging
 import os
 import shutil
 import time
+import urllib
 import xmlrpclib
 from twisted.internet import threads
 from twisted.web import xmlrpc
@@ -248,7 +249,7 @@ class UmpireDUTCommands(UmpireRPC):
         resource_url = 'http://%(ip)s:%(port)d/res/%(filename)s' % {
             'ip': self.env.config['ip'],
             'port': self.env.config['port'],
-            'filename': resource_filename}
+            'filename': urllib.quote(resource_filename)}
 
       update_matrix[component] = {
           'needs_update': needs_update,
