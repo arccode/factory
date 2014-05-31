@@ -177,8 +177,7 @@ def GetResourceMap(dut_info, env):
   result = ['id: %s' % bundle['id'],
             'note: %s' % bundle['note'],
             '__token__: %s' % handler_token,
-            'shop_floor_handler: %s/%d/%s' % (HANDLER_BASE, handler_port,
-                                              handler_token)]
+            'shop_floor_handler: %s/%d' % (HANDLER_BASE, handler_port)]
   result.extend('%s: %s' % (k, v) for k, v in bundle['resources'].items())
 
   return '\n'.join(result)
