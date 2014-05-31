@@ -16,34 +16,12 @@ import uuid
 
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
-from cros.factory.umpire.client import umpire_client
+from cros.factory.umpire.client import get_update
 from cros.factory.utils.process_utils import Spawn
 
 
 class UpdaterException(Exception):
   pass
-
-
-def _GetUpdateFromUmpire(proxy):
-  """Gets device factory toolkit update information from Umpire server.
-
-  Args:
-    proxy: An UmpireServerProxy that connects to Umpire server.
-
-  Returns:
-    A tuple containing (needs_update, md5sum, update_url) where
-      needs_update: True if an update is needed, False otherwise.
-      md5sum: The new md5sum of device factory toolkit on the server.
-      update_url: The base url of device factory toolkit on the server.
-        Note this is the root directory of device.
-  """
-  update_dict = proxy.GetUpdate(
-      umpire_client.UmpireClientInfo().GetDUTInfoComponents())
-  device_factory_toolkit_update = update_dict['device_factory_toolkit']
-  needs_update = device_factory_toolkit_update['need_update']
-  md5sum = device_factory_toolkit_update['md5sum']
-  update_url = device_factory_toolkit_update['url']
-  return (needs_update, md5sum, update_url)
 
 
 def CheckCriticalFiles(new_path):
@@ -93,6 +71,10 @@ def TryUpdate(pre_update_hook=None, timeout=15):
   Returns:
     True if an update was performed and the machine should be
     rebooted.
+
+  Raises:
+    UpdaterException: If update scheme is not rsync when using Umpire, since
+      scheme other than rsync is not supported yet.
   '''
   # On a real device, this will resolve to 'autotest' (since 'client'
   # is a symlink to that).  In the chroot, this will resolve to the
@@ -114,15 +96,16 @@ def TryUpdate(pre_update_hook=None, timeout=15):
   shopfloor_client = shopfloor.get_instance(detect=True, timeout=timeout)
   # Uses GetUpdate API provided by Umpire server.
   if shopfloor_client.use_umpire:
-    needs_update, new_md5sum, update_url = _GetUpdateFromUmpire(
-        shopfloor_client)
-
+    update_info = get_update.GetUpdateForDeviceFactoryToolkit(shopfloor_client)
+    new_md5sum = update_info.md5sum
+    if update_info.scheme != 'rsync':
+      raise UpdaterException('Scheme other than rsync is not supported.')
     factory.console.info('MD5SUM from server is %s', new_md5sum)
-    if not needs_update:
+    if not update_info.needs_update:
       factory.console.info('Factory software is up to date')
       return False
-    autotest_src_path = '%s/usr/local/autotest' % update_url
-    factory_src_path = '%s/usr/local/factory' % update_url
+    autotest_src_path = '%s/usr/local/autotest' % update_info.url
+    factory_src_path = '%s/usr/local/factory' % update_info.url
 
   # Uses GetTestMd5sum API provided by v1 or v2 shopfloor.
   else:
@@ -227,7 +210,9 @@ def CheckForUpdate(timeout):
   shopfloor_client = shopfloor.get_instance(detect=True, timeout=timeout)
   # Use GetUpdate API provided by Umpire server.
   if shopfloor_client.use_umpire:
-    needs_update, new_md5sum, _ = _GetUpdateFromUmpire(shopfloor_client)
+    update_info = get_update.GetUpdateForDeviceFactoryToolkit(shopfloor_client)
+    needs_update = update_info.needs_update
+    new_md5sum = update_info.new_md5sum
   else:
     new_md5sum = shopfloor_client.GetTestMd5sum()
     current_md5sum = factory.get_current_md5sum()
