@@ -12,6 +12,7 @@ import factory_common   # pylint: disable=W0611
 from cros.factory.factory_flow import run_automated_tests
 from cros.factory.factory_flow import create_bundle
 from cros.factory.factory_flow import netboot_install
+from cros.factory.factory_flow import modify_bundle
 from cros.factory.factory_flow import run_host_command
 from cros.factory.factory_flow import start_server
 from cros.factory.factory_flow import usb_install
@@ -46,6 +47,13 @@ def CreateBundle(options):
 def StartServer(options):
   """Starts factory server to run factory flow."""
   start_server.StartServer().Main(options)
+
+
+@Command('modify-bundle', *modify_bundle.ModifyBundle.args,
+         doc=modify_bundle.ModifyBundle.__doc__)
+def ModifyBundle(options):
+  """Modifies settings of an existing factory bundle."""
+  modify_bundle.ModifyBundle().Main(options)
 
 
 @Command('netboot-install', *netboot_install.NetbootInstall.args,

@@ -13,7 +13,6 @@ import os
 import pipes
 import re
 import shutil
-import subprocess
 import sys
 import time
 import urlparse
@@ -31,7 +30,8 @@ from cros.factory.tools import gsutil
 from cros.factory.tools.make_update_bundle import MakeUpdateBundle
 from cros.factory.tools.mount_partition import MountPartition
 from cros.factory.utils.file_utils import (
-    UnopenedTemporaryFile, CopyFileSkipBytes, TryUnlink, ExtractFile, Glob)
+    UnopenedTemporaryFile, CopyFileSkipBytes, TryUnlink, ExtractFile, Glob,
+    WriteWithSudo)
 from cros.factory.utils import get_version
 from cros.factory.utils.process_utils import Spawn
 
@@ -286,8 +286,17 @@ class FinalizeBundle(object):
       # deprecation of factory test image.
       utils.TryMakeDirs(os.path.dirname(self.factory_image_path))
 
-      self.factory_toolkit_path = os.path.join(
-        self.bundle_dir, 'factory_toolkit', 'install_factory_toolkit.run')
+      self.factory_toolkit_path = None
+      for path in ('factory_toolkit', 'factory_test'):
+        # On older factory branches factory toolkit is put in factory_test/
+        # directory. On ToT, we deprecated factory test image and factory
+        # toolkit is moved to factory_toolkit/.
+        self.factory_toolkit_path = os.path.join(
+          self.bundle_dir, path, 'install_factory_toolkit.run')
+        if os.path.isfile(self.factory_toolkit_path):
+          break
+      if not os.path.isfile(self.factory_toolkit_path):
+        raise Exception('Unable to find factory toolkit in the bundle')
       output = Spawn([self.factory_toolkit_path, '--info'],
                      check_output=True).stdout_data
       match = re.match(
@@ -665,17 +674,7 @@ class FinalizeBundle(object):
         return
       with MountPartition(self.factory_image_path, 1, rw=True) as mount:
         wipe_option_path = os.path.join(mount, 'factory_wipe_option')
-        self._WriteWithSudo(wipe_option_path, option)
-
-  def _WriteWithSudo(self, file_path, content):
-    """Writes content to file_path with sudo=True."""
-    # Write with sudo, since only root can write this.
-    process = Spawn('cat > %s' % pipes.quote(file_path),
-                    sudo=True, stdin=subprocess.PIPE, shell=True)
-    process.stdin.write(content)
-    process.stdin.close()
-    if process.wait():
-      sys.exit('Unable to write %s' % file_path)
+        WriteWithSudo(wipe_option_path, option)
 
   def MakeUpdateBundle(self):
     # Make the factory update bundle
@@ -708,7 +707,7 @@ class FinalizeBundle(object):
         sys.exit('Unable to set mini-Omaha server in %s' % lsb_factory_path)
       if lsb_factory == orig_lsb_factory:
         return False  # No changes
-      self._WriteWithSudo(lsb_factory_path, lsb_factory)
+      WriteWithSudo(lsb_factory_path, lsb_factory)
       return True
 
     def PatchInstallShim(shim):

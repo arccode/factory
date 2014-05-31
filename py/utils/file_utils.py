@@ -14,9 +14,11 @@ import gzip
 import hashlib
 import logging
 import os
+import pipes
 import re
 import shutil
 import stat
+import subprocess
 import time
 import tempfile
 
@@ -526,3 +528,20 @@ class FileLock(object):
 
   def __exit__(self, *args, **kwargs):
     self.Release()
+
+
+def WriteWithSudo(file_path, content):
+  """Writes content to file_path with sudo=True.
+
+  Args:
+    file_path: The path to write to.
+    content: The content to write.
+  """
+  # Write with sudo, since only root can write this.
+  process = Spawn(
+      'cat > %s' % pipes.quote(file_path), sudo=True,
+      stdin=subprocess.PIPE, shell=True)
+  process.stdin.write(content)
+  process.stdin.close()
+  if process.wait():
+    raise subprocess.CalledProcessError('Unable to write %s' % file_path)
