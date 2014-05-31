@@ -35,9 +35,9 @@ import factory_common # pylint: disable=W0611
 from cros.factory import privacy
 from cros.factory.test import factory, utils
 from cros.factory.test.event import EventClient, Event
-from cros.factory.utils import net_utils
-from cros.factory.utils.process_utils import Spawn
+from cros.factory.umpire.client import get_update
 from cros.factory.umpire.client import umpire_server_proxy
+from cros.factory.utils.process_utils import Spawn
 
 
 # Name of the factory shared data key that maps to session info.
@@ -310,9 +310,14 @@ def get_hwid():
 @_server_api
 def get_hwid_updater():
   """Gets HWID updater, if any."""
-  hwid_updater = get_instance().GetHWIDUpdater()
-  if isinstance(hwid_updater, Binary):
-    hwid_updater = hwid_updater.data
+  hwid_updater = None
+  proxy = get_instance()
+  if proxy.use_umpire:
+    hwid_updater = get_update.GetUpdateForHWID(proxy)
+  else:
+    hwid_updater = proxy.GetHWIDUpdater()
+    if isinstance(hwid_updater, Binary):
+      hwid_updater = hwid_updater.data
   return hwid_updater
 
 
