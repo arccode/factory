@@ -79,7 +79,8 @@ _RESOURCES_SCHEMA = FixedDict(
         'complete_script': Scalar('COMPLETE channel', str),
         'efi_partition': Scalar('EFI channel', str),
         'firmware': Scalar('FIRMWARE channel', str),
-        'hwid': Scalar('HWID updater', str)})
+        'hwid': Scalar('HWID updater', str),
+        'download_conf': Scalar('DOWNLOAD configuration', str)})
 # Single bundle validator.
 # A valid configuration can contain multiple bundles. At any time, one device
 # state (mac, sn, mlb_sn) can map to one bundle only.
