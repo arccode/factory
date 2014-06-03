@@ -72,7 +72,7 @@ class SyncShopfloor(unittest.TestCase):
           if self.args.sync_event_logs:
             goofy.FlushEventLogs()
           goofy.SyncTimeWithShopfloorServer()
-          dummy_md5sum, needs_update = updater.CheckForUpdate(
+          unused_md5sum, needs_update = updater.CheckForUpdate(
               self.args.timeout_secs)
           if not needs_update or self.args.disable_update:
             # No update necessary; pass.

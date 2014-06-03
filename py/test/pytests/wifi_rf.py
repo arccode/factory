@@ -265,7 +265,7 @@ class Wifi_RF(unittest.TestCase):
     self._ui.BindKey(' ', self.TestEnd)
 
 
-  def TestEnd(self, dummy_event):
+  def TestEnd(self, unused_event):
     """Test is Done.
 
     Args:
@@ -314,11 +314,11 @@ class Wifi_RF(unittest.TestCase):
     return results
 
 
-  def RunSubtests(self, dummy_event):
+  def RunSubtests(self, unused_event):
     """Iterate to next test.
 
     Args:
-      dummy_event: ignored.
+      unused_event: ignored.
     """
     for test in _SUBTESTS:
       self.Subtest(test)

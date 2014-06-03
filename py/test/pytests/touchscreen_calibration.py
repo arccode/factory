@@ -259,7 +259,7 @@ class TouchscreenCalibration(unittest.TestCase):
                              '治具未就原位, 舍弃')
       raise FixtureException('Fixture not in UP position.')
 
-  def ReadTest(self, dummy_event):
+  def ReadTest(self, unused_event):
     """Reads the raw sensor data.."""
     if self.reader:
       data = self.reader.Read(delta=True)
@@ -269,13 +269,13 @@ class TouchscreenCalibration(unittest.TestCase):
     else:
       factory.console.info('No reader found')
 
-  def ProbeSelfTest(self, dummy_event):
+  def ProbeSelfTest(self, unused_event):
     """Execute the probe self test to confirm the fixture works properly."""
     self._CheckFixtureStateUp()
     self.DriveProbeDown()
     self.DriveProbeUp()
 
-  def RefreshFixture(self, dummy_event):
+  def RefreshFixture(self, unused_event):
     """Refreshes the fixture."""
     try:
       self.fixture = FixutreSerialDevice()
@@ -313,7 +313,7 @@ class TouchscreenCalibration(unittest.TestCase):
           '请按治具左侧的debug按钮一次。\n'
           )
 
-  def RefreshTouchscreen(self, dummy_event):
+  def RefreshTouchscreen(self, unused_event):
     """Refreshes all possible saved state for the old touchscreen.
 
     This functions is called whenever an old touchscreen panel
@@ -330,7 +330,7 @@ class TouchscreenCalibration(unittest.TestCase):
       factory.console.info('Exception at refreshing touch screen: %s' % e)
     self.ui.CallJSFunction('setTouchscreenStatus', False)
 
-  def DriveProbeDown(self, dummy_event=None):
+  def DriveProbeDown(self, unused_event=None):
     """A wrapper to drive the probe down."""
     try:
       self.fixture.DriveProbeDown()
@@ -340,7 +340,7 @@ class TouchscreenCalibration(unittest.TestCase):
                              '治具未就下位, 舍弃')
       raise e
 
-  def DriveProbeUp(self, dummy_event=None):
+  def DriveProbeUp(self, unused_event=None):
     """A wrapper to drive the probe up."""
     try:
       self.fixture.DriveProbeUp()
@@ -350,7 +350,7 @@ class TouchscreenCalibration(unittest.TestCase):
                              '治具未就上位, 舍弃')
       raise e
 
-  def ShutDown(self, dummy_event=None):
+  def ShutDown(self, unused_event=None):
     """Shut down the host."""
     try:
       os.system('shutdown -H 0')

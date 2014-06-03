@@ -778,7 +778,7 @@ class _IQTestDelegate(object):
     self.usb_ready_event.set()
     self.delegator.ui.CallJSFunction('UpdateUSBStatus', True)
 
-  def _OnUSBRemoval(self, dummy_dev_path):
+  def _OnUSBRemoval(self, unused_dev_path):
     self.usb_ready_event.clear()
     self.usb_dev_path = None
     self.delegator.ui.CallJSFunction('UpdateUSBStatus', False)

@@ -121,7 +121,7 @@ class AtmelTouchController(object):
     # since the rest is garbage. And we’ll only read self.rows_enabled rows
     # instead of self.rows since the rest is also garbage. Note that
     # (rows_enabled, cols_enabled) is a subset of (rows, cols).
-      for dummy_row in range(self.rows_enabled):
+      for unused_row in range(self.rows_enabled):
         row_data = []
         line = f.read(self.cols * 2)
         for col_pos in range(0, self.cols_enabled * 2, 2):

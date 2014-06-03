@@ -40,7 +40,7 @@ class KeyboardBacklightTest(unittest.TestCase):
                          log_stderr_on_error=True, check_call=True)
     self._current = self._current + 1
 
-  def PassSubtest(self, dummy_event):
+  def PassSubtest(self, unused_event):
     if self._current == len(_SUBTESTS):
       self._ui.Pass()
     else:

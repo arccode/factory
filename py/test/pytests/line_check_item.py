@@ -96,7 +96,7 @@ class LineCheckItemTest(unittest.TestCase):
     self._current = self._current + 1
     self.RunSubTest()
 
-  def EnterKeyPressed(self, dummy_event):
+  def EnterKeyPressed(self, unused_event):
     """
     Handler for enter key pressed by user. Passes the subtest if this subtest
     needs to be judged.
@@ -104,7 +104,7 @@ class LineCheckItemTest(unittest.TestCase):
     if self.NeedToJudgeSubTest():
       self.PassSubTest()
 
-  def EscapeKeyPressed(self, dummy_event):
+  def EscapeKeyPressed(self, unused_event):
     """
     Handler for escape key pressed by user. Fails the subtest if this subtest
     needs to be judged.
