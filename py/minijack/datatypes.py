@@ -13,7 +13,7 @@ import yaml
 EVENT_SEPARATOR = '\n---\n'
 
 
-def YamlObjectConstructor(loader, dummy_tag_suffix, node):
+def YamlObjectConstructor(loader, unused_tag_suffix, node):
   """A custom YAML constructor to construct objects as lists or dicts."""
   if isinstance(node, yaml.SequenceNode):
     return loader.construct_yaml_seq(node)

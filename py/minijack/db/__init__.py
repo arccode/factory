@@ -278,7 +278,7 @@ class Q(object):
         ks.append('exact')
       yield ks + [v]
 
-  def __deepcopy__(self, dummy_memo):
+  def __deepcopy__(self, unused_memo):
     ret = Q.__new__(Q)
     ret._database = self._database
     ret._sql = self._sql
@@ -393,7 +393,7 @@ class QuerySet(object):
     else:
       raise ValueError('Unknown return type %s in QuerySet' % self._return_type)
 
-  def __deepcopy__(self, dummy_memo):
+  def __deepcopy__(self, unused_memo):
     ret = QuerySet.__new__(QuerySet)
     for m in ['_database', '_model', '_return_type']:
       setattr(ret, m, getattr(self, m))

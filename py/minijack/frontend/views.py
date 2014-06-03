@@ -59,7 +59,7 @@ def BuildFilterList(params, default=None):
   return result
 
 
-def GetDeviceFilterContext(dummy_database, filter_dict):
+def GetDeviceFilterContext(unused_database, filter_dict):
   default_filter = [[False, 'latest_test_time', 'lt',
                      datetime.now().strftime(DATETIME_FORMAT)[:10]]]
   return {
@@ -249,7 +249,7 @@ def GetTestsView(request):
   return render(request, 'tests_life.html', context)
 
 
-def GetScreenshotImage(dummy_request, ip_address):
+def GetScreenshotImage(unused_request, ip_address):
   if settings.IS_APPENGINE:
     return HttpResponse(
         "Screenshot feature is disabled on App Engine" +
