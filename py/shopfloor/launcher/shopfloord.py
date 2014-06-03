@@ -112,7 +112,7 @@ def DelayedStop(count_down):
   ReactorStop()
 
 
-def SignalHandler(sig, dummy_frame):
+def SignalHandler(sig, unused_frame):
   """Initiates stopping sequence.
 
   Launcher holds multiple subprocess, runs the event loop in twisted reactor,

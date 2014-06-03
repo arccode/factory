@@ -383,7 +383,7 @@ def main():
   update_server = FactoryUpdateServer(
       options.state_dir, rsyncd_port=options.port)
   # Hook SIGTERM,SIGINT and enter the polling loop.
-  def SignalHandler(dummy_signum, dummy_frame):
+  def SignalHandler(unused_signum, unused_frame):
     update_server.Stop()
     raise SystemExit
 

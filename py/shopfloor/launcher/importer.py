@@ -40,7 +40,7 @@ class ImporterError(Exception):
   pass
 
 
-def FakeGlobConstruct(dummy_loader, dummy_node):
+def FakeGlobConstruct(unused_loader, unused_node):
   """Fake YAML constructor."""
   return None
 

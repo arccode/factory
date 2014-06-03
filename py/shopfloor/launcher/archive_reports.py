@@ -147,7 +147,7 @@ def ArchiveFolder(folder, dest_folder, log_prefix=LOGS_PREFIX,
     logging.info('Finished archive %s to %s',
                  log_name, archive_name)
 
-def SignalHandler(dummy_signal, dummy_frame):
+def SignalHandler(unused_signal, unused_frame):
   # Call reactor.stop() from reactor instance to make sure no spawned process
   # is running parallely.
   logging.info('Stopping...')

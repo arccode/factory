@@ -285,7 +285,7 @@ def Deploy(args):
 
 
 @Command('list')
-def List(dummy_args):
+def List(unused_args):
   """Lists available configurations."""
   file_list = glob.glob(os.path.join(env.GetResourcesDir(), 'shopfloor.yaml#*'))
   config = None
@@ -349,7 +349,7 @@ def Import(args):
 
 
 @Command('info')
-def Info(dummy_args):
+def Info(unused_args):
   """Calls launcher to display running configuration."""
   CallLauncher()
 
@@ -385,7 +385,7 @@ def Start(args):
 
 
 @Command('stop')
-def Stop(dummy_args):
+def Stop(unused_args):
   """Stops running shopfloor instance."""
   StopShopfloord()
 
@@ -395,7 +395,7 @@ def Stop(dummy_args):
                 help='service action, start/stop/list'),
          CmdArg('name', nargs='?',
                 help='service name'))
-def Service(dummy_args):
+def Service(unused_args):
   """Calls launcher to start/stop/list runtime service(s)."""
   CallLauncher()
 
