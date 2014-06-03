@@ -282,14 +282,8 @@ setup_environment() {
     local toolkit_output=$(mktemp --tmpdir)
     echo "Creating factory test image from test image and toolkit" \
         "(output in $toolkit_output)..."
-    local temp_mount="$(mktemp -d --tmpdir)"
-    image_add_temp "$temp_mount"
     cp "${FLAGS_test}" "${FACTORY_IMAGE}"
-    image_mount_partition "${FACTORY_IMAGE}" "1" "$temp_mount" "rw" ||
-      die "Unable to mount ${FACTORY_IMAGE}."
-    sudo "${FLAGS_factory_toolkit}" -- \
-      --dest "${temp_mount}" --patch-test-image --yes >& "${toolkit_output}"
-    image_umount_partition "$temp_mount"
+    sudo "${FLAGS_factory_toolkit}" "${FACTORY_IMAGE}" --yes >& "${toolkit_output}"
   fi
 
   # Override this with path to modified kernel (for non-SSD images)
