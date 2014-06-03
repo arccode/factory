@@ -163,7 +163,8 @@ def ListComponentsWrapper(options):
     'enumerate-hwid',
     CmdArg('-i', '--image_id', default=None,
            help='the image ID to enumerate.'),
-    CmdArg('-s', '--status', default='supported', choices=['supported', 'all'],
+    CmdArg('-s', '--status', default='supported',
+           choices=['supported', 'released', 'all'],
            help='the status of components to enumerate'))
 def EnumerateHWIDWrapper(options):
   """Enumerates possible HWIDs."""

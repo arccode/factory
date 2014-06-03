@@ -222,6 +222,7 @@ def EnumerateHWID(db, image_id=None, status='supported'):
     db: A Database object to be used.
     image_id: The image ID to use.  Defaults to the latest image ID.
     status: By default only 'supported' components are enumerated.  Set this to
+        'released' will include 'supported' and 'deprecated'. Set this to
         'all' if you want to include 'deprecated' and 'unsupported' components.
 
   Returns:
@@ -251,6 +252,10 @@ def EnumerateHWID(db, image_id=None, status='supported'):
             if status == 'supported' and attrs.get('status') in (
                 common.HWID.COMPONENT_STATUS.unsupported,
                 common.HWID.COMPONENT_STATUS.deprecated):
+              pass_check = False
+              break
+            if status == 'released' and attrs.get('status') == (
+                common.HWID.COMPONENT_STATUS.unsupported):
               pass_check = False
               break
             comp_items.append(attrs['name'])
