@@ -67,7 +67,7 @@ def mock_autotest(env, name, passed, error_msg):
     passed: Whether the test should pass.
     error_msg: The error message.
   """
-  def side_effect(dummy_name, dummy_args, dummy_env_additions, result_file):
+  def side_effect(unused_name, unused_args, unused_env_additions, result_file):
     with open(result_file, 'w') as out:
       pickle.dump((passed, error_msg), out)
       return Spawn(['true'])

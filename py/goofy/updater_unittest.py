@@ -50,7 +50,7 @@ class CheckForUpdateTest(unittest.TestCase):
 
 class CheckForUpdateAsyncTest(unittest.TestCase):
   '''Test CheckForUpdateAsync with mocked CheckForUpdate and other functions.'''
-  def CallbackCalled(self, *dummy_args, **dummy_kwargs):
+  def CallbackCalled(self, *unused_args, **unused_kwargs):
     '''Arguments of this function are dummy.'''
     self.event.set()
 

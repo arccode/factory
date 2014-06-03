@@ -669,7 +669,7 @@ def Verify(options):
   VerifyBranding(options)
 
 @Command('untar_stateful_files')
-def UntarStatefulFiles(dummy_options):
+def UntarStatefulFiles(unused_options):
   """Untars stateful files from stateful_files.tar.xz on stateful partition.
 
   If that file does not exist (which should only be R30 and earlier),
