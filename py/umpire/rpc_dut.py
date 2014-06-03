@@ -268,7 +268,7 @@ class LogDUTCommands(UmpireRPC):
     http://umpire_server_address:umpire_port/umpire
   """
 
-  def _ReturnTrue(self, dummy_result):
+  def _ReturnTrue(self, unused_result):
     """Returns true."""
     return True
 

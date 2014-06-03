@@ -74,7 +74,7 @@ class UmpireDaemon(object):
     self.twisted_ports = []
     self.deploying = False
 
-  def _HandleStopSignal(self, sig, dummy_frame):
+  def _HandleStopSignal(self, sig, unused_frame):
     """Handles signals that stops event loop.
 
     Umpire daemon prevents twisted event loop to handle SIGINT and

@@ -174,7 +174,7 @@ def Edit(args, env):
 
 
 @Command('deploy')
-def Deploy(dummy_args, env):
+def Deploy(unused_args, env):
   """Deploys an Umpire service.
 
   It runs an Umpire service based on the staging Umpire Config (unless
@@ -197,36 +197,36 @@ def Deploy(dummy_args, env):
 
 
 @Command('status')
-def Status(dummy_args, dummy_env):
+def Status(unused_args, unused_env):
   """Shows the pstree of Umpire services."""
   raise NotImplementedError
 
 
 @Command('list')
-def List(dummy_args, dummy_env):
+def List(unused_args, unused_env):
   """Lists all Umpire Config files."""
 
 
 @Command('start')
-def Start(dummy_args, dummy_env):
+def Start(unused_args, unused_env):
   """Starts Umpire service."""
   raise NotImplementedError
 
 
 @Command('stop')
-def Stop(dummy_args, dummy_env):
+def Stop(unused_args, unused_env):
   """Stops Umpire service."""
   raise NotImplementedError
 
 
 @Command('stage')
-def Stage(dummy_args, env):
+def Stage(unused_args, env):
   """Stages an Umpire Config file for edit."""
   env.StageConfigFile(env.config_path)
 
 
 @Command('unstage')
-def Unstage(dummy_args, env):
+def Unstage(unused_args, env):
   """Unstages staging Umpire Config file."""
   env.UnstageConfigFile()
 
@@ -234,7 +234,7 @@ def Unstage(dummy_args, env):
 @Command('import-resource',
          CmdArg('resources', nargs='+',
                 help='Path to resource file(s).'))
-def ImportResource(dummy_args, dummy_env):
+def ImportResource(unused_args, unused_env):
   """Imports file(s) to resources folder."""
   raise NotImplementedError
 

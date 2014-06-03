@@ -22,7 +22,7 @@ class SimpleService(UmpireService):
 
   """Test service that launches /bin/sh ."""
 
-  def CreateProcesses(self, dummy_umpire_config, dummy_env):
+  def CreateProcesses(self, unused_umpire_config, unused_env):
     proc = ServiceProcess(self)
     proc.SetConfig({
         'executable': '/bin/sh',
@@ -36,7 +36,7 @@ class MultiProcService(UmpireService):
 
   """Multiple process service."""
 
-  def CreateProcesses(self, dummy_umpire_config, dummy_env):
+  def CreateProcesses(self, unused_umpire_config, unused_env):
     for p in xrange(0, 7):
       config_dict = {
           'executable': '/bin/sh',
@@ -52,7 +52,7 @@ class RestartService(UmpireService):
 
   """A process that restarts fast."""
 
-  def CreateProcesses(self, dummy_umpire_config, dummy_env):
+  def CreateProcesses(self, unused_umpire_config, unused_env):
     config_dict = {
         'executable': '/bin/sh',
         'name': 'P_restart',
@@ -68,7 +68,7 @@ class DupProcService(UmpireService):
 
   """Service contains duplicate processes."""
 
-  def CreateProcesses(self, dummy_umpire_config, dummy_env):
+  def CreateProcesses(self, unused_umpire_config, unused_env):
     config_dict = {
         'executable': '/bin/sh',
         'name': 'P_dup',
@@ -135,7 +135,7 @@ class ServiceTest(unittest.TestCase):
     self.services.append(svc)
     deferred = svc.Start(svc.CreateProcesses(self.umpire_config, self.env))
 
-    def HandleRestartResult(dummy_result):
+    def HandleRestartResult(unused_result):
       raise UmpireError('testRestart expects failure callback')
 
     def HandleRestartFailure(failure):

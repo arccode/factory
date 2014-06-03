@@ -110,7 +110,7 @@ class DUTRPCTest(unittest.TestCase):
   def testGetUpdateNoUpdate(self):
     def CheckNoUpdate(result):
       logging.debug('no update result: %s', str(result))
-      for dummy_component, update_info in result.iteritems():
+      for unused_component, update_info in result.iteritems():
         self.assertFalse(update_info['needs_update'])
       return result
 

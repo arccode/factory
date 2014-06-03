@@ -55,7 +55,7 @@ def GetImageVersionFromManifest(manifest, image_type):
   raise Exception('Image type not found: ' + image_type)
 
 
-def FakeGlobConstruct(dummy_loader, dummy_node):
+def FakeGlobConstruct(unused_loader, unused_node):
   """Fake YAML constructor."""
   return None
 

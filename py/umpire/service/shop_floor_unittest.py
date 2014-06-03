@@ -19,7 +19,7 @@ from cros.factory.umpire.umpire_env import UmpireEnv
 
 
 class MockShopFloorManager(object):
-  def Allocate(self, *dummy_args, **dummy_kwargs):
+  def Allocate(self, *unused_args, **unused_kwargs):
     return (9876, 'dummy_token')
 
 

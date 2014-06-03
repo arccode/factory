@@ -71,7 +71,7 @@ def main():
   parser.add_option(
       '-y', '--yaml', dest='custom_path', default=TEST_YAML,
       help='use another test yaml config file')
-  (options, dummy_args) = parser.parse_args()
+  (options, unused_args) = parser.parse_args()
   StartServer(testmode=options.testmode, config_file=options.custom_path)
 
 

@@ -84,9 +84,9 @@ def RunServer(server):
 master_pid = os.getpid()
 
 
-def SignalHandler(dummy_signum, dummy_frame):
+def SignalHandler(signum, unused_frame):
   """Signal handler for master process."""
-  logging.debug('got signal %d on pid %d', dummy_signum, os.getpid())
+  logging.debug('got signal %d on pid %d', signum, os.getpid())
   if os.getpid() != master_pid:
     return
   UmpireServerProxyTest.StopAllServers()

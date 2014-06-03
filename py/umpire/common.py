@@ -143,7 +143,7 @@ class BundleManifestIgnoreGlobLoader(yaml.Loader):
   """A YAML loader that loads factory bundle manifest with !glob ignored."""
 
   def __init__(self, *args, **kwargs):
-    def FakeGlobConstruct(dummy_loader, dummy_node):
+    def FakeGlobConstruct(unused_loader, unused_node):
       return None
 
     yaml.Loader.__init__(self, *args, **kwargs)

@@ -48,7 +48,7 @@ class CommandTest(unittest.TestCase):
     return deferred
 
   def AssertFailure(self, deferred):
-    def UnexpectedCallback(dummy_result):
+    def UnexpectedCallback(unused_result):
       raise UmpireError('Expect failure')
 
     def ExpectedErrback(result):
