@@ -403,7 +403,7 @@ def get_selected_aux_data(table_name):
   if table_name == 'device_data':
     return GetDeviceData()
 
-  dummy_id, data = factory.get_shared_data(
+  _, data = factory.get_shared_data(
       _get_aux_shared_data_key(table_name), default=(None, None))
   if not data:
     raise ValueError('No aux data selected for table %s' % table_name)
