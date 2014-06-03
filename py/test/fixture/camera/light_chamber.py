@@ -128,7 +128,7 @@ class LightChamber(object):
     assert sample_count >= 1
     img, _ = self.ReadSingleFrame(return_gray_image=False)
     img = img.astype(np.float64)
-    for dummy in xrange(sample_count - 1):
+    for unused_counter in xrange(sample_count - 1):
       t, _ = self.ReadSingleFrame(return_gray_image=False)
       img += t.astype(np.float64)
     img /= sample_count

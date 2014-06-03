@@ -22,7 +22,7 @@ class DummyBFTFixture(BFTFixture):
   # fixture's action.
   _delay_secs = 3
 
-  def GetSystemStatus(self, dummy_probe):
+  def GetSystemStatus(self, unused_probe):
     return BFTFixture.Status.ON
 
   def Init(self, **kwargs):

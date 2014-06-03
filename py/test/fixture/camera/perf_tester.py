@@ -432,7 +432,7 @@ def CheckVisualCorrectness(
     # point of the convex hull on the rectangle grid.
     match = False
     four_corners = ret.four_corners
-    for dummy in range(0, 4):
+    for unused_counter in range(0, 4):
       success, homography, _ = grid_mapper.Register(
           four_corners, sample_corners, ref_data.four_corners,
           ref_data.corners, ref_data.pmatch_tol)
