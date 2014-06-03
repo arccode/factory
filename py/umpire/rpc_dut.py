@@ -182,7 +182,7 @@ class UmpireDUTCommands(UmpireRPC):
     Returns:
       A dictionary lists update scheme and URL for each requested component:
         {<component_name>: {
-            'need_update': boolean flag,
+            'needs_update': boolean flag,
             'scheme': update protocol scheme, http, rsync or zsync,
             'url': URL to the requested resource,
             'md5sum': MD5SUM hex string for the resource},
@@ -223,13 +223,13 @@ class UmpireDUTCommands(UmpireRPC):
         return Fault('can not get %s hash from resource %s' %
                      (component, resource_filename))
 
-      need_update = False
+      needs_update = False
 
       if not self._IsTagEqual(component, component_tag, resource_tag):
         # Check if DUT needs an update.
         stage_start, stage_end = enable_update.get(component, (None, None))
         if self._CanUpdate(current_stage, stage_start, stage_end):
-          need_update = True
+          needs_update = True
 
       # Calculate resource
       resource_scheme = None
@@ -251,7 +251,7 @@ class UmpireDUTCommands(UmpireRPC):
             'filename': resource_filename}
 
       update_matrix[component] = {
-          'need_update': need_update,
+          'needs_update': needs_update,
           'md5sum': resource_hash,
           'scheme': resource_scheme,
           'url': resource_url}

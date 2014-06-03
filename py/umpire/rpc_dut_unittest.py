@@ -111,7 +111,7 @@ class DUTRPCTest(unittest.TestCase):
     def CheckNoUpdate(result):
       logging.debug('no update result: %s', str(result))
       for dummy_component, update_info in result.iteritems():
-        self.assertFalse(update_info['need_update'])
+        self.assertFalse(update_info['needs_update'])
       return result
 
     deferreds = []
@@ -126,7 +126,7 @@ class DUTRPCTest(unittest.TestCase):
   def testGetUpdate(self):
     def CheckSingleComponentUpdate(result):
       logging.debug('update result:\n\t%r', result)
-      self.assertEqual(1, sum(result[component]['need_update'] for component in
+      self.assertEqual(1, sum(result[component]['needs_update'] for component in
                               result))
       return result
 
