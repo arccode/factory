@@ -93,8 +93,8 @@ class RegionsList(Directive):
     return [nodes.table('', tgroup, classes=['factory-small'])]
 
 
-def ProcessDocstring(dummy_app, what, dummy_name, dummy_obj,
-                     dummy_options, lines):
+def ProcessDocstring(unused_app, what, unused_name, unused_obj,
+                     unused_options, lines):
   """Hook to process docstrings.
 
   We use this to munge the docstrings so that they can both match the

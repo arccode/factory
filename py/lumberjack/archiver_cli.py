@@ -48,7 +48,7 @@ def CleanUpDecorator(func):
   return wrapper
 
 
-def _SignalHandler(dummy_signal, dummy_frame):
+def _SignalHandler(unused_signal, unused_frame):
   _CleanUp()
 
 

@@ -175,7 +175,7 @@ def main():
   # Map of pytest name to info returned by GenerateTestDocs.
   pytest_info = {}
 
-  for root, dummy_dirs, files in os.walk(pytest_module_dir):
+  for root, unused_dirs, files in os.walk(pytest_module_dir):
     for f in files:
       if (not f.endswith('.py') or
           f.startswith('__') or
