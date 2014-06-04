@@ -23,6 +23,7 @@ _TAR_FILE_DIR = '%s/tarfiles' % _UNITTEST_ROOT
 _RAW_DATA_DIR = '%s/rawdata' % _UNITTEST_ROOT
 _EVENT_LOG_DIR = '%s/eventlog' % _UNITTEST_ROOT
 _VPD_FILE = '%s/tarfiles/vpd' % _UNITTEST_ROOT
+_CAMERA_FILE = '%s/tarfiles/camera_mapping' % _UNITTEST_ROOT
 
 _TMP_COMPRESS_DIR = '%s/tmp' % _UNITTEST_ROOT
 
@@ -106,6 +107,7 @@ timestamp: 2014-04-21T13:45:21.123Z
 fixture_id: 'henry'
 status: PASSED
 duration: 10
+camera_serial: '54321'
 events:
   'result': {'frequency': 100, 'response': 30}
   'test': [123, 456, 789]
@@ -144,6 +146,7 @@ rawdata: ['abc.png', 'def.wav']
     options['rawdata_dir'] = _RAW_DATA_DIR
     options['eventlog_dir'] = _EVENT_LOG_DIR
     options['vpd_file'] = _VPD_FILE
+    options['camera_file'] = _CAMERA_FILE
     return options
 
   def emulateCGIField(self, file_name, file_content):
@@ -194,7 +197,7 @@ rawdata: ['abc.png', 'def.wav']
     ret = logparser(environ, self.start_response)
     self.assertEqual(ret, ['None'])
 
-    environ['QUERY_STRING'] = 'abc=123'
+    environ['QUERY_STRING'] = 'action=getvpd&abc=123'
     ret = logparser(environ, self.start_response)
     self.assertEqual(ret, ['None'])
 
@@ -402,11 +405,35 @@ rawdata: ['abc.png', 'def.wav']
     self.assertEqual(ret[0], 'PASSED')
 
     get_environ = copy.copy(LogParserUnitTest.GET_ENVIRON_SAMPLE)
-    get_environ['QUERY_STRING'] = 'serial=%s' % config['panel_serial']
+    get_environ['QUERY_STRING'] = 'action=getvpd&serial=%s' % (
+        config['panel_serial'])
     logparser = LogParser(self.options)
     ret = logparser(get_environ, self.start_response)
     self.assertEqual(str(ret[0]), str(config['vpd']))
 
+    # Check camera module is not updated in second session when serial number
+    # is the same
+    get_environ = copy.copy(LogParserUnitTest.GET_ENVIRON_SAMPLE)
+    get_environ['QUERY_STRING'] = 'action=getcamera&serial=%s' % (
+        config['panel_serial'])
+    logparser = LogParser(self.options)
+    ret = logparser(get_environ, self.start_response)
+    self.assertEqual(str(ret[0]), str([config['camera_serial']]))
+
+    # Check camera module is updated in third session
+    camera_list = [config['camera_serial'], '98765']
+    config['camera_serial'] = '98765'
+    mock_GetFile.return_value = self.preparePOSTRequest(config)
+    logparser = LogParser(self.options)
+    ret = logparser(post_environ, self.start_response)
+    self.assertEqual(ret[0], 'PASSED')
+
+    get_environ = copy.copy(LogParserUnitTest.GET_ENVIRON_SAMPLE)
+    get_environ['QUERY_STRING'] = 'action=getcamera&serial=%s' % (
+        config['panel_serial'])
+    logparser = LogParser(self.options)
+    ret = logparser(get_environ, self.start_response)
+    self.assertEqual(str(ret[0]), str(camera_list))
 
 if __name__ == '__main__':
   unittest.main()

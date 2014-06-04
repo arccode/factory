@@ -31,10 +31,11 @@ _TAR_FILE_DIR = '%s/tarfiles' % _BASE_DIR
 _RAW_DATA_DIR = '%s/rawdata' % _BASE_DIR
 _EVENT_LOG_DIR = '%s/eventlog' % _BASE_DIR
 _VPD_FILE = '%s/tarfiles/vpd' % _BASE_DIR
+_CAMERA_MAPPING_FILE = '%s/tarfiles/camera_mapping' % _BASE_DIR
 
 # File pattern setting
 _SERIAL_DIGIT = 5
-_FILE_NAME_RE = re.compile(r'(\w+?)_(\d{%d})_(\d{17})$' % _SERIAL_DIGIT)
+_FILE_NAME_RE = re.compile(r'(\w+?)_(\w{%d})_(\d{17})$' % _SERIAL_DIGIT)
 _FILE_EXT_RE = re.compile(r'.(tgz|zip|tar)$')
 
 # Event Log setting
@@ -147,6 +148,7 @@ class LogParser(object):
           ], 'Duration'),
       },
       optional_items={
+          'camera_serial': Scalar('Camera serial', str),
           'vpd': Dict('VPD', Scalar('key', str), Scalar('Value', str)),
           'rawdata': List('Rawdata', Scalar('Files', str)),
       })
@@ -163,19 +165,23 @@ class LogParser(object):
     self.rawdata_dir = options.get('rawdata_dir', _RAW_DATA_DIR)
     self.eventlog_dir = options.get('eventlog_dir', _EVENT_LOG_DIR)
     self.vpd_file = options.get('vpd_file', _VPD_FILE)
+    self.camera_file = options.get('camera_file', _VPD_FILE)
 
     self._CreateDir(self.tarfile_dir)
     self._CreateDir(self.rawdata_dir)
     self._CreateDir(self.eventlog_dir)
     self._CreateDir(os.path.dirname(self.vpd_file))
+    self._CreateDir(os.path.dirname(self.camera_file))
 
     self.vpd_lock = threading.Lock()
-    self.vpd = {}
-    self._LoadVPD()
+    self.vpd = self._LoadFile(self.vpd_file, self.vpd_lock)
+
+    self.camera_lock = threading.Lock()
+    self.camera_mapping = self._LoadFile(self.camera_file, self.camera_lock)
 
   def __call__(self, environ, start_response):
     session = WSGISession(environ, start_response)
-    ret = ''
+    ret = None
     if session.Method() == 'POST':
       try:
         self.CheckUploadFile(session)
@@ -184,7 +190,12 @@ class LogParser(object):
       else:
         ret = 'PASSED'
     elif session.Method() == 'GET':
-      ret = self.GetVPDData(session)
+      action = session.GetQuery('action')
+      if action:
+        if action.lower() == 'getvpd':
+          ret = self.GetVPDData(session)
+        elif action.lower() == 'getcamera':
+          ret = self.GetCameraMapping(session)
     return session.Response('text/plain', str(ret))
 
   def _CreateDir(self, path):
@@ -207,6 +218,24 @@ class LogParser(object):
     serial = session.GetQuery('serial')
     if serial in self.vpd:
       return self.vpd[serial]
+    return None
+
+  def GetCameraMapping(self, session):
+    """Gets camera serial number mapping list of a panel serial number.
+
+    HTTP GET request contains 'serial' information. Logparser should return
+    camera mapping list of this serial number.
+
+    Args:
+      session: an WSGISession object.
+
+    Returns:
+      A list of camera mapping history list.
+      None if the panel serial doesn't have a mapping with a camera module.
+    """
+    serial = session.GetQuery('serial')
+    if serial in self.camera_mapping:
+      return self.camera_mapping[serial]
     return None
 
   def CheckUploadFile(self, session):
@@ -238,6 +267,7 @@ class LogParser(object):
     log_desc = self.LoadDescription(file_desc)
 
     self.UpdateVPD(log_desc)
+    self.UpdateCameraMapping(log_desc)
     self.ExportEventLog(log_desc)
 
   def UpdateVPD(self, log_desc):
@@ -253,7 +283,27 @@ class LogParser(object):
       self.vpd[panel_serial] = {}
 
     self.vpd[panel_serial].update(log_desc['vpd'])
-    self._ExportVPD()
+    self._ExportFile(self.vpd, self.vpd_file, self.vpd_lock)
+
+  def UpdateCameraMapping(self, log_desc):
+    """Updates camera mapping list and writes to a file.
+
+    Args:
+      log_desc: a dict of uploaded logs description
+    """
+    if 'camera_serial' not in log_desc:
+      return
+    panel_serial = log_desc['panel_serial']
+    if panel_serial not in self.camera_mapping:
+      self.camera_mapping[panel_serial] = []
+
+    # List is used to record camera module replace history.
+    # We check the serial is different to last element of the list to avoid
+    # multiple test in one station.
+    if len(self.camera_mapping[panel_serial]) == 0 or (
+        self.camera_mapping[panel_serial][-1] != log_desc['camera_serial']):
+      self.camera_mapping[panel_serial].append(log_desc['camera_serial'])
+    self._ExportFile(self.camera_mapping, self.camera_file, self.camera_lock)
 
   def ExportEventLog(self, log_desc):
     """Exports event logs to file.
@@ -277,6 +327,7 @@ class LogParser(object):
           'STATUS': log_desc['status'],
           'DURATION': log_desc['duration'],
           'FIXTURE_ID': log_desc['fixture_id'],
+          'CAMERA_SERIAL': log_desc.get('camera_serial', None),
       }
       data.update(log_desc['events'])
       yaml_data = yaml.dump(data) + _SYNC_MARKER + '---\n'
@@ -433,19 +484,19 @@ class LogParser(object):
       return
     raise Exception('Unsupport format.')
 
-  def _LoadVPD(self):
-    if not os.path.exists(self.vpd_file):
-      return
-    with self.vpd_lock:
-      with open(self.vpd_file, 'r') as vpd_file:
-        self.vpd = yaml.load(vpd_file)
+  def _LoadFile(self, file_name, lock):
+    if not os.path.exists(file_name):
+      return {}
+    with lock:
+      with open(file_name, 'r') as f:
+        return yaml.load(f)
 
-  def _ExportVPD(self):
-    data = yaml.dump(self.vpd)
-    with self.vpd_lock:
-      with open(self.vpd_file, 'w') as vpd_file:
-        vpd_file.write(data)
-        vpd_file.flush()
+  def _ExportFile(self, data, file_name, lock):
+    raw_data = yaml.dump(data)
+    with lock:
+      with open(file_name, 'w') as f:
+        f.write(raw_data)
+        f.flush()
 
 
 def main():
@@ -462,13 +513,18 @@ def main():
   parser.add_option('-v', '--vpd-file', dest='vpd_file',
                     metavar='VPD_FILE', default=_VPD_FILE,
                     help='file to store vpd information')
+  parser.add_option('-c', '--camera-file', dest='camera_file',
+                    metavar='CAMERA_FILE', default=_CAMERA_MAPPING_FILE,
+                    help='file to store panel serial number and '
+                         'camera serial number mapping')
   (options, _) = parser.parse_args()
 
   params = {
       'tarfile_dir': options.tarfile_dir,
       'rawdata_dir': options.rawdata_dir,
       'eventlog_dir': options.eventlog_dir,
-      'vpd_file': options.vpd_file}
+      'vpd_file': options.vpd_file,
+      'camera_file': options.camera_file}
   logparser = LogParser(params)
   WSGIServer(logparser).run()
 
