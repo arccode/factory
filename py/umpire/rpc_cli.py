@@ -9,12 +9,13 @@
 import os
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.umpire.umpire_rpc import RPCCall, UmpireRPC
+from cros.factory.umpire import config
 from cros.factory.umpire.commands import import_bundle
 from cros.factory.umpire.commands import update
+from cros.factory.umpire import umpire_rpc
 
 
-class CLICommand(UmpireRPC):
+class CLICommand(umpire_rpc.UmpireRPC):
 
   """Container of Umpire RPC commands.
 
@@ -29,7 +30,7 @@ class CLICommand(UmpireRPC):
     Other values: return to caller.
   """
 
-  @RPCCall
+  @umpire_rpc.RPCCall
   def Update(self, resources_to_update, source_id=None, dest_id=None):
     """Updates resource(s) in a bundle.
 
@@ -48,7 +49,7 @@ class CLICommand(UmpireRPC):
     updater = update.ResourceUpdater(self.env)
     return updater.Update(resources_to_update, source_id, dest_id)
 
-  @RPCCall
+  @umpire_rpc.RPCCall
   def ImportBundle(self, bundle_path, bundle_id=None, note=None):
     """Imports a bundle.
 
@@ -64,7 +65,7 @@ class CLICommand(UmpireRPC):
     importer = import_bundle.BundleImporter(self.env)
     importer.Import(bundle_path, bundle_id, note)
 
-  @RPCCall
+  @umpire_rpc.RPCCall
   def AddResource(self, file_name, res_type=None):
     """Adds a file into base_dir/resources.
 
@@ -79,7 +80,7 @@ class CLICommand(UmpireRPC):
     """
     return os.path.basename(self.env.AddResource(file_name, res_type=res_type))
 
-  @RPCCall
+  @umpire_rpc.RPCCall
   def StageConfigFile(self, config_res, force=False):
     """Stages a config file.
 
@@ -90,3 +91,19 @@ class CLICommand(UmpireRPC):
     """
     config_path = self.env.GetResourcePath(config_res)
     self.env.StageConfigFile(config_path, force=force)
+
+  @umpire_rpc.RPCCall
+  def ValidateConfig(self, config_path):
+    """Validates a config file.
+
+    Args:
+      config_path: Path to config file to validate
+
+    Raises:
+      TypeError: when 'services' is not a dict.
+      KeyError: when top level key 'services' not found.
+      SchemaException: on schema validation failed.
+      UmpireError if there's any resources for active bundles missing.
+    """
+    config_to_validate = config.UmpireConfig(config_path)
+    config.ValidateResources(config_to_validate, self.env)

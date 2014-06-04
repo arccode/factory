@@ -9,6 +9,7 @@
 import logging
 import mox
 import os
+
 from twisted.internet import reactor
 from twisted.python import failure
 from twisted.trial import unittest
@@ -18,6 +19,7 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.commands import import_bundle
 from cros.factory.umpire.commands import update
 from cros.factory.umpire.common import UmpireError
+from cros.factory.umpire import config
 from cros.factory.umpire.rpc_cli import CLICommand
 from cros.factory.umpire.umpire_env import UmpireEnv, UmpireEnvForTest
 from cros.factory.umpire.web.xmlrpc import XMLRPCContainer
@@ -199,6 +201,27 @@ class CommandTest(unittest.TestCase):
             config_to_stage_res_full_path,
             os.path.realpath(self.env.staging_config_file)))
     return self.AssertSuccess(d)
+
+  def testValidateConfig(self):
+    config_path = '/path/to/config'
+    self.mox.StubOutClassWithMocks(config, 'UmpireConfig')
+    self.mox.StubOutWithMock(config, 'ValidateResources')
+    mock_config = config.UmpireConfig(config_path)
+    config.ValidateResources(mock_config, self.env)
+    self.mox.ReplayAll()
+
+    return self.AssertSuccess(self.Call('ValidateConfig', config_path))
+
+  def testValidateConfigFailure(self):
+    config_path = '/path/to/config'
+    self.mox.StubOutClassWithMocks(config, 'UmpireConfig')
+    self.mox.StubOutWithMock(config, 'ValidateResources')
+    mock_config = config.UmpireConfig(config_path)
+    config.ValidateResources(mock_config, self.env).AndRaise(
+        UmpireError('mock error'))
+    self.mox.ReplayAll()
+
+    return self.AssertFailure(self.Call('ValidateConfig', config_path))
 
 
 if os.environ.get('LOG_LEVEL'):
