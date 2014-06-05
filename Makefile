@@ -232,6 +232,9 @@ test:
 	@logdir=/tmp/test.logs.$$(date +%Y%m%d_%H%M%S); \
 	mkdir $$logdir; \
 	echo "Test logs will be written to $$logdir"; \
+	test -d "$(CURDIR)/../../private-overlays" \
+	    || echo "$$(tput setaf 1)Warning: Private components are missing."\
+	            "Some tests are likely to fail without them.$$(tput sgr0)";\
 	echo; \
 	$(TEST_RUNNER) $(UNITTESTS_WHITELIST) -i $(UNITTESTS_ISOLATE_LIST) \
             -j $(MAX_TESTS) -l $$logdir $(EXTRA_TEST_FLAGS)
