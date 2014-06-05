@@ -104,8 +104,8 @@ default:
 	for goofy_path in py/goofy_monolithic/static py/goofy_split/static; do\
 	    env PATH=/opt/icedtea6-bin-1.6.2/bin:$(PATH) \
 	        $(MAKE) -C "$${goofy_path}" \
-	          $(if $(CLOSURE_LIB_ARCHIVE), \
-	                CLOSURE_LIB_ARCHIVE="$(CLOSURE_LIB_ARCHIVE)",) ; \
+	          $(if $(CLOSURE_LIB_DIR), \
+	                CLOSURE_LIB_DIR="$(CLOSURE_LIB_DIR)",) ; \
 	done
 
 

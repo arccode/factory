@@ -4,22 +4,15 @@
 
 BUILD_DEPS=../../../build_deps
 
-CLOSURE_LIB_VERSION=20130212-95c19e7f0f5f
-
 DISTFILES_TARGET = /var/cache/distfiles/target/
-CLOSURE_LIB_ARCHIVE := \
-  $(DISTFILES_TARGET)/closure-library-$(CLOSURE_LIB_VERSION).zip
-CLOSURE_LIB_DIR := $(or $(WORKDIR),/tmp)/closure-library-$(CLOSURE_LIB_VERSION)
+CLOSURE_LIB_DIR ?= /opt/closure-library
 
-ifneq "$(shell test -e $(CLOSURE_LIB_ARCHIVE) && echo yes)" "yes"
-  DEFAULT_BOARD=$(or $(shell cat $$HOME/trunk/src/scripts/.default_board \
-                       2>/dev/null),x86-generic)
+ifneq "$(shell test -e $(CLOSURE_LIB_DIR) && echo yes)" "yes"
   $(info ***)
-  $(info *** $(CLOSURE_LIB_ARCHIVE) does not exist.)
-  $(info *** Perhaps it needs to be downloaded from BCS.  Run this:)
-  $(info *** (you can use any board))
+  $(info *** $(CLOSURE_LIB_DIR) does not exist.)
+  $(info *** Perhaps it needs to be manually installed.  Run this:)
   $(info ***)
-  $(info ***   emerge-$(DEFAULT_BOARD) chromeos-factory)
+  $(info ***   sudo emerge closure-library)
   $(info ***)
   $(error Terminating)
 endif
@@ -50,18 +43,10 @@ CLOSURE_BUILD=\
 .PHONY: all
 all: goofy.js closure.css
 
-# Dummy file to represent extraction of the tarball.
-EXTRACTED=$(CLOSURE_LIB_DIR)/.extracted
-$(EXTRACTED): $(CLOSURE_LIB_ARCHIVE)
-	rm -rf $(CLOSURE_LIB_DIR)
-	mkdir -p $(CLOSURE_LIB_DIR)
-	unzip -qd $(CLOSURE_LIB_DIR) $<
-	touch $@
-
 # For now, we just use the compiler (--output_mode=compiled) to check
 # the correctness of our code, and we actually deploy the version that is
 # just the concatenation of all the dependencies (--output_mode=script).
-goofy.js: $(EXTRACTED) ../js/goofy.js
+goofy.js: $(CLOSURE_LIB_DIR) ../js/goofy.js
 	mkdir -p tmp
 	$(CLOSURE_BUILD) --output_mode=compiled --output_file=/dev/null \
 	    >& tmp/errors.compiled || ( cat tmp/errors.compiled; exit 1 )
@@ -75,7 +60,7 @@ goofy.js: $(EXTRACTED) ../js/goofy.js
 	    >& tmp/errors.script || ( cat tmp/errors.script; exit 1 )
 	rm -rf tmp
 
-$(CSS_SOURCE_PATHS): $(EXTRACTED)
+$(CSS_SOURCE_PATHS): $(CLOSURE_LIB_DIR)
 
 closure.css: $(CSS_SOURCE_PATHS)
 # Replace all references to URLs with resources in this project.
