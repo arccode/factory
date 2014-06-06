@@ -22,7 +22,7 @@ from cros.factory.hacked_argparse import (CmdArg, Command, ParseCmdline,
 from cros.factory.umpire.commands import init
 from cros.factory.umpire.commands import edit
 from cros.factory.umpire import common
-from cros.factory.umpire.config import ShowDiff, ValidateResources
+from cros.factory.umpire.config import ShowDiff
 from cros.factory.umpire.umpire_env import UmpireEnv
 from cros.factory.utils import file_utils
 
@@ -158,7 +158,6 @@ def Update(args, env):
                 resources_to_update, args.source_id, args.dest_id)
   cli.Update(resources_to_update, args.source_id, args.dest_id)
 
-
 @Command('edit')
 def Edit(args, env):
   """Edits the Umpire Config file.
@@ -177,20 +176,29 @@ def Deploy(unused_args, env):
   It runs an Umpire service based on the staging Umpire Config (unless
   specified by --config).
   """
-  # The config to deploy is already loaded and its path is stored in
-  # env.config_path.
-  config_to_deploy = env.config_path
-  ValidateResources(config_to_deploy, env)
+  # The config to deploy is already determined in _LoadConfig(). However,
+  # we need to ask Umpire damnon to validate resources.
+  config_path_to_deploy = os.path.realpath(env.config_path)
+  if os.path.dirname(config_path_to_deploy) != env.resources_dir:
+    raise common.UmpireError('Config to deploy %r must be in resources' %
+                             env.config_path)
 
+  # First, ask Umpire daemon to validate config.
+  cli = UmpireCLI(env)
+  cli.ValidateConfig(config_path_to_deploy)
+
+  # Then, double confirm the user to deploy the config.
   ok_to_deploy = True
   if env.active_config_file:
     print 'Changes for this deploy: '
-    print ''.join(ShowDiff(env.active_config_file, config_to_deploy))
+    print ''.join(ShowDiff(env.active_config_file, config_path_to_deploy))
     if raw_input('Ok to deploy [y/n]? ') not in ['y', 'Y']:
       ok_to_deploy = False
+
+  # Deploying, finally.
   if ok_to_deploy:
-    # Ask umpired to deploy config_to_deploy
-    pass
+    config_res = os.path.basename(config_path_to_deploy)
+    cli.Deploy(config_res)
 
 
 @Command('status')

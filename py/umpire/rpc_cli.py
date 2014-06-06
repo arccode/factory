@@ -10,6 +10,7 @@ import os
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire import config
+from cros.factory.umpire.commands import deploy
 from cros.factory.umpire.commands import import_bundle
 from cros.factory.umpire.commands import update
 from cros.factory.umpire import umpire_rpc
@@ -107,3 +108,23 @@ class CLICommand(umpire_rpc.UmpireRPC):
     """
     config_to_validate = config.UmpireConfig(config_path)
     config.ValidateResources(config_to_validate, self.env)
+
+  @umpire_rpc.RPCCall
+  def Deploy(self, config_res):
+    """Deploys a config file.
+
+    It first verifies the config again, then tries reloading Umpire with the
+    new config. If okay, removes current staging file and active the config.
+
+    Args:
+      config_res: a config file (base name, in resource folder) to deploy.
+
+    Returns:
+      Twisted deferred object.
+
+    Raises:
+      Exceptions when config fails to validate. See ValidateConfig() for
+      exception type.
+    """
+    deployer = deploy.ConfigDeployer(self.env)
+    return deployer.Deploy(config_res)
