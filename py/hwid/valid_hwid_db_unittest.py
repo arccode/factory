@@ -27,6 +27,10 @@ class ValidHWIDDBsTest(unittest.TestCase):
         os.environ['CROS_WORKON_SRCROOT'],
         'src', 'platform', 'chromeos-hwid')
 
+    if not os.path.exists(hwid_dir):
+      print "ValidHWIDDBsTest: ignored, no %s in source tree." % hwid_dir
+      return
+
     board_to_test = []
     for board_name, board in yaml.load(
         open(os.path.join(hwid_dir, 'boards.yaml'))).iteritems():
