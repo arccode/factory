@@ -14,10 +14,10 @@ import os
 import sys
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.umpire import rpc_dut
 from cros.factory.umpire.common import UmpireError
 from cros.factory.umpire.rpc_cli import CLICommand
 from cros.factory.umpire.daemon import UmpireDaemon
-from cros.factory.umpire.rpc_dut import RootDUTCommands, UmpireDUTCommands
 from cros.factory.umpire.umpire_env import UmpireEnv
 from cros.factory.umpire.webapp_resourcemap import ResourceMapApp
 
@@ -48,11 +48,15 @@ def StartServer(testmode=False, config_file=TEST_YAML):
   # Add command line handlers
   cli_commands = CLICommand(env)
   umpired.AddMethodForCLI(cli_commands)
-  # Add RPC handlers
-  root_dut_rpc = RootDUTCommands(env)
-  umpire_dut_rpc = UmpireDUTCommands(env)
+  # Add root RPC handlers
+  root_dut_rpc = rpc_dut.RootDUTCommands(env)
   umpired.AddMethodForDUT(root_dut_rpc)
+  # Add Umpire RPC handlers
+  umpire_dut_rpc = rpc_dut.UmpireDUTCommands(env)
   umpired.AddMethodForDUT(umpire_dut_rpc)
+  # Add log RPC handlers
+  log_dut_rpc = rpc_dut.LogDUTCommands(env)
+  umpired.AddMethodForDUT(log_dut_rpc)
   # Add web applications
   resourcemap_webapp = ResourceMapApp(env)
   umpired.AddWebApp(resourcemap_webapp.GetPathInfo(), resourcemap_webapp)
