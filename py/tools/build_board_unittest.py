@@ -5,6 +5,7 @@
 
 """Unit tests for build_board module."""
 
+import os
 import unittest
 
 import factory_common  # pylint: disable=W0611
@@ -14,12 +15,18 @@ from cros.factory.tools.build_board import BuildBoard, BuildBoardException
 class BuildBoardTest(unittest.TestCase):
   """Unit tests for BuildBoard class."""
   def runTest(self):
+    have_private_overlays = os.path.exists(
+        os.path.join(os.environ['CROS_WORKON_SRCROOT'], 'src',
+                     'private-overlays'))
+
     spring = BuildBoard('spring')
     self.assertDictContainsSubset(
         dict(base='daisy', variant='spring', full_name='daisy_spring',
              short_name='spring', gsutil_name='daisy-spring',
              overlay_relpath=('private-overlays/'
-                              'overlay-variant-daisy-spring-private')),
+                              'overlay-variant-daisy-spring-private'
+                              if have_private_overlays else
+                              'overlays/overlay-variant-daisy-spring')),
         spring.__dict__)
 
     # "daisy_spring" and "daisy-spring" should be the same
@@ -29,7 +36,9 @@ class BuildBoardTest(unittest.TestCase):
     self.assertDictContainsSubset(
         dict(base='link', variant=None, full_name='link',
              short_name='link', gsutil_name='link',
-             overlay_relpath='private-overlays/overlay-link-private'),
+             overlay_relpath=('private-overlays/overlay-link-private'
+                              if have_private_overlays else
+                              'overlays/overlay-link')),
         BuildBoard('link').__dict__)
 
     self.assertRaisesRegexp(BuildBoardException, 'Unknown board',
@@ -39,7 +48,7 @@ class BuildBoardTest(unittest.TestCase):
 
   def testBoardArch(self):
     self.assertEquals('arm', BuildBoard('beaglebone').arch)
-    self.assertEquals('arm', BuildBoard('big').arch)
+    self.assertEquals('arm', BuildBoard('nyan').arch)
     self.assertEquals('arm', BuildBoard('spring').arch)
     self.assertEquals('amd64', BuildBoard('rambi').arch)
     self.assertEquals('amd64', BuildBoard('link').arch)
