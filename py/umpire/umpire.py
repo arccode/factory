@@ -121,8 +121,7 @@ def ImportBundle(args, env):
   staging and prompt user to edit it.
   """
   cli = UmpireCLI(env)
-  cli.ImportBundle(os.path.realpath(args.bundle_path),
-                   bundle_id=args.bundle_id, note=args.note)
+  cli.ImportBundle(os.path.realpath(args.bundle_path), args.id, args.note)
 
 
 @Command('update',
