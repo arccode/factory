@@ -61,7 +61,7 @@ RESOURCE_FILE_PATTERN = re.compile(
     r'(.+)#(.*)#([0-9a-f]{%d})$' % RESOURCE_HASH_DIGITS)
 
 # Relative path of factory toolkit in a factory bundle.
-BUNDLE_FACTORY_TOOLKIT_PATH = os.path.join('factory_test',
+BUNDLE_FACTORY_TOOLKIT_PATH = os.path.join('factory_toolkit',
                                            'install_factory_toolkit.run')
 BUNDLE_MANIFEST = 'MANIFEST.yaml'
 
