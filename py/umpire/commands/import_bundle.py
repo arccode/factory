@@ -306,7 +306,7 @@ class BundleImporter(object):
         elif base_name == 'rootfs-test':
           return 'FACTORY'
         else:
-          return base_name
+          return base_name.upper()
 
       if not download_files:
         return
