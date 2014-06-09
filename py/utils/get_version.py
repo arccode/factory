@@ -7,11 +7,13 @@
 import logging
 import os
 import re
+import subprocess
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.hwid import hwid_utils
 from cros.factory.tools.mount_partition import MountPartition
-from cros.factory.utils.file_utils import GunzipSingleFile, SetFileExecutable
+from cros.factory.utils.file_utils import (
+    GunzipSingleFile, SetFileExecutable, TempDirectory)
 from cros.factory.utils.process_utils import Spawn
 
 
@@ -75,6 +77,33 @@ def GetFirmwareVersionsFromOmahaChannelFile(path):
   with GunzipSingleFile(path) as unzip_path:
     SetFileExecutable(unzip_path)
     return GetFirmwareVersions(unzip_path)
+
+
+def GetFirmwareBinaryVersion(path):
+  """Gets the version stored in RO_FRID section of the firmware binary.
+
+  Note that this function relies on dump_fmap, which is only available on a CrOS
+  device or inside CrOS SDK chroot.
+
+  Args:
+    path: Path to the firmware binary.
+
+  Returns:
+    The extracted firmware version as a string; or None if the function fails to
+    extract version.
+  """
+  binary_path = os.path.abspath(path)
+  result = None
+  try:
+    with TempDirectory(prefix='dump_fmap') as temp_dir:
+      Spawn(['dump_fmap', '-x', binary_path], ignore_stdout=True, log=True,
+            cwd=temp_dir, check_call=True)
+      with open(os.path.join(temp_dir, 'RO_FRID')) as f:
+        result = f.read().strip('\x00')   # Strip paddings.
+  except (subprocess.CalledProcessError, IOError):
+    logging.exception(
+        'Failed to extract firmware version from %s.', binary_path)
+  return result
 
 
 def GetReleaseVersionFromOmahaChannelFile(path):

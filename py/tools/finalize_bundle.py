@@ -1080,22 +1080,16 @@ class FinalizeBundle(object):
         if ec_version is not None:
           vitals.append(('%s EC' % f, ec_version))
       elif os.path.basename(f) == 'ec.bin':
-        # This is tricky, but it's the best we can do for now.  Look for a
-        # line like "link_v1.2.34-56789a 2012-10-01 12:34:56 @build70-m2"
-        strings = Spawn(['strings', path], check_output=True).stdout_data
-        match = re.search('^(' + self.simple_board + '.+@.+)$',
-                          strings, re.MULTILINE)
-        if not match:
+        version = get_version.GetFirmwareBinaryVersion(path)
+        if not version:
           sys.exit('Unable to find EC version in %s' % path)
-        vitals.append((f, match.group(1)))
-      elif os.path.basename(f).startswith('nv_image'):
-        strings = Spawn(['strings', path], check_output=True).stdout_data
-        match = re.search('^(Google_' + self.simple_board +
-                          r'\.\d+\.\d+\.\d+)$',
-                          strings, re.MULTILINE | re.IGNORECASE)
-        if not match:
+        vitals.append((f, version))
+      elif any(os.path.basename(f).startswith(prefix)
+               for prefix in ('nv_image', 'image.net')):
+        version = get_version.GetFirmwareBinaryVersion(path)
+        if not version:
           sys.exit('Unable to find BIOS version in %s' % path)
-        vitals.append((f, match.group(1)))
+        vitals.append((f, version))
 
     vital_lines = []
     max_key_length = max(len(k) for k, v in vitals)
