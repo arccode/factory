@@ -1,4 +1,4 @@
-# Copyright (c) 2014 The Chromium OS Authors. All rights reserved.
+# Copyright 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -9,6 +9,7 @@ import os
 import shutil
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.umpire.commands import system
 from cros.factory.umpire.common import BUNDLE_FACTORY_TOOLKIT_PATH
 from cros.factory.umpire.utils import UnpackFactoryToolkit
 from cros.factory.utils import file_utils
@@ -28,6 +29,8 @@ _UMPIRED_IN_TOOLKIT_PATH = os.path.join('usr', 'local', 'factory', 'bin',
 # Note that it shall be defined in board spedific overlay.
 _UMPIRE_CONFIG_TEMPLATE_IN_TOOLKIT_PATH = os.path.join(
     'usr', 'local', 'factory', 'py', 'umpire', 'umpired_template.yaml')
+
+_ACTIVE_SERVER_TOOLKIT = 'active'
 
 
 def Init(env, bundle_dir, board, make_default, local, user, group,
@@ -63,7 +66,6 @@ def Init(env, bundle_dir, board, make_default, local, user, group,
       os.chown(path, uid, gid)
       os.chmod(path, env.UMPIRE_DIR_MODE)
 
-    TryMkdirChown(base_dir)
     for sub_dir in _SUB_DIRS:
       TryMkdirChown(os.path.join(base_dir, sub_dir))
 
@@ -85,6 +87,11 @@ def Init(env, bundle_dir, board, make_default, local, user, group,
     unpack_dir = UnpackFactoryToolkit(
         env, toolkit_resource, device_toolkit=False, run_as=(uid, gid),
         mode=env.UMPIRE_DIR_MODE)
+    symlink_source = os.path.basename(unpack_dir)
+    symlink = os.path.join(os.path.dirname(unpack_dir), _ACTIVE_SERVER_TOOLKIT)
+    file_utils.TryUnlink(symlink)
+    os.symlink(symlink_source, symlink)
+    os.lchown(symlink, uid, gid)
     logging.info('Factory toolkit extracted to %s', unpack_dir)
     return unpack_dir
 
@@ -154,4 +161,17 @@ def Init(env, bundle_dir, board, make_default, local, user, group,
   toolkit_base = InstallUmpireExecutable(uid, gid)
   InitUmpireConfig(toolkit_base)
   SymlinkBinary(toolkit_base)
-  # TODO(rong): set up daemon running environment.
+
+
+def SetupDaemon():
+  """Sets up daemon running environment.
+
+  Returns:
+    (uid, gid): Existing/Created Umpire uid and gid.
+  """
+  umpire_uid, umpire_gid = system.CreateUmpireUser()
+  system.CreateUmpireUpstart()
+  # After Umpire Upstart configuration been created, it can be started by
+  # calling:
+  #   system.StartUmpire(board)
+  return (umpire_uid, umpire_gid)
