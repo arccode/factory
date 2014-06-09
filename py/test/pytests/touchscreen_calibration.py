@@ -664,7 +664,7 @@ class TouchscreenCalibration(unittest.TestCase):
                              '完成後，点击左方触控面板连结以重跑测试')
       raise FixtureException('Mounted media does not exist.')
 
-  def QueryFixtureState(self, dummy_event=None):
+  def QueryFixtureState(self, unused_event=None):
     """Query the fixture internal state including all sensor values."""
     try:
       self.native_usb.QueryFixtureState()
