@@ -190,13 +190,15 @@ class FactoryToolkitInstaller():
       # permissions.  This is necessary because when the toolkit was
       # unpacked, the user may not have been root so the permessions
       # may be hosed.  This is skipped for testing.
+      # --force is necessary to allow goofy directory from prior
+      # toolkit installations to be overwritten by the goofy symlink.
       if self._sudo:
         Spawn(['chown', '-R', 'root', src],
               sudo=True, log=True, check_call=True)
         Spawn(['chmod', '-R', 'go+rX', src],
               sudo=True, log=True, check_call=True)
       print '***   %s -> %s' % (src, dest)
-      Spawn(['rsync', '-a', src + '/', dest],
+      Spawn(['rsync', '-a', '--force', src + '/', dest],
             sudo=self._sudo, log=True, check_output=True)
 
     if self._no_enable:

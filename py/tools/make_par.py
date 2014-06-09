@@ -159,6 +159,9 @@ def main(argv=None):
            '--include', '*.js',
            '--include', '*.png',
            '--include', '*.py',
+           # We must include goofy explicitly, as it is a symlink that would
+           # otherwise be excluded by the wildcard below.
+           '--include', 'goofy',
            '--include', '*/',
            '--exclude', '*',
            os.path.join(src, 'py/'),
