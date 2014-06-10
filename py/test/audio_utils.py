@@ -212,6 +212,7 @@ class AudioUtil(object):
   component by amixer.
   """
   def __init__(self, config_path=_DEFAULT_CONFIG_PATH):
+    self._restore_mixer_control_stack = []
     if os.path.exists(config_path):
       with open(config_path, 'r') as config_file:
         self.audio_config = yaml.load(config_file)
@@ -255,18 +256,38 @@ class AudioUtil(object):
                    name, numid)
       return None
 
-  def SetMixerControls(self, mixer_settings, card='0'):
+  def SetMixerControls(self, mixer_settings, card='0', store=True):
     """Sets all mixer controls listed in the mixer settings on card.
 
     Args:
       mixer_settings: A dict of mixer settings to set.
       card: The index of audio card
+      store: Store the current value so it can be restored later using
+        RestoreMixerControls.
     """
     logging.info('Setting mixer control values on %s', card)
+    restore_mixer_settings = dict()
     for name, value in mixer_settings.items():
+      if store:
+        old_value = self.GetMixerControls(name, card)
+        restore_mixer_settings[name] = old_value
+        logging.info('Saving %s with value %s on card %s',
+                     name, old_value, card)
       logging.info('Setting %s to %s on card %s', name, value, card)
       command = ['amixer', '-c', card, 'cset', 'name=%r' % name, value]
       Spawn(command, check_call=True)
+    if store:
+      self._restore_mixer_control_stack.append((restore_mixer_settings, card))
+
+  def RestoreMixerControls(self):
+    """Restores the mixer controls stored in _restore_mixer_control_stack.
+
+    Also, clear _restore_mixer_control_stack.
+    """
+    while self._restore_mixer_control_stack:
+      mixer_settings, card = self._restore_mixer_control_stack.pop()
+      self.SetMixerControls(mixer_settings, card, False)
+    self._restore_mixer_control_stack = []
 
   def FindEventDeviceByName(self, name):
     """Finds the event device by matching name.
