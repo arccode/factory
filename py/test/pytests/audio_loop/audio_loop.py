@@ -142,6 +142,9 @@ class AudioLoopTest(unittest.TestCase):
     self._ui = test_ui.UI()
     self._ui.AddEventHandler('start_run_test', self.StartRunTest)
 
+  def tearDown(self):
+    self._audio_util.RestoreMixerControls()
+
   def runTest(self):
     # If autostart, JS triggers start_run_test event.
     # Otherwise, it binds start_run_test with 's' key pressed.

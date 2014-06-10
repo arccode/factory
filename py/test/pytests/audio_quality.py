@@ -154,6 +154,9 @@ class AudioQualityTest(unittest.TestCase):
   def runTest(self):
     self._ui.Run()
 
+  def tearDown(self):
+    self._audio_util.RestoreMixerControls()
+
   def HandleConnection(self, conn):
     """Asynchronous handler for socket connection.
 
