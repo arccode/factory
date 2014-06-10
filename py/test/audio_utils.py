@@ -245,9 +245,9 @@ class AudioUtil(object):
 
     output = Spawn(['amixer', '-c%d' % int(card), 'cget', 'numid=%d' % numid],
                    stdout=PIPE)
-    # Check control value on the last line of output
-    line = output.stdout.readlines()[-1]
-    m = re.match(r'.*values=(.*)', line)
+    lines = output.stdout.read()
+    logging.info('lines: %r', lines)
+    m = re.search(r'^.*: values=(.*)$', lines, re.MULTILINE)
     if m:
       return m.group(1)
     else:
