@@ -30,6 +30,16 @@ DisplayTest = function(container, colors) {
     "display-subtest-gradient-green",
     "display-subtest-gradient-blue",
     "display-subtest-gradient-white",
+    "display-subtest-image-complex",
+    "display-subtest-image-black",
+    "display-subtest-image-white",
+    "display-subtest-image-crosstalk-black",
+    "display-subtest-image-crosstalk-white",
+    "display-subtest-image-gray-63",
+    "display-subtest-image-gray-127",
+    "display-subtest-image-gray-170",
+    "display-subtest-image-horizontal-rgbw",
+    "display-subtest-image-vertical-rgbw",
   ];
   this.allEnItemList = [
     "solid-gray-170",
@@ -47,6 +57,16 @@ DisplayTest = function(container, colors) {
     "gradient-green",
     "gradient-blue",
     "gradient-white",
+    "image-complex.bmp",
+    "image-BLACK.BMP",
+    "image-WHITE.BMP",
+    "image-CrossTalk(black).bmp",
+    "image-CrossTalk(white).bmp",
+    "image-gray(63).bmp",
+    "image-gray(127).bmp",
+    "image-gray(170).bmp",
+    "image-Horizontal(RGBW).bmp",
+    "image-Vertical(RGBW).bmp",
   ];
   this.allZhItemList = [
     "灰色170",
@@ -63,7 +83,17 @@ DisplayTest = function(container, colors) {
     "渐红",
     "渐绿",
     "渐蓝",
-    "渐白"
+    "渐白",
+    "影像-复杂",
+    "影像-黑色",
+    "影像-白色",
+    "影像-方形-黑色",
+    "影像-方形-白色",
+    "影像-灰色63",
+    "影像-灰色127",
+    "影像-灰色170",
+    "影像-水平",
+    "影像-垂直",
   ];
   this.enPassed = "Passed";
   this.zhPassed = "通过";

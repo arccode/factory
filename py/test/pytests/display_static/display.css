@@ -86,3 +86,33 @@
   background-image: -webkit-linear-gradient(
     top left, #000000 0%, #FFFFFF 100%);
   width: 100%; height: 100%; }
+.display-subtest-image-complex {
+  background-image: url(./complex.bmp); width: 100%; height: 100%;
+  background-size: 100% 100%; }
+.display-subtest-image-black {
+  background-image: url(./BLACK.BMP); width: 100%; height: 100%;
+  background-size: 100% 100%; }
+.display-subtest-image-white {
+  background-image: url(./WHITE.BMP); width: 100%; height: 100%;
+  background-size: 100% 100%; }
+.display-subtest-image-crosstalk-black {
+  background-image: url(./CrossTalk\(black\).bmp); width: 100%; height: 100%;
+  background-size: 100% 100%; }
+.display-subtest-image-crosstalk-white {
+  background-image: url(./CrossTalk\(white\).bmp); width: 100%; height: 100%;
+  background-size: 100% 100%; }
+.display-subtest-image-gray-63 {
+  background-image: url(./gray\(63\).bmp); width: 100%; height: 100%;
+  background-size: 100% 100%; }
+.display-subtest-image-gray-127 {
+  background-image: url(./gray\(127\).bmp); width: 100%; height: 100%;
+  background-size: 100% 100%; }
+.display-subtest-image-gray-170 {
+  background-image: url(./gray\(170\).bmp); width: 100%; height: 100%;
+  background-size: 100% 100%; }
+.display-subtest-image-horizontal-rgbw {
+  background-image: url(./Horizontal\(RGBW\).bmp); width: 100%; height: 100%;
+  background-size: 100% 100%; }
+.display-subtest-image-vertical-rgbw {
+  background-image: url(./Vertical\(RGBW\).bmp); width: 100%; height: 100%;
+  background-size: 100% 100%; }

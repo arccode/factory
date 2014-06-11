@@ -7,11 +7,13 @@
 A factory test to test the function of display.
 """
 
+import os
 import unittest
 
 from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
 from cros.factory.test.ui_templates import OneSection
+from cros.factory.utils import file_utils
 
 _ID_CONTAINER = 'display-test-container'
 
@@ -30,6 +32,7 @@ class DisplayTest(unittest.TestCase):
     self.template: ui template handling html layout.
     self.checked: user has check the display of current subtest.
     self.fullscreen: the test ui is in fullscreen or not.
+    self.static_dir: string of static file directory.
   '''
   ARGS = [
     Arg('colors', list,
@@ -53,6 +56,21 @@ class DisplayTest(unittest.TestCase):
         default= ["solid-gray-170", "solid-gray-127", "solid-gray-63",
                   "solid-red", "solid-green", "solid-blue"],
         optional=True),
+    Arg('images',list,
+        """Set customized images. Available images are
+        "complex.bmp",
+        "BLACK.BMP",
+        "WHITE.BMP",
+        "CrossTalk(black).bmp",
+        "CrossTalk(white).bmp",
+        "gray(63).bmp",
+        "gray(127).bmp",
+        "gray(170).bmp",
+        "Horizontal(RGBW).bmp",
+        "Vertical(RGBW).bmp"
+        """,
+        default= [],
+        optional=True),
   ]
 
   def setUp(self):
@@ -60,11 +78,17 @@ class DisplayTest(unittest.TestCase):
     self.ui = test_ui.UI()
     self.template = OneSection(self.ui)
     self.ui.AppendHTML(_HTML_DISPLAY)
+    self.static_dir = self.FindFileStaticDirectory()
+    if self.args.images:
+      for image in self.args.images:
+        self.args.colors.append('image-%s' % image)
+      self.ExtractTestImages()
     self.ui.CallJSFunction('setupDisplayTest', _ID_CONTAINER, self.args.colors)
     self.checked = False
     self.fullscreen = False
 
   def tearDown(self):
+    self.RemoveTestImages()
     return
 
   def runTest(self):
@@ -73,6 +97,28 @@ class DisplayTest(unittest.TestCase):
     self.ui.BindKey(test_ui.ENTER_KEY, lambda _: self.OnEnterPressed())
     self.ui.BindKey(test_ui.ESCAPE_KEY, lambda _: self.OnFailPressed())
     self.ui.Run()
+
+  def FindFileStaticDirectory(self):
+    '''Finds static file directory.
+
+    Returns:
+      String of static file directory
+    '''
+    file_path = os.path.realpath(__file__)
+    file_dir, file_name = os.path.split(file_path)
+    file_static_dir = os.path.join(file_dir,
+                                   os.path.splitext(file_name)[0] + '_static')
+    return file_static_dir
+
+  def ExtractTestImages(self):
+    '''Extracts selected test images from test_images.tar.gz.'''
+    file_utils.ExtractFile(os.path.join(self.static_dir, 'test_images.tar.gz'),
+                           self.static_dir, self.args.images)
+
+  def RemoveTestImages(self):
+    '''Removes extracted image files after test finished.'''
+    for image in self.args.images:
+      file_utils.TryUnlink(os.path.join(self.static_dir, image))
 
   def OnSpacePressed(self):
     '''Sets self.checked to True.Calls JS function to switch display on/off.'''
