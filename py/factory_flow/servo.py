@@ -27,6 +27,7 @@ class Servo(object):
   # A board name map to translate board variants to base board.
   BoardMap = {
       'expresso': 'rambi',
+      'big': 'nyan_big',
       }
 
   def __init__(self, board, host, port=9999, serial=None):
