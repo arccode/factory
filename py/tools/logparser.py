@@ -517,6 +517,9 @@ def main():
                     metavar='CAMERA_FILE', default=_CAMERA_MAPPING_FILE,
                     help='file to store panel serial number and '
                          'camera serial number mapping')
+  parser.add_option('-p', '--fastcgi-tcp-port', dest='fastcgi_port',
+                    metavar='FASTCGI_PORT',
+                    help='assign a port number to start FastCGI in TCP mode')
   (options, _) = parser.parse_args()
 
   params = {
@@ -526,7 +529,10 @@ def main():
       'vpd_file': options.vpd_file,
       'camera_file': options.camera_file}
   logparser = LogParser(params)
-  WSGIServer(logparser).run()
+  kwargs = {}
+  if options.fastcgi_port:
+    kwargs['bindAddress'] = ('127.0.0.1', options.fastcgi_port)
+  WSGIServer(logparser, **kwargs).run()
 
 
 if __name__ == '__main__':
