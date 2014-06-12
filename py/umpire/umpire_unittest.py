@@ -109,18 +109,21 @@ class UpdateTest(unittest.TestCase):
     self.env = UmpireEnv()
     self.args = Obj(source_id=None, dest_id=None, resources=list())
     self.mox = mox.Mox()
-
-    # Mock UmpireCLI XMLRPC connection.
-    self.mox.StubOutWithMock(umpire, 'UmpireCLI')
-    self.mock_cli = self.mox.CreateMockAnything()
-    umpire.UmpireCLI(self.env).AndReturn(self.mock_cli)
+    self.mock_cli = None
 
   def tearDown(self):
     self.mox.UnsetStubs()
     self.mox.VerifyAll()
 
+  def CreateMockCLI(self):
+    # Mock UmpireCLI XMLRPC connection.
+    self.mox.StubOutWithMock(umpire, 'UmpireCLI')
+    self.mock_cli = self.mox.CreateMockAnything()
+    umpire.UmpireCLI(self.env).AndReturn(self.mock_cli)
+
   def testUpdateSingleResource(self):
     # Expect XMLRPC call.
+    self.CreateMockCLI()
     self.mock_cli.Update([('factory_toolkit', self.TOOLKIT_PATH)], None, None)
     self.mox.ReplayAll()
 
@@ -129,6 +132,7 @@ class UpdateTest(unittest.TestCase):
 
   def testUpdateSingleResourceWithSourceDestId(self):
     # Expect XMLRPC call.
+    self.CreateMockCLI()
     self.mock_cli.Update([('factory_toolkit', self.TOOLKIT_PATH)], 'bundle1',
                          'bundle2')
     self.mox.ReplayAll()
@@ -140,6 +144,7 @@ class UpdateTest(unittest.TestCase):
 
   def testUpdateMultipleResources(self):
     # Expect XMLRPC call.
+    self.CreateMockCLI()
     self.mock_cli.Update([('factory_toolkit', self.TOOLKIT_PATH),
                           ('firmware', self.FIRMWARE_PATH)], None, None)
     self.mox.ReplayAll()
@@ -159,7 +164,7 @@ class UpdateTest(unittest.TestCase):
     self.mox.ReplayAll()
 
     self.args.resources.append('fsi=/path/to/nowhere')
-    self.assertRaisesRegexp(UmpireError, 'Resource file not found',
+    self.assertRaisesRegexp(IOError, 'Resource file not found',
                             umpire.Update, self.args, self.env)
 
 
@@ -189,6 +194,39 @@ class ImportBundleTest(unittest.TestCase):
     self.args.id = 'new_bundle'
     self.args.note = 'new bundle'
     umpire.ImportBundle(self.args, self.env)
+
+
+class ImportResourceTest(unittest.TestCase):
+  BUNDLE_PATH = os.path.join(TESTDATA_DIR, 'init_bundle')
+
+  def setUp(self):
+    self.env = UmpireEnv()
+    self.args = Obj(resources=[])
+    self.mox = mox.Mox()
+
+    # Mock UmpireCLI XMLRPC connection.
+    self.mox.StubOutWithMock(umpire, 'UmpireCLI')
+    self.mock_cli = self.mox.CreateMockAnything()
+    umpire.UmpireCLI(self.env).AndReturn(self.mock_cli)
+
+  def tearDown(self):
+    self.mox.UnsetStubs()
+    self.mox.VerifyAll()
+
+  def testImportResource(self):
+    with TempDirectory() as temp_dir:
+      res_1 = os.path.join(temp_dir, 'res_1')
+      WriteFile(res_1, '1')
+      res_2 = os.path.join(temp_dir, 'res_1')
+      WriteFile(res_1, '2')
+
+      # Expect XMLRPC call.
+      self.mock_cli.AddResource(res_1)
+      self.mock_cli.AddResource(res_2)
+      self.mox.ReplayAll()
+
+      self.args.resources = [res_1, res_2]
+      umpire.ImportResource(self.args, self.env)
 
 
 if __name__ == '__main__':

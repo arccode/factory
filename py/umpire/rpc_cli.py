@@ -9,10 +9,11 @@
 import os
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.umpire import config
 from cros.factory.umpire.commands import deploy
 from cros.factory.umpire.commands import import_bundle
 from cros.factory.umpire.commands import update
+from cros.factory.umpire import config
+from cros.factory.umpire import daemon
 from cros.factory.umpire import umpire_rpc
 
 
@@ -82,16 +83,25 @@ class CLICommand(umpire_rpc.UmpireRPC):
     return os.path.basename(self.env.AddResource(file_name, res_type=res_type))
 
   @umpire_rpc.RPCCall
-  def StageConfigFile(self, config_res, force=False):
+  def StageConfigFile(self, config_path, force=False):
     """Stages a config file.
 
+    If a config file is not in resources directory, it will first add it
+    to resources.
+
     Args:
-      config_res: a config file (base name, in resource folder) to mark as
-          staging.
-      force: True to stage the file even if it already has staging file.
+      config_path: path to a config file to mark as staging.
     """
-    config_path = self.env.GetResourcePath(config_res)
+    res_name = (os.path.basename(config_path)
+                if self.env.InResource(config_path) else
+                self.AddResource(config_path))
+    config_path = self.env.GetResourcePath(res_name)
     self.env.StageConfigFile(config_path, force=force)
+
+  @umpire_rpc.RPCCall
+  def UnstageConfigFile(self):
+    """Unstages the current staging config file."""
+    self.env.UnstageConfigFile()
 
   @umpire_rpc.RPCCall
   def ValidateConfig(self, config_path):
@@ -128,3 +138,8 @@ class CLICommand(umpire_rpc.UmpireRPC):
     """
     deployer = deploy.ConfigDeployer(self.env)
     return deployer.Deploy(config_res)
+
+  @umpire_rpc.RPCCall
+  def StopUmpired(self):
+    """Stops Umpire daemon."""
+    daemon.UmpireDaemon().Stop()

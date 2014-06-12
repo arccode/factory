@@ -375,6 +375,27 @@ class UmpireEnvTest(unittest.TestCase):
       self.assertEqual(os.path.join(self.env.resources_dir, 'foobar'),
                        self.env.GetResourcePath('foobar', check=False))
 
+  def testInResource(self):
+    with file_utils.TempDirectory() as temp_dir:
+      self.env.base_dir = temp_dir
+      os.mkdir(self.env.resources_dir)
+
+      # Prepare a resource file.
+      resource_to_add = os.path.join(temp_dir, 'some_resource')
+      file_utils.WriteFile(resource_to_add, 'something')
+      resource_path = self.env.AddResource(resource_to_add)
+      resource_name = os.path.basename(resource_path)
+
+      # Either full path or resource filename are okay.
+      self.assertTrue(self.env.InResource(resource_path))
+      self.assertTrue(self.env.InResource(resource_name))
+
+      # Filename not in resources.
+      self.assertFalse(self.env.InResource('some_resource'))
+      # Dirname mismatch.
+      self.assertFalse(self.env.InResource(
+          os.path.join('/path/not/in/res', resource_name)))
+
   def testGetBundleDeviceToolkit(self):
     with file_utils.TempDirectory() as temp_dir:
       self.env.base_dir = temp_dir

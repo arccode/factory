@@ -161,6 +161,20 @@ class CommandTest(unittest.TestCase):
             os.path.realpath(self.env.staging_config_file)))
     return self.AssertSuccess(d)
 
+  def testStageConfigFileNotInResource(self):
+    # Prepare a file not in resources to stage.
+    res_basename = 'config_to_stage'
+    temp_path = self.env.base_dir
+    config_to_stage = os.path.join(temp_path, res_basename)
+    with file(config_to_stage, 'w') as f:
+      f.write('...')
+
+    d = self.Call('StageConfigFile', config_to_stage)
+    d.addCallback(
+        lambda _: self.assertRegexpMatches(
+            os.path.realpath(self.env.staging_config_file), res_basename))
+    return self.AssertSuccess(d)
+
   def testStageConfigFileFailFileAlreadyExists(self):
     # Prepare a file in resource to stage.
     temp_path = self.env.base_dir
@@ -200,6 +214,20 @@ class CommandTest(unittest.TestCase):
         lambda _: self.assertEqual(
             config_to_stage_res_full_path,
             os.path.realpath(self.env.staging_config_file)))
+    return self.AssertSuccess(d)
+
+  def testUnstageConfigFile(self):
+    # Prepare a file in resource and stage it.
+    temp_path = self.env.base_dir
+    staged_config = os.path.join(temp_path, 'staged_config')
+    with file(staged_config, 'w') as f:
+      f.write('staged...')
+    self.env.StageConfigFile(staged_config)
+
+    # Force override current staging config file.
+    self.assertTrue(self.env.HasStagingConfigFile())
+    d = self.Call('UnstageConfigFile')
+    d.addCallback(lambda _: self.assertFalse(self.env.HasStagingConfigFile()))
     return self.AssertSuccess(d)
 
   def testValidateConfig(self):

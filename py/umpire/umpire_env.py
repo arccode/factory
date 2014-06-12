@@ -336,6 +336,22 @@ class UmpireEnv(object):
       raise IOError(errno.ENOENT, 'Resource does not exist', path)
     return path
 
+  def InResource(self, path):
+    """Checks if path points to a file in resources directory.
+
+    Args:
+      path: Either a full-path of a file or a file's basename.
+
+    Returns:
+      True if the path points to a file in resources directory.
+    """
+    dirname = os.path.dirname(path)
+    if not dirname:
+      path = self.GetResourcePath(path, check=False)
+    elif dirname != self.resources_dir:
+      return False
+    return os.path.isfile(path)
+
   def GetBundleDeviceToolkit(self, bundle_id):
     """Gets a bundle's device toolkit path.
 

@@ -11,6 +11,7 @@ Umpire daemon (umpired). "init" command is an exception as umpired is not
 running at that time.
 """
 
+import errno
 import logging
 import os
 import xmlrpclib
@@ -120,8 +121,8 @@ def ImportBundle(args, env):
   4) prepend a ruleset for the new bundle; 5) mark the updated config as
   staging and prompt user to edit it.
   """
-  cli = UmpireCLI(env)
-  cli.ImportBundle(os.path.realpath(args.bundle_path), args.id, args.note)
+  UmpireCLI(env).ImportBundle(os.path.realpath(args.bundle_path), args.id,
+                              args.note)
 
 
 @Command('update',
@@ -142,21 +143,19 @@ def Update(args, env):
   section. It can update the bundle in place, or copy the target bundle to a
   new one to update the resource.
   """
-  cli = UmpireCLI(env)
-
   resources_to_update = []
   for resource in args.resources:
     resource_type, resource_path = resource.split('=', 1)
     if resource_type not in common.UPDATEABLE_RESOURCES:
       raise common.UmpireError('Unsupported resource type: ' + resource_type)
     if not os.path.isfile(resource_path):
-      raise common.UmpireError('Resource file not found: ' + resource_path)
+      raise IOError(errno.ENOENT, 'Resource file not found', resource_path)
     resources_to_update.append((resource_type,
                                 os.path.realpath(resource_path)))
 
-  logging.debug('Invoke CLI Update(%r, source_id=%r,  dest_id=%r',
+  logging.debug('Invoke CLI Update(%r, source_id=%r,  dest_id=%r)',
                 resources_to_update, args.source_id, args.dest_id)
-  cli.Update(resources_to_update, args.source_id, args.dest_id)
+  UmpireCLI(env).Update(resources_to_update, args.source_id, args.dest_id)
 
 @Command('edit')
 def Edit(args, env):
@@ -210,6 +209,7 @@ def Status(unused_args, unused_env):
 @Command('list')
 def List(unused_args, unused_env):
   """Lists all Umpire Config files."""
+  raise NotImplementedError
 
 
 @Command('start')
@@ -219,29 +219,36 @@ def Start(unused_args, unused_env):
 
 
 @Command('stop')
-def Stop(unused_args, unused_env):
+def Stop(unused_args, env):
   """Stops Umpire service."""
-  raise NotImplementedError
+  UmpireCLI(env).StopUmpired()
 
 
 @Command('stage')
 def Stage(unused_args, env):
   """Stages an Umpire Config file for edit."""
-  env.StageConfigFile(env.config_path)
+  UmpireCLI(env).StageConfigFile(env.config_path)
 
 
 @Command('unstage')
 def Unstage(unused_args, env):
   """Unstages staging Umpire Config file."""
-  env.UnstageConfigFile()
+  UmpireCLI(env).UnstageConfigFile()
 
 
 @Command('import-resource',
          CmdArg('resources', nargs='+',
                 help='Path to resource file(s).'))
-def ImportResource(unused_args, unused_env):
+def ImportResource(args, env):
   """Imports file(s) to resources folder."""
-  raise NotImplementedError
+  umpire_cli = UmpireCLI(env)
+  # Find out absolute path of resources and perform simple sanity check.
+  for path in args.resources:
+    resource_path = os.path.abspath(path)
+    if not os.path.isfile(resource_path):
+      raise IOError(errno.ENOENT, 'Resource file not found', resource_path)
+
+    umpire_cli.AddResource(resource_path)
 
 
 def _LoadConfig(args, env):
@@ -278,8 +285,14 @@ def main():
       CmdArg('--config', help='path to Umpire Config file'),
       verbosity_cmd_arg)
   SetupLogging(level=args.verbosity)
+
+  # TODO(deanliao): Except init and deploy, env is used only to retrieve
+  #    Umpire daemon port for XML-RPC for CLI. We shall just retrieve CLI port
+  #    here and don't create UmpireEnv here to make sure that the only trustful
+  #    UmpireEnv is the one in Umpire daemon.
   env = UmpireEnv()
   _LoadConfig(args, env)
+
   args.command(args, env)
 
 
