@@ -83,7 +83,7 @@ class InitTest(unittest.TestCase):
       # Prepare a factory bundle without factory toolkit
       bundle_path = os.path.join(temp_dir, 'bundle')
       shutil.copytree(DEFAULT_BUNDLE, bundle_path)
-      os.unlink(os.path.join(bundle_path, 'factory_test',
+      os.unlink(os.path.join(bundle_path, 'factory_toolkit',
                              'install_factory_toolkit.run'))
 
       self.args.bundle_path = bundle_path
@@ -121,8 +121,7 @@ class UpdateTest(unittest.TestCase):
 
   def testUpdateSingleResource(self):
     # Expect XMLRPC call.
-    self.mock_cli.Update([('factory_toolkit', self.TOOLKIT_PATH)],
-                         source_id=None, dest_id=None)
+    self.mock_cli.Update([('factory_toolkit', self.TOOLKIT_PATH)], None, None)
     self.mox.ReplayAll()
 
     self.args.resources.append('factory_toolkit=%s' % self.TOOLKIT_PATH)
@@ -130,8 +129,8 @@ class UpdateTest(unittest.TestCase):
 
   def testUpdateSingleResourceWithSourceDestId(self):
     # Expect XMLRPC call.
-    self.mock_cli.Update([('factory_toolkit', self.TOOLKIT_PATH)],
-                         source_id='bundle1', dest_id='bundle2')
+    self.mock_cli.Update([('factory_toolkit', self.TOOLKIT_PATH)], 'bundle1',
+                         'bundle2')
     self.mox.ReplayAll()
 
     self.args.resources.append('factory_toolkit=%s' % self.TOOLKIT_PATH)
@@ -142,8 +141,7 @@ class UpdateTest(unittest.TestCase):
   def testUpdateMultipleResources(self):
     # Expect XMLRPC call.
     self.mock_cli.Update([('factory_toolkit', self.TOOLKIT_PATH),
-                          ('firmware', self.FIRMWARE_PATH)],
-                         source_id=None, dest_id=None)
+                          ('firmware', self.FIRMWARE_PATH)], None, None)
     self.mox.ReplayAll()
 
     self.args.resources.append('factory_toolkit=%s' % self.TOOLKIT_PATH)
@@ -184,12 +182,11 @@ class ImportBundleTest(unittest.TestCase):
 
   def testImportBundle(self):
     # Expect XMLRPC call.
-    self.mock_cli.ImportBundle(
-        self.BUNDLE_PATH, bundle_id='new_bundle', note='new bundle')
+    self.mock_cli.ImportBundle(self.BUNDLE_PATH, 'new_bundle', 'new bundle')
     self.mox.ReplayAll()
 
     self.args.bundle_path = self.BUNDLE_PATH
-    self.args.bundle_id = 'new_bundle'
+    self.args.id = 'new_bundle'
     self.args.note = 'new bundle'
     umpire.ImportBundle(self.args, self.env)
 

@@ -156,6 +156,7 @@ class testImportBundle(unittest.TestCase):
         self.env.GetResourcePath(resources['download_conf']))
     # Skip first two as bundle path might change based on the path
     # running the unittest.
+    self.maxDiff = None
     self.assertListEqual(sorted(expect_download_conf[2:]),
                          sorted(download_conf[2:]))
 

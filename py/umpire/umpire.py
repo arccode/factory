@@ -156,9 +156,7 @@ def Update(args, env):
 
   logging.debug('Invoke CLI Update(%r, source_id=%r,  dest_id=%r',
                 resources_to_update, args.source_id, args.dest_id)
-  cli.Update(resources_to_update, source_id=args.source_id,
-             dest_id=args.dest_id)
-
+  cli.Update(resources_to_update, args.source_id, args.dest_id)
 
 
 @Command('edit')
