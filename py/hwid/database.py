@@ -9,6 +9,7 @@
 import collections
 import copy
 import hashlib
+import math
 import os
 import pprint
 import re
@@ -85,6 +86,23 @@ class Database(object):
             _VerifyComponent(comp_cls, comp_name,
                              'encoded_fields[%r][%r]' % (field, index))
 
+    # Check that the bit length of each encoded field in the pattern is enough
+    # to hold all items of the encoded field. We only check the pattern used by
+    # the latest image id here.
+    field_bit_length = self.pattern.GetFieldsBitLength()
+    pattern = self.pattern.GetPatternByImageId()
+    encoded_fields_in_pattern = set([f.keys()[0] for f in pattern['fields']])
+    for field in encoded_fields_in_pattern:
+      if field not in self.encoded_fields:
+        raise common.HWIDException(
+            'Pattern contains unknown encoded field %r' % field)
+      max_index = max(self.encoded_fields[field].iterkeys())
+      bit_length = field_bit_length[field]
+      if math.pow(2, bit_length) <= max_index:
+        raise common.HWIDException(
+            'Pattern does not have enough bits to hold all items for encoded '
+            'field %r. The maximum index of %r is %d but its bit length is '
+            '%d in the pattern' % (field, field, max_index, bit_length))
 
   @staticmethod
   def Load(verify_checksum=False):

@@ -1,5 +1,5 @@
 # Test DEVICE HWID HWDB file
-checksum: 144798f71dc896cebeed68f51489ddd6c35e9125
+checksum: 34872c46dde8dbe13b7b9f313b2aaba02d3d6e31
 
 board: DEVICE
 
@@ -83,9 +83,6 @@ encoded_fields:
     0: { bluetooth: bluetooth_groovy }
   camera_field:
     0: { camera: gnarly_cam }
-    1: { camera: gnarly_cam1 }
-    2: { camera: gnarly_cam2 }
-    3: { camera: gnarly_cam3 }
   cellular_field:
     0: { cellular: NULL }
     1: { cellular: tubular_modem }

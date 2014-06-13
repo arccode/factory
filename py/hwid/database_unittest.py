@@ -78,6 +78,23 @@ class DatabaseTest(unittest.TestCase):
         r"\['foo'\]\[0\]\['cpu'\]",
         mock_db._SanityChecks)
 
+  def testPatternBitLength(self):
+    mock_db = copy.deepcopy(self.database)
+    mock_db.pattern.pattern[1]['fields'].append({'foo_field': 0})
+    self.assertRaisesRegexp(
+        HWIDException,
+        r"Pattern contains unknown encoded field 'foo_field'",
+        mock_db._SanityChecks)
+    mock_db = copy.deepcopy(self.database)
+    mock_db.encoded_fields['audio_codec'][2] = {
+        'audio_codec': ['codec_0', 'hdmi_1']}
+    self.assertRaisesRegexp(
+        HWIDException,
+        r"Pattern does not have enough bits to hold all items for encoded "
+        r"field 'audio_codec'\. The maximum index of 'audio_codec' is 2 but "
+        r"its bit length is 1 in the pattern",
+        mock_db._SanityChecks)
+
   def testProbeResultToBOM(self):
     result = self.results[0]
     bom = self.database.ProbeResultToBOM(result)

@@ -18,6 +18,7 @@ from cros.factory.hwdb.hwid_tool import ProbeResults  # pylint: disable=E0611
 from cros.factory.hwid import common, database
 from cros.factory.hwid import hwid_utils
 from cros.factory.rule import Context
+from cros.factory.utils import process_utils
 
 
 class ValidHWIDDBsTest(unittest.TestCase):
@@ -32,8 +33,12 @@ class ValidHWIDDBsTest(unittest.TestCase):
       return
 
     board_to_test = []
-    for board_name, board in yaml.load(
-        open(os.path.join(hwid_dir, 'boards.yaml'))).iteritems():
+    # Always read boards.yaml from ToT as all boards are required to have an
+    # entry in it.
+    boards_yaml_tot = process_utils.CheckOutput(
+        ['git', 'show', 'remotes/cros-internal/master:boards.yaml'],
+        cwd=hwid_dir)
+    for board_name, board in yaml.load(boards_yaml_tot).iteritems():
       if board['version'] == 3:
         db_path = os.path.join(hwid_dir, board['path'])
         test_path = os.path.join(os.path.dirname(db_path), 'testdata',
