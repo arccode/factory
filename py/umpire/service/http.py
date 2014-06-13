@@ -11,6 +11,7 @@ import shutil
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.schema import FixedDict, List, Scalar
+from cros.factory.umpire import common
 from cros.factory.umpire.common import RESOURCE_HASH_DIGITS
 from cros.factory.umpire.config import NUMBER_SHOP_FLOOR_HANDLERS
 from cros.factory.umpire.service.indent_text_writer import IndentTextWriter
@@ -188,8 +189,22 @@ class HTTPService(umpire_service.UmpireService):
 
     config_writer.Write(lighty_conf)
 
-    # FastCGI bindings.
+    # Service FastCGI bindings.
     fastcgi_conf = {}
+    for instance in umpire_service.FindServicesWithProperty(
+        env.config, 'fastcgi_handlers'):
+      for handler in instance.properties['fastcgi_handlers']:
+        match_path = handler.get('path', None)
+        port_offset = handler.get('port_offset', None)
+        if match_path and port_offset:
+          fastcgi_conf[match_path] = [{
+              'host': _LOCALHOST,
+              'port': port_offset + env.config['port'],
+              'check-local': 'disable'}]
+        else:
+          raise common.UmpireError('empty fastcgi handler in %s' %
+                                   instance.modulename)
+    # Shop floor handlers FastCGI bindings.
     for port in xrange(fcgi_port, fcgi_port + NUMBER_SHOP_FLOOR_HANDLERS):
       match_path = SHOP_FLOOR_HANDLER_PATH % port
       fastcgi_conf[match_path] = [{

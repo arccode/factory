@@ -58,6 +58,8 @@ class UmpireEnv(object):
   directory and the accessors will reflect the change.
 
   Properties:
+    active_server_toolkit_hash: The server toolkit hash Umpire Daemon isi
+                                running.
     base_dir: Umpire base directory
     config_path: Path of the Umpire Config file
     config: Umpire Config object
@@ -69,7 +71,8 @@ class UmpireEnv(object):
   # Umpire exetuable permission 'rwxr-x---'.
   UMPIRE_BIN_MODE = 0750
 
-  def __init__(self):
+  def __init__(self, active_server_toolkit_hash=None):
+    self.active_server_toolkit_hash = active_server_toolkit_hash
     self.base_dir = self._GetUmpireBaseDir(os.path.realpath(__file__))
     if not self.base_dir:
       logging.info('Umpire base dir not found, use current directory.')
@@ -110,6 +113,11 @@ class UmpireEnv(object):
   @property
   def device_toolkits_dir(self):
     return os.path.join(self.base_dir, _DEVICE_TOOLKITS_DIR)
+
+  @property
+  def active_server_toolkit_dir(self):
+    return os.path.join(self.server_toolkits_dir,
+                        self.active_server_toolkit_hash)
 
   @property
   def resources_dir(self):
