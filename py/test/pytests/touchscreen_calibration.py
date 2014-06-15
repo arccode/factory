@@ -3,6 +3,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import ConfigParser
 import json
 import os
 import threading
@@ -45,51 +46,56 @@ ArduinoState = namedtuple('ArduinoState',
                            'GOING_UP', 'EMERGENCY_STOP'])
 STATE = ArduinoState('i', 'D', 'U', 'd', 'u', 'e')
 
+# __name__ looks like "cros.factory.test.pytests.touchscreen_calibration".
+# test_name is "touchscreen_calibration"
+test_name = __name__.split('.')[-1]
+
 
 class DebugDataReader():
   """Communicates with the touchscreen on system."""
+  SYSFS_CONFIG = 'sysfs.conf'
+
   def __init__(self):
     self.sysfs_entry = '/sys/bus/i2c/devices/9-004b/object'
     self.debugfs = '/sys/kernel/debug/atmel_mxt_ts/9-004b'
     self.num_rows = 41
     self.num_cols = 72
+    self.config = self.GetSysfsConfig()
 
-  def PreRead(self):
-    """Initialize some data before reading the raw sensor data.
+  def GetSysfsConfig(self):
+    """Get the sysfs config.
 
-    The data here are highly platform dependent. The data here are for Link's
-    touchscreen. May need to tune them for distinct platforms.
+    The variables look as below:
+    factory.CROS_FACTORY_LIB_PATH is "/usr/local/factory/py/test".
+    static_dirname would be "touchscreen_calibration_static"
     """
-    # Disable passing touch event to upper layer. This is to prevent
-    # undesired action happen on UI when moving or touching the panel
-    # under test.
-    self.WriteSysfs('64000081')
+    static_dirname = '_'.join([test_name, 'static'])
+    config_filepath = os.path.join(factory.CROS_FACTORY_LIB_PATH,
+                                   'pytests',
+                                   static_dirname,
+                                   self.SYSFS_CONFIG)
+    config = ConfigParser.ConfigParser()
+    try:
+      with open(config_filepath) as f:
+        config.readfp(f)
+    except Exception:
+      raise FixtureException('Failed to read sysfs config file: %s.' %
+                             config_filepath)
+    return config
 
-    # YSIZE should be 72
-    self.WriteSysfs('64001448')
+  def WriteSysfsSection(self, section):
+    """Write a section of values to sys fs."""
+    factory.console.info('Write Sys fs section: %s', section)
+    try:
+      section_items = self.config.items(section)
+      factory.console.info('Write Sys fs section: %s', section)
+    except Exception:
+      section_items = []
+      factory.console.info('No items in Sys fs section: %s', section)
 
-    # Touch gain
-    self.WriteSysfs('64001C14')
-
-    # Baseline the sensors before lowering the test probes.
-    self.WriteSysfs('06000201')
-
-  def PostRead(self):
-    """Clean up after reading the raw sensor data.
-
-    The data here are highly platform dependent. The data here are for Link's
-    touchscreen. May need to tune them for distinct platforms.
-    """
-    # Enable passing touch event to upper layer.
-    self.WriteSysfs('64000083')
-
-    # Adjust the following movement filters for touchscreen tests later.
-    self.WriteSysfs('64002C80')
-    self.WriteSysfs('64002F00')
-    self.WriteSysfs('64003100')
-
-    # The following line is to backup the settings in NV storage.
-    self.WriteSysfs('06000155')
+    for command, description in section_items:
+      factory.console.info('  %s: %s', command, description)
+      self.WriteSysfs(command)
 
   def CheckStatus(self):
     """Checks if the touchscreen sysfs object is present.
@@ -569,7 +575,7 @@ class TouchscreenCalibration(unittest.TestCase):
       factory.console.info('Start calibrating SN %s' % sn)
       log_to_file = StringIO.StringIO()
 
-      self.reader.PreRead()
+      self.reader.WriteSysfsSection('PreRead')
 
       # Dump whole frame a few times before probe touches panel.
       for f in range(self.dump_frames):           # pylint: disable=W0612
@@ -598,7 +604,7 @@ class TouchscreenCalibration(unittest.TestCase):
 
       self.DriveProbeUp()
 
-      self.reader.PostRead()
+      self.reader.WriteSysfsSection('PostRead')
 
       self.ui.CallJSFunction('showMessage',
                              'OK 测试完成' if test_pass else 'NO GOOD 测试失败')
