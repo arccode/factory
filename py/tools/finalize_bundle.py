@@ -300,7 +300,7 @@ class FinalizeBundle(object):
       output = Spawn([self.factory_toolkit_path, '--info'],
                      check_output=True).stdout_data
       match = re.match(
-        r'^Identification: .+ Factory Toolkit(?: (\d+\.\d+.\d+))?$',
+        r'^Identification: .+ Factory Toolkit (.+)$',
         output, re.MULTILINE)
       assert match, 'Unable to parse toolkit info: %r' % output
 
