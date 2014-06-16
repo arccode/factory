@@ -58,6 +58,7 @@ def BuildSSHCommand():
   return ['ssh',
           '-o', 'IdentityFile=%s' % testing_rsa,
           '-o', 'UserKnownHostsFile=/dev/null',
+          '-o', 'LogLevel=ERROR',
           '-o', 'User=root',
           '-o', 'StrictHostKeyChecking=no',
           '-o', 'Protocol=2',
