@@ -10,7 +10,17 @@ Also provides factory function CreateBFTFixture() to import specific
 BFTFixture module, instantiate it, and connect to the fixture.
 
 It is also an executable for users to communicate with BFT fixutre
-under DUT shell.
+under DUT shell. For example::
+  bft_fixture Ping
+  bft_fixture Engage AC_ADAPTER
+  bft_fixture Disengage AC_ADAPTER
+  bft_fixture SetStatusColor GREEN
+  bft_fixture SetStatusColor OFF
+
+  If you are not running on DUT or bft.conf is missing in the DUT:
+    /usr/local/factory/py/test/fixture/bft.conf
+  You may specify config like:
+  bft_fixture --config whale/bft.conf Ping
 """
 
 import argparse
@@ -54,7 +64,7 @@ class BFTFixture(object):
   # A subset of factory.system.board.Board.LEDColor.
   LEDColor = Enum(['RED', 'GREEN', 'YELLOW', 'OFF'])
 
-  StatusColor = Enum(['RED', 'GREEN'])
+  StatusColor = Enum(['RED', 'GREEN', 'OFF'])
   Device = Enum(['AC_ADAPTER', 'AUDIO_JACK', 'EXT_DISPLAY', 'LID_MAGNET',
                  'USB_0', 'USB_1', 'USB_2'])
 
@@ -69,14 +79,35 @@ class BFTFixture(object):
     """
     raise NotImplementedError
 
-  def GetSystemStatus(self, status):
+  def GetSystemStatus(self, component):
+    """Gets DUT system status.
+
+    The fixture can probe certain DUT's components' status.
+
+    Args:
+      component: A DUT's component defined in SystemStatus Enum.
+
+    Returns:
+      Status Enum.
+    """
+    raise NotImplementedError
+
+  def GetDeviceStatus(self, device):
+    """Gets a fixture controlled device's status.
+
+    Args:
+      device: BFT controlled device defined in Device Enum.
+
+    Returns:
+      Status Enum.
+    """
     raise NotImplementedError
 
   def SetDeviceEngaged(self, device, engage):
-    """Engage a device.
+    """Engages / disengages a device.
 
-    If engage, the fixture plugs the device into the DUT; otherwise,
-    it unplugs the device.
+    If engage, the fixture plugs/connects the device into the DUT; otherwise,
+    it unplugs/disconnects the device.
 
     Args:
       device: BFT controlled device defined in Device.
@@ -87,21 +118,24 @@ class BFTFixture(object):
   def Ping(self):
     """Pings the BFT fixture.
 
-    If ping fails, raises BFTFixtureException.
+    Raises:
+      BFTFixtureException when ping fails.
     """
     raise NotImplementedError
 
   def CheckPowerRail(self):
     """Checks if DUT's power rail's voltage is okay.
 
-    Raises BFTFixtureException if power rail is problematic.
+    Raises:
+      BFTFixtureException if power rail is problematic.
     """
     raise NotImplementedError
 
   def CheckExtDisplay(self):
     """Checks if external display shows screen as expected.
 
-    Raises BFTFixtureException if the fixture didn't see the expected screen.
+    Raises:
+      BFTFixtureException if the fixture didn't see the expected screen.
     """
     raise NotImplementedError
 
@@ -178,6 +212,10 @@ def CreateBFTFixture(class_name, params):
 
 
 def main():
+  """Command line interface for controlling BFT fixture directly.
+
+  Refer module comment for usage.
+  """
   logging.basicConfig(level=logging.INFO)
   parser = argparse.ArgumentParser(description='BFT command line tool.')
   parser.add_argument(
@@ -198,11 +236,29 @@ def main():
   parser_disengage.add_argument('device', choices=support_devices,
                                 help='Device to disengage.')
 
+  parser_device_status = subparsers.add_parser(
+      'DeviceStatus', help='Get status of a device. -h for more help.')
+  parser_device_status.add_argument('device', choices=support_devices,
+                                    help='Device to get status.')
+
+  parser_system_status = subparsers.add_parser(
+      'SystemStatus',
+      help='Get status of a component in DUT. -h for more help.')
+  parser_system_status.add_argument(
+      'component', choices=sorted(BFTFixture.SystemStatus),
+      help='A DUT component (defined in SystemStatus) to get status.')
+
   parser_is_led_color = subparsers.add_parser(
       'IsLEDColor', help='Check LED color. -h for more help.')
   parser_is_led_color.add_argument('color',
                                    choices=sorted(BFTFixture.LEDColor),
                                    help='Color to inspect.')
+
+  parser_set_status_color = subparsers.add_parser(
+      'SetStatusColor', help='Set status color indicator. -h for more help.')
+  parser_set_status_color.add_argument('color',
+                                       choices=sorted(BFTFixture.StatusColor),
+                                       help='Status color to set.')
 
   subparsers.add_parser('CheckExtDisplay', help='Check external display.')
   subparsers.add_parser('CheckPowerRail', help='Check power rail.')
@@ -233,9 +289,20 @@ def main():
     print '%s %s' % (command, args.device)
     fixture.SetDeviceEngaged(args.device,
                              True if command == 'Engage' else False)
+  elif command == 'DeviceStatus':
+    device = args.device
+    print 'GetDeviceStatus(%s): %s' % (device, fixture.GetDeviceStatus(device))
+  elif command == 'SystemStatus':
+    component = args.component
+    print 'GetSystemStatus(%s): %s' % (device,
+                                       fixture.GetSystemStatus(component))
   elif command == 'IsLEDColor':
     color = args.color
     print 'IsLEDColor(%s): %s' % (color, fixture.IsLEDColor(color))
+  elif command == 'SetStatusColor':
+    color = args.color
+    fixture.SetStatusColor(color)
+    print 'SetStatusColor(%s)' % color
   else:
     getattr(fixture, command)()
 
