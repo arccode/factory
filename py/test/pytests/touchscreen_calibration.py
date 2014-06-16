@@ -362,6 +362,8 @@ class TouchscreenCalibration(unittest.TestCase):
     self._monitor_thread = None
     self.native_usb = None
     self.query_fixture_state_flag = False
+    self._mounted_media_flag = True
+    self._local_log_dir = '/var/tmp/%s' % test_name
 
   def _AlertFixtureDisconnected(self):
     """Alerts that the fixture is disconnected."""
@@ -509,10 +511,17 @@ class TouchscreenCalibration(unittest.TestCase):
       filename: the name of the file to write the content to
       content: the content to be written to the file
     """
-    with MountedMedia(self.dev_path, 1) as mount_dir:
-      with open(os.path.join(mount_dir, filename), 'a') as f:
+    def _AppendLog(log_dir, filename, content):
+      """Append the content to the filename in the log_dir."""
+      with open(os.path.join(log_dir, filename), 'a') as f:
         f.write(content)
-    factory.console.info('Log wrote with filename[ %s ].' % filename)
+      factory.console.info('Log written to "%s/%s".', log_dir, filename)
+
+    if self._mounted_media_flag:
+      with MountedMedia(self.dev_path, 1) as mount_dir:
+        _AppendLog(mount_dir, filename, content)
+    else:
+      _AppendLog(self._local_log_dir, filename, content)
 
   def _WriteSensorDataToFile(self, logger, sn, test_pass, data):
     """Writes the sensor data and the test result to a file."""
@@ -655,6 +664,14 @@ class TouchscreenCalibration(unittest.TestCase):
       factory.console.info('Registered event %s' % event)
       self.ui.AddEventHandler(event, getattr(self, event))
 
+  def _MakeLocalLogDir(self):
+    if not os.path.isdir(self._local_log_dir):
+      try:
+        os.makedirs(self._local_log_dir)
+      except Exception as e:
+        msg = 'Failed to create the local log directory %s: %s'
+        factory.console.warn(msg, self._local_log_dir, e)
+
   def _CheckMountedMedia(self):
     """Checks the existence of the mounted media."""
     try:
@@ -662,13 +679,12 @@ class TouchscreenCalibration(unittest.TestCase):
       self._WriteLog('touchscreen_calibration_launch.txt',
                      '%s\n' % time.ctime())
     except Exception:
-      self.ui.CallJSFunction('showMessage',
-                             'Insert a USB dongle to store the test results.\n'
-                             'And then click 触控面板 on the left side of '
-                             'the screen to restart the test.\n\n'
-                             '请插入USB硬碟以储存测试结果\n'
-                             '完成後，点击左方触控面板连结以重跑测试')
-      raise FixtureException('Mounted media does not exist.')
+      self._mounted_media_flag = False
+      msg = 'Mounted media does not exist. Use %s instead.'
+      factory.console.warn(msg % self._local_log_dir)
+      self._MakeLocalLogDir()
+      self._WriteLog('touchscreen_calibration_launch.txt',
+                     '%s\n' % time.ctime())
 
   def QueryFixtureState(self, unused_event=None):
     """Query the fixture internal state including all sensor values."""
