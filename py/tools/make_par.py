@@ -174,6 +174,7 @@ def main(argv=None):
     Spawn(['rsync', '-a',
            os.path.join(standard_lib, 'argparse.py'),
            os.path.join(python_lib, 'yaml'),
+           os.path.join(python_lib, 'google'),
            'third_party/jsonrpclib/jsonrpclib',
            par_build],
           log=True, check_call=True, cwd=factory.FACTORY_PATH)
