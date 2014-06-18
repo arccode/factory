@@ -15,7 +15,7 @@ from cros.factory.utils import sys_utils
 
 
 _SUB_DIRS = ['bin', 'dashboard', 'log', 'resources', 'run', 'toolkits',
-             'updates']
+             'updates', 'conf']
 
 # Relative path of Umpire CLI in toolkit directory.
 _UMPIRE_CLI_IN_TOOLKIT_PATH = os.path.join('usr', 'local', 'factory', 'bin',
