@@ -15,7 +15,7 @@ from cros.factory.umpire import config
 from cros.factory.umpire.commands.update import ResourceUpdater
 from cros.factory.umpire.common import (
     GetHashFromResourceName, ResourceType, RESOURCE_HASH_DIGITS, UmpireError)
-from cros.factory.umpire.umpire_env import UmpireEnv
+from cros.factory.umpire import umpire_env
 from cros.factory.utils import file_utils
 from cros.factory.utils import get_version
 
@@ -30,7 +30,7 @@ TOOLKIT_DIR = os.path.join(TESTDATA_DIR, 'install_factory_toolkit.run')
 class UmpireEnvTest(unittest.TestCase):
 
   def setUp(self):
-    self.env = UmpireEnv()
+    self.env = umpire_env.UmpireEnv()
     self.env.base_dir = '/test/umpire'
     self.mox = mox.Mox()
 
@@ -40,13 +40,21 @@ class UmpireEnvTest(unittest.TestCase):
 
   def testGetUmpireBaseDir(self):
     # pylint: disable=W0212
-    self.assertEqual(None, UmpireEnv._GetUmpireBaseDir('/foo/bar'))
-    self.assertEqual('/foo/bar/umpire',
-                     UmpireEnv._GetUmpireBaseDir('/foo/bar/umpire'))
-    self.assertEqual('/foo/bar/umpire',
-                     UmpireEnv._GetUmpireBaseDir('/foo/bar/umpire/'))
-    self.assertEqual('/foo/bar/umpire',
-                     UmpireEnv._GetUmpireBaseDir('/foo/bar/umpire/bin'))
+    umpire_env.DEFAULT_BASE_DIR = '/foo/bar/umpire'
+    base_dir = '/foo/bar/umpire/board'
+    self.mox.StubOutWithMock(os.path, 'exists')
+    os.path.exists(base_dir).MultipleTimes().AndReturn(True)
+    self.mox.ReplayAll()
+    self.assertEqual(None, umpire_env.UmpireEnv._GetUmpireBaseDir('/foo/bar'))
+    self.assertEqual('/foo/bar/umpire/board',
+                     umpire_env.UmpireEnv._GetUmpireBaseDir(
+                         '/foo/bar/umpire/board'))
+    self.assertEqual('/foo/bar/umpire/board',
+                     umpire_env.UmpireEnv._GetUmpireBaseDir(
+                         '/foo/bar/umpire/board/'))
+    self.assertEqual('/foo/bar/umpire/board',
+                     umpire_env.UmpireEnv._GetUmpireBaseDir(
+                         '/foo/bar/umpire/board/bin'))
 
   def testLoadConfigDefault(self):
     default_path = os.path.join(self.env.base_dir, 'active_umpire.yaml')

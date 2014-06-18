@@ -28,9 +28,6 @@ from cros.factory.umpire.umpire_env import UmpireEnv
 from cros.factory.utils import file_utils
 
 
-# Default Umpire base directory relative to root dir.
-_DEFAULT_BASE_DIR = os.path.join('var', 'db', 'factory', 'umpire')
-
 
 def UmpireCLI(env):
   """Gets connection to Umpire CLI XMLRPC server.
@@ -49,7 +46,7 @@ def UmpireCLI(env):
 @Command('init',
          CmdArg('--base-dir',
                 help=('the Umpire base directory. If not specified, use '
-                      '/var/db/factory/umpire/<board>')),
+                      '%s/<board>' % common.DEFAULT_BASE_DIR)),
          CmdArg('--board',
                 help=('board name the Umpire to serve. If not specified, use '
                       'board in bundle\'s MANIFEST.yaml')),
@@ -68,7 +65,7 @@ def Init(args, env, root_dir='/'):
 
   It creates base directory, installs Umpire executables and sets up daemon
   running environment. Base directory is specified by --base-dir or use
-  /var/db/factory/umpire/<board>, where board is specified by --board or
+  common.DEFAULT_BASE_DIR/<board>, where board is specified by --board or
   derived from bundle's MANIFEST.
 
   If an Umpire environment is already set, running it again will only update
@@ -100,7 +97,7 @@ def Init(args, env, root_dir='/'):
   file_utils.CheckPath(factory_toolkit_path, description='factory toolkit')
 
   base_dir = (args.base_dir if args.base_dir else
-              os.path.join(root_dir, _DEFAULT_BASE_DIR, board))
+              os.path.join(root_dir, common.DEFAULT_BASE_DIR, board))
   env.base_dir = base_dir
 
   init.Init(env, args.bundle_path, board, args.default, args.local, args.user,

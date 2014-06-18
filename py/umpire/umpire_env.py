@@ -17,7 +17,8 @@ import tempfile
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.common import (
-    GetHashFromResourceName, ResourceType, RESOURCE_HASH_DIGITS, UmpireError)
+    GetHashFromResourceName, ResourceType, RESOURCE_HASH_DIGITS, UmpireError,
+    DEFAULT_BASE_DIR)
 from cros.factory.umpire import config
 from cros.factory.umpire.shop_floor_manager import ShopFloorManager
 from cros.factory.umpire.version import (UMPIRE_VERSION_MAJOR,
@@ -75,19 +76,25 @@ class UmpireEnv(object):
   def _GetUmpireBaseDir(path):
     """Gets Umpire base directory.
 
-    It resolves Umpire base directory (ended by "umpire") based on the
-    given path.
+    It resolves Umpire base directory based on the given path.
+    e.g. DEFAULT_BASE_DIR = '/var/db/factory/umpire',
+    path = ('/var/db/factory/umpire/<board>/toolkits/server/03443c8e/'
+            'usr/local/factory/py/umpire/umpire_env.py')
+    Umpire base directory should be '/var/db/factory/umpire/<board>'.
 
     Args:
       path: a path rooted at Umpire base dir.
 
     Returns:
-      Umpire base directory; None if "umpire" is not found in path.
+      Umpire base directory; None if DEFAULT_BASE_DIR/<board> is
+      not found in path.
     """
-    while path and path != '/':
-      path, tail = os.path.split(path)
-      if tail == 'umpire':
-        return os.path.join(path, tail)
+    if path.startswith(DEFAULT_BASE_DIR + '/'):
+      sub_default_base_dir_path = path[len(DEFAULT_BASE_DIR) + 1:]
+      board_name = sub_default_base_dir_path.split('/')[0]
+      base_directory = os.path.join(DEFAULT_BASE_DIR, board_name)
+      if os.path.exists(base_directory):
+        return base_directory
     return None
 
   @property

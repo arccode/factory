@@ -65,6 +65,9 @@ BUNDLE_FACTORY_TOOLKIT_PATH = os.path.join('factory_toolkit',
                                            'install_factory_toolkit.run')
 BUNDLE_MANIFEST = 'MANIFEST.yaml'
 
+# Default Umpire base directory relative to root dir.
+DEFAULT_BASE_DIR = os.path.join('/', 'var', 'db', 'factory', 'umpire')
+
 
 class UmpireError(Exception):
 
