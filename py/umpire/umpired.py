@@ -3,15 +3,14 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Sample umpired implementation.
+"""Umpired implementation.
 
-This is a minimalist umpired implementation for development testing purpose.
+This is a minimalist umpired implementation.
 """
 
 import logging
 import optparse
 import os
-import sys
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire import rpc_dut
@@ -22,12 +21,13 @@ from cros.factory.umpire.umpire_env import UmpireEnv
 from cros.factory.umpire.webapp_resourcemap import ResourceMapApp
 
 
-TEST_YAML = os.path.join(
-    os.path.dirname(sys.modules[__name__].__file__),
-    'testdata', 'umpired_test.yaml')
+# This template file is from private overlay.
+TEMPLATE_YAML = os.path.join(
+    os.path.dirname(os.path.realpath(__file__)),
+    'umpired_template.yaml')
 
 
-def StartServer(testmode=False, config_file=TEST_YAML):
+def StartServer(testmode=False, config_file=TEMPLATE_YAML):
   # Instanciate environment and load default configuration file
   env = UmpireEnv()
   if testmode:
@@ -73,7 +73,7 @@ def main():
       '-t', '--test', dest='testmode', action='store_true', default=False,
       help='test run testdata/umpired_test.yaml')
   parser.add_option(
-      '-y', '--yaml', dest='custom_path', default=TEST_YAML,
+      '-y', '--yaml', dest='custom_path', default=TEMPLATE_YAML,
       help='use another test yaml config file')
   (options, unused_args) = parser.parse_args()
   StartServer(testmode=options.testmode, config_file=options.custom_path)
