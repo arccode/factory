@@ -117,13 +117,13 @@ def TryUpdate(pre_update_hook=None, timeout=15):
     # An update is necessary.  Construct the rsync command.
     update_port = shopfloor_client.GetUpdatePort()
     autotest_src_path = 'rsync://%s:%d/factory/%s/autotest' % (
-      urlparse(url).hostname,
-      update_port,
-      new_md5sum),
+        urlparse(url).hostname,
+        update_port,
+        new_md5sum)
     factory_src_path = 'rsync://%s:%d/factory/%s/factory' % (
-      urlparse(url).hostname,
-      update_port,
-      new_md5sum),
+        urlparse(url).hostname,
+        update_port,
+        new_md5sum)
 
   # /usr/local on the device (parent to both factory and autotest)
   parent_dir = os.path.dirname(factory.FACTORY_PATH)
