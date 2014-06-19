@@ -14,6 +14,10 @@ from cros.factory.test.test_lists.test_lists import OperatorTest
 from cros.factory.test.test_lists.test_lists import TestList
 
 
+_SHOPFLOOR_IP = '10.3.0.12'
+_SHOPFLOOR_PORT = '8082'
+
+
 def CreateTestLists():
   """Creates test list.
 
@@ -21,7 +25,9 @@ def CreateTestLists():
   test list builder).  This function is required and its name cannot
   be changed.
   """
-  with TestList('tsab_station', 'Touchscreen calibration on AB panel'):
+  with TestList('tsab_station', 'Touchscreen calibration on AB panel') as tlist:
+    tlist.options.shopfloor_server_url = 'http://%s:%s/' % (
+        _SHOPFLOOR_IP, _SHOPFLOOR_PORT)
     with AutomatedSequence(id='TouchscreenCalibrationSequence',
                            label_zh=u'触控面板校正程序'):
       OperatorTest(
