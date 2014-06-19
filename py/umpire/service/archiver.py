@@ -112,7 +112,9 @@ class ArchiverService(umpire_service.UmpireService):
             'reports': {
                 'notes': NOTES,
                 'source_dir': default_report_dir,
-                'compress_format': '.zip',
+                # TODO(itspeter): change it back to '.zip' once the backend
+                #                 of report processing is completed.
+                'compress_format': '.tar.xz',
                 'duration': 'daily'},
             'regcode': {
                 'notes': NOTES,
