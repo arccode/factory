@@ -57,11 +57,14 @@ class DebugDataReader():
   SYSFS_CONFIG = 'sysfs.conf'
 
   def __init__(self):
-    self.sysfs_entry = '/sys/bus/i2c/devices/9-004b/object'
-    self.debugfs = '/sys/kernel/debug/atmel_mxt_ts/9-004b'
     self.num_rows = 41
     self.num_cols = 72
+    self.DELTA_LOWER_BOUND = None
+    self.DELTA_HIGHER_BOUND = None
+    self.sysfs_entry = None
+    self.debugfs = None
     self.config = self.GetSysfsConfig()
+    self.GetConfigData()
 
   def GetSysfsConfig(self):
     """Get the sysfs config.
@@ -83,6 +86,22 @@ class DebugDataReader():
       raise FixtureException('Failed to read sysfs config file: %s.' %
                              config_filepath)
     return config
+
+  def GetConfigData(self):
+    """Get sys fs paths and sensor parameters."""
+    try:
+      self.sysfs_entry = self.config.get('Sysfs', 'sysfs_entry')
+      self.debugfs = self.config.get('Sysfs', 'debugfs')
+    except Exception:
+      raise FixtureException('Failed to get sys fs paths from conf file.')
+
+    try:
+      self.DELTA_LOWER_BOUND = self.config.get('TouchSensors',
+                                               'DELTA_LOWER_BOUND')
+      self.DELTA_HIGHER_BOUND = self.config.get('TouchSensors',
+                                                'DELTA_HIGHER_BOUND')
+    except Exception:
+      raise FixtureException('Failed to get sensor parameters from conf file.')
 
   def WriteSysfsSection(self, section):
     """Write a section of values to sys fs."""
@@ -532,33 +551,8 @@ class TouchscreenCalibration(unittest.TestCase):
       logger.write('\n')
     self._WriteLog(sn, logger.getvalue())
 
-  def _VerifySensorDataOld(self, data):
-    """Determines whether the sensor data is good or not."""
-    # Sensor thresholds are determined by eyes usually from previous build data.
-    DELTA_LOWER_BOUND = 300
-    DELTA_HIGHER_BOUND = 1900
-
-    test_pass = True
-    row_num = 0
-    for row in data:
-      if row_num == 0:
-        m = row[26]
-        row_num = 1
-      else:
-        m = row[25]
-        row_num = 0
-      if (m < DELTA_LOWER_BOUND or m > DELTA_HIGHER_BOUND):
-        factory.console.info('  Fail at row %s value %d' % (row, m))
-        test_pass = False
-
-    return test_pass
-
   def _VerifySensorData(self, data):
     """Determines whether the sensor data is good or not."""
-    # Sensor thresholds are determined by eyes usually from previous build data.
-    DELTA_LOWER_BOUND = 300
-    DELTA_HIGHER_BOUND = 1900
-
     # There are 3 columns of metal fingers on the probe. The touched_cols are
     # derived through experiments. The values may vary from board to board.
     touched_cols = [1, 35, 69]
@@ -566,7 +560,8 @@ class TouchscreenCalibration(unittest.TestCase):
     for row, row_data in enumerate(data):
       for col in touched_cols:
         value = row_data[col]
-        if (value < DELTA_LOWER_BOUND or value > DELTA_HIGHER_BOUND):
+        if (value < self.reader.DELTA_LOWER_BOUND or
+            value > self.reader.DELTA_HIGHER_BOUND):
           factory.console.info('  Failed at (row, col) (%d, %d) value %d' %
                                (row, col, value))
           test_pass = False
