@@ -719,7 +719,7 @@ class FinalizeBundle(object):
         """Derives signing key from factory install shim's file name."""
         if shim.endswith('factory_install_shim.bin'):
           return 'unsigned'
-        key_match = re.search('_(\w+)\.bin$', shim)
+        key_match = re.search('channel_([\w\-]+)\.bin$', shim)
         if key_match:
           return key_match.group(1)
         else:
