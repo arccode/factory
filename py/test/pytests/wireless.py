@@ -129,8 +129,9 @@ class WirelessTest(unittest.TestCase):
         with tempfile.NamedTemporaryFile() as local_file:
           # Download file and measure time.
           start = time.time()
-          local_file.write(remote_file.read())
+          file_content = remote_file.read()
           time_spent = time.time() - start
+          local_file.write(file_content)
           local_file.flush()
           os.fdatasync(local_file)
           # Calculate size and throughput.
