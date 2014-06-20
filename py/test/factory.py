@@ -534,6 +534,9 @@ class Options(object):
   The list will be passed to ``Spawn()`` as the first argument."""
   _types['stateful_usage_above_threshold_action'] = (type(None), list)
 
+  enable_charge_manager = True
+  """Whether to enable the charge manager."""
+
   min_charge_pct = None
   """The target range for the device's charge level. If
   :py:attr:`cros.factory.test.factory.Options.min_charge_pct` and

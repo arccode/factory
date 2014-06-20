@@ -1375,7 +1375,8 @@ class Goofy(object):
             (self.test_list.options.max_charge_pct is None))
     if utils.in_chroot():
       logging.info('In chroot, ignoring charge manager and charge state')
-    elif self.test_list.options.min_charge_pct is not None:
+    elif (self.test_list.options.enable_charge_manager and
+          self.test_list.options.min_charge_pct is not None):
       self.charge_manager = ChargeManager(self.test_list.options.min_charge_pct,
                                           self.test_list.options.max_charge_pct)
       system.SystemStatus.charge_manager = self.charge_manager
