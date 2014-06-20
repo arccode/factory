@@ -568,6 +568,16 @@ class TouchscreenCalibration(unittest.TestCase):
 
     return test_pass
 
+  def _CheckSerialNumber(self, sn):
+    """Check if the serial number is legitimate."""
+    conf = self.reader.config
+    if conf.has_section('Misc') and conf.has_option('Misc', 'sn_length'):
+      sn_length = int(self.reader.config.get('Misc', 'sn_length'))
+      if len(sn) != sn_length:
+        self.ui.CallJSFunction('showMessage', 'Wrong serial number! 序号错误!')
+        return False
+    return True
+
   def _Calibrate(self, sn):
     """The actual calibration method.
 
@@ -575,6 +585,8 @@ class TouchscreenCalibration(unittest.TestCase):
       sn: the serial number of the touchscreen under test
     """
     self._CheckFixtureStateUp()
+    if not self._CheckSerialNumber(sn):
+      return
 
     try:
       factory.console.info('Start calibrating SN %s' % sn)
