@@ -8,6 +8,7 @@
 import fcntl
 import hashlib
 import os
+import pprint
 import subprocess
 import time
 import yaml
@@ -357,3 +358,27 @@ def EncryptFile(file_path, encrypt_key_pair, delete=False):
     logging.debug('%r encrypted.')
 
   return file_path + '.gpg'
+
+
+def LogListDifference(old_list, new_list, help_text=None):
+  """Helper function to list only the difference between two list.
+
+  The elements in list are required to be immutable and hashable.
+
+  Args:
+    old_list: the old items in list.
+    new_list: the new items in list.
+    help_text: additional information to log about the list.
+  """
+  help_text = ' in [%s]' % help_text if help_text else ''
+  # Putting the list into set.
+  old_set = frozenset(old_list)
+  new_set = frozenset(new_list)
+  added = new_set - old_set
+  removed = old_set - new_set
+  if len(removed):
+    logging.info("Old itmes%s are removed:\n%s\n",
+                 help_text, pprint.pformat(removed))
+  if len(added):
+    logging.info("New itmes%s are added:\n%s\n",
+                 help_text, pprint.pformat(added))

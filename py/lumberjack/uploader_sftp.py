@@ -9,12 +9,12 @@ import getpass
 import logging
 import os
 import paramiko
-import pprint
 import stat
 import yaml
 
 from common import (ComputePercentage, GetMetadataPath, GetOrCreateMetadata,
-                    RegenerateUploaderMetadataFile, UPLOADER_METADATA_DIRECTORY)
+                    LogListDifference, RegenerateUploaderMetadataFile,
+                    UPLOADER_METADATA_DIRECTORY)
 from uploader_exception import UploaderConnectionError, UploaderFieldError
 from uploader_interface import FetchSourceInterface, UploadTargetInterface
 
@@ -100,8 +100,8 @@ class SFTPBase(object):
       self._sftp = paramiko.SFTPClient.from_transport(t)
       self._sftp.chdir('.')
       return True
-    except Exception as e:
-      logging.debug('Failed to create SFTP channel. Reasons:\n%r\n', e)
+    except Exception:
+      logging.exception('Failed to create SFTP channel.')
       return False
 
   def _Connect(self, retries=DISCONNECTED_RETRY):
@@ -159,7 +159,7 @@ class FetchSource(SFTPBase):  # pylint: disable=W0223
   __implements__ = (FetchSourceInterface, )  # For pylint
 
   _last_dirs = None  # Last time we list the archive_path
-  _last_recursively_walk = None
+  _last_recursively_walk = []
 
 
   def LoadConfiguration(self, config, config_name=None):
@@ -182,31 +182,61 @@ class FetchSource(SFTPBase):  # pylint: disable=W0223
 
   @_MakeConnected
   def _ListDirRecursively(self, dir_path, files):
-    """Appends files recursively under dir_path into files.
+    """Appends file infos under dir_path recursively.
 
-    The appended tuple will be in the form:
-      A list containing tuples of (absolute path, file size,
-      last modification timestamp - mtime)
+    Args:
+      dir_path: The directory to be list.
+      files:
+          a list that tuple is going to appened into. The appended tuple
+          will be in the form (absolute path, file size, last modification
+          timestamp - mtime)
+
+    Returns:
+      True if no errors happened during the process. False means only partial
+      results are obtained during this call. This might happen in lots of
+      scenario. For example: a file found during listdir, but then deleted so
+      causing the lstat later raises an IOError exception. Caller should
+      determine its reaction based on the return value.
     """
-    filenames = self._sftp.listdir(dir_path)
+    ret_flag = True
+
+    # High risk of raising exception, narrow down to get verbose information.
+    try:
+      filenames = self._sftp.listdir(dir_path)
+    except Exception:
+      logging.exception(
+          'Exception raised while _ListDirRecursively is scanning %r',
+          dir_path)
+      return False
+
     dirs = []
     for filename in filenames:
       full_path = os.path.join(dir_path, filename)
-      sftp_attr = self._sftp.lstat(full_path)
+      # High risk of raising exception, narrow down to get verbose information.
+      try:
+        sftp_attr = self._sftp.lstat(full_path)
+      except Exception:
+        logging.exception(
+            'Exception raised while _ListDirRecursively lstat %r', full_path)
+        ret_flag = False
+        continue
+
       if stat.S_ISDIR(sftp_attr.st_mode):
         dirs.append(full_path)
       else:
         files.append((full_path, sftp_attr.st_size, sftp_attr.st_mtime))
     # Recursively on the dirs
     for dir_full_path in dirs:
-      self._ListDirRecursively(dir_full_path, files)
+      ret_flag = ret_flag and self._ListDirRecursively(dir_full_path, files)
+    return ret_flag
 
   def ListFiles(self):
     files = []
     self._ListDirRecursively(self.archive_path, files)
+    # Log the difference of discovered items
+    LogListDifference(self._last_recursively_walk, files,
+                      help_text='remote %r' % self.config_name)
     self._last_recursively_walk = files
-    logging.debug("Getting full list of files from source %r:\n%s\n",
-                  self.config_name, pprint.pformat(files))
     ret = []
     # Based on the interface. Change it to relative path.
     for full_path, file_size, mtime in files:
@@ -219,8 +249,9 @@ class FetchSource(SFTPBase):  # pylint: disable=W0223
   def FetchFile(self, source_path, target_path,
                 metadata_path=None, resume=True):
     def _UpdateDownloadMetadata():
-      logging.debug(
-          "Downloading...%9.6f%%", ComputePercentage(local_size, remote_size))
+      logging.info(
+          "Downloading...%9.5f%% of %10d bytes",
+          ComputePercentage(local_size, remote_size), remote_size)
       metadata = GetOrCreateMetadata(
           metadata_path, RegenerateUploaderMetadataFile)
       download_metadata = metadata.setdefault('download', {})
@@ -252,7 +283,7 @@ class FetchSource(SFTPBase):  # pylint: disable=W0223
 
     if remote_size < local_size:
       logging.error(
-          'Size on source %r = %15d\nSize on local %r = %15d. Abnormal.',
+          'Size on source %r = %10d\nSize on local %r = %10d. Abnormal.',
           source_path, remote_size, target_path, local_size)
       local_size = 0
       if resume:
@@ -265,10 +296,10 @@ class FetchSource(SFTPBase):  # pylint: disable=W0223
     with self._sftp.open(source_path, 'rb') as remote_fd:
       if resume:  # Seek depends on resume flag
         remote_fd.seek(local_size)
-        logging.info('Resume fetching %r [size %15d] from remote at %15d.',
+        logging.info('Resume fetching %r [size %10d] from remote at %10d.',
                      source_path, remote_size, local_size)
       else:
-        logging.info('Fetching %r [size %15d] from remote.',
+        logging.info('Fetching %r [size %10d] from remote.',
                      source_path, remote_size)
 
       remote_fd.prefetch()
@@ -319,8 +350,9 @@ class UploadTarget(SFTPBase):  # pylint: disable=W0223
     def _UpdateUploadMetadata():
       metadata = GetOrCreateMetadata(
           metadata_path, RegenerateUploaderMetadataFile)
-      logging.debug(
-          "Uploading...%9.6f%%", ComputePercentage(remote_size, local_size))
+      logging.info(
+          "Uploading...%9.5f%% of %10d bytes",
+          ComputePercentage(remote_size, local_size), local_size)
       upload_metadata = metadata.setdefault('upload', {})
       upload_metadata.update(
           {'protocol': 'SFTP',
@@ -357,7 +389,7 @@ class UploadTarget(SFTPBase):  # pylint: disable=W0223
 
     if remote_size > local_size:
       logging.error(
-          'Size on remote %r = %15d\nSize on local %r = %15d. Abnormal.',
+          'Size on remote %r = %10d\nSize on local %r = %10d. Abnormal.',
           target_path, remote_size, local_path, local_size)
       remote_size = 0
       if resume:
@@ -373,7 +405,7 @@ class UploadTarget(SFTPBase):  # pylint: disable=W0223
         remote_fd.set_pipelined(True)
         if resume:  # Seek depends on resume flag
           local_fd.seek(remote_size)
-          logging.info('Resume uploading %r on target at %15dn',
+          logging.info('Resume uploading %r on target at %10d',
                        target_path, remote_size)
         while True:
           _UpdateUploadMetadata()  # Update metadata

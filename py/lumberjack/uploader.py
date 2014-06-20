@@ -14,8 +14,9 @@ import time
 import yaml
 
 from common import (CheckAndLockFile, GetMetadataPath, GetOrCreateMetadata,
-                    IsValidYAMLFile, RegenerateUploaderMetadataFile,
-                    TimeString, UPLOADER_METADATA_DIRECTORY)
+                    IsValidYAMLFile, LogListDifference,
+                    RegenerateUploaderMetadataFile, TimeString,
+                    UPLOADER_METADATA_DIRECTORY)
 from importlib import import_module
 from uploader_exception import UploaderError, UploaderFieldError
 
@@ -118,6 +119,7 @@ def _Uploader(config_path):
   target.LoadConfiguration(target_config)
   logging.info('Target config loaded')
 
+
   # Start threads
   for source in sources:
     t = threading.Thread(target=_FetchSourceThread, args=(source, file_pool))
@@ -129,7 +131,7 @@ def _Uploader(config_path):
   t.join()
 
 
-def _DetermineMetadataStatus(file_pool, path_from_pool):
+def _DetermineMetadataStatus(file_pool, path_from_pool, enable_logging=False):
   """Determines a status in file_pool.
 
   Args:
@@ -137,21 +139,40 @@ def _DetermineMetadataStatus(file_pool, path_from_pool):
     path_from_pool:
       The path where the file we want to determine relative to file_pool. If
       the file doesn't exist, _Status.UNKNOWN will be returned.
+    enable_logging:
+      True to enable logging, False otherwise.
 
   Returns:
-    Returns the status listed in the class _Status.
+    Returns a tuple of (the status listed in the class _Status, debug info
+    tuple). Debug tuple will be in format of (full path of the file in pool,
+    debug message planned to log, raw content of the metadata).
   """
+  def _Log(msg, enable_logging, msgs):
+    """Appends msg to msgs and logs based on the flag enable_logging."""
+    msgs.append(msg)
+    if enable_logging:
+      logging.debug(msg)
+
+  def _GenerateDebugTuple():
+    return (local_full_path, '\n'.join(msgs), raw_metadata, )
+
+  def _ReturnStatus(status):
+    """Wrapper to return both status and debug tuple."""
+    return (status, _GenerateDebugTuple())
+
+
   local_full_path = os.path.join(file_pool, path_from_pool)
   metadata_path = GetMetadataPath(local_full_path, UPLOADER_METADATA_DIRECTORY)
-  logging.debug('Determine status of %r.', local_full_path)
+  msgs = []
+  raw_metadata = None
 
+  _Log('Determine status of %r.' % local_full_path, enable_logging, msgs)
   if os.path.isfile(metadata_path):
     # Determine the file's status
     metadata = None
     metadata_last_modified = os.lstat(metadata_path).st_mtime
     with open(metadata_path, 'r') as fd:
       raw_metadata = fd.read()
-      logging.debug('Raw content of %r=\n%s\n', metadata_path, raw_metadata)
     try:
       metadata = yaml.load(raw_metadata)
       if not isinstance(metadata, dict):
@@ -161,7 +182,7 @@ def _DetermineMetadataStatus(file_pool, path_from_pool):
             'Metadata %r does not contain file or file is not a dict' %
             metadata_path)
       expected_file_size = metadata['file'].get('size')
-      if not expected_file_size:
+      if expected_file_size is None:
         raise UploaderError(
             'Metadata %r does not contain size in file field' % metadata_path)
 
@@ -170,39 +191,39 @@ def _DetermineMetadataStatus(file_pool, path_from_pool):
       downloaded_bytes = download_metadata.get('downloaded_bytes', 0)
 
       if downloaded_bytes < expected_file_size:
-        logging.debug('File %r is downloading.', local_full_path)
-        return _Status.DOWNLOADING
+        _Log('File %r is downloading.' % local_full_path, enable_logging, msgs)
+        return _ReturnStatus(_Status.DOWNLOADING)
       elif downloaded_bytes == expected_file_size:
         # Check if file is uploaded
         upload_metadata = metadata.get('upload', {})
         uploaded_bytes = upload_metadata.get('uploaded_bytes', 0)
 
         if uploaded_bytes < expected_file_size:
-          logging.debug('File %r is uploading.', local_full_path)
-          return _Status.UPLOADING
+          _Log('File %r is uploading.' % local_full_path, enable_logging, msgs)
+          return _ReturnStatus(_Status.UPLOADING)
         elif uploaded_bytes == expected_file_size:
-          logging.debug('File %r is uploaded.', local_full_path)
-          return _Status.UPLOADED
+          _Log('File %r is uploaded.' % local_full_path, enable_logging, msgs)
+          return _ReturnStatus(_Status.UPLOADED)
         else:
-          logging.debug(
-              'File %r is abnormal. Uploaded %d bytes.'
-              'More than expected %d bytes.',
-              local_full_path, uploaded_bytes, expected_file_size)
-          return _Status.UPLOADED_GREATER_THAN_EXPECTED
+          _Log(('File %r is abnormal. Uploaded %d bytes.'
+                'More than expected %d bytes.' % (
+                local_full_path, uploaded_bytes, expected_file_size)),
+               enable_logging, msgs)
+          return _ReturnStatus(_Status.UPLOADED_GREATER_THAN_EXPECTED)
 
         # Will not actually able to determine precisely between a file
         # is downloaded or uploading solely on the metadata.
       else:
-        logging.debug(
-            'File %r is abnormal. Downloaded %d bytes.'
-            'More than expected %d bytes.',
-            local_full_path, downloaded_bytes, expected_file_size)
-        return _Status.DOWNLOADED_GREATER_THAN_EXPECTED
+        _Log(('File %r is abnormal. Downloaded %d bytes.'
+               'More than expected %d bytes.',
+               local_full_path, downloaded_bytes, expected_file_size),
+             enable_logging, msgs)
+        return _ReturnStatus(_Status.DOWNLOADED_GREATER_THAN_EXPECTED)
 
     except UploaderError:
       logging.exception(
           'File %r\'s metadata is unlikely valid.', local_full_path)
-      return _Status.UNKNOWN
+      return _ReturnStatus(_Status.UNKNOWN)
 
     except yaml.YAMLError:
       # There are two possibility. One is the metadata is really a
@@ -213,13 +234,14 @@ def _DetermineMetadataStatus(file_pool, path_from_pool):
       if metadata_last_modified == os.lstat(metadata_path).st_mtime:
         logging.exception(
             'File %r\'s metadata is unlikely valid.', local_full_path)
-        return _Status.UNKNOWN
+        return _ReturnStatus(_Status.UNKNOWN)
       else:
         # Leave the caller to determine further action.
-        return _Status.RACING
+        return _ReturnStatus(_Status.RACING)
   else:
-    logging.debug('File %r\'s metadata doesn\'t exist.', local_full_path)
-    return _Status.UNKNOWN
+    _Log('File %r\'s metadata doesn\'t exist.' % local_full_path,
+         enable_logging, msgs)
+    return _ReturnStatus(_Status.UNKNOWN)
 
 
 def _FetchSourceThread(source, file_pool):
@@ -233,10 +255,14 @@ def _FetchSourceThread(source, file_pool):
                           'last_modified': TimeString(file_mtime)})
     with open(metadata_path, 'w') as metadata_fd:
       metadata_fd.write(yaml.dump(metadata, default_flow_style=False))
-    logging.debug('Metadata %r is re-generated.', metadata_path)
+    logging.info('Metadata %r is re-generated.', metadata_path)
+
+  # Internal tracking of the file status. Log only the difference
+  files_status = []
 
   while True:  # Run forever.
     time.sleep(LOOP_DELAY)
+    new_files_status = []
     # Getting basic data of files from the source.
     files = source.ListFiles()
     for source_rel_path, file_size, mtime in files:
@@ -244,7 +270,10 @@ def _FetchSourceThread(source, file_pool):
       resume = True
 
       local_full_path = os.path.join(file_pool, source_rel_path)
-      status = _DetermineMetadataStatus(file_pool, source_rel_path)
+      status, debug_tuple = (
+          _DetermineMetadataStatus(file_pool, source_rel_path))
+      new_files_status.append(debug_tuple)
+
       if status == _Status.UNKNOWN:
         # Re-generate the metadata and re-download. One of the common case
         # is the metadata is not existed and created the first time.
@@ -274,16 +303,27 @@ def _FetchSourceThread(source, file_pool):
             'Start fetching %r with resume flag [%s].', source_rel_path, resume)
         source.FetchFile(source_rel_path, local_full_path, resume=resume)
 
+    # Print the discovered status change
+    LogListDifference(files_status, new_files_status,
+                      help_text='File status in pool (FetchSource)')
+    files_status = new_files_status
+
 
 def _UploadTargetThread(target, file_pool):
   """Traverse over the file_pool and find stuff to upload."""
+  # Internal tracking of the file status. Log only the difference
+  files_status = []
+
   while True:  # Run forever.
     time.sleep(LOOP_DELAY)
+    new_files_status = []
     # Scanning the file_pool
     for current_dir, _, filenames in os.walk(file_pool):
       if os.path.basename(current_dir) == UPLOADER_METADATA_DIRECTORY:
-        logging.debug(
-            'Metadata directory %r found, skipped for uploading.', current_dir)
+        # TODO(itspeter): turn the debug message on if we found it useful.
+        # Temporary turn this off and might turn on once we found we need it.
+        #logging.debug(
+        #    'Metadata directory %r found, skipped for uploading.', current_dir)
         continue
       for filename in filenames:
         if filename == UPLOADER_LOCK_FILE:
@@ -294,7 +334,10 @@ def _UploadTargetThread(target, file_pool):
         local_full_path = os.path.join(current_dir, filename)
         local_rel_path = os.path.relpath(local_full_path, file_pool)
 
-        status = _DetermineMetadataStatus(file_pool, local_rel_path)
+        status, debug_tuple = (
+            _DetermineMetadataStatus(file_pool, local_rel_path))
+        new_files_status.append(debug_tuple)
+
         if status == _Status.UNKNOWN:
           pass  # Do nothing because FetchSource thread should fix it.
         elif status == _Status.DOWNLOADING:
@@ -325,6 +368,10 @@ def _UploadTargetThread(target, file_pool):
               local_full_path, resume)
           target.UploadFile(local_full_path, local_rel_path, resume=resume)
 
+    # Print the discovered status change
+    LogListDifference(files_status, new_files_status,
+                      help_text='File status in pool (UploadTarget)')
+    files_status = new_files_status
 
 def main(argv):
   top_parser = argparse.ArgumentParser(description='Uploader')
@@ -359,7 +406,7 @@ def main(argv):
 if __name__ == '__main__':
   # TODO(itspeter): Consider expose the logging level as an argument.
   logging.basicConfig(
-      format=('[%(levelname)s] %(filename)s:'
+      format=('[%(levelname)5s][%(threadName)25s] %(filename)s:'
               '%(lineno)d %(asctime)s %(message)s'),
-      level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S')
+      level=logging.INFO, datefmt='%Y-%m-%d %H:%M:%S')
   main(sys.argv[1:])
