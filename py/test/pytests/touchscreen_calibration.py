@@ -16,6 +16,7 @@ from collections import namedtuple
 from cros.factory.event_log import Log
 from cros.factory.utils.serial_utils import FindTtyByDriver, SerialDevice
 from cros.factory.test import factory
+from cros.factory.test import utils
 from cros.factory.test.media_util import MountedMedia
 from cros.factory.test.test_ui import UI
 
@@ -727,9 +728,8 @@ class TouchscreenCalibration(unittest.TestCase):
       raise FixtureException('Fail to connect the native usb port.')
 
     try:
-      self._monitor_thread = threading.Thread(target=self._MonitorNativeUsb,
-                                              args=[self.native_usb])
-      self._monitor_thread.start()
+      self._monitor_thread = utils.StartDaemonThread(
+          target=self._MonitorNativeUsb, args=[self.native_usb])
     except threading.ThreadError:
       factory.console.warn('Cannot start thread for _MonitorNativeUsb()')
 
