@@ -28,6 +28,69 @@ PROTOCOL_MAPPING = {'SFTP': 'uploader_sftp'}
 UPLOADER_LOCK_FILE = '.uploader.lock'
 PARSING_ERROR_REST_SECS = 0.2
 LOOP_DELAY = 1
+MONITOR_INTERVAL_SECS = 1
+MAX_THREAD_RESTART_RETRIES = 3
+
+
+def _StartThread(idx, info, current_threads):
+  """Starts a thread based on info tuple."""
+  target, name, args = info
+  t = threading.Thread(target=target, name=name, args=args)
+  t.daemon = True
+  t.start()
+  logging.info('Thread %r started', name)
+  current_threads.append((idx, t))
+
+
+def _StartPrimaryThreads(current_threads, thread_infos):
+  """Starts threads listed in thread_infos."""
+  for idx, info in enumerate(thread_infos):
+    _StartThread(idx, info, current_threads)
+
+
+def _CheckTreadsHealthy(current_threads, thread_infos):
+  """Checks if all threads in current_threads are still alive.
+
+  If a thread is found non-alive, it will use the thread_infos to restart
+  within the MAX_THREAD_RESTART_RETRIES. In addition, current_threads will
+  be modified accordingly.
+
+  Args:
+    current_threads: Thread object that represent current threads.
+    thread_infos: Info to restart threads.
+
+  Returns:
+    True if status is healthy (able to restore to all alive state). False
+    otherwise.
+  """
+  if not hasattr(_CheckTreadsHealthy, "thread_restart_retries"):
+    _CheckTreadsHealthy.thread_restart_retries = 0
+  # Avoid name that is too long.
+  thread_restart_retries = _CheckTreadsHealthy.thread_restart_retries
+
+  next_current_threads = []
+  for idx, t in current_threads:
+    if not t.is_alive():
+      logging.info('Thread %s is not active. Try to restart it.', t.name)
+      if thread_restart_retries >= MAX_THREAD_RESTART_RETRIES:
+        logging.error('Reached the maximum retries[%d], terminate the '
+                      'uploader for further debugging.',
+                      MAX_THREAD_RESTART_RETRIES)
+        # Return false indicates non-healthy and need further investigation.
+        return False
+
+      _StartThread(idx, thread_infos[idx], next_current_threads)
+      thread_restart_retries += 1
+    else:
+      next_current_threads.append((idx, t))
+
+  del current_threads[:]
+  for x in next_current_threads:
+    current_threads.append(x)
+
+  # Save the static-like variable.
+  _CheckTreadsHealthy.thread_restart_retries = thread_restart_retries
+  return True
 
 
 class _Status(object):
@@ -82,7 +145,6 @@ def _Uploader(config_path):
   # TODO(itspeter): Clean up the locks when exiting process.
 
   # Load and establish sources and target.
-  sources = []
   target = None
   # Validate each fields.
   if 'source' not in uploader_config:
@@ -91,6 +153,8 @@ def _Uploader(config_path):
     raise UploaderFieldError('No target information found in %r' % config_path)
 
   # Establish sources
+  thread_infos = []
+  current_threads = []
   for source_name, source_config in uploader_config['source'].iteritems():
     logging.info('Parsing source config [%r]', source_name)
     # Check its protocol.
@@ -101,9 +165,11 @@ def _Uploader(config_path):
     source_module = import_module(PROTOCOL_MAPPING[protocol])
     source_obj = source_module.FetchSource()
     source_obj.LoadConfiguration(source_config, config_name=source_name)
-    sources.append(source_obj)
+    thread_infos.append((_FetchSourceThread,
+                         'FetchSource-%s' % source_name,
+                         (source_obj, file_pool)))
     logging.info('Source config [%r] added', source_name)
-  if len(sources) == 0:
+  if len(thread_infos) == 0:
     raise UploaderFieldError('source field contains zero sub-source config.')
 
   # Establish target
@@ -117,18 +183,21 @@ def _Uploader(config_path):
   target_module = import_module(PROTOCOL_MAPPING[protocol])
   target = target_module.UploadTarget()
   target.LoadConfiguration(target_config)
+  thread_infos.append((_UploadTargetThread,
+                       'UploadTarget', (target, file_pool)))
   logging.info('Target config loaded')
 
-
   # Start threads
-  for source in sources:
-    t = threading.Thread(target=_FetchSourceThread, args=(source, file_pool))
-    t.daemon = True
-    t.start()
-  t = threading.Thread(target=_UploadTargetThread, args=(target, file_pool))
-  t.daemon = True
-  t.start()
-  t.join()
+  _StartPrimaryThreads(current_threads, thread_infos)
+
+  # Start monitoring those threads.
+  while True:
+    time.sleep(MONITOR_INTERVAL_SECS)
+    if not _CheckTreadsHealthy(current_threads, thread_infos):
+      logging.error(
+          'Some threads failed with retry. Uploader will be terminated.'
+          'Please see the log file for further investigation')
+      break
 
 
 def _DetermineMetadataStatus(file_pool, path_from_pool, enable_logging=False):
