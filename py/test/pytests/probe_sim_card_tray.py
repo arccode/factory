@@ -35,7 +35,8 @@ _INSERT_TRAY_INSTRUCTION = test_ui.MakeLabel(
     'Please insert the SIM card tray', u'請插入SIM卡卡盘',
     'instruction-font-size')
 _REMOVE_TRAY_INSTRUCTION = test_ui.MakeLabel(
-    'Detected! Please remove the SIM card tray', u'已經偵测SIM卡卡盘, 請移除SIM卡卡盘',
+    'Detected! Please remove the SIM card tray',
+    u'已經偵测SIM卡卡盘, 請移除SIM卡卡盘',
     'instruction-font-size')
 
 _ID_INSTRUCTION = 'sim-card-tray-test-container'
@@ -60,10 +61,10 @@ class WaitTrayThread(threading.Thread):
   """The thread to wait for SIM card tray state.
 
   Args:
-    get_detect: function to probe sim card tray. Returns ProbeTrayTask.INSERT
-      or ProbeTrayTask.REMOVE.
-    tray_event: The target tray event. ProbeTrayTask.INSERT or
-      ProbeTrayTask.REMOVE.
+    get_detect: function to probe sim card tray. Returns ProbeTrayTask.INSERTED
+      or ProbeTrayTask.REMOVED.
+    tray_event: The target tray event. ProbeTrayTask.INSERTED or
+      ProbeTrayTask.REMOVED.
     on_success: The callback function when tray_event is detected.
   """
   def __init__(self, get_detect, tray_event, on_success):
@@ -91,8 +92,8 @@ class WaitTrayThread(threading.Thread):
 
 class ProbeTrayTask(FactoryTask):
   """Probe SIM card tray task."""
-  INSERT = 'Insert'
-  REMOVE = 'Remove'
+  INSERTED = 'Inserted'
+  REMOVED = 'Removed'
 
   def __init__(self, test, instruction, tray_event):
     super(ProbeTrayTask, self).__init__()
@@ -135,14 +136,14 @@ class InsertTrayTask(ProbeTrayTask):
   """Task to wait for SIM card tray insertion"""
   def __init__(self, test):
     super(InsertTrayTask, self).__init__(test, _INSERT_TRAY_INSTRUCTION,
-          ProbeTrayTask.INSERT)
+          ProbeTrayTask.INSERTED)
 
 
 class RemoveTrayTask(ProbeTrayTask):
   """Task to wait for SIM card tray removal"""
   def __init__(self, test):
     super(RemoveTrayTask, self).__init__(test, _REMOVE_TRAY_INSTRUCTION,
-          ProbeTrayTask.REMOVE)
+          ProbeTrayTask.REMOVED)
 
 
 class ProbeTrayException(Exception):
@@ -186,7 +187,9 @@ class ProbeSimCardTrayTest(unittest.TestCase):
       Arg('remove', bool, 'Check sim card tray removal', default=False),
       Arg('only_check_presence', bool,
           'Only checks sim card tray presence matches tray_already_present. '
-          'No user interaction required', default=True)]
+          'No user interaction required', default=True),
+      Arg('gpio_active_high', bool, 'Whether GPIO is active high.',
+          default=True)]
 
   def setUp(self):
     self.ui = test_ui.UI()
@@ -208,15 +211,21 @@ class ProbeSimCardTrayTest(unittest.TestCase):
       return
     export_path = os.path.join(_GPIO_PATH, 'export')
     try:
-      WriteFile(export_path, str(self.args.tray_detection_gpio), True)
+      WriteFile(export_path, str(self.args.tray_detection_gpio), log=True)
     except IOError:
       logging.exception('Can not write %s into %s',
                         str(self.args.tray_detection_gpio), export_path)
       raise ProbeTrayException('Can not export detection gpio %s' %
                                self.args.tray_detection_gpio)
+    direction_path = os.path.join(self._detection_gpio_path, 'direction')
+    try:
+      WriteFile(direction_path, 'out', log=True)
+    except IOError:
+      logging.exception('Can not write "out" into %s', direction_path)
+      raise ProbeTrayException('Can set detection gpio direction to out')
 
   def GetDetection(self):
-    """Returns tray status ProbeTrayTask.INSERT or ProbeTrayTask.REMOVE."""
+    """Returns tray status ProbeTrayTask.INSERTED or ProbeTrayTask.REMOVED."""
     value_path = os.path.join(self._detection_gpio_path, 'value')
     lines = ReadLines(value_path)
     if not lines:
@@ -226,12 +235,15 @@ class ProbeSimCardTrayTest(unittest.TestCase):
     if ret not in ['0', '1']:
       raise ProbeTrayException('Get invalid detection %s from %s',
                                ret, value_path)
-    return ProbeTrayTask.INSERT if ret == '1' else ProbeTrayTask.REMOVE
+    if self.args.gpio_active_high:
+      return ProbeTrayTask.INSERTED if ret == '1' else ProbeTrayTask.REMOVED
+    else:
+      return ProbeTrayTask.INSERTED if ret == '0' else ProbeTrayTask.REMOVED
 
   def CheckPresence(self):
     self.assertEquals(
         self.args.tray_already_present,
-        self.GetDetection() == ProbeTrayTask.INSERT,
+        self.GetDetection() == ProbeTrayTask.INSERTED,
         ('Unexpected tray %s' % (
              'absence. ' if self.args.tray_already_present else 'presence. ') +
          'Please %s SIM card tray and retest.' % (
