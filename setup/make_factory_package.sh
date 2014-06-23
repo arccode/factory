@@ -501,14 +501,13 @@ compress_and_hash_partition() {
 apply_hwid_updater() {
   local hwid_updater="$1"
   local outdev="$2"
+  local hwid_result="0"
 
   if [ -n "$hwid_updater" ]; then
-    local stateful_dir="$(mktemp -d --tmpdir)"
-    image_add_temp "${stateful_dir}"
-    image_mount_partition "${outdev}" 1 "${stateful_dir}" "rw"
-    sudo sh "$hwid_updater" "${stateful_dir}" || \
-        die "Failed to update HWID ($hwid_result). abort."
-    image_umount_partition "${stateful_dir}"
+    local state_dev="$(image_map_partition "${outdev}" 1)"
+    sudo sh "$hwid_updater" "$state_dev" || hwid_result="$?"
+    image_unmap_partition "$state_dev" || true
+    [ $hwid_result = "0" ] || die "Failed to update HWID ($hwid_result). abort."
   fi
 }
 
