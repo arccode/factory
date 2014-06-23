@@ -50,9 +50,10 @@ class LightbarTest(unittest.TestCase):
     self._ui.BindKey('F', self.FailTest)
     self.ECToolLightbar(['on'])
     self.ECToolLightbar(['init'])
+    self.ECToolLightbar(['seq', 'stop'])
 
   def tearDown(self):
-    self.ECToolLightbar(['off'])
+    self.ECToolLightbar(['seq', 'run'])
 
   def ECToolLightbar(self, args):
     """Calls 'ectool lightbar' with the given args.
