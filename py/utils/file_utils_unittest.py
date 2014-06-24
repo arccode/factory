@@ -419,6 +419,35 @@ class FileLockTest(unittest.TestCase):
         file_utils.FileLock(self.temp_file, timeout_secs=1).Acquire)
 
 
+class ReadWriteFileTest(unittest.TestCase):
+  def runTest(self):
+    with file_utils.UnopenedTemporaryFile() as tmp:
+      data = 'abc\n\0'
+      file_utils.WriteFile(tmp, data)
+      self.assertEquals(data, file_utils.ReadFile(tmp))
+
+
+class GlobSingleFileTest(unittest.TestCase):
+  def runTest(self):
+    with file_utils.TempDirectory() as d:
+      for f in ('a', 'b'):
+        file_utils.TouchFile(os.path.join(d, f))
+
+      self.assertEquals(
+          os.path.join(d, 'a'),
+          file_utils.GlobSingleFile(os.path.join(d, '[a]')))
+      self.assertRaisesRegexp(
+          ValueError,
+          r"Expected one match for .+/\* but got "
+          r"\['.+/a', '.+/b'\]",
+          file_utils.GlobSingleFile, os.path.join(d, '*'))
+      self.assertRaisesRegexp(
+          ValueError,
+          r"Expected one match for .+/nomatch but got \[\]",
+          file_utils.GlobSingleFile, os.path.join(d, 'nomatch'))
+
+
+
 if __name__ == '__main__':
   logging.basicConfig(level=logging.DEBUG)
   unittest.main()

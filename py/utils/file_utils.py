@@ -176,6 +176,16 @@ def TryUnlink(path):
       raise
 
 
+def ReadFile(path):
+  """Reads bytes from a file.
+
+  Args:
+    path: The path of the file to read.
+  """
+  with open(path) as f:
+    return f.read()
+
+
 def WriteFile(path, data, log=False):
   """Writes a value to a file.
 
@@ -545,3 +555,20 @@ def WriteWithSudo(file_path, content):
   process.stdin.close()
   if process.wait():
     raise subprocess.CalledProcessError('Unable to write %s' % file_path)
+
+
+def GlobSingleFile(pattern):
+  """Returns the name of the single file matching a pattern.
+
+  Args:
+    pattern: A pattern that should match exactly one file.
+
+  Raises:
+    ValueError if the pattern matches zero or >1 files.
+  """
+  matches = glob.glob(pattern)
+  if len(matches) != 1:
+    raise ValueError, 'Expected one match for %s but got %s' % (
+        pattern, matches)
+
+  return matches[0]
