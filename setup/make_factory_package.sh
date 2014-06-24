@@ -13,6 +13,11 @@
 # All internal environment variables used by this script are prefixed with
 # "MFP_".  Please avoid using them for other purposes.
 # "MFP_CONFIG_"* are shell variables that can be used in config file (--config)
+#
+# *** IMPORTANT:
+# ***
+# *** This script is somewhat fragile, so if you make changes, please use
+# *** py/tools/test_make_factory_package.py as a regression test.
 
 . "$(dirname "$(readlink -f "$0")")/factory_common.sh" || exit 1
 
