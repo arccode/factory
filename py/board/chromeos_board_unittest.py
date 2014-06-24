@@ -114,7 +114,22 @@ class ChromeOSBoardTest(unittest.TestCase):
     self.mox.VerifyAll()
 
   def testGetChargerCurrent(self):
+    _MOCK_EC_CHARGER_READ = """ac = 1
+chg_voltage = 0mV
+chg_current = 128mA
+chg_input_current = 2048mA
+batt_state_of_charge = 52%
+"""
+    self.board._CallECTool(['chargestate', 'show']).AndReturn(
+        _MOCK_EC_CHARGER_READ)
+    self.mox.ReplayAll()
+    self.assertEquals(self.board.GetChargerCurrent(), 128)
+    self.mox.VerifyAll()
+
+  def testGetChargerCurrentI2C(self):
     _MOCK_I2C_READ = 'Read from I2C port 0 at 0x12 offset 0x14 = 0x1000'
+    self.board._CallECTool(['chargestate', 'show']).AndRaise(
+        BoardException('ectool command not found'))
     self.board._CallECTool(['i2cread', '16', '0', '18',
                             '20']).AndReturn(_MOCK_I2C_READ)
     self.mox.ReplayAll()
@@ -122,7 +137,29 @@ class ChromeOSBoardTest(unittest.TestCase):
     self.mox.VerifyAll()
 
   def testGetBatteryCurrent(self):
+    _MOCK_EC_BATTERY_READ = """Battery info:
+  OEM name:               LGC
+  Model number:           AC14B8K
+  Chemistry   :           LION
+  Serial number:          09FE
+  Design capacity:        3220 mAh
+  Last full charge:       3194 mAh
+  Design output voltage   15200 mV
+  Cycle count             4
+  Present voltage         15370 mV
+  Present current         128 mA
+  Remaining capacity      1642 mAh
+  Flags                   0x03 AC_PRESENT BATT_PRESENT CHARGING
+ """
+    self.board._CallECTool(['battery']).AndReturn(_MOCK_EC_BATTERY_READ)
+    self.mox.ReplayAll()
+    self.assertEquals(self.board.GetBatteryCurrent(), 128)
+    self.mox.VerifyAll()
+
+  def testGetBatteryCurrentI2C(self):
     _MOCK_I2C_READ = 'Read from I2C port 0 at 0x16 offset 0xa = 0x1000'
+    self.board._CallECTool(['battery']).AndRaise(
+        BoardException('ectool command not found'))
     self.board._CallECTool(['i2cread', '16', '0', '22',
                             '10']).AndReturn(_MOCK_I2C_READ)
     self.mox.ReplayAll()

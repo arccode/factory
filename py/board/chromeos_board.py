@@ -30,6 +30,10 @@ class ChromeOSBoard(Board):
   TEMPERATURE_INFO_RE = re.compile(r'^(\d+): \d+ (.+)$', re.MULTILINE)
   EC_VERSION_RE = re.compile(r'^fw_version\s+\|\s+(.+)$', re.MULTILINE)
   I2C_READ_RE = re.compile(r'I2C port \d+ at \S+ offset \S+ = (0x[0-9a-f]+)')
+  EC_BATTERY_RE = re.compile(r'^\s+Present current\s+(\d+)\s+mA$', re.MULTILINE)
+  EC_BATTERY_CHARGING_RE = re.compile(r'^\s+Flags\s+.*\s+CHARGING.*$',
+      re.MULTILINE)
+  EC_CHARGER_RE = re.compile(r'^chg_current = (\d+)mA$', re.MULTILINE)
 
   # Expected battery info.
   BATTERY_DESIGN_CAPACITY_RE = re.compile('Design capacity:\s+([1-9]\d*)\s+mAh')
@@ -170,10 +174,32 @@ class ChromeOSBoard(Board):
       raise BoardException('Unable to set charge state: %s' % e)
 
   def GetChargerCurrent(self):
-    return ctypes.c_int16(self.I2CRead(0, 0x12, 0x14)).value
+    ectool_output = None
+    try:
+      ectool_output = self._CallECTool(['chargestate', 'show'])
+    except BoardException:
+      return ctypes.c_int16(self.I2CRead(0, 0x12, 0x14)).value
+
+    re_object = self.EC_CHARGER_RE.findall(ectool_output)
+    if re_object:
+      return int(re_object[0])
+    else:
+      raise BoardException('Cannot find current in ectool chargestate show')
 
   def GetBatteryCurrent(self):
-    return ctypes.c_int16(self.I2CRead(0, 0x16, 0x0a)).value
+    ectool_output = None
+    try:
+      ectool_output = self._CallECTool(['battery'])
+    except BoardException:
+      return ctypes.c_int16(self.I2CRead(0, 0x16, 0x0a)).value
+
+    charging = bool(self.EC_BATTERY_CHARGING_RE.search(ectool_output))
+    re_object = self.EC_BATTERY_RE.findall(ectool_output)
+    if re_object:
+      current = int(re_object[0])
+    else:
+      raise BoardException('Cannot find current in ectool battery output')
+    return current if charging else -current
 
   def ProbeEC(self):
     try:
