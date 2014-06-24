@@ -6,6 +6,7 @@
 import ConfigParser
 import json
 import os
+import re
 import threading
 import time
 import unittest
@@ -18,6 +19,7 @@ from cros.factory.utils.serial_utils import FindTtyByDriver, SerialDevice
 from cros.factory.test import factory
 from cros.factory.test import utils
 from cros.factory.test.media_util import MountedMedia
+from cros.factory.utils.process_utils import SpawnOutput
 from cros.factory.test.test_ui import UI
 
 
@@ -502,12 +504,49 @@ class TouchscreenCalibration(unittest.TestCase):
                              '治具未就上位, 舍弃')
       raise e
 
+  def _ExecuteCommand(self, command, fail_msg='Failed: '):
+    """Execute a command."""
+    try:
+      os.system(command)
+    except Exception as e:
+      factory.console.warn('%s: %s' % (fail_msg, e))
+
+  def _CommandOutputSearch(self, command_str, pattern_str, pattern_flags):
+    """Execute the command and search the pattern from its output."""
+    re_pattern = re.compile(pattern_str, pattern_flags)
+    for line in SpawnOutput(command_str.split(), log=True).splitlines():
+      output = re_pattern.search(line)
+      if output:
+        return output.group(1)
+    return None
+
   def ShutDown(self, unused_event=None):
     """Shut down the host."""
-    try:
-      os.system('shutdown -H 0')
-    except Exception as e:
-      factory.console.info('Failed to shutdown the host: %s' % e)
+    self._ExecuteCommand('shutdown -H 0',
+                         fail_msg='Failed to shutdown the host')
+
+  def Mtplot(self, unused_event=None):
+    """Shut down the host."""
+    # The touchscreen device id string looks like
+    #    Atmel maXTouch Touchscreen    id=13   [floating slave]
+    xinput_device_id = self._CommandOutputSearch(
+        'xinput list', 'touchscreen.+id=(\d+)\s+', re.I)
+    if xinput_device_id is None:
+      factory.console.warn('Cannot find xinput device id!')
+      return
+
+    # The device node looks like
+    #    Device Node (250): "/dev/input/event6"
+    cmd_str = 'xinput list-props %s' % xinput_device_id
+    device_node = self._CommandOutputSearch(
+        cmd_str, 'device node.*:\s*"(/dev/input/event\d+)"', re.I)
+    if device_node is None:
+      factory.console.warn('Cannot find device node!')
+      return
+
+    mtplot_cmd = 'mtplot %s' % device_node
+    factory.console.info('Execute "%s"' % mtplot_cmd)
+    self._ExecuteCommand(mtplot_cmd, fail_msg='Failed to launch mtplot.')
 
   def _DumpOneFrameToLog(self, logger, sn, frame_no):
     """Dumps one frame to log.
@@ -751,6 +790,8 @@ class TouchscreenCalibration(unittest.TestCase):
       # Temp hack to determine it is sdb or sdc
       dev_path = '/dev/sdb' if os.path.exists('/dev/sdb1') else '/dev/sdc'
 
+    os.environ['DISPLAY'] = ':0'
+
     self.dev_path = dev_path
     self.dump_frames = dump_frames
     self._CheckMountedMedia()
@@ -759,6 +800,7 @@ class TouchscreenCalibration(unittest.TestCase):
       # Events that are emitted from buttons on the factory UI.
       'ReadTest', 'RefreshFixture', 'RefreshTouchscreen', 'ProbeSelfTest',
       'DriveProbeDown', 'DriveProbeUp', 'ShutDown', 'QueryFixtureState',
+      'Mtplot',
 
       # Events that are emitted from other callback functions.
       'StartCalibration',
