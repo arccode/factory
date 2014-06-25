@@ -37,6 +37,7 @@ HORIZONTAL_HIGH_OFFSET = 58
 VERTICAL_OFFSET = 59
 VERTICAL_HIGH_OFFSET = 61
 CHECKSUM_OFFSET = 127
+I2C_LVDS_ADDRESS = 0x50
 MINIMAL_SIZE = 128
 MANUFACTURER_ID_BITS = 5
 
@@ -140,8 +141,6 @@ def _ParseBinaryBlob(blob):
 
 def _I2cDump(bus, address, size):
   """Reads binary dump from i2c bus."""
-  if isinstance(bus, int):
-    bus = '/dev/i2c-%d' % bus
   fd = -1
   I2C_SLAVE = 0x0703
   blob = None
@@ -161,8 +160,18 @@ def _I2cDump(bus, address, size):
 
 
 def LoadFromI2c(path):
-  """Run Parse against the output of _I2cDump on the specified path."""
-  I2C_LVDS_ADDRESS = 0x50
+  """Runs Parse() against the output of _I2cDump on the specified path.
+
+  Args:
+    path: i2c path, can be either int type (ex: 0) or string type (ex:
+        '/dev/i2c-0')
+
+  Returns:
+    Parsed I2c output, None if it fails to dump something for the specific
+        I2C.
+  """
+  if isinstance(path, int):
+    path = '/dev/i2c-%d' % path
   command = 'i2cdetect -y -r %s %d %d' % (
       path.split('-')[1], I2C_LVDS_ADDRESS, I2C_LVDS_ADDRESS)
   # Make sure there is a device in I2C_LVDS_ADDRESS
