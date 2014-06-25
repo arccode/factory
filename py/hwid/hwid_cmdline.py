@@ -201,12 +201,18 @@ def InitializeDefaultOptions(options):
     options.hwid_db_path = common.DEFAULT_HWID_DATA_PATH
   if not options.board:
     options.board = common.ProbeBoard()
-  else:
-    options.board = build_board.BuildBoard(options.board).short_name
+
+  board = build_board.BuildBoard(options.board).base
+  board_variant = build_board.BuildBoard(options.board).variant
+  # Use the variant specific HWID db if one exists, else reuse the one
+  # from the base board.
+  if board_variant and os.path.exists(
+      os.path.join(options.hwid_db_path, board_variant.upper())):
+    board = board_variant
 
   # Create the Database object here since it's common to all functions.
   options.database = database.Database.LoadFile(
-      os.path.join(options.hwid_db_path, options.board.upper()),
+      os.path.join(options.hwid_db_path, board.upper()),
       verify_checksum=(not options.no_verify_checksum))
 
 
