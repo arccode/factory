@@ -180,6 +180,9 @@ _KML = KeyboardMechanicalLayout
 REGIONS_LIST = [
     Region('au', 'xkb:us::eng', 'Australia/Sydney', 'en-AU', _KML.ANSI,
            'Australia'),
+    Region('be', 'xkb:be::nld', 'Europe/Brussels', 'en-GB', _KML.ISO, 'Belgium',
+           'Flemish (Belgian Dutch) keyboard; British English language for '
+           'neutrality'),
     Region('br', 'xkb:br::por', 'America/Sao_Paulo', 'pt-BR', _KML.ABNT2,
            'Brazil (ABNT2)',
            ('ABNT2 = ABNT NBR 10346 variant 2. This is the preferred layout '
@@ -233,7 +236,17 @@ REGIONS_LIST = [
            'Ireland'),
     Region('in', 'xkb:us::eng', 'Asia/Calcutta', 'en-US', _KML.ANSI, 'India'),
     Region('it', 'xkb:it::ita', 'Europe/Rome', 'it', _KML.ISO, 'Italy'),
-
+    Region('latam-es-419', 'xkb:es::spa', 'America/Mexico_City', 'es-419',
+           _KML.ISO, 'Hispanophone Latin America',
+           ('Spanish-speaking countries in Latin America, using the Iberian '
+            '(Spain) Spanish keyboard, which is increasingly dominant in '
+            'Latin America. Known to be correct for '
+            'Chile, Colombia, Mexico, Peru; '
+            'still unconfirmed for other es-419 countries. The old Latin '
+            'American layout (xkb:latam::spa) has not been approved; before '
+            'using that you must seek review through http://goto/vpdsettings. '
+            'See also http://goo.gl/Iffuqh. Note that 419 is the UN M.49 '
+            'region code for Latin America')),
     Region('my', 'xkb:us::eng', 'Asia/Kuala_Lumpur', 'ms', _KML.ANSI,
            'Malaysia'),
     Region('nl', 'xkb:us:intl:eng', 'Europe/Amsterdam', 'nl', _KML.ANSI,
@@ -244,6 +257,10 @@ REGIONS_LIST = [
             'to Swedish keyboard layout, but starts with US English language '
             'for neutrality.  Use if there is a single combined SKU for Nordic '
             'countries.')),
+    Region('nz', 'xkb:us::eng', 'Pacific/Auckland', 'en-NZ', _KML.ANSI,
+           'New Zealand'),
+    Region('ph', 'xkb:us::eng', 'Asia/Manila', 'en-US', _KML.ANSI,
+           'Philippines'),
     Region('ru', 'xkb:ru::rus', 'Europe/Moscow', 'ru', _KML.ANSI, 'Russia',
            'For R31+ only; R30 and earlier must use US keyboard for login'),
     Region('se', 'xkb:se::swe', 'Europe/Stockholm', 'sv', _KML.ISO, 'Sweden',
