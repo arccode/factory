@@ -439,7 +439,7 @@ class GlobSingleFileTest(unittest.TestCase):
       self.assertRaisesRegexp(
           ValueError,
           r"Expected one match for .+/\* but got "
-          r"\['.+/a', '.+/b'\]",
+          r"\['.+/(a|b)', '.+/(a|b)'\]",
           file_utils.GlobSingleFile, os.path.join(d, '*'))
       self.assertRaisesRegexp(
           ValueError,
