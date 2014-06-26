@@ -27,16 +27,71 @@ Usage example::
 
   # reset servo controls to default values
   sc.hwinit()
-
 """
-# TODO(crosbug.com/p/28870): implement interrupt listener
 
 
 import re
 import xmlrpclib
 
 import factory_common  # pylint: disable=W0611
+from cros.factory import common
 from cros.factory.utils.net_utils import TimeoutXMLRPCServerProxy
+
+
+# Whale's buttons. Can get its value ('on'/'off').
+WHALE_BUTTON = common.AttrDict(dict(
+    BUG_FILING = 'whale_bug_filing_btn',
+    EC_FLASH = 'whale_ec_flash_btn',
+    FIXTURE_START = 'whale_fixture_start_btn',
+    FIXTURE_STOP = 'whale_fixture_stop_btn',
+    FW_FLASH = 'whale_fw_flash_btn',
+    IMAGE_FLASH = 'whale_image_flash_btn',
+    RESERVE_1 = 'whale_reserve_btn1',
+    RESERVE_2 = 'whale_reserve_btn2',
+    RESERVE_3 = 'whale_reserve_btn3',
+    USBIMG_FLASH = 'whale_usbimg_flash_btn',
+    # Treat three latched feedback as button.
+    WHALE_FB1 = 'whale_a_fb1',
+    WHALE_FB2 = 'whale_a_fb2',
+    WHALE_FB3 = 'whale_a_fb3'))
+WHALE_BUTTONS = tuple(WHALE_BUTTON.values())
+
+# Fixture mechanics feedback 1 ~ 14. Can get its value ('on'/'off').
+FIXTURE_FEEDBACK = common.AttrDict(
+    dict(('FB%d' % i, 'fixture_fb%d' % i) for i in range(1, 15)))
+
+# Plankton feedback 1 ~ 8. Can get its value ('on'/'off').
+PLANKTON_FEEDBACK = common.AttrDict(
+    dict(('FB%d' % i, 'plankton_fb%d' % i) for i in range(1, 9)))
+
+# Tuple of Whale's latchless feedback
+WHALE_FEEDBACKS = (tuple(FIXTURE_FEEDBACK.values()) +
+                   tuple(PLANKTON_FEEDBACK.values()))
+
+# A dip switch to enable debug mode. Can get its value ('on'/'off').
+WHALE_DEBUG_MODE_EN = 'whale_debug_mode_en'
+
+# Whale's control components. Can get/set its value ('on'/'off').
+WHALE_CONTROL = common.AttrDict(dict(
+    AUDIO_PLUG = 'whale_audio_plug_det',
+    BATTERY = 'whale_battery_on',
+    DC = 'whale_dc_in',
+    ELECTRO_MAGNET = 'whale_elctro_magnet',
+    FAIL_LED = 'whale_fail_led',
+    FIXTURE_1 = 'whale_fixture_ctrl1',
+    FIXTURE_2 = 'whale_fixture_ctrl2',
+    FIXTURE_3 = 'whale_fixture_ctrl3',
+    FIXTURE_4 = 'whale_fixture_ctrl4',
+    FIXTURE_5 = 'whale_fixture_ctrl5',
+    FIXTURE_6 = 'whale_fixture_ctrl6',
+    INPUT_RESET = 'whale_input_rst',
+    OUTPUT_RESERVE_1 = 'whale_output_reserve1',
+    OUTPUT_RESERVE_2 = 'whale_output_reserve2',
+    OUTPUT_RESERVE_3 = 'whale_output_reserve3',
+    PASS_LED = 'whale_pass_led',
+    USBHUB_RESET = 'whale_usbhub_rst',
+    WRITE_PROTECT = 'whale_write_protect',
+    EXPANDER_RESET = 'whale_xpander_rst'))
 
 
 class ServoClientError(Exception):
@@ -84,7 +139,7 @@ class ServoClient(object):
         '_server', TimeoutXMLRPCServerProxy(remote, timeout=timeout,
                                             verbose=verbose, allow_none=True))
 
-  def _GetControl(self, name):
+  def Get(self, name):
     """Gets the value from servo for control name.
 
     Args:
@@ -101,7 +156,29 @@ class ServoClient(object):
     except Exception as e:
       raise ServoClientError("Problem getting '%s'" % name, e)
 
-  def _SetControl(self, name, value):
+  def IsOn(self, name):
+    """Checks if the control's value is 'on'.
+
+    Args:
+      name: String, name of control to get value from.
+
+    Returns:
+      True if the control's value is 'on'.
+      False if the control's value is 'off'.
+
+    Raises:
+      ServoClientError: If error occurs when getting value or value is neither
+          'on' or 'off'.
+    """
+    value = self.Get(name)
+    if value == 'on':
+      return True
+    elif value == 'off':
+      return False
+    raise ServoClientError('Control %r value %r is neither "on" nor "off".' %
+                           (name, value))
+
+  def Set(self, name, value):
     """Sets the value from servo for control name.
 
     Args:
@@ -117,6 +194,22 @@ class ServoClient(object):
       raise ServoClientError("Problem setting '%s' to '%s'" %
                               (name, value), e)
 
+  def Enable(self, name):
+    """Sets the control's value to 'on'.
+
+    Args:
+      name: String, name of control to set.
+    """
+    self.Set(name, 'on')
+
+  def Disable(self, name):
+    """Sets the control's value to 'off'.
+
+    Args:
+      name: String, name of control to set.
+    """
+    self.Set(name, 'off')
+
   def __getattr__(self, name):
     """Delegates getter of all unknown attributes to remote servod.
 
@@ -124,7 +217,7 @@ class ServoClient(object):
       ServoClientError: If error occurs when getting value.
     """
     # If name is already in self.__dict__, Python will not invoke this method.
-    return self._GetControl(name)
+    return self.Get(name)
 
   def __setattr__(self, name, value):
     """Delegates setter of all unknown attributes to remote servod.
@@ -135,7 +228,7 @@ class ServoClient(object):
     if name in self.__dict__:  # existing attributes
       super(ServoClient, self).__setattr__(name, value)
     else:
-      return self._SetControl(name, value)
+      return self.Set(name, value)
 
   def HWInit(self):
     """Re-initializes the controls to its initial values.
