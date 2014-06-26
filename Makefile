@@ -266,7 +266,7 @@ overlay-%: .phony
 	mkdir $@
 	rsync -a --exclude build --exclude overlay-\* ./ $@/
 	if [ "$@" = overlay-private ]; then \
-	  rsync -a ../factory-private/ $@/; \
+	  rsync -a --exclude Makefile ../factory-private/ $@/; \
 	else \
 	  rsync -a ../../private-overlays/\
 overlay*-$(subst overlay-,,$@)-private/chromeos-base/chromeos-factory-board/\
