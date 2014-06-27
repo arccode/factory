@@ -10,7 +10,6 @@
 import glob
 import logging
 import os
-import Queue
 import shutil
 import signal
 import sys
@@ -31,9 +30,11 @@ from cros.factory.event_log_watcher import EventLogWatcher
 from cros.factory.goofy_split import test_environment
 from cros.factory.goofy_split import time_sanitizer
 from cros.factory.goofy_split import updater
+from cros.factory.goofy_split.goofy_base import GoofyBase
 from cros.factory.goofy_split.goofy_rpc import GoofyRPC
 from cros.factory.goofy_split.invocation import TestArgEnv
 from cros.factory.goofy_split.invocation import TestInvocation
+from cros.factory.goofy_split.link_manager import DUTLinkManager
 from cros.factory.goofy_split.prespawner import Prespawner
 from cros.factory.goofy_split.system_log_manager import SystemLogManager
 from cros.factory.goofy_split.web_socket_manager import WebSocketManager
@@ -68,8 +69,6 @@ CLEANUP_LOGS_PAUSED = '/var/lib/cleanup_logs_paused'
 # Value for tests_after_shutdown that forces auto-run (e.g., after
 # a factory update, when the available set of tests might change).
 FORCE_AUTO_RUN = 'force_auto_run'
-
-RUN_QUEUE_TIMEOUT_SECS = 10
 
 # Sync disks when battery level is higher than this value.
 # Otherwise, power loss during disk sync operation may incur even worse outcome.
@@ -110,7 +109,7 @@ def get_hwid_cfg():
 
 _inited_logging = False
 
-class Goofy(object):
+class Goofy(GoofyBase):
   """The main factory flow.
 
   Note that all methods in this class must be invoked from the main
@@ -131,7 +130,6 @@ class Goofy(object):
     system_log_manager: The SystemLogManager object.
     core_dump_manager: The CoreDumpManager object.
     ui_process: The factory ui process object.
-    run_queue: A queue of callbacks to invoke from the main thread.
     invocations: A map from FactoryTest objects to the corresponding
       TestInvocations objects representing active tests.
     tests_to_run: A deque of tests that should be run when the current
@@ -145,7 +143,6 @@ class Goofy(object):
     event_handlers: Map of Event.Type to the method used to handle that
       event.  If the method has an 'event' argument, the event is passed
       to the handler.
-    exceptions: Exceptions encountered in invocation threads.
     last_log_disk_space_message: The last message we logged about disk space
       (to avoid duplication).
     last_kick_sync_time: The last time to kick system_log_manager to sync
@@ -153,8 +150,10 @@ class Goofy(object):
       sync.)
     hooks: A Hooks object containing hooks for various Goofy actions.
     status: The current Goofy status (a member of the Status enum).
+    link_manager: Instance of DUTLinkManager for communicating with GoofyDevice
   """
   def __init__(self):
+    super(Goofy, self).__init__()
     self.uuid = str(uuid.uuid4())
     self.state_instance = None
     self.state_server = None
@@ -174,7 +173,6 @@ class Goofy(object):
     self.prespawner = None
     self.ui_process = None
     self.dummy_shopfloor = None
-    self.run_queue = Queue.Queue()
     self.invocations = {}
     self.tests_to_run = deque()
     self.visible_test = None
@@ -204,6 +202,7 @@ class Goofy(object):
     self.key_filter = None
     self.cpufreq_manager = None
     self.status = Status.UNINITIALIZED
+    self.link_manager = None
 
     def test_or_root(event, parent_or_group=True):
       """Returns the test affected by a particular event.
@@ -256,10 +255,10 @@ class Goofy(object):
         lambda event: self.clear_state(self.test_list.lookup_path(event.path)),
     }
 
-    self.exceptions = []
     self.web_socket_manager = None
 
   def destroy(self):
+    """ Performs any shutdown tasks. Overrides base class method. """
     self.status = Status.TERMINATING
     if self.chrome:
       self.chrome.kill()
@@ -313,8 +312,11 @@ class Goofy(object):
       self.key_filter.Stop()
     if self.cpu_usage_watcher:
       self.cpu_usage_watcher.terminate()
+    if self.link_manager:
+      self.link_manager.Stop()
+      self.link_manager = None
 
-    self.check_exceptions()
+    super(Goofy, self).destroy()
     logging.info('Done destroying Goofy')
     self.status = Status.TERMINATED
 
@@ -448,7 +450,7 @@ class Goofy(object):
       shutdown_result = self.env.shutdown(operation)
     if shutdown_result:
       # That's all, folks!
-      self.run_queue.put(None)
+      self.run_enqueue(None)
     else:
       # Just pass (e.g., in the chroot).
       self.state_instance.set_shared_data('tests_after_shutdown', None)
@@ -846,7 +848,7 @@ class Goofy(object):
         if system.SystemInfo.update_md5sum != new_update_md5sum:
           logging.info('Received new update MD5SUM: %s', new_update_md5sum)
           system.SystemInfo.update_md5sum = new_update_md5sum
-          self.run_queue.put(self.update_system_info)
+          self.run_enqueue(self.update_system_info)
 
     updater.CheckForUpdateAsync(
       handle_check_for_update,
@@ -1045,14 +1047,14 @@ class Goofy(object):
 
   def handle_sigint(self, dummy_signum, dummy_frame):   # pylint: disable=W0613
     logging.error('Received SIGINT')
-    self.run_queue.put(None)
+    self.run_enqueue(None)
     raise KeyboardInterrupt()
 
   def handle_sigterm(self, dummy_signum, dummy_frame):  # pylint: disable=W0613
     logging.error('Received SIGTERM')
     if not utils.in_chroot():
       self.goofy_rpc.CloseGoofyTab()
-    self.run_queue.put(None)
+    self.run_enqueue(None)
     raise RuntimeError('Received SIGTERM')
 
   def find_kcrashes(self):
@@ -1255,6 +1257,8 @@ class Goofy(object):
       self.options.ui_scale_factor = 1
 
     logging.info('Started')
+
+    self.link_manager = DUTLinkManager(check_interval=1)
 
     self.start_state_server()
     self.state_instance.set_shared_data('hwid_cfg', get_hwid_cfg())
@@ -1460,13 +1464,13 @@ class Goofy(object):
       logging.info('Resuming tests after shutdown: %s', tests_after_shutdown)
       self.tests_to_run.extend(
           self.test_list.lookup_path(t) for t in tests_after_shutdown)
-      self.run_queue.put(self.run_next_test)
+      self.run_enqueue(self.run_next_test)
     else:
       if force_auto_run or self.test_list.options.auto_run_on_start:
         # If automation mode is enabled, allow suppress auto_run_on_start.
         if (self.options.automation_mode == 'NONE' or
             self.options.auto_run_on_start):
-          self.run_queue.put(
+          self.run_enqueue(
               lambda: self.run_tests(self.test_list, untested_only=True))
     self.state_instance.set_shared_data('tests_after_shutdown', None)
     self.restore_active_run_state()
@@ -1481,56 +1485,6 @@ class Goofy(object):
           unmap_caps_lock=test_options.disable_caps_lock,
           caps_lock_keycode=test_options.caps_lock_keycode)
       self.key_filter.Start()
-
-  def run(self):
-    """Runs Goofy."""
-    # Process events forever.
-    while self.run_once(True):
-      pass
-
-  def run_once(self, block=False):
-    """Runs all items pending in the event loop.
-
-    Args:
-      block: If true, block until at least one event is processed.
-
-    Returns:
-      True to keep going or False to shut down.
-    """
-    events = utils.DrainQueue(self.run_queue)
-    while not events:
-      # Nothing on the run queue.
-      self._run_queue_idle()
-      if block:
-        # Block for at least one event...
-        try:
-          events.append(self.run_queue.get(timeout=RUN_QUEUE_TIMEOUT_SECS))
-        except Queue.Empty:
-          # Keep going (calling _run_queue_idle() again at the top of
-          # the loop)
-          continue
-        # ...and grab anything else that showed up at the same
-        # time.
-        events.extend(utils.DrainQueue(self.run_queue))
-      else:
-        break
-
-    for event in events:
-      if not event:
-        # Shutdown request.
-        self.run_queue.task_done()
-        return False
-
-      try:
-        event()
-      except:  # pylint: disable=W0702
-        logging.exception('Error in event loop')
-        self.record_exception(traceback.format_exception_only(
-            *sys.exc_info()[:2]))
-        # But keep going
-      finally:
-        self.run_queue.task_done()
-    return True
 
   def _should_sync_time(self, foreground=False):
     """Returns True if we should attempt syncing time with shopfloor.
@@ -1771,19 +1725,12 @@ class Goofy(object):
     thread.daemon = True
     thread.start()
 
-  def _run_queue_idle(self):
-    """Invoked when the run queue has no events.
+  def perform_periodic_tasks(self):
+    """Override of base method to perform periodic work.
 
-    This method must not raise exception.
+    This method must not raise exceptions.
     """
-    now = time.time()
-    if (self.last_idle and
-        now < (self.last_idle + RUN_QUEUE_TIMEOUT_SECS - 1)):
-      # Don't run more often than once every (RUN_QUEUE_TIMEOUT_SECS -
-      # 1) seconds.
-      return
-
-    self.last_idle = now
+    super(Goofy, self).perform_periodic_tasks()
 
     self.check_exclusive()
     self.check_for_updates()
@@ -1914,7 +1861,7 @@ class Goofy(object):
   def show_review_information(self):
     """Event handler for showing review information screen.
 
-    The information screene is rendered by main UI program (ui.py), so in
+    The information screen is rendered by main UI program (ui.py), so in
     goofy we only need to kill all active tests, set them as untested, and
     clear remaining tests.
     """
@@ -1959,22 +1906,6 @@ class Goofy(object):
         logging.info('Waiting for %s to complete...', k)
         v.thread.join()
       self.reap_completed_tests()
-
-  def check_exceptions(self):
-    """Raises an error if any exceptions have occurred in
-    invocation threads.
-    """
-    if self.exceptions:
-      raise RuntimeError('Exception in invocation thread: %r' %
-                 self.exceptions)
-
-  def record_exception(self, msg):
-    """Records an exception in an invocation thread.
-
-    An exception with the given message will be rethrown when
-    Goofy is destroyed.
-    """
-    self.exceptions.append(msg)
 
 
 if __name__ == '__main__':
