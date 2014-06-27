@@ -236,13 +236,14 @@ class FactoryFlowRunner(object):
   def CleanUp(self):
     shutil.rmtree(self.output_dir)
 
-  def RunTests(self, plan=None, dut=None):
+  def RunTests(self, plan=None, dut=None, fail_fast=False):
     """Runs the given test plan.
 
     Args:
       plan: The test plan to fun.  None to run all test plans.
       dut: The DUT to run factory flow tests on; this should be specified by the
         DUT ID in the config file.  None to test all DUT.
+      fail_fast: Whether to fail the test run as soon as a test item fails.
     """
     runner_info = test_runner_common.RunnerInfo({
         'board': self.board,
@@ -287,6 +288,14 @@ class FactoryFlowRunner(object):
       test_env[common.BUNDLE_DIR_ENVVAR] = self.output_dir
 
       def RunTestItem(item):
+        """Runs a give test item.
+
+        Args:
+          item: The test item to run.
+
+        Returns:
+          True if the test item passes; False otherwise.
+        """
         # Build per-DUT commands.
         test_item = self.config['test_items'][item]
         dut_commands = test_runner_common.CommandBuilder[
@@ -306,6 +315,7 @@ class FactoryFlowRunner(object):
           procs.append((dut_command.duts, proc))
 
         # Wait for all commands to finish and set test results.
+        passed = True
         for x in xrange(len(procs)):
           duts, proc = procs[x]
           proc.wait()
@@ -315,20 +325,31 @@ class FactoryFlowRunner(object):
             logging.error(
                 'Test item %s for DUT %s failed; check %s for detailed logs',
                 item, duts, log_file_spec % x)
+            passed = False
           else:
             logging.info(
                 'Test item %s for DUT %s passed; check %s for detailed logs',
                 item, duts, log_file_spec % x)
             for dut in duts:
               test_result.SetTestItemResult(dut, item, TestStatus.PASSED)
+        return passed
 
       try:
-        # Run through each test item; abort if any test item fails.
+        # Run through each test item; abort when any test item fails if
+        # fail_fast is True.
+        test_item_failed = False
         for item in config['test_sequence']:
+          if fail_fast and test_item_failed:
+            logging.info(
+                'Skip test item %r due to failures of previous test items',
+                item)
+            continue
           logging.info('Running test item %r...', item)
-          RunTestItem(item)
+          if not RunTestItem(item):
+            test_item_failed = True
       except Exception:
         logging.exception('Error when running test item %s', item)
+        test_item_failed = True
       finally:
         try:
           for dut in dut_to_test:
@@ -440,6 +461,8 @@ def main():
              help='output dir of the created bundle and test logs'),
       CmdArg('--clean-up', action='store_true',
              help='delete generated files and directories after test'),
+      CmdArg('--fail-fast', action='store_true',
+             help='stop all test items immediately if any error occurrs'),
       verbosity_cmd_arg
   ]
   args = ParseCmdline('Factory flow runner', *arguments)
@@ -450,7 +473,7 @@ def main():
 
   config = LoadConfig(board=args.board, filepath=args.file)
   runner = FactoryFlowRunner(config, output_dir=args.output_dir)
-  runner.RunTests(plan=args.plan, dut=args.dut)
+  runner.RunTests(plan=args.plan, dut=args.dut, fail_fast=args.fail_fast)
   if args.clean_up:
     runner.CleanUp()
 
