@@ -8,8 +8,8 @@ import logging
 
 import factory_common  # pylint: disable=W0611
 import cros.factory.test.fixture.bft_fixture as bft
+from cros.factory.test.fixture.whale import color_sensor
 from cros.factory.test.fixture.whale import servo_client
-
 
 class WhaleBFTFixture(bft.BFTFixture):
   """Provides interfaces to interact with Whale BFT fixture."""
@@ -42,15 +42,21 @@ class WhaleBFTFixture(bft.BFTFixture):
   def __init__(self):
     super(WhaleBFTFixture, self).__init__()
     self._servo = None
+    self._color_sensor1 = None
 
-  def Init(self, **servo_params):
+  def Init(self, **params):
     """Sets up an XML-RPC proxy to BFTFixture's BeagleBone Servo.
 
     Args:
-      **servo_params: Parameters of ServoClient.__init__(), where
-          'host' and 'port' must be specified.
+      **params: Parameters of ServoClient and ColorSensor.
     """
-    self._servo = servo_client.ServoClient(**servo_params)
+    try:
+      self._servo = servo_client.ServoClient(
+          host=params['host'], port=params['port'])
+      self._color_sensor1 = color_sensor.ColorSensor(
+          servo=self._servo, sensor_index=1, params=params)
+    except servo_client.ServoClientError as e:
+      raise bft.BFTFixtureException('Failed to Init(). Reason: %s' % e)
 
   def Disconnect(self):
     # No need to disconnect it.
@@ -121,12 +127,18 @@ class WhaleBFTFixture(bft.BFTFixture):
     raise NotImplementedError
 
   def IsLEDColor(self, color):
-    raise NotImplementedError
+    try:
+      return self._color_sensor1.ReadColor() == color
+    except servo_client.ServoClientError as e:
+      raise bft.BFTFixtureException('Failed to check LED color. Reason %s' % e)
 
   def SetStatusColor(self, color):
     (pass_led, fail_led) = self._STATUS_COLOR.get(color, (None, None))
     if pass_led is None:
       raise bft.BFTFixtureException('Unsupported status color %s' % color)
 
-    self._servo.whale_pass_led = pass_led
-    self._servo.whale_fail_led = fail_led
+    try:
+      self._servo.whale_pass_led = pass_led
+      self._servo.whale_fail_led = fail_led
+    except servo_client.ServoClientError as e:
+      raise bft.BFTFixtureException('Failed to set status color. Reason %s' % e)

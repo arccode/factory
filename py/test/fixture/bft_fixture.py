@@ -14,6 +14,7 @@ under DUT shell. For example::
   bft_fixture Ping
   bft_fixture Engage AC_ADAPTER
   bft_fixture Disengage AC_ADAPTER
+  bft_fixture IsLEDColor RED
   bft_fixture SetStatusColor GREEN
   bft_fixture SetStatusColor OFF
 
