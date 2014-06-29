@@ -170,10 +170,21 @@ def main():
 
   if args.autotest:
     SpawnRsyncToDUT(
-          ['-aC', '--exclude', 'tests'] +
+          ['-azC', '--exclude', 'tests'] +
           [os.path.join(SRCROOT, 'src/third_party/autotest/files/client/'),
            '%s:/usr/local/autotest/' % args.host],
           check_call=True, log=True)
+
+  # We need to rsync the public factory repo first to set up goofy symlink.
+  # We need --force to remove the original goofy directory if it's not a
+  # symlink, -l for re-creating the symlink on DUT, -K for following the symlink
+  # on DUT.
+  SpawnRsyncToDUT(
+        ['-azlKC', '--force', '--exclude', '*.pyc'] +
+        [os.path.join(factory.FACTORY_PATH, x)
+         for x in ('bin', 'py', 'py_pkg', 'sh', 'third_party')] +
+        ['%s:/usr/local/factory' % args.host],
+        check_call=True, log=True)
 
   board_dash = board.replace('_', '-')
   private_paths = [os.path.join(SRCROOT, 'src', 'private-overlays',
@@ -188,16 +199,9 @@ def main():
   for private_path in private_paths:
     if os.path.isdir(private_path):
       SpawnRsyncToDUT(
-            ['-aC', '--exclude', 'bundle'] +
+            ['-azlKC', '--exclude', 'bundle'] +
             [private_path + '/', '%s:/usr/local/factory/' % args.host],
             check_call=True, log=True)
-
-  SpawnRsyncToDUT(
-        ['-aC', '--exclude', '*.pyc'] +
-        [os.path.join(factory.FACTORY_PATH, x)
-         for x in ('bin', 'py', 'py_pkg', 'sh', 'third_party')] +
-        ['%s:/usr/local/factory' % args.host],
-        check_call=True, log=True)
 
   # Call goofy_remote on the remote host, allowing it to tweak test lists.
   SpawnSSHToDUT([args.host, 'goofy_remote', '--local'] +
