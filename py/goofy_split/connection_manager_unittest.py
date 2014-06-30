@@ -12,7 +12,7 @@ import subprocess
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.goofy import connection_manager
+from cros.factory.goofy_split import connection_manager
 
 
 _FAKE_MANAGER = 'flimflam'

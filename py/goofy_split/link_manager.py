@@ -11,8 +11,8 @@ import socket
 import threading
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.goofy.discoverer import DUTDiscoverer
-from cros.factory.goofy.discoverer import HostDiscoverer
+from cros.factory.goofy_split.discoverer import DUTDiscoverer
+from cros.factory.goofy_split.discoverer import HostDiscoverer
 from cros.factory.test import utils
 from cros.factory.utils.jsonrpc_utils import JSONRPCServer
 from cros.factory.utils.jsonrpc_utils import TimeoutJSONRPCTransport

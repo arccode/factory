@@ -29,7 +29,7 @@ from setproctitle import setproctitle
 
 import factory_common  # pylint: disable=W0611
 from cros.factory import event_log
-from cros.factory.goofy.service_manager import ServiceManager
+from cros.factory.goofy_split.service_manager import ServiceManager
 from cros.factory.privacy import FilterDict
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
@@ -526,7 +526,7 @@ class TestInvocation(object):
 
     deleted_count = 0
     preserved_count = 0
-    for root, dummy_dirs, files in os.walk(self.output_dir, topdown=False):
+    for root, unused_dirs, files in os.walk(self.output_dir, topdown=False):
       for f in files:
         if f in ['log', 'metadata'] or any(fnmatch.fnmatch(f, g)
                                            for g in globs):
@@ -948,7 +948,7 @@ def main():
   parser = OptionParser()
   parser.add_option('--pytest', dest='pytest_info',
                     help='Info for pytest to run')
-  (options, dummy_args) = parser.parse_args()
+  (options, unused_args) = parser.parse_args()
 
   assert options.pytest_info
 
