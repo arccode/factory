@@ -1,0 +1,196 @@
+# This is a fake HWID database. Use this fake HWID database only for testing
+# purposes. Do not use it in production.
+
+checksum: %{CHECKSUM}
+
+board: %{BOARD}
+
+encoding_patterns:
+  0: default
+
+image_id:
+  0: FAKE_HWID
+
+pattern:
+  - image_ids: [0]
+    encoding_scheme: base8192
+    fields:
+    - cellular_field: 1
+
+    - audio_codec_field: 0
+    - battery_field: 0
+    - bluetooth_field: 0
+    - camera_field: 0
+    - chipset_field: 0
+    - cpu_field: 0
+    - display_panel_field: 0
+    - dram_field: 0
+    - embedded_controller_field: 0
+    - firmware_field: 0
+    - flash_chip_field: 0
+    - keyboard_field: 0
+    - storage_field: 0
+    - touchpad_field: 0
+    - tpm_field: 0
+    - usb_hosts_field: 0
+    - wireless_field: 0
+
+encoded_fields:
+  audio_codec_field:
+    0: { audio_codec: fake_audio_codec }
+  battery_field:
+    0: { battery: fake_battery }
+  bluetooth_field:
+    0: { bluetooth: fake_bluetooth }
+  camera_field:
+    0: { camera: fake_camera }
+  cellular_field:
+    0: { cellular: NULL }
+    1: { cellular: fake_cellular }
+  chipset_field:
+    0: { chipset: fake_chipset }
+  cpu_field:
+    0: { cpu: fake_cpu }
+  display_panel_field:
+    0: { display_panel: fake_display_panel }
+  dram_field:
+    0:
+      dram: [
+        fake_dram_dimm0,
+        fake_dram_dimm1
+      ]
+  embedded_controller_field:
+    0: { embedded_controller: fake_embedded_controller }
+  firmware_field:
+    0:
+      hash_gbb: fake_hash_gbb
+      key_recovery: fake_key_recovery
+      key_root: fake_key_root
+      ro_ec_firmware: fake_ro_ec_firmware
+      ro_main_firmware: fake_ro_main_firmware
+  flash_chip_field:
+    0: { flash_chip: fake_flash_chip }
+  keyboard_field:
+    0: { keyboard: fake_keyboard }
+  storage_field:
+    0: { storage: fake_storage }
+  touchpad_field:
+    0: { touchpad: fake_touchpad }
+  tpm_field:
+    0: { tpm: fake_tpm }
+  usb_hosts_field:
+    0:
+      usb_hosts: [
+          fake_usb_host,
+          fake_usb_host,
+          fake_usb_host,
+          fake_usb_host,
+      ]
+  wireless_field:
+    0: { wireless: fake_wireless }
+
+components:
+  audio_codec:
+    items:
+      fake_audio_codec:
+        values: { compact_str: !re '.*' }
+  battery:
+    items:
+      fake_battery:
+        values: { compact_str: !re '.*' }
+  bluetooth:
+    items:
+      fake_bluetooth:
+        values: { compact_str: !re '.*' }
+  camera:
+    items:
+      fake_camera:
+        values: { compact_str: !re '.*' }
+  cellular:
+    items:
+      fake_cellular:
+        values: { compact_str: !re '.*' }
+  chipset:
+    items:
+      fake_chipset:
+        values: { compact_str: !re '.*' }
+  cpu:
+    items:
+      fake_cpu:
+        values: { compact_str: !re '.*' }
+  display_panel:
+    probeable: False
+    items:
+      fake_display_panel: { values: NULL }
+  dram:
+    probeable: False
+    items:
+      fake_dram_dimm0:
+        values:
+          compact_str: !re '.*'
+          slot: '0'
+      fake_dram_dimm1:
+        values:
+          compact_str: !re '.*'
+          slot: '1'
+  embedded_controller:
+    items:
+      fake_embedded_controller:
+        values: { compact_str: !re '.*' }
+  flash_chip:
+    items:
+      fake_flash_chip:
+        values: { compact_str: !re '.*' }
+  keyboard:
+    probeable: False
+    items:
+      fake_keyboard: { values: NULL }
+  storage:
+    items:
+      fake_storage:
+        values: { compact_str: !re '.*' }
+  touchpad:
+    items:
+      fake_touchpad:
+        values: { compact_str: !re '.*' }
+  tpm:
+    items:
+      fake_tpm:
+        values: { compact_str: !re '.*' }
+  usb_hosts:
+    items:
+      fake_usb_host:
+        values: { compact_str: !re '.*' }
+  wireless:
+    items:
+      fake_wireless:
+        values: { compact_str: !re '.*' }
+  hash_gbb:
+    items:
+      fake_hash_gbb:
+        values: { compact_str: !re '.*' }
+  key_recovery:
+    items:
+      fake_key_recovery:
+        values: { compact_str: !re '.*' }
+  key_root:
+    items:
+      fake_key_root:
+        values: { compact_str: !re '.*' }
+  ro_ec_firmware:
+    items:
+      fake_ro_ec_firmware:
+        values:
+          compact_str: !re '.*'
+          version: !re '.*'
+  ro_main_firmware:
+    items:
+      fake_ro_main_firmware:
+        values:
+          compact_str: !re '.*'
+          version: !re '.*'
+
+
+rules:
+- name: device_info.set_image_id
+  evaluate: SetImageId('FAKE_HWID')
