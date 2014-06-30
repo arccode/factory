@@ -8,7 +8,7 @@
 """Stress tests for firmware verification."""
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test.test_lists import firmware_stress_small
+from cros.factory.test.test_lists import firmware_stress_generic
 from cros.factory.test.test_lists.test_lists import OperatorTest
 from cros.factory.test.test_lists.test_lists import TestList
 
@@ -143,7 +143,6 @@ class TestListArgs(object):
   #
   #####
 
-
   @staticmethod
   def HasCellular(env):
     """Helper function to check if device has cellular.
@@ -234,6 +233,50 @@ class TestListArgs(object):
               accessibility=accessibility))
 
 
+class MediumTestListArgs(TestListArgs):
+  """Helper object to configure run for medium length."""
+  #####
+  #
+  # Parameters for run-in tests.
+  #
+  #####
+
+  # Number of suspend/resume tests during run-in.
+  run_in_resume_iterations = 1000
+
+  # Number of reboots during run-in.
+  run_in_reboot_seq_iterations = 1000
+
+  # Duration of stress test + repeated suspend/resume during run-in.
+  # This may detect bit flips between suspend/resume.
+  run_in_dozing_stress_duration_secs = 6 * HOURS
+
+  # The duration of stress test during run-in (suggested 10+ mins).
+  run_in_stress_duration_secs = 6 * HOURS
+
+
+class LargeTestListArgs(TestListArgs):
+  """Helper object to configure run for large length."""
+  #####
+  #
+  # Parameters for run-in tests.
+  #
+  #####
+
+  # Number of suspend/resume tests during run-in.
+  run_in_resume_iterations = 5000
+
+  # Number of reboots during run-in.
+  run_in_reboot_seq_iterations = 5000
+
+  # Duration of stress test + repeated suspend/resume during run-in.
+  # This may detect bit flips between suspend/resume.
+  run_in_dozing_stress_duration_secs = 24 * HOURS
+
+  # The duration of stress test during run-in (suggested 10+ mins).
+  run_in_stress_duration_secs = 24 * HOURS
+
+
 def SetOptions(options, args):
   """Sets test list options for goofy.
 
@@ -297,12 +340,30 @@ def SetOptions(options, args):
 
 
 def CreateFirmwareStressSmallTestList():
-  """Creates a test list for firmware stress small."""
+  """Creates a test list for firmware stress small run."""
   args = TestListArgs()
-  with TestList('firmware_stress_small', 'Firmware Stress Small') as test_list:
+  with TestList('firmware_stress_small',
+                'Firmware Stress Small') as test_list:
     SetOptions(test_list.options, args)
-    firmware_stress_small.RunIn(args)
+    firmware_stress_generic.RunIn(args)
 
+
+def CreateFirmwareStressMediumTestList():
+  """Creates a test list for firmware stress medium run."""
+  args = MediumTestListArgs()
+  with TestList('firmware_stress_medium',
+                'Firmware Stress Medium') as test_list:
+    SetOptions(test_list.options, args)
+    firmware_stress_generic.RunIn(args)
+
+
+def CreateFirmwareStressLargeTestList():
+  """Creates a test list for firmware stress large run."""
+  args = LargeTestListArgs()
+  with TestList('firmware_stress_large',
+                'Firmware Stress Large') as test_list:
+    SetOptions(test_list.options, args)
+    firmware_stress_generic.RunIn(args)
 
 def CreateTestLists():
   """Creates test list.
@@ -312,3 +373,5 @@ def CreateTestLists():
   be changed.
   """
   CreateFirmwareStressSmallTestList()
+  CreateFirmwareStressMediumTestList()
+  CreateFirmwareStressLargeTestList()

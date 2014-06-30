@@ -19,7 +19,7 @@ from cros.factory.test.test_lists.test_lists import TestGroup
 HOURS = 60 * 60
 
 
-def RunIn(args, group_suffix='FirmwareStressSmall'):
+def RunIn(args, group_suffix='FirmwareStress'):
   """Creates RunIn test list.
 
   Args:
