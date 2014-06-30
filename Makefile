@@ -198,11 +198,25 @@ PRESUBMIT_FILES := $(if $(PRESUBMIT_FILES), \
 chroot-presubmit:
 	$(MAKE) -s lint-presubmit
 	$(MAKE) -s test-presubmit
+	$(MAKE) -s make-factory-package-presubmit
 
 lint-presubmit:
 	$(MAKE) lint \
 	    LINT_FILES="$(filter %.py,$(PRESUBMIT_FILES))" \
 	    2>/dev/null
+
+# Check that test_make_factory_package.py has been run, if
+# make_factory_package.sh has changed.
+make-factory-package-presubmit:
+	if [ "$(filter setup/make_factory_package.sh,$(PRESUBMIT_FILES))" ]; \
+	then \
+	  if [ ! setup/make_factory_package.sh -ot \
+	       py/tools/.test_make_factory_package.passed ]; then \
+	    echo setup/make_factory_package.sh has changed.; \
+	    echo Please run py/tools/test_make_factory_package.py; \
+	    exit 1; \
+	  fi; \
+	fi
 
 test-presubmit:
 	if [ ! -e .tests-passed ]; then \

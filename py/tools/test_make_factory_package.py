@@ -37,13 +37,13 @@ results tested.
 
 For example:
 
-  test_make_factory_package.py \
-      gs://chromeos-releases/beta-channel/daisy-spring/5841.50.0
+  py/tools/test_make_factory_package.py --artifacts \
+      gs://chromeos-image-archive/x86-generic-full/R38-5991.0.0-b13993
 
 or to run only the testMiniOmaha test:
 
-  test_make_factory_package.py \
-      gs://chromeos-releases/beta-channel/daisy-spring/5841.50.0 \
+  py/tools/test_make_factory_package.py --artifacts \
+      gs://chromeos-image-archive/x86-generic-full/R38-5991.0.0-b13993 \
       MakeFactoryPackageTest.testMiniOmaha
 """
 
@@ -70,9 +70,9 @@ def PrepareArtifacts(url):
     # Already setup
     return artifacts_dir
 
-  patterns = ('ChromeOS-factory-*.zip',
-              'ChromeOS-recovery-*.tar.xz',
-              'ChromeOS-test-*.tar.xz')
+  patterns = ('factory_image.zip',
+              'chromiumos_base_image.tar.xz',
+              'chromiumos_test_image.tar.xz')
 
   if os.path.exists(artifacts_dir):
     shutil.rmtree(artifacts_dir)
@@ -109,16 +109,20 @@ class MakeFactoryPackageTest(unittest.TestCase):
     self.tmpdir = tempfile.mkdtemp(prefix='test_make_factory_package.')
     self.make_factory_package = os.path.join(
         factory.FACTORY_PATH, 'setup', 'make_factory_package.sh')
-    self.hwid = file_utils.GlobSingleFile(
-        os.path.join(self.artifacts_dir, 'unpacked', 'hwid',
-                     'hwid_v3_bundle_*.sh'))
+    self.hwid = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                             'testdata', 'hwid_v3_bundle_X86-GENERIC.sh')
+    firmware_updater = os.path.join(self.tmpdir, 'chromeos-firmwareupdate')
+    file_utils.WriteFile(firmware_updater, 'dummy firmware updater')
+
     self.base_args = [
       self.make_factory_package,
       '--factory_toolkit',
       'unpacked/factory_toolkit/install_factory_toolkit.run',
       '--test', 'unpacked/chromiumos_test_image.bin',
-      '--release', 'unpacked/recovery_image.bin',
-      '--hwid_updater', self.hwid]
+      '--release', 'unpacked/chromiumos_base_image.bin',
+      '--hwid_updater', self.hwid,
+      '--firmware_updater', firmware_updater,
+      ]
 
   def tearDown(self):
     if not self.save_tmp:
@@ -178,24 +182,35 @@ def main():
   parser = argparse.ArgumentParser(
       description=DESCRIPTION,
       formatter_class=argparse.RawDescriptionHelpFormatter)
-  parser.add_argument('--save-tmp', action='store_true',
-                      help='Save temporary directory')
-  parser.add_argument('url', metavar='URL',
-                      help='URL containing build artifacts')
-  parser.add_argument('unittest_args', metavar='UNITTEST_ARGS',
-                      nargs=argparse.REMAINDER,
-                      help=('Arguments to pass on to unittest.main (e.g., '
-                            'names of tests to run'))
+  parser.add_argument(
+      '--save-tmp', action='store_true',
+      help='Save temporary directory')
+  parser.add_argument(
+      '--artifacts', metavar='URL',
+      help='URL of a directory containing build artifacts',
+      default=('gs://chromeos-image-archive/x86-generic-full/'
+               'R38-5991.0.0-b13993'))
+  parser.add_argument(
+      'unittest_args', metavar='UNITTEST_ARGS',
+      nargs=argparse.REMAINDER,
+      help=('Arguments to pass on to unittest.main (e.g., '
+            'names of tests to run'))
   args = parser.parse_args()
-  args.url = args.url.rstrip('/')
+  args.artifacts = args.artifacts.rstrip('/')
   logging.basicConfig(level=logging.INFO)
 
-  MakeFactoryPackageTest.artifacts_dir = PrepareArtifacts(args.url)
+  MakeFactoryPackageTest.artifacts_dir = PrepareArtifacts(args.artifacts)
   MakeFactoryPackageTest.save_tmp = args.save_tmp
 
   logging.info('Running tests...')
   # Run tests with unittest.main
-  unittest.main(argv=(sys.argv[0:1] + args.unittest_args))
+  program = unittest.main(argv=(sys.argv[0:1] + args.unittest_args), exit=False)
+  if program.result.wasSuccessful():
+    # Touch a file to remember that the test passed; we'll check this
+    # in a presubmit test
+    open(os.path.join(os.path.dirname(__file__),
+                      '.test_make_factory_package.passed'), 'w').close()
+  sys.exit(not program.result.wasSuccessful())
 
 
 if __name__ == '__main__':
