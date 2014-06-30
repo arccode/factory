@@ -16,7 +16,6 @@ import os
 import logging
 import pyudev
 import random
-import threading
 import time
 import unittest
 
@@ -185,13 +184,16 @@ class RemovableStorageTest(unittest.TestCase):
     self._locktest_insertion_image = None
     self._locktest_removal_image = None
     self._state = None
-    self._pyudev_thread = None
+    self._udev_observer = None
     self._total_tests = 0
     self._finished_tests = 0
     self._metrics = {}
     self._bft_fixture = None
     self._bft_media_device = None
-    self._stop_test = threading.Event()
+
+  def tearDown(self):
+    if self._udev_observer:
+      self._udev_observer.stop()
 
   def GetAttrs(self, device, key_set):
     """Gets attributes of a device.
@@ -618,12 +620,11 @@ class RemovableStorageTest(unittest.TestCase):
 
   def Fail(self, msg):
     """Fails the test."""
-    self._stop_test.set()
     self._ui.Fail(msg)
+    raise factory.FactoryTestFailure(msg)
 
   def Pass(self):
     """Passes the test."""
-    self._stop_test.set()
     self._ui.Pass()
 
   def runTest(self):
@@ -678,15 +679,11 @@ class RemovableStorageTest(unittest.TestCase):
           self.fail(_ERR_BFT_ACTION_STR(
               'insert', self.args.media, self._target_device, e))
 
-    ui_thread = self._ui.Run(blocking=False)
-
     # Start to monitor udev events.
     context = pyudev.Context()
     monitor = pyudev.Monitor.from_netlink(context)
     monitor.filter_by(subsystem='block', device_type='disk')
-    for action, device in monitor:
-      self.HandleUdevEvent(action, device)
-      if self._stop_test.isSet():
-        break
+    self._udev_observer = pyudev.MonitorObserver(monitor, self.HandleUdevEvent)
+    self._udev_observer.start()
 
-    ui_thread.join()
+    self._ui.Run()

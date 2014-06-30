@@ -8,9 +8,9 @@
 
 import mock
 import os
-import Queue
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.test import utils
 from cros.factory.test.e2e_test import e2e_test
 from cros.factory.test.pytests.removable_storage import removable_storage as rs
 from cros.factory.utils import sys_utils
@@ -41,28 +41,18 @@ class RemovableStorageE2ETest(e2e_test.E2ETest):
         self.pytest_module, 'Log', autospec=True, return_value=True)
     self.log_patcher.start()
 
-    self.udev_event_queue = Queue.Queue()
-    def FakeEventQueue(*args):    # pylint: disable=W0613
-      """Fake function for pyudev.Monitor.__iter__."""
-      while True:
-        yield self.udev_event_queue.get()
+    self.mock_observer = mock.MagicMock()
+    self.mock_observer.start = mock.Mock()
 
-    self.mock_monitor = mock.MagicMock()
-    self.mock_monitor.__iter__ = FakeEventQueue
-    self.mock_monitor.filter_by = mock.Mock()
-
-    self.pyudev_monitor_patcher = mock.patch.object(
-        self.pytest_module.pyudev, 'Monitor', autospec=True)
-    self.mock_pyudev_monitor = self.pyudev_monitor_patcher.start()
-    self.mock_pyudev_monitor.from_netlink = mock.Mock(
-        return_value=self.mock_monitor)
+    self.pyudev_patcher = mock.patch.object(
+        self.pytest_module, 'pyudev', autospec=True)
+    self.mock_pyudev = self.pyudev_patcher.start()
+    self.mock_pyudev.MonitorObserver = mock.Mock(
+        return_value=self.mock_observer)
 
   def tearDown(self):
-    self.mock_monitor.filter_by.assert_called_with(
-        subsystem='block', device_type='disk')
-
     self.log_patcher.stop()
-    self.pyudev_monitor_patcher.stop()
+    self.pyudev_patcher.stop()
 
   @e2e_test.E2ETestCase(dargs=dict(media='USB'))
   @mock.patch.object(
@@ -82,11 +72,19 @@ class RemovableStorageE2ETest(e2e_test.E2ETest):
     mock_read.side_effect = ['\x00' * (
         self.dargs['block_size'] * self.dargs['sequential_block_count'])] * 2
 
+    self.StartFactoryTest()
+
+    def ObserverSetup():
+      return bool(self.mock_pyudev.MonitorObserver.call_args)
+
+    utils.WaitFor(ObserverSetup, 3)
+    udev_handler = self.mock_pyudev.MonitorObserver.call_args[0][1]
+
     # Mock insert USB.
-    self.udev_event_queue.put((rs._UDEV_ACTION_CHANGE, self.fake_usb_device))
+    udev_handler(rs._UDEV_ACTION_CHANGE, self.fake_usb_device)
 
     # Mock remove USB.
-    self.udev_event_queue.put((rs._UDEV_ACTION_CHANGE, self.fake_usb_device))
+    udev_handler(rs._UDEV_ACTION_CHANGE, self.fake_usb_device)
 
     self.WaitForPass()
 
