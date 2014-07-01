@@ -27,7 +27,7 @@ class MountPartitionException(Exception):
 
 
 def MountPartition(source_path, index=None, mount_point=None, rw=False,
-                   is_omaha_channel=False):
+                   is_omaha_channel=False, options=None):
   '''Mounts a partition in an image or a block device.
 
   Args:
@@ -40,6 +40,8 @@ def MountPartition(source_path, index=None, mount_point=None, rw=False,
     is_omaha_channel: if it is True and source_path is a file, treats
       source_path as a mini-Omaha channel file (kernel+rootfs) and mounts the
       rootfs. rootfs offset bytes: 8 + BigEndian(first-8-bytes).
+    options: A list of options to add to the -o argument when mounting, e.g.,
+        ['offset=8192', 'sizelimit=1048576'].
 
   Raises:
     OSError: if image file or mount point doesn't exist.
@@ -62,7 +64,7 @@ def MountPartition(source_path, index=None, mount_point=None, rw=False,
     if line.split()[1] == mount_point:
       raise OSError('Mount point %s is already mounted' % mount_point)
 
-  options = ['rw' if rw else 'ro']
+  all_options = ['rw' if rw else 'ro']
   # source_path is a block device.
   if stat.S_ISBLK(os.stat(source_path).st_mode):
     if index:
@@ -72,13 +74,13 @@ def MountPartition(source_path, index=None, mount_point=None, rw=False,
           'is_omaha_channel must be False for a block device.')
   else:
     # Use loop option on image file.
-    options.append('loop')
+    all_options.append('loop')
 
   if is_omaha_channel:
     with open(source_path, 'rb') as f:
       first_8_bytes = f.read(8)
       offset = struct.unpack('>Q', first_8_bytes)[0] + 8
-    options.append('offset=%d' % offset)
+    all_options.append('offset=%d' % offset)
   elif index:
     def RunCGPT(option):
       '''Runs cgpt and returns the integer result.'''
@@ -87,11 +89,14 @@ def MountPartition(source_path, index=None, mount_point=None, rw=False,
                  option, source_path],
                 read_stdout=True, check_call=True).stdout_data)
     offset = RunCGPT('-b') * 512
-    options.append('offset=%d' % offset)
+    all_options.append('offset=%d' % offset)
     sizelimit = RunCGPT('-s') * 512
-    options.append('sizelimit=%d' % sizelimit)
+    all_options.append('sizelimit=%d' % sizelimit)
 
-  Spawn(['mount', '-o', ','.join(options), source_path, mount_point],
+  if options:
+    all_options.extend(options)
+
+  Spawn(['mount', '-o', ','.join(all_options), source_path, mount_point],
         log=True, check_call=True, sudo=True)
 
   @contextmanager
