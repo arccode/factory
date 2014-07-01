@@ -408,7 +408,7 @@ class ExtractFileError(Exception):
 
 
 def ExtractFile(compressed_file, output_dir, only_extracts=None,
-                overwrite=True):
+                overwrite=True, quiet=False):
   """Extracts compressed file to output folder.
 
   Args:
@@ -418,6 +418,7 @@ def ExtractFile(compressed_file, output_dir, only_extracts=None,
       compressed file.
     overwrite: Whether to overwrite existing files without prompt.  Defaults to
       True.
+    quiet: Whether to suppress output.
 
   Raises:
     ExtractFileError if the method fails to extract the file.
@@ -430,12 +431,16 @@ def ExtractFile(compressed_file, output_dir, only_extracts=None,
 
   if compressed_file.endswith('.zip'):
     overwrite_opt = ['-o'] if overwrite else []
-    cmd = (['unzip'] + overwrite_opt + [compressed_file] +
-           ['-d', output_dir] + only_extracts)
+    quiet_opt = ['-qq'] if quiet else []
+    cmd = (['unzip'] + overwrite_opt + quiet_opt + [compressed_file] +
+           ['-d', output_dir] +
+           only_extracts)
   elif (any(compressed_file.endswith(suffix) for suffix in
             ('.tar.bz2', '.tbz2', '.tar.gz', '.tgz', 'tar.xz', '.txz'))):
     overwrite_opt = [] if overwrite else ['--keep-old-files']
-    cmd = (['tar', '-xvvf'] + overwrite_opt + [compressed_file] +
+    verbose_opt = [] if quiet else ['-vv']
+    cmd = (['tar', '-xf'] +
+           overwrite_opt + [compressed_file] + verbose_opt +
            ['-C', output_dir] + only_extracts)
   else:
     raise ExtractFileError('Unsupported compressed file: %s' % compressed_file)

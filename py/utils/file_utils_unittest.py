@@ -269,6 +269,10 @@ class ExtractFileTest(unittest.TestCase):
     mock_spawn.assert_called_with(['unzip', '-o', 'foo.zip', '-d', 'foo_dir'],
                                   log=True, check_call=True)
 
+    file_utils.ExtractFile('foo.zip', 'foo_dir', quiet=True)
+    mock_spawn.assert_called_with(['unzip', '-o', '-qq', 'foo.zip',
+                                   '-d', 'foo_dir'], log=True, check_call=True)
+
     file_utils.ExtractFile('foo.zip', 'foo_dir', only_extracts=['bar', 'buz'])
     mock_spawn.assert_called_with(['unzip', '-o', 'foo.zip', '-d', 'foo_dir',
                                    'bar', 'buz'], log=True, check_call=True)
@@ -281,17 +285,22 @@ class ExtractFileTest(unittest.TestCase):
   @mock.patch.object(file_utils, 'Spawn', return_value=True)
   def testExtractTar(self, mock_spawn):
     file_utils.ExtractFile('foo.tar.gz', 'foo_dir')
-    mock_spawn.assert_called_with(['tar', '-xvvf', 'foo.tar.gz', '-C',
+    mock_spawn.assert_called_with(['tar', '-xf', 'foo.tar.gz', '-vv', '-C',
+                                   'foo_dir'], log=True, check_call=True)
+
+    file_utils.ExtractFile('foo.tar.gz', 'foo_dir', quiet=True)
+    mock_spawn.assert_called_with(['tar', '-xf', 'foo.tar.gz', '-C',
                                    'foo_dir'], log=True, check_call=True)
 
     file_utils.ExtractFile('foo.tbz2', 'foo_dir', only_extracts=['bar', 'buz'])
-    mock_spawn.assert_called_with(['tar', '-xvvf', 'foo.tbz2', '-C', 'foo_dir',
-                                   'bar', 'buz'], log=True, check_call=True)
+    mock_spawn.assert_called_with(['tar', '-xf', 'foo.tbz2', '-vv',
+                                   '-C', 'foo_dir', 'bar', 'buz'],
+                                  log=True, check_call=True)
 
     file_utils.ExtractFile('foo.tar.xz', 'foo_dir', only_extracts='bar',
                            overwrite=False)
-    mock_spawn.assert_called_with(['tar', '-xvvf', '--keep-old-files',
-                                   'foo.tar.xz', '-C', 'foo_dir', 'bar'],
+    mock_spawn.assert_called_with(['tar', '-xf', '--keep-old-files',
+                                   'foo.tar.xz', '-vv', '-C', 'foo_dir', 'bar'],
                                   log=True, check_call=True)
 
 class ForceSymlinkTest(unittest.TestCase):
