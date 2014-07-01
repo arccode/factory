@@ -214,6 +214,8 @@ make-factory-package-presubmit:
 	       py/tools/.test_make_factory_package.passed ]; then \
 	    echo setup/make_factory_package.sh has changed.; \
 	    echo Please run py/tools/test_make_factory_package.py; \
+	    echo \(use --help for more information on how to use it if; \
+	    echo you do not have access to release repositories\).; \
 	    exit 1; \
 	  fi; \
 	fi
