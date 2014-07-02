@@ -120,6 +120,11 @@ def main():
                       help='remove password from test_list')
   parser.add_argument('-s', dest='shopfloor_host',
                       help='set shopfloor host')
+  parser.add_argument('--host-based', dest='host_based', action='store_true',
+                      help='Use goofy_split instead of goofy_monolithic')
+  parser.add_argument('--no-host-based', dest='host_based',
+                      action='store_false', help=argparse.SUPPRESS)
+  parser.set_defaults(host_based=False)
   parser.add_argument('--automation-mode',
                       choices=[m.lower() for m in AutomationMode],
                       default='none', help="Factory test automation mode.")
@@ -185,6 +190,12 @@ def main():
          for x in ('bin', 'py', 'py_pkg', 'sh', 'third_party')] +
         ['%s:/usr/local/factory' % args.host],
         check_call=True, log=True)
+
+  SpawnSSHToDUT([args.host, 'ln', '--symbolic', '--force',
+                 '--no-dereference',
+                 './goofy_split' if args.host_based else './goofy_monolithic',
+                 '/usr/local/factory/py/goofy'],
+                 check_call=True, log=True)
 
   board_dash = board.replace('_', '-')
   private_paths = [os.path.join(SRCROOT, 'src', 'private-overlays',
