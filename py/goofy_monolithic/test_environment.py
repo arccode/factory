@@ -94,9 +94,6 @@ class DUTEnvironment(Environment):
   def shutdown(self, operation):
     assert operation in ['reboot', 'full_reboot', 'halt']
     logging.info('Shutting down: %s', operation)
-    if self.telemetry_proc_pipe:
-      self.telemetry_proc_pipe.send(None)
-      self.telemetry_proc.join()
     subprocess.check_call('sync')
     if operation == 'full_reboot':
       subprocess.check_call(['ectool', 'reboot_ec', 'cold', 'at-shutdown'])
@@ -129,6 +126,7 @@ class DUTEnvironment(Environment):
         parent_conn, child_conn = multiprocessing.Pipe()
         self.telemetry_proc = multiprocessing.Process(
             target=self._start_telemetry, args=(child_conn,))
+        self.telemetry_proc.daemon = True
         self.telemetry_proc.start()
         logging.info('Waiting for UI to load (try_num = %d)', try_num)
         utils.WaitFor(self.goofy.web_socket_manager.has_sockets, 30)
@@ -136,7 +134,10 @@ class DUTEnvironment(Environment):
         self.telemetry_proc_pipe = parent_conn
         break
       except utils.TimeoutError:
-        utils.kill_process_tree(self.telemetry_proc, 'telemetry')
+        if self.telemetry_proc:
+          utils.kill_process_tree(self.telemetry_proc, 'telemetry')
+          self.telemetry_proc = None
+          self.telemetry_proc_pipe = None
         logging.exception('Failed to load UI (try_num = %d)', try_num)
 
     if not self.goofy.web_socket_manager.has_sockets():
@@ -190,6 +191,7 @@ class DUTEnvironment(Environment):
         utils.SetXinputDeviceEnabled(device_id, False)
 
       # Serve events forever.
+      logging.info('[UI process] UI started, start serving UI RPC events')
       while True:
         event = pipe.recv()
         if event is None:
