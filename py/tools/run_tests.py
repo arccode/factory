@@ -113,7 +113,9 @@ class RunTests(object):
     self._running_proc = {}
 
     self._passed_tests = set()  # set of passed test_name
-    self._failed_tests = set()  # set of failed test_name
+    self._failed_tests = {}  # dict of failed test name -> log file
+
+    self._run_counts = {}  # dict of test name -> number of runs so far
 
   def Run(self):
     """Runs all unittests.
@@ -142,7 +144,7 @@ class RunTests(object):
 
     if self._failed_tests and self._fallback:
       self._InfoMessage('Re-run failed tests sequentially:')
-      rerun_tests = list(self._failed_tests)
+      rerun_tests = sorted(self._failed_tests.keys())
       self._failed_tests.clear()
       self._RunInParallel(rerun_tests, 1)
       self._PassMessage('%d/%d tests passed.' % (len(self._passed_tests),
@@ -152,26 +154,34 @@ class RunTests(object):
 
     if self._failed_tests:
       self._FailMessage('Logs of %d failed tests:' % len(self._failed_tests))
-      for test in self._failed_tests:
-        self._FailMessage(self._GetLogFilename(test))
+      # Log all the values in the dict (i.e., the log file paths)
+      for test in sorted(self._failed_tests.values()):
+        self._FailMessage(test)
       return 1
     else:
       return 0
 
-  def _GetLogFilename(self, test):
+  def _GetLogFilename(self, test_path):
     """Composes log filename.
 
-    Log filename is based on unittest path and we replace '/' with '_'.
+    Log filename is based on unittest path.  We replace '/' with '_' and
+    add the run number (1-relative).
 
     Args:
-      test: unittest path.
+      test_path: unittest path.
 
     Returns:
       log filename (with path) for the test.
     """
-    if test.find('./') == 0:
-      test = test[2:]
-    return os.path.join(self._log_dir, test.replace('/', '_') + '.log')
+    if test_path.find('./') == 0:
+      test_path = test_path[2:]
+
+    run_count = self._run_counts[test_path] = self._run_counts.get(
+        test_path, 0) + 1
+
+    return os.path.join(
+        self._log_dir,
+        '%s.%d.log' % (test_path.replace('/', '_'), run_count))
 
   def _RunInParallel(self, tests, max_jobs):
     """Runs tests in parallel.
@@ -210,7 +220,7 @@ class RunTests(object):
     else:
       self._FailMessage('*** FAIL [%.2f s] %s (return:%d)' %
                         (duration, p.test_name, p.returncode))
-      self._failed_tests.add(p.test_name)
+      self._failed_tests[p.test_name] = p.log_file.name
 
   def _WaitRunningProcessesFewerThan(self, threshold):
     """Waits until #running processes is fewer than specifed.
