@@ -139,6 +139,7 @@ def main(argv=None):
     src = os.path.join(tmp, 'src')
     os.mkdir(src)
     Spawn(['rsync', '-a',
+           '--exclude', 'testdata',
            os.path.join(factory.FACTORY_PATH, 'py'),
            os.path.join(factory.FACTORY_PATH, 'bin'),
            src],
