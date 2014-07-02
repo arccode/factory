@@ -8,14 +8,19 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.goofy_split import link_manager
 from cros.factory.goofy_split.link_manager import DUTLinkManager
 from cros.factory.goofy_split.link_manager import HostLinkManager
 from cros.factory.goofy_split.link_manager import LinkDownError
+from cros.factory.utils import test_utils
 
 class LinkManagerTest(unittest.TestCase):
   def setUp(self):
     self.dut_link = None
     self.host_link = None
+
+    link_manager.HOST_LINK_RPC_PORT = test_utils.FindUnusedTCPPort()
+    link_manager.DUT_LINK_RPC_PORT = test_utils.FindUnusedTCPPort()
 
   def tearDown(self):
     if self.dut_link:

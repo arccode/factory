@@ -20,6 +20,8 @@ from cros.factory.utils.net_utils import GetAllIPs
 from cros.factory.utils.net_utils import GetEthernetInterfaces
 from cros.factory.utils.net_utils import GetEthernetIp
 
+
+# Standard RPC ports.  These may be replaced by unit tests.
 HOST_LINK_RPC_PORT = 4020
 DUT_LINK_RPC_PORT = 4021
 
