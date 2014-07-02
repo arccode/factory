@@ -134,7 +134,7 @@ class RunTests(object):
     self._fallback = fallback
     self._start_time = time.time()
 
-    # A dict to store running subprocesses. pid: _TestProc.
+    # A dict to store running subprocesses. pid: (_TestProc, test_name).
     self._running_proc = {}
 
     self._passed_tests = set()  # set of passed test_name
@@ -224,7 +224,7 @@ class RunTests(object):
       except Exception as e:
         self._FailMessage('Error running test %r' % test_name)
         raise e
-      self._running_proc[p.pid] = p
+      self._running_proc[p.pid] = (p, os.path.basename(test_name))
       self._WaitRunningProcessesFewerThan(max_jobs)
     # Wait for all running test.
     self._WaitRunningProcessesFewerThan(1)
@@ -258,18 +258,36 @@ class RunTests(object):
     """
     while len(self._running_proc) >= threshold:
       pid, status = os.wait()
-      p = self._running_proc.pop(pid)
+      p = self._running_proc.pop(pid)[0]
       p.returncode = os.WEXITSTATUS(status) if os.WIFEXITED(status) else -1
       self._RecordTestResult(p)
+      self._ShowRunningTest()
 
   def _PassMessage(self, message):
+    self._ClearLine()
     print '\033[22;32m%s\033[22;0m' % message
 
   def _FailMessage(self, message):
+    self._ClearLine()
     print '\033[22;31m%s\033[22;0m' % message
 
   def _InfoMessage(self, message):
+    self._ClearLine()
     print message
+
+  def _ClearLine(self):
+    sys.stderr.write('\r\033[K')
+
+  def _ShowRunningTest(self):
+    if len(self._running_proc) == 0:
+      return
+    status = '-> %d tests running' % len(self._running_proc)
+    running_tests = ', '.join([p[1] for p in self._running_proc.itervalues()])
+    if len(status) + 3 + len(running_tests) > 80:
+      running_tests = running_tests[:80 - len(status) - 6] + '...'
+    sys.stderr.write('%s [%s]' %
+                     (status, running_tests))
+    sys.stderr.flush()
 
 
 def KillOldTests():
