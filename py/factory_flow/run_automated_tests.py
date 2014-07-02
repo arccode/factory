@@ -322,17 +322,18 @@ class RunAutomatedTests(FactoryFlowCommand):
       return run_status['status'] in (RunState.FINISHED,
                                       RunState.NOT_ACTIVE_RUN)
 
-    logging.info('Waiting for automated test run to finish')
-    utils.WaitFor(WaitForRun, timeout_secs=self.options.timeout_mins * 60,
-                  poll_interval=self.GOOFY_POLLING_INTERVAL)
+    try:
+      logging.info('Waiting for automated test run to finish')
+      utils.WaitFor(WaitForRun, timeout_secs=self.options.timeout_mins * 60,
+                    poll_interval=self.GOOFY_POLLING_INTERVAL)
 
-    stop_event.set()
-    sync_log_thread.join()
+      if not finished_tests:
+        raise RunAutomatedTestsError('No test was run')
 
-    if not finished_tests:
-      raise RunAutomatedTestsError('No test was run')
-
-    failed_tests = [t[0] for t in finished_tests if t[1] == 'FAILED']
-    if failed_tests:
-      raise RunAutomatedTestsError(
-          'The following test(s) failed:' + '\n'.join(failed_tests))
+      failed_tests = [t[0] for t in finished_tests if t[1] == 'FAILED']
+      if failed_tests:
+        raise RunAutomatedTestsError(
+            'The following test(s) failed:' + '\n'.join(failed_tests))
+    finally:
+      stop_event.set()
+      sync_log_thread.join()
