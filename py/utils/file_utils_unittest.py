@@ -22,6 +22,57 @@ from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import Spawn
 
 
+class MakeDirsUidGidTest(unittest.TestCase):
+  FILE_PERMISSION_MASK = 0777
+
+  def setUp(self):
+    self.temp_dir = tempfile.mkdtemp()
+
+  def tearDown(self):
+    shutil.rmtree(self.temp_dir)
+
+  def GetPermissionBits(self, path):
+    return os.stat(path).st_mode & self.FILE_PERMISSION_MASK
+
+  def testDefault(self):
+    target_path = os.path.join(self.temp_dir, 'foo', 'bar', 'baz')
+    file_utils.MakeDirsUidGid(target_path)
+    path_to_check = self.temp_dir
+    for tail in ['foo', 'bar', 'baz']:
+      path_to_check = os.path.join(path_to_check, tail)
+      self.assertEqual(0777, self.GetPermissionBits(path_to_check))
+
+  def testMode(self):
+    target_path = os.path.join(self.temp_dir, 'foo', 'bar', 'baz')
+    mode = 0770
+    file_utils.MakeDirsUidGid(target_path, mode=mode)
+    path_to_check = self.temp_dir
+    for tail in ['foo', 'bar', 'baz']:
+      path_to_check = os.path.join(path_to_check, tail)
+      self.assertEqual(mode, self.GetPermissionBits(path_to_check))
+
+  def testEmpty(self):
+    file_utils.MakeDirsUidGid('')
+
+  def testNoSlash(self):
+    cwd = os.getcwd()
+    os.chdir(self.temp_dir)
+
+    file_utils.MakeDirsUidGid('foo')
+    self.assertTrue(os.path.isdir(os.path.join(self.temp_dir, 'foo')))
+
+    os.chdir(cwd)
+
+  def testRelative(self):
+    cwd = os.getcwd()
+    os.chdir(self.temp_dir)
+
+    file_utils.MakeDirsUidGid(os.path.join('foo', 'bar'))
+    self.assertTrue(os.path.isdir(os.path.join(self.temp_dir, 'foo', 'bar')))
+
+    os.chdir(cwd)
+
+
 class MountDeviceAndReadFileTest(unittest.TestCase):
   """Unittest for MountDeviceAndReadFile."""
   def setUp(self):
@@ -126,7 +177,6 @@ class TempDirectoryTest(unittest.TestCase):
     self.assertFalse(os.path.exists(d))
     self.assertTrue(os.path.exists(new_name))
     shutil.rmtree(new_name)
-
 
 
 class PrependFileTest(unittest.TestCase):

@@ -36,6 +36,32 @@ from cros.factory.utils.process_utils import Spawn
 TryMakeDirs = utils.TryMakeDirs
 
 
+def MakeDirsUidGid(path, uid=-1, gid=-1, mode=0777):
+  """Recursive directory creation with specified uid, gid and mode.
+
+  Like os.makedirs, but it also chown() and chmod() to the directories it
+  creates.
+
+  Args:
+    path: Path to create recursively.
+    uid: User id. -1 means unchanged.
+    gid: Group id. -1 means unchanged.
+    mode: Mode (numeric) of path. Default 0777.
+  """
+  logging.debug('MakeDirsUidGid %r', path)
+  if not path:
+    return
+  if os.path.isdir(path):
+    logging.debug('Path %s exists', path)
+    return
+
+  MakeDirsUidGid(os.path.dirname(path), uid, gid, mode)
+  os.mkdir(path)
+  os.chmod(path, mode)
+  os.chown(path, uid, gid)
+  logging.debug('mkdir %r with mode 0%o uid %r gid %r', path, mode, uid, gid)
+
+
 class Glob(object):
   """A glob containing items to include and exclude.
 

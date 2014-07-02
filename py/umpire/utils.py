@@ -7,6 +7,7 @@
 
 import logging
 import os
+import shutil
 from twisted.internet import defer
 
 import factory_common  # pylint: disable=W0611
@@ -50,7 +51,8 @@ def ConcentrateDeferreds(deferred_list):
   return defer.gatherResults(deferred_list, consumeErrors=True)
 
 
-def UnpackFactoryToolkit(env, toolkit_resource, device_toolkit=True):
+def UnpackFactoryToolkit(env, toolkit_resource, device_toolkit=True,
+                         run_as=None, mode=0750):
   """Unpacks factory toolkit in resources to toolkits/hash directory.
 
   Note that if the destination directory already exists, it doesn't unpack.
@@ -60,10 +62,25 @@ def UnpackFactoryToolkit(env, toolkit_resource, device_toolkit=True):
     toolkit_resource: Path to factory toolkit resources.
     device_toolkit: True to unpack to env.device_toolkits_dir; otherwise,
       env.server_toolkits_dir.
+    run_as: (uid, gid) unpacks using specified user/group. Default None means
+      no uid, gid changes.
+    mode: Directory permission (numerical, refer os.chmod) for newly unpacked
+      toolkit. Default 0750 ('rwxr-x---').
 
   Returns:
     Directory to unpack. None if toolkit_resource is invalid.
   """
+  def RunAs():
+    """Demotes user.group to uid.gid specified in run_as param.
+
+    It is used to execute a command as another user.
+    """
+    if not run_as:
+      return
+    uid, gid = run_as
+    os.setgid(gid)
+    os.setuid(uid)
+
   if not isinstance(toolkit_resource, str) or not toolkit_resource:
     logging.error('Invalid toolkit_resource %r', toolkit_resource)
     return None
@@ -78,23 +95,47 @@ def UnpackFactoryToolkit(env, toolkit_resource, device_toolkit=True):
                  unpack_dir)
     return unpack_dir
 
+  if run_as:
+    uid, gid = run_as
+  else:
+    uid, gid = -1, -1
+
   # Extract to temp directory first then move the directory to prevent
   # keeping a broken toolkit.
   with file_utils.TempDirectory() as temp_dir:
+    if run_as:
+      os.chown(temp_dir, uid, gid)
+
     process_utils.Spawn([toolkit_path, '--noexec', '--target', temp_dir],
-                        check_call=True)
+                        preexec_fn=RunAs, check_call=True, log=True)
+
     # Create toolkit directory's base directory first.
     unpack_dir_base = os.path.split(unpack_dir)[0]
     if not os.path.isdir(unpack_dir_base):
-      os.makedirs(unpack_dir_base)
+      file_utils.MakeDirsUidGid(unpack_dir_base, uid, gid, mode=mode)
+    else:
+      logging.debug('unpack_dir_base %r already exists', unpack_dir_base)
 
-    os.rename(temp_dir, unpack_dir)
+    # Use shutil.move() instead of os.rename(). os.rename calls OS
+    # rename() function. And under Linux-like OSes, this system call
+    # creates and removes hardlink, that only works when source path and
+    # destination path are both on same filesystem.
+    shutil.move(temp_dir, unpack_dir)
+    os.chmod(unpack_dir, mode)
     logging.debug('Factory toolkit extracted to %s', unpack_dir)
 
-  # Inject MD5SUM in extracted toolkit.
+  # Give group rX permision on all files/directories under unpack_dir.
+  process_utils.Spawn(['chmod', '-R', 'g+rX', unpack_dir], check_call=True,
+                      log=True)
+
+  # Inject MD5SUM in extracted toolkit as umpire read only.
   md5sum_path = os.path.join(unpack_dir, 'usr', 'local', 'factory', 'MD5SUM')
   with open(md5sum_path, 'w') as f:
     f.write(toolkit_hash)
+  os.chmod(md5sum_path, 0440)
+  if run_as:
+    os.chown(md5sum_path, uid, gid)
+  logging.debug('%r generated', md5sum_path)
 
   return unpack_dir
 

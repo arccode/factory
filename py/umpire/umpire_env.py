@@ -40,6 +40,7 @@ _RESOURCES_DIR = 'resources'
 _CONFIG_DIR = 'conf'
 _LOG_DIR = 'log'
 _PID_DIR = 'run'
+_BIN_DIR = 'bin'
 _WEBAPP_PORT_OFFSET = 1
 _CLI_PORT_OFFSET = 2
 _RPC_PORT_OFFSET = 3
@@ -62,6 +63,11 @@ class UmpireEnv(object):
     config: Umpire Config object
     shop_floor_manager: ShopFloorManager instance
   """
+
+  # Umpire directory permission 'rwxr-x---'.
+  UMPIRE_DIR_MODE = 0750
+  # Umpire exetuable permission 'rwxr-x---'.
+  UMPIRE_BIN_MODE = 0750
 
   def __init__(self):
     self.base_dir = self._GetUmpireBaseDir(os.path.realpath(__file__))
@@ -120,6 +126,10 @@ class UmpireEnv(object):
   @property
   def pid_dir(self):
     return os.path.join(self.base_dir, _PID_DIR)
+
+  @property
+  def bin_dir(self):
+    return os.path.join(self.base_dir, _BIN_DIR)
 
   @property
   def umpired_pid_file(self):

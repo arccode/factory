@@ -48,17 +48,17 @@ def Init(env, bundle_dir, board, make_default, local, user, group,
     It figures out Umpire base dir, creates it and its sub directories,
     and chown to user.group assigned in args.
     """
-    def TryMkdir(path):
+    def TryMkdirChown(path):
       if not os.path.isdir(path):
         os.makedirs(path)
+      os.chown(path, uid, gid)
+      os.chmod(path, env.UMPIRE_DIR_MODE)
 
-    TryMkdir(base_dir)
-    os.chown(base_dir, uid, gid)
-
+    TryMkdirChown(base_dir)
     for sub_dir in _SUB_DIRS:
-      TryMkdir(os.path.join(base_dir, sub_dir))
+      TryMkdirChown(os.path.join(base_dir, sub_dir))
 
-  def InstallUmpireExecutable():
+  def InstallUmpireExecutable(uid, gid):
     """Extracts factory toolkit to toolkit directory.
 
     Returns:
@@ -70,13 +70,19 @@ def Init(env, bundle_dir, board, make_default, local, user, group,
     # If it fails to add resource, it raises an exception and not
     # going forward.
     toolkit_resource = env.AddResource(toolkit_path)
-    unpack_dir = UnpackFactoryToolkit(env, toolkit_resource,
-                                      device_toolkit=False)
+    unpack_dir = UnpackFactoryToolkit(
+        env, toolkit_resource, device_toolkit=False, run_as=(uid, gid),
+        mode=env.UMPIRE_DIR_MODE)
     logging.info('Factory toolkit extracted to %s', unpack_dir)
     return unpack_dir
 
   def SymlinkBinary(toolkit_base):
-    """Creates /usr/local/bin/umpire-board symlink.
+    """Creates symlink to umpire executable.
+
+    It first creates a symlink $base_dir/bin/umpire to umpire executable in
+    extracted toolkit '$toolkit_base/usr/local/factory/bin/umpire'.
+    And if 'local' is True, symlinks /usr/local/bin/umpire-$board to
+    $base_dir/bin/umpire.
 
     For the first time, also creates /usr/local/bin/umpire symlink.
     If --default is set, replaces /usr/local/bin/umpire.
@@ -84,23 +90,28 @@ def Init(env, bundle_dir, board, make_default, local, user, group,
     Note that root '/'  can be overridden by arg 'root_dir' for testing.
     """
     umpire_binary = os.path.join(toolkit_base, _UMPIRE_CLI_IN_TOOLKIT_PATH)
-    board_symlink = os.path.join(root_dir, 'usr', 'local', 'bin',
-                                 'umpire-%s' % board)
-    file_utils.CheckPath(umpire_binary, description='Umpire CLI')
-    file_utils.ForceSymlink(umpire_binary, board_symlink)
-    logging.info('Symlink %r -> %r', board_symlink, umpire_binary)
 
-    default_symlink = os.path.join(root_dir, 'usr', 'local', 'bin', 'umpire')
-    if not os.path.exists(default_symlink) or make_default:
-      file_utils.ForceSymlink(umpire_binary, default_symlink)
-      logging.info('Symlink %r -> %r', default_symlink, umpire_binary)
+    umpire_bin_symlink = os.path.join(env.bin_dir, 'umpire')
+    file_utils.CheckPath(umpire_binary, description='Umpire CLI')
+    file_utils.ForceSymlink(umpire_binary, umpire_bin_symlink)
+    logging.info('Symlink %r -> %r', umpire_bin_symlink, umpire_binary)
+
+    if not local:
+      global_board_symlink = os.path.join(root_dir, 'usr', 'local', 'bin',
+                                          'umpire-%s' % board)
+      file_utils.ForceSymlink(umpire_bin_symlink, global_board_symlink)
+      logging.info('Symlink %r -> %r', global_board_symlink, umpire_bin_symlink)
+
+      default_symlink = os.path.join(root_dir, 'usr', 'local', 'bin', 'umpire')
+      if not os.path.exists(default_symlink) or make_default:
+        file_utils.ForceSymlink(global_board_symlink, default_symlink)
+        logging.info('Symlink %r -> %r', default_symlink, global_board_symlink)
 
   (uid, gid) = sys_utils.GetUidGid(user, group)
   logging.info('Init umpire to %r for board %r with user.group: %s.%s',
                env.base_dir, board, user, group)
 
   SetUpDir(env.base_dir, uid, gid)
-  toolkit_base = InstallUmpireExecutable()
-  if not local:
-    SymlinkBinary(toolkit_base)
+  toolkit_base = InstallUmpireExecutable(uid, gid)
+  SymlinkBinary(toolkit_base)
   # TODO(deanliao): set up daemon running environment.
