@@ -7,17 +7,23 @@
 """Runs unittests in parallel."""
 
 import argparse
+import logging
 import os
 import shutil
+import signal
 from subprocess import STDOUT
 import sys
 import tempfile
 import time
 
 import factory_common  # pylint: disable=W0611
+from cros.factory import common
+from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import Spawn, CheckOutput
 
 TEST_PASSED_MARK = '.tests-passed'
+KILL_OLD_TESTS_TIMEOUT_SECS = 2
+TEST_RUNNER_ENV_VAR = 'CROS_FACTORY_TEST_RUNNER'
 
 def _MaybeRunPytestsOnly(tests, isolated_tests):
   """Filters tests according to changed file.
@@ -71,6 +77,9 @@ class _TestProc(object):
     self.cros_factory_root = tempfile.mkdtemp(prefix='cros_factory_root.')
     child_env = os.environ.copy()
     child_env['CROS_FACTORY_ROOT'] = self.cros_factory_root
+    # Set TEST_RUNNER_ENV_VAR so we know to kill it later if
+    # re-running tests.
+    child_env[TEST_RUNNER_ENV_VAR] = os.path.basename(__file__)
     self.proc = Spawn(self.test_name, stdout=self.log_file, stderr=STDOUT,
                       env=child_env)
     self.pid = self.proc.pid
@@ -228,6 +237,55 @@ class RunTests(object):
     print message
 
 
+def KillOldTests():
+  """Kills stale test processes.
+
+  Looks for processes that have CROS_FACTORY_TEST_RUNNER=run_tests.py in
+  their environment, mercilessly kills them, and waits for them
+  to die.  If it can't kill all the processes within
+  KILL_OLD_TESTS_TIMEOUT_SECS, returns anyway.
+  """
+  env_signature = '%s=%s' % (TEST_RUNNER_ENV_VAR, os.path.basename(__file__))
+
+  pids_to_kill = []
+  for pid in CheckOutput(['pgrep', '-U', os.environ['USER']]).splitlines():
+    pid = int(pid)
+    try:
+      environ = file_utils.ReadFile('/proc/%d/environ' % pid)
+    except IOError:
+      # No worries, maybe the process already disappeared
+      continue
+
+    if env_signature in environ.split('\0'):
+      pids_to_kill.append(pid)
+
+  if not pids_to_kill:
+    return
+
+  logging.warning('Killing stale test processes %s', pids_to_kill)
+  for pid in pids_to_kill:
+    try:
+      os.kill(pid, signal.SIGKILL)
+    except OSError:
+      if os.path.exists('/proc/%d' % pid):
+        # It's still there.  We should have been able to kill it!
+        logging.exception('Unable to kill stale test process %s', pid)
+
+  start_time = time.time()
+  while True:
+    pids_to_kill = filter(lambda pid: os.path.exists('/proc/%d' % pid),
+                          pids_to_kill)
+    if not pids_to_kill:
+      logging.warning('Killed all stale test processes')
+      return
+
+    if time.time() - start_time > KILL_OLD_TESTS_TIMEOUT_SECS:
+      logging.warning('Unable to kill %s', pids_to_kill)
+      return
+
+    time.sleep(0.1)
+
+
 def main():
   parser = argparse.ArgumentParser(description='Runs unittests in parallel.')
   parser.add_argument('--jobs', '-j', type=int, default=1,
@@ -240,8 +298,12 @@ def main():
                       help='Do not re-run failed test sequentially.')
   parser.add_argument('--nofilter', action='store_true',
                       help='Do not filter tests.')
+  parser.add_argument('--no-kill-old', action='store_false', dest='kill_old',
+                      help='Do not kill old tests.')
   parser.add_argument('test', nargs='+', help='Unittest filename.')
   args = parser.parse_args()
+
+  common.SetupLogging()
 
   test, isolated = ((args.test, args.isolated)
                     if args.nofilter
@@ -249,6 +311,9 @@ def main():
 
   if os.path.exists(TEST_PASSED_MARK):
     os.remove(TEST_PASSED_MARK)
+
+  if args.kill_old:
+    KillOldTests()
 
   runner = RunTests(test, args.jobs, args.log,
                     isolated_tests=isolated, fallback=not args.nofallback)
