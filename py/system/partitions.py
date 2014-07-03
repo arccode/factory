@@ -15,7 +15,9 @@ def GetRootDev():
   """Gets root block device."""
   # rootdev may return /dev/dm-\d+ when LVM is enabled.  'rootdev -s -d' can
   # return simple format like /dev/sd[a-z] or /dev/mmcblk\d+.
-  return Spawn(['rootdev', '-s', '-d'], check_output=True).stdout_data.strip()
+  return Spawn(
+      ['rootdev', '-s', '-d'],
+      check_output=True, ignore_stderr=True).stdout_data.strip()
 
 
 class Partition(object):

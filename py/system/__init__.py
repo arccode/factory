@@ -188,7 +188,7 @@ class SystemInfo(object):
     self.root_device = None
     try:
       rootdev = Spawn(['rootdev', '-s'],
-                      stdout=subprocess.PIPE)
+                      stdout=subprocess.PIPE, ignore_stderr=True)
       stdout, _ = rootdev.communicate()
       self.root_device = stdout.strip()
     except:
