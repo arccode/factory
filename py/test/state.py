@@ -484,17 +484,18 @@ class FactoryState(object):
 
 
 def get_instance(address=DEFAULT_FACTORY_STATE_ADDRESS,
-         port=DEFAULT_FACTORY_STATE_PORT):
+                 port=None):
   '''
   Gets an instance (for client side) to access the state server.
 
   @param address: Address of the server to be connected.
-  @param port: Port of the server to be connected.
+  @param port: Port of the server to be connected.  Defaults to
+      DEFAULT_FACTORY_STATE_PORT.
   @return An object with all public functions from FactoryState.
     See help(FactoryState) for more information.
   '''
-  return jsonrpc.ServerProxy('http://%s:%d' % (address, port),
-                verbose=False)
+  return jsonrpc.ServerProxy('http://%s:%d' % (
+      address, port or DEFAULT_FACTORY_STATE_PORT), verbose=False)
 
 
 class MyJSONRPCRequestHandler(SimpleJSONRPCServer.SimpleJSONRPCRequestHandler):

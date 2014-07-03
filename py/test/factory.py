@@ -235,6 +235,15 @@ def get_state_instance():
   return _state_instance
 
 
+def clear_state_instance():
+  """Clears the state instance.
+
+  The next call of get_state_instance() will allocate a new instance.
+  """
+  global _state_instance  # pylint: disable=W0603
+  _state_instance = None
+
+
 def get_shared_data(key, default=None):
   if not get_state_instance().has_shared_data(key):
     return default

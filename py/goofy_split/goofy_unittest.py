@@ -36,6 +36,7 @@ from cros.factory.goofy.test_environment import Environment
 from cros.factory.test import shopfloor
 from cros.factory.test.event import Event
 from cros.factory.test.factory import TestState
+from cros.factory.utils import test_utils
 from cros.factory.utils.process_utils import Spawn
 
 
@@ -108,6 +109,13 @@ class GoofyTest(unittest.TestCase):
   test_list = None  # Overridden by subclasses
 
   def setUp(self):
+    # Log the name of the test we're about to run, to make it easier
+    # to grok the logs.
+    logging.info('*** Running test %s', type(self).__name__)
+    state.DEFAULT_FACTORY_STATE_PORT = test_utils.FindUnusedTCPPort()
+    logging.info('Using port %d for factory state',
+                 state.DEFAULT_FACTORY_STATE_PORT)
+    factory.clear_state_instance()
     self.mocker = mox.Mox()
     self.env = self.mocker.CreateMock(Environment)
     self.state = state.get_instance()
@@ -250,7 +258,7 @@ class WebSocketTest(GoofyTest):
       # Simulate setting the test widget size/position, since goofy
       # waits for it.
       factory.set_shared_data('test_widget_size', [100, 200],
-                  'test_widget_position', [300, 400])
+                              'test_widget_position', [300, 400])
       ws.run()
       self.ws_done.set()
     # pylint: disable=W0108
@@ -273,10 +281,6 @@ class WebSocketTest(GoofyTest):
 
     # There should be one hello event
     self.assertEqual(1, len(events_by_type[Event.Type.HELLO]))
-
-    # There should be at least one log event
-    self.assertTrue(Event.Type.LOG in events_by_type,
-            repr(events_by_type))
 
     # Each test should have a transition to active, a transition to
     # active + visible, and then to its final state
