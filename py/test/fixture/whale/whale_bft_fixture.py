@@ -1,7 +1,6 @@
 # Copyright (c) 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
-
 """Provides interfaces to interact with Whale BFT fixture."""
 
 import logging
@@ -9,7 +8,9 @@ import logging
 import factory_common  # pylint: disable=W0611
 import cros.factory.test.fixture.bft_fixture as bft
 from cros.factory.test.fixture.whale import color_sensor
+from cros.factory.test.fixture.whale import keyboard_emulator
 from cros.factory.test.fixture.whale import servo_client
+
 
 class WhaleBFTFixture(bft.BFTFixture):
   """Provides interfaces to interact with Whale BFT fixture."""
@@ -43,6 +44,7 @@ class WhaleBFTFixture(bft.BFTFixture):
     super(WhaleBFTFixture, self).__init__()
     self._servo = None
     self._color_sensor1 = None
+    self._keyboard_emulator = None
 
   def Init(self, **params):
     """Sets up an XML-RPC proxy to BFTFixture's BeagleBone Servo.
@@ -55,6 +57,7 @@ class WhaleBFTFixture(bft.BFTFixture):
           host=params['host'], port=params['port'])
       self._color_sensor1 = color_sensor.ColorSensor(
           servo=self._servo, sensor_index=1, params=params)
+      self._keyboard_emulator = keyboard_emulator.KeyboardEmulator(self._servo)
     except servo_client.ServoClientError as e:
       raise bft.BFTFixtureException('Failed to Init(). Reason: %s' % e)
 
@@ -123,9 +126,6 @@ class WhaleBFTFixture(bft.BFTFixture):
   def ScanBarcode(self):
     raise NotImplementedError
 
-  def SimulateKeystrokes(self):
-    raise NotImplementedError
-
   def IsLEDColor(self, color):
     try:
       return self._color_sensor1.ReadColor() == color
@@ -142,3 +142,12 @@ class WhaleBFTFixture(bft.BFTFixture):
       self._servo.whale_fail_led = fail_led
     except servo_client.ServoClientError as e:
       raise bft.BFTFixtureException('Failed to set status color. Reason %s' % e)
+
+  def SimulateKeystrokes(self):
+    self._keyboard_emulator.SimulateKeystrokes()
+
+  def SimulateKeyPress(self, bitmask, duration_secs):
+    try:
+      self._keyboard_emulator.KeyPress(int(bitmask, 0), float(duration_secs))
+    except ValueError as e:
+      raise bft.BFTFixtureException('Failed to convert bitmask. Reason %s' % e)

@@ -191,6 +191,10 @@ class BFTFixture(object):
     """
     raise NotImplementedError
 
+  def SimulateKeyPress(self, key, duration_secs):
+    """Simulates keyboard key press for a period of time."""
+    raise NotImplementedError
+
 
 def CreateBFTFixture(class_name, params):
   """Initializes a BFT fixture instance.
@@ -261,12 +265,23 @@ def main():
                                        choices=sorted(BFTFixture.StatusColor),
                                        help='Status color to set.')
 
+  subparsers.add_parser('SimulateKeystrokes',
+                        help='Trigger all row-column crossings in sequence.')
+
+  parser_simulate_key_press = subparsers.add_parser(
+      'SimulateKeyPress',
+      help='Simulate pressing single or multiple key(s) for a period of time.')
+  parser_simulate_key_press.add_argument('bitmask',
+                                         help='16-bit bitmask of key states.')
+  parser_simulate_key_press.add_argument('period_secs',
+                                         type=float,
+                                         help='Key pressed duration.')
+
   subparsers.add_parser('CheckExtDisplay', help='Check external display.')
   subparsers.add_parser('CheckPowerRail', help='Check power rail.')
   subparsers.add_parser('GetFixtureId', help='Get fixture ID.')
   subparsers.add_parser('Ping', help='Ping fixture.')
   subparsers.add_parser('ScanBarcode', help='Trigger barcode scanner.')
-  subparsers.add_parser('SimulateKeystrokes', help='Trigger keyboard scanner.')
 
   args = parser.parse_args()
 
@@ -304,6 +319,13 @@ def main():
     color = args.color
     fixture.SetStatusColor(color)
     print 'SetStatusColor(%s)' % color
+  elif command == 'SimulateKeystrokes':
+    fixture.SimulateKeystrokes()
+  elif command == 'SimulateKeyPress':
+    bitmask = args.bitmask
+    period_secs = args.period_secs
+    print "SimulateKeyPress(%s, %s)" % (bitmask, period_secs)
+    fixture.SimulateKeyPress(bitmask, period_secs)
   else:
     getattr(fixture, command)()
 
