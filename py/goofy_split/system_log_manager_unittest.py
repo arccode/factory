@@ -432,7 +432,7 @@ class TestSystemLogManager(unittest.TestCase):
         MOCK_SHOPFLOOR_TIMEOUT, MOCK_RSYNC_IO_TIMEOUT,
         MOCK_POLLING_PERIOD, clear_file_paths)
     self.manager.Start()
-    time.sleep(MOCK_SCAN_PERIOD_SEC + MOCK_POLLING_DURATION)
+    time.sleep((MOCK_SCAN_PERIOD_SEC + MOCK_POLLING_DURATION) * 2)
     self.manager.Stop()
 
     self.mox.VerifyAll()
