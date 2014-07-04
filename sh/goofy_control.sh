@@ -79,8 +79,16 @@ start_factory() {
   modprobe i2c-dev 2>/dev/null || true
   check_disk_usage
 
-  if [ -z "$(status ui | grep running)" ]; then
-    start ui
+  # Determine if we need to run in Telemetry (legacy) mode.
+  local use_telemetry=
+  [ -f /usr/local/factory/init/use-telemetry ] && use_telemetry=1
+  status factory-init >/dev/null 2>&1 || use_telemetry=1
+  if [ -n "$use_telemetry" ]; then
+    GOOFY_ARGS="$GOOFY_ARGS --use-telemetry"
+  fi
+
+  if [ -z "$(status ui | grep start)" ]; then
+    start -n ui &
   fi
 
   if [ -f "${RUN_GOOFY_DEVICE_TAG_FILE}" ]; then

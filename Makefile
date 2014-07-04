@@ -125,7 +125,7 @@ par:
 install:
 	mkdir -p $(FACTORY)
 	rsync -a --chmod=go=rX --exclude '*.pyc' \
-	  bin misc py py_pkg sh $(FACTORY)
+	  bin misc py py_pkg sh init $(FACTORY)
 	ln -sf bin/gooftool bin/edid bin/hwid_tool ${FACTORY}
 	mkdir -m755 -p ${DESTDIR}/var/log
 	mkdir -m755 -p $(addprefix ${DESTDIR}/var/factory/,log state tests)

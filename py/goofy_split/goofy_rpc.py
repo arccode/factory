@@ -541,7 +541,7 @@ class GoofyRPC(object):
       raise GoofyRPCException('Factory did not restart as expected')
 
   def _UIRPC(self, event_type, args=None):
-    """Sends events to the Telemetry UI process and waits for response.
+    """Sends events to the UI process and waits for response.
 
     Args:
       event_type: The type of UI RPC to invoke.
@@ -555,17 +555,13 @@ class GoofyRPC(object):
     """
     if utils.in_chroot():
       raise GoofyRPCException(
-          'Cannot evaluate Javascript through telemetry in chroot')
-
-    if self.goofy.env.telemetry_proc_pipe is None:
-      raise GoofyRPCException('UI is not ready yet')
+          'Cannot evaluate Javascript in chroot')
 
     event = {
         'type': event_type,
         'args': args,
     }
-    self.goofy.env.telemetry_proc_pipe.send(event)
-    ret = self.goofy.env.telemetry_proc_pipe.recv()
+    ret = self.goofy.env.invoke_rpc(event)
     if isinstance(ret, Exception):
       raise GoofyRPCException(ret)
     return ret

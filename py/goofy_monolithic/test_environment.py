@@ -71,6 +71,49 @@ class Environment(object):
 
 class DUTEnvironment(Environment):
   """A real environment on a device under test."""
+
+  def __init__(self):
+    super(DUTEnvironment, self).__init__()
+    self.goofy = None  # Must be assigned later by goofy.
+
+  def shutdown(self, operation):
+    assert operation in ['reboot', 'full_reboot', 'halt']
+    logging.info('Shutting down: %s', operation)
+    subprocess.check_call('sync')
+    if operation == 'full_reboot':
+      subprocess.check_call(['ectool', 'reboot_ec', 'cold', 'at-shutdown'])
+      subprocess.check_call('halt')
+    else:
+      subprocess.check_call(operation)
+    # TODO(hungte) Current implementation will raise SIGTERM so goofy can't
+    # really gracefully shutdown. We should do "on exit" instead.
+    time.sleep(30)
+    assert False, 'Never reached (should %s)' % operation
+
+  def spawn_autotest(self, name, args, env_additions, result_file):
+    return self.goofy.prespawner.spawn(args, env_additions)
+
+  def invoke_rpc(self, unused_data):
+    # TODO(hungte) Route to Goofy events.
+    return None
+
+  def launch_chrome(self):
+    utils.WaitFor(self.goofy.web_socket_manager.has_sockets, 30)
+    subprocess.check_call(['initctl', 'emit', 'login-prompt-visible'])
+    # Disable X-axis two-finger scrolling on touchpad.
+    utils.SetTouchpadTwoFingerScrollingX(False)
+    # Disable touchscreen so that operators won't accidentally roll back to
+    # previous webpage.
+    for device_id in utils.GetTouchscreenDeviceIds():
+      utils.SetXinputDeviceEnabled(device_id, False)
+
+  def create_connection_manager(self, wlans, scan_wifi_period_secs):
+    return connection_manager.ConnectionManager(wlans,
+                                                scan_wifi_period_secs)
+
+
+class DUTTelemetryEnvironment(DUTEnvironment):
+  """A real environment on a device under test, using Telemetry."""
   BROWSER_TYPE_LOGIN = 'system'
   BROWSER_TYPE_GUEST = 'system-guest'
   EXTENSION_PATH = os.path.join(factory.FACTORY_PATH, 'py', 'goofy',
@@ -79,7 +122,7 @@ class DUTEnvironment(Environment):
                                      'enable_guest_mode')
 
   def __init__(self):
-    super(DUTEnvironment, self).__init__()
+    super(DUTTelemetryEnvironment, self).__init__()
     self.browser = None
     self.extension = None
     self.telemetry_proc = None
@@ -92,19 +135,10 @@ class DUTEnvironment(Environment):
       self.browser_type = self.BROWSER_TYPE_LOGIN
 
   def shutdown(self, operation):
-    assert operation in ['reboot', 'full_reboot', 'halt']
-    logging.info('Shutting down: %s', operation)
-    subprocess.check_call('sync')
-    if operation == 'full_reboot':
-      subprocess.check_call(['ectool', 'reboot_ec', 'cold', 'at-shutdown'])
-      subprocess.check_call('halt')
-    else:
-      subprocess.check_call(operation)
-    time.sleep(30)
-    assert False, 'Never reached (should %s)' % operation
-
-  def spawn_autotest(self, name, args, env_additions, result_file):
-    return self.goofy.prespawner.spawn(args, env_additions)
+    if self.telemetry_proc_pipe:
+      self.telemetry_proc_pipe.send(None)
+      self.telemetry_proc.join()
+    super(DUTTelemetryEnvironment, self).shutdown(operation)
 
   def launch_chrome(self):
     # Telemetry flakiness: Allow retries when starting up Chrome.
@@ -143,6 +177,13 @@ class DUTEnvironment(Environment):
     if not self.goofy.web_socket_manager.has_sockets():
       logging.error('UI did not load after %d tries; giving up',
                     self.goofy.test_list.options.chrome_startup_tries)
+
+  def invoke_rpc(self, data):
+    if self.goofy.env.telemetry_proc_pipe is None:
+      raise goofy_rpc.GoofyRPCException('UI is not ready yet')
+
+    self.telemetry_proc_pipe.send(data)
+    return self.telemetry_proc_pipe.recv()
 
   def _start_telemetry(self, pipe=None):
     """Starts UI through telemetry."""
@@ -259,10 +300,6 @@ class DUTEnvironment(Environment):
         screenshot.WritePngFile(output_file)
     except Exception as e:
       return e
-
-  def create_connection_manager(self, wlans, scan_wifi_period_secs):
-    return connection_manager.ConnectionManager(wlans,
-                                                scan_wifi_period_secs)
 
 
 class FakeChrootEnvironment(Environment):

@@ -1,0 +1,17 @@
+#!/bin/sh
+# Copyright (c) 2014 The Chromium OS Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+MYDIR="$(dirname "$(readlink -f "$0")")"
+
+main() {
+  # Non-telemetry approach is not stable yet, so we want to enable it only when
+  # specified. Delete the "use-telemetry" file to proceed.
+  [ -f "${MYDIR}/use-telemetry" ] && exit
+
+  # Install UI configurations
+  mount --bind "${MYDIR}/etc/chrome_dev.conf" /etc/chrome_dev.conf
+}
+
+main "$@"

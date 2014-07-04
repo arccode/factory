@@ -1168,9 +1168,6 @@ class Goofy(GoofyBase):
       env: An Environment instance to use (or None to choose
         FakeChrootEnvironment or DUTEnvironment as appropriate).
     """
-    signal.signal(signal.SIGINT, self.handle_sigint)
-    signal.signal(signal.SIGTERM, self.handle_sigterm)
-
     parser = OptionParser()
     parser.add_option('-v', '--verbose', dest='verbose',
                       action='store_true',
@@ -1205,7 +1202,16 @@ class Goofy(GoofyBase):
     parser.add_option('--guest_login', dest='guest_login', default=False,
                       action='store_true',
                       help='Log in as guest. This will not own the TPM.')
+    parser.add_option('--use-telemetry', dest='use_telemetry',
+                      action='store_true', default=False,
+                      help='Use Telemetry for Chrome UI invocation.')
     (self.options, self.args) = parser.parse_args(args)
+
+    signal.signal(signal.SIGINT, self.handle_sigint)
+    # TODO(hungte) SIGTERM does not work properly without Telemetry and should
+    # be fixed.
+    if self.options.use_telemetry:
+      signal.signal(signal.SIGTERM, self.handle_sigterm)
 
     # Make sure factory directories exist.
     factory.get_log_root()
@@ -1242,10 +1248,13 @@ class Goofy(GoofyBase):
       self.env = test_environment.FakeChrootEnvironment()
       logging.warn(
         'Using chroot environment: will not actually run autotests')
-    else:
-      if self.options.guest_login:
-        os.mknod(test_environment.DUTEnvironment.GUEST_MODE_TAG_FILE)
-      self.env = test_environment.DUTEnvironment()
+    elif self.options.ui == 'chrome':
+      if self.options.use_telemetry:
+        if self.options.guest_login:
+          os.mknod(test_environment.DUTTelemetryEnvironment.GUEST_MODE_TAG_FILE)
+        self.env = test_environment.DUTTelemetryEnvironment()
+      else:
+        self.env = test_environment.DUTEnvironment()
     self.env.goofy = self
 
     if self.options.restart:

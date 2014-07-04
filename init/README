@@ -1,0 +1,31 @@
+The init folder contains configurations to change ChromeOS boot flow into
+factory-ready environment.
+
+The goal is to start UI (Chrome) in Kiosk mode, and browsing factory web UI
+port on default. We used to rely on Telemetry for that, but it had some
+problems in TPM ownership, unreliable boot flow against login manager, ...
+etc.
+
+The new solution is to alter UI startup procedure:
+
+0. This folder should be copied into /mnt/stateful_partition as path
+   dev_image/factory/init, and mounted at /usr/local/factory/init.
+
+1. /etc/init/factory-init.conf must be executed when 'starting'
+   boot-services.conf (before UI is started), then calls factory/init/startup.
+
+2. factory/init/startup will change /etc/chrome_dev.conf (which will be parsed
+   by Chrome session manager and applied for startup in "ui.conf").
+
+Now, when everything is set, we'll have a new and unified boot flow:
+  (upstart) startup -> [chromeos_startup] -> (upstart) boot_services ->
+  (upstart) factory-init -> [factory/init/setup] ->
+  (upstart) factory -> [goofy_control] -> (upstart) ui (Chrome) -> [goofy] ->
+  [emit login-prompt-visible] -> (upstart) other system services ...
+
+And when developers run factory_restart, it brings up these services in same
+flow (first factory then chrome).
+
+Note in goofy, we will also check existence of init/use-telemetry and upstart
+job 'factory-init' (i.e., old test images that does not support the new mode)
+to see if we have to roll back into Telemetry mode.
