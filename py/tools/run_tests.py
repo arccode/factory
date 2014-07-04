@@ -18,12 +18,16 @@ import time
 
 import factory_common  # pylint: disable=W0611
 from cros.factory import common
+from cros.factory.test import utils
 from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import Spawn, CheckOutput
 
 TEST_PASSED_MARK = '.tests-passed'
 KILL_OLD_TESTS_TIMEOUT_SECS = 2
 TEST_RUNNER_ENV_VAR = 'CROS_FACTORY_TEST_RUNNER'
+
+# Timeout for running any individual test program.
+TEST_TIMEOUT_SECS = 300
 
 def _MaybeRunPytestsOnly(tests, isolated_tests):
   """Filters tests according to changed file.
@@ -83,7 +87,28 @@ class _TestProc(object):
     self.proc = Spawn(self.test_name, stdout=self.log_file, stderr=STDOUT,
                       env=child_env)
     self.pid = self.proc.pid
+
+    utils.StartDaemonThread(target=self._WatchTest)
     self.returncode = None
+
+  def _WatchTest(self):
+    """Watches a test, killing it if it times out."""
+    while True:
+      time.sleep(1)
+      if self.returncode is not None:
+        # Test complete!
+        return
+      if time.time() > self.start_time + TEST_TIMEOUT_SECS:
+        break  # Timeout
+
+    logging.error('Test %s still alive after %d secs: killing it',
+                  self.test_name, TEST_TIMEOUT_SECS)
+    try:
+      os.kill(self.proc.pid, signal.SIGKILL)
+    except OSError:
+      # E.g., it went away... no big deal
+      logging.exception('Unable to kill %s', self.test_name)
+    return
 
   def __del__(self):
     if os.path.isdir(self.cros_factory_root):
