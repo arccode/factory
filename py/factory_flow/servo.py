@@ -49,7 +49,7 @@ class Servo(object):
       def WaitForServod():
         REGEXP = re.compile(r'^tcp.*(127\.0\.0\.1|localhost):%d' % port,
                             re.MULTILINE)
-        netstat = process_utils.CheckOutput(['netstat', '-l'])
+        netstat = process_utils.CheckOutput(['netstat', '-nl'])
         return bool(REGEXP.search(netstat))
 
       utils.WaitFor(WaitForServod, 10)
