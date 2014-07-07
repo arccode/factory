@@ -26,8 +26,6 @@ import socket
 import SocketServer
 import threading
 import time
-import zipfile
-from fnmatch import fnmatch
 from SimpleXMLRPCServer import SimpleXMLRPCServer, SimpleXMLRPCRequestHandler
 
 import factory_common  # pylint: disable=W0611
@@ -294,23 +292,15 @@ def main():
                        updater=updater)
 
     if options.dummy:
-      root, ext, path = __file__.partition('.par/')
+      unused_root, ext, unused_path = __file__.partition('.par/')
       if ext:
-        # We're inside a .par file.  Load test data from inside the par.
-        # TODO(jsalz): Factor this logic out to a separate method.
-        z = zipfile.ZipFile(root + ext[:-1])
-        pattern = os.path.join(os.path.dirname(path), 'testdata', '*.csv')
-        csvs = [x for x in z.namelist() if fnmatch(x, pattern)]
-        if not csvs:
-          logging.critical('No test files matching %s', pattern)
-          exit(1)
-        for f in csvs:
-          logging.warn('Using data file %s%s%s from dummy shopfloor server',
-                       root, ext, f)
-          with open(os.path.join(instance.data_dir, os.path.basename(f)),
-                    'w') as out:
-            out.write(z.read(f))
-        z.close()
+        # Since testdata are not included in factory.par, we create an dummy
+        # devices.csv file here. This is for testing only.
+        with open(os.path.join(instance.data_dir,
+                               os.path.basename('devices.csv')),
+                  'w') as out:
+          out.write(
+              '# Dummy devices.csv file to make simple_shopfloor module happy.')
       else:
         pattern = os.path.join(
             os.path.dirname(os.path.realpath(__file__)),
