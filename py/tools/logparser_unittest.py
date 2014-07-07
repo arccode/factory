@@ -102,7 +102,7 @@ class LogParserUnitTest(unittest.TestCase):
   }
 
   YAML_DESCRIPTION_SAMPLE = """
-panel_serial: '12345'
+panel_serial: '1234567890'
 timestamp: 2014-04-21T13:45:21.123Z
 fixture_id: 'henry'
 status: PASSED
@@ -213,27 +213,28 @@ rawdata: ['abc.png', 'def.wav']
         self.assertEqual(str(e.exception), result)
 
     name_list = [
-        'abc.tgz', 'abc_12345.tgz', 'abc_12345_1234567890123456.tgz',
-        'abc_1234_12345678901234567.tgz', '12345_12345678901234567.tgz']
+        'abc.tgz', 'abc_1234567890.tgz', 'abc_1234567890_1234567890123456.tgz',
+        'abc_1234_12345678901234567.tgz', '1234567890_12345678901234567.tgz']
     for name in name_list:
       check_FileName(name, False, 'File name %s does not match pattern.' % name)
 
-    name_list = ['abc_12345_12345678901234567.gz', 'abc_12345_1234567890123456']
+    name_list = ['abc_1234567890_12345678901234567.gz',
+                 'abc_1234567890_1234567890123456']
     for name in name_list:
       check_FileName(name, False, 'File extension should be tgz or zip.')
 
     name_list = {
-        'abc_12345_12345678901234567.tgz': {
+        'abc_1234567890_12345678901234567.tgz': {
             'fixture_id': 'abc',
-            'serial_number': '12345',
+            'serial_number': '1234567890',
             'time_stamp': '12345678901234567'},
-        'def_23456_67890123456789012.zip': {
+        'def_2345678901_67890123456789012.zip': {
             'fixture_id': 'def',
-            'serial_number': '23456',
+            'serial_number': '2345678901',
             'time_stamp': '67890123456789012'},
-        'hjk_34567_98765432109876543.tar': {
+        'hjk_3456789012_98765432109876543.tar': {
             'fixture_id': 'hjk',
-            'serial_number': '34567',
+            'serial_number': '3456789012',
             'time_stamp': '98765432109876543'},
     }
     for name, value in name_list.iteritems():
@@ -241,13 +242,13 @@ rawdata: ['abc.png', 'def.wav']
 
   def test_DecompressFile(self):
     self.createFile(os.path.join(self.tmpdir, 'abc.png'), 123)
-    with zipfile.ZipFile(
-        os.path.join(self.tmpdir, 'abc_12345_12345678901234567.zip'), 'w') as f:
+    with zipfile.ZipFile(os.path.join(self.tmpdir,
+        'abc_1234567890_12345678901234567.zip'), 'w') as f:
       f.write(os.path.join(self.tmpdir, 'abc.png'), 'abc.png')
 
     zip_desc = {
         'fixture_id': 'abc',
-        'serial_number': '12345',
+        'serial_number': '1234567890',
         'time_stamp': '12345678901234567'}
     logparser = LogParser(self.options)
     # Check unsupport format
@@ -257,33 +258,32 @@ rawdata: ['abc.png', 'def.wav']
     self.assertEqual(str(e.exception), 'Unsupport format.')
 
     # Check Zip format
-    ret = logparser.DecompressFile(
-        os.path.join(self.tmpdir, 'abc_12345_12345678901234567.zip'), zip_desc)
+    ret = logparser.DecompressFile(os.path.join(self.tmpdir,
+        'abc_1234567890_12345678901234567.zip'), zip_desc)
     self.assertEqual(ret, None)
 
-    with tarfile.open(
-        os.path.join(self.tmpdir, 'def_23456_98765432109876543.tar'), 'w') as f:
+    with tarfile.open(os.path.join(self.tmpdir,
+        'def_2345678901_98765432109876543.tar'), 'w') as f:
       f.add(os.path.join(self.tmpdir, 'abc.png'), 'abc.png')
 
     tar_desc = {
         'fixture_id': 'def',
-        'serial_number': '23456',
+        'serial_number': '2345678901',
         'time_stamp': '98765432109876'}
     logparser = LogParser(self.options)
     # Check Tar format
-    ret = logparser.DecompressFile(
-        os.path.join(self.tmpdir, 'def_23456_98765432109876543.tar'), tar_desc)
+    ret = logparser.DecompressFile(os.path.join(self.tmpdir,
+        'def_2345678901_98765432109876543.tar'), tar_desc)
     self.assertEqual(ret, None)
 
-    with tarfile.open(
-        os.path.join(self.tmpdir,
-        'def_23456_98765432109876543.tgz'), 'w:gz') as f:
+    with tarfile.open(os.path.join(self.tmpdir,
+        'def_2345678901_98765432109876543.tgz'), 'w:gz') as f:
       f.add(os.path.join(self.tmpdir, 'abc.png'), 'abc.png')
 
     logparser = LogParser(self.options)
     # Check Tar+GZip format
-    ret = logparser.DecompressFile(
-        os.path.join(self.tmpdir, 'def_23456_98765432109876543.tgz'), tar_desc)
+    ret = logparser.DecompressFile(os.path.join(self.tmpdir,
+        'def_2345678901_98765432109876543.tgz'), tar_desc)
     self.assertEqual(ret, None)
 
   def test_LoadDescription(self):
@@ -303,7 +303,7 @@ rawdata: ['abc.png', 'def.wav']
 
     file_desc = {
         'fixture_id': 'abc',
-        'serial_number': '23456',
+        'serial_number': '2345678901',
         'time_stamp': '12345678901234567'}
     # Check file exist
     logparser = LogParser(self.options)
@@ -382,7 +382,7 @@ rawdata: ['abc.png', 'def.wav']
     post_environ = copy.copy(LogParserUnitTest.POST_ENVIRON_SAMPLE)
     logparser = LogParser(self.options)
     ret = logparser(post_environ, self.start_response)
-    self.assertEqual(ret, ['FAILED, No file or multiple files upload.'])
+    self.assertEqual(ret, ['FAILED, No file or multiple files uploaded.'])
 
     # Check exception capture
     mock_GetFile.return_value = self.emulateCGIField('abc.exe', 'content')

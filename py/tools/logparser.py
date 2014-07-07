@@ -34,7 +34,7 @@ _VPD_FILE = '%s/tarfiles/vpd' % _BASE_DIR
 _CAMERA_MAPPING_FILE = '%s/tarfiles/camera_mapping' % _BASE_DIR
 
 # File pattern setting
-_SERIAL_DIGIT = 5
+_SERIAL_DIGIT = 10
 _FILE_NAME_RE = re.compile(r'(\w+?)_(\w{%d})_(\d{17})$' % _SERIAL_DIGIT)
 _FILE_EXT_RE = re.compile(r'.(tgz|zip|tar)$')
 
@@ -165,7 +165,8 @@ class LogParser(object):
     self.rawdata_dir = options.get('rawdata_dir', _RAW_DATA_DIR)
     self.eventlog_dir = options.get('eventlog_dir', _EVENT_LOG_DIR)
     self.vpd_file = options.get('vpd_file', _VPD_FILE)
-    self.camera_file = options.get('camera_file', _VPD_FILE)
+    self.camera_file = options.get('camera_file', _CAMERA_MAPPING_FILE)
+    self.log_file = '%s/log' % options.get('eventlog_dir', _EVENT_LOG_DIR)
 
     self._CreateDir(self.tarfile_dir)
     self._CreateDir(self.rawdata_dir)
@@ -174,21 +175,26 @@ class LogParser(object):
     self._CreateDir(os.path.dirname(self.camera_file))
 
     self.vpd_lock = threading.Lock()
-    self.vpd = self._LoadFile(self.vpd_file, self.vpd_lock)
+    self.vpd = self._LoadFile(self.vpd_file)
 
     self.camera_lock = threading.Lock()
-    self.camera_mapping = self._LoadFile(self.camera_file, self.camera_lock)
+    self.camera_mapping = self._LoadFile(self.camera_file)
 
   def __call__(self, environ, start_response):
     session = WSGISession(environ, start_response)
     ret = None
     if session.Method() == 'POST':
       try:
-        self.CheckUploadFile(session)
+        fileitem = session.GetFile()
+        self.CheckUploadFile(fileitem)
       except Exception as e:
         ret = 'FAILED, %s' % e
       else:
         ret = 'PASSED'
+      if fileitem:
+        self._Log(fileitem.filename, ret)
+      else:
+        self._Log(fileitem, ret)
     elif session.Method() == 'GET':
       action = session.GetQuery('action')
       if action:
@@ -201,6 +207,7 @@ class LogParser(object):
   def _CreateDir(self, path):
     if not os.path.exists(path):
       os.makedirs(path)
+      os.chmod(path, 0757)
 
   def GetVPDData(self, session):
     """Gets all key-value pairs of VPD data.
@@ -238,21 +245,21 @@ class LogParser(object):
       return self.camera_mapping[serial]
     return None
 
-  def CheckUploadFile(self, session):
+  def CheckUploadFile(self, fileitem):
     """Handles the uploaded file from HTTP POST request.
 
     This function also check the format of log files and move log files to a
     specified directory.
 
     Args:
-      session: an WSGISession object.
+      fileitem: A FieldStorage object
+          {name: field_name, filename: file_name, value: file_content}
 
     Raises:
       Exception when uploaded file name incorrect.
     """
-    fileitem = session.GetFile()
     if fileitem is None:
-      raise Exception('No file or multiple files upload.')
+      raise Exception('No file or multiple files uploaded.')
 
     # file_desc is the target of decompressed file, which is derived from
     # uploaded filename.
@@ -278,6 +285,8 @@ class LogParser(object):
     """
     if 'vpd' not in log_desc:
       return
+    if log_desc['status'] == 'FAILED':
+      return
     panel_serial = log_desc['panel_serial']
     if panel_serial not in self.vpd:
       self.vpd[panel_serial] = {}
@@ -293,16 +302,15 @@ class LogParser(object):
     """
     if 'camera_serial' not in log_desc:
       return
-    panel_serial = log_desc['panel_serial']
-    if panel_serial not in self.camera_mapping:
-      self.camera_mapping[panel_serial] = []
+    camera_for_panel = self.camera_mapping.setdefault(
+        log_desc['panel_serial'], [])
 
     # List is used to record camera module replace history.
     # We check the serial is different to last element of the list to avoid
     # multiple test in one station.
-    if len(self.camera_mapping[panel_serial]) == 0 or (
-        self.camera_mapping[panel_serial][-1] != log_desc['camera_serial']):
-      self.camera_mapping[panel_serial].append(log_desc['camera_serial'])
+    if len(camera_for_panel) == 0 or (
+        camera_for_panel[-1] != log_desc['camera_serial']):
+      camera_for_panel.append(log_desc['camera_serial'])
     self._ExportFile(self.camera_mapping, self.camera_file, self.camera_lock)
 
   def ExportEventLog(self, log_desc):
@@ -316,18 +324,17 @@ class LogParser(object):
     """
     log_path = os.path.join(self.eventlog_dir,
                             log_desc['timestamp'].strftime('%Y%m%d'))
-    if not os.path.exists(log_path):
-      os.makedirs(log_path)
+    self._CreateDir(log_path)
     log_file = os.path.join(log_path, 'events.%s' % log_desc['panel_serial'])
     with open(log_file, 'a') as event_file:
       data = {
           'EVENT': 'fixture_log',
           'PANEL_SERIAL': log_desc['panel_serial'],
-          'TIME': log_desc['timestamp'],
+          'TIME': log_desc['timestamp'].isoformat(),
           'STATUS': log_desc['status'],
           'DURATION': log_desc['duration'],
           'FIXTURE_ID': log_desc['fixture_id'],
-          'CAMERA_SERIAL': log_desc.get('camera_serial', None),
+          'CAMERA_SERIAL': log_desc.get('camera_serial'),
       }
       data.update(log_desc['events'])
       yaml_data = yaml.dump(data) + _SYNC_MARKER + '---\n'
@@ -475,8 +482,7 @@ class LogParser(object):
       Unsupport format exception if file format is not ZIP/TAR/TGZ.
     """
     target_path = self.GetFilePath(file_desc)
-    if not os.path.exists(target_path):
-      os.makedirs(target_path)
+    self._CreateDir(target_path)
 
     if self.DecompressZip(file_path, target_path):
       return
@@ -484,19 +490,27 @@ class LogParser(object):
       return
     raise Exception('Unsupport format.')
 
-  def _LoadFile(self, file_name, lock):
+  def _LoadFile(self, file_name):
     if not os.path.exists(file_name):
       return {}
-    with lock:
-      with open(file_name, 'r') as f:
-        return yaml.load(f)
+    with open(file_name, 'r') as f:
+      return yaml.load(f)
 
   def _ExportFile(self, data, file_name, lock):
     raw_data = yaml.dump(data)
     with lock:
       with open(file_name, 'w') as f:
         f.write(raw_data)
-        f.flush()
+
+  def _Log(self, filename, message):
+    with open(self.log_file, 'a') as f:
+      fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+      try:
+        f.write('%s, %s, %s\n' % (
+            datetime.datetime.now().isoformat(), filename, message))
+      finally:
+        fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+      os.fdatasync(f.fileno())
 
 
 def main():
