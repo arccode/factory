@@ -92,14 +92,17 @@ def DecodeHWIDWrapper(options):
            help=('a file with probed results.\n'
                  '(required if not running on a DUT)')),
     CmdArg('--rma-mode', default=False, action='store_true',
-           help='whether to enable RMA mode.'))
+           help='whether to enable RMA mode.'),
+    CmdArg('--phase', default=None,
+           help=('override phase for phase checking (defaults to the current '
+                 'as returned by the "factory phase" command)')))
 def VerifyHWIDWrapper(options):
   """Verifies HWID."""
   encoded_string = options.hwid if options.hwid else hwid_utils.GetHWIDString()
   probed_results = hwid_utils.GetProbedResults(options.probed_results_file)
   vpd = hwid_utils.GetVPD(probed_results)
   hwid_utils.VerifyHWID(options.database, encoded_string, probed_results, vpd,
-                        options.rma_mode)
+                        options.rma_mode, options.phase)
   # No exception raised. Verification was successful.
   print 'Verification passed.'
 

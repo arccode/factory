@@ -109,7 +109,8 @@ def ParseDecodedHWID(hwid):
           'components': dict(output_components)}
 
 
-def VerifyHWID(db, encoded_string, probed_results, vpd, rma_mode):
+def VerifyHWID(db, encoded_string, probed_results, vpd, rma_mode,
+               current_phase=None):
   """Verifies the given encoded HWID v3 string against the component db.
 
   A HWID context is built with the encoded HWID string and the board-specific
@@ -118,6 +119,9 @@ def VerifyHWID(db, encoded_string, probed_results, vpd, rma_mode):
 
   RO and RW VPD are also loaded and checked against the required values stored
   in the board-specific component database.
+
+  Phase checks are enforced; see cros.factory.hwid.common.VerifyPhase for
+  details.
 
   A set of mandatory rules for VPD are also forced here.
 
@@ -128,6 +132,9 @@ def VerifyHWID(db, encoded_string, probed_results, vpd, rma_mode):
     vpd: A dict of RO and RW VPD values.
     rma_mode: True for RMA mode to allow deprecated components. Defaults to
         False.
+    current_phase: The current phase, for phase checks.  If None is
+        specified, then phase.GetPhase() is used (this defaults to PVT
+        if none is available).
 
   Raises:
     HWIDException if verification fails.
@@ -136,6 +143,7 @@ def VerifyHWID(db, encoded_string, probed_results, vpd, rma_mode):
   hwid = decoder.Decode(db, encoded_string, mode=hwid_mode)
   hwid.VerifyProbeResult(yaml.dump(probed_results))
   hwid.VerifyComponentStatus()
+  hwid.VerifyPhase(current_phase)
   context = rule.Context(hwid=hwid, vpd=vpd)
   db.rules.EvaluateRules(context, namespace="verify.*")
 

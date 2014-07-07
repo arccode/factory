@@ -10,7 +10,7 @@ image_id:
   0: EVT
   1: DVT
   2: PVT
-  3: MP
+  3: PVT2
 
 pattern:
   - image_ids: [0, 1]
@@ -29,7 +29,8 @@ pattern:
     - cpu: 1
     - storage: 2              # 10 bits
     - cpu: 1
-    - firmware: 1             # 12 bits
+    - firmware: 1
+    - firmware: 1             # 13 bits
 
   - image_ids: [2, 3]
     encoding_scheme: base8192
@@ -48,6 +49,7 @@ pattern:
     - storage: 2              # 10 bits
     - cpu: 1
     - firmware: 1             # 12 bits
+    - firmware: 1
 
 encoded_fields:
   audio_codec:
@@ -123,16 +125,22 @@ encoded_fields:
   firmware:
     0:
       hash_gbb: hash_gbb_0
-      key_recovery: key_recovery_0
-      key_root: key_root_0
+      key_recovery: key_recovery_mp
+      key_root: key_root_mp
       ro_ec_firmware: ro_ec_firmware_0
       ro_main_firmware: ro_main_firmware_0
     1:
       hash_gbb: hash_gbb_0
-      key_recovery: key_recovery_0
-      key_root: key_root_0
+      key_recovery: key_recovery_mp
+      key_root: key_root_mp
       ro_ec_firmware: ro_ec_firmware_0
       ro_main_firmware: ro_main_firmware_1
+    2:
+      hash_gbb: hash_gbb_0
+      key_recovery: key_recovery_premp
+      key_root: key_root_premp
+      ro_ec_firmware: ro_ec_firmware_0
+      ro_main_firmware: ro_main_firmware_0
 
 components:
   audio_codec:
@@ -314,13 +322,17 @@ components:
 
   key_recovery:
     items:
-      key_recovery_0:
-        values: { compact_str : kv3#key_recovery_0 }
+      key_recovery_mp:
+        values: { compact_str : kv3#key_recovery_mp }
+      key_recovery_premp:
+        values: { compact_str : kv3#key_recovery_premp }
 
   key_root:
     items:
-      key_root_0:
-        values: { compact_str: kv3#key_root_0 }
+      key_root_mp:
+        values: { compact_str: kv3#key_root_mp }
+      key_root_premp:
+        values: { compact_str: kv3#key_root_premp }
 
   ro_ec_firmware:
     items:
@@ -337,7 +349,7 @@ components:
 
 rules:
 - name: device_info.set_image_id
-  evaluate: SetImageId('MP')
+  evaluate: SetImageId('PVT2')
 
 - name: device_info.component.has_cellular
   when: GetDeviceInfo('component.has_cellular')
@@ -374,8 +386,8 @@ rules:
   evaluate:
   - Assert(ComponentEq('battery', 'battery_huge'))
   - Assert(ComponentEq('hash_gbb', 'hash_gbb_0'))
-  - Assert(ComponentEq('key_recovery', 'key_recovery_0'))
-  - Assert(ComponentEq('key_root', 'key_root_0'))
+  - Assert(ComponentEq('key_recovery', 'key_recovery_mp'))
+  - Assert(ComponentEq('key_root', 'key_root_mp'))
   - Assert(ComponentEq('ro_ec_firmware', 'ro_ec_firmware_0'))
   - Assert(ComponentEq('ro_main_firmware', 'ro_main_firmware_0'))
 

@@ -14,10 +14,28 @@ import factory_common # pylint: disable=W0611
 
 from cros.factory.common import MakeSet, MakeList
 from cros.factory.hwid.common import HWIDException
+from cros.factory.hwid.common import IsMPKeyName
 from cros.factory.hwid.database import Database
 from cros.factory.hwid.encoder import Encode
 
 _TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
+
+
+class IsMPKeyNameTest(unittest.TestCase):
+  def testPreMP(self):
+    self.assertFalse(IsMPKeyName('foo_premp'))
+    self.assertFalse(IsMPKeyName('foo_pre_mp'))
+    self.assertFalse(IsMPKeyName('foo_pre_mp_v2'))
+    self.assertFalse(IsMPKeyName('foo_pre_mpv2'))
+    self.assertFalse(IsMPKeyName('foo_premp_v2'))
+
+  def testMP(self):
+    self.assertTrue(IsMPKeyName('foo_mp'))
+    self.assertTrue(IsMPKeyName('foo_mp_v2'))
+    self.assertTrue(IsMPKeyName('foo_mpv2'))
+
+  def testDev(self):
+    self.assertFalse(IsMPKeyName('foo_dev'))
 
 
 class HWIDTest(unittest.TestCase):

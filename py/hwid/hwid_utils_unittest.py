@@ -9,6 +9,7 @@
 import copy
 import logging
 import os
+import re
 import unittest2
 import yaml
 
@@ -18,6 +19,7 @@ from cros.factory.hwid import common
 from cros.factory.hwid import database
 from cros.factory.hwid import hwid_utils
 from cros.factory.hwdb import hwid_tool
+from cros.factory.test import phase
 
 
 TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
@@ -120,7 +122,7 @@ class HWIDv3UtilsTest(unittest2.TestCase):
     }
 
     self.assertEquals(
-        'CHROMEBOOK D9I-F9U',
+        'CHROMEBOOK D9I-E6A-A5P',
         hwid_utils.GenerateHWID(
             self.db, self.probed_results,
             device_info, self.vpd, False).encoded_string)
@@ -132,7 +134,7 @@ class HWIDv3UtilsTest(unittest2.TestCase):
         'component.audio_codec': 'set_1'
     }
     self.assertEquals(
-        'CHROMEBOOK D92-F8J',
+        'CHROMEBOOK D92-E6A-A7R',
         hwid_utils.GenerateHWID(
             self.db, self.probed_results,
             device_info, self.vpd, False).encoded_string)
@@ -144,7 +146,7 @@ class HWIDv3UtilsTest(unittest2.TestCase):
         'component.audio_codec': 'set_0'
     }
     self.assertEquals(
-        'CHROMEBOOK D52-F7N',
+        'CHROMEBOOK D52-E6A-A8K',
         hwid_utils.GenerateHWID(
             self.db, self.probed_results,
             device_info, self.vpd, False).encoded_string)
@@ -152,9 +154,21 @@ class HWIDv3UtilsTest(unittest2.TestCase):
   def testVerifyHWID(self):
     """Tests HWID verification."""
     self.assertEquals(None, hwid_utils.VerifyHWID(
-        self.db, 'CHROMEBOOK A5AU-LU', self.probed_results, self.vpd, False))
-    self.assertEquals(None, hwid_utils.VerifyHWID(
-        self.db, 'CHROMEBOOK D9I-F9U', self.probed_results, self.vpd, False))
+        self.db, 'CHROMEBOOK A5AU-LU', self.probed_results, self.vpd, False,
+        phase.EVT))
+    for current_phase in (phase.PVT, phase.PVT_DOGFOOD):
+      self.assertEquals(None, hwid_utils.VerifyHWID(
+          self.db, 'CHROMEBOOK D9I-F9U', self.probed_results, self.vpd, False,
+          current_phase))
+
+    # Check for mismatched phase.
+    self.assertRaisesRegexp(
+        common.HWIDException,
+        re.escape("In DVT phase, expected an image name beginning with 'DVT' "
+                  "(but 'CHROMEBOOK D9I-F9U' has image ID 'PVT2')"),
+        hwid_utils.VerifyHWID,
+        self.db, 'CHROMEBOOK D9I-F9U', self.probed_results, self.vpd, False,
+        phase.DVT)
 
     # Check for missing RO VPD.
     vpd = copy.deepcopy(self.vpd)
@@ -162,7 +176,7 @@ class HWIDv3UtilsTest(unittest2.TestCase):
     self.assertRaisesRegexp(
         rule.RuleException, r"KeyError\('serial_number',\)",
         hwid_utils.VerifyHWID, self.db, 'CHROMEBOOK D9I-F9U',
-        self.probed_results, vpd, False)
+        self.probed_results, vpd, False, phase.PVT)
 
     # Check for invalid RO VPD.
     vpd = copy.deepcopy(self.vpd)
@@ -171,7 +185,7 @@ class HWIDv3UtilsTest(unittest2.TestCase):
         rule.RuleException,
         r"Invalid VPD value 'invalid_layout' of 'keyboard_layout'",
         hwid_utils.VerifyHWID, self.db, 'CHROMEBOOK D9I-F9U',
-        self.probed_results, vpd, False)
+        self.probed_results, vpd, False, phase.PVT)
 
     # Check for missing RW VPD.
     vpd = copy.deepcopy(self.vpd)
@@ -179,7 +193,7 @@ class HWIDv3UtilsTest(unittest2.TestCase):
     self.assertRaisesRegexp(
         rule.RuleException, r"KeyError\('gbind_attribute',\)",
         hwid_utils.VerifyHWID, self.db, 'CHROMEBOOK D9I-F9U',
-        self.probed_results, vpd, False)
+        self.probed_results, vpd, False, phase.PVT)
 
     # Check for invalid RW VPD.
     vpd = copy.deepcopy(self.vpd)
@@ -188,7 +202,7 @@ class HWIDv3UtilsTest(unittest2.TestCase):
         rule.RuleException,
         r"Invalid registration code 'invalid_gbind_attribute'",
         hwid_utils.VerifyHWID, self.db, 'CHROMEBOOK D9I-F9U',
-        self.probed_results, vpd, False)
+        self.probed_results, vpd, False, phase.PVT)
 
     probed_results = copy.deepcopy(self.probed_results)
     probed_results['found_probe_value_map']['audio_codec'][1] = {
@@ -198,7 +212,7 @@ class HWIDv3UtilsTest(unittest2.TestCase):
         (r"Component class 'audio_codec' is missing components: "
          r"\['hdmi_1'\]. Expected components are: \['codec_1', 'hdmi_1'\]"),
         hwid_utils.VerifyHWID, self.db, 'CHROMEBOOK D9I-F9U', probed_results,
-        self.vpd, False)
+        self.vpd, False, phase.PVT)
 
     probed_results = copy.deepcopy(self.probed_results)
     probed_results['found_probe_value_map']['cellular'] = {
@@ -209,7 +223,25 @@ class HWIDv3UtilsTest(unittest2.TestCase):
         (r"Component class 'cellular' has extra components: "
          "\['cellular_0'\]. Expected components are: None"),
         hwid_utils.VerifyHWID, self.db, 'CHROMEBOOK D9I-F9U', probed_results,
-        self.vpd, False)
+        self.vpd, False, phase.PVT)
+
+    # Test pre-MP recovery/root keys.
+    probed_results = copy.deepcopy(self.probed_results)
+    probed_results['found_volatile_values']['key_root'].update(
+        {'compact_str': 'kv3#key_root_premp'})
+    probed_results['found_volatile_values']['key_recovery'].update(
+        {'compact_str': 'kv3#key_recovery_premp'})
+    # Pre-MP recovery/root keys are fine in DVT...
+    self.assertEquals(None, hwid_utils.VerifyHWID(
+        self.db, 'CHROMEBOOK B5AW-5W', probed_results, self.vpd, False,
+        phase.DVT))
+    # ...but not in PVT
+    self.assertRaisesRegexp(
+        common.HWIDException,
+        "MP keys are required in PVT, but key_recovery component name is "
+        "'key_recovery_premp' and key_root component name is 'key_root_premp'",
+        hwid_utils.VerifyHWID, self.db, 'CHROMEBOOK D9I-F6A-A6B',
+        probed_results, self.vpd, False, phase.PVT)
 
     # Test deprecated component.
     probed_results = copy.deepcopy(self.probed_results)
@@ -219,11 +251,12 @@ class HWIDv3UtilsTest(unittest2.TestCase):
         common.HWIDException, r"Not in RMA mode. Found deprecated component of "
         r"'ro_main_firmware': 'ro_main_firmware_1'",
         hwid_utils.VerifyHWID, self.db, 'CHROMEBOOK D9I-H9T', probed_results,
-        self.vpd, False)
+        self.vpd, False, phase.PVT)
 
     # Test deprecated component is allowed in rma mode.
     self.assertEquals(None, hwid_utils.VerifyHWID(
-        self.db, 'CHROMEBOOK D9I-H9T', probed_results, self.vpd, True))
+        self.db, 'CHROMEBOOK D9I-H9T', probed_results, self.vpd, True,
+        phase.PVT))
 
   def testDecodeHWID(self):
     """Tests HWID decoding."""

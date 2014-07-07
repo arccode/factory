@@ -9,11 +9,13 @@
 import collections
 import copy
 import os
+import re
 import pprint
 
 import factory_common # pylint: disable=W0611
 from cros.factory import common, schema, rule
 from cros.factory.hwid import base32, base8192
+from cros.factory.test import phase
 from cros.factory.test import utils
 from cros.factory.tools import build_board
 
@@ -25,6 +27,8 @@ DEFAULT_HWID_DATA_PATH = (
     if utils.in_chroot()
     else '/usr/local/factory/hwid')
 
+PRE_MP_KEY_NAME_PATTERN = re.compile('_pre_?mp')
+MP_KEY_NAME_PATTERN = re.compile('_mp[_0-9v]*$')
 
 def ProbeBoard(hwid=None):
   """Probes the board name by looking up the CHROMEOS_RELEASE_BOARD variable
@@ -49,6 +53,15 @@ def ProbeBoard(hwid=None):
 
   return build_board.BuildBoard().short_name
 
+
+def IsMPKeyName(name):
+  """Returns True if the key name looks like MP (not pre-MP).
+
+  An MP key name does not contain the strings "_premp" or "_premp", and
+  ends in something like "_mp" or "_mp_v2" or "_mpv2".
+  """
+  return (MP_KEY_NAME_PATTERN.search(name) and
+          not PRE_MP_KEY_NAME_PATTERN.search(name))
 
 # A named tuple to store the probed component name and the error if any.
 ProbedComponentResult = collections.namedtuple(
@@ -232,6 +245,48 @@ class HWID(object):
         err_msg += '. Expected components are: %r' % (
             sorted(expected_components) if expected_components else None)
         raise HWIDException(err_msg)
+
+  def VerifyPhase(self, current_phase=None):
+    """Enforces phase checks.
+
+    - Starting in PVT_DOGFOOD, only an MP key (not a pre-MP key) may be used.
+      The names of recovery and root keys in HWID files are required to end with
+      "_mp" or "_mp_v[0-9]+", e.g., "_mp_v2".
+    - The image ID must begin with the phase name (except that in PVT_DOGFOOD,
+      the image ID must begin with 'PVT').
+
+    Args:
+      current_phase: The current phase, for phase checks.  If None is
+          specified, then phase.GetPhase() is used (this defaults to PVT
+          if none is available).
+    """
+    # Coerce current_phase to a Phase object, and use default phase
+    # if unspecified.
+    current_phase = (phase.Phase(current_phase) if current_phase
+                     else phase.GetPhase())
+
+    # Check image ID
+    expected_image_name_prefix = ('PVT' if current_phase == phase.PVT_DOGFOOD
+                                  else current_phase.name)
+    image_name = self.database.image_id[self.bom.image_id]
+    if not image_name.startswith(expected_image_name_prefix):
+      raise HWIDException('In %s phase, expected an image name beginning with '
+                          '%r (but %r has image ID %r)' % (
+          current_phase, expected_image_name_prefix, self.encoded_string,
+          image_name))
+
+    # MP-key checking applies only in PVT and above
+    if current_phase >= phase.PVT:
+      errors = []
+      for key_type in ('recovery', 'root'):
+        name = self.bom.components['key_%s' % key_type][0].component_name
+        if not IsMPKeyName(name):
+          errors.append(
+              'key_%s component name is %r'
+              % (key_type, name))
+      if errors:
+        raise HWIDException('MP keys are required in %s, but %s' % (
+            current_phase, ' and '.join(errors)))
 
   def GetLabels(self):
     """Gets from the database the labels of all the components encoded in this

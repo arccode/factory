@@ -37,9 +37,9 @@ found_volatile_values:
   hash_gbb:
     compact_str: gv2#hash_gbb_0
   key_recovery:
-    compact_str: kv3#key_recovery_0
+    compact_str: kv3#key_recovery_mp
   key_root:
-    compact_str: kv3#key_root_0
+    compact_str: kv3#key_root_mp
   ro_ec_firmware:
     compact_str: ev2#ro_ec_firmware_0
   ro_main_firmware:
