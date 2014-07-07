@@ -27,6 +27,7 @@ from cros.factory.gooftool import Gooftool
 from cros.factory.system import SystemInfo
 from cros.factory.test import factory
 from cros.factory.test import gooftools
+from cros.factory.test import phase
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -121,12 +122,17 @@ class Finalize(unittest.TestCase):
       self.args.polling_seconds = None
 
   def runTest(self):
+    # Check waived_tests argument.  (It must be empty at DVT and
+    # beyond.)
+    phase.AssertStartingAtPhase(
+        phase.DVT,
+        not self.args.waive_tests,
+        'Tests may not be waived; set of waived tests is %s' % (
+            self.args.waive_tests))
+
     # Check for HWID bundle update from shopfloor.
     if self.args.enable_shopfloor:
       shopfloor.update_local_hwid_data()
-
-    # Check waived_tests argument.
-    test_list = self.test_info.ReadTestList()
 
     # Preprocess waive_tests: turn it into a list of tuples where the
     # first element is the regular expression of test id and the second
@@ -140,6 +146,7 @@ class Finalize(unittest.TestCase):
       self.args.waive_tests[i] = (re.compile(w[0]),
                                   re.compile(w[1], re.MULTILINE))
 
+    test_list = self.test_info.ReadTestList()
     test_states = test_list.as_dict(
       factory.get_state_instance().get_test_states())
 
