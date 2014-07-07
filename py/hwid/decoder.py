@@ -40,11 +40,12 @@ def BinaryStringToBOM(database, binary_string):
 
   # Construct the encoded fields dict.
   encoded_fields = collections.defaultdict(int)
-  bit_mapping = database.pattern.GetBitMapping(image_id)
+  bit_mapping = database.pattern.GetBitMapping(
+      image_id=image_id, binary_string_length=len(stripped_binary_string))
   # Hack for Spring EVT
   # TODO(jcliang): Remove this hack when we no longer need it.
   if database.board == 'SPRING' and image_id == 0:
-    bit_mapping = database.pattern.GetBitMappingSpringEVT(image_id)
+    bit_mapping = database.pattern.GetBitMappingSpringEVT(image_id=image_id)
   for i, (field, bit_offset) in bit_mapping.iteritems():
     if i >= len(stripped_binary_string):
       break

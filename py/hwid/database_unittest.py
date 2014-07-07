@@ -511,6 +511,13 @@ class PatternTest(unittest.TestCase):
         HWIDException, r'Cannot construct bit mapping with uninitialized '
         'pattern', self.pattern.GetBitMapping)
     self.pattern.pattern = original_value
+    # This should be regarded as a valid binary string that was generated
+    # before we extended cpu_field.
+    self.pattern.GetBitMapping(binary_string_length=20)
+    # This should fail due to incomplete storage_field in the binary string.
+    self.assertRaisesRegexp(
+        HWIDException, r'Found incomplete binary string chunk',
+        self.pattern.GetBitMapping, binary_string_length=19)
 
 
 class ComponentsTest(unittest.TestCase):

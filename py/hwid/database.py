@@ -966,6 +966,10 @@ class Pattern(object):
     """Gets the total bit length defined by the pattern. Common header and
     stopper bit are included.
 
+    Args:
+      image_id: An integer of the image id to query. If not given, the latest
+          image id would be used.
+
     Returns:
       A int indicating the total bit length.
     """
@@ -976,12 +980,19 @@ class Pattern(object):
     return (common.HWID.HEADER_BITS + 1 +
             sum(self.GetFieldsBitLength(image_id).values()))
 
-  def GetBitMapping(self, image_id=None):
+  def GetBitMapping(self, image_id=None, binary_string_length=None):
     """Gets a map indicating the bit offset of certain encoded field a bit in a
     encoded binary string corresponds to.
 
     For example, the returned map may say that bit 5 in the encoded binary
     string corresponds to the least significant bit of encoded field 'cpu'.
+
+    Args:
+      image_id: An integer of the image id to query. If not given, the latest
+          image id would be used.
+      binary_string_length: The length of the input binary string. If given, it
+          is used to check against the encoding pattern to see if there is an
+          incomplete bit chunk.
 
     Returns:
       A list of BitEntry objects indexed by bit position in the encoded binary
@@ -999,8 +1010,20 @@ class Pattern(object):
     ret = {}
     index = common.HWID.HEADER_BITS   # Skips the 5-bit common header.
     field_offset_map = collections.defaultdict(int)
+    if not binary_string_length:
+      # Exclude stop bit.
+      binary_string_length = self.GetTotalBitLength(image_id=image_id) - 1
     for element in self.GetPatternByImageId(image_id)['fields']:
       for field, length in element.iteritems():
+        remaining_bits = binary_string_length - index
+        if remaining_bits > 0 and length > remaining_bits:
+          # The remaining bits do not fill a complete chunk.
+          raise common.HWIDException(
+              'Found incomplete binary string chunk: there are only %d bit(s) '
+              'in the %r field (should be %d). If you are trying to append new '
+              'bit(s), be sure to create a new bit pattern field instead of '
+              'simply incrementing the last field' %
+              (remaining_bits, field, length))
         # Reverse bit order.
         field_offset_map[field] += length
         first_bit_index = field_offset_map[field] - 1
@@ -1015,6 +1038,10 @@ class Pattern(object):
     encoded binary string corresponds to.
 
     This is a hack for Spring EVT, which used the LSB first encoding pattern.
+
+    Args:
+      image_id: An integer of the image id to query. If not given, the latest
+          image id would be used.
 
     Returns:
       A list of BitEntry objects indexed by bit position in the encoded binary

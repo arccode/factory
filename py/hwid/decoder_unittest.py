@@ -113,6 +113,15 @@ class DecoderTest(unittest.TestCase):
         HWIDException, r"Invalid encoded field index: {'cpu': 6}",
         BinaryStringToBOM, self.database, '0000000000111000010011')
 
+  def testIncompleteBinaryStringToBOM(self):
+    # This should be regarded as a valid binary string that was generated
+    # before we extended cpu_field.
+    BinaryStringToBOM(self.database, '000000000111101000001')
+    # This should fail due to incomplete storage_field in the binary string.
+    self.assertRaisesRegexp(
+        HWIDException, r'Found incomplete binary string chunk',
+        BinaryStringToBOM, self.database, '00000000011110100001')
+
   def testDecode(self):
     reference_bom = self.database.ProbeResultToBOM(self.results[0])
     reference_bom = self.database.UpdateComponentsOfBOM(reference_bom, {
