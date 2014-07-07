@@ -150,7 +150,7 @@ class StartServer(FactoryFlowCommand):
   ]
 
   required_packages = ('net-ftp/tftp-hpa', 'net-misc/dhcp')
-  # Temporary directory to store generate files and server configs.
+  # Temporary directory to store generated files and server configs.
   files_dir = None
 
   dhcp_server = None

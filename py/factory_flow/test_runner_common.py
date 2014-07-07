@@ -13,6 +13,10 @@ import os
 import re
 import yaml
 
+import factory_common   # pylint: disable=W0611
+from cros.factory.factory_flow import common
+from cros.factory.test import utils
+
 
 class InfoParsingError(Exception):
   """Info parsing error."""
@@ -93,8 +97,6 @@ class FactoryFlowCommandBuilder(object):
   subcommand = None
   module = None
   classname = None
-  FACTORY_FLOW = os.path.join(os.environ['CROS_WORKON_SRCROOT'], 'src',
-                              'platform', 'factory', 'bin', 'factory_flow')
 
   def __init__(self):
     assert self.subcommand is not None
@@ -104,6 +106,20 @@ class FactoryFlowCommandBuilder(object):
             fromlist=[self.classname]),
         self.classname)
     self.valid_args = self.class_obj.args
+    self.factory_flow_path = self.GetFactoryFlowPath()
+
+  def GetFactoryFlowPath(self):
+    if utils.in_chroot():
+      # Running inside chroot.
+      return os.path.join(os.environ['CROS_WORKON_SRCROOT'], 'src', 'platform',
+                          'factory', 'bin', 'factory_flow')
+    elif common.GetEnclosingFactoryBundle():
+      # Running with a factory bundle.
+      return os.path.join(common.GetEnclosingFactoryBundle(), 'factory_flow',
+                          'factory_flow')
+    else:
+      raise CommandBuilderError(
+          'Unable to determine the path to factory_flow tool')
 
   def BuildCommand(self, test_item, runner_info, host_info, dut_info_list):
     """Public API for building command from the given info objects.
@@ -159,7 +175,7 @@ class FactoryFlowCommandBuilder(object):
     """
     result = []
     for dut_args in dut_args_list:
-      command = [self.FACTORY_FLOW, self.subcommand]
+      command = [self.factory_flow_path, self.subcommand]
       for name, value in dut_args.args.iteritems():
         if name == 'command' or value is None:
           continue

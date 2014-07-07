@@ -60,11 +60,13 @@ class TestResult(object):
     base_log_dir: The path to base log directory.
     results: The test results of each test item, stored in a per DUT basis.
   """
-  def __init__(self, board_name, plan_name, plan_config, base_log_dir):
+  def __init__(self, board_name, plan_name, plan_config, base_log_dir,
+               bundle_dir):
     self.board_name = build_board.BuildBoard(board_name)
     self.test_plan_name = plan_name
     self.test_plan_config = plan_config
     self.base_log_dir = base_log_dir
+    self.bundle_dir = bundle_dir
     self.results = {}
     # Initialize all items to NOT_TESTED.
     for dut in self.test_plan_config['dut']:
@@ -153,20 +155,25 @@ class TestResult(object):
     report = []
 
     # Extract the bundle info from README in the testing bundle.
-    upper_dir = os.path.dirname(self.base_log_dir)
-    bundle_dir = glob.glob(os.path.join(
-        upper_dir, 'factory_bundle_%s_*_testing' % self.board_name.full_name))
-    if not bundle_dir:
-      raise FactoryFlowTestError(
-          ('Unable to locate the testing bundle directory; expect to find one '
-           'bundle in %r') % upper_dir)
-    if len(bundle_dir) > 1:
-      raise FactoryFlowTestError(
-          'Found %d bundles in %r; expect to find only one.' %
-          (len(bundle_dir), upper_dir))
-    readme = os.path.join(bundle_dir[0], 'README')
+    if not self.bundle_dir:
+      # If self.bundle_dir is None, defaults to finding the factory bundle
+      # generated in one level above the base log directory.
+      upper_dir = os.path.dirname(self.base_log_dir)
+      bundle_dir = glob.glob(os.path.join(
+          upper_dir, 'factory_bundle_%s_*_testing' % self.board_name.full_name))
+      if not bundle_dir:
+        raise FactoryFlowTestError(
+            ('Unable to locate the testing bundle directory; expect to find '
+             'one bundle in %r') % upper_dir)
+      if len(bundle_dir) > 1:
+        raise FactoryFlowTestError(
+            'Found %d bundles in %r; expect to find only one.' %
+            (len(bundle_dir), upper_dir))
+      self.bundle_dir = bundle_dir[0]
+    readme = os.path.join(self.bundle_dir, 'README')
     if not os.path.exists(readme):
-      raise FactoryFlowTestError('Unable to find README in %r' % bundle_dir[0])
+      raise FactoryFlowTestError('Unable to find README in %r' %
+                                 self.bundle_dir)
     with open(readme) as f:
       report += [line.strip() for line in f.readlines()]
 
@@ -218,7 +225,7 @@ class TestResult(object):
 class FactoryFlowRunner(object):
   """A class for running factory flow tests."""
 
-  def __init__(self, config, output_dir=None):
+  def __init__(self, config, output_dir=None, bundle_dir=None):
     self.config = config
     for name, item in config['test_items'].iteritems():
       subcommand = item['command']
@@ -228,6 +235,7 @@ class FactoryFlowRunner(object):
     self.board = config['board']
     self.output_dir = output_dir or tempfile.mkdtemp(
         prefix='factory_flow_runner.')
+    self.bundle_dir = bundle_dir
     self.test_results = {}
     # Initialize log directory.
     self.log_dir = os.path.join(self.output_dir, 'logs')
@@ -265,8 +273,8 @@ class FactoryFlowRunner(object):
     for plan in test_plans_to_run:
       logging.info('Running test plan %r...', plan)
       config = self.config['test_plans'].get(plan)
-      test_result = TestResult(self.board, plan, config, self.log_dir)
-
+      test_result = TestResult(self.board, plan, config, self.log_dir,
+                               self.bundle_dir)
       if dut is not None:
         if dut not in config['dut']:
           logging.info('DUT %r is not planned for %r', dut, plan)
@@ -285,7 +293,9 @@ class FactoryFlowRunner(object):
         dut_info_dict[dut] = dut_info
 
       test_env = os.environ.copy()
-      test_env[common.BUNDLE_DIR_ENVVAR] = self.output_dir
+      # If self.bundle_dir is not set, defaults to create a new fatory bundle in
+      # self.output_dir.
+      test_env[common.BUNDLE_DIR_ENVVAR] = self.bundle_dir or self.output_dir
 
       def RunTestItem(item):
         """Runs a give test item.
@@ -375,21 +385,24 @@ class FactoryFlowRunner(object):
       dut: The ID of the DUT to get factory logs from.
       output_path: The output path of the log archive.
     """
-    bundle_dir = glob.glob(os.path.join(
-        self.output_dir,
-        ('factory_bundle_%s_*_testing' %
-         build_board.BuildBoard(self.board).full_name)))
+    bundle_dir = self.bundle_dir
     if not bundle_dir:
-      raise FactoryFlowTestError(
-          ('Unable to locate the testing bundle directory; expect to find one '
-           'bundle in %r') % self.output_dir)
-    if len(bundle_dir) > 1:
-      raise FactoryFlowTestError(
-          'Found %d bundles in %r; expect to find only one.' %
-          (len(bundle_dir), self.output_dir))
+      bundle_dir = glob.glob(os.path.join(
+          self.output_dir,
+          ('factory_bundle_%s_*_testing' %
+           build_board.BuildBoard(self.board).full_name)))
+      if not bundle_dir:
+        raise FactoryFlowTestError(
+            ('Unable to locate the testing bundle directory; expect to find '
+             'one bundle in %r') % self.output_dir)
+      if len(bundle_dir) > 1:
+        raise FactoryFlowTestError(
+            'Found %d bundles in %r; expect to find only one.' %
+            (len(bundle_dir), self.output_dir))
+      bundle_dir = bundle_dir[0]
 
     finalize_report_spec = glob.glob(
-        os.path.join(bundle_dir[0], 'shopfloor', 'shopfloor_data',
+        os.path.join(bundle_dir, 'shopfloor', 'shopfloor_data',
                      'reports', time.strftime('logs.%Y%m%d'), '*.tar.xz'))
     if finalize_report_spec:
       # If we find a finalize report, then we assume the DUT has been finalized.
@@ -459,6 +472,8 @@ def main():
       CmdArg('--plan', metavar='TEST_PLAN', help='the test plan to run'),
       CmdArg('--output-dir',
              help='output dir of the created bundle and test logs'),
+      CmdArg('--bundle-dir',
+             help='path to the base directory of the factory bundle to test'),
       CmdArg('--clean-up', action='store_true',
              help='delete generated files and directories after test'),
       CmdArg('--fail-fast', action='store_true',
@@ -471,8 +486,13 @@ def main():
               '%(filename)s:%(lineno)d %(asctime)s.%(msecs)03d %(message)s'),
       level=args.verbosity, datefmt='%Y-%m-%d %H:%M:%S')
 
+  # Get the base factory bundle path if we are running using factory.par
+  # inside a factory bundle.
+  args.bundle_dir = common.GetEnclosingFactoryBundle() or None
+
   config = LoadConfig(board=args.board, filepath=args.file)
-  runner = FactoryFlowRunner(config, output_dir=args.output_dir)
+  runner = FactoryFlowRunner(config, output_dir=args.output_dir,
+                             bundle_dir=args.bundle_dir)
   runner.RunTests(plan=args.plan, dut=args.dut, fail_fast=args.fail_fast)
   if args.clean_up:
     runner.CleanUp()
