@@ -22,7 +22,10 @@ class DUTDiscoverer(DiscovererBase):
     if utils.in_chroot():
       return '127.0.0.1'
     else:
-      raise NotImplementedError() # TODO: implement me
+      # For now, we assume the host and the device are the same
+      # machine.
+      # TODO: implement this
+      return '127.0.0.1'
 
 
 class HostDiscoverer(DiscovererBase):
@@ -31,4 +34,7 @@ class HostDiscoverer(DiscovererBase):
     if utils.in_chroot():
       return '127.0.0.1'
     else:
-      raise NotImplementedError() # TODO: implement me
+      # For now, we assume the host and the device are the same
+      # machine.
+      # TODO: implement this
+      return '127.0.0.1'
