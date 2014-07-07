@@ -92,7 +92,8 @@ class FactoryToolkitInstaller():
   # Whether to sudo when rsyncing; set to False for testing.
   _sudo = True
 
-  def __init__(self, src, dest, no_enable, system_root='/'):
+  def __init__(self, src, dest, no_enable, enable_host,
+               enable_device, system_root='/'):
     self._src = src
     self._system_root = system_root
     if dest == self._system_root:
@@ -132,6 +133,14 @@ class FactoryToolkitInstaller():
     self._var_src = os.path.join(src, 'var')
     self._no_enable = no_enable
     self._tag_file = os.path.join(self._usr_local_dest, 'factory', 'enabled')
+
+    self._enable_host = enable_host
+    self._host_tag_file = os.path.join(self._var_dest, 'factory',
+                                       'state', 'run_goofy_host')
+
+    self._enable_device = enable_device
+    self._device_tag_file = os.path.join(self._var_dest, 'factory',
+                                         'state', 'run_goofy_device')
 
     if (not os.path.exists(self._usr_local_src) or
         not os.path.exists(self._var_src)):
@@ -182,6 +191,15 @@ class FactoryToolkitInstaller():
           '***' % self._tag_file)
     return ret
 
+  def _SetTagFile(self, name, path, enabled):
+    """Install or remove a tag file."""
+    if enabled:
+      print '*** Installing %s enabled tag...' % name
+      Spawn(['touch', path], sudo=True, log=True, check_call=True)
+    else:
+      print '*** Removing %s enabled tag...' % name
+      Spawn(['rm', '-f', path], sudo=True, log=True, check_call=True)
+
   def Install(self):
     print '*** Installing factory toolkit...'
     for src, dest in ((self._usr_local_src, self._usr_local_dest),
@@ -201,12 +219,9 @@ class FactoryToolkitInstaller():
       Spawn(['rsync', '-a', '--force', src + '/', dest],
             sudo=self._sudo, log=True, check_output=True)
 
-    if self._no_enable:
-      print '*** Removing factory enabled tag...'
-      Spawn(['rm', '-f', self._tag_file], sudo=True, log=True, check_call=True)
-    else:
-      print '*** Installing factory enabled tag...'
-      Spawn(['touch', self._tag_file], sudo=True, log=True, check_call=True)
+    self._SetTagFile('factory', self._tag_file, not self._no_enable)
+    self._SetTagFile('host', self._host_tag_file, self._enable_host)
+    self._SetTagFile('device', self._device_tag_file, self._enable_device)
 
     print '*** Installation completed.'
 
@@ -280,6 +295,21 @@ def main():
       help="Pack the files into a new factory toolkit")
   parser.add_argument('--repack', metavar='UNPACKED_TOOLKIT',
       help="Repack from previously unpacked toolkit")
+
+  parser.add_argument('--enable-host', dest='enable_host',
+      action='store_true',
+      help="Run goofy host on startup")
+  parser.add_argument('--no-enable-host', dest='enable_host',
+      action='store_false', help=argparse.SUPPRESS)
+  parser.set_defaults(enable_host=True)
+
+  parser.add_argument('--enable-device', dest='enable_device',
+      action='store_true',
+      help="Run goofy_device on startup")
+  parser.add_argument('--no-enable-device', dest='enable_device',
+      action='store_false', help=argparse.SUPPRESS)
+  parser.set_defaults(enable_device=False)
+
   args = parser.parse_args()
 
   src_root = factory.FACTORY_PATH
@@ -321,7 +351,8 @@ def main():
 
   with (MountPartition(args.dest, 1, rw=True) if patch_test_image
         else DummyContext(args.dest)) as dest:
-    installer = FactoryToolkitInstaller(src_root, dest, args.no_enable)
+    installer = FactoryToolkitInstaller(
+        src_root, dest, args.no_enable, args.enable_host, args.enable_device)
 
     print installer.WarningMessage(args.dest if patch_test_image else None)
 

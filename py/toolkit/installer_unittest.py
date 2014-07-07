@@ -23,7 +23,7 @@ class ToolkitInstallerTest(unittest.TestCase):
   def setUp(self):
     self.src = tempfile.mkdtemp(prefix='ToolkitInstallerTest.')
     os.makedirs(os.path.join(self.src, 'usr/local/factory'))
-    os.makedirs(os.path.join(self.src, 'var'))
+    os.makedirs(os.path.join(self.src, 'var/factory/state'))
     with open(os.path.join(self.src, 'usr/local', 'file1'), 'w') as f:
       f.write('install me!')
     with open(os.path.join(self.src, 'var', 'log1'), 'w') as f:
@@ -50,9 +50,11 @@ class ToolkitInstallerTest(unittest.TestCase):
     os.makedirs(os.path.join(self.dest, 'usr/local'))
     os.makedirs(os.path.join(self.dest, 'var'))
 
-  def createInstaller(self, enabled_tag=True, system_root='/'):
+  def createInstaller(self, enabled_tag=True, system_root='/',
+                      enable_host=True, enable_device=False):
     self._installer = installer.FactoryToolkitInstaller(
-        self.src, self.dest, not enabled_tag, system_root=system_root)
+        self.src, self.dest, not enabled_tag, enable_host,
+        enable_device, system_root=system_root)
     self._installer._sudo = False
 
   def testNonRoot(self):
@@ -78,6 +80,22 @@ class ToolkitInstallerTest(unittest.TestCase):
       self.assertEqual(f.read(), 'I am a log file!')
     self.assertTrue(os.path.exists(
         os.path.join(self.dest, 'usr/local/factory/enabled')))
+    self.assertTrue(os.path.exists(
+        os.path.join(self.dest, 'var/factory/state/run_goofy_host')))
+    self.assertFalse(os.path.exists(
+        os.path.join(self.dest, 'var/factory/state/run_goofy_device')))
+
+  def testDeviceOnly(self):
+    self.makeLiveDevice()
+    os.getuid = lambda: 0 # root
+    self._in_cros = True
+    self.createInstaller(system_root=self.dest,
+                         enable_host=False, enable_device=True)
+    self._installer.Install()
+    self.assertFalse(os.path.exists(
+        os.path.join(self.dest, 'var/factory/state/run_goofy_host')))
+    self.assertTrue(os.path.exists(
+        os.path.join(self.dest, 'var/factory/state/run_goofy_device')))
 
   def testIncorrectPatch(self):
     with self.assertRaises(Exception):

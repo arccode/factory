@@ -83,7 +83,14 @@ start_factory() {
     start ui
   fi
 
-  "$FACTORY/bin/goofy" $GOOFY_ARGS >>"$FACTORY_LOG_FILE" 2>&1
+  if [ -f "${RUN_GOOFY_DEVICE_TAG_FILE}" ]; then
+    "$FACTORY/bin/goofy_device" $GOOFY_ARGS >>"$FACTORY_LOG_FILE" 2>&1 &
+  fi
+  if [ -f "${RUN_GOOFY_HOST_TAG_FILE}" ]; then
+    "$FACTORY/bin/goofy" $GOOFY_ARGS >>"$FACTORY_LOG_FILE" 2>&1 &
+  fi
+
+  wait
 }
 
 stop_factory() {
