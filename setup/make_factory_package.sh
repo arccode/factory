@@ -427,6 +427,8 @@ prepare_img() {
   # Fix path to chromeos-common.sh
   sed -i 's"/usr/sbin/chromeos-common.sh"lib/chromeos-common.sh"g' \
     "${partition_script}"
+  sed -i 's"/usr/share/misc/chromeos-common.sh"lib/chromeos-common.sh"g' \
+    "${partition_script}"
 
   # Add local bin to PATH before running locate_gpt
   sed -i 's,locate_gpt,PATH="'"$PATH"'";locate_gpt,g' "${partition_script}"
