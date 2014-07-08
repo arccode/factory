@@ -253,6 +253,11 @@ class ArchiverConfig(object):
           ALLOWED_FORMAT[compress_format], compress_format)
     self.compress_format = compress_format
 
+    # Currently .tar.xz doesn't support in-place compression
+    # TODO(itspeter): Support in-place compression for .tar.xz
+    if compress_format is '.tar.xz':
+      self.compress_in_place = False
+
   def SetEncryptKeyPair(self, encrypt_key_pair):
     """Sets the encrypt_key_pair property.
 

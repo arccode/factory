@@ -256,7 +256,7 @@ def _GenerateArchiveName(config):
   generated randomly.
   """
   # For hashlib, pylint: disable=E1101
-  prefix = '@'.join(
+  prefix = '~'.join(
       [config.project, config.data_type,
        time.strftime('%Y%m%dT%H%MZ', time.gmtime(time.time())),
        (hashlib.sha256(str(uuid.getnode())).hexdigest()[:2] +
