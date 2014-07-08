@@ -57,6 +57,7 @@ class FindTtyByDriverTest(unittest.TestCase):
     self.mox.StubOutWithMock(glob, 'glob')
     glob.glob('/dev/tty*').AndReturn(['/dev/ttyUSB0', '/dev/ttyUSB1'])
     self.mox.StubOutWithMock(os.path, 'realpath')
+    self.mox.StubOutWithMock(serial_utils, 'DeviceInterfaceProtocol')
 
   def tearDown(self):
     self.mox.UnsetStubs()
@@ -85,6 +86,32 @@ class FindTtyByDriverTest(unittest.TestCase):
 
     self.mox.ReplayAll()
     self.assertIsNone(serial_utils.FindTtyByDriver(_DEFAULT_DRIVER))
+
+  def testFindTtyByDriverInterfaceProtocol(self):
+    os.path.realpath('/sys/class/tty/ttyUSB0/device/driver').AndReturn(
+        _DEFAULT_DRIVER)
+    serial_utils.DeviceInterfaceProtocol(
+        '/sys/class/tty/ttyUSB0/device').AndReturn('00')
+    os.path.realpath('/sys/class/tty/ttyUSB1/device/driver').AndReturn(
+        _DEFAULT_DRIVER)
+    serial_utils.DeviceInterfaceProtocol(
+        '/sys/class/tty/ttyUSB1/device').AndReturn('01')
+
+    self.mox.ReplayAll()
+    self.assertEquals('/dev/ttyUSB1',
+                      serial_utils.FindTtyByDriver(_DEFAULT_DRIVER,
+                                                   interface_protocol = '01'))
+
+  def testFindTtyByDriverMultiple(self):
+    os.path.realpath('/sys/class/tty/ttyUSB0/device/driver').AndReturn(
+        _DEFAULT_DRIVER)
+    os.path.realpath('/sys/class/tty/ttyUSB1/device/driver').AndReturn(
+        _DEFAULT_DRIVER)
+
+    self.mox.ReplayAll()
+    self.assertEquals([_DEFAULT_PORT, '/dev/ttyUSB1'],
+                      serial_utils.FindTtyByDriver(_DEFAULT_DRIVER,
+                                                   multiple_ports = True))
 
 
 class SerialDeviceCtorTest(unittest.TestCase):
