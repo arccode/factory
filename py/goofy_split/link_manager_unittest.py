@@ -4,6 +4,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import mox
 import time
 import unittest
 
@@ -18,6 +19,7 @@ class LinkManagerTest(unittest.TestCase):
   def setUp(self):
     self.dut_link = None
     self.host_link = None
+    self.hook = mox.MockAnything()
 
     link_manager.HOST_LINK_RPC_PORT = test_utils.FindUnusedTCPPort()
     link_manager.DUT_LINK_RPC_PORT = test_utils.FindUnusedTCPPort()
@@ -33,7 +35,9 @@ class LinkManagerTest(unittest.TestCase):
 
   def StartHost(self):
     self.dut_link = DUTLinkManager(check_interval=1,
-                                   methods={'Echo1': self.Echo})
+                                   methods={'Echo1': self.Echo},
+                                   connect_hook=self.hook.dut_connect,
+                                   disconnect_hook=self.hook.dut_disconnect)
 
   def StopHost(self):
     self.dut_link.Stop()
@@ -41,13 +45,35 @@ class LinkManagerTest(unittest.TestCase):
 
   def StartDUT(self):
     self.host_link = HostLinkManager(check_interval=1,
-                                     methods={'Echo': self.Echo})
+                                     methods={'Echo': self.Echo},
+                                     connect_hook=self.hook.host_connect,
+                                     disconnect_hook=self.hook.host_disconnect)
 
   def StopDUT(self):
     self.host_link.Stop()
     self.host_link = None
 
   def testLink(self):
+    # DUT and host are up
+    self.hook.dut_connect()
+    self.hook.host_connect()
+
+    # DUT is down
+    self.hook.dut_disconnect()
+
+    # DUT is back up
+    self.hook.dut_connect()
+    self.hook.host_connect()
+
+    # Host is down
+    self.hook.host_disconnect()
+
+    # Host is back up
+    self.hook.dut_connect()
+    self.hook.host_connect()
+
+    mox.Replay(self.hook)
+
     self.StartDUT()
     self.StartHost()
 
@@ -82,6 +108,8 @@ class LinkManagerTest(unittest.TestCase):
     self.assertTrue(self.host_link.HostIsAlive())
     self.assertEqual(self.dut_link.Echo('test'), 'test')
     self.assertEqual(self.host_link.Echo1(10), 10)
+
+    mox.Verify(self.hook)
 
 if __name__ == '__main__':
   unittest.main()

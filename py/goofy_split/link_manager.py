@@ -36,10 +36,14 @@ class HostLinkManager(object):
                check_interval=5,
                methods=None,
                handshake_timeout=0.3,
-               rpc_timeout=1):
+               rpc_timeout=1,
+               connect_hook=None,
+               disconnect_hook=None):
     self._check_interval = check_interval
     self._handshake_timeout = handshake_timeout
     self._rpc_timeout = rpc_timeout
+    self._connect_hook = connect_hook
+    self._disconnect_hook = disconnect_hook
     self._methods = methods or {}
     self._methods.update({'Announce': self._HostAnnounce})
     self._host_connected = False
@@ -138,6 +142,8 @@ class HostLinkManager(object):
         # Now that we are connected, use a longer timeout for the proxy
         self._host_proxy = self._MakeTimeoutServerProxy(host_ip,
                                                         self._rpc_timeout)
+        if self._connect_hook:
+          self._connect_hook()
         return
       self._host_ip = None
       self._host_proxy = None
@@ -160,6 +166,8 @@ class HostLinkManager(object):
         self._host_connected = False
         self._host_ip = None
         self._host_proxy = None
+        if self._disconnect_hook:
+          self._disconnect_hook()
 
     ips = self._discoverer.Discover()
     if ips is None:
@@ -188,9 +196,13 @@ class DUTLinkManager(object):
   def __init__(self,
                check_interval=5,
                methods=None,
-               rpc_timeout=1):
+               rpc_timeout=1,
+               connect_hook=None,
+               disconnect_hook=None):
     self._check_interval = check_interval
     self._rpc_timeout = rpc_timeout
+    self._connect_hook = connect_hook
+    self._disconnect_hook = disconnect_hook
     self._methods = methods or {}
     self._methods.update({'Register': self._DUTRegister,
                           'ConnectionGood': self.DUTIsAlive})
@@ -237,6 +249,8 @@ class DUTLinkManager(object):
         self._dut_proxy.IsAlive()
         self._dut_connected = True
         logging.info("DUT %s registered", dut_ip)
+        if self._connect_hook:
+          self._connect_hook()
       except (socket.error, socket.timeout):
         self._dut_ip = None
         self._dut_proxy = None
@@ -267,6 +281,8 @@ class DUTLinkManager(object):
             self._dut_connected = False
             self._dut_ip = None
             self._dut_proxy = None
+            if self._disconnect_hook:
+              self._disconnect_hook()
 
         ips = self._discoverer.Discover()
         if ips is None:
