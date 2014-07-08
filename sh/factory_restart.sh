@@ -40,6 +40,11 @@ clear_files() {
   [ -n "$enabled" ] && echo rm -rf "$FACTORY_BASE/$dir/*"
 }
 
+run_goofy_host=false
+[ -f "${RUN_GOOFY_HOST_TAG_FILE}" ] && run_goofy_host=true
+run_goofy_device=false
+[ -f "${RUN_GOOFY_DEVICE_TAG_FILE}" ] && run_goofy_device=true
+
 clear_vpd=false
 automation_mode=
 stop_auto_run_on_start=false
@@ -110,6 +115,14 @@ for d in $delete; do
   rm -rf "$d"
   mkdir -p "$d"
 done
+
+if $run_goofy_host; then
+  touch "${RUN_GOOFY_HOST_TAG_FILE}"
+fi
+
+if $run_goofy_device; then
+  touch "${RUN_GOOFY_DEVICE_TAG_FILE}"
+fi
 
 if $clear_vpd; then
   echo Clearing RO VPD...
