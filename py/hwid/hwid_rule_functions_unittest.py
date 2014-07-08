@@ -271,7 +271,7 @@ class HWIDRuleTest(unittest.TestCase):
   def testCheckRegistrationCode(self):
     mock_ubind_attribute = (
         '=CjAKIAABAgMEBQYHCAkKCwwNDg8QERITFBUWFxgZGhscHR4fEAEaCmNocm9tZWJvb2sQg'
-        'dSQ+AI=')
+        'dSQ-AI=')
     self.assertEquals(None, CheckRegistrationCode(mock_ubind_attribute))
     self.assertEquals(None, CheckRegistrationCode(mock_ubind_attribute,
                                                   type='unique'))

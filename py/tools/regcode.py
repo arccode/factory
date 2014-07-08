@@ -8,6 +8,7 @@
 """A command-line tool for reg code handling."""
 
 
+import base64
 import binascii
 import logging
 import random
@@ -63,7 +64,7 @@ def GenerateDummy(options):
   # Use this weird magic string for the first 16 characters to make it
   # obvious that this is a dummy code.  (Base64-encoding this string
   # results in a reg code that looks like
-  # '=CiwKIP//////TESTING///////'...)
+  # '=CiwKIP______TESTING_______'...)
   proto.content.code = (
     '\xff\xff\xff\xff\xffLD\x93 \xd1\xbf\xff\xff\xff\xff\xff' + "".join(
     chr(random.getrandbits(8))
@@ -72,7 +73,8 @@ def GenerateDummy(options):
   proto.checksum = (
     binascii.crc32(proto.content.SerializeToString()) & 0xFFFFFFFF)
 
-  encoded_string = '=' + binascii.b2a_base64(proto.SerializeToString()).strip()
+  encoded_string = '=' + base64.urlsafe_b64encode(
+      proto.SerializeToString()).strip()
 
   # Make sure the string can be parsed as a sanity check (this will catch,
   # e.g., invalid device names)

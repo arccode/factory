@@ -5,6 +5,7 @@
 # found in the LICENSE file.
 
 import binascii
+import base64
 import re
 import struct
 
@@ -68,14 +69,15 @@ class RegistrationCode(object):
 
     if encoded_string[0] == '=':
       # New representation
-      data = binascii.a2b_base64(encoded_string[1:])
+      data = base64.urlsafe_b64decode(encoded_string[1:])
 
       # Make sure that it encodes back to the same thing (e.g., no extra
       # padding)
-      expected_encoded_string = '=' + binascii.b2a_base64(data).strip()
+      expected_encoded_string = '=' + base64.urlsafe_b64encode(data).strip()
       if encoded_string != expected_encoded_string:
         raise RegistrationCodeException(
-            'Reg code %r has bad base64 encoding' % encoded_string)
+            'Reg code %r has bad base64 encoding (should be %r)' % (
+                encoded_string, expected_encoded_string))
 
       self.proto = RegCode()
       self.proto.ParseFromString(data)

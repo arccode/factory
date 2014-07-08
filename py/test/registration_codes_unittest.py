@@ -4,6 +4,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import base64
 import binascii
 import unittest
 
@@ -34,14 +35,15 @@ class RegistrationCodeTest(unittest.TestCase):
     self.proto.checksum = (
         binascii.crc32(self.proto.content.SerializeToString())
         & 0xFFFFFFFF) ^ xor_checksum
-    return '=' + binascii.b2a_base64(self.proto.SerializeToString()).strip()
+    return '=' + base64.urlsafe_b64encode(
+        self.proto.SerializeToString()).strip()
 
   def testValid(self):
     # Build and test a valid registration code.
     encoded_string = self._Encode()
     self.assertEquals(
         '=CjAKIAABAgMEBQYHCAkKCwwNDg8QERITFBUWFxgZGhscHR4fEAEaCmNocm9tZWJvb2sQg'
-        'dSQ+AI=', self._Encode())
+        'dSQ-AI=', self._Encode())
 
     reg_code = RegistrationCode(encoded_string)
     self.assertEquals('chromebook', reg_code.device)
@@ -53,11 +55,11 @@ class RegistrationCodeTest(unittest.TestCase):
       (RegistrationCode.Type.UNIQUE_CODE,
        '=CioKIKMVpeuuIkf5epYYO5oivYR6HnjFjLg0ZPbFUuUkMOv2EAEaBGxpbmsQ4PvXgAM='),
       (RegistrationCode.Type.GROUP_CODE,
-       '=CioKIIG0s3uzLa5cIsxL7P4bNMi+jGzEfiB8CqFmqOOFVWT4EAAaBGxpbmsQr/PG2gE='),
+       '=CioKIIG0s3uzLa5cIsxL7P4bNMi-jGzEfiB8CqFmqOOFVWT4EAAaBGxpbmsQr_PG2gE='),
       (RegistrationCode.Type.UNIQUE_CODE,
        '=CioKIEkzPma0JQrR6gvdlYHzbjp1IN8v1ybuSPQrindTXip2EAEaBGxpbmsQtKi9uQg='),
       (RegistrationCode.Type.GROUP_CODE,
-       '=CioKIIG0s3uzLa5cIsxL7P4bNMi+jGzEfiB8CqFmqOOFVWT4EAAaBGxpbmsQr/PG2gE='),
+       '=CioKIIG0s3uzLa5cIsxL7P4bNMi-jGzEfiB8CqFmqOOFVWT4EAAaBGxpbmsQr_PG2gE='),
       ):
       reg_code = RegistrationCode(encoded_string)
       self.assertEquals(expected_type, reg_code.type)
