@@ -189,6 +189,11 @@ lint:
 	echo ...no lint errors! You are awesome!; \
 	rm -f $$out
 
+# Target to lint only files that have changed.  (We allow either
+# "smartlint" or "smart_lint".)
+smartlint smart_lint:
+	bin/smart_lint
+
 # Substitute PRESUBMIT_FILES to relative path (similar to
 # GNU realpath "--relative-to=.", but works on non-GNU realpath).
 PRESUBMIT_FILES := $(if $(PRESUBMIT_FILES), \
