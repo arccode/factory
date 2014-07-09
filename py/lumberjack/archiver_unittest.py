@@ -11,21 +11,21 @@
 
 import glob
 import logging
+import multiprocessing
 import os
 import shutil
 import tempfile
-import time
 import unittest
 import yaml
 import zipfile
 
-from archiver import (Archive, _IdentifyContentForArchiving,
+from archiver import (Archive, EligibleFile, _IdentifyContentForArchiving,
                       _ListEligibleFiles, _Recycle)
 from archiver_cli import main
-from archiver_config import (ArchiverConfig, CheckExecutableExist,
-                             GenerateConfig, LockSource)
+from archiver_config import (ArchiverConfig, GenerateConfig, LockSource)
 from archiver_exception import ArchiverFieldError
-from common import (ARCHIVER_METADATA_DIRECTORY, GenerateArchiverMetadata,
+from common import (ARCHIVER_METADATA_DIRECTORY, CheckExecutableExist,
+                    GenerateArchiverMetadata,
                     GetMetadataPath, GetOrCreateMetadata,
                     RegenerateArchiverMetadataFile, TryMakeDirs,
                     WriteAndTruncateFd)
@@ -38,8 +38,9 @@ TEST_DATA_PATH = os.path.abspath(os.path.join(
 
 
 class ArchiverUnittest(unittest.TestCase):
-  """Unit tests for archiver"""
+  """Unit tests for archiver."""
   pwd = None
+
   def setUp(self):
     logging.basicConfig(
         format=('[%(levelname)s] archiver:%(lineno)d %(asctime)s %(message)s'),
@@ -53,14 +54,14 @@ class ArchiverUnittest(unittest.TestCase):
   def tearDown(self):
     os.chdir(self.pwd)
     directories_to_delete = [
-      'archives', 'raw/regcode',
-      # Clean-up to make git status cleaner
-      'raw/eventlog/20140406/.archiver', 'raw/eventlog/20140419/.archiver',
-      'raw/eventlog/20140420/.archiver', 'raw/eventlog/20140421/.archiver']
+        'archives', 'raw/regcode',
+        # Clean-up to make git status cleaner
+        'raw/eventlog/20140406/.archiver', 'raw/eventlog/20140419/.archiver',
+        'raw/eventlog/20140420/.archiver', 'raw/eventlog/20140421/.archiver']
     for directory in directories_to_delete:
       try:
         shutil.rmtree(os.path.join(TEST_DATA_PATH, directory))
-      except: # pylint: disable=W0702
+      except:  # pylint: disable=W0702
         pass
 
     # Delete lock file
@@ -71,7 +72,7 @@ class ArchiverUnittest(unittest.TestCase):
     for lock_file in lock_file_to_delete:
       try:
         os.unlink(os.path.join(TEST_DATA_PATH, lock_file))
-      except: # pylint: disable=W0702
+      except:  # pylint: disable=W0702
         pass
 
   def testYAMLConfigNonExist(self):
@@ -106,38 +107,38 @@ class ArchiverUnittest(unittest.TestCase):
 
   def testCheckSourceDir(self):
     argv = ['dry-run', os.path.join(TEST_DATA_PATH, 'invalid_source_dir.yaml')]
-    self.assertRaises(ArchiverFieldError, main, argv)
+    self.assertRaises(ValueError, main, argv)
 
   def testCheckSourceFile(self):
     argv = ['dry-run', os.path.join(TEST_DATA_PATH, 'invalid_source_file.yaml')]
-    self.assertRaises(ArchiverFieldError, main, argv)
+    self.assertRaises(ValueError, main, argv)
 
   def testCheckArchivedDir(self):
     argv = ['dry-run',
             os.path.join(TEST_DATA_PATH, 'invalid_archived_dir.yaml')]
-    self.assertRaises(ArchiverFieldError, main, argv)
+    self.assertRaises(ValueError, main, argv)
 
   def testCheckRecycleDir(self):
     argv = ['dry-run', os.path.join(TEST_DATA_PATH, 'invalid_recycle_dir.yaml')]
-    self.assertRaises(ArchiverFieldError, main, argv)
+    self.assertRaises(ValueError, main, argv)
 
   def testCheckProject(self):
     argv = ['dry-run', os.path.join(TEST_DATA_PATH, 'invalid_project.yaml')]
-    self.assertRaises(ArchiverFieldError, main, argv)
+    self.assertRaises(ValueError, main, argv)
 
   def testSetDuration(self):
     argv = ['dry-run', os.path.join(TEST_DATA_PATH, 'invalid_duration.yaml')]
-    self.assertRaises(ArchiverFieldError, main, argv)
+    self.assertRaises(ValueError, main, argv)
 
   def testSetDurationInternally(self):
     config = ArchiverConfig('unittest')
     # We should pass an integer instead.
-    self.assertRaises(ArchiverFieldError, config.SetDuration, '86400')
+    self.assertRaises(ValueError, config.SetDuration, '86400')
 
   def testSetCompressFormat(self):
     argv = ['dry-run',
             os.path.join(TEST_DATA_PATH, 'invalid_compress_format.yaml')]
-    self.assertRaises(ArchiverFieldError, main, argv)
+    self.assertRaises(ValueError, main, argv)
 
   def testSetEncryptKeyPair(self):
     argv = ['dry-run',
@@ -198,27 +199,51 @@ class ArchiverUnittest(unittest.TestCase):
     with open(os.path.join(TEST_DATA_PATH, 'template.yaml')) as f:
       content = f.read()
     configs = GenerateConfig(yaml.load(content))
+    lock_completed = multiprocessing.Lock()
 
-    def _Delayed():
-      LockSource(configs[0])
-      time.sleep(10)
+    def _LockSourceWrapper(run_forever=False):
+      """Simple wrapper for deterministic testing result.
+
+      The lock_completed should be acquired before calling this.
+
+      Args:
+        run_forever: True to run forever, keeping process alive.
+
+      Returns:
+        The absolute lock file path if run_forever is False.
+      """
+      logging.debug("Wrapper running on pid:%d", os.getpid())
+      lock_path = LockSource(configs[0])
+      lock_completed.release()
+      logging.debug("lock_completed released, pid:%d", os.getpid())
+      if run_forever:
+        while True:
+          pass
+      return lock_path
 
     # Lock the first config in another process
-    p = Process(target=_Delayed)
+    lock_completed.acquire()
+    p = Process(target=_LockSourceWrapper, args=(True, ))
     p.start()
-    time.sleep(0.5)  # Give some time for process to start up
+    # This blocks until the process had locked properly.
+    lock_completed.acquire()
     self.assertRaisesRegexp(
         ArchiverFieldError, 'already monitored by another archiver',
-        LockSource, configs[0])
+        _LockSourceWrapper)
+    # Becasuse of the exception, _LockSourceWrapper() will not release the
+    # lock_completed
+    lock_completed.release()
 
-    # Test if the lock released while process terminated
-    p.terminate()
-    time.sleep(0.5)  # Give some time for process to terminate
-    lock_path = LockSource(configs[0])
+    # Test if the lock released while process terminated. If it is not, we
+    # should see an exception when trying to lock the resources.
+    p.terminate()  # the lock will be automatically released then.
+    p.join()
+    lock_completed.acquire()
+    lock_path = _LockSourceWrapper()
     # Delete the temporary lock file.
     os.unlink(lock_path)
 
-  def _resetIdentifyContentForArchivingMetadata(self, completed_bytes=None):
+  def _ResetIdentifyContentForArchivingMetadata(self, completed_bytes=None):
     """Resets the metadata that used for _IdentifyContentForArchiving testing.
 
     The metadata will be marked as all archived so other test will not be
@@ -236,10 +261,9 @@ class ArchiverUnittest(unittest.TestCase):
       with open(
           GetMetadataPath(filename, ARCHIVER_METADATA_DIRECTORY), 'w') as fd:
         WriteAndTruncateFd(
-            fd, GenerateArchiverMetadata(
-                completed_bytes=filesize))
+            fd, GenerateArchiverMetadata(completed_bytes=filesize))
 
-  def _resetListEligibleFilesMetadata(self):
+  def _ResetListEligibleFilesMetadata(self):
     """Resets the metadata that solely used for _ListEligibleFiles testing.
 
     The metadata will be marked as all archived so other test will not be
@@ -286,7 +310,6 @@ class ArchiverUnittest(unittest.TestCase):
           fd, GenerateArchiverMetadata(completed_bytes=10))
     expected_list.append((10, os.path.getsize(filename), filename))
 
-
     # Test if taken out from the returned list.
     #   raw/eventlog/20140419/no_bytes_appended
     #   raw/eventlog/20140419/.archiver/no_bytes_appeneded.metadata
@@ -296,7 +319,6 @@ class ArchiverUnittest(unittest.TestCase):
       WriteAndTruncateFd(
           fd, GenerateArchiverMetadata(
               completed_bytes=os.path.getsize(filename)))
-
 
     TryMakeDirs(
         os.path.join(EVENT_LOG_PATH, '20140420/.archiver'))
@@ -315,7 +337,7 @@ class ArchiverUnittest(unittest.TestCase):
     #   raw/eventlog/20140420/.archiver/corrupted_metadata_2.metadata
     filename = os.path.join(EVENT_LOG_PATH, '20140420/corrupted_metadata_2')
     with open(
-       GetMetadataPath(filename, ARCHIVER_METADATA_DIRECTORY), 'w') as fd:
+        GetMetadataPath(filename, ARCHIVER_METADATA_DIRECTORY), 'w') as fd:
       WriteAndTruncateFd(fd, '- a\n- b\n- c\n')
     expected_list.append((0, os.path.getsize(filename), filename))
 
@@ -324,12 +346,11 @@ class ArchiverUnittest(unittest.TestCase):
     #   raw/eventlog/20140420/.archiver/corrupted_metadata_3.metadata
     filename = os.path.join(EVENT_LOG_PATH, '20140420/corrupted_metadata_3')
     with open(
-      GetMetadataPath(filename, ARCHIVER_METADATA_DIRECTORY), 'w') as fd:
+        GetMetadataPath(filename, ARCHIVER_METADATA_DIRECTORY), 'w') as fd:
       WriteAndTruncateFd(
           fd, GenerateArchiverMetadata(
               completed_bytes=os.path.getsize(filename) + 1))
     expected_list.append((0, os.path.getsize(filename), filename))
-
 
     # Test if metadata created automatically.
     #   raw/eventlog/20140421/new_created_file
@@ -337,18 +358,19 @@ class ArchiverUnittest(unittest.TestCase):
     try:
       # Make sure no metadata for this file.
       os.unlink(GetMetadataPath(filename, ARCHIVER_METADATA_DIRECTORY))
-    except Exception:  # pylint=disable,W0702
+    except:  # pylint: disable=W0702
       pass
-    expected_list.append((0, os.path.getsize(filename), filename))
+    expected_list.append(EligibleFile(
+        last_completed_bytes=0, current_size=os.path.getsize(filename),
+        full_path=filename))
 
     # Test if those files are skipped.
     #   raw/eventlog/20140421/creating.inprogress
     #   raw/eventlog/20140421/creating.part
 
-    self._resetIdentifyContentForArchivingMetadata()
+    self._ResetIdentifyContentForArchivingMetadata()
     ret_list = _ListEligibleFiles(configs[0].source_dir)
     self.assertItemsEqual(expected_list, ret_list)
-
 
   def testIdentifyContentForArchiving(self):
     # In complete chunk at the end but still have chunks to archive.
@@ -367,8 +389,8 @@ class ArchiverUnittest(unittest.TestCase):
                                suffix=config.data_type)
     logging.info('%r created for archiving data_type[%s]',
                  tmp_dir, config.data_type)
-    self._resetIdentifyContentForArchivingMetadata(completed_bytes=0)
-    self._resetListEligibleFilesMetadata()
+    self._ResetIdentifyContentForArchivingMetadata(completed_bytes=0)
+    self._ResetListEligibleFilesMetadata()
     eligible_files = _ListEligibleFiles(config.source_dir)
     archive_metadata = _IdentifyContentForArchiving(
         eligible_files, tmp_dir, config)
@@ -394,8 +416,8 @@ class ArchiverUnittest(unittest.TestCase):
                                suffix=config.data_type)
     logging.info('%r created for archiving data_type[%s]',
                  tmp_dir, config.data_type)
-    self._resetIdentifyContentForArchivingMetadata(completed_bytes=0)
-    self._resetListEligibleFilesMetadata()
+    self._ResetIdentifyContentForArchivingMetadata(completed_bytes=0)
+    self._ResetListEligibleFilesMetadata()
     eligible_files = _ListEligibleFiles(config.source_dir)
     archive_metadata = _IdentifyContentForArchiving(
         eligible_files, tmp_dir, config)
@@ -415,8 +437,8 @@ class ArchiverUnittest(unittest.TestCase):
     configs = GenerateConfig(yaml.load(content))
     config = configs[0]
 
-    self._resetIdentifyContentForArchivingMetadata(completed_bytes=0)
-    self._resetListEligibleFilesMetadata()
+    self._ResetIdentifyContentForArchivingMetadata(completed_bytes=0)
+    self._ResetListEligibleFilesMetadata()
 
     Archive(config, next_cycle=False)
     # Check if the metadata updated as expected.
@@ -446,7 +468,7 @@ class ArchiverUnittest(unittest.TestCase):
     config = configs[0]
 
     # Prepare diectory
-    self._resetIdentifyContentForArchivingMetadata(completed_bytes=0)
+    self._ResetIdentifyContentForArchivingMetadata(completed_bytes=0)
     tmp_dir = tempfile.mkdtemp(
         prefix='FactoryArchiver_', suffix='_unittest')
     logging.info('%r created for Recycle() unittest', tmp_dir)
@@ -459,14 +481,14 @@ class ArchiverUnittest(unittest.TestCase):
         os.path.join(tmp_dir, 'recycle/raw/eventlog'),
         'recycle_dir', create=True)
     shutil.copytree(
-      os.path.join(TEST_DATA_PATH, 'raw/eventlog/20140406'),
-      os.path.join(tmp_dir, 'raw/eventlog/20140406'))
+        os.path.join(TEST_DATA_PATH, 'raw/eventlog/20140406'),
+        os.path.join(tmp_dir, 'raw/eventlog/20140406'))
 
     # Check if the snapshot created ?
     self.assertTrue(_Recycle(config))  # Trigger snapshot creation
     self.assertTrue(
-        os.path.isfile(os.path.join(tmp_dir,
-                       'raw/eventlog/20140406/.archiver', '.snapshot')))
+        os.path.isfile(os.path.join(
+            tmp_dir, 'raw/eventlog/20140406/.archiver', '.snapshot')))
     # Check if it recycled ?
     self.assertTrue(_Recycle(config))
     self.assertFalse(
@@ -475,8 +497,8 @@ class ArchiverUnittest(unittest.TestCase):
         os.path.isdir(os.path.join(tmp_dir, 'recycle/raw/eventlog/20140406')))
     # Copy the 20140406 directory again to test recycle in conflict.
     shutil.copytree(
-      os.path.join(TEST_DATA_PATH, 'raw/eventlog/20140406'),
-      os.path.join(tmp_dir, 'raw/eventlog/20140406'))
+        os.path.join(TEST_DATA_PATH, 'raw/eventlog/20140406'),
+        os.path.join(tmp_dir, 'raw/eventlog/20140406'))
     self.assertTrue(_Recycle(config))  # Trigger snapshot creation
     self.assertTrue(_Recycle(config))  # Trigger conflict
     self.assertEqual(
@@ -556,8 +578,8 @@ class ArchiverUnittest(unittest.TestCase):
     config.SetDir(
         os.path.join(tmp_dir, 'archives'), 'archived_dir', create=True)
     shutil.copytree(
-      os.path.join(TEST_DATA_PATH, 'raw/report/20140406'),
-      os.path.join(tmp_dir, 'raw/report/20140406'))
+        os.path.join(TEST_DATA_PATH, 'raw/report/20140406'),
+        os.path.join(tmp_dir, 'raw/report/20140406'))
 
     # Make one of the reports as archived.
     mock_archived_reports = [
@@ -585,8 +607,8 @@ class ArchiverUnittest(unittest.TestCase):
     Archive(config, next_cycle=False)
 
     # Compare the content of the archive
-    zip_file_path = glob.glob(os.path.join(config.archived_dir,'*'))[0]
-    archived_files = zipfile.ZipFile(zip_file_path, 'r').namelist()
+    zip_file_path = glob.glob(os.path.join(config.archived_dir, '*'))[0]
+    archived_files = zipfile.ZipFile(zip_file_path).namelist()
     self.assertItemsEqual(expected_files, archived_files)
     shutil.rmtree(tmp_dir)
     logging.info('%r deleted', tmp_dir)
@@ -603,7 +625,7 @@ class ArchiverUnittest(unittest.TestCase):
     Archive(config, next_cycle=False)
 
     # Try to decrypt it and verify the content
-    encrypted_file_path = glob.glob(os.path.join(config.archived_dir,'*'))[0]
+    encrypted_file_path = glob.glob(os.path.join(config.archived_dir, '*'))[0]
     cmd_line = [
         'gpg', '--batch', '--no-tty',  # Disable the tty output side effect
         '--output', encrypted_file_path[:-4], '--no-default-keyring',
@@ -618,7 +640,7 @@ class ArchiverUnittest(unittest.TestCase):
                     'stderr:\n%s\n', cmd_line, p.returncode, stdout, stderr)
 
     # Compare the content of the archive
-    archived_files = zipfile.ZipFile(encrypted_file_path[:-4], 'r').namelist()
+    archived_files = zipfile.ZipFile(encrypted_file_path[:-4]).namelist()
     self.assertItemsEqual(expected_files, archived_files)
     shutil.rmtree(tmp_dir)
     logging.info('%r deleted', tmp_dir)

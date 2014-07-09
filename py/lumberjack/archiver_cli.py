@@ -5,56 +5,35 @@
 
 """A long-lived command line interface (CLI) that wraps raw logs."""
 
-# TODO(itspeter):
-#   switch to cros.factory.hacked_argparse once migration to Umpire is fully
-#   rolled-out.
+# TODO(itspeter): switch to cros.factory.hacked_argparse once migration to
+#                 Umpire is fully rolled-out.
 import argparse
 import logging
-import os
 import signal
 import sys
+
+import twisted
 import yaml
 
 import archiver
-
-from archiver_config import GenerateConfig, LockSource, locks
-from common import IsValidYAMLFile
-from twisted.internet import reactor
-
+import archiver_config
+import common
 
 def _CleanUp():
-  global locks  # pylint: disable=W0603
+  """Call archiver_config.CleanUp() and end the reactor."""
   # Call reactor.stop() from reactor instance to make sure no spawned
   # process is running in parallel.
   logging.info('Stopping archiver...')
-  reactor.callLater(1, reactor.stop)  # pylint: disable=E1101
-
-  for _, lock_file_path in locks:
-    logging.info('Trying to delete advisory lock on %r', lock_file_path)
-    try:
-      os.unlink(lock_file_path)
-    except OSError:
-      logging.error('Lock file %s is already deleted.', lock_file_path)
-  locks = []
-
-
-def CleanUpDecorator(func):
-  """Decorator for deleting the markers and other clean-ups in normal flow."""
-  def wrapper(*args, **kwargs):
-    try:
-      return func(*args, **kwargs)
-    finally:
-      _CleanUp()
-  return wrapper
+  # pylint: disable=E1101
+  twisted.internet.reactor.callLater(1, twisted.internet.reactor.stop)
+  archiver_config.CleanUp()
 
 
 def _SignalHandler(unused_signal, unused_frame):
   _CleanUp()
 
 
-@CleanUpDecorator
 def main(argv):
-
   top_parser = argparse.ArgumentParser(description='Log Archiver')
   sub_parsers = top_parser.add_subparsers(
       dest='sub_command', help='available sub-actions')
@@ -69,10 +48,10 @@ def main(argv):
       'run-once', help='manually archive specific files')
 
   parser_run.add_argument(
-      'yaml_config', action='store', type=IsValidYAMLFile,
+      'yaml_config', action='store', type=common.IsValidYAMLFile,
       help='run archiver with the YAML configuration file')
   parser_dryrun.add_argument(
-      'yaml_config', action='store', type=IsValidYAMLFile,
+      'yaml_config', action='store', type=common.IsValidYAMLFile,
       help='path to YAML configuration file')
   args = top_parser.parse_args(argv)
 
@@ -82,11 +61,11 @@ def main(argv):
       logging.debug('Validating fields in %r', args.yaml_config)
       # TODO(itspeter): Complete the remaining logic for archiver.
       # pylint: disable=W0612
-      configs = GenerateConfig(yaml.load(f.read()))
+      configs = archiver_config.GenerateConfig(yaml.load(f.read()))
 
     # Try to acquire locks for each config
     for config in configs:
-      LockSource(config)
+      archiver_config.LockSource(config)
 
     if args.sub_command == 'dry-run':
       # TODO(itspeter): Additional action for dry-run checking
@@ -94,12 +73,13 @@ def main(argv):
     # Start the first cycle for each configs in few secs.
     for config in configs:
       # TODO(itspeter): Special clean-up for first cycle.
-      reactor.callLater(5, archiver.Archive, config)  # pylint: disable=E1101
+      # pylint: disable=E1101
+      twisted.internet.reactor.callLater(5, archiver.Archive, config)
 
     # Register signal handler
     signal.signal(signal.SIGTERM, _SignalHandler)
     signal.signal(signal.SIGINT, _SignalHandler)
-    reactor.run()  # pylint: disable=E1101
+    twisted.internet.reactor.run()  # pylint: disable=E1101
 
 
 if __name__ == '__main__':
@@ -108,4 +88,7 @@ if __name__ == '__main__':
       format=('[%(levelname)5s] %(filename)15s:%(lineno)d '
               '%(asctime)s %(message)s'),
       level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S')
-  main(sys.argv[1:])
+  try:
+    main(sys.argv[1:])
+  finally:
+    _CleanUp()

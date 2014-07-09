@@ -11,18 +11,20 @@ import os
 import pprint
 import subprocess
 import time
-import yaml
 import logging
 
-from archiver_exception import ArchiverFieldError
-from subprocess import check_call, PIPE, Popen
+import yaml
+
+import archiver_exception
 
 # For storing metadata.
 ARCHIVER_METADATA_DIRECTORY = '.archiver'
 UPLOADER_METADATA_DIRECTORY = '.uploader'
 
+
 class MetadataFieldError(Exception):
   pass
+
 
 def IsValidYAMLFile(arg):
   """Help function to reject invalid YAML syntax"""
@@ -78,7 +80,7 @@ def CheckAndLockFile(lock_file_path):
   try:
     fcntl.lockf(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
   except IOError:
-    with open(lock_file_path, 'r') as f:
+    with open(lock_file_path) as f:
       return f.read()
 
   # Write the owner's process ID.
@@ -169,27 +171,22 @@ def GetMD5ForFiles(files, base_dir=None):
   for filename in files:
     full_path = (os.path.join(base_dir, filename) if base_dir else
                  filename)
-    with open(os.path.join(full_path), 'r') as fd:
+    with open(os.path.join(full_path)) as fd:
       md5_hash.update(fd.read())
   return md5_hash.hexdigest()
 
 
-def GetMetadataPath(file_path, metadata_dirname, dir_path=None):
+def GetMetadataPath(file_path, metadata_dirname):
   """Returns the metadata path of file_path.
 
   Args:
     file_path: The path to the file that we want its metadata's path.
     metadata_dirname: The directory name of the metadata
-    dir_path:
-      The directory path of the file_path. If the caller has the infomation
-      of its directory name in place, we can save a call of calling
-      os.path.dirname() by assigning this.
 
   Returns:
     The path to the metadata.
   """
-  if not dir_path:
-    dir_path = os.path.dirname(file_path)
+  dir_path = os.path.dirname(file_path)
 
   return os.path.join(
       dir_path, metadata_dirname,
@@ -310,12 +307,12 @@ def EncryptFile(file_path, encrypt_key_pair, delete=False):
   """
   # Check GnuPG is installed.
   if not CheckExecutableExist('gpg'):
-    raise ArchiverFieldError(
+    raise archiver_exception.ArchiverFieldError(
         'GnuPG(gpg) is not callable. It is required for encryption.')
   # List the existing keys via "gpg -k". This step is to make sure local
   # gpg initializes its database so following commands can be run wihtout
-  # issues.
-  check_call(['gpg', '--no-tty', '-k']) # Disable the tty output side effect
+  # issues. In addition, disabling the side effecit of tty output.
+  subprocess.check_call(['gpg', '--no-tty', '-k'])
 
   # Check if the public key's format and recipient are valid.
   # Since we don't have the private key, we can only verify if the public
@@ -325,7 +322,7 @@ def EncryptFile(file_path, encrypt_key_pair, delete=False):
   path_to_key, recipient = encrypt_key_pair
   path_to_key = os.path.abspath(path_to_key)
   if not os.path.isfile(path_to_key):
-    raise ArchiverFieldError(
+    raise archiver_exception.ArchiverFieldError(
         'Public key %r doesn\'t exist or not having enough permission'
         'to load.' % path_to_key)
 
@@ -340,14 +337,14 @@ def EncryptFile(file_path, encrypt_key_pair, delete=False):
 
   # Add .part indicate it is inprogress
   cmd_line += ['--output', file_path + '.gpg.part', file_path]
-  p = Popen(cmd_line, stdout=PIPE, stderr=PIPE)
+  p = subprocess.Popen(cmd_line, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
   stdout, stderr = p.communicate()
   if p.returncode != 0:
     logging.error('Command %r failed. retcode[%r]\nstdout:\n%s\n\n'
                   'stderr:\n%s\n', cmd_line, p.returncode, stdout, stderr)
-    raise ArchiverFieldError(
+    raise archiver_exception.ArchiverFieldError(
         'Failed to encrypt with the public key %r and recipient %r' % (
-        path_to_key, recipient))
+            path_to_key, recipient))
 
   # Remove .part suffix.
   os.rename(file_path + '.gpg.part', file_path + '.gpg')
@@ -377,8 +374,8 @@ def LogListDifference(old_list, new_list, help_text=None):
   added = new_set - old_set
   removed = old_set - new_set
   if len(removed):
-    logging.info("Old itmes%s are removed:\n%s\n",
+    logging.info('Old itmes%s are removed:\n%s\n',
                  help_text, pprint.pformat(removed))
   if len(added):
-    logging.info("New itmes%s are added:\n%s\n",
+    logging.info('New itmes%s are added:\n%s\n',
                  help_text, pprint.pformat(added))

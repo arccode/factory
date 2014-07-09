@@ -3,8 +3,11 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Everything about constructing and verifing the config of Archiver."""
+"""Helper module to construct and verify the assigned configuration.
 
+While each configuration in the YAML is loaded, ArchiverConfig's method should
+be called to set those parameters, since it will check if those are valid.
+"""
 import copy
 import logging
 import os
@@ -13,30 +16,40 @@ import re
 import shutil
 import tempfile
 
-from archiver_exception import ArchiverFieldError
-from common import (CheckAndLockFile, CheckExecutableExist,
-                    EncryptFile, TryMakeDirs)
+import archiver_exception
+import common
 
 # Global variable to keep locked file open during process life-cycle
 locks = []
 
 ALLOWED_DATA_TYPE = set(['eventlog', 'reports', 'regcode'])
 ALLOWED_DURATION = {
-    'hourly': 60*60,
-    'daily': 60*60*24,
-    'weekly': 60*60*24*7,
-    'monthly': 60*60*24*7*30  # Assuming 30 days for a month.
+    'hourly': 60 * 60,
+    'daily': 60 * 60 * 24,
+    'weekly': 60 * 60 * 24 * 7,
+    'monthly': 60 * 60 * 24 * 7 * 30  # Assuming 30 days for a month.
 }
 ALLOWED_FORMAT = {
-  '.tar.xz': 'tar',
-  '.zip': 'zip'}
+    '.tar.xz': 'tar',
+    '.zip': 'zip'}
 
 DEFAULT_DURATION = ALLOWED_DURATION['daily']
 DEFAULT_FORMAT = '.tar.xz'
 DEFAULT_DELIMITER = {
-  'eventlog': r'---\n',
-  'regcode': r'\n'
+    'eventlog': r'---\n',
+    'regcode': r'\n'
 }
+
+
+def CleanUp():
+  global locks  # pylint: disable=W0603
+  for _, lock_file_path in locks:
+    logging.info('Trying to delete advisory lock on %r', lock_file_path)
+    try:
+      os.unlink(lock_file_path)
+    except OSError:
+      logging.error('Lock file %s is already deleted.', lock_file_path)
+  locks = []
 
 
 class ArchiverConfig(object):
@@ -142,7 +155,7 @@ class ArchiverConfig(object):
       logging.info('Path %r doesn\'t exist', dir_path)
       if create:
         try:
-          TryMakeDirs(dir_path, raise_exception=True)
+          common.TryMakeDirs(dir_path, raise_exception=True)
         except OSError:
           logging.error('Exception found during the creation of %r. '
                         'Might be a racing or permission issue')
@@ -158,14 +171,15 @@ class ArchiverConfig(object):
 
     Raises:
       ArchiverFieldError with its failure reason.
+      ValueError if directory is not able to access.
     """
     dir_path = os.path.abspath(dir_path)
     if not hasattr(self, dir_type):
-      raise ArchiverFieldError(
+      raise archiver_exception.ArchiverFieldError(
           '%r is not in the properties of ArchiverConfig' % dir_type)
 
     if not self._CheckDirOrCreate(dir_path, create):
-      raise ArchiverFieldError('Can\'t access directory %r' % dir_path)
+      raise ValueError('Can\'t access directory %r' % dir_path)
     setattr(self, dir_type, dir_path)
 
   def SetSourceFile(self, file_path):
@@ -175,11 +189,11 @@ class ArchiverConfig(object):
       file_path: Path to the file.
 
     Raises:
-      ArchiverFieldError with its failure reason.
+      ValueError if file is not able to access.
     """
     file_path = os.path.abspath(file_path)
     if not os.path.isfile(file_path):
-      raise ArchiverFieldError('Cant\'s access %r' % file_path)
+      raise ValueError('Cant\'s access %r' % file_path)
     self.source_file = file_path
 
   def SetProject(self, project):
@@ -189,11 +203,11 @@ class ArchiverConfig(object):
       project: The name of this project.
 
     Raises:
-      ArchiverFieldError when regular expression doesn't meet.
+      ValueError when regular expression doesn't meet.
     """
     VALID_REGEXP = r'^[A-Za-z0-9_-]+$'
     if not re.match(VALID_REGEXP, project):
-      raise ArchiverFieldError(
+      raise ValueError(
           'Project field doesn\'t meet the regular expression %r' %
           VALID_REGEXP)
     self.project = project
@@ -209,16 +223,16 @@ class ArchiverConfig(object):
       duration: An integer in seconds or a string in ALLOWED_DURATION.
 
     Raises:
-      ArchiverFieldError when duraion is not an integer nor in ALLOWED_DURATION.
+      ValueError when duraion is not an integer nor in ALLOWED_DURATION.
     """
     if not isinstance(duration, int):
       if duration in ALLOWED_DURATION:
         self.duration = ALLOWED_DURATION[duration]
       else:
-        raise ArchiverFieldError(
-          'duration %r is not supported at this time. '
-          'We support the integer in seconds or the following: %s' % (
-          duration, pprint.pformat(ALLOWED_DURATION.keys())))
+        raise ValueError(
+            'duration %r is not supported at this time. '
+            'We support the integer in seconds or the following: %s' % (
+            duration, pprint.pformat(ALLOWED_DURATION.keys())))
     else:
       self.duration = duration
 
@@ -239,16 +253,16 @@ class ArchiverConfig(object):
         Currently, we support '.tar.xz' and '.zip'.
 
     Raises:
-      ArchiverFieldError if format is not supported.
+      ValueError if format is not supported.
     """
     if compress_format not in ALLOWED_FORMAT.iterkeys():
-      raise ArchiverFieldError(
+      raise ValueError(
           'compress_format %r is not supported. We support the following:'
           '%s' % (compress_format, pprint.pformat(ALLOWED_FORMAT)))
 
     # Check related executables
-    if not CheckExecutableExist(ALLOWED_FORMAT[compress_format]):
-      raise ArchiverFieldError(
+    if not common.CheckExecutableExist(ALLOWED_FORMAT[compress_format]):
+      raise ValueError(
           'command %r must be callable for compress_format %r' %
           ALLOWED_FORMAT[compress_format], compress_format)
     self.compress_format = compress_format
@@ -262,12 +276,15 @@ class ArchiverConfig(object):
     """Sets the encrypt_key_pair property.
 
     The encrypt_key_pair consists of two fields (path to public key, recipient).
-    The function will create a temp direcotry and do a dry-run to see if the
+    The function will create a temp directory and do a dry-run to see if the
     key and recipient pair is actually working.
 
     It is possible that the recipient is omitted. In such case,
     'google-crosreg-key' will be assigned automatically and use the
     --default-recipient flag of gpg.
+
+    Args:
+      encrypt_key_pair: tuple in the form (path to public key, recipient)
 
     Raises:
       ArchiverFieldError if gpg is not installed.
@@ -285,7 +302,7 @@ class ArchiverConfig(object):
       test_file_path = os.path.join(tmp_dir, 'content')
       with open(test_file_path, 'w') as fd:
         fd.write(test_file_path)
-      EncryptFile(test_file_path, encrypt_key_pair)
+      common.EncryptFile(test_file_path, encrypt_key_pair)
     finally:
       shutil.rmtree(tmp_dir)
       logging.debug('%r deleted', tmp_dir)
@@ -295,20 +312,55 @@ class ArchiverConfig(object):
     """Checks if current properties are sufficient for an archiving cycle."""
     # One of source_dir or source_file must assigned.
     if not self.source_dir and not self.source_file:
-      raise ArchiverFieldError(
+      raise archiver_exception.ArchiverFieldError(
           'data_type[%r]: One of source_dir or source_file must be assigned.' %
           self.data_type)
     if self.source_dir and self.source_file:
-      raise ArchiverFieldError(
+      raise archiver_exception.ArchiverFieldError(
           'data_type[%r]: Should only One of source_dir or source_file '
           'be assigned.' % self.data_type)
 
     if not self.project:
-      raise ArchiverFieldError('data_type[%r]: project must be assigned.' %
-          self.data_type)
+      raise archiver_exception.ArchiverFieldError(
+          'data_type[%r]: project must be assigned.' % self.data_type)
     if not self.archived_dir:
-      raise ArchiverFieldError('data_type[%r]: archived_dir must be assigned.' %
-          self.data_type)
+      raise archiver_exception.ArchiverFieldError(
+          'data_type[%r]: archived_dir must be assigned.' % self.data_type)
+
+
+def _CheckAndSetFields(archive_config, fields):
+  """Returns an ArchiverConfig.
+
+  Args:
+    archive_config: An ArchiverConfig object, data_type property must be
+      set before calling this function.
+    fields: A dictionary form of the configuration.
+
+  Raises:
+    ArchiverFieldError if any invalid.
+  """
+  def _SetDelimiter(target_config, value):
+    logging.info('delimiter for %r has set manually to %r',
+                 archive_config.data_type, value)
+    target_config.SetDelimiter(value)
+
+  SETTER_MAP = {
+      'source_dir': lambda value: archive_config.SetDir(value, 'source_dir'),
+      'source_file': archive_config.SetSourceFile,
+      'archived_dir':
+          lambda value: archive_config.SetDir(value, 'archived_dir'),
+      'recycle_dir': lambda value: archive_config.SetDir(value,
+                                                         'recycle_dir'),
+      'project': archive_config.SetProject,
+      'notes': archive_config.SetNotes,
+      'duration': archive_config.SetDuration,
+      'delimiter': lambda value: _SetDelimiter(archive_config, value),
+      'compress_format': archive_config.SetCompressFormat,
+      'encrypt_key_pair': archive_config.SetEncryptKeyPair
+  }
+
+  for field, value in fields.iteritems():
+    SETTER_MAP[field](value)
 
 
 def GenerateConfig(config):
@@ -328,50 +380,19 @@ def GenerateConfig(config):
   logging.debug('GenerateConfig got config: %s\n', pprint.pformat(config))
   archive_configs = []
 
-  def _CheckAndSetFields(archive_config, fields):
-    """Returns an ArchiverConfig.
-
-    Args:
-      archive_config: An ArchiverConfig object, data_type property must be
-        set before calling this function.
-      fields: A dictionary form of the configuration.
-
-    Raises:
-      ArchiverFieldError if any invalid.
-    """
-    def _SetDelimiter(target_config, value):
-      logging.info('delimiter for %r has set manually to %r',
-                   archive_config.data_type, value)
-      target_config.SetDelimiter(value)
-
-    SETTER_MAP = {
-      'source_dir': lambda value: archive_config.SetDir(value, 'source_dir'),
-      'source_file': archive_config.SetSourceFile,
-      'archived_dir':
-          lambda value: archive_config.SetDir(value, 'archived_dir'),
-      'recycle_dir': lambda value: archive_config.SetDir(value, 'recycle_dir'),
-      'project': archive_config.SetProject,
-      'notes': archive_config.SetNotes,
-      'duration': archive_config.SetDuration,
-      'delimiter': lambda value: _SetDelimiter(archive_config, value),
-      'compress_format': archive_config.SetCompressFormat,
-      'encrypt_key_pair': archive_config.SetEncryptKeyPair
-      }
-
-    for field, value in fields.iteritems():
-      SETTER_MAP[field](value)
-
   if not isinstance(config, dict):
-    raise ArchiverFieldError(
+    raise archiver_exception.ArchiverFieldError(
         'YAML configuration is expected to be a dictionary')
   common_fields = config.get('common', None) or dict()
 
   # Check the existence of data_types.
-  if not config.has_key('data_types'):
-    raise ArchiverFieldError('Fields data_types are not found.')
+  if not (config.has_key('data_types') and
+          isinstance(config['data_types'], dict)):
+    raise archiver_exception.ArchiverFieldError(
+        'Fields data_types are not found or not a dict.')
 
   # Generate ArchiverConfig for each one in data_types.
-  data_types_fields = config['data_types'] or dict()
+  data_types_fields = config['data_types']
   available_data_types = copy.copy(ALLOWED_DATA_TYPE)
   for data_type, fields in data_types_fields.iteritems():
     if data_type in available_data_types:
@@ -380,7 +401,7 @@ def GenerateConfig(config):
       logging.info('%r is not supported at this time.\n'
                    'The following data_types are supported: %s',
                    data_type, pprint.pformat(ALLOWED_DATA_TYPE))
-      raise ArchiverFieldError(
+      raise archiver_exception.ArchiverFieldError(
           'data_type %r is not supported at this time or '
           'there is a multiple definition' % data_type)
     logging.debug('Generating configuration for data type %r', data_type)
@@ -415,7 +436,7 @@ def LockSource(config):
     lock_file_path = os.path.join(
         os.path.dirname(config.source_file),
         '.' + os.path.basename(config.source_file) + LOCK_FILE_SUFFIX)
-  lock_ret = CheckAndLockFile(lock_file_path)
+  lock_ret = common.CheckAndLockFile(lock_file_path)
   if not isinstance(lock_ret, file):
     running_pid = lock_ret
     error_msg = (
@@ -423,7 +444,7 @@ def LockSource(config):
         'Lock %r cannot be acquired. Another archiver\'s PID '
         'might be %s' % (config.data_type, lock_file_path, running_pid))
     logging.error(error_msg)
-    raise ArchiverFieldError(error_msg)
+    raise archiver_exception.ArchiverFieldError(error_msg)
 
   # Add to global variable to live until this process ends.
   locks.append((lock_ret, lock_file_path))

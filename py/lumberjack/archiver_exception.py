@@ -7,4 +7,9 @@
 
 
 class ArchiverFieldError(Exception):
+  """Exception class for field error.
+
+  This exception is raised when field in configuration is invalid. Reasons
+  are usually attached in the message.
+  """
   pass
