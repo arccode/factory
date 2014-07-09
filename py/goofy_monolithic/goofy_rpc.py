@@ -14,6 +14,7 @@ import os
 import Queue
 import random
 import re
+import subprocess
 import tempfile
 import threading
 import time
@@ -41,10 +42,6 @@ RunState = utils.Enum(['UNINITIALIZED', 'STARTING', 'NOT_ACTIVE_RUN', 'RUNNING',
 class UIRPCMethods(object):
   """Supported UI RPC methods."""
   CLOSE_GOOFY_TAB = 'CloseGoofyTab'
-  EVALUATE_JAVASCRIPT = 'EvaluateJavaScript'
-  EXECUTE_JAVASCRIPT = 'ExecuteJavaScript'
-  GET_DISPLAY_INFO = 'GetDispleyInfo'
-  TAKE_SCREENSHOT = 'TakeScreenshot'
 
 
 class GoofyRPCException(Exception):
@@ -570,48 +567,18 @@ class GoofyRPC(object):
     """Closes the Chrome tab running Goofy frontend."""
     return self._UIRPC(UIRPCMethods.CLOSE_GOOFY_TAB)
 
-  def EvaluateJavaScript(self, script):
-    """Evaluates JavaScript through Telemetry.
-
-    Args:
-      script: The script to evaluate.
-
-    Returns:
-      The returned value from Telemetry.
-    """
-    return self._UIRPC(UIRPCMethods.EVALUATE_JAVASCRIPT, args=script)
-
-  def ExecuteJavaScript(self, script):
-    """Executes JavaScript through Telemetry.
-
-    Args:
-      script: The script to execute.
-    """
-    self._UIRPC(UIRPCMethods.EXECUTE_JAVASCRIPT, args=script)
-
-  def GetDisplayInfo(self):
-    """Gets display info from the factory test chrome extension page.
-
-    Returns:
-      A dict of display info.
-
-    Raises:
-      GoofyRPCException: If this is called inside chroot, or browser instance is
-          not initialized.
-    """
-    if utils.in_chroot():
-      raise GoofyRPCException('Cannot get display info in chroot')
-
-    return self._UIRPC(UIRPCMethods.GET_DISPLAY_INFO)
-
   def TakeScreenshot(self, output_file=None):
     """Takes a screenshot through Telemetry tab.Screenshot API.
 
     Args:
-      output_file: The output file path to store the captured PNG file.  If not
-          given the screenshot is saved to /var/log/screenshot_<TIME>.png.
+      output_file: The output file path to store the captured image file.
+          If not given, screenshot is saved to /var/log/screenshot_<TIME>.png.
     """
-    self._UIRPC(UIRPCMethods.TAKE_SCREENSHOT, args=output_file)
+    if not output_file:
+      output_file = ('/var/log/screenshot_%s.png' %
+                     time.strftime("%Y%m%d-%H%M%S"))
+    subprocess.check_call('xwd -d :0 -root | convert - "%s"' % output_file,
+                          shell=True)
 
 
 def main():

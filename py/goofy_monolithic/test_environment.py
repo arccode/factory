@@ -270,34 +270,6 @@ class DUTTelemetryEnvironment(DUTEnvironment):
       if event['type'] == goofy_rpc.UIRPCMethods.CLOSE_GOOFY_TAB:
         _GetGoofyTab().Close()
 
-      elif event['type'] == goofy_rpc.UIRPCMethods.EVALUATE_JAVASCRIPT:
-        return _GetGoofyTab().EvaluateJavaScript(event['args'])
-
-      elif event['type'] == goofy_rpc.UIRPCMethods.EXECUTE_JAVASCRIPT:
-        _GetGoofyTab().ExecuteJavaScript(event['args'])
-
-      elif event['type'] == goofy_rpc.UIRPCMethods.GET_DISPLAY_INFO:
-        ext_page = self.browser.extensions[self.extension]
-        ext_page.ExecuteJavaScript(
-            'window.__display_info = null;')
-        ext_page.ExecuteJavaScript(
-            'chrome.system.display.getInfo(function(info) {'
-            '    window.__display_info = info;})')
-
-        def _FetchDisplayInfo():
-          return ext_page.EvaluateJavaScript(
-              'window.__display_info')
-
-        utils.WaitFor(_FetchDisplayInfo, 10)
-        return _FetchDisplayInfo()
-
-      elif event['type'] == goofy_rpc.UIRPCMethods.TAKE_SCREENSHOT:
-        screenshot = _GetGoofyTab().Screenshot(timeout=5)
-        output_file = event['args']
-        if not output_file:
-          output_file = (
-              '/var/log/screenshot_%s.png' % time.ctime().replace(' ', '_'))
-        screenshot.WritePngFile(output_file)
     except Exception as e:
       return e
 
