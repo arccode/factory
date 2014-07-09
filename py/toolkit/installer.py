@@ -210,14 +210,22 @@ class FactoryToolkitInstaller():
       # may be hosed.  This is skipped for testing.
       # --force is necessary to allow goofy directory from prior
       # toolkit installations to be overwritten by the goofy symlink.
-      if self._sudo:
-        Spawn(['chown', '-R', 'root', src],
-              sudo=True, log=True, check_call=True)
-        Spawn(['chmod', '-R', 'go+rX', src],
-              sudo=True, log=True, check_call=True)
-      print '***   %s -> %s' % (src, dest)
-      Spawn(['rsync', '-a', '--force', src + '/', dest],
-            sudo=self._sudo, log=True, check_output=True)
+      try:
+        if self._sudo:
+          Spawn(['chown', '-R', 'root', src],
+                sudo=True, log=True, check_call=True)
+          Spawn(['chmod', '-R', 'go+rX', src],
+                sudo=True, log=True, check_call=True)
+        print '***   %s -> %s' % (src, dest)
+        Spawn(['rsync', '-a', '--force', src + '/', dest],
+              sudo=self._sudo, log=True, check_output=True)
+      finally:
+        # Need to change the source directory back to the original user, or the
+        # script in makeself will fail to remove the temporary source directory.
+        if self._sudo:
+          myuser = os.environ.get('USER')
+          Spawn(['chown', '-R', myuser, src],
+                sudo=True, log=True, check_call=True)
 
     self._SetTagFile('factory', self._tag_file, not self._no_enable)
     self._SetTagFile('host', self._host_tag_file, self._enable_host)
