@@ -29,8 +29,9 @@ from cros.factory.umpire.utils import ConcentrateDeferreds
 from cros.factory.umpire.version import UMPIRE_VERSION_MAJOR
 from cros.factory.umpire.web.xmlrpc import XMLRPCContainer
 from cros.factory.utils import file_utils
+from cros.factory.utils import net_utils
 
-TEST_RPC_PORT = 8088
+TEST_RPC_PORT = net_utils.GetUnusedPort()
 TESTDIR = os.path.abspath(os.path.join(os.path.split(__file__)[0], 'testdata'))
 TESTCONFIG = os.path.join(TESTDIR, 'enable_update.yaml')
 
