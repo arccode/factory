@@ -54,10 +54,13 @@ class Servo(object):
 
       utils.WaitFor(WaitForServod, 10)
 
-      # Do not try to auto-update if we are running servo host directly on a
-      # Moblab.
       if common.OnMoblab():
+        # Do not try to auto-update if we are running servo host directly on a
+        # Moblab.
         hosts.ServoHost._update_image = lambda _: True
+        # Create a dummy servod config to make ServoHost happy.
+        process_utils.Spawn(['touch', '/var/lib/servod/config'],
+                            log=True, check_call=True)
 
     self._servo = servo.Servo(hosts.ServoHost(servo_host=host, servo_port=port),
                               serial)
