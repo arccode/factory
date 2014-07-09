@@ -39,11 +39,6 @@ RunState = utils.Enum(['UNINITIALIZED', 'STARTING', 'NOT_ACTIVE_RUN', 'RUNNING',
                        'FINISHED'])
 
 
-class UIRPCMethods(object):
-  """Supported UI RPC methods."""
-  CLOSE_GOOFY_TAB = 'CloseGoofyTab'
-
-
 class GoofyRPCException(Exception):
   """Goofy RPC exception."""
   pass
@@ -536,36 +531,6 @@ class GoofyRPC(object):
       # This should never be reached, but not much we can do but
       # complain to the caller.
       raise GoofyRPCException('Factory did not restart as expected')
-
-  def _UIRPC(self, event_type, args=None):
-    """Sends events to the UI process and waits for response.
-
-    Args:
-      event_type: The type of UI RPC to invoke.
-      args: Optional args to pass along with the RPC.
-
-    Returns:
-      The returned value of the RPC.
-
-    Raises:
-      GoofyRPCException if RPC returned an exception object.
-    """
-    if utils.in_chroot():
-      raise GoofyRPCException(
-          'Cannot evaluate Javascript in chroot')
-
-    event = {
-        'type': event_type,
-        'args': args,
-    }
-    ret = self.goofy.env.invoke_rpc(event)
-    if isinstance(ret, Exception):
-      raise GoofyRPCException(ret)
-    return ret
-
-  def CloseGoofyTab(self):
-    """Closes the Chrome tab running Goofy frontend."""
-    return self._UIRPC(UIRPCMethods.CLOSE_GOOFY_TAB)
 
   def TakeScreenshot(self, output_file=None):
     """Takes a screenshot through Telemetry tab.Screenshot API.

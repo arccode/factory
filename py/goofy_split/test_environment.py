@@ -17,7 +17,6 @@ import time
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.goofy_split import connection_manager
-from cros.factory.goofy_split import goofy_rpc
 from cros.factory.test import factory, state, utils
 
 
@@ -68,6 +67,10 @@ class Environment(object):
     """Creates a ConnectionManager."""
     raise NotImplementedError()
 
+  def terminate(self):
+    """Terminates and cleans up environment."""
+    pass
+
 
 class DUTEnvironment(Environment):
   """A real environment on a device under test."""
@@ -93,10 +96,6 @@ class DUTEnvironment(Environment):
   def spawn_autotest(self, name, args, env_additions, result_file):
     return self.goofy.prespawner.spawn(args, env_additions)
 
-  def invoke_rpc(self, unused_data):
-    # TODO(hungte) Route to Goofy events.
-    return None
-
   def launch_chrome(self):
     utils.WaitFor(self.goofy.web_socket_manager.has_sockets, 30)
     subprocess.check_call(['initctl', 'emit', 'login-prompt-visible'])
@@ -116,6 +115,7 @@ class DUTTelemetryEnvironment(DUTEnvironment):
   """A real environment on a device under test, using Telemetry."""
   BROWSER_TYPE_LOGIN = 'system'
   BROWSER_TYPE_GUEST = 'system-guest'
+  CLOSE_GOOFY_TAB = 'CloseGoofyTab'
   EXTENSION_PATH = os.path.join(factory.FACTORY_PATH, 'py', 'goofy',
                                 'factory_test_extension')
   GUEST_MODE_TAG_FILE = os.path.join(state.DEFAULT_FACTORY_STATE_FILE_PATH,
@@ -173,13 +173,6 @@ class DUTTelemetryEnvironment(DUTEnvironment):
     if not self.goofy.web_socket_manager.has_sockets():
       logging.error('UI did not load after %d tries; giving up',
                     self.goofy.test_list.options.chrome_startup_tries)
-
-  def invoke_rpc(self, data):
-    if self.goofy.env.telemetry_proc_pipe is None:
-      raise goofy_rpc.GoofyRPCException('UI is not ready yet')
-
-    self.telemetry_proc_pipe.send(data)
-    return self.telemetry_proc_pipe.recv()
 
   def _start_telemetry(self, pipe=None):
     """Starts UI through telemetry."""
@@ -262,11 +255,21 @@ class DUTTelemetryEnvironment(DUTEnvironment):
           return tabs[i]
 
     try:
-      if event['type'] == goofy_rpc.UIRPCMethods.CLOSE_GOOFY_TAB:
+      if event['type'] == self.CLOSE_GOOFY_TAB:
         _GetGoofyTab().Close()
 
     except Exception as e:
       return e
+
+  def terminate(self):
+    if self.goofy.env.telemetry_proc_pipe is None:
+      logging.error('UI is not ready.')
+      return
+    data = {'type': self.CLOSE_GOOFY_TAB, 'args': None}
+    self.telemetry_proc_pipe.send(data)
+    self.telemetry_proc_pipe.recv()
+    # We don't relly care about received result since it's already in
+    # termination.
 
 
 class FakeChrootEnvironment(Environment):

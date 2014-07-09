@@ -1052,9 +1052,8 @@ class Goofy(GoofyBase):
 
   def handle_sigterm(self, dummy_signum, dummy_frame):  # pylint: disable=W0613
     logging.error('Received SIGTERM')
-    if not utils.in_chroot():
-      self.goofy_rpc.CloseGoofyTab()
-    self.run_enqueue(None)
+    self.env.terminate()
+    self.run_queue.put(None)
     raise RuntimeError('Received SIGTERM')
 
   def find_kcrashes(self):
