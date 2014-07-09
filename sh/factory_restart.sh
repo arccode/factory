@@ -143,11 +143,13 @@ if [ "${mode}" != "none" ]; then
 fi
 
 echo "Restarting factory tests..."
-# Ensure full stop, we don't want to have the same factory
-# process recycled after we've been killing bits of it.
+# Ensure full stop (instead of 'restart'), we don't want to have the same
+# factory process recycled after we've been killing bits of it. Also because we
+# need two jobs (factory and ui) both restarted.
 #
 # Add /sbin to PATH; that's usually where stop and start are, and
 # /sbin may not be in the path.
 export PATH=/sbin:"$PATH"
-stop factory
+(status factory | grep -q 'stop/waiting') || stop factory
+(status ui | grep -q 'stop/waiting') || stop ui
 start factory
