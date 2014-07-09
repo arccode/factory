@@ -108,6 +108,12 @@ cros.factory.MAX_DIALOG_SIZE_FRACTION = 0.75;
 cros.factory.NON_FAILING_TEST_HOVER_DELAY_MSEC = 250;
 
 /**
+ * Factory Test Extension ID to support calling chrome API via RPC.
+ * @type string
+ */
+cros.factory.EXTENSION_ID = 'pngocaclmlmihmhokaeejfiklacihcmb';
+
+/**
  * Makes a label that displays English (or optionally Chinese).
  * @param {string} en
  * @param {string=} zh
@@ -2937,6 +2943,20 @@ cros.factory.Goofy.prototype.handleBackendEvent = function(jsonMessage) {
                 cros.factory.logger.severe('Unable to find function ' + func +
                                            ' in UI for test ' + message.test);
             }
+        }
+    } else if (message.type == 'goofy:extension_rpc') {
+        if (!message.is_response) {
+            var goofy = this;  // Save namespace for response fallback.
+            window.chrome.runtime.sendMessage(
+                    cros.factory.EXTENSION_ID,
+                    { name: message.name, args: message.args },
+                    function (result) {
+                        goofy.sendEvent(message.type,
+                                        { name: message.name,
+                                          rpc_id: message.rpc_id,
+                                          is_response: true,
+                                          args: result });
+                    });
         }
     } else if (message.type == 'goofy:destroy_test') {
         // We send destroy_test event only in the top-level invocation from

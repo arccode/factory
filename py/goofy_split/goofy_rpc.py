@@ -18,6 +18,7 @@ import subprocess
 import tempfile
 import threading
 import time
+import uuid
 import yaml
 
 import factory_common  # pylint: disable=W0611
@@ -25,7 +26,7 @@ from cros.factory import factory_bug
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import utils
-from cros.factory.test.event import Event
+from cros.factory.test.event import Event, EventClient
 from cros.factory.test.test_lists.test_lists import SetActiveTestList
 from cros.factory.utils import debug_utils, file_utils, process_utils
 
@@ -531,6 +532,53 @@ class GoofyRPC(object):
       # This should never be reached, but not much we can do but
       # complain to the caller.
       raise GoofyRPCException('Factory did not restart as expected')
+
+  def CallExtension(self, name, timeout=DEFAULT_GOOFY_RPC_TIMEOUT_SECS,
+                    **kwargs):
+    """Invokes a RPC call to Factory Test Chrome Extension.
+
+    Blocks until a return value is retrieved or if timeout is reached.
+
+    Args:
+      name: The name of extension RPC function to execute.
+      timeout: Seconds to wait before RPC timeout.
+      kwargs: Arguments to pass to the extension; they will be
+        available in an "args" dict within the execution context.
+
+    Returns:
+      An object representing RPC call return value.
+
+    Raises:
+      utils.TimeoutError: if no response until timeout reached.
+    """
+    # To support timeout (and to avoid race condition), we need a dedicated
+    # event client.
+    rpc_id = str(uuid.uuid4())
+    rpc_event = Event(Event.Type.EXTENSION_RPC, name=name, is_response=False,
+                      rpc_id=rpc_id, args=kwargs)
+    result = EventClient().request_response(
+        rpc_event,
+        lambda e: (e.type == rpc_event.type and e.rpc_id == rpc_id and
+                   e.is_response),
+        timeout)
+    if result is None:
+      raise utils.TimeoutError('Failed calling Extension RPC <%r>', name)
+    return result.args
+
+  def GetDisplayInfo(self, timeout=DEFAULT_GOOFY_RPC_TIMEOUT_SECS):
+    """Returns output display information (by calling extension RPC).
+
+    Args:
+      timeout: Seconds to wait before RPC timeout.
+
+    Returns:
+      A list of objects for current display. See Chrome Extension API
+          chrome.system.display for the details.
+
+    Raises:
+      utils.TimeoutError: if no response until timeout.
+    """
+    return self.CallExtension('GetDisplayInfo', timeout=timeout)
 
   def TakeScreenshot(self, output_file=None):
     """Takes a screenshot through Telemetry tab.Screenshot API.

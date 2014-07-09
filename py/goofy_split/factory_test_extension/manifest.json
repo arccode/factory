@@ -6,7 +6,10 @@
     "scripts": ["background.js"]
   },
   "manifest_version": 2,
-  "version": "0.1",
+  "version": "0.2",
+  "externally_connectable": {
+    "matches": ["*://127.0.0.1/*"]
+  },
   "permissions": [
     "system.display"
   ]
