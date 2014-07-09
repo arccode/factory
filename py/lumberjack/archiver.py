@@ -328,6 +328,8 @@ def _Recycle(config):
     return False
 
   for current_dir, sub_dirs, filenames in os.walk(config.source_dir):
+    if current_dir == '.':
+      continue
     if os.path.basename(current_dir) == ARCHIVER_METADATA_DIRECTORY:
       logging.debug('Metadata directory %r found, skipped.', current_dir)
       continue
@@ -335,7 +337,7 @@ def _Recycle(config):
     dir_time_in_secs = _ConvertToTimestamp(os.path.basename(current_dir))
     if dir_time_in_secs is None:
       logging.debug('Cannot recognized the timestamp of %r. Will be skipped.',
-                    dir_time_in_secs)
+                    current_dir)
       continue
     # Make sure the directory is the deepest (i.e. not more sub_dirs)
     if not (len(sub_dirs) == 1 and sub_dirs[0] == ARCHIVER_METADATA_DIRECTORY):
@@ -374,6 +376,11 @@ def _Recycle(config):
 
     # Compare the snapshot.
     if current_snapshot != new_snapshot:
+      logging.info(
+          'Snapshot shows the directory %r is still changing even '
+          'after %d secs. previous snapshot:\n%r\n\nnew snapshot:\n%r\n\n',
+          current_dir, config.save_to_recycle_duration,
+          current_snapshot, new_snapshot)
       continue
 
     # Move to recycle_dir. Example of the moving path:

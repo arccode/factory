@@ -105,6 +105,7 @@ def main(argv):
 if __name__ == '__main__':
   # TODO(itspeter): Consider expose the logging level as an argument.
   logging.basicConfig(
-      format=('[%(levelname)s] archiver:%(lineno)d %(asctime)s %(message)s'),
+      format=('[%(levelname)5s] %(filename)15s:%(lineno)d '
+              '%(asctime)s %(message)s'),
       level=logging.DEBUG, datefmt='%Y-%m-%d %H:%M:%S')
   main(sys.argv[1:])
