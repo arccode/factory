@@ -116,7 +116,7 @@ for d in $delete; do
   mkdir -p "$d"
 done
 
-if $run_goofy_host; then
+if $run_goofy_host || ! $run_goofy_device; then
   touch "${RUN_GOOFY_HOST_TAG_FILE}"
 fi
 

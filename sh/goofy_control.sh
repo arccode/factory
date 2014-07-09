@@ -94,7 +94,11 @@ start_factory() {
   if [ -f "${RUN_GOOFY_DEVICE_TAG_FILE}" ]; then
     "$FACTORY/bin/goofy_device" $GOOFY_ARGS >>"$FACTORY_LOG_FILE" 2>&1 &
   fi
-  if [ -f "${RUN_GOOFY_HOST_TAG_FILE}" ]; then
+
+  local run_goofy_host=
+  [ -f "${RUN_GOOFY_HOST_TAG_FILE}" ] && run_goofy_host=1
+  [ -f "${RUN_GOOFY_DEVICE_TAG_FILE}" ] || run_goofy_host=1
+  if [ -n "$run_goofy_host" ]; then
     "$FACTORY/bin/goofy" $GOOFY_ARGS >>"$FACTORY_LOG_FILE" 2>&1 &
   fi
 
