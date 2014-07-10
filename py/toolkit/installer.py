@@ -135,12 +135,12 @@ class FactoryToolkitInstaller():
     self._tag_file = os.path.join(self._usr_local_dest, 'factory', 'enabled')
 
     self._enable_host = enable_host
-    self._host_tag_file = os.path.join(self._var_dest, 'factory',
-                                       'state', 'run_goofy_host')
+    self._host_tag_file = os.path.join(self._usr_local_dest, 'factory',
+                                       'init', 'run_goofy_host')
 
     self._enable_device = enable_device
-    self._device_tag_file = os.path.join(self._var_dest, 'factory',
-                                         'state', 'run_goofy_device')
+    self._device_tag_file = os.path.join(self._usr_local_dest, 'factory',
+                                         'init', 'run_goofy_device')
 
     if (not os.path.exists(self._usr_local_src) or
         not os.path.exists(self._var_src)):

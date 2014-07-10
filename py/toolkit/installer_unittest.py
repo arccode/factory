@@ -22,7 +22,7 @@ class ToolkitInstallerTest(unittest.TestCase):
   """Test factory toolkit installer."""
   def setUp(self):
     self.src = tempfile.mkdtemp(prefix='ToolkitInstallerTest.')
-    os.makedirs(os.path.join(self.src, 'usr/local/factory'))
+    os.makedirs(os.path.join(self.src, 'usr/local/factory/init'))
     os.makedirs(os.path.join(self.src, 'var/factory/state'))
     with open(os.path.join(self.src, 'usr/local', 'file1'), 'w') as f:
       f.write('install me!')
@@ -81,9 +81,9 @@ class ToolkitInstallerTest(unittest.TestCase):
     self.assertTrue(os.path.exists(
         os.path.join(self.dest, 'usr/local/factory/enabled')))
     self.assertTrue(os.path.exists(
-        os.path.join(self.dest, 'var/factory/state/run_goofy_host')))
+        os.path.join(self.dest, 'usr/local/factory/init/run_goofy_host')))
     self.assertFalse(os.path.exists(
-        os.path.join(self.dest, 'var/factory/state/run_goofy_device')))
+        os.path.join(self.dest, 'usr/local/factory/init/run_goofy_device')))
 
   def testDeviceOnly(self):
     self.makeLiveDevice()
@@ -93,9 +93,9 @@ class ToolkitInstallerTest(unittest.TestCase):
                          enable_host=False, enable_device=True)
     self._installer.Install()
     self.assertFalse(os.path.exists(
-        os.path.join(self.dest, 'var/factory/state/run_goofy_host')))
+        os.path.join(self.dest, 'usr/local/factory/init/run_goofy_host')))
     self.assertTrue(os.path.exists(
-        os.path.join(self.dest, 'var/factory/state/run_goofy_device')))
+        os.path.join(self.dest, 'usr/local/factory/init/run_goofy_device')))
 
   def testIncorrectPatch(self):
     with self.assertRaises(Exception):

@@ -15,6 +15,9 @@ CGPT_CONFIG=""
 # base factory state and log directory
 FACTORY_BASE="/var/factory"
 
+# base factory init directory
+FACTORY_INIT_BASE="/usr/local/factory/init"
+
 # factory test automation tag file
 AUTOMATION_MODE_TAG_FILE="${FACTORY_BASE}/state/factory.automation_mode"
 
@@ -23,8 +26,8 @@ STOP_AUTO_RUN_ON_START_TAG_FILE="${FACTORY_BASE}/state/no_auto_run_on_start"
 
 # By default, goofy runs on startup and goofy_device doesn't. This can be
 # changed with following tag files:
-RUN_GOOFY_DEVICE_TAG_FILE="${FACTORY_BASE}/state/run_goofy_device"
-RUN_GOOFY_HOST_TAG_FILE="${FACTORY_BASE}/state/run_goofy_host"
+RUN_GOOFY_DEVICE_TAG_FILE="${FACTORY_INIT_BASE}/run_goofy_device"
+RUN_GOOFY_HOST_TAG_FILE="${FACTORY_INIT_BASE}/run_goofy_host"
 
 # ======================================================================
 # message and error handling
