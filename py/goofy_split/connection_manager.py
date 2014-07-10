@@ -8,6 +8,11 @@ import os
 import subprocess
 import time
 
+# Import WLAN into this module's namespace, since it may be used by
+# some test lists.
+import factory_common  # pylint: disable=W0611
+from cros.factory.utils.net_utils import WLAN  # pylint: disable=W0611
+
 try:
   # pylint: disable=W0611
   from cros.factory.goofy_split import flimflam_test_path
@@ -35,43 +40,6 @@ _PROFILE_LOCATION = '/var/cache/%s/default.profile'
 
 class ConnectionManagerException(Exception):
   pass
-
-
-class WLAN(object):
-  '''Class for wireless network settings.'''
-  def __init__(self, ssid, security, passphrase):
-    ''' Constructor.
-
-    Please see 'http://code.google.com/searchframe#wZuuyuB8jKQ/src/third_party/
-    flimflam/doc/service-api.txt' for a detailed explanation of these
-    parameters.
-
-    Args:
-      ssid: Wireless network SSID.
-      security: Wireless network security type. For example:
-        "none": no security.
-        "wep": fixed key WEP.
-        "wpa": WPA-PSK (but see below; use "psk" instead).
-        "rsn": IEEE 802.11i-PSK
-        "psk": WPA2-PSK[AES], WPA-PSK[TKIP] + WPA2-PSK[AES].
-               Also, "wpa" and "rsn" can be replaced by "psk".
-        "802_1x": IEEE 802.11i with 802.1x authentication.
-
-        Note that when using "wpa" for WPA2-PSK[AES] or
-        WPA-PSK[TKIP] + WPA2-PSK[AES], flimflam can connect but it will always
-        cache the first passphrase that works. For this reason, use "psk"
-        instead of "wpa". Using "wpa" will result in an explicit exception.
-      passphrase: Wireless network password.
-    '''
-    if security == 'wpa':
-      raise ConnectionManagerException("Invalid wireless network security type:"
-                                       " wpa. Use 'psk' instead")
-    if not security in ['none', 'wep', 'rsn', 'psk', '802_1x']:
-      raise ConnectionManagerException("Invalid wireless network security type:"
-                                       " %s" % security)
-    self.ssid = ssid
-    self.security = security
-    self.passphrase = passphrase
 
 
 def GetBaseNetworkManager():

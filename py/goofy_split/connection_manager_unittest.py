@@ -13,6 +13,7 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.goofy_split import connection_manager
+from cros.factory.utils.net_utils import WLAN
 
 
 _FAKE_MANAGER = 'flimflam'
@@ -40,14 +41,12 @@ class WLANTest(unittest.TestCase):
 
   def testWLANFailWPASecurity(self):
     self.mox.ReplayAll()
-    self.assertRaises(connection_manager.ConnectionManagerException,
-                      connection_manager.WLAN,
+    self.assertRaises(ValueError, WLAN,
                       ssid='fake_server1', security='wpa', passphrase='1')
 
   def testWLANFailInvalidSecurity(self):
     self.mox.ReplayAll()
-    self.assertRaises(connection_manager.ConnectionManagerException,
-                      connection_manager.WLAN,
+    self.assertRaises(ValueError, WLAN,
                       ssid='fake_server1', security='ABC', passphrase='1')
 
 
@@ -59,9 +58,9 @@ class ConnectionManagerTest(unittest.TestCase):
     self.mox.StubOutWithMock(subprocess, 'call')
     self.fakeBaseNetworkManager = self.mox.CreateMockAnything()
     self.fakeData = _FAKE_DATA.copy()
-    self.fakeData['wlans'] = [connection_manager.WLAN(ssid='fake_server',
-                                                      security='psk',
-                                                      passphrase='test0000')]
+    self.fakeData['wlans'] = [WLAN(ssid='fake_server',
+                                   security='psk',
+                                   passphrase='test0000')]
 
   def tearDown(self):
     self.mox.VerifyAll()

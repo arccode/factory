@@ -22,7 +22,7 @@ from cros.factory.test import factory
 # module (hence disable=W06110), but they are included here so that
 # they can be imported directly by test lists.
 from cros.factory.test.factory import RequireRun
-from cros.factory.goofy.connection_manager import WLAN  # pylint: disable=W0611
+from cros.factory.utils.net_utils import WLAN  # pylint: disable=W0611
 
 
 # Directory for new-style test lists.

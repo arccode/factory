@@ -24,9 +24,10 @@ import sys
 import yaml
 
 import factory_common # pylint: disable=W0611
-from cros.factory.goofy import connection_manager
 from cros.factory.test import utils
 from cros.factory.test.unicode_to_string import UnicodeToString
+from cros.factory.utils import net_utils
+
 
 SCRIPT_PATH = os.path.realpath(__file__)
 CROS_FACTORY_LIB_PATH = os.path.dirname(SCRIPT_PATH)
@@ -274,7 +275,7 @@ def read_test_list(path=None, state_instance=None, text=None):
       test_list_locals[k] = v
 
   # Import types necessary to construct the test list.
-  test_list_locals['WLAN'] = connection_manager.WLAN
+  test_list_locals['WLAN'] = net_utils.WLAN
   test_list_locals['RequireRun'] = RequireRun
   test_list_locals['ALL'] = ALL
 

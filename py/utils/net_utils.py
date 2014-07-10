@@ -18,7 +18,6 @@ import xmlrpclib
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.common import Error, TimeoutError
-from cros.factory.test import factory
 from cros.factory.test.utils import FormatExceptionOnly
 from cros.factory.utils.process_utils import Spawn, SpawnOutput
 
@@ -116,6 +115,9 @@ def SetEthernetIp(ip, interface=None, force=False):
   if force or not current_ip:
     Spawn(['ifconfig', interface, ip], call=True)
   else:
+    # Import here to work around circular dependency between factory
+    # and net_utils.
+    from cros.factory.test import factory
     factory.console.info(
         'Not setting IP address for interface %s: already set to %s',
         interface, current_ip)
@@ -162,6 +164,10 @@ def _SendDhclientCommand(arguments, interface,
   little tweaks on few paths.
 
   """
+  # Import here to work around circular dependency between factory
+  # and net_utils.
+  from cros.factory.test import factory
+
   DHCLIENT_SCRIPT = "/usr/local/sbin/dhclient-script"
   DHCLIENT_LEASE = os.path.join(factory.get_state_root(), "dhclient.leases")
   assert timeout > 0, 'Must have a timeout'
@@ -260,7 +266,11 @@ def PrepareNetwork(ip, force_new_ip=False):
       SetEthernetIp(ip, force=force_new_ip)
     return True if GetEthernetIp() else False
 
+  # Import here to work around circular dependency between factory and
+  # net_utils.
+  from cros.factory.test import factory
   factory.console.info('Detecting Ethernet device...')
+
   try:
     PollForCondition(
         condition=lambda: True if FindUsableEthDevice() else False,
@@ -404,3 +414,44 @@ def GetUnusedPort():
     # Check if this port is unused on the other protocol.
     if port and TryBind(port, socket.SOCK_DGRAM, socket.IPPROTO_UDP):
       return port
+
+
+class WLAN(object):
+  """Class for wireless network settings.
+
+  This class is used in test lists to specify WLAN settings for the
+  connection manager.
+  """
+  def __init__(self, ssid, security, passphrase):
+    """Constructor.
+
+    Please see 'http://code.google.com/searchframe#wZuuyuB8jKQ/src/third_party/
+    flimflam/doc/service-api.txt' for a detailed explanation of these
+    parameters.
+
+    Args:
+      ssid: Wireless network SSID.
+      security: Wireless network security type. For example:
+        "none": no security.
+        "wep": fixed key WEP.
+        "wpa": WPA-PSK (but see below; use "psk" instead).
+        "rsn": IEEE 802.11i-PSK
+        "psk": WPA2-PSK[AES], WPA-PSK[TKIP] + WPA2-PSK[AES].
+               Also, "wpa" and "rsn" can be replaced by "psk".
+        "802_1x": IEEE 802.11i with 802.1x authentication.
+
+        Note that when using "wpa" for WPA2-PSK[AES] or
+        WPA-PSK[TKIP] + WPA2-PSK[AES], flimflam can connect but it will always
+        cache the first passphrase that works. For this reason, use "psk"
+        instead of "wpa". Using "wpa" will result in an explicit exception.
+      passphrase: Wireless network password.
+    """
+    if security == 'wpa':
+      raise ValueError("Invalid wireless network security type:"
+                       " wpa. Use 'psk' instead")
+    if not security in ['none', 'wep', 'rsn', 'psk', '802_1x']:
+      raise ValueError("Invalid wireless network security type: %s"
+                       % security)
+    self.ssid = ssid
+    self.security = security
+    self.passphrase = passphrase
