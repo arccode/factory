@@ -6,6 +6,9 @@
 MYDIR="$(dirname "$(readlink -f "$0")")"
 
 main() {
+  # Install console (VT2) customizations
+  mount --bind "${MYDIR}/profile.d/vt2.sh" /etc/profile.d/cursor.sh
+
   # Non-telemetry approach is not stable yet, so we want to enable it only when
   # specified. Delete the "use-telemetry" file to proceed.
   [ -f "${MYDIR}/use-telemetry" ] && exit
