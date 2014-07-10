@@ -40,6 +40,7 @@ from cros.factory.test.args import Arg
 from cros.factory.test.factory_task import FactoryTask, FactoryTaskManager
 from cros.factory.test.ui_templates import OneSection, SelectBox
 from cros.factory.test.utils import Enum
+from cros.factory.tools.build_board import BuildBoard
 from cros.factory.utils.process_utils import CheckOutput, Spawn
 
 _MSG_FETCH_FROM_SHOP_FLOOR = test_ui.MakeLabel(
@@ -149,8 +150,12 @@ class WriteVPDTask(FactoryTask):
         if k not in self.test.registration_code_map:
           raise factory.FactoryTestFailure('Missing %s registration code' % k)
         try:
+          code_type = {
+            'user': registration_codes.RegistrationCode.Type.UNIQUE_CODE,
+            'group': registration_codes.RegistrationCode.Type.GROUP_CODE}[k]
           registration_codes.CheckRegistrationCode(
-              self.test.registration_code_map[k])
+              self.test.registration_code_map[k],
+              code_type, BuildBoard().short_name)
         except ValueError as e:
           self.Fail(str(e))
 
