@@ -318,6 +318,8 @@ class EventClient(object):
         invoked from an async IO handler.
       - EVENT_LOOP_WAIT, in which case the caller must invoke wait() to
         handle incoming messages.
+      - None, similar to a threaded verison of EVENT_LOOP_WAIT that may discard
+        events before you call wait().
     @param name: An optional name for the client
     '''
     self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_SEQPACKET)
@@ -421,6 +423,53 @@ class EventClient(object):
       raise IOError("Message too large (%d bytes)" % len(message))
     self.socket.sendall(message)
 
+  def request_response(self, request_event, check_response, timeout=None):
+    '''
+    Starts a request-response communication: sends a request event and waits for
+    an valid response event until timeout.
+
+    Args:
+      request_event: An event to start protocol. None to send no events.
+      check_response: A function to evaluate if given event is an expected
+        response. The function takes one argument (an event to evaluate) and
+        returns whether it is valid. Note it may also get events "before"
+        request_event is sent, including the request_event itself.
+      timeout: A timeout in seconds, or None to wait forever.
+
+    Returns:
+      The valid response event, or None if the connection was closed or timeout.
+    '''
+    if self.event_loop == self.EVENT_LOOP_WAIT:
+      assert not timeout, 'Timeout is not currently supported for LOOP_WAIT.'
+
+      # We are the event loop.
+      if request_event:
+        self.post_event(request_event)
+      while True:
+        keep_going, event = self._read_one_message()
+        if not keep_going:  # Closed
+          return None
+        if event and check_response(event):
+          return event
+
+    queue = Queue()
+
+    def check_response_callback(event):
+      if check_response(event):
+        queue.put(event)
+
+    try:
+      with self._lock:
+        self.callbacks.add(check_response_callback)
+        if request_event:
+          self.post_event(request_event)
+      return queue.get(timeout=timeout)
+    except Empty:
+      return None
+    finally:
+      with self._lock:
+        self.callbacks.remove(check_response_callback)
+
   def wait(self, condition, timeout=None):
     '''
     Waits for an event matching a condition.
@@ -429,39 +478,13 @@ class EventClient(object):
       condition: A function to evaluate. The function takes one
         argument (an event to evaluate) and returns whether the condition
         applies.
-      timeout: A timeout in seconds. wait will return None on
-        timeout.
+      timeout: A timeout in seconds, or None to wait forever.
 
     Returns:
       The event that matched the condition, or None if the connection
-      was closed.
+      was closed or timeout.
     '''
-    if self.event_loop == self.EVENT_LOOP_WAIT:
-      assert not timeout, 'Timeout is not currently supported in wait()'
-
-      # We are the event loop.
-      while True:
-        keep_going, event = self._read_one_message()
-        if not keep_going:  # Closed
-          return None
-        if event and condition(event):
-          return event
-
-    queue = Queue()
-
-    def check_condition(event):
-      if condition(event):
-        queue.put(event)
-
-    try:
-      with self._lock:
-        self.callbacks.add(check_condition)
-      return queue.get(timeout=timeout)
-    except Empty:
-      return None
-    finally:
-      with self._lock:
-        self.callbacks.remove(check_condition)
+    return self.request_response(None, condition, timeout)
 
   def _run_recv_thread(self):
     '''
