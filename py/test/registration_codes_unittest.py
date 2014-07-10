@@ -57,9 +57,11 @@ class RegistrationCodeTest(unittest.TestCase):
       (RegistrationCode.Type.GROUP_CODE,
        '=CioKIIG0s3uzLa5cIsxL7P4bNMi-jGzEfiB8CqFmqOOFVWT4EAAaBGxpbmsQr_PG2gE='),
       (RegistrationCode.Type.UNIQUE_CODE,
-       '=CioKIEkzPma0JQrR6gvdlYHzbjp1IN8v1ybuSPQrindTXip2EAEaBGxpbmsQtKi9uQg='),
+       (u'=CioKIEkzPma0JQrR6gvdlYHzbjp1IN8v1'
+        'ybuSPQrindTXip2EAEaBGxpbmsQtKi9uQg=')),
       (RegistrationCode.Type.GROUP_CODE,
-       '=CioKIIG0s3uzLa5cIsxL7P4bNMi-jGzEfiB8CqFmqOOFVWT4EAAaBGxpbmsQr_PG2gE='),
+       (u'=CioKIIG0s3uzLa5cIsxL7P4bNMi-jGzEf'
+        'iB8CqFmqOOFVWT4EAAaBGxpbmsQr_PG2gE=')),
       ):
       reg_code = RegistrationCode(encoded_string)
       self.assertEquals(expected_type, reg_code.type)

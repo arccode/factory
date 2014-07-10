@@ -68,8 +68,9 @@ class RegistrationCode(object):
     self.encoded_string = encoded_string
 
     if encoded_string[0] == '=':
-      # New representation
-      data = base64.urlsafe_b64decode(encoded_string[1:])
+      # New representation, note that this function does not accept unicode
+      # string so we need to convert the input back to a ASCII string
+      data = base64.urlsafe_b64decode(str(encoded_string[1:]))
 
       # Make sure that it encodes back to the same thing (e.g., no extra
       # padding)
