@@ -1,0 +1,32 @@
+# A mapping of which binaries to install when, by symlinking the
+# binary name to factory.par or factory-mini.par.
+#
+#   full = install in /usr/local/bin when installing the toolkit
+#   mini = install in /usr/local/bin when installing the factory-mini
+#       package in the test image.  The binary must work when run as
+#       factory-mini.par.
+#
+# If a binary is symlinked in bin but not present in this list, it is
+# never installed into /usr/local/bin.
+
+binaries:
+  bft_fixture:     full
+  edid:            full
+  factory:         full
+  factory_bug:     full
+  factory_restart: full
+  flash_netboot:   full
+  gooftool:        mini
+  goofy:           full
+  goofy_control:   full
+  goofy_remote:    full
+  goofy_rpc:       full
+  hwid:            mini
+  hwid_tool:       full
+  make_par:        full
+  manage:          full
+  merge_logs:      full
+  minijack:        full
+  mount_partition: full
+  regcode:         mini
+  run_pytest:      full

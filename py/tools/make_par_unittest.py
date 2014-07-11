@@ -28,17 +28,29 @@ class MakePARTest(unittest.TestCase):
   def tearDown(self):
     shutil.rmtree(self.tmp)
 
-  def testPAR(self):
-    link = os.path.join(self.tmp, 'run_pytest')
-    os.symlink(self.par, link)
+  def _RunPytest(self, command):
+    """Runs a 'pytest' using the 'run_pytest' command.
 
+    Args:
+      command: A list of command-line args to use to launch run_pytest.
+    """
     for expected_retcode, script in ((0, 'pass'),
                                      (1, 'raise ValueError')):
       self.assertEquals(
         expected_retcode,
-        Spawn([link, 'execpython', '--args', 'dict(script=%r)' % script],
+        Spawn(command + ['execpython', '--args', 'dict(script=%r)' % script],
               log=True, call=True, env={}, cwd='/',
               ignore_stdout=True, ignore_stderr=True).returncode)
+
+  def testPAR(self):
+    # Launch via a symlink.
+    link = os.path.join(self.tmp, 'run_pytest')
+    os.symlink(self.par, link)
+    self._RunPytest([link])
+
+  def testPARWithoutSymlink(self):
+    # Launch directly through the PAR file.
+    self._RunPytest([self.par, 'run_pytest'])
 
   def testUnzippedPAR(self):
     # String from make_par usage, to make sure it's running properly.

@@ -21,6 +21,7 @@ import tempfile
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
+from cros.factory.tools import install_symlinks
 from cros.factory.tools.mount_partition import MountPartition
 from cros.factory.utils.process_utils import Spawn
 
@@ -227,6 +228,17 @@ class FactoryToolkitInstaller():
           myuser = os.environ.get('USER')
           Spawn(['chown', '-R', myuser, src],
                 sudo=True, log=True, check_call=True)
+
+    print '*** Installing symlinks...'
+    install_symlinks.InstallSymlinks(
+        '../factory/bin',
+        os.path.join(self._usr_local_dest, 'bin'),
+        install_symlinks.MODE_FULL,
+        sudo=self._sudo)
+
+    print '*** Removing factory-mini...'
+    Spawn(['rm', '-rf', os.path.join(self._usr_local_dest, 'factory-mini')],
+          sudo=self._sudo, log=True, check_call=True)
 
     self._SetTagFile('factory', self._tag_file, not self._no_enable)
     self._SetTagFile('host', self._host_tag_file, self._enable_host)

@@ -77,6 +77,11 @@ sys.argv = sys.argv[1:]
 modules = MODULES
 
 # Use the name we were executed as to determine which module to run.
+if sys.argv[0].endswith('.par') and len(sys.argv) > 1:
+  # Not run as a symlink; remove argv[0].  This allows you to run, e.g.,
+  # factory.par gooftool probe.
+  sys.argv = sys.argv[1:]
+
 name = os.path.basename(sys.argv[0])
 module = modules.get(name)
 
@@ -126,6 +131,9 @@ def main(argv=None):
   parser.add_argument(
       '--add-zip', action='append', default=[],
       help='zip files containing extra files to include')
+  parser.add_argument(
+      '--mini', action='store_true',
+      help='Build smaller version suitable for installation into test image')
   args = parser.parse_args(argv)
   logging.basicConfig(level=logging.WARNING - 10 * (args.verbose or 0))
 
@@ -151,34 +159,54 @@ def main(argv=None):
 
     cros = os.path.join(par_build, 'cros')
     os.mkdir(cros)
-    Spawn(['rsync', '-a',
-           '--exclude', '*_unittest.py',
-           '--exclude', 'factory_common.py*',
-           '--include', '*.css',
-           '--include', '*.csv',
-           '--include', '*.html',
-           '--include', '*.js',
-           '--include', '*.png',
-           '--include', '*.py',
-           # We must include goofy explicitly, as it is a symlink that would
-           # otherwise be excluded by the wildcard below.
-           '--include', 'goofy',
-           '--include', '*/',
-           '--exclude', '*',
-           os.path.join(src, 'py/'),
-           os.path.join(cros, 'factory')],
-          log=True, check_call=True)
+
+    rsync_args = ['rsync', '-a',
+                  '--exclude', '*_unittest.py',
+                  '--exclude', 'factory_common.py*',
+                  '--include', '*.py']
+    if args.mini:
+      # Exclude some piggy directories we'll never need for the mini
+      # par, since we will not run these things in a test image.
+      rsync_args.extend(['--exclude', 'static',
+                         '--exclude', 'testdata',
+                         '--exclude', 'goofy',
+                         '--exclude', 'goofy_monolithic',
+                         '--exclude', 'goofy_split',
+                         '--exclude', 'minijack',
+                         '--exclude', 'pytests'])
+    else:
+      rsync_args.extend(['--include', '*.css',
+                         '--include', '*.csv',
+                         '--include', '*.html',
+                         '--include', '*.js',
+                         '--include', '*.png',
+                         # We must include goofy explicitly, as it is
+                         # a symlink that would otherwise be excluded
+                         # by the * wildcard.
+                         '--include', 'goofy'])
+
+    rsync_args.extend([
+        '--include', '*/',
+        '--exclude', '*',
+        os.path.join(src, 'py/'),
+        os.path.join(cros, 'factory')])
+    Spawn(rsync_args, log=True, check_call=True)
 
     # Copy necessary third-party packages.
     python_lib = get_python_lib()
     standard_lib = get_python_lib(plat_specific=False, standard_lib=True)
-    Spawn(['rsync', '-a',
-           os.path.join(standard_lib, 'argparse.py'),
-           os.path.join(python_lib, 'yaml'),
-           os.path.join(python_lib, 'google'),
-           'third_party/jsonrpclib/jsonrpclib',
-           par_build],
-          log=True, check_call=True, cwd=factory.FACTORY_PATH)
+
+    rsync_args = ['rsync', '-a',
+                  os.path.join(standard_lib, 'argparse.py'),
+                  'third_party/jsonrpclib/jsonrpclib']
+    # No need for third-party deps in the mini version; they are already
+    # present in test images.
+    if not args.mini:
+      rsync_args.extend([os.path.join(python_lib, 'google'),
+                         os.path.join(python_lib, 'yaml')])
+
+    rsync_args.append(par_build)
+    Spawn(rsync_args, log=True, check_call=True, cwd=factory.FACTORY_PATH)
 
     # Add empty __init__.py files so Python realizes these directories
     # are modules.

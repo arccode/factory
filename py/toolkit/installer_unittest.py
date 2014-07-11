@@ -84,6 +84,8 @@ class ToolkitInstallerTest(unittest.TestCase):
         os.path.join(self.dest, 'usr/local/factory/init/run_goofy_host')))
     self.assertFalse(os.path.exists(
         os.path.join(self.dest, 'usr/local/factory/init/run_goofy_device')))
+    self.assertEquals('../factory/bin/gooftool',
+        os.readlink(os.path.join(self.dest, 'usr/local/bin/gooftool')))
 
   def testDeviceOnly(self):
     self.makeLiveDevice()

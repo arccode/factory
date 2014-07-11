@@ -6,20 +6,12 @@ SHELL := bash
 
 BUILD_DIR=build
 PAR_BUILD_DIR=$(BUILD_DIR)/par
+PAR_NAME=factory.par
 DESTDIR=$(BUILD_DIR)/image
 TARGET_DIR=/usr/local/factory
 PYTHON=python
 
-# Directory in which to install symlinks to certain factory binaries.
-SYMLINK_INSTALL_DIR=/usr/local/bin
-# Relative path from $(SYMLINK_INSTALL_DIR) to $(TARGET_DIR)
-SYMLINK_TARGET_RELPATH=../factory
-# Binaries that should have symlinks.
-SYMLINK_BINS=\
-	bft_fixture edid factory factory_bug factory_restart flash_netboot \
-	gooftool goofy goofy_control goofy_remote goofy_rpc \
-	hwid_tool make_par manage merge_logs minijack mount_partition \
-	run_pytest hwid
+# The list of binaries to install has been moved to misc/symlinks.yaml.
 
 TEST_RUNNER=py/tools/run_tests.py
 # Maximum number of parallel tests to run.
@@ -113,14 +105,21 @@ default:
 par:
 	rm -rf $(PAR_BUILD_DIR)
 	mkdir -p $(PAR_BUILD_DIR)
+	# First build factory.par.
 	bin/make_par -v \
-	  -o $(PAR_BUILD_DIR)/factory.par \
+	  -o $(PAR_BUILD_DIR)/$(PAR_NAME) \
 	  $(MAKE_PAR_ARGS)
-	# Sanity check: make sure we can import event_log using only the
-	# par file.
-	PYTHONPATH=$(PAR_BUILD_DIR)/factory.par $(PYTHON) -c \
-	  'import cros.factory.test.state'
-	$(if $(PAR_DEST_DIR),cp $(PAR_BUILD_DIR)/factory.par $(PAR_DEST_DIR))
+	# Sanity check: make sure we can import state using only
+	# factory.par.
+	PYTHONPATH=$(PAR_BUILD_DIR)/$(PAR_NAME) $(PYTHON) -c \
+	  'import cros.factory.test.state'; \
+	# Sanity check: make sure we can run "gooftool --help" using
+	# factory.par.
+	$(PAR_BUILD_DIR)/$(PAR_NAME) gooftool --help | \
+	  grep -q '^usage: gooftool'
+	$(if $(PAR_DEST_DIR), \
+	  cp $(PAR_BUILD_DIR)/$(PAR_NAME) \
+	  $(PAR_DEST_DIR))
 
 install:
 	mkdir -p $(FACTORY)
@@ -131,13 +130,6 @@ install:
 	mkdir -m755 -p $(addprefix ${DESTDIR}/var/factory/,log state tests)
 	ln -sf $(addprefix ../factory/log/,factory.log console.log) \
 	    ${DESTDIR}/var/log
-	# Add symlinks to certain binaries from /usr/local/bin to
-	# /usr/local/factory/bin.
-	mkdir -p "$(DESTDIR)$(SYMLINK_INSTALL_DIR)"
-	cd "$(DESTDIR)$(SYMLINK_INSTALL_DIR)" && \
-	    ln -sf $(addprefix $(SYMLINK_TARGET_RELPATH)/bin/,$(SYMLINK_BINS)) .
-	# Make sure all the symlinked binaries actually exist.
-	stat -L "$(DESTDIR)$(SYMLINK_INSTALL_DIR)"/* > /dev/null
 
 bundle: par
 	# Make factory bundle overlay
@@ -145,17 +137,18 @@ bundle: par
 	rsync -a --exclude testdata --exclude README.txt \
 	  setup/ $(FACTORY_BUNDLE)/factory_setup/
 	mkdir -p $(FACTORY_BUNDLE)/shopfloor
-	cp -a $(PAR_BUILD_DIR)/factory.par $(FACTORY_BUNDLE)/shopfloor
-	ln -s factory.par $(FACTORY_BUNDLE)/shopfloor/shopfloor_server
-	ln -s factory.par $(FACTORY_BUNDLE)/shopfloor/manage
-	ln -s factory.par $(FACTORY_BUNDLE)/shopfloor/minijack
-	ln -s factory.par $(FACTORY_BUNDLE)/shopfloor/shopfloor
+	cp -a $(PAR_BUILD_DIR)/$(PAR_NAME) \
+	  $(FACTORY_BUNDLE)/shopfloor
+	ln -s $(PAR_NAME) $(FACTORY_BUNDLE)/shopfloor/shopfloor_server
+	ln -s $(PAR_NAME) $(FACTORY_BUNDLE)/shopfloor/manage
+	ln -s $(PAR_NAME) $(FACTORY_BUNDLE)/shopfloor/minijack
+	ln -s $(PAR_NAME) $(FACTORY_BUNDLE)/shopfloor/shopfloor
 	mkdir -p $(FACTORY_BUNDLE)/factory_flow
 	# Create a dedicated directory for factory flow tools.
-	cp -a $(PAR_BUILD_DIR)/factory.par $(FACTORY_BUNDLE)/factory_flow
-	ln -s factory.par $(FACTORY_BUNDLE)/factory_flow/factory_flow
-	ln -s factory.par $(FACTORY_BUNDLE)/factory_flow/finalize_bundle
-	ln -s factory.par $(FACTORY_BUNDLE)/factory_flow/test_factory_flow
+	cp -a $(PAR_BUILD_DIR)/$(PAR_NAME) $(FACTORY_BUNDLE)/factory_flow
+	ln -s $(PAR_NAME) $(FACTORY_BUNDLE)/factory_flow/factory_flow
+	ln -s $(PAR_NAME) $(FACTORY_BUNDLE)/factory_flow/finalize_bundle
+	ln -s $(PAR_NAME) $(FACTORY_BUNDLE)/factory_flow/test_factory_flow
 	# Archive docs into bundle
 	$(MAKE) doc
 	cp build/doc.tar.bz2 $(FACTORY_BUNDLE)
