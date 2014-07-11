@@ -47,7 +47,7 @@ def json_default_repr(obj):
   returned.
   '''
   if isinstance(obj, object):
-    return dict([(k,v) for k, v in obj.__dict__.iteritems()
+    return dict([(k, v) for k, v in obj.__dict__.iteritems()
            if k[0] != "_"])
   else:
     return obj
@@ -123,6 +123,8 @@ class Event(object):
       'CANCEL_SHUTDOWN': 'goofy:cancel_shutdown',
       # Tells UI to update notes.
       'UPDATE_NOTES': 'goofy:update_notes',
+      # Diagnosis Tool's events
+      'DIAGNOSIS_TOOL_EVENT': 'goofy:diagnosis_tool:event',
       })
 
   def __init__(self, type, **kw): # pylint: disable=W0622
