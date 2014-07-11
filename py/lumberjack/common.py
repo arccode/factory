@@ -353,9 +353,9 @@ def EncryptFile(file_path, encrypt_key_pair, delete=False):
   os.rename(file_path + '.gpg.part', file_path + '.gpg')
   if delete:
     os.unlink(file_path)
-    logging.debug('%r encrypted and removed.')
+    logging.debug('%r encrypted and removed.', file_path)
   else:
-    logging.debug('%r encrypted.')
+    logging.debug('%r encrypted.', file_path)
 
   return file_path + '.gpg'
 
