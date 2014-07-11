@@ -196,6 +196,7 @@ class FactoryToolkitInstaller():
     if enabled:
       print '*** Installing %s enabled tag...' % name
       Spawn(['touch', path], sudo=True, log=True, check_call=True)
+      Spawn(['chmod', 'go+r', path], sudo=True, log=True, check_call=True)
     else:
       print '*** Removing %s enabled tag...' % name
       Spawn(['rm', '-f', path], sudo=True, log=True, check_call=True)
