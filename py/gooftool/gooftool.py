@@ -528,6 +528,12 @@ def VerifyTPM(options):  # pylint: disable=W0613
 
   return GetGooftool(options).VerifyTPM()
 
+@Command('verify_me_locked')
+def VerifyManagementEngineLocked(options):  # pylint: disable=W0613
+  """Verify Managment Engine is locked."""
+
+  return GetGooftool(options).VerifyManagementEngineLocked()
+
 @Command('verify_switch_wp')
 def VerifyWPSwitch(options):  # pylint: disable=W0613
   """Verify hardware write protection switch is enabled."""
@@ -655,6 +661,7 @@ def Verify(options):
 
   if not options.no_write_protect:
     VerifyWPSwitch(options)
+    VerifyManagementEngineLocked(options)
   VerifyDevSwitch(options)
   if options.hwid_version == 2:
     VerifyHWIDv2(options)

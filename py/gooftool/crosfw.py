@@ -249,6 +249,11 @@ class FirmwareContent(object):
     """Call flashrom write for specific sections."""
     self.flashrom.Write(filename=self.GetFileName(), sections=sections)
 
+  def GetFirmwareImage(self):
+    """Returns a FirmwareImage instance."""
+    with open(self.GetFileName(), 'rb') as image:
+      return FirmwareImage(image.read())
+
 
 def LoadEcFirmware():
   """Returns flashrom data from Embedded Controller chipset."""

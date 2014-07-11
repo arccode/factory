@@ -40,9 +40,16 @@ StubStdout = namedtuple('StubStdout', ['stdout'])
 
 class MockMainFirmware(object):
   """Mock main firmware object."""
-  def __init__(self):
+  def __init__(self, image=None):
     self.GetFileName = lambda: "firmware"
     self.Write = lambda sections: sections == ['GBB']
+    self.GetFirmwareImage = lambda: image
+
+class MockFirmwareImage(object):
+  """Mock firmware image object."""
+  def __init__(self, section_map):
+    self.has_section = lambda name: name in section_map
+    self.get_section = lambda name: section_map[name]
 
 class MockFile(object):
   """Mock file object."""
@@ -317,6 +324,21 @@ class GooftoolTest(unittest.TestCase):
              TPM Password:''')
     self.mox.ReplayAll()
     self._gooftool.VerifyTPM()
+
+  def testVerifyManagementEngineLocked(self):
+    data_no_me = {'RO_SECTION': ''}
+    data_me_locked = {'SI_ME': chr(0xff) * 1024}
+    data_me_unlocked = {'SI_ME': chr(0x55) * 1024}
+    self._gooftool._crosfw.LoadMainFirmware().AndReturn(
+        MockMainFirmware(MockFirmwareImage(data_no_me)))
+    self._gooftool._crosfw.LoadMainFirmware().AndReturn(
+        MockMainFirmware(MockFirmwareImage(data_me_locked)))
+    self._gooftool._crosfw.LoadMainFirmware().AndReturn(
+        MockMainFirmware(MockFirmwareImage(data_me_unlocked)))
+    self.mox.ReplayAll()
+    self._gooftool.VerifyManagementEngineLocked()
+    self._gooftool.VerifyManagementEngineLocked()
+    self.assertRaises(Error, self._gooftool.VerifyManagementEngineLocked)
 
   def testClearGBBFlags(self):
     self._gooftool._util.FindAndRunScript("clear_gbb_flags.sh")

@@ -407,6 +407,20 @@ class Gooftool(object):
     if any(tpm_status[k] != v for k, v in tpm_cleared_status.iteritems()):
       raise Error, 'TPM is not cleared.'
 
+  def VerifyManagementEngineLocked(self):
+    """Verify Managment Engine is locked."""
+    mainfw = self._crosfw.LoadMainFirmware().GetFirmwareImage()
+    if not mainfw.has_section('SI_ME'):
+      logging.info('System does not have Management Engine.')
+      return True
+    # If ME is locked, it should contain only 0xFFs.
+    data = mainfw.get_section('SI_ME').strip(chr(0xFF))
+    if len(data) != 0:
+      raise Error, 'ME (ManagementEngine) firmware may be not locked.'
+    # TODO(hungte) In future we may add more checks using ifdtool. See
+    # crosbug.com/p/30283 for more information.
+    logging.info('Management Engine is locked.')
+
   def VerifyBranding(self):
     """Verify that branding fields are properly set.
 
