@@ -60,7 +60,7 @@ class Servo(object):
         hosts.ServoHost._update_image = lambda _: True
         # Create a dummy servod config to make ServoHost happy.
         process_utils.Spawn(['touch', '/var/lib/servod/config'],
-                            log=True, check_call=True)
+                            log=True, sudo=True, check_call=True)
 
     self._servo = servo.Servo(hosts.ServoHost(servo_host=host, servo_port=port),
                               serial)
