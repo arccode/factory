@@ -1281,6 +1281,10 @@ class Goofy(object):
         'automation_mode_prompt',
         AutomationModePrompt[self.options.automation_mode])
 
+    # Set use_telemetry in shared data so that factory tests can look it up.
+    self.state_instance.set_shared_data('use_telemetry',
+                                        self.options.use_telemetry)
+
     try:
       self.InitTestLists()
     except:  # pylint: disable=W0702

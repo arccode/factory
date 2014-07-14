@@ -13,7 +13,7 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory import event_log
-from cros.factory.goofy.test_environment import DUTEnvironment
+from cros.factory.goofy.test_environment import DUTTelemetryEnvironment
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -69,7 +69,8 @@ class ShutdownTest(unittest.TestCase):
           'Number of seconds the operator has to abort the shutdown.',
           default=5),
       Arg('enable_guest_mode', bool,
-          'True to enable guest mode login upon next boot', default=False),
+          ('True to enable guest mode login upon next boot '
+           '(for Telemetry-based test environment)'), default=False),
       Arg('max_reboot_time_secs', int,
           ('Maximum amount of time allowed between reboots. If this threshold '
            'is exceeded, the reboot is considered failed.'),
@@ -139,10 +140,11 @@ class ShutdownTest(unittest.TestCase):
       raise ShutdownError('Shutdown aborted by operator')
 
     if (self.args.enable_guest_mode and
-        not os.path.exists(DUTEnvironment.GUEST_MODE_TAG_FILE)):
+        self.goofy.get_shared_data('use_telemetry') and
+        not os.path.exists(DUTTelemetryEnvironment.GUEST_MODE_TAG_FILE)):
       # Create a temporary file GUEST_MODE_TAG_FILE to enable guest mode
       # on next boot.
-      os.mknod(DUTEnvironment.GUEST_MODE_TAG_FILE)
+      os.mknod(DUTTelemetryEnvironment.GUEST_MODE_TAG_FILE)
 
     self.goofy.Shutdown(self.args.operation)
 
