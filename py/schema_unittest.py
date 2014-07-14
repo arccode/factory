@@ -25,6 +25,16 @@ class SchemaTest(unittest.TestCase):
         schema.Validate, 'bar')
     self.assertEquals(None, schema.Validate(0))
 
+  def testScalarChoices(self):
+    schema = Scalar('foo', int, choices=[1, 2])
+    self.assertEquals("Scalar('foo', <type 'int'>, choices=[1, 2])",
+                      repr(schema))
+    self.assertEquals(None, schema.Validate(1))
+    self.assertEquals(None, schema.Validate(2))
+    self.assertRaisesRegexp(
+        SchemaException, r'Value mismatch on 3: expected one of \[1, 2\]',
+        schema.Validate, 3)
+
   def testDict(self):
     self.assertRaisesRegexp(
         SchemaException, r'key_type .* of Dict .* is not Scalar',

@@ -80,20 +80,26 @@ class Scalar(BaseType):
   Attributes:
     label: A human-readable string to describe this Scalar.
     element_type: The Python type of this Scalar. Cannot be a iterable type.
+    choices: A set of allowable choices for the scalar, or None to allow
+        any values of the given type.
 
   Raises:
     SchemaException if argument format is incorrect.
   """
-  def __init__(self, label, element_type):
+  def __init__(self, label, element_type, choices=None):
     super(Scalar, self).__init__(label)
     if getattr(element_type, '__iter__', None):
       raise SchemaException(
         'element_type %r of Scalar %r is not a scalar type' % (element_type,
                                                                label))
     self._element_type = element_type
+    self._choices = set(choices) if choices else None
+
 
   def __repr__(self):
-    return 'Scalar(%r, %r)' % (self._label, self._element_type)
+    return 'Scalar(%r, %r%s)' % (
+      self._label, self._element_type,
+      ', choices=%r' % sorted(self._choices) if self._choices else '')
 
   def Validate(self, data):
     """Validates the given data against the Scalar schema.
@@ -111,6 +117,9 @@ class Scalar(BaseType):
     if not isinstance(data, self._element_type):
       raise SchemaException('Type mismatch on %r: expected %r, got %r' %
                             (data, self._element_type, type(data)))
+    if self._choices and data not in self._choices:
+      raise SchemaException('Value mismatch on %r: expected one of %r' %
+                            (data, sorted(self._choices)))
 
 
 class Dict(BaseType):
