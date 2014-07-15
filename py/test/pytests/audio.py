@@ -47,16 +47,18 @@ class AudioDigitPlaybackTask(InteractiveFactoryTask):
     instruction_id: HTML id for placing instruction.
     volume: Playback volume in [0,100]; default 100.
     channel: target channel. Value of 'left', 'right', 'all'. Default 'all'.
+    card_id: ID of the audio card to output.
   """
 
   def __init__(self, ui, port_label, port_id, title_id, instruction_id,
-               volume=100, channel='all'):
+               volume=100, channel='all', card_id=0):
     super(AudioDigitPlaybackTask, self).__init__(ui)
     self._pass_digit = random.randint(0, 9)
-    self._port_switch = ['amixer', '-c', '0', 'cset',
+    self._port_switch = ['amixer', '-c', str(card_id), 'cset',
                          'name="%s Playback Switch"' % port_id]
-    self._port_volume = ['amixer', '-c', '0', 'cset',
+    self._port_volume = ['amixer', '-c', str(card_id), 'cset',
                          'name="%s Playback Volume"' % port_id]
+    self._card_id = card_id
     self._port_id = port_id
     self._port_label = port_label
     self._title_id = title_id
@@ -83,7 +85,8 @@ class AudioDigitPlaybackTask(InteractiveFactoryTask):
   def Run(self):
     def _HasPlaybackVolume(port_id):
       volumn_name = '%s Playback Volume' % port_id
-      return volumn_name in SpawnOutput(['amixer', '-c', '0','controls'])
+      return volumn_name in SpawnOutput(
+          ['amixer', '-c', str(self._card_id), 'controls'])
 
     def _PlayDigit(num):
       """Plays digit sound with language from UI.

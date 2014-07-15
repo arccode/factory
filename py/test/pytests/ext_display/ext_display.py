@@ -15,6 +15,7 @@ import time
 import unittest
 import uuid
 
+from cros.factory.test import audio_utils
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -423,6 +424,7 @@ class ExtDisplayTaskArg(object):
     self.main_display_id = None
     self.display_label = None
     self.display_id = None
+    self.card_id = 0
     self.audio_port = None
     self.ui = None
     self.template = None
@@ -442,12 +444,18 @@ class ExtDisplayTaskArg(object):
       ValueError if parse error.
     """
     # Sanity check
-    if (len(info) not in [2, 3] or any(not isinstance(i, str) for i in info)):
+    if len(info) not in [2, 3]:
       raise ValueError('ERROR: invalid display_info item: ' + str(info))
 
     self.display_label, self.display_id = info[:2]
     if len(info) == 3:
-      self.audio_port = info[2]
+      self.audio_port = info[2][1]
+      if isinstance(info[2][0], int):
+        self.card_id = info[2][0]
+      elif isinstance(info[2][0], (str, unicode)):
+        self.card_id = audio_utils.GetCardIndexByName(info[2][0])
+      else:
+        raise ValueError('Card ID should be an integer or a string')
 
 
 class ExtDisplayTest(unittest.TestCase):
@@ -458,15 +466,16 @@ class ExtDisplayTest(unittest.TestCase):
     Arg('display_info', list,
         ('A list of tuples:\n'
          '\n'
-         '  (display_label, display_id, audio_port)\n'
+         '  (display_label, display_id, audio_info)\n'
          '\n'
          'Each tuple represents an external port.\n'
          '\n'
          '- display_label: (str) display name seen by operator, e.g. VGA.\n'
          '- display_id: (str) ID used to identify display in xrandr.\n'
          '  e.g. VGA1.\n'
-         '- audio_port: (str, opt) amixer port name for audio test. If set,\n'
-         '  the audio playback test is added for the display.'),
+         '- audio_info: a tuple of (str, str) where the first str is the\n'
+         '  card name and the second str is the amixer port name for audio\n'
+         '  test. If set, the audio playback test is added for the display.'),
         optional=False),
     Arg('bft_fixture', dict, TEST_ARG_HELP, default=None, optional=True),
     Arg('connect_only', bool,
@@ -533,7 +542,7 @@ class ExtDisplayTest(unittest.TestCase):
                                             u' %s 音讯' % args.display_label)
             tasks.append(audio.AudioDigitPlaybackTask(
                 self._ui, audio_label, args.audio_port,
-                'instruction', 'instruction-center'))
+                'instruction', 'instruction-center', card_id=args.card_id))
           if not self.args.start_output_only:
             tasks.append(DisconnectTask(args))
       else:
