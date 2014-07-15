@@ -15,6 +15,7 @@ This test may be invoked in two ways:
 """
 
 
+import argparse
 import logging
 import os
 import subprocess
@@ -24,10 +25,16 @@ import yaml
 import factory_common  # pylint: disable=W0611
 from cros.factory.utils import process_utils
 from cros.factory.hwid import database
+from cros.factory.tools import build_board
 
 
 class HWIDDBsPatternTest(unittest.TestCase):
   """Unit test for HWID database."""
+  def __init__(self, board=None, commit=None):
+    super(HWIDDBsPatternTest, self).__init__()
+    self.board = board
+    self.commit = commit
+
   def runTest(self):
     hwid_dir = os.path.join(
         os.environ['CROS_WORKON_SRCROOT'], 'src', 'platform', 'chromeos-hwid')
@@ -49,20 +56,29 @@ class HWIDDBsPatternTest(unittest.TestCase):
       # boards.yaml.
       files = [b['path'] for b in boards_info.itervalues() if b['version'] == 3]
 
-    for f in files:
-      board_name = os.path.basename(f)
+    def TestDatabase(db_path):
+      board_name = os.path.basename(db_path)
       if board_name not in boards_info:
-        continue
-      commit = (os.environ.get('PRESUBMIT_COMMIT') or
+        return
+      commit = (self.commit or os.environ.get('PRESUBMIT_COMMIT') or
                 'cros-internal/%s' % boards_info[board_name]['branch'])
-      logging.info('Checking %s:%s...', commit, f)
-      self.VerifyDatabasePattern(hwid_dir, commit, f)
+      logging.info('Checking %s:%s...', commit, db_path)
+      self.VerifyDatabasePattern(hwid_dir, commit, db_path)
+
+    if self.board:
+      if self.board not in boards_info:
+        self.fail('Invalid board %r' % self.board)
+      TestDatabase('v3/%s' % self.board)
+    else:
+      for f in files:
+        TestDatabase(f)
 
   def VerifyDatabasePattern(self, hwid_dir, commit, db_path):
     try:
       old_db = database.Database.LoadData(
           yaml.load(process_utils.CheckOutput(
-              ['git', 'show', '%s~1:%s' % (commit, db_path)], cwd=hwid_dir)),
+              ['git', 'show', '%s~1:%s' % (commit, db_path)],
+              cwd=hwid_dir, ignore_stderr=True)),
           strict=False)
     except subprocess.CalledProcessError as e:
       if e.returncode == 128:
@@ -73,7 +89,8 @@ class HWIDDBsPatternTest(unittest.TestCase):
 
     new_db = database.Database.LoadData(
         yaml.load(process_utils.CheckOutput(
-            ['git', 'show', '%s:%s' % (commit, db_path)], cwd=hwid_dir)),
+            ['git', 'show', '%s:%s' % (commit, db_path)],
+            cwd=hwid_dir, ignore_stderr=True)),
         strict=False)
     # Make sure all the encoded fields in the existing patterns are not changed.
     for i in xrange(len(old_db.pattern.pattern)):
@@ -90,5 +107,14 @@ class HWIDDBsPatternTest(unittest.TestCase):
 
 
 if __name__ == '__main__':
+  parser = argparse.ArgumentParser()
+  parser.add_argument('--board', help='the board to test')
+  parser.add_argument('--commit', help='the commit to test')
+  args = parser.parse_args()
   logging.basicConfig(level=logging.INFO)
-  unittest.main()
+
+  if args.board:
+    args.board = build_board.BuildBoard(args.board).short_name.upper()
+  runner = unittest.TextTestRunner()
+  test = HWIDDBsPatternTest(board=args.board, commit=args.commit)
+  runner.run(test)
