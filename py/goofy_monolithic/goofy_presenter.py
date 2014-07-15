@@ -5,7 +5,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""The main factory flow that runs the device-side of factory tests.
+"""The main factory flow that runs the presenter-side of factory tests.
 
   This is a stub implementation that does nothing. The true implementation
   lives in goofy.py. This file exists only so that goofy_monolithic and

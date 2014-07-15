@@ -51,9 +51,9 @@ class ToolkitInstallerTest(unittest.TestCase):
     os.makedirs(os.path.join(self.dest, 'var'))
 
   def createInstaller(self, enabled_tag=True, system_root='/',
-                      enable_host=True, enable_device=False):
+                      enable_presenter=True, enable_device=False):
     self._installer = installer.FactoryToolkitInstaller(
-        self.src, self.dest, not enabled_tag, enable_host,
+        self.src, self.dest, not enabled_tag, enable_presenter,
         enable_device, system_root=system_root)
     self._installer._sudo = False
 
@@ -81,7 +81,7 @@ class ToolkitInstallerTest(unittest.TestCase):
     self.assertTrue(os.path.exists(
         os.path.join(self.dest, 'usr/local/factory/enabled')))
     self.assertTrue(os.path.exists(
-        os.path.join(self.dest, 'usr/local/factory/init/run_goofy_host')))
+        os.path.join(self.dest, 'usr/local/factory/init/run_goofy_presenter')))
     self.assertFalse(os.path.exists(
         os.path.join(self.dest, 'usr/local/factory/init/run_goofy_device')))
     self.assertEquals('../factory/bin/gooftool',
@@ -92,10 +92,10 @@ class ToolkitInstallerTest(unittest.TestCase):
     os.getuid = lambda: 0 # root
     self._in_cros = True
     self.createInstaller(system_root=self.dest,
-                         enable_host=False, enable_device=True)
+                         enable_presenter=False, enable_device=True)
     self._installer.Install()
     self.assertFalse(os.path.exists(
-        os.path.join(self.dest, 'usr/local/factory/init/run_goofy_host')))
+        os.path.join(self.dest, 'usr/local/factory/init/run_goofy_presenter')))
     self.assertTrue(os.path.exists(
         os.path.join(self.dest, 'usr/local/factory/init/run_goofy_device')))
 

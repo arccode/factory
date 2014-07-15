@@ -12,7 +12,7 @@ from cros.factory.test import utils
 class DiscovererBase(object):
   """Base class for discoverers."""
   def Discover(self):
-    """Returns IP addresses of the potential host/DUT."""
+    """Returns IP addresses of the potential presenter/DUT."""
     raise NotImplementedError()
 
 
@@ -22,19 +22,19 @@ class DUTDiscoverer(DiscovererBase):
     if utils.in_chroot():
       return '127.0.0.1'
     else:
-      # For now, we assume the host and the device are the same
+      # For now, we assume the presenter and the device are the same
       # machine.
       # TODO: implement this
       return '127.0.0.1'
 
 
-class HostDiscoverer(DiscovererBase):
-  """Discoverer that looks for the host."""
+class PresenterDiscoverer(DiscovererBase):
+  """Discoverer that looks for the presenter."""
   def Discover(self):
     if utils.in_chroot():
       return '127.0.0.1'
     else:
-      # For now, we assume the host and the device are the same
+      # For now, we assume the presenter and the device are the same
       # machine.
       # TODO: implement this
       return '127.0.0.1'

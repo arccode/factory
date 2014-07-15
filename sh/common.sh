@@ -27,7 +27,7 @@ STOP_AUTO_RUN_ON_START_TAG_FILE="${FACTORY_BASE}/state/no_auto_run_on_start"
 # By default, goofy runs on startup and goofy_device doesn't. This can be
 # changed with following tag files:
 RUN_GOOFY_DEVICE_TAG_FILE="${FACTORY_INIT_BASE}/run_goofy_device"
-RUN_GOOFY_HOST_TAG_FILE="${FACTORY_INIT_BASE}/run_goofy_host"
+RUN_GOOFY_PRESENTER_TAG_FILE="${FACTORY_INIT_BASE}/run_goofy_presenter"
 
 # ======================================================================
 # message and error handling

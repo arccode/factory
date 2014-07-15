@@ -7,7 +7,7 @@
 # found in the LICENSE file.
 
 
-"""The unittest for the device-side of the main factory test flow."""
+"""The unittest for the presenter-side of the main factory test flow."""
 
 
 import factory_common  # pylint: disable=W0611
@@ -17,14 +17,14 @@ import threading
 import time
 import unittest
 
-from cros.factory.goofy_split.goofy_device import GoofyDevice
+from cros.factory.goofy_split.goofy_presenter import GoofyPresenter
 from cros.factory.test import factory
 
-class GoofyDeviceTest(unittest.TestCase):
-  """Base class for GoofyDevice test cases."""
+class GoofyPresenterTest(unittest.TestCase):
+  """Base class for GoofyPresenter test cases."""
 
   def setUp(self):
-    self.goofy = GoofyDevice()
+    self.goofy = GoofyPresenter()
 
   def tearDown(self):
     self.goofy.destroy()
@@ -44,12 +44,12 @@ class GoofyDeviceTest(unittest.TestCase):
     self.assertEqual([], extra_threads)
 
 
-class BasicSanityTest(GoofyDeviceTest):
+class BasicSanityTest(GoofyPresenterTest):
   """ Do nothing except invoke setup and teardown."""
   def runTest(self):
     self.assertIsNotNone(self.goofy)
 
 
 if __name__ == "__main__":
-  factory.init_logging('goofy_device_unittest')
+  factory.init_logging('goofy_presenter_unittest')
   unittest.main()

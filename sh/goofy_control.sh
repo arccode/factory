@@ -91,15 +91,16 @@ start_factory() {
     start -n ui &
   fi
 
-  if [ -f "${RUN_GOOFY_DEVICE_TAG_FILE}" ]; then
-    "$FACTORY/bin/goofy_device" $GOOFY_ARGS >>"$FACTORY_LOG_FILE" 2>&1 &
+  # Run goofy_presenter if goofy_presenter tag file is present
+  if [ -f "${RUN_GOOFY_PRESENTER_TAG_FILE}" ]; then
+    "$FACTORY/bin/goofy_presenter" $GOOFY_ARGS >>"$FACTORY_LOG_FILE" 2>&1 &
   fi
 
-  local run_goofy_host=
-  [ -f "${RUN_GOOFY_HOST_TAG_FILE}" ] && run_goofy_host=1
-  [ -f "${RUN_GOOFY_DEVICE_TAG_FILE}" ] || run_goofy_host=1
-  if [ -n "$run_goofy_host" ]; then
-    "$FACTORY/bin/goofy" $GOOFY_ARGS >>"$FACTORY_LOG_FILE" 2>&1 &
+  # Run goofy(device) if the goofy_device tag file is present,
+  # or goofy_presenter tag file is missing
+  if [ -f "${RUN_GOOFY_DEVICE_TAG_FILE}" \
+       -o ! -f "${RUN_GOOFY_PRESENTER_TAG_FILE}" ]; then
+       "$FACTORY/bin/goofy" $GOOFY_ARGS >>"$FACTORY_LOG_FILE" 2>&1 &
   fi
 
   wait

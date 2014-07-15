@@ -34,7 +34,7 @@ from cros.factory.goofy_split.goofy_base import GoofyBase
 from cros.factory.goofy_split.goofy_rpc import GoofyRPC
 from cros.factory.goofy_split.invocation import TestArgEnv
 from cros.factory.goofy_split.invocation import TestInvocation
-from cros.factory.goofy_split.link_manager import DUTLinkManager
+from cros.factory.goofy_split.link_manager import PresenterLinkManager
 from cros.factory.goofy_split.prespawner import Prespawner
 from cros.factory.goofy_split.system_log_manager import SystemLogManager
 from cros.factory.goofy_split.web_socket_manager import WebSocketManager
@@ -150,7 +150,8 @@ class Goofy(GoofyBase):
       sync.)
     hooks: A Hooks object containing hooks for various Goofy actions.
     status: The current Goofy status (a member of the Status enum).
-    link_manager: Instance of DUTLinkManager for communicating with GoofyDevice
+    link_manager: Instance of PresenterLinkManager for communicating
+      with GoofyPresenter
   """
   def __init__(self):
     super(Goofy, self).__init__()
@@ -1266,7 +1267,7 @@ class Goofy(GoofyBase):
 
     logging.info('Started')
 
-    self.link_manager = DUTLinkManager(check_interval=1)
+    self.link_manager = PresenterLinkManager(check_interval=1)
 
     self.start_state_server()
     self.state_instance.set_shared_data('hwid_cfg', get_hwid_cfg())

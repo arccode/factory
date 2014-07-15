@@ -12,7 +12,7 @@ import threading
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.goofy_split.discoverer import DUTDiscoverer
-from cros.factory.goofy_split.discoverer import HostDiscoverer
+from cros.factory.goofy_split.discoverer import PresenterDiscoverer
 from cros.factory.test import utils
 from cros.factory.utils.jsonrpc_utils import JSONRPCServer
 from cros.factory.utils.jsonrpc_utils import TimeoutJSONRPCTransport
@@ -22,7 +22,7 @@ from cros.factory.utils.net_utils import GetEthernetIp
 
 
 # Standard RPC ports.  These may be replaced by unit tests.
-HOST_LINK_RPC_PORT = 4020
+PRESENTER_LINK_RPC_PORT = 4020
 DUT_LINK_RPC_PORT = 4021
 
 
@@ -30,8 +30,8 @@ class LinkDownError(Exception):
   """The exception raised on RPC calls when the link is down."""
   pass
 
-class HostLinkManager(object):
-  """The link manager that runs on the DUT to maintain the link to the host."""
+class PresenterLinkManager(object):
+  """The manager that runs on the DUT to maintain a link to the presenter."""
   def __init__(self,
                check_interval=5,
                methods=None,
@@ -45,12 +45,12 @@ class HostLinkManager(object):
     self._connect_hook = connect_hook
     self._disconnect_hook = disconnect_hook
     self._methods = methods or {}
-    self._methods.update({'Announce': self._HostAnnounce})
-    self._host_connected = False
-    self._host_ip = None
-    self._host_proxy = None
-    self._host_announcement = None
-    self._discoverer = HostDiscoverer()
+    self._methods.update({'Announce': self._PresenterAnnounce})
+    self._presenter_connected = False
+    self._presenter_ip = None
+    self._presenter_proxy = None
+    self._presenter_announcement = None
+    self._discoverer = PresenterDiscoverer()
     self._kick_event = threading.Event()
     self._abort_event = threading.Event()
     self._server = JSONRPCServer(port=DUT_LINK_RPC_PORT, methods=self._methods)
@@ -60,12 +60,12 @@ class HostLinkManager(object):
 
   def __getattr__(self, name):
     """A wrapper that proxies the RPC calls to the real server proxy."""
-    if not self._host_connected:
+    if not self._presenter_connected:
       raise LinkDownError()
     try:
-      return self._host_proxy.__getattr__(name)
+      return self._presenter_proxy.__getattr__(name)
     except AttributeError:
-      # _host_proxy is None. Link is probably down.
+      # _presenter_proxy is None. Link is probably down.
       raise LinkDownError()
 
   def Stop(self):
@@ -75,49 +75,50 @@ class HostLinkManager(object):
     self._kick_event.set() # Kick the thread
     self._thread.join()
 
-  def HostIsAlive(self):
-    """Pings the host."""
-    if not self._host_connected:
+  def PresenterIsAlive(self):
+    """Pings the presenter."""
+    if not self._presenter_connected:
       return False
     try:
-      return self._host_proxy.IsAlive()
+      return self._presenter_proxy.IsAlive()
     except (socket.error, socket.timeout, AttributeError):
       return False
 
-  def _HostAnnounce(self, my_ip, host_ips):
-    self._host_announcement = (my_ip, host_ips)
+  def _PresenterAnnounce(self, my_ip, presenter_ips):
+    self._presenter_announcement = (my_ip, presenter_ips)
     self._kick_event.set()
 
-  def _HandleHostAnnouncement(self):
-    my_ip, host_ips = self._host_announcement
-    self._host_announcement = None
-    for host_ip in host_ips:
-      self._MakeHostConnection(my_ip, host_ip)
-      if self._host_connected:
+  def _HandlePresenterAnnouncement(self):
+    my_ip, presenter_ips = self._presenter_announcement
+    self._presenter_announcement = None
+    for presenter_ip in presenter_ips:
+      self._MakePresenterConnection(my_ip, presenter_ip)
+      if self._presenter_connected:
         return
 
-  def _MakeTimeoutServerProxy(self, host_ip, timeout):
-    return jsonrpclib.Server('http://%s:%d/' % (host_ip, HOST_LINK_RPC_PORT),
+  def _MakeTimeoutServerProxy(self, presenter_ip, timeout):
+    return jsonrpclib.Server('http://%s:%d/' % 
+                             (presenter_ip,PRESENTER_LINK_RPC_PORT),
                              transport=TimeoutJSONRPCTransport(timeout))
 
-  def _MakeHostConnection(self, my_ip, host_ip):
-    """Attempts to connect the the host.
+  def _MakePresenterConnection(self, my_ip, presenter_ip):
+    """Attempts to connect the the presenter.
 
     Args:
-      my_ip: The IP address of this DUT received from the host; None to guess.
-      host_ip: The IP address of the host.
+      my_ip: The IP address of this DUT received from the presenter; None to guess.
+      presenter_ip: The IP address of the presenter.
     """
-    if self._host_connected and self._host_ip == host_ip:
+    if self._presenter_connected and self._presenter_ip == presenter_ip:
       return
     try:
-      logging.info("Attempting to connect to host %s", host_ip)
-      self._host_proxy = self._MakeTimeoutServerProxy(host_ip,
+      logging.info("Attempting to connect to presenter %s", presenter_ip)
+      self._presenter_proxy = self._MakeTimeoutServerProxy(presenter_ip,
                                                       self._handshake_timeout)
-      self._host_ip = host_ip
-      self._host_proxy.IsAlive()
+      self._presenter_ip = presenter_ip
+      self._presenter_proxy.IsAlive()
 
-      # Host is alive. Let's register!
-      logging.info("Registering to host %s", host_ip)
+      # Presenter is alive. Let's register!
+      logging.info("Registering to presenter %s", presenter_ip)
       if not my_ip:
         if utils.in_chroot():
           my_ip = '127.0.0.1'
@@ -130,42 +131,42 @@ class HostLinkManager(object):
 
       for ip in my_ip:
         logging.info("Trying IP address %s", ip)
-        self._host_proxy.Register(ip)
+        self._presenter_proxy.Register(ip)
 
-        # Make sure the host sees us
+        # Make sure the presenter sees us
         logging.info("Registered. Checking connection.")
-        if not self._host_proxy.ConnectionGood():
+        if not self._presenter_proxy.ConnectionGood():
           logging.info("Registration failed.")
           continue
-        self._host_connected = True
-        logging.info("Connected to host %s", host_ip)
+        self._presenter_connected = True
+        logging.info("Connected to presenter %s", presenter_ip)
         # Now that we are connected, use a longer timeout for the proxy
-        self._host_proxy = self._MakeTimeoutServerProxy(host_ip,
+        self._presenter_proxy = self._MakeTimeoutServerProxy(presenter_ip,
                                                         self._rpc_timeout)
         if self._connect_hook:
           self._connect_hook()
         return
-      self._host_ip = None
-      self._host_proxy = None
+      self._presenter_ip = None
+      self._presenter_proxy = None
     except (socket.error, socket.timeout):
-      self._host_ip = None
-      self._host_proxy = None
+      self._presenter_ip = None
+      self._presenter_proxy = None
       logging.info("Connection failed.")
 
-  def CheckHostConnection(self):
-    """Check the connection to the host.
+  def CheckPresenterConnection(self):
+    """Check the connection to the presenter.
 
     If the connection is down, put ourselves into disconnected state and attempt
     to establish the connection again.
     """
-    if self._host_connected:
-      if self.HostIsAlive():
+    if self._presenter_connected:
+      if self.PresenterIsAlive():
         return # everything's fine
       else:
-        logging.info("Lost connection to host %s", self._host_ip)
-        self._host_connected = False
-        self._host_ip = None
-        self._host_proxy = None
+        logging.info("Lost connection to presenter %s", self._presenter_ip)
+        self._presenter_connected = False
+        self._presenter_ip = None
+        self._presenter_proxy = None
         if self._disconnect_hook:
           self._disconnect_hook()
 
@@ -175,8 +176,8 @@ class HostLinkManager(object):
     if type(ips) != list:
       ips = [ips]
     for ip in ips:
-      self._MakeHostConnection(None, ip)
-      if self._host_connected:
+      self._MakePresenterConnection(None, ip)
+      if self._presenter_connected:
         return
 
   def MonitorLink(self):
@@ -185,14 +186,14 @@ class HostLinkManager(object):
       self._kick_event.clear()
       if self._abort_event.isSet():
         return
-      if self._host_announcement:
-        self._HandleHostAnnouncement()
+      if self._presenter_announcement:
+        self._HandlePresenterAnnouncement()
       else:
-        self.CheckHostConnection()
+        self.CheckPresenterConnection()
 
 
 class DUTLinkManager(object):
-  """The link manager that runs on the host to maintain the link to the DUT."""
+  """The manager that runs on the presenter to maintain the link to the DUT."""
   def __init__(self,
                check_interval=5,
                methods=None,
@@ -213,7 +214,7 @@ class DUTLinkManager(object):
     self._kick_event = threading.Event()
     self._abort_event = threading.Event()
     self._discoverer = DUTDiscoverer()
-    self._server = JSONRPCServer(port=HOST_LINK_RPC_PORT,
+    self._server = JSONRPCServer(port=PRESENTER_LINK_RPC_PORT,
                                  methods=self._methods)
     self._server.Start()
     self._thread = threading.Thread(target=self.MonitorLink)
@@ -295,7 +296,7 @@ class DUTLinkManager(object):
             # keep the timeout short.
             proxy = self._MakeTimeoutServerProxy(ip, timeout=0.05)
             my_ips = GetAllIPs()
-            logging.info("Announcing to DUT %s: host ip is %s", ip, my_ips)
+            logging.info("Announcing to DUT %s: presenter ip is %s", ip, my_ips)
             proxy.Announce(ip, my_ips)
           except (socket.error, socket.timeout):
             pass

@@ -93,7 +93,7 @@ class FactoryToolkitInstaller():
   # Whether to sudo when rsyncing; set to False for testing.
   _sudo = True
 
-  def __init__(self, src, dest, no_enable, enable_host,
+  def __init__(self, src, dest, no_enable, enable_presenter,
                enable_device, system_root='/'):
     self._src = src
     self._system_root = system_root
@@ -135,9 +135,9 @@ class FactoryToolkitInstaller():
     self._no_enable = no_enable
     self._tag_file = os.path.join(self._usr_local_dest, 'factory', 'enabled')
 
-    self._enable_host = enable_host
-    self._host_tag_file = os.path.join(self._usr_local_dest, 'factory',
-                                       'init', 'run_goofy_host')
+    self._enable_presenter = enable_presenter
+    self._presenter_tag_file = os.path.join(self._usr_local_dest, 'factory',
+                                       'init', 'run_goofy_presenter')
 
     self._enable_device = enable_device
     self._device_tag_file = os.path.join(self._usr_local_dest, 'factory',
@@ -241,7 +241,8 @@ class FactoryToolkitInstaller():
           sudo=self._sudo, log=True, check_call=True)
 
     self._SetTagFile('factory', self._tag_file, not self._no_enable)
-    self._SetTagFile('host', self._host_tag_file, self._enable_host)
+    self._SetTagFile('presenter', self._presenter_tag_file,
+                     self._enable_presenter)
     self._SetTagFile('device', self._device_tag_file, self._enable_device)
 
     print '*** Installation completed.'
@@ -317,19 +318,19 @@ def main():
   parser.add_argument('--repack', metavar='UNPACKED_TOOLKIT',
       help="Repack from previously unpacked toolkit")
 
-  parser.add_argument('--enable-host', dest='enable_host',
+  parser.add_argument('--enable-presenter', dest='enable_presenter',
       action='store_true',
-      help="Run goofy host on startup")
-  parser.add_argument('--no-enable-host', dest='enable_host',
+      help="Run goofy in presenter mode on startup")
+  parser.add_argument('--no-enable-presenter', dest='enable_presenter',
       action='store_false', help=argparse.SUPPRESS)
-  parser.set_defaults(enable_host=True)
+  parser.set_defaults(enable_presenter=False)
 
   parser.add_argument('--enable-device', dest='enable_device',
       action='store_true',
-      help="Run goofy_device on startup")
+      help="Run goofy in device mode on startup")
   parser.add_argument('--no-enable-device', dest='enable_device',
       action='store_false', help=argparse.SUPPRESS)
-  parser.set_defaults(enable_device=False)
+  parser.set_defaults(enable_device=True)
 
   args = parser.parse_args()
 
@@ -372,8 +373,8 @@ def main():
 
   with (MountPartition(args.dest, 1, rw=True) if patch_test_image
         else DummyContext(args.dest)) as dest:
-    installer = FactoryToolkitInstaller(
-        src_root, dest, args.no_enable, args.enable_host, args.enable_device)
+    installer = FactoryToolkitInstaller(src_root, dest, args.no_enable,
+        args.enable_presenter, args.enable_device)
 
     print installer.WarningMessage(args.dest if patch_test_image else None)
 
