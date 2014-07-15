@@ -6,6 +6,7 @@
 
 """A tool for running factory flow tests."""
 
+import datetime
 import glob
 import logging
 import os
@@ -145,7 +146,9 @@ class TestResult(object):
       raise FactoryFlowTestError('Log directory of %r not found' %
                                    self.test_plan_name)
 
-    log_file_name = '%s.tar.bz2' % self.test_plan_name
+    now = datetime.datetime.now().isoformat().replace(':', '-').split('.')[0]
+    log_file_name = '%s-%s-%s.tar.bz2' % (
+        self.board_name.full_name, self.test_plan_name, now)
     log_archive_path = os.path.join(self.base_log_dir, log_file_name)
     process_utils.Spawn(['tar', 'cJvf', log_file_name, self.test_plan_name],
                         cwd=self.base_log_dir, log=True, check_call=True,
@@ -208,9 +211,9 @@ class TestResult(object):
     # Generate the notification E-mail.
     FROM = 'chromeos-factory-testing@chromium.org'
     mail = MIMEMultipart()
-    mail['Subject'] = ('[%s] Test results and logs of %s on board %s' %
-                       (overall_status, self.test_plan_name,
-                        self.board_name.full_name))
+    mail['Subject'] = ('[%s][%s][%s][%s] Test results and logs.' %
+                       (overall_status, self.board_name.full_name,
+                        self.test_plan_name, now))
     mail['To'] = ', '.join(self.test_plan_config['owners'])
     mail['From'] = FROM
     mail.attach(dut_results)
