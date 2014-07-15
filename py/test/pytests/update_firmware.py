@@ -12,6 +12,7 @@ import subprocess
 import threading
 import unittest
 
+from cros.factory.system import vpd
 from cros.factory.test.args import Arg
 from cros.factory.test.event import Event
 from cros.factory.test.test_ui import Escape, MakeLabel, UI
@@ -28,6 +29,9 @@ class UpdateFirmwareTest(unittest.TestCase):
         default='/usr/local/factory/board/chromeos-firmwareupdate'),
     Arg('update_ec', bool, 'Update embedded firmware.', default=True),
     Arg('update_main', bool, 'Update main firmware.', default=True),
+    Arg('apply_customization_id', bool,
+        'Update root key based on the customization_id stored in VPD.',
+        default=False, optional=True),
   ]
 
   def setUp(self):
@@ -58,11 +62,26 @@ class UpdateFirmwareTest(unittest.TestCase):
       logging.warn('Removing %s', LOCK_FILE)
       os.unlink(LOCK_FILE)
 
-    p = Spawn(
-      [self.args.firmware_updater, '--force', '--factory',
-       '--update_ec' if self.args.update_ec else '--noupdate_ec',
-       '--update_main' if self.args.update_main else '--noupdate_main',],
-      stdout=subprocess.PIPE, stderr=subprocess.STDOUT, log=True)
+    if self.args.apply_customization_id:
+      customization_id = vpd.ro.get("customization_id")
+      if customization_id is None:
+        self._ui.Fail('Customization_id not found in VPD.')
+        return
+      if not self.args.update_main:
+        self._ui.Fail(
+            'Main firmware must be updated when apply customization_id.')
+        return
+      p = Spawn(
+        [self.args.firmware_updater,
+         '--customization_id', customization_id, '--update_main',
+         '--update_ec' if self.args.update_ec else '--noupdate_ec',],
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, log=True)
+    else:
+      p = Spawn(
+        [self.args.firmware_updater, '--force', '--factory',
+         '--update_ec' if self.args.update_ec else '--noupdate_ec',
+         '--update_main' if self.args.update_main else '--noupdate_main',],
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, log=True)
     for line in iter(p.stdout.readline, ''):
       logging.info(line.strip())
       self._template.SetState(Escape(line), append=True)
