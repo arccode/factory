@@ -130,6 +130,9 @@ class Finalize(unittest.TestCase):
         'Tests may not be waived; set of waived tests is %s' % (
             self.args.waive_tests))
 
+    phase.AssertStartingAtPhase(phase.PVT, self.args.write_protection,
+                                'Write protection must be enabled')
+
     # Check for HWID bundle update from shopfloor.
     if self.args.enable_shopfloor:
       shopfloor.update_local_hwid_data()
