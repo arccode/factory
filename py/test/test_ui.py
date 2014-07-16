@@ -108,58 +108,7 @@ def MakeStatusLabel(status):
 
 
 class UI(object):
-  """Web UI for a Goofy test.
-
-  You can set your test up in the following ways:
-
-  1. For simple tests with just Python+HTML+JS:
-
-     mytest.py
-     mytest.js  (automatically loaded)
-     mytest.html (automatically loaded)
-
-    This works for autotests too:
-
-     factory_MyTest.py
-     factory_MyTest.js  (automatically loaded)
-     factory_MyTest.html (automatically loaded)
-
-  2. If you have more files to include, like images
-    or other JavaScript libraries:
-
-     mytest.py
-     mytest_static/
-      mytest.js      (automatically loaded)
-      mytest.html     (automatically loaded)
-      some_js_library.js (NOT automatically loaded;
-                use <script src="some_js_lib.js">)
-      some_image.gif   (use <img src="some_image.gif">)
-
-  3. Same as #2, but with a directory just called "static" instead of
-    "mytest_static". This is nicer if your test is already in a
-    directory that contains the test name (as for autotests). So
-    for a test called factory_MyTest.py, you might have:
-
-     factory_MyTest/
-      factory_MyTest.py
-      static/
-       factory_MyTest.html (automatically loaded)
-       factory_MyTest.js  (automatically loaded)
-       some_js_library.js
-       some_image.gif
-
-  4. Some UI templates are available. Templates have several predefined
-    sections like title, instruction, state. Hepler functions are
-    provided in the template class to access different sections. See
-    test/test_ui_templates.py for more information.
-
-    Currently there are two templates available:
-      - ui_templates.OneSection
-      - ui_templates.TwoSections
-
-  Note that if you rename .html or .js files during development, you
-  may need to restart the server for your changes to take effect.
-  """
+  """Web UI for a factory test."""
   def __init__(self, css=None, setup_static_files=True):
     self.lock = threading.RLock()
     self.event_client = EventClient(callback=self._HandleEvent,

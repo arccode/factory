@@ -21,6 +21,7 @@ APIs:
 
    board_api
    test_api
+   test_ui_api
    test_list_api
    shopfloor_api
 

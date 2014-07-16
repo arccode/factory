@@ -159,6 +159,9 @@ class BaseTemplate(object):
   def BindStandardKeys(self, bind_pass_key=True, bind_fail_key=True):
     '''Binds standard pass and/or fail keys.
 
+    This causes the Space, and Enter, and P keys to pass the test; and
+    ESC and f to fail the test.
+
     Also shows prompt at the bottom of the test area.
 
     Args:
@@ -180,11 +183,10 @@ class OneSection(BaseTemplate):
   require showing much information.
 
   This template provides the following sections:
-    - SetTitle:
-        For the title of the test.
-    - SetState:
-        For displaying the state of the test or instructions to
-        operator.
+
+  * SetTitle: For the title of the test.
+  * SetState: For displaying the state of the test or instructions to
+    operator.
   '''
   def __init__(self, ui): # pylint: disable=W0231
     super(OneSection, self).__init__(ui, 'template_one_section')
@@ -204,10 +206,9 @@ class OneScrollableSection(BaseTemplate):
   element and state is left-aligned.
 
   This template provides the following sections:
-    - SetTitle:
-        For the title of the test.
-    - SetState:
-        For displaying the state of the test.
+
+  * SetTitle: For the title of the test.
+  * SetState: For displaying the state of the test.
   '''
   def __init__(self, ui): # pylint: disable=W0231
     super(OneScrollableSection, self).__init__(
@@ -236,15 +237,13 @@ class TwoSections(BaseTemplate):
   pictures, or texts that indicate the progress of the test.
 
   This template provides the following methods:
-    - SetTitle:
-        For the title of the test.
-    - SetInstruction:
-        For displaying instructions to the operator.
-    - SetState:
-        For visually displaying the test progress.
-    - DrawProgressBar, SetProgressBarValue:
-        For showing information regarding the progress or state of the
-        test. The progress bar is hidden by default.
+
+  * SetTitle: For the title of the test.
+  * SetInstruction: For displaying instructions to the operator.
+  * SetState: For visually displaying the test progress.
+  * DrawProgressBar, SetProgressBarValue: For showing information
+    regarding the progress or state of the test. The progress bar
+    is hidden by default.
   '''
   def __init__(self, ui): # pylint: disable=W0231
     super(TwoSections, self).__init__(ui, 'template_two_sections')

@@ -34,18 +34,41 @@ TYPE = type
 
 
 class Arg(object):
-  """A class to hold the spec for an argument."""
+  """The specification for a single test argument."""
   # pylint: disable=W0622
   def __init__(self, name, type, help, default=None, optional=False):
-    """Constructor.
+    """Constructs a test argument.
 
     Args:
-      name: Name of the argument.
-      type: Type of the argument, or a tuple of allowable types.  None is
-        always allowed if optional is True.  An Enum is also permitted.
-      help: A help string.
-      default: A default value for the argument.
-      optional: Whether the argument is optional.
+
+      name: Name of the argument. This will be the key in a ``dargs``
+        dict in the test list.
+      type: Type of the argument, or (if more than one type is permitted)
+        a tuple of allowable types. If ``optional`` True, then None
+        is also implicitly allowed. For example::
+
+          type=int         # Allow only integers
+          type=(int, str)  # Allow int or string
+
+        You can also use an ``Enum`` object as a type.  First import
+        it::
+
+          from cros.factory.test.utils import Enum
+
+        Then in an ``Arg`` constructor, you can write::
+
+          type=Enum(['CHARGE', 'DISCHARGE'])
+              # Allow only the strings 'CHARGE' or 'DISCHARGE'
+
+      help: A string describing how to use the argument. This will be
+        included in the test catalog in the documentation bundle and
+        may be formatted using `reStructuredText
+        <http://docutils.sourceforge.net/docs/ref/rst/restructuredtext.html>`_.
+      default: A default value for the argument. If there is no
+        default value, this is omitted.
+      optional: Whether the argument is optional. If a default value
+        is provided (i.e., ``default`` is not ``None``), the argument
+        is always optional and you need not set this to ``True``.
     """
     if not name:
       raise ValueError('Argument is missing a name')
