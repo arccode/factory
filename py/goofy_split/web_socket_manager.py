@@ -4,16 +4,12 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import base64
 import collections
-import httplib
 import logging
 import subprocess
 import threading
 import time
-import ws4py
 
-from hashlib import sha1
 from ws4py.websocket import WebSocket
 
 from cros.factory.test import factory
@@ -21,6 +17,7 @@ from cros.factory.test.event import Event
 from cros.factory.test.event import EventClient
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils.string_utils import DecodeUTF8
+from cros.factory.utils.web_socket_utils import WebSocketHandshake
 
 
 # Number of lines to buffer for new clients.
@@ -95,40 +92,11 @@ class WebSocketManager(object):
 
     request: A RequestHandler object containing the request.
     '''
-    def send_error(msg):
-      logging.error('Unable to start WebSocket connection: %s', msg)
-      request.send_response(400, msg)
-
-    encoded_key = request.headers.get('Sec-WebSocket-Key')
-
-    if (request.headers.get('Upgrade') != 'websocket' or
-      request.headers.get('Connection') != 'Upgrade' or
-      not encoded_key):
-      send_error('Missing/unexpected headers in WebSocket request')
+    if not WebSocketHandshake(request):
       return
-
-    key = base64.b64decode(encoded_key)
-    # Make sure the key is 16 characters, as required by the
-    # WebSockets spec (RFC6455).
-    if len(key) != 16:
-      send_error('Invalid key length')
-
-    version = request.headers.get('Sec-WebSocket-Version')
-    if not version or version not in [str(x) for x in ws4py.WS_VERSION]:
-      send_error('Unsupported WebSocket version %s' % version)
-      return
-
-    request.send_response(httplib.SWITCHING_PROTOCOLS)
-    request.send_header('Upgrade', 'websocket')
-    request.send_header('Connection', 'Upgrade')
-    request.send_header(
-      'Sec-WebSocket-Accept',
-      base64.b64encode(sha1(encoded_key + ws4py.WS_KEY).digest()))
-    request.end_headers()
-    request.wfile.flush()
 
     class MyWebSocket(WebSocket):
-      def received_message(socket_self, message):
+      def received_message(socket_self, message): # pylint: disable=E0213
         event = Event.from_json(str(message))
         if event.type == Event.Type.KEEPALIVE:
           if event.uuid == self.uuid:
@@ -167,7 +135,7 @@ class WebSocketManager(object):
       logging.info('Running web socket')
       web_socket.run()
       logging.info('Web socket closed gracefully')
-    except:
+    except: # pylint: disable=W0702
       logging.exception('Web socket closed with exception')
     finally:
       with self.lock:
@@ -226,5 +194,5 @@ class WebSocketManager(object):
       try:
         with web_socket.send_lock:
           web_socket.send(event_json)
-      except:
+      except: # pylint: disable=W0702
         logging.exception('Unable to send event on web socket')
