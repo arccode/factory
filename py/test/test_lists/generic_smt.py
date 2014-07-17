@@ -600,10 +600,7 @@ def VerifyRootPartition(args):
       label_zh=u'验证根磁區',
       pytest_name='verify_root_partition',
       backgroundable=True,
-      dargs=dict(
-          max_bytes=1024*1024,
-          kern_a_device='mmcblk0p4',
-          root_device='mmcblk0p5'))
+      dargs=dict(max_bytes=1024*1024))
 
 def SMTFinish(args):
   """Creates a test for finishing smt.

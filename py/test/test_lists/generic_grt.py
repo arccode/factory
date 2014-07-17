@@ -30,10 +30,7 @@ def GRT(args):
       OperatorTest(
           id='VerifyRootPartition',
           label_zh=u'验证根磁區',
-          pytest_name='verify_root_partition',
-          dargs=dict(
-              kern_a_device='mmcblk0p4',
-              root_device='mmcblk0p5'))
+          pytest_name='verify_root_partition')
 
       args.Barrier('GrtVerifyRootPartition',
                    pass_without_prompt=True,

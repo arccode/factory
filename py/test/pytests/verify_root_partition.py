@@ -4,7 +4,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-'''Verifies the integrity of the root partition.'''
+"""Verifies the integrity of the root partition."""
 
 import logging
 import os
@@ -14,25 +14,43 @@ import tempfile
 import unittest
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.system import partitions
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
 from cros.factory.test.test_ui import UI
 from cros.factory.utils.process_utils import Spawn
 
+
 DM_DEVICE_NAME = 'verifyroot'
 DM_DEVICE_PATH = os.path.join('/dev/mapper', DM_DEVICE_NAME)
-BLOCK_SIZE = 8*1024*1024
+BLOCK_SIZE = 8 * 1024 * 1024
+
 
 class VerifyRootPartitionTest(unittest.TestCase):
+  """Verifies the integrity of the root partition."""
+
   ARGS = [
-      Arg('kern_a_device', str, 'Device containing KERN-A partition',
-          default='sda4'),
-      Arg('root_device', str, 'Device containing root partition',
-          default='sda5'),
+      Arg('kern_a_device', str,
+          'Path to the device containing KERN-A partition', optional=True),
+      Arg('root_device', str,
+          'Path to the device containing rootfs partition', optional=True),
       Arg('max_bytes', int, 'Maximum number of bytes to read', optional=True),
-      ]
+  ]
 
   def runTest(self):
+    if not self.args.kern_a_device:
+      self.args.kern_a_device = partitions.RELEASE_KERNEL.path
+    if not self.args.root_device:
+      self.args.root_device = partitions.RELEASE_ROOTFS.path
+
+    # Prepend '/dev/' if the device path is not absolute. This is mainly for
+    # backward-compatibility as many existing test list specifies only 'sda4' or
+    # 'mmcblk0p4' in dargs.
+    if not self.args.kern_a_device.startswith('/'):
+      self.args.kern_a_device = os.path.join('/dev', self.args.kern_a_device)
+    if not self.args.root_device.startswith('/'):
+      self.args.root_device = os.path.join('/dev', self.args.root_device)
+
     ui = UI()
     template = ui_templates.TwoSections(ui)
     template.DrawProgressBar()
@@ -42,7 +60,7 @@ class VerifyRootPartitionTest(unittest.TestCase):
     # (http://crosbug.com/34176)
     template.SetState('Verifying KERN-A (%s)...' % self.args.kern_a_device)
     with tempfile.NamedTemporaryFile() as kern_a_bin:
-      with open('/dev/%s' % self.args.kern_a_device) as kern_a:
+      with open(self.args.kern_a_device) as kern_a:
         shutil.copyfileobj(kern_a, kern_a_bin)
       kern_a_bin.flush()
       vbutil_kernel = Spawn(
@@ -65,10 +83,11 @@ class VerifyRootPartitionTest(unittest.TestCase):
 
     DEV_REGEXP = re.compile(r'payload=\S* hashtree=\S*')
     (table_new, nsubs) = DEV_REGEXP.subn(
-        'payload=/dev/%s hashtree=/dev/%s' % (
+        'payload=%s hashtree=%s' % (
             self.args.root_device, self.args.root_device), table)
-    assert nsubs == 1, ("Expected to find %r in %r once, "
-        "but found %d matches." % (DEV_REGEXP.pattern, table, nsubs))
+    assert nsubs == 1, ('Expected to find %r in %r once, '
+                        'but found %d matches.' %
+                        (DEV_REGEXP.pattern, table, nsubs))
     table = table_new
     del table_new
     # Cause I/O error on invalid bytes
