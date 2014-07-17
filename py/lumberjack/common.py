@@ -165,7 +165,7 @@ def GetMD5ForFiles(files, base_dir=None):
   Returns:
     A MD5 sum in hexadecimal digits.
   """
-  md5_hash = hashlib.md5()  # pylint: disable=E1101
+  md5_hash = hashlib.md5()
   for filename in files:
     full_path = (os.path.join(base_dir, filename) if base_dir else
                  filename)

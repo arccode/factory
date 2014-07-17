@@ -33,7 +33,7 @@ PYLINT_DISABLE := $(PYLINT_DISABLE),C9001,C9002,C9003,C9005,C9006
 PYLINT_DISABLE := $(PYLINT_DISABLE),C9007,C9009,C9010,C9011
 PYLINT_OPTIONS=\
 	--rcfile=$(PYLINTRC) \
-	--ignored-classes=Event,Obj,RegCode \
+	--ignored-classes=Event,Obj,RegCode,hashlib \
 	--disable=$(PYLINT_DISABLE) \
 	--generated-members=test_info,AndReturn,AndRaise,args,objects
 

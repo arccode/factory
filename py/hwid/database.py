@@ -156,7 +156,7 @@ class Database(object):
       db_text = f.read()
     # Ignore the 'checksum: <hash value>\n' line when calculating checksum.
     db_text = re.sub(r'^checksum:.*$\n?', '', db_text, flags=re.MULTILINE)
-    return hashlib.sha1(db_text).hexdigest()    # pylint: disable=E1101
+    return hashlib.sha1(db_text).hexdigest()
 
   @staticmethod
   def LoadData(db_yaml, expected_checksum=None, strict=True):

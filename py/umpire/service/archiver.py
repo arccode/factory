@@ -125,7 +125,6 @@ class ArchiverService(umpire_service.UmpireService):
         archiver_config, umpire_config['services']['archiver'])
 
     # pprint guarantees the dictionary is sorted.
-    # for hashlib.md5()  pylint: disable=E1101
     config_hash = hashlib.md5(pprint.pformat(archiver_config)).hexdigest()
     config_path = os.path.join(
         env.config_dir, NAME_PREFIX + config_hash + '.yaml')

@@ -334,7 +334,7 @@ class BundleImporter(object):
       sf_config[base_name] = res_name
 
     default_conf = '\n'.join(config)
-    conf_md5 = hashlib.md5(default_conf).hexdigest()  # pylint: disable=E1101
+    conf_md5 = hashlib.md5(default_conf).hexdigest()
     sf_config['config'] = self.GetResourceName(('default.conf', conf_md5))
     self.download_config = os.path.join(env.GetResourcesDir(),
                                         sf_config['config'])
@@ -374,7 +374,7 @@ class BundleImporter(object):
       config['image_versions'][image] = self.GetVersion(image)
 
     yaml_text = yaml.dump(config, default_flow_style=False)
-    yaml_md5 = hashlib.md5(yaml_text).hexdigest() # pylint: disable=E1101
+    yaml_md5 = hashlib.md5(yaml_text).hexdigest()
 
     self.shopfloor_config = os.path.join(
         env.GetResourcesDir(),

@@ -255,7 +255,6 @@ def _GenerateArchiveName(config):
   first 2 digits for identifying host (Umpire) and following 8 digits are
   generated randomly.
   """
-  # For hashlib, pylint: disable=E1101
   prefix = '~'.join(
       [config.project, config.data_type,
        time.strftime('%Y%m%dT%H%MZ', time.gmtime(time.time())),

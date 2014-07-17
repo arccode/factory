@@ -150,12 +150,12 @@ def ListResources(launcher_config_file=None):
 
 def Md5sum(filename):
   """Gets hex coded md5sum of input file."""
-  return hashlib.md5(    # pylint: disable=E1101
+  return hashlib.md5(
       open(filename, 'rb').read()).hexdigest()
 
 def B64Sha1(filename):
   """Gets standard base64 coded sha1 sum of input file."""
-  return base64.standard_b64encode(hashlib.sha1(  # pylint: disable=E1101
+  return base64.standard_b64encode(hashlib.sha1(
       open(filename, 'rb').read()).digest())
 
 def VerifyResource(resource_name):
