@@ -1,0 +1,48 @@
+/*
+ * Copyright (c) 2014 The Chromium OS Authors. All rights reserved.
+ * Use of this source code is governed by a BSD-style license that can be
+ * found in the LICENSE file.
+ */
+
+body {
+  margin: 0;
+}
+iframe {
+  height: 100%;
+  width: 100%;
+  border: 0;
+}
+.overlay-bg {
+  background-image: url('logo256.png');
+  background-repeat: no-repeat;
+  background-position: center;
+  opacity: 0.2;
+}
+.overlay {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 100%;
+}
+.vcenter-outer {
+  display: table;
+}
+.vcenter-middle {
+  display: table-cell;
+  vertical-align: middle;
+}
+.vcenter-inner {
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+  text-align: center;
+  font-size: 4em;
+  font-family: Arial sans-serif;
+  font-weight: bold;
+}
+#goofy-content {
+  height: 100%;
+  width: 100%;
+  border: 0px;
+}

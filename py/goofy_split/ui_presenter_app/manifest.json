@@ -1,0 +1,15 @@
+{
+  "manifest_version": 2,
+  "name": "CrOS Factory",
+  "version": "1.0",
+  "description": "Chrome OS Factory Test",
+  "icons": {
+    "128": "logo128.png"
+  },
+  "app": {
+    "launch": {
+      "local_path": "main.html"
+    }
+  },
+  "permissions": ["<all_urls>", "webRequestBlocking", "webRequest"]
+}
