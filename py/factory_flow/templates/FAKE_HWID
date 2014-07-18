@@ -9,10 +9,13 @@ encoding_patterns:
   0: default
 
 image_id:
-  0: FAKE_HWID
+  0: PROTO_FAKE_HWID
+  1: EVT_FAKE_HWID
+  2: DVT_FAKE_HWID
+  3: PVT_FAKE_HWID
 
 pattern:
-  - image_ids: [0]
+  - image_ids: [0, 1, 2, 3]
     encoding_scheme: base8192
     fields:
     - cellular_field: 1
@@ -193,4 +196,12 @@ components:
 
 rules:
 - name: device_info.set_image_id
-  evaluate: SetImageId('FAKE_HWID')
+  evaluate: >
+      SetImageId(
+          LookupMap(GetPhase(),
+                    {'PROTO': 'PROTO_FAKE_HWID',
+                     'EVT': 'EVT_FAKE_HWID',
+                     'DVT': 'DVT_FAKE_HWID',
+                     'PVT_DOGFOOD': 'PVT_FAKE_HWID',
+                     'PVT': 'PVT_FAKE_HWID'
+                    }))
