@@ -16,6 +16,10 @@ BOARD_SETUP=("$FACTORY/board/board_setup_factory.sh"
 # Default args for Goofy.
 GOOFY_ARGS=""
 
+# Ports used by goofy
+GOOFY_UI_PORT="4012"
+GOOFY_LINK_PORTS="4020 4021"
+
 # Default implementation for factory_setup (no-op).  May be overriden
 # by board_setup_factory.sh.
 factory_setup() {
@@ -86,6 +90,13 @@ start_factory() {
   if [ -n "$use_telemetry" ]; then
     GOOFY_ARGS="$GOOFY_ARGS --use-telemetry"
   fi
+
+  # Open ports in the firewall so that the presenter can reach us
+  # Note we want these ports to be expanded as a list, and so are unquoted
+  local port=
+  for port in $GOOFY_LINK_PORTS $GOOFY_UI_PORT; do
+    /sbin/iptables -A INPUT -p tcp --dport ${port} -j ACCEPT
+  done
 
   if [ -z "$(status ui | grep start)" ]; then
     start -n ui &
