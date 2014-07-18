@@ -11,6 +11,7 @@ from cros.factory.gooftool.vpd_data import KNOWN_VPD_FIELD_DATA
 from cros.factory.hwid.common import HWIDException
 from cros.factory.hwid.encoder import (
     BOMToBinaryString, BinaryStringToEncodedString)
+from cros.factory.test import phase
 from cros.factory.test import registration_codes
 from cros.factory.test.registration_codes import RegistrationCode
 from cros.factory.rule import RuleFunction, Value, GetContext, GetLogger
@@ -295,3 +296,14 @@ def CheckRegistrationCode(code, type=None):
   # "spring", not "daisy_spring").
   board = GetContext().hwid.database.board.lower()
   registration_codes.CheckRegistrationCode(code, type=type, device=board)
+
+
+@RuleFunction([])
+def GetPhase():
+  """A wrapper method to get build phase.
+
+  Returns:
+    One of the build phases: PROTO, EVT, DVT, PVT_DOGFOOD, as specified in the
+    phase module.
+  """
+  return str(phase.GetPhase())

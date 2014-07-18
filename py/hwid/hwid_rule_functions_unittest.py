@@ -20,9 +20,10 @@ from cros.factory.hwid.encoder import Encode
 from cros.factory.hwid.hwid_rule_functions import (
     GetClassAttributesOnBOM, ComponentEq, ComponentIn,
     SetComponent, SetImageId, GetDeviceInfo, GetVPDValue, ValidVPDValue,
-    CheckRegistrationCode)
+    CheckRegistrationCode, GetPhase)
 from cros.factory.rule import (
     Rule, Context, RuleException, SetContext, GetLogger)
+from cros.factory.test import phase
 from cros.factory.test.registration_codes import RegistrationCodeException
 
 _TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
@@ -313,6 +314,15 @@ class HWIDRuleTest(unittest.TestCase):
         'foo', GetVPDValue('ro', 'serial_number'))
     self.assertEquals(
         'buz', GetVPDValue('rw', 'registration_code'))
+
+  def testGetPhase(self):
+    # Should be 'PVT' when no build phase is set.
+    self.assertEquals('PVT', GetPhase())
+    phase._current_phase = phase.PROTO
+    self.assertEquals('PROTO', GetPhase())
+    phase._current_phase = phase.PVT_DOGFOOD
+    self.assertEquals('PVT_DOGFOOD', GetPhase())
+
 
 if __name__ == '__main__':
   logging.basicConfig(level=logging.INFO)
