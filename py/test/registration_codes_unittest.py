@@ -82,6 +82,20 @@ class RegistrationCodeTest(unittest.TestCase):
     self.assertRaisesRegexp(RegistrationCodeException, 'bad base64 encoding',
                             lambda: RegistrationCode(self._Encode() + '='))
 
+  def testInvalid_NonURLSafeBase64(self):
+    # Start with a valid code with some '_' and '-' characters.
+    valid_code = ('=CjAKIP______TESTING________HI0hPPHdFh'
+                  'YHql9BL_zkxEAEaCmNocm9tZWJvb2sQ-vGm-w0=')
+    RegistrationCode(valid_code)
+
+    # Make sure that we reject the code if it uses the non-URL-safe
+    # encoding.
+    invalid_code = '=' + base64.b64encode(base64.urlsafe_b64decode(
+        valid_code[1:]))
+    self.assertRaisesRegexp(
+        RegistrationCodeException, 'bad base64 encoding',
+        lambda: RegistrationCode(invalid_code))
+
   def testInvalid_Not36Chars(self):
     # Remove the first character.  Code should be invalid.
     self.proto.content.code = self.proto.content.code[1:]
