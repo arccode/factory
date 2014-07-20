@@ -80,6 +80,7 @@ from cros.factory.utils.process_utils import Spawn, SpawnOutput
 
 
 _IIO_DEVICES_PATH = '/sys/bus/iio/devices/'
+_ACCELEROMETER_DEVICES_PATH = '/dev/cros-ec-accel'
 SYSFS_VALUE = namedtuple('sysfs_value', ['sysfs', 'value'])
 
 
@@ -108,11 +109,15 @@ _CSS = """
   .test-fail {font-size: 2em; color:red;}
 """
 
+
+class AccelerometerControllerException(Exception):
+  pass
+
+
 class AccelerometerController(object):
   """Utility class for the two accelerometers.
 
   Attributes:
-    iio_bus_id: IIO device identifier. Ex: 'iio:device0'.
     spec_offset: A tuple of two integers, ex: (128, 230) indicating the
       tolerance for the digital output of sensors under zero gravity and
       one gravity, respectively.
@@ -120,9 +125,12 @@ class AccelerometerController(object):
       the ideal value of the digitial output corresponding to zero gravity
       and one gravity, respectively.
     sample_rate: Sample rate in Hz to get raw data from accelerometers.
+
+  Raises:
+    Raises AccelerometerControllerException if there is no accelerometer.
   """
 
-  def __init__(self, iio_bus_id, spec_offset, spec_ideal_values, sample_rate):
+  def __init__(self, spec_offset, spec_ideal_values, sample_rate):
     """Cleans up previous calibration values and stores the scan order.
 
     We can get raw data from below sysfs:
@@ -135,9 +143,11 @@ class AccelerometerController(object):
 
     https://chromium-review.googlesource.com/#/c/190471/.
     """
+    if not os.path.exists(_ACCELEROMETER_DEVICES_PATH):
+      raise AccelerometerControllerException('Accelerometer not found')
     self.trigger_number = '0'
     self.num_signals = 2 * 3 # Two sensors * (x, y, z).
-    self.iio_bus_id = iio_bus_id
+    self.iio_bus_id = os.readlink(_ACCELEROMETER_DEVICES_PATH)
     self.spec_offset = spec_offset
     self.spec_ideal_values = spec_ideal_values
     self.sample_rate = sample_rate
@@ -473,7 +483,6 @@ class AccelerometersCalibration(unittest.TestCase):
     self.assertEquals(2, len(self.args.spec_ideal_values))
     #Initializes a accelerometer utility class.
     self.accelerometer_controller = AccelerometerController(
-        self._ProbeIIOBus(),
         self.args.spec_offset,
         self.args.spec_ideal_values,
         self.args.sample_rate_hz
@@ -493,24 +502,3 @@ class AccelerometersCalibration(unittest.TestCase):
           self, self.args.orientation)]
     self._task_manager = FactoryTaskManager(self.ui, task_list)
     self._task_manager.Run()
-
-  def _ProbeIIOBus(self):
-    """Auto probing the iio bus of accelerometers.
-
-    The iio bus will be '/sys/bus/iio/devices/iio:device0' if it's located
-    at address 0. We'll probe 0-9 to check where the accelerometer locates.
-
-    Returns:
-      'iio:deviceX' where X is a number.
-    """
-    # TODO(bowgotsai): read /dev/cros-ec-accel to get the iio:deviceX name.
-    # https://chromium-review.googlesource.com/#/c/190471/.
-    for addr in xrange(0, 10):
-      iio_bus_id = 'iio:device' + str(addr)
-      accelerometer_name_path = os.path.join(
-          _IIO_DEVICES_PATH, iio_bus_id, 'name')
-      if 'cros-ec-accel' == SpawnOutput(
-          ['cat', accelerometer_name_path], log=True).strip():
-        logging.info('Found accelerometer at: %r.', iio_bus_id)
-        return iio_bus_id
-    self.ui.Fail('Cannot find accelerometer in this device.')
