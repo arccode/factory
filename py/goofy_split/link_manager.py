@@ -50,7 +50,7 @@ class PresenterLinkManager(object):
     self._presenter_ip = None
     self._presenter_proxy = None
     self._presenter_announcement = None
-    self._discoverer = PresenterDiscoverer()
+    self._discoverer = PresenterDiscoverer(PRESENTER_LINK_RPC_PORT)
     self._kick_event = threading.Event()
     self._abort_event = threading.Event()
     self._server = JSONRPCServer(port=DUT_LINK_RPC_PORT, methods=self._methods)
@@ -97,7 +97,7 @@ class PresenterLinkManager(object):
         return
 
   def _MakeTimeoutServerProxy(self, presenter_ip, timeout):
-    return jsonrpclib.Server('http://%s:%d/' % 
+    return jsonrpclib.Server('http://%s:%d/' %
                              (presenter_ip,PRESENTER_LINK_RPC_PORT),
                              transport=TimeoutJSONRPCTransport(timeout))
 
@@ -171,7 +171,7 @@ class PresenterLinkManager(object):
           self._disconnect_hook()
 
     ips = self._discoverer.Discover()
-    if ips is None:
+    if not ips:
       return
     if type(ips) != list:
       ips = [ips]
@@ -213,7 +213,7 @@ class DUTLinkManager(object):
     self._lock = threading.Lock()
     self._kick_event = threading.Event()
     self._abort_event = threading.Event()
-    self._discoverer = DUTDiscoverer()
+    self._discoverer = DUTDiscoverer(DUT_LINK_RPC_PORT)
     self._server = JSONRPCServer(port=PRESENTER_LINK_RPC_PORT,
                                  methods=self._methods)
     self._server.Start()
@@ -286,7 +286,7 @@ class DUTLinkManager(object):
               self._disconnect_hook()
 
         ips = self._discoverer.Discover()
-        if ips is None:
+        if not ips:
           return
         if type(ips) != list:
           ips = [ips]

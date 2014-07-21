@@ -145,15 +145,32 @@ def GetEthernetIp(interface=None):
   return ip_address
 
 
-def GetAllIPs():
-  """Returns all available IP addresses of all interfaces."""
+def GetAllIPs(iface_filter=None):
+  """Returns all available IP addresses of all interfaces.
+
+  Args:
+    iface_filter: A filter to filter out unwanted network interfaces. It takes
+                  the name of the interface and returns True for interfaces we
+                  want and False for unwanted interfaces. Set this to None to
+                  use all interfaces.
+
+  Returns:
+    A list of IP addresses.
+  """
   ret = []
-  for iface in netifaces.interfaces():
+  if iface_filter is None:
+    iface_filter = lambda x: True
+  for iface in filter(iface_filter, netifaces.interfaces()):
     ifaddr = netifaces.ifaddresses(iface)
     if netifaces.AF_INET not in ifaddr:
       continue
     ret.extend([link['addr'] for link in ifaddr[netifaces.AF_INET]])
   return ret
+
+
+def GetAllWiredIPs():
+  """Returns all available IP addresses of all wired interfaces."""
+  return GetAllIPs(lambda iface: iface.startswith('eth'))
 
 
 def _SendDhclientCommand(arguments, interface,
