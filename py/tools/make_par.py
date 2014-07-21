@@ -180,6 +180,9 @@ def main(argv=None):
                          '--include', '*.html',
                          '--include', '*.js',
                          '--include', '*.png',
+                         # Config file templates needed by the factory_flow
+                         # tool.
+                         '--include', 'factory_flow/templates/*',
                          # We must include goofy explicitly, as it is
                          # a symlink that would otherwise be excluded
                          # by the * wildcard.
