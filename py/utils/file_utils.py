@@ -21,6 +21,7 @@ import stat
 import subprocess
 import time
 import tempfile
+import zipfile
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.common import CheckDictKeys, MakeList
@@ -603,3 +604,15 @@ def GlobSingleFile(pattern):
         pattern, matches)
 
   return matches[0]
+
+
+def ExtractFromPar(par_file, src, dest='.'):
+  """Extracts a file from a Python archive.
+
+  Args:
+      par_file: The Python archive to extract file from.
+      src: The file component to extract from the Python archive.
+      dest: The destination path to extract file to.
+  """
+  par = zipfile.ZipFile(par_file)
+  par.extract(src, dest)

@@ -15,7 +15,8 @@ import tempfile
 
 import factory_common   # pylint: disable=W0611
 from cros.factory.factory_flow.common import (
-    board_cmd_arg, bundle_dir_cmd_arg, FactoryFlowCommand, OnMoblab)
+    board_cmd_arg, bundle_dir_cmd_arg, FactoryFlowCommand, GetFactoryParPath,
+    OnMoblab)
 from cros.factory.hacked_argparse import CmdArg
 from cros.factory.hwid import hwid_utils
 from cros.factory.test import factory
@@ -468,11 +469,23 @@ class StartServer(FactoryFlowCommand):
                                           hwid_updater_filename)
     # Create a temporary directory to build the fake HWID updater.
     with file_utils.TempDirectory(prefix='fake_hwid.') as temp_dir:
-      # Fill in the board name in the database.
-      template_fake_hwid_path = os.path.join(
-          factory.FACTORY_PATH, 'py', 'factory_flow', 'templates', 'FAKE_HWID')
-      with open(template_fake_hwid_path) as f:
-        fake_hwid_db = f.read()
+      # Extract the template fake HWID database and fill in the board name in
+      # the database.
+      factory_par_path = GetFactoryParPath()
+      if factory_par_path:
+        template_fake_hwid_path = os.path.join(
+            'cros', 'factory', 'factory_flow', 'templates', 'FAKE_HWID')
+        with file_utils.TempDirectory() as d:
+          file_utils.ExtractFromPar(
+              factory_par_path, template_fake_hwid_path, dest=d)
+          with open(os.path.join(d, template_fake_hwid_path)) as f:
+            fake_hwid_db = f.read()
+      else:
+        template_fake_hwid_path = os.path.join(
+            factory.FACTORY_PATH, 'py', 'factory_flow', 'templates',
+            'FAKE_HWID')
+        with open(template_fake_hwid_path) as f:
+          fake_hwid_db = f.read()
       fake_hwid_db = re.sub(r'%\{BOARD\}', hwid_db_name, fake_hwid_db)
       # Create a temp HWID database and compute the database checksum.
       temp_hwid_db_path = os.path.join(temp_dir, hwid_db_name)

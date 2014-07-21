@@ -40,6 +40,20 @@ def OnMoblab():
   return False
 
 
+def GetFactoryParPath():
+  """Gets the path to the factory.par executable.
+
+  Returns:
+    The path to the factory.par executable, extracted from sys.path, if the
+    module is invoked through the factory.par; None otherwise.
+  """
+  # Check if path to factory.par is in sys.path.
+  par_file = filter(lambda p: p.endswith('factory.par'), sys.path)
+  if not par_file:
+    return None
+  return par_file[0]
+
+
 def GetEnclosingFactoryBundle():
   """Checks if we are running using factory.par inside a factory bundle.
 
@@ -53,18 +67,17 @@ def GetEnclosingFactoryBundle():
 
   Returns:
     Base factory bundle path if runs with factory.par inside a factory bundle;
-    False otherwise.
+    None otherwise.
   """
-  # Check if path to factory.par is in sys.path.
-  par_file = filter(lambda p: p.endswith('factory.par'), sys.path)
-  if not par_file:
-    return False
+  par_file_path = GetFactoryParPath()
+  if not par_file_path:
+    return None
   # Check if MANIFEST.yaml exists one level above the directory where
   # factory.par sits.
-  bundle_dir = os.path.dirname(os.path.dirname(par_file[0]))
+  bundle_dir = os.path.dirname(os.path.dirname(par_file_path))
   if os.path.exists(os.path.join(bundle_dir, 'MANIFEST.yaml')):
     return bundle_dir
-  return False
+  return None
 
 
 class FactoryFlowError(Exception):
