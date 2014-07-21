@@ -314,7 +314,8 @@ class RunAutomatedTests(FactoryFlowCommand):
       try:
         # Fetch run status on the DUT through Goofy RPC.
         run_status = goofy_proxy.GetTestRunStatus(None)
-      except (jsonrpclib.jsonrpc.ProtocolError, socket.error):
+      except (jsonrpclib.jsonrpc.ProtocolError, socket.error,
+              httplib.BadStatusLine):
         # Time out waiting for response from Goofy RPC, or the SSH connection is
         # gone.
         return False
