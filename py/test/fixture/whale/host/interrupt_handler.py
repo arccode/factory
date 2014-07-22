@@ -54,21 +54,24 @@ class InterruptHandler(object):
 
   _INPUT_LIST = _BUTTON_LIST + _FEEDBACK_LIST
 
-  _INPUT_INTERRUT_GPIO = 7
+  _INPUT_INTERRUPT_GPIO = 7
 
-  def __init__(self, host, polld_port, servod_port, rpc_debug,
+  def __init__(self, use_polld, host, polld_port, servod_port, rpc_debug,
                polling_wait_secs):
     """Constructor.
 
     Args:
+      use_polld: True to use polld to poll GPIO port on remote server, or False
+                 to poll local GPIO port directly.
       host: BeagleBone's hostname or IP address.
       polld_port: port that polld listens.
       servod_port: port that servod listens.
       rpc_debug: True to enable XMLRPC debug message.
       polling_wait_secs: # seconds for polling button clicking event.
+
     """
-    self._poll = poll_client.PollClient(host=host, tcp_port=polld_port,
-                                        verbose=rpc_debug)
+    self._poll = poll_client.PollClient(use_polld=use_polld, host=host,
+                                        tcp_port=polld_port, verbose=rpc_debug)
 
     self._servo = servo_client.ServoClient(host=host, port=servod_port,
                                            verbose=rpc_debug)
@@ -136,9 +139,9 @@ class InterruptHandler(object):
   @TimeClassMethodDebug
   def WaitForInterrupt(self):
     logging.debug('Polling interrupt (GPIO %d %s) for %r seconds',
-                  self._INPUT_INTERRUT_GPIO, self._poll.GPIO_EDGE_FALLING,
+                  self._INPUT_INTERRUPT_GPIO, self._poll.GPIO_EDGE_FALLING,
                   self._polling_wait_secs)
-    if self._poll.PollGPIO(self._INPUT_INTERRUT_GPIO,
+    if self._poll.PollGPIO(self._INPUT_INTERRUPT_GPIO,
                            self._poll.GPIO_EDGE_FALLING,
                            self._polling_wait_secs):
       logging.debug('Interrupt polled')
@@ -215,7 +218,10 @@ def ParseArgs():
                     help='enable debug messages')
   parser.add_option('', '--rpc_debug', action='store_true', default=False,
                     help='enable debug messages for XMLRPC call')
-  parser.add_option('', '--host', default='192.168.0.1', type=str,
+  parser.add_option('', '--use_polld', action='store_true', default=False,
+                    help='whether to use polld (for polling GPIO port on '
+                    'remote server) or poll local GPIO port, default: %default')
+  parser.add_option('', '--host', default='127.0.0.1', type=str,
                     help='hostname of server, default: %default')
   parser.add_option('', '--polld_port', default=9998, type=int,
                     help='port that polld listens, default: %default')
@@ -234,9 +240,9 @@ def main():
       level=logging.DEBUG if options.debug else logging.INFO,
       format='%(asctime)s - %(levelname)s - %(message)s')
 
-  handler = InterruptHandler(options.host, options.polld_port,
-                             options.servod_port, options.rpc_debug,
-                             options.polling_wait_secs)
+  handler = InterruptHandler(options.use_polld, options.host,
+                             options.polld_port, options.servod_port,
+                             options.rpc_debug, options.polling_wait_secs)
   handler.Init()
   handler.Run()
 
