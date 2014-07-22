@@ -9,6 +9,7 @@ import factory_common  # pylint: disable=W0611
 import cros.factory.test.fixture.bft_fixture as bft
 from cros.factory.test.fixture.whale import color_sensor
 from cros.factory.test.fixture.whale import keyboard_emulator
+from cros.factory.test.fixture.whale import lcm2004
 from cros.factory.test.fixture.whale import servo_client
 
 
@@ -45,6 +46,7 @@ class WhaleBFTFixture(bft.BFTFixture):
     self._servo = None
     self._color_sensor1 = None
     self._keyboard_emulator = None
+    self._lcm = None
 
   def Init(self, **params):
     """Sets up an XML-RPC proxy to BFTFixture's BeagleBone Servo.
@@ -58,6 +60,7 @@ class WhaleBFTFixture(bft.BFTFixture):
       self._color_sensor1 = color_sensor.ColorSensor(
           servo=self._servo, sensor_index=1, params=params)
       self._keyboard_emulator = keyboard_emulator.KeyboardEmulator(self._servo)
+      self._lcm = lcm2004.Lcm2004(self._servo)
     except servo_client.ServoClientError as e:
       raise bft.BFTFixtureException('Failed to Init(). Reason: %s' % e)
 
@@ -151,3 +154,17 @@ class WhaleBFTFixture(bft.BFTFixture):
       self._keyboard_emulator.KeyPress(int(bitmask, 0), float(duration_secs))
     except ValueError as e:
       raise bft.BFTFixtureException('Failed to convert bitmask. Reason %s' % e)
+
+  def SetLcmText(self, row, message):
+    try:
+      self._lcm.SetLcmText(row, message)
+    except servo_client.ServoClientError as e:
+      raise bft.BFTFixtureException(
+          'Failed to show a message to LCM. Reason %s' % e)
+
+  def IssueLcmCommand(self, action):
+    try:
+      self._lcm.IssueLcmCommand(action)
+    except servo_client.ServoClientError as e:
+      raise bft.BFTFixtureException(
+          'Failed to execute an action to LCM. Reason %s' % e)

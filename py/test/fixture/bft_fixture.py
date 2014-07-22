@@ -17,6 +17,10 @@ under DUT shell. For example::
   bft_fixture IsLEDColor RED
   bft_fixture SetStatusColor GREEN
   bft_fixture SetStatusColor OFF
+  bft_fixture SimulateKeystrokes
+  bft_fixture SimulateKeyPress [bitmask] [period_secs]
+  bft_fixture SetLcmText ROW[0-3] [message]
+  bft_fixture IssueLcmCommand [CLEAR | HOME | BACKLIGHT_ON | BACKLIGHT_OFF]
 
   If you are not running on DUT or bft.conf is missing in the DUT:
     /usr/local/factory/py/test/fixture/bft.conf
@@ -68,6 +72,10 @@ class BFTFixture(object):
   StatusColor = Enum(['RED', 'GREEN', 'OFF'])
   Device = Enum(['AC_ADAPTER', 'AUDIO_JACK', 'EXT_DISPLAY', 'LID_MAGNET',
                  'USB_0', 'USB_1', 'USB_2'])
+
+  # LCM enumeration.
+  LcmCommand = Enum(['BACKLIGHT_OFF', 'BACKLIGHT_ON', 'CLEAR', 'HOME'])
+  LcmRow = Enum(['ROW0', 'ROW1', 'ROW2', 'ROW3'])
 
   def Init(self, **kwargs):
     """Initializes connection with fixture."""
@@ -195,6 +203,23 @@ class BFTFixture(object):
     """Simulates keyboard key press for a period of time."""
     raise NotImplementedError
 
+  def SetLcmText(self, row, message):
+    """Shows a message to a given row of LCM.
+
+    Args:
+      row: row number defined in LcmRow.
+      message: a message to show on LCM.
+    """
+    raise NotImplementedError
+
+  def IssueLcmCommand(self, action):
+    """Issues a command to LCM.
+
+    Args:
+      action: action defined in LcmCommand.
+    """
+    raise NotImplementedError
+
 
 def CreateBFTFixture(class_name, params):
   """Initializes a BFT fixture instance.
@@ -277,6 +302,20 @@ def main():
                                          type=float,
                                          help='Key pressed duration.')
 
+  parser_set_lcm_text = subparsers.add_parser(
+      'SetLcmText', help='Show a message on LCM. -h for more help.')
+  parser_set_lcm_text.add_argument('row_number',
+                                   choices=sorted(BFTFixture.LcmRow),
+                                   help='Row number to set.')
+  parser_set_lcm_text.add_argument('message',
+                                   help='Message to show.')
+
+  parser_issue_lcm_command = subparsers.add_parser(
+      'IssueLcmCommand', help='Issue a command to LCM. -h for more help.')
+  parser_issue_lcm_command.add_argument(
+      'action', choices=sorted(BFTFixture.LcmCommand),
+      help='Action to execute.')
+
   subparsers.add_parser('CheckExtDisplay', help='Check external display.')
   subparsers.add_parser('CheckPowerRail', help='Check power rail.')
   subparsers.add_parser('GetFixtureId', help='Get fixture ID.')
@@ -326,6 +365,15 @@ def main():
     period_secs = args.period_secs
     print "SimulateKeyPress(%s, %s)" % (bitmask, period_secs)
     fixture.SimulateKeyPress(bitmask, period_secs)
+  elif command == 'SetLcmText':
+    row_number = args.row_number
+    message = args.message
+    print "SetLcmText(%s, %s)" % (row_number, message)
+    fixture.SetLcmText(row_number, message)
+  elif command == 'IssueLcmCommand':
+    action = args.action
+    print "IssueLcmCommand(%s)" % (action)
+    fixture.IssueLcmCommand(action)
   else:
     getattr(fixture, command)()
 
