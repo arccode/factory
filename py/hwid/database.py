@@ -21,6 +21,7 @@ from cros.factory.common import MakeList, MakeSet
 from cros.factory.hwid import common
 from cros.factory.hwid.base32 import Base32
 from cros.factory.hwid.base8192 import Base8192
+from cros.factory.utils import file_utils
 
 
 class Database(object):
@@ -152,8 +153,18 @@ class Database(object):
     Returns:
       The computed checksum as a string.
     """
-    with open(file_name, 'r') as f:
-      db_text = f.read()
+    return Database.ChecksumForText(file_utils.ReadFile(file_name))
+
+  @staticmethod
+  def ChecksumForText(db_text):
+    """Computes a SHA1 digest as the checksum of the given database string.
+
+    Args:
+      db_text: The database as a string.
+
+    Returns:
+      The computed checksum as a string.
+    """
     # Ignore the 'checksum: <hash value>\n' line when calculating checksum.
     db_text = re.sub(r'^checksum:.*$\n?', '', db_text, flags=re.MULTILINE)
     return hashlib.sha1(db_text).hexdigest()
