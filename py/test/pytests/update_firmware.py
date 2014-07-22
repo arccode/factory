@@ -72,7 +72,7 @@ class UpdateFirmwareTest(unittest.TestCase):
             'Main firmware must be updated when apply customization_id.')
         return
       p = Spawn(
-        [self.args.firmware_updater,
+        [self.args.firmware_updater, '--force', '--factory',
          '--customization_id', customization_id, '--update_main',
          '--update_ec' if self.args.update_ec else '--noupdate_ec',],
         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, log=True)
