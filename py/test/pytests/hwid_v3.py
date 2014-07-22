@@ -5,6 +5,7 @@
 
 """Uses HWID v3 to generate, encode, and verify the device's HWID."""
 
+import logging
 import os
 import unittest
 import yaml
@@ -90,7 +91,9 @@ class HWIDV3Test(unittest.TestCase):
       encoded_string = generated_hwid.encoded_string
       factory.console.info('Generated HWID: %s', encoded_string)
       decoded_hwid = hwid_utils.DecodeHWID(hwdb, encoded_string)
+      logging.info('HWDB checksum: %s', hwdb.checksum)
       Log('hwid', hwid=encoded_string,
+          hwdb_checksum=hwdb.checksum,
           components=hwid_utils.ParseDecodedHWID(decoded_hwid))
       shopfloor.UpdateDeviceData({'hwid': encoded_string})
     else:
@@ -103,6 +106,8 @@ class HWIDV3Test(unittest.TestCase):
             encoded_string or '（不变）')))
     hwid_utils.VerifyHWID(hwdb, encoded_string, probed_results, vpd,
                           rma_mode=self.args.rma_mode)
+    Log('hwid_verified', hwid=encoded_string,
+        hwdb_checksum=hwdb.checksum)
 
     if self.args.generate:
       template.SetState(test_ui.MakeLabel(

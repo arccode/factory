@@ -36,6 +36,7 @@ class Database(object):
     encoded_fields: An EncodedFields object.
     components: A Components object.
     rules: A Rules object.
+    checksum: The value of the checksum field.
   """
   _HWID_FORMAT = {
       common.HWID.ENCODING_SCHEME.base32: re.compile(
@@ -56,7 +57,7 @@ class Database(object):
       )}
 
   def __init__(self, board, encoding_patterns, image_id, pattern,
-               encoded_fields, components, rules):
+               encoded_fields, components, rules, checksum):
     self.board = board
     self.encoding_patterns = encoding_patterns
     self.image_id = image_id
@@ -64,6 +65,7 @@ class Database(object):
     self.encoded_fields = encoded_fields
     self.components = components
     self.rules = rules
+    self.checksum = checksum
     self._SanityChecks()
 
   def _SanityChecks(self):
@@ -212,7 +214,8 @@ class Database(object):
                     Pattern(db_yaml['pattern']),
                     EncodedFields(db_yaml['encoded_fields']),
                     Components(db_yaml['components']),
-                    Rules(db_yaml['rules']))
+                    Rules(db_yaml['rules']),
+                    db_yaml.get('checksum'))
 
   def ProbeResultToBOM(self, probe_result, loose_matching=False):
     """Parses the given probe result into a BOM object. Each component is
