@@ -17,6 +17,7 @@ from cros.factory.hwid import common
 from cros.factory.hwid import database
 from cros.factory.hwid import hwid_utils
 from cros.factory.test import factory
+from cros.factory.test import phase
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -55,6 +56,12 @@ class HWIDV3Test(unittest.TestCase):
   def runTest(self):
     ui = test_ui.UI()
     template = ui_templates.OneSection(ui)
+
+    phase.AssertStartingAtPhase(
+        phase.EVT,
+        self.args.verify_checksum,
+        'HWID checksum must be verified')
+
     if not self.args.skip_shopfloor:
       shopfloor.update_local_hwid_data()
 
