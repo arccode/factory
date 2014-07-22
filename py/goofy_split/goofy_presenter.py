@@ -13,6 +13,7 @@ import syslog
 import factory_common  # pylint: disable=W0611
 from cros.factory.goofy_split.goofy_base import GoofyBase
 from cros.factory.goofy_split.link_manager import DUTLinkManager
+from cros.factory.goofy_split.ui_app_controller import UIAppController
 
 class GoofyPresenter(GoofyBase):
   """Presenter side of Goofy.
@@ -23,10 +24,23 @@ class GoofyPresenter(GoofyBase):
 
   Properties:
     link_manager: The DUTLinkManager for this invocation of Goofy.
+    ui_app_controller: UIAppController instance used to communicate with
+        UI presenter app.
   """
   def __init__(self):
     super(GoofyPresenter, self).__init__()
-    self.link_manager = DUTLinkManager(check_interval=1)
+    self.ui_app_controller = UIAppController()
+    self.ui_app_controller.WaitForWebSocket()
+    self.link_manager = DUTLinkManager(
+        check_interval=1,
+        connect_hook=self.DUTConnected,
+        disconnect_hook=self.DUTDisconnected)
+
+  def DUTConnected(self, dut_ip):
+    self.ui_app_controller.ShowUI(dut_ip)
+
+  def DUTDisconnected(self):
+    self.ui_app_controller.ShowDisconnectedScreen()
 
   def main(self):
     """Entry point for goofy_presenter instance."""
@@ -37,6 +51,7 @@ class GoofyPresenter(GoofyBase):
   def destroy(self):
     """ Performs any shutdown tasks. Overrides base class method. """
     self.link_manager.Stop()
+    self.ui_app_controller.Stop()
     super(GoofyPresenter, self).destroy()
     logging.info('Done destroying GoofyPresenter')
 

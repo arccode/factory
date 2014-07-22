@@ -144,7 +144,7 @@ class PresenterLinkManager(object):
         self._presenter_proxy = self._MakeTimeoutServerProxy(presenter_ip,
                                                         self._rpc_timeout)
         if self._connect_hook:
-          self._connect_hook()
+          self._connect_hook(presenter_ip)
         return
       self._presenter_ip = None
       self._presenter_proxy = None
@@ -251,7 +251,7 @@ class DUTLinkManager(object):
         self._dut_connected = True
         logging.info("DUT %s registered", dut_ip)
         if self._connect_hook:
-          self._connect_hook()
+          self._connect_hook(dut_ip)
       except (socket.error, socket.timeout):
         self._dut_ip = None
         self._dut_proxy = None

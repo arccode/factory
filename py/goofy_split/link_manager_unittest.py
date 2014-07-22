@@ -55,22 +55,22 @@ class LinkManagerTest(unittest.TestCase):
 
   def testLink(self):
     # DUT and presenter are up
-    self.hook.dut_connect()
-    self.hook.presenter_connect()
+    self.hook.dut_connect('127.0.0.1')
+    self.hook.presenter_connect('127.0.0.1')
 
     # DUT is down
     self.hook.dut_disconnect()
 
     # DUT is back up
-    self.hook.dut_connect()
-    self.hook.presenter_connect()
+    self.hook.dut_connect('127.0.0.1')
+    self.hook.presenter_connect('127.0.0.1')
 
     # Presenter is down
     self.hook.presenter_disconnect()
 
     # Presenter is back up
-    self.hook.dut_connect()
-    self.hook.presenter_connect()
+    self.hook.dut_connect('127.0.0.1')
+    self.hook.presenter_connect('127.0.0.1')
 
     mox.Replay(self.hook)
 
