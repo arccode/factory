@@ -2,35 +2,40 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import glob
 import logging
 import os
+import subprocess
 import traceback
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.goofy import service_manager
 from cros.factory.utils.file_utils import WriteFile
 
-THERMAL_SERVICE = 'thermal'
+
+THERMAL_SERVICES = ('thermal', 'dptf')
 RETRY_COUNT = 3
+
 
 class CpufreqManager(object):
   """Manager for CrOS-specific services that mess with cpufreq.
 
-  If disabled, we disable CrOS-specific cpufreq management (i.e., the
-  "thermal" service) and lock down the CPU speed.
+  If disabled, we disable CrOS-specific cpufreq management (i.e., the "thermal"
+  or "dptf" service) and lock down the CPU speed.
 
-  Properties:
-    enabled: Whether cpufreq services are currently enabled
-        (or None if unknown).
-    cpufreq_path: Path to the cpufreq directory.
-    cpu_speed: CPU speed when cpufreq services are disabled.  This
-        defaults (very arbitrarily) to 1.3 GHz but may be modified by
-        board-specific hooks.
+  Args:
     event_log: If set, an event log object to use to log changes to enablement.
   """
   enabled = None
-  cpufreq_path = '/sys/devices/system/cpu/cpu0/cpufreq'
+  """Whether cpufreq services are currently enabled (or None if unknown)."""
+
+  cpufreq_path_glob = '/sys/devices/system/cpu/cpu*/cpufreq'
+  """Path glob to the cpufreq directories."""
+
   cpu_speed_hz = 1300000
+  """CPU speed when cpufreq services are disabled.  This defaults (very
+  arbitrarily) to 1.3 GHz but may be modified by board-specific hooks.
+  """
 
   def __init__(self, event_log=None):
     self.event_log = event_log
@@ -59,23 +64,29 @@ class CpufreqManager(object):
                    'cpu_speed_hz=%s, retry_count=%d',
                    thermal_service_status, governor, cpu_speed_hz, retry_count)
 
-      if (service_manager.GetServiceStatus(THERMAL_SERVICE) !=
-          thermal_service_status):
-        service_manager.SetServiceStatus(THERMAL_SERVICE,
-                                         thermal_service_status)
+      for service in THERMAL_SERVICES:
+        try:
+          current_service_status = service_manager.GetServiceStatus(service)
+        except subprocess.CalledProcessError:
+          # These thermal services are kernel and board dependent. Just let it
+          # go if we can not find the service.
+          pass
+        else:
+          if (current_service_status != thermal_service_status):
+            service_manager.SetServiceStatus(service, thermal_service_status)
 
-      success = False
+      success = True
       exception = None
-      try:
-        WriteFile(os.path.join(self.cpufreq_path, 'scaling_governor'),
-                  governor, log=True)
-        if not enabled:
-          WriteFile(os.path.join(self.cpufreq_path, 'scaling_setspeed'),
-                    self.cpu_speed_hz, log=True)
-        success = True
-      except:  # pylint: disable=W0702
-        logging.exception('Unable to set CPU scaling parameters')
-        exception = traceback.format_exc()
+      for path in glob.glob(self.cpufreq_path_glob):
+        try:
+          WriteFile(os.path.join(path, 'scaling_governor'), governor, log=True)
+          if not enabled:
+            WriteFile(os.path.join(path, 'scaling_setspeed'),
+                      self.cpu_speed_hz, log=True)
+        except:  # pylint: disable=W0702
+          success = False
+          logging.exception('Unable to set CPU scaling parameters')
+          exception = traceback.format_exc()
 
       if self.event_log:
         self.event_log.Log(

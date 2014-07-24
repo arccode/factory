@@ -1412,6 +1412,7 @@ class Goofy(object):
     os.environ['CROS_UI'] = self.options.ui
 
     if not utils.in_chroot() and self.test_list.options.use_cpufreq_manager:
+      logging.info('Enabling CPU frequency manager')
       self.cpufreq_manager = CpufreqManager(event_log=self.event_log)
 
     # Startup hooks may want to skip some tests.
