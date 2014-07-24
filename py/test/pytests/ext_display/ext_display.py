@@ -449,13 +449,18 @@ class ExtDisplayTaskArg(object):
 
     self.display_label, self.display_id = info[:2]
     if len(info) == 3:
-      self.audio_port = info[2][1]
-      if isinstance(info[2][0], int):
-        self.card_id = info[2][0]
-      elif isinstance(info[2][0], (str, unicode)):
-        self.card_id = audio_utils.GetCardIndexByName(info[2][0])
+      if not isinstance(info[2], tuple):
+        self.audio_port = info[2]
+        logging.warning('Specifying audio info as a single str is deprecated.'
+                        'Please use tuple (card_name, audio_port) instead.')
       else:
-        raise ValueError('Card ID should be an integer or a string')
+        self.audio_port = info[2][1]
+        if isinstance(info[2][0], int):
+          self.card_id = info[2][0]
+        elif isinstance(info[2][0], (str, unicode)):
+          self.card_id = audio_utils.GetCardIndexByName(info[2][0])
+        else:
+          raise ValueError('Card ID should be an integer or a string')
 
 
 class ExtDisplayTest(unittest.TestCase):
@@ -473,9 +478,14 @@ class ExtDisplayTest(unittest.TestCase):
          '- display_label: (str) display name seen by operator, e.g. VGA.\n'
          '- display_id: (str) ID used to identify display in xrandr.\n'
          '  e.g. VGA1.\n'
-         '- audio_info: a tuple of (str, str) where the first str is the\n'
-         '  card name and the second str is the amixer port name for audio\n'
-         '  test. If set, the audio playback test is added for the display.'),
+         '- audio_info: a tuple of (audio_card, audio_port), or just a\n'
+         '  single string indicating the audio_port (deprecated). audio_card\n'
+         '  is either the card\'s name (str), or the card\'s index (int).\n'
+         '  audio_port is the amixer port\'s name (str). If you specify only\n'
+         '  the audio_port, the test assumes that the card is at index 0\n'
+         '  (deprecated, don\'t use it if possible). This argument is\n'
+         '  optional. If set, the audio playback test is added.'
+         ),
         optional=False),
     Arg('bft_fixture', dict, TEST_ARG_HELP, default=None, optional=True),
     Arg('connect_only', bool,
