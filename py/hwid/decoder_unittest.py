@@ -114,13 +114,37 @@ class DecoderTest(unittest.TestCase):
         BinaryStringToBOM, self.database, '0000000000111000010011')
 
   def testIncompleteBinaryStringToBOM(self):
-    # This should be regarded as a valid binary string that was generated
-    # before we extended cpu_field.
-    BinaryStringToBOM(self.database, '000000000111101000001')
-    # This should fail due to incomplete storage_field in the binary string.
-    self.assertRaisesRegexp(
-        HWIDException, r'Found incomplete binary string chunk',
-        BinaryStringToBOM, self.database, '00000000011110100001')
+    # The latest pattern in the test database has 16 bits (plus the image ID and
+    # the stop bit), with the last three bits being one two-bit storage_field,
+    # and one one-bit cpu_field.
+
+    # Test with 21 bits here. This should be regarded as a valid binary string
+    # that was generated before we extended cpu_field.
+    bom = BinaryStringToBOM(
+        self.database,
+        '00000'         # image ID
+        '0000111101000' # 13 bits, up through second cpu_field
+        '00'            # storage_field
+        '1')            # stop bit
+    # Bit 15 is 1, which is the first cpu_field. The cpu_field should be decoded
+    # as b01 = 1.
+    self.assertEquals(1, bom.encoded_fields['cpu'])
+    self.assertEquals(0, bom.encoded_fields['storage'])
+
+    # Test with 20 bits here. This should be regarded as an incomplete bit chunk
+    # for storage_field, i.e. storage_field was previously one bit (and some
+    # HWIDs were generated) but it has since been extended to two bits.
+    bom = BinaryStringToBOM(
+        self.database,
+        '00000'         # image ID
+        '0000111101000' # 12 bits, up through second cpu_field
+        '1'             # the incomplete storage_field chunk
+        '1')            # stop bit
+    # The cpu_field should still be b01 = 1.
+    self.assertEquals(1, bom.encoded_fields['cpu'])
+    # The 1 in the incomplete two-bit storage field should be decoded as b1 = 1
+    # instead of b10 = 2.
+    self.assertEquals(1, bom.encoded_fields['storage'])
 
   def testDecode(self):
     reference_bom = self.database.ProbeResultToBOM(self.results[0])

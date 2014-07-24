@@ -1029,18 +1029,19 @@ class Pattern(object):
       binary_string_length = self.GetTotalBitLength(image_id=image_id) - 1
     for element in self.GetPatternByImageId(image_id)['fields']:
       for field, length in element.iteritems():
+        # Normally when one wants to extend bit length of a field, he should
+        # append new pattern field instead of expanding the last field.
+        # However, for some board, we already have cases where last pattern
+        # fields were expanded directly. See crosbug.com/p/30266.
+        #
+        # We check for incomplete bit string chunk at the end and adjust bit
+        # indices as needed here, so that we can decode correctly the HWIDs
+        # generated before the last pattern field was expanded in the above
+        # scenario.
         remaining_bits = binary_string_length - index
-        if remaining_bits > 0 and length > remaining_bits:
-          # The remaining bits do not fill a complete chunk.
-          raise common.HWIDException(
-              'Found incomplete binary string chunk: there are only %d bit(s) '
-              'in the %r field (should be %d). If you are trying to append new '
-              'bit(s), be sure to create a new bit pattern field instead of '
-              'simply incrementing the last field' %
-              (remaining_bits, field, length))
-        # Reverse bit order.
-        field_offset_map[field] += length
+        field_offset_map[field] += min(remaining_bits, length)
         first_bit_index = field_offset_map[field] - 1
+        # Reverse bit order.
         for field_index in xrange(
             first_bit_index, first_bit_index - length, -1):
           ret[index] = BitEntry(field, field_index)

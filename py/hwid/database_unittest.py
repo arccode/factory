@@ -514,10 +514,10 @@ class PatternTest(unittest.TestCase):
     # This should be regarded as a valid binary string that was generated
     # before we extended cpu_field.
     self.pattern.GetBitMapping(binary_string_length=20)
-    # This should fail due to incomplete storage_field in the binary string.
-    self.assertRaisesRegexp(
-        HWIDException, r'Found incomplete binary string chunk',
-        self.pattern.GetBitMapping, binary_string_length=19)
+    # This should result in an incomplete chunk for storage_field.
+    mapping = self.pattern.GetBitMapping(binary_string_length=19)
+    self.assertEquals('storage', mapping[18].field)
+    self.assertEquals(0, mapping[18].bit_offset)
 
 
 class ComponentsTest(unittest.TestCase):
