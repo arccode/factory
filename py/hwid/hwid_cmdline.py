@@ -176,15 +176,6 @@ def EnumerateHWIDWrapper(options):
     print '%s: %s' % (k, v)
 
 
-# pylint: disable=C0322
-@Command(
-    'database-checksum',
-    CmdArg('filename', help='the HWID database file'))
-def ComputeDatabaseChecksumWrapper(options):
-  """Computes SHA-1 checksum for a database."""
-  print hwid_utils.ComputeDatabaseChecksum(options.filename)
-
-
 @Command('verify-database')
 def VerifyHWIDDatabase(options):
   """Verifies the given HWID database."""
@@ -227,8 +218,7 @@ def Main():
   else:
     logging.basicConfig(level=logging.INFO)
 
-  if options.command_name not in ['database-checksum']:
-    InitializeDefaultOptions(options)
+  InitializeDefaultOptions(options)
 
   options.command(options)
 
