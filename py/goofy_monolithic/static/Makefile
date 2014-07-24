@@ -36,6 +36,7 @@ CLOSURE_BUILD=\
     --root $(CLOSURE_LIB_DIR) \
     --root ../js \
     -n cros.factory.Goofy \
+    -n cros.factory.DeviceManager \
     --compiler_jar=$(CLOSURE_COMPILER_JAR) \
     -f \
     --warning_level=VERBOSE
@@ -46,7 +47,7 @@ all: goofy.js closure.css
 # For now, we just use the compiler (--output_mode=compiled) to check
 # the correctness of our code, and we actually deploy the version that is
 # just the concatenation of all the dependencies (--output_mode=script).
-goofy.js: $(CLOSURE_LIB_DIR) ../js/goofy.js
+goofy.js: $(CLOSURE_LIB_DIR) ../js/goofy.js ../js/device_manager.js
 	mkdir -p tmp
 	$(CLOSURE_BUILD) --output_mode=compiled --output_file=/dev/null \
 	    >& tmp/errors.compiled || ( cat tmp/errors.compiled; exit 1 )

@@ -613,6 +613,42 @@ button {
   height: 100%;
 }
 
+/* Used by the Device Manager window. */
+.goofy-log-data .goofy-device-manager-area {
+  width: 40%;
+  height: 70%;
+  overflow: scroll;
+  margin: 2px;
+  background-color: #f4f4f4;
+  position: absolute;
+  left: 50%;
+  top: 10%;
+}
+
+.toggle {
+  cursor: pointer;
+  cursor: hand;
+  background-repeat: none;
+  background-position: right;
+}
+
+tr.goog-drilldown-expanded .toggle {
+  background-image: url('images/dropright.png');
+  background-position: center;
+  background-repeat: none;
+}
+
+tr.goog-drilldown-collapsed .toggle {
+  background-image: url('images/dropdown.png');
+  background-position: center;
+  background-repeat: none;
+}
+
+.goog-flat-button {
+  color: black;
+  cursor: pointer;
+}
+
 /* Fonts. */
 @font-face {
   font-family: 'Open Sans';
