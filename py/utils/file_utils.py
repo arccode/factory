@@ -616,3 +616,61 @@ def ExtractFromPar(par_file, src, dest='.'):
   """
   par = zipfile.ZipFile(par_file)
   par.extract(src, dest)
+
+
+def HashFiles(root, path_filter=None, hash_function=hashlib.sha1):
+  """Returns a dictionary of the hashes of files' contents.
+
+  The root directory is recursively walked. Each file is read, its
+  contents hashed, and the result placed in a dict. The dict's keys
+  are paths to the files relative to the root, and values are the
+  calculated hashes.
+
+  Symbolic links are ignored.
+
+  For instance, if the directory tree is:
+
+    root/
+      a/
+        b.txt
+      c.txt
+
+  ...then HashFiles('root') returns a dict like this:
+
+    {'a/b.txt': 'e9d71f5ee7c92d6dc9e92ffdad17b8bd49418f98',
+     'c.txt':   '84a516841ba77a5b4648de2cd0dfcb30ea46dbb4'}
+
+  Args:
+    root: Root directory to walk with os.walk.
+    path_filter: An optional predicate specifying which files to process.
+        This function is invoked with a single argument (the path to a
+        file) and should return True if the file is to be considered,
+        or File if not.  If the filter is None, all files are included.
+    hash_function: The hash function to use. This function is invoked with
+        a single argument (the contents of a file) and should return the
+        value to use as a hash.  (If the returned object has a hexdigest()
+        method, as do hash functions like hashlib.sha1, it is invoked.)
+  """
+  ret = {}
+  for dirpath, _, filenames in os.walk(root):
+    for f in filenames:
+      path = os.path.join(dirpath, f)
+      if os.path.islink(path):
+        # Skip symbolic links
+        continue
+
+      # Apply path filter, if provided
+      if path_filter and not path_filter(path):
+        continue
+
+      data = ReadFile(path)
+      hash_value = hash_function(data)
+      # If it has hexdigest() (e.g., we were called with
+      # hash_function=hashlib.sha1), call it
+      try:
+        hash_value = hash_value.hexdigest()
+      except AttributeError:
+        pass
+
+      ret[os.path.relpath(path, root)] = hash_value
+  return ret

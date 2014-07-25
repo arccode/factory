@@ -6,6 +6,7 @@
 
 """Unittest for file_utils.py."""
 
+import binascii
 import logging
 import mock
 import mox
@@ -506,6 +507,51 @@ class GlobSingleFileTest(unittest.TestCase):
           file_utils.GlobSingleFile, os.path.join(d, 'nomatch'))
 
 
+class HashFilesTest(unittest.TestCase):
+  def setUp(self):
+    self.tmpdir = tempfile.mkdtemp(prefix='HashFilesTest.')
+
+    for relpath in ['a', 'b', 'c', 'd/e', 'd/f']:
+      path = os.path.join(self.tmpdir, relpath)
+      file_utils.TryMakeDirs(os.path.dirname(path))
+      file_utils.WriteFile(path, 'Contents of %s' % relpath)
+
+    # ...and create a symlink cc -> c (it should be skipped)
+    os.symlink('c', os.path.join(self.tmpdir, 'cc'))
+
+  def tearDown(self):
+    shutil.rmtree(self.tmpdir)
+
+  def testDefault(self):
+    self.assertEquals({
+          'a': 'fbd313f05f277535c6f0bb2e9b0cff43cebef360',
+          'b': '1ac13620623e6ff9049a7a261e04dda284b2c52a',
+          'c': 'eef64cf8244577e292e46fc6a12e64261239d972',
+          'd/e': '585a50860871f4df30be233ace89b3c83f776c9b',
+          'd/f': '025b55bbf9d628147696b63970edca695109e9ba'
+          }, file_utils.HashFiles(self.tmpdir))
+
+  def testSimpleHash(self):
+    self.assertEquals({
+          'a': 2937989080,
+          'b': 907507298,
+          'c': 1091585780,
+          'd/e': 2218600652,
+          'd/f': 489978230
+          }, file_utils.HashFiles(
+              self.tmpdir,
+              hash_function=lambda data: binascii.crc32(data) & 0xffffffff))
+
+  def testFilter(self):
+    # Get checksum only everything but 'c'.
+    self.assertEquals({
+          'a': 'fbd313f05f277535c6f0bb2e9b0cff43cebef360',
+          'b': '1ac13620623e6ff9049a7a261e04dda284b2c52a',
+          'd/e': '585a50860871f4df30be233ace89b3c83f776c9b',
+          'd/f': '025b55bbf9d628147696b63970edca695109e9ba'
+        }, file_utils.HashFiles(
+            self.tmpdir,
+            path_filter=lambda path: path != os.path.join(self.tmpdir, 'c')))
 
 if __name__ == '__main__':
   logging.basicConfig(level=logging.DEBUG)

@@ -13,6 +13,7 @@ on each device as part of the assembly process.
 """
 
 import collections
+import hashlib
 import logging
 import os
 import pipes
@@ -42,7 +43,9 @@ from cros.factory.hacked_argparse import verbosity_cmd_arg
 from cros.factory.hwdb import hwid_tool
 from cros.factory.hwid import common
 from cros.factory.hwid import hwid_utils
+from cros.factory.test import factory
 from cros.factory.test.factory import FACTORY_LOG_PATH, DEVICE_STATEFUL_PATH
+from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.privacy import FilterDict
 
@@ -689,6 +692,21 @@ def UntarStatefulFiles(unused_options):
   else:
     logging.warning('No stateful files at %s', tar_file)
 
+
+@Command('log_source_hashes')
+def LogSourceHashes(options):  # pylint: disable=W0613
+  """Logs hashes of source files in the factory toolkit."""
+  event_log.Log(
+      'source_hashes',
+      # Log hash function used, just in case we ever want to change it
+      hash_function='sha1prefix',
+      hashes=file_utils.HashFiles(
+          os.path.join(factory.FACTORY_PATH, 'py'),
+          lambda path: path.endswith('.py'),
+          # Use first 4 bytes of SHA1
+          hash_function=lambda data: hashlib.sha1(data).hexdigest()[0:8]))
+
+
 @Command('log_system_details')
 def LogSystemDetails(options):  # pylint: disable=W0613
   """Write miscellaneous system details to the event log."""
@@ -823,6 +841,7 @@ def Finalize(options):
     next boot.
   """
   Verify(options)
+  LogSourceHashes(options)
   UntarStatefulFiles(options)
   SetFirmwareBitmapLocale(options)
   ClearGBBFlags(options)
