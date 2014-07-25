@@ -391,6 +391,14 @@ class GoofyRPC(object):
                       **test_state.__dict__))
     return ret
 
+  def IsReadyForUIConnection(self):
+    """Checks whether the Goofy backend is ready for UI connection.
+
+    Returns:
+      A boolean indicating whether the Goofy backend is ready for UI connection.
+    """
+    return self.goofy.ready_for_ui_connection
+
   def GetTests(self, timeout_secs=DEFAULT_GOOFY_RPC_TIMEOUT_SECS):
     """Returns a list of all tests and their states.
 

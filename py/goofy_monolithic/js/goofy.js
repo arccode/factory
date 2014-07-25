@@ -850,6 +850,23 @@ cros.factory.Goofy.prototype.initWebSocket = function() {
 };
 
 /**
+ * Waits for the Goofy backend to be ready, and then starts UI.
+ */
+cros.factory.Goofy.prototype.preInit = function() {
+    this.sendRpc('IsReadyForUIConnection', [], function(is_ready) {
+        if (is_ready) {
+            this.init();
+        } else {
+            window.console.log('Waiting for the Goofy backend to be ready...');
+            var goofyThis = this;
+            window.setTimeout(
+                function() {
+                    goofyThis.preInit();
+                }, 500);
+        }});
+}
+
+/**
  * Starts the UI.
  */
 cros.factory.Goofy.prototype.init = function() {
@@ -2981,5 +2998,5 @@ cros.factory.Goofy.prototype.handleBackendEvent = function(jsonMessage) {
 
 goog.events.listenOnce(window, goog.events.EventType.LOAD, function() {
         window.goofy = new cros.factory.Goofy();
-        window.goofy.init();
+        window.goofy.preInit();
     });

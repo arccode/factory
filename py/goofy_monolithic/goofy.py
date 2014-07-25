@@ -204,6 +204,7 @@ class Goofy(object):
     self.key_filter = None
     self.cpufreq_manager = None
     self.status = Status.UNINITIALIZED
+    self.ready_for_ui_connection = False
 
     def test_or_root(event, parent_or_group=True):
       """Returns the test affected by a particular event.
@@ -1420,6 +1421,9 @@ class Goofy(object):
 
     # Should not move earlier.
     self.hooks.OnStartup()
+
+    # Only after this point the Goofy backend is ready for UI connection.
+    self.ready_for_ui_connection = True
 
     if self.options.ui == 'chrome':
       self.env.launch_chrome()
