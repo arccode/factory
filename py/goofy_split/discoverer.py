@@ -8,6 +8,8 @@
 
 import jsonrpclib
 import socket
+import threading
+import weakref
 from multiprocessing.pool import ThreadPool
 
 import factory_common  # pylint: disable=W0611
@@ -67,6 +69,11 @@ class DiscovererBase(object):
     """
     ip_list = []
     dut_list = []
+    # Workaround enabling constructing ThreadPool on a background thread
+    # See http://bugs.python.org/issue10015
+    cur_thread = threading.current_thread()
+    if not hasattr(cur_thread, "_children"):
+      cur_thread._children = weakref.WeakKeyDictionary()
     pool = ThreadPool(num_threads)
     if type(ip_prefixes) != list:
       ip_prefixes = [ip_prefixes]
