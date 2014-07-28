@@ -4,6 +4,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import json
 import logging
 import threading
 from BaseHTTPServer import HTTPServer
@@ -12,11 +13,16 @@ from ws4py.websocket import WebSocket
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import state
+from cros.factory.test.utils import Enum
 from cros.factory.utils.web_socket_utils import WebSocketHandshake
 
 
 # Standard web socket port.  This may be replaced by unit tests.
 UI_APP_CONTROLLER_PORT = 4010
+
+# The commands that UI presenter app accepts.
+UI_APP_COMMAND = Enum(['CONNECT', 'DISCONNECT', 'INFO', 'ERROR',
+                       'START_COUNTDOWN', 'STOP_COUNTDOWN'])
 
 
 class UIAppControllerHandler(SimpleHTTPRequestHandler):
@@ -66,13 +72,30 @@ class UIAppController(object):
     self._connect_event.wait()
 
   def SendMessage(self, msg):
+    msg_string = json.dumps(msg)
     with self.lock:
       for ws in self.web_sockets:
-        ws.send(msg)
+        ws.send(msg_string)
 
   def ShowUI(self, dut_ip):
     url = 'http://%s:%d/' % (dut_ip, state.DEFAULT_FACTORY_STATE_PORT)
-    self.SendMessage(url)
+    self.SendMessage({'command': UI_APP_COMMAND.CONNECT, 'url': url})
 
   def ShowDisconnectedScreen(self):
-    self.SendMessage('DISCONNECT')
+    self.SendMessage({'command': UI_APP_COMMAND.DISCONNECT})
+
+  def ShowInfoMessage(self, msg):
+    self.SendMessage({'command': UI_APP_COMMAND.INFO, 'str': msg})
+
+  def ShowErrorMessage(self, msg):
+    self.SendMessage({'command': UI_APP_COMMAND.ERROR, 'str': msg})
+
+  def StartCountdown(self, msg, timeout, end_msg, end_msg_color):
+    self.SendMessage({'command': UI_APP_COMMAND.START_COUNTDOWN,
+                      'message': msg,
+                      'timeout': timeout,
+                      'end_message': end_msg,
+                      'end_message_color': end_msg_color})
+
+  def StopCountdown(self):
+    self.SendMessage({'command': UI_APP_COMMAND.STOP_COUNTDOWN})

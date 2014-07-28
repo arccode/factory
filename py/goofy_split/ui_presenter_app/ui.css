@@ -37,9 +37,15 @@ iframe {
   margin-right: auto;
   width: 100%;
   text-align: center;
+}
+#goofy-message {
   font-size: 4em;
-  font-family: Arial sans-serif;
+  font-family: ui-sans, Arial, sans-serif;
   font-weight: bold;
+}
+#goofy-countdown {
+  font-size: 2em;
+  font-family: ui-sans, Arial, sans-serif;
 }
 #goofy-content {
   height: 100%;
