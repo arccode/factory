@@ -9,6 +9,7 @@ import argparse
 import itertools
 import logging
 import os
+import re
 import sys
 
 import factory_common  # pylint: disable=W0611
@@ -26,8 +27,11 @@ def main():
   os.chdir(CheckOutput(['git', 'rev-parse', '--show-toplevel']).strip())
 
   output = CheckOutput(
-      ['git', 'status', '--untracked-files=all', '--porcelain'])
-  uncommitted = [x[3:] for x in output.splitlines()]
+      ['git', 'status', '--untracked-files=all', '--porcelain'], log=True)
+
+  # Remove first three characters, and anything up to the -> for renames.
+  uncommitted = [re.sub('^...(.+ -> )?', '', x)
+                 for x in output.splitlines()]
   uncommitted = [x for x in uncommitted
                  if x.endswith('.py') and '#' not in x]
   logging.info('Uncommitted files: %r', uncommitted)
@@ -45,17 +49,18 @@ def main():
       break
 
     files = CheckOutput(['git', 'diff-tree', '--no-commit-id', '--name-only',
-                         '-r', commit]).splitlines()
+                         '-r', commit], log=True).splitlines()
     logging.info('%s contains files %s', commit, files)
     for f in files:
-      if f.endswith('.py'):
+      if f.endswith('.py') and os.path.exists(f):
         all_files.add(f)
 
   if not all_files:
     sys.exit('No files to lint.')
 
   all_files_str = ' '.join(sorted(all_files))
-  proc = Spawn(['make', 'lint', 'LINT_FILES=%s' % all_files_str], call=True)
+  proc = Spawn(['make', 'lint', 'LINT_FILES=%s' % all_files_str], call=True,
+               log=True)
   sys.exit(proc.returncode)
 
 
