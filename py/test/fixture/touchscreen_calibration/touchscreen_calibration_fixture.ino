@@ -109,6 +109,9 @@ void sendFixtureStateVector() {
  * The state machine responds to the host command and the sensors.
  */
 void stateControl(char command) {
+  // Check all of the sensors continuously and update the status.
+  fixture.updateSensorStatus();
+
   // Checks if there is an emergency stop.
   if (fixture.isSensorSafety()) {
     handleEmergencyStop();

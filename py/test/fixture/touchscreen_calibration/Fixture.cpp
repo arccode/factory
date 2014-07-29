@@ -26,13 +26,22 @@ const int pinMotorDir = 9;
 const int pinMotorEn = 10;
 const int pinMotorLock = 11;
 
-// Actual test fixture active values
-const bool SENSOR_EXTREME_UP_ACTIVE_VALUE = HIGH;
-const bool SENSOR_UP_ACTIVE_VALUE = HIGH;
-const bool SENSOR_DOWN_ACTIVE_VALUE = HIGH;
-const bool SENSOR_SAFETY_TRIGGERED_VALUE = LOW;
-const bool DEBUG_PRESSED_ACTIVE_VALUE = HIGH;
-const bool JUMPER_ACTIVE_VALUE = HIGH;
+// An array of sensor active values ranging from SENSOR_MIN to SENSOR_MAX.
+const bool SENSOR_ACTIVE_VALUES[] = {HIGH, HIGH, HIGH, HIGH, HIGH, LOW};
+
+// An array of sensor active times ranging from SENSOR_MIN to SENSOR_MAX.
+// The value 0 indicates that a sensor is not active.
+unsigned long SENSOR_ACTIVE_TIMES[] = {0, 0, 0, 0, 0, 0};
+
+// An array of sensor active times ranging from SENSOR_MIN to SENSOR_MAX.
+// The sensor active times must be longer than these values (in milli-seconds)
+// to be considered as triggered.
+// The active duration of the debug button is assigned a longer value
+// to filter the mistakenly triggered button occasionally seen at factory
+// due to unstable voltage.
+// The active duration of safety sensor is assigned a shorter value for safety
+// purpose.
+unsigned const long SENSOR_ACTIVE_DURATIONS[] = {500, 500, 200, 200, 200, 100};
 
 // The serial baud rate used by the programming port and the native USB port.
 const int SERIAL_BAUD_RATE = 9600;
@@ -85,13 +94,9 @@ Fixture::Fixture() {
   motorLock_ = LOW;
   motorDutyCycle_ = false;
 
-  // Initialize the input debug pin and sensor pins
-  pinMode(pinJumper, INPUT);
-  pinMode(pinButtonDebug, INPUT);
-  pinMode(pinSensorExtremeUp, INPUT);
-  pinMode(pinSensorUp, INPUT);
-  pinMode(pinSensorDown, INPUT);
-  pinMode(pinSensorSafety, INPUT);
+  // Initialize the jumper, the debug button, and the four sensor pins
+  for (int sensor = SENSOR_MIN; sensor <= SENSOR_MAX; sensor++)
+    pinMode(getPin((enum Sensors) sensor), INPUT);
 
   // Initialize the output pins for the motor control
   // Note: there is no need to configure pinMotorStep as OUTPUT
@@ -174,55 +179,82 @@ void Fixture::enableMotor() {
 }
 
 /**
- * Is the sensor value detected twice? (Check twice to prevent any noise.)
+ * Convert a sensor enumerator to its corresponding pin number in Arduino DUE.
+ *
+ * The sensor value begins at 0 while the corresponding pin number begins at 2.
  */
-bool Fixture::checkSensorValue(const int sensor, int value) {
-  if (digitalRead(sensor) != value) {
-    return false;
-  } else {
-    delay(SENSOR_DELAY_INTERVAL);
-    return (digitalRead(sensor) == value);
+int Fixture::getPin(enum Sensors sensor) const {
+  return (sensor + pinJumper);
+}
+
+/**
+ * Has the sensor value been active long enough?
+ * SENSOR_ACTIVE_DURATIONS are used to prevent noise.
+ */
+bool Fixture::checkSensorValue(enum Sensors sensor) {
+  unsigned long activeTime = SENSOR_ACTIVE_TIMES[sensor];
+  unsigned long duration = activeTime > 0 ? millis() - activeTime : 0;
+  return (duration > SENSOR_ACTIVE_DURATIONS[sensor]);
+}
+
+/**
+ * Check if the sensors are active. Update the active times accordingly.
+ */
+void Fixture::updateSensorStatus() {
+  for (int sensor = SENSOR_MIN; sensor <= SENSOR_MAX; sensor++) {
+    if (digitalRead(getPin((enum Sensors) sensor)) ==
+        SENSOR_ACTIVE_VALUES[sensor]) {
+      if (SENSOR_ACTIVE_TIMES[sensor] == 0) {
+        SENSOR_ACTIVE_TIMES[sensor] = millis();
+      }
+    } else {
+      if (SENSOR_ACTIVE_TIMES[sensor] > 0) {
+        SENSOR_ACTIVE_TIMES[sensor] = 0;
+      }
+    }
   }
+
+  checkJumper();
+  buttonDebug_ = checkSensorValue(BUTTON_DEBUG);
+  sensorExtremeUp_ = checkSensorValue(SENSOR_EXTREME_UP);
+  sensorUp_ = checkSensorValue(SENSOR_UP);
+  sensorDown_ = checkSensorValue(SENSOR_DOWN);
+  sensorSafety_ = checkSensorValue(SENSOR_SAFETY);
 }
 
 /**
  * Is the pinSensorExtremeUp detected?
  */
 bool Fixture::isSensorExtremeUp() {
-  return (sensorExtremeUp_ = checkSensorValue(pinSensorExtremeUp,
-                                              SENSOR_EXTREME_UP_ACTIVE_VALUE));
+  return sensorExtremeUp_;
 }
 
 /**
  * Is the pinSensorUp or pinSensorExtremeUp detected?
  */
 bool Fixture::isSensorUp() {
-  sensorUp_ = checkSensorValue(pinSensorUp, SENSOR_UP_ACTIVE_VALUE);
-  return (sensorUp_ || isSensorExtremeUp());
+  return (sensorUp_ || sensorExtremeUp_);
 }
 
 /**
  * Is the pinSensorDown detected?
  */
 bool Fixture::isSensorDown() {
-  return (sensorDown_ = checkSensorValue(pinSensorDown,
-                                         SENSOR_DOWN_ACTIVE_VALUE));
+  return sensorDown_;
 }
 
 /**
  * Is the pinSensorSafety triggered? (which indicates an emergency)
  */
 bool Fixture::isSensorSafety() {
-  return (sensorSafety_ = checkSensorValue(pinSensorSafety,
-                                           SENSOR_SAFETY_TRIGGERED_VALUE));
+  return sensorSafety_;
 }
 
 /**
  * Is the debug button pressed?
  */
 bool Fixture::isDebugPressed() {
-  return (buttonDebug_ = checkSensorValue(pinButtonDebug,
-                                          DEBUG_PRESSED_ACTIVE_VALUE));
+  return buttonDebug_;
 }
 
 /**
@@ -233,8 +265,7 @@ void Fixture::checkJumper() {
   // It might be a hassle for a tester if s/he needs to check the jumper
   // to determine if the debug button is enabled.
   bool CHECK_JUMPER = false;
-  jumper_ = CHECK_JUMPER ?
-      checkSensorValue(pinJumper, JUMPER_ACTIVE_VALUE) : true;
+  jumper_ = CHECK_JUMPER ? checkSensorValue(JUMPER) : true;
 }
 
 /**

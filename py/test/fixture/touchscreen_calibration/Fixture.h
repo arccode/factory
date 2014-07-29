@@ -30,6 +30,17 @@ extern const bool MOTOR_DIR_DOWN;
 
 class Fixture {
   public:
+    // Enumeration of all the jumper, the button, and the four sensors.
+    enum Sensors {JUMPER = 0,
+                  BUTTON_DEBUG,
+                  SENSOR_EXTREME_UP,
+                  SENSOR_UP,
+                  SENSOR_DOWN,
+                  SENSOR_SAFETY,
+    };
+    static const enum Sensors SENSOR_MIN = JUMPER;
+    static const enum Sensors SENSOR_MAX = SENSOR_SAFETY;
+
     // A default constructor which configures pins in addition to initializing
     // its data members.
     Fixture();
@@ -41,6 +52,7 @@ class Fixture {
     bool operator!=(const Fixture &fixture) const;
     void start();
     void enableMotor();
+    void updateSensorStatus();
     bool isSensorExtremeUp();
     bool isSensorUp();
     bool isSensorDown();
@@ -71,7 +83,8 @@ class Fixture {
     void sendStateVectorByNativeUSBPort(Fixture &fixture) const;
 
   private:
-    bool checkSensorValue(const int sensor, int value);
+    bool checkSensorValue(enum Sensors sensor);
+    int getPin(enum Sensors sensor) const;
 
     // Fixture's state vector
     // the main state
