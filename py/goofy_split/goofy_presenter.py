@@ -8,12 +8,14 @@
 """The main factory flow that runs the presenter-side of factory tests."""
 
 import logging
+import subprocess
 import syslog
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.goofy_split.goofy_base import GoofyBase
 from cros.factory.goofy_split.link_manager import DUTLinkManager
 from cros.factory.goofy_split.ui_app_controller import UIAppController
+from cros.factory.test import utils
 
 class GoofyPresenter(GoofyBase):
   """Presenter side of Goofy.
@@ -31,6 +33,13 @@ class GoofyPresenter(GoofyBase):
     super(GoofyPresenter, self).__init__()
     self.ui_app_controller = UIAppController()
     self.ui_app_controller.WaitForWebSocket()
+
+    # We are skipping the login UI, so we need to emit login-prompt-visible
+    # event here so as to notify upstart jobs to continue.  However, if we
+    # are running in chroot, we don't want to do this.
+    if not utils.in_chroot():
+      subprocess.check_call(['initctl', 'emit', 'login-prompt-visible'])
+
     self.link_manager = DUTLinkManager(
         check_interval=1,
         connect_hook=self.DUTConnected,

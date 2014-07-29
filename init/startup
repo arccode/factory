@@ -4,6 +4,7 @@
 # found in the LICENSE file.
 
 MYDIR="$(dirname "$(readlink -f "$0")")"
+FACTORY_BASE="/usr/local/factory"
 
 main() {
   # Install console (VT2) customizations
@@ -13,8 +14,16 @@ main() {
   # specified. Delete the "use-telemetry" file to proceed.
   [ -f "${MYDIR}/use-telemetry" ] && exit
 
-  # Install UI configurations
-  mount --bind "${MYDIR}/etc/chrome_dev.conf" /etc/chrome_dev.conf
+  if [ -f "${FACTORY_BASE}/py/goofy/GOOFY_SPLIT" ]; then
+    # Load presenter app if we are running goofy_presenter.
+    if [ -f "${MYDIR}/run_goofy_presenter" ]; then
+      mount --bind "${MYDIR}/etc/presenter.conf" /etc/chrome_dev.conf
+    fi
+    # Leave UI as is for goofy_device for now.
+  else
+    # Install UI configurations
+    mount --bind "${MYDIR}/etc/chrome_dev.conf" /etc/chrome_dev.conf
+  fi
 }
 
 main "$@"

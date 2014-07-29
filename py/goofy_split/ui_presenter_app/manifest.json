@@ -7,9 +7,9 @@
     "128": "logo128.png"
   },
   "app": {
-    "launch": {
-      "local_path": "main.html"
+    "background": {
+      "scripts": ["background.js"]
     }
   },
-  "permissions": ["<all_urls>", "webRequestBlocking", "webRequest"]
+  "permissions": ["<all_urls>"]
 }
