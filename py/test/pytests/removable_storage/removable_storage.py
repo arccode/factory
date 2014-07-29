@@ -667,10 +667,18 @@ class RemovableStorageTest(unittest.TestCase):
     self._finished_tests = 0
     self._template.SetProgressBarValue(0)
 
+    # Start to monitor udev events.
+    context = pyudev.Context()
+    monitor = pyudev.Monitor.from_netlink(context)
+    monitor.filter_by(subsystem='block', device_type='disk')
+    self._udev_observer = pyudev.MonitorObserver(monitor, self.HandleUdevEvent)
+    self._udev_observer.start()
+
+    # BFT engages device after udev observer start
     if self.args.bft_fixture:
       self._bft_fixture = CreateBFTFixture(**self.args.bft_fixture)
       self._bft_media_device = self.args.bft_media_device
-      if self._bft_media_device not in BFTFixture.Device:
+      if self._bft_media_device not in self._bft_fixture.Device:
         self.fail('Invalid args.bft_media_device: ' + self._bft_media_device)
       else:
         try:
@@ -678,12 +686,5 @@ class RemovableStorageTest(unittest.TestCase):
         except BFTFixtureException as e:
           self.fail(_ERR_BFT_ACTION_STR(
               'insert', self.args.media, self._target_device, e))
-
-    # Start to monitor udev events.
-    context = pyudev.Context()
-    monitor = pyudev.Monitor.from_netlink(context)
-    monitor.filter_by(subsystem='block', device_type='disk')
-    self._udev_observer = pyudev.MonitorObserver(monitor, self.HandleUdevEvent)
-    self._udev_observer.start()
 
     self._ui.Run()
