@@ -13,7 +13,6 @@ on each device as part of the assembly process.
 """
 
 import collections
-import hashlib
 import logging
 import os
 import pipes
@@ -698,13 +697,7 @@ def LogSourceHashes(options):  # pylint: disable=W0613
   """Logs hashes of source files in the factory toolkit."""
   event_log.Log(
       'source_hashes',
-      # Log hash function used, just in case we ever want to change it
-      hash_function='sha1prefix',
-      hashes=file_utils.HashFiles(
-          os.path.join(factory.FACTORY_PATH, 'py'),
-          lambda path: path.endswith('.py'),
-          # Use first 4 bytes of SHA1
-          hash_function=lambda data: hashlib.sha1(data).hexdigest()[0:8]))
+      **file_utils.HashSourceTree(os.path.join(factory.FACTORY_PATH, 'py')))
 
 
 @Command('log_system_details')

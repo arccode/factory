@@ -674,3 +674,31 @@ def HashFiles(root, path_filter=None, hash_function=hashlib.sha1):
 
       ret[os.path.relpath(path, root)] = hash_value
   return ret
+
+
+SOURCE_HASH_FUNCTION_NAME = 'sha1prefix'
+
+def HashSourceTree(py_path):
+  """Calculates hashes of sources in a source tree using HashFiles.
+
+  Only .py files are considered.  The first four bytes of the SHA1
+  hash is used as a hash function.
+
+  Args:
+    py_path: Directory containing .py sources.
+
+  Returns:
+    See HashFiles.
+  """
+  hashes = HashFiles(
+      py_path,
+      lambda path: path.endswith('.py'),
+      # Use first 4 bytes of SHA1
+      hash_function=lambda data: hashlib.sha1(data).hexdigest()[0:8])
+  if not hashes:
+    raise RuntimeError('No sources found in %s' % py_path)
+
+  return dict(
+      # Log hash function used, just in case we ever want to change it
+      hash_function=SOURCE_HASH_FUNCTION_NAME,
+      hashes=hashes)
