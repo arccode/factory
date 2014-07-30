@@ -69,7 +69,6 @@ files:
 - README
 - factory_setup/bin/cgpt
 - factory_setup/bin/futility
-- factory_setup/bin/old_bins/cgpt
 - factory_setup/complete_script.sh
 - factory_setup/extract_firmware_updater.sh
 - factory_setup/factory_common.sh
