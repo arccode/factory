@@ -77,6 +77,14 @@ class DatabaseTest(unittest.TestCase):
         r"Invalid component name 'buz' of class 'cpu' in encoded_fields"
         r"\['foo'\]\[0\]\['cpu'\]",
         mock_db._SanityChecks)
+    # Manually remove image ID 2 from pattern's image ID list. The sanity check
+    # should catch that image ID 2 does not have a corresponding pattern
+    # defined.
+    mock_db = copy.deepcopy(self.database)
+    mock_db.pattern.pattern[1]['image_ids'].remove(2)
+    self.assertRaisesRegexp(
+        HWIDException, r"Pattern for image id 2 is not defined",
+        mock_db._SanityChecks)
 
   def testPatternBitLength(self):
     mock_db = copy.deepcopy(self.database)

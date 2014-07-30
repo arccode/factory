@@ -89,6 +89,12 @@ class Database(object):
             _VerifyComponent(comp_cls, comp_name,
                              'encoded_fields[%r][%r]' % (field, index))
 
+    # Check that every image ID has a corresponding pattern defined.
+    for image_id in self.image_id:
+      # Simply get the pattern for each image ID. This call will raise exception
+      # if it fails to find a pattern for the given image ID.
+      self.pattern.GetPatternByImageId(image_id=image_id)
+
     # Check that the bit length of each encoded field in the pattern is enough
     # to hold all items of the encoded field. We only check the pattern used by
     # the latest image id here.
