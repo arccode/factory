@@ -52,17 +52,21 @@ cros.factory.DeviceManager.prototype.processData = function(xmlData, nodePath) {
 
   var node = goog.dom.xml.selectSingleNode(xmlData, nodePath);
   var subnode = [];
-  var deviceData = '';
+  var deviceData = goog.dom.createDom('table', {'id': 'device-data'});
 
   for (var childNode = node.firstChild;
        childNode != null; childNode = childNode.nextSibling) {
     if (childNode.nodeName == 'node') {
       subnode[subnode.length] = childNode;
     } else {
-      deviceData = deviceData + childNode.nodeName + ':\n';
+      var firstRow = goog.dom.createElement('tr');
+      goog.dom.appendChild(
+          firstRow,
+          goog.dom.createDom('td', null, childNode.nodeName));
 
-      if (!childNode.hasChildNodes)
+      if (!childNode.hasChildNodes) {
         continue;
+      }
 
       for (var iterNode = childNode.firstChild;
            iterNode != null; iterNode = iterNode.nextSibling) {
@@ -70,15 +74,25 @@ cros.factory.DeviceManager.prototype.processData = function(xmlData, nodePath) {
           continue;
         }
 
-        deviceData = deviceData + '\t';
+        var itemData = goog.dom.createElement('td');
+
         if (iterNode.textContent == '') {
           for (var j = 0; j < iterNode.attributes.length; j ++) {
-            deviceData = deviceData + iterNode.attributes[j].value + ' ';
+            goog.dom.append(itemData, iterNode.attributes[j].value + ' ');
           }
         } else {
-          deviceData = deviceData + iterNode.textContent;
+          goog.dom.append(itemData, iterNode.textContent);
         }
-        deviceData = deviceData + '\n';
+
+        if (iterNode == childNode.firstChild) {
+          goog.dom.appendChild(firstRow, itemData);
+          goog.dom.appendChild(deviceData, firstRow);
+        } else {
+          var otherRow = goog.dom.createElement('tr');
+          goog.dom.appendChild(otherRow, goog.dom.createElement('td'));
+          goog.dom.appendChild(otherRow, itemData);
+          goog.dom.appendChild(deviceData, otherRow);
+        }
       }
     }
   }
@@ -113,8 +127,12 @@ cros.factory.DeviceManager.prototype.createDrilldownMenu = function(itemMenuPare
       showButton,
       goog.ui.Component.EventType.ACTION,
       function() {
-        goog.dom.setTextContent(
-            goog.dom.getElementByClass('goofy-device-manager-area'),
+        goog.dom.removeChildren(goog.dom.getElement('goofy-device-data-area'));
+        goog.dom.append(
+            goog.dom.getElement('goofy-device-data-area'),
+            goog.dom.createDom('div', {'class': 'device-name'}, this.mapToDescription[nodePath]));
+        goog.dom.appendChild(
+            goog.dom.getElement('goofy-device-data-area'),
             this.mapToDeviceData[nodePath]);
       }, false, this);
 
@@ -124,6 +142,22 @@ cros.factory.DeviceManager.prototype.createDrilldownMenu = function(itemMenuPare
   }
 }
 
+/**
+ * Call 'lshw' command and create the whole device manager.
+ */
+cros.factory.DeviceManager.prototype.getDeviceData = function() {
+
+  this.goofy.sendRpc(
+      'GetLshwXml', [],
+      function(data) {
+        var itemMenu = new goog.ui.DrilldownRow({});
+        itemMenu.decorate(goog.dom.getElement('tree-menu-root'));
+
+        var xmlData = goog.dom.xml.loadXml(JSON.parse(data));
+        this.deviceManager.processData(xmlData, '/list/node');
+        this.deviceManager.createDrilldownMenu(itemMenu, '/list/node');
+      } );
+}
 
 /**
  * Create a new dialog to display the hardware lister.
@@ -141,25 +175,39 @@ cros.factory.DeviceManager.prototype.showWindow = function() {
   dialog.setContent(
       '<div class="goofy-log-data"' +
       'style="width: ' + maxWidth + '; height: ' + maxHeight + '">' +
-      '<div class="goofy-device-manager-area"></div>' +
+      '<div id="goofy-device-data-area"></div>' +
+      '<div id="goofy-device-list-area">' +
       '<table id="tree-menu-area">' +
-      '<tr id="tree-menu-root"><td>list</td></tr></table>' +
+      '<tr id="tree-menu-root"><td>Device</td></tr></table></div>' +
+      '<div id="goofy-device-manager-refresh"></div>' +
       goog.string.htmlEscape('') + '</div>');
 
   dialog.setButtonSet(goog.ui.Dialog.ButtonSet.createOk());
   dialog.setVisible(true);
   goog.dom.getElementByClass(
-      'modal-dialog-title-text', dialog.getElement()).innerHTML = 'list hardware';
+      'modal-dialog-title-text', dialog.getElement()).innerHTML = 'List hardware';
 
-  this.goofy.sendRpc(
-      'GetLshwXml', [],
-      function(data) {
-        var tree = document.getElementById('tree-menu-root');
-        var itemMenu = new goog.ui.DrilldownRow({});
-        itemMenu.decorate(tree);
+  var refreshButton = new goog.ui.Button(
+      [goog.dom.createDom('div', {'id': 'goofy-device-manager-refresh-icon'}),
+       goog.dom.createDom('div', {'id': 'goofy-device-manager-refresh-text'}, 'refresh')],
+      goog.ui.FlatButtonRenderer.getInstance());
 
-        var xmlData = goog.dom.xml.loadXml(JSON.parse(data));
-        this.deviceManager.processData(xmlData, '/list/node');
-        this.deviceManager.createDrilldownMenu(itemMenu, '/list/node');
-      } );
+  refreshButton.render(goog.dom.getElement('goofy-device-manager-refresh'));
+
+  this.getDeviceData();
+
+  goog.events.listen(
+      refreshButton,
+      goog.ui.Component.EventType.ACTION,
+      function() {
+        this.mapToSubnode = {};
+        this.mapToDeviceData = {};
+        this.mapToDescription = {};
+
+        var tree = document.getElementById('tree-menu-area');
+        goog.dom.removeChildren(tree);
+        tree.insertAdjacentHTML('afterBegin', '<tr id="tree-menu-root"><td>Device</td></tr>');
+
+        this.getDeviceData();
+      }, false, this);
 }

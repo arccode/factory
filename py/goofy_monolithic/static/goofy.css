@@ -614,37 +614,91 @@ button {
 }
 
 /* Used by the Device Manager window. */
-.goofy-log-data .goofy-device-manager-area {
-  width: 40%;
-  height: 70%;
-  overflow: scroll;
-  margin: 2px;
-  background-color: #f4f4f4;
+#goofy-device-manager-refresh {
   position: absolute;
-  left: 50%;
-  top: 10%;
+  top: 90%;
 }
 
-.toggle {
+#goofy-device-manager-refresh-icon {
+  width: 36px;
+  height: 36px;
+  background-image: url('images/refresh.png');
+  background-size: 100%;
+  vertical-align: middle;
+  display: inline-block;
+}
+
+#goofy-device-manager-refresh-text {
+  font-size: 120%;
+  font-weight: normal;
+  vertical-align: middle;
+  padding: 2px;
+  display: inline-block;
+}
+
+.goofy-log-data #goofy-device-data-area {
+  width: 60%;
+  height: 80%;
+  overflow: scroll;
+  position: absolute;
+  left: 38%;
+  top: 9%;
+  display: inline-block;
+}
+
+.goofy-log-data #goofy-device-data-area .device-name {
+  font-size: 240%;
+  font-weight: bold;
+  padding: 5px;
+}
+
+.goofy-log-data #goofy-device-data-area table {
+  border-spacing: 5px;
+  table-layout: fixed;
+}
+
+.goofy-log-data #goofy-device-data-area table tr td {
+  font-size: 120%;
+}
+
+.goofy-log-data #goofy-device-data-area table tr td:first-child {
+  width: 25%;
+  font-weight: bold;
+  padding: 2px;
+}
+
+.goofy-log-data #goofy-device-list-area {
+  width: 35%;
+  height: 80%;
+  overflow: scroll;
+  position: absolute;
+  top: 9%;
+}
+
+.goofy-log-data .toggle {
   cursor: pointer;
   cursor: hand;
   background-repeat: none;
   background-position: right;
 }
 
-tr.goog-drilldown-expanded .toggle {
-  background-image: url('images/dropright.png');
+.goofy-log-data tr.goog-drilldown-expanded .toggle {
+  background-image: url('images/dropdn_disabled.gif');
   background-position: center;
-  background-repeat: none;
+  background-repeat: no-repeat;
+  background-size: 80%;
+  padding: 2px;
 }
 
-tr.goog-drilldown-collapsed .toggle {
-  background-image: url('images/dropdown.png');
+.goofy-log-data tr.goog-drilldown-collapsed .toggle {
+  background-image: url('images/dropdn.gif');
   background-position: center;
-  background-repeat: none;
+  background-repeat: no-repeat;
+  background-size: 80%;
+  padding: 2px;
 }
 
-.goog-flat-button {
+.goofy-log-data .goog-flat-button {
   color: black;
   cursor: pointer;
 }
