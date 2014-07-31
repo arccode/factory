@@ -8,7 +8,9 @@
 
 import jsonrpclib
 import socket
+import sys
 import threading
+import Queue
 import weakref
 from multiprocessing.pool import ThreadPool
 
@@ -23,12 +25,11 @@ class DiscovererBase(object):
   """Base class for discoverers."""
   LOCALHOST = '127.0.0.1'
 
-  def TryRemote(self, ip, port, ip_list, timeout=0.2):
+  def TryRemote(self, ip, port, timeout=0.2):
     """Try to connect to remote RPC server.
 
-    Tries to connect to a remote link manager RPC server. On success, adds
-    the remote IP address to 'ip_list' and returns True. On error or timeout,
-    returns False.
+    Tries to connect to a remote link manager RPC server. Returns True
+    if successful, false on error or timeout.
 
     Note that most ports are blocked on DUT by default. If the scan does not
     show the DUT, check iptables setting or use SSH tunnel.
@@ -36,7 +37,6 @@ class DiscovererBase(object):
     Params:
       ip: The IP address of the RPC server to try.
       port: The port of the RPC server to try.
-      ip_list: The list to store successful remote IP addresses.
       timeout: RPC call timeout.
 
     Returns:
@@ -45,14 +45,11 @@ class DiscovererBase(object):
     proxy = jsonrpclib.Server('http://%s:%d/' % (ip, port),
                               transport=TimeoutJSONRPCTransport(timeout))
     try:
-      proxy.IsAlive()
-      if ip_list is not None:
-        ip_list.append(ip)
-      return True
+      return proxy.IsAlive()
     except socket.error:
       return False
 
-  def ScanSubnets(self, ip_prefixes, port, num_threads=25):
+  def ScanSubnets(self, ip_prefixes, port, num_threads=25, limit=None):
     """Scan all machines in class-C subnet.
 
     Tries to connect to remote link manager RPC servers on all machines in
@@ -63,12 +60,12 @@ class DiscovererBase(object):
           192.168.0.0/24 and 10.0.0.0/24, pass in: ['192.168.0', '10.0.0']
       port: The port of the RPC server.
       num_threads: Number of threads to use.
+      limit: If a positive integer, the maximum number of results to return.
+          Otherwise, returns all the results.
 
     Returns:
       A list of IP addresses with RPC server alive.
     """
-    ip_list = []
-    dut_list = []
     # Workaround enabling constructing ThreadPool on a background thread
     # See http://bugs.python.org/issue10015
     cur_thread = threading.current_thread()
@@ -77,17 +74,41 @@ class DiscovererBase(object):
     pool = ThreadPool(num_threads)
     if type(ip_prefixes) != list:
       ip_prefixes = [ip_prefixes]
-    for prefix in ip_prefixes:
-      dut_list.extend([('%s.%d' % (prefix, i), port, ip_list)
-                        for i in xrange(1, 255)])
-    pool.map(lambda p: self.TryRemote(*p), dut_list)
-    return ip_list
 
-  def ScanMySubnets(self, port):
+    # We construct a list of addresses to try, and kick off a thread pool
+    # to try them. Responding addresses come back on result_queue.
+    # When the scan completes, None is enqueued on result_queue. If the
+    # specified limit is reached, we return before the scan is complete.
+    result_queue = Queue.Queue()
+    def enqueue_remote_if_responds(ip):
+      if self.TryRemote(ip, port):
+        result_queue.put(ip)
+
+    def scan_complete(_):
+      result_queue.put(None)
+
+    remotes = ['%s.%d' % (prefix, low_octet)
+      for prefix in ip_prefixes
+      for low_octet in xrange(1, 255)]
+    pool.map_async(enqueue_remote_if_responds, remotes, callback=scan_complete)
+
+    # Dequeue items until we reach our limit or dequeue None,
+    # which means that the scan is finished
+    responding_ip_list = []
+    while len(responding_ip_list) < (limit or sys.maxint):
+      elem = result_queue.get(block=True)
+      if elem is None:
+        break
+      responding_ip_list.append(elem)
+    # If we stopped before the scan is complete, cancel any outstanding work
+    pool.terminate()
+    return responding_ip_list
+
+  def ScanMySubnets(self, port, limit):
     """Scan all subnet this machine is in."""
     my_ips = GetAllWiredIPs()
     subnets = [ip.rsplit('.', 1)[0] for ip in my_ips]
-    return self.ScanSubnets(subnets, port)
+    return self.ScanSubnets(subnets, port, limit=limit)
 
   def Discover(self):
     """Returns IP addresses of the potential presenter/DUT."""
@@ -102,9 +123,9 @@ class DUTDiscoverer(DiscovererBase):
 
   def Discover(self):
     if (utils.in_chroot() or
-        self.TryRemote(self.LOCALHOST, self._port, None, timeout=0.1)):
+        self.TryRemote(self.LOCALHOST, self._port, timeout=0.1)):
       return self.LOCALHOST
-    return self.ScanMySubnets(self._port)
+    return self.ScanMySubnets(self._port, limit=None)
 
 
 class PresenterDiscoverer(DiscovererBase):
@@ -115,6 +136,6 @@ class PresenterDiscoverer(DiscovererBase):
 
   def Discover(self):
     if (utils.in_chroot() or
-        self.TryRemote(self.LOCALHOST, self._port, None, timeout=0.1)):
+        self.TryRemote(self.LOCALHOST, self._port, timeout=0.1)):
       return self.LOCALHOST
-    return self.ScanMySubnets(self._port)
+    return self.ScanMySubnets(self._port, limit=1)
