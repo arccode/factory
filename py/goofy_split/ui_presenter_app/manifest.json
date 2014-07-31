@@ -1,5 +1,6 @@
 {
   "manifest_version": 2,
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAw3kPOnpylf5fme+lbrro4Iq+WNUTC3dVqXXrApd+VpWMQkd4eEF0RNfFMFM6TWqBWCU09B0QBnhpEuo6pzR8vYUac7FdfbEPi1wG7TgWA7ZvAQODcrJ+JaUHgA2JEIOLjqz2einX2YqBmU7BKOpvg6mGHiihBLFU0P3y1orBB2uGQsYpG2EO1lDjAT5z3ttUnTQpxKH7pAYCF7j2TOfS3SpgX+TpK8CoN5mIAbKVl+M2rdeZPuVJaP43OJ84rUY9v1ZzOQbAx3Gcrowf21eYr8jlEhYa8Oeu+zXbq2p+iqvjiNOykYcuoxK36pFnrfpbwb47fFlH2cGIhZgvgqdf7wIDAQAB",
   "name": "CrOS Factory",
   "version": "1.0",
   "description": "Chrome OS Factory Test",
@@ -7,9 +8,10 @@
     "128": "logo128.png"
   },
   "app": {
-    "background": {
-      "scripts": ["background.js"]
+    "launch": {
+      "local_path": "main.html"
     }
   },
-  "permissions": ["<all_urls>"]
+  "permissions": ["<all_urls>"],
+  "web_accessible_resources": ["main.html"]
 }
