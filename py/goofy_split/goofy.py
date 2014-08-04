@@ -76,24 +76,6 @@ MIN_BATTERY_LEVEL_FOR_DISK_SYNC = 1.0
 
 MAX_CRASH_FILE_SIZE = 64*1024
 
-GOOFY_IN_CHROOT_WARNING = '\n' + ('*' * 70) + '''
-You are running Goofy inside the chroot.  Autotests are not supported.
-
-To use Goofy in the chroot, first install an Xvnc server:
-
-  sudo apt-get install tightvncserver
-
-...and then start a VNC X server outside the chroot:
-
-  vncserver :10 &
-  vncviewer :10
-
-...and run Goofy as follows:
-
-  env --unset=XAUTHORITY DISPLAY=localhost:10 python goofy.py
-''' + ('*' * 70)
-suppress_chroot_warning = False
-
 Status = Enum(['UNINITIALIZED', 'INITIALIZING', 'RUNNING',
                'TERMINATING', 'TERMINATED'])
 
@@ -1180,7 +1162,7 @@ class Goofy(GoofyBase):
                       action='store_true',
                       help='Clear all test state')
     parser.add_option('--ui', dest='ui', type='choice',
-                      choices=['none', 'gtk', 'chrome'],
+                      choices=['none', 'chrome'],
                       default='chrome',
                       help='UI to use')
     parser.add_option('--ui_scale_factor', dest='ui_scale_factor',
@@ -1233,15 +1215,6 @@ class Goofy(GoofyBase):
     # Don't defer logging the initial event, so we can make sure
     # that device_id, reimage_id, etc. are all set up.
     self.event_log = EventLog('goofy', defer=False)
-
-    if (not suppress_chroot_warning and
-      factory.in_chroot() and
-      self.options.ui == 'gtk' and
-      os.environ.get('DISPLAY') in [None, '', ':0', ':0.0']):
-      # That's not going to work!  Tell the user how to run
-      # this way.
-      logging.warn(GOOFY_IN_CHROOT_WARNING)
-      time.sleep(1)
 
     if env:
       self.env = env
@@ -1411,11 +1384,6 @@ class Goofy(GoofyBase):
     os.environ['CROS_FACTORY'] = '1'
     os.environ['CROS_DISABLE_SITE_SYSINFO'] = '1'
 
-    # Set CROS_UI since some behaviors in ui.py depend on the
-    # particular UI in use.  TODO(jsalz): Remove this (and all
-    # places it is used) when the GTK UI is removed.
-    os.environ['CROS_UI'] = self.options.ui
-
     if not utils.in_chroot() and self.test_list.options.use_cpufreq_manager:
       logging.info('Enabling CPU frequency manager')
       self.cpufreq_manager = CpufreqManager(event_log=self.event_log)
@@ -1454,8 +1422,6 @@ class Goofy(GoofyBase):
       # and figure out the right way to get the focus to Chrome.
       if not utils.in_chroot():
         utils.SendKey('Tab')
-    elif self.options.ui == 'gtk':
-      self.start_ui()
 
     # Create download path for autotest beforehand or autotests run at
     # the same time might fail due to race condition.

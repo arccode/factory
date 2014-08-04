@@ -40,8 +40,8 @@ class BluetoothManager(object):
 
   Properties:
     _main_loop: The object representing the main event loop of a PyGTK
-        application. The main loop should be running when calling function with
-        callback through dbus interface.
+        or PyGObject application. The main loop should be running
+        when calling function with callback through dbus interface.
     _manager: The proxy for the org.freedesktoop.DBus.ObjectManager interface
         on ojbect path / on bus org.bluez.
 
