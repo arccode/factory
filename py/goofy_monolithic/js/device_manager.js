@@ -20,32 +20,32 @@ goog.require('goog.ui.FlatButtonRenderer');
 cros.factory.DeviceManager = function(goofy) {
 
   /**
-   * @type {cros.factory.goofy}
+   * @type {cros.factory.Goofy}
    */
   this.goofy = goofy;
 
   /**
    * Map each path of device node to its children.
-   * @type {Map}
+   * @type {Object}
    */
   this.mapToSubnode = {};
 
   /**
    * Map each path of device node to its hardware info.
-   * @type {Map}
+   * @type {Object}
    */
   this.mapToDeviceData = {};
 
   /**
    * Map each path of device node to its name.
-   * @type {Map}
+   * @type {Object}
    */
   this.mapToDescription = {};
 }
 
 /**
  * Recursively process data to data structure.
- * @param {goog.dom.xml} xmlData The overall parsed output of device data.
+ * @param {Node} xmlData The overall parsed output of device data.
  * @param {string} nodePath Indicates XPath from root to the processing node.
  */
 cros.factory.DeviceManager.prototype.processData = function(xmlData, nodePath) {
@@ -129,7 +129,7 @@ cros.factory.DeviceManager.prototype.createDrilldownMenu = function(itemMenuPare
       function() {
         goog.dom.removeChildren(goog.dom.getElement('goofy-device-data-area'));
         goog.dom.append(
-            goog.dom.getElement('goofy-device-data-area'),
+            /** @type {!Node} */(goog.dom.getElement('goofy-device-data-area')),
             goog.dom.createDom('div', {'class': 'device-name'}, this.mapToDescription[nodePath]));
         goog.dom.appendChild(
             goog.dom.getElement('goofy-device-data-area'),
@@ -153,7 +153,7 @@ cros.factory.DeviceManager.prototype.getDeviceData = function() {
         var itemMenu = new goog.ui.DrilldownRow({});
         itemMenu.decorate(goog.dom.getElement('tree-menu-root'));
 
-        var xmlData = goog.dom.xml.loadXml(JSON.parse(data));
+        var xmlData = goog.dom.xml.loadXml(/** @type {string} */(JSON.parse(data)));
         this.deviceManager.processData(xmlData, '/list/node');
         this.deviceManager.createDrilldownMenu(itemMenu, '/list/node');
       } );
