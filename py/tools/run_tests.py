@@ -50,7 +50,12 @@ def _MaybeRunPytestsOnly(tests, isolated_tests):
   ls_tree = CheckOutput(['git', 'ls-tree', '-r', 'HEAD']).split('\n')
   files = [line.split()[3] for line in ls_tree if line]
   last_test_time = os.path.getmtime(TEST_PASSED_MARK)
-  changed_files = [f for f in files if os.path.getmtime(f) > last_test_time]
+
+  try:
+    changed_files = [f for f in files if os.path.getmtime(f) > last_test_time]
+  except OSError:
+    # E.g., file renamed; just run everything
+    return (tests, isolated_tests)
 
   if not changed_files:
     # Nothing to test!

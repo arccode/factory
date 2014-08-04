@@ -33,7 +33,7 @@ from cros.factory.utils.net_utils import FindConsecutiveUnusedPorts
 MOCK_UMPIRE_ADDR = 'http://localhost'
 SEARCH_STARTING_PORT = 49998
 TESTDATA_DIRECTORY = os.path.join(
-    os.path.dirname(os.path.realpath(__file__)), 'test_data')
+    os.path.dirname(os.path.realpath(__file__)), 'testdata')
 UMPIRE_HANDLER_METHOD = 'umpire_handler_method'
 UMPIRE_HANDLER_METHODS = [UMPIRE_HANDLER_METHOD]
 SHOPFLOOR_HANDLER_METHOD = 'shopfloor_handler_method'

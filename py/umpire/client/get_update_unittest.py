@@ -67,7 +67,7 @@ FAKE_HWID_NO_UPDATE_RESULT = {
 FAKE_HWID_UPDATE_RESULT = 'hwid.sh content'
 
 TESTDATA_DIRECTORY = os.path.join(
-    os.path.dirname(os.path.realpath(__file__)), 'test_data')
+    os.path.dirname(os.path.realpath(__file__)), 'testdata')
 
 class GetUpdateForComponentsTest(unittest.TestCase):
   """Tests GetUpdateForComponents."""

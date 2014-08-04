@@ -18,7 +18,7 @@ from cros.factory.umpire.client import umpire_server_proxy
 from cros.factory.umpire.client.umpire_client import UmpireClientInfoInterface
 
 
-DEFAULT_TEST_DATA = 'test_data/umpire_test_data.yaml'
+DEFAULT_TEST_DATA = 'testdata/umpire_test_data.yaml'
 DEFAULT_SERVER_URI = 'http://10.3.0.1:9090'
 
 
@@ -140,7 +140,7 @@ class UmpireServerProxyCLI(object):
     """
     if not self.args.test_data:
       self.args.test_data = os.path.join(
-        os.path.dirname(__file__), 'test_data', 'umpire_test_data.yaml')
+        os.path.dirname(__file__), 'testdata', 'umpire_test_data.yaml')
     logging.debug('Using test data %r', self.args.test_data)
     with open(self.args.test_data) as f:
       content = f.read()
