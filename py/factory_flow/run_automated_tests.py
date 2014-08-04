@@ -80,6 +80,10 @@ class RunAutomatedTests(FactoryFlowCommand):
       CmdArg('--automation-function-kwargs-yaml',
              help=('a YAML file containing a dict of test paths to '
                    'their kwargs for their automation functions')),
+      # TODO(jcliang): Remove this arg after we integrate goofy_monolithic and
+      # goofy_split.
+      CmdArg('--enable-goofy-split', action='store_true',
+             help=('enable host-based mode')),
   ]
 
   WAIT_FOR_GOOFY_TIMEOUT_SECS = 120
@@ -193,6 +197,8 @@ class RunAutomatedTests(FactoryFlowCommand):
       goofy_remote_args += ['-s', self.options.shopfloor_ip]
     if self.options.shopfloor_port:
       goofy_remote_args += ['--shopfloor_port=%s', self.options.shopfloor_port]
+    if self.options.enable_goofy_split:
+      goofy_remote_args += ['--host-based']
     ssh_utils.SpawnSSHToDUT(goofy_remote_args, log=True, check_call=True)
     ssh_utils.SpawnSSHToDUT(
         [self.options.dut, FACTORY_RESTART, '--automation-mode',
