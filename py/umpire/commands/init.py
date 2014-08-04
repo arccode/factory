@@ -6,6 +6,7 @@
 
 import logging
 import os
+import shutil
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.common import BUNDLE_FACTORY_TOOLKIT_PATH
@@ -21,9 +22,14 @@ _SUB_DIRS = ['bin', 'dashboard', 'log', 'resources', 'run', 'toolkits',
 _UMPIRE_CLI_IN_TOOLKIT_PATH = os.path.join('usr', 'local', 'factory', 'bin',
                                            'umpire')
 
+# Relative path of UmpireConfig template in toolkit directory.
+# Note that it shall be defined in board spedific overlay.
+_UMPIRE_CONFIG_TEMPLATE_IN_TOOLKIT_PATH = os.path.join(
+    'usr', 'local', 'factory', 'py', 'umpire', 'umpired_template.yaml')
+
 
 def Init(env, bundle_dir, board, make_default, local, user, group,
-         root_dir='/'):
+         root_dir='/', config_template=None):
   """Initializes/updates an Umpire working environment.
 
   It creates base directory (specified in env.base_dir, installs Umpire
@@ -41,6 +47,7 @@ def Init(env, bundle_dir, board, make_default, local, user, group,
     user: the user to run Umpire daemon.
     group: the group to run Umpire dameon.
     root_dir: Root directory. Used for testing purpose.
+    config_template: If specified, use it as UmpireConfig's template.
   """
   def SetUpDir(base_dir, uid, gid):
     """Sets up Umpire directory structure.
@@ -70,6 +77,9 @@ def Init(env, bundle_dir, board, make_default, local, user, group,
     # If it fails to add resource, it raises an exception and not
     # going forward.
     toolkit_resource = env.AddResource(toolkit_path)
+    # Note that "umpire init" runs as root, so we need to chown the newly added
+    # resource.
+    os.chown(toolkit_resource, uid, gid)
     unpack_dir = UnpackFactoryToolkit(
         env, toolkit_resource, device_toolkit=False, run_as=(uid, gid),
         mode=env.UMPIRE_DIR_MODE)
@@ -107,11 +117,31 @@ def Init(env, bundle_dir, board, make_default, local, user, group,
         file_utils.ForceSymlink(global_board_symlink, default_symlink)
         logging.info('Symlink %r -> %r', default_symlink, global_board_symlink)
 
+  def InitUmpireConfig(toolkit_base):
+    """Prepares the very first UmpireConfig and marks it as active.
+
+    An active config is necessary for the second step, import-bundle.
+    It must be run after InstallUmpireExecutable as the template is from
+    the toolkit.
+    """
+    template_path = config_template if config_template else (
+        os.path.join(toolkit_base, _UMPIRE_CONFIG_TEMPLATE_IN_TOOLKIT_PATH))
+    with file_utils.TempDirectory() as temp_dir:
+      config_path = os.path.join(temp_dir, 'umpire.yaml')
+      shutil.copyfile(template_path, config_path)
+      config_in_resource = env.AddResource(config_path)
+      os.chown(config_in_resource, uid, gid)
+
+      file_utils.ForceSymlink(config_in_resource, env.active_config_file)
+      logging.info('Init UmpireConfig %r and set it as active.',
+                   config_in_resource)
+
   (uid, gid) = sys_utils.GetUidGid(user, group)
   logging.info('Init umpire to %r for board %r with user.group: %s.%s',
                env.base_dir, board, user, group)
 
   SetUpDir(env.base_dir, uid, gid)
   toolkit_base = InstallUmpireExecutable(uid, gid)
+  InitUmpireConfig(toolkit_base)
   SymlinkBinary(toolkit_base)
   # TODO(deanliao): set up daemon running environment.
