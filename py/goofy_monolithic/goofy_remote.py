@@ -233,6 +233,13 @@ def main():
                       'hwid_v3_bundle_%s.sh' % hwid_board.upper())),
                   check_call=True, log=True)
 
+  # Make sure all the directories and files have correct permissions.  This is
+  # essential for Chrome to load the factory test extension.
+  SpawnSSHToDUT([args.host, 'find', '/usr/local/factory', '-type', 'd',
+                 '-exec', 'chmod 755 {} +'], check_call=True, log=True)
+  SpawnSSHToDUT([args.host, 'find', '/usr/local/factory', '-type', 'f',
+                 '-exec', 'chmod go+r {} +'], check_call=True, log=True)
+
   if args.restart:
     SpawnSSHToDUT([args.host, '/usr/local/factory/bin/factory_restart'] +
                   (['-a'] if args.clear_state else []) +
