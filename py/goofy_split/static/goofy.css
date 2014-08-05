@@ -654,17 +654,15 @@ button {
 
 .goofy-log-data #goofy-device-data-area table {
   border-spacing: 5px;
-  table-layout: fixed;
 }
 
 .goofy-log-data #goofy-device-data-area table tr td {
-  font-size: 120%;
+  font-size: 100%;
+  padding: 1px;
 }
 
 .goofy-log-data #goofy-device-data-area table tr td:first-child {
-  width: 25%;
   font-weight: bold;
-  padding: 2px;
 }
 
 .goofy-log-data #goofy-device-list-area {

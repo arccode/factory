@@ -56,6 +56,10 @@ cros.factory.DeviceManager.prototype.processData = function(xmlData, nodePath) {
 
   for (var childNode = node.firstChild;
        childNode != null; childNode = childNode.nextSibling) {
+    if (childNode.nodeName == 'description') {
+      continue;
+    }
+
     if (childNode.nodeName == 'node') {
       subnode[subnode.length] = childNode;
     } else {
@@ -97,7 +101,11 @@ cros.factory.DeviceManager.prototype.processData = function(xmlData, nodePath) {
     }
   }
 
-  this.mapToDescription[nodePath] = node.firstChild.textContent;
+  if (node.nodeName == 'node') {
+    this.mapToDescription[nodePath] = node.firstChild.textContent;
+  } else {
+    this.mapToDescription[nodePath] = node.nodeName;
+  }
   this.mapToDeviceData[nodePath] = deviceData;
   this.mapToSubnode[nodePath] = subnode;
 
@@ -148,14 +156,14 @@ cros.factory.DeviceManager.prototype.createDrilldownMenu = function(itemMenuPare
 cros.factory.DeviceManager.prototype.getDeviceData = function() {
 
   this.goofy.sendRpc(
-      'GetLshwXml', [],
+      'GetDeviceInfo', [],
       function(data) {
         var itemMenu = new goog.ui.DrilldownRow({});
         itemMenu.decorate(goog.dom.getElement('tree-menu-root'));
 
         var xmlData = goog.dom.xml.loadXml(/** @type {string} */(JSON.parse(data)));
-        this.deviceManager.processData(xmlData, '/list/node');
-        this.deviceManager.createDrilldownMenu(itemMenu, '/list/node');
+        this.deviceManager.processData(xmlData, '/list');
+        this.deviceManager.createDrilldownMenu(itemMenu, '/list');
       } );
 }
 

@@ -21,6 +21,7 @@ import threading
 import time
 import uuid
 import yaml
+from xml.sax import saxutils
 
 import factory_common  # pylint: disable=W0611
 from cros.factory import factory_bug
@@ -231,10 +232,157 @@ class GoofyRPC(object):
     # (?m) = multiline
     return re.sub(r'(?m)^\[\s*([.\d]+)\]', FormatTime, dmesg)
 
-  def GetLshwXml(self):
-    out = subprocess.check_output(["lshw", "-xml"])
-    lines = [line.strip() for line in out.split("\n")]
-    return json.dumps(''.join(lines))
+  def GetDeviceInfo(self):
+    """Returns system hardware info in XML format."""
+
+    def DeviceNodeString(node_id, node_description, tag_list):
+      """Returns a XML format string of a specific device.
+
+      Args:
+        node_id: An id attribute to identify the device in XML document.
+        node_description: A human readable name of the device.
+        tag_list: A list of more detailed information of the device. Each
+          element, including (tag_name, tag_text, split_multiline), represents
+          a tag, which is a child node of the device node.
+
+      Returns:
+        A string with XML format of the device node.
+      """
+
+      def SplitMultilineToNodes(lines):
+        """Returns a XML format string to split lines of a output string.
+
+        Since HTML cannot identify '\n' automatically, we should split the
+        multiline output into multiple tags (one line is transformed into one
+        tag) so that the device manager can show it in multiline format.
+
+        Args:
+          lines: The multiline output to split.
+
+        Returns:
+          A string with XML format of the lines.
+        """
+        lines = lines.rstrip()
+
+        return ''.join(
+            '<line>%s</line>' % saxutils.escape(l) for l in lines.split('\n'))
+
+      result = []
+      result.append('<node id="%s">' % saxutils.escape(node_id))
+      result.append(
+          '<description>%s</description>' % saxutils.escape(node_description))
+
+      for tag_name, tag_text, split_multiline in tag_list:
+        xml_tag_name = saxutils.escape(tag_name)
+        if split_multiline:
+          xml_tag_text = SplitMultilineToNodes(tag_text)
+        else:
+          xml_tag_text = saxutils.escape(tag_text)
+        result.append(
+            '<%s>%s</%s>' % (xml_tag_name, xml_tag_text, xml_tag_name))
+
+      result.append('</node>')
+
+      return ''.join(result)
+
+    def GetBootDisk():
+      """Returns boot disk info."""
+      boot_device = subprocess.check_output(['rootdev', '-s', '-d']).strip()
+
+      boot_device_removable_path = (
+          os.path.join('/sys/block/',
+                       os.path.basename(boot_device),
+                       'removable'))
+      boot_device_removable = open(boot_device_removable_path).read().strip()
+
+      if boot_device.startswith('/dev/sd'):
+        boot_device_type = (
+            'SSD' if boot_device_removable == '0' else 'USB drive')
+      elif boot_device.startswith('/dev/mmcblk'):
+        boot_device_type = (
+            'eMMC' if boot_device_removable == '0' else 'SD card')
+      else:
+        boot_device_type = 'unknown'
+
+      return DeviceNodeString(
+          'bootdisk', 'Boot disk',
+          [('device', boot_device, False), ('type', boot_device_type, False)])
+
+    def GetTPMStatus():
+      """Returns TPM status info."""
+      tpm_stat = (
+          subprocess.check_output(['cryptohome', '--action=tpm_status']) +
+          subprocess.check_output('crossystem | grep tpm_owner', shell=True))
+
+      return DeviceNodeString(
+          'tpm', 'TPM status', [('status', tpm_stat, True)])
+
+    def GetHWID():
+      """Returns HWID."""
+      hwid = subprocess.check_output(['crossystem', 'hwid'])
+
+      return DeviceNodeString('hwid', 'HWID', [('hwid', hwid, False)])
+
+    def GetWPStatus():
+      """Returns current write protection status info."""
+      host_wp_stat = (
+          subprocess.check_output(['flashrom', '-p', 'host', '--wp-status']))
+
+      try:
+        ec_wp_stat = (
+            subprocess.check_output(['flashrom', '-p', 'ec', '--wp-status']))
+      except:
+        ec_wp_stat = 'EC not available.'
+
+      return DeviceNodeString(
+          'wp', 'Current write protection status',
+          [('host', host_wp_stat, True), ('ec', ec_wp_stat, True)])
+
+    def GetVersion():
+      """Returns EC/BIOS/Image version info."""
+      fw_version = (
+          subprocess.check_output(['crossystem', 'fwid']) +
+          subprocess.check_output(['crossystem', 'ro_fwid']))
+
+      try:
+        ec_version = subprocess.check_output(['ectool', 'version'])
+      except:
+        ec_version = 'EC not available.'
+
+      image_version = ''.join(open('/etc/lsb-release', 'r').readlines())
+
+      return DeviceNodeString(
+          'version', 'AP Firmware(BIOS)/EC/Image Version',
+          [('fw', fw_version, True), ('ec', ec_version, True),
+           ('image', image_version, True)])
+
+    def GetVPD():
+      """Returns RO VPD and RW VPD info."""
+      ro_vpd = subprocess.check_output(['vpd', '-i', 'RO_VPD', '-l'])
+      rw_vpd = subprocess.check_output(['vpd', '-i', 'RW_VPD', '-l'])
+
+      return DeviceNodeString(
+          'vpd', 'RO/RW VPD', [('ro', ro_vpd, True), ('rw', rw_vpd, True)])
+
+    # lshw provides common hardware information.
+    lshw_output = subprocess.check_output(['lshw', '-xml'])
+    xml_lines = [line.strip() for line in lshw_output.split('\n')]
+
+    # Use cros-specific commands to get cros info.
+    cros_output = []
+    cros_output.append('<node id="cros">')
+    cros_output.append('<description>Chrome OS Specific</description>')
+    cros_output.append(GetBootDisk())
+    cros_output.append(GetTPMStatus())
+    cros_output.append(GetHWID())
+    cros_output.append(GetWPStatus())
+    cros_output.append(GetVersion())
+    cros_output.append(GetVPD())
+    cros_output.append('</node>')
+
+    xml_lines.insert(xml_lines.index('</list>'), ''.join(cros_output))
+
+    return json.dumps(''.join(xml_lines))
 
   def LogStackTraces(self):
     """Logs the stack backtraces of all threads."""
