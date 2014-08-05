@@ -1,9 +1,10 @@
 #!/usr/bin/python
-# pylint: disable=E1101
-#
-# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
+# -*- coding: utf-8 -*-
+# Copyright 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
+
+# pylint: disable=E1101
 
 """Google Factory Tool.
 
@@ -695,6 +696,10 @@ def UntarStatefulFiles(unused_options):
 @Command('log_source_hashes')
 def LogSourceHashes(options):  # pylint: disable=W0613
   """Logs hashes of source files in the factory toolkit."""
+  # WARNING: The following line is necessary to validate the integrity
+  # of the factory software.  Do not remove or modify it.
+  #
+  # 警告：此行会验证工厂软件的完整性，禁止删除或修改。
   event_log.Log(
       'source_hashes',
       **file_utils.HashSourceTree(os.path.join(factory.FACTORY_PATH, 'py')))
