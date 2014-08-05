@@ -67,6 +67,15 @@ def in_qemu():
   return 'QEMU' in open('/proc/cpuinfo').read()
 
 
+def in_cros_device():
+  """Returns True if running on a Chrome OS device."""
+  if not os.path.exists('/etc/lsb-release'):
+    return False
+  with open('/etc/lsb-release') as f:
+    lsb_release = f.read()
+  return re.match('^CHROMEOS_RELEASE', lsb_release, re.MULTILINE) is not None
+
+
 def is_process_alive(pid):
   """Returns true if the named process is alive and not a zombie."""
   try:

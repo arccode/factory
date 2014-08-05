@@ -15,12 +15,12 @@ is deployed and is responsible for installing files.
 import argparse
 from contextlib import contextmanager
 import os
-import re
 import sys
 import tempfile
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
+from cros.factory.test import utils
 from cros.factory.tools import install_symlinks
 from cros.factory.tools.mount_partition import MountPartition
 from cros.factory.utils.process_utils import Spawn
@@ -77,6 +77,10 @@ this self-extracting archive.
 -----
 """
 
+# The method to determine whether running on Chrome OS device or not.
+# Override this for unit testing.
+_in_cros_device = utils.in_cros_device
+
 
 class FactoryToolkitInstaller():
   """Factory toolkit installer.
@@ -102,17 +106,12 @@ class FactoryToolkitInstaller():
       self._var_dest = os.path.join(dest, 'var')
 
       # Make sure we're on a CrOS device.
-      lsb_release = self._ReadLSBRelease()
-      is_cros = (
-        lsb_release and
-        re.match('^CHROMEOS_RELEASE', lsb_release, re.MULTILINE) is not None)
-
-      if not is_cros:
+      if not _in_cros_device():
         sys.stderr.write(
-            "ERROR: You're not on a CrOS device (/etc/lsb-release does not\n"
-            "contain CHROMEOS_RELEASE), so you must specify a test image or a\n"
-            "mounted stateful partition on which to install the factory\n"
-            "toolkit.  Please run\n"
+            "ERROR: You're not on a CrOS device (for more details, please\n"
+            "check utils.py:in_cros_device), so you must specify a test\n"
+            "image or a mounted stateful partition on which to install the\n"
+            "factory toolkit.  Please run\n"
             "\n"
             "  install_factory_toolkit.run -- --help\n"
             "\n"
@@ -147,15 +146,6 @@ class FactoryToolkitInstaller():
         not os.path.exists(self._var_src)):
       raise Exception(
           'This installer must be run from within the factory toolkit!')
-
-  @staticmethod
-  def _ReadLSBRelease():
-    """Returns the contents of /etc/lsb-release, or None if it does not
-    exist."""
-    if os.path.exists('/etc/lsb-release'):
-      with open('/etc/lsb-release') as f:
-        return f.read()
-    return None
 
   def WarningMessage(self, target_test_image=None):
     with open(os.path.join(self._src, 'VERSION')) as f:

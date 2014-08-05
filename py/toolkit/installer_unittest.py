@@ -32,11 +32,9 @@ class ToolkitInstallerTest(unittest.TestCase):
     self.dest = tempfile.mkdtemp(prefix='ToolkitInstallerTest.')
     self._installer = None
 
-    # True if we are pretending to be running inside CrOS.  This will
-    # cause a fake /etc/lsb-release file to be returned.
-    self._in_cros = None
-    installer.FactoryToolkitInstaller._ReadLSBRelease = (
-      lambda _: 'CHROMEOS_RELEASE' if self._in_cros else None)
+    # True if we are pretending to be running inside CrOS.
+    self._override_in_cros_device = False
+    installer._in_cros_device = lambda: self._override_in_cros_device
 
   def tearDown(self):
     shutil.rmtree(self.src)
@@ -60,7 +58,7 @@ class ToolkitInstallerTest(unittest.TestCase):
   def testNonRoot(self):
     self.makeLiveDevice()
     os.getuid = lambda: 9999 # Not root
-    self._in_cros = True
+    self._override_in_cros_device = True
     self.assertRaises(Exception, self.createInstaller, True, self.dest)
 
   def testInChroot(self):
@@ -71,7 +69,7 @@ class ToolkitInstallerTest(unittest.TestCase):
   def testInstall(self):
     self.makeLiveDevice()
     os.getuid = lambda: 0 # root
-    self._in_cros = True
+    self._override_in_cros_device = True
     self.createInstaller(system_root=self.dest)
     self._installer.Install()
     with open(os.path.join(self.dest, 'usr/local', 'file1'), 'r') as f:
@@ -90,7 +88,7 @@ class ToolkitInstallerTest(unittest.TestCase):
   def testDeviceOnly(self):
     self.makeLiveDevice()
     os.getuid = lambda: 0 # root
-    self._in_cros = True
+    self._override_in_cros_device = True
     self.createInstaller(system_root=self.dest,
                          enable_presenter=False, enable_device=True)
     self._installer.Install()
@@ -120,7 +118,7 @@ class ToolkitInstallerTest(unittest.TestCase):
     with open(os.path.join(self.dest, 'usr/local/factory/enabled'), 'w') as f:
       pass
     os.getuid = lambda: 0 # root
-    self._in_cros = True
+    self._override_in_cros_device = True
     self.createInstaller(enabled_tag=False, system_root=self.dest)
     self._installer.Install()
     with open(os.path.join(self.dest, 'usr/local', 'file1'), 'r') as f:

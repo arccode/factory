@@ -36,8 +36,8 @@ class GoofyPresenter(GoofyBase):
 
     # We are skipping the login UI, so we need to emit login-prompt-visible
     # event here so as to notify upstart jobs to continue.  However, if we
-    # are running in chroot, we don't want to do this.
-    if not utils.in_chroot():
+    # are not running on Chrome OS device, we don't want to do this.
+    if utils.in_cros_device():
       subprocess.check_call(['initctl', 'emit', 'login-prompt-visible'])
 
     self.link_manager = DUTLinkManager(
