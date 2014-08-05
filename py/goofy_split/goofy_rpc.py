@@ -384,6 +384,25 @@ class GoofyRPC(object):
     """Gets last shutdown time detected by Goofy."""
     return self.goofy.last_shutdown_time
 
+  def UIPresenterCountdown(self, message, timeout_secs, timeout_message,
+                           timeout_is_error=True):
+    """Starts a countdown on the presenter UI.
+
+    In situations like a reboot, Goofy is not available and on the UI
+    presenter side, it looks like a disconnected state. To avoid confusing
+    operators, this method may be used to inform the current status of Goofy
+    and set a timeout by which Goofy is expected to come back alive.
+
+    Args:
+      message: The text to show while counting down.
+      timeout_secs: The timeout for countdown.
+      timeout_message: The text to show when countdown ends.
+      timeout_is_error: True for red timeout message; False for black.
+    """
+    self.goofy.link_manager.StartCountdown(
+        message, timeout_secs, timeout_message,
+        'red' if timeout_is_error else 'black')
+
   def _GetTests(self):
     """Helper method to get a list of all tests and their states."""
     paths_to_run = set([t.path for t in self.goofy.tests_to_run])

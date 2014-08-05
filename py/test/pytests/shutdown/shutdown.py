@@ -146,6 +146,10 @@ class ShutdownTest(unittest.TestCase):
       # on next boot.
       os.mknod(DUTTelemetryEnvironment.GUEST_MODE_TAG_FILE)
 
+    self.goofy.UIPresenterCountdown(
+        'Reboot test in progress...',
+        self.args.max_reboot_time_secs,
+        'Reboot test failed.')
     self.goofy.Shutdown(self.args.operation)
 
     time.sleep(self.args.wait_shutdown_secs)

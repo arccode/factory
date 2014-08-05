@@ -43,13 +43,28 @@ class GoofyPresenter(GoofyBase):
     self.link_manager = DUTLinkManager(
         check_interval=1,
         connect_hook=self.DUTConnected,
-        disconnect_hook=self.DUTDisconnected)
+        disconnect_hook=self.DUTDisconnected,
+        methods={'StartCountdown': self.UIAppCountdown})
 
   def DUTConnected(self, dut_ip):
     self.ui_app_controller.ShowUI(dut_ip)
 
   def DUTDisconnected(self):
     self.ui_app_controller.ShowDisconnectedScreen()
+
+  def UIAppCountdown(self, message, timeout_secs, timeout_message,
+                     timeout_message_color):
+    """Start countdown on the UI.
+
+    Args:
+      message: The text to show during countdown.
+      timeout_secs: The timeout for countdown.
+      timeout_message: The text to show when countdown eneds.
+      timeout_message_color: The color of the text when countdown ends.
+    """
+    self.ui_app_controller.StartCountdown(message, timeout_secs,
+                                          timeout_message,
+                                          timeout_message_color)
 
   def main(self):
     """Entry point for goofy_presenter instance."""

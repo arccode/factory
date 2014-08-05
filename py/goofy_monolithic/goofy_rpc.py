@@ -384,6 +384,14 @@ class GoofyRPC(object):
     """Gets last shutdown time detected by Goofy."""
     return self.goofy.last_shutdown_time
 
+  def UIPresenterCountdown(self, message, timeout_secs, timeout_message,
+                           timeout_is_error=True):
+    """This method is only used for goofy_split.
+
+    DO NOT IMPLEMENT!
+    """
+    pass
+
   def _GetTests(self):
     """Helper method to get a list of all tests and their states."""
     paths_to_run = set([t.path for t in self.goofy.tests_to_run])

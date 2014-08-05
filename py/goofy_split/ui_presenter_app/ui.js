@@ -71,6 +71,10 @@ function handleDisconnect() {
 
 function handleConnect(serverUrl) {
   if (!connected) {
+    /* Now that a device is connected, restore message and stop countdown. */
+    stopCountdown();
+    setInfo("Waiting for device...");
+
     document.getElementById('goofy-content').src = serverUrl;
     setDisplay('goofy-logo', 'none');
     setDisplay('goofy-message-container', 'none');
