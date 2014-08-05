@@ -85,6 +85,8 @@ class Fixture {
   private:
     bool checkSensorValue(enum Sensors sensor);
     int getPin(enum Sensors sensor) const;
+    unsigned long maxActiveDuration() const;
+    void getInitSensorStatus();
 
     // Fixture's state vector
     // the main state

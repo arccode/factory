@@ -151,6 +151,27 @@ bool Fixture::operator!=(const Fixture &fixture) const {
   return !this->operator==(fixture);
 }
 
+unsigned long Fixture::maxActiveDuration() const {
+  unsigned long max = 0;
+  for (int sensor = SENSOR_MIN; sensor <= SENSOR_MAX; sensor++) {
+    if (SENSOR_ACTIVE_DURATIONS[sensor] > max) {
+      max = SENSOR_ACTIVE_DURATIONS[sensor];
+    }
+  }
+  return max;
+}
+
+/**
+ *  Get the initial status of sensors.
+ *
+ *  Delay a little bit longer than the max active duration to be safe.
+ */
+void Fixture::getInitSensorStatus() {
+  updateSensorStatus();
+  delay(maxActiveDuration() + 100);
+  updateSensorStatus();
+}
+
 /**
  *  Enable the motor and wait for the hardware to become stable.
  */
@@ -164,6 +185,9 @@ void Fixture::start() {
 
   // Delay for a while so that the sensors could begin functioning.
   delay(WARM_UP_WAIT);
+
+  // Get the initial status of sensors.
+  getInitSensorStatus();
 }
 
 /**
