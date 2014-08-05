@@ -613,6 +613,96 @@ button {
   height: 100%;
 }
 
+/* Used by the Device Manager window. */
+#goofy-device-manager-refresh {
+  position: absolute;
+  top: 90%;
+}
+
+#goofy-device-manager-refresh-icon {
+  width: 36px;
+  height: 36px;
+  background-image: url('images/refresh.png');
+  background-size: 100%;
+  vertical-align: middle;
+  display: inline-block;
+}
+
+#goofy-device-manager-refresh-text {
+  font-size: 120%;
+  font-weight: normal;
+  vertical-align: middle;
+  padding: 2px;
+  display: inline-block;
+}
+
+.goofy-log-data #goofy-device-data-area {
+  width: 60%;
+  height: 80%;
+  overflow: scroll;
+  position: absolute;
+  left: 38%;
+  top: 9%;
+  display: inline-block;
+}
+
+.goofy-log-data #goofy-device-data-area .device-name {
+  font-size: 240%;
+  font-weight: bold;
+  padding: 5px;
+}
+
+.goofy-log-data #goofy-device-data-area table {
+  border-spacing: 5px;
+  table-layout: fixed;
+}
+
+.goofy-log-data #goofy-device-data-area table tr td {
+  font-size: 120%;
+}
+
+.goofy-log-data #goofy-device-data-area table tr td:first-child {
+  width: 25%;
+  font-weight: bold;
+  padding: 2px;
+}
+
+.goofy-log-data #goofy-device-list-area {
+  width: 35%;
+  height: 80%;
+  overflow: scroll;
+  position: absolute;
+  top: 9%;
+}
+
+.goofy-log-data .toggle {
+  cursor: pointer;
+  cursor: hand;
+  background-repeat: none;
+  background-position: right;
+}
+
+.goofy-log-data tr.goog-drilldown-expanded .toggle {
+  background-image: url('images/dropdn_disabled.gif');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 80%;
+  padding: 2px;
+}
+
+.goofy-log-data tr.goog-drilldown-collapsed .toggle {
+  background-image: url('images/dropdn.gif');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 80%;
+  padding: 2px;
+}
+
+.goofy-log-data .goog-flat-button {
+  color: black;
+  cursor: pointer;
+}
+
 /* Fonts. */
 @font-face {
   font-family: 'Open Sans';

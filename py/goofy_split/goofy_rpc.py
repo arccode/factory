@@ -9,6 +9,7 @@
 
 import argparse
 import inspect
+import json
 import logging
 import os
 import Queue
@@ -229,6 +230,11 @@ class GoofyRPC(object):
 
     # (?m) = multiline
     return re.sub(r'(?m)^\[\s*([.\d]+)\]', FormatTime, dmesg)
+
+  def GetLshwXml(self):
+    out = subprocess.check_output(["lshw", "-xml"])
+    lines = [line.strip() for line in out.split("\n")]
+    return json.dumps(''.join(lines))
 
   def LogStackTraces(self):
     """Logs the stack backtraces of all threads."""

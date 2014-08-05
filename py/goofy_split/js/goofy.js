@@ -4,6 +4,7 @@
 
 goog.provide('cros.factory.Goofy');
 
+goog.require('cros.factory.DeviceManager');
 goog.require('goog.crypt');
 goog.require('goog.crypt.base64');
 goog.require('goog.crypt.Sha1');
@@ -640,6 +641,8 @@ cros.factory.Goofy = function() {
     // Set up magic keyboard shortcuts.
     goog.events.listen(
         window, goog.events.EventType.KEYDOWN, this.keyListener, true, this);
+
+    this.deviceManager = new cros.factory.DeviceManager(this);
 };
 
 /**
@@ -2427,6 +2430,8 @@ cros.factory.Goofy.prototype.setTestList = function(testList) {
                                      this.viewVarLogMessagesBeforeReboot);
                         addExtraItem('View dmesg', '检视 dmesg',
                                      this.viewDmesg);
+                        addExtraItem('List hardware', '检视硬件',
+                                     function () { this.deviceManager.showWindow(); });
                     }
 
                     addExtraItem('Save factory logs to USB drive...',
