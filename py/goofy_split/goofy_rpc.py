@@ -551,6 +551,24 @@ class GoofyRPC(object):
         message, timeout_secs, timeout_message,
         'red' if timeout_is_error else 'black')
 
+  def SuspendDUTMonitoring(self, interval_sec):
+    """Suspends monitoring of DUT connection.
+
+    For some tests, DUT is expected to go offline for a short period without
+    rebooting. In this case, we don't want the presenter to reload the UI;
+    otherwise, we lose the UI of the current running tests. By suspending
+    monitoring, the link manager on the presenter side knows to ignore
+    connection failure for a given amount of time.
+
+    Args:
+      interval_sec: Number of seconds to suspend.
+    """
+    self.goofy.link_manager.SuspendMonitoring(interval_sec)
+
+  def ResumeDUTMonitoring(self):
+    """Immediately resume suspended monitoring of DUT connection."""
+    self.goofy.link_manager.ResumeMonitoring()
+
   def _GetTests(self):
     """Helper method to get a list of all tests and their states."""
     paths_to_run = set([t.path for t in self.goofy.tests_to_run])

@@ -540,6 +540,20 @@ class GoofyRPC(object):
     """
     pass
 
+  def SuspendDUTMonitoring(self, inteval_sec):
+    """This method is only used for goofy_split.
+
+    DO NOT IMPLEMENT!
+    """
+    pass
+
+  def ResumeDUTMonitoring(self):
+    """This method is only used for goofy_split.
+
+    DO NOT IMPLEMENT!
+    """
+    pass
+
   def _GetTests(self):
     """Helper method to get a list of all tests and their states."""
     paths_to_run = set([t.path for t in self.goofy.tests_to_run])

@@ -25,6 +25,7 @@ import threading
 import unittest
 
 from cros.factory.event_log import Log
+from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import utils
 from cros.factory.test.args import Arg
@@ -82,6 +83,8 @@ class SuspendResumeTest(unittest.TestCase):
     self.assertGreaterEqual(self.args.resume_delay_max_secs,
                             self.args.resume_delay_min_secs, 'Invalid resume '
                             'timings provided in test_list (max < min).')
+
+    self.goofy = factory.get_state_instance()
 
     self._ui = test_ui.UI()
     self._template = OneSection(self._ui)
@@ -322,6 +325,10 @@ class SuspendResumeTest(unittest.TestCase):
       self.assertTrue(self.alarm_started.wait(_MIN_SUSPEND_MARGIN_SECS),
                       'Alarm thread timed out.')
       messages_start = os.path.getsize(_MESSAGES)
+      self.goofy.SuspendDUTMonitoring(suspend_time +
+                                      self.args.resume_worst_case_secs)
+      logging.info('Monitoring suspended for %d seconds',
+          suspend_time + self.args.resume_worst_case_secs)
       self._Suspend()
       wake_time = self._ReadCurrentTime()
       wake_source = self._HandleMessages(messages_start)
@@ -332,6 +339,14 @@ class SuspendResumeTest(unittest.TestCase):
       logging.info('Resumed %d of %d for %d seconds.',
                    self.run, self.args.cycles, resume_time)
       time.sleep(resume_time)
+
+      try:
+        logging.info('Resuming monitoring')
+        self.goofy.ResumeDUTMonitoring()
+      except: # pylint: disable=W0702
+        # Monitoring suspension will time out eventually
+        logging.exception('Failed to resume monitoring. Ignore.')
+
       while self.alarm_thread.isAlive():
         alarm_suspend_delays += 1
         logging.warn('alarm thread is taking a while to return, waiting 1s.')

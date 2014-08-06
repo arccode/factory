@@ -109,6 +109,12 @@ class LinkManagerTest(unittest.TestCase):
     self.assertEqual(self.dut_link.Echo('test'), 'test')
     self.assertEqual(self.presenter_link.Echo1(10), 10)
 
+    # Should not call disconnect hook if monitoring is stopped
+    self.dut_link.SuspendMonitoring(3)
+    self.StopDUT()
+    time.sleep(1.5)
+    self.StartDUT()
+
     mox.Verify(self.hook)
 
 if __name__ == '__main__':

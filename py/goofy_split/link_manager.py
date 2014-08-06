@@ -9,6 +9,7 @@ import jsonrpclib
 import logging
 import socket
 import threading
+import time
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.goofy_split.discoverer import DUTDiscoverer
@@ -44,6 +45,7 @@ class PresenterLinkManager(object):
     self._rpc_timeout = rpc_timeout
     self._connect_hook = connect_hook
     self._disconnect_hook = disconnect_hook
+    self._suspend_deadline = None
     self._methods = methods or {}
     self._methods.update({'Announce': self._PresenterAnnounce})
     self._reported_failure = set()
@@ -75,6 +77,21 @@ class PresenterLinkManager(object):
     self._abort_event.set()
     self._kick_event.set() # Kick the thread
     self._thread.join()
+
+  def SuspendMonitoring(self, interval_sec):
+    """Suspend monitoring of connection for a given period.
+
+    Args:
+      interval_sec: Number of seconds to suspend.
+    """
+    self._suspend_deadline = time.time() + interval_sec
+    self._presenter_proxy.SuspendMonitoring(interval_sec)
+
+  def ResumeMonitoring(self):
+    """Immediately resume suspended monitoring of connection."""
+    self._suspend_deadline = None
+    self.Kick()
+    self._presenter_proxy.ResumeMonitoring()
 
   def PresenterIsAlive(self):
     """Pings the presenter."""
@@ -195,10 +212,14 @@ class PresenterLinkManager(object):
       self._kick_event.clear()
       if self._abort_event.isSet():
         return
-      if self._presenter_announcement:
-        self._HandlePresenterAnnouncement()
+      if self._suspend_deadline:
+        if time.time() > self._suspend_deadline:
+          self._suspend_deadline = None
       else:
-        self.CheckPresenterConnection()
+        if self._presenter_announcement:
+          self._HandlePresenterAnnouncement()
+        else:
+          self.CheckPresenterConnection()
 
 
 class DUTLinkManager(object):
@@ -213,9 +234,12 @@ class DUTLinkManager(object):
     self._rpc_timeout = rpc_timeout
     self._connect_hook = connect_hook
     self._disconnect_hook = disconnect_hook
+    self._suspend_deadline = None
     self._methods = methods or {}
     self._methods.update({'Register': self._DUTRegister,
-                          'ConnectionGood': self.DUTIsAlive})
+                          'ConnectionGood': self.DUTIsAlive,
+                          'SuspendMonitoring': self.SuspendMonitoring,
+                          'ResumeMonitoring': self.ResumeMonitoring})
     self._reported_announcement = set()
     self._dut_proxy = None
     self._dut_ip = None
@@ -246,6 +270,19 @@ class DUTLinkManager(object):
     self._abort_event.set()
     self._kick_event.set()
     self._thread.join()
+
+  def SuspendMonitoring(self, interval_sec):
+    """Suspend monitoring of connection for a given period.
+
+    Args:
+      interval_sec: Number of seconds to suspend.
+    """
+    self._suspend_deadline = time.time() + interval_sec
+
+  def ResumeMonitoring(self):
+    """Immediately resume suspended monitoring of connection."""
+    self._suspend_deadline = None
+    self.Kick()
 
   def _MakeTimeoutServerProxy(self, dut_ip, timeout):
     return jsonrpclib.Server('http://%s:%d/' % (dut_ip, DUT_LINK_RPC_PORT),
@@ -323,7 +360,11 @@ class DUTLinkManager(object):
 
   def MonitorLink(self):
     while True:
-      self.CheckDUTConnection()
+      if self._suspend_deadline:
+        if time.time() > self._suspend_deadline:
+          self._suspend_deadline = None
+      else:
+        self.CheckDUTConnection()
       self._kick_event.wait(self._check_interval)
       self._kick_event.clear()
       if self._abort_event.isSet():
