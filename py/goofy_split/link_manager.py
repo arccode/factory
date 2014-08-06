@@ -46,6 +46,7 @@ class PresenterLinkManager(object):
     self._disconnect_hook = disconnect_hook
     self._methods = methods or {}
     self._methods.update({'Announce': self._PresenterAnnounce})
+    self._reported_failure = set()
     self._presenter_connected = False
     self._presenter_ip = None
     self._presenter_proxy = None
@@ -110,48 +111,56 @@ class PresenterLinkManager(object):
     """
     if self._presenter_connected and self._presenter_ip == presenter_ip:
       return
+
+    log = (logging.info if presenter_ip not in self._reported_failure else
+           lambda *args: None)
+
     try:
-      logging.info("Attempting to connect to presenter %s", presenter_ip)
+      log('Attempting to connect to presenter %s', presenter_ip)
       self._presenter_proxy = self._MakeTimeoutServerProxy(presenter_ip,
                                                       self._handshake_timeout)
       self._presenter_ip = presenter_ip
       self._presenter_proxy.IsAlive()
 
       # Presenter is alive. Let's register!
-      logging.info("Registering to presenter %s", presenter_ip)
+      log('Registering to presenter %s', presenter_ip)
       if not my_ip:
         if utils.in_chroot():
           my_ip = '127.0.0.1'
         else:
           my_ip = map(GetEthernetIp, GetEthernetInterfaces())
           my_ip = [x for x in my_ip if x != '127.0.0.1']
-        logging.info("Trying available IP addresses %s", my_ip)
+        log('Trying available IP addresses %s', my_ip)
       elif type(my_ip) != list:
         my_ip = [my_ip]
 
       for ip in my_ip:
-        logging.info("Trying IP address %s", ip)
+        log('Trying IP address %s', ip)
         self._presenter_proxy.Register(ip)
 
         # Make sure the presenter sees us
-        logging.info("Registered. Checking connection.")
+        log('Registered. Checking connection.')
         if not self._presenter_proxy.ConnectionGood():
-          logging.info("Registration failed.")
+          log('Registration failed.')
           continue
         self._presenter_connected = True
-        logging.info("Connected to presenter %s", presenter_ip)
+        logging.info('Connected to presenter %s', presenter_ip)
         # Now that we are connected, use a longer timeout for the proxy
         self._presenter_proxy = self._MakeTimeoutServerProxy(presenter_ip,
                                                         self._rpc_timeout)
+        if presenter_ip in self._reported_failure:
+          self._reported_failure.remove(presenter_ip)
         if self._connect_hook:
           self._connect_hook(presenter_ip)
         return
-      self._presenter_ip = None
-      self._presenter_proxy = None
     except (socket.error, socket.timeout):
-      self._presenter_ip = None
-      self._presenter_proxy = None
-      logging.info("Connection failed.")
+      pass
+
+    # If we are here, we failed to make connection. Clean up.
+    self._presenter_ip = None
+    self._presenter_proxy = None
+    self._reported_failure.add(presenter_ip)
+    log('Connection failed.')
 
   def CheckPresenterConnection(self):
     """Check the connection to the presenter.
@@ -163,7 +172,7 @@ class PresenterLinkManager(object):
       if self.PresenterIsAlive():
         return # everything's fine
       else:
-        logging.info("Lost connection to presenter %s", self._presenter_ip)
+        logging.info('Lost connection to presenter %s', self._presenter_ip)
         self._presenter_connected = False
         self._presenter_ip = None
         self._presenter_proxy = None
@@ -207,6 +216,7 @@ class DUTLinkManager(object):
     self._methods = methods or {}
     self._methods.update({'Register': self._DUTRegister,
                           'ConnectionGood': self.DUTIsAlive})
+    self._reported_announcement = set()
     self._dut_proxy = None
     self._dut_ip = None
     self._dut_connected = False
@@ -249,7 +259,8 @@ class DUTLinkManager(object):
                                                        self._rpc_timeout)
         self._dut_proxy.IsAlive()
         self._dut_connected = True
-        logging.info("DUT %s registered", dut_ip)
+        logging.info('DUT %s registered', dut_ip)
+        self._reported_announcement.clear()
         if self._connect_hook:
           self._connect_hook(dut_ip)
       except (socket.error, socket.timeout):
@@ -278,7 +289,7 @@ class DUTLinkManager(object):
           if self.DUTIsAlive():
             return # All good!
           else:
-            logging.info("Disconnected from DUT %s", self._dut_ip)
+            logging.info('Disconnected from DUT %s', self._dut_ip)
             self._dut_connected = False
             self._dut_ip = None
             self._dut_proxy = None
@@ -296,7 +307,10 @@ class DUTLinkManager(object):
             # keep the timeout short.
             proxy = self._MakeTimeoutServerProxy(ip, timeout=0.05)
             my_ips = GetAllIPs()
-            logging.info("Announcing to DUT %s: presenter ip is %s", ip, my_ips)
+            if ip not in self._reported_announcement:
+              logging.info('Announcing to DUT %s: presenter ip is %s',
+                           ip, my_ips)
+              self._reported_announcement.add(ip)
             proxy.Announce(ip, my_ips)
           except (socket.error, socket.timeout):
             pass
