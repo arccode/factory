@@ -4,28 +4,64 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Tests for regions.py."""
+"""Tests for regions.py.
+
+These tests ensure that all regions in regions.py (and
+regions_overlay.py, if present) are valid.  The tests use testdata
+pulled from the Chromium sources; use update_testdata.py to update.
+"""
 
 import logging
 import os
-import re
 import StringIO
 import unittest
 import yaml
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.l10n import regions, regions_unittest_data
+from cros.factory.l10n import regions
+
 
 # pylint: disable=W0212
 
 
-def _FindAllStrings(c_source):
-  """Returns a set of all strings in a C source file."""
-  return set(re.findall(r'"(.+?)"', c_source))
-
-
 class RegionTest(unittest.TestCase):
   """Tests for the Region class."""
+  @classmethod
+  def _ReadTestData(cls, name):
+    """Reads a YAML-formatted test data file.
+
+    Args:
+      name: Name of file in the testdata directory.
+
+    Returns: The parsed value.
+    """
+    with open(os.path.join(os.path.dirname(__file__),
+                           'testdata', name + '.yaml')) as f:
+      return yaml.load(f)
+
+  @classmethod
+  def setUpClass(cls):
+    cls.languages = cls._ReadTestData('languages')
+    cls.time_zones = cls._ReadTestData('time_zones')
+    cls.migration_map = cls._ReadTestData('migration_map')
+    cls.input_methods = cls._ReadTestData('input_methods')
+
+  def _ResolveInputMethod(self, method):
+    """Resolves an input method using the migration map.
+
+    Args:
+      method: An input method ID that may contain prefixes from the
+          migration map.  (E.g., "m17n:ar", which contains the "m17n:" prefix.)
+
+    Returns:
+      The input method ID after mapping any prefixes.  (E.g., "m17n:ar" will
+      be mapped to "vkd_".)
+    """
+    for k, v in self.migration_map:
+      if method.startswith(k):
+        method = v + method[len(k):]
+    return method
+
   def testZoneInfo(self):
     all_regions = regions.BuildRegionsDict(include_all=True)
 
@@ -48,53 +84,50 @@ class RegionTest(unittest.TestCase):
         regions.Region, 'us', 'xkb:us::', 'America/Los_Angeles', 'en-US',
         'ANSI')
 
-  def testTimeZones(self):
-    zones = _FindAllStrings(regions_unittest_data.CROS_TIME_ZONES)
+  def testKeyboardRegexp(self):
+    self.assertTrue(regions.KEYBOARD_PATTERN.match('xkb:us::eng'))
+    self.assertTrue(regions.KEYBOARD_PATTERN.match('ime:ko:korean'))
+    self.assertTrue(regions.KEYBOARD_PATTERN.match('m17n:ar'))
+    self.assertFalse(regions.KEYBOARD_PATTERN.match('m17n:'))
+    self.assertFalse(regions.KEYBOARD_PATTERN.match('foo_bar'))
 
+  def testTimeZones(self):
     for r in regions.BuildRegionsDict(include_all=True).values():
-      if r.time_zone not in zones:
+      if r.time_zone not in self.time_zones:
         if r.region_code in regions.REGIONS:
           self.fail(
             'Missing time zone %r; does a new time zone need to be added '
-            'to CrOS, or does regions_unittest_data need to be updated?' %
+            'to CrOS, or does testdata need to be updated?' %
             r.time_zone)
         else:
           # This is an unconfirmed region; just print a warning.
           logging.warn('Missing time zone %r; does a new time zone need to be '
-                       'added to CrOS, or does regions_unittest_data need to '
+                       'added to CrOS, or does testdata need to '
                        'be updated? (just a warning, since region '
                        '%r is not a confirmed region)',
                        r.time_zone, r.region_code)
 
   def testLanguages(self):
-    languages = _FindAllStrings(regions_unittest_data.CROS_ACCEPT_LANGUAGE_LIST)
     missing = []
     for r in regions.BuildRegionsDict(include_all=True).values():
       for l in r.language_codes:
-        if l not in languages:
+        if l not in self.languages:
           missing.append(l)
     self.assertFalse(
       missing,
-      ('Missing languages; does regions_unittest_data need to be updated?: %r' %
+      ('Missing languages; does testdata need to be updated?: %r' %
        missing))
 
   def testInputMethods(self):
-    methods = regions_unittest_data.CROS_INPUT_METHODS.splitlines()
-    # Remove comments and strip whitespace
-    methods = [re.sub('#.+', '', x).strip() for x in methods]
-    # Remove empty lines
-    methods = filter(None, methods)
-    # Split into tuples
-    methods = [x.split() for x in methods]
-    # Turn into a dict based on the first field.
-    methods_dict = dict([(x[0], x) for x in methods])
-
     # Verify that every region is present in the dict.
     for r in regions.BuildRegionsDict(include_all=True).values():
       for k in r.keyboards:
-        method = methods_dict.get(k)
+        resolved_method = self._ResolveInputMethod(k)
         # Make sure the keyboard method is present.
-        self.assertTrue(method, 'Missing keyboard layout %r' % r.keyboard)
+        self.assertIn(
+            resolved_method, self.input_methods,
+            'Missing keyboard layout %r (resolved from %r)' % (
+                resolved_method, k))
 
   def testFirmwareLanguages(self):
     bmpblk_dir = os.path.join(

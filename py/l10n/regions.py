@@ -27,7 +27,8 @@ from cros.factory.test.utils import Enum
 KeyboardMechanicalLayout = Enum(['ANSI', 'ISO', 'JIS', 'ABNT2'])
 
 
-KEYBOARD_PATTERN = re.compile(r'^xkb:\w+:\w*:\w+$')
+KEYBOARD_PATTERN = re.compile(r'^xkb:\w+:\w*:\w+$|'
+                              r'^(ime|m17n):[\w:]+$')
 LANGUAGE_CODE_PATTERN = re.compile(r'^(\w+)(-[A-Z0-9]+)?$')
 
 
@@ -55,13 +56,32 @@ class Region(object):
   """
 
   keyboards = None
-  """A list of XKB keyboard layout identifiers (e.g.,
-  ``xkb:us:intl:eng``); see `input_method_util.cc
-  <http://goo.gl/cDO53r>`_ and `input_methods.txt
-  <http://goo.gl/xWNrUP>`_ for supported keyboards.  Note that the
-  keyboard must be whitelisted for login, i.e., the respective line in
-  `input_methods.txt <http://goo.gl/xWNrUP>`_ must contain the
-  ``login`` keyword.
+  """A list of keyboard layout identifiers (e.g.,
+  ``xkb:us:intl:eng`` or ``m17n:ar``).  Each identifier must start with
+  either ``xkb:`` or ``m17n:`` or ``ime:``.
+
+  As of August 2014, valid keyboard layout identifiers are:
+
+  - XKB input methods listed in any file in JSON files in the Chromium
+    `src/chrome/browser/resources/chromeos/input_method
+    <http://goo.gl/z4JGvK>`_ directory. (Look for the ``id``
+    attributes of each ``input_components`` list entry.)  For example,
+    you will find ``xkb:us::eng`` in `google_xkb_manifest.json
+    <http://goo.gl/jBtjIV>`_.
+
+  - Any hard-coded strings listed in ``kEngineIdMigrationMap`` in
+    Chromium's `input_method_util.cc <http://goo.gl/cDO53r>`_. Currently
+    this is:
+
+      - ``ime:zh-t:quick``
+      - ``ime:ko:hangul``
+      - ``ime:ko:hangul_2set``
+
+  - Strings with a prefix in ``kEngineIdMigrationMap``. The prefix is
+    rewritten according to the map, and there must be a corresponding
+    input method ID in some file in the ``input_method``
+    directory. For instance, there is a ``vkd_ar`` input method in
+    ``google_input_tools_manifest.js``, so ``m17n:ar`` may be used.
 
   This is used to set the VPD ``keyboard_layout`` value."""
 
