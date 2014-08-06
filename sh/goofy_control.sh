@@ -58,6 +58,30 @@ check_disk_usage() {
   echo -e "\033[0m"
 }
 
+clear_tpm_owner() {
+  # Alert user and try to clear TPM.
+  local tty=/dev/tty5
+  echo "
+        Sorry, you must clear TPM owner before running factory UI.
+        We are going to do that for you (and then reboot) in 10 seconds.
+
+        If you want to abort, do Ctrl-Alt-F2, login, and run
+
+          stop factory
+
+       " >"$tty"
+  chvt 5
+  for i in $(seq 10 -1 0); do
+    echo " > Clear & reboot in ${i} seconds..." >"$tty"
+    sleep 1
+  done
+  crossystem clear_tpm_owner_request=1
+  echo "Restarting system..." >"$tty"
+  reboot
+  # Wait forever.
+  sleep 1d
+}
+
 start_factory() {
   # This should already exist, but just in case...
   mkdir -p "$(dirname "$FACTORY_LOG_FILE")"
@@ -89,6 +113,11 @@ start_factory() {
   status factory-init >/dev/null 2>&1 || use_telemetry=1
   if [ -n "$use_telemetry" ]; then
     GOOFY_ARGS="$GOOFY_ARGS --use-telemetry"
+  else
+    # If TPM is owned, we have to reboot otherwise UI may get freak.
+    if (cryptohome --action=tpm_status 2>&1 | grep -q 'TPM Owned: true'); then
+      clear_tpm_owner
+    fi
   fi
 
   # Open ports in the firewall so that the presenter can reach us
