@@ -41,7 +41,7 @@ clear_files() {
 }
 
 clear_vpd=false
-automation_mode=
+automation_mode=none
 stop_auto_run_on_start=false
 delete=""
 while [ $# -gt 0 ]; do
@@ -72,11 +72,10 @@ while [ $# -gt 0 ]; do
       exit 0
       ;;
     --automation-mode )
-      mode="$1"
-      shift
-      case "${mode}" in
+      case "$1" in
         none | partial | full )
-          automation_mode="${mode}"
+          automation_mode="$1"
+          shift
           ;;
         * )
           usage_help
@@ -119,9 +118,9 @@ if $clear_vpd; then
 fi
 
 find ${FACTORY_BASE} -wholename "${AUTOMATION_MODE_TAG_FILE}" -delete
-if [ "${mode}" != "none" ]; then
-  echo Enable factory test automation with mode: ${mode}
-  echo "${mode}" > ${AUTOMATION_MODE_TAG_FILE}
+if [ "${automation_mode}" != "none" ]; then
+  echo Enable factory test automation with mode: ${automation_mode}
+  echo "${automation_mode}" > ${AUTOMATION_MODE_TAG_FILE}
   if ${stop_auto_run_on_start}; then
     touch ${STOP_AUTO_RUN_ON_START_TAG_FILE}
   else
