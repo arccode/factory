@@ -18,9 +18,11 @@ from cros.factory.utils import sys_utils
 _SUB_DIRS = ['bin', 'dashboard', 'log', 'resources', 'run', 'toolkits',
              'updates', 'conf']
 
-# Relative path of Umpire CLI in toolkit directory.
+# Relative path of Umpire CLI / Umpired in toolkit directory.
 _UMPIRE_CLI_IN_TOOLKIT_PATH = os.path.join('usr', 'local', 'factory', 'bin',
                                            'umpire')
+_UMPIRED_IN_TOOLKIT_PATH = os.path.join('usr', 'local', 'factory', 'bin',
+                                        'umpired')
 
 # Relative path of UmpireConfig template in toolkit directory.
 # Note that it shall be defined in board spedific overlay.
@@ -87,12 +89,15 @@ def Init(env, bundle_dir, board, make_default, local, user, group,
     return unpack_dir
 
   def SymlinkBinary(toolkit_base):
-    """Creates symlink to umpire executable.
+    """Creates symlink to umpire/umpired executable.
 
     It first creates a symlink $base_dir/bin/umpire to umpire executable in
     extracted toolkit '$toolkit_base/usr/local/factory/bin/umpire'.
     And if 'local' is True, symlinks /usr/local/bin/umpire-$board to
     $base_dir/bin/umpire.
+
+    For umpired, it only creates a symlink $base_dir/bin/umpired to umpired
+    executable in extracted toolkit. (No symlink in /usr/local/bin)
 
     For the first time, also creates /usr/local/bin/umpire symlink.
     If --default is set, replaces /usr/local/bin/umpire.
@@ -100,11 +105,16 @@ def Init(env, bundle_dir, board, make_default, local, user, group,
     Note that root '/'  can be overridden by arg 'root_dir' for testing.
     """
     umpire_binary = os.path.join(toolkit_base, _UMPIRE_CLI_IN_TOOLKIT_PATH)
-
     umpire_bin_symlink = os.path.join(env.bin_dir, 'umpire')
     file_utils.CheckPath(umpire_binary, description='Umpire CLI')
     file_utils.ForceSymlink(umpire_binary, umpire_bin_symlink)
     logging.info('Symlink %r -> %r', umpire_bin_symlink, umpire_binary)
+
+    umpired_binary = os.path.join(toolkit_base, _UMPIRED_IN_TOOLKIT_PATH)
+    umpired_bin_symlink = os.path.join(env.bin_dir, 'umpired')
+    file_utils.CheckPath(umpire_binary, description='Umpire daemon')
+    file_utils.ForceSymlink(umpired_binary, umpired_bin_symlink)
+    logging.info('Symlink %r -> %r', umpired_bin_symlink, umpired_binary)
 
     if not local:
       global_board_symlink = os.path.join(root_dir, 'usr', 'local', 'bin',
@@ -144,4 +154,4 @@ def Init(env, bundle_dir, board, make_default, local, user, group,
   toolkit_base = InstallUmpireExecutable(uid, gid)
   InitUmpireConfig(toolkit_base)
   SymlinkBinary(toolkit_base)
-  # TODO(deanliao): set up daemon running environment.
+  # TODO(rong): set up daemon running environment.

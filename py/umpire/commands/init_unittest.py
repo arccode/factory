@@ -27,14 +27,16 @@ UMPIRE_CONFIG_TEMPLATE_PATH = os.path.join(TEST_DIR, 'testdata',
 UMPIRE_CONFIG_RESOURCE = 'umpire.yaml##a2e913b7'
 
 # MD5SUM of install_factory_toolkit.run in TEST_BUNDLE_DIR
-TOOLKIT_MD5 = '7509337e'
+TOOLKIT_MD5 = '43bc8d96'
 
 TEST_USER = 'umpire_user'
 TEST_GROUP = 'umpire_group'
 TEST_BOARD = 'testboard'
 
-# Relative path of Umpire executable.
+# Relative path of Umpire / Umpired executable.
 UMPIRE_RELATIVE_PATH = os.path.join('usr', 'local', 'factory', 'bin', 'umpire')
+UMPIRED_RELATIVE_PATH = os.path.join('usr', 'local', 'factory', 'bin',
+                                     'umpired')
 
 # Relative path of board specific Umpire bin symlink.
 BOARD_SPECIFIC_UMPIRE_BIN_SYMLINK = os.path.join(
@@ -72,12 +74,39 @@ class InitTest(unittest.TestCase):
   def VerifyToolkitExtracted(self):
     self.assertTrue(os.path.exists(os.path.join(
         self.env.server_toolkits_dir, TOOLKIT_MD5, UMPIRE_RELATIVE_PATH)))
+    self.assertTrue(os.path.exists(os.path.join(
+        self.env.server_toolkits_dir, TOOLKIT_MD5, UMPIRED_RELATIVE_PATH)))
 
   def VerifyConfig(self):
     self.assertTrue(os.path.exists(os.path.join(
         self.root_dir, 'var', 'db', 'factory', 'umpire', TEST_BOARD,
         'active_umpire.yaml')))
     self.assertTrue(self.env.InResource(UMPIRE_CONFIG_RESOURCE))
+
+  def VerifyLocalSymlink(self):
+    umpire_bin_path = os.path.join(
+        self.env.server_toolkits_dir, TOOLKIT_MD5, UMPIRE_RELATIVE_PATH)
+    umpire_bin_symlink = os.path.join(self.env.bin_dir, 'umpire')
+    self.assertTrue(os.path.exists(umpire_bin_symlink))
+    self.assertEqual(umpire_bin_path, os.path.realpath(umpire_bin_symlink))
+
+    umpired_bin_path = os.path.join(
+        self.env.server_toolkits_dir, TOOLKIT_MD5, UMPIRED_RELATIVE_PATH)
+    umpired_bin_symlink = os.path.join(self.env.bin_dir, 'umpired')
+    self.assertTrue(os.path.exists(umpired_bin_symlink))
+    self.assertEqual(umpired_bin_path, os.path.realpath(umpired_bin_symlink))
+
+  def VerifyGlobalSymlink(self):
+    umpire_bin_path = os.path.join(
+        self.env.server_toolkits_dir, TOOLKIT_MD5, UMPIRE_RELATIVE_PATH)
+    umpire_board_symlink = os.path.join(
+        self.root_dir, 'usr', 'local', 'bin', 'umpire-testboard')
+    self.assertTrue(os.path.exists(umpire_board_symlink))
+    self.assertEqual(umpire_bin_path, os.path.realpath(umpire_board_symlink))
+    umpire_default_symlink = os.path.join(
+        self.root_dir, 'usr', 'local', 'bin', 'umpire')
+    self.assertTrue(os.path.exists(umpire_default_symlink))
+    self.assertEqual(umpire_bin_path, os.path.realpath(umpire_default_symlink))
 
   def testDefault(self):
     self.MockOsModule()
@@ -90,18 +119,8 @@ class InitTest(unittest.TestCase):
     self.VerifyToolkitInResource()
     self.VerifyToolkitExtracted()
     self.VerifyConfig()
-
-    # Verify symlinks.
-    umpire_bin_path = os.path.join(
-        self.env.server_toolkits_dir, TOOLKIT_MD5, UMPIRE_RELATIVE_PATH)
-    umpire_board_symlink = os.path.join(
-        self.root_dir, 'usr', 'local', 'bin', 'umpire-testboard')
-    self.assertTrue(os.path.exists(umpire_board_symlink))
-    self.assertEqual(umpire_bin_path, os.path.realpath(umpire_board_symlink))
-    umpire_default_symlink = os.path.join(
-        self.root_dir, 'usr', 'local', 'bin', 'umpire')
-    self.assertTrue(os.path.exists(umpire_default_symlink))
-    self.assertEqual(umpire_bin_path, os.path.realpath(umpire_default_symlink))
+    self.VerifyLocalSymlink()
+    self.VerifyGlobalSymlink()
 
   def testSetLocal(self):
     self.MockOsModule()
@@ -115,6 +134,7 @@ class InitTest(unittest.TestCase):
     self.VerifyToolkitInResource()
     self.VerifyToolkitExtracted()
     self.VerifyConfig()
+    self.VerifyLocalSymlink()
 
     # Verify no symlink is created.
     self.assertFalse(os.path.exists(os.path.join(
@@ -140,18 +160,9 @@ class InitTest(unittest.TestCase):
     self.VerifyToolkitInResource()
     self.VerifyToolkitExtracted()
     self.VerifyConfig()
-
-    # Verify symlinks.
-    umpire_bin_path = os.path.join(
-        self.env.server_toolkits_dir, TOOLKIT_MD5, UMPIRE_RELATIVE_PATH)
-    umpire_board_symlink = os.path.join(
-        self.root_dir, 'usr', 'local', 'bin', 'umpire-testboard')
-    self.assertTrue(os.path.exists(umpire_board_symlink))
-    self.assertEqual(umpire_bin_path, os.path.realpath(umpire_board_symlink))
-
+    self.VerifyLocalSymlink()
     # /usr/local/bin/umpire is forced symlinked to umpire.
-    self.assertTrue(os.path.exists(umpire_default_symlink))
-    self.assertEqual(umpire_bin_path, os.path.realpath(umpire_default_symlink))
+    self.VerifyGlobalSymlink()
 
   def testNoMakeDefault(self):
     self.MockOsModule()
@@ -170,6 +181,7 @@ class InitTest(unittest.TestCase):
     self.VerifyToolkitInResource()
     self.VerifyToolkitExtracted()
     self.VerifyConfig()
+    self.VerifyLocalSymlink()
 
     # Verify symlinks.
     umpire_bin_path = os.path.join(
