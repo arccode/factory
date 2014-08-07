@@ -1,7 +1,7 @@
 #!/usr/bin/python -u
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
+# Copyright 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -26,6 +26,7 @@ import yaml
 from xml.sax import saxutils
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.diagnosis.diagnosis_tool import DiagnosisToolRPC
 from cros.factory.goofy import goofy_remote
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
@@ -105,6 +106,9 @@ class GoofyRPC(object):
 
   def __init__(self, goofy):
     self.goofy = goofy
+
+    # Creates delegate of RPC for diagnosis tool.
+    self.diagnosis_tool_rpc = DiagnosisToolRPC(self)
 
   def RegisterMethods(self, state_instance):
     """Registers exported RPC methods in a state object."""
@@ -1167,6 +1171,10 @@ class GoofyRPC(object):
       utils.TimeoutError: if no response until timeout.
     """
     return self.CallExtension('GetDisplayInfo', timeout=timeout)
+
+  def DiagnosisToolRpc(self, *args):
+    """Receives a rpc request for diagnosis tool."""
+    return getattr(self.diagnosis_tool_rpc, args[0])(*args[1:])
 
   def DeviceCreateWindow(self, left, top,
                          timeout=DEFAULT_GOOFY_RPC_TIMEOUT_SECS):

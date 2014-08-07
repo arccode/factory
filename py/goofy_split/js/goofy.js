@@ -1,10 +1,11 @@
-// Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
+// Copyright 2014 The Chromium OS Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
 goog.provide('cros.factory.Goofy');
 
 goog.require('cros.factory.DeviceManager');
+goog.require('cros.factory.DiagnosisTool');
 goog.require('goog.crypt');
 goog.require('goog.crypt.base64');
 goog.require('goog.crypt.Sha1');
@@ -113,6 +114,13 @@ cros.factory.NON_FAILING_TEST_HOVER_DELAY_MSEC = 250;
  * @type string
  */
 cros.factory.EXTENSION_ID = 'pngocaclmlmihmhokaeejfiklacihcmb';
+
+/**
+ * @define {boolean} Whether to enable diagnosis tool or not.
+ * The tool is still under development and is not ready for use yet.
+ * TODO(bowgotsai): enable this when the tool is ready.
+ */
+cros.factory.ENABLE_DIAGNOSIS_TOOL = false;
 
 /**
  * Makes a label that displays English (or optionally Chinese).
@@ -644,6 +652,9 @@ cros.factory.Goofy = function() {
         window, goog.events.EventType.KEYDOWN, this.keyListener, true, this);
 
     this.deviceManager = new cros.factory.DeviceManager(this);
+    if (cros.factory.ENABLE_DIAGNOSIS_TOOL) {
+        this.diagnosisTool = new cros.factory.DiagnosisTool(this);
+    }
 };
 
 /**
@@ -2431,6 +2442,12 @@ cros.factory.Goofy.prototype.setTestList = function(testList) {
                                      this.viewDmesg);
                         addExtraItem('Device manager', '检视硬件',
                                      function () { this.deviceManager.showWindow(); });
+                        if (cros.factory.ENABLE_DIAGNOSIS_TOOL) {
+                            addExtraItem('Diagnosis Tool', '诊断工具',
+                                         goog.bind(
+                                             this.diagnosisTool.showWindow,
+                                             this.diagnosisTool));
+                        }
                     }
 
                     addExtraItem('Save factory logs to USB drive...',
@@ -2510,7 +2527,8 @@ cros.factory.Goofy.prototype.makeSwitchTestListMenu = function(menu) {
 
                 var titleEn = 'Switch Test List: ' +
                     goog.string.htmlEscape(testList.name);
-                var titleZh = '切换测试列表：' + goog.string.htmlEscape(testList.name);
+                var titleZh = '切换测试列表：' +
+                    goog.string.htmlEscape(testList.name);
 
                 cros.factory.Goofy.setDialogTitleHTML(
                     dialog,
@@ -3010,6 +3028,8 @@ cros.factory.Goofy.prototype.handleBackendEvent = function(jsonMessage) {
     } else if (message.type == 'goofy:update_notes') {
         this.sendRpc('get_shared_data', ['factory_note', true],
                      this.updateNote);
+    } else if (message.type == 'goofy:diagnosis_tool:event') {
+        this.diagnosisTool.handleBackendEvent(message);
     } else if (message.type == 'goofy:hide_tooltips') {
         this.hideTooltips();
     }

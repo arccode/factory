@@ -21,6 +21,7 @@ CLOSURE_COMPILER_JAR=/opt/closure-compiler-bin-0/lib/closure-compiler-bin.jar
 
 CSS_SOURCES=\
     goog/css/checkbox.css \
+    goog/css/common.css \
     goog/css/dialog.css \
     goog/css/menu.css \
     goog/css/menuitem.css \
@@ -47,7 +48,8 @@ all: goofy.js closure.css
 # For now, we just use the compiler (--output_mode=compiled) to check
 # the correctness of our code, and we actually deploy the version that is
 # just the concatenation of all the dependencies (--output_mode=script).
-goofy.js: $(CLOSURE_LIB_DIR) ../js/goofy.js ../js/device_manager.js
+goofy.js: $(CLOSURE_LIB_DIR) ../js/goofy.js ../js/device_manager.js \
+          ../js/diagnosis_tool.js
 	mkdir -p tmp
 	$(CLOSURE_BUILD) --output_mode=compiled --output_file=/dev/null \
 	    >& tmp/errors.compiled || ( cat tmp/errors.compiled; exit 1 )
