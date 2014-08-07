@@ -58,8 +58,8 @@ class UmpireEnvTest(unittest.TestCase):
 
   def testLoadConfigDefault(self):
     default_path = os.path.join(self.env.base_dir, 'active_umpire.yaml')
-    self.mox.StubOutClassWithMocks(config, 'UmpireConfig')
-    config.UmpireConfig(default_path).get('port').AndReturn(8080)
+    self.mox.StubOutWithMock(config, 'UmpireConfig')
+    config.UmpireConfig(default_path).AndReturn({'port': 8080})
     self.mox.ReplayAll()
 
     self.env.LoadConfig()
@@ -67,9 +67,8 @@ class UmpireEnvTest(unittest.TestCase):
 
   def testLoadConfigCustomPath(self):
     custom_path = os.path.join(self.env.base_dir, 'custom_config.yaml')
-
-    self.mox.StubOutClassWithMocks(config, 'UmpireConfig')
-    config.UmpireConfig(custom_path).get('port').AndReturn(8080)
+    self.mox.StubOutWithMock(config, 'UmpireConfig')
+    config.UmpireConfig(custom_path).AndReturn({'port': 8080})
     self.mox.ReplayAll()
 
     self.env.LoadConfig(custom_path=custom_path)
@@ -77,8 +76,8 @@ class UmpireEnvTest(unittest.TestCase):
 
   def testLoadConfigStaging(self):
     staging_path = os.path.join(self.env.base_dir, 'staging_umpire.yaml')
-    self.mox.StubOutClassWithMocks(config, 'UmpireConfig')
-    config.UmpireConfig(staging_path).get('port').AndReturn(8080)
+    self.mox.StubOutWithMock(config, 'UmpireConfig')
+    config.UmpireConfig(staging_path).AndReturn({'port': 8080})
     self.mox.ReplayAll()
 
     self.env.LoadConfig(staging=True)

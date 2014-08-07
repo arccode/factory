@@ -156,24 +156,33 @@ class UmpireEnv(object):
     return os.path.join(self.base_dir, _STAGING_UMPIRE_CONFIG)
 
   @property
+  def umpire_base_port(self):
+    if not self.config:
+      raise UmpireError('UmpireConfig not loaded yet.')
+    if 'port' not in self.config:
+      raise UmpireError('port is not defined in UmpireConfig %s' %
+                        self.config_path)
+    return self.config['port']
+
+  @property
   def umpire_webapp_port(self):
-    return (self.config['port'] + _WEBAPP_PORT_OFFSET)
+    return self.umpire_base_port + _WEBAPP_PORT_OFFSET
 
   @property
   def umpire_cli_port(self):
-    return (self.config['port'] + _CLI_PORT_OFFSET)
+    return self.umpire_base_port + _CLI_PORT_OFFSET
 
   @property
   def umpire_rpc_port(self):
-    return (self.config['port'] + _RPC_PORT_OFFSET)
+    return self.umpire_base_port + _RPC_PORT_OFFSET
 
   @property
   def umpire_rsync_port(self):
-    return (self.config['port'] + _RSYNC_PORT_OFFSET)
+    return self.umpire_base_port + _RSYNC_PORT_OFFSET
 
   @property
   def fastcgi_start_port(self):
-    return (self.config.get('port') + _FCGI_PORTS_OFFSET)
+    return self.umpire_base_port + _FCGI_PORTS_OFFSET
 
   @property
   def umpire_version_major(self):
@@ -205,9 +214,13 @@ class UmpireEnv(object):
     config_path = None
     if custom_path:
       config_path = custom_path
+      logging.debug('Load config from custom path: %s', config_path)
+    elif staging:
+      config_path = self.staging_config_file
+      logging.debug('Load staging config: %s', config_path)
     else:
-      config_path = (self.staging_config_file if staging else
-                     self.active_config_file)
+      config_path = self.active_config_file
+      logging.debug('Load active config: %s', config_path)
 
     # Update config & config_path after the config is loaded successfully.
     self.config = config.UmpireConfig(config_path)
