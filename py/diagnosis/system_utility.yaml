@@ -1,0 +1,134 @@
+
+- name: System utility
+  member:
+
+    - name: I2C toolkits
+      member:
+
+        - name: List all I2C devices.
+          description: 'Output a list of installed I2C busses.'
+          steps:
+            - command: 'i2cdetect -l'
+
+        - name: Probe I2C devices.
+          description: 'Without specifying address, it will outputs a taple
+                        with the list of detected devices on the specified bus.
+                        Otherwise it will probe the register with specified
+                        address through the I2C bus.'
+          inputs:
+            - prompt: 'Bus number, I2C-'
+              help: 'It indicates the number or name of the I2C bus to be
+                     scanned.  You can get the valid value by run the function
+                     "List all I2C device".'
+              var_id: 1
+              type: choices
+              choices: "!ls /dev/i2c-* | sed -e 's/\\/dev\\/i2c-//g' | sort -n"
+            - prompt: 'Probe specified address?'
+              var_id: 2
+              type: bool
+              value: false
+              enable_list: [3]
+            - prompt: 'Address number, 0x'
+              var_id: 3
+              type: string
+              regexp: ["[0-9a-f][0-9a-f]", "gi"]
+              hint: 'A hexadecimal address number'
+          steps:
+            - command: 'if ! $2; then i2cdetect -y -r "$1"; else i2cdump -y "$1" "0x$3"; fi'
+
+        - name: Read/Write the register of a I2C device.
+          description: 'For writing value, it will write a value to the
+                        specified register with gived bus number, chip number
+                        and address.  Otherwise it will just read the value from
+                        the register.'
+          inputs:
+            - prompt: 'Bus number, I2C-'
+              var_id: 1
+              type: choices
+              choices: "!ls /dev/i2c-* | sed -e 's/\\/dev\\/i2c-//g' | sort -n"
+            - prompt: 'Chip address(from 0x03 to 0x73), 0x'
+              var_id: 2
+              type: string
+              regexp: ["[0-9a-f][0-9a-f]", "gi"]
+            - prompt: 'Register number, address = 0x'
+              var_id: 3
+              type: string
+              regexp: ["[0-9a-f][0-9a-f]*", "gi"]
+              hint: 'A hexadecimal address number'
+            - prompt: 'Write value?'
+              var_id: 4
+              type: bool
+              value: false
+              enable_list: [5]
+            - prompt: 'value: 0x'
+              var_id: 5
+              type: string
+              regexp: ["[0-9a-f][0-9a-f]", "gi"]
+              hint: 'A hexadecimal number between 00 and FF'
+          steps:
+            - command: 'if ! $4; then
+                          i2cget -y "$1" "0x$2" "0x$3";
+                        else
+                          i2cset -y"$1" "0x$2" "0x$3" "0x$5";
+                        fi'
+
+    - name: A GPIO toolkit
+      member:
+
+        - name: Get the value of GPIO connected to CPU
+          description: 'It reads 0/1 value from the GPIO port.'
+          inputs:
+            - prompt: 'GPIO number:'
+              var_id: 1
+              type: number
+              min: 0
+              max: 1024
+              step: 1
+              round: 0
+          steps:
+            - command: 'echo "$1" > /sys/class/gpio/export'
+            - command: 'echo out > /sys/class/gpio/gpio$1/direction'
+            - command: 'cat /sys/class/gpio/gpio$1/value'
+            - finally: 'echo "$1" > /sys/class/gpio/unexport'  # gracefully cleanup
+
+        - name: Set the value of GPIO connected to CPU
+          description: 'It can set 0/1 value to the specified GPIO port.'
+          inputs:
+            - prompt: 'GPIO number:'
+              var_id: 1
+              type: number
+              min: 0
+              max: 1024
+              step: 1
+              round: 0
+            - prompt: 'Value: '
+              var_id: 2
+              type: choices
+              choices: [0, 1]
+          steps:
+            - command: 'echo "$1" > /sys/class/gpio/export'
+            - command: 'echo in > /sys/class/gpio/gpio$1/direction'
+            - command: 'echo "$2" > /sys/class/gpio/gpio$1/value'
+            - finally: 'echo "$1" > /sys/class/gpio/unexport'  # gracefully cleanup
+
+    - name: Charging behavior
+      description: Adjust charging behavior.
+      inputs:
+        - prompt: 'Behavior: '
+          var_id: 1
+          type: choices
+          choices: ['normal', 'idle', 'discharge']
+      steps:
+        - command: 'ectool chargecontrol "$1"'
+
+    - name: Adjust display backlight
+      description: "Adjust display backlight."
+      inputs:
+        - prompt: 'Set lightness:'
+          var_id: 1
+          type: slider
+          min: 0
+          max: '!echo 0$(cat /sys/class/backlight/*/max_brightness 2>/dev/null)'
+          step: 1
+      steps:
+        - command: 'echo "$1" > $(echo /sys/class/backlight/*/brightness)'

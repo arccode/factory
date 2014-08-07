@@ -1,0 +1,25 @@
+
+- name: Write Protect
+  description: Enable/disable write protect.
+  member:
+
+    - name: Disable Write Protect
+      steps:
+        - confirm: 'Please remove the write protect screw.'
+          title: 'Instruction'
+          options: [Done, Cancel]
+          timeout: Null
+        - command: 'crossystem wpsw_cur'
+          expected_output: ''
+          error_message: 'You cheat me!'
+        - command: 'ectool reboot_ec cold'
+
+    - name: Enable Write Protect
+      steps:
+        - confirm: 'Please attach the write protect screw.'
+          title: 'Instruction'
+          options: [Done, Cancel]
+          timeout: Null
+        - command: 'crossystem wpsw_cur'
+          expected_output: '1'
+          error_message: 'You cheat me!'

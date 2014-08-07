@@ -1,0 +1,11 @@
+- name: Peripheral
+  member:
+
+    - name: Show pressed key
+      description: 'The program will terminates 10s after last keypress.'
+      steps:
+        - command: 'showkey -k'
+
+    - name: Reset modem
+      steps:
+        - command: 'modem reset'

@@ -1,0 +1,6 @@
+- name: HWID
+  member:
+
+    - name: Probe hardware
+      steps:
+        - command: 'gooftool probe'

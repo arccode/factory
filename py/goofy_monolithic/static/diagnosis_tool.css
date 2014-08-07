@@ -59,12 +59,12 @@
   display: inline;
 }
 
-.diagnosis-tool-input-div {
+#diagnosis-tool .input-div {
   position: relative;
   display: inline;
 }
 
-.diagnosis-tool-input-slider-horizontal-line {
+#diagnosis-tool .input-slider-horizontal-line {
   position: absolute;
   width: 100%;
   top: 0.45em;
@@ -72,6 +72,20 @@
   overflow: hidden;
   height: 0;
   z-index: 0;
+}
+
+#diagnosis-tool .name {
+  font-weight: bold;
+}
+
+#diagnosis-tool .description {
+  margin-left: 2em;
+  margin-bottom: 2em;
+}
+
+#diagnosis-tool .inputs {
+  margin-left: 2em;
+  margin-bottom: 2em;
 }
 
 #diagnosis-tool .goog-slider-horizontal {
@@ -108,15 +122,21 @@
 }
 
 #diagnosis-tool .goog-checkbox-checked {
-  background: #000;
-}
-
-#diagnosis-tool .goog-checkbox-undetermined {
-  background: #bbb;
+  background: #393;
+  border-width: 3px;
+  cursor: pointer;
 }
 
 #diagnosis-tool .goog-checkbox-unchecked {
   background: #fff;
+  border-width: 3px;
+  cursor: pointer;
+}
+
+#diagnosis-tool .goog-checkbox-unchecked:hover {
+  background: #5b5;
+  border-width: 3px;
+  cursor: pointer;
 }
 
 #diagnosis-tool .goog-checkbox-disabled {
@@ -124,20 +144,28 @@
   background-position: -7px;
 }
 
-#diagnosis-tool
-.goog-splitpane-second-container .goog-splitpane-second-container div {
+#diagnosis-tool .output {
   font-family: monospace;
 }
 
-#diagnosis-tool
-.goog-splitpane-second-container .goog-splitpane-second-container div div div {
+#diagnosis-tool .output div {
+  display: inline;
   white-space: pre;
   height: 1em;
-}
-
-#diagnosis-tool
-.goog-splitpane-second-container .goog-splitpane-second-container span {
   font-family: monospace;
-  white-space: pre;
 }
 
+#diagnosis-tool .goog-menu-button {
+  cursor: pointer;
+  background-color: #BEE9EB;
+  border-style: solid;
+  border-width: 1px;
+  border-color: #7272DA;
+  border-radius: 4px;
+}
+
+#diagnosis-tool .goog-menu-button:hover {
+  border-color: #D8AA4A;
+}
+
+/* #BEE9EB */

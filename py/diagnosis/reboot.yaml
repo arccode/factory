@@ -1,0 +1,30 @@
+
+- name: Reboot
+  description: "Reboot utilities."
+  member:
+    - name: Warm reboot (Only reboot CPU)
+      steps:
+        - confirm: 'Reboot now?'
+        - command: 'reboot'
+
+    - name: Cold reboot (EC reset)
+      steps:
+        - confirm: 'Cold reboot now?'
+        - command: 'ectool reboot_ec cold at-shutdown'
+        - command: 'shutdown -h now'
+
+    - name: Reboot from USB
+      steps:
+        - confirm: 'The machine will reboot and you need to press Ctrl+U at boot screen. Proceed?'
+        - command: 'crossystem dev_boot_usb=1'
+        - command: 'reboot'
+
+    - name: Reboot into recovery mode
+      steps:
+        - confirm: 'The machine will reboot into recovery mode. Proceed?'
+        - command: 'crossystem recovery_request=1'
+        - command: 'reboot'
+
+    - name: Simulate kernel panic
+      steps:
+        - command: 'echo panic > /proc/breakme'

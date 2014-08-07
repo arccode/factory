@@ -1,0 +1,21 @@
+
+- name: System Status
+  description: 'Shows or sets the factory device data.'
+  member:
+    - name: Factory device data
+      member:
+        - name: Display data
+          description: 'Shows the factory device data.'
+          steps:
+            - command: "factory device-data"
+
+        - name: Writes data
+          description: 'Write "key=value" pair(s) data to the factory device.'
+          inputs:
+            - prompt: 'Key-value pair:'
+              type: string
+              regexp: ['..*=..*']
+              hint: 'key=value'
+          steps:
+            - command: 'factory device-data $@'
+
