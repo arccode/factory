@@ -23,15 +23,16 @@ from cros.factory.umpire.umpire_env import UmpireEnv
 from cros.factory.umpire.webapp_resourcemap import ResourceMapApp
 
 
-# This template file is from private overlay.
-TEMPLATE_YAML = os.path.join(
-    os.path.dirname(os.path.realpath(__file__)),
-    'umpired_template.yaml')
-
 SERVER_TOOLKIT_HASH_RE = r'/toolkits/server/([0-9a-f]{8,32})/usr/local/factory/'
 
 
-def StartServer(testmode=False, config_file=TEMPLATE_YAML):
+def StartServer(test_mode=False, config_file=None):
+  """Starts Umpire daemon.
+
+  Args:
+    test_mode: True to enable test mode.
+    config_file: If specified, uses it as config file.
+  """
   # Instanciate environment and load default configuration file
   daemon_path = sys.modules[__name__].__file__
   toolkit_hash = None
@@ -42,12 +43,11 @@ def StartServer(testmode=False, config_file=TEMPLATE_YAML):
     toolkit_hash = match.groups()[0]
   # Instanciate environment and load default configuration file.
   env = UmpireEnv(active_server_toolkit_hash=toolkit_hash)
-  if testmode:
-    (test_base_dir, _) = os.path.split(
-        os.path.realpath(__file__))
-    test_base_dir = os.path.join(test_base_dir, 'testdata')
+  if test_mode:
+    test_base_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                 'testdata')
     if not os.path.isdir(test_base_dir):
-      raise UmpireError('Dir %s does not exist. Test mode failed.' %
+      raise UmpireError('Test directory %s does not exist. Test mode failed.' %
                         test_base_dir)
     env.base_dir = test_base_dir
   env.LoadConfig(custom_path=config_file)
@@ -82,13 +82,12 @@ def main():
       format='%(asctime)s %(levelname)s %(message)s')
   parser = optparse.OptionParser()
   parser.add_option(
-      '-t', '--test', dest='testmode', action='store_true', default=False,
+      '-t', '--test', dest='test_mode', action='store_true', default=False,
       help='test run testdata/umpired_test.yaml')
   parser.add_option(
-      '-y', '--yaml', dest='custom_path', default=TEMPLATE_YAML,
-      help='use another test yaml config file')
+      '-c', '--config', dest='config_file', help='path to UmpireConfig file')
   (options, unused_args) = parser.parse_args()
-  StartServer(testmode=options.testmode, config_file=options.custom_path)
+  StartServer(test_mode=options.test_mode, config_file=options.config_file)
 
 
 if __name__ == '__main__':
