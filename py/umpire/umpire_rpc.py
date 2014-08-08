@@ -8,18 +8,6 @@
 import factory_common  # pylint: disable=W0611
 
 
-class UmpireRPC(object):
-
-  """RPC base class.
-
-  Properties:
-    env: UmpireEnv object.
-  """
-  def __init__(self, env):
-    super(UmpireRPC, self).__init__()
-    self.env = env
-
-
 def RPCCall(method):
   """Enables the method to be Umpire RPC function.
 
@@ -37,3 +25,29 @@ def RPCCall(method):
   """
   method.is_rpc_method = True
   return method
+
+class UmpireRPC(object):
+
+  """RPC base class.
+
+  Properties:
+    env: UmpireEnv object.
+  """
+  def __init__(self, env):
+    super(UmpireRPC, self).__init__()
+    self.env = env
+
+  @RPCCall
+  def __nonzero__(self):
+    """Truth value testing.
+
+    It is used for handling request issued when client side performs truth
+    value testing on RPC server proxy. For example:
+      p = xmlrpclib.ServerProxy('http://127.0.0.1:9090')
+      if p:  # <- this invokes __nonzero__() RPC call.
+        p.DoSomething()
+
+    Returns:
+      True
+    """
+    return True
