@@ -6,10 +6,12 @@
 
 """A tool for running factory flow tests."""
 
+import collections
 import datetime
 import glob
 import logging
 import os
+import re
 import shutil
 import smtplib
 import subprocess
@@ -44,6 +46,8 @@ CONFIG_FILE_PATH_OUTSIDE_CHROOT = lambda board: (
     '/var/factory/board_config-%s.yaml' % board)
 
 TestStatus = utils.Enum(['NOT_TESTED', 'PASSED', 'FAILED'])
+TestResultInfo = collections.namedtuple(
+    'TestResultInfo', ['status', 'log_file'])
 
 
 class FactoryFlowTestError(Exception):
@@ -59,6 +63,7 @@ class TestResult(object):
     test_plan_name: The name of the test plan.
     test_plan_config: The configs of the test plan, as a dict.
     base_log_dir: The path to base log directory.
+    bundle_dir: The path to the testing bundle directory.
     results: The test results of each test item, stored in a per DUT basis.
   """
   def __init__(self, board_name, plan_name, plan_config, base_log_dir,
@@ -69,21 +74,22 @@ class TestResult(object):
     self.base_log_dir = base_log_dir
     self.bundle_dir = bundle_dir
     self.results = {}
+    file_utils.TryMakeDirs(self.base_log_dir)
     # Initialize all items to NOT_TESTED.
     for dut in self.test_plan_config['dut']:
-      self.results[dut] = {}
+      self.results[dut] = collections.OrderedDict()
       for item in self.test_plan_config['test_sequence']:
-        self.results[dut][item] = TestStatus.NOT_TESTED
+        self.results[dut][item] = TestResultInfo(TestStatus.NOT_TESTED, None)
       for item in self.test_plan_config['clean_up']:
-        self.results[dut][item] = TestStatus.NOT_TESTED
+        self.results[dut][item] = TestResultInfo(TestStatus.NOT_TESTED, None)
 
-  def SetTestItemResult(self, dut, item, status):
+  def SetTestItemResult(self, dut, item, result_info):
     """Sets the test result of a test item for the given DUT.
 
     Args:
       dut: The ID of the DUT.
       item: The ID of the test item.
-      status: The status of the test item; must be one of TestStatus.
+      result_info: The test result infomation in a TestResultInfo object.
     """
     if not dut in self.test_plan_config['dut']:
       raise FactoryFlowTestError('DUT %r is not planned for %r' %
@@ -91,8 +97,8 @@ class TestResult(object):
     if not item in (self.test_plan_config['test_sequence'] +
                     self.test_plan_config['clean_up']):
       raise FactoryFlowTestError('Test item %r is not planned for %r' %
-                                   (item, self.test_plan_name))
-    self.results[dut][item] = status
+                                 (item, self.test_plan_name))
+    self.results[dut][item] = result_info
 
   def GetOverallTestResult(self, dut=None):
     """Gets the overall test results of the test plan.
@@ -113,13 +119,16 @@ class TestResult(object):
           * PASSED: If all the tested DUTs have passed all test items.
     """
     dut_status = {}
-    for d, item_status in self.results.iteritems():
-      if all(s == TestStatus.PASSED for s in item_status.itervalues()):
-        dut_status[d] = TestStatus.PASSED
-      elif all(s == TestStatus.NOT_TESTED for s in item_status.itervalues()):
-        dut_status[d] = TestStatus.NOT_TESTED
-      elif any(s == TestStatus.FAILED for s in item_status.itervalues()):
-        dut_status[d] = TestStatus.FAILED
+    for dut, item_results in self.results.iteritems():
+      if all(result.status == TestStatus.PASSED
+             for result in item_results.itervalues()):
+        dut_status[dut] = TestStatus.PASSED
+      elif all(result.status == TestStatus.NOT_TESTED
+               for result in item_results.itervalues()):
+        dut_status[dut] = TestStatus.NOT_TESTED
+      elif any(result.status == TestStatus.FAILED
+               for result in item_results.itervalues()):
+        dut_status[dut] = TestStatus.FAILED
       else:
         raise FactoryFlowTestError('Unexpected test status')
     if dut:
@@ -129,6 +138,58 @@ class TestResult(object):
           TestStatus.FAILED if any(
               s == TestStatus.FAILED for s in dut_status.itervalues())
           else TestStatus.PASSED)
+
+  def GenerateReport(self):
+    """Generates test report as a dictionary.
+
+    Returns:
+      A dict of test results.
+    """
+    # Generate overall test result of the test plan.
+    report = {}
+    report['board'] = self.board_name.full_name
+    report['test_plan'] = self.test_plan_name
+    report['overall_status'] = self.GetOverallTestResult()
+
+    # Generate overall test results and specific test result of each test item
+    # for each DUT.
+    report['duts'] = {}
+    for dut, result in self.results.iteritems():
+      report['duts'][dut] = {}
+      report['duts'][dut]['overall_status'] = self.GetOverallTestResult(dut)
+
+      for section in ('test_sequence', 'clean_up'):
+        report['duts'][dut][section] = []
+        for item in self.test_plan_config[section]:
+          report['duts'][dut][section].append(
+              {item: {'status': result[item].status,
+                      'log_file': result[item].log_file,}
+              })
+
+    return report
+
+  def GenerateLogArchive(self):
+    """Generates log archive.
+
+    Returns:
+      The full path to the generated log archive.
+    """
+    log_dir = os.path.join(self.base_log_dir, self.test_plan_name)
+    if not os.path.exists(log_dir):
+      raise FactoryFlowTestError('Log directory of %r not found' %
+                                   self.test_plan_name)
+
+    now = datetime.datetime.now().isoformat().replace(':', '-').split('.')[0]
+    log_file_name = '%s-%s-%s.tar.bz2' % (
+        self.board_name.full_name, self.test_plan_name, now)
+    with open(
+        os.path.join(self.base_log_dir, self.test_plan_name, 'REPORT'),
+        'w') as f:
+      f.write(yaml.dump(self.GenerateReport(), default_flow_style=False))
+    process_utils.Spawn(['tar', 'cJvf', log_file_name, self.test_plan_name],
+                        cwd=self.base_log_dir, log=True, check_call=True,
+                        stdout=process_utils.OpenDevNull())
+    return os.path.join(self.base_log_dir, log_file_name)
 
   def NotifyOwners(self):
     """Sends out notification E-mail to owners of this test plan.
@@ -146,73 +207,54 @@ class TestResult(object):
       raise FactoryFlowTestError('Log directory of %r not found' %
                                    self.test_plan_name)
 
-    now = datetime.datetime.now().isoformat().replace(':', '-').split('.')[0]
-    log_file_name = '%s-%s-%s.tar.bz2' % (
-        self.board_name.full_name, self.test_plan_name, now)
-    log_archive_path = os.path.join(self.base_log_dir, log_file_name)
-    process_utils.Spawn(['tar', 'cJvf', log_file_name, self.test_plan_name],
-                        cwd=self.base_log_dir, log=True, check_call=True,
-                        stdout=process_utils.OpenDevNull())
-
     logging.info('Preparing notification E-mail...')
-    report = []
+    report_txt = []
 
     # Extract the bundle info from README in the testing bundle.
-    if not self.bundle_dir:
-      # If self.bundle_dir is None, defaults to finding the factory bundle
-      # generated in one level above the base log directory.
-      upper_dir = os.path.dirname(self.base_log_dir)
-      bundle_dir = glob.glob(os.path.join(
-          upper_dir, 'factory_bundle_%s_*_testing' % self.board_name.full_name))
-      if not bundle_dir:
-        raise FactoryFlowTestError(
-            ('Unable to locate the testing bundle directory; expect to find '
-             'one bundle in %r') % upper_dir)
-      if len(bundle_dir) > 1:
-        raise FactoryFlowTestError(
-            'Found %d bundles in %r; expect to find only one.' %
-            (len(bundle_dir), upper_dir))
-      self.bundle_dir = bundle_dir[0]
-    readme = os.path.join(self.bundle_dir, 'README')
+    bundle_dir = LocateBundleDir(self.board_name, self.bundle_dir)
+    readme = os.path.join(bundle_dir, 'README')
     if not os.path.exists(readme):
-      raise FactoryFlowTestError('Unable to find README in %r' %
-                                 self.bundle_dir)
+      raise FactoryFlowTestError('Unable to find README in %r' % bundle_dir)
     with open(readme) as f:
-      report += [line.strip() for line in f.readlines()]
+      report_txt += [line.strip() for line in f.readlines()]
 
     # Generate overall test result of the test plan.
-    overall_status = self.GetOverallTestResult()
-    report += [
+    report = self.GenerateReport()
+    report_txt += [
         '', '',
-        '*** Overall test results: %-20s' % overall_status,
+        '*** Overall test results: %-20s' % report['overall_status'],
         '***',
         '*** Test result per DUT:',
         '***']
 
     # Generate overall test results and specific test result of each test item
     # for each DUT.
-    for dut, result in self.results.iteritems():
-      report += ['*** [%10s] %s' % (self.GetOverallTestResult(dut), dut)]
-      for item in self.test_plan_config['test_sequence']:
-        report += ['*** [%10s] - %s' % (result[item], item)]
-      for item in self.test_plan_config['clean_up']:
-        report += ['*** [%10s] - %s' % (result[item], item)]
-      report += ['***']
-    dut_results = MIMEText('\n'.join(report))
+    for dut in report['duts']:
+      report_txt += ['*** [%10s] %s' %
+                     (report['duts'][dut]['overall_status'], dut)]
+      for section in ('test_sequence', 'clean_up'):
+        for item in report['duts'][dut][section]:
+          item_name = item.keys()[0]
+          item_status = item.values()[0]['status']
+          report_txt += ['*** [%10s] - %s' % (item_status, item_name)]
+      report_txt += ['***']
+    dut_results = MIMEText('\n'.join(report_txt))
 
     # Generate log archive as a attachment to the E-mail.
+    log_archive_path = self.GenerateLogArchive()
     attachment = MIMEBase('application', 'octet-stream')
     with open(log_archive_path, 'rb') as f:
       attachment.set_payload(f.read())
     encoders.encode_base64(attachment)
     attachment.add_header('Content-Disposition', 'attachment',
-                          filename=log_file_name)
+                          filename=os.path.basename(log_archive_path))
 
     # Generate the notification E-mail.
     FROM = 'chromeos-factory-testing@chromium.org'
+    now = datetime.datetime.now().isoformat().replace(':', '-').split('.')[0]
     mail = MIMEMultipart()
     mail['Subject'] = ('[%s][%s][%s][%s] Test results and logs.' %
-                       (overall_status, self.board_name.full_name,
+                       (report['overall_status'], self.board_name.full_name,
                         self.test_plan_name, now))
     mail['To'] = ', '.join(self.test_plan_config['owners'])
     mail['From'] = FROM
@@ -228,7 +270,7 @@ class TestResult(object):
 class FactoryFlowRunner(object):
   """A class for running factory flow tests."""
 
-  def __init__(self, config, output_dir=None, bundle_dir=None):
+  def __init__(self, config, output_dir=None, log_dir=None, bundle_dir=None):
     self.config = config
     for name, item in config['test_items'].iteritems():
       subcommand = item['command']
@@ -238,10 +280,10 @@ class FactoryFlowRunner(object):
     self.board = config['board']
     self.output_dir = output_dir or tempfile.mkdtemp(
         prefix='factory_flow_runner.')
-    self.bundle_dir = bundle_dir
+    self.bundle_dir = bundle_dir or self.output_dir
     self.test_results = {}
     # Initialize log directory.
-    self.log_dir = os.path.join(self.output_dir, 'logs')
+    self.log_dir = log_dir or os.path.join(self.output_dir, 'logs')
     file_utils.TryMakeDirs(self.log_dir)
 
   def CleanUp(self):
@@ -296,9 +338,7 @@ class FactoryFlowRunner(object):
         dut_info_dict[dut] = dut_info
 
       test_env = os.environ.copy()
-      # If self.bundle_dir is not set, defaults to create a new fatory bundle in
-      # self.output_dir.
-      test_env[common.BUNDLE_DIR_ENVVAR] = self.bundle_dir or self.output_dir
+      test_env[common.BUNDLE_DIR_ENVVAR] = self.bundle_dir
 
       def RunTestItem(item):
         """Runs a give test item.
@@ -320,31 +360,37 @@ class FactoryFlowRunner(object):
         procs = []
         for x in xrange(len(dut_commands)):
           dut_command = dut_commands[x]
+          log_file = log_file_spec % x
           logging.info('Running test item %s for DUT %s...', item,
                        dut_command.duts)
-          with open(log_file_spec % x, 'w') as f:
+          with open(log_file, 'w') as f:
             proc = process_utils.Spawn(
                 dut_command.args, log=True, env=test_env, stdout=f, stderr=f)
-          procs.append((dut_command.duts, proc))
+          procs.append(
+              (dut_command.duts, proc, os.path.relpath(log_file, self.log_dir)))
 
         # Wait for all commands to finish and set test results.
         passed = True
         for x in xrange(len(procs)):
-          duts, proc = procs[x]
+          duts, proc, log_file = procs[x]
           proc.wait()
           if proc.returncode != 0:
             for dut in duts:
-              test_result.SetTestItemResult(dut, item, TestStatus.FAILED)
+              test_result_info = TestResultInfo(
+                  TestStatus.FAILED, log_file)
+              test_result.SetTestItemResult(dut, item, test_result_info)
             logging.error(
                 'Test item %s for DUT %s failed; check %s for detailed logs',
-                item, duts, log_file_spec % x)
+                item, duts, log_file)
             passed = False
           else:
             logging.info(
                 'Test item %s for DUT %s passed; check %s for detailed logs',
-                item, duts, log_file_spec % x)
+                item, duts, log_file)
             for dut in duts:
-              test_result.SetTestItemResult(dut, item, TestStatus.PASSED)
+              test_result_info = TestResultInfo(
+                  TestStatus.PASSED, log_file)
+              test_result.SetTestItemResult(dut, item, test_result_info)
         return passed
 
       try:
@@ -388,22 +434,8 @@ class FactoryFlowRunner(object):
       dut: The ID of the DUT to get factory logs from.
       output_path: The output path of the log archive.
     """
-    bundle_dir = self.bundle_dir
-    if not bundle_dir:
-      bundle_dir = glob.glob(os.path.join(
-          self.output_dir,
-          ('factory_bundle_%s_*_testing' %
-           build_board.BuildBoard(self.board).full_name)))
-      if not bundle_dir:
-        raise FactoryFlowTestError(
-            ('Unable to locate the testing bundle directory; expect to find '
-             'one bundle in %r') % self.output_dir)
-      if len(bundle_dir) > 1:
-        raise FactoryFlowTestError(
-            'Found %d bundles in %r; expect to find only one.' %
-            (len(bundle_dir), self.output_dir))
-      bundle_dir = bundle_dir[0]
-
+    bundle_dir = LocateBundleDir(build_board.BuildBoard(self.board),
+                                 self.bundle_dir)
     finalize_report_spec = glob.glob(
         os.path.join(bundle_dir, 'shopfloor', 'shopfloor_data',
                      'reports', time.strftime('logs.%Y%m%d'), '*.tar.xz'))
@@ -432,6 +464,36 @@ class FactoryFlowRunner(object):
     ssh_utils.SpawnRsyncToDUT(
         ['%s:/tmp/factory_bug.%s*.tar.bz2' % (dut_info['ip'], FACTORY_BUG_ID),
          output_path], log=True, check_call=True)
+
+
+def LocateBundleDir(board, base_path):
+  """Locates the testing bundle directory from base_path.
+
+  If the base_path is the testing bundle directory, then returns it. Otherwise
+  tries to find exactly one testing bundle directory under base_path.
+
+  Args:
+    board: A BuildBoard object.
+    base_path: The base path to look for testing bundle directory.
+
+  Returns:
+    The full path to the testing bundle directory.
+  """
+  bundle_dir = base_path
+  if not re.match(r'factory_bundle_%s_.*' % board.full_name,
+                  os.path.basename(base_path)):
+    bundle_dir = glob.glob(os.path.join(
+        base_path, 'factory_bundle_%s_*' % board.full_name))
+    if not bundle_dir:
+      raise FactoryFlowTestError(
+          ('Unable to locate the testing bundle directory; expect to find '
+           'one bundle in %r') % base_path)
+    if len(bundle_dir) > 1:
+      raise FactoryFlowTestError(
+          'Found %d bundles in %r; expect to find only one.' %
+          (len(bundle_dir), base_path))
+    bundle_dir = bundle_dir[0]
+  return bundle_dir
 
 
 def LoadConfig(board=None, filepath=None):
@@ -477,6 +539,9 @@ def main():
              help='output dir of the created bundle and test logs'),
       CmdArg('--bundle-dir',
              help='path to the base directory of the factory bundle to test'),
+      CmdArg('--log-dir',
+             help=('path to the base directory to store test logs; '
+                   'defaults to "<OUTPUT_DIR>/logs"')),
       CmdArg('--clean-up', action='store_true',
              help='delete generated files and directories after test'),
       CmdArg('--fail-fast', action='store_true',
@@ -495,10 +560,11 @@ def main():
 
   config = LoadConfig(board=args.board, filepath=args.file)
   runner = FactoryFlowRunner(config, output_dir=args.output_dir,
-                             bundle_dir=args.bundle_dir)
+                             log_dir=args.log_dir, bundle_dir=args.bundle_dir)
   runner.RunTests(plan=args.plan, dut=args.dut, fail_fast=args.fail_fast)
   if args.clean_up:
     runner.CleanUp()
+
 
 if __name__ == '__main__':
   main()

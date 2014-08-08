@@ -1,0 +1,149 @@
+board: big
+
+test_items:
+  create_bundle_toolkit_latest:
+    command: create-bundle
+    mini-omaha-port: 8070
+    factory-version: canary
+    hwid-bundle-version: canary/5772
+    test-version: canary/5772.32.0
+    factory-shim-version: canary/5772.32.0
+    netboot-firmware-version: dev/5841.20.0
+    netboot-shim-version: canary/5772
+    release-version: dev/5841.20.0
+
+  create_bundle_factory:
+    command: create-bundle
+    mini-omaha-port: 8070
+    factory-version: canary/5772
+
+  start_server:
+    command: start-server
+    fake-hwid: True
+    no-wait: True
+
+  stop_server:
+    command: start-server
+    stop: True
+
+  netboot_install_ssh:
+    command: netboot-install
+    flash-method: ssh
+    wait-timeout-secs: 2400
+
+  netboot_install_servo:
+    command: netboot-install
+    flash-method: servo
+    servo-host: localhost
+    wait-timeout-secs: 2400
+
+  usb_install_usb_image:
+    command: usb-install
+    method: usb_image
+    wait-timeout-secs: 2400
+
+  usb_install_install_shim:
+    command: usb-install
+    method: install_shim
+    wait-timeout-secs: 2400
+
+  run_firmware_stress_small:
+    command: run-automated-tests
+    test-list: firmware_stress_small
+    timeout-mins: 180
+    automation-mode: full
+
+  run_generic_grt:
+    command: run-automated-tests
+    test-list: generic
+    run: GoogleRequiredTests
+    timeout-mins: 15
+    automation-mode: full
+
+  cold_reset_dut:
+    command: run-host-command
+    cmd: >
+      ${CROS_WORKON_SRCROOT}/src/platform/factory/py/factory_flow/servo.py
+      --board ${runner_info:board} --host ${dut_info:servo_host}
+      --port ${dut_info:servo_port} --serial ${dut_info:servo_serial}
+      'set("cold_reset", "on")'
+
+
+host_info:
+  dhcp_iface: eth1
+  host_ip: 10.3.0.11
+
+
+dut_info:
+  big_dut_wifi:
+    eth_mac: 20:c9:d0:2a:60:e3
+    ip: 10.3.0.23
+    servo_host: localhost
+    servo_port: 9988
+    servo_serial: 780735-00093
+    test_list_customization:
+      generic:
+        device_data:
+          serial_number: TESTDEV-M-USWIFI
+          component.keyboard: US_API
+        vpd:
+          ro:
+            initial_locale: en-US
+            initial_timezone: America/Los_Angeles
+            keyboard_layout: xkb:us::eng
+            serial_number: TESTDEV-M-USWIFI
+            rlz_brand_code: ZZCR
+          rw:
+            gbind_attribute: '=CikKIP//////TESTING///////+wujRQ+2t24IVxIRe9eM3MEAAaA2JpZxCJ+NunCw=='
+            ubind_attribute: '=CikKIP//////TESTING////////sCG9dDWV/AnXJkVdClEyyEAEaA2JpZxD48eGSCw=='
+        test_list_dargs:
+          GoogleRequiredTests.VerifyRootPartition:
+            kern_a_device: mmcblk0p4
+            root_device: mmcblk0p5
+        automation_function_kwargs:
+          GoogleRequiredTests.ShopFloor.Scan:
+            serial_number: TESTDEV-M-USWIFI
+
+
+test_plans:
+  latest_firmware_stress:
+    owners:
+    - acme@chromium.org
+    dut:
+    - big_dut_wifi
+    test_sequence:
+    - create_bundle_toolkit_latest
+    - start_server
+    - usb_install_install_shim
+    - run_firmware_stress_small
+    clean_up:
+    - stop_server
+
+  generic_grt:
+    owners:
+    - acme@chromium.org
+    dut:
+    - big_dut_wifi
+    test_sequence:
+    - create_bundle_toolkit_latest
+    - start_server
+    - netboot_install_servo
+    - run_generic_grt
+    clean_up:
+    - cold_reset_dut
+    - stop_server
+
+  stress_and_grt:
+    owners:
+    - acme@chromium.org
+    dut:
+    - big_dut_wifi
+    test_sequence:
+    - create_bundle_toolkit_latest
+    - start_server
+    - netboot_install_servo
+    - run_firmware_stress_small
+    - run_generic_grt
+    clean_up:
+    - cold_reset_dut
+    - stop_server
