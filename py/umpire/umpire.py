@@ -260,19 +260,20 @@ def _LoadConfig(args, env):
   Raises:
     UmpireError if config fails to load.
   """
+  # Only edit and deploy loads staging file.
+  if args.command_name in ['edit', 'deploy']:
+    env.LoadConfig(staging=True, custom_path=args.config)
+    return
+
+  # For import-bundle, update and stage command, it writes modified
+  # config file and makes it staging. So no staging config should exist
+  # when running the commands.
   if args.command_name in ['import-bundle', 'update', 'stage']:
-    # For import-bundle, update and stage command, it writes modified
-    # config file and makes it staging. So no staging config should exist
-    # when running the commands.
     if env.HasStagingConfigFile():
       raise common.UmpireError(
           'A staging config file exists. Please unstage it before '
           'import-bundle, update or stage.')
-    env.LoadConfig(custom_path=args.config)
-  elif args.command_name in ['start', 'stop']:
-    env.LoadConfig(custom_path=args.config)
-  elif args.command_name in ['edit', 'deploy']:
-    env.LoadConfig(staging=True, custom_path=args.config)
+  env.LoadConfig(custom_path=args.config)
 
 
 def main():
