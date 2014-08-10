@@ -16,7 +16,7 @@ from cros.factory.event_log import Log
 from cros.factory.test import factory
 from cros.factory.test import utils
 from cros.factory.test.fixture.touchscreen_calibration.fixture import (
-    FixtureException, FixutreNativeUSB, FixutreSerialDevice)
+    FixtureException, FixutreSerialDevice)
 from cros.factory.test.media_util import MountedMedia
 from cros.factory.test.test_ui import UI
 from cros.factory.utils.process_utils import SpawnOutput
@@ -163,7 +163,6 @@ class TouchscreenCalibration(unittest.TestCase):
     self.reader = DebugDataReader()
     self.ui = UI()
     self._monitor_thread = None
-    self.native_usb = None
     self.query_fixture_state_flag = False
     self._mounted_media_flag = True
     self._local_log_dir = '/var/tmp/%s' % test_name
@@ -515,11 +514,12 @@ class TouchscreenCalibration(unittest.TestCase):
 
   def QueryFixtureState(self, unused_event=None):
     """Query the fixture internal state including all sensor values."""
-    try:
-      self.native_usb.QueryFixtureState()
-      self.query_fixture_state_flag = True
-    except Exception as e:
-      factory.console.warn('Failed to query fixture state: %s' % e)
+    if self.fixture.native_usb:
+      try:
+        self.fixture.native_usb.QueryFixtureState()
+        self.query_fixture_state_flag = True
+      except Exception as e:
+        factory.console.warn('Failed to query fixture state: %s' % e)
 
   def _MonitorNativeUsb(self, native_usb):
     """Get the complete state and show the values that are changed."""
@@ -547,16 +547,12 @@ class TouchscreenCalibration(unittest.TestCase):
 
   def _CreateMonitorPort(self):
     """Create a thread to monitor the native USB port."""
-    self.native_usb = FixutreNativeUSB()
-
-    if not self.native_usb:
-      raise FixtureException('Fail to connect the native usb port.')
-
-    try:
-      self._monitor_thread = utils.StartDaemonThread(
-          target=self._MonitorNativeUsb, args=[self.native_usb])
-    except threading.ThreadError:
-      factory.console.warn('Cannot start thread for _MonitorNativeUsb()')
+    if self.fixture.native_usb:
+      try:
+        self._monitor_thread = utils.StartDaemonThread(
+            target=self._MonitorNativeUsb, args=[self.fixture.native_usb])
+      except threading.ThreadError:
+        factory.console.warn('Cannot start thread for _MonitorNativeUsb()')
 
   def runTest(self, dev_path=None, dump_frames=3):
     """The entry method of the test.

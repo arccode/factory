@@ -159,6 +159,11 @@ class FixutreSerialDevice(SerialDevice):
     self.AssertStateWithTimeout([STATE.INIT, STATE.STOP_UP,
                                  STATE.EMERGENCY_STOP], timeout)
 
+    # The 2nd-generation tst fixture has a native usb port.
+    self.native_usb = FixutreNativeUSB()
+    if not self.native_usb:
+      raise FixtureException('Fail to connect the native usb port.')
+
   def QueryState(self):
     """Queries the state of the arduino board."""
     try:
