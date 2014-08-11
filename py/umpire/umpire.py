@@ -28,21 +28,6 @@ from cros.factory.umpire.umpire_env import UmpireEnv
 from cros.factory.utils import file_utils
 
 
-
-def UmpireCLI(env):
-  """Gets connection to Umpire CLI XMLRPC server.
-
-  Args:
-    env: UmpireEnv object to get umpire_cli_port.
-
-  Returns:
-    A logical connection to an XML-RPC server
-  """
-  uri = 'http://127.0.0.1:%d' % env.umpire_cli_port
-  logging.debug('UmpireCLI uri: %s', uri)
-  return xmlrpclib.Server(uri)
-
-
 @Command('init',
          CmdArg('--base-dir',
                 help=('the Umpire base directory. If not specified, use '
@@ -60,7 +45,7 @@ def UmpireCLI(env):
                 help='the group to run Umpire daemon'),
          CmdArg('bundle_path', default='.',
                 help='Bundle path. If not specified, use local path.'))
-def Init(args, env, root_dir='/'):
+def Init(args, root_dir='/'):
   """Initializes or updates an Umpire working environment.
 
   It creates base directory, installs Umpire executables and sets up daemon
@@ -72,7 +57,7 @@ def Init(args, env, root_dir='/'):
   Umpire executables.
 
   Args:
-    env: UmpireEnv object.
+    args: Command line args.
     root_dir: Root directory. Used for testing purpose.
   """
   def GetBoard():
@@ -96,9 +81,9 @@ def Init(args, env, root_dir='/'):
                                       common.BUNDLE_FACTORY_TOOLKIT_PATH)
   file_utils.CheckPath(factory_toolkit_path, description='factory toolkit')
 
-  base_dir = (args.base_dir if args.base_dir else
-              os.path.join(root_dir, common.DEFAULT_BASE_DIR, board))
-  env.base_dir = base_dir
+  env = UmpireEnv()
+  env.base_dir = (args.base_dir if args.base_dir else
+                  os.path.join(root_dir, common.DEFAULT_BASE_DIR, board))
 
   init.Init(env, args.bundle_path, board, args.default, args.local, args.user,
             args.group)
@@ -110,7 +95,7 @@ def Init(args, env, root_dir='/'):
                       'bundle_name in bundle\'s MANIFEST.yaml')),
          CmdArg('bundle_path', default='.',
                 help='Bundle path. If not specified, use local path.'))
-def ImportBundle(args, env):
+def ImportBundle(args, umpire_cli):
   """Imports a factory bundle to Umpire.
 
   It does the following: 1) sanity check for Umpire Config; 2) copy bundle
@@ -118,7 +103,7 @@ def ImportBundle(args, env):
   4) prepend a ruleset for the new bundle; 5) mark the updated config as
   staging and prompt user to edit it.
   """
-  UmpireCLI(env).ImportBundle(os.path.realpath(args.bundle_path), args.id,
+  umpire_cli.ImportBundle(os.path.realpath(args.bundle_path), args.id,
                               args.note)
 
 
@@ -133,7 +118,7 @@ def ImportBundle(args, env):
                 help=('resource(s) to update. Format: '
                       '<resource_type>=/path/to/resource where resource_type '
                       'is one of ' + ', '.join(common.UPDATEABLE_RESOURCES))))
-def Update(args, env):
+def Update(args, umpire_cli):
   """Updates a specific resource of a bundle.
 
   It imports the specified resource(s) and updates the bundle's resource
@@ -152,93 +137,102 @@ def Update(args, env):
 
   logging.debug('Invoke CLI Update(%r, source_id=%r,  dest_id=%r)',
                 resources_to_update, args.source_id, args.dest_id)
-  UmpireCLI(env).Update(resources_to_update, args.source_id, args.dest_id)
+  umpire_cli.Update(resources_to_update, args.source_id, args.dest_id)
 
 @Command('edit')
-def Edit(args, env):
+def Edit(args, umpire_cli):
   """Edits the Umpire Config file.
 
   It calls user's default EDITOR to edit the config file and verifies the
   modified result afterward.
   """
-  editor = edit.ConfigEditor(env, umpire_cli=UmpireCLI(env))
+  # TODO(deanliao): modify ConfigEditor to retrieve config from umpired/CLI.
+  env = UmpireEnv()
+  editor = edit.ConfigEditor(env, umpire_cli=umpire_cli)
   editor.Edit(config_file=args.config)
 
 
 @Command('deploy')
-def Deploy(unused_args, env):
+def Deploy(args, umpire_cli):
   """Deploys an Umpire service.
 
   It runs an Umpire service based on the staging Umpire Config (unless
   specified by --config).
   """
-  # The config to deploy is already determined in _LoadConfig(). However,
-  # we need to ask Umpire damnon to validate resources.
-  config_path_to_deploy = os.path.realpath(env.config_path)
-  if os.path.dirname(config_path_to_deploy) != env.resources_dir:
+  # Set up env with active config.
+  env = UmpireEnv()
+  env.LoadConfig()
+
+  if args.config:
+    config_path_to_deploy = os.path.realpath(args.config)
+  else:
+    if not env.HasStagingConfigFile():
+      raise common.UmpireError('Unable to deploy as there is no staging file')
+    config_path_to_deploy = os.path.realpath(env.staging_config_file)
+
+  if not env.InResource(config_path_to_deploy):
     raise common.UmpireError('Config to deploy %r must be in resources' %
-                             env.config_path)
+                             config_path_to_deploy)
 
   # First, ask Umpire daemon to validate config.
-  cli = UmpireCLI(env)
-  cli.ValidateConfig(config_path_to_deploy)
+  umpire_cli.ValidateConfig(config_path_to_deploy)
 
   # Then, double confirm the user to deploy the config.
   ok_to_deploy = True
-  if env.active_config_file:
-    print 'Changes for this deploy: '
-    print ''.join(ShowDiff(env.active_config_file, config_path_to_deploy))
-    if raw_input('Ok to deploy [y/n]? ') not in ['y', 'Y']:
-      ok_to_deploy = False
+  print 'Changes for this deploy: '
+  print ''.join(ShowDiff(env.active_config_file, config_path_to_deploy))
+  if raw_input('Ok to deploy [y/n]? ') not in ['y', 'Y']:
+    ok_to_deploy = False
 
   # Deploying, finally.
   if ok_to_deploy:
     config_res = os.path.basename(config_path_to_deploy)
-    cli.Deploy(config_res)
+    umpire_cli.Deploy(config_res)
 
 
 @Command('status')
-def Status(unused_args, unused_env):
+def Status(unused_args, unused_umpire_cli):
   """Shows the pstree of Umpire services."""
   raise NotImplementedError
 
 
 @Command('list')
-def List(unused_args, unused_env):
+def List(unused_args, unused_umpire_cli):
   """Lists all Umpire Config files."""
   raise NotImplementedError
 
 
 @Command('start')
-def Start(unused_args, unused_env):
+def Start(unused_args, unused_umpire_cli):
   """Starts Umpire service."""
   raise NotImplementedError
 
 
 @Command('stop')
-def Stop(unused_args, env):
+def Stop(unused_args, umpire_cli):
   """Stops Umpire service."""
-  UmpireCLI(env).StopUmpired()
+  umpire_cli.StopUmpired()
 
 
 @Command('stage')
-def Stage(unused_args, env):
+def Stage(args, umpire_cli):
   """Stages an Umpire Config file for edit."""
-  UmpireCLI(env).StageConfigFile(env.config_path)
+  if not args.config:
+    raise common.UmpireError('For "umpire stage", --config must be specified.')
+  umpire_cli.StageConfigFile(args.config)
 
 
 @Command('unstage')
-def Unstage(unused_args, env):
+def Unstage(unused_args, umpire_cli):
   """Unstages staging Umpire Config file."""
-  UmpireCLI(env).UnstageConfigFile()
+  umpire_cli.UnstageConfigFile()
 
 
 @Command('import-resource',
          CmdArg('resources', nargs='+',
                 help='Path to resource file(s).'))
-def ImportResource(args, env):
+def ImportResource(args, umpire_cli):
   """Imports file(s) to resources folder."""
-  umpire_cli = UmpireCLI(env)
   # Find out absolute path of resources and perform simple sanity check.
   for path in args.resources:
     resource_path = os.path.abspath(path)
@@ -248,32 +242,19 @@ def ImportResource(args, env):
     umpire_cli.AddResource(resource_path)
 
 
-def _LoadConfig(args, env):
-  """Loads Umpire config file.
+def _UmpireCLI():
+  """Gets XMLRPC server proxy to Umpire CLI server.
 
-  It loads Umpire config file and stores in UmpireEnv object.
+  Server port is obtained from active Umpire config.
 
-  Args:
-    args: command line arguments
-    env: UmpireEnv object
-
-  Raises:
-    UmpireError if config fails to load.
+  Returns:
+    A logical connection to the Umpire CLI XML-RPC server.
   """
-  # Only edit and deploy loads staging file.
-  if args.command_name in ['edit', 'deploy']:
-    env.LoadConfig(staging=True, custom_path=args.config)
-    return
-
-  # For import-bundle, update and stage command, it writes modified
-  # config file and makes it staging. So no staging config should exist
-  # when running the commands.
-  if args.command_name in ['import-bundle', 'update', 'stage']:
-    if env.HasStagingConfigFile():
-      raise common.UmpireError(
-          'A staging config file exists. Please unstage it before '
-          'import-bundle, update or stage.')
-  env.LoadConfig(custom_path=args.config)
+  env = UmpireEnv()
+  env.LoadConfig()
+  umpire_cli_uri = 'http://127.0.0.1:%d' % env.umpire_cli_port
+  logging.debug('Umpire CLI server URI: %s', umpire_cli_uri)
+  return xmlrpclib.ServerProxy(umpire_cli_uri)
 
 
 def main():
@@ -284,14 +265,10 @@ def main():
       verbosity_cmd_arg)
   SetupLogging(level=args.verbosity)
 
-  # TODO(deanliao): Except init and deploy, env is used only to retrieve
-  #    Umpire daemon port for XML-RPC for CLI. We shall just retrieve CLI port
-  #    here and don't create UmpireEnv here to make sure that the only trustful
-  #    UmpireEnv is the one in Umpire daemon.
-  env = UmpireEnv()
-  _LoadConfig(args, env)
-
-  args.command(args, env)
+  if args.command_name == 'init':
+    args.command(args)
+  else:
+    args.command(args, _UmpireCLI())
 
 
 if __name__ == '__main__':

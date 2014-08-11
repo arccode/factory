@@ -5,7 +5,6 @@
 # found in the LICENSE file.
 
 import mox
-from mox import IsA
 import os
 import shutil
 import sys
@@ -17,7 +16,7 @@ from cros.factory.utils.file_utils import TempDirectory, WriteFile
 from cros.factory.umpire.commands import init
 from cros.factory.umpire.common import UmpireError
 from cros.factory.umpire import umpire
-from cros.factory.umpire.umpire_env import UmpireEnv
+
 
 TESTDATA_DIR = os.path.realpath(os.path.join(
     os.path.dirname(sys.modules[__name__].__file__), 'testdata'))
@@ -26,7 +25,6 @@ DEFAULT_BUNDLE = os.path.join(TESTDATA_DIR, 'init_bundle')
 
 class InitTest(unittest.TestCase):
   def setUp(self):
-    self.env = UmpireEnv()
     self.args = Obj(base_dir=None, board=None, bundle_path=DEFAULT_BUNDLE,
                     default=False, local=False, user='user', group='group')
     self.mox = mox.Mox()
@@ -36,25 +34,30 @@ class InitTest(unittest.TestCase):
     self.mox.VerifyAll()
 
   def testDefault(self):
+    def EnvBaseDirMatcher(env):
+      return env.base_dir == '/var/db/factory/umpire/test_board'
+
     self.mox.StubOutWithMock(init, 'Init')
     # args.board is unassigned, so extract 'board' from MANIFEST.
-    init.Init(IsA(UmpireEnv), DEFAULT_BUNDLE, 'test_board', False, False,
-              'user', 'group')
+    init.Init(mox.Func(EnvBaseDirMatcher), DEFAULT_BUNDLE, 'test_board', False,
+              False, 'user', 'group')
     self.mox.ReplayAll()
 
-    umpire.Init(self.args, self.env)
-    self.assertEqual('/var/db/factory/umpire/test_board', self.env.base_dir)
+    umpire.Init(self.args)
 
   def testSpecifyBoard(self):
     BOARD_ARG = 'board_from_args'
+
+    def EnvBaseDirMatcher(env):
+      return env.base_dir == '/var/db/factory/umpire/' + BOARD_ARG
+
     self.mox.StubOutWithMock(init, 'Init')
-    init.Init(IsA(UmpireEnv), DEFAULT_BUNDLE, BOARD_ARG, False, False,
-              'user', 'group')
+    init.Init(mox.Func(EnvBaseDirMatcher), DEFAULT_BUNDLE, BOARD_ARG, False,
+              False, 'user', 'group')
     self.mox.ReplayAll()
 
     self.args.board = BOARD_ARG
-    umpire.Init(self.args, self.env)
-    self.assertEqual('/var/db/factory/umpire/' + BOARD_ARG, self.env.base_dir)
+    umpire.Init(self.args)
 
   def testFailedToDeriveBoard(self):
     with TempDirectory() as temp_dir:
@@ -65,7 +68,7 @@ class InitTest(unittest.TestCase):
 
       self.args.bundle_path = bundle_path
       self.assertRaisesRegexp(UmpireError, 'Unable to resolve board name',
-                              umpire.Init, self.args, self.env)
+                              umpire.Init, self.args)
 
   def testManifestMissing(self):
     with TempDirectory() as temp_dir:
@@ -76,7 +79,7 @@ class InitTest(unittest.TestCase):
 
       self.args.bundle_path = bundle_path
       self.assertRaisesRegexp(IOError, 'Missing factory bundle manifest',
-                              umpire.Init, self.args, self.env)
+                              umpire.Init, self.args)
 
   def testFactoryToolkitMissing(self):
     with TempDirectory() as temp_dir:
@@ -88,17 +91,20 @@ class InitTest(unittest.TestCase):
 
       self.args.bundle_path = bundle_path
       self.assertRaisesRegexp(IOError, 'Missing factory toolkit',
-                              umpire.Init, self.args, self.env)
+                              umpire.Init, self.args)
 
   def testSpecifyBaseDir(self):
+    BASE_DIR = '/tmp/base_dir'
+    def EnvBaseDirMatcher(env):
+      return env.base_dir == BASE_DIR
+
     self.mox.StubOutWithMock(init, 'Init')
-    init.Init(IsA(UmpireEnv), DEFAULT_BUNDLE, 'test_board', False, False,
-              'user', 'group')
+    init.Init(mox.Func(EnvBaseDirMatcher), DEFAULT_BUNDLE, 'test_board', False,
+              False, 'user', 'group')
     self.mox.ReplayAll()
 
-    self.args.base_dir = '/tmp/base_dir'
-    umpire.Init(self.args, self.env)
-    self.assertEqual('/tmp/base_dir', self.env.base_dir)
+    self.args.base_dir = BASE_DIR
+    umpire.Init(self.args)
 
 
 class UpdateTest(unittest.TestCase):
@@ -106,33 +112,24 @@ class UpdateTest(unittest.TestCase):
   TOOLKIT_PATH = os.path.join(TESTDATA_DIR, 'install_factory_toolkit.run')
 
   def setUp(self):
-    self.env = UmpireEnv()
     self.args = Obj(source_id=None, dest_id=None, resources=list())
     self.mox = mox.Mox()
-    self.mock_cli = None
+    self.mock_cli = self.mox.CreateMockAnything()
 
   def tearDown(self):
     self.mox.UnsetStubs()
     self.mox.VerifyAll()
 
-  def CreateMockCLI(self):
-    # Mock UmpireCLI XMLRPC connection.
-    self.mox.StubOutWithMock(umpire, 'UmpireCLI')
-    self.mock_cli = self.mox.CreateMockAnything()
-    umpire.UmpireCLI(self.env).AndReturn(self.mock_cli)
-
   def testUpdateSingleResource(self):
     # Expect XMLRPC call.
-    self.CreateMockCLI()
     self.mock_cli.Update([('factory_toolkit', self.TOOLKIT_PATH)], None, None)
     self.mox.ReplayAll()
 
     self.args.resources.append('factory_toolkit=%s' % self.TOOLKIT_PATH)
-    umpire.Update(self.args, self.env)
+    umpire.Update(self.args, self.mock_cli)
 
   def testUpdateSingleResourceWithSourceDestId(self):
     # Expect XMLRPC call.
-    self.CreateMockCLI()
     self.mock_cli.Update([('factory_toolkit', self.TOOLKIT_PATH)], 'bundle1',
                          'bundle2')
     self.mox.ReplayAll()
@@ -140,46 +137,40 @@ class UpdateTest(unittest.TestCase):
     self.args.resources.append('factory_toolkit=%s' % self.TOOLKIT_PATH)
     self.args.source_id = 'bundle1'
     self.args.dest_id = 'bundle2'
-    umpire.Update(self.args, self.env)
+    umpire.Update(self.args, self.mock_cli)
 
   def testUpdateMultipleResources(self):
     # Expect XMLRPC call.
-    self.CreateMockCLI()
     self.mock_cli.Update([('factory_toolkit', self.TOOLKIT_PATH),
                           ('firmware', self.FIRMWARE_PATH)], None, None)
     self.mox.ReplayAll()
 
     self.args.resources.append('factory_toolkit=%s' % self.TOOLKIT_PATH)
     self.args.resources.append('firmware=%s' % self.FIRMWARE_PATH)
-    umpire.Update(self.args, self.env)
+    umpire.Update(self.args, self.mock_cli)
 
   def testUpdateInvalidResourceType(self):
     self.mox.ReplayAll()
 
     self.args.resources.append('wrong_res_type=%s' % self.TOOLKIT_PATH)
     self.assertRaisesRegexp(UmpireError, 'Unsupported resource type',
-                            umpire.Update, self.args, self.env)
+                            umpire.Update, self.args, self.mock_cli)
 
   def testUpdateInvalidResourceFile(self):
     self.mox.ReplayAll()
 
     self.args.resources.append('fsi=/path/to/nowhere')
     self.assertRaisesRegexp(IOError, 'Resource file not found',
-                            umpire.Update, self.args, self.env)
+                            umpire.Update, self.args, self.mock_cli)
 
 
 class ImportBundleTest(unittest.TestCase):
   BUNDLE_PATH = os.path.join(TESTDATA_DIR, 'init_bundle')
 
   def setUp(self):
-    self.env = UmpireEnv()
     self.args = Obj(id=None, bundle_path='.', note=None)
     self.mox = mox.Mox()
-
-    # Mock UmpireCLI XMLRPC connection.
-    self.mox.StubOutWithMock(umpire, 'UmpireCLI')
     self.mock_cli = self.mox.CreateMockAnything()
-    umpire.UmpireCLI(self.env).AndReturn(self.mock_cli)
 
   def tearDown(self):
     self.mox.UnsetStubs()
@@ -193,21 +184,16 @@ class ImportBundleTest(unittest.TestCase):
     self.args.bundle_path = self.BUNDLE_PATH
     self.args.id = 'new_bundle'
     self.args.note = 'new bundle'
-    umpire.ImportBundle(self.args, self.env)
+    umpire.ImportBundle(self.args, self.mock_cli)
 
 
 class ImportResourceTest(unittest.TestCase):
   BUNDLE_PATH = os.path.join(TESTDATA_DIR, 'init_bundle')
 
   def setUp(self):
-    self.env = UmpireEnv()
     self.args = Obj(resources=[])
     self.mox = mox.Mox()
-
-    # Mock UmpireCLI XMLRPC connection.
-    self.mox.StubOutWithMock(umpire, 'UmpireCLI')
     self.mock_cli = self.mox.CreateMockAnything()
-    umpire.UmpireCLI(self.env).AndReturn(self.mock_cli)
 
   def tearDown(self):
     self.mox.UnsetStubs()
@@ -226,7 +212,7 @@ class ImportResourceTest(unittest.TestCase):
       self.mox.ReplayAll()
 
       self.args.resources = [res_1, res_2]
-      umpire.ImportResource(self.args, self.env)
+      umpire.ImportResource(self.args, self.mock_cli)
 
 
 if __name__ == '__main__':
