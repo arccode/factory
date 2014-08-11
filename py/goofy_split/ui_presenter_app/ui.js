@@ -2,6 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+var myWindowName = 'goofy_presenter';
 var connected = false;
 
 var countdown = {
@@ -158,4 +159,9 @@ function connectWebSocket() {
   my_socket.onerror = function(e) { console.log(e); };
 }
 
-document.addEventListener('DOMContentLoaded', connectWebSocket);
+if (window.name != myWindowName) {
+  window.name = myWindowName;
+  location.reload();
+} else {
+  document.addEventListener('DOMContentLoaded', connectWebSocket);
+}
