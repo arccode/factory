@@ -38,8 +38,10 @@ class RegionException(Exception):
 
 
 class Region(object):
-  """Comprehensive, standard locale configuration per country/region."""
+  """Comprehensive, standard locale configuration per country/region.
 
+  See :ref:`regions-values` for detailed information on how to set these values.
+  """
   # pylint gets confused by some of the docstrings.
   # pylint: disable=C0322
 
@@ -56,35 +58,9 @@ class Region(object):
   """
 
   keyboards = None
-  """A list of keyboard layout identifiers (e.g.,
-  ``xkb:us:intl:eng`` or ``m17n:ar``).  Each identifier must start with
-  either ``xkb:`` or ``m17n:`` or ``ime:``.
-
-  As of August 2014, valid keyboard layout identifiers are:
-
-  - XKB input methods listed in any file in JSON files in the Chromium
-    `src/chrome/browser/resources/chromeos/input_method
-    <http://goo.gl/z4JGvK>`_ directory. (Look for the ``id``
-    attributes of each ``input_components`` list entry.)  For example,
-    you will find ``xkb:us::eng`` in `google_xkb_manifest.json
-    <http://goo.gl/jBtjIV>`_.
-
-  - Any hard-coded strings listed in ``kEngineIdMigrationMap`` in
-    Chromium's `input_method_util.cc <http://goo.gl/cDO53r>`_. Currently
-    this is:
-
-      - ``ime:zh-t:quick``
-      - ``ime:ko:hangul``
-      - ``ime:ko:hangul_2set``
-
-  - Strings with a prefix in ``kEngineIdMigrationMap``. The prefix is
-    rewritten according to the map, and there must be a corresponding
-    input method ID in some file in the ``input_method``
-    directory. For instance, there is a ``vkd_ar`` input method in
-    ``google_input_tools_manifest.js``, so ``m17n:ar`` may be used.
-
-  This is used to set the VPD ``keyboard_layout`` value."""
-
+  """A list of keyboard layout identifiers (e.g., ``xkb:us:intl:eng``
+  or ``m17n:ar``).
+  """
   @property
   def keyboard(self):
     """The first item in the 'keyboards' array, for backward compatibility.
@@ -206,9 +182,8 @@ REGIONS_LIST = [
     Region('br', 'xkb:br::por', 'America/Sao_Paulo', 'pt-BR', _KML.ABNT2,
            'Brazil (ABNT2)',
            ('ABNT2 = ABNT NBR 10346 variant 2. This is the preferred layout '
-            'for Brazil. ABNT2 is mostly an ISO layout, but it has an extra '
-            'key to the left of the right shift key; see '
-            'http://goo.gl/twA5tq')),
+            'for Brazil. ABNT2 is mostly an ISO layout, but it 12 keys between '
+            'the shift keys; see http://goo.gl/twA5tq')),
     Region('br.abnt', 'xkb:br::por', 'America/Sao_Paulo', 'pt-BR', _KML.ISO,
            'Brazil (ABNT)',
            ('Like ABNT2, but lacking the extra key to the left of the right '
