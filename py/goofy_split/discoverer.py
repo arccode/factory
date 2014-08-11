@@ -66,6 +66,9 @@ class DiscovererBase(object):
     Returns:
       A list of IP addresses with RPC server alive.
     """
+    if not ip_prefixes:
+      return []
+
     # Workaround enabling constructing ThreadPool on a background thread
     # See http://bugs.python.org/issue10015
     cur_thread = threading.current_thread()
