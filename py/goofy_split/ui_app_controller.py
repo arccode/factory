@@ -10,6 +10,7 @@ import threading
 from BaseHTTPServer import HTTPServer
 from SimpleHTTPServer import SimpleHTTPRequestHandler
 from ws4py.websocket import WebSocket
+from ws4py.client.threadedclient import WebSocketClient
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import state
@@ -58,6 +59,10 @@ class UIAppController(object):
 
   def Stop(self):
     self._abort_event.set()
+    # Kick httpd thread so that it aborts
+    client = WebSocketClient('ws://127.0.0.1:%d' % UI_APP_CONTROLLER_PORT)
+    client.connect()
+    client.close()
 
   def AddWebSocket(self, ws):
     with self.lock:
@@ -70,6 +75,9 @@ class UIAppController(object):
 
   def WaitForWebSocket(self):
     self._connect_event.wait()
+
+  def HasWebSockets(self):
+    return bool(self.web_sockets)
 
   def SendMessage(self, msg):
     msg_string = json.dumps(msg)

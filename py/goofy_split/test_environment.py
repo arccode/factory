@@ -44,6 +44,10 @@ class Environment(object):
     """
     raise NotImplementedError()
 
+  def controller_ready_for_ui(self):
+    """Hooks called when Goofy controller is ready for UI connection."""
+    pass
+
   def launch_chrome(self):
     """Launches Chrome.
 
@@ -78,6 +82,7 @@ class DUTEnvironment(Environment):
   def __init__(self):
     super(DUTEnvironment, self).__init__()
     self.goofy = None  # Must be assigned later by goofy.
+    self.has_sockets = None # Must be assigned later by goofy.
 
   def shutdown(self, operation):
     assert operation in ['reboot', 'full_reboot', 'halt']
@@ -97,7 +102,7 @@ class DUTEnvironment(Environment):
     return self.goofy.prespawner.spawn(args, env_additions)
 
   def launch_chrome(self):
-    utils.WaitFor(self.goofy.web_socket_manager.has_sockets, 30)
+    utils.WaitFor(self.has_sockets, 30)
     subprocess.check_call(['initctl', 'emit', 'login-prompt-visible'])
     # Disable X-axis two-finger scrolling on touchpad.
     utils.SetTouchpadTwoFingerScrollingX(False)
@@ -294,8 +299,7 @@ class FakeChrootEnvironment(Environment):
 
   def launch_chrome(self):
     logging.warn('In chroot; not launching Chrome. '
-           'Please open http://localhost:%d/ in Chrome.',
-           state.DEFAULT_FACTORY_STATE_PORT)
+                 'Please open UI presenter app in Chrome.')
 
   def create_connection_manager(self, wlans, scan_wifi_period_secs):
     return connection_manager.DummyConnectionManager()

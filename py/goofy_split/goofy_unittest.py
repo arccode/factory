@@ -262,7 +262,7 @@ class WebSocketTest(GoofyTest):
       ws.run()
       self.ws_done.set()
     # pylint: disable=W0108
-    self.env.launch_chrome().WithSideEffects(
+    self.env.controller_ready_for_ui().WithSideEffects(
       lambda: threading.Thread(target=open_web_socket).start()
       ).AndReturn(None)
 

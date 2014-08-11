@@ -8,10 +8,10 @@
 """The main factory flow that runs the presenter-side of factory tests."""
 
 import logging
-import subprocess
 import syslog
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.goofy_split import test_environment
 from cros.factory.goofy_split.goofy_base import GoofyBase
 from cros.factory.goofy_split.link_manager import DUTLinkManager
 from cros.factory.goofy_split.ui_app_controller import UIAppController
@@ -31,14 +31,15 @@ class GoofyPresenter(GoofyBase):
   """
   def __init__(self):
     super(GoofyPresenter, self).__init__()
-    self.ui_app_controller = UIAppController()
-    self.ui_app_controller.WaitForWebSocket()
 
-    # We are skipping the login UI, so we need to emit login-prompt-visible
-    # event here so as to notify upstart jobs to continue.  However, if we
-    # are not running on Chrome OS device, we don't want to do this.
+    self.ui_app_controller = UIAppController()
+
     if utils.in_cros_device():
-      subprocess.check_call(['initctl', 'emit', 'login-prompt-visible'])
+      self.env = test_environment.DUTEnvironment()
+      self.env.has_sockets = self.ui_app_controller.HasWebSockets
+    else:
+      self.env = test_environment.FakeChrootEnvironment()
+    self.env.launch_chrome()
 
     self.link_manager = DUTLinkManager(
         check_interval=1,
