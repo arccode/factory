@@ -155,9 +155,7 @@ def Edit(args, umpire_cli):
   It calls user's default EDITOR to edit the config file and verifies the
   modified result afterward.
   """
-  # TODO(deanliao): modify ConfigEditor to retrieve config from umpired/CLI.
-  env = UmpireEnv()
-  editor = edit.ConfigEditor(env, umpire_cli=umpire_cli)
+  editor = edit.ConfigEditor(umpire_cli, max_retry=3)
   editor.Edit(config_file=args.config)
 
 

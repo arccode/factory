@@ -1,4 +1,4 @@
-# Copyright (c) 2014 The Chromium OS Authors. All rights reserved.
+# Copyright 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -238,11 +238,11 @@ class UmpireEnv(object):
     """
     return os.path.isfile(self.staging_config_file)
 
-  def StageConfigFile(self, config_path, force=False):
+  def StageConfigFile(self, config_path=None, force=False):
     """Stages a config file.
 
     Args:
-      config_path: a config file to mark as staging.
+      config_path: a config file to mark as staging. Default: active file.
       force: True to stage the file even if it already has staging file.
     """
     if not force and self.HasStagingConfigFile():
@@ -251,6 +251,9 @@ class UmpireEnv(object):
           'Check %r to decide if it should be deployed (use "umpire deploy"), '
           'edited again ("umpire edit") or discarded ("umpire unstage").' %
           self.staging_config_file)
+
+    if config_path is None:
+      config_path = self.active_config_file
 
     source = os.path.realpath(config_path)
     if not os.path.isfile(source):
@@ -276,7 +279,7 @@ class UmpireEnv(object):
     Args:
       config_path: a config file to mark as active. Default: use staging file.
     """
-    if not config_path:
+    if config_path is None:
       config_path = self.staging_config_file
 
     if not os.path.isfile(config_path):

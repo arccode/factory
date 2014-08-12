@@ -1,6 +1,6 @@
 #!/usr/bin/trial --temp-directory=/tmp/_trial_temp/
 #
-# Copyright (c) 2014 The Chromium OS Authors. All rights reserved.
+# Copyright 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -144,6 +144,37 @@ class CommandTest(unittest.TestCase):
 
   def testAddResourceFail(self):
     return self.AssertFailure(self.Call('AddResource', '/path/to/nowhere'))
+
+  def testGetStagingConfig(self):
+    # Prepare a staging config.
+    config_to_stage = os.path.join(self.env.base_dir, 'config_to_stage')
+    with file(config_to_stage, 'w') as f:
+      f.write('staging\nfile')
+    config_to_stage_res_full_path = self.env.AddResource(config_to_stage)
+    self.env.ActivateConfigFile(config_to_stage_res_full_path)
+    self.env.StageConfigFile()
+
+    d = self.Call('GetStagingConfig')
+    d.addCallback(lambda result: self.assertEqual('staging\nfile', result))
+    return self.AssertSuccess(d)
+
+  def testGetStagingConfigAutoStageActiveConfig(self):
+    # Prepare a staging config.
+    config_to_stage = os.path.join(self.env.base_dir, 'config_to_stage')
+    with file(config_to_stage, 'w') as f:
+      f.write('active\nconfig\nfile')
+    config_to_stage_res_full_path = self.env.AddResource(config_to_stage)
+    self.env.ActivateConfigFile(config_to_stage_res_full_path)
+    # No staging config file before GetStagingConfig.
+    self.assertFalse(os.path.exists(self.env.staging_config_file))
+
+    d = self.Call('GetStagingConfig')
+    def AfterCallCheck(result):
+      self.assertTrue('active\nconfig\nfile', result)
+      # It stages active config file if staging file does not exist.
+      self.assertTrue(os.path.exists(self.env.staging_config_file))
+    d.addCallback(AfterCallCheck)
+    return self.AssertSuccess(d)
 
   def testStageConfigFile(self):
     # Prepare a file in resource to stage.

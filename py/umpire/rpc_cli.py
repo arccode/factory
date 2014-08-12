@@ -1,4 +1,4 @@
-# Copyright (c) 2014 The Chromium OS Authors. All rights reserved.
+# Copyright 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -83,6 +83,19 @@ class CLICommand(umpire_rpc.UmpireRPC):
     return os.path.basename(self.env.AddResource(file_name, res_type=res_type))
 
   @umpire_rpc.RPCCall
+  def GetStagingConfig(self):
+    """Gets the staging config.
+
+    If no staging config presents, staging active config first.
+
+    Returns:
+      Staging config file's content.
+    """
+    if not self.env.HasStagingConfigFile():
+      self.env.StageConfigFile()
+    return open(self.env.staging_config_file).read()
+
+  @umpire_rpc.RPCCall
   def StageConfigFile(self, config_path, force=False):
     """Stages a config file.
 
@@ -104,11 +117,11 @@ class CLICommand(umpire_rpc.UmpireRPC):
     self.env.UnstageConfigFile()
 
   @umpire_rpc.RPCCall
-  def ValidateConfig(self, config_path):
-    """Validates a config file.
+  def ValidateConfig(self, umpire_config):
+    """Validates a config.
 
     Args:
-      config_path: Path to config file to validate
+      umpire_config: UmpireConfig content or file path.
 
     Raises:
       TypeError: when 'services' is not a dict.
@@ -116,7 +129,7 @@ class CLICommand(umpire_rpc.UmpireRPC):
       SchemaException: on schema validation failed.
       UmpireError if there's any resources for active bundles missing.
     """
-    config_to_validate = config.UmpireConfig(config_path)
+    config_to_validate = config.UmpireConfig(umpire_config)
     config.ValidateResources(config_to_validate, self.env)
 
   @umpire_rpc.RPCCall
