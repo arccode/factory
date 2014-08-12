@@ -27,6 +27,12 @@ from cros.factory.utils.process_utils import Spawn
 
 SRCROOT = os.environ.get('CROS_WORKON_SRCROOT')
 
+DEVICE_TAG = 'run_goofy_device'
+PRESENTER_TAG = 'run_goofy_presenter'
+HOST_BASED_ROLES = {'device': [DEVICE_TAG],
+                    'presenter': [PRESENTER_TAG],
+                    'both': [DEVICE_TAG, PRESENTER_TAG]}
+
 
 class GoofyRemoteException(Exception):
   """Goofy remote exception."""
@@ -125,6 +131,9 @@ def main():
   parser.add_argument('--no-host-based', dest='host_based',
                       action='store_false', help=argparse.SUPPRESS)
   parser.set_defaults(host_based=False)
+  parser.add_argument('--role', dest='role',
+                      help=('Set the role of the device. Must be one of: ' +
+                            ', '.join(HOST_BASED_ROLES)))
   parser.add_argument('--automation-mode',
                       choices=[m.lower() for m in AutomationMode],
                       default='none', help="Factory test automation mode.")
@@ -155,6 +164,9 @@ def main():
   args = parser.parse_args()
 
   logging.basicConfig(level=logging.INFO)
+
+  if args.role and args.role not in HOST_BASED_ROLES:
+    sys.exit('--role must be one of ' + ', '.join(HOST_BASED_ROLES))
 
   if args.local:
     if in_chroot():
@@ -196,6 +208,16 @@ def main():
                  './goofy_split' if args.host_based else './goofy_monolithic',
                  '/usr/local/factory/py/goofy'],
                  check_call=True, log=True)
+
+  if args.role:
+    for tag in [DEVICE_TAG, PRESENTER_TAG]:
+      if tag in HOST_BASED_ROLES[args.role]:
+        SpawnSSHToDUT([args.host, 'touch', '/usr/local/factory/init/%s' % tag],
+                      check_call=True, log=True)
+      else:
+        SpawnSSHToDUT([args.host, 'rm', '--force',
+                       '/usr/local/factory/init/%s' % tag],
+                      check_call=True, log=True)
 
   board_dash = board.replace('_', '-')
   private_paths = [os.path.join(SRCROOT, 'src', 'private-overlays',
