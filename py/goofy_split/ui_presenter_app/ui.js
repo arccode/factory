@@ -76,7 +76,9 @@ function handleConnect(serverUrl) {
     stopCountdown();
     setInfo("Waiting for device...");
 
-    document.getElementById('goofy-content').src = serverUrl;
+    var content = document.getElementById('goofy-content');
+    content.src = serverUrl;
+    content.focus();
     setDisplay('goofy-logo', 'none');
     setDisplay('goofy-message-container', 'none');
     connected = true;
