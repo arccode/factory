@@ -52,11 +52,16 @@ cros.factory.DeviceManager.prototype.processData = function(xmlData, nodePath) {
 
   var node = goog.dom.xml.selectSingleNode(xmlData, nodePath);
   var subnode = [];
+  var deviceDataHtml = goog.dom.createDom('div');
   var deviceData = goog.dom.createDom('table', {'id': 'device-data'});
 
   for (var childNode = node.firstChild;
        childNode != null; childNode = childNode.nextSibling) {
     if (childNode.nodeName == 'description') {
+      continue;
+    }
+    if (childNode.nodeName == 'html_string') {
+      deviceDataHtml.innerHTML = childNode.textContent;
       continue;
     }
 
@@ -106,7 +111,8 @@ cros.factory.DeviceManager.prototype.processData = function(xmlData, nodePath) {
   } else {
     this.mapToDescription[nodePath] = node.nodeName;
   }
-  this.mapToDeviceData[nodePath] = deviceData;
+  goog.dom.appendChild(deviceDataHtml, deviceData);
+  this.mapToDeviceData[nodePath] = deviceDataHtml;
   this.mapToSubnode[nodePath] = subnode;
 
   for (var i = 0; i < subnode.length; i ++) {

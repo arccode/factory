@@ -8,6 +8,7 @@
 """RPC methods exported from Goofy."""
 
 import argparse
+import csv
 import inspect
 import json
 import logging
@@ -364,6 +365,247 @@ class GoofyRPC(object):
       return DeviceNodeString(
           'vpd', 'RO/RW VPD', [('ro', ro_vpd, True), ('rw', rw_vpd, True)])
 
+    def GetInputDeviceFirmwareVersion(device_name_list):
+      """Returns firmware version of a specific hardware.
+
+      Args:
+        device_name_list: A list consists of possible human readable names of
+          the hardware.
+
+      Returns:
+        A string including the firmware version.
+      """
+      re_device_name = (
+          re.compile(r'N: Name=".*(%s).*"' % ('|'.join(device_name_list))))
+      re_device_sysfs = re.compile(r'S: Sysfs=(.*)')
+
+      device_list = open('/proc/bus/input/devices').read().split('\n\n')
+
+      for device_data in device_list:
+        match_device_name = re_device_name.findall(device_data)
+        if not match_device_name:
+          continue
+        device_sysfs = re_device_sysfs.findall(device_data)[0].lstrip('/')
+        firmware_path_patterns = ['firmware_version', 'fw_version']
+        device_path = os.path.join('/sys', device_sysfs, 'device')
+
+        for path_pattern in firmware_path_patterns:
+          device_firmware_path = os.path.join(device_path, path_pattern)
+          if os.path.exists(device_firmware_path):
+            return open(device_firmware_path).read().strip()
+        return 'unknown'
+
+      return 'unknown'
+
+    def GetTouchscreenFirmwareVersion():
+      """Returns touchscreen firmware version."""
+      return DeviceNodeString(
+          'touchscreen_version', 'Touchscreen firmware version',
+          [('fw_version', GetInputDeviceFirmwareVersion(['Touchscreen']),
+            False)])
+
+    def GetTouchpadFirmwareVersion():
+      """Returns touchpad firmware version."""
+      return DeviceNodeString(
+          'touchpad_version', 'Touchpad firmware version',
+          [('fw_version',
+            GetInputDeviceFirmwareVersion(['Trackpad', 'Touchpad']),
+            False)])
+
+    def GetTouchpadStatus():
+      """Returns touchpad status."""
+      touchpad_stat = subprocess.check_output(
+          ['/opt/google/touchpad/tpcontrol_xinput', 'status'])
+      lines = (
+          [re.sub(r'\s\s+', '', line) for line in touchpad_stat.splitlines()])
+
+      return DeviceNodeString(
+          'touchpad_status', 'Touchpad status',
+          [('status', '\n'.join(lines), True)])
+
+    def GetPanelHDMIStatus():
+      """Returns panel and HDMI status."""
+      panel_hdmi_stat = subprocess.check_output(['xrandr', '-d', ':0'])
+
+      return DeviceNodeString(
+          'panel_hdmi_stat', 'Panel/HDMI status',
+          [('status', panel_hdmi_stat, True)])
+
+    def GetModemStatus():
+      """Returns modem status."""
+      modem_stat = subprocess.check_output(['modem', 'status'])
+
+      modem_stat_tag_list = []
+      tag_content = []
+      tag_name = ''
+
+      for line in modem_stat.splitlines():
+        if line.startswith('    '):
+          tag_content.append(line.strip())
+        elif line.startswith('  '):
+          if tag_content:
+            modem_stat_tag_list.append(
+                (tag_name, '\n'.join(tag_content), True))
+
+          tag_name = line.strip(' :').lower()
+          tag_content = []
+
+      if tag_content:
+        modem_stat_tag_list.append((tag_name, '\n'.join(tag_content), True))
+
+      return DeviceNodeString('modem', 'Modem status', modem_stat_tag_list)
+
+    def ComposeHTMLTable(table_data):
+      """Constructs a HTML format string containing a table of the input.
+
+      If the input is [[data1, data2], [data3, data4]] then the output string
+      would be '<table><tr><td>data1</td><td>data2</td></tr><tr><td>data3</td><
+      td>data4</td></tr></table>'.
+
+      Args:
+        table_data: A list of list consisting of the table elements.
+
+      Returns:
+        HTML string.
+      """
+      table_html_string = ['<table>']
+
+      for row in table_data:
+        table_html_string.append('<tr>')
+        for element in row:
+          table_html_string.append('<td>' + element + '</td>')
+        table_html_string.append('</tr>')
+
+      table_html_string.append('</table>')
+
+      return ''.join(table_html_string)
+
+    def GetCPUUsage():
+      """Returns CPU usage detail in HTML format."""
+      cpu_usage_output = subprocess.check_output(['top', '-n', '1', '-b'])
+      cpu_usage_table = []
+
+      lines = cpu_usage_output.split('\n')
+      first_blank_line_index = lines.index('')
+
+      # CPU / memory info
+      cpu_usage_table.extend(
+          (line + '<br>') for line in lines[:first_blank_line_index])
+
+      # Process info
+      cpu_usage_table.append(
+          ComposeHTMLTable(
+              [line.split() for line in lines[first_blank_line_index + 1:]]))
+
+      return DeviceNodeString(
+          'cpu_usage', 'CPU usage',
+          [('html_string', ''.join(cpu_usage_table), False)])
+
+    def GetDiskUsage():
+      """Returns disk usage detail in HTML format."""
+      disk_usage_output = subprocess.check_output(['df', '-h'])
+
+      disk_usage_html_string = ComposeHTMLTable(
+          [line.split() for line in disk_usage_output.splitlines()])
+
+      return DeviceNodeString(
+          'disk_usage', 'Disk usage',
+          [('html_string', disk_usage_html_string, False)])
+
+    def GetMemoryUsage():
+      """Returns memory usage detail."""
+      memory_usage_output = open('/proc/meminfo').readlines()
+      memory_usage_list = []
+
+      for line in memory_usage_output:
+        line = re.sub(r'\s+', '', line.strip())
+        data = line.split(':')
+        memory_usage_list.append((data[0], data[1], False))
+
+      return DeviceNodeString(
+          'memory_usage', 'Memory usage', memory_usage_list)
+
+    def ConvertCSVToHTML(data_list):
+      """Returns CSV data in HTML format.
+
+      Args:
+        data_list: A list of lists. Each element of data_list includes a row
+          from CSV file whose data is parsed into a list by separating
+          delimiters.
+
+      Returns:
+        A string of HTML format.
+      """
+      html_string_list_line = ['<div>']
+      html_string_list_table = ['<table>']
+
+      for line in data_list:
+        if not line:
+          continue
+
+        if len(line) == 1:
+          html_string_list_line.append(line[0] + '<br>')
+        else:
+          row = '<tr>'
+          for element in line:
+            row = row + ('<td>' + element + '</td>')
+          row = row + '</tr>'
+          html_string_list_table.append(row)
+
+      html_string_list_table.append('</table>')
+      html_string_list_line.append('</div>')
+
+      html_string = (
+          ''.join(html_string_list_line) + ''.join(html_string_list_table))
+
+      return html_string
+
+    def GetPowerUsage():
+      """Returns power usage detail."""
+      f, csv_file_path = tempfile.mkstemp(suffix='.csv')
+      subprocess.check_output(
+          ['powertop', '--csv=%s' % csv_file_path, '--time=5'])
+
+      power_usage_main_xml = []
+      power_usage_main_xml.append('<node id="power_usage">')
+      power_usage_main_xml.append('<description>Power usage</description>')
+
+      reader = csv.reader(open(csv_file_path), delimiter=';')
+      csv_data_list = [row for row in reader]
+
+      title_index_list = []
+      for i, csv_data in list(enumerate(csv_data_list)):
+        if not csv_data or csv_data[0].startswith('***'):
+          continue
+        if csv_data[0].startswith('**'):
+          title_index_list.append(i)
+      title_index_list.append(len(csv_data_list))
+
+      first_section = True
+      for start, end in zip(title_index_list, title_index_list[1:]):
+        header_row = csv_data_list[start]
+        content_rows = csv_data_list[start + 1:end]
+
+        if first_section:
+          power_usage_main_xml.append('<html_string>')
+          power_usage_main_xml.append(
+              saxutils.escape(ConvertCSVToHTML(content_rows)))
+          power_usage_main_xml.append('</html_string>')
+          first_section = False
+
+        else:
+          description = header_row[0].replace('*', '')
+          node_id = description.replace(' ', '_').lower()
+
+          power_usage_main_xml.append(
+              DeviceNodeString(
+                  node_id, description,
+                  [('html_string', ConvertCSVToHTML(content_rows), False)]))
+
+      power_usage_main_xml.append('</node>')
+
+      return ''.join(power_usage_main_xml)
+
     # lshw provides common hardware information.
     lshw_output = subprocess.check_output(['lshw', '-xml'])
     xml_lines = [line.strip() for line in lshw_output.split('\n')]
@@ -381,6 +623,31 @@ class GoofyRPC(object):
     cros_output.append('</node>')
 
     xml_lines.insert(xml_lines.index('</list>'), ''.join(cros_output))
+
+    # Get peripheral device info.
+    peripheral_output = []
+    peripheral_output.append('<node id="peripheral">')
+    peripheral_output.append('<description>Peripheral Devices</description>')
+    peripheral_output.append(GetTouchscreenFirmwareVersion())
+    peripheral_output.append(GetTouchpadFirmwareVersion())
+    peripheral_output.append(GetTouchpadStatus())
+    peripheral_output.append(GetPanelHDMIStatus())
+    peripheral_output.append(GetModemStatus())
+    peripheral_output.append('</node>')
+
+    xml_lines.insert(xml_lines.index('</list>'), ''.join(peripheral_output))
+
+    # Get system usage details.
+    system_usage = []
+    system_usage.append('<node id="usage">')
+    system_usage.append('<description>System Usage</description>')
+    system_usage.append(GetCPUUsage())
+    system_usage.append(GetPowerUsage())
+    system_usage.append(GetDiskUsage())
+    system_usage.append(GetMemoryUsage())
+    system_usage.append('</node>')
+
+    xml_lines.insert(xml_lines.index('</list>'), ''.join(system_usage))
 
     return json.dumps(''.join(xml_lines))
 
