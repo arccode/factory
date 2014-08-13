@@ -313,51 +313,65 @@ setup_environment() {
 # partition blob in RELEASE_KERNEL if required.
 prepare_release_image() {
   local image="$(readlink -f "$1")"
-  local kernel="$(mktemp --tmpdir)"
-  image_add_temp "$kernel"
+  local kernelA="$(mktemp --tmpdir)"
+  local kernelB="$(mktemp --tmpdir)"
+  image_add_temp "${kernelA}" "${kernelB}"
 
-  # Image Types:
+  # New Image Types (crbug.com/398236):
+  # - recovery: kernel in #4
+  # - usb: kernel in #4
+  # - ssd: kernel in #2, no need to change (almost deprecated)
+  # Old image Types:
   # - recovery: kernel in #4 and vmlinuz_hd.vblock in #1
   # - usb: kernel in #2 and vmlinuz_hd.vblock in #1
-  # - ssd: kernel in #2, no need to change
-  image_dump_partition "$image" "2" >"$kernel" 2>/dev/null ||
-    die "Cannot extract kernel partition from image: $image"
+  # - ssd: kernel in #2, no need to change (almost deprecated)
+  image_dump_partition "${image}" "2" >"${kernelA}" 2>/dev/null ||
+    die "Cannot extract kernel A partition from image: ${image}"
+  image_dump_partition "${image}" "4" >"${kernelB}" 2>/dev/null ||
+    die "Cannot extract kernel B partition from image: ${image}"
 
-  local image_type="$(image_cros_kernel_boot_type "$kernel")"
+  local image_typeA="$(image_cros_kernel_boot_type "${kernelA}")"
+  local image_typeB="$(image_cros_kernel_boot_type "${kernelB}")"
   local need_vmlinuz_hd=""
-  info "Image type is [$image_type]: $image"
+  info "Image type is [${image_typeA}]: ${image}"
 
-  case "$image_type" in
+  case "${image_typeA}" in
     "ssd" )
       true
       ;;
     "usb" )
-      RELEASE_KERNEL="$kernel"
+      RELEASE_KERNEL="${kernelA}"
       need_vmlinuz_hd="TRUE"
       ;;
     "recovery" )
-      RELEASE_KERNEL="$kernel"
-      image_dump_partition "$image" "4" >"$kernel" 2>/dev/null ||
-        die "Cannot extract real kernel for recovery image: $image"
+      RELEASE_KERNEL="${kernelB}"
       need_vmlinuz_hd="TRUE"
       ;;
     * )
-      die "Unexpected release image type: $image_type."
+      die "Unexpected release image type: ${image_typeA}."
       ;;
   esac
 
-  if [ -n "$need_vmlinuz_hd" ]; then
+  # When vmlinuz_hd does not exist (new images), we should replace it by kernelB
+  # if image_type is 'ssd'.
+  if [ -n "${need_vmlinuz_hd}" ]; then
     local temp_mount="$(mktemp -d --tmpdir)"
     local vmlinuz_hd_file="vmlinuz_hd.vblock"
-    image_add_temp "$temp_mount"
-    image_mount_partition "$image" "1" "$temp_mount" "ro" ||
+    image_add_temp "${temp_mount}"
+    image_mount_partition "${image}" "1" "${temp_mount}" "ro" ||
       die "No stateful partition in $image."
-    [ -s "$temp_mount/$vmlinuz_hd_file" ] ||
-      die "Missing $vmlinuz_hd_file in stateful partition: $image"
-    sudo dd if="$temp_mount/$vmlinuz_hd_file" of="$kernel" \
-      bs=512 conv=notrunc >/dev/null 2>&1 ||
-      die "Cannot update kernel with $vmlinuz_hd_file"
-    image_umount_partition "$temp_mount"
+    if [ -s "${temp_mount}/${vmlinuz_hd_file}" ]; then
+      sudo dd if="${temp_mount}/${vmlinuz_hd_file}" of="${RELEASE_KERNEL}" \
+        bs=512 conv=notrunc >/dev/null 2>&1 ||
+        die "Cannot update kernel with ${vmlinuz_hd_file}"
+    else
+      if [ "${image_typeB}" = "ssd" ]; then
+        RELEASE_KERNEL="${kernelB}"
+      else
+        die "Failed to find ${vmlinuz_hd_file} or normal bootable kernel."
+      fi
+    fi
+    image_umount_partition "${temp_mount}"
   fi
 }
 
