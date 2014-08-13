@@ -85,8 +85,7 @@ class InterruptHandler(object):
   @TimeClassMethodDebug
   def Init(self):
     """Resets button latch and records feedback value."""
-    for feedback_name in self._FEEDBACK_LIST:
-      self._last_feedback[feedback_name] = self._servo.IsOn(feedback_name)
+    self._last_feedback = self._servo.MultipleIsOn(self._FEEDBACK_LIST)
     self.ResetLatch()
     self.ResetInterrupt()
 
@@ -97,20 +96,24 @@ class InterruptHandler(object):
     Returns:
       True if a button is clicked.
     """
-    button_clicked = False
-    operator_mode = not self._servo.IsOn(self._WHALE_DEBUG_MODE_EN)
-    for button in self._BUTTON_LIST:
-      clicked = self._servo.IsOn(button)
-      if clicked:
-        button_clicked = True
-        if operator_mode and button not in self._OPERATOR_BUTTON_LIST:
-          logging.debug('Supress button %s click because debug mode is off.',
-                        button)
-          continue
+    status = self._servo.MultipleIsOn(self._BUTTON_LIST)
 
-        # TODO(deanliao): calls button handler method.
-        logging.info('Button %s clicked', button)
-    return button_clicked
+    if not any(status.values()):
+      # No button is clicked.
+      return False
+
+    operator_mode = not self._servo.IsOn(self._WHALE_DEBUG_MODE_EN)
+    for button, clicked in status.iteritems():
+      if not clicked:
+        continue
+      if operator_mode and button not in self._OPERATOR_BUTTON_LIST:
+        logging.debug('Supress button %s click because debug mode is off.',
+                      button)
+        continue
+
+      # TODO(deanliao): calls button handler method.
+      logging.info('Button %s clicked', button)
+    return True
 
   @TimeClassMethodDebug
   def ScanFeedback(self):
@@ -119,15 +122,17 @@ class InterruptHandler(object):
     Returns:
       True if any feedback value is clicked.
     """
+    feedback_status = self._servo.MultipleIsOn(self._FEEDBACK_LIST)
     feedback_changed = False
-    for feedback_name in self._FEEDBACK_LIST:
-      feedback_value = self._servo.IsOn(feedback_name)
-      if self._last_feedback.get(feedback_name) != feedback_value:
-        # TODO(deanliao): calls handler method.
-        logging.info('Feedback %s value changed to %r', feedback_name,
-                     feedback_value)
-        self._last_feedback[feedback_name] = feedback_value
-        feedback_changed = True
+    for name, value in feedback_status.iteritems():
+      if self._last_feedback[name] == value:
+        continue
+
+      # TODO(deanliao): calls handler method.
+      logging.info('Feedback %s value changed to %r', name, value)
+      self._last_feedback[name] = value
+      feedback_changed = True
+
     return feedback_changed
 
   @TimeClassMethodDebug
@@ -169,20 +174,13 @@ class InterruptHandler(object):
     INT. The reason to read in sequence is that we need to read 0x76 at last
     as 0x77 and 0x75 INT reset could change P02 and P03 pin in 0x76.
     """
-    # Touch I/O expander 0x77 byte-0.
-    self._servo.IsOn(self._FIXTURE_FEEDBACK.FB1)
-    # Touch I/O expander 0x77 byte-1.
-    self._servo.IsOn(self._BUTTON.FIXTURE_START)
-
-    # Touch I/O expander 0x75 byte-1
+    # Touch I/O expander 0x77 byte 0 & 1, 0x75 byte 1, 0x76 byte 0 & 1.
     # Note that we skip I/O expander 0x75 byte-0 as it contains no input
     # pin, won't trigger interrupt.
-    self._servo.IsOn(self._PLANKTON_FEEDBACK.FB1)
-
-    # Touch I/O expander 0x76, byte-0.
-    self._servo.IsOn(self._WHALE_DEBUG_MODE_EN)
-    # Touch I/O expander 0x76, byte-1.
-    self._servo.IsOn(self._BUTTON.RESERVE_1)
+    self._servo.MultipleIsOn([
+        self._FIXTURE_FEEDBACK.FB1, self._BUTTON.FIXTURE_START,
+        self._PLANKTON_FEEDBACK.FB1, self._WHALE_DEBUG_MODE_EN,
+        self._BUTTON.RESERVE_1])
 
   def Run(self):
     """Waits for Whale's button click interrupt and dispatches it."""

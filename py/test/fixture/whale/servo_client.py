@@ -178,6 +178,28 @@ class ServoClient(object):
     raise ServoClientError('Control %r value %r is neither "on" nor "off".' %
                            (name, value))
 
+  def MultipleIsOn(self, names):
+    """Checks multiple controls' value.
+
+    It uses servod set_get_all() to get multiple controls' value at once.
+
+    Args:
+      name: list of controls' names.
+
+    Returns:
+      dict of control_name: is_control_on (True/False).
+
+    Raises:
+      ServoClientError: If error occurs when getting value.
+    """
+    try:
+      values = self._server.set_get_all(names)
+
+      return dict((name, value == 'on')
+                  for name, value in zip(names, values))
+    except Exception as e:
+      raise ServoClientError('Problem getting controls %r' % names, e)
+
   def Set(self, name, value):
     """Sets the value from servo for control name.
 
