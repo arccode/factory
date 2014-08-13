@@ -29,7 +29,6 @@ import logging
 import re
 import unittest
 
-from cros.factory import cros_locale
 from cros.factory.l10n.regions import REGIONS
 from cros.factory.test import branding
 from cros.factory.test import factory
@@ -311,21 +310,18 @@ class SelectRegionTask(FactoryTask):
   """Factory task to select region info (locale, keyboard layout, timezone).
 
   Args:
-    vpd_test: The main VPD TestCase object."""
-  def __init__(self, vpd_test, regions=None):
+    vpd_test: The main VPD TestCase object.
+  """
+  def __init__(self, vpd_test):
     super(SelectRegionTask, self).__init__()
+    self.region_list = sorted(REGIONS)
     self.test = vpd_test
-    self.regions = regions
-    self.region_list = None
 
   def SaveVPD(self, event):
     index = int(event.data)
-    (initial_locale, keyboard_layout, initial_timezone, _) = (
-        self.region_list[index])
-    if initial_locale and keyboard_layout != 'Skip' and initial_timezone:
-      self.test.vpd['ro']['initial_locale'] = initial_locale
-      self.test.vpd['ro']['keyboard_layout'] = keyboard_layout
-      self.test.vpd['ro']['initial_timezone'] = initial_timezone
+    vpd_setting = REGIONS[self.region_list[index]].GetVPDSettings(
+        self.test.args.allow_multiple_l10n)
+    self.test.vpd['ro'].update(vpd_setting)
     self.Pass()
 
   def RenderPage(self):
@@ -333,8 +329,14 @@ class SelectRegionTask(FactoryTask):
     select_box = SelectBox(_REGION_SELECT_BOX_ID, _SELECTION_PER_PAGE,
                            _SELECT_BOX_STYLE)
     for index, region in enumerate(self.region_list):
-      select_box.InsertOption(index, '%s - (%s %s %s)' % (
-                                     (region[3],) + region[:3]))
+      vpd_setting = REGIONS[region].GetVPDSettings(
+          self.test.args.allow_multiple_l10n)
+      select_box.InsertOption(index, '%s - [%s], [%s], [%s], [%s]' % (
+                                     REGIONS[region].description,
+                                     vpd_setting['region'],
+                                     vpd_setting['initial_locale'],
+                                     vpd_setting['keyboard_layout'],
+                                     vpd_setting['initial_timezone']))
     select_box.SetSelectedIndex(0)
     self.test.template.SetState(select_box.GenerateHTML(), append=True)
     self.test.template.SetState(_MSG_HOW_TO_SELECT, append=True)
@@ -344,11 +346,6 @@ class SelectRegionTask(FactoryTask):
     self.test.ui.SetFocus(_REGION_SELECT_BOX_ID)
 
   def Run(self):
-    if self.regions is None:
-      self.regions = cros_locale.DEFAULT_REGION_LIST
-    self.region_list = [cros_locale.BuildRegionInformation(entry) if entry[0]
-                        else ('', 'Skip', '', 'None')
-                        for entry in self.regions]
     self.RenderPage()
 
 
