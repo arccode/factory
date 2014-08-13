@@ -150,13 +150,14 @@ def FATP(args):
 
     # Lets operator check camera and camera light function.
     OperatorTest(
-        id='Camera',
-        pytest_name='camera',
-        label_zh=u'相机',
-        dargs=dict(
-            face_recognition=False,
-            resize_ratio=0.7,
-            capture_resolution=(640, 480)))
+      id='Camera',
+      label_zh=u'相机',
+      pytest_name='camera',
+      dargs=dict(
+          do_capture_manual=True,
+          do_led_manual=True,
+          capture_resolution=(640, 480),
+          resize_ratio=0.7))
 
     # Lets operator check LED function.
     OperatorTest(

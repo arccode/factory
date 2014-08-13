@@ -497,10 +497,10 @@ def RunIn(args, group_suffix=''):
           backgroundable=True,
           pytest_name='camera',
           dargs=dict(
-              face_recognition=False,
+              do_capture_timeout=True,
+              capture_resolution=(640, 480),
               timeout_secs=args.run_in_stress_duration_secs,
-              show_image=False,
-              timeout_run=True))
+              show_image=False))
 
       # Runs StressAppTest to stresses CPU and checks memory and storage.
       FactoryTest(
