@@ -4,8 +4,10 @@
 
 """Emulates keyboard scan."""
 
-# standard python libs
 import time
+
+import factory_common  # pylint: disable=W0611
+from cros.factory.test.fixture.whale import servo_client
 
 
 class KeyboardEmulator(object):
@@ -15,24 +17,29 @@ class KeyboardEmulator(object):
   crossings in sequence; the other is to emulate pressing of single or
   multiple key(s) for a specified period.
   """
+  # Shortcuts to Whale's control.
+  # pylint: disable=E1101
+  _CONTROL = servo_client.WHALE_CONTROL
 
   def __init__(self, servo):
-    """Constructor."""
+    """Constructor.
+
+    Args:
+      servo: Instance of servo_client.ServoClient
+    """
     self._servo = servo
-    self._reset()
-    self._latch_output()
+    self._Reset()
+    self._LatchOutput()
 
-  def _latch_output(self):
+  def _LatchOutput(self):
     """Outputs 16 GPIOs from the 2 shift registers."""
-    self._servo.whale_kb_shfg_latch = 'on'
-    self._servo.whale_kb_shfg_latch = 'off'
+    self._servo.Click(self._CONTROL.KEYBOARD_SHIFT_REGISTER_LATCH)
 
-  def _reset(self):
+  def _Reset(self):
     """Resets the 2 shift registers."""
-    self._servo.whale_kb_shfg_rst = 'on'
-    self._servo.whale_kb_shfg_rst = 'off'
+    self._servo.Click(self._CONTROL.KEYBOARD_SHIFT_REGISTER_RESET)
 
-  def _emulate(self, word, latch_shift):
+  def _Emulate(self, word, latch_shift):
     """Emulates row-column crossing.
 
     For example, if the word is 0b1000000000000000, the variation in
@@ -47,22 +54,24 @@ class KeyboardEmulator(object):
       word: 16-bit value of the keyboard row-column crossing status.
       latch_shift: True to latch for each bit shift.
     """
+    commands = []
     for i in range(15, -1, -1):
-      self._servo.whale_kb_shfg_data = 'on' if (word & (1 << i)) else 'off'
-
-      self._servo.whale_kb_shfg_clk = 'on'
-      self._servo.whale_kb_shfg_clk = 'off'
-
+      commands.append((self._CONTROL.KEYBOARD_SHIFT_REGISTER_DATA,
+                       'on' if (word & (1 << i)) else 'off'))
+      commands.append((self._CONTROL.KEYBOARD_SHIFT_REGISTER_CLOCK, 'on'))
+      commands.append((self._CONTROL.KEYBOARD_SHIFT_REGISTER_CLOCK, 'off'))
       if latch_shift:
-        self._latch_output()
+        commands.append((self._CONTROL.KEYBOARD_SHIFT_REGISTER_LATCH, 'on'))
+        commands.append((self._CONTROL.KEYBOARD_SHIFT_REGISTER_LATCH, 'off'))
 
-    self._latch_output()
+    self._servo.MultipleSet(commands)
+    self._LatchOutput()
 
   def SimulateKeystrokes(self):
     """Triggers all row-column crossings in sequence."""
-    self._emulate(1 << 15, True)
-    self._reset()
-    self._latch_output()
+    self._Emulate(1 << 15, True)
+    self._Reset()
+    self._LatchOutput()
 
   def KeyPress(self, bitmask, period_secs):
     """Emulates a key press in a specific period.
@@ -71,7 +80,8 @@ class KeyboardEmulator(object):
       bitmask: 16-bit value will be output.
       period_secs: The bitmask will be kept for a specified period.
     """
-    self._emulate(bitmask, False)
+    self._Emulate(bitmask, False)
     time.sleep(period_secs)
-    self._reset()
-    self._latch_output()
+    self._Reset()
+    self._LatchOutput()
+
