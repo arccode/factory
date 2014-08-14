@@ -138,8 +138,7 @@ class InterruptHandler(object):
   @TimeClassMethodDebug
   def ResetLatch(self):
     """Resets SR latch for buttons."""
-    self._servo.Enable(self._CONTROL.INPUT_RESET)
-    self._servo.Disable(self._CONTROL.INPUT_RESET)
+    self._servo.Click(self._CONTROL.INPUT_RESET)
 
   @TimeClassMethodDebug
   def WaitForInterrupt(self):
@@ -177,7 +176,7 @@ class InterruptHandler(object):
     # Touch I/O expander 0x77 byte 0 & 1, 0x75 byte 1, 0x76 byte 0 & 1.
     # Note that we skip I/O expander 0x75 byte-0 as it contains no input
     # pin, won't trigger interrupt.
-    self._servo.MultipleIsOn([
+    self._servo.MultipleGet([
         self._FIXTURE_FEEDBACK.FB1, self._BUTTON.FIXTURE_START,
         self._PLANKTON_FEEDBACK.FB1, self._WHALE_DEBUG_MODE_EN,
         self._BUTTON.RESERVE_1])
