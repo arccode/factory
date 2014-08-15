@@ -168,10 +168,33 @@ def main():
   if args.role and args.role not in HOST_BASED_ROLES:
     sys.exit('--role must be one of ' + ', '.join(HOST_BASED_ROLES))
 
+  def RunLocallyOrRemotely(cmds):
+    if args.local:
+      Spawn(cmds, check_call=True, log=True)
+    else:
+      SpawnSSHToDUT([args.host] + cmds, check_call=True, log=True)
+
+  def ToggleHostBased():
+    RunLocallyOrRemotely(
+        ['ln', '--symbolic', '--force', '--no-dereference',
+         './goofy_split' if args.host_based else './goofy_monolithic',
+         '/usr/local/factory/py/goofy'])
+
+  def SetHostBasedRole():
+    if args.role:
+      for tag in [DEVICE_TAG, PRESENTER_TAG]:
+        if tag in HOST_BASED_ROLES[args.role]:
+          RunLocallyOrRemotely(['touch', '/usr/local/factory/init/%s' % tag])
+        else:
+          RunLocallyOrRemotely(
+              ['rm', '--force', '/usr/local/factory/init/%s' % tag])
+
   if args.local:
     if in_chroot():
       sys.exit('--local must be used only on the target device')
     TweakTestLists(args)
+    ToggleHostBased()
+    SetHostBasedRole()
     return
 
   if not SRCROOT:
@@ -203,21 +226,8 @@ def main():
         ['%s:/usr/local/factory' % args.host],
         check_call=True, log=True)
 
-  SpawnSSHToDUT([args.host, 'ln', '--symbolic', '--force',
-                 '--no-dereference',
-                 './goofy_split' if args.host_based else './goofy_monolithic',
-                 '/usr/local/factory/py/goofy'],
-                 check_call=True, log=True)
-
-  if args.role:
-    for tag in [DEVICE_TAG, PRESENTER_TAG]:
-      if tag in HOST_BASED_ROLES[args.role]:
-        SpawnSSHToDUT([args.host, 'touch', '/usr/local/factory/init/%s' % tag],
-                      check_call=True, log=True)
-      else:
-        SpawnSSHToDUT([args.host, 'rm', '--force',
-                       '/usr/local/factory/init/%s' % tag],
-                      check_call=True, log=True)
+  ToggleHostBased()
+  SetHostBasedRole()
 
   board_dash = board.replace('_', '-')
   private_paths = [os.path.join(SRCROOT, 'src', 'private-overlays',

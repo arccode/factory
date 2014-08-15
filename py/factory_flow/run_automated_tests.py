@@ -19,6 +19,7 @@ import factory_common   # pylint: disable=W0611
 from cros.factory.factory_flow.common import (
     board_cmd_arg, bundle_dir_cmd_arg, dut_hostname_cmd_arg, FactoryFlowCommand)
 from cros.factory.goofy import connection_manager
+from cros.factory.goofy import goofy_remote
 from cros.factory.goofy.goofy_rpc import RunState
 from cros.factory.goofy.invocation import OVERRIDE_TEST_LIST_DARGS_FILE
 from cros.factory.hacked_argparse import CmdArg
@@ -82,8 +83,10 @@ class RunAutomatedTests(FactoryFlowCommand):
                    'their kwargs for their automation functions')),
       # TODO(jcliang): Remove this arg after we integrate goofy_monolithic and
       # goofy_split.
-      CmdArg('--enable-goofy-split', action='store_true',
-             help=('enable host-based mode')),
+      CmdArg('--host-based', action='store_true',
+             help='enable host-based mode'),
+      CmdArg('--role', choices=goofy_remote.HOST_BASED_ROLES.keys(),
+             help='the host-based role to enable on the DUT'),
   ]
 
   WAIT_FOR_GOOFY_TIMEOUT_SECS = 120
@@ -99,6 +102,7 @@ class RunAutomatedTests(FactoryFlowCommand):
 
   def Run(self):
     self.EnableFactoryTestAutomation()
+    self.RebootDUT()
     self.WaitForGoofy()
     self.PrepareAutomationEnvironment()
     self.StartAutomatedTests()
@@ -196,15 +200,27 @@ class RunAutomatedTests(FactoryFlowCommand):
     if self.options.shopfloor_ip:
       goofy_remote_args += ['-s', self.options.shopfloor_ip]
     if self.options.shopfloor_port:
-      goofy_remote_args += ['--shopfloor_port=%s', self.options.shopfloor_port]
-    if self.options.enable_goofy_split:
+      goofy_remote_args += ['--shopfloor_port=%s' % self.options.shopfloor_port]
+    if self.options.host_based:
       goofy_remote_args += ['--host-based']
+      if self.options.role:
+        goofy_remote_args += ['--role=%s' % self.options.role]
     ssh_utils.SpawnSSHToDUT(goofy_remote_args, log=True, check_call=True)
     ssh_utils.SpawnSSHToDUT(
         [self.options.dut, FACTORY_RESTART, '--automation-mode',
          '%s' % self.options.automation_mode, '--no-auto-run-on-start'] +
         (['-a', '-d'] if self.options.clear_states else []),
         log=True, check_call=True)
+
+  def RebootDUT(self):
+    """Reboots the DUT.
+
+    We often need to reboot the DUT in order for some changes to take effect.
+    For example, if we switch the goofy operation mode (host-based v.s.
+    DUT-only), we will need to reboot the DUT to enable the new mode.
+    """
+    ssh_utils.SpawnSSHToDUT([self.options.dut, 'sync && reboot'],
+                            log=True, check_call=True)
 
   def GetGoofyProxy(self):
     """Creates a Goofy RPC proxy.
