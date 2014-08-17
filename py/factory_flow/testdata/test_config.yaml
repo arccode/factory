@@ -68,6 +68,18 @@ test_items:
       --port ${dut_info:servo_port} --serial ${dut_info:servo_serial}
       'set("cold_reset", "on")'
 
+  passing_item:
+    command: run-host-command
+    cmd: 'true'
+
+  failing_item:
+    command: run-host-command
+    cmd: 'false'
+
+  clean_up_item:
+    command: run-host-command
+    cmd: 'true'
+
 
 host_info:
   dhcp_iface: eth1
@@ -147,3 +159,23 @@ test_plans:
     clean_up:
     - cold_reset_dut
     - stop_server
+
+  passing_test_plan:
+    owners:
+    - acme@chromium.org
+    dut:
+    - big_dut_wifi
+    test_sequence:
+    - passing_item
+    clean_up:
+    - clean_up_item
+
+  failing_test_plan:
+    owners:
+    - acme@chromium.org
+    dut:
+    - big_dut_wifi
+    test_sequence:
+    - failing_item
+    clean_up:
+    - clean_up_item

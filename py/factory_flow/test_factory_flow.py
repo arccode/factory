@@ -46,13 +46,30 @@ CONFIG_FILE_PATH_OUTSIDE_CHROOT = lambda board: (
     '/var/factory/board_config-%s.yaml' % board)
 
 TestStatus = utils.Enum(['NOT_TESTED', 'PASSED', 'FAILED'])
-TestResultInfo = collections.namedtuple(
-    'TestResultInfo', ['status', 'log_file'])
+
+TEST_RUN_REPORT_FILE = 'REPORT'
+TEST_RUN_RUNNING_FILE = '.running'
 
 
 class FactoryFlowTestError(Exception):
   """Factory flow runner error."""
   pass
+
+
+class TestResultInfo(object):
+  """A class to hold test result information.
+
+  Properties:
+    staus: The status of the test.
+    log_file: The path to the test log file.
+    start_time: The time the test starts.
+    end_time: The time the test ends.
+  """
+  def __init__(self, status, log_file=None, start_time=None, end_time=None):
+    self.status = status
+    self.log_file = log_file
+    self.start_time = start_time
+    self.end_time = end_time
 
 
 class TestResult(object):
@@ -64,6 +81,8 @@ class TestResult(object):
     test_plan_config: The configs of the test plan, as a dict.
     base_log_dir: The path to base log directory.
     bundle_dir: The path to the testing bundle directory.
+    start_time: The time that the test starts.
+    end_time: The time that the test ends.
     results: The test results of each test item, stored in a per DUT basis.
   """
   def __init__(self, board_name, plan_name, plan_config, base_log_dir,
@@ -72,24 +91,41 @@ class TestResult(object):
     self.test_plan_name = plan_name
     self.test_plan_config = plan_config
     self.base_log_dir = base_log_dir
+    self.test_plan_log_dir = os.path.join(self.base_log_dir,
+                                          self.test_plan_name)
     self.bundle_dir = bundle_dir
+    self.start_time = None
+    self.end_time = None
     self.results = {}
-    file_utils.TryMakeDirs(self.base_log_dir)
+    file_utils.TryMakeDirs(self.test_plan_log_dir)
     # Initialize all items to NOT_TESTED.
     for dut in self.test_plan_config['dut']:
       self.results[dut] = collections.OrderedDict()
       for item in self.test_plan_config['test_sequence']:
-        self.results[dut][item] = TestResultInfo(TestStatus.NOT_TESTED, None)
+        self.results[dut][item] = TestResultInfo(TestStatus.NOT_TESTED)
       for item in self.test_plan_config['clean_up']:
-        self.results[dut][item] = TestResultInfo(TestStatus.NOT_TESTED, None)
+        self.results[dut][item] = TestResultInfo(TestStatus.NOT_TESTED)
 
-  def SetTestItemResult(self, dut, item, result_info):
-    """Sets the test result of a test item for the given DUT.
+  def SetTestPlanRunning(self, is_running):
+    """Sets or removes the test running tag file according to is_running."""
+    running_tag_file = os.path.join(self.test_plan_log_dir,
+                                    TEST_RUN_RUNNING_FILE)
+    if is_running:
+      self.start_time = time.time()
+      file_utils.TouchFile(running_tag_file)
+    else:
+      self.end_time = time.time()
+      os.remove(running_tag_file)
+
+  def GetTestItemResult(self, dut, item):
+    """Gets the TestResultInfo object of a test item for the given DUT.
 
     Args:
       dut: The ID of the DUT.
       item: The ID of the test item.
-      result_info: The test result infomation in a TestResultInfo object.
+
+    Returns:
+      The TestResultInfo object storing the test result information.
     """
     if not dut in self.test_plan_config['dut']:
       raise FactoryFlowTestError('DUT %r is not planned for %r' %
@@ -98,7 +134,7 @@ class TestResult(object):
                     self.test_plan_config['clean_up']):
       raise FactoryFlowTestError('Test item %r is not planned for %r' %
                                  (item, self.test_plan_name))
-    self.results[dut][item] = result_info
+    return self.results[dut][item]
 
   def GetOverallTestResult(self, dut=None):
     """Gets the overall test results of the test plan.
@@ -150,6 +186,8 @@ class TestResult(object):
     report['board'] = self.board_name.full_name
     report['test_plan'] = self.test_plan_name
     report['overall_status'] = self.GetOverallTestResult()
+    report['start_time'] = self.start_time
+    report['end_time'] = self.end_time
 
     # Generate overall test results and specific test result of each test item
     # for each DUT.
@@ -163,7 +201,9 @@ class TestResult(object):
         for item in self.test_plan_config[section]:
           report['duts'][dut][section].append(
               {item: {'status': result[item].status,
-                      'log_file': result[item].log_file,}
+                      'log_file': result[item].log_file,
+                      'start_time': result[item].start_time,
+                      'end_time': result[item].end_time,}
               })
 
     return report
@@ -183,7 +223,8 @@ class TestResult(object):
     log_file_name = '%s-%s-%s.tar.bz2' % (
         self.board_name.full_name, self.test_plan_name, now)
     with open(
-        os.path.join(self.base_log_dir, self.test_plan_name, 'REPORT'),
+        os.path.join(self.base_log_dir, self.test_plan_name,
+                     TEST_RUN_REPORT_FILE),
         'w') as f:
       f.write(yaml.dump(self.GenerateReport(), default_flow_style=False))
     process_utils.Spawn(['tar', 'cJvf', log_file_name, self.test_plan_name],
@@ -281,7 +322,6 @@ class FactoryFlowRunner(object):
     self.output_dir = output_dir or tempfile.mkdtemp(
         prefix='factory_flow_runner.')
     self.bundle_dir = bundle_dir or self.output_dir
-    self.test_results = {}
     # Initialize log directory.
     self.log_dir = log_dir or os.path.join(self.output_dir, 'logs')
     file_utils.TryMakeDirs(self.log_dir)
@@ -318,8 +358,7 @@ class FactoryFlowRunner(object):
     for plan in test_plans_to_run:
       logging.info('Running test plan %r...', plan)
       config = self.config['test_plans'].get(plan)
-      test_result = TestResult(self.board, plan, config, self.log_dir,
-                               self.bundle_dir)
+
       if dut is not None:
         if dut not in config['dut']:
           logging.info('DUT %r is not planned for %r', dut, plan)
@@ -339,6 +378,10 @@ class FactoryFlowRunner(object):
 
       test_env = os.environ.copy()
       test_env[common.BUNDLE_DIR_ENVVAR] = self.bundle_dir
+
+      test_result = TestResult(self.board, plan, config, self.log_dir,
+                               self.bundle_dir)
+      test_result.SetTestPlanRunning(True)
 
       def RunTestItem(item):
         """Runs a give test item.
@@ -368,29 +411,31 @@ class FactoryFlowRunner(object):
                 dut_command.args, log=True, env=test_env, stdout=f, stderr=f)
           procs.append(
               (dut_command.duts, proc, os.path.relpath(log_file, self.log_dir)))
+          for dut in dut_command.duts:
+            item_result_info = test_result.GetTestItemResult(dut, item)
+            item_result_info.start_time = time.time()
+            item_result_info.log_file = log_file
 
         # Wait for all commands to finish and set test results.
         passed = True
         for x in xrange(len(procs)):
           duts, proc, log_file = procs[x]
           proc.wait()
-          if proc.returncode != 0:
-            for dut in duts:
-              test_result_info = TestResultInfo(
-                  TestStatus.FAILED, log_file)
-              test_result.SetTestItemResult(dut, item, test_result_info)
-            logging.error(
-                'Test item %s for DUT %s failed; check %s for detailed logs',
-                item, duts, log_file)
-            passed = False
-          else:
-            logging.info(
-                'Test item %s for DUT %s passed; check %s for detailed logs',
-                item, duts, log_file)
-            for dut in duts:
-              test_result_info = TestResultInfo(
-                  TestStatus.PASSED, log_file)
-              test_result.SetTestItemResult(dut, item, test_result_info)
+          for dut in duts:
+            item_result_info = test_result.GetTestItemResult(dut, item)
+            
+            item_result_info.end_time = time.time()
+            if proc.returncode != 0:
+              item_result_info.status = TestStatus.FAILED
+              logging.error(
+                  'Test item %s for DUT %s failed; check %s for detailed logs',
+                  item, duts, log_file)
+              passed = False
+            else:
+              item_result_info.status = TestStatus.PASSED
+              logging.info(
+                  'Test item %s for DUT %s passed; check %s for detailed logs',
+                  item, duts, log_file)
         return passed
 
       try:
@@ -424,6 +469,7 @@ class FactoryFlowRunner(object):
           except Exception:
             logging.exception('Error when running clean-up item %s', item)
 
+      test_result.SetTestPlanRunning(False)
       test_result.NotifyOwners()
 
   def GetDUTFactoryLogs(self, plan, dut, output_path):
