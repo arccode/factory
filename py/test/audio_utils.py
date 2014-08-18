@@ -128,6 +128,36 @@ def SoxStatOutput(in_file, channel, num_channels=DEFAULT_NUM_CHANNELS,
   return output
 
 
+def GetAudioMinimumAmplitude(sox_output):
+  """Gets the audio minimum amplitude from sox stat output
+
+  Args:
+    sox_output: Output of sox stat command.
+
+  Returns:
+    The minimum amplitude parsed from sox stat output.
+  """
+  m = re.search('^Minimum\s+amplitude:\s+(.+)$', sox_output, re.MULTILINE)
+  if m is not None:
+    return float(m.group(1))
+  return None
+
+
+def GetAudioMaximumAmplitude(sox_output):
+  """Gets the audio maximum amplitude from sox stat output
+
+  Args:
+    sox_output: Output of sox stat command.
+
+  Returns:
+    The maximum amplitude parsed from sox stat output.
+  """
+  m = re.search('^Maximum\s+amplitude:\s+(.+)$', sox_output, re.MULTILINE)
+  if m is not None:
+    return float(m.group(1))
+  return None
+
+
 def GetAudioRms(sox_output):
   """Gets the audio RMS value from sox stat output
 
@@ -137,11 +167,9 @@ def GetAudioRms(sox_output):
   Returns:
     The RMS value parsed from sox stat output.
   """
-  _SOX_RMS_AMPLITUDE_RE = re.compile('RMS\s+amplitude:\s+(.+)')
-  for rms_line in sox_output.split('\n'):
-    m = _SOX_RMS_AMPLITUDE_RE.match(rms_line)
-    if m is not None:
-      return float(m.group(1))
+  m = re.search('^RMS\s+amplitude:\s+(.+)$', sox_output, re.MULTILINE)
+  if m is not None:
+    return float(m.group(1))
   return None
 
 

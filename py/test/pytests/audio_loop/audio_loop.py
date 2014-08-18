@@ -54,8 +54,10 @@ _DEFAULT_SINE_DURATION_SEC = 1
 _AUDIOFUNTEST_STOP_RE = re.compile('^Stop')
 _AUDIOFUNTEST_SUCCESS_RATE_RE = re.compile('.*rate\s*=\s*(.*)$')
 
-# Minimum RMS value to pass when checking recorded file.
-_DEFAULT_SOX_RMS_THRESHOLD = 0.08
+# RMS thresholds when checking recorded file.
+_DEFAULT_SOX_RMS_THRESHOLD = (0.08, None)
+# Amplitude thresholds when checking recorded file.
+_DEFAULT_SOX_AMPLITUDE_THRESHOLD = (None, None)
 
 class PlaySineThread(threading.Thread):
   """Wraps the execution of arecord in a thread."""
@@ -98,10 +100,24 @@ class AudioLoopTest(unittest.TestCase):
     # Only used for audiojack
     Arg('sine_duration_secs', int, 'Play sine tone duration',
         _DEFAULT_SINE_DURATION_SEC),
-    Arg('rms_threshold', float, 'RMS value threshold',
+    Arg('rms_threshold', tuple, 'A tuple of (min, max) RMS value threshold. '
+        'The measured RMS value must satisfy: min <= RMS <= max or the test '
+        'will fail. For min and max, any of them can be None which means no '
+        'limit. For example: (None, 0.5) will make sure the RMS value is '
+        'between -inf ~ 0.5 (though it\'s not possible for the value to go '
+        'below 0); (0.05, None) will make sure the RMS value is between '
+        '0.05 ~ +inf; (None, None) will check nothing at all.',
         _DEFAULT_SOX_RMS_THRESHOLD),
     Arg('cras_enabled', bool, 'Whether cras should be running or not',
         False),
+    Arg('amplitude_threshold', tuple, 'A tuple of (min, max). The measured '
+        'min/max amplitude must satisfy: min <= measured min <= measured max '
+        '<= max or the test will fail. For min and max, any of them can be '
+        'None which means no limit. For example: (None, 0.8) will make sure '
+        'the measured max amplitude is less than or equal to 0.8. (-0.9, '
+        'None) will make sure the measured min amplitude is greater than or '
+        'equal to -0.9. (None, None) will check nothing at all.',
+        _DEFAULT_SOX_AMPLITUDE_THRESHOLD),
   ]
 
   def setUp(self):
@@ -128,12 +144,10 @@ class AudioLoopTest(unittest.TestCase):
     self._sine_duration_secs = self.args.sine_duration_secs
     self._audiofun = self.args.enable_audiofun
     self._audiofun_duration_secs = self.args.audiofun_duration_secs
-    self._freq_threshold = self.args.freq_threshold
-    self._rms_threshold = self.args.rms_threshold
     self._freq = _DEFAULT_FREQ_HZ
     # Used in RunAudioFunTest() or AudioLoopBack() for test result.
     self._test_result = True
-    self._test_message = None
+    self._test_message = []
 
     self._audio_util = audio_utils.AudioUtil()
     for card, action in self.args.initial_actions:
@@ -165,6 +179,12 @@ class AudioLoopTest(unittest.TestCase):
     self._ui.CallJSFunction('init', self.args.autostart,
         self.args.require_dongle)
     self._ui.Run()
+
+  def AppendErrorMessage(self, error_message):
+    """Sets the test result to fail and append a new error message."""
+    self._test_result = False
+    self._test_message.append(error_message)
+    factory.console.error(error_message)
 
   def GetCardIndex(self, device):
     """Gets the card index from given device names.
@@ -215,17 +235,14 @@ class AudioLoopTest(unittest.TestCase):
 
       # Show instant message and wait for a while
       if not test_result:
-        self._test_result = False
         if last_success_rate is not None:
           self._ui.CallJSFunction('testFailResult', last_success_rate)
           time.sleep(1)
-          self._test_message = (
+          self.AppendErrorMessage(
               'For channel %s, The success rate is %.1f, too low!' %
               (channel, last_success_rate))
-          factory.console.info(self._test_message)
         else:
-          self._test_message = 'audiofuntest terminated unexpectedly'
-          factory.console.info(self._test_message)
+          self.AppendErrorMessage('audiofuntest terminated unexpectedly')
       time.sleep(0.5)
     self.EndTest()
 
@@ -261,12 +278,17 @@ class AudioLoopTest(unittest.TestCase):
           channel)
 
       rms_value = audio_utils.GetAudioRms(sox_output_reduced)
-      factory.console.info('Got audio RMS value of %f.', rms_value)
+      min_value = audio_utils.GetAudioMinimumAmplitude(sox_output_reduced)
+      max_value = audio_utils.GetAudioMaximumAmplitude(sox_output_reduced)
+      factory.console.info(
+          'Got audio RMS value: %f, min amplitude: %f, max amplitude: %f.',
+          rms_value, min_value, max_value)
 
       os.unlink(reduced_file_name)
       os.unlink(record_file_name)
 
-      self.CheckRecordedAudio(sox_output_reduced, rms_value)
+      self.CheckRecordedAudio(sox_output_reduced,
+                              rms_value, min_value, max_value)
 
   def AudioLoopback(self):
     rec_cmd = ['arecord', '-D', self._input_device, '-f', 'dat', '-d',
@@ -285,19 +307,32 @@ class AudioLoopTest(unittest.TestCase):
 
     self.EndTest()
 
-  def CheckRecordedAudio(self, sox_output, rms_value):
-    if rms_value < self._rms_threshold:
-      self._test_result = False
-      self._test_message = ('Audio RMS value %f too low. Minimum pass is %f.'
-          % (rms_value, self._rms_threshold))
-      factory.console.info(self._test_message)
+  def CheckRecordedAudio(self, sox_output, rms_value, min_value, max_value):
+    if (self.args.rms_threshold[0] is not None and
+        self.args.rms_threshold[0] > rms_value):
+      self.AppendErrorMessage('Audio RMS value %f too low. Minimum pass is %f.'
+          % (rms_value, self.args.rms_threshold[0]))
+
+    if (self.args.rms_threshold[1] is not None and
+        self.args.rms_threshold[1] < rms_value):
+      self.AppendErrorMessage('Audio RMS value %f too high. Maximum pass is %f.'
+          % (rms_value, self.args.rms_threshold[1]))
+
+    if (self.args.amplitude_threshold[0] is not None and
+        self.args.amplitude_threshold[0] > min_value):
+      self.AppendErrorMessage(
+          'Audio minimum amplitude %f too low. Minimum pass is %f.' % (
+              min_value, self.args.amplitude_threshold[0]))
+
+    if (self.args.amplitude_threshold[1] is not None and
+        self.args.amplitude_threshold[1] < max_value):
+      self.AppendErrorMessage(
+          'Audio maximum amplitude %f too high. Maximum pass is %f.' % (
+              max_value, self.args.amplitude_threshold[1]))
 
     freq = audio_utils.GetRoughFreq(sox_output)
-    if freq is None or (
-        abs(freq - self._freq) > self._freq_threshold):
-      self._test_result = False
-      self._test_message = 'Test Fail at frequency %r' % freq
-      factory.console.info(self._test_message)
+    if freq is None or (abs(freq - self._freq) > self.args.freq_threshold):
+      self.AppendErrorMessage('Test Fail at frequency %r' % freq)
     else:
       factory.console.info('Got frequency %d' % freq)
 
@@ -307,7 +342,7 @@ class AudioLoopTest(unittest.TestCase):
       time.sleep(0.5)
       self._ui.Pass()
     else:
-      self._ui.Fail(self._test_message)
+      self._ui.Fail('; '.join(self._test_message))
 
   def StartRunTest(self, event): # pylint: disable=W0613
     # We've encountered false positive running audiofuntest tool against
