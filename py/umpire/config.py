@@ -281,14 +281,19 @@ class UmpireConfig(dict):
     default bundle's existance.
 
     Args:
-      config: path to an Umpire config file or an UmpireConfig dict.
+      config: path to an Umpire config file or config content or an
+          UmpireConfig dict.
       validate: True to validate. Note that it would be removed once
           all UmpireConfig components are implemented.
     """
     self.bundle_map = {}
     if isinstance(config, str):
-      with open(config, 'r') as f:
-        config = yaml.load(f)
+      if config.find('\n') == -1:
+        # Treat single line config as file name.
+        with open(config, 'r') as f:
+          config = yaml.load(f)
+      else:
+        config = yaml.load(config)
 
     super(UmpireConfig, self).__init__(config)
     self.BuildBundleMap()

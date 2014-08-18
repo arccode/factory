@@ -67,6 +67,23 @@ class TestUmpireConfig(unittest.TestCase):
     self.assertEqual('test', bundle['id'])
     self.assertEqual('bundle for test', bundle['note'])
 
+  def testLoadConfigString(self):
+    with open(EMPTY_SERVICES_CONFIG) as f:
+      config_str = f.read()
+    conf = config.UmpireConfig(config_str)
+    self.assertEqual(1, len(conf['rulesets']))
+    ruleset = conf['rulesets'][0]
+    self.assertDictEqual(
+        {'bundle_id': 'test',
+         'note': 'ruleset for test',
+         'active': True},
+        ruleset)
+
+    self.assertEqual(1, len(conf['bundles']))
+    bundle = conf['bundles'][0]
+    self.assertEqual('test', bundle['id'])
+    self.assertEqual('bundle for test', bundle['note'])
+
   def testLoadConfigRuleMatcher(self):
     conf = config.UmpireConfig(RULESET_CONFIG)
     self.assertEqual(2, len(conf['rulesets']))
