@@ -37,6 +37,7 @@ from cros.factory.gooftool import crosfw
 from cros.factory.gooftool import vblock
 # pylint: disable=E0611
 from cros.factory.hwdb.hwid_tool import ProbeResults, COMPACT_PROBE_STR
+from cros.factory.system import board
 from cros.factory.test import factory
 
 try:
@@ -956,6 +957,16 @@ def _ProbeKeyboard():
     return [{COMPACT_PROBE_STR: ro_vpd['keyboard_layout']}]
   except KeyError:
     return []
+
+
+@_ComponentProbe('board_version')
+def _ProbeBoardVersion():
+  try:
+    board_version = system.GetBoard().GetBoardVersion()
+  except board.BoardException:
+    return []
+  else:
+    return [{COMPACT_PROBE_STR: board_version}]
 
 
 @_InitialConfigProbe('cellular_fw_version')
