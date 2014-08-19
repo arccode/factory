@@ -256,3 +256,18 @@ class Board(object):
       BoardException if power information cannot be obtained.
     """
     raise NotImplementedError
+
+  def GetBoardVersion(self):
+    """Gets the version of the board (MLB).
+
+    Returns:
+      A string of the version of the MLB board, like::
+
+        Proto2B
+        EVT
+        DVT
+
+    Raises:
+      BoardException if board version cannot be obtained.
+    """
+    raise NotImplementedError

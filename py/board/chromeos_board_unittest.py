@@ -9,6 +9,7 @@
 
 
 import mox
+import subprocess
 import unittest
 
 import factory_common  # pylint: disable=W0611
@@ -321,6 +322,37 @@ batt_state_of_charge = 52%
     self.mox.ReplayAll()
     self.board.SetLEDColor(Board.LEDColor.RED)
     self.mox.VerifyAll()
+
+  def testGetBoardVersion(self):
+    _MOCK_VERSION = 'Proto2B'
+
+    class Dummy(object):
+      """A dummy class to mock Spawn output."""
+
+      def __init__(self):
+        self.stdout_data = None
+
+    # Return a valid board version.
+    dummy = Dummy()
+    dummy.stdout_data = _MOCK_VERSION
+    self.board._Spawn(['mosys', 'platform', 'version'], ignore_stderr=True,
+                      check_call=True, read_stdout=True).AndReturn(dummy)
+    # And mock a command error.
+    self.board._Spawn(['mosys', 'platform', 'version'], ignore_stderr=True,
+                      check_call=True, read_stdout=True).AndRaise(
+                          subprocess.CalledProcessError(
+                              38, 'mosys platform version',
+                              output='Command not supported on this platform'))
+
+    self.mox.ReplayAll()
+    self.assertEquals(self.board.GetBoardVersion(), 'Proto2B')
+    self.assertRaisesRegexp(
+        BoardException,
+        (r"Unable to get board version: Command 'mosys platform version' "
+         r"returned non-zero exit status 38"),
+        self.board.GetBoardVersion)
+    self.mox.VerifyAll()
+
 
 if __name__ == '__main__':
   unittest.main()

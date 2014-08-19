@@ -238,3 +238,13 @@ class ChromeOSBoard(Board):
       self._CallECTool(['led', led_name, color_brightness])
     except Exception as e:
       logging.exception('Unable to set LED color: %s', e)
+
+  def GetBoardVersion(self):
+    try:
+      response = self._Spawn(['mosys', 'platform', 'version'],
+                             read_stdout=True, check_call=True,
+                             ignore_stderr=True).stdout_data
+    except Exception as e:
+      raise BoardException('Unable to get board version: %s' % e)
+    else:
+      return response.strip()
