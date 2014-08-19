@@ -49,11 +49,12 @@ class ConfigEditorTest(unittest.TestCase):
   def MockUmpireCLIValidate(self, config_basename=None):
     self.umpire_cli.ValidateConfig(StrContains(EDITOR_PREPEND))
     if not config_basename:
-      config_basename = 'staging_umpire.yaml'
+      config_basename = 'umpire.yaml'
     res_name = config_basename + MOCK_RES_HASH
-    self.umpire_cli.AddResource(StrContains(config_basename)).AndReturn(
-        res_name)
-    self.umpire_cli.StageConfigFile(res_name, force=True)
+    self.umpire_cli.UploadConfig(
+        StrContains(config_basename),
+        StrContains(EDITOR_PREPEND)).AndReturn(res_name)
+    self.umpire_cli.StageConfigFile(res_name, True)
 
   def testEdit(self):
     self.MockUmpireCLIGetStagingConfig()

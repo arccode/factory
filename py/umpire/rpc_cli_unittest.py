@@ -115,8 +115,7 @@ class CommandTest(unittest.TestCase):
                                         note))
 
   def testAddResource(self):
-    temp_path = self.env.base_dir
-    file_to_add = os.path.join(temp_path, 'file_to_add')
+    file_to_add = os.path.join(self.env.base_dir, 'file_to_add')
     with file(file_to_add, 'w') as f:
       f.write('...')
     expected_resource_name = 'file_to_add##2f43b42f'
@@ -127,11 +126,10 @@ class CommandTest(unittest.TestCase):
     return self.AssertSuccess(d)
 
   def testAddResourceResType(self):
-    temp_path = self.env.base_dir
     checksum_for_empty = 'da39a3ee5e6b4b0d3255bfef95601890afd80709'
     res_hash = '1f78df50'
 
-    file_to_add = os.path.join(temp_path, 'hwid')
+    file_to_add = os.path.join(self.env.base_dir, 'hwid')
     with file(file_to_add, 'w') as f:
       f.write('checksum: %s' % checksum_for_empty)
 
@@ -144,6 +142,19 @@ class CommandTest(unittest.TestCase):
 
   def testAddResourceFail(self):
     return self.AssertFailure(self.Call('AddResource', '/path/to/nowhere'))
+
+  def testUploadConfig(self):
+    basename = 'umpire.yaml'
+    config_str = 'line1\nline2\nline3'
+
+    def Verify(result):
+      self.assertTrue(result.find(basename) != -1)
+      with open(os.path.join(self.env.resources_dir, result)) as f:
+        self.assertEqual(config_str, f.read())
+
+    d = self.Call('UploadConfig', basename, config_str)
+    d.addCallback(Verify)
+    return self.AssertSuccess(d)
 
   def testGetStagingConfig(self):
     # Prepare a staging config.
@@ -178,8 +189,7 @@ class CommandTest(unittest.TestCase):
 
   def testStageConfigFile(self):
     # Prepare a file in resource to stage.
-    temp_path = self.env.base_dir
-    config_to_stage = os.path.join(temp_path, 'config_to_stage')
+    config_to_stage = os.path.join(self.env.base_dir, 'config_to_stage')
     with file(config_to_stage, 'w') as f:
       f.write('...')
     config_to_stage_res_full_path = self.env.AddResource(config_to_stage)
@@ -195,8 +205,7 @@ class CommandTest(unittest.TestCase):
   def testStageConfigFileNotInResource(self):
     # Prepare a file not in resources to stage.
     res_basename = 'config_to_stage'
-    temp_path = self.env.base_dir
-    config_to_stage = os.path.join(temp_path, res_basename)
+    config_to_stage = os.path.join(self.env.base_dir, res_basename)
     with file(config_to_stage, 'w') as f:
       f.write('...')
 
@@ -208,15 +217,14 @@ class CommandTest(unittest.TestCase):
 
   def testStageConfigFileFailFileAlreadyExists(self):
     # Prepare a file in resource to stage.
-    temp_path = self.env.base_dir
-    config_to_stage = os.path.join(temp_path, 'config_to_stage')
+    config_to_stage = os.path.join(self.env.base_dir, 'config_to_stage')
     with file(config_to_stage, 'w') as f:
       f.write('...')
     config_to_stage_res_full_path = self.env.AddResource(config_to_stage)
     config_to_stage_res_name = os.path.basename(config_to_stage_res_full_path)
 
     # Set a stage config first.
-    staged_config = os.path.join(temp_path, 'staged_config')
+    staged_config = os.path.join(self.env.base_dir, 'staged_config')
     with file(staged_config, 'w') as f:
       f.write('staged...')
     self.env.StageConfigFile(staged_config)
@@ -226,15 +234,14 @@ class CommandTest(unittest.TestCase):
 
   def testStageConfigFileForce(self):
     # Prepare a file in resource to stage.
-    temp_path = self.env.base_dir
-    config_to_stage = os.path.join(temp_path, 'config_to_stage')
+    config_to_stage = os.path.join(self.env.base_dir, 'config_to_stage')
     with file(config_to_stage, 'w') as f:
       f.write('...')
     config_to_stage_res_full_path = self.env.AddResource(config_to_stage)
     config_to_stage_res_name = os.path.basename(config_to_stage_res_full_path)
 
     # Set a stage config first.
-    staged_config = os.path.join(temp_path, 'staged_config')
+    staged_config = os.path.join(self.env.base_dir, 'staged_config')
     with file(staged_config, 'w') as f:
       f.write('staged...')
     self.env.StageConfigFile(staged_config)
@@ -249,8 +256,7 @@ class CommandTest(unittest.TestCase):
 
   def testUnstageConfigFile(self):
     # Prepare a file in resource and stage it.
-    temp_path = self.env.base_dir
-    staged_config = os.path.join(temp_path, 'staged_config')
+    staged_config = os.path.join(self.env.base_dir, 'staged_config')
     with file(staged_config, 'w') as f:
       f.write('staged...')
     self.env.StageConfigFile(staged_config)

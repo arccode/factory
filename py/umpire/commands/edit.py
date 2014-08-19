@@ -95,7 +95,7 @@ class ConfigEditor(object):
       with open(config_file) as c:
         config = c.read()
     else:
-      config_file = 'staging_umpire.yaml'
+      config_file = 'umpire.yaml'
       config = self._umpire_cli.GetStagingConfig()
 
     if not config:
@@ -111,9 +111,13 @@ class ConfigEditor(object):
   def _StageEditedConfig(self):
     """Copies config file to resources, stages it, and prompts user to deploy.
     """
-    res_name = self._umpire_cli.AddResource(self._config_file)
-    self._umpire_cli.StageConfigFile(res_name, force=True)
-    print 'Successful editing %s.' % self._config_file
+    res_name = self._umpire_cli.UploadConfig(
+        os.path.basename(self._config_file),
+        open(self._config_file).read())
+    # Force staging.
+    self._umpire_cli.StageConfigFile(res_name, True)
+    print ('Successful upload config to resource %r and mark it as staging.' %
+           res_name)
     print 'You may deploy it using "umpire deploy".'
 
   def _InvokeEditor(self):
