@@ -1,4 +1,4 @@
-# Copyright (c) 2014 The Chromium OS Authors. All rights reserved.
+# Copyright 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -67,6 +67,9 @@ BUNDLE_MANIFEST = 'MANIFEST.yaml'
 
 # Default Umpire base directory relative to root dir.
 DEFAULT_BASE_DIR = os.path.join('/', 'var', 'db', 'factory', 'umpire')
+
+EMPTY_FILE_HASH = 'd41d8cd9'
+DUMMY_RESOURCE = 'none##' + EMPTY_FILE_HASH
 
 
 class UmpireError(Exception):

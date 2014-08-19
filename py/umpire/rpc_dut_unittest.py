@@ -10,7 +10,6 @@ import logging
 import mox
 import os
 import shutil
-import tempfile
 import time
 from twisted.internet import reactor
 from twisted.trial import unittest
@@ -24,7 +23,7 @@ from cros.factory.umpire.rpc_dut import (
     RootDUTCommands,
     UmpireDUTCommands,
     FACTORY_STAGES)
-from cros.factory.umpire.umpire_env import UmpireEnv
+from cros.factory.umpire.umpire_env import UmpireEnvForTest
 from cros.factory.umpire.utils import ConcentrateDeferreds
 from cros.factory.umpire.version import UMPIRE_VERSION_MAJOR
 from cros.factory.umpire.web.xmlrpc import XMLRPCContainer
@@ -39,10 +38,24 @@ TESTCONFIG = os.path.join(TESTDIR, 'enable_update.yaml')
 class DUTRPCTest(unittest.TestCase):
 
   def setUp(self):
-    self.temp_dir = tempfile.mkdtemp()
-    self.env = UmpireEnv()
-    self.env.base_dir = TESTDIR
-    self.env.LoadConfig(custom_path=TESTCONFIG)
+    self.env = UmpireEnvForTest()
+    shutil.copy(TESTCONFIG, self.env.active_config_file)
+
+    # Create empty files for resources.
+    for res in ['complete.gz##d41d8cd9',
+                'install_factory_toolkit.run#ftk_v0.1#d41d8cd9',
+                'efi.gz##d41d8cd9',
+                'firmware.gz#ec_v0.2:bios_v0.3#d41d8cd9',
+                'hwid.gz##d41d8cd9',
+                'vmlinux##d41d8cd9',
+                'oem.gz##d41d8cd9',
+                'rootfs-release.gz#release_v9876.0.0#d41d8cd9',
+                'rootfs-test.gz#test_v5432.0.0#d41d8cd9',
+                'install_factory_toolkit.run#ftk_v0.4#d41d8cd9',
+                'state.gz##d41d8cd9']:
+      file_utils.TouchFile(os.path.join(self.env.resources_dir, res))
+
+    self.env.LoadConfig()
     self.mox = mox.Mox()
     self.proxy = xmlrpc.Proxy('http://localhost:%d' % TEST_RPC_PORT,
                               allowNone=True)
@@ -63,7 +76,7 @@ class DUTRPCTest(unittest.TestCase):
           'mlb_sn': 'SN001',
           'stage': 'SMT'},
       'components': {
-          'device_factory_toolkit': '00000002',
+          'device_factory_toolkit': 'd41d8cd9',
           'rootfs_release': 'release_v9876.0.0',
           'rootfs_test': 'test_v5432.0.0',
           'firmware_ec': 'ec_v0.2',
@@ -73,7 +86,6 @@ class DUTRPCTest(unittest.TestCase):
     self.twisted_port.stopListening()
     self.mox.UnsetStubs()
     self.mox.VerifyAll()
-    shutil.rmtree(self.temp_dir)
 
   def Call(self, function, *args):
     return self.proxy.callRemote(function, *args)
@@ -165,8 +177,6 @@ class DUTRPCTest(unittest.TestCase):
         self.assertIn(name, report_path)
       return True
 
-    self.env.base_dir = self.temp_dir
-    file_utils.TryMakeDirs(self.env.umpire_data_dir)
     d = self.Call('UploadReport', 'serial1234', xmlrpclib.Binary('content'),
                   'rpt_name5678', 'stage90')
     d.addCallback(CheckTrue)
@@ -190,8 +200,6 @@ class DUTRPCTest(unittest.TestCase):
         self.assertEqual(f.read(), content)
       return True
 
-    self.env.base_dir = self.temp_dir
-    file_utils.TryMakeDirs(self.env.umpire_data_dir)
     d = self.Call('UploadEvent', 'event_log_name', '123')
     d.addCallback(CheckTrue)
     d.addCallback(lambda _: CheckEvent('123'))

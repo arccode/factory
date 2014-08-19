@@ -224,6 +224,8 @@ class UmpireEnv(object):
 
     # Update config & config_path after the config is loaded successfully.
     self.config = config.UmpireConfig(config_path)
+    config.ValidateResources(self.config, self)
+
     self.config_path = config_path
     port_start = self.fastcgi_start_port
     if port_start:
@@ -438,6 +440,20 @@ class UmpireEnvForTest(UmpireEnv):
         self.server_toolkits_dir,
         self.umpire_data_dir):
       os.makedirs(fundamental_subdir)
+
+    # Create dummy resource files.
+    for res in ['complete.gz##d41d8cd9',
+                'install_factory_toolkit.run##d41d8cd9',
+                'efi.gz##d41d8cd9',
+                'firmware.gz##d41d8cd9',
+                'hwid.gz##d41d8cd9',
+                'vmlinux##d41d8cd9',
+                'oem.gz##d41d8cd9',
+                'rootfs-release.gz##d41d8cd9',
+                'rootfs-test.gz##d41d8cd9',
+                'install_factory_toolkit.run##d41d8cd9',
+                'state.gz##d41d8cd9']:
+      file_utils.TouchFile(os.path.join(self.resources_dir, res))
 
   def __del__(self):
     if os.path.isdir(self.base_dir):

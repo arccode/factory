@@ -12,30 +12,30 @@ bundles:
   shop_floor:
     handler: cros.factory.shopfloor.test_board_shopfloor
   resources:
-    complete_script: complete.gz##00000000
-    device_factory_toolkit: install_factory_toolkit.run##00000000
-    efi_partition: efi.gz##00000000
-    firmware: firmware.gz##00000000
-    hwid: hwid.gz##00000000
-    netboot_vmlinux: vmlinux##00000000
-    oem_partition: oem.gz##00000000
-    rootfs_release: rootfs-release.gz##00000000
-    rootfs_test: rootfs-test.gz##00000000
-    server_factory_toolkit: install_factory_toolkit.run##00000000
-    stateful_partition: state.gz##00000000
+    complete_script: complete.gz##d41d8cd9
+    device_factory_toolkit: install_factory_toolkit.run##d41d8cd9
+    efi_partition: efi.gz##d41d8cd9
+    firmware: firmware.gz##d41d8cd9
+    hwid: hwid.gz##d41d8cd9
+    netboot_vmlinux: vmlinux##d41d8cd9
+    oem_partition: oem.gz##d41d8cd9
+    rootfs_release: rootfs-release.gz##d41d8cd9
+    rootfs_test: rootfs-test.gz##d41d8cd9
+    server_factory_toolkit: install_factory_toolkit.run##d41d8cd9
+    stateful_partition: state.gz##d41d8cd9
 - id: default_test
   note: default bundle for test
   shop_floor:
     handler: cros.factory.shopfloor.test_board_shopfloor
   resources:
-    complete_script: complete.gz##00000000
-    device_factory_toolkit: install_factory_toolkit.run##00000000
-    efi_partition: efi.gz##00000000
-    firmware: firmware.gz##00000000
-    hwid: hwid.gz##00000000
-    netboot_vmlinux: vmlinux##00000000
-    oem_partition: oem.gz##00000000
-    rootfs_release: rootfs-release.gz##00000000
-    rootfs_test: rootfs-test.gz##00000000
-    server_factory_toolkit: install_factory_toolkit.run##00000000
-    stateful_partition: state.gz##00000000
+    complete_script: complete.gz##d41d8cd9
+    device_factory_toolkit: install_factory_toolkit.run##d41d8cd9
+    efi_partition: efi.gz##d41d8cd9
+    firmware: firmware.gz##d41d8cd9
+    hwid: hwid.gz##d41d8cd9
+    netboot_vmlinux: vmlinux##d41d8cd9
+    oem_partition: oem.gz##d41d8cd9
+    rootfs_release: rootfs-release.gz##d41d8cd9
+    rootfs_test: rootfs-test.gz##d41d8cd9
+    server_factory_toolkit: install_factory_toolkit.run##d41d8cd9
+    stateful_partition: state.gz##d41d8cd9

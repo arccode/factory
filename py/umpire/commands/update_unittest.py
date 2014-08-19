@@ -6,16 +6,14 @@
 
 import mox
 import os
-import shutil
 import sys
-import tempfile
 import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.commands.update import ResourceUpdater
 from cros.factory.umpire.common import UmpireError
 from cros.factory.umpire.config import UmpireConfig
-from cros.factory.umpire.umpire_env import UmpireEnv
+from cros.factory.umpire.umpire_env import UmpireEnvForTest
 from cros.factory.utils import file_utils
 from cros.factory.utils import get_version
 
@@ -28,22 +26,15 @@ MINIMAL_UMPIRE_CONFIG = os.path.join(TESTDATA_DIR,
 
 class ResourceUpdaterTest(unittest.TestCase):
   def setUp(self):
-    self.env = UmpireEnv()
-    self.temp_dir = tempfile.mkdtemp()
-    self.env.base_dir = self.temp_dir
+    self.env = UmpireEnvForTest()
     self.env.LoadConfig(custom_path=MINIMAL_UMPIRE_CONFIG)
-    os.makedirs(self.env.resources_dir)
 
     # Create a fake factory_toolkit for test.
     self.fake_factory_toolkit_path = os.path.join(
-        self.temp_dir, 'install_factory_toolkit.run')
+        self.env.base_dir, 'install_factory_toolkit.run')
     file_utils.WriteFile(self.fake_factory_toolkit_path, 'new factory toolkit')
     self.new_factory_toolkit_resource = (
         'install_factory_toolkit.run##78ddc759')
-
-  def tearDown(self):
-    if os.path.isdir(self.temp_dir):
-      shutil.rmtree(self.temp_dir)
 
   def testUpdateInPlace(self):
     updater = ResourceUpdater(self.env)
@@ -84,9 +75,9 @@ class ResourceUpdaterTest(unittest.TestCase):
 
     default_bundle = updated_bundles[2]
     self.assertEqual('default_test', default_bundle['id'])
-    self.assertEqual('install_factory_toolkit.run##00000000',
+    self.assertEqual('install_factory_toolkit.run##d41d8cd9',
                      default_bundle['resources']['device_factory_toolkit'])
-    self.assertEqual('install_factory_toolkit.run##00000000',
+    self.assertEqual('install_factory_toolkit.run##d41d8cd9',
                      default_bundle['resources']['server_factory_toolkit'])
 
   def testUpdateSourceId(self):
@@ -159,7 +150,7 @@ class ResourceUpdaterTest(unittest.TestCase):
 
     self.assertRaisesRegexp(
         UmpireError, 'Resource not found', updater.Update,
-        [('factory_toolkit', os.path.join(self.temp_dir, 'not_exist'))])
+        [('factory_toolkit', os.path.join(self.env.base_dir, 'not_exist'))])
 
   def testAllUpdatableResource(self):
     mox_obj = mox.Mox()
@@ -167,12 +158,12 @@ class ResourceUpdaterTest(unittest.TestCase):
     EC_VERSION = 'ec_0.0.2'
     FSI_VERSION = '0.0.1'
 
-    firmware_path = os.path.join(self.temp_dir, 'firmware.gz')
+    firmware_path = os.path.join(self.env.base_dir, 'firmware.gz')
     file_utils.WriteFile(firmware_path, 'new firmware')
     new_firmware_resource = 'firmware.gz#%s:%s#f56ca36e' % (
         BIOS_VERSION, EC_VERSION)
 
-    fsi_path = os.path.join(self.temp_dir, 'rootfs-release.gz')
+    fsi_path = os.path.join(self.env.base_dir, 'rootfs-release.gz')
     file_utils.WriteFile(fsi_path, 'new fsi')
     new_fsi_resource = 'rootfs-release.gz#%s#932ecf09' % FSI_VERSION
 

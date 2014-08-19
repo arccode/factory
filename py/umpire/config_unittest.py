@@ -176,7 +176,7 @@ class TestUmpireConfig(unittest.TestCase):
     bundle = conf.GetBundle('test')
     self.assertEqual('test', bundle['id'])
     self.assertEqual('bundle for test', bundle['note'])
-    self.assertEqual('complete.gz##00000000',
+    self.assertEqual('complete.gz##d41d8cd9',
                      bundle['resources']['complete_script'])
 
     bundle = conf.GetBundle('new_bundle')

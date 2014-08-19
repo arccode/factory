@@ -34,14 +34,14 @@ bundles:
   shop_floor:
     handler: cros.factory.shopfloor.test_board_shopfloor
   resources:
-    complete_script: complete.gz##00000001
-    device_factory_toolkit: install_factory_toolkit.run#ftk_v0.1#00000002
-    efi_partition: efi.gz##00000003
-    firmware: firmware.gz#ec_v0.2:bios_v0.3#00000004
-    hwid: hwid.gz##00000005
-    netboot_vmlinux: vmlinux##00000006
-    oem_partition: oem.gz##00000007
-    rootfs_release: rootfs-release.gz#release_v9876.0.0#00000008
-    rootfs_test: rootfs-test.gz#test_v5432.0.0#00000009
-    server_factory_toolkit: install_factory_toolkit.run#ftk_v0.4#00000010
-    stateful_partition: state.gz##00000011
+    complete_script: complete.gz##d41d8cd9
+    device_factory_toolkit: install_factory_toolkit.run#ftk_v0.1#d41d8cd9
+    efi_partition: efi.gz##d41d8cd9
+    firmware: firmware.gz#ec_v0.2:bios_v0.3#d41d8cd9
+    hwid: hwid.gz##d41d8cd9
+    netboot_vmlinux: vmlinux##d41d8cd9
+    oem_partition: oem.gz##d41d8cd9
+    rootfs_release: rootfs-release.gz#release_v9876.0.0#d41d8cd9
+    rootfs_test: rootfs-test.gz#test_v5432.0.0#d41d8cd9
+    server_factory_toolkit: install_factory_toolkit.run#ftk_v0.4#d41d8cd9
+    stateful_partition: state.gz##d41d8cd9

@@ -283,8 +283,9 @@ class UmpireConfig(dict):
     Args:
       config: path to an Umpire config file or config content or an
           UmpireConfig dict.
-      validate: True to validate. Note that it would be removed once
-          all UmpireConfig components are implemented.
+      validate: True to validate config (schema check only; no resource check)
+          Note that it would be removed once all UmpireConfig components are
+          implemented.
     """
     self.bundle_map = {}
     if isinstance(config, str):

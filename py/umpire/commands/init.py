@@ -10,7 +10,7 @@ import shutil
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.commands import system
-from cros.factory.umpire.common import BUNDLE_FACTORY_TOOLKIT_PATH
+from cros.factory.umpire import common
 from cros.factory.umpire.utils import UnpackFactoryToolkit
 from cros.factory.utils import file_utils
 from cros.factory.utils import sys_utils
@@ -54,7 +54,7 @@ def Init(env, bundle_dir, board, make_default, local, user, group,
     root_dir: Root directory. Used for testing purpose.
     config_template: If specified, use it as UmpireConfig's template.
   """
-  def SetUpDir(base_dir, uid, gid):
+  def SetUpDir(uid, gid):
     """Sets up Umpire directory structure.
 
     It figures out Umpire base dir, creates it and its sub directories,
@@ -67,7 +67,9 @@ def Init(env, bundle_dir, board, make_default, local, user, group,
       os.chmod(path, env.UMPIRE_DIR_MODE)
 
     for sub_dir in _SUB_DIRS:
-      TryMkdirChown(os.path.join(base_dir, sub_dir))
+      TryMkdirChown(os.path.join(env.base_dir, sub_dir))
+    # Create the dummy resource file (empty).
+    open(os.path.join(env.resources_dir, common.DUMMY_RESOURCE), 'w')
 
   def InstallUmpireExecutable(uid, gid):
     """Extracts factory toolkit to toolkit directory.
@@ -75,7 +77,7 @@ def Init(env, bundle_dir, board, make_default, local, user, group,
     Returns:
       path to server toolkit directory (for bin symlink).
     """
-    toolkit_path = os.path.join(bundle_dir, BUNDLE_FACTORY_TOOLKIT_PATH)
+    toolkit_path = os.path.join(bundle_dir, common.BUNDLE_FACTORY_TOOLKIT_PATH)
     file_utils.CheckPath(toolkit_path, description='factory toolkit')
 
     # If it fails to add resource, it raises an exception and not
@@ -157,7 +159,7 @@ def Init(env, bundle_dir, board, make_default, local, user, group,
   logging.info('Init umpire to %r for board %r with user.group: %s.%s',
                env.base_dir, board, user, group)
 
-  SetUpDir(env.base_dir, uid, gid)
+  SetUpDir(uid, gid)
   toolkit_base = InstallUmpireExecutable(uid, gid)
   InitUmpireConfig(toolkit_base)
   SymlinkBinary(toolkit_base)

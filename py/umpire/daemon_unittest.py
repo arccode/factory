@@ -9,6 +9,7 @@
 import copy
 import logging
 import os
+import shutil
 from twisted.internet import defer, reactor, protocol
 from twisted.web import client, xmlrpc
 from twisted.web.http_headers import Headers
@@ -18,7 +19,7 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.common import AttrDict
 from cros.factory.umpire.common import UmpireError
 from cros.factory.umpire.daemon import UmpireDaemon
-from cros.factory.umpire.umpire_env import UmpireEnv
+from cros.factory.umpire.umpire_env import UmpireEnvForTest
 from cros.factory.umpire.umpire_rpc import RPCCall
 from cros.factory.umpire.web.wsgi import WSGISession
 
@@ -85,9 +86,9 @@ class TestCommand(object):
 class DaemonTest(unittest.TestCase):
 
   def setUp(self):
-    self.env = UmpireEnv()
-    self.env.base_dir = TESTDIR
-    self.env.LoadConfig(custom_path=TESTCONFIG)
+    self.env = UmpireEnvForTest()
+    shutil.copy(TESTCONFIG, self.env.active_config_file)
+    self.env.LoadConfig()
     self.daemon = UmpireDaemon(self.env)
     self.rpc_proxy = xmlrpc.Proxy('http://localhost:%d' %
                                   self.env.umpire_cli_port)
