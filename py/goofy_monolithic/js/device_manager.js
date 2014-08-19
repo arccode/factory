@@ -53,7 +53,7 @@ cros.factory.DeviceManager.prototype.processData = function(xmlData, nodePath) {
   var node = goog.dom.xml.selectSingleNode(xmlData, nodePath);
   var subnode = [];
   var deviceDataHtml = goog.dom.createDom('div');
-  var deviceData = goog.dom.createDom('table', {'id': 'device-data'});
+  var deviceData = goog.dom.createDom('table', {'class': 'two-column-table'});
 
   for (var childNode = node.firstChild;
        childNode != null; childNode = childNode.nextSibling) {
@@ -161,6 +161,13 @@ cros.factory.DeviceManager.prototype.createDrilldownMenu = function(itemMenuPare
  */
 cros.factory.DeviceManager.prototype.getDeviceData = function() {
 
+  goog.dom.removeChildren(goog.dom.getElement('goofy-device-data-area'));
+  goog.dom.appendChild(
+      goog.dom.getElement('goofy-device-data-area'),
+      goog.dom.createDom(
+          'div', {'class': 'device-manager-loading'},
+          'Loading Device Manager...'));
+
   this.goofy.sendRpc(
       'GetDeviceInfo', [],
       function(data) {
@@ -170,6 +177,8 @@ cros.factory.DeviceManager.prototype.getDeviceData = function() {
         var xmlData = goog.dom.xml.loadXml(/** @type {string} */(JSON.parse(data)));
         this.deviceManager.processData(xmlData, '/list');
         this.deviceManager.createDrilldownMenu(itemMenu, '/list');
+
+        goog.dom.removeChildren(goog.dom.getElement('goofy-device-data-area'));
       } );
 }
 
@@ -192,7 +201,7 @@ cros.factory.DeviceManager.prototype.showWindow = function() {
       '<div id="goofy-device-data-area"></div>' +
       '<div id="goofy-device-list-area">' +
       '<table id="tree-menu-area">' +
-      '<tr id="tree-menu-root"><td>Device</td></tr></table></div>' +
+      '<tr id="tree-menu-root"><td>Device Manager</td></tr></table></div>' +
       '<div id="goofy-device-manager-refresh"></div>' +
       goog.string.htmlEscape('') + '</div>');
 
@@ -220,7 +229,9 @@ cros.factory.DeviceManager.prototype.showWindow = function() {
 
         var tree = document.getElementById('tree-menu-area');
         goog.dom.removeChildren(tree);
-        tree.insertAdjacentHTML('afterBegin', '<tr id="tree-menu-root"><td>Device</td></tr>');
+        tree.insertAdjacentHTML(
+            'afterBegin',
+            '<tr id="tree-menu-root"><td>Device Manager</td></tr>');
 
         this.getDeviceData();
       }, false, this);

@@ -652,6 +652,17 @@ button {
   padding: 5px;
 }
 
+.goofy-log-data #goofy-device-data-area .device-manager-loading {
+  font-size: 200%;
+  line-height: 50px;
+}
+
+.goofy-log-data #goofy-device-data-area ul li{
+  line-height: 180%;
+  position: relative;
+  left: 5px;
+}
+
 .goofy-log-data #goofy-device-data-area table {
   border-spacing: 5px;
 }
@@ -661,7 +672,15 @@ button {
   padding: 1px;
 }
 
-.goofy-log-data #goofy-device-data-area table tr td:first-child {
+.goofy-log-data #goofy-device-data-area .two-column-table tr td:first-child {
+  font-weight: bold;
+}
+
+.goofy-log-data #goofy-device-data-area .multi-column-table tr td {
+  background-color: #f4f4f4;
+}
+
+.goofy-log-data #goofy-device-data-area .multi-column-table tr th {
   font-weight: bold;
 }
 
@@ -673,6 +692,10 @@ button {
   top: 9%;
 }
 
+.goofy-log-data #goofy-device-list-area table tr:hover {
+  background-color: #f4f4f4;
+}
+
 .goofy-log-data .toggle {
   cursor: pointer;
   cursor: hand;
@@ -681,18 +704,18 @@ button {
 }
 
 .goofy-log-data tr.goog-drilldown-expanded .toggle {
-  background-image: url('images/dropdn_disabled.gif');
+  background-image: url('images/dropdown.png');
   background-position: center;
   background-repeat: no-repeat;
-  background-size: 80%;
+  background-size: 170%;
   padding: 2px;
 }
 
 .goofy-log-data tr.goog-drilldown-collapsed .toggle {
-  background-image: url('images/dropdn.gif');
+  background-image: url('images/dropright.png');
   background-position: center;
   background-repeat: no-repeat;
-  background-size: 80%;
+  background-size: 170%;
   padding: 2px;
 }
 
