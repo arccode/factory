@@ -542,6 +542,15 @@ def GetTouchscreenDeviceIds():
   return [int(x.strip()) for x in _CrOSTouchXInput('list_touchscreens').split()]
 
 
+def GetTouchpadDeviceIds():
+  """Gets xinput device ids of touchpads.
+
+  Returns:
+    The xinput device ids of touchpads as a list of integers.
+  """
+  return [int(x.strip()) for x in _CrOSTouchXInput('list_touchpads').split()]
+
+
 def IsXinputDeviceEnabled(device_id):
   """Reports current enabled state of the given xinput device.
 
