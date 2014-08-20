@@ -3,7 +3,6 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import ConfigParser
 import json
 import os
 import re
@@ -11,8 +10,10 @@ import StringIO
 import threading
 import time
 import unittest
+import xmlrpclib
 
 import factory_common     # pylint: disable=W0611
+import sysfs_server
 
 from cros.factory.event_log import Log
 from cros.factory.test import factory
@@ -36,125 +37,23 @@ _TMP_STDOUT = '/tmp/stdout.txt'
 test_name = __name__.split('.')[-1]
 
 
-class DebugDataReader():
-  """Communicates with the touchscreen on system."""
-  SYSFS_CONFIG = 'sysfs.conf'
+class Error(Exception):
+  pass
 
-  def __init__(self):
-    self.num_rows = 41
-    self.num_cols = 72
-    self.DELTA_LOWER_BOUND = None
-    self.DELTA_HIGHER_BOUND = None
-    self.sysfs_entry = None
-    self.debugfs = None
-    self.config = self.GetSysfsConfig()
-    self.GetConfigData()
 
-  def GetSysfsConfig(self):
-    """Get the sysfs config.
-
-    The variables look as below:
-    factory.CROS_FACTORY_LIB_PATH is "/usr/local/factory/py/test".
-    static_dirname would be "touchscreen_calibration_static"
-    """
-    static_dirname = '_'.join([test_name, 'static'])
-    config_filepath = os.path.join(factory.CROS_FACTORY_LIB_PATH,
-                                   'pytests',
-                                   static_dirname,
-                                   self.SYSFS_CONFIG)
-    config = ConfigParser.ConfigParser()
-    try:
-      with open(config_filepath) as f:
-        config.readfp(f)
-    except Exception:
-      raise FixtureException('Failed to read sysfs config file: %s.' %
-                             config_filepath)
-    return config
-
-  def GetConfigData(self):
-    """Get sys fs paths and sensor parameters."""
-    try:
-      self.sysfs_entry = self.config.get('Sysfs', 'sysfs_entry')
-      self.debugfs = self.config.get('Sysfs', 'debugfs')
-    except Exception:
-      raise FixtureException('Failed to get sys fs paths from conf file.')
-
-    try:
-      self.DELTA_LOWER_BOUND = self.config.get('TouchSensors',
-                                               'DELTA_LOWER_BOUND')
-      self.DELTA_HIGHER_BOUND = self.config.get('TouchSensors',
-                                                'DELTA_HIGHER_BOUND')
-    except Exception:
-      raise FixtureException('Failed to get sensor parameters from conf file.')
-
-  def WriteSysfsSection(self, section):
-    """Write a section of values to sys fs."""
-    factory.console.info('Write Sys fs section: %s', section)
-    try:
-      section_items = self.config.items(section)
-      factory.console.info('Write Sys fs section: %s', section)
-    except Exception:
-      section_items = []
-      factory.console.info('No items in Sys fs section: %s', section)
-
-    for command, description in section_items:
-      factory.console.info('  %s: %s', command, description)
-      self.WriteSysfs(command)
-
-  def CheckStatus(self):
-    """Checks if the touchscreen sysfs object is present.
-
-    Returns:
-      True if sysfs_entry exists
-    """
-    return os.path.exists(self.sysfs_entry)
-
-  def WriteSysfs(self, content):
-    """Writes to sysfs.
-
-    Args:
-      content: the content to be written to sysfs
-    """
-    try:
-      with open(self.sysfs_entry, 'w') as f:
-        f.write(content)
-    except Exception as e:
-      factory.console.info('WriteSysfs failed to write %s: %s' % (content, e))
-    time.sleep(0.1)
-
-  def Read(self, delta=False):
-    """Reads 32 * 52 touchscreen sensors raw data.
-
-    Args:
-      delta: indicating whether to read deltas or refs.
-
-    Returns:
-      the list of raw sensor values
-    """
-    debugfs = '%s/%s' % (self.debugfs, ('deltas' if delta else 'refs'))
-    with open(debugfs) as f:
-      # The debug fs content is composed of num_rows, where each row
-      # contains (num_cols * 2) bytes of num_cols consecutive sensor values.
-      num_bytes_per_row = self.num_cols * 2
-      out_data = []
-      for _ in range(self.num_rows):
-        row_data = f.read(num_bytes_per_row)
-        values = []
-        for i in range(self.num_cols):
-          # Correct endianness
-          s = row_data[i * 2 + 1] + row_data[i * 2]
-          val = int(s.encode('hex'), 16)
-          # Correct signed value
-          if val > 32768:
-            val = val - 65535
-          values.append(val)
-        out_data.append(values)
-    return out_data
+def _CreateXMLRPCSysfsClient(addr=('localhost', 8000)):
+  """A helper function to create the xmlrpc client for sysfs data."""
+  url = 'http://%s:%s' % addr
+  proxy = xmlrpclib.ServerProxy(url)
+  return proxy
 
 
 class TouchscreenCalibration(unittest.TestCase):
   """Handles the calibration and controls the test fixture."""
   version = 1
+
+  DELTAS = 'deltas'
+  REFS = 'refs'
 
   def setUp(self):
     """Sets up the object."""
@@ -162,12 +61,18 @@ class TouchscreenCalibration(unittest.TestCase):
     self.fixture = None
     self.dev_path = None
     self.dump_frames = 0
-    self.reader = DebugDataReader()
     self.ui = UI()
     self._monitor_thread = None
     self.query_fixture_state_flag = False
     self._mounted_media_flag = True
     self._local_log_dir = '/var/tmp/%s' % test_name
+    self.sysfs_config = sysfs_server.SysfsConfig()
+    self.delta_lower_bound = int(self.sysfs_config.Read('TouchSensors',
+                                                        'DELTA_LOWER_BOUND'))
+    self.delta_higher_bound = int(self.sysfs_config.Read('TouchSensors',
+                                                         'DELTA_HIGHER_BOUND'))
+    self.sn_length = int(self.sysfs_config.Read('Misc', 'sn_length'))
+    self.sysfs = _CreateXMLRPCSysfsClient()
 
   def _AlertFixtureDisconnected(self):
     """Alerts that the fixture is disconnected."""
@@ -194,13 +99,13 @@ class TouchscreenCalibration(unittest.TestCase):
 
   def ReadTest(self, unused_event):
     """Reads the raw sensor data.."""
-    if self.reader:
-      data = self.reader.Read(delta=True)
+    if self.sysfs:
+      data = self.sysfs.Read(self.DELTAS)
       factory.console.info('Get data %s' % data)
       data = json.dumps(data)
       self.ui.CallJSFunction('displayDebugData', data)
     else:
-      factory.console.info('No reader found')
+      factory.console.info('No sysfs found')
 
   def ProbeSelfTest(self, unused_event):
     """Execute the probe self test to confirm the fixture works properly."""
@@ -257,7 +162,7 @@ class TouchscreenCalibration(unittest.TestCase):
     new panel detected, show the sign on UI.
     """
     try:
-      if self.reader.CheckStatus():
+      if self.sysfs.CheckStatus():
         factory.console.info('touchscreen exist')
         self.ui.CallJSFunction('setTouchscreenStatus', True)
         return
@@ -335,7 +240,7 @@ class TouchscreenCalibration(unittest.TestCase):
     Args:
       logger: the log object
     """
-    data = self.reader.Read(delta=True)
+    data = self.sysfs.Read(self.DELTAS)
     logger.write('Dump one frame:\n')
     for row in data:
       logger.write(' '.join([str(val) for val in row]))
@@ -380,22 +285,17 @@ class TouchscreenCalibration(unittest.TestCase):
     for row, row_data in enumerate(data):
       for col in touched_cols:
         value = row_data[col]
-        if (value < self.reader.DELTA_LOWER_BOUND or
-            value > self.reader.DELTA_HIGHER_BOUND):
+        if (value < self.delta_lower_bound or value > self.delta_higher_bound):
           factory.console.info('  Failed at (row, col) (%d, %d) value %d' %
                                (row, col, value))
           test_pass = False
-
     return test_pass
 
   def _CheckSerialNumber(self, sn):
     """Check if the serial number is legitimate."""
-    conf = self.reader.config
-    if conf.has_section('Misc') and conf.has_option('Misc', 'sn_length'):
-      sn_length = int(self.reader.config.get('Misc', 'sn_length'))
-      if len(sn) != sn_length:
-        self.ui.CallJSFunction('showMessage', 'Wrong serial number! 序号错误!')
-        return False
+    if len(sn) != self.sn_length:
+      self.ui.CallJSFunction('showMessage', 'Wrong serial number! 序号错误!')
+      return False
     return True
 
   def _Calibrate(self, sn):
@@ -412,7 +312,8 @@ class TouchscreenCalibration(unittest.TestCase):
       factory.console.info('Start calibrating SN %s' % sn)
       log_to_file = StringIO.StringIO()
 
-      self.reader.WriteSysfsSection('PreRead')
+      if not self.sysfs.WriteSysfsSection('PreRead'):
+        factory.console.error('Failed to write PreRead section to sys fs.')
 
       # Dump whole frame a few times before probe touches panel.
       for f in range(self.dump_frames):           # pylint: disable=W0612
@@ -425,7 +326,7 @@ class TouchscreenCalibration(unittest.TestCase):
       # Wait a while to let the probe touch the panel stably.
       time.sleep(1)
 
-      data = self.reader.Read(delta=True)
+      data = self.sysfs.Read(self.DELTAS)
       factory.console.info('Get data %s' % data)
       time.sleep(1)
 
@@ -441,7 +342,8 @@ class TouchscreenCalibration(unittest.TestCase):
 
       self.DriveProbeUp()
 
-      self.reader.WriteSysfsSection('PostRead')
+      if not self.sysfs.WriteSysfsSection('PostRead'):
+        factory.console.error('Failed to write PostRead section to sys fs.')
 
       self.ui.CallJSFunction('showMessage',
                              'OK 测试完成' if test_pass else 'NO GOOD 测试失败')
@@ -549,7 +451,7 @@ class TouchscreenCalibration(unittest.TestCase):
 
   def _CreateMonitorPort(self):
     """Create a thread to monitor the native USB port."""
-    if self.fixture.native_usb:
+    if self.fixture and self.fixture.native_usb:
       try:
         self._monitor_thread = utils.StartDaemonThread(
             target=self._MonitorNativeUsb, args=[self.fixture.native_usb])
