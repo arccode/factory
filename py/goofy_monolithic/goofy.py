@@ -1890,7 +1890,7 @@ class Goofy(object):
 
     self.abort_active_tests('Operator requested restart of certain tests')
     for test in root.walk():
-      test.update_state(status=TestState.UNTESTED, shutdown_count=0)
+      test.update_state(status=TestState.UNTESTED)
     self.run_tests(root)
 
   def auto_run(self, starting_at=None, root=None):

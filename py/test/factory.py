@@ -1067,6 +1067,9 @@ class FactoryTest(object):
     if self.never_fails and status == TestState.FAILED:
       status = TestState.UNTESTED
 
+    if status == TestState.UNTESTED:
+      kwargs['shutdown_count'] = 0
+
     ret = TestState.from_dict_or_object(
       self.root._update_test_state(  # pylint: disable=W0212
         self.path, status=status, **kwargs))
