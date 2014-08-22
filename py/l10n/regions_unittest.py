@@ -188,6 +188,7 @@ class RegionTest(unittest.TestCase):
        'keyboard_mechanical_layout': 'ANSI',
        'language_codes': ['en-US'],
        'region_code': 'us',
+       'numeric_id': 28,
        'time_zone': 'America/Los_Angeles',
        'vpd_settings': {'initial_locale': 'en-US',
                         'initial_timezone': 'America/Los_Angeles',
@@ -201,10 +202,11 @@ class RegionTest(unittest.TestCase):
       {'keyboards': ['xkb:b::b'],
        'keyboard_mechanical_layout': 'e',
        'language_codes': ['d'],
+       'numeric_id': 11,
        'region_code': 'a',
        'time_zone': 'c'},
-      (regions.Region('a', 'xkb:b::b', 'c', 'd', 'e', 'description', 'notes').
-       GetFieldsDict()))
+      (regions.Region('a', 'xkb:b::b', 'c', 'd', 'e', 'description', 'notes',
+                      11).GetFieldsDict()))
 
   def testConsolidateRegionsDups(self):
     """Test duplicate handling.  Two identical Regions are OK."""
@@ -222,6 +224,22 @@ class RegionTest(unittest.TestCase):
       regions.RegionException, "Conflicting definitions for region 'a':",
       regions._ConsolidateRegions, region_list)
 
+  def testNumericIds(self):
+    """Make sure that numeric IDs are unique, and all confirmed regions have a
+    numeric ID."""
+    numeric_ids = set()
+    for region in regions.BuildRegionsDict(include_all=True).values():
+      if region.numeric_id is not None:
+        self.assertNotIn(region.numeric_id, numeric_ids,
+                         'Duplicate numeric ID %d in %s' % (
+            region.numeric_id, region.region_code))
+        numeric_ids.add(region.numeric_id)
+
+      # Confirmed regions only
+      if region.region_code in regions.REGIONS:
+        self.assertIsNotNone(region.numeric_id,
+                             'Region %s has no numeric ID assigned' % (
+            region.region_code))
 
 if __name__ == '__main__':
   unittest.main()
