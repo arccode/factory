@@ -34,7 +34,7 @@ STATE = ArduinoState('i', 'D', 'U', 'd', 'u', 'e')
 
 
 class FixtureException(Exception):
-  """A dummy exception class for FixutreSerialDevice."""
+  """A dummy exception class for FixtureSerialDevice."""
   pass
 
 
@@ -142,13 +142,49 @@ class FixutreNativeUSB(SerialDevice):
             for i in xrange(len(state_list))]
 
 
-class FixutreSerialDevice(SerialDevice):
+class BaseFixture(SerialDevice):
+  """A base fixture class."""
+
+  def __init__(self, state=None):
+    super(BaseFixture, self).__init__()
+    self.state = state
+    self.native_usb = None
+
+
+class FakeFixture(BaseFixture):
+  """A fake fixture class used for development purpose only."""
+
+  def __init__(self, state=None):
+    super(FakeFixture, self).__init__(state)
+
+  def QueryState(self):
+    """Queries the state of the arduino board."""
+    return self.state
+
+  def IsStateUp(self):
+    """Checks if the fixture is in the INIT or STOP_UP state."""
+    return (self.state in [STATE.INIT, STATE.STOP_UP])
+
+  def IsEmergencyStop(self):
+    """Checks if the fixture is in the EMERGENCY_STOP state."""
+    return (self.state == STATE.EMERGENCY_STOP)
+
+  def DriveProbeDown(self):
+    """Drives the probe to the 'down' position."""
+    factory.console.info('Drive Probe Down....')
+
+  def DriveProbeUp(self):
+    """Drives the probe to the 'up' position."""
+    factory.console.info('Drive Probe Up....')
+
+
+class FixtureSerialDevice(BaseFixture):
   """A serial device to control touchscreen fixture."""
 
   def __init__(self, driver=ARDUINO_DRIVER,
                interface_protocol=interface_protocol_dict[PROGRAMMING_PORT],
                timeout=20):
-    super(FixutreSerialDevice, self).__init__()
+    super(FixtureSerialDevice, self).__init__()
     try:
       port = FindTtyByDriver(driver, interface_protocol)
       self.Connect(port=port, timeout=timeout)
@@ -170,11 +206,11 @@ class FixutreSerialDevice(SerialDevice):
   def QueryState(self):
     """Queries the state of the arduino board."""
     try:
-      state = self.SendReceive(COMMAND.STATE)
+      self.state = self.SendReceive(COMMAND.STATE)
     except Exception:
       raise FixtureException('QueryState failed.')
 
-    return state
+    return self.state
 
   def IsStateUp(self):
     """Checks if the fixture is in the INIT or STOP_UP state."""

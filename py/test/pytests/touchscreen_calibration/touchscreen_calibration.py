@@ -21,7 +21,7 @@ from cros.factory.event_log import Log
 from cros.factory.test import factory
 from cros.factory.test import utils
 from cros.factory.test.fixture.touchscreen_calibration.fixture import (
-    FixtureException, FixutreSerialDevice)
+    FixtureException, FakeFixture, FixtureSerialDevice)
 from cros.factory.test.media_util import MountedMedia
 from cros.factory.test.test_ui import UI
 from cros.factory.utils.process_utils import SpawnOutput
@@ -76,6 +76,7 @@ class TouchscreenCalibration(unittest.TestCase):
     self.delta_higher_bound = int(self.sysfs_config.Read('TouchSensors',
                                                          'DELTA_HIGHER_BOUND'))
     self.sn_length = int(self.sysfs_config.Read('Misc', 'sn_length'))
+    self.fake_fixture = self.sysfs_config.Read('Misc', 'FAKE_FIXTURE') == 'True'
     self.sysfs = None
     self._GetSysfsService()
 
@@ -158,7 +159,11 @@ class TouchscreenCalibration(unittest.TestCase):
   def RefreshFixture(self, unused_event):
     """Refreshes the fixture."""
     try:
-      self.fixture = FixutreSerialDevice()
+      if self.fake_fixture:
+        self.fixture = FakeFixture(state='i')
+      else:
+        self.fixture = FixtureSerialDevice()
+
       if not self.fixture:
         raise FixtureException('Fail to create the fixture serial device.')
 
