@@ -4,33 +4,65 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""This is a factory test for the audio function. An external loopback dongle
-is required to automatically capture and detect the playback tones for audio
-jack test. For speaker/dmic, the loopback dongle is not required.
+"""A factory test for the audio function.
 
-This test supports two test scenarios:
-1. Loop from headphone out to headphone in
-2. Loop from speaker to digital microphone
+This test supports 2 loopback mode:
+  1. Loop from headphone out to headphone in.
+  2. Loop from speaker to digital microphone.
 
-Here are two test list examples for two test cases::
+And 3 test scenarios:
+  1. Audiofun test, which plays different tones and checks recorded frequency.
+     This test can be conducted simultaneously on different devices.  This test
+     can not be conducted with dongle inserted.
+  2. Sinewav test, which plays simple sine wav and checks if the recorded
+     frequency is in the range specified.  Optionally checks the RMS and
+     amplitude thresholds.
+  3. Noise test, which plays nothing and record, then checks the RMS and
+     amplitude thresholds.
 
-  OperatorTest(
-      id='AudioJack',
-      label_zh=u'音源孔',
-      pytest_name='audio_loop',
-      disable_services=['cras'],
-      dargs={'enable_audiofun': False,
-             'output_volume': 20,
-             'require_dongle': True})
+Here are three test list examples for three test cases::
 
-  OperatorTest(
-      id='SpeakerDMic',
-      label_zh=u'喇叭/麦克风',
-      pytest_name='audio_loop',
-      disable_services=['cras'],
-      dargs={'enable_audiofun': True,
-             'audiofun_duration_secs': 4,
-             'output_volume': 10})
+    OperatorTest(
+        id='SpeakerDMic',
+        label_zh=u'喇叭/麦克风',
+        pytest_name='audio_loop',
+        dargs={'require_dongle': False,
+               'check_dongle': True,
+               'output_volume': 10,
+               'initial_actions': [('1', 'init_speakerdmic')],
+               'input_dev': ('Audio Card', '0'),
+               'output_dev': ('Audio Card', '0'),
+               'tests_to_conduct': [{'type': 'audiofun',
+                                     'duration': 4,
+                                     'threshold': 80}]})
+
+    OperatorTest(
+        id='Noise',
+        label_zh=u'喇叭/麦克风',
+        pytest_name='audio_loop',
+        dargs={'require_dongle': False,
+               'check_dongle': True,
+               'initial_actions': [('1', 'init_speakerdmic')],
+               'input_dev': ('Audio Card', '0'),
+               'output_dev': ('Audio Card', '0'),
+               'tests_to_conduct': [{'type': 'noise',
+                                     'duration': 2,
+                                     'rms_threshold': (None, 0.5),
+                                     'amplitude_threshold': (-0.9, 0.9)}]})
+
+    OperatorTest(
+        id='AudioJack',
+        label_zh=u'音源孔',
+        pytest_name='audio_loop',
+        dargs={'require_dongle': True,
+               'check_dongle': True,
+               'output_volume': 15,
+               'initial_actions': [('1', 'init_audiojack')],
+               'input_dev': ('Audio Card', '0'),
+               'output_dev': ('Audio Card', '0'),
+               'tests_to_conduct': [{'type': 'sinewav',
+                                     'freq_threshold': 50,
+                                     'rms_threshold': (0.08, None)}]})
 """
 import os
 import re
@@ -47,17 +79,26 @@ from cros.factory.utils.process_utils import Spawn, SpawnOutput, PIPE
 
 # Default setting
 _DEFAULT_FREQ_HZ = 1000
-_DEFAULT_FREQ_THRESHOLD_HZ = 50
-_DEFAULT_SINE_DURATION_SEC = 1
 
 # Regular expressions to match audiofuntest message.
 _AUDIOFUNTEST_STOP_RE = re.compile('^Stop')
 _AUDIOFUNTEST_SUCCESS_RATE_RE = re.compile('.*rate\s*=\s*(.*)$')
 
-# RMS thresholds when checking recorded file.
+# Default minimum success rate of audiofun test to pass.
+_DEFAULT_AUDIOFUN_TEST_THRESHOLD = 50
+# Default duration to do the audiofun test, in seconds.
+_DEFAULT_AUDIOFUN_TEST_DURATION = 10
+# Default duration to do the sinewav test, in seconds.
+_DEFAULT_SINEWAV_TEST_DURATION = 1
+# Default frequency tolerance, in Hz.
+_DEFAULT_SINEWAV_FREQ_THRESHOLD = 50
+# Default duration to do the noise test, in seconds.
+_DEFAULT_NOISE_TEST_DURATION = 1
+# Default RMS thresholds when checking recorded file.
 _DEFAULT_SOX_RMS_THRESHOLD = (0.08, None)
-# Amplitude thresholds when checking recorded file.
+# Default Amplitude thresholds when checking recorded file.
 _DEFAULT_SOX_AMPLITUDE_THRESHOLD = (None, None)
+
 
 class PlaySineThread(threading.Thread):
   """Wraps the execution of arecord in a thread."""
@@ -76,53 +117,57 @@ class AudioLoopTest(unittest.TestCase):
   2. Headphone out to headphone in.
   """
   ARGS = [
-    # Common arguments
-    Arg('freq_threshold', int, 'Acceptable frequency margin',
-        _DEFAULT_FREQ_THRESHOLD_HZ),
     Arg('initial_actions', list, 'List of tuple (card, actions)', []),
     Arg('input_dev', (str, tuple),
-        'Input ALSA device for string. (card_name, sub_device) for tuple.'
+        'Input ALSA device for string.  (card_name, sub_device) for tuple. '
         'For example: "hw:0,0" or ("audio_card", "0").', 'hw:0,0'),
     Arg('output_dev', (str, tuple),
-        'Onput ALSA device for string. (card_name, sub_device) for tuple.',
+        'Onput ALSA device for string.  (card_name, sub_device) for tuple. '
         'For example: "hw:0,0" or ("audio_card", "0").', 'hw:0,0'),
     Arg('output_volume', int, 'Output Volume', 10),
     Arg('autostart', bool, 'Auto start option', False),
     Arg('require_dongle', bool, 'Require dongle option', False),
-    Arg('enable_audiofun', bool, 'Enable audio function test'),
-    Arg('audiofun_threshold', int, 'Minimum success rate to pass the test',
-        default=50),
     Arg('check_dongle', bool,
         'Check dongle status whether match require_dongle', False),
-    # Only used for speaker and dmic
-    Arg('audiofun_duration_secs', int, 'Duration of audio function test',
-        10),
-    # Only used for audiojack
-    Arg('sine_duration_secs', int, 'Play sine tone duration',
-        _DEFAULT_SINE_DURATION_SEC),
-    Arg('rms_threshold', tuple, 'A tuple of (min, max) RMS value threshold. '
-        'The measured RMS value must satisfy: min <= RMS <= max or the test '
-        'will fail. For min and max, any of them can be None which means no '
-        'limit. For example: (None, 0.5) will make sure the RMS value is '
-        'between -inf ~ 0.5 (though it\'s not possible for the value to go '
-        'below 0); (0.05, None) will make sure the RMS value is between '
-        '0.05 ~ +inf; (None, None) will check nothing at all.',
-        _DEFAULT_SOX_RMS_THRESHOLD),
     Arg('cras_enabled', bool, 'Whether cras should be running or not',
         False),
-    Arg('amplitude_threshold', tuple, 'A tuple of (min, max). The measured '
-        'min/max amplitude must satisfy: min <= measured min <= measured max '
-        '<= max or the test will fail. For min and max, any of them can be '
-        'None which means no limit. For example: (None, 0.8) will make sure '
-        'the measured max amplitude is less than or equal to 0.8. (-0.9, '
-        'None) will make sure the measured min amplitude is greater than or '
-        'equal to -0.9. (None, None) will check nothing at all.',
-        _DEFAULT_SOX_AMPLITUDE_THRESHOLD),
+    Arg('tests_to_conduct', list, 'A list of dicts.  A dict should contain \n'
+        'at least one key named **type** indicating the test type, which can \n'
+        'be **audiofun**, **sinewav**, or **noise**.\n'
+        '\n'
+        'If type is **audiofun**, the dict can optionally contain:\n'
+        '  - **duration**: The test duration, in seconds.\n'
+        '  - **threshold**: The minimum success rate to pass the test.\n'
+        '\n'
+        'If type is **sinewav**, the dict can optionally contain:\n'
+        '  - **duration**: The test duration, in seconds.\n'
+        '  - **freq_threshold**: Acceptable frequency margin.\n'
+        '  - **rms_threshold**: A tuple of **(min, max)** that will make\n'
+        '      sure the following inequality is true: *min <= recorded audio\n'
+        '      RMS (root mean square) value <= max*, otherwise, fail the\n'
+        '      test.  Both of **min** and **max** can be set to None, which\n'
+        '      means no limit.\n'
+        '  - **amplitude_threshold**: A tuple of (min, max) and it will make\n'
+        '      sure the inequality is true: *min <= minimum measured\n'
+        '      amplitude <= maximum measured amplitude <= max*, otherwise,\n'
+        '      fail the test.  Both of **min** and **max** can be set to\n'
+        '      None, which means no limit.\n'
+        '\n'
+        'If type is **noise**, the dict can optionally contain:\n'
+        '  - **duration**: The test duration, in seconds.\n'
+        '  - **rms_threshold**: A tuple of **(min, max)** that will make\n'
+        '      sure the following inequality is true: *min <= recorded audio\n'
+        '      RMS (root mean square) value <= max*, otherwise, fail the\n'
+        '      test.  Both of **min** and **max** can be set to None, which\n'
+        '      means no limit.\n'
+        '  - **amplitude_threshold**: A tuple of (min, max) and it will make\n'
+        '      sure the inequality is true: *min <= minimum measured\n'
+        '      amplitude <= maximum measured amplitude <= max*, otherwise,\n'
+        '      fail the test.  Both of **min** and **max** can be set to\n'
+        '      None, which means no limit.\n', optional=False),
   ]
 
   def setUp(self):
-    # Initialize frontend parameters
-
     # Tansfer input and output device format
     if type(self.args.input_dev) is tuple:
       self._in_card = audio_utils.GetCardIndexByName(self.args.input_dev[0])
@@ -141,9 +186,6 @@ class AudioLoopTest(unittest.TestCase):
       self._out_card = self.GetCardIndex(self._output_device)
 
     self._output_volume = self.args.output_volume
-    self._sine_duration_secs = self.args.sine_duration_secs
-    self._audiofun = self.args.enable_audiofun
-    self._audiofun_duration_secs = self.args.audiofun_duration_secs
     self._freq = _DEFAULT_FREQ_HZ
     # Used in RunAudioFunTest() or AudioLoopBack() for test result.
     self._test_result = True
@@ -154,6 +196,8 @@ class AudioLoopTest(unittest.TestCase):
       if card.isdigit() is False:
         card = audio_utils.GetCardIndexByName(card)
       self._audio_util.ApplyAudioConfig(action, card)
+
+    self._current_test_args = None
 
     # Setup HTML UI, and event handler
     self._ui = test_ui.UI()
@@ -213,9 +257,11 @@ class AudioLoopTest(unittest.TestCase):
     for channel in xrange(audio_utils.DEFAULT_NUM_CHANNELS):
       factory.console.info('Test channel %d' % channel)
       test_result = None
+      duration = self._current_test_args.get(
+          'duration', _DEFAULT_AUDIOFUN_TEST_DURATION)
       process = Spawn([audio_utils.AUDIOFUNTEST_PATH,
           '-r', '48000', '-i', self._input_device, '-o', self._output_device,
-          '-l', '%d' % self._audiofun_duration_secs, '-a', '%d' % channel],
+          '-l', '%d' % duration, '-a', '%d' % channel],
           stderr=PIPE)
       last_success_rate = None
 
@@ -230,7 +276,9 @@ class AudioLoopTest(unittest.TestCase):
 
         m = _AUDIOFUNTEST_STOP_RE.match(proc_output)
         if m is not None:
-          test_result = (last_success_rate > self.args.audiofun_threshold)
+          threshold = self._current_test_args.get(
+              'threshold', _DEFAULT_AUDIOFUN_TEST_THRESHOLD)
+          test_result = (last_success_rate > threshold)
           break
 
       # Show instant message and wait for a while
@@ -244,97 +292,126 @@ class AudioLoopTest(unittest.TestCase):
         else:
           self.AppendErrorMessage('audiofuntest terminated unexpectedly')
       time.sleep(0.5)
-    self.EndTest()
 
-  def TestLoopbackChannel(self, output_device, noise_file_name, record_command,
-      num_channels):
+  def TestLoopbackChannel(self, output_device, noise_file_name, num_channels):
     """Tests loopback on all channels.
 
     Args:
       output_device: Output devices
       noise_file_name: Name of the file contains pre-recorded noise.
-      record_command: A record command used in thread
       num_channels: Number of channels to test
     """
     for channel in xrange(num_channels):
-      reduced_file_name = "/tmp/reduced-%d-%s.wav" % (channel, time.time())
-      record_file_name = "/tmp/record-%d-%s.wav" % (channel, time.time())
+      reduced_file_path = "/tmp/reduced-%d-%s.wav" % (channel, time.time())
+      record_file_path = "/tmp/record-%d-%s.wav" % (channel, time.time())
 
       # Play thread has one more second to ensure record process can record
       # entire sine tone
+      duration = self._current_test_args.get('duration',
+          _DEFAULT_SINEWAV_TEST_DURATION)
       playsine_thread = PlaySineThread(channel, output_device, self._freq,
-          self._sine_duration_secs + 1)
+          duration + 1)
       playsine_thread.start()
       time.sleep(0.5)
 
-      Spawn(record_command + [record_file_name], check_call=True)
+      self.RecordFile(duration, file_path=record_file_path)
 
       playsine_thread.join()
 
-      audio_utils.NoiseReduceFile(record_file_name, noise_file_name,
-          reduced_file_name)
+      audio_utils.NoiseReduceFile(record_file_path, noise_file_name,
+          reduced_file_path)
 
-      sox_output_reduced = audio_utils.SoxStatOutput(reduced_file_name,
-          channel)
+      sox_output_reduced = audio_utils.SoxStatOutput(reduced_file_path, channel)
+      self.CheckRecordedAudio(sox_output_reduced)
 
-      rms_value = audio_utils.GetAudioRms(sox_output_reduced)
-      min_value = audio_utils.GetAudioMinimumAmplitude(sox_output_reduced)
-      max_value = audio_utils.GetAudioMaximumAmplitude(sox_output_reduced)
-      factory.console.info(
-          'Got audio RMS value: %f, min amplitude: %f, max amplitude: %f.',
-          rms_value, min_value, max_value)
+      os.unlink(reduced_file_path)
+      os.unlink(record_file_path)
 
-      os.unlink(reduced_file_name)
-      os.unlink(record_file_name)
-
-      self.CheckRecordedAudio(sox_output_reduced,
-                              rms_value, min_value, max_value)
-
-  def AudioLoopback(self):
-    rec_cmd = ['arecord', '-D', self._input_device, '-f', 'dat', '-d',
-        str(self._sine_duration_secs)]
-
+  def SinewavTest(self):
     self._ui.CallJSFunction('testInProgress', None)
+    duration = self._current_test_args.get(
+        'duration', _DEFAULT_SINEWAV_TEST_DURATION)
     # Record a sample of "silence" to use as a noise profile.
-    with tempfile.NamedTemporaryFile(delete=False) as noise_file:
-      factory.console.info('Noise file: %s' % noise_file.name)
-      Spawn(rec_cmd + [noise_file.name], check_call=True)
+    noise_file = self.RecordFile(duration)
 
     # Playback sine tone and check the recorded audio frequency.
     self.TestLoopbackChannel(self._output_device, noise_file.name,
-        rec_cmd, audio_utils.DEFAULT_NUM_CHANNELS)
+        audio_utils.DEFAULT_NUM_CHANNELS)
     os.unlink(noise_file.name)
 
-    self.EndTest()
+  def NoiseTest(self):
+    self._ui.CallJSFunction('testInProgress', None)
+    # Record the noise file.
+    duration = self._current_test_args.get(
+        'duration', _DEFAULT_NOISE_TEST_DURATION)
+    noise_file = self.RecordFile(duration)
 
-  def CheckRecordedAudio(self, sox_output, rms_value, min_value, max_value):
-    if (self.args.rms_threshold[0] is not None and
-        self.args.rms_threshold[0] > rms_value):
+    # Since we have actually only 1 channel, we can just give channel=0 here.
+    sox_output = audio_utils.SoxStatOutput(noise_file.name, 0)
+    self.CheckRecordedAudio(sox_output)
+    os.unlink(noise_file.name)
+
+  def RecordFile(self, duration, file_path=None):
+    """Records file for *duration* seconds and returns the file obj.  Optionally
+    renames the file to *file_path*.  The caller is responsible for removing the
+    file at last.
+
+    Args:
+      duration: Recording duration, in seconds.
+      file_path: If not None, name the recorded file as *file_path*.
+
+    Return:
+      The recorded file object.
+    """
+    if file_path is None:
+      recorded_file = tempfile.NamedTemporaryFile(delete=False)
+    else:
+      recorded_file = open(file_path, 'w')
+
+    rec_cmd = ['arecord', '-D', self._input_device, '-f', 'dat', '-d',
+        str(duration)]
+    Spawn(rec_cmd + [recorded_file.name], check_call=True)
+
+    return recorded_file
+
+  def CheckRecordedAudio(self, sox_output):
+    rms_value = audio_utils.GetAudioRms(sox_output)
+    factory.console.info('Got audio RMS value: %f.', rms_value)
+    rms_threshold = self._current_test_args.get(
+        'rms_threshold', _DEFAULT_SOX_RMS_THRESHOLD)
+    if (rms_threshold[0] is not None and rms_threshold[0] > rms_value):
       self.AppendErrorMessage('Audio RMS value %f too low. Minimum pass is %f.'
-          % (rms_value, self.args.rms_threshold[0]))
-
-    if (self.args.rms_threshold[1] is not None and
-        self.args.rms_threshold[1] < rms_value):
+          % (rms_value, rms_threshold[0]))
+    if (rms_threshold[1] is not None and rms_threshold[1] < rms_value):
       self.AppendErrorMessage('Audio RMS value %f too high. Maximum pass is %f.'
-          % (rms_value, self.args.rms_threshold[1]))
+          % (rms_value, rms_threshold[1]))
 
-    if (self.args.amplitude_threshold[0] is not None and
-        self.args.amplitude_threshold[0] > min_value):
+    amplitude_threshold = self._current_test_args.get(
+        'amplitude_threshold', _DEFAULT_SOX_AMPLITUDE_THRESHOLD)
+    min_value = audio_utils.GetAudioMinimumAmplitude(sox_output)
+    factory.console.info('Got audio min amplitude: %f.', min_value)
+    if (amplitude_threshold[0] is not None and
+        amplitude_threshold[0] > min_value):
       self.AppendErrorMessage(
           'Audio minimum amplitude %f too low. Minimum pass is %f.' % (
-              min_value, self.args.amplitude_threshold[0]))
+              min_value, amplitude_threshold[0]))
 
-    if (self.args.amplitude_threshold[1] is not None and
-        self.args.amplitude_threshold[1] < max_value):
+    max_value = audio_utils.GetAudioMaximumAmplitude(sox_output)
+    factory.console.info('Got audio max amplitude: %f.', max_value)
+    if (amplitude_threshold[1] is not None and
+        amplitude_threshold[1] < max_value):
       self.AppendErrorMessage(
           'Audio maximum amplitude %f too high. Maximum pass is %f.' % (
-              max_value, self.args.amplitude_threshold[1]))
+              max_value, amplitude_threshold[1]))
 
-    freq = audio_utils.GetRoughFreq(sox_output)
-    if freq is None or (abs(freq - self._freq) > self.args.freq_threshold):
-      self.AppendErrorMessage('Test Fail at frequency %r' % freq)
-    else:
-      factory.console.info('Got frequency %d' % freq)
+    if self._current_test_args['type'] == 'sinewav':
+      freq = audio_utils.GetRoughFreq(sox_output)
+      freq_threshold = self._current_test_args.get(
+          'freq_threshold', _DEFAULT_SINEWAV_FREQ_THRESHOLD)
+      if freq is None or (abs(freq - self._freq) > freq_threshold):
+        self.AppendErrorMessage('Test Fail at frequency %r' % freq)
+      else:
+        factory.console.info('Got frequency %d' % freq)
 
   def EndTest(self):
     if self._test_result:
@@ -349,9 +426,10 @@ class AudioLoopTest(unittest.TestCase):
     # audio fun-plug on a few platforms; so it is suggested not to run
     # audiofuntest with HP/MIC jack
     jack_status = self._audio_util.GetAudioJackStatus()
-    if jack_status is True and self.args.enable_audiofun is True:
-      factory.console.info('Audiofuntest does not require dongle.')
-      raise ValueError('Audiofuntest does not require dongle.')
+    if jack_status is True:
+      if any((t['type'] == 'audiofun') for t in self.args.tests_to_conduct):
+        factory.console.info('Audiofuntest does not require dongle.')
+        raise ValueError('Audiofuntest does not require dongle.')
 
     # When audio jack detection feature is ready on a platform, we can
     # enable check_dongle option to check jack status matches we expected.
@@ -360,17 +438,29 @@ class AudioLoopTest(unittest.TestCase):
         factory.console.info('Dongle Status is wrong.')
         raise ValueError('Dongle Status is wrong.')
 
-    if self._audiofun:
-      self._audio_util.DisableHeadphone(self._out_card)
-      self._audio_util.DisableExtmic(self._in_card)
-      self._audio_util.EnableSpeaker(self._out_card)
-      self._audio_util.EnableDmic(self._in_card)
-      self._audio_util.SetSpeakerVolume(self._output_volume, self._out_card)
-      self.AudioFunTest()
-    else:
+    # Enable/disable devices according to audio jack status.
+    if jack_status:
       self._audio_util.DisableSpeaker(self._out_card)
       self._audio_util.DisableDmic(self._in_card)
       self._audio_util.EnableHeadphone(self._out_card)
       self._audio_util.EnableExtmic(self._in_card)
       self._audio_util.SetHeadphoneVolume(self._output_volume, self._out_card)
-      self.AudioLoopback()
+    else:
+      self._audio_util.DisableHeadphone(self._out_card)
+      self._audio_util.DisableExtmic(self._in_card)
+      self._audio_util.EnableSpeaker(self._out_card)
+      self._audio_util.EnableDmic(self._in_card)
+      self._audio_util.SetSpeakerVolume(self._output_volume, self._out_card)
+
+    for test in self.args.tests_to_conduct:
+      self._current_test_args = test
+      if test['type'] == 'audiofun':
+        self.AudioFunTest()
+      elif test['type'] == 'sinewav':
+        self.SinewavTest()
+      elif test['type'] == 'noise':
+        self.NoiseTest()
+      else:
+        raise ValueError('Test type "%s" not supported.' % test['type'])
+
+    self.EndTest()
