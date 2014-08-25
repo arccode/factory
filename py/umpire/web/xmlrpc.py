@@ -5,6 +5,7 @@
 # Python twisted's module creates definition dynamically, pylint: disable=E1101
 
 import logging
+import traceback
 import xmlrpclib
 from twisted.python import reflect
 from twisted.web.xmlrpc import Fault, NoSuchFunction, XMLRPC
@@ -71,9 +72,9 @@ class XMLRPCContainer(XMLRPC):
         try:
           method = getattr(rpc_obj, procedure_path)
           return method(*args, **kwargs)
-        except Exception, e:
+        except Exception:
           logging.exception('%s raises', procedure_path)
-          return Fault(xmlrpclib.APPLICATION_ERROR, e)
+          return Fault(xmlrpclib.APPLICATION_ERROR, traceback.format_exc())
 
       return _WrapProcedure
     except KeyError:

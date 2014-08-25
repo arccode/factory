@@ -268,12 +268,17 @@ class UmpireEnv(object):
     os.symlink(source, self.staging_config_file)
 
   def UnstageConfigFile(self):
-    """Unstage the current staging config file."""
+    """Unstage the current staging config file.
+
+    Returns:
+      Real path of the staging file being unstaged.
+    """
     if not self.HasStagingConfigFile():
       raise UmpireError("Unable to unstage as there's no staging config file.")
-    logging.info('Unstage config: ' +
-                 os.path.realpath(self.staging_config_file))
+    staging_real_path = os.path.realpath(self.staging_config_file)
+    logging.info('Unstage config: ' + staging_real_path)
     os.unlink(self.staging_config_file)
+    return staging_real_path
 
   def ActivateConfigFile(self, config_path=None):
     """Activates a config file.

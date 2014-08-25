@@ -133,8 +133,12 @@ class CLICommand(umpire_rpc.UmpireRPC):
 
   @umpire_rpc.RPCCall
   def UnstageConfigFile(self):
-    """Unstages the current staging config file."""
-    self.env.UnstageConfigFile()
+    """Unstages the current staging config file.
+
+    Returns:
+      Real path of the staging file being unstaged.
+    """
+    return self.env.UnstageConfigFile()
 
   @umpire_rpc.RPCCall
   def ValidateConfig(self, umpire_config):

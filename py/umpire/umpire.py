@@ -224,15 +224,20 @@ def Stop(unused_args, umpire_cli):
 @Command('stage')
 def Stage(args, umpire_cli):
   """Stages an Umpire Config file for edit."""
-  if not args.config:
-    raise common.UmpireError('For "umpire stage", --config must be specified.')
-  umpire_cli.StageConfigFile(args.config)
+  if args.config:
+    umpire_cli.StageConfigFile(args.config)
+    print 'Stage config %s successfully.' % args.config
+  else:
+    print (
+        'ERROR: For "umpire stage", --config must be specified. '
+        'If you want to edit active config. Just run "umpire edit" '
+        'and it stages active config for you to edit.')
 
 
 @Command('unstage')
 def Unstage(unused_args, umpire_cli):
   """Unstages staging Umpire Config file."""
-  umpire_cli.UnstageConfigFile()
+  print 'Unstage config %r successfully.' % umpire_cli.UnstageConfigFile()
 
 
 @Command('import-resource',
@@ -275,7 +280,17 @@ def main():
   if args.command_name == 'init':
     args.command(args)
   else:
-    args.command(args, _UmpireCLI())
+    try:
+      args.command(args, _UmpireCLI())
+    except xmlrpclib.Fault as e:
+      if e.faultCode == xmlrpclib.APPLICATION_ERROR:
+        print ('ERROR: Problem running %s due to umpired application error. '
+               'Server traceback:\n%s' % (args.command_name, e.faultString))
+      else:
+        print 'ERROR: Problem running %s due to XMLRPC Fault: %s' % (
+            args.command_name, e)
+    except Exception as e:
+      print 'ERROR: Problem running %s. Exception %s' % (args.command_name, e)
 
 
 if __name__ == '__main__':
