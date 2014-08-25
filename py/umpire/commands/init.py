@@ -7,13 +7,13 @@
 import logging
 import os
 import shutil
+import subprocess
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.commands import system
 from cros.factory.umpire import common
 from cros.factory.umpire.utils import UnpackFactoryToolkit
 from cros.factory.utils import file_utils
-from cros.factory.utils import sys_utils
 
 
 _SUB_DIRS = ['bin', 'dashboard', 'log', 'resources', 'run', 'toolkits',
@@ -34,7 +34,7 @@ _ACTIVE_SERVER_TOOLKIT = 'active'
 
 
 def Init(env, bundle_dir, board, make_default, local, user, group,
-         root_dir='/', config_template=None):
+         root_dir='/', config_template=None, restart=True):
   """Initializes/updates an Umpire working environment.
 
   It creates base directory (specified in env.base_dir, installs Umpire
@@ -53,6 +53,7 @@ def Init(env, bundle_dir, board, make_default, local, user, group,
     group: the group to run Umpire dameon.
     root_dir: Root directory. Used for testing purpose.
     config_template: If specified, use it as UmpireConfig's template.
+    restart: When true, Init() restarts Umpire daemon.
   """
   def SetUpDir(uid, gid):
     """Sets up Umpire directory structure.
@@ -155,7 +156,7 @@ def Init(env, bundle_dir, board, make_default, local, user, group,
       logging.info('Init UmpireConfig %r and set it as active.',
                    config_in_resource)
 
-  (uid, gid) = sys_utils.GetUidGid(user, group)
+  (uid, gid) = system.SetupDaemon(user, group)
   logging.info('Init umpire to %r for board %r with user.group: %s.%s',
                env.base_dir, board, user, group)
 
@@ -163,17 +164,9 @@ def Init(env, bundle_dir, board, make_default, local, user, group,
   toolkit_base = InstallUmpireExecutable(uid, gid)
   InitUmpireConfig(toolkit_base)
   SymlinkBinary(toolkit_base)
-
-
-def SetupDaemon():
-  """Sets up daemon running environment.
-
-  Returns:
-    (uid, gid): Existing/Created Umpire uid and gid.
-  """
-  umpire_uid, umpire_gid = system.CreateUmpireUser()
-  system.CreateUmpireUpstart()
-  # After Umpire Upstart configuration been created, it can be started by
-  # calling:
-  #   system.StartUmpire(board)
-  return (umpire_uid, umpire_gid)
+  if restart:
+    try:
+      system.StopUmpire(board)
+    except subprocess.CalledProcessError:
+      pass
+    system.StartUmpire(board)

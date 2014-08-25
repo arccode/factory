@@ -13,6 +13,7 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.commands import init
+from cros.factory.umpire.commands import system
 from cros.factory.umpire.umpire_env import UmpireEnv
 from cros.factory.utils.file_utils import TouchFile
 from cros.factory.utils import sys_utils
@@ -46,6 +47,13 @@ class InitTest(unittest.TestCase):
   def setUp(self):
     self.env = UmpireEnv()
     self.mox = mox.Mox()
+    # Stub out system related calls.
+    self.mox.StubOutWithMock(system, 'CreateUmpireUpstart')
+    self.mox.StubOutWithMock(system, 'StartUmpire')
+    self.mox.StubOutWithMock(system, 'StopUmpire')
+    system.CreateUmpireUpstart()
+    system.StartUmpire(TEST_BOARD)
+    system.StopUmpire(TEST_BOARD)
 
     self.temp_dir = tempfile.mkdtemp()
     self.root_dir = os.path.join(self.temp_dir, 'root')

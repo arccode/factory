@@ -19,7 +19,9 @@ import subprocess
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire import common
-from cros.factory.utils import file_utils, process_utils
+from cros.factory.utils import file_utils
+from cros.factory.utils import process_utils
+from cros.factory.utils import sys_utils
 
 
 # Umpire init creates a group with same name as user.
@@ -75,7 +77,8 @@ class Upstart(object):
     return [self.INITCTL, initctl_command, self.conf_name] + self.env
 
   def _CallInitctl(self, command):
-    output_string = process_utils.CheckOutput(self._GetCommand(command))
+    output_string = process_utils.CheckOutput(self._GetCommand(command),
+                                              log_stderr_on_error=True)
     if ('Unknown job' in output_string or
         'Unknown parameter' in output_string or
         'Rejected send message' in output_string):
@@ -110,7 +113,7 @@ class Upstart(object):
 
 
 @NeedRootPermission
-def CreateUmpireUser():
+def CreateDefaultUmpireUser():
   """Creates Umpire user, group and home directory.
 
   If Umpire user and group already exist, return its (uid, gid) tuple.
@@ -135,7 +138,8 @@ def CreateUmpireUser():
         '--comment', 'Umpire',
         UMPIRE_USER_GROUP]
     try:
-      os.makedirs(common.DEFAULT_BASE_DIR)
+      os.umask(022)
+      os.makedirs(common.DEFAULT_BASE_DIR, 0755)
     except OSError as e:
       if e.errno != errno.EEXIST:
         raise
@@ -203,3 +207,27 @@ def RestartUmpire(board):
   umpire_upstart.Restart()
   logging.debug('Umpire Upstart configuration restarted: %r',
                 umpire_upstart.GetStatus())
+
+
+def SetupDaemon(user, group):
+  """Sets up daemon running environment.
+
+  This function creates Umpire Upstart config. And returns umpire uid, gid
+  pair. When user name and group name are both None or 'umpire', the setup
+  function tries to create system user. Otherwise it returns the existing
+  uid gid.
+
+  Args:
+    user: the daemon user name.
+    group: the daemon's default group.
+
+  Returns:
+    (uid, gid): Existing/Created Umpire uid and gid.
+  """
+  if user == group and user in [None, UMPIRE_USER_GROUP]:
+    uid, gid = CreateDefaultUmpireUser()
+  else:
+    uid, gid = sys_utils.GetUidGid(user, group)
+
+  CreateUmpireUpstart()
+  return (uid, gid)

@@ -14,7 +14,6 @@ running at that time.
 import errno
 import logging
 import os
-import subprocess
 import xmlrpclib
 
 import factory_common  # pylint: disable=W0611
@@ -23,7 +22,6 @@ from cros.factory.hacked_argparse import (CmdArg, Command, ParseCmdline,
                                           verbosity_cmd_arg)
 from cros.factory.umpire.commands import init
 from cros.factory.umpire.commands import edit
-from cros.factory.umpire.commands import system
 from cros.factory.umpire import common
 from cros.factory.umpire.config import ShowDiff
 from cros.factory.umpire.umpire_env import UmpireEnv
@@ -87,15 +85,8 @@ def Init(args, root_dir='/'):
   env.base_dir = (args.base_dir if args.base_dir else
                   os.path.join(root_dir, common.DEFAULT_BASE_DIR, board))
 
-  init.SetupDaemon()
   init.Init(env, args.bundle_path, board, args.default, args.local, args.user,
             args.group)
-
-  try:
-    system.StopUmpire(board)
-  except subprocess.CalledProcessError:
-    pass
-  system.StartUmpire(board)
 
 
 @Command('import-bundle',
