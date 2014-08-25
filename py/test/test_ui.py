@@ -129,6 +129,7 @@ class UI(object):
            'cstor; create the UI object in setUp instead') % e)
     self.event_handlers = {}
     self.task_hook = None
+    self.static_dir_path = None
 
     if setup_static_files:
       self._SetupStaticFiles(os.path.realpath(traceback.extract_stack()[-2][0]))
@@ -156,6 +157,7 @@ class UI(object):
           '/tests/%s' % self.test, static_dirs[0])
       autoload_bases.append(
           os.path.join(static_dirs[0], os.path.basename(base)))
+      self.static_dir_path = static_dirs[0]
 
     def GetAutoload(extension):
       autoload = filter(os.path.exists,
@@ -279,6 +281,14 @@ class UI(object):
     """
     return factory.get_state_instance().URLForData(
         mime_type, data, expiration)
+
+  def GetStaticDirectoryPath(self):
+    """Gets static directory os path.
+
+    Returns:
+      OS path for static directory; Return None if no static directory.
+    """
+    return self.static_dir_path
 
   def Pass(self):
     """Passes the test."""
