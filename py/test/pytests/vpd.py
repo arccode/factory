@@ -349,6 +349,60 @@ class SelectRegionTask(FactoryTask):
     self.RenderPage()
 
 
+class SelectBrandingTask(FactoryTask):
+  """Factory task to select the value for a branding field.
+
+  Args:
+    vpd_test: The main VPD TestCase object.
+    key: the key of the branding field in RO VPD. Currently it is either
+        'rlz_brand_code' or 'customization_id'.
+    desc_value_dict: a dict of the format: {'description': 'value'}.
+        Description is a helpful string and key=value will be written into
+        RO VPD after selection.
+    regexp: regular expression of the value.
+  """
+
+  def __init__(self, vpd_test, key, desc_value_dict, regexp):
+    super(SelectBrandingTask, self).__init__()
+    self.branding_list = sorted(desc_value_dict)
+    self.test = vpd_test
+    self.key = key
+    self.desc_value_dict = desc_value_dict
+    self.regexp = regexp
+
+  def SaveVPD(self, event):
+    index = int(event.data)
+    desc = self.branding_list[index]
+    value = self.desc_value_dict[desc]
+    # Check the format.
+    if not self.regexp.match(value):
+      self.test.template.SetState(_ERR_INPUT_INVALID(self.key, self.key))
+      self.Fail('Bad format for %s %r (expected it to match regexp %r)' % (
+          self.key, value, self.regexp.pattern))
+    else:
+      self.test.vpd['ro'][self.key] = value
+      self.Pass()
+
+  def RenderPage(self):
+    vpd_event_subtype = _EVENT_SUBTYPE_VPD_PREFIX + self.key
+    self.test.template.SetState(_MSG_MANUAL_SELECT_PROMPT(
+        self.key, self.key))
+    select_box = SelectBox(self.key, _SELECTION_PER_PAGE, _SELECT_BOX_STYLE)
+    for index, description in enumerate(self.branding_list):
+      select_box.InsertOption(index, '%s: %s' % (
+          description, self.desc_value_dict[description]))
+    select_box.SetSelectedIndex(0)
+    self.test.template.SetState(select_box.GenerateHTML(), append=True)
+    self.test.template.SetState(_MSG_HOW_TO_SELECT, append=True)
+    self.test.ui.BindKeyJS(test_ui.ENTER_KEY, _JS_SELECT_BOX(
+        self.key, vpd_event_subtype))
+    self.test.ui.AddEventHandler(vpd_event_subtype, self.SaveVPD)
+    self.test.ui.SetFocus(self.key)
+
+  def Run(self):
+    self.RenderPage()
+
+
 class VPDTest(unittest.TestCase):
   VPDTasks = Enum(['serial', 'region'])
 
@@ -392,21 +446,32 @@ class VPDTest(unittest.TestCase):
     Arg('allow_multiple_l10n', bool, 'True to allow multiple locales and '
         'keyboards.  Fully supported only in M35+ FSIs, so this is disabled '
         'by default', default=False, optional=True),
-    Arg('rlz_brand_code', str,
+    Arg('rlz_brand_code', (str, dict),
         'RLZ brand code to write to RO VPD.  This may be any of:\n'
         '\n'
         '- A fixed string\n'
         '- None, to not set any value at all\n'
         '- The string `"FROM_DEVICE_DATA"`, to use a value obtained from\n'
-        '  device data.',
+        '  device data.\n'
+        '- A dict of possible values to select. This is used for a shared\n'
+        '  RMA shim for multiple local OEM partners. The dict should be\n'
+        '  of the format: {"LOEM1 description": "LOEM1_brand_code",\n'
+        '  "LOEM2_description": "LOEM2_brand_code"}. The description is a\n'
+        '  helpful string and only the brand_code will be written into VPD.',
         default=None, optional=True),
-    Arg('customization_id', str,
+    Arg('customization_id', (str, dict),
         'Customization ID to write to RO VPD.  This may be any of:\n'
         '\n'
         '- A fixed string\n'
         '- None, to not set any value at all\n'
         '- The string `"FROM_DEVICE_DATA"`, to use a value obtained from\n'
-        '  device data.',
+        '  device data.\n'
+        '- A dict of possible values to select. This is used for a shared\n'
+        '  RMA shim for multiple local OEM partners. The dict should be\n'
+        '  of the format: {"LOEM1 description": "LOEM1_customization_id",\n'
+        '  "LOEM2_description": "LOEM2_customization_id"}. The description\n'
+        '  is a helpful string and only the customization_id will be\n'
+        '  written into VPD.',
         default=None, optional=True),
   ]
 
@@ -511,6 +576,10 @@ class VPDTest(unittest.TestCase):
         value = cached_device_data.get(attr)
         if value is None:
           raise ValueError('%s not present in device data' % attr)
+      elif isinstance(arg_value, dict):
+        # Manually select the branding field.
+        self.tasks += [SelectBrandingTask(self, attr, arg_value, regexp)]
+        continue
       else:
         # Fixed string; just use the value directly.
         value = arg_value
