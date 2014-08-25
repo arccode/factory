@@ -15,8 +15,7 @@ import tempfile
 
 import factory_common   # pylint: disable=W0611
 from cros.factory.factory_flow.common import (
-    board_cmd_arg, bundle_dir_cmd_arg, FactoryFlowCommand, GetFactoryParPath,
-    OnMoblab)
+    board_cmd_arg, bundle_dir_cmd_arg, FactoryFlowCommand, GetFactoryParPath)
 from cros.factory.hacked_argparse import CmdArg
 from cros.factory.hwid import hwid_utils
 from cros.factory.test import factory
@@ -246,8 +245,8 @@ class StartServer(FactoryFlowCommand):
 
   def InstallRequiredPackages(self):
     """Installs required packages."""
-    if OnMoblab():
-      # Moblab has all the required packages.
+    if utils.in_cros_device():
+      # CrOS factory server has all the required packages.
       return
 
     for pkg in self.required_packages:

@@ -12,7 +12,6 @@ import re
 import subprocess
 
 import factory_common   # pylint: disable=W0611
-from cros.factory.factory_flow import common
 from cros.factory.test import utils
 from cros.factory.utils import process_utils
 
@@ -54,9 +53,9 @@ class Servo(object):
 
       utils.WaitFor(WaitForServod, 10)
 
-      if common.OnMoblab():
+      if utils.in_cros_device():
         # Do not try to auto-update if we are running servo host directly on a
-        # Moblab.
+        # CrOS factory server.
         hosts.ServoHost._update_image = lambda _: True
         # Create a dummy servod config to make ServoHost happy.
         process_utils.Spawn(['touch', '/var/lib/servod/config'],
@@ -66,8 +65,8 @@ class Servo(object):
                               serial)
 
   def _InstallRequiredPackages(self):
-    if common.OnMoblab():
-      # Moblab has all the required packages.
+    if utils.in_cros_device():
+      # CrOS factory server has all the required packages.
       return
 
     # Check if flashrom is installed with ft2232_spi support.

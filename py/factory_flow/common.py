@@ -11,7 +11,6 @@ import sys
 
 import factory_common   # pylint: disable=W0611
 from cros.factory.hacked_argparse import CmdArg
-from cros.factory.test import utils
 from cros.factory.tools import build_board
 from cros.factory.umpire import common as umpire_common
 
@@ -26,18 +25,6 @@ dut_hostname_cmd_arg = CmdArg('--dut', help='IP or hostname of the DUT')
 BOARD_ENVVAR = 'FACTORY_FLOW_TESTING_BOARD'
 DUT_ENVVAR = 'FACTORY_FLOW_TESTING_DUT'
 BUNDLE_DIR_ENVVAR = 'FACTORY_FLOW_TESTING_BUNDLE_DIR'
-
-
-def OnMoblab():
-  """Checks if we are running on Moblab.
-
-  Returns:
-    True if runs on Moblab; False otherwise.
-  """
-  if (not utils.in_chroot() and
-      build_board.BuildBoard().full_name == 'stumpy_moblab'):
-    return True
-  return False
 
 
 def GetFactoryParPath():

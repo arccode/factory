@@ -12,9 +12,9 @@ import os
 import sys
 
 import factory_common   # pylint:disable=W0611
-from cros.factory.factory_flow import common
+from cros.factory.test import utils
 
-if common.OnMoblab():
+if utils.in_cros_device():
   autotest_dir = '/usr/local/autotest'
 else:
   CROS_WORKON_SRCROOT = os.environ['CROS_WORKON_SRCROOT']
