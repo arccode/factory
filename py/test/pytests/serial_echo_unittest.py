@@ -10,9 +10,9 @@ import serial
 import unittest
 
 import factory_common # pylint: disable=W0611
+from cros.factory.test import serial_utils
 from cros.factory.test.args import Args
 from cros.factory.test.pytests import serial_echo
-from cros.factory.utils import serial_utils
 
 
 class SerialEchoUnittest(unittest.TestCase):

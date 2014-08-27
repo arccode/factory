@@ -22,7 +22,7 @@ import serial
 import unittest
 
 from cros.factory.test.args import Arg
-from cros.factory.utils import serial_utils
+from cros.factory.test import serial_utils
 
 _SERIAL_TIMEOUT = 3
 

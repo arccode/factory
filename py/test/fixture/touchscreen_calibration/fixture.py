@@ -7,8 +7,8 @@ import time
 
 from collections import namedtuple
 
-from cros.factory.utils.serial_utils import FindTtyByDriver, SerialDevice
 from cros.factory.test import factory
+from cros.factory.test.serial_utils import FindTtyByDriver, SerialDevice
 
 
 # Define the driver name and the interface protocols to find the arduino ports.

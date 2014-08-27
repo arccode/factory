@@ -18,9 +18,11 @@ import glob
 import logging
 import os
 import re
+import time
+
+# site-packages: dev-python/pyserial
 import serial
 from serial import SerialException, SerialTimeoutException
-import time
 
 
 def OpenSerial(**params):

@@ -13,7 +13,7 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.fixture.arduino import ArduinoController
-from cros.factory.utils.serial_utils import SerialDevice
+from cros.factory.test.serial_utils import SerialDevice
 
 _DEFAULT_DRIVER = 'cdc_acm'
 _DEFAULT_READY_DELAY_SECS = 2.0

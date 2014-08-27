@@ -15,8 +15,8 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.utils import serial_utils
-from cros.factory.utils.serial_utils import SerialDevice
+from cros.factory.test import serial_utils
+from cros.factory.test.serial_utils import SerialDevice
 
 _DEFAULT_DRIVER = 'pl2303'
 _DEFAULT_PORT = '/dev/ttyUSB0'

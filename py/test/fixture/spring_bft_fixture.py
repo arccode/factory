@@ -8,7 +8,7 @@ from serial import SerialException, SerialTimeoutException
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.fixture.bft_fixture import (BFTFixture,
                                                    BFTFixtureException)
-from cros.factory.utils.serial_utils import OpenSerial, FindTtyByDriver
+from cros.factory.test.serial_utils import OpenSerial, FindTtyByDriver
 
 
 def _CommandStr(command):

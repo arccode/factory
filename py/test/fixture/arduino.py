@@ -9,7 +9,7 @@ import serial
 import time
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.utils.serial_utils import SerialDevice
+from cros.factory.test.serial_utils import SerialDevice
 
 
 class ArduinoController(SerialDevice):
