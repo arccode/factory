@@ -2431,7 +2431,7 @@ cros.factory.Goofy.prototype.setTestList = function(testList) {
                                      this.viewVarLogMessagesBeforeReboot);
                         addExtraItem('View dmesg', '检视 dmesg',
                                      this.viewDmesg);
-                        addExtraItem('List hardware', '检视硬件',
+                        addExtraItem('Device manager', '检视硬件',
                                      function () { this.deviceManager.showWindow(); });
                     }
 

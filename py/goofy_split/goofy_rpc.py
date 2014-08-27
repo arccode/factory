@@ -232,10 +232,26 @@ class GoofyRPC(object):
     # (?m) = multiline
     return re.sub(r'(?m)^\[\s*([.\d]+)\]', FormatTime, dmesg)
 
-  def GetDeviceInfo(self):
-    """Returns system hardware info in XML format."""
+  def GetDeviceInfo(self, reload_function_array=None):
+    """Returns system hardware info in XML format.
 
-    def DeviceNodeString(node_id, node_description, tag_list):
+    Since the commands can be separated into two categories, faster ones and
+    slower ones, we get our info in two stages. First, we execute the faster
+    commands and return their results. Then we will enter the second stage when
+    the frontend device manager needs the other ones.
+
+    Args:
+      reload_function_array: An array containing functions to be loaded. If
+        the array includes nothing, it means that we are in first stage, where
+        we need to execute all fast commands. Otherwise, we will only spawn the
+        functions inside the array.
+
+    Returns:
+      A string including system hardware info.
+    """
+
+    def DeviceNodeString(
+        node_id, node_description, tag_list, slow_command=None):
       """Returns a XML format string of a specific device.
 
       Args:
@@ -244,6 +260,11 @@ class GoofyRPC(object):
         tag_list: A list of more detailed information of the device. Each
           element, including (tag_name, tag_text, split_multiline), represents
           a tag, which is a child node of the device node.
+        slow_command: If it is set, it means the command takes longer time and
+          we wish to execute it later. Therefore the method will return a
+          string without data but indicating the device needs to be executed
+          again. The value, which is the name of the method is stored in an
+          attribute of the device node.
 
       Returns:
         A string with XML format of the device node.
@@ -268,7 +289,12 @@ class GoofyRPC(object):
             '<line>%s</line>' % saxutils.escape(l) for l in lines.split('\n'))
 
       result = []
-      result.append('<node id="%s">' % saxutils.escape(node_id))
+      result.append('<node id="%s"' % saxutils.escape(node_id))
+      if not slow_command:
+        result.append('>')
+      else:
+        result.append(' slow_command="%s">' % saxutils.escape(slow_command))
+
       result.append(
           '<description>%s</description>' % saxutils.escape(node_description))
 
@@ -284,6 +310,20 @@ class GoofyRPC(object):
       result.append('</node>')
 
       return ''.join(result)
+
+    def SlowCommandDeviceNodeString(node_id, node_description, function_name):
+      """Returns a XML string of a device which needs longer time to get info.
+
+      Args:
+        node_id: An id attribute to identify the device in XML document.
+        node_description: A human readable name of the device.
+        function_name: The name of the method which is slow.
+
+      Return:
+        A string with XML format, including only the description of the node.
+      """
+      return DeviceNodeString(
+          node_id, node_description, [], slow_command=function_name)
 
     def GetBootDisk():
       """Returns boot disk info."""
@@ -331,7 +371,7 @@ class GoofyRPC(object):
       try:
         ec_wp_stat = (
             subprocess.check_output(['flashrom', '-p', 'ec', '--wp-status']))
-      except:
+      except OSError:
         ec_wp_stat = 'EC not available.'
 
       return DeviceNodeString(
@@ -346,7 +386,7 @@ class GoofyRPC(object):
 
       try:
         ec_version = subprocess.check_output(['ectool', 'version'])
-      except:
+      except OSError:
         ec_version = 'EC not available.'
 
       image_version = ''.join(open('/etc/lsb-release', 'r').readlines())
@@ -356,7 +396,7 @@ class GoofyRPC(object):
           [('fw', fw_version, True), ('ec', ec_version, True),
            ('image', image_version, True)])
 
-    def GetVPD():
+    def GetVPD(): # pylint: disable=W0612
       """Returns RO VPD and RW VPD info."""
       ro_vpd = subprocess.check_output(['vpd', '-i', 'RO_VPD', '-l'])
       rw_vpd = subprocess.check_output(['vpd', '-i', 'RW_VPD', '-l'])
@@ -606,11 +646,16 @@ class GoofyRPC(object):
       html_string = ''.join(content_rows)
       return html_string.replace('<table', '<table class="multi-column-table"')
 
-    def GetPowerUsage(time=5):
-      """Returns power usage detail."""
-      f, html_file_path = tempfile.mkstemp(suffix='.html')
+    def GetPowerUsage(fetch_time=20): # pylint: disable=W0612
+      """Returns power usage detail.
+
+      Args:
+        fetch_time: A number indicating how long powertop should fetch data.
+          The default time is 20 seconds.
+      """
+      html_file_path = tempfile.mkstemp(suffix='.html')[1]
       subprocess.check_output(
-          ['powertop', '--html=%s' % html_file_path, '--time=%d' % time])
+          ['powertop', '--html=%s' % html_file_path, '--time=%d' % fetch_time])
 
       power_usage_main_xml = []
       power_usage_main_xml.append('<node id="power_usage">')
@@ -638,50 +683,63 @@ class GoofyRPC(object):
 
       return ''.join(power_usage_main_xml)
 
-    # lshw provides common hardware information.
-    lshw_output = subprocess.check_output(['lshw', '-xml'])
-    xml_lines = [line.strip() for line in lshw_output.split('\n')]
+    # In first stage, we execute faster commands first.
+    if reload_function_array is None:
+      # lshw provides common hardware information.
+      lshw_output = subprocess.check_output(['lshw', '-xml'])
+      xml_lines = [line.strip() for line in lshw_output.splitlines()]
 
-    # Use cros-specific commands to get cros info.
-    cros_output = []
-    cros_output.append('<node id="cros">')
-    cros_output.append('<description>Chrome OS Specific</description>')
-    cros_output.append(GetBootDisk())
-    cros_output.append(GetTPMStatus())
-    cros_output.append(GetHWID())
-    cros_output.append(GetWPStatus())
-    cros_output.append(GetVersion())
-    cros_output.append(GetVPD())
-    cros_output.append('</node>')
+      # Use cros-specific commands to get cros info.
+      cros_output = []
+      cros_output.append('<node id="cros">')
+      cros_output.append('<description>Chrome OS Specific</description>')
+      cros_output.append(GetBootDisk())
+      cros_output.append(GetTPMStatus())
+      cros_output.append(GetHWID())
+      cros_output.append(GetWPStatus())
+      cros_output.append(GetVersion())
+      cros_output.append(
+          SlowCommandDeviceNodeString('vpd', 'RO/RW VPD', 'GetVPD()'))
+      cros_output.append('</node>')
 
-    xml_lines.insert(xml_lines.index('</list>'), ''.join(cros_output))
+      xml_lines.insert(xml_lines.index('</list>'), ''.join(cros_output))
 
-    # Get peripheral device info.
-    peripheral_output = []
-    peripheral_output.append('<node id="peripheral">')
-    peripheral_output.append('<description>Peripheral Devices</description>')
-    peripheral_output.append(GetTouchscreenFirmwareVersion())
-    peripheral_output.append(GetTouchpadFirmwareVersion())
-    peripheral_output.append(GetTouchpadStatus())
-    peripheral_output.append(GetPanelHDMIStatus())
-    peripheral_output.append(GetModemStatus())
-    peripheral_output.append('</node>')
+      # Get peripheral device info.
+      peripheral_output = []
+      peripheral_output.append('<node id="peripheral">')
+      peripheral_output.append('<description>Peripheral Devices</description>')
+      peripheral_output.append(GetTouchscreenFirmwareVersion())
+      peripheral_output.append(GetTouchpadFirmwareVersion())
+      peripheral_output.append(GetTouchpadStatus())
+      peripheral_output.append(GetPanelHDMIStatus())
+      peripheral_output.append(GetModemStatus())
+      peripheral_output.append('</node>')
 
-    xml_lines.insert(xml_lines.index('</list>'), ''.join(peripheral_output))
+      xml_lines.insert(xml_lines.index('</list>'), ''.join(peripheral_output))
 
-    # Get system usage details.
-    system_usage = []
-    system_usage.append('<node id="usage">')
-    system_usage.append('<description>System Usage</description>')
-    system_usage.append(GetCPUUsage())
-    system_usage.append(GetPowerUsage())
-    system_usage.append(GetDiskUsage())
-    system_usage.append(GetMemoryUsage())
-    system_usage.append('</node>')
+      # Get system usage details.
+      system_usage = []
+      system_usage.append('<node id="usage">')
+      system_usage.append('<description>System Usage</description>')
+      system_usage.append(GetCPUUsage())
+      system_usage.append(
+          SlowCommandDeviceNodeString(
+              'power_usage', 'Power usage', 'GetPowerUsage()'))
+      system_usage.append(GetDiskUsage())
+      system_usage.append(GetMemoryUsage())
+      system_usage.append('</node>')
 
-    xml_lines.insert(xml_lines.index('</list>'), ''.join(system_usage))
+      xml_lines.insert(xml_lines.index('</list>'), ''.join(system_usage))
 
-    return json.dumps(''.join(xml_lines))
+      return ''.join(xml_lines)
+
+    # In second stage, we execute slower commands and return their results.
+    else:
+      result = (
+          [eval(reload_function)
+           for reload_function in json.loads(reload_function_array)])
+
+      return json.dumps(result)
 
   def LogStackTraces(self):
     """Logs the stack backtraces of all threads."""
