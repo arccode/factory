@@ -15,7 +15,7 @@ import traceback
 import SocketServer
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import utils
+from cros.factory.utils import process_utils
 
 def DumpStackTracebacks():
   """Prints all threads' stack traces.
@@ -66,8 +66,8 @@ def StartDebugServer(address='localhost', port=5339):
   SocketServer.ThreadingTCPServer.allow_reuse_address = True
   server = SocketServer.ThreadingTCPServer(
       (address, port), DebugRequestHandler)
-  thread = utils.StartDaemonThread(target=server.serve_forever,
-                                   name='tcp-debug-server')
+  thread = process_utils.StartDaemonThread(target=server.serve_forever,
+                                           name='tcp-debug-server')
 
   logging.info('Debug server started on %s:%d', address, port)
   return server, thread

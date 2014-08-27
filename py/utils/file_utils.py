@@ -25,15 +25,20 @@ import zipfile
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.common import CheckDictKeys, MakeList
-from cros.factory.test import utils
 from cros.factory.utils import time_utils
 from cros.factory.utils.process_utils import Spawn
 
 
-# This should really be in this module rather than in test.utils.
-# TODO: Move TryMakeDirs method to this module and update existing files
-# accordingly.
-TryMakeDirs = utils.TryMakeDirs
+def TryMakeDirs(path):
+  """Tries to create a directory and its parents.
+
+  Doesn't ever raise an exception if it can't create the directory.
+  """
+  try:
+    if not os.path.exists(path):
+      os.makedirs(path)
+  except Exception:
+    pass
 
 
 def MakeDirsUidGid(path, uid=-1, gid=-1, mode=0777):
@@ -265,6 +270,11 @@ def TouchFile(path):
     os.utime(path, None)
 
 
+def ReadOneLine(filename):
+  """Returns the first line as a string from the given file."""
+  return open(filename, 'r').readline().rstrip('\n')
+
+
 def SetFileExecutable(path):
   """Sets the file's executable bit.
 
@@ -302,32 +312,6 @@ def CopyFileSkipBytes(in_file_name, out_file_name, skip_size):
 def Sync(log=True):
   """Calls 'sync'."""
   Spawn(['sync'], log=log, check_call=True)
-
-
-def ResetCommitTime():
-  """Remounts partitions with commit=0.
-
-  The standard value on CrOS (commit=600) is likely to result in
-  corruption during factory testing.  Using commit=0 reverts to the
-  default value (generally 5 s).
-  """
-  if utils.in_chroot():
-    return
-
-  devices = set()
-  with open('/etc/mtab', 'r') as f:
-    for line in f.readlines():
-      cols = line.split(' ')
-      device = cols[0]
-      options = cols[3]
-      if 'commit=' in options:
-        devices.add(device)
-
-  # Remount all devices in parallel, and wait.  Ignore errors.
-  for process in [
-      Spawn(['mount', p, '-o', 'commit=0,remount'], log=True)
-      for p in sorted(devices)]:
-    process.wait()
 
 
 def GetMainStorageDevice():

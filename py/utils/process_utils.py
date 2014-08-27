@@ -9,9 +9,12 @@ import logging
 import os
 import pipes
 import Queue
+import re
+import signal
 import subprocess
 import sys
 import threading
+import time
 import types
 from StringIO import StringIO
 
@@ -50,6 +53,15 @@ def OpenDevNull():
   return dev_null
 
 
+def IsProcessAlive(pid):
+  """Returns true if the named process is alive and not a zombie."""
+  try:
+    with open("/proc/%d/stat" % pid) as f:
+      return f.readline().split()[2] != 'Z'
+  except IOError:
+    return False
+
+
 def CheckOutput(*args, **kwargs):
   """Runs command and returns its output.
 
@@ -82,6 +94,18 @@ def SpawnOutput(*args, **kwargs):
   """
   kwargs['read_stdout'] = True
   return Spawn(*args, **kwargs).stdout_data
+
+
+def LogAndCheckCall(*args, **kwargs):
+  """Logs a command and invokes subprocess.check_call."""
+  logging.info('Running: %s', ' '.join(pipes.quote(arg) for arg in args[0]))
+  return subprocess.check_call(*args, **kwargs)
+
+
+def LogAndCheckOutput(*args, **kwargs):
+  """Logs a command and invokes subprocess.check_output."""
+  logging.info('Running: %s', ' '.join(pipes.quote(arg) for arg in args[0]))
+  return CheckOutput(*args, **kwargs)
 
 
 class _ExtendedPopen(subprocess.Popen):
@@ -302,6 +326,55 @@ def TerminateOrKillProcess(process, wait_seconds=1, sudo=False):
   logging.info('Process %d stopped', pid)
 
 
+def KillProcessTree(process, caption):
+  """Kills a process and all its subprocesses.
+
+  Args:
+    process: The process to kill (opened with the subprocess module).
+    caption: A caption describing the process.
+  """
+  # os.kill does not kill child processes. os.killpg kills all processes
+  # sharing same group (and is usually used for killing process tree). But in
+  # our case, to preserve PGID for autotest and upstart service, we need to
+  # iterate through each level until leaf of the tree.
+
+  def get_all_pids(root):
+    ps_output = Spawn(['ps', '--no-headers', '-eo', 'pid,ppid'],
+                      stdout=subprocess.PIPE)
+    children = {}
+    for line in ps_output.stdout:
+      match = re.findall('\d+', line)
+      children.setdefault(int(match[1]), []).append(int(match[0]))
+    pids = []
+    def add_children(pid):
+      pids.append(pid)
+      map(add_children, children.get(pid, []))
+    add_children(root)
+    # Reverse the list to first kill children then parents.
+    # Note reversed(pids) will return an iterator instead of real list, so
+    # we must explicitly call pids.reverse() here.
+    pids.reverse()
+    return pids
+
+  pids = get_all_pids(process.pid)
+  for sig in [signal.SIGTERM, signal.SIGKILL]:
+    logging.info('Stopping %s (pid=%s)...', caption, sorted(pids))
+
+    for _ in range(25): # Try 25 times (200 ms between tries)
+      for pid in pids:
+        try:
+          logging.info("Sending signal %s to %d", sig, pid)
+          os.kill(pid, sig)
+        except OSError:
+          pass
+      pids = filter(IsProcessAlive, pids)
+      if not pids:
+        return
+      time.sleep(0.2) # Sleep 200 ms and try again
+
+  logging.warn('Failed to stop %s process. Ignoring.', caption)
+
+
 def WaitEvent(event):
   """Waits for an event without timeout, without blocking signals.
 
@@ -378,3 +451,15 @@ def SpawnTee(args, **kwargs):
     if proc.returncode != 0 and kwargs.get('check_call'):
       raise subprocess.CalledProcessError(proc.returncode, args)
     return proc
+
+
+def StartDaemonThread(*args, **kwargs):
+  """Creates, starts, and returns a daemon thread.
+
+  Args:
+    See threading.Thread().
+  """
+  thread = threading.Thread(*args, **kwargs)
+  thread.daemon = True
+  thread.start()
+  return thread

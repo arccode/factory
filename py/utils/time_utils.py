@@ -7,6 +7,7 @@
 import ctypes
 import ctypes.util
 import os
+import time
 
 
 def MonotonicTime():
@@ -62,3 +63,26 @@ def FormatElapsedTime(elapsed_secs):
 
   return '%s%02d:%02d:%02d' % ('-' if negative else '',
                                hours, mins, secs)
+
+
+def TimeString(unix_time=None, time_separator=':', milliseconds=True):
+  """Returns a time (using UTC) as a string.
+
+  The format is like ISO8601 but with milliseconds:
+
+   2012-05-22T14:15:08.123Z
+
+  Args:
+    unix_time: Time in seconds since the epoch.
+    time_separator: Separator for time components.
+    milliseconds: Whether to include milliseconds.
+  """
+
+  t = unix_time or time.time()
+  ret = time.strftime(
+      "%Y-%m-%dT%H" + time_separator + "%M" + time_separator + "%S",
+      time.gmtime(t))
+  if milliseconds:
+    ret += ".%03d" % int((t - int(t)) * 1000)
+  ret += "Z"
+  return ret

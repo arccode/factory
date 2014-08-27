@@ -61,16 +61,6 @@ class VarLogMessagesTest(unittest.TestCase):
         ], self._GetMessages(EARLIER_VAR_LOG_MESSAGES, 1))
 
 
-class FlattenListTest(unittest.TestCase):
-  def runTest(self):
-    self.assertEquals([], utils.FlattenList([]))
-    self.assertEquals([], utils.FlattenList([[]]))
-    self.assertEquals([1], utils.FlattenList([1]))
-    self.assertEquals([1], utils.FlattenList([1, []]))
-    self.assertEquals([1, 2, 3, 4, 5, 6],
-                      utils.FlattenList([1, 2, [3, 4, []], 5, 6]))
-
-
 class TimeoutTest(unittest.TestCase):
   def runTest(self):
     with utils.Timeout(3):

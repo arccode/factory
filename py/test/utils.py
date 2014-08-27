@@ -15,7 +15,6 @@ import logging
 import multiprocessing
 import os
 import pipes
-import Queue
 import re
 import signal
 import subprocess
@@ -27,34 +26,26 @@ import traceback
 
 from contextlib import contextmanager
 
+import factory_common  # pylint: disable=W0611
+from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
+from cros.factory.utils import time_utils
+from cros.factory.utils import type_utils
 
 
-# For backward compatibility.
+# For backward compatibility. TODO(hungte) Remove or add wrapper functions.
 CheckOutput = process_utils.CheckOutput
-
-
-def TimeString(unix_time=None, time_separator=':', milliseconds=True):
-  """Returns a time (using UTC) as a string.
-
-  The format is like ISO8601 but with milliseconds:
-
-   2012-05-22T14:15:08.123Z
-
-  Args:
-    unix_time: Time in seconds since the epoch.
-    time_separator: Separator for time components.
-    milliseconds: Whether to include milliseconds.
-  """
-
-  t = unix_time or time.time()
-  ret = time.strftime(
-      "%Y-%m-%dT%H" + time_separator + "%M" + time_separator + "%S",
-      time.gmtime(t))
-  if milliseconds:
-    ret += ".%03d" % int((t - int(t)) * 1000)
-  ret += "Z"
-  return ret
+LogAndCheckCall = process_utils.LogAndCheckCall
+LogAndCheckOutput = process_utils.LogAndCheckOutput
+StartDaemonThread = process_utils.StartDaemonThread
+is_process_alive = process_utils.IsProcessAlive
+kill_process_tree = process_utils.KillProcessTree
+TryMakeDirs = file_utils.TryMakeDirs
+ReadOneLine = file_utils.ReadOneLine
+TimeString = time_utils.TimeString
+Enum = type_utils.Enum
+DrainQueue = type_utils.DrainQueue
+FlattenList = type_utils.FlattenList
 
 
 def in_chroot():
@@ -74,64 +65,6 @@ def in_cros_device():
   with open('/etc/lsb-release') as f:
     lsb_release = f.read()
   return re.match('^CHROMEOS_RELEASE', lsb_release, re.MULTILINE) is not None
-
-
-def is_process_alive(pid):
-  """Returns true if the named process is alive and not a zombie."""
-  try:
-    with open("/proc/%d/stat" % pid) as f:
-      return f.readline().split()[2] != 'Z'
-  except IOError:
-    return False
-
-
-def kill_process_tree(process, caption):
-  """Kills a process and all its subprocesses.
-
-  Args:
-    process: The process to kill (opened with the subprocess module).
-    caption: A caption describing the process.
-  """
-  # os.kill does not kill child processes. os.killpg kills all processes
-  # sharing same group (and is usually used for killing process tree). But in
-  # our case, to preserve PGID for autotest and upstart service, we need to
-  # iterate through each level until leaf of the tree.
-
-  def get_all_pids(root):
-    ps_output = process_utils.Spawn(['ps', '--no-headers', '-eo', 'pid,ppid'],
-                                    stdout=subprocess.PIPE)
-    children = {}
-    for line in ps_output.stdout:
-      match = re.findall('\d+', line)
-      children.setdefault(int(match[1]), []).append(int(match[0]))
-    pids = []
-    def add_children(pid):
-      pids.append(pid)
-      map(add_children, children.get(pid, []))
-    add_children(root)
-    # Reverse the list to first kill children then parents.
-    # Note reversed(pids) will return an iterator instead of real list, so
-    # we must explicitly call pids.reverse() here.
-    pids.reverse()
-    return pids
-
-  pids = get_all_pids(process.pid)
-  for sig in [signal.SIGTERM, signal.SIGKILL]:
-    logging.info('Stopping %s (pid=%s)...', caption, sorted(pids))
-
-    for _ in range(25): # Try 25 times (200 ms between tries)
-      for pid in pids:
-        try:
-          logging.info("Sending signal %s to %d", sig, pid)
-          os.kill(pid, sig)
-        except OSError:
-          pass
-      pids = filter(is_process_alive, pids)
-      if not pids:
-        return
-      time.sleep(0.2) # Sleep 200 ms and try again
-
-  logging.warn('Failed to stop %s process. Ignoring.', caption)
 
 
 def are_shift_keys_depressed():
@@ -206,66 +139,6 @@ def var_log_messages_before_reboot(lines=100,
       '<after reboot, kernel came up at %s>' % match.group(1)]
 
 
-def DrainQueue(queue):
-  """Returns as many elements as can be obtained from a queue without blocking.
-
-  (This may be no elements at all.)
-  """
-  ret = []
-  while True:
-    try:
-      ret.append(queue.get_nowait())
-    except Queue.Empty:
-      break
-  return ret
-
-
-def TryMakeDirs(path):
-  """Tries to create a directory and its parents.
-
-  Doesn't ever raise an exception if it can't create the directory.
-  """
-  try:
-    if not os.path.exists(path):
-      os.makedirs(path)
-  except Exception:
-    pass
-
-
-def LogAndCheckCall(*args, **kwargs):
-  """Logs a command and invokes subprocess.check_call."""
-  logging.info('Running: %s', ' '.join(pipes.quote(arg) for arg in args[0]))
-  return subprocess.check_call(*args, **kwargs)
-
-
-def LogAndCheckOutput(*args, **kwargs):
-  """Logs a command and invokes subprocess.check_output."""
-  logging.info('Running: %s', ' '.join(pipes.quote(arg) for arg in args[0]))
-  return CheckOutput(*args, **kwargs)
-
-
-class Enum(frozenset):
-  """An enumeration type.
-
-  Usage:
-    To create a enum object:
-      dummy_enum = utils.Enum(['A', 'B', 'C'])
-
-    To access a enum object, use:
-      dummy_enum.A
-      dummy_enum.B
-  """
-  def __getattr__(self, name):
-    if name in self:
-      return name
-    raise AttributeError
-
-
-def ReadOneLine(filename):
-  """Returns the first line as a string from the given file."""
-  return open(filename, 'r').readline().rstrip('\n')
-
-
 def FormatExceptionOnly():
   """Formats the current exception string.
 
@@ -278,28 +151,30 @@ def FormatExceptionOnly():
     traceback.format_exception_only(*sys.exc_info()[:2])).strip()
 
 
-def StartDaemonThread(*args, **kwargs):
-  """Creates, starts, and returns a daemon thread.
+def ResetCommitTime():
+  """Remounts partitions with commit=0.
 
-  Args:
-    See threading.Thread().
+  The standard value on CrOS (commit=600) is likely to result in
+  corruption during factory testing.  Using commit=0 reverts to the
+  default value (generally 5 s).
   """
-  thread = threading.Thread(*args, **kwargs)
-  thread.daemon = True
-  thread.start()
-  return thread
+  if in_chroot():
+    return
 
+  devices = set()
+  with open('/etc/mtab', 'r') as f:
+    for line in f.readlines():
+      cols = line.split(' ')
+      device = cols[0]
+      options = cols[3]
+      if 'commit=' in options:
+        devices.add(device)
 
-def FlattenList(lst):
-  """Flattens a list, recursively including all items in contained arrays.
-
-  For example:
-
-    FlattenList([1,2,[3,4,[]],5,6]) == [1,2,3,4,5,6]
-  """
-  return sum((FlattenList(x) if isinstance(x, list) else [x]
-              for x in lst),
-             [])
+  # Remount all devices in parallel, and wait.  Ignore errors.
+  for process in [
+      Spawn(['mount', p, '-o', 'commit=0,remount'], log=True)
+      for p in sorted(devices)]:
+    process.wait()
 
 
 class LoadManager(object):
@@ -359,6 +234,8 @@ class LoadManager(object):
       self._process.terminate()
 
 
+# TODO(hungte) Move TimeoutError, Timeout, WaitFor, Retry, FormatExceptionOnly
+# to py/utils/*.
 def Retry(max_retry_times, interval, callback, target, *args, **kwargs):
   """Retries a function call with limited times until it returns True.
 
