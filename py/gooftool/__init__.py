@@ -30,9 +30,9 @@ from cros.factory.rule import Context
 from cros.factory.system import vpd
 from cros.factory.test import branding
 from cros.factory.test import phase
-from cros.factory.tools.mount_partition import MountPartition
 from cros.factory.utils.process_utils import CheckOutput, GetLines
 from cros.factory.utils.string_utils import ParseDict
+from cros.factory.utils.sys_utils import MountPartition
 
 # A named tuple to store the probed component name and the error if any.
 ProbedComponentResult = namedtuple('ProbedComponentResult',

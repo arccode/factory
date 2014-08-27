@@ -22,8 +22,8 @@ from cros.factory.system.board import Board
 from cros.factory import test
 from cros.factory.test import factory
 from cros.factory.test.utils import ReadOneLine
-from cros.factory.utils.file_utils import MountDeviceAndReadFile
 from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils.sys_utils import MountDeviceAndReadFile
 
 # pylint: disable=W0702
 # Disable checking of exception types, since we catch all exceptions

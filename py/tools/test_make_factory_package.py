@@ -24,9 +24,9 @@ import unittest
 import factory_common  # pylint: disable=W0611
 from cros.factory.system import partitions
 from cros.factory.test import factory
-from cros.factory.tools.mount_partition import MountPartition
 from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils.sys_utils import MountPartition
 
 
 DESCRIPTION = r"""Tests make_factory_package.sh with real build artifacts.

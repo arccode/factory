@@ -15,9 +15,9 @@ from cros.factory.factory_flow.common import (
     board_cmd_arg, bundle_dir_cmd_arg, dut_hostname_cmd_arg, FactoryFlowCommand)
 from cros.factory.hacked_argparse import CmdArg
 from cros.factory.test import utils
-from cros.factory.tools import mount_partition
 from cros.factory.utils import file_utils
 from cros.factory.utils import ssh_utils
+from cros.factory.utils import sys_utils
 
 
 class NetbootInstallError(Exception):
@@ -186,7 +186,7 @@ class NetbootInstall(FactoryFlowCommand):
 
     factory_image_path = os.path.join(self.options.bundle, 'factory_test',
                                       'chromiumos_factory_image.bin')
-    with mount_partition.MountPartition(factory_image_path, 3) as mount_point:
+    with sys_utils.MountPartition(factory_image_path, 3) as mount_point:
       image_version_in_bundle = GetImageVersion(
           open(os.path.join(mount_point, 'etc', 'lsb-release')).read(),
           'bundle')

@@ -20,7 +20,6 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.utils import file_utils
-from cros.factory.utils.process_utils import Spawn
 
 
 class MakeDirsUidGidTest(unittest.TestCase):
@@ -72,42 +71,6 @@ class MakeDirsUidGidTest(unittest.TestCase):
     self.assertTrue(os.path.isdir(os.path.join(self.temp_dir, 'foo', 'bar')))
 
     os.chdir(cwd)
-
-
-class MountDeviceAndReadFileTest(unittest.TestCase):
-  """Unittest for MountDeviceAndReadFile."""
-  def setUp(self):
-    # Creates a temp file and create file system on it as a mock device.
-    self.device = tempfile.NamedTemporaryFile(prefix='MountDeviceAndReadFile')
-    Spawn(['truncate', '-s', '1M', self.device.name], log=True,
-          check_call=True)
-    Spawn(['/sbin/mkfs', '-F', '-t', 'ext3', self.device.name],
-          log=True, check_call=True)
-
-    # Creates a file with some content on the device.
-    mount_point = tempfile.mkdtemp(prefix='MountDeviceAndReadFileSetup')
-    Spawn(['mount', self.device.name, mount_point], sudo=True, check_call=True,
-          log=True)
-    self.content = 'file content'
-    self.file_name = 'file'
-    with open(os.path.join(mount_point, self.file_name), 'w') as f:
-      f.write(self.content)
-    Spawn(['umount', '-l', mount_point], sudo=True, check_call=True, log=True)
-
-  def tearDown(self):
-    self.device.close()
-
-  def testMountDeviceAndReadFile(self):
-    self.assertEqual(self.content,
-        file_utils.MountDeviceAndReadFile(self.device.name, self.file_name))
-
-  def testMountDeviceAndReadFileWrongFile(self):
-    with self.assertRaises(IOError):
-      file_utils.MountDeviceAndReadFile(self.device.name, 'no_file')
-
-  def testMountDeviceAndReadFileWrongDevice(self):
-    with self.assertRaises(Exception):
-      file_utils.MountDeviceAndReadFile('no_device', self.file_name)
 
 
 class UnopenedTemporaryFileTest(unittest.TestCase):

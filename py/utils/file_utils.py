@@ -26,7 +26,6 @@ import zipfile
 import factory_common  # pylint: disable=W0611
 from cros.factory.common import CheckDictKeys, MakeList
 from cros.factory.test import utils
-from cros.factory.tools import mount_partition
 from cros.factory.utils import time_utils
 from cros.factory.utils.process_utils import Spawn
 
@@ -343,30 +342,6 @@ def GetMainStorageDevice():
         return re.sub(r'p?(\d+)$', '', device)
 
   raise IOError('Unable to find main storage device in /etc/mtab')
-
-
-def MountDeviceAndReadFile(device, path):
-  """Mounts a device and reads a file on it.
-
-  Args:
-    device: The device like '/dev/mmcblk0p5'.
-    path: The file path like '/etc/lsb-release'. The file to read is then
-      'mount_point/etc/lsb-release'.
-
-  Returns:
-    The content of the file.
-
-  Raises:
-    Exception if mount or umount fails.
-    IOError if the file can not be read.
-  """
-  # Remove the starting / of the path.
-  path = re.sub('^/', '', path)
-  with mount_partition.MountPartition(device) as mount_point:
-    logging.debug('Mounted at %s.', mount_point)
-    content = open(
-        os.path.join(mount_point, path)).read()
-  return content
 
 
 @contextmanager

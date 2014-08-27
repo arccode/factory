@@ -14,8 +14,8 @@ from contextlib import contextmanager
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import utils
-from cros.factory.tools.mount_partition import MountPartition
 from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils.sys_utils import MountPartition
 
 
 STATEFUL_PARTITION_INDEX = 1

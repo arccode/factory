@@ -29,11 +29,11 @@ from cros.factory.tools import build_board
 from cros.factory.tools import get_version
 from cros.factory.tools import gsutil
 from cros.factory.tools.make_update_bundle import MakeUpdateBundle
-from cros.factory.tools.mount_partition import MountPartition
 from cros.factory.utils.file_utils import (
     UnopenedTemporaryFile, CopyFileSkipBytes, TryUnlink, ExtractFile, Glob,
     WriteWithSudo)
 from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils.sys_utils import MountPartition
 
 
 REQUIRED_GSUTIL_VERSION = [3, 32]  # 3.32

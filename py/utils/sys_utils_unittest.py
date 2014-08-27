@@ -4,14 +4,17 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Unit tests for sys_util module."""
+"""Unit tests for sys_utils module."""
 
 import mox
+import os
+import tempfile
 import unittest
 
 import factory_common # pylint: disable=W0611
 from cros.factory.utils import file_utils
 from cros.factory.utils import sys_utils
+from cros.factory.utils.process_utils import Spawn
 
 
 SAMPLE_INTERRUPTS = """           CPU0       CPU1       CPU2       CPU3
@@ -217,6 +220,42 @@ class GetPartitionsTest(unittest.TestCase):
     partitions = sys_utils.GetPartitions()
     for p in partitions:
       print unicode(p)
+
+
+class MountDeviceAndReadFileTest(unittest.TestCase):
+  """Unittest for MountDeviceAndReadFile."""
+  def setUp(self):
+    # Creates a temp file and create file system on it as a mock device.
+    self.device = tempfile.NamedTemporaryFile(prefix='MountDeviceAndReadFile')
+    Spawn(['truncate', '-s', '1M', self.device.name], log=True,
+          check_call=True)
+    Spawn(['/sbin/mkfs', '-F', '-t', 'ext3', self.device.name],
+          log=True, check_call=True)
+
+    # Creates a file with some content on the device.
+    mount_point = tempfile.mkdtemp(prefix='MountDeviceAndReadFileSetup')
+    Spawn(['mount', self.device.name, mount_point], sudo=True, check_call=True,
+          log=True)
+    self.content = 'file content'
+    self.file_name = 'file'
+    with open(os.path.join(mount_point, self.file_name), 'w') as f:
+      f.write(self.content)
+    Spawn(['umount', '-l', mount_point], sudo=True, check_call=True, log=True)
+
+  def tearDown(self):
+    self.device.close()
+
+  def testMountDeviceAndReadFile(self):
+    self.assertEqual(self.content,
+        sys_utils.MountDeviceAndReadFile(self.device.name, self.file_name))
+
+  def testMountDeviceAndReadFileWrongFile(self):
+    with self.assertRaises(IOError):
+      sys_utils.MountDeviceAndReadFile(self.device.name, 'no_file')
+
+  def testMountDeviceAndReadFileWrongDevice(self):
+    with self.assertRaises(Exception):
+      sys_utils.MountDeviceAndReadFile('no_device', self.file_name)
 
 
 if __name__ == "__main__":

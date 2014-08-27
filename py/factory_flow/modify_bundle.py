@@ -15,9 +15,9 @@ import factory_common   # pylint: disable=W0611
 from cros.factory.factory_flow.common import (
     board_cmd_arg, bundle_dir_cmd_arg, FactoryFlowCommand)
 from cros.factory.hacked_argparse import CmdArg
-from cros.factory.tools import mount_partition
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
+from cros.factory.utils import sys_utils
 
 
 class ModifyBundleError(Exception):
@@ -104,7 +104,7 @@ class ModifyBundle(FactoryFlowCommand):
     unsigned_shim = os.path.join(self.options.bundle, 'factory_shim',
                                  'factory_install_shim.bin')
     if os.path.isfile(unsigned_shim):
-      with mount_partition.MountPartition(unsigned_shim, 1, rw=True) as mount:
+      with sys_utils.MountPartition(unsigned_shim, 1, rw=True) as mount:
         PatchLSBFactory(mount, mini_omaha_url)
       has_install_shim = True
 
@@ -121,7 +121,7 @@ class ModifyBundle(FactoryFlowCommand):
           'Expected to find 1 signed factory shim but found %d: %r' % (
               len(signed_shims), signed_shims))
     elif len(signed_shims) == 1:
-      with mount_partition.MountPartition(signed_shims[0], 1, rw=True) as mount:
+      with sys_utils.MountPartition(signed_shims[0], 1, rw=True) as mount:
         PatchLSBFactory(mount, mini_omaha_url)
       has_install_shim = True
 

@@ -12,7 +12,7 @@ import argparse
 import logging
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.tools.mount_partition import MountPartition
+from cros.factory.utils.sys_utils import MountPartition
 
 
 def main():
