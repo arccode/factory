@@ -30,7 +30,6 @@ import factory_common  # pylint: disable=W0611
 
 from cros.factory import event_log
 from cros.factory.common import Error, SetupLogging, Shell
-from cros.factory.common import YamlWrite
 from cros.factory.gooftool import Gooftool
 from cros.factory.gooftool import crosfw
 from cros.factory.gooftool import report_upload
@@ -41,6 +40,7 @@ from cros.factory.gooftool.vpd_data import KNOWN_VPD_FIELD_DATA
 from cros.factory.hacked_argparse import CmdArg, Command, ParseCmdline
 from cros.factory.hacked_argparse import verbosity_cmd_arg
 from cros.factory.hwdb import hwid_tool
+from cros.factory.hwdb.yaml_datastore import YamlWrite
 from cros.factory.hwid import common
 from cros.factory.hwid import hwid_utils
 from cros.factory.test import factory

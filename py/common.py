@@ -9,7 +9,6 @@ import collections
 import logging
 import re
 import time
-import yaml
 
 from subprocess import Popen, PIPE
 
@@ -85,16 +84,6 @@ def SetupLogging(level=logging.WARNING, log_file_name=None):
       **({'filename': log_file_name} if log_file_name else {}))
   logging.Formatter.converter = time.gmtime
   logging.info(time.strftime('%Y.%m.%d %Z', time.gmtime()))
-
-
-def YamlWrite(structured_data):
-  """Wrap yaml.dump to make calling convention consistent."""
-  return yaml.dump(structured_data, default_flow_style=False)
-
-
-def YamlRead(serialized_data):
-  """Wrap yaml.load to make calling convention consistent."""
-  return yaml.safe_load(serialized_data)
 
 
 def ParseKeyValueData(pattern, data):
