@@ -168,23 +168,35 @@ batt_state_of_charge = 52%
     self.mox.VerifyAll()
 
   def testGetECVersion(self):
-    _MOCK_VERSION = '\n'.join([
-        'vendor               | ti',
-        'name                 | lm4fs1gh5bb',
-        'fw_version           | link_v1.1.227-3b0e131'])
-
-    class Dummy(object):
+    class MockSpawnOutput(object):
       """A dummy class to mock Spawn output."""
 
       def __init__(self):
         self.stdout_data = None
-    dummy = Dummy()
-    dummy.stdout_data = _MOCK_VERSION
 
-    self.board._Spawn(['mosys', 'ec', 'info', '-l'], ignore_stderr=True,
-                      read_stdout=True).AndReturn(dummy)
+    dummy = MockSpawnOutput()
+    dummy.stdout_data = 'link_v1.1.227-3b0e131'
+
+    self.board._Spawn(['mosys', 'ec', 'info', '-s', 'fw_version'],
+                      ignore_stderr=True, read_stdout=True).AndReturn(dummy)
     self.mox.ReplayAll()
     self.assertEquals(self.board.GetECVersion(), 'link_v1.1.227-3b0e131')
+    self.mox.VerifyAll()
+
+  def testGetPDVersion(self):
+    class MockSpawnOutput(object):
+      """A dummy class to mock Spawn output."""
+
+      def __init__(self):
+        self.stdout_data = None
+
+    dummy = MockSpawnOutput()
+    dummy.stdout_data = 'samus_pd_v1.1.2122-e1ff1a3'
+
+    self.board._Spawn(['mosys', 'pd', 'info', '-s', 'fw_version'],
+                      ignore_stderr=True, read_stdout=True).AndReturn(dummy)
+    self.mox.ReplayAll()
+    self.assertEquals('samus_pd_v1.1.2122-e1ff1a3', self.board.GetPDVersion())
     self.mox.VerifyAll()
 
   def testGetECConsoleLog(self):

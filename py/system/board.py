@@ -118,6 +118,14 @@ class Board(object):
     """
     raise NotImplementedError
 
+  def GetPDVersion(self):
+    """Gets the PD firmware version.
+
+    Returns:
+      A string of the PD firmware version.
+    """
+    raise NotImplementedError
+
   def GetMainFWVersion(self):
     """Gets the main firmware version.
 

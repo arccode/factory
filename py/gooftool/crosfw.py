@@ -28,6 +28,7 @@ from cros.factory.common import Shell
 # Names to select target bus.
 TARGET_MAIN = 'main'
 TARGET_EC = 'ec'
+TARGET_PD = 'pd'
 
 # Types of named tuples
 WpStatus = collections.namedtuple('WpStatus', 'enabled offset size')
@@ -37,9 +38,12 @@ class Flashrom(object):
   """Wrapper for calling system command flashrom(8)."""
 
   # flashrom(8) command line parameters
-  _VALID_TARGETS = (TARGET_MAIN, TARGET_EC)
-  _TARGET_MAP = {TARGET_MAIN: "-p host",
-                 TARGET_EC: "-p ec"}
+  _VALID_TARGETS = (TARGET_MAIN, TARGET_EC, TARGET_PD)
+  _TARGET_MAP = {
+      TARGET_MAIN: "-p host",
+      TARGET_EC: "-p ec",
+      TARGET_PD: "-p ec:dev=1",
+  }
   _WRITE_FLAGS = "--fast-verify"
   _READ_FLAGS = ""
 
@@ -259,6 +263,10 @@ def LoadEcFirmware():
   """Returns flashrom data from Embedded Controller chipset."""
   return FirmwareContent.Load(TARGET_EC)
 
+
+def LoadPDFirmware():
+  """Returns flashrom data from Power Delivery chipset."""
+  return FirmwareContent.Load(TARGET_PD)
 
 def LoadMainFirmware():
   """Returns flashrom data from main firmware (also known as BIOS)."""

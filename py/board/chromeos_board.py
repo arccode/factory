@@ -28,7 +28,6 @@ class ChromeOSBoard(Board):
   GET_FAN_SPEED_RE = re.compile(r'Fan (\d+) RPM: (\d+)')
   TEMPERATURE_RE = re.compile(r'^(\d+): (\d+)$', re.MULTILINE)
   TEMPERATURE_INFO_RE = re.compile(r'^(\d+): \d+ (.+)$', re.MULTILINE)
-  EC_VERSION_RE = re.compile(r'^fw_version\s+\|\s+(.+)$', re.MULTILINE)
   I2C_READ_RE = re.compile(r'I2C port \d+ at \S+ offset \S+ = (0x[0-9a-f]+)')
   EC_BATTERY_RE = re.compile(r'^\s+Present current\s+(\d+)\s+mA$', re.MULTILINE)
   EC_BATTERY_CHARGING_RE = re.compile(r'^\s+Flags\s+.*\s+CHARGING.*$',
@@ -145,10 +144,12 @@ class ChromeOSBoard(Board):
         raise BoardException('Unable to set fan speed to %d RPM: %s' % (rpm, e))
 
   def GetECVersion(self):
-    response = self._Spawn(['mosys', 'ec', 'info', '-l'],
-                           read_stdout=True,
-                           ignore_stderr=True).stdout_data
-    return self.EC_VERSION_RE.search(response).group(1)
+    return self._Spawn(['mosys', 'ec', 'info', '-s', 'fw_version'],
+                       read_stdout=True, ignore_stderr=True).stdout_data.strip()
+
+  def GetPDVersion(self):
+    return self._Spawn(['mosys', 'pd', 'info', '-s', 'fw_version'],
+                       read_stdout=True, ignore_stderr=True).stdout_data.strip()
 
   def GetMainFWVersion(self):
     return Spawn(['crossystem', 'ro_fwid'],

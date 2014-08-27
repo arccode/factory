@@ -176,6 +176,12 @@ class SystemInfo(object):
     except:
       pass
 
+    self.pd_version = None
+    try:
+      self.pd_version = GetBoard().GetPDVersion()
+    except:
+      pass
+
     self.firmware_version = None
     try:
       crossystem = subprocess.Popen(['crossystem', 'fwid'],

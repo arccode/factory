@@ -160,7 +160,8 @@ cros.factory.SYSTEM_INFO_LABELS = [
     {key: 'kernel_version', label: cros.factory.Label('Kernel')},
     {key: 'architecture', label: cros.factory.Label('Architecture')},
     {key: 'ec_version', label: cros.factory.Label('EC')},
-    {key: 'firmware_version', label: cros.factory.Label('Firmware')},
+    {key: 'pd_version', label: cros.factory.Label('PD')},
+    {key: 'firmware_version', label: cros.factory.Label('Main Firmware')},
     {key: 'root_device', label: cros.factory.Label('Root Device')},
     {key: 'factory_md5sum', label: cros.factory.Label('Factory MD5SUM'),
      transform: function(value) {

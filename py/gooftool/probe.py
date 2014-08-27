@@ -40,6 +40,7 @@ from cros.factory.hwdb.hwid_tool import ProbeResults, COMPACT_PROBE_STR
 from cros.factory.system import board
 from cros.factory.test import factory
 
+
 try:
   sys.path.append('/usr/local/lib/flimflam/test')
   import flimflam  # pylint: disable=F0401
@@ -1216,8 +1217,8 @@ def Probe(target_comp_classes=None,
                                else generic_probes[probe_class]))
                 for probe_class in sorted(probe_class_white_list)
                 if probe_class not in (
-                    'ro_ec_firmware', 'ro_main_firmware', 'hash_gbb',
-                    'key_recovery', 'key_root'))
+                    'ro_ec_firmware', 'ro_pd_firmware', 'ro_main_firmware',
+                    'hash_gbb', 'key_recovery', 'key_root'))
   arch = Shell('crossystem arch').stdout.strip()
   comp_probes = FilterProbes(_COMPONENT_PROBE_MAP, arch, target_comp_classes)
 
@@ -1225,6 +1226,7 @@ def Probe(target_comp_classes=None,
   volatiles = {}
   if fast_fw_probe:
     volatiles['ro_ec_firmware'] = {'version': system.GetBoard().GetECVersion()}
+    volatiles['ro_pd_firmware'] = {'version': system.GetBoard().GetPDVersion()}
     volatiles['ro_main_firmware'] = {
         'version': system.GetBoard().GetMainFWVersion()}
     probe_volatile = False
@@ -1255,6 +1257,12 @@ def Probe(target_comp_classes=None,
     ec_fw_file = crosfw.LoadEcFirmware().GetFileName()
     if ec_fw_file is not None:
       volatiles.update(CalculateFirmwareHashes(ec_fw_file))
+    pd_fw_file = crosfw.LoadPDFirmware().GetFileName()
+    if pd_fw_file is not None:
+      # Currently PD is using same FMAP layout as EC so we have to rename
+      # section name to avoid conflict.
+      hashes = CalculateFirmwareHashes(pd_fw_file)
+      volatiles.update({'ro_pd_firmware': hashes['ro_ec_firmware']})
 
   if probe_vpd:
     image_file = crosfw.LoadMainFirmware().GetFileName()
