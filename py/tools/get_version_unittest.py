@@ -11,8 +11,8 @@ import gzip
 import unittest
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.tools import get_version
 from cros.factory.utils import file_utils
-from cros.factory.utils import get_version
 
 
 class GetVersionTest(unittest.TestCase):

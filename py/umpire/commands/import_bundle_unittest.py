@@ -13,12 +13,12 @@ import tempfile
 import unittest
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.tools import get_version
 from cros.factory.umpire.commands.import_bundle import (BundleImporter,
                                                         FactoryBundle)
 from cros.factory.umpire.common import UmpireError
 from cros.factory.umpire.umpire_env import UmpireEnv
 from cros.factory.utils import file_utils
-from cros.factory.utils import get_version
 
 TESTDATA_DIR = os.path.join(os.path.dirname(sys.modules[__name__].__file__),
                             'testdata')
