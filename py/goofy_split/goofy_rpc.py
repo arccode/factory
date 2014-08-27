@@ -24,12 +24,12 @@ import yaml
 from xml.sax import saxutils
 
 import factory_common  # pylint: disable=W0611
-from cros.factory import factory_bug
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import utils
 from cros.factory.test.event import Event, EventClient
 from cros.factory.test.test_lists.test_lists import SetActiveTestList
+from cros.factory.tools import factory_bug
 from cros.factory.utils import debug_utils, file_utils, process_utils
 
 
