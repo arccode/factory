@@ -138,6 +138,7 @@ import xmlrpclib
 from cros.factory import event_log
 from cros.factory.test import factory
 from cros.factory.test import leds
+from cros.factory.test import network
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
@@ -375,7 +376,7 @@ class _IQTestDelegate(object):
 
   def _LoadParamsFromShopfloor(self):
     """Loads parameters from shopfloor."""
-    net_utils.PrepareNetwork(ip=self.local_ip, force_new_ip=True)
+    network.PrepareNetwork(ip=self.local_ip, force_new_ip=True)
 
     factory.console.info('Reading %s from shopfloor', self.param_pathname)
     shopfloor_client = shopfloor.GetShopfloorConnection()
@@ -636,7 +637,7 @@ class _IQTestDelegate(object):
     Args:
       data_files: list of (filename, file data) pairs.
     """
-    net_utils.PrepareNetwork(ip=self.local_ip, force_new_ip=False)
+    network.PrepareNetwork(ip=self.local_ip, force_new_ip=False)
     shopfloor_client = shopfloor.GetShopfloorConnection()
 
     for filename, data in data_files:

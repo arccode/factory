@@ -22,6 +22,7 @@ import unittest
 from cros.factory.event_log import Log
 from cros.factory.test.args import Arg
 from cros.factory.test import factory
+from cros.factory.test import network
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import utils
@@ -39,8 +40,6 @@ _LOCAL_IP = '192.168.1.2'
 # Setting
 _SHOPFLOOR_TIMEOUT_SECS = 10 # Timeout for shopfloor connection.
 _SHOPFLOOR_RETRY_INTERVAL_SECS = 10 # Seconds to wait between retries.
-_INSERT_ETHERNET_DONGLE_TIMEOUT_SECS = 30 # Timeout for inserting dongle.
-_IP_SETUP_TIMEOUT_SECS = 10 # Timeout for setting IP address.
 _CHECK_FIXTURE_COMPLETE_SECS = 1 # Seconds to check fixture test.
 _REMOVE_ETHERNET_TIMEOUT_SECS = 30 # Timeout for inserting dongle.
 _FIXTURE_PARAMETERS = ['audio/audio_md5', 'audio/audio.zip']
@@ -558,42 +557,10 @@ class AudioQualityTest(unittest.TestCase):
       force_ip: If true, set _LOCAL_IP. Otherwise, use DHCP
       msg: The message will be shown in UI
     """
-    def ObtainIp():
-      """ Setup IP address """
-      if force_ip is False:
-        net_utils.SendDhcpRequest()
-      else:
-        net_utils.SetEthernetIp(_LOCAL_IP, force=True)
-      return True if net_utils.GetEthernetIp() else False
-
-    while True:
-      self._ui.CallJSFunction('setMessage', msg)
-      factory.console.info('Detecting Ethernet device...')
-      try:
-        net_utils.PollForCondition(condition=(
-            lambda: True if net_utils.FindUsableEthDevice()
-            else False),
-            timeout=_INSERT_ETHERNET_DONGLE_TIMEOUT_SECS,
-            condition_name='Detect Ethernet device')
-
-        # Only setup the IP if required so.
-        current_ip = net_utils.GetEthernetIp(
-            net_utils.FindUsableEthDevice())
-        if not current_ip or force_ip:
-          self._ui.CallJSFunction('setMessage', _LABEL_WAITING_IP)
-          factory.console.info('Setting up IP address...')
-          net_utils.PollForCondition(condition=ObtainIp,
-              timeout=_IP_SETUP_TIMEOUT_SECS,
-              condition_name='Setup IP address')
-          break
-        else:
-          break
-      except:  # pylint: disable=W0702
-        exception_string = utils.FormatExceptionOnly()
-        factory.console.error('Unable to setup network: %s',
-                              exception_string)
-    factory.console.info('Network prepared. IP: %r',
-        net_utils.GetEthernetIp())
+    self._ui.CallJSFunction('setMessage', msg)
+    network.PrepareNetwork(
+        _LOCAL_IP, force_ip,
+        lambda: self._ui.CallJSFunction('setMessage', _LABEL_WAITING_IP))
     self._eth = net_utils.FindUsableEthDevice()
 
   def GetShopfloorConnection(

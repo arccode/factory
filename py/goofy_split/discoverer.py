@@ -16,9 +16,9 @@ from multiprocessing.pool import ThreadPool
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import utils
+from cros.factory.test.network import GetAllWiredIPs
 
 from cros.factory.utils.jsonrpc_utils import TimeoutJSONRPCTransport
-from cros.factory.utils.net_utils import GetAllWiredIPs
 
 
 class DiscovererBase(object):

@@ -14,9 +14,9 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.goofy.discoverer import DUTDiscoverer
 from cros.factory.goofy.discoverer import HostDiscoverer
 from cros.factory.test import utils
+from cros.factory.test.network import GetAllIPs
 from cros.factory.utils.jsonrpc_utils import JSONRPCServer
 from cros.factory.utils.jsonrpc_utils import TimeoutJSONRPCTransport
-from cros.factory.utils.net_utils import GetAllIPs
 from cros.factory.utils.net_utils import GetEthernetInterfaces
 from cros.factory.utils.net_utils import GetEthernetIp
 

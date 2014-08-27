@@ -23,6 +23,7 @@ from cros.factory.rf.tools.csv_writer import WriteCsv
 from cros.factory.rf.utils import DownloadParameters
 from cros.factory.test import factory
 from cros.factory.test import leds
+from cros.factory.test import network
 from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -31,8 +32,6 @@ from cros.factory.test.args import Arg, Args
 from cros.factory.test.shopfloor import UploadAuxLogs
 from cros.factory.utils import net_utils
 
-INSERT_ETHERNET_DONGLE_TIMEOUT_SECS = 30 # Timeout for inserting dongle.
-IP_SETUP_TIMEOUT_SECS = 10 # Timeout for setting IP address.
 
 # Common field name shared across CSV and EventLog.
 CONFIG_VERSION = 'config_version'
@@ -428,40 +427,9 @@ class RfFramework(object):
     if not self.args.static_ips:
       return
     static_ip_pair = self.args.static_ips.pop()
-
-    def ObtainIp():
-      if static_ip_pair[0] is None:
-        net_utils.SendDhcpRequest()
-      else:
-        net_utils.SetEthernetIp(static_ip_pair[0], force=static_ip_pair[1])
-      return True if net_utils.GetEthernetIp() else False
-
-    while True:
-      self.SetHTML(MSG_WAITING_ETHERNET)
-      factory.console.info('Detecting Ethernet device...')
-      try:
-        net_utils.PollForCondition(condition=(
-            lambda: True if net_utils.FindUsableEthDevice() else False),
-            timeout=INSERT_ETHERNET_DONGLE_TIMEOUT_SECS,
-            condition_name='Detect Ethernet device')
-
-        # Only setup the IP if required so.
-        current_ip = net_utils.GetEthernetIp(net_utils.FindUsableEthDevice())
-        if not current_ip or static_ip_pair[1] is True:
-          self.SetHTML(MSG_WAITING_IP)
-          factory.console.info('Setting up IP address...')
-          net_utils.PollForCondition(condition=ObtainIp,
-              timeout=IP_SETUP_TIMEOUT_SECS,
-              condition_name='Setup IP address')
-          break
-        else:
-          break
-      except:  # pylint: disable=W0702
-        exception_string = utils.FormatExceptionOnly()
-        factory.console.info('Unable to setup network: %s',
-                             exception_string)
-
-    factory.console.info('Network prepared. IP: %r', net_utils.GetEthernetIp())
+    self.SetHTML(MSG_WAITING_ETHERNET)
+    network.PrepareNetwork(static_ip_pair[0], static_ip_pair[1],
+                           lambda: self.SetHTML(MSG_WAITING_IP))
 
   def _SelectMode(self, title, choices):
     def GetSelectValue(dict_wrapper, event):

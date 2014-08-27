@@ -7,23 +7,20 @@
 import glob
 import httplib
 import logging
-import netifaces
 import os
-import pexpect
 import re
 import socket
 import subprocess
 import time
 import xmlrpclib
 
+
 import factory_common  # pylint: disable=W0611
 from cros.factory.common import Error, TimeoutError
-from cros.factory.test.utils import FormatExceptionOnly
 from cros.factory.utils.process_utils import Spawn, SpawnOutput
 
 
 DEFAULT_TIMEOUT = 10
-INSERT_ETHERNET_DONGLE_TIMEOUT = 30
 MAX_PORT = 65535
 
 
@@ -99,7 +96,7 @@ def FindUsableEthDevice(raise_exception=False):
   return good_eth
 
 
-def SetEthernetIp(ip, interface=None, force=False):
+def SetEthernetIp(ip, interface=None, force=False, logger=None):
   """Sets the IP address for Ethernet.
 
   Args:
@@ -108,19 +105,16 @@ def SetEthernetIp(ip, interface=None, force=False):
         assigned by Connection Manager if None is given.
     force: If force is False, the address is set only if the interface
         does not already have an assigned IP address.
+    logger: A callback function to send verbose messages.
   """
   interface = interface or FindUsableEthDevice(raise_exception=True)
   Ifconfig(interface, True)
   current_ip = GetEthernetIp(interface)
   if force or not current_ip:
     Spawn(['ifconfig', interface, ip], call=True)
-  else:
-    # Import here to work around circular dependency between factory
-    # and net_utils.
-    from cros.factory.test import factory
-    factory.console.info(
-        'Not setting IP address for interface %s: already set to %s',
-        interface, current_ip)
+  elif logger:
+    logger('Not setting IP address for interface %s: already set to %s' %
+           (interface, current_ip))
 
 
 def GetEthernetIp(interface=None):
@@ -145,90 +139,7 @@ def GetEthernetIp(interface=None):
   return ip_address
 
 
-def GetAllIPs(iface_filter=None):
-  """Returns all available IP addresses of all interfaces.
-
-  Args:
-    iface_filter: A filter to filter out unwanted network interfaces. It takes
-                  the name of the interface and returns True for interfaces we
-                  want and False for unwanted interfaces. Set this to None to
-                  use all interfaces.
-
-  Returns:
-    A list of IP addresses.
-  """
-  ret = []
-  if iface_filter is None:
-    iface_filter = lambda x: True
-  for iface in filter(iface_filter, netifaces.interfaces()):
-    ifaddr = netifaces.ifaddresses(iface)
-    if netifaces.AF_INET not in ifaddr:
-      continue
-    ret.extend([link['addr'] for link in ifaddr[netifaces.AF_INET]])
-  return ret
-
-
-def GetAllWiredIPs():
-  """Returns all available IP addresses of all wired interfaces."""
-  return GetAllIPs(lambda iface: iface.startswith('eth'))
-
-
-def _SendDhclientCommand(arguments, interface,
-                         timeout=5, expect_str=pexpect.EOF):
-  """Calls dhclient as a foreground process with timeout.
-
-  Because the read-only filesystem, using dhclient in ChromeOS needs a
-  little tweaks on few paths.
-
-  """
-  # Import here to work around circular dependency between factory
-  # and net_utils.
-  from cros.factory.test import factory
-
-  DHCLIENT_SCRIPT = "/usr/local/sbin/dhclient-script"
-  DHCLIENT_LEASE = os.path.join(factory.get_state_root(), "dhclient.leases")
-  assert timeout > 0, 'Must have a timeout'
-
-  logging.info('Starting dhclient')
-  dhcp_process = pexpect.spawn('dhclient',
-      ['-sf', DHCLIENT_SCRIPT, '-lf', DHCLIENT_LEASE,
-       '-d', '-v', '--no-pid', interface] + arguments, timeout=timeout)
-  try:
-    dhcp_process.expect(expect_str)
-  except:
-    logging.info("dhclient output before timeout - %r", dhcp_process.before)
-    raise Error(
-        'Timeout when running DHCP command, check if cable is connected.')
-  finally:
-    dhcp_process.close()
-
-
-def SendDhcpRequest(interface=None):
-  """Sends dhcp request via dhclient.
-
-  Args:
-    interface: None to use FindUsableEthDevice, otherwise, operation on a
-    specific interface.
-  """
-  interface = interface or FindUsableEthDevice(raise_exception=True)
-  Ifconfig(interface, True)
-  _SendDhclientCommand([], interface,
-                       expect_str=r"bound to (\d+\.\d+\.\d+\.\d+)")
-
-
-def ReleaseDhcp(interface=None):
-  """Releases a dhcp lease via dhclient.
-
-  Args:
-    interface: None to use FindUsableEthDevice, otherwise, operation on a
-    specific interface.
-  """
-  interface = interface or FindUsableEthDevice(raise_exception=True)
-  Ifconfig(interface, True)
-  _SendDhclientCommand(['-r'], interface)
-
-
-def PollForCondition(condition, timeout=10,
+def PollForCondition(condition, timeout=DEFAULT_TIMEOUT,
                      poll_interval_secs=0.1, condition_name=None):
   """Polls for every interval seconds until the condition is met.
 
@@ -262,47 +173,6 @@ def PollForCondition(condition, timeout=10,
       logging.error(condition_name)
       raise TimeoutError(condition_name)
     time.sleep(poll_interval_secs)
-
-
-def PrepareNetwork(ip, force_new_ip=False):
-  """High-level API to prepare networking.
-
-  1. Wait for presence of ethernet connection (e.g., plug-in ethernet dongle).
-  2. Setup IP.
-
-  The operation may block for a long time. Do not run it in UI thread.
-
-  Args:
-    ip: The ip address to set. (Set to None if DHCP is used.)
-    force_new_ip: Force to set new IP addr regardless of existing IP addr.
-  """
-  def _obtain_IP():
-    if ip is None:
-      SendDhcpRequest()
-    else:
-      SetEthernetIp(ip, force=force_new_ip)
-    return True if GetEthernetIp() else False
-
-  # Import here to work around circular dependency between factory and
-  # net_utils.
-  from cros.factory.test import factory
-  factory.console.info('Detecting Ethernet device...')
-
-  try:
-    PollForCondition(
-        condition=lambda: True if FindUsableEthDevice() else False,
-        timeout=INSERT_ETHERNET_DONGLE_TIMEOUT,
-        condition_name='Detect Ethernet device')
-
-    current_ip = GetEthernetIp(FindUsableEthDevice())
-    if not current_ip or force_new_ip:
-      factory.console.info('Setting up IP address...')
-      PollForCondition(condition=_obtain_IP, timeout=DEFAULT_TIMEOUT,
-                       condition_name='Setup IP address')
-  except:  # pylint: disable=W0702
-    exception_string = FormatExceptionOnly()
-    factory.console.error('Unable to setup network: %s', exception_string)
-  factory.console.info('Network prepared. IP: %r', GetEthernetIp())
 
 
 def GetWLANMACAddress():
