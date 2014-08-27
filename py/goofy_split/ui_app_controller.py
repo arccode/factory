@@ -15,7 +15,7 @@ from ws4py.client.threadedclient import WebSocketClient
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import state
 from cros.factory.test.utils import Enum
-from cros.factory.utils.web_socket_utils import WebSocketHandshake
+from cros.factory.test.web_socket_utils import WebSocketHandshake
 
 
 # Standard web socket port.  This may be replaced by unit tests.

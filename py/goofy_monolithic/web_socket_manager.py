@@ -15,9 +15,9 @@ from ws4py.websocket import WebSocket
 from cros.factory.test import factory
 from cros.factory.test.event import Event
 from cros.factory.test.event import EventClient
+from cros.factory.test.web_socket_utils import WebSocketHandshake
 from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils.string_utils import DecodeUTF8
-from cros.factory.utils.web_socket_utils import WebSocketHandshake
 
 
 # Number of lines to buffer for new clients.
