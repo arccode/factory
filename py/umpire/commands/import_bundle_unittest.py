@@ -40,10 +40,12 @@ class LoadBundleManifestTest(unittest.TestCase):
   def testLoadNormally(self):
     self.bundle.Load(TEST_BUNDLE_DIR)
 
-  def testMissingRelease(self):
-    self.assertRaisesRegexp(
-        UmpireError, 'Image type not found: release',
-        self.bundle.Load, TEST_BUNDLE_MISSING_RELEASE_DIR)
+  # TODO(deanliao): figure out if mandatory image check is necessary.
+  # Temporary remove the check.
+  # def testMissingRelease(self):
+  #   self.assertRaisesRegexp(
+  #       UmpireError, 'Image type not found: release',
+  #       self.bundle.Load, TEST_BUNDLE_MISSING_RELEASE_DIR)
 
   def testYamlError(self):
     with file_utils.TempDirectory() as bundle_dir:

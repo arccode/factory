@@ -135,14 +135,14 @@ class FactoryBundle(object):
 
     manifest_path = os.path.join(self._path, self._BUNDLE_MANIFEST)
 
-    # Check mandatory images (release and factory shim) are in MANIFEST with
-    # version string in source URL.
+    # Load MANIFEST.yaml and temporary uncheck mandatory images.
+    # TODO(deanliao): figure out if the images are mandatory.
     try:
       yaml.add_constructor('!glob', FakeGlobConstruct)
       with open(manifest_path) as f:
         self._manifest = yaml.load(f)
-        for image_type in self._MANDATORY_IMAGES:
-          GetImageVersionFromManifest(self._manifest, image_type)
+        # for image_type in self._MANDATORY_IMAGES:
+        #   GetImageVersionFromManifest(self._manifest, image_type)
     except Exception as e:
       raise UmpireError('Failed to load MANIFEST.yaml: ' + str(e))
 
