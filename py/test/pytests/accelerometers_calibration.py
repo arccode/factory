@@ -69,6 +69,7 @@ import unittest
 
 from cros.factory.system import vpd
 from cros.factory.system.accelerometer import AccelerometerController
+from cros.factory.system.accelerometer import AccelerometerControllerException
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
@@ -139,7 +140,11 @@ class HorizontalCalibrationTask(FactoryTask):
       time.sleep(_MESSAGE_DELAY_SECS)
     # Starts calibration.
     self.template.SetState(_MSG_CALIBRATION_IN_PROGRESS)
-    raw_data = self.accelerometer.GetRawDataAverage(self.capture_count)
+    try:
+      raw_data = self.accelerometer.GetRawDataAverage(self.capture_count)
+    except AccelerometerControllerException:
+      self.Fail('Read raw data failed.')
+      return
     # Checks accelerometer is normal or not before calibration.
     if (not self.accelerometer.IsWithinOffsetRange(raw_data, self.orientation)
         or not self.accelerometer.IsGravityValid(raw_data)):

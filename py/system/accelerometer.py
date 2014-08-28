@@ -152,7 +152,10 @@ class AccelerometerController(object):
     ret = dict((signal_name, 0.0) for signal_name in self._GenSignalNames())
     # Reads the captured raw data.
     file_path = os.path.join('/dev/', self.iio_bus_id)
-    for i in xrange(capture_count):
+    raw_data_captured = 0
+    retry_count_per_record = 0
+    max_retry_count_per_record = 3
+    while raw_data_captured < capture_count:
       self._SetSysfsValues([SYSFS_VALUE(trigger_now_path, '1')])
       # To prevent obtaining repeated data, add delay between each capture.
       # In addition, need to wait some time after set trigger_now to get
@@ -160,8 +163,26 @@ class AccelerometerController(object):
       time.sleep(1 / float(self.sample_rate))
       with open(file_path) as f:
         line = f.read(buffer_length_per_record)
+        # Sometimes it fails to read a record of raw data (12 bytes) because
+        # Chrome is reading the data at the same time.
+        # Use a retry here but we should figure out how to stop Chrome
+        # from reading.
+        # TODO(bowgotsai): Stop Chrome from reading the raw data.
+        if len(line) != buffer_length_per_record:
+          retry_count_per_record += 1
+          # To prevent indefinitely reading raw data if there is a real problem.
+          if retry_count_per_record > max_retry_count_per_record:
+            raise AccelerometerControllerException(
+                'GetRawDataAverage failed, exceeded maximum retry: %d)' %
+                max_retry_count_per_record)
+          logging.warning('Failed to read raw data (length=%d), '
+                          'retry again (retry_count=%d).',
+                          len(line), retry_count_per_record)
+          continue
+        raw_data_captured += 1
+        retry_count_per_record = 0
         raw_data = struct.unpack_from(FORMAT_RAW_DATA, line)
-        logging.info('(%d) Getting raw data: %s.', i, raw_data)
+        logging.info('(%d) Getting raw data: %s.', raw_data_captured, raw_data)
         # Accumulating raw data.
         for i in xrange(self.num_signals):
           ret[self.index_to_signal_name[i]] += raw_data[i]
