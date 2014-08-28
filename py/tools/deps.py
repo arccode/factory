@@ -93,6 +93,12 @@ def CheckDependencyList(module, depends, rules, package_top, standard_lib,
       # Note py_path may start as factory/py or factory/py_pkg/cros/factory.
       py_path = py_path.replace(package_top, 'cros/factory', 1).replace(
           'factory_pkg/cros/', '', 1)
+    else:
+      # Search by sys.path and use the best matched one.
+      path_list = [py_path.replace(prefix, '') for prefix in sys.path
+                   if py_path.startswith(prefix)]
+      if path_list:
+        py_path = sorted(path_list)[-1]
     py_path = (os.path.dirname(py_path) if os.path.dirname(py_path) else
                os.path.splitext(py_path)[0])
     return py_path.replace(os.path.sep, '.').strip('.')
