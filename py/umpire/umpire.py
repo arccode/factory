@@ -257,7 +257,7 @@ def _UmpireCLI():
   env.LoadConfig()
   umpire_cli_uri = 'http://127.0.0.1:%d' % env.umpire_cli_port
   logging.debug('Umpire CLI server URI: %s', umpire_cli_uri)
-  return xmlrpclib.ServerProxy(umpire_cli_uri)
+  return xmlrpclib.ServerProxy(umpire_cli_uri, allow_none=True)
 
 
 def main():
