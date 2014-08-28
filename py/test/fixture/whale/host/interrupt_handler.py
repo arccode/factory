@@ -14,7 +14,10 @@ import time
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.fixture.whale import servo_client
 from cros.factory.test.fixture.whale.host import poll_client
+from cros.factory.test.utils import Enum
 
+ActionType = Enum(['CLOSE_COVER', 'HOOK_COVER', 'PUSH_NEEDLE',
+                   'PLUG_LATERAL', 'FIXTURE_STARTED'])
 
 def TimeClassMethodDebug(func):
   """A decorator to log method running time on debug level."""
@@ -82,12 +85,114 @@ class InterruptHandler(object):
     # ScanFeedback call.
     self._last_feedback = {}
 
+    self._starting_fixture_action = None
+    self._starting_fixture_flag = False
+
   @TimeClassMethodDebug
   def Init(self):
     """Resets button latch and records feedback value."""
     self._last_feedback = self._servo.MultipleIsOn(self._FEEDBACK_LIST)
     self.ResetLatch()
     self.ResetInterrupt()
+    self._servo.Disable(self._CONTROL.FIXTURE_PLUG_LATERAL)
+    self._servo.Disable(self._CONTROL.FIXTURE_PUSH_NEEDLE)
+    self._servo.Disable(self._CONTROL.FIXTURE_HOOK_COVER)
+    self._servo.Disable(self._CONTROL.FIXTURE_CLOSE_COVER)
+
+  @TimeClassMethodDebug
+  def _HandleStopFixture(self):
+    """Stop Fixture Step"""
+    logging.debug('[Stopping fixture...]')
+    while True:
+      feedback_status = self._servo.MultipleIsOn(self._FEEDBACK_LIST)
+      if (not feedback_status[self._FIXTURE_FEEDBACK.FB7] or
+          not feedback_status[self._FIXTURE_FEEDBACK.FB9]):
+        logging.debug('[HandleStopFixture] -> FIXTURE_PLUG_LATERAL')
+        self._servo.Disable(self._CONTROL.FIXTURE_PLUG_LATERAL)
+        continue
+
+      if (not feedback_status[self._FIXTURE_FEEDBACK.FB1] or
+          not feedback_status[self._FIXTURE_FEEDBACK.FB3]):
+        logging.debug('[HandleStopFixture] -> FIXTURE_PUSH_NEEDLE')
+        self._servo.Disable(self._CONTROL.FIXTURE_PUSH_NEEDLE)
+        continue
+
+      if (feedback_status[self._FIXTURE_FEEDBACK.FB5] and
+          feedback_status[self._FIXTURE_FEEDBACK.FB6]):
+        logging.debug('[HandleStopFixture] -> FIXTURE_HOOK_COVER')
+        self._servo.Disable(self._CONTROL.FIXTURE_HOOK_COVER)
+        continue
+
+      if (feedback_status[self._FIXTURE_FEEDBACK.FB12] or
+          not feedback_status[self._FIXTURE_FEEDBACK.FB11]):
+        logging.debug('[HandleStopFixture] -> FIXTURE_CLOSE_COVER')
+        self._servo.Disable(self._CONTROL.FIXTURE_CLOSE_COVER)
+        continue
+
+      if feedback_status[self._FIXTURE_FEEDBACK.FB11]:
+        self._starting_fixture_action = None
+        logging.debug('[Fixture stopped]')
+        break
+
+  @TimeClassMethodDebug
+  def _HandleStartFixtureFeedbackChange(self, feedback_status):
+    """Processing Start Fixture feedback information"""
+    if self._servo.IsOn(self._BUTTON.FIXTURE_START):
+
+      if (self._starting_fixture_action == ActionType.CLOSE_COVER and
+          feedback_status[self._FIXTURE_FEEDBACK.FB12]):
+        logging.debug('[HandleStartFBChange] -> CHANGLE TO HOOK_COVER')
+        self._starting_fixture_action = ActionType.HOOK_COVER
+
+      elif (self._starting_fixture_action == ActionType.HOOK_COVER and
+            feedback_status[self._FIXTURE_FEEDBACK.FB5] and
+            feedback_status[self._FIXTURE_FEEDBACK.FB6]):
+        logging.debug('[HandleStartFBChange] -> PUSH_NEEDLE')
+        self._starting_fixture_action = ActionType.PUSH_NEEDLE
+
+      elif (self._starting_fixture_action == ActionType.PUSH_NEEDLE and
+            feedback_status[self._FIXTURE_FEEDBACK.FB2] and
+            feedback_status[self._FIXTURE_FEEDBACK.FB4]):
+        logging.debug('[HandleStartFBChange] ->PLUG_LATERAL')
+        self._starting_fixture_action = ActionType.PLUG_LATERAL
+
+      elif (self._starting_fixture_action == ActionType.PLUG_LATERAL and
+            feedback_status[self._FIXTURE_FEEDBACK.FB8] and
+            feedback_status[self._FIXTURE_FEEDBACK.FB10]):
+        logging.debug('[START] CYLIDER ACTION is done...')
+        self._starting_fixture_action = ActionType.FIXTURE_STARTED
+
+  @TimeClassMethodDebug
+  def _HandleStartFixture(self):
+    """Start Fixture Step"""
+    logging.debug('[Fixture Start ...]')
+
+    if not self._starting_fixture_flag:
+      return
+
+    if self._starting_fixture_action == ActionType.FIXTURE_STARTED:
+      logging.debug('[HandleStartFixture] ACTION = FIXTURE_STARTED')
+      return
+
+    if self._starting_fixture_action is None:
+      logging.debug('[HandleStartFixture] ACTION = None')
+      self._starting_fixture_action = ActionType.CLOSE_COVER
+
+    if self._starting_fixture_action == ActionType.CLOSE_COVER:
+      logging.debug('[HandleStartFixture] ACTION = CLOSE_COVER')
+      self._servo.Enable(self._CONTROL.FIXTURE_CLOSE_COVER)
+
+    elif self._starting_fixture_action == ActionType.HOOK_COVER:
+      logging.debug('[HandleStartFixture] ACTION = HOOK_COVER')
+      self._servo.Enable(self._CONTROL.FIXTURE_HOOK_COVER)
+
+    elif self._starting_fixture_action == ActionType.PUSH_NEEDLE:
+      logging.debug('[HandleStartFixture] ACTION = PUSH_NEEDLE')
+      self._servo.Enable(self._CONTROL.FIXTURE_PUSH_NEEDLE)
+
+    elif self._starting_fixture_action == ActionType.PLUG_LATERAL:
+      logging.debug('[HandleStartFixture] ACTION = PLUG_LATERAL')
+      self._servo.Enable(self._CONTROL.FIXTURE_PLUG_LATERAL)
 
   @TimeClassMethodDebug
   def ScanButton(self):
@@ -96,24 +201,44 @@ class InterruptHandler(object):
     Returns:
       True if a button is clicked.
     """
+    logging.debug('[Scanning button....]')
     status = self._servo.MultipleIsOn(self._BUTTON_LIST)
 
-    if not any(status.values()):
-      # No button is clicked.
+    if status[self._BUTTON.FIXTURE_STOP]:
+      self._starting_fixture_flag = False
+      self._HandleStopFixture()
+      return True
+
+    if self._starting_fixture_flag and not status[self._BUTTON.FIXTURE_START]:
+      self._starting_fixture_flag = False
+      self._HandleStopFixture()
+      return False
+
+    button_clicked = any(status.values())
+
+    if not button_clicked:
       return False
 
     operator_mode = not self._servo.IsOn(self._WHALE_DEBUG_MODE_EN)
     for button, clicked in status.iteritems():
       if not clicked:
         continue
+
       if operator_mode and button not in self._OPERATOR_BUTTON_LIST:
         logging.debug('Supress button %s click because debug mode is off.',
                       button)
         continue
 
-      # TODO(deanliao): calls button handler method.
+      if button == self._BUTTON.FIXTURE_START:
+        if self._starting_fixture_action == ActionType.FIXTURE_STARTED:
+          logging.debug('[START] ACTION = FIXTURE_STARTED')
+          self._starting_fixture_flag = False
+        else:
+          self._starting_fixture_flag = True
+          self._HandleStartFixture()
+
       logging.info('Button %s clicked', button)
-    return True
+    return button_clicked
 
   @TimeClassMethodDebug
   def ScanFeedback(self):
@@ -122,13 +247,14 @@ class InterruptHandler(object):
     Returns:
       True if any feedback value is clicked.
     """
+    logging.debug('[Scanning feedback....]')
     feedback_status = self._servo.MultipleIsOn(self._FEEDBACK_LIST)
     feedback_changed = False
     for name, value in feedback_status.iteritems():
       if self._last_feedback[name] == value:
         continue
 
-      # TODO(deanliao): calls handler method.
+      self._HandleStartFixtureFeedbackChange(feedback_status)
       logging.info('Feedback %s value changed to %r', name, value)
       self._last_feedback[name] = value
       feedback_changed = True
