@@ -37,32 +37,28 @@ def GetDependencyList(path, base, exclude, include):
   Returns:
     A list of strings for files of module dependency.
   """
-  try:
-    dir_path = os.path.dirname(path)
-    basename = os.path.basename(path)
-    sys.path.insert(0, dir_path)
-    target = importlib.import_module(basename.rpartition('.py')[0])
-    sys.path.pop(0)
-    new_names = [name for name in sys.modules if name not in base]
-    new_modules = [sys.modules[name] for name in new_names if sys.modules[name]]
-    new_modules.remove(target)
-    dependency = []
-    for module in new_modules:
-      if '__file__' not in module.__dict__:
-        # Assume this is a built-in module.
-        continue
-      module_path = module.__file__
-      if (module_path.startswith(exclude) and
-          not module_path.startswith(include)):
-        continue
-      dependency.append(module_path)
-    # Unload new modules by deleting all references.
-    for name in new_names:
-      del sys.modules[name]
-    return dependency
-  except:
-    print 'Failed checking %s.' % path
-    raise
+  dir_path = os.path.dirname(path)
+  basename = os.path.basename(path)
+  sys.path.insert(0, dir_path)
+  target = importlib.import_module(basename.rpartition('.py')[0])
+  sys.path.pop(0)
+  new_names = [name for name in sys.modules if name not in base]
+  new_modules = [sys.modules[name] for name in new_names if sys.modules[name]]
+  new_modules.remove(target)
+  dependency = []
+  for module in new_modules:
+    if '__file__' not in module.__dict__:
+      # Assume this is a built-in module.
+      continue
+    module_path = module.__file__
+    if (module_path.startswith(exclude) and
+        not module_path.startswith(include)):
+      continue
+    dependency.append(module_path)
+  # Unload new modules by deleting all references.
+  for name in new_names:
+    del sys.modules[name]
+  return dependency
 
 
 def CheckDependencyList(module, depends, rules, package_top, standard_lib,
@@ -191,12 +187,16 @@ def main(argv):
     # For symlink python files, we want to keep its path directory so abspath
     # is better than realpath.
     path = os.path.abspath(path)
-    # Exclude Python Standard Library and include site packages.
-    deps = GetDependencyList(path, base, standard_lib, site_packages)
-    bad_imports = CheckDependencyList(path, deps, rules, package_top,
-                                      standard_lib, site_packages)
-    if bad_imports:
-      print '\n'.join(bad_imports)
+    try:
+      # Exclude Python Standard Library and include site packages.
+      deps = GetDependencyList(path, base, standard_lib, site_packages)
+      bad_imports = CheckDependencyList(path, deps, rules, package_top,
+                                        standard_lib, site_packages)
+      if bad_imports:
+        print '\n'.join(bad_imports)
+        exit_value = 1
+    except:
+      print 'Failed checking %s.' % path
       exit_value = 1
   sys.exit(exit_value)
 
