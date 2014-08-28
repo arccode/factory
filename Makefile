@@ -190,6 +190,7 @@ PRESUBMIT_FILES := $(if $(PRESUBMIT_FILES), \
 		       sed "s'^$$(realpath $$(pwd))/''g"))
 
 chroot-presubmit:
+	$(MAKE) -s deps-presubmit
 	$(MAKE) -s lint-presubmit
 	$(MAKE) -s test-presubmit
 	$(MAKE) -s make-factory-package-presubmit
@@ -198,6 +199,13 @@ lint-presubmit:
 	$(MAKE) lint \
 	    LINT_FILES="$(filter %.py,$(PRESUBMIT_FILES))" \
 	    2>/dev/null
+
+deps-presubmit:
+	@echo "Checking dependency..."
+	@if ! py/tools/deps.py $(PRESUBMIT_FILES) ; then \
+	    echo "Dependency check failed." ; \
+	    echo "Please read py/tools/deps.conf for more information." ; \
+	fi
 
 # Check that test_make_factory_package.py has been run, if
 # make_factory_package.sh has changed.
