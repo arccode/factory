@@ -153,6 +153,7 @@ def Init(env, bundle_dir, board, make_default, local, user, group,
       os.chown(config_in_resource, uid, gid)
 
       file_utils.ForceSymlink(config_in_resource, env.active_config_file)
+      os.lchown(env.active_config_file, uid, gid)
       logging.info('Init UmpireConfig %r and set it as active.',
                    config_in_resource)
 
