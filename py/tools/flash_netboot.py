@@ -22,7 +22,7 @@ def main():
   parser = argparse.ArgumentParser(
       description="Flash netboot firmware with VPD preserved.")
   parser.add_argument('--image', '-i', help='Netboot firmware image',
-                      default='/usr/local/factory/board/nv_image*.bin',
+                      default='/usr/local/factory/board/image.net.bin',
                       required=False)
   parser.add_argument('--yes', '-y', action='store_true',
                       help="Don't ask for confirmation")
