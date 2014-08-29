@@ -27,7 +27,8 @@ class UpdateFirmwareTest(unittest.TestCase):
   ARGS = [
     Arg('firmware_updater', str, 'Full path of chromeos-firmwareupdate.',
         default='/usr/local/factory/board/chromeos-firmwareupdate'),
-    Arg('update_ec', bool, 'Update embedded firmware.', default=True),
+    Arg('update_ec', bool, 'Update EC firmware.', default=True),
+    Arg('update_pd', bool, 'Update PD firmware.', default=True),
     Arg('update_main', bool, 'Update main firmware.', default=True),
     Arg('apply_customization_id', bool,
         'Update root key based on the customization_id stored in VPD.',
@@ -80,6 +81,7 @@ class UpdateFirmwareTest(unittest.TestCase):
       p = Spawn(
         [self.args.firmware_updater, '--force', '--factory',
          '--update_ec' if self.args.update_ec else '--noupdate_ec',
+         '--update_pd' if self.args.update_pd else '--noupdate_pd',
          '--update_main' if self.args.update_main else '--noupdate_main',],
         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, log=True)
     for line in iter(p.stdout.readline, ''):
