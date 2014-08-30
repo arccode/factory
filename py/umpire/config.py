@@ -10,6 +10,7 @@ To validate a YAML file 'abc.yaml':
   umpire_config = UmpireConfig('abc.yaml')
 """
 
+import copy
 import yaml
 
 import factory_common  # pylint: disable=W0611
@@ -295,6 +296,9 @@ class UmpireConfig(dict):
           config = yaml.load(f)
       else:
         config = yaml.load(config)
+    elif isinstance(config, dict):
+      # As config dict has multi-layer dict, deepcopy is necessary.
+      config = copy.deepcopy(config)
 
     super(UmpireConfig, self).__init__(config)
     self.BuildBundleMap()

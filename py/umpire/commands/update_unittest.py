@@ -37,6 +37,8 @@ class ResourceUpdaterTest(unittest.TestCase):
         'install_factory_toolkit.run##78ddc759')
 
   def testUpdateInPlace(self):
+    num_bundles_before_update = len(self.env.config['bundles'])
+
     updater = ResourceUpdater(self.env)
     # No source_id: edit from default bundle.
     # No dest_id: in-place edit the source bundle.
@@ -45,7 +47,7 @@ class ResourceUpdaterTest(unittest.TestCase):
     updated_bundles = UmpireConfig(updated_config_path)['bundles']
 
     # In-place bundle modification.
-    self.assertEqual(len(self.env.config['bundles']), len(updated_bundles))
+    self.assertEqual(num_bundles_before_update, len(updated_bundles))
     default_bundle = updated_bundles[1]
 
     self.assertEqual('default_test', default_bundle['id'])
@@ -55,6 +57,8 @@ class ResourceUpdaterTest(unittest.TestCase):
                      default_bundle['resources']['server_factory_toolkit'])
 
   def testUpdateDestId(self):
+    num_bundles_before_update = len(self.env.config['bundles'])
+
     updater = ResourceUpdater(self.env)
     # No source_id: edit from default bundle.
     # dest_id: update source bundle and store in new bundle dest_id.
@@ -64,7 +68,7 @@ class ResourceUpdaterTest(unittest.TestCase):
     updated_bundles = UmpireConfig(updated_config_path)['bundles']
 
     # Add a new bundle with updated component.
-    self.assertEqual(len(self.env.config['bundles']) + 1, len(updated_bundles))
+    self.assertEqual(num_bundles_before_update + 1, len(updated_bundles))
 
     new_bundle = updated_bundles[0]
     self.assertEqual('update_test', new_bundle['id'])
@@ -81,6 +85,8 @@ class ResourceUpdaterTest(unittest.TestCase):
                      default_bundle['resources']['server_factory_toolkit'])
 
   def testUpdateSourceId(self):
+    num_bundles_before_update = len(self.env.config['bundles'])
+
     updater = ResourceUpdater(self.env)
     # source_id: edit from specified bundle.
     # No dest_id: in-place edit the source bundle.
@@ -90,7 +96,7 @@ class ResourceUpdaterTest(unittest.TestCase):
     updated_bundles = UmpireConfig(updated_config_path)['bundles']
 
     # In-place bundle modification.
-    self.assertEqual(len(self.env.config['bundles']), len(updated_bundles))
+    self.assertEqual(num_bundles_before_update, len(updated_bundles))
 
     target_bundle = updated_bundles[0]
     self.assertEqual('non_default_test', target_bundle['id'])
@@ -100,6 +106,8 @@ class ResourceUpdaterTest(unittest.TestCase):
                      target_bundle['resources']['server_factory_toolkit'])
 
   def testUpdateSourceIdDestId(self):
+    num_bundles_before_update = len(self.env.config['bundles'])
+
     updater = ResourceUpdater(self.env)
     # source_id: edit from specified bundle.
     # dest_id: update source bundle and store in new bundle dest_id.
@@ -109,7 +117,7 @@ class ResourceUpdaterTest(unittest.TestCase):
     updated_bundles = UmpireConfig(updated_config_path)['bundles']
 
     # Add a new bundle with updated component.
-    self.assertEqual(len(self.env.config['bundles']) + 1, len(updated_bundles))
+    self.assertEqual(num_bundles_before_update + 1, len(updated_bundles))
 
     update_bundle = updated_bundles[0]
     self.assertEqual('update_test', update_bundle['id'])

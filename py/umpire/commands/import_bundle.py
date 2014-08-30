@@ -22,6 +22,7 @@ import yaml
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.common import (
     ParseResourceName, ResourceType, UmpireError)
+from cros.factory.umpire import config as umpire_config
 from cros.factory.umpire.utils import UnpackFactoryToolkit
 from cros.factory.utils import file_utils
 
@@ -151,8 +152,9 @@ class BundleImporter(object):
   """Imports a bundle.
 
   It reads a factory bundle and copies resources to Umpire.
-  It also adds a bundle in bundles section in UmpireConfig in UmpireEnv
-  object, which is assigned in BundleImporter constructor.
+
+  It also updates active UmpireConfig and saves it to staging. Note that if
+  staging config alreay exists, it refuses to import the bundle.
 
   Usage:
     bundle_importer = BundleImporter(env)
@@ -165,8 +167,23 @@ class BundleImporter(object):
     Args:
       env: UmpireEnv object.
     """
+    # Define _temp_dire before checking staging file. Otherwise, undefiend
+    # _temp_dir will fail __del__, too.
+    self._temp_dir = None
+
+    if env.HasStagingConfigFile():
+      raise UmpireError(
+          'Cannot import bundle as staging config exists. '
+          'Please run "umpire unstage" to unstage or "umpire deploy" to '
+          'deploy the staging config first.')
+
     self._env = env
     self._factory_bundle = FactoryBundle()
+
+    # Copy current config for editing.
+    self._config = umpire_config.UmpireConfig(env.config)
+    # Used for staging config's basename.
+    self._config_basename = os.path.basename(env.config_path)
 
     # Store bundle config to be added to UmpireConfig.
     self._bundle = None
@@ -190,18 +207,22 @@ class BundleImporter(object):
       bundle_path: A bundle's path (could be a directory or a zip file).
       bundle_id: The ID of the bundle. If omitted, use bundle_name in
           factory bundle's manifest.
+      note: A description of this bundle. If omitted, use bundle_id.
+
+    Returns:
+      Updated staging config path.
     """
     self._factory_bundle.Load(bundle_path, self._temp_dir)
 
     # Sanity check: board must be the same.
-    if self._factory_bundle.manifest['board'] != self._env.config['board']:
+    if self._factory_bundle.manifest['board'] != self._config['board']:
       raise UmpireError(
           "Board mismatch: Umpire's board: %r != bundle's board: %r" %
-          (self._env.config['board'], self._factory_bundle.manifest['board']))
+          (self._config['board'], self._factory_bundle.manifest['board']))
 
     self._download_config_path = os.path.join(
         self._temp_dir,
-        '%s.conf' % self._env.config['board'])
+        '%s.conf' % self._config['board'])
 
     # Composes self._bundle.
     self._InitBundle(bundle_id, note)
@@ -209,17 +230,18 @@ class BundleImporter(object):
     self._AddShopFloorConfig()
 
     # Adds a bundle in bundles section.
-    self._env.config['bundles'].append(self._bundle)
+    self._config['bundles'].append(self._bundle)
     self._AddRuleset()
+
+    return self._WriteToStagingConfig()
 
   def _InitBundle(self, bundle_id, note):
     if not bundle_id:
       bundle_id = self._factory_bundle.manifest['bundle_name']
-    self._bundle = {'id': bundle_id}
-    if note:
-      self._bundle['note'] = note
+    self._bundle = {'id': bundle_id,
+                    'note': note if note else bundle_id}
 
-    bundles = self._env.config.setdefault('bundles', [])
+    bundles = self._config.setdefault('bundles', [])
     if any(bundle_id == b['id'] for b in bundles):
       raise UmpireError('bundle_id: %r already in use' % bundle_id)
 
@@ -367,9 +389,21 @@ class BundleImporter(object):
     self._bundle['shop_floor'] = shop_floor
 
   def _AddRuleset(self):
-    rulesets = self._env.config.setdefault('rulesets', [])
+    rulesets = self._config.setdefault('rulesets', [])
     ruleset = {
         'bundle_id': self._bundle['id'],
         'note': 'Please update match rule in ruleset',
         'active': False}
     rulesets.insert(0, ruleset)
+
+  def _WriteToStagingConfig(self):
+    """Writes self._config to resources and set it as staging.
+
+    Returns:
+      config path in resources.
+    """
+    temp_config_path = os.path.join(self._temp_dir, self._config_basename)
+    self._config.WriteFile(temp_config_path)
+    res_path = self._env.AddResource(temp_config_path)
+    self._env.StageConfigFile(res_path)
+    return res_path

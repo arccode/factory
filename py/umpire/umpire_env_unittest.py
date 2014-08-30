@@ -61,6 +61,7 @@ class UmpireEnvTest(unittest.TestCase):
 
     self.env.LoadConfig()
     self.assertEqual(default_path, self.env.config_path)
+    self.assertIsNotNone(self.env.shop_floor_manager)
 
   def testLoadConfigCustomPath(self):
     custom_path = os.path.join(self.env.base_dir, 'custom_config.yaml')
@@ -69,12 +70,12 @@ class UmpireEnvTest(unittest.TestCase):
     self.env.LoadConfig(custom_path=custom_path)
     self.assertEqual(custom_path, self.env.config_path)
 
-  def testLoadConfigStaging(self):
-    staging_path = os.path.join(self.env.base_dir, 'staging_umpire.yaml')
-    shutil.copy(TEST_CONFIG, staging_path)
+  def testLoadConfigNoInitShopFloorManager(self):
+    default_path = os.path.join(self.env.base_dir, 'active_umpire.yaml')
+    shutil.copy(TEST_CONFIG, default_path)
 
-    self.env.LoadConfig(staging=True)
-    self.assertEqual(staging_path, self.env.config_path)
+    self.env.LoadConfig(init_shop_floor_manager=False)
+    self.assertIsNone(self.env.shop_floor_manager)
 
   def testStageConfigFile(self):
     config_to_stage = os.path.join(self.env.base_dir, 'to_stage.yaml')
@@ -333,7 +334,8 @@ class UmpireEnvTest(unittest.TestCase):
     updater = ResourceUpdater(self.env)
     updater.Update([('factory_toolkit', TOOLKIT_DIR)])
     # After updating resources, we need to reload the staging config.
-    self.env.LoadConfig(staging=True)
+    self.env.ActivateConfigFile()
+    self.env.LoadConfig()
 
     # Get hash value to compose expected toolkit dir.
     bundle = self.env.config.GetDefaultBundle()
@@ -356,14 +358,15 @@ class UmpireEnvTest(unittest.TestCase):
     updater = ResourceUpdater(self.env)
     updater.Update([('factory_toolkit', TOOLKIT_DIR)])
     # After updating resources, we need to reload the staging config.
-    self.env.LoadConfig(staging=True)
+    self.env.ActivateConfigFile()
+    self.env.LoadConfig()
 
     # Get hash value to compose expected toolkit dir.
     bundle = self.env.config.GetDefaultBundle()
     toolkit_resource = bundle['resources']['device_factory_toolkit']
     toolkit_hash = GetHashFromResourceName(toolkit_resource)
     expected_toolkit_dir = os.path.join(self.env.device_toolkits_dir,
-                                          toolkit_hash)
+                                        toolkit_hash)
 
     # Create the expected toolkit dir.
     os.makedirs(expected_toolkit_dir)
@@ -379,7 +382,8 @@ class UmpireEnvTest(unittest.TestCase):
     updater = ResourceUpdater(self.env)
     updater.Update([('factory_toolkit', TOOLKIT_DIR)])
     # After updating resources, we need to reload the staging config.
-    self.env.LoadConfig(staging=True)
+    self.env.ActivateConfigFile()
+    self.env.LoadConfig()
 
     bundle = self.env.config.GetDefaultBundle()
     self.assertIsNone(self.env.GetBundleDeviceToolkit(bundle['id']))

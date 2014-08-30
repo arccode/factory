@@ -13,6 +13,7 @@ import os
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.common import (
     ResourceType, UmpireError, UPDATEABLE_RESOURCES)
+from cros.factory.umpire import config as umpire_config
 from cros.factory.utils import file_utils
 
 
@@ -52,12 +53,12 @@ class ResourceUpdater(object):
       raise UmpireError(
           'Cannot update resources as staging config exists. '
           'Please run "umpire unstage" to unstage or "umpire deploy" to '
-          'deploy the config first.')
+          'deploy the staging config first.')
 
     self._env = env
 
     # Copy current config for editing.
-    self._config = copy.deepcopy(env.config)
+    self._config = umpire_config.UmpireConfig(env.config)
 
     self._config_basename = os.path.basename(env.config_path)
     self._target_bundle = None
@@ -81,9 +82,7 @@ class ResourceUpdater(object):
     self._SanityCheck(resources_to_update)
     self._PrepareTargetBundle(source_id, dest_id)
     self._UpdateResourceMap(resources_to_update)
-    updated_config_path = self._WriteConfig()
-    self._env.StageConfigFile(updated_config_path)
-    return updated_config_path
+    return self._WriteToStagingConfig()
 
   def _PrepareTargetBundle(self, source_id,  dest_id):
     target_bundle = self._config.GetBundle(source_id)
@@ -120,8 +119,8 @@ class ResourceUpdater(object):
       else:
         resource_map[resource_type] = resource_name
 
-  def _WriteConfig(self):
-    """Writes self._config to resources.
+  def _WriteToStagingConfig(self):
+    """Writes self._config to resources and set it as staging.
 
     Returns:
       config path in resources.
@@ -129,4 +128,6 @@ class ResourceUpdater(object):
     with file_utils.TempDirectory() as temp_dir:
       temp_config_path = os.path.join(temp_dir, self._config_basename)
       self._config.WriteFile(temp_config_path)
-      return self._env.AddResource(temp_config_path)
+      res_path = self._env.AddResource(temp_config_path)
+      self._env.StageConfigFile(res_path)
+      return res_path

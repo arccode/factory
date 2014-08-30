@@ -62,7 +62,8 @@ class UmpireEnv(object):
                                 running.
     base_dir: Umpire base directory
     config_path: Path of the Umpire Config file
-    config: Umpire Config object
+    config: Active UmpireConfig object
+    staging_config: Staging UmpireConfig object
     shop_floor_manager: ShopFloorManager instance
   """
 
@@ -79,6 +80,7 @@ class UmpireEnv(object):
       self.base_dir = os.getcwd()
     self.config_path = None
     self.config = None
+    self.staging_config = None
     self.shop_floor_manager = None
 
   @staticmethod
@@ -196,41 +198,41 @@ class UmpireEnv(object):
   def umpire_data_dir(self):
     return os.path.join(self.base_dir, _UMPIRE_DATA_DIR)
 
-  def LoadConfig(self, staging=False, custom_path=None):
-    """Loads Umpire config file.
+  def LoadConfig(self, custom_path=None, init_shop_floor_manager=True):
+    """Loads Umpire config file and validates it.
 
-    It loads user specific file if custom_path is given. Otherwise, it loads
-    staging/active config depending on staging flag.
-    Once the config is loaded, updates self.config and self.config_path.
+    Also, if init_shop_floor_manager is True, it also initializes
+    ShopFloorManager.
 
     Args:
-      staging: True to load staging config file. Default to load active config
-          file. Unused if custom_path is specified.
       custom_path: If specified, load the config file custom_path pointing to.
+      init_shop_floor_manager: True to init ShopFloorManager object.
 
     Raises:
       UmpireError if it fails to load the config file.
     """
-    config_path = None
-    if custom_path:
-      config_path = custom_path
-      logging.debug('Load config from custom path: %s', config_path)
-    elif staging:
-      config_path = self.staging_config_file
-      logging.debug('Load staging config: %s', config_path)
-    else:
-      config_path = self.active_config_file
-      logging.debug('Load active config: %s', config_path)
+    def _LoadValidateConfig(path):
+      result = config.UmpireConfig(path)
+      config.ValidateResources(result, self)
+      return result
 
-    # Update config & config_path after the config is loaded successfully.
-    self.config = config.UmpireConfig(config_path)
-    config.ValidateResources(self.config, self)
+    def _InitShopFloorManager():
+      # Can be obtained after a valid config is loaded.
+      port_start = self.fastcgi_start_port
+      if port_start:
+        self.shop_floor_manager = ShopFloorManager(
+            port_start, port_start + config.NUMBER_SHOP_FLOOR_HANDLERS)
 
+    # Load active config & update config_path.
+    config_path = custom_path if custom_path else self.active_config_file
+    logging.debug('Load %sconfig: %s', 'active ' if not custom_path else '',
+                  config_path)
+    # Note that config won't be set if it fails to load/validate the new config.
+    self.config = _LoadValidateConfig(config_path)
     self.config_path = config_path
-    port_start = self.fastcgi_start_port
-    if port_start:
-      self.shop_floor_manager = ShopFloorManager(
-          port_start, port_start + config.NUMBER_SHOP_FLOOR_HANDLERS)
+
+    if init_shop_floor_manager:
+      _InitShopFloorManager()
 
   def HasStagingConfigFile(self):
     """Checks if a staging config file exists.

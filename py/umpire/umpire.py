@@ -157,9 +157,8 @@ def Deploy(args, umpire_cli):
   It runs an Umpire service based on the staging Umpire Config (unless
   specified by --config).
   """
-  # Set up env with active config.
+  # Here env is only used to get path, no need to load config.
   env = UmpireEnv()
-  env.LoadConfig()
 
   if args.config:
     config_path_to_deploy = os.path.realpath(args.config)
@@ -253,8 +252,11 @@ def _UmpireCLI():
   Returns:
     A logical connection to the Umpire CLI XML-RPC server.
   """
+  # Here env is used to get port. So we need to load config to get base port.
+  # However, ShopFloorManager is useless here.
   env = UmpireEnv()
-  env.LoadConfig()
+  env.LoadConfig(init_shop_floor_manager=False)
+
   umpire_cli_uri = 'http://127.0.0.1:%d' % env.umpire_cli_port
   logging.debug('Umpire CLI server URI: %s', umpire_cli_uri)
   return xmlrpclib.ServerProxy(umpire_cli_uri, allow_none=True)

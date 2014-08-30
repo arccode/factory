@@ -7,9 +7,7 @@
 import datetime
 import mox
 import os
-import shutil
 import sys
-import tempfile
 import unittest
 
 import factory_common  # pylint: disable=W0611
@@ -17,11 +15,14 @@ from cros.factory.tools import get_version
 from cros.factory.umpire.commands.import_bundle import (BundleImporter,
                                                         FactoryBundle)
 from cros.factory.umpire.common import UmpireError
-from cros.factory.umpire.umpire_env import UmpireEnv
+from cros.factory.umpire import config as umpire_config
+from cros.factory.umpire.umpire_env import UmpireEnvForTest
 from cros.factory.utils import file_utils
 
 TESTDATA_DIR = os.path.join(os.path.dirname(sys.modules[__name__].__file__),
                             'testdata')
+MINIMAL_UMPIRE_CONFIG = os.path.join(TESTDATA_DIR,
+                                     'minimal_empty_services_umpire.yaml')
 TEST_BUNDLE_DIR = os.path.join(TESTDATA_DIR, 'bundle_for_import')
 TEST_BUNDLE_MISSING_RELEASE_DIR = os.path.join(TESTDATA_DIR,
                                                'bundle_missing_release_image')
@@ -64,16 +65,13 @@ TEST_IMAGE_VERSION = '0.0.4'
 class testImportBundle(unittest.TestCase):
   def setUp(self):
     self.mox = mox.Mox()
-    self.temp_dir = tempfile.mkdtemp()
-    self.env = UmpireEnv()
-    self.env.base_dir = self.temp_dir
-    # TODO(deanliao): replace with real UmpireConfig once its validator
-    #     is ready.
-    self.env.config = {'board': 'daisy_spring'}
-    os.makedirs(self.env.resources_dir)
+    self.env = UmpireEnvForTest()
+    self.temp_dir = self.env.base_dir
+    self.env.LoadConfig(custom_path=MINIMAL_UMPIRE_CONFIG)
+    # Modify config's board name to the one used in bundle to import.
+    self.env.config['board'] = 'daisy_spring'
 
   def tearDown(self):
-    shutil.rmtree(self.temp_dir)
     self.mox.UnsetStubs()
     self.mox.VerifyAll()
 
@@ -104,19 +102,25 @@ class testImportBundle(unittest.TestCase):
     self.MockOutGetVersion()
     self.mox.ReplayAll()
 
+    original_num_rulesets = len(self.env.config['rulesets'])
+    original_num_bundles = len(self.env.config['bundles'])
+
     importer.Import(TEST_BUNDLE_DIR, 'test_bundle')
+    config = umpire_config.UmpireConfig(self.env.staging_config_file)
 
     # Verify newly added ruleset.
-    self.assertEqual(1, len(self.env.config['rulesets']))
+    # BundleImporter prepends newly added ruleset to config.
+    self.assertEqual(original_num_rulesets + 1, len(config['rulesets']))
     self.assertDictEqual(
         {'bundle_id': 'test_bundle',
          'note': 'Please update match rule in ruleset',
          'active': False},
-        self.env.config['rulesets'][0])
+        config['rulesets'][0])
 
     # Verify newly added bundle.
-    self.assertEqual(1, len(self.env.config['bundles']))
-    bundle = self.env.config['bundles'][0]
+    # BundleImporter appends newly added bundle.
+    self.assertEqual(original_num_bundles + 1, len(config['bundles']))
+    bundle = config['bundles'][original_num_bundles]
     self.assertEqual('test_bundle', bundle['id'])
     self.assertIn('shop_floor', bundle)
     self.assertEqual('cros.factory.shopfloor.daisy_spring_shopfloor',
@@ -197,11 +201,10 @@ class testImportBundle(unittest.TestCase):
 
 
   def testImportBundleIdCollision(self):
-    self.env.config['bundles'] = [{'id': 'bundleA'}]
     importer = BundleImporter(self.env)
     self.assertRaisesRegexp(UmpireError,
-                            "bundle_id: 'bundleA' already in use",
-                            importer.Import, TEST_BUNDLE_DIR, 'bundleA')
+                            "bundle_id: 'default_test' already in use",
+                            importer.Import, TEST_BUNDLE_DIR, 'default_test')
 
   def testImportDifferentBoardName(self):
     self.env.config['board'] = 'not_a_daisy_spring'

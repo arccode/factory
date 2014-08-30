@@ -84,6 +84,19 @@ class TestUmpireConfig(unittest.TestCase):
     self.assertEqual('test', bundle['id'])
     self.assertEqual('bundle for test', bundle['note'])
 
+  def testLoadConfigFromConfigDeepCopy(self):
+    conf = config.UmpireConfig(EMPTY_SERVICES_CONFIG)
+    original_complete_script = conf['bundles'][0]['resources'][
+        'complete_script']
+
+    dup_conf = config.UmpireConfig(conf)
+    dup_conf['bundles'][0]['resources']['complete_script'] = (
+        'new_complete.gz##d41d8cd9')
+
+    # Make sure that the structure is deep-copied.
+    self.assertEqual(original_complete_script,
+                     conf['bundles'][0]['resources']['complete_script'])
+
   def testLoadConfigRuleMatcher(self):
     conf = config.UmpireConfig(RULESET_CONFIG)
     self.assertEqual(2, len(conf['rulesets']))
