@@ -172,7 +172,7 @@ def ResetCommitTime():
 
   # Remount all devices in parallel, and wait.  Ignore errors.
   for process in [
-      Spawn(['mount', p, '-o', 'commit=0,remount'], log=True)
+      process_utils.Spawn(['mount', p, '-o', 'commit=0,remount'], log=True)
       for p in sorted(devices)]:
     process.wait()
 
