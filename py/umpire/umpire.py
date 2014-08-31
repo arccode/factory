@@ -103,8 +103,15 @@ def ImportBundle(args, umpire_cli):
   4) prepend a ruleset for the new bundle; 5) mark the updated config as
   staging and prompt user to edit it.
   """
-  umpire_cli.ImportBundle(os.path.realpath(args.bundle_path), args.id,
-                              args.note)
+  message = 'Importing bundle %r' % args.bundle_path
+  if args.id:
+    message += ' with specified bundle ID %r' % args.id
+  print message
+
+  staging_config_path = umpire_cli.ImportBundle(
+      os.path.realpath(args.bundle_path), args.id, args.note)
+  print 'Import bundle successfully. Staging config %r' % (
+      staging_config_path)
 
 
 @Command('update',

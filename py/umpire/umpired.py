@@ -79,7 +79,8 @@ def StartServer(test_mode=False, config_file=None):
 def main():
   logging.basicConfig(
       level=logging.DEBUG,
-      format='%(asctime)s %(levelname)s %(message)s')
+      format=('%(asctime)s %(levelname)s %(filename)s %(funcName)s:%(lineno)d '
+              '%(message)s'))
   parser = optparse.OptionParser()
   parser.add_option(
       '-t', '--test', dest='test_mode', action='store_true', default=False,

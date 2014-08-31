@@ -12,6 +12,7 @@ See BundleImporter comments for usage.
 
 from datetime import datetime
 import glob
+import logging
 import os
 import re
 import shutil
@@ -72,15 +73,12 @@ class FactoryBundle(object):
     download_files_pattern: pattern of files for download.
     factory_toolkit: path to factory toolkit.
     netboot_image: path to netboot image.
-    update_bundle: path to update bundle.
   """
   _BUNDLE_MANIFEST = 'MANIFEST.yaml'
   _DOWNLOAD_FILES_PATTERN = os.path.join('factory_setup', 'static', '*')
-  _FACTORY_TOOLKIT = os.path.join('factory_test',
+  _FACTORY_TOOLKIT = os.path.join('factory_toolkit',
                                   'install_factory_toolkit.run')
   _NETBOOT_IMAGE = os.path.join('factory_shim', 'netboot', 'vmlinux.uimg')
-  _UPDATE_BUNDLE = os.path.join('shopfloor', 'shopfloor_data', 'update',
-                                'factory.tar.bz2')
   _MANDATORY_IMAGES = ['release', 'factory_shim']
 
   def __init__(self):
@@ -103,10 +101,6 @@ class FactoryBundle(object):
   @property
   def netboot_image(self):
     return os.path.join(self._path, self._NETBOOT_IMAGE)
-
-  @property
-  def update_bundle(self):
-    return os.path.join(self._path, self._UPDATE_BUNDLE)
 
   def Load(self, path, temp_dir=None):
     """Loads a factory bundle.
@@ -183,7 +177,7 @@ class BundleImporter(object):
     # Copy current config for editing.
     self._config = umpire_config.UmpireConfig(env.config)
     # Used for staging config's basename.
-    self._config_basename = os.path.basename(env.config_path)
+    self._config_basename = os.path.basename(os.path.realpath(env.config_path))
 
     # Store bundle config to be added to UmpireConfig.
     self._bundle = None
@@ -351,6 +345,10 @@ class BundleImporter(object):
       file_utils.WriteFile(self._download_config_path,
                            '\n'.join(config) + '\n')
 
+    # factory_toolkit is mandatory.
+    if not os.path.isfile(self._factory_bundle.factory_toolkit):
+      raise UmpireError('Missing factory toolkit %r' %
+                        self._factory_bundle.factory_toolkit)
     resources['server_factory_toolkit'] = AddResource(
         self._factory_bundle.factory_toolkit,
         res_type=ResourceType.FACTORY_TOOLKIT)
@@ -362,17 +360,24 @@ class BundleImporter(object):
     resources['netboot_vmlinux'] = AddResource(
         self._factory_bundle.netboot_image,
         res_type=ResourceType.NETBOOT_VMLINUX)
-    resources['update_bundle'] = AddResource(
-        self._factory_bundle.update_bundle)
+    if not resources['netboot_vmlinux']:
+      logging.warning('Missing netboot_vmlinux %r',
+                      self._factory_bundle.netboot_image)
 
     # Deal with files for netboot download.
     download_files = AddDownloadFiles()
+    if not download_files:
+      logging.warning('No files for download in %r',
+                      self._factory_bundle.download_files_pattern)
+
     if hash_collision_files:
       raise UmpireError('Found %d hash collision: %r' % (
           len(hash_collision_files), hash_collision_files))
 
     WriteDownloadConfig(download_files)
     resources['download_conf'] = AddResource(self._download_config_path)
+    if not resources['download_conf']:
+      logging.warning('Missing download_conf %r', self._download_config_path)
 
     self._bundle['resources'] = dict((k, v) for k, v in resources.items()
                                      if v is not None)
@@ -404,6 +409,11 @@ class BundleImporter(object):
     """
     temp_config_path = os.path.join(self._temp_dir, self._config_basename)
     self._config.WriteFile(temp_config_path)
+
+    # Validate the about-to-stage config. Raise UmpireError if anything wrong.
+    staging_config = umpire_config.UmpireConfig(temp_config_path)
+    umpire_config.ValidateResources(staging_config, self._env)
+
     res_path = self._env.AddResource(temp_config_path)
     self._env.StageConfigFile(res_path)
     return res_path

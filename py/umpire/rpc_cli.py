@@ -57,16 +57,20 @@ class CLICommand(umpire_rpc.UmpireRPC):
     """Imports a bundle.
 
     It reads a factory bundle and copies resources to Umpire.
-    It also adds a bundle in env.UmpireConfig's bundles section.
+    It also adds a bundle in UmpireConfig's bundles section and
+    writes it to a staging config file.
 
     Args:
       bundle_path: A bundle's path (could be a directory or a zip file).
       bundle_id: The ID of the bundle. If omitted, use bundle_name in
           factory bundle's manifest.
       note: A note.
+
+    Returns:
+      Path to staging config.
     """
     importer = import_bundle.BundleImporter(self.env)
-    importer.Import(bundle_path, bundle_id, note)
+    return importer.Import(bundle_path, bundle_id, note)
 
   @umpire_rpc.RPCCall
   def AddResource(self, file_name, res_type=None):

@@ -29,7 +29,7 @@ TEST_BUNDLE_MISSING_RELEASE_DIR = os.path.join(TESTDATA_DIR,
 DOWNLOAD_CONFIG_PATH = os.path.join(TESTDATA_DIR, 'download_for_import.conf')
 
 # MD5 and unpacked content of factory_toolkit:
-#   TEST_BUNDLE_DIR/factory_test/install_factory_toolkit.run
+#   TEST_BUNDLE_DIR/factory_toolkit/install_factory_toolkit.run
 TOOLKIT_MD5 = '7509337e'
 UMPIRE_RELATIVE_PATH = os.path.join('usr', 'local', 'factory', 'bin', 'umpire')
 
