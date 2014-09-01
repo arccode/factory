@@ -151,9 +151,14 @@ def RunXMLRPCSysfsServer(addr, log=logging):
         count += 1
     return (count > 1)
 
+  _, port = addr
   if _IsServerRunning():
     print('XMLRPCServer(%s) has been already running....' % str(addr))
   else:
+    if not utils.IsDestinationPortEnabled(port):
+      utils.EnableDestinationPort(port)
+      log.info('The destination port %d is enabled.' % port)
+
     server = SimpleXMLRPCServer.SimpleXMLRPCServer(addr)
     server.register_instance(Sysfs(log))
     print('XMLRPCServer(%s) serves sys fs data forever....' % str(addr))
