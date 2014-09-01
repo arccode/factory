@@ -66,6 +66,30 @@ FAKE_HWID_NO_UPDATE_RESULT = {
 
 FAKE_HWID_UPDATE_RESULT = 'hwid.sh content'
 
+FAKE_IMAGE_RESULT_1 = {
+    'rootfs_test': get_update.UpdateInfo(
+        needs_update=True, md5sum='md5sum1', url='test_url', scheme='http'),
+    'rootfs_release': get_update.UpdateInfo(
+        needs_update=True, md5sum='md5sum2', url='release_url', scheme='http')}
+
+FAKE_IMAGE_RESULT_2 = {
+    'rootfs_test': get_update.UpdateInfo(
+        needs_update=True, md5sum='md5sum1', url='test_url', scheme='http'),
+    'rootfs_release': get_update.UpdateInfo(
+        needs_update=False, md5sum='md5sum2', url='release_url', scheme='http')}
+
+FAKE_IMAGE_RESULT_3 = {
+    'rootfs_test': get_update.UpdateInfo(
+        needs_update=False, md5sum='md5sum1', url='test_url', scheme='http'),
+    'rootfs_release': get_update.UpdateInfo(
+        needs_update=True, md5sum='md5sum2', url='release_url', scheme='http')}
+
+FAKE_IMAGE_RESULT_4 = {
+    'rootfs_test': get_update.UpdateInfo(
+        needs_update=False, md5sum='md5sum1', url='test_url', scheme='http'),
+    'rootfs_release': get_update.UpdateInfo(
+        needs_update=False, md5sum='md5sum2', url='release_url', scheme='http')}
+
 TESTDATA_DIRECTORY = os.path.join(
     os.path.dirname(os.path.realpath(__file__)), 'testdata')
 
@@ -170,6 +194,30 @@ class GetUpdateTests(unittest.TestCase):
     self.mox.ReplayAll()
 
     self.assertEqual(None, get_update.GetUpdateForHWID(self.proxy))
+
+    self.mox.VerifyAll()
+
+  def testNeedImageUpdate(self):
+    """Tests NeedImageUpdate."""
+    get_update.GetUpdateForComponents(
+        self.proxy, ['rootfs_test', 'rootfs_release']).AndReturn(
+            FAKE_IMAGE_RESULT_1)
+    get_update.GetUpdateForComponents(
+        self.proxy, ['rootfs_test', 'rootfs_release']).AndReturn(
+            FAKE_IMAGE_RESULT_2)
+    get_update.GetUpdateForComponents(
+        self.proxy, ['rootfs_test', 'rootfs_release']).AndReturn(
+            FAKE_IMAGE_RESULT_3)
+    get_update.GetUpdateForComponents(
+        self.proxy, ['rootfs_test', 'rootfs_release']).AndReturn(
+            FAKE_IMAGE_RESULT_4)
+
+    self.mox.ReplayAll()
+
+    self.assertEqual(True, get_update.NeedImageUpdate(self.proxy))
+    self.assertEqual(True, get_update.NeedImageUpdate(self.proxy))
+    self.assertEqual(True, get_update.NeedImageUpdate(self.proxy))
+    self.assertEqual(False, get_update.NeedImageUpdate(self.proxy))
 
     self.mox.VerifyAll()
 

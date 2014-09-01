@@ -64,6 +64,21 @@ def GetUpdateForComponents(proxy, components):
   return ret
 
 
+def NeedImageUpdate(proxy):
+  """Checks if device need to update test or release image.
+
+  Args:
+    proxy: An UmpireServerProxy that connects to Umpire server.
+
+  Returns:
+    True if device needs to update image.
+  """
+  update_info = GetUpdateForComponents(proxy, ['rootfs_test', 'rootfs_release'])
+  logging.info('Update info for image: %r', update_info)
+  return (update_info['rootfs_test'].needs_update or
+          update_info['rootfs_release'].needs_update)
+
+
 def GetUpdateForDeviceFactoryToolkit(proxy):
   """Gets update information for device factory toolkit.
 
