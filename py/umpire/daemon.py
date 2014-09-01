@@ -229,6 +229,8 @@ class UmpireDaemon(object):
     else:
       stopping_services = current_services - deploying_services
       starting_services = deploying_services - current_services
+    # Need to restart shop_floor service.
+    starting_services.add('shop_floor')
     # Stop unused services and start new services.
     stopping_deferred = self.StopServices(stopping_services)
     starting_deferred = self.StartServices(starting_services)

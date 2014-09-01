@@ -503,8 +503,10 @@ class UmpireService(object):
 
     # Use set() to remove duplicate processes.
     processes = set(processes)
-    deferreds = [p.Start() for p in processes]
-    deferreds.extend([p.Stop() for p in self.processes - processes])
+    starting_processes = processes - self.processes
+    stopping_processes = self.processes - processes
+    deferreds = [p.Start() for p in starting_processes]
+    deferreds.extend([p.Stop() for p in stopping_processes])
     self.processes = processes
 
     if deferreds:
