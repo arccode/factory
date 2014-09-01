@@ -17,10 +17,13 @@ import unittest
 from cros.factory.event_log import Log
 from cros.factory.system import SystemInfo, SystemStatus
 from cros.factory.test import factory
+from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
+from cros.factory.test import utils
 from cros.factory.test.args import Arg
 from cros.factory.test.factory_task import FactoryTask, FactoryTaskManager
+from cros.factory.umpire.client import get_update
 from cros.factory.utils.process_utils import Spawn
 
 
@@ -65,6 +68,8 @@ _JS_SPACE = '''
     }'''
 _LSB_RELEASE_PATH = '/etc/lsb-release'
 
+_SHOPFLOOR_TIMEOUT_SECS = 10
+_RETRY_INTERVAL_SECS = 3
 
 class ImageCheckTask(FactoryTask):
   def __init__(self, test): # pylint: disable=W0231
@@ -92,7 +97,26 @@ class ImageCheckTask(FactoryTask):
     except: # pylint: disable=W0702
       self._test.template.SetState(_MSG_FLASH_ERROR)
 
-  def Run(self):
+  def CheckImageFromUmpire(self):
+    factory.console.info('Connecting to Umpire server...')
+    shopfloor_client = None
+    while True:
+      try:
+        shopfloor_client = shopfloor.get_instance(
+            detect=True, timeout=_SHOPFLOOR_TIMEOUT_SECS)
+        need_update = get_update.NeedImageUpdate(shopfloor_client)
+        if need_update:
+          logging.info('Umpire decide to update this DUT')
+        else:
+          logging.info('Umpire decide not to update this DUT')
+        return need_update
+      except:  # pylint: disable=W0702
+        exception_string = utils.FormatExceptionOnly()
+        logging.info('Unable to sync with shopfloor server: %s',
+                     exception_string)
+      time.sleep(_RETRY_INTERVAL_SECS)
+
+  def CheckImageVersion(self):
     if self._test.args.check_release_image:
       ver = SystemInfo().release_image_version
     else:
@@ -103,9 +127,12 @@ class ImageCheckTask(FactoryTask):
     logging.info('Using version format: %r', version_format.__name__)
     logging.info('current version: %r', ver)
     logging.info('expected version: %r', self._test.args.min_version)
-    if version_format(ver) < version_format(self._test.args.min_version):
-      factory.console.error('Current factory image version is incorrect: %s',
-                            ver)
+    return version_format(ver) < version_format(self._test.args.min_version)
+
+  def Run(self):
+    need_update = (self.CheckImageFromUmpire if self._test.args.umpire else
+                   self.CheckImageVersion)
+    if need_update():
       if self._test.args.reimage:
         self.CheckNetwork()
         if self._test.args.require_space:
@@ -120,7 +147,9 @@ class ImageCheckTask(FactoryTask):
 
 class CheckImageVersionTest(unittest.TestCase):
   ARGS = [
-    Arg('min_version', str, 'Minimum allowed factory image version.'),
+    Arg('min_version', str,
+        'Minimum allowed factory or release image version. If umpire is set, '
+        ' this args will be neglected.', default=None, optional=True),
     Arg('loose_version', bool, 'Allow any version number representation.',
         default=False),
     Arg('netboot_fw', str, 'The path to netboot firmware image.',
@@ -132,7 +161,9 @@ class CheckImageVersionTest(unittest.TestCase):
         default=True, optional=True),
     Arg('check_release_image', bool,
         'True to check release image instead of factory image.',
-        default=False, optional=True)]
+        default=False, optional=True),
+    Arg('umpire', bool, 'True to check image update from Umpire server',
+        default=False)]
 
   def setUp(self):
     self._task_list = [ImageCheckTask(self)]
