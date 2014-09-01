@@ -239,7 +239,7 @@ class UmpireEnvTest(unittest.TestCase):
         get_version, 'GetReleaseVersionFromOmahaChannelFile')
     TEST_IMAGE_VERSION = '0.0.1'
     get_version.GetReleaseVersionFromOmahaChannelFile(
-        resource_to_add).AndReturn(TEST_IMAGE_VERSION)
+        resource_to_add, no_root=True).AndReturn(TEST_IMAGE_VERSION)
     self.mox.ReplayAll()
 
     resource_path = self.env.AddResource(resource_to_add,

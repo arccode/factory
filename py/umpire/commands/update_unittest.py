@@ -190,7 +190,7 @@ class ResourceUpdaterTest(unittest.TestCase):
     get_version.GetFirmwareVersionsFromOmahaChannelFile(
         firmware_path).AndReturn((BIOS_VERSION, EC_VERSION))
     get_version.GetReleaseVersionFromOmahaChannelFile(
-          fsi_path).AndReturn(FSI_VERSION)
+          fsi_path, no_root=True).AndReturn(FSI_VERSION)
 
     mox_obj.ReplayAll()
 
