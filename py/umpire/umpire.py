@@ -23,7 +23,7 @@ from cros.factory.hacked_argparse import (CmdArg, Command, ParseCmdline,
 from cros.factory.umpire.commands import init
 from cros.factory.umpire.commands import edit
 from cros.factory.umpire import common
-from cros.factory.umpire.config import ShowDiff
+from cros.factory.umpire import config as umpire_config
 from cros.factory.umpire.umpire_env import UmpireEnv
 from cros.factory.utils import file_utils
 
@@ -184,7 +184,9 @@ def Deploy(args, umpire_cli):
   # Then, double confirm the user to deploy the config.
   ok_to_deploy = True
   print 'Changes for this deploy: '
-  print ''.join(ShowDiff(env.active_config_file, config_path_to_deploy))
+  active_config = umpire_config.UmpireConfig(env.active_config_file)
+  deploy_config = umpire_config.UmpireConfig(config_path_to_deploy)
+  print ''.join(umpire_config.ShowDiff(active_config, deploy_config))
   if raw_input('Ok to deploy [y/n]? ') not in ['y', 'Y']:
     ok_to_deploy = False
 
