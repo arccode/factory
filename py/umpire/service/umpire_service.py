@@ -566,7 +566,7 @@ def GetServiceSchemata():
           'Service schema:' + name,
           optional_items=copy.deepcopy(_OPTIONAL_SERVICE_SCHEMA))
   logging.debug('Got service schemata: %s', str(schemata))
-  return FixedDict('Service schemata', items=schemata)
+  return FixedDict('Service schemata', optional_items=schemata)
 
 
 def LoadServiceModule(module_name):
