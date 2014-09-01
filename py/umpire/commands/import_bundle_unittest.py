@@ -123,7 +123,7 @@ class testImportBundle(unittest.TestCase):
     bundle = config['bundles'][original_num_bundles]
     self.assertEqual('test_bundle', bundle['id'])
     self.assertIn('shop_floor', bundle)
-    self.assertEqual('cros.factory.shopfloor.daisy_spring_shopfloor',
+    self.assertEqual('cros.factory.umpire.daisy_spring_shop_floor_handler',
                      bundle['shop_floor']['handler'])
 
     # Verify resources section using startswith().

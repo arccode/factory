@@ -388,7 +388,7 @@ class BundleImporter(object):
     if self._shop_floor_handler:
       shop_floor['handler'] = self._shop_floor_handler
     else:
-      shop_floor['handler'] = ('cros.factory.shopfloor.%s_shopfloor' %
+      shop_floor['handler'] = ('cros.factory.umpire.%s_shop_floor_handler' %
                                self._factory_bundle.manifest['board'])
     # TODO(deanliao): add handler_config
     self._bundle['shop_floor'] = shop_floor
