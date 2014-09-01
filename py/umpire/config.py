@@ -227,7 +227,7 @@ class RulesetOrderedDict(dict):
 class ServicesOrderedDict(dict):
 
   """Used to output an UmpireConfig's services with desired key order."""
-  _KEY_ORDER = ['archiver', 'http', 'shop_floor_handler', 'minijack',
+  _KEY_ORDER = ['archiver', 'http', 'shop_floor', 'minijack',
                 'mock_shop_floor_backend', 'rsync', 'dhcp', 'tftp']
 
   def Omap(self):

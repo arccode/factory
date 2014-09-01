@@ -11,7 +11,7 @@ services:
     reverse_proxies:
     - proxy_addr: 192.168.51.1:8080
       remoteip: 192.168.51.0/24
-  shop_floor_handler: {}
+  shop_floor: {}
   minijack:
     active: false
   mock_shop_floor_backend:
