@@ -80,9 +80,10 @@ class ConfigDeployer(object):
     Returns:
       Failure object that indicates deploy failed but rollback success.
     """
-    logging.error('Successfully rollbacked to config %r',
-                  self._env.config_path)
-    return twisted_failure.Failure('Deploy failed. Rollback success')
+    error = ('Deploy failed. Successfully rollbacked to config %r' %
+             self._env.config_path)
+    logging.error(error)
+    return twisted_failure.Failure(common.UmpireError(error))
 
   def _HandleRollbackError(self, failure):
     """On rollback error, stops the daemon.
