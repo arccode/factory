@@ -229,43 +229,79 @@ class ExtractFileTest(unittest.TestCase):
   """Unit tests for ExtractFile."""
   @mock.patch.object(file_utils, 'Spawn', return_value=True)
   def testExtractZip(self, mock_spawn):
-    file_utils.ExtractFile('foo.zip', 'foo_dir')
-    mock_spawn.assert_called_with(['unzip', '-o', 'foo.zip', '-d', 'foo_dir'],
-                                  log=True, check_call=True)
+    with file_utils.TempDirectory() as temp_dir:
+      zipfile = os.path.join(temp_dir, 'foo.zip')
+      file_utils.TouchFile(zipfile)
+      output_dir = os.path.join(temp_dir, 'extracted')
 
-    file_utils.ExtractFile('foo.zip', 'foo_dir', quiet=True)
-    mock_spawn.assert_called_with(['unzip', '-o', '-qq', 'foo.zip',
-                                   '-d', 'foo_dir'], log=True, check_call=True)
+      file_utils.ExtractFile(zipfile, output_dir)
+      mock_spawn.assert_called_with(['unzip', '-o', zipfile, '-d', output_dir],
+                                    log=True, check_call=True)
 
-    file_utils.ExtractFile('foo.zip', 'foo_dir', only_extracts=['bar', 'buz'])
-    mock_spawn.assert_called_with(['unzip', '-o', 'foo.zip', '-d', 'foo_dir',
-                                   'bar', 'buz'], log=True, check_call=True)
+      file_utils.ExtractFile(zipfile, output_dir, quiet=True)
+      mock_spawn.assert_called_with(
+          ['unzip', '-o', '-qq', zipfile, '-d', output_dir],
+          log=True, check_call=True)
 
-    file_utils.ExtractFile('foo.zip', 'foo_dir', only_extracts=['bar', 'buz'],
-                           overwrite=False)
-    mock_spawn.assert_called_with(['unzip', 'foo.zip', '-d', 'foo_dir',
-                                   'bar', 'buz'], log=True, check_call=True)
+      file_utils.ExtractFile(zipfile, output_dir, only_extracts=['bar', 'buz'])
+      mock_spawn.assert_called_with(['unzip', '-o', zipfile, '-d', output_dir,
+                                     'bar', 'buz'], log=True, check_call=True)
+
+      file_utils.ExtractFile(zipfile, output_dir, only_extracts=['bar', 'buz'],
+                             overwrite=False)
+      mock_spawn.assert_called_with(
+          ['unzip', zipfile, '-d', output_dir, 'bar', 'buz'],
+          log=True, check_call=True)
 
   @mock.patch.object(file_utils, 'Spawn', return_value=True)
   def testExtractTar(self, mock_spawn):
-    file_utils.ExtractFile('foo.tar.gz', 'foo_dir')
-    mock_spawn.assert_called_with(['tar', '-xf', 'foo.tar.gz', '-vv', '-C',
-                                   'foo_dir'], log=True, check_call=True)
+    with file_utils.TempDirectory() as temp_dir:
+      targz = os.path.join(temp_dir, 'foo.tar.gz')
+      file_utils.TouchFile(targz)
+      output_dir = os.path.join(temp_dir, 'extracted')
 
-    file_utils.ExtractFile('foo.tar.gz', 'foo_dir', quiet=True)
-    mock_spawn.assert_called_with(['tar', '-xf', 'foo.tar.gz', '-C',
-                                   'foo_dir'], log=True, check_call=True)
+      file_utils.ExtractFile(targz, output_dir)
+      mock_spawn.assert_called_with(
+          ['tar', '-xf', targz, '-vv', '-C', output_dir],
+          log=True, check_call=True)
 
-    file_utils.ExtractFile('foo.tbz2', 'foo_dir', only_extracts=['bar', 'buz'])
-    mock_spawn.assert_called_with(['tar', '-xf', 'foo.tbz2', '-vv',
-                                   '-C', 'foo_dir', 'bar', 'buz'],
-                                  log=True, check_call=True)
+      file_utils.ExtractFile(targz, output_dir, quiet=True)
+      mock_spawn.assert_called_with(['tar', '-xf', targz, '-C', output_dir],
+                                    log=True, check_call=True)
 
-    file_utils.ExtractFile('foo.tar.xz', 'foo_dir', only_extracts='bar',
-                           overwrite=False)
-    mock_spawn.assert_called_with(['tar', '-xf', '--keep-old-files',
-                                   'foo.tar.xz', '-vv', '-C', 'foo_dir', 'bar'],
-                                  log=True, check_call=True)
+      tbz2 = os.path.join(temp_dir, 'foo.tbz2')
+      file_utils.TouchFile(tbz2)
+      file_utils.ExtractFile(tbz2, output_dir, only_extracts=['bar', 'buz'])
+      mock_spawn.assert_called_with(
+          ['tar', '-xf', tbz2, '-vv', '-C', output_dir, 'bar', 'buz'],
+          log=True, check_call=True)
+
+      xz = os.path.join(temp_dir, 'foo.tar.xz')
+      file_utils.TouchFile(xz)
+      file_utils.ExtractFile(xz, output_dir, only_extracts='bar',
+                             overwrite=False)
+    mock_spawn.assert_called_with(
+        ['tar', '-xf', '--keep-old-files', xz, '-vv', '-C', output_dir, 'bar'],
+        log=True, check_call=True)
+
+  def testMissingCompressFile(self):
+    self.assertRaisesRegexp(file_utils.ExtractFileError,
+                            'Missing compressed file',
+                            file_utils.ExtractFile, 'itdoesnotexist', 'foo_dir')
+
+  def testPermissionDenied(self):
+    with file_utils.TempDirectory() as temp_dir:
+      targz = os.path.join(temp_dir, 'foo.tar.gz')
+      file_utils.TouchFile(targz)
+      output_dir = os.path.join(temp_dir, 'extracted')
+      try:
+        os.chmod(targz, 0)
+        self.assertRaisesRegexp(
+            file_utils.ExtractFileError, 'Permission denied',
+            file_utils.ExtractFile, targz, output_dir)
+      finally:
+        os.chmod(targz, 0600)
+
 
 class ForceSymlinkTest(unittest.TestCase):
   def setUp(self):

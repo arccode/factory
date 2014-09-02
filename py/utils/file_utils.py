@@ -383,6 +383,11 @@ def ExtractFile(compressed_file, output_dir, only_extracts=None,
   Raises:
     ExtractFileError if the method fails to extract the file.
   """
+  if not os.path.exists(compressed_file):
+    raise ExtractFileError('Missing compressed file %r' % compressed_file)
+  if not os.access(compressed_file, os.R_OK):
+    raise ExtractFileError('Permission denied reading compressed file %r' %
+                           compressed_file)
   TryMakeDirs(output_dir)
   logging.info('Extracting %s to %s', compressed_file, output_dir)
   only_extracts = MakeList(only_extracts) if only_extracts else []
