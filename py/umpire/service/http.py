@@ -55,8 +55,6 @@ HTTPD_MAX_FDS = 32768
 # Maximum number of connections
 HTTPD_MAX_CONN = HTTPD_MAX_FDS / 2
 
-DOWNLOAD_PORT = 8080
-
 
 class LightyConditional(str):
 
@@ -159,10 +157,6 @@ class HTTPService(umpire_service.UmpireService):
         # Network binding.
         'server.bind': httpd_bind_address,
         'server.port': httpd_port,
-        # Also bind :8080 for network install.
-        LightyConditional(
-            '$SERVER["socket"] == "%s:%d"' % (httpd_bind_address,
-                                              DOWNLOAD_PORT)): {},
         # Aliases.
         'alias.url': {'/res': env.resources_dir},
         # Server tag and modules.

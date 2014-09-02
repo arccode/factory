@@ -167,9 +167,6 @@ class TestHTTPService(unittest.TestCase):
 
     ExpectLine('server.bind = "%s"' % umpire_ip)
     ExpectLine('server.port = %d' % umpire_port)
-    ExpectLines(
-        ['$SERVER["socket"] == "%s:%d" {' % (umpire_ip, http.DOWNLOAD_PORT),
-         '}'])
 
     base_dir = self.env.base_dir
     ExpectLine('accesslog.filename = "%s/log/httpd_access.log"' % base_dir)
