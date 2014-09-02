@@ -275,9 +275,12 @@ class ForceSymlinkTest(unittest.TestCase):
     shutil.rmtree(self.temp_dir)
 
   def testNoTarget(self):
+    target_path = os.path.join(self.temp_dir, 'non_exist_target')
+    link_path = os.path.join(self.temp_dir, 'link_to_target')
+
     self.assertRaisesRegexp(Exception, 'Missing symlink target',
-                            file_utils.ForceSymlink, '/foo/non_exist_target',
-                            '/foo/non_exist_link')
+                            file_utils.ForceSymlink, target_path, link_path)
+
   def testNormal(self):
     target_path = os.path.join(self.temp_dir, 'target')
     link_path = os.path.join(self.temp_dir, 'link_to_target')
@@ -285,8 +288,8 @@ class ForceSymlinkTest(unittest.TestCase):
 
     file_utils.ForceSymlink(target_path, link_path)
 
-    self.assertTrue(target_path, os.path.realpath(link_path))
-    self.assertTrue('target', file_utils.ReadLines(link_path)[0])
+    self.assertEquals(target_path, os.path.realpath(link_path))
+    self.assertEquals('target', file_utils.ReadLines(link_path)[0])
 
   def testForceOverwrite(self):
     target_path = os.path.join(self.temp_dir, 'target')
@@ -296,8 +299,19 @@ class ForceSymlinkTest(unittest.TestCase):
 
     file_utils.ForceSymlink(target_path, link_path)
 
-    self.assertTrue(target_path, os.path.realpath(link_path))
-    self.assertTrue('target', file_utils.ReadLines(link_path)[0])
+    self.assertEquals(target_path, os.path.realpath(link_path))
+    self.assertEquals('target', file_utils.ReadLines(link_path)[0])
+
+  def testRelativeSymlink(self):
+    absolute_target_path = os.path.join(self.temp_dir, 'target')
+    relative_target_path = 'target'
+    link_path = os.path.join(self.temp_dir, 'link_to_target')
+    file_utils.WriteFile(absolute_target_path, 'target')
+
+    file_utils.ForceSymlink(relative_target_path, link_path)
+
+    self.assertEquals(absolute_target_path, os.path.realpath(link_path))
+    self.assertEquals('target', file_utils.ReadLines(link_path)[0])
 
 
 class AtomicCopyTest(unittest.TestCase):

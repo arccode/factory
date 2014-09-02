@@ -419,8 +419,10 @@ def ForceSymlink(target, link_name):
     Exception: target is missing
     OSError: failed to make symlink
   """
-  if not os.path.exists(target):
-    raise Exception('Missing symlink target: ' + target)
+  # target can be either a absolute path or a relative path.
+  real_target = os.path.join(os.path.dirname(link_name), target)
+  if not os.path.exists(real_target):
+    raise Exception('Missing symlink target: ' + real_target)
   TryUnlink(link_name)
   os.symlink(target, link_name)
 
