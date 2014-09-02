@@ -7,6 +7,7 @@
 import datetime
 import mox
 import os
+import shutil
 import sys
 import unittest
 
@@ -40,6 +41,28 @@ class LoadBundleManifestTest(unittest.TestCase):
 
   def testLoadNormally(self):
     self.bundle.Load(TEST_BUNDLE_DIR)
+
+  def testLoadInvalidPath(self):
+    self.assertRaisesRegexp(IOError, 'Bundle does not exist',
+                            self.bundle.Load, '/foo/bar/baz')
+
+    with file_utils.TempDirectory() as temp_dir:
+      bundle_dir = os.path.join(temp_dir, 'bundle')
+      os.mkdir(bundle_dir)
+      try:
+        os.chmod(bundle_dir, 0)
+        self.assertRaisesRegexp(IOError, 'read permission denied',
+                                self.bundle.Load, bundle_dir)
+      finally:
+        os.chmod(bundle_dir, 0700)
+
+  def testLoadFindManifest(self):
+    with file_utils.TempDirectory() as bundle_dir:
+      real_bundle_dir = os.path.join(bundle_dir, 'bundle')
+      shutil.copytree(TEST_BUNDLE_DIR, real_bundle_dir)
+      self.bundle.Load(bundle_dir)
+      self.assertTrue(self.bundle.factory_toolkit.startswith(real_bundle_dir))
+
 
   # TODO(deanliao): figure out if mandatory image check is necessary.
   # Temporary remove the check.

@@ -11,6 +11,7 @@ See BundleImporter comments for usage.
 """
 
 from datetime import datetime
+import errno
 import glob
 import logging
 import os
@@ -115,7 +116,12 @@ class FactoryBundle(object):
       UmpireError if the bundle manifest is invalid.
     """
     if not os.path.exists(path):
-      raise UmpireError('path %r does not exist.' % path)
+      raise IOError(errno.ENOENT, 'Bundle does not exist', path)
+    if not os.access(path, os.R_OK):
+      raise IOError(
+          errno.EACCES,
+          'Bundle %r read permission denied. Make sure it is umpire readable',
+          path)
 
     if os.path.isdir(path):
       self._path = path
@@ -128,7 +134,18 @@ class FactoryBundle(object):
       file_utils.ExtractFile(path, new_bundle_path)
       self._path = new_bundle_path
 
+    # Find the top-most directory in self._path which _BUNDLE_MANIFEST resides
+    # as the modified self._path
+    for subdir, _, files in os.walk(self._path):
+      if self._BUNDLE_MANIFEST in files:
+        if self._path != subdir:
+          logging.info('Correct bundle base directory to %r', subdir)
+          self._path = subdir
+        break
+
     manifest_path = os.path.join(self._path, self._BUNDLE_MANIFEST)
+    if not os.path.isfile(manifest_path):
+      raise IOError(errno.ENOENT, 'MANIFEST.yaml does not exist', path)
 
     # Load MANIFEST.yaml and temporary uncheck mandatory images.
     # TODO(deanliao): figure out if the images are mandatory.
