@@ -62,8 +62,14 @@ class Sysfs(object):
     self.config = SysfsConfig()
     self.num_rows = int(self.config.Read('TouchSensors', 'NUM_ROWS'))
     self.num_cols = int(self.config.Read('TouchSensors', 'NUM_COLS'))
+
+    # Get sys/debug fs data (1) from sysfs.conf, or (2) parsing sys fs.
     self.sysfs_entry = self.config.Read('Sysfs', 'sysfs_entry')
+    if self.sysfs_entry is None:
+      self.sysfs_entry = utils.GetSysfsEntry()
     self.debugfs = self.config.Read('Sysfs', 'debugfs')
+    if self.debugfs is None:
+      self.debugfs = utils.GetDebugfs()
 
   def WriteSysfsSection(self, section):
     """Write a section of values to sys fs."""
