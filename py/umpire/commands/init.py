@@ -67,6 +67,7 @@ def Init(env, bundle_dir, board, make_default, local, user, group,
       os.chown(path, uid, gid)
       os.chmod(path, env.UMPIRE_DIR_MODE)
 
+    os.umask(022)
     TryMkdirChown(env.base_dir)
     for sub_dir in _SUB_DIRS:
       TryMkdirChown(os.path.join(env.base_dir, sub_dir))

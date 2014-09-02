@@ -67,10 +67,11 @@ class UmpireEnv(object):
     shop_floor_manager: ShopFloorManager instance
   """
 
-  # Umpire directory permission 'rwxr-x---'.
-  UMPIRE_DIR_MODE = 0750
-  # Umpire exetuable permission 'rwxr-x---'.
-  UMPIRE_BIN_MODE = 0750
+  # TODO(deanliao): figure out if it is too loose.
+  # Umpire directory permission 'rwxr-xr-x'.
+  UMPIRE_DIR_MODE = 0755
+  # Umpire exetuable permission 'rwxr-xr-x'.
+  UMPIRE_BIN_MODE = 0755
 
   def __init__(self, active_server_toolkit_hash=None):
     self.active_server_toolkit_hash = active_server_toolkit_hash

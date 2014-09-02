@@ -75,6 +75,7 @@ def UnpackFactoryToolkit(env, toolkit_resource, device_toolkit=True,
 
     It is used to execute a command as another user.
     """
+    os.umask(022)
     if not run_as:
       return
     uid, gid = run_as
@@ -124,8 +125,9 @@ def UnpackFactoryToolkit(env, toolkit_resource, device_toolkit=True,
     os.chmod(unpack_dir, mode)
     logging.debug('Factory toolkit extracted to %s', unpack_dir)
 
-  # Give group rX permision on all files/directories under unpack_dir.
-  process_utils.Spawn(['chmod', '-R', 'g+rX', unpack_dir], check_call=True,
+  # TODO(deanliao): figure out if the permission is too loose.
+  # Give group/other rX permision on all files/directories under unpack_dir.
+  process_utils.Spawn(['chmod', '-R', 'og+rX', unpack_dir], check_call=True,
                       log=True)
 
   # Inject MD5SUM in extracted toolkit as umpire read only.
