@@ -24,17 +24,17 @@ umpire_client.COMPONENT_KEYS = MOCK_COMPONENT_KEYS
 
 GET_UPDATE_RESULT = {
     'comp1': {
-        'need_update': True,
+        'needs_update': True,
         'md5sum': 'md5sum1',
         'url': 'url1',
         'scheme': 'scheme1'},
     'comp2': {
-        'need_update': False,
+        'needs_update': False,
         'md5sum': 'md5sum2',
         'url': 'url2',
         'scheme': 'scheme2'},
     'comp3': {
-        'need_update': False,
+        'needs_update': False,
         'md5sum': 'md5sum3',
         'url': 'url3',
         'scheme': 'scheme3'}}

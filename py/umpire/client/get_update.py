@@ -56,7 +56,7 @@ def GetUpdateForComponents(proxy, components):
       umpire_client.UmpireClientInfo().GetDUTInfoComponents())
   logging.info('update_dict: %r', update_dict)
   ret = dict([key,
-              UpdateInfo(needs_update=update_dict[key]['need_update'],
+              UpdateInfo(needs_update=update_dict[key]['needs_update'],
                          md5sum=update_dict[key]['md5sum'],
                          url=update_dict[key]['url'],
                          scheme=update_dict[key]['scheme'])]
