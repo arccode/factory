@@ -212,7 +212,7 @@ def CheckForUpdate(timeout):
   if shopfloor_client.use_umpire:
     update_info = get_update.GetUpdateForDeviceFactoryToolkit(shopfloor_client)
     needs_update = update_info.needs_update
-    new_md5sum = update_info.new_md5sum
+    new_md5sum = update_info.md5sum
   else:
     new_md5sum = shopfloor_client.GetTestMd5sum()
     current_md5sum = factory.get_current_md5sum()
