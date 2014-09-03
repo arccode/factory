@@ -69,12 +69,52 @@ class TouchscreenCalibration(unittest.TestCase):
     self._mounted_media_flag = True
     self._local_log_dir = '/var/tmp/%s' % test_name
     self.sysfs_config = sysfs_server.SysfsConfig()
+    self.sysfs_ip = self.sysfs_config.Read('Sysfs', 'SYSFS_IP')
+    self.sysfs_port = int(self.sysfs_config.Read('Sysfs', 'SYSFS_PORT'))
     self.delta_lower_bound = int(self.sysfs_config.Read('TouchSensors',
                                                         'DELTA_LOWER_BOUND'))
     self.delta_higher_bound = int(self.sysfs_config.Read('TouchSensors',
                                                          'DELTA_HIGHER_BOUND'))
     self.sn_length = int(self.sysfs_config.Read('Misc', 'sn_length'))
-    self.sysfs = _CreateXMLRPCSysfsClient()
+    self.sysfs = None
+    self._GetSysfsService()
+
+  def _GetSysfsService(self):
+    """Get the Sysfs servic3.
+
+    1st priority: connect to the IP address specified in generic_tsab test list.
+                  The sysfs server is run on a BB or on a DUT in this case.
+    2nd priority: instantiate a local sysfs object.
+                  The sysfs object is run on the same local host of the
+                  factory test in this case.
+    """
+
+    def _CheckStatus(msg):
+      """Check the status of sys fs."""
+      try:
+        self.sysfs.CheckStatus()
+        factory.console.info('Sysfs service: %s' % msg)
+        return True
+      except Exception as e:
+        msg = 'No Sysfs service (%s): %s' % (e, msg)
+        factory.console.info(msg)
+        return False
+
+    if not self.sysfs_ip:
+      msg = ('No sysfs_ip is assigned.\n'
+             'If you intend to run a sysfs_server on another machine, '
+             'you need to assign _SYSFS_SERVER_IP in generic_tsab.py.\n'
+             'And then do a factory_restart.')
+      factory.console.warn(msg)
+
+    # 1st priority: connect to the sysfs_server at the IP address.
+    sysfs_addr = (self.sysfs_ip, self.sysfs_port)
+    self.sysfs = _CreateXMLRPCSysfsClient(addr=sysfs_addr)
+    if not _CheckStatus(str(sysfs_addr)):
+      # 2nd priority: instantiate a local sysfs object.
+      self.sysfs = sysfs_server.Sysfs(log=factory.console)
+      if not _CheckStatus('local Sysfs object'):
+        raise Error('Fail to get sysfs service.')
 
   def _AlertFixtureDisconnected(self):
     """Alerts that the fixture is disconnected."""
