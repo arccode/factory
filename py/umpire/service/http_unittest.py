@@ -178,7 +178,7 @@ class TestHTTPService(unittest.TestCase):
     for p in xrange(fcgi_port,
                     fcgi_port + http.NUMBER_SHOP_FLOOR_HANDLERS):
       expect_fastcgi_conf.extend([
-          '  "/shopfloor/%d" => (' % p,
+          '  "/shop_floor/%d/" => (' % p,
           '    (',
           '      "check-local" => "disable",',
           '      "host" => "127.0.0.1",',
