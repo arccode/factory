@@ -768,37 +768,43 @@ class FinalizeBundle(object):
       """
       netboot_firmware_image = os.path.join(
           self.bundle_dir, 'netboot_firmware', 'image.net.bin')
+      target_bootfile = 'vmlinux-%s.bin' % self.board
       if os.path.exists(netboot_firmware_image):
         update_firmware_settings = os.path.join(
             self.bundle_dir, 'factory_setup', 'update_firmware_settings.py')
         new_netboot_firmware_image = netboot_firmware_image + '.INPROGRESS'
         Spawn([update_firmware_settings,
-               '--bootfile', 'vmlinux.bin',
+               '--bootfile', target_bootfile,
                '--input', netboot_firmware_image,
                '--output', new_netboot_firmware_image,
                '--omahaserver=%s' % mini_omaha_url,
                '--tftpserverip=%s' %
-                 urlparse.urlparse(mini_omaha_url).hostname],
+               urlparse.urlparse(mini_omaha_url).hostname],
               check_call=True, log=True)
         shutil.move(new_netboot_firmware_image, netboot_firmware_image)
 
-        target_netboot_image = os.path.join(self.bundle_dir, 'factory_shim',
-                                            'netboot', 'vmlinux.bin')
-        if not os.path.exists(target_netboot_image):
+        target_netboot_shim = os.path.join(self.bundle_dir, 'factory_shim',
+                                           'netboot', 'vmlinux.bin')
+        if not os.path.exists(target_netboot_shim):
           # Only generate 'vmlinux.bin' manually if it does not exist. If
           # 'vmlinux.bin' is present (as changed by CL:195554), we will simply
           # use it since it is already processed by make_netboot.sh.
-          netboot_image = os.path.join(self.bundle_dir, 'factory_shim',
-                                       'netboot', 'vmlinux.uimg')
+          netboot_shim = os.path.join(self.bundle_dir, 'factory_shim',
+                                      'netboot', 'vmlinux.uimg')
           if self.build_board.arch == 'arm':
             # No special process needed for ARM-based boards; simply copy the
             # file.
-            shutil.copyfile(netboot_image, target_netboot_image)
+            shutil.copyfile(netboot_shim, target_netboot_shim)
           else:
             # If the board is not ARM-based, we need to copy 'vmlinux.uimg' to
             # 'vmlinux.bin' and skip the first 64 bytes to strip uboot header.
             # Keep both of the files so everyone can be aware of the difference.
-            CopyFileSkipBytes(netboot_image, target_netboot_image, 64)
+            CopyFileSkipBytes(netboot_shim, target_netboot_shim, 64)
+
+        # Finally, copy 'vmlinux.bin' to 'vmlinux-<board>.bin'.
+        renamed_netboot_shim = os.path.join(self.bundle_dir, 'factory_shim',
+                                            'netboot', target_bootfile)
+        shutil.copy(target_netboot_shim, renamed_netboot_shim)
 
     # Patch in the install shim, if present.
     has_install_shim = False
