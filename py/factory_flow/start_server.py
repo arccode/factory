@@ -342,8 +342,9 @@ class StartServer(FactoryFlowCommand):
     logging.info('Checking for netboot kernel')
     if os.path.exists(os.path.join(
         self.options.bundle, 'netboot_firmware', 'image.net.bin')):
-      netboot_kernel_path = os.path.join(self.options.bundle, 'factory_shim',
-                                         'netboot', 'vmlinux.bin')
+      netboot_kernel_path = os.path.join(
+          self.options.bundle, 'factory_shim', 'netboot',
+          'vmlinux-%s.bin' % self.options.board.full_name)
     elif os.path.exists(os.path.join(
         self.options.bundle, 'netboot_firmware',
         'nv_image-%s.bin' % self.options.board.short_name)):
@@ -360,7 +361,7 @@ class StartServer(FactoryFlowCommand):
 
     tftpd_dir = tempfile.mkdtemp(prefix='tftp_', dir=self.files_dir)
     os.chmod(tftpd_dir, stat.S_IRWXU | stat.S_IXOTH)
-    if netboot_kernel_path.endswith('vmlinux.bin'):
+    if netboot_kernel_path.endswith('.bin'):
       tftpboot = tftpd_dir
     else:
       tftpboot = os.path.join(tftpd_dir, 'tftpboot')
