@@ -222,7 +222,8 @@ def GetGlobalLogger():
         if not path:
           raise ValueError("CROS_FACTORY_TEST_PATH environment"
             "variable is not set")
-        uuid = os.environ.get('CROS_FACTORY_TEST_INVOCATION') or TimedUuid()
+        uuid = (os.environ.get('CROS_FACTORY_TEST_PARENT_INVOCATION') or
+                os.environ.get('CROS_FACTORY_TEST_INVOCATION') or TimedUuid())
         _global_event_logger = EventLog(path, uuid)
 
   return _global_event_logger
@@ -580,8 +581,6 @@ class EventLog(object):
 
     self.file = open(EVENTS_PATH, "a")
     self._LogUnlocked("preamble",
-                      LOG_ID=self.log_id,
-                      PREFIX=self.prefix,
                       boot_id=GetBootId(),
                       device_id=GetDeviceId(),
                       reimage_id=GetReimageId(),
