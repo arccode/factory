@@ -518,6 +518,32 @@ class UmpireServerProxyTest(unittest.TestCase):
     self.mox.VerifyAll()
     logging.debug('Done')
 
+  def testHandleServerErrorMessageGoneRetriesFail(self):
+    """Proxy tries to make a call but server always says token is invalid."""
+    umpire_server_proxy.UmpireClientInfo().AndReturn(
+        self.fake_umpire_client_info)
+    self.fake_umpire_client_info.GetXUmpireDUT().AndReturn('MOCK_DUT_INFO')
+    self.fake_umpire_client_info.Update().AndReturn(False)
+    for _ in xrange(5):
+      self.fake_umpire_client_info.GetXUmpireDUT().AndReturn('MOCK_DUT_INFO')
+
+    self.mox.ReplayAll()
+
+    UmpireServerProxyTest.mock_resourcemap.SetPath('resourcemap1')
+
+    proxy = umpire_server_proxy.UmpireServerProxy(
+        server_uri=self.UMPIRE_SERVER_URI,
+        test_mode=True)
+
+    # Lets shopfloor handler 1 generate 410 Gone error.
+    SetHandlerError('shopfloor_handler1', 410, 'Gone')
+
+    with self.assertRaises(umpire_server_proxy.UmpireServerProxyException):
+      proxy.__getattr__(SHOPFLOOR_HANDLER_METHOD)('hi shopfloor 1')
+
+    self.mox.VerifyAll()
+    logging.debug('Done')
+
   def testHandleServerErrorMessageConnectionRefused(self):
     """Inits proxy but server is unavailable.
 

@@ -515,6 +515,7 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
               'Got ERROR_TOKEN_INVALID. Request handler from Umpire server'
               ' again')
           invalid_token = True
+          num_tries += 1
           self._RequestUmpireForResourceMapAndSetHandler()
 
         else:
