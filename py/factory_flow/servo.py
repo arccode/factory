@@ -61,8 +61,15 @@ class Servo(object):
         process_utils.Spawn(['touch', '/var/lib/servod/config'],
                             log=True, sudo=True, check_call=True)
 
-    self._servo = servo.Servo(hosts.ServoHost(servo_host=host, servo_port=port),
-                              serial)
+    # ServoHost will try to repair itself if it finds itself in the test lab. It
+    # does so by checking whether [hostname].cros.corp.google.com is a FQDN.
+    # Unfortunately 'localhost.cros.corp.google.com' is actually a FQDN and thus
+    # would make all localhost look like a host in the test lab, and is causing
+    # problem to our factory flow testing. So we explictly set is_in_lab=False
+    # here.
+    self._servo = servo.Servo(
+        hosts.ServoHost(servo_host=host, servo_port=port, is_in_lab=False),
+        serial)
 
   def _InstallRequiredPackages(self):
     if utils.in_cros_device():
