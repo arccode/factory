@@ -88,17 +88,32 @@ class CLICommand(umpire_rpc.UmpireRPC):
     return os.path.basename(self.env.AddResource(file_name, res_type=res_type))
 
   @umpire_rpc.RPCCall
-  def GetStagingConfig(self):
+  def GetStagingConfig(self, stage_if_nonexist=False):
     """Gets the staging config.
 
-    If no staging config presents, staging active config first.
+    Args:
+       stage_if_nonexist: If True, stage active config if there's no staging
+           config.
 
     Returns:
       Staging config file's content.
+      None if there's no staging config
     """
     if not self.env.HasStagingConfigFile():
-      self.env.StageConfigFile()
+      if stage_if_nonexist:
+        self.env.StageConfigFile()
+      else:
+        return None
     return open(self.env.staging_config_file).read()
+
+  @umpire_rpc.RPCCall
+  def GetActiveConfig(self):
+    """Gets active config.
+
+    Returns:
+      Active config file's content.
+    """
+    return open(self.env.active_config_file).read()
 
   @umpire_rpc.RPCCall
   def UploadConfig(self, basename, content):

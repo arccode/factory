@@ -26,6 +26,7 @@ from cros.factory.umpire import common
 from cros.factory.umpire import config as umpire_config
 from cros.factory.umpire.umpire_env import UmpireEnv
 from cros.factory.utils import file_utils
+from cros.factory.utils import process_utils
 
 
 @Command('init',
@@ -146,6 +147,7 @@ def Update(args, umpire_cli):
                 resources_to_update, args.source_id, args.dest_id)
   umpire_cli.Update(resources_to_update, args.source_id, args.dest_id)
 
+
 @Command('edit')
 def Edit(args, umpire_cli):
   """Edits the Umpire Config file.
@@ -196,10 +198,39 @@ def Deploy(args, umpire_cli):
     umpire_cli.Deploy(config_res)
 
 
-@Command('status')
-def Status(unused_args, unused_umpire_cli):
-  """Shows the pstree of Umpire services."""
-  raise NotImplementedError
+@Command('status',
+         CmdArg('--verbose', action='store_true',
+                help='Show detailed status.'))
+def Status(args, umpire_cli):
+  """Shows Umpire server status.
+
+  Shows Umpire daemon running status, staging config status.
+  In verbose mode, show active config content and diff it with statging.
+  """
+  env = UmpireEnv()
+  env.LoadConfig(init_shop_floor_manager=False)
+  board = env.config['board']
+
+  umpired_status = process_utils.CheckOutput(
+      ['initctl', 'status', 'umpire', 'BOARD=%s' % board])
+  print 'Umpire dameon status: ', umpired_status
+
+  if args.verbose:
+    active_config = umpire_cli.GetActiveConfig()
+    print 'Active config:\n%s\n' % active_config
+
+  staging_config = umpire_cli.GetStagingConfig()
+  if staging_config:
+    print 'Staging config exists.'
+  else:
+    print 'No staging config.'
+
+  if args.verbose and staging_config:
+    print '\nDiff between active and staging config:'
+    print ''.join(umpire_config.ShowDiff(
+        umpire_config.UmpireConfig(active_config),
+        umpire_config.UmpireConfig(staging_config)))
+    print
 
 
 @Command('list')
