@@ -448,6 +448,25 @@ class _TouchscreenData():  # pylint: disable=W0232
                  config_csum=config_csum)
 
   @classmethod
+  def Elan(cls):
+    for device_path in glob('/sys/bus/i2c/devices/*'):
+      driver_link = os.path.join(device_path, 'driver')
+      if not os.path.islink(driver_link):
+        continue
+      driver_name = os.path.basename(os.readlink(driver_link))
+      if driver_name != 'elants_i2c':
+        continue
+
+      with open(os.path.join(device_path, 'name'), 'r') as f:
+        device_name = f.read().strip()
+      with open(os.path.join(device_path, 'hw_version'), 'r') as f:
+        hw_version = f.read().strip()
+      with open(os.path.join(device_path, 'fw_version'), 'r') as f:
+        fw_version = f.read().strip()
+      return Obj(ident_str=device_name, hw_version=hw_version,
+                 fw_version=fw_version)
+
+  @classmethod
   def Generic(cls):
     # TODO(hungte) add more information from id/*
     # format: N: Name="??? touchscreen"
@@ -463,7 +482,7 @@ class _TouchscreenData():  # pylint: disable=W0232
   def Get(cls):
     if cls.cached_data is None:
       cls.cached_data = Obj(ident_str=None, fw_version=None)
-      for vendor_fun in [cls.Atmel, cls.Generic]:
+      for vendor_fun in [cls.Atmel, cls.Elan, cls.Generic]:
         data = vendor_fun()
         if data is not None:
           cls.cached_data = data
@@ -985,7 +1004,7 @@ def _ProbeTouchscreen():
 
   results = {'id': data.ident_str}
   results.update(DictCompactProbeStr(data.ident_str))
-  for key in ('fw_version', 'config_csum'):
+  for key in ('fw_version', 'hw_version', 'config_csum'):
     value = getattr(data, key, '')
     if value:
       results[key] = value
