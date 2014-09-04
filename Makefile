@@ -86,7 +86,9 @@ UNITTESTS_BLACKLIST=\
 	py/test/media_util_unittest.py
 UNITTESTS_WHITELIST=$(filter-out $(UNITTESTS_BLACKLIST),$(UNITTESTS))
 # Tests need to run in isolate mode.
-UNITTESTS_ISOLATE_LIST=
+UNITTESTS_ISOLATE_LIST=\
+       py/goofy_split/goofy_unittest.py \
+       py/goofy_split/system_log_manager_unittest.py
 
 
 # TODO(jsalz): remove the hard-coded path once the icedtea6-bin
