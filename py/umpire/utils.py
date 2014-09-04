@@ -8,11 +8,12 @@
 import logging
 import os
 import shutil
+import urllib
 from twisted.internet import defer
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.common import AttrDict, Singleton
-from cros.factory.umpire.common import GetHashFromResourceName
+from cros.factory.umpire import common as umpire_common
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
 
@@ -87,7 +88,7 @@ def UnpackFactoryToolkit(env, toolkit_resource, device_toolkit=True,
     return None
 
   toolkit_path = env.GetResourcePath(toolkit_resource)
-  toolkit_hash = GetHashFromResourceName(toolkit_resource)
+  toolkit_hash = umpire_common.GetHashFromResourceName(toolkit_resource)
   unpack_dir = os.path.join(
       env.device_toolkits_dir if device_toolkit else env.server_toolkits_dir,
       toolkit_hash)
@@ -154,3 +155,43 @@ def Deprecate(method):
 
   _Wrapper.__name__ = method.__name__
   return _Wrapper
+
+
+def ComposeDownloadConfig(download_files):
+  """Composes download config.
+
+  Based on given download_files, composes config file for netboot install.
+
+  Args:
+    download_files: list of resource files (full path) to include in the
+        download config.
+
+  Returns:
+    Download config (multi-line string).
+  """
+  def GetChannel(base_name):
+    """Converts file base name to download channel."""
+    if base_name == 'rootfs-release':
+      return 'RELEASE'
+    elif base_name == 'rootfs-test':
+      return 'FACTORY'
+    else:
+      return base_name.upper()
+
+  if not download_files:
+    return
+
+  # Content of download config.
+  result = []
+
+  for resource_path in download_files:
+    resource_name = os.path.basename(resource_path)
+    # Remove '.gz' suffix.
+    resource_base_name = umpire_common.ParseResourceName(resource_name)[0][:-3]
+
+    channel = GetChannel(resource_base_name)
+    url_name = urllib.quote(resource_name)
+    sha1sum = file_utils.B64Sha1(resource_path)
+    result.append(':'.join([channel, url_name, sha1sum]))
+
+  return '\n'.join(result) + '\n'

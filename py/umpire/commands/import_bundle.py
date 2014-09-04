@@ -18,14 +18,12 @@ import os
 import re
 import shutil
 import tempfile
-import urllib
 import yaml
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.umpire.common import (
-    ParseResourceName, ResourceType, UmpireError)
+from cros.factory.umpire.common import ResourceType, UmpireError
 from cros.factory.umpire import config as umpire_config
-from cros.factory.umpire.utils import UnpackFactoryToolkit
+from cros.factory.umpire import utils as umpire_utils
 from cros.factory.utils import file_utils
 
 
@@ -325,42 +323,26 @@ class BundleImporter(object):
       return download_files
 
     def WriteDownloadConfig(download_files):
-      """Composes download config and updates resources dict.
+      """Composes download config and adds it to resources.
 
       Based on given download_files, composes config file for netboot install.
 
       Args:
         download_files: list of resource names of download files.
       """
-      def GetChannel(base_name):
-        """Converts file base name to download channel."""
-        if base_name == 'rootfs-release':
-          return 'RELEASE'
-        elif base_name == 'rootfs-test':
-          return 'FACTORY'
-        else:
-          return base_name.upper()
-
-      if not download_files:
-        return
-
       # Content of download config.
-      config = ['# date:   %s' % self._timestamp,
-                '# bundle: %s_%s' % (
-                    self._factory_bundle.manifest['board'],
-                    self._factory_bundle.manifest['bundle_name'])]
+      header = '# date:   %s\n# bundle: %s_%s\n' % (
+          self._timestamp,
+          self._factory_bundle.manifest['board'],
+          self._factory_bundle.manifest['bundle_name'])
 
-      for resource_name in download_files:
-        # Remove '.gz' suffix.
-        resource_base_name = ParseResourceName(resource_name)[0][:-3]
-        channel = GetChannel(resource_base_name)
-        url_name = urllib.quote(resource_name)
-        sha1sum = file_utils.B64Sha1(
-            self._env.GetResourcePath(resource_name))
-        config.append(':'.join([channel, url_name, sha1sum]))
+      body = umpire_utils.ComposeDownloadConfig(
+          [self._env.GetResourcePath(r) for r in download_files])
 
-      file_utils.WriteFile(self._download_config_path,
-                           '\n'.join(config) + '\n')
+      with open(self._download_config_path, 'w') as f:
+        f.write(header)
+        f.write(body)
+      resources['download_conf'] = AddResource(self._download_config_path)
 
     # factory_toolkit is mandatory.
     if not os.path.isfile(self._factory_bundle.factory_toolkit):
@@ -372,7 +354,8 @@ class BundleImporter(object):
     resources['device_factory_toolkit'] = resources['server_factory_toolkit']
 
     # Unpack device_factory_toolkit.
-    UnpackFactoryToolkit(self._env, resources['device_factory_toolkit'])
+    umpire_utils.UnpackFactoryToolkit(self._env,
+                                      resources['device_factory_toolkit'])
 
     resources['netboot_vmlinux'] = AddResource(
         self._factory_bundle.netboot_image,
@@ -392,7 +375,6 @@ class BundleImporter(object):
           len(hash_collision_files), hash_collision_files))
 
     WriteDownloadConfig(download_files)
-    resources['download_conf'] = AddResource(self._download_config_path)
     if not resources['download_conf']:
       logging.warning('Missing download_conf %r', self._download_config_path)
 
