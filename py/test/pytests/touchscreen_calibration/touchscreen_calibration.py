@@ -489,7 +489,7 @@ class TouchscreenCalibration(unittest.TestCase):
     """
     for event in events:
       assert hasattr(self, event)
-      factory.console.info('Registered event %s' % event)
+      factory.console.debug('Registered event %s' % event)
       self.ui.AddEventHandler(event, getattr(self, event))
 
   def _MakeLocalLogDir(self):
