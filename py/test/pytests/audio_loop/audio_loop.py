@@ -256,6 +256,11 @@ class AudioLoopTest(unittest.TestCase):
         self._output_device, self._input_device))
     for channel in xrange(audio_utils.DEFAULT_NUM_CHANNELS):
       factory.console.info('Test channel %d' % channel)
+      self._audio_util.EnableDmic(self._in_card)
+      if channel is 0:
+        self._audio_util.MuteRightDmic(self._in_card)
+      else:
+        self._audio_util.MuteLeftDmic(self._in_card)
       test_result = None
       duration = self._current_test_args.get(
           'duration', _DEFAULT_AUDIOFUN_TEST_DURATION)
@@ -422,24 +427,25 @@ class AudioLoopTest(unittest.TestCase):
       self._ui.Fail('; '.join(self._test_message))
 
   def StartRunTest(self, event): # pylint: disable=W0613
-    # We've encountered false positive running audiofuntest tool against
-    # audio fun-plug on a few platforms; so it is suggested not to run
-    # audiofuntest with HP/MIC jack
     jack_status = self._audio_util.GetAudioJackStatus()
-    if jack_status is True:
-      if any((t['type'] == 'audiofun') for t in self.args.tests_to_conduct):
-        factory.console.info('Audiofuntest does not require dongle.')
-        raise ValueError('Audiofuntest does not require dongle.')
-
     # When audio jack detection feature is ready on a platform, we can
     # enable check_dongle option to check jack status matches we expected.
     if self.args.check_dongle:
+      # We've encountered false positive running audiofuntest tool against
+      # audio fun-plug on a few platforms; so it is suggested not to run
+      # audiofuntest with HP/MIC jack
+      if jack_status is True:
+        if any((t['type'] == 'audiofun') for t in self.args.tests_to_conduct):
+          factory.console.info('Audiofuntest does not require dongle.')
+          raise ValueError('Audiofuntest does not require dongle.')
       if jack_status != self.args.require_dongle:
         factory.console.info('Dongle Status is wrong.')
         raise ValueError('Dongle Status is wrong.')
 
-    # Enable/disable devices according to audio jack status.
-    if jack_status:
+    # Enable/disable devices according to require_dongle.
+    # We don't use jack_status because jack_status may not be ready at early
+    # stage.
+    if self.args.require_dongle:
       self._audio_util.DisableSpeaker(self._out_card)
       self._audio_util.DisableDmic(self._in_card)
       self._audio_util.EnableHeadphone(self._out_card)
