@@ -388,7 +388,7 @@ class LogDUTCommands(UmpireRPC):
       contents: Contents of the report.  If this is binary, it should be
         wrapped in a shopfloor.Binary object.
     """
-    contents = self.UnwrapBlob(contents)
+    contents = self._UnwrapBlob(contents)
 
     # Disallow absolute paths and paths with '..'.
     if os.path.isabs(name):
