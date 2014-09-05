@@ -79,6 +79,10 @@ class TouchscreenCalibration(unittest.TestCase):
     self.fake_fixture = self.sysfs_config.Read('Misc', 'FAKE_FIXTURE') == 'True'
     self.sysfs = None
     self._GetSysfsService()
+    self._ConnectTouchDevice()
+
+  def tearDown(self):
+    self.sysfs.kernel_module.Remove()
 
   def _GetSysfsService(self):
     """Get the Sysfs servic3.
@@ -111,6 +115,10 @@ class TouchscreenCalibration(unittest.TestCase):
     # 1st priority: connect to the sysfs_server at the IP address.
     sysfs_addr = (self.sysfs_ip, self.sysfs_port)
     self.sysfs = _CreateXMLRPCSysfsClient(addr=sysfs_addr)
+    if not self.sysfs.kernel_module.IsLoaded():
+      self.sysfs.kernel_module.Insert()
+      time.sleep(1)
+
     if not _CheckStatus(str(sysfs_addr)):
       # 2nd priority: instantiate a local sysfs object.
       self.sysfs = sysfs_server.Sysfs(log=factory.console)
@@ -402,6 +410,35 @@ class TouchscreenCalibration(unittest.TestCase):
         self._AlertFixtureDisconnected()
       raise e
 
+  def _ConnectTouchDevice(self):
+    """Make sure that the touch device is connected to the machine and
+    the touch kernel module is inserted properly.
+    """
+    if not self.sysfs.CheckStatus():
+      # The kernel module is inserted, but the touch device is not connected.
+      self.sysfs.kernel_module.Remove()
+      msg = ('Fail to detect the touchscreen.\n'
+             'Insert the traveler board, and restart the test.\n'
+             '无法侦测到面板。\n'
+             '请移除小板後再重新插入小板，并重跑测试')
+      self.ui.CallJSFunction('showMessage', msg)
+      return False
+    return True
+
+  def _InsertAndDetectTouchKernelModule(self):
+    """Insert the touch kernel module and make sure it is detected."""
+    if (not self.sysfs.kernel_module.Insert() or
+        not self.sysfs.kernel_module.IsDeviceDetected()):
+      self.sysfs.kernel_module.Remove()
+      factory.console.error('Failed to insert the kernel module: %s.',
+                            self.sysfs.kernel_module.name)
+      msg = ('Fail to detect the touchscreen.\n'
+             'Remove and re-insert the traveler board. And restart the test.\n'
+             '无法侦测到面板。\n'
+             '请移除小板後再重新插入小板，并重跑测试')
+      self.ui.CallJSFunction('showMessage', msg)
+      return False
+    return True
 
   def StartCalibration(self, event):
     """Starts the calibration thread.
@@ -412,11 +449,15 @@ class TouchscreenCalibration(unittest.TestCase):
     Args:
       event: the event that triggers this callback function
     """
+
     if self._calibration_thread and self._calibration_thread.isAlive():
       self.ui.CallJSFunction('showMessage',
                              'Current calibration has not completed yet\n'
                              '目前校正尚未结束')
       return
+
+    if not self._ConnectTouchDevice():
+      raise Error('Cannot detect the touch device.')
 
     sn = event.data.get('sn', '')
     if len(sn) == 0:

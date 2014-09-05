@@ -35,6 +35,11 @@ class Error(Exception):
   pass
 
 
+def IsSuccessful(value):
+  """Is the return code indicating success?"""
+  return value == 0
+
+
 def SimpleSystem(cmd):
   """Execute a system command."""
   ret = subprocess.call(cmd, shell=True)
@@ -145,3 +150,33 @@ def GetDebugfs(vendor=ATMEL):
   device_debug_path = os.path.join(_DEBUG_PATH, driver, i2c_device)
   object_file = os.path.join(device_debug_path, 'object')
   return device_debug_path if os.path.isfile(object_file) else None
+
+
+class KernelModule(object):
+  """A simple class to manage a kernel module."""
+
+  def __init__(self, name):
+    self.name = name
+    self.filepath = SimpleSystemOutput('find /lib/modules | grep ' + self.name)
+    self.sysfs_entry = GetSysfsEntry()
+
+  def IsLoaded(self):
+    """Is the module loaded?"""
+    lsmod_result = SimpleSystemOutput('lsmod | grep %s' % self.name)
+    return bool(lsmod_result) and self.name in lsmod_result
+
+  def Remove(self):
+    """Remove the module."""
+    if self.IsLoaded():
+      return IsSuccessful(SimpleSystem('rmmod %s' % self.name))
+    return True
+
+  def Insert(self):
+    """Insert the module."""
+    if not self.IsLoaded():
+      return IsSuccessful(SimpleSystem('insmod %s' % self.filepath))
+    return True
+
+  def IsDeviceDetected(self):
+    """Is the device detected properly?"""
+    return os.path.isfile(os.path.join(self.sysfs_entry, 'fw_version'))

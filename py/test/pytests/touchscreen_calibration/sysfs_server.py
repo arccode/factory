@@ -62,6 +62,8 @@ class Sysfs(object):
     self.config = SysfsConfig()
     self.num_rows = int(self.config.Read('TouchSensors', 'NUM_ROWS'))
     self.num_cols = int(self.config.Read('TouchSensors', 'NUM_COLS'))
+    kernel_module_name = self.config.Read('Misc', 'kernel_module_name')
+    self.kernel_module = utils.KernelModule(kernel_module_name)
 
     # Get sys/debug fs data (1) from sysfs.conf, or (2) parsing sys fs.
     self.sysfs_entry = self.config.Read('Sysfs', 'sysfs_entry')
@@ -166,7 +168,10 @@ def RunXMLRPCSysfsServer(addr, log=logging):
       log.info('The destination port %d is enabled.' % port)
 
     server = SimpleXMLRPCServer.SimpleXMLRPCServer(addr)
-    server.register_instance(Sysfs(log))
+    # Set allow_dotted_names=True since Sysfs has an object,
+    # i.e. kernel_module, as its member. This flag helps register
+    # the functions in kernel_module as well.
+    server.register_instance(Sysfs(log), allow_dotted_names=True)
     print('XMLRPCServer(%s) serves sys fs data forever....' % str(addr))
     server.serve_forever()
 
