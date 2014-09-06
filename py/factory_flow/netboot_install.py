@@ -94,7 +94,7 @@ class NetbootInstall(FactoryFlowCommand):
   def FlashFirmwareWithServo(self):
     """Flashes netboot firmware and EC with servo board."""
     # pylint: disable=E1101
-    servo_version = self.servo.get_version()
+    servo_version = self.servo._server.get_version()  # pylint: disable=W0212
 
     logging.info('Flashing netboot firmware %s on DUT %s with servo %s',
                  self.netboot_firmware_path, self.options.dut, servo_version)
