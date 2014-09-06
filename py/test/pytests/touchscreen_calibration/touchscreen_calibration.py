@@ -71,6 +71,8 @@ class TouchscreenCalibration(unittest.TestCase):
     self.sysfs_config = sysfs_server.SysfsConfig()
     self.sysfs_ip = self.sysfs_config.Read('Sysfs', 'SYSFS_IP')
     self.sysfs_port = int(self.sysfs_config.Read('Sysfs', 'SYSFS_PORT'))
+    self.use_sysfs_server = (
+        self.sysfs_config.Read('Sysfs', 'USE_SYSFS_SERVER') == 'True')
     self.delta_lower_bound = int(self.sysfs_config.Read('TouchSensors',
                                                         'DELTA_LOWER_BOUND'))
     self.delta_higher_bound = int(self.sysfs_config.Read('TouchSensors',
@@ -94,16 +96,23 @@ class TouchscreenCalibration(unittest.TestCase):
                   factory test in this case.
     """
 
+    def _ShowError():
+      msg = ('Fail to detect the touchscreen.\n'
+             'Insert the traveler board, and restart the test.\n'
+             '无法侦测到面板。\n'
+             '请移除小板後再重新插入小板，并重跑测试')
+      self.ui.CallJSFunction('showMessage', msg)
+
     def _CheckStatus(msg):
       """Check the status of sys fs."""
       try:
-        self.sysfs.CheckStatus()
-        factory.console.info('Sysfs service: %s' % msg)
-        return True
+        if self.sysfs.CheckStatus():
+          factory.console.info('Sysfs service: %s' % msg)
+          return
+        factory.console.info('No Sysfs service: %s' % msg)
       except Exception as e:
-        msg = 'No Sysfs service (%s): %s' % (e, msg)
-        factory.console.info(msg)
-        return False
+        factory.console.info('No Sysfs service (%s): %s' % (e, msg))
+      _ShowError()
 
     if not self.sysfs_ip:
       msg = ('No sysfs_ip is assigned.\n'
@@ -112,18 +121,18 @@ class TouchscreenCalibration(unittest.TestCase):
              'And then do a factory_restart.')
       factory.console.warn(msg)
 
-    # 1st priority: connect to the sysfs_server at the IP address.
-    sysfs_addr = (self.sysfs_ip, self.sysfs_port)
-    self.sysfs = _CreateXMLRPCSysfsClient(addr=sysfs_addr)
-    if not self.sysfs.kernel_module.IsLoaded():
-      self.sysfs.kernel_module.Insert()
-      time.sleep(1)
-
-    if not _CheckStatus(str(sysfs_addr)):
-      # 2nd priority: instantiate a local sysfs object.
+    if self.use_sysfs_server:
+      # Connect to the sysfs_server at the IP address.
+      sysfs_addr = (self.sysfs_ip, self.sysfs_port)
+      self.sysfs = _CreateXMLRPCSysfsClient(addr=sysfs_addr)
+      if not self.sysfs.kernel_module.IsLoaded():
+        self.sysfs.kernel_module.Insert()
+        time.sleep(1)
+      _CheckStatus(str(sysfs_addr))
+    else:
+      # Instantiate a local sysfs object.
       self.sysfs = sysfs_server.Sysfs(log=factory.console)
-      if not _CheckStatus('local Sysfs object'):
-        raise Error('Fail to get sysfs service.')
+      _CheckStatus('local Sysfs object')
 
   def _AlertFixtureDisconnected(self):
     """Alerts that the fixture is disconnected."""

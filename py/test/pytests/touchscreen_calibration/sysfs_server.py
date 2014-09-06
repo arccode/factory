@@ -96,7 +96,7 @@ class Sysfs(object):
     Returns:
       True if sysfs_entry exists
     """
-    return os.path.exists(self.sysfs_entry)
+    return bool(self.sysfs_entry) and os.path.exists(self.sysfs_entry)
 
   def WriteSysfs(self, content):
     """Writes to sysfs.
