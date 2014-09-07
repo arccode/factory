@@ -224,13 +224,14 @@ class ServiceProcess(protocol.ProcessProtocol):
           'Can not start process %s in state %s' %
           (self.process_name, self.state)))
     self.messages = []
-    logging.info('%s starting', self.process_name)
     if not (os.path.isfile(self.config.executable) and
             os.access(self.config.executable, os.X_OK)):
       return defer.fail(self._Error(
           'Executable does not exist: %s' % self.config.executable))
     args = ([self.config.executable] + self.config.args + self.config.ext_args
             + self.nonhash_args)
+    logging.info('%s starting, executable %s args %r', self.process_name,
+                 self.config.executable, args)
     self.start_time = time.time()
     self.subprocess = reactor.spawnProcess(
         self,                    # processProtocol.
@@ -565,7 +566,6 @@ def GetServiceSchemata():
       schemata[name] = FixedDict(
           'Service schema:' + name,
           optional_items=copy.deepcopy(_OPTIONAL_SERVICE_SCHEMA))
-  logging.debug('Got service schemata: %s', str(schemata))
   return FixedDict('Service schemata', optional_items=schemata)
 
 

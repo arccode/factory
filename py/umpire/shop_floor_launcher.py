@@ -130,6 +130,9 @@ def main():
   # WSGI environ's SCRIPT_NAME to accept.
   script_name = '/shop_floor/%d/%s' % (options.port, options.token)
 
+  logging.info(
+      'Starting FastCGI server (module:%s) on http://%s:%d%s',
+      options.module, options.address, options.port, script_name)
   # FastCGI server runs forever.
   fastcgi_server.FastCGIServer(
       options.address, options.port, instance, script_name=script_name)
