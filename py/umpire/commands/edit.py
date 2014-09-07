@@ -96,7 +96,11 @@ class ConfigEditor(object):
         config = c.read()
     else:
       config_file = 'umpire.yaml'
-      config = self._umpire_cli.GetStagingConfig(True)
+      config = self._umpire_cli.GetStagingConfig()
+      if not config:
+        # Staging config does not exist. Stage active config instead.
+        self._umpire_cli.StageConfigFile('')
+        config = self._umpire_cli.GetStagingConfig()
 
     if not config:
       raise UmpireError('Unable to load config file %s for edit' % config_file)

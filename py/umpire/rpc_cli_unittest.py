@@ -158,51 +158,20 @@ class CommandTest(unittest.TestCase):
 
   def testGetStagingConfig(self):
     # Prepare a staging config.
-    config_to_stage = os.path.join(self.env.base_dir, 'config_to_stage')
-    with file(config_to_stage, 'w') as f:
-      f.write('staging\nfile')
-    config_to_stage_res_full_path = self.env.AddResource(config_to_stage)
-    self.env.ActivateConfigFile(config_to_stage_res_full_path)
+    active_config_path = os.path.join(self.env.base_dir, 'active_config')
+    with file(active_config_path, 'w') as f:
+      f.write('config\nfile')
+    self.env.ActivateConfigFile(self.env.AddResource(active_config_path))
     self.env.StageConfigFile()
 
     d = self.Call('GetStagingConfig')
-    d.addCallback(lambda result: self.assertEqual('staging\nfile', result))
+    d.addCallback(lambda result: self.assertEqual('config\nfile', result))
     return self.AssertSuccess(d)
 
-  def testGetStagingConfigAutoStageActiveConfig(self):
-    # Prepare a staging config.
-    config_to_stage = os.path.join(self.env.base_dir, 'config_to_stage')
-    with file(config_to_stage, 'w') as f:
-      f.write('active\nconfig\nfile')
-    config_to_stage_res_full_path = self.env.AddResource(config_to_stage)
-    self.env.ActivateConfigFile(config_to_stage_res_full_path)
-    # No staging config file before GetStagingConfig.
-    self.assertFalse(os.path.exists(self.env.staging_config_file))
-
-    d = self.Call('GetStagingConfig', True)
-    def AfterCallCheck(result):
-      self.assertTrue('active\nconfig\nfile', result)
-      # It stages active config file if staging file does not exist.
-      self.assertTrue(os.path.exists(self.env.staging_config_file))
-    d.addCallback(AfterCallCheck)
-    return self.AssertSuccess(d)
-
-  def testGetStagingConfigDoNotAutoStage(self):
-    # Prepare a staging config.
-    config_to_stage = os.path.join(self.env.base_dir, 'config_to_stage')
-    with file(config_to_stage, 'w') as f:
-      f.write('active\nconfig\nfile')
-    config_to_stage_res_full_path = self.env.AddResource(config_to_stage)
-    self.env.ActivateConfigFile(config_to_stage_res_full_path)
-    # No staging config file before GetStagingConfig.
-    self.assertFalse(os.path.exists(self.env.staging_config_file))
-
+  def testGetStagingConfigNotFound(self):
+    # No staging config prepared.
     d = self.Call('GetStagingConfig')
-    def AfterCallCheck(result):
-      self.assertIsNone(result)
-      # It does not stage active config file if staging file does not exist.
-      self.assertFalse(os.path.exists(self.env.staging_config_file))
-    d.addCallback(AfterCallCheck)
+    d.addCallback(lambda result: self.assertEqual('', result))
     return self.AssertSuccess(d)
 
   def testStageConfigFile(self):
@@ -218,6 +187,21 @@ class CommandTest(unittest.TestCase):
         lambda _: self.assertEqual(
             config_to_stage_res_full_path,
             os.path.realpath(self.env.staging_config_file)))
+    return self.AssertSuccess(d)
+
+  def testStageConfigFileDefaultActive(self):
+    # Prepare active config.
+    active_config_path = os.path.join(self.env.base_dir, 'active_config')
+    with file(active_config_path, 'w') as f:
+      f.write('config\nfile')
+    self.env.ActivateConfigFile(self.env.AddResource(active_config_path))
+
+    # '': to stage active config.
+    d = self.Call('StageConfigFile', '')
+    d.addCallback(
+        lambda _: self.assertEqual(
+            'config\nfile',
+            open(self.env.staging_config_file).read()))
     return self.AssertSuccess(d)
 
   def testStageConfigFileNotInResource(self):

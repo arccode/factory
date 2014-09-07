@@ -11,12 +11,12 @@ import os
 import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.commands import deploy
 from cros.factory.umpire.commands import import_bundle
+from cros.factory.umpire.commands import status_reporter
 from cros.factory.umpire.commands import update
 from cros.factory.umpire import config
 from cros.factory.umpire import daemon
 from cros.factory.umpire import umpire_rpc
 from cros.factory.utils import file_utils
-
 
 class CLICommand(umpire_rpc.UmpireRPC):
 
@@ -88,32 +88,14 @@ class CLICommand(umpire_rpc.UmpireRPC):
     return os.path.basename(self.env.AddResource(file_name, res_type=res_type))
 
   @umpire_rpc.RPCCall
-  def GetStagingConfig(self, stage_if_nonexist=False):
+  def GetStagingConfig(self):
     """Gets the staging config.
-
-    Args:
-       stage_if_nonexist: If True, stage active config if there's no staging
-           config.
 
     Returns:
       Staging config file's content.
-      None if there's no staging config
+      '' if there's no staging config
     """
-    if not self.env.HasStagingConfigFile():
-      if stage_if_nonexist:
-        self.env.StageConfigFile()
-      else:
-        return None
-    return open(self.env.staging_config_file).read()
-
-  @umpire_rpc.RPCCall
-  def GetActiveConfig(self):
-    """Gets active config.
-
-    Returns:
-      Active config file's content.
-    """
-    return open(self.env.active_config_file).read()
+    return status_reporter.StatusReporter(self.env).GetStagingConfig()
 
   @umpire_rpc.RPCCall
   def UploadConfig(self, basename, content):
@@ -142,8 +124,15 @@ class CLICommand(umpire_rpc.UmpireRPC):
     to resources.
 
     Args:
-      config_path: path to a config file to mark as staging.
+      config_path: path to a config file to mark as staging. None or '' means
+          staging active config.
+      force: True to replace current staging config if exists.
     """
+    if not config_path:
+      # Stage active config file.
+      self.env.StageConfigFile(None, force=force)
+      return
+
     res_name = (os.path.basename(config_path)
                 if self.env.InResource(config_path) else
                 self.AddResource(config_path))
@@ -199,3 +188,9 @@ class CLICommand(umpire_rpc.UmpireRPC):
   def StopUmpired(self):
     """Stops Umpire daemon."""
     daemon.UmpireDaemon().Stop()
+
+  @umpire_rpc.RPCCall
+  def GetStatus(self):
+    """Gets Umpire dameon status."""
+    reporter = status_reporter.StatusReporter(self.env)
+    return reporter.Report()

@@ -215,22 +215,29 @@ def Status(args, umpire_cli):
       ['initctl', 'status', 'umpire', 'BOARD=%s' % board])
   print 'Umpire dameon status: ', umpired_status
 
-  if args.verbose:
-    active_config = umpire_cli.GetActiveConfig()
-    print 'Active config:\n%s\n' % active_config
+  status = umpire_cli.GetStatus()
+  if not status:
+    raise common.UmpireError('Unable to get status from Umpire server.')
 
-  staging_config = umpire_cli.GetStagingConfig()
-  if staging_config:
+  if args.verbose:
+    print 'Active config:'
+    print status['active_config']
+    print
+
+  if status['staging_config']:
     print 'Staging config exists.'
+    if args.verbose:
+      active_config = umpire_config.UmpireConfig(status['active_config'])
+      staging_config = umpire_config.UmpireConfig(status['staging_config'])
+      print 'Diff between active and staging config:'
+      print ''.join(umpire_config.ShowDiff(active_config, staging_config))
   else:
     print 'No staging config.'
 
-  if args.verbose and staging_config:
-    print '\nDiff between active and staging config:'
-    print ''.join(umpire_config.ShowDiff(
-        umpire_config.UmpireConfig(active_config),
-        umpire_config.UmpireConfig(staging_config)))
-    print
+  print 'shop_floor_handler port -> bundle mapping:'
+  for port, bundle_id in status['shop_floor_mapping']:
+    print '  %d => %s' % (port, bundle_id)
+  print
 
 
 @Command('list')

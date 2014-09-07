@@ -38,7 +38,7 @@ class ConfigEditorTest(unittest.TestCase):
 
   def MockUmpireCLIGetStagingConfig(self):
     """Mocks Umpire daemon's GetStagingConfig."""
-    self.umpire_cli.GetStagingConfig(True).AndReturn(self.config_to_edit)
+    self.umpire_cli.GetStagingConfig().AndReturn(self.config_to_edit)
 
   def MockEditorCalled(self):
     """Simulates edit action by prepending '# edited\n'."""
@@ -58,6 +58,24 @@ class ConfigEditorTest(unittest.TestCase):
 
   def testEdit(self):
     self.MockUmpireCLIGetStagingConfig()
+    self.MockEditorCalled()
+    self.MockUmpireCLIValidate()
+    self.mox.ReplayAll()
+
+    editor = ConfigEditor(self.umpire_cli)
+    editor.Edit()
+
+    new_config = file_utils.Read(editor.config_file)
+    self.assertTrue(new_config.startswith(EDITOR_PREPEND))
+    self.assertNotEqual(self.config_to_edit, new_config)
+
+  def testEditAutoStagingActive(self):
+    # No staging config first.
+    self.umpire_cli.GetStagingConfig().AndReturn('')
+    self.umpire_cli.StageConfigFile('')
+    # After staging active config.
+    self.umpire_cli.GetStagingConfig().AndReturn(self.config_to_edit)
+
     self.MockEditorCalled()
     self.MockUmpireCLIValidate()
     self.mox.ReplayAll()
