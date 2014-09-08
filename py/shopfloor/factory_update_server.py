@@ -154,6 +154,9 @@ class FactoryUpdateServer():
         os.path.join(state_dir, 'hwid_*.sh'))
     self._blacklist_detector = ChangeDetector(self._blacklist_path)
 
+  def __del__(self):
+    self.Stop()
+
   def Start(self):
     assert not self._thread
     self._thread = threading.Thread(target=self.Run)

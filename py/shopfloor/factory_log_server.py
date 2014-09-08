@@ -38,6 +38,9 @@ class FactoryLogServer(object):
     self.rsyncd_addr = rsyncd_addr
     self.rsyncd_port = rsyncd_port
 
+  def __del__(self):
+    self.Stop()
+
   def Start(self):
     """Starts factory log server."""
     factory_log_dir = os.path.join(self._state_dir, 'logs')
