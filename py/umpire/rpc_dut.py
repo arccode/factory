@@ -400,3 +400,8 @@ class LogDUTCommands(UmpireRPC):
         'aux_log', name, self._UnwrapBlob(contents)))
     d.addCallback(self._ReturnTrue)
     return d
+
+  @RPCCall
+  def GetFactoryLogPort(self):
+    """Fetches system logs rsync port."""
+    return self.env.umpire_rsync_port()
