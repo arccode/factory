@@ -115,7 +115,6 @@ class GoofyTest(unittest.TestCase):
     state.DEFAULT_FACTORY_STATE_PORT = test_utils.FindUnusedTCPPort()
     logging.info('Using port %d for factory state',
                  state.DEFAULT_FACTORY_STATE_PORT)
-    factory.clear_state_instance()
     self.mocker = mox.Mox()
     self.env = self.mocker.CreateMock(Environment)
     self.state = state.get_instance()

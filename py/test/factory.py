@@ -227,22 +227,10 @@ def log(message):
 
 
 def get_state_instance():
-  """Returns a cached factory state client instance."""
+  """Returns a factory state client instance."""
   # Delay loading modules to prevent circular dependency.
   from cros.factory.test import state  # pylint: disable=W0404
-  global _state_instance  # pylint: disable=W0603
-  if _state_instance is None:
-    _state_instance = state.get_instance()
-  return _state_instance
-
-
-def clear_state_instance():
-  """Clears the state instance.
-
-  The next call of get_state_instance() will allocate a new instance.
-  """
-  global _state_instance  # pylint: disable=W0603
-  _state_instance = None
+  return state.get_instance()
 
 
 def get_shared_data(key, default=None):
