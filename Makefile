@@ -15,7 +15,7 @@ PYTHON=python
 
 TEST_RUNNER=py/tools/run_tests.py
 # Maximum number of parallel tests to run.
-MAX_TESTS=32
+MAX_TESTS=$(shell grep -c ^processor /proc/cpuinfo)
 
 FACTORY=$(DESTDIR)/$(TARGET_DIR)
 FACTORY_BUNDLE=$(FACTORY)/bundle
