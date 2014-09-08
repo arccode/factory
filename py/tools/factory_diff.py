@@ -88,7 +88,8 @@ def FindGitPrefix(repo_path):
   branch_list = CheckOutput(['git', 'branch', '-av'])
   for line in reversed(branch_list.split('\n')):
     match = re.search('remotes\/([^/]*)/[^/]*', line)
-    if match and match.group(1) != 'm':
+    # Look for remote branch starting with 'cros' or 'cros-internal'.
+    if match and match.group(1).startswith('cros'):
       return match.group(1)
   return None
 
