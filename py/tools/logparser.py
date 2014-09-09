@@ -191,7 +191,7 @@ class LogParser(object):
         ret = 'FAILED, %s' % e
       else:
         ret = 'PASSED'
-      if fileitem:
+      if fileitem is not None:
         self._Log(fileitem.filename, ret)
       else:
         self._Log(fileitem, ret)
