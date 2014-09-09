@@ -82,6 +82,7 @@ def Init(args, root_dir='/'):
                                       common.BUNDLE_FACTORY_TOOLKIT_PATH)
   file_utils.CheckPath(factory_toolkit_path, description='factory toolkit')
 
+  # This is an empty UmpireEnv object with base directory.
   env = UmpireEnv()
   env.base_dir = (args.base_dir if args.base_dir else
                   os.path.join(root_dir, common.DEFAULT_BASE_DIR, board))
@@ -99,8 +100,8 @@ def Init(args, root_dir='/'):
 def ImportBundle(args, umpire_cli):
   """Imports a factory bundle to Umpire.
 
-  It does the following: 1) sanity check for Umpire Config; 2) copy bundle
-  resources; 3) add a bundle item in bundles section in Umpire Config;
+  It does the following: 1) sanity check for Umpire config; 2) copy bundle
+  resources; 3) add a bundle item in bundles section in Umpire config;
   4) prepend a ruleset for the new bundle; 5) mark the updated config as
   staging and prompt user to edit it.
   """
@@ -134,23 +135,38 @@ def Update(args, umpire_cli):
   new one to update the resource.
   """
   resources_to_update = []
+  source_bundle = ('bundle %r' % args.source_id if args.source_id
+                   else 'default bundle')
+  if not args.dest_id:
+    print 'Updating resources of %s in place' % source_bundle
+  else:
+    print 'Creating a new bundle %r based on %s with new resources' % (
+        args.dest_id, source_bundle)
+
+  print 'Updating resources:'
   for resource in args.resources:
     resource_type, resource_path = resource.split('=', 1)
     if resource_type not in common.UPDATEABLE_RESOURCES:
       raise common.UmpireError('Unsupported resource type: ' + resource_type)
     if not os.path.isfile(resource_path):
       raise IOError(errno.ENOENT, 'Resource file not found', resource_path)
-    resources_to_update.append((resource_type,
-                                os.path.realpath(resource_path)))
+    resource_real_path = os.path.realpath(resource_path)
+    print '  %s  %s' % (resource_type, resource_real_path)
+    resources_to_update.append((resource_type, resource_real_path))
 
   logging.debug('Invoke CLI Update(%r, source_id=%r,  dest_id=%r)',
                 resources_to_update, args.source_id, args.dest_id)
   umpire_cli.Update(resources_to_update, args.source_id, args.dest_id)
+  print 'Update successfully.'
 
 
-@Command('edit')
+@Command('edit',
+         CmdArg('--config',
+                help=('Path to Umpire config file to edit. Default uses '
+                      'current staging config. If there is no staging config, '
+                      'stage the active config.')))
 def Edit(args, umpire_cli):
-  """Edits the Umpire Config file.
+  """Edits the Umpire config file.
 
   It calls user's default EDITOR to edit the config file and verifies the
   modified result afterward.
@@ -160,79 +176,79 @@ def Edit(args, umpire_cli):
 
 
 @Command('deploy')
-def Deploy(args, umpire_cli):
+def Deploy(unused_args, umpire_cli):
   """Deploys an Umpire service.
 
-  It runs an Umpire service based on the staging Umpire Config (unless
-  specified by --config).
+  It deploys current staging config to Umpire service.
+  If users want to run a specific config, staging it first.
   """
-  # Here env is only used to get path, no need to load config.
-  env = UmpireEnv()
-
-  if args.config:
-    config_path_to_deploy = os.path.realpath(args.config)
-  else:
-    if not env.HasStagingConfigFile():
-      raise common.UmpireError('Unable to deploy as there is no staging file')
-    config_path_to_deploy = os.path.realpath(env.staging_config_file)
-
-  if not env.InResource(config_path_to_deploy):
-    raise common.UmpireError('Config to deploy %r must be in resources' %
-                             config_path_to_deploy)
+  print 'Getting status...'
+  umpire_status = umpire_cli.GetStatus()
+  if not umpire_status['staging_config']:
+    raise common.UmpireError('Unable to deploy as there is no staging file')
+  config_to_deploy_text = umpire_status['staging_config']
+  config_to_deploy_res = umpire_status['staging_config_res']
 
   # First, ask Umpire daemon to validate config.
-  umpire_cli.ValidateConfig(config_path_to_deploy)
+  print 'Validating staging config for deployment...'
+  umpire_cli.ValidateConfig(config_to_deploy_text)
 
   # Then, double confirm the user to deploy the config.
-  ok_to_deploy = True
   print 'Changes for this deploy: '
-  active_config = umpire_config.UmpireConfig(env.active_config_file)
-  deploy_config = umpire_config.UmpireConfig(config_path_to_deploy)
-  print ''.join(umpire_config.ShowDiff(active_config, deploy_config))
+  active_config_text = umpire_status['active_config']
+  config_to_deploy = umpire_config.UmpireConfig(config_to_deploy_text,
+                                                validate=False)
+  active_config = umpire_config.UmpireConfig(active_config_text,
+                                             validate=False)
+  print ''.join(umpire_config.ShowDiff(active_config, config_to_deploy))
   if raw_input('Ok to deploy [y/n]? ') not in ['y', 'Y']:
-    ok_to_deploy = False
+    print 'Abort by user.'
+    return
 
   # Deploying, finally.
-  if ok_to_deploy:
-    config_res = os.path.basename(config_path_to_deploy)
-    umpire_cli.Deploy(config_res)
+  print 'Deploying config %r' % config_to_deploy_res
+  umpire_cli.Deploy(config_to_deploy_res)
+  print 'Deploy successfully.'
 
 
 @Command('status',
          CmdArg('--verbose', action='store_true',
                 help='Show detailed status.'))
-def Status(args, umpire_cli):
+def Status(args, umpire_cli, board):
   """Shows Umpire server status.
 
   Shows Umpire daemon running status, staging config status.
   In verbose mode, show active config content and diff it with statging.
   """
-  env = UmpireEnv()
-  env.LoadConfig(init_shop_floor_manager=False)
-  board = env.config['board']
-
+  if not board:
+    raise common.UmpireError('Unable to get board from active config')
   umpired_status = process_utils.CheckOutput(
       ['initctl', 'status', 'umpire', 'BOARD=%s' % board])
   print 'Umpire dameon status: ', umpired_status
 
   status = umpire_cli.GetStatus()
   if not status:
-    raise common.UmpireError('Unable to get status from Umpire server.')
+    raise common.UmpireError('Unable to get status from Umpire server')
+
+  if status['board'] != board:
+    raise common.UmpireError(
+        'Board name from Umpire server %r is different from board name from '
+        'local Umpire CLI %r' % (status['board'], board))
 
   if args.verbose:
-    print 'Active config:'
+    print 'Active config (%s):' % status['active_config_res']
     print status['active_config']
     print
 
   if status['staging_config']:
-    print 'Staging config exists.'
+    print 'Staging config exists (%s)' % status['staging_config_res']
     if args.verbose:
       active_config = umpire_config.UmpireConfig(status['active_config'])
       staging_config = umpire_config.UmpireConfig(status['staging_config'])
       print 'Diff between active and staging config:'
       print ''.join(umpire_config.ShowDiff(active_config, staging_config))
   else:
-    print 'No staging config.'
+    print 'No staging config'
 
   print 'Mapping of bundle_id => shop floor handler path:'
   # Because XMLRPC converts tuple to list, so convert it back as string
@@ -243,7 +259,7 @@ def Status(args, umpire_cli):
 
 @Command('list')
 def List(unused_args, unused_umpire_cli):
-  """Lists all Umpire Config files."""
+  """Lists all Umpire config files."""
   raise NotImplementedError
 
 
@@ -259,9 +275,12 @@ def Stop(unused_args, umpire_cli):
   umpire_cli.StopUmpired()
 
 
-@Command('stage')
+@Command('stage',
+         CmdArg('--config',
+                help=('Path to Umpire config file. Default uses current active '
+                      'config.')))
 def Stage(args, umpire_cli):
-  """Stages an Umpire Config file for edit."""
+  """Stages an Umpire config file for edit."""
   if args.config:
     umpire_cli.StageConfigFile(args.config)
     print 'Stage config %s successfully.' % args.config
@@ -274,7 +293,7 @@ def Stage(args, umpire_cli):
 
 @Command('unstage')
 def Unstage(unused_args, umpire_cli):
-  """Unstages staging Umpire Config file."""
+  """Unstages staging Umpire config file."""
   print 'Unstage config %r successfully.' % umpire_cli.UnstageConfigFile()
 
 
@@ -289,7 +308,9 @@ def ImportResource(args, umpire_cli):
     if not os.path.isfile(resource_path):
       raise IOError(errno.ENOENT, 'Resource file not found', resource_path)
 
-    umpire_cli.AddResource(resource_path)
+    print 'Adding %r to resources' % resource_path
+    resource_name = umpire_cli.AddResource(resource_path)
+    print 'Resource added as %r' %  resource_name
 
 
 def _UmpireCLI():
@@ -298,23 +319,21 @@ def _UmpireCLI():
   Server port is obtained from active Umpire config.
 
   Returns:
-    A logical connection to the Umpire CLI XML-RPC server.
+    (Umpire CLI XMLRPC server proxy, UmpireEnv object)
   """
-  # Here env is used to get port. So we need to load config to get base port.
-  # However, ShopFloorManager is useless here.
   env = UmpireEnv()
-  env.LoadConfig(init_shop_floor_manager=False)
+  env.LoadConfig(init_shop_floor_manager=False, validate=False)
 
   umpire_cli_uri = 'http://127.0.0.1:%d' % env.umpire_cli_port
   logging.debug('Umpire CLI server URI: %s', umpire_cli_uri)
-  return xmlrpclib.ServerProxy(umpire_cli_uri, allow_none=True)
+  server_proxy = xmlrpclib.ServerProxy(umpire_cli_uri, allow_none=True)
+  return (server_proxy, env)
 
 
 def main():
   args = ParseCmdline(
       'Umpire CLI (command line interface)',
       CmdArg('--note', help='a note for this command'),
-      CmdArg('--config', help='path to Umpire Config file'),
       verbosity_cmd_arg)
   SetupLogging(level=args.verbosity)
 
@@ -322,7 +341,11 @@ def main():
     args.command(args)
   else:
     try:
-      args.command(args, _UmpireCLI())
+      (umpire_cli, env) = _UmpireCLI()
+      if args.command_name == 'status':
+        args.command(args, umpire_cli, env.config.get('board'))
+      else:
+        args.command(args, umpire_cli)
     except xmlrpclib.Fault as e:
       if e.faultCode == xmlrpclib.APPLICATION_ERROR:
         print ('ERROR: Problem running %s due to umpired application error. '

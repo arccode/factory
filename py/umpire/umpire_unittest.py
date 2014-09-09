@@ -9,6 +9,7 @@ import os
 import shutil
 import sys
 import unittest
+import __builtin__  # Used for mocking raw_input().
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.common import Obj
@@ -22,6 +23,17 @@ TESTDATA_DIR = os.path.realpath(os.path.join(
     os.path.dirname(sys.modules[__name__].__file__), 'testdata'))
 DEFAULT_BUNDLE = os.path.join(TESTDATA_DIR, 'init_bundle')
 
+
+def GetStdout():
+  """Gets stdout buffer.
+
+  Needs unittest.main(buffer=True).
+  """
+  # pylint: disable=E1101
+  # getvalue is set when unittest.main has buffer=True arg.
+  output = sys.stdout.getvalue()
+  # pylint: enable=E1101
+  return output.split('\n')
 
 class InitTest(unittest.TestCase):
   def setUp(self):
@@ -127,6 +139,12 @@ class UpdateTest(unittest.TestCase):
 
     self.args.resources.append('factory_toolkit=%s' % self.TOOLKIT_PATH)
     umpire.Update(self.args, self.mock_cli)
+    self.assertListEqual(
+        ['Updating resources of default bundle in place',
+         'Updating resources:',
+         '  factory_toolkit  %s' % self.TOOLKIT_PATH,
+         'Update successfully.', ''],
+        GetStdout())
 
   def testUpdateSingleResourceWithSourceDestId(self):
     # Expect XMLRPC call.
@@ -138,6 +156,13 @@ class UpdateTest(unittest.TestCase):
     self.args.source_id = 'bundle1'
     self.args.dest_id = 'bundle2'
     umpire.Update(self.args, self.mock_cli)
+    self.assertListEqual(
+        ["Creating a new bundle 'bundle2' based on bundle 'bundle1' with new "
+         "resources",
+         'Updating resources:',
+         '  factory_toolkit  %s' % self.TOOLKIT_PATH,
+         'Update successfully.', ''],
+        GetStdout())
 
   def testUpdateMultipleResources(self):
     # Expect XMLRPC call.
@@ -148,6 +173,13 @@ class UpdateTest(unittest.TestCase):
     self.args.resources.append('factory_toolkit=%s' % self.TOOLKIT_PATH)
     self.args.resources.append('firmware=%s' % self.FIRMWARE_PATH)
     umpire.Update(self.args, self.mock_cli)
+    self.assertListEqual(
+        ['Updating resources of default bundle in place',
+         'Updating resources:',
+         '  factory_toolkit  %s' % self.TOOLKIT_PATH,
+         '  firmware  %s' % self.FIRMWARE_PATH,
+         'Update successfully.', ''],
+        GetStdout())
 
   def testUpdateInvalidResourceType(self):
     self.mox.ReplayAll()
@@ -178,13 +210,23 @@ class ImportBundleTest(unittest.TestCase):
 
   def testImportBundle(self):
     # Expect XMLRPC call.
-    self.mock_cli.ImportBundle(self.BUNDLE_PATH, 'new_bundle', 'new bundle')
+    self.mock_cli.ImportBundle(
+        self.BUNDLE_PATH, 'new_bundle', 'new bundle').AndReturn(
+            'umpire.yaml##00000000')
+
     self.mox.ReplayAll()
 
     self.args.bundle_path = self.BUNDLE_PATH
     self.args.id = 'new_bundle'
     self.args.note = 'new bundle'
+
     umpire.ImportBundle(self.args, self.mock_cli)
+    self.assertListEqual(
+        ['Importing bundle %r with specified bundle ID %r' % (
+            self.BUNDLE_PATH, 'new_bundle'),
+         "Import bundle successfully. Staging config 'umpire.yaml##00000000'",
+         ''],
+        GetStdout())
 
 
 class ImportResourceTest(unittest.TestCase):
@@ -215,5 +257,72 @@ class ImportResourceTest(unittest.TestCase):
       umpire.ImportResource(self.args, self.mock_cli)
 
 
+class DeployTest(unittest.TestCase):
+
+  def setUp(self):
+    self.args = Obj()
+    self.mox  = mox.Mox()
+    self.mock_cli = self.mox.CreateMockAnything()
+
+  def tearDown(self):
+    self.mox.UnsetStubs()
+    self.mox.VerifyAll()
+
+  def testDeployNoStaging(self):
+    self.mock_cli.GetStatus().AndReturn({'staging_config': ''})
+    self.mox.ReplayAll()
+
+    self.assertRaisesRegexp(UmpireError, 'no staging file',
+                            umpire.Deploy, self.args, self.mock_cli)
+
+  def testDeploy(self):
+    active_config = open(
+        os.path.join(TESTDATA_DIR, 'minimal_empty_services_umpire.yaml')).read()
+    staging_config = open(
+        os.path.join(TESTDATA_DIR, 'minimal_umpire.yaml')).read()
+    self.mox.StubOutWithMock(__builtin__, 'raw_input')
+
+    self.mock_cli.GetStatus().AndReturn(
+        {'staging_config': staging_config,
+         'staging_config_res': 'mock_staging##00000000',
+         'active_config': active_config})
+    self.mock_cli.ValidateConfig(staging_config)
+    raw_input('Ok to deploy [y/n]? ').AndReturn('Y')
+    self.mock_cli.Deploy('mock_staging##00000000')
+    self.mox.ReplayAll()
+
+    umpire.Deploy(self.args, self.mock_cli)
+    self.assertListEqual(
+        ['Getting status...',
+         'Validating staging config for deployment...',
+         'Changes for this deploy: ', '',
+         "Deploying config 'mock_staging##00000000'",
+         'Deploy successfully.', ''],
+        GetStdout())
+
+  def testDeployUserSayNo(self):
+    active_config = open(
+        os.path.join(TESTDATA_DIR, 'minimal_empty_services_umpire.yaml')).read()
+    staging_config = open(
+        os.path.join(TESTDATA_DIR, 'minimal_umpire.yaml')).read()
+    self.mox.StubOutWithMock(__builtin__, 'raw_input')
+
+    self.mock_cli.GetStatus().AndReturn(
+        {'staging_config': staging_config,
+         'staging_config_res': 'mock_staging##00000000',
+         'active_config': active_config})
+    self.mock_cli.ValidateConfig(staging_config)
+    raw_input('Ok to deploy [y/n]? ').AndReturn('x')
+    # No mock.cli.Deploy is called
+    self.mox.ReplayAll()
+
+    umpire.Deploy(self.args, self.mock_cli)
+    self.assertListEqual(['Getting status...',
+                          'Validating staging config for deployment...',
+                          'Changes for this deploy: ', '',
+                          'Abort by user.', ''],
+                         GetStdout())
+
+
 if __name__ == '__main__':
-  unittest.main()
+  unittest.main(buffer=True)

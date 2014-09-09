@@ -5,6 +5,9 @@
 """Reports Umpire server status."""
 
 
+import os
+
+
 class StatusReporter(object):
   """Reports Umpire server status.
 
@@ -24,8 +27,16 @@ class StatusReporter(object):
       Umpire status in a dict.
     """
     result = dict()
+    result['board'] = self._env.config.get('board', '')
     result['active_config'] = self.GetActiveConfig()
+    result['active_config_res'] = os.path.basename(os.path.realpath(
+        self._env.active_config_file))
     result['staging_config'] = self.GetStagingConfig()
+    if result['staging_config']:
+      result['staging_config_res'] = os.path.basename(os.path.realpath(
+          self._env.staging_config_file))
+    else:
+      result['staging_config_res'] = ''
     result['shop_floor_mapping'] = self.GetShopFloorMapping()
     return result
 

@@ -88,6 +88,18 @@ class CLICommand(umpire_rpc.UmpireRPC):
     return os.path.basename(self.env.AddResource(file_name, res_type=res_type))
 
   @umpire_rpc.RPCCall
+  def InResource(self, file_name):
+    """Queries if the file is in resources repository.
+
+    Args:
+      file_name: either full path or file name.
+
+    Returns:
+      True if the file is in resources respository.
+    """
+    return self.env.InResource(file_name)
+
+  @umpire_rpc.RPCCall
   def GetStagingConfig(self):
     """Gets the staging config.
 

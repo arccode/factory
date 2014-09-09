@@ -203,7 +203,23 @@ class UmpireEnv(object):
   def umpire_data_dir(self):
     return os.path.join(self.base_dir, _UMPIRE_DATA_DIR)
 
-  def LoadConfig(self, custom_path=None, init_shop_floor_manager=True):
+  def ReadConfig(self, custom_path=None):
+    """Reads Umpire config.
+
+    It jsut returns config. It doens't change config in property.
+
+    Args:
+      custom_path: If specified, load the config file custom_path pointing to.
+          Default loads active config.
+
+    Returns:
+      UmpireConfig object.
+    """
+    config_path = custom_path if custom_path else self.active_config_file
+    return config.UmpireConfig(config_path)
+
+  def LoadConfig(self, custom_path=None, init_shop_floor_manager=True,
+                 validate=True):
     """Loads Umpire config file and validates it.
 
     Also, if init_shop_floor_manager is True, it also initializes
@@ -212,13 +228,15 @@ class UmpireEnv(object):
     Args:
       custom_path: If specified, load the config file custom_path pointing to.
       init_shop_floor_manager: True to init ShopFloorManager object.
+      validate: True to validate resources in config.
 
     Raises:
       UmpireError if it fails to load the config file.
     """
     def _LoadValidateConfig(path):
       result = config.UmpireConfig(path)
-      config.ValidateResources(result, self)
+      if validate:
+        config.ValidateResources(result, self)
       return result
 
     def _InitShopFloorManager():
