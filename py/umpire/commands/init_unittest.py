@@ -12,6 +12,8 @@ import tempfile
 import unittest
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.umpire import common as umpire_common
+from cros.factory.umpire import config as umpire_config
 from cros.factory.umpire.commands import init
 from cros.factory.umpire.commands import system
 from cros.factory.umpire.umpire_env import UmpireEnv
@@ -74,6 +76,18 @@ class InitTest(unittest.TestCase):
     sys_utils.GetUidGid(TEST_USER, TEST_GROUP).AndReturn(
         (os.getuid(), os.getgid()))
 
+  def VerifyDirectories(self):
+    self.assertTrue(os.path.isdir(self.env.base_dir))
+    for sub_dir in self.env.SUB_DIRS:
+      self.assertTrue(os.path.isdir(
+          os.path.join(self.env.base_dir, sub_dir)))
+
+    dummy_resource = os.path.join(self.env.resources_dir,
+                                  umpire_common.DUMMY_RESOURCE)
+    self.assertTrue(os.path.isfile(dummy_resource))
+    self.assertEqual('', open(dummy_resource).read())
+
+
   def VerifyToolkitInResource(self):
     self.assertTrue(os.path.exists(os.path.join(
         self.env.resources_dir,
@@ -124,11 +138,57 @@ class InitTest(unittest.TestCase):
               TEST_USER, TEST_GROUP, root_dir=self.root_dir,
               config_template=UMPIRE_CONFIG_TEMPLATE_PATH)
 
+    self.VerifyDirectories()
     self.VerifyToolkitInResource()
     self.VerifyToolkitExtracted()
     self.VerifyConfig()
     self.VerifyLocalSymlink()
     self.VerifyGlobalSymlink()
+
+  def testReInit(self):
+    self.MockOsModule()
+    # Expect mock call ne more time.
+    system.CreateUmpireUpstart()
+    system.StartUmpire(TEST_BOARD)
+    system.StopUmpire(TEST_BOARD)
+    sys_utils.GetUidGid(TEST_USER, TEST_GROUP).AndReturn(
+        (os.getuid(), os.getgid()))
+
+    self.mox.ReplayAll()
+
+    init.Init(self.env, TEST_BUNDLE_DIR, TEST_BOARD, False, False,
+              TEST_USER, TEST_GROUP, root_dir=self.root_dir,
+              config_template=UMPIRE_CONFIG_TEMPLATE_PATH)
+
+    self.VerifyToolkitInResource()
+    self.VerifyToolkitExtracted()
+    self.VerifyConfig()
+    self.VerifyLocalSymlink()
+    self.VerifyGlobalSymlink()
+
+    # Write active config.
+    active_config = umpire_config.UmpireConfig(self.env.active_config_file,
+                                               validate=False)
+    self.assertNotEqual('modified active config',
+                        active_config.GetDefaultBundle()['note'])
+    active_config.GetDefaultBundle()['note'] = 'modified active config'
+    active_config.WriteFile(self.env.active_config_file)
+
+    init.Init(self.env, TEST_BUNDLE_DIR, TEST_BOARD, False, False,
+              TEST_USER, TEST_GROUP, root_dir=self.root_dir,
+              config_template=UMPIRE_CONFIG_TEMPLATE_PATH)
+
+    self.VerifyToolkitInResource()
+    self.VerifyToolkitExtracted()
+    self.VerifyConfig()
+    self.VerifyLocalSymlink()
+    self.VerifyGlobalSymlink()
+
+    active_config = umpire_config.UmpireConfig(self.env.active_config_file,
+                                               validate=False)
+    self.assertEqual('modified active config',
+                     active_config.GetDefaultBundle()['note'])
+
 
   def testSetLocal(self):
     self.MockOsModule()

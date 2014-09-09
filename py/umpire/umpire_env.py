@@ -66,6 +66,10 @@ class UmpireEnv(object):
     staging_config: Staging UmpireConfig object
     shop_floor_manager: ShopFloorManager instance
   """
+  # List of Umpire mandatory subdirectories.
+  # Use tuple to avoid modifying.
+  SUB_DIRS = ('bin', 'dashboard', 'log', 'resources', 'run', 'toolkits',
+              'updates', 'conf')
 
   # TODO(deanliao): figure out if it is too loose.
   # Umpire directory permission 'rwxr-xr-x'.

@@ -16,9 +16,6 @@ from cros.factory.umpire.utils import UnpackFactoryToolkit
 from cros.factory.utils import file_utils
 
 
-_SUB_DIRS = ['bin', 'dashboard', 'log', 'resources', 'run', 'toolkits',
-             'updates', 'conf']
-
 # Relative path of Umpire CLI / Umpired in toolkit directory.
 _UMPIRE_CLI_IN_TOOLKIT_PATH = os.path.join('usr', 'local', 'factory', 'bin',
                                            'umpire')
@@ -69,10 +66,12 @@ def Init(env, bundle_dir, board, make_default, local, user, group,
 
     os.umask(022)
     TryMkdirChown(env.base_dir)
-    for sub_dir in _SUB_DIRS:
+    for sub_dir in env.SUB_DIRS:
       TryMkdirChown(os.path.join(env.base_dir, sub_dir))
     # Create the dummy resource file (empty).
-    open(os.path.join(env.resources_dir, common.DUMMY_RESOURCE), 'w')
+    dummy_resource = os.path.join(env.resources_dir, common.DUMMY_RESOURCE)
+    if not os.path.isfile(dummy_resource):
+      open(dummy_resource, 'w')
 
   def InstallUmpireExecutable(uid, gid):
     """Extracts factory toolkit to toolkit directory.
@@ -146,6 +145,10 @@ def Init(env, bundle_dir, board, make_default, local, user, group,
     It must be run after InstallUmpireExecutable as the template is from
     the toolkit.
     """
+    # Do not override existing active config.
+    if os.path.exists(env.active_config_file):
+      return
+
     template_path = config_template if config_template else (
         os.path.join(toolkit_base, _UMPIRE_CONFIG_TEMPLATE_IN_TOOLKIT_PATH))
     with file_utils.TempDirectory() as temp_dir:
