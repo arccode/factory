@@ -327,7 +327,12 @@ class UmpireEnvTest(unittest.TestCase):
     self.assertFalse(self.env.InResource(
         os.path.join('/path/not/in/res', resource_name)))
 
-  def testGetBundleDeviceToolkit(self):
+  def PrepareBundleDeviceToolkit(self):
+    """Sets a device_factory_toolkit in the default bundle.
+
+    Returns:
+      Unpacked toolkit path.
+    """
     self.env.LoadConfig(custom_path=TEST_CONFIG)
 
     # Add the toolkit to resources and get hash value.
@@ -341,49 +346,26 @@ class UmpireEnvTest(unittest.TestCase):
     bundle = self.env.config.GetDefaultBundle()
     toolkit_resource = bundle['resources']['device_factory_toolkit']
     toolkit_hash = GetHashFromResourceName(toolkit_resource)
-    expected_toolkit_dir = os.path.join(self.env.device_toolkits_dir,
-                                        toolkit_hash)
+    return os.path.join(self.env.device_toolkits_dir, toolkit_hash)
 
-    # Create the expected toolkit dir.
-    os.makedirs(expected_toolkit_dir)
 
+  def testGetBundleDeviceToolkit(self):
+    expected_toolkit_dir = self.PrepareBundleDeviceToolkit()
+
+    self.assertTrue(os.path.isdir(expected_toolkit_dir))
+    bundle = self.env.config.GetDefaultBundle()
     self.assertEqual(expected_toolkit_dir,
                      self.env.GetBundleDeviceToolkit(bundle['id']))
 
   def testGetBundleDeviceToolkitInvalidBundleID(self):
     # Same environment, but looking up an invalid bundle ID.
-    self.env.LoadConfig(custom_path=TEST_CONFIG)
-
-    # Add the toolkit to resources.
-    updater = ResourceUpdater(self.env)
-    updater.Update([('factory_toolkit', TOOLKIT_DIR)])
-    # After updating resources, we need to reload the staging config.
-    self.env.ActivateConfigFile()
-    self.env.LoadConfig()
-
-    # Get hash value to compose expected toolkit dir.
-    bundle = self.env.config.GetDefaultBundle()
-    toolkit_resource = bundle['resources']['device_factory_toolkit']
-    toolkit_hash = GetHashFromResourceName(toolkit_resource)
-    expected_toolkit_dir = os.path.join(self.env.device_toolkits_dir,
-                                        toolkit_hash)
-
-    # Create the expected toolkit dir.
-    os.makedirs(expected_toolkit_dir)
-
+    self.PrepareBundleDeviceToolkit()
     self.assertIsNone(self.env.GetBundleDeviceToolkit('invalid_bundle'))
 
-
   def testGetBundleDeviceToolkitMissingToolkitPath(self):
-    # Same environment, but don't create toolkit dir.
-    self.env.LoadConfig(custom_path=TEST_CONFIG)
-
-    # Add the toolkit to resources.
-    updater = ResourceUpdater(self.env)
-    updater.Update([('factory_toolkit', TOOLKIT_DIR)])
-    # After updating resources, we need to reload the staging config.
-    self.env.ActivateConfigFile()
-    self.env.LoadConfig()
+    # Same environment, but force remove toolkit dir.
+    self.PrepareBundleDeviceToolkit()
+    shutil.rmtree(self.env.device_toolkits_dir)
 
     bundle = self.env.config.GetDefaultBundle()
     self.assertIsNone(self.env.GetBundleDeviceToolkit(bundle['id']))

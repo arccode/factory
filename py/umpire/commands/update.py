@@ -14,6 +14,7 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.common import (
     ResourceType, UmpireError, UPDATEABLE_RESOURCES)
 from cros.factory.umpire import config as umpire_config
+from cros.factory.umpire import utils as umpire_utils
 from cros.factory.utils import file_utils
 
 
@@ -114,6 +115,8 @@ class ResourceUpdater(object):
       if resource_type == 'factory_toolkit':
         resource_map['device_factory_toolkit'] = resource_name
         resource_map['server_factory_toolkit'] = resource_name
+        umpire_utils.UnpackFactoryToolkit(self._env, resource_name)
+
       elif resource_type == 'fsi':
         resource_map['rootfs_release'] = resource_name
       else:
