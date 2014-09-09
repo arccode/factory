@@ -18,6 +18,7 @@ import socket
 import threading
 import time
 import unittest
+import yaml
 
 from cros.factory.event_log import Log
 from cros.factory.test.args import Arg
@@ -318,6 +319,7 @@ class AudioQualityTest(unittest.TestCase):
         self.SendResponse(rawstring.strip(), args)
     except IOError:
       factory.console.error('No such file or directory: %s', file_path)
+      self.SendResponse("NO_VERSION", args)
 
   def HandleConfigFile(self, *args):
     """Return the content of configuration file."""
@@ -339,19 +341,44 @@ class AudioQualityTest(unittest.TestCase):
         self.SendResponse(rawdata, args)
     except IOError:
       factory.console.error('No such file or directory: %s', file_path)
+      self.SendResponse("NO_CONFIG;0;%s" % binascii.b2a_hex(''), args)
 
   def HandleSendFile(self, *args):
     """This function is used to save test results from DUT.
 
-    Also uploads the parsed data to log.
+    Supposes the file is a YAML format. Reads the file and uploads to event
+    log.
+    """
+    attr_list = args[1]
+    file_name = attr_list[1]
+    size = int(attr_list[2])
+    received_data = attr_list[3]
+
+    logging.info("Received file %s with size %d" , file_name, size)
+
+    write_path = os.path.join(factory.get_log_root(), 'aux', 'audio', file_name)
+    utils.TryMakeDirs(os.path.dirname(write_path))
+    factory.console.info('save file: %s', write_path)
+    with open(write_path, 'wb') as f:
+      f.write(received_data)
+    self._auxlogs.append(write_path)
+
+    test_result = yaml.load(received_data)
+    Log('audio_quality_result', **test_result)
+    self.SendResponse(None, args)
+
+  def HandleSendFile_CLIO(self, *args):
+    """This function is used to save test results from DUT.
+
+    This is a deprecated function because it is only for CLIO output.
+    This function also uploads the parsed data to log.
     """
     attr_list = args[1]
     file_name = attr_list[1]
     size = int(attr_list[2])
     received_data = attr_list[3].replace('\x00', ' ')
 
-    write_path = os.path.join(factory.get_log_root(), 'aux',
-            'audio', file_name)
+    write_path = os.path.join(factory.get_log_root(), 'aux', 'audio', file_name)
     utils.TryMakeDirs(os.path.dirname(write_path))
     factory.console.info('save file: %s', write_path)
     with open(write_path, 'wb') as f:
