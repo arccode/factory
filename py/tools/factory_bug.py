@@ -117,7 +117,7 @@ def DummyContext(arg):
   yield arg
 
 
-def SaveLogs(output_dir, archive_id=None,
+def SaveLogs(output_dir, include_network_log=False, archive_id=None,
              var='/var', usr_local='/usr/local', etc='/etc'):
   '''Saves dmesg and relevant log files to a new archive in output_dir.
 
@@ -126,6 +126,7 @@ def SaveLogs(output_dir, archive_id=None,
 
   Args:
     output_dir: The directory in which to create the file.
+    include_network_log: Whether to include network related logs or not.
     archive_id: An optional short ID to put in the filename (so
       archives may be more easily differentiated).
     var, usr_local, etc: Paths to the relavant directories.
@@ -192,11 +193,11 @@ def SaveLogs(output_dir, archive_id=None,
 
     # Exclude various items from bug reports.
     exclude_files = list(chain.from_iterable(('--exclude', x) for x in [
-        os.path.join(var, 'log', 'connectivity.*'),
-        os.path.join(var, 'log', 'net.log'),
         os.path.join(factory.get_state_root(), factory.CHROME_DATA_DIR_NAME),
         'Extensions',
         ]))
+    if not include_network_log:
+      exclude_files += ['--exclude', os.path.join(var, 'log', 'net.log')]
 
     utils.TryMakeDirs(os.path.dirname(output_file))
     logging.info('Saving %s to %s...', files, output_file)
@@ -287,6 +288,9 @@ def main():
                       help=('save logs to a USB stick (using any mounted '
                             'USB drive partition if available, otherwise '
                             'attempting to temporarily mount one)'))
+  parser.add_argument('--net', action='store_true',
+                      help=("whether to include network related logs or not. "
+                            "Network logs are excluded by default."))
   parser.add_argument('--id', '-i', metavar='ID',
                       help=('short ID to include in file name to help '
                             'differentiate archives'))
@@ -346,7 +350,7 @@ def main():
     with (MountUSB() if args.usb
           else DummyContext(MountUSBInfo(None, args.output_dir, False))
           ) as mount:
-      output_file = SaveLogs(mount.mount_point, args.id, **paths)
+      output_file = SaveLogs(mount.mount_point, args.net, args.id, **paths)
       logging.info('Wrote %s (%d bytes)',
                    output_file, os.path.getsize(output_file))
 
