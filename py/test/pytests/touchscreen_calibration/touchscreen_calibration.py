@@ -20,6 +20,7 @@ import touchscreen_calibration_utils
 
 from cros.factory.event_log import Log
 from cros.factory.test import factory
+from cros.factory.test import shopfloor
 from cros.factory.test import utils
 from cros.factory.test.args import Arg
 from cros.factory.test.fixture.touchscreen_calibration.fixture import (
@@ -88,6 +89,11 @@ class TouchscreenCalibration(unittest.TestCase):
     self.network_status = touchscreen_calibration_utils.NetworkStatus(
         self.sysfs_ip, self.args.shopfloor_ip)
     self.sysfs = None
+    self.start_time = None
+    # TODO(josephsih): samus is the only board for this test so far.
+    # When there are more boards later, there should be a method to determine
+    # the board name.
+    self.aux_log_path = 'touchscreen_calibration/samus'
     self._GetSysfsService()
     self._ConnectTouchDevice()
 
@@ -321,13 +327,20 @@ class TouchscreenCalibration(unittest.TestCase):
     factory.console.info('Execute "%s"' % mtplot_cmd)
     self._ExecuteCommand(mtplot_cmd, fail_msg='Failed to launch mtplot.')
 
+  def _UploadLog(self, log_name, log_data):
+    """Upload the data to shopfloor server as a file."""
+    log_path = os.path.join(self.aux_log_path, log_name)
+    shopfloor_client = shopfloor.GetShopfloorConnection()
+    shopfloor_client.SaveAuxLog(log_path, xmlrpclib.Binary(log_data))
+    factory.console.info('Uploaded sensor data as %s', log_path)
+
   def _DumpOneFrameToLog(self, logger, category, sn, frame_no):
     """Dumps one frame to log.
 
     Args:
       logger: the log object
     """
-    factory.console.info('... dump_frames %s: %d', category, f)
+    factory.console.info('... dump_frames %s: %d', category, frame_no)
     data = self.sysfs.Read(category)
     logger.write('Dump one frame:\n')
     for row in data:
@@ -336,6 +349,9 @@ class TouchscreenCalibration(unittest.TestCase):
 
     Log('touchscreen_calibration_before_touched_%d' % frame_no,
         category=category, sn=sn, sensor_data=str(data))
+
+    log_name = '%s_%s_%s_pre%d' % (self.start_time, sn, category, frame_no)
+    self._UploadLog(log_name, str(data))
 
   def _WriteLog(self, filename, content):
     """Writes the content to the file and display the message in the log.
@@ -430,6 +446,10 @@ class TouchscreenCalibration(unittest.TestCase):
       self.ui.CallJSFunction('displayDebugData', json.dumps(data))
       Log('touchscreen_calibration',
           sn=sn, test_pass=test_pass, sensor_data=str(data))
+
+      result = 'pass' if test_pass else 'fail'
+      log_name = '%s_%s_%s_%s' % (self.start_time, sn, 'deltas', result)
+      self._UploadLog(log_name, str(data))
 
       self.DriveProbeUp()
 
@@ -594,6 +614,7 @@ class TouchscreenCalibration(unittest.TestCase):
       dev_path = '/dev/sdb' if os.path.exists('/dev/sdb1') else '/dev/sdc'
 
     os.environ['DISPLAY'] = ':0'
+    self.start_time = time.strftime('%Y%m%d.%H%M%S')
 
     self.dev_path = dev_path
     self.dump_frames = dump_frames
