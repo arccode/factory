@@ -303,6 +303,48 @@ def GetUnusedPort():
       return port
 
 
+def EnablePort(port, protocol='tcp', priority=None, interface=None):
+  """Allows incoming connection from remote hosts to given port.
+
+  Configures system firewall (iptables) to allow remote connection.
+
+  Args:
+    port: A number (1~MAX_PORT) for connection port, or None for all packets.
+    protocol: A string for network protocol (ex, 'tcp' or 'udp').
+    priority: A number for rule priority (1 is highest) or None as lowest.
+    interface: A string for network interface. None to enable all interfaces.
+
+  Raises:
+    ValueError: When given parameters are invalid.
+  """
+  command = 'iptables'
+  rule = []
+  if (not protocol) and port:
+    # Ports are not allowed if protocol is omitted.
+    raise ValueError('Cannot assign port %r without protocol.' % port)
+  if protocol:
+    rule += ['-p', protocol]
+  if port:
+    if (port < 1) or (port > MAX_PORT):
+      raise ValueError('Invalid port number: %r', port)
+    rule += ['--dport', str(port)]
+  if interface:
+    rule += ['-i', interface]
+  rule += ['-j', 'ACCEPT']
+
+  rule_exists = not Spawn(['iptables', '-C', 'INPUT'] + rule, call=True,
+                          ignore_stderr=True).returncode
+  if priority is None:
+    # Only add if rule exists.
+    if not rule_exists:
+      Spawn([command, '-A', 'INPUT'] + rule, check_call=True)
+  else:
+    # Delete existing rules and insert at target location.
+    if rule_exists:
+      Spawn([command, '-D', 'INPUT'] + rule, check_call=True)
+    Spawn([command, '-I', 'INPUT', str(priority)] + rule, check_call=True)
+
+
 class WLAN(object):
   """Class for wireless network settings.
 
