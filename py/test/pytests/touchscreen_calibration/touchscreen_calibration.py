@@ -321,20 +321,21 @@ class TouchscreenCalibration(unittest.TestCase):
     factory.console.info('Execute "%s"' % mtplot_cmd)
     self._ExecuteCommand(mtplot_cmd, fail_msg='Failed to launch mtplot.')
 
-  def _DumpOneFrameToLog(self, logger, sn, frame_no):
+  def _DumpOneFrameToLog(self, logger, category, sn, frame_no):
     """Dumps one frame to log.
 
     Args:
       logger: the log object
     """
-    data = self.sysfs.Read(self.DELTAS)
+    factory.console.info('... dump_frames %s: %d', category, f)
+    data = self.sysfs.Read(category)
     logger.write('Dump one frame:\n')
     for row in data:
       logger.write(' '.join([str(val) for val in row]))
       logger.write('\n')
 
     Log('touchscreen_calibration_before_touched_%d' % frame_no,
-        sn=sn, sensor_data=str(data))
+        category=category, sn=sn, sensor_data=str(data))
 
   def _WriteLog(self, filename, content):
     """Writes the content to the file and display the message in the log.
@@ -402,10 +403,13 @@ class TouchscreenCalibration(unittest.TestCase):
       if not self.sysfs.WriteSysfsSection('PreRead'):
         factory.console.error('Failed to write PreRead section to sys fs.')
 
+      # Dump one frame of the baseline data.
+      self._DumpOneFrameToLog(log_to_file, self.REFS, sn, 1)
+      time.sleep(0.1)
+
       # Dump whole frame a few times before probe touches panel.
       for f in range(self.dump_frames):           # pylint: disable=W0612
-        factory.console.info('... dump_frames: %d', f)
-        self._DumpOneFrameToLog(log_to_file, sn, f)
+        self._DumpOneFrameToLog(log_to_file, self.DELTAS, sn, f)
         time.sleep(0.1)
 
       self.DriveProbeDown()
