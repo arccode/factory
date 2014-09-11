@@ -29,13 +29,15 @@ class GoofyPresenter(GoofyBase):
     link_manager: The DUTLinkManager for this invocation of Goofy.
     ui_app_controller: UIAppController instance used to communicate with
         UI presenter app.
+    dut_ip: The last known IP address of the DUT. None if a DUT is never seen.
   """
   def __init__(self):
     super(GoofyPresenter, self).__init__()
 
     self.args = self.ParseOptions()
 
-    self.ui_app_controller = UIAppController()
+    self.ui_app_controller = UIAppController(connect_hook=self.UIConnected)
+    self.dut_ip = None
 
     if utils.in_cros_device():
       self.env = test_environment.DUTEnvironment()
@@ -60,9 +62,15 @@ class GoofyPresenter(GoofyBase):
 
   def DUTConnected(self, dut_ip):
     self.ui_app_controller.ShowUI(dut_ip)
+    self.dut_ip = dut_ip
 
   def DUTDisconnected(self):
     self.ui_app_controller.ShowDisconnectedScreen()
+    self.dut_ip = None
+
+  def UIConnected(self):
+    if self.dut_ip:
+      self.ui_app_controller.ShowUI(self.dut_ip)
 
   def UIAppCountdown(self, message, timeout_secs, timeout_message,
                      timeout_message_color):

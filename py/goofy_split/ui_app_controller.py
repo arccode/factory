@@ -42,8 +42,10 @@ class UIAppControllerHandler(SimpleHTTPRequestHandler):
 
 class UIAppController(object):
 
-  def __init__(self):
+  def __init__(self, connect_hook=None, disconnect_hook=None):
     self.web_sockets = set()
+    self._connect_hook = connect_hook
+    self._disconnect_hook = disconnect_hook
     self._connect_event = threading.Event()
     self._abort_event = threading.Event()
     self.lock = threading.Lock()
@@ -68,10 +70,14 @@ class UIAppController(object):
     with self.lock:
       self.web_sockets.add(ws)
       self._connect_event.set()
+    if self._connect_hook is not None and not self._abort_event.isSet():
+      self._connect_hook()
 
   def DiscardWebSocket(self, ws):
     with self.lock:
       self.web_sockets.discard(ws)
+    if self._disconnect_hook is not None and not self._abort_event.isSet():
+      self._disconnect_hook()
 
   def WaitForWebSocket(self):
     self._connect_event.wait()
