@@ -65,8 +65,7 @@ def IsDestinationPortEnabled(port):
   If port 8000 is enabled, it looks like
     ACCEPT  tcp  --  0.0.0.0/0  0.0.0.0/0  ctstate NEW tcp dpt:8000
   """
-  pattern = re.compile('ACCEPT\s+tcp\s+0.0.0.0/0\s+0.0.0.0/0\s+ctstate\s+'
-                       'NEW\s+tcp\s+dpt:%d' % port)
+  pattern = re.compile('ACCEPT\s+tcp.+\s+ctstate\s+NEW\s+tcp\s+dpt:%d' % port)
   rules = SimpleSystemOutput('iptables -L INPUT -n --line-number')
   for rule in rules.splitlines():
     if pattern.search(rule):
@@ -76,10 +75,11 @@ def IsDestinationPortEnabled(port):
 
 def EnableDestinationPort(port):
   """Eanble the destination port in iptables."""
-  cmd = ('iptables -A INPUT -p tcp -m conntrack --ctstate NEW --dport %d '
-         '-j ACCEPT' % port)
-  if SimpleSystem(cmd) != 0:
-    raise Error('Failed to enable destination port in iptables: %d.' % port)
+  if not IsDestinationPortEnabled(port):
+    cmd = ('iptables -A INPUT -p tcp -m conntrack --ctstate NEW --dport %d '
+           '-j ACCEPT' % port)
+    if SimpleSystem(cmd) != 0:
+      raise Error('Failed to enable destination port in iptables: %d.' % port)
 
 
 def GetSysfsEntry(vendor=ATMEL):
