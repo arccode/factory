@@ -151,7 +151,8 @@ def RunXMLRPCSysfsServer(addr, log=logging):
   def _IsServerRunning():
     """Check if the server is running."""
     filename = os.path.basename(__file__)
-    re_pattern = re.compile('python.+' + filename)
+    # Exclude the one with 'sudo python ....' which is only a shell.
+    re_pattern = re.compile('(?<!sudo)\s+python.+' + filename)
     count = 0
     for line in utils.SimpleSystemOutput('ps aux').splitlines():
       result = re_pattern.search(line)
