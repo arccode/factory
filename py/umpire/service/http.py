@@ -40,7 +40,8 @@ LIGHTY_CONFIG_FILENAME = 'lighttpd_#%s#.conf'
 # String template for handlers.
 # %d is the binding port of its corresponding shop floor handler FastCGI
 # running locally.
-SHOP_FLOOR_HANDLER_PATH = '/shop_floor/%d/'
+
+SHOP_FLOOR_HANDLER_PATH = common.HANDLER_BASE + '/%d/'
 # It is used for lighttpd fastcgi module. With leading and trailing shash,
 # it is treated as prefix and reques URL's path is passing to FastCGI as
 # SCRIPT_NAME.

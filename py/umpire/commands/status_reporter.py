@@ -49,11 +49,9 @@ class StatusReporter(object):
     return open(self._env.staging_config_file).read()
 
   def GetShopFloorMapping(self):
-    """Gets list of (port, bundle_id) pairs.
-    Note that it only returns ports associate with bundle_id.
+    """Gets list of (bundle_id, handler) pairs.
 
     Returns:
-      list of (port, bundle_id) pairs.
+      list of (bundle_id, handler) pairs.
     """
-    mapping = self._env.shop_floor_manager.GetPortMapping()
-    return filter(lambda x: x[1] is not None, mapping)
+    return self._env.shop_floor_manager.GetBundleHandlerMapping()

@@ -18,6 +18,7 @@ import optparse
 import socket
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.umpire import common
 from cros.factory.umpire import fastcgi_server
 from cros.factory.umpire import shop_floor_handler
 
@@ -128,7 +129,7 @@ def main():
   instance = _ShopFloorHandlerFactory(options.module)
 
   # WSGI environ's SCRIPT_NAME to accept.
-  script_name = '/shop_floor/%d/%s' % (options.port, options.token)
+  script_name = '%s/%d/%s' % (common.HANDLER_BASE, options.port, options.token)
 
   logging.info(
       'Starting FastCGI server (module:%s) on http://%s:%d%s',

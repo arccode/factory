@@ -10,6 +10,9 @@ See ShopFloorManager for details."""
 import binascii
 import os
 
+import factory_common  # pylint: disable=W0611
+from cros.factory.umpire import common
+
 
 class ShopFloorManager(object):
   """Manages ShopFloorHandler FastCGI port binding.
@@ -102,6 +105,18 @@ class ShopFloorManager(object):
     """
     return [(p, self._port_bundle.get(p))
             for p in xrange(self._port_begin, self._port_end + 1)]
+
+  def GetBundleHandlerMapping(self):
+    """Retrieves list of (bundle_id, handler_path).
+
+    handler_path = handler_base/port/token
+
+    Returns:
+      List of (bundle_id, handler_path).
+    """
+    handler_pattern = common.HANDLER_BASE + '/%d/%s'
+    return [(bundle_id, handler_pattern % port_token)
+            for bundle_id, port_token in self._bundle_port.iteritems()]
 
   def GetAvailablePorts(self):
     """Returns list of available ports."""

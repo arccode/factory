@@ -234,9 +234,10 @@ def Status(args, umpire_cli):
   else:
     print 'No staging config.'
 
-  print 'shop_floor_handler port -> bundle mapping:'
-  for port, bundle_id in status['shop_floor_mapping']:
-    print '  %d => %s' % (port, bundle_id)
+  print 'Mapping of bundle_id => shop floor handler path:'
+  # Because XMLRPC converts tuple to list, so convert it back as string
+  # formatting expects tuple.
+  print '\n'.join('  %s => %s' % tuple(m) for m in status['shop_floor_mapping'])
   print
 
 
