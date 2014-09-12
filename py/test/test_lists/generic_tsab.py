@@ -15,7 +15,7 @@ from cros.factory.test.test_lists.test_lists import TestList
 
 
 _SHOPFLOOR_IP = '10.3.0.12'
-_SHOPFLOOR_PORT = '8082'
+_SHOPFLOOR_PORT = '9090'
 
 
 def CreateTestLists():
@@ -26,7 +26,7 @@ def CreateTestLists():
   be changed.
   """
   with TestList('tsab_station', 'Touchscreen calibration on AB panel') as tlist:
-    tlist.options.shopfloor_server_url = 'http://%s:%s/' % (
+    tlist.options.shopfloor_server_url = 'http://%s:%s' % (
         _SHOPFLOOR_IP, _SHOPFLOOR_PORT)
     with AutomatedSequence(id='TouchscreenCalibrationSequence',
                            label_zh=u'触控面板校正程序'):

@@ -84,7 +84,7 @@ class TouchscreenCalibration(unittest.TestCase):
                                                         'DELTA_LOWER_BOUND'))
     self.delta_higher_bound = int(self.sysfs_config.Read('TouchSensors',
                                                          'DELTA_HIGHER_BOUND'))
-    self.sn_length = int(self.sysfs_config.Read('Misc', 'sn_length'))
+    self.sn_length = int(self.sysfs_config.Read('Misc', 'SN_LENGTH'))
     self.fake_fixture = self.sysfs_config.Read('Misc', 'FAKE_FIXTURE') == 'True'
     self.network_status = touchscreen_calibration_utils.NetworkStatus(
         self.sysfs_ip, self.args.shopfloor_ip)
