@@ -132,3 +132,43 @@ def DownloadAndUnzip(url):
   with gzip.GzipFile(fileobj=string_io) as f:
     content = f.read()
   return content
+
+
+def GetUpdateForFirmware(proxy):
+  """Gets firmware update from Umpire server.
+
+  The user of this method is get_firmware_updater in cros.factory.test.shopfloor.
+  This method returns the content of unzipped firmware.gz file, that is,
+  chromeos-firmwareupdate.
+
+  Args:
+    proxy: An UmpireServerProxy that connects to Umpire server.
+
+  Returns:
+    None if there is no firmware update. Otherwise, return unzipped
+    chromeos-firmwareupdate file content.
+  """
+  update_info_firmware = GetUpdateForComponents(
+      proxy, ['firmware_ec', 'firmware_bios'])
+  logging.info('Update info for firmware: %r', update_info_firmware)
+
+  if (update_info_firmware['firmware_ec'].needs_update or
+      update_info_firmware['firmware_bios'].needs_update):
+    logging.info('Need firmware update from Umpire')
+  else:
+    return None
+
+  if (update_info_firmware['firmware_ec'].md5sum !=
+      update_info_firmware['firmware_bios'].md5sum):
+    raise UmpireClientGetUpdateException(
+        'Md5sum for ec and bios firmware updater are different: %s != %s',
+        update_info_firmware['firmware_ec'].md5sum,
+        update_info_firmware['firmware_bios'].md5sum)
+
+  update_info = update_info_firmware['firmware_ec']
+
+  if update_info.scheme != 'http':
+    raise UmpireClientGetUpdateException(
+        ('Firmware update scheme %s other than http is not supported.'
+         % update_info.scheme))
+  return DownloadAndUnzip(update_info.url)

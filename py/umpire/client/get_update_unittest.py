@@ -90,6 +90,35 @@ FAKE_IMAGE_RESULT_4 = {
     'rootfs_release': get_update.UpdateInfo(
         needs_update=False, md5sum='md5sum2', url='release_url', scheme='http')}
 
+FAKE_FIRMWARE_RESULT_1 = {
+    'firmware_ec': get_update.UpdateInfo(
+        needs_update=True, md5sum='md5sum1', url='firmware_url', scheme='http'),
+    'firmware_bios': get_update.UpdateInfo(
+        needs_update=True, md5sum='md5sum1', url='firmware_url', scheme='http')}
+
+FAKE_FIRMWARE_RESULT_2 = {
+    'firmware_ec': get_update.UpdateInfo(
+        needs_update=False, md5sum='md5sum1', url='firmware_url',
+        scheme='http'),
+    'firmware_bios': get_update.UpdateInfo(
+        needs_update=True, md5sum='md5sum1', url='firmware_url', scheme='http')}
+
+FAKE_FIRMWARE_RESULT_3 = {
+    'firmware_ec': get_update.UpdateInfo(
+        needs_update=False, md5sum='md5sum1', url='firmware_url',
+        scheme='http'),
+    'firmware_bios': get_update.UpdateInfo(
+        needs_update=False, md5sum='md5sum1', url='firmware_url',
+        scheme='http')}
+
+FAKE_FIRMWARE_RESULT_4 = {
+    'firmware_ec': get_update.UpdateInfo(
+        needs_update=True, md5sum='md5sum1', url='firmware_url', scheme='http'),
+    'firmware_bios': get_update.UpdateInfo(
+        needs_update=True, md5sum='md5sum2', url='firmware_url', scheme='http')}
+
+FAKE_FIRMWARE_UPDATE_RESULT = 'chromeos-firmwareupdate content'
+
 TESTDATA_DIRECTORY = os.path.join(
     os.path.dirname(os.path.realpath(__file__)), 'testdata')
 
@@ -218,6 +247,72 @@ class GetUpdateTests(unittest.TestCase):
     self.assertEqual(True, get_update.NeedImageUpdate(self.proxy))
     self.assertEqual(True, get_update.NeedImageUpdate(self.proxy))
     self.assertEqual(False, get_update.NeedImageUpdate(self.proxy))
+
+    self.mox.VerifyAll()
+
+  def testGetUpdateForFirmwareTrue(self):
+    """Tests GetUpdateForFirmware when both updates are available."""
+    self.mox.StubOutWithMock(urllib2, 'urlopen')
+    fake_urlopen = self.mox.CreateMockAnything()
+    gzip_content = None
+    with open(os.path.join(TESTDATA_DIRECTORY , 'firmware.gz')) as f:
+      gzip_content = f.read()
+    get_update.GetUpdateForComponents(
+        self.proxy, ['firmware_ec', 'firmware_bios']).AndReturn(
+            FAKE_FIRMWARE_RESULT_1)
+    urllib2.urlopen('firmware_url').AndReturn(fake_urlopen)
+    fake_urlopen.read().AndReturn(gzip_content)
+
+    self.mox.ReplayAll()
+
+    result = get_update.GetUpdateForFirmware(self.proxy)
+    self.assertTrue(result, FAKE_FIRMWARE_UPDATE_RESULT)
+
+    self.mox.VerifyAll()
+
+  def testGetUpdateForFirmwareOnlyOneTrue(self):
+    """Tests GetUpdateForFirmware when one update is available."""
+    self.mox.StubOutWithMock(urllib2, 'urlopen')
+    fake_urlopen = self.mox.CreateMockAnything()
+    gzip_content = None
+    with open(os.path.join(TESTDATA_DIRECTORY , 'firmware.gz')) as f:
+      gzip_content = f.read()
+    get_update.GetUpdateForComponents(
+        self.proxy, ['firmware_ec', 'firmware_bios']).AndReturn(
+            FAKE_FIRMWARE_RESULT_2)
+    urllib2.urlopen('firmware_url').AndReturn(fake_urlopen)
+    fake_urlopen.read().AndReturn(gzip_content)
+
+    self.mox.ReplayAll()
+
+    result = get_update.GetUpdateForFirmware(self.proxy)
+    self.assertTrue(result, FAKE_FIRMWARE_UPDATE_RESULT)
+
+    self.mox.VerifyAll()
+
+  def testGetUpdateForFirmwareFalse(self):
+    """Tests GetUpdateForFirmware when no update available."""
+    get_update.GetUpdateForComponents(
+        self.proxy, ['firmware_ec', 'firmware_bios']).AndReturn(
+            FAKE_FIRMWARE_RESULT_3)
+
+    self.mox.ReplayAll()
+
+    result = get_update.GetUpdateForFirmware(self.proxy)
+    self.assertIsNone(result)
+
+    self.mox.VerifyAll()
+
+  def testGetUpdateForFirmwareInvalidInfo(self):
+    """Tests GetUpdateForFirmware with invalid info."""
+    get_update.GetUpdateForComponents(
+        self.proxy, ['firmware_ec', 'firmware_bios']).AndReturn(
+            FAKE_FIRMWARE_RESULT_4)
+
+    self.mox.ReplayAll()
+
+    with self.assertRaises(get_update.UmpireClientGetUpdateException):
+      get_update.GetUpdateForFirmware(self.proxy)
 
     self.mox.VerifyAll()
 
