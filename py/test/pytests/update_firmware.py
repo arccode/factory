@@ -13,6 +13,8 @@ import threading
 import unittest
 
 from cros.factory.system import vpd
+from cros.factory.test import factory
+from cros.factory.test import shopfloor
 from cros.factory.test.args import Arg
 from cros.factory.test.event import Event
 from cros.factory.test.test_ui import Escape, MakeLabel, UI
@@ -29,6 +31,8 @@ class UpdateFirmwareTest(unittest.TestCase):
         default='/usr/local/factory/board/chromeos-firmwareupdate'),
     Arg('update_ec', bool, 'Update EC firmware.', default=True),
     Arg('update_pd', bool, 'Update PD firmware.', default=True),
+    Arg('umpire', bool, 'Update firmware updater from Umpire server',
+        default=False),
     Arg('update_main', bool, 'Update main firmware.', default=True),
     Arg('apply_customization_id', bool,
         'Update root key based on the customization_id stored in VPD.',
@@ -36,8 +40,15 @@ class UpdateFirmwareTest(unittest.TestCase):
   ]
 
   def setUp(self):
-    self.assertTrue(os.path.isfile(self.args.firmware_updater),
-                    msg='%s is missing.' % self.args.firmware_updater)
+    self.just_pass = False
+    if self.args.umpire:
+      if shopfloor.get_firmware_updater():
+        self.args.firmware_updater = factory.FIRMWARE_UPDATER_PATH
+      else:
+        self.just_pass = True
+    else:
+      self.assertTrue(os.path.isfile(self.args.firmware_updater),
+                      msg='%s is missing.' % self.args.firmware_updater)
     self._ui = UI()
     self._template = OneScrollableSection(self._ui)
     self._template.SetTitle(_TEST_TITLE)
@@ -98,5 +109,7 @@ class UpdateFirmwareTest(unittest.TestCase):
       self._ui.Pass()
 
   def runTest(self):
+    if self.just_pass:
+      return
     threading.Thread(target=self.UpdateFirmware).start()
     self._ui.Run()
