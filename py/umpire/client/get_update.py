@@ -114,7 +114,19 @@ def GetUpdateForHWID(proxy):
   if update_info.scheme != 'http':
     raise UmpireClientGetUpdateException('HWID update scheme %s other than http'
         ' is not supported.' % update_info.scheme)
-  gz_file_content = urllib2.urlopen(update_info.url).read()
+  return DownloadAndUnzip(update_info.url)
+
+
+def DownloadAndUnzip(url):
+  """Downloads a gzip file and returns its unzipped content.
+
+  Args:
+    url: The url of the gzip file.
+
+  Returns:
+    The unzipped content.
+  """
+  gz_file_content = urllib2.urlopen(url).read()
   string_io = StringIO.StringIO(gz_file_content)
   content = None
   with gzip.GzipFile(fileobj=string_io) as f:
