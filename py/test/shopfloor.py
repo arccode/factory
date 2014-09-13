@@ -321,6 +321,29 @@ def get_hwid_updater():
   return hwid_updater
 
 
+@_server_api
+def get_firmware_updater():
+  """Gets firmware updater, if any."""
+  firmware_updater = None
+  proxy = get_instance()
+  if proxy.use_umpire:
+    firmware_updater = get_update.GetUpdateForFirmware(proxy)
+  else:
+    raise Exception('Firmware update from network is only supported by Umpire')
+
+  if not firmware_updater:
+    logging.info('No firmware updater available on shopfloor')
+    return False
+
+  with open(factory.FIRMWARE_UPDATER_PATH, 'wb') as f:
+    f.write(firmware_updater)
+
+  logging.info('Writing firmware updater from shopfloor to %s',
+               factory.FIRMWARE_UPDATER_PATH)
+  os.chmod(factory.FIRMWARE_UPDATER_PATH, 0755)
+  return True
+
+
 def update_local_hwid_data(target_dir='/usr/local/factory/hwid'):
   """Updates HWID information from shopfloor server.
 

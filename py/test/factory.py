@@ -35,6 +35,8 @@ FACTORY_PATH = os.path.realpath(os.path.join(CROS_FACTORY_LIB_PATH, '..', '..'))
 FACTORY_PACKAGE_PATH = os.path.join(FACTORY_PATH, 'py_pkg', 'cros', 'factory')
 CLIENT_PATH = FACTORY_PATH
 FACTORY_MD5SUM_PATH = os.path.join(FACTORY_PATH, 'MD5SUM')
+FIRMWARE_UPDATER_PATH = os.path.join(
+    FACTORY_PATH, 'board', 'chromeos-firmwareupdate')
 
 # Path to stateful partition on device.
 DEVICE_STATEFUL_PATH = '/mnt/stateful_partition'
