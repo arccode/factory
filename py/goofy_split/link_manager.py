@@ -39,7 +39,8 @@ class PresenterLinkManager(object):
                handshake_timeout=0.3,
                rpc_timeout=1,
                connect_hook=None,
-               disconnect_hook=None):
+               disconnect_hook=None,
+               standalone=False):
     self._check_interval = check_interval
     self._handshake_timeout = handshake_timeout
     self._rpc_timeout = rpc_timeout
@@ -53,7 +54,8 @@ class PresenterLinkManager(object):
     self._presenter_ip = None
     self._presenter_proxy = None
     self._presenter_announcement = None
-    self._discoverer = PresenterDiscoverer(PRESENTER_LINK_RPC_PORT)
+    self._discoverer = PresenterDiscoverer(PRESENTER_LINK_RPC_PORT,
+                                           localhost_only=standalone)
     self._kick_event = threading.Event()
     self._abort_event = threading.Event()
     self._server = JSONRPCServer(port=DUT_LINK_RPC_PORT, methods=self._methods)
@@ -229,7 +231,8 @@ class DUTLinkManager(object):
                methods=None,
                rpc_timeout=1,
                connect_hook=None,
-               disconnect_hook=None):
+               disconnect_hook=None,
+               standalone=False):
     self._check_interval = check_interval
     self._rpc_timeout = rpc_timeout
     self._connect_hook = connect_hook
@@ -247,7 +250,8 @@ class DUTLinkManager(object):
     self._lock = threading.Lock()
     self._kick_event = threading.Event()
     self._abort_event = threading.Event()
-    self._discoverer = DUTDiscoverer(DUT_LINK_RPC_PORT)
+    self._discoverer = DUTDiscoverer(DUT_LINK_RPC_PORT,
+                                     localhost_only=standalone)
     self._server = JSONRPCServer(port=PRESENTER_LINK_RPC_PORT,
                                  methods=self._methods)
     self._server.Start()

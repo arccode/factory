@@ -15,6 +15,7 @@ BOARD_SETUP=("$FACTORY/board/board_setup_factory.sh"
 
 # Default args for Goofy.
 GOOFY_ARGS=""
+PRESENTER_ARGS=""
 
 # Ports used by goofy
 GOOFY_UI_PORT="4012"
@@ -131,9 +132,15 @@ start_factory() {
     start -n ui &
   fi
 
+  if [ -f "${RUN_GOOFY_PRESENTER_TAG_FILE}" ] && \
+     [ -f "${RUN_GOOFY_DEVICE_TAG_FILE}" ]; then
+    GOOFY_ARGS="${GOOFY_ARGS} --standalone"
+    PRESENTER_ARGS="${PRESENTER_ARGS} --standalone"
+  fi
+
   # Run goofy_presenter if goofy_presenter tag file is present
   if [ -f "${RUN_GOOFY_PRESENTER_TAG_FILE}" ]; then
-    "$FACTORY/bin/goofy_presenter" $GOOFY_ARGS >>"$FACTORY_LOG_FILE" 2>&1 &
+    "$FACTORY/bin/goofy_presenter" $PRESENTER_ARGS >>"$FACTORY_LOG_FILE" 2>&1 &
   fi
 
   # Run goofy(device) if the goofy_device tag file is present,

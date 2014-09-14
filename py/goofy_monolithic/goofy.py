@@ -1232,6 +1232,8 @@ class Goofy(object):
     parser.add_option('--use-telemetry', dest='use_telemetry',
                       action='store_true', default=False,
                       help='Use Telemetry for Chrome UI invocation.')
+    parser.add_option('--standalone', dest='standalone',
+                      help='(This option is for goofy_split only)')
     (self.options, self.args) = parser.parse_args(args)
 
     signal.signal(signal.SIGINT, self.handle_sigint)

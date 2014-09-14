@@ -27,9 +27,11 @@ class DiscovererBase(object):
   """Base class for discoverers."""
   LOCALHOST = '127.0.0.1'
 
-  def __init__(self):
+  def __init__(self, localhost_only=False):
     subnet_config = os.path.join(FACTORY_PATH, 'board', 'host_based_subnets')
-    if os.path.exists(subnet_config):
+    if localhost_only:
+      self.allowed_subnets = []
+    elif os.path.exists(subnet_config):
       with open(subnet_config) as f:
         self.allowed_subnets = [line.strip() for line in f.readlines()]
     else:
@@ -131,8 +133,8 @@ class DiscovererBase(object):
 
 class DUTDiscoverer(DiscovererBase):
   """Discoverer that looks for the DUT."""
-  def __init__(self, port):
-    super(DUTDiscoverer, self).__init__()
+  def __init__(self, port, localhost_only=False):
+    super(DUTDiscoverer, self).__init__(localhost_only)
     self._port = port
 
   def Discover(self):
@@ -144,8 +146,8 @@ class DUTDiscoverer(DiscovererBase):
 
 class PresenterDiscoverer(DiscovererBase):
   """Discoverer that looks for the presenter."""
-  def __init__(self, port):
-    super(PresenterDiscoverer, self).__init__()
+  def __init__(self, port, localhost_only=False):
+    super(PresenterDiscoverer, self).__init__(localhost_only)
     self._port = port
 
   def Discover(self):

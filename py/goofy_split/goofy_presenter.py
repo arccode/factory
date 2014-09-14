@@ -7,6 +7,7 @@
 
 """The main factory flow that runs the presenter-side of factory tests."""
 
+import argparse
 import logging
 import syslog
 
@@ -32,6 +33,8 @@ class GoofyPresenter(GoofyBase):
   def __init__(self):
     super(GoofyPresenter, self).__init__()
 
+    self.args = self.ParseOptions()
+
     self.ui_app_controller = UIAppController()
 
     if utils.in_cros_device():
@@ -45,7 +48,15 @@ class GoofyPresenter(GoofyBase):
         check_interval=1,
         connect_hook=self.DUTConnected,
         disconnect_hook=self.DUTDisconnected,
-        methods={'StartCountdown': self.UIAppCountdown})
+        methods={'StartCountdown': self.UIAppCountdown},
+        standalone=self.args.standalone)
+
+  def ParseOptions(self):
+    parser = argparse.ArgumentParser(description="Run Goofy presenter")
+    parser.add_argument('--standalone', action='store_true',
+                        help=('Assume the controller is running on the same '
+                              'machines.'))
+    return parser.parse_args()
 
   def DUTConnected(self, dut_ip):
     self.ui_app_controller.ShowUI(dut_ip)
@@ -74,7 +85,7 @@ class GoofyPresenter(GoofyBase):
     self.run()
 
   def destroy(self):
-    """ Performs any shutdown tasks. Overrides base class method. """
+    """Performs any shutdown tasks. Overrides base class method."""
     self.link_manager.Stop()
     self.ui_app_controller.Stop()
     super(GoofyPresenter, self).destroy()

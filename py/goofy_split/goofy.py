@@ -1217,6 +1217,10 @@ class Goofy(GoofyBase):
     parser.add_option('--use-telemetry', dest='use_telemetry',
                       action='store_true', default=False,
                       help='Use Telemetry for Chrome UI invocation.')
+    parser.add_option('--standalone', dest='standalone',
+                      action='store_true', default=False,
+                      help=('Assume the presenter is running on the same '
+                            'machines.'))
     (self.options, self.args) = parser.parse_args(args)
 
     signal.signal(signal.SIGINT, self.handle_sigint)
@@ -1273,7 +1277,8 @@ class Goofy(GoofyBase):
 
     logging.info('Started')
 
-    self.link_manager = PresenterLinkManager(check_interval=1)
+    self.link_manager = PresenterLinkManager(check_interval=1,
+                                             standalone=self.options.standalone)
 
     self.start_state_server()
     self.state_instance.set_shared_data('hwid_cfg', get_hwid_cfg())
