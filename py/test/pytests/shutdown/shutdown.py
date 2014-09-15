@@ -76,7 +76,9 @@ class ShutdownTest(unittest.TestCase):
            'is exceeded, the reboot is considered failed.'),
           default=180, optional=True),
       Arg('wait_shutdown_secs', int,
-          'Number of seconds to wait for system shutdown.', default=60)
+          'Number of seconds to wait for system shutdown.', default=60),
+      Arg('check_tag_file', bool, 'Checks shutdown failure tag file',
+          default=False)
   ]
 
   def setUp(self):
@@ -156,6 +158,29 @@ class ShutdownTest(unittest.TestCase):
     self.ui.Fail('System did not shutdown in %d seconds.' %
                  self.args.wait_shutdown_secs)
 
+  def CheckShutdownFailureTagFile(self):
+    """Checks if there is any shutdown failure tag file.
+
+    '/mnt/stateful_partition/umount-encrypted.log' and
+    '/mnt/stateful_partition/shutdown_stateful_umount_failure' are the
+    shutdown failure tag file.
+
+    Returns:
+      Returns True if there is shutdown failure tag file. False otherwise.
+    """
+    fail_shutdown = False
+    files_to_check_not_exist = [
+      '/mnt/stateful_partition/umount-encrypted.log',
+      '/mnt/stateful_partition/shutdown_stateful_umount_failure'
+    ]
+    for path in files_to_check_not_exist:
+      if os.path.exists(path):
+        fail_shutdown = True
+        with open(path) as f:
+          content = f.read()
+        logging.error('Reboot bad file path %s found:\n %s', path, content)
+    return fail_shutdown
+
   def PostShutdown(self):
     """Post-shutdown verifications."""
     def LogAndEndTest(status, error_msg, **kw):
@@ -197,6 +222,10 @@ class ShutdownTest(unittest.TestCase):
       # Shut down too many times
       LogAndEndTest(status=TestState.FAILED, error_msg='Too many shutdowns')
       self.goofy.LogStartupMessages()
+
+    elif self.args.check_tag_file and self.CheckShutdownFailureTagFile():
+      LogAndEndTest(status=TestState.FAILED,
+                    error_msg='Found shutdown fail tag file')
 
     # Good!
     LogAndEndTest(status=TestState.PASSED,
