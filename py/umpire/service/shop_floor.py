@@ -62,7 +62,7 @@ class ShopFloorService(umpire_service.UmpireService):
           'executable': os.path.join(toolkit_dir, SHOP_FLOOR_FCGI),
           'name': PROCESS_NAME_PREFIX + bundle['id'],
           'args': ['--module', handler] + process_parameters,
-          'path': '/tmp'}
+          'path': env.umpire_data_dir}
       proc = umpire_service.ServiceProcess(self)
       proc.SetNonhashArgs(['--port', str(fcgi_port), '--token', token])
       proc.SetConfig(proc_config)
