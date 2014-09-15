@@ -4,6 +4,8 @@
 
 """An E2E test to test the shutdown factory test."""
 
+from __future__ import print_function
+
 import mock
 import re
 import time
@@ -42,6 +44,9 @@ class ShutdownE2ETest(e2e_test.E2ETest):
   dargs = dict(
       operation='reboot')
 
+  def setUp(self):
+    self.post_shutdown_tag = '%s.post_shutdown' % self.test_info.path
+
   @e2e_test.E2ETestCase()
   @mock.patch.object(factory, 'get_state_instance',
                      return_value=_goofy)
@@ -57,7 +62,7 @@ class ShutdownE2ETest(e2e_test.E2ETest):
 
     mock_get_state_instance.assert_called_with()
     mock_event_client.assert_called_with()
-    _goofy.get_shared_data.assert_called_with('post_shutdown', True)
+    _goofy.get_shared_data.assert_called_with(self.post_shutdown_tag, True)
     _goofy.Shutdown.assert_called_with('reboot')
 
   @e2e_test.E2ETestCase()
@@ -75,7 +80,7 @@ class ShutdownE2ETest(e2e_test.E2ETest):
 
     mock_get_state_instance.assert_called_with()
     mock_event_client.assert_called_with()
-    _goofy.get_shared_data.assert_called_with('post_shutdown', True)
+    _goofy.get_shared_data.assert_called_with(self.post_shutdown_tag, True)
 
   @e2e_test.E2ETestCase()
   @mock.patch.object(factory, 'get_state_instance',
@@ -94,8 +99,8 @@ class ShutdownE2ETest(e2e_test.E2ETest):
                                 duration=mock.ANY,
                                 status=factory.TestState.PASSED,
                                 error_msg=None)
-    _goofy.get_shared_data.assert_called_with('post_shutdown', True)
-    _goofy.set_shared_data.assert_called_with('post_shutdown', False)
+    _goofy.get_shared_data.assert_called_with(self.post_shutdown_tag, True)
+    _goofy.del_shared_data.assert_called_with(self.post_shutdown_tag)
 
   @e2e_test.E2ETestCase()
   @mock.patch.object(factory, 'get_state_instance',
@@ -113,8 +118,8 @@ class ShutdownE2ETest(e2e_test.E2ETest):
     mock_log.assert_called_with('rebooted',
                                 status=factory.TestState.FAILED,
                                 error_msg='Unable to read shutdown_time')
-    _goofy.get_shared_data.assert_called_with('post_shutdown', True)
-    _goofy.set_shared_data.assert_called_with('post_shutdown', False)
+    _goofy.get_shared_data.assert_called_with(self.post_shutdown_tag, True)
+    _goofy.del_shared_data.assert_called_with(self.post_shutdown_tag)
 
   @e2e_test.E2ETestCase()
   @mock.patch.object(factory, 'get_state_instance',
@@ -132,8 +137,8 @@ class ShutdownE2ETest(e2e_test.E2ETest):
     mock_log.assert_called_with('rebooted',
                                 status=factory.TestState.FAILED,
                                 error_msg='Time moved backward during reboot')
-    _goofy.get_shared_data.assert_called_with('post_shutdown', True)
-    _goofy.set_shared_data.assert_called_with('post_shutdown', False)
+    _goofy.get_shared_data.assert_called_with(self.post_shutdown_tag, True)
+    _goofy.del_shared_data.assert_called_with(self.post_shutdown_tag)
 
   @e2e_test.E2ETestCase(dargs={'max_reboot_time_secs': 10})
   @mock.patch.object(factory, 'get_state_instance',
@@ -154,5 +159,5 @@ class ShutdownE2ETest(e2e_test.E2ETest):
                                 status=factory.TestState.FAILED,
                                 error_msg=RegExpMatcher(
                                     r'More than \d+ s elapsed during reboot'))
-    _goofy.get_shared_data.assert_called_with('post_shutdown', True)
-    _goofy.set_shared_data.assert_called_with('post_shutdown', False)
+    _goofy.get_shared_data.assert_called_with(self.post_shutdown_tag, True)
+    _goofy.del_shared_data.assert_called_with(self.post_shutdown_tag)

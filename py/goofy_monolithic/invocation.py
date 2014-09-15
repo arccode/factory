@@ -33,6 +33,7 @@ from cros.factory.goofy_monolithic.service_manager import ServiceManager
 from cros.factory.privacy import FilterDict
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
+from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import utils
 from cros.factory.test.args import Args
@@ -202,7 +203,14 @@ class TestInvocation(object):
     self.thread = threading.Thread(
         target=self._run, name='TestInvocation-%s' % test.path)
     self.on_completion = on_completion
-    self.uuid = event_log.TimedUuid()
+    post_shutdown_tag = state.POST_SHUTDOWN_TAG % test.path
+    if factory.get_shared_data(post_shutdown_tag):
+      # If this is going to be a post-shutdown run of an active shutdown test,
+      # reuse the existing invocation as uuid so that we can accumulate all the
+      # logs in the same log file.
+      self.uuid = factory.get_shared_data(post_shutdown_tag)
+    else:
+      self.uuid = event_log.TimedUuid()
     self.output_dir = os.path.join(factory.get_test_data_root(),
                                    '%s-%s' % (self.test.path,
                                               self.uuid))
@@ -440,7 +448,7 @@ class TestInvocation(object):
             automation_mode=self.goofy.options.automation_mode), info)
 
       # Invoke the unittest driver in a separate process.
-      with open(self.log_path, 'wb', 0) as log:
+      with open(self.log_path, 'ab', 0) as log:
         this_file = os.path.realpath(__file__)
         this_file = re.sub(r'\.pyc$', '.py', this_file)
         args = [this_file, '--pytest', info_path]
@@ -526,7 +534,7 @@ class TestInvocation(object):
 
     deleted_count = 0
     preserved_count = 0
-    for root, dummy_dirs, files in os.walk(self.output_dir, topdown=False):
+    for root, unused_dirs, files in os.walk(self.output_dir, topdown=False):
       for f in files:
         if f in ['log', 'metadata'] or any(fnmatch.fnmatch(f, g)
                                            for g in globs):
@@ -948,7 +956,7 @@ def main():
   parser = OptionParser()
   parser.add_option('--pytest', dest='pytest_info',
                     help='Info for pytest to run')
-  (options, dummy_args) = parser.parse_args()
+  (options, unused_args) = parser.parse_args()
 
   assert options.pytest_info
 

@@ -14,6 +14,7 @@ import unittest
 import factory_common  # pylint: disable=W0611
 from cros.factory import event_log
 from cros.factory.test import factory
+from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test import utils
@@ -181,7 +182,8 @@ class ShutdownTest(unittest.TestCase):
     last_shutdown_time = self.goofy.GetLastShutdownTime()
     if not last_shutdown_time:
       LogAndEndTest(status=TestState.FAILED,
-                    error_msg='Unable to read shutdown_time')
+                    error_msg=('Unable to read shutdown_time; '
+                               'unexpected shutdown during reboot?'))
 
     now = time.time()
     logging.info('%.03f s passed since reboot', now - last_shutdown_time)
@@ -221,10 +223,11 @@ class ShutdownTest(unittest.TestCase):
                   error_msg=None)
 
   def runTest(self):
-    if self.goofy.get_shared_data('post_shutdown', True):
+    post_shutdown_tag = state.POST_SHUTDOWN_TAG % self.test_info.path
+    if self.goofy.get_shared_data(post_shutdown_tag, True):
       # Only do post shutdown verification once.
       self.template.SetState(_SHUTDOWN_COMPLETE_MSG(self.args.operation))
-      self.goofy.set_shared_data('post_shutdown', False)
+      self.goofy.del_shared_data(post_shutdown_tag)
       self.PostShutdown()
     else:
       self.template.SetState(

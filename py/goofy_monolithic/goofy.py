@@ -479,7 +479,9 @@ class Goofy(object):
           'tests_after_shutdown', [test.path] + tests_after_shutdown)
 
     # Set 'post_shutdown' to inform shutdown test that a shutdown just occurred.
-    self.state_instance.set_shared_data('post_shutdown', True)
+    self.state_instance.set_shared_data(
+        state.POST_SHUTDOWN_TAG % test.path,
+        self.state_instance.get_test_state(test.path).invocation)
 
   def init_states(self):
     """Initializes all states on startup."""
@@ -787,7 +789,8 @@ class Goofy(object):
           continue
 
       if (isinstance(test, factory.ShutdownStep) and
-          self.state_instance.get_shared_data('post_shutdown', optional=True)):
+          self.state_instance.get_shared_data(
+              state.POST_SHUTDOWN_TAG % test.path, optional=True)):
         # Invoking post shutdown method of shutdown test. We should retain the
         # iterations_left and retries_left of the original test state.
         test_state = self.state_instance.get_test_state(test.path)

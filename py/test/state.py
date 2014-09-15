@@ -17,10 +17,8 @@ import mimetypes
 import os
 import Queue
 import re
-import shelve
 import shutil
 import SocketServer
-import sys
 import threading
 import time
 import yaml
@@ -43,6 +41,8 @@ DEFAULT_FACTORY_STATE_PORT = 0x0FAC
 DEFAULT_FACTORY_STATE_ADDRESS = 'localhost'
 DEFAULT_FACTORY_STATE_BIND_ADDRESS = 'localhost'
 DEFAULT_FACTORY_STATE_FILE_PATH = factory.get_state_root()
+
+POST_SHUTDOWN_TAG = '%s.post_shutdown'
 
 
 def _synchronized(f):
