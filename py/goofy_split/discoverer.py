@@ -7,6 +7,7 @@
 
 
 import jsonrpclib
+import os
 import socket
 import sys
 import threading
@@ -16,6 +17,7 @@ from multiprocessing.pool import ThreadPool
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import utils
+from cros.factory.test.factory import FACTORY_PATH
 from cros.factory.test.network import GetAllWiredIPs
 
 from cros.factory.utils.jsonrpc_utils import TimeoutJSONRPCTransport
@@ -24,6 +26,14 @@ from cros.factory.utils.jsonrpc_utils import TimeoutJSONRPCTransport
 class DiscovererBase(object):
   """Base class for discoverers."""
   LOCALHOST = '127.0.0.1'
+
+  def __init__(self):
+    subnet_config = os.path.join(FACTORY_PATH, 'board', 'host_based_subnets')
+    if os.path.exists(subnet_config):
+      with open(subnet_config) as f:
+        self.allowed_subnets = [line.strip() for line in f.readlines()]
+    else:
+      self.allowed_subnets = ['192.168.0']
 
   def TryRemote(self, ip, port, timeout=0.2):
     """Try to connect to remote RPC server.
@@ -111,6 +121,7 @@ class DiscovererBase(object):
     """Scan all subnet this machine is in."""
     my_ips = GetAllWiredIPs()
     subnets = [ip.rsplit('.', 1)[0] for ip in my_ips]
+    subnets = filter(lambda x: x in self.allowed_subnets, subnets)
     return self.ScanSubnets(subnets, port, limit=limit)
 
   def Discover(self):
