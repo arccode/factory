@@ -15,6 +15,19 @@ from cros.factory.umpire.service import umpire_service
 # TODO(rongchang): Check why symlink doesn't work.
 SHOP_FLOOR_FCGI = 'usr/local/factory/py/umpire/shop_floor_launcher.py'
 PROCESS_NAME_PREFIX = 'shop_floor_'
+LOG_FILE_NAME = 'shop_floor.log'
+
+
+class ExistingLogWriter(object):
+  """ExistingLogWriter writes data to existing file only."""
+  def __init__(self, path):
+    super(ExistingLogWriter, self).__init__()
+    self._path = path
+
+  def write(self, data):
+    if os.path.isfile(self._path):
+      with open(self._path, 'a') as log:
+        log.write(data)
 
 
 class ShopFloorService(umpire_service.UmpireService):
@@ -30,6 +43,7 @@ class ShopFloorService(umpire_service.UmpireService):
   def __init__(self):
     super(ShopFloorService, self).__init__()
     self.properties['num_shopfloor_handlers'] = 0
+    self.log = None
 
   def CreateProcesses(self, dummy_config, env):
     """Creates list of shop floor processes via config.
@@ -41,6 +55,7 @@ class ShopFloorService(umpire_service.UmpireService):
     Returns:
       A list of ServiceProcess.
     """
+    self.log = ExistingLogWriter(os.path.join(env.log_dir, LOG_FILE_NAME))
     active_bundles = env.config.GetActiveBundles()
     processes = []
     for bundle in active_bundles:
