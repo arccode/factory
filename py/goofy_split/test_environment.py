@@ -16,6 +16,9 @@ import threading
 import time
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.goofy_split.service_manager import GetServiceStatus
+from cros.factory.goofy_split.service_manager import SetServiceStatus
+from cros.factory.goofy_split.service_manager import Status
 from cros.factory.goofy_split import connection_manager
 from cros.factory.test import factory, state, utils
 
@@ -85,14 +88,30 @@ class DUTEnvironment(Environment):
     self.has_sockets = None # Must be assigned later by goofy.
 
   def shutdown(self, operation):
+    def prepare_shutdown():
+      """Prepares for a clean shutdown."""
+      self.goofy.connection_manager.DisableNetworking()
+      respawn_services = ['syslog',
+                          'tcsd',
+                          'shill',
+                          'warn-collector']
+      for service in respawn_services:
+        if GetServiceStatus(service) == Status.START:
+          SetServiceStatus(service, Status.STOP)
+
     assert operation in ['reboot', 'full_reboot', 'halt']
     logging.info('Shutting down: %s', operation)
     subprocess.check_call('sync')
+
+    prepare_shutdown()
+
     if operation == 'full_reboot':
       subprocess.check_call(['ectool', 'reboot_ec', 'cold', 'at-shutdown'])
-      subprocess.check_call('halt')
+      subprocess.check_call(['shutdown', '-h', 'now'])
     else:
-      subprocess.check_call(operation)
+      commands = dict(reboot=['shutdown', '-r', 'now'],
+                      halt=['shutdown', '-h', 'now'])
+      subprocess.check_call(commands[operation])
     # TODO(hungte) Current implementation will raise SIGTERM so goofy can't
     # really gracefully shutdown. We should do "on exit" instead.
     time.sleep(30)
