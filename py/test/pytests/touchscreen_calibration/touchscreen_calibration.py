@@ -16,10 +16,12 @@ import xmlrpclib
 
 import factory_common     # pylint: disable=W0611
 import sysfs_server
+import touchscreen_calibration_utils
 
 from cros.factory.event_log import Log
 from cros.factory.test import factory
 from cros.factory.test import utils
+from cros.factory.test.args import Arg
 from cros.factory.test.fixture.touchscreen_calibration.fixture import (
     FixtureException, FakeFixture, FixtureSerialDevice)
 from cros.factory.test.media_util import MountedMedia
@@ -57,6 +59,10 @@ class TouchscreenCalibration(unittest.TestCase):
   DELTAS = 'deltas'
   REFS = 'refs'
 
+  ARGS = [
+      Arg('shopfloor_ip', str, 'The IP address of the shopfloor', ''),
+  ]
+
   def setUp(self):
     """Sets up the object."""
     self._calibration_thread = None
@@ -79,6 +85,8 @@ class TouchscreenCalibration(unittest.TestCase):
                                                          'DELTA_HIGHER_BOUND'))
     self.sn_length = int(self.sysfs_config.Read('Misc', 'sn_length'))
     self.fake_fixture = self.sysfs_config.Read('Misc', 'FAKE_FIXTURE') == 'True'
+    self.network_status = touchscreen_calibration_utils.NetworkStatus(
+        self.sysfs_ip, self.args.shopfloor_ip)
     self.sysfs = None
     self._GetSysfsService()
     self._ConnectTouchDevice()
@@ -233,6 +241,21 @@ class TouchscreenCalibration(unittest.TestCase):
     except Exception as e:
       factory.console.info('Exception at refreshing touch screen: %s' % e)
     self.ui.CallJSFunction('setTouchscreenStatus', False)
+
+  def RefreshNetwork(self, unused_event):
+    """Refreshes all possible saved state for the old touchscreen.
+    """
+    host_ip = self.network_status.GetHostIP()
+    bb_status = self.network_status.PingBB()
+    shopfloor_status = self.network_status.PingShopfloor()
+    factory.console.info('shopfloor_status: %s', str(shopfloor_status))
+    factory.console.info('shopfloor_ip : %s', self.args.shopfloor_ip)
+
+    self.ui.CallJSFunction('setHostNetworkStatus', str(host_ip))
+    self.ui.CallJSFunction('setBBNetworkStatus',
+                           bb_status and self.sysfs_ip)
+    self.ui.CallJSFunction('setShopfloorNetworkStatus',
+                           shopfloor_status and self.args.shopfloor_ip)
 
   def DriveProbeDown(self, unused_event=None):
     """A wrapper to drive the probe down."""
@@ -576,7 +599,7 @@ class TouchscreenCalibration(unittest.TestCase):
       # Events that are emitted from buttons on the factory UI.
       'ReadTest', 'RefreshFixture', 'RefreshTouchscreen', 'ProbeSelfTest',
       'DriveProbeDown', 'DriveProbeUp', 'ShutDown', 'QueryFixtureState',
-      'Mtplot',
+      'Mtplot', 'RefreshNetwork',
 
       # Events that are emitted from other callback functions.
       'StartCalibration',

@@ -36,6 +36,7 @@ function snEntered(event) {
 function init() {
   test.sendTestEvent('RefreshFixture', {});
   test.sendTestEvent('RefreshTouchscreen', {});
+  test.sendTestEvent('RefreshNetwork', {});
 }
 
 function displayDebugData(data) {
@@ -113,4 +114,22 @@ function showProbeState(state) {
   var elm = document.getElementById('probe-state');
   elm.innerText = state;
   elm.style.backgroundColor = '#5F5';
+}
+
+function setHostNetworkStatus(ip) {
+  var elm = document.getElementById('host-network-status');
+  elm.innerText = ip;
+  elm.style.backgroundColor = (ip == 'False') ? '#F55' : '#5F5';
+}
+
+function setBBNetworkStatus(ip) {
+  var elm = document.getElementById('bb-network-status');
+  elm.innerText = ip;
+  elm.style.backgroundColor = (ip == 'False') ? '#F55' : '#5F5';
+}
+
+function setShopfloorNetworkStatus(ip) {
+  var elm = document.getElementById('shopfloor-network-status');
+  elm.innerText = ip;
+  elm.style.backgroundColor = (ip == 'False') ? '#F55' : '#5F5';
 }

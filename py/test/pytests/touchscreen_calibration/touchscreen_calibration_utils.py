@@ -152,6 +152,27 @@ def GetDebugfs(vendor=ATMEL):
   return device_debug_path if os.path.isfile(object_file) else None
 
 
+class NetworkStatus(object):
+  """Show the network and service status."""
+  def __init__(self, BB_ip, shopfloor_ip):
+    self._BB_ip = BB_ip
+    self._shopfloor_ip = shopfloor_ip
+
+  def GetHostIP(self):
+    """Get this host's IP."""
+    cmd = "ifconfig eth0 | egrep 'inet .+netmask.+broadcast' | awk '{print $2}'"
+    ip = SimpleSystemOutput(cmd)
+    return ip or None
+
+  def PingBB(self):
+    """Ping the Beagle Bone."""
+    return IsSuccessful(SimpleSystem('ping -c 1 %s' % self._BB_ip))
+
+  def PingShopfloor(self):
+    """Ping the Shopfloor machine."""
+    return IsSuccessful(SimpleSystem('ping -c 1 %s' % self._shopfloor_ip))
+
+
 class KernelModule(object):
   """A simple class to manage a kernel module."""
 

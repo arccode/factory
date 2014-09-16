@@ -33,7 +33,8 @@ def CreateTestLists():
       OperatorTest(
           id='TouchscreenCalibration',
           label_zh=u'触控面板校正',
-          pytest_name='touchscreen_calibration')
+          pytest_name='touchscreen_calibration',
+          dargs={'shopfloor_ip': _SHOPFLOOR_IP})
 
       OperatorTest(
           id='SyncShopfloor',
