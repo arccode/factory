@@ -279,3 +279,19 @@ class Board(object):
       BoardException if board version cannot be obtained.
     """
     raise NotImplementedError
+
+  def GetUSBPDStatus(self, port):
+    """Gets the USB PD status.
+
+    Args:
+      port: The USB port number.
+
+    Returns:
+      A dict that contains the following fields:
+
+        'enabled': True or False
+        'role': 'SNK' or 'SRC'
+        'polarity': 'CC1' or 'CC2'
+        'state': <state>
+    """
+    raise NotImplementedError

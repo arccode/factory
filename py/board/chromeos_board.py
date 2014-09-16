@@ -37,6 +37,16 @@ class ChromeOSBoard(Board):
   # Expected battery info.
   BATTERY_DESIGN_CAPACITY_RE = re.compile('Design capacity:\s+([1-9]\d*)\s+mAh')
 
+  # USB PD info.
+  USB_PD_INFO_RE = re.compile(
+      r'Port C(?P<port>\d+) is (?P<enabled>enabled|disabled), '
+      r'Role:(?P<role>SRC|SNK) Polarity:(?P<polarity>CC1|CC2) '
+      r'State:(?P<state>\d+)')
+
+  # EC tool arguments for accessing PD. Subclass may override this to match the
+  # arguments used on the actual board.
+  ECTOOL_PD_ARGS = ['--interface=lpc', '--dev=1']
+
   _Spawn = staticmethod(Spawn)
 
   # Cached main temperature index. Set at the first call to GetTemperature.
@@ -249,3 +259,14 @@ class ChromeOSBoard(Board):
       raise BoardException('Unable to get board version: %s' % e)
     else:
       return response.strip()
+
+  def GetUSBPDStatus(self, port):
+    response = self._CallECTool(self.ECTOOL_PD_ARGS + ['usbpd', '%d' % port])
+    match = self.USB_PD_INFO_RE.match(response)
+    if not match:
+      raise BoardException('Unable to parse USB PD status from: %s' % response)
+    return dict(
+        enabled=match.group('enabled') == 'enabled',
+        role=match.group('role'),
+        polarity=match.group('polarity'),
+        state=int(match.group('state')))

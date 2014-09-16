@@ -12,6 +12,8 @@ The following test functions are supported:
 - Lock (write protection) test
 """
 
+from __future__ import print_function
+
 import os
 import logging
 import pyudev
@@ -19,6 +21,7 @@ import random
 import time
 import unittest
 
+from cros.factory import system
 from cros.factory.event_log import Log
 from cros.factory.test import countdown_timer
 from cros.factory.test import factory
@@ -176,6 +179,8 @@ class RemovableStorageTest(unittest.TestCase):
     Arg('bft_media_device', str,
         'Device name of BFT used to insert/remove the media.',
         optional=True),
+    Arg('usbpd_port_polarity', tuple,
+        'A tuple of integers indicating (port, polarity)', optional=True),
   ]
   # pylint: disable=E1101
 
@@ -537,6 +542,15 @@ class RemovableStorageTest(unittest.TestCase):
     except:   # pylint: disable=W0702
       self.Fail(_ERR_VERIFY_PARTITION_FMT_STR(self.args.media, dev_path))
 
+  def VerifyUSBPDPolarity(self):
+    """Verifies the USB PD CC line polarity on the port."""
+    if not self.args.usbpd_port_polarity:
+      return
+    port, polarity = self.args.usbpd_port_polarity
+    port_status = system.GetBoard().GetUSBPDStatus(port)
+    if port_status['polarity'] != 'CC%d' % polarity:
+      self.Fail('USB CC polarity mismatch on port %d' % port)
+
   def HandleUdevEvent(self, action, device):
     """The udev event handler.
 
@@ -578,6 +592,7 @@ class RemovableStorageTest(unittest.TestCase):
         self._device_size = self.GetDeviceSize(self._target_device)
         if self.args.media == 'SD':
           self.CreatePartition()
+        self.VerifyUSBPDPolarity()
         self.TestReadWrite()
 
       elif self._state == _STATE_LOCKTEST_WAIT_INSERT:

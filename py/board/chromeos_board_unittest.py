@@ -365,6 +365,30 @@ batt_state_of_charge = 52%
         self.board.GetBoardVersion)
     self.mox.VerifyAll()
 
+  def testGetUSBPDStatus(self):
+    self.board._CallECTool(
+        ['--interface=lpc', '--dev=1', 'usbpd', '0']).AndReturn(
+            'Port C0 is enabled, Role:SRC Polarity:CC1 State:8')
+    self.board._CallECTool(
+        ['--interface=lpc', '--dev=1', 'usbpd', '1']).AndReturn(
+            'Port C1 is disabled, Role:SNK Polarity:CC2 State:11')
+
+    self.mox.ReplayAll()
+
+    status = self.board.GetUSBPDStatus(0)
+    self.assertTrue(status['enabled'])
+    self.assertEquals('SRC', status['role'])
+    self.assertEquals('CC1', status['polarity'])
+    self.assertEquals(8, status['state'])
+
+    status = self.board.GetUSBPDStatus(1)
+    self.assertFalse(status['enabled'])
+    self.assertEquals('SNK', status['role'])
+    self.assertEquals('CC2', status['polarity'])
+    self.assertEquals(11, status['state'])
+
+    self.mox.VerifyAll()
+
 
 if __name__ == '__main__':
   unittest.main()
