@@ -37,7 +37,7 @@ bundles:
     complete_script: complete.gz##d41d8cd9
     device_factory_toolkit: install_factory_toolkit.run#ftk_v0.1#d41d8cd9
     efi_partition: efi.gz##d41d8cd9
-    firmware: firmware.gz#ec_v0.2:bios_v0.3#d41d8cd9
+    firmware: firmware.gz#bios_v0.3:ec_v0.2#d41d8cd9
     hwid: hwid.gz##d41d8cd9
     netboot_vmlinux: vmlinux##d41d8cd9
     oem_partition: oem.gz##d41d8cd9

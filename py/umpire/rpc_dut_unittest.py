@@ -45,7 +45,7 @@ class DUTRPCTest(unittest.TestCase):
     for res in ['complete.gz##d41d8cd9',
                 'install_factory_toolkit.run#ftk_v0.1#d41d8cd9',
                 'efi.gz##d41d8cd9',
-                'firmware.gz#ec_v0.2:bios_v0.3#d41d8cd9',
+                'firmware.gz#bios_v0.3:ec_v0.2#d41d8cd9',
                 'hwid.gz##d41d8cd9',
                 'vmlinux##d41d8cd9',
                 'oem.gz##d41d8cd9',
