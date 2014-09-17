@@ -200,7 +200,7 @@ def Deploy(unused_args, umpire_cli):
                                                 validate=False)
   active_config = umpire_config.UmpireConfig(active_config_text,
                                              validate=False)
-  print ''.join(umpire_config.ShowDiff(active_config, config_to_deploy))
+  print '\n'.join(umpire_config.ShowDiff(active_config, config_to_deploy))
   if raw_input('Ok to deploy [y/n]? ') not in ['y', 'Y']:
     print 'Abort by user.'
     return
@@ -246,7 +246,7 @@ def Status(args, umpire_cli, board):
       active_config = umpire_config.UmpireConfig(status['active_config'])
       staging_config = umpire_config.UmpireConfig(status['staging_config'])
       print 'Diff between active and staging config:'
-      print ''.join(umpire_config.ShowDiff(active_config, staging_config))
+      print '\n'.join(umpire_config.ShowDiff(active_config, staging_config))
   else:
     print 'No staging config'
 
