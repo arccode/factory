@@ -22,6 +22,10 @@ class MockShopFloorManager(object):
   def Allocate(self, *unused_args, **unused_kwargs):
     return (9876, 'dummy_token')
 
+  def Release(self, port):
+    if port != 9876:
+      raise ValueError('Release without Allocate')
+
 
 class TestShopFloorService(unittest.TestCase):
   def setUp(self):

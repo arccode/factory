@@ -6,6 +6,7 @@
 """Shop floor service for launching shop floor XMLRPC in bundles."""
 
 
+import logging
 import os
 
 import factory_common  # pylint: disable=W0611
@@ -14,7 +15,6 @@ from cros.factory.umpire.service import umpire_service
 
 # TODO(rongchang): Check why symlink doesn't work.
 SHOP_FLOOR_FCGI = 'usr/local/factory/py/umpire/shop_floor_launcher.py'
-PROCESS_NAME_PREFIX = 'shop_floor_'
 LOG_FILE_NAME = 'shop_floor.log'
 
 
@@ -57,7 +57,7 @@ class ShopFloorService(umpire_service.UmpireService):
     """
     self.log = ExistingLogWriter(os.path.join(env.log_dir, LOG_FILE_NAME))
     active_bundles = env.config.GetActiveBundles()
-    processes = []
+    processes = set()
     for bundle in active_bundles:
       # Get toolkit path and shop floor handler.
       toolkit_dir = env.GetBundleDeviceToolkit(bundle['id'])
@@ -70,28 +70,34 @@ class ShopFloorService(umpire_service.UmpireService):
       #   ['--mount_point', '/path/to/dir']
       process_parameters = sum([['--%s' % key, value] for key, value in
                                 handler_config.iteritems()], list())
-      # Allocate port and token.
-      (fcgi_port, token) = env.shop_floor_manager.Allocate(bundle['id'])
       # Set process configuration.
       proc_config = {
           'executable': os.path.join(toolkit_dir, SHOP_FLOOR_FCGI),
-          'name': PROCESS_NAME_PREFIX + bundle['id'],
+          'name': bundle['id'],
           'args': ['--module', handler] + process_parameters,
           'path': env.umpire_data_dir}
       proc = umpire_service.ServiceProcess(self)
-      proc.SetNonhashArgs(['--port', str(fcgi_port), '--token', token])
       proc.SetConfig(proc_config)
-      # Adds release callbacks on error and stopped state.
-      def ReleaseResource(release_port):
-        env.shop_floor_manager.Release(release_port)
+      # Skip duplicated bundle and prevent duplicate resource allocation.
+      # Duplicate processes will be ignored in parent.Start().
+      if proc in processes:
+        continue
 
-      proc.AddStateCallback(
-          [umpire_service.State.ERROR, umpire_service.State.STOPPED],
-          ReleaseResource,
-          fcgi_port)
-      processes.append(proc)
+      if proc not in self.processes:
+        # Allocate port and token.
+        (fcgi_port, token) = env.shop_floor_manager.Allocate(bundle['id'])
+        logging.debug('Allocate %s(%d,%s)', bundle['id'], fcgi_port, token)
+        proc.SetNonhashArgs(['--port', str(fcgi_port), '--token', token])
+        # Adds release callbacks on error and stopped state.
+        def ReleaseResource():
+          logging.debug('Release %s(%d,%s)', bundle['id'], fcgi_port, token)
+          env.shop_floor_manager.Release(fcgi_port)
+
+        proc.AddStateCallback(umpire_service.State.DESTRUCTING, ReleaseResource)
+      processes.add(proc)
+
     self.properties['num_shopfloor_handlers'] = len(processes)
-    return processes
+    return list(processes)
 
 # Create a shop floor service instance
 _service_instance = ShopFloorService()

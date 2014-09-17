@@ -57,6 +57,7 @@ class State:  # pylint: disable=W0232
   STOPPING = 'stopping'
   STOPPED = 'stopped'
   ERROR = 'error'
+  DESTRUCTING = 'destructing'
 
 
 class ServiceProcess(protocol.ProcessProtocol):
@@ -108,12 +109,23 @@ class ServiceProcess(protocol.ProcessProtocol):
     self.messages = None
     self.callbacks = collections.defaultdict(list)
 
+  def __del__(self):
+    """Calls state hooks on destructing."""
+    for (cb, args, kwargs) in self.callbacks[State.DESTRUCTING]:
+      cb(*args, **kwargs)
+
+  def __repr__(self):
+    return repr(sorted(self.config.items()))
+
+  def __str__(self):
+    return self.config['name']
+
   def __hash__(self):
     """Define hash and eq operator to make this class usable in hashed
     collections.
     """
     # Cannot use frozenset as config's value has list, which is not hashable
-    return hash(repr(sorted(self.config.items())))
+    return hash(repr(self))
 
   def __eq__(self, other):
     if isinstance(other, ServiceProcess):
@@ -506,9 +518,16 @@ class UmpireService(object):
     processes = set(processes)
     starting_processes = processes - self.processes
     stopping_processes = self.processes - processes
+    logging.debug('starting processes %s',
+                  [str(p) for p in starting_processes])
     deferreds = [p.Start() for p in starting_processes]
+    logging.debug('stopping processes %s',
+                  [str(p) for p in stopping_processes])
     deferreds.extend([p.Stop() for p in stopping_processes])
-    self.processes = processes
+    # Ignore duplicate process and add new processes into set.
+    self.processes = self.processes & processes | starting_processes
+    logging.debug('running processes %s',
+                  [str(p) for p in self.processes])
 
     if deferreds:
       deferred = ConcentrateDeferreds(deferreds)
