@@ -5,6 +5,10 @@ rulesets:
 - bundle_id: test
   note: ruleset for test
   active: true
+  enable_update:
+    test_image: # Note that we should be able to dump [~, RUNIN]
+    - null
+    - RUNIN
 services:
   archiver: {}
   http:

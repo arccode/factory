@@ -215,13 +215,36 @@ class UmpireOrderedDict(dict):
     return result
 
 
+def DictToOrderedList(d, key_order, d_name):
+
+  """Converts a dict to list of key, value pairs with key_order.
+
+  Args:
+    d: dictionary
+    key_order: predefined key order
+    d_name: name of the dict. Used when raising an Exception.
+
+  Returns:
+    [(key, value)] of the dict with key_order.
+
+  Raises:
+    KeyError if the dict has key not defined in key_order.
+  """
+  # Sanity check first.
+  missing_keys = [k for k in d if k not in key_order]
+  if missing_keys:
+    raise KeyError('Undefined key(s): %r in %s' % (missing_keys, d_name))
+
+  return [(k, d[k]) for k in key_order if k in d]
+
+
 class RulesetOrderedDict(dict):
 
   """Used to output an UmpireConfig's ruleset with desired key order."""
-  _KEY_ORDER = ['bundle_id', 'note', 'active', 'update', 'match']
+  _KEY_ORDER = ['bundle_id', 'note', 'active', 'enable_update', 'match']
 
   def Omap(self):
-    return [(k, self[k]) for k in self._KEY_ORDER if k in self]
+    return DictToOrderedList(self, self._KEY_ORDER, 'RulesetOrderedDict')
 
 
 class ServicesOrderedDict(dict):
@@ -231,7 +254,7 @@ class ServicesOrderedDict(dict):
                 'mock_shop_floor_backend', 'rsync', 'dhcp', 'tftp']
 
   def Omap(self):
-    return [(k, self[k]) for k in self._KEY_ORDER if k in self]
+    return DictToOrderedList(self, self._KEY_ORDER, 'ServicesOrderedDict')
 
 
 class BundleOrderedDict(dict):
@@ -240,7 +263,7 @@ class BundleOrderedDict(dict):
   _KEY_ORDER = ['id', 'note', 'shop_floor', 'auto_update', 'resources']
 
   def Omap(self):
-    return [(k, self[k]) for k in self._KEY_ORDER if k in self]
+    return DictToOrderedList(self, self._KEY_ORDER, 'BundleOrderedDict')
 
 
 def RepresentOmap(dumper, data):

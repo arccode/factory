@@ -258,6 +258,9 @@ class ImportResourceTest(unittest.TestCase):
 
 
 class DeployTest(unittest.TestCase):
+  ACTIVE_CONFIG_PATH = os.path.join(
+      TESTDATA_DIR, 'minimal_empty_services_with_enable_update_umpire.yaml')
+  STAGING_CONFIG_PATH = os.path.join(TESTDATA_DIR, 'minimal_umpire.yaml')
 
   def setUp(self):
     self.args = Obj()
@@ -276,10 +279,8 @@ class DeployTest(unittest.TestCase):
                             umpire.Deploy, self.args, self.mock_cli)
 
   def testDeploy(self):
-    active_config = open(
-        os.path.join(TESTDATA_DIR, 'minimal_empty_services_umpire.yaml')).read()
-    staging_config = open(
-        os.path.join(TESTDATA_DIR, 'minimal_umpire.yaml')).read()
+    active_config = open(self.ACTIVE_CONFIG_PATH).read()
+    staging_config = open(self.STAGING_CONFIG_PATH).read()
     self.mox.StubOutWithMock(__builtin__, 'raw_input')
 
     self.mock_cli.GetStatus().AndReturn(
@@ -301,10 +302,8 @@ class DeployTest(unittest.TestCase):
         GetStdout())
 
   def testDeployUserSayNo(self):
-    active_config = open(
-        os.path.join(TESTDATA_DIR, 'minimal_empty_services_umpire.yaml')).read()
-    staging_config = open(
-        os.path.join(TESTDATA_DIR, 'minimal_umpire.yaml')).read()
+    active_config = open(self.ACTIVE_CONFIG_PATH).read()
+    staging_config = open(self.STAGING_CONFIG_PATH).read()
     self.mox.StubOutWithMock(__builtin__, 'raw_input')
 
     self.mock_cli.GetStatus().AndReturn(
