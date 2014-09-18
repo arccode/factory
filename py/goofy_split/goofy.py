@@ -242,7 +242,7 @@ class Goofy(GoofyBase):
     self.web_socket_manager = None
 
   def destroy(self):
-    """ Performs any shutdown tasks. Overrides base class method. """
+    """Performs any shutdown tasks. Overrides base class method."""
     self.status = Status.TERMINATING
     if self.chrome:
       self.chrome.kill()
