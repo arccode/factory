@@ -143,7 +143,7 @@ def main():
                             'start; this is only valid when factory test '
                             'automation is enabled'))
   parser.add_argument('--shopfloor_port', dest='shopfloor_port', type=int,
-                      default=8082, help='set shopfloor port')
+                      default=None, help='set shopfloor port')
   parser.add_argument('--board', '-b', dest='board',
                       help='board to use (default: auto-detect')
   parser.add_argument('--autotest', dest='autotest', action='store_true',
