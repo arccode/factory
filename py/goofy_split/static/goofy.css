@@ -513,7 +513,7 @@ table + .goofy-history-header {
   width: 100%;
 }
 .goofy-startup-error {
-  white-space: pre;
+  white-space: pre-wrap;
   margin-top: 1em;
 }
 .modal-dialog-buttons {
