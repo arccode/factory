@@ -592,7 +592,7 @@ def SetOptions(options, args):
   For details on available options, see the Options class in
   py/test/factory.py.
   After calling this function, user can still modify options for different
-  test list. For example, set options.engineering_password_sha1 to '' to
+  test list. For example, set options.engineering_password_sha1 to None to
   enable engineering mode in experiment test list.
 
   Args:
