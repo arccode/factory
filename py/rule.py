@@ -17,10 +17,10 @@ import logging
 import re
 import threading
 import time
-import yaml
 import factory_common # pylint: disable=W0611
 
 from cros.factory.common import MakeList
+from cros.factory.utils import yaml_utils
 
 
 _rule_functions = {}
@@ -169,13 +169,15 @@ def RuleFunction(ctx_list):
   return Wrapped
 
 
-class RuleMetaclass(type):
+class RuleMetaclass(yaml_utils.BaseYAMLTagMetaclass):
   """The metaclass for Rule class.
 
   This metaclass registers YAML constructor and representer to decode from YAML
   tag '!rule' and data to a Rule object, and to encode a Rule object to its
   corresponding YAML representation.
   """
+  YAML_TAG = '!rule'
+
   @classmethod
   def YAMLConstructor(mcs, loader, node):
     value = loader.construct_mapping(node, deep=True)
@@ -191,12 +193,7 @@ class RuleMetaclass(type):
 
   @classmethod
   def YAMLRepresenter(mcs, dumper, data):
-    return dumper.represent_mapping('!rule', data.__dict__)
-
-  def __init__(mcs, name, bases, attrs):
-    yaml.add_constructor('!rule', mcs.YAMLConstructor)
-    yaml.add_representer(mcs, mcs.YAMLRepresenter)
-    super(RuleMetaclass, mcs).__init__(name, bases, attrs)
+    return dumper.represent_mapping(mcs.YAML_TAG, data.__dict__)
 
 
 class Rule(object):
@@ -327,13 +324,15 @@ class Rule(object):
       SetContext(None)
 
 
-class RegexpMetaclass(type):
+class RegexpMetaclass(yaml_utils.BaseYAMLTagMetaclass):
   """Metaclass for creating regular expression-enabled Value object.
 
   This metaclass registers YAML constructor and representer to decode from YAML
   tag '!re' and data to a Value object, and to encode a Value object to its
   corresponding YAML representation.
   """
+  YAML_TAG = '!re'
+
   @classmethod
   def YAMLConstructor(mcs, loader, node):
     value = loader.construct_scalar(node)
@@ -345,11 +344,6 @@ class RegexpMetaclass(type):
       return dumper.represent_scalar('!re', data.raw_value)
     else:
       return dumper.represent_data(data.raw_value)
-
-  def __init__(mcs, name, bases, attrs):
-    yaml.add_constructor('!re', mcs.YAMLConstructor)
-    yaml.add_representer(mcs, mcs.YAMLRepresenter)
-    super(RegexpMetaclass, mcs).__init__(name, bases, attrs)
 
 
 class Value(object):
