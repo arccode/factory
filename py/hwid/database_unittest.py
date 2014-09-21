@@ -434,6 +434,22 @@ class DatabaseTest(unittest.TestCase):
         self.database.VerifyComponents(self.results[4], ['storage'],
                                        loose_matching=True))
 
+  def testLoadDatabaseWithRegionInfo(self):
+    db = Database.LoadFile(
+        os.path.join(_TEST_DATA_PATH, 'test_db_regions.yaml'))
+    # Make sure that region fields are generated correctly.
+    self.assertEquals({'region': None}, db.encoded_fields['region_field'][0])
+    self.assertEquals({'region': ['us']}, db.encoded_fields['region_field'][29])
+    # Make sure that region components are generated correctly.
+    self.assertEquals(
+        {'values': {
+            'region_code': Value('us'),
+            'keyboards': Value('xkb:us::eng'),
+            'time_zone': Value('America/Los_Angeles'),
+            'language_codes': Value('en-US'),
+            'keyboard_mechanical_layout': Value('ANSI')}},
+        db.components.GetComponentAttributes('region', 'us'))
+
 
 class PatternTest(unittest.TestCase):
   def setUp(self):

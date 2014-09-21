@@ -91,3 +91,15 @@ found_probe_value_map:
 found_volatile_values: {}
 initial_configs: {}
 missing_component_classes: []
+---
+# test encode/decode region info
+found_probe_value_map:
+  region:
+    region_code: us
+    keyboards: xkb:us::eng
+    time_zone: America/Los_Angeles
+    language_codes: en-US
+    keyboard_mechanical_layout: ANSI
+found_volatile_values: {}
+initial_configs: {}
+missing_component_classes: []

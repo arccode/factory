@@ -93,5 +93,17 @@ class EncoderTest(unittest.TestCase):
         "{ 'size': '4G', 'vendor': 'FOO'} \(no matching name in the component "
         "DB\)", Encode, self.database, bom)
 
+  def testEncodeRegion(self):
+    db = Database.LoadFile(
+        os.path.join(_TEST_DATA_PATH, 'test_db_regions.yaml'))
+    bom = db.ProbeResultToBOM(self.results[5])
+    # The BOM should load 'us' region from the probe result (numeric_id=29).)
+    self.assertEquals(29, bom.encoded_fields['region_field'])
+    hwid = Encode(db, bom)
+    # The encoder should encode field index 29 into the region field.
+    self.assertEquals('00000000111011', hwid.binary_string)
+    self.assertEquals('CHROMEBOOK A25-Q22', hwid.encoded_string)
+
+
 if __name__ == '__main__':
   unittest.main()

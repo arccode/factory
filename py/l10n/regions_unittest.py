@@ -188,7 +188,7 @@ class RegionTest(unittest.TestCase):
        'keyboard_mechanical_layout': 'ANSI',
        'language_codes': ['en-US'],
        'region_code': 'us',
-       'numeric_id': 28,
+       'numeric_id': 29,
        'time_zone': 'America/Los_Angeles',
        'vpd_settings': {'initial_locale': 'en-US',
                         'initial_timezone': 'America/Los_Angeles',

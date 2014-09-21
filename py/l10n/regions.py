@@ -187,69 +187,69 @@ class Region(object):
 _KML = KeyboardMechanicalLayout
 REGIONS_LIST = [
     Region('au', 'xkb:us::eng', 'Australia/Sydney', 'en-AU', _KML.ANSI,
-           'Australia', None, 0),
+           'Australia', None, 1),
     Region('be', 'xkb:be::nld', 'Europe/Brussels', 'en-GB', _KML.ISO, 'Belgium',
            'Flemish (Belgian Dutch) keyboard; British English language for '
-           'neutrality', 1),
+           'neutrality', 2),
     Region('br', 'xkb:br::por', 'America/Sao_Paulo', 'pt-BR', _KML.ABNT2,
            'Brazil (ABNT2)',
            ('ABNT2 = ABNT NBR 10346 variant 2. This is the preferred layout '
             'for Brazil. ABNT2 is mostly an ISO layout, but it 12 keys between '
-            'the shift keys; see http://goo.gl/twA5tq'), 2),
+            'the shift keys; see http://goo.gl/twA5tq'), 3),
     Region('br.abnt', 'xkb:br::por', 'America/Sao_Paulo', 'pt-BR', _KML.ISO,
            'Brazil (ABNT)',
            ('Like ABNT2, but lacking the extra key to the left of the right '
             'shift key found in that layout. ABNT2 (the "br" region) is '
-            'preferred to this layout'), 3),
+            'preferred to this layout'), 4),
     Region('br.usintl', 'xkb:us:intl:eng', 'America/Sao_Paulo', 'pt-BR',
            _KML.ANSI, 'Brazil (US Intl)',
            'Brazil with US International keyboard layout. ABNT2 ("br") and '
-           'ABNT1 ("br.abnt1 ") are both preferred to this.', 4),
+           'ABNT1 ("br.abnt1 ") are both preferred to this.', 5),
     Region('ca.ansi', 'xkb:us::eng', 'America/Toronto', 'en-CA', _KML.ANSI,
            'Canada (US keyboard)',
            'Canada with US (ANSI) keyboard. Not for en/fr hybrid ANSI '
            'keyboards; for that you would want ca.hybridansi. See '
-           'http://goto/cros-canada', 5),
+           'http://goto/cros-canada', 6),
     Region('ca.fr', 'xkb:ca::fra', 'America/Toronto', 'fr-CA', _KML.ISO,
            'Canada (French keyboard)',
            ('Canadian French (ISO) keyboard. The most common configuration for '
-            'Canadian French SKUs.  See http://goto/cros-canada'), 6),
+            'Canadian French SKUs.  See http://goto/cros-canada'), 7),
     Region('ca.hybrid', 'xkb:ca:eng:eng', 'America/Toronto', 'en-CA', _KML.ISO,
            'Canada (hybrid ISO)',
            ('Canada with hybrid (ISO) xkb:ca:eng:eng + xkb:ca::fra keyboard, '
             'defaulting to English language and keyboard.  Used only if there '
             'needs to be a single SKU for all of Canada.  See '
-            'http://goto/cros-canada'), 7),
+            'http://goto/cros-canada'), 8),
     Region('ca.hybridansi', 'xkb:ca:eng:eng', 'America/Toronto', 'en-CA',
            _KML.ANSI, 'Canada (hybrid ANSI)',
            ('Canada with hybrid (ANSI) xkb:ca:eng:eng + xkb:ca::fra keyboard, '
             'defaulting to English language and keyboard.  Used only if there '
             'needs to be a single SKU for all of Canada.  See '
-            'http://goto/cros-canada'), 8),
+            'http://goto/cros-canada'), 9),
     Region('ca.multix', 'xkb:ca:multix:fra', 'America/Toronto', 'fr-CA',
            _KML.ISO, 'Canada (multilingual)',
            ("Canadian Multilingual keyboard; you probably don't want this. See "
-            "http://goto/cros-canada"), 9),
+            "http://goto/cros-canada"), 10),
     Region('ch', 'xkb:ch::ger', 'Europe/Zurich', 'en-US', _KML.ISO,
            'Switzerland',
            'German keyboard, but US English to be language-neutral; used in '
-           'the common case that there is only a single Swiss SKU.', 10),
+           'the common case that there is only a single Swiss SKU.', 11),
     Region('de', 'xkb:de::ger', 'Europe/Berlin', 'de', _KML.ISO, 'Germany',
-           None, 11),
-    Region('es', 'xkb:es::spa', 'Europe/Madrid', 'es', _KML.ISO, 'Spain',
            None, 12),
-    Region('fi', 'xkb:fi::fin', 'Europe/Helsinki', 'fi', _KML.ISO, 'Finland',
+    Region('es', 'xkb:es::spa', 'Europe/Madrid', 'es', _KML.ISO, 'Spain',
            None, 13),
-    Region('fr', 'xkb:fr::fra', 'Europe/Paris', 'fr', _KML.ISO, 'France',
+    Region('fi', 'xkb:fi::fin', 'Europe/Helsinki', 'fi', _KML.ISO, 'Finland',
            None, 14),
-    Region('gb', 'xkb:gb:extd:eng', 'Europe/London', 'en-GB', _KML.ISO, 'UK',
+    Region('fr', 'xkb:fr::fra', 'Europe/Paris', 'fr', _KML.ISO, 'France',
            None, 15),
+    Region('gb', 'xkb:gb:extd:eng', 'Europe/London', 'en-GB', _KML.ISO, 'UK',
+           None, 16),
     Region('ie', 'xkb:gb:extd:eng', 'Europe/Dublin', 'en-GB', _KML.ISO,
-           'Ireland', None, 16),
+           'Ireland', None, 17),
     Region('in', 'xkb:us::eng', 'Asia/Calcutta', 'en-US', _KML.ANSI, 'India',
-           None, 17),
-    Region('it', 'xkb:it::ita', 'Europe/Rome', 'it', _KML.ISO, 'Italy',
            None, 18),
+    Region('it', 'xkb:it::ita', 'Europe/Rome', 'it', _KML.ISO, 'Italy',
+           None, 19),
     Region('latam-es-419', 'xkb:es::spa', 'America/Mexico_City', 'es-419',
            _KML.ISO, 'Hispanophone Latin America',
            ('Spanish-speaking countries in Latin America, using the Iberian '
@@ -260,31 +260,31 @@ REGIONS_LIST = [
             'American layout (xkb:latam::spa) has not been approved; before '
             'using that you must seek review through http://goto/vpdsettings. '
             'See also http://goo.gl/Iffuqh. Note that 419 is the UN M.49 '
-            'region code for Latin America'), 19),
+            'region code for Latin America'), 20),
     Region('my', 'xkb:us::eng', 'Asia/Kuala_Lumpur', 'ms', _KML.ANSI,
-           'Malaysia', None, 20),
+           'Malaysia', None, 21),
     Region('nl', 'xkb:us:intl:eng', 'Europe/Amsterdam', 'nl', _KML.ANSI,
-           'Netherlands', None, 21),
+           'Netherlands', None, 22),
     Region('nordic', 'xkb:se::swe', 'Europe/Stockholm', 'en-US', _KML.ISO,
            'Nordics',
            ('Unified SKU for Sweden, Norway, and Denmark.  This defaults '
             'to Swedish keyboard layout, but starts with US English language '
             'for neutrality.  Use if there is a single combined SKU for Nordic '
-            'countries.'), 22),
+            'countries.'), 23),
     Region('nz', 'xkb:us::eng', 'Pacific/Auckland', 'en-NZ', _KML.ANSI,
-           'New Zealand', None, 23),
+           'New Zealand', None, 24),
     Region('ph', 'xkb:us::eng', 'Asia/Manila', 'en-US', _KML.ANSI,
-           'Philippines', None, 24),
+           'Philippines', None, 25),
     Region('ru', 'xkb:ru::rus', 'Europe/Moscow', 'ru', _KML.ANSI, 'Russia',
-           'For R31+ only; R30 and earlier must use US keyboard for login', 25),
+           'For R31+ only; R30 and earlier must use US keyboard for login', 26),
     Region('se', 'xkb:se::swe', 'Europe/Stockholm', 'sv', _KML.ISO, 'Sweden',
            ("Use this if there separate SKUs for Nordic countries (Sweden, "
             "Norway, and Denmark), or the device is only shipping to Sweden. "
-            "If there is a single unified SKU, use 'nordic' instead."), 26),
+            "If there is a single unified SKU, use 'nordic' instead."), 27),
     Region('sg', 'xkb:us::eng', 'Asia/Singapore', 'en-GB', _KML.ANSI,
-           'Singapore', None, 27),
+           'Singapore', None, 28),
     Region('us', 'xkb:us::eng', 'America/Los_Angeles', 'en-US', _KML.ANSI,
-           'United States', None, 28),
+           'United States', None, 29),
 ]
 """A list of :py:class:`cros.factory.l10n.regions.Region` objects for
 all **confirmed** regions.  A confirmed region is a region whose

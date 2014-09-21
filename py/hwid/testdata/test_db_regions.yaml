@@ -1,0 +1,37 @@
+##### BEGIN CHECKSUM BLOCK
+#
+# WARNING: This checksum is generated and audited by Google. Do not
+# modify it. If you modify it, devices' configurations will be
+# invalid, and the devices may not be sold.
+#
+# 警告：此校验码由 Google 产生及审核，禁止手动修改。
+# 若修改将使设备配置變為无效，并且不得销售此设备。
+#
+#####
+checksum: 60240a7f86f2ef70ed74ab315144e4019ca70221
+##### END CHECKSUM BLOCK. See the warning above. 请参考上面的警告。
+
+encoding_patterns:
+  0: default
+
+board: CHROMEBOOK
+
+image_id:
+  0: PROTO
+  1: EVT
+
+pattern:
+  - image_ids: [0, 1]
+    encoding_scheme: base8192
+    fields:
+    - region_field: 8
+
+encoded_fields:
+  region_field: !region_field
+
+components:
+  region: !region_component
+
+rules:
+- name: device_info.set_image_id
+  evaluate: SetImageId('EVT')

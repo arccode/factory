@@ -179,6 +179,21 @@ class DecoderTest(unittest.TestCase):
     self.assertEquals('CHROMEBOOK AA5A-Q7Z', hwid.encoded_string)
     self.assertEquals(1, hwid.bom.encoded_fields['cpu'])
 
+  def testDecodeRegion(self):
+    db = Database.LoadFile(
+        os.path.join(_TEST_DATA_PATH, 'test_db_regions.yaml'))
+    hwid = Decode(db, 'CHROMEBOOK A25-Q22')
+    # The BOM should load 'us' region from the probe result (numeric_id=29).)
+    self.assertEquals(29, hwid.bom.encoded_fields['region_field'])
+    self.assertEquals(
+        [('us',
+          {'region_code': Value('us'), 'keyboards': Value('xkb:us::eng'),
+           'time_zone': Value('America/Los_Angeles'),
+           'language_codes': Value('en-US'),
+           'keyboard_mechanical_layout': Value('ANSI')},
+         None)],
+        hwid.bom.components['region'])
+
 
 if __name__ == '__main__':
   unittest.main()

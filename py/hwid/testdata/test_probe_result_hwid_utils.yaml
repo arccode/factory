@@ -33,6 +33,13 @@ found_probe_value_map:
     type: SSD
     size: 16G
     serial: '#123456'
+  region:
+    region_code: us
+    keyboards: xkb:us::eng
+    time_zone: America/Los_Angeles
+    language_codes: en-US
+    keyboard_mechanical_layout: ANSI
+
 found_volatile_values:
   hash_gbb:
     compact_str: gv2#hash_gbb_0
