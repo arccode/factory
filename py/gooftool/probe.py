@@ -37,7 +37,9 @@ from cros.factory.gooftool import crosfw
 from cros.factory.gooftool import vblock
 # pylint: disable=E0611
 from cros.factory.hwdb.hwid_tool import ProbeResults, COMPACT_PROBE_STR
+from cros.factory.l10n import regions
 from cros.factory.system import board
+from cros.factory.system import vpd
 from cros.factory.test import factory
 
 
@@ -850,6 +852,25 @@ def _GetFixedDevices():
   return ret
 
 
+@_ComponentProbe('region')
+def _ProbeRegion():
+  """Probes the region of the DUT based on the region field in RO VPD."""
+  region_code = vpd.ro.get('region')
+  if region_code:
+    region_obj = regions.REGIONS[region_code]
+    ret = [{
+        'region_code': region_obj.region_code,
+        'keyboards': ','.join(region_obj.keyboards),
+        'time_zone': region_obj.time_zone,
+        'language_codes': ','.join(region_obj.language_codes),
+        'keyboard_mechanical_layout': region_obj.keyboard_mechanical_layout,
+    }]
+  else:
+    ret = []
+
+  return ret
+
+
 @_ComponentProbe('storage')
 def _ProbeStorage():
   """Compile sysfs data for all non-removable block storage devices."""
@@ -1266,9 +1287,9 @@ def Probe(target_comp_classes=None,
 
   if probe_vpd:
     image_file = crosfw.LoadMainFirmware().GetFileName()
-    for which, vpd in (('ro', ReadRoVpd(image_file)),
+    for which, vpd_field in (('ro', ReadRoVpd(image_file)),
                        ('rw', ReadRwVpd(image_file))):
-      for k, v in sorted(vpd.items()):
+      for k, v in sorted(vpd_field.items()):
         volatiles['vpd.%s.%s' % (which, k)] = v
   return ProbeResults(
     found_probe_value_map=found_probe_value_map,
