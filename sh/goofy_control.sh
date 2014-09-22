@@ -13,6 +13,10 @@ FACTORY_LOG_FILE=/var/factory/log/factory.log
 BOARD_SETUP=("$FACTORY/board/board_setup_factory.sh"
              "$FACTORY/custom/board_setup_factory.sh")
 
+# Put '/usr/local/factory/bin' at the head of PATH so that Goofy doesn't need to
+# specify full path name when running factory binaries.
+export PATH="/usr/local/factory/bin:${PATH}"
+
 # Default args for Goofy.
 GOOFY_ARGS=""
 PRESENTER_ARGS=""

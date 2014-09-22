@@ -58,6 +58,10 @@ main() {
 
   # On high-DPI systems, we need large console fonts.
   set_vt_fonts || true
+
+  # Put '/usr/local/factory/bin' at the head of PATH so that we can run factory
+  # binaries easily.
+  export PATH="/usr/local/factory/bin:${PATH}"
 }
 
 main "$@"
