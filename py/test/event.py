@@ -125,6 +125,8 @@ class Event(object):
       'UPDATE_NOTES': 'goofy:update_notes',
       # Diagnosis Tool's events
       'DIAGNOSIS_TOOL_EVENT': 'goofy:diagnosis_tool:event',
+      # Tells UI to hide tooltips.
+      'HIDE_TOOLTIPS': 'goofy:hide_tooltips',
       })
 
   def __init__(self, type, **kw): # pylint: disable=W0622

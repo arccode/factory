@@ -125,6 +125,7 @@ class DisplayTest(unittest.TestCase):
     self.checked = True
     self.ui.CallJSFunction('switchDisplayOnOff')
     self.fullscreen = not self.fullscreen
+    self.ui.HideTooltips()
 
   def OnEnterPressed(self):
     '''Passes the subtest only if self.checked is True.'''

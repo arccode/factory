@@ -454,3 +454,7 @@ class UI(object):
   def SetSelected(self, element_id):
     """Set the specified element as selected"""
     self.RunJS('$("%s").select()' % element_id)
+
+  def HideTooltips(self):
+    """Hides tooltips."""
+    self.PostEvent(Event(Event.Type.HIDE_TOOLTIPS))

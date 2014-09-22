@@ -1515,9 +1515,7 @@ cros.factory.Goofy.prototype.showTestPopup = function(path, labelElement,
     }
 
     // Hide all tooltips so that they don't fight with the context menu.
-    goog.array.forEach(this.tooltips, function(tooltip) {
-            tooltip.setVisible(false);
-        });
+    this.hideTooltips()
 
     var menu = this.contextMenu = new goog.ui.PopupMenu();
     function addSeparator() {
@@ -2882,6 +2880,15 @@ cros.factory.Goofy.prototype.logInternal = function(message) {
 };
 
 /**
+ * Hides tooltips.
+ */
+cros.factory.Goofy.prototype.hideTooltips = function() {
+    goog.array.forEach(this.tooltips, function(tooltip) {
+            tooltip.setVisible(false);
+        });
+};
+
+/**
  * Handles an event sends from the backend.
  * @suppress {missingProperties}
  * @param {string} jsonMessage the message as a JSON string.
@@ -3007,6 +3014,8 @@ cros.factory.Goofy.prototype.handleBackendEvent = function(jsonMessage) {
                      this.updateNote);
     } else if (message.type == 'goofy:diagnosis_tool:event') {
         this.diagnosisTool.handleBackendEvent(message);
+    } else if (message.type == 'goofy:hide_tooltips') {
+        this.hideTooltips();
     }
 };
 
