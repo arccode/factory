@@ -1919,18 +1919,5 @@ class Goofy(GoofyBase):
         v.thread.join()
       self.reap_completed_tests()
 
-
 if __name__ == '__main__':
-  goofy = Goofy()
-  try:
-    goofy.main()
-  except SystemExit:
-    # Propagate SystemExit without logging.
-    raise
-  except:
-    # Log the error before trying to shut down (unless it's a graceful
-    # exit).
-    logging.exception('Error in main loop')
-    raise
-  finally:
-    goofy.destroy()
+  Goofy.run_main_and_exit()

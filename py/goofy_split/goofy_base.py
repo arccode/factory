@@ -9,7 +9,9 @@
 
 import logging
 import Queue
+import os
 import sys
+import threading
 import time
 import traceback
 
@@ -31,6 +33,10 @@ class GoofyBase(object):
     self.run_queue = Queue.Queue()
     self.exceptions = []
     self.last_idle = None
+
+  def main(self):
+    """Stub main function. This is meant to be overridden in subclasses."""
+    pass
 
   def run_enqueue(self, val):
     """ Enqueues an object on the event loop
@@ -128,3 +134,70 @@ class GoofyBase(object):
     Goofy is destroyed.
     """
     self.exceptions.append(msg)
+
+  @staticmethod
+  def drain_nondaemon_threads():
+    """Wait for all non-current non-daemon threads to exit.
+
+    This is performed by the Python runtime in an atexit handler,
+    but this implementation allows us to do more detailed logging, and
+    to support control-C for abrupt shutdown.
+    """
+    cur_thread = threading.current_thread()
+    all_threads_joined = False
+    while not all_threads_joined:
+      for thread in threading.enumerate():
+        if not thread.daemon and thread.is_alive() and thread is not cur_thread:
+          logging.info("Waiting for thread '%s'...", thread.name)
+          thread.join()
+          # We break rather than continue on because the thread list
+          # may have changed while we waited
+          break
+      else:
+        # No threads remain
+        all_threads_joined = True
+    return all_threads_joined
+
+
+  @classmethod
+  def run_main_and_exit(cls):
+    """Instantiate the receiver, run its main function, and exit when done.
+
+    This class method is the "entry point" for goofy_base subclasses.
+    It instantiates the receiver and invokes its main function, while
+    handling exceptions. When main() finishes (normally or via an exception),
+    it exits the process.
+
+    Args:
+      cls: 'self', a class object that derives from goofy_base
+    """
+    goofy = cls()
+    try:
+      goofy.main()
+    except SystemExit:
+      # Propagate SystemExit without logging.
+      raise
+    except KeyboardInterrupt:
+      logging.info('Interrupted, shutting down...')
+    except:
+      # Log the error before trying to shut down
+      logging.exception('Error in main loop')
+      raise
+    finally:
+      try:
+        # We drain threads manually, rather than letting Python do it,
+        # so that we can report to the user which threads are stuck
+        goofy.destroy()
+        cls.drain_nondaemon_threads()
+      except KeyboardInterrupt:
+        # We got a keyboard interrupt while attempting to shut down.
+        # The user is waiting impatiently! This can happen if threads get stuck.
+        # We need to exit via os._exit, not sys.exit, because sys.exit() will
+        # run the main thread's atexit handler, which waits for all threads to
+        # exit, which is likely how we got stuck in the first place. However, we
+        # do want to capture all logs, so we shut down logging gracefully.
+        logging.info('Graceful shutdown interrupted, shutting down abruptly')
+        logging.shutdown()
+        os._exit(1) # pylint: disable=W0212
+      # Normal exit path
+      sys.exit(0)

@@ -66,6 +66,26 @@ class EventLoopStopTest(GoofyBaseTest):
     # because the None should have shut down the run loop
     self.assertEqual(counter(), 2)
 
+class DrainThreadsTest(GoofyBaseTest):
+  """Check that we can drain threads correctly """
+  def runTest(self):
+    counter = call_counter().next
+    def thread_task():
+      time.sleep(.5)
+      counter()
+    thread_count = 3
+    threads = []
+    for i in xrange(thread_count):
+      t = threading.Thread(target=thread_task, name='DrainThreadsTest_%d' % i)
+      threads.append(t)
+      t.start()
+    self.goofy.drain_nondaemon_threads()
+    # All threads should now have exited, and the counter should have been
+    # incremented exactly thread_count times
+    for t in threads:
+      self.assertFalse(t.is_alive())
+    self.assertEqual(counter(), thread_count)
+
 
 if __name__ == "__main__":
   factory.init_logging('goofy_base_unittest')

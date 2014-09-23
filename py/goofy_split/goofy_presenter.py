@@ -82,16 +82,4 @@ class GoofyPresenter(GoofyBase):
 
 
 if __name__ == '__main__':
-  goofy = GoofyPresenter()
-  try:
-    goofy.main()
-  except SystemExit:
-    # Propagate SystemExit without logging.
-    raise
-  except:
-    # Log the error before trying to shut down (unless it's a graceful
-    # exit).
-    logging.exception('Error in main loop')
-    raise
-  finally:
-    goofy.destroy()
+  GoofyPresenter.run_main_and_exit()
