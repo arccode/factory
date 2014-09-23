@@ -19,6 +19,7 @@ pattern:
     encoding_scheme: base8192
     fields:
     - cellular_field: 1
+    - dram_field: 1
 
     - audio_codec_field: 0
     - battery_field: 0
@@ -27,7 +28,6 @@ pattern:
     - chipset_field: 0
     - cpu_field: 0
     - display_panel_field: 0
-    - dram_field: 0
     - embedded_controller_field: 0
     - firmware_field: 0
     - flash_chip_field: 0
@@ -61,6 +61,13 @@ encoded_fields:
       dram: [
         fake_dram_dimm0,
         fake_dram_dimm1
+      ]
+    1:
+      dram: [
+        fake_dram_dimm0,
+        fake_dram_dimm1,
+        fake_dram_dimm2,
+        fake_dram_dimm3
       ]
   embedded_controller_field:
     0: { embedded_controller: fake_embedded_controller }
@@ -122,11 +129,10 @@ components:
       fake_cpu:
         values: { compact_str: !re '.*' }
   display_panel:
-    probeable: False
     items:
-      fake_display_panel: { values: NULL }
+      fake_display_panel:
+        values: { compact_str: !re '.*' }
   dram:
-    probeable: False
     items:
       fake_dram_dimm0:
         values:
@@ -136,6 +142,14 @@ components:
         values:
           compact_str: !re '.*'
           slot: '1'
+      fake_dram_dimm2:
+        values:
+          compact_str: !re '.*'
+          slot: '2'
+      fake_dram_dimm3:
+        values:
+          compact_str: !re '.*'
+          slot: '3'
   embedded_controller:
     items:
       fake_embedded_controller:
