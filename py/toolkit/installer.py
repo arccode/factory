@@ -351,20 +351,21 @@ def main():
       help="Run goofy in presenter mode on startup")
   parser.add_argument('--no-enable-presenter', dest='enable_presenter',
       action='store_false', help=argparse.SUPPRESS)
-  parser.set_defaults(enable_presenter=False)
+  parser.set_defaults(enable_presenter=True)
 
   parser.add_argument('--enable-device', dest='enable_device',
       action='store_true',
       help="Run goofy in device mode on startup")
   parser.add_argument('--no-enable-device', dest='enable_device',
       action='store_false', help=argparse.SUPPRESS)
+  parser.set_defaults(enable_device=True)
+
   parser.add_argument('--init-umpire-board', dest='umpire_board',
       nargs='?', default=None,
       help="Locally install Umpire server for specific board")
   parser.add_argument('--exe-path', dest='exe_path',
       nargs='?', default=None,
       help="Current self-extracting archive pathname")
-  parser.set_defaults(enable_device=True)
 
   args = parser.parse_args()
 
