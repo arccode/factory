@@ -30,4 +30,5 @@ def Experiment(args):
         id='Reboot',
         label_en='Reboot %r times' % args.experiment_reboot_iterations,
         label_zh=u'重新开机 (%r 次)' % args.experiment_reboot_iterations,
-        iterations=args.experiment_reboot_iterations)
+        iterations=args.experiment_reboot_iterations,
+        dargs={'check_tag_file': True})

@@ -351,7 +351,7 @@ class TestListArgs(object):
   #####
 
   # The iterations of reboot tests in experiment test list.
-  experiment_reboot_iterations = 500
+  experiment_reboot_iterations = 1000
 
   #####
   #
