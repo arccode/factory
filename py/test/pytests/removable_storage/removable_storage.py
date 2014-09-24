@@ -20,14 +20,14 @@ import time
 import unittest
 
 from cros.factory.event_log import Log
-from cros.factory.test.fixture.bft_fixture import (BFTFixture,
-                                                   BFTFixtureException,
-                                                   CreateBFTFixture,
-                                                   TEST_ARG_HELP)
+from cros.factory.test import countdown_timer
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
+from cros.factory.test.fixture.bft_fixture import (BFTFixtureException,
+                                                   CreateBFTFixture,
+                                                   TEST_ARG_HELP)
 from cros.factory.utils import sys_utils
 from cros.factory.utils.process_utils import CheckOutput, SpawnOutput
 
@@ -123,6 +123,11 @@ _ERR_BFT_ACTION_STR = (
             action, test_type, target_dev, reason))
 
 _TEST_TITLE = test_ui.MakeLabel('Removable Storage Test', u'可移除储存装置测试')
+
+_ID_STATE_DIV = 'state_div'
+_ID_COUNTDOWN_DIV = 'countdown_div'
+_TEST_HTML = '<div id="%s"></div><div id="%s"></div>' % (
+    _ID_STATE_DIV, _ID_COUNTDOWN_DIV)
 _IMG_HTML_TAG = (
     lambda src: '<img src="%s" style="display:block; margin:0 auto;"/>' % src)
 
@@ -165,10 +170,12 @@ class RemovableStorageTest(unittest.TestCase):
         optional=True),
     Arg('extra_prompt_zh', (str, unicode), 'An extra prompt (in Chinese)',
         optional=True),
+    Arg('timeout_secs', int,
+        'Timeout in seconds for the test to wait before it fails', default=20),
     Arg('bft_fixture', dict, TEST_ARG_HELP, default=None, optional=True),
     Arg('bft_media_device', str,
         'Device name of BFT used to insert/remove the media.',
-        optional=True)
+        optional=True),
   ]
   # pylint: disable=E1101
 
@@ -308,7 +315,7 @@ class RemovableStorageTest(unittest.TestCase):
     self._state = _STATE_ACCESSING
 
     self._template.SetInstruction(_TESTING_FMT_STR(self._target_device))
-    self._template.SetState(_IMG_HTML_TAG(self._testing_image))
+    self.SetState(_IMG_HTML_TAG(self._testing_image))
 
     dev_path = self._target_device
     dev_size = self._device_size
@@ -328,14 +335,14 @@ class RemovableStorageTest(unittest.TestCase):
         # Read/Write one block each time
         bytes_to_operate = self.args.block_size
         loop = self.args.random_block_count
-        self._template.SetState(
+        self.SetState(
             _TESTING_RANDOM_RW_FMT_STR(loop, bytes_to_operate), append=True)
       elif m == _RW_TEST_MODE_SEQUENTIAL:
         # Converts block counts into bytes
         bytes_to_operate = (self.args.sequential_block_count *
                             self.args.block_size)
         loop = 1
-        self._template.SetState(
+        self.SetState(
             _TESTING_SEQUENTIAL_RW_FMT_STR(bytes_to_operate), append=True)
 
       try:
@@ -472,7 +479,7 @@ class RemovableStorageTest(unittest.TestCase):
     Log(('%s_rw_speed' % self.args.media), **self._metrics)
     self._template.SetInstruction(_REMOVE_FMT_STR(self.args.media))
     self._state = _STATE_RW_TEST_WAIT_REMOVE
-    self._template.SetState(_IMG_HTML_TAG(self._removal_image))
+    self.SetState(_IMG_HTML_TAG(self._removal_image))
     if self._bft_fixture:
       try:
         self._bft_fixture.SetDeviceEngaged(self._bft_media_device, False)
@@ -484,7 +491,7 @@ class RemovableStorageTest(unittest.TestCase):
     """SD card write protection test."""
     self._state = _STATE_ACCESSING
     self._template.SetInstruction(_TESTING_FMT_STR(self._target_device))
-    self._template.SetState(_IMG_HTML_TAG(self._testing_image))
+    self.SetState(_IMG_HTML_TAG(self._testing_image))
 
     ro = self.GetDeviceRo(self._target_device)
 
@@ -492,7 +499,7 @@ class RemovableStorageTest(unittest.TestCase):
       self._ui.FailLater(_ERR_LOCKTEST_FAILED_FMT_STR(self._target_device))
     self._template.SetInstruction(_LOCKTEST_REMOVE_FMT_STR(self.args.media))
     self._state = _STATE_LOCKTEST_WAIT_REMOVE
-    self._template.SetState(_IMG_HTML_TAG(self._locktest_removal_image))
+    self.SetState(_IMG_HTML_TAG(self._locktest_removal_image))
     self.AdvanceProgress()
 
   def CreatePartition(self):
@@ -589,8 +596,7 @@ class RemovableStorageTest(unittest.TestCase):
             self._template.SetInstruction(
                 _LOCKTEST_INSERT_FMT_STR(self.args.media))
             self._state = _STATE_LOCKTEST_WAIT_INSERT
-            self._template.SetState(
-                _IMG_HTML_TAG(self._locktest_insertion_image))
+            self.SetState(_IMG_HTML_TAG(self._locktest_insertion_image))
           else:
             self.Pass()
         elif self._state == _STATE_LOCKTEST_WAIT_REMOVE:
@@ -627,6 +633,10 @@ class RemovableStorageTest(unittest.TestCase):
     """Passes the test."""
     self._ui.Pass()
 
+  def SetState(self, html, append=False):
+    """Sets the innerHTML attribute of the state div."""
+    self._ui.SetHTML(html, append=append, id=_ID_STATE_DIV)
+
   def runTest(self):
     """Main entrance of removable storage test."""
     random.seed(0)
@@ -653,7 +663,8 @@ class RemovableStorageTest(unittest.TestCase):
             self.args.extra_prompt_en or "",
             self.args.extra_prompt_zh or self.args.extra_prompt_en or ""))
     self._state = _STATE_RW_TEST_WAIT_INSERT
-    self._template.SetState(_IMG_HTML_TAG(self._insertion_image))
+    self._template.SetState(_TEST_HTML)
+    self.SetState(_IMG_HTML_TAG(self._insertion_image))
 
     # Initialize progress bar
     self._template.DrawProgressBar()
@@ -666,6 +677,13 @@ class RemovableStorageTest(unittest.TestCase):
       self._total_tests += 1
     self._finished_tests = 0
     self._template.SetProgressBarValue(0)
+
+    # Start countdown timer.
+    countdown_timer.StartCountdownTimer(
+        self.args.timeout_secs,
+        lambda: self.Fail('Timeout waiting for test to complete'),
+        self._ui,
+        _ID_COUNTDOWN_DIV)
 
     # Start to monitor udev events.
     context = pyudev.Context()
