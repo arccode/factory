@@ -12,8 +12,8 @@ import threading
 import time
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.goofy_split.discoverer import DUTDiscoverer
-from cros.factory.goofy_split.discoverer import PresenterDiscoverer
+from cros.factory.goofy.discoverer import DUTDiscoverer
+from cros.factory.goofy.discoverer import PresenterDiscoverer
 from cros.factory.test import utils
 from cros.factory.test.network import GetAllIPs
 from cros.factory.utils.jsonrpc_utils import JSONRPCServer

@@ -15,7 +15,7 @@ import unittest
 from contextlib import contextmanager
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.goofy import time_sanitizer
+from cros.factory.goofy_monolithic import time_sanitizer
 
 
 BASE_TIME = float(

@@ -17,7 +17,7 @@ import threading
 import time
 import unittest
 
-from cros.factory.goofy_split.goofy_presenter import GoofyPresenter
+from cros.factory.goofy.goofy_presenter import GoofyPresenter
 from cros.factory.test import factory
 
 class GoofyPresenterTest(unittest.TestCase):

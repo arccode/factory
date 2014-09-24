@@ -12,7 +12,7 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.goofy_split import goofy_rpc
+from cros.factory.goofy import goofy_rpc
 from cros.factory.test import utils
 from cros.factory.utils import process_utils
 

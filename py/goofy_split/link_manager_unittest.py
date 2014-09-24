@@ -9,10 +9,10 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.goofy_split import link_manager
-from cros.factory.goofy_split.link_manager import DUTLinkManager
-from cros.factory.goofy_split.link_manager import PresenterLinkManager
-from cros.factory.goofy_split.link_manager import LinkDownError
+from cros.factory.goofy import link_manager
+from cros.factory.goofy.link_manager import DUTLinkManager
+from cros.factory.goofy.link_manager import PresenterLinkManager
+from cros.factory.goofy.link_manager import LinkDownError
 from cros.factory.utils import test_utils
 
 class LinkManagerTest(unittest.TestCase):

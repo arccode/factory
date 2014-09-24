@@ -12,10 +12,10 @@ import logging
 import syslog
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.goofy_split import test_environment
-from cros.factory.goofy_split.goofy_base import GoofyBase
-from cros.factory.goofy_split.link_manager import DUTLinkManager
-from cros.factory.goofy_split.ui_app_controller import UIAppController
+from cros.factory.goofy import test_environment
+from cros.factory.goofy.goofy_base import GoofyBase
+from cros.factory.goofy.link_manager import DUTLinkManager
+from cros.factory.goofy.ui_app_controller import UIAppController
 from cros.factory.test import utils
 
 class GoofyPresenter(GoofyBase):

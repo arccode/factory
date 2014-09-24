@@ -27,17 +27,17 @@ from cros.factory import event_log
 from cros.factory import system
 from cros.factory.event_log import EventLog, FloatDigit
 from cros.factory.event_log_watcher import EventLogWatcher
-from cros.factory.goofy_split import test_environment
-from cros.factory.goofy_split import time_sanitizer
-from cros.factory.goofy_split import updater
-from cros.factory.goofy_split.goofy_base import GoofyBase
-from cros.factory.goofy_split.goofy_rpc import GoofyRPC
-from cros.factory.goofy_split.invocation import TestArgEnv
-from cros.factory.goofy_split.invocation import TestInvocation
-from cros.factory.goofy_split.link_manager import PresenterLinkManager
-from cros.factory.goofy_split.prespawner import Prespawner
-from cros.factory.goofy_split.system_log_manager import SystemLogManager
-from cros.factory.goofy_split.web_socket_manager import WebSocketManager
+from cros.factory.goofy import test_environment
+from cros.factory.goofy import time_sanitizer
+from cros.factory.goofy import updater
+from cros.factory.goofy.goofy_base import GoofyBase
+from cros.factory.goofy.goofy_rpc import GoofyRPC
+from cros.factory.goofy.invocation import TestArgEnv
+from cros.factory.goofy.invocation import TestInvocation
+from cros.factory.goofy.link_manager import PresenterLinkManager
+from cros.factory.goofy.prespawner import Prespawner
+from cros.factory.goofy.system_log_manager import SystemLogManager
+from cros.factory.goofy.web_socket_manager import WebSocketManager
 from cros.factory.system.board import Board, BoardException
 from cros.factory.system.charge_manager import ChargeManager
 from cros.factory.system.core_dump_manager import CoreDumpManager

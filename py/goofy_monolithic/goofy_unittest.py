@@ -25,14 +25,14 @@ import unittest
 from mox import IgnoreArg
 from ws4py.client import WebSocketBaseClient
 
-from cros.factory.goofy import goofy
+from cros.factory.goofy_monolithic import goofy
 from cros.factory.test import factory
 from cros.factory.test import state
 
-from cros.factory.goofy.connection_manager import ConnectionManager
-from cros.factory.goofy import invocation
-from cros.factory.goofy.goofy import Goofy
-from cros.factory.goofy.test_environment import Environment
+from cros.factory.goofy_monolithic.connection_manager import ConnectionManager
+from cros.factory.goofy_monolithic import invocation
+from cros.factory.goofy_monolithic.goofy import Goofy
+from cros.factory.goofy_monolithic.test_environment import Environment
 from cros.factory.test import shopfloor
 from cros.factory.test.event import Event
 from cros.factory.test.factory import TestState

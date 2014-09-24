@@ -17,7 +17,7 @@ import unittest
 import factory_common  # pylint: disable=W0611
 
 from cros.factory.test import factory
-from cros.factory.goofy_split.goofy_base import GoofyBase
+from cros.factory.goofy.goofy_base import GoofyBase
 
 def call_counter():
   """Helper iterator that returns the number of previous calls."""

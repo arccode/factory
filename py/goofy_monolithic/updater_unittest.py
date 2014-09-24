@@ -9,7 +9,7 @@ import mox
 import threading
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.goofy import updater
+from cros.factory.goofy_monolithic import updater
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 

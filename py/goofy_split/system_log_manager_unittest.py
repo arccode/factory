@@ -32,7 +32,7 @@ def CatchExceptionDisabled(*args, **kwargs):
   return CatchExceptionImpl(*args, **kwargs)
 debug_utils.CatchException = CatchExceptionDisabled
 
-from cros.factory.goofy_split import system_log_manager
+from cros.factory.goofy import system_log_manager
 
 mock_file_prefix = 'system_log_manager_unittest_%s_' % os.getpid()
 mock_sync_log_paths = [os.path.join('/tmp', mock_file_prefix + '*')]

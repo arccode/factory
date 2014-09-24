@@ -16,10 +16,10 @@ import threading
 import time
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.goofy.service_manager import GetServiceStatus
-from cros.factory.goofy.service_manager import SetServiceStatus
-from cros.factory.goofy.service_manager import Status
-from cros.factory.goofy import connection_manager
+from cros.factory.goofy_monolithic.service_manager import GetServiceStatus
+from cros.factory.goofy_monolithic.service_manager import SetServiceStatus
+from cros.factory.goofy_monolithic.service_manager import Status
+from cros.factory.goofy_monolithic import connection_manager
 from cros.factory.test import factory, state, utils
 
 

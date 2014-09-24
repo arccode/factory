@@ -15,7 +15,7 @@ from cros.factory.utils.net_utils import WLAN  # pylint: disable=W0611
 
 try:
   # pylint: disable=W0611
-  from cros.factory.goofy_split import flimflam_test_path
+  from cros.factory.goofy import flimflam_test_path
   import dbus  # pylint: disable=F0401
   import flimflam  # pylint: disable=F0401
 except ImportError:
