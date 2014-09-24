@@ -130,7 +130,7 @@ def main():
                       help='Use goofy_split instead of goofy_monolithic')
   parser.add_argument('--no-host-based', dest='host_based',
                       action='store_false', help=argparse.SUPPRESS)
-  parser.set_defaults(host_based=False)
+  parser.set_defaults(host_based=True)
   parser.add_argument('--role', dest='role',
                       help=('Set the role of the device. Must be one of: ' +
                             ', '.join(HOST_BASED_ROLES)))
