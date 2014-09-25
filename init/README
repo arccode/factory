@@ -25,7 +25,3 @@ Now, when everything is set, we'll have a new and unified boot flow:
 
 And when developers run factory_restart, it brings up these services in same
 flow (first factory then chrome).
-
-Note in goofy, we will also check existence of init/use-telemetry and upstart
-job 'factory-init' (i.e., old test images that does not support the new mode)
-to see if we have to roll back into Telemetry mode.

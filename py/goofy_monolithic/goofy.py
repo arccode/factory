@@ -1226,12 +1226,6 @@ class Goofy(object):
                       help=('do not automatically run the test list on goofy '
                             'start; this is only valid when factory test '
                             'automation is enabled'))
-    parser.add_option('--guest_login', dest='guest_login', default=False,
-                      action='store_true',
-                      help='Log in as guest. This will not own the TPM.')
-    parser.add_option('--use-telemetry', dest='use_telemetry',
-                      action='store_true', default=False,
-                      help='Use Telemetry for Chrome UI invocation.')
     parser.add_option('--standalone', dest='standalone',
                       help='(This option is for goofy_split only)')
     (self.options, self.args) = parser.parse_args(args)
@@ -1239,8 +1233,6 @@ class Goofy(object):
     signal.signal(signal.SIGINT, self.handle_sigint)
     # TODO(hungte) SIGTERM does not work properly without Telemetry and should
     # be fixed.
-    if self.options.use_telemetry:
-      signal.signal(signal.SIGTERM, self.handle_sigterm)
 
     # Make sure factory directories exist.
     factory.get_log_root()
@@ -1269,12 +1261,7 @@ class Goofy(object):
       logging.warn(
         'Using chroot environment: will not actually run autotests')
     elif self.options.ui == 'chrome':
-      if self.options.use_telemetry:
-        if self.options.guest_login:
-          os.mknod(test_environment.DUTTelemetryEnvironment.GUEST_MODE_TAG_FILE)
-        self.env = test_environment.DUTTelemetryEnvironment()
-      else:
-        self.env = test_environment.DUTEnvironment()
+      self.env = test_environment.DUTEnvironment()
     self.env.goofy = self
 
     if self.options.restart:
@@ -1303,10 +1290,6 @@ class Goofy(object):
     self.state_instance.set_shared_data(
         'automation_mode_prompt',
         AutomationModePrompt[self.options.automation_mode])
-
-    # Set use_telemetry in shared data so that factory tests can look it up.
-    self.state_instance.set_shared_data('use_telemetry',
-                                        self.options.use_telemetry)
 
     try:
       self.InitTestLists()

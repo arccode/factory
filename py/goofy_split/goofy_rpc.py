@@ -1136,19 +1136,6 @@ class GoofyRPC(object):
     """
     return self.CallExtension('GetDisplayInfo', timeout=timeout)
 
-  def TakeScreenshot(self, output_file=None):
-    """Takes a screenshot through Telemetry tab.Screenshot API.
-
-    Args:
-      output_file: The output file path to store the captured image file.
-          If not given, screenshot is saved to /var/log/screenshot_<TIME>.png.
-    """
-    if not output_file:
-      output_file = ('/var/log/screenshot_%s.png' %
-                     time.strftime("%Y%m%d-%H%M%S"))
-    subprocess.check_call('xwd -d :0 -root | convert - "%s"' % output_file,
-                          shell=True)
-
 
 def main():
   parser = argparse.ArgumentParser(

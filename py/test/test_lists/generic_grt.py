@@ -96,11 +96,10 @@ def GRT(args):
         label_zh=u'请求清除 TPM',
         pytest_name='clear_tpm_owner_request')
 
-    # Reboots to guest mode so we do not touch TPM.
+    # Reboot to clear TPM.
     RebootStep(
-        id='RebootToGuestMode',
+        id='RebootToClearTPM',
         label_zh=u'重新开机',
-        enable_guest_mode=True,
         iterations=1)
 
     args.Barrier('GRTReadyToFinalize', pass_without_prompt=True)

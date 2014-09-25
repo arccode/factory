@@ -108,17 +108,9 @@ start_factory() {
   modprobe i2c-dev 2>/dev/null || true
   check_disk_usage
 
-  # Determine if we need to run in Telemetry (legacy) mode.
-  local use_telemetry=
-  [ -f /usr/local/factory/init/use-telemetry ] && use_telemetry=1
-  status factory-init >/dev/null 2>&1 || use_telemetry=1
-  if [ -n "$use_telemetry" ]; then
-    GOOFY_ARGS="$GOOFY_ARGS --use-telemetry"
-  else
-    # If TPM is owned, we have to reboot otherwise UI may get freak.
-    if (cryptohome --action=tpm_status 2>&1 | grep -q 'TPM Owned: true'); then
-      clear_tpm_owner
-    fi
+  # If TPM is owned, we have to reboot otherwise UI may get freak.
+  if (cryptohome --action=tpm_status 2>&1 | grep -q 'TPM Owned: true'); then
+    clear_tpm_owner
   fi
 
   # Open ports in the firewall so that the presenter can reach us

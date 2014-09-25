@@ -585,10 +585,6 @@ class Options(object):
   check_if_mlb_changed = False
   """Check if MLB has been changed, and reset all tests if so."""
 
-  chrome_startup_tries = 2
-  """Number of tries allowed to run telemetry login procedure. Setting this
-  value greater than 1 enables retry for telemetry if login fails."""
-
   phase = None
   """Name of a phase to set.  If None, the phase is unset and the
   strictest (PVT) checks are applied."""
@@ -1335,8 +1331,7 @@ class ShutdownStep(OperatorTest):
   REBOOT = 'reboot'
   HALT = 'halt'
 
-  def __init__(self, operation, delay_secs=5, enable_guest_mode=False,
-               **kwargs):
+  def __init__(self, operation, delay_secs=5, **kwargs):
     super(ShutdownStep, self).__init__(**kwargs)
     assert not (self.autotest_name or self.pytest_name), (
         'Reboot/halt steps may not have an autotest/pytest')
@@ -1349,8 +1344,7 @@ class ShutdownStep(OperatorTest):
     self.dargs = kwargs.get('dargs', {})
     self.dargs.update(dict(
         operation=operation,
-        delay_secs=delay_secs,
-        enable_guest_mode=enable_guest_mode))
+        delay_secs=delay_secs))
 
 
 class HaltStep(ShutdownStep):
