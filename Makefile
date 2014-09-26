@@ -90,6 +90,10 @@ UNITTESTS_ISOLATE_LIST=\
        py/goofy_split/goofy_unittest.py \
        py/goofy_split/system_log_manager_unittest.py
 
+INSTALL_MASK=*.pyc \
+	     *_unittest.py \
+	     py/doc
+
 
 # TODO(jsalz): remove the hard-coded path once the icedtea6-bin
 # package is fixed and /usr/bin/java works
@@ -125,7 +129,7 @@ par:
 
 install:
 	mkdir -p $(FACTORY)
-	rsync -a --chmod=go=rX --exclude '*.pyc' \
+	rsync -a --chmod=go=rX $(addprefix --exclude ,$(INSTALL_MASK)) \
 	  bin misc py py_pkg sh init $(FACTORY)
 	ln -sf bin/gooftool bin/edid bin/hwid_tool ${FACTORY}
 	mkdir -m755 -p ${DESTDIR}/var/log
