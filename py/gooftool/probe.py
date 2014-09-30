@@ -617,7 +617,7 @@ def _ProbeCellular():
   data = _FlimflamDevices.ReadSysfsDeviceIds('cellular')
   if data:
     modem_status = Shell('modem status').stdout
-    for key in ['carrier', 'firmware_revision']:
+    for key in ['carrier', 'firmware_revision', 'Revision']:
       matches = re.findall(
         r'^\s*' + key + ': (.*)$', modem_status, re.M)
       if matches:
