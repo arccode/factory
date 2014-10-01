@@ -9,11 +9,14 @@ Scans given python modules and see their dependency. Usage:
   deps.py PYTHON_FILE(s)...
 """
 
+from __future__ import print_function
+
 import distutils.sysconfig as sysconfig
 import importlib
 import os
 import re
 import sys
+import traceback
 
 import yaml
 
@@ -190,20 +193,22 @@ def main(argv):
       continue
     if path.endswith('_unittest.py'):
       continue
-    print '--- %s ---' % os.path.basename(path)
     # For symlink python files, we want to keep its path directory so abspath
     # is better than realpath.
     path = os.path.abspath(path)
+    print('--- %s ---' % os.path.relpath(path))
     try:
       # Exclude Python Standard Library and include site packages.
       deps = GetDependencyList(path, base, standard_lib, site_packages)
       bad_imports = CheckDependencyList(path, deps, rules, package_top,
                                         standard_lib, site_packages)
       if bad_imports:
-        print '\n'.join(bad_imports)
+        print('\n'.join(bad_imports))
         exit_value = 1
-    except:
-      print 'Failed checking %s.' % path
+    except Exception as e:
+      tb = traceback.format_exc()
+      print('Failed checking %s: %s' % (path, e))
+      print(tb)
       exit_value = 1
   sys.exit(exit_value)
 
