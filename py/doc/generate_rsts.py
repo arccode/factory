@@ -211,9 +211,10 @@ def main():
   index_rst = os.path.join(pytests_output_dir, 'index.rst')
   with open(index_rst, 'a') as f:
     for k, v in sorted(pytest_info.items()):
-      f.write('   * - `%s <%s.html>`_\n' % (k, k))
-      f.write(Indent(v['short_docstring'], ' ' * 7, '     - '))
-      f.write('\n')
+      if v is not None:
+        f.write('   * - `%s <%s.html>`_\n' % (k, k))
+        f.write(Indent(v['short_docstring'], ' ' * 7, '     - '))
+        f.write('\n')
 
 if __name__ == '__main__':
   main()
