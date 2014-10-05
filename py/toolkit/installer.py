@@ -84,6 +84,18 @@ this self-extracting archive.
 # Override this for unit testing.
 _in_cros_device = utils.in_cros_device
 
+SERVER_FILE_MASK = [
+    # Exclude Umpire server but keep Umpire client
+    '--include', 'py/umpire/__init__.*',
+    '--include', 'py/umpire/common.*',
+    '--include', 'py/umpire/client',
+    '--include', 'py/umpire/client/**',
+    '--exclude', 'py/umpire/**',
+
+    # Lumberjack is only used on Umpire server
+    '--exclude', 'py/lumberjack'
+]
+
 
 class FactoryToolkitInstaller():
   """Factory toolkit installer.
@@ -212,8 +224,9 @@ class FactoryToolkitInstaller():
           Spawn(['chmod', '-R', 'go+rX', src],
                 sudo=True, log=True, check_call=True)
         print '***   %s -> %s' % (src, dest)
-        Spawn(['rsync', '-a', '--force', src + '/', dest],
-              sudo=self._sudo, log=True, check_output=True)
+        Spawn(['rsync', '-a', '--force', ] + SERVER_FILE_MASK +
+              [src + '/', dest], sudo=self._sudo, log=True,
+              check_output=True, cwd=src)
       finally:
         # Need to change the source directory back to the original user, or the
         # script in makeself will fail to remove the temporary source directory.

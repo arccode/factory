@@ -8,6 +8,7 @@
 """Unittest for installer.py."""
 
 
+from __future__ import print_function
 import factory_common  # pylint: disable=W0611
 import logging
 import os
@@ -20,14 +21,25 @@ from cros.factory.toolkit import installer
 
 class ToolkitInstallerTest(unittest.TestCase):
   """Test factory toolkit installer."""
+  FILES = [
+      ('usr/local/file1', 'install me!'),
+      ('var/log1', 'I am a log file!'),
+      ('usr/local/factory/py/umpire/__init__.py', 'This goes to DUT!'),
+      ('usr/local/factory/py/umpire/client/umpire_client.py',
+       'This goes to DUT, too!'),
+      ('usr/local/factory/py/umpire/archiver.py',
+       'I only run on Umpire server!'),
+  ]
+
   def setUp(self):
     self.src = tempfile.mkdtemp(prefix='ToolkitInstallerTest.')
     os.makedirs(os.path.join(self.src, 'usr/local/factory/init'))
     os.makedirs(os.path.join(self.src, 'var/factory/state'))
-    with open(os.path.join(self.src, 'usr/local', 'file1'), 'w') as f:
-      f.write('install me!')
-    with open(os.path.join(self.src, 'var', 'log1'), 'w') as f:
-      f.write('I am a log file!')
+    os.makedirs(os.path.join(self.src, 'usr/local/factory/py/umpire/client'))
+
+    for install_file in self.FILES:
+      with open(os.path.join(self.src, install_file[0]), 'w') as f:
+        f.write(install_file[1])
 
     self.dest = tempfile.mkdtemp(prefix='ToolkitInstallerTest.')
     self._installer = None
@@ -84,6 +96,13 @@ class ToolkitInstallerTest(unittest.TestCase):
         os.path.join(self.dest, 'usr/local/factory/init/run_goofy_device')))
     self.assertEquals('../factory/bin/gooftool',
         os.readlink(os.path.join(self.dest, 'usr/local/bin/gooftool')))
+    self.assertTrue(os.path.exists(
+        os.path.join(self.dest, 'usr/local/factory/py/umpire/__init__.py')))
+    self.assertTrue(os.path.exists(
+        os.path.join(self.dest,
+                     'usr/local/factory/py/umpire/client/umpire_client.py')))
+    self.assertFalse(os.path.exists(
+        os.path.join(self.dest, 'usr/local/factory/py/umpire/archiver.py')))
 
   def testDeviceOnly(self):
     self.makeLiveDevice()
