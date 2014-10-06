@@ -211,6 +211,7 @@ deps-presubmit:
 	@if ! py/tools/deps.py $(PRESUBMIT_FILES) ; then \
 	    echo "Dependency check failed." ; \
 	    echo "Please read py/tools/deps.conf for more information." ; \
+	    exit 1; \
 	fi
 
 # Check that test_make_factory_package.py has been run, if
