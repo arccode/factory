@@ -17,6 +17,12 @@ import sys
 
 import yaml
 
+# WORKAROUND: List of modules that can't be loaded multiple times by deleting
+# reference in sys.modules.
+# TODO(hungte) Find a better way to prevent this workaround, ex hooking
+# __import__.
+import zope.interface
+
 
 # Constants for config file.
 CONFIG_GROUPS = r'groups'
@@ -55,7 +61,8 @@ def GetDependencyList(path, base, exclude, include):
         not module_path.startswith(include)):
       continue
     dependency.append(module_path)
-  # Unload new modules by deleting all references.
+  # Delete references to new modules so we can build correct dependency list for
+  # next file. Note this won't really unload modules.
   for name in new_names:
     del sys.modules[name]
   return dependency
