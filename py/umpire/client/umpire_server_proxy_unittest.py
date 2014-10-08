@@ -8,6 +8,8 @@
 """Unittest for UmpireServerProxy."""
 
 
+from __future__ import print_function
+
 import glob
 import logging
 import mox
@@ -27,10 +29,11 @@ from SimpleXMLRPCServer import SimpleXMLRPCServer, SimpleXMLRPCRequestHandler
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.utils import kill_process_tree
 from cros.factory.umpire.client import umpire_server_proxy
+from cros.factory.utils import net_utils
 from cros.factory.utils.file_utils import ForceSymlink, Read
 from cros.factory.utils.net_utils import FindConsecutiveUnusedPorts
 
-MOCK_UMPIRE_ADDR = 'http://localhost'
+MOCK_UMPIRE_ADDR = 'http://' + net_utils.LOCALHOST
 SEARCH_STARTING_PORT = 49998
 TESTDATA_DIRECTORY = os.path.join(
     os.path.dirname(os.path.realpath(__file__)), 'testdata')

@@ -23,6 +23,7 @@ Examples:
   shopfloor deploy shopfloor.yaml#54311e9a
 """
 
+from __future__ import print_function
 
 import glob
 import json
@@ -50,6 +51,7 @@ from cros.factory.shopfloor.launcher import ShopFloorLauncherException
 from cros.factory.shopfloor.launcher import utils
 from cros.factory.shopfloor.launcher import yamlconf
 from cros.factory.utils import file_utils
+from cros.factory.utils import net_utils
 from cros.factory.utils.process_utils import OpenDevNull
 from cros.factory.utils.process_utils import SpawnOutput
 
@@ -90,7 +92,7 @@ class ClientProtocol(Protocol):  # pylint: disable=W0232
     """Dumps received command output."""
     # The connection is controlled by remote peer. No need to call
     # StopReactor().
-    print data
+    print(data)
 
 
 class CommandLineFactory(ClientFactory):
@@ -108,20 +110,20 @@ class CommandLineFactory(ClientFactory):
 
   def clientConnectionFailed(self, connector, reason):
     """Displays error message on client connection failed."""
-    print 'ERROR: %s' % reason
+    print('ERROR: %s' % reason)
     StopReactor()
 
   def clientConnectionLost(self, connector, reason):
     """Displays error message when connect lost unexpectly."""
     if not reason.check(error.ConnectionDone):
-      print 'ERROR: %s' % reason
+      print('ERROR: %s' % reason)
     StopReactor()
 
 
 def CallLauncher():
   """Proxies command line arguments to launcher."""
   cmd = CommandLineFactory(sys.argv, os.getcwd())
-  reactor.connectTCP('localhost', constants.COMMAND_PORT, cmd)
+  reactor.connectTCP(net_utils.LOCALHOST, constants.COMMAND_PORT, cmd)
   reactor.run()
 
 
@@ -363,13 +365,13 @@ def Init(args):
   if args.local:
     env.runtime_dir = os.getcwd()
   elif not os.path.isdir(constants.SHOPFLOOR_INSTALL_DIR):
-    print "Install folder not found!"
-    print "Please create folder: \n\t%s\n" % constants.SHOPFLOOR_INSTALL_DIR
-    print "And change the owner to current user ID."
-    print "Example:"
-    print "  for user 'sfuser' and group 'sf'"
-    print "  sudo mkdir /var/db/factory"
-    print "  sudo chown sfuser.sf /var/db/factory"
+    print("Install folder not found!")
+    print("Please create folder: \n\t%s\n" % constants.SHOPFLOOR_INSTALL_DIR)
+    print("And change the owner to current user ID.")
+    print("Example:")
+    print("  for user 'sfuser' and group 'sf'")
+    print("  sudo mkdir /var/db/factory")
+    print("  sudo chown sfuser.sf /var/db/factory")
     sys.exit(-1)
   utils.CreateSystemFolders()
 

@@ -4,6 +4,8 @@
 
 """A module for running factory install on a DUT with netboot."""
 
+from __future__ import print_function
+
 import logging
 import os
 import re
@@ -16,6 +18,7 @@ from cros.factory.factory_flow.common import (
 from cros.factory.hacked_argparse import CmdArg
 from cros.factory.test import utils
 from cros.factory.utils import file_utils
+from cros.factory.utils import net_utils
 from cros.factory.utils import ssh_utils
 from cros.factory.utils import sys_utils
 
@@ -34,7 +37,7 @@ class NetbootInstall(FactoryFlowCommand):
       CmdArg('--flash-method', choices=['ssh', 'servo'], default='ssh',
              help=('how to flash netboot firmware and EC '
                    '(default: %(default)s)')),
-      CmdArg('--servo-host', default='localhost',
+      CmdArg('--servo-host', default=net_utils.LOCALHOST,
              help='IP of the servo host (default: %(default)s)'),
       CmdArg('--servo-port', type=int, default=9999,
              help='port of servod (default: %(default)s)'),
@@ -199,4 +202,4 @@ class NetbootInstall(FactoryFlowCommand):
           'Expect image version to be %s on DUT but found %s' %
           (image_version_in_bundle, image_version_on_dut))
     else:
-      print 'Netboot install completed on DUT %s' % self.options.dut
+      print('Netboot install completed on DUT %s' % self.options.dut)

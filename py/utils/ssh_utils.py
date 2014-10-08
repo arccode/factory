@@ -8,12 +8,15 @@ This module is intended to work with Chrome OS DUTs only as it uses Chrome OS
 testing_rsa identity.
 """
 
+from __future__ import print_function
+
 import logging
 import os
 import shutil
 import tempfile
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils
 
 
@@ -115,11 +118,11 @@ class SSHTunnelToDUT(object):
     remote: The hostname or IP address of the remote host.
     bind_port: The local port to bind to.
     host_port: The remote port to bind to.
-    bind_address: The local address to bind to; default to 'localhost'.
-    host: The remote address to bind to; default to 'localhost'.
+    bind_address: The local address to bind to; default to '127.0.0.1'.
+    host: The remote address to bind to; default to '127.0.0.1'.
   """
   def __init__(self, remote, bind_port, host_port,
-               bind_address='localhost', host='localhost'):
+               bind_address=net_utils.LOCALHOST, host=net_utils.LOCALHOST):
     self._remote = remote
     self._bind_address = bind_address
     self._bind_port = bind_port

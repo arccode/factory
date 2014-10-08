@@ -21,6 +21,10 @@ from cros.factory.utils.process_utils import Spawn, SpawnOutput
 
 
 DEFAULT_TIMEOUT = 10
+# Some systems map 'localhost' to its IPv6 equivalent ::1.  Sometimes this
+# causes unexpected behaviour.  We want to force the numerical IPv4 address, so
+# that these systems run tests under IPv4.
+LOCALHOST = '127.0.0.1'
 MAX_PORT = 65535
 
 

@@ -6,6 +6,8 @@
 
 # pylint: disable=E1101
 
+from __future__ import print_function
+
 import logging
 import mox
 import os
@@ -32,7 +34,7 @@ class CommandTest(unittest.TestCase):
     test_port = net_utils.GetUnusedPort()
     self.env = UmpireEnvForTest()
     self.mox = mox.Mox()
-    self.proxy = xmlrpc.Proxy('http://localhost:%d' % test_port)
+    self.proxy = xmlrpc.Proxy('http://%s:%d' % (net_utils.LOCALHOST, test_port))
     xmlrpc_resource = XMLRPCContainer()
     umpire_cli = CLICommand(self.env)
     xmlrpc_resource.AddHandler(umpire_cli)

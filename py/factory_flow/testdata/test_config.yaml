@@ -34,7 +34,7 @@ test_items:
   netboot_install_servo:
     command: netboot-install
     flash-method: servo
-    servo-host: localhost
+    servo-host: 127.0.0.1
     wait-timeout-secs: 2400
 
   usb_install_usb_image:
@@ -90,7 +90,7 @@ dut_info:
   big_dut_wifi:
     eth_mac: 20:c9:d0:2a:60:e3
     ip: 10.3.0.23
-    servo_host: localhost
+    servo_host: 127.0.0.1
     servo_port: 9988
     servo_serial: 780735-00093
     test_list_customization:

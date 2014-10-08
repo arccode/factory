@@ -11,12 +11,15 @@ test equipment. All of the unittests assumed to simulate on port 1 if no
 explicit annotation is given.
 """
 
+from __future__ import print_function
+
 import logging
 import threading
 import unittest
 import SocketServer
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.utils import net_utils
 from cros.factory.utils import test_utils
 from cros.factory.rf.n1914a import N1914A
 
@@ -86,7 +89,7 @@ class MockServerHandler(SocketServer.StreamRequestHandler):
 
 class N1914ATest(unittest.TestCase):
   EXPECTED_MODEL = 'Agilent Technologies,N1914A,MY50001187,A2.01.06'
-  HOST = 'localhost'
+  HOST = net_utils.LOCALHOST
 
   # FETCH1_EXPECTED_RESPONSE is the IEEE 754 64 bit floating
   # point representation of FETCH1_EXPECTED_RESPONSE
@@ -105,7 +108,7 @@ class N1914ATest(unittest.TestCase):
     '''Starts a thread for the mock equipment.'''
     server_port = test_utils.FindUnusedTCPPort()
     mock_server = MockTestServer(
-        ('localhost', server_port), MockServerHandler)
+        (net_utils.LOCALHOST, server_port), MockServerHandler)
     # pylint: disable=E1101
     server_thread = threading.Thread(target=mock_server.serve_forever)
     server_thread.daemon = True

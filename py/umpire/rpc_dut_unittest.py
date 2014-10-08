@@ -4,6 +4,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+from __future__ import print_function
+
 import copy
 import glob
 import logging
@@ -57,8 +59,9 @@ class DUTRPCTest(unittest.TestCase):
 
     self.env.LoadConfig()
     self.mox = mox.Mox()
-    self.proxy = xmlrpc.Proxy('http://localhost:%d' % TEST_RPC_PORT,
-                              allowNone=True)
+    self.proxy = xmlrpc.Proxy(
+        'http://%s:%d' % (net_utils.LOCALHOST, TEST_RPC_PORT),
+        allowNone=True)
     root_commands = RootDUTCommands(self.env)
     umpire_dut_commands = UmpireDUTCommands(self.env)
     log_dut_commands = LogDUTCommands(self.env)

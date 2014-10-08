@@ -6,6 +6,8 @@
 """Debug utilities."""
 
 
+from __future__ import print_function
+
 import logging
 import os
 import sys
@@ -15,6 +17,7 @@ import traceback
 import SocketServer
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils
 
 def DumpStackTracebacks():
@@ -58,7 +61,7 @@ class DebugRequestHandler(SocketServer.StreamRequestHandler):
   def handle(self):
     self.wfile.write(DumpStackTracebacks())
 
-def StartDebugServer(address='localhost', port=5339):
+def StartDebugServer(address=net_utils.LOCALHOST, port=5339):
   """Opens a TCP server to print debug information.
 
   Returns the server and thread.

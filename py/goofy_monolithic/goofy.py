@@ -7,6 +7,8 @@
 
 """The main factory flow that runs the factory test and finalizes a device."""
 
+from __future__ import print_function
+
 import glob
 import logging
 import os
@@ -57,6 +59,7 @@ from cros.factory.test.factory import TestState
 from cros.factory.test.utils import Enum
 from cros.factory.tools.key_filter import KeyFilter
 from cros.factory.utils import file_utils
+from cros.factory.utils import net_utils
 from cros.factory.utils.process_utils import Spawn
 
 
@@ -1248,8 +1251,8 @@ class Goofy(object):
       _inited_logging = True
 
     if self.options.print_test_list:
-      print factory.read_test_list(
-          self.options.print_test_list).__repr__(recursive=True)
+      print(factory.read_test_list(
+          self.options.print_test_list).__repr__(recursive=True))
       sys.exit(0)
 
     event_log.IncrementBootSequence()
@@ -1337,8 +1340,8 @@ class Goofy(object):
     self.check_log_rotation()
 
     if self.options.dummy_shopfloor:
-      os.environ[shopfloor.SHOPFLOOR_SERVER_ENV_VAR_NAME] = (
-          'http://localhost:%d/' % shopfloor.DEFAULT_SERVER_PORT)
+      os.environ[shopfloor.SHOPFLOOR_SERVER_ENV_VAR_NAME] = ('http://%s:%d/' %
+          (net_utils.LOCALHOST, shopfloor.DEFAULT_SERVER_PORT))
       self.dummy_shopfloor = Spawn(
           [os.path.join(factory.FACTORY_PATH, 'bin', 'shopfloor_server'),
            '--dummy'])

@@ -10,6 +10,8 @@
 """The unittest for the main factory flow that runs the factory test."""
 
 
+from __future__ import print_function
+
 import factory_common  # pylint: disable=W0611
 
 import logging
@@ -36,6 +38,7 @@ from cros.factory.goofy.test_environment import Environment
 from cros.factory.test import shopfloor
 from cros.factory.test.event import Event
 from cros.factory.test.factory import TestState
+from cros.factory.utils import net_utils
 from cros.factory.utils import test_utils
 from cros.factory.utils.process_utils import Spawn
 
@@ -248,9 +251,9 @@ class WebSocketTest(GoofyTest):
           socket_self.send(Event(Event.Type.KEEPALIVE,
                                  uuid=event.uuid).to_json())
 
-    ws = MyClient(
-      'ws://localhost:%d/event' % state.DEFAULT_FACTORY_STATE_PORT,
-      protocols=None, extensions=None)
+    ws = MyClient('ws://%s:%d/event' %
+        (net_utils.LOCALHOST, state.DEFAULT_FACTORY_STATE_PORT),
+        protocols=None, extensions=None)
 
     def open_web_socket():
       ws.connect()

@@ -9,6 +9,9 @@ This module provides both client and server side of a XML RPC based server which
 can be used to handle factory test states (status) and shared persistent data.
 '''
 
+
+from __future__ import print_function
+
 import factory_common # pylint: disable=W0611
 
 import glob
@@ -33,13 +36,14 @@ from cros.factory import system
 from cros.factory.test import factory
 from cros.factory.test.factory import TestState
 from cros.factory.test import unicode_to_string
+from cros.factory.utils import net_utils
 from cros.factory.utils.shelve_utils import OpenShelfOrBackup
 from cros.factory.utils.string_utils import CleanUTF8
 
 
 DEFAULT_FACTORY_STATE_PORT = 0x0FAC
-DEFAULT_FACTORY_STATE_ADDRESS = 'localhost'
-DEFAULT_FACTORY_STATE_BIND_ADDRESS = 'localhost'
+DEFAULT_FACTORY_STATE_ADDRESS = net_utils.LOCALHOST
+DEFAULT_FACTORY_STATE_BIND_ADDRESS = net_utils.LOCALHOST
 DEFAULT_FACTORY_STATE_FILE_PATH = factory.get_state_root()
 
 POST_SHUTDOWN_TAG = '%s.post_shutdown'

@@ -6,6 +6,8 @@
 
 # pylint: disable=E1101
 
+from __future__ import print_function
+
 import copy
 import logging
 import os
@@ -22,6 +24,7 @@ from cros.factory.umpire.daemon import UmpireDaemon
 from cros.factory.umpire.umpire_env import UmpireEnvForTest
 from cros.factory.umpire.umpire_rpc import RPCCall
 from cros.factory.umpire.web.wsgi import WSGISession
+from cros.factory.utils import net_utils
 
 
 TESTDIR = os.path.abspath(os.path.join(os.path.split(__file__)[0], 'testdata'))
@@ -90,8 +93,8 @@ class DaemonTest(unittest.TestCase):
     shutil.copy(TESTCONFIG, self.env.active_config_file)
     self.env.LoadConfig()
     self.daemon = UmpireDaemon(self.env)
-    self.rpc_proxy = xmlrpc.Proxy('http://localhost:%d' %
-                                  self.env.umpire_cli_port)
+    self.rpc_proxy = xmlrpc.Proxy('http://%s:%d' %
+        (net_utils.LOCALHOST, self.env.umpire_cli_port))
     self.agent = client.Agent(reactor)
 
   def tearDown(self):
@@ -113,7 +116,8 @@ class DaemonTest(unittest.TestCase):
     """
     if session is None:
       session = AttrDict()
-    url = 'http://localhost:%d%s' % (self.env.umpire_webapp_port, path)
+    url = 'http://%s:%d%s' % (net_utils.LOCALHOST,
+        self.env.umpire_webapp_port, path)
     logging.debug('GET %s', url)
     if headers:
       headers = copy.deepcopy(headers)

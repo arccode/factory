@@ -15,6 +15,7 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.utils import jsonrpc_utils
+from cros.factory.utils import net_utils
 from cros.factory.utils import test_utils
 
 
@@ -25,9 +26,10 @@ class JSONRPCTest(unittest.TestCase):
         port=self.port,
         methods={'Echo': self.echo,
                  'Sleep': self.sleep})
-    self.simple_proxy = jsonrpclib.Server('http://localhost:%d' % self.port)
+    self.simple_proxy = jsonrpclib.Server(
+        'http://%s:%d' % (net_utils.LOCALHOST, self.port))
     self.timeout_proxy = jsonrpclib.Server(
-        'http://localhost:%d' % self.port,
+        'http://%s:%d' % (net_utils.LOCALHOST, self.port),
         transport=jsonrpc_utils.TimeoutJSONRPCTransport(timeout=1))
 
   def tearDown(self):

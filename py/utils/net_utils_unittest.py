@@ -6,6 +6,8 @@
 
 """Networking-related utilities."""
 
+from __future__ import print_function
+
 import SimpleXMLRPCServer
 import socket
 import threading
@@ -26,7 +28,7 @@ class TimeoutXMLRPCTest(unittest.TestCase):
   def setUp(self):
     self.port = test_utils.FindUnusedTCPPort()
     self.server = SimpleXMLRPCServer.SimpleXMLRPCServer(
-      ('localhost', self.port),
+      (net_utils.LOCALHOST, self.port),
       allow_none=True)
     self.server.register_function(time.sleep)
     self.thread = threading.Thread(target=self.server.serve_forever)
@@ -38,7 +40,8 @@ class TimeoutXMLRPCTest(unittest.TestCase):
 
   def MakeProxy(self, timeout):
     return net_utils.TimeoutXMLRPCServerProxy(
-      'http://localhost:%d' % self.port, timeout=timeout, allow_none=True)
+      'http://%s:%d' % (net_utils.LOCALHOST, self.port),
+      timeout=timeout, allow_none=True)
 
   def runTest(self):
     self.client = self.MakeProxy(timeout=1)

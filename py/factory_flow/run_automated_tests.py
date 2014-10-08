@@ -4,6 +4,8 @@
 
 """A module for running automated factory tests on a DUT."""
 
+from __future__ import print_function
+
 import glob
 import httplib
 import jsonrpclib
@@ -245,7 +247,8 @@ class RunAutomatedTests(FactoryFlowCommand):
       self.ssh_tunnel = ssh_utils.SSHTunnelToDUT(
           self.options.dut, local_port, state.DEFAULT_FACTORY_STATE_PORT)
       self.ssh_tunnel.Establish()
-      goofy_proxy = state.get_instance(address='localhost', port=local_port)
+      goofy_proxy = state.get_instance(
+          address=net_utils.LOCALHOST, port=local_port)
       goofy_proxy.GetGoofyStatus()  # Make sure the proxy works.
       return goofy_proxy
     except (utils.TimeoutError,             # Cannot ping DUT.
@@ -303,11 +306,11 @@ class RunAutomatedTests(FactoryFlowCommand):
                                        args=(stop_event,))
     sync_log_thread.start()
 
-    print TEST_AUTOMATION_MESSAGE % dict(
+    print(TEST_AUTOMATION_MESSAGE % dict(
         dut=self.options.dut,
         automation_mode=self.options.automation_mode,
         test_list=test_list,
-        clear_states=self.options.clear_states)
+        clear_states=self.options.clear_states))
 
     def ParseFinishedTests(run_status):
       """Parses finish tests."""

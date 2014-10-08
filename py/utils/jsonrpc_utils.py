@@ -4,12 +4,15 @@
 
 """JSONRPC-related utilities."""
 
+from __future__ import print_function
+
 import jsonrpclib
 from jsonrpclib.SimpleJSONRPCServer import SimpleJSONRPCServer
 import threading
 import uuid
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.utils import net_utils
 from cros.factory.utils.net_utils import TimeoutXMLRPCTransport
 
 
@@ -58,7 +61,7 @@ class JSONRPCServer(object):
       return
     self._aborted.set()
     # Make a fake request to self
-    s = jsonrpclib.Server('http://localhost:%d/' % self._port,
+    s = jsonrpclib.Server('http://%s:%d/' % (net_utils.LOCALHOST, self._port),
                           transport=TimeoutJSONRPCTransport(0.01))
     try:
       s.IsAlive()

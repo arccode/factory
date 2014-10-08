@@ -5,6 +5,7 @@
 
 """The application periodically archives shopfloor reports."""
 
+from __future__ import print_function
 
 import logging
 import optparse
@@ -20,6 +21,7 @@ from cros.factory.test.shopfloor import get_instance
 from cros.factory.shopfloor.launcher import constants
 from cros.factory.shopfloor.launcher import env
 from cros.factory.test.utils import FormatExceptionOnly, TryMakeDirs
+from cros.factory.utils import net_utils
 from cros.factory.utils.process_utils import Spawn
 
 ARCHIVE_DIR = 'archive'
@@ -33,7 +35,7 @@ ARCHIVE_SUFFIX = '.tar.bz2'
 _DEFAULT_PERIOD_MINUTES = 10
 
 # Default URL for the XMLRPC server
-_DEFAULT_RPC_URL = 'http://localhost:8082/'
+_DEFAULT_RPC_URL = 'http://%s:8082/' % net_utils.LOCALHOST
 
 
 def ArchiveLogs(options):

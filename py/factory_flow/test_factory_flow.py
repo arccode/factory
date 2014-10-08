@@ -6,6 +6,8 @@
 
 """A tool for running factory flow tests."""
 
+from __future__ import print_function
+
 import collections
 import datetime
 import glob
@@ -31,6 +33,7 @@ from cros.factory.hacked_argparse import CmdArg, ParseCmdline, verbosity_cmd_arg
 from cros.factory.test import utils
 from cros.factory.tools import build_board
 from cros.factory.utils import file_utils
+from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import ssh_utils
 
@@ -303,7 +306,7 @@ class TestResult(object):
     mail.attach(attachment)
 
     logging.info('Sending notification E-mail to owners...')
-    smtp = smtplib.SMTP('localhost')
+    smtp = smtplib.SMTP(net_utils.LOCALHOST)
     smtp.sendmail(FROM, self.test_plan_config['owners'], mail.as_string())
     smtp.quit()
 

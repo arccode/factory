@@ -4,14 +4,19 @@
 
 """Test-related utilities."""
 
+from __future__ import print_function
+
 import SocketServer
 
 from contextlib import contextmanager
 
+import factory_common  # pylint: disable=W0611
+from cros.factory.utils import net_utils
+
 
 def FindUnusedTCPPort():
   """Returns an unused TCP port for testing."""
-  server = SocketServer.TCPServer(('localhost', 0),
+  server = SocketServer.TCPServer((net_utils.LOCALHOST, 0),
                                   SocketServer.BaseRequestHandler)
   return server.server_address[1]
 

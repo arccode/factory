@@ -6,6 +6,8 @@
 
 """Enviroment objects that handles external test operations."""
 
+from __future__ import print_function
+
 import cPickle as pickle
 import hashlib
 import logging
