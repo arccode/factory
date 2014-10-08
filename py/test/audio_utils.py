@@ -6,12 +6,15 @@
 
 """This is audio utility module to setup amixer related options."""
 
+from __future__ import print_function
+
 import logging
 import os
 import re
 import tempfile
 import yaml
 
+import factory_common  # pylint: disable=W0611
 from glob import glob
 from cros.factory.utils.process_utils import PIPE, Spawn
 
@@ -454,6 +457,18 @@ class AudioUtil(object):
 
   def DisableDmic(self, card='0'):
     self.ApplyAudioConfig('disable_dmic', card)
+
+  def EnableKBDmic(self, card='0'):
+    self.ApplyAudioConfig('enable_keyboard_dmic', card)
+
+  def MuteLeftKBDmic(self, card='0'):
+    self.ApplyAudioConfig('mute_left_keyboard_dmic', card)
+
+  def MuteRightKBDmic(self, card='0'):
+    self.ApplyAudioConfig('mute_right_keyboard_dmic', card)
+
+  def DisableKBDmic(self, card='0'):
+    self.ApplyAudioConfig('disable_keyboard_dmic', card)
 
   def EnableExtmic(self, card='0'):
     self.ApplyAudioConfig('enable_extmic', card)

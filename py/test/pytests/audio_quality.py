@@ -9,17 +9,22 @@
 # This test case is used to communicate with audio fixture and parse
 # the result of CLIO which is audio quality analysis software.
 
+from __future__ import print_function
+
 import binascii
 import logging
 import os
 import re
 import select
 import socket
+import tempfile
 import threading
 import time
 import unittest
 import yaml
+import zipfile
 
+import factory_common  # pylint: disable=W0611
 from cros.factory.event_log import Log
 from cros.factory.test.args import Arg
 from cros.factory.test import factory
@@ -53,6 +58,7 @@ _LABEL_WAITING = test_ui.MakeLabel('Waiting for command', u'等待指令中')
 _LABEL_AUDIOLOOP = test_ui.MakeLabel('Audio looping', u'音源回放中')
 _LABEL_SPEAKER_MUTE_OFF = test_ui.MakeLabel('Speaker on', u'喇叭开启')
 _LABEL_DMIC_ON = test_ui.MakeLabel('Dmic on', u'LCD mic开启')
+_LABEL_KBDMIC_ON = test_ui.MakeLabel('Keyboard Dmic on', u'Keyboard mic开启')
 _LABEL_PLAYTONE_LEFT = test_ui.MakeLabel('Playing tone to left channel',
     u'播音至左声道')
 _LABEL_PLAYTONE_RIGHT = test_ui.MakeLabel('Playing tone to right channel',
@@ -81,6 +87,7 @@ _LOOP_0_RE = re.compile("(?i)loop_0")
 _LOOP_1_RE = re.compile("(?i)loop_1")
 _LOOP_2_RE = re.compile("(?i)loop_2")
 _LOOP_3_RE = re.compile("(?i)loop_3")
+_LOOP_4_RE = re.compile("(?i)loop_4")
 _XTALK_L_RE = re.compile("(?i)xtalk_l")
 _XTALK_R_RE = re.compile("(?i)xtalk_r")
 _MULTITONE_RE = re.compile("(?i)multitone")
@@ -93,7 +100,8 @@ _CONFIG_FILE_RE = re.compile("(?i)config_file")
 
 class AudioQualityTest(unittest.TestCase):
   ARGS = [
-    Arg('initial_actions', list, 'List of tuple (card, actions)', []),
+    Arg('initial_actions', list, 'List of tuple (card, actions), and card '
+        'can be card index number or card name', []),
     Arg('input_dev', (str, tuple),
         'Input ALSA device for string.  (card_name, sub_device) for tuple. '
         'For example: "hw:0,0" or ("audio_card", "0").', 'hw:0,0'),
@@ -157,6 +165,7 @@ class AudioQualityTest(unittest.TestCase):
     self._handlers[_LOOP_1_RE] = self.HandleLoopFromDmicToJack
     self._handlers[_LOOP_2_RE] = self.HandleLoopFromJackToSpeaker
     self._handlers[_LOOP_3_RE] = self.HandleLoopJack
+    self._handlers[_LOOP_4_RE] = self.HandleLoopFromKeyboardDmicToJack
     self._handlers[_XTALK_L_RE] = self.HandleXtalkLeft
     self._handlers[_XTALK_R_RE] = self.HandleXtalkRight
     self._handlers[_MULTITONE_RE] = self.HandleMultitone
@@ -282,6 +291,7 @@ class AudioQualityTest(unittest.TestCase):
         card = audio_utils.GetCardIndexByName(card)
       self._audio_util.ApplyAudioConfig(action, card)
     self._audio_util.DisableDmic(self._in_card)
+    self._audio_util.DisableKBDmic(self._in_card)
     self._audio_util.EnableExtmic(self._in_card)
     self._audio_util.DisableSpeaker(self._out_card)
     self._audio_util.EnableHeadphone(self._out_card)
@@ -343,6 +353,22 @@ class AudioQualityTest(unittest.TestCase):
       factory.console.error('No such file or directory: %s', file_path)
       self.SendResponse("NO_CONFIG;0;%s" % binascii.b2a_hex(''), args)
 
+  def DecompressZip(self, file_path, target_path):
+    """Decompresses ZIP format file
+
+    Args:
+      file_path: the path of compressed file
+      target_path: the path of extracted files
+
+    Returns:
+      True if file is a ZIP format file
+    """
+    if not zipfile.is_zipfile(file_path):
+      return False
+    with zipfile.ZipFile(file_path) as zf:
+      zf.extractall(target_path)
+    return True
+
   def HandleSendFile(self, *args):
     """This function is used to save test results from DUT.
 
@@ -355,16 +381,21 @@ class AudioQualityTest(unittest.TestCase):
     received_data = attr_list[3]
 
     logging.info("Received file %s with size %d" , file_name, size)
+    real_data = binascii.a2b_hex(received_data)
 
     write_path = os.path.join(factory.get_log_root(), 'aux', 'audio', file_name)
     utils.TryMakeDirs(os.path.dirname(write_path))
     factory.console.info('save file: %s', write_path)
     with open(write_path, 'wb') as f:
-      f.write(received_data)
+      f.write(real_data)
     self._auxlogs.append(write_path)
 
-    test_result = yaml.load(received_data)
-    Log('audio_quality_result', **test_result)
+    if self.DecompressZip(write_path, tempfile.gettempdir()):
+      file_path = os.path.join(tempfile.gettempdir(), 'description.yaml')
+      with open(file_path, 'r') as f:
+        test_result = yaml.load(f)
+      Log('audio_quality_result', **test_result)
+
     self.SendResponse(None, args)
 
   def HandleSendFile_CLIO(self, *args):
@@ -477,16 +508,15 @@ class AudioQualityTest(unittest.TestCase):
     """Handles test completion.
     Runs post test script before ends this test
     """
+    self.SendResponse(None, args)
+    self._test_complete = True
+
     #Restores the original state before exiting the test.
     Spawn(['iptables', '-D', 'INPUT', '-p', 'tcp', '--dport', str(_PORT),
         '-j', 'ACCEPT'], check_call=True)
-    Spawn(['ifconfig', self._eth, 'down'], check_call=True)
-    Spawn(['ifconfig', self._eth, 'up'], check_call=True)
     self.RestoreConfiguration()
 
     logging.info('%s run_once finished', self.__class__)
-    self.SendResponse(None, args)
-    self._test_complete = True
 
   def HandleLoopDefault(self, *args):
     """Restore amixer configuration to default."""
@@ -526,10 +556,11 @@ class AudioQualityTest(unittest.TestCase):
     self.SendResponse(None, args)
 
   def HandleLoopFromDmicToJack(self, *args):
-    """Digital mic loop to headphone."""
+    """LCD mic loop to headphone."""
     self.HandleLoop()
     self._ui.CallJSFunction('setMessage', _LABEL_AUDIOLOOP + _LABEL_DMIC_ON)
     self._audio_util.DisableExtmic(self._in_card)
+    self._audio_util.DisableKBDmic(self._in_card)
     self._audio_util.EnableDmic(self._in_card)
     self._audio_util.DisableSpeaker(self._out_card)
     self._audio_util.EnableHeadphone(self._out_card)
@@ -544,9 +575,21 @@ class AudioQualityTest(unittest.TestCase):
     self._ui.CallJSFunction('setMessage', _LABEL_AUDIOLOOP +
         _LABEL_SPEAKER_MUTE_OFF)
     self._audio_util.DisableDmic(self._in_card)
+    self._audio_util.DisableKBDmic(self._in_card)
     self._audio_util.EnableExtmic(self._in_card)
     self._audio_util.DisableHeadphone(self._out_card)
     self._audio_util.EnableSpeaker(self._out_card)
+    self.SendResponse(None, args)
+
+  def HandleLoopFromKeyboardDmicToJack(self, *args):
+    """Keyboard mic loop to headphone."""
+    self.HandleLoop()
+    self._ui.CallJSFunction('setMessage', _LABEL_AUDIOLOOP + _LABEL_KBDMIC_ON)
+    self._audio_util.DisableExtmic(self._in_card)
+    self._audio_util.DisableDmic(self._in_card)
+    self._audio_util.EnableKBDmic(self._in_card)
+    self._audio_util.DisableSpeaker(self._out_card)
+    self._audio_util.EnableHeadphone(self._out_card)
     self.SendResponse(None, args)
 
   def HandleXtalkLeft(self, *args):
