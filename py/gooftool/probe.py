@@ -905,7 +905,9 @@ def _GetEMMC5FirmwareVersion(node_path):
   version = ''.join(('%02x' % c for c in raw_version))
 
   # Try to decode it as a ASCII string.
-  ascii = ''.join(map(chr, raw_version)).strip(chr(0))
+  # Note vendor may choose SPACE (0x20) or NUL (0x00) to pad version string,
+  # so we want to strip both in the human readable part.
+  ascii = ''.join(map(chr, raw_version)).strip(' \0')
   if len(ascii) > 0 and all(c in string.printable for c in ascii):
     version += ' (%s)' % ascii
   else:
