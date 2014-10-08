@@ -1,8 +1,8 @@
-# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
+# Copyright 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-
+from __future__ import print_function
 import copy
 import getpass
 import logging
@@ -191,6 +191,7 @@ def Spawn(args, **kwargs):
       call=True and stderr=PIPE.
     ignore_stderr: Ignore stderr.
     sudo: Prepend sudo to arguments if user is not root.
+    env: Same as subprocess.Popen, set-up environment parameters if needed.
 
   Returns/Raises:
     Same as Popen.

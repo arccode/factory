@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
+# Copyright 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
 """Test external display with optional audio playback test."""
 
+from __future__ import print_function
 import logging
 import os
 import random
@@ -15,6 +16,7 @@ import time
 import unittest
 import uuid
 
+import factory_common  # pylint: disable=W0611
 from cros.factory.test import audio_utils
 from cros.factory.test import factory
 from cros.factory.test import test_ui
@@ -29,7 +31,7 @@ from cros.factory.test.fixture.bft_fixture import (BFTFixture,
                                                    CreateBFTFixture,
                                                    TEST_ARG_HELP)
 from cros.factory.test.pytests import audio
-from cros.factory.utils.process_utils import SpawnOutput
+from cros.factory.utils import process_utils
 
 _TEST_TITLE = test_ui.MakeLabel('External Display Test',
                                 u'外接显示屏测试')
@@ -129,12 +131,17 @@ class WaitDisplayThread(threading.Thread):
                     'connected' if self._connect else 'disconnected'),
         re.MULTILINE)
     self._on_success = on_success
+    # Set-up x-window environments for xrandr command.
+    self._env = os.environ.copy()
+    self._env['DISPLAY'] = ':0'
+    self._env['XAUTHORITY'] = '/home/chronos/.Xauthority'
 
   def run(self):
     while not self._done.is_set():
       # First checks the xrandr output pattern matches the expected status
       # of the specified external display.
-      if self._xrandr_expect.search(SpawnOutput(['xrandr', '-d', ':0'])):
+      if self._xrandr_expect.search(
+          process_utils.SpawnOutput(['xrandr', '-d', ':0'], env=self._env)):
         display_info = factory.get_state_instance().GetDisplayInfo()
         # In the case of connecting an external display, make sure there
         # is an item in display_info with 'isInternal' False.
@@ -360,8 +367,6 @@ class VideoTask(ExtDisplayTask):
       else:
         return
 
-    os.environ['DISPLAY'] = ':0'
-    os.environ['XAUTHORITY'] = '/home/chronos/.Xauthority'
     # Try to switch main display for at most 5 times.
     tries_left = 5
     while tries_left:
