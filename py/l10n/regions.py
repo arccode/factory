@@ -22,9 +22,10 @@ from cros.factory.test.utils import Enum
 # ANSI = US-like
 # ISO = UK-like
 # JIS = Japanese
+# KS = Korean
 # ABNT2 = Brazilian (like ISO but with an extra key to the left of the
 #   right shift key)
-KeyboardMechanicalLayout = Enum(['ANSI', 'ISO', 'JIS', 'ABNT2'])
+KeyboardMechanicalLayout = Enum(['ANSI', 'ISO', 'JIS', 'ABNT2', 'KS'])
 
 
 KEYBOARD_PATTERN = re.compile(r'^xkb:\w+:\w*:\w+$|'
@@ -94,7 +95,7 @@ class Region(object):
 
   keyboard_mechanical_layout = None
   """The keyboard's mechanical layout (``ANSI`` [US-like], ``ISO``
-  [UK-like], ``JIS`` [Japanese], or ``ABNT2`` [Brazilian])."""
+  [UK-like], ``JIS`` [Japanese], ``ABNT2`` [Brazilian] or ``KS`` [Korean])."""
 
   description = None
   """A human-readable description of the region.
