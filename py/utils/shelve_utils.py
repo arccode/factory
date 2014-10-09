@@ -1,4 +1,4 @@
-# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
+# Copyright 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -9,8 +9,8 @@ import shelve
 import shutil
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import utils
-from cros.factory.utils.process_utils import Spawn
+from cros.factory.utils import file_utils
+from cros.factory.utils import process_utils
 
 
 BACKUP_DIRECTORY = 'backup'
@@ -29,13 +29,13 @@ def IsShelfValid(shelf):
   Returns:
     True if valid, False if not valid.
   """
-  process = Spawn(['python', '-c',
-                   'import factory_common, shelve, sys; '
-                   'shelve.open(sys.argv[1], "r").items(); '
-                   r'print "\nSHELF OK"',
-                   os.path.realpath(shelf)],
-                  cwd=os.path.dirname(__file__), call=True,
-                  log=True, read_stdout=True, read_stderr=True)
+  process = process_utils.Spawn(['python', '-c',
+                                 'import factory_common, shelve, sys; '
+                                 'shelve.open(sys.argv[1], "r").items(); '
+                                 r'print "\nSHELF OK"',
+                                 os.path.realpath(shelf)],
+                                cwd=os.path.dirname(__file__), call=True,
+                                log=True, read_stdout=True, read_stderr=True)
   if process.returncode == 0 and process.stdout_data.endswith('SHELF OK\n'):
     return True
 
@@ -77,7 +77,7 @@ def BackupShelfIfValid(shelf):
     return False
 
   backup_dir = os.path.join(os.path.dirname(shelf), BACKUP_DIRECTORY)
-  utils.TryMakeDirs(backup_dir)
+  file_utils.TryMakeDirs(backup_dir)
   logging.info('Backing up %s to %s', shelf_files, backup_dir)
   for f in shelf_files:
     shutil.copyfile(f, os.path.join(backup_dir, os.path.basename(f)))
