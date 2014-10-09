@@ -394,6 +394,11 @@ def SetTouchpadTwoFingerScrollingX(enabled):
   process_utils.Spawn([TPSCONTROL_XINPUT, 'set', prop_id, prop_value])
 
 
+def HasX():
+  """Checks whether X is present on the system."""
+  return os.path.exists('/opt/google/input/xinput.sh')
+
+
 def _CrOSTouchXInput(args):
   """Helper method to invoke shell functions defined in xinput.sh
 
