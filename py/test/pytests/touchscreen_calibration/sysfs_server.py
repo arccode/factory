@@ -12,6 +12,8 @@ Note: this module does not have any dependency on factory stuffs so that
       it could be run as a pure server e.g. on a Beagle Bone.
 """
 
+from __future__ import print_function
+
 import ConfigParser
 import logging
 import os
@@ -150,11 +152,11 @@ def RunXMLRPCSysfsServer(addr, log=logging):
     return (count > 1)
 
   if _IsServerRunning():
-    print 'XMLRPCServer(%s) has been already running....' % str(addr)
+    print('XMLRPCServer(%s) has been already running....' % str(addr))
   else:
     server = SimpleXMLRPCServer.SimpleXMLRPCServer(addr)
     server.register_instance(Sysfs(log))
-    print 'XMLRPCServer(%s) serves sys fs data forever....' % str(addr)
+    print('XMLRPCServer(%s) serves sys fs data forever....' % str(addr))
     server.serve_forever()
 
 
@@ -171,9 +173,9 @@ def _ParseAddr(addr_str):
 def _Usage():
   """Print the usage."""
   prog = sys.argv[0]
-  print 'Usage: ./%s ip:port' % prog
-  print 'E.g.:  ./%s 192.168.10.20:8000' % prog
-  print '       ./%s localhost:8000' % prog
+  print('Usage: ./%s ip:port' % prog)
+  print('E.g.:  ./%s 192.168.10.20:8000' % prog)
+  print('       ./%s localhost:8000' % prog)
   sys.exit(1)
 
 

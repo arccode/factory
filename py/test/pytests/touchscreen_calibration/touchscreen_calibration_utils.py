@@ -6,7 +6,13 @@
 
 The SimpleSystem() and SimpleSystemOutput() functions are grabbed from
 hardware_Trackpad and were written by truty@.
+
+Note that in order to be able to use this module on a system without the
+factory stuffs, e.g., on a Beagle Bone, this module does not depend on
+any factory modules on purpose.
 """
+
+from __future__ import print_function
 
 import logging
 import subprocess
