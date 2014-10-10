@@ -6,6 +6,8 @@
 
 """JSONRPC-related utilities."""
 
+from __future__ import print_function
+
 import jsonrpclib
 import socket
 import time
@@ -42,6 +44,9 @@ class JSONRPCTest(unittest.TestCase):
     time.sleep(0.1) # Wait for the server to start
     self.assertTrue(self.simple_proxy.IsAlive())
     self.assertEqual(self.simple_proxy.Echo('test'), 'test')
+
+    # Check the UUID remains the same for the same server instance
+    self.assertEqual(self.simple_proxy.GetUuid(), self.simple_proxy.GetUuid())
 
   def testTimeoutProxy(self):
     self.server.Start()

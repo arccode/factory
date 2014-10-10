@@ -38,6 +38,7 @@ class GoofyPresenter(GoofyBase):
 
     self.ui_app_controller = UIAppController(connect_hook=self.UIConnected)
     self.dut_ip = None
+    self.dut_uuid = None
 
     if utils.in_cros_device():
       self.env = test_environment.DUTEnvironment()
@@ -61,8 +62,9 @@ class GoofyPresenter(GoofyBase):
     return parser.parse_args()
 
   def DUTConnected(self, dut_ip):
-    self.ui_app_controller.ShowUI(dut_ip)
+    self.dut_uuid = self.link_manager.GetUuid()
     self.dut_ip = dut_ip
+    self.ui_app_controller.ShowUI(dut_ip, dut_uuid = self.dut_uuid)
 
   def DUTDisconnected(self):
     self.ui_app_controller.ShowDisconnectedScreen()
@@ -70,7 +72,7 @@ class GoofyPresenter(GoofyBase):
 
   def UIConnected(self):
     if self.dut_ip:
-      self.ui_app_controller.ShowUI(self.dut_ip)
+      self.ui_app_controller.ShowUI(self.dut_ip, dut_uuid=self.dut_uuid)
 
   def UIAppCountdown(self, message, timeout_secs, timeout_message,
                      timeout_message_color):

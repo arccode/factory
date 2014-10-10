@@ -7,6 +7,7 @@
 import jsonrpclib
 from jsonrpclib.SimpleJSONRPCServer import SimpleJSONRPCServer
 import threading
+import uuid
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.utils.net_utils import TimeoutXMLRPCTransport
@@ -34,6 +35,7 @@ class JSONRPCServer(object):
     self._server_thread = None
     self._port = port
     self._methods = methods
+    self._uuid = str(uuid.uuid4())
 
   def _ServeRPCForever(self):
     while not self._aborted.isSet():
@@ -43,6 +45,7 @@ class JSONRPCServer(object):
     self._server = SimpleJSONRPCServer(('0.0.0.0', self._port),
                                        logRequests=False)
     self._server.register_function(lambda: True, 'IsAlive')
+    self._server.register_function(lambda: self._uuid, 'GetUuid')
     if self._methods:
       for k, v in self._methods.iteritems():
         self._server.register_function(v, k)

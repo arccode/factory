@@ -7,6 +7,7 @@
 import json
 import logging
 import threading
+import uuid
 from BaseHTTPServer import HTTPServer
 from SimpleHTTPServer import SimpleHTTPRequestHandler
 from ws4py.websocket import WebSocket
@@ -91,9 +92,14 @@ class UIAppController(object):
       for ws in self.web_sockets:
         ws.send(msg_string)
 
-  def ShowUI(self, dut_ip):
+  def ShowUI(self, dut_ip, dut_uuid=None):
+    # If dut_uuid is not specified, generate one in the same format
+    # as jsonrpc_utils:GetUuid.
+    if not dut_uuid:
+      dut_uuid = str(uuid.uuid4())
     url = 'http://%s:%d/' % (dut_ip, state.DEFAULT_FACTORY_STATE_PORT)
-    self.SendMessage({'command': UI_APP_COMMAND.CONNECT, 'url': url})
+    self.SendMessage({'command': UI_APP_COMMAND.CONNECT,
+                      'url': url, 'uuid': dut_uuid})
 
   def ShowDisconnectedScreen(self):
     self.SendMessage({'command': UI_APP_COMMAND.DISCONNECT})

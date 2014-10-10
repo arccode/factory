@@ -4,6 +4,7 @@
 
 var myWindowName = 'goofy_presenter';
 var connected = false;
+var lastUuid = null;
 
 var countdown = {
   timeout: null,
@@ -63,21 +64,30 @@ function startCountdown(msg, timeout, end_msg, end_msg_color) {
 
 function handleDisconnect() {
   if (connected) {
-    document.getElementById('goofy-content').src = "about:blank";
+    /* Instead of destroying the UI, just hide it in case we need it later. */
+    setDisplay('goofy-content', 'none');
     setDisplay('goofy-logo', '');
     setDisplay('goofy-message-container', '');
     connected = false;
   }
 }
 
-function handleConnect(serverUrl) {
+function handleConnect(serverUrl, serverUuid) {
   if (!connected) {
     /* Now that a device is connected, restore message and stop countdown. */
     stopCountdown();
     setInfo("Waiting for device...");
 
     var content = document.getElementById('goofy-content');
-    content.src = serverUrl;
+    /*
+     * Only re-open the UI if it's not from the same session from the last
+     * connection.
+     */
+    if (serverUuid != lastUuid) {
+      content.src = serverUrl;
+      lastUuid = serverUuid;
+    }
+    setDisplay('goofy-content', '');
     content.focus();
     setDisplay('goofy-logo', 'none');
     setDisplay('goofy-message-container', 'none');
@@ -85,7 +95,7 @@ function handleConnect(serverUrl) {
   }
 }
 
-function checkDUT(serverUrl) {
+function checkDUT(serverUrl, serverUuid) {
   var xmlHttp = new XMLHttpRequest();
 
   xmlHttp.timeout = 3000; /* ms */
@@ -95,7 +105,7 @@ function checkDUT(serverUrl) {
     if (xmlHttp.readyState != 4)
       return;
     if (xmlHttp.status && xmlHttp.status < 400)
-      handleConnect(serverUrl);
+      handleConnect(serverUrl, serverUuid);
   }
 
   xmlHttp.open("GET", serverUrl, true);
@@ -121,7 +131,7 @@ function connectWebSocket() {
     } else if (message.command == "CONNECT") {
       // Check the URL given by the backend and connect to it if
       // it's alive.
-      checkDUT(message.url);
+      checkDUT(message.url, message.uuid);
     } else if (message.command == "INFO") {
       // Show info message.
       setInfo(message.str);

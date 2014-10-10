@@ -8,6 +8,7 @@ import json
 import mox
 import time
 import unittest
+import uuid
 from ws4py.client.threadedclient import WebSocketClient
 
 import factory_common  # pylint: disable=W0611
@@ -37,8 +38,11 @@ class UIAppControllerTest(unittest.TestCase):
       self.controller.Stop()
 
   def testHook(self):
+    this_uuid = str(uuid.uuid4())
+
     self.hook.connect()
-    self.hook.message({'url': 'http://10.3.0.11:4012/', 'command': 'CONNECT'})
+    self.hook.message({'url': 'http://10.3.0.11:4012/', 'command': 'CONNECT',
+                       'uuid': this_uuid})
     self.hook.disconnect()
 
     mox.Replay(self.hook)
@@ -46,7 +50,7 @@ class UIAppControllerTest(unittest.TestCase):
     self.StartControllerAndClient()
 
     self.client.connect()
-    self.controller.ShowUI('10.3.0.11')
+    self.controller.ShowUI('10.3.0.11', dut_uuid=this_uuid)
     self.client.close()
 
     time.sleep(0.2) # Wait for WebSocket to close
