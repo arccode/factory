@@ -5,6 +5,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+from __future__ import print_function
+
 import jsonrpclib
 import logging
 import socket
@@ -46,6 +48,7 @@ class PresenterLinkManager(object):
     self._rpc_timeout = rpc_timeout
     self._connect_hook = connect_hook
     self._disconnect_hook = disconnect_hook
+    self._standalone = standalone
     self._suspend_deadline = None
     self._methods = methods or {}
     self._methods.update({'Announce': self._PresenterAnnounce})
@@ -144,8 +147,8 @@ class PresenterLinkManager(object):
       # Presenter is alive. Let's register!
       log('Registering to presenter %s', presenter_ip)
       if not my_ip:
-        if utils.in_chroot():
-          my_ip = '127.0.0.1'
+        if utils.in_chroot() or self._standalone:
+          my_ip = ['127.0.0.1']
         else:
           my_ip = map(GetEthernetIp, GetEthernetInterfaces())
           my_ip = [x for x in my_ip if x != '127.0.0.1']
@@ -237,6 +240,7 @@ class DUTLinkManager(object):
     self._rpc_timeout = rpc_timeout
     self._connect_hook = connect_hook
     self._disconnect_hook = disconnect_hook
+    self._standalone = standalone
     self._suspend_deadline = None
     self._methods = methods or {}
     self._methods.update({'Register': self._DUTRegister,
@@ -347,7 +351,10 @@ class DUTLinkManager(object):
             # We don't get response from the DUT for announcement, so let's
             # keep the timeout short.
             proxy = self._MakeTimeoutServerProxy(ip, timeout=0.05)
-            my_ips = GetAllIPs()
+            if self._standalone:
+              my_ips = ['127.0.0.1']
+            else:
+              my_ips = GetAllIPs()
             if ip not in self._reported_announcement:
               logging.info('Announcing to DUT %s: presenter ip is %s',
                            ip, my_ips)
