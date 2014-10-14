@@ -1,6 +1,6 @@
 #!/usr/bin/python -u
 #
-# Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
+# Copyright 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -14,15 +14,14 @@ Provides an interface to communicate w/ a serial device: SerialDevice. See
 class comment for details.
 """
 
+from __future__ import print_function
 import glob
 import logging
 import os
 import re
-import time
-
 # site-packages: dev-python/pyserial
 import serial
-from serial import SerialException, SerialTimeoutException
+import time
 
 
 def OpenSerial(**params):
@@ -44,7 +43,7 @@ def OpenSerial(**params):
     raise ValueError('Missing parameter "port".')
   ser = serial.Serial(**params)
   if not ser.isOpen():
-    raise SerialException('Failed to open serial: %r'  % port)
+    raise serial.SerialException('Failed to open serial: %r'  % port)
   return ser
 
 
@@ -171,7 +170,8 @@ class SerialDevice(object):
       port = FindTtyByDriver(driver)
 
     if not port:
-      raise SerialException('Serial device with driver %r not found' % driver)
+      raise serial.SerialException(
+          'Serial device with driver %r not found' % driver)
 
     self._port = port
 
@@ -210,19 +210,22 @@ class SerialDevice(object):
       command: command to send.
 
     Raises:
-      SerialTimeoutException if it fails to send the command.
+      SerialTimeoutException if it is timeout and fails to send the command.
+      SerialException if it is disconnected during sending.
     """
     try:
       self._serial.write(command)
       self._serial.flush()
       if self.log:
         logging.info('Successfully sent %r', command)
-    except SerialTimeoutException:
+    except serial.SerialTimeoutException:
       error_message = 'Send %r timeout after %.2f seconds' % (
           command, self._serial.getWriteTimeout())
       if self.log:
         logging.warning(error_message)
-      raise SerialTimeoutException(error_message)
+      raise serial.SerialTimeoutException(error_message)
+    except serial.SerialException:
+      raise serial.SerialException('Serial disconnected')
 
   def Receive(self, size=1):
     """Receives N bytes.
@@ -251,7 +254,7 @@ class SerialDevice(object):
           size, self._serial.getTimeout())
       if self.log:
         logging.warning(error_message)
-      raise SerialTimeoutException(error_message)
+      raise serial.SerialTimeoutException(error_message)
 
   def FlushBuffer(self):
     """Flushes input/output buffer."""
@@ -290,7 +293,7 @@ class SerialDevice(object):
           logging.info('Successfully sent %r and received %r', command,
                        response)
         return response
-      except SerialTimeoutException:
+      except serial.SerialTimeoutException:
         if nth_run < retry:
           time.sleep(self.retry_interval_secs)
 
@@ -298,7 +301,7 @@ class SerialDevice(object):
                                                                    command)
     if not suppress_log and self.log:
       logging.warning(error_message)
-    raise SerialTimeoutException(error_message)
+    raise serial.SerialTimeoutException(error_message)
 
   def SendExpectReceive(self, command, expect_response, retry=0,
                         interval_secs=None):
@@ -318,7 +321,7 @@ class SerialDevice(object):
       response = self.SendReceive(command, len(expect_response), retry=retry,
                                   interval_secs=interval_secs,
                                   suppress_log=True)
-    except SerialTimeoutException:
+    except serial.SerialTimeoutException:
       if self.log:
         logging.warning('SendReceive timeout for command %r', command)
       return False

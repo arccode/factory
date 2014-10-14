@@ -198,6 +198,13 @@ class SerialDeviceSendAndReceiveTest(unittest.TestCase):
     self.mox.ReplayAll()
     self.assertRaises(SerialTimeoutException, self.device.Send, _COMMAND)
 
+  def testSendDisconnected(self):
+    self.mock_serial.write(_COMMAND).AndRaise(SerialException)
+    self.mock_serial.close()
+
+    self.mox.ReplayAll()
+    self.assertRaises(SerialException, self.device.Send, _COMMAND)
+
   def testReceive(self):
     self.mock_serial.read(1).AndReturn('.')
     self.mock_serial.close()
