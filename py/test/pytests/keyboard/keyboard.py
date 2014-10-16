@@ -4,8 +4,9 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-"""Tests keyboard functionality.
-"""
+"""Tests keyboard functionality."""
+
+from __future__ import print_function
 
 import asyncore
 import evdev
@@ -14,6 +15,7 @@ import os
 import re
 import unittest
 
+import factory_common   # pylint: disable=W0611
 from cros.factory.l10n import regions
 from cros.factory.test import factory
 from cros.factory.test import test_ui
@@ -87,6 +89,10 @@ class KeyboardTest(unittest.TestCase):
     self.ui = test_ui.UI()
     self.template = OneSection(self.ui)
     self.ui.AppendCSS(_KEYBOARD_TEST_DEFAULT_CSS)
+    self.env = {
+        'DISPLAY': ':0',
+        'XAUTHORITY': '/home/chronos/.Xauthority'
+    }
 
     # Initialize keyboard layout and bindings
     self.layout = self.GetKeyboardLayout()
@@ -162,7 +168,8 @@ class KeyboardTest(unittest.TestCase):
   def EnableXKeyboard(self, enable):
     """Enables/Disables keyboard at the X server."""
     CheckOutput(['xinput', 'set-prop', self.args.keyboard_device_name,
-                 'Device Enabled', '1' if enable else '0'])
+                 'Device Enabled', '1' if enable else '0'],
+                env=self.env)
 
   def MonitorEvdevEvent(self):
     """Monitors keyboard events from evdev."""
