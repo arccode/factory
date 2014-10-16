@@ -88,16 +88,24 @@ class ChromeOSBoardTest(unittest.TestCase):
     self.board._Spawn(['ectool', 'pwmsetfanrpm', '12345'],
                       check_call=True, ignore_stdout=True,
                       log_stderr_on_error=True)
+    self.board._Spawn(['ectool', 'pwmsetfanrpm', '1', '12345'],
+                      check_call=True, ignore_stdout=True,
+                      log_stderr_on_error=True)
     self.mox.ReplayAll()
     self.board.SetFanRPM(12345)
+    self.board.SetFanRPM(12345, fan_id=1)
     self.mox.VerifyAll()
 
   def testSetFanRPMAuto(self):
-    self.board._Spawn(['ectool', 'autofanctrl', 'on'],
+    self.board._Spawn(['ectool', 'autofanctrl'],
+                      check_call=True, ignore_stdout=True,
+                      log_stderr_on_error=True)
+    self.board._Spawn(['ectool', 'autofanctrl', '1'],
                       check_call=True, ignore_stdout=True,
                       log_stderr_on_error=True)
     self.mox.ReplayAll()
     self.board.SetFanRPM(self.board.AUTO)
+    self.board.SetFanRPM(self.board.AUTO, fan_id=1)
     self.mox.VerifyAll()
 
   def testI2CRead(self):

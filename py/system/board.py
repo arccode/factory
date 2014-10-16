@@ -5,6 +5,7 @@
 
 """Basic board specific interface."""
 
+from __future__ import print_function
 
 # pylint: disable=R0922
 
@@ -102,8 +103,11 @@ class Board(object):
     """
     raise NotImplementedError
 
-  def GetFanRPM(self):
+  def GetFanRPM(self, fan_id=None):
     """Gets the fan RPM.
+
+    Args:
+      fan_id: The id of the fan.
 
     Returns:
       A list of int indicating the RPM of each fan.
@@ -168,11 +172,12 @@ class Board(object):
     """
     raise NotImplementedError
 
-  def SetFanRPM(self, rpm):
+  def SetFanRPM(self, rpm, fan_id=None):
     """Sets the target fan RPM.
 
     Args:
       rpm: Target fan RPM, or Board.AUTO for auto fan control.
+      fan_id: The id of the fan.
     """
     raise NotImplementedError
 

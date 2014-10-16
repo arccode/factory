@@ -128,25 +128,31 @@ class ChromeOSBoard(Board):
     except Exception as e:  # pylint: disable=W0703
       raise BoardException('Unable to get temperature sensor names: %s' % e)
 
-  def GetFanRPM(self):
+  def GetFanRPM(self, fan_id=None):
     try:
-      ectool_output = self._CallECTool(['pwmgetfanrpm'], check=False)
+      ectool_output = self._CallECTool(
+          ['pwmgetfanrpm'] + (['%d' % fan_id] if fan_id is not None else []),
+          check=False)
       return [int(rpm[1])
               for rpm in self.GET_FAN_SPEED_RE.findall(ectool_output)]
     except Exception as e:  # pylint: disable=W0703
       raise BoardException('Unable to get fan speed: %s' % e)
 
-  def SetFanRPM(self, rpm):
+  def SetFanRPM(self, rpm, fan_id=None):
     try:
       # For system with multiple fans, ectool controls all the fans
       # simultaneously in one command.
-      self._Spawn(
-          ['ectool'] +
-          (['autofanctrl', 'on'] if rpm == self.AUTO else
-           ['pwmsetfanrpm', '%d' % rpm]),
-          check_call=True,
-          ignore_stdout=True,
-          log_stderr_on_error=True)
+      if rpm == self.AUTO:
+        self._Spawn((['ectool', 'autofanctrl'] +
+                     (['%d' % fan_id] if fan_id is not None else [])),
+                    check_call=True, ignore_stdout=True,
+                    log_stderr_on_error=True)
+      else:
+        self._Spawn((['ectool', 'pwmsetfanrpm'] +
+                     (['%d' % fan_id] if fan_id is not None else []) +
+                     ['%d' % rpm]),
+                    check_call=True, ignore_stdout=True,
+                    log_stderr_on_error=True)
     except Exception as e:  # pylint: disable=W0703
       if rpm == self.AUTO:
         raise BoardException('Unable to set auto fan control: %s' % e)
