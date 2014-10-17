@@ -14,6 +14,7 @@ The following test functions are supported:
 
 from __future__ import print_function
 
+import glob
 import os
 import logging
 import pyudev
@@ -177,6 +178,8 @@ class RemovableStorageTest(unittest.TestCase):
     Arg('timeout_secs', int,
         'Timeout in seconds for the test to wait before it fails', default=20),
     Arg('bft_fixture', dict, TEST_ARG_HELP, default=None, optional=True),
+    Arg('skip_insert_remove', bool,
+        'Skip the step of device insertion and removal', default=False),
     Arg('bft_media_device', str,
         'Device name of BFT used to insert/remove the media.',
         optional=True),
@@ -311,6 +314,22 @@ class RemovableStorageTest(unittest.TestCase):
     logging.info('%s RO : %d', dev_path, ro)
 
     return ro == 1
+
+  def GetDeviceNodeBySysPath(self, sys_path):
+    """Gets device node for a storage device by given sysfs path.
+
+    Args:
+      sys_path: sysfs path for storage device.
+          ex: /sys/devices/pci0000:00/0000:00:1a.0/usb1/1-1/1-1.2
+
+    Returns:
+      Device node, ex: 'sdb'. Return None if no node matched.
+    """
+    block_dirs = glob.glob('/sys/block/sd*')
+    for block_dir in block_dirs:
+      if sys_path in os.path.realpath(block_dir):
+        return os.path.basename(block_dir)
+    return None
 
   def TestReadWrite(self):
     """Random and sequential read / write tests.
@@ -486,7 +505,7 @@ class RemovableStorageTest(unittest.TestCase):
     self._template.SetInstruction(_REMOVE_FMT_STR(self.args.media))
     self._state = _STATE_RW_TEST_WAIT_REMOVE
     self.SetState(_IMG_HTML_TAG(self._removal_image))
-    if self._bft_fixture:
+    if not self.args.skip_insert_remove and self._bft_fixture:
       try:
         self._bft_fixture.SetDeviceEngaged(self._bft_media_device, False)
       except BFTFixtureException as e:
@@ -703,13 +722,23 @@ class RemovableStorageTest(unittest.TestCase):
 
     # Start to monitor udev events.
     context = pyudev.Context()
-    monitor = pyudev.Monitor.from_netlink(context)
-    monitor.filter_by(subsystem='block', device_type='disk')
-    self._udev_observer = pyudev.MonitorObserver(monitor, self.HandleUdevEvent)
-    self._udev_observer.start()
+    if self.args.skip_insert_remove:
+      device_node = self.GetDeviceNodeBySysPath(self.args.sysfs_path)
+      if device_node is None:
+        self.Fail('Can not corresponding device node of %s'
+                  % self.args.sysfs_path)
+      device_udev = pyudev.Device.from_name(context, 'block', device_node)
+      self.HandleUdevEvent(_UDEV_ACTION_INSERT, device_udev)
+      self.HandleUdevEvent(_UDEV_ACTION_REMOVE, device_udev)
+    else:
+      monitor = pyudev.Monitor.from_netlink(context)
+      monitor.filter_by(subsystem='block', device_type='disk')
+      self._udev_observer = pyudev.MonitorObserver(monitor,
+                                                   self.HandleUdevEvent)
+      self._udev_observer.start()
 
     # BFT engages device after udev observer start
-    if self.args.bft_fixture:
+    if not self.args.skip_insert_remove and self.bft_fixture:
       self._bft_fixture = CreateBFTFixture(**self.args.bft_fixture)
       self._bft_media_device = self.args.bft_media_device
       if self._bft_media_device not in self._bft_fixture.Device:
