@@ -397,6 +397,10 @@ class TouchscreenCalibration(unittest.TestCase):
 
   def _CheckSerialNumber(self, sn):
     """Check if the serial number is legitimate."""
+    # This is for development purpose.
+    if sn == '0000':
+      return True
+
     if len(sn) != self.sn_length:
       self.ui.CallJSFunction('showMessage', 'Wrong serial number! 序号错误!')
       return False
