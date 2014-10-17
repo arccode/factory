@@ -12,6 +12,7 @@ import time
 
 from ws4py.websocket import WebSocket
 
+import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory
 from cros.factory.test.event import Event
 from cros.factory.test.event import EventClient

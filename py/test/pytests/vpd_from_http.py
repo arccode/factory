@@ -18,6 +18,7 @@ import urllib
 import urllib2
 import urlparse
 
+import factory_common  # pylint: disable=W0611
 from cros.factory.schema import Dict, Scalar, SchemaException
 from cros.factory.system import vpd
 from cros.factory.test import shopfloor

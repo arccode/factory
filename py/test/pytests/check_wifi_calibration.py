@@ -16,6 +16,7 @@ import pprint
 import re
 import unittest
 
+import factory_common  # pylint: disable=W0611
 from cros.factory.event_log import Log
 from cros.factory.test import factory
 from cros.factory.test import test_ui

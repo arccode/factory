@@ -67,6 +67,7 @@ import logging
 import time
 import unittest
 
+import factory_common  # pylint: disable=W0611
 from cros.factory.system import vpd
 from cros.factory.system.accelerometer import AccelerometerController
 from cros.factory.system.accelerometer import AccelerometerControllerException

@@ -12,6 +12,7 @@ dargs:
 import unittest
 import time
 
+import factory_common  # pylint: disable=W0611
 from cros.factory import system
 from cros.factory.test import test_ui
 from cros.factory.test.args import Arg

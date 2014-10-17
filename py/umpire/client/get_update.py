@@ -13,6 +13,7 @@ import gzip
 import StringIO
 import urllib2
 
+import factory_common  # pylint: disable=W0611
 from cros.factory.umpire.client import umpire_client
 
 

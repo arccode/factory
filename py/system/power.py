@@ -9,6 +9,7 @@ import numpy
 import os
 import time
 
+import factory_common  # pylint: disable=W0611
 from cros.factory.test.utils import Enum, ReadOneLine
 
 class PowerException(Exception):

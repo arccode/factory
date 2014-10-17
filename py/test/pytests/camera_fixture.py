@@ -135,6 +135,7 @@ import time
 import unittest
 import xmlrpclib
 
+import factory_common  # pylint: disable=W0611
 from cros.factory import event_log
 from cros.factory.test import factory
 from cros.factory.test import leds
@@ -149,7 +150,6 @@ import cros.factory.test.fixture.camera.perf_tester as camperf
 import cros.factory.test.fixture.camera.renderer as renderer
 from cros.factory.test.media_util import MediaMonitor, MountedMedia
 from cros.factory.test.utils import Enum
-from cros.factory.utils import net_utils
 
 
 # Delay between each frame during calibration.

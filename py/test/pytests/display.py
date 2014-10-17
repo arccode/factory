@@ -10,6 +10,7 @@ A factory test to test the function of display.
 import os
 import unittest
 
+import factory_common  # pylint: disable=W0611
 from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
 from cros.factory.test.ui_templates import OneSection

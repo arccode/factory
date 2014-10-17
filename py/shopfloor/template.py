@@ -13,6 +13,7 @@ floor system module.
 import logging
 
 # Always include 'shopfloor' for the abstract base class.
+import factory_common  # pylint: disable=W0611
 from cros.factory import shopfloor
 
 

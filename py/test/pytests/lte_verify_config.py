@@ -26,11 +26,15 @@ Usage example::
 import unittest
 
 import factory_common  # pylint: disable=W0611
-
-from cros.factory.board import modem_utils  # pylint: disable=E0611
 from cros.factory.test import factory
 from cros.factory.test.args import Arg
 from cros.factory.rf import modem
+
+try:
+  # TODO(littlecvr) Make dummy implementation.
+  from cros.factory.board import modem_utils  # pylint: disable=E0611
+except ImportError:
+  pass
 
 
 class LTEVerifyConfig(unittest.TestCase):

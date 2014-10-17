@@ -11,6 +11,7 @@ import logging
 import random
 import unittest
 
+import factory_common  # pylint: disable=W0611
 from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
 from cros.factory.test.ui_templates import OneSection
@@ -26,7 +27,7 @@ _HTML_DISPLAY = """
 
 
 class DisplayPointTest(unittest.TestCase):
-  ''' Tests the function of display panel using some points.
+  '''Tests the function of display panel using some points.
 
   There are two subtests in this test. The first one is black points on white
   background. The second one is white points on black background.

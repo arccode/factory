@@ -25,6 +25,7 @@ import tempfile
 import time
 import unittest
 
+import factory_common  # pylint: disable=W0611
 from cros.factory.test import utils
 from cros.factory.test.args import Arg
 

@@ -13,6 +13,7 @@ The operator can press the space or enter key to proceed.
 import unittest
 
 
+import factory_common  # pylint: disable=W0611
 from cros.factory.test.args import Arg
 from cros.factory.test.test_ui import MakeLabel, UI
 from cros.factory.test.ui_templates import OneSection

@@ -11,6 +11,7 @@ import numpy as np
 import os
 import tempfile
 
+import factory_common  # pylint: disable=W0611
 from cros.factory.event_log import TimedUuid
 from cros.factory.utils import file_utils
 

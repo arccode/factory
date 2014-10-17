@@ -12,6 +12,7 @@ This checks the existence and status of battery in sysfs.
 import threading
 import unittest
 
+import factory_common  # pylint: disable=W0611
 from cros.factory.event_log import Log
 from cros.factory.test.args import Arg
 from cros.factory.test.test_ui import MakeLabel, UI

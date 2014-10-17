@@ -21,6 +21,7 @@ import random
 import time
 import unittest
 
+import factory_common  # pylint: disable=W0611
 from cros.factory import system
 from cros.factory.event_log import Log
 from cros.factory.test import countdown_timer

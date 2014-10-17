@@ -8,6 +8,7 @@ import logging
 import threading
 import time
 
+import factory_common  # pylint: disable=W0611
 from cros.factory.test.test_ui import MakeLabel
 from cros.factory.test.utils import StartDaemonThread
 

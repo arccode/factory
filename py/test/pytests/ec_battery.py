@@ -12,6 +12,7 @@ The test uses factory.system.Board to get battery design capacity.
 import logging
 import unittest
 
+import factory_common  # pylint: disable=W0611
 from cros.factory import system
 from cros.factory.test.args import Arg
 

@@ -12,6 +12,7 @@ import subprocess
 import threading
 import unittest
 
+import factory_common  # pylint: disable=W0611
 from cros.factory.system import vpd
 from cros.factory.test import factory
 from cros.factory.test import shopfloor

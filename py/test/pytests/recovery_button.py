@@ -9,6 +9,7 @@
 import time
 import unittest
 
+import factory_common  # pylint: disable=W0611
 from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
 from cros.factory.test.ui_templates import OneSection

@@ -11,11 +11,11 @@ import cPickle as pickle
 import logging
 import os
 import subprocess
-import sys
 import threading
 from Queue import Queue
 
 
+import factory_common  # pylint: disable=W0611
 from cros.factory.utils.process_utils import Spawn
 
 

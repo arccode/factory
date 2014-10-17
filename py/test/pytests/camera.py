@@ -80,6 +80,7 @@ import tempfile
 import threading
 import unittest
 
+import factory_common  # pylint: disable=W0611
 from cros.factory.test import factory_task
 from cros.factory.test import test_ui
 from cros.factory.test.args import Arg

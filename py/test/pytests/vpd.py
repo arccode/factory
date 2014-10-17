@@ -29,6 +29,7 @@ import logging
 import re
 import unittest
 
+import factory_common  # pylint: disable=W0611
 from cros.factory.l10n.regions import REGIONS
 from cros.factory.test import branding
 from cros.factory.test import factory
