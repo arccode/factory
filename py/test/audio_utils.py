@@ -458,17 +458,17 @@ class AudioUtil(object):
   def DisableDmic(self, card='0'):
     self.ApplyAudioConfig('disable_dmic', card)
 
-  def EnableKBDmic(self, card='0'):
-    self.ApplyAudioConfig('enable_keyboard_dmic', card)
+  def EnableMLBDmic(self, card='0'):
+    self.ApplyAudioConfig('enable_mlb_dmic', card)
 
-  def MuteLeftKBDmic(self, card='0'):
-    self.ApplyAudioConfig('mute_left_keyboard_dmic', card)
+  def MuteLeftMLBDmic(self, card='0'):
+    self.ApplyAudioConfig('mute_left_mlb_dmic', card)
 
-  def MuteRightKBDmic(self, card='0'):
-    self.ApplyAudioConfig('mute_right_keyboard_dmic', card)
+  def MuteRightMLBDmic(self, card='0'):
+    self.ApplyAudioConfig('mute_right_mlb_dmic', card)
 
-  def DisableKBDmic(self, card='0'):
-    self.ApplyAudioConfig('disable_keyboard_dmic', card)
+  def DisableMLBDmic(self, card='0'):
+    self.ApplyAudioConfig('disable_mlb_dmic', card)
 
   def EnableExtmic(self, card='0'):
     self.ApplyAudioConfig('enable_extmic', card)

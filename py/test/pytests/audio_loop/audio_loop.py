@@ -64,6 +64,9 @@ Here are three test list examples for three test cases::
                                      'freq_threshold': 50,
                                      'rms_threshold': (0.08, None)}]})
 """
+
+from __future__ import print_function
+
 import os
 import re
 import tempfile
@@ -76,6 +79,7 @@ from cros.factory.test.args import Arg
 from cros.factory.test import audio_utils
 from cros.factory.test import factory
 from cros.factory.test import test_ui
+from cros.factory.test.utils import Enum
 from cros.factory.utils.process_utils import Spawn, SpawnOutput, PIPE
 
 # Default setting
@@ -99,6 +103,8 @@ _DEFAULT_NOISE_TEST_DURATION = 1
 _DEFAULT_SOX_RMS_THRESHOLD = (0.08, None)
 # Default Amplitude thresholds when checking recorded file.
 _DEFAULT_SOX_AMPLITUDE_THRESHOLD = (None, None)
+
+MicSource = Enum(['external', 'panel', 'mlb'])
 
 
 class PlaySineThread(threading.Thread):
@@ -132,6 +138,8 @@ class AudioLoopTest(unittest.TestCase):
         'Check dongle status whether match require_dongle', False),
     Arg('cras_enabled', bool, 'Whether cras should be running or not',
         False),
+    Arg('mic_source', str, 'Microphone source: external, panel, mlb',
+        'external'),
     Arg('tests_to_conduct', list, 'A list of dicts.  A dict should contain \n'
         'at least one key named **type** indicating the test type, which can \n'
         'be **audiofun**, **sinewav**, or **noise**.\n'
@@ -191,6 +199,10 @@ class AudioLoopTest(unittest.TestCase):
     # Used in RunAudioFunTest() or AudioLoopBack() for test result.
     self._test_result = True
     self._test_message = []
+
+    self._mic_source = {'external': MicSource.external,
+                        'panel': MicSource.panel,
+                        'mlb': MicSource.mlb}[self.args.mic_source]
 
     self._audio_util = audio_utils.AudioUtil()
     for card, action in self.args.initial_actions:
@@ -257,11 +269,19 @@ class AudioLoopTest(unittest.TestCase):
         self._output_device, self._input_device))
     for channel in xrange(audio_utils.DEFAULT_NUM_CHANNELS):
       factory.console.info('Test channel %d' % channel)
-      self._audio_util.EnableDmic(self._in_card)
-      if channel is 0:
-        self._audio_util.MuteRightDmic(self._in_card)
-      else:
-        self._audio_util.MuteLeftDmic(self._in_card)
+      if self._mic_source == MicSource.panel:
+        self._audio_util.EnableDmic(self._in_card)
+        if channel is 0:
+          self._audio_util.MuteRightDmic(self._in_card)
+        else:
+          self._audio_util.MuteLeftDmic(self._in_card)
+      elif self._mic_source == MicSource.mlb:
+        self._audio_util.EnableMLBDmic(self._in_card)
+        if channel is 0:
+          self._audio_util.MuteRightMLBDmic(self._in_card)
+        else:
+          self._audio_util.MuteLeftMLBDmic(self._in_card)
+
       test_result = None
       duration = self._current_test_args.get(
           'duration', _DEFAULT_AUDIOFUN_TEST_DURATION)
@@ -448,16 +468,22 @@ class AudioLoopTest(unittest.TestCase):
     # stage.
     if self.args.require_dongle:
       self._audio_util.DisableSpeaker(self._out_card)
-      self._audio_util.DisableDmic(self._in_card)
       self._audio_util.EnableHeadphone(self._out_card)
-      self._audio_util.EnableExtmic(self._in_card)
       self._audio_util.SetHeadphoneVolume(self._output_volume, self._out_card)
     else:
       self._audio_util.DisableHeadphone(self._out_card)
-      self._audio_util.DisableExtmic(self._in_card)
       self._audio_util.EnableSpeaker(self._out_card)
-      self._audio_util.EnableDmic(self._in_card)
       self._audio_util.SetSpeakerVolume(self._output_volume, self._out_card)
+
+    self._audio_util.DisableDmic(self._in_card)
+    self._audio_util.DisableMLBDmic(self._in_card)
+    self._audio_util.DisableExtmic(self._in_card)
+    if self._mic_source == MicSource.external:
+      self._audio_util.EnableExtmic(self._in_card)
+    elif self._mic_source == MicSource.panel:
+      self._audio_util.EnableDmic(self._in_card)
+    elif self._mic_source == MicSource.mlb:
+      self._audio_util.EnableMLBDmic(self._in_card)
 
     for test in self.args.tests_to_conduct:
       self._current_test_args = test
