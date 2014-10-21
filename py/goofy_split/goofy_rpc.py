@@ -7,6 +7,8 @@
 
 """RPC methods exported from Goofy."""
 
+from __future__ import print_function
+
 import argparse
 import inspect
 import json
@@ -24,6 +26,7 @@ import yaml
 from xml.sax import saxutils
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.goofy import goofy_remote
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import utils
@@ -139,8 +142,21 @@ class GoofyRPC(object):
         error_msg: An error message (on failure).
     """
     ret_value = Queue.Queue()
+    # Record the existence of the host-based tag files, so we can restore them
+    # after the update.
+    device_tag = os.path.join(
+        factory.FACTORY_PATH, 'init', goofy_remote.DEVICE_TAG)
+    presenter_tag = os.path.join(
+        factory.FACTORY_PATH, 'init', goofy_remote.PRESENTER_TAG)
+    is_device = os.path.exists(device_tag)
+    is_presenter = os.path.exists(presenter_tag)
 
     def PostUpdateHook():
+      # Restore all the host-based tag files after update.
+      if is_device:
+        file_utils.TouchFile(device_tag)
+      if is_presenter:
+        file_utils.TouchFile(presenter_tag)
       # After update, wait REBOOT_AFTER_UPDATE_DELAY_SECS before the
       # update, and return a value to the caller.
       now = time.time()
@@ -1159,7 +1175,7 @@ def main():
                   for x in GoofyRPC.__dict__.keys()
                   if not x.startswith('_')))
   if ret is not None:
-    print yaml.safe_dump(ret)
+    print(yaml.safe_dump(ret))
 
 
 if __name__ == '__main__':
