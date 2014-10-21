@@ -134,6 +134,9 @@ start_factory() {
     PRESENTER_ARGS="${PRESENTER_ARGS} --standalone"
   fi
 
+  export DISPLAY=":0"
+  export XAUTHORITY="/home/chronos/.Xauthority"
+
   # Run goofy_presenter if goofy_presenter tag file is present
   if [ -f "${RUN_GOOFY_PRESENTER_TAG_FILE}" ]; then
     "$FACTORY/bin/goofy_presenter" $PRESENTER_ARGS >>"$FACTORY_LOG_FILE" 2>&1 &
