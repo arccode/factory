@@ -135,7 +135,9 @@ class KeyboardTest(unittest.TestCase):
                        for x in regions.REGIONS.itervalues())
     if self.args.layout:
       return self.args.layout
-    vpd_layout = CheckOutput(['vpd', '-g', 'keyboard_layout']).strip()
+    # Use the primary keyboard_layout for testing.
+    vpd_layout = CheckOutput(
+        ['vpd', '-g', 'keyboard_layout']).strip().partition(',')[0]
     if vpd_layout:
       return kml_mapping[vpd_layout]
     else:
