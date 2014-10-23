@@ -25,8 +25,8 @@ from cros.factory.umpire.utils import Deprecate
 from cros.factory.utils import file_utils
 
 
-VERSION_COMPONENTS = ['firmware_bios', 'firmware_ec', 'hwid', 'rootfs_test',
-                      'rootfs_release']
+VERSION_COMPONENTS = ['firmware_bios', 'firmware_ec', 'firmware_pd', 'hwid',
+                      'rootfs_test', 'rootfs_release']
 HASH_COMPONENTS = ['device_factory_toolkit']
 ALL_COMPONENTS = VERSION_COMPONENTS + HASH_COMPONENTS
 # Factory stages in running sequence.
@@ -141,9 +141,11 @@ class UmpireDUTCommands(UmpireRPC):
       return (resource_hash, resource_hash)
     else:
       if component.startswith('firmware_'):
-        (bios_version, ec_version) = resource_version.split(':')
+        (bios_version, ec_version, pd_version) = resource_version.split(':')
         if component.endswith('_ec'):
           return (ec_version, resource_hash)
+        elif component.endswith('_pd'):
+          return (pd_version, resource_hash)
         else:
           return (bios_version, resource_hash)
       else:
@@ -176,6 +178,7 @@ class UmpireDUTCommands(UmpireRPC):
             'rootfs_test': <test_rootfs_version>,
             'rootfs_release': <release_rootfs_version>,
             'firmware_ec': <ec_firmware_version>,
+            'firmware_pd': <pd_firmware_version>,
             'firmware_bios': <bios_firmware_version>,
             'hwid': <md5sum_hexstring>,
             'device_factory_toolkit': <md5sum_hexstring>}}

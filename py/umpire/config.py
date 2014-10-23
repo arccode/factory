@@ -51,6 +51,7 @@ _ENABLE_UPDATE_SCHEMA = FixedDict(
         'device_factory_toolkit': _FACTORY_STAGE_RANGE,
         'firmware_bios': _FACTORY_STAGE_RANGE,
         'firmware_ec': _FACTORY_STAGE_RANGE,
+        'firmware_pd': _FACTORY_STAGE_RANGE,
         'rootfs_release': _FACTORY_STAGE_RANGE,
         'rootfs_test': _FACTORY_STAGE_RANGE})
 # Rulesets validator.

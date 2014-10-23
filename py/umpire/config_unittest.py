@@ -116,6 +116,7 @@ class TestUmpireConfig(unittest.TestCase):
               'rootfs_release': ['SMT', 'SMT'],
               'rootfs_test': ['FA', 'FA'],
               'firmware_ec': ['GRT', 'GRT'],
+              'firmware_pd': ['SMT', 'SMT'],
               'firmware_bios': [None, None]}},
         ruleset)
 
