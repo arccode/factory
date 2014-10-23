@@ -150,21 +150,25 @@ def GetUpdateForFirmware(proxy):
     chromeos-firmwareupdate file content.
   """
   update_info_firmware = GetUpdateForComponents(
-      proxy, ['firmware_ec', 'firmware_bios'])
+      proxy, ['firmware_ec', 'firmware_bios', 'firmware_pd'])
   logging.info('Update info for firmware: %r', update_info_firmware)
 
   if (update_info_firmware['firmware_ec'].needs_update or
-      update_info_firmware['firmware_bios'].needs_update):
+      update_info_firmware['firmware_bios'].needs_update or
+      update_info_firmware['firmware_pd'].needs_update):
     logging.info('Need firmware update from Umpire')
   else:
     return None
 
-  if (update_info_firmware['firmware_ec'].md5sum !=
-      update_info_firmware['firmware_bios'].md5sum):
+  if (len(set([update_info_firmware['firmware_ec'].md5sum,
+               update_info_firmware['firmware_bios'].md5sum,
+               update_info_firmware['firmware_pd'].md5sum])) != 1):
     raise UmpireClientGetUpdateException(
-        'Md5sum for ec and bios firmware updater are different: %s != %s',
+        'Md5sum for ec ,bios, and pd firmware updater are different:'
+        ' ec: %s, bios: %s, pd: %s',
         update_info_firmware['firmware_ec'].md5sum,
-        update_info_firmware['firmware_bios'].md5sum)
+        update_info_firmware['firmware_bios'].md5sum,
+        update_info_firmware['firmware_pd'].md5sum)
 
   update_info = update_info_firmware['firmware_ec']
 

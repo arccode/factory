@@ -20,6 +20,7 @@ COMPONENT_KEYS = {
   'rootfs_release',
   'firmware_ec',
   'firmware_bios',
+  'firmware_pd',
   'hwid',
   'device_factory_toolkit'
 }
@@ -128,6 +129,7 @@ class UmpireClientInfo(object):
         ‘rootfs_release’: version_string,
         ‘firmware_ec’: version_string,
         ‘firmware_bios’: version_string,
+        ‘firmware_pd’: version_string,
         ‘hwid’: version_string (checksum in hwid db)
         ‘device_factory_toolkit’: md5sum_hash_string.
     """
@@ -137,6 +139,7 @@ class UmpireClientInfo(object):
     components['rootfs_release'] = system_info.release_image_version
     components['firmware_ec'] = system_info.ec_version
     components['firmware_bios'] = system_info.firmware_version
+    components['firmware_pd'] = system_info.pd_version
     components['hwid'] = system_info.hwid_database_version
     components['device_factory_toolkit'] = system_info.factory_md5sum
 

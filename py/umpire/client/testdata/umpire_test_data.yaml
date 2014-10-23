@@ -38,5 +38,6 @@ methods:
           rootfs_release: 'release_001'
           firmware_ec: 'ec_001'
           firmware_bios: 'fw_001'
+          firmware_pd: 'pd_001'
           hwid: 'hwid_001'
           device_factory_toolkit: 'md5_001'

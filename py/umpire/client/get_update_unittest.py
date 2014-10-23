@@ -93,11 +93,16 @@ FAKE_IMAGE_RESULT_4 = {
 FAKE_FIRMWARE_RESULT_1 = {
     'firmware_ec': get_update.UpdateInfo(
         needs_update=True, md5sum='md5sum1', url='firmware_url', scheme='http'),
+    'firmware_pd': get_update.UpdateInfo(
+        needs_update=True, md5sum='md5sum1', url='firmware_url', scheme='http'),
     'firmware_bios': get_update.UpdateInfo(
         needs_update=True, md5sum='md5sum1', url='firmware_url', scheme='http')}
 
 FAKE_FIRMWARE_RESULT_2 = {
     'firmware_ec': get_update.UpdateInfo(
+        needs_update=False, md5sum='md5sum1', url='firmware_url',
+        scheme='http'),
+    'firmware_pd': get_update.UpdateInfo(
         needs_update=False, md5sum='md5sum1', url='firmware_url',
         scheme='http'),
     'firmware_bios': get_update.UpdateInfo(
@@ -107,6 +112,9 @@ FAKE_FIRMWARE_RESULT_3 = {
     'firmware_ec': get_update.UpdateInfo(
         needs_update=False, md5sum='md5sum1', url='firmware_url',
         scheme='http'),
+    'firmware_pd': get_update.UpdateInfo(
+        needs_update=False, md5sum='md5sum1', url='firmware_url',
+        scheme='http'),
     'firmware_bios': get_update.UpdateInfo(
         needs_update=False, md5sum='md5sum1', url='firmware_url',
         scheme='http')}
@@ -114,8 +122,18 @@ FAKE_FIRMWARE_RESULT_3 = {
 FAKE_FIRMWARE_RESULT_4 = {
     'firmware_ec': get_update.UpdateInfo(
         needs_update=True, md5sum='md5sum1', url='firmware_url', scheme='http'),
+    'firmware_pd': get_update.UpdateInfo(
+        needs_update=True, md5sum='md5sum1', url='firmware_url', scheme='http'),
     'firmware_bios': get_update.UpdateInfo(
         needs_update=True, md5sum='md5sum2', url='firmware_url', scheme='http')}
+
+FAKE_FIRMWARE_RESULT_5 = {
+    'firmware_ec': get_update.UpdateInfo(
+        needs_update=False, md5sum='md5sum1', url='firmware_url', scheme='http'),
+    'firmware_pd': get_update.UpdateInfo(
+        needs_update=True, md5sum='md5sum1', url='firmware_url', scheme='http'),
+    'firmware_bios': get_update.UpdateInfo(
+        needs_update=False, md5sum='md5sum1', url='firmware_url', scheme='http')}
 
 FAKE_FIRMWARE_UPDATE_RESULT = 'chromeos-firmwareupdate content'
 
@@ -258,7 +276,7 @@ class GetUpdateTests(unittest.TestCase):
     with open(os.path.join(TESTDATA_DIRECTORY , 'firmware.gz')) as f:
       gzip_content = f.read()
     get_update.GetUpdateForComponents(
-        self.proxy, ['firmware_ec', 'firmware_bios']).AndReturn(
+        self.proxy, ['firmware_ec', 'firmware_bios', 'firmware_pd']).AndReturn(
             FAKE_FIRMWARE_RESULT_1)
     urllib2.urlopen('firmware_url').AndReturn(fake_urlopen)
     fake_urlopen.read().AndReturn(gzip_content)
@@ -278,7 +296,7 @@ class GetUpdateTests(unittest.TestCase):
     with open(os.path.join(TESTDATA_DIRECTORY , 'firmware.gz')) as f:
       gzip_content = f.read()
     get_update.GetUpdateForComponents(
-        self.proxy, ['firmware_ec', 'firmware_bios']).AndReturn(
+        self.proxy, ['firmware_ec', 'firmware_bios', 'firmware_pd']).AndReturn(
             FAKE_FIRMWARE_RESULT_2)
     urllib2.urlopen('firmware_url').AndReturn(fake_urlopen)
     fake_urlopen.read().AndReturn(gzip_content)
@@ -293,7 +311,7 @@ class GetUpdateTests(unittest.TestCase):
   def testGetUpdateForFirmwareFalse(self):
     """Tests GetUpdateForFirmware when no update available."""
     get_update.GetUpdateForComponents(
-        self.proxy, ['firmware_ec', 'firmware_bios']).AndReturn(
+        self.proxy, ['firmware_ec', 'firmware_bios', 'firmware_pd']).AndReturn(
             FAKE_FIRMWARE_RESULT_3)
 
     self.mox.ReplayAll()
@@ -306,13 +324,33 @@ class GetUpdateTests(unittest.TestCase):
   def testGetUpdateForFirmwareInvalidInfo(self):
     """Tests GetUpdateForFirmware with invalid info."""
     get_update.GetUpdateForComponents(
-        self.proxy, ['firmware_ec', 'firmware_bios']).AndReturn(
+        self.proxy, ['firmware_ec', 'firmware_bios', 'firmware_pd']).AndReturn(
             FAKE_FIRMWARE_RESULT_4)
 
     self.mox.ReplayAll()
 
     with self.assertRaises(get_update.UmpireClientGetUpdateException):
       get_update.GetUpdateForFirmware(self.proxy)
+
+    self.mox.VerifyAll()
+
+  def testGetUpdateForFirmwareOnlyPDTrue(self):
+    """Tests GetUpdateForFirmware when PD update is available."""
+    self.mox.StubOutWithMock(urllib2, 'urlopen')
+    fake_urlopen = self.mox.CreateMockAnything()
+    gzip_content = None
+    with open(os.path.join(TESTDATA_DIRECTORY , 'firmware.gz')) as f:
+      gzip_content = f.read()
+    get_update.GetUpdateForComponents(
+        self.proxy, ['firmware_ec', 'firmware_bios', 'firmware_pd']).AndReturn(
+            FAKE_FIRMWARE_RESULT_5)
+    urllib2.urlopen('firmware_url').AndReturn(fake_urlopen)
+    fake_urlopen.read().AndReturn(gzip_content)
+
+    self.mox.ReplayAll()
+
+    result = get_update.GetUpdateForFirmware(self.proxy)
+    self.assertTrue(result, FAKE_FIRMWARE_UPDATE_RESULT)
 
     self.mox.VerifyAll()
 

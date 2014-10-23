@@ -28,12 +28,14 @@ mock_build_board = MockBuildBoard()
 class MockSystemInfo(object):
   """Mocked SystemInfo class."""
   def __init__(self, serial_number, mlb_serial_number, firmware_version,
-               ec_version, stage, eth_macs, wlan0_mac, factory_image_version,
-               release_image_version, hwid_database_version, factory_md5sum):
+               ec_version, pd_version, stage, eth_macs, wlan0_mac,
+               factory_image_version, release_image_version,
+               hwid_database_version, factory_md5sum):
     self.serial_number = serial_number
     self.mlb_serial_number = mlb_serial_number
     self.firmware_version = firmware_version
     self.ec_version = ec_version
+    self.pd_version = pd_version
     self.stage = stage
     self.eth_macs = eth_macs
     self.wlan0_mac = wlan0_mac
@@ -47,6 +49,7 @@ mock_system_info_1 = MockSystemInfo(
     mlb_serial_number='MLB001',
     firmware_version='fw_001',
     ec_version='ec_001',
+    pd_version='pd_001',
     stage='SMT',
     eth_macs={'eth0': 'EE:EE:EE:EE:EE:00', 'eth1': 'EE:EE:EE:EE:EE:01'},
     wlan0_mac='FF:FF:FF:FF:FF:00',
@@ -61,6 +64,7 @@ mock_system_info_2 = MockSystemInfo(
     mlb_serial_number='MLB001',
     firmware_version='fw_001',
     ec_version='ec_001',
+    pd_version='pd_001',
     stage='SMT',
     eth_macs={'eth0': 'EE:EE:EE:EE:EE:00', 'eth1': 'EE:EE:EE:EE:EE:01'},
     wlan0_mac='FF:FF:FF:FF:FF:00',
@@ -75,6 +79,7 @@ mock_system_info_3 = MockSystemInfo(
     mlb_serial_number='MLB001',
     firmware_version='fw_001',
     ec_version='ec_001',
+    pd_version='pd_001',
     stage='SMT',
     eth_macs={'eth0': 'EE:EE:EE:EE:EE:02', 'eth1': 'EE:EE:EE:EE:EE:01'},
     wlan0_mac='FF:FF:FF:FF:FF:00',
@@ -89,6 +94,7 @@ mock_system_info_4 = MockSystemInfo(
     mlb_serial_number='MLB001',
     firmware_version='fw_001',
     ec_version='ec_001',
+    pd_version='pd_001',
     stage='SMT',
     eth_macs={'eth0': 'EE:EE:EE:EE:EE:02', 'eth1': 'EE:EE:EE:EE:EE:01'},
     wlan0_mac='FF:FF:FF:FF:FF:00',
@@ -123,6 +129,7 @@ OUTPUT_GET_UPDATE_DUT_INFO = {
         'rootfs_release': 'release_001',
         'firmware_ec': 'ec_001',
         'firmware_bios': 'fw_001',
+        'firmware_pd': 'pd_001',
         'hwid': 'hwid_001',
         'device_factory_toolkit': 'md5_001'}}
 
