@@ -36,7 +36,7 @@ ResourceType = Enum([
     'ROOTFS_TEST'])
 
 # Valid keys in DUT info.
-DUT_INFO_KEYS = set(['sn', 'mlb_sn', 'board', 'firmware', 'ec', 'stage'])
+DUT_INFO_KEYS = set(['sn', 'mlb_sn', 'board', 'firmware', 'ec', 'pd', 'stage'])
 
 # Required fields in resource map.
 REQUIRED_RESOURCE_MAP_FIELDS = set(['__token__', 'shop_floor_handler'])

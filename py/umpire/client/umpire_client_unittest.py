@@ -109,7 +109,7 @@ mock_system_info_4 = MockSystemInfo(
 OUTPUT_X_UMPIRE_DUT = (
     'board=test; ec=ec_001; firmware=fw_001; '
     'mac.eth0=EE:EE:EE:EE:EE:00; mac.eth1=EE:EE:EE:EE:EE:01; '
-    'mac.wlan0=FF:FF:FF:FF:FF:00; mlb_sn=MLB001; sn=DEV001; stage=SMT')
+    'mac.wlan0=FF:FF:FF:FF:FF:00; mlb_sn=MLB001; pd=pd_001; sn=DEV001; stage=SMT')
 
 
 # The return value of GetDUTInfoComponents.
@@ -120,6 +120,7 @@ OUTPUT_GET_UPDATE_DUT_INFO = {
         'board': 'test',
         'firmware': 'fw_001',
         'ec': 'ec_001',
+        'pd': 'pd_001',
         'mac.eth0': 'EE:EE:EE:EE:EE:00',
         'mac.eth1': 'EE:EE:EE:EE:EE:01',
         'mac.wlan0': 'FF:FF:FF:FF:FF:00',

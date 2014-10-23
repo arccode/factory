@@ -69,13 +69,14 @@ class UmpireClientInfo(object):
       'board': 'board',
       'firmware': 'firmware_version',
       'ec': 'ec_version',
+      'pd': 'pd_version',
       'mac': 'macs',
       'stage': 'stage'
   }
 
   VARIANT_FIELDS = [
       'serial_number', 'mlb_serial_number', 'firmware_version',
-      'ec_version', 'macs', 'stage']
+      'ec_version', 'pd_version', 'macs', 'stage']
 
   def __init__(self):
     super(UmpireClientInfo, self).__init__()
@@ -86,6 +87,7 @@ class UmpireClientInfo(object):
     self.board = build_board.BuildBoard().full_name
     self.firmware_version = None
     self.ec_version = None
+    self.pd_version = None
     self.macs = dict()
     self.stage = None
 
@@ -104,6 +106,7 @@ class UmpireClientInfo(object):
     new_info['mlb_serial_number'] = system_info.mlb_serial_number
     new_info['firmware_version'] = system_info.firmware_version
     new_info['ec_version'] = system_info.ec_version
+    new_info['pd_version'] = system_info.pd_version
     new_info['stage'] = system_info.stage
     # new_info['macs'] is a dict like
     # {'eth0': 'xx:xx:xx:xx:xx:xx', 'eth1': 'xx:xx:xx:xx:xx:xx',
