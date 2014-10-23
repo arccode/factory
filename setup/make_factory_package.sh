@@ -80,6 +80,9 @@ DEFINE_string test "" \
 DEFINE_string factory_toolkit "" \
   "If set, path to a factory toolkit to use to create a factory test image. "\
 "Must be used with --test. Mutually exclusive with --factory."
+DEFINE_string toolkit_arguments "" \
+  "If set, additional arguments will be passed into the factory toolkit installer. "\
+"Must be used with --factory_toolkit."
 # Usage Help
 FLAGS_HELP="Prepares factory resources (mini-omaha server, RMA/usb/disk images)
 
@@ -190,6 +193,11 @@ check_parameters() {
     build_factory=1
   fi
 
+  # Check if toolkit_arguments is used with factory_toolkit.
+  if [ -n "${FLAGS_toolkit_arguments}" -a -z "${FLAGS_factory_toolkit}" ]; then
+      die "--toolkit_arguments must used with --factory_toolkit."
+  fi
+
   if [ -n "${FLAGS_usbimg}" ]; then
     [ -z "${FLAGS_diskimg}" ] ||
       die "--usbimg and --diskimg cannot be used at the same time."
@@ -286,9 +294,10 @@ setup_environment() {
     image_add_temp "${FACTORY_IMAGE}"
     local toolkit_output=$(mktemp --tmpdir)
     echo "Creating factory test image from test image and toolkit" \
+        "with flags --yes $FLAGS_toolkit_arguments " \
         "(output in $toolkit_output)..."
     cp "${FLAGS_test}" "${FACTORY_IMAGE}"
-    sudo "${FLAGS_factory_toolkit}" "${FACTORY_IMAGE}" --yes >& "${toolkit_output}"
+    sudo "${FLAGS_factory_toolkit}" "${FACTORY_IMAGE}" --yes ${FLAGS_toolkit_arguments} >& "${toolkit_output}"
   fi
 
   # Override this with path to modified kernel (for non-SSD images)
