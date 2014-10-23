@@ -1404,8 +1404,9 @@ class Goofy(GoofyBase):
       except BoardException:
         logging.exception('Unable to set charge state on this board')
 
-    self.core_dump_manager = CoreDumpManager(
-        self.test_list.options.core_dump_watchlist)
+    if CoreDumpManager.CoreDumpEnabled():
+      self.core_dump_manager = CoreDumpManager(
+          self.test_list.options.core_dump_watchlist)
 
     os.environ['CROS_FACTORY'] = '1'
     os.environ['CROS_DISABLE_SITE_SYSINFO'] = '1'
@@ -1660,6 +1661,8 @@ class Goofy(GoofyBase):
     Syncs those files matching watch list to server with a delay between
     each sync. After the files have been synced to server, deletes the files.
     """
+    if not self.core_dump_manager:
+      return
     core_dump_files = self.core_dump_manager.ScanFiles()
     if core_dump_files:
       now = time.time()

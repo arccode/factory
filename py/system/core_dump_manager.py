@@ -29,6 +29,10 @@ class CoreDumpManager(object):
     self._watchlist = watchlist if watchlist else []
     self._SetCoreDump()
 
+  @classmethod
+  def CoreDumpEnabled(cls):
+    return os.path.exists('/proc/sys/kernel/core_pattern')
+
   def _SetCoreDump(self):
     """Sets core dump files to be unlimited and set core_pattern."""
     if utils.in_chroot():
