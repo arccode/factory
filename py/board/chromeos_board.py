@@ -52,6 +52,9 @@ class ChromeOSBoard(Board):
   # Cached main temperature index. Set at the first call to GetTemperature.
   _main_temperature_index = None
 
+  # Cached temperature sensor names.
+  _temperature_sensor_names = None
+
   def __init__(self):
     super(ChromeOSBoard, self).__init__()
 
@@ -104,18 +107,21 @@ class ChromeOSBoard(Board):
       raise BoardException('Unable to get temperatures: %s' % e)
 
   def GetMainTemperatureIndex(self):
-    if self._main_temperature_index is None:
+    if self._main_temperature_index is not None:
+      return self._main_temperature_index
+    try:
+      names = self.GetTemperatureSensorNames()
       try:
-        names = self.GetTemperatureSensorNames()
-        try:
-          return names.index('PECI')
-        except ValueError:
-          raise BoardException('The expected index of PECI cannot be found')
-      except Exception as e:  # pylint: disable=W0703
-        raise BoardException('Unable to get main temperature index: %s' % e)
-    return self._main_temperature_index
+        self._main_temperature_index = names.index('PECI')
+        return self._main_temperature_index
+      except ValueError:
+        raise BoardException('The expected index of PECI cannot be found')
+    except Exception as e:  # pylint: disable=W0703
+      raise BoardException('Unable to get main temperature index: %s' % e)
 
   def GetTemperatureSensorNames(self):
+    if self._temperature_sensor_names is not None:
+      return self._temperature_sensor_names
     try:
       names = []
       ectool_output = self._CallECTool(['tempsinfo', 'all'], check=False)
@@ -124,6 +130,7 @@ class ChromeOSBoard(Board):
         while len(names) < sensor + 1:
           names.append(None)
         names[sensor] = match.group(2)
+      self._temperature_sensor_names = names
       return names
     except Exception as e:  # pylint: disable=W0703
       raise BoardException('Unable to get temperature sensor names: %s' % e)

@@ -7,6 +7,7 @@
 
 """Unittest for ChromeosBoard."""
 
+from __future__ import print_function
 
 import mox
 import subprocess
@@ -74,6 +75,10 @@ class ChromeOSBoardTest(unittest.TestCase):
                            check=False).AndReturn(_MOCK_TEMPS_INFO)
     self.mox.ReplayAll()
     self.assertEquals(self.board.GetMainTemperatureIndex(), 9)
+    # The second call should return the cached data
+    self.assertEquals(self.board.GetMainTemperatureIndex(), 9)
+    # Sensor names should also be cached
+    self.board.GetTemperatureSensorNames()
     self.mox.VerifyAll()
 
   def testGetFanRPM(self):
