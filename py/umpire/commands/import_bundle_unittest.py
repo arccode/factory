@@ -81,6 +81,7 @@ class LoadBundleManifestTest(unittest.TestCase):
 
 BIOS_VERSION = 'bios_0.0.1'
 EC_VERSION = 'ec_0.0.2'
+PD_VERSION = 'pd_0.0.5'
 FSI_VERSION = '0.0.3'
 TEST_IMAGE_VERSION = '0.0.4'
 
@@ -109,7 +110,7 @@ class testImportBundle(unittest.TestCase):
     # pylint: disable=E1101
     get_version.GetFirmwareVersionsFromOmahaChannelFile(
         mox.StrContains('firmware.gz')).MultipleTimes().AndReturn(
-            (BIOS_VERSION, EC_VERSION))
+            (BIOS_VERSION, EC_VERSION, PD_VERSION))
     get_version.GetReleaseVersionFromOmahaChannelFile(
         mox.StrContains('rootfs-release.gz'),
         no_root=True).MultipleTimes().AndReturn(FSI_VERSION)
@@ -161,7 +162,8 @@ class testImportBundle(unittest.TestCase):
         'netboot_vmlinux': 'vmlinux.uimg##d41d8cd9',
         'complete_script': 'complete.gz##d41d8cd9',
         'efi_partition': 'efi.gz##d41d8cd9',
-        'firmware': 'firmware.gz#%s:%s#d41d8cd9' % (BIOS_VERSION, EC_VERSION),
+        'firmware': 'firmware.gz#%s:%s:%s#d41d8cd9' % (BIOS_VERSION, EC_VERSION,
+                                                       PD_VERSION),
         'hwid': 'hwid.gz##d41d8cd9',
         'oem_partition': 'oem.gz##d41d8cd9',
         'rootfs_release': 'rootfs-release.gz#%s#d41d8cd9' % FSI_VERSION,

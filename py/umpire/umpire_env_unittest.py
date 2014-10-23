@@ -190,13 +190,14 @@ class UmpireEnvTest(unittest.TestCase):
         get_version, 'GetFirmwareVersionsFromOmahaChannelFile')
     BIOS_VERSION = 'bios_0.0.1'
     EC_VERSION = 'ec_0.0.2'
+    PD_VERSION = 'pd_0.0.3'
     get_version.GetFirmwareVersionsFromOmahaChannelFile(
-        resource_to_add).AndReturn((BIOS_VERSION, EC_VERSION))
+        resource_to_add).AndReturn((BIOS_VERSION, EC_VERSION, PD_VERSION))
     self.mox.ReplayAll()
 
     resource_path = self.env.AddResource(resource_to_add,
                                          res_type=ResourceType.FIRMWARE)
-    expected_version = ':'.join([BIOS_VERSION, EC_VERSION])
+    expected_version = ':'.join([BIOS_VERSION, EC_VERSION, PD_VERSION])
     self.assertTrue(resource_path.endswith(
         'resources/%s#%s#%.8s' % (file_name, expected_version,
                                   resource_md5)))
@@ -214,13 +215,14 @@ class UmpireEnvTest(unittest.TestCase):
     self.mox.StubOutWithMock(get_version, 'GetFirmwareVersions')
     BIOS_VERSION = 'bios_0.0.1'
     EC_VERSION = 'ec_0.0.2'
+    PD_VERSION = 'pd_0.0.3'
     get_version.GetFirmwareVersions(resource_to_add).AndReturn(
-        (BIOS_VERSION, EC_VERSION))
+        (BIOS_VERSION, EC_VERSION, PD_VERSION))
     self.mox.ReplayAll()
 
     resource_path = self.env.AddResource(resource_to_add,
                                          res_type=ResourceType.FIRMWARE)
-    expected_version = ':'.join([BIOS_VERSION, EC_VERSION])
+    expected_version = ':'.join([BIOS_VERSION, EC_VERSION, PD_VERSION])
     self.assertTrue(resource_path.endswith(
         'resources/%s#%s#%.8s' % (file_name, expected_version,
                                   resource_md5)))

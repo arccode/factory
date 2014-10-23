@@ -161,12 +161,13 @@ class ResourceUpdaterTest(unittest.TestCase):
   def testAllUpdatableResource(self):
     BIOS_VERSION = 'bios_0.0.1'
     EC_VERSION = 'ec_0.0.2'
+    PD_VERSION = 'pd_0.0.3'
     FSI_VERSION = '0.0.1'
 
     firmware_path = os.path.join(self.env.base_dir, 'firmware.gz')
     file_utils.WriteFile(firmware_path, 'new firmware')
-    new_firmware_resource = 'firmware.gz#%s:%s#f56ca36e' % (
-        BIOS_VERSION, EC_VERSION)
+    new_firmware_resource = 'firmware.gz#%s:%s:%s#f56ca36e' % (
+        BIOS_VERSION, EC_VERSION, PD_VERSION)
 
     fsi_path = os.path.join(self.env.base_dir, 'rootfs-release.gz')
     file_utils.WriteFile(fsi_path, 'new fsi')
@@ -186,7 +187,7 @@ class ResourceUpdaterTest(unittest.TestCase):
           get_version, 'GetReleaseVersionFromOmahaChannelFile')
 
     get_version.GetFirmwareVersionsFromOmahaChannelFile(
-        firmware_path).AndReturn((BIOS_VERSION, EC_VERSION))
+        firmware_path).AndReturn((BIOS_VERSION, EC_VERSION, PD_VERSION))
     get_version.GetReleaseVersionFromOmahaChannelFile(
           fsi_path, no_root=True).AndReturn(FSI_VERSION)
 

@@ -351,13 +351,14 @@ class UmpireEnv(object):
         return ''
 
       if res_type == ResourceType.FIRMWARE:
-        bios, ec = None, None
+        bios, ec, pd = None, None, None
         if file_name.endswith('.gz'):
-          bios, ec = get_version.GetFirmwareVersionsFromOmahaChannelFile(
+          bios, ec, pd = get_version.GetFirmwareVersionsFromOmahaChannelFile(
               file_name)
         else:
-          bios, ec = get_version.GetFirmwareVersions(file_name)
-        return '%s:%s' % (bios if bios else '', ec if ec else '')
+          bios, ec, pd = get_version.GetFirmwareVersions(file_name)
+        return '%s:%s:%s' % (bios if bios else '', ec if ec else '',
+                             pd if pd else '')
 
       if (res_type == ResourceType.ROOTFS_RELEASE or
           res_type == ResourceType.ROOTFS_TEST):

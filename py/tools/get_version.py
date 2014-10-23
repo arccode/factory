@@ -17,6 +17,9 @@ from cros.factory.utils.process_utils import Spawn
 from cros.factory.utils.sys_utils import MountPartition
 
 
+FIRMWARE_LABELS = ('BIOS', 'EC', 'PD')
+EMPTY_FIRMWARE_TUPLE = tuple([None] *  len(FIRMWARE_LABELS))
+
 def GetReleaseVersion(mount_point):
   """Gets CHROMEOS_RELEASE_VERSION of the rootfs partition.
 
@@ -52,10 +55,10 @@ def GetFirmwareVersions(updater):
     stdout = Spawn(command, log=True, check_output=True).stdout_data
   except Exception as e:
     logging.error('Unable to run "%s", reason: %s', ' '.join(command), e)
-    return (None, None)
+    return EMPTY_FIRMWARE_TUPLE
 
   versions = []
-  for label in ['BIOS', 'EC']:
+  for label in FIRMWARE_LABELS:
     match = re.search('^' + label + ' version:\s+(.+)$', stdout, re.MULTILINE)
     versions.append(match.group(1) if match else None)
   return tuple(versions)
