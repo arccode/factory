@@ -19,6 +19,7 @@ import sys
 import traceback
 
 import yaml
+import atexit
 
 # WORKAROUND: List of modules that can't be loaded multiple times by deleting
 # reference in sys.modules.
@@ -210,6 +211,8 @@ def main(argv):
       print('Failed checking %s: %s' % (path, e))
       print(tb)
       exit_value = 1
+  # Workaround modules that registered atexit hooks.
+  atexit._exithandlers = []
   sys.exit(exit_value)
 
 
