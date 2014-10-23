@@ -150,6 +150,7 @@ class Goofy(GoofyBase):
     self.event_client = None
     self.connection_manager = None
     self.charge_manager = None
+    self._can_charge = True
     self.time_sanitizer = None
     self.time_synced = False
     self.log_watcher = None
@@ -388,17 +389,48 @@ class Goofy(GoofyBase):
     except:  # pylint: disable=W0702
       logging.exception('Unable to read mosys eventlog')
 
+    self.log_ec_console()
+    self.log_ec_panic_info()
+
+  @staticmethod
+  def log_ec_console():
+    """Logs EC console log into logging.info.
+
+    It logs an error message in logging.exception if an exception is raised
+    when getting EC console log.
+    For unsupported device, it logs unsupport message in logging.info
+
+    Returns:
+      EC console log string.
+    """
     try:
       board = system.GetBoard()
       ec_console_log = board.GetECConsoleLog()
       logging.info('EC console log after reboot:\n%s\n', ec_console_log)
+      return ec_console_log
+    except NotImplementedError:
+      logging.info('EC console log not supported')
     except:  # pylint: disable=W0702
       logging.exception('Error retrieving EC console log')
 
+  @staticmethod
+  def log_ec_panic_info():
+    """Logs EC panic info into logging.info.
+
+    It logs an error message in logging.exception if an exception is raised
+    when getting EC panic info.
+    For unsupported device, it logs unsupport message in logging.info
+
+    Returns:
+      EC panic info string.
+    """
     try:
       board = system.GetBoard()
       ec_panic_info = board.GetECPanicInfo()
       logging.info('EC panic info after reboot:\n%s\n', ec_panic_info)
+      return ec_panic_info
+    except NotImplementedError:
+      logging.info('EC panic info is not supported')
     except:  # pylint: disable=W0702
       logging.exception('Error retrieving EC panic info')
 
@@ -524,20 +556,10 @@ class Goofy(GoofyBase):
             logging.exception('Unable to read mosys eventlog')
 
         if ec_console_log is None:
-          try:
-            board = system.GetBoard()
-            ec_console_log = board.GetECConsoleLog()
-            logging.info('EC console log after reboot:\n%s\n', ec_console_log)
-          except:  # pylint: disable=W0702
-            logging.exception('Error retrieving EC console log')
+          ec_console_log = self.log_ec_console()
 
         if ec_panic_info is None:
-          try:
-            board = system.GetBoard()
-            ec_panic_info = board.GetECPanicInfo()
-            logging.info('EC panic info after reboot:\n%s\n', ec_panic_info)
-          except:  # pylint: disable=W0702
-            logging.exception('Error retrieving EC panic info')
+          ec_panic_info = self.log_ec_panic_info()
 
         error_msg = 'Unexpected shutdown while test was running'
         self.event_log.Log('end_test',
@@ -839,12 +861,26 @@ class Goofy(GoofyBase):
       if self.charge_manager:
         self.charge_manager.AdjustChargeState()
       else:
-        try:
-          system.GetBoard().SetChargeState(Board.ChargeState.CHARGE)
-        except BoardException:
-          logging.exception('Unable to set charge state on this board')
+        self.charge()
 
     self.exclusive_items = current_exclusive_items
+
+  def charge(self):
+    """Charges the board.
+
+    It won't try again if last time SetChargeState raised an exception.
+    """
+    if not self._can_charge:
+      return
+
+    try:
+      system.GetBoard().SetChargeState(Board.ChargeState.CHARGE)
+    except NotImplementedError:
+      logging.info('Charging is not supported')
+      self._can_charge = False
+    except BoardException:
+      logging.exception('Unable to set charge state on this board')
+      self._can_charge = False
 
   def check_for_updates(self):
     """Schedules an asynchronous check for updates if necessary."""
@@ -1399,10 +1435,7 @@ class Goofy(GoofyBase):
       system.SystemStatus.charge_manager = self.charge_manager
     else:
       # Goofy should set charger state to charge if charge_manager is disabled.
-      try:
-        system.GetBoard().SetChargeState(Board.ChargeState.CHARGE)
-      except BoardException:
-        logging.exception('Unable to set charge state on this board')
+      self.charge()
 
     if CoreDumpManager.CoreDumpEnabled():
       self.core_dump_manager = CoreDumpManager(
