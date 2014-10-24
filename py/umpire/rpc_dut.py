@@ -141,7 +141,9 @@ class UmpireDUTCommands(UmpireRPC):
       return (resource_hash, resource_hash)
     else:
       if component.startswith('firmware_'):
-        (bios_version, ec_version, pd_version) = resource_version.split(':')
+        # Make version list length >= 3
+        versions = resource_version.split(':') + [None] * 3
+        bios_version, ec_version, pd_version = versions[0:3]
         if component.endswith('_ec'):
           return (ec_version, resource_hash)
         elif component.endswith('_pd'):
