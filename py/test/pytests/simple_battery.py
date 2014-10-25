@@ -11,6 +11,7 @@ DUT.  The goal of this factory test is to do a quick basic verification of
 battery function (typically less than 30 seconds).
 """
 
+from __future__ import print_function
 
 import logging
 import time
@@ -54,6 +55,9 @@ class SimpleBatteryTest(unittest.TestCase):
       Arg('current_sampling_period_secs', type=(int, float), default=0.5,
           help=('the period in seconds to sample charge/discharge current '
                 'during test')),
+      Arg('max_cycle_count', type=int, default=1,
+          help=('the maximum cycle count beyond which the battery is considered'
+                'used')),
   ]
 
   def setUp(self):
@@ -149,8 +153,10 @@ class SimpleBatteryTest(unittest.TestCase):
     if not self._power.CheckBatteryPresent():
       raise factory.FactoryTestFailure(
           'Cannot locate battery sysfs path. Missing battery?')
-    if int(self._power.GetBatteryAttribute('cycle_count').strip()) != 0:
-      raise factory.FactoryTestFailure('Battery cycle count is not zero')
+    if (int(self._power.GetBatteryAttribute('cycle_count').strip()) >
+        self.args.max_cycle_count):
+      raise factory.FactoryTestFailure(
+          'Battery cycle count > %d' % self.args.max_cycle_count)
     self.TestCharge(self.args.charge_duration_secs)
     self.TestDischarge(self.args.discharge_duration_secs)
     self.TestCharge(self.args.charge_duration_secs)
