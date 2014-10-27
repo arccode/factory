@@ -109,6 +109,13 @@ class TestListArgs(object):
   rlz_brand_code = None
   customization_id = None
 
+  # Cleans the first-use-date in RW_VPD to allow forced enterprise-enrolled
+  # devices to guest login once after re-imaging in RMA centers. This will
+  # allow RMA operators to test basic in-OS functionality (for one boot only!)
+  # prior to shipping back to the customer.
+  # See http://crbug.com/397354 for more details.
+  clean_activate_date = False
+
   #####
   #
   # Parameters for SMT (surface-mount technology) tests.

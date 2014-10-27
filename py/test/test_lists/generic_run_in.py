@@ -10,6 +10,7 @@
 This file implements RunIn method to create generic Run-In test list.
 """
 
+from __future__ import print_function
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.test_lists.test_lists import AutomatedSequence
@@ -61,6 +62,19 @@ def RunIn(args, group_suffix=''):
     args.Barrier('RunInChargerTypeDetection',
                  pass_without_prompt=True,
                  accessibility=True)
+
+    if args.clean_activate_date:
+      FactoryTest(
+          id='CleanActivateDate',
+          label_zh=u'清除激活日期',
+          pytest_name='line_check_item',
+          dargs={'title_en': 'CleanActivateDate',
+                 'title_zh': u'清除激活日期',
+                 'items': [
+                     ('CleanActivateDate',
+                      u'清除激活日期',
+                      'activate_date --clean',
+                      False)]})
 
     if args.factory_environment:
       # The image installed on DUT may be outdated since the time between SMT
