@@ -6,6 +6,8 @@
 
 """Tools to finalize a factory bundle."""
 
+from __future__ import print_function
+
 import argparse
 import glob
 import logging
@@ -40,6 +42,14 @@ REQUIRED_GSUTIL_VERSION = [3, 32]  # 3.32
 
 DELETION_MARKER_SUFFIX = '_DELETED'
 
+# Default firmware labels to get version and update in README file.
+# To override it, assign 'has_firmware' in MANIFEST.yaml.
+# Examples:
+# has_firmware: [BIOS]
+# has_firmware: [EC, BIOS]
+# has_firmware: [EC, BIOS, PD]
+DEFAULT_FIRMWARES = ['BIOS', 'EC']
+
 # Special string to use a local file instead of downloading one
 # (see test_image_version).
 LOCAL = 'local'
@@ -48,7 +58,7 @@ LOCAL = 'local'
 NETBOOT_SHIMS = ('vmlinux.uimg', 'vmlinux.bin')
 
 
-def GetReleaseVersion(mount_point):
+def _GetReleaseVersion(mount_point):
   """Returns the release version of an image mounted at mount_point."""
   result = get_version.GetReleaseVersion(mount_point)
   if not result:
@@ -56,27 +66,26 @@ def GetReleaseVersion(mount_point):
   return result
 
 
-def GetFirmwareVersions(updater, has_ec):
+def _GetFirmwareVersions(updater, expected_firmwares):
   """Returns the firmware versions in an updater.
 
   Args:
     updater: Path to a firmware updater.
-    has_ec: True if updater has EC.
+    expected_firmwares: a list containing the expected firmware labels to
+        get version, ex: ['BIOS', EC'].
 
   Returns:
-    A tuple (bios_version, ec_version)
-    If has_ec is False, ec_version is set to None
+    {'BIOS': bios_version, 'EC': ec_version, 'PD': pd_version}.
+    If the firmware is not found, the version will be None.
   """
-  bios, ec = get_version.GetFirmwareVersions(updater)
+  versions = get_version.GetFirmwareVersionsWithLabel(updater)
 
-  if bios is None:
-    sys.exit('Unable to read BIOS version from chromeos-firmwareupdater')
-  if has_ec:
-    if ec is None:
-      sys.exit('Unable to read EC version from chromeos-firmwareupdater')
-  else:
-    ec = None
-  return (bios, ec)
+  for label in expected_firmwares:
+    if versions.get(label) is None:
+      sys.exit('Unable to read %r version from chromeos-firmwareupdater' %
+               label)
+
+  return versions
 
 
 USAGE = """
@@ -179,6 +188,7 @@ class FinalizeBundle(object):
   test_image_version = None
   toolkit_version = None
   gsutil = None
+  has_firmware = DEFAULT_FIRMWARES
 
   def Main(self):
     if not utils.in_chroot():
@@ -253,9 +263,9 @@ class FinalizeBundle(object):
         self.manifest, ['board', 'bundle_name', 'add_files', 'delete_files',
                         'add_files_to_image', 'delete_files_from_image',
                         'site_tests', 'wipe_option', 'files', 'mini_omaha_url',
-                        'patch_image_args', 'has_ec',
-                        'use_factory_toolkit', 'test_image_version',
-                        'complete_script'])
+                        'patch_image_args', 'use_factory_toolkit',
+                        'test_image_version', 'complete_script',
+                        'has_firmware'])
 
     self.build_board = build_board.BuildBoard(self.manifest['board'])
     self.board = self.build_board.full_name
@@ -326,12 +336,13 @@ class FinalizeBundle(object):
         self.bundle_dir, 'factory_test', 'chromiumos_test_image.bin')
     else:
       with MountPartition(self.factory_image_path, 3) as mount:
-        self.factory_image_base_version = GetReleaseVersion(mount)
+        self.factory_image_base_version = _GetReleaseVersion(mount)
         logging.info('Factory image version: %s',
                      self.factory_image_base_version)
 
     self.expected_files = set(map(self._SubstVars, self.manifest['files']))
     self.readme_path = os.path.join(self.bundle_dir, 'README')
+    self.has_firmware = self.manifest.get('has_firmware', DEFAULT_FIRMWARES)
 
   def CheckGSUtilVersion(self):
     # Check for gsutil >= 3.32.
@@ -730,7 +741,7 @@ class FinalizeBundle(object):
         PatchLSBFactory(mount)
 
       with MountPartition(shim, 3) as mount:
-        self.install_shim_version = '%s (%s)' % (GetReleaseVersion(mount),
+        self.install_shim_version = '%s (%s)' % (_GetReleaseVersion(mount),
                                                  GetSigningKey(shim))
 
     def UpdateNetbootURL():
@@ -1028,6 +1039,12 @@ class FinalizeBundle(object):
                'Please add a section for it (if this is the first '
                'version, just say "initial release").' % expected_str)
 
+    def _ExtractFirmwareVersions(updater_file, updater_name):
+      firmware_versions = _GetFirmwareVersions(updater_file, self.has_firmware)
+      return [('%s %s' % (updater_name, firmware_type), version)
+              for firmware_type, version in firmware_versions.iteritems()
+              if version is not None]
+
     # Get some vital information
     vitals = [
         ('Board', self.board),
@@ -1061,18 +1078,9 @@ class FinalizeBundle(object):
       vitals.append(('Netboot install shim (vmlinux.uimg/vmlinux.bin)',
                      self.netboot_install_shim_version))
     with MountPartition(self.release_image_path, 3) as f:
-      vitals.append(('Release (FSI)', GetReleaseVersion(f)))
-      firmware_updater = os.path.join(
-          self.bundle_dir, 'firmware', 'chromeos-firmwareupdate')
-      if os.path.exists(firmware_updater):
-        fw_updater_file = firmware_updater
-      else:
-        fw_updater_file = os.path.join(f, 'usr/sbin/chromeos-firmwareupdate')
-      bios_version, ec_version = GetFirmwareVersions(fw_updater_file,
-          self.manifest.get('has_ec', True))
-      vitals.append(('Release (FSI) BIOS', bios_version))
-      if ec_version is not None:
-        vitals.append(('Release (FSI) EC', ec_version))
+      vitals.append(('Release (FSI)', _GetReleaseVersion(f)))
+      fw_updater_file = os.path.join(f, 'usr/sbin/chromeos-firmwareupdate')
+      vitals.extend(_ExtractFirmwareVersions(fw_updater_file, 'Release (FSI)'))
 
     # If we have any firmware in the tree, add them to the vitals.
     firmwareupdates = []
@@ -1080,11 +1088,7 @@ class FinalizeBundle(object):
       path = os.path.join(self.bundle_dir, f)
       if os.path.basename(f) == 'chromeos-firmwareupdate':
         firmwareupdates.append(path)
-        bios_version, ec_version = GetFirmwareVersions(path,
-            self.manifest.get('has_ec', True))
-        vitals.append(('%s BIOS' % f, bios_version))
-        if ec_version is not None:
-          vitals.append(('%s EC' % f, ec_version))
+        vitals.extend(_ExtractFirmwareVersions(path, f))
       elif os.path.basename(f) == 'ec.bin':
         version = get_version.GetFirmwareBinaryVersion(path)
         if not version:

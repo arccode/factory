@@ -4,6 +4,8 @@
 
 """Utility to get release image and firmware version."""
 
+from __future__ import print_function
+
 import logging
 import os
 import re
@@ -47,8 +49,8 @@ def GetFirmwareVersions(updater):
     updater: Path to a firmware updater.
 
   Returns:
-    (bios_version, ec_version). If no firmware/EC version is found,
-    sets version to None.
+    (bios_version, ec_version, pd_version). If no firmware/EC/PD version is
+    found, sets version to None.
   """
   try:
     command = [updater, '-V']
@@ -62,6 +64,19 @@ def GetFirmwareVersions(updater):
     match = re.search('^' + label + ' version:\s+(.+)$', stdout, re.MULTILINE)
     versions.append(match.group(1) if match else None)
   return tuple(versions)
+
+
+def GetFirmwareVersionsWithLabel(updater):
+  """Gets the firmware versions in firmware updater.
+
+  Args:
+    updater: Path to a firmware updater.
+
+  Returns:
+    {'BIOS': bios_version, 'EC': ec_version, 'PD': pd_version}.
+    If the firmware is not found, the version will be None.
+  """
+  return dict(zip(FIRMWARE_LABELS, GetFirmwareVersions(updater)))
 
 
 def GetFirmwareVersionsFromOmahaChannelFile(path):
