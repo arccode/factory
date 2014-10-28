@@ -148,10 +148,6 @@ class PyTestInfo(object):
     automation_mode: The enabled automation mode.
   """
 
-  # A special test case ID to tell RunPytest to run the pytest directly instead
-  # of invoking it in a subprocess.
-  NO_SUBPROCESS = '__NO_SUBPROCESS__'
-
   def __init__(self, test_list, path, pytest_name, args, results_path,
                test_case_id=None, automation_mode=None):
     self.test_list = test_list
@@ -231,7 +227,7 @@ class TestInvocation(object):
 
     self.metadata_file = os.path.join(self.output_dir, 'metadata')
     self.env_additions = {'CROS_FACTORY_TEST_PATH': self.test.path,
-                          'CROS_FACTORY_TEST_INVOCATION': self.uuid,
+                          'CROS_FACTORY_TEST_PARENT_INVOCATION': self.uuid,
                           'CROS_FACTORY_TEST_METADATA': self.metadata_file}
     self.metadata = {}
     self.update_metadata(path=test.path,
@@ -767,20 +763,7 @@ def InvokeTestCase(suite, test_case_id, test_info):
         this_file = re.sub(r'\.pyc$', '.py', this_file)
         args = [this_file, '--pytest', info_path]
 
-        # Generate an invocation and set it in the env of subprocess.
-        # We need a new invocation uuid here to have a new UI context. We
-        # propagate down the original invocation uuid as the parent of the new
-        # uuid, so we can properly clean up all associated invocations later.
-        subenv = dict(os.environ)
-        pytest_invoc = event_log.TimedUuid()
-        parent_invoc = os.environ['CROS_FACTORY_TEST_INVOCATION']
-        subenv.update({
-            'CROS_FACTORY_TEST_INVOCATION': pytest_invoc,
-            'CROS_FACTORY_TEST_PARENT_INVOCATION': parent_invoc
-        })
-
-        # Wait for the subprocess to end and load the results.
-        process = Spawn(args, env=subenv)
+        process = Spawn(args)
         process.wait()
         with open(results_path) as f:
           results.append(pickle.load(f))
@@ -807,9 +790,15 @@ def RunTestCase(suite, test_case_id):
   results = []
 
   def _RunByID(test_case):
-    if (test_case.id() == test_case_id or
-        test_case_id == PyTestInfo.NO_SUBPROCESS):
-      logging.debug('[%s] Really run test case: %s', os.getpid(), test_case_id)
+    if (test_case.id() == test_case_id):
+      logging.debug('[%s] Really run test case: %s', os.getpid(),
+                    test_case.id())
+      # We need a new invocation uuid here to have a new UI context for each
+      # test case subprocess.
+      # The parent uuid is stored in CROS_FACTORY_TEST_PARENT_INVOCATION env
+      # variable, and we can properly clean up all associated invocations at
+      # test frontend using the parent invocation uuid.
+      os.environ['CROS_FACTORY_TEST_INVOCATION'] = event_log.TimedUuid()
       result = unittest.TestResult()
       test_case.run(result)
       results.append(result)
@@ -876,11 +865,17 @@ def RunPytest(test_info):
 
     signal.signal(signal.SIGTERM, _SIGTERMHandler)
 
+    test_cases = GetTestCases(suite)
+    # For factory tests where there is only one test case, do not spawn a new
+    # process so that we can reduce latency.
+    if len(test_cases) == 1:
+      test_info.test_case_id = test_cases[0]
+
     error_msg = ''
     if test_info.test_case_id is None:
       # Top-level test suite: Invoke each TestCase in a separate subprocess.
       results = []
-      for test in GetTestCases(suite):
+      for test in test_cases:
         logging.debug('[%s] Invoke test case: %s', os.getpid(), test)
         results.append(InvokeTestCase(suite, test, test_info))
 
@@ -895,7 +890,8 @@ def RunPytest(test_info):
       if error_msgs:
         error_msg = '; '.join(error_msgs)
     else:
-      # Invoked by InvokeTestCase: Run the specified TestCase.
+      # Invoked by InvokeTestCase or for factory tests which have only one test
+      # case: Run the specified TestCase.
       logging.debug('[%s] Start test case: %s',
                     os.getpid(), test_info.test_case_id)
 
