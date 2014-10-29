@@ -29,6 +29,7 @@ from cros.factory import event_log
 from cros.factory import system
 from cros.factory.event_log import EventLog, FloatDigit
 from cros.factory.event_log_watcher import EventLogWatcher
+from cros.factory.goofy import connection_manager
 from cros.factory.goofy import test_environment
 from cros.factory.goofy import time_sanitizer
 from cros.factory.goofy import updater
@@ -1245,6 +1246,8 @@ class Goofy(GoofyBase):
                       help='Use FILE as test list')
     parser.add_option('--dummy_shopfloor', action='store_true',
                       help='Use a dummy shopfloor server')
+    parser.add_option('--dummy_connection_manager', action='store_true',
+                      help='Use a dummy connection manager')
     parser.add_option('--automation-mode',
                       choices=[m.lower() for m in AutomationMode],
                       default='none', help="Factory test automation mode.")
@@ -1398,9 +1401,16 @@ class Goofy(GoofyBase):
 
     self.init_states()
     self.start_event_server()
-    self.connection_manager = self.env.create_connection_manager(
-      self.test_list.options.wlans,
-      self.test_list.options.scan_wifi_period_secs)
+
+    if self.options.dummy_connection_manager:
+      # Override network manager creation to dummy implmenetation.
+      logging.info('Using dummy network manager (--dummy_connection_manager).')
+      self.connection_manager = connection_manager.DummyConnectionManager()
+    else:
+      self.connection_manager = self.env.create_connection_manager(
+          self.test_list.options.wlans,
+          self.test_list.options.scan_wifi_period_secs)
+
     # Note that we create a log watcher even if
     # sync_event_log_period_secs isn't set (no background
     # syncing), since we may use it to flush event logs as well.
