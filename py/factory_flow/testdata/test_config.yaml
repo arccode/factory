@@ -1,4 +1,4 @@
-board: big
+board: rambi
 
 test_items:
   create_bundle_toolkit_latest:
@@ -87,7 +87,7 @@ host_info:
 
 
 dut_info:
-  big_dut_wifi:
+  rambi_dut_wifi:
     eth_mac: 20:c9:d0:2a:60:e3
     ip: 10.3.0.23
     servo_host: 127.0.0.1
@@ -122,7 +122,7 @@ test_plans:
     owners:
     - acme@chromium.org
     dut:
-    - big_dut_wifi
+    - rambi_dut_wifi
     test_sequence:
     - create_bundle_toolkit_latest
     - start_server
@@ -135,7 +135,7 @@ test_plans:
     owners:
     - acme@chromium.org
     dut:
-    - big_dut_wifi
+    - rambi_dut_wifi
     test_sequence:
     - create_bundle_toolkit_latest
     - start_server
@@ -149,7 +149,7 @@ test_plans:
     owners:
     - acme@chromium.org
     dut:
-    - big_dut_wifi
+    - rambi_dut_wifi
     test_sequence:
     - create_bundle_toolkit_latest
     - start_server
@@ -164,7 +164,7 @@ test_plans:
     owners:
     - acme@chromium.org
     dut:
-    - big_dut_wifi
+    - rambi_dut_wifi
     test_sequence:
     - passing_item
     clean_up:
@@ -174,7 +174,7 @@ test_plans:
     owners:
     - acme@chromium.org
     dut:
-    - big_dut_wifi
+    - rambi_dut_wifi
     test_sequence:
     - failing_item
     clean_up:

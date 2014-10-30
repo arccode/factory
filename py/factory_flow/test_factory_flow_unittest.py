@@ -6,6 +6,7 @@
 
 """Unit tests for the test_factory_flow tool."""
 
+from __future__ import print_function
 
 import os
 import shutil
@@ -27,7 +28,7 @@ TEST_CONFIG = os.path.join(os.path.dirname(__file__), 'testdata',
 class TestResultUnittest(unittest.TestCase):
   """Unit tests for TestResult class."""
   def setUp(self):
-    self.board = 'big'
+    self.board = 'rambi'
     self.test_config = test_factory_flow.LoadConfig(filepath=TEST_CONFIG)
     self.base_log_dir = tempfile.mkdtemp(prefix='test_factory_flow.')
     self.bundle_dir = tempfile.mkdtemp(prefix='test_bundle.')
@@ -54,7 +55,8 @@ class TestResultUnittest(unittest.TestCase):
         self.base_log_dir, self.bundle_dir)
 
     # Basic test.
-    item_result = test_result.GetTestItemResult('big_dut_wifi', 'start_server')
+    item_result = test_result.GetTestItemResult(
+        'rambi_dut_wifi', 'start_server')
     self.assertEquals(TestStatus.NOT_TESTED, item_result.status)
 
     # Test invalid dut.
@@ -67,7 +69,7 @@ class TestResultUnittest(unittest.TestCase):
     self.assertRaisesRegexp(
         test_factory_flow.FactoryFlowTestError,
         r"Test item 'foo_item' is not planned for 'stress_and_grt'",
-        test_result.GetTestItemResult, 'big_dut_wifi', 'foo_item')
+        test_result.GetTestItemResult, 'rambi_dut_wifi', 'foo_item')
 
   def testGetOverallTestResult(self):
     plan = 'stress_and_grt'
@@ -88,7 +90,8 @@ class TestResultUnittest(unittest.TestCase):
     self.assertEquals(TestStatus.PASSED, test_result.GetOverallTestResult())
 
     # Overall status should be FAILED if any test item failed.
-    item_result = test_result.GetTestItemResult('big_dut_wifi', 'start_server')
+    item_result = test_result.GetTestItemResult(
+        'rambi_dut_wifi', 'start_server')
     item_result.status = TestStatus.FAILED
     self.assertEquals(TestStatus.FAILED, test_result.GetOverallTestResult())
 
@@ -109,10 +112,10 @@ class TestResultUnittest(unittest.TestCase):
     # Overall test results should be PASSED.
     self.assertEquals(TestStatus.PASSED, report['overall_status'])
     self.assertEquals(
-        TestStatus.PASSED, report['duts']['big_dut_wifi']['overall_status'])
+        TestStatus.PASSED, report['duts']['rambi_dut_wifi']['overall_status'])
 
     # Test items should be stored in sequence.
-    first_test_item = report['duts']['big_dut_wifi']['test_sequence'][0]
+    first_test_item = report['duts']['rambi_dut_wifi']['test_sequence'][0]
     self.assertEquals(
         'create_bundle_toolkit_latest', first_test_item.keys()[0])
     self.assertEquals(
@@ -123,7 +126,7 @@ class TestResultUnittest(unittest.TestCase):
 
 class FactoryFlowRunnerUnittest(unittest.TestCase):
   def setUp(self):
-    self.board = 'big'
+    self.board = 'rambi'
     self.test_config = test_factory_flow.LoadConfig(filepath=TEST_CONFIG)
     self.base_log_dir = tempfile.mkdtemp(prefix='test_factory_flow.')
     self.bundle_dir = tempfile.mkdtemp(prefix='test_bundle.')
@@ -151,12 +154,12 @@ class FactoryFlowRunnerUnittest(unittest.TestCase):
     # Verify that all report fields are correct. The report should look like:
     #
     #  test_plan: passing_test_plan
-    #  board: nyan_big
+    #  board: rambi
     #  overall_status: PASSED
     #  start_time: 1408287612.780922
     #  end_time: 1408287613.471451
     #  duts:
-    #    big_dut_wifi:
+    #    rambi_dut_wifi:
     #      overall_status: PASSED
     #      test_sequence:
     #      - passing_item:
@@ -172,11 +175,11 @@ class FactoryFlowRunnerUnittest(unittest.TestCase):
     #  /tmp/test_factory_flow.vNvgvq/passing_test_plan/clean_up_item.0.log
     #          start_time: 1408287613.130337
     #          status: PASSED
-    self.assertIn('big_dut_wifi', report['duts'])
+    self.assertIn('rambi_dut_wifi', report['duts'])
     self.assertEquals('passing_test_plan', report['test_plan'])
     self.assertEquals(TestStatus.PASSED, report['overall_status'])
     self.assertLess(report['start_time'], report['end_time'])
-    dut_result = report['duts']['big_dut_wifi']
+    dut_result = report['duts']['rambi_dut_wifi']
     self.assertEquals(TestStatus.PASSED, dut_result['overall_status'])
     self.assertIn('passing_item', dut_result['test_sequence'][0])
     passing_item = dut_result['test_sequence'][0].values()[0]
@@ -197,12 +200,12 @@ class FactoryFlowRunnerUnittest(unittest.TestCase):
     # Verify that all report fields are correct. The report should look like:
     #
     #  test_plan: passing_test_plan
-    #  board: nyan_big
+    #  board: rambi
     #  overall_status: FAILED
     #  start_time: 1408287612.780922
     #  end_time: 1408287613.471451
     #  duts:
-    #    big_dut_wifi:
+    #    rambi_dut_wifi:
     #      overall_status: FAILED
     #      test_sequence:
     #      - failing_item:
@@ -218,11 +221,11 @@ class FactoryFlowRunnerUnittest(unittest.TestCase):
     #  /tmp/test_factory_flow.vNvgvq/passing_test_plan/clean_up_item.0.log
     #          start_time: 1408287613.130337
     #          status: PASSED
-    self.assertIn('big_dut_wifi', report['duts'])
+    self.assertIn('rambi_dut_wifi', report['duts'])
     self.assertEquals('failing_test_plan', report['test_plan'])
     self.assertEquals(TestStatus.FAILED, report['overall_status'])
     self.assertLess(report['start_time'], report['end_time'])
-    dut_result = report['duts']['big_dut_wifi']
+    dut_result = report['duts']['rambi_dut_wifi']
     self.assertEquals(TestStatus.FAILED, dut_result['overall_status'])
     self.assertIn('failing_item', dut_result['test_sequence'][0])
     failing_item = dut_result['test_sequence'][0].values()[0]
@@ -237,7 +240,7 @@ class FactoryFlowRunnerUnittest(unittest.TestCase):
 class LocateBundleDirUnittest(unittest.TestCase):
   def setUp(self):
     self.base_dir = tempfile.mkdtemp(prefix='bundle_dir.')
-    self.board = build_board.BuildBoard('big')
+    self.board = build_board.BuildBoard('rambi')
 
   def tearDown(self):
     shutil.rmtree(self.base_dir)
@@ -251,7 +254,7 @@ class LocateBundleDirUnittest(unittest.TestCase):
         test_factory_flow.LocateBundleDir, self.board, self.base_dir)
 
     bundle_dir = os.path.join(
-        self.base_dir, 'factory_bundle_nyan_big_20140809_testing')
+        self.base_dir, 'factory_bundle_rambi_20140809_testing')
     file_utils.TryMakeDirs(bundle_dir)
 
     # The function should locate the testing bundle directory for the following
@@ -265,7 +268,7 @@ class LocateBundleDirUnittest(unittest.TestCase):
     # The function should raise an exception if there are more than one testing
     # bundle found.
     extra_bundle_dir = os.path.join(
-        self.base_dir, 'factory_bundle_nyan_big_20140810_testing')
+        self.base_dir, 'factory_bundle_rambi_20140810_testing')
     file_utils.TryMakeDirs(extra_bundle_dir)
     self.assertRaisesRegexp(
         test_factory_flow.FactoryFlowTestError,
