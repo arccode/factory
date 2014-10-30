@@ -256,6 +256,7 @@ clean:
 	rm -rf $(BUILD_DIR)
 
 test:
+        # Run tests with POSIX locale to avoid localized output.
 	find . -name '*.pyc' -delete
 	@logdir=/tmp/test.logs.$$(date +%Y%m%d_%H%M%S); \
 	mkdir $$logdir; \
@@ -264,7 +265,7 @@ test:
 	    || echo "$$(tput setaf 1)Warning: Private components are missing."\
 	            "Some tests are likely to fail without them.$$(tput sgr0)";\
 	echo; \
-	$(TEST_RUNNER) $(UNITTESTS_WHITELIST) -i $(UNITTESTS_ISOLATE_LIST) \
+	LC_ALL="C" $(TEST_RUNNER) $(UNITTESTS_WHITELIST) -i $(UNITTESTS_ISOLATE_LIST) \
             -j $(MAX_TESTS) -l $$logdir $(EXTRA_TEST_FLAGS)
 
 # Trick to make sure that overlays are rebuilt every time overlay-xxx is run.
