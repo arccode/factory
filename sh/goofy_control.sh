@@ -23,7 +23,7 @@ PRESENTER_ARGS=""
 
 # Ports used by goofy
 GOOFY_UI_PORT="4012"
-GOOFY_LINK_PORTS="4020 4021"
+GOOFY_LINK_PORTS="4020 4021 4022 4023"
 
 # Default implementation for factory_setup (no-op).  May be overriden
 # by board_setup_factory.sh.

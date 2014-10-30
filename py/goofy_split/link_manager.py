@@ -7,8 +7,10 @@
 
 from __future__ import print_function
 
+import argparse
 import jsonrpclib
 import logging
+import signal
 import socket
 import threading
 import time
@@ -22,12 +24,28 @@ from cros.factory.utils.jsonrpc_utils import JSONRPCServer
 from cros.factory.utils.jsonrpc_utils import TimeoutJSONRPCTransport
 from cros.factory.utils.net_utils import GetEthernetInterfaces
 from cros.factory.utils.net_utils import GetEthernetIp
+from cros.factory.utils.process_utils import Spawn
 
 
 # Standard RPC ports.  These may be replaced by unit tests.
 PRESENTER_LINK_RPC_PORT = 4020
 DUT_LINK_RPC_PORT = 4021
+PRESENTER_PING_PORT = 4022
+DUT_PING_PORT = 4023
 
+
+def MakeTimeoutServerProxy(ip, port, timeout):
+  return jsonrpclib.Server('http://%s:%d/' %
+                           (ip, port),
+                           transport=TimeoutJSONRPCTransport(timeout))
+
+class PingServer(object):
+  """Runs a ping server in a separate process."""
+  def __init__(self, port):
+    self._process = Spawn(['python', __file__, '--port', str(port)])
+
+  def Stop(self):
+    self._process.terminate()
 
 class LinkDownError(Exception):
   """The exception raised on RPC calls when the link is down."""
@@ -56,6 +74,7 @@ class PresenterLinkManager(object):
     self._presenter_connected = False
     self._presenter_ip = None
     self._presenter_proxy = None
+    self._presenter_ping_proxy = None
     self._presenter_announcement = None
     self._discoverer = PresenterDiscoverer(PRESENTER_LINK_RPC_PORT,
                                            localhost_only=standalone)
@@ -63,6 +82,7 @@ class PresenterLinkManager(object):
     self._abort_event = threading.Event()
     self._server = JSONRPCServer(port=DUT_LINK_RPC_PORT, methods=self._methods)
     self._server.Start()
+    self._ping_server = PingServer(DUT_PING_PORT)
     self._thread = threading.Thread(target=self.MonitorLink)
     self._thread.start()
 
@@ -82,6 +102,7 @@ class PresenterLinkManager(object):
     self._abort_event.set()
     self._kick_event.set() # Kick the thread
     self._thread.join()
+    self._ping_server.Stop()
 
   def SuspendMonitoring(self, interval_sec):
     """Suspend monitoring of connection for a given period.
@@ -103,7 +124,7 @@ class PresenterLinkManager(object):
     if not self._presenter_connected:
       return False
     try:
-      return self._presenter_proxy.IsAlive()
+      return self._presenter_ping_proxy.IsAlive()
     except (socket.error, socket.timeout, AttributeError):
       return False
 
@@ -118,11 +139,6 @@ class PresenterLinkManager(object):
       self._MakePresenterConnection(my_ip, presenter_ip)
       if self._presenter_connected:
         return
-
-  def _MakeTimeoutServerProxy(self, presenter_ip, timeout):
-    return jsonrpclib.Server('http://%s:%d/' %
-                             (presenter_ip,PRESENTER_LINK_RPC_PORT),
-                             transport=TimeoutJSONRPCTransport(timeout))
 
   def _MakePresenterConnection(self, my_ip, presenter_ip):
     """Attempts to connect the the presenter.
@@ -139,10 +155,16 @@ class PresenterLinkManager(object):
 
     try:
       log('Attempting to connect to presenter %s', presenter_ip)
-      self._presenter_proxy = self._MakeTimeoutServerProxy(presenter_ip,
-                                                      self._handshake_timeout)
+      self._presenter_proxy = MakeTimeoutServerProxy(presenter_ip,
+                                                     PRESENTER_LINK_RPC_PORT,
+                                                     self._handshake_timeout)
+      self._presenter_ping_proxy = MakeTimeoutServerProxy(
+                                        presenter_ip,
+                                        PRESENTER_PING_PORT,
+                                        self._handshake_timeout)
       self._presenter_ip = presenter_ip
       self._presenter_proxy.IsAlive()
+      self._presenter_ping_proxy.IsAlive()
 
       # Presenter is alive. Let's register!
       log('Registering to presenter %s', presenter_ip)
@@ -168,8 +190,12 @@ class PresenterLinkManager(object):
         self._presenter_connected = True
         logging.info('Connected to presenter %s', presenter_ip)
         # Now that we are connected, use a longer timeout for the proxy
-        self._presenter_proxy = self._MakeTimeoutServerProxy(presenter_ip,
-                                                        self._rpc_timeout)
+        self._presenter_proxy = MakeTimeoutServerProxy(presenter_ip,
+                                                       PRESENTER_LINK_RPC_PORT,
+                                                       self._rpc_timeout)
+        self._presenter_ping_proxy = MakeTimeoutServerProxy(presenter_ip,
+                                                            PRESENTER_PING_PORT,
+                                                            self._rpc_timeout)
         if presenter_ip in self._reported_failure:
           self._reported_failure.remove(presenter_ip)
         if self._connect_hook:
@@ -181,6 +207,7 @@ class PresenterLinkManager(object):
     # If we are here, we failed to make connection. Clean up.
     self._presenter_ip = None
     self._presenter_proxy = None
+    self._presenter_ping_proxy = None
     self._reported_failure.add(presenter_ip)
     log('Connection failed.')
 
@@ -249,6 +276,7 @@ class DUTLinkManager(object):
                           'ResumeMonitoring': self.ResumeMonitoring})
     self._reported_announcement = set()
     self._dut_proxy = None
+    self._dut_ping_proxy = None
     self._dut_ip = None
     self._dut_connected = False
     self._lock = threading.Lock()
@@ -259,6 +287,7 @@ class DUTLinkManager(object):
     self._server = JSONRPCServer(port=PRESENTER_LINK_RPC_PORT,
                                  methods=self._methods)
     self._server.Start()
+    self._ping_server = PingServer(PRESENTER_PING_PORT)
     self._thread = threading.Thread(target=self.MonitorLink)
     self._thread.start()
 
@@ -278,6 +307,7 @@ class DUTLinkManager(object):
     self._abort_event.set()
     self._kick_event.set()
     self._thread.join()
+    self._ping_server.Stop()
 
   def SuspendMonitoring(self, interval_sec):
     """Suspend monitoring of connection for a given period.
@@ -292,16 +322,16 @@ class DUTLinkManager(object):
     self._suspend_deadline = None
     self.Kick()
 
-  def _MakeTimeoutServerProxy(self, dut_ip, timeout):
-    return jsonrpclib.Server('http://%s:%d/' % (dut_ip, DUT_LINK_RPC_PORT),
-                             transport=TimeoutJSONRPCTransport(timeout))
-
   def _DUTRegister(self, dut_ip):
     with self._lock:
       try:
         self._dut_ip = dut_ip
-        self._dut_proxy = self._MakeTimeoutServerProxy(dut_ip,
-                                                       self._rpc_timeout)
+        self._dut_proxy = MakeTimeoutServerProxy(dut_ip,
+                                                 DUT_LINK_RPC_PORT,
+                                                 self._rpc_timeout)
+        self._dut_ping_proxy = MakeTimeoutServerProxy(dut_ip,
+                                                      DUT_PING_PORT,
+                                                      self._rpc_timeout)
         self._dut_proxy.IsAlive()
         self._dut_connected = True
         logging.info('DUT %s registered', dut_ip)
@@ -317,7 +347,7 @@ class DUTLinkManager(object):
     if not self._dut_connected:
       return False
     try:
-      self._dut_proxy.IsAlive()
+      self._dut_ping_proxy.IsAlive()
       return True
     except (socket.error, socket.timeout, AttributeError):
       return False
@@ -338,6 +368,7 @@ class DUTLinkManager(object):
             self._dut_connected = False
             self._dut_ip = None
             self._dut_proxy = None
+            self._dut_ping_proxy = None
             if self._disconnect_hook:
               self._disconnect_hook()
 
@@ -350,7 +381,7 @@ class DUTLinkManager(object):
           try:
             # We don't get response from the DUT for announcement, so let's
             # keep the timeout short.
-            proxy = self._MakeTimeoutServerProxy(ip, timeout=0.05)
+            proxy = MakeTimeoutServerProxy(ip, DUT_LINK_RPC_PORT, timeout=0.05)
             if self._standalone:
               my_ips = ['127.0.0.1']
             else:
@@ -380,3 +411,28 @@ class DUTLinkManager(object):
       self._kick_event.clear()
       if self._abort_event.isSet():
         return
+
+if __name__ == '__main__':
+  # If this script runs by itself, it serves as a ping server, which replies
+  # to JSON RPC pings.
+  parser = argparse.ArgumentParser(description='Run ping server')
+  parser.add_argument('--port', type=int,
+                      help='The port to expect ping')
+  args = parser.parse_args()
+
+  assert args.port
+
+  def _SIGTERMHandler(unused_signum, unused_frame):
+    raise Exception('SIGTERM received')
+  signal.signal(signal.SIGTERM, _SIGTERMHandler)
+
+  try:
+    server = JSONRPCServer(port=args.port)
+    server.Start()
+    # Serve forever until we're terminated
+    while True:
+      time.sleep(1000)
+  except KeyboardInterrupt:
+    pass # Server is destroyed in finally clause
+  finally:
+    server.Destroy()

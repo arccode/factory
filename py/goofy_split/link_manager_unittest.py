@@ -22,7 +22,9 @@ class LinkManagerTest(unittest.TestCase):
     self.hook = mox.MockAnything()
 
     link_manager.PRESENTER_LINK_RPC_PORT = test_utils.FindUnusedTCPPort()
+    link_manager.PRESENTER_PING_PORT = test_utils.FindUnusedTCPPort()
     link_manager.DUT_LINK_RPC_PORT = test_utils.FindUnusedTCPPort()
+    link_manager.DUT_PING_PORT = test_utils.FindUnusedTCPPort()
 
   def tearDown(self):
     if self.dut_link:
@@ -75,8 +77,8 @@ class LinkManagerTest(unittest.TestCase):
     mox.Replay(self.hook)
 
     self.StartDUT()
+    time.sleep(0.5)
     self.StartPresenter()
-
     time.sleep(0.5)
 
     self.dut_link.Kick()
