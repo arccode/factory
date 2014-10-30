@@ -14,6 +14,7 @@ survivable error occurred, in which case the error will be reported
 and a None probe result assumed.
 """
 
+from __future__ import print_function
 
 import collections
 import hashlib
@@ -41,6 +42,7 @@ from cros.factory.gooftool import vblock
 from cros.factory.hwdb.hwid_tool import ProbeResults, COMPACT_PROBE_STR
 from cros.factory.l10n import regions
 from cros.factory.system import board
+from cros.factory.system import service_manager
 from cros.factory.system import vpd
 from cros.factory.test import factory
 from cros.factory.utils.process_utils import GetLines
@@ -657,10 +659,23 @@ def _ProbeCellular():
                                'modem_utils.py')
     if os.path.exists(modem_utils):
       try:
-        Shell('stop modemmanager')
-        # Sleep 2 seconds to wait modem shutdown as there's no event we can
-        # watch for.
-        time.sleep(2)
+        service_manager.SetServiceStatus(
+            'modemmanager', service_manager.Status.STOP)
+        # To prevent infinite loop, wait 1 second * 10 iterations at most.
+        start_time = time.time()
+        for _ in xrange(10):
+          time.sleep(1)
+          if (service_manager.GetServiceStatus('modemmanager') ==
+              service_manager.Status.STOP):
+            logging.debug('modemmanager is stopped, elapsed time: %.1f seconds',
+                          time.time() - start_time)
+            break
+
+        if (service_manager.GetServiceStatus('modemmanager') ==
+            service_manager.Status.START):
+          logging.warning(
+              'modemmanager is still running while probe modem version')
+
         version_output = Shell(modem_utils + ' get_version')
         if not version_output.status:
           for (key, pattern) in (
@@ -670,7 +685,10 @@ def _ProbeCellular():
             if match:
               data[0][key] = match.group(1)
       finally:
-        Shell('start modemmanager')
+        if (service_manager.GetServiceStatus('modemmanager') !=
+            service_manager.Status.START):
+          service_manager.SetServiceStatus(
+              'modemmanager', service_manager.Status.START)
   return data
 
 
