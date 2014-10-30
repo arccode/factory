@@ -118,7 +118,7 @@ class DUTEnvironment(Environment):
     assert False, 'Never reached (should %s)' % operation
 
   def spawn_autotest(self, name, args, env_additions, result_file):
-    return self.goofy.prespawner.spawn(args, env_additions)
+    return self.goofy.autotest_prespawner.spawn(args, env_additions)
 
   def launch_chrome(self):
     utils.WaitFor(self.has_sockets, 30)

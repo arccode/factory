@@ -38,7 +38,7 @@ from cros.factory.goofy.goofy_rpc import GoofyRPC
 from cros.factory.goofy.invocation import TestArgEnv
 from cros.factory.goofy.invocation import TestInvocation
 from cros.factory.goofy.link_manager import PresenterLinkManager
-from cros.factory.goofy.prespawner import Prespawner
+from cros.factory.goofy import prespawner
 from cros.factory.goofy.system_log_manager import SystemLogManager
 from cros.factory.goofy.web_socket_manager import WebSocketManager
 from cros.factory.system.board import Board, BoardException
@@ -158,7 +158,8 @@ class Goofy(GoofyBase):
     self.system_log_manager = None
     self.core_dump_manager = None
     self.event_log = None
-    self.prespawner = None
+    self.autotest_prespawner = None
+    self.pytest_prespawner = None
     self.ui_process = None
     self.dummy_shopfloor = None
     self.invocations = {}
@@ -284,10 +285,14 @@ class Goofy(GoofyBase):
       if self.system_log_manager.IsThreadRunning():
         self.system_log_manager.Stop()
       self.system_log_manager = None
-    if self.prespawner:
-      logging.info('Stopping prespawner')
-      self.prespawner.stop()
-      self.prespawner = None
+    if self.autotest_prespawner:
+      logging.info('Stopping autotest prespawner')
+      self.autotest_prespawner.stop()
+      self.autotest_prespawner = None
+    if self.pytest_prespawner:
+      logging.info('Stopping pytest prespawner')
+      self.pytest_prespawner.stop()
+      self.pytest_prespawner = None
     if self.event_client:
       logging.info('Closing event client')
       self.event_client.close()
@@ -1505,8 +1510,11 @@ class Goofy(GoofyBase):
     for handler in self.on_ui_startup:
       handler()
 
-    self.prespawner = Prespawner()
-    self.prespawner.start()
+    self.autotest_prespawner = prespawner.AutotestPrespawner()
+    self.autotest_prespawner.start()
+
+    self.pytest_prespawner = prespawner.PytestPrespawner()
+    self.pytest_prespawner.start()
 
     tests_after_shutdown = self.state_instance.get_shared_data(
         'tests_after_shutdown', optional=True)

@@ -6,6 +6,8 @@
 
 """Classes and Methods related to invoking a pytest or autotest."""
 
+from __future__ import print_function
+
 import copy
 import fnmatch
 import logging
@@ -15,7 +17,6 @@ import pipes
 import re
 import signal
 import syslog
-import subprocess
 import sys
 import tempfile
 import threading
@@ -324,17 +325,16 @@ class TestInvocation(object):
 
       # Create a new control file to use to run the test
       with open(control_file, 'w') as f:
-        print >> f, 'import common, traceback, utils'
-        print >> f, 'import cPickle as pickle'
-        print >> f, ("success = job.run_test("
-              "'%s', **pickle.load(open('%s')))" % (
-          self.test.autotest_name, args_file))
+        print('import common, traceback, utils', file=f)
+        print('import cPickle as pickle', file=f)
+        print("success = job.run_test('%s', **pickle.load(open('%s')))" % (
+          self.test.autotest_name, args_file), file=f)
 
-        print >> f, (
+        print(
           "pickle.dump((success, "
           "str(job.last_error) if job.last_error else None), "
           "open('%s', 'w'), protocol=2)"
-          % result_file)
+          % result_file, file=f)
 
       args = [os.path.join(os.path.dirname(factory.FACTORY_PATH),
                  'autotest/bin/autotest'),
@@ -399,7 +399,6 @@ class TestInvocation(object):
         files_to_delete.append(ret)
         return ret
 
-      info_path = make_tmp('info')
       results_path = make_tmp('results')
 
       log_dir = os.path.join(factory.get_test_data_root())
@@ -434,27 +433,9 @@ class TestInvocation(object):
           else:
             raise InvocationError('Cannot find automator for %r' % pytest_name)
 
-      with open(info_path, 'w') as info:
-        pickle.dump(PyTestInfo(
-            test_list=self.goofy.options.test_list,
-            path=self.test.path,
-            pytest_name=pytest_name,
-            args=args,
-            results_path=results_path,
-            automation_mode=self.goofy.options.automation_mode), info)
-
       # Invoke the unittest driver in a separate process.
       with open(self.log_path, 'ab', 0) as log:
-        this_file = os.path.realpath(__file__)
-        this_file = re.sub(r'\.pyc$', '.py', this_file)
-        args = [this_file, '--pytest', info_path]
-
-        cmd_line = ' '.join([pipes.quote(arg) for arg in args])
-        print >> log, 'Running test: %s' % cmd_line
-
-        logging.debug('Test command line: %s >& %s',
-                      cmd_line, self.log_path)
-
+        print('Running test: %s' % self.test.path, file=log)
         self.env_additions['CROS_PROC_TITLE'] = (
             '%s.py (factory pytest %s)' % (pytest_name, self.output_dir))
 
@@ -465,12 +446,14 @@ class TestInvocation(object):
             return TestState.FAILED, (
                 'Before starting: %s' % self._aborted_message())
 
-          self._process = Spawn(
-              args,
-              env=env,
-              stdin=open(os.devnull, "w"),
-              stdout=subprocess.PIPE,
-              stderr=subprocess.STDOUT)
+          self._process = self.goofy.pytest_prespawner.spawn(
+              PyTestInfo(test_list=self.goofy.options.test_list,
+                         path=self.test.path,
+                         pytest_name=pytest_name,
+                         args=args,
+                         results_path=results_path,
+                         automation_mode=self.goofy.options.automation_mode),
+              self.env_additions)
 
         # Tee process's stderr to both the log and our stderr; this
         # will end when the process dies.
@@ -952,13 +935,21 @@ def main():
   parser = OptionParser()
   parser.add_option('--pytest', dest='pytest_info',
                     help='Info for pytest to run')
+  parser.add_option('--prespawn-pytest', dest='prespawn_pytest',
+                    action='store_true', default=False,
+                    help='Prespawn pytest process. '
+                         'Read info and env from stdin.')
   (options, unused_args) = parser.parse_args()
 
-  assert options.pytest_info
+  assert options.pytest_info or options.prespawn_pytest
 
   test_ui.exception_list = []
 
-  info = pickle.load(open(options.pytest_info))
+  if options.prespawn_pytest:
+    env, info = pickle.load(sys.stdin)
+    os.environ.update(env)
+  else:
+    info = pickle.load(open(options.pytest_info))
   factory.init_logging(info.path)
   proc_title = os.environ.get('CROS_PROC_TITLE')
   if proc_title:
