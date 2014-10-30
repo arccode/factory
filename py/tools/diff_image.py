@@ -4,6 +4,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+from __future__ import print_function
 import argparse
 import logging
 import os
@@ -40,6 +41,9 @@ def DiffImages(mount_point_1, mount_point_2, out=sys.stdout):
   # Hold in a variable since we want to change in an inner function.
   differences = [0]
 
+  os_env = os.environ.copy()
+  os_env['LC_ALL'] = 'C'
+
   for d in ['autotest', 'factory']:
     process = Spawn(
         ['diff', '-qr'] +
@@ -49,7 +53,8 @@ def DiffImages(mount_point_1, mount_point_2, out=sys.stdout):
         (['-x', 'client'] if d == 'autotest' else []) +
         [os.path.join(x, 'dev_image', d) for x in mount_points],
         read_stdout=True, log=True,
-        check_call=lambda returncode: returncode in [0,1])
+        check_call=lambda returncode: returncode in [0,1],
+        env=os_env)
 
     for line in process.stdout_lines():
       match = re.match('^Files (.+) and (.+) differ$|'
@@ -93,9 +98,8 @@ def DiffImages(mount_point_1, mount_point_2, out=sys.stdout):
         continue
 
       def PrintHeader(message):
-        print >> out
-        print >> out, '*** %s' % stripped_path
-        print >> out, '*** %s' % message
+        out.write('\n*** %s\n' % stripped_path)
+        out.write('*** %s\n' % message)
         differences[0] += 1
 
       if any(x is None for x in paths):
@@ -127,7 +131,7 @@ def DiffImages(mount_point_1, mount_point_2, out=sys.stdout):
         process = Spawn(
             ['diff', '-u'] + paths,
             check_call=lambda returncode: returncode in [0,1,2],
-            read_stdout=True)
+            read_stdout=True, env=os_env)
         if process.returncode == 2:
           if re.match('Binary files .+ differ\n$', process.stdout_data):
             PrintHeader('Binary files differ')
@@ -169,8 +173,7 @@ def main(argv=None, out=sys.stdout):
     with MountOrReuse(1) as mount_point_1:
       differences += DiffImages(mount_point_0, mount_point_1, out)
 
-  print >> out
-  print >> out, 'Found %d differences' % differences
+  out.write('\nFound %d differences\n' % differences)
   sys.exit(0 if differences == 0 else 1)
 
 if __name__ == '__main__':
