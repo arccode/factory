@@ -32,6 +32,7 @@ class UIAppControllerHandler(SimpleHTTPRequestHandler):
   def do_GET(self):
     WebSocketHandshake(self)
     web_socket = WebSocket(sock=self.connection)
+    web_socket.received_message = self.server.controller.ReceivedMessage
     try:
       self.server.controller.AddWebSocket(web_socket)
       web_socket.run()
@@ -49,6 +50,8 @@ class UIAppController(object):
     self._disconnect_hook = disconnect_hook
     self._connect_event = threading.Event()
     self._abort_event = threading.Event()
+    self._last_msg = None
+    self._msg_event = threading.Event()
     self.lock = threading.Lock()
     self.httpd = HTTPServer(('0.0.0.0', UI_APP_CONTROLLER_PORT),
                             UIAppControllerHandler)
@@ -59,6 +62,8 @@ class UIAppController(object):
   def ServeHTTPForever(self):
     while not self._abort_event.isSet():
       self.httpd.handle_request()
+    # We're done. Make sure the port is freed.
+    del self.httpd
 
   def Stop(self):
     self._abort_event.set()
@@ -92,6 +97,12 @@ class UIAppController(object):
       for ws in self.web_sockets:
         ws.send(msg_string)
 
+  def ReceivedMessage(self, msg):
+    # Some websocket client appends newline (\n) after the message.
+    # To be safe, let's strip the incoming message.
+    self._last_msg = str(msg).strip()
+    self._msg_event.set()
+
   def ShowUI(self, dut_ip, dut_uuid=None):
     # If dut_uuid is not specified, generate one in the same format
     # as jsonrpc_utils:GetUuid.
@@ -100,6 +111,11 @@ class UIAppController(object):
     url = 'http://%s:%d/' % (dut_ip, state.DEFAULT_FACTORY_STATE_PORT)
     self.SendMessage({'command': UI_APP_COMMAND.CONNECT,
                       'url': url, 'uuid': dut_uuid})
+    # Wait for the UI presenter app to acknowledge
+    if not self._msg_event.wait(timeout=5):
+      return False
+    self._msg_event.clear()
+    return self._last_msg == "OK"
 
   def ShowDisconnectedScreen(self):
     self.SendMessage({'command': UI_APP_COMMAND.DISCONNECT})

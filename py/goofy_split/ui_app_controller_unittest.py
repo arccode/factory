@@ -4,6 +4,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+from __future__ import print_function
+
 import json
 import mox
 import time
@@ -33,6 +35,12 @@ class UIAppControllerTest(unittest.TestCase):
   def ReceivedMessage(self, message):
     self.hook.message(json.loads('%s' % message))
 
+  def SendOK(self, unused_cmd):
+    self.client.send("OK\n")
+
+  def SendError(self, unused_cmd):
+    self.client.send("ERROR\n")
+
   def tearDown(self):
     if self.controller:
       self.controller.Stop()
@@ -42,7 +50,9 @@ class UIAppControllerTest(unittest.TestCase):
 
     self.hook.connect()
     self.hook.message({'url': 'http://10.3.0.11:4012/', 'command': 'CONNECT',
-                       'uuid': this_uuid})
+                       'uuid': this_uuid}).WithSideEffects(self.SendError)
+    self.hook.message({'url': 'http://10.3.0.11:4012/', 'command': 'CONNECT',
+                       'uuid': this_uuid}).WithSideEffects(self.SendOK)
     self.hook.disconnect()
 
     mox.Replay(self.hook)
@@ -50,7 +60,8 @@ class UIAppControllerTest(unittest.TestCase):
     self.StartControllerAndClient()
 
     self.client.connect()
-    self.controller.ShowUI('10.3.0.11', dut_uuid=this_uuid)
+    self.assertFalse(self.controller.ShowUI('10.3.0.11', dut_uuid=this_uuid))
+    self.assertTrue(self.controller.ShowUI('10.3.0.11', dut_uuid=this_uuid))
     self.client.close()
 
     time.sleep(0.2) # Wait for WebSocket to close

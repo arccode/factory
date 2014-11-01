@@ -61,10 +61,22 @@ class GoofyPresenter(GoofyBase):
                               'machines.'))
     return parser.parse_args()
 
+  def RetryShowUI(self):
+    if self.dut_ip is None:
+      return
+    if self.ui_app_controller.ShowUI(self.dut_ip, dut_uuid=self.dut_uuid):
+      return
+    # The UI is still not ready. Retry again.
+    self.run_enqueue(self.RetryShowUI)
+
   def DUTConnected(self, dut_ip):
     self.dut_uuid = self.link_manager.GetUuid()
     self.dut_ip = dut_ip
-    self.ui_app_controller.ShowUI(dut_ip, dut_uuid = self.dut_uuid)
+    # If the UI web server is ready, show it.
+    if self.ui_app_controller.ShowUI(dut_ip, dut_uuid=self.dut_uuid):
+      return
+    # Well, it's probably not. Let's schedule a retry.
+    self.run_enqueue(self.RetryShowUI)
 
   def DUTDisconnected(self):
     self.ui_app_controller.ShowDisconnectedScreen()

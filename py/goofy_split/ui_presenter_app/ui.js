@@ -5,6 +5,7 @@
 var myWindowName = 'goofy_presenter';
 var connected = false;
 var lastUuid = null;
+var mySocket = null;
 
 var countdown = {
   timeout: null,
@@ -104,8 +105,12 @@ function checkDUT(serverUrl, serverUuid) {
   xmlHttp.onreadystatechange = function() {
     if (xmlHttp.readyState != 4)
       return;
-    if (xmlHttp.status && xmlHttp.status < 400)
+    if (xmlHttp.status && xmlHttp.status < 400) {
+      mySocket.send("OK");
       handleConnect(serverUrl, serverUuid);
+    } else {
+      mySocket.send("ERROR");
+    }
   }
 
   xmlHttp.open("GET", serverUrl, true);
@@ -116,14 +121,14 @@ function connectWebSocket() {
   // GoofyPresenter talks to us through port 4010. This port is only
   // used for communication between GoofyPresenter and the UI presenter
   // extension.
-  var my_socket = new WebSocket('ws://127.0.0.1:4010/');
+  mySocket = new WebSocket('ws://127.0.0.1:4010/');
 
-  my_socket.onclose = function(e) {
+  mySocket.onclose = function(e) {
     console.log("Web socket connection failed. Retry in 3 seconds...");
     setError("UI presenter backend disconnected. Retrying...");
     window.setTimeout(connectWebSocket, 3000);
   };
-  my_socket.onmessage = function(e) {
+  mySocket.onmessage = function(e) {
     console.log("Server says:", e.data);
     message = JSON.parse(e.data);
     if (message.command == "DISCONNECT") {
@@ -164,11 +169,11 @@ function connectWebSocket() {
       console.log("Unknown command:", e.data);
     }
   };
-  my_socket.onopen = function(e) {
+  mySocket.onopen = function(e) {
     console.log("Opened web socket");
     setInfo("Waiting for device...");
   };
-  my_socket.onerror = function(e) { console.log(e); };
+  mySocket.onerror = function(e) { console.log(e); };
 }
 
 if (window.name != myWindowName) {
