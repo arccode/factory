@@ -191,6 +191,15 @@ class SystemInfo(object):
     except:
       pass
 
+    self.mainfw_type = None
+    try:
+      crossystem = subprocess.Popen(['crossystem', 'mainfw_type'],
+                                    stdout=subprocess.PIPE)
+      stdout, _ = crossystem.communicate()
+      self.mainfw_type = stdout.strip() or None
+    except:
+      pass
+
     self.root_device = None
     try:
       rootdev = Spawn(['rootdev', '-s'],

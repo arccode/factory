@@ -1354,7 +1354,9 @@ class Goofy(GoofyBase):
     # If the phase is invalid, this will raise a ValueError.
     phase.SetPersistentPhase(self.test_list.options.phase)
 
-    if system.SystemInfo().firmware_version is None and not utils.in_chroot():
+    # For netboot firmware, mainfw_type should be 'netboot'.
+    if (system.SystemInfo().mainfw_type != 'nonchrome' and
+        system.SystemInfo().firmware_version is None):
       self.state_instance.set_shared_data('startup_error',
           'Netboot firmware detected\n'
           'Connect Ethernet and reboot to re-image.\n'
