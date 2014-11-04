@@ -4,15 +4,26 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+from __future__ import print_function
+
 import mox
+import os
 import unittest
 
 import factory_common  # pylint: disable=W0611
 
 from cros.factory.common import Obj
 from cros.factory.test import shopfloor
+from cros.factory.test.factory import FactoryTestFailure
+from cros.factory.test.factory_task import FactoryTask
 from cros.factory.test.pytests import vpd
+from cros.factory.test.ui_templates import OneSection
 
+# Legacy unique/group codes for testing.
+LEGACY_UNIQUE_CODE = ('323232323232323232323232323232323232'
+                      '323232323232323232323232323256850612')
+LEGACY_GROUP_CODE = ('333333333333333333333333333333333333'
+                     '33333333333333333333333333332dbecc73')
 
 class VPDBrandingFieldsTest(unittest.TestCase):
   def setUp(self):
@@ -67,6 +78,55 @@ class VPDBrandingFieldsTest(unittest.TestCase):
     self.assertRaisesRegexp(ValueError, 'Bad format for customization_id',
                             self.test_case.ReadBrandingFields)
 
+
+class WriteVPDTaskTest(unittest.TestCase):
+  def setUp(self):
+    self.test_case = vpd.VPDTest()
+    self.test_case.vpd = dict(ro={}, rw={})
+    self.write_vpd_task = vpd.WriteVPDTask(self.test_case)
+    self.mox = mox.Mox()
+
+  def tearDown(self):
+    self.mox.VerifyAll()
+    self.mox.UnsetStubs()
+
+  def testGoodLegacyUserGroupCode(self):
+    self.test_case.registration_code_map = dict(user=LEGACY_UNIQUE_CODE,
+                                                group=LEGACY_GROUP_CODE)
+    # Stub out self.test.template.SetState().
+    self.test_case.template = self.mox.CreateMock(OneSection)
+    self.mox.StubOutWithMock(self.test_case.template, 'SetState')
+    self.test_case.template.SetState(mox.IsA(unicode)).AndReturn(0)
+    self.test_case.template.SetState(mox.IsA(str), append=True).AndReturn(0)
+    # Stub out BuildBoard().short_name. Actually this is not required for
+    # legacy code, we just use 'x86-generic' to pass the unit test.
+    src = os.path.join(os.environ['CROS_WORKON_SRCROOT'], 'src')
+    default_board_path = os.path.join(src, 'scripts', '.default_board')
+    with open(default_board_path, 'w') as f:
+      f.write('x86-generic')
+    # Stub out Spawn(['vpd', '-i', 'RW_VPD', self.FormatVPDParameter()]).
+    self.mox.StubOutWithMock(vpd, 'Spawn')
+    vpd.Spawn(mox.IsA(list), log=False, check_call=True).AndReturn(0)
+    # Stub out self.Pass().
+    self.mox.StubOutWithMock(FactoryTask, 'Pass')
+    FactoryTask.Pass().AndReturn(0)  # pylint: disable=E1120
+
+    self.mox.ReplayAll()
+    self.write_vpd_task.Run()
+
+  def testTheSameLegacyUserGroupCodeFailure(self):
+    self.test_case.registration_code_map = dict(user=LEGACY_UNIQUE_CODE,
+                                                group=LEGACY_UNIQUE_CODE)
+    # Stub out self.test.template.SetState().
+    self.test_case.template = self.mox.CreateMock(OneSection)
+    self.mox.StubOutWithMock(self.test_case.template, 'SetState')
+    self.test_case.template.SetState(mox.IsA(unicode)).AndReturn(0)
+    self.test_case.template.SetState(mox.IsA(str), append=True).AndReturn(0)
+
+    self.mox.ReplayAll()
+    self.assertRaisesRegexp(FactoryTestFailure,
+                            '^user code and group code should not be the same$',
+                            self.write_vpd_task.Run)
 
 
 if __name__ == '__main__':
