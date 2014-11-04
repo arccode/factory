@@ -738,7 +738,7 @@ class RemovableStorageTest(unittest.TestCase):
       self._udev_observer.start()
 
     # BFT engages device after udev observer start
-    if not self.args.skip_insert_remove and self._bft_fixture:
+    if not self.args.skip_insert_remove and self.args.bft_fixture:
       self._bft_fixture = CreateBFTFixture(**self.args.bft_fixture)
       self._bft_media_device = self.args.bft_media_device
       if self._bft_media_device not in self._bft_fixture.Device:
