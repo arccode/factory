@@ -9,7 +9,6 @@ It shows count down and system loads for run-in period. It also alarms if
 there's any abnormal status detected during run-in.
 """
 
-import datetime
 import os
 import time
 import unittest
@@ -20,6 +19,7 @@ from cros.factory.event_log import Log
 from cros.factory.system import SystemStatus
 from cros.factory.test import factory, test_ui
 from cros.factory.test.args import Arg
+from cros.factory.utils import time_utils
 
 
 class CountDownTest(unittest.TestCase):
@@ -72,7 +72,7 @@ class CountDownTest(unittest.TestCase):
         id='cd-system-load')
 
   def UpdateUILog(self, sys_status):
-    log_items = [datetime.datetime.now().isoformat(),
+    log_items = [time_utils.TimeString(),
                  'Temperatures: %s' % sys_status.temperatures,
                  'Fan RPM: %s' % sys_status.fan_rpm]
     log_str = '.  '.join(log_items)

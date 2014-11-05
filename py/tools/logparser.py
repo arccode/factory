@@ -11,19 +11,22 @@ directory.
 
 import cgi
 import datetime
-import factory_common  # pylint: disable=W0611
 import fcntl
 import optparse
 import os
 import re
 import tarfile
 import threading
-import yaml
 import zipfile
 
+import yaml
+from flup.server.fcgi import WSGIServer
+
+import factory_common  # pylint: disable=W0611
 from cros.factory.schema import (AnyOf, Dict, FixedDict, List,
                                  Scalar, SchemaException)
-from flup.server.fcgi import WSGIServer
+from cros.factory.utils import time_utils
+
 
 # Directory setting
 _BASE_DIR = '/var/www'
@@ -330,7 +333,7 @@ class LogParser(object):
       data = {
           'EVENT': 'fixture_log',
           'PANEL_SERIAL': log_desc['panel_serial'],
-          'TIME': log_desc['timestamp'].isoformat(),
+          'TIME': time_utils.TimeString(log_desc['timestamp']),
           'STATUS': log_desc['status'],
           'DURATION': log_desc['duration'],
           'FIXTURE_ID': log_desc['fixture_id'],
@@ -507,7 +510,7 @@ class LogParser(object):
       fcntl.flock(f.fileno(), fcntl.LOCK_EX)
       try:
         f.write('%s, %s, %s\n' % (
-            datetime.datetime.now().isoformat(), filename, message))
+            time_utils.TimeString(), filename, message))
       finally:
         fcntl.flock(f.fileno(), fcntl.LOCK_UN)
       os.fdatasync(f.fileno())

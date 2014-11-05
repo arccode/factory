@@ -9,7 +9,6 @@
 from __future__ import print_function
 
 import collections
-import datetime
 import glob
 import logging
 import os
@@ -36,6 +35,7 @@ from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import ssh_utils
+from cros.factory.utils import time_utils
 
 
 # Set default verbosity to INFO.
@@ -222,7 +222,7 @@ class TestResult(object):
       raise FactoryFlowTestError('Log directory of %r not found' %
                                    self.test_plan_name)
 
-    now = datetime.datetime.now().isoformat().replace(':', '-').split('.')[0]
+    now = time_utils.TimeString(time_separator='-', milliseconds=False)
     log_file_name = '%s-%s-%s.tar.bz2' % (
         self.board_name.full_name, self.test_plan_name, now)
     with open(
@@ -295,7 +295,7 @@ class TestResult(object):
 
     # Generate the notification E-mail.
     FROM = 'chromeos-factory-testing@chromium.org'
-    now = datetime.datetime.now().isoformat().replace(':', '-').split('.')[0]
+    now = time_utils.TimeString(time_separator='-', milliseconds=False)
     mail = MIMEMultipart()
     mail['Subject'] = ('[%s][%s][%s][%s] Test results and logs.' %
                        (report['overall_status'], self.board_name.full_name,
@@ -426,7 +426,7 @@ class FactoryFlowRunner(object):
           proc.wait()
           for dut in duts:
             item_result_info = test_result.GetTestItemResult(dut, item)
-            
+
             item_result_info.end_time = time.time()
             if proc.returncode != 0:
               item_result_info.status = TestStatus.FAILED
