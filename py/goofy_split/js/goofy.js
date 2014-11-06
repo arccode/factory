@@ -2877,10 +2877,11 @@ cros.factory.Goofy.prototype.logInternal = function(message) {
 };
 
 /**
- * Hides tooltips.
+ * Hides tooltips, and cancels pending shows.
  */
 cros.factory.Goofy.prototype.hideTooltips = function() {
     goog.array.forEach(this.tooltips, function(tooltip) {
+            tooltip.clearShowTimer();
             tooltip.setVisible(false);
         });
 };
