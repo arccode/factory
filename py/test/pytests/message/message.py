@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
+# Copyright 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
@@ -10,6 +10,7 @@ The operator can press the space or enter key to proceed.
 """
 
 
+from __future__ import print_function
 import unittest
 
 
@@ -29,7 +30,8 @@ class MessageTest(unittest.TestCase):
   """A factory test to display a message."""
   ARGS = [
     Arg('html_en', str, 'Message (HTML in English).'),
-    Arg('html_zh', str,' Message (HTML, in Chinese).', optional=True),
+    Arg('html_zh', (str, unicode),' Message (HTML, in Chinese).',
+        optional=True),
     Arg('text_size', str, 'size of message in percentage', default='200'),
     Arg('text_color', str, 'color of message (in CSS)', default='black'),
     Arg('background_color', str, 'background color (in CSS)', default='white')
