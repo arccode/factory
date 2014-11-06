@@ -1,10 +1,11 @@
 # -*- mode: python; coding: utf-8 -*-
-# Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
+# Copyright 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
 """Prompts the operator to input a string of data."""
 
+from __future__ import print_function
 import logging
 import re
 import socket
@@ -35,7 +36,7 @@ class Scan(unittest.TestCase):
     Arg('label_en', str,
         'Name of the ID or serial number being scanned, e.g., '
         '"MLB serial number"'),
-    Arg('label_zh', str,
+    Arg('label_zh', (str, unicode),
         'Chinese name of the ID or serial number being scanned '
         '(defaults to the same as the English label)'),
     Arg('event_log_key', str,
@@ -74,26 +75,25 @@ class Scan(unittest.TestCase):
                       test_ui.MakeLabel(label_en, label_zh) +
                       '</span>',
                       id='scan-status')
-      self.ui.RunJS('$("scan-value").focus();'
-                    '$("scan-value").value = "";'
-                    '$("scan-value").disabled = false')
+      self.ui.RunJS('$("scan-value").disabled = false;'
+                    '$("scan-value").value = ""')
+      self.ui.SetFocus('scan-value')
 
     self.ui.RunJS('$("scan-value").disabled = true')
-
     scan_value = event.data.strip()
     if self.args.ignore_case:
       scan_value = scan_value.upper()
     esc_scan_value = test_ui.Escape(scan_value)
     if not scan_value:
       return SetError('The scanned value is empty.',
-                      '掃描編號是空的。')
+                      label_zh=u'掃描編號是空的。')
     if self.args.regexp:
       match = re.match(self.args.regexp, scan_value)
       if not match or match.group(0) != scan_value:
         return SetError(
             'The scanned value "%s" does not match '
             'the expected format.' % esc_scan_value,
-            '所掃描的編號「%s」格式不對。' % esc_scan_value)
+            label_zh=u'所掃描的編號「%s」格式不對。' % esc_scan_value)
 
     if self.args.aux_table_name:
       try:
@@ -104,13 +104,13 @@ class Scan(unittest.TestCase):
         return SetError(
             'The scanned value "%s" is not a known %s.' % (
                 esc_scan_value, self.args.label_en),
-            '所掃描的編號「%s」不是已知的%s。' % (
+            label_zh=u'所掃描的編號「%s」不是已知的%s。' % (
                 esc_scan_value, self.args.label_zh))
       except socket.error as e:
         logging.exception('select_aux_data failed')
         return SetError(
             'Unable to contact shopfloor server: %s' % e,
-            '連不到 shopfloor server: %s' % e)
+            label_zh=u'連不到 shopfloor server: %s' % e)
       except:  # pylint: disable=W0622
         logging.exception('select_aux_data failed')
         return SetError(utils.FormatExceptionOnly())
@@ -144,17 +144,18 @@ class Scan(unittest.TestCase):
         return SetError(
             'The scanned value "%s" does not match '
             'the expected value'
-            '<span class=test-engineering-mode-only> "%s".</span>' % (
+            '<span class=test-engineering-mode-only> "%s"</span>.' % (
                 esc_scan_value, esc_expected_value),
-            u'所掃描的編號「%s」不搭配所期望的編號'
-            u'<span class=test-engineering-mode-only>「%s」</span>。' % (
-                esc_scan_value, esc_expected_value))
+            label_zh=(
+                u'所掃描的編號「%s」不搭配所期望的編號'
+                u'<span class=test-engineering-mode-only>「%s」</span>。' % (
+                    esc_scan_value, esc_expected_value)))
 
     if self.args.rw_vpd_key:
       self.ui.SetHTML(
-          test_ui.MakeLabel('Writing to VPD. Please wait…',
-                            '正在写到 VPD，请稍等…') +
-          ' ' + test_ui.SPINNER_HTML_16x16,
+          ' '.join(test_ui.MakeLabel('Writing to VPD. Please wait…',
+                                     u'正在写到 VPD，请稍等…'),
+                   test_ui.SPINNER_HTML_16x16),
           id='scan-status')
       try:
         vpd.rw.Update({self.args.rw_vpd_key: scan_value})
@@ -190,15 +191,19 @@ class Scan(unittest.TestCase):
     if not self.args.label_zh:
       self.args.label_zh = self.args.label_en
 
+    # A workaround that some existing test lists do not use unicode
+    # for Chinese string.
+    if type(self.args.label_zh) is str:
+      self.args.label_zh = unicode(self.args.label_zh, encoding='utf-8')
+
     template.SetTitle(test_ui.MakeLabel(
         'Scan %s' % self.args.label_en.title(),
-        '扫描%s' % self.args.label_zh))
+        u'扫描%s' % self.args.label_zh))
 
     template.SetState(
         test_ui.MakeLabel(
             'Please scan the %s and press ENTER.' % self.args.label_en,
-            '请扫描%s後按下 ENTER。' % (
-                self.args.label_zh or self.args.label_en)) +
+            u'请扫描%s後按下 ENTER。' % self.args.label_zh) +
         '<br><input id="scan-value" type="text" size="20">'
         '<br>&nbsp;'
         '<p id="scan-status">&nbsp;')
