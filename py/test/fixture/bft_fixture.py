@@ -64,14 +64,14 @@ class BFTFixture(object):
   Methods for this class will raise BFTFixtureException if a failure occurs.
   """
   SystemStatus = Enum(['BACKLIGHT'])
-  Status = Enum(['OFF', 'ON'])
+  Status = Enum(['OFF', 'ON', 'OPEN', 'CLOSING', 'CLOSED'])
 
   # A subset of factory.system.board.Board.LEDColor.
   LEDColor = Enum(['RED', 'GREEN', 'YELLOW', 'OFF'])
 
   StatusColor = Enum(['RED', 'GREEN', 'OFF'])
   Device = Enum(['AC_ADAPTER', 'AUDIO_JACK', 'EXT_DISPLAY', 'LID_MAGNET',
-                 'USB_0', 'USB_1', 'USB_2'])
+                 'USB_0', 'USB_1', 'USB_2', 'BATTERY'])
 
   # LCM enumeration.
   LcmCommand = Enum(['BACKLIGHT_OFF', 'BACKLIGHT_ON', 'CLEAR', 'HOME'])
@@ -217,6 +217,22 @@ class BFTFixture(object):
 
     Args:
       action: action defined in LcmCommand.
+    """
+    raise NotImplementedError
+
+  def IsDUTInFixture(self):
+    """Is DUT in BFT fixture?
+
+    Returns:
+       True if DUT is in BFT fixture.
+    """
+    raise NotImplementedError
+
+  def CoverStatus(self):
+    """Gets the status of fixture cover.
+
+    Returns:
+      Status: one of OPEN, CLOSING, CLOSED.
     """
     raise NotImplementedError
 
