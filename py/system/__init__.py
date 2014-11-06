@@ -5,6 +5,7 @@
 
 """Interfaces to set and get system status and system information."""
 
+from __future__ import print_function
 
 import collections
 import glob
@@ -279,8 +280,8 @@ _SysfsBatteryAttributes = [
     _SysfsAttribute('current_now', int, False),
     _SysfsAttribute('present', bool, False),
     _SysfsAttribute('status', str, False),
-    _SysfsAttribute('voltage_min_design', int, False),
     _SysfsAttribute('voltage_now', int, False),
+    _SysfsAttribute('voltage_min_design', int, True),
     _SysfsAttribute('energy_full', int, True),
     _SysfsAttribute('energy_full_design', int, True),
     _SysfsAttribute('energy_now', int, True),
@@ -391,9 +392,9 @@ class SystemStatus(object):
 
 if __name__ == '__main__':
   import yaml
-  print yaml.dump(dict(system_info=SystemInfo(None, None).__dict__,
+  print(yaml.dump(dict(system_info=SystemInfo(None, None).__dict__,
                        system_status=SystemStatus().__dict__),
-                  default_flow_style=False)
+                  default_flow_style=False))
 
 
 def SetBacklightBrightness(level):
