@@ -22,8 +22,8 @@ from cros.factory.test import ui_templates
 class BarcodeScanToFileTest(unittest.TestCase):
   """Scans barcode and saves it to a specific file."""
   ARGS = [
-    Arg('label_en', str, 'Name of the barcode to scan'),
-    Arg('label_zh', str,
+    Arg('label_en', (str, unicode), 'Name of the barcode to scan'),
+    Arg('label_zh', (str, unicode),
         'Chinese name of barcode being scanned '
         '(defaults to the same as the English label)'),
     Arg('regexp', str,
@@ -34,7 +34,7 @@ class BarcodeScanToFileTest(unittest.TestCase):
         'The file path of saving barcode'),
   ]
 
-  def ShowError(self, message, message_zh=None):
+  def ShowError(self, message, message_zh):
     logging.info('Scan error: %r', message)
     error_message = test_ui.MakeLabel(message, message_zh)
     self.ui.SetHTML(
@@ -54,7 +54,7 @@ class BarcodeScanToFileTest(unittest.TestCase):
     esc_scan_value = test_ui.Escape(scan_value)
     if not scan_value:
       self.ShowError('The scanned value is empty.',
-                     '扫描编号是空的。')
+                     u'扫描编号是空的。')
       return
     if self.args.regexp:
       match = re.match(self.args.regexp, scan_value)
@@ -62,7 +62,7 @@ class BarcodeScanToFileTest(unittest.TestCase):
         self.ShowError(
             'The scanned value "%s" does not match '
             'the expected format.' % esc_scan_value,
-            '所扫描的编号「%s」格式不对。' % esc_scan_value)
+            u'所扫描的编号「%s」格式不对。' % esc_scan_value)
         return
 
     # create directory
@@ -84,14 +84,19 @@ class BarcodeScanToFileTest(unittest.TestCase):
     template = ui_templates.OneSection(self.ui)
 
     label_zh = self.args.label_zh or self.args.label_en
+    # A workaround that some existing test lists do not use unicode
+    # for Chinese string.
+    if type(label_zh) is str:
+      label_zh = unicode(label_zh, encoding='utf-8')
+
     template.SetTitle(test_ui.MakeLabel(
         'Scan %s' % self.args.label_en.title(),
-        '扫描%s' % label_zh))
+        u'扫描%s' % label_zh))
 
     template.SetState(
         test_ui.MakeLabel(
             'Please scan the %s and press ENTER.' % self.args.label_en,
-            '请扫描%s后按下 ENTER。' % label_zh) +
+            u'请扫描%s后按下 ENTER。' % label_zh) +
         '<br><input id="scan-value" type="text" size="20" tabindex="1">'
         '<p id="scan-status">')
     self.ui.SetFocus('scan-value')
