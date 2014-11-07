@@ -81,6 +81,32 @@ class ChromeOSBoardTest(unittest.TestCase):
     self.board.GetTemperatureSensorNames()
     self.mox.VerifyAll()
 
+  def testGetTemperatureSensorNamesReturnLocalCache(self):
+    _MOCK_TEMPS_INFO = '\n'.join([
+        '0: 0 I2C_CPU-Die',
+        '1: 255 I2C_CPU-Object',
+        '2: 1 I2C_PCH-Die',
+        '3: 2 I2C_PCH-Object',
+        '4: 1 I2C_DDR-Die',
+        '5: 2 I2C_DDR-Object',
+        '6: 1 I2C_Charger-Die',
+        '7: 2 I2C_Charger-Object',
+        '8: 1 ECInternal',
+        '9: 0 PECI'
+    ])
+    self.board._CallECTool(['tempsinfo', 'all'],
+                           check=False).AndReturn(_MOCK_TEMPS_INFO)
+    self.mox.ReplayAll()
+
+    names = self.board.GetTemperatureSensorNames()
+    # Modify the cached data and it shouldn't affect the following calls.
+    names.append('CPU')
+
+    # The second call should return the original local cached data
+    # without 'CPU'.
+    self.assertTrue('CPU' not in self.board.GetTemperatureSensorNames())
+    self.mox.VerifyAll()
+
   def testGetFanRPM(self):
     _MOCK_FAN_RPM = 'Fan 0 RPM: 2974\n'
     self.board._CallECTool(['pwmgetfanrpm'],

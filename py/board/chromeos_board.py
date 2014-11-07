@@ -5,6 +5,7 @@
 
 """Board interface for ChromeOS board."""
 
+from __future__ import print_function
 
 import ctypes
 import factory_common  # pylint: disable=W0611
@@ -121,7 +122,7 @@ class ChromeOSBoard(Board):
 
   def GetTemperatureSensorNames(self):
     if self._temperature_sensor_names is not None:
-      return self._temperature_sensor_names
+      return list(self._temperature_sensor_names)
     try:
       names = []
       ectool_output = self._CallECTool(['tempsinfo', 'all'], check=False)
@@ -131,7 +132,7 @@ class ChromeOSBoard(Board):
           names.append(None)
         names[sensor] = match.group(2)
       self._temperature_sensor_names = names
-      return names
+      return list(names)
     except Exception as e:  # pylint: disable=W0703
       raise BoardException('Unable to get temperature sensor names: %s' % e)
 
