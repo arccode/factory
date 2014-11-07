@@ -9,7 +9,7 @@ import subprocess
 import traceback
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.goofy import service_manager
+from cros.factory.system import service_manager
 from cros.factory.utils.file_utils import WriteFile
 
 

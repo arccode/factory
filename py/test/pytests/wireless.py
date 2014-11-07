@@ -22,9 +22,9 @@ import urllib2
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.event_log import Log
-from cros.factory.goofy.service_manager import GetServiceStatus
-from cros.factory.goofy.service_manager import SetServiceStatus
-from cros.factory.goofy.service_manager import Status
+from cros.factory.system.service_manager import GetServiceStatus
+from cros.factory.system.service_manager import SetServiceStatus
+from cros.factory.system.service_manager import Status
 from cros.factory.test import factory
 from cros.factory.test.args import Arg
 from cros.factory.utils.net_utils import GetWLANInterface
