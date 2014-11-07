@@ -27,6 +27,7 @@ class ColorSensor(object):
   _CONFIG_TIMING = 'color_sensor_timing'
   _CONFIG_GAIN = 'color_sensor_gain'
   _CONFIG_COLOR = 'color_sensor_color'
+  _REQUIRED_PARAMS = (_CONFIG_TIMING, _CONFIG_GAIN, _CONFIG_COLOR)
 
   def __init__(self, servo, sensor_index, params):
     """Constructor.
@@ -37,7 +38,7 @@ class ColorSensor(object):
       params: Parameters loaded from bft.conf.
     """
     # Verify parameters first because it's easy to make mistakes.
-    for config in [self._CONFIG_TIMING, self._CONFIG_GAIN, self._CONFIG_COLOR]:
+    for config in self._REQUIRED_PARAMS:
       if config not in params:
         raise ValueError('Missing parameter %s' % config)
       if sensor_index not in params[config]:
@@ -58,6 +59,18 @@ class ColorSensor(object):
     self._servo = servo
     self._sensor_index = sensor_index
     self._color_params = params[self._CONFIG_COLOR][sensor_index]
+
+  @classmethod
+  def HasRequiredParams(cls, params):
+    """Checks if params has required parameters.
+
+    Args:
+      params: a dict contains parameters
+
+    Returns:
+      True if params contains all required parameters.
+    """
+    return all(p in params for p in cls._REQUIRED_PARAMS)
 
   @staticmethod
   def _CompareHue(hue1, hue2, tolerance):

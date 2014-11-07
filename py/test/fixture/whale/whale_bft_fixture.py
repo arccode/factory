@@ -52,8 +52,9 @@ class WhaleBFTFixture(bft.BFTFixture):
     try:
       self._servo = servo_client.ServoClient(
           host=params['host'], port=params['port'])
-      self._color_sensor1 = color_sensor.ColorSensor(
-          servo=self._servo, sensor_index=1, params=params)
+      if color_sensor.ColorSensor.HasRequiredParams(params):
+        self._color_sensor1 = color_sensor.ColorSensor(
+            servo=self._servo, sensor_index=1, params=params)
       self._keyboard_emulator = keyboard_emulator.KeyboardEmulator(self._servo)
       self._lcm = lcm2004.Lcm2004(self._servo)
     except servo_client.ServoClientError as e:
@@ -119,6 +120,9 @@ class WhaleBFTFixture(bft.BFTFixture):
     raise NotImplementedError
 
   def IsLEDColor(self, color):
+    if not self._color_sensor1:
+      raise bft.BFTFixtureException(
+          'Failed to check LED color: sensor is not initialized.')
     try:
       return self._color_sensor1.ReadColor() == color
     except servo_client.ServoClientError as e:
