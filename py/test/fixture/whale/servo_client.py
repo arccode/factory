@@ -29,7 +29,7 @@ Usage example::
   sc.hwinit()
 """
 
-
+from __future__ import print_function
 import re
 import xmlrpclib
 
@@ -59,14 +59,29 @@ WHALE_BUTTONS = tuple(WHALE_BUTTON.values())
 # Fixture mechanics feedback 1 ~ 14. Can get its value ('on'/'off').
 FIXTURE_FEEDBACK = common.AttrDict(
     dict(('FB%d' % i, 'fixture_fb%d' % i) for i in range(1, 15)))
+FIXTURE_FEEDBACK.update(dict(
+    NEEDLE_CYLINDER_LEFT_RELEASE = 'fixture_fb1',
+    NEEDLE_CYLINDER_LEFT_ACTIVE = 'fixture_fb2',
+    NEEDLE_CYLINDER_RIGHT_RELEASE = 'fixture_fb3',
+    NEEDLE_CYLINDER_RIGHT_ACTIVE = 'fixture_fb4',
+    HOOK_CYLINDER_LEFT_ACTIVE = 'fixture_fb5',
+    HOOK_CYLINDER_RIGHT_ACTIVE = 'fixture_fb6',
+    LATERAL_CYLINDER_LEFT_RELEASE = 'fixture_fb7',
+    LATERAL_CYLINDER_LEFT_ACTIVE = 'fixture_fb8',
+    LATERAL_CYLINDER_RIGHT_RELEASE = 'fixture_fb9',
+    LATERAL_CYLINDER_RIGHT_ACTIVE = 'fixture_fb10',
+    COVER_CYLINDER_RELEASE = 'fixture_fb11',
+    COVER_CYLINDER_ACTIVE = 'fixture_fb12',
+    DUT_SENSOR = 'fixture_fb13',
+    NC = 'fixture_fb14'))
 
 # Plankton feedback 1 ~ 8. Can get its value ('on'/'off').
 PLANKTON_FEEDBACK = common.AttrDict(
     dict(('FB%d' % i, 'plankton_fb%d' % i) for i in range(1, 9)))
 
 # Tuple of Whale's latchless feedback
-WHALE_FEEDBACKS = (tuple(FIXTURE_FEEDBACK.values()) +
-                   tuple(PLANKTON_FEEDBACK.values()))
+WHALE_FEEDBACKS = tuple(set(FIXTURE_FEEDBACK.values() +
+                            PLANKTON_FEEDBACK.values()))
 
 # A dip switch to enable debug mode. Can get its value ('on'/'off').
 WHALE_DEBUG_MODE_EN = 'whale_debug_mode_en'
