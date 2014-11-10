@@ -11,6 +11,7 @@ from __future__ import print_function
 import cPickle as pickle
 import hashlib
 import logging
+import os
 import subprocess
 import threading
 import time
@@ -20,7 +21,9 @@ from cros.factory.goofy_split import connection_manager
 from cros.factory.system.service_manager import GetServiceStatus
 from cros.factory.system.service_manager import SetServiceStatus
 from cros.factory.system.service_manager import Status
+from cros.factory.test import state
 from cros.factory.test import utils
+from cros.factory.tools import chrome_debugger
 
 
 class Environment(object):
@@ -120,7 +123,21 @@ class DUTEnvironment(Environment):
   def spawn_autotest(self, name, args, env_additions, result_file):
     return self.goofy.autotest_prespawner.spawn(args, env_additions)
 
+  def override_chrome_start_pages(self):
+    # TODO(hungte) Remove this workaround (mainly for crbug.com/431645).
+    override_chrome_start_file = '/usr/local/factory/init/override_chrome_start'
+    if not os.path.exists(override_chrome_start_file):
+      return
+    chrome = chrome_debugger.ChromeRemoteDebugger()
+    utils.WaitFor(chrome.IsReady, 30)
+    chrome.SetActivePage()
+    chrome.PageNavigate(open(override_chrome_start_file).read() or
+                        ('http://127.0.0.1:%s/' %
+                         state.DEFAULT_FACTORY_STATE_PORT))
+
   def launch_chrome(self):
+    self.override_chrome_start_pages()
+
     utils.WaitFor(self.has_sockets, 30)
     subprocess.check_call(['initctl', 'emit', 'login-prompt-visible'])
 
