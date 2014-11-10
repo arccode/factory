@@ -153,10 +153,11 @@ class SimpleBatteryTest(unittest.TestCase):
     if not self._power.CheckBatteryPresent():
       raise factory.FactoryTestFailure(
           'Cannot locate battery sysfs path. Missing battery?')
-    if (int(self._power.GetBatteryAttribute('cycle_count').strip()) >
-        self.args.max_cycle_count):
+    cycle_count = self._power.GetBatteryAttribute('cycle_count').strip()
+    if (int(cycle_count) > self.args.max_cycle_count):
       raise factory.FactoryTestFailure(
-          'Battery cycle count > %d' % self.args.max_cycle_count)
+          'Battery cycle count %s exceeds max %d' %
+          (cycle_count, self.args.max_cycle_count))
     self.TestCharge(self.args.charge_duration_secs)
     self.TestDischarge(self.args.discharge_duration_secs)
     self.TestCharge(self.args.charge_duration_secs)
