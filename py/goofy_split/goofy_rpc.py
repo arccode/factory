@@ -1108,6 +1108,19 @@ class GoofyRPC(object):
       # complain to the caller.
       raise GoofyRPCException('Factory did not restart as expected')
 
+  def DeviceTakeScreenshot(self, output_file=None):
+    """Takes a screenshot of the framebuffer on the device.
+
+    Args:
+      output_file: The output file path to store the captured image file.
+          If not given, screenshot is saved to /var/log/screenshot_<TIME>.png.
+    """
+    if not output_file:
+      output_file = ('/var/log/screenshot_%s.png' %
+                     time.strftime("%Y%m%d-%H%M%S"))
+    subprocess.check_call('xwd -d :0 -root | convert - "%s"' % output_file,
+                          shell=True)
+
   def CallExtension(self, name, timeout=DEFAULT_GOOFY_RPC_TIMEOUT_SECS,
                     **kwargs):
     """Invokes a RPC call to Factory Test Chrome Extension.
@@ -1140,8 +1153,8 @@ class GoofyRPC(object):
       raise utils.TimeoutError('Failed calling Extension RPC <%r>', name)
     return result.args
 
-  def GetDisplayInfo(self, timeout=DEFAULT_GOOFY_RPC_TIMEOUT_SECS):
-    """Returns output display information (by calling extension RPC).
+  def DeviceGetDisplayInfo(self, timeout=DEFAULT_GOOFY_RPC_TIMEOUT_SECS):
+    """Returns display information on the device (by calling extension RPC).
 
     Args:
       timeout: Seconds to wait before RPC timeout.
@@ -1154,6 +1167,91 @@ class GoofyRPC(object):
       utils.TimeoutError: if no response until timeout.
     """
     return self.CallExtension('GetDisplayInfo', timeout=timeout)
+
+  def DeviceCreateWindow(self, left, top,
+                         timeout=DEFAULT_GOOFY_RPC_TIMEOUT_SECS):
+    """Creates a Chrome window on the device and returns its ID.
+
+    Args:
+      left: The offset in pixels from left.
+      top: The offiset in pixels from top.
+      timeout: Seconds to wait before RPC timeout.
+
+    Returns:
+      The attributes of the created window. See Chrome Extension API
+          chrome.windows for the details.
+
+    Raises:
+      utils.TimeoutError: if no response until timeout.
+    """
+    return self.CallExtension('CreateWindow', timeout=timeout,
+                              left=left, top=top)
+
+  def DeviceUpdateWindow(self, window_id, update_info,
+                         timeout=DEFAULT_GOOFY_RPC_TIMEOUT_SECS):
+    """Updates a Chrome window on the device.
+
+    See Chrome Extension API chrome.windows for the details.
+
+    Args:
+      window_id: The ID of the window.
+      update_info: A dict of update info.
+      timeout: Seconds to wait before RPC timeout.
+
+    Raises:
+      utils.TimeoutError: if no response until timeout.
+    """
+    self.CallExtension('UpdateWindow', timeout=timeout,
+                       window_id=window_id, update_info=update_info)
+
+  def DeviceRemoveWindow(self, window_id,
+                         timeout=DEFAULT_GOOFY_RPC_TIMEOUT_SECS):
+    """Removes a Chrome window on the device.
+
+    See Chrome Extension API chrome.windows for the details.
+
+    Args:
+      window_id: The ID of the window.
+      timeout: Seconds to wait before RPC timeout.
+
+    Raises:
+      utils.TimeoutError: if no response until timeout.
+    """
+    self.CallExtension('RemoveWindow', timeout=timeout, window_id=window_id)
+
+  def DeviceQueryTabs(self, window_id, timeout=DEFAULT_GOOFY_RPC_TIMEOUT_SECS):
+    """Queries the tabs of the given window on the device.
+
+    See Chrome Extension API chrome.tabs for the details.
+
+    Args:
+      window_id: The ID of the window.
+      timeout: Seconds to wait before RPC timeout.
+
+    Returns:
+      A list of the tab info.
+
+    Raises:
+      utils.TimeoutError: if no response until timeout.
+    """
+    return self.CallExtension('QueryTabs', timeout=timeout, window_id=window_id)
+
+  def DeviceUpdateTab(self, tab_id, update_info,
+                      timeout=DEFAULT_GOOFY_RPC_TIMEOUT_SECS):
+    """Updates the tab on the device.
+
+    See Chrome Extension API chrome.tabs for the details.
+
+    Args:
+      tab_id: The ID of the tab.
+      update_info: A dict of update info.
+      timeout: Seconds to wait before RPC timeout.
+
+    Raises:
+      utils.TimeoutError: if no response until timeout.
+    """
+    self.CallExtension('UpdateTab', timeout=timeout,
+                       tab_id=tab_id, update_info=update_info)
 
 
 def main():

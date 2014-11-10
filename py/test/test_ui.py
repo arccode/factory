@@ -268,7 +268,7 @@ class UI(object):
     Returns:
       url: A (possibly relative) URL that refers to the file
     """
-    return factory.get_state_instance().URLForFile(path)
+    return factory.get_state_instance().url_for_file(path)
 
   def URLForData(self, mime_type, data, expiration=None):
     """Returns a URL that can be used to serve a static collection
@@ -280,7 +280,7 @@ class UI(object):
       expiration: If not None, the number of seconds in which the data will
         expire.
     """
-    return factory.get_state_instance().URLForData(
+    return factory.get_state_instance().url_for_data(
         mime_type, data, expiration)
 
   def GetStaticDirectoryPath(self):

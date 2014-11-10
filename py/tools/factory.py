@@ -467,7 +467,7 @@ class ScreenshotCommand(Subcommand):
               'If not provided, defaults to /var/log/screenshot_<TIME>.png.'))
 
   def Run(self):
-    factory.get_state_instance().TakeScreenshot(self.args.output_file)
+    factory.get_state_instance().DeviceTakeScreenshot(self.args.output_file)
 
 
 class PhaseCommand(Subcommand):

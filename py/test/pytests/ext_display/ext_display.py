@@ -142,7 +142,7 @@ class WaitDisplayThread(threading.Thread):
       # of the specified external display.
       if self._xrandr_expect.search(
           process_utils.SpawnOutput(['xrandr', '-d', ':0'], env=self._env)):
-        display_info = factory.get_state_instance().GetDisplayInfo()
+        display_info = factory.get_state_instance().DeviceGetDisplayInfo()
         # In the case of connecting an external display, make sure there
         # is an item in display_info with 'isInternal' False.
         # On the other hand, in the case of disconnecting an external display,
@@ -343,7 +343,7 @@ class VideoTask(ExtDisplayTask):
                                     pass_key=False)
 
   def _GetPrimayScreenId(self):
-    for info in factory.get_state_instance().GetDisplayInfo():
+    for info in factory.get_state_instance().DeviceGetDisplayInfo():
       if info['isPrimary']:
         return info['id']
     self.Fail('Fail to get primary display ID')
@@ -359,7 +359,7 @@ class VideoTask(ExtDisplayTask):
       recover_original: True to set the original display as main;  False to
           set the other (external) display as main.
     """
-    display_info = factory.get_state_instance().GetDisplayInfo()
+    display_info = factory.get_state_instance().DeviceGetDisplayInfo()
     if len(display_info) == 1:
       # Fail the test if we see only one display and it's the internal one.
       if display_info[0]['isInternal']:

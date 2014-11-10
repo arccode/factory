@@ -437,6 +437,7 @@ class FactoryState(object):
     '''
     uuid = str(uuid4())
     uri_path = '/generated-files/%s/%s' % (uuid, os.path.basename(path))
+    self._resolver.AddPath('/generated-files/%s' % uuid, os.path.dirname(path))
     self._generated_files[uuid] = path
     return uri_path
 
