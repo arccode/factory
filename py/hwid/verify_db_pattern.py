@@ -6,14 +6,16 @@
 
 """Verifies that new commits do not alter existing encoding patterns.
 
-This test may be invoked in two ways:
+This test may be invoked in multiple ways:
   1. Execute manually. In this case all the v3 boards listed in boards.yaml
      are checked. The test loads and compares new and old databases from HEAD
      and HEAD~1, respectively, in each corresponding branch of each board.
   2. As a pre-submit check in platform/chromeos-hwid repo. In this case only the
      changed HWID databases in each commit are tested.
+  3. VerifyParsedDatabasePattern may be called directly by the HWID Server.
 """
 
+from __future__ import print_function
 
 import argparse
 import logging
@@ -24,6 +26,7 @@ import yaml
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.utils import process_utils
+from cros.factory.hwid import common
 from cros.factory.hwid import database
 from cros.factory.tools import build_board
 
@@ -39,7 +42,7 @@ class HWIDDBsPatternTest(unittest.TestCase):
     hwid_dir = os.path.join(
         os.environ['CROS_WORKON_SRCROOT'], 'src', 'platform', 'chromeos-hwid')
     if not os.path.exists(hwid_dir):
-      print 'ValidHWIDDBsTest: ignored, no %s in source tree.' % hwid_dir
+      print('ValidHWIDDBsTest: ignored, no %s in source tree.' % hwid_dir)
       return
 
     # Always read boards.yaml from ToT as all boards are required to have an
@@ -92,14 +95,22 @@ class HWIDDBsPatternTest(unittest.TestCase):
             ['git', 'show', '%s:%s' % (commit, db_path)],
             cwd=hwid_dir, ignore_stderr=True)),
         strict=False)
+
+    try:
+      HWIDDBsPatternTest.VerifyParsedDatabasePattern(old_db, new_db)
+    except common.HWIDException as e:
+      self.fail(e.message)
+
+  @staticmethod
+  def VerifyParsedDatabasePattern(old_db, new_db):
     # Make sure all the encoded fields in the existing patterns are not changed.
     for i in xrange(len(old_db.pattern.pattern)):
       dummy_image_id = old_db.pattern.pattern[i]['image_ids'][0]
       old_bit_mapping = old_db.pattern.GetBitMapping(image_id=dummy_image_id)
       new_bit_mapping = new_db.pattern.GetBitMapping(image_id=dummy_image_id)
       for index in old_bit_mapping.iterkeys():
-        self.assertEquals(
-            new_bit_mapping[index], old_bit_mapping[index],
+        if (new_bit_mapping[index] != old_bit_mapping[index]):
+          raise common.HWIDException(
             'Bit pattern mismatch found at bit %d (encoded field=%r). '
             'If you are trying to append new bit(s), be sure to create a new '
             'bit pattern field instead of simply incrementing the last field' %
