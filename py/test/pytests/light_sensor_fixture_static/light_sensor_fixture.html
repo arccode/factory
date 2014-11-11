@@ -1,0 +1,123 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN">
+<html>
+<head>
+  <meta name="generator" content="HTML Tidy for Linux (vers 25 March 2009), see www.w3.org">
+  <link rel="stylesheet" type="text/css" href= "light_sensor_fixture.css">
+
+  <title></title>
+</head>
+
+<body>
+  <div id='prompt_usb' class="panel_box text_shadow" style="height:100%;clear:both;text-align:center">
+    <table class="font_status" style="margin:auto;height:100%;">
+      <tr>
+        <td class="test-vcenter-inner" style="text-align:center;">
+          <div class="text">
+            <span class="color_idle goofy-label-en">Please insert the USB stick to load test parameters</span>
+            <span class="color_idle goofy-label-zh">请插入U盘读取测试参数</span>
+          </div>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <div id='prompt_ethernet' class="panel_box text_shadow" style="height:100%;clear:both;text-align:center">
+    <table class="font_status" style="margin:auto;height:100%;">
+      <tr>
+        <td class="test-vcenter-inner" style="text-align:center;">
+          <div class="text">
+            <span class="color_idle goofy-label-en">Please insert ethernet dongle to load test parameters</span>
+            <span class="color_idle goofy-label-zh">请插入网路介面卡读取测试参数</span>
+          </div>
+        </td>
+      </tr>
+    </table>
+  </div>
+
+  <div id="container" hidden="">
+    <div id="Title" class="title_box" style="height:5%;">
+      <table class="text_shadow_white font_title" style="margin:auto;height:100%;">
+        <tr>
+          <td class="test-vcenter-inner">
+            <span class="goofy-label-en">ALS Calibration</span>
+            <span class= "goofy-label-zh">ALS校正</span>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <div id="menu" class="panel_box" style="height:75%;width:20%;float:left;">
+      <div id="usb_status_panel">
+        <div class="panel_box text_shadow_small font_label" style="height:5%;padding-left:3%">
+          <span class="goofy-label-en">USB Stick:</span>
+          <span class="goofy-label-zh">测试参数U盘:</span>
+        </div>
+
+        <div id="test_param" class="panel_bad" style="height:10%;text-align:center">
+          <table class="font_input" style="margin:auto;height:100%;">
+            <tr>
+              <td class="test-vcenter-inner">
+                <div id="usb_status">
+                  <span class="goofy-label-en">UNLOADED</span>
+                  <span class="goofy-label-zh">未载入</span>
+                </div>
+              </td>
+            </tr>
+          </table>
+        </div>
+      </div>
+
+      <div id="fixture_label" class="panel_box text_shadow_small font_label" style="height:5%;padding-left:3%">
+        <span class="goofy-label-en">Fixture:</span><span class="goofy-label-zh">制具链接:</span>
+      </div>
+
+      <div id="test_fixture" class="panel_bad" style="height:10%;text-align:center">
+        <table class="font_input" style="margin:auto;height:100%;">
+          <tr>
+            <td class="test-vcenter-inner">
+              <div id="fixture_status">
+                <span class="goofy-label-en">UNAVAILABLE</span><span class="goofy-label-zh">未连接</span>
+              </div>
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <div id="menu_placeholder" style="height:15%"></div>
+
+      <div style="height:20%;text-align:center">
+        <button id="btn_run_test" class="button black" disabled type="button" onclick="ButtonRunTestClick();"
+            style= "width:100%;height:97%;font-size:140%">
+          <span class="goofy-label-en">Run Test</span>
+          <span class="goofy-label-zh">开始测试</span></button>
+      </div>
+
+      <div style="height:20%;text-align:center">
+        <button id="btn_exit_test" class="button black" type="button" onclick="ButtonExitTestClick();"
+            style="width:100%;height:97%;font-size:140%">
+          <span class="goofy-label-en">Exit Test</span>
+          <span class="goofy-label-zh">离开测试</span></button>
+      </div>
+    </div>
+
+    <div id="test_console" class="panel_box text_shadow" style="height:20%;clear:both;text-align:center">
+      <table class="font_status" style="margin:auto;height:100%;">
+        <tr>
+          <td class="test-vcenter-inner" style="text-align:center;">
+            <div class="progress">
+              <div id="test_status" class="text">
+                <span class="color_idle goofy-label-en">IDLE</span>
+                <span class="color_idle goofy-label-zh">閒置中</span>
+              </div>
+
+              <div class="bar_holder">
+                <div id="progress_bar" class="bar pgray stripes"></div>
+              </div>
+            </div>
+          </td>
+        </tr>
+      </table>
+    </div>
+  </div>
+</body>
+</html>

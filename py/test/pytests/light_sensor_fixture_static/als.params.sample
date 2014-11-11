@@ -1,0 +1,136 @@
+# -*- mode: python -*-
+# -*- coding: utf-8 -*-
+{
+  # Version of this test parameter file.
+  'version': '20141112',
+
+  'sn': {
+    # Regular expression format for serial number.
+    'format': '',
+
+    # source: could be either 'sysfs' or 'i2c'
+    'source': 'i2c',
+
+    # if source is sysfs
+    'sysfs_path': '',
+
+    # if source is i2c, you must specify these parameters
+    'i2c_param' {  # TODO(wnhuang): fill in this with correct value
+      'bus': 1,
+      'chip_addr': 0x10,
+      'data_addr': 0x10,
+      'length': 5
+    }
+  },
+
+  # Fixture related parameters
+  'fixture': {
+    'serial_params': {
+      'baudrate': 9600,
+      'bytesize': 8,
+      'parity': 'N',
+      'stopbits': 1,
+      'xonxoff': False,
+      'rtscts': False,
+      'timeout': None
+    },
+
+    'driver': 'pl2303',
+    'off': 'OFF\r',
+    'light_seq': ['500LUXON\r', '1000LUXON\r', '30LUXON\r', 'OFF\r'],
+
+    # Echo regexp pattern for determine the response correctness
+    'echo': r'\s*I\s+G\s*O\s*T\s+',
+
+    # Time for wait light switch
+    'light_delay': 3.0,
+
+    # Delay time between writing each character to serial port
+    'serial_delay': 0.06,
+
+    # Delay between trying to connect to fixture
+    'retry_delay': 1.0,
+
+    # Maximum number of retry count before failing
+    'n_retry': 50
+  },
+
+  # ALS sensor parameters
+  'als': {
+    'val_path': '/sys/bus/iio/devices/iio:device0/illuminance0_input',
+    'scale_path': '/sys/bus/iio/devices/iio:device0/illuminance0_calibscale',
+    'calibscale': 100,
+
+    # Perform calibration at this lux
+    'calib_lux': 500,
+    'calib_target': 125,
+    'n_samples': 1,
+
+    # Delay betwen each sample
+    'read_delay': 2.0,
+
+    # List of light intensity to test
+    'luxs': [500, 1000, 30],
+
+    # Command for saving calibration result into VPD
+    'save_vpd': 'vpd -s "als_cal_data"="%d"',
+  },
+
+  # UI displaying messages
+  'message': {
+    'start_test_zh': '开始测试',
+    'start_test_en': 'Starting the test',
+    'init_als_zh': '初使化ALS',
+    'init_als_en': 'Initializing the ALS',
+    'read_als0_zh': '读取500LUX ALS数值',
+    'read_als0_en': 'Reading the 500LUX ALS value',
+    'read_als1_zh': '读取1000LUX ALS数值',
+    'read_als1_en': 'Reading the 1000LUX ALS value',
+    'read_als2_zh': '读取30LUX ALS数值',
+    'read_als2_en': 'Reading the 30LUX ALS value',
+    'adjust_light_zh': '调整光源',
+    'adjust_light_en': "Switching the fixture's light intensity",
+    'wait_fixture_zh': '等待制具稳定',
+    'wait_fixture_en': 'Waiting for the fixture to cool down',
+    'dump_to_vpd_zh': '写入ALS校正结果',
+    'dump_to_vpd_en': 'Writing the ALS calibration data to vpd',
+    'end_test_zh': '测试已全部完成',
+    'end_test_en': 'All tests are complete',
+    'save_to_usb_zh': '写入记录档至U盘',
+    'save_to_usb_en': 'Writing the test result to the USB stick',
+    'save_to_shopfloor_zh': '写入记录档至shopfloor',
+    'save_to_shopfloor_en': 'Writing the test result to shopfloor',
+    'fixture_fail_zh': '制具侦测失败',
+    'fixture_fail_en': 'Failed to detect the fixture'
+  },
+
+  'msg_style': {
+    'start_test': "color_idle",
+    'init_als': "color_idle",
+    'read_als0': "color_idle",
+    'read_als1': "color_idle",
+    'read_als2': "color_idle",
+    'adjust_light': "color_idle",
+    'wait_fixture': "color_idle",
+    'dump_to_vpd': "color_idle",
+    'end_test': "color_idle",
+    'save_to_usb': "color_idle",
+    'save_to_shopfloor': "color_idle",
+    'fixture_fail': "color_bad"
+  },
+
+  # Expected time duration of each test stage (used for progress bar).
+  'chk_point': {
+    'start_test': 0.5,
+    'init_als': 0.1,
+    'read_als0': 2.0,
+    'read_als1': 2.0,
+    'read_als2': 2.0,
+    'adjust_light': 0.5,
+    'wait_fixture': 3.0,
+    'dump_to_vpd': 9.0,
+    'end_test': 0,
+    'save_to_usb': 0.2,
+    'save_to_shopfloor': 0,
+  }
+}

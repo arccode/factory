@@ -1,0 +1,263 @@
+.button {
+  display: inline-block;
+  vertical-align: baseline;
+  margin: 0 2px;
+  outline: none;
+  cursor: pointer;
+  text-align: center;
+  text-decoration: none;
+  padding: .5em 2em .55em;
+  text-shadow: 2px 2px 4px rgba(0,0,0,.5);
+  -webkit-box-shadow: 0 1px 2px rgba(0,0,0,.2);
+}
+.button:hover {
+  text-decoration: none;
+}
+
+.bigrounded {
+  -webkit-border-radius: 2em;
+}
+
+.title_box {
+  background: -webkit-gradient(linear, left top, left bottom, from(#666), to(#000));
+}
+
+.panel_box{
+  color: #e9e9e9;
+  background: -webkit-gradient(linear, left top, left bottom, from(#888), to(#575757));
+}
+
+.panel_good{
+  background: -webkit-gradient(linear, left top, left bottom, from(#7db72f), to(#4e7d0e));
+}
+
+.panel_bad{
+  background: -webkit-gradient(linear, left top, left bottom, from(#ed1c24), to(#aa1317));
+}
+
+.text_shadow {
+  text-shadow: 4px 4px 6px #333333;
+}
+
+.text_shadow_white {
+  text-shadow: 1px 1px 3px #E0E0E0;
+}
+
+.text_shadow_small {
+  text-shadow: 2px 2px 3px #333333;
+}
+
+.color_good {
+  color:#7db72f;
+}
+
+.color_bad {
+  color:#c9151b;
+}
+
+.color_idle {
+  color:LightSkyBlue;
+}
+
+.font_title {
+  font-family:Arial;
+  font-size:150%;
+  font-weight:bold;
+  color:white;
+}
+
+.font_label {
+  font-family:Arial;
+  font-size:110%;
+}
+
+.font_input {
+  font-family:Monospace;
+  font-size:150%;
+  font-weight:bold;
+}
+
+.font_status {
+  font-family:Monospace;
+  font-size:250%;
+  font-weight:bold;
+}
+
+.input_box {
+  text-align: center;
+  width: 100%;
+  height: 100%;
+  border: none;
+  color: -webkit-text;
+  background: -webkit-gradient(linear, left top, left bottom, from(#7db72f), to(#4e7d0e));
+  font-family:Monospace;
+  font-size:100%;
+  font-weight:bold;
+}
+
+.input_box:invalid {
+  background: -webkit-gradient(linear, left top, left bottom, from(#ed1c24), to(#aa1317));
+}
+
+.input_box:valid {
+  background: -webkit-gradient(linear, left top, left bottom, from(#7db72f), to(#4e7d0e));
+}
+
+/* color styles  */
+/* black */
+.black {
+  color: #d7d7d7;
+  border:none;
+  background: -webkit-gradient(linear, left top, left bottom, from(#666), to(#222));
+  -webkit-box-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
+}
+
+.black:hover {
+  background: -webkit-gradient(linear, left top, left bottom, from(#444), to(#222));
+}
+
+.black:active {
+  color: #666;
+  background: -webkit-gradient(linear, left top, left bottom, from(#222), to(#444));
+}
+
+/* gray */
+.gray {
+  color: #e9e9e9;
+  background: -webkit-gradient(linear, left top, left bottom, from(#888), to(#575757));
+}
+
+/* white */
+.white {
+  color: #606060;
+  background:-webkit-gradient(linear, left top, left bottom, from(#fff), to(#dcdcdc));
+}
+
+/* main image container */
+.popup_img{
+  position: relative;
+  z-index: 1;
+}
+
+/* CSS for image within container */
+.popup_img img.original_img{
+  position: relative;
+  z-index: 3;
+  opacity: 1;
+  -webkit-transition: all 0.5s ease-in-out;
+}
+
+/* CSS for image when mouse hovers over main container */
+.popup_img:hover img.original_img{
+  -webkit-box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.5);
+  -webkit-transform: scale(1.20, 1.20);
+  opacity: 0;
+}
+
+/* CSS for desc div of each image. */
+.popup_img div.desc{
+  position: absolute;
+  width: 20%;
+  /* Set z-index to that less than image's, so it's hidden beneath it */
+  z-index: 1;
+  padding: 8px;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  -webkit-border-radius: 0 0 8px 8px;
+  opacity: 0; /* Set initial opacity to 0 */
+  -webkit-box-shadow: 0 0 6px rgba(0, 0, 0, 0.8);
+  -webkit-transition: all 0.5s ease 0.1s;
+}
+
+.popup_img div.desc a{
+  color: white;
+}
+
+/* CSS for desc div when mouse hovers over main container */
+.popup_img:hover div.desc{
+  opacity:1;
+}
+
+.popup_img div.rightslide{
+  width:26%;
+  height:84%;
+  top:7%;
+  right:10%;
+  padding-left:25px;
+  -webkit-border-radius: 0 8px 8px 0;
+}
+
+.popup_img:hover div.rightslide{
+  -webkit-transform: translate(110%, 0%);
+}
+
+.popup_img img.analyzed_img{
+  position:absolute;
+  margin: auto;
+  top:0%;
+  z-index: 2;
+  opacity: 1;
+  -webkit-transition: all 0.5s ease-in-out;
+}
+
+.popup_img:hover img.analyzed_img{
+  -webkit-box-shadow: 5px 5px 5px rgba(0, 0, 0, 0.5);
+  -webkit-transform: scale(1.20, 1.20);
+}
+
+.progress div.text{
+  position: relative;
+  z-index: 2;
+}
+
+.progress div.bar_holder{
+  position:absolute;
+  width:98.5%;
+  z-index:1;
+  height:2.5%;
+  top:94.5%;
+  left:0%;
+  right:0%;
+  bottom:0%;
+  margin:auto;
+}
+
+.progress div.bar{
+  position: relative;
+  z-index: 1;
+  width: 0%;
+  height: 100%;
+  -webkit-border-radius: 5px;
+  -webkit-box-shadow: 0 1px 5px #000 inset, 0 1px 0 #444;
+  -webkit-transition: width .4s ease-in-out;
+}
+
+.progress div.bar span{
+  display: inline-block;
+  height: 100%;
+  -webkit-border-radius: 3px;
+  -webkit-box-shadow: 0 1px 0 rgba(255, 255, 255, .5) inset;
+  -webkit-transition: width .4s ease-in-out;
+}
+
+.progress div.pgray span {
+  background-color: #999;
+}
+
+.progress div.stripes span {
+  -webkit-background-size: 30px 30px;
+  -webkit-box-shadow: -2px -2px 10px rgba(0, 0, 0, .7) inset;
+  background-image: -webkit-gradient(linear, left top, right bottom,
+	                color-stop(.25, rgba(255, 255, 255, .15)), color-stop(.25, transparent),
+	                color-stop(.5, transparent), color-stop(.5, rgba(255, 255, 255, .15)),
+	                color-stop(.75, rgba(255, 255, 255, .15)), color-stop(.75, transparent),
+	                to(transparent));
+  background-image: -webkit-linear-gradient(135deg, rgba(255, 255, 255, .15) 25%, transparent 25%,
+	                transparent 50%, rgba(255, 255, 255, .15) 50%, rgba(255, 255, 255, .15) 75%,
+	                transparent 75%, transparent);
+  -webkit-animation: animate-stripes 3s linear infinite;
+}
+
+@-webkit-keyframes animate-stripes {
+  0% {background-position: 0 0;} 100% {background-position: 60px 0;}
+}

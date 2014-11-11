@@ -76,12 +76,13 @@ class MediaMonitor(object):
     monitor.Start(on_insert=on_insert, on_remove=on_remove)
     monitor.Stop()
   """
-  def __init__(self):
+  def __init__(self, subsystem='block'):
     self.on_insert = None
     self.on_remove = None
     self.is_monitoring = False
     self._observer = None
     self._pyudev_thread = None
+    self._subsystem = subsystem
 
   def _UdevEventCallback(self, action, device):
     if self.is_monitoring == False:
@@ -112,7 +113,7 @@ class MediaMonitor(object):
     # self._observer.start()
     if self._pyudev_thread == None:
       self._pyudev_thread = _PyudevThread(self._UdevEventCallback,
-                                          subsystem='block',
+                                          subsystem=self._subsystem,
                                           device_type='disk')
       self._pyudev_thread.daemon = True
       self._pyudev_thread.start()
