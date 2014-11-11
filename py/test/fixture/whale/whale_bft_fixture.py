@@ -22,6 +22,7 @@ class WhaleBFTFixture(bft.BFTFixture):
   _WHALE_CONTROL = servo_client.WHALE_CONTROL
   _FIXTURE_FEEDBACK = servo_client.FIXTURE_FEEDBACK
   _FEEDBACKS = servo_client.WHALE_FEEDBACKS
+  _WHALE_INAS = servo_client.WHALE_INAS
 
   # Mapping of Whale controlled device to Servo control.
   _WHALE_DEVICE = {
@@ -108,7 +109,16 @@ class WhaleBFTFixture(bft.BFTFixture):
           'Failed to connect to servo. Reason: %s' % e)
 
   def CheckPowerRail(self):
-    raise NotImplementedError
+    """Checks if DUT's power rail's voltage is okay.
+
+    Returns:
+      A dict of Whale INA points to their voltage measure (mV).
+
+    Raises:
+      BFTFixtureException if power rail is problematic.
+    """
+    result = self._servo.MultipleGet(self._WHALE_INAS)
+    return dict((k, int(v)) for k, v in result.iteritems())
 
   def CheckExtDisplay(self):
     raise NotImplementedError

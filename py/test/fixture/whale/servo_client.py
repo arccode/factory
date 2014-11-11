@@ -112,6 +112,14 @@ WHALE_CONTROL = common.AttrDict(dict(
     WRITE_PROTECT = 'whale_write_protect',
     EXPANDER_RESET = 'whale_xpander_rst'))
 
+WHALE_INA = common.AttrDict(dict((v.upper(), 'whale_%s_mv' % v) for v in [
+    'pp3300_dsw_gated', 'pp3300_pch', 'pp3300_lcd', 'pp1800_codec',
+    'pp1200_cpu', 'pp3300_lte', 'pp1050_vccst', 'pp1050_pch_sus', 'pp5000',
+    'pp3300_pch_sus', 'pp3300_wlan', 'pp3300_ssd', 'pp3300_ec', 'pp1200_ddr',
+    'pp1050_modphy', 'pp1050_pch']))
+
+WHALE_INAS = tuple(WHALE_INA.values())
+
 
 class ServoClientError(Exception):
   """Exception for ServoClient by filtering out actual error messages."""

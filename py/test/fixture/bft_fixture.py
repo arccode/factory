@@ -391,7 +391,7 @@ def main():
     print "IssueLcmCommand(%s)" % (action)
     fixture.IssueLcmCommand(action)
   else:
-    getattr(fixture, command)()
+    print getattr(fixture, command)()
 
 
 if __name__ == "__main__":
