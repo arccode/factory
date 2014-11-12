@@ -75,7 +75,7 @@ def FlimConfigureService(flim, name, password):
 
   flim.manager.ConfigureService(wlan_dict)
 
-class WirelessTest(unittest.TestCase):
+class WiFiThroughput(unittest.TestCase):
   ARGS = [
     Arg('services', (list, tuple),
         'A list of Wifi or LTE service (name, password) tuple to test.'
