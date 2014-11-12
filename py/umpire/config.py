@@ -10,6 +10,8 @@ To validate a YAML file 'abc.yaml':
   umpire_config = UmpireConfig('abc.yaml')
 """
 
+from __future__ import print_function
+
 import copy
 import yaml
 
@@ -145,21 +147,26 @@ def ValidateResources(config, env):
   active_bundles = set(r['bundle_id']
                        for r in config['rulesets'] if r.get('active'))
 
+  # Used to cache verified resource name
+  resource_verified = set()
+
   # Used to store missing or checksum mismatch resource(s).
   error = []
   for bundle in config['bundles']:
     if bundle['id'] not in active_bundles:
       continue
     for resource_name, resource_filename in bundle['resources'].items():
-      try:
-        resource_path = env.GetResourcePath(resource_filename)
-      except IOError as e:
-        error.append('[NOT FOUND] resource %s:%s for bundle %r' % (
+      if resource_filename not in resource_verified:
+        resource_verified.add(resource_filename)
+        try:
+          resource_path = env.GetResourcePath(resource_filename)
+        except IOError as e:
+          error.append('[NOT FOUND] resource %s:%s for bundle %r' % (
             resource_name, e.filename, bundle['id']))
-      else:
-        if not VerifyResource(resource_path):
-          error.append('[CHECKSUM MISMATCH] resource %s:%s for bundle %r' % (
-              resource_name, resource_path, bundle['id']))
+        else:
+          if not VerifyResource(resource_path):
+            error.append('[CHECKSUM MISMATCH] resource %s:%s for bundle %r' % (
+                resource_name, resource_path, bundle['id']))
   if error:
     raise UmpireError('\n'.join(error))
 
