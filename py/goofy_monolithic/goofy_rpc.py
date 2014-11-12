@@ -354,8 +354,11 @@ class GoofyRPC(object):
 
     def GetTPMStatus():
       """Returns TPM status info."""
+      tpm_root = '/sys/class/misc/tpm0/device'
+      tpm_status = (open(os.path.join(tpm_root, 'enabled')).read(),
+                    open(os.path.join(tpm_root, 'owned')).read())
       tpm_stat = (
-          subprocess.check_output(['cryptohome', '--action=tpm_status']) +
+          ('Enabled: %s\nOwned: %s\n' % tpm_status) +
           subprocess.check_output('crossystem | grep tpm_owner', shell=True))
 
       return DeviceNodeString(

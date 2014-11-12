@@ -397,15 +397,14 @@ class Gooftool(object):
 
   def VerifyTPM(self):
     """Verify TPM is cleared."""
-    tpm_status = ParseDict(GetLines(
-        CheckOutput(['cryptohome', '--action=tpm_status']),
-        True))
-    tpm_cleared_status = {
-        'TPM Enabled': 'true',
-        'TPM Owned': 'false',
-        'TPM Being Owned': 'false'}
-    if any(tpm_status[k] != v for k, v in tpm_cleared_status.iteritems()):
-      raise Error, 'TPM is not cleared.'
+    expected_status = {
+        'enabled': '1',
+        'owned': '0'
+    }
+    tpm_root = '/sys/class/misc/tpm0/device'
+    for key, value in expected_status.iteritems():
+      if open(os.path.join(tpm_root, key)).read().strip() != value:
+        raise Error, 'TPM is not cleared.'
 
   def VerifyManagementEngineLocked(self):
     """Verify Managment Engine is locked."""

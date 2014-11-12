@@ -7,10 +7,12 @@
 
 """Unit tests for gooftool module."""
 
+import __builtin__
 import logging
 import mox
 import os
 import unittest
+from StringIO import StringIO
 
 from collections import namedtuple
 from contextlib import contextmanager
@@ -315,15 +317,14 @@ class GooftoolTest(unittest.TestCase):
     self._gooftool.VerifyRootFs()
 
   def testVerifyTPM(self):
-    gooftool.CheckOutput(
-        ['cryptohome', '--action=tpm_status']).AndReturn(
-             '''TPM Enabled: true
-             TPM Owned: false
-             TPM Being Owned: false
-             TPM Ready: false
-             TPM Password:''')
+    self.mox.StubOutWithMock(__builtin__, 'open')
+    open('/sys/class/misc/tpm0/device/enabled').AndReturn(StringIO('1'))
+    open('/sys/class/misc/tpm0/device/owned').AndReturn(StringIO('0'))
+    open('/sys/class/misc/tpm0/device/enabled').AndReturn(StringIO('1'))
+    open('/sys/class/misc/tpm0/device/owned').AndReturn(StringIO('1'))
     self.mox.ReplayAll()
     self._gooftool.VerifyTPM()
+    self.assertRaises(Error, self._gooftool.VerifyTPM)
 
   def testVerifyManagementEngineLocked(self):
     data_no_me = {'RO_SECTION': ''}
