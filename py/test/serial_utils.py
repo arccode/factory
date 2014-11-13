@@ -91,6 +91,38 @@ def FindTtyByDriver(driver_name, interface_protocol=None, multiple_ports=False):
     return None
 
 
+def FindTtyByPortIndex(port_index, driver_name=None):
+  """Finds serial port path tty* with given port index.
+
+  Port index is fixed as the layout of physical ports.
+  Example: if serial path is ttyUSB0 for port_index = 1-1, the system path
+           /sys/class/tty/ttyUSB0/device will be linked to
+           /sys/devices/pci0000..../..../usb1/1-1/...
+
+  Args:
+    port_index: String for serial connection port index.
+    driver_name: String for serial connection driver.
+
+  Returns:
+    matched /dev/tty path. Return None if no port has been detected.
+  """
+  for candidate in glob.glob('/dev/tty*'):
+    device_path = '/sys/class/tty/%s/device' % os.path.basename(candidate)
+    driver_path = os.path.realpath(os.path.join(device_path, 'driver'))
+
+    # If driver_name is given, check if driver_name exists at the tail of
+    # driver_path.
+    if driver_name and not driver_path.endswith(driver_name):
+      continue
+
+    device_path = os.path.realpath(device_path)
+    # Check if port_index exists in device_path.
+    if '/%s/' % port_index in device_path:
+      logging.info('Find serial path : %s', candidate)
+      return candidate
+  return None
+
+
 def DeviceInterfaceProtocol(device_path):
   """Extracts the interface protocol of the specified device path.
 

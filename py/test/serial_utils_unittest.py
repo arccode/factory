@@ -19,6 +19,7 @@ from cros.factory.test import serial_utils
 from cros.factory.test.serial_utils import SerialDevice
 
 _DEFAULT_DRIVER = 'pl2303'
+_DEFAULT_INDEX = '1-1'
 _DEFAULT_PORT = '/dev/ttyUSB0'
 _SEND_RECEIVE_INTERVAL_SECS = 0.2
 _RETRY_INTERVAL_SECS = 0.5
@@ -112,6 +113,49 @@ class FindTtyByDriverTest(unittest.TestCase):
     self.assertEquals([_DEFAULT_PORT, '/dev/ttyUSB1'],
                       serial_utils.FindTtyByDriver(_DEFAULT_DRIVER,
                                                    multiple_ports = True))
+
+
+class FindTtyByPortIndexTest(unittest.TestCase):
+  def setUp(self):
+    self.mox = mox.Mox()
+    self.mox.StubOutWithMock(glob, 'glob')
+    glob.glob('/dev/tty*').AndReturn(['/dev/ttyUSB0', '/dev/ttyUSB1'])
+    self.mox.StubOutWithMock(os.path, 'realpath')
+
+  def tearDown(self):
+    self.mox.UnsetStubs()
+    self.mox.VerifyAll()
+
+  def testFindTtyByPortIndex(self):
+    os.path.realpath('/sys/class/tty/ttyUSB0/device/driver').AndReturn(
+        _DEFAULT_DRIVER)
+    os.path.realpath('/sys/class/tty/ttyUSB0/device').AndReturn(
+        '/%s/' % _DEFAULT_INDEX)
+
+    self.mox.ReplayAll()
+    self.assertEquals(_DEFAULT_PORT,
+                      serial_utils.FindTtyByPortIndex(_DEFAULT_INDEX,
+                                                      _DEFAULT_DRIVER))
+
+  def testFindTtyByPortIndexSecondPort(self):
+    os.path.realpath('/sys/class/tty/ttyUSB0/device/driver').AndReturn('foo')
+    os.path.realpath('/sys/class/tty/ttyUSB1/device/driver').AndReturn(
+        _DEFAULT_DRIVER)
+    os.path.realpath('/sys/class/tty/ttyUSB1/device').AndReturn(
+        '/%s/' % _DEFAULT_INDEX)
+
+    self.mox.ReplayAll()
+    self.assertEquals('/dev/ttyUSB1',
+                      serial_utils.FindTtyByPortIndex(_DEFAULT_INDEX,
+                                                      _DEFAULT_DRIVER))
+
+  def testFindTtyByPortIndexNotFound(self):
+    os.path.realpath('/sys/class/tty/ttyUSB0/device/driver').AndReturn('foo')
+    os.path.realpath('/sys/class/tty/ttyUSB1/device/driver').AndReturn('bar')
+
+    self.mox.ReplayAll()
+    self.assertIsNone(serial_utils.FindTtyByPortIndex(_DEFAULT_INDEX,
+                                                      _DEFAULT_DRIVER))
 
 
 class SerialDeviceCtorTest(unittest.TestCase):
