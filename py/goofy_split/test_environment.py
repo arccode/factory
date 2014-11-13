@@ -128,12 +128,23 @@ class DUTEnvironment(Environment):
     override_chrome_start_file = '/usr/local/factory/init/override_chrome_start'
     if not os.path.exists(override_chrome_start_file):
       return
+    url = (open(override_chrome_start_file).read() or
+           ('http://%s:%s' % (state.DEFAULT_FACTORY_STATE_ADDRESS,
+                              state.DEFAULT_FACTORY_STATE_PORT)))
+    (host, unused_colon, port) = url.partition('http://')[2].partition(':')
+    logging.info('Override chrome start pages as: %s', url)
     chrome = chrome_debugger.ChromeRemoteDebugger()
     utils.WaitFor(chrome.IsReady, 30)
     chrome.SetActivePage()
-    chrome.PageNavigate(open(override_chrome_start_file).read() or
-                        ('http://127.0.0.1:%s/' %
-                         state.DEFAULT_FACTORY_STATE_PORT))
+    # Wait for state server to be ready.
+    state_server = state.get_instance(address=host, port=int(port))
+    def is_state_server_ready():
+      try:
+        return state_server.IsReadyForUIConnection()
+      except:
+        return False
+    utils.WaitFor(is_state_server_ready, 30)
+    chrome.PageNavigate(url)
 
   def launch_chrome(self):
     self.override_chrome_start_pages()
