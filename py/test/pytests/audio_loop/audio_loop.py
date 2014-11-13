@@ -448,7 +448,7 @@ class AudioLoopTest(unittest.TestCase):
       self._ui.Fail('; '.join(self._test_message))
 
   def StartRunTest(self, event): # pylint: disable=W0613
-    jack_status = self._audio_util.GetAudioJackStatus()
+    jack_status = self._audio_util.GetAudioJackStatus(self._in_card)
     # When audio jack detection feature is ready on a platform, we can
     # enable check_dongle option to check jack status matches we expected.
     if self.args.check_dongle:
