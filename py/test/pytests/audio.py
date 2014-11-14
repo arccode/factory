@@ -6,6 +6,8 @@
 
 """Tests audio playback and record."""
 
+from __future__ import print_function
+
 import random
 import threading
 import unittest
@@ -84,9 +86,18 @@ class AudioDigitPlaybackTask(InteractiveFactoryTask):
     self.BindPassFailKeys(pass_key=False)
 
   def Run(self):
-    def _HasPlaybackVolume(port_id):
-      volumn_name = '%s Playback Volume' % port_id
-      return volumn_name in SpawnOutput(
+    def _HasControl(control):
+      """Checks if an amixer control is supported for this port on this card.
+
+      Args:
+        control: The amixer control name without audio port prefix,
+          e.g. 'Playback Switch'.
+
+      Returns:
+        True if the amixer control is supported for this port on this card.
+      """
+      port_control = '%s %s' % (self._port_id, control)
+      return port_control in SpawnOutput(
           ['amixer', '-c', str(self._card_id), 'controls'])
 
     def _PlayDigit(num):
@@ -99,13 +110,14 @@ class AudioDigitPlaybackTask(InteractiveFactoryTask):
       self._ui.PlayAudioFile('%d_%s.ogg' % (num, lang))
 
     # It makes no sense to continue if it fails to enable audio port.
-    if not self.RunCommand(self._port_switch + ['on,on'],
+    if _HasControl('Playback Switch'):
+      if not self.RunCommand(self._port_switch + ['on,on'],
                            'Fail to enable audio port.'):
-      return
+        return
 
     self._InitUI()
 
-    if _HasPlaybackVolume(self._port_id):
+    if _HasControl('Playback Volume'):
       self.RunCommand(self._port_volume)
 
     self.BindDigitKeys(self._pass_digit)
