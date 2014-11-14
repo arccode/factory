@@ -8,6 +8,7 @@
 
 from __future__ import print_function
 
+import os
 import random
 import threading
 import unittest
@@ -20,7 +21,8 @@ from cros.factory.test.args import Arg
 from cros.factory.test.event import Event
 from cros.factory.test.factory_task import FactoryTaskManager
 from cros.factory.test.factory_task import InteractiveFactoryTask
-from cros.factory.utils.process_utils import SpawnOutput
+from cros.factory.utils import file_utils
+from cros.factory.utils.process_utils import SpawnOutput, Spawn
 
 _TEST_TITLE = test_ui.MakeLabel('Audio Test',
                                 u'音讯测试')
@@ -34,6 +36,9 @@ _INSTRUCTION_AUDIO_RANDOM_TEST = lambda d, k: test_ui.MakeLabel(
     '</br>'.join([u'请按你从 %s 输出所听到的数字' % d,
                   u'按 %s 重播语音' % k]))
 
+_SOUND_DIRECTORY = os.path.join(
+    os.path.dirname(os.path.realpath(__file__)), '..', '..', 'goofy',
+    'static', 'sounds')
 
 class AudioDigitPlaybackTask(InteractiveFactoryTask):
   """Task to verify audio playback function.
@@ -49,18 +54,20 @@ class AudioDigitPlaybackTask(InteractiveFactoryTask):
     title_id: HTML id for placing testing title.
     instruction_id: HTML id for placing instruction.
     volume: Playback volume in [0,100]; default 100.
+    bypass_cras: Use ALSA utility (aplay) instead of cras to play audio.
     channel: target channel. Value of 'left', 'right', 'all'. Default 'all'.
     card_id: ID of the audio card to output.
   """
 
   def __init__(self, ui, port_label, port_id, title_id, instruction_id,
-               volume=100, channel='all', card_id=0):
+               volume=100, bypass_cras=False, channel='all', card_id=0):
     super(AudioDigitPlaybackTask, self).__init__(ui)
     self._pass_digit = random.randint(0, 9)
     self._port_switch = ['amixer', '-c', str(card_id), 'cset',
                          'name="%s Playback Switch"' % port_id]
     self._port_volume = ['amixer', '-c', str(card_id), 'cset',
                          'name="%s Playback Volume"' % port_id]
+    self._bypass_cras = bypass_cras
     self._card_id = card_id
     self._port_id = port_id
     self._port_label = port_label
@@ -107,7 +114,14 @@ class AudioDigitPlaybackTask(InteractiveFactoryTask):
         num: digit number to play.
       """
       lang = self._ui.GetUILanguage()
-      self._ui.PlayAudioFile('%d_%s.ogg' % (num, lang))
+      base_name = '%d_%s.ogg' % (num, lang)
+      if self._bypass_cras:
+        with file_utils.UnopenedTemporaryFile(suffix='.wav') as wav_path:
+          Spawn(['sox', os.path.join(_SOUND_DIRECTORY, base_name), '-c2',
+                 wav_path], check_call=True)
+          Spawn(['aplay', '-D', 'hw:0,0', wav_path], check_call=True)
+      else:
+        self._ui.PlayAudioFile(base_name)
 
     # It makes no sense to continue if it fails to enable audio port.
     if _HasControl('Playback Switch'):
@@ -255,6 +269,8 @@ class AudioTest(unittest.TestCase):
     Arg('headphone_numid', str,
         'amixer numid for headphone. Skip connection check if empty.',
         optional=True),
+    Arg('bypass_cras', bool, 'Use basic alsa utilities and bypass cras '
+        'to play audio.', default=False)
   ]
 
   def setUp(self):
@@ -295,7 +311,7 @@ class AudioTest(unittest.TestCase):
                                          False, _TITLE_ID, _INSTRUCTION_ID))
       args = (self._ui, test_ui.MakeLabel(*self.args.internal_port_label),
               self.args.internal_port_id, _TITLE_ID, _INSTRUCTION_ID,
-              self.args.internal_volume)
+              self.args.internal_volume, self.args.bypass_cras)
       _ComposeLeftRightTasks(tasks, args)
 
     if self.args.external_port_id:
@@ -304,7 +320,7 @@ class AudioTest(unittest.TestCase):
                                          True, _TITLE_ID, _INSTRUCTION_ID))
       args = (self._ui, test_ui.MakeLabel(*self.args.external_port_label),
               self.args.external_port_id, _TITLE_ID, _INSTRUCTION_ID,
-              self.args.external_volume)
+              self.args.external_volume, self.args.bypass_cras)
       _ComposeLeftRightTasks(tasks, args)
 
     return tasks
