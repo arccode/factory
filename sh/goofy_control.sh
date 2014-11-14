@@ -63,9 +63,16 @@ check_disk_usage() {
   echo -e "\033[0m"
 }
 
-clear_tpm_owner() {
+# http://crbug.com/410233: If TPM is owned, UI may get freak.
+ensure_tpm_not_owned() {
+  if [ "$(crossystem mainfw_type 2>/dev/null)" = "nonchrome" ] ||
+     [ "$(cat /sys/class/misc/tpm0/device/owned 2>/dev/null)" != "1" ]; then
+    return
+  fi
+  # If TPM is owned, we have to reboot otherwise UI may get freak.
   # Alert user and try to clear TPM.
   local tty=/dev/tty5
+  chvt 5 || tty=/dev/console
   echo "
         Sorry, you must clear TPM owner before running factory UI.
         We are going to do that for you (and then reboot) in 10 seconds.
@@ -75,11 +82,11 @@ clear_tpm_owner() {
           stop factory
 
        " >"$tty"
-  chvt 5
   for i in $(seq 10 -1 0); do
     echo " > Clear & reboot in ${i} seconds..." >"$tty"
     sleep 1
   done
+
   crossystem clear_tpm_owner_request=1
   echo "Restarting system..." >"$tty"
   reboot
@@ -112,10 +119,7 @@ start_factory() {
   modprobe i2c-dev 2>/dev/null || true
   check_disk_usage
 
-  # If TPM is owned, we have to reboot otherwise UI may get freak.
-  if (cryptohome --action=tpm_status 2>&1 | grep -q 'TPM Owned: true'); then
-    clear_tpm_owner
-  fi
+  ensure_tpm_not_owned
 
   # Open ports in the firewall so that the presenter can reach us
   # Note we want these ports to be expanded as a list, and so are unquoted
