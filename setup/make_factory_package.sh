@@ -547,6 +547,12 @@ tar_unencrypted() {
     image_add_temp "${factory_stateful_dir}"
     image_mount_partition "${outdev}" 1 "${factory_stateful_dir}" "rw"
     local dest_file="${factory_stateful_dir}/stateful_files.tar.xz"
+    # Check that all the files in the unencrypted directory are owned by root.
+    sudo find "${release_stateful_dir}"/unencrypted -printf '%U:%G %p\n' |
+        grep -v -E '^0:0 ' >&2 &&
+        die "tar of release stateful partition's unencrypted contains the " \
+            "above files which are not owned by 0:0 (root:root). Aborting."
+
     sudo tar acf "${dest_file}" --numeric-owner -C "${release_stateful_dir}" \
         unencrypted || result="$?"
     # ls destination file to show its size
