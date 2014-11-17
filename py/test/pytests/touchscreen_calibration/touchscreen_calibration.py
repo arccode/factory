@@ -86,6 +86,8 @@ class TouchscreenCalibration(unittest.TestCase):
                                                          'DELTA_HIGHER_BOUND'))
     self.sn_length = int(self.sysfs_config.Read('Misc', 'SN_LENGTH'))
     self.fake_fixture = self.sysfs_config.Read('Misc', 'FAKE_FIXTURE') == 'True'
+    self.use_shopfloor = (
+        self.sysfs_config.Read('Misc', 'USE_SHOPFLOOR') == 'True')
     self.network_status = touchscreen_calibration_utils.NetworkStatus(
         self.sysfs_ip, self.args.shopfloor_ip)
     self.sysfs = None
@@ -96,6 +98,11 @@ class TouchscreenCalibration(unittest.TestCase):
     self.aux_log_path = 'touchscreen_calibration/samus'
     self._GetSysfsService()
     self._ConnectTouchDevice()
+    self.log = Log if self.use_shopfloor else self._DummyLog
+    factory.console.info('Use shopfloor: %s' % str(self.use_shopfloor))
+
+  def _DummyLog(self, *args, **kwargs):
+    pass
 
   def tearDown(self):
     self.sysfs.kernel_module.Remove()
@@ -329,10 +336,11 @@ class TouchscreenCalibration(unittest.TestCase):
 
   def _UploadLog(self, log_name, log_data):
     """Upload the data to shopfloor server as a file."""
-    log_path = os.path.join(self.aux_log_path, log_name)
-    shopfloor_client = shopfloor.GetShopfloorConnection()
-    shopfloor_client.SaveAuxLog(log_path, xmlrpclib.Binary(log_data))
-    factory.console.info('Uploaded sensor data as %s', log_path)
+    if self.use_shopfloor:
+      log_path = os.path.join(self.aux_log_path, log_name)
+      shopfloor_client = shopfloor.GetShopfloorConnection()
+      shopfloor_client.SaveAuxLog(log_path, xmlrpclib.Binary(log_data))
+      factory.console.info('Uploaded sensor data as %s', log_path)
 
   def _DumpOneFrameToLog(self, logger, category, sn, frame_no):
     """Dumps one frame to log.
@@ -347,8 +355,8 @@ class TouchscreenCalibration(unittest.TestCase):
       logger.write(' '.join([str(val) for val in row]))
       logger.write('\n')
 
-    Log('touchscreen_calibration_before_touched_%d' % frame_no,
-        category=category, sn=sn, sensor_data=str(data))
+    self.log('touchscreen_calibration_before_touched_%d' % frame_no,
+             category=category, sn=sn, sensor_data=str(data))
 
     log_name = '%s_%s_%s_pre%d' % (self.start_time, sn, category, frame_no)
     self._UploadLog(log_name, str(data))
@@ -448,8 +456,8 @@ class TouchscreenCalibration(unittest.TestCase):
       # and also to the shop floor.
       self._WriteSensorDataToFile(log_to_file, sn, test_pass, data)
       self.ui.CallJSFunction('displayDebugData', json.dumps(data))
-      Log('touchscreen_calibration',
-          sn=sn, test_pass=test_pass, sensor_data=str(data))
+      self.log('touchscreen_calibration',
+               sn=sn, test_pass=test_pass, sensor_data=str(data))
 
       result = 'pass' if test_pass else 'fail'
       log_name = '%s_%s_%s_%s' % (self.start_time, sn, 'deltas', result)
