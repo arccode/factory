@@ -269,17 +269,21 @@ def PrintBuildInfo(src_root):
     print f.read()
 
 
-def PackFactoryToolkit(src_root, output_path):
+def PackFactoryToolkit(src_root, output_path, enable_device, enable_presenter):
   """Packs the files containing this script into a factory toolkit."""
   with open(os.path.join(src_root, 'VERSION'), 'r') as f:
     version = f.read().strip()
   with tempfile.NamedTemporaryFile() as help_header:
     help_header.write(version + "\n" + HELP_HEADER + HELP_HEADER_MAKESELF)
     help_header.flush()
-    Spawn([os.path.join(src_root, 'makeself.sh'), '--bzip2', '--nox11',
+    cmd = [os.path.join(src_root, 'makeself.sh'), '--bzip2', '--nox11',
            '--help-header', help_header.name,
-           src_root, output_path, version, INSTALLER_PATH, '--in-exe'],
-          check_call=True, log=True)
+           src_root, output_path, version, INSTALLER_PATH, '--in-exe']
+    if not enable_device:
+      cmd.append('--no-enable-device')
+    if not enable_presenter:
+      cmd.append('--no-enable-presenter')
+    Spawn(cmd, check_call=True, log=True)
   print ('\n'
       '  Factory toolkit generated at %s.\n'
       '\n'
@@ -395,7 +399,8 @@ def main():
   # --pack-into may be called directly so this must be done before changing
   # working directory to OLDPWD.
   if args.pack_into and args.repack is None:
-    PackFactoryToolkit(src_root, args.pack_into)
+    PackFactoryToolkit(src_root, args.pack_into, args.enable_device,
+                       args.enable_presenter)
     return
 
   if not in_archive:
