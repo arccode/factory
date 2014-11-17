@@ -7,6 +7,8 @@
 See ConfigDeployer for detail.
 """
 
+from __future__ import print_function
+
 import datetime
 import errno
 import logging
@@ -78,6 +80,9 @@ class ConfigDeployer(object):
     error_message = []
     for res_key, filename_prefix in self._RESOURCE_FOR_DOWNLOAD_CONF:
       res_filename = resources.get(res_key)
+      # Skip empty resource file
+      if res_filename == 'none##d41d8cd9':
+        continue
       if res_filename and res_filename.startswith(filename_prefix):
         download_files.append(self._env.GetResourcePath(res_filename))
       else:
