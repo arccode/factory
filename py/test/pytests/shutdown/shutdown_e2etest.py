@@ -115,9 +115,10 @@ class ShutdownE2ETest(e2e_test.E2ETest):
     self.WaitForFail()
 
     mock_get_state_instance.assert_called_with()
-    mock_log.assert_called_with('rebooted',
-                                status=factory.TestState.FAILED,
-                                error_msg='Unable to read shutdown_time')
+    mock_log.assert_called_with(
+        'rebooted', status=factory.TestState.FAILED,
+        error_msg=('Unable to read shutdown_time; '
+                   'unexpected shutdown during reboot?'))
     _goofy.get_shared_data.assert_called_with(self.post_shutdown_tag, True)
     _goofy.del_shared_data.assert_called_with(self.post_shutdown_tag)
 
