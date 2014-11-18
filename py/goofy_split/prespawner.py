@@ -92,11 +92,12 @@ class Prespawner(object):
         process = self.prespawned.get()
         if not process:
           break
-        # Send a 'None' environment and arg list to tell the prespawner
-        # processes to exit.
-        pickle.dump((None, None), process.stdin, protocol=2)
-        process.stdin.close()
-        process.wait()
+        if process.poll() is None:
+          # Send a 'None' environment and arg list to tell the prespawner
+          # processes to exit.
+          pickle.dump((None, None), process.stdin, protocol=2)
+          process.stdin.close()
+          process.wait()
       self.thread = None
 
 class AutotestPrespawner(Prespawner):

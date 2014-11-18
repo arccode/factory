@@ -947,6 +947,8 @@ def main():
 
   if options.prespawn_pytest:
     env, info = pickle.load(sys.stdin)
+    if not env:
+      sys.exit(0)
     os.environ.update(env)
   else:
     info = pickle.load(open(options.pytest_info))
