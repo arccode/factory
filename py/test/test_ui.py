@@ -7,9 +7,12 @@
 
 """A module for creating and interacting with factory test UI."""
 
+from __future__ import print_function
+
 import cgi
 import logging
 import os
+import signal
 import threading
 import traceback
 import uuid
@@ -310,6 +313,26 @@ class UI(object):
     """Allows space/enter to pass the test, and escape to fail it."""
     self.BindStandardKeys()
 
+  def SignalHandler(self, signum, unused_frame):
+    """A signal handler to handle SIGINT from UI daemon thread.
+
+    When UI is running in non-blocking mode, we use SIGINT to communicate from
+    the UI daemon thread to the main thread to notify the main thread of UI
+    exceptions.
+
+    Args:
+      signum: The signum. Currently only SIGINT is handled.
+      unused_frame: Unused frame.
+
+    Raises:
+      FactoryTestFailure if the received signal is SIGINT.
+    """
+    logging.warn('Signal handler called with signal %s', signum)
+    if signum == signal.SIGINT:
+      for source, description in exception_list:
+        logging.error('Exception caught by %s: %s', source, description)
+      raise FactoryTestFailure('Test aborted by SIGINT')
+
   def Run(self, blocking=True, on_finish=None):
     """Runs the test UI, waiting until the test completes.
 
@@ -347,6 +370,7 @@ class UI(object):
             # Save exception if UI is not run in the main thread
             exception_list.append(('ui-thread',
                                    'Failed from UI\n%s' % error_msg))
+            os.kill(os.getpid(), signal.SIGINT)
         else:
           raise ValueError('Unexpected status in event %r' % event)
       finally:
@@ -354,6 +378,12 @@ class UI(object):
           on_finish()
 
     if not blocking:
+      try:
+        signal.signal(signal.SIGINT, self.SignalHandler)
+      except ValueError:
+        # Called in a thread. This can happen when running E2E tests, which runs
+        # the UI in a child thread.
+        pass
       return utils.StartDaemonThread(
           target=lambda: _RunImpl(self, blocking=False, on_finish=on_finish))
     else:
