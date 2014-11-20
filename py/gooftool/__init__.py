@@ -4,6 +4,8 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+from __future__ import print_function
+
 import logging
 import os
 import re
@@ -612,7 +614,9 @@ class Gooftool(object):
         return (locale_index, language_code)
 
     raise Error, ('Firmware bitmaps do not contain support for the specified '
-                  'initial locale language %r' % locale)
+                  'initial locale language %r.\n'
+                  'Current supported locales are %r.' % (
+                      locale, bitmap_locales))
 
   def GetSystemDetails(self):
     """Gets the system details including: platform name, crossystem,
