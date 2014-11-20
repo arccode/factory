@@ -200,7 +200,7 @@ class ServoClient(object):
     try:
       return dict(zip(names, self._server.set_get_all(names)))
     except Exception as e:
-      raise ServoClientError('Problem getting controls %r' % names, e)
+      raise ServoClientError('Problem getting controls %s' % repr(names), e)
 
   @staticmethod
   def _OnOffToBool(name, value):
