@@ -179,7 +179,6 @@ class KernelModule(object):
 
   def __init__(self, name):
     self.name = name
-    self.filepath = SimpleSystemOutput('find /lib/modules | grep ' + self.name)
     self.sysfs_entry = GetSysfsEntry()
 
   def IsLoaded(self):
@@ -196,7 +195,7 @@ class KernelModule(object):
   def Insert(self):
     """Insert the module."""
     if not self.IsLoaded():
-      return IsSuccessful(SimpleSystem('insmod %s' % self.filepath))
+      return IsSuccessful(SimpleSystem('modprobe %s' % self.name))
     return True
 
   def IsDeviceDetected(self):

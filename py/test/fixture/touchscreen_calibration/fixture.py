@@ -154,8 +154,9 @@ class BaseFixture(SerialDevice):
 class FakeFixture(BaseFixture):
   """A fake fixture class used for development purpose only."""
 
-  def __init__(self, state=None):
+  def __init__(self, ui, state=None):
     super(FakeFixture, self).__init__(state)
+    self.ui = ui
 
   def QueryState(self):
     """Queries the state of the arduino board."""
@@ -172,6 +173,9 @@ class FakeFixture(BaseFixture):
   def DriveProbeDown(self):
     """Drives the probe to the 'down' position."""
     factory.console.info('Drive Probe Down....')
+    self.ui.CallJSFunction('showMessage',
+                           'Pull the lever down.\n'
+                           '拉下把手')
 
   def DriveProbeUp(self):
     """Drives the probe to the 'up' position."""

@@ -15,7 +15,7 @@ import unittest
 import xmlrpclib
 
 import factory_common     # pylint: disable=W0611
-import sysfs_server
+import sensors_server
 import touchscreen_calibration_utils
 
 from cros.factory.test.event_log import Log
@@ -46,8 +46,8 @@ class Error(Exception):
   pass
 
 
-def _CreateXMLRPCSysfsClient(addr=('localhost', 8000)):
-  """A helper function to create the xmlrpc client for sysfs data."""
+def _CreateXMLRPCSensorsClient(addr=('localhost', 8000)):
+  """A helper function to create the xmlrpc client for sensors data."""
   url = 'http://%s:%s' % addr
   proxy = xmlrpclib.ServerProxy(url)
   return proxy
@@ -75,28 +75,24 @@ class TouchscreenCalibration(unittest.TestCase):
     self.query_fixture_state_flag = False
     self._mounted_media_flag = True
     self._local_log_dir = '/var/tmp/%s' % test_name
-    self.sysfs_config = sysfs_server.SysfsConfig()
-    self.sysfs_ip = self.sysfs_config.Read('Sysfs', 'SYSFS_IP')
-    self.sysfs_port = int(self.sysfs_config.Read('Sysfs', 'SYSFS_PORT'))
-    self.use_sysfs_server = (
-        self.sysfs_config.Read('Sysfs', 'USE_SYSFS_SERVER') == 'True')
-    self.delta_lower_bound = int(self.sysfs_config.Read('TouchSensors',
-                                                        'DELTA_LOWER_BOUND'))
-    self.delta_higher_bound = int(self.sysfs_config.Read('TouchSensors',
-                                                         'DELTA_HIGHER_BOUND'))
-    self.sn_length = int(self.sysfs_config.Read('Misc', 'SN_LENGTH'))
-    self.fake_fixture = self.sysfs_config.Read('Misc', 'FAKE_FIXTURE') == 'True'
-    self.use_shopfloor = (
-        self.sysfs_config.Read('Misc', 'USE_SHOPFLOOR') == 'True')
+    self._board = self._GetBoard()
+    factory.console.info('Get Board: %s', self._board)
+    self.config = sensors_server.TSConfig(self._board)
+    self.sensors_ip = self.config.Read('Sensors', 'SENSORS_IP')
+    self.sensors_port = int(self.config.Read('Sensors', 'SENSORS_PORT'))
+    self.use_sensors_server = (
+        self.config.Read('Sensors', 'USE_SENSORS_SERVER') == 'True')
+    self.sn_length = int(self.config.Read('Misc', 'SN_LENGTH'))
+    self.fake_fixture = self.config.Read('Misc', 'FAKE_FIXTURE') == 'True'
+    self.use_shopfloor = (self.config.Read('Misc', 'USE_SHOPFLOOR') == 'True')
     self.network_status = touchscreen_calibration_utils.NetworkStatus(
-        self.sysfs_ip, self.args.shopfloor_ip)
-    self.sysfs = None
+        self.sensors_ip, self.args.shopfloor_ip)
+    self.sensors = None
     self.start_time = None
-    # TODO(josephsih): samus is the only board for this test so far.
-    # When there are more boards later, there should be a method to determine
-    # the board name.
-    self.aux_log_path = 'touchscreen_calibration/samus'
-    self._GetSysfsService()
+    # There are multiple boards running this test now.
+    # The log path of a particular board is distinguished by the board name.
+    self.aux_log_path = os.path.join('touchscreen_calibration', self._board)
+    self._GetSensorService()
     self._ConnectTouchDevice()
     self.log = Log if self.use_shopfloor else self._DummyLog
     factory.console.info('Use shopfloor: %s', str(self.use_shopfloor))
@@ -105,15 +101,23 @@ class TouchscreenCalibration(unittest.TestCase):
     pass
 
   def tearDown(self):
-    self.sysfs.kernel_module.Remove()
+    self.sensors.PostTest()
 
-  def _GetSysfsService(self):
-    """Get the Sysfs servic3.
+  def _GetBoard(self):
+    """Get the target board."""
+    board_path = os.path.join(os.path.dirname(__file__), 'boards', 'board')
+    if os.path.isfile(board_path):
+      with open(board_path) as f:
+        return f.read().strip()
+    return None
+
+  def _GetSensorService(self):
+    """Get the Sensors service.
 
     1st priority: connect to the IP address specified in generic_tsab test list.
-                  The sysfs server is run on a BB or on a DUT in this case.
-    2nd priority: instantiate a local sysfs object.
-                  The sysfs object is run on the same local host of the
+                  The sensor server is run on a BB or on a DUT in this case.
+    2nd priority: instantiate a local sensor object.
+                  The sensor object is run on the same local host of the
                   factory test in this case.
     """
 
@@ -125,35 +129,34 @@ class TouchscreenCalibration(unittest.TestCase):
       self.ui.CallJSFunction('showMessage', msg)
 
     def _CheckStatus(msg):
-      """Check the status of sys fs."""
+      """Check the status of the sensor service."""
       try:
-        if self.sysfs.CheckStatus():
-          factory.console.info('Sysfs service: %s', msg)
+        if self.sensors.CheckStatus():
+          factory.console.info('Sensors service: %s', msg)
           return
-        factory.console.info('No Sysfs service: %s', msg)
+        factory.console.info('No Sensors service: %s', msg)
       except Exception as e:
-        factory.console.info('No Sysfs service (%s): %s', e, msg)
+        factory.console.info('No Sensors service (%s): %s', e, msg)
       _ShowError()
 
-    if not self.sysfs_ip:
-      msg = ('No sysfs_ip is assigned.\n'
-             'If you intend to run a sysfs_server on another machine, '
-             'you need to assign _SYSFS_SERVER_IP in generic_tsab.py.\n'
+    if not self.sensors_ip:
+      msg = ('No sensors_ip is assigned.\n'
+             'If you intend to run a sensors_server on another machine, '
+             'you need to assign _SENSORS_SERVER_IP in generic_tsab.py.\n'
              'And then do a factory_restart.')
       factory.console.warn(msg)
 
-    if self.use_sysfs_server:
-      # Connect to the sysfs_server at the IP address.
-      sysfs_addr = (self.sysfs_ip, self.sysfs_port)
-      self.sysfs = _CreateXMLRPCSysfsClient(addr=sysfs_addr)
-      if not self.sysfs.kernel_module.IsLoaded():
-        self.sysfs.kernel_module.Insert()
-        time.sleep(1)
-      _CheckStatus(str(sysfs_addr))
+    if self.use_sensors_server:
+      # Connect to the sensors_server at the IP address.
+      server_addr = (self.sensors_ip, self.sensors_port)
+      self.sensors = _CreateXMLRPCSensorsClient(addr=server_addr)
+      self.sensors.PreTest()
+      _CheckStatus(str(server_addr))
     else:
-      # Instantiate a local sysfs object.
-      self.sysfs = sysfs_server.Sysfs(log=factory.console)
-      _CheckStatus('local Sysfs object')
+      # Instantiate a local sensor object.
+      board_sensors = sensors_server.GetSensorServiceClass(self._board)
+      self.sensors = board_sensors(self.sensors_ip, log=factory.console)
+      _CheckStatus('Use local sensors object.')
 
   def _AlertFixtureDisconnected(self):
     """Alerts that the fixture is disconnected."""
@@ -180,13 +183,13 @@ class TouchscreenCalibration(unittest.TestCase):
 
   def ReadTest(self, unused_event):
     """Reads the raw sensor data.."""
-    if self.sysfs:
-      data = self.sysfs.Read(self.DELTAS)
+    if self.sensors:
+      data = self.sensors.Read(self.DELTAS)
       factory.console.info('Get data %s', data)
       data = json.dumps(data)
       self.ui.CallJSFunction('displayDebugData', data)
     else:
-      factory.console.info('No sysfs found')
+      factory.console.info('No sensors service found.')
 
   def ProbeSelfTest(self, unused_event):
     """Execute the probe self test to confirm the fixture works properly."""
@@ -198,7 +201,7 @@ class TouchscreenCalibration(unittest.TestCase):
     """Refreshes the fixture."""
     try:
       if self.fake_fixture:
-        self.fixture = FakeFixture(state='i')
+        self.fixture = FakeFixture(self.ui, state='i')
       else:
         self.fixture = FixtureSerialDevice()
 
@@ -247,7 +250,7 @@ class TouchscreenCalibration(unittest.TestCase):
     new panel detected, show the sign on UI.
     """
     try:
-      if self.sysfs.CheckStatus():
+      if self.sensors.CheckStatus():
         factory.console.info('touchscreen exist')
         self.ui.CallJSFunction('setTouchscreenStatus', True)
         return
@@ -265,8 +268,7 @@ class TouchscreenCalibration(unittest.TestCase):
     factory.console.info('shopfloor_ip : %s', self.args.shopfloor_ip)
 
     self.ui.CallJSFunction('setHostNetworkStatus', str(host_ip))
-    self.ui.CallJSFunction('setBBNetworkStatus',
-                           bb_status and self.sysfs_ip)
+    self.ui.CallJSFunction('setBBNetworkStatus', bb_status and self.sensors_ip)
     self.ui.CallJSFunction('setShopfloorNetworkStatus',
                            shopfloor_status and self.args.shopfloor_ip)
 
@@ -326,7 +328,7 @@ class TouchscreenCalibration(unittest.TestCase):
       logger: the log object
     """
     factory.console.info('... dump_frames %s: %d', category, frame_no)
-    data = self.sysfs.Read(category)
+    data = self.sensors.Read(category)
     logger.write('Dump one frame:\n')
     for row in data:
       logger.write(' '.join([str(val) for val in row]))
@@ -367,17 +369,10 @@ class TouchscreenCalibration(unittest.TestCase):
 
   def _VerifySensorData(self, data):
     """Determines whether the sensor data is good or not."""
-    # There are 3 columns of metal fingers on the probe. The touched_cols are
-    # derived through experiments. The values may vary from board to board.
-    touched_cols = [1, 35, 69]
-    test_pass = True
-    for row, row_data in enumerate(data):
-      for col in touched_cols:
-        value = row_data[col]
-        if value < self.delta_lower_bound or value > self.delta_higher_bound:
-          factory.console.info('  Failed at (row, col) (%d, %d) value %d',
-                               row, col, value)
-          test_pass = False
+    test_pass, failed_sensors = self.sensors.Verify(data)
+    failed_msg = '  Failed sensor at (%d, %d) value %d'
+    for sensor in failed_sensors:
+      factory.console.info(failed_msg, tuple(sensor))
     return test_pass
 
   def _CheckSerialNumber(self, sn):
@@ -405,8 +400,8 @@ class TouchscreenCalibration(unittest.TestCase):
       factory.console.info('Start calibrating SN %s', sn)
       log_to_file = StringIO.StringIO()
 
-      if not self.sysfs.WriteSysfsSection('PreRead'):
-        factory.console.error('Failed to write PreRead section to sys fs.')
+      if not self.sensors.PreRead():
+        factory.console.error('Failed to execute PreRead().')
 
       # Dump one frame of the baseline data.
       self._DumpOneFrameToLog(log_to_file, self.REFS, sn, 1)
@@ -420,9 +415,9 @@ class TouchscreenCalibration(unittest.TestCase):
       self.DriveProbeDown()
 
       # Wait a while to let the probe touch the panel stably.
-      time.sleep(1)
+      time.sleep(10 if self.fake_fixture else 1)
 
-      data = self.sysfs.Read(self.DELTAS)
+      data = self.sensors.Read(self.DELTAS)
       factory.console.info('Get data %s', data)
       time.sleep(1)
 
@@ -442,8 +437,8 @@ class TouchscreenCalibration(unittest.TestCase):
 
       self.DriveProbeUp()
 
-      if not self.sysfs.WriteSysfsSection('PostRead'):
-        factory.console.error('Failed to write PostRead section to sys fs.')
+      if not self.sensors.PostRead():
+        factory.console.error('Failed to execute PostRead().')
 
       self.ui.CallJSFunction('showMessage',
                              'OK 测试完成' if test_pass else 'NO GOOD 测试失败')
@@ -459,9 +454,9 @@ class TouchscreenCalibration(unittest.TestCase):
     """Make sure that the touch device is connected to the machine and
     the touch kernel module is inserted properly.
     """
-    if not self.sysfs.CheckStatus():
+    if not self.sensors.CheckStatus():
       # The kernel module is inserted, but the touch device is not connected.
-      self.sysfs.kernel_module.Remove()
+      self.sensors.PostTest()
       msg = ('Fail to detect the touchscreen.\n'
              'Insert the traveler board, and restart the test.\n'
              '无法侦测到面板。\n'
@@ -472,11 +467,11 @@ class TouchscreenCalibration(unittest.TestCase):
 
   def _InsertAndDetectTouchKernelModule(self):
     """Insert the touch kernel module and make sure it is detected."""
-    if (not self.sysfs.kernel_module.Insert() or
-        not self.sysfs.kernel_module.IsDeviceDetected()):
-      self.sysfs.kernel_module.Remove()
+    if (not self.sensors.kernel_module.Insert() or
+        not self.sensors.kernel_module.IsDeviceDetected()):
+      self.sensors.kernel_module.Remove()
       factory.console.error('Failed to insert the kernel module: %s.',
-                            self.sysfs.kernel_module.name)
+                            self.sensors.kernel_module.name)
       msg = ('Fail to detect the touchscreen.\n'
              'Remove and re-insert the traveler board. And restart the test.\n'
              '无法侦测到面板。\n'
