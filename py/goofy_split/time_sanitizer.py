@@ -4,6 +4,7 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import argparse
 import ctypes
 from ctypes.util import find_library
 import logging
@@ -231,3 +232,42 @@ def GetBaseTimeFromFile(*base_time_files):
     else:
       logging.warn('base-time-file %s does not exist', f)
   return None
+
+
+if __name__ == '__main__':
+  parser = argparse.ArgumentParser(
+      description='set current time from lsb-factory or lsb-release')
+  parser.add_argument('--run-once', action='store_true', default=False,
+                      help='run only once and exit')
+  parser.add_argument('--monitor-interval', metavar='SECS', type=int,
+                      default=30, help='the frequency at which to poll '
+                      'the system clock and ensure sanity.')
+  parser.add_argument('--time-bump', metavar='SECS', type=int,
+                      default=60, help='how far ahead the time should be '
+                      'moved past the last-seen-good time if an insane time '
+                      'is observed.')
+  parser.add_argument('--max-leap', metavar='SECS', type=int,
+                      default=(SECONDS_PER_DAY * 30),
+                      help='how far ahead the time may increment without '
+                      'being considered insane.')
+
+  args = parser.parse_args()
+
+  time_sanitizer = TimeSanitizer(
+    monitor_interval_secs=args.monitor_interval,
+    time_bump_secs=args.time_bump,
+    max_leap_secs=args.max_leap,
+    base_time=GetBaseTimeFromFile(
+        # lsb-factory is written by the factory install shim during
+        # installation, so it should have a good time obtained from
+        # the mini-Omaha server.  If it's not available, we'll use
+        # /etc/lsb-factory (which will be much older, but reasonably
+        # sane) and rely on a shopfloor sync to set a more accurate
+        # time.
+        '/usr/local/etc/lsb-factory',
+        '/etc/lsb-release'))
+
+  if args.run_once:
+    time_sanitizer.RunOnce()
+  else:
+    time_sanitizer.Run()
