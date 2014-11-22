@@ -339,11 +339,11 @@ def WaitFor(condition, timeout_secs, poll_interval=0.1):
         pass
     return condition_string
 
-  end_time = time.time() + timeout_secs
+  end_time = time_utils.MonotonicTime() + timeout_secs
   while True:
     if condition():
       break
-    if time.time() > end_time:
+    if time_utils.MonotonicTime() > end_time:
       raise TimeoutError('Timeout waititng for %r' % _GetConditionString())
     time.sleep(poll_interval)
 

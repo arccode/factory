@@ -150,7 +150,7 @@ start_factory() {
   # or goofy_presenter tag file is missing
   if [ -f "${RUN_GOOFY_DEVICE_TAG_FILE}" \
        -o ! -f "${RUN_GOOFY_PRESENTER_TAG_FILE}" ]; then
-       "$FACTORY/bin/goofy" $GOOFY_ARGS >>"$FACTORY_LOG_FILE" 2>&1 &
+    "$FACTORY/bin/goofy" $GOOFY_ARGS >>"$FACTORY_LOG_FILE" 2>&1 &
   fi
 
   wait
