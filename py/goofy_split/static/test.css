@@ -34,6 +34,9 @@ th {
 .test-status-passed {
   color: #0A0;
 }
+.test-status-failed-and-waived {
+  color: #FC3;
+}
 .test-status-failed {
   color: #D00;
 }

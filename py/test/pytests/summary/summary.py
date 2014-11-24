@@ -99,13 +99,14 @@ class Report(unittest.TestCase):
       state = states.get(t.path)
 
       table.append('<tr class="test-status-%s"><th>%s</th><td>%s</td></tr>'
-                   % (state.status,
+                   % (state.status.replace('_', '-'),
                       test_ui.MakeTestLabel(t),
                       test_ui.MakeStatusLabel(state.status)))
       statuses.append(state.status)
 
     overall_status = factory.overall_status(statuses)
-    all_pass = overall_status == factory.TestState.PASSED
+    all_pass = overall_status in (factory.TestState.PASSED,
+                                  factory.TestState.FAILED_AND_WAIVED)
 
     if self.args.bft_fixture:
       self._SetFixtureStatusLight(all_pass)

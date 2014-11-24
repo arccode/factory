@@ -216,32 +216,30 @@ class Finalize(unittest.TestCase):
           # the children).
           continue
 
+        if v.status == factory.TestState.FAILED_AND_WAIVED:
+          # The test is explicitly waived in the test list.
+          continue
+
         if v.status == factory.TestState.UNTESTED:
           # See if it's been waived. The regular expression of error messages
           # must be empty string.
-          waived = False
           for regex_path, regex_error_msg in self.args.waive_tests:
             if regex_path.match(k) and not regex_error_msg.pattern:
               self.waived_tests.add(k)
-              waived = True
               logging.info('Waived UNTESTED test %r', k)
               break
-
-          if not waived:
+          else:
             # It has not been waived.
             return False
 
         if v.status == factory.TestState.FAILED:
           # See if it's been waived.
-          waived = False
           for regex_path, regex_error_msg in self.args.waive_tests:
             if regex_path.match(k) and regex_error_msg.match(v.error_msg):
               self.waived_tests.add(k)
-              waived = True
               logging.info('Waived FAILED test %r', k)
               break
-
-          if not waived:
+          else:
             # It has not been waived.
             return False
 

@@ -1394,7 +1394,7 @@ cros.factory.Goofy.prototype.handleShortcut = function(key) {
  */
 cros.factory.Goofy.prototype.startAutoTest = function() {
     this.sendEvent('goofy:run_tests_with_status', {
-        'status': ['UNTESTED', 'ACTIVE', 'FAILED']});
+        'status': ['UNTESTED', 'ACTIVE', 'FAILED', 'FAILED_AND_WAIVED']});
 }
 
 /**
@@ -1604,7 +1604,8 @@ cros.factory.Goofy.prototype.showTestPopup = function(path, labelElement,
                 (numLeavesByStatus['FAILED'] || 0),
                 test, function(event) {
                     this.sendEvent('goofy:run_tests_with_status', {
-                        'status': ['UNTESTED', 'ACTIVE', 'FAILED'],
+                        'status': ['UNTESTED', 'ACTIVE', 'FAILED',
+                                   'FAILED_AND_WAIVED'],
                         'path': path
                     });
                 }, /*opt_adjectiveAtEnd=*/true), true);
@@ -2286,7 +2287,9 @@ cros.factory.Goofy.prototype.updateTestToolTip =
     tooltip.setHtml('');
 
     var errorMsg = test.state['error_msg'];
-    if (test.state.status != 'FAILED' || this.contextMenu || !errorMsg) {
+    if ((test.state.status != 'FAILED' ||
+         test.state.status != 'FAILED_AND_WAIVED') ||
+        this.contextMenu || !errorMsg) {
         // Just show the test path, with a very short hover delay.
         tooltip.setHtml(test.path);
         tooltip.setHideDelayMs(cros.factory.NON_FAILING_TEST_HOVER_DELAY_MSEC);
@@ -2649,7 +2652,7 @@ cros.factory.Goofy.prototype.setTestState = function(path, state) {
             function(cls) {
                 return goog.string.startsWith(cls, "goofy-status-") && cls
             }),
-        'goofy-status-' + state.status.toLowerCase());
+        'goofy-status-' + state.status.toLowerCase().replace(/_/g, '-'));
 
     goog.dom.classes.enable(elt, 'goofy-skip', state.skip);
 

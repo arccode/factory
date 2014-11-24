@@ -897,6 +897,36 @@ class ForceBackgroundTest(GoofyTest):
     self.mocker.ResetAll()
 
 
+class WaivedTestTest(GoofyTest):
+  """A test to verify that a waived test does not block test list execution."""
+
+  options = """
+    options.auto_run_on_start = True
+    options.stop_on_failure = True
+  """
+  test_list = """
+    FactoryTest(id='waived', pytest_name='waived_test', waived=True),
+    FactoryTest(id='normal', pytest_name='normal_test')
+  """
+
+  def runTest(self):
+    PytestPrespawner.spawn = self.mocker.CreateMock(PytestPrespawner.spawn)
+    mock_pytest(PytestPrespawner.spawn, 'waived_test',
+                TestState.FAILED_AND_WAIVED, 'Failed and waived')
+    mock_pytest(PytestPrespawner.spawn, 'normal_test', TestState.PASSED, '')
+    self.mocker.ReplayAll()
+
+    for _ in range(2):
+      self.assertTrue(self.goofy.run_once())
+      self.goofy.wait()
+
+    state_instance = factory.get_state_instance()
+    self.assertEquals(
+        [TestState.FAILED_AND_WAIVED, TestState.PASSED],
+        [state_instance.get_test_state(x).status for x in ['waived', 'normal']])
+    self._wait()
+
+
 if __name__ == "__main__":
   factory.init_logging('goofy_unittest')
   goofy._inited_logging = True

@@ -303,6 +303,9 @@ h1 {
 .goofy-status-failed > div > .goofy-test-icon {
   background-image: url(images/failed.gif);
 }
+.goofy-status-failed-and-waived > div > .goofy-test-icon {
+  background-image: url(images/failed_and_waived.gif);
+}
 .goofy-status-untested > div > .goofy-test-icon {
   background-image: url(images/untested.gif);
 }

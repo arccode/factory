@@ -14,6 +14,8 @@ To log to the factory console, use:
  factory.console.info('...') # Or warn, or error
 """
 
+from __future__ import print_function
+
 # pylint: disable=W0105
 
 import getpass
@@ -629,6 +631,7 @@ class TestState(object):
   PASSED = 'PASSED'
   FAILED = 'FAILED'
   UNTESTED = 'UNTESTED'
+  FAILED_AND_WAIVED = 'FAILED_AND_WAIVED'
 
   # Error message used for tests that are considered passed only because
   # they have been skipped.
@@ -724,12 +727,16 @@ class TestState(object):
 def overall_status(statuses):
   """Returns the "overall status" given a list of statuses.
 
-  This is the first element of [ACTIVE, FAILED, UNTESTED, PASSED]
+  This is the first element of
+
+    [ACTIVE, FAILED, UNTESTED, FAILED_AND_WAIVED, PASSED]
+
   (in that order) that is present in the status list.
   """
   status_set = set(statuses)
   for status in [TestState.ACTIVE, TestState.FAILED,
-                 TestState.UNTESTED, TestState.PASSED]:
+                 TestState.UNTESTED, TestState.FAILED_AND_WAIVED,
+                 TestState.PASSED]:
     if status in status_set:
       return status
 
@@ -837,6 +844,7 @@ class FactoryTest(object):
                prepare=None,
                finish=None,
                force_background=False,
+               waived=False,
                _root=None,
                _default_id=None):
     """Constructor.
@@ -859,6 +867,7 @@ class FactoryTest(object):
     self.dargs = dargs or {}
     self.backgroundable = backgroundable
     self.force_background = force_background
+    self.waived = waived
     if isinstance(exclusive, str):
       self.exclusive = [exclusive]
     else:
