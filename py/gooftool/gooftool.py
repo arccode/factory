@@ -28,7 +28,6 @@ from tempfile import gettempdir
 
 import factory_common  # pylint: disable=W0611
 
-from cros.factory import event_log
 from cros.factory.common import SetupLogging, Shell
 from cros.factory.gooftool import Gooftool
 from cros.factory.gooftool import crosfw
@@ -43,6 +42,7 @@ from cros.factory.hwdb import hwid_tool
 from cros.factory.hwdb.yaml_datastore import YamlWrite
 from cros.factory.hwid import common
 from cros.factory.hwid import hwid_utils
+from cros.factory.test import event_log
 from cros.factory.test import factory
 from cros.factory.test.factory import FACTORY_LOG_PATH, DEVICE_STATEFUL_PATH
 from cros.factory.utils import file_utils

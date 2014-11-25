@@ -206,8 +206,8 @@ import unittest
 import xmlrpclib
 
 import factory_common  # pylint: disable=W0611
-from cros.factory import event_log
 from cros.factory.system.i2cbus import I2CBus
+from cros.factory.test import event_log
 from cros.factory.test import factory
 from cros.factory.test import leds
 from cros.factory.test import network

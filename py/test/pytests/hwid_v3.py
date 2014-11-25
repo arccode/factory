@@ -11,7 +11,7 @@ import unittest
 import yaml
 
 import factory_common # pylint: disable=W0611
-from cros.factory.event_log import Log
+from cros.factory.test.event_log import Log
 from cros.factory.gooftool import probe
 from cros.factory.hwid import common
 from cros.factory.hwid import database

@@ -25,8 +25,8 @@ import yaml
 import zipfile
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.event_log import Log
 from cros.factory.test.args import Arg
+from cros.factory.test.event_log import Log
 from cros.factory.test import factory
 from cros.factory.test import network
 from cros.factory.test import shopfloor
@@ -475,7 +475,7 @@ class AudioQualityTest(unittest.TestCase):
       test_result = {}
       """
       Remarks:
-      1. cros.factory.event_log requires special format for key string
+      1. cros.factory.test.event_log requires special format for key string
       2. because the harmonic of some frequencies are not valid, we may
          have empty values in certain fields
       3. The missing fields are always in the last columns

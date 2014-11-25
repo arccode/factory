@@ -17,7 +17,7 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 
-from cros.factory.event_log import Log
+from cros.factory.test.event_log import Log
 from cros.factory.rf import cellular
 from cros.factory.rf.utils import CheckPower
 from cros.factory.test import factory

@@ -13,7 +13,7 @@ import threading
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.event_log import Log
+from cros.factory.test.event_log import Log
 from cros.factory.test.args import Arg
 from cros.factory.test.test_ui import MakeLabel, UI
 from cros.factory.test.ui_templates import OneScrollableSection

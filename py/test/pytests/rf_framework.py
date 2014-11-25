@@ -17,7 +17,7 @@ import unittest
 import yaml
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.event_log import Log, GetDeviceId
+from cros.factory.test.event_log import Log, GetDeviceId
 from cros.factory.goofy.goofy import CACHES_DIR
 from cros.factory.rf.tools.csv_writer import WriteCsv
 from cros.factory.rf.utils import DownloadParameters

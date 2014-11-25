@@ -9,7 +9,7 @@ import re
 import time
 
 import factory_common  # pylint: disable=W0611
-from cros.factory import event_log
+from cros.factory.test import event_log
 from cros.factory.test import event
 from cros.factory.test import test_ui
 from cros.factory.test import utils

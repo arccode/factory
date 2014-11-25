@@ -13,7 +13,7 @@ import unittest
 from jsonrpclib import ProtocolError
 
 import factory_common  # pylint: disable=W0611
-from cros.factory import event_log
+from cros.factory.test import event_log
 from cros.factory.test import factory
 from cros.factory.test import state
 from cros.factory.test import test_ui

@@ -13,9 +13,9 @@ import tempfile
 import time
 import unittest
 
-from cros.factory import event_log
-from cros.factory import event_log_watcher
-from cros.factory.event_log_watcher import Chunk, EventLogWatcher
+from cros.factory.test import event_log
+from cros.factory.test import event_log_watcher
+from cros.factory.test.event_log_watcher import Chunk, EventLogWatcher
 
 MOCK_LOG_NAME = lambda x: 'mylog12345%d' % x
 def MOCK_PREAMBLE(x, sync_marker=False):

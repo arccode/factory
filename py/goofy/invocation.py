@@ -29,7 +29,7 @@ from optparse import OptionParser
 from setproctitle import setproctitle
 
 import factory_common  # pylint: disable=W0611
-from cros.factory import event_log
+from cros.factory.test import event_log
 from cros.factory.privacy import FilterDict
 from cros.factory.system.service_manager import ServiceManager
 from cros.factory.test import factory

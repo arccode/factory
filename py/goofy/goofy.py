@@ -25,10 +25,9 @@ from collections import deque
 from optparse import OptionParser
 
 import factory_common  # pylint: disable=W0611
-from cros.factory import event_log
+from cros.factory.test import event_log
 from cros.factory import system
-from cros.factory.event_log import EventLog, FloatDigit
-from cros.factory.event_log_watcher import EventLogWatcher
+from cros.factory.test.event_log import EventLog, FloatDigit
 from cros.factory.goofy import connection_manager
 from cros.factory.goofy import test_environment
 from cros.factory.goofy import time_sanitizer
@@ -57,6 +56,7 @@ from cros.factory.test.e2e_test.common import (
 from cros.factory.test.event import Event
 from cros.factory.test.event import EventClient
 from cros.factory.test.event import EventServer
+from cros.factory.test.event_log_watcher import EventLogWatcher
 from cros.factory.test.factory import TestState
 from cros.factory.test.utils import Enum
 from cros.factory.tools.key_filter import KeyFilter

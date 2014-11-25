@@ -73,9 +73,9 @@ import time
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory import event_log
 from cros.factory import system
 from cros.factory.system import service_manager
+from cros.factory.test import event_log
 from cros.factory.test import factory, leds
 from cros.factory.test import shopfloor
 from cros.factory.test.args import Arg, Args

@@ -18,7 +18,7 @@ import factory_common     # pylint: disable=W0611
 import sysfs_server
 import touchscreen_calibration_utils
 
-from cros.factory.event_log import Log
+from cros.factory.test.event_log import Log
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import utils

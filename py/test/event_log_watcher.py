@@ -10,7 +10,7 @@ import os
 import shelve
 import threading
 
-from cros.factory import event_log
+from cros.factory.test import event_log
 from cros.factory.test import factory
 from cros.factory.test import utils
 from cros.factory.utils.shelve_utils import OpenShelfOrBackup

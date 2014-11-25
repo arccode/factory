@@ -18,7 +18,7 @@ from collections import namedtuple
 
 import factory_common  # pylint: disable=W0611
 from cros.factory import system
-from cros.factory.event_log import Log
+from cros.factory.test.event_log import Log
 from cros.factory.system.board import Board
 from cros.factory.test import factory
 from cros.factory.test import test_ui

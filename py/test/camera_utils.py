@@ -19,7 +19,7 @@ import re
 import tempfile
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.event_log import TimedUuid
+from cros.factory.test.event_log import TimedUuid
 from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import Spawn
 

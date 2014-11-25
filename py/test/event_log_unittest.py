@@ -23,7 +23,7 @@ import unittest
 import uuid
 import yaml
 
-from cros.factory import event_log
+from cros.factory.test import event_log
 from cros.factory.utils import file_utils
 from cros.factory.hwid.common import ProbedComponentResult
 

@@ -19,7 +19,7 @@ import unittest
 from urlparse import urlparse
 
 import factory_common  # pylint: disable=W0611
-from cros.factory import event_log
+from cros.factory.test import event_log
 from cros.factory.test import shopfloor
 
 from cros.factory.utils import debug_utils

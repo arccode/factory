@@ -15,7 +15,7 @@ import logging
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.event_log import Log
+from cros.factory.test.event_log import Log
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test.args import Arg

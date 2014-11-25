@@ -16,7 +16,7 @@ from collections import namedtuple
 from urlparse import urlparse
 
 import factory_common  # pylint: disable=W0611
-from cros.factory import event_log
+from cros.factory.test import event_log
 from cros.factory.test import shopfloor
 from cros.factory.utils.debug_utils import CatchException
 from cros.factory.utils.process_utils import Spawn, TerminateOrKillProcess
