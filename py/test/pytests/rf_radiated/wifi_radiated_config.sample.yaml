@@ -1,0 +1,143 @@
+# Copyright 2014 The Chromium OS Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+
+# This is the sample config file of WiFi radiated test.
+#
+# By adopting this parameter file, we now have two ways to feed arguments (or
+# parameters) into the test: in this file itself, and by setting test arguments
+# in the test list file.
+#
+# Although it may seem most convenient to define ALL arguments in this parameter
+# file, it is important to make a division:
+#
+#   1. Write anything specifically related to RF in this file.
+#   2. Write anything related to the test process itself, especially things
+#      related to logging (such as event log name), as test arguments.
+#
+# The reason for this separation is to ensure that, even if this parameter file
+# cannot be loaded, we'll still be able to log errors to shopfloor (though in
+# this case, it'll only contain one error reporting failure to load this config
+# file).
+
+
+# Last update time of the config.
+config_last_updated: 2014-08-30 18:58:32.568931
+
+# A human-readable name of the config.
+config_name: WiFi Radiated Test Config for Project-X Proto
+
+
+# Power meter specific settings.
+power_meter_config:
+  # To avoid noise when measuring power, it is better to measure multiple times
+  # and average them.  This variable indicates the number of times to measure
+  # when conducting any test profile below.
+  averaging_count: 5
+
+  # IP address of the power meter.
+  ip: 10.3.0.12
+
+  # The measurement mode, see the power meter's manual for more info.
+  measurement_mode: DOUBLE
+
+  # After we tell the chip to emit power, the chip may not respond immediately.
+  # This variable sets the delay time between "issuing command to the chip" and
+  # "measuring power from the power meter."
+  msecs_delay_before_measuring: 100
+
+  # The RF ports to use on the power meter.  See power meter's manual for more
+  # info.
+  rf_ports:
+  - 1
+  - 2
+
+
+# Map power meter MAC address to RF fixture ID, so we can track which fixture
+# is in use.  There are several ways to tell which fixture we're using.  Here
+# we'll take a simple approach: since each fixture includes its own power
+# meter, we'll use the power meter's MAC address to distinguish them.
+power_meter_to_fixture_id_map:
+  '00:30:d3:20:54:64': MOCK_RF_FIXTURE
+  '01:23:45:67:89:ab': RF_FIXTURE_1
+  'ba:98:76:54:32:10': RF_FIXTURE_2
+
+
+# Some chip controllers require additional info to be set up.  For example: a
+# chip controller may require a specialized host machine to issue commands to
+# the chip.
+chip_controller_config:
+  host_ip: 10.3.0.12
+  host_port: 9999
+
+
+# Test profiles are the real test items to test different channels, main or aux
+# antennas, bandwidth, etc.
+#
+# Since for any given antenna, we will want to test one or more profiles, we
+# make a top-level division on antenna model.  Here, we have "antenna_generic"
+# and "antenna_ABC".  If no antenna model has been specified on the DUT,
+# "antenna_generic" will be used.  If "ABC" is specified on the DUT,
+# "antenna_ABC" will be used.
+#
+# Under each antenna model is a list of different profiles to test.  For
+# example, for the generic antenna, we test channel 1 on main antenna, channel
+# 157 on aux antenna; and for antenna ABC, we test channel 1 on main antenna,
+# channel 11 on aux antenna.
+#
+# Currently, even if there is only one small change across profiles for
+# different models (for example, thresholds), the entire profile needs to be
+# duplicated with the appropriate changes.  We may want to decouple this in the
+# future.
+test_profiles:
+  antenna_generic:         # Every antenna model is a list of profiles to test.
+  - name: channel_1_main   # A human readable name of the profile.
+    power_meter_frequency: 2142000000.0    # Frequency to measure.
+    power_meter_range: null                # See power meter's manual.
+    power_meter_rf_port: 1                 # Port to measure.
+    test_power_thresholds: !!python/tuple  # A (min, max) tuple.  The test will
+    - -80.0                                # ensure the measured power is in
+    - null                                 # [min, max] or the test will fail.
+    wifi_antenna: main     # "main", "aux", or "all" antenna to test on the DUT.
+    wifi_bandwidth: 20     # See WiFi spec, should be 20 or 40.
+    wifi_channel: 1        # See WiFi spec.
+    wifi_data_rate: 54     # See WiFi spec.
+    wifi_power: 15         # Power to emit from the chip.
+  - name: channel_157_aux
+    power_meter_frequency: 5785000000.0
+    power_meter_range: null
+    power_meter_rf_port: 2
+    test_power_thresholds: !!python/tuple
+    - -80.0
+    - null
+    wifi_antenna: aux
+    wifi_bandwidth: 20
+    wifi_channel: 1
+    wifi_data_rate: 54
+    wifi_power: 15
+  antenna_ABC:
+  - name: channel_1_main
+    power_meter_frequency: 2142000000.0
+    power_meter_range: null
+    power_meter_rf_port: 1
+    test_power_thresholds: !!python/tuple
+    - -40.0
+    - -10.0
+    wifi_antenna: main
+    wifi_bandwidth: 20
+    wifi_channel: 1
+    wifi_data_rate: 54
+    wifi_power: 20
+  - name: channel_11_aux
+    power_meter_frequency: 2462000000.0
+    power_meter_range: null
+    power_meter_rf_port: 2
+    test_power_thresholds: !!python/tuple
+    - -40.0
+    - -10.0
+    wifi_antenna: aux
+    wifi_bandwidth: 20
+    wifi_channel: 11
+    wifi_data_rate: 54
+    wifi_power: 20

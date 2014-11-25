@@ -1,0 +1,77 @@
+# Copyright 2014 The Chromium OS Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+
+# This is the sample config file of LTE radiated test.
+#
+# Please see wifi_radiated_config.sample.yaml for comments on this file, since
+# they're mostly the same.
+
+
+config_last_updated: 2014-08-30 18:58:32.568931
+config_name: LTE Radiated Test Config for Project-X Proto
+
+
+power_meter_config:
+  averaging_count: 5
+  ip: 10.3.0.12
+  measurement_mode: DOUBLE
+  msecs_delay_before_measuring: 0
+  rf_ports:
+  - 1
+  - 2
+
+
+power_meter_to_fixture_id_map:
+  '00:30:d3:20:54:64': MOCK_RF_FIXTURE
+  '01:23:45:67:89:ab': RF_FIXTURE_1
+  'ba:98:76:54:32:10': RF_FIXTURE_2
+
+
+chip_controller_config: {}
+
+
+test_profiles:
+  antenna_generic:
+  - name: band_5_main
+    power_meter_frequency: 836000000.0
+    power_meter_range: null
+    power_meter_rf_port: 1
+    test_power_thresholds: !!python/tuple
+    - -80.0
+    - null
+    lte_antenna: main      # "main", "aux", or "all" antenna to test on the DUT.
+    lte_band: 5            # LTE band, see LTE spec.
+    lte_power: 20          # Power to emit from the chip.
+  - name: band_5_aux
+    power_meter_frequency: 836000000.0
+    power_meter_range: null
+    power_meter_rf_port: 2
+    test_power_thresholds: !!python/tuple
+    - -80.0
+    - null
+    lte_antenna: aux
+    lte_band: 5
+    lte_power: 20
+  antenna_ABC:
+  - name: band_2_main
+    power_meter_frequency: 1960000000.0
+    power_meter_range: null
+    power_meter_rf_port: 1
+    test_power_thresholds: !!python/tuple
+    - -40.0
+    - -10.0
+    lte_antenna: main
+    lte_band: 2
+    lte_power: 10
+  - name: band_4_aux
+    power_meter_frequency: 2132000000.0
+    power_meter_range: null
+    power_meter_rf_port: 2
+    test_power_thresholds: !!python/tuple
+    - -40.0
+    - -10.0
+    wifi_antenna: aux
+    wifi_band: 4
+    wifi_power: 10
