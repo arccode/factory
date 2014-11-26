@@ -106,6 +106,7 @@ def ParseDecodedHWID(hwid):
           {comp_name: probed_values if probed_values else None})
   return {'board': hwid.database.board,
           'binary_string': hwid.binary_string,
+          'image_id': hwid.database.image_id[hwid.bom.image_id],
           'components': dict(output_components)}
 
 

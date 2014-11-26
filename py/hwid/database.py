@@ -151,7 +151,8 @@ class Database(object):
 
     return Database.LoadData(db_yaml,
                              expected_checksum=Database.Checksum(file_name)
-                             if verify_checksum else None)
+                             if verify_checksum else None,
+                             strict=verify_checksum)
 
   @staticmethod
   def Checksum(file_name):
