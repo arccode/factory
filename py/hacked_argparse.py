@@ -112,7 +112,6 @@ def ParseCmdline(top_level_description, *common_args, **kwargs):
   The list of subcommands is taken from the SUB_CMD_LIST_ATTR
   attribute of the caller module.
   """
-  # pylint: disable=C9011
   CheckDictKeys(kwargs, ['args_to_parse'])
 
   common_parser = HackedArgParser(add_help=False)

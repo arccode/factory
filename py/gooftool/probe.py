@@ -492,7 +492,7 @@ class _TouchscreenData():  # pylint: disable=W0232
     return cls.cached_data
 
 
-def _ProbeFun(probe_map, probe_class, *arch_targets):   # pylint: disable=C9011
+def _ProbeFun(probe_map, probe_class, *arch_targets):
   """Decorator that populates probe_map.
 
   There can only be one probe function for each arch for each
