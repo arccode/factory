@@ -1261,6 +1261,10 @@ class Goofy(GoofyBase):
                       help=('do not automatically run the test list on goofy '
                             'start; this is only valid when factory test '
                             'automation is enabled'))
+    parser.add_option('--handshake_timeout', dest='handshake_timeout',
+                      type='float', default=0.3,
+                      help=('RPC timeout when doing handshake between device '
+                            'and presenter.'))
     parser.add_option('--standalone', dest='standalone',
                       action='store_true', default=False,
                       help=('Assume the presenter is running on the same '
@@ -1314,8 +1318,10 @@ class Goofy(GoofyBase):
 
     logging.info('Started')
 
-    self.link_manager = PresenterLinkManager(check_interval=1,
-                                             standalone=self.options.standalone)
+    self.link_manager = PresenterLinkManager(
+        check_interval=1,
+        handshake_timeout=self.options.handshake_timeout,
+        standalone=self.options.standalone)
 
     self.start_state_server()
     self.state_instance.set_shared_data('hwid_cfg', get_hwid_cfg())
