@@ -173,34 +173,36 @@ class PresenterLinkManager(object):
           my_ip = ['127.0.0.1']
         else:
           my_ip = map(GetEthernetIp, GetEthernetInterfaces())
-          my_ip = [x for x in my_ip if x != '127.0.0.1']
+          my_ip = [x for x in my_ip if x != '127.0.0.1' and x is not None]
         log('Trying available IP addresses %s', my_ip)
       elif type(my_ip) != list:
         my_ip = [my_ip]
 
       for ip in my_ip:
-        log('Trying IP address %s', ip)
-        self._presenter_proxy.Register(ip)
+        try:
+          log('Trying IP address %s', ip)
+          self._presenter_proxy.Register(ip)
 
-        # Make sure the presenter sees us
-        log('Registered. Checking connection.')
-        if not self._presenter_proxy.ConnectionGood():
-          log('Registration failed.')
-          continue
-        self._presenter_connected = True
-        logging.info('Connected to presenter %s', presenter_ip)
-        # Now that we are connected, use a longer timeout for the proxy
-        self._presenter_proxy = MakeTimeoutServerProxy(presenter_ip,
-                                                       PRESENTER_LINK_RPC_PORT,
-                                                       self._rpc_timeout)
-        self._presenter_ping_proxy = MakeTimeoutServerProxy(presenter_ip,
-                                                            PRESENTER_PING_PORT,
-                                                            self._rpc_timeout)
-        if presenter_ip in self._reported_failure:
-          self._reported_failure.remove(presenter_ip)
-        if self._connect_hook:
-          self._connect_hook(presenter_ip)
-        return
+          # Make sure the presenter sees us
+          log('Registered. Checking connection.')
+          if not self._presenter_proxy.ConnectionGood():
+            log('Registration failed.')
+            continue
+          self._presenter_connected = True
+          logging.info('Connected to presenter %s', presenter_ip)
+          # Now that we are connected, use a longer timeout for the proxy
+          self._presenter_proxy = MakeTimeoutServerProxy(
+              presenter_ip, PRESENTER_LINK_RPC_PORT, self._rpc_timeout)
+          self._presenter_ping_proxy = MakeTimeoutServerProxy(
+              presenter_ip, PRESENTER_PING_PORT, self._rpc_timeout)
+          if presenter_ip in self._reported_failure:
+            self._reported_failure.remove(presenter_ip)
+          if self._connect_hook:
+            self._connect_hook(presenter_ip)
+          return
+        except:  # pylint: disable=W0702
+          logging.exception("Failed to register DUT as %s", ip)
+
     except (socket.error, socket.timeout):
       pass
 
