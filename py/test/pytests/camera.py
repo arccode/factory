@@ -72,9 +72,7 @@ try:
 except ImportError:
   pass
 
-import glob
 import random
-import re
 import time
 import tempfile
 import threading
@@ -88,6 +86,7 @@ from cros.factory.test.fixture.camera import barcode
 from cros.factory.test.ui_templates import OneSection
 from cros.factory.test.utils import Enum
 from cros.factory.test.utils import StartDaemonThread
+from cros.factory.utils import camera_utils
 
 
 _MSG_CAMERA_MANUAL_TEST = test_ui.MakeLabel(
@@ -204,9 +203,7 @@ class CaptureTask(factory_task.InteractiveFactoryTask):
     process_interval = 1.0 / float(self.args.process_rate)
     resize_ratio = self.args.resize_ratio
     while not self.finished:
-      ret, cv_img = self.camera_test.camera_device.read()
-      if not ret or cv_img is None:
-        raise IOError('Error while capturing. Camera disconnected?')
+      cv_img = self.camera_test.camera_device.ReadSingleFrame()
       if (self.task_type in [CaptureTaskType.QR, CaptureTaskType.FACE] and
           time.time() - tock > process_interval):
         # Doing face recognition based on process_rate due to performance
@@ -249,7 +246,7 @@ class CaptureTask(factory_task.InteractiveFactoryTask):
       self.BindPassFailKeys()
 
     self.camera_test.ui.CallJSFunction('hideImage', False)
-    self.camera_test.EnableCamera()
+    self.camera_test.camera_device.EnableCamera()
     self.capture_thread = StartDaemonThread(target=self.TestCapture,
                                             name=self._CAPTURE_THREAD_NAME)
 
@@ -259,7 +256,7 @@ class CaptureTask(factory_task.InteractiveFactoryTask):
     if (self.capture_thread and
         threading.current_thread().name != self._CAPTURE_THREAD_NAME):
       self.capture_thread.join(1.0)
-    self.camera_test.DisableCamera()
+    self.camera_test.camera_device.DisableCamera()
 
 
 class LEDTask(factory_task.InteractiveFactoryTask):
@@ -281,16 +278,16 @@ class LEDTask(factory_task.InteractiveFactoryTask):
     while not self.finished:
       if self.pass_key == self.LED_FLICKERING:
         # Flickers the LED
-        if self.camera_test.camera_device.isOpened():
-          self.camera_test.DisableCamera()
+        if self.camera_test.camera_device.IsEnabled():
+          self.camera_test.camera_device.DisableCamera()
         else:
-          self.camera_test.EnableCamera()
-          self.camera_test.camera_device.read()
+          self.camera_test.camera_device.EnableCamera()
+          self.camera_test.camera_device.ReadSingleFrame()
       else:
         # Constantly lights the LED
-        if not self.camera_test.camera_device.isOpened():
-          self.camera_test.EnableCamera()
-        self.camera_test.camera_device.read()
+        if not self.camera_test.camera_device.IsEnabled():
+          self.camera_test.camera_device.EnableCamera()
+        self.camera_test.camera_device.ReadSingleFrame()
       time.sleep(0.5)
 
   def Run(self):
@@ -308,6 +305,7 @@ class LEDTask(factory_task.InteractiveFactoryTask):
 class CameraTest(unittest.TestCase):
   """Main class for camera test."""
   ARGS = [
+    Arg('mock_mode', bool, 'Whether to use mock mode.', default=False),
     Arg('do_QR_scan', bool, 'Automates camera check by scanning QR Code.',
         default=False),
     Arg('do_facial_recognition', bool, 'Automates camera check by using '
@@ -324,8 +322,8 @@ class CameraTest(unittest.TestCase):
         'QR code scanning in times per second.', default=5),
     Arg('QR_string', str, 'Encoded string in QR code.',
         default='Hello ChromeOS!'),
-    Arg('capture_fps', int, 'Camera capture rate in frames per second.',
-        default=30),
+    Arg('capture_fps', (int, float),
+        'Camera capture rate in frames per second.', default=30),
     Arg('timeout_secs', int, 'Timeout value for the test.', default=20),
     Arg('capture_resolution', tuple, 'A tuple (x-res, y-res) indicating the '
         'image capture resolution.', default=(1280, 720)),
@@ -334,38 +332,8 @@ class CameraTest(unittest.TestCase):
     Arg('show_image', bool, 'Whether to actually show the image on screen.',
         default=True),
     Arg('device_index', int, 'Index of video device (-1 for default).',
-        default=-1)
+        default=-1),
   ]
-
-  def EnableCamera(self):
-    if self.args.device_index >= 0:
-      self.camera_device = cv2.VideoCapture(self.args.device_index)
-    else:
-      # Search for the camera device in sysfs. On some boards OpenCV fails to
-      # determine the device index automatically.
-      uvc_vid_dirs = glob.glob(
-          '/sys/bus/usb/drivers/uvcvideo/*/video4linux/video*')
-      dev_index = None
-      if not uvc_vid_dirs:
-        raise IOError('No video capture interface found')
-      if len(uvc_vid_dirs) > 1:
-        raise IOError('Multiple video capture interface found')
-      for uvc_dir_entry in uvc_vid_dirs:
-        dev_index = int(re.search(r'video([0-9]+)$', uvc_dir_entry).group(1))
-        if dev_index is not None:
-          self.camera_device = cv2.VideoCapture(dev_index)
-
-    if not self.camera_device.isOpened():
-      raise IOError('Unable to open video capture interface')
-    # Set camera capture to HD resolution.
-    x_res, y_res = self.args.capture_resolution
-    self.camera_device.set(cv.CV_CAP_PROP_FRAME_WIDTH, x_res)
-    self.camera_device.set(cv.CV_CAP_PROP_FRAME_HEIGHT, y_res)
-
-  def DisableCamera(self):
-    if not self.camera_device.isOpened():
-      return
-    self.camera_device.release()
 
   def _CountdownTimer(self):
     """Starts countdown timer and fails the test if timer reaches zero,
@@ -387,6 +355,8 @@ class CameraTest(unittest.TestCase):
 
   def setUp(self):
     self.camera_device = None
+    self.CreateCameraDevice()
+
     self.ui = test_ui.UI()
     self.template = OneSection(self.ui)
     self.ui.AppendCSS(_CSS_CAMERA_TEST)
@@ -417,3 +387,14 @@ class CameraTest(unittest.TestCase):
 
   def runTest(self):
     self.task_manager.Run()
+
+  def CreateCameraDevice(self):
+    """Create a CameraDeviceBase-derived object."""
+    if self.args.mock_mode:
+      self.camera_device = camera_utils.MockCameraDevice(
+          self.args.capture_resolution,
+          self.args.do_QR_scan)
+    else:
+      self.camera_device = camera_utils.CVCameraDevice(
+          self.args.device_index,
+          self.args.capture_resolution)
