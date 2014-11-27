@@ -13,6 +13,7 @@ try:
 except ImportError:
   pass
 import glob
+import logging
 import os
 import re
 import tempfile
@@ -20,6 +21,7 @@ import tempfile
 import factory_common  # pylint: disable=W0611
 from cros.factory.event_log import TimedUuid
 from cros.factory.utils import file_utils
+from cros.factory.utils.process_utils import Spawn
 
 
 # Paths of mock images.
@@ -214,6 +216,57 @@ class MockCameraDevice(CameraDeviceBase):
     if not self._enabled:
       raise CameraError('Try to capture image with camera disabled')
     return ReadImageFile(self._image_path)
+
+  def IsEnabled(self):
+    return self._enabled
+
+
+class YavtaCameraDevice(CameraDeviceBase):
+  """Captures image with yavta and raw2bmp."""
+
+  _RAW_PATH = '/tmp/yavta_output.raw'
+  _BMP_PATH = '/tmp/yavta_output.bmp'
+
+  _BRIGHTNESS_SCALE = 2.0
+
+  def __init__(self, device_index, resolution, controls, postprocess):
+    """Constructor.
+
+    Args:
+      device_index: Index of video device.
+      resolution: (width, height) tuple of capture resolution.
+      controls: v4l2 controls.
+      postprocess: Whether to enhance image.
+          (Do not use this for LSC/AWB calibration)
+    """
+    super(YavtaCameraDevice, self).__init__()
+    self._device_index = device_index
+    self._resolution = resolution
+    self._controls = controls
+    self._postprocess = postprocess
+    self._enabled = False
+
+  def EnableCamera(self):
+    self._enabled = True
+
+  def DisableCamera(self):
+    self._enabled = False
+
+  def GetRawImage(self, filename):
+    # Remove previous captured file since yavta will accumulate the frames
+    file_utils.TryUnlink(filename)
+
+    command = ['yavta', '/dev/video%d' % self._device_index, '-c1', '-n1',
+               '-s%dx%d' % (self._resolution[0], self._resolution[1]),
+               '-fSRGGB10', '-F%s' % filename]
+    for ctl in self._controls:
+      command.extend(['-w', ctl])
+    logging.info(' '.join(command))
+    Spawn(command, check_call=True)
+
+  def ReadSingleFrame(self):
+    # TODO(wnhuang): implement convertion with numpy
+    raise NotImplementedError
 
   def IsEnabled(self):
     return self._enabled

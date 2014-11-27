@@ -333,6 +333,9 @@ class CameraTest(unittest.TestCase):
         default=True),
     Arg('device_index', int, 'Index of video device (-1 for default).',
         default=-1),
+    Arg('use_yavta', bool, 'Use yavta to capture image.', default=False),
+    Arg('yavta_postprocess', bool, 'Postprocess image.', default=False),
+    Arg('yavta_ctls', list, 'List of controls used in yavta.', default=[]),
   ]
 
   def _CountdownTimer(self):
@@ -394,6 +397,12 @@ class CameraTest(unittest.TestCase):
       self.camera_device = camera_utils.MockCameraDevice(
           self.args.capture_resolution,
           self.args.do_QR_scan)
+    elif self.args.use_yavta:
+      self.camera_device = camera_utils.YavtaCameraDevice(
+          self.args.device_index,
+          self.args.capture_resolution,
+          self.args.yavta_ctls,
+          self.args.yavta_postprocess)
     else:
       self.camera_device = camera_utils.CVCameraDevice(
           self.args.device_index,
