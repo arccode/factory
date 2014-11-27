@@ -265,7 +265,7 @@ class FinalizeBundle(object):
                         'site_tests', 'wipe_option', 'files', 'mini_omaha_url',
                         'patch_image_args', 'use_factory_toolkit',
                         'test_image_version', 'complete_script',
-                        'has_firmware'])
+                        'has_firmware', 'external_presenter'])
 
     self.build_board = build_board.BuildBoard(self.manifest['board'])
     self.board = self.build_board.full_name
@@ -576,8 +576,12 @@ class FinalizeBundle(object):
     if 'PYTHONPATH' in exec_env:
       del exec_env['PYTHONPATH']
 
-    Spawn([self.factory_toolkit_path, self.factory_image_path, '--yes'],
-          check_call=True, env=exec_env)
+    additional_args = []
+    if self.manifest.get('external_presenter', False):
+      additional_args = ['--no-enable-presenter']
+
+    Spawn([self.factory_toolkit_path, self.factory_image_path, '--yes'] +
+          additional_args, check_call=True, env=exec_env)
 
   def PatchImage(self):
     if not self.args.patch:
