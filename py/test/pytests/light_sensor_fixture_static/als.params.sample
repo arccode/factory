@@ -15,11 +15,12 @@
     'sysfs_path': '',
 
     # if source is i2c, you must specify these parameters
-    'i2c_param' {  # TODO(wnhuang): fill in this with correct value
+    'i2c_param' {
+      'dev_node': '/dev/video0'
       'bus': 1,
-      'chip_addr': 0x10,
-      'data_addr': 0x10,
-      'length': 5
+      'chip_addr': 0x37,
+      'data_addr': 0x3508,
+      'length': 12
     }
   },
 

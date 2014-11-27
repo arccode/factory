@@ -46,6 +46,7 @@ import unittest
 import xmlrpclib
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.system.i2cbus import I2CBus
 from cros.factory.test.args import Arg
 from cros.factory.test import factory
 from cros.factory.test import leds
@@ -338,8 +339,19 @@ class LightSensorFixtureTest(unittest.TestCase):
     return input_sn
 
   def _GetModuleSNI2C(self):
-    # TODO(wnhuang): replace this with a real implementation
-    return '1234ABC'
+    i2c_param = self._params['sn']['i2c_param']
+    data_addr = i2c_param['data_addr']
+
+    try:
+      # Power on camera so we can read from I2C
+      fd = os.open(i2c_param['dev_node'], os.O_RDWR)
+
+      bus = I2CBus('/dev/i2c-%d' % i2c_param['bus'])
+      ret = bus.wr_rd(i2c_param['chip_addr'],
+                      [data_addr >> 8, data_addr & 0xff], i2c_param['length'])
+      return ''.join([chr(x) for x in reversed(ret)])
+    finally:
+      os.close(fd)
 
   def _ReadSysfs(self, pathname):
     """Read single-line data from sysfs.
