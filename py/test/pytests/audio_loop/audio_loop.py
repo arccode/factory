@@ -79,6 +79,7 @@ from cros.factory.test.args import Arg
 from cros.factory.test import audio_utils
 from cros.factory.test import factory
 from cros.factory.test import test_ui
+from cros.factory.test import ui_templates
 from cros.factory.test.utils import Enum
 from cros.factory.utils.process_utils import Spawn, SpawnOutput, PIPE
 
@@ -103,6 +104,20 @@ _DEFAULT_NOISE_TEST_DURATION = 1
 _DEFAULT_SOX_RMS_THRESHOLD = (0.08, None)
 # Default Amplitude thresholds when checking recorded file.
 _DEFAULT_SOX_AMPLITUDE_THRESHOLD = (None, None)
+
+_UI_HTML = """
+<h1 id="message" style="position:absolute; top:45%">
+<center style="font-size: 20pt">
+    <div id="require_dongle">
+        <span class="goofy-label-en">Plug in audio jack dongle</span>
+        <span class="goofy-label-zh">請放入音源孔測試置具</span>
+    </div>
+    <br/>
+    <span class="goofy-label-en">Hit s to start loopback test</span>
+    <span class="goofy-label-zh">请按下s键开始音源回放测试</span>
+</center>
+</h1>
+"""
 
 MicSource = Enum(['external', 'panel', 'mlb'])
 
@@ -215,6 +230,8 @@ class AudioLoopTest(unittest.TestCase):
     # Setup HTML UI, and event handler
     self._ui = test_ui.UI()
     self._ui.AddEventHandler('start_run_test', self.StartRunTest)
+    self._ui_template = ui_templates.OneSection(self._ui)
+    self._ui_template.SetState(_UI_HTML)
 
     # Check cras status
     if self.args.cras_enabled:
