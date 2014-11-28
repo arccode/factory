@@ -112,14 +112,30 @@ class ConfigDeployer(object):
     for bundle in self._config_to_deploy.GetActiveBundles():
       resources = bundle['resources']
       new_conf = self._ComposeDownloadConf(resources)
-      if new_conf is None:
-        continue
-      new_conf_lines = new_conf.split('\n')
-      original_conf = open(
-          self._env.GetResourcePath(resources['download_conf'])).read()
-      original_conf_lines = original_conf.split('\n')
+      if 'download_conf' in resources:
+        original_conf = open(
+            self._env.GetResourcePath(resources['download_conf'])).read()
+      else:
+        original_conf = None
 
-      if original_conf_lines[2:] != new_conf_lines:
+      need_add_download_conf = False
+      if original_conf:
+        if not new_conf:
+          # download_conf no longer needed.
+          del resources['download_conf']
+          logging.info('Download conf becomes empty. Remove it from resources.')
+          need_update_config = True
+        else:
+          original_conf_lines = original_conf.split('\n')
+          new_conf_lines = new_conf.split('\n')
+          if original_conf_lines[2:] != new_conf_lines:
+            need_add_download_conf = True
+      else:
+        if new_conf:
+          logging.info('Add new download_conf resources.')
+          need_add_download_conf = True
+
+      if need_add_download_conf:
         logging.info('download-conf differ for bundle %s',  bundle['id'])
         header = '# date:   %s\n# bundle: %s_%s\n' % (
             datetime.datetime.utcnow(), board, bundle['id'])
@@ -128,11 +144,11 @@ class ConfigDeployer(object):
           with open(temp_conf_path, 'w') as f:
             f.write(header)
             f.write(new_conf)
+          # Add resoruce inside TempDirectory context.
           new_download_conf_path = self._env.AddResource(temp_conf_path)
-          resources['download_conf'] = os.path.basename(new_download_conf_path)
-          logging.info('Composes new download_conf in %r',
-                       new_download_conf_path)
-          need_update_config = True
+        resources['download_conf'] = os.path.basename(new_download_conf_path)
+        logging.info('Composes new download_conf in %r', new_download_conf_path)
+        need_update_config = True
 
     # If UmpireConfig needs update, add it to resources and use it.
     if need_update_config:
