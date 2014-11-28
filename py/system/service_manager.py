@@ -42,9 +42,24 @@ def SetServiceStatus(service, status=None):
   return new_status
 
 
-def GetServiceStatus(service):
-  '''Returns service status.'''
-  return SetServiceStatus(service, None)
+def GetServiceStatus(service, ignore_failure=False):
+  '''Returns service status.
+
+    Args:
+      service: The service name we want to acquire status.
+      ignore_failure: True to suppress exception when failed to get status.
+
+    Returns:
+      Service status. If ignore_failure is True, a None will be returned
+      when failing to get status.
+  '''
+  try:
+    return SetServiceStatus(service, None)
+  except:  # pylint: disable=W0702
+    if not ignore_failure:
+      raise
+    logging.exception('Failed to get service %s.', service)
+    return None
 
 
 class ServiceManager(object):

@@ -99,7 +99,7 @@ class DUTEnvironment(Environment):
                           'shill',
                           'warn-collector']
       for service in respawn_services:
-        if GetServiceStatus(service) == Status.START:
+        if GetServiceStatus(service, ignore_failure=True) == Status.START:
           SetServiceStatus(service, Status.STOP)
 
     assert operation in ['reboot', 'full_reboot', 'halt']
@@ -141,7 +141,7 @@ class DUTEnvironment(Environment):
     def is_state_server_ready():
       try:
         return state_server.IsReadyForUIConnection()
-      except:
+      except:  # pylint: disable=W0702
         return False
     utils.WaitFor(is_state_server_ready, 30)
     chrome.PageNavigate(url)
