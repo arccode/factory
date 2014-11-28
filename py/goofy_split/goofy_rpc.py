@@ -156,11 +156,16 @@ class GoofyRPC(object):
     is_presenter = os.path.exists(presenter_tag)
 
     def PostUpdateHook():
+      def _RestoreTag(tag_status, tag_path):
+        if tag_status:
+          file_utils.TouchFile(tag_path)
+        else:
+          file_utils.TryUnlink(tag_path)
+
       # Restore all the host-based tag files after update.
-      if is_device:
-        file_utils.TouchFile(device_tag)
-      if is_presenter:
-        file_utils.TouchFile(presenter_tag)
+      _RestoreTag(is_device, device_tag)
+      _RestoreTag(is_presenter, presenter_tag)
+
       # After update, wait REBOOT_AFTER_UPDATE_DELAY_SECS before the
       # update, and return a value to the caller.
       now = time.time()
