@@ -33,7 +33,10 @@ class Power(object):
         if ReadOneLine(p) == 'Battery':
           return os.path.dirname(p)
     else:
-      p = glob.glob(os.path.join(self._sys, 'class/power_supply/*/online'))
+      ac_path = os.path.join(self._sys, 'class/power_supply/%s/online')
+      if os.path.exists(ac_path % 'AC'):
+        return os.path.dirname(ac_path % 'AC')
+      p = glob.glob(ac_path % '*')
       if len(p) > 1:
         raise PowerException('Found multiple power with "online" property')
       elif len(p) == 1:
