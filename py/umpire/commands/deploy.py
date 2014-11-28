@@ -99,15 +99,11 @@ class ConfigDeployer(object):
     if not self._config_to_deploy:
       raise common.UmpireError('Unable to get config_to_deploy. It should fail '
                                'in _ValidateConfigToDeploy')
-    bundles = self._config_to_deploy['bundles']
-    if not bundles:
-      return
-
+    logging.debug('Refreshing download_conf')
     board = self._config_to_deploy['board']
     need_update_config = False
 
-    logging.debug('Refreshing download_conf')
-    for bundle in bundles:
+    for bundle in self._config_to_deploy.GetActiveBundles():
       resources = bundle['resources']
       new_conf = self._ComposeDownloadConf(resources)
       new_conf_lines = new_conf.split('\n')
@@ -142,6 +138,8 @@ class ConfigDeployer(object):
       self._env.StageConfigFile(config_path=self._config_path_to_deploy,
                                 force=True)
       logging.info('Updated UmpireConfig validated and staged.')
+    else:
+      logging.debug('download_conf unchanged, nothing to refresh.')
 
   def _HandleDeploySuccess(self, unused_result):
     """On deploy success, activates the new config and unstage staging file.
