@@ -25,6 +25,7 @@ from cros.factory.test import utils
 from cros.factory.test.args import Arg
 from cros.factory.test.factory_task import FactoryTask, FactoryTaskManager
 from cros.factory.umpire.client import get_update
+from cros.factory.umpire.client import umpire_server_proxy
 from cros.factory.utils.process_utils import Spawn
 
 
@@ -111,7 +112,7 @@ class ImageCheckTask(FactoryTask):
         else:
           logging.info('Umpire decide not to update this DUT')
         return need_update
-      except:  # pylint: disable=W0702
+      except umpire_server_proxy.UmpireServerProxyException:
         exception_string = utils.FormatExceptionOnly()
         logging.info('Unable to sync with shopfloor server: %s',
                      exception_string)

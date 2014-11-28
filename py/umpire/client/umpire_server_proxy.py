@@ -16,6 +16,7 @@ import urllib2
 import xmlrpclib
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.test import factory
 from cros.factory.umpire.client.umpire_client import UmpireClientInfo
 from cros.factory.umpire.common import REQUIRED_RESOURCE_MAP_FIELDS
 from cros.factory.umpire.common import UMPIRE_VERSION
@@ -272,6 +273,8 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
     """
     try:
       result = self.__request('Ping', ())
+    except factory.FactoryTestFailure:
+      raise
     except Exception:
       # This is pretty common and not necessarily an error because by the time
       # when proxy instance is initiated, connection might not be ready.
