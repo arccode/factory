@@ -61,7 +61,27 @@ class BluetoothManager(object):
       raise BluetoothManagerException('DBus Exception in getting Manager'
           'dbus Interface: %s.' % e)
 
-  #TODO(cychiang). Migrate to bluez5.x api. Check crosbug.com/p/19276.
+
+  def _FindDeviceInterface(self, mac_addr, adapter):
+    """ Given a MAC address, returns the corresponding device dbus object
+
+    Args:
+      mac_addr: The MAC address of the remote device
+      adapter: The bluetooth adapter dbus interface object
+    """
+    # Remote devices belonging to the given adapter
+    # have their path prefixed by the adapter's object path
+    path_prefix = adapter.object_path
+    bus = dbus.SystemBus()
+    remote_objects = self._manager.GetManagedObjects()
+    for path, ifaces in remote_objects.iteritems():
+      if path.startswith(path_prefix):
+        device = ifaces.get(DEVICE_INTERFACE)
+        if device and str(device["Address"]) == mac_addr:
+          matching_device = bus.get_object(SERVICE_NAME, path)
+          return dbus.Interface(matching_device, DEVICE_INTERFACE)
+    return None
+
   def SetDeviceConnected(self, adapter, device_address, connect):
     """Switches the device connection.
 
@@ -78,27 +98,28 @@ class BluetoothManager(object):
       connection.
     """
     try:
-      device = adapter.FindDevice(device_address)
+      device = self._FindDeviceInterface(device_address, adapter)
     except DBusException as e:
       raise BluetoothManagerException('SetDeviceConnected: fail to find device'
                                       ' %s: %s' % (device_address, e))
-    bus = dbus.SystemBus()
-    input_interface = dbus.Interface(bus.get_object(BUS_NAME, device),
-                                     'org.bluez.Input')
     try:
       if connect:
-        input_interface.Connect()
+        device.Connect()
       else:
-        input_interface.Disconnect()
+        # If we could not find the device, then we are not connected to it
+        if device:
+          device.Disconnect()
     except DBusException as e:
       raise BluetoothManagerException('SetDeviceConnected: fail to switch'
                                       'connection: %s' % e)
     else:
       return True
 
-  #TODO(cychiang). Migrate to bluez5.x api. Check crosbug.com/p/19276.
   def RemovePairedDevice(self, adapter, device_address):
     """Removes the paired device.
+
+    Note that a removed device may not be found in subsequent scans
+    for a period of time.
 
     Args:
       adapter: The adapter interface to control.
@@ -111,16 +132,39 @@ class BluetoothManager(object):
       Raises BluetoothManagerException if fail to remove paired device.
     """
     try:
-      device = adapter.FindDevice(device_address)
-      adapter.RemoveDevice(device)
+      device = self._FindDeviceInterface(device_address, adapter)
+      if device:
+        adapter.RemoveDevice(device)
     except DBusException as e:
       raise BluetoothManagerException('RemovePairedDevice: fail to remove'
                                       ' device: %s.' % e)
     else:
-      logging.info('succefully removed device.')
+      logging.info('succesfully removed device.')
       return True
 
-  #TODO(cychiang). Migrate to bluez5.x api. Check crosbug.com/p/19276.
+  def DisconnectAndUnpairDevice(self, adapter, device_address):
+    """Disconnects and unpairs from the device, even if not currently paired.
+
+    This is intended to restore Bluetooth connection status to a known state.
+    DBus raises exceptions if not currently paired, so we swallow those.
+
+    Args:
+      adapter: The adapter interface to control.
+      device_address: The mac address of input device to control.
+
+    Returns: Nothing
+    """
+    device = self._FindDeviceInterface(device_address, adapter)
+    if device:
+      try:
+        device.Disconnect()
+      except DBusException:
+        pass
+      try:
+        device.CancelPairing()
+      except DBusException:
+        pass
+
   def CreatePairedDevice(self, adapter, device_address):
     """Create paired device.
 
@@ -132,23 +176,31 @@ class BluetoothManager(object):
       Raises BluetoothManagerException if fails to create service agent or
           fails to create paired device.
     """
+    matching_device = self._FindDeviceInterface(device_address, adapter)
+    if not matching_device:
+      raise BluetoothManagerException('CreatePairedDevice: '
+                                      'Address was not found in scan: %s'
+                                      % device_address)
     success = threading.Event()
 
-    def _ReplyHandler(device):
-      """The callback to handle success of adapter.CreatePairedDevice."""
-      logging.info('Created device %s.', device)
+    def _ReplyHandler():
+      """The callback to handle success of device.Pair."""
+      logging.info('Paired with device %s.', matching_device)
       success.set()
       self._main_loop.quit()
 
     def _ErrorHandler(error):
-      """The callback to handle error of adapter.CreatePairedDevice."""
-      logging.error('Creating device failed: %s.', error)
+      """The callback to handle error of device.Pair."""
+      logging.error('Pairing with device failed: %s.', error)
       self._main_loop.quit()
 
     bus = dbus.SystemBus()
     # Exposes a service agent object at a unique path for this test.
     agent_id = str(uuid.uuid4()).replace('-', '')
     agent_path = os.path.join('/BluetoothTest', 'agent', agent_id)
+    obj = bus.get_object(BUS_NAME, '/org/bluez')
+    agent_manager = dbus.Interface(obj, 'org.bluez.AgentManager1')
+    agent_manager.RegisterAgent(agent_path, 'DisplayYesNo')
     logging.info('CreatePairedDevice: Set agent path at %s.', agent_path)
 
     try:
@@ -160,14 +212,13 @@ class BluetoothManager(object):
         logging.exception('Fail to create agent.')
         raise BluetoothManagerException('CreatePairedDevice:'
                                         'Fail to create agent.')
-    adapter.CreatePairedDevice(device_address, agent_path, 'DisplayYesNo',
-                               reply_handler=_ReplyHandler,
-                               error_handler=_ErrorHandler)
+    matching_device.Pair(reply_handler=_ReplyHandler,
+                         error_handler=_ErrorHandler)
     self._main_loop.run()
     if success.isSet():
       return True
     else:
-      raise BluetoothManagerException('CreatePairedDevice: reply_handler'
+      raise BluetoothManagerException('Pair: reply_handler'
           ' did not get called.')
 
   def GetFirstAdapter(self):
