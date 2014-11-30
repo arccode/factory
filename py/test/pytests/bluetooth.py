@@ -59,8 +59,40 @@ _MSG_TEST_INPUT = MakeLabel('Please test input. '
                             u'请测试输入, 如果失败, 请按Esc键'
                             u'如果成功，请按Enter键',
                             'start-font-size')
+
+_MSG_UNPAIRING = MakeLabel('Unpairing', u'取消配对', 'start-font-size')
+
 INPUT_MAX_RETRY_TIMES = 10
 INPUT_RETRY_INTERVAL = 2
+
+
+def CheckInputCount():
+  """Returns the number of input devices from probing /dev/input/event*."""
+  number_input = len(glob.glob('/dev/input/event*'))
+  logging.info('Found %d input devices.', number_input)
+  return number_input
+
+
+def WaitForInputCount(task, expected_input_count, timeout=10):
+  """ Waits for the number of input devices to reach the given count.
+
+  Returns true if the input count reaches the given amount, false
+  otherwise. On failure it fails the task.
+
+  Args:
+   task: The task that may be Failed
+   expected_input_count: The number of input devices that determines success
+   timeout: The maximum time in seconds that we will wait
+  """
+  end_time = time.time() + timeout
+  while time.time() < end_time:
+    input_count = CheckInputCount()
+    if input_count == expected_input_count:
+      return True
+    time.sleep(0.2)
+  task.Fail('Input device count %d is different than expected %d.' %
+            (input_count, expected_input_count))
+  return False
 
 
 class DetectAdapterTask(FactoryTask):
@@ -266,6 +298,53 @@ class ScanDevicesTask(FactoryTask):
       self.Pass()
 
 
+class UnpairTask(FactoryTask):
+  """A task to unpair from bluetooth devices.
+
+  Args:
+    device_mac: None, or the MAC address of the device to unpair
+    name_fragment: None, or a substring of the name of the device(s) to unpair
+  """
+  # pylint: disable=W0231
+
+  def __init__(self, test, device_mac, name_fragment):
+    self._test = test
+    self._device_mac = device_mac
+    self._name_fragment = name_fragment
+
+  def _ShouldUnpairDevice(self, device_props):
+    """Indicate if a device matches the filter, and so should be unpaired
+
+    If a name fragment or MAC address is given, the corresponding property
+    must match. If neither is given, all devices should be unpaired.
+    """
+    if self._device_mac and device_props["Address"] != self._device_mac:
+      return False
+    if self._name_fragment and self._name_fragment not in device_props["Name"]:
+      return False
+    return device_props["Paired"]
+
+  def Run(self):
+    self._test.template.SetState(_MSG_UNPAIRING)
+    self._test.ui.AppendCSS('.start-font-size {font-size: 2em;}')
+
+    input_count_before_unpair = CheckInputCount()
+    bluetooth_manager = BluetoothManager()
+    adapter = bluetooth_manager.GetFirstAdapter()
+    devices = bluetooth_manager.GetAllDevices(adapter).values()
+    devices_to_unpair = filter(self._ShouldUnpairDevice, devices)
+    logging.info('Unpairing %d device(s)', len(devices_to_unpair))
+    for device_to_unpair in devices_to_unpair:
+      address = device_to_unpair["Address"]
+      bluetooth_manager.DisconnectAndUnpairDevice(adapter, address)
+      bluetooth_manager.RemovePairedDevice(adapter, address)
+
+    # Check that we unpaired what we thought we did
+    expected_input_count = input_count_before_unpair - len(devices_to_unpair)
+    if WaitForInputCount(self, expected_input_count):
+      self.Pass()
+
+
 class InputTestTask(FactoryTask):
   """The task to test bluetooth input device functionality.
 
@@ -284,19 +363,14 @@ class InputTestTask(FactoryTask):
                        the device is unpaired
 
   """
-  def __init__(self, test, finish_after_pair): # pylint: disable=W0231
+
+  def __init__(self, test, finish_after_pair):  # pylint: disable=W0231
     self._test = test
     self._target_mac = None
     self._bt_manager = None
     self._adapter = None
     self._need_to_cleanup = True
     self._finish_after_pair = finish_after_pair
-
-  def CheckInputCount(self):
-    """Returns the number of input devices from probing /dev/input/event*."""
-    number_input = len(glob.glob('/dev/input/event*'))
-    logging.info('Found %d input devices.', number_input)
-    return number_input
 
   def FinishProgressBar(self):
     """Sets progress bar to 100 to indicate retry is done."""
@@ -394,7 +468,7 @@ class InputTestTask(FactoryTask):
                           lambda _: self.RemoveInputAndQuit(False))
 
   def Run(self):
-    input_count_before_connection = self.CheckInputCount()
+    input_count_before_connection = CheckInputCount()
     self._bt_manager = BluetoothManager()
     self._adapter = self._bt_manager.GetFirstAdapter()
     self._target_mac = self._test.GetInputDeviceMac()
@@ -420,16 +494,7 @@ class InputTestTask(FactoryTask):
       self.Fail('InputTestTask: Fail to connect device.')
       return
 
-    # It can take a little time for the device to appear in /dev, so we loop
-    for _ in xrange(50):
-      input_count_after_connection = self.CheckInputCount()
-      if input_count_after_connection == input_count_before_connection + 1:
-        break
-      time.sleep(0.2)
-    else:
-      self.Fail('InputTestTask: '
-                'input device count %d is not one more than count %d.' %
-                 (input_count_after_connection, input_count_before_connection))
+    if not WaitForInputCount(self, input_count_before_connection + 1):
       return
 
     if self._finish_after_pair:
@@ -443,30 +508,33 @@ class InputTestTask(FactoryTask):
 
 class BluetoothTest(unittest.TestCase):
   ARGS = [
-    Arg('expected_adapter_count', int, 'Number of bluetooth adapters'
-        ' on the machine.', default=1),
-    Arg('detect_adapters_retry_times', int, 'Maximum retry time to'
-        ' detect adapters', default=10),
-    Arg('detect_adapters_interval_secs', int, 'Interval in seconds between each'
-        ' retry to detect adapters', default=2),
-    Arg('scan_devices', bool, 'Scan bluetooth device.',
-        default=False),
-    Arg('prompt_scan_message', bool, 'Prompts a message to tell user to enable'
-        ' remote devices discovery mode', default=True),
-    Arg('keyword', str, 'Only cares remote devices whose "Name" contains'
-        ' keyword.', default=None, optional=True),
-    Arg('average_rssi_threshold', float, 'Checks the largest average RSSI among'
-        ' scanned device is equal to or greater than average_rssi_threshold.',
-        default=None, optional=True),
-    Arg('scan_counts', int, 'Number of scans to calculate average RSSI',
-        default=3),
-    Arg('scan_timeout_secs', int, 'Timeout to do one scan', default=5),
-    Arg('input_device_mac', str, 'The mac address of bluetooth input device',
-        default=None, optional=True),
-    Arg('pair_with_match', bool, 'Whether to pair with the strongest match.',
-        default=False, optional=True),
-    Arg('finish_after_pair', bool, 'Whether the test should end immediately '
-        'after pairing completes', default=False)
+      Arg('expected_adapter_count', int, 'Number of bluetooth adapters'
+          ' on the machine.', default=1),
+      Arg('detect_adapters_retry_times', int, 'Maximum retry time to'
+          ' detect adapters', default=10),
+      Arg('detect_adapters_interval_secs', int, 'Interval in seconds between'
+          ' each retry to detect adapters', default=2),
+      Arg('scan_devices', bool, 'Scan bluetooth device.',
+          default=False),
+      Arg('prompt_scan_message', bool, 'Prompts a message to tell user to'
+          ' enable remote devices discovery mode', default=True),
+      Arg('keyword', str, 'Only cares remote devices whose "Name" contains'
+          ' keyword.', default=None, optional=True),
+      Arg('average_rssi_threshold', float, 'Checks the largest average RSSI'
+          ' among scanned device is equal to or greater than '
+          ' average_rssi_threshold.',
+          default=None, optional=True),
+      Arg('scan_counts', int, 'Number of scans to calculate average RSSI',
+          default=3),
+      Arg('scan_timeout_secs', int, 'Timeout to do one scan', default=5),
+      Arg('input_device_mac', str, 'The mac address of bluetooth input device',
+          default=None, optional=True),
+      Arg('pair_with_match', bool, 'Whether to pair with the strongest match.',
+          default=False, optional=True),
+      Arg('finish_after_pair', bool, 'Whether the test should end immediately '
+          'after pairing completes', default=False),
+      Arg('unpair', bool, 'Whether to unpair matching devices instead of pair',
+          default=False, optional=True)
   ]
 
   def SetStrongestRssiMac(self, mac_addr):
@@ -499,12 +567,17 @@ class BluetoothTest(unittest.TestCase):
         self._task_list.append(TurnOnTask(self, _MSG_TURN_ON_DEVICE))
       self._task_list.append(ScanDevicesTask(self))
 
-    # Only prompt to turn on the input device if the MAC address was explicit
-    # If we found the device via a scan, then of course it's already on
-    if self.args.input_device_mac:
-      self._task_list.append(TurnOnTask(self, _MSG_TURN_ON_INPUT_DEVICE))
+    if self.args.unpair:
+      self._task_list.append(
+          UnpairTask(self, self.args.input_device_mac, self.args.keyword))
+    else:
+      # Only prompt to turn on the input device if the MAC address was explicit
+      # If we found the device via a scan, then of course it's already on
+      if self.args.input_device_mac:
+        self._task_list.append(TurnOnTask(self, _MSG_TURN_ON_INPUT_DEVICE))
 
-    if self.args.input_device_mac or self.args.pair_with_match:
-      self._task_list.append(InputTestTask(self, self.args.finish_after_pair))
+      if self.args.input_device_mac or self.args.pair_with_match:
+        self._task_list.append(
+            InputTestTask(self, self.args.finish_after_pair))
 
     FactoryTaskManager(self.ui, self._task_list).Run()

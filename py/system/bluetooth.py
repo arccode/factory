@@ -331,6 +331,30 @@ class BluetoothManager(object):
     logging.info('paths: %s', paths)
     return paths
 
+  def GetAllDevices(self, adapter):
+    """Gets all device properties of scanned devices under the adapter
+
+    The returned value is a dict containing the properties of scanned
+    devices. Keys are device mac addresses and values are device
+    properties.
+
+    Args:
+      adapter: The adapter interface to query.
+
+    Returns:
+      A dict containing the information of scanned devices. The dict maps
+      devices mac addresses to device properties.
+    """
+    result = {}
+    path_prefix = adapter.object_path
+    remote_objects = self._manager.GetManagedObjects()
+    for path, ifaces in remote_objects.iteritems():
+      if path.startswith(path_prefix):
+        device = ifaces.get(DEVICE_INTERFACE)
+        if device and "Address" in device:
+          result[device["Address"]] = device
+    return result
+
   def ScanDevices(self, adapter, timeout_secs=10, remove_before_scan=True):
     """Scans device around using adapter for timeout_secs.
 
