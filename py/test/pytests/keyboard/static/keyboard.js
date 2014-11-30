@@ -7,14 +7,16 @@
  * @constructor
  * @param {string} layout
  * @param {Object} bindings
+ * @param {Object} skipKeycodes
  * @param {string} container
  * @param {Array} keyOrderList
  * @param {boolean} allowMultiKeys
  */
-keyboardTest = function(layout, bindings, container, keyOrderList,
+keyboardTest = function(layout, bindings, skipKeycodes, container, keyOrderList,
                         allowMultiKeys) {
   this.layout = layout;
   this.bindings = bindings;
+  this.skipKeycodes = skipKeycodes;
   this.container = container;
   this.keyOrderList = keyOrderList;
   if (allowMultiKeys) {
@@ -33,10 +35,12 @@ keyboardTest.prototype.init = function() {
   var img = new Image();
   var container = this.container;
   var bindings = this.bindings;
+  var skipKeycodes = this.skipKeycodes
   img.id = "layout-image";
   img.onload = function () {
     var xOffset = ($(container).clientWidth - this.width) / 2;
     for (keycode in bindings) {
+      var skip = keycode in skipKeycodes;
       for (var i = 0; i < bindings[keycode].length; ++i) {
         var div = document.createElement("div");
         div.id = "keycode-" + keycode + "-" + i;
@@ -46,7 +50,8 @@ keyboardTest.prototype.init = function() {
         div.style.width = bindings[keycode][i][2];
         div.style.height = bindings[keycode][i][3];
         div.style.zIndex = 2;
-        div.className = "keyboard-test-key-untested";
+        div.className = skip ? "keyboard-test-key-skip" :
+                               "keyboard-test-key-untested";
         $(container).appendChild(div)
       }
     }
@@ -185,13 +190,14 @@ keyboardTest.prototype.getClassArray = function(className) {
  * Creates a keyboard test and runs it.
  * @param {string} layout
  * @param {Object} bindings
+ * @param {Object}  skipKeycodes
  * @param {string} container
  * @param {Array} keyOrderList
  * @param {boolean} allowMultiKeys
  */
-function setUpKeyboardTest(layout, bindings, container, keyOrderList,
+function setUpKeyboardTest(layout, bindings, skipKeycodes, container, keyOrderList,
                            allowMultiKeys) {
-  window.keyboardTest = new keyboardTest(layout, bindings, container,
+  window.keyboardTest = new keyboardTest(layout, bindings, skipKeycodes, container,
                                          keyOrderList, allowMultiKeys);
   window.keyboardTest.init();
 }
