@@ -38,6 +38,8 @@ EDIDS = {
         ('1920x1080', '60Hz'): 'DP_1920x1080_60Hz',
     },
     PORTS.HDMI: {
+        ('3840x2160', '30Hz'): 'HDMI_3840x2160_30Hz',
+        ('1920x1200', '60Hz'): 'HDMI_1920x1200_60Hz',
         ('1920x1080', '60Hz'): 'HDMI_1920x1080_60Hz',
     }
 }
@@ -128,7 +130,9 @@ class Chameleon(object):
     Returns:
       A (width, height) tuple representing the resolution.
     """
-    return self.chameleond.DetectResolution(self.PORT_ID_MAP[port])
+    resolution = self.chameleond.DetectResolution(self.PORT_ID_MAP[port])
+    logging.info('Chameleon %s port resolution: %s', port, resolution)
+    return resolution
 
   def Capture(self, port):
     """Captures the framebuffer on the give port.
@@ -207,15 +211,20 @@ class Framebuffer(object):
         ret.append(info)
     return ret
 
-  def Capture(self, box):
+  def Capture(self, box, downscale=False):
     """Captures a RGB image of the framebuffer.
 
     Args:
       box: A (width, height, left, top) tuple for image cropping.
+      downscale: Whether to downscale the captured framebuffer to RGB 16-235
+          TV-scale.
 
     Returns:
       A PIL.Image object of the captured RGB image.
     """
+    def Downscale(p):
+      return (p - 128) * 110 / 128 + 126
+
     with file_utils.UnopenedTemporaryFile(suffix='.rgb') as temp:
       state.get_instance().DeviceTakeScreenshot(temp)
       # The captured image contains the giant X framebuffer. We need to crop the
@@ -226,7 +235,11 @@ class Framebuffer(object):
              temp, temp]
       process_utils.Spawn(cmd, check_call=True)
       with open(temp) as f:
-        return Image.fromstring('RGB', (width, height), f.read())
+        image = Image.fromstring('RGB', (width, height), f.read())
+      if downscale:
+        logging.info('Downscaling framebuffer to 16-235...')
+        image = Image.eval(image, Downscale)
+      return image
 
 
 class ChameleonDisplayTest(unittest.TestCase):
@@ -250,6 +263,9 @@ class ChameleonDisplayTest(unittest.TestCase):
                ('a list of regions to ignore when comparing captured images; '
                 'each element of the list must be a (x, y, width, height) '
                 'tuple to specify the rectangle to ignore'), default=[]),
+      args.Arg('downscale_to_tv_level', bool,
+               ('whether to downscale the internal framebuffer to TV level for '
+                'comparison'), default=False),
   ]
 
   IMAGE_TEMPLATE_WIDTH = 1680
@@ -411,7 +427,8 @@ class ChameleonDisplayTest(unittest.TestCase):
                   port_info[0]['left'], port_info[0]['top'])
     logging.info('Capturing internal framebuffer crop at %sx%s+%s+%s...',
                  w, h, l, t)
-    internal_image = fb.Capture(box=(w, h, l, t))
+    internal_image = fb.Capture(box=(w, h, l, t),
+                                downscale=self.args.downscale_to_tv_level)
     return internal_image, chameleon_image
 
   def TestPort(self, dut_port, chameleon_port, width, height, refresh_rate):
@@ -464,7 +481,6 @@ class ChameleonDisplayTest(unittest.TestCase):
     diff_image = ImageChops.difference(chameleon_image, internal_image)
     chameleon_image.save(self.CHAMELEON_IMAGE_PATH)
     internal_image.save(self.INTERNAL_IMAGE_PATH)
-    diff_image.save(self.DIFF_IMAGE_PATH)
 
     logging.info('Cutting off ignored regions...')
     for r in self.args.ignore_regions:
@@ -472,8 +488,10 @@ class ChameleonDisplayTest(unittest.TestCase):
       draw = ImageDraw.Draw(diff_image)
       draw.rectangle((x, y, x + w, y + h), fill='rgb(0, 0, 0)')
       del draw
+    diff_image.save(self.DIFF_IMAGE_PATH)
     histogram = diff_image.convert('L').histogram()
-    if sum(histogram[1:]) > 0:
+    pixel_diff_margin = 1 if self.args.downscale_to_tv_level else 0
+    if sum(histogram[pixel_diff_margin + 1:]) > 0:
       self.ui_template.SetState(
           test_ui.MakeLabel(
               'Captured images mismatch', zh=u'撷取的图片不相符') +
@@ -495,5 +513,6 @@ class ChameleonDisplayTest(unittest.TestCase):
         chameleon_port in PORTS,
         'Invalid port: %s; chameleon port must be one of %s' %
         (chameleon_port, PORTS))
-    self.chameleon.Reset()
+    # Wait for 5 seconds for the fade-in visual effect.
+    time.sleep(5)
     self.TestPort(dut_port, chameleon_port, width, height, refresh_rate)
