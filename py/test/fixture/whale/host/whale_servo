@@ -1,0 +1,20 @@
+#!/bin/sh
+# Copyright 2014 The Chromium OS Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+FACTORY_BASE="/usr/local/factory"
+
+HANDLER="${FACTORY_BASE}/py/test/fixture/whale/host/interrupt_handler.py"
+HANLDER_LOG="/var/log/whale_handler.log"
+
+main() {
+  while true; do
+    echo "Starting $HANDLER..."
+    $HANDLER 2>$HANLDER_LOG
+    echo "$HANDLER exits with exit code $?. Restarting..."
+    sleep 3
+  done
+}
+
+main
