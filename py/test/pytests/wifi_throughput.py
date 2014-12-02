@@ -389,7 +389,7 @@ class _ServiceTest(object):
     # Try connecting to the service.  If we can't connect, then don't log
     # connection details, and abort this service's remaining tests.
     try:
-      DoTest(self._Find,
+      DoTest(self._Find, abort=True,
              ssid=ap_config.ssid)
 
       DoTest(self._CheckSignalStrength,
@@ -432,12 +432,15 @@ class _ServiceTest(object):
   def _Find(self, ssid):
     # Look for requested service.
     self._Log('Trying to connect to service %s...', ssid)
-    self._service = _RetryWithTimeout(
-        lambda: self._wifi.find_matching_service({
-            self._wifi.SERVICE_PROPERTY_TYPE: 'wifi',
-            self._wifi.SERVICE_PROPERTY_NAME: ssid}),
-        log_text='Looking for service %s...' % ssid,
-        fail_text='Unable to find service %s' % ssid)
+    try:
+      self._service = _RetryWithTimeout(
+          lambda: self._wifi.find_matching_service({
+              self._wifi.SERVICE_PROPERTY_TYPE: 'wifi',
+              self._wifi.SERVICE_PROPERTY_NAME: ssid}),
+          log_text='Looking for service %s...' % ssid,
+          fail_text='Unable to find service %s' % ssid)
+    except Exception as e:
+      raise self._TestException(e.message)
     return 'Found service %s' % ssid
 
   def _CheckSignalStrength(self, min_signal_strength):
