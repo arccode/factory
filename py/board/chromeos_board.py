@@ -284,3 +284,6 @@ class ChromeOSBoard(Board):
         role=match.group('role'),
         polarity=match.group('polarity'),
         state=int(match.group('state')))
+
+  def CheckACPresent(self):
+    return self.power.CheckACPresent()
