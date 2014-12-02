@@ -656,42 +656,19 @@ class AudioQualityTest(unittest.TestCase):
         factory.console.error('Remove Ethernet Exception: %s',
                               exception_string)
 
-  def PrepareNetwork(self, force_ip, msg):
+  def PrepareNetwork(self, ip, msg):
     """Blocks forever until network is prepared.
 
     Args:
-      force_ip: If true, set _LOCAL_IP. Otherwise, use DHCP
+      ip: If None, use DHCP. Otherwise, set ip
       msg: The message will be shown in UI
     """
     self._ui.CallJSFunction('setMessage', msg)
+    force_ip = False if ip is None else True
     network.PrepareNetwork(
-        _LOCAL_IP, force_ip,
+        ip, force_ip,
         lambda: self._ui.CallJSFunction('setMessage', _LABEL_WAITING_IP))
     self._eth = net_utils.FindUsableEthDevice()
-
-  def GetShopfloorConnection(
-      self, timeout_secs=_SHOPFLOOR_TIMEOUT_SECS,
-      retry_interval_secs=_SHOPFLOOR_RETRY_INTERVAL_SECS):
-    """Returns a shopfloor client object.
-
-    Try forever until a connection of shopfloor is established.
-
-    Args:
-      timeout_secs: Timeout for shopfloor connection.
-      retry_interval_secs: Seconds to wait between retries.
-    """
-    factory.console.info('Connecting to shopfloor...')
-    while True:
-      try:
-        shopfloor_client = shopfloor.get_instance(
-            detect=True, timeout=timeout_secs)
-        break
-      except:  # pylint: disable=W0702
-        exception_string = utils.FormatExceptionOnly()
-        logging.info('Unable to sync with shopfloor server: %s',
-                     exception_string)
-      time.sleep(retry_interval_secs)
-    return shopfloor_client
 
   def InitAudioParameter(self):
     """Downloads parameters from shopfloor and saved to state/caches.
@@ -703,10 +680,10 @@ class AudioQualityTest(unittest.TestCase):
     If the version is mismatch, analysis software can download
     latest parameter and apply it.
     """
-    self.PrepareNetwork(False, _LABEL_WAITING_ETHERNET)
+    self.PrepareNetwork(None, _LABEL_WAITING_ETHERNET)
     factory.console.info('Start downloading parameters...')
     self._ui.CallJSFunction('setMessage', _LABEL_CONNECT_SHOPFLOOR)
-    shopfloor_client = self.GetShopfloorConnection()
+    shopfloor_client = shopfloor.GetShopfloorConnection(retry_interval_secs=3)
     logging.info('Syncing time with shopfloor...')
     goofy = factory.get_state_instance()
     goofy.SyncTimeWithShopfloorServer()
@@ -734,7 +711,7 @@ class AudioQualityTest(unittest.TestCase):
 
   def RunAudioServer(self):
     """Initializes server and starts listening for external commands."""
-    self.PrepareNetwork(True, _LABEL_WAITING_FIXTURE_ETHERNET)
+    self.PrepareNetwork(_LOCAL_IP, _LABEL_WAITING_FIXTURE_ETHERNET)
     sock = socket.socket()
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     sock.bind((_HOST, _PORT))
@@ -756,7 +733,7 @@ class AudioQualityTest(unittest.TestCase):
     """Uploads files which are sent from DUT by send_file command to
     shopfloor.
     """
-    self.PrepareNetwork(False, _LABEL_WAITING_ETHERNET)
+    self.PrepareNetwork(None, _LABEL_WAITING_ETHERNET)
     factory.console.info('Start uploading logs...')
     self._ui.CallJSFunction('setMessage', _LABEL_UPLOAD_AUXLOG)
     shopfloor.UploadAuxLogs(self._auxlogs)
