@@ -336,6 +336,7 @@ class CameraTest(unittest.TestCase):
     Arg('use_yavta', bool, 'Use yavta to capture image.', default=False),
     Arg('yavta_postprocess', bool, 'Postprocess image.', default=False),
     Arg('yavta_ctls', list, 'List of controls used in yavta.', default=[]),
+    Arg('yavta_skip', int, 'Skip first n frames.', default=0),
   ]
 
   def _CountdownTimer(self):
@@ -402,7 +403,8 @@ class CameraTest(unittest.TestCase):
           self.args.device_index,
           self.args.capture_resolution,
           self.args.yavta_ctls,
-          self.args.yavta_postprocess)
+          self.args.yavta_postprocess,
+          self.args.yavta_skip)
     else:
       self.camera_device = camera_utils.CVCameraDevice(
           self.args.device_index,

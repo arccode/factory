@@ -222,14 +222,14 @@ class MockCameraDevice(CameraDeviceBase):
 
 
 class YavtaCameraDevice(CameraDeviceBase):
-  """Captures image with yavta and raw2bmp."""
+  """Captures image with yavta."""
 
   _RAW_PATH = '/tmp/yavta_output.raw'
   _BMP_PATH = '/tmp/yavta_output.bmp'
 
   _BRIGHTNESS_SCALE = 2.0
 
-  def __init__(self, device_index, resolution, controls, postprocess):
+  def __init__(self, device_index, resolution, controls, postprocess, skip=0):
     """Constructor.
 
     Args:
@@ -238,12 +238,14 @@ class YavtaCameraDevice(CameraDeviceBase):
       controls: v4l2 controls.
       postprocess: Whether to enhance image.
           (Do not use this for LSC/AWB calibration)
+      skip: number of frames to skip before taking the image
     """
     super(YavtaCameraDevice, self).__init__()
     self._device_index = device_index
     self._resolution = resolution
     self._controls = controls
     self._postprocess = postprocess
+    self._skip = skip
     self._enabled = False
 
   def EnableCamera(self):
@@ -256,9 +258,9 @@ class YavtaCameraDevice(CameraDeviceBase):
     # Remove previous captured file since yavta will accumulate the frames
     file_utils.TryUnlink(filename)
 
-    command = ['yavta', '/dev/video%d' % self._device_index, '-c1', '-n1',
-               '-s%dx%d' % (self._resolution[0], self._resolution[1]),
-               '-fSRGGB10', '-F%s' % filename]
+    command = ['yavta', '/dev/video%d' % self._device_index,
+               '-c%d' % (self._skip + 1), '--skip', str(self._skip), '-n1',
+               '-s%dx%d' % self._resolution, '-fSRGGB10', '-F%s' % filename]
     for ctl in self._controls:
       command.extend(['-w', ctl])
     logging.info(' '.join(command))
