@@ -100,7 +100,7 @@ def Init(env, bundle_dir, board, make_default, local, user, group,
     return unpack_dir
 
   def SymlinkBinary(toolkit_base):
-    """Creates symlink to umpire/umpired executable.
+    """Creates symlink to umpire/umpired executable and resources.
 
     It first creates a symlink $base_dir/bin/umpire to umpire executable in
     extracted toolkit '$toolkit_base/usr/local/factory/bin/umpire'.
@@ -109,6 +109,9 @@ def Init(env, bundle_dir, board, make_default, local, user, group,
 
     For umpired, it only creates a symlink $base_dir/bin/umpired to umpired
     executable in extracted toolkit. (No symlink in /usr/local/bin)
+
+    For tftpboot, it creates a symlink /tftpboot/vmlinux-<BOARD>.bin to
+    /var/db/factory/umpire/<BOARD>/resources/vmlinux.bin.
 
     For the first time, also creates /usr/local/bin/umpire symlink.
     If --default is set, replaces /usr/local/bin/umpire.
@@ -137,6 +140,15 @@ def Init(env, bundle_dir, board, make_default, local, user, group,
       if not os.path.exists(default_symlink) or make_default:
         file_utils.ForceSymlink(global_board_symlink, default_symlink)
         logging.info('Symlink %r -> %r', default_symlink, global_board_symlink)
+
+      vmlinux_symlink = os.path.join(root_dir, 'tftpboot', 'vmlinux-%s.bin' %
+                                     board)
+      resources_vmlinux_bin = os.path.join(env.resources_dir, 'vmlinux.bin')
+      logging.info('Symlink %r -> %r', vmlinux_symlink, resources_vmlinux_bin)
+
+      if os.path.islink(vmlinux_symlink):
+        os.remove(vmlinux_symlink)
+      os.symlink(resources_vmlinux_bin, vmlinux_symlink)
 
   def InitUmpireConfig(toolkit_base):
     """Prepares the very first UmpireConfig and marks it as active.

@@ -142,7 +142,10 @@ class ConfigDeployer(object):
       logging.debug('download_conf unchanged, nothing to refresh.')
 
   def _HandleDeploySuccess(self, unused_result):
-    """On deploy success, activates the new config and unstage staging file.
+    """Handles deploy success.
+
+    Activates the new config and unstage staging file. Makes netboot image
+    symlink.
 
     Returns:
       A string indicating deploy success.
@@ -151,6 +154,17 @@ class ConfigDeployer(object):
     self._env.UnstageConfigFile()
     logging.info('Config %r deployed. Set it as activate config.',
                  self._config_path_to_deploy)
+
+    default_bundle = self._env.config.GetDefaultBundle()
+    resources = default_bundle.get('resources', [])
+    if 'netboot_vmlinux' in resources:
+      vmlinux_symlink = os.path.join(self._env.resources_dir, 'vmlinux.bin')
+      if os.path.islink(vmlinux_symlink) or os.path.exists(vmlinux_symlink):
+        os.remove(vmlinux_symlink)
+      os.symlink(resources['netboot_vmlinux'], vmlinux_symlink)
+      logging.info('netboot kernel: %s updated.',
+                   resources['netboot_vmlinux'])
+
     return 'Deploy success'
 
   def _HandleDeployError(self, failure):

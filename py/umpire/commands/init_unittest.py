@@ -44,6 +44,8 @@ UMPIRED_RELATIVE_PATH = os.path.join('usr', 'local', 'factory', 'bin',
 # Relative path of board specific Umpire bin symlink.
 BOARD_SPECIFIC_UMPIRE_BIN_SYMLINK = os.path.join(
     'usr', 'local', 'bin', 'umpire-' + TEST_BOARD)
+TFTPBOOT_UMPIRE_SYMLINK = os.path.join('tftpboot', 'vmlinux-%s.bin' %
+                                       TEST_BOARD)
 
 class InitTest(unittest.TestCase):
   def setUp(self):
@@ -63,7 +65,9 @@ class InitTest(unittest.TestCase):
                                      'umpire', TEST_BOARD)
     os.makedirs(self.root_dir)
     os.makedirs(os.path.join(self.root_dir, 'usr', 'local', 'bin'))
+    os.makedirs(os.path.join(self.root_dir, 'tftpboot'))
     os.makedirs(self.env.base_dir)
+    os.makedirs(self.env.resources_dir)
 
   def tearDown(self):
     self.mox.UnsetStubs()
@@ -209,6 +213,8 @@ class InitTest(unittest.TestCase):
         self.root_dir, BOARD_SPECIFIC_UMPIRE_BIN_SYMLINK)))
     self.assertFalse(os.path.exists(os.path.join(
         self.root_dir, 'usr', 'local', 'bin', 'umpire')))
+    self.assertFalse(os.path.exists(os.path.join(
+        self.root_dir, TFTPBOOT_UMPIRE_SYMLINK)))
 
   def testMakeDefault(self):
     self.MockOsModule()
@@ -258,6 +264,8 @@ class InitTest(unittest.TestCase):
         self.root_dir, BOARD_SPECIFIC_UMPIRE_BIN_SYMLINK)
     self.assertTrue(os.path.exists(umpire_board_symlink))
     self.assertEqual(umpire_bin_path, os.path.realpath(umpire_board_symlink))
+    self.assertTrue(os.path.islink(os.path.join(
+        self.root_dir, TFTPBOOT_UMPIRE_SYMLINK)))
 
     # /usr/local/bin/umpire is unchaged.
     self.assertTrue(os.path.exists(umpire_default_symlink))
