@@ -537,13 +537,20 @@ def GetShopfloorConnection(
   return shopfloor_client
 
 
-def UploadAuxLogs(file_paths, ignore_on_fail=False):
-  """Attempts to upload arbitrary file to the shopfloor server."""
+def UploadAuxLogs(file_paths, ignore_on_fail=False, dir_name=None):
+  """Attempts to upload arbitrary files to the shopfloor server.
+  Args:
+    file_paths: file paths which would like to be uploaded.
+    ignore_on_fail: do not raise exception if the value is True.
+    dir_name: relative directory on shopfloor.
+  """
   shopfloor_client = GetShopfloorConnection()
   for file_path in file_paths:
     try:
       chunk = open(file_path, 'r').read()
       log_name = os.path.basename(file_path)
+      if dir_name:
+        log_name = os.path.join(dir_name, log_name)
       factory.console.info('Uploading %s', log_name)
       start_time = time.time()
       shopfloor_client.SaveAuxLog(log_name, Binary(chunk))
