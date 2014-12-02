@@ -133,7 +133,7 @@ def _RetryWithTimeout(f, log_text=None, fail_text=None, timeout=None, sleep=1):
       result = f()
     except Exception as e:
       logging.exception(e.message)
-    if result != False and result != None:
+    if not result:
       return result
     if time.time() >= deadline:
       break
@@ -657,10 +657,16 @@ class WiFiThroughput(unittest.TestCase):
 
   def _RunBasicSSIDList(self):
     # Basic WiFi test -- returns available APs.
-    found_ssids = _RetryWithTimeout(
-        self._wifi.get_active_wifi_SSIDs,
-        log_text='Looking for WiFi services...',
-        fail_text='Timed out while searching for WiFi services')
+    try:
+      found_ssids = _RetryWithTimeout(
+          self._wifi.get_active_wifi_SSIDs,
+          log_text='Looking for WiFi services...',
+          fail_text='Timed out while searching for WiFi services')
+      factory.console.info('Found services: %s', ', '.join(found_ssids))
+    except Exception as e:
+      self.log['failures'].append(e.message)
+      self._Log()
+      self.fail(e.message)
     return found_ssids
 
   def _ProcessArgs(self):
@@ -768,13 +774,9 @@ class WiFiThroughput(unittest.TestCase):
     # Ensure that our WiFi device is in a known disconnected state.
     self._RunTestChecks()
 
-    # Run a basic SSID list test.
+    # Run a basic SSID list test (if none found will fail).
     found_ssids = self._RunBasicSSIDList()
-    if found_ssids:
-      factory.console.info('Found services: %s', ', '.join(found_ssids))
-      self.log['ssid_list'] = found_ssids
-    else:
-      logging.info('No services found')
+    self.log['ssid_list'] = found_ssids
 
     # Test WiFi signal strength for each service.
     if self.args.services:
