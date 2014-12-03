@@ -10,6 +10,13 @@ main() {
   # Install console (VT2) customizations
   mount --bind "${MYDIR}/profile.d/vt2.sh" /etc/profile.d/cursor.sh
 
+  for tag_file in ${MYDIR}/tag_*; do
+    local tag_script="${MYDIR}/tags.d/start_${tag_file#${MYDIR}/tag_}"
+    if [ -x "${tag_script}" ]; then
+      "${tag_script}"
+    fi
+  done
+
   if [ -f "${FACTORY_BASE}/py/goofy/GOOFY_SPLIT" ]; then
     # Load presenter app if we are running goofy_presenter.
     if [ -f "${MYDIR}/run_goofy_presenter" ]; then
