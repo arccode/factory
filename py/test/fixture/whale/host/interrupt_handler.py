@@ -59,6 +59,9 @@ class InterruptHandler(object):
 
   _INPUT_INTERRUPT_GPIO = 7
 
+  # Used to avoid toggle battery too fast.
+  _BATTERY_CEASE_TOGGLE_SECS = 1.0
+
   def __init__(self, use_polld, host, polld_port, servod_port, rpc_debug,
                polling_wait_secs):
     """Constructor.
@@ -87,6 +90,9 @@ class InterruptHandler(object):
 
     self._starting_fixture_action = None
     self._starting_fixture_flag = False
+
+    # Used to avoid toggle battery too fast.
+    self._last_battery_toggle_time = time.time()
 
   @TimeClassMethodDebug
   def Init(self):
@@ -195,6 +201,24 @@ class InterruptHandler(object):
       self._servo.Enable(self._CONTROL.FIXTURE_PLUG_LATERAL)
 
   @TimeClassMethodDebug
+  def _ToggleBattery(self):
+    """Toggles battery status.
+
+    If battery is on, switches it to off and vise versa.
+    """
+    if (time.time() - self._last_battery_toggle_time <
+        self._BATTERY_CEASE_TOGGLE_SECS):
+      logging.debug('Toggle too fast, cease toggle for %f second.',
+                    self._BATTERY_CEASE_TOGGLE_SECS)
+      return
+
+    new_battery_status = ('off' if self._servo.IsOn(self._CONTROL.BATTERY)
+                          else 'on')
+    logging.info('[Toggle battery to %s]', new_battery_status)
+    self._servo.Set(self._CONTROL.BATTERY, new_battery_status)
+    self._last_battery_toggle_time = time.time()
+
+  @TimeClassMethodDebug
   def ScanButton(self):
     """Scans all buttons and invokes button click handler for clicked buttons.
 
@@ -236,6 +260,8 @@ class InterruptHandler(object):
         else:
           self._starting_fixture_flag = True
           self._HandleStartFixture()
+      elif button == self._BUTTON.RESERVE_1:
+        self._ToggleBattery()
 
       logging.info('Button %s clicked', button)
     return button_clicked
