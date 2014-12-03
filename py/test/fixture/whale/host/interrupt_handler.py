@@ -131,37 +131,37 @@ class InterruptHandler(object):
   @TimeClassMethodDebug
   def _HandleStopFixture(self):
     """Stop Fixture Step"""
-    logging.debug('[Stopping fixture...]')
+    logging.info('[Stopping fixture...]')
     self._SetState(self._FixtureState.OPENING)
     while True:
       feedback_status = self._servo.MultipleIsOn(self._FEEDBACK_LIST)
       if (not feedback_status[self._FIXTURE_FEEDBACK.FB7] or
           not feedback_status[self._FIXTURE_FEEDBACK.FB9]):
-        logging.debug('[HandleStopFixture] -> FIXTURE_PLUG_LATERAL')
+        logging.info('[HandleStopFixture] -> FIXTURE_PLUG_LATERAL')
         self._servo.Disable(self._CONTROL.FIXTURE_PLUG_LATERAL)
         continue
 
       if (not feedback_status[self._FIXTURE_FEEDBACK.FB1] or
           not feedback_status[self._FIXTURE_FEEDBACK.FB3]):
-        logging.debug('[HandleStopFixture] -> FIXTURE_PUSH_NEEDLE')
+        logging.info('[HandleStopFixture] -> FIXTURE_PUSH_NEEDLE')
         self._servo.Disable(self._CONTROL.FIXTURE_PUSH_NEEDLE)
         continue
 
       if (feedback_status[self._FIXTURE_FEEDBACK.FB5] and
           feedback_status[self._FIXTURE_FEEDBACK.FB6]):
-        logging.debug('[HandleStopFixture] -> FIXTURE_HOOK_COVER')
+        logging.info('[HandleStopFixture] -> FIXTURE_HOOK_COVER')
         self._servo.Disable(self._CONTROL.FIXTURE_HOOK_COVER)
         continue
 
       if (feedback_status[self._FIXTURE_FEEDBACK.FB12] or
           not feedback_status[self._FIXTURE_FEEDBACK.FB11]):
-        logging.debug('[HandleStopFixture] -> FIXTURE_CLOSE_COVER')
+        logging.info('[HandleStopFixture] -> FIXTURE_CLOSE_COVER')
         self._servo.Disable(self._CONTROL.FIXTURE_CLOSE_COVER)
         continue
 
       if feedback_status[self._FIXTURE_FEEDBACK.FB11]:
         self._starting_fixture_action = None
-        logging.debug('[Fixture stopped]')
+        logging.info('[Fixture stopped]')
         break
     self._SetState(self._FixtureState.WAIT)
 
@@ -172,59 +172,59 @@ class InterruptHandler(object):
 
       if (self._starting_fixture_action == ActionType.CLOSE_COVER and
           feedback_status[self._FIXTURE_FEEDBACK.FB12]):
-        logging.debug('[HandleStartFBChange] -> CHANGLE TO HOOK_COVER')
+        logging.info('[HandleStartFBChange] -> CHANGLE TO HOOK_COVER')
         self._starting_fixture_action = ActionType.HOOK_COVER
 
       elif (self._starting_fixture_action == ActionType.HOOK_COVER and
             feedback_status[self._FIXTURE_FEEDBACK.FB5] and
             feedback_status[self._FIXTURE_FEEDBACK.FB6]):
-        logging.debug('[HandleStartFBChange] -> PUSH_NEEDLE')
+        logging.info('[HandleStartFBChange] -> PUSH_NEEDLE')
         self._starting_fixture_action = ActionType.PUSH_NEEDLE
 
       elif (self._starting_fixture_action == ActionType.PUSH_NEEDLE and
             feedback_status[self._FIXTURE_FEEDBACK.FB2] and
             feedback_status[self._FIXTURE_FEEDBACK.FB4]):
-        logging.debug('[HandleStartFBChange] ->PLUG_LATERAL')
+        logging.info('[HandleStartFBChange] ->PLUG_LATERAL')
         self._starting_fixture_action = ActionType.PLUG_LATERAL
 
       elif (self._starting_fixture_action == ActionType.PLUG_LATERAL and
             feedback_status[self._FIXTURE_FEEDBACK.FB8] and
             feedback_status[self._FIXTURE_FEEDBACK.FB10]):
-        logging.debug('[START] CYLIDER ACTION is done...')
+        logging.info('[START] CYLIDER ACTION is done...')
         self._starting_fixture_action = ActionType.FIXTURE_STARTED
         self._SetState(self._FixtureState.CLOSED)
 
   @TimeClassMethodDebug
   def _HandleStartFixture(self):
     """Start Fixture Step"""
-    logging.debug('[Fixture Start ...]')
+    logging.info('[Fixture Start ...]')
 
     if not self._starting_fixture_flag:
       return
 
     if self._starting_fixture_action == ActionType.FIXTURE_STARTED:
-      logging.debug('[HandleStartFixture] ACTION = FIXTURE_STARTED')
+      logging.info('[HandleStartFixture] ACTION = FIXTURE_STARTED')
       return
 
     if self._starting_fixture_action is None:
-      logging.debug('[HandleStartFixture] ACTION = None')
+      logging.info('[HandleStartFixture] ACTION = None')
       self._starting_fixture_action = ActionType.CLOSE_COVER
       self._SetState(self._FixtureState.CLOSING)
 
     if self._starting_fixture_action == ActionType.CLOSE_COVER:
-      logging.debug('[HandleStartFixture] ACTION = CLOSE_COVER')
+      logging.info('[HandleStartFixture] ACTION = CLOSE_COVER')
       self._servo.Enable(self._CONTROL.FIXTURE_CLOSE_COVER)
 
     elif self._starting_fixture_action == ActionType.HOOK_COVER:
-      logging.debug('[HandleStartFixture] ACTION = HOOK_COVER')
+      logging.info('[HandleStartFixture] ACTION = HOOK_COVER')
       self._servo.Enable(self._CONTROL.FIXTURE_HOOK_COVER)
 
     elif self._starting_fixture_action == ActionType.PUSH_NEEDLE:
-      logging.debug('[HandleStartFixture] ACTION = PUSH_NEEDLE')
+      logging.info('[HandleStartFixture] ACTION = PUSH_NEEDLE')
       self._servo.Enable(self._CONTROL.FIXTURE_PUSH_NEEDLE)
 
     elif self._starting_fixture_action == ActionType.PLUG_LATERAL:
-      logging.debug('[HandleStartFixture] ACTION = PLUG_LATERAL')
+      logging.info('[HandleStartFixture] ACTION = PLUG_LATERAL')
       self._servo.Enable(self._CONTROL.FIXTURE_PLUG_LATERAL)
 
   @TimeClassMethodDebug
@@ -257,11 +257,13 @@ class InterruptHandler(object):
 
     if status[self._BUTTON.FIXTURE_STOP]:
       self._starting_fixture_flag = False
+      logging.info('Calling _HandleStopFixture because FIXTURE_STOP is True.')
       self._HandleStopFixture()
       return True
 
     if self._starting_fixture_flag and not status[self._BUTTON.FIXTURE_START]:
       self._starting_fixture_flag = False
+      logging.info('Calling _HandleStopFixture because FIXTURE_START is False.')
       self._HandleStopFixture()
       return False
 
@@ -282,7 +284,7 @@ class InterruptHandler(object):
 
       if button == self._BUTTON.FIXTURE_START:
         if self._starting_fixture_action == ActionType.FIXTURE_STARTED:
-          logging.debug('[START] ACTION = FIXTURE_STARTED')
+          logging.info('[START] ACTION = FIXTURE_STARTED')
           self._starting_fixture_flag = False
         else:
           self._starting_fixture_flag = True
