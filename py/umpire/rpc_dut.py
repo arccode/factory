@@ -27,7 +27,7 @@ from cros.factory.utils import file_utils
 
 VERSION_COMPONENTS = ['firmware_bios', 'firmware_ec', 'firmware_pd', 'hwid',
                       'rootfs_test', 'rootfs_release']
-HASH_COMPONENTS = ['device_factory_toolkit']
+HASH_COMPONENTS = ['device_factory_toolkit', 'netboot_firmware']
 ALL_COMPONENTS = VERSION_COMPONENTS + HASH_COMPONENTS
 # Factory stages in running sequence.
 FACTORY_STAGES = ['SMT', 'RUNIN', 'FA', 'GRT']

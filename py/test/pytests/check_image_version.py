@@ -24,6 +24,7 @@ from cros.factory.test import ui_templates
 from cros.factory.test import utils
 from cros.factory.test.args import Arg
 from cros.factory.test.factory_task import FactoryTask, FactoryTaskManager
+from cros.factory.tools import flash_netboot
 from cros.factory.umpire.client import get_update
 from cros.factory.umpire.client import umpire_server_proxy
 from cros.factory.utils.process_utils import Spawn
@@ -89,6 +90,14 @@ class ImageCheckTask(FactoryTask):
     self._test.ui.AddEventHandler('space_pressed', lambda _: self.Reimage())
 
   def Reimage(self):
+    if self._test.args.umpire:
+      shopfloor_proxy = shopfloor.get_instance(
+          detect=True, timeout=_SHOPFLOOR_TIMEOUT_SECS)
+      netboot_firmware = get_update.GetUpdateForNetbootFirmware(shopfloor_proxy)
+      if netboot_firmware:
+        with open(flash_netboot.DEFAULT_NETBOOT_FIRMWARE_PATH, 'wb') as f:
+          f.write(netboot_firmware)
+
     self._test.template.SetState(_MSG_REIMAGING)
     try:
       Spawn(['/usr/local/factory/bin/flash_netboot', '-y'] +

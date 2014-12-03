@@ -109,7 +109,8 @@ mock_system_info_4 = MockSystemInfo(
 OUTPUT_X_UMPIRE_DUT = (
     'board=test; ec=ec_001; firmware=fw_001; '
     'mac.eth0=EE:EE:EE:EE:EE:00; mac.eth1=EE:EE:EE:EE:EE:01; '
-    'mac.wlan0=FF:FF:FF:FF:FF:00; mlb_sn=MLB001; pd=pd_001; sn=DEV001; stage=SMT')
+    'mac.wlan0=FF:FF:FF:FF:FF:00; mlb_sn=MLB001; pd=pd_001; sn=DEV001; '
+    'stage=SMT')
 
 
 # The return value of GetDUTInfoComponents.
@@ -131,6 +132,7 @@ OUTPUT_GET_UPDATE_DUT_INFO = {
         'firmware_ec': 'ec_001',
         'firmware_bios': 'fw_001',
         'firmware_pd': 'pd_001',
+        'netboot_firmware': None,
         'hwid': 'hwid_001',
         'device_factory_toolkit': 'md5_001'}}
 
@@ -167,6 +169,7 @@ class UmpireClientInfoTest(unittest.TestCase):
 
   def testGetDUTInfoComponents(self):
     """Inits an UmpireClientInfo and checks GetDUTInfoComponents."""
+    self.maxDiff = 2048
     system.SystemInfo().AndReturn(
         mock_system_info_1)
     system.SystemInfo().AndReturn(

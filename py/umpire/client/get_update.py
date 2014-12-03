@@ -115,24 +115,29 @@ def GetUpdateForHWID(proxy):
   if update_info.scheme != 'http':
     raise UmpireClientGetUpdateException('HWID update scheme %s other than http'
         ' is not supported.' % update_info.scheme)
-  return DownloadAndUnzip(update_info.url)
+  return Download(update_info.url)
 
 
-def DownloadAndUnzip(url):
-  """Downloads a gzip file and returns its unzipped content.
+def Download(url, unzip=True):
+  """Downloads a gzip file and returns the content.
 
   Args:
     url: The url of the gzip file.
+    unzip: Whether to unzip the file.
 
   Returns:
-    The unzipped content.
+    The downloaded content, or the unzipped content if unzip is True.
   """
-  gz_file_content = urllib2.urlopen(url).read()
-  string_io = StringIO.StringIO(gz_file_content)
-  content = None
-  with gzip.GzipFile(fileobj=string_io) as f:
-    content = f.read()
-  return content
+  file_content = urllib2.urlopen(url).read()
+  if unzip:
+    string_io = StringIO.StringIO(file_content)
+    content = None
+    with gzip.GzipFile(fileobj=string_io) as f:
+      content = f.read()
+    return content
+  else:
+    return file_content
+
 
 
 def GetUpdateForFirmware(proxy):
@@ -176,4 +181,22 @@ def GetUpdateForFirmware(proxy):
     raise UmpireClientGetUpdateException(
         ('Firmware update scheme %s other than http is not supported.'
          % update_info.scheme))
-  return DownloadAndUnzip(update_info.url)
+  return Download(update_info.url)
+
+
+def GetUpdateForNetbootFirmware(proxy):
+  """Gets update information for netboot firmware.
+
+  Args:
+    proxy: An UmpireServerProxy that connects to Umpire server.
+
+  Returns:
+    None if there is no netboot firmware update. Otherwise, return the
+    downloaded netboot firmware.
+  """
+  update_info = GetUpdateForComponents(
+      proxy, ['netboot_firmware'])['netboot_firmware']
+  if update_info.needs_update:
+    return Download(update_info.url, unzip=False)
+  else:
+    return None

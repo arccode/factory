@@ -16,13 +16,16 @@ from cros.factory.system.flash_netboot import FlashNetboot
 from cros.factory.utils.process_utils import Spawn
 
 
+DEFAULT_NETBOOT_FIRMWARE_PATH = '/usr/local/factory/board/image.net.bin'
+
+
 def main():
   logging.basicConfig(level=logging.INFO)
 
   parser = argparse.ArgumentParser(
       description="Flash netboot firmware with VPD preserved.")
   parser.add_argument('--image', '-i', help='Netboot firmware image',
-                      default='/usr/local/factory/board/image.net.bin',
+                      default=DEFAULT_NETBOOT_FIRMWARE_PATH,
                       required=False)
   parser.add_argument('--yes', '-y', action='store_true',
                       help="Don't ask for confirmation")

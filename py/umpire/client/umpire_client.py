@@ -21,6 +21,7 @@ COMPONENT_KEYS = {
   'firmware_ec',
   'firmware_bios',
   'firmware_pd',
+  'netboot_firmware',
   'hwid',
   'device_factory_toolkit'
 }
@@ -145,6 +146,9 @@ class UmpireClientInfo(object):
     components['firmware_pd'] = system_info.pd_version
     components['hwid'] = system_info.hwid_database_version
     components['device_factory_toolkit'] = system_info.factory_md5sum
+    # We don't really care about the version of netboot firmware. A DUT only
+    # requests for netboot firmware when it wants to re-image itself.
+    components['netboot_firmware'] = None
 
     return components
 

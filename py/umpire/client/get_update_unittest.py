@@ -50,7 +50,7 @@ FAKE_TOOLKIT_RESULT = {
     'device_factory_toolkit': (True, 'md5sum1', 'url1', 'scheme1')}
 
 FAKE_TOOLKIT_UPDATE_RESULT = get_update.UpdateInfo(
-        needs_update=True, md5sum='md5sum1', url='url1', scheme='scheme1')
+    needs_update=True, md5sum='md5sum1', url='url1', scheme='scheme1')
 
 FAKE_HWID_RESULT = {
     'hwid': get_update.UpdateInfo(
@@ -136,6 +136,11 @@ FAKE_FIRMWARE_RESULT_5 = {
     'firmware_bios': get_update.UpdateInfo(
         needs_update=False, md5sum='md5sum1', url='firmware_url',
         scheme='http')}
+
+FAKE_NETBOOT_FIRMWARE_RESULT = {
+    'netboot_firmware': get_update.UpdateInfo(
+        needs_update=True, md5sum='md5sum1', url='netboot_firmware_url',
+        scheme='scheme')}
 
 FAKE_FIRMWARE_UPDATE_RESULT = 'chromeos-firmwareupdate content\n'
 
@@ -353,6 +358,23 @@ class GetUpdateTests(unittest.TestCase):
 
     result = get_update.GetUpdateForFirmware(self.proxy)
     self.assertEqual(result, FAKE_FIRMWARE_UPDATE_RESULT)
+
+    self.mox.VerifyAll()
+
+  def testGetUpdateForNetbootFirmware(self):
+    """Tests GetUpdateForNetbootFirmware."""
+    self.mox.StubOutWithMock(urllib2, 'urlopen')
+    fake_urlopen = self.mox.CreateMockAnything()
+    get_update.GetUpdateForComponents(
+        self.proxy, ['netboot_firmware']).AndReturn(
+            FAKE_NETBOOT_FIRMWARE_RESULT)
+    urllib2.urlopen('netboot_firmware_url').AndReturn(fake_urlopen)
+    fake_urlopen.read().AndReturn('fake_netboot')
+
+    self.mox.ReplayAll()
+
+    result = get_update.GetUpdateForNetbootFirmware(self.proxy)
+    self.assertTrue(result)
 
     self.mox.VerifyAll()
 
