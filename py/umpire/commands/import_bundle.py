@@ -72,12 +72,14 @@ class FactoryBundle(object):
     download_files_pattern: pattern of files for download.
     factory_toolkit: path to factory toolkit.
     netboot_image: path to netboot image.
+    netboot_firmware: path to netboot BIOS image.
   """
   _BUNDLE_MANIFEST = 'MANIFEST.yaml'
   _DOWNLOAD_FILES_PATTERN = os.path.join('factory_setup', 'static', '*')
   _FACTORY_TOOLKIT = os.path.join('factory_toolkit',
                                   'install_factory_toolkit.run')
   _NETBOOT_IMAGE = os.path.join('factory_shim', 'netboot', 'vmlinux.uimg')
+  _NETBOOT_FIRMWARE = os.path.join('netboot_firmware', 'image.net.bin')
   _MANDATORY_IMAGES = ['release', 'factory_shim']
 
   def __init__(self):
@@ -100,6 +102,10 @@ class FactoryBundle(object):
   @property
   def netboot_image(self):
     return os.path.join(self._path, self._NETBOOT_IMAGE)
+
+  @property
+  def netboot_firmware(self):
+    return os.path.join(self._path, self._NETBOOT_FIRMWARE)
 
   def Load(self, path, temp_dir=None):
     """Loads a factory bundle.
@@ -363,6 +369,13 @@ class BundleImporter(object):
     if not resources['netboot_vmlinux']:
       logging.warning('Missing netboot_vmlinux %r',
                       self._factory_bundle.netboot_image)
+
+    resources['netboot_firmware'] = AddResource(
+        self._factory_bundle.netboot_firmware,
+        res_type=ResourceType.NETBOOT_FIRMWARE)
+    if not resources['netboot_firmware']:
+      logging.warning('Missing netboot_firmware %r',
+                      self._factory_bundle.netboot_firmware)
 
     # Deal with files for netboot download.
     download_files = AddDownloadFiles()

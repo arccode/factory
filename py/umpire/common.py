@@ -32,8 +32,8 @@ UPDATEABLE_RESOURCES = ['factory_toolkit', 'firmware', 'fsi', 'hwid']
 
 # Supported resource types.
 ResourceType = Enum([
-    'FACTORY_TOOLKIT', 'FIRMWARE', 'HWID', 'NETBOOT_VMLINUX', 'ROOTFS_RELEASE',
-    'ROOTFS_TEST'])
+    'FACTORY_TOOLKIT', 'FIRMWARE', 'HWID', 'NETBOOT_FIRMWARE',
+    'NETBOOT_VMLINUX', 'ROOTFS_RELEASE', 'ROOTFS_TEST'])
 
 # Valid keys in DUT info.
 DUT_INFO_KEYS = set(['sn', 'mlb_sn', 'board', 'firmware', 'ec', 'pd', 'stage'])
