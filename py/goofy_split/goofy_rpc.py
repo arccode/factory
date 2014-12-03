@@ -796,7 +796,8 @@ class GoofyRPC(object):
     """
     try:
       with factory_bug.MountUSB() as mount:
-        output_file = factory_bug.SaveLogs(mount.mount_point, archive_id)
+        output_file = factory_bug.SaveLogs(mount.mount_point,
+                                           archive_id=archive_id)
         return [mount.dev, os.path.basename(output_file),
                 os.path.getsize(output_file),
                 mount.temporary]
@@ -826,7 +827,8 @@ class GoofyRPC(object):
     archive_key = "%08d" % random.SystemRandom().randint(0, 1e8)
     archive_id = '.'.join([re.sub('[^A-Za-z0-9.]', '_', x)
                            for x in (archive_key, name, serial, description)])
-    output_file = factory_bug.SaveLogs(tempfile.gettempdir(), archive_id)
+    output_file = factory_bug.SaveLogs(tempfile.gettempdir(),
+                                       archive_id=archive_id)
     try:
       with open(output_file) as f:
         data = f.read()
