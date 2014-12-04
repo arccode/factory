@@ -12,6 +12,7 @@ import sys
 import time
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.test.fixture.whale import keyboard_emulator
 from cros.factory.test.fixture.whale import servo_client
 from cros.factory.test.fixture.whale.host import poll_client
 from cros.factory.test.utils import Enum
@@ -104,6 +105,11 @@ class InterruptHandler(object):
     self._servo.Disable(self._CONTROL.FIXTURE_PUSH_NEEDLE)
     self._servo.Disable(self._CONTROL.FIXTURE_HOOK_COVER)
     self._servo.Disable(self._CONTROL.FIXTURE_CLOSE_COVER)
+    self.ResetKeyboard()
+
+  def ResetKeyboard(self):
+    keyboard = keyboard_emulator.KeyboardEmulator(self._servo)
+    keyboard.SimulateKeystrokes()
 
   @TimeClassMethodDebug
   def _HandleStopFixture(self):
