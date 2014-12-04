@@ -30,7 +30,7 @@ class TestUIUnittest(unittest.TestCase):
     os.environ['CROS_FACTORY_TEST_PARENT_INVOCATION'] = self.parent_invocation
 
     self.event_client_patcher = mock.patch.object(test_ui, 'EventClient',
-                                                  auto_spec=True)
+                                                  autospec=True)
     self.mock_event_client = self.event_client_patcher.start()
 
   def tearDown(self):
