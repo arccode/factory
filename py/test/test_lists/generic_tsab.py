@@ -14,8 +14,8 @@ from cros.factory.test.test_lists.test_lists import OperatorTest
 from cros.factory.test.test_lists.test_lists import TestList
 
 
-_SHOPFLOOR_IP = '10.3.0.12'
-_SHOPFLOOR_PORT = '9090'
+_SHOPFLOOR_IP = '10.3.0.11'
+_SHOPFLOOR_PORT = '8080'
 
 
 def CreateTestLists():
