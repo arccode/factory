@@ -91,7 +91,9 @@ WHALE_CONTROL = common.AttrDict(dict(
     AUDIO_PLUG = 'whale_audio_plug_det',
     BATTERY = 'whale_battery_on',
     DC = 'whale_dc_in',
-    ELECTRO_MAGNET = 'whale_elctro_magnet',
+    # Note that Whale's 'whale_elctro_magnet' is NC now and use
+    # 'whale_fixture_ctrl5' instead.
+    ELECTRO_MAGNET = 'whale_fixture_ctrl5',
     FAIL_LED = 'whale_fail_led',
     FIXTURE_PUSH_NEEDLE = 'whale_fixture_ctrl1',
     FIXTURE_HOOK_COVER = 'whale_fixture_ctrl2',
