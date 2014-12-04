@@ -11,11 +11,13 @@ scan lines' row-column crossing points. It also can trigger a SMT testing
 fixture to send out signals to simulate key presses on the key sequence.
 """
 
+from __future__ import print_function
 import evdev
 import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import evdev_utils
+from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
 from cros.factory.test.countdown_timer import StartCountdownTimer
@@ -117,6 +119,8 @@ class KeyboardSMTTest(unittest.TestCase):
       event: evdev event.
     """
     if event.type == evdev.ecodes.EV_KEY and event.value == 0:
+      if self.args.debug:
+        factory.console.info('keycode: %s' % event.code)
       self.ui.CallJSFunction('markKeyup', event.code)
 
   def runTest(self):
