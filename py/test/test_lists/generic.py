@@ -623,7 +623,7 @@ def SetOptions(options, args):
     # Use operator mode by default and require a password to enable
     # engineering mode. This password is 'cros'.
     options.engineering_password_sha1 = ('8c19cad459f97de3f8c836c794d9a0060'
-        'a795d7b')
+                                         'a795d7b')
 
     # - Default to Chinese language
     options.ui_lang = 'zh'
