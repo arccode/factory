@@ -91,6 +91,7 @@ class BaseSensorService(object):
   """A base class to provide sensor relalted services."""
 
   def __init__(self, board, log=None):
+    self.board = board
     self.config = TSConfig(board)
     self.log = log
     kernel_module_name = self.config.Read('Misc', 'kernel_module_name')
@@ -197,6 +198,31 @@ class SensorServiceSamus(BaseSensorService):
     """A method to invoke after conducting the test."""
     return self.kernel_module.Remove()
 
+  def _Make_Symlink(self, target, link_name):
+    """Make the symlink to the target."""
+    if not os.path.isfile(target):
+      self.log.error('The target does not exist: %s' % target)
+      return False
+    else:
+      cmd_make_symlink = 'ln -s -f %s %s' % (target, link_name)
+      return utils.IsSuccessful(utils.SimpleSystem(cmd_make_symlink))
+
+  def _TouchFileUpdate(self, config_filename, link_name, update_fw=True):
+    """Update touch firmware or configuraiton per update_fw flag."""
+    target_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               'boards', self.board, config_filename)
+    link_path = os.path.join('/lib/firmware', link_name)
+    filename = 'update_fw' if update_fw else 'update_config'
+    sysfs_update_interface = os.path.join(os.path.dirname(self.sysfs_entry),
+                                          filename)
+    cmd_update = 'echo 1 > %s' % sysfs_update_interface
+    self.log.info('Begin touch auto update:  %s' % cmd_update)
+    if self._Make_Symlink(target_path, link_path):
+      result = utils.IsSuccessful(utils.SimpleSystem(cmd_update))
+      time.sleep(1)
+      return result
+    return False
+
   def WriteSysfsSection(self, section):
     """Write a section of values to sys fs."""
     self.log.info('Write Sys fs section: %s', section)
@@ -210,7 +236,17 @@ class SensorServiceSamus(BaseSensorService):
 
     for command, description in section_items:
       self.log.info('  %s: %s', command, description)
-      if not self.WriteSysfs(command):
+      if command.startswith('update_'):
+        if description == 'None':
+          continue
+        # Try to auto update the touch firmware/configuration
+        config_filename, link_name = description.split()
+        if not self._TouchFileUpdate(config_filename, link_name,
+                                     update_fw=command.endswith('_fw')):
+          self.log.error('Failed to update touch fw/cfg: ', str(section_items))
+          return False
+      elif not self.WriteSysfs(command):
+        # Try to update the configuration registers.
         return False
     return True
 
