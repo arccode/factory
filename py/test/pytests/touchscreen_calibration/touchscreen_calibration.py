@@ -96,6 +96,9 @@ class TouchscreenCalibration(unittest.TestCase):
     self._ConnectTouchDevice()
     self.log = Log if self.use_shopfloor else self._DummyLog
     factory.console.info('Use shopfloor: %s', str(self.use_shopfloor))
+    self.summary_file = 'summary.txt'
+    self.test_pass = None
+    self.min_max_msg = None
 
   def _DummyLog(self, *args, **kwargs):
     pass
@@ -369,11 +372,17 @@ class TouchscreenCalibration(unittest.TestCase):
 
   def _VerifySensorData(self, data):
     """Determines whether the sensor data is good or not."""
-    test_pass, failed_sensors = self.sensors.Verify(data)
+    test_pass, failed_sensors, min_value, max_value = self.sensors.Verify(data)
     failed_msg = '  Failed sensor at (%d, %d) value %d'
     for sensor in failed_sensors:
       factory.console.info(failed_msg, tuple(sensor))
-    return test_pass
+    factory.console.info('min delta value: %d', min_value)
+    factory.console.info('max delta value: %d', max_value)
+    return test_pass, min_value, max_value
+
+  def _GetTime(self):
+    """Get the time format like 2014_1225.10:35:20"""
+    return time.strftime('%Y_%m%d.%H:%M:%S')
 
   def _CheckSerialNumber(self, sn):
     """Check if the serial number is legitimate."""
@@ -422,28 +431,37 @@ class TouchscreenCalibration(unittest.TestCase):
       time.sleep(1)
 
       # Verifies whether the sensor data is good or not.
-      test_pass = self._VerifySensorData(data)
+      self.test_pass, min_value, max_value = self._VerifySensorData(data)
 
       # Write the sensor data and the test result to USB stick, the UI,
       # and also to the shop floor.
-      self._WriteSensorDataToFile(log_to_file, sn, test_pass, data)
+      self._WriteSensorDataToFile(log_to_file, sn, self.test_pass, data)
       self.ui.CallJSFunction('displayDebugData', json.dumps(data))
       self.log('touchscreen_calibration',
-               sn=sn, test_pass=test_pass, sensor_data=str(data))
+               sn=sn, test_pass=self.test_pass, sensor_data=str(data))
 
-      result = 'pass' if test_pass else 'fail'
+      result = 'pass' if self.test_pass else 'fail'
       log_name = '%s_%s_%s_%s' % (self.start_time, sn, 'deltas', result)
       self._UploadLog(log_name, str(data))
+      self._WriteLog(self.summary_file,
+                     '%s: %s [min: %d, max: %d]  (time: %s)\n' %
+                     (sn, result, min_value, max_value, self._GetTime()))
 
       self.DriveProbeUp()
 
       if not self.sensors.PostRead():
         factory.console.error('Failed to execute PostRead().')
 
-      self.ui.CallJSFunction('showMessage',
-                             'OK 测试完成' if test_pass else 'NO GOOD 测试失败')
+      self.min_max_msg = ('[min, max] of deltas: [%d, %d]' %
+                          (min_value, max_value))
 
-      self.ui.Pass()
+      self.ui.CallJSFunction('showMessage', 'OK 测试完成' if self.test_pass else
+                             'NO GOOD 测试失败')
+
+      if self.test_pass:
+        self.ui.Pass()
+      else:
+        self.ui.Fail(self.min_max_msg)
 
     except Exception as e:
       if not self.fixture:
@@ -598,7 +616,7 @@ class TouchscreenCalibration(unittest.TestCase):
       dev_path = '/dev/sdb' if os.path.exists('/dev/sdb1') else '/dev/sdc'
 
     os.environ['DISPLAY'] = ':0'
-    self.start_time = time.strftime('%Y%m%d.%H%M%S')
+    self.start_time = self._GetTime()
 
     self.dev_path = dev_path
     self.dump_frames = dump_frames

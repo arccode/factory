@@ -126,13 +126,17 @@ class BaseSensorService(object):
     """
     test_pass = True
     failed_sensors = []
+    min_value = float('inf')
+    max_value = float('-inf')
     for row, row_data in enumerate(data):
       for col in touched_cols:
         value = row_data[col]
+        min_value = min(min_value, value)
+        max_value = max(max_value, value)
         if value < self.delta_lower_bound or value > self.delta_higher_bound:
           failed_sensors.append((row, col, value))
           test_pass = False
-    return test_pass, failed_sensors
+    return test_pass, failed_sensors, min_value, max_value
 
   def PreRead(self):
     """An optional method to invoke before reading sensor data.
