@@ -46,7 +46,7 @@ REQUIRED_RESOURCE_MAP_FIELDS = set(['__token__', 'shop_floor_handler'])
 DUT_INFO_KEY_PREFIX = ['mac']
 
 # Valid matchers for ruleset.
-SCALAR_MATCHERS = set(['sn', 'mlb_sn'])
+SCALAR_MATCHERS = set(['sn', 'mlb_sn', 'stage'])
 RANGE_MATCHERS = set(['sn_range', 'mlb_sn_range'])
 # A set of scalar matchers. It checks DUT value which's key's prefix matches.
 SCALAR_PREFIX_MATCHERS = set(['mac'])

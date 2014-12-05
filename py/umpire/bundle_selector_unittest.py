@@ -66,6 +66,14 @@ class SelectBundleTest(unittest.TestCase):
   active: true
   match:
     mlb_sn: ['MLBSN001']
+- bundle_id: 'for_smt'
+  active: true
+  match:
+    stage: ['SMT']
+- bundle_id: 'for_fatp'
+  active: true
+  match:
+    stage: ['FATP']
 - bundle_id: 'default'
   active: true""")
     self.assertEqual('sn_matcher', SelectBundle(config, dict(sn='SN001')))
@@ -76,6 +84,10 @@ class SelectBundleTest(unittest.TestCase):
     self.assertEqual('sn_matcher',
                      SelectBundle(config,
                                    dict(mlb_sn='MLBSN001', sn='SN001')))
+
+    # Match stage.
+    self.assertEqual('for_smt', SelectBundle(config, dict(stage='SMT')))
+    self.assertEqual('for_fatp', SelectBundle(config, dict(stage='FATP')))
 
     # No match. Fallback to default.
     self.assertEqual('default',

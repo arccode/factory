@@ -35,6 +35,7 @@ _RULE_MATCHER_SCHEMA = FixedDict(
                    Scalar('Serial number', str)),
         'mlb_sn': List('MLB serial number list',
                        Scalar('MLB serial number', str)),
+        'stage': List('Matched stage list', Scalar('Stage', str)),
         'sn_range': List(
             'Inclusive serial number start/end pair',
             Scalar('Serial number or "-" as open end', str)),

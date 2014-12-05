@@ -18,6 +18,9 @@ rulesets:
     mlb_sn_range:
     - "-"
     - SN005
+    stage:
+    - SMT
+    - FATP
   enable_update:
     device_factory_toolkit: [RUNIN, RUNIN]
     rootfs_release: [SMT, SMT]

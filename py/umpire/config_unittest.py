@@ -110,7 +110,8 @@ class TestUmpireConfig(unittest.TestCase):
              'mlb_sn': ['SN001'],
              'mlb_sn_range': ['-', 'SN005'],
              'sn': ['OC1234567890'],
-             'sn_range': ['OC1234567890', '-']},
+             'sn_range': ['OC1234567890', '-'],
+             'stage': ['SMT', 'FATP']},
           'enable_update': {
               'device_factory_toolkit': ['RUNIN', 'RUNIN'],
               'rootfs_release': ['SMT', 'SMT'],
