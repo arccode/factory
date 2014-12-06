@@ -101,7 +101,9 @@ class LidSwitchTest(unittest.TestCase):
         default=None, optional=True),
     Arg('brightness_when_closed', int,
         'Value to brightness when lid switch closed.',
-        default=None, optional=True)
+        default=None, optional=True),
+    Arg('check_delayed_backlight', bool, 'True to check delayed backlight.',
+        default=False)
   ]
 
   def AdjustBrightness(self, value):
@@ -248,7 +250,10 @@ class LidSwitchTest(unittest.TestCase):
       if event.value == 1: # LID_CLOSED
         self._closed_sec = self.getCurrentEpochSec()
         if self.fixture:
-          self.CheckDelayedBacklight()
+          if self.args.check_delayed_backlight:
+            self.CheckDelayedBacklight()
+          else:
+            self.AskForOpenLid()
         else:
           self.AskForOpenLid()
           if self.args.brightness_path is not None:
@@ -294,7 +299,6 @@ class LidSwitchTest(unittest.TestCase):
     elif fail_test:
       self.ui.Fail('Failed to %s the lid with %d retries. Reason: %s' % (
           'close' if close else 'open', self.args.bft_retries, error))
-
 
   def AskForOpenLid(self):
     if self.fixture:
