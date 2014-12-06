@@ -77,6 +77,7 @@ from cros.factory import event_log
 from cros.factory import system
 from cros.factory.system import service_manager
 from cros.factory.test import factory, leds
+from cros.factory.test import shopfloor
 from cros.factory.test.args import Arg, Args
 from cros.factory.test.fixture import arduino
 from cros.factory.utils import net_utils
@@ -712,7 +713,6 @@ class WiFiThroughput(unittest.TestCase):
     self._ProcessArgs()
 
     # Initialize the log dict, which will later be fed into event log.
-    system_info = system.SystemInfo()
     self.log = {
         'args': self.args.ToDict(),
         'run': {
@@ -721,8 +721,10 @@ class WiFiThroughput(unittest.TestCase):
         'dut': {
             'device_id': event_log.GetDeviceId(),
             'mac_address': net_utils.GetWLANMACAddress(),
-            'serial_number': system_info.serial_number,
-            'mlb_serial_number': system_info.mlb_serial_number},
+            'serial_number': shopfloor.GetDeviceData().get(
+                'serial_number', None),
+            'mlb_serial_number': shopfloor.GetDeviceData().get(
+                'mlb_serial_number', None)},
         'ssid_list': {},
         'test': {},
         'failures': []}

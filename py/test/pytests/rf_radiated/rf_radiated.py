@@ -95,7 +95,6 @@ class RFRadiatedTest(unittest.TestCase):
 
     # Initialize the log dict, which will later be fed into event log and
     # stored as an aux_log on shopfloor.
-    system_info = system.SystemInfo()
     self.log = {
         'config': {
             'file_path': None,
@@ -104,8 +103,10 @@ class RFRadiatedTest(unittest.TestCase):
             'antenna_model': None,
             'device_id': event_log.GetDeviceId(),
             'mac_address': net_utils.GetWLANMACAddress(),
-            'serial_number': system_info.serial_number,
-            'mlb_serial_number': system_info.mlb_serial_number},
+            'serial_number': shopfloor.GetDeviceData().get(
+                'serial_number', None),
+            'mlb_serial_number': shopfloor.GetDeviceData().get(
+                'mlb_serial_number', None)},
         'test': {
             'start_time': None,
             'end_time': None,
