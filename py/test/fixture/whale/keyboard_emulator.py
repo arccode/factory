@@ -28,16 +28,12 @@ class KeyboardEmulator(object):
       servo: Instance of servo_client.ServoClient
     """
     self._servo = servo
-    self._Reset()
-    self._LatchOutput()
+    self.Reset()
 
-  def _LatchOutput(self):
-    """Outputs 16 GPIOs from the 2 shift registers."""
-    self._servo.Click(self._CONTROL.KEYBOARD_SHIFT_REGISTER_LATCH)
-
-  def _Reset(self):
-    """Resets the 2 shift registers."""
+  def Reset(self):
+    """Resets the 2 shift registers and latchs their output."""
     self._servo.Click(self._CONTROL.KEYBOARD_SHIFT_REGISTER_RESET)
+    self._servo.Click(self._CONTROL.KEYBOARD_SHIFT_REGISTER_LATCH)
 
   def _Emulate(self, word, latch_shift):
     """Emulates row-column crossing.
@@ -64,14 +60,26 @@ class KeyboardEmulator(object):
         commands.append((self._CONTROL.KEYBOARD_SHIFT_REGISTER_LATCH, 'on'))
         commands.append((self._CONTROL.KEYBOARD_SHIFT_REGISTER_LATCH, 'off'))
 
+    if not latch_shift:
+      commands.append((self._CONTROL.KEYBOARD_SHIFT_REGISTER_LATCH, 'on'))
+      commands.append((self._CONTROL.KEYBOARD_SHIFT_REGISTER_LATCH, 'off'))
     self._servo.MultipleSet(commands)
-    self._LatchOutput()
 
   def SimulateKeystrokes(self):
     """Triggers all row-column crossings in sequence."""
-    self._Emulate(1 << 15, True)
-    self._Reset()
-    self._LatchOutput()
+    # Click row-col crossing 1-13 in sequence without delay.
+    self._Emulate(1 << 12, True)
+    self.Reset()
+
+    # Need a short pause before and after clicking Power button.
+    time.sleep(0.1)
+    self._Emulate(1 << 13, False)
+    self.Reset()
+    time.sleep(0.1)
+
+    # Click the last row-col crossing.
+    self._Emulate(1 << 14, False)
+    self.Reset()
 
   def KeyPress(self, bitmask, period_secs):
     """Emulates a key press in a specific period.
@@ -82,6 +90,4 @@ class KeyboardEmulator(object):
     """
     self._Emulate(bitmask, False)
     time.sleep(period_secs)
-    self._Reset()
-    self._LatchOutput()
-
+    self.Reset()
