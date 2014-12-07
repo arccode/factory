@@ -108,13 +108,14 @@ class InterruptHandler(object):
   def Init(self):
     """Resets button latch and records feedback value."""
     self._last_feedback = self._servo.MultipleIsOn(self._FEEDBACK_LIST)
+    self._servo.MultipleSet([(self._CONTROL.LCM_CMD, 'clear'),
+                             (self._CONTROL.LCM_TEXT, 'Initializing...')])
     self.ResetLatch()
     self.ResetInterrupt()
     self.ResetKeyboard()
-    self._servo.Disable(self._CONTROL.FIXTURE_PLUG_LATERAL)
-    self._servo.Disable(self._CONTROL.FIXTURE_PUSH_NEEDLE)
-    self._servo.Disable(self._CONTROL.FIXTURE_HOOK_COVER)
-    self._servo.Disable(self._CONTROL.FIXTURE_CLOSE_COVER)
+    # Initial fixture state: cover open.
+    self._HandleStopFixture(show_state=False)
+
     self._SetState(self._FixtureState.WAIT)
 
   def ResetKeyboard(self):
@@ -129,33 +130,43 @@ class InterruptHandler(object):
                              (self._CONTROL.LCM_TEXT, message)])
 
   @TimeClassMethodDebug
-  def _HandleStopFixture(self):
+  def _HandleStopFixture(self, show_state=True):
     """Stop Fixture Step"""
-    logging.info('[Stopping fixture...]')
-    self._SetState(self._FixtureState.OPENING)
+    logging.info('Stopping fixture...')
+    if show_state:
+      self._SetState(self._FixtureState.OPENING)
+
+    # Disable battery first for safety.
+    self._servo.Disable(self._CONTROL.BATTERY)
+
     while True:
       feedback_status = self._servo.MultipleIsOn(self._FEEDBACK_LIST)
       if (not feedback_status[self._FIXTURE_FEEDBACK.FB7] or
           not feedback_status[self._FIXTURE_FEEDBACK.FB9]):
-        logging.info('[HandleStopFixture] -> FIXTURE_PLUG_LATERAL')
+        logging.info('[HandleStopFixture] unplug lateral')
         self._servo.Disable(self._CONTROL.FIXTURE_PLUG_LATERAL)
         continue
 
       if (not feedback_status[self._FIXTURE_FEEDBACK.FB1] or
           not feedback_status[self._FIXTURE_FEEDBACK.FB3]):
-        logging.info('[HandleStopFixture] -> FIXTURE_PUSH_NEEDLE')
+        logging.info('[HandleStopFixture] pull needle')
         self._servo.Disable(self._CONTROL.FIXTURE_PUSH_NEEDLE)
         continue
 
-      if (feedback_status[self._FIXTURE_FEEDBACK.FB5] and
+      # Retry disable fixture hook till both left and right hook
+      # are released.
+      if (feedback_status[self._FIXTURE_FEEDBACK.FB5] or
           feedback_status[self._FIXTURE_FEEDBACK.FB6]):
-        logging.info('[HandleStopFixture] -> FIXTURE_HOOK_COVER')
+        logging.info('[HandleStopFixture] release cover hook')
+        # Before release cover hook, be sure to close cover otherwise latch
+        # cannot be released.
+        self._servo.Enable(self._CONTROL.FIXTURE_CLOSE_COVER)
         self._servo.Disable(self._CONTROL.FIXTURE_HOOK_COVER)
         continue
 
       if (feedback_status[self._FIXTURE_FEEDBACK.FB12] or
           not feedback_status[self._FIXTURE_FEEDBACK.FB11]):
-        logging.info('[HandleStopFixture] -> FIXTURE_CLOSE_COVER')
+        logging.info('[HandleStopFixture] open cover')
         self._servo.Disable(self._CONTROL.FIXTURE_CLOSE_COVER)
         continue
 
@@ -172,25 +183,22 @@ class InterruptHandler(object):
 
       if (self._starting_fixture_action == ActionType.CLOSE_COVER and
           feedback_status[self._FIXTURE_FEEDBACK.FB12]):
-        logging.info('[HandleStartFBChange] -> CHANGLE TO HOOK_COVER')
         self._starting_fixture_action = ActionType.HOOK_COVER
 
       elif (self._starting_fixture_action == ActionType.HOOK_COVER and
             feedback_status[self._FIXTURE_FEEDBACK.FB5] and
             feedback_status[self._FIXTURE_FEEDBACK.FB6]):
-        logging.info('[HandleStartFBChange] -> PUSH_NEEDLE')
         self._starting_fixture_action = ActionType.PUSH_NEEDLE
 
       elif (self._starting_fixture_action == ActionType.PUSH_NEEDLE and
             feedback_status[self._FIXTURE_FEEDBACK.FB2] and
             feedback_status[self._FIXTURE_FEEDBACK.FB4]):
-        logging.info('[HandleStartFBChange] ->PLUG_LATERAL')
         self._starting_fixture_action = ActionType.PLUG_LATERAL
 
       elif (self._starting_fixture_action == ActionType.PLUG_LATERAL and
             feedback_status[self._FIXTURE_FEEDBACK.FB8] and
             feedback_status[self._FIXTURE_FEEDBACK.FB10]):
-        logging.info('[START] CYLIDER ACTION is done...')
+        logging.info('[HandleStartFixture] fixture closed')
         self._starting_fixture_action = ActionType.FIXTURE_STARTED
         self._SetState(self._FixtureState.CLOSED)
 
@@ -207,24 +215,23 @@ class InterruptHandler(object):
       return
 
     if self._starting_fixture_action is None:
-      logging.info('[HandleStartFixture] ACTION = None')
       self._starting_fixture_action = ActionType.CLOSE_COVER
       self._SetState(self._FixtureState.CLOSING)
 
     if self._starting_fixture_action == ActionType.CLOSE_COVER:
-      logging.info('[HandleStartFixture] ACTION = CLOSE_COVER')
+      logging.info('[HandleStartFixture] closing cover')
       self._servo.Enable(self._CONTROL.FIXTURE_CLOSE_COVER)
 
     elif self._starting_fixture_action == ActionType.HOOK_COVER:
-      logging.info('[HandleStartFixture] ACTION = HOOK_COVER')
+      logging.info('[HandleStartFixture] hooking cover')
       self._servo.Enable(self._CONTROL.FIXTURE_HOOK_COVER)
 
     elif self._starting_fixture_action == ActionType.PUSH_NEEDLE:
-      logging.info('[HandleStartFixture] ACTION = PUSH_NEEDLE')
+      logging.info('[HandleStartFixture] pushing needle')
       self._servo.Enable(self._CONTROL.FIXTURE_PUSH_NEEDLE)
 
     elif self._starting_fixture_action == ActionType.PLUG_LATERAL:
-      logging.info('[HandleStartFixture] ACTION = PLUG_LATERAL')
+      logging.info('[HandleStartFixture] plugging lateral')
       self._servo.Enable(self._CONTROL.FIXTURE_PLUG_LATERAL)
 
   @TimeClassMethodDebug
