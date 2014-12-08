@@ -34,6 +34,7 @@ from cros.factory.test.fixture.bft_fixture import (BFTFixtureException,
                                                    CreateBFTFixture,
                                                    TEST_ARG_HELP)
 from cros.factory.utils import sys_utils
+from cros.factory.utils import time_utils
 from cros.factory.utils.process_utils import CheckOutput, SpawnOutput
 
 
@@ -723,10 +724,14 @@ class RemovableStorageTest(unittest.TestCase):
     # Start to monitor udev events.
     context = pyudev.Context()
     if self.args.skip_insert_remove:
-      device_node = self.GetDeviceNodeBySysPath(self.args.sysfs_path)
-      if device_node is None:
-        self.Fail('Can not corresponding device node of %s'
-                  % self.args.sysfs_path)
+      device_node = None
+      # Poll sysfs_path is present
+      timeout_time = time_utils.MonotonicTime() + self.args.timeout_secs
+      while not device_node:
+        device_node = self.GetDeviceNodeBySysPath(self.args.sysfs_path)
+        if time_utils.MonotonicTime() > timeout_time:
+          self.fail('Fail to find path: %s' % self.args.sysfs_path)
+        time.sleep(0.2)
       device_udev = pyudev.Device.from_name(context, 'block', device_node)
       self.HandleUdevEvent(_UDEV_ACTION_INSERT, device_udev)
       self.HandleUdevEvent(_UDEV_ACTION_REMOVE, device_udev)
