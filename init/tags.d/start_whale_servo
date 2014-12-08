@@ -7,7 +7,8 @@ MYDIR="$(dirname "$(readlink -f "$0")")"
 FACTORY_BASE="/usr/local/factory"
 
 TAG_FILE="${MYDIR}/../tag_whale_servo"
-SERVOD_CONFIG="/var/lib/servod/config"
+SERVOD_DIR="/var/lib/servod"
+SERVOD_CONFIG="${SERVOD_DIR}/config"
 
 SHILL_BIN="/usr/bin/shill"
 DISABLED_BIN="${FACTORY_BASE}/sh/disabled.sh"
@@ -19,8 +20,9 @@ WHALE_SERVO_BIN="${FACTORY_BASE}/py/test/fixture/whale/host/whale_servo"
 
 start_servod() {
   . $TAG_FILE
-  if [ -n "$BOARD" ]; then
-    echo "BOARD=$BOARD" >$SERVOD_CONFIG
+  if [ -n "${BOARD}" ]; then
+    mkdir -p $SERVOD_DIR
+    echo "BOARD=${BOARD}" >$SERVOD_CONFIG
     start servod
   else
     echo "Unable to resolve BOARD name"
