@@ -64,7 +64,7 @@ FAKE_HWID_NO_UPDATE_RESULT = {
     'hwid': get_update.UpdateInfo(
         needs_update=False, md5sum='md5sum1', url='hwid_url', scheme='http')}
 
-FAKE_HWID_UPDATE_RESULT = 'hwid.sh content'
+FAKE_HWID_UPDATE_RESULT = 'hwid.sh content\n'
 
 FAKE_IMAGE_RESULT_1 = {
     'rootfs_test': get_update.UpdateInfo(
@@ -129,13 +129,15 @@ FAKE_FIRMWARE_RESULT_4 = {
 
 FAKE_FIRMWARE_RESULT_5 = {
     'firmware_ec': get_update.UpdateInfo(
-        needs_update=False, md5sum='md5sum1', url='firmware_url', scheme='http'),
+        needs_update=False, md5sum='md5sum1', url='firmware_url',
+        scheme='http'),
     'firmware_pd': get_update.UpdateInfo(
         needs_update=True, md5sum='md5sum1', url='firmware_url', scheme='http'),
     'firmware_bios': get_update.UpdateInfo(
-        needs_update=False, md5sum='md5sum1', url='firmware_url', scheme='http')}
+        needs_update=False, md5sum='md5sum1', url='firmware_url',
+        scheme='http')}
 
-FAKE_FIRMWARE_UPDATE_RESULT = 'chromeos-firmwareupdate content'
+FAKE_FIRMWARE_UPDATE_RESULT = 'chromeos-firmwareupdate content\n'
 
 TESTDATA_DIRECTORY = os.path.join(
     os.path.dirname(os.path.realpath(__file__)), 'testdata')
@@ -198,7 +200,7 @@ class GetUpdateTests(unittest.TestCase):
     self.mox.ReplayAll()
 
     result = get_update.GetUpdateForDeviceFactoryToolkit(self.proxy)
-    self.assertTrue(result, FAKE_TOOLKIT_UPDATE_RESULT)
+    self.assertEqual(result, FAKE_TOOLKIT_UPDATE_RESULT)
 
     self.mox.VerifyAll()
 
@@ -217,7 +219,7 @@ class GetUpdateTests(unittest.TestCase):
     self.mox.ReplayAll()
 
     result = get_update.GetUpdateForHWID(self.proxy)
-    self.assertTrue(result, FAKE_HWID_UPDATE_RESULT)
+    self.assertEqual(result, FAKE_HWID_UPDATE_RESULT)
 
     self.mox.VerifyAll()
 
@@ -284,7 +286,7 @@ class GetUpdateTests(unittest.TestCase):
     self.mox.ReplayAll()
 
     result = get_update.GetUpdateForFirmware(self.proxy)
-    self.assertTrue(result, FAKE_FIRMWARE_UPDATE_RESULT)
+    self.assertEqual(result, FAKE_FIRMWARE_UPDATE_RESULT)
 
     self.mox.VerifyAll()
 
@@ -304,7 +306,7 @@ class GetUpdateTests(unittest.TestCase):
     self.mox.ReplayAll()
 
     result = get_update.GetUpdateForFirmware(self.proxy)
-    self.assertTrue(result, FAKE_FIRMWARE_UPDATE_RESULT)
+    self.assertEqual(result, FAKE_FIRMWARE_UPDATE_RESULT)
 
     self.mox.VerifyAll()
 
@@ -350,7 +352,7 @@ class GetUpdateTests(unittest.TestCase):
     self.mox.ReplayAll()
 
     result = get_update.GetUpdateForFirmware(self.proxy)
-    self.assertTrue(result, FAKE_FIRMWARE_UPDATE_RESULT)
+    self.assertEqual(result, FAKE_FIRMWARE_UPDATE_RESULT)
 
     self.mox.VerifyAll()
 
