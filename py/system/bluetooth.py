@@ -25,6 +25,7 @@ BUS_NAME = 'org.bluez'
 SERVICE_NAME = 'org.bluez'
 ADAPTER_INTERFACE = SERVICE_NAME + '.Adapter1'
 DEVICE_INTERFACE = SERVICE_NAME + '.Device1'
+AGENT_INTERFACE = SERVICE_NAME + '.Agent1'
 
 _RE_NODE_NAME = re.compile(r'<node name="(.*?)"/>')
 
@@ -32,6 +33,50 @@ _RE_NODE_NAME = re.compile(r'<node name="(.*?)"/>')
 class BluetoothManagerException(Exception):
   pass
 
+# pylint is unhappy that we add extra arguments to the constructor beyond
+# what dbus.service.Object defines, but this is of course harmless since
+# we control instantiation. So disable the warning.
+class AuthenticationAgent(dbus.service.Object):  # pylint: disable=R0923
+  """An authenticator for Bluetooth devices
+
+  This class implements methods from the org.bluez.Agent1 D-Bus
+  interface, which allow Bluetooth devices to authenticate themselves
+  against the host (the computer running this script). This does not
+  implement the full interface; for example it does not support the
+  legacy PIN code mechanism used by pre-2.1 Bluetooth keyboards.
+
+  Properties:
+    _bus: The device Bus to use
+    _path: The object path of the Agent
+    _display_passkey_callback: A function with signature (string) that takes
+        a 6 digit passkey to display to the user
+    _cancel_callback: A function that takes no parameters, used
+        to indicate cancellation from the device
+  """
+  def __init__(self, bus, path, display_passkey_callback, cancel_callback):
+    dbus.service.Object.__init__(self, bus, path)
+    self._display_passkey_callback = display_passkey_callback
+    self._cancel_callback = cancel_callback
+
+  # The following method names and their in/out signatures must match the
+  # corresponding methods in the BlueZ 5 Agent1 DBus interface, including the
+  # types of the parameters. The signature 'ouq' indicates that we take three
+  # parameters (excluding self), of type Object, uint32, uint16 respectively
+  # (note that 'q' is NOT a quadword like you might expect). Of course, in
+  # Python, they're just arbitrary precision integers, but the signature
+  # must still match for the method to be properly called.
+  @dbus.service.method(AGENT_INTERFACE, in_signature='ouq', out_signature='')
+  def DisplayPasskey(self, device, passkey, entered):
+    logging.info('DisplayPasskey (%s, %06u entered %u)',
+                 device, passkey, entered)
+    # passkey is always 6 digits, so add any leading 0s
+    passkey_str = str(passkey).zfill(6)
+    self._display_passkey_callback(passkey_str)
+
+  @dbus.service.method(AGENT_INTERFACE, in_signature='', out_signature='')
+  def Cancel(self):
+    logging.info('Cancel')
+    self._cancel_callback()
 
 # TODO(cychiang) Add unittest for this class.
 class BluetoothManager(object):
@@ -62,7 +107,7 @@ class BluetoothManager(object):
                                       'dbus Interface: %s.' % e)
 
   def _FindDeviceInterface(self, mac_addr, adapter):
-    """ Given a MAC address, returns the corresponding device dbus object
+    """Given a MAC address, returns the corresponding device dbus object
 
     Args:
       mac_addr: The MAC address of the remote device
@@ -164,12 +209,26 @@ class BluetoothManager(object):
       except DBusException:
         pass
 
-  def CreatePairedDevice(self, adapter, device_address):
+  def CreatePairedDevice(self, adapter, device_address,
+                         display_passkey_callback=None,
+                         cancel_callback=None):
     """Create paired device.
+
+    Attempt to pair with a Bluetooth device, making the computer running this
+    script the host. If a callback is specified for displaying a passkey, this
+    host will report KeyboardDisplay capabilities, allowing the remote device
+    (which must be a keyboard) to respond with a passkey which must be typed on
+    it to authenticate. If the callback is not specified, the host reports no
+    interactive capabilities, forcing a "Just Works" pairing model (that's the
+    actual name in the Bluetooth spec) that pairs with no authentication.
 
     Args:
       adapter: The adapter interface to control.
       device_address: The mac address of input device to control.
+      display_passkey_callback: None, or a function with signature (string)
+        that is passed a passkey for authentication
+      cancel_callback: None, or a function that accepts no arguments that is invoked
+        if the remote device cancels authentication
 
     Raises:
       Raises BluetoothManagerException if fails to create service agent or
@@ -191,6 +250,8 @@ class BluetoothManager(object):
     def _ErrorHandler(error):
       """The callback to handle error of device.Pair."""
       logging.error('Pairing with device failed: %s.', error)
+      if cancel_callback:
+        cancel_callback()
       self._main_loop.quit()
 
     bus = dbus.SystemBus()
@@ -199,11 +260,18 @@ class BluetoothManager(object):
     agent_path = os.path.join('/BluetoothTest', 'agent', agent_id)
     obj = bus.get_object(BUS_NAME, '/org/bluez')
     agent_manager = dbus.Interface(obj, 'org.bluez.AgentManager1')
-    agent_manager.RegisterAgent(agent_path, 'DisplayYesNo')
     logging.info('CreatePairedDevice: Set agent path at %s.', agent_path)
-
     try:
-      dbus.service.Object(bus, agent_path)
+      if display_passkey_callback is None:
+        capability = 'NoInputNoOutput'
+        dbus.service.Object(bus, agent_path)
+      else:
+        capability = 'KeyboardDisplay'
+        AuthenticationAgent(bus, agent_path,
+                            display_passkey_callback=display_passkey_callback,
+                            cancel_callback=cancel_callback)
+      agent_manager.RegisterAgent(agent_path, capability)
+
     except DBusException as e:
       if str(e).find('there is already a handler.'):
         logging.info('There is already an agent there, that is OK: %s.', e)
