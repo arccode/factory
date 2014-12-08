@@ -5,6 +5,7 @@
 
 from __future__ import print_function
 
+import threading
 import time
 
 from collections import namedtuple
@@ -157,6 +158,7 @@ class FakeFixture(BaseFixture):
   def __init__(self, ui, state=None):
     super(FakeFixture, self).__init__(state)
     self.ui = ui
+    self.final_calibration_lock = threading.Event()
 
   def QueryState(self):
     """Queries the state of the arduino board."""
@@ -180,6 +182,14 @@ class FakeFixture(BaseFixture):
   def DriveProbeUp(self):
     """Drives the probe to the 'up' position."""
     factory.console.info('Drive Probe Up....')
+    self.ui.CallJSFunction('showMessageAndCallback',
+                           'Pull the lever up.\n'
+                           '拉起把手')
+    self.final_calibration_lock.wait()
+
+  def DriveProbeUpDone(self):
+    """Notify that the DriveProbeUp has been done."""
+    self.final_calibration_lock.set()
 
 
 class FixtureSerialDevice(BaseFixture):

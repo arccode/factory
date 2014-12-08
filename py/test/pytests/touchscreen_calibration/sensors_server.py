@@ -360,6 +360,10 @@ class SensorServiceRyu(BaseSensorService):
     return (SshCommand(self.ip, cmd_check_driver_installed, output=False) or
             SshCommand(self.ip, cmd_install_driver, output=False))
 
+  def CalibrateBaseline(self):
+    """Do baseline calibraiton."""
+    return len(self.Read('deltas')) > 0
+
   def CheckStatus(self):
     """Checks whether it could read the sensor data or not.
 
@@ -410,6 +414,15 @@ class SensorServiceRyu(BaseSensorService):
     """
     touched_cols = range(self.num_cols)
     return super(SensorServiceRyu, self)._Verify(data, touched_cols)
+
+  def PostTest(self):
+    """A method to invoke after conducting the test.
+
+    Re-calibrate the baseline after the metal mesh is lifted up.
+    """
+    flag = self.CalibrateBaseline()
+    self.log.info('Calibrate the baseline: %s' % str(flag))
+    return flag
 
 
 def GetSensorServiceClass(board):

@@ -98,6 +98,11 @@ function showMessage(data) {
   alert(data);
 }
 
+function showMessageAndCallback(data) {
+  alert(data);
+  test.sendTestEvent('FinishTest', {});
+}
+
 function setControllerStatus(status) {
   var elm = document.getElementById('controller-status')
   elm.innerText = status ? 'Detected' : 'Undetected';

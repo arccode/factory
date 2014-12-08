@@ -103,9 +103,6 @@ class TouchscreenCalibration(unittest.TestCase):
   def _DummyLog(self, *args, **kwargs):
     pass
 
-  def tearDown(self):
-    self.sensors.PostTest()
-
   def _GetBoard(self):
     """Get the target board."""
     board_path = os.path.join(os.path.dirname(__file__), 'boards', 'board')
@@ -468,6 +465,17 @@ class TouchscreenCalibration(unittest.TestCase):
         self._AlertFixtureDisconnected()
       raise e
 
+  def FinishTest(self, unused_event):
+    """Finish the test and do cleanup if needed.
+
+    This method is invoked only for Ryu to do final calibration.
+
+    Args:
+      event: the event that triggers this callback function
+    """
+    self.sensors.PostTest()
+    self.fixture.DriveProbeUpDone()
+
   def _ConnectTouchDevice(self):
     """Make sure that the touch device is connected to the machine and
     the touch kernel module is inserted properly.
@@ -629,7 +637,7 @@ class TouchscreenCalibration(unittest.TestCase):
         'RefreshNetwork',
 
         # Events that are emitted from other callback functions.
-        'StartCalibration',
+        'StartCalibration', 'FinishTest',
     ])
 
     self.ui.Run()
