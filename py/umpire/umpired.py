@@ -8,6 +8,7 @@
 This is a minimalist umpired implementation.
 """
 
+import glob
 import logging
 import optparse
 import os
@@ -55,6 +56,11 @@ def StartServer(test_mode=False, config_file=None):
   if env.config is None:
     raise UmpireError('Umpire config was not loaded.')
 
+  # Remove runtime pid files before start the server
+  logging.info('remove pid files under %s', env.pid_dir)
+  for pidfile in glob.glob(os.path.join(env.pid_dir, '*.pid')):
+    logging.info('removing pid file: %s', pidfile)
+    os.remove(pidfile)
   # Instanciate Umpire daemon and set command handlers and webapp handler.
   umpired = UmpireDaemon(env)
   # Add command line handlers.
