@@ -68,7 +68,7 @@ class InterruptHandler(object):
   # Fixture state to LED light and LCD message (green, red, message).
   _FixtureStateParams = {
       _FixtureState.WAIT: ('on', 'on', 'ready'),
-      _FixtureState.CLOSED: ('on', 'off', 'testing'),
+      _FixtureState.CLOSED: ('off', 'off', 'closed'),
       _FixtureState.CLOSING: ('off', 'on', 'closing'),
       _FixtureState.OPENING: ('off', 'on', 'opening')}
 
