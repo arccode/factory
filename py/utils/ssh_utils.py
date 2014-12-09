@@ -55,11 +55,19 @@ def _Init():
     testing_rsa = target_name
 
 
-def BuildSSHCommand():
-  """Builds SSH command that can be used to connect to a DUT."""
-  _Init()
+def BuildSSHCommand(identity_file=None):
+  """Builds SSH command that can be used to connect to a DUT.
+
+  Args:
+    identity_file: if specified, use it as identity file. Otherwise, use
+        private_key provided by chromite.lib.remote_access (only avaliable
+        in chroot).
+  """
+  if not identity_file:
+    _Init()
+    identity_file = testing_rsa
   return ['ssh',
-          '-o', 'IdentityFile=%s' % testing_rsa,
+          '-o', 'IdentityFile=%s' % identity_file,
           '-o', 'UserKnownHostsFile=/dev/null',
           '-o', 'LogLevel=ERROR',
           '-o', 'User=root',
@@ -72,10 +80,15 @@ def BuildSSHCommand():
           '-o', 'ConnectionAttempts=4']
 
 
-def BuildRsyncCommand():
-  """Build rsync command that can be used to rsync to a DUT."""
-  _Init()
-  return ['rsync', '-e', ' '.join(BuildSSHCommand())]
+def BuildRsyncCommand(identity_file=None):
+  """Build rsync command that can be used to rsync to a DUT.
+
+  Args:
+    identity_file: if specified, use it as identity file. Otherwise, use
+        private_key provided by chromite.lib.remote_access (only avaliable
+        in chroot).
+  """
+  return ['rsync', '-e', ' '.join(BuildSSHCommand(identity_file=identity_file))]
 
 
 def SpawnSSHToDUT(args, **kwargs):
