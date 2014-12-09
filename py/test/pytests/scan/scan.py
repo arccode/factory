@@ -56,6 +56,9 @@ class Scan(unittest.TestCase):
         'True to scan BFT fixture ID.', default=False),
     Arg('bft_scan_barcode', bool,
         'True to trigger BFT barcode scanner.', default=False),
+    Arg('bft_get_barcode', bool,
+        'True to get barcode from BFT. BFT stores barcode in advance so this '
+        'obtains barcode immidiately.', default=False),
     Arg('bft_fixture', dict, TEST_ARG_HELP, default=None, optional=True),
     Arg('barcode_scan_interval_secs', (int, float),
         'Interval for repeatedly trigger BFT\'s barcode scaner',
@@ -222,5 +225,10 @@ class Scan(unittest.TestCase):
     elif self.args.bft_scan_barcode:
       logging.info('Triggering barcode scanner...')
       StartDaemonThread(target=self.ScanBarcode)
+    elif self.args.bft_get_barcode:
+      logging.info('Getting barcode from BFT...')
+      barcode = self.fixture.ScanBarcode()
+      self.ui.RunJS(
+        'window.test.sendTestEvent("scan_value","%s")' % barcode)
 
     self.ui.Run()

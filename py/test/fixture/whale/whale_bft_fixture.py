@@ -12,6 +12,8 @@ from cros.factory.test.fixture.whale import color_sensor
 from cros.factory.test.fixture.whale import keyboard_emulator
 from cros.factory.test.fixture.whale import lcm2004
 from cros.factory.test.fixture.whale import servo_client
+from cros.factory.utils import process_utils
+from cros.factory.utils import ssh_utils
 
 
 class WhaleBFTFixture(bft.BFTFixture):
@@ -43,6 +45,9 @@ class WhaleBFTFixture(bft.BFTFixture):
     self._color_sensor1 = None
     self._keyboard_emulator = None
     self._lcm = None
+    self._nuc_host = None
+    self._nuc_dut_serial_path = None
+    self._testing_rsa_path = None
 
   def Init(self, **params):
     """Sets up an XML-RPC proxy to BFTFixture's BeagleBone Servo.
@@ -58,6 +63,9 @@ class WhaleBFTFixture(bft.BFTFixture):
             servo=self._servo, sensor_index=1, params=params)
       self._keyboard_emulator = keyboard_emulator.KeyboardEmulator(self._servo)
       self._lcm = lcm2004.Lcm2004(self._servo)
+      self._nuc_host = params.get('nuc_host')
+      self._nuc_dut_serial_path = params.get('nuc_dut_serial_path')
+      self._testing_rsa_path = params.get('testing_rsa_path')
     except servo_client.ServoClientError as e:
       raise bft.BFTFixtureException('Failed to Init(). Reason: %s' % e)
 
@@ -127,7 +135,22 @@ class WhaleBFTFixture(bft.BFTFixture):
     raise NotImplementedError
 
   def ScanBarcode(self):
-    raise NotImplementedError
+    _UNSPECIFIED_ERROR = 'unspecified %s in BFT params'
+    if not self._nuc_host:
+      raise bft.BFTFixtureException(_UNSPECIFIED_ERROR % 'nuc_host')
+    if not self._nuc_dut_serial_path:
+      raise bft.BFTFixtureException(_UNSPECIFIED_ERROR % 'nuc_dut_serial_path')
+    if not self._testing_rsa_path:
+      raise bft.BFTFixtureException(_UNSPECIFIED_ERROR % 'testing_rsa_path')
+
+    ssh_command_base = ssh_utils.BuildSSHCommand(
+        identity_file=self._testing_rsa_path)
+    mlbsn = process_utils.SpawnOutput(
+        ssh_command_base + [self._nuc_host, 'cat', self._nuc_dut_serial_path])
+    if not mlbsn:
+      raise bft.BFTFixtureException('Unable to read barcode from %s:%s' %
+                                    (self._nuc_host, self._nuc_dut_serial_path))
+    return mlbsn.strip()
 
   def IsLEDColor(self, color):
     if not self._color_sensor1:
