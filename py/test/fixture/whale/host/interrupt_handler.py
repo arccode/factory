@@ -13,6 +13,7 @@ import time
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test.fixture.whale import keyboard_emulator
+from cros.factory.test.fixture.whale import serial_client
 from cros.factory.test.fixture.whale import servo_client
 from cros.factory.test.fixture.whale.host import poll_client
 from cros.factory.test.utils import Enum
@@ -72,22 +73,27 @@ class InterruptHandler(object):
       _FixtureState.CLOSING: ('off', 'on', 'closing'),
       _FixtureState.OPENING: ('off', 'on', 'opening')}
 
-  def __init__(self, use_polld, host, polld_port, servod_port, rpc_debug,
+  def __init__(self, host, polld_port, servod_port, dolphin_port, rpc_debug,
                polling_wait_secs):
     """Constructor.
 
     Args:
-      use_polld: True to use polld to poll GPIO port on remote server, or False
-                 to poll local GPIO port directly.
       host: BeagleBone's hostname or IP address.
-      polld_port: port that polld listens.
+      polld_port: port that polld listens. Set to None if not using polld.
       servod_port: port that servod listens.
+      dolphin_port: port that dolphin server listens. Set to None if not using
+          dolphin server.
       rpc_debug: True to enable XMLRPC debug message.
       polling_wait_secs: # seconds for polling button clicking event.
-
     """
-    self._poll = poll_client.PollClient(use_polld=use_polld, host=host,
-                                        tcp_port=polld_port, verbose=rpc_debug)
+    self._poll = poll_client.PollClient(
+        use_polld=polld_port is not None, host=host, tcp_port=polld_port,
+        verbose=rpc_debug)
+
+    self._dolphin = None
+    if dolphin_port:
+      self._dolphin = serial_client.SerialClient(
+          host=host, tcp_port=dolphin_port, verbose=rpc_debug)
 
     self._servo = servo_client.ServoClient(host=host, port=servod_port,
                                            verbose=rpc_debug)
@@ -215,6 +221,8 @@ class InterruptHandler(object):
       return
 
     if self._starting_fixture_action is None:
+      self._ResetWhaleDeviceBeforeClosing()
+      self._ResetDolphinDeviceBeforeClosing()
       self._starting_fixture_action = ActionType.CLOSE_COVER
       self._SetState(self._FixtureState.CLOSING)
 
@@ -233,6 +241,23 @@ class InterruptHandler(object):
     elif self._starting_fixture_action == ActionType.PLUG_LATERAL:
       logging.info('[HandleStartFixture] plugging lateral')
       self._servo.Enable(self._CONTROL.FIXTURE_PLUG_LATERAL)
+
+  @TimeClassMethodDebug
+  def _ResetWhaleDeviceBeforeClosing(self):
+    """Resets devices on Whale if necessary before closing fixture."""
+    # Release DUT CC2 pull-high
+    self._servo.Disable(self._CONTROL.DC)
+    self._servo.Disable(self._CONTROL.OUTPUT_RESERVE_1)
+
+  @TimeClassMethodDebug
+  def _ResetDolphinDeviceBeforeClosing(self):
+    """Resets Dolphin if necessary before closing fixture."""
+    if self._dolphin is None:
+      return
+    # Set dolphin to discharging mode, if dolphin is charging, DUT will fail to
+    # boot up after battery connection.
+    self._dolphin.Send(0, 'usbc_action dev')
+    self._dolphin.Send(1, 'usbc_action dev')
 
   @TimeClassMethodDebug
   def _ToggleBattery(self):
@@ -403,11 +428,16 @@ def ParseArgs():
                     help='enable debug messages')
   parser.add_option('', '--rpc_debug', action='store_true', default=False,
                     help='enable debug messages for XMLRPC call')
+  parser.add_option('', '--nouse_dolphin', action='store_false', default=True,
+                    dest='use_dolphin', help='whether to skip dolphin control '
+                    '(remote server). default: %default')
   parser.add_option('', '--use_polld', action='store_true', default=False,
                     help='whether to use polld (for polling GPIO port on '
                     'remote server) or poll local GPIO port, default: %default')
   parser.add_option('', '--host', default='127.0.0.1', type=str,
                     help='hostname of server, default: %default')
+  parser.add_option('', '--dolphin_port', default=9997, type=int,
+                    help='port that dolphin_server listens, default: %default')
   parser.add_option('', '--polld_port', default=9998, type=int,
                     help='port that polld listens, default: %default')
   parser.add_option('', '--servod_port', default=9999, type=int,
@@ -425,9 +455,12 @@ def main():
       level=logging.DEBUG if options.debug else logging.INFO,
       format='%(asctime)s - %(levelname)s - %(message)s')
 
-  handler = InterruptHandler(options.use_polld, options.host,
-                             options.polld_port, options.servod_port,
-                             options.rpc_debug, options.polling_wait_secs)
+  polld_port = options.polld_port if options.use_polld else None
+  dolphin_port = options.dolphin_port if options.use_dolphin else None
+
+  handler = InterruptHandler(options.host, polld_port, options.servod_port,
+                             dolphin_port, options.rpc_debug,
+                             options.polling_wait_secs)
   handler.Init()
   handler.Run()
 
