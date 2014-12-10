@@ -17,6 +17,7 @@ DISABLED_BIN="${FACTORY_BASE}/sh/disabled.sh"
 IP_ADDRESS="192.168.234.2"
 
 WHALE_SERVO_BIN="${FACTORY_BASE}/py/test/fixture/whale/host/whale_servo"
+DOLPHIN_SERVER_BIN="${FACTORY_BASE}/py/test/fixture/whale/host/dolphin_server"
 
 start_servod() {
   . $TAG_FILE
@@ -40,6 +41,7 @@ main() {
   start_servod
   start_network
   # TODO(deanliao): make interrupt_handler as a service.
+  $DOLPHIN_SERVER_BIN &
   $WHALE_SERVO_BIN &
 }
 
