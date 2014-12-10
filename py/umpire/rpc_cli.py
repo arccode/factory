@@ -206,3 +206,13 @@ class CLICommand(umpire_rpc.UmpireRPC):
     """Gets Umpire dameon status."""
     reporter = status_reporter.StatusReporter(self.env)
     return reporter.Report()
+
+  @umpire_rpc.RPCCall
+  def StartServices(self, services):
+    """Starts a list of services."""
+    return daemon.UmpireDaemon().StartServices(services)
+
+  @umpire_rpc.RPCCall
+  def StopServices(self, services):
+    """Stops a list of services."""
+    return daemon.UmpireDaemon().StopServices(services)

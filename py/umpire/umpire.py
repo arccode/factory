@@ -313,6 +313,24 @@ def ImportResource(args, umpire_cli):
     print 'Resource added as %r' %  resource_name
 
 
+@Command('start-service',
+          CmdArg('services',
+                 help='Comma separate list of services to start.'))
+def StartService(args, umpire_cli):
+  """Starts a list of Umpire services."""
+  services = args.services.split(',')
+  umpire_cli.StartServices(services)
+
+
+@Command('stop-service',
+         CmdArg('services',
+                help='Comma separate list of services to stop.'))
+def StopService(args, umpire_cli):
+  """Stops a list of Umpire services."""
+  services = args.services.split(',')
+  umpire_cli.StopServices(services)
+
+
 def _UmpireCLI():
   """Gets XMLRPC server proxy to Umpire CLI server.
 
