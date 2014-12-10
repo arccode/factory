@@ -46,7 +46,7 @@ class ChromeOSBoard(Board):
 
   # EC tool arguments for accessing PD. Subclass may override this to match the
   # arguments used on the actual board.
-  ECTOOL_PD_ARGS = ['--interface=lpc', '--dev=1']
+  ECTOOL_PD_ARGS = ['--interface=dev', '--dev=1']
 
   _Spawn = staticmethod(Spawn)
 
@@ -284,6 +284,15 @@ class ChromeOSBoard(Board):
         role=match.group('role'),
         polarity=match.group('polarity'),
         state=int(match.group('state')))
+
+  def GetPDGPIOValue(self, gpio_name):
+    gpio_info_re = re.compile(r'^GPIO %s = (\d)' % gpio_name)
+    response = self._CallECTool(self.ECTOOL_PD_ARGS + ['gpioget', gpio_name])
+    gpio_value = gpio_info_re.findall(response)
+    if gpio_value:
+      return int(gpio_value[0])
+    else:
+      raise BoardException('Fail to get GPIO %s value' % gpio_name)
 
   def CheckACPresent(self):
     return self.power.CheckACPresent()
