@@ -48,6 +48,17 @@ DrainQueue = type_utils.DrainQueue
 FlattenList = type_utils.FlattenList
 
 
+def IsFreon():
+  """Checks if the board is running freon.
+
+  Returns:
+    True if the board is running freon; False otherwise.
+  """
+  # Currently we only enable frecon on freon boards. We might need to revisit
+  # this in the future to find a more deterministic way to probe freon board.
+  return os.path.exists('/sbin/frecon')
+
+
 def in_chroot():
   """Returns True if currently in the chroot."""
   return 'CROS_WORKON_SRCROOT' in os.environ
