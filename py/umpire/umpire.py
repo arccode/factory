@@ -14,6 +14,7 @@ running at that time.
 import errno
 import logging
 import os
+import subprocess
 import xmlrpclib
 
 import factory_common  # pylint: disable=W0611
@@ -266,7 +267,10 @@ def List(unused_args, unused_umpire_cli):
 @Command('start')
 def Start(unused_args, unused_umpire_cli):
   """Starts Umpire service."""
-  raise NotImplementedError
+  env = UmpireEnv()
+  env.LoadConfig(init_shop_floor_manager=False, validate=False)
+  subprocess.check_call([
+      'sudo', 'start', 'umpire', 'BOARD=%s' % env.config.get('board')])
 
 
 @Command('stop')
