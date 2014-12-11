@@ -79,6 +79,7 @@ import threading
 import unittest
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.test import camera_utils
 from cros.factory.test import factory_task
 from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
@@ -86,7 +87,6 @@ from cros.factory.test.fixture.camera import barcode
 from cros.factory.test.ui_templates import OneSection
 from cros.factory.test.utils import Enum
 from cros.factory.test.utils import StartDaemonThread
-from cros.factory.utils import camera_utils
 
 
 _MSG_CAMERA_MANUAL_TEST = test_ui.MakeLabel(
