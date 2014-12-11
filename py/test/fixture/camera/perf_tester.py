@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+#
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -9,12 +11,17 @@ try:
 except ImportError:
   pass
 
+import argparse
+import collections
 import itertools
 import math
+import os
+
 import numpy as np
 
-import mtf_calculator
 import grid_mapper
+import mtf_calculator
+import renderer
 
 from camera_utils import Pod
 from camera_utils import Pad
@@ -38,6 +45,9 @@ _SHADING_DOWNSAMPLE_RATIO = 0.20
 _SHADING_BILATERAL_SPATIAL_SIGMA = 20
 _SHADING_BILATERAL_RANGE_SIGMA = 0.15
 _SHADING_DEFAULT_MAX_RESPONSE = 0.01
+
+_TEST_CHART_FILE = os.path.join('static', 'test_chart_%s.png')
+_DEFAULT_PARAM_PATH = os.path.join('static', 'iq.params')
 
 
 # pylint: disable-msg=W0201
@@ -164,7 +174,7 @@ def _ExtractEdgeSegments(edge_map, min_square_size_ratio):
   min_square_area = int(round(diag_len * min_square_size_ratio)) ** 2
 
   # Dilate the output from Canny to fix broken edge segments.
-  edge_map = edge_map.copy()
+  edge_map = cv.fromarray(edge_map.copy())
   cv.Dilate(edge_map, edge_map, None, 1)
 
   # Find contours of the binary edge map.
@@ -540,4 +550,102 @@ def CheckSharpness(sample, edges, min_pass_mtf, min_pass_lowest_mtf,
   if ret.min_mtf < min_pass_lowest_mtf:
     ret.msg = 'The min MTF value is too low.'
     return False, ret
+
+  ret.max_mtf = np.amax(ret.mtfs)
   return True, ret
+
+
+def CalculateIQ(params, sfr_target, white_target, output_vc, output_mtf):
+  if not sfr_target:
+    raise RuntimeError("sfr_target shouldn't be None")
+
+  if not white_target:
+    raise RuntimeError("white_target shouldn't be None")
+
+  orig_img = cv2.imread(sfr_target)
+  gray_img = cv2.cvtColor(orig_img, cv.CV_BGR2GRAY)
+
+  if orig_img.shape[:2] == (480, 640):
+    chart_version = 'B'
+  elif orig_img.shape[:2] == (720, 1280):
+    chart_version = 'A'
+  else:
+    raise RuntimeError('Input image is neither VGA nor 720p resolution')
+
+  ref_chart_filename = _TEST_CHART_FILE % chart_version
+  ref_data = PrepareTest(ref_chart_filename)
+
+  success, tar_vc = CheckVisualCorrectness(gray_img, ref_data,
+                                           **params['cam_vc'])
+  if not success:
+    raise RuntimeError('CheckVisualCorrectness failed: %s' % tar_vc.msg)
+
+  if output_vc:
+    img = orig_img.copy()
+    renderer.DrawVC(img, success, tar_vc)
+    cv2.imwrite(output_vc, img)
+
+  assert tar_vc.edges.shape[0] == params['cam_mtf']['mtf_sample_count']
+
+  success, tar_mtf = CheckSharpness(gray_img, tar_vc.edges,
+                                    **params['cam_mtf'])
+  if not success:
+    raise RuntimeError('CheckSharpness failed: %s' % tar_mtf.msg)
+
+  if output_mtf:
+    img = orig_img.copy()
+    renderer.DrawMTF(img, tar_vc.edges, tar_mtf.perm, tar_mtf.mtfs,
+                     params['cam_mtf']['mtf_crop_ratio'],
+                     params['ui']['mtf_color_map_range'])
+    cv2.imwrite(output_mtf, img)
+
+  orig_white_img = cv2.imread(white_target)
+  gray_white_img = cv2.cvtColor(orig_white_img, cv.CV_BGR2GRAY)
+  success, tar_ls = CheckLensShading(gray_white_img, **params['cam_ls'])
+
+  if not success:
+    raise RuntimeError('CheckLensShading failed: %s' % tar_ls.msg)
+
+  return collections.OrderedDict([
+      ('image_shift', tar_vc.shift),
+      ('image_shift_x', tar_vc.v_shift[0]),
+      ('image_shift_y', tar_vc.v_shift[1]),
+      ('image_tilt', tar_vc.tilt),
+      ('mtf', tar_mtf.mtf),
+      ('lowest_mtf', tar_mtf.min_mtf),
+      ('highest_mtf', tar_mtf.max_mtf),
+      ('lens_shading_ratio', tar_ls.lowest_ratio)
+      ])
+
+
+def main():
+  parser = argparse.ArgumentParser(description='Calculate image quality '
+                                               'index')
+  parser.add_argument('--params', dest='params', default=_DEFAULT_PARAM_PATH,
+                      help='IQ parameters configuration file '
+                           '(default: static/iq.params)')
+  parser.add_argument('--vc', metavar='PATH', dest='vc',
+                      default=None,
+                      help='output visual correctness result image')
+  parser.add_argument('--mtf', metavar='PATH', dest='mtf',
+                      default=None, help='output MTF result image')
+  parser.add_argument('sfr', metavar='SFR_CHART', type=str,
+                      help='SFR chart image captured from camera')
+  parser.add_argument('white', metavar='WHITE_CHART', type=str,
+                      help='white chart image captured from camera')
+
+  args = parser.parse_args()
+
+  with open(args.params, 'r') as f:
+    params = eval(f.read())
+
+  try:
+    results = CalculateIQ(params, args.sfr, args.white, args.vc, args.mtf)
+    for k, v in results.iteritems():
+      print('%-18s = %s' % (k, v))
+  except Exception as e:
+    print(e)
+
+
+if __name__ == '__main__':
+  main()

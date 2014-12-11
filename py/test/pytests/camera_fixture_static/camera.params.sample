@@ -44,6 +44,24 @@
     'n_samples': 45
     },
 
+  # Expected time duration of each test stage (used for progress bar).
+  'chk_point': [
+    ('cam_start', 0.1),
+    ('cam_sn', 0.1),
+    ('cam_fw', 0.1),
+    ('cam_init', 0.1),
+    ('cam_awb', 3.0),
+    ('cam_img', 2.5),
+    ('cam_vc', 0.25),
+    ('cam_ls', 0.05),
+    ('cam_mtf', 0.75),
+    ('cam_end', 1.0),
+    ('cam_data_saved', 0)
+    ],
+
+  # The following params references py/test/fixture/camera/static/iq.params
+  # If you the structure of any of them, please make sure you update iq.params
+  # as well.
   'cam_vc': {
     # Corner quality threshold when detecting corners.
     'min_corner_quality_ratio': 0.01,
@@ -99,20 +117,5 @@
 
     # Number of threads running concurrently (depends on CPU core count).
     'n_thread': 4
-    },
-
-  # Expected time duration of each test stage (used for progress bar).
-  'chk_point': [
-    ('cam_start', 0.1),
-    ('cam_sn', 0.1),
-    ('cam_fw', 0.1),
-    ('cam_init', 0.1),
-    ('cam_awb', 3.0),
-    ('cam_img', 2.5),
-    ('cam_vc', 0.25),
-    ('cam_ls', 0.05),
-    ('cam_mtf', 0.75),
-    ('cam_end', 1.0),
-    ('cam_data_saved', 0)
-    ]
+    }
 }

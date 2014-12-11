@@ -1,0 +1,64 @@
+# -*- mode: python -*-
+{
+  'ui': {
+    # Lowest and upper bounds for visualization of good and bad MTF values.
+    'mtf_color_map_range': [0.133, 0.23],
+    },
+
+  'cam_vc': {
+    # Corner quality threshold when detecting corners.
+    'min_corner_quality_ratio': 0.01,
+
+    # Minimum allowed square edge length compared to image diagonal length when
+    # detecting square blocks.
+    'min_square_size_ratio': 0.022,
+
+    # Minimum allowed corner distance compared to image diagonal length when
+    # detecting corners.
+    'min_corner_distance_ratio': 0.01,
+
+    # Maximum allowed image position shift compared to image diagonal length.
+    'max_image_shift': 0.0495,
+
+    # Maximum allowed image rotation in degrees.
+    'max_image_tilt': 1.40
+    },
+
+  'cam_ls': {
+    # Low-frequency variation check (sensitive to light uniformity).
+    'check_low_freq': False,
+
+    # Maximum acceptable response of low frequency variation.
+    'max_response': 0.01,
+
+    # Maximum acceptable shading ratio of boundary pixels.
+    'max_shading_ratio': 0.442
+    },
+
+  'cam_mtf': {
+    # Minimum acceptable median MTF value of all edge samples.
+    # For example, it compares with the 154th value out of 308 samples.
+    'min_pass_mtf': 0.23,
+
+    # Minimum acceptable lowest MTF value of all edge samples.
+    # For example, it compares with the lowest 308th value of 308 samples.
+    'min_pass_lowest_mtf': 0.133,
+
+    # Maximum number of edges to compute MTF values.
+    # Test chart A: 7 x 11 x 4 = 308
+    # Test chart B: 7 x 9 x 4 = 252
+    'mtf_sample_count': 308,
+
+    # Patch width for MTF calculation (typical values: 10 for VGA, 20 for 720p).
+    'mtf_patch_width': 20,
+
+    # How much to crop at the beginning and the end of an edge.
+    'mtf_crop_ratio': 0.25,
+
+    # Use MTF50P (True) or MTF50 (False) algorithms.
+    'use_50p': False,
+
+    # Number of threads running concurrently (depends on CPU core count).
+    'n_thread': 4
+    },
+}
