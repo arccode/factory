@@ -11,8 +11,7 @@ except ImportError:
 
 import numpy as np
 
-from camera_utils import Pad
-from camera_utils import Unpad
+import utils
 
 _GRID_REGISTRATION_MAX_ITER_NUM = 5
 _GRID_REGISTRATION_MIN_MATCH_RATIO = 0.20
@@ -85,7 +84,7 @@ def Register(tar_four_corners, tar_corners, ref_four_corners, ref_corners,
            reference one. None if a point can't find any match.
     '''
     # Stupid dimension extension to fit the opencv interface.
-    padded_tar_corners = Pad(tar_corners)
+    padded_tar_corners = utils.Pad(tar_corners)
 
     min_match_num = int(round(mapped.shape[0] *
                               _GRID_REGISTRATION_MIN_MATCH_RATIO))
@@ -98,7 +97,7 @@ def Register(tar_four_corners, tar_corners, ref_four_corners, ref_corners,
     for i in range(0, _GRID_REGISTRATION_MAX_ITER_NUM):
         # Map and match points.
         mapped = cv2.perspectiveTransform(padded_tar_corners, homography)
-        mapped = Unpad(mapped)
+        mapped = utils.Unpad(mapped)
         matching = _MatchPoints(mapped, ref_corners, match_tol)
 
         # Check if all points can find a close enough match.

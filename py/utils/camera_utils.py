@@ -15,6 +15,11 @@ except ImportError:
 import glob
 import os
 import re
+import tempfile
+
+import factory_common  # pylint: disable=W0611
+from cros.factory.event_log import TimedUuid
+from cros.factory.utils import file_utils
 
 
 # Paths of mock images.
@@ -28,6 +33,27 @@ _MOCK_IMAGE_QR = 'mock_QR.jpg'
 class CameraError(Exception):
   """Camera device exception class."""
   pass
+
+
+def EncodeCVImage(img, file_ext):
+  """Encodes OpenCV image to common image format.
+
+  Args:
+    img: OpenCV image.
+    file_ext: Image filename extension. Ex: '.bmp', '.jpg', etc.
+
+  Returns:
+    Encoded image data.
+  """
+  # TODO (jchuang): newer version of OpenCV has better imencode()
+  # Python method.
+  temp_fn = os.path.join(tempfile.gettempdir(), TimedUuid() + file_ext)
+  try:
+    cv2.imwrite(temp_fn, img)
+    with open(temp_fn, 'rb') as f:
+      return f.read()
+  finally:
+    file_utils.TryUnlink(temp_fn)
 
 
 def ReadImageFile(filename):

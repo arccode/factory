@@ -4,6 +4,13 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
+import argparse
+import collections
+import itertools
+import math
+import os
+from multiprocessing import Pool
+
 # Import guard for OpenCV.
 try:
   import cv   # pylint: disable=F0401
@@ -11,21 +18,12 @@ try:
 except ImportError:
   pass
 
-import argparse
-import collections
-import itertools
-import math
-import os
-
 import numpy as np
 
 import grid_mapper
 import mtf_calculator
 import renderer
-
-from camera_utils import Pod
-from camera_utils import Pad
-from multiprocessing import Pool
+import utils
 
 
 _CORNER_MAX_NUM = 1000000
@@ -51,7 +49,7 @@ _DEFAULT_PARAM_PATH = os.path.join('static', 'iq.params')
 
 
 # pylint: disable-msg=W0201
-class ReturnValue(Pod):
+class ReturnValue(utils.Pod):
   pass
 
 
@@ -143,11 +141,11 @@ def _CheckSquareness(contour, min_square_area):
     return False
 
   # Filter out noise squares.
-  if cv2.contourArea(Pad(contour)) < min_square_area:
+  if cv2.contourArea(utils.Pad(contour)) < min_square_area:
     return False
 
   # Check convexity.
-  if not cv2.isContourConvex(Pad(contour)):
+  if not cv2.isContourConvex(utils.Pad(contour)):
     return False
 
   min_angle = 0
@@ -263,7 +261,7 @@ def PrepareTest(pat_file):
   ret.pmatch_tol = diag_len * _POINT_MATCHING_MAX_TOLERANCE_RATIO
 
   # Locate four corners of the corner grid.
-  hull = _SqueezeCorners(cv2.convexHull(Pad(ret.corners)))
+  hull = _SqueezeCorners(cv2.convexHull(utils.Pad(ret.corners)))
   ret.four_corners = _FindCornersOnConvexHull(hull)
 
   # Locate edges.
@@ -410,7 +408,7 @@ def CheckVisualCorrectness(
     return False, ret
 
   # Find the 4 corners of the square grid.
-  hull = _SqueezeCorners(cv2.convexHull(Pad(sample_corners)))
+  hull = _SqueezeCorners(cv2.convexHull(utils.Pad(sample_corners)))
   if hull.shape[0] < 4:
     ret.msg = "All the corners are co-linear."
     return False, ret
