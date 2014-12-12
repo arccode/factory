@@ -6,7 +6,23 @@
 MYDIR="$(dirname "$(readlink -f "$0")")"
 FACTORY_BASE="/usr/local/factory"
 
+is_freon() {
+  # Currently we only install frecon on freon boards.
+  if [ -x "/sbin/frecon" ]; then
+    return 0
+  else
+    return 1
+  fi
+}
+
 main() {
+  # For freon boards: We disable powerd in factory test mode, but the screen
+  # backlight is turned on by powerd. Manually set the brightness level to
+  # 50% of max brightness.
+  if is_freon; then
+    backlight_tool --set_brightness_percent=50.0
+  fi
+
   # Install console (VT2) customizations
   mount --bind "${MYDIR}/profile.d/vt2.sh" /etc/profile.d/cursor.sh
 
