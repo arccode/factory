@@ -141,13 +141,15 @@ def Init(env, bundle_dir, board, make_default, local, user, group,
         file_utils.ForceSymlink(global_board_symlink, default_symlink)
         logging.info('Symlink %r -> %r', default_symlink, global_board_symlink)
 
-      vmlinux_symlink = os.path.join(root_dir, 'tftpboot', 'vmlinux-%s.bin' %
-                                     board)
+      tftpboot_path = os.path.join(root_dir, 'tftpboot')
+      vmlinux_symlink = os.path.join(tftpboot_path, 'vmlinux-%s.bin' % board)
       resources_vmlinux_bin = os.path.join(env.resources_dir, 'vmlinux.bin')
       logging.info('Symlink %r -> %r', vmlinux_symlink, resources_vmlinux_bin)
 
       if os.path.islink(vmlinux_symlink):
         os.remove(vmlinux_symlink)
+      # Installation shouldn't fail even if /tftpboot doesn't exist
+      file_utils.TryMakeDirs(tftpboot_path)
       os.symlink(resources_vmlinux_bin, vmlinux_symlink)
 
   def InitUmpireConfig(toolkit_base):

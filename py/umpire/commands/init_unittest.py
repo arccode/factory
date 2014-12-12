@@ -65,7 +65,6 @@ class InitTest(unittest.TestCase):
                                      'umpire', TEST_BOARD)
     os.makedirs(self.root_dir)
     os.makedirs(os.path.join(self.root_dir, 'usr', 'local', 'bin'))
-    os.makedirs(os.path.join(self.root_dir, 'tftpboot'))
     os.makedirs(self.env.base_dir)
     os.makedirs(self.env.resources_dir)
 
