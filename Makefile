@@ -81,7 +81,8 @@ UNITTESTS_WHITELIST=$(filter-out $(UNITTESTS_BLACKLIST),$(UNITTESTS))
 # Tests need to run in isolate mode.
 UNITTESTS_ISOLATE_LIST=\
        py/goofy_split/goofy_unittest.py \
-       py/goofy_split/system_log_manager_unittest.py
+       py/goofy_split/system_log_manager_unittest.py \
+       py/goofy_monolithic/system_log_manager_unittest.py
 
 INSTALL_MASK=*.pyc \
 	     *_unittest.py \

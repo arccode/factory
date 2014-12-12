@@ -12,6 +12,7 @@ import glob
 import logging
 import mox
 import os
+import shutil
 import tempfile
 import time
 import unittest
@@ -34,8 +35,9 @@ debug_utils.CatchException = CatchExceptionDisabled
 
 from cros.factory.goofy import system_log_manager
 
+TEST_DIRECTORY = '/tmp/system_log_manager_unittest_%s_/' % os.getpid()
 mock_file_prefix = 'system_log_manager_unittest_%s_' % os.getpid()
-mock_sync_log_paths = [os.path.join('/tmp', mock_file_prefix + '*')]
+mock_sync_log_paths = [os.path.join(TEST_DIRECTORY, mock_file_prefix + '*')]
 
 MOCK_SYNC_PERIOD_SEC = 0.6
 MOCK_MIN_SYNC_PERIOD_SEC = 0.5
@@ -66,13 +68,15 @@ MOCK_RSYNC_COMMAND_ARG = ['rsync', '-azR', '--stats', '--chmod=o-t',
 class TestSystemLogManager(unittest.TestCase):
   """Unittest for SystemLogManager."""
   def setUp(self):
-    self.ClearFiles()
     self.mox = mox.Mox()
     self.manager = None
     self.fake_shopfloor = None
     self.fake_process = None
-    self._tempfiles = [tempfile.mkstemp(prefix=mock_file_prefix, dir='/tmp')
-                       for _ in xrange(3)]
+    file_utils.TryMakeDirs(TEST_DIRECTORY)
+    self.ClearFiles()
+    self._tempfiles = [
+        tempfile.mkstemp(prefix=mock_file_prefix, dir=TEST_DIRECTORY)
+        for _ in xrange(3)]
     self.base_rsync_command = (MOCK_RSYNC_COMMAND_ARG +
         sum([glob.glob(x) for x in mock_sync_log_paths], []) +
         MOCK_RSYNC_DESTINATION)
@@ -81,7 +85,8 @@ class TestSystemLogManager(unittest.TestCase):
     system_log_manager.MIN_SYNC_LOG_PERIOD_SECS = MOCK_MIN_SYNC_PERIOD_SEC
 
   def ClearFiles(self):
-    clear_files = glob.glob(os.path.join('/tmp', mock_file_prefix + '*'))
+    clear_files = glob.glob(
+        os.path.join(TEST_DIRECTORY, mock_file_prefix + '*'))
     logging.debug('Clearing %r', clear_files)
     for x in clear_files:
       file_utils.TryUnlink(x)
@@ -90,6 +95,7 @@ class TestSystemLogManager(unittest.TestCase):
     logging.debug('tearDown')
     self.mox.UnsetStubs()
     self.ClearFiles()
+    shutil.rmtree(TEST_DIRECTORY)
 
   def SetMock(self):
     """Sets mocked methods and objects."""
@@ -422,8 +428,8 @@ class TestSystemLogManager(unittest.TestCase):
     self.SetMock()
     clear_file_prefix = mock_file_prefix + 'clear_'
     for _ in xrange(3):
-      tempfile.mkstemp(prefix=clear_file_prefix, dir='/tmp')
-    clear_file_paths = [os.path.join('/tmp', clear_file_prefix + '*')]
+      tempfile.mkstemp(prefix=clear_file_prefix, dir=TEST_DIRECTORY)
+    clear_file_paths = [os.path.join(TEST_DIRECTORY, clear_file_prefix + '*')]
     self.MockSyncOnce()
 
     self.mox.ReplayAll()
@@ -444,8 +450,8 @@ class TestSystemLogManager(unittest.TestCase):
     self.SetMock()
     clear_file_prefix = mock_file_prefix + 'clear_'
     for _ in xrange(3):
-      tempfile.mkstemp(prefix=clear_file_prefix, dir='/tmp')
-    clear_file_paths = [os.path.join('/tmp', clear_file_prefix + '*')]
+      tempfile.mkstemp(prefix=clear_file_prefix, dir=TEST_DIRECTORY)
+    clear_file_paths = [os.path.join(TEST_DIRECTORY, clear_file_prefix + '*')]
 
     self.mox.ReplayAll()
 
@@ -467,8 +473,8 @@ class TestSystemLogManager(unittest.TestCase):
     self.SetMock()
     clear_file_prefix = mock_file_prefix + 'clear_'
     for _ in xrange(3):
-      tempfile.mkstemp(prefix=clear_file_prefix, dir='/tmp')
-    clear_file_paths = [os.path.join('/tmp', clear_file_prefix + '*')]
+      tempfile.mkstemp(prefix=clear_file_prefix, dir=TEST_DIRECTORY)
+    clear_file_paths = [os.path.join(TEST_DIRECTORY, clear_file_prefix + '*')]
 
     self.mox.ReplayAll()
 
@@ -490,13 +496,13 @@ class TestSystemLogManager(unittest.TestCase):
     self.SetMock()
     clear_file_prefix = mock_file_prefix + 'clear_'
     for _ in xrange(3):
-      tempfile.mkstemp(prefix=clear_file_prefix, dir='/tmp')
+      tempfile.mkstemp(prefix=clear_file_prefix, dir=TEST_DIRECTORY)
     preserve_file_prefix = clear_file_prefix + 'preserve_'
     for _ in xrange(3):
-      tempfile.mkstemp(prefix=preserve_file_prefix, dir='/tmp')
-    clear_file_paths = [os.path.join('/tmp', clear_file_prefix + '*')]
+      tempfile.mkstemp(prefix=preserve_file_prefix, dir=TEST_DIRECTORY)
+    clear_file_paths = [os.path.join(TEST_DIRECTORY, clear_file_prefix + '*')]
     clear_file_excluded_paths = [
-        os.path.join('/tmp', preserve_file_prefix + '*')]
+        os.path.join(TEST_DIRECTORY, preserve_file_prefix + '*')]
 
     self.mox.ReplayAll()
 
@@ -512,10 +518,14 @@ class TestSystemLogManager(unittest.TestCase):
 
     self.mox.VerifyAll()
     self.assertEqual(
-        sum([glob.glob(os.path.join('/tmp', clear_file_prefix + '*'))], []),
-        sum([glob.glob(os.path.join('/tmp', preserve_file_prefix + '*'))], []))
+        sum([glob.glob(os.path.join(TEST_DIRECTORY,
+                                    clear_file_prefix + '*'))],
+            []),
+        sum([glob.glob(os.path.join(TEST_DIRECTORY,
+                                    preserve_file_prefix + '*'))],
+            []))
     self.assertEqual(len(sum([glob.glob(
-        os.path.join('/tmp', preserve_file_prefix + '*'))], [])), 3)
+        os.path.join(TEST_DIRECTORY, preserve_file_prefix + '*'))], [])), 3)
 
   def testCheckSetting(self):
     """Unittest for _CheckSettings method."""
