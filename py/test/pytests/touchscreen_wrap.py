@@ -34,7 +34,6 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import test_ui
-from cros.factory.test import utils
 from cros.factory.test.args import Arg
 
 
@@ -64,22 +63,12 @@ class TouchscreenTest(unittest.TestCase):
           default=150),]
 
   def setUp(self):
-    # Enable touchscreen.
-    self.touchscreen_device_id = utils.GetTouchscreenDeviceIds()[0]
-    self.touchscreen_enabled = utils.IsXinputDeviceEnabled(
-        self.touchscreen_device_id)
-    utils.SetXinputDeviceEnabled(self.touchscreen_device_id, True)
     # Initialize frontend presentation
     self.ui = test_ui.UI()
     self.ui.AppendHTML(_HTML_TOUCHSCREEN)
     self.ui.CallJSFunction('setupTouchscreenTest', _ID_CONTAINER,
                            self.args.x_segments, self.args.y_segments,
                            self.args.retries, self.args.demo_interval_ms)
-
-  def tearDown(self):
-    # Restore touchscreen enabled state.
-    utils.SetXinputDeviceEnabled(self.touchscreen_device_id,
-                                 self.touchscreen_enabled)
 
   def OnFailPressed(self):
     """Fails the test."""
