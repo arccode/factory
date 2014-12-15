@@ -17,6 +17,7 @@ import unittest
 
 import factory_common   # pylint: disable=W0611
 from cros.factory.l10n import regions
+from cros.factory.test import evdev_utils
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
@@ -44,20 +45,6 @@ _KEYBOARD_TEST_DEFAULT_CSS = (
 _POWER_KEY_CODE = 116
 
 
-class InputDeviceDispatcher(asyncore.file_dispatcher):
-  """Extends asyncore.file_dispatcher to read input device."""
-  def __init__(self, device, event_handler):
-    self.device = device
-    self.event_handler = event_handler
-    asyncore.file_dispatcher.__init__(self, device)
-
-  def recv(self, ign=None): # pylint:disable=W0613
-    return self.device.read()
-
-  def handle_read(self):
-    for event in self.recv():
-      self.event_handler(event)
-
 class KeyboardTest(unittest.TestCase):
   """Tests if all the keys on a keyboard are functioning. The test checks for
   keydown and keyup events for each key, following certain order if required,
@@ -70,13 +57,11 @@ class KeyboardTest(unittest.TestCase):
         ('Use specified layout other than derived from VPD. '
          'If None, the layout from the VPD is used.'),
         default=None, optional=True),
-    Arg('keyboard_device_name', (str, unicode), 'Device name of keyboard.',
-        default='AT Translated Set 2 keyboard'),
     Arg('timeout_secs', int, 'Timeout for the test.', default=30),
     Arg('sequential_press', bool, 'Indicate whether keycodes need to be '
         'pressed sequentially or not.', default=False, optional=True),
     Arg('board', str,
-        'If presents, in filename, the board name is appended after layout. ',
+        'If presents, in filename, the board name is appended after layout.',
         default=''),
     Arg('skip_power_key', bool, 'Skip power button testing', default=False),
   ]
@@ -89,10 +74,11 @@ class KeyboardTest(unittest.TestCase):
     self.ui = test_ui.UI()
     self.template = OneSection(self.ui)
     self.ui.AppendCSS(_KEYBOARD_TEST_DEFAULT_CSS)
-    self.env = {
-        'DISPLAY': ':0',
-        'XAUTHORITY': '/home/chronos/.Xauthority'
-    }
+
+    # Get the keyboard input device.
+    keyboard_devices = evdev_utils.GetKeyboardDevices()
+    assert len(keyboard_devices) == 1, 'Multiple keyboards detected.'
+    self.keyboard_device = keyboard_devices[0]
 
     # Initialize keyboard layout and bindings
     self.layout = self.GetKeyboardLayout()
@@ -114,7 +100,7 @@ class KeyboardTest(unittest.TestCase):
                            self.args.allow_multi_keys)
 
     self.dispatchers = []
-    self.EnableXKeyboard(False)
+    self.keyboard_device.grab()
     StartDaemonThread(target=self.MonitorEvdevEvent)
     StartCountdownTimer(self.args.timeout_secs,
                         lambda: self.ui.CallJSFunction('failTest'),
@@ -122,12 +108,11 @@ class KeyboardTest(unittest.TestCase):
                         _ID_COUNTDOWN_TIMER)
 
   def tearDown(self):
-    """Terminates the running process or we'll have trouble stopping the
-    test.
+    """Terminates the running process or we'll have trouble stopping the test.
     """
     for dispatcher in self.dispatchers:
       dispatcher.close()
-    self.EnableXKeyboard(True)
+    self.keyboard_device.ungrab()
 
   def GetKeyboardLayout(self):
     """Uses the given keyboard layout or auto-detect from VPD."""
@@ -167,17 +152,12 @@ class KeyboardTest(unittest.TestCase):
       key_order_list = eval(f.read())
     return key_order_list
 
-  def EnableXKeyboard(self, enable):
-    """Enables/Disables keyboard at the X server."""
-    CheckOutput(['xinput', 'set-prop', self.args.keyboard_device_name,
-                 'Device Enabled', '1' if enable else '0'],
-                env=self.env)
 
   def MonitorEvdevEvent(self):
     """Monitors keyboard events from evdev."""
-    for dev in map(evdev.InputDevice, evdev.list_devices()):
-      if evdev.ecodes.EV_KEY in dev.capabilities().iterkeys():
-        self.dispatchers.append(InputDeviceDispatcher(dev, self.HandleEvent))
+    self.dispatchers.append(
+        evdev_utils.InputDeviceDispatcher(
+            self.keyboard_device, self.HandleEvent))
     asyncore.loop()
 
   def HandleEvent(self, event):
