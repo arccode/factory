@@ -152,17 +152,6 @@ class DUTEnvironment(Environment):
     utils.WaitFor(self.has_sockets, 30)
     subprocess.check_call(['initctl', 'emit', 'login-prompt-visible'])
 
-    # TODO: Find a way to disable two-finger scrolling when not using X
-    if utils.HasX():
-      # Disable X-axis two-finger scrolling on touchpad.
-      utils.SetTouchpadTwoFingerScrollingX(False)
-      # If we have a touchpad, then disable touchscreen so that operators won't
-      # accidentally roll back to previous webpage. If we have no touchpad, we
-      # assume that the touch UI is required.
-      if utils.GetTouchpadDeviceIds():
-        for device_id in utils.GetTouchscreenDeviceIds():
-          utils.SetXinputDeviceEnabled(device_id, False)
-
   def create_connection_manager(self, wlans, scan_wifi_period_secs):
     return connection_manager.ConnectionManager(wlans,
                                                 scan_wifi_period_secs)
