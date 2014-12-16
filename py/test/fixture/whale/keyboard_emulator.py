@@ -87,7 +87,9 @@ class KeyboardEmulator(object):
     Args:
       bitmask: 16-bit value will be output.
       period_secs: The bitmask will be kept for a specified period.
+          If the period_secs is 0, the bitmask will always be kept.
     """
     self._Emulate(bitmask, False)
-    time.sleep(period_secs)
-    self.Reset()
+    if period_secs:
+      time.sleep(period_secs)
+      self.Reset()
