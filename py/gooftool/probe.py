@@ -533,7 +533,8 @@ def _ProbeAudioCodecArm():
   There is a set of known invalid codec names that are not included in the
   return value.
   """
-  KNOWN_INVALID_CODEC_NAMES = set(['snd-soc-dummy'])
+  # ts3a227e.4-003b is autonomous autiojack switch, not an audio codec
+  KNOWN_INVALID_CODEC_NAMES = set(['snd-soc-dummy', 'ts3a227e.4-003b'])
   with open('/sys/kernel/debug/asoc/codecs') as f:
     return [DictCompactProbeStr(codec) for codec in
             filter(lambda value: value not in KNOWN_INVALID_CODEC_NAMES,
