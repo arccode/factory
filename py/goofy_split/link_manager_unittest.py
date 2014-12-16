@@ -13,7 +13,7 @@ from cros.factory.goofy import link_manager
 from cros.factory.goofy.link_manager import DUTLinkManager
 from cros.factory.goofy.link_manager import PresenterLinkManager
 from cros.factory.goofy.link_manager import LinkDownError
-from cros.factory.utils import test_utils
+from cros.factory.utils import net_utils
 
 class LinkManagerTest(unittest.TestCase):
   def setUp(self):
@@ -21,10 +21,10 @@ class LinkManagerTest(unittest.TestCase):
     self.presenter_link = None
     self.hook = mox.MockAnything()
 
-    link_manager.PRESENTER_LINK_RPC_PORT = test_utils.FindUnusedTCPPort()
-    link_manager.PRESENTER_PING_PORT = test_utils.FindUnusedTCPPort()
-    link_manager.DUT_LINK_RPC_PORT = test_utils.FindUnusedTCPPort()
-    link_manager.DUT_PING_PORT = test_utils.FindUnusedTCPPort()
+    link_manager.PRESENTER_LINK_RPC_PORT = net_utils.FindUnusedTCPPort()
+    link_manager.PRESENTER_PING_PORT = net_utils.FindUnusedTCPPort()
+    link_manager.DUT_LINK_RPC_PORT = net_utils.FindUnusedTCPPort()
+    link_manager.DUT_PING_PORT = net_utils.FindUnusedTCPPort()
 
   def tearDown(self):
     if self.dut_link:

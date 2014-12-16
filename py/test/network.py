@@ -15,6 +15,7 @@ from cros.factory import common
 from cros.factory.test import factory
 from cros.factory.test.utils import FormatExceptionOnly
 from cros.factory.utils import net_utils
+from cros.factory.utils import sync_utils
 
 
 INSERT_ETHERNET_DONGLE_TIMEOUT = 30
@@ -123,8 +124,8 @@ def PrepareNetwork(ip, force_new_ip=False, on_waiting=None):
   factory.console.info('Detecting Ethernet device...')
 
   try:
-    net_utils.PollForCondition(
-        condition=lambda: True if net_utils.FindUsableEthDevice() else False,
+    sync_utils.PollForCondition(
+        poll_method=net_utils.FindUsableEthDevice,
         timeout=INSERT_ETHERNET_DONGLE_TIMEOUT,
         condition_name='Detect Ethernet device')
 
@@ -133,8 +134,8 @@ def PrepareNetwork(ip, force_new_ip=False, on_waiting=None):
       if on_waiting:
         on_waiting()
       factory.console.info('Setting up IP address...')
-      net_utils.PollForCondition(condition=_obtain_IP,
-                                 condition_name='Setup IP address')
+      sync_utils.PollForCondition(poll_method=_obtain_IP,
+                                  condition_name='Setup IP address')
   except:  # pylint: disable=W0702
     exception_string = FormatExceptionOnly()
     factory.console.error('Unable to setup network: %s', exception_string)

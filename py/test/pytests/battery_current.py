@@ -22,7 +22,7 @@ from cros.factory.system.board import Board
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
-from cros.factory.utils.net_utils import PollForCondition
+from cros.factory.utils.sync_utils import PollForCondition
 
 _TEST_TITLE = test_ui.MakeLabel('Battery Current Test', u'充電放電电流測試')
 
@@ -96,12 +96,12 @@ class BatteryCurrentTest(unittest.TestCase):
     self._ui.Run(blocking=False)
     if self.args.min_charging_current:
       self._board.SetChargeState(Board.ChargeState.CHARGE)
-      PollForCondition(self._CheckCharge, poll_interval_secs=0.5,
+      PollForCondition(poll_method=self._CheckCharge, poll_interval_secs=0.5,
                        condition_name='ChargeCurrent',
                        timeout=self.args.timeout_secs)
     if self.args.min_discharging_current:
       self._board.SetChargeState(Board.ChargeState.DISCHARGE)
-      PollForCondition(self._CheckDischarge, poll_interval_secs=0.5,
+      PollForCondition(poll_method=self._CheckDischarge, poll_interval_secs=0.5,
                        condition_name='DischargeCurrent',
                        timeout=self.args.timeout_secs)
 

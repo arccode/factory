@@ -20,7 +20,6 @@ import SocketServer
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.utils import net_utils
-from cros.factory.utils import test_utils
 from cros.factory.rf.n1914a import N1914A
 
 NORMAL_ERR_RESPONSE = '+0,"No error"\n'
@@ -106,7 +105,7 @@ class N1914ATest(unittest.TestCase):
 
   def _StartMockServer(self):
     '''Starts a thread for the mock equipment.'''
-    server_port = test_utils.FindUnusedTCPPort()
+    server_port = net_utils.FindUnusedTCPPort()
     mock_server = MockTestServer(
         (net_utils.LOCALHOST, server_port), MockServerHandler)
     # pylint: disable=E1101

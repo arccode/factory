@@ -25,7 +25,6 @@ from cros.factory.test import factory
 from cros.factory.test import utils
 from cros.factory.umpire.client import umpire_server_proxy
 from cros.factory.utils import net_utils
-from cros.factory.utils import test_utils
 from cros.factory.utils.process_utils import Spawn
 
 
@@ -33,7 +32,7 @@ class ShopFloorServerTest(unittest.TestCase):
   def setUp(self):
     '''Starts shop floor server and creates client proxy.'''
     # pylint: disable=W0212
-    self.server_port = test_utils.FindUnusedTCPPort()
+    self.server_port = net_utils.FindUnusedTCPPort()
     self.base_dir = os.path.dirname(os.path.abspath(sys.argv[0]))
     self.data_dir = tempfile.mkdtemp(prefix='shopfloor_data.')
     self.auto_archive_logs = os.path.join(self.data_dir, 'auto-archive-logs')

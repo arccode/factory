@@ -11,7 +11,7 @@ from cros.factory.rf.modem import Modem
 from cros.factory.rf.utils import IsInRange
 from cros.factory.test import factory
 from cros.factory.test.pytests.rf_framework import RfFramework
-from cros.factory.utils.net_utils import PollForCondition
+from cros.factory.utils.sync_utils import PollForCondition
 from cros.factory.rf.n1914a import N1914A
 
 ENABLE_FACTORY_TEST_MODE_COMMAND = 'AT+CFUN=5'
@@ -70,7 +70,7 @@ class RadiatedCellular(RfFramework, unittest.TestCase):
         # Start continuous transmit
         # This may fail the first time if the modem isn't ready;
         # try a few more times.
-        PollForCondition(condition=(
+        PollForCondition(poll_method=(
             lambda: self.StartTxTest(
                 measurement['band_name'], measurement['channel'])),
             timeout=ENABLE_TX_MODE_TIMEOUT_SECS,

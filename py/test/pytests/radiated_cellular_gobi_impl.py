@@ -12,7 +12,7 @@ from cros.factory.rf.utils import CheckPower, FormattedPower
 from cros.factory.test import factory
 from cros.factory.test import utils
 from cros.factory.test.pytests.rf_framework import RfFramework
-from cros.factory.utils.net_utils import PollForCondition
+from cros.factory.utils.sync_utils import PollForCondition
 from cros.factory.rf.n1914a import N1914A
 
 ENABLE_FACTORY_TEST_MODE_COMMAND = 'AT+CFUN=5'
@@ -235,7 +235,7 @@ class RadiatedCellularGobiImpl(RfFramework):
     # This may fail the first time if the modem isn't ready;
     # try a few more times.
     PollForCondition(
-        condition=SendTXCommand,
+        poll_method=SendTXCommand,
         timeout=ENABLE_TX_MODE_TIMEOUT_SECS,
         poll_interval_secs=TX_MODE_POLLING_INTERVAL_SECS,
         condition_name='Start TX test')

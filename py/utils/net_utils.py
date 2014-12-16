@@ -4,6 +4,8 @@
 
 """Networking-related utilities."""
 
+import SocketServer
+
 import glob
 import httplib
 import logging
@@ -16,7 +18,7 @@ import xmlrpclib
 
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.common import Error, TimeoutError
+from cros.factory.common import Error
 from cros.factory.utils.process_utils import Spawn, SpawnOutput
 
 
@@ -141,42 +143,6 @@ def GetEthernetIp(interface=None):
   if match:
     ip_address = match.group(1)
   return ip_address
-
-
-def PollForCondition(condition, timeout=DEFAULT_TIMEOUT,
-                     poll_interval_secs=0.1, condition_name=None):
-  """Polls for every interval seconds until the condition is met.
-
-  It is a blocking call. The exit conditions are either the condition is met
-  or the timeout is reached.
-
-  Args:
-    condition: an boolean method without args to be polled. The method can
-        return either a boolean or a tuple if additional information need to
-        be passed to caller. If a tuple is returned, first element will be
-        checked as the boolean result.
-    timeout: maximum number of seconds to wait, None means forever.
-    poll_interval_secs: interval to poll condition.
-    condition_name: description of the condition. Used for TimeoutError when
-        timeout is reached.
-
-  Raises:
-    TimeoutError.
-  """
-  start_time = time.time()
-  while True:
-    ret = condition()
-    boolean_result = ret[0] if type(ret) == tuple else ret
-    if boolean_result is True:
-      return ret
-    if timeout and time.time() + poll_interval_secs - start_time > timeout:
-      if condition_name:
-        condition_name = 'Timed out waiting for condition: %s' % condition_name
-      else:
-        condition_name = 'Timed out waiting for unnamed condition'
-      logging.error(condition_name)
-      raise TimeoutError(condition_name)
-    time.sleep(poll_interval_secs)
 
 
 def GetWLANMACAddress():
@@ -305,6 +271,13 @@ def GetUnusedPort():
     # Check if this port is unused on the other protocol.
     if port and TryBind(port, socket.SOCK_DGRAM, socket.IPPROTO_UDP):
       return port
+
+
+def FindUnusedTCPPort():
+  """Returns an unused TCP port for testing."""
+  server = SocketServer.TCPServer((LOCALHOST, 0),
+                                  SocketServer.BaseRequestHandler)
+  return server.server_address[1]
 
 
 def EnablePort(port, protocol='tcp', priority=None, interface=None):

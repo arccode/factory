@@ -16,7 +16,7 @@ import uuid
 import yaml
 
 from cros.factory.test.utils import Retry
-from cros.factory.utils.net_utils import PollForCondition
+from cros.factory.utils.sync_utils import PollForCondition
 from dbus.mainloop.glib import DBusGMainLoop
 from dbus import service # pylint: disable=W0611
 from dbus import DBusException
@@ -301,8 +301,10 @@ class BluetoothManager(object):
     bus = dbus.SystemBus()
     device_prop = dbus.Interface(bus.get_object(BUS_NAME, adapter.object_path),
                                  'org.freedesktop.DBus.Properties')
-    _Condition = lambda: device_prop.Get(ADAPTER_INTERFACE, 'Discovering') == 1
-    PollForCondition(_Condition, timeout_secs,
+    PollForCondition(poll_method=lambda: (
+                         device_prop.Get(ADAPTER_INTERFACE, 'Discovering')),
+                     condition_method=lambda ret: ret == 1,
+                     timeout=timeout_secs,
                      condition_name="Wait for Discovering==1")
 
   def RemoveDevices(self, adapter, paths):

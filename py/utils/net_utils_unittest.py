@@ -16,8 +16,6 @@ import unittest
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.utils import net_utils
-from cros.factory.utils import test_utils
-from cros.factory.common import TimeoutError
 
 
 class TimeoutXMLRPCTest(unittest.TestCase):
@@ -26,7 +24,7 @@ class TimeoutXMLRPCTest(unittest.TestCase):
     self.client = None
 
   def setUp(self):
-    self.port = test_utils.FindUnusedTCPPort()
+    self.port = net_utils.FindUnusedTCPPort()
     self.server = SimpleXMLRPCServer.SimpleXMLRPCServer(
       (net_utils.LOCALHOST, self.port),
       allow_none=True)
@@ -60,25 +58,6 @@ class TimeoutXMLRPCTest(unittest.TestCase):
       delta = time.time() - start
       self.assertTrue(delta > .25, delta)
       self.assertTrue(delta < 2, delta)
-
-class PollForConditionTest(unittest.TestCase):
-  def _Counter(self, trigger=3):
-    self.counter = self.counter + 1
-    if self.counter > trigger:
-      return True
-    return False
-
-  def setUp(self):
-    self.counter = 1
-
-  def testPollForCondition(self):
-    self.assertEqual(True, net_utils.PollForCondition(
-        condition=self._Counter, timeout=5))
-
-  def testPollForConditionTimeout(self):
-    self.assertRaises(TimeoutError, net_utils.PollForCondition,
-        condition=lambda: self._Counter(trigger=30),
-        timeout=2, poll_interval_secs=0.1)
 
 if __name__ == '__main__':
   unittest.main()

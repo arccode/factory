@@ -40,7 +40,6 @@ from cros.factory.test import shopfloor
 from cros.factory.test.event import Event
 from cros.factory.test.factory import TestState
 from cros.factory.utils import net_utils
-from cros.factory.utils import test_utils
 from cros.factory.utils.process_utils import Spawn
 
 
@@ -117,7 +116,7 @@ class GoofyTest(unittest.TestCase):
     # Log the name of the test we're about to run, to make it easier
     # to grok the logs.
     logging.info('*** Running test %s', type(self).__name__)
-    state.DEFAULT_FACTORY_STATE_PORT = test_utils.FindUnusedTCPPort()
+    state.DEFAULT_FACTORY_STATE_PORT = net_utils.FindUnusedTCPPort()
     logging.info('Using port %d for factory state',
                  state.DEFAULT_FACTORY_STATE_PORT)
     self.mocker = mox.Mox()

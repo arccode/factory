@@ -34,6 +34,7 @@ from cros.factory.test import test_ui
 from cros.factory.test import utils
 from cros.factory.test import audio_utils
 from cros.factory.utils import net_utils
+from cros.factory.utils import sync_utils
 from cros.factory.utils.process_utils import Spawn, TerminateOrKillProcess
 from cros.factory.goofy.goofy import CACHES_DIR
 
@@ -646,8 +647,9 @@ class AudioQualityTest(unittest.TestCase):
       try:
         self._ui.CallJSFunction('setMessage', _LABEL_REMOVE_ETHERNET)
         logging.info('Removing Ethernet device...')
-        net_utils.PollForCondition(condition=(
-            lambda: False if net_utils.FindUsableEthDevice() else True),
+        sync_utils.PollForCondition(
+            poll_method=net_utils.FindUsableEthDevice,
+            condition_method=lambda ret: not ret,
             timeout=_REMOVE_ETHERNET_TIMEOUT_SECS,
             condition_name='Remove Ethernet device')
         break

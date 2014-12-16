@@ -16,11 +16,11 @@ from ws4py.client.threadedclient import WebSocketClient
 import factory_common  # pylint: disable=W0611
 from cros.factory.goofy_split import ui_app_controller
 from cros.factory.goofy_split.ui_app_controller import UIAppController
-from cros.factory.utils import test_utils
+from cros.factory.utils import net_utils
 
 class UIAppControllerTest(unittest.TestCase):
   def setUp(self):
-    ui_app_controller.UI_APP_CONTROLLER_PORT = test_utils.FindUnusedTCPPort()
+    ui_app_controller.UI_APP_CONTROLLER_PORT = net_utils.FindUnusedTCPPort()
     self.hook = mox.MockAnything()
     self.controller = None
     self.client = None

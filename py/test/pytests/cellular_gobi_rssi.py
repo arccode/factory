@@ -23,7 +23,7 @@ from cros.factory.rf.utils import CheckPower
 from cros.factory.test import factory
 from cros.factory.test import utils
 from cros.factory.test.args import Arg
-from cros.factory.utils import net_utils
+from cros.factory.utils import sync_utils
 
 RX_TEST_COMMAND = 'AT$QCAGC="%s",%d,"%s"'
 FTM_WAIT_TIMEOUT_SECS = 10  # Timeout for waiting factory mode ready.
@@ -50,14 +50,14 @@ class CellularGobiRSSI(unittest.TestCase):
       line = self.modem.ReadLine()
       logging.info("Modem returned %r", line)
       if 'restricted to FTM' in line:
-        return (False, line)
-      return (True, line)
+        return False
+      return line
 
-    modem_response = net_utils.PollForCondition(
-        condition=_CheckFTMError,
+    modem_response = sync_utils.PollForCondition(
+        poll_method=_CheckFTMError,
         timeout=FTM_WAIT_TIMEOUT_SECS,
         poll_interval_secs=RETRY_INTERVAL_SECS,
-        condition_name='Readiness of factory test mode')[1]
+        condition_name='Readiness of factory test mode')
     try:
       match = re.match(r'RSSI: ([-+]?\d+)$', modem_response)
       if not match:

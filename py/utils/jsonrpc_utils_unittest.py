@@ -16,12 +16,11 @@ import unittest
 import factory_common  # pylint: disable=W0611
 from cros.factory.utils import jsonrpc_utils
 from cros.factory.utils import net_utils
-from cros.factory.utils import test_utils
 
 
 class JSONRPCTest(unittest.TestCase):
   def setUp(self):
-    self.port = test_utils.FindUnusedTCPPort()
+    self.port = net_utils.FindUnusedTCPPort()
     self.server = jsonrpc_utils.JSONRPCServer(
         port=self.port,
         methods={'Echo': self.echo,
