@@ -50,6 +50,7 @@ _DEFAULT_SOX_FORMAT = '-t raw -b 16 -e signed -r 48000 -L'
 HP_JACK_NAME = 'headphone_jack'
 MIC_JACK_NAME = 'mic_jack'
 
+DEFAULT_HEADPHONE_JACK_NAMES = ['Headphone Jack', 'Headset Jack']
 
 # SOX related utilities
 def GetPlaySineArgs(channel, odev='default', freq=1000, duration_secs=10,
@@ -367,21 +368,27 @@ class AudioUtil(object):
     Returns:
       True if headphone jack is plugged, False otherwise.
     """
+    possible_names = []
     if card in self.audio_config and HP_JACK_NAME in self.audio_config[card]:
-      hp_jack_name = self.audio_config[card][HP_JACK_NAME]
+      possible_names = [self.audio_config[card][HP_JACK_NAME]]
     else:
-      hp_jack_name = 'Headphone Jack'
-    values = self.GetMixerControls(hp_jack_name, card)
-    if values:
-      return True if values == 'on' else False
+      possible_names = DEFAULT_HEADPHONE_JACK_NAMES
 
-    # Check input device for headphone
-    evdev = self.FindEventDeviceByName(hp_jack_name)
-    if evdev:
-      query = Spawn(['evtest', '--query', evdev, 'EV_SW',
-                     'SW_HEADPHONE_INSERT'],
-                    call=True)
-      return query.returncode != 0
+    # Loops through possible names. Uses mixer control or evtest
+    # to query jack status.
+    for hp_jack_name in possible_names:
+      values = self.GetMixerControls(hp_jack_name, card)
+      if values:
+        return True if values == 'on' else False
+
+      # Check input device for headphone
+      evdev = self.FindEventDeviceByName(hp_jack_name)
+      if evdev:
+        query = Spawn(['evtest', '--query', evdev, 'EV_SW',
+                       'SW_HEADPHONE_INSERT'],
+                      call=True)
+        return query.returncode != 0
+
     return False
 
   def GetMicJackStatus(self, card='0'):
