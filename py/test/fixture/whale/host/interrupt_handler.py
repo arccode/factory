@@ -105,7 +105,6 @@ class InterruptHandler(object):
     self._last_feedback = {}
 
     self._starting_fixture_action = None
-    self._starting_fixture_flag = False
 
     # Used to avoid toggle battery too fast.
     self._last_battery_toggle_time = time.time()
@@ -213,9 +212,6 @@ class InterruptHandler(object):
     """Start Fixture Step"""
     logging.info('[Fixture Start ...]')
 
-    if not self._starting_fixture_flag:
-      return
-
     if self._starting_fixture_action == ActionType.FIXTURE_STARTED:
       logging.info('[HandleStartFixture] ACTION = FIXTURE_STARTED')
       return
@@ -292,13 +288,12 @@ class InterruptHandler(object):
     status = self._servo.MultipleIsOn(self._BUTTON_LIST)
 
     if status[self._BUTTON.FIXTURE_STOP]:
-      self._starting_fixture_flag = False
       logging.info('Calling _HandleStopFixture because FIXTURE_STOP is True.')
       self._HandleStopFixture()
       return True
 
-    if self._starting_fixture_flag and not status[self._BUTTON.FIXTURE_START]:
-      self._starting_fixture_flag = False
+    if (self._starting_fixture_action != ActionType.FIXTURE_STARTED and
+        not status[self._BUTTON.FIXTURE_START]):
       logging.info('Calling _HandleStopFixture because FIXTURE_START is False.')
       self._HandleStopFixture()
       return False
@@ -321,9 +316,7 @@ class InterruptHandler(object):
       if button == self._BUTTON.FIXTURE_START:
         if self._starting_fixture_action == ActionType.FIXTURE_STARTED:
           logging.info('[START] ACTION = FIXTURE_STARTED')
-          self._starting_fixture_flag = False
         else:
-          self._starting_fixture_flag = True
           self._HandleStartFixture()
       elif button == self._BUTTON.RESERVE_1:
         self._ToggleBattery()
