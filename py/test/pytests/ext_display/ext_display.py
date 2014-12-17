@@ -16,8 +16,12 @@ import time
 import unittest
 import uuid
 
+import evdev
+
 import factory_common  # pylint: disable=W0611
+from cros.factory.system import drm
 from cros.factory.test import audio_utils
+from cros.factory.test import evdev_utils
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
@@ -124,24 +128,53 @@ class WaitDisplayThread(threading.Thread):
   """
   def __init__(self, display_id, connect, on_success):
     threading.Thread.__init__(self, name='WaitDisplayThread')
+    self._display_id = display_id
     self._done = threading.Event()
     self._connect = connect == DetectDisplayTask.CONNECT
-    self._xrandr_expect = re.compile(
-        '^%s %s' % (display_id,
-                    'connected' if self._connect else 'disconnected'),
-        re.MULTILINE)
     self._on_success = on_success
-    # Set-up x-window environments for xrandr command.
-    self._env = os.environ.copy()
-    self._env['DISPLAY'] = ':0'
-    self._env['XAUTHORITY'] = '/home/chronos/.Xauthority'
 
   def run(self):
+    def QueryXrandr():
+      """Queries the xrandr output.
+
+      Checks if the specified external display is connected.
+
+      Returns:
+        True if the specified external display is connected; False otherwise.
+      """
+      xrandr_expect = re.compile(
+          '^%s (connected|disconnected)' % self._display_id,
+          re.MULTILINE)
+      # Set-up x-window environments for xrandr command.
+      env = os.environ.copy()
+      env['DISPLAY'] = ':0'
+      env['XAUTHORITY'] = '/home/chronos/.Xauthority'
+      match_obj = xrandr_expect.search(
+          process_utils.SpawnOutput(['xrandr', '-d', ':0'], env=env))
+      if match_obj:
+        return match_obj.group(1) == 'connected'
+      return False
+
+    def QueryDRM():
+      """Queries the connector status from DRM.
+
+      Returns:
+        True if the connector is connected; False otherwise.
+      """
+      d = drm.DRMFromMinor(0)
+      drm_resources = d.resources
+      for c in drm_resources.connectors:
+        if c.id == self._display_id:
+          return c.status == 'connected'
+      return False
+
     while not self._done.is_set():
-      # First checks the xrandr output pattern matches the expected status
-      # of the specified external display.
-      if self._xrandr_expect.search(
-          process_utils.SpawnOutput(['xrandr', '-d', ':0'], env=self._env)):
+      if utils.IsFreon():
+        connected = QueryDRM()
+      else:
+        connected = QueryXrandr()
+
+      if connected == self._connect:
         display_info = factory.get_state_instance().DeviceGetDisplayInfo()
         # In the case of connecting an external display, make sure there
         # is an item in display_info with 'isInternal' False.
@@ -172,7 +205,7 @@ class DetectDisplayTask(ExtDisplayTask):
     title: refer base class.
     instruction: refer base class.
     display_label: target display's human readable name.
-    display_id: target display's id in xrandr.
+    display_id: target display's id in xrandr/modeprint.
     connect: (CONNECT/DISCONNECT) checks for connect/disconnect.
   """
   CONNECT = 'connected'
@@ -316,7 +349,7 @@ class VideoTask(ExtDisplayTask):
     self._fixture = args.fixture
     self._manual = not self._fixture
     self._ui = args.ui
-    self._original_primary_display = self._GetPrimayScreenId()
+    self._original_primary_display = self._GetDisplayId(is_primary=True)
 
     # Bind a random key (0-9) to pass the task.
     if self._manual:
@@ -342,11 +375,11 @@ class VideoTask(ExtDisplayTask):
                                     instruction,
                                     pass_key=False)
 
-  def _GetPrimayScreenId(self):
+  def _GetDisplayId(self, is_primary=True):
     for info in factory.get_state_instance().DeviceGetDisplayInfo():
-      if info['isPrimary']:
+      if bool(info['isPrimary']) == is_primary:
         return info['id']
-    self.Fail('Fail to get primary display ID')
+    self.Fail('Fail to get display ID')
 
   def SetMainDisplay(self, recover_original=True):
     """Sets the main display.
@@ -370,12 +403,12 @@ class VideoTask(ExtDisplayTask):
     # Try to switch main display for at most 5 times.
     tries_left = 5
     while tries_left:
-      if not (recover_original ^ (self._GetPrimayScreenId() ==
+      if not (recover_original ^ (self._GetDisplayId(is_primary=True) ==
                                   self._original_primary_display)):
         # Stop the loop if these two conditions are either both True or
         # both False.
         break
-      utils.SendKey('Alt+F4')
+      evdev_utils.SendKeys([evdev.ecodes.KEY_LEFTALT, evdev.ecodes.KEY_F4])
       tries_left -= 1
       time.sleep(2)
 
@@ -471,24 +504,20 @@ class ExtDisplayTaskArg(object):
 class ExtDisplayTest(unittest.TestCase):
   """Main class for external display test."""
   ARGS = [
-    Arg('main_display', str, 'xrandr ID for ChromeBook\'s main display.',
-        optional=False),
+    Arg('main_display', str,
+        'xrandr/modeprint ID for ChromeBook\'s main display.', optional=False),
     Arg('display_info', list,
-        ('A list of tuples:\n'
-         '\n'
-         '  (display_label, display_id, audio_info)\n'
-         '\n'
-         'Each tuple represents an external port.\n'
-         '\n'
+        ('A list of tuples: (display_label, display_id, audio_info)\n'
+         'Each tuple represents an external port:\n'
          '- display_label: (str) display name seen by operator, e.g. VGA.\n'
-         '- display_id: (str) ID used to identify display in xrandr.\n'
+         '- display_id: (str) ID used to identify display in xrandr/modeprint, '
          '  e.g. VGA1.\n'
-         '- audio_info: a tuple of (audio_card, audio_port), or just a\n'
-         '  single string indicating the audio_port (deprecated). audio_card\n'
-         '  is either the card\'s name (str), or the card\'s index (int).\n'
-         '  audio_port is the amixer port\'s name (str). If you specify only\n'
-         '  the audio_port, the test assumes that the card is at index 0\n'
-         '  (deprecated, don\'t use it if possible). This argument is\n'
+         '- audio_info: a tuple of (audio_card, audio_port), or just a '
+         '  single string indicating the audio_port (deprecated). audio_card '
+         '  is either the card\'s name (str), or the card\'s index (int). '
+         '  audio_port is the amixer port\'s name (str). If you specify only '
+         '  the audio_port, the test assumes that the card is at index 0 '
+         '  (deprecated, don\'t use it if possible). This argument is '
          '  optional. If set, the audio playback test is added.'
          ),
         optional=False),
