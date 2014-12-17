@@ -191,6 +191,14 @@ class BFTFixture(object):
     """
     raise NotImplementedError
 
+  def GetStatusColor(self):
+    """Gets the color of status indicator.
+
+    Returns:
+      LEDColor Enum.
+    """
+    raise NotImplementedError
+
   def SetStatusColor(self, color):
     """Sets the fixture's status indicator to a given color.
 

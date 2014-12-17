@@ -171,6 +171,20 @@ class WhaleBFTFixture(bft.BFTFixture):
     except servo_client.ServoClientError as e:
       raise bft.BFTFixtureException('Failed to check LED color. Reason %s' % e)
 
+  def GetStatusColor(self):
+    try:
+      is_pass = self._servo.Get(self._WHALE_CONTROL.PASS_LED)
+      is_fail = self._servo.Get(self._WHALE_CONTROL.FAIL_LED)
+
+      for color, value in WhaleBFTFixture._STATUS_COLOR.iteritems():
+        if value == (is_pass, is_fail):
+          return color
+      else:
+        # If no match, treat as OFF status
+        return bft.BFTFixture.StatusColor.OFF
+    except servo_client.ServoClientError as e:
+      raise bft.BFTFixtureException('Failed to get LED status. Reason: %s' % e)
+
   def SetStatusColor(self, color):
     (is_pass, is_fail) = self._STATUS_COLOR.get(color, (None, None))
     if is_pass is None:
