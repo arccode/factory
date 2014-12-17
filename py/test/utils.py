@@ -10,7 +10,6 @@
 import array
 import fcntl
 import glob
-import inspect
 import logging
 import multiprocessing
 import os
@@ -29,6 +28,7 @@ from contextlib import contextmanager
 import factory_common  # pylint: disable=W0611
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
+from cros.factory.utils import sync_utils
 from cros.factory.utils import time_utils
 from cros.factory.utils import type_utils
 
@@ -48,6 +48,8 @@ DrainQueue = type_utils.DrainQueue
 FlattenList = type_utils.FlattenList
 Error = type_utils.Error
 TimeoutError = type_utils.TimeoutError
+Retry = sync_utils.Retry
+WaitFor = sync_utils.WaitFor
 
 
 def IsFreon():
@@ -247,40 +249,7 @@ class LoadManager(object):
       self._process.terminate()
 
 
-# TODO(hungte) Move Timeout, WaitFor, Retry, FormatExceptionOnly to py/utils/*.
-def Retry(max_retry_times, interval, callback, target, *args, **kwargs):
-  """Retries a function call with limited times until it returns True.
-
-  Args:
-    max_retry_times: The max retry times for target function to return True.
-    interval: The sleep interval between each trial.
-    callback: The callback after each retry iteration. Caller can use this
-              callback to track progress. Callback should accept two arguments:
-              callback(retry_time, max_retry_times).
-    target: The target function for retry. *args and **kwargs will be passed to
-            target.
-
-  Returns:
-    Within max_retry_times, if the return value of target function is
-    neither None nor False, returns the value.
-    If target function returns False or None or it throws
-    any exception for max_retry_times, returns None.
-  """
-  result = None
-  for retry_time in xrange(max_retry_times):
-    try:
-      result = target(*args, **kwargs)
-    except Exception: # pylint: disable=W0703
-      logging.exception('Retry...')
-    if(callback):
-      callback(retry_time, max_retry_times)
-    if result:
-      logging.info('Retry: Get result in retry_time: %d.', retry_time)
-      break
-    time.sleep(interval)
-  return result
-
-
+# TODO(hungte) Move Timeout, FormatExceptionOnly to py/utils/*.
 @contextmanager
 def Timeout(secs):
   """Timeout context manager. It will raise TimeoutError after timeout.
@@ -320,37 +289,3 @@ def SendKey(key_sequence):
     process_utils.Spawn(['xdotool', 'key', key_sequence])
   else:
     raise ValueError('key_sequence must be a list or a string')
-
-
-def WaitFor(condition, timeout_secs, poll_interval=0.1):
-  """Wait for the given condition for at most the specified time.
-
-  Args:
-    condition: A function object.
-    timeout_secs: Timeout value in seconds.
-    poll_interval: Interval to poll condition.
-
-  Raises:
-    ValueError: If condition is not a function.
-    TimeoutError: If cond does not become True after timeout_secs seconds.
-  """
-  if not callable(condition):
-    raise ValueError('condition must be a callable object')
-
-  def _GetConditionString():
-    condition_string = condition.__name__
-    if condition.__name__ == '<lambda>':
-      try:
-        condition_string = inspect.getsource(condition).strip()
-      except IOError:
-        pass
-    return condition_string
-
-  end_time = time_utils.MonotonicTime() + timeout_secs
-  while True:
-    if condition():
-      break
-    if time_utils.MonotonicTime() > end_time:
-      raise type_utils.TimeoutError(
-          'Timeout waititng for %r' % _GetConditionString())
-    time.sleep(poll_interval)

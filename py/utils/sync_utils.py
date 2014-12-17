@@ -6,6 +6,7 @@
 
 from __future__ import print_function
 
+import inspect
 import logging
 import time
 
@@ -60,3 +61,70 @@ def PollForCondition(poll_method, condition_method=None,
       logging.error(condition_name)
       raise type_utils.TimeoutError(condition_name)
     time.sleep(poll_interval_secs)
+
+
+def Retry(max_retry_times, interval, callback, target, *args, **kwargs):
+  """Retries a function call with limited times until it returns True.
+
+  Args:
+    max_retry_times: The max retry times for target function to return True.
+    interval: The sleep interval between each trial.
+    callback: The callback after each retry iteration. Caller can use this
+              callback to track progress. Callback should accept two arguments:
+              callback(retry_time, max_retry_times).
+    target: The target function for retry. *args and **kwargs will be passed to
+            target.
+
+  Returns:
+    Within max_retry_times, if the return value of target function is
+    neither None nor False, returns the value.
+    If target function returns False or None or it throws
+    any exception for max_retry_times, returns None.
+  """
+  result = None
+  for retry_time in xrange(max_retry_times):
+    try:
+      result = target(*args, **kwargs)
+    except Exception: # pylint: disable=W0703
+      logging.exception('Retry...')
+    if(callback):
+      callback(retry_time, max_retry_times)
+    if result:
+      logging.info('Retry: Get result in retry_time: %d.', retry_time)
+      break
+    time.sleep(interval)
+  return result
+
+
+def WaitFor(condition, timeout_secs, poll_interval=0.1):
+  """Wait for the given condition for at most the specified time.
+
+  Args:
+    condition: A function object.
+    timeout_secs: Timeout value in seconds.
+    poll_interval: Interval to poll condition.
+
+  Raises:
+    ValueError: If condition is not a function.
+    TimeoutError: If cond does not become True after timeout_secs seconds.
+  """
+  if not callable(condition):
+    raise ValueError('condition must be a callable object')
+
+  def _GetConditionString():
+    condition_string = condition.__name__
+    if condition.__name__ == '<lambda>':
+      try:
+        condition_string = inspect.getsource(condition).strip()
+      except IOError:
+        pass
+    return condition_string
+
+  end_time = time.time() + timeout_secs
+  while True:
+    if condition():
+      break
+    if time.time() > end_time:
+      raise type_utils.TimeoutError(
+          'Timeout waiting for %r' % _GetConditionString())
+    time.sleep(poll_interval)

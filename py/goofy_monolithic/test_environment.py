@@ -22,8 +22,8 @@ from cros.factory.system.service_manager import GetServiceStatus
 from cros.factory.system.service_manager import SetServiceStatus
 from cros.factory.system.service_manager import Status
 from cros.factory.test import state
-from cros.factory.test import utils
 from cros.factory.tools import chrome_debugger
+from cros.factory.utils import sync_utils
 
 
 class Environment(object):
@@ -124,7 +124,7 @@ class DUTEnvironment(Environment):
     if not os.path.exists(override_chrome_start_file):
       return
     chrome = chrome_debugger.ChromeRemoteDebugger()
-    utils.WaitFor(chrome.IsReady, 30)
+    sync_utils.WaitFor(chrome.IsReady, 30)
     chrome.SetActivePage()
     chrome.PageNavigate(open(override_chrome_start_file).read() or
                         ('http://127.0.0.1:%s/' %
@@ -133,7 +133,7 @@ class DUTEnvironment(Environment):
   def launch_chrome(self):
     self.override_chrome_start_pages()
 
-    utils.WaitFor(self.goofy.web_socket_manager.has_sockets, 30)
+    sync_utils.WaitFor(self.goofy.web_socket_manager.has_sockets, 30)
     subprocess.check_call(['initctl', 'emit', 'login-prompt-visible'])
 
   def create_connection_manager(self, wlans, scan_wifi_period_secs):

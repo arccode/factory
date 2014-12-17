@@ -25,6 +25,7 @@ from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test import utils
 from cros.factory.test.args import Arg
+from cros.factory.utils import sync_utils
 from cros.factory.utils import time_utils
 
 
@@ -106,7 +107,7 @@ class SimpleBatteryTest(unittest.TestCase):
       the given threshold in dargs.
     """
     self._template.SetState(_PLUG_AC)
-    utils.WaitFor(self._board.CheckACPresent, timeout_secs=10)
+    sync_utils.WaitFor(self._board.CheckACPresent, timeout_secs=10)
     self._template.SetState(_TESTING_CHARGE)
     sampled_current = self.SampleBatteryCurrent(duration_secs)
     if self.args.min_charge_current_mA:
@@ -133,7 +134,8 @@ class SimpleBatteryTest(unittest.TestCase):
       the given threshold in dargs.
     """
     self._template.SetState(_UNPLUG_AC)
-    utils.WaitFor(lambda: not self._board.CheckACPresent(), timeout_secs=10)
+    sync_utils.WaitFor(lambda: not self._board.CheckACPresent(),
+        timeout_secs=10)
     self._template.SetState(_TESTING_DISCHARGE)
     # Discharge under high system load.
     with utils.LoadManager(duration_secs):

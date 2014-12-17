@@ -22,8 +22,8 @@ from cros.factory.system.service_manager import GetServiceStatus
 from cros.factory.system.service_manager import SetServiceStatus
 from cros.factory.system.service_manager import Status
 from cros.factory.test import state
-from cros.factory.test import utils
 from cros.factory.tools import chrome_debugger
+from cros.factory.utils import sync_utils
 
 
 class Environment(object):
@@ -134,7 +134,7 @@ class DUTEnvironment(Environment):
     (host, unused_colon, port) = url.partition('http://')[2].partition(':')
     logging.info('Override chrome start pages as: %s', url)
     chrome = chrome_debugger.ChromeRemoteDebugger()
-    utils.WaitFor(chrome.IsReady, 30)
+    sync_utils.WaitFor(chrome.IsReady, 30)
     chrome.SetActivePage()
     # Wait for state server to be ready.
     state_server = state.get_instance(address=host, port=int(port))
@@ -143,13 +143,13 @@ class DUTEnvironment(Environment):
         return state_server.IsReadyForUIConnection()
       except:  # pylint: disable=W0702
         return False
-    utils.WaitFor(is_state_server_ready, 30)
+    sync_utils.WaitFor(is_state_server_ready, 30)
     chrome.PageNavigate(url)
 
   def launch_chrome(self):
     self.override_chrome_start_pages()
 
-    utils.WaitFor(self.has_sockets, 30)
+    sync_utils.WaitFor(self.has_sockets, 30)
     subprocess.check_call(['initctl', 'emit', 'login-prompt-visible'])
 
   def create_connection_manager(self, wlans, scan_wifi_period_secs):

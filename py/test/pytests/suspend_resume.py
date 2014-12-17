@@ -32,6 +32,7 @@ from cros.factory.test import utils
 from cros.factory.test.args import Arg
 from cros.factory.test.ui_templates import OneSection
 from cros.factory.utils import file_utils
+from cros.factory.utils import sync_utils
 from cros.factory.utils.process_utils import Spawn
 
 _TEST_TITLE = test_ui.MakeLabel('Suspend/Resume Test', zh=u'暂停/恢复测试')
@@ -280,7 +281,7 @@ class SuspendResumeTest(unittest.TestCase):
       except IOError:
         logging.exception('Unable to read %s', _MESSAGES)
       return None
-    messages = utils.Retry(10, 0.2, None, ReadMessages, messages_start)
+    messages = sync_utils.Retry(10, 0.2, None, ReadMessages, messages_start)
 
     if not messages:
       # We never found it. Just use the entire last chunk read

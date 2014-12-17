@@ -10,9 +10,9 @@ import mock
 import os
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.test import utils
 from cros.factory.test.e2e_test import e2e_test
 from cros.factory.test.pytests.removable_storage import removable_storage as rs
+from cros.factory.utils import sync_utils
 from cros.factory.utils import sys_utils
 
 
@@ -77,7 +77,7 @@ class RemovableStorageE2ETest(e2e_test.E2ETest):
     def ObserverSetup():
       return bool(self.mock_pyudev.MonitorObserver.call_args)
 
-    utils.WaitFor(ObserverSetup, 3)
+    sync_utils.WaitFor(ObserverSetup, 3)
     udev_handler = self.mock_pyudev.MonitorObserver.call_args[0][1]
 
     # Mock insert USB.

@@ -16,10 +16,10 @@ from cros.factory.factory_flow import servo
 from cros.factory.factory_flow.common import (
     board_cmd_arg, bundle_dir_cmd_arg, dut_hostname_cmd_arg, FactoryFlowCommand)
 from cros.factory.hacked_argparse import CmdArg
-from cros.factory.test import utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
 from cros.factory.utils import ssh_utils
+from cros.factory.utils import sync_utils
 from cros.factory.utils import sys_utils
 
 
@@ -166,8 +166,8 @@ class NetbootInstall(FactoryFlowCommand):
     logging.info('Rebooting DUT %s', self.options.dut)
     ssh_utils.SpawnSSHToDUT(
         [self.options.dut, 'reboot'], log=True, check_call=True)
-    utils.WaitFor(lambda: not self._CheckSSHPort(),
-                  timeout_secs=30, poll_interval=1)
+    sync_utils.WaitFor(lambda: not self._CheckSSHPort(),
+                       timeout_secs=30, poll_interval=1)
     logging.info('DUT %s rebooted', self.options.dut)
 
   def WaitForInstallToFinish(self):
@@ -175,9 +175,9 @@ class NetbootInstall(FactoryFlowCommand):
     logging.info(('Waiting for factory install to complete on DUT %s '
                   'by trying to connect to SSH port (22) on it'),
                  self.options.dut)
-    utils.WaitFor(self._CheckSSHPort,
-                  timeout_secs=self.options.wait_timeout_secs,
-                  poll_interval=5)
+    sync_utils.WaitFor(self._CheckSSHPort,
+                       timeout_secs=self.options.wait_timeout_secs,
+                       poll_interval=5)
     logging.info('SSH port (22) on DUT %s is up', self.options.dut)
 
     def GetImageVersion(lsb_release, label):

@@ -14,6 +14,7 @@ import subprocess
 import factory_common   # pylint: disable=W0611
 from cros.factory.test import utils
 from cros.factory.utils import process_utils
+from cros.factory.utils import sync_utils
 
 
 FLASHROM_LOCK_FILE = '/tmp/factory_flow_flashrom'
@@ -51,7 +52,7 @@ class Servo(object):
         netstat = process_utils.CheckOutput(['netstat', '-nl'])
         return bool(REGEXP.search(netstat))
 
-      utils.WaitFor(WaitForServod, 10)
+      sync_utils.WaitFor(WaitForServod, 10)
 
       if utils.in_cros_device():
         # Do not try to auto-update if we are running servo host directly on a

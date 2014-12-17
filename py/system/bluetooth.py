@@ -15,8 +15,7 @@ import threading
 import uuid
 import yaml
 
-from cros.factory.test.utils import Retry
-from cros.factory.utils.sync_utils import PollForCondition
+from cros.factory.utils.sync_utils import PollForCondition, Retry
 from dbus.mainloop.glib import DBusGMainLoop
 from dbus import service # pylint: disable=W0611
 from dbus import DBusException

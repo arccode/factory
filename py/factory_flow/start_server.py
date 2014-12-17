@@ -23,6 +23,7 @@ from cros.factory.test import utils
 from cros.factory.umpire.common import LoadBundleManifest
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
+from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
 
 
@@ -224,7 +225,7 @@ class StartServer(FactoryFlowCommand):
                               log=True, check_call=True, sudo=True)
           # Wait at most 5 seconds for process to stop.
           try:
-            utils.WaitFor(lambda: not utils.is_process_alive(pid), 5)
+            sync_utils.WaitFor(lambda: not utils.is_process_alive(pid), 5)
           except type_utils.TimeoutError:
             # Send SIGKILL to the process to kill it.
             process_utils.Spawn(['kill', '-SIGKILL', '%d' % pid],

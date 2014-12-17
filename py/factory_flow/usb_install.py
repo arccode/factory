@@ -22,6 +22,7 @@ from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import ssh_utils
+from cros.factory.utils import sync_utils
 from cros.factory.utils import sys_utils
 
 # pylint: disable=W0612, F0401
@@ -223,8 +224,9 @@ class USBInstall(FactoryFlowCommand):
     logging.info(('Waiting for factory install to complete on DUT %s '
                   'by trying to connect to port 22 on it'),
                  self.options.dut)
-    utils.WaitFor(CheckAndPressI, timeout_secs=self.options.wait_timeout_secs,
-                  poll_interval=5)
+    sync_utils.WaitFor(CheckAndPressI,
+                       timeout_secs=self.options.wait_timeout_secs,
+                       poll_interval=5)
     logging.info('SSH port (22) on DUT %s is up', self.options.dut)
 
     def GetImageVersion(lsb_release, label):

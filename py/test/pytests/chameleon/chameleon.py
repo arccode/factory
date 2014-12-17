@@ -29,6 +29,7 @@ from cros.factory.test import ui_templates
 from cros.factory.test import utils
 from cros.factory.utils import file_utils
 from cros.factory.utils import process_utils
+from cros.factory.utils import sync_utils
 
 
 PORTS = utils.Enum(['DP', 'HDMI'])
@@ -339,12 +340,13 @@ class ChameleonDisplayTest(unittest.TestCase):
           'Please plug in the display to test',
           zh=u'请插上待测屏'))
       logging.info('Checking %s physical port on Chameleon...', chameleon_port)
-      utils.WaitFor(lambda: self.chameleon.IsPhysicallyPlugged(chameleon_port),
-                    10, poll_interval=0.5)
+      sync_utils.WaitFor(
+          lambda: self.chameleon.IsPhysicallyPlugged(chameleon_port),
+          10, poll_interval=0.5)
       logging.info('%s port on Chameleon is physically plugged.',
                    chameleon_port)
       self.chameleon.Plug(chameleon_port)
-      utils.WaitFor(lambda: DoProbe() is not None, 10, poll_interval=0.5)
+      sync_utils.WaitFor(lambda: DoProbe() is not None, 10, poll_interval=0.5)
       orig_display, ext_display = DoProbe()
     else:
       self.fail('More than two displays detected; '

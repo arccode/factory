@@ -26,12 +26,12 @@ from cros.factory.goofy.goofy_rpc import RunState
 from cros.factory.goofy.invocation import OVERRIDE_TEST_LIST_DARGS_FILE
 from cros.factory.hacked_argparse import CmdArg
 from cros.factory.test import state
-from cros.factory.test import utils
 from cros.factory.test.e2e_test.automator import AUTOMATION_FUNCTION_KWARGS_FILE
 from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import ssh_utils
+from cros.factory.utils import sync_utils
 from cros.factory.utils import type_utils
 
 
@@ -240,7 +240,7 @@ class RunAutomatedTests(FactoryFlowCommand):
       if self.ssh_tunnel:
         self.ssh_tunnel.Close()
       # Ping the host first to make sure it is up.
-      utils.WaitFor(
+      sync_utils.WaitFor(
           lambda: connection_manager.PingHost(self.options.dut, timeout=1) == 0,
           timeout_secs=30)
       # Create a SSH tunnel to connect to the JSON RPC server on DUT.
@@ -267,8 +267,8 @@ class RunAutomatedTests(FactoryFlowCommand):
       return goofy_proxy.GetGoofyStatus()['status'] == 'RUNNING'
 
     logging.info('Waiting for Goofy to come up')
-    utils.WaitFor(PollGoofy, timeout_secs=self.WAIT_FOR_GOOFY_TIMEOUT_SECS,
-                  poll_interval=self.GOOFY_POLLING_INTERVAL)
+    sync_utils.WaitFor(PollGoofy, timeout_secs=self.WAIT_FOR_GOOFY_TIMEOUT_SECS,
+                       poll_interval=self.GOOFY_POLLING_INTERVAL)
 
   def StartAutomatedTests(self):
     """Starts automated factory tests."""
@@ -351,8 +351,9 @@ class RunAutomatedTests(FactoryFlowCommand):
 
     try:
       logging.info('Waiting for automated test run to finish')
-      utils.WaitFor(WaitForRun, timeout_secs=self.options.timeout_mins * 60,
-                    poll_interval=self.GOOFY_POLLING_INTERVAL)
+      sync_utils.WaitFor(WaitForRun,
+                         timeout_secs=self.options.timeout_mins * 60,
+                         poll_interval=self.GOOFY_POLLING_INTERVAL)
 
       if not finished_tests:
         raise RunAutomatedTestsError('No test was run')

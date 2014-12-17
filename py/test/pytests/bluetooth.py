@@ -25,15 +25,16 @@ import time
 import unittest
 
 from cros.factory.event_log import Log
+from cros.factory.system.bluetooth import BluetoothManager
+from cros.factory.system.bluetooth import BluetoothManagerException
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test.args import Arg
 from cros.factory.test.factory_task import FactoryTask, FactoryTaskManager
 from cros.factory.test.test_ui import MakeLabel
-from cros.factory.test.utils import Retry, StartDaemonThread
-from cros.factory.system.bluetooth import BluetoothManager
-from cros.factory.system.bluetooth import BluetoothManagerException
+from cros.factory.test.utils import StartDaemonThread
+from cros.factory.utils.sync_utils import Retry
 
 
 _TEST_TITLE = MakeLabel('Bluetooth functional Test', u'蓝牙功能测试')
