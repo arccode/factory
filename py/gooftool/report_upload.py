@@ -18,7 +18,8 @@ import xmlrpclib
 
 import factory_common  # pylint: disable=W0611
 
-from cros.factory.common import Error, Shell
+from cros.factory.common import Shell
+from cros.factory.utils.type_utils import Error
 
 
 # Constants

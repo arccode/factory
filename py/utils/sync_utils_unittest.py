@@ -6,8 +6,8 @@
 import unittest
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.common import TimeoutError
 from cros.factory.utils import sync_utils
+from cros.factory.utils import type_utils
 
 
 class PollForConditionTest(unittest.TestCase):
@@ -33,7 +33,7 @@ class PollForConditionTest(unittest.TestCase):
         timeout=5, poll_interval_secs=0.01))
 
   def testPollForConditionTimeout(self):
-    self.assertRaises(TimeoutError, sync_utils.PollForCondition,
+    self.assertRaises(type_utils.TimeoutError, sync_utils.PollForCondition,
         poll_method=lambda: self._IncrementCheckTrigger(trigger=30),
         timeout=2, poll_interval_secs=0.1)
 

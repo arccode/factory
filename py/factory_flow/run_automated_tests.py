@@ -32,6 +32,7 @@ from cros.factory.utils import file_utils
 from cros.factory.utils import net_utils
 from cros.factory.utils import process_utils
 from cros.factory.utils import ssh_utils
+from cros.factory.utils import type_utils
 
 
 TEST_AUTOMATION_MESSAGE = """
@@ -251,7 +252,7 @@ class RunAutomatedTests(FactoryFlowCommand):
           address=net_utils.LOCALHOST, port=local_port)
       goofy_proxy.GetGoofyStatus()  # Make sure the proxy works.
       return goofy_proxy
-    except (utils.TimeoutError,             # Cannot ping DUT.
+    except (type_utils.TimeoutError,        # Cannot ping DUT.
             subprocess.CalledProcessError,  # Cannot create SSH tunnel.
             socket.error,                   # Cannot connect to Goofy on DUT.
             httplib.BadStatusLine):         # Goofy RPC on DUT is not ready.

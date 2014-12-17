@@ -11,11 +11,11 @@ import netifaces
 import pexpect
 
 import factory_common  # pylint: disable=W0611
-from cros.factory import common
 from cros.factory.test import factory
 from cros.factory.test.utils import FormatExceptionOnly
 from cros.factory.utils import net_utils
 from cros.factory.utils import sync_utils
+from cros.factory.utils import type_utils
 
 
 INSERT_ETHERNET_DONGLE_TIMEOUT = 30
@@ -69,7 +69,7 @@ def _SendDhclientCommand(arguments, interface,
     dhcp_process.expect(expect_str)
   except:
     logging.info("dhclient output before timeout - %r", dhcp_process.before)
-    raise common.Error(
+    raise type_utils.Error(
         'Timeout when running DHCP command, check if cable is connected.')
   finally:
     dhcp_process.close()

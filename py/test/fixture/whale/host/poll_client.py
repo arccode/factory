@@ -10,6 +10,7 @@ import factory_common  # pylint: disable=W0611
 from cros.factory.test.fixture.whale.host import poll_gpio
 from cros.factory.test import utils
 from cros.factory.utils import net_utils
+from cros.factory.utils import type_utils
 
 
 class PollClientError(Exception):
@@ -70,7 +71,7 @@ class PollClient(object):
           with utils.Timeout(timeout_secs):
             self._server.poll_gpio(gpio_port, edge)
             return True
-        except utils.TimeoutError:
+        except type_utils.TimeoutError:
           return False
       else:
         gpio = poll_gpio.PollGpio.GetInstance(gpio_port, edge)

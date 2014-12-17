@@ -46,6 +46,8 @@ TimeString = time_utils.TimeString
 Enum = type_utils.Enum
 DrainQueue = type_utils.DrainQueue
 FlattenList = type_utils.FlattenList
+Error = type_utils.Error
+TimeoutError = type_utils.TimeoutError
 
 
 def IsFreon():
@@ -245,8 +247,7 @@ class LoadManager(object):
       self._process.terminate()
 
 
-# TODO(hungte) Move TimeoutError, Timeout, WaitFor, Retry, FormatExceptionOnly
-# to py/utils/*.
+# TODO(hungte) Move Timeout, WaitFor, Retry, FormatExceptionOnly to py/utils/*.
 def Retry(max_retry_times, interval, callback, target, *args, **kwargs):
   """Retries a function call with limited times until it returns True.
 
@@ -280,18 +281,13 @@ def Retry(max_retry_times, interval, callback, target, *args, **kwargs):
   return result
 
 
-class TimeoutError(Exception):
-  """Timeout error."""
-  pass
-
-
 @contextmanager
 def Timeout(secs):
   """Timeout context manager. It will raise TimeoutError after timeout.
   It does not support nested "with Timeout" blocks.
   """
   def handler(signum, frame): # pylint: disable=W0613
-    raise TimeoutError('Timeout')
+    raise type_utils.TimeoutError('Timeout')
 
   if secs:
     old_handler = signal.signal(signal.SIGALRM, handler)
@@ -355,5 +351,6 @@ def WaitFor(condition, timeout_secs, poll_interval=0.1):
     if condition():
       break
     if time_utils.MonotonicTime() > end_time:
-      raise TimeoutError('Timeout waititng for %r' % _GetConditionString())
+      raise type_utils.TimeoutError(
+          'Timeout waititng for %r' % _GetConditionString())
     time.sleep(poll_interval)

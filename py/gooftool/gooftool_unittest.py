@@ -20,7 +20,6 @@ from tempfile import NamedTemporaryFile
 
 import factory_common  # pylint: disable=W0611
 from cros.factory import gooftool
-from cros.factory.common import Error
 from cros.factory.common import Shell
 from cros.factory.gooftool import crosfw
 from cros.factory.gooftool import Gooftool
@@ -34,6 +33,7 @@ from cros.factory.system import vpd
 from cros.factory.test import branding
 from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import CheckOutput
+from cros.factory.utils.type_utils import Error
 
 _TEST_DATA_PATH = os.path.join(os.path.dirname(__file__), 'testdata')
 

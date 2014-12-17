@@ -11,6 +11,7 @@ import unittest
 
 import factory_common # pylint: disable=W0611
 from cros.factory.test import utils
+from cros.factory.utils import type_utils
 
 
 EARLIER_VAR_LOG_MESSAGES = '''19:26:17 kernel: That's all, folks.
@@ -81,7 +82,7 @@ class TimeoutTest(unittest.TestCase):
     try:
       with utils.Timeout(1):
         time.sleep(3)
-    except utils.TimeoutError:
+    except type_utils.TimeoutError:
       pass
     else:
       self.assertTrue(False, msg='No timeout')
@@ -97,7 +98,7 @@ class WaitForTest(unittest.TestCase):
                                           timeout_secs=1))
 
     now = time.time()
-    self.assertRaises(utils.TimeoutError, utils.WaitFor,
+    self.assertRaises(type_utils.TimeoutError, utils.WaitFor,
                       lambda: _ReturnTrueAfter(now + 1), timeout_secs=0.5)
 
 

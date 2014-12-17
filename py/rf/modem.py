@@ -9,7 +9,7 @@ import serial
 import logging
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.common import Error
+from cros.factory.utils.type_utils import Error
 
 _COMMAND_RETRY_TIMES = 5
 _RECEIVE_RETRY_TIMES = 10

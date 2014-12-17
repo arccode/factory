@@ -17,9 +17,10 @@ from traceback import format_exc
 
 import factory_common  # pylint: disable=W0611
 
-from cros.factory.common import Error, Shell, SetupLogging
+from cros.factory.common import Shell, SetupLogging
 from cros.factory.gooftool.probe import PROBEABLE_COMPONENT_CLASSES
 from cros.factory.hwdb import hwid_tool
+from cros.factory.utils.type_utils import Error
 
 
 @contextmanager

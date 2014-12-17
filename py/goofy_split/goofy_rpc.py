@@ -34,7 +34,10 @@ from cros.factory.test import utils
 from cros.factory.test.event import Event, EventClient
 from cros.factory.test.test_lists.test_lists import SetActiveTestList
 from cros.factory.tools import factory_bug
-from cros.factory.utils import debug_utils, file_utils, process_utils
+from cros.factory.utils import debug_utils
+from cros.factory.utils import file_utils
+from cros.factory.utils import process_utils
+from cros.factory.utils import type_utils
 
 
 DEFAULT_GOOFY_RPC_TIMEOUT_SECS = 10
@@ -1146,7 +1149,7 @@ class GoofyRPC(object):
       An object representing RPC call return value.
 
     Raises:
-      utils.TimeoutError: if no response until timeout reached.
+      type_utils.TimeoutError: if no response until timeout reached.
     """
     # To support timeout (and to avoid race condition), we need a dedicated
     # event client.
@@ -1159,7 +1162,7 @@ class GoofyRPC(object):
                    e.is_response),
         timeout)
     if result is None:
-      raise utils.TimeoutError('Failed calling Extension RPC <%r>', name)
+      raise type_utils.TimeoutError('Failed calling Extension RPC <%r>', name)
     return result.args
 
   def DeviceGetDisplayInfo(self, timeout=DEFAULT_GOOFY_RPC_TIMEOUT_SECS):
@@ -1173,7 +1176,7 @@ class GoofyRPC(object):
           chrome.system.display for the details.
 
     Raises:
-      utils.TimeoutError: if no response until timeout.
+      type_utils.TimeoutError: if no response until timeout.
     """
     return self.CallExtension('GetDisplayInfo', timeout=timeout)
 
@@ -1195,7 +1198,7 @@ class GoofyRPC(object):
           chrome.windows for the details.
 
     Raises:
-      utils.TimeoutError: if no response until timeout.
+      type_utils.TimeoutError: if no response until timeout.
     """
     return self.CallExtension('CreateWindow', timeout=timeout,
                               left=left, top=top)
@@ -1212,7 +1215,7 @@ class GoofyRPC(object):
       timeout: Seconds to wait before RPC timeout.
 
     Raises:
-      utils.TimeoutError: if no response until timeout.
+      type_utils.TimeoutError: if no response until timeout.
     """
     self.CallExtension('UpdateWindow', timeout=timeout,
                        window_id=window_id, update_info=update_info)
@@ -1228,7 +1231,7 @@ class GoofyRPC(object):
       timeout: Seconds to wait before RPC timeout.
 
     Raises:
-      utils.TimeoutError: if no response until timeout.
+      type_utils.TimeoutError: if no response until timeout.
     """
     self.CallExtension('RemoveWindow', timeout=timeout, window_id=window_id)
 
@@ -1245,7 +1248,7 @@ class GoofyRPC(object):
       A list of the tab info.
 
     Raises:
-      utils.TimeoutError: if no response until timeout.
+      type_utils.TimeoutError: if no response until timeout.
     """
     return self.CallExtension('QueryTabs', timeout=timeout, window_id=window_id)
 
@@ -1261,7 +1264,7 @@ class GoofyRPC(object):
       timeout: Seconds to wait before RPC timeout.
 
     Raises:
-      utils.TimeoutError: if no response until timeout.
+      type_utils.TimeoutError: if no response until timeout.
     """
     self.CallExtension('UpdateTab', timeout=timeout,
                        tab_id=tab_id, update_info=update_info)

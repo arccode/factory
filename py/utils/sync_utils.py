@@ -10,8 +10,8 @@ import logging
 import time
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.common import TimeoutError
 from cros.factory.utils import time_utils
+from cros.factory.utils import type_utils
 
 
 DEFAULT_TIMEOUT = 10
@@ -41,7 +41,8 @@ def PollForCondition(poll_method, condition_method=None,
     poll_method's return value.
 
   Raises:
-    TimeoutError when timeout is reached but condition has not yet been met.
+    type_utils.TimeoutError when timeout is reached but condition has not yet
+        been met.
   """
   if condition_method == None:
     condition_method = lambda ret: ret
@@ -57,5 +58,5 @@ def PollForCondition(poll_method, condition_method=None,
       else:
         condition_name = 'Timed out waiting for unnamed condition'
       logging.error(condition_name)
-      raise TimeoutError(condition_name)
+      raise type_utils.TimeoutError(condition_name)
     time.sleep(poll_interval_secs)

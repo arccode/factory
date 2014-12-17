@@ -16,7 +16,7 @@ from tempfile import NamedTemporaryFile
 
 import factory_common  # pylint: disable=W0611
 import cros.factory.hwid.common as hwid3_common
-from cros.factory.common import Error, Shell
+from cros.factory.common import Shell
 from cros.factory.hwdb import hwid_tool
 from cros.factory.hwid import common
 from cros.factory.gooftool import crosfw
@@ -35,6 +35,7 @@ from cros.factory.test import phase
 from cros.factory.utils.process_utils import CheckOutput, GetLines
 from cros.factory.utils.string_utils import ParseDict
 from cros.factory.utils.sys_utils import MountPartition
+from cros.factory.utils.type_utils import Error
 
 # A named tuple to store the probed component name and the error if any.
 ProbedComponentResult = namedtuple('ProbedComponentResult',

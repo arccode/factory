@@ -34,7 +34,7 @@ from tempfile import NamedTemporaryFile
 import factory_common  # pylint: disable=W0611
 
 from cros.factory import system
-from cros.factory.common import CompactStr, Error, Obj, ParseKeyValueData, Shell
+from cros.factory.common import CompactStr, Obj, ParseKeyValueData, Shell
 from cros.factory.gooftool import edid
 from cros.factory.gooftool import crosfw
 from cros.factory.gooftool import vblock
@@ -46,6 +46,7 @@ from cros.factory.system import service_manager
 from cros.factory.system import vpd
 from cros.factory.test import factory
 from cros.factory.utils.process_utils import GetLines
+from cros.factory.utils.type_utils import Error
 
 
 try:

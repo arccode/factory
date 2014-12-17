@@ -7,6 +7,16 @@
 import Queue
 
 
+class Error(Exception):
+  """Generic fatal error."""
+  pass
+
+
+class TimeoutError(Error):
+  """Timeout error."""
+  pass
+
+
 class Enum(frozenset):
   """An enumeration type.
 
