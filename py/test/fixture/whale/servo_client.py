@@ -88,6 +88,7 @@ WHALE_DEBUG_MODE_EN = 'whale_debug_mode_en'
 
 # Whale's control components. Can get/set its value ('on'/'off').
 WHALE_CONTROL = common.AttrDict(dict(
+    ADC = 'whale_adc',
     AUDIO_PLUG = 'whale_audio_plug_det',
     BATTERY = 'whale_battery_on',
     DC = 'whale_dc_in',

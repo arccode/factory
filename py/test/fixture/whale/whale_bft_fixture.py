@@ -120,13 +120,23 @@ class WhaleBFTFixture(bft.BFTFixture):
     """Checks if DUT's power rail's voltage is okay.
 
     Returns:
-      A dict of Whale INA points to their voltage measure (mV).
+      A dict of Whale INA & ADC points to their voltage measure (mV).
 
     Raises:
       BFTFixtureException if power rail is problematic.
     """
-    result = self._servo.MultipleGet(self._WHALE_INAS)
-    return dict((k, int(v)) for k, v in result.iteritems())
+    inas = self._servo.MultipleGet(self._WHALE_INAS)
+    result = dict((k, int(v)) for k, v in inas.iteritems())
+
+    adc = self._servo.Get(self._WHALE_CONTROL.ADC)
+    result['vdd_kbd_bl_dut'] = adc[0] * 32.5
+    result['pp1200_ssd_dut'] = adc[1]
+    result['vcore_dut'] = adc[2]
+    result['pp600_vtt_dut'] = adc[3]
+    result['pp3300_rtc_dut'] = adc[4] * 2
+    result['pp1800_ssd_dut'] = adc[5]
+    result['pp3300_usb_pd_dut'] = adc[6] * 2
+    return result
 
   def CheckExtDisplay(self):
     raise NotImplementedError
