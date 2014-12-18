@@ -107,7 +107,7 @@ class UmpireServerProxy(xmlrpclib.ServerProxy):
       operation mode, it is the same as Umpire server URI. In test mode, it is
       at the next port of Umpire server URI.
     _umpire_handler_uri: A string containing the Umpire handler URI.
-     Check _test_mode for how this property is determined.
+      Check _test_mode for how this property is determined.
     _use_umpire: True if the object should work with an Umpire server; False if
       object should work with simple XMLRPC handler.
     _umpire_client_info: An object which implements UmpireClientInfoInterface.

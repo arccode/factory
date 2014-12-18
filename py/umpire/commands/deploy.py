@@ -23,6 +23,7 @@ from cros.factory.umpire import daemon
 from cros.factory.umpire import utils
 from cros.factory.utils import file_utils
 
+NONE_FILENAME = 'none##d41d8cd9'
 
 class ConfigDeployer(object):
   """Deploys an Umpire config file."""
@@ -81,7 +82,7 @@ class ConfigDeployer(object):
     for res_key, filename_prefix in self._RESOURCE_FOR_DOWNLOAD_CONF:
       res_filename = resources.get(res_key)
       # Skip empty resource file
-      if res_filename == 'none##d41d8cd9':
+      if res_filename == NONE_FILENAME:
         continue
       if res_filename and res_filename.startswith(filename_prefix):
         download_files.append(self._env.GetResourcePath(res_filename))
@@ -111,6 +112,8 @@ class ConfigDeployer(object):
     for bundle in self._config_to_deploy.GetActiveBundles():
       resources = bundle['resources']
       new_conf = self._ComposeDownloadConf(resources)
+      if new_conf is None:
+        continue
       new_conf_lines = new_conf.split('\n')
       original_conf = open(
           self._env.GetResourcePath(resources['download_conf'])).read()
