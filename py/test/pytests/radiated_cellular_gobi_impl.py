@@ -236,7 +236,7 @@ class RadiatedCellularGobiImpl(RfFramework):
     # try a few more times.
     PollForCondition(
         poll_method=SendTXCommand,
-        timeout=ENABLE_TX_MODE_TIMEOUT_SECS,
+        timeout_secs=ENABLE_TX_MODE_TIMEOUT_SECS,
         poll_interval_secs=TX_MODE_POLLING_INTERVAL_SECS,
         condition_name='Start TX test')
     self.modem.ExpectLine('')

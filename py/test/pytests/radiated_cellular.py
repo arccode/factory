@@ -73,7 +73,7 @@ class RadiatedCellular(RfFramework, unittest.TestCase):
         PollForCondition(poll_method=(
             lambda: self.StartTxTest(
                 measurement['band_name'], measurement['channel'])),
-            timeout=ENABLE_TX_MODE_TIMEOUT_SECS,
+            timeout_secs=ENABLE_TX_MODE_TIMEOUT_SECS,
             poll_interval_secs=TX_MODE_POLLING_INTERVAL_SECS,
             condition_name='Start TX test')
         self.modem.ExpectLine('')

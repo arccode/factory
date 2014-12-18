@@ -15,13 +15,13 @@ from cros.factory.utils import time_utils
 from cros.factory.utils import type_utils
 
 
-DEFAULT_TIMEOUT = 10
-DEFAULT_POLL_INTERVAL = 0.1
+DEFAULT_TIMEOUT_SECS = 10
+DEFAULT_POLL_INTERVAL_SECS = 0.1
 
 
 def PollForCondition(poll_method, condition_method=None,
-                     timeout=DEFAULT_TIMEOUT,
-                     poll_interval_secs=DEFAULT_POLL_INTERVAL,
+                     timeout_secs=DEFAULT_TIMEOUT_SECS,
+                     poll_interval_secs=DEFAULT_POLL_INTERVAL_SECS,
                      condition_name=None):
   """Polls for every poll_interval_secs until timeout reached or condition met.
 
@@ -33,21 +33,21 @@ def PollForCondition(poll_method, condition_method=None,
         into condition_method.
     condition_method: a method to decide if poll_method's return value is valid.
         None for standard Python if statement.
-    timeout: maximum number of seconds to wait, None means forever.
+    timeout_secs: maximum number of seconds to wait, None means forever.
     poll_interval_secs: interval to poll condition.
     condition_name: description of the condition. Used for TimeoutError when
-        timeout is reached.
+        timeout_secs is reached.
 
   Returns:
     poll_method's return value.
 
   Raises:
-    type_utils.TimeoutError when timeout is reached but condition has not yet
-        been met.
+    type_utils.TimeoutError when timeout_secs is reached but condition has not
+        yet been met.
   """
   if condition_method == None:
     condition_method = lambda ret: ret
-  end_time = time_utils.MonotonicTime() + timeout if timeout else None
+  end_time = time_utils.MonotonicTime() + timeout_secs if timeout_secs else None
   while True:
     ret = poll_method()
     if condition_method(ret):
@@ -61,6 +61,36 @@ def PollForCondition(poll_method, condition_method=None,
       logging.error(condition_name)
       raise type_utils.TimeoutError(condition_name)
     time.sleep(poll_interval_secs)
+
+
+def WaitFor(condition, timeout_secs, poll_interval=0.1):
+  """Wait for the given condition for at most the specified time.
+
+  Args:
+    condition: A function object.
+    timeout_secs: Timeout value in seconds.
+    poll_interval: Interval to poll condition.
+
+  Raises:
+    ValueError: If condition is not a function.
+    TimeoutError: If cond does not become True after timeout_secs seconds.
+  """
+  if not callable(condition):
+    raise ValueError('condition must be a callable object')
+
+  def _GetConditionString():
+    condition_string = condition.__name__
+    if condition.__name__ == '<lambda>':
+      try:
+        condition_string = inspect.getsource(condition).strip()
+      except IOError:
+        pass
+    return condition_string
+
+  return PollForCondition(poll_method=condition,
+                          timeout_secs=timeout_secs,
+                          poll_interval_secs=poll_interval,
+                          condition_name=_GetConditionString())
 
 
 def Retry(max_retry_times, interval, callback, target, *args, **kwargs):
@@ -94,37 +124,3 @@ def Retry(max_retry_times, interval, callback, target, *args, **kwargs):
       break
     time.sleep(interval)
   return result
-
-
-def WaitFor(condition, timeout_secs, poll_interval=0.1):
-  """Wait for the given condition for at most the specified time.
-
-  Args:
-    condition: A function object.
-    timeout_secs: Timeout value in seconds.
-    poll_interval: Interval to poll condition.
-
-  Raises:
-    ValueError: If condition is not a function.
-    TimeoutError: If cond does not become True after timeout_secs seconds.
-  """
-  if not callable(condition):
-    raise ValueError('condition must be a callable object')
-
-  def _GetConditionString():
-    condition_string = condition.__name__
-    if condition.__name__ == '<lambda>':
-      try:
-        condition_string = inspect.getsource(condition).strip()
-      except IOError:
-        pass
-    return condition_string
-
-  end_time = time.time() + timeout_secs
-  while True:
-    if condition():
-      break
-    if time.time() > end_time:
-      raise type_utils.TimeoutError(
-          'Timeout waiting for %r' % _GetConditionString())
-    time.sleep(poll_interval)

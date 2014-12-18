@@ -126,7 +126,7 @@ def PrepareNetwork(ip, force_new_ip=False, on_waiting=None):
   try:
     sync_utils.PollForCondition(
         poll_method=net_utils.FindUsableEthDevice,
-        timeout=INSERT_ETHERNET_DONGLE_TIMEOUT,
+        timeout_secs=INSERT_ETHERNET_DONGLE_TIMEOUT,
         condition_name='Detect Ethernet device')
 
     current_ip = net_utils.GetEthernetIp(net_utils.FindUsableEthDevice())

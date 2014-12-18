@@ -303,7 +303,7 @@ class BluetoothManager(object):
     PollForCondition(poll_method=lambda: (
                          device_prop.Get(ADAPTER_INTERFACE, 'Discovering')),
                      condition_method=lambda ret: ret == 1,
-                     timeout=timeout_secs,
+                     timeout_secs=timeout_secs,
                      condition_name="Wait for Discovering==1")
 
   def RemoveDevices(self, adapter, paths):

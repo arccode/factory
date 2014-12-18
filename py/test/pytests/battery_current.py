@@ -98,12 +98,12 @@ class BatteryCurrentTest(unittest.TestCase):
       self._board.SetChargeState(Board.ChargeState.CHARGE)
       PollForCondition(poll_method=self._CheckCharge, poll_interval_secs=0.5,
                        condition_name='ChargeCurrent',
-                       timeout=self.args.timeout_secs)
+                       timeout_secs=self.args.timeout_secs)
     if self.args.min_discharging_current:
       self._board.SetChargeState(Board.ChargeState.DISCHARGE)
       PollForCondition(poll_method=self._CheckDischarge, poll_interval_secs=0.5,
                        condition_name='DischargeCurrent',
-                       timeout=self.args.timeout_secs)
+                       timeout_secs=self.args.timeout_secs)
 
   def tearDown(self):
     # Must enable charger to charge or we will drain the battery!

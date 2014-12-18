@@ -25,18 +25,18 @@ class PollForConditionTest(unittest.TestCase):
   def testPollForCondition(self):
     self.assertEqual(True, sync_utils.PollForCondition(
         poll_method=self._IncrementCheckTrigger,
-        timeout=5, poll_interval_secs=0.01))
+        timeout_secs=5, poll_interval_secs=0.01))
 
   def testPollForConditionSeparateConditionMethod(self):
     self.assertEqual(5, sync_utils.PollForCondition(
         poll_method=self._Increment,
         condition_method=lambda x: x >= 5,
-        timeout=5, poll_interval_secs=0.01))
+        timeout_secs=5, poll_interval_secs=0.01))
 
   def testPollForConditionTimeout(self):
     self.assertRaises(type_utils.TimeoutError, sync_utils.PollForCondition,
         poll_method=lambda: self._IncrementCheckTrigger(trigger=30),
-        timeout=2, poll_interval_secs=0.1)
+        timeout_secs=2, poll_interval_secs=0.1)
 
 
 class WaitForTest(unittest.TestCase):
@@ -45,7 +45,7 @@ class WaitForTest(unittest.TestCase):
       return time.time() > t
 
     now = time.time()
-    self.assertEquals(None, sync_utils.WaitFor(
+    self.assertEquals(True, sync_utils.WaitFor(
         lambda: _ReturnTrueAfter(now + 0.5),
         timeout_secs=1))
 

@@ -55,7 +55,7 @@ class CellularGobiRSSI(unittest.TestCase):
 
     modem_response = sync_utils.PollForCondition(
         poll_method=_CheckFTMError,
-        timeout=FTM_WAIT_TIMEOUT_SECS,
+        timeout_secs=FTM_WAIT_TIMEOUT_SECS,
         poll_interval_secs=RETRY_INTERVAL_SECS,
         condition_name='Readiness of factory test mode')
     try:

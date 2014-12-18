@@ -650,7 +650,7 @@ class AudioQualityTest(unittest.TestCase):
         sync_utils.PollForCondition(
             poll_method=net_utils.FindUsableEthDevice,
             condition_method=lambda ret: not ret,
-            timeout=_REMOVE_ETHERNET_TIMEOUT_SECS,
+            timeout_secs=_REMOVE_ETHERNET_TIMEOUT_SECS,
             condition_name='Remove Ethernet device')
         break
       except:  # pylint: disable=W0702
