@@ -507,10 +507,15 @@ def SMTAudioJack(args, retries=None):
       label_zh=u'音源孔',
       has_automator=True,
       pytest_name='audio_loop',
-      disable_services=['cras'],
-      dargs={'enable_audiofun': False,
+      dargs={'require_dongle': True,
+             'check_dongle': True,
              'output_volume': 15,
-             'require_dongle': True},
+             'initial_actions': [('1', 'init_audiojack')],
+             'input_dev': ('Audio Card', '0'),
+             'output_dev': ('Audio Card', '0'),
+             'tests_to_conduct': [{'type': 'sinewav',
+                                   'freq_threshold': 50,
+                                   'rms_threshold': (0.08, None)}]},
       retries=retries)
 
 def SpeakerDMic(args):
@@ -524,10 +529,15 @@ def SpeakerDMic(args):
       label_zh=u'喇叭/麦克风',
       has_automator=True,
       pytest_name='audio_loop',
-      disable_services=['cras'],
-      dargs={'enable_audiofun': True,
-             'audiofun_duration_secs': 4,
-             'output_volume': 10})
+      dargs={'require_dongle': False,
+             'check_dongle': True,
+             'output_volume': 10,
+             'initial_actions': [('1', 'init_speakerdmic')],
+             'input_dev': ('Audio Card', '0'),
+             'output_dev': ('Audio Card', '0'),
+             'tests_to_conduct': [{'type': 'audiofun',
+                                   'duration': 4,
+                                   'threshold': 80}]})
 
 def LidSwitch(args, retries=3):
   """Creates a test for lid switch.
