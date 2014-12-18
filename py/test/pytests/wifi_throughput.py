@@ -133,7 +133,7 @@ def _RetryWithTimeout(f, log_text=None, fail_text=None, timeout=None, sleep=1):
       result = f()
     except Exception as e:
       logging.exception(e.message)
-    if not result:
+    if result:
       return result
     if time.time() >= deadline:
       break
