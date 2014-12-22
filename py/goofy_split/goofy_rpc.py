@@ -28,6 +28,7 @@ from xml.sax import saxutils
 import factory_common  # pylint: disable=W0611
 from cros.factory.diagnosis.diagnosis_tool import DiagnosisToolRPC
 from cros.factory.goofy import goofy_remote
+from cros.factory.system import drm
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import utils
@@ -1130,8 +1131,9 @@ class GoofyRPC(object):
     if not output_file:
       output_file = ('/var/log/screenshot_%s.png' %
                      time.strftime("%Y%m%d-%H%M%S"))
-    subprocess.check_call('xwd -d :0 -root | convert - "%s"' % output_file,
-                          shell=True)
+    d = drm.DRMFromMinor(0)
+    fb = d.resources.crtcs[0].framebuffer
+    fb.AsRGBImage().save(output_file)
 
   def CallExtension(self, name, timeout=DEFAULT_GOOFY_RPC_TIMEOUT_SECS,
                     **kwargs):
