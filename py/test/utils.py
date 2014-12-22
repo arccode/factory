@@ -269,23 +269,3 @@ def Timeout(secs):
     if secs:
       signal.alarm(0)
       signal.signal(signal.SIGALRM, old_handler)
-
-
-def SendKey(key_sequence):
-  """Send the given key sequence through X server.
-
-  Args:
-    key_sequence: This can be a list of keys to send or a string of key
-        sequence.  For example:
-          - list: ['f', 'o', 'o'] sends the string 'foo' through xdotool.
-          - string: 'Alt+F4' sends the F4 key wth modifier Alt through xdotool.
-        For more details, see the help of xdotool.
-  """
-  os.environ['DISPLAY'] = ':0'
-  os.environ['XAUTHORITY'] = '/home/chronos/.Xauthority'
-  if isinstance(key_sequence, list):
-    process_utils.Spawn(['xdotool', 'key'] + key_sequence)
-  elif isinstance(key_sequence, basestring):
-    process_utils.Spawn(['xdotool', 'key', key_sequence])
-  else:
-    raise ValueError('key_sequence must be a list or a string')
