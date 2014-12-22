@@ -28,7 +28,7 @@ MAKE_PAR_ARGS=
 
 # TODO(shik): Re-enable R0801 once flash_firmware.py and
 # setup_netboot.py are fixed.
-PYLINT_OPTIONS=--rcfile=$(PYLINTRC)
+PYLINT_OPTIONS=--rcfile=$(PYLINTRC) --include-ids=y
 
 LINT_BLACKLIST=\
 	py/argparse.py \
