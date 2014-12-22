@@ -28,10 +28,11 @@ class WhaleBFTFixture(bft.BFTFixture):
 
   # Mapping of Whale controlled device to Servo control.
   _WHALE_DEVICE = {
-      bft.BFTFixture.Device.AC_ADAPTER  : _WHALE_CONTROL.DC,
       bft.BFTFixture.Device.AUDIO_JACK  : _WHALE_CONTROL.AUDIO_PLUG,
       bft.BFTFixture.Device.BATTERY     : _WHALE_CONTROL.BATTERY,
-      bft.BFTFixture.Device.LID_MAGNET  : _WHALE_CONTROL.ELECTRO_MAGNET}
+      bft.BFTFixture.Device.LID_MAGNET  : _WHALE_CONTROL.ELECTRO_MAGNET,
+      bft.BFTFixture.Device.C0_CC2_DUT  : _WHALE_CONTROL.DC,
+      bft.BFTFixture.Device.C1_CC2_DUT  : _WHALE_CONTROL.OUTPUT_RESERVE_1}
 
   # Mapping from status color to (pass, fail) led status.
   _STATUS_COLOR = {

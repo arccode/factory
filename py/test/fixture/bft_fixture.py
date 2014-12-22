@@ -71,7 +71,8 @@ class BFTFixture(object):
 
   StatusColor = Enum(['RED', 'GREEN', 'OFF'])
   Device = Enum(['AC_ADAPTER', 'AUDIO_JACK', 'EXT_DISPLAY', 'LID_MAGNET',
-                 'USB_0', 'USB_1', 'USB_2', 'BATTERY'])
+                 'USB_0', 'USB_1', 'USB_2', 'BATTERY',
+                 'C0_CC2_DUT', 'C1_CC2_DUT'])
 
   # LCM enumeration.
   LcmCommand = Enum(['BACKLIGHT_OFF', 'BACKLIGHT_ON', 'CLEAR', 'HOME'])
