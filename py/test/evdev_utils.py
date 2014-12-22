@@ -30,6 +30,22 @@ def GetKeyboardDevices():
               evdev.ecodes.KEY_ENTER in d.capabilities()[evdev.ecodes.EV_KEY])]
 
 
+def SendKeys(key_sequence):
+  """Sends the given key sequence through uinput.
+
+  Args:
+    key_sequence: A list of keys to send.  For the list of valid key events, see
+        evdev.ecodes module.
+  """
+  uinput = evdev.UInput()
+  for k in key_sequence:
+    uinput.write(evdev.ecodes.EV_KEY, k, 1)
+  for k in key_sequence:
+    uinput.write(evdev.ecodes.EV_KEY, k, 0)
+  uinput.syn()
+  uinput.close()
+
+
 def GetTouchDevices():
   """Gets the touch devices.
 
