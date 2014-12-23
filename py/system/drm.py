@@ -268,6 +268,17 @@ class DRMModeConnector(DRMModeBaseStruct):
     return self.CONNECTOR_STATUS_NAMES[self.connection]
 
   @property
+  def encoder(self):
+    encoder_ptr = _lib.drmModeGetEncoder(self.fd, self.encoder_id)
+    if encoder_ptr:
+      encoder = encoder_ptr.contents
+      encoder.fd = self.fd
+      encoder.need_free = True
+      return encoder
+    else:
+      return None
+
+  @property
   def edid(self):
     blob_id = None
     for i in xrange(self.count_props):
@@ -282,6 +293,49 @@ class DRMModeConnector(DRMModeBaseStruct):
     blob.fd = self.fd
     blob.need_free = True
     return ctypes.cast(blob.data, ctypes.POINTER(ctypes.c_uint8))[0:blob.length]
+
+  def GetAssociatedFramebuffer(self):
+    """Gets the associate scanout buffer.
+
+    Returns:
+      A DRMModeFB instance.
+    """
+    if self.encoder:
+      return self.encoder.crtc.framebuffer
+    return None
+
+
+class DRMModeEncoder(DRMModeBaseStruct):
+  """C struct of DRM mode encoder.
+
+  This is a Python representation of the following C struct in xf86drmMode.h:
+
+    typedef struct _drmModeEncoder {
+            uint32_t encoder_id;
+            uint32_t encoder_type;
+            uint32_t crtc_id;
+            uint32_t possible_crtcs;
+            uint32_t possible_clones;
+    } drmModeEncoder, *drmModeEncoderPtr;
+  """
+  _fields_ = [
+      ('encoder_id', ctypes.c_uint32),
+      ('encoder_type', ctypes.c_uint32),
+      ('crtc_id', ctypes.c_uint32),
+      ('possible_crtcs', ctypes.c_uint32),
+      ('possible_clones', ctypes.c_uint32),
+  ]
+
+  def __del__(self):
+    if self.need_free:
+      _lib.drmModeFreeEncoder(ctypes.byref(self))
+
+  @property
+  def crtc(self):
+    crtc = _lib.drmModeGetCrtc(self.fd, self.crtc_id).contents
+    crtc.fd = self.fd
+    crtc.need_free = True
+    return crtc
 
 
 class DRMModeCrtc(DRMModeBaseStruct):
@@ -492,6 +546,11 @@ def _LoadDRMLibrary():
   lib.drmModeGetConnector.restype = ctypes.POINTER(DRMModeConnector)
   lib.drmModeFreeConnector.argtypes = [ctypes.POINTER(DRMModeConnector)]
   lib.drmModeFreeConnector.restype = None
+
+  lib.drmModeGetEncoder.argtypes = [ctypes.c_int, ctypes.c_uint32]
+  lib.drmModeGetEncoder.restype = ctypes.POINTER(DRMModeEncoder)
+  lib.drmModeFreeEncoder.argtypes = [ctypes.POINTER(DRMModeEncoder)]
+  lib.drmModeFreeEncoder.restype = None
 
   lib.drmModeGetCrtc.argtypes = [ctypes.c_int, ctypes.c_uint32]
   lib.drmModeGetCrtc.restype = ctypes.POINTER(DRMModeCrtc)
