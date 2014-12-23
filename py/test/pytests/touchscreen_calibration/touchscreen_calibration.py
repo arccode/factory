@@ -311,29 +311,6 @@ class TouchscreenCalibration(unittest.TestCase):
     self._ExecuteCommand('shutdown -H 0',
                          fail_msg='Failed to shutdown the host')
 
-  def Mtplot(self, unused_event=None):
-    """Shut down the host."""
-    # The touchscreen device id string looks like
-    #    Atmel maXTouch Touchscreen    id=13   [floating slave]
-    xinput_device_id = self._CommandOutputSearch(
-        'xinput list', 'touchscreen.+id=(\d+)\s+', re.I)
-    if xinput_device_id is None:
-      factory.console.warn('Cannot find xinput device id!')
-      return
-
-    # The device node looks like
-    #    Device Node (250): "/dev/input/event6"
-    cmd_str = 'xinput list-props %s' % xinput_device_id
-    device_node = self._CommandOutputSearch(
-        cmd_str, 'device node.*:\s*"(/dev/input/event\d+)"', re.I)
-    if device_node is None:
-      factory.console.warn('Cannot find device node!')
-      return
-
-    mtplot_cmd = 'mtplot %s' % device_node
-    factory.console.info('Execute "%s"' % mtplot_cmd)
-    self._ExecuteCommand(mtplot_cmd, fail_msg='Failed to launch mtplot.')
-
   def _UploadLog(self, log_name, log_data):
     """Upload the data to shopfloor server as a file."""
     if self.use_shopfloor:
@@ -636,7 +613,7 @@ class TouchscreenCalibration(unittest.TestCase):
       # Events that are emitted from buttons on the factory UI.
       'ReadTest', 'RefreshFixture', 'RefreshTouchscreen', 'ProbeSelfTest',
       'DriveProbeDown', 'DriveProbeUp', 'ShutDown', 'QueryFixtureState',
-      'Mtplot', 'RefreshNetwork',
+      'RefreshNetwork',
 
       # Events that are emitted from other callback functions.
       'StartCalibration',
