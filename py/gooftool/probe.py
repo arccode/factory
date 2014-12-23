@@ -412,13 +412,43 @@ class _TouchpadData():  # pylint: disable=W0232
     info = [re.sub('^[^"]*"(.*)"$', r'\1', device) for device in info]
     return Obj(ident_str=(', '.join(info) if info else None), fw_version=None)
 
+  @classmethod
+  def HidOverI2c(cls):
+    # Since hid-over-i2c support many classes of devices,
+    # no good method to differentiate touchpad/touchscreen .. from others.
+    # so we use a list of tuple [("vendor id","product id"),...] to list
+    # all known touchpad here so that we can report touchpad info correctly.
+    # ("06cb","7a3b") is synaptics hid-over-i2c touchpad.
+    known_hid_tp = [("06cb","7a3b")]
+    input_file = '/proc/bus/input/devices'
+    re_device_name = re.compile(r'^N: Name="(hid-over-i2c.*)"$', re.MULTILINE)
+    re_sysfs = re.compile(r'^S: Sysfs=(.*)$', re.MULTILINE)
+    with open(input_file, 'r') as f:
+      buf = f.read()
+    devices = buf.split('\n\n')
+    for d in devices:
+      match = re_device_name.findall(d)
+      if not match:
+        continue
+      device_name = match[0]
+      sysfs_path = os.path.join('/sys', re_sysfs.findall(d)[0].lstrip('/'))
+      with open(os.path.join(sysfs_path, 'id/vendor'), 'r') as f:
+        idVendor = f.read().strip()
+      with open(os.path.join(sysfs_path, 'id/product'), 'r') as f:
+        idProduct = f.read().strip()
+      for vendor, product in known_hid_tp:
+        if((vendor.lower() == idVendor.lower()) and
+             (product.lower() == idProduct.lower())):
+          return Obj(ident_str=device_name, fw_version=None)
+
   cached_data = None
 
   @classmethod
   def Get(cls):
     if cls.cached_data is None:
       cls.cached_data = Obj(ident_str=None, fw_version=None)
-      for vendor_fun in [cls.Cypress, cls.Synaptics, cls.Atmel, cls.Generic]:
+      for vendor_fun in [cls.Cypress, cls.Synaptics, cls.Atmel,
+                         cls.HidOverI2c, cls.Generic]:
         data = vendor_fun()
         if data is not None:
           cls.cached_data = data
