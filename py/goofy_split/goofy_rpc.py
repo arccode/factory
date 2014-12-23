@@ -28,7 +28,7 @@ from xml.sax import saxutils
 import factory_common  # pylint: disable=W0611
 from cros.factory.diagnosis.diagnosis_tool import DiagnosisToolRPC
 from cros.factory.goofy import goofy_remote
-from cros.factory.system import drm
+from cros.factory.system import display
 from cros.factory.test import factory
 from cros.factory.test import shopfloor
 from cros.factory.test import utils
@@ -1124,18 +1124,27 @@ class GoofyRPC(object):
       raise GoofyRPCException('Factory did not restart as expected')
 
   def DeviceTakeScreenshot(self, output_file=None):
-    """Takes a screenshot of the framebuffer on the device.
+    """Takes screenshots of all the connected ports on the device.
 
     Args:
       output_file: The output file path to store the captured image file.
-          If not given, screenshot is saved to /var/log/screenshot_<TIME>.png.
+          If not given, screenshots are saved to:
+
+            /var/log/screenshot_<TIME>-<PORT>.png
+
+          If a file path is given, screenshots are saved to:
+
+            <file path base>-<PORT>.<file path extension>
     """
     if not output_file:
-      output_file = ('/var/log/screenshot_%s.png' %
-                     time.strftime("%Y%m%d-%H%M%S"))
-    d = drm.DRMFromMinor(0)
-    fb = d.resources.crtcs[0].framebuffer
-    fb.AsRGBImage().save(output_file)
+      output_filename = ('/var/log/screenshot_%s-%%s.png' %
+                         time.strftime("%Y%m%d-%H%M%S"))
+    else:
+      output_filename = '%s-%%s%s' % os.path.splitext(output_file)
+
+    for port_id, port_info in display.GetPortInfo().iteritems():
+      if port_info.connected:
+        display.CaptureFramebuffer(port_id).save(output_filename % port_id)
 
   def CallExtension(self, name, timeout=DEFAULT_GOOFY_RPC_TIMEOUT_SECS,
                     **kwargs):
