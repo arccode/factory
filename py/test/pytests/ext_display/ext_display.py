@@ -8,9 +8,7 @@
 
 from __future__ import print_function
 import logging
-import os
 import random
-import re
 import threading
 import time
 import unittest
@@ -19,13 +17,12 @@ import uuid
 import evdev
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.system import drm
+from cros.factory.system import display
 from cros.factory.test import audio_utils
 from cros.factory.test import evdev_utils
 from cros.factory.test import factory
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
-from cros.factory.test import utils
 from cros.factory.test.args import Arg
 from cros.factory.test.event import Event
 from cros.factory.test.factory_task import (FactoryTaskManager,
@@ -35,7 +32,7 @@ from cros.factory.test.fixture.bft_fixture import (BFTFixture,
                                                    CreateBFTFixture,
                                                    TEST_ARG_HELP)
 from cros.factory.test.pytests import audio
-from cros.factory.utils import process_utils
+
 
 _TEST_TITLE = test_ui.MakeLabel('External Display Test',
                                 u'外接显示屏测试')
@@ -134,47 +131,8 @@ class WaitDisplayThread(threading.Thread):
     self._on_success = on_success
 
   def run(self):
-    def QueryXrandr():
-      """Queries the xrandr output.
-
-      Checks if the specified external display is connected.
-
-      Returns:
-        True if the specified external display is connected; False otherwise.
-      """
-      xrandr_expect = re.compile(
-          '^%s (connected|disconnected)' % self._display_id,
-          re.MULTILINE)
-      # Set-up x-window environments for xrandr command.
-      env = os.environ.copy()
-      env['DISPLAY'] = ':0'
-      env['XAUTHORITY'] = '/home/chronos/.Xauthority'
-      match_obj = xrandr_expect.search(
-          process_utils.SpawnOutput(['xrandr', '-d', ':0'], env=env))
-      if match_obj:
-        return match_obj.group(1) == 'connected'
-      return False
-
-    def QueryDRM():
-      """Queries the connector status from DRM.
-
-      Returns:
-        True if the connector is connected; False otherwise.
-      """
-      d = drm.DRMFromMinor(0)
-      drm_resources = d.resources
-      for c in drm_resources.connectors:
-        if c.id == self._display_id:
-          return c.status == 'connected'
-      return False
-
     while not self._done.is_set():
-      if utils.IsFreon():
-        connected = QueryDRM()
-      else:
-        connected = QueryXrandr()
-
-      if connected == self._connect:
+      if display.GetPortInfo()[self._display_id].connected == self._connect:
         display_info = factory.get_state_instance().DeviceGetDisplayInfo()
         # In the case of connecting an external display, make sure there
         # is an item in display_info with 'isInternal' False.
