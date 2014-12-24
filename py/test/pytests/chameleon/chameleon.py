@@ -11,7 +11,6 @@ from __future__ import print_function
 import contextlib
 import logging
 import os
-import re
 import tempfile
 import time
 import unittest
@@ -22,13 +21,12 @@ from PIL import ImageChops
 from PIL import ImageDraw
 
 import factory_common  # pylint: disable=W0611
+from cros.factory.system import display
 from cros.factory.test import args
 from cros.factory.test import state
 from cros.factory.test import test_ui
 from cros.factory.test import ui_templates
 from cros.factory.test import utils
-from cros.factory.utils import file_utils
-from cros.factory.utils import process_utils
 from cros.factory.utils import sync_utils
 
 
@@ -164,83 +162,6 @@ class Chameleon(object):
       yield edid_id
     finally:
       self.DestroyEdid(edid_id)
-
-
-class Framebuffer(object):
-  """An abstraction of the framebuffer on DUT.
-
-  Properties:
-    width: Width of the framebuffer in pixels.
-    height: Height of the framebuffer in pixels.
-    ports: A list of port info for each of the display ports.
-  """
-  SCREEN_REGEXP = re.compile(
-      (r'Screen 0: minimum \d+ x \d+, '
-       r'current (?P<width>\d+) x (?P<height>\d+), maximum \d+ x \d+'),
-      re.MULTILINE)
-  PORT_REGEXP = re.compile(
-      (r'(?P<name>\w+) (?P<connected>connected|disconnected) '
-       r'((?P<width>\d+)x(?P<height>\d+)\+(?P<left>\d+)\+(?P<top>\d+))?'),
-      re.MULTILINE)
-
-  def __init__(self):
-    xrandr_output = process_utils.CheckOutput(['xrandr', '-d', ':0'])
-    match_obj = self.SCREEN_REGEXP.search(xrandr_output)
-    self.width = int(match_obj.group('width'))
-    self.height = int(match_obj.group('height'))
-    self.ports = {}
-    for p in self.PORT_REGEXP.finditer(xrandr_output):
-      groupdict = p.groupdict()
-      for x in ('width', 'height', 'top', 'left'):
-        value = groupdict[x]
-        groupdict[x] = int(value) if value is not None else value
-      groupdict['connected'] = groupdict['connected'] == 'connected'
-      self.ports[groupdict['name']] = groupdict
-
-  def GetConnectedPortInfo(self, port):
-    """Gets the connected port info of the given port type.
-
-    Args:
-      port: The port type.
-
-    Returns:
-      A list of info of the connected ports.
-    """
-    ret = []
-    for name, info in self.ports.iteritems():
-      if name.startswith(port) and info['connected']:
-        ret.append(info)
-    return ret
-
-  def Capture(self, box, downscale=False):
-    """Captures a RGB image of the framebuffer.
-
-    Args:
-      box: A (width, height, left, top) tuple for image cropping.
-      downscale: Whether to downscale the captured framebuffer to RGB 16-235
-          TV-scale.
-
-    Returns:
-      A PIL.Image object of the captured RGB image.
-    """
-    def Downscale(p):
-      return (p - 128) * 110 / 128 + 126
-
-    with file_utils.UnopenedTemporaryFile(suffix='.rgb') as temp:
-      state.get_instance().DeviceTakeScreenshot(temp)
-      # The captured image contains the giant X framebuffer. We need to crop the
-      # captured framebuffer.
-      width, height, left, top = box
-      cmd = ['convert', '-size', '%dx%d' % (self.width, self.height),
-             '-depth', '8', '-crop', '%dx%d+%d+%d' % (width, height, left, top),
-             temp, temp]
-      process_utils.Spawn(cmd, check_call=True)
-      with open(temp) as f:
-        image = Image.fromstring('RGB', (width, height), f.read())
-      if downscale:
-        logging.info('Downscaling framebuffer to 16-235...')
-        image = Image.eval(image, Downscale)
-      return image
 
 
 class ChameleonDisplayTest(unittest.TestCase):
@@ -422,15 +343,9 @@ class ChameleonDisplayTest(unittest.TestCase):
     logging.info('Capturing %s port framebuffer on Chameleon...',
                  chameleon_port)
     chameleon_image = self.chameleon.Capture(chameleon_port)
-    fb = Framebuffer()
-    port_info = fb.GetConnectedPortInfo(dut_port)
-    self.assertTrue(len(port_info) == 1)
-    w, h, l, t = (port_info[0]['width'], port_info[0]['height'],
-                  port_info[0]['left'], port_info[0]['top'])
-    logging.info('Capturing internal framebuffer crop at %sx%s+%s+%s...',
-                 w, h, l, t)
-    internal_image = fb.Capture(box=(w, h, l, t),
-                                downscale=self.args.downscale_to_tv_level)
+    logging.info('Capturing %s port framebuffer on DUT...', dut_port)
+    internal_image = display.CaptureFramebuffer(
+        dut_port, downscale=self.args.downscale_to_tv_level)
     return internal_image, chameleon_image
 
   def TestPort(self, dut_port, chameleon_port, width, height, refresh_rate):
