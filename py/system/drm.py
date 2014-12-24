@@ -398,22 +398,19 @@ class DRMModeFB(DRMModeBaseStruct):
     Returns:
       A PIL.Image() instance with mode='RGB' of the converted framebuffer.
     """
-    def Unformat(string):
-      r = string[0]
-      g = string[1]
-      b = string[2]
-      return [b, g, r]
+    if self.depth == 24:
+      # Convert RGB to BGR.
+      conversion_matrix = (
+          0, 0, 1, 0,
+          0, 1, 0, 0,
+          1, 0, 0, 0,
+      )
+    else:
+      raise DRMError('Unable to convert depth %s' % self.depth)
 
-    raw = self.contents
-    converted = []
-    for l in xrange(self.height):
-      for s in xrange(self.width):
-        bytes_per_pixel = self.bpp / 8
-        index = l * self.pitch + s * bytes_per_pixel
-        converted.extend(Unformat(raw[index:index + bytes_per_pixel]))
-
-    return Image.fromstring(
-        'RGB', (self.width, self.height), ''.join(converted))
+    image = Image.fromstring(
+        'RGB', (self.width, self.height), self.contents, 'raw', 'RGBX')
+    return image.convert('RGB', conversion_matrix)
 
   def map(self):
     if self._map:
