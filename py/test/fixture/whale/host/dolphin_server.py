@@ -10,8 +10,6 @@ import logging
 import optparse
 import os
 import SimpleXMLRPCServer
-import socket
-import SocketServer
 import subprocess
 import sys
 import time
@@ -37,13 +35,6 @@ PLANKTON_CONN_PORT = ['1-1.3.2',  # left raiden
 
 DOLPHIN_PARAMS = [{'serial_params': PLANKTON_SERIAL_PARAMS,
                    'port_index': port} for port in PLANKTON_CONN_PORT]
-
-
-class ThreadedXMLRPCServer(SocketServer.ThreadingMixIn,
-                           SimpleXMLRPCServer.SimpleXMLRPCServer):
-  """Threaded SimpleXMLRPCServer."""
-  daemon_threads = True
-  allow_reuse_address = True
 
 
 def ParseArgs():
@@ -95,20 +86,14 @@ def RealMain():
   logger = logging.getLogger(os.path.basename(sys.argv[0]))
   logger.info('Start')
 
-  try:
-    server = ThreadedXMLRPCServer((options.host, options.port),
-                                  logRequests=options.debug,
-                                  allow_none=True)
-  except socket.error as e:
-    error = "Problem opening Server's socket: %s" % e
-    logger.fatal(error)
-    raise serial_server.SerialServerError(error)
+  server = SimpleXMLRPCServer.SimpleXMLRPCServer(
+      (options.host, options.port),
+      allow_none=True)
 
   ModprobeFtdiDriver()
   dolphin_server = serial_server.SerialServer(DOLPHIN_PARAMS,
                                               verbose=options.debug)
   server.register_introspection_functions()
-  server.register_multicall_functions()
   server.register_instance(dolphin_server)
   logger.info('Listening on %s port %s' % (options.host, options.port))
   server.serve_forever()
