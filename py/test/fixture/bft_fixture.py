@@ -245,6 +245,9 @@ class BFTFixture(object):
     """
     raise NotImplementedError
 
+  def TriggerScanner(self):
+    """Turn the scanner on and off."""
+    raise NotImplementedError
 
 def CreateBFTFixture(class_name, params):
   """Initializes a BFT fixture instance.

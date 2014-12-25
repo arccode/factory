@@ -255,3 +255,11 @@ class WhaleBFTFixture(bft.BFTFixture):
     elif is_closed:
       return self.Status.CLOSED
     return self.Status.CLOSING
+
+  def TriggerScanner(self):
+    try:
+      self._servo.Click(self._WHALE_CONTROL.FIXTURE_NC)
+    except servo_client.ServoClientError as e:
+      logging.exception('Failed to trigger scanner %s', e)
+      raise bft.BFTFixtureException(
+          'Failed to trigger scanner %s' % e)
