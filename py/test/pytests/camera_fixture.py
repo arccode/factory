@@ -116,6 +116,60 @@ Usage examples::
              'IQ_data_method': 'USB',
              'IQ_param_pathname': 'camera.params'}),
 
+  # With light chamber and controls the light chamber charts
+
+    # IQ (Image Quality) test with shopfloor.
+    chamber_conn_params = {
+      'driver': 'pl2303',
+      'serial_delay': 0,
+      'serial_params': {
+        'baudrate': 9600,
+        'bytesize': 8,
+        'parity': 'N',
+        'stopbits': 1,
+        'xonxoff': False,
+        'rtscts': False,
+        'timeout': None
+      },
+    }
+
+    OperatorTest(
+      id='ImageQuality',
+      pytest_name='camera_fixture',
+      dargs={'mock_mode': False,
+             'test_type': 'IQ',
+             'fixture_type': 'FullChamber',
+             'control_chamber': True,
+             'chamber_conn_params': chamber_conn_params,
+             'chamber_cmd': {
+               'WHITE': [('white\\n', 'White_Ready')],
+               'CHARTA': [('chart1\\n', 'Chart1_Ready')]
+             },
+             'test_chart_version': 'A',
+             'capture_resolution': (1280, 720),
+             'IQ_data_method': 'Shopfloor',
+             'IQ_param_pathname': 'camera/camera.params.FATP',
+             'IQ_local_ip': None})
+
+    # With mock_mode=True
+    OperatorTest(
+      id='ImageQuality',
+      pytest_name='camera_fixture',
+      dargs={'mock_mode': True,
+             'test_type': 'IQ',
+             'fixture_type': 'FullChamber',
+             'control_chamber': True,
+             'chamber_conn_params': chamber_conn_params,
+             'chamber_cmd': {
+               'WHITE': [('white\\n', 'White_Ready')],
+               'CHARTA': [('chart1\\n', 'Chart1_Ready')]
+             },
+             'test_chart_version': 'A',
+             'capture_resolution': (1280, 720),
+             'IQ_data_method': 'Shopfloor',
+             'IQ_param_pathname': 'camera/camera.params.FATP',
+             'IQ_local_ip': None})
+
 """
 
 import base64
@@ -144,8 +198,10 @@ from cros.factory.test import shopfloor
 from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
 from cros.factory.test.camera_utils import EncodeCVImage
+from cros.factory.test.fixture.fixture_connection import (
+    SerialFixtureConnection, MockFixtureConnection)
 from cros.factory.test.fixture.camera.light_chamber import (
-    LightChamber, LightChamberError)
+    LightChamber, LightChamberError, LightChamberCameraError)
 import cros.factory.test.fixture.camera.perf_tester as camperf
 import cros.factory.test.fixture.camera.renderer as renderer
 from cros.factory.test.media_util import MediaMonitor, MountedMedia
@@ -236,12 +292,14 @@ InternalEvent = namedtuple('InternalEvent', 'event_type aux_data')
 FAIL_SN = 'SerialNumber'  # Missing camera or bad serial number.
 FAIL_FIRMWARE = 'Firmware'  # Wrong firmware version.
 FAIL_BAD_CAMERA = 'BadCamera'  # Fail to read image from camera.
+FAIL_CHAMBER_ERROR = 'ChamberError'  # Fail to set light chamber chart
 FAIL_WRONG_IMAGE = 'WrongImage'  # Image doesn't contain a valid test chart.
 FAIL_IMAGE_SHIFT = 'Shift'  # Image shift is too large.
 FAIL_IMAGE_TILT = 'Tilt'  # Image tilt is too large.
 FAIL_LENS_SHADING = 'LensShading'  # Lens shading is over-limits.
 FAIL_MTF = 'MTF'  # Image sharpness is too low.
 FAIL_USB = 'USB'  # Fail to save to USB.
+FAIL_UNKNOWN  = 'UnknownError'  # Unknown error.
 
 
 # Event log keys.
@@ -298,14 +356,16 @@ class _IQTestDelegate(object):
 
   """
 
-  def __init__(self, delegator, chamber, fixture_type, data_method, local_ip,
-               param_pathname, param_dict, save_good_image, save_bad_image):
+  def __init__(self, delegator, chamber, fixture_type, control_chamber,
+               data_method, local_ip, param_pathname, param_dict,
+               save_good_image, save_bad_image):
     """Initalizes _IQTestDelegate.
 
     Args:
       delegator: Instance of CameraFixture.
       chamber: Instance of LightChamber.
       fixture_type: Fixture enum.
+      control_chamber: Whether or not to control the chart in the light chamber.
       data_method: DataMethod enum.
       local_ip: Check CameraFixture.ARGS for detailed description.
       param_pathname: ditto.
@@ -316,6 +376,7 @@ class _IQTestDelegate(object):
     self.delegator = delegator
     self.chamber = chamber
     self.fixture_type = fixture_type
+    self.control_chamber = control_chamber
 
     # Basic config set by test_list.
     self.data_method = data_method
@@ -450,6 +511,11 @@ class _IQTestDelegate(object):
       # (3) Take low noises photo.
       try:
         update_progress(STAGE20_INIT)
+
+        # Switch to SFR Chart.
+        if self.control_chamber:
+          self.chamber.SetChart(LightChamber.Charts.SFR)
+
         self.chamber.EnableCamera()
         self.chamber.ReadSingleFrame(return_gray_image=False)  # test one image
         update_status(True)
@@ -461,12 +527,32 @@ class _IQTestDelegate(object):
         update_progress(STAGE30_IMG)
         self.original_img, gray_img = self.chamber.ReadLowNoisesFrame(
             self.params['cam_img']['n_samples'])
+
+        # Switch to White chart.
+        if self.control_chamber:
+          self.chamber.SetChart(LightChamber.Charts.WHITE)
+
+        # Wait for AE/AWB.
+        time.sleep(self.params['cam_img']['buf_time'])
+
+        _, ls_gray_img = self.chamber.ReadSingleFrame(return_gray_image=True)
         update_status(True)
         self._UpdateOriginalImage()
-      except LightChamberError as e:
+
+        # TODO(wnhuang): overlay the calculation of MTF with len shading image
+        # taking to reduce cycle time.
+      except LightChamberCameraError as e:
         update_status(False)
         self._Log('Error: cannot read image %r' % e)
         return False, FAIL_BAD_CAMERA
+      except LightChamberError as e:
+        update_status(False)
+        self._Log('Error: %r' % e)
+        return False, FAIL_CHAMBER_ERROR
+      except Exception as e:
+        update_status(False)
+        self._Log('Error: %r' % e)
+        return False, FAIL_UNKNOWN
       finally:
         # It's important to close camera device even with intermittent error.
         self.chamber.DisableCamera()
@@ -490,7 +576,7 @@ class _IQTestDelegate(object):
 
       # (5) Lens shading.
       update_progress(STAGE60_LS)
-      success, tar_ls = camperf.CheckLensShading(gray_img,
+      success, tar_ls = camperf.CheckLensShading(ls_gray_img,
                                                  **self.params['cam_ls'])
       update_status(success)
 
@@ -767,6 +853,14 @@ class CameraFixture(unittest.TestCase):
     # main test type
     Arg('test_type', str, 'What to test. '
         'Supported types: Calibration, LensShading, and IQ.'),
+    Arg('control_chamber', bool, 'Whether or not to control the chart in the '
+        'light chamber.', default=False),
+    Arg('chamber_conn_params', dict, 'Chamber connection parameters.',
+        default=None, optional=True),
+    Arg('chamber_cmd', dict, 'A mapping between charts listed in '
+        'LightChamber.Charts and a list of tuple (cmd, response) required to '
+        "activate the chart. 'response' can be None to disable checking.",
+        default=None, optional=True),
 
     # test environment
     Arg('fixture_type', str, 'Type of the light chamber/panel. '
@@ -848,10 +942,22 @@ class CameraFixture(unittest.TestCase):
     assert (self.args.IQ_data_method != 'Simple' or
             self.args.IQ_param_dict is not None)
 
+    fixture_conn = None
+    if self.args.control_chamber:
+      if self.args.mock_mode:
+        script = dict([(k.strip(), v.strip()) for k, v in
+                       reduce(lambda a, b: a + b,
+                              self.args.chamber_cmd.values(), [])])
+        fixture_conn = MockFixtureConnection(script)
+      else:
+        fixture_conn = SerialFixtureConnection(**self.args.chamber_conn_params)
+
     self.chamber = LightChamber(test_chart_version=self.args.test_chart_version,
                                 mock_mode=self.args.mock_mode,
                                 device_index=self.args.device_index,
-                                image_resolution=self.args.capture_resolution)
+                                image_resolution=self.args.capture_resolution,
+                                fixture_conn=fixture_conn,
+                                fixture_cmd=self.args.chamber_cmd)
     self.ui = test_ui.UI()
     self.ui.AddEventHandler(
         'start_test_button_clicked',
@@ -894,6 +1000,9 @@ class CameraFixture(unittest.TestCase):
 
     ref_data = camperf.PrepareTest(self.chamber.GetTestChartFile())
     frame_delay = 1.0 / CALIBRATION_FPS
+
+    if self.args.control_chamber:
+      self.chamber.SetChart(LightChamber.Charts.SFR)
 
     self.chamber.EnableCamera()
     try:
@@ -956,6 +1065,9 @@ class CameraFixture(unittest.TestCase):
     frame_delay = 1.0 / LENS_SHADING_FPS
     end_time = time.time() + self.args.lens_shading_timeout_secs
 
+    if self.args.control_chamber:
+      self.chamber.SetChart(LightChamber.Charts.WHITE)
+
     self.chamber.EnableCamera()
     try:
       while True:
@@ -997,6 +1109,7 @@ class CameraFixture(unittest.TestCase):
     delegate = _IQTestDelegate(
         delegator=self, chamber=self.chamber,
         fixture_type=self.fixture_type,
+        control_chamber=self.args.control_chamber,
         data_method=self.DATA_METHODS[self.args.IQ_data_method],
         local_ip=self.args.IQ_local_ip,
         param_pathname=self.args.IQ_param_pathname,

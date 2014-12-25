@@ -13,6 +13,9 @@ except ImportError:
 import numpy as np
 import os
 
+import factory_common  # pylint: disable=W0611
+from cros.factory.test.utils import Enum
+
 
 # Reference test chart image file.
 _TEST_CHART_FILE = 'test_chart_%s.png'
@@ -26,10 +29,25 @@ class LightChamberError(Exception):
   pass
 
 
+class LightChamberCameraError(Exception):
+  """Light chamber camera exception class."""
+  pass
+
+
 class LightChamber(object):
-  """Light chamber interface."""
+  """Light chamber interface.
+
+  Charts:
+    WHITE: WHITE chart.
+    SFR: a virtual chart target which when selected, automatically switches
+         between CHARTA or CHARTB according to test_chart_version.
+    CHARTA: SFR chart 11x7.
+    CHARTB: SFR chart 9x7.
+  """
+  Charts = Enum(['WHITE', 'SFR', 'CHARTA', 'CHARTB'])
+
   def __init__(self, test_chart_version, mock_mode, device_index,
-               image_resolution):
+               image_resolution, fixture_conn=None, fixture_cmd=None):
     """Initializes LightChamber.
 
     Args:
@@ -37,14 +55,20 @@ class LightChamber(object):
       mock_mode: Run in mock mode.
       device_index: Video device index (-1 to auto pick device by OpenCV).
       image_resolution: A tuple (x-res, y-res) for image resolution.
+      fixture_conn: A FixtureConnection instance for controlling the fixture.
+      fixture_cmd: A mapping between charts listed in LightChamber. Charts and
+                   a list of tuple (cmd, response) required to activate the
+                   chart.
     """
-    assert test_chart_version in ('A', 'B', 'White', 'QR')
+    assert test_chart_version in ('A', 'B', 'White')
     assert mock_mode in (True, False)
 
     self.test_chart_version = test_chart_version
     self.mock_mode = mock_mode
     self.device_index = device_index
     self.image_resolution = image_resolution
+    self.fixture_conn = fixture_conn
+    self.fixture_cmd = fixture_cmd
 
     self._camera_device = None
 
@@ -72,15 +96,15 @@ class LightChamber(object):
 
     device = cv2.VideoCapture(self.device_index)
     if not device.isOpened():
-      raise LightChamberError('Cannot open video interface #%d' %
-                              self.device_index)
+      raise LightChamberCameraError('Cannot open video interface #%d' %
+                                    self.device_index)
     width, height = self.image_resolution
     device.set(cv.CV_CAP_PROP_FRAME_WIDTH, width)
     device.set(cv.CV_CAP_PROP_FRAME_HEIGHT, height)
     if (device.get(cv.CV_CAP_PROP_FRAME_WIDTH) != width or
         device.get(cv.CV_CAP_PROP_FRAME_HEIGHT) != height):
       device.release()
-      raise LightChamberError('Cannot set video resolution')
+      raise LightChamberCameraError('Cannot set video resolution')
 
     self._camera_device = device
 
@@ -109,7 +133,8 @@ class LightChamber(object):
       ret, img = self._camera_device.read()
 
     if not ret or img is None:
-      raise LightChamberError('Error while capturing. Camera disconnected?')
+      raise LightChamberCameraError('Error while capturing. Camera '
+                                    'disconnected?')
 
     return (img,
             cv2.cvtColor(img, cv.CV_BGR2GRAY) if return_gray_image else None)
@@ -135,3 +160,13 @@ class LightChamber(object):
     img = img.round().astype(np.uint8)
     return (img,
             cv2.cvtColor(img, cv.CV_BGR2GRAY) if return_gray_image else None)
+
+  def SetChart(self, chart):
+    if chart == LightChamber.Charts.SFR:
+      chart = (LightChamber.Charts.CHARTA if self.test_chart_version == 'A'
+               else LightChamber.Charts.CHARTB)
+
+    for cmd, response in self.fixture_cmd[chart]:
+      ret = self.fixture_conn.Send(cmd, response is not None)
+      if response and response != ret:
+        raise LightChamberError('SetChart: fixture fault')
