@@ -104,6 +104,8 @@ _DEFAULT_NOISE_TEST_DURATION = 1
 _DEFAULT_SOX_RMS_THRESHOLD = (0.08, None)
 # Default Amplitude thresholds when checking recorded file.
 _DEFAULT_SOX_AMPLITUDE_THRESHOLD = (None, None)
+# Default AudioFun test pairs.
+_DEFAULT_AUDIOFUN_TEST_PAIRS = [(0, 0), (1, 1)]
 
 _UI_HTML = """
 <h1 id="message" style="position:absolute; top:45%">
@@ -120,7 +122,6 @@ _UI_HTML = """
 """
 
 MicSource = Enum(['external', 'panel', 'mlb'])
-
 
 class PlaySineThread(threading.Thread):
   """Wraps the execution of arecord in a thread."""
@@ -162,6 +163,9 @@ class AudioLoopTest(unittest.TestCase):
         'If type is **audiofun**, the dict can optionally contain:\n'
         '  - **duration**: The test duration, in seconds.\n'
         '  - **threshold**: The minimum success rate to pass the test.\n'
+        '  - **test_pairs**: A list of tuple to show speaker and microphone\n'
+        '      channel. [(speaker_channel, microphone_channel)], 0 is left\n'
+        '      and 1 is right.\n'
         '\n'
         'If type is **sinewav**, the dict can optionally contain:\n'
         '  - **duration**: The test duration, in seconds.\n'
@@ -273,68 +277,82 @@ class AudioLoopTest(unittest.TestCase):
     else:
       raise ValueError('device name %s is incorrect' % device)
 
-  def AudioFunTest(self):
+  def AudioFunTestPair(self, speaker_channel, mic_channel):
     """Runs audiofuntest program to get the frequency from microphone
-    immediately.
+    immediately according to speaker and microphone setting.
 
     Sample audiofuntest message:
     O: carrier = 41, delay = 6, success = 60, fail = 0, rate = 100.0
     Stop play tone
     Stop capturing data
+
+    Args:
+      speaker_channel: 0 is left channel, 1 is right channel
+      mic_channel: 0 is left channel, 1 is right channel
     """
+    factory.console.info('Test speaker channel %d and mic channel %d' %
+        (speaker_channel, mic_channel))
+    if self._mic_source == MicSource.panel:
+      self._audio_util.EnableDmic(self._in_card)
+      if mic_channel is 0:
+        self._audio_util.MuteRightDmic(self._in_card)
+      else:
+        self._audio_util.MuteLeftDmic(self._in_card)
+    elif self._mic_source == MicSource.mlb:
+      self._audio_util.EnableMLBDmic(self._in_card)
+      if mic_channel is 0:
+        self._audio_util.MuteRightMLBDmic(self._in_card)
+      else:
+        self._audio_util.MuteLeftMLBDmic(self._in_card)
+
+    test_result = None
+    duration = self._current_test_args.get(
+        'duration', _DEFAULT_AUDIOFUN_TEST_DURATION)
+    process = Spawn([audio_utils.AUDIOFUNTEST_PATH,
+        '-r', '48000', '-i', self._input_device, '-o', self._output_device,
+        '-l', '%d' % duration, '-a', '%d' % speaker_channel],
+        stderr=PIPE)
+    last_success_rate = None
+
+    while True:
+      proc_output = process.stderr.readline()
+      if not proc_output:
+        break
+      m = _AUDIOFUNTEST_SUCCESS_RATE_RE.match(proc_output)
+      if m is not None:
+        last_success_rate = float(m.group(1))
+        self._ui.CallJSFunction('testInProgress', last_success_rate)
+
+      m = _AUDIOFUNTEST_STOP_RE.match(proc_output)
+      if m is not None:
+        threshold = self._current_test_args.get(
+            'threshold', _DEFAULT_AUDIOFUN_TEST_THRESHOLD)
+        test_result = (last_success_rate > threshold)
+        break
+
+    # Show instant message and wait for a while
+    if not test_result:
+      if last_success_rate is not None:
+        self._ui.CallJSFunction('testFailResult', last_success_rate)
+        time.sleep(1)
+        self.AppendErrorMessage(
+            'For speaker channel %s and mic channel %s, The success rate is '
+            '%.1f, too low!' % (speaker_channel, mic_channel, last_success_rate)
+            )
+      else:
+        self.AppendErrorMessage('audiofuntest terminated unexpectedly')
+      time.sleep(0.5)
+
+  def AudioFunTest(self):
+    """Setup speaker and microphone test pairs and run audiofuntest program."""
+
     factory.console.info('Run audiofuntest from %r to %r' % (
         self._output_device, self._input_device))
-    for channel in xrange(audio_utils.DEFAULT_NUM_CHANNELS):
-      factory.console.info('Test channel %d' % channel)
-      if self._mic_source == MicSource.panel:
-        self._audio_util.EnableDmic(self._in_card)
-        if channel is 0:
-          self._audio_util.MuteRightDmic(self._in_card)
-        else:
-          self._audio_util.MuteLeftDmic(self._in_card)
-      elif self._mic_source == MicSource.mlb:
-        self._audio_util.EnableMLBDmic(self._in_card)
-        if channel is 0:
-          self._audio_util.MuteRightMLBDmic(self._in_card)
-        else:
-          self._audio_util.MuteLeftMLBDmic(self._in_card)
 
-      test_result = None
-      duration = self._current_test_args.get(
-          'duration', _DEFAULT_AUDIOFUN_TEST_DURATION)
-      process = Spawn([audio_utils.AUDIOFUNTEST_PATH,
-          '-r', '48000', '-i', self._input_device, '-o', self._output_device,
-          '-l', '%d' % duration, '-a', '%d' % channel],
-          stderr=PIPE)
-      last_success_rate = None
-
-      while True:
-        proc_output = process.stderr.readline()
-        if not proc_output:
-          break
-        m = _AUDIOFUNTEST_SUCCESS_RATE_RE.match(proc_output)
-        if m is not None:
-          last_success_rate = float(m.group(1))
-          self._ui.CallJSFunction('testInProgress', last_success_rate)
-
-        m = _AUDIOFUNTEST_STOP_RE.match(proc_output)
-        if m is not None:
-          threshold = self._current_test_args.get(
-              'threshold', _DEFAULT_AUDIOFUN_TEST_THRESHOLD)
-          test_result = (last_success_rate > threshold)
-          break
-
-      # Show instant message and wait for a while
-      if not test_result:
-        if last_success_rate is not None:
-          self._ui.CallJSFunction('testFailResult', last_success_rate)
-          time.sleep(1)
-          self.AppendErrorMessage(
-              'For channel %s, The success rate is %.1f, too low!' %
-              (channel, last_success_rate))
-        else:
-          self.AppendErrorMessage('audiofuntest terminated unexpectedly')
-      time.sleep(0.5)
+    test_pairs = self._current_test_args.get(
+        'test_pairs', _DEFAULT_AUDIOFUN_TEST_PAIRS)
+    for pair in test_pairs:
+      self.AudioFunTestPair(pair[0], pair[1])
 
   def TestLoopbackChannel(self, output_device, noise_file_name, num_channels):
     """Tests loopback on all channels.
