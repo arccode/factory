@@ -69,6 +69,8 @@ class Scan(unittest.TestCase):
         default=0),
     Arg('ignore_case', bool,
         'True to ignore case from input.', default=False),
+    Arg('value_assigned', str,
+        'If not None, use the value to fill the key.', optional=True)
   ]
 
   def HandleScanValue(self, event):
@@ -217,11 +219,15 @@ class Scan(unittest.TestCase):
          'document.getElementById("scan-value").value)'))
     self.ui.AddEventHandler('scan_value', self.HandleScanValue)
 
-    if self.args.bft_scan_fixture_id:
+    if self.args.value_assigned is not None:
+      self.ui.RunJS(
+          'window.test.sendTestEvent("scan_value", "%s")' %
+          self.args.value_assigned)
+    elif self.args.bft_scan_fixture_id:
       logging.info('Getting fixture ID...')
       fixture_id = self.fixture.GetFixtureId()
       self.ui.RunJS(
-        'window.test.sendTestEvent("scan_value","%d")' % fixture_id)
+        'window.test.sendTestEvent("scan_value", "%d")' % fixture_id)
     elif self.args.bft_scan_barcode:
       logging.info('Triggering barcode scanner...')
       StartDaemonThread(target=self.ScanBarcode)
@@ -229,6 +235,6 @@ class Scan(unittest.TestCase):
       logging.info('Getting barcode from BFT...')
       barcode = self.fixture.ScanBarcode()
       self.ui.RunJS(
-        'window.test.sendTestEvent("scan_value","%s")' % barcode)
+        'window.test.sendTestEvent("scan_value", "%s")' % barcode)
 
     self.ui.Run()
