@@ -161,6 +161,7 @@ class Goofy(GoofyBase):
     self.autotest_prespawner = None
     self.pytest_prespawner = None
     self.ui_process = None
+    self._ui_initialized = False
     self.dummy_shopfloor = None
     self.invocations = {}
     self.tests_to_run = deque()
@@ -816,6 +817,8 @@ class Goofy(GoofyBase):
         self._run_test(test, test.iterations, test.retries)
 
   def _run_test(self, test, iterations_left=None, retries_left=None):
+    if not self._ui_initialized and not test.is_no_host():
+      self.init_ui()
     invoc = TestInvocation(self, test, on_completion=self.run_next_test)
     new_state = test.update_state(
         status=TestState.ACTIVE, increment_count=1, error_msg='',
@@ -1218,6 +1221,29 @@ class Goofy(GoofyBase):
     self.hooks.test_list = self.test_list
     self.hooks.OnCreatedTestList()
 
+  def init_ui(self):
+    """Initialize UI."""
+    self._ui_initialized = True
+    if self.options.ui == 'chrome':
+      # The presenter is responsible for launching Chrome. Let's just
+      # wait here.
+      self.env.controller_ready_for_ui()
+      logging.info('Waiting for a web socket connection')
+      self.web_socket_manager.wait()
+
+      # Wait for the test widget size to be set; this is done in
+      # an asynchronous RPC so there is a small chance that the
+      # web socket might be opened first.
+      for _ in range(100):  # 10 s
+        try:
+          if self.state_instance.get_shared_data('test_widget_size'):
+            break
+        except KeyError:
+          pass  # Retry
+        time.sleep(0.1)  # 100 ms
+      else:
+        logging.warn('Never received test_widget_size from UI')
+
   def init(self, args=None, env=None):
     """Initializes Goofy.
 
@@ -1480,26 +1506,6 @@ class Goofy(GoofyBase):
 
     # Only after this point the Goofy backend is ready for UI connection.
     self.ready_for_ui_connection = True
-
-    if self.options.ui == 'chrome':
-      # The presenter is responsible for launching Chrome. Let's just
-      # wait here.
-      self.env.controller_ready_for_ui()
-      logging.info('Waiting for a web socket connection')
-      self.web_socket_manager.wait()
-
-      # Wait for the test widget size to be set; this is done in
-      # an asynchronous RPC so there is a small chance that the
-      # web socket might be opened first.
-      for _ in range(100):  # 10 s
-        try:
-          if self.state_instance.get_shared_data('test_widget_size'):
-            break
-        except KeyError:
-          pass  # Retry
-        time.sleep(0.1)  # 100 ms
-      else:
-        logging.warn('Never received test_widget_size from UI')
 
     # Create download path for autotest beforehand or autotests run at
     # the same time might fail due to race condition.

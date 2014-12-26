@@ -199,39 +199,11 @@ class GoofyTest(unittest.TestCase):
     self.assertEqual(error_msg, test_state.error_msg)
 
 
-# A simple test list with three tests.
-ABC_TEST_LIST = """
-  OperatorTest(id='a', autotest_name='a_A'),
-  OperatorTest(id='b', autotest_name='b_B'),
-  OperatorTest(id='c', autotest_name='c_C'),
-"""
-
-
-class BasicTest(GoofyTest):
-  """A simple test case that checks that tests are run in the correct order."""
-  test_list = ABC_TEST_LIST
-  def runTest(self):
-    self.check_one_test('a', 'a_A', True, '')
-    self.check_one_test('b', 'b_B', False, 'Uh-oh')
-    self.check_one_test('c', 'c_C', False, 'Uh-oh')
-    self.assertEqual(
-        'id: null\n'
-        'path: null\n'
-        'subtests:\n'
-        '- {count: 1, error_msg: null, id: a, path: a, status: PASSED}\n'
-        '- {count: 1, error_msg: Uh-oh, id: b, path: b, status: FAILED}\n'
-        '- {count: 1, error_msg: Uh-oh, id: c, path: c, status: FAILED}\n',
-        self.goofy.test_list.as_yaml(
-            factory.get_state_instance().get_test_states()))
-
-
-class WebSocketTest(GoofyTest):
-  """A test case that checks the behavior of web sockets."""
-  test_list = ABC_TEST_LIST
+class GoofyUITest(GoofyTest):
   ui = 'chrome'
 
   def __init__(self, *args, **kwargs):
-    super(WebSocketTest, self).__init__(*args, **kwargs)
+    super(GoofyUITest, self).__init__(*args, **kwargs)
     self.events = None
     self.ws_done = None
 
@@ -241,6 +213,10 @@ class WebSocketTest(GoofyTest):
     # Trigger this event once the web socket closes
     self.ws_done = threading.Event()
 
+  def waitForWebSocketClose(self):
+    self.ws_done.wait()
+
+  def setUpWebSocketMock(self):
     class MyClient(WebSocketBaseClient):
       """The web socket client class."""
       # pylint: disable=E0213
@@ -272,14 +248,46 @@ class WebSocketTest(GoofyTest):
       lambda: threading.Thread(target=open_web_socket).start()
       ).AndReturn(None)
 
+
+# A simple test list with three tests.
+ABC_TEST_LIST = """
+  OperatorTest(id='a', autotest_name='a_A'),
+  OperatorTest(id='b', autotest_name='b_B'),
+  OperatorTest(id='c', autotest_name='c_C'),
+"""
+
+
+class BasicTest(GoofyTest):
+  """A simple test case that checks that tests are run in the correct order."""
+  test_list = ABC_TEST_LIST
   def runTest(self):
+    self.check_one_test('a', 'a_A', True, '')
+    self.check_one_test('b', 'b_B', False, 'Uh-oh')
+    self.check_one_test('c', 'c_C', False, 'Uh-oh')
+    self.assertEqual(
+        'id: null\n'
+        'path: null\n'
+        'subtests:\n'
+        '- {count: 1, error_msg: null, id: a, path: a, status: PASSED}\n'
+        '- {count: 1, error_msg: Uh-oh, id: b, path: b, status: FAILED}\n'
+        '- {count: 1, error_msg: Uh-oh, id: c, path: c, status: FAILED}\n',
+        self.goofy.test_list.as_yaml(
+            factory.get_state_instance().get_test_states()))
+
+
+class WebSocketTest(GoofyUITest):
+  """A test case that checks the behavior of web sockets."""
+  test_list = ABC_TEST_LIST
+
+  def runTest(self):
+    self.setUpWebSocketMock()
     self.check_one_test('a', 'a_A', True, '')
     self.check_one_test('b', 'b_B', False, 'Uh-oh')
     self.check_one_test('c', 'c_C', False, 'Uh-oh')
 
     # Kill Goofy and wait for the web socket to close gracefully
     self.goofy.destroy()
-    self.ws_done.wait()
+    self.waitForWebSocketClose()
 
     events_by_type = {}
     for event in self.events:
@@ -924,6 +932,34 @@ class WaivedTestTest(GoofyTest):
         [TestState.FAILED_AND_WAIVED, TestState.PASSED],
         [state_instance.get_test_state(x).status for x in ['waived', 'normal']])
     self._wait()
+
+class NoHostTest(GoofyUITest):
+  """A test to verify that tests marked 'no_host' run without host UI."""
+
+  test_list = """
+    OperatorTest(id='a', pytest_name='execpython', no_host=True,
+           dargs={'script': 'assert "Tomato" == "Tomato"'}),
+    OperatorTest(id='b', pytest_name='execpython', no_host=False,
+           dargs={'script': 'assert "Tomato" == "Tomato"'})
+  """
+
+  def runTest(self):
+    # No UI for test 'a'
+    self.mocker.ReplayAll()
+    self.goofy.run_once()
+    self._wait()
+    self.assertEquals(
+      TestState.PASSED,
+      factory.get_state_instance().get_test_state('a').status)
+
+    # Start the UI for test 'b'
+    self.setUpWebSocketMock()
+    self.mocker.ReplayAll()
+    self.goofy.run_once()
+    self._wait()
+    self.assertEquals(
+      TestState.PASSED,
+      factory.get_state_instance().get_test_state('b').status)
 
 
 if __name__ == "__main__":

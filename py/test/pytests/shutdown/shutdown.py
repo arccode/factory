@@ -10,6 +10,7 @@ import logging
 import os
 import time
 import unittest
+from jsonrpclib import ProtocolError
 
 import factory_common  # pylint: disable=W0611
 from cros.factory import event_log
@@ -137,10 +138,15 @@ class ShutdownTest(unittest.TestCase):
       event_log.Log('reboot_cancelled')
       raise ShutdownError('Shutdown aborted by operator')
 
-    self.goofy.UIPresenterCountdown(
-        'Reboot test in progress...',
-        self.args.max_reboot_time_secs,
-        'Reboot test failed.')
+    try:
+      self.goofy.UIPresenterCountdown(
+          'Reboot test in progress...',
+          self.args.max_reboot_time_secs,
+          'Reboot test failed.')
+    except ProtocolError:
+      # The presenter may be absent (e.g. during run-in). Ignore error
+      # in this case.
+      pass
     self.goofy.Shutdown(self.args.operation)
 
     time.sleep(self.args.wait_shutdown_secs)
