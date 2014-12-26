@@ -258,7 +258,8 @@ class WhaleBFTFixture(bft.BFTFixture):
 
   def TriggerScanner(self):
     try:
-      self._servo.Click(self._WHALE_CONTROL.FIXTURE_NC)
+      self._servo.Click(self._WHALE_CONTROL.FIXTURE_NC,
+                        duration_secs=0.3)
     except servo_client.ServoClientError as e:
       logging.exception('Failed to trigger scanner %s', e)
       raise bft.BFTFixtureException(

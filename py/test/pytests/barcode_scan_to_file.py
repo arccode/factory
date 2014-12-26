@@ -39,7 +39,7 @@ class BarcodeScanToFileTest(unittest.TestCase):
         'The file path of saving barcode'),
     Arg('bft_params', dict,
         'Parameters to initialize WhaleBFTFixture. It is a dict which contains '
-        'at least "host" and "port" that points to BeagleBone servod.'
+        'at least "host" and "port" that points to BeagleBone servod.',
         optional=True),
   ]
 
@@ -126,7 +126,7 @@ class BarcodeScanToFileTest(unittest.TestCase):
 
     if self._bft:
       self.ui.Run(blocking=False)
-      while True:
+      while not os.path.exists(self.args.save_path):
         self._bft.TriggerScanner()
         time.sleep(_CHECK_BARCODE_SECS)
     else:

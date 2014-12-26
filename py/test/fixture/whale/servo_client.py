@@ -31,6 +31,7 @@ Usage example::
 
 from __future__ import print_function
 import re
+import time
 import xmlrpclib
 
 import factory_common  # pylint: disable=W0611
@@ -316,13 +317,19 @@ class ServoClient(object):
     """
     self.Set(name, 'off')
 
-  def Click(self, name):
+  def Click(self, name, duration_secs=0):
     """Sets the control's value to 'on' then 'off'.
 
     Args:
       name: String, name of control to set.
+      duration_secs: If non-zero, stay 'on' for #seconds then 'off'.
     """
-    self.MultipleSet([(name, 'on'), (name, 'off')])
+    if not duration_secs:
+      self.MultipleSet([(name, 'on'), (name, 'off')])
+    else:
+      self.Enable(name)
+      time.sleep(duration_secs)
+      self.Disable(name)
 
   def __getattr__(self, name):
     """Delegates getter of all unknown attributes to remote servod.
