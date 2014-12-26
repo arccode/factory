@@ -8,6 +8,7 @@ from __future__ import print_function
 import copy
 import logging
 import serial
+import time
 import xmlrpclib
 
 import factory_common  # pylint: disable=W0611
@@ -21,16 +22,19 @@ class SerialServerError(Exception):
 class SerialServer(object):
   """A server proxy for handling multiple serial connection interfaces."""
 
-  def __init__(self, params_list, verbose=False):
+  def __init__(self, params_list, init_wait_time=1, verbose=False):
     """Serial server constructor.
 
     Args:
       params_list: A list of serial connection parameters.
+      init_wait_time: Wait time for serial establishment in seconds.
       verbose: True to enable verbose logging (for serial transmission).
     """
     self._logger = logging.getLogger('SerialServer')
     # Makes connection for all on params_list and stores in a list.
     self._verbose = verbose
+    self._init_wait_time = init_wait_time
+    self._params_list = params_list
     self._serials = [self._InitSerial(**p) for p in params_list]
 
   def Send(self, serial_index, command):
@@ -84,6 +88,20 @@ class SerialServer(object):
     except serial.SerialTimeoutException as e:
       raise SerialServerError('Serial index %d receive fail: %s' %
                               (serial_index, e))
+
+  def InitConnection(self, serial_index):
+    logging.debug('Init connection for serial index %d', serial_index)
+    params = None
+    try:
+      params = self._params_list[serial_index]
+    except IndexError:
+      raise SerialServerError('index %d out of range' % serial_index)
+
+    # Disconnect old serial first
+    if self._serials[serial_index]:
+      self._serials[serial_index].Disconnect()
+    self._serials[serial_index] = self._InitSerial(**params)
+    time.sleep(self._init_wait_time)  # Wait for serial connection stable
 
   def _InitSerial(self, **params):
     """Makes serial connection.
