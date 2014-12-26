@@ -16,14 +16,26 @@
 
   'cam_sn': {
     # Regular expression format for serial number.
-    'sn_format': r'^[a-zA-Z0-9]{4}$',
+    'format': r'^[a-zA-Z0-9]{4}$',
 
     # Whether to auto read serial number from sysfs.
-    'sn_auto_read': False,
+    'auto_read': False,
 
-    # Pathname of serial number in sysfs.
-    'sn_sysfs_path': ''
+    # source: could be either 'sysfs' or 'i2c'
+    'source': 'i2c',
+
+    # if source is sysfs
+    'sysfs_path': '',
+
+    # if source is i2c, you must specify these parameters
+    'i2c_param': {
+      'dev_node': '/dev/video0',
+      'bus': 1,
+      'chip_addr': 0x37,
+      'data_addr': 0x3508,
+      'length': 12
     },
+  },
 
   'cam_fw': {
     # Whether to check firmware version.
@@ -45,7 +57,7 @@
     },
 
   # Expected time duration of each test stage (used for progress bar).
-  'chk_point': [
+  'chk_point_IQ': [
     ('cam_start', 0.1),
     ('cam_sn', 0.1),
     ('cam_fw', 0.1),
@@ -56,6 +68,19 @@
     ('cam_ls', 0.05),
     ('cam_mtf', 0.75),
     ('cam_end', 1.0),
+    ('cam_data_saved', 0)
+    ],
+
+  # Expected time duration of each test stage (used for progress bar).
+  'chk_point_ALS': [
+    ('cam_start', 0.1),
+    ('cam_sn', 0.1),
+    ('cam_init', 0.1),
+    ('cam_als_light1', 2.00),
+    ('cam_als_light2', 2.00),
+    ('cam_als_light3', 2.00),
+    ('cam_als_vpd', 0.5),
+    ('cam_end', 0.5),
     ('cam_data_saved', 0)
     ],
 
@@ -117,5 +142,31 @@
 
     # Number of threads running concurrently (depends on CPU core count).
     'n_thread': 4
-    }
+    },
+
+  # ALS sensor parameters
+  'cam_als': {
+    'calibscale': 100,
+
+    # Light seq command
+    # sequence of light name defined in chamber_cmd of ALS test argument
+    'light_seq': ['LUX1', 'LUX2', 'LUX3', 'OFF'],
+
+    # Perform calibration at this lux
+    'calib_lux': 500,
+    'calib_target': 125,
+    'n_samples': 1,
+
+    # Delay betwen each sample
+    'read_delay': 2.0,
+
+    # Time for wait light switch
+    'light_delay': 3.0,
+
+    # List of light intensity to test
+    'luxs': [500, 1000, 30],
+
+    # Command for saving calibration result into VPD
+    'save_vpd': 'vpd -s "als_cal_data"="%d"',
+  }
 }

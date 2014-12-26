@@ -38,11 +38,11 @@ Hot keys:
 - Press Enter or Space keys to start the IQ test
 - Press ESC to leave the test.
 
-[IQ Test Only]
+[IQ/ALS Test Only]
 
-Data methods for IQ test:
+Data methods:
 
-- Simple: read parameters from 'IQ_param_dict' argument, but skips saving
+- Simple: read parameters from 'param_dict' argument, but skips saving
   test results.
 - USB: read parameter file from USB drive, and saves test results in USB drive
   in subfolders ordered by date.
@@ -50,13 +50,20 @@ Data methods for IQ test:
   shopfloor aux_logs. This is recommended over USB when there is
   Shopfloor environment because USB drive is not reliable.
 
-Test parameters for IQ test:
+Test parameters:
 
 - Please check camera_fixture_static/camera.params.sample
 
 Analysis of saved test data from IQ test:
 
 - Use py/test/fixture/camera/analysis/analyze_camera_fixture_data.py
+
+Control Chamber:
+
+- If control_chamber is True, chamber_conn_params must also be set.
+- If chamber_conn_params is set to the string 'default', the default parameter
+  CHAMBER_CONN_PARAMS_DEFAULT is used. Otherwise chamber_conn_params should be
+  specified as a dict.
 
 Usage examples::
 
@@ -100,9 +107,9 @@ Usage examples::
              'fixture_type': 'FullChamber',
              'test_chart_version': 'A',
              'capture_resolution': (1280, 720),
-             'IQ_data_method': 'Shopfloor',
-             'IQ_param_pathname': 'camera/camera.params.FATP',
-             'IQ_local_ip': None})
+             'data_method': 'Shopfloor',
+             'param_pathname': 'camera/camera.params.FATP',
+             'local_ip': None})
 
     # IQ (Image Quality) test with USB drive.
     OperatorTest(
@@ -113,26 +120,12 @@ Usage examples::
              'fixture_type': 'ModuleChamber',
              'test_chart_version': 'A',
              'capture_resolution': (1280, 720),
-             'IQ_data_method': 'USB',
-             'IQ_param_pathname': 'camera.params'}),
+             'data_method': 'USB',
+             'param_pathname': 'camera.params'}),
 
   # With light chamber and controls the light chamber charts
 
     # IQ (Image Quality) test with shopfloor.
-    chamber_conn_params = {
-      'driver': 'pl2303',
-      'serial_delay': 0,
-      'serial_params': {
-        'baudrate': 9600,
-        'bytesize': 8,
-        'parity': 'N',
-        'stopbits': 1,
-        'xonxoff': False,
-        'rtscts': False,
-        'timeout': None
-      },
-    }
-
     OperatorTest(
       id='ImageQuality',
       pytest_name='camera_fixture',
@@ -140,16 +133,16 @@ Usage examples::
              'test_type': 'IQ',
              'fixture_type': 'FullChamber',
              'control_chamber': True,
-             'chamber_conn_params': chamber_conn_params,
+             'chamber_conn_params': 'default',
              'chamber_cmd': {
                'WHITE': [('white\\n', 'White_Ready')],
                'CHARTA': [('chart1\\n', 'Chart1_Ready')]
              },
              'test_chart_version': 'A',
              'capture_resolution': (1280, 720),
-             'IQ_data_method': 'Shopfloor',
-             'IQ_param_pathname': 'camera/camera.params.FATP',
-             'IQ_local_ip': None})
+             'data_method': 'Shopfloor',
+             'param_pathname': 'camera/camera.params.FATP',
+             'local_ip': None})
 
     # With mock_mode=True
     OperatorTest(
@@ -159,16 +152,38 @@ Usage examples::
              'test_type': 'IQ',
              'fixture_type': 'FullChamber',
              'control_chamber': True,
-             'chamber_conn_params': chamber_conn_params,
+             'chamber_conn_params': 'default',
              'chamber_cmd': {
                'WHITE': [('white\\n', 'White_Ready')],
                'CHARTA': [('chart1\\n', 'Chart1_Ready')]
              },
              'test_chart_version': 'A',
              'capture_resolution': (1280, 720),
-             'IQ_data_method': 'Shopfloor',
-             'IQ_param_pathname': 'camera/camera.params.FATP',
-             'IQ_local_ip': None})
+             'data_method': 'Shopfloor',
+             'param_pathname': 'camera/camera.params.FATP',
+             'local_ip': None})
+
+    # ALS (Ambient Light Sensor) test
+    OperatorTest(
+      id='ALSCalibration',
+      pytest_name='camera_fixture',
+      dargs={
+        'mock_mode': False,
+        'test_type': 'ALS',
+        'fixture_type': 'ALSChamber',
+        'control_chamber': True,
+        'chamber_conn_params': 'default',
+        'chamber_cmd': {
+          'LUX1': [('LUX1_ON\\n', 'LUX1_READY')],
+          'LUX2': [('LUX2_ON\\n', 'LUX2_READY')],
+          'LUX3': [('LUX3_ON\\n', 'LUX3_READY')],
+          'OFF': [('OFF\\n', 'OFF_READY')]
+        },
+        'data_method': 'Shopfloor',
+        'param_pathname': 'camera/camera.params.FATP',
+        'ALS_val_path': '/sys/bus/iio/devices/iio:device0/illuminance0_input',
+        'ALS_scale_path': '/sys/bus/iio/devices/iio:device0/'
+                          'illuminance0_calibscale'})
 
 """
 
@@ -186,11 +201,13 @@ import Queue
 import re
 import threading
 import time
+import traceback
 import unittest
 import xmlrpclib
 
 import factory_common  # pylint: disable=W0611
 from cros.factory import event_log
+from cros.factory.system.i2cbus import I2CBus
 from cros.factory.test import factory
 from cros.factory.test import leds
 from cros.factory.test import network
@@ -199,13 +216,16 @@ from cros.factory.test import test_ui
 from cros.factory.test.args import Arg
 from cros.factory.test.camera_utils import EncodeCVImage
 from cros.factory.test.fixture.fixture_connection import (
-    SerialFixtureConnection, MockFixtureConnection)
+    SerialFixtureConnection, MockFixtureConnection, FixtureConnectionError)
+from cros.factory.test.fixture.camera.als_light_chamber import (
+    ALSLightChamber)
 from cros.factory.test.fixture.camera.light_chamber import (
     LightChamber, LightChamberError, LightChamberCameraError)
 import cros.factory.test.fixture.camera.perf_tester as camperf
 import cros.factory.test.fixture.camera.renderer as renderer
 from cros.factory.test.media_util import MediaMonitor, MountedMedia
 from cros.factory.test.utils import Enum
+from cros.factory.utils.process_utils import Spawn
 
 
 # Delay between each frame during calibration.
@@ -229,9 +249,13 @@ STAGE30_IMG = 'cam_img'  # capture low-noises image
 STAGE50_VC = 'cam_vc'  # visual correctness, image shift/tilt
 STAGE60_LS = 'cam_ls'  # lens shading
 STAGE70_MTF = 'cam_mtf'  # MTF / sharpness
-# TODO: STAGE80_ALS
 STAGE90_END = 'cam_end'  # end test
 STAGE100_SAVED = 'cam_data_saved'  # test data saved
+
+STAGE30_ALS_LIGHT1 = 'cam_als_light1'
+STAGE40_ALS_LIGHT2 = 'cam_als_light2'
+STAGE50_ALS_LIGHT3 = 'cam_als_light3'
+STAGE60_VPD = 'cam_als_vpd'
 
 
 # CSS style classes defined in the corresponding HTML file.
@@ -266,8 +290,12 @@ MSG_TEST_STATUS = {
   STAGE20_INIT: ('Initializing camera', u'初始化摄像头'),
   STAGE25_AWB: ('Adjusting white balance', u'白平衡调试'),
   STAGE30_IMG: ('Reading test image', u'读取测试影像'),
+  STAGE30_ALS_LIGHT1: ('Reading Light1 ALS value', u'读取灯光1 ALS数值'),
+  STAGE40_ALS_LIGHT2: ('Reading Light2 ALS value', u'读取灯光2 ALS数值'),
+  STAGE50_ALS_LIGHT3: ('Reading Light3 ALS value', u'读取灯光3 ALS数值'),
   STAGE50_VC: ('Locating test pattern', u'定位测试图样'),
   STAGE60_LS: ('Checking vignetting level', u'检测影像暗角'),
+  STAGE60_VPD: ('Writing the ALS calibration data to vpd', u'写入ALS校正结果'),
   STAGE70_MTF: ('Checking image sharpness', u'检测影像清晰度'),
   STAGE90_END: ('All tests are complete', u'测试已全部完成'),
   STAGE100_SAVED: ('Test data saved', u'记录档已写入'),
@@ -279,8 +307,8 @@ LED_PATTERN = ((leds.LED_NUM|leds.LED_CAP, 0.05), (0, 0.05))
 
 
 # Data structures.
-TestType = Enum(['CALI', 'LS', 'IQ'])
-Fixture = Enum(['FULL', 'AB', 'MODULE', 'PANEL'])
+TestType = Enum(['CALI', 'LS', 'IQ', 'ALS'])
+Fixture = Enum(['FULL', 'AB', 'MODULE', 'PANEL', 'ALS'])
 DataMethod = Enum(['SIMPLE', 'USB', 'SF'])
 EventType = Enum(['START_TEST', 'EXIT_TEST'])
 TestStatus = Enum(['PASSED', 'FAILED', 'UNTESTED', 'NA'])
@@ -299,12 +327,19 @@ FAIL_IMAGE_TILT = 'Tilt'  # Image tilt is too large.
 FAIL_LENS_SHADING = 'LensShading'  # Lens shading is over-limits.
 FAIL_MTF = 'MTF'  # Image sharpness is too low.
 FAIL_USB = 'USB'  # Fail to save to USB.
-FAIL_UNKNOWN  = 'UnknownError'  # Unknown error.
+FAIL_ALS_NOT_FOUND = 'AlsNotFound'  # ALS not found.
+FAIL_ALS_INIT = 'AlsInit'  # ALS initialization error.
+FAIL_ALS_ORDER = 'AlsOrder'  # ALS order error.
+FAIL_ALS_CALIB = 'AlsCalibration'  # ALS calibration error.
+FAIL_ALS_VPD = 'AlsVPD'  # ALS write VPD error
+FAIL_UNKNOWN = 'UnknownError'  # Unknown error.
 
 
 # Event log keys.
 EVENT_IQ_STATUS = 'camera_IQ_status'
 EVENT_IQ_DATA = 'camera_IQ_data'
+EVENT_ALS_STATUS = 'camera_ALS_status'
+EVENT_ALS_DATA = 'camera_ALS_data'
 EVENT_LENS_SHADING = 'camera_lens_shading'
 
 
@@ -325,16 +360,33 @@ LOG_FORMAT_MTF_MEDIAN = 'Median MTF value: %f'
 LOG_FORMAT_MTF_LOWEST = 'Lowest MTF value: %f'
 LOG_FORMAT_MTF_MSG = 'MTF Sharpness: %s'
 
+LOG_FORMAT_ALS = 'ALS cal data: %d'
+
 
 # Serial numbers.
 SN_NA = 'NO_SN'
 SN_INVALID = 'INVALID_SN'
 
+# Chamber connection parameters
+CHAMBER_CONN_PARAMS_DEFAULT = {
+  'driver': 'pl2303',
+  'serial_delay': 0,
+  'serial_params': {
+    'baudrate': 9600,
+    'bytesize': 8,
+    'parity': 'N',
+    'stopbits': 1,
+    'xonxoff': False,
+    'rtscts': False,
+    'timeout': None
+  }
+}
 
-class _IQTestDelegate(object):
-  """Delegate class for IQ (image quality) test.
 
-  We use four types of logging in IQ test:
+class _TestDelegate(object):
+  """Delegate class for IQ (image quality) and ALS (Ambient Light Sensor) test.
+
+  We use four types of logging:
 
     1. factory console (factory.console.info())
     2. factory.log (self._Log())
@@ -345,24 +397,26 @@ class _IQTestDelegate(object):
   It has three public methods:
     - __init__()
     - LoadParamsAndShowTestScreen()
-    - IQTest()
+    - RunTest()
 
   Usage Example:
 
-    delegate = _IQTestDelegate(...)
+    delegate = _TestDelegate(...)
     delegate.LoadParamsAndShowTestScreen()
     while ...: # loop test iterations
-      delegate.IQTest()
+      delegate.RunTest()
 
   """
 
-  def __init__(self, delegator, chamber, fixture_type, control_chamber,
-               data_method, local_ip, param_pathname, param_dict,
-               save_good_image, save_bad_image):
-    """Initalizes _IQTestDelegate.
+  def __init__(self, delegator, mock_mode, test_type, chamber, fixture_type,
+               control_chamber, data_method, local_ip, param_pathname,
+               param_dict, save_good_image, save_bad_image):
+    """Initalizes _TestDelegate.
 
     Args:
       delegator: Instance of CameraFixture.
+      mock_mode: Whether or not we are in mock mode.
+      test_type: Type of test, either IQ or ALS.
       chamber: Instance of LightChamber.
       fixture_type: Fixture enum.
       control_chamber: Whether or not to control the chart in the light chamber.
@@ -373,7 +427,11 @@ class _IQTestDelegate(object):
       save_good_image: ditto.
       save_bad_image: ditto.
     """
+    assert test_type in [TestType.IQ, TestType.ALS]
+
     self.delegator = delegator
+    self.mock_mode = mock_mode
+    self.test_type = test_type
     self.chamber = chamber
     self.fixture_type = fixture_type
     self.control_chamber = control_chamber
@@ -390,7 +448,6 @@ class _IQTestDelegate(object):
       self.params = param_dict
     else:
       self.params = None  # to be dynamically loaded later
-    self.ref_data = camperf.PrepareTest(chamber.GetTestChartFile())
     self.timing = {}  # test stage => completion ratio (0~1)
 
     self.usb_ready_event = None  # Internal flag is true if USB drive is ready.
@@ -402,6 +459,9 @@ class _IQTestDelegate(object):
     self.module_sn = SN_NA
     self.original_img = None
     self.analyzed_img = None
+
+    # ALS test state
+    self.light_index = 0
 
   def LoadParamsAndShowTestScreen(self):
     """Loads parameters and then shows main test screen."""
@@ -415,8 +475,8 @@ class _IQTestDelegate(object):
     self._CalculateTiming()
 
     self.delegator.ui.CallJSFunction('ShowMainTestScreen',
-                                     not self.params['cam_sn']['sn_auto_read'],
-                                     self.params['cam_sn']['sn_format'],
+                                     not self.params['cam_sn']['auto_read'],
+                                     self.params['cam_sn']['format'],
                                      self.params['ui']['ignore_enter_key'])
 
   def _LoadParamsFromUSB(self):
@@ -429,8 +489,8 @@ class _IQTestDelegate(object):
       with MountedMedia(self.usb_dev_path, 1) as mount_point:
         pathname = os.path.join(mount_point, self.param_pathname)
         try:
-          with open(pathname , 'r') as f:
-            return eval(f.read())
+          with open(pathname, 'r') as f:
+            return eval(f.read())  # pylint: disable=W0123
         except IOError as e:
           self._Log('Error: fail to read %r: %r' % (pathname, e))
       time.sleep(0.5)
@@ -441,11 +501,12 @@ class _IQTestDelegate(object):
 
     factory.console.info('Reading %s from shopfloor', self.param_pathname)
     shopfloor_client = shopfloor.GetShopfloorConnection()
+    # pylint: disable=W0123
     return eval(shopfloor_client.GetParameter(self.param_pathname).data)
 
   def _CalculateTiming(self):
     """Calculates the timing of each test stage to self.timing."""
-    chk_point = self.params['chk_point']
+    chk_point = self.params['chk_point_%s' % self.test_type]
     cumsum = np.cumsum([d for _, d in chk_point])
     total_time = cumsum[-1]
     for i in xrange(len(chk_point)):
@@ -454,12 +515,21 @@ class _IQTestDelegate(object):
       else:
         self.timing[chk_point[i][0]] = 0
 
-  def IQTest(self, input_sn):
+  def RunTest(self, input_sn):
+    if self.test_type == TestType.IQ:
+      return self._IQTest(input_sn)
+    elif self.test_type == TestType.ALS:
+      return self._ALSTest(input_sn)
+    else:
+      raise RuntimeError("invalid test type '%s'" % self.test_type)
+
+  def _IQTest(self, input_sn):
     """Runs IQ (Image Quality) test.
 
     Args:
       input_sn: Serial number input on screen.
     """
+    ref_data = camperf.PrepareTest(self.chamber.GetTestChartFile())
     self._ResetForNewTest()
 
     # test stage => status
@@ -551,7 +621,7 @@ class _IQTestDelegate(object):
         return False, FAIL_CHAMBER_ERROR
       except Exception as e:
         update_status(False)
-        self._Log('Error: %r' % e)
+        self._Log('Unknown Error: ' + traceback.format_exc())
         return False, FAIL_UNKNOWN
       finally:
         # It's important to close camera device even with intermittent error.
@@ -559,7 +629,7 @@ class _IQTestDelegate(object):
 
       # (4) Visual correctness, image shift and tilt.
       update_progress(STAGE50_VC)
-      success, tar_vc = camperf.CheckVisualCorrectness(gray_img, self.ref_data,
+      success, tar_vc = camperf.CheckVisualCorrectness(gray_img, ref_data,
                                                        **self.params['cam_vc'])
       update_status(success)
 
@@ -611,6 +681,143 @@ class _IQTestDelegate(object):
 
     return True, None
 
+  def _ALSTest(self, input_sn):
+    self._ResetForNewTest()
+
+    test_status = OrderedDict([
+      (STAGE00_START, TestStatus.NA),
+      (STAGE10_SN, TestStatus.UNTESTED),
+      (STAGE20_INIT, TestStatus.UNTESTED),
+      (STAGE30_ALS_LIGHT1, TestStatus.UNTESTED),
+      (STAGE40_ALS_LIGHT2, TestStatus.UNTESTED),
+      (STAGE50_ALS_LIGHT3, TestStatus.UNTESTED),
+      (STAGE60_VPD, TestStatus.UNTESTED),
+      (STAGE90_END, TestStatus.UNTESTED),
+      (STAGE100_SAVED, TestStatus.NA),
+    ])
+
+    calib_result = None
+    non_locals = {}  # hack to immitate nonlocal keyword in Python 3.x
+
+    def update_progress(test_stage):
+      non_locals['current_stage'] = test_stage
+      self._UpdateTestProgress(test_stage)
+
+    def update_status(success):
+      if success:
+        test_status[non_locals['current_stage']] = TestStatus.PASSED
+      else:
+        test_status[non_locals['current_stage']] = TestStatus.FAILED
+
+    update_progress(STAGE00_START)
+
+    # (1) Check / read module serial number.
+    update_progress(STAGE10_SN)
+    success = self._CheckSN(input_sn)
+    update_status(success)
+    if not success:
+      return False, FAIL_SN
+
+    conf = self.params['cam_als']
+
+    # (2) Initializing ALS
+    update_progress(STAGE20_INIT)
+    success = self.chamber.EnableALS()
+    if not success:
+      return False, FAIL_ALS_NOT_FOUND
+
+    success = self.chamber.SetScaleFactor(conf['calibscale'])
+    update_status(success)
+    if not success:
+      return False, FAIL_ALS_INIT
+
+    LIGHT_STAGES = [STAGE30_ALS_LIGHT1, STAGE40_ALS_LIGHT2, STAGE50_ALS_LIGHT3]
+
+    try:
+      vals = []
+      # (3) (4) (5) Measure and calibrate for different LUX value
+      while True:
+        update_progress(LIGHT_STAGES[self.light_index])
+        scale = self.chamber.GetScaleFactor()
+        val = self.chamber.ReadMean(conf['read_delay'], conf['n_samples'])
+        vals.append(val)
+        self._Log('Lighting preset lux value: %d' %
+                  conf['luxs'][self.light_index])
+        self._Log('ALS value: %d' % val)
+        self._Log('ALS calibration scale: %d' % scale)
+
+        # Check if it is a false read.
+        if not val:
+          update_status(False)
+          self._Log('The ALS value is stuck at zero.')
+          return False, FAIL_ALS_CALIB
+
+        # Compute calibration data if it is the calibration target.
+        if conf['luxs'][self.light_index] == conf['calib_lux']:
+          calib_result = int(round(float(conf['calib_target']) / val * scale))
+          if not calib_result:
+            update_status(False)
+            self._Log('Invalid ALS calibration data: %s' % calib_result)
+            return False, FAIL_ALS_CALIB
+          else:
+            self._Log('ALS calibration data will be %d' % calib_result)
+
+        update_status(True)
+
+        # Go to the next lighting preset.
+        if not self._SwitchToNextLight():
+          break
+
+      # Check value ordering
+      # Skipping value ordering check when in mock mode since we don't have
+      # real ALS device
+      if not self.mock_mode:
+        for i, li in enumerate(conf['luxs']):
+          for j in range(i):
+            if ((li > conf['luxs'][j] and vals[j] >= vals[i]) or
+              (li < conf['luxs'][j] and vals[j] <= vals[i])):
+              self._Log('The ordering of ALS values is wrong.')
+              return False, FAIL_ALS_ORDER
+
+      # (6) Save ALS values to vpd for FATP test.
+      update_progress(STAGE60_VPD)
+      if (not self.mock_mode and
+          Spawn(conf['save_vpd'] % calib_result, shell=True)):
+        update_status(False)
+        self._Log('Writing VPD data failed!')
+        return False, FAIL_ALS_VPD
+      update_status(True)
+
+      # (7) Final test result.
+      update_progress(STAGE90_END)
+      update_status(True)
+    except FixtureConnectionError:
+      update_status(False)
+      self._Log('The test fixture was disconnected!')
+      return False, FAIL_CHAMBER_ERROR
+    except Exception:
+      update_status(False)
+      self._Log('Failed to read values from ALS or unknown error.' +
+                traceback.format_exc())
+      return False, FAIL_UNKNOWN
+    finally:
+      # (8) Logs to event log, and save to USB and shopfloor.
+      self._CollectALSLogs(test_status, calib_result)
+      self._SaveTestData(test_status[STAGE90_END] == TestStatus.PASSED)
+      update_progress(STAGE100_SAVED)
+
+      # JavaScript needs to cleanup after the test is completed.
+      self.delegator.ui.CallJSFunction('OnTestCompleted')
+
+    return True, None
+
+  def _SwitchToNextLight(self):
+    self.light_index += 1
+    self.chamber.SetLight(self.params['cam_als']['light_seq'][self.light_index])
+    time.sleep(self.params['cam_als']['light_delay'])
+
+    return self.light_index < len(self.params['cam_als']['luxs'])
+
   def _ResetForNewTest(self):
     """Reset per-test context for new test."""
     self.logs = []
@@ -620,6 +827,7 @@ class _IQTestDelegate(object):
     self._UpdateOriginalImage()
     self.analyzed_img = None
     self._UpdateAnalyzedImage()
+    self.light_index = 0
 
   def _UpdateOriginalImage(self):
     """Shows or hide original image on screen."""
@@ -701,7 +909,7 @@ class _IQTestDelegate(object):
                                  datetime.date.today().strftime('%Y%m%d'))
       if os.path.exists(folder_path):
         if not os.path.isdir(folder_path):
-          factory.console.info('Error: fail to create folder %r' % folder_path)
+          factory.console.info('Error: fail to create folder %r', folder_path)
           return False
       else:
         os.mkdir(folder_path)
@@ -738,20 +946,61 @@ class _IQTestDelegate(object):
     Args:
       input_sn: Serial number input on UI.
     """
-    if self.params['cam_sn']['sn_auto_read']:
-      success, input_sn = self._ReadSysfs(
-          self.params['cam_sn']['sn_sysfs_path'])
+    if self.params['cam_sn']['auto_read']:
+      success, input_sn = self._GetModuleSN()
     else:
       success = True
 
     if success:
       self.module_sn = input_sn
       self._Log('Serial number: %s' % self.module_sn)
-      if not re.match(self.params['cam_sn']['sn_format'], self.module_sn):
+      if not re.match(self.params['cam_sn']['format'], self.module_sn):
         success = False
         self._Log('Error: invalid serial number.')
 
     return success
+
+  def _GetModuleSN(self):
+    """Read module serial number.
+
+    The module serial number can be read from sysfs for USB camera or from
+    i2c for MIPI camera.
+    """
+
+    if self.params['cam_sn']['source'] == 'sysfs':
+      return self._GetModuleSNSysfs()
+    elif self.params['cam_sn']['source'] == 'i2c':
+      return self._GetModuleSNI2C()
+    else:
+      raise RuntimeError('Invalid camera SN source.')
+
+  def _GetModuleSNSysfs(self):
+    success, input_sn = self._ReadSysfs(self.params['cam_sn']['sysfs_path'])
+
+    if success:
+      self._Log('Serial number: %s' % input_sn)
+      if not re.match(self.params['cam_sn']['format'], input_sn):
+        self._Log('Error: invalid serial number.')
+        return False, None
+    else:
+      return False, None
+
+    return True, input_sn
+
+  def _GetModuleSNI2C(self):
+    i2c_param = self.params['cam_sn']['i2c_param']
+    data_addr = i2c_param['data_addr']
+
+    try:
+      # Power on camera so we can read from I2C
+      fd = os.open(i2c_param['dev_node'], os.O_RDWR)
+
+      bus = I2CBus('/dev/i2c-%d' % i2c_param['bus'])
+      ret = bus.wr_rd(i2c_param['chip_addr'],
+                      [data_addr >> 8, data_addr & 0xff], i2c_param['length'])
+      return True, ''.join([chr(x) for x in reversed(ret)])
+    finally:
+      os.close(fd)
 
   def _CheckCameraFirmware(self):
     if self.params['cam_fw']['fw_check']:
@@ -831,6 +1080,24 @@ class _IQTestDelegate(object):
 
     event_log.Log(EVENT_IQ_DATA, **IQ_data)
 
+  def _CollectALSLogs(self, test_status, calib_result):
+    # 1. Log overall test states.
+    self._Log('Test status:\n%s' % self._FormatOrderedDict(test_status))
+    event_log.Log(EVENT_ALS_STATUS, **test_status)
+
+    # 2. Log IQ data.
+    ALS_data = {}
+    def mylog(value, key, log_text_fmt):
+      self._Log((log_text_fmt % value))
+      ALS_data[key] = value
+
+    ALS_data['module_sn'] = self.module_sn
+
+    if not calib_result:
+      mylog(calib_result, 'als_cal_data', LOG_FORMAT_ALS)
+
+    event_log.Log(EVENT_ALS_DATA, **ALS_data)
+
   def _FormatOrderedDict(self, ordered_dict):
     l = ['{']
     l += ["  '%s': %s," % (key, ordered_dict[key]) for key in ordered_dict]
@@ -855,8 +1122,8 @@ class CameraFixture(unittest.TestCase):
         'Supported types: Calibration, LensShading, and IQ.'),
     Arg('control_chamber', bool, 'Whether or not to control the chart in the '
         'light chamber.', default=False),
-    Arg('chamber_conn_params', dict, 'Chamber connection parameters.',
-        default=None, optional=True),
+    Arg('chamber_conn_params', (dict, str), 'Chamber connection parameters, '
+        "either a dict or 'default'", default=None, optional=True),
     Arg('chamber_cmd', dict, 'A mapping between charts listed in '
         'LightChamber.Charts and a list of tuple (cmd, response) required to '
         "activate the chart. 'response' can be None to disable checking.",
@@ -865,15 +1132,15 @@ class CameraFixture(unittest.TestCase):
     # test environment
     Arg('fixture_type', str, 'Type of the light chamber/panel. '
         'Supported types: FullChamber, ABChamber, ModuleChamber, '
-        'Panel.'),
+        'Panel, ALSChamber.'),
     Arg('test_chart_version', str, 'Version of the test chart. '
-        'Supported types: A, B, White'),
+        'Supported types: A, B, White', optional=True),
     Arg('mock_mode', bool, 'Mock mode allows testing without a fixture.',
         default=False),
     Arg('device_index', int, 'Index of camera video device. '
         '(-1 to auto pick video device by OpenCV).', default=-1),
     Arg('capture_resolution', tuple, 'A tuple (x-res, y-res) indicating the '
-        'image capture resolution to use.'),
+        'image capture resolution to use.', optional=True),
     Arg('resize_ratio', float, 'The resize ratio of the captured image '
         'displayed on preview.', default=1.0),
 
@@ -886,21 +1153,27 @@ class CameraFixture(unittest.TestCase):
         default=0.20),
     Arg('lens_shading_timeout_secs', int, 'Timeout in seconds.', default=20),
 
-    # when test_type = IQ
-    Arg('IQ_data_method', str, 'How to read parameters and save test results. '
+    # when test_type = IQ or ALS
+    Arg('data_method', str, 'How to read parameters and save test results. '
         'Supported types: Simple, Shopfloor, and USB.', default='USB'),
-    Arg('IQ_param_pathname', str, 'Pathname of parameter file on '
+    Arg('param_pathname', str, 'Pathname of parameter file on '
         'USB drive or shopfloor.', default='camera.params'),
+    Arg('local_ip', str, 'Local IP address for connecting shopfloor. '
+        'when data_method = Shopfloor. Set as None to use DHCP.',
+        default=None, optional=True),
+    Arg('param_dict', dict, 'The parameters dictionary. '
+        'when data_method = Simple.',
+        default=None, optional=True),
+
+    # when test_type = IQ
     Arg('IQ_save_good_image', bool, 'Stores the images that pass IQ test on '
         'USB drive or shopfloor.', default=False),
     Arg('IQ_save_bad_image', bool, 'Stores the images that fail IQ test on '
         'USB drive or shopfloor.', default=True),
-    Arg('IQ_local_ip', str, 'Local IP address for connecting shopfloor. '
-        'when IQ_data_method = Shopfloor. Set as None to use DHCP.',
-        default=None, optional=True),
-    Arg('IQ_param_dict', dict, 'The parameters dictionary. '
-        'when IQ_data_method = Simple.',
-        default=None, optional=True),
+
+    # when test_type = ALS
+    Arg('ALS_val_path', str, 'ALS value path', default=None, optional=True),
+    Arg('ALS_scale_path', str, 'ALS scale path', default=None, optional=True)
   ]
 
   # self.args.test_type => TestType
@@ -908,6 +1181,7 @@ class CameraFixture(unittest.TestCase):
     'Calibration': TestType.CALI,
     'LensShading': TestType.LS,
     'IQ': TestType.IQ,
+    'ALS': TestType.ALS
   }
 
   # self.args.fixture_type => Fixture
@@ -915,10 +1189,11 @@ class CameraFixture(unittest.TestCase):
     'FullChamber': Fixture.FULL,
     'ABChamber': Fixture.AB,
     'ModuleChamber': Fixture.MODULE,
-    'Panel': Fixture.PANEL
+    'Panel': Fixture.PANEL,
+    'ALSChamber': Fixture.ALS
   }
 
-  # self.args.IQ_data_method => DataMethod
+  # self.args.data_method => DataMethod
   DATA_METHODS = {
     'Simple': DataMethod.SIMPLE,
     'USB': DataMethod.USB,
@@ -939,8 +1214,13 @@ class CameraFixture(unittest.TestCase):
         self.test_type in [TestType.LS])
     assert bool(self.args.test_chart_version == 'White') == bool(
             self.test_type == TestType.LS)
-    assert (self.args.IQ_data_method != 'Simple' or
-            self.args.IQ_param_dict is not None)
+    assert (self.args.data_method != 'Simple' or
+            self.args.param_dict is not None)
+
+    if self.args.chamber_conn_params == 'default':
+      chamber_conn_params = CHAMBER_CONN_PARAMS_DEFAULT
+    else:
+      chamber_conn_params = self.args.chamber_conn_params
 
     fixture_conn = None
     if self.args.control_chamber:
@@ -950,14 +1230,24 @@ class CameraFixture(unittest.TestCase):
                               self.args.chamber_cmd.values(), [])])
         fixture_conn = MockFixtureConnection(script)
       else:
-        fixture_conn = SerialFixtureConnection(**self.args.chamber_conn_params)
+        fixture_conn = SerialFixtureConnection(**chamber_conn_params)
 
-    self.chamber = LightChamber(test_chart_version=self.args.test_chart_version,
-                                mock_mode=self.args.mock_mode,
-                                device_index=self.args.device_index,
-                                image_resolution=self.args.capture_resolution,
-                                fixture_conn=fixture_conn,
-                                fixture_cmd=self.args.chamber_cmd)
+    if self.fixture_type == Fixture.ALS:
+      self.chamber = ALSLightChamber(
+          val_path=self.args.ALS_val_path,
+          scale_path=self.args.ALS_scale_path,
+          fixture_conn=fixture_conn,
+          fixture_cmd=self.args.chamber_cmd,
+          mock_mode=self.args.mock_mode)
+    else:
+      self.chamber = LightChamber(
+          test_chart_version=self.args.test_chart_version,
+          mock_mode=self.args.mock_mode,
+          device_index=self.args.device_index,
+          image_resolution=self.args.capture_resolution,
+          fixture_conn=fixture_conn,
+          fixture_cmd=self.args.chamber_cmd)
+
     self.ui = test_ui.UI()
     self.ui.AddEventHandler(
         'start_test_button_clicked',
@@ -976,8 +1266,8 @@ class CameraFixture(unittest.TestCase):
       self._RunCalibration()
     elif self.test_type == TestType.LS:
       self._RunLensShadingTest()
-    elif self.test_type == TestType.IQ:
-      self._RunIQTest()
+    elif self.test_type in [TestType.IQ, TestType.ALS]:
+      self._RunDeligateTest()
     else:
       raise ValueError('Unsupported test type.')
 
@@ -1104,24 +1394,29 @@ class CameraFixture(unittest.TestCase):
     finally:
       self.chamber.DisableCamera()
 
-  def _RunIQTest(self):
+  def _RunDeligateTest(self):
     """Main routine for IQ (Image Quality) test."""
-    delegate = _IQTestDelegate(
-        delegator=self, chamber=self.chamber,
+    delegate = _TestDelegate(
+        delegator=self,
+        mock_mode=self.args.mock_mode,
+        test_type=self.args.test_type,
+        chamber=self.chamber,
         fixture_type=self.fixture_type,
         control_chamber=self.args.control_chamber,
-        data_method=self.DATA_METHODS[self.args.IQ_data_method],
-        local_ip=self.args.IQ_local_ip,
-        param_pathname=self.args.IQ_param_pathname,
-        param_dict=self.args.IQ_param_dict,
+        data_method=self.DATA_METHODS[self.args.data_method],
+        local_ip=self.args.local_ip,
+        param_pathname=self.args.param_pathname,
+        param_dict=self.args.param_dict,
         save_good_image=self.args.IQ_save_good_image,
         save_bad_image=self.args.IQ_save_bad_image)
 
-    self.ui.CallJSFunction('InitForIQTest', self.args.IQ_data_method)
+    self.ui.CallJSFunction('InitForIQTest', self.args.data_method)
     self.ui.CallJSFunction('UpdateTextLabel', MSG_TITLE_IQ_TEST,
                            ID_MAIN_SCREEN_TITLE)
 
     delegate.LoadParamsAndShowTestScreen()
+
+    prefix = 'Camera' if self.args.test_type == TestType.IQ else 'ALS'
 
     # Loop to repeat the test until user chooses 'Exit Test'.  For module-level
     # testing, it may test thousands of DUTs without leaving the test. The test
@@ -1131,19 +1426,21 @@ class CameraFixture(unittest.TestCase):
       event = self._PopInternalQueue(wait=True)
       if event.event_type == EventType.START_TEST:
         with leds.Blinker(LED_PATTERN):
-          success, fail_cause = delegate.IQTest(
+          # pylint: disable=W0633
+          success, fail_cause = delegate.RunTest(
               input_sn=event.aux_data.data.get('input_sn', ''))
 
         if success:
-          self.ShowTestStatus(msg='Camera: PASS', style=STYLE_PASS)
+          self.ShowTestStatus(msg='%s: PASS' % prefix, style=STYLE_PASS)
         else:
-          self.ShowTestStatus(msg='Camera: FAIL %r' % fail_cause,
+          self.ShowTestStatus(msg='%s: FAIL %r' % (prefix, fail_cause),
                               style=STYLE_FAIL)
       elif event.event_type == EventType.EXIT_TEST:
         if success:
           self.ui.Pass()
         else:
-          self.ui.Fail('Camera IQ test failed - fail cause = %r.' % fail_cause)
+          self.ui.Fail('Camera %s test failed - fail cause = %r.' %
+                       (prefix, fail_cause))
         break
       else:
         raise ValueError('Invalid event type.')

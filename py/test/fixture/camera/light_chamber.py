@@ -56,7 +56,7 @@ class LightChamber(object):
       device_index: Video device index (-1 to auto pick device by OpenCV).
       image_resolution: A tuple (x-res, y-res) for image resolution.
       fixture_conn: A FixtureConnection instance for controlling the fixture.
-      fixture_cmd: A mapping between charts listed in LightChamber. Charts and
+      fixture_cmd: A mapping between charts listed in LightChamber.Charts and
                    a list of tuple (cmd, response) required to activate the
                    chart.
     """
