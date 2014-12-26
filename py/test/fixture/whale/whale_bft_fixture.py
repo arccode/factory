@@ -129,7 +129,8 @@ class WhaleBFTFixture(bft.BFTFixture):
     inas = self._servo.MultipleGet(self._WHALE_INAS)
     result = dict((k, int(v)) for k, v in inas.iteritems())
 
-    adc = self._servo.Get(self._WHALE_CONTROL.ADC)
+    # Servo returns a string of list of integers
+    adc = eval(self._servo.Get(self._WHALE_CONTROL.ADC))
     result['vdd_kbd_bl_dut'] = adc[0] * 32.5
     result['pp1200_ssd_dut'] = adc[1]
     result['vcore_dut'] = adc[2]
