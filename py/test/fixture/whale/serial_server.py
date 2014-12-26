@@ -8,6 +8,7 @@ from __future__ import print_function
 import copy
 import logging
 import serial
+import xmlrpclib
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.test import serial_utils
@@ -77,7 +78,7 @@ class SerialServer(object):
     try:
       read_data = conn.Receive(num_bytes)
       logging.debug('Received: %s', read_data)
-      return read_data
+      return xmlrpclib.Binary(read_data)
     except serial.SerialTimeoutException as e:
       raise SerialServerError('Serial index %d receive fail: %s' %
                               (serial_index, e))
