@@ -233,23 +233,28 @@ class SerialDevice(object):
     """Returns (read timeout, write timeout)."""
     return (self._serial.getTimeout(), self._serial.getWriteTimeout())
 
-  def Send(self, command):
+  def Send(self, command, flush=True):
     """Sends a command.
 
     It blocks at most write_timeout seconds.
 
     Args:
       command: command to send.
+      flush: call flush() after write(). Default True.
 
     Raises:
       SerialTimeoutException if it is timeout and fails to send the command.
       SerialException if it is disconnected during sending.
     """
     try:
+      start_time = time.time()
       self._serial.write(command)
-      self._serial.flush()
+      if flush:
+        self._serial.flush()
       if self.log:
-        logging.info('Successfully sent %r', command)
+        duration = time.time() - start_time
+        logging.info('Successfully sent %r. Took %.3f seconds', command,
+                     duration)
     except serial.SerialTimeoutException:
       error_message = 'Send %r timeout after %.2f seconds' % (
           command, self._serial.getWriteTimeout())
@@ -274,12 +279,15 @@ class SerialDevice(object):
     Raises:
       SerialTimeoutException if it fails to receive N bytes.
     """
+    start_time = time.time()
     if size == 0:
       size = self._serial.inWaiting()
     response = self._serial.read(size)
     if len(response) == size:
       if self.log:
-        logging.info('Successfully received %r', response)
+        duration = time.time() - start_time
+        logging.info('Successfully received %r. Took %.3f seconds', response,
+                     duration)
       return response
     else:
       error_message = 'Receive %d bytes timeout after %.2f seconds' % (
