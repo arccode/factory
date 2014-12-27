@@ -105,7 +105,8 @@ def RealMain():
     raise serial_server.SerialServerError(error)
 
   ModprobeFtdiDriver()
-  dolphin_server = serial_server.SerialServer(DOLPHIN_PARAMS)
+  dolphin_server = serial_server.SerialServer(DOLPHIN_PARAMS,
+                                              verbose=options.debug)
   server.register_introspection_functions()
   server.register_multicall_functions()
   server.register_instance(dolphin_server)

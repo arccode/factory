@@ -21,14 +21,16 @@ class SerialServerError(Exception):
 class SerialServer(object):
   """A server proxy for handling multiple serial connection interfaces."""
 
-  def __init__(self, params_list):
+  def __init__(self, params_list, verbose=False):
     """Serial server constructor.
 
     Args:
       params_list: A list of serial connection parameters.
+      verbose: True to enable verbose logging (for serial transmission).
     """
     self._logger = logging.getLogger('SerialServer')
     # Makes connection for all on params_list and stores in a list.
+    self._verbose = verbose
     self._serials = [self._InitSerial(**p) for p in params_list]
 
   def Send(self, serial_index, command):
@@ -49,7 +51,7 @@ class SerialServer(object):
       raise SerialServerError('index %d out of range' % serial_index)
 
     try:
-      conn.Send(command + '\n')
+      conn.Send(command + '\n', flush=False)
     except serial.SerialTimeoutException as e:
       raise SerialServerError('Serial index %d send command: %s fail: %s' %
                               (serial_index, command, e))
@@ -124,7 +126,7 @@ class SerialServer(object):
 
     logging.info('Connect to ' + serial_params['port'])
     try:
-      conn = serial_utils.SerialDevice()
+      conn = serial_utils.SerialDevice(log=self._verbose)
       conn.Connect(**serial_params)
       return conn
     except serial.SerialException as e:
