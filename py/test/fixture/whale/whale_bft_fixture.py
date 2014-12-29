@@ -19,6 +19,8 @@ from cros.factory.utils import ssh_utils
 class WhaleBFTFixture(bft.BFTFixture):
   """Provides interfaces to interact with Whale BFT fixture."""
 
+  POWER_KEY = '0x2000'
+
   # Shortcuts
   # pylint: disable=E1101
   _WHALE_CONTROL = servo_client.WHALE_CONTROL
@@ -198,6 +200,9 @@ class WhaleBFTFixture(bft.BFTFixture):
     except servo_client.ServoClientError as e:
       raise bft.BFTFixtureException(
           'Failed to set status color %s. Reason %s' % (color, e))
+
+  def ResetKeyboard(self):
+    self._keyboard_emulator.Reset()
 
   def SimulateKeystrokes(self):
     self._keyboard_emulator.SimulateKeystrokes()

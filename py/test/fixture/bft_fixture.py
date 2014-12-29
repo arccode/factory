@@ -212,6 +212,10 @@ class BFTFixture(object):
     """Simulates keyboard key press for a period of time."""
     raise NotImplementedError
 
+  def ResetKeyboard(self):
+    """Reset keyboard device."""
+    raise NotImplementedError
+
   def SetLcmText(self, row, message):
     """Shows a message to a given row of LCM.
 
@@ -318,6 +322,8 @@ def main():
                                        choices=sorted(BFTFixture.StatusColor),
                                        help='Status color to set.')
 
+  subparsers.add_parser('ResetKeyboard', help='Reset keyboard device.')
+
   subparsers.add_parser('SimulateKeystrokes',
                         help='Trigger all row-column crossings in sequence.')
 
@@ -386,6 +392,8 @@ def main():
     color = args.color
     fixture.SetStatusColor(color)
     print 'SetStatusColor(%s)' % color
+  elif command == 'ResetKeyboard':
+    fixture.ResetKeyboard()
   elif command == 'SimulateKeystrokes':
     fixture.SimulateKeystrokes()
   elif command == 'SimulateKeyPress':
