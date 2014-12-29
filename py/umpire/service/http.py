@@ -153,7 +153,7 @@ class HTTPService(umpire_service.UmpireService):
     config_writer = LightyConfigWriter(config_path)
 
     http_config = umpire_config['services']['http']
-    httpd_bind_address = umpire_config['ip']
+    httpd_bind_address = '0.0.0.0'
     httpd_port = int(umpire_config['port'])
     fcgi_port = env.fastcgi_start_port
     cpu_count = multiprocessing.cpu_count()

@@ -165,7 +165,7 @@ class TestHTTPService(unittest.TestCase):
         self.assertEqual(expect, config[line_num])
         line_num += 1
 
-    ExpectLine('server.bind = "%s"' % umpire_ip)
+    ExpectLine('server.bind = "%s"' % '0.0.0.0')
     ExpectLine('server.port = %d' % umpire_port)
 
     base_dir = self.env.base_dir
