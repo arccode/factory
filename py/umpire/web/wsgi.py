@@ -36,8 +36,8 @@ class WSGISession(AttrDict):
     HTTP_* : client supplied HTTP request headers.
   """
 
-  TEXT_PLAIN = ('Content-Type', 'text/plain')
-  TEXT_XML = ('Content-Type', 'text/xml')
+  TEXT_PLAIN = 'text/plain'
+  TEXT_XML = 'text/xml'
 
   def __init__(self, environ, start_response):
     """Constructs WSGISession using WSIG environ and start_response.
@@ -110,7 +110,7 @@ class WSGISession(AttrDict):
     """
     code_message = self.GetMessage(code)
     if content_type is None:
-      content_type = [self.TEXT_PLAIN]
+      content_type = self.TEXT_PLAIN
 
     headers = [('Content-Type', content_type)]
     if data:
