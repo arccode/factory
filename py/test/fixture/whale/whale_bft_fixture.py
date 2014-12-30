@@ -5,6 +5,7 @@
 
 from __future__ import print_function
 import logging
+import os
 
 import factory_common  # pylint: disable=W0611
 import cros.factory.test.fixture.bft_fixture as bft
@@ -69,6 +70,9 @@ class WhaleBFTFixture(bft.BFTFixture):
       self._nuc_host = params.get('nuc_host')
       self._nuc_dut_serial_path = params.get('nuc_dut_serial_path')
       self._testing_rsa_path = params.get('testing_rsa_path')
+      if self._testing_rsa_path:
+        # Make identity file less open to make ssh happy
+        os.chmod(self._testing_rsa_path, 0600)
     except servo_client.ServoClientError as e:
       raise bft.BFTFixtureException('Failed to Init(). Reason: %s' % e)
 
