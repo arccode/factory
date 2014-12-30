@@ -127,11 +127,6 @@ def main():
                       help='remove password from test_list')
   parser.add_argument('-s', dest='shopfloor_host',
                       help='set shopfloor host')
-  parser.add_argument('--host-based', dest='host_based', action='store_true',
-                      help='Use goofy_split instead of goofy_monolithic')
-  parser.add_argument('--no-host-based', dest='host_based',
-                      action='store_false', help=argparse.SUPPRESS)
-  parser.set_defaults(host_based=True)
   parser.add_argument('--role', dest='role',
                       help=('Set the role of the device. Must be one of: ' +
                             ', '.join(HOST_BASED_ROLES)))
@@ -175,12 +170,6 @@ def main():
     else:
       SpawnSSHToDUT([args.host] + cmds, check_call=True, log=True)
 
-  def ToggleHostBased():
-    RunLocallyOrRemotely(
-        ['ln', '--symbolic', '--force', '--no-dereference',
-         './goofy_split' if args.host_based else './goofy_monolithic',
-         '/usr/local/factory/py/goofy'])
-
   def SetHostBasedRole():
     if args.role:
       for tag in [DEVICE_TAG, PRESENTER_TAG]:
@@ -194,7 +183,6 @@ def main():
     if in_chroot():
       sys.exit('--local must be used only on the target device')
     TweakTestLists(args)
-    ToggleHostBased()
     SetHostBasedRole()
     return
 
@@ -227,7 +215,6 @@ def main():
         ['%s:/usr/local/factory' % args.host],
         check_call=True, log=True)
 
-  ToggleHostBased()
   SetHostBasedRole()
 
   board_dash = board.replace('_', '-')

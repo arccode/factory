@@ -79,10 +79,6 @@ UNITTESTS_BLACKLIST=\
 	py/test/media_util_unittest.py
 UNITTESTS_WHITELIST=$(filter-out $(UNITTESTS_BLACKLIST),$(UNITTESTS))
 # Tests need to run in isolate mode.
-UNITTESTS_ISOLATE_LIST=\
-       py/goofy_split/goofy_unittest.py \
-       py/goofy_split/system_log_manager_unittest.py \
-       py/goofy_monolithic/system_log_manager_unittest.py
 
 INSTALL_MASK=*.pyc \
 	     *_unittest.py \
@@ -93,7 +89,7 @@ INSTALL_MASK=*.pyc \
 # package is fixed and /usr/bin/java works
 # (https://bugs.gentoo.org/416341)
 default:
-	for goofy_path in py/goofy_monolithic/static py/goofy_split/static; do\
+	for goofy_path in py/goofy/static; do\
 	    env PATH=/opt/icedtea6-bin-1.6.2/bin:$(PATH) \
 	        $(MAKE) -C "$${goofy_path}" \
 	          $(if $(CLOSURE_LIB_DIR), \

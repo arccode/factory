@@ -1,2 +1,0 @@
-A tag file so that we can easily tell whether we are running goofy_split
-or goofy_monolithic by checking if py/goofy/GOOFY_SPLIT exists.

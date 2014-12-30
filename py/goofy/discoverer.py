@@ -29,6 +29,7 @@ class DiscovererBase(object):
 
   def __init__(self, localhost_only=False):
     subnet_config = os.path.join(FACTORY_PATH, 'board', 'host_based_subnets')
+    self.localhost_only = localhost_only
     if localhost_only:
       self.allowed_subnets = []
     elif os.path.exists(subnet_config):
@@ -139,6 +140,7 @@ class DUTDiscoverer(DiscovererBase):
 
   def Discover(self):
     if (utils.in_chroot() or
+        self.localhost_only or
         self.TryRemote(self.LOCALHOST, self._port, timeout=0.1)):
       return self.LOCALHOST
     return self.ScanMySubnets(self._port, limit=None)
@@ -152,6 +154,7 @@ class PresenterDiscoverer(DiscovererBase):
 
   def Discover(self):
     if (utils.in_chroot() or
+        self.localhost_only or
         self.TryRemote(self.LOCALHOST, self._port, timeout=0.1)):
       return self.LOCALHOST
     return self.ScanMySubnets(self._port, limit=1)

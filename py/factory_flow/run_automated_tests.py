@@ -84,10 +84,6 @@ class RunAutomatedTests(FactoryFlowCommand):
       CmdArg('--automation-function-kwargs-yaml',
              help=('a YAML file containing a dict of test paths to '
                    'their kwargs for their automation functions')),
-      # TODO(jcliang): Remove this arg after we integrate goofy_monolithic and
-      # goofy_split.
-      CmdArg('--host-based', action='store_true',
-             help='enable host-based mode'),
       CmdArg('--role', choices=goofy_remote.HOST_BASED_ROLES.keys(),
              help='the host-based role to enable on the DUT'),
   ]
@@ -204,10 +200,8 @@ class RunAutomatedTests(FactoryFlowCommand):
       goofy_remote_args += ['-s', self.options.shopfloor_ip]
     if self.options.shopfloor_port:
       goofy_remote_args += ['--shopfloor_port=%s' % self.options.shopfloor_port]
-    if self.options.host_based:
-      goofy_remote_args += ['--host-based']
-      if self.options.role:
-        goofy_remote_args += ['--role=%s' % self.options.role]
+    if self.options.role:
+      goofy_remote_args += ['--role=%s' % self.options.role]
     ssh_utils.SpawnSSHToDUT(goofy_remote_args, log=True, check_call=True)
     ssh_utils.SpawnSSHToDUT(
         [self.options.dut, FACTORY_RESTART, '--automation-mode',

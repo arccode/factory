@@ -245,23 +245,20 @@ start_factory() {
   export DISPLAY=":0"
   export XAUTHORITY="/home/chronos/.Xauthority"
 
-  if [ -f "${RUN_GOOFY_PRESENTER_TAG_FILE}" ] &&
-     [ -f "${RUN_GOOFY_DEVICE_TAG_FILE}" ]; then
-    GOOFY_ARGS="${GOOFY_ARGS} --standalone"
-    PRESENTER_ARGS="${PRESENTER_ARGS} --standalone"
-  fi
-
-  # Run goofy_presenter if goofy_presenter tag file is present.
-  # Note presenter output is only kept in SESSION_LOG_FILE.
-  if [ -f "${RUN_GOOFY_PRESENTER_TAG_FILE}" ]; then
+  # Rules to start Goofy. Not this has to sync with init/startup.
+  if [ -f "${tag_presenter}" -a ! -f "${tag_device}" ]; then
+    # Presenter-only mode.
+    # Note presenter output is only kept in SESSION_LOG_FILE.
     echo "Starting Goofy Presenter... ($PRESENTER_ARGS)"
     "$FACTORY/bin/goofy_presenter" $PRESENTER_ARGS &
-  fi
-
-  # Run goofy(device) if the goofy_device tag file is present,
-  # or goofy_presenter tag file is missing
-  if [ -f "${RUN_GOOFY_DEVICE_TAG_FILE}" \
-       -o ! -f "${RUN_GOOFY_PRESENTER_TAG_FILE}" ]; then
+  else
+    if [ ! -f "${tag_presenter}" -a -f "${tag_device}" ]; then
+      # Device-only mode.
+      true
+    else
+      # Stand-alone mode.
+      GOOFY_ARGS="${GOOFY_ARGS} --standalone"
+    fi
     echo "Starting Goofy Device... ($GOOFY_ARGS)"
     echo "
     --- $(date +'%Y%m%d %H:%M:%S') Starting new Goofy session ($GOOFY_ARGS) ---

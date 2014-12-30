@@ -938,9 +938,10 @@ class GoofyRPC(object):
       timeout_message: The text to show when countdown ends.
       timeout_is_error: True for red timeout message; False for black.
     """
-    self.goofy.link_manager.StartCountdown(
-        message, timeout_secs, timeout_message,
-        'red' if timeout_is_error else 'black')
+    if self.goofy.link_manager:
+      self.goofy.link_manager.StartCountdown(
+          message, timeout_secs, timeout_message,
+          'red' if timeout_is_error else 'black')
 
   def SuspendDUTMonitoring(self, interval_sec):
     """Suspends monitoring of DUT connection.
@@ -954,11 +955,13 @@ class GoofyRPC(object):
     Args:
       interval_sec: Number of seconds to suspend.
     """
-    self.goofy.link_manager.SuspendMonitoring(interval_sec)
+    if self.goofy.link_manager:
+      self.goofy.link_manager.SuspendMonitoring(interval_sec)
 
   def ResumeDUTMonitoring(self):
     """Immediately resume suspended monitoring of DUT connection."""
-    self.goofy.link_manager.ResumeMonitoring()
+    if self.goofy.link_manager:
+      self.goofy.link_manager.ResumeMonitoring()
 
   def _GetTests(self):
     """Helper method to get a list of all tests and their states."""

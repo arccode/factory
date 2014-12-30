@@ -50,6 +50,10 @@ class Environment(object):
     """
     raise NotImplementedError()
 
+  def controller_ready_for_ui(self):
+    """Hooks called when Goofy controller is ready for UI connection."""
+    pass
+
   def launch_chrome(self):
     """Launches Chrome.
 
@@ -84,6 +88,7 @@ class DUTEnvironment(Environment):
   def __init__(self):
     super(DUTEnvironment, self).__init__()
     self.goofy = None  # Must be assigned later by goofy.
+    self.has_sockets = None # Must be assigned later by goofy.
 
   def shutdown(self, operation):
     def prepare_shutdown():
@@ -94,7 +99,7 @@ class DUTEnvironment(Environment):
                           'shill',
                           'warn-collector']
       for service in respawn_services:
-        if GetServiceStatus(service) == Status.START:
+        if GetServiceStatus(service, ignore_failure=True) == Status.START:
           SetServiceStatus(service, Status.STOP)
 
     assert operation in ['reboot', 'full_reboot', 'halt']
@@ -116,24 +121,34 @@ class DUTEnvironment(Environment):
     assert False, 'Never reached (should %s)' % operation
 
   def spawn_autotest(self, name, args, env_additions, result_file):
-    return self.goofy.prespawner.spawn(args, env_additions)
+    return self.goofy.autotest_prespawner.spawn(args, env_additions)
 
   def override_chrome_start_pages(self):
     # TODO(hungte) Remove this workaround (mainly for crbug.com/431645).
     override_chrome_start_file = '/usr/local/factory/init/override_chrome_start'
     if not os.path.exists(override_chrome_start_file):
       return
+    url = (open(override_chrome_start_file).read() or
+           ('http://%s:%s' % (state.DEFAULT_FACTORY_STATE_ADDRESS,
+                              state.DEFAULT_FACTORY_STATE_PORT)))
+    (host, unused_colon, port) = url.partition('http://')[2].partition(':')
+    logging.info('Override chrome start pages as: %s', url)
     chrome = chrome_debugger.ChromeRemoteDebugger()
     sync_utils.WaitFor(chrome.IsReady, 30)
     chrome.SetActivePage()
-    chrome.PageNavigate(open(override_chrome_start_file).read() or
-                        ('http://127.0.0.1:%s/' %
-                         state.DEFAULT_FACTORY_STATE_PORT))
+    # Wait for state server to be ready.
+    state_server = state.get_instance(address=host, port=int(port))
+    def is_state_server_ready():
+      try:
+        return state_server.IsReadyForUIConnection()
+      except:  # pylint: disable=W0702
+        return False
+    sync_utils.WaitFor(is_state_server_ready, 30)
+    chrome.PageNavigate(url)
 
   def launch_chrome(self):
     self.override_chrome_start_pages()
-
-    sync_utils.WaitFor(self.goofy.web_socket_manager.has_sockets, 30)
+    sync_utils.WaitFor(self.has_sockets, 30)
     subprocess.check_call(['initctl', 'emit', 'login-prompt-visible'])
 
   def create_connection_manager(self, wlans, scan_wifi_period_secs):
@@ -163,8 +178,9 @@ class FakeChrootEnvironment(Environment):
 
   def launch_chrome(self):
     logging.warn('In chroot; not launching Chrome. '
-           'Please open http://localhost:%d/ in Chrome.',
-           state.DEFAULT_FACTORY_STATE_PORT)
+                 'Please open UI presenter app in Chrome or '
+                 'open http://localhost:%d/ in Chrome.',
+                 state.DEFAULT_FACTORY_STATE_PORT)
 
   def create_connection_manager(self, wlans, scan_wifi_period_secs):
     return connection_manager.DummyConnectionManager()

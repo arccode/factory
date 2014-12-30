@@ -1225,9 +1225,12 @@ class Goofy(GoofyBase):
     """Initialize UI."""
     self._ui_initialized = True
     if self.options.ui == 'chrome':
-      # The presenter is responsible for launching Chrome. Let's just
-      # wait here.
-      self.env.controller_ready_for_ui()
+      if self.options.standalone:
+        self.env.launch_chrome()
+      else:
+        # The presenter is responsible for launching Chrome. Let's just
+        # wait here.
+        self.env.controller_ready_for_ui()
       logging.info('Waiting for a web socket connection')
       self.web_socket_manager.wait()
 
@@ -1243,6 +1246,9 @@ class Goofy(GoofyBase):
         time.sleep(0.1)  # 100 ms
       else:
         logging.warn('Never received test_widget_size from UI')
+
+      logging.info('Waiting for a web socket connection')
+      self.web_socket_manager.wait()
 
   def init(self, args=None, env=None):
     """Initializes Goofy.
@@ -1343,10 +1349,11 @@ class Goofy(GoofyBase):
 
     logging.info('Started')
 
-    self.link_manager = PresenterLinkManager(
-        check_interval=1,
-        handshake_timeout=self.options.handshake_timeout,
-        standalone=self.options.standalone)
+    if not self.options.standalone:
+      self.link_manager = PresenterLinkManager(
+          check_interval=1,
+          handshake_timeout=self.options.handshake_timeout,
+          standalone=self.options.standalone)
 
     self.start_state_server()
     self.state_instance.set_shared_data('hwid_cfg', get_hwid_cfg())

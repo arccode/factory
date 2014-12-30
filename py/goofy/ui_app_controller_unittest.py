@@ -14,8 +14,8 @@ import uuid
 from ws4py.client.threadedclient import WebSocketClient
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.goofy_split import ui_app_controller
-from cros.factory.goofy_split.ui_app_controller import UIAppController
+from cros.factory.goofy import ui_app_controller
+from cros.factory.goofy.ui_app_controller import UIAppController
 from cros.factory.utils import net_utils
 
 class UIAppControllerTest(unittest.TestCase):

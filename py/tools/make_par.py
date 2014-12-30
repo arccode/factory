@@ -170,8 +170,6 @@ def main(argv=None):
       rsync_args.extend(['--exclude', 'static',
                          '--exclude', 'testdata',
                          '--exclude', 'goofy',
-                         '--exclude', 'goofy_monolithic',
-                         '--exclude', 'goofy_split',
                          '--exclude', 'minijack',
                          '--exclude', 'pytests'])
     else:
