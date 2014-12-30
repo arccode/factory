@@ -108,6 +108,8 @@ class ServiceProcess(protocol.ProcessProtocol):
     self.process_name = None
     self.messages = None
     self.callbacks = collections.defaultdict(list)
+    # Workaround timer for reaping process.
+    self._timer = None
 
   def __del__(self):
     """Calls state hooks on destructing."""
@@ -340,9 +342,24 @@ class ServiceProcess(protocol.ProcessProtocol):
   def errConnectionLost(self):
     """On stderr close."""
     self._Debug('stderr lost')
+    # Workaround to ensure process is reaped.
+    if self._timer is None:
+      def _ReapProcess():
+        self._Info('reaping')
+        if self.subprocess:
+          self.subprocess.reapProcess()
+          if self.subprocess.pid:
+            self._timer = reactor.callLater(0.1, _ReapProcess)
+
+      self._timer = reactor.callLater(0.1, _ReapProcess)
 
   def processEnded(self, status):
     """Subprocess has been ended"""
+    # Stop the process reaping timer.
+    if self._timer and not self._timer.cancelled and not self._timer.called:
+      self._timer.cancel()
+      self._timer = None
+
     self.subprocess = None
 
     self._Info('ended')
