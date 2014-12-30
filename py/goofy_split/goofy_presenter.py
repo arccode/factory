@@ -16,6 +16,7 @@ from cros.factory.goofy import test_environment
 from cros.factory.goofy.goofy_base import GoofyBase
 from cros.factory.goofy.link_manager import DUTLinkManager
 from cros.factory.goofy.ui_app_controller import UIAppController
+from cros.factory.test import factory
 from cros.factory.test import utils
 
 class GoofyPresenter(GoofyBase):
@@ -115,4 +116,5 @@ class GoofyPresenter(GoofyBase):
 
 
 if __name__ == '__main__':
+  factory.init_logging()
   GoofyPresenter.run_main_and_exit()
