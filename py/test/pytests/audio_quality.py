@@ -43,6 +43,7 @@ from cros.factory.goofy.goofy import CACHES_DIR
 _HOST = ''
 _PORT = 8888
 _LOCAL_IP = '192.168.1.2'
+_GATEWAY_IP = '192.168.1.200'
 
 # Setting
 _SHOPFLOOR_TIMEOUT_SECS = 10 # Timeout for shopfloor connection.
@@ -52,30 +53,27 @@ _REMOVE_ETHERNET_TIMEOUT_SECS = 30 # Timeout for inserting dongle.
 _FIXTURE_PARAMETERS = ['audio/audio_md5', 'audio/audio.zip']
 
 # Label strings.
-_LABEL_SPACE_TO_START = test_ui.MakeLabel('Press \'Space\' to start test',
-    u'按空白键开始测试')
+_LABEL_SPACE_TO_START = test_ui.MakeLabel(
+    'Press \'Space\' to start test', u'按空白键开始测试')
 _LABEL_CONNECTED = test_ui.MakeLabel('Connected', u'已连线')
 _LABEL_WAITING = test_ui.MakeLabel('Waiting for command', u'等待指令中')
 _LABEL_AUDIOLOOP = test_ui.MakeLabel('Audio looping', u'音源回放中')
 _LABEL_SPEAKER_MUTE_OFF = test_ui.MakeLabel('Speaker on', u'喇叭开启')
 _LABEL_DMIC_ON = test_ui.MakeLabel('LCD Dmic on', u'LCD mic开启')
 _LABEL_MLBDMIC_ON = test_ui.MakeLabel('MLB Dmic on', u'MLB mic开启')
-_LABEL_PLAYTONE_LEFT = test_ui.MakeLabel('Playing tone to left channel',
-    u'播音至左声道')
-_LABEL_PLAYTONE_RIGHT = test_ui.MakeLabel('Playing tone to right channel',
-    u'播音至右声道')
-_LABEL_WAITING_ETHERNET = test_ui.MakeLabel(
-    'Waiting for Ethernet connectivity to ShopFloor',
-    u'等待网路介面卡连接到 ShopFloor')
-_LABEL_WAITING_IP = test_ui.MakeLabel('Waiting for IP address',
-    u'等待 IP 设定')
-_LABEL_CONNECT_SHOPFLOOR = test_ui.MakeLabel('Connecting to ShopFloor...',
-    u'连接到 ShopFloor 中...')
+_LABEL_PLAYTONE_LEFT = test_ui.MakeLabel(
+    'Playing tone to left channel', u'播音至左声道')
+_LABEL_PLAYTONE_RIGHT = test_ui.MakeLabel(
+    'Playing tone to right channel', u'播音至右声道')
+_LABEL_WAITING_IP = test_ui.MakeLabel(
+    'Waiting for IP address', u'等待 IP 设定')
+_LABEL_CONNECT_SHOPFLOOR = test_ui.MakeLabel(
+    'Connecting to ShopFloor...', u'连接到 ShopFloor 中...')
 _LABEL_DOWNLOADING_PARAMETERS = test_ui.MakeLabel(
     'Downloading parameters', u'下载测试规格中')
 _LABEL_REMOVE_ETHERNET = test_ui.MakeLabel(
     'Remove Ethernet connectivity', u'移除网路介面卡')
-_LABEL_WAITING_FIXTURE_ETHERNET = test_ui.MakeLabel(
+_LABEL_WAITING_ETHERNET = test_ui.MakeLabel(
     'Waiting for Ethernet connectivity to audio fixture',
     u'等待网路介面卡连接到 audio 置具')
 _LABEL_READY = test_ui.MakeLabel(
@@ -101,21 +99,23 @@ _CONFIG_FILE_RE = re.compile("(?i)config_file")
 
 class AudioQualityTest(unittest.TestCase):
   ARGS = [
-    Arg('initial_actions', list, 'List of tuple (card, actions), and card '
-        'can be card index number or card name', []),
-    Arg('input_dev', (str, tuple),
-        'Input ALSA device for string.  (card_name, sub_device) for tuple. '
-        'For example: "hw:0,0" or ("audio_card", "0").', 'hw:0,0'),
-    Arg('output_dev', (str, tuple),
-        'Output ALSA device for string.  (card_name, sub_device) for tuple. '
-        'For example: "hw:0,0" or ("audio_card", "0").', 'hw:0,0'),
-    Arg('use_sox_loop', bool, 'Use SOX loop', False, optional=True),
-    Arg('use_multitone', bool, 'Use multitone', False, optional=True),
-    Arg('loop_buffer_count', int, 'Count of loop buffer', 10,
-        optional=True),
-    Arg('fixture_param', list, 'Fixture parameters', _FIXTURE_PARAMETERS,
-        optional=True),
-    Arg('use_shopfloor', bool, 'Use shopfloor', True, optional=True),
+      Arg('initial_actions', list, 'List of tuple (card, actions), and card '
+          'can be card index number or card name', []),
+      Arg('input_dev', (str, tuple),
+          'Input ALSA device for string.  (card_name, sub_device) for tuple. '
+          'For example: "hw:0,0" or ("audio_card", "0").', 'hw:0,0'),
+      Arg('output_dev', (str, tuple),
+          'Output ALSA device for string.  (card_name, sub_device) for tuple. '
+          'For example: "hw:0,0" or ("audio_card", "0").', 'hw:0,0'),
+      Arg('use_sox_loop', bool, 'Use SOX loop', False, optional=True),
+      Arg('use_multitone', bool, 'Use multitone', False, optional=True),
+      Arg('loop_buffer_count', int, 'Count of loop buffer', 10,
+          optional=True),
+      Arg('fixture_param', list, 'Fixture parameters', _FIXTURE_PARAMETERS,
+          optional=True),
+      Arg('use_shopfloor', bool, 'Use shopfloor', True, optional=True),
+      Arg('network_setting', dict, 'Network setting to define *local_ip*, \n'
+          '*port*, *gateway_ip*', {}, optional=True),
   ]
 
   def setUp(self):
@@ -145,6 +145,9 @@ class AudioQualityTest(unittest.TestCase):
     self._loop_buffer_count = self.args.loop_buffer_count
     self._parameters = self.args.fixture_param
     self._use_shopfloor = self.args.use_shopfloor
+    self._local_ip = self.args.network_setting.get('local_ip', _LOCAL_IP)
+    self._port = self.args.network_setting.get('port', _PORT)
+    self._gateway_ip = self.args.network_setting.get('gateway_ip', _GATEWAY_IP)
 
     self._listen_thread = None
     self._multitone_process = None
@@ -153,7 +156,7 @@ class AudioQualityTest(unittest.TestCase):
     self._caches_dir = os.path.join(CACHES_DIR, 'parameters')
     base = os.path.dirname(os.path.realpath(__file__))
     self._file_path = os.path.join(base, '..', '..', 'goofy', 'static',
-        'sounds')
+                                   'sounds')
     self._auxlogs = []
 
     # Register commands to corresponding handlers.
@@ -178,8 +181,8 @@ class AudioQualityTest(unittest.TestCase):
     self._ui.CallJSFunction('setMessage', _LABEL_SPACE_TO_START)
     self._ui.AddEventHandler('start_run', self.StartRun)
     self._ui.AddEventHandler('mock_command', self.MockCommand)
-    Spawn(['iptables', '-A', 'INPUT', '-p', 'tcp', '--dport', str(_PORT), '-j',
-        'ACCEPT'], check_call=True)
+    Spawn(['iptables', '-A', 'INPUT', '-p', 'tcp', '--dport', str(self._port),
+           '-j', 'ACCEPT'], check_call=True)
 
   def runTest(self):
     self._ui.Run()
@@ -264,7 +267,7 @@ class AudioQualityTest(unittest.TestCase):
         if not match_command:
           factory.console.error("Command %s cannot find", instruction)
           conn.send(instruction + '\x05' + 'Active_End' + '\x05' +
-              'Fail' + '\x04\x03')
+                    'Fail' + '\x04\x03')
 
       if self._test_complete:
         factory.console.info('Test completed')
@@ -315,14 +318,17 @@ class AudioQualityTest(unittest.TestCase):
     command = args[1][0]
     if response:
       conn.send(command + '\x05' + 'Active_End' + '\x05' +
-          'Pass' + '\x05' + response + '\x04\x03')
+                'Pass' + '\x05' + response + '\x04\x03')
     else:
       conn.send(command + '\x05' + 'Active_End' + '\x05' +
-          'Pass' + '\x04\x03')
+                'Pass' + '\x04\x03')
     logging.info('Respond %s OK', command)
 
   def HandleVersion(self, *args):
     """Returns the md5 checksum of configuration file."""
+    if self._use_shopfloor:
+      self.InitAudioParameter()
+
     file_path = os.path.join(self._caches_dir, self._parameters[0])
     try:
       with open(file_path, "rb") as md5_file:
@@ -381,7 +387,7 @@ class AudioQualityTest(unittest.TestCase):
     size = int(attr_list[2])
     received_data = attr_list[3]
 
-    logging.info("Received file %s with size %d" , file_name, size)
+    logging.info("Received file %s with size %d", file_name, size)
     real_data = binascii.a2b_hex(received_data)
 
     write_path = os.path.join(factory.get_log_root(), 'aux', 'audio', file_name)
@@ -417,7 +423,7 @@ class AudioQualityTest(unittest.TestCase):
       f.write(received_data)
     self._auxlogs.append(write_path)
 
-    logging.info("Received file %s with size %d" , file_name, size)
+    logging.info("Received file %s with size %d", file_name, size)
 
     # Dump another copy of logs
     logging.info(repr(received_data))
@@ -509,12 +515,15 @@ class AudioQualityTest(unittest.TestCase):
     """Handles test completion.
     Runs post test script before ends this test
     """
+    if self._use_shopfloor:
+      self.UploadAuxlog()
+
     self.SendResponse(None, args)
     self._test_complete = True
 
     #Restores the original state before exiting the test.
-    Spawn(['iptables', '-D', 'INPUT', '-p', 'tcp', '--dport', str(_PORT),
-        '-j', 'ACCEPT'], check_call=True)
+    Spawn(['iptables', '-D', 'INPUT', '-p', 'tcp', '--dport', str(self._port),
+           '-j', 'ACCEPT'], check_call=True)
     self.RestoreConfiguration()
 
     logging.info('%s run_once finished', self.__class__)
@@ -574,7 +583,7 @@ class AudioQualityTest(unittest.TestCase):
     else:
       self.HandleLoop()
     self._ui.CallJSFunction('setMessage', _LABEL_AUDIOLOOP +
-        _LABEL_SPEAKER_MUTE_OFF)
+                            _LABEL_SPEAKER_MUTE_OFF)
     self._audio_util.DisableDmic(self._in_card)
     self._audio_util.DisableMLBDmic(self._in_card)
     self._audio_util.EnableExtmic(self._in_card)
@@ -672,6 +681,10 @@ class AudioQualityTest(unittest.TestCase):
         lambda: self._ui.CallJSFunction('setMessage', _LABEL_WAITING_IP))
     self._eth = net_utils.FindUsableEthDevice()
 
+    if self._use_shopfloor:
+      Spawn(['route', 'add', 'default', 'gw', self._gateway_ip],
+            check_call=True)
+
   def InitAudioParameter(self):
     """Downloads parameters from shopfloor and saved to state/caches.
 
@@ -682,7 +695,6 @@ class AudioQualityTest(unittest.TestCase):
     If the version is mismatch, analysis software can download
     latest parameter and apply it.
     """
-    self.PrepareNetwork(None, _LABEL_WAITING_ETHERNET)
     factory.console.info('Start downloading parameters...')
     self._ui.CallJSFunction('setMessage', _LABEL_CONNECT_SHOPFLOOR)
     shopfloor_client = shopfloor.GetShopfloorConnection(retry_interval_secs=3)
@@ -697,10 +709,10 @@ class AudioQualityTest(unittest.TestCase):
       download_list.extend(
           shopfloor_client.ListParameters(glob_expression))
     factory.console.info('Download list prepared:\n%s',
-        '\n'.join(download_list))
+                         '\n'.join(download_list))
     if len(download_list) < len(self._parameters):
       factory.console.error('Parameters cannot be found on shopfloor:\n%s',
-          self._parameters)
+                            self._parameters)
       self._ui.Fail('Parameters cannot be found on shopfloor')
     #Download the list and saved to caches in state directory.
     for filepath in download_list:
@@ -709,19 +721,19 @@ class AudioQualityTest(unittest.TestCase):
       binary_obj = shopfloor_client.GetParameter(filepath)
       with open(os.path.join(self._caches_dir, filepath), 'wb') as fd:
         fd.write(binary_obj.data)
-    self.RemoveNetwork()
 
   def RunAudioServer(self):
     """Initializes server and starts listening for external commands."""
-    self.PrepareNetwork(_LOCAL_IP, _LABEL_WAITING_FIXTURE_ETHERNET)
+    self.PrepareNetwork(self._local_ip, _LABEL_WAITING_ETHERNET)
+
     sock = socket.socket()
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    sock.bind((_HOST, _PORT))
+    sock.bind((_HOST, self._port))
     sock.listen(1)
-    logging.info("Listening at port %d", _PORT)
+    logging.info("Listening at port %d", self._port)
 
     self._listen_thread = threading.Thread(target=self.ListenForever,
-        args=(sock,))
+                                           args=(sock,))
     self._listen_thread.start()
     self._ui.CallJSFunction('setMessage', _LABEL_READY)
 
@@ -729,13 +741,11 @@ class AudioQualityTest(unittest.TestCase):
       if self._test_complete:
         break
       time.sleep(_CHECK_FIXTURE_COMPLETE_SECS)
-    self.RemoveNetwork()
 
   def UploadAuxlog(self):
     """Uploads files which are sent from DUT by send_file command to
     shopfloor.
     """
-    self.PrepareNetwork(None, _LABEL_WAITING_ETHERNET)
     factory.console.info('Start uploading logs...')
     self._ui.CallJSFunction('setMessage', _LABEL_UPLOAD_AUXLOG)
     shopfloor.UploadAuxLogs(self._auxlogs, dir_name='audio')
@@ -746,13 +756,7 @@ class AudioQualityTest(unittest.TestCase):
     Args:
       event: event from UI.
     """
-    if self._use_shopfloor:
-      self.InitAudioParameter()
-
     self.RunAudioServer()
-
-    if self._use_shopfloor:
-      self.UploadAuxlog()
 
     if self._test_passed:
       self._ui.Pass()
