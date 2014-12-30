@@ -20,6 +20,10 @@ And 3 test scenarios:
   3. Noise test, which plays nothing and record, then checks the RMS and
      amplitude thresholds.
 
+Since this test is sensitive to different loopback dongles, user can set a list
+of output volume candidates. The test can pass if it can pass at any one of
+output volume candidates.
+
 Here are three test list examples for three test cases::
 
     OperatorTest(
@@ -147,7 +151,8 @@ class AudioLoopTest(unittest.TestCase):
     Arg('output_dev', (str, tuple),
         'Onput ALSA device for string.  (card_name, sub_device) for tuple. '
         'For example: "hw:0,0" or ("audio_card", "0").', 'hw:0,0'),
-    Arg('output_volume', int, 'Output Volume', 10),
+    Arg('output_volume', (int, list), 'An int of output volume or a list of'
+        ' output volume candidates', 10),
     Arg('autostart', bool, 'Auto start option', False),
     Arg('require_dongle', bool, 'Require dongle option', False),
     Arg('check_dongle', bool,
@@ -213,10 +218,18 @@ class AudioLoopTest(unittest.TestCase):
       self._output_device = self.args.output_dev
       self._out_card = self.GetCardIndex(self._output_device)
 
-    self._output_volume = self.args.output_volume
+    self._output_volumes = self.args.output_volume
+    if isinstance(self._output_volumes, int):
+      self._output_volumes = [self._output_volumes]
+    self._output_volume_index = 0
+
     self._freq = _DEFAULT_FREQ_HZ
-    # Used in RunAudioFunTest() or AudioLoopBack() for test result.
-    self._test_result = True
+
+    # The test results under each output volume candidate.
+    # If any one of tests to conduct fails, test fails under that output
+    # volume candidate. If test fails under all output volume candidates,
+    # the whole test fails.
+    self._test_results = [True] * len(self._output_volumes)
     self._test_message = []
 
     self._mic_source = {'external': MicSource.external,
@@ -260,7 +273,10 @@ class AudioLoopTest(unittest.TestCase):
 
   def AppendErrorMessage(self, error_message):
     """Sets the test result to fail and append a new error message."""
-    self._test_result = False
+    self._test_results[self._output_volume_index] = False
+    self._test_message.append(
+        'Under output volume %r' % self._output_volumes[
+             self._output_volume_index])
     self._test_message.append(error_message)
     factory.console.error(error_message)
 
@@ -474,13 +490,26 @@ class AudioLoopTest(unittest.TestCase):
       else:
         factory.console.info('Got frequency %d' % freq)
 
-  def EndTest(self):
-    if self._test_result:
+  def MayPassTest(self):
+    """Checks if test can pass with result of one output volume.
+
+    Returns: True if test passes, False otherwise.
+    """
+    factory.console.info('Test results for output volume %r: %r',
+                         self._output_volumes[self._output_volume_index],
+                         self._test_results[self._output_volume_index])
+    if self._test_results[self._output_volume_index]:
       self._ui.CallJSFunction('testPassResult')
       time.sleep(0.5)
       self._ui.Pass()
-    else:
-      self._ui.Fail('; '.join(self._test_message))
+      return True
+    return False
+
+  def FailTest(self):
+    """Fails test."""
+    factory.console.info('Test results for each output volumes: %r',
+                         zip(self._output_volumes, self._test_results))
+    self._ui.Fail('; '.join(self._test_message))
 
   def StartRunTest(self, event): # pylint: disable=W0613
     jack_status = self._audio_util.GetAudioJackStatus(self._in_card)
@@ -504,11 +533,9 @@ class AudioLoopTest(unittest.TestCase):
     if self.args.require_dongle:
       self._audio_util.DisableSpeaker(self._out_card)
       self._audio_util.EnableHeadphone(self._out_card)
-      self._audio_util.SetHeadphoneVolume(self._output_volume, self._out_card)
     else:
       self._audio_util.DisableHeadphone(self._out_card)
       self._audio_util.EnableSpeaker(self._out_card)
-      self._audio_util.SetSpeakerVolume(self._output_volume, self._out_card)
 
     self._audio_util.DisableDmic(self._in_card)
     self._audio_util.DisableMLBDmic(self._in_card)
@@ -520,15 +547,26 @@ class AudioLoopTest(unittest.TestCase):
     elif self._mic_source == MicSource.mlb:
       self._audio_util.EnableMLBDmic(self._in_card)
 
-    for test in self.args.tests_to_conduct:
-      self._current_test_args = test
-      if test['type'] == 'audiofun':
-        self.AudioFunTest()
-      elif test['type'] == 'sinewav':
-        self.SinewavTest()
-      elif test['type'] == 'noise':
-        self.NoiseTest()
+    # Run each tests to conduct under each output volume candidate.
+    for self._output_volume_index, output_volume in enumerate(
+        self._output_volumes):
+      if self.args.require_dongle:
+        self._audio_util.SetHeadphoneVolume(output_volume, self._out_card)
       else:
-        raise ValueError('Test type "%s" not supported.' % test['type'])
+        self._audio_util.SetSpeakerVolume(output_volume, self._out_card)
 
-    self.EndTest()
+      for test in self.args.tests_to_conduct:
+        self._current_test_args = test
+        if test['type'] == 'audiofun':
+          self.AudioFunTest()
+        elif test['type'] == 'sinewav':
+          self.SinewavTest()
+        elif test['type'] == 'noise':
+          self.NoiseTest()
+        else:
+          raise ValueError('Test type "%s" not supported.' % test['type'])
+
+      if self.MayPassTest():
+        return
+
+    self.FailTest()
