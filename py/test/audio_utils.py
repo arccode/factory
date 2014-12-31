@@ -78,52 +78,61 @@ def GetPlaySineArgs(channel, odev='default', freq=1000, duration_secs=10,
   return cmdargs
 
 
+def TrimAudioFile(in_path, out_path, start, end,
+                  num_channel, sox_format=_DEFAULT_SOX_FORMAT):
+  """Trims an audio file using sox command.
+
+  Args:
+    in_path: Path to the input audio file.
+    out_path: Path to the output audio file.
+    start: The starting time in seconds of specified range.
+    end: The ending time in seconds of specified range.
+         Sets to None for the end of audio file.
+    num_channel: The number of channels in input file.
+    sox_format: Format to generate sox command.
+  """
+  cmd = "%s -c %s %s %s -c %s %s %s trim %s" % (
+      SOX_PATH, str(num_channel), sox_format, in_path,
+      str(num_channel), sox_format, out_path, str(start))
+  if end is not None:
+    cmd += str(end)
+
+  Spawn(cmd.split(' '), log=True, check_call=True)
+
+
 # Functions to compose customized sox command, execute it and process the
 # output of sox command.
-def SoxMixerOutput(in_file, channel,
-                   num_channels=DEFAULT_NUM_CHANNELS,
-                   sox_format=_DEFAULT_SOX_FORMAT):
+def SoxMixerOutput(in_file, channel, sox_format=_DEFAULT_SOX_FORMAT):
   """Gets sox mixer command to reduce channel.
 
   Args:
     in_file: Input file name.
     channel: The selected channel to take effect.
-    num_channels: The number of total channels to test.
     sox_format: A dict format to generate sox command.
 
   Returns:
     The output of sox mixer command
   """
-  # Build up a pan value string for the sox command.
-  if channel == 0:
-    pan_values = '1'
-  else:
-    pan_values = '0'
-  for pan_index in range(1, num_channels):
-    if channel == pan_index:
-      pan_values += ',1'
-    else:
-      pan_values += ',0'
+  # The selected channel from input.(1 for the first channel).
+  remix_channel = channel + 1
 
-  command = '%s -c 2 %s %s -c 1 %s - mixer %s' % (SOX_PATH,
-      sox_format, in_file, sox_format, pan_values)
-  return Spawn(command.split(' '), read_stdout=True).stdout_data
+  command = '%s -c 2 %s %s -c 1 %s - remix %s' % (SOX_PATH,
+      sox_format, in_file, sox_format, str(remix_channel))
+  return Spawn(command.split(' '), log=True, read_stdout=True).stdout_data
 
 
-def SoxStatOutput(in_file, channel, num_channels=DEFAULT_NUM_CHANNELS,
-                  sox_format=_DEFAULT_SOX_FORMAT):
+def SoxStatOutput(in_file, channel, sox_format=_DEFAULT_SOX_FORMAT):
   """Executes sox stat command.
 
   Args:
     in_file: Input file name.
     channel: The selected channel.
-    num_channels: The number of total channels to test.
     sox_format: Format to generate sox command.
 
   Returns:
     The output of sox stat command
   """
-  sox_output = SoxMixerOutput(in_file, channel, num_channels, sox_format)
+  sox_output = SoxMixerOutput(in_file, channel, sox_format)
   with tempfile.NamedTemporaryFile(delete=False) as temp_file:
     temp_file.write(sox_output)
   stat_cmd = '%s -c 1 %s %s -n stat' % (SOX_PATH, sox_format, temp_file.name)

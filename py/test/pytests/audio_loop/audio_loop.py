@@ -99,7 +99,7 @@ _DEFAULT_AUDIOFUN_TEST_THRESHOLD = 50
 # Default duration to do the audiofun test, in seconds.
 _DEFAULT_AUDIOFUN_TEST_DURATION = 10
 # Default duration to do the sinewav test, in seconds.
-_DEFAULT_SINEWAV_TEST_DURATION = 1
+_DEFAULT_SINEWAV_TEST_DURATION = 2
 # Default frequency tolerance, in Hz.
 _DEFAULT_SINEWAV_FREQ_THRESHOLD = 50
 # Default duration to do the noise test, in seconds.
@@ -110,6 +110,8 @@ _DEFAULT_SOX_RMS_THRESHOLD = (0.08, None)
 _DEFAULT_SOX_AMPLITUDE_THRESHOLD = (None, None)
 # Default AudioFun test pairs.
 _DEFAULT_AUDIOFUN_TEST_PAIRS = [(0, 0), (1, 1)]
+# Default duration in seconds to trim in the beginning of recorded file.
+_DEFAULT_TRIM_SECONDS = 0.5
 
 _UI_HTML = """
 <h1 id="message" style="position:absolute; top:45%">
@@ -135,7 +137,7 @@ class PlaySineThread(threading.Thread):
         seconds)
 
   def run(self):
-    Spawn(self.cmdargs.split(' '), check_call=True)
+    Spawn(self.cmdargs.split(' '), log=True, check_call=True)
 
 
 class AudioLoopTest(unittest.TestCase):
@@ -370,17 +372,15 @@ class AudioLoopTest(unittest.TestCase):
     for pair in test_pairs:
       self.AudioFunTestPair(pair[0], pair[1])
 
-  def TestLoopbackChannel(self, output_device, noise_file_name, num_channels):
+  def TestLoopbackChannel(self, output_device, num_channels):
     """Tests loopback on all channels.
 
     Args:
       output_device: Output devices
-      noise_file_name: Name of the file contains pre-recorded noise.
       num_channels: Number of channels to test
     """
     for channel in xrange(num_channels):
-      reduced_file_path = "/tmp/reduced-%d-%s.wav" % (channel, time.time())
-      record_file_path = "/tmp/record-%d-%s.wav" % (channel, time.time())
+      record_file_path = "/tmp/record-%d-%s.raw" % (channel, time.time())
 
       # Play thread has one more second to ensure record process can record
       # entire sine tone
@@ -391,65 +391,57 @@ class AudioLoopTest(unittest.TestCase):
       playsine_thread.start()
       time.sleep(0.5)
 
-      self.RecordFile(duration, file_path=record_file_path)
+      self.RecordFile(duration, record_file_path)
 
       playsine_thread.join()
 
-      audio_utils.NoiseReduceFile(record_file_path, noise_file_name,
-          reduced_file_path)
+      sox_output = audio_utils.SoxStatOutput(record_file_path, channel)
+      self.CheckRecordedAudio(sox_output)
 
-      sox_output_reduced = audio_utils.SoxStatOutput(reduced_file_path, channel)
-      self.CheckRecordedAudio(sox_output_reduced)
-
-      os.unlink(reduced_file_path)
       os.unlink(record_file_path)
 
   def SinewavTest(self):
     self._ui.CallJSFunction('testInProgress', None)
-    duration = self._current_test_args.get(
-        'duration', _DEFAULT_SINEWAV_TEST_DURATION)
-    # Record a sample of "silence" to use as a noise profile.
-    noise_file = self.RecordFile(duration)
 
     # Playback sine tone and check the recorded audio frequency.
-    self.TestLoopbackChannel(self._output_device, noise_file.name,
-        audio_utils.DEFAULT_NUM_CHANNELS)
-    os.unlink(noise_file.name)
+    self.TestLoopbackChannel(
+        self._output_device, audio_utils.DEFAULT_NUM_CHANNELS)
 
   def NoiseTest(self):
     self._ui.CallJSFunction('testInProgress', None)
     # Record the noise file.
     duration = self._current_test_args.get(
         'duration', _DEFAULT_NOISE_TEST_DURATION)
-    noise_file = self.RecordFile(duration)
+    noise_file_path = "/tmp/noise-%s.wav" % time.time()
+    # Do not trim because we want to check all possible noises and artifacts.
+    self.RecordFile(duration, noise_file_path, None)
 
     # Since we have actually only 1 channel, we can just give channel=0 here.
-    sox_output = audio_utils.SoxStatOutput(noise_file.name, 0)
+    sox_output = audio_utils.SoxStatOutput(noise_file_path, 0)
     self.CheckRecordedAudio(sox_output)
-    os.unlink(noise_file.name)
+    os.unlink(noise_file_path)
 
-  def RecordFile(self, duration, file_path=None):
-    """Records file for *duration* seconds and returns the file obj.  Optionally
-    renames the file to *file_path*.  The caller is responsible for removing the
-    file at last.
+  def RecordFile(self, duration, file_path, trim=_DEFAULT_TRIM_SECONDS):
+    """Records file for *duration* seconds.
+
+    The caller is responsible for removing the file at last.
 
     Args:
       duration: Recording duration, in seconds.
-      file_path: If not None, name the recorded file as *file_path*.
-
-    Return:
-      The recorded file object.
+      file_path: The file path to recorded file.
+      trim: If not None, the number of seconds in the beginning to trim.
     """
-    if file_path is None:
-      recorded_file = tempfile.NamedTemporaryFile(delete=False)
-    else:
-      recorded_file = open(file_path, 'w')
+    record_path = (tempfile.NamedTemporaryFile(delete=False).name if trim
+                   else file_path)
 
     rec_cmd = ['arecord', '-D', self._input_device, '-f', 'dat', '-d',
-        str(duration)]
-    Spawn(rec_cmd + [recorded_file.name], check_call=True)
+        str(duration), '-t', 'raw', record_path]
+    Spawn(rec_cmd, log=True, check_call=True)
 
-    return recorded_file
+    if trim:
+      audio_utils.TrimAudioFile(in_path=record_path, out_path=file_path,
+                                start=trim, end=None, num_channel=2)
+      os.unlink(record_path)
 
   def CheckRecordedAudio(self, sox_output):
     rms_value = audio_utils.GetAudioRms(sox_output)
