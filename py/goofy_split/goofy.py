@@ -175,7 +175,6 @@ class Goofy(GoofyBase):
     self.test_lists = None
     self.run_id = None
     self.scheduled_run_tests = None
-    self.on_ui_startup = []
     self.env = None
     self.last_idle = None
     self.last_shutdown_time = None
@@ -1512,9 +1511,6 @@ class Goofy(GoofyBase):
       self.event_client.post_event(
           Event(Event.Type.STATE_CHANGE, path=test.path, state=test_state))
     self.test_list.state_change_callback = state_change_callback
-
-    for handler in self.on_ui_startup:
-      handler()
 
     self.autotest_prespawner = prespawner.AutotestPrespawner()
     self.autotest_prespawner.start()
