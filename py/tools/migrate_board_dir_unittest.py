@@ -5,13 +5,14 @@
 # found in the LICENSE file.
 
 
+from datetime import date
 import mox
 import os
 import shutil
+from StringIO import StringIO
 import sys
 import tempfile
 import unittest
-from StringIO import StringIO
 
 import factory_common  # pylint: disable=W0611
 from cros.factory.tools import migrate_board_dir
@@ -249,9 +250,9 @@ WATCH OUT FOR THE CATS!!!"""
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file."""
     content2_after = """\
-# Copyright 2014 The Chromium OS Authors. All rights reserved.
+# Copyright %d The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
-# found in the LICENSE file."""
+# found in the LICENSE file.""" % date.today().year
 
     files_before_replacement = {
         os.path.join(self.temp_dir, 'file1'): content1_before,
