@@ -406,10 +406,10 @@ batt_state_of_charge = 52%
 
   def testGetUSBPDStatus(self):
     self.board._CallECTool(
-        ['--interface=lpc', '--dev=1', 'usbpd', '0']).AndReturn(
+        ['--interface=dev', '--dev=1', 'usbpd', '0']).AndReturn(
             'Port C0 is enabled, Role:SRC Polarity:CC1 State:8')
     self.board._CallECTool(
-        ['--interface=lpc', '--dev=1', 'usbpd', '1']).AndReturn(
+        ['--interface=dev', '--dev=1', 'usbpd', '1']).AndReturn(
             'Port C1 is disabled, Role:SNK Polarity:CC2 State:11')
 
     self.mox.ReplayAll()
