@@ -312,11 +312,3 @@ class Board(object):
 
     """
     raise NotImplementedError
-
-  def CheckACPresent(self):
-    """Checks if AC power is present.
-
-    Returns:
-      True if AC power is present; False otherwise.
-    """
-    raise NotImplementedError

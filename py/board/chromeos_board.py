@@ -293,6 +293,3 @@ class ChromeOSBoard(Board):
       return int(gpio_value[0])
     else:
       raise BoardException('Fail to get GPIO %s value' % gpio_name)
-
-  def CheckACPresent(self):
-    return self.power.CheckACPresent()
