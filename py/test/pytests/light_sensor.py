@@ -4,8 +4,10 @@
 # found in the LICENSE file.
 
 
-"""Tests that ambient light sensor reacts to both darkening by
-covering w/finger as well as brightening.
+"""A factory test for ambient light sensor.
+
+Tests that ambient light sensor reacts to both darkening by covering w/finger
+as well as brightening.
 
 Roughly speaking:
 
@@ -13,6 +15,8 @@ Roughly speaking:
 - sunlight direct: 30k-60k
 - flashlight direct: 5k-10k
 """
+
+from __future__ import print_function
 
 import logging
 import math
@@ -34,9 +38,9 @@ _DEFAULT_SUBTEST_CFG = {'Light sensor dark': {'below': 4},
                         'Light sensor exact': {'between': (10, 15)},
                         'Light sensor light': {'above': 200}}
 _DEFAULT_SUBTEST_INSTRUCTION = {
-  'Light sensor dark': 'Cover light sensor with finger',
-  'Light sensor exact': 'Remove finger from light sensor',
-  'Light sensor light': 'Shine light sensor with flashlight'}
+    'Light sensor dark': 'Cover light sensor with finger',
+    'Light sensor exact': 'Remove finger from light sensor',
+    'Light sensor light': 'Shine light sensor with flashlight'}
 
 _DEFAULT_DEVICE_PATH = '/sys/bus/iio/devices/iio:device0/'
 _DEFAULT_DEVICE_INPUT = 'illuminance0_input'
@@ -64,7 +68,8 @@ window.onkeydown = function(event) {
 }
 """
 
-class iio_generic():
+
+class iio_generic(object):
   """Object to interface to ambient light sensor over iio.
 
   Properties:
@@ -166,18 +171,18 @@ class iio_generic():
 class LightSensorTest(unittest.TestCase):
   """Tests light sensor."""
   ARGS = [
-    Arg('device_path', str, 'device path', _DEFAULT_DEVICE_PATH),
-    Arg('device_input', str, 'device input file', _DEFAULT_DEVICE_INPUT),
-    Arg('timeout_per_subtest', int, 'timeout for each subtest', 10),
-    Arg('subtest_list', list, 'subtest list', optional=True),
-    Arg('subtest_cfg', dict, 'subtest configuration', optional=True),
-    Arg('subtest_instruction', dict, 'subtest instruction', optional=True),
-    Arg('check_per_subtest', int, 'check times for each subtest', 3),
-    Arg('init_command', list, 'Setup device command', optional=True),
+      Arg('device_path', str, 'device path', _DEFAULT_DEVICE_PATH),
+      Arg('device_input', str, 'device input file', _DEFAULT_DEVICE_INPUT),
+      Arg('timeout_per_subtest', int, 'timeout for each subtest', 10),
+      Arg('subtest_list', list, 'subtest list', optional=True),
+      Arg('subtest_cfg', dict, 'subtest configuration', optional=True),
+      Arg('subtest_instruction', dict, 'subtest instruction', optional=True),
+      Arg('check_per_subtest', int, 'check times for each subtest', 3),
+      Arg('init_command', list, 'Setup device command', optional=True),
 
-    # Special parameter for ISL 29018 light sensor
-    Arg('range_value', int, 'one of value (1000, 4000, 16000, 64000)',
-        optional=True),
+      # Special parameter for ISL 29018 light sensor
+      Arg('range_value', int, 'one of value (1000, 4000, 16000, 64000)',
+          optional=True),
   ]
 
   def setUp(self):
@@ -186,11 +191,10 @@ class LightSensorTest(unittest.TestCase):
 
     try:
       self._als = iio_generic(self.args.device_path, self.args.device_input,
-          self.args.range_value, self.args.init_command)
+                              self.args.range_value, self.args.init_command)
     except ValueError as e:
       self.ui.Fail(e)
       return
-    StartDaemonThread(target=self.MonitorSensor)
 
     self.ui.AppendCSS(_CSS_LIGHT_SENSOR_TEST)
     self.ui.RunJS(_JS_LIGHT_SENSOR_TEST)
@@ -201,7 +205,7 @@ class LightSensorTest(unittest.TestCase):
     self._subtest_cfg = _DEFAULT_SUBTEST_CFG
     self._subtest_instruction = _DEFAULT_SUBTEST_INSTRUCTION
     self.GetSubtest(self.args.subtest_list, self.args.subtest_cfg,
-        self.args.subtest_instruction)
+                    self.args.subtest_instruction)
 
     self._timeout_per_subtest = self.args.timeout_per_subtest
     self._iter_req_per_subtest = self.args.check_per_subtest
@@ -215,17 +219,18 @@ class LightSensorTest(unittest.TestCase):
     test = 0
     for name in self._subtest_list:
       self.ui.SetHTML(self._subtest_instruction[name], id="title%d" % test)
-      desc = "%s (%s)" % (name,
-          self.GetConfigDescription(self._subtest_cfg[name]))
+      desc = "%s (%s)" % (
+          name, self.GetConfigDescription(self._subtest_cfg[name]))
       self.ui.SetHTML(desc, id="desc%d" % test)
       self.ui.SetHTML(" : UNTESTED", id="result%d" % test)
       test += 1
 
+    StartDaemonThread(target=self.MonitorSensor)
+
   def StartCountDown(self, event): # pylint: disable=W0613
     self._started = True
     self._active_subtest = self._subtest_list[0]
-    self.ui.SetHTML(" : ACTIVE",
-        id="result%d" % self._tested)
+    self.ui.SetHTML(" : ACTIVE", id="result%d" % self._tested)
     StartCountdownTimer(self._timeout_per_subtest * len(self._subtest_list),
                         self.TimeoutHandler,
                         self.ui,
@@ -237,8 +242,7 @@ class LightSensorTest(unittest.TestCase):
       self.ui.Pass()
       return False
     self._active_subtest = self._subtest_list[self._tested]
-    self.ui.SetHTML(" : ACTIVE",
-        id="result%d" % self._tested)
+    self.ui.SetHTML(" : ACTIVE", id="result%d" % self._tested)
     self._current_iter_remained = self._iter_req_per_subtest
     self._cumulative_val = 0
     return True
@@ -253,8 +257,7 @@ class LightSensorTest(unittest.TestCase):
       self.ui.SetHTML(" : PASSED", id="result%d" % self._tested)
       self._current_iter_remained = self._iter_req_per_subtest
       mean_val = self._cumulative_val / self._iter_req_per_subtest
-      logging.info('Passed subtest "%s" with mean value %d.',
-                  name, mean_val)
+      logging.info('Passed subtest "%s" with mean value %d.', name, mean_val)
       if not self.NextSubtest():
         return
 
