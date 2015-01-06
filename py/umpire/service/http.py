@@ -55,6 +55,8 @@ ROOT_RPC_PREFIX = '/RPC2'
 UMPIRE_RPC_PREFIX = '/umpire'
 # Handles /resourcemap request
 RESOURCEMAP_APP_PREFIX = '/resourcemap'
+# Handles POST upload request
+POST_UPLOAD_PREFIX = '/upload'
 
 # Maximum number of file descriptors when run as root
 HTTPD_MAX_FDS = 32768
@@ -224,6 +226,10 @@ class HTTPService(umpire_service.UmpireService):
     umpire_proxy_handlers[RESOURCEMAP_APP_PREFIX] = [{
         'host': _LOCALHOST,
         'port': env.umpire_webapp_port}]
+    # POST Upload
+    umpire_proxy_handlers[POST_UPLOAD_PREFIX] = [{
+        'host': _LOCALHOST,
+        'port': env.umpire_http_post_port}]
     config_writer.Write({'proxy.server': umpire_proxy_handlers})
 
     # Generate conditional HTTP accelerator blocks.

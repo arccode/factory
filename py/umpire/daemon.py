@@ -20,6 +20,7 @@ from twisted.web import server, wsgi, xmlrpc
 import factory_common  # pylint: disable=W0611
 from cros.factory.common import AttrDict, Singleton
 from cros.factory.umpire.common import UmpireError
+from cros.factory.umpire.http_post_resource import HTTPPOSTResource
 from cros.factory.umpire.service.umpire_service import (
     GetAllServiceNames, GetServiceInstance)
 from cros.factory.umpire.utils import ConcentrateDeferreds
@@ -108,7 +109,7 @@ class UmpireDaemon(object):
     d.addErrback(HandleStartError)
 
   def BuildWebAppSite(self, interface=LOCALHOST):
-    """Buulds web application resource and site."""
+    """Builds web application resource and site."""
     if not self.web_applications:
       raise UmpireError('Can not build web site without web application')
     # Build wsgi site.
@@ -138,6 +139,13 @@ class UmpireDaemon(object):
     self.twisted_ports.append(reactor.listenTCP(port, rpc_site,
                                                 interface=interface))
 
+  def BuildHTTPPOSTSite(self, port, interface=LOCALHOST):
+    """Builds HTTP POST resource and site."""
+    http_post_resource = HTTPPOSTResource(self.env)
+    http_post_site = server.Site(http_post_resource)
+    self.twisted_ports.append(reactor.listenTCP(port, http_post_site,
+                                                interface=interface))
+
   def Run(self):
     """Starts the daemon and event loop."""
     self.BuildWebAppSite()
@@ -145,6 +153,8 @@ class UmpireDaemon(object):
     # same host. Hence keep interface=LOCALHOST default value.
     self.BuildRPCSite(self.env.umpire_cli_port, self.methods_for_cli)
     self.BuildRPCSite(self.env.umpire_rpc_port, self.methods_for_dut)
+
+    self.BuildHTTPPOSTSite(self.env.umpire_http_post_port)
     # Install signal handler.
     signal(SIGTERM, self._HandleStopSignal)
     signal(SIGINT, self._HandleStopSignal)
