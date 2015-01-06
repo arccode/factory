@@ -246,6 +246,8 @@ start_factory() {
   export XAUTHORITY="/home/chronos/.Xauthority"
 
   # Rules to start Goofy. Not this has to sync with init/startup.
+  local tag_device="${RUN_GOOFY_DEVICE_TAG_FILE}"
+  local tag_presenter="${RUN_GOOFY_PRESENTER_TAG_FILE}"
   if [ -f "${tag_presenter}" -a ! -f "${tag_device}" ]; then
     # Presenter-only mode.
     # Note presenter output is only kept in SESSION_LOG_FILE.
