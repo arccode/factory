@@ -11,6 +11,7 @@ Scans given python modules and see their dependency. Usage:
 
 from __future__ import print_function
 
+import atexit
 import distutils.sysconfig as sysconfig
 import importlib
 import os
@@ -19,13 +20,6 @@ import sys
 import traceback
 
 import yaml
-import atexit
-
-# WORKAROUND: List of modules that can't be loaded multiple times by deleting
-# reference in sys.modules.
-# TODO(hungte) Find a better way to prevent this workaround, ex hooking
-# __import__.
-import zope.interface
 
 
 # Constants for config file.
@@ -33,6 +27,8 @@ CONFIG_GROUPS = r'groups'
 CONFIG_RULES = r'rules'
 CONFIG_GROUP_PATTERN = re.compile(r'^<([^<>].*)>$')
 CONFIG_WILD_IMPORTS = r'*'
+
+ENV_EXIT_VALUE = 'DEPS_EXIT_VALUE'
 
 
 def GetDependencyList(path, base, exclude, include):
@@ -179,7 +175,7 @@ def main(argv):
   base = sys.modules.copy()
   standard_lib = sysconfig.get_python_lib(standard_lib=True)
   site_packages = sysconfig.get_python_lib(standard_lib=False)
-  exit_value = 0
+  exit_value = int(os.getenv(ENV_EXIT_VALUE, '0'))
 
   # Configuration file should be located in same folder.
   # "cros.factory" should be mapped to parent folder of this program.
@@ -189,14 +185,14 @@ def main(argv):
       os.path.dirname(os.path.abspath(__file__)),
       '..'))
 
-  for path in argv:
-    if not path.endswith('.py'):
+  for argv_path in argv:
+    if not argv_path.endswith('.py'):
       continue
-    if path.endswith('_unittest.py'):
+    if argv_path.endswith('_unittest.py'):
       continue
     # For symlink python files, we want to keep its path directory so abspath
     # is better than realpath.
-    path = os.path.abspath(path)
+    path = os.path.abspath(argv_path)
     print('--- %s ---' % os.path.relpath(path))
     try:
       # Exclude Python Standard Library and include site packages.
@@ -207,12 +203,19 @@ def main(argv):
         print('\n'.join(bad_imports))
         exit_value = 1
     except Exception as e:
+      # Import system may have been corrupted by packages with static
+      # registration like Zope or Twisted. Let's try again.
+      if argv.index(argv_path) > 0:
+        print("(cleaning import space for %s)" % argv_path)
+        os.putenv(ENV_EXIT_VALUE, str(exit_value))
+        os.execlp(sys.argv[0], sys.argv[0], *argv[argv.index(argv_path):])
+
       tb = traceback.format_exc()
       print('Failed checking %s: %s' % (path, e))
       print(tb)
       exit_value = 1
   # Workaround modules that registered atexit hooks.
-  atexit._exithandlers = []
+  atexit._exithandlers = []  # pylint: disable=W0212
   sys.exit(exit_value)
 
 
