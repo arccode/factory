@@ -17,6 +17,7 @@ Be sure to set AP correctly.
 3. Make sure SSID of AP is unique.
 """
 
+from __future__ import print_function
 import logging
 import re
 import sys
@@ -224,7 +225,9 @@ class WirelessTest(unittest.TestCase):
         default=5),
     Arg('switch_antenna_sleep_secs', int, 'The sleep time after switching'
         'antenna and ifconfig up. Need to decide this value carefully since it'
-        'depends on the platform and antenna config to test.', default=10)
+        'depends on the platform and antenna config to test.', default=10),
+    Arg('disable_switch', bool, 'Do not switch antenna, just check "all" '
+        'config.', default=False)
   ]
 
   def setUp(self):
@@ -356,6 +359,13 @@ class WirelessTest(unittest.TestCase):
       antenna: The target antenna config. This should be one of the keys in
                _ANTENNA_CONFIG
     """
+    if self.args.disable_switch:
+      logging.info('Switching antenna is disabled. Skipping setting antenna to'
+                   ' %s. Just bring up the interface.', antenna)
+      # Bring up the interface because IwSetAntenna brings up interface after
+      # antenna is switched.
+      IfconfigUp(self.args.device_name, self.args.switch_antenna_sleep_secs)
+      return
     tx_bitmap, rx_bitmap = _ANTENNA_CONFIG[antenna]
     IwSetAntenna(self.args.device_name, self._phy_name,
                  tx_bitmap, rx_bitmap,
@@ -503,6 +513,9 @@ class WirelessTest(unittest.TestCase):
 
     logging.info('All candidate services: %s', set_all_services)
     logging.info('All required antenna configs: %s', set_all_antennas)
+    if self.args.disable_switch and set_all_antennas != set(['all']):
+      self.fail('Switching antenna is disabled but antenna configs are %s' %
+                set_all_antennas)
 
     # Scans using antenna 'all'.
     self._antenna_service_strength['all'] = self.ScanAndAverageSignals(
