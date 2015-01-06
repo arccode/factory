@@ -36,13 +36,11 @@ main() {
   local tag_presenter="${MYDIR}/run_goofy_presenter"
   local tag_device="${MYDIR}/run_goofy_device"
 
-  if [ -f "${tag_presenter}" -a ! -f "${tag_device}" ]; then
+  if [ -f "${tag_presenter}" ]; then
+    # Presenter-only or standalone mode.
     mount --bind "${MYDIR}/etc/presenter.conf" /etc/chrome_dev.conf
-  elif [ ! -f "${tag_presenter}" -a -f "${tag_device}" ]; then
-    # Device-only mode.
-    true
-  else
-    # standalone mode.
+  elif [ ! -f "${tag_device}" ]; then
+    # Monolithic mode.
     mount --bind "${MYDIR}/etc/chrome_dev.conf" /etc/chrome_dev.conf
   fi
 }

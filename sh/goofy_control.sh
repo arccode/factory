@@ -248,19 +248,25 @@ start_factory() {
   # Rules to start Goofy. Not this has to sync with init/startup.
   local tag_device="${RUN_GOOFY_DEVICE_TAG_FILE}"
   local tag_presenter="${RUN_GOOFY_PRESENTER_TAG_FILE}"
-  if [ -f "${tag_presenter}" -a ! -f "${tag_device}" ]; then
-    # Presenter-only mode.
+  local run_device=true
+
+  if [ -f "${tag_presenter}" ]; then
+    if [ -f "${tag_device}" ]; then
+      PRESENTER_ARGS="${PRESENTER_ARGS} --standalone"
+      GOOFY_ARGS="${GOOFY_ARGS} --standalone"
+    else
+      # Presenter-only.
+      run_device=false
+    fi
     # Note presenter output is only kept in SESSION_LOG_FILE.
     echo "Starting Goofy Presenter... ($PRESENTER_ARGS)"
     "$FACTORY/bin/goofy_presenter" $PRESENTER_ARGS &
-  else
-    if [ ! -f "${tag_presenter}" -a -f "${tag_device}" ]; then
-      # Device-only mode.
-      true
-    else
-      # Stand-alone mode.
-      GOOFY_ARGS="${GOOFY_ARGS} --standalone"
-    fi
+  elif [ ! -f "${tag_device}" ]; then
+    # Monolithic mode.
+    GOOFY_ARGS="${GOOFY_ARGS} --monolithic"
+  fi
+
+  if "${run_device}"; then
     echo "Starting Goofy Device... ($GOOFY_ARGS)"
     echo "
     --- $(date +'%Y%m%d %H:%M:%S') Starting new Goofy session ($GOOFY_ARGS) ---
