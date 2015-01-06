@@ -8,11 +8,17 @@ var g_use_sn_input = false;
 // Whether to load/store data on USB drive.
 var g_use_usb = false;
 
+// Whether the DUT should control fixture
+var g_use_fxt = false;
+
 // Whether to use Enter key to start the test.
 var g_use_enter_key = false;
 
 // Whether the USB drive is loaded.
 var g_is_usb_loaded = false;
+
+// Whether fixture is loaded
+var g_is_fxt_loaded = false;
 
 // Whether the test is running or not. Because UI is running in background
 // thread, we need to disable 'Start Test' button when the test is
@@ -27,6 +33,10 @@ var label_usb_loaded = '<span class="goofy-label-en">LOADED</span>' +
     '<span class="goofy-label-zh">已载入</span>';
 var label_usb_unloaded = '<span class="goofy-label-en">UNLOADED</span>' +
     '<span class="goofy-label-zh">未载入</span>';
+var label_fxt_loaded = '<span class="goofy-label-en">OK</span>' +
+    '<span class="goofy-label-zh">已连接</span>';
+var label_fxt_unloaded = '<span class="goofy-label-en">UNAVAILABLE</span>' +
+    '<span class="goofy-label-zh">未连接</span>';
 
 
 ////////////////////////////////////////////////////////////
@@ -39,8 +49,7 @@ var label_usb_unloaded = '<span class="goofy-label-en">UNLOADED</span>' +
  */
 function InitForCalibration() {
   document.getElementById("main_screen").hidden = false;
-  button_style = GetStartTestButton().style.visibility =
-      'hidden';
+  button_style = GetStartTestButton().style.visibility = 'hidden';
   document.getElementById("preview_image").hidden = false;
 }
 
@@ -50,8 +59,7 @@ function InitForCalibration() {
  */
 function InitForLensShadingTest() {
   document.getElementById("main_screen").hidden = false;
-  button_style = GetStartTestButton().style.visibility =
-      'hidden';
+  button_style = GetStartTestButton().style.visibility = 'hidden';
   document.getElementById("preview_image").hidden = false;
 }
 
@@ -61,8 +69,7 @@ function InitForLensShadingTest() {
  */
 function InitForQRCodeTest() {
   document.getElementById("main_screen").hidden = false;
-  button_style = GetStartTestButton().style.visibility =
-      'hidden';
+  button_style = GetStartTestButton().style.visibility = 'hidden';
   document.getElementById("preview_image").hidden = false;
 }
 
@@ -71,10 +78,17 @@ function InitForQRCodeTest() {
  * Init layout for IQ test on light chamber.
  *
  * @param {string} data_method Data method defined in CameraFixture.ARGS[]
+ * @param {bool} control_chamber Whether or not DUT controls the chamber
  */
-function InitForIQTest(data_method) {
+function InitForTest(data_method, control_chamber) {
   // Hide main test screen, and show prompt screen for USB drive or ethernet
   // dongle.
+
+  if (control_chamber) {
+    document.getElementById("fixture_status_panel").hidden = false;
+    g_use_fxt = true;
+  }
+
   if (data_method == "Simple") {
     // do nothing
   } else if (data_method == "USB") {
@@ -215,6 +229,28 @@ function UpdateUSBStatus(is_loaded) {
 }
 
 
+/**
+ * Updates Fixture load status.
+ * @param {bool} is_loaded Whether Fixture is loaded.
+ */
+function UpdateFixtureStatus(is_loaded) {
+  g_is_fxt_loaded = is_loaded;
+
+  fxt_status = document.getElementById("fixture_status");
+  fxt_status_text = document.getElementById("fixture_status_text");
+
+  if (is_loaded) {
+    fxt_status_text.innerHTML = label_fxt_loaded;
+    fxt_status.className = "panel_good";
+  } else {
+    fxt_status_text.innerHTML = label_fxt_unloaded;
+    fxt_status.className = "panel_bad";
+  }
+
+  OnCheckButtonState();
+}
+
+
 ////////////////////////////////////////////////////////////
 // Event handlers
 ////////////////////////////////////////////////////////////
@@ -289,6 +325,7 @@ function OnCheckButtonState() {
 
   if (!g_is_test_running &&
       (!g_use_usb || g_is_usb_loaded) &&
+      (!g_use_fxt || g_is_fxt_loaded) &&
       (!g_use_sn_input ||
        (sn_input_box.validity.valid && sn_input_box.value.length > 0))) {
     button.disabled = false;

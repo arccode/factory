@@ -36,6 +36,9 @@ class ALSLightChamber(object):
     self._fixture_cmd = fixture_cmd
     self._mock_mode = mock_mode
 
+  def Connect(self):
+    self._fixture_conn.Connect()
+
   def EnableALS(self):
     if self._mock_mode:
       return True

@@ -80,6 +80,9 @@ class LightChamber(object):
     """
     self.DisableCamera()
 
+  def Connect(self):
+    self.fixture_conn.Connect()
+
   def GetTestChartFile(self):
     return os.path.join(os.path.dirname(__file__), 'static',
                         _TEST_CHART_FILE % self.test_chart_version)

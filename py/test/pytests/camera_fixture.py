@@ -409,8 +409,9 @@ class _TestDelegate(object):
   """
 
   def __init__(self, delegator, mock_mode, test_type, chamber, fixture_type,
-               control_chamber, data_method, local_ip, param_pathname,
-               param_dict, save_good_image, save_bad_image):
+               control_chamber, chamber_n_retries, chamber_retry_delay,
+               data_method, local_ip, param_pathname, param_dict,
+               save_good_image, save_bad_image):
     """Initalizes _TestDelegate.
 
     Args:
@@ -420,6 +421,8 @@ class _TestDelegate(object):
       chamber: Instance of LightChamber.
       fixture_type: Fixture enum.
       control_chamber: Whether or not to control the chart in the light chamber.
+      chamber_n_retries: Number of retries when connecting.
+      chamber_retry_delay: Delay between connection retries.
       data_method: DataMethod enum.
       local_ip: Check CameraFixture.ARGS for detailed description.
       param_pathname: ditto.
@@ -435,6 +438,8 @@ class _TestDelegate(object):
     self.chamber = chamber
     self.fixture_type = fixture_type
     self.control_chamber = control_chamber
+    self.chamber_n_retries = chamber_n_retries
+    self.chamber_retry_delay = chamber_retry_delay
 
     # Basic config set by test_list.
     self.data_method = data_method
@@ -469,6 +474,9 @@ class _TestDelegate(object):
       self.params = self._LoadParamsFromUSB()
     elif self.data_method == DataMethod.SF:
       self.params = self._LoadParamsFromShopfloor()
+
+    MediaMonitor('usb-serial').Start(on_insert=self._OnU2SInsertion,
+                                     on_remove=self._OnU2SRemoval)
 
     # Basic pre-processing of the parameters.
     self._Log('Parameter version: %s\n' % self.params['version'])
@@ -1104,6 +1112,17 @@ class _TestDelegate(object):
     l.append('}')
     return '\n'.join(l)
 
+  def _SetupFixture(self):
+    """Initialize the communication with the fixture."""
+    try:
+      self.chamber.Connect()
+    except Exception as e:
+      self._Log(str(e))
+      self._Log('Failed to initialize the test fixture.')
+      return False
+    self._Log('Test fixture successfully initialized.')
+    return True
+
   def _OnUSBInsertion(self, dev_path):
     self.usb_dev_path = dev_path
     self.usb_ready_event.set()
@@ -1114,12 +1133,30 @@ class _TestDelegate(object):
     self.usb_dev_path = None
     self.delegator.ui.CallJSFunction('UpdateUSBStatus', False)
 
+  def _OnU2SInsertion(self, _):
+    if self.params:
+      cnt = 0
+      while not self._SetupFixture():
+        cnt += 1
+        if cnt >= self.chamber_n_retries:
+          self.delegator.ui.CallJSFunction('UpdateFixtureStatus', False)
+          return
+        time.sleep(self.chamber_retry_delay)
+      self.delegator.ui.CallJSFunction('UpdateFixtureStatus', True)
+
+  def _OnU2SRemoval(self, _):
+    if self.params:
+      self.delegator.ui.CallJSFunction('UpdateFixtureStatus', False)
+
+
 class CameraFixture(unittest.TestCase):
   """Camera fixture main class."""
   ARGS = [
     # main test type
     Arg('test_type', str, 'What to test. '
         'Supported types: Calibration, LensShading, and IQ.'),
+
+    # chamber connection
     Arg('control_chamber', bool, 'Whether or not to control the chart in the '
         'light chamber.', default=False),
     Arg('chamber_conn_params', (dict, str), 'Chamber connection parameters, '
@@ -1128,6 +1165,10 @@ class CameraFixture(unittest.TestCase):
         'LightChamber.Charts and a list of tuple (cmd, response) required to '
         "activate the chart. 'response' can be None to disable checking.",
         default=None, optional=True),
+    Arg('chamber_n_retries', int, 'Number of retries when connecting.',
+        default=10),
+    Arg('chamber_retry_delay', int, 'Delay between connection retries.',
+        default=2),
 
     # test environment
     Arg('fixture_type', str, 'Type of the light chamber/panel. '
@@ -1403,6 +1444,8 @@ class CameraFixture(unittest.TestCase):
         chamber=self.chamber,
         fixture_type=self.fixture_type,
         control_chamber=self.args.control_chamber,
+        chamber_n_retries=self.args.chamber_n_retries,
+        chamber_retry_delay=self.args.chamber_retry_delay,
         data_method=self.DATA_METHODS[self.args.data_method],
         local_ip=self.args.local_ip,
         param_pathname=self.args.param_pathname,
@@ -1410,7 +1453,8 @@ class CameraFixture(unittest.TestCase):
         save_good_image=self.args.IQ_save_good_image,
         save_bad_image=self.args.IQ_save_bad_image)
 
-    self.ui.CallJSFunction('InitForIQTest', self.args.data_method)
+    self.ui.CallJSFunction('InitForTest', self.args.data_method,
+                           self.args.control_chamber)
     self.ui.CallJSFunction('UpdateTextLabel', MSG_TITLE_IQ_TEST,
                            ID_MAIN_SCREEN_TITLE)
 
