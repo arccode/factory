@@ -819,7 +819,9 @@ class Goofy(GoofyBase):
   def _run_test(self, test, iterations_left=None, retries_left=None):
     if not self._ui_initialized and not test.is_no_host():
       self.init_ui()
-    invoc = TestInvocation(self, test, on_completion=self.run_next_test)
+    invoc = TestInvocation(
+        self, test, on_completion=self.run_next_test,
+        on_test_failure=system.GetBoard().OnTestFailure)
     new_state = test.update_state(
         status=TestState.ACTIVE, increment_count=1, error_msg='',
         invocation=invoc.uuid, iterations_left=iterations_left,
@@ -947,6 +949,8 @@ class Goofy(GoofyBase):
         a single test or a list).  Duplicates will be ignored.
       untested_only: True to run untested tests only.
     """
+    system.GetBoard().OnTestStart()
+
     if type(subtrees) != list:
       subtrees = [subtrees]
 
@@ -1552,6 +1556,8 @@ class Goofy(GoofyBase):
               lambda: self.run_tests(self.test_list, untested_only=True))
     self.state_instance.set_shared_data('tests_after_shutdown', None)
     self.restore_active_run_state()
+
+    system.GetBoard().OnTestStart()
 
     self.may_disable_cros_shortcut_keys()
 

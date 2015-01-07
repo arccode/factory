@@ -312,3 +312,22 @@ class Board(object):
 
     """
     raise NotImplementedError
+
+  def OnTestStart(self):
+    """Callback invoked when factory test starts.
+
+    This method is called when goofy starts or when the operator
+    starts a test manually. This can be used to light up a green
+    LED or send a notification to a remote server.
+    """
+    pass
+
+  def OnTestFailure(self):
+    """Callback invoked when a test fails.
+
+    This method can be used to bring the attention of the operators
+    when a display is not available. For example, lightting up a red
+    LED may help operators identify failing device on the run-in
+    rack easily.
+    """
+    pass

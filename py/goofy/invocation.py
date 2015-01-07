@@ -186,7 +186,7 @@ class TestInvocation(object):
     aborted_reason: A reason that the test was aborted (e.g.,
       'Stopped by operator' or 'Factory update')
   """
-  def __init__(self, goofy, test, on_completion=None):
+  def __init__(self, goofy, test, on_completion=None, on_test_failure=None):
     """Constructor.
 
     Args:
@@ -194,12 +194,15 @@ class TestInvocation(object):
       test: The FactoryTest object to test.
       on_completion: Callback to invoke in the goofy event queue
         on completion.
+      on_test_failure: Callback to invoke in the goofy event queue
+        when the test fails.
     """
     self.goofy = goofy
     self.test = test
     self.thread = threading.Thread(
         target=self._run, name='TestInvocation-%s' % test.path)
     self.on_completion = on_completion
+    self.on_test_failure = on_test_failure
     post_shutdown_tag = state.POST_SHUTDOWN_TAG % test.path
     if factory.get_shared_data(post_shutdown_tag):
       # If this is going to be a post-shutdown run of an active shutdown test,
@@ -670,6 +673,8 @@ class TestInvocation(object):
       self._completed = True
 
     self.goofy.run_queue.put(self.goofy.reap_completed_tests)
+    if status == TestState.FAILED:
+      self.goofy.run_queue.put(self.on_test_failure)
     if self.on_completion:
       self.goofy.run_queue.put(self.on_completion)
 
