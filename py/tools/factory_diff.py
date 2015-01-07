@@ -54,7 +54,7 @@ OTHER_REPO_LIST = ['src/platform/touch_updater', 'src/platform/mosys',
 
 # The kernel repo has several different versions. The actual kernel version will
 # be determined during runtime based on the board name provided.
-KERNEL_REPO_PATTERN = 'src/third_party/kernel/%(version)s'
+KERNEL_REPO_PATTERN = 'src/third_party/kernel/v%(version)s'
 
 # m/master does not point to cros/master in the repo in this list. We can only
 # know where it points to if the tree was inited without -b and has
@@ -87,7 +87,7 @@ def FindGitPrefix(repo_path):
   os.chdir(GetFullRepoPath(repo_path))
   branch_list = CheckOutput(['git', 'branch', '-av'])
   for line in reversed(branch_list.split('\n')):
-    match = re.search('remotes\/([^/]*)/[^/]*', line)
+    match = re.search(r'remotes\/([^/]*)/[^/]*', line)
     # Look for remote branch starting with 'cros' or 'cros-internal'.
     if match and match.group(1).startswith('cros'):
       return match.group(1)
@@ -103,7 +103,7 @@ def GetBranch(board):
   os.chdir(GetFullRepoPath('src/platform/factory'))
   branch_list = CheckOutput(['git', 'branch', '-av'])
   for line in reversed(branch_list.split('\n')):
-    match = re.search('remotes\/cros\/(factory-%s-\d+.B)' % board, line)
+    match = re.search(r'remotes\/cros\/(factory-%s-\d+.B)' % board, line)
     if match:
       return match.group(1)
   return None
@@ -141,7 +141,7 @@ def GetDiffList(diff):
   """
   ret = []
   for line in diff.split('\n'):
-    match = re.match('([<>]) ([0-9a-f]+) \(([^\)]+)\) (.*)', line)
+    match = re.match(r'([<>]) ([0-9a-f]+) \(([^\)]+)\) (.*)', line)
     if match:
       if match.group(4) == 'Marking set of ebuilds as stable':
         continue
