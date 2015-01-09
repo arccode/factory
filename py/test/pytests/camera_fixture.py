@@ -284,21 +284,22 @@ MSG_TITLE_IQ_TEST = test_ui.MakeLabel(
 
 # Test stage => (English message, Chinese message).
 MSG_TEST_STATUS = {
-  STAGE00_START: ('Starting the test', u'开始测试'),
-  STAGE10_SN: ('Reading serial number', u'读取序号'),
-  STAGE15_FW: ('Checking firmware version', u'检查韧体版本'),
-  STAGE20_INIT: ('Initializing camera', u'初始化摄像头'),
-  STAGE25_AWB: ('Adjusting white balance', u'白平衡调试'),
-  STAGE30_IMG: ('Reading test image', u'读取测试影像'),
-  STAGE30_ALS_LIGHT1: ('Reading Light1 ALS value', u'读取灯光1 ALS数值'),
-  STAGE40_ALS_LIGHT2: ('Reading Light2 ALS value', u'读取灯光2 ALS数值'),
-  STAGE50_ALS_LIGHT3: ('Reading Light3 ALS value', u'读取灯光3 ALS数值'),
-  STAGE50_VC: ('Locating test pattern', u'定位测试图样'),
-  STAGE60_LS: ('Checking vignetting level', u'检测影像暗角'),
-  STAGE60_VPD: ('Writing the ALS calibration data to vpd', u'写入ALS校正结果'),
-  STAGE70_MTF: ('Checking image sharpness', u'检测影像清晰度'),
-  STAGE90_END: ('All tests are complete', u'测试已全部完成'),
-  STAGE100_SAVED: ('Test data saved', u'记录档已写入'),
+    STAGE00_START: ('Starting the test', u'开始测试'),
+    STAGE10_SN: ('Reading serial number', u'读取序号'),
+    STAGE15_FW: ('Checking firmware version', u'检查韧体版本'),
+    STAGE20_INIT: ('Initializing camera', u'初始化摄像头'),
+    STAGE25_AWB: ('Adjusting white balance', u'白平衡调试'),
+    STAGE30_IMG: ('Reading test image', u'读取测试影像'),
+    STAGE30_ALS_LIGHT1: ('Reading Light1 ALS value', u'读取灯光1 ALS数值'),
+    STAGE40_ALS_LIGHT2: ('Reading Light2 ALS value', u'读取灯光2 ALS数值'),
+    STAGE50_ALS_LIGHT3: ('Reading Light3 ALS value', u'读取灯光3 ALS数值'),
+    STAGE50_VC: ('Locating test pattern', u'定位测试图样'),
+    STAGE60_LS: ('Checking vignetting level', u'检测影像暗角'),
+    STAGE60_VPD: ('Writing the ALS calibration data to vpd',
+                  u'写入ALS校正结果'),
+    STAGE70_MTF: ('Checking image sharpness', u'检测影像清晰度'),
+    STAGE90_END: ('All tests are complete', u'测试已全部完成'),
+    STAGE100_SAVED: ('Test data saved', u'记录档已写入'),
 }
 
 
@@ -369,17 +370,17 @@ SN_INVALID = 'INVALID_SN'
 
 # Chamber connection parameters
 CHAMBER_CONN_PARAMS_DEFAULT = {
-  'driver': 'pl2303',
-  'serial_delay': 0,
-  'serial_params': {
-    'baudrate': 9600,
-    'bytesize': 8,
-    'parity': 'N',
-    'stopbits': 1,
-    'xonxoff': False,
-    'rtscts': False,
-    'timeout': None
-  }
+    'driver': 'pl2303',
+    'serial_delay': 0,
+    'serial_params': {
+        'baudrate': 9600,
+        'bytesize': 8,
+        'parity': 'N',
+        'stopbits': 1,
+        'xonxoff': False,
+        'rtscts': False,
+        'timeout': None
+    }
 }
 
 
@@ -542,17 +543,17 @@ class _TestDelegate(object):
 
     # test stage => status
     test_status = OrderedDict([
-      (STAGE00_START, TestStatus.NA),
-      (STAGE10_SN, TestStatus.UNTESTED),
-      (STAGE15_FW, TestStatus.UNTESTED),
-      (STAGE20_INIT, TestStatus.UNTESTED),
-      (STAGE25_AWB, TestStatus.UNTESTED),
-      (STAGE30_IMG, TestStatus.UNTESTED),
-      (STAGE50_VC, TestStatus.UNTESTED),
-      (STAGE60_LS, TestStatus.UNTESTED),
-      (STAGE70_MTF, TestStatus.UNTESTED),
-      (STAGE90_END, TestStatus.UNTESTED),
-      (STAGE100_SAVED, TestStatus.NA),
+        (STAGE00_START, TestStatus.NA),
+        (STAGE10_SN, TestStatus.UNTESTED),
+        (STAGE15_FW, TestStatus.UNTESTED),
+        (STAGE20_INIT, TestStatus.UNTESTED),
+        (STAGE25_AWB, TestStatus.UNTESTED),
+        (STAGE30_IMG, TestStatus.UNTESTED),
+        (STAGE50_VC, TestStatus.UNTESTED),
+        (STAGE60_LS, TestStatus.UNTESTED),
+        (STAGE70_MTF, TestStatus.UNTESTED),
+        (STAGE90_END, TestStatus.UNTESTED),
+        (STAGE100_SAVED, TestStatus.NA),
     ])
     tar_vc = None
     tar_ls = None
@@ -693,15 +694,15 @@ class _TestDelegate(object):
     self._ResetForNewTest()
 
     test_status = OrderedDict([
-      (STAGE00_START, TestStatus.NA),
-      (STAGE10_SN, TestStatus.UNTESTED),
-      (STAGE20_INIT, TestStatus.UNTESTED),
-      (STAGE30_ALS_LIGHT1, TestStatus.UNTESTED),
-      (STAGE40_ALS_LIGHT2, TestStatus.UNTESTED),
-      (STAGE50_ALS_LIGHT3, TestStatus.UNTESTED),
-      (STAGE60_VPD, TestStatus.UNTESTED),
-      (STAGE90_END, TestStatus.UNTESTED),
-      (STAGE100_SAVED, TestStatus.NA),
+        (STAGE00_START, TestStatus.NA),
+        (STAGE10_SN, TestStatus.UNTESTED),
+        (STAGE20_INIT, TestStatus.UNTESTED),
+        (STAGE30_ALS_LIGHT1, TestStatus.UNTESTED),
+        (STAGE40_ALS_LIGHT2, TestStatus.UNTESTED),
+        (STAGE50_ALS_LIGHT3, TestStatus.UNTESTED),
+        (STAGE60_VPD, TestStatus.UNTESTED),
+        (STAGE90_END, TestStatus.UNTESTED),
+        (STAGE100_SAVED, TestStatus.NA),
     ])
 
     calib_result = None
@@ -783,7 +784,7 @@ class _TestDelegate(object):
         for i, li in enumerate(conf['luxs']):
           for j in range(i):
             if ((li > conf['luxs'][j] and vals[j] >= vals[i]) or
-              (li < conf['luxs'][j] and vals[j] <= vals[i])):
+                (li < conf['luxs'][j] and vals[j] <= vals[i])):
               self._Log('The ordering of ALS values is wrong.')
               return False, FAIL_ALS_ORDER
 
@@ -1152,93 +1153,94 @@ class _TestDelegate(object):
 class CameraFixture(unittest.TestCase):
   """Camera fixture main class."""
   ARGS = [
-    # main test type
-    Arg('test_type', str, 'What to test. '
-        'Supported types: Calibration, LensShading, and IQ.'),
+      # main test type
+      Arg('test_type', str, 'What to test. '
+          'Supported types: Calibration, LensShading, and IQ.'),
 
-    # chamber connection
-    Arg('control_chamber', bool, 'Whether or not to control the chart in the '
-        'light chamber.', default=False),
-    Arg('chamber_conn_params', (dict, str), 'Chamber connection parameters, '
-        "either a dict or 'default'", default=None, optional=True),
-    Arg('chamber_cmd', dict, 'A mapping between charts listed in '
-        'LightChamber.Charts and a list of tuple (cmd, response) required to '
-        "activate the chart. 'response' can be None to disable checking.",
-        default=None, optional=True),
-    Arg('chamber_n_retries', int, 'Number of retries when connecting.',
-        default=10),
-    Arg('chamber_retry_delay', int, 'Delay between connection retries.',
-        default=2),
+      # chamber connection
+      Arg('control_chamber', bool, 'Whether or not to control the chart in the '
+          'light chamber.', default=False),
+      Arg('chamber_conn_params', (dict, str), 'Chamber connection parameters, '
+          "either a dict or 'default'", default=None, optional=True),
+      Arg('chamber_cmd', dict, 'A mapping between charts listed in '
+          'LightChamber.Charts and a list of tuple (cmd, response) required to '
+          "activate the chart. 'response' can be None to disable checking.",
+          default=None, optional=True),
+      Arg('chamber_n_retries', int, 'Number of retries when connecting.',
+          default=10),
+      Arg('chamber_retry_delay', int, 'Delay between connection retries.',
+          default=2),
 
-    # test environment
-    Arg('fixture_type', str, 'Type of the light chamber/panel. '
-        'Supported types: FullChamber, ABChamber, ModuleChamber, '
-        'Panel, ALSChamber.'),
-    Arg('test_chart_version', str, 'Version of the test chart. '
-        'Supported types: A, B, White', optional=True),
-    Arg('mock_mode', bool, 'Mock mode allows testing without a fixture.',
-        default=False),
-    Arg('device_index', int, 'Index of camera video device. '
-        '(-1 to auto pick video device by OpenCV).', default=-1),
-    Arg('capture_resolution', tuple, 'A tuple (x-res, y-res) indicating the '
-        'image capture resolution to use.', optional=True),
-    Arg('resize_ratio', float, 'The resize ratio of the captured image '
-        'displayed on preview.', default=1.0),
+      # test environment
+      Arg('fixture_type', str, 'Type of the light chamber/panel. '
+          'Supported types: FullChamber, ABChamber, ModuleChamber, '
+          'Panel, ALSChamber.'),
+      Arg('test_chart_version', str, 'Version of the test chart. '
+          'Supported types: A, B, White', optional=True),
+      Arg('mock_mode', bool, 'Mock mode allows testing without a fixture.',
+          default=False),
+      Arg('device_index', int, 'Index of camera video device. '
+          '(-1 to auto pick video device by OpenCV).', default=-1),
+      Arg('capture_resolution', tuple, 'A tuple (x-res, y-res) indicating the '
+          'image capture resolution to use.', optional=True),
+      Arg('resize_ratio', float, 'The resize ratio of the captured image '
+          'displayed on preview.', default=1.0),
 
-    # when test_type = Calibration
-    Arg('calibration_shift', float, 'Max image shift allowed ', default=0.002),
-    Arg('calibration_tilt', float, 'Max image tilt allowed ', default=0.05),
+      # when test_type = Calibration
+      Arg('calibration_shift', float, 'Max image shift allowed ',
+          default=0.002),
+      Arg('calibration_tilt', float, 'Max image tilt allowed ', default=0.05),
 
-    # when test_type = LensShading
-    Arg('lens_shading_ratio', float, 'Max len shading ratio allowed.',
-        default=0.20),
-    Arg('lens_shading_timeout_secs', int, 'Timeout in seconds.', default=20),
+      # when test_type = LensShading
+      Arg('lens_shading_ratio', float, 'Max len shading ratio allowed.',
+          default=0.20),
+      Arg('lens_shading_timeout_secs', int, 'Timeout in seconds.', default=20),
 
-    # when test_type = IQ or ALS
-    Arg('data_method', str, 'How to read parameters and save test results. '
-        'Supported types: Simple, Shopfloor, and USB.', default='USB'),
-    Arg('param_pathname', str, 'Pathname of parameter file on '
-        'USB drive or shopfloor.', default='camera.params'),
-    Arg('local_ip', str, 'Local IP address for connecting shopfloor. '
-        'when data_method = Shopfloor. Set as None to use DHCP.',
-        default=None, optional=True),
-    Arg('param_dict', dict, 'The parameters dictionary. '
-        'when data_method = Simple.',
-        default=None, optional=True),
+      # when test_type = IQ or ALS
+      Arg('data_method', str, 'How to read parameters and save test results. '
+          'Supported types: Simple, Shopfloor, and USB.', default='USB'),
+      Arg('param_pathname', str, 'Pathname of parameter file on '
+          'USB drive or shopfloor.', default='camera.params'),
+      Arg('local_ip', str, 'Local IP address for connecting shopfloor. '
+          'when data_method = Shopfloor. Set as None to use DHCP.',
+          default=None, optional=True),
+      Arg('param_dict', dict, 'The parameters dictionary. '
+          'when data_method = Simple.',
+          default=None, optional=True),
 
-    # when test_type = IQ
-    Arg('IQ_save_good_image', bool, 'Stores the images that pass IQ test on '
-        'USB drive or shopfloor.', default=False),
-    Arg('IQ_save_bad_image', bool, 'Stores the images that fail IQ test on '
-        'USB drive or shopfloor.', default=True),
+      # when test_type = IQ
+      Arg('IQ_save_good_image', bool, 'Stores the images that pass IQ test on '
+          'USB drive or shopfloor.', default=False),
+      Arg('IQ_save_bad_image', bool, 'Stores the images that fail IQ test on '
+          'USB drive or shopfloor.', default=True),
 
-    # when test_type = ALS
-    Arg('ALS_val_path', str, 'ALS value path', default=None, optional=True),
-    Arg('ALS_scale_path', str, 'ALS scale path', default=None, optional=True)
+      # when test_type = ALS
+      Arg('ALS_val_path', str, 'ALS value path', default=None, optional=True),
+      Arg('ALS_scale_path', str, 'ALS scale path', default=None, optional=True)
   ]
 
   # self.args.test_type => TestType
   TEST_TYPES = {
-    'Calibration': TestType.CALI,
-    'LensShading': TestType.LS,
-    'IQ': TestType.IQ,
-    'ALS': TestType.ALS
+      'Calibration': TestType.CALI,
+      'LensShading': TestType.LS,
+      'IQ': TestType.IQ,
+      'ALS': TestType.ALS
   }
 
   # self.args.fixture_type => Fixture
   FIXTURE_TYPES = {
-    'FullChamber': Fixture.FULL,
-    'ABChamber': Fixture.AB,
-    'ModuleChamber': Fixture.MODULE,
-    'Panel': Fixture.PANEL,
-    'ALSChamber': Fixture.ALS
+      'FullChamber': Fixture.FULL,
+      'ABChamber': Fixture.AB,
+      'ModuleChamber': Fixture.MODULE,
+      'Panel': Fixture.PANEL,
+      'ALSChamber': Fixture.ALS
   }
 
   # self.args.data_method => DataMethod
   DATA_METHODS = {
-    'Simple': DataMethod.SIMPLE,
-    'USB': DataMethod.USB,
-    'Shopfloor': DataMethod.SF
+      'Simple': DataMethod.SIMPLE,
+      'USB': DataMethod.USB,
+      'Shopfloor': DataMethod.SF
   }
 
   def setUp(self):
@@ -1254,7 +1256,7 @@ class CameraFixture(unittest.TestCase):
     assert bool(self.fixture_type == Fixture.PANEL) == bool(
         self.test_type in [TestType.LS])
     assert bool(self.args.test_chart_version == 'White') == bool(
-            self.test_type == TestType.LS)
+        self.test_type == TestType.LS)
     assert (self.args.data_method != 'Simple' or
             self.args.param_dict is not None)
 
