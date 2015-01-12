@@ -119,7 +119,7 @@ class AudioDigitPlaybackTask(InteractiveFactoryTask):
         with file_utils.UnopenedTemporaryFile(suffix='.wav') as wav_path:
           Spawn(['sox', os.path.join(_SOUND_DIRECTORY, base_name), '-c2',
                  wav_path], check_call=True)
-          Spawn(['aplay', '-D', 'hw:0,0', wav_path], check_call=True)
+          Spawn(['aplay', '-D', 'plughw:0,0', wav_path], check_call=True)
       else:
         self._ui.PlayAudioFile(base_name)
 
