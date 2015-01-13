@@ -35,6 +35,7 @@ import logging
 import unittest
 
 import factory_common  # pylint: disable=W0611
+from cros.factory import system
 from cros.factory.test.args import Arg
 from cros.factory.test import factory
 from cros.factory.test import test_ui
@@ -54,22 +55,23 @@ th, td {
 class Report(unittest.TestCase):
   """A factory test to report test status."""
   ARGS = [
-    Arg('disable_input_on_fail', bool,
-        'Disable user input to pass/fail when the overall status is not PASSED',
-        default=False),
-    Arg('pass_without_prompt', bool,
-        'If all tests passed, pass this test without prompting',
-        default=False, optional=True),
-    Arg('bft_fixture', dict,
-        ('BFT fixture arguments (see bft_fixture test).  If provided, then a '
-         'red/green light is lit to indicate failure/success rather than '
-         'showing the summary on-screen.  The test does not fail if unable '
-         'to connect to the BFT fixture.'),
-        optional=True),
-    Arg('accessibility', bool,
-        'Display bright red background when the overall status is not PASSED',
-        default=False, optional=True),
-    ]
+      Arg('disable_input_on_fail', bool,
+          ('Disable user input to pass/fail when the overall status is not '
+           'PASSED'),
+          default=False),
+      Arg('pass_without_prompt', bool,
+          'If all tests passed, pass this test without prompting',
+          default=False, optional=True),
+      Arg('bft_fixture', dict,
+          ('BFT fixture arguments (see bft_fixture test).  If provided, then a '
+           'red/green light is lit to indicate failure/success rather than '
+           'showing the summary on-screen.  The test does not fail if unable '
+           'to connect to the BFT fixture.'),
+          optional=True),
+      Arg('accessibility', bool,
+          'Display bright red background when the overall status is not PASSED',
+          default=False, optional=True),
+      ]
 
   def _SetFixtureStatusLight(self, all_pass):
     try:
@@ -108,10 +110,16 @@ class Report(unittest.TestCase):
     all_pass = overall_status in (factory.TestState.PASSED,
                                   factory.TestState.FAILED_AND_WAIVED)
 
+    board = system.GetBoard()
+    if all_pass:
+      board.OnSummaryGood()
+    else:
+      board.OnSummaryBad()
+
     if self.args.bft_fixture:
       self._SetFixtureStatusLight(all_pass)
 
-    if (all_pass and self.args.pass_without_prompt):
+    if all_pass and self.args.pass_without_prompt:
       return
 
     html = [
@@ -121,7 +129,7 @@ class Report(unittest.TestCase):
         '<div class="test-status-%s" style="font-size: 300%%">%s</div>' % (
             overall_status, test_ui.MakeStatusLabel(overall_status)),
         '<table>'] + table + ['</table>']
-    if (not self.args.disable_input_on_fail or all_pass):
+    if not self.args.disable_input_on_fail or all_pass:
       html = html + ['<a onclick="onclick:window.test.pass()" href="#">',
                      test_ui.MakeLabel('Click or press SPACE to continue',
                                        u'点击或按空白键继续'),

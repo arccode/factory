@@ -331,3 +331,22 @@ class Board(object):
     rack easily.
     """
     pass
+
+  def OnSummaryGood(self):
+    """Callback invoked when the test summary page shows and all test passed.
+
+    This method can be used to notify the operator that a device has finished
+    a test section, e.g. run-in. For example, lightting up a green LED here
+    and the operators may be instructed to move all devices with a green LED
+    to FATP testing.
+    """
+    pass
+
+  def OnSummaryBad(self):
+    """Callback invoked when the test summary page shows and some test failed.
+
+    Similar to OnSummaryGood, but is used to notify the operator of failing
+    test(s). This defaults to call OnTestFailure() but may be overridden by
+    each board.
+    """
+    self.OnTestFailure()
