@@ -286,6 +286,23 @@ REGIONS_LIST = [
            'Singapore', None, 28),
     Region('us', 'xkb:us::eng', 'America/Los_Angeles', 'en-US', _KML.ANSI,
            'United States', None, 29),
+    Region('jp', 'xkb:jp::jpn', 'Asia/Tokyo', 'ja', _KML.JIS,
+           'Japan', None, 30),
+    Region('hk',
+           ['xkb:us::eng', 'ime:zh-t:cangjie', 'ime:zh-t:quick',
+            'ime:zh-t:array', 'ime:zh-t:dayi', 'ime:zh-t:zhuyin',
+            'ime:zh-t:pinyin'],
+           'Asia/Hong_Kong', ['zh-TW', 'en-GB', 'zh-CN'], _KML.ANSI,
+           'Hong Kong', None, 33),
+    Region('cz', ['xkb:cz::cze', 'xkb:cz:qwerty:cze'], 'Europe/Prague',
+           ['cs', 'en-GB'], _KML.ISO, 'Czech Republic', None, 35),
+    Region('tw',
+           ['xkb:us::eng', 'ime:zh-t:zhuyin', 'ime:zh-t:array',
+            'ime:zh-t:dayi', 'ime:zh-t:cangjie', 'ime:zh-t:quick',
+            'ime:zh-t:pinyin'],
+           'Asia/Taipei', ['zh-TW', 'en-US'], _KML.ANSI, 'Taiwan', None, 38),
+    Region('pl', 'xkb:pl::pol', 'Europe/Warsaw', ['pl', 'en-GB'], _KML.ANSI,
+           'Poland', None, 39),
 ]
 """A list of :py:class:`cros.factory.l10n.regions.Region` objects for
 all **confirmed** regions.  A confirmed region is a region whose
