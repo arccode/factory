@@ -18,7 +18,8 @@ import xmlrpclib
 
 
 import factory_common  # pylint: disable=W0611
-from cros.factory.utils.process_utils import Spawn, SpawnOutput
+from cros.factory.utils import file_utils
+from cros.factory.utils import process_utils
 from cros.factory.utils.type_utils import Error
 
 
@@ -38,8 +39,8 @@ def Ifconfig(devname, enable, sleep_time_secs=1):
     enable: True is to bring up interface. False is down.
     sleep_time_secs: The sleeping time after ifconfig up.
   """
-  Spawn(['ifconfig', devname, 'up' if enable else 'down'],
-        check_call=True, log=True)
+  process_utils.Spawn(['ifconfig', devname, 'up' if enable else 'down'],
+                      check_call=True, log=True)
   # Wait for device to settle down.
   time.sleep(sleep_time_secs)
 
@@ -119,7 +120,7 @@ def SetEthernetIp(ip, interface=None, force=False, logger=None):
   Ifconfig(interface, True)
   current_ip = GetEthernetIp(interface)
   if force or not current_ip:
-    Spawn(['ifconfig', interface, ip], call=True)
+    process_utils.Spawn(['ifconfig', interface, ip], call=True)
   elif logger:
     logger('Not setting IP address for interface %s: already set to %s' %
            (interface, current_ip))
@@ -140,8 +141,9 @@ def GetEthernetIp(interface=None):
   interface = interface or FindUsableEthDevice(raise_exception=False)
   if interface is None:
     return None
-  ip_output = SpawnOutput(['ip', 'addr', 'show', 'dev', interface])
-  match = re.search('^\s+inet ([.0-9]+)', ip_output, re.MULTILINE)
+  ip_output = process_utils.SpawnOutput(
+      ['ip', 'addr', 'show', 'dev', interface])
+  match = re.search(r'^\s+inet ([.0-9]+)', ip_output, re.MULTILINE)
   if match:
     ip_address = match.group(1)
   return ip_address
@@ -209,7 +211,8 @@ def IsPortBeingUsed(port):
   Returns:
     True if the port is being used.
   """
-  ret = Spawn(['lsof', '-i', ':%d' % port], call=True, sudo=True).returncode
+  ret = process_utils.Spawn(['lsof', '-i', ':%d' % port],
+                            call=True, sudo=True).returncode
   return True if ret == 0 else False
 
 
@@ -311,17 +314,64 @@ def EnablePort(port, protocol='tcp', priority=None, interface=None):
     rule += ['-i', interface]
   rule += ['-j', 'ACCEPT']
 
-  rule_exists = not Spawn(['iptables', '-C', 'INPUT'] + rule, call=True,
-                          ignore_stderr=True).returncode
+  rule_exists = not process_utils.Spawn(
+      ['iptables', '-C', 'INPUT'] + rule, call=True,
+      ignore_stderr=True).returncode
   if priority is None:
     # Only add if rule exists.
     if not rule_exists:
-      Spawn([command, '-A', 'INPUT'] + rule, check_call=True)
+      process_utils.Spawn([command, '-A', 'INPUT'] + rule, check_call=True)
   else:
     # Delete existing rules and insert at target location.
     if rule_exists:
-      Spawn([command, '-D', 'INPUT'] + rule, check_call=True)
-    Spawn([command, '-I', 'INPUT', str(priority)] + rule, check_call=True)
+      process_utils.Spawn([command, '-D', 'INPUT'] + rule, check_call=True)
+    process_utils.Spawn([command, '-I', 'INPUT', str(priority)] + rule,
+                        check_call=True)
+
+
+def StartNATService(interface_in, interface_out):
+  """Starts NAT service.
+
+  This method configures the IP filter/forward rules to set up a NAT
+  service. The traffic coming in from 'interface_in' will be routed
+  to 'interface_out'.
+
+  Args:
+    interface_in: The interface that goes 'in'. That is, the interface
+      that is connected to the network that needs address translation.
+    interface_out: The interface that goes 'out'. For example, the
+      factory network.
+  """
+  def CallIptables(args):
+    process_utils.LogAndCheckCall(['sudo', 'iptables'] + args)
+
+  # Clear everything in 'nat' table
+  CallIptables(['--table', 'nat', '--flush'])
+  CallIptables(['--table', 'nat', '--delete-chain'])
+
+  # Clear FORWARD rules in 'filter' table
+  CallIptables(['--flush', 'FORWARD'])
+
+  # Configure NAT
+  CallIptables(['--table', 'nat',
+                '--append', 'POSTROUTING',
+                '--out-interface', interface_out,
+                '-j', 'MASQUERADE'])
+  # Allow new connections
+  CallIptables(['--append', 'FORWARD',
+                '--out-interface', interface_out,
+                '--in-interface', interface_in,
+                '--match', 'conntrack',
+                '--ctstate', 'NEW',
+                '-j', 'ACCEPT'])
+  # Allow established connection packets
+  CallIptables(['--append', 'FORWARD',
+                '--match', 'conntrack',
+                '--ctstate', 'ESTABLISHED,RELATED',
+                '-j', 'ACCEPT'])
+
+  # Enable routing in kernel
+  file_utils.WriteFile('/proc/sys/net/ipv4/ip_forward', '1')
 
 
 class WLAN(object):
