@@ -664,6 +664,14 @@ def GenerateStableDeviceSecret(options):  # pylint: disable=W0613
   GetGooftool(options).GenerateStableDeviceSecret()
   event_log.Log('generate_stable_device_secret')
 
+@Command('wipe_in_place',
+         CmdArg('--fast', action='store_true',
+                help='use non-secure but faster wipe method.'))
+def WipeInPlace(options):
+  """Start factory wipe directly without reboot."""
+
+  GetGooftool(options).WipeInPlace(options.fast)
+
 
 @Command('prepare_wipe',
          CmdArg('--fast', action='store_true',
@@ -852,6 +860,8 @@ def UploadReport(options):
                 help='Do not enable firmware write protection.'),
          CmdArg('--fast', action='store_true',
                 help='use non-secure but faster wipe method.'),
+         CmdArg('--wipe_in_place', action='store_true',
+                help='Start factory wiping in place without reboot.'),
          _hwid_version_cmd_arg,
          _hwdb_path_cmd_arg,
          _hwid_status_list_cmd_arg,
@@ -894,7 +904,11 @@ def Finalize(options):
     EnableFwWp({})
   LogSystemDetails(options)
   UploadReport(options)
-  PrepareWipe(options)
+  if options.wipe_in_place:
+    event_log.Log('wipe_in_place')
+    WipeInPlace(options)
+  else:
+    PrepareWipe(options)
 
 
 def VerifyHWIDv3(options):

@@ -36,6 +36,7 @@ from cros.factory.rule import Context
 from cros.factory.system import vpd, SystemInfo
 from cros.factory.test import branding
 from cros.factory.test import phase
+from cros.factory.utils import file_utils
 from cros.factory.utils.process_utils import CheckOutput, GetLines
 from cros.factory.utils.string_utils import ParseDict
 from cros.factory.utils.sys_utils import MountPartition
@@ -498,6 +499,16 @@ class Gooftool(object):
     """
 
     self._util.FindAndRunScript('clear_gbb_flags.sh')
+
+  def WipeInPlace(self, is_fast=None):
+    """Start transition to release state directly without reboot.
+
+    Args:
+      is_fast: Whether or not to apply fast wipe.
+    """
+    if is_fast:
+      file_utils.TouchFile("/tmp/factory_fast_wipe")
+    os.system('start factory-wipe')
 
   def PrepareWipe(self, is_fast=None):
     """Prepare system for transition to release state in next reboot.
