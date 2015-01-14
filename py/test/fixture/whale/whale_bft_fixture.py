@@ -25,6 +25,7 @@ class WhaleBFTFixture(bft.BFTFixture):
   # Shortcuts
   # pylint: disable=E1101
   _WHALE_CONTROL = servo_client.WHALE_CONTROL
+  _WHALE_BUTTON = servo_client.WHALE_BUTTON
   _FIXTURE_FEEDBACK = servo_client.FIXTURE_FEEDBACK
   _FEEDBACKS = servo_client.WHALE_FEEDBACKS
   _WHALE_INAS = servo_client.WHALE_INAS
@@ -274,3 +275,12 @@ class WhaleBFTFixture(bft.BFTFixture):
       logging.exception('Failed to trigger scanner %s', e)
       raise bft.BFTFixtureException(
           'Failed to trigger scanner %s' % e)
+
+  def StopFixture(self):
+    """Stops fixture by opening cover."""
+    logging.info('Stopping fixture...')
+
+    # Disable battery first for safety.
+    self._servo.Disable(self._WHALE_CONTROL.BATTERY)
+
+    self._servo.Enable(self._WHALE_BUTTON.FIXTURE_STOP)
