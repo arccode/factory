@@ -66,7 +66,7 @@ from cros.factory.utils.process_utils import Spawn
 
 
 HWID_CFG_PATH = '/usr/local/share/chromeos-hwid/cfg'
-CACHES_DIR = os.path.join(factory.get_state_root(), "caches")
+CACHES_DIR = os.path.join(factory.get_state_root(), 'caches')
 
 CLEANUP_LOGS_PAUSED = '/var/lib/cleanup_logs_paused'
 
@@ -78,22 +78,24 @@ FORCE_AUTO_RUN = 'force_auto_run'
 # Otherwise, power loss during disk sync operation may incur even worse outcome.
 MIN_BATTERY_LEVEL_FOR_DISK_SYNC = 1.0
 
-MAX_CRASH_FILE_SIZE = 64*1024
+MAX_CRASH_FILE_SIZE = 64 * 1024
 
 Status = Enum(['UNINITIALIZED', 'INITIALIZING', 'RUNNING',
                'TERMINATING', 'TERMINATED'])
+
 
 def get_hwid_cfg():
   """Returns the HWID config tag, or an empty string if none can be found."""
   if 'CROS_HWID' in os.environ:
     return os.environ['CROS_HWID']
   if os.path.exists(HWID_CFG_PATH):
-    with open(HWID_CFG_PATH, 'rt') as hwid_cfg_handle:
+    with open(HWID_CFG_PATH, 'r') as hwid_cfg_handle:
       return hwid_cfg_handle.read().strip()
   return ''
 
 
 _inited_logging = False
+
 
 class Goofy(GoofyBase):
   """The main factory flow.
@@ -139,6 +141,7 @@ class Goofy(GoofyBase):
     link_manager: Instance of PresenterLinkManager for communicating
       with GoofyPresenter
   """
+
   def __init__(self):
     super(Goofy, self).__init__()
     self.uuid = str(uuid.uuid4())
@@ -217,32 +220,33 @@ class Goofy(GoofyBase):
         return self.test_list
 
     self.event_handlers = {
-      Event.Type.SWITCH_TEST: self.handle_switch_test,
-      Event.Type.SHOW_NEXT_ACTIVE_TEST:
-        lambda event: self.show_next_active_test(),
-      Event.Type.RESTART_TESTS:
-        lambda event: self.restart_tests(root=test_or_root(event)),
-      Event.Type.AUTO_RUN:
-        lambda event: self.auto_run(root=test_or_root(event)),
-      Event.Type.RE_RUN_FAILED:
-        lambda event: self.re_run_failed(root=test_or_root(event)),
-      Event.Type.RUN_TESTS_WITH_STATUS:
-        lambda event: self.run_tests_with_status(
-          event.status,
-          root=test_or_root(event)),
-      Event.Type.REVIEW:
-        lambda event: self.show_review_information(),
-      Event.Type.UPDATE_SYSTEM_INFO:
-        lambda event: self.update_system_info(),
-      Event.Type.STOP:
-        lambda event: self.stop(root=test_or_root(event, False),
-                                fail=getattr(event, 'fail', False),
-                                reason=getattr(event, 'reason', None)),
-      Event.Type.SET_VISIBLE_TEST:
-        lambda event: self.set_visible_test(
-          self.test_list.lookup_path(event.path)),
-      Event.Type.CLEAR_STATE:
-        lambda event: self.clear_state(self.test_list.lookup_path(event.path)),
+        Event.Type.SWITCH_TEST: self.handle_switch_test,
+        Event.Type.SHOW_NEXT_ACTIVE_TEST:
+            lambda event: self.show_next_active_test(),
+        Event.Type.RESTART_TESTS:
+            lambda event: self.restart_tests(root=test_or_root(event)),
+        Event.Type.AUTO_RUN:
+            lambda event: self.auto_run(root=test_or_root(event)),
+        Event.Type.RE_RUN_FAILED:
+            lambda event: self.re_run_failed(root=test_or_root(event)),
+        Event.Type.RUN_TESTS_WITH_STATUS:
+            lambda event: self.run_tests_with_status(
+                event.status,
+                root=test_or_root(event)),
+        Event.Type.REVIEW:
+            lambda event: self.show_review_information(),
+        Event.Type.UPDATE_SYSTEM_INFO:
+            lambda event: self.update_system_info(),
+        Event.Type.STOP:
+            lambda event: self.stop(root=test_or_root(event, False),
+                                    fail=getattr(event, 'fail', False),
+                                    reason=getattr(event, 'reason', None)),
+        Event.Type.SET_VISIBLE_TEST:
+            lambda event: self.set_visible_test(
+                self.test_list.lookup_path(event.path)),
+        Event.Type.CLEAR_STATE:
+            lambda event: self.clear_state(
+                self.test_list.lookup_path(event.path)),
     }
 
     self.web_socket_manager = None
@@ -321,41 +325,42 @@ class Goofy(GoofyBase):
     utils.ResetCommitTime()
 
     self.state_instance, self.state_server = (
-      state.create_server(bind_address='0.0.0.0'))
+        state.create_server(bind_address='0.0.0.0'))
     self.goofy_rpc = GoofyRPC(self)
     self.goofy_rpc.RegisterMethods(self.state_instance)
     logging.info('Starting state server')
     self.state_server_thread = threading.Thread(
-      target=self.state_server.serve_forever,
-      name='StateServer')
+        target=self.state_server.serve_forever,
+        name='StateServer')
     self.state_server_thread.start()
 
   def start_event_server(self):
     self.event_server = EventServer()
     logging.info('Starting factory event server')
     self.event_server_thread = threading.Thread(
-      target=self.event_server.serve_forever,
-      name='EventServer')  # pylint: disable=E1101
+        target=self.event_server.serve_forever,
+        name='EventServer')  # pylint: disable=E1101
     self.event_server_thread.start()
 
     self.event_client = EventClient(
-      callback=self.handle_event, event_loop=self.run_queue)
+        callback=self.handle_event, event_loop=self.run_queue)
 
     self.web_socket_manager = WebSocketManager(self.uuid)
-    self.state_server.add_handler("/event",
-      self.web_socket_manager.handle_web_socket)
+    self.state_server.add_handler('/event',
+                                  self.web_socket_manager.handle_web_socket)
 
   def start_ui(self):
     ui_proc_args = [
-      os.path.join(factory.FACTORY_PACKAGE_PATH, 'test', 'ui.py'),
-      self.options.test_list]
+        os.path.join(factory.FACTORY_PACKAGE_PATH, 'test', 'ui.py'),
+        self.options.test_list
+    ]
     if self.options.verbose:
       ui_proc_args.append('-v')
     logging.info('Starting ui %s', ui_proc_args)
     self.ui_process = Spawn(ui_proc_args)
     logging.info('Waiting for UI to come up...')
     self.event_client.wait(
-      lambda event: event.type == Event.Type.UI_READY)
+        lambda event: event.type == Event.Type.UI_READY)
     logging.info('UI has started')
 
   def set_visible_test(self, test):
@@ -378,12 +383,11 @@ class Goofy(GoofyBase):
       return
 
     try:
-      var_log_messages = (
-        utils.var_log_messages_before_reboot())
+      var_log_messages = utils.var_log_messages_before_reboot()
       logging.info(
-        'Tail of /var/log/messages before last reboot:\n'
-        '%s', ('\n'.join(
-            '  ' + x for x in var_log_messages)))
+          'Tail of /var/log/messages before last reboot:\n'
+          '%s', ('\n'.join(
+              '  ' + x for x in var_log_messages)))
     except:  # pylint: disable=W0702
       logging.exception('Unable to grok /var/log/messages')
 
@@ -454,7 +458,6 @@ class Goofy(GoofyBase):
       test_state = test.get_state()
       if test_state.status == TestState.ACTIVE:
         active_tests.append(test)
-
 
     if not (len(active_tests) == 1 and
             isinstance(active_tests[0], factory.ShutdownStep)):
@@ -539,14 +542,14 @@ class Goofy(GoofyBase):
         if var_log_messages is None:
           try:
             var_log_messages = (
-              utils.var_log_messages_before_reboot())
+                utils.var_log_messages_before_reboot())
             # Write it to the log, to make it easier to
             # correlate with /var/log/messages.
             logging.info(
-              'Unexpected shutdown. '
-              'Tail of /var/log/messages before last reboot:\n'
-              '%s', ('\n'.join(
-                  '  ' + x for x in var_log_messages)))
+                'Unexpected shutdown. '
+                'Tail of /var/log/messages before last reboot:\n'
+                '%s', ('\n'.join(
+                    '  ' + x for x in var_log_messages)))
           except:  # pylint: disable=W0702
             logging.exception('Unable to grok /var/log/messages')
             var_log_messages = []
@@ -569,15 +572,15 @@ class Goofy(GoofyBase):
 
         error_msg = 'Unexpected shutdown while test was running'
         self.event_log.Log('end_test',
-                   path=test.path,
-                   status=TestState.FAILED,
-                   invocation=test.get_state().invocation,
-                   error_msg=error_msg,
-                   var_log_messages='\n'.join(var_log_messages),
-                   mosys_log=mosys_log)
+                           path=test.path,
+                           status=TestState.FAILED,
+                           invocation=test.get_state().invocation,
+                           error_msg=error_msg,
+                           var_log_messages='\n'.join(var_log_messages),
+                           mosys_log=mosys_log)
         test.update_state(
-          status=TestState.FAILED,
-          error_msg=error_msg)
+            status=TestState.FAILED,
+            error_msg=error_msg)
 
         if not test.never_fails:
           # For "never_fails" tests (such as "Start"), don't cancel
@@ -592,6 +595,7 @@ class Goofy(GoofyBase):
   def update_skipped_tests(self):
     """Updates skipped states based on run_if."""
     env = TestArgEnv()
+
     def _evaluate_skip_from_run_if(test):
       """Returns the run_if evaluation of the test.
 
@@ -676,14 +680,14 @@ class Goofy(GoofyBase):
     """Rotates to the next visible active test."""
     self.reap_completed_tests()
     active_tests = [
-      t for t in self.test_list.walk()
-      if t.is_leaf() and t.get_state().status == TestState.ACTIVE]
+        t for t in self.test_list.walk()
+        if t.is_leaf() and t.get_state().status == TestState.ACTIVE]
     if not active_tests:
       return
 
     try:
       next_test = active_tests[
-        (active_tests.index(self.visible_test) + 1) % len(active_tests)]
+          (active_tests.index(self.visible_test) + 1) % len(active_tests)]
     except ValueError:  # visible_test not present in active_tests
       next_test = active_tests[0]
 
@@ -916,8 +920,8 @@ class Goofy(GoofyBase):
           self.run_enqueue(self.update_system_info)
 
     updater.CheckForUpdateAsync(
-      handle_check_for_update,
-      self.test_list.options.shopfloor_timeout_secs)
+        handle_check_for_update,
+        self.test_list.options.shopfloor_timeout_secs)
 
   def cancel_pending_tests(self):
     """Cancels any tests in the run queue."""
@@ -966,7 +970,7 @@ class Goofy(GoofyBase):
 
         if not test.is_leaf():
           continue
-        if (untested_only and test.get_state().status != TestState.UNTESTED):
+        if untested_only and test.get_state().status != TestState.UNTESTED:
           continue
         self.tests_to_run.append(test)
     if subtrees:
@@ -990,7 +994,7 @@ class Goofy(GoofyBase):
             new_state.status == TestState.FAILED):
           # Clean all the tests to cause goofy to stop.
           self.tests_to_run = []
-          factory.console.info("Stop on failure triggered. Empty the queue.")
+          factory.console.info('Stop on failure triggered. Empty the queue.')
 
         if new_state.iterations_left and new_state.status == TestState.PASSED:
           # Play it again, Sam!
@@ -1028,9 +1032,9 @@ class Goofy(GoofyBase):
       if root and not test.has_ancestor(root):
         continue
 
-      factory.console.info('Killing active test %s...' % test.path)
+      factory.console.info('Killing active test %s...', test.path)
       invoc.abort_and_join(reason)
-      factory.console.info('Killed %s' % test.path)
+      factory.console.info('Killed %s', test.path)
       test.update_state(**invoc.update_state_on_completion)
       del self.invocations[test]
 
@@ -1063,13 +1067,13 @@ class Goofy(GoofyBase):
       self.status = Status.INITIALIZING
       self.init()
       self.event_log.Log('goofy_init',
-                 success=True)
+                         success=True)
     except:
       if self.event_log:
         try:
           self.event_log.Log('goofy_init',
-                     success=False,
-                     trace=traceback.format_exc())
+                             success=False,
+                             trace=traceback.format_exc())
         except:  # pylint: disable=W0702
           pass
       raise
@@ -1083,7 +1087,7 @@ class Goofy(GoofyBase):
     system_info = system.SystemInfo()
     self.state_instance.set_shared_data('system_info', system_info.__dict__)
     self.event_client.post_event(Event(Event.Type.SYSTEM_INFO,
-                       system_info=system_info.__dict__))
+                                       system_info=system_info.__dict__))
     logging.info('System info: %r', system_info.__dict__)
 
   def update_factory(self, auto_run_on_restart=False, post_update_hook=None):
@@ -1221,7 +1225,7 @@ class Goofy(GoofyBase):
     module, cls = self.test_list.options.hooks_class.rsplit('.', 1)
     self.hooks = getattr(__import__(module, fromlist=[cls]), cls)()
     assert isinstance(self.hooks, factory.Hooks), (
-        "hooks should be of type Hooks but is %r" % type(self.hooks))
+        'hooks should be of type Hooks but is %r' % type(self.hooks))
     self.hooks.test_list = self.test_list
     self.hooks.OnCreatedTestList()
 
@@ -1290,7 +1294,7 @@ class Goofy(GoofyBase):
                       help='Use a dummy connection manager')
     parser.add_option('--automation-mode',
                       choices=[m.lower() for m in AutomationMode],
-                      default='none', help="Factory test automation mode.")
+                      default='none', help='Factory test automation mode.')
     parser.add_option('--no-auto-run-on-start', dest='auto_run_on_start',
                       action='store_false', default=True,
                       help=('do not automatically run the test list on goofy '
@@ -1338,7 +1342,7 @@ class Goofy(GoofyBase):
     elif factory.in_chroot():
       self.env = test_environment.FakeChrootEnvironment()
       logging.warn(
-        'Using chroot environment: will not actually run autotests')
+          'Using chroot environment: will not actually run autotests')
     elif self.options.ui == 'chrome':
       self.env = test_environment.DUTEnvironment()
     self.env.goofy = self
@@ -1351,7 +1355,7 @@ class Goofy(GoofyBase):
 
     if self.options.ui_scale_factor != 1 and utils.in_qemu():
       logging.warn(
-        'In QEMU; ignoring ui_scale_factor argument')
+          'In QEMU; ignoring ui_scale_factor argument')
       self.options.ui_scale_factor = 1
 
     logging.info('Started')
@@ -1367,7 +1371,7 @@ class Goofy(GoofyBase):
     self.state_instance.set_shared_data('ui_scale_factor',
                                         self.options.ui_scale_factor)
     self.last_shutdown_time = (
-      self.state_instance.get_shared_data('shutdown_time', optional=True))
+        self.state_instance.get_shared_data('shutdown_time', optional=True))
     self.state_instance.del_shared_data('shutdown_time', optional=True)
     self.state_instance.del_shared_data('startup_error', optional=True)
 
@@ -1407,7 +1411,8 @@ class Goofy(GoofyBase):
     # For netboot firmware, mainfw_type should be 'netboot'.
     if (system.SystemInfo().mainfw_type != 'nonchrome' and
         system.SystemInfo().firmware_version is None):
-      self.state_instance.set_shared_data('startup_error',
+      self.state_instance.set_shared_data(
+          'startup_error',
           'Netboot firmware detected\n'
           'Connect Ethernet and reboot to re-image.\n'
           u'侦测到网路开机固件\n'
@@ -1415,16 +1420,17 @@ class Goofy(GoofyBase):
 
     if not self.state_instance.has_shared_data('ui_lang'):
       self.state_instance.set_shared_data('ui_lang',
-                        self.test_list.options.ui_lang)
+                                          self.test_list.options.ui_lang)
     self.state_instance.set_shared_data(
-      'test_list_options',
-      self.test_list.options.__dict__)
+        'test_list_options',
+        self.test_list.options.__dict__)
     self.state_instance.test_list = self.test_list
 
     self.check_log_rotation()
 
     if self.options.dummy_shopfloor:
-      os.environ[shopfloor.SHOPFLOOR_SERVER_ENV_VAR_NAME] = ('http://%s:%d/' %
+      os.environ[shopfloor.SHOPFLOOR_SERVER_ENV_VAR_NAME] = (
+          'http://%s:%d/' %
           (net_utils.LOCALHOST, shopfloor.DEFAULT_SERVER_PORT))
       self.dummy_shopfloor = Spawn(
           [os.path.join(factory.FACTORY_PATH, 'bin', 'shopfloor_server'),
@@ -1435,20 +1441,21 @@ class Goofy(GoofyBase):
 
     if self.test_list.options.time_sanitizer and not utils.in_chroot():
       self.time_sanitizer = time_sanitizer.TimeSanitizer(
-        base_time=time_sanitizer.GetBaseTimeFromFile(
-          # lsb-factory is written by the factory install shim during
-          # installation, so it should have a good time obtained from
-          # the mini-Omaha server.  If it's not available, we'll use
-          # /etc/lsb-factory (which will be much older, but reasonably
-          # sane) and rely on a shopfloor sync to set a more accurate
-          # time.
-          '/usr/local/etc/lsb-factory',
-          '/etc/lsb-release'))
+          base_time=time_sanitizer.GetBaseTimeFromFile(
+              # lsb-factory is written by the factory install shim during
+              # installation, so it should have a good time obtained from
+              # the mini-Omaha server.  If it's not available, we'll use
+              # /etc/lsb-factory (which will be much older, but reasonably
+              # sane) and rely on a shopfloor sync to set a more accurate
+              # time.
+              '/usr/local/etc/lsb-factory',
+              '/etc/lsb-release'))
       self.time_sanitizer.RunOnce()
 
     if self.test_list.options.check_cpu_usage_period_secs:
-      self.cpu_usage_watcher = Spawn(['py/tools/cpu_usage_monitor.py',
-          '-p', str(self.test_list.options.check_cpu_usage_period_secs)],
+      self.cpu_usage_watcher = Spawn(
+          ['py/tools/cpu_usage_monitor.py', '-p',
+           str(self.test_list.options.check_cpu_usage_period_secs)],
           cwd=factory.FACTORY_PATH)
 
     self.init_states()
@@ -1467,9 +1474,9 @@ class Goofy(GoofyBase):
     # sync_event_log_period_secs isn't set (no background
     # syncing), since we may use it to flush event logs as well.
     self.log_watcher = EventLogWatcher(
-      self.test_list.options.sync_event_log_period_secs,
-      event_log_db_file=None,
-      handle_event_logs_callback=self.handle_event_logs)
+        self.test_list.options.sync_event_log_period_secs,
+        event_log_db_file=None,
+        handle_event_logs_callback=self.handle_event_logs)
     if self.test_list.options.sync_event_log_period_secs:
       self.log_watcher.StartWatchThread()
 
@@ -1477,11 +1484,11 @@ class Goofy(GoofyBase):
     # A scan includes clearing logs and optionally syncing logs if
     # enable_syng_log is True. We kick it to sync logs.
     self.system_log_manager = SystemLogManager(
-      sync_log_paths=self.test_list.options.sync_log_paths,
-      sync_log_period_secs=self.test_list.options.sync_log_period_secs,
-      scan_log_period_secs=self.test_list.options.scan_log_period_secs,
-      clear_log_paths=self.test_list.options.clear_log_paths,
-      clear_log_excluded_paths=self.test_list.options.clear_log_excluded_paths)
+        sync_log_paths=self.test_list.options.sync_log_paths,
+        sync_log_period_secs=self.test_list.options.sync_log_period_secs,
+        scan_log_period_secs=self.test_list.options.scan_log_period_secs,
+        clear_log_paths=self.test_list.options.clear_log_paths,
+        clear_log_excluded_paths=self.test_list.options.clear_log_excluded_paths)
     self.system_log_manager.Start()
 
     self.update_system_info()
@@ -1633,24 +1640,24 @@ class Goofy(GoofyBase):
       stateful = disk_space.GetPartitionUsage(stateful_info)
       encrypted = disk_space.GetPartitionUsage(encrypted_info)
 
-      above_threshold =  (
+      above_threshold = (
           self.test_list.options.stateful_usage_threshold and
           max(stateful.bytes_used_pct,
               stateful.inodes_used_pct,
               encrypted.bytes_used_pct,
               encrypted.inodes_used_pct) >
-              self.test_list.options.stateful_usage_threshold)
+          self.test_list.options.stateful_usage_threshold)
 
       if above_threshold:
         self.event_log.Log('stateful_partition_usage',
-            partitions={
-                'stateful': {
-                    'bytes_used_pct': FloatDigit(stateful.bytes_used_pct, 2),
-                    'inodes_used_pct': FloatDigit(stateful.inodes_used_pct, 2)},
-                'encrypted_stateful': {
-                    'bytes_used_pct': FloatDigit(encrypted.bytes_used_pct, 2),
-                    'inodes_used_pct': FloatDigit(encrypted.inodes_used_pct, 2)}
-            })
+                           partitions={
+                               'stateful': {
+                                   'bytes_used_pct': FloatDigit(stateful.bytes_used_pct, 2),
+                                   'inodes_used_pct': FloatDigit(stateful.inodes_used_pct, 2)},
+                               'encrypted_stateful': {
+                                   'bytes_used_pct': FloatDigit(encrypted.bytes_used_pct, 2),
+                                   'inodes_used_pct': FloatDigit(encrypted.inodes_used_pct, 2)}
+                           })
         self.log_watcher.ScanEventLogs()
         if (not utils.in_chroot() and
             self.test_list.options.stateful_usage_above_threshold_action):
@@ -1724,7 +1731,7 @@ class Goofy(GoofyBase):
           self.log_watcher.KickWatchThread()
           if self.test_list.options.enable_sync_log:
             self.system_log_manager.KickToSync()
-    except: # pylint: disable=W0702
+    except:  # pylint: disable=W0702
       logging.exception('Unable to check battery or notify shopfloor')
     finally:
       if message != self.last_check_battery_message:
@@ -1804,8 +1811,8 @@ class Goofy(GoofyBase):
       except:  # pylint: disable=W0702
         # Oh well.  Log an error (but no trace)
         logging.info(
-          'Unable to get time from shopfloor server: %s',
-          utils.FormatExceptionOnly())
+            'Unable to get time from shopfloor server: %s',
+            utils.FormatExceptionOnly())
 
     thread = threading.Thread(target=target)
     thread.daemon = True
@@ -1842,15 +1849,15 @@ class Goofy(GoofyBase):
         description = 'event logs (%s)' % str(chunk)
         start_time = time.time()
         shopfloor_client = shopfloor.get_instance(
-          detect=True,
-          timeout=self.test_list.options.shopfloor_timeout_secs)
-        shopfloor_client.UploadEvent(chunk.log_name + "." +
+            detect=True,
+            timeout=self.test_list.options.shopfloor_timeout_secs)
+        shopfloor_client.UploadEvent(chunk.log_name + '.' +
                                      event_log.GetReimageId(),
                                      Binary(chunk.chunk))
         logging.info(
-          'Successfully synced %s in %.03f s',
-          description, time.time() - start_time)
-      except: # pylint: disable=W0702
+            'Successfully synced %s in %.03f s',
+            description, time.time() - start_time)
+      except:  # pylint: disable=W0702
         first_exception = (first_exception or (chunk.log_name + ': ' +
                                                utils.FormatExceptionOnly()))
         exception_count += 1
@@ -1863,9 +1870,7 @@ class Goofy(GoofyBase):
             exception_count, first_exception)
       raise Exception(msg)
 
-
-  def run_tests_with_status(self, statuses_to_run, starting_at=None,
-    root=None):
+  def run_tests_with_status(self, statuses_to_run, starting_at=None, root=None):
     """Runs all top-level tests with a particular status.
 
     All active tests, plus any tests to re-run, are reset.
@@ -1936,8 +1941,8 @@ class Goofy(GoofyBase):
     """
     root = root or self.test_list
     self.run_tests_with_status([TestState.UNTESTED, TestState.ACTIVE],
-                   starting_at=starting_at,
-                   root=root)
+                               starting_at=starting_at,
+                               root=root)
 
   def re_run_failed(self, root=None):
     """Re-runs failed tests."""
