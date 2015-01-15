@@ -221,6 +221,10 @@ class InterruptHandler(object):
       return
 
     if self._starting_fixture_action is None:
+      if self._servo.IsOn(self._FIXTURE_FEEDBACK.DUT_SENSOR):
+        logging.info(
+            '[HandleStartFixture] OOPS! Cannot close cover without DUT')
+        return
       self._ResetWhaleDeviceBeforeClosing()
       self._ResetDolphinDeviceBeforeClosing()
       self._starting_fixture_action = ActionType.CLOSE_COVER
