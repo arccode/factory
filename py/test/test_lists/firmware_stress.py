@@ -331,7 +331,8 @@ def SetOptions(options, args):
     options.enable_sync_log = True
     options.sync_log_period_secs = 10 * MINUTES
     options.scan_log_period_secs = 2 * MINUTES
-    options.core_dump_watchlist = [
+    options.core_dump_watchlist = []
+    options.clear_log_paths += [
         '/var/spool/crash/shill.*',
     ]
     options.log_disk_space_period_secs = 2 * MINUTES
